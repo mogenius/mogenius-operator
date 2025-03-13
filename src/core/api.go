@@ -7,6 +7,7 @@ import (
 	"mogenius-k8s-manager/src/helm"
 	"mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/utils"
+	"mogenius-k8s-manager/src/valkeyclient"
 	"slices"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -82,14 +83,16 @@ type Api interface {
 type api struct {
 	workspaceManager WorkspaceManager
 	logger           *slog.Logger
+	valkeyClient     valkeyclient.ValkeyClient
 }
 
-func NewApi(logger *slog.Logger) Api {
-	apiModule := &api{}
+func NewApi(logger *slog.Logger, valkeyClient valkeyclient.ValkeyClient) Api {
+	self := &api{}
 
-	apiModule.logger = logger
+	self.logger = logger
+	self.valkeyClient = valkeyClient
 
-	return apiModule
+	return self
 }
 
 func (self *api) Link(workspaceManager WorkspaceManager) {
@@ -341,7 +344,7 @@ func (self *api) GetWorkspaceResources(workspaceName string, whitelist []*utils.
 				Release:   v.Id,
 				Whitelist: whitelist,
 			}
-			helmResources, err := helm.HelmReleaseGetWorkloads(helmReq)
+			helmResources, err := helm.HelmReleaseGetWorkloads(self.valkeyClient, helmReq)
 			if err != nil {
 				return result, err
 			}

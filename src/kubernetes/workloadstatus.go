@@ -7,6 +7,7 @@ import (
 	"mogenius-k8s-manager/src/helm"
 	"mogenius-k8s-manager/src/store"
 	"mogenius-k8s-manager/src/utils"
+	"mogenius-k8s-manager/src/valkeyclient"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -45,11 +46,11 @@ type GetWorkloadStatusRequest struct {
 	IgnoreDependentResources *bool `json:"ignoreDependentResources,omitempty"`
 }
 
-func getOrFetchReplicaSets(cache map[string][]unstructured.Unstructured, namespace string) []unstructured.Unstructured {
+func getOrFetchReplicaSets(valkeyClient valkeyclient.ValkeyClient, cache map[string][]unstructured.Unstructured, namespace string) []unstructured.Unstructured {
 	if cachedSets, found := cache[namespace]; found {
 		return cachedSets
 	}
-	replicaSetsResults, err := store.SearchByKeyParts("apps/v1", "ReplicaSet", namespace)
+	replicaSetsResults, err := store.SearchByKeyParts(valkeyClient, "apps/v1", "ReplicaSet", namespace)
 	if err != nil {
 		k8sLogger.Warn("Error getting replicaset", "error", err)
 		return nil
@@ -62,7 +63,7 @@ func getOrFetchJobs(cache map[string][]unstructured.Unstructured, namespace stri
 	if cachedSets, found := cache[namespace]; found {
 		return cachedSets
 	}
-	jobResults, err := store.SearchByKeyParts("batch/v1", "Job", namespace)
+	jobResults, err := store.SearchByKeyParts(valkeyClient, "batch/v1", "Job", namespace)
 	if err != nil {
 		k8sLogger.Warn("Error getting job", "error", err)
 		return nil
@@ -75,7 +76,7 @@ func getOrFetchPods(cache map[string][]unstructured.Unstructured, namespace stri
 	if cachedPods, found := cache[namespace]; found {
 		return cachedPods
 	}
-	podsResults, err := store.SearchByKeyParts("v1", "Pod", namespace)
+	podsResults, err := store.SearchByKeyParts(valkeyClient, "v1", "Pod", namespace)
 	if err != nil {
 		k8sLogger.Warn("Error getting pod", "error", err)
 		return nil
@@ -161,7 +162,7 @@ func GetWorkloadStatusItems(
 	switch workload.GetKind() {
 	case "Deployment":
 		// Get or fetch ReplicaSets relevant to the namespace.
-		replicaSets := getOrFetchReplicaSets(replicaSetsCache, workload.GetNamespace())
+		replicaSets := getOrFetchReplicaSets(valkeyClient, replicaSetsCache, workload.GetNamespace())
 
 		if replicaSets != nil {
 			var replicaSetsList []unstructured.Unstructured
@@ -262,7 +263,7 @@ func GetWorkloadStatus(requestData GetWorkloadStatusRequest) ([]WorkloadStatusDt
 		}
 
 		for _, helmRelease := range *requestData.HelmReleases {
-			unstructuredResourceList, err := helm.HelmReleaseGetWorkloads(helm.HelmReleaseGetWorkloadsRequest{
+			unstructuredResourceList, err := helm.HelmReleaseGetWorkloads(valkeyClient, helm.HelmReleaseGetWorkloadsRequest{
 				Release:   helmRelease.Release,
 				Namespace: helmRelease.Namespace,
 				Whitelist: whitelist,
@@ -333,7 +334,7 @@ func GetWorkloadStatus(requestData GetWorkloadStatusRequest) ([]WorkloadStatusDt
 		k8sLogger.Debug("Filtering by ResourceEntity, namespaces and resourceNames")
 		for _, resourceName := range *requestData.ResourceNames {
 			for _, namespace := range *requestData.Namespaces {
-				workloads, err := store.SearchByGroupKindNameNamespace(requestData.ResourceEntity.Group, requestData.ResourceEntity.Kind, resourceName, &namespace)
+				workloads, err := store.SearchByGroupKindNameNamespace(valkeyClient, requestData.ResourceEntity.Group, requestData.ResourceEntity.Kind, resourceName, &namespace)
 				if err != nil {
 					k8sLogger.Warn("Error getting workload", "error", err)
 				} else {
@@ -346,7 +347,7 @@ func GetWorkloadStatus(requestData GetWorkloadStatusRequest) ([]WorkloadStatusDt
 	if !isResourceEntityEmpty && requestData.Namespaces == nil && requestData.ResourceNames != nil {
 		k8sLogger.Debug("Filtering by ResourceEntity and resourceNames")
 		for _, resourceName := range *requestData.ResourceNames {
-			workloads, err := store.SearchByGroupKindNameNamespace(requestData.ResourceEntity.Group, requestData.ResourceEntity.Kind, resourceName, nil)
+			workloads, err := store.SearchByGroupKindNameNamespace(valkeyClient, requestData.ResourceEntity.Group, requestData.ResourceEntity.Kind, resourceName, nil)
 			if err != nil {
 				k8sLogger.Warn("Error getting workload", "error", err)
 			} else {
@@ -359,7 +360,7 @@ func GetWorkloadStatus(requestData GetWorkloadStatusRequest) ([]WorkloadStatusDt
 		k8sLogger.Debug("Filtering by namespaces and resourceNames")
 		for _, resourceName := range *requestData.ResourceNames {
 			for _, namespace := range *requestData.Namespaces {
-				workloads, err := store.SearchByNamespaceAndName(namespace, resourceName)
+				workloads, err := store.SearchByNamespaceAndName(valkeyClient, namespace, resourceName)
 				if err != nil {
 					k8sLogger.Warn("Error getting workload", "error", err)
 				} else {

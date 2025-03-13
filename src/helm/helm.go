@@ -11,7 +11,7 @@ import (
 	"mogenius-k8s-manager/src/store"
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
-	"mogenius-k8s-manager/src/valkeystore"
+	"mogenius-k8s-manager/src/valkeyclient"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -62,14 +62,14 @@ var RepoFileDoesNotExist = fmt.Errorf("repository.yaml does not exist")
 
 var helmLogger *slog.Logger
 var config cfg.ConfigModule
-var valkeyStore valkeystore.ValkeyStore
+var valkeyClient valkeyclient.ValkeyClient
 
 var helmCache = cache.New(2*time.Hour, 30*time.Minute) // cache with default expiration time of 2 hours and cleanup interval of 30 minutes
 
-func Setup(logManager logging.SlogManager, configModule cfg.ConfigModule, storeModule valkeystore.ValkeyStore) {
+func Setup(logManager logging.SlogManager, configModule cfg.ConfigModule, valkey valkeyclient.ValkeyClient) {
 	helmLogger = logManager.CreateLogger("helm")
 	config = configModule
-	valkeyStore = storeModule
+	valkeyClient = valkey
 }
 
 type HelmRepoAddRequest struct {
@@ -1101,8 +1101,8 @@ func IsManagedByHelmRelease(labels map[string]string, annotations map[string]str
 	return annotationReleaseName || (labelManagedByHelm && (labelInstanceRelease || annotationReleaseName))
 }
 
-func HelmReleaseGetWorkloads(data HelmReleaseGetWorkloadsRequest) ([]unstructured.Unstructured, error) {
-	workloads, err := store.SearchByNamespace(data.Namespace, data.Whitelist)
+func HelmReleaseGetWorkloads(valkeyClient valkeyclient.ValkeyClient, data HelmReleaseGetWorkloadsRequest) ([]unstructured.Unstructured, error) {
+	workloads, err := store.SearchByNamespace(valkeyClient, data.Namespace, data.Whitelist)
 	if err != nil {
 		return nil, err
 	}
@@ -1119,7 +1119,7 @@ func HelmReleaseGetWorkloads(data HelmReleaseGetWorkloadsRequest) ([]unstructure
 
 		if workload.GetKind() == "Pod" {
 			if !replicaSetsFetched {
-				replicaSets, err = store.SearchByKeyParts("apps/v1", "ReplicaSet", data.Namespace)
+				replicaSets, err = store.SearchByKeyParts(valkeyClient, "apps/v1", "ReplicaSet", data.Namespace)
 				if errors.Is(err, store.ErrNotFound) {
 					helmLogger.Warn("ReplicaSet not found", "error", err)
 					replicaSets = nil
@@ -1204,7 +1204,7 @@ func saveRepositoryFileToValkey() error {
 		return fmt.Errorf("failed to marshal repositories.yaml: %w", err)
 	}
 
-	valkeyStore.Set(string(yamlData), 0, "helm", "repositories.yaml")
+	valkeyClient.Set(string(yamlData), 0, "helm", "repositories.yaml")
 
 	return nil
 }
@@ -1212,7 +1212,7 @@ func saveRepositoryFileToValkey() error {
 func restoreRepositoryFileFromValkey() error {
 	helmLogger.Info("Restoring repositories.yaml from valkey")
 
-	data, err := valkeyStore.Get("helm", "repositories.yaml")
+	data, err := valkeyClient.Get("helm", "repositories.yaml")
 	if err != nil {
 		return fmt.Errorf("failed to get repositories.yaml from valkey: %s", err.Error())
 	}

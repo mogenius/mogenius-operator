@@ -3,6 +3,7 @@ package logging_test
 import (
 	"log/slog"
 	"mogenius-k8s-manager/src/logging"
+	"os"
 	"testing"
 )
 
@@ -17,5 +18,5 @@ func TestSlogManagerAdheresToLogManagerInterface(t *testing.T) {
 func TestMockSlogManagerAdheresToLogManagerInterface(t *testing.T) {
 	t.Parallel()
 	testfunc := func(w logging.SlogManager) {}
-	testfunc(logging.NewMockSlogManager(t)) // this checks if the typesystem allows to call it
+	testfunc(logging.NewSlogManager(slog.LevelDebug, []slog.Handler{slog.NewJSONHandler(os.Stderr, nil)})) // this checks if the typesystem allows to call it
 }

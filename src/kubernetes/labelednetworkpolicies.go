@@ -650,7 +650,7 @@ func CreateAllowNamespaceCommunicationNetworkPolicy(namespaceName string) error 
 
 func cleanupUnusedDenyAllIngress(namespaceName string) {
 	// list all network policies and find all that have the marker label
-	policies, err := store.ListNetworkPolicies(namespaceName)
+	policies, err := store.ListNetworkPolicies(valkeyClient, namespaceName)
 	if err != nil {
 		k8sLogger.Error("cleanupNetworkPolicies", "error", err)
 		return
@@ -827,7 +827,7 @@ func EnforceNetworkPolicyManagerForNamespace(namespaceName string) error {
 	}
 
 	// delete network policies named with namespace name
-	policies, err := store.ListNetworkPolicies(namespaceName)
+	policies, err := store.ListNetworkPolicies(valkeyClient, namespaceName)
 	if err == nil {
 		for _, policy := range policies {
 			if policy.Name == namespaceName {
@@ -952,7 +952,7 @@ func DeleteNetworkPolicyByName(namespaceName string, policyName string) error {
 
 func DisableNetworkPolicyManagerForNamespace(namespaceName string) error {
 	// get all network policies in the namespace created by mogenius
-	netPols, err := store.ListNetworkPolicies(namespaceName)
+	netPols, err := store.ListNetworkPolicies(valkeyClient, namespaceName)
 	if err != nil {
 		return fmt.Errorf("failed to list all network policies: %v", err)
 	}
@@ -985,7 +985,7 @@ func DisableNetworkPolicyManagerForNamespace(namespaceName string) error {
 }
 
 func ListAllConflictingNetworkPolicies(namespaceName string) (*v1.NetworkPolicyList, error) {
-	policies, err := store.ListNetworkPolicies(namespaceName)
+	policies, err := store.ListNetworkPolicies(valkeyClient, namespaceName)
 	if err != nil {
 		return nil, err
 	}
@@ -1044,7 +1044,7 @@ func ListControllerLabeledNetworkPolicies(
 			Version:   "",
 		}
 
-		deployment, err := store.GetByKeyParts[appsv1.Deployment](VALKEY_KEY_PREFIX, resource.Group, resource.Kind, namespaceName, controllerName)
+		deployment, err := store.GetByKeyParts[appsv1.Deployment](valkeyClient, VALKEY_KEY_PREFIX, resource.Group, resource.Kind, namespaceName, controllerName)
 		if err != nil {
 			return nil, fmt.Errorf("ListControllerLabeledNetworkPolicies %s ERROR: %s", controllerType, err.Error())
 		}
@@ -1060,7 +1060,7 @@ func ListControllerLabeledNetworkPolicies(
 			Version:   "",
 		}
 
-		daemonset, err := store.GetByKeyParts[appsv1.DaemonSet](VALKEY_KEY_PREFIX, resource.Group, resource.Kind, namespaceName, controllerName)
+		daemonset, err := store.GetByKeyParts[appsv1.DaemonSet](valkeyClient, VALKEY_KEY_PREFIX, resource.Group, resource.Kind, namespaceName, controllerName)
 		if err != nil {
 			return nil, fmt.Errorf("ListControllerLabeledNetworkPolicies %s ERROR: %s", controllerType, err.Error())
 		}
@@ -1076,7 +1076,7 @@ func ListControllerLabeledNetworkPolicies(
 			Version:   "",
 		}
 
-		statefulset, err := store.GetByKeyParts[appsv1.StatefulSet](VALKEY_KEY_PREFIX, resource.Group, resource.Kind, namespaceName, controllerName)
+		statefulset, err := store.GetByKeyParts[appsv1.StatefulSet](valkeyClient, VALKEY_KEY_PREFIX, resource.Group, resource.Kind, namespaceName, controllerName)
 		if err != nil {
 			return nil, fmt.Errorf("ListControllerLabeledNetworkPolicies %s ERROR: %s", controllerType, err.Error())
 		}
@@ -1087,7 +1087,7 @@ func ListControllerLabeledNetworkPolicies(
 
 	netpols := []dtos.K8sLabeledNetworkPolicyDto{}
 
-	policies, err := store.ListNetworkPolicies(namespaceName)
+	policies, err := store.ListNetworkPolicies(valkeyClient, namespaceName)
 	if err != nil {
 		return nil, err
 	}

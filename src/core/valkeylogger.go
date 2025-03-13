@@ -3,31 +3,35 @@ package core
 import (
 	"fmt"
 	"mogenius-k8s-manager/src/logging"
-	"mogenius-k8s-manager/src/valkeystore"
+	"mogenius-k8s-manager/src/valkeyclient"
 )
 
-type ValkeyLogger interface{}
+type ValkeyLogger interface {
+	Run()
+}
 
 type valkeyLogger struct {
-	store      valkeystore.ValkeyStore
+	valkey     valkeyclient.ValkeyClient
 	logChannel chan logging.LogLine
 }
 
-func NewValkeyLogger(store valkeystore.ValkeyStore, logChannel chan logging.LogLine) ValkeyLogger {
+func NewValkeyLogger(valkey valkeyclient.ValkeyClient, logChannel chan logging.LogLine) ValkeyLogger {
 	self := &valkeyLogger{}
 
-	self.store = store
+	self.valkey = valkey
 	self.logChannel = logChannel
 
+	return self
+}
+
+func (self *valkeyLogger) Run() {
 	go func() {
 		for {
 			record := <-self.logChannel
-			err := self.store.AddToBucket(10000, record, "logs", record.Component)
+			err := self.valkey.AddToBucket(10000, record, "logs", record.Component)
 			if err != nil {
 				fmt.Printf("Failed to log record: %v\n", err)
 			}
 		}
 	}()
-
-	return self
 }

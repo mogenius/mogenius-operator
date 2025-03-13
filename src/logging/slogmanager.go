@@ -7,11 +7,11 @@ import (
 	"log/slog"
 	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/shell"
+	"os"
 	"path"
 	"runtime"
 	"slices"
 	"strings"
-	"testing"
 	"time"
 
 	jsoniter "github.com/json-iterator/go"
@@ -33,44 +33,6 @@ type SlogManager interface {
 
 	CombinedLogPath() (string, error)
 	ComponentLogPath(componentId string) (string, error)
-}
-
-// TODO: replace with a mocking framework like: https://github.com/uber-go/mock
-//
-// Since this is only a logger we san simply always provide a default logger from golangs stdlib
-type MockSlogManager struct {
-	writer io.Writer
-}
-
-type testWriter struct {
-	t *testing.T
-}
-
-func (w *testWriter) Write(p []byte) (n int, err error) {
-	w.t.Log(string(p))
-	return len(p), nil
-}
-
-func NewMockSlogManager(t *testing.T) *MockSlogManager {
-	return &MockSlogManager{
-		writer: &testWriter{t: t},
-	}
-}
-
-func (m *MockSlogManager) CombinedLogPath() (string, error) {
-	return "", fmt.Errorf("cant get component log path of mock slog manager")
-}
-
-func (m *MockSlogManager) ComponentLogPath(componentId string) (string, error) {
-	return "", fmt.Errorf("cant get component log path of mock slog manager")
-}
-
-func (m *MockSlogManager) GetLogger(componentId string) (*slog.Logger, error) {
-	return slog.New(slog.NewJSONHandler(m.writer, nil)).With("component", componentId), nil
-}
-
-func (m *MockSlogManager) CreateLogger(componentId string) *slog.Logger {
-	return slog.New(slog.NewJSONHandler(m.writer, nil)).With("component", componentId)
 }
 
 type slogManager struct {
@@ -176,7 +138,44 @@ func (self *LogLine) ToJson() string {
 	return string(data)
 }
 
-// SlogMultiHandler
+func slogRecordToSourceString(record slog.Record) string {
+	frame, _ := runtime.CallersFrames([]uintptr{record.PC}).Next()
+	file := frame.File
+	return fmt.Sprintf("%s:%d", file, frame.Line)
+}
+
+func slogRecordToPayload(record slog.Record, filterFunc func(data string) string) map[string]any {
+	attrs := make(map[string]any)
+
+	record.Attrs(func(attr slog.Attr) bool {
+		str, ok := attr.Value.Any().(string)
+		if ok && filterFunc != nil {
+			filteredStr := filterFunc(str)
+			attrs[attr.Key] = filteredStr
+			return true
+		}
+		errorData, ok := attr.Value.Any().(error)
+		if ok {
+			attrs[attr.Key] = errorData.Error()
+			return true
+		}
+		stringerData, ok := attr.Value.Any().(fmt.Stringer)
+		if ok {
+			attrs[attr.Key] = stringerData.String()
+			return true
+		}
+		attrs[attr.Key] = attr.Value.Any()
+		return true
+	})
+
+	return attrs
+}
+
+// ########################
+// # +------------------+ #
+// # | SlogMultiHandler | #
+// # +------------------+ #
+// ########################
 
 type SlogMultiHandler struct {
 	inner []slog.Handler
@@ -245,7 +244,11 @@ func (self *SlogMultiHandler) WithGroup(group string) slog.Handler {
 	return newMultiHandler
 }
 
-// PrettyPrintHandler
+// ##########################
+// # +--------------------+ #
+// # | PrettyPrintHandler | #
+// # +--------------------+ #
+// ##########################
 
 type PrettyPrintHandler struct {
 	out        io.Writer
@@ -413,7 +416,11 @@ func (self *PrettyPrintHandler) printLogLine(
 	return nil
 }
 
-// RecordChannelHandler
+// ############################
+// # +----------------------+ #
+// # | RecordChannelHandler | #
+// # +----------------------+ #
+// ############################
 
 type RecordChannelHandler struct {
 	recordChannelTx chan LogLine
@@ -426,12 +433,14 @@ type RecordChannelHandler struct {
 }
 
 func NewRecordChannelHandler(buffersize int, logLevel slog.Level, filterFunc func(msg string) string) *RecordChannelHandler {
+	assert.Assert(buffersize >= 2, "log message buffer needs a size of at least 2")
+
 	self := RecordChannelHandler{}
 
+	self.buffersize = buffersize
 	self.recordChannelTx = make(chan LogLine, buffersize)
 	self.logLevel = logLevel
 	self.filterFunc = filterFunc
-	self.buffersize = buffersize
 
 	return &self
 }
@@ -466,6 +475,10 @@ func (self *RecordChannelHandler) Handle(ctx context.Context, record slog.Record
 	logLine.Time = record.Time
 	logLine.Payload = slogRecordToPayload(record, self.filterFunc)
 
+	if len(self.recordChannelTx) >= self.buffersize {
+		fmt.Fprintf(os.Stderr, "[WARNING] Logline buffer exhausted. Dropping the oldest entry.\n")
+		_ = <-self.recordChannelTx
+	}
 	self.recordChannelTx <- logLine
 
 	return nil
@@ -475,6 +488,7 @@ func (self *RecordChannelHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 	other := &RecordChannelHandler{}
 
 	other.recordChannelTx = self.recordChannelTx
+	other.buffersize = self.buffersize
 	other.logLevel = self.logLevel
 	other.logFilter = self.logFilter
 	other.attrs = append(self.attrs, attrs...)
@@ -488,6 +502,7 @@ func (self *RecordChannelHandler) WithGroup(group string) slog.Handler {
 	other := &RecordChannelHandler{}
 
 	other.recordChannelTx = self.recordChannelTx
+	other.buffersize = self.buffersize
 	other.logLevel = self.logLevel
 	other.logFilter = self.logFilter
 	other.attrs = self.attrs
@@ -514,37 +529,4 @@ func (self *RecordChannelHandler) tryGetScope() *string {
 		}
 	}
 	return nil
-}
-
-func slogRecordToSourceString(record slog.Record) string {
-	frame, _ := runtime.CallersFrames([]uintptr{record.PC}).Next()
-	file := frame.File
-	return fmt.Sprintf("%s:%d", file, frame.Line)
-}
-
-func slogRecordToPayload(record slog.Record, filterFunc func(data string) string) map[string]any {
-	attrs := make(map[string]any)
-
-	record.Attrs(func(attr slog.Attr) bool {
-		str, ok := attr.Value.Any().(string)
-		if ok && filterFunc != nil {
-			filteredStr := filterFunc(str)
-			attrs[attr.Key] = filteredStr
-			return true
-		}
-		errorData, ok := attr.Value.Any().(error)
-		if ok {
-			attrs[attr.Key] = errorData.Error()
-			return true
-		}
-		stringerData, ok := attr.Value.Any().(fmt.Stringer)
-		if ok {
-			attrs[attr.Key] = stringerData.String()
-			return true
-		}
-		attrs[attr.Key] = attr.Value.Any()
-		return true
-	})
-
-	return attrs
 }

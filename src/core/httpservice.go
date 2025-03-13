@@ -5,7 +5,6 @@ import (
 	"log/slog"
 	"mogenius-k8s-manager/src/assert"
 	cfg "mogenius-k8s-manager/src/config"
-	"mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
@@ -17,15 +16,15 @@ import (
 )
 
 type HttpService interface {
-	Run(addr string)
-	Link(socketapi SocketApi)
+	Run()
+	Link(socketapi SocketApi, dbstats ValkeyStatsDb, apiModule Api)
 	Broadcaster() *Broadcaster
 }
 
 type httpService struct {
 	logger      *slog.Logger
 	config      cfg.ConfigModule
-	dbstats     kubernetes.ValkeyStatsDb
+	dbstats     ValkeyStatsDb
 	api         Api
 	broadcaster *Broadcaster
 
@@ -90,29 +89,28 @@ func (self *Broadcaster) BroadcastResponse(message interface{}, messageType stri
 func NewHttpApi(
 	logManagerModule logging.SlogManager,
 	configModule cfg.ConfigModule,
-	dbstats kubernetes.ValkeyStatsDb,
-	apiModule Api,
 ) HttpService {
 	assert.Assert(logManagerModule != nil)
 	assert.Assert(configModule != nil)
-	assert.Assert(dbstats != nil)
 
-	return &httpService{
-		logger:  logManagerModule.CreateLogger("http"),
-		config:  configModule,
-		dbstats: dbstats,
-		api:     apiModule,
-		broadcaster: &Broadcaster{
-			Listeners: []MessageCallback{},
-			mu:        sync.Mutex{},
-		},
+	self := &httpService{}
+
+	self.logger = logManagerModule.CreateLogger("http")
+	self.config = configModule
+	self.broadcaster = &Broadcaster{
+		Listeners: []MessageCallback{},
+		mu:        sync.Mutex{},
 	}
+
+	return self
 }
 
-func (self *httpService) Run(addr string) {
+func (self *httpService) Run() {
 	assert.Assert(self.logger != nil)
 	assert.Assert(self.config != nil)
 	assert.Assert(self.socketapi != nil)
+
+	addr := self.config.Get("MO_HTTP_ADDR")
 
 	self.logger.Debug("initializing http.ServeMux", "addr", addr)
 	mux := http.NewServeMux()
@@ -128,16 +126,22 @@ func (self *httpService) Run(addr string) {
 	}
 
 	self.logger.Info("starting API server", "addr", addr)
-	err := http.ListenAndServe(addr, mux)
-	if err != nil {
-		self.logger.Error("failed to start api server", "error", err)
-	}
+	go func() {
+		err := http.ListenAndServe(addr, mux)
+		if err != nil {
+			self.logger.Error("failed to start api server", "error", err)
+		}
+	}()
 }
 
-func (self *httpService) Link(socketapi SocketApi) {
+func (self *httpService) Link(socketapi SocketApi, dbstats ValkeyStatsDb, apiModule Api) {
 	assert.Assert(socketapi != nil)
+	assert.Assert(dbstats != nil)
+	assert.Assert(apiModule != nil)
 
 	self.socketapi = socketapi
+	self.dbstats = dbstats
+	self.api = apiModule
 }
 
 func (self *httpService) Broadcaster() *Broadcaster {

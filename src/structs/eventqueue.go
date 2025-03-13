@@ -81,7 +81,7 @@ func processEventQueueNow(eventClient websocket.WebsocketClient) {
 	eventSendMutex.Lock()
 	defer eventSendMutex.Unlock()
 
-	for i := 0; i < len(eventDataQueue); i++ {
+	for i := range eventDataQueue {
 		element := eventDataQueue[i]
 
 		err := eventClient.WriteJSON(element.Datagram)

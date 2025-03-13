@@ -11,7 +11,7 @@ import (
 	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/secrets"
 	"mogenius-k8s-manager/src/utils"
-	"mogenius-k8s-manager/src/valkeystore"
+	"mogenius-k8s-manager/src/valkeyclient"
 	"net/url"
 	"os"
 	"os/exec"
@@ -32,9 +32,9 @@ import (
 var logManager logging.SlogManager
 var xtermLogger *slog.Logger
 var clientProvider k8sclient.K8sClientProvider
-var store valkeystore.ValkeyStore
+var store valkeyclient.ValkeyClient
 
-func Setup(logManagerModule logging.SlogManager, clientProviderModule k8sclient.K8sClientProvider, storeModule valkeystore.ValkeyStore) {
+func Setup(logManagerModule logging.SlogManager, clientProviderModule k8sclient.K8sClientProvider, storeModule valkeyclient.ValkeyClient) {
 	logManager = logManagerModule
 	xtermLogger = logManagerModule.CreateLogger("xterm")
 	clientProvider = clientProviderModule

@@ -100,7 +100,7 @@ func setStoreIfNeeded(eventClient websocket.WebsocketClient, groupVersion string
 	}
 
 	// other resources
-	err := valkeyStore.SetObject(obj, 0, VALKEY_KEY_PREFIX, groupVersion, kind, namespace, name)
+	err := valkeyClient.SetObject(obj, 0, VALKEY_KEY_PREFIX, groupVersion, kind, namespace, name)
 	if err != nil {
 		k8sLogger.Error("Error setting object in store", "error", err)
 	}
@@ -128,7 +128,7 @@ func deleteFromStoreIfNeeded(eventClient websocket.WebsocketClient, groupVersion
 	}
 
 	if kind == "NetworkPolicy" {
-		err := valkeyStore.Delete(VALKEY_KEY_PREFIX, groupVersion, kind, namespace, name)
+		err := valkeyClient.Delete(VALKEY_KEY_PREFIX, groupVersion, kind, namespace, name)
 		if err != nil {
 			k8sLogger.Error("Error deleting object in store", "error", err)
 		}
@@ -145,7 +145,7 @@ func deleteFromStoreIfNeeded(eventClient websocket.WebsocketClient, groupVersion
 	}
 
 	// other resources
-	err := valkeyStore.Delete(VALKEY_KEY_PREFIX, groupVersion, kind, namespace, name)
+	err := valkeyClient.Delete(VALKEY_KEY_PREFIX, groupVersion, kind, namespace, name)
 	if err != nil {
 		k8sLogger.Error("Error deleting object in store", "error", err)
 	}
@@ -177,7 +177,7 @@ func GetUnstructuredResourceListFromStore(group string, kind string, version str
 		namespace = utils.Pointer("")
 	}
 	// try to get the data from the store (very fast)
-	result := store.GetResourceByKindAndNamespace(group, kind, *namespace)
+	result := store.GetResourceByKindAndNamespace(valkeyClient, group, kind, *namespace)
 	if result != nil {
 		results.Items = result
 	}
@@ -223,7 +223,7 @@ func GetUnstructuredNamespaceResourceList(namespace string, whitelist []*utils.S
 				continue
 			}
 
-			result := store.GetResourceByKindAndNamespace(v.Group, v.Kind, namespace)
+			result := store.GetResourceByKindAndNamespace(valkeyClient, v.Group, v.Kind, namespace)
 			if result != nil {
 				results = append(results, result...)
 			}

@@ -1,16 +1,18 @@
 package utils_test
 
 import (
+	"log/slog"
 	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/utils"
+	"os"
 	"testing"
 )
 
 func TestUtils(t *testing.T) {
 	t.Parallel()
-	logManager := logging.NewMockSlogManager(t)
+	logManager := logging.NewSlogManager(slog.LevelDebug, []slog.Handler{slog.NewJSONHandler(os.Stderr, nil)})
 	configModule := config.NewConfig()
 	utils.Setup(logManager, configModule)
 
