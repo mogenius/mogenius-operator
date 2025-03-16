@@ -425,51 +425,6 @@ func UpgradeTrafficCollector() (string, error) {
 	return helm.HelmReleaseUpgrade(r)
 }
 
-func InstallPodStatsCollector() (string, error) {
-	r := ClusterHelmRequest{
-		HelmRepoName:    "mogenius",
-		HelmRepoUrl:     MogeniusHelmIndex,
-		HelmReleaseName: utils.HelmReleaseNamePodStatsCollector,
-		HelmChartName:   "mogenius/" + utils.HelmReleaseNamePodStatsCollector,
-		HelmValues: fmt.Sprintf(`global:
-  namespace: %s
-  stage: %s
-`, config.Get("MO_OWN_NAMESPACE"), config.Get("MO_STAGE")),
-	}
-	if config.Get("MO_STAGE") == utils.STAGE_DEV {
-		r.HelmChartName = "mogenius/dev-" + utils.HelmReleaseNamePodStatsCollector
-		r.HelmReleaseName = "dev-" + utils.HelmReleaseNamePodStatsCollector
-		version, err := GetCurrentPodStatsCollectorVersion()
-		if err != nil {
-			serviceLogger.Error("Error getting current pod stats collector version", "error", err)
-		}
-		r.HelmChartVersion = version
-	}
-	return helm.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues, r.HelmChartVersion)
-}
-
-func UpgradePodStatsCollector() (string, error) {
-	r := helm.HelmChartInstallUpgradeRequest{
-		Namespace: config.Get("MO_OWN_NAMESPACE"),
-		Release:   utils.HelmReleaseNamePodStatsCollector,
-		Chart:     "mogenius/" + utils.HelmReleaseNamePodStatsCollector,
-		Values: fmt.Sprintf(`global:
-  namespace: %s
-  stage: %s
-`, config.Get("MO_OWN_NAMESPACE"), config.Get("MO_STAGE")),
-	}
-	if config.Get("MO_STAGE") == utils.STAGE_DEV {
-		r.Chart = "mogenius/dev-" + utils.HelmReleaseNamePodStatsCollector
-		r.Release = "dev-" + utils.HelmReleaseNamePodStatsCollector
-		version, err := GetCurrentPodStatsCollectorVersion()
-		if err != nil {
-			serviceLogger.Error("Error getting current pod stats collector version", "error", err)
-		}
-		r.Version = version
-	}
-	return helm.HelmReleaseUpgrade(r)
-}
-
 func InstallMetricsServer() (string, error) {
 	r := ClusterHelmRequest{
 		HelmRepoName:    utils.HelmReleaseNameMetricsServer,
@@ -712,17 +667,6 @@ func UninstallTrafficCollector() (string, error) {
 	return helm.DeleteHelmChart(r.HelmReleaseName, r.Namespace)
 }
 
-func UninstallPodStatsCollector() (string, error) {
-	r := ClusterHelmRequest{
-		Namespace:       config.Get("MO_OWN_NAMESPACE"),
-		HelmReleaseName: utils.HelmReleaseNamePodStatsCollector,
-	}
-	if config.Get("MO_STAGE") == utils.STAGE_DEV {
-		r.HelmReleaseName = "dev-" + utils.HelmReleaseNamePodStatsCollector
-	}
-	return helm.DeleteHelmChart(r.HelmReleaseName, r.Namespace)
-}
-
 func UninstallMetricsServer() (string, error) {
 	r := ClusterHelmRequest{
 		Namespace:       config.Get("MO_OWN_NAMESPACE"),
@@ -863,24 +807,6 @@ func GetCurrentTrafficCollectorVersion() (string, error) {
 		trafficResult = trafficCollector[0].Version
 	}
 	return trafficResult, nil
-}
-
-func GetCurrentPodStatsCollectorVersion() (string, error) {
-	data, err := utils.GetVersionData(utils.HELM_INDEX)
-	if err != nil {
-		return "NO_VERSION_FOUND", err
-	}
-
-	chartName := utils.HelmReleaseNamePodStatsCollector
-	if config.Get("MO_STAGE") == utils.STAGE_DEV {
-		chartName = "dev-" + utils.HelmReleaseNamePodStatsCollector
-	}
-	podstatsCollector := data.Entries[chartName]
-	podstatsResult := "NO_VERSION_FOUND"
-	if len(podstatsCollector) > 0 {
-		podstatsResult = podstatsCollector[0].Version
-	}
-	return podstatsResult, nil
 }
 
 func getMostCurrentHelmChartVersion(url string, chartname string) string {

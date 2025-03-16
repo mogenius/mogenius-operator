@@ -1,6 +1,7 @@
 package core
 
 import (
+	"fmt"
 	"log/slog"
 	cfg "mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/kubernetes"
@@ -27,8 +28,8 @@ var DefaultMaxSizeSocketConnections int64 = 60
 type ValkeyStatsDb interface {
 	Run() error
 	AddInterfaceStatsToDb(stats structs.InterfaceStats)
-	AddNodeStatsToDb(stats structs.NodeStats)
-	AddPodStatsToDb(stats structs.PodStats)
+	AddNodeStatsToDb(stats []structs.NodeStats) error
+	AddPodStatsToDb(stats []structs.PodStats) error
 	GetCniData() ([]structs.CniData, error)
 	GetLastPodStatsEntriesForNamespace(namespace string) []structs.PodStats
 	GetLastPodStatsEntryForController(controller kubernetes.K8sController) *structs.PodStats
@@ -376,25 +377,31 @@ func (self *valkeyStatsDb) GetTrafficStatsEntriesSumForNamespace(namespace strin
 	return result
 }
 
-func (self *valkeyStatsDb) AddPodStatsToDb(stats structs.PodStats) {
-	controller := kubernetes.ControllerForPod(stats.Namespace, stats.PodName)
-	if controller == nil {
-		return
-	}
+func (self *valkeyStatsDb) AddPodStatsToDb(stats []structs.PodStats) error {
+	for _, stat := range stats {
+		controller := kubernetes.ControllerForPod(stat.Namespace, stat.PodName)
+		if controller == nil {
+			return fmt.Errorf("controller not found for pod %s in namespace %s", stat.PodName, stat.Namespace)
+		}
 
-	stats.CreatedAt = time.Now().Format(time.RFC3339)
-	err := self.valkey.AddToBucket(DefaultMaxSize, stats, DB_STATS_POD_STATS_BUCKET_NAME, stats.Namespace, controller.Name)
-	if err != nil {
-		self.logger.Error("Error adding pod stats", "namespace", stats.Namespace, "podName", stats.PodName, "error", err)
+		stat.CreatedAt = time.Now().Format(time.RFC3339)
+		err := self.valkey.AddToBucket(DefaultMaxSize, stat, DB_STATS_POD_STATS_BUCKET_NAME, stat.Namespace, controller.Name)
+		if err != nil {
+			return fmt.Errorf("error adding pod stats: %s", err)
+		}
 	}
+	return nil
 }
 
-func (self *valkeyStatsDb) AddNodeStatsToDb(stats structs.NodeStats) {
-	stats.CreatedAt = time.Now().Format(time.RFC3339)
-	err := self.valkey.AddToBucket(DefaultMaxSize, stats, DB_STATS_NODE_STATS_BUCKET_NAME, stats.Name)
-	if err != nil {
-		self.logger.Error("Error adding node stats", "node", stats.Name, "error", err)
+func (self *valkeyStatsDb) AddNodeStatsToDb(stats []structs.NodeStats) error {
+	for _, stat := range stats {
+		stat.CreatedAt = time.Now().Format(time.RFC3339)
+		err := self.valkey.AddToBucket(DefaultMaxSize, stat, DB_STATS_NODE_STATS_BUCKET_NAME, stat.Name)
+		if err != nil {
+			return fmt.Errorf("error adding node stats: %s", err)
+		}
 	}
+	return nil
 }
 
 type GenericChartEntry struct {

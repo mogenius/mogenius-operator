@@ -334,37 +334,6 @@ func SystemCheck() SystemCheckResponse {
 		return trafficEntry
 	})
 
-	// check for podstatscollector
-	wg.Add(1)
-	go SysCheckExec("CheckPodStatsCollector", &wg, &entries, func() SystemCheckEntry {
-		podstatsCollectorNewestVersion, err := GetCurrentPodStatsCollectorVersion()
-		if err != nil {
-			serviceLogger.Error("getCurrentPodStatsCollectorVersion", "error", err)
-		}
-		podStatsCollectorVersion, podStatsCollectorInstalledErr := kubernetes.IsDeploymentInstalled(config.Get("MO_OWN_NAMESPACE"), utils.HelmReleaseNamePodStatsCollector)
-		if podStatsCollectorVersion == "" && podStatsCollectorInstalledErr == nil {
-			podStatsCollectorVersion = "6.6.6" // flag local version without tag
-		}
-		podStatsMsg := fmt.Sprintf("%s (Version: %s) is installed.", utils.HelmReleaseNamePodStatsCollector, podStatsCollectorVersion)
-
-		podEntry := CreateSystemCheckEntry(
-			utils.HelmReleaseNamePodStatsCollector,
-			podStatsCollectorInstalledErr == nil,
-			podStatsMsg,
-			fmt.Sprintf("%s is not installed.\nTo gather pod/event information you need to install this component.", utils.HelmReleaseNamePodStatsCollector),
-			podStatsCollectorInstalledErr,
-			"Collects and exposes status events of pods for services in mogenius.",
-			true,
-			true,
-			podStatsCollectorVersion,
-			podstatsCollectorNewestVersion)
-		podEntry.InstallPattern = structs.PAT_INSTALL_POD_STATS_COLLECTOR
-		podEntry.UninstallPattern = structs.PAT_UNINSTALL_POD_STATS_COLLECTOR
-		podEntry.UpgradePattern = structs.PAT_UPGRADE_PODSTATS_COLLECTOR
-		podEntry.HelmStatus = helm.HelmStatus(config.Get("MO_OWN_NAMESPACE"), utils.HelmReleaseNamePodStatsCollector)
-		return podEntry
-	})
-
 	// check for distribution registry
 	wg.Add(1)
 	go SysCheckExec("CheckDistributionRegistry", &wg, &entries, func() SystemCheckEntry {
