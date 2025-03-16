@@ -259,38 +259,6 @@ func (self *httpService) handleIncomingDatagram(datagram *structs.Datagram) {
 		}
 		self.dbstats.ReplaceCniData(*cniData)
 
-	case "podstats-status":
-		stats := &[]structs.PodStats{}
-		dataBytes, err := json.Marshal(datagram.Payload)
-		if err != nil {
-			self.logger.Error("failed to marshal pod stats", "error", err)
-			return
-		}
-		err = json.Unmarshal(dataBytes, stats)
-		if err != nil {
-			self.logger.Error("failed to unmarshal pod stats", "error", err)
-			return
-		}
-		for _, v := range *stats {
-			self.dbstats.AddPodStatsToDb(v)
-		}
-
-	case "nodestats-status":
-		stats := &[]structs.NodeStats{}
-		dataBytes, err := json.Marshal(datagram.Payload)
-		if err != nil {
-			self.logger.Error("failed to marshal node stats", "error", err)
-			return
-		}
-		err = json.Unmarshal(dataBytes, stats)
-		if err != nil {
-			self.logger.Error("failed to unmarshal node stats", "error", err)
-			return
-		}
-		for _, v := range *stats {
-			self.dbstats.AddNodeStatsToDb(v)
-		}
-
 	default:
 		self.logger.Warn("Unknown pattern", "pattern", datagram.Pattern)
 	}

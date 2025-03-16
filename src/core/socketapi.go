@@ -384,16 +384,6 @@ func (self *socketApi) registerPatterns() {
 	)
 
 	self.RegisterPatternHandler(
-		"install-pod-stats-collector",
-		PatternConfig{
-			ResponseSchema: schema.String(),
-		},
-		func(datagram structs.Datagram) (any, error) {
-			return services.InstallPodStatsCollector()
-		},
-	)
-
-	self.RegisterPatternHandler(
 		"install-metrics-server",
 		PatternConfig{
 			ResponseSchema: schema.String(),
@@ -497,16 +487,6 @@ func (self *socketApi) registerPatterns() {
 	)
 
 	self.RegisterPatternHandler(
-		"uninstall-pod-stats-collector",
-		PatternConfig{
-			ResponseSchema: schema.String(),
-		},
-		func(datagram structs.Datagram) (any, error) {
-			return services.UninstallPodStatsCollector()
-		},
-	)
-
-	self.RegisterPatternHandler(
 		"uninstall-metrics-server",
 		PatternConfig{
 			ResponseSchema: schema.String(),
@@ -593,16 +573,6 @@ func (self *socketApi) registerPatterns() {
 		},
 		func(datagram structs.Datagram) (any, error) {
 			return services.UpgradeTrafficCollector()
-		},
-	)
-
-	self.RegisterPatternHandler(
-		"upgrade-pod-stats-collector",
-		PatternConfig{
-			ResponseSchema: schema.String(),
-		},
-		func(datagram structs.Datagram) (any, error) {
-			return services.UpgradePodStatsCollector()
 		},
 	)
 

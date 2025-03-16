@@ -9,14 +9,9 @@ import (
 	"mogenius-k8s-manager/src/k8sclient"
 	"mogenius-k8s-manager/src/podstatscollector"
 	"mogenius-k8s-manager/src/structs"
-	"mogenius-k8s-manager/src/utils"
-	"mogenius-k8s-manager/src/valkeyclient"
-	"os"
-	"sort"
 	"strconv"
 	"time"
 
-	"github.com/jedib0t/go-pretty/v6/table"
 	jsoniter "github.com/json-iterator/go"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -29,7 +24,7 @@ type PodStatsCollector interface {
 type podStatsCollector struct {
 	logger         *slog.Logger
 	clientProvider k8sclient.K8sClientProvider
-	valkey         valkeyclient.ValkeyClient
+	statsDb        ValkeyStatsDb
 	config         config.ConfigModule
 
 	startTime      time.Time
@@ -40,14 +35,14 @@ func NewPodStatsCollector(
 	logger *slog.Logger,
 	configModule config.ConfigModule,
 	clientProviderModule k8sclient.K8sClientProvider,
-	valkey valkeyclient.ValkeyClient,
+	statsDb ValkeyStatsDb,
 ) PodStatsCollector {
 	self := &podStatsCollector{}
 
 	self.logger = logger
 	self.config = configModule
 	self.clientProvider = clientProviderModule
-	self.valkey = valkey
+	self.statsDb = statsDb
 	self.startTime = time.Now()
 	self.updateInterval = 60
 
@@ -73,20 +68,18 @@ func (self *podStatsCollector) Run() {
 					self.logger.Error("failed to get podStats", "error", err)
 					continue
 				}
-				err = self.valkey.SetObject(podsResult, time.Duration(0), "stats", "pod-stats-collector", "pods")
+				err = self.statsDb.AddPodStatsToDb(podsResult)
 				if err != nil {
 					self.logger.Error("failed to store pod stats", "error", err)
 					continue
 				}
 
 				nodesResult := self.nodeStats(nodemetrics)
-				err = self.valkey.SetObject(nodesResult, time.Duration(0), "stats", "pod-stats-collector", "nodes")
+				err = self.statsDb.AddNodeStatsToDb(nodesResult)
 				if err != nil {
 					self.logger.Error("failed to store node stats", "error", err)
 					continue
 				}
-
-				self.printEntriesTable(podsResult)
 
 				time.Sleep(time.Duration(self.updateInterval) * time.Second)
 			}
@@ -130,10 +123,6 @@ func (self *podStatsCollector) nodeStats(nodemetrics []podstatscollector.NodeMet
 }
 
 func (self *podStatsCollector) getRealNodeMetrics() []podstatscollector.NodeMetrics {
-	if !self.clientProvider.RunsInCluster() {
-		self.logger.Warn("MAKE SURE YOU RUN 'kubectl proxy' to use this function in local config mode.")
-	}
-
 	nodeList, err := self.clientProvider.K8sClientSet().CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		self.logger.Error("failed to getRealNodeMetrics", "error", err)
@@ -141,7 +130,6 @@ func (self *podStatsCollector) getRealNodeMetrics() []podstatscollector.NodeMetr
 
 	result := []podstatscollector.NodeMetrics{}
 	for _, node := range nodeList.Items {
-		self.logger.Info("requesting metrics from node", "node", node.Name)
 		nodeStats, err := self.requestMetricsDataFromNode(node.Name)
 		if err != nil {
 			self.logger.Error("failed to request metrics from node", "error", err)
@@ -220,127 +208,4 @@ func (self *podStatsCollector) requestMetricsDataFromNode(nodeName string) (*pod
 	}
 
 	return result, nil
-}
-
-// Periodically print Information to stdout (statistics/debug/general information)
-func (self *podStatsCollector) printEntriesTable(stats []structs.PodStats) {
-	var totalCpu int64 = 0
-	var totalCpuLimit int64 = 0
-	var totalMemory int64 = 0
-	var totalMemoryLimit int64 = 0
-	var totalEphemeral int64 = 0
-	var totalEphemeralLimit int64 = 0
-
-	for _, data := range stats {
-		totalCpu += data.Cpu
-		totalCpuLimit += data.CpuLimit
-		totalMemory += data.Memory
-		totalMemoryLimit += data.MemoryLimit
-		totalEphemeral += data.EphemeralStorage
-		totalEphemeralLimit += data.EphemeralStorageLimit
-	}
-
-	t := table.NewWriter()
-	t.SetOutputMirror(os.Stdout)
-	t.AppendHeader(
-		table.Row{
-			"Namespace",
-			fmt.Sprintf("PODS (since %s)",
-				utils.HumanDuration(time.Since(self.startTime))),
-			"Container",
-			"CPU %",
-			"Cpu",
-			"CpuLimit",
-			"Memory",
-			"MemoryLimit",
-			"Ephemeral",
-			"EphemeralLimit",
-			"Started",
-		},
-	)
-	sort.Slice(stats, func(i, j int) bool {
-		return stats[i].Cpu < stats[j].Cpu
-	})
-	sort.Slice(stats, func(i, j int) bool {
-		return stats[i].Namespace < stats[j].Namespace
-	})
-	for _, entry := range stats {
-		var usagePercent float64 = 0
-		if entry.CpuLimit > 0 {
-			usagePercent = float64(entry.Cpu) / float64(entry.CpuLimit) * 100
-		}
-
-		t.AppendRow(
-			table.Row{
-				entry.Namespace,
-				entry.PodName,
-				entry.ContainerName,
-				fmt.Sprintf("%.2f", usagePercent),
-				entry.Cpu,
-				entry.CpuLimit,
-				utils.BytesToHumanReadable(entry.Memory),
-				utils.BytesToHumanReadable(entry.MemoryLimit),
-				utils.BytesToHumanReadable(entry.EphemeralStorage),
-				utils.BytesToHumanReadable(entry.EphemeralStorageLimit),
-				utils.JsonStringToHumanDuration(entry.StartTime),
-			},
-		)
-	}
-	t.AppendSeparator()
-	t.AppendFooter(
-		table.Row{
-			"Namespaces",
-			"Pods",
-			"Containers",
-			"",
-			"Cpu",
-			"CpuLimit",
-			"Memory",
-			"MemoryLimit",
-			"Ephemeral",
-			"EphemeralLimit",
-			"",
-		},
-	)
-	t.AppendFooter(
-		table.Row{
-			self.countNamespaces(stats),
-			self.countPods(stats),
-			len(stats),
-			"",
-			totalCpu,
-			totalCpuLimit,
-			utils.BytesToHumanReadable(totalMemory),
-			utils.BytesToHumanReadable(totalMemoryLimit),
-			utils.BytesToHumanReadable(totalEphemeral),
-			utils.BytesToHumanReadable(totalEphemeralLimit),
-			"",
-		},
-	)
-	t.Render()
-
-	debugTable := table.NewWriter()
-	debugTable.SetOutputMirror(os.Stdout)
-	debugTable.AppendHeader(table.Row{"since", "Pods"})
-	debugTable.AppendSeparator()
-	debugTable.AppendRow(
-		table.Row{utils.HumanDuration(time.Since(self.startTime)), len(stats)},
-	)
-	debugTable.Render()
-}
-
-func (self *podStatsCollector) countPods(stats []structs.PodStats) int {
-	mapPods := make(map[string]bool)
-	for _, container := range stats {
-		mapPods[container.PodName] = true
-	}
-	return len(mapPods)
-}
-
-func (self *podStatsCollector) countNamespaces(stats []structs.PodStats) int {
-	mapNamespaces := make(map[string]bool)
-	for _, container := range stats {
-		mapNamespaces[container.Namespace] = true
-	}
-	return len(mapNamespaces)
 }

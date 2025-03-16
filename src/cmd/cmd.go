@@ -328,8 +328,8 @@ func LoadConfigDeclarations(configModule *config.Config) {
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_ENABLE_POD_STATS_COLLECTOR",
-		DefaultValue: utils.Pointer("false"),
-		Description:  utils.Pointer("enable collection of pod stats (requires elevated permissions)"),
+		DefaultValue: utils.Pointer("true"),
+		Description:  utils.Pointer("enable collection of pod stats"),
 		Validate: func(value string) error {
 			_, err := strconv.ParseBool(value)
 			if err != nil {
@@ -444,8 +444,8 @@ func InitializeSystems(
 	socketApi := core.NewSocketApi(logManagerModule.CreateLogger("socketapi"), configModule, jobConnectionClient, eventConnectionClient, valkeyClient)
 	xtermService := core.NewXtermService(logManagerModule.CreateLogger("xterm-service"))
 	valkeyLoggerService := core.NewValkeyLogger(valkeyClient, valkeyLogChannel)
-	podStatsCollector := core.NewPodStatsCollector(logManagerModule.CreateLogger("pod-stats-collector"), configModule, clientProvider, valkeyClient)
 	dbstatsService := core.NewValkeyStatsModule(logManagerModule.CreateLogger("db-stats"), configModule, valkeyClient)
+	podStatsCollector := core.NewPodStatsCollector(logManagerModule.CreateLogger("pod-stats-collector"), configModule, clientProvider, dbstatsService)
 
 	// initialization step 2 for services
 	socketApi.Link(httpApi, xtermService, dbstatsService, apiModule)

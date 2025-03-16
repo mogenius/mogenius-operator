@@ -49,6 +49,11 @@ func ControllerForPod(namespace string, podName string) *K8sController {
 		return ctlr
 	}
 
+	// Special case for pods with no owner (often used by system pods)
+	if pod.OwnerReferences == nil {
+		return utils.Pointer(NewK8sController("Pod", pod.Name, namespace))
+	}
+
 	k8sLogger.Debug("Pod has no owner.", "namespace", namespace, "pod", podName)
 	return nil
 }
