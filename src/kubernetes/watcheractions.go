@@ -22,7 +22,7 @@ import (
 )
 
 const (
-	VALKEY_KEY_PREFIX = "resources"
+	VALKEY_RESOURCE_PREFIX = "resources"
 )
 
 type GetUnstructuredNamespaceResourceListRequest struct {
@@ -100,7 +100,7 @@ func setStoreIfNeeded(eventClient websocket.WebsocketClient, groupVersion string
 	}
 
 	// other resources
-	err := valkeyClient.SetObject(obj, 0, VALKEY_KEY_PREFIX, groupVersion, kind, namespace, name)
+	err := valkeyClient.SetObject(obj, 0, VALKEY_RESOURCE_PREFIX, groupVersion, kind, namespace, name)
 	if err != nil {
 		k8sLogger.Error("Error setting object in store", "error", err)
 	}
@@ -128,7 +128,7 @@ func deleteFromStoreIfNeeded(eventClient websocket.WebsocketClient, groupVersion
 	}
 
 	if kind == "NetworkPolicy" {
-		err := valkeyClient.Delete(VALKEY_KEY_PREFIX, groupVersion, kind, namespace, name)
+		err := valkeyClient.Delete(VALKEY_RESOURCE_PREFIX, groupVersion, kind, namespace, name)
 		if err != nil {
 			k8sLogger.Error("Error deleting object in store", "error", err)
 		}
@@ -145,7 +145,7 @@ func deleteFromStoreIfNeeded(eventClient websocket.WebsocketClient, groupVersion
 	}
 
 	// other resources
-	err := valkeyClient.Delete(VALKEY_KEY_PREFIX, groupVersion, kind, namespace, name)
+	err := valkeyClient.Delete(VALKEY_RESOURCE_PREFIX, groupVersion, kind, namespace, name)
 	if err != nil {
 		k8sLogger.Error("Error deleting object in store", "error", err)
 	}

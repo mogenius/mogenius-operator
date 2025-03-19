@@ -3250,13 +3250,13 @@ func (self *socketApi) updateCheck() {
 		self.logger.Error("HelmIndex Entries length <= 0. Check the HelmIndex for errors.", "HelmIndex", utils.HELM_INDEX)
 		return
 	}
-	mogeniusPlatform, doesExist := helmData.Entries["mogenius-platform"]
+	mogeniusPlatform, doesExist := helmData.Entries["mogenius-operator"]
 	if !doesExist {
-		self.logger.Error("HelmIndex does not contain the field 'mogenius-platform'. Check the HelmIndex for errors.", "HelmIndex", utils.HELM_INDEX)
+		self.logger.Error("HelmIndex does not contain the field 'mogenius-operator'. Check the HelmIndex for errors.", "HelmIndex", utils.HELM_INDEX)
 		return
 	}
 	if len(mogeniusPlatform) <= 0 {
-		self.logger.Error("Field 'mogenius-platform' does not contain a proper version. Check the HelmIndex for errors.", "HelmIndex", utils.HELM_INDEX)
+		self.logger.Error("Field 'mogenius-operator' does not contain a proper version. Check the HelmIndex for errors.", "HelmIndex", utils.HELM_INDEX)
 		return
 	}
 	var mok8smanager *utils.HelmDependency = nil
@@ -3267,7 +3267,7 @@ func (self *socketApi) updateCheck() {
 		}
 	}
 	if mok8smanager == nil {
-		self.logger.Error("The umbrella chart 'mogenius-platform' does not contain a dependency for 'mogenius-k8s-manager'. Check the HelmIndex for errors.", "HelmIndex", utils.HELM_INDEX)
+		self.logger.Error("The umbrella chart 'mogenius-operator' does not contain a dependency for 'mogenius-k8s-manager'. Check the HelmIndex for errors.", "HelmIndex", utils.HELM_INDEX)
 		return
 	}
 

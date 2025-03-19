@@ -1051,7 +1051,7 @@ func ListControllerLabeledNetworkPolicies(
 			Version:   "",
 		}
 
-		deployment, err := store.GetByKeyParts[appsv1.Deployment](valkeyClient, VALKEY_KEY_PREFIX, resource.Group, resource.Kind, namespaceName, controllerName)
+		deployment, err := store.GetByKeyParts[appsv1.Deployment](valkeyClient, VALKEY_RESOURCE_PREFIX, resource.Group, resource.Kind, namespaceName, controllerName)
 		if err != nil {
 			return nil, fmt.Errorf("ListControllerLabeledNetworkPolicies %s ERROR: %s", controllerType, err.Error())
 		}
@@ -1067,7 +1067,7 @@ func ListControllerLabeledNetworkPolicies(
 			Version:   "",
 		}
 
-		daemonset, err := store.GetByKeyParts[appsv1.DaemonSet](valkeyClient, VALKEY_KEY_PREFIX, resource.Group, resource.Kind, namespaceName, controllerName)
+		daemonset, err := store.GetByKeyParts[appsv1.DaemonSet](valkeyClient, VALKEY_RESOURCE_PREFIX, resource.Group, resource.Kind, namespaceName, controllerName)
 		if err != nil {
 			return nil, fmt.Errorf("ListControllerLabeledNetworkPolicies %s ERROR: %s", controllerType, err.Error())
 		}
@@ -1083,7 +1083,7 @@ func ListControllerLabeledNetworkPolicies(
 			Version:   "",
 		}
 
-		statefulset, err := store.GetByKeyParts[appsv1.StatefulSet](valkeyClient, VALKEY_KEY_PREFIX, resource.Group, resource.Kind, namespaceName, controllerName)
+		statefulset, err := store.GetByKeyParts[appsv1.StatefulSet](valkeyClient, VALKEY_RESOURCE_PREFIX, resource.Group, resource.Kind, namespaceName, controllerName)
 		if err != nil {
 			return nil, fmt.Errorf("ListControllerLabeledNetworkPolicies %s ERROR: %s", controllerType, err.Error())
 		}

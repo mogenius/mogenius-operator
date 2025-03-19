@@ -150,6 +150,13 @@ func RunCluster(logManagerModule logging.SlogManager, configModule *config.Confi
 			}
 		})
 
+		// THESE SERVICES HAVE TO BE STARTED BEFORE KUBERNETES (otherwise watcher events will get missing)
+		systems.valkeyLoggerService.Run()
+		err = systems.dbstatsService.Run()
+		assert.Assert(err == nil, err)
+		systems.httpApi.Run()
+		systems.socketApi.Run()
+
 		err = mokubernetes.Start(systems.eventConnectionClient)
 		if err != nil {
 			cmdLogger.Error("Error starting kubernetes service", "error", err)
@@ -204,12 +211,7 @@ func RunCluster(logManagerModule logging.SlogManager, configModule *config.Confi
 			cmdLogger.Info("Network Policy Configmap initialized")
 		}()
 
-		systems.valkeyLoggerService.Run()
-		err = systems.dbstatsService.Run()
-		assert.Assert(err == nil, err)
 		systems.podStatsCollector.Run()
-		systems.httpApi.Run()
-		systems.socketApi.Run()
 		cmdLogger.Info("SYSTEM STARTUP COMPLETE")
 		select {}
 	}()
