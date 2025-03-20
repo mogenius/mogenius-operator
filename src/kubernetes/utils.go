@@ -344,23 +344,24 @@ func StorageClassForClusterProvider(clusterProvider utils.KubernetesProvider) st
 	}
 
 	// 2. SOMETIMES WE KNOW IT BETTER THAN KUBERNETES (REASONS: TO EXPENSIVE OR NOT COMPATIBLE WITH OUR NFS SERVER)
-	switch clusterProvider {
-	case utils.EKS:
-		nfsStorageClassStr = "gp2"
-	case utils.GKE:
-		nfsStorageClassStr = "standard-rwo"
-	case utils.AKS:
-		nfsStorageClassStr = "default"
-	case utils.OTC:
-		nfsStorageClassStr = "csi-disk"
-	case utils.BRING_YOUR_OWN:
-		nfsStorageClassStr = "default"
-	case utils.DOCKER_DESKTOP, utils.KIND:
-		nfsStorageClassStr = "hostpath"
-	case utils.K3S:
-		nfsStorageClassStr = "local-path"
+	if nfsStorageClassStr == "" {
+		switch clusterProvider {
+		case utils.EKS:
+			nfsStorageClassStr = "gp2"
+		case utils.GKE:
+			nfsStorageClassStr = "standard-rwo"
+		case utils.AKS:
+			nfsStorageClassStr = "default"
+		case utils.OTC:
+			nfsStorageClassStr = "csi-disk"
+		case utils.BRING_YOUR_OWN:
+			nfsStorageClassStr = "default"
+		case utils.DOCKER_DESKTOP, utils.KIND:
+			nfsStorageClassStr = "hostpath"
+		case utils.K3S:
+			nfsStorageClassStr = "local-path"
+		}
 	}
-
 	if nfsStorageClassStr == "" {
 		k8sLogger.Error("No default storage class found for cluster provider.", "clusterProvider", clusterProvider)
 	}
