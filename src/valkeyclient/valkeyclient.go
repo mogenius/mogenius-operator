@@ -326,7 +326,6 @@ func LastNEntryFromBucketWithType[T any](store ValkeyClient, number int64, bucke
 
 func GetObjectsByPrefix[T any](redisStore ValkeyClient, order SortOrder, keys ...string) ([]T, error) {
 	key := createKey(keys...)
-	// var cursor uint64
 	pattern := key + "*"
 	// Get the keys
 	keyList := redisStore.GetRedisClient().Keys(redisStore.GetContext(), pattern).Val()

@@ -648,7 +648,8 @@ func (self *socketApi) registerPatterns() {
 			if err := utils.ValidateJSON(data); err != nil {
 				return err
 			}
-			return self.dbstats.GetPodStatsEntriesForController(data)
+			numberOfEntries := int64(60 * 24) // 1 day
+			return self.dbstats.GetPodStatsEntriesForController(data, numberOfEntries)
 		},
 	)
 
@@ -680,7 +681,8 @@ func (self *socketApi) registerPatterns() {
 			if err := utils.ValidateJSON(data); err != nil {
 				return err
 			}
-			return self.dbstats.GetTrafficStatsEntriesForController(data)
+			numberOfEntries := int64(60 * 24) // 1 day
+			return self.dbstats.GetTrafficStatsEntriesForController(data, numberOfEntries)
 		},
 	)
 
