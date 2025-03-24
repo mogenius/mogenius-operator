@@ -27,6 +27,9 @@ type WorkloadStatusItemDto struct {
 	Replicas      *int        `json:"replicas,omitempty"`
 	SpecClusterIP string      `json:"specClusterIP,omitempty"`
 	SpecType      string      `json:"specType,omitempty"`
+
+	// only for EndpointSlice
+	Endpoints interface{} `json:"endpoints,omitempty"`
 }
 
 type WorkloadStatusDto struct {
@@ -137,6 +140,10 @@ func GetWorkloadStatusItems(
 	if err != nil {
 		k8sLogger.Warn("Error getting status", "error", err)
 	}
+	endpoints, _, err := unstructured.NestedFieldNoCopy(workload.Object, "endpoints")
+	if err != nil {
+		k8sLogger.Warn("Error getting status", "error", err)
+	}
 
 	// Append a new WorkloadStatusItemDto object to the result list.
 	items = append(items, WorkloadStatusItemDto{
@@ -152,6 +159,9 @@ func GetWorkloadStatusItems(
 		Replicas:      replicas,
 		SpecClusterIP: specClusterIP,
 		SpecType:      specType,
+
+		// only for EndpointSlice
+		Endpoints: endpoints,
 	})
 
 	if ignoreDependentResources {
