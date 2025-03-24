@@ -487,6 +487,8 @@ func GuessCluserProviderFromNodeList(nodes *core.NodeList) (utils.KubernetesProv
 			return utils.AKS, nil
 		} else if LabelsContain(labelsAndAnnotations, "cloud.google.com/gke-nodepool") {
 			return utils.GKE, nil
+		} else if strings.HasPrefix(strings.ToLower(node.Name), "k3d-") {
+			return utils.K3D, nil
 		} else if LabelsContain(labelsAndAnnotations, "k3s.io/hostname") {
 			return utils.K3S, nil
 		} else if LabelsContain(labelsAndAnnotations, "ibm-cloud.kubernetes.io/worker-version") {
@@ -539,8 +541,6 @@ func GuessCluserProviderFromNodeList(nodes *core.NodeList) (utils.KubernetesProv
 			return utils.SPECTROCLOUD, nil
 		} else if LabelsContain(labelsAndAnnotations, "diamanti.com") {
 			return utils.DIAMANTI, nil
-		} else if strings.HasPrefix(strings.ToLower(node.Name), "k3d-") {
-			return utils.K3D, nil
 		} else if LabelsContain(labelsAndAnnotations, "cloud.google.com/gke-on-prem") {
 			return utils.GKE_ON_PREM, nil
 		} else if LabelsContain(labelsAndAnnotations, "rke.cattle.io") {
