@@ -86,7 +86,7 @@ func HandleNetworkPolicyChange(eventClient websocket.WebsocketClient, netPol *v1
 
 	k8sLogger.Debug("Sending custom network policy event to dispatcher", "event", event)
 
-	processEvent(eventClient, event)
+	processEvent(eventClient, event, "netpol")
 }
 
 func createAnnotations(items ...string) map[string]string {

@@ -22,7 +22,7 @@ const CONCURRENTCONNECTIONS = 1
 
 var EventChannels = make(map[string]chan string)
 
-func processEvent(eventClient websocket.WebsocketClient, event *v1Core.Event) {
+func processEvent(eventClient websocket.WebsocketClient, event *v1Core.Event, eventType string) {
 	if event != nil {
 		eventDto := dtos.CreateEvent(string(event.Type), event)
 		datagram := structs.CreateDatagramFrom("KubernetesEvent", eventDto)
@@ -30,7 +30,7 @@ func processEvent(eventClient websocket.WebsocketClient, event *v1Core.Event) {
 		kind := event.InvolvedObject.Kind
 		reason := event.Reason
 		count := event.Count
-		structs.EventServerSendData(eventClient, datagram, kind, reason, message, count)
+		structs.EventServerSendData(eventClient, datagram, kind, reason, message, count, eventType)
 
 		// deployment events
 		if event.InvolvedObject.Kind == "Pod" {

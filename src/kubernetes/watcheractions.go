@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"mogenius-k8s-manager/src/store"
+	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/websocket"
 	"os"
@@ -54,13 +55,27 @@ func WatchStoreResources(watcher WatcherModule, eventClient websocket.WebsocketC
 		"Namespace",
 		"NetworkPolicy",
 		"PersistentVolume",
+		"PersistentVolumeClaim",
 		"Node",
+		"StorageClass",
+		"IngressClass",
+		"Ingress",
+		"Secret",
+		"ConfigMap",
+		"HorizontalPodAutoscaler",
+		"ServiceAccount",
+		"Service",
+		"RoleBinding",
+		"Role",
+		"ClusterRoleBinding",
+		"ClusterRole",
+		"Workspace", // mogenius specific
+		"User",      // mogenius specific
+		"Grant",     // mogenius specific
+		"Team",      // mogenius specific
 	}
 	for _, v := range resources {
-		//if !slices.Contains(relevantResourceKinds, v.Kind) {
-		//	continue
-		//}
-		if v.Namespace == nil && !slices.Contains(relevantResourceKinds, v.Kind) {
+		if !slices.Contains(relevantResourceKinds, v.Kind) {
 			k8sLogger.Debug("🚀 Skipping resource", "kind", v.Kind, "group", v.Group, "namespace", v.Namespace)
 			continue
 		}
@@ -69,11 +84,11 @@ func WatchStoreResources(watcher WatcherModule, eventClient websocket.WebsocketC
 			Kind:         v.Kind,
 			GroupVersion: v.Group,
 		}, func(resource WatcherResourceIdentifier, obj *unstructured.Unstructured) {
-			setStoreIfNeeded(eventClient, resource.GroupVersion, resource.Kind, obj.GetNamespace(), obj.GetName(), obj)
+			setStoreIfNeeded(eventClient, resource.GroupVersion, resource.Kind, obj.GetNamespace(), obj.GetName(), obj, "add")
 		}, func(resource WatcherResourceIdentifier, oldObj, newObj *unstructured.Unstructured) {
-			setStoreIfNeeded(eventClient, resource.GroupVersion, resource.Kind, newObj.GetNamespace(), newObj.GetName(), newObj)
+			setStoreIfNeeded(eventClient, resource.GroupVersion, resource.Kind, newObj.GetNamespace(), newObj.GetName(), newObj, "update")
 		}, func(resource WatcherResourceIdentifier, obj *unstructured.Unstructured) {
-			deleteFromStoreIfNeeded(eventClient, resource.GroupVersion, resource.Kind, obj.GetNamespace(), obj.GetName(), obj)
+			deleteFromStoreIfNeeded(eventClient, resource.GroupVersion, resource.Kind, obj.GetNamespace(), obj.GetName(), obj, "delete")
 		})
 		if err != nil {
 			k8sLogger.Error("failed to initialize watchhandler for resource", "groupVersion", v.Group, "kind", v.Kind, "version", v.Version, "error", err)
@@ -86,7 +101,7 @@ func WatchStoreResources(watcher WatcherModule, eventClient websocket.WebsocketC
 	return nil
 }
 
-func setStoreIfNeeded(eventClient websocket.WebsocketClient, groupVersion string, kind string, namespace string, name string, obj *unstructured.Unstructured) {
+func setStoreIfNeeded(eventClient websocket.WebsocketClient, groupVersion string, kind string, namespace string, name string, obj *unstructured.Unstructured, eventType string) {
 	obj = removeUnusedFieds(obj)
 
 	if kind == "NetworkPolicy" {
@@ -111,11 +126,14 @@ func setStoreIfNeeded(eventClient websocket.WebsocketClient, groupVersion string
 			k8sLogger.Error("Error cannot cast from unstructured", "error", err)
 			return
 		}
-		processEvent(eventClient, &event)
+		processEvent(eventClient, &event, eventType)
+	} else {
+		datagram := structs.CreateDatagramFrom("KubernetesEvent", nil)
+		structs.EventServerSendData(eventClient, datagram, kind, eventType, fmt.Sprintf("NS: %s,", namespace), 1, eventType)
 	}
 }
 
-func deleteFromStoreIfNeeded(eventClient websocket.WebsocketClient, groupVersion string, kind string, namespace string, name string, obj *unstructured.Unstructured) {
+func deleteFromStoreIfNeeded(eventClient websocket.WebsocketClient, groupVersion string, kind string, namespace string, name string, obj *unstructured.Unstructured, eventType string) {
 	if kind == "PersistentVolume" {
 		var pv v1.PersistentVolume
 		err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &pv)
@@ -156,7 +174,10 @@ func deleteFromStoreIfNeeded(eventClient websocket.WebsocketClient, groupVersion
 			k8sLogger.Error("Error cannot cast from unstructured", "error", err)
 			return
 		}
-		processEvent(eventClient, &event)
+		processEvent(eventClient, &event, eventType)
+	} else {
+		datagram := structs.CreateDatagramFrom("KubernetesEvent", nil)
+		structs.EventServerSendData(eventClient, datagram, kind, eventType, fmt.Sprintf("NS: %s,", namespace), 1, eventType)
 	}
 }
 

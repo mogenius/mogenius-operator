@@ -14,6 +14,7 @@ type EventData struct {
 	K8sReason  string
 	K8sMessage string
 	Count      int32
+	EventType  string
 }
 
 const RETRYTIMEOUT time.Duration = 3
@@ -65,13 +66,14 @@ func ConnectToEventQueue(eventClient websocket.WebsocketClient) {
 	}
 }
 
-func EventServerSendData(eventClient websocket.WebsocketClient, datagram Datagram, k8sKind string, k8sReason string, k8sMessage string, count int32) {
+func EventServerSendData(eventClient websocket.WebsocketClient, datagram Datagram, k8sKind string, k8sReason string, k8sMessage string, count int32, eventType string) {
 	data := EventData{
 		Datagram:   datagram,
 		K8sKind:    k8sKind,
 		K8sReason:  k8sReason,
 		K8sMessage: k8sMessage,
 		Count:      count,
+		EventType:  eventType,
 	}
 	eventDataQueue = append(eventDataQueue, data)
 	processEventQueueNow(eventClient)
