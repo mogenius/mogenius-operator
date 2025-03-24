@@ -66,10 +66,6 @@ func (c *Config) Validate() {
 	}()
 
 	if len(errs) > 0 {
-		for _, err := range errs {
-			fmt.Printf("ERROR: %s\n", err.Error())
-		}
-		fmt.Printf("Found %d error(s) when validating configuration values.\n", len(errs))
 		fmt.Println()
 		fmt.Println("Configuration Values")
 		fmt.Println()
@@ -77,6 +73,10 @@ func (c *Config) Validate() {
 		fmt.Print(c.AsEnvs())
 		fmt.Println("```")
 		fmt.Println()
+		for _, err := range errs {
+			fmt.Printf("ERROR: %s\n", err.Error())
+		}
+		fmt.Printf("Found %d error(s) when validating configuration values.\n", len(errs))
 		os.Exit(1)
 	}
 }
