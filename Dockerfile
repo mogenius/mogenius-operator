@@ -18,11 +18,19 @@ ARG GIT_BRANCH=NOT_SET
 ARG BUILD_TIMESTAMP=NOT_SET
 ARG VERSION=NOT_SET
 
+RUN apk add --no-cache clang llvm libelf libbpf-dev git linux-headers gcc musl-dev make cmake 
+
+RUN ln -sf /usr/include/asm-generic/ /usr/include/asm
+RUN git clone --recurse-submodules https://github.com/libbpf/bpftool.git
+RUN make -C bpftool/src/ install
+
 WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
 
+RUN go install sigs.k8s.io/controller-tools/cmd/controller-gen@latest
+RUN go generate ./...
 RUN go build -trimpath -gcflags="all=-l" -ldflags="-s -w \
   -X 'mogenius-k8s-manager/src/version.GitCommitHash=${COMMIT_HASH}' \
   -X 'mogenius-k8s-manager/src/version.Branch=${GIT_BRANCH}' \
