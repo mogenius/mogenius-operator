@@ -84,9 +84,13 @@ func Run() error {
 		logFilter,
 		secrets.EraseSecrets,
 	)
+	recordChannelLogLevel := slog.LevelInfo
+	if logLevel == slog.LevelDebug {
+		recordChannelLogLevel = slog.LevelDebug
+	}
 	channelHandler := logging.NewRecordChannelHandler(
 		512,
-		logLevel,
+		recordChannelLogLevel,
 		secrets.EraseSecrets,
 	)
 	slogManager := logging.NewSlogManager(
