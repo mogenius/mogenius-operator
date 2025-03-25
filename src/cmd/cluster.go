@@ -212,6 +212,7 @@ func RunCluster(logManagerModule logging.SlogManager, configModule *config.Confi
 		}()
 
 		systems.podStatsCollector.Run()
+		systems.trafficCollector.Run()
 		cmdLogger.Info("SYSTEM STARTUP COMPLETE")
 		select {}
 	}()

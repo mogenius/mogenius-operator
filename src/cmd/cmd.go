@@ -8,12 +8,14 @@ import (
 	"mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/controllers"
 	"mogenius-k8s-manager/src/core"
+	"mogenius-k8s-manager/src/cpumonitor"
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/helm"
 	"mogenius-k8s-manager/src/k8sclient"
 	"mogenius-k8s-manager/src/kubernetes"
-	mokubernetes "mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/logging"
+	"mogenius-k8s-manager/src/networkmonitor"
+	"mogenius-k8s-manager/src/rammonitor"
 	"mogenius-k8s-manager/src/secrets"
 	"mogenius-k8s-manager/src/services"
 	"mogenius-k8s-manager/src/servicesexternal"
@@ -118,6 +120,18 @@ func Run() error {
 			Tree:    true,
 		}),
 	)
+
+	//===============================================================
+	//=================== Setup ENVs for Helm SDK ===================
+	//===============================================================
+	os.Setenv("HELM_CACHE_HOME", fmt.Sprintf("%s/%s", configModule.Get("MO_HELM_DATA_PATH"), helm.HELM_CACHE_HOME))
+	os.Setenv("HELM_CONFIG_HOME", fmt.Sprintf("%s/%s", configModule.Get("MO_HELM_DATA_PATH"), helm.HELM_CONFIG_HOME))
+	os.Setenv("HELM_DATA_HOME", fmt.Sprintf("%s/%s", configModule.Get("MO_HELM_DATA_PATH"), helm.HELM_DATA_HOME))
+	os.Setenv("HELM_PLUGINS", fmt.Sprintf("%s/%s", configModule.Get("MO_HELM_DATA_PATH"), helm.HELM_PLUGINS))
+	os.Setenv("HELM_REGISTRY_CONFIG", fmt.Sprintf("%s/%s", configModule.Get("MO_HELM_DATA_PATH"), helm.HELM_REGISTRY_CONFIG_FILE))
+	os.Setenv("HELM_REPOSITORY_CACHE", fmt.Sprintf("%s/%s", configModule.Get("MO_HELM_DATA_PATH"), helm.HELM_REPOSITORY_CONFIG_FILE))
+	os.Setenv("HELM_REPOSITORY_CONFIG", fmt.Sprintf("%s/%s", configModule.Get("MO_HELM_DATA_PATH"), helm.HELM_REPOSITORY_CACHE_FOLDER))
+	os.Setenv("HELM_LOG_LEVEL", "trace")
 
 	//===============================================================
 	//======================= Execute Command =======================
@@ -343,6 +357,23 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		},
 	})
 	configModule.Declare(config.ConfigDeclaration{
+		Key:          "MO_ENABLE_TRAFFIC_COLLECTOR",
+		DefaultValue: utils.Pointer("false"),
+		Description:  utils.Pointer("enable collection of network stats"),
+		Validate: func(value string) error {
+			_, err := strconv.ParseBool(value)
+			if err != nil {
+				return fmt.Errorf("'MO_ENABLE_TRAFFIC_COLLECTOR' needs to be a boolean: %s", err.Error())
+			}
+			return nil
+		},
+	})
+	configModule.Declare(config.ConfigDeclaration{
+		Key:          "MO_HOST_PROC_PATH",
+		DefaultValue: utils.Pointer("/proc"),
+		Description:  utils.Pointer("mountpath of /proc"),
+	})
+	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_IGNORE_NAMESPACES",
 		DefaultValue: utils.Pointer(`["kube-system"]`),
 		Description:  utils.Pointer("list of all ignored namespaces"),
@@ -428,10 +459,13 @@ func InitializeSystems(
 	shutdown.Add(jobConnectionClient.Terminate)
 	eventConnectionClient := websocket.NewWebsocketClient(logManagerModule.CreateLogger("websocket-events-client"))
 	shutdown.Add(eventConnectionClient.Terminate)
+	cpuMonitor := cpumonitor.NewCpuMonitor(logManagerModule.CreateLogger("cpu-monitor"), clientProvider)
+	ramMonitor := rammonitor.NewRamMonitor(logManagerModule.CreateLogger("ram-monitor"), clientProvider)
+	networkMonitor := networkmonitor.NewNetworkMonitor(logManagerModule.CreateLogger("network-monitor"), clientProvider, configModule.Get("MO_HOST_PROC_PATH"))
 
 	// golang package setups are deprecated and will be removed in the future by migrating all state to services
 	helm.Setup(logManagerModule, configModule, valkeyClient)
-	err := mokubernetes.Setup(logManagerModule, configModule, watcherModule, clientProvider, valkeyClient)
+	err := kubernetes.Setup(logManagerModule, configModule, watcherModule, clientProvider, valkeyClient)
 	assert.Assert(err == nil, err)
 	controllers.Setup(logManagerModule, configModule)
 	dtos.Setup(logManagerModule)
@@ -449,9 +483,12 @@ func InitializeSystems(
 	xtermService := core.NewXtermService(logManagerModule.CreateLogger("xterm-service"))
 	valkeyLoggerService := core.NewValkeyLogger(valkeyClient, valkeyLogChannel)
 	dbstatsService := core.NewValkeyStatsModule(logManagerModule.CreateLogger("db-stats"), configModule, valkeyClient)
-	podStatsCollector := core.NewPodStatsCollector(logManagerModule.CreateLogger("pod-stats-collector"), configModule, clientProvider, dbstatsService)
+	podStatsCollector := core.NewPodStatsCollector(logManagerModule.CreateLogger("pod-stats-collector"), configModule, clientProvider)
+	trafficCollector := core.NewNodeMetricsCollector(logManagerModule.CreateLogger("traffic-collector"), configModule, clientProvider, cpuMonitor, ramMonitor, networkMonitor)
 
 	// initialization step 2 for services
+	podStatsCollector.Link(dbstatsService)
+	trafficCollector.Link(dbstatsService)
 	socketApi.Link(httpApi, xtermService, dbstatsService, apiModule)
 	httpApi.Link(socketApi, dbstatsService, apiModule)
 	apiModule.Link(workspaceManager)
@@ -470,6 +507,7 @@ func InitializeSystems(
 		xtermService,
 		valkeyLoggerService,
 		podStatsCollector,
+		trafficCollector,
 		dbstatsService,
 	}
 }
@@ -488,5 +526,6 @@ type systems struct {
 	xtermService          core.XtermService
 	valkeyLoggerService   core.ValkeyLogger
 	podStatsCollector     core.PodStatsCollector
+	trafficCollector      core.NodeMetricsCollector
 	dbstatsService        core.ValkeyStatsDb
 }

@@ -12,6 +12,7 @@ import (
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/helm"
 	"mogenius-k8s-manager/src/kubernetes"
+	"mogenius-k8s-manager/src/networkmonitor"
 	"mogenius-k8s-manager/src/schema"
 	"mogenius-k8s-manager/src/secrets"
 	"mogenius-k8s-manager/src/services"
@@ -374,16 +375,6 @@ func (self *socketApi) registerPatterns() {
 	)
 
 	self.RegisterPatternHandler(
-		"install-traffic-collector",
-		PatternConfig{
-			ResponseSchema: schema.String(),
-		},
-		func(datagram structs.Datagram) (any, error) {
-			return services.InstallTrafficCollector()
-		},
-	)
-
-	self.RegisterPatternHandler(
 		"install-metrics-server",
 		PatternConfig{
 			ResponseSchema: schema.String(),
@@ -457,16 +448,6 @@ func (self *socketApi) registerPatterns() {
 	)
 
 	self.RegisterPatternHandler(
-		"uninstall-traffic-collector",
-		PatternConfig{
-			ResponseSchema: schema.String(),
-		},
-		func(datagram structs.Datagram) (any, error) {
-			return services.UninstallTrafficCollector()
-		},
-	)
-
-	self.RegisterPatternHandler(
 		"uninstall-metrics-server",
 		PatternConfig{
 			ResponseSchema: schema.String(),
@@ -523,16 +504,6 @@ func (self *socketApi) registerPatterns() {
 		},
 		func(datagram structs.Datagram) (any, error) {
 			return services.UninstallKepler()
-		},
-	)
-
-	self.RegisterPatternHandler(
-		"upgrade-traffic-collector",
-		PatternConfig{
-			ResponseSchema: schema.String(),
-		},
-		func(datagram structs.Datagram) (any, error) {
-			return services.UpgradeTrafficCollector()
 		},
 	)
 
@@ -617,7 +588,7 @@ func (self *socketApi) registerPatterns() {
 			"stats/traffic/all-for-controller",
 			PatternConfig{
 				RequestSchema:  schema.Generate(Request{}),
-				ResponseSchema: schema.Generate(&[]structs.InterfaceStats{}),
+				ResponseSchema: schema.Generate(&[]networkmonitor.InterfaceStats{}),
 			},
 			func(datagram structs.Datagram) any {
 				data := Request{}
@@ -653,7 +624,7 @@ func (self *socketApi) registerPatterns() {
 		"stats/traffic/sum-for-controller",
 		PatternConfig{
 			RequestSchema:  schema.Generate(kubernetes.K8sController{}),
-			ResponseSchema: schema.Generate(&structs.InterfaceStats{}),
+			ResponseSchema: schema.Generate(&networkmonitor.InterfaceStats{}),
 		},
 		func(datagram structs.Datagram) any {
 			data := kubernetes.K8sController{}
@@ -671,7 +642,7 @@ func (self *socketApi) registerPatterns() {
 			Deprecated:        true,
 			DeprecatedMessage: `Use "stats/traffic/sum-for-controller" instead`,
 			RequestSchema:     schema.Generate(kubernetes.K8sController{}),
-			ResponseSchema:    schema.Generate(&structs.InterfaceStats{}),
+			ResponseSchema:    schema.Generate(&networkmonitor.InterfaceStats{}),
 		},
 		func(datagram structs.Datagram) any {
 			data := kubernetes.K8sController{}
@@ -708,7 +679,7 @@ func (self *socketApi) registerPatterns() {
 			"stats/traffic/sum-for-namespace",
 			PatternConfig{
 				RequestSchema:  schema.Generate(Request{}),
-				ResponseSchema: schema.Generate([]structs.InterfaceStats{}),
+				ResponseSchema: schema.Generate([]networkmonitor.InterfaceStats{}),
 			},
 			func(datagram structs.Datagram) any {
 				data := Request{}

@@ -80,8 +80,6 @@ type CountryDetails struct {
 }
 
 const (
-	HelmReleaseNameTrafficCollector     = "mogenius-traffic-collector"
-	HelmReleaseNamePodStatsCollector    = "mogenius-pod-stats-collector"
 	HelmReleaseNameMetricsServer        = "metrics-server"
 	HelmReleaseNameTraefik              = "traefik"
 	HelmReleaseNameCertManager          = "cert-manager"

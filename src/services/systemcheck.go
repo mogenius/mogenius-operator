@@ -304,36 +304,6 @@ func SystemCheck() SystemCheckResponse {
 		return clusterIssuerEntry
 	})
 
-	// check for trafficcollector
-	wg.Add(1)
-	go SysCheckExec("CheckTrafficCollector", &wg, &entries, func() SystemCheckEntry {
-		trafficCollectorNewestVersion, err := GetCurrentTrafficCollectorVersion()
-		if err != nil {
-			serviceLogger.Error("getCurrentTrafficCollectorVersion", "error", err)
-		}
-		trafficCollectorVersion, trafficCollectorInstalledErr := kubernetes.IsDaemonSetInstalled(config.Get("MO_OWN_NAMESPACE"), utils.HelmReleaseNameTrafficCollector)
-		if trafficCollectorVersion == "" && trafficCollectorInstalledErr == nil {
-			trafficCollectorVersion = "6.6.6" // flag local version without tag
-		}
-		trafficMsg := fmt.Sprintf("%s (Version: %s) is installed.", utils.HelmReleaseNameTrafficCollector, trafficCollectorVersion)
-		trafficEntry := CreateSystemCheckEntry(
-			utils.HelmReleaseNameTrafficCollector,
-			trafficCollectorInstalledErr == nil,
-			trafficMsg,
-			fmt.Sprintf("%s is not installed.\nTo gather traffic information you need to install this component.", utils.HelmReleaseNameTrafficCollector),
-			trafficCollectorInstalledErr,
-			"Collects and exposes detailed traffic data for your mogenius services for better monitoring.",
-			true,
-			true,
-			trafficCollectorVersion,
-			trafficCollectorNewestVersion)
-		trafficEntry.InstallPattern = structs.PAT_INSTALL_TRAFFIC_COLLECTOR
-		trafficEntry.UninstallPattern = structs.PAT_UNINSTALL_TRAFFIC_COLLECTOR
-		trafficEntry.UpgradePattern = structs.PAT_UPGRADE_TRAFFIC_COLLECTOR
-		trafficEntry.HelmStatus = helm.HelmStatus(config.Get("MO_OWN_NAMESPACE"), utils.HelmReleaseNameTrafficCollector)
-		return trafficEntry
-	})
-
 	// check for metallb
 	wg.Add(1)
 	go SysCheckExec("CheckMetalLb", &wg, &entries, func() SystemCheckEntry {

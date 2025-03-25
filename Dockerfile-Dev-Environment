@@ -1,0 +1,37 @@
+FROM golang:1.24-bookworm
+
+RUN set -x && apt-get update && apt-get install -y --no-install-recommends \
+    clang \
+    llvm \
+    libelf-dev \
+    libbpf-dev \
+    git \
+    linux-headers-generic \
+    gcc \
+    libc6-dev \
+    make \
+    cmake \
+    libpcap-dev \
+    binutils \
+    build-essential \
+    binutils-gold \
+    iproute2 \
+    lsb-release \
+    sudo && \
+    wget -qO - 'https://proget.makedeb.org/debian-feeds/prebuilt-mpr.pub' | gpg --dearmor | tee /usr/share/keyrings/prebuilt-mpr-archive-keyring.gpg 1> /dev/null && \
+    echo "deb [arch=all,$(dpkg --print-architecture) signed-by=/usr/share/keyrings/prebuilt-mpr-archive-keyring.gpg] https://proget.makedeb.org prebuilt-mpr $(lsb_release -cs)" | tee /etc/apt/sources.list.d/prebuilt-mpr.list && \
+    apt update && apt install -y --no-install-recommends just && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+
+RUN ln -sf /usr/include/asm-generic/ /usr/include/asm
+
+RUN git clone --recurse-submodules https://github.com/libbpf/bpftool.git
+RUN make -C bpftool/src/ install
+
+WORKDIR /app/
+
+COPY . .
+
+CMD ["sudo", "go", "run", "./cmd/main.go"]
