@@ -389,7 +389,6 @@ func GetWorkloadStatus(requestData GetWorkloadStatusRequest) ([]WorkloadStatusDt
 
 	// get all events from the store
 	eventResource := utils.SyncResourceEntry{
-		Kind:      "Event",
 		Name:      "events",
 		Namespace: utils.Pointer(""),
 		Group:     "v1",

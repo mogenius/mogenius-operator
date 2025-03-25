@@ -384,7 +384,7 @@ func TriggerUnstructuredResource(group string, version string, name string, name
 		if name == "cronjobs" {
 			template, _, err := unstructured.NestedMap(job.Object, "spec", "jobTemplate", "spec", "template")
 			if err != nil {
-				return nil, fmt.Errorf("Field jobTemplate not found")
+				return nil, fmt.Errorf("field jobTemplate not found")
 			}
 			_ = unstructured.SetNestedField(job.Object, template, "spec", "template")
 			name = "jobs"
@@ -392,7 +392,7 @@ func TriggerUnstructuredResource(group string, version string, name string, name
 
 		return dynamicClient.Resource(CreateGroupVersionResource(group, version, name)).Namespace(namespace).Create(context.TODO(), job, metav1.CreateOptions{})
 	}
-	return nil, fmt.Errorf("%s is a invalid resource for trigger. Only jobs or cronjobs can be triggert.", name)
+	return nil, fmt.Errorf("%s is a invalid resource for trigger. Only jobs or cronjobs can be triggert", name)
 }
 
 func GetK8sObjectFor(file string, namespaced bool) (interface{}, error) {
@@ -436,7 +436,7 @@ func GetResourceNameForUnstructured(obj *unstructured.Unstructured) (string, err
 			return v.Name, nil
 		}
 	}
-	return "", fmt.Errorf("Resource not found for %s %s %s", obj.GetKind(), obj.GroupVersionKind().Group, obj.GroupVersionKind().Version)
+	return "", fmt.Errorf("resource not found for %s %s %s", obj.GetKind(), obj.GroupVersionKind().Group, obj.GroupVersionKind().Version)
 }
 
 func GetObjectFromFile(file string) (*unstructured.Unstructured, error) {

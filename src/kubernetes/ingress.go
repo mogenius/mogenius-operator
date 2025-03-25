@@ -13,6 +13,7 @@ import (
 	v1 "k8s.io/api/networking/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 const (
@@ -139,7 +140,7 @@ func UpdateIngress(eventClient websocket.WebsocketClient, job *structs.Job, name
 
 			// 2. ALL CNAMES
 			for _, cname := range port.CNames {
-				ingressToUpdate.Spec.Rules = append(ingressToUpdate.Spec.Rules, *createIngressRule(cname.CName, service.ControllerName, int32(port.InternalPort)))
+				ingressToUpdate.Spec.Rules = append(ingressToUpdate.Spec.Rules, *createIngressRule(cname.CName, service.ControllerName, intstr.Parse(port.InternalPort).IntVal))
 				if cname.AddToTlsHosts {
 					tlsHosts = append(tlsHosts, cname.CName)
 				}

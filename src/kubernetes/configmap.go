@@ -4,15 +4,14 @@ import (
 	"context"
 	"strings"
 
-	v1 "k8s.io/api/core/v1"
 	v1Core "k8s.io/api/core/v1"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func AllConfigmaps(namespaceName string) []v1.ConfigMap {
-	result := []v1.ConfigMap{}
+func AllConfigmaps(namespaceName string) []v1Core.ConfigMap {
+	result := []v1Core.ConfigMap{}
 
 	clientset := clientProvider.K8sClientSet()
 	configmapList, err := clientset.CoreV1().ConfigMaps(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
@@ -126,7 +125,7 @@ func ListConfigMapWithFieldSelector(namespace string, labelSelector string, pref
 	return WorkloadResult(cfgMaps.Items, err)
 }
 
-func ConfigMapFor(namespace string, configMapName string, showError bool) *v1.ConfigMap {
+func ConfigMapFor(namespace string, configMapName string, showError bool) *v1Core.ConfigMap {
 	clientset := clientProvider.K8sClientSet()
 	client := clientset.CoreV1().ConfigMaps(namespace)
 
@@ -142,7 +141,7 @@ func ConfigMapFor(namespace string, configMapName string, showError bool) *v1.Co
 	return configMap
 }
 
-func UpdateK8sConfigMap(data v1.ConfigMap) error {
+func UpdateK8sConfigMap(data v1Core.ConfigMap) error {
 	clientset := clientProvider.K8sClientSet()
 	client := clientset.CoreV1().ConfigMaps(data.Namespace)
 

@@ -410,14 +410,14 @@ outerLoop:
 
 func GetLabelValue(labels map[string]string, labelKey string) (string, error) {
 	if labels == nil {
-		return "", fmt.Errorf("Labels are nil")
+		return "", fmt.Errorf("labels are nil")
 	}
 
 	if val, ok := labels[labelKey]; ok {
 		return val, nil
 	}
 
-	return "", fmt.Errorf("Label value for key:'%s' not found", labelKey)
+	return "", fmt.Errorf("label value for key:'%s' not found", labelKey)
 }
 
 func ContainsLabelKey(labels map[string]string, key string) bool {
@@ -456,7 +456,7 @@ func FindResourceKind(namespace string, name string) (*dtos.K8sServiceController
 		return utils.Pointer(dtos.CRON_JOB), nil
 	}
 
-	return nil, fmt.Errorf("Resource not found")
+	return nil, fmt.Errorf("resource not found")
 }
 
 func GuessClusterProvider() (utils.KubernetesProvider, error) {

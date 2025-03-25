@@ -11,8 +11,6 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
-	v2 "k8s.io/api/apps/v1"
-
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/yaml"
@@ -118,9 +116,9 @@ func AttachLabeledNetworkPolicies(controllerName string,
 	labelPolicy []dtos.K8sLabeledNetworkPolicyDto,
 ) error {
 	client := clientProvider.K8sClientSet().AppsV1()
-	var deployment *v2.Deployment
-	var daemonSet *v2.DaemonSet
-	var statefulSet *v2.StatefulSet
+	var deployment *appsv1.Deployment
+	var daemonSet *appsv1.DaemonSet
+	var statefulSet *appsv1.StatefulSet
 	var err error
 
 	switch controllerType {
@@ -255,9 +253,9 @@ func DetachLabeledNetworkPolicies(controllerName string,
 	labelPolicy []dtos.K8sLabeledNetworkPolicyDto,
 ) error {
 	client := clientProvider.K8sClientSet().AppsV1()
-	var deployment *v2.Deployment
-	var daemonSet *v2.DaemonSet
-	var statefulSet *v2.StatefulSet
+	var deployment *appsv1.Deployment
+	var daemonSet *appsv1.DaemonSet
+	var statefulSet *appsv1.StatefulSet
 	var err error
 
 	switch controllerType {
@@ -1041,14 +1039,9 @@ func ListControllerLabeledNetworkPolicies(
 	var labels map[string]string
 	switch controllerType {
 	case dtos.DEPLOYMENT:
-		// TODO replace with GetAvailableResources in the future
-		resourceNamespace := ""
 		resource := utils.SyncResourceEntry{
-			Kind:      "Deployment",
-			Name:      "deployments",
-			Namespace: &resourceNamespace,
-			Group:     "apps/v1",
-			Version:   "",
+			Kind:  "Deployment",
+			Group: "apps/v1",
 		}
 
 		deployment, err := store.GetByKeyParts[appsv1.Deployment](valkeyClient, VALKEY_RESOURCE_PREFIX, resource.Group, resource.Kind, namespaceName, controllerName)
@@ -1057,14 +1050,9 @@ func ListControllerLabeledNetworkPolicies(
 		}
 		labels = extractLabels(deployment.ObjectMeta.Labels, deployment.Spec.Template.ObjectMeta.Labels)
 	case dtos.DAEMON_SET:
-		// TODO replace with GetAvailableResources in the future
-		resourceNamespace := ""
 		resource := utils.SyncResourceEntry{
-			Kind:      "DaemonSet",
-			Name:      "daemonsets",
-			Namespace: &resourceNamespace,
-			Group:     "apps/v1",
-			Version:   "",
+			Kind:  "DaemonSet",
+			Group: "apps/v1",
 		}
 
 		daemonset, err := store.GetByKeyParts[appsv1.DaemonSet](valkeyClient, VALKEY_RESOURCE_PREFIX, resource.Group, resource.Kind, namespaceName, controllerName)
@@ -1073,14 +1061,9 @@ func ListControllerLabeledNetworkPolicies(
 		}
 		labels = extractLabels(daemonset.ObjectMeta.Labels, daemonset.Spec.Template.ObjectMeta.Labels)
 	case dtos.STATEFUL_SET:
-		// TODO replace with GetAvailableResources in the future
-		resourceNamespace := ""
 		resource := utils.SyncResourceEntry{
-			Kind:      "StatefulSet",
-			Name:      "statefulsets",
-			Namespace: &resourceNamespace,
-			Group:     "apps/v1",
-			Version:   "",
+			Kind:  "StatefulSet",
+			Group: "apps/v1",
 		}
 
 		statefulset, err := store.GetByKeyParts[appsv1.StatefulSet](valkeyClient, VALKEY_RESOURCE_PREFIX, resource.Group, resource.Kind, namespaceName, controllerName)

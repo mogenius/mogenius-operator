@@ -162,20 +162,20 @@ func UpdateTcpUdpPorts(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDt
 			if port.Expose {
 				updated := false
 				if port.PortType == dtos.PortTypeTCP {
-					tcpConfigmap.Data[fmt.Sprint(port.ExternalPort)] = fmt.Sprintf("%s:%d", k8sName, port.InternalPort)
+					tcpConfigmap.Data[fmt.Sprint(port.ExternalPort)] = fmt.Sprintf("%s:%s", k8sName, port.InternalPort)
 					updated = true
 				}
 				if port.PortType == dtos.PortTypeUDP {
-					udpConfigmap.Data[fmt.Sprint(port.ExternalPort)] = fmt.Sprintf("%s:%d", k8sName, port.InternalPort)
+					udpConfigmap.Data[fmt.Sprint(port.ExternalPort)] = fmt.Sprintf("%s:%s", k8sName, port.InternalPort)
 					updated = true
 				}
 
 				if updated {
 					ingControllerService.Spec.Ports = append(ingControllerService.Spec.Ports, v1.ServicePort{
-						Name:       fmt.Sprintf("%s-%d", k8sNameIngresss, port.ExternalPort),
+						Name:       fmt.Sprintf("%s-%s", k8sNameIngresss, port.ExternalPort),
 						Protocol:   v1.Protocol(port.PortType),
-						Port:       int32(port.ExternalPort),
-						TargetPort: intstr.FromInt32(int32(port.ExternalPort)),
+						Port:       intstr.Parse(port.ExternalPort).IntVal,
+						TargetPort: intstr.Parse(port.ExternalPort),
 					})
 				}
 			}
@@ -220,19 +220,19 @@ func generateService(existingService *v1.Service, namespace dtos.K8sNamespaceDto
 	for _, port := range service.Ports {
 		if port.PortType == dtos.PortTypeHTTPS {
 			newService.Spec.Ports = append(newService.Spec.Ports, v1.ServicePort{
-				Port: int32(port.InternalPort),
-				Name: fmt.Sprintf("%d-%s", port.InternalPort, service.ControllerName),
+				Port: intstr.Parse(port.InternalPort).IntVal,
+				Name: fmt.Sprintf("%s-%s", port.InternalPort, service.ControllerName),
 			})
 		} else {
 			newService.Spec.Ports = append(newService.Spec.Ports, v1.ServicePort{
-				Port:     int32(port.InternalPort),
-				Name:     fmt.Sprintf("%d-%s", port.InternalPort, service.ControllerName),
+				Port:     intstr.Parse(port.InternalPort).IntVal,
+				Name:     fmt.Sprintf("%s-%s", port.InternalPort, service.ControllerName),
 				Protocol: v1.Protocol(port.PortType),
 			})
-			if port.ExternalPort != 0 {
+			if intstr.Parse(port.ExternalPort).IntVal != 0 {
 				newService.Spec.Ports = append(newService.Spec.Ports, v1.ServicePort{
-					Port:     int32(port.ExternalPort),
-					Name:     fmt.Sprintf("%d-%s", port.ExternalPort, service.ControllerName),
+					Port:     intstr.Parse(port.ExternalPort).IntVal,
+					Name:     fmt.Sprintf("%s-%s", port.ExternalPort, service.ControllerName),
 					Protocol: v1.Protocol(port.PortType),
 				})
 			}
