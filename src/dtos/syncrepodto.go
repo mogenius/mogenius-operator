@@ -1,7 +1,7 @@
 package dtos
 
 import (
-	"mogenius-k8s-manager/src/logging"
+	"mogenius-k8s-manager/src/secrets"
 	utils "mogenius-k8s-manager/src/utils"
 	"strconv"
 
@@ -32,20 +32,7 @@ type SyncRepoData struct {
 
 func (p *SyncRepoData) AddSecretsToRedaction() {
 	if p.Pat != "***" {
-		logging.AddSecret(p.Pat)
-	}
-}
-
-func SyncRepoDataExampleData() SyncRepoData {
-	return SyncRepoData{
-		Repo:               "https://github.com/beneiltis/fuckumucku.git",
-		Pat:                "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",
-		Branch:             "main",
-		AllowPull:          true,
-		AllowPush:          true,
-		SyncFrequencyInSec: 5,
-		SyncResources:      []utils.SyncResourceEntry{},
-		IgnoredNamespaces:  DefaultIgnoredNamespaces(),
+		secrets.AddSecret(p.Pat)
 	}
 }
 

@@ -57,10 +57,10 @@ func GetPreviousLogContent(podCmdConnectionRequest xterm.PodCmdConnectionRequest
 	return io.MultiReader(previousState, nl, headlineLastLog, strings.NewReader(string(data)), nl, headlineCurrentLog)
 }
 
-func XTermClusterToolStreamConnection(buildLogConnectionRequest xterm.ClusterToolConnectionRequest) {
+func XTermClusterToolStreamConnection(toolLogConnectionRequest xterm.ClusterToolConnectionRequest) {
 	xterm.XTermClusterToolStreamConnection(
-		buildLogConnectionRequest.WsConnection,
-		buildLogConnectionRequest.CmdType,
-		buildLogConnectionRequest.Tool,
+		toolLogConnectionRequest.WsConnection,
+		toolLogConnectionRequest.CmdType,
+		toolLogConnectionRequest.Tool,
 	)
 }

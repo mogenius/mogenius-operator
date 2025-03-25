@@ -3,8 +3,6 @@ package helm
 import (
 	"errors"
 	"fmt"
-	v1 "k8s.io/api/apps/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"log/slog"
 	"mogenius-k8s-manager/src/assert"
 	cfg "mogenius-k8s-manager/src/config"
@@ -13,12 +11,14 @@ import (
 	"mogenius-k8s-manager/src/store"
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
+	"mogenius-k8s-manager/src/valkeyclient"
 	"os"
 	"path/filepath"
-	"reflect"
 	"runtime"
 	"strings"
 	"time"
+
+	"k8s.io/apimachinery/pkg/types"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
@@ -58,15 +58,18 @@ var (
 )
 
 var RepoAlreadyExistsError = fmt.Errorf("repository name already exists")
+var RepoFileDoesNotExist = fmt.Errorf("repository.yaml does not exist")
 
 var helmLogger *slog.Logger
 var config cfg.ConfigModule
+var valkeyClient valkeyclient.ValkeyClient
 
 var helmCache = cache.New(2*time.Hour, 30*time.Minute) // cache with default expiration time of 2 hours and cleanup interval of 30 minutes
 
-func Setup(logManager logging.LogManagerModule, configModule cfg.ConfigModule) {
+func Setup(logManager logging.SlogManager, configModule cfg.ConfigModule, valkey valkeyclient.ValkeyClient) {
 	helmLogger = logManager.CreateLogger("helm")
 	config = configModule
+	valkeyClient = valkey
 }
 
 type HelmRepoAddRequest struct {
@@ -217,51 +220,6 @@ func DeleteHelmChart(helmReleaseName string, namespace string) (string, error) {
 	return HelmReleaseUninstall(data)
 }
 
-//func CheckHelmRepoExists(repoURL string, username string, password string) error {
-//	indexURL := fmt.Sprintf("%s/index.yaml", repoURL)
-//
-//	client := http.Client{
-//		Timeout: 10 * time.Second,
-//	}
-//
-//	req, err := http.NewRequest("GET", indexURL, nil)
-//	if err != nil {
-//		return fmt.Errorf("failed to create request: %w", err)
-//	}
-//
-//	if username != "" && password != "" {
-//		auth := fmt.Sprintf("%s:%s", username, password)
-//		encodedAuth := base64.StdEncoding.EncodeToString([]byte(auth))
-//		req.Header.Add("Authorization", "Basic "+encodedAuth)
-//	}
-//
-//	resp, err := client.Do(req)
-//	if err != nil {
-//		return fmt.Errorf("failed to fetch index.yaml: %w", err)
-//	}
-//	defer resp.Body.Close()
-//
-//	if resp.StatusCode != http.StatusOK {
-//		return fmt.Errorf("repository index.yaml not found, status code: %d", resp.StatusCode)
-//	}
-//
-//	body, err := ioutil.ReadAll(resp.Body)
-//	if err != nil {
-//		return fmt.Errorf("failed to read response body: %w", err)
-//	}
-//
-//	var indexFile IndexFile
-//	if err := yaml.Unmarshal(body, &indexFile); err != nil {
-//		return fmt.Errorf("invalid YAML format in index.yaml: %w", err)
-//	}
-//
-//	if indexFile.APIVersion == "" || indexFile.Entries == nil {
-//		return fmt.Errorf("invalid Helm repository index format")
-//	}
-//
-//	return nil
-//}
-
 func HelmStatus(namespace string, chartname string) release.Status {
 	cacheKey := namespace + "/" + chartname
 	cacheTime := 1 * time.Second
@@ -384,6 +342,9 @@ func InitHelmConfig() error {
 		}
 		defer destFile.Close()
 	}
+
+	restoreRepositoryFileFromValkey()
+
 	// add default repository
 	data := HelmRepoAddRequest{
 		Name: "mogenius",
@@ -435,11 +396,8 @@ func HelmRepoAdd(data HelmRepoAddRequest) (string, error) {
 		PassCredentialsAll:    data.PassCredentialsAll,
 	}
 
-	// Initialize the file where repositories are stored
-	file := settings.RepositoryConfig
-
 	// Load the existing repositories
-	repoFile, err := repo.LoadFile(file)
+	repoFile, err := repo.LoadFile(settings.RepositoryConfig)
 	if err != nil && !os.IsNotExist(err) {
 		return "", fmt.Errorf("failed to load repository file: %s", err)
 	}
@@ -461,9 +419,11 @@ func HelmRepoAdd(data HelmRepoAddRequest) (string, error) {
 	repoFile.Update(entry)
 
 	// Write the updated repository file
-	if err := repoFile.WriteFile(file, 0644); err != nil {
+	if err := repoFile.WriteFile(settings.RepositoryConfig, 0644); err != nil {
 		return "", fmt.Errorf("failed to write repository file: %s", err)
 	}
+
+	saveRepositoryFileToValkey()
 
 	return fmt.Sprintf("repository '%s' added", data.Name), nil
 }
@@ -543,6 +503,8 @@ func HelmRepoUpdate() ([]HelmEntryStatus, error) {
 		results = append(results, HelmEntryStatus{Entry: parseHelmEntry(re), Status: "success", Message: fmt.Sprintf("repository '%s' updated", re.Name)})
 	}
 
+	saveRepositoryFileToValkey()
+
 	return results, nil
 }
 
@@ -590,6 +552,8 @@ func HelmRepoRemove(data HelmRepoRemoveRequest) (string, error) {
 	if err := repoFile.WriteFile(file, 0644); err != nil {
 		return "", fmt.Errorf("failed to write repository file: %s", err)
 	}
+
+	saveRepositoryFileToValkey()
 
 	return fmt.Sprintf("repository '%s' removed", data.Name), nil
 }
@@ -1137,34 +1101,25 @@ func IsManagedByHelmRelease(labels map[string]string, annotations map[string]str
 	return annotationReleaseName || (labelManagedByHelm && (labelInstanceRelease || annotationReleaseName))
 }
 
-func HelmReleaseGetWorkloads(data HelmReleaseGetWorkloadsRequest) ([]unstructured.Unstructured, error) {
-	workloads, err := store.GlobalStore.SearchByNamespace(reflect.TypeOf(unstructured.Unstructured{}), data.Namespace, data.Whitelist)
+func HelmReleaseGetWorkloads(valkeyClient valkeyclient.ValkeyClient, data HelmReleaseGetWorkloadsRequest) ([]unstructured.Unstructured, error) {
+	workloads, err := store.SearchByNamespace(valkeyClient, data.Namespace, data.Whitelist)
 	if err != nil {
 		return nil, err
 	}
 
 	var results []unstructured.Unstructured
 	appendedWorkloadUIds := make(map[types.UID]bool)
-	var replicaSets []interface{}
+	var replicaSets []unstructured.Unstructured
 	replicaSetsFetched := false
 
-	for _, ref := range workloads {
-		if ref == nil {
-			continue
-		}
-
-		workload, ok := ref.(*unstructured.Unstructured)
-		if !ok || workload == nil {
-			continue
-		}
-
+	for _, workload := range workloads {
 		if appendedWorkloadUIds[workload.GetUID()] {
 			continue
 		}
 
 		if workload.GetKind() == "Pod" {
 			if !replicaSetsFetched {
-				replicaSets, err = store.GlobalStore.SearchByKeyParts(reflect.TypeOf(v1.ReplicaSet{}), "ReplicaSet", data.Namespace)
+				replicaSets, err = store.SearchByKeyParts(valkeyClient, "apps/v1", "ReplicaSet", data.Namespace)
 				if errors.Is(err, store.ErrNotFound) {
 					helmLogger.Warn("ReplicaSet not found", "error", err)
 					replicaSets = nil
@@ -1172,20 +1127,11 @@ func HelmReleaseGetWorkloads(data HelmReleaseGetWorkloadsRequest) ([]unstructure
 				replicaSetsFetched = true
 			}
 
-			for _, ref := range replicaSets {
-				if ref == nil {
-					continue
-				}
-
-				replicaset, ok := ref.(*v1.ReplicaSet)
-				if !ok || replicaset == nil {
-					continue
-				}
-
+			for _, replicaset := range replicaSets {
 				for _, ownerReference := range workload.GetOwnerReferences() {
-					if ownerReference.UID == replicaset.UID {
+					if ownerReference.UID == replicaset.GetUID() {
 						if IsManagedByHelmRelease(replicaset.GetLabels(), replicaset.GetAnnotations(), data.Release) {
-							results = append(results, *workload)
+							results = append(results, workload)
 							appendedWorkloadUIds[workload.GetUID()] = true
 							break
 						}
@@ -1197,7 +1143,7 @@ func HelmReleaseGetWorkloads(data HelmReleaseGetWorkloadsRequest) ([]unstructure
 		}
 
 		if IsManagedByHelmRelease(workload.GetLabels(), workload.GetAnnotations(), data.Release) {
-			results = append(results, *workload)
+			results = append(results, workload)
 			appendedWorkloadUIds[workload.GetUID()] = true
 		}
 	}
@@ -1243,4 +1189,42 @@ func yamlString(data map[string]interface{}) string {
 	}
 
 	return string(yamlData)
+}
+
+func saveRepositoryFileToValkey() error {
+	helmLogger.Info("Saving repositories.yaml to valkey")
+
+	repoFile, err := repo.LoadFile(repositoryConfig)
+	if err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("failed to load repository file: %s", err)
+	}
+
+	yamlData, err := yaml.Marshal(repoFile)
+	if err != nil {
+		return fmt.Errorf("failed to marshal repositories.yaml: %w", err)
+	}
+
+	valkeyClient.Set(string(yamlData), 0, "helm", "repositories.yaml")
+
+	return nil
+}
+
+func restoreRepositoryFileFromValkey() error {
+	helmLogger.Info("Restoring repositories.yaml from valkey")
+
+	data, err := valkeyClient.Get("helm", "repositories.yaml")
+	if err != nil {
+		return fmt.Errorf("failed to get repositories.yaml from valkey: %s", err.Error())
+	}
+	// key does not exist in valkey (this is ok)
+	if data == "" {
+		return RepoFileDoesNotExist
+	}
+
+	err = os.WriteFile(repositoryConfig, []byte(data), 0644)
+	if err != nil {
+		return fmt.Errorf("failed to write repositories.yaml: %s", err.Error())
+	}
+
+	return nil
 }

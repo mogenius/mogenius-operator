@@ -1,15 +1,13 @@
 package kubernetes
 
 import (
-	appV1 "k8s.io/api/apps/v1"
-	v1job "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 
 	"mogenius-k8s-manager/src/helm"
 	"mogenius-k8s-manager/src/store"
 	"mogenius-k8s-manager/src/utils"
-	"reflect"
+	"mogenius-k8s-manager/src/valkeyclient"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -29,6 +27,9 @@ type WorkloadStatusItemDto struct {
 	Replicas      *int        `json:"replicas,omitempty"`
 	SpecClusterIP string      `json:"specClusterIP,omitempty"`
 	SpecType      string      `json:"specType,omitempty"`
+
+	// only for EndpointSlice
+	Endpoints interface{} `json:"endpoints,omitempty"`
 }
 
 type WorkloadStatusDto struct {
@@ -48,11 +49,11 @@ type GetWorkloadStatusRequest struct {
 	IgnoreDependentResources *bool `json:"ignoreDependentResources,omitempty"`
 }
 
-func getOrFetchReplicaSets(cache map[string][]interface{}, namespace string) []interface{} {
+func getOrFetchReplicaSets(valkeyClient valkeyclient.ValkeyClient, cache map[string][]unstructured.Unstructured, namespace string) []unstructured.Unstructured {
 	if cachedSets, found := cache[namespace]; found {
 		return cachedSets
 	}
-	replicaSetsResults, err := store.GlobalStore.SearchByKeyParts(reflect.TypeOf(appV1.ReplicaSet{}), "ReplicaSet", namespace)
+	replicaSetsResults, err := store.SearchByKeyParts(valkeyClient, "apps/v1", "ReplicaSet", namespace)
 	if err != nil {
 		k8sLogger.Warn("Error getting replicaset", "error", err)
 		return nil
@@ -61,11 +62,11 @@ func getOrFetchReplicaSets(cache map[string][]interface{}, namespace string) []i
 	return replicaSetsResults
 }
 
-func getOrFetchJobs(cache map[string][]interface{}, namespace string) []interface{} {
+func getOrFetchJobs(cache map[string][]unstructured.Unstructured, namespace string) []unstructured.Unstructured {
 	if cachedSets, found := cache[namespace]; found {
 		return cachedSets
 	}
-	jobResults, err := store.GlobalStore.SearchByKeyParts(reflect.TypeOf(v1job.Job{}), "Job", namespace)
+	jobResults, err := store.SearchByKeyParts(valkeyClient, "batch/v1", "Job", namespace)
 	if err != nil {
 		k8sLogger.Warn("Error getting job", "error", err)
 		return nil
@@ -74,11 +75,11 @@ func getOrFetchJobs(cache map[string][]interface{}, namespace string) []interfac
 	return jobResults
 }
 
-func getOrFetchPods(cache map[string][]interface{}, namespace string) []interface{} {
+func getOrFetchPods(cache map[string][]unstructured.Unstructured, namespace string) []unstructured.Unstructured {
 	if cachedPods, found := cache[namespace]; found {
 		return cachedPods
 	}
-	podsResults, err := store.GlobalStore.SearchByKeyParts(reflect.TypeOf(v1.Pod{}), "Pod", namespace)
+	podsResults, err := store.SearchByKeyParts(valkeyClient, "v1", "Pod", namespace)
 	if err != nil {
 		k8sLogger.Warn("Error getting pod", "error", err)
 		return nil
@@ -102,9 +103,9 @@ func GetWorkloadStatusItems(
 	workload unstructured.Unstructured,
 	eventList []v1.Event,
 	ignoreDependentResources bool,
-	replicaSetsCache map[string][]interface{},
-	jobsCache map[string][]interface{},
-	podsCache map[string][]interface{},
+	replicaSetsCache map[string][]unstructured.Unstructured,
+	jobsCache map[string][]unstructured.Unstructured,
+	podsCache map[string][]unstructured.Unstructured,
 ) []WorkloadStatusItemDto {
 	// Initialize the output slice for workload status items.
 	var items []WorkloadStatusItemDto
@@ -139,6 +140,10 @@ func GetWorkloadStatusItems(
 	if err != nil {
 		k8sLogger.Warn("Error getting status", "error", err)
 	}
+	endpoints, _, err := unstructured.NestedFieldNoCopy(workload.Object, "endpoints")
+	if err != nil {
+		k8sLogger.Warn("Error getting status", "error", err)
+	}
 
 	// Append a new WorkloadStatusItemDto object to the result list.
 	items = append(items, WorkloadStatusItemDto{
@@ -154,6 +159,9 @@ func GetWorkloadStatusItems(
 		Replicas:      replicas,
 		SpecClusterIP: specClusterIP,
 		SpecType:      specType,
+
+		// only for EndpointSlice
+		Endpoints: endpoints,
 	})
 
 	if ignoreDependentResources {
@@ -164,22 +172,19 @@ func GetWorkloadStatusItems(
 	switch workload.GetKind() {
 	case "Deployment":
 		// Get or fetch ReplicaSets relevant to the namespace.
-		replicaSets := getOrFetchReplicaSets(replicaSetsCache, workload.GetNamespace())
+		replicaSets := getOrFetchReplicaSets(valkeyClient, replicaSetsCache, workload.GetNamespace())
 
 		if replicaSets != nil {
 			var replicaSetsList []unstructured.Unstructured
 			for _, replicaset := range replicaSets {
-				replicaset, ok := replicaset.(*appV1.ReplicaSet)
-				if !ok || replicaset == nil {
+
+				replicasInt64, found, err := unstructured.NestedInt64(workload.Object, "spec", "replicas")
+				if err != nil || !found {
 					continue
 				}
 
-				if replicaset.Spec.Replicas != nil && *replicaset.Spec.Replicas > 0 && hasOwnerReference(replicaset.ObjectMeta.OwnerReferences, workload.GetUID()) {
-					replicasetUnstructured, err := runtime.DefaultUnstructuredConverter.ToUnstructured(replicaset)
-					if err != nil {
-						continue
-					}
-					replicaSetsList = append(replicaSetsList, unstructured.Unstructured{Object: replicasetUnstructured})
+				if replicasInt64 > 0 && hasOwnerReference(replicaset.GetOwnerReferences(), workload.GetUID()) {
+					replicaSetsList = append(replicaSetsList, replicaset)
 				}
 			}
 
@@ -196,17 +201,8 @@ func GetWorkloadStatusItems(
 		if jobs != nil {
 			var jobsList []unstructured.Unstructured
 			for _, job := range jobs {
-				job, ok := job.(*v1job.Job)
-				if !ok || job == nil {
-					continue
-				}
-
-				if hasOwnerReference(job.ObjectMeta.OwnerReferences, workload.GetUID()) {
-					jobUnstructured, err := runtime.DefaultUnstructuredConverter.ToUnstructured(job)
-					if err != nil {
-						continue
-					}
-					jobsList = append(jobsList, unstructured.Unstructured{Object: jobUnstructured})
+				if hasOwnerReference(job.GetOwnerReferences(), workload.GetUID()) {
+					jobsList = append(jobsList, job)
 				}
 			}
 
@@ -229,17 +225,8 @@ func GetWorkloadStatusItems(
 		if pods != nil {
 			var podsList []unstructured.Unstructured
 			for _, pod := range pods {
-				pod, ok := pod.(*v1.Pod)
-				if !ok || pod == nil {
-					continue
-				}
-
-				if hasOwnerReference(pod.ObjectMeta.OwnerReferences, workload.GetUID()) {
-					podUnstructured, err := runtime.DefaultUnstructuredConverter.ToUnstructured(pod)
-					if err != nil {
-						continue
-					}
-					podsList = append(podsList, unstructured.Unstructured{Object: podUnstructured})
+				if hasOwnerReference(pod.GetOwnerReferences(), workload.GetUID()) {
+					podsList = append(podsList, pod)
 				}
 			}
 
@@ -286,7 +273,7 @@ func GetWorkloadStatus(requestData GetWorkloadStatusRequest) ([]WorkloadStatusDt
 		}
 
 		for _, helmRelease := range *requestData.HelmReleases {
-			unstructuredResourceList, err := helm.HelmReleaseGetWorkloads(helm.HelmReleaseGetWorkloadsRequest{
+			unstructuredResourceList, err := helm.HelmReleaseGetWorkloads(valkeyClient, helm.HelmReleaseGetWorkloadsRequest{
 				Release:   helmRelease.Release,
 				Namespace: helmRelease.Namespace,
 				Whitelist: whitelist,
@@ -357,17 +344,11 @@ func GetWorkloadStatus(requestData GetWorkloadStatusRequest) ([]WorkloadStatusDt
 		k8sLogger.Debug("Filtering by ResourceEntity, namespaces and resourceNames")
 		for _, resourceName := range *requestData.ResourceNames {
 			for _, namespace := range *requestData.Namespaces {
-				workloads, err := store.GlobalStore.SearchByGroupKindNameNamespace(reflect.TypeOf(unstructured.Unstructured{}), requestData.ResourceEntity.Group, requestData.ResourceEntity.Kind, resourceName, &namespace)
+				workloads, err := store.SearchByGroupKindNameNamespace(valkeyClient, requestData.ResourceEntity.Group, requestData.ResourceEntity.Kind, resourceName, &namespace)
 				if err != nil {
 					k8sLogger.Warn("Error getting workload", "error", err)
 				} else {
-					for _, workload := range workloads {
-						workload, ok := workload.(*unstructured.Unstructured)
-						if !ok || workload == nil {
-							continue
-						}
-						workloadList = append(workloadList, *workload)
-					}
+					workloadList = append(workloadList, workloads...)
 				}
 			}
 		}
@@ -376,17 +357,11 @@ func GetWorkloadStatus(requestData GetWorkloadStatusRequest) ([]WorkloadStatusDt
 	if !isResourceEntityEmpty && requestData.Namespaces == nil && requestData.ResourceNames != nil {
 		k8sLogger.Debug("Filtering by ResourceEntity and resourceNames")
 		for _, resourceName := range *requestData.ResourceNames {
-			workloads, err := store.GlobalStore.SearchByGroupKindNameNamespace(reflect.TypeOf(unstructured.Unstructured{}), requestData.ResourceEntity.Group, requestData.ResourceEntity.Kind, resourceName, nil)
+			workloads, err := store.SearchByGroupKindNameNamespace(valkeyClient, requestData.ResourceEntity.Group, requestData.ResourceEntity.Kind, resourceName, nil)
 			if err != nil {
 				k8sLogger.Warn("Error getting workload", "error", err)
 			} else {
-				for _, workload := range workloads {
-					workload, ok := workload.(*unstructured.Unstructured)
-					if !ok || workload == nil {
-						continue
-					}
-					workloadList = append(workloadList, *workload)
-				}
+				workloadList = append(workloadList, workloads...)
 			}
 		}
 	} else
@@ -395,17 +370,11 @@ func GetWorkloadStatus(requestData GetWorkloadStatusRequest) ([]WorkloadStatusDt
 		k8sLogger.Debug("Filtering by namespaces and resourceNames")
 		for _, resourceName := range *requestData.ResourceNames {
 			for _, namespace := range *requestData.Namespaces {
-				workloads, err := store.GlobalStore.SearchByNamespaceAndName(reflect.TypeOf(unstructured.Unstructured{}), namespace, resourceName)
+				workloads, err := store.SearchByNamespaceAndName(valkeyClient, namespace, resourceName)
 				if err != nil {
 					k8sLogger.Warn("Error getting workload", "error", err)
 				} else {
-					for _, workload := range workloads {
-						workload, ok := workload.(*unstructured.Unstructured)
-						if !ok || workload == nil {
-							continue
-						}
-						workloadList = append(workloadList, *workload)
-					}
+					workloadList = append(workloadList, workloads...)
 				}
 			}
 		}
@@ -420,7 +389,6 @@ func GetWorkloadStatus(requestData GetWorkloadStatusRequest) ([]WorkloadStatusDt
 
 	// get all events from the store
 	eventResource := utils.SyncResourceEntry{
-		Kind:      "Event",
 		Name:      "events",
 		Namespace: utils.Pointer(""),
 		Group:     "v1",
@@ -444,9 +412,9 @@ func GetWorkloadStatus(requestData GetWorkloadStatusRequest) ([]WorkloadStatusDt
 	var results []WorkloadStatusDto
 
 	// Initialize caches for ReplicaSets, Jobs, and Pods
-	replicaSetsCache := map[string][]interface{}{}
-	jobsCache := map[string][]interface{}{}
-	podsCache := map[string][]interface{}{}
+	replicaSetsCache := map[string][]unstructured.Unstructured{}
+	jobsCache := map[string][]unstructured.Unstructured{}
+	podsCache := map[string][]unstructured.Unstructured{}
 
 	ignoreDependentResources := false
 

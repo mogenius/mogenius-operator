@@ -10,49 +10,54 @@ import (
 	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/services"
 	"mogenius-k8s-manager/src/shutdown"
-	"mogenius-k8s-manager/src/store"
-	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
 	"net/url"
 	"strconv"
 )
 
-func RunCluster(logManagerModule logging.LogManagerModule, configModule *config.Config, cmdLogger *slog.Logger) error {
+func RunCluster(logManagerModule logging.SlogManager, configModule *config.Config, cmdLogger *slog.Logger, valkeyLogChannel chan logging.LogLine) error {
 	go func() {
-		defer func() {
-			shutdown.SendShutdownSignal(true)
-		}()
+		defer shutdown.SendShutdownSignal(true)
 		configModule.Validate()
-
-		systems := InitializeSystems(logManagerModule, configModule, cmdLogger)
-
+		systems := InitializeSystems(logManagerModule, configModule, cmdLogger, valkeyLogChannel)
 		systems.versionModule.PrintVersionInfo()
 		cmdLogger.Info("🖥️  🖥️  🖥️  CURRENT CONTEXT", "foundContext", mokubernetes.CurrentContextName())
 
 		clusterSecret, err := mokubernetes.CreateOrUpdateClusterSecret(nil)
 		if err != nil {
 			cmdLogger.Error("Error retrieving cluster secret. Aborting.", "error", err)
-			shutdown.SendShutdownSignal(true)
-			select {}
+			return
 		}
 		_, err = mokubernetes.CreateAndUpdateClusterConfigmap()
 		if err != nil {
 			cmdLogger.Error("Error retrieving cluster configmap. Aborting.", "error", err.Error())
-			shutdown.SendShutdownSignal(true)
-			select {}
+			return
 		}
 		err = mokubernetes.CreateOrUpdateResourceTemplateConfigmap()
 		if err != nil {
 			cmdLogger.Error("Error creating resource template configmap", "error", err)
-			shutdown.SendShutdownSignal(true)
-			select {}
+			return
 		}
 
 		utils.SetupClusterSecret(clusterSecret)
 
-		store.Start()
-		go systems.httpApi.Run(configModule.Get("MO_HTTP_ADDR"))
+		// connect valkey
+		if !configModule.IsSet("MO_VALKEY_PASSWORD") {
+			valkeyPwd, err := mokubernetes.GetValkeyPwd()
+			if err != nil {
+				cmdLogger.Error("failed to get valkey password", "error", err)
+			}
+			if valkeyPwd != nil {
+				configModule.Set("MO_VALKEY_PASSWORD", *valkeyPwd)
+			}
+		}
+		err = systems.valkeyClient.Connect()
+		if err != nil {
+			cmdLogger.Error("failed to connect to valkey", "error", err)
+			return
+		}
 
+		// connect to websocket to MO_EVENT_SERVER
 		url, err := url.Parse(configModule.Get("MO_EVENT_SERVER"))
 		assert.Assert(err == nil, err)
 		err = systems.eventConnectionClient.SetUrl(*url)
@@ -62,8 +67,7 @@ func RunCluster(logManagerModule logging.LogManagerModule, configModule *config.
 		err = systems.eventConnectionClient.Connect()
 		if err != nil {
 			cmdLogger.Error("Failed to connect to mogenius api server. Aborting.", "url", url.String(), "error", err.Error())
-			shutdown.SendShutdownSignal(true)
-			select {}
+			return
 		}
 		assert.Assert(err == nil, "cant connect to mogenius api server - aborting startup", url.String(), err)
 
@@ -99,43 +103,7 @@ func RunCluster(logManagerModule logging.LogManagerModule, configModule *config.
 			}
 		})
 
-		err = mokubernetes.Start(systems.eventConnectionClient)
-		if err != nil {
-			cmdLogger.Error("Error starting kubernetes service", "error", err)
-			return
-		}
-
-		// INIT MOUNTS
-		autoMountNfs, err := strconv.ParseBool(configModule.Get("MO_AUTO_MOUNT_NFS"))
-		assert.Assert(err == nil, err)
-		if autoMountNfs {
-			volumesToMount, err := mokubernetes.GetVolumeMountsForK8sManager()
-			if err != nil && configModule.Get("MO_STAGE") != utils.STAGE_LOCAL {
-				cmdLogger.Error("GetVolumeMountsForK8sManager", "error", err)
-			}
-			for _, vol := range volumesToMount {
-				mokubernetes.Mount(vol.Namespace, vol.VolumeName, nil)
-			}
-		}
-
-		go func() {
-			services.DISABLEQUEUE = true
-			basicApps, userApps := services.InstallDefaultApplications()
-			if basicApps != "" || userApps != "" {
-				err := utils.ExecuteShellCommandSilent("Installing default applications ...", fmt.Sprintf("%s\n%s", basicApps, userApps))
-				cmdLogger.Info("Seeding Commands ( 🪴 🪴 🪴 )", "userApps", userApps)
-				if err != nil {
-					cmdLogger.Error("Error installing default applications", "error", err)
-					shutdown.SendShutdownSignal(true)
-					select {}
-				}
-			}
-			services.DISABLEQUEUE = false
-			services.ProcessQueue(systems.eventConnectionClient) // Process the queue maybe there are builds left to build
-		}()
-
-		mokubernetes.InitOrUpdateCrds()
-
+		// connect to websocket to MO_EVENT_SERVER
 		url, err = url.Parse(configModule.Get("MO_API_SERVER"))
 		assert.Assert(err == nil, err)
 		err = systems.jobConnectionClient.SetUrl(*url)
@@ -182,30 +150,70 @@ func RunCluster(logManagerModule logging.LogManagerModule, configModule *config.
 			}
 		})
 
-		go structs.ConnectToEventQueue(systems.eventConnectionClient)
-		go structs.ConnectToJobQueue(systems.jobConnectionClient)
+		// THESE SERVICES HAVE TO BE STARTED BEFORE KUBERNETES (otherwise watcher events will get missing)
+		systems.valkeyLoggerService.Run()
+		err = systems.dbstatsService.Run()
+		assert.Assert(err == nil, err)
+		systems.httpApi.Run()
+		systems.socketApi.Run()
+
+		err = mokubernetes.Start(systems.eventConnectionClient)
+		if err != nil {
+			cmdLogger.Error("Error starting kubernetes service", "error", err)
+			return
+		}
+
+		// INIT MOUNTS
+		autoMountNfs, err := strconv.ParseBool(configModule.Get("MO_AUTO_MOUNT_NFS"))
+		assert.Assert(err == nil, err)
+		if autoMountNfs {
+			volumesToMount, err := mokubernetes.GetVolumeMountsForK8sManager()
+			if err != nil && configModule.Get("MO_STAGE") != utils.STAGE_LOCAL {
+				cmdLogger.Error("GetVolumeMountsForK8sManager", "error", err)
+			}
+			for _, vol := range volumesToMount {
+				mokubernetes.Mount(vol.Namespace, vol.VolumeName, nil)
+			}
+		}
+
+		go func() {
+			basicApps, userApps := services.InstallDefaultApplications()
+			if basicApps != "" || userApps != "" {
+				err := utils.ExecuteShellCommandSilent("Installing default applications ...", fmt.Sprintf("%s\n%s", basicApps, userApps))
+				cmdLogger.Info("Seeding Commands ( 🪴 🪴 🪴 )", "userApps", userApps)
+				if err != nil {
+					cmdLogger.Error("Error installing default applications", "error", err)
+					shutdown.SendShutdownSignal(true)
+					select {}
+				}
+			}
+		}()
+
+		mokubernetes.InitOrUpdateCrds()
 
 		mokubernetes.CreateMogeniusContainerRegistryIngress()
 
 		// Init Helm Config
 		go func() {
 			if err := helm.InitHelmConfig(); err != nil {
-				cmdLogger.Error("Error initializing Helm Config", "error", err)
-			} else {
-				cmdLogger.Info("Helm Config initialized")
+				cmdLogger.Error("failed to initialize Helm config", "error", err)
+				return
 			}
+			cmdLogger.Info("Helm config initialized")
 		}()
 
 		// Init Network Policy Configmap
 		go func() {
 			if err := mokubernetes.InitNetworkPolicyConfigMap(); err != nil {
 				cmdLogger.Error("Error initializing Network Policy Configmap", "error", err)
-			} else {
-				cmdLogger.Info("Network Policy Configmap initialized")
+				return
 			}
+			cmdLogger.Info("Network Policy Configmap initialized")
 		}()
 
-		systems.socketApi.Run()
+		systems.podStatsCollector.Run()
+		cmdLogger.Info("SYSTEM STARTUP COMPLETE")
+		select {}
 	}()
 
 	shutdown.Listen()

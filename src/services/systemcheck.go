@@ -247,23 +247,6 @@ func SystemCheck() SystemCheckResponse {
 			"")
 	})
 
-	// check for docker
-	wg.Add(1)
-	go SysCheckExec("CheckDocker", &wg, &entries, func() SystemCheckEntry {
-		dockerResult, dockerOutput, dockerErr := IsDockerInstalled()
-		return CreateSystemCheckEntry(
-			"docker",
-			dockerResult,
-			dockerOutput,
-			"",
-			dockerErr,
-			"",
-			true,
-			false,
-			dockerOutput,
-			"")
-	})
-
 	// check for cert-manager
 	wg.Add(1)
 	go SysCheckExec("CheckCertManager", &wg, &entries, func() SystemCheckEntry {
@@ -351,37 +334,6 @@ func SystemCheck() SystemCheckResponse {
 		return trafficEntry
 	})
 
-	// check for podstatscollector
-	wg.Add(1)
-	go SysCheckExec("CheckPodStatsCollector", &wg, &entries, func() SystemCheckEntry {
-		podstatsCollectorNewestVersion, err := GetCurrentPodStatsCollectorVersion()
-		if err != nil {
-			serviceLogger.Error("getCurrentPodStatsCollectorVersion", "error", err)
-		}
-		podStatsCollectorVersion, podStatsCollectorInstalledErr := kubernetes.IsDeploymentInstalled(config.Get("MO_OWN_NAMESPACE"), utils.HelmReleaseNamePodStatsCollector)
-		if podStatsCollectorVersion == "" && podStatsCollectorInstalledErr == nil {
-			podStatsCollectorVersion = "6.6.6" // flag local version without tag
-		}
-		podStatsMsg := fmt.Sprintf("%s (Version: %s) is installed.", utils.HelmReleaseNamePodStatsCollector, podStatsCollectorVersion)
-
-		podEntry := CreateSystemCheckEntry(
-			utils.HelmReleaseNamePodStatsCollector,
-			podStatsCollectorInstalledErr == nil,
-			podStatsMsg,
-			fmt.Sprintf("%s is not installed.\nTo gather pod/event information you need to install this component.", utils.HelmReleaseNamePodStatsCollector),
-			podStatsCollectorInstalledErr,
-			"Collects and exposes status events of pods for services in mogenius.",
-			true,
-			true,
-			podStatsCollectorVersion,
-			podstatsCollectorNewestVersion)
-		podEntry.InstallPattern = structs.PAT_INSTALL_POD_STATS_COLLECTOR
-		podEntry.UninstallPattern = structs.PAT_UNINSTALL_POD_STATS_COLLECTOR
-		podEntry.UpgradePattern = structs.PAT_UPGRADE_PODSTATS_COLLECTOR
-		podEntry.HelmStatus = helm.HelmStatus(config.Get("MO_OWN_NAMESPACE"), utils.HelmReleaseNamePodStatsCollector)
-		return podEntry
-	})
-
 	// check for distribution registry
 	wg.Add(1)
 	go SysCheckExec("CheckDistributionRegistry", &wg, &entries, func() SystemCheckEntry {
@@ -461,21 +413,6 @@ func SystemCheck() SystemCheckResponse {
 		metallbEntry.HelmStatus = helm.HelmStatus(config.Get("MO_OWN_NAMESPACE"), utils.HelmReleaseNameMetalLb)
 		return metallbEntry
 	})
-
-	// TODO: FIXEN UND WIEDER EINBAUEN: MOG-1051
-	// keplerVersion, keplerInstalledErr := punq.IsDaemonSetInstalled(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameKepler)
-	// keplerMsg := fmt.Sprintf("%s (Version: %s) is installed.", NameKepler, keplerVersion)
-	// if keplerInstalledErr != nil {
-	// 	keplerMsg = fmt.Sprintf("%s is not installed.\nTo observe the power consumption of the cluster, you need to install this component.", NameKepler)
-	// }
-	// keplerDescription := "Kepler (Kubernetes-based Efficient Power Level Exporter) estimates workload energy/power consumption."
-	// currentKeplerVersion := getMostCurrentHelmChartVersion(KeplerHelmIndex, utils.HelmReleaseNameKepler)
-	// keplerEntry := CreateSystemCheckEntry(NameKepler, keplerInstalledErr == nil, keplerMsg, keplerDescription, false, false, keplerVersion, currentKeplerVersion)
-	// keplerEntry.InstallPattern = structs.PAT_INSTALL_KEPLER
-	// keplerEntry.UninstallPattern = structs.PAT_UNINSTALL_KEPLER
-	// keplerEntry.UpgradePattern = "" // structs.PAT_UPGRADE_KEPLER
-	// keplerEntry.Status = mokubernetes.HelmStatus(utils.CONFIG.Kubernetes.OwnNamespace, utils.HelmReleaseNameKepler)
-	// entries = append(entries, keplerEntry)
 
 	// check for local dev setup
 	wg.Add(1)
@@ -635,10 +572,4 @@ func deleteSystemCheckEntryByName(entries []SystemCheckEntry, name string) []Sys
 		}
 	}
 	return entries
-}
-
-func IsDockerInstalled() (bool, string, error) {
-	cmd := utils.RunOnLocalShell("/usr/local/bin/docker --version")
-	output, err := cmd.CombinedOutput()
-	return err == nil, strings.TrimRight(string(output), "\n\r"), err
 }

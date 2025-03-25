@@ -48,6 +48,9 @@ func FormatJsonTimePretty(jsonTimestamp string) string {
 	}
 	return t.Format("2006-01-02 15:04:05")
 }
+func FormatJsonTimePrettyFromTime(t time.Time) string {
+	return t.Format("2006-01-02 15:04:05")
+}
 
 func NanoId() string {
 	id, err := nanoid.Custom("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890", 21)
@@ -73,6 +76,10 @@ func NanoIdExtraLong() string {
 	return id()
 }
 
+func UnixTimeSeconds() string {
+	return fmt.Sprint(time.Now().Unix())
+}
+
 func QuickHash(s string) string {
 	h := fnv.New32a()
 	h.Write([]byte(s))
@@ -89,8 +96,7 @@ func BytesToHumanReadable(b int64) string {
 		div *= unit
 		exp++
 	}
-	return fmt.Sprintf("%.1f %cB",
-		float64(b)/float64(div), "kMGTPE"[exp])
+	return fmt.Sprintf("%.1f %cB", float64(b)/float64(div), "kMGTPE"[exp])
 }
 
 func NumberToHumanReadable(b uint64) string {

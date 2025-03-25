@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: mo-default-gateway
 spec:
-  paused: true
+  paused: false
   replicas: 1
   revisionHistoryLimit: 1
   strategy:

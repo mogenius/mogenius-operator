@@ -401,13 +401,17 @@ func (self *MogeniusV1alpha1) UpdateWorkspace(namespace string, name string, spe
 		return nil, err
 	}
 
-	result := &mov1alpha1.Workspace{}
-	err = self.restClient.Patch(types.MergePatchType).Namespace(namespace).Resource("workspaces").Name(name).Body(patchBytes).Do(context.Background()).Into(result)
-	if err != nil {
-		return nil, fmt.Errorf("RESTClient: %w", err)
+	if len(spec.Resources) > 0 {
+		result := &mov1alpha1.Workspace{}
+		err = self.restClient.Patch(types.MergePatchType).Namespace(namespace).Resource("workspaces").Name(name).Body(patchBytes).Do(context.Background()).Into(result)
+		if err != nil {
+			return nil, fmt.Errorf("RESTClient: %w", err)
+		}
+		return result, nil
+	} else {
+		wrksp, err := self.ReplaceWorkspace(namespace, name, spec)
+		return wrksp, err
 	}
-
-	return result, nil
 }
 
 func (self *MogeniusV1alpha1) DeleteWorkspace(namespace string, name string) error {

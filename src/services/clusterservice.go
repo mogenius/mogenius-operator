@@ -181,7 +181,7 @@ func StatsMogeniusNfsNamespace(r NfsNamespaceStatsRequest) []NfsVolumeStatsRespo
 			}
 		}
 
-		message := fmt.Sprintf("💾: '%s' -> %s / %s (Free: %s)", mountPath, utils.BytesToHumanReadable(int64(entry.UsedBytes)), utils.BytesToHumanReadable(int64(entry.TotalBytes)), utils.BytesToHumanReadable(int64(entry.FreeBytes)))
+		message := fmt.Sprintf("💾: '%s' -> %s / %s (Free: %s)\n", mountPath, utils.BytesToHumanReadable(int64(entry.UsedBytes)), utils.BytesToHumanReadable(int64(entry.TotalBytes)), utils.BytesToHumanReadable(int64(entry.FreeBytes)))
 		serviceLogger.Info(message)
 		result = append(result, entry)
 	}
@@ -222,7 +222,7 @@ func sumAllBytesOfFolder(root string) uint64 {
 		return nil
 	})
 	if err != nil {
-		serviceLogger.Error("Error while summing bytes in path", "error", err)
+		serviceLogger.Error("Error while summing bytes in path", "error", err.Error())
 	}
 
 	wg.Wait()
@@ -243,27 +243,9 @@ type ClusterHelmRequest struct {
 	HelmValues       string `json:"helmValues" validate:"required"`
 }
 
-func ClusterHelmRequestExample() ClusterHelmRequest {
-	return ClusterHelmRequest{
-		Namespace:       "mogenius",
-		NamespaceId:     "B0919ACB-92DD-416C-AF67-E59AD4B25265",
-		HelmRepoUrl:     "https://charts.bitnami.com/bitnami",
-		HelmReleaseName: "test-helm-release",
-		HelmChartName:   "bitnami/nginx",
-		HelmValues:      "",
-	}
-}
-
 type ClusterHelmUninstallRequest struct {
 	NamespaceId     string `json:"namespaceId" validate:"required"`
 	HelmReleaseName string `json:"helmReleaseName" validate:"required"`
-}
-
-func ClusterHelmUninstallRequestExample() ClusterHelmUninstallRequest {
-	return ClusterHelmUninstallRequest{
-		NamespaceId:     "B0919ACB-92DD-416C-AF67-E59AD4B25265",
-		HelmReleaseName: "test-helm-release",
-	}
 }
 
 type ClusterWriteConfigMap struct {
@@ -273,29 +255,10 @@ type ClusterWriteConfigMap struct {
 	Data      string            `json:"data" validate:"required"`
 }
 
-func ClusterWriteConfigMapExample() ClusterWriteConfigMap {
-	return ClusterWriteConfigMap{
-		Namespace: "mogenius",
-		Name:      "my-funky-configmap",
-		Labels: map[string]string{
-			"app": "my-funky-app",
-		},
-		Data: "my-funky-data-yaml-string",
-	}
-}
-
 type ClusterListWorkloads struct {
 	Namespace     string `json:"namespace"`
 	LabelSelector string `json:"labelSelector"`
 	Prefix        string `json:"prefix"`
-}
-
-func ClusterListWorkloadsExample() ClusterListWorkloads {
-	return ClusterListWorkloads{
-		Namespace:     "mogenius",
-		LabelSelector: "",
-		Prefix:        "metal",
-	}
 }
 
 type ClusterUpdateLocalTlsSecret struct {
@@ -303,23 +266,9 @@ type ClusterUpdateLocalTlsSecret struct {
 	LocalTlsKey string `json:"localTlsKey" validate:"required"`
 }
 
-func ClusterUpdateLocalTlsSecretExample() ClusterUpdateLocalTlsSecret {
-	return ClusterUpdateLocalTlsSecret{
-		LocalTlsCrt: "my-funky-crt",
-		LocalTlsKey: "my-funky-key",
-	}
-}
-
 type ClusterGetConfigMap struct {
 	Namespace string `json:"namespace" validate:"required"`
 	Name      string `json:"name" validate:"required"`
-}
-
-func ClusterGetConfigMapExample() ClusterGetConfigMap {
-	return ClusterGetConfigMap{
-		Namespace: "mogenius",
-		Name:      "my-funky-configmap",
-	}
 }
 
 type ClusterGetDeployment struct {
@@ -327,33 +276,13 @@ type ClusterGetDeployment struct {
 	Name      string `json:"name" validate:"required"`
 }
 
-func ClusterGetDeploymentExample() ClusterGetDeployment {
-	return ClusterGetDeployment{
-		Namespace: "mogenius",
-		Name:      "my-funky-deployment",
-	}
-}
-
 type ClusterGetPersistentVolume struct {
 	Namespace string `json:"namespace" validate:"required"`
 	Name      string `json:"name" validate:"required"`
 }
 
-func ClusterGetPersistentVolumeExample() ClusterGetPersistentVolume {
-	return ClusterGetPersistentVolume{
-		Namespace: "mogenius",
-		Name:      "nfs-server-my-funky-nfs",
-	}
-}
-
 type NfsStorageInstallRequest struct {
 	ClusterProvider utils.KubernetesProvider `json:"clusterProvider"`
-}
-
-func NfsStorageInstallRequestExample() NfsStorageInstallRequest {
-	return NfsStorageInstallRequest{
-		ClusterProvider: utils.AKS,
-	}
 }
 
 type NfsVolumeRequest struct {
@@ -362,34 +291,13 @@ type NfsVolumeRequest struct {
 	SizeInGb      int    `json:"sizeInGb" validate:"required"`
 }
 
-func NfsVolumeRequestExample() NfsVolumeRequest {
-	return NfsVolumeRequest{
-		NamespaceName: "name",
-		VolumeName:    "my-fancy-volume-name",
-		SizeInGb:      10,
-	}
-}
-
 type NfsVolumeStatsRequest struct {
 	NamespaceName string `json:"namespaceName" validate:"required"`
 	VolumeName    string `json:"volumeName" validate:"required"`
 }
 
-func NfsVolumeStatsRequestExample() NfsVolumeStatsRequest {
-	return NfsVolumeStatsRequest{
-		NamespaceName: "name",
-		VolumeName:    "my-fancy-volume-name",
-	}
-}
-
 type NfsNamespaceStatsRequest struct {
 	NamespaceName string `json:"namespaceName" validate:"required"`
-}
-
-func NfsNamespaceStatsRequestExample() NfsNamespaceStatsRequest {
-	return NfsNamespaceStatsRequest{
-		NamespaceName: "test-bene-prod-a7fm72",
-	}
 }
 
 type NfsVolumeStatsResponse struct {
@@ -399,7 +307,6 @@ type NfsVolumeStatsResponse struct {
 	UsedBytes  uint64 `json:"usedBytes"`
 }
 
-// @TODO: add request/respionse example for nfs status
 type NfsStatusRequest struct {
 	Name             string `json:"name" validate:"required"`
 	Namespace        string `json:"namespace"`
@@ -512,51 +419,6 @@ func UpgradeTrafficCollector() (string, error) {
 		version, err := GetCurrentTrafficCollectorVersion()
 		if err != nil {
 			serviceLogger.Error("Error getting current traffic collector version", "error", err)
-		}
-		r.Version = version
-	}
-	return helm.HelmReleaseUpgrade(r)
-}
-
-func InstallPodStatsCollector() (string, error) {
-	r := ClusterHelmRequest{
-		HelmRepoName:    "mogenius",
-		HelmRepoUrl:     MogeniusHelmIndex,
-		HelmReleaseName: utils.HelmReleaseNamePodStatsCollector,
-		HelmChartName:   "mogenius/" + utils.HelmReleaseNamePodStatsCollector,
-		HelmValues: fmt.Sprintf(`global:
-  namespace: %s
-  stage: %s
-`, config.Get("MO_OWN_NAMESPACE"), config.Get("MO_STAGE")),
-	}
-	if config.Get("MO_STAGE") == utils.STAGE_DEV {
-		r.HelmChartName = "mogenius/dev-" + utils.HelmReleaseNamePodStatsCollector
-		r.HelmReleaseName = "dev-" + utils.HelmReleaseNamePodStatsCollector
-		version, err := GetCurrentPodStatsCollectorVersion()
-		if err != nil {
-			serviceLogger.Error("Error getting current pod stats collector version", "error", err)
-		}
-		r.HelmChartVersion = version
-	}
-	return helm.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues, r.HelmChartVersion)
-}
-
-func UpgradePodStatsCollector() (string, error) {
-	r := helm.HelmChartInstallUpgradeRequest{
-		Namespace: config.Get("MO_OWN_NAMESPACE"),
-		Release:   utils.HelmReleaseNamePodStatsCollector,
-		Chart:     "mogenius/" + utils.HelmReleaseNamePodStatsCollector,
-		Values: fmt.Sprintf(`global:
-  namespace: %s
-  stage: %s
-`, config.Get("MO_OWN_NAMESPACE"), config.Get("MO_STAGE")),
-	}
-	if config.Get("MO_STAGE") == utils.STAGE_DEV {
-		r.Chart = "mogenius/dev-" + utils.HelmReleaseNamePodStatsCollector
-		r.Release = "dev-" + utils.HelmReleaseNamePodStatsCollector
-		version, err := GetCurrentPodStatsCollectorVersion()
-		if err != nil {
-			serviceLogger.Error("Error getting current pod stats collector version", "error", err)
 		}
 		r.Version = version
 	}
@@ -805,17 +667,6 @@ func UninstallTrafficCollector() (string, error) {
 	return helm.DeleteHelmChart(r.HelmReleaseName, r.Namespace)
 }
 
-func UninstallPodStatsCollector() (string, error) {
-	r := ClusterHelmRequest{
-		Namespace:       config.Get("MO_OWN_NAMESPACE"),
-		HelmReleaseName: utils.HelmReleaseNamePodStatsCollector,
-	}
-	if config.Get("MO_STAGE") == utils.STAGE_DEV {
-		r.HelmReleaseName = "dev-" + utils.HelmReleaseNamePodStatsCollector
-	}
-	return helm.DeleteHelmChart(r.HelmReleaseName, r.Namespace)
-}
-
 func UninstallMetricsServer() (string, error) {
 	r := ClusterHelmRequest{
 		Namespace:       config.Get("MO_OWN_NAMESPACE"),
@@ -956,24 +807,6 @@ func GetCurrentTrafficCollectorVersion() (string, error) {
 		trafficResult = trafficCollector[0].Version
 	}
 	return trafficResult, nil
-}
-
-func GetCurrentPodStatsCollectorVersion() (string, error) {
-	data, err := utils.GetVersionData(utils.HELM_INDEX)
-	if err != nil {
-		return "NO_VERSION_FOUND", err
-	}
-
-	chartName := utils.HelmReleaseNamePodStatsCollector
-	if config.Get("MO_STAGE") == utils.STAGE_DEV {
-		chartName = "dev-" + utils.HelmReleaseNamePodStatsCollector
-	}
-	podstatsCollector := data.Entries[chartName]
-	podstatsResult := "NO_VERSION_FOUND"
-	if len(podstatsCollector) > 0 {
-		podstatsResult = podstatsCollector[0].Version
-	}
-	return podstatsResult, nil
 }
 
 func getMostCurrentHelmChartVersion(url string, chartname string) string {

@@ -7,15 +7,6 @@ type K8sServiceSettingsDto struct {
 	ImagePullPolicy    ImagePullPolicyEnum `json:"imagePullPolicy"`
 }
 
-func K8sServiceSettingsDtoExampleData() K8sServiceSettingsDto {
-	return K8sServiceSettingsDto{
-		LimitCpuCores:      100,
-		LimitMemoryMB:      128,
-		EphemeralStorageMB: 200,
-		ImagePullPolicy:    "Always",
-	}
-}
-
 func (d *K8sServiceSettingsDto) IsLimitSetup() bool {
 	return d.LimitCpuCores != 0 || d.LimitMemoryMB != 0 || d.EphemeralStorageMB != 0
 }

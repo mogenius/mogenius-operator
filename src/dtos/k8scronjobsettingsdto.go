@@ -10,11 +10,3 @@ type K8sCronJobSettingsDto struct {
 	FailedJobsHistoryLimit     int32 `json:"failedJobsHistoryLimit,omitempty"`
 	SuccessfulJobsHistoryLimit int32 `json:"successfulJobsHistoryLimit,omitempty"`
 }
-
-func K8sCronJobSettingsDtoExampleData() *K8sCronJobSettingsDto {
-	return &K8sCronJobSettingsDto{
-		Schedule:              "*/15 * * * *",
-		BackoffLimit:          2,
-		ActiveDeadlineSeconds: 120,
-	}
-}

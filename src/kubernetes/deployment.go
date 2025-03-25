@@ -242,13 +242,6 @@ func createDeploymentHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sSer
 	// REPLICAS
 	spec.Replicas = utils.Pointer(int32(service.ReplicaCount))
 
-	// PAUSE only on "freshly created" or Repository-Types which needs a build beforehand
-	if freshlyCreated && service.HasContainerWithGitRepo() {
-		spec.Paused = true
-	} else {
-		spec.Paused = false
-	}
-
 	// LABELS
 	if spec.Selector == nil {
 		spec.Selector = &metav1.LabelSelector{}
@@ -298,7 +291,7 @@ func createDeploymentHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sSer
 
 				if container.Probes.LivenessProbe.HTTPGet != nil {
 					spec.Template.Spec.Containers[index].LivenessProbe.HTTPGet.Path = container.Probes.LivenessProbe.HTTPGet.Path
-					spec.Template.Spec.Containers[index].LivenessProbe.HTTPGet.Port = intstr.FromInt32(int32(container.Probes.LivenessProbe.HTTPGet.Port))
+					spec.Template.Spec.Containers[index].LivenessProbe.HTTPGet.Port = intstr.Parse(container.Probes.LivenessProbe.HTTPGet.Port)
 					if container.Probes.LivenessProbe.HTTPGet.Host != nil {
 						spec.Template.Spec.Containers[index].LivenessProbe.HTTPGet.Host = *container.Probes.LivenessProbe.HTTPGet.Host
 					} else {
@@ -319,7 +312,7 @@ func createDeploymentHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sSer
 						}
 					} else if container.Probes.LivenessProbe.TCPSocket != nil {
 						spec.Template.Spec.Containers[index].LivenessProbe.TCPSocket = &v1Core.TCPSocketAction{}
-						spec.Template.Spec.Containers[index].LivenessProbe.TCPSocket.Port = intstr.FromInt32(int32(container.Probes.LivenessProbe.TCPSocket.Port))
+						spec.Template.Spec.Containers[index].LivenessProbe.TCPSocket.Port = intstr.Parse(container.Probes.LivenessProbe.TCPSocket.Port)
 					} else if container.Probes.LivenessProbe.Exec != nil {
 						spec.Template.Spec.Containers[index].LivenessProbe.Exec = &v1Core.ExecAction{}
 						spec.Template.Spec.Containers[index].LivenessProbe.Exec.Command = container.Probes.LivenessProbe.Exec.Command
@@ -347,7 +340,7 @@ func createDeploymentHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sSer
 
 				if container.Probes.ReadinessProbe.HTTPGet != nil {
 					spec.Template.Spec.Containers[index].ReadinessProbe.HTTPGet.Path = container.Probes.ReadinessProbe.HTTPGet.Path
-					spec.Template.Spec.Containers[index].ReadinessProbe.HTTPGet.Port = intstr.FromInt32(int32(container.Probes.ReadinessProbe.HTTPGet.Port))
+					spec.Template.Spec.Containers[index].ReadinessProbe.HTTPGet.Port = intstr.Parse(container.Probes.ReadinessProbe.HTTPGet.Port)
 					if container.Probes.ReadinessProbe.HTTPGet.Host != nil {
 						spec.Template.Spec.Containers[index].ReadinessProbe.HTTPGet.Host = *container.Probes.ReadinessProbe.HTTPGet.Host
 					} else {
@@ -368,7 +361,7 @@ func createDeploymentHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sSer
 						}
 					} else if container.Probes.ReadinessProbe.TCPSocket != nil {
 						spec.Template.Spec.Containers[index].ReadinessProbe.TCPSocket = &v1Core.TCPSocketAction{}
-						spec.Template.Spec.Containers[index].ReadinessProbe.TCPSocket.Port = intstr.FromInt32(int32(container.Probes.ReadinessProbe.TCPSocket.Port))
+						spec.Template.Spec.Containers[index].ReadinessProbe.TCPSocket.Port = intstr.Parse(container.Probes.ReadinessProbe.TCPSocket.Port)
 					} else if container.Probes.ReadinessProbe.Exec != nil {
 						spec.Template.Spec.Containers[index].ReadinessProbe.Exec = &v1Core.ExecAction{}
 						spec.Template.Spec.Containers[index].ReadinessProbe.Exec.Command = container.Probes.ReadinessProbe.Exec.Command
@@ -396,7 +389,7 @@ func createDeploymentHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sSer
 
 				if container.Probes.StartupProbe.HTTPGet != nil {
 					spec.Template.Spec.Containers[index].StartupProbe.HTTPGet.Path = container.Probes.StartupProbe.HTTPGet.Path
-					spec.Template.Spec.Containers[index].StartupProbe.HTTPGet.Port = intstr.FromInt32(int32(container.Probes.StartupProbe.HTTPGet.Port))
+					spec.Template.Spec.Containers[index].StartupProbe.HTTPGet.Port = intstr.Parse(container.Probes.StartupProbe.HTTPGet.Port)
 					if container.Probes.StartupProbe.HTTPGet.Host != nil {
 						spec.Template.Spec.Containers[index].StartupProbe.HTTPGet.Host = *container.Probes.StartupProbe.HTTPGet.Host
 					} else {
@@ -417,7 +410,7 @@ func createDeploymentHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sSer
 						}
 					} else if container.Probes.StartupProbe.TCPSocket != nil {
 						spec.Template.Spec.Containers[index].StartupProbe.TCPSocket = &v1Core.TCPSocketAction{}
-						spec.Template.Spec.Containers[index].StartupProbe.TCPSocket.Port = intstr.FromInt32(int32(container.Probes.StartupProbe.TCPSocket.Port))
+						spec.Template.Spec.Containers[index].StartupProbe.TCPSocket.Port = intstr.Parse(container.Probes.StartupProbe.TCPSocket.Port)
 					} else if container.Probes.StartupProbe.Exec != nil {
 						spec.Template.Spec.Containers[index].StartupProbe.Exec = &v1Core.ExecAction{}
 						spec.Template.Spec.Containers[index].StartupProbe.Exec.Command = container.Probes.StartupProbe.Exec.Command
@@ -448,7 +441,6 @@ func UpdateDeploymentImage(namespaceName string, controllerName string, containe
 			deploymentToUpdate.Spec.Template.Spec.Containers[index].Image = imageName
 		}
 	}
-	// deploymentToUpdate.Spec.Paused = false
 
 	_, err = deploymentClient.Update(context.TODO(), deploymentToUpdate, metav1.UpdateOptions{})
 	return err
@@ -466,7 +458,7 @@ func GetDeploymentImage(namespaceName string, controllerName string, containerNa
 			return container.Image, nil
 		}
 	}
-	return "", fmt.Errorf("Container '%s' not found in Deployment '%s'", containerName, controllerName)
+	return "", fmt.Errorf("container '%s' not found in Deployment '%s'", containerName, controllerName)
 }
 
 func ListDeploymentsWithFieldSelector(namespace string, labelSelector string, prefix string) K8sWorkloadResult {

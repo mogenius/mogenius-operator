@@ -5,10 +5,8 @@ import (
 	"mogenius-k8s-manager/src/logging"
 )
 
-var logManager logging.LogManagerModule
 var dtosLogger *slog.Logger
 
-func Setup(logManagerModule logging.LogManagerModule) {
-	logManager = logManagerModule
+func Setup(logManagerModule logging.SlogManager) {
 	dtosLogger = logManagerModule.CreateLogger("dtos")
 }

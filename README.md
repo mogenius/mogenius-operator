@@ -30,6 +30,11 @@ MO_STAGE=dev
 ## ```
 ```
 
+## .env update
+```
+if [[ -f .env ]]; then export $(grep -v '^#' .env | xargs); fi
+```
+
 Get the `api-key`, `mfa-id` and `cluster-name` from the operator secret `mogenius/mogenius` and adjust the `.env` accordingly.
 
 Change the replicas to `0`:
@@ -65,15 +70,6 @@ imagePullPolicy: Never
 ```
 
 After that simply restart the deployment and you are good to go.
-
-## bolt-db debugging
-
-```sh
-apk add go
-go install github.com/br0xen/boltbrowser@latest
-cp /data/db/mogenius-stats-3.db mogenius-stats-3.db
-/root/go/bin/boltbrowser mogenius-stats-3.db
-```
 
 ## Upgrade Modules
 
@@ -131,11 +127,20 @@ rm -rf ~/.helm/repository/cache/*
 helm repo update
 ```
 
+## Send Pod-Stats & Traffic-Stats
+
+Add this to the respective daemonset and deployment (on docker-desktop):
+
+```sh
+- name: k8s_manager_server_ws
+  value: ws://host.docker.internal:1337/ws
+
+```
+
 ## LINKS
 
 - [Just](https://github.com/casey/just) - A Task Runner. Checkout the `Justfile` for details or use `just --list --unsorted` for an quick overview.
 
 ---------------------
-
 
 mogenius-k8s-manager was created by [mogenius](https://mogenius.com) - The Virtual DevOps platform

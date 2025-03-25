@@ -344,23 +344,24 @@ func StorageClassForClusterProvider(clusterProvider utils.KubernetesProvider) st
 	}
 
 	// 2. SOMETIMES WE KNOW IT BETTER THAN KUBERNETES (REASONS: TO EXPENSIVE OR NOT COMPATIBLE WITH OUR NFS SERVER)
-	switch clusterProvider {
-	case utils.EKS:
-		nfsStorageClassStr = "gp2"
-	case utils.GKE:
-		nfsStorageClassStr = "standard-rwo"
-	case utils.AKS:
-		nfsStorageClassStr = "default"
-	case utils.OTC:
-		nfsStorageClassStr = "csi-disk"
-	case utils.BRING_YOUR_OWN:
-		nfsStorageClassStr = "default"
-	case utils.DOCKER_DESKTOP, utils.KIND:
-		nfsStorageClassStr = "hostpath"
-	case utils.K3S:
-		nfsStorageClassStr = "local-path"
+	if nfsStorageClassStr == "" {
+		switch clusterProvider {
+		case utils.EKS:
+			nfsStorageClassStr = "gp2"
+		case utils.GKE:
+			nfsStorageClassStr = "standard-rwo"
+		case utils.AKS:
+			nfsStorageClassStr = "default"
+		case utils.OTC:
+			nfsStorageClassStr = "csi-disk"
+		case utils.BRING_YOUR_OWN:
+			nfsStorageClassStr = "default"
+		case utils.DOCKER_DESKTOP, utils.KIND:
+			nfsStorageClassStr = "hostpath"
+		case utils.K3S:
+			nfsStorageClassStr = "local-path"
+		}
 	}
-
 	if nfsStorageClassStr == "" {
 		k8sLogger.Error("No default storage class found for cluster provider.", "clusterProvider", clusterProvider)
 	}
@@ -409,14 +410,14 @@ outerLoop:
 
 func GetLabelValue(labels map[string]string, labelKey string) (string, error) {
 	if labels == nil {
-		return "", fmt.Errorf("Labels are nil")
+		return "", fmt.Errorf("labels are nil")
 	}
 
 	if val, ok := labels[labelKey]; ok {
 		return val, nil
 	}
 
-	return "", fmt.Errorf("Label value for key:'%s' not found", labelKey)
+	return "", fmt.Errorf("label value for key:'%s' not found", labelKey)
 }
 
 func ContainsLabelKey(labels map[string]string, key string) bool {
@@ -455,7 +456,7 @@ func FindResourceKind(namespace string, name string) (*dtos.K8sServiceController
 		return utils.Pointer(dtos.CRON_JOB), nil
 	}
 
-	return nil, fmt.Errorf("Resource not found")
+	return nil, fmt.Errorf("resource not found")
 }
 
 func GuessClusterProvider() (utils.KubernetesProvider, error) {
@@ -486,6 +487,8 @@ func GuessCluserProviderFromNodeList(nodes *core.NodeList) (utils.KubernetesProv
 			return utils.AKS, nil
 		} else if LabelsContain(labelsAndAnnotations, "cloud.google.com/gke-nodepool") {
 			return utils.GKE, nil
+		} else if strings.HasPrefix(strings.ToLower(node.Name), "k3d-") {
+			return utils.K3D, nil
 		} else if LabelsContain(labelsAndAnnotations, "k3s.io/hostname") {
 			return utils.K3S, nil
 		} else if LabelsContain(labelsAndAnnotations, "ibm-cloud.kubernetes.io/worker-version") {
@@ -538,8 +541,6 @@ func GuessCluserProviderFromNodeList(nodes *core.NodeList) (utils.KubernetesProv
 			return utils.SPECTROCLOUD, nil
 		} else if LabelsContain(labelsAndAnnotations, "diamanti.com") {
 			return utils.DIAMANTI, nil
-		} else if strings.HasPrefix(strings.ToLower(node.Name), "k3d-") {
-			return utils.K3D, nil
 		} else if LabelsContain(labelsAndAnnotations, "cloud.google.com/gke-on-prem") {
 			return utils.GKE_ON_PREM, nil
 		} else if LabelsContain(labelsAndAnnotations, "rke.cattle.io") {

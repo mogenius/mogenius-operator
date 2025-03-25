@@ -118,5 +118,5 @@ func loadResourceTemplateData(kind, namespace, resourcename string) (string, err
 			}
 		}
 	}
-	return "", fmt.Errorf("Resource template '%s' not found", kind)
+	return "", fmt.Errorf("resource template '%s' not found", kind)
 }

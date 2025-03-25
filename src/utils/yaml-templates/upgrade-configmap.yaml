@@ -8,7 +8,7 @@ data:
   values.command: |
     # helm repo add mogenius https://helm.mogenius.com/public
     # helm repo update
-    # helm upgrade mogenius mogenius/mogenius-platform -n default --set global.cluster_name="gcp1" \
+    # helm upgrade mogenius mogenius/mogenius-operator -n default --set global.cluster_name="gcp1" \
     # --set global.api_key="mo_5a7c89c8-2386-4216-8643-e1cbc4b3f48b_osrhrjjvsq6qelkrdqaw" \
     # --set global.namespace="mogenius" \
     # --set k8smanager.enabled=true \

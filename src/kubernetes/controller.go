@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"mogenius-k8s-manager/src/dtos"
 
-	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
 	"strings"
 
@@ -140,8 +139,6 @@ func CreateControllerConfiguration(projectId string, namespace dtos.K8sNamespace
 			// this will be setup UNTIL the buildserver overwrites the image with the real one.
 			if previousSpecTemplate != nil {
 				specTemplate.Spec.Containers[index].Image = (*previousSpecTemplate).Spec.Containers[index].Image
-			} else {
-				specTemplate.Spec.Containers[index].Image = utils.IMAGE_PLACEHOLDER
 			}
 
 			// cluster image pull secret
@@ -150,16 +147,6 @@ func CreateControllerConfiguration(projectId string, namespace dtos.K8sNamespace
 				specTemplate.Spec.ImagePullSecrets = append(specTemplate.Spec.ImagePullSecrets, v1core.LocalObjectReference{
 					Name: fmt.Sprintf("%s-%s", ClusterImagePullSecretName, namespace.Name),
 				})
-			}
-			imgName := imageNameForContainer(namespace, service, container)
-			if specTemplate.Spec.Containers[index].Image == utils.IMAGE_PLACEHOLDER || specTemplate.Spec.Containers[index].Image != imgName {
-				if imgName != "" {
-					specTemplate.Spec.Containers[index].Image = imgName
-				} else {
-					imgErr := fmt.Errorf("No image found for '%s/%s'. Maybe the build failed or is still running.", namespace.Name, container.Name)
-					k8sLogger.Error(imgErr.Error())
-					return nil, imgErr
-				}
 			}
 		}
 
@@ -282,14 +269,4 @@ func CreateControllerConfiguration(projectId string, namespace dtos.K8sNamespace
 	//}
 
 	return controller, nil
-}
-
-func imageNameForContainer(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, container dtos.K8sContainerDto) string {
-	if container.Type == dtos.CONTAINER_GIT_REPOSITORY {
-		lastBuild := db.GetLastBuildJobInfosFromDb(structs.BuildTaskRequest{Namespace: namespace.Name, Controller: service.ControllerName, Container: container.Name})
-		if lastBuild.FinishTime != "" {
-			return lastBuild.Image
-		}
-	}
-	return ""
 }

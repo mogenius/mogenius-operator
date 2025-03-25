@@ -34,7 +34,7 @@ RUN go build -trimpath -gcflags="all=-l" -ldflags="-s -w \
 #
 # FINAL IMAGE
 #
-FROM docker:dind
+FROM alpine:3.21
 
 ARG GOOS
 ARG GOARCH
@@ -50,10 +50,7 @@ RUN apk add --no-cache dumb-init nfs-utils ca-certificates
 
 WORKDIR /app
 
-# e.g. "--dns 1.1.1.1"
-ENV DOCKERD_ARGS=""
-
 ## mogenius-k8s-manager release default settings
 ENV MO_LOG_LEVEL="warn"
 
-ENTRYPOINT ["dumb-init", "--", "sh", "-c", "/usr/local/bin/dockerd --iptables=false ${DOCKERD_ARGS} > docker-daemon.log 2>&1 & /app/mogenius-k8s-manager cluster"]
+ENTRYPOINT ["dumb-init", "--", "sh", "-c", "/app/mogenius-k8s-manager cluster"]

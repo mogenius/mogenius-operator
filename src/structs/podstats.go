@@ -34,10 +34,6 @@ func (data *PodStats) ToBytes() []byte {
 	return bytes
 }
 
-type StatsData struct {
-	Data []Stats `json:"data"`
-}
-
 type Stats struct {
 	Cluster               string `json:"cluster"`
 	Namespace             string `json:"namespace"`

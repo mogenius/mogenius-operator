@@ -9,10 +9,10 @@ import (
 	"mogenius-k8s-manager/src/shutdown"
 )
 
-func RunSystem(logManagerModule logging.LogManagerModule, configModule *config.Config, cmdLogger *slog.Logger) error {
+func RunSystem(logManagerModule logging.SlogManager, configModule *config.Config, cmdLogger *slog.Logger, valkeyLogChannel chan logging.LogLine) error {
 	configModule.Validate()
 
-	systems := InitializeSystems(logManagerModule, configModule, cmdLogger)
+	systems := InitializeSystems(logManagerModule, configModule, cmdLogger, valkeyLogChannel)
 	defer shutdown.ExecuteShutdownHandlers()
 
 	systems.versionModule.PrintVersionInfo()

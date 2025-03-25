@@ -42,18 +42,20 @@ func Info(r dtos.PersistentFileRequestDto) dtos.PersistentFileDto {
 	return dtos.PersistentFileDtoFrom(pathToFile, pathToFile)
 }
 
-func Download(pfile dtos.PersistentFileRequestDto, postTo string) interface{} {
+func Download(pfile dtos.PersistentFileRequestDto, postTo string) FilesDownloadResponse {
 	result := FilesDownloadResponse{
 		SizeInBytes: 0,
 	}
 	pathToFile, err := verify(&pfile)
 	if err != nil {
 		result.Error = err.Error()
+		serviceLogger.Debug("file download verify error", "error", err)
 		return result
 	}
 	file, err := os.Open(pathToFile)
 	if err != nil {
 		result.Error = err.Error()
+		serviceLogger.Debug("file download open error", "error", err)
 		return result
 	}
 	defer file.Close()
@@ -61,6 +63,7 @@ func Download(pfile dtos.PersistentFileRequestDto, postTo string) interface{} {
 	info, err := file.Stat()
 	if err != nil {
 		result.Error = err.Error()
+		serviceLogger.Debug("file download stat error", "error", err)
 		return result
 	}
 
@@ -74,6 +77,11 @@ func Download(pfile dtos.PersistentFileRequestDto, postTo string) interface{} {
 	buf := new(bytes.Buffer)
 	multiPartWriter := multipart.NewWriter(buf)
 	w, err := multiPartWriter.CreateFormFile("file", filename)
+	if err != nil {
+		serviceLogger.Error("Error creating form file", "error", err)
+		result.Error = err.Error()
+		return result
+	}
 
 	if info.IsDir() {
 		// SEND ZIPPED DIR TO HTTP
@@ -108,7 +116,6 @@ func Download(pfile dtos.PersistentFileRequestDto, postTo string) interface{} {
 			_, err = io.Copy(zipFile, srcFile)
 			return err
 		})
-
 		if err != nil {
 			serviceLogger.Error("directory zip walk files error", "error", err)
 			result.Error = err.Error()
@@ -143,6 +150,7 @@ func Download(pfile dtos.PersistentFileRequestDto, postTo string) interface{} {
 	multiPartWriter.Close()
 
 	// Upload the file
+	serviceLogger.Debug("Uploading file", "size", result.SizeInBytes, "filename", filename, "postTo", postTo)
 	req, err := http.NewRequest("POST", postTo, buf)
 	if err != nil {
 		serviceLogger.Error("Error sending request", "error", err)
@@ -162,24 +170,25 @@ func Download(pfile dtos.PersistentFileRequestDto, postTo string) interface{} {
 	defer response.Body.Close()
 
 	if response.StatusCode < 200 || response.StatusCode > 299 {
+		serviceLogger.Error("Error sending request", "status", response.Status)
 		result.Error = fmt.Sprintf("%s - '%s'.", postTo, response.Status)
 	}
 
 	return result
 }
 
-func Uploaded(tempZipFileSrc string, fileReq FilesUploadRequest) interface{} {
+func Uploaded(tempZipFileSrc string, fileReq FilesUploadRequest) error {
 	// 1: VERIFY
 	targetDestination, err := verify(&fileReq.File)
 	if err != nil {
-		serviceLogger.Error("Error verifying file", "error", err.Error())
+		return fmt.Errorf("Error verifying file %s: %s", fileReq.File.Path, err.Error())
 	}
 	serviceLogger.Info("verified file", "VolumeName", fileReq.File.VolumeName, "targetDestionation", targetDestination, "size", utils.BytesToHumanReadable(fileReq.SizeInBytes), "path", fileReq.File.Path)
 
 	//2: UNZIP FILE TO TEMP
 	files, err := utils.ZipExtract(tempZipFileSrc, targetDestination)
 	if err != nil {
-		serviceLogger.Error("Error extracting file", "error", err)
+		return fmt.Errorf("Error extracting file %s: %s", fileReq.File.Path, err.Error())
 	}
 	for _, file := range files {
 		serviceLogger.Info("uncompress: " + file)
@@ -287,14 +296,6 @@ type FilesUploadRequest struct {
 	File        dtos.PersistentFileRequestDto `json:"file"`
 	SizeInBytes int64                         `json:"sizeInBytes"`
 	Id          string                        `json:"id"`
-}
-
-func FilesUploadRequestExampleData() FilesUploadRequest {
-	return FilesUploadRequest{
-		File:        dtos.PersistentFileUploadDtoExampleData(),
-		SizeInBytes: 21217588,
-		Id:          "1234567890",
-	}
 }
 
 func ListDirWithTimeout(root string, timeout time.Duration) ([]dtos.PersistentFileDto, error) {

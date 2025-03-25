@@ -2,11 +2,9 @@ package structs
 
 import (
 	"fmt"
-	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/websocket"
 	"os/exec"
-	"strconv"
 	"sync"
 	"time"
 )
@@ -90,15 +88,9 @@ func (cmd *Command) Start(eventClient websocket.WebsocketClient, job *Job, msg s
 }
 
 func (cmd *Command) Fail(eventClient websocket.WebsocketClient, job *Job, err string) {
-	moDebug, erro := strconv.ParseBool(config.Get("MO_DEBUG"))
-	assert.Assert(erro == nil)
-
 	cmd.State = JobStateFailed
 	cmd.Message = err
 	cmd.Finished = time.Now()
-	if moDebug {
-		structsLogger.Error("Command failed", "title", cmd.Title, "message", cmd.Message, "error", err, "namespace", job.NamespaceName, "controller", job.ControllerName)
-	}
 	ReportCmdStateToServer(eventClient, job, cmd)
 }
 

@@ -4,16 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/kubernetes"
 	"net/url"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
 	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func readChannelPodEvent(ch chan string, conn *websocket.Conn, connWriteLock *sync.Mutex, ctx context.Context) {
@@ -48,7 +47,7 @@ func readChannelPodEvent(ch chan string, conn *websocket.Conn, connWriteLock *sy
 	}
 }
 
-func XTermPodEventStreamConnection(wsConnectionRequest WsConnectionRequest, namespace string, controller string) {
+func PodEventStreamConnection(wsConnectionRequest WsConnectionRequest, namespace string, controller string) {
 	if wsConnectionRequest.WebsocketScheme == "" {
 		xtermLogger.Error("WebsocketScheme is empty")
 		return
@@ -59,22 +58,17 @@ func XTermPodEventStreamConnection(wsConnectionRequest WsConnectionRequest, name
 		return
 	}
 
-	buildTimeout, err := strconv.Atoi(config.Get("MO_BUILDER_BUILD_TIMEOUT"))
-	assert.Assert(err == nil, err)
 	websocketUrl := url.URL{Scheme: wsConnectionRequest.WebsocketScheme, Host: wsConnectionRequest.WebsocketHost, Path: "/xterm-stream"}
-	// context
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(buildTimeout))
-	// websocket connection
-	readMessages, conn, connWriteLock, _, err := GenerateWsConnection("scan-image-logs", namespace, controller, "", "", websocketUrl, wsConnectionRequest, ctx, cancel)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(600))
+	readMessages, conn, connWriteLock, _, err := GenerateWsConnection("pod-events", namespace, controller, "", "", websocketUrl, wsConnectionRequest, ctx, cancel)
 	if err != nil {
 		xtermLogger.Error("Unable to connect to websocket", "error", err)
 		return
 	}
 
-	key := fmt.Sprintf("%s-%s", namespace, controller)
+	key := fmt.Sprintf("%s:%s", namespace, controller)
 
 	defer func() {
-		// XtermLogger.Info("[XTermPodEventStreamConnection] Closing connection.")
 		cancel()
 
 		ch := kubernetes.EventChannels[key]
@@ -101,9 +95,31 @@ func XTermPodEventStreamConnection(wsConnectionRequest WsConnectionRequest, name
 
 	// init
 	go func(ch chan string) {
-		data := kubernetes.GetDb().GetEventByKey(key)
+		data, err := store.LastNEntryFromBucketWithType(50, "pod-events", key)
+		if err != nil {
+			xtermLogger.Error("Error getting events from pod-events", "error", err.Error())
+			return
+		}
+		var events []*v1.Event
+		for _, v := range data {
+			var event v1.Event
+			err := json.Unmarshal([]byte(v), &event)
+			if err != nil {
+				xtermLogger.Error("Error getting events from pod-events", "error", err.Error())
+				continue
+			}
+			events = append(events, &event)
+		}
+		if len(events) == 0 {
+			events = append(events, &v1.Event{Message: "No recent events found. Restart the Pod to generate visible events or enjoy the silence.", FirstTimestamp: metav1.Time{Time: time.Now()}})
+		}
+		updatedData, err := json.Marshal(events)
+		if err != nil {
+			xtermLogger.Error("Error getting events from pod-events", "error", err.Error())
+			return
+		}
 		if ch != nil {
-			ch <- string(data)
+			ch <- string(updatedData)
 		}
 	}(ch)
 

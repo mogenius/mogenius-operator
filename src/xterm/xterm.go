@@ -7,11 +7,11 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
-	cfg "mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/k8sclient"
 	"mogenius-k8s-manager/src/logging"
-	"mogenius-k8s-manager/src/structs"
+	"mogenius-k8s-manager/src/secrets"
 	"mogenius-k8s-manager/src/utils"
+	"mogenius-k8s-manager/src/valkeyclient"
 	"net/url"
 	"os"
 	"os/exec"
@@ -29,16 +29,16 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-var logManager logging.LogManagerModule
+var logManager logging.SlogManager
 var xtermLogger *slog.Logger
-var config cfg.ConfigModule
 var clientProvider k8sclient.K8sClientProvider
+var store valkeyclient.ValkeyClient
 
-func Setup(logManagerModule logging.LogManagerModule, configModule cfg.ConfigModule, clientProviderModule k8sclient.K8sClientProvider) {
+func Setup(logManagerModule logging.SlogManager, clientProviderModule k8sclient.K8sClientProvider, storeModule valkeyclient.ValkeyClient) {
 	logManager = logManagerModule
 	xtermLogger = logManagerModule.CreateLogger("xterm")
-	config = configModule
 	clientProvider = clientProviderModule
+	store = storeModule
 }
 
 const (
@@ -59,15 +59,6 @@ type PodCmdConnectionRequest struct {
 	Container    string              `json:"container" validate:"required"`
 	WsConnection WsConnectionRequest `json:"wsConnectionRequest" validate:"required"`
 	LogTail      string              `json:"logTail"`
-}
-
-type BuildLogConnectionRequest struct {
-	Namespace    string                  `json:"namespace" validate:"required"`
-	Controller   string                  `json:"controller" validate:"required"`
-	Container    string                  `json:"container" validate:"required"`
-	BuildTask    structs.BuildPrefixEnum `json:"buildTask" validate:"required"` // clone, build, test, deploy, .....
-	BuildId      uint64                  `json:"buildId" validate:"required"`
-	WsConnection WsConnectionRequest     `json:"wsConnectionRequest" validate:"required"`
 }
 
 type OperatorLogConnectionRequest struct {
@@ -111,13 +102,13 @@ type LogEntry struct {
 	Namespace      string `json:"namespace"`
 	ReleaseName    string `json:"releaseName"`
 	Component      string `json:"component"`
-	Message        string `json:"msg"`
+	Message        string `json:"message"`
 	Time           string `json:"time"`
 }
 
 func (p *ScanImageLogConnectionRequest) AddSecretsToRedaction() {
-	logging.AddSecret(p.ContainerRegistryUser)
-	logging.AddSecret(p.ContainerRegistryPat)
+	secrets.AddSecret(p.ContainerRegistryUser)
+	secrets.AddSecret(p.ContainerRegistryPat)
 }
 
 type ClusterToolConnectionRequest struct {

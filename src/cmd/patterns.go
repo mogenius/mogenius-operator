@@ -21,10 +21,10 @@ type patternsArgs struct {
 	Output string `help:"" default:"json"`
 }
 
-func RunPatterns(args *patternsArgs, logManagerModule logging.LogManagerModule, configModule *config.Config, cmdLogger *slog.Logger) error {
+func RunPatterns(args *patternsArgs, logManagerModule logging.SlogManager, configModule *config.Config, cmdLogger *slog.Logger, valkeyLogChannel chan logging.LogLine) error {
 	configModule.Validate()
 
-	systems := InitializeSystems(logManagerModule, configModule, cmdLogger)
+	systems := InitializeSystems(logManagerModule, configModule, cmdLogger, valkeyLogChannel)
 	defer shutdown.ExecuteShutdownHandlers()
 
 	socketApi := systems.socketApi

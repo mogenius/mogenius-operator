@@ -6,13 +6,10 @@ import (
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/store"
 	"mogenius-k8s-manager/src/utils"
-	"reflect"
 	"strings"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-
-	v2 "k8s.io/api/apps/v1"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -119,9 +116,9 @@ func AttachLabeledNetworkPolicies(controllerName string,
 	labelPolicy []dtos.K8sLabeledNetworkPolicyDto,
 ) error {
 	client := clientProvider.K8sClientSet().AppsV1()
-	var deployment *v2.Deployment
-	var daemonSet *v2.DaemonSet
-	var statefulSet *v2.StatefulSet
+	var deployment *appsv1.Deployment
+	var daemonSet *appsv1.DaemonSet
+	var statefulSet *appsv1.StatefulSet
 	var err error
 
 	switch controllerType {
@@ -256,9 +253,9 @@ func DetachLabeledNetworkPolicies(controllerName string,
 	labelPolicy []dtos.K8sLabeledNetworkPolicyDto,
 ) error {
 	client := clientProvider.K8sClientSet().AppsV1()
-	var deployment *v2.Deployment
-	var daemonSet *v2.DaemonSet
-	var statefulSet *v2.StatefulSet
+	var deployment *appsv1.Deployment
+	var daemonSet *appsv1.DaemonSet
+	var statefulSet *appsv1.StatefulSet
 	var err error
 
 	switch controllerType {
@@ -553,6 +550,13 @@ func CreateDenyAllIngressNetworkPolicy(namespaceName string) error {
 							},
 						},
 						{
+							NamespaceSelector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{
+									"kubernetes.io/metadata.name": "kube-system",
+								},
+							},
+						},
+						{
 							PodSelector: &metav1.LabelSelector{
 								MatchLabels: map[string]string{
 									"acme.cert-manager.io/http01-solver": "true",
@@ -651,7 +655,7 @@ func CreateAllowNamespaceCommunicationNetworkPolicy(namespaceName string) error 
 
 func cleanupUnusedDenyAllIngress(namespaceName string) {
 	// list all network policies and find all that have the marker label
-	policies, err := store.ListNetworkPolicies(namespaceName)
+	policies, err := store.ListNetworkPolicies(valkeyClient, namespaceName)
 	if err != nil {
 		k8sLogger.Error("cleanupNetworkPolicies", "error", err)
 		return
@@ -828,7 +832,7 @@ func EnforceNetworkPolicyManagerForNamespace(namespaceName string) error {
 	}
 
 	// delete network policies named with namespace name
-	policies, err := store.ListNetworkPolicies(namespaceName)
+	policies, err := store.ListNetworkPolicies(valkeyClient, namespaceName)
 	if err == nil {
 		for _, policy := range policies {
 			if policy.Name == namespaceName {
@@ -953,7 +957,7 @@ func DeleteNetworkPolicyByName(namespaceName string, policyName string) error {
 
 func DisableNetworkPolicyManagerForNamespace(namespaceName string) error {
 	// get all network policies in the namespace created by mogenius
-	netPols, err := store.ListNetworkPolicies(namespaceName)
+	netPols, err := store.ListNetworkPolicies(valkeyClient, namespaceName)
 	if err != nil {
 		return fmt.Errorf("failed to list all network policies: %v", err)
 	}
@@ -986,7 +990,7 @@ func DisableNetworkPolicyManagerForNamespace(namespaceName string) error {
 }
 
 func ListAllConflictingNetworkPolicies(namespaceName string) (*v1.NetworkPolicyList, error) {
-	policies, err := store.ListNetworkPolicies(namespaceName)
+	policies, err := store.ListNetworkPolicies(valkeyClient, namespaceName)
 	if err != nil {
 		return nil, err
 	}
@@ -1035,63 +1039,36 @@ func ListControllerLabeledNetworkPolicies(
 	var labels map[string]string
 	switch controllerType {
 	case dtos.DEPLOYMENT:
-		// TODO replace with GetAvailableResources in the future
-		resourceNamespace := ""
 		resource := utils.SyncResourceEntry{
-			Kind:      "Deployment",
-			Name:      "deployments",
-			Namespace: &resourceNamespace,
-			Group:     "apps/v1",
-			Version:   "",
+			Kind:  "Deployment",
+			Group: "apps/v1",
 		}
 
-		ref := store.GlobalStore.GetByKeyParts(reflect.TypeOf(appsv1.Deployment{}), resource.Group, resource.Kind, namespaceName, controllerName)
-		if ref == nil {
-			return nil, fmt.Errorf("ListControllerLabeledNetworkPolicies %s ERROR: %s", controllerType, "deployment not found")
-		}
-		deployment := ref.(*appsv1.Deployment)
-		if deployment == nil {
-			return nil, fmt.Errorf("ListControllerLabeledNetworkPolicies %s ERROR: %s", controllerType, "deployment not found")
+		deployment, err := store.GetByKeyParts[appsv1.Deployment](valkeyClient, VALKEY_RESOURCE_PREFIX, resource.Group, resource.Kind, namespaceName, controllerName)
+		if err != nil {
+			return nil, fmt.Errorf("ListControllerLabeledNetworkPolicies %s ERROR: %s", controllerType, err.Error())
 		}
 		labels = extractLabels(deployment.ObjectMeta.Labels, deployment.Spec.Template.ObjectMeta.Labels)
 	case dtos.DAEMON_SET:
-		// TODO replace with GetAvailableResources in the future
-		resourceNamespace := ""
 		resource := utils.SyncResourceEntry{
-			Kind:      "DaemonSet",
-			Name:      "daemonsets",
-			Namespace: &resourceNamespace,
-			Group:     "apps/v1",
-			Version:   "",
+			Kind:  "DaemonSet",
+			Group: "apps/v1",
 		}
 
-		ref := store.GlobalStore.GetByKeyParts(reflect.TypeOf(appsv1.DaemonSet{}), resource.Group, resource.Kind, namespaceName, controllerName)
-		if ref == nil {
-			return nil, fmt.Errorf("ListControllerLabeledNetworkPolicies %s ERROR: %s", controllerType, "daemonset not found")
-		}
-		daemonset := ref.(*appsv1.DaemonSet)
-		if daemonset == nil {
-			return nil, fmt.Errorf("ListControllerLabeledNetworkPolicies %s ERROR: %s", controllerType, "daemonset not found")
+		daemonset, err := store.GetByKeyParts[appsv1.DaemonSet](valkeyClient, VALKEY_RESOURCE_PREFIX, resource.Group, resource.Kind, namespaceName, controllerName)
+		if err != nil {
+			return nil, fmt.Errorf("ListControllerLabeledNetworkPolicies %s ERROR: %s", controllerType, err.Error())
 		}
 		labels = extractLabels(daemonset.ObjectMeta.Labels, daemonset.Spec.Template.ObjectMeta.Labels)
 	case dtos.STATEFUL_SET:
-		// TODO replace with GetAvailableResources in the future
-		resourceNamespace := ""
 		resource := utils.SyncResourceEntry{
-			Kind:      "StatefulSet",
-			Name:      "statefulsets",
-			Namespace: &resourceNamespace,
-			Group:     "apps/v1",
-			Version:   "",
+			Kind:  "StatefulSet",
+			Group: "apps/v1",
 		}
 
-		ref := store.GlobalStore.GetByKeyParts(reflect.TypeOf(appsv1.StatefulSet{}), resource.Group, resource.Kind, namespaceName, controllerName)
-		if ref == nil {
-			return nil, fmt.Errorf("ListControllerLabeledNetworkPolicies %s ERROR: %s", controllerType, "statefulset not found")
-		}
-		statefulset := ref.(*appsv1.StatefulSet)
-		if statefulset == nil {
-			return nil, fmt.Errorf("ListControllerLabeledNetworkPolicies %s ERROR: %s", controllerType, "statefulset not found")
+		statefulset, err := store.GetByKeyParts[appsv1.StatefulSet](valkeyClient, VALKEY_RESOURCE_PREFIX, resource.Group, resource.Kind, namespaceName, controllerName)
+		if err != nil {
+			return nil, fmt.Errorf("ListControllerLabeledNetworkPolicies %s ERROR: %s", controllerType, err.Error())
 		}
 		labels = extractLabels(statefulset.ObjectMeta.Labels, statefulset.Spec.Template.ObjectMeta.Labels)
 	default:
@@ -1100,7 +1077,7 @@ func ListControllerLabeledNetworkPolicies(
 
 	netpols := []dtos.K8sLabeledNetworkPolicyDto{}
 
-	policies, err := store.ListNetworkPolicies(namespaceName)
+	policies, err := store.ListNetworkPolicies(valkeyClient, namespaceName)
 	if err != nil {
 		return nil, err
 	}

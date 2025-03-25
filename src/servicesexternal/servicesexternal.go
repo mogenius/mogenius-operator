@@ -9,7 +9,7 @@ import (
 var config cfg.ConfigModule
 var esoLogger *slog.Logger
 
-func Setup(logManagerModule logging.LogManagerModule, configModule cfg.ConfigModule) {
+func Setup(logManagerModule logging.SlogManager, configModule cfg.ConfigModule) {
 	config = configModule
 	esoLogger = logManagerModule.CreateLogger("eso")
 }

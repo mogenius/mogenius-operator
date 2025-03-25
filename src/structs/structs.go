@@ -2,16 +2,13 @@ package structs
 
 import (
 	"log/slog"
-	cfg "mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/logging"
 )
 
 var structsLogger *slog.Logger
-var logManager logging.LogManagerModule
-var config cfg.ConfigModule
+var logManager logging.SlogManager
 
-func Setup(logManagerModule logging.LogManagerModule, configModule cfg.ConfigModule) {
+func Setup(logManagerModule logging.SlogManager) {
 	logManager = logManagerModule
 	structsLogger = logManager.CreateLogger("structs")
-	config = configModule
 }

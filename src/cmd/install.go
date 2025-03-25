@@ -12,10 +12,10 @@ import (
 	"os"
 )
 
-func RunInstall(logManagerModule logging.LogManagerModule, configModule *config.Config, cmdLogger *slog.Logger) error {
+func RunInstall(logManagerModule logging.SlogManager, configModule *config.Config, cmdLogger *slog.Logger, valkeyLogChannel chan logging.LogLine) error {
 	configModule.Validate()
 
-	systems := InitializeSystems(logManagerModule, configModule, cmdLogger)
+	systems := InitializeSystems(logManagerModule, configModule, cmdLogger, valkeyLogChannel)
 	defer shutdown.ExecuteShutdownHandlers()
 
 	systems.versionModule.PrintVersionInfo()
