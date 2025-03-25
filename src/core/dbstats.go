@@ -33,10 +33,10 @@ type ValkeyStatsDb interface {
 	GetCniData() ([]structs.CniData, error)
 	GetLastPodStatsEntriesForNamespace(namespace string) []structs.PodStats
 	GetLastPodStatsEntryForController(controller kubernetes.K8sController) *structs.PodStats
-	GetPodStatsEntriesForController(controller kubernetes.K8sController, numberOfEntries int64) *[]structs.PodStats
+	GetPodStatsEntriesForController(kind string, name string, namespace string, timeOffsetMinutes int64) *[]structs.PodStats
 	GetPodStatsEntriesForNamespace(namespace string) *[]structs.PodStats
 	GetSocketConnectionsForController(controller kubernetes.K8sController) *structs.SocketConnections
-	GetTrafficStatsEntriesForController(controller kubernetes.K8sController, numberOfEntries int64) *[]structs.InterfaceStats
+	GetTrafficStatsEntriesForController(kind string, name string, namespace string, timeOffsetMinutes int64) *[]structs.InterfaceStats
 	GetTrafficStatsEntriesForNamespace(namespace string) *[]structs.InterfaceStats
 	GetTrafficStatsEntriesSumForNamespace(namespace string) []structs.InterfaceStats
 	GetTrafficStatsEntrySumForController(controller kubernetes.K8sController, includeSocketConnections bool) *structs.InterfaceStats
@@ -108,8 +108,8 @@ func (self *valkeyStatsDb) GetCniData() ([]structs.CniData, error) {
 	return result, err
 }
 
-func (self *valkeyStatsDb) GetPodStatsEntriesForController(controller kubernetes.K8sController, numberOfEntries int64) *[]structs.PodStats {
-	result, err := valkeyclient.LastNEntryFromBucketWithType[structs.PodStats](self.valkey, numberOfEntries, DB_STATS_POD_STATS_BUCKET_NAME, controller.Namespace, controller.Name)
+func (self *valkeyStatsDb) GetPodStatsEntriesForController(kind string, name string, namespace string, timeOffsetMinutes int64) *[]structs.PodStats {
+	result, err := valkeyclient.LastNEntryFromBucketWithType[structs.PodStats](self.valkey, timeOffsetMinutes, DB_STATS_POD_STATS_BUCKET_NAME, namespace, name)
 	if err != nil {
 		self.logger.Error("GetPodStatsEntriesForController", "error", err)
 	}
@@ -127,8 +127,8 @@ func (self *valkeyStatsDb) GetLastPodStatsEntryForController(controller kubernet
 	return nil
 }
 
-func (self *valkeyStatsDb) GetTrafficStatsEntriesForController(controller kubernetes.K8sController, numberOfEntries int64) *[]structs.InterfaceStats {
-	result, err := valkeyclient.LastNEntryFromBucketWithType[structs.InterfaceStats](self.valkey, numberOfEntries, DB_STATS_TRAFFIC_BUCKET_NAME, controller.Namespace, controller.Name)
+func (self *valkeyStatsDb) GetTrafficStatsEntriesForController(kind string, name string, namespace string, timeOffsetMinutes int64) *[]structs.InterfaceStats {
+	result, err := valkeyclient.LastNEntryFromBucketWithType[structs.InterfaceStats](self.valkey, timeOffsetMinutes, DB_STATS_TRAFFIC_BUCKET_NAME, namespace, name)
 	if err != nil {
 		self.logger.Error(err.Error())
 	}

@@ -636,22 +636,52 @@ func (self *socketApi) registerPatterns() {
 		},
 	)
 
-	self.RegisterPatternHandlerRaw(
-		"stats/podstat/all-for-controller",
-		PatternConfig{
-			RequestSchema:  schema.Generate(kubernetes.K8sController{}),
-			ResponseSchema: schema.Generate(&[]structs.PodStats{}),
-		},
-		func(datagram structs.Datagram) any {
-			data := kubernetes.K8sController{}
-			_ = self.loadRequest(&datagram, &data)
-			if err := utils.ValidateJSON(data); err != nil {
-				return err
-			}
-			numberOfEntries := int64(60 * 24) // 1 day
-			return self.dbstats.GetPodStatsEntriesForController(data, numberOfEntries)
-		},
-	)
+	{
+		type Request struct {
+			Kind              string `json:"kind"`
+			Name              string `json:"name"`
+			Namespace         string `json:"namespace"`
+			TimeOffsetMinutes int    `json:"timeOffsetMinutes"`
+		}
+
+		self.RegisterPatternHandlerRaw(
+			"stats/podstat/all-for-controller",
+			PatternConfig{
+				RequestSchema:  schema.Generate(Request{}),
+				ResponseSchema: schema.Generate(&[]structs.PodStats{}),
+			},
+			func(datagram structs.Datagram) any {
+				data := Request{}
+				_ = self.loadRequest(&datagram, &data)
+				if err := utils.ValidateJSON(data); err != nil {
+					return err
+				}
+				if data.TimeOffsetMinutes <= 0 {
+					data.TimeOffsetMinutes = 60 * 24 // 1 day
+				}
+				return self.dbstats.GetPodStatsEntriesForController(data.Kind, data.Name, data.Namespace, int64(data.TimeOffsetMinutes))
+			},
+		)
+
+		self.RegisterPatternHandlerRaw(
+			"stats/traffic/all-for-controller",
+			PatternConfig{
+				RequestSchema:  schema.Generate(Request{}),
+				ResponseSchema: schema.Generate(&[]structs.InterfaceStats{}),
+			},
+			func(datagram structs.Datagram) any {
+				data := Request{}
+				_ = self.loadRequest(&datagram, &data)
+				if err := utils.ValidateJSON(data); err != nil {
+					return err
+				}
+				if data.TimeOffsetMinutes <= 0 {
+					data.TimeOffsetMinutes = 60 * 24 // 1 day
+				}
+				return self.dbstats.GetTrafficStatsEntriesForController(data.Kind, data.Name, data.Namespace, int64(data.TimeOffsetMinutes))
+			},
+		)
+	}
 
 	self.RegisterPatternHandlerRaw(
 		"stats/podstat/last-for-controller",
@@ -666,23 +696,6 @@ func (self *socketApi) registerPatterns() {
 				return err
 			}
 			return self.dbstats.GetLastPodStatsEntryForController(data)
-		},
-	)
-
-	self.RegisterPatternHandlerRaw(
-		"stats/traffic/all-for-controller",
-		PatternConfig{
-			RequestSchema:  schema.Generate(kubernetes.K8sController{}),
-			ResponseSchema: schema.Generate(&[]structs.InterfaceStats{}),
-		},
-		func(datagram structs.Datagram) any {
-			data := kubernetes.K8sController{}
-			_ = self.loadRequest(&datagram, &data)
-			if err := utils.ValidateJSON(data); err != nil {
-				return err
-			}
-			numberOfEntries := int64(60 * 24) // 1 day
-			return self.dbstats.GetTrafficStatsEntriesForController(data, numberOfEntries)
 		},
 	)
 
