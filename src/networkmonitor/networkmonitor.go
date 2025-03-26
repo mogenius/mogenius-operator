@@ -18,11 +18,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const (
-	defaultSnapLen                     = 65536   // Max Size of TCP Packets (65536 - Wireshark uses 262144)
-	BYTES_CHANGE_SEND_TRESHHOLD uint64 = 1048576 // wait until X bytes are gathered until we send an update to the API server
-)
-
 type NetworkMonitor interface {
 	Run()
 	NetworkUsage() []InterfaceStats
@@ -76,7 +71,8 @@ func (self *networkMonitor) Run() {
 	go func() {
 		defer self.cancel()
 
-		scanTimeout := 0 * time.Second // first run is made instantly
+		ticker := time.NewTicker(30 * time.Second)
+		defer ticker.Stop()
 
 		// holds the context of all network interfaces which are being watched
 		// the list has to be updated regularly for:
@@ -100,8 +96,7 @@ func (self *networkMonitor) Run() {
 					handle.cancel()
 				}
 				return
-			case <-time.After(scanTimeout):
-				scanTimeout = 30 * time.Second
+			case <-ticker.C:
 				networkInterfaceMap := self.cne.List(self.procFsMountPath)
 				networkInterfaceList := []string{}
 				for iName, iDesc := range networkInterfaceMap {
