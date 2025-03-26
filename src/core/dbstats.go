@@ -21,6 +21,10 @@ const (
 	DB_STATS_NODE_STATS_BUCKET_NAME = "node-stats"
 	DB_STATS_SOCKET_STATS_BUCKET    = "socket-stats"
 	DB_STATS_CNI_BUCKET_NAME        = "cluster-cni-configuration"
+	DB_STATS_LIVE_BUCKET_NAME       = "live-stats"
+	DB_STATS_TRAFFIC_NAME           = "traffic"
+	DB_STATS_CPU_NAME               = "cpu"
+	DB_STATS_MEMORY_NAME            = "memory"
 )
 
 var DefaultMaxSize int64 = 60 * 24 * 7
@@ -31,6 +35,9 @@ type ValkeyStatsDb interface {
 	AddInterfaceStatsToDb(stats []networkmonitor.InterfaceStats)
 	AddNodeStatsToDb(stats []structs.NodeStats) error
 	AddPodStatsToDb(stats []structs.PodStats) error
+	AddNodeRamMetricsToDb(nodeName string, data interface{}) error
+	AddNodeCpuMetricsToDb(nodeName string, data interface{}) error
+	AddNodeTrafficMetricsToDb(nodeName string, data interface{}) error
 	GetCniData() ([]structs.CniData, error)
 	GetLastPodStatsEntriesForNamespace(namespace string) []structs.PodStats
 	GetLastPodStatsEntryForController(controller kubernetes.K8sController) *structs.PodStats
@@ -84,7 +91,7 @@ func (self *valkeyStatsDb) AddInterfaceStatsToDb(stats []networkmonitor.Interfac
 			return
 		}
 
-		err := self.valkey.AddToBucket(DefaultMaxSize, stats, DB_STATS_TRAFFIC_BUCKET_NAME, stat.Namespace, controller.Name)
+		err := self.valkey.AddToBucket(DefaultMaxSize, stat, DB_STATS_TRAFFIC_BUCKET_NAME, stat.Namespace, controller.Name)
 		if err != nil {
 			self.logger.Error("Error adding interface stats", "namespace", stat.Namespace, "podName", stat.Pod, "error", err)
 		}
@@ -388,6 +395,18 @@ func (self *valkeyStatsDb) AddPodStatsToDb(stats []structs.PodStats) error {
 		}
 	}
 	return nil
+}
+
+func (self *valkeyStatsDb) AddNodeRamMetricsToDb(nodeName string, data interface{}) error {
+	return self.valkey.SetObject(data, 0, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_MEMORY_NAME, nodeName)
+}
+
+func (self *valkeyStatsDb) AddNodeCpuMetricsToDb(nodeName string, data interface{}) error {
+	return self.valkey.SetObject(data, 0, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_CPU_NAME, nodeName)
+}
+
+func (self *valkeyStatsDb) AddNodeTrafficMetricsToDb(nodeName string, data interface{}) error {
+	return self.valkey.SetObject(data, 0, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_TRAFFIC_NAME, nodeName)
 }
 
 func (self *valkeyStatsDb) AddNodeStatsToDb(stats []structs.NodeStats) error {

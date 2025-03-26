@@ -72,9 +72,9 @@ func (self *nodeMetricsCollector) Run() {
 			for {
 				metrics := self.networkMonitor.NetworkUsage()
 				self.logger.Info("network usage", "metrics", len(metrics))
-				// TODO: @bene
+				// TODO: @daniel (hier brauchen wir ein object wo der livetraffic des nodes ankommt)
 				self.statsDb.AddInterfaceStatsToDb(metrics)
-				time.Sleep(1 * time.Second)
+				time.Sleep(30 * time.Second)
 			}
 		}()
 
@@ -82,8 +82,7 @@ func (self *nodeMetricsCollector) Run() {
 		go func() {
 			for {
 				metrics := self.cpuMonitor.CpuUsage()
-				self.logger.Info("cpu usage", "metrics", metrics)
-				// TODO: @bene
+				self.statsDb.AddNodeCpuMetricsToDb(self.config.Get("OWN_NODE_NAME"), metrics)
 				time.Sleep(1 * time.Second)
 			}
 		}()
@@ -92,8 +91,7 @@ func (self *nodeMetricsCollector) Run() {
 		go func() {
 			for {
 				metrics := self.ramMonitor.RamUsage()
-				self.logger.Info("ram usage", "metrics", metrics)
-				// TODO: @bene
+				self.statsDb.AddNodeRamMetricsToDb(self.config.Get("OWN_NODE_NAME"), metrics)
 				time.Sleep(1 * time.Second)
 			}
 		}()

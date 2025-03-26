@@ -246,6 +246,18 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		Envs:         []string{"OWN_NAMESPACE"},
 	})
 	configModule.Declare(config.ConfigDeclaration{
+		Key:          "OWN_NODE_NAME",
+		DefaultValue: utils.Pointer("mogenius-node"),
+		Description:  utils.Pointer("the name of the node this application is running in"),
+		Envs:         []string{"OWN_NODE_NAME"},
+	})
+	configModule.Declare(config.ConfigDeclaration{
+		Key:          "OWN_POD_NAME",
+		DefaultValue: utils.Pointer("mogenius-pod"),
+		Description:  utils.Pointer("the name of the pod this application is running in"),
+		Envs:         []string{"OWN_POD_NAME"},
+	})
+	configModule.Declare(config.ConfigDeclaration{
 		Key:         "MO_API_SERVER",
 		Description: utils.Pointer("URL of API Server"),
 		Validate: func(value string) error {

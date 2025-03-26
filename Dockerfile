@@ -42,7 +42,7 @@ RUN go build -trimpath -gcflags="all=-l" -ldflags="-s -w \
 #
 # FINAL IMAGE
 #
-FROM alpine:3.21
+FROM ubuntu:noble
 
 ARG GOOS
 ARG GOARCH
@@ -54,7 +54,7 @@ ENV GOARM=${GOARM}
 
 COPY --from=builder ["/app/bin/mogenius-k8s-manager", "/app/mogenius-k8s-manager"]
 
-RUN apk add --no-cache dumb-init nfs-utils ca-certificates
+RUN apt-get update && apt-get install -y --no-install-recommends dumb-init nfs-common ca-certificates iproute2
 
 WORKDIR /app
 

@@ -224,7 +224,6 @@ func (self *containerNetworkEnumerator) requestNamespacedInterfaceDescription(pr
 		"nsenter",
 		"--target="+pid,
 		"--net="+procPath+"/"+pid+"/ns/net",
-		"-n",
 		"ip",
 		"-o",
 		"--json",
