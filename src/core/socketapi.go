@@ -437,26 +437,6 @@ func (self *socketApi) registerPatterns() {
 	}
 
 	self.RegisterPatternHandler(
-		"install-container-registry",
-		PatternConfig{
-			ResponseSchema: schema.String(),
-		},
-		func(datagram structs.Datagram) (any, error) {
-			return services.InstallContainerRegistry()
-		},
-	)
-
-	self.RegisterPatternHandler(
-		"install-external-secrets",
-		PatternConfig{
-			ResponseSchema: schema.String(),
-		},
-		func(datagram structs.Datagram) (any, error) {
-			return services.InstallExternalSecrets()
-		},
-	)
-
-	self.RegisterPatternHandler(
 		"install-metallb",
 		PatternConfig{
 			ResponseSchema: schema.String(),
@@ -527,26 +507,6 @@ func (self *socketApi) registerPatterns() {
 	)
 
 	self.RegisterPatternHandler(
-		"uninstall-container-registry",
-		PatternConfig{
-			ResponseSchema: schema.String(),
-		},
-		func(datagram structs.Datagram) (any, error) {
-			return services.UninstallContainerRegistry()
-		},
-	)
-
-	self.RegisterPatternHandler(
-		"uninstall-external-secrets",
-		PatternConfig{
-			ResponseSchema: schema.String(),
-		},
-		func(datagram structs.Datagram) (any, error) {
-			return services.UninstallExternalSecrets()
-		},
-	)
-
-	self.RegisterPatternHandler(
 		"uninstall-metallb",
 		PatternConfig{
 			ResponseSchema: schema.String(),
@@ -603,16 +563,6 @@ func (self *socketApi) registerPatterns() {
 		},
 		func(datagram structs.Datagram) (any, error) {
 			return services.UpgradeCertManager()
-		},
-	)
-
-	self.RegisterPatternHandler(
-		"upgrade-container-registry",
-		PatternConfig{
-			ResponseSchema: schema.String(),
-		},
-		func(datagram structs.Datagram) (any, error) {
-			return services.UpgradeContainerRegistry()
 		},
 	)
 

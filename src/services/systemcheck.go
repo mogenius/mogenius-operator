@@ -334,62 +334,6 @@ func SystemCheck() SystemCheckResponse {
 		return trafficEntry
 	})
 
-	// check for distribution registry
-	wg.Add(1)
-	go SysCheckExec("CheckDistributionRegistry", &wg, &entries, func() SystemCheckEntry {
-		distributionRegistryName := "distribution-registry-docker-registry"
-		distriRegistryVersion, distriRegistryInstalledErr := kubernetes.IsDeploymentInstalled(config.Get("MO_OWN_NAMESPACE"), distributionRegistryName)
-		distriRegistryMsg := fmt.Sprintf("%s (Version: %s) is installed.", distributionRegistryName, distriRegistryVersion)
-		currentDistriRegistryVersion := getMostCurrentHelmChartVersion(ContainerRegistryHelmIndex, "docker-registry")
-		distriEntry := CreateSystemCheckEntry(
-			NameInternalContainerRegistry,
-			distriRegistryInstalledErr == nil,
-			distriRegistryMsg,
-			fmt.Sprintf("%s is not installed.\nTo have a private container registry running inside your cluster, you need to install this component.", distributionRegistryName),
-			distriRegistryInstalledErr,
-			"A Docker-based container registry inside Kubernetes.",
-			false,
-			true,
-			distriRegistryVersion,
-			currentDistriRegistryVersion)
-		distriEntry.InstallPattern = structs.PAT_INSTALL_CONTAINER_REGISTRY
-		distriEntry.UninstallPattern = structs.PAT_UNINSTALL_CONTAINER_REGISTRY
-		distriEntry.UpgradePattern = "" // structs.PAT_UPGRADE_CONTAINER_REGISTRY
-		distriEntry.HelmStatus = helm.HelmStatus(config.Get("MO_OWN_NAMESPACE"), utils.HelmReleaseNameDistributionRegistry)
-		return distriEntry
-	})
-
-	// check for external secrets
-	wg.Add(1)
-	go SysCheckExec("CheckExternalSecrets", &wg, &entries, func() SystemCheckEntry {
-		externalSecretsName := "external-secrets"
-		externalSecretsVersion, externalSecretsInstalledErr := kubernetes.IsDeploymentInstalled(config.Get("MO_OWN_NAMESPACE"), externalSecretsName)
-		externalSecretsMsg := fmt.Sprintf("%s (Version: %s) is installed.", externalSecretsName, externalSecretsVersion)
-		helmstatus := helm.HelmStatus(config.Get("MO_OWN_NAMESPACE"), utils.HelmReleaseNameExternalSecrets)
-		if helmstatus == release.StatusUnknown {
-			externalSecretsInstalledErr = nil
-			externalSecretsMsg = "External Secrets not installed."
-		}
-
-		currentExternalSecretsVersion := getMostCurrentHelmChartVersion(ExternalSecretsHelmIndex, "docker-registry")
-		externalSecretsEntry := CreateSystemCheckEntry(
-			NameExternalSecrets,
-			externalSecretsInstalledErr == nil && helmstatus != release.StatusUnknown,
-			externalSecretsMsg,
-			fmt.Sprintf("%s is not installed.\nTo load secrets from 3rd party vaults (e.g. e.g. Hashicorp Vault, AWS KMS or Azure Key Vault), you need to install this component.", externalSecretsName),
-			externalSecretsInstalledErr,
-			"A Docker-based External Secrets loader inside Kubernetes that allows you to connect to e.g. Hashicorp Vault, AWS KMS or Azure Key Vault",
-			false,
-			false,
-			externalSecretsVersion,
-			currentExternalSecretsVersion)
-		externalSecretsEntry.InstallPattern = structs.PAT_INSTALL_EXTERNAL_SECRETS
-		externalSecretsEntry.UninstallPattern = structs.PAT_UNINSTALL_EXTERNAL_SECRETS
-		externalSecretsEntry.UpgradePattern = "" // NONE?
-		externalSecretsEntry.HelmStatus = helmstatus
-		return externalSecretsEntry
-	})
-
 	// check for metallb
 	wg.Add(1)
 	go SysCheckExec("CheckMetalLb", &wg, &entries, func() SystemCheckEntry {
