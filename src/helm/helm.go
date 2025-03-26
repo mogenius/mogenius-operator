@@ -14,7 +14,6 @@ import (
 	"mogenius-k8s-manager/src/valkeyclient"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"time"
 
@@ -285,10 +284,12 @@ func parseHelmEntry(entry *repo.Entry) *HelmEntryWithoutPassword {
 }
 
 func InitHelmConfig() error {
-	// Set the registryConfig, repositoryConfig and repositoryCache variables
-	registryConfig = fmt.Sprintf("%s/%s", config.Get("MO_HELM_DATA_PATH"), HELM_REGISTRY_CONFIG_FILE)
-	repositoryConfig = fmt.Sprintf("%s/%s", config.Get("MO_HELM_DATA_PATH"), HELM_REPOSITORY_CONFIG_FILE)
-	repositoryCache = fmt.Sprintf("%s/%s", config.Get("MO_HELM_DATA_PATH"), HELM_REPOSITORY_CACHE_FOLDER)
+	repositoryCache, ok := os.LookupEnv("HELM_REPOSITORY_CACHE")
+	assert.Assert(ok)
+	repositoryConfig, ok = os.LookupEnv("HELM_REGISTRY_CONFIG")
+	assert.Assert(ok)
+	registryConfig, ok = os.LookupEnv("HELM_REPOSITORY_CONFIG")
+	assert.Assert(ok)
 
 	// Set the HELM_HOME environment variable
 	path := fmt.Sprintf("%s/%s", config.Get("MO_HELM_DATA_PATH"), HELM_DATA_HOME)
@@ -324,17 +325,6 @@ func InitHelmConfig() error {
 		}
 	}
 
-	assert.Assert(runtime.Compiler != "gccgo", "using os.Setenv in multithreaded context with glibc is not allowed")
-
-	os.Setenv("HELM_CACHE_HOME", fmt.Sprintf("%s/%s", config.Get("MO_HELM_DATA_PATH"), HELM_CACHE_HOME))
-	os.Setenv("HELM_CONFIG_HOME", fmt.Sprintf("%s/%s", config.Get("MO_HELM_DATA_PATH"), HELM_CONFIG_HOME))
-	os.Setenv("HELM_DATA_HOME", fmt.Sprintf("%s/%s", config.Get("MO_HELM_DATA_PATH"), HELM_DATA_HOME))
-	os.Setenv("HELM_PLUGINS", fmt.Sprintf("%s/%s", config.Get("MO_HELM_DATA_PATH"), HELM_PLUGINS))
-	os.Setenv("HELM_REGISTRY_CONFIG", registryConfig)
-	os.Setenv("HELM_REPOSITORY_CACHE", repositoryCache)
-	os.Setenv("HELM_REPOSITORY_CONFIG", repositoryConfig)
-	os.Setenv("HELM_LOG_LEVEL", "trace")
-
 	if _, err := os.Stat(repositoryConfig); os.IsNotExist(err) {
 		destFile, err := os.Create(repositoryConfig)
 		if err != nil {
@@ -343,7 +333,7 @@ func InitHelmConfig() error {
 		defer destFile.Close()
 	}
 
-	restoreRepositoryFileFromValkey()
+	_ = restoreRepositoryFileFromValkey()
 
 	// add default repository
 	data := HelmRepoAddRequest{

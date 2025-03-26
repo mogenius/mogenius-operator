@@ -193,7 +193,12 @@ func (self *SlogMultiHandler) AddHandler(handler slog.Handler) {
 }
 
 func (self *SlogMultiHandler) Enabled(ctx context.Context, level slog.Level) bool {
-	return true
+	for _, handler := range self.inner {
+		if handler.Enabled(ctx, level) {
+			return true
+		}
+	}
+	return false
 }
 
 func (self *SlogMultiHandler) Handle(ctx context.Context, record slog.Record) error {

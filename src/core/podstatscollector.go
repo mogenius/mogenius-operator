@@ -19,6 +19,7 @@ import (
 
 type PodStatsCollector interface {
 	Run()
+	Link(statsDb ValkeyStatsDb)
 }
 
 type podStatsCollector struct {
@@ -35,21 +36,30 @@ func NewPodStatsCollector(
 	logger *slog.Logger,
 	configModule config.ConfigModule,
 	clientProviderModule k8sclient.K8sClientProvider,
-	statsDb ValkeyStatsDb,
 ) PodStatsCollector {
 	self := &podStatsCollector{}
 
 	self.logger = logger
 	self.config = configModule
 	self.clientProvider = clientProviderModule
-	self.statsDb = statsDb
 	self.startTime = time.Now()
 	self.updateInterval = 60
 
 	return self
 }
 
+func (self *podStatsCollector) Link(statsDb ValkeyStatsDb) {
+	assert.Assert(statsDb != nil)
+
+	self.statsDb = statsDb
+}
+
 func (self *podStatsCollector) Run() {
+	assert.Assert(self.logger != nil)
+	assert.Assert(self.config != nil)
+	assert.Assert(self.clientProvider != nil)
+	assert.Assert(self.statsDb != nil)
+
 	enabled, err := strconv.ParseBool(self.config.Get("MO_ENABLE_POD_STATS_COLLECTOR"))
 	assert.Assert(err == nil, err)
 	if enabled {

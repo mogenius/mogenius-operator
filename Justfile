@@ -1,4 +1,5 @@
-export CGO_ENABLED := "0"
+export CGO_ENABLED := "1"
+export BPF2GO_FLAGS := "-O2 -g -Wall -Werror $(CFLAGS)"
 
 set dotenv-load
 
@@ -8,16 +9,26 @@ default:
 
 # Run the application with flags similar to the production build
 run: build
+    just build-generate
     dist/native/mogenius-k8s-manager cluster
+
+run-privileged: build
+    just build-generate
+    sudo -E dist/native/mogenius-k8s-manager cluster
 
 # Build a native binary with flags similar to the production build
 build: generate
     go build -trimpath -gcflags="all=-l" -ldflags="-s -w \
         -X 'mogenius-k8s-manager/src/utils.DevBuild=yes' \
-        -X 'mogenius-k8s-manager/src/version.GitCommitHash=XXXXXX' \
-        -X 'mogenius-k8s-manager/src/version.Branch=local-development' \
-        -X 'mogenius-k8s-manager/src/version.BuildTimestamp=$(date)' \
-        -X 'mogenius-k8s-manager/src/version.Ver=6.6.6'" -o dist/native/mogenius-k8s-manager ./src/main.go
+        -X 'mogenius-k8s-manager/src/version.GitCommitHash=$(git rev-parse --short HEAD)' \
+        -X 'mogenius-k8s-manager/src/version.Branch=$(git branch | grep \* | cut -d ' ' -f2 | tr '[:upper:]' '[:lower:]')' \
+        -X 'mogenius-k8s-manager/src/version.BuildTimestamp=$(date -Iseconds)' \
+        -X 'mogenius-k8s-manager/src/version.Ver=$(git describe --tags $(git rev-list --tags --max-count=1))'" -o dist/native/mogenius-k8s-manager ./src/main.go
+
+# Run generators implemented in the operator
+build-generate:
+    dist/native/mogenius-k8s-manager patterns --output=yaml > generated/spec.yaml
+    dist/native/mogenius-k8s-manager patterns --output=typescript > generated/client.ts
 
 # Build binaries for all targets
 build-all: build-linux-amd64 build-linux-arm64 build-linux-armv7
@@ -26,10 +37,10 @@ build-all: build-linux-amd64 build-linux-arm64 build-linux-armv7
 build-linux-amd64:
     GOOS=linux GOARCH=amd64 go build -trimpath -gcflags="all=-l" -ldflags="-s -w \
         -X 'mogenius-k8s-manager/src/utils.DevBuild=yes' \
-        -X 'mogenius-k8s-manager/src/version.GitCommitHash=XXXXXX' \
-        -X 'mogenius-k8s-manager/src/version.Branch=local-development' \
-        -X 'mogenius-k8s-manager/src/version.BuildTimestamp=$(date)' \
-        -X 'mogenius-k8s-manager/src/version.Ver=6.6.6'" -o dist/amd64/mogenius-k8s-manager ./src/main.go
+        -X 'mogenius-k8s-manager/src/version.GitCommitHash=$(git rev-parse --short HEAD)' \
+        -X 'mogenius-k8s-manager/src/version.Branch=$(git branch | grep \* | cut -d ' ' -f2 | tr '[:upper:]' '[:lower:]')' \
+        -X 'mogenius-k8s-manager/src/version.BuildTimestamp=$(date -Iseconds)' \
+        -X 'mogenius-k8s-manager/src/version.Ver=$(git describe --tags $(git rev-list --tags --max-count=1))'" -o dist/amd64/mogenius-k8s-manager ./src/main.go
 
 # Build docker image for target linux-amd64
 build-docker-linux-amd64:

@@ -1,0 +1,8 @@
+{
+	"name": "ebpf-golang-devcontainer",
+	"build": {
+		"dockerfile": "../Dockerfile-Dev-Environment"
+	},
+	"runArgs": ["--privileged"],
+	"privileged": true
+}
