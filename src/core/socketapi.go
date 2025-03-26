@@ -637,24 +637,6 @@ func (self *socketApi) registerPatterns() {
 	)
 
 	self.RegisterPatternHandlerRaw(
-		"stats/traffic/last-for-controller",
-		PatternConfig{
-			Deprecated:        true,
-			DeprecatedMessage: `Use "stats/traffic/sum-for-controller" instead`,
-			RequestSchema:     schema.Generate(kubernetes.K8sController{}),
-			ResponseSchema:    schema.Generate(&networkmonitor.InterfaceStats{}),
-		},
-		func(datagram structs.Datagram) any {
-			data := kubernetes.K8sController{}
-			_ = self.loadRequest(&datagram, &data)
-			if err := utils.ValidateJSON(data); err != nil {
-				return err
-			}
-			return self.dbstats.GetTrafficStatsEntrySumForController(data, false)
-		},
-	)
-
-	self.RegisterPatternHandlerRaw(
 		"stats/traffic/for-controller-socket-connections",
 		PatternConfig{
 			RequestSchema:  schema.Generate(kubernetes.K8sController{}),
