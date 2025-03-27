@@ -52,7 +52,7 @@ func NewNetworkMonitor(logger *slog.Logger, clientProvider k8sclient.K8sClientPr
 	ctx, cancel := context.WithCancel(context.Background())
 	self.ctx = ctx
 	self.cancel = cancel
-	self.cne = NewContainerNetworkEnumerator()
+	self.cne = NewContainerNetworkEnumerator(logger.With("scope", "network-enumerator"))
 	self.ebpfApi = NewEbpfApi(self.logger.With("scope", "ebpf"))
 	self.procFsMountPath = procFsMountPath
 	self.networkUsageTx = make(chan struct{})

@@ -72,10 +72,10 @@ type InterfaceName = string
 type ProcessId = string
 type ContainerId = string
 
-func NewContainerNetworkEnumerator() ContainerNetworkEnumerator {
+func NewContainerNetworkEnumerator(logger *slog.Logger) ContainerNetworkEnumerator {
 	self := &containerNetworkEnumerator{}
 
-	self.logger = slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	self.logger = logger
 	self.cgroupRegexes = []*regexp.Regexp{
 		regexp.MustCompile(`cri-containerd-([0-9a-fA-F]+)\.scope`),
 		regexp.MustCompile(`crio-([0-9a-fA-F]+)\.scope`),
