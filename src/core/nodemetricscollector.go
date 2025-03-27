@@ -69,20 +69,31 @@ func (self *nodeMetricsCollector) Run() {
 		// network monitor
 		go func() {
 			self.networkMonitor.Run()
-			for {
-				metrics := self.networkMonitor.NetworkUsage()
-				self.logger.Info("network usage", "metrics", len(metrics))
-				// TODO: @daniel (hier brauchen wir ein object wo der livetraffic des nodes ankommt)
-				self.statsDb.AddInterfaceStatsToDb(metrics)
-				time.Sleep(30 * time.Second)
-			}
+			go func() {
+				for {
+					metrics := self.networkMonitor.NetworkUsage()
+					self.statsDb.AddInterfaceStatsToDb(metrics)
+					time.Sleep(30 * time.Second)
+				}
+			}()
+			go func() {
+				for {
+					metrics := self.networkMonitor.NetworkUsage()
+					_ = metrics
+					// TODO: @bene (hier haben wir ein object wo der livetraffic des nodes ankommt)
+					time.Sleep(1 * time.Second)
+				}
+			}()
 		}()
 
 		// cpu usage
 		go func() {
 			for {
 				metrics := self.cpuMonitor.CpuUsage()
-				self.statsDb.AddNodeCpuMetricsToDb(self.config.Get("OWN_NODE_NAME"), metrics)
+				err := self.statsDb.AddNodeCpuMetricsToDb(self.config.Get("OWN_NODE_NAME"), metrics)
+				if err != nil {
+					self.logger.Error("failed to add node cpu metrics", "error", err)
+				}
 				time.Sleep(1 * time.Second)
 			}
 		}()
@@ -91,7 +102,10 @@ func (self *nodeMetricsCollector) Run() {
 		go func() {
 			for {
 				metrics := self.ramMonitor.RamUsage()
-				self.statsDb.AddNodeRamMetricsToDb(self.config.Get("OWN_NODE_NAME"), metrics)
+				err := self.statsDb.AddNodeRamMetricsToDb(self.config.Get("OWN_NODE_NAME"), metrics)
+				if err != nil {
+					self.logger.Error("failed to add node ram metrics", "error", err)
+				}
 				time.Sleep(1 * time.Second)
 			}
 		}()

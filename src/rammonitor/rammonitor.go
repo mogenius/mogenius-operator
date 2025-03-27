@@ -104,7 +104,6 @@ func (self *ramMonitor) startCollector() {
 					data.TotalKb = val
 				case "MemFree:":
 					memFree = val
-					break
 				}
 			}
 			data.UsedKb = data.TotalKb - memFree

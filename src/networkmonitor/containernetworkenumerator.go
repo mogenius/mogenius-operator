@@ -187,7 +187,7 @@ func (self *containerNetworkEnumerator) GetContainerIdFromCgroupWithPid(cgroupFi
 	for line := range strings.SplitSeq(cgroupFileData, "\n") {
 		for _, regex := range self.cgroupRegexes {
 			matches := regex.FindAllStringSubmatch(line, -1)
-			if matches == nil || len(matches) == 0 {
+			if len(matches) == 0 {
 				continue
 			}
 
@@ -225,7 +225,6 @@ func (self *containerNetworkEnumerator) requestNamespacedInterfaceDescription(pr
 		"--target="+pid,
 		"--net="+procPath+"/"+pid+"/ns/net",
 		"ip",
-		"-o",
 		"--json",
 		"link",
 	)

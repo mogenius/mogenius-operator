@@ -141,4 +141,4 @@ test-integration: generate
 
 # Execute golangci-lint
 golangci-lint: generate
-    go run github.com/golangci/golangci-lint/cmd/golangci-lint@latest run '--fast=false' --sort-results '--max-same-issues=0' '--timeout=1h'
+    go run github.com/golangci/golangci-lint/cmd/golangci-lint@latest run '--fast=false' --sort-results '--max-same-issues=0' '--timeout=1h' ./src/...

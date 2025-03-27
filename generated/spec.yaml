@@ -7621,14 +7621,6 @@ install-cluster-issuer:
         typeInfo:
             structRef: mogenius-k8s-manager/src/core.Request
             type: struct
-install-container-registry:
-    responseSchema:
-        typeInfo:
-            type: string
-install-external-secrets:
-    responseSchema:
-        typeInfo:
-            type: string
 install-ingress-controller-traefik:
     responseSchema:
         typeInfo:
@@ -12352,9 +12344,9 @@ namespace/shutdown:
                     expose:
                         type: bool
                     externalPort:
-                        type: int
+                        type: string
                     internalPort:
-                        type: int
+                        type: string
                     portType:
                         type: string
             mogenius-k8s-manager/src/dtos.K8sProbe:
@@ -12418,7 +12410,7 @@ namespace/shutdown:
                     path:
                         type: string
                     port:
-                        type: int
+                        type: string
                     scheme:
                         pointer: true
                         type: string
@@ -12433,7 +12425,7 @@ namespace/shutdown:
                 name: mogenius-k8s-manager/src/dtos.K8sProbeTCPSocket
                 properties:
                     port:
-                        type: int
+                        type: string
             mogenius-k8s-manager/src/dtos.K8sProbes:
                 name: mogenius-k8s-manager/src/dtos.K8sProbes
                 properties:
@@ -13116,9 +13108,9 @@ service/create:
                     expose:
                         type: bool
                     externalPort:
-                        type: int
+                        type: string
                     internalPort:
-                        type: int
+                        type: string
                     portType:
                         type: string
             mogenius-k8s-manager/src/dtos.K8sProbe:
@@ -13182,7 +13174,7 @@ service/create:
                     path:
                         type: string
                     port:
-                        type: int
+                        type: string
                     scheme:
                         pointer: true
                         type: string
@@ -13197,7 +13189,7 @@ service/create:
                 name: mogenius-k8s-manager/src/dtos.K8sProbeTCPSocket
                 properties:
                     port:
-                        type: int
+                        type: string
             mogenius-k8s-manager/src/dtos.K8sProbes:
                 name: mogenius-k8s-manager/src/dtos.K8sProbes
                 properties:
@@ -13803,9 +13795,9 @@ service/delete:
                     expose:
                         type: bool
                     externalPort:
-                        type: int
+                        type: string
                     internalPort:
-                        type: int
+                        type: string
                     portType:
                         type: string
             mogenius-k8s-manager/src/dtos.K8sProbe:
@@ -13869,7 +13861,7 @@ service/delete:
                     path:
                         type: string
                     port:
-                        type: int
+                        type: string
                     scheme:
                         pointer: true
                         type: string
@@ -13884,7 +13876,7 @@ service/delete:
                 name: mogenius-k8s-manager/src/dtos.K8sProbeTCPSocket
                 properties:
                     port:
-                        type: int
+                        type: string
             mogenius-k8s-manager/src/dtos.K8sProbes:
                 name: mogenius-k8s-manager/src/dtos.K8sProbes
                 properties:
@@ -17109,9 +17101,9 @@ service/restart:
                     expose:
                         type: bool
                     externalPort:
-                        type: int
+                        type: string
                     internalPort:
-                        type: int
+                        type: string
                     portType:
                         type: string
             mogenius-k8s-manager/src/dtos.K8sProbe:
@@ -17175,7 +17167,7 @@ service/restart:
                     path:
                         type: string
                     port:
-                        type: int
+                        type: string
                     scheme:
                         pointer: true
                         type: string
@@ -17190,7 +17182,7 @@ service/restart:
                 name: mogenius-k8s-manager/src/dtos.K8sProbeTCPSocket
                 properties:
                     port:
-                        type: int
+                        type: string
             mogenius-k8s-manager/src/dtos.K8sProbes:
                 name: mogenius-k8s-manager/src/dtos.K8sProbes
                 properties:
@@ -17796,9 +17788,9 @@ service/start:
                     expose:
                         type: bool
                     externalPort:
-                        type: int
+                        type: string
                     internalPort:
-                        type: int
+                        type: string
                     portType:
                         type: string
             mogenius-k8s-manager/src/dtos.K8sProbe:
@@ -17862,7 +17854,7 @@ service/start:
                     path:
                         type: string
                     port:
-                        type: int
+                        type: string
                     scheme:
                         pointer: true
                         type: string
@@ -17877,7 +17869,7 @@ service/start:
                 name: mogenius-k8s-manager/src/dtos.K8sProbeTCPSocket
                 properties:
                     port:
-                        type: int
+                        type: string
             mogenius-k8s-manager/src/dtos.K8sProbes:
                 name: mogenius-k8s-manager/src/dtos.K8sProbes
                 properties:
@@ -18636,9 +18628,9 @@ service/stop:
                     expose:
                         type: bool
                     externalPort:
-                        type: int
+                        type: string
                     internalPort:
-                        type: int
+                        type: string
                     portType:
                         type: string
             mogenius-k8s-manager/src/dtos.K8sProbe:
@@ -18702,7 +18694,7 @@ service/stop:
                     path:
                         type: string
                     port:
-                        type: int
+                        type: string
                     scheme:
                         pointer: true
                         type: string
@@ -18717,7 +18709,7 @@ service/stop:
                 name: mogenius-k8s-manager/src/dtos.K8sProbeTCPSocket
                 properties:
                     port:
-                        type: int
+                        type: string
             mogenius-k8s-manager/src/dtos.K8sProbes:
                 name: mogenius-k8s-manager/src/dtos.K8sProbes
                 properties:
@@ -19419,9 +19411,9 @@ service/update-service:
                     expose:
                         type: bool
                     externalPort:
-                        type: int
+                        type: string
                     internalPort:
-                        type: int
+                        type: string
                     portType:
                         type: string
             mogenius-k8s-manager/src/dtos.K8sProbe:
@@ -19485,7 +19477,7 @@ service/update-service:
                     path:
                         type: string
                     port:
-                        type: int
+                        type: string
                     scheme:
                         pointer: true
                         type: string
@@ -19500,7 +19492,7 @@ service/update-service:
                 name: mogenius-k8s-manager/src/dtos.K8sProbeTCPSocket
                 properties:
                     port:
-                        type: int
+                        type: string
             mogenius-k8s-manager/src/dtos.K8sProbes:
                 name: mogenius-k8s-manager/src/dtos.K8sProbes
                 properties:
@@ -19901,52 +19893,6 @@ stats/traffic/for-controller-socket-connections:
             pointer: true
             structRef: mogenius-k8s-manager/src/structs.SocketConnections
             type: struct
-stats/traffic/last-for-controller:
-    deprecated: true
-    deprecatedMessage: Use "stats/traffic/sum-for-controller" instead
-    requestSchema:
-        structs:
-            mogenius-k8s-manager/src/kubernetes.K8sController:
-                name: mogenius-k8s-manager/src/kubernetes.K8sController
-                properties:
-                    kind:
-                        type: string
-                    name:
-                        type: string
-                    namespace:
-                        type: string
-        typeInfo:
-            structRef: mogenius-k8s-manager/src/kubernetes.K8sController
-            type: struct
-    responseSchema:
-        structs:
-            mogenius-k8s-manager/src/networkmonitor.InterfaceStats:
-                name: mogenius-k8s-manager/src/networkmonitor.InterfaceStats
-                properties:
-                    createdAt:
-                        type: string
-                    interface:
-                        type: string
-                    ip:
-                        type: string
-                    namespace:
-                        type: string
-                    packetCount:
-                        type: uint
-                    pod:
-                        type: string
-                    receivedStartBytes:
-                        type: uint
-                    startTime:
-                        type: string
-                    transferredByteCount:
-                        type: uint
-                    transmitStartBytes:
-                        type: uint
-        typeInfo:
-            pointer: true
-            structRef: mogenius-k8s-manager/src/networkmonitor.InterfaceStats
-            type: struct
 stats/traffic/sum-for-controller:
     requestSchema:
         structs:
@@ -20305,14 +20251,6 @@ uninstall-cluster-issuer:
     responseSchema:
         typeInfo:
             type: string
-uninstall-container-registry:
-    responseSchema:
-        typeInfo:
-            type: string
-uninstall-external-secrets:
-    responseSchema:
-        typeInfo:
-            type: string
 uninstall-ingress-controller-traefik:
     responseSchema:
         typeInfo:
@@ -20479,10 +20417,6 @@ update/workspace:
         typeInfo:
             type: string
 upgrade-cert-manager:
-    responseSchema:
-        typeInfo:
-            type: string
-upgrade-container-registry:
     responseSchema:
         typeInfo:
             type: string

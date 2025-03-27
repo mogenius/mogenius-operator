@@ -416,7 +416,7 @@ func HelmRepoAdd(data HelmRepoAddRequest) (string, error) {
 		return "", fmt.Errorf("failed to write repository file: %s", err)
 	}
 
-	saveRepositoryFileToValkey()
+	_ = saveRepositoryFileToValkey()
 
 	return fmt.Sprintf("repository '%s' added", data.Name), nil
 }
@@ -496,7 +496,7 @@ func HelmRepoUpdate() ([]HelmEntryStatus, error) {
 		results = append(results, HelmEntryStatus{Entry: parseHelmEntry(re), Status: "success", Message: fmt.Sprintf("repository '%s' updated", re.Name)})
 	}
 
-	saveRepositoryFileToValkey()
+	_ = saveRepositoryFileToValkey()
 
 	return results, nil
 }
@@ -546,7 +546,7 @@ func HelmRepoRemove(data HelmRepoRemoveRequest) (string, error) {
 		return "", fmt.Errorf("failed to write repository file: %s", err)
 	}
 
-	saveRepositoryFileToValkey()
+	_ = saveRepositoryFileToValkey()
 
 	return fmt.Sprintf("repository '%s' removed", data.Name), nil
 }
@@ -1197,7 +1197,10 @@ func saveRepositoryFileToValkey() error {
 		return fmt.Errorf("failed to marshal repositories.yaml: %w", err)
 	}
 
-	valkeyClient.Set(string(yamlData), 0, "helm", "repositories.yaml")
+	err = valkeyClient.Set(string(yamlData), 0, "helm", "repositories.yaml")
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
