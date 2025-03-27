@@ -21,9 +21,6 @@ import (
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 const combinedLogComponentName = "all"
-const logfileMaxBackups int = 10
-const logfileMaxSize int = 10
-const logfileCompress bool = true
 
 type SlogManager interface {
 	// Get the pointer to an existing logger by its componentId
@@ -484,7 +481,7 @@ func (self *RecordChannelHandler) Handle(ctx context.Context, record slog.Record
 
 	if len(self.recordChannelTx) >= self.buffersize {
 		fmt.Fprintf(os.Stderr, "[WARNING] Logline buffer exhausted. Dropping the oldest entry.\n")
-		_ = <-self.recordChannelTx
+		<-self.recordChannelTx
 	}
 	self.recordChannelTx <- logLine
 

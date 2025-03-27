@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/k8sclient"
 	"net/url"
 	"os"
@@ -28,6 +29,7 @@ type networkMonitor struct {
 	clientProvider k8sclient.K8sClientProvider
 	ctx            context.Context
 	cancel         context.CancelFunc
+	config         config.ConfigModule
 
 	collectorStarted atomic.Bool
 	procFsMountPath  string
@@ -38,10 +40,11 @@ type networkMonitor struct {
 	networkUsageRx chan []InterfaceStats
 }
 
-func NewNetworkMonitor(logger *slog.Logger, clientProvider k8sclient.K8sClientProvider, procFsMountPath string) NetworkMonitor {
+func NewNetworkMonitor(logger *slog.Logger, config config.ConfigModule, clientProvider k8sclient.K8sClientProvider, procFsMountPath string) NetworkMonitor {
 	self := &networkMonitor{}
 
 	self.logger = logger
+	self.config = config
 	self.clientProvider = clientProvider
 	self.collectorStarted = atomic.Bool{}
 	ctx, cancel := context.WithCancel(context.Background())
@@ -62,153 +65,56 @@ func (self *networkMonitor) Run() {
 		return
 	}
 
-	type ebpfCounterHandle struct {
-		dataChan chan CountState
-		ctx      context.Context
-		cancel   context.CancelFunc
-	}
-
 	go func() {
 		defer self.cancel()
 
-		ticker := time.NewTicker(30 * time.Second)
-		defer ticker.Stop()
+		updateDevicesTicker := time.NewTicker(30 * time.Second)
+		defer updateDevicesTicker.Stop()
+
+		updateDataTicker := time.NewTicker(1 * time.Second)
+		defer updateDevicesTicker.Stop()
 
 		// holds the context of all network interfaces which are being watched
 		// the list has to be updated regularly for:
 		// - deleted interfaces where the handled is not valid anymore
 		// - added interfaces where new handles have to be created
 		ebpfDataHandles := map[string]ebpfCounterHandle{}
+		defer func() {
+			handles := []string{}
+			for iName := range ebpfDataHandles {
+				handles = append(handles, iName)
+			}
+			for _, iName := range handles {
+				ebpfDataHandles[iName].cancel()
+				delete(ebpfDataHandles, iName)
+			}
+		}()
 
-		ownNodeName := os.Getenv("OWN_NODE_NAME")
+		podList := &v1.PodList{}
+		startBytes := map[InterfaceName][2]uint64{}
 		fieldSelector := "metadata.namespace!=kube-system"
+		ownNodeName := self.config.Get("OWN_NODE_NAME")
 		if ownNodeName != "" {
 			fieldSelector = fmt.Sprintf("metadata.namespace!=kube-system,spec.nodeName=%s", ownNodeName)
 		}
 
-		collectedStats := []InterfaceStats{}
-		startBytes := map[InterfaceName][2]uint64{}
+		// init
+		networkInterfaceMap := self.cne.List(self.procFsMountPath)
+		ebpfDataHandles = self.updateEbpfDataHandles(&networkInterfaceMap, ebpfDataHandles)
+		podList = self.updatePodList(fieldSelector)
+		collectedStats := self.updateCollectedStats(&networkInterfaceMap, &ebpfDataHandles, &podList, &startBytes)
 
+		// loop
 		for {
 			select {
 			case <-self.ctx.Done():
-				for _, handle := range ebpfDataHandles {
-					handle.cancel()
-				}
 				return
-			case <-ticker.C:
-				networkInterfaceMap := self.cne.List(self.procFsMountPath)
-				networkInterfaceList := []string{}
-				for iName, iDesc := range networkInterfaceMap {
-					networkInterfaceList = append(networkInterfaceList, iName)
-					_, ok := ebpfDataHandles[iName]
-
-					// create a new handle for interface if it is not in the map
-					if !ok {
-						ebpfCtx, ebpfCancel := context.WithCancel(context.Background())
-						dataChan, err := self.ebpfApi.WatchInterface(
-							ebpfCtx,
-							iDesc.LinkInfo.Ifindex,
-							1*time.Second,
-						)
-						if err != nil {
-							self.logger.Warn("unable to watch network interface", "name", iName, "index", iDesc.LinkInfo.Ifindex, "error", err)
-							continue
-						}
-						self.logger.Info("started watch network interface", "name", iName, "index", iDesc.LinkInfo.Ifindex, "error", err)
-						ebpfDataHandles[iName] = ebpfCounterHandle{dataChan, ebpfCtx, ebpfCancel}
-					}
-				}
-
-				// cancel and delete handles which are not found by the interface enumerator anymore
-				handlesToDelete := []string{}
-				for handleInterfaceName, handle := range ebpfDataHandles {
-					if !slices.Contains(networkInterfaceList, handleInterfaceName) {
-						handlesToDelete = append(handlesToDelete, handleInterfaceName)
-						handle.cancel()
-					}
-				}
-				for _, iName := range handlesToDelete {
-					delete(ebpfDataHandles, iName)
-				}
-
-				// store data
-				for iName, handle := range ebpfDataHandles {
-					select {
-					case <-handle.ctx.Done():
-						delete(ebpfDataHandles, iName)
-						continue
-					case data := <-handle.dataChan:
-						_ = data // this has to be put in redis with stuff
-					default:
-					}
-				}
-
-				// requesting interface data
-				// every handle has a poll rate so we wait for all of them to push once
-				// the map gets all keys pre-allocated to prevent resizing while filling up the data from multiple go-routines in parallel
-				lastInterfaceData := map[string]CountState{}
-				for iName := range ebpfDataHandles {
-					lastInterfaceData[iName] = CountState{}
-				}
-				var wg sync.WaitGroup
-				for iName, handle := range ebpfDataHandles {
-					wg.Add(1)
-					go func() {
-						defer wg.Done()
-						lastInterfaceData[iName] = <-handle.dataChan
-					}()
-				}
-				wg.Wait()
-
-				listOpts := metav1.ListOptions{FieldSelector: fieldSelector}
-				podList, err := self.clientProvider.K8sClientSet().CoreV1().Pods("").List(context.TODO(), listOpts)
-				if err != nil {
-					self.logger.Error("failed to list pods", "node", ownNodeName, "listOptions", listOpts, "error", err)
-					continue
-				}
-				newCollectedStats := []InterfaceStats{}
-				for _, pod := range podList.Items {
-					containerMap := self.buildContainerIdsMap(pod)
-					for containerId, pod := range containerMap {
-						for iName, iDesc := range networkInterfaceMap {
-							_, ok := iDesc.Containers[containerId]
-							if !ok {
-								continue
-							}
-							count, ok := lastInterfaceData[iName]
-							if !ok {
-								continue
-							}
-							interfaceStartBytes, ok := startBytes[iName]
-							if !ok {
-								rx, err := self.loadUint64FromFile("/sys/class/net/" + iName + "/statistics/rx_bytes")
-								if err != nil {
-									self.logger.Warn("failed to read rx start bytes", "error", err)
-								}
-								tx, err := self.loadUint64FromFile("/sys/class/net/" + iName + "/statistics/tx_bytes")
-								if err != nil {
-									self.logger.Warn("failed to read tx start bytes", "error", err)
-								}
-								interfaceStartBytes = [2]uint64{rx, tx}
-								startBytes[iName] = interfaceStartBytes
-							}
-							stats := InterfaceStats{}
-							stats.Ip = pod.Status.PodIP
-							stats.Pod = pod.GetName()
-							stats.Interface = iName
-							stats.Namespace = pod.GetNamespace()
-							stats.PacketCount = count.PacketCount
-							stats.TransferredByteCount = count.Bytes
-							stats.ReceivedStartBytes = interfaceStartBytes[0]
-							stats.TransmitStartBytes = interfaceStartBytes[1]
-							stats.StartTime = pod.Status.StartTime.Format(time.RFC3339)
-							stats.CreatedAt = time.Now().Format(time.RFC3339)
-							newCollectedStats = append(newCollectedStats, stats)
-						}
-					}
-				}
-				collectedStats = newCollectedStats
+			case <-updateDevicesTicker.C:
+				networkInterfaceMap = self.cne.List(self.procFsMountPath)
+				ebpfDataHandles = self.updateEbpfDataHandles(&networkInterfaceMap, ebpfDataHandles)
+				podList = self.updatePodList(fieldSelector)
+			case <-updateDataTicker.C:
+				collectedStats = self.updateCollectedStats(&networkInterfaceMap, &ebpfDataHandles, &podList, &startBytes)
 			case <-self.networkUsageTx:
 				self.networkUsageRx <- collectedStats
 			}
@@ -230,6 +136,131 @@ func (self *networkMonitor) NetworkUsage() []InterfaceStats {
 			return result
 		}
 	}
+}
+
+type ebpfCounterHandle struct {
+	dataChan chan CountState
+	ctx      context.Context
+	cancel   context.CancelFunc
+}
+
+//nolint:govet
+func (self *networkMonitor) updateEbpfDataHandles(
+	networkInterfaceMap *map[InterfaceName]InterfaceDescription,
+	dataHandles map[string]ebpfCounterHandle,
+) map[string]ebpfCounterHandle {
+	networkInterfaceList := []string{}
+	for iName, iDesc := range *networkInterfaceMap {
+		networkInterfaceList = append(networkInterfaceList, iName)
+		_, ok := dataHandles[iName]
+
+		// create a new handle for interface if it is not in the map
+		if !ok {
+			ctx, cancel := context.WithCancel(context.Background())
+			dataChan, err := self.ebpfApi.WatchInterface(
+				ctx,
+				iDesc.LinkInfo.Ifindex,
+				250*time.Millisecond,
+			)
+			if err != nil {
+				self.logger.Debug("unable to watch network interface", "name", iName, "index", iDesc.LinkInfo.Ifindex, "error", err)
+				continue
+			}
+			self.logger.Debug("started watch network interface", "name", iName, "index", iDesc.LinkInfo.Ifindex, "error", err)
+			dataHandles[iName] = ebpfCounterHandle{dataChan, ctx, cancel}
+		}
+	}
+
+	// cancel and delete handles which are not found by the interface enumerator anymore
+	handlesToDelete := []string{}
+	for handleInterfaceName := range dataHandles {
+		if !slices.Contains(networkInterfaceList, handleInterfaceName) {
+			handlesToDelete = append(handlesToDelete, handleInterfaceName)
+		}
+	}
+	for _, iName := range handlesToDelete {
+		dataHandles[iName].cancel()
+		delete(dataHandles, iName)
+	}
+
+	return dataHandles
+}
+
+func (self *networkMonitor) updateCollectedStats(
+	networkInterfaceMap *map[InterfaceName]InterfaceDescription,
+	ebpfDataHandles *map[string]ebpfCounterHandle,
+	podList **v1.PodList,
+	startBytes *map[InterfaceName][2]uint64,
+) []InterfaceStats {
+	// requesting interface data
+	// every handle has a poll rate so we wait for all of them to push once
+	// the map gets all keys pre-allocated to prevent resizing while filling up the data from multiple go-routines in parallel
+	lastInterfaceData := map[string]CountState{}
+	for iName := range *ebpfDataHandles {
+		lastInterfaceData[iName] = CountState{}
+	}
+	var wg sync.WaitGroup
+	for iName, handle := range *ebpfDataHandles {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			lastInterfaceData[iName] = <-handle.dataChan
+		}()
+	}
+	wg.Wait()
+
+	newCollectedStats := []InterfaceStats{}
+	for _, pod := range (*podList).Items {
+		containerMap := self.buildContainerIdsMap(pod)
+		for containerId, pod := range containerMap {
+			for iName, iDesc := range *networkInterfaceMap {
+				_, ok := iDesc.Containers[containerId]
+				if !ok {
+					continue
+				}
+				count, ok := lastInterfaceData[iName]
+				if !ok {
+					continue
+				}
+				interfaceStartBytes, ok := (*startBytes)[iName]
+				if !ok {
+					rx, err := self.loadUint64FromFile("/sys/class/net/" + iName + "/statistics/rx_bytes")
+					if err != nil {
+						self.logger.Debug("failed to read rx start bytes", "error", err)
+					}
+					tx, err := self.loadUint64FromFile("/sys/class/net/" + iName + "/statistics/tx_bytes")
+					if err != nil {
+						self.logger.Debug("failed to read tx start bytes", "error", err)
+					}
+					interfaceStartBytes = [2]uint64{rx, tx}
+					(*startBytes)[iName] = interfaceStartBytes
+				}
+				stats := InterfaceStats{}
+				stats.Ip = pod.Status.PodIP
+				stats.Pod = pod.GetName()
+				stats.Interface = iName
+				stats.Namespace = pod.GetNamespace()
+				stats.PacketCount = count.PacketCount
+				stats.TransferredByteCount = count.Bytes
+				stats.ReceivedStartBytes = interfaceStartBytes[0]
+				stats.TransmitStartBytes = interfaceStartBytes[1]
+				stats.StartTime = pod.Status.StartTime.Format(time.RFC3339)
+				stats.CreatedAt = time.Now().Format(time.RFC3339)
+				newCollectedStats = append(newCollectedStats, stats)
+			}
+		}
+	}
+	return newCollectedStats
+}
+
+func (self *networkMonitor) updatePodList(fieldSelector string) *v1.PodList {
+	listOpts := metav1.ListOptions{FieldSelector: fieldSelector}
+	newPodList, err := self.clientProvider.K8sClientSet().CoreV1().Pods("").List(context.TODO(), listOpts)
+	if err != nil {
+		self.logger.Error("failed to list pods", "listOptions", listOpts, "error", err)
+		return &v1.PodList{}
+	}
+	return newPodList
 }
 
 // FOLLOWING CODE HAS BEEN COPIED FROM https://github.com/up9inc/mizu/tree/main Thanks for the great work @UP9 Inc

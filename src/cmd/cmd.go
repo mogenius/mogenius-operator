@@ -39,8 +39,6 @@ import (
 	"k8s.io/klog/v2"
 )
 
-const defaultLogDir string = "logs"
-
 var CLI struct {
 	// Commands
 	Clean    struct{}     `cmd:"" help:"remove the operator from the cluster"`
@@ -247,15 +245,9 @@ func LoadConfigDeclarations(configModule *config.Config) {
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "OWN_NODE_NAME",
-		DefaultValue: utils.Pointer("mogenius-node"),
+		DefaultValue: utils.Pointer(os.Getenv("OWN_NODE_NAME")),
 		Description:  utils.Pointer("the name of the node this application is running in"),
 		Envs:         []string{"OWN_NODE_NAME"},
-	})
-	configModule.Declare(config.ConfigDeclaration{
-		Key:          "OWN_POD_NAME",
-		DefaultValue: utils.Pointer("mogenius-pod"),
-		Description:  utils.Pointer("the name of the pod this application is running in"),
-		Envs:         []string{"OWN_POD_NAME"},
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:         "MO_API_SERVER",
@@ -473,7 +465,7 @@ func InitializeSystems(
 	shutdown.Add(eventConnectionClient.Terminate)
 	cpuMonitor := cpumonitor.NewCpuMonitor(logManagerModule.CreateLogger("cpu-monitor"), clientProvider)
 	ramMonitor := rammonitor.NewRamMonitor(logManagerModule.CreateLogger("ram-monitor"), clientProvider)
-	networkMonitor := networkmonitor.NewNetworkMonitor(logManagerModule.CreateLogger("network-monitor"), clientProvider, configModule.Get("MO_HOST_PROC_PATH"))
+	networkMonitor := networkmonitor.NewNetworkMonitor(logManagerModule.CreateLogger("network-monitor"), configModule, clientProvider, configModule.Get("MO_HOST_PROC_PATH"))
 
 	// golang package setups are deprecated and will be removed in the future by migrating all state to services
 	helm.Setup(logManagerModule, configModule, valkeyClient)
