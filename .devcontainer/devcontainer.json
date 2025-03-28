@@ -1,8 +1,18 @@
 {
 	"name": "ebpf-golang-devcontainer",
-	"build": {
-		"dockerfile": "../Dockerfile-Dev-Environment"
-	},
-	"runArgs": ["--privileged"],
-	"privileged": true
+	"dockerComposeFile": [
+		"../docker-compose.yml"
+	],
+
+	"service": "mogenius-operator",
+
+	"workspaceFolder": "/app",
+
+	"customizations": {
+        "vscode": {
+            "extensions": [
+                "golang.go"
+			]
+		}
+	}
 }

@@ -284,12 +284,15 @@ func parseHelmEntry(entry *repo.Entry) *HelmEntryWithoutPassword {
 }
 
 func InitHelmConfig() error {
-	repositoryCache, ok := os.LookupEnv("HELM_REPOSITORY_CACHE")
+	_repositoryCache, ok := os.LookupEnv("HELM_REPOSITORY_CACHE")
 	assert.Assert(ok)
-	repositoryConfig, ok = os.LookupEnv("HELM_REGISTRY_CONFIG")
+	_repositoryConfig, ok := os.LookupEnv("HELM_REGISTRY_CONFIG")
 	assert.Assert(ok)
-	registryConfig, ok = os.LookupEnv("HELM_REPOSITORY_CONFIG")
+	_registryConfig, ok := os.LookupEnv("HELM_REPOSITORY_CONFIG")
 	assert.Assert(ok)
+	repositoryCache = _repositoryCache
+	repositoryConfig = _repositoryConfig
+	registryConfig = _registryConfig
 
 	// Set the HELM_HOME environment variable
 	path := fmt.Sprintf("%s/%s", config.Get("MO_HELM_DATA_PATH"), HELM_DATA_HOME)

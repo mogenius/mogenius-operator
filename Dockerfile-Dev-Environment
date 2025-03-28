@@ -30,6 +30,11 @@ RUN ln -sf /usr/include/asm-generic/ /usr/include/asm
 RUN git clone --recurse-submodules https://github.com/libbpf/bpftool.git
 RUN make -C bpftool/src/ install
 
+RUN curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" && \
+sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+
+RUN go install -v github.com/go-delve/delve/cmd/dlv@latest
+
 WORKDIR /app/
 
 COPY . .
