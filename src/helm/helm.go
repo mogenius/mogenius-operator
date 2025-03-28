@@ -228,7 +228,7 @@ func HelmStatus(namespace string, chartname string) release.Status {
 		return cachedData.(release.Status)
 	}
 
-	settings := cli.New()
+	settings := NewCli()
 	settings.SetNamespace(namespace)
 
 	logFn := func(msg string, args ...interface{}) {
@@ -549,7 +549,7 @@ func HelmRepoRemove(data HelmRepoRemoveRequest) (string, error) {
 }
 
 func HelmChartSearch(data HelmChartSearchRequest) ([]HelmChartInfo, error) {
-	settings := cli.New()
+	settings := NewCli()
 
 	repositoriesFile, err := repo.LoadFile(settings.RepositoryConfig)
 	if err != nil {
@@ -633,7 +633,7 @@ func HelmChartShow(data HelmChartShowRequest) (string, error) {
 }
 
 func HelmChartVersion(data HelmChartVersionRequest) ([]HelmChartInfo, error) {
-	settings := cli.New()
+	settings := NewCli()
 
 	repositoriesFile, err := repo.LoadFile(settings.RepositoryConfig)
 	if err != nil {
