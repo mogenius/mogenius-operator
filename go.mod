@@ -9,7 +9,7 @@ require (
 	github.com/cilium/ebpf v0.17.3
 	github.com/creack/pty v1.1.24
 	github.com/go-git/go-git/v5 v5.14.0
-	github.com/go-playground/validator/v10 v10.25.0
+	github.com/go-playground/validator/v10 v10.26.0
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/google/gopacket v1.1.19
 	github.com/gorilla/websocket v1.5.3
