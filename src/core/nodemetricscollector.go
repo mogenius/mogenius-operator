@@ -71,14 +71,14 @@ func (self *nodeMetricsCollector) Run() {
 			self.networkMonitor.Run()
 			go func() {
 				for {
-					metrics := self.networkMonitor.NetworkUsage()
+					metrics := self.networkMonitor.GetPodNetworkUsage()
 					self.statsDb.AddInterfaceStatsToDb(metrics)
 					time.Sleep(30 * time.Second)
 				}
 			}()
 			go func() {
 				for {
-					metrics := self.networkMonitor.NetworkUsage()
+					metrics := self.networkMonitor.GetPodNetworkUsage()
 					_ = metrics
 					// TODO: @bene (hier haben wir ein object wo der livetraffic des nodes ankommt)
 					time.Sleep(1 * time.Second)
