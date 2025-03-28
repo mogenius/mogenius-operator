@@ -22048,8 +22048,8 @@ export type STATS_TRAFFIC_ALL_FOR_CONTROLLER_REQUEST = STATS_TRAFFIC_ALL_FOR_CON
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/networkmonitor.InterfaceStats:
- *         name: mogenius-k8s-manager/src/networkmonitor.InterfaceStats
+ *     mogenius-k8s-manager/src/networkmonitor.PodNetworkStats:
+ *         name: mogenius-k8s-manager/src/networkmonitor.PodNetworkStats
  *         properties:
  *             createdAt:
  *                 type: string
@@ -22067,20 +22067,20 @@ export type STATS_TRAFFIC_ALL_FOR_CONTROLLER_REQUEST = STATS_TRAFFIC_ALL_FOR_CON
  *                 type: uint
  *             startTime:
  *                 type: string
- *             transferredByteCount:
+ *             transferredBytes:
  *                 type: uint
  *             transmitStartBytes:
  *                 type: uint
  * typeInfo:
  *     elementType:
- *         structRef: mogenius-k8s-manager/src/networkmonitor.InterfaceStats
+ *         structRef: mogenius-k8s-manager/src/networkmonitor.PodNetworkStats
  *         type: struct
  *     pointer: true
  *     type: array
  * ```
  *
  */
-export type STATS_TRAFFIC_ALL_FOR_CONTROLLER_RESPONSE = STATS_TRAFFIC_ALL_FOR_CONTROLLER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_NETWORKMONITOR_INTERFACESTATS[]|undefined;
+export type STATS_TRAFFIC_ALL_FOR_CONTROLLER_RESPONSE = STATS_TRAFFIC_ALL_FOR_CONTROLLER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_NETWORKMONITOR_PODNETWORKSTATS[]|undefined;
 
 /**
  * #### Source
@@ -22156,8 +22156,8 @@ export type STATS_TRAFFIC_SUM_FOR_CONTROLLER_REQUEST = STATS_TRAFFIC_SUM_FOR_CON
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/networkmonitor.InterfaceStats:
- *         name: mogenius-k8s-manager/src/networkmonitor.InterfaceStats
+ *     mogenius-k8s-manager/src/networkmonitor.PodNetworkStats:
+ *         name: mogenius-k8s-manager/src/networkmonitor.PodNetworkStats
  *         properties:
  *             createdAt:
  *                 type: string
@@ -22175,18 +22175,18 @@ export type STATS_TRAFFIC_SUM_FOR_CONTROLLER_REQUEST = STATS_TRAFFIC_SUM_FOR_CON
  *                 type: uint
  *             startTime:
  *                 type: string
- *             transferredByteCount:
+ *             transferredBytes:
  *                 type: uint
  *             transmitStartBytes:
  *                 type: uint
  * typeInfo:
  *     pointer: true
- *     structRef: mogenius-k8s-manager/src/networkmonitor.InterfaceStats
+ *     structRef: mogenius-k8s-manager/src/networkmonitor.PodNetworkStats
  *     type: struct
  * ```
  *
  */
-export type STATS_TRAFFIC_SUM_FOR_CONTROLLER_RESPONSE = STATS_TRAFFIC_SUM_FOR_CONTROLLER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_NETWORKMONITOR_INTERFACESTATS|undefined;
+export type STATS_TRAFFIC_SUM_FOR_CONTROLLER_RESPONSE = STATS_TRAFFIC_SUM_FOR_CONTROLLER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_NETWORKMONITOR_PODNETWORKSTATS|undefined;
 
 /**
  * #### Source
@@ -22211,8 +22211,8 @@ export type STATS_TRAFFIC_SUM_FOR_NAMESPACE_REQUEST = STATS_TRAFFIC_SUM_FOR_NAME
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/networkmonitor.InterfaceStats:
- *         name: mogenius-k8s-manager/src/networkmonitor.InterfaceStats
+ *     mogenius-k8s-manager/src/networkmonitor.PodNetworkStats:
+ *         name: mogenius-k8s-manager/src/networkmonitor.PodNetworkStats
  *         properties:
  *             createdAt:
  *                 type: string
@@ -22230,19 +22230,19 @@ export type STATS_TRAFFIC_SUM_FOR_NAMESPACE_REQUEST = STATS_TRAFFIC_SUM_FOR_NAME
  *                 type: uint
  *             startTime:
  *                 type: string
- *             transferredByteCount:
+ *             transferredBytes:
  *                 type: uint
  *             transmitStartBytes:
  *                 type: uint
  * typeInfo:
  *     elementType:
- *         structRef: mogenius-k8s-manager/src/networkmonitor.InterfaceStats
+ *         structRef: mogenius-k8s-manager/src/networkmonitor.PodNetworkStats
  *         type: struct
  *     type: array
  * ```
  *
  */
-export type STATS_TRAFFIC_SUM_FOR_NAMESPACE_RESPONSE = STATS_TRAFFIC_SUM_FOR_NAMESPACE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_NETWORKMONITOR_INTERFACESTATS[];
+export type STATS_TRAFFIC_SUM_FOR_NAMESPACE_RESPONSE = STATS_TRAFFIC_SUM_FOR_NAMESPACE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_NETWORKMONITOR_PODNETWORKSTATS[];
 
 /**
  * #### Source
@@ -24488,13 +24488,13 @@ export type STATS_PODSTAT_ALL_FOR_CONTROLLER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_
 export type STATS_PODSTAT_LAST_FOR_CONTROLLER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_K8SCONTROLLER = {"kind": string,"name": string,"namespace": string};
 export type STATS_PODSTAT_LAST_FOR_CONTROLLER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_PODSTATS = {"containerName": string,"cpu": number,"cpuLimit": number,"createdAt": string,"ephemeralStorage": number,"ephemeralStorageLimit": number,"memory": number,"memoryLimit": number,"namespace": string,"podName": string,"startTime": string};
 export type STATS_TRAFFIC_ALL_FOR_CONTROLLER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"kind": string,"name": string,"namespace": string,"timeOffsetMinutes": number};
-export type STATS_TRAFFIC_ALL_FOR_CONTROLLER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_NETWORKMONITOR_INTERFACESTATS = {"createdAt": string,"interface": string,"ip": string,"namespace": string,"packetCount": number,"pod": string,"receivedStartBytes": number,"startTime": string,"transferredByteCount": number,"transmitStartBytes": number};
+export type STATS_TRAFFIC_ALL_FOR_CONTROLLER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_NETWORKMONITOR_PODNETWORKSTATS = {"createdAt": string,"interface": string,"ip": string,"namespace": string,"packetCount": number,"pod": string,"receivedStartBytes": number,"startTime": string,"transferredBytes": number,"transmitStartBytes": number};
 export type STATS_TRAFFIC_FOR_CONTROLLER_SOCKET_CONNECTIONS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_K8SCONTROLLER = {"kind": string,"name": string,"namespace": string};
 export type STATS_TRAFFIC_FOR_CONTROLLER_SOCKET_CONNECTIONS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_SOCKETCONNECTIONS = {"connections": Record<string, number>,"lastUpdate": string};
 export type STATS_TRAFFIC_SUM_FOR_CONTROLLER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_K8SCONTROLLER = {"kind": string,"name": string,"namespace": string};
-export type STATS_TRAFFIC_SUM_FOR_CONTROLLER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_NETWORKMONITOR_INTERFACESTATS = {"createdAt": string,"interface": string,"ip": string,"namespace": string,"packetCount": number,"pod": string,"receivedStartBytes": number,"startTime": string,"transferredByteCount": number,"transmitStartBytes": number};
+export type STATS_TRAFFIC_SUM_FOR_CONTROLLER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_NETWORKMONITOR_PODNETWORKSTATS = {"createdAt": string,"interface": string,"ip": string,"namespace": string,"packetCount": number,"pod": string,"receivedStartBytes": number,"startTime": string,"transferredBytes": number,"transmitStartBytes": number};
 export type STATS_TRAFFIC_SUM_FOR_NAMESPACE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"namespace": string};
-export type STATS_TRAFFIC_SUM_FOR_NAMESPACE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_NETWORKMONITOR_INTERFACESTATS = {"createdAt": string,"interface": string,"ip": string,"namespace": string,"packetCount": number,"pod": string,"receivedStartBytes": number,"startTime": string,"transferredByteCount": number,"transmitStartBytes": number};
+export type STATS_TRAFFIC_SUM_FOR_NAMESPACE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_NETWORKMONITOR_PODNETWORKSTATS = {"createdAt": string,"interface": string,"ip": string,"namespace": string,"packetCount": number,"pod": string,"receivedStartBytes": number,"startTime": string,"transferredBytes": number,"transmitStartBytes": number};
 export type STATS_WORKSPACE_CPU_UTILIZATION_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"timeOffsetMinutes": number,"workspaceName": string};
 export type STATS_WORKSPACE_CPU_UTILIZATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_GENERICCHARTENTRY = {"time": string,"value": number};
 export type STATS_WORKSPACE_MEMORY_UTILIZATION_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"timeOffsetMinutes": number,"workspaceName": string};

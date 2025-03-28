@@ -19832,8 +19832,8 @@ stats/traffic/all-for-controller:
             type: struct
     responseSchema:
         structs:
-            mogenius-k8s-manager/src/networkmonitor.InterfaceStats:
-                name: mogenius-k8s-manager/src/networkmonitor.InterfaceStats
+            mogenius-k8s-manager/src/networkmonitor.PodNetworkStats:
+                name: mogenius-k8s-manager/src/networkmonitor.PodNetworkStats
                 properties:
                     createdAt:
                         type: string
@@ -19851,13 +19851,13 @@ stats/traffic/all-for-controller:
                         type: uint
                     startTime:
                         type: string
-                    transferredByteCount:
+                    transferredBytes:
                         type: uint
                     transmitStartBytes:
                         type: uint
         typeInfo:
             elementType:
-                structRef: mogenius-k8s-manager/src/networkmonitor.InterfaceStats
+                structRef: mogenius-k8s-manager/src/networkmonitor.PodNetworkStats
                 type: struct
             pointer: true
             type: array
@@ -19910,8 +19910,8 @@ stats/traffic/sum-for-controller:
             type: struct
     responseSchema:
         structs:
-            mogenius-k8s-manager/src/networkmonitor.InterfaceStats:
-                name: mogenius-k8s-manager/src/networkmonitor.InterfaceStats
+            mogenius-k8s-manager/src/networkmonitor.PodNetworkStats:
+                name: mogenius-k8s-manager/src/networkmonitor.PodNetworkStats
                 properties:
                     createdAt:
                         type: string
@@ -19929,13 +19929,13 @@ stats/traffic/sum-for-controller:
                         type: uint
                     startTime:
                         type: string
-                    transferredByteCount:
+                    transferredBytes:
                         type: uint
                     transmitStartBytes:
                         type: uint
         typeInfo:
             pointer: true
-            structRef: mogenius-k8s-manager/src/networkmonitor.InterfaceStats
+            structRef: mogenius-k8s-manager/src/networkmonitor.PodNetworkStats
             type: struct
 stats/traffic/sum-for-namespace:
     requestSchema:
@@ -19950,8 +19950,8 @@ stats/traffic/sum-for-namespace:
             type: struct
     responseSchema:
         structs:
-            mogenius-k8s-manager/src/networkmonitor.InterfaceStats:
-                name: mogenius-k8s-manager/src/networkmonitor.InterfaceStats
+            mogenius-k8s-manager/src/networkmonitor.PodNetworkStats:
+                name: mogenius-k8s-manager/src/networkmonitor.PodNetworkStats
                 properties:
                     createdAt:
                         type: string
@@ -19969,13 +19969,13 @@ stats/traffic/sum-for-namespace:
                         type: uint
                     startTime:
                         type: string
-                    transferredByteCount:
+                    transferredBytes:
                         type: uint
                     transmitStartBytes:
                         type: uint
         typeInfo:
             elementType:
-                structRef: mogenius-k8s-manager/src/networkmonitor.InterfaceStats
+                structRef: mogenius-k8s-manager/src/networkmonitor.PodNetworkStats
                 type: struct
             type: array
 stats/workspace-cpu-utilization:
