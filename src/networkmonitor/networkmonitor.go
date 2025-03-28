@@ -21,7 +21,7 @@ import (
 
 type NetworkMonitor interface {
 	Run()
-	NetworkUsage() []PodNetworkStats
+	GetPodNetworkUsage() []PodNetworkStats
 }
 
 type networkMonitor struct {
@@ -122,7 +122,7 @@ func (self *networkMonitor) Run() {
 	}()
 }
 
-func (self *networkMonitor) NetworkUsage() []PodNetworkStats {
+func (self *networkMonitor) GetPodNetworkUsage() []PodNetworkStats {
 	select {
 	case <-self.ctx.Done():
 		self.logger.Warn("requested metrics from network monitor after it was closed")
