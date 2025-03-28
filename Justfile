@@ -9,11 +9,9 @@ default:
 
 # Run the application with flags similar to the production build
 run: build
-    just build-generate
     dist/native/mogenius-k8s-manager cluster
 
 run-privileged: build
-    just build-generate
     sudo -E dist/native/mogenius-k8s-manager cluster
 
 # Build a native binary with flags similar to the production build
@@ -24,9 +22,6 @@ build: generate
         -X 'mogenius-k8s-manager/src/version.Branch=$(git branch | grep \* | cut -d ' ' -f2 | tr '[:upper:]' '[:lower:]')' \
         -X 'mogenius-k8s-manager/src/version.BuildTimestamp=$(date -Iseconds)' \
         -X 'mogenius-k8s-manager/src/version.Ver=$(git describe --tags $(git rev-list --tags --max-count=1))'" -o dist/native/mogenius-k8s-manager ./src/main.go
-
-# Run generators implemented in the operator
-build-generate:
     dist/native/mogenius-k8s-manager patterns --output=yaml > generated/spec.yaml
     dist/native/mogenius-k8s-manager patterns --output=typescript > generated/client.ts
 
