@@ -21,7 +21,7 @@ import (
 
 type NetworkMonitor interface {
 	Run()
-	NetworkUsage() []InterfaceStats
+	NetworkUsage() []PodNetworkStats
 }
 
 type networkMonitor struct {
@@ -37,7 +37,7 @@ type networkMonitor struct {
 	ebpfApi          EbpfApi
 
 	networkUsageTx chan struct{}
-	networkUsageRx chan []InterfaceStats
+	networkUsageRx chan []PodNetworkStats
 }
 
 func NewNetworkMonitor(logger *slog.Logger, config config.ConfigModule, clientProvider k8sclient.K8sClientProvider, procFsMountPath string) NetworkMonitor {
@@ -54,7 +54,7 @@ func NewNetworkMonitor(logger *slog.Logger, config config.ConfigModule, clientPr
 	self.ebpfApi = NewEbpfApi(self.logger.With("scope", "ebpf"))
 	self.procFsMountPath = procFsMountPath
 	self.networkUsageTx = make(chan struct{})
-	self.networkUsageRx = make(chan []InterfaceStats)
+	self.networkUsageRx = make(chan []PodNetworkStats)
 
 	return self
 }
@@ -122,16 +122,16 @@ func (self *networkMonitor) Run() {
 	}()
 }
 
-func (self *networkMonitor) NetworkUsage() []InterfaceStats {
+func (self *networkMonitor) NetworkUsage() []PodNetworkStats {
 	select {
 	case <-self.ctx.Done():
 		self.logger.Warn("requested metrics from network monitor after it was closed")
-		return []InterfaceStats{}
+		return []PodNetworkStats{}
 	case self.networkUsageTx <- struct{}{}:
 		select {
 		case <-self.ctx.Done():
 			self.logger.Warn("requested metrics from network monitor after it was closed")
-			return []InterfaceStats{}
+			return []PodNetworkStats{}
 		case result := <-self.networkUsageRx:
 			return result
 		}
@@ -191,7 +191,7 @@ func (self *networkMonitor) updateCollectedStats(
 	ebpfDataHandles *map[string]ebpfCounterHandle,
 	podList **v1.PodList,
 	startBytes *map[InterfaceName][2]uint64,
-) []InterfaceStats {
+) []PodNetworkStats {
 	// requesting interface data
 	// every handle has a poll rate so we wait for all of them to push once
 	// the map gets all keys pre-allocated to prevent resizing while filling up the data from multiple go-routines in parallel
@@ -209,7 +209,7 @@ func (self *networkMonitor) updateCollectedStats(
 	}
 	wg.Wait()
 
-	newCollectedStats := []InterfaceStats{}
+	newCollectedStats := []PodNetworkStats{}
 	for _, pod := range (*podList).Items {
 		containerMap := self.buildContainerIdsMap(pod)
 		for containerId, pod := range containerMap {
@@ -235,13 +235,13 @@ func (self *networkMonitor) updateCollectedStats(
 					interfaceStartBytes = [2]uint64{rx, tx}
 					(*startBytes)[iName] = interfaceStartBytes
 				}
-				stats := InterfaceStats{}
+				stats := PodNetworkStats{}
 				stats.Ip = pod.Status.PodIP
 				stats.Pod = pod.GetName()
 				stats.Interface = iName
 				stats.Namespace = pod.GetNamespace()
 				stats.PacketCount = count.PacketCount
-				stats.TransferredByteCount = count.Bytes
+				stats.TransferredBytes = count.Bytes
 				stats.ReceivedStartBytes = interfaceStartBytes[0]
 				stats.TransmitStartBytes = interfaceStartBytes[1]
 				stats.StartTime = pod.Status.StartTime.Format(time.RFC3339)
@@ -294,26 +294,26 @@ func (self *networkMonitor) loadUint64FromFile(filePath string) (uint64, error) 
 	return number, nil
 }
 
-type InterfaceStats struct {
-	Ip                   string `json:"ip"`
-	Pod                  string `json:"pod"`
-	Interface            string `json:"interface"`
-	Namespace            string `json:"namespace"`
-	PacketCount          uint64 `json:"packetCount"`
-	TransferredByteCount uint64 `json:"transferredByteCount"`
-	ReceivedStartBytes   uint64 `json:"receivedStartBytes"` // auslesen aus /sys
-	TransmitStartBytes   uint64 `json:"transmitStartBytes"` // auslesen aus /sys
-	StartTime            string `json:"startTime"`          // start time of the Interface/Pod
-	CreatedAt            string `json:"createdAt"`          // when the entry was written into the storage <- timestamp of write to redis
+type PodNetworkStats struct {
+	Ip                 string `json:"ip"`
+	Pod                string `json:"pod"`
+	Interface          string `json:"interface"`
+	Namespace          string `json:"namespace"`
+	PacketCount        uint64 `json:"packetCount"`
+	TransferredBytes   uint64 `json:"transferredBytes"`
+	ReceivedStartBytes uint64 `json:"receivedStartBytes"` // auslesen aus /sys
+	TransmitStartBytes uint64 `json:"transmitStartBytes"` // auslesen aus /sys
+	StartTime          string `json:"startTime"`          // start time of the Interface/Pod
+	CreatedAt          string `json:"createdAt"`          // when the entry was written into the storage <- timestamp of write to redis
 }
 
-func (self *InterfaceStats) Sum(other *InterfaceStats) {
+func (self *PodNetworkStats) Sum(other *PodNetworkStats) {
 	self.PacketCount += other.PacketCount
 	self.TransmitStartBytes += other.TransmitStartBytes
 	self.ReceivedStartBytes += other.ReceivedStartBytes
 }
 
-func (data *InterfaceStats) SumOrReplace(dataToAdd *InterfaceStats) {
+func (data *PodNetworkStats) SumOrReplace(dataToAdd *PodNetworkStats) {
 	if dataToAdd.TransmitStartBytes > data.TransmitStartBytes || dataToAdd.ReceivedStartBytes > data.ReceivedStartBytes {
 		// new startRX+startTX means an reset of the counters
 		data.TransmitStartBytes = dataToAdd.TransmitStartBytes

@@ -588,7 +588,7 @@ func (self *socketApi) registerPatterns() {
 			"stats/traffic/all-for-controller",
 			PatternConfig{
 				RequestSchema:  schema.Generate(Request{}),
-				ResponseSchema: schema.Generate(&[]networkmonitor.InterfaceStats{}),
+				ResponseSchema: schema.Generate(&[]networkmonitor.PodNetworkStats{}),
 			},
 			func(datagram structs.Datagram) any {
 				data := Request{}
@@ -624,7 +624,7 @@ func (self *socketApi) registerPatterns() {
 		"stats/traffic/sum-for-controller",
 		PatternConfig{
 			RequestSchema:  schema.Generate(kubernetes.K8sController{}),
-			ResponseSchema: schema.Generate(&networkmonitor.InterfaceStats{}),
+			ResponseSchema: schema.Generate(&networkmonitor.PodNetworkStats{}),
 		},
 		func(datagram structs.Datagram) any {
 			data := kubernetes.K8sController{}
@@ -661,7 +661,7 @@ func (self *socketApi) registerPatterns() {
 			"stats/traffic/sum-for-namespace",
 			PatternConfig{
 				RequestSchema:  schema.Generate(Request{}),
-				ResponseSchema: schema.Generate([]networkmonitor.InterfaceStats{}),
+				ResponseSchema: schema.Generate([]networkmonitor.PodNetworkStats{}),
 			},
 			func(datagram structs.Datagram) any {
 				data := Request{}

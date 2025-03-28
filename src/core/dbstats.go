@@ -32,7 +32,7 @@ var DefaultMaxSizeSocketConnections int64 = 60
 
 type ValkeyStatsDb interface {
 	Run() error
-	AddInterfaceStatsToDb(stats []networkmonitor.InterfaceStats)
+	AddInterfaceStatsToDb(stats []networkmonitor.PodNetworkStats)
 	AddNodeStatsToDb(stats []structs.NodeStats) error
 	AddPodStatsToDb(stats []structs.PodStats) error
 	AddNodeRamMetricsToDb(nodeName string, data interface{}) error
@@ -44,10 +44,10 @@ type ValkeyStatsDb interface {
 	GetPodStatsEntriesForController(kind string, name string, namespace string, timeOffsetMinutes int64) *[]structs.PodStats
 	GetPodStatsEntriesForNamespace(namespace string) *[]structs.PodStats
 	GetSocketConnectionsForController(controller kubernetes.K8sController) *structs.SocketConnections
-	GetTrafficStatsEntriesForController(kind string, name string, namespace string, timeOffsetMinutes int64) *[]networkmonitor.InterfaceStats
-	GetTrafficStatsEntriesForNamespace(namespace string) *[]networkmonitor.InterfaceStats
-	GetTrafficStatsEntriesSumForNamespace(namespace string) []networkmonitor.InterfaceStats
-	GetTrafficStatsEntrySumForController(controller kubernetes.K8sController, includeSocketConnections bool) *networkmonitor.InterfaceStats
+	GetTrafficStatsEntriesForController(kind string, name string, namespace string, timeOffsetMinutes int64) *[]networkmonitor.PodNetworkStats
+	GetTrafficStatsEntriesForNamespace(namespace string) *[]networkmonitor.PodNetworkStats
+	GetTrafficStatsEntriesSumForNamespace(namespace string) []networkmonitor.PodNetworkStats
+	GetTrafficStatsEntrySumForController(controller kubernetes.K8sController, includeSocketConnections bool) *networkmonitor.PodNetworkStats
 	GetWorkspaceStatsCpuUtilization(timeOffsetInMinutes int, resources []unstructured.Unstructured) ([]GenericChartEntry, error)
 	GetWorkspaceStatsMemoryUtilization(timeOffsetInMinutes int, resources []unstructured.Unstructured) ([]GenericChartEntry, error)
 	GetWorkspaceStatsTrafficUtilization(timeOffsetInMinutes int, resources []unstructured.Unstructured) ([]GenericChartEntry, error)
@@ -84,7 +84,7 @@ func (self *valkeyStatsDb) Run() error {
 	return nil
 }
 
-func (self *valkeyStatsDb) AddInterfaceStatsToDb(stats []networkmonitor.InterfaceStats) {
+func (self *valkeyStatsDb) AddInterfaceStatsToDb(stats []networkmonitor.PodNetworkStats) {
 	for _, stat := range stats {
 		controller := kubernetes.ControllerForPod(stat.Namespace, stat.Pod)
 		if controller == nil {
@@ -131,21 +131,21 @@ func (self *valkeyStatsDb) GetLastPodStatsEntryForController(controller kubernet
 	return nil
 }
 
-func (self *valkeyStatsDb) GetTrafficStatsEntriesForController(kind string, name string, namespace string, timeOffsetMinutes int64) *[]networkmonitor.InterfaceStats {
-	result, err := valkeyclient.LastNEntryFromBucketWithType[networkmonitor.InterfaceStats](self.valkey, timeOffsetMinutes, DB_STATS_TRAFFIC_BUCKET_NAME, namespace, name)
+func (self *valkeyStatsDb) GetTrafficStatsEntriesForController(kind string, name string, namespace string, timeOffsetMinutes int64) *[]networkmonitor.PodNetworkStats {
+	result, err := valkeyclient.LastNEntryFromBucketWithType[networkmonitor.PodNetworkStats](self.valkey, timeOffsetMinutes, DB_STATS_TRAFFIC_BUCKET_NAME, namespace, name)
 	if err != nil {
 		self.logger.Error(err.Error())
 	}
 	return &result
 }
 
-func (self *valkeyStatsDb) GetTrafficStatsEntrySumForController(controller kubernetes.K8sController, includeSocketConnections bool) *networkmonitor.InterfaceStats {
-	entries, err := valkeyclient.GetObjectsByPrefix[networkmonitor.InterfaceStats](self.valkey, valkeyclient.ORDER_DESC, DB_STATS_TRAFFIC_BUCKET_NAME, controller.Namespace, controller.Name)
+func (self *valkeyStatsDb) GetTrafficStatsEntrySumForController(controller kubernetes.K8sController, includeSocketConnections bool) *networkmonitor.PodNetworkStats {
+	entries, err := valkeyclient.GetObjectsByPrefix[networkmonitor.PodNetworkStats](self.valkey, valkeyclient.ORDER_DESC, DB_STATS_TRAFFIC_BUCKET_NAME, controller.Namespace, controller.Name)
 	if err != nil {
 		self.logger.Error(err.Error())
 	}
 
-	result := &networkmonitor.InterfaceStats{}
+	result := &networkmonitor.PodNetworkStats{}
 	for _, entry := range entries {
 		if result.Pod == "" {
 			result = &entry
@@ -272,7 +272,7 @@ func (self *valkeyStatsDb) GetWorkspaceStatsTrafficUtilization(timeOffsetInMinut
 
 	result := make(map[string]GenericChartEntry)
 	for _, controller := range resources {
-		values, err := valkeyclient.LastNEntryFromBucketWithType[networkmonitor.InterfaceStats](self.valkey, int64(timeOffsetInMinutes), DB_STATS_TRAFFIC_BUCKET_NAME, controller.GetNamespace(), controller.GetName())
+		values, err := valkeyclient.LastNEntryFromBucketWithType[networkmonitor.PodNetworkStats](self.valkey, int64(timeOffsetInMinutes), DB_STATS_TRAFFIC_BUCKET_NAME, controller.GetNamespace(), controller.GetName())
 		if err != nil {
 			self.logger.Error(err.Error())
 		}
@@ -286,7 +286,7 @@ func (self *valkeyStatsDb) GetWorkspaceStatsTrafficUtilization(timeOffsetInMinut
 			if _, exists := result[formattedDate]; !exists {
 				result[formattedDate] = GenericChartEntry{Time: formattedDate, Value: 0.0}
 			}
-			result[formattedDate] = GenericChartEntry{Time: formattedDate, Value: result[formattedDate].Value + float64(entry.TransferredByteCount)}
+			result[formattedDate] = GenericChartEntry{Time: formattedDate, Value: result[formattedDate].Value + float64(entry.TransferredBytes)}
 
 			if index >= timeOffsetInMinutes {
 				break
@@ -350,8 +350,8 @@ func (self *valkeyStatsDb) GetLastPodStatsEntriesForNamespace(namespace string) 
 	return values
 }
 
-func (self *valkeyStatsDb) GetTrafficStatsEntriesForNamespace(namespace string) *[]networkmonitor.InterfaceStats {
-	values, err := valkeyclient.GetObjectsByPrefix[networkmonitor.InterfaceStats](self.valkey, valkeyclient.ORDER_DESC, DB_STATS_TRAFFIC_BUCKET_NAME, namespace)
+func (self *valkeyStatsDb) GetTrafficStatsEntriesForNamespace(namespace string) *[]networkmonitor.PodNetworkStats {
+	values, err := valkeyclient.GetObjectsByPrefix[networkmonitor.PodNetworkStats](self.valkey, valkeyclient.ORDER_DESC, DB_STATS_TRAFFIC_BUCKET_NAME, namespace)
 	if err != nil {
 		self.logger.Error(err.Error())
 	}
@@ -359,8 +359,8 @@ func (self *valkeyStatsDb) GetTrafficStatsEntriesForNamespace(namespace string) 
 	return &values
 }
 
-func (self *valkeyStatsDb) GetTrafficStatsEntriesSumForNamespace(namespace string) []networkmonitor.InterfaceStats {
-	result := []networkmonitor.InterfaceStats{}
+func (self *valkeyStatsDb) GetTrafficStatsEntriesSumForNamespace(namespace string) []networkmonitor.PodNetworkStats {
+	result := []networkmonitor.PodNetworkStats{}
 
 	// all keys in this namespace
 	keys, err := self.valkey.Keys(DB_STATS_TRAFFIC_BUCKET_NAME + ":" + namespace + ":*")
