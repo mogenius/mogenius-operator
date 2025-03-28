@@ -18,7 +18,8 @@ ARG GIT_BRANCH=NOT_SET
 ARG BUILD_TIMESTAMP=NOT_SET
 ARG VERSION=NOT_SET
 
-RUN apk add --no-cache clang llvm libelf libbpf-dev git linux-headers gcc musl-dev make cmake 
+RUN set -x && \
+    apk add --no-cache clang llvm libelf libbpf-dev git linux-headers gcc musl-dev make cmake
 
 RUN ln -sf /usr/include/asm-generic/ /usr/include/asm
 RUN git clone --recurse-submodules https://github.com/libbpf/bpftool.git
@@ -54,7 +55,11 @@ ENV GOARM=${GOARM}
 
 COPY --from=builder ["/app/bin/mogenius-k8s-manager", "/app/mogenius-k8s-manager"]
 
-RUN apt-get update && apt-get install -y --no-install-recommends dumb-init nfs-common ca-certificates iproute2
+RUN set -x && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends dumb-init nfs-common ca-certificates iproute2 && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 WORKDIR /app
 
