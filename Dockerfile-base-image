@@ -1,0 +1,28 @@
+# BUILD:
+# docker login ghcr.io
+# docker buildx create --use
+# docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+# docker buildx build -f Dockerfile-base-image --platform linux/amd64,linux/arm64,linux/arm/v7 -t ghcr.io/mogenius/manager-builder-base-image:latest --push .
+
+FROM golang:1.24-alpine
+
+LABEL org.opencontainers.image.description="mogenius-k8s-manager"
+
+ENV VERIFY_CHECKSUM=false
+ENV CGO_ENABLED=0
+
+ARG GOOS
+ARG GOARCH
+ARG GOARM
+
+ARG COMMIT_HASH=NOT_SET
+ARG GIT_BRANCH=NOT_SET
+ARG BUILD_TIMESTAMP=NOT_SET
+ARG VERSION=NOT_SET
+
+RUN set -x && \
+    apk add --no-cache clang llvm libelf libbpf-dev git linux-headers gcc musl-dev make cmake
+
+RUN ln -sf /usr/include/asm-generic/ /usr/include/asm
+RUN git clone --recurse-submodules https://github.com/libbpf/bpftool.git
+RUN make -C bpftool/src/ install
