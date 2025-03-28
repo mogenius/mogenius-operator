@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/k8sclient"
+	"net"
 	"net/url"
 	"os"
 	"slices"
@@ -222,6 +223,11 @@ func (self *networkMonitor) updateCollectedStats(
 				if !ok {
 					continue
 				}
+
+				if !isPrivateIp(iDesc.LinkInfo.Address) {
+					continue
+				}
+
 				interfaceStartBytes, ok := (*startBytes)[iName]
 				if !ok {
 					rx, err := self.loadUint64FromFile("/sys/class/net/" + iName + "/statistics/rx_bytes")
@@ -251,6 +257,18 @@ func (self *networkMonitor) updateCollectedStats(
 		}
 	}
 	return newCollectedStats
+}
+
+func isPrivateIp(ipStr string) bool {
+	ip := net.ParseIP(ipStr)
+	if ip == nil {
+		return false // Not a valid IP address
+	}
+
+	if ip.IsLoopback() {
+		return false // Loopback addresses are not considered private
+	}
+	return ip.IsPrivate()
 }
 
 func (self *networkMonitor) updatePodList(fieldSelector string) *v1.PodList {
