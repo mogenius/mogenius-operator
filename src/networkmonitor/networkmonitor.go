@@ -164,7 +164,7 @@ func (self *networkMonitor) updateEbpfDataHandles(
 				250*time.Millisecond,
 			)
 			if err != nil {
-				self.logger.Debug("unable to watch network interface", "name", iName, "index", iDesc.LinkInfo.Ifindex, "error", err)
+				self.logger.Warn("unable to watch network interface", "name", iName, "index", iDesc.LinkInfo.Ifindex, "error", err)
 				continue
 			}
 			self.logger.Debug("started watch network interface", "name", iName, "index", iDesc.LinkInfo.Ifindex, "error", err)
@@ -197,18 +197,21 @@ func (self *networkMonitor) updateCollectedStats(
 	// every handle has a poll rate so we wait for all of them to push once
 	// the map gets all keys pre-allocated to prevent resizing while filling up the data from multiple go-routines in parallel
 	lastInterfaceData := map[string]CountState{}
-	for iName := range *ebpfDataHandles {
-		lastInterfaceData[iName] = CountState{}
-	}
+	lastInterfaceDataMutex := sync.Mutex{}
 	var wg sync.WaitGroup
 	for iName, handle := range *ebpfDataHandles {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			lastInterfaceData[iName] = <-handle.dataChan
+			data := <-handle.dataChan
+			lastInterfaceDataMutex.Lock()
+			lastInterfaceData[iName] = data
+			lastInterfaceDataMutex.Unlock()
 		}()
 	}
 	wg.Wait()
+
+	self.logger.Info("received count data", "counters", lastInterfaceData)
 
 	newCollectedStats := []PodNetworkStats{}
 	for _, pod := range (*podList).Items {
@@ -246,7 +249,7 @@ func (self *networkMonitor) updateCollectedStats(
 				stats.Pod = pod.GetName()
 				stats.Interface = iName
 				stats.Namespace = pod.GetNamespace()
-				stats.PacketCount = count.PacketCount
+				stats.PacketCount = count.Packets
 				stats.TransferredBytes = count.Bytes
 				stats.ReceivedStartBytes = interfaceStartBytes[0]
 				stats.TransmitStartBytes = interfaceStartBytes[1]
