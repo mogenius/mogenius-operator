@@ -249,9 +249,11 @@ func (self *networkMonitor) updateCollectedStats(
 				stats.Pod = pod.GetName()
 				stats.Interface = iName
 				stats.Namespace = pod.GetNamespace()
-				stats.PacketCount = count.Packets
-				stats.TransferredBytes = count.Bytes
+				stats.ReceivedPackets = count.IngressPackets
+				stats.ReceivedBytes = count.IngressBytes
 				stats.ReceivedStartBytes = interfaceStartBytes[0]
+				stats.TransmitPackets = count.EgressPackets
+				stats.TransmitBytes = count.EgressBytes
 				stats.TransmitStartBytes = interfaceStartBytes[1]
 				stats.StartTime = pod.Status.StartTime.Format(time.RFC3339)
 				stats.CreatedAt = time.Now().Format(time.RFC3339)
@@ -320,28 +322,41 @@ type PodNetworkStats struct {
 	Pod                string `json:"pod"`
 	Interface          string `json:"interface"`
 	Namespace          string `json:"namespace"`
-	PacketCount        uint64 `json:"packetCount"`
-	TransferredBytes   uint64 `json:"transferredBytes"`
+	ReceivedPackets    uint64 `json:"receivedPackets"`
+	ReceivedBytes      uint64 `json:"receivedBytes"`
 	ReceivedStartBytes uint64 `json:"receivedStartBytes"` // auslesen aus /sys
+	TransmitPackets    uint64 `json:"transmitPackets"`
+	TransmitBytes      uint64 `json:"transmitBytes"`
 	TransmitStartBytes uint64 `json:"transmitStartBytes"` // auslesen aus /sys
 	StartTime          string `json:"startTime"`          // start time of the Interface/Pod
 	CreatedAt          string `json:"createdAt"`          // when the entry was written into the storage <- timestamp of write to redis
 }
 
 func (self *PodNetworkStats) Sum(other *PodNetworkStats) {
-	self.PacketCount += other.PacketCount
-	self.TransmitStartBytes += other.TransmitStartBytes
+	self.ReceivedPackets += other.ReceivedPackets
+	self.ReceivedBytes += other.ReceivedBytes
 	self.ReceivedStartBytes += other.ReceivedStartBytes
+	self.TransmitPackets += other.TransmitPackets
+	self.TransmitBytes += other.TransmitBytes
+	self.TransmitStartBytes += other.TransmitStartBytes
 }
 
-func (data *PodNetworkStats) SumOrReplace(dataToAdd *PodNetworkStats) {
-	if dataToAdd.TransmitStartBytes > data.TransmitStartBytes || dataToAdd.ReceivedStartBytes > data.ReceivedStartBytes {
+func (self *PodNetworkStats) SumOrReplace(other *PodNetworkStats) {
+	if other.TransmitStartBytes > self.TransmitStartBytes || other.ReceivedStartBytes > self.ReceivedStartBytes {
 		// new startRX+startTX means an reset of the counters
-		data.TransmitStartBytes = dataToAdd.TransmitStartBytes
-		data.ReceivedStartBytes = dataToAdd.ReceivedStartBytes
-		data.PacketCount = dataToAdd.PacketCount
+		self.TransmitStartBytes = other.TransmitStartBytes
+		self.ReceivedStartBytes = other.ReceivedStartBytes
+		self.ReceivedPackets = other.ReceivedPackets
+		self.ReceivedBytes = other.ReceivedBytes
+		self.ReceivedStartBytes = other.ReceivedStartBytes
+		self.TransmitPackets = other.TransmitPackets
+		self.TransmitBytes = other.TransmitBytes
+		self.TransmitStartBytes = other.TransmitStartBytes
 	} else {
 		// just sum the values if startRX+startTX is the same (it changes if the traffic collector restarts)
-		data.PacketCount += dataToAdd.PacketCount
+		self.ReceivedPackets += other.ReceivedPackets
+		self.ReceivedBytes += other.ReceivedBytes
+		self.TransmitPackets += other.TransmitPackets
+		self.TransmitBytes += other.TransmitBytes
 	}
 }
