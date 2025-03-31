@@ -9,6 +9,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	cebpf "github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/link"
 	"github.com/cilium/ebpf/rlimit"
 )
@@ -33,8 +34,12 @@ func NewEbpfApi(logger *slog.Logger) EbpfApi {
 }
 
 type CountState struct {
-	PacketCount uint64
-	Bytes       uint64
+	Packets        uint64
+	Bytes          uint64
+	IngressPackets uint64
+	IngressBytes   uint64
+	EgressPackets  uint64
+	EgressBytes    uint64
 }
 
 func (self *ebpfApi) lazyInit() {
@@ -54,8 +59,8 @@ func (self *ebpfApi) WatchInterface(ctx context.Context, interfaceId int, tickIn
 	self.lazyInit()
 
 	// Load the compiled eBPF ELF and load it into the kernel.
-	var objs ebpf.CounterObjects
-	err := ebpf.LoadCounterObjects(&objs, nil)
+	var objs ebpf.EbpfModuleObjects
+	err := ebpf.LoadEbpfModuleObjects(&objs, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load counter object: %v", err)
 	}
@@ -67,7 +72,7 @@ func (self *ebpfApi) WatchInterface(ctx context.Context, interfaceId int, tickIn
 
 	// XDP
 	linkXdp, err := link.AttachXDP(link.XDPOptions{
-		Program:   objs.CountPackets,
+		Program:   objs.UpdateXdp,
 		Interface: interfaceId,
 	})
 	if err != nil {
@@ -76,6 +81,36 @@ func (self *ebpfApi) WatchInterface(ctx context.Context, interfaceId int, tickIn
 	defer func() {
 		if err != nil {
 			linkXdp.Close()
+		}
+	}()
+
+	// TCX egress
+	linkEgressTcx, err := link.AttachTCX(link.TCXOptions{
+		Interface: interfaceId,
+		Program:   objs.UpdateTcEgress,
+		Attach:    cebpf.AttachTCXEgress,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to attach tcx egress: %v", err)
+	}
+	defer func() {
+		if err != nil {
+			linkEgressTcx.Close()
+		}
+	}()
+
+	// TCX ingress
+	linkIngressTcx, err := link.AttachTCX(link.TCXOptions{
+		Interface: interfaceId,
+		Program:   objs.UpdateTcIngress,
+		Attach:    cebpf.AttachTCXIngress,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to attach tcx ingress: %v", err)
+	}
+	defer func() {
+		if err != nil {
+			linkIngressTcx.Close()
 		}
 	}()
 
@@ -88,20 +123,45 @@ func (self *ebpfApi) WatchInterface(ctx context.Context, interfaceId int, tickIn
 	go func() {
 		defer objs.Close()
 		defer linkXdp.Close()
+		defer linkEgressTcx.Close()
+		defer linkIngressTcx.Close()
 
 		for {
 			select {
 			case <-tick:
-				var count uint64
-				err := objs.Counters.Lookup(uint32(0), &count)
+				var totalPackets uint64
+				err := objs.XdpCounterState.Lookup(uint32(0), &totalPackets)
 				assert.Assert(err == nil, err)
 
-				var bytes uint64
-				err = objs.Counters.Lookup(uint32(1), &bytes)
+				var totalBytes uint64
+				err = objs.XdpCounterState.Lookup(uint32(1), &totalBytes)
+				assert.Assert(err == nil, err)
+
+				var ingressPackets uint64
+				err = objs.IngressPktCount.Get(&ingressPackets)
+				assert.Assert(err == nil, err)
+
+				var ingressBytes uint64
+				err = objs.IngressBytes.Get(&ingressBytes)
+				assert.Assert(err == nil, err)
+
+				var egressPackets uint64
+				err = objs.EgressPktCount.Get(&egressPackets)
+				assert.Assert(err == nil, err)
+
+				var egressBytes uint64
+				err = objs.EgressBytes.Get(&egressBytes)
 				assert.Assert(err == nil, err)
 
 				select {
-				case outChannel <- CountState{PacketCount: count, Bytes: bytes}:
+				case outChannel <- CountState{
+					Packets:        totalPackets,
+					Bytes:          totalBytes,
+					IngressPackets: ingressPackets,
+					IngressBytes:   ingressBytes,
+					EgressPackets:  egressPackets,
+					EgressBytes:    egressBytes,
+				}:
 				default:
 				}
 			case <-ctx.Done():

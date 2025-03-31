@@ -1,2 +1,3 @@
-counter_bpfeb.*
-counter_bpfel.*
+*
+!*.c
+!gen.go
