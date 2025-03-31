@@ -19843,15 +19843,19 @@ stats/traffic/all-for-controller:
                         type: string
                     namespace:
                         type: string
-                    packetCount:
-                        type: uint
                     pod:
                         type: string
+                    receivedBytes:
+                        type: uint
+                    receivedPackets:
+                        type: uint
                     receivedStartBytes:
                         type: uint
                     startTime:
                         type: string
-                    transferredBytes:
+                    transmitBytes:
+                        type: uint
+                    transmitPackets:
                         type: uint
                     transmitStartBytes:
                         type: uint
@@ -19921,15 +19925,19 @@ stats/traffic/sum-for-controller:
                         type: string
                     namespace:
                         type: string
-                    packetCount:
-                        type: uint
                     pod:
                         type: string
+                    receivedBytes:
+                        type: uint
+                    receivedPackets:
+                        type: uint
                     receivedStartBytes:
                         type: uint
                     startTime:
                         type: string
-                    transferredBytes:
+                    transmitBytes:
+                        type: uint
+                    transmitPackets:
                         type: uint
                     transmitStartBytes:
                         type: uint
@@ -19961,15 +19969,19 @@ stats/traffic/sum-for-namespace:
                         type: string
                     namespace:
                         type: string
-                    packetCount:
-                        type: uint
                     pod:
                         type: string
+                    receivedBytes:
+                        type: uint
+                    receivedPackets:
+                        type: uint
                     receivedStartBytes:
                         type: uint
                     startTime:
                         type: string
-                    transferredBytes:
+                    transmitBytes:
+                        type: uint
+                    transmitPackets:
                         type: uint
                     transmitStartBytes:
                         type: uint

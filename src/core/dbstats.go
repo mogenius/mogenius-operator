@@ -286,7 +286,8 @@ func (self *valkeyStatsDb) GetWorkspaceStatsTrafficUtilization(timeOffsetInMinut
 			if _, exists := result[formattedDate]; !exists {
 				result[formattedDate] = GenericChartEntry{Time: formattedDate, Value: 0.0}
 			}
-			result[formattedDate] = GenericChartEntry{Time: formattedDate, Value: result[formattedDate].Value + float64(entry.TransferredBytes)}
+			// TODO: @bene es gibt jetzt einzelne felder fuer rx und tx bytes und pakete -> trag bitte den richtigen wert hier ein
+			result[formattedDate] = GenericChartEntry{Time: formattedDate, Value: result[formattedDate].Value + float64(entry.TransmitBytes)}
 
 			if index >= timeOffsetInMinutes {
 				break

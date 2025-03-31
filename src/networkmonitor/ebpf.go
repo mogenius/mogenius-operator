@@ -34,8 +34,6 @@ func NewEbpfApi(logger *slog.Logger) EbpfApi {
 }
 
 type CountState struct {
-	Packets        uint64
-	Bytes          uint64
 	IngressPackets uint64
 	IngressBytes   uint64
 	EgressPackets  uint64
@@ -67,20 +65,6 @@ func (self *ebpfApi) WatchInterface(ctx context.Context, interfaceId int, tickIn
 	defer func() {
 		if err != nil {
 			objs.Close()
-		}
-	}()
-
-	// XDP
-	linkXdp, err := link.AttachXDP(link.XDPOptions{
-		Program:   objs.UpdateXdp,
-		Interface: interfaceId,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to attach xdp: %v", err)
-	}
-	defer func() {
-		if err != nil {
-			linkXdp.Close()
 		}
 	}()
 
@@ -122,20 +106,12 @@ func (self *ebpfApi) WatchInterface(ctx context.Context, interfaceId int, tickIn
 
 	go func() {
 		defer objs.Close()
-		defer linkXdp.Close()
 		defer linkEgressTcx.Close()
 		defer linkIngressTcx.Close()
 
 		for {
 			select {
 			case <-tick:
-				var totalPackets uint64
-				err := objs.XdpCounterState.Lookup(uint32(0), &totalPackets)
-				assert.Assert(err == nil, err)
-
-				var totalBytes uint64
-				err = objs.XdpCounterState.Lookup(uint32(1), &totalBytes)
-				assert.Assert(err == nil, err)
 
 				var ingressPackets uint64
 				err = objs.IngressPktCount.Get(&ingressPackets)
@@ -155,8 +131,6 @@ func (self *ebpfApi) WatchInterface(ctx context.Context, interfaceId int, tickIn
 
 				select {
 				case outChannel <- CountState{
-					Packets:        totalPackets,
-					Bytes:          totalBytes,
 					IngressPackets: ingressPackets,
 					IngressBytes:   ingressBytes,
 					EgressPackets:  egressPackets,
