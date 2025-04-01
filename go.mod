@@ -4,7 +4,7 @@ go 1.24.1
 
 require (
 	github.com/Masterminds/semver/v3 v3.3.1
-	github.com/alecthomas/kong v1.9.0
+	github.com/alecthomas/kong v1.10.0
 	github.com/cert-manager/cert-manager v1.17.1
 	github.com/cilium/ebpf v0.17.3
 	github.com/creack/pty v1.1.24
