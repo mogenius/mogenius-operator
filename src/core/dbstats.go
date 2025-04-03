@@ -31,7 +31,7 @@ var DefaultMaxSize int64 = 60 * 24 * 7
 var DefaultMaxSizeSocketConnections int64 = 60
 
 type ValkeyStatsDb interface {
-	Run() error
+	Run()
 	AddInterfaceStatsToDb(stats []networkmonitor.PodNetworkStats)
 	AddNodeStatsToDb(stats []structs.NodeStats) error
 	AddPodStatsToDb(stats []structs.PodStats) error
@@ -70,7 +70,7 @@ func NewValkeyStatsModule(logger *slog.Logger, config cfg.ConfigModule, valkey v
 	return &dbStatsModule
 }
 
-func (self *valkeyStatsDb) Run() error {
+func (self *valkeyStatsDb) Run() {
 	// clean valkey on every startup
 	err := store.DropAllResourcesFromValkey(self.valkey, self.logger)
 	if err != nil {
@@ -80,8 +80,6 @@ func (self *valkeyStatsDb) Run() error {
 	if err != nil {
 		self.logger.Error("Error dropping all pod events from valkey", "error", err)
 	}
-
-	return nil
 }
 
 func (self *valkeyStatsDb) AddInterfaceStatsToDb(stats []networkmonitor.PodNetworkStats) {

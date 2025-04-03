@@ -12,6 +12,7 @@ import (
 	"runtime"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	jsoniter "github.com/json-iterator/go"
@@ -200,14 +201,24 @@ func (self *SlogMultiHandler) Enabled(ctx context.Context, level slog.Level) boo
 
 func (self *SlogMultiHandler) Handle(ctx context.Context, record slog.Record) error {
 	errors := []error{}
+	errorLock := sync.Mutex{}
+
+	var wg sync.WaitGroup
 	for _, handler := range self.inner {
 		if handler.Enabled(ctx, record.Level) {
-			err := handler.Handle(ctx, record)
-			if err != nil {
-				errors = append(errors, err)
-			}
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				err := handler.Handle(ctx, record)
+				if err != nil {
+					errorLock.Lock()
+					errors = append(errors, err)
+					errorLock.Unlock()
+				}
+			}()
 		}
 	}
+	wg.Wait()
 
 	if len(errors) > 0 {
 		errorMessages := []string{}
