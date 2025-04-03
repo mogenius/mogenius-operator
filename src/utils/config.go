@@ -69,20 +69,3 @@ const STAGE_PROD = "prod"
 const STAGE_LOCAL = "local"
 
 var ClusterProviderCached KubernetesProvider = UNKNOWN
-
-func SetupClusterSecret(clusterSecret ClusterSecret) {
-	if clusterSecret.ClusterMfaId != "" {
-		err := config.TrySet("MO_API_KEY", clusterSecret.ApiKey)
-		if err != nil {
-			utilsLogger.Debug("failed to set MO_API_KEY", "error", err)
-		}
-		err = config.TrySet("MO_CLUSTER_NAME", clusterSecret.ClusterName)
-		if err != nil {
-			utilsLogger.Debug("failed to set MO_CLUSTER_NAME", "error", err)
-		}
-		err = config.TrySet("MO_CLUSTER_MFA_ID", clusterSecret.ClusterMfaId)
-		if err != nil {
-			utilsLogger.Debug("failed to set MO_CLUSTER_MFA_ID", "error", err)
-		}
-	}
-}

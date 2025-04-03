@@ -469,7 +469,7 @@ func InitializeSystems(
 
 	// golang package setups are deprecated and will be removed in the future by migrating all state to services
 	helm.Setup(logManagerModule, configModule, valkeyClient)
-	err := kubernetes.Setup(logManagerModule, configModule, watcherModule, clientProvider, valkeyClient)
+	err := kubernetes.Setup(logManagerModule, configModule, clientProvider, valkeyClient)
 	assert.Assert(err == nil, err)
 	controllers.Setup(logManagerModule, configModule)
 	dtos.Setup(logManagerModule)
@@ -489,8 +489,11 @@ func InitializeSystems(
 	dbstatsService := core.NewValkeyStatsModule(logManagerModule.CreateLogger("db-stats"), configModule, valkeyClient)
 	podStatsCollector := core.NewPodStatsCollector(logManagerModule.CreateLogger("pod-stats-collector"), configModule, clientProvider)
 	trafficCollector := core.NewNodeMetricsCollector(logManagerModule.CreateLogger("traffic-collector"), configModule, clientProvider, cpuMonitor, ramMonitor, networkMonitor)
+	moKubernetes := core.NewMoKubernetes(logManagerModule.CreateLogger("mokubernetes"), configModule, clientProvider)
+	mocore := core.NewCore(logManagerModule.CreateLogger("core"), configModule, clientProvider, valkeyClient, eventConnectionClient, jobConnectionClient)
 
 	// initialization step 2 for services
+	mocore.Link(moKubernetes)
 	podStatsCollector.Link(dbstatsService)
 	trafficCollector.Link(dbstatsService)
 	socketApi.Link(httpApi, xtermService, dbstatsService, apiModule)
@@ -504,6 +507,8 @@ func InitializeSystems(
 		jobConnectionClient,
 		eventConnectionClient,
 		valkeyClient,
+		mocore,
+		moKubernetes,
 		workspaceManager,
 		apiModule,
 		socketApi,
@@ -523,6 +528,8 @@ type systems struct {
 	jobConnectionClient   websocket.WebsocketClient
 	eventConnectionClient websocket.WebsocketClient
 	valkeyClient          valkeyclient.ValkeyClient
+	core                  core.Core
+	moKubernetes          core.MoKubernetes
 	workspaceManager      core.WorkspaceManager
 	apiModule             core.Api
 	socketApi             core.SocketApi
