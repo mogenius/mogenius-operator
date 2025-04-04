@@ -62,15 +62,11 @@ func (self *core) Link(
 }
 
 func (self *core) Initialize() error {
-	clusterSecret, err := self.moKubernetes.CreateOrUpdateClusterSecret(nil)
+	clusterSecret, err := self.moKubernetes.CreateOrUpdateClusterSecret()
 	if err != nil {
 		return fmt.Errorf("failed retrieving cluster secret: %s", err)
 	}
 
-	_, err = self.moKubernetes.CreateAndUpdateClusterConfigmap()
-	if err != nil {
-		return fmt.Errorf("failed to retrieve cluster configmap: %s", err)
-	}
 	err = self.moKubernetes.CreateOrUpdateResourceTemplateConfigmap()
 	if err != nil {
 		return fmt.Errorf("failed to create resource template configmap: %s", err)

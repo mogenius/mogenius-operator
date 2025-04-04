@@ -11,22 +11,9 @@ const NFS_POD_PREFIX string = "nfs-server-pod"
 
 // This object will initially created in secrets when the software is installed into the cluster for the first time (resource: secret -> mogenius/mogenius)
 type ClusterSecret struct {
-	ApiKey             string
-	ClusterMfaId       string
-	ClusterName        string
-	SyncRepoUrl        string
-	SyncRepoPat        string
-	SyncRepoBranch     string
-	SyncAllowPull      bool
-	SyncAllowPush      bool
-	SyncFrequencyInSec int
-}
-
-type ClusterConfigmap struct {
-	SyncWorkloads      []SyncResourceEntry
-	AvailableWorkloads []SyncResourceEntry
-	IgnoredNamespaces  []string
-	IgnoredNames       []string
+	ApiKey       string
+	ClusterMfaId string
+	ClusterName  string
 }
 
 type SyncResourceEntry struct {
