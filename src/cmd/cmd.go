@@ -101,8 +101,7 @@ func Run() error {
 		},
 	)
 	cmdLogger := slogManager.CreateLogger("cmd")
-	klogLogger := slogManager.CreateLogger("klog")
-	klog.SetSlogLogger(klogLogger)
+	klog.SetSlogLogger(slogManager.CreateLogger("klog"))
 
 	//===============================================================
 	//========================= Parse Args ==========================
@@ -491,6 +490,7 @@ func InitializeSystems(
 	trafficCollector := core.NewNodeMetricsCollector(logManagerModule.CreateLogger("traffic-collector"), configModule, clientProvider, cpuMonitor, ramMonitor, networkMonitor)
 	moKubernetes := core.NewMoKubernetes(logManagerModule.CreateLogger("mokubernetes"), configModule, clientProvider)
 	mocore := core.NewCore(logManagerModule.CreateLogger("core"), configModule, clientProvider, valkeyClient, eventConnectionClient, jobConnectionClient)
+	leaderElector := core.NewLeaderElector(logManagerModule.CreateLogger("leader-elector"), configModule, clientProvider)
 
 	// initialization step 2 for services
 	mocore.Link(moKubernetes)
@@ -518,6 +518,7 @@ func InitializeSystems(
 		podStatsCollector,
 		trafficCollector,
 		dbstatsService,
+		leaderElector,
 	}
 }
 
@@ -539,4 +540,5 @@ type systems struct {
 	podStatsCollector     core.PodStatsCollector
 	trafficCollector      core.NodeMetricsCollector
 	dbstatsService        core.ValkeyStatsDb
+	leaderElector         core.LeaderElector
 }
