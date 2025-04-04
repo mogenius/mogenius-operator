@@ -31,6 +31,7 @@ func RunCluster(logManagerModule logging.SlogManager, configModule *config.Confi
 		systems.trafficCollector.Run()
 		systems.valkeyLoggerService.Run()
 		systems.dbstatsService.Run()
+		systems.leaderElector.Run()
 
 		// services have to be started before this otherwise watcher events will get missing
 		err = mokubernetes.WatchStoreResources(systems.watcherModule, systems.eventConnectionClient)
@@ -39,6 +40,7 @@ func RunCluster(logManagerModule logging.SlogManager, configModule *config.Confi
 			return
 		}
 
+		cmdLogger.Info("SYSTEM STARTUP COMPLETE")
 		select {}
 	}()
 
