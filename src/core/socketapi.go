@@ -360,20 +360,6 @@ func (self *socketApi) registerPatterns() {
 		},
 	)
 
-	self.RegisterPatternHandlerRaw(
-		"cluster/sync-info",
-		PatternConfig{
-			ResponseSchema: schema.Generate(dtos.SyncRepoData{}),
-		},
-		func(datagram structs.Datagram) any {
-			result, err := kubernetes.GetSyncRepoData()
-			if err != nil {
-				return err
-			}
-			return result
-		},
-	)
-
 	self.RegisterPatternHandler(
 		"install-metrics-server",
 		PatternConfig{
