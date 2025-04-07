@@ -22,6 +22,7 @@ RUN set -x && \
     cd /opt/bpftool/src && \
     make install
 
+RUN echo "Architecture: `uname -m`"
 RUN case `uname -m` in \
         x86_64) go install -v github.com/go-delve/delve/cmd/dlv@latest; ;; \
         aarch64) go install -v github.com/go-delve/delve/cmd/dlv@latest; ;; \
