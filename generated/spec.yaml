@@ -4572,50 +4572,6 @@ cluster/read-persistent-volume-claim:
             structRef: k8s.io/api/core/v1.PersistentVolumeClaim
             type: struct
 cluster/restart: {}
-cluster/sync-info:
-    responseSchema:
-        structs:
-            mogenius-k8s-manager/src/dtos.SyncRepoData:
-                name: mogenius-k8s-manager/src/dtos.SyncRepoData
-                properties:
-                    allowPull:
-                        type: bool
-                    allowPush:
-                        type: bool
-                    branch:
-                        type: string
-                    ignoredNamespaces:
-                        elementType:
-                            type: string
-                        type: array
-                    pat:
-                        type: string
-                    repo:
-                        type: string
-                    syncFrequencyInSec:
-                        type: int
-                    syncResources:
-                        elementType:
-                            structRef: mogenius-k8s-manager/src/utils.SyncResourceEntry
-                            type: struct
-                        type: array
-            mogenius-k8s-manager/src/utils.SyncResourceEntry:
-                name: mogenius-k8s-manager/src/utils.SyncResourceEntry
-                properties:
-                    group:
-                        type: string
-                    kind:
-                        type: string
-                    name:
-                        type: string
-                    namespace:
-                        pointer: true
-                        type: string
-                    version:
-                        type: string
-        typeInfo:
-            structRef: mogenius-k8s-manager/src/dtos.SyncRepoData
-            type: struct
 cluster/tcp-udp-configuration:
     responseSchema:
         structs:

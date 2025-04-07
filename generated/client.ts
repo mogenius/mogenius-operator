@@ -36,7 +36,6 @@ export enum Pattern {
   CLUSTER_READ_DEPLOYMENT = "cluster/read-deployment",
   CLUSTER_READ_PERSISTENT_VOLUME_CLAIM = "cluster/read-persistent-volume-claim",
   CLUSTER_RESTART = "cluster/restart",
-  CLUSTER_SYNC_INFO = "cluster/sync-info",
   CLUSTER_TCP_UDP_CONFIGURATION = "cluster/tcp-udp-configuration",
   CLUSTER_UNINSTALL_HELM_CHART = "cluster/uninstall-helm-chart",
   CLUSTER_UPDATE_LOCAL_TLS_SECRET = "cluster/update-local-tls-secret",
@@ -209,7 +208,6 @@ export const StringToPattern = {
   "cluster/read-deployment": Pattern.CLUSTER_READ_DEPLOYMENT,
   "cluster/read-persistent-volume-claim": Pattern.CLUSTER_READ_PERSISTENT_VOLUME_CLAIM,
   "cluster/restart": Pattern.CLUSTER_RESTART,
-  "cluster/sync-info": Pattern.CLUSTER_SYNC_INFO,
   "cluster/tcp-udp-configuration": Pattern.CLUSTER_TCP_UDP_CONFIGURATION,
   "cluster/uninstall-helm-chart": Pattern.CLUSTER_UNINSTALL_HELM_CHART,
   "cluster/update-local-tls-secret": Pattern.CLUSTER_UPDATE_LOCAL_TLS_SECRET,
@@ -378,7 +376,6 @@ export const PatternToString = {
   [Pattern.CLUSTER_READ_DEPLOYMENT]: "cluster/read-deployment",
   [Pattern.CLUSTER_READ_PERSISTENT_VOLUME_CLAIM]: "cluster/read-persistent-volume-claim",
   [Pattern.CLUSTER_RESTART]: "cluster/restart",
-  [Pattern.CLUSTER_SYNC_INFO]: "cluster/sync-info",
   [Pattern.CLUSTER_TCP_UDP_CONFIGURATION]: "cluster/tcp-udp-configuration",
   [Pattern.CLUSTER_UNINSTALL_HELM_CHART]: "cluster/uninstall-helm-chart",
   [Pattern.CLUSTER_UPDATE_LOCAL_TLS_SECRET]: "cluster/update-local-tls-secret",
@@ -3114,62 +3111,6 @@ export type CLUSTER_RESTART_REQUEST = any;
  * api schema has not been defined by the operator
  */
 export type CLUSTER_RESTART_RESPONSE = any;
-
-/**
- * api schema has not been defined by the operator
- */
-export type CLUSTER_SYNC_INFO_REQUEST = any;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     mogenius-k8s-manager/src/dtos.SyncRepoData:
- *         name: mogenius-k8s-manager/src/dtos.SyncRepoData
- *         properties:
- *             allowPull:
- *                 type: bool
- *             allowPush:
- *                 type: bool
- *             branch:
- *                 type: string
- *             ignoredNamespaces:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             pat:
- *                 type: string
- *             repo:
- *                 type: string
- *             syncFrequencyInSec:
- *                 type: int
- *             syncResources:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/utils.SyncResourceEntry
- *                     type: struct
- *                 type: array
- *     mogenius-k8s-manager/src/utils.SyncResourceEntry:
- *         name: mogenius-k8s-manager/src/utils.SyncResourceEntry
- *         properties:
- *             group:
- *                 type: string
- *             kind:
- *                 type: string
- *             name:
- *                 type: string
- *             namespace:
- *                 pointer: true
- *                 type: string
- *             version:
- *                 type: string
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/dtos.SyncRepoData
- *     type: struct
- * ```
- *
- */
-export type CLUSTER_SYNC_INFO_RESPONSE = CLUSTER_SYNC_INFO_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_DTOS_SYNCREPODATA;
 
 /**
  * api schema has not been defined by the operator
@@ -23387,8 +23328,6 @@ export type CLUSTER_READ_PERSISTENT_VOLUME_CLAIM_RESPONSE__TIME_LOCATION = {"cac
 export type CLUSTER_READ_PERSISTENT_VOLUME_CLAIM_RESPONSE__TIME_TIME = {"ext": number,"loc": CLUSTER_READ_PERSISTENT_VOLUME_CLAIM_RESPONSE__TIME_LOCATION|undefined,"wall": number};
 export type CLUSTER_READ_PERSISTENT_VOLUME_CLAIM_RESPONSE__TIME_ZONE = {"isDST": boolean,"name": string,"offset": number};
 export type CLUSTER_READ_PERSISTENT_VOLUME_CLAIM_RESPONSE__TIME_ZONETRANS = {"index": number,"isstd": boolean,"isutc": boolean,"when": number};
-export type CLUSTER_SYNC_INFO_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_DTOS_SYNCREPODATA = {"allowPull": boolean,"allowPush": boolean,"branch": string,"ignoredNamespaces": string[],"pat": string,"repo": string,"syncFrequencyInSec": number,"syncResources": CLUSTER_SYNC_INFO_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_UTILS_SYNCRESOURCEENTRY[]};
-export type CLUSTER_SYNC_INFO_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_UTILS_SYNCRESOURCEENTRY = {"group": string,"kind": string,"name": string,"namespace": string|undefined,"version": string};
 export type CLUSTER_TCP_UDP_CONFIGURATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_DTOS_TCPUDPCLUSTERCONFIGURATIONDTO = {"ingressServices": any,"tcpServices": any,"udpServices": any};
 export type CLUSTER_UNINSTALL_HELM_CHART_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_CLUSTERHELMUNINSTALLREQUEST = {"helmReleaseName": string,"namespaceId": string};
 export type CLUSTER_UNINSTALL_HELM_CHART_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_COMMAND = {"command": string,"finished": CLUSTER_UNINSTALL_HELM_CHART_RESPONSE__TIME_TIME,"id": string,"message": string,"started": CLUSTER_UNINSTALL_HELM_CHART_RESPONSE__TIME_TIME,"state": string,"title": string};
@@ -24679,10 +24618,6 @@ export interface IPatternConfig {
   [Pattern.CLUSTER_RESTART]: {
     Request: CLUSTER_RESTART_REQUEST;
     Response: CLUSTER_RESTART_RESPONSE;
-  };
-  [Pattern.CLUSTER_SYNC_INFO]: {
-    Request: CLUSTER_SYNC_INFO_REQUEST;
-    Response: CLUSTER_SYNC_INFO_RESPONSE;
   };
   [Pattern.CLUSTER_TCP_UDP_CONFIGURATION]: {
     Request: CLUSTER_TCP_UDP_CONFIGURATION_REQUEST;
