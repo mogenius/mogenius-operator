@@ -2,9 +2,11 @@ services:
   mogenius-operator:
     build:
       context: .
-      dockerfile: Dockerfile-Dev-Environment
+      dockerfile: Dockerfile
+      target: build-env
     image: mogenius-operator
     volumes:
+      # export KUBECONFIG="${HOME}/.kube/config"
       - $KUBECONFIG:/root/.kube/config:ro
       - .:/app
     working_dir: /app
