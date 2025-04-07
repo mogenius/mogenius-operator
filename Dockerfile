@@ -24,11 +24,9 @@ RUN set -x && \
 
 RUN case `uname -m` in \
         x86_64) go install -v github.com/go-delve/delve/cmd/dlv@latest; ;; \
-        armv7l) ;; \
         aarch64) go install -v github.com/go-delve/delve/cmd/dlv@latest; ;; \
-        ppc64le) ;; \
-        s390x) ;; \
-        *) echo "un-supported arch, exit ..."; exit 1; ;; \
+        armv7l|ppc64le|s390x) echo "dlv not supported for this architecture, skipping installation." ;; \
+        *) echo "Unsupported architecture, exiting..."; exit 1 ;; \
     esac
 RUN go install -v github.com/go-delve/delve/cmd/dlv@latest
 RUN go install sigs.k8s.io/controller-tools/cmd/controller-gen@latest
