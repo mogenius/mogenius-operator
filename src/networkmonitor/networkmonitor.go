@@ -194,7 +194,7 @@ func (self *networkMonitor) updateEbpfDataHandles(
 				self.logger.Warn("unable to watch network interface", "id", rootInterfaceId, "linkIndex", rootIPLinkInfo.LinkIndex, "error", err)
 				continue
 			}
-			self.logger.Debug("started watch network interface", "id", rootInterfaceId, "linkIndex", rootIPLinkInfo.LinkIndex, "error", err)
+			self.logger.Debug("started watch network interface", "id", rootInterfaceId, "linkIndex", rootIPLinkInfo.LinkIndex, "ifName", rootIPLinkInfo.Ifname, "error", err)
 			dataHandles[rootInterfaceId] = ebpfCounterHandle{dataChan, ctx, cancel}
 		}
 	}
@@ -268,9 +268,12 @@ func (self *networkMonitor) updateCollectedStats(
 								break
 							}
 						}
-						assert.Assert(rootInterface != nil, "the root index should always be resolvable")
 					}
-					assert.Assert(rootInterface != nil, "the root index has to be resolved succesfully")
+					if rootInterface == nil {
+						self.logger.Warn("failed to find root interface for virtual interface", "virtualInterface.ifName", virtualInterface.Ifname, "pod", pod.GetName())
+						continue
+					}
+					//assert.Assert(rootInterface != nil, "the root index has to be resolved succesfully")
 
 					count, ok := lastInterfaceData[rootInterface.Ifindex]
 					if !ok {
