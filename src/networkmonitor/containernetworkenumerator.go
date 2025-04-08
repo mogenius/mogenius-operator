@@ -94,7 +94,7 @@ func NewContainerNetworkEnumerator(logger *slog.Logger) ContainerNetworkEnumerat
 		regexp.MustCompile(`kubepods[^/]*/pod[^/]+/([0-9a-fA-F]+)`),
 		regexp.MustCompile(`containerd:([0-9a-fA-F]+)`),
 		regexp.MustCompile(`burstable/pod[^/]+/([0-9a-fA-F]+)`),
-		regexp.MustCompile(`pod[^/]+/([0-9a-fA-F]+)`),
+		regexp.MustCompile(`/pod[^/]+/([0-9a-fA-F]+)`),
 	}
 
 	return self
@@ -184,8 +184,8 @@ var NoMatchFound error = fmt.Errorf("failed to find valid container id")
 
 func (self *containerNetworkEnumerator) GetContainerIdFromCgroupWithPid(cgroupFileData string) (ContainerId, error) {
 	type PatternMatch struct {
-		pos int
-		id  string
+		pos  int
+		data string
 	}
 	allMatches := []PatternMatch{}
 	for line := range strings.SplitSeq(cgroupFileData, "\n") {
@@ -201,7 +201,8 @@ func (self *containerNetworkEnumerator) GetContainerIdFromCgroupWithPid(cgroupFi
 			submatch := submatches[len(submatches)-1]
 			idx := strings.LastIndex(line, submatch)
 			assert.Assert(idx != -1)
-			allMatches = append(allMatches, PatternMatch{pos: idx, id: submatch})
+			match := PatternMatch{pos: idx, data: submatch}
+			allMatches = append(allMatches, match)
 		}
 	}
 	if len(allMatches) == 0 {
@@ -215,7 +216,7 @@ func (self *containerNetworkEnumerator) GetContainerIdFromCgroupWithPid(cgroupFi
 		}
 	}
 
-	return result.id, nil
+	return result.data, nil
 }
 
 func (self *containerNetworkEnumerator) RequestInterfaceDescription(procPath string) ([]IpLinkInfo, error) {
