@@ -17,7 +17,7 @@ import (
 )
 
 type ContainerNetworkEnumerator interface {
-	List(procPath string) map[InterfaceName]InterfaceDescription
+	List(procPath string) map[InterfaceId]InterfaceDescription
 	GetContainerIdFromCgroupWithPid(cgroupFileData string) (ContainerId, error)
 }
 
@@ -68,7 +68,7 @@ type containerNetworkEnumerator struct {
 	cgroupRegexes []*regexp.Regexp
 }
 
-type InterfaceName = string
+type InterfaceId = int
 type ProcessId = string
 type ContainerId = string
 
@@ -90,9 +90,9 @@ func NewContainerNetworkEnumerator(logger *slog.Logger) ContainerNetworkEnumerat
 	return self
 }
 
-func (self *containerNetworkEnumerator) List(procPath string) map[InterfaceName]InterfaceDescription {
+func (self *containerNetworkEnumerator) List(procPath string) map[InterfaceId]InterfaceDescription {
 	processesWithContainerIds := self.findProcessesWithContainerIds(procPath)
-	networkInterfaceList := map[InterfaceName]InterfaceDescription{}
+	networkInterfaceList := map[InterfaceId]InterfaceDescription{}
 	for containerId, pids := range processesWithContainerIds {
 		for _, pid := range pids {
 			interfaces, err := self.requestNamespacedInterfaceDescription(procPath, pid)
@@ -101,7 +101,7 @@ func (self *containerNetworkEnumerator) List(procPath string) map[InterfaceName]
 				break
 			}
 			for _, linkInfo := range interfaces {
-				ifDesc, ok := networkInterfaceList[linkInfo.Ifname]
+				ifDesc, ok := networkInterfaceList[linkInfo.Ifindex]
 				if !ok {
 					ifDesc = InterfaceDescription{}
 					ifDesc.LinkInfo = linkInfo
@@ -114,7 +114,7 @@ func (self *containerNetworkEnumerator) List(procPath string) map[InterfaceName]
 				processList = append(processList, pid)
 
 				ifDesc.Containers[containerId] = processList
-				networkInterfaceList[linkInfo.Ifname] = ifDesc
+				networkInterfaceList[linkInfo.Ifindex] = ifDesc
 			}
 		}
 	}

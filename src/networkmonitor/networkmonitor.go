@@ -79,11 +79,11 @@ func (self *networkMonitor) Run() {
 		// the list has to be updated regularly for:
 		// - deleted interfaces where the handled is not valid anymore
 		// - added interfaces where new handles have to be created
-		ebpfDataHandles := map[string]ebpfCounterHandle{}
+		ebpfDataHandles := map[int]ebpfCounterHandle{}
 		defer func() {
-			handles := []string{}
-			for iName := range ebpfDataHandles {
-				handles = append(handles, iName)
+			handles := []int{}
+			for interfaceId := range ebpfDataHandles {
+				handles = append(handles, interfaceId)
 			}
 			for _, iName := range handles {
 				ebpfDataHandles[iName].cancel()
@@ -92,7 +92,7 @@ func (self *networkMonitor) Run() {
 		}()
 
 		podList := &v1.PodList{}
-		startBytes := map[InterfaceName][2]uint64{}
+		startBytes := map[InterfaceId][2]uint64{}
 		fieldSelector := "metadata.namespace!=kube-system"
 		ownNodeName := self.config.Get("OWN_NODE_NAME")
 		if ownNodeName != "" {
@@ -147,13 +147,13 @@ type ebpfCounterHandle struct {
 
 //nolint:govet
 func (self *networkMonitor) updateEbpfDataHandles(
-	networkInterfaceMap *map[InterfaceName]InterfaceDescription,
-	dataHandles map[string]ebpfCounterHandle,
-) map[string]ebpfCounterHandle {
-	networkInterfaceList := []string{}
-	for iName, iDesc := range *networkInterfaceMap {
-		networkInterfaceList = append(networkInterfaceList, iName)
-		_, ok := dataHandles[iName]
+	networkInterfaceMap *map[InterfaceId]InterfaceDescription,
+	dataHandles map[int]ebpfCounterHandle,
+) map[int]ebpfCounterHandle {
+	networkInterfaceList := []int{}
+	for interfaceId, iDesc := range *networkInterfaceMap {
+		networkInterfaceList = append(networkInterfaceList, interfaceId)
+		_, ok := dataHandles[interfaceId]
 
 		// create a new handle for interface if it is not in the map
 		if !ok {
@@ -164,19 +164,19 @@ func (self *networkMonitor) updateEbpfDataHandles(
 				250*time.Millisecond,
 			)
 			if err != nil {
-				self.logger.Warn("unable to watch network interface", "name", iName, "index", iDesc.LinkInfo.Ifindex, "error", err)
+				self.logger.Warn("unable to watch network interface", "id", interfaceId, "index", iDesc.LinkInfo.Ifindex, "error", err)
 				continue
 			}
-			self.logger.Debug("started watch network interface", "name", iName, "index", iDesc.LinkInfo.Ifindex, "error", err)
-			dataHandles[iName] = ebpfCounterHandle{dataChan, ctx, cancel}
+			self.logger.Debug("started watch network interface", "id", interfaceId, "index", iDesc.LinkInfo.Ifindex, "error", err)
+			dataHandles[interfaceId] = ebpfCounterHandle{dataChan, ctx, cancel}
 		}
 	}
 
 	// cancel and delete handles which are not found by the interface enumerator anymore
-	handlesToDelete := []string{}
-	for handleInterfaceName := range dataHandles {
-		if !slices.Contains(networkInterfaceList, handleInterfaceName) {
-			handlesToDelete = append(handlesToDelete, handleInterfaceName)
+	handlesToDelete := []int{}
+	for handleInterfaceId := range dataHandles {
+		if !slices.Contains(networkInterfaceList, handleInterfaceId) {
+			handlesToDelete = append(handlesToDelete, handleInterfaceId)
 		}
 	}
 	for _, iName := range handlesToDelete {
@@ -188,24 +188,24 @@ func (self *networkMonitor) updateEbpfDataHandles(
 }
 
 func (self *networkMonitor) updateCollectedStats(
-	networkInterfaceMap *map[InterfaceName]InterfaceDescription,
-	ebpfDataHandles *map[string]ebpfCounterHandle,
+	networkInterfaceMap *map[InterfaceId]InterfaceDescription,
+	ebpfDataHandles *map[int]ebpfCounterHandle,
 	podList **v1.PodList,
-	startBytes *map[InterfaceName][2]uint64,
+	startBytes *map[InterfaceId][2]uint64,
 ) []PodNetworkStats {
 	// requesting interface data
 	// every handle has a poll rate so we wait for all of them to push once
 	// the map gets all keys pre-allocated to prevent resizing while filling up the data from multiple go-routines in parallel
-	lastInterfaceData := map[string]CountState{}
+	lastInterfaceData := map[int]CountState{}
 	lastInterfaceDataMutex := sync.Mutex{}
 	var wg sync.WaitGroup
-	for iName, handle := range *ebpfDataHandles {
+	for interfaceId, handle := range *ebpfDataHandles {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			data := <-handle.dataChan
 			lastInterfaceDataMutex.Lock()
-			lastInterfaceData[iName] = data
+			lastInterfaceData[interfaceId] = data
 			lastInterfaceDataMutex.Unlock()
 		}()
 	}
@@ -217,12 +217,12 @@ func (self *networkMonitor) updateCollectedStats(
 	for _, pod := range (*podList).Items {
 		containerMap := self.buildContainerIdsMap(pod)
 		for containerId, pod := range containerMap {
-			for iName, iDesc := range *networkInterfaceMap {
+			for interfaceId, iDesc := range *networkInterfaceMap {
 				_, ok := iDesc.Containers[containerId]
 				if !ok {
 					continue
 				}
-				count, ok := lastInterfaceData[iName]
+				count, ok := lastInterfaceData[interfaceId]
 				if !ok {
 					continue
 				}
@@ -234,9 +234,10 @@ func (self *networkMonitor) updateCollectedStats(
 					continue
 				}
 
-				println("found interface", iName, "for container", containerId, "in pod", pod.GetName(), "with IP", pod.Status.PodIP)
+				println("found interface", interfaceId, "for container", containerId, "in pod", pod.GetName(), "with IP", pod.Status.PodIP)
 
-				interfaceStartBytes, ok := (*startBytes)[iName]
+				iName := iDesc.LinkInfo.Ifname
+				interfaceStartBytes, ok := (*startBytes)[interfaceId]
 				if !ok {
 					rx, err := self.loadUint64FromFile("/sys/class/net/" + iName + "/statistics/rx_bytes")
 					if err != nil {
@@ -247,7 +248,7 @@ func (self *networkMonitor) updateCollectedStats(
 						self.logger.Debug("failed to read tx start bytes", "error", err)
 					}
 					interfaceStartBytes = [2]uint64{rx, tx}
-					(*startBytes)[iName] = interfaceStartBytes
+					(*startBytes)[interfaceId] = interfaceStartBytes
 				}
 				stats := PodNetworkStats{}
 				stats.Ip = pod.Status.PodIP
