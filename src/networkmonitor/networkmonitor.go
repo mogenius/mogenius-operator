@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/k8sclient"
 	"mogenius-k8s-manager/src/utils"
@@ -222,8 +223,6 @@ func (self *networkMonitor) updateCollectedStats(
 		return []PodNetworkStats{}, err
 	}
 
-	self.logger.Info("received count data", "counters", lastInterfaceData)
-
 	newCollectedStats := []PodNetworkStats{}
 	for _, pod := range (*podList).Items {
 		containerMap := self.buildContainerIdsMap(pod)
@@ -233,15 +232,18 @@ func (self *networkMonitor) updateCollectedStats(
 				if !ok {
 					continue
 				}
-				count, ok := lastInterfaceData[interfaceId]
-				if !ok {
+
+				if !self.isUp(iDesc) {
 					continue
 				}
 
-				if !isUp(iDesc) {
+				if self.isLoopback(iDesc) {
 					continue
 				}
-				if IsLoopback(iDesc) {
+
+				count, ok := lastInterfaceData[interfaceId]
+				if !ok {
+					self.logger.Warn("failed to read interface data for interface id", "interfaceId", interfaceId, "virtualInterfaceName", iDesc.LinkInfo.Ifname)
 					continue
 				}
 
@@ -275,6 +277,8 @@ func (self *networkMonitor) updateCollectedStats(
 				stats.Ip = pod.Status.PodIP
 				stats.Pod = pod.GetName()
 				stats.Interface = iName
+				stats.VirtualInterface = iDesc.LinkInfo.Ifname
+				stats.InterfaceId = interfaceId
 				stats.Namespace = pod.GetNamespace()
 				stats.ReceivedPackets = count.IngressPackets
 				stats.ReceivedBytes = count.IngressBytes
@@ -289,14 +293,42 @@ func (self *networkMonitor) updateCollectedStats(
 		}
 	}
 
-	return newCollectedStats, nil
+	podNames := []string{}
+	for _, stat := range newCollectedStats {
+		if !slices.Contains(podNames, stat.Pod) {
+			podNames = append(podNames, stat.Pod)
+		}
+	}
+	slices.Sort(podNames)
+
+	interfaceIds := []int{}
+	for _, info := range rootNetworkInterfaces {
+		if !slices.Contains(interfaceIds, info.Ifindex) {
+			interfaceIds = append(interfaceIds, info.Ifindex)
+		}
+	}
+	slices.Sort(interfaceIds)
+
+	sortedCollectedStats := []PodNetworkStats{}
+	for _, podName := range podNames {
+		for _, interfaceId := range interfaceIds {
+			for _, stats := range newCollectedStats {
+				if stats.Pod == podName && stats.InterfaceId == interfaceId {
+					sortedCollectedStats = append(sortedCollectedStats, stats)
+				}
+			}
+		}
+	}
+	assert.Assert(len(sortedCollectedStats) == len(newCollectedStats), "this mapping should preserve all elements")
+
+	return sortedCollectedStats, nil
 }
 
-func isUp(iDesc InterfaceDescription) bool {
+func (self *networkMonitor) isUp(iDesc InterfaceDescription) bool {
 	return utils.Contains(iDesc.LinkInfo.Flags, "UP")
 }
 
-func IsLoopback(iDesc InterfaceDescription) bool {
+func (self *networkMonitor) isLoopback(iDesc InterfaceDescription) bool {
 	return utils.Contains(iDesc.LinkInfo.Flags, "LOOPBACK")
 }
 
@@ -344,6 +376,8 @@ type PodNetworkStats struct {
 	Ip                 string `json:"ip"`
 	Pod                string `json:"pod"`
 	Interface          string `json:"interface"`
+	VirtualInterface   string `json:"virtualInterface"`
+	InterfaceId        int    `json:"interfaceId"`
 	Namespace          string `json:"namespace"`
 	ReceivedPackets    uint64 `json:"receivedPackets"`
 	ReceivedBytes      uint64 `json:"receivedBytes"`

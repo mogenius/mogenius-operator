@@ -66,6 +66,8 @@ func (self *nodeMetricsCollector) Run() {
 	enabled, err := strconv.ParseBool(self.config.Get("MO_ENABLE_TRAFFIC_COLLECTOR"))
 	assert.Assert(err == nil, err)
 	if enabled {
+		nodeName := self.config.Get("OWN_NODE_NAME")
+
 		// network monitor
 		go func() {
 			self.networkMonitor.Run()
@@ -79,7 +81,7 @@ func (self *nodeMetricsCollector) Run() {
 			go func() {
 				for {
 					metrics := self.networkMonitor.GetPodNetworkUsage()
-					err := self.statsDb.AddNodeTrafficMetricsToDb(self.config.Get("OWN_NODE_NAME"), metrics)
+					err := self.statsDb.AddNodeTrafficMetricsToDb(nodeName, metrics)
 					if err != nil {
 						self.logger.Error("failed to add node traffic metrics", "error", err)
 					}
@@ -92,7 +94,7 @@ func (self *nodeMetricsCollector) Run() {
 		go func() {
 			for {
 				metrics := self.cpuMonitor.CpuUsage()
-				err := self.statsDb.AddNodeCpuMetricsToDb(self.config.Get("OWN_NODE_NAME"), metrics)
+				err := self.statsDb.AddNodeCpuMetricsToDb(nodeName, metrics)
 				if err != nil {
 					self.logger.Error("failed to add node cpu metrics", "error", err)
 				}
@@ -104,7 +106,7 @@ func (self *nodeMetricsCollector) Run() {
 		go func() {
 			for {
 				metrics := self.ramMonitor.RamUsage()
-				err := self.statsDb.AddNodeRamMetricsToDb(self.config.Get("OWN_NODE_NAME"), metrics)
+				err := self.statsDb.AddNodeRamMetricsToDb(nodeName, metrics)
 				if err != nil {
 					self.logger.Error("failed to add node ram metrics", "error", err)
 				}
