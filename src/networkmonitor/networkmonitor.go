@@ -85,9 +85,9 @@ func (self *networkMonitor) Run() {
 			for interfaceId := range ebpfDataHandles {
 				handles = append(handles, interfaceId)
 			}
-			for _, iName := range handles {
-				ebpfDataHandles[iName].cancel()
-				delete(ebpfDataHandles, iName)
+			for _, interfaceId := range handles {
+				ebpfDataHandles[interfaceId].cancel()
+				delete(ebpfDataHandles, interfaceId)
 			}
 		}()
 
@@ -103,7 +103,10 @@ func (self *networkMonitor) Run() {
 		networkInterfaceMap := self.cne.List(self.procFsMountPath)
 		ebpfDataHandles = self.updateEbpfDataHandles(&networkInterfaceMap, ebpfDataHandles)
 		podList = self.updatePodList(fieldSelector)
-		collectedStats := self.updateCollectedStats(&networkInterfaceMap, &ebpfDataHandles, &podList, &startBytes)
+		collectedStats, err := self.updateCollectedStats(&networkInterfaceMap, &ebpfDataHandles, &podList, &startBytes)
+		if err != nil {
+			self.logger.Error("failed to update collect network interface stats", "error", err)
+		}
 
 		// loop
 		for {
@@ -115,7 +118,10 @@ func (self *networkMonitor) Run() {
 				ebpfDataHandles = self.updateEbpfDataHandles(&networkInterfaceMap, ebpfDataHandles)
 				podList = self.updatePodList(fieldSelector)
 			case <-updateDataTicker.C:
-				collectedStats = self.updateCollectedStats(&networkInterfaceMap, &ebpfDataHandles, &podList, &startBytes)
+				collectedStats, err = self.updateCollectedStats(&networkInterfaceMap, &ebpfDataHandles, &podList, &startBytes)
+				if err != nil {
+					self.logger.Error("failed to update collect network interface stats", "error", err)
+				}
 			case <-self.networkUsageTx:
 				self.networkUsageRx <- collectedStats
 			}
@@ -179,9 +185,9 @@ func (self *networkMonitor) updateEbpfDataHandles(
 			handlesToDelete = append(handlesToDelete, handleInterfaceId)
 		}
 	}
-	for _, iName := range handlesToDelete {
-		dataHandles[iName].cancel()
-		delete(dataHandles, iName)
+	for _, interfaceId := range handlesToDelete {
+		dataHandles[interfaceId].cancel()
+		delete(dataHandles, interfaceId)
 	}
 
 	return dataHandles
@@ -192,7 +198,7 @@ func (self *networkMonitor) updateCollectedStats(
 	ebpfDataHandles *map[int]ebpfCounterHandle,
 	podList **v1.PodList,
 	startBytes *map[InterfaceId][2]uint64,
-) []PodNetworkStats {
+) ([]PodNetworkStats, error) {
 	// requesting interface data
 	// every handle has a poll rate so we wait for all of them to push once
 	// the map gets all keys pre-allocated to prevent resizing while filling up the data from multiple go-routines in parallel
@@ -210,6 +216,11 @@ func (self *networkMonitor) updateCollectedStats(
 		}()
 	}
 	wg.Wait()
+
+	rootNetworkInterfaces, err := self.cne.RequestInterfaceDescription(self.procFsMountPath)
+	if err != nil {
+		return []PodNetworkStats{}, err
+	}
 
 	self.logger.Info("received count data", "counters", lastInterfaceData)
 
@@ -234,9 +245,19 @@ func (self *networkMonitor) updateCollectedStats(
 					continue
 				}
 
-				println("found interface", interfaceId, "for container", containerId, "in pod", pod.GetName(), "with IP", pod.Status.PodIP)
+				// println("found interface", interfaceId, "for container", containerId, "in pod", pod.GetName(), "with IP", pod.Status.PodIP)
 
-				iName := iDesc.LinkInfo.Ifname
+				iName := ""
+				for _, rootInterfaceDesc := range rootNetworkInterfaces {
+					if rootInterfaceDesc.Ifindex == iDesc.LinkInfo.Ifindex {
+						iName = rootInterfaceDesc.Ifname
+					}
+				}
+				if iName == "" {
+					self.logger.Warn("failed to map virtualized interface id to root interface id", "virtualId", iDesc.LinkInfo.Ifindex)
+					continue
+				}
+
 				interfaceStartBytes, ok := (*startBytes)[interfaceId]
 				if !ok {
 					rx, err := self.loadUint64FromFile("/sys/class/net/" + iName + "/statistics/rx_bytes")
@@ -267,7 +288,8 @@ func (self *networkMonitor) updateCollectedStats(
 			}
 		}
 	}
-	return newCollectedStats
+
+	return newCollectedStats, nil
 }
 
 func isUp(iDesc InterfaceDescription) bool {

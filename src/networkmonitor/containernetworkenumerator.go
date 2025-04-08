@@ -19,6 +19,7 @@ import (
 type ContainerNetworkEnumerator interface {
 	List(procPath string) map[InterfaceId]InterfaceDescription
 	GetContainerIdFromCgroupWithPid(cgroupFileData string) (ContainerId, error)
+	RequestInterfaceDescription(procPath string) ([]IpLinkInfo, error)
 }
 
 type InterfaceDescription struct {
@@ -212,6 +213,33 @@ func (self *containerNetworkEnumerator) GetContainerIdFromCgroupWithPid(cgroupFi
 	}
 
 	return result.id, nil
+}
+
+func (self *containerNetworkEnumerator) RequestInterfaceDescription(procPath string) ([]IpLinkInfo, error) {
+	if runtime.GOOS != "linux" && runtime.GOOS != "darwin" {
+		return []IpLinkInfo{}, fmt.Errorf("os not supported: %s", runtime.GOOS)
+	}
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
+
+	cmd := exec.Command(
+		"ip",
+		"--json",
+		"link",
+	)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		self.logger.Error("failed to execute command", "hostProc", procPath, "output", strings.TrimSpace(string(out)), "error", err)
+		return []IpLinkInfo{}, err
+	}
+
+	var ipOutput []IpLinkInfo
+	err = json.Unmarshal(out, &ipOutput)
+	if err != nil {
+		self.logger.Error("failed to unmarshal output of nsenter with ip link", "output", string(out), "error", err)
+		return []IpLinkInfo{}, err
+	}
+
+	return ipOutput, nil
 }
 
 func (self *containerNetworkEnumerator) requestNamespacedInterfaceDescription(procPath string, pid string) ([]IpLinkInfo, error) {
