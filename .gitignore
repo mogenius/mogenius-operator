@@ -24,3 +24,4 @@ bin
 .env
 /dist
 /.vscode/settings.json
+/docker-compose.override.yml

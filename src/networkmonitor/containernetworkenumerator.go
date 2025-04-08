@@ -10,6 +10,7 @@ import (
 	"path"
 	"regexp"
 	"runtime"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -17,13 +18,14 @@ import (
 )
 
 type ContainerNetworkEnumerator interface {
-	List(procPath string) map[InterfaceName]InterfaceDescription
+	List(procPath string) map[ContainerId]InterfaceDescription
 	GetContainerIdFromCgroupWithPid(cgroupFileData string) (ContainerId, error)
+	RequestInterfaceDescription(procPath string) ([]IpLinkInfo, error)
 }
 
 type InterfaceDescription struct {
-	LinkInfo   IpLinkInfo
-	Containers map[ContainerId][]ProcessId
+	LinkInfo []IpLinkInfo
+	Pids     []ProcessId
 }
 
 type IpLinkInfo struct {
@@ -42,6 +44,14 @@ type IpLinkInfo struct {
 	LinkIndex   int      `json:"link_index,omitempty"`
 	Master      string   `json:"master,omitempty"`
 	LinkNetnsid int      `json:"link_netnsid,omitempty"`
+}
+
+func (self *IpLinkInfo) IsUp() bool {
+	return slices.Contains(self.Flags, "UP")
+}
+
+func (self *IpLinkInfo) IsLoopback() bool {
+	return slices.Contains(self.Flags, "LOOPBACK")
 }
 
 func (self *IpLinkInfo) ToJson() string {
@@ -68,7 +78,7 @@ type containerNetworkEnumerator struct {
 	cgroupRegexes []*regexp.Regexp
 }
 
-type InterfaceName = string
+type InterfaceId = int
 type ProcessId = string
 type ContainerId = string
 
@@ -84,39 +94,33 @@ func NewContainerNetworkEnumerator(logger *slog.Logger) ContainerNetworkEnumerat
 		regexp.MustCompile(`kubepods[^/]*/pod[^/]+/([0-9a-fA-F]+)`),
 		regexp.MustCompile(`containerd:([0-9a-fA-F]+)`),
 		regexp.MustCompile(`burstable/pod[^/]+/([0-9a-fA-F]+)`),
-		regexp.MustCompile(`pod[^/]+/([0-9a-fA-F]+)`),
+		regexp.MustCompile(`/pod[^/]+/([0-9a-fA-F]+)`),
 	}
 
 	return self
 }
 
-func (self *containerNetworkEnumerator) List(procPath string) map[InterfaceName]InterfaceDescription {
+func (self *containerNetworkEnumerator) List(procPath string) map[ContainerId]InterfaceDescription {
 	processesWithContainerIds := self.findProcessesWithContainerIds(procPath)
-	networkInterfaceList := map[InterfaceName]InterfaceDescription{}
+	networkInterfaceList := map[ContainerId]InterfaceDescription{}
 	for containerId, pids := range processesWithContainerIds {
-		for _, pid := range pids {
-			interfaces, err := self.requestNamespacedInterfaceDescription(procPath, pid)
-			if err != nil {
-				self.logger.Error("failed to request network interfaces", "error", err)
-				break
-			}
-			for _, linkInfo := range interfaces {
-				ifDesc, ok := networkInterfaceList[linkInfo.Ifname]
-				if !ok {
-					ifDesc = InterfaceDescription{}
-					ifDesc.LinkInfo = linkInfo
-					ifDesc.Containers = map[ContainerId][]ProcessId{}
-				}
-				processList, ok := ifDesc.Containers[containerId]
-				if !ok {
-					processList = []ProcessId{}
-				}
-				processList = append(processList, pid)
-
-				ifDesc.Containers[containerId] = processList
-				networkInterfaceList[linkInfo.Ifname] = ifDesc
-			}
+		ifDesc, ok := networkInterfaceList[containerId]
+		if !ok {
+			ifDesc = InterfaceDescription{}
+			ifDesc.LinkInfo = []IpLinkInfo{}
+			ifDesc.Pids = []ProcessId{}
 		}
+		ifDesc = InterfaceDescription{}
+		assert.Assert(len(pids) > 0, "no container should exist without running processes")
+		assert.Assert(pids[0] != "", "the first pid in this list should be defined")
+		interfaces, err := self.requestNamespacedInterfaceDescription(procPath, pids[0])
+		if err != nil {
+			self.logger.Error("failed to request network interfaces", "procPath", procPath, "pid", pids[0], "error", err)
+			break
+		}
+		ifDesc.LinkInfo = interfaces
+		ifDesc.Pids = pids
+		networkInterfaceList[containerId] = ifDesc
 	}
 	return networkInterfaceList
 }
@@ -180,8 +184,8 @@ var NoMatchFound error = fmt.Errorf("failed to find valid container id")
 
 func (self *containerNetworkEnumerator) GetContainerIdFromCgroupWithPid(cgroupFileData string) (ContainerId, error) {
 	type PatternMatch struct {
-		pos int
-		id  string
+		pos  int
+		data string
 	}
 	allMatches := []PatternMatch{}
 	for line := range strings.SplitSeq(cgroupFileData, "\n") {
@@ -197,7 +201,8 @@ func (self *containerNetworkEnumerator) GetContainerIdFromCgroupWithPid(cgroupFi
 			submatch := submatches[len(submatches)-1]
 			idx := strings.LastIndex(line, submatch)
 			assert.Assert(idx != -1)
-			allMatches = append(allMatches, PatternMatch{pos: idx, id: submatch})
+			match := PatternMatch{pos: idx, data: submatch}
+			allMatches = append(allMatches, match)
 		}
 	}
 	if len(allMatches) == 0 {
@@ -211,7 +216,34 @@ func (self *containerNetworkEnumerator) GetContainerIdFromCgroupWithPid(cgroupFi
 		}
 	}
 
-	return result.id, nil
+	return result.data, nil
+}
+
+func (self *containerNetworkEnumerator) RequestInterfaceDescription(procPath string) ([]IpLinkInfo, error) {
+	if runtime.GOOS != "linux" && runtime.GOOS != "darwin" {
+		return []IpLinkInfo{}, fmt.Errorf("os not supported: %s", runtime.GOOS)
+	}
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
+
+	cmd := exec.Command(
+		"ip",
+		"--json",
+		"link",
+	)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		self.logger.Error("failed to execute command", "hostProc", procPath, "output", strings.TrimSpace(string(out)), "error", err)
+		return []IpLinkInfo{}, err
+	}
+
+	var ipOutput []IpLinkInfo
+	err = json.Unmarshal(out, &ipOutput)
+	if err != nil {
+		self.logger.Error("failed to unmarshal output of nsenter with ip link", "output", string(out), "error", err)
+		return []IpLinkInfo{}, err
+	}
+
+	return ipOutput, nil
 }
 
 func (self *containerNetworkEnumerator) requestNamespacedInterfaceDescription(procPath string, pid string) ([]IpLinkInfo, error) {
