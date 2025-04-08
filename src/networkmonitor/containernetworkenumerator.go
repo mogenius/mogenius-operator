@@ -10,6 +10,7 @@ import (
 	"path"
 	"regexp"
 	"runtime"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -17,14 +18,14 @@ import (
 )
 
 type ContainerNetworkEnumerator interface {
-	List(procPath string) map[InterfaceId]InterfaceDescription
+	List(procPath string) map[ContainerId]InterfaceDescription
 	GetContainerIdFromCgroupWithPid(cgroupFileData string) (ContainerId, error)
 	RequestInterfaceDescription(procPath string) ([]IpLinkInfo, error)
 }
 
 type InterfaceDescription struct {
-	LinkInfo   IpLinkInfo
-	Containers map[ContainerId][]ProcessId
+	LinkInfo []IpLinkInfo
+	Pids     []ProcessId
 }
 
 type IpLinkInfo struct {
@@ -43,6 +44,14 @@ type IpLinkInfo struct {
 	LinkIndex   int      `json:"link_index,omitempty"`
 	Master      string   `json:"master,omitempty"`
 	LinkNetnsid int      `json:"link_netnsid,omitempty"`
+}
+
+func (self *IpLinkInfo) IsUp() bool {
+	return slices.Contains(self.Flags, "UP")
+}
+
+func (self *IpLinkInfo) IsLoopback() bool {
+	return slices.Contains(self.Flags, "LOOPBACK")
 }
 
 func (self *IpLinkInfo) ToJson() string {
@@ -91,33 +100,27 @@ func NewContainerNetworkEnumerator(logger *slog.Logger) ContainerNetworkEnumerat
 	return self
 }
 
-func (self *containerNetworkEnumerator) List(procPath string) map[InterfaceId]InterfaceDescription {
+func (self *containerNetworkEnumerator) List(procPath string) map[ContainerId]InterfaceDescription {
 	processesWithContainerIds := self.findProcessesWithContainerIds(procPath)
-	networkInterfaceList := map[InterfaceId]InterfaceDescription{}
+	networkInterfaceList := map[ContainerId]InterfaceDescription{}
 	for containerId, pids := range processesWithContainerIds {
-		for _, pid := range pids {
-			interfaces, err := self.requestNamespacedInterfaceDescription(procPath, pid)
-			if err != nil {
-				self.logger.Error("failed to request network interfaces", "error", err)
-				break
-			}
-			for _, linkInfo := range interfaces {
-				ifDesc, ok := networkInterfaceList[linkInfo.Ifindex]
-				if !ok {
-					ifDesc = InterfaceDescription{}
-					ifDesc.LinkInfo = linkInfo
-					ifDesc.Containers = map[ContainerId][]ProcessId{}
-				}
-				processList, ok := ifDesc.Containers[containerId]
-				if !ok {
-					processList = []ProcessId{}
-				}
-				processList = append(processList, pid)
-
-				ifDesc.Containers[containerId] = processList
-				networkInterfaceList[linkInfo.Ifindex] = ifDesc
-			}
+		ifDesc, ok := networkInterfaceList[containerId]
+		if !ok {
+			ifDesc = InterfaceDescription{}
+			ifDesc.LinkInfo = []IpLinkInfo{}
+			ifDesc.Pids = []ProcessId{}
 		}
+		ifDesc = InterfaceDescription{}
+		assert.Assert(len(pids) > 0, "no container should exist without running processes")
+		assert.Assert(pids[0] != "", "the first pid in this list should be defined")
+		interfaces, err := self.requestNamespacedInterfaceDescription(procPath, pids[0])
+		if err != nil {
+			self.logger.Error("failed to request network interfaces", "procPath", procPath, "pid", pids[0], "error", err)
+			break
+		}
+		ifDesc.LinkInfo = interfaces
+		ifDesc.Pids = pids
+		networkInterfaceList[containerId] = ifDesc
 	}
 	return networkInterfaceList
 }

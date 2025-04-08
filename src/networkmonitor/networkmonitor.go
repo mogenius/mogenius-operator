@@ -7,7 +7,6 @@ import (
 	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/k8sclient"
-	"mogenius-k8s-manager/src/utils"
 	"net/url"
 	"os"
 	"slices"
@@ -101,10 +100,20 @@ func (self *networkMonitor) Run() {
 		}
 
 		// init
+		rootNetworkInterfaces, err := self.cne.RequestInterfaceDescription(self.procFsMountPath)
+		if err != nil {
+			self.logger.Error("failed to request root network interfaces", "error", err)
+		}
 		networkInterfaceMap := self.cne.List(self.procFsMountPath)
-		ebpfDataHandles = self.updateEbpfDataHandles(&networkInterfaceMap, ebpfDataHandles)
+		ebpfDataHandles = self.updateEbpfDataHandles(&rootNetworkInterfaces, ebpfDataHandles)
 		podList = self.updatePodList(fieldSelector)
-		collectedStats, err := self.updateCollectedStats(&networkInterfaceMap, &ebpfDataHandles, &podList, &startBytes)
+		collectedStats, err := self.updateCollectedStats(
+			&rootNetworkInterfaces,
+			&networkInterfaceMap,
+			&ebpfDataHandles,
+			&podList,
+			&startBytes,
+		)
 		if err != nil {
 			self.logger.Error("failed to update collect network interface stats", "error", err)
 		}
@@ -115,11 +124,21 @@ func (self *networkMonitor) Run() {
 			case <-self.ctx.Done():
 				return
 			case <-updateDevicesTicker.C:
+				rootNetworkInterfaces, err := self.cne.RequestInterfaceDescription(self.procFsMountPath)
+				if err != nil {
+					self.logger.Error("failed to request root network interfaces", "error", err)
+				}
 				networkInterfaceMap = self.cne.List(self.procFsMountPath)
-				ebpfDataHandles = self.updateEbpfDataHandles(&networkInterfaceMap, ebpfDataHandles)
+				ebpfDataHandles = self.updateEbpfDataHandles(&rootNetworkInterfaces, ebpfDataHandles)
 				podList = self.updatePodList(fieldSelector)
 			case <-updateDataTicker.C:
-				collectedStats, err = self.updateCollectedStats(&networkInterfaceMap, &ebpfDataHandles, &podList, &startBytes)
+				collectedStats, err = self.updateCollectedStats(
+					&rootNetworkInterfaces,
+					&networkInterfaceMap,
+					&ebpfDataHandles,
+					&podList,
+					&startBytes,
+				)
 				if err != nil {
 					self.logger.Error("failed to update collect network interface stats", "error", err)
 				}
@@ -154,35 +173,36 @@ type ebpfCounterHandle struct {
 
 //nolint:govet
 func (self *networkMonitor) updateEbpfDataHandles(
-	networkInterfaceMap *map[InterfaceId]InterfaceDescription,
+	rootNetworkInterfaces *[]IpLinkInfo,
 	dataHandles map[int]ebpfCounterHandle,
 ) map[int]ebpfCounterHandle {
-	networkInterfaceList := []int{}
-	for interfaceId, iDesc := range *networkInterfaceMap {
-		networkInterfaceList = append(networkInterfaceList, interfaceId)
-		_, ok := dataHandles[interfaceId]
+	rootNetworkInterfaceIds := []int{}
+	for _, rootIPLinkInfo := range *rootNetworkInterfaces {
+		rootInterfaceId := rootIPLinkInfo.Ifindex
+		rootNetworkInterfaceIds = append(rootNetworkInterfaceIds, rootInterfaceId)
+		_, ok := dataHandles[rootInterfaceId]
 
 		// create a new handle for interface if it is not in the map
 		if !ok {
 			ctx, cancel := context.WithCancel(context.Background())
 			dataChan, err := self.ebpfApi.WatchInterface(
 				ctx,
-				iDesc.LinkInfo.Ifindex,
+				rootIPLinkInfo.Ifindex,
 				250*time.Millisecond,
 			)
 			if err != nil {
-				self.logger.Warn("unable to watch network interface", "id", interfaceId, "index", iDesc.LinkInfo.Ifindex, "error", err)
+				self.logger.Warn("unable to watch network interface", "id", rootInterfaceId, "linkIndex", rootIPLinkInfo.LinkIndex, "error", err)
 				continue
 			}
-			self.logger.Debug("started watch network interface", "id", interfaceId, "index", iDesc.LinkInfo.Ifindex, "error", err)
-			dataHandles[interfaceId] = ebpfCounterHandle{dataChan, ctx, cancel}
+			self.logger.Debug("started watch network interface", "id", rootInterfaceId, "linkIndex", rootIPLinkInfo.LinkIndex, "error", err)
+			dataHandles[rootInterfaceId] = ebpfCounterHandle{dataChan, ctx, cancel}
 		}
 	}
 
 	// cancel and delete handles which are not found by the interface enumerator anymore
 	handlesToDelete := []int{}
 	for handleInterfaceId := range dataHandles {
-		if !slices.Contains(networkInterfaceList, handleInterfaceId) {
+		if !slices.Contains(rootNetworkInterfaceIds, handleInterfaceId) {
 			handlesToDelete = append(handlesToDelete, handleInterfaceId)
 		}
 	}
@@ -195,7 +215,8 @@ func (self *networkMonitor) updateEbpfDataHandles(
 }
 
 func (self *networkMonitor) updateCollectedStats(
-	networkInterfaceMap *map[InterfaceId]InterfaceDescription,
+	rootNetworkInterfaces *[]IpLinkInfo,
+	networkInterfaceMap *map[ContainerId]InterfaceDescription,
 	ebpfDataHandles *map[int]ebpfCounterHandle,
 	podList **v1.PodList,
 	startBytes *map[InterfaceId][2]uint64,
@@ -218,77 +239,76 @@ func (self *networkMonitor) updateCollectedStats(
 	}
 	wg.Wait()
 
-	rootNetworkInterfaces, err := self.cne.RequestInterfaceDescription(self.procFsMountPath)
-	if err != nil {
-		return []PodNetworkStats{}, err
-	}
-
 	newCollectedStats := []PodNetworkStats{}
 	for _, pod := range (*podList).Items {
 		containerMap := self.buildContainerIdsMap(pod)
-		for containerId, pod := range containerMap {
-			for interfaceId, iDesc := range *networkInterfaceMap {
-				_, ok := iDesc.Containers[containerId]
-				if !ok {
+		for podContainerId, pod := range containerMap {
+			for containerId, iDesc := range *networkInterfaceMap {
+				if containerId != podContainerId {
 					continue
 				}
-
-				if !self.isUp(iDesc) {
-					continue
-				}
-
-				if self.isLoopback(iDesc) {
-					continue
-				}
-
-				count, ok := lastInterfaceData[interfaceId]
-				if !ok {
-					self.logger.Warn("failed to read interface data for interface id", "interfaceId", interfaceId, "virtualInterfaceName", iDesc.LinkInfo.Ifname)
-					continue
-				}
-
-				// println("found interface", interfaceId, "for container", containerId, "in pod", pod.GetName(), "with IP", pod.Status.PodIP)
-
-				iName := ""
-				for _, rootInterfaceDesc := range rootNetworkInterfaces {
-					if rootInterfaceDesc.Ifindex == iDesc.LinkInfo.Ifindex {
-						iName = rootInterfaceDesc.Ifname
+				for _, virtualInterface := range iDesc.LinkInfo {
+					if !virtualInterface.IsUp() {
+						continue
 					}
-				}
-				if iName == "" {
-					self.logger.Warn("failed to map virtualized interface id to root interface id", "virtualId", iDesc.LinkInfo.Ifindex)
-					continue
+					if virtualInterface.IsLoopback() {
+						continue
+					}
+					var rootInterface *IpLinkInfo = nil
+					if virtualInterface.LinkIndex == 0 {
+						// the virtual interface is also the root interface as there is no parent
+						rootInterface = &virtualInterface
+					} else {
+						// has parent interface
+						parentInterfaceId := virtualInterface.LinkIndex
+						assert.Assert(parentInterfaceId != 0, "since this is always a virtualized id there should always be a parent", virtualInterface)
+						for _, rootInterfaceInfo := range *rootNetworkInterfaces {
+							if parentInterfaceId == rootInterfaceInfo.Ifindex {
+								rootInterface = &rootInterfaceInfo
+								break
+							}
+						}
+						assert.Assert(rootInterface != nil, "the root index should always be resolvable")
+					}
+					assert.Assert(rootInterface != nil, "the root index has to be resolved succesfully")
+
+					count, ok := lastInterfaceData[rootInterface.Ifindex]
+					if !ok {
+						self.logger.Warn("failed to read interface data for interface id", "rootInterface", rootInterface, "virtualInterface", virtualInterface)
+						continue
+					}
+
+					interfaceStartBytes, ok := (*startBytes)[rootInterface.Ifindex]
+					if !ok {
+						rx, err := self.loadUint64FromFile("/sys/class/net/" + rootInterface.Ifname + "/statistics/rx_bytes")
+						if err != nil {
+							self.logger.Debug("failed to read rx start bytes", "error", err)
+						}
+						tx, err := self.loadUint64FromFile("/sys/class/net/" + rootInterface.Ifname + "/statistics/tx_bytes")
+						if err != nil {
+							self.logger.Debug("failed to read tx start bytes", "error", err)
+						}
+						interfaceStartBytes = [2]uint64{rx, tx}
+						(*startBytes)[rootInterface.Ifindex] = interfaceStartBytes
+					}
+					stats := PodNetworkStats{}
+					stats.Ip = pod.Status.PodIP
+					stats.Pod = pod.GetName()
+					stats.Interface = rootInterface.Ifname
+					stats.VirtualInterface = virtualInterface.Ifname
+					stats.InterfaceId = rootInterface.Ifindex
+					stats.Namespace = pod.GetNamespace()
+					stats.ReceivedPackets = count.IngressPackets
+					stats.ReceivedBytes = count.IngressBytes
+					stats.ReceivedStartBytes = interfaceStartBytes[0]
+					stats.TransmitPackets = count.EgressPackets
+					stats.TransmitBytes = count.EgressBytes
+					stats.TransmitStartBytes = interfaceStartBytes[1]
+					stats.StartTime = pod.Status.StartTime.Format(time.RFC3339)
+					stats.CreatedAt = time.Now().Format(time.RFC3339)
+					newCollectedStats = append(newCollectedStats, stats)
 				}
 
-				interfaceStartBytes, ok := (*startBytes)[interfaceId]
-				if !ok {
-					rx, err := self.loadUint64FromFile("/sys/class/net/" + iName + "/statistics/rx_bytes")
-					if err != nil {
-						self.logger.Debug("failed to read rx start bytes", "error", err)
-					}
-					tx, err := self.loadUint64FromFile("/sys/class/net/" + iName + "/statistics/tx_bytes")
-					if err != nil {
-						self.logger.Debug("failed to read tx start bytes", "error", err)
-					}
-					interfaceStartBytes = [2]uint64{rx, tx}
-					(*startBytes)[interfaceId] = interfaceStartBytes
-				}
-				stats := PodNetworkStats{}
-				stats.Ip = pod.Status.PodIP
-				stats.Pod = pod.GetName()
-				stats.Interface = iName
-				stats.VirtualInterface = iDesc.LinkInfo.Ifname
-				stats.InterfaceId = interfaceId
-				stats.Namespace = pod.GetNamespace()
-				stats.ReceivedPackets = count.IngressPackets
-				stats.ReceivedBytes = count.IngressBytes
-				stats.ReceivedStartBytes = interfaceStartBytes[0]
-				stats.TransmitPackets = count.EgressPackets
-				stats.TransmitBytes = count.EgressBytes
-				stats.TransmitStartBytes = interfaceStartBytes[1]
-				stats.StartTime = pod.Status.StartTime.Format(time.RFC3339)
-				stats.CreatedAt = time.Now().Format(time.RFC3339)
-				newCollectedStats = append(newCollectedStats, stats)
 			}
 		}
 	}
@@ -302,7 +322,7 @@ func (self *networkMonitor) updateCollectedStats(
 	slices.Sort(podNames)
 
 	interfaceIds := []int{}
-	for _, info := range rootNetworkInterfaces {
+	for _, info := range *rootNetworkInterfaces {
 		if !slices.Contains(interfaceIds, info.Ifindex) {
 			interfaceIds = append(interfaceIds, info.Ifindex)
 		}
@@ -322,14 +342,6 @@ func (self *networkMonitor) updateCollectedStats(
 	assert.Assert(len(sortedCollectedStats) == len(newCollectedStats), "this mapping should preserve all elements")
 
 	return sortedCollectedStats, nil
-}
-
-func (self *networkMonitor) isUp(iDesc InterfaceDescription) bool {
-	return utils.Contains(iDesc.LinkInfo.Flags, "UP")
-}
-
-func (self *networkMonitor) isLoopback(iDesc InterfaceDescription) bool {
-	return utils.Contains(iDesc.LinkInfo.Flags, "LOOPBACK")
 }
 
 func (self *networkMonitor) updatePodList(fieldSelector string) *v1.PodList {
