@@ -53,3 +53,30 @@ func TestNestedCgroupThreeLayers(t *testing.T) {
 	assert.AssertT(t, err == nil, err)
 	assert.AssertT(t, cid == "6bbf0ddf216c09e3e0a2e60331faed61f1c254d72341e9a6db20afd44d45338b", cid)
 }
+
+func TestCgroupMatches(t *testing.T) {
+	data := map[string]string{
+		"0::/../eeb5987a709f847212df81424765ef935f947638609a927f2f5bfc814eb30167/kubelet.slice/kubelet-kubepods.slice/kubelet-kubepods-burstable.slice/kubelet-kubepods-burstable-podfdddaf06cf500dcb43e30469b6880934.slice/cri-containerd-70c533efd0df9ba48efd36c4067e96b2b51c0a10a91e185dd96f24f106543120.scope":       "70c533efd0df9ba48efd36c4067e96b2b51c0a10a91e185dd96f24f106543120",
+		"0::/../eeb5987a709f847212df81424765ef935f947638609a927f2f5bfc814eb30167/kubelet.slice/kubelet-kubepods.slice/kubelet-kubepods-burstable.slice/kubelet-kubepods-burstable-pod4303e03ea23d5969fa721be37f037c6b.slice/cri-containerd-736ecb86a1dfd13ef2e64c1f4401b4a89e884d94fc50f017fa06689511d17960.scope":       "736ecb86a1dfd13ef2e64c1f4401b4a89e884d94fc50f017fa06689511d17960",
+		"0::/../eeb5987a709f847212df81424765ef935f947638609a927f2f5bfc814eb30167/kubelet.slice/kubelet-kubepods.slice/kubelet-kubepods-burstable.slice/kubelet-kubepods-burstable-pod4303e03ea23d5969fa721be37f037c6b.slice/cri-containerd-5b9952d6035b1285f3223f7c7d8b6e2cb776231dac71076e1aba96720426aa4b.scope":       "5b9952d6035b1285f3223f7c7d8b6e2cb776231dac71076e1aba96720426aa4b",
+		"0::/../43f65646702bb950e9fc17c6f1c90448fc4d4768fd5a3d6060ae3d3f7bd8c7d8/kubelet.slice/kubelet-kubepods.slice/kubelet-kubepods-besteffort.slice/kubelet-kubepods-besteffort-podcf22a4ea_b71a_47e6_9efb_2015ede2a081.slice/cri-containerd-871eb3c6bf966f59e8f0924477971b70981a40eec2baa54ddbae5cfa2d91a185.scope": "871eb3c6bf966f59e8f0924477971b70981a40eec2baa54ddbae5cfa2d91a185",
+	}
+
+	didError := false
+	for cgroup, expectedContainerId := range data {
+		cne := networkmonitor.NewContainerNetworkEnumerator(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
+		cid, err := cne.GetContainerIdFromCgroupWithPid(cgroup)
+		if err != nil {
+			t.Errorf("received error from parsing cgroup: %s", err.Error())
+			didError = true
+			continue
+		}
+		if cid != expectedContainerId {
+			t.Errorf(`expected cid "%s" got "%s"`, expectedContainerId, cid)
+			didError = true
+			continue
+		}
+	}
+
+	assert.AssertT(t, !didError)
+}
