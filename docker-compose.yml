@@ -9,6 +9,8 @@ services:
       # export KUBECONFIG="${HOME}/.kube/config"
       - $KUBECONFIG:/root/.kube/config:ro
       - .:/app
+    environment:
+      - KUBECONFIG=/root/.kube/config
     working_dir: /app
     privileged: true
     pid: host

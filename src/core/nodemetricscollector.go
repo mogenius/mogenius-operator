@@ -79,8 +79,10 @@ func (self *nodeMetricsCollector) Run() {
 			go func() {
 				for {
 					metrics := self.networkMonitor.GetPodNetworkUsage()
-					_ = metrics
-					// TODO: @bene (hier haben wir ein object wo der livetraffic des nodes ankommt)
+					err := self.statsDb.AddNodeTrafficMetricsToDb(self.config.Get("OWN_NODE_NAME"), metrics)
+					if err != nil {
+						self.logger.Error("failed to add node traffic metrics", "error", err)
+					}
 					time.Sleep(1 * time.Second)
 				}
 			}()

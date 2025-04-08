@@ -6,7 +6,7 @@ import (
 	"log/slog"
 	"mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/k8sclient"
-	"net"
+	"mogenius-k8s-manager/src/utils"
 	"net/url"
 	"os"
 	"slices"
@@ -72,7 +72,7 @@ func (self *networkMonitor) Run() {
 		updateDevicesTicker := time.NewTicker(30 * time.Second)
 		defer updateDevicesTicker.Stop()
 
-		updateDataTicker := time.NewTicker(1 * time.Second)
+		updateDataTicker := time.NewTicker(3 * time.Second)
 		defer updateDevicesTicker.Stop()
 
 		// holds the context of all network interfaces which are being watched
@@ -227,9 +227,14 @@ func (self *networkMonitor) updateCollectedStats(
 					continue
 				}
 
-				if !isPrivateIp(iDesc.LinkInfo.Address) {
+				if !isUp(iDesc) {
 					continue
 				}
+				if IsLoopback(iDesc) {
+					continue
+				}
+
+				println("found interface", iName, "for container", containerId, "in pod", pod.GetName(), "with IP", pod.Status.PodIP)
 
 				interfaceStartBytes, ok := (*startBytes)[iName]
 				if !ok {
@@ -264,16 +269,12 @@ func (self *networkMonitor) updateCollectedStats(
 	return newCollectedStats
 }
 
-func isPrivateIp(ipStr string) bool {
-	ip := net.ParseIP(ipStr)
-	if ip == nil {
-		return false // Not a valid IP address
-	}
+func isUp(iDesc InterfaceDescription) bool {
+	return utils.Contains(iDesc.LinkInfo.Flags, "UP")
+}
 
-	if ip.IsLoopback() {
-		return false // Loopback addresses are not considered private
-	}
-	return ip.IsPrivate()
+func IsLoopback(iDesc InterfaceDescription) bool {
+	return utils.Contains(iDesc.LinkInfo.Flags, "LOOPBACK")
 }
 
 func (self *networkMonitor) updatePodList(fieldSelector string) *v1.PodList {
@@ -286,7 +287,6 @@ func (self *networkMonitor) updatePodList(fieldSelector string) *v1.PodList {
 	return newPodList
 }
 
-// FOLLOWING CODE HAS BEEN COPIED FROM https://github.com/up9inc/mizu/tree/main Thanks for the great work @UP9 Inc
 func (self *networkMonitor) buildContainerIdsMap(pod v1.Pod) map[string]v1.Pod {
 	result := make(map[string]v1.Pod)
 	for _, container := range pod.Status.ContainerStatuses {
