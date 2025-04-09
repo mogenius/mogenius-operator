@@ -269,7 +269,11 @@ func (self *networkMonitor) updateCollectedStats(
 							}
 						}
 					}
-					assert.Assert(rootInterface != nil, "the root index has to be resolved succesfully")
+					if rootInterface == nil {
+						self.logger.Warn("failed to find root interface for virtual interface", "virtualInterface.ifName", virtualInterface.Ifname, "pod", pod.GetName())
+						continue
+					}
+					// assert.Assert(rootInterface != nil, "the root index has to be resolved succesfully")
 
 					count, ok := lastInterfaceData[rootInterface.Ifindex]
 					if !ok {
