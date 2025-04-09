@@ -350,6 +350,17 @@ func (self *networkMonitor) updateCollectedStats(
 func (self *networkMonitor) updatePodList(fieldSelector string) *v1.PodList {
 	listOpts := metav1.ListOptions{FieldSelector: fieldSelector}
 	newPodList, err := self.clientProvider.K8sClientSet().CoreV1().Pods("").List(context.TODO(), listOpts)
+
+	// important step: Remove all pods with HostNetwork=true
+	filteredItems := []v1.Pod{}
+	for i := 0; i < len(newPodList.Items); i++ {
+		pod := newPodList.Items[i]
+		if pod.Spec.HostNetwork == false {
+			filteredItems = append(filteredItems, pod)
+		}
+	}
+	newPodList.Items = filteredItems
+
 	if err != nil {
 		self.logger.Error("failed to list pods", "listOptions", listOpts, "error", err)
 		return &v1.PodList{}
