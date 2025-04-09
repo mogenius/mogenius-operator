@@ -17,5 +17,6 @@ type NodeStat struct {
 	KubletVersion          string  `json:"kubletVersion" validate:"required"`
 	OsType                 string  `json:"osType" validate:"required"`
 	OsImage                string  `json:"osImage" validate:"required"`
+	OsKernelVersion        string  `json:"osKernelVersion" validate:"required"`
 	Architecture           string  `json:"architecture" validate:"required"`
 }

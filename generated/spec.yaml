@@ -65,6 +65,8 @@ ClusterResourceInfo:
                         type: string
                     osImage:
                         type: string
+                    osKernelVersion:
+                        type: string
                     osType:
                         type: string
                     totalPods:

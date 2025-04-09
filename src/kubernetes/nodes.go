@@ -75,6 +75,7 @@ func GetNodeStats() []dtos.NodeStat {
 			KubletVersion:          node.Status.NodeInfo.KubeletVersion,
 			OsType:                 node.Status.NodeInfo.OperatingSystem,
 			OsImage:                node.Status.NodeInfo.OSImage,
+			OsKernelVersion:        node.Status.NodeInfo.KernelVersion,
 			Architecture:           node.Status.NodeInfo.Architecture,
 		}
 		result = append(result, nodeStat)
