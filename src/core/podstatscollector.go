@@ -76,11 +76,13 @@ func (self *podStatsCollector) Run() {
 				podsResult, err := self.podStats(nodemetrics, currentPods)
 				if err != nil {
 					self.logger.Error("failed to get podStats", "error", err)
+					time.Sleep(time.Duration(self.updateInterval) * time.Second)
 					continue
 				}
 				err = self.statsDb.AddPodStatsToDb(podsResult)
 				if err != nil {
 					self.logger.Error("failed to store pod stats", "error", err)
+					time.Sleep(time.Duration(self.updateInterval) * time.Second)
 					continue
 				}
 
@@ -88,6 +90,7 @@ func (self *podStatsCollector) Run() {
 				err = self.statsDb.AddNodeStatsToDb(nodesResult)
 				if err != nil {
 					self.logger.Error("failed to store node stats", "error", err)
+					time.Sleep(time.Duration(self.updateInterval) * time.Second)
 					continue
 				}
 

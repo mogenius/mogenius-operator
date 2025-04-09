@@ -86,7 +86,12 @@ func (self *valkeyStatsDb) AddInterfaceStatsToDb(stats []networkmonitor.PodNetwo
 	for _, stat := range stats {
 		controller := kubernetes.ControllerForPod(stat.Namespace, stat.Pod)
 		if controller == nil {
-			return
+			// in case we cannot determine a controller
+			controller = &kubernetes.K8sController{
+				Kind:      "Pod",
+				Name:      stat.Pod,
+				Namespace: stat.Namespace,
+			}
 		}
 
 		err := self.valkey.AddToBucket(DefaultMaxSize, stat, DB_STATS_TRAFFIC_BUCKET_NAME, stat.Namespace, controller.Name)
