@@ -21,7 +21,7 @@ services:
     command: sleep infinity
 
   valkey:
-    image: docker.io/bitnami/valkey:8.0
+    image: docker.io/bitnami/valkey:8.1
     restart: unless-stopped
     environment:
       - VALKEY_PASSWORD=0000
