@@ -238,6 +238,11 @@ jobs:
         uses: azure/setup-helm@v4.3.0
         id: install
 
+      - name: Run helm-docs
+        uses: losisin/helm-docs-github-action@v1.5.0
+        with:
+          chart-search-root: helm
+
       - name: package and push
         run: |
           cd ./helm
