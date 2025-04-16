@@ -8,7 +8,7 @@ require (
 	github.com/cert-manager/cert-manager v1.17.1
 	github.com/cilium/ebpf v0.18.0
 	github.com/creack/pty v1.1.24
-	github.com/go-git/go-git/v5 v5.15.0
+	github.com/go-git/go-git/v5 v5.16.0
 	github.com/go-playground/validator/v10 v10.26.0
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/google/gopacket v1.1.19
