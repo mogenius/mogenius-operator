@@ -24,6 +24,7 @@ import (
 	"mogenius-k8s-manager/src/version"
 	"mogenius-k8s-manager/src/websocket"
 	"mogenius-k8s-manager/src/xterm"
+	"net/http"
 	"net/url"
 	"os"
 	"os/exec"
@@ -3500,7 +3501,14 @@ func (self *socketApi) sendDataWs(sendToServer string, reader io.ReadCloser) {
 	}()
 
 	header := utils.HttpHeader("-logs")
-	conn, _, err := gorillawebsocket.DefaultDialer.Dial(sendToServer, header)
+	var dialer *gorillawebsocket.Dialer = gorillawebsocket.DefaultDialer
+	if self.config.Get("MO_HTTP_PROXY") != "" {
+		dialer.Proxy = http.ProxyURL(&url.URL{
+			Scheme: "http",
+			Host:   self.config.Get("MO_HTTP_PROXY"),
+		})
+	}
+	conn, _, err := dialer.Dial(sendToServer, header)
 	if err != nil {
 		self.logger.Error("Connection to stream endpoint failed", "sendToServer", sendToServer, "error", err)
 		return
