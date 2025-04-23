@@ -8,6 +8,7 @@ import (
 	"mogenius-k8s-manager/src/assert"
 	"net/http"
 	"net/url"
+	"os"
 	"sync/atomic"
 	"syscall"
 	"time"
@@ -271,10 +272,6 @@ type websocketClient struct {
 	apiGetUrlTx chan struct{}
 	apiGetUrlRx chan url.URL
 
-	// api: self.GetProxyUrl()
-	apiGetProxyUrlTx chan struct{}
-	apiGetProxyUrlRx chan url.URL
-
 	// api: self.SetHeader()
 	apiSetHeaderTx chan http.Header
 	apiSetHeaderRx chan error
@@ -398,7 +395,6 @@ func NewWebsocketClient(logger *slog.Logger) WebsocketClient {
 func (self *websocketClient) startRuntime() {
 	isRunning := false
 	connectionUrl := &url.URL{}
-	proxy := &url.URL{}
 	header := &http.Header{}
 
 	for {
@@ -429,8 +425,6 @@ func (self *websocketClient) startRuntime() {
 			self.apiSetUrlRx <- nil
 		case <-self.apiGetUrlTx:
 			self.apiGetUrlRx <- *connectionUrl
-		case <-self.apiGetProxyUrlTx:
-			self.apiGetProxyUrlRx <- *proxy
 		case newHeader := <-self.apiSetHeaderTx:
 			header = &newHeader
 			if isRunning {
@@ -445,10 +439,12 @@ func (self *websocketClient) startRuntime() {
 				continue
 			}
 			var dialer *gorillaWebsocket.Dialer = gorillaWebsocket.DefaultDialer
-			if proxy != nil {
+			httpProxy := os.Getenv("MO_HTTPS_PROXY")
+			if httpProxy != "" {
+				self.runtimeLogger.Info("using http proxy", "proxy", httpProxy)
 				dialer.Proxy = http.ProxyURL(&url.URL{
-					Scheme: "https",
-					Host:   proxy.String(),
+					Scheme: "http",
+					Host:   httpProxy,
 				})
 			}
 			conn, _, err := dialer.Dial(connectionUrl.String(), *header)
