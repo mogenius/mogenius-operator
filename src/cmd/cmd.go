@@ -271,7 +271,7 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		},
 	})
 	configModule.Declare(config.ConfigDeclaration{
-		Key:          "MO_HTTPS_PROXY",
+		Key:          "MO_HTTP_PROXY",
 		DefaultValue: utils.Pointer(""),
 		Description:  utils.Pointer("URL of a HTTPS Proxy"),
 		Validate: func(value string) error {
@@ -280,7 +280,7 @@ func LoadConfigDeclarations(configModule *config.Config) {
 			}
 			_, err := url.Parse(value)
 			if err != nil {
-				return fmt.Errorf("'MO_HTTPS_PROXY' needs to be a URL: %s", err.Error())
+				return fmt.Errorf("'MO_HTTP_PROXY' needs to be a URL: %s", err.Error())
 			}
 			return nil
 		},

@@ -3502,10 +3502,10 @@ func (self *socketApi) sendDataWs(sendToServer string, reader io.ReadCloser) {
 
 	header := utils.HttpHeader("-logs")
 	var dialer *gorillawebsocket.Dialer = gorillawebsocket.DefaultDialer
-	if self.config.Get("MO_HTTPS_PROXY") != "" {
+	if self.config.Get("MO_HTTP_PROXY") != "" {
 		dialer.Proxy = http.ProxyURL(&url.URL{
 			Scheme: "http",
-			Host:   self.config.Get("MO_HTTPS_PROXY"),
+			Host:   self.config.Get("MO_HTTP_PROXY"),
 		})
 	}
 	conn, _, err := dialer.Dial(sendToServer, header)

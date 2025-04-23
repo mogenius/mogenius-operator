@@ -439,7 +439,7 @@ func (self *websocketClient) startRuntime() {
 				continue
 			}
 			var dialer *gorillaWebsocket.Dialer = gorillaWebsocket.DefaultDialer
-			httpProxy := os.Getenv("MO_HTTPS_PROXY")
+			httpProxy := os.Getenv("MO_HTTP_PROXY")
 			if httpProxy != "" {
 				self.runtimeLogger.Info("using http proxy", "proxy", httpProxy)
 				dialer.Proxy = http.ProxyURL(&url.URL{
