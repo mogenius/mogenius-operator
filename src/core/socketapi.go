@@ -3504,7 +3504,7 @@ func (self *socketApi) sendDataWs(sendToServer string, reader io.ReadCloser) {
 	var dialer *gorillawebsocket.Dialer = gorillawebsocket.DefaultDialer
 	if self.config.Get("MO_HTTPS_PROXY") != "" {
 		dialer.Proxy = http.ProxyURL(&url.URL{
-			Scheme: "https",
+			Scheme: "http",
 			Host:   self.config.Get("MO_HTTPS_PROXY"),
 		})
 	}
