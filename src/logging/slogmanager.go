@@ -307,7 +307,7 @@ func (self *PrettyPrintHandler) Handle(ctx context.Context, record slog.Record) 
 
 	logLine := LogLine{}
 
-	logLine.Level = record.Level.String()
+	logLine.Level = strings.Split(record.Level.String(), "+")[0]
 	logLine.Component = component
 	logLine.Scope = self.tryGetScope()
 	logLine.Source = slogRecordToSourceString(record)
@@ -386,9 +386,7 @@ func (self *PrettyPrintHandler) printLogLine(
 		case "ERROR":
 			logLine.Level = shell.Red + logLine.Level + shell.Reset
 		default:
-			err := fmt.Errorf("unsupported error level: %s\n%s", logLine.Level, logLine.ToJson())
-			fmt.Println(err)
-			return nil
+			panic(fmt.Errorf("unsupported error level: %s", logLine.Level))
 		}
 		logLine.Component = shell.Magenta + logLine.Component + shell.Reset
 		if logLine.Scope != nil {
