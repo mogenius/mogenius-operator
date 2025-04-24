@@ -6378,6 +6378,9 @@ export type GET_WORKLOAD_STATUS_REQUEST = GET_WORKLOAD_STATUS_REQUEST__MOGENIUS_
  *                 type: string
  *             namespace:
  *                 type: string
+ *             ownerReferences:
+ *                 pointer: true
+ *                 type: any
  *             replicas:
  *                 pointer: true
  *                 type: int
@@ -8606,6 +8609,9 @@ export type NAMESPACE_GATHER_ALL_RESOURCES_REQUEST = NAMESPACE_GATHER_ALL_RESOUR
  *                 type: int
  *             replicas:
  *                 type: int
+ *             terminatingReplicas:
+ *                 pointer: true
+ *                 type: int
  *             unavailableReplicas:
  *                 type: int
  *             updatedReplicas:
@@ -8680,6 +8686,9 @@ export type NAMESPACE_GATHER_ALL_RESOURCES_REQUEST = NAMESPACE_GATHER_ALL_RESOUR
  *             readyReplicas:
  *                 type: int
  *             replicas:
+ *                 type: int
+ *             terminatingReplicas:
+ *                 pointer: true
  *                 type: int
  *     k8s.io/api/apps/v1.RollingUpdateDaemonSet:
  *         name: k8s.io/api/apps/v1.RollingUpdateDaemonSet
@@ -9122,6 +9131,9 @@ export type NAMESPACE_GATHER_ALL_RESOURCES_REQUEST = NAMESPACE_GATHER_ALL_RESOUR
  *             state:
  *                 structRef: k8s.io/api/core/v1.ContainerState
  *                 type: struct
+ *             stopSignal:
+ *                 pointer: true
+ *                 type: string
  *             user:
  *                 pointer: true
  *                 structRef: k8s.io/api/core/v1.ContainerUser
@@ -9517,6 +9529,9 @@ export type NAMESPACE_GATHER_ALL_RESOURCES_REQUEST = NAMESPACE_GATHER_ALL_RESOUR
  *                 pointer: true
  *                 structRef: k8s.io/api/core/v1.LifecycleHandler
  *                 type: struct
+ *             stopSignal:
+ *                 pointer: true
+ *                 type: string
  *     k8s.io/api/core/v1.LifecycleHandler:
  *         name: k8s.io/api/core/v1.LifecycleHandler
  *         properties:
@@ -9768,6 +9783,8 @@ export type NAMESPACE_GATHER_ALL_RESOURCES_REQUEST = NAMESPACE_GATHER_ALL_RESOUR
  *                 type: struct
  *             message:
  *                 type: string
+ *             observedGeneration:
+ *                 type: int
  *             reason:
  *                 type: string
  *             status:
@@ -10065,6 +10082,8 @@ export type NAMESPACE_GATHER_ALL_RESOURCES_REQUEST = NAMESPACE_GATHER_ALL_RESOUR
  *                 type: string
  *             nominatedNodeName:
  *                 type: string
+ *             observedGeneration:
+ *                 type: int
  *             phase:
  *                 type: string
  *             podIP:
@@ -11528,6 +11547,10 @@ export type NAMESPACE_RESTORE_RESPONSE = NAMESPACE_RESTORE_RESPONSE__MOGENIUS_K8
  *             stabilizationWindowSeconds:
  *                 pointer: true
  *                 type: int
+ *             tolerance:
+ *                 pointer: true
+ *                 structRef: k8s.io/apimachinery/pkg/api/resource.Quantity
+ *                 type: struct
  *     k8s.io/api/autoscaling/v2.HorizontalPodAutoscalerBehavior:
  *         name: k8s.io/api/autoscaling/v2.HorizontalPodAutoscalerBehavior
  *         properties:
@@ -12385,6 +12408,10 @@ export type SERVICE_CLUSTER_TOOL_STREAM_CONNECTION_REQUEST_RESPONSE = any;
  *             stabilizationWindowSeconds:
  *                 pointer: true
  *                 type: int
+ *             tolerance:
+ *                 pointer: true
+ *                 structRef: k8s.io/apimachinery/pkg/api/resource.Quantity
+ *                 type: struct
  *     k8s.io/api/autoscaling/v2.HorizontalPodAutoscalerBehavior:
  *         name: k8s.io/api/autoscaling/v2.HorizontalPodAutoscalerBehavior
  *         properties:
@@ -13087,6 +13114,10 @@ export type SERVICE_CREATE_RESPONSE = SERVICE_CREATE_RESPONSE__MOGENIUS_K8S_MANA
  *             stabilizationWindowSeconds:
  *                 pointer: true
  *                 type: int
+ *             tolerance:
+ *                 pointer: true
+ *                 structRef: k8s.io/apimachinery/pkg/api/resource.Quantity
+ *                 type: struct
  *     k8s.io/api/autoscaling/v2.HorizontalPodAutoscalerBehavior:
  *         name: k8s.io/api/autoscaling/v2.HorizontalPodAutoscalerBehavior
  *         properties:
@@ -14544,6 +14575,9 @@ export type SERVICE_PODS_REQUEST = SERVICE_PODS_REQUEST__MOGENIUS_K8S_MANAGER_SR
  *             state:
  *                 structRef: k8s.io/api/core/v1.ContainerState
  *                 type: struct
+ *             stopSignal:
+ *                 pointer: true
+ *                 type: string
  *             user:
  *                 pointer: true
  *                 structRef: k8s.io/api/core/v1.ContainerUser
@@ -14939,6 +14973,9 @@ export type SERVICE_PODS_REQUEST = SERVICE_PODS_REQUEST__MOGENIUS_K8S_MANAGER_SR
  *                 pointer: true
  *                 structRef: k8s.io/api/core/v1.LifecycleHandler
  *                 type: struct
+ *             stopSignal:
+ *                 pointer: true
+ *                 type: string
  *     k8s.io/api/core/v1.LifecycleHandler:
  *         name: k8s.io/api/core/v1.LifecycleHandler
  *         properties:
@@ -15167,6 +15204,8 @@ export type SERVICE_PODS_REQUEST = SERVICE_PODS_REQUEST__MOGENIUS_K8S_MANAGER_SR
  *                 type: struct
  *             message:
  *                 type: string
+ *             observedGeneration:
+ *                 type: int
  *             reason:
  *                 type: string
  *             status:
@@ -15464,6 +15503,8 @@ export type SERVICE_PODS_REQUEST = SERVICE_PODS_REQUEST__MOGENIUS_K8S_MANAGER_SR
  *                 type: string
  *             nominatedNodeName:
  *                 type: string
+ *             observedGeneration:
+ *                 type: int
  *             phase:
  *                 type: string
  *             podIP:
@@ -16914,6 +16955,9 @@ export type SERVICE_RESOURCE_STATUS_REQUEST = SERVICE_RESOURCE_STATUS_REQUEST__M
  *             state:
  *                 structRef: k8s.io/api/core/v1.ContainerState
  *                 type: struct
+ *             stopSignal:
+ *                 pointer: true
+ *                 type: string
  *             user:
  *                 pointer: true
  *                 structRef: k8s.io/api/core/v1.ContainerUser
@@ -17309,6 +17353,9 @@ export type SERVICE_RESOURCE_STATUS_REQUEST = SERVICE_RESOURCE_STATUS_REQUEST__M
  *                 pointer: true
  *                 structRef: k8s.io/api/core/v1.LifecycleHandler
  *                 type: struct
+ *             stopSignal:
+ *                 pointer: true
+ *                 type: string
  *     k8s.io/api/core/v1.LifecycleHandler:
  *         name: k8s.io/api/core/v1.LifecycleHandler
  *         properties:
@@ -17537,6 +17584,8 @@ export type SERVICE_RESOURCE_STATUS_REQUEST = SERVICE_RESOURCE_STATUS_REQUEST__M
  *                 type: struct
  *             message:
  *                 type: string
+ *             observedGeneration:
+ *                 type: int
  *             reason:
  *                 type: string
  *             status:
@@ -17834,6 +17883,8 @@ export type SERVICE_RESOURCE_STATUS_REQUEST = SERVICE_RESOURCE_STATUS_REQUEST__M
  *                 type: string
  *             nominatedNodeName:
  *                 type: string
+ *             observedGeneration:
+ *                 type: int
  *             phase:
  *                 type: string
  *             podIP:
@@ -18813,6 +18864,10 @@ export type SERVICE_RESOURCE_STATUS_RESPONSE = SERVICE_RESOURCE_STATUS_RESPONSE_
  *             stabilizationWindowSeconds:
  *                 pointer: true
  *                 type: int
+ *             tolerance:
+ *                 pointer: true
+ *                 structRef: k8s.io/apimachinery/pkg/api/resource.Quantity
+ *                 type: struct
  *     k8s.io/api/autoscaling/v2.HorizontalPodAutoscalerBehavior:
  *         name: k8s.io/api/autoscaling/v2.HorizontalPodAutoscalerBehavior
  *         properties:
@@ -19515,6 +19570,10 @@ export type SERVICE_RESTART_RESPONSE = SERVICE_RESTART_RESPONSE__MOGENIUS_K8S_MA
  *             stabilizationWindowSeconds:
  *                 pointer: true
  *                 type: int
+ *             tolerance:
+ *                 pointer: true
+ *                 structRef: k8s.io/apimachinery/pkg/api/resource.Quantity
+ *                 type: struct
  *     k8s.io/api/autoscaling/v2.HorizontalPodAutoscalerBehavior:
  *         name: k8s.io/api/autoscaling/v2.HorizontalPodAutoscalerBehavior
  *         properties:
@@ -20385,6 +20444,10 @@ export type SERVICE_STATUS_RESPONSE = SERVICE_STATUS_RESPONSE__MOGENIUS_K8S_MANA
  *             stabilizationWindowSeconds:
  *                 pointer: true
  *                 type: int
+ *             tolerance:
+ *                 pointer: true
+ *                 structRef: k8s.io/apimachinery/pkg/api/resource.Quantity
+ *                 type: struct
  *     k8s.io/api/autoscaling/v2.HorizontalPodAutoscalerBehavior:
  *         name: k8s.io/api/autoscaling/v2.HorizontalPodAutoscalerBehavior
  *         properties:
@@ -21198,6 +21261,10 @@ export type SERVICE_TRIGGER_JOB_RESPONSE = SERVICE_TRIGGER_JOB_RESPONSE__MOGENIU
  *             stabilizationWindowSeconds:
  *                 pointer: true
  *                 type: int
+ *             tolerance:
+ *                 pointer: true
+ *                 structRef: k8s.io/apimachinery/pkg/api/resource.Quantity
+ *                 type: struct
  *     k8s.io/api/autoscaling/v2.HorizontalPodAutoscalerBehavior:
  *         name: k8s.io/api/autoscaling/v2.HorizontalPodAutoscalerBehavior
  *         properties:
@@ -23512,7 +23579,7 @@ export type GET_WORKLOAD_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_O
 export type GET_WORKLOAD_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME = {"Time": GET_WORKLOAD_STATUS_RESPONSE__TIME_TIME};
 export type GET_WORKLOAD_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA = {"apiVersion": string,"kind": string};
 export type GET_WORKLOAD_STATUS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_WORKLOADSTATUSDTO = {"items": GET_WORKLOAD_STATUS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_WORKLOADSTATUSITEMDTO[]};
-export type GET_WORKLOAD_STATUS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_WORKLOADSTATUSITEMDTO = {"creationTimestamp": GET_WORKLOAD_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME,"endpoints": any,"events": GET_WORKLOAD_STATUS_RESPONSE__K8S_IO_API_CORE_V1_EVENT[],"group": string,"kind": string,"name": string,"namespace": string,"replicas": number|undefined,"specClusterIP": string,"specType": string,"status": any,"uid": string};
+export type GET_WORKLOAD_STATUS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_WORKLOADSTATUSITEMDTO = {"creationTimestamp": GET_WORKLOAD_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME,"endpoints": any,"events": GET_WORKLOAD_STATUS_RESPONSE__K8S_IO_API_CORE_V1_EVENT[],"group": string,"kind": string,"name": string,"namespace": string,"ownerReferences": any,"replicas": number|undefined,"specClusterIP": string,"specType": string,"status": any,"uid": string};
 export type GET_WORKLOAD_STATUS_RESPONSE__TIME_LOCATION = {"cacheEnd": number,"cacheStart": number,"cacheZone": GET_WORKLOAD_STATUS_RESPONSE__TIME_ZONE|undefined,"extend": string,"name": string,"tx": GET_WORKLOAD_STATUS_RESPONSE__TIME_ZONETRANS[],"zone": GET_WORKLOAD_STATUS_RESPONSE__TIME_ZONE[]};
 export type GET_WORKLOAD_STATUS_RESPONSE__TIME_TIME = {"ext": number,"loc": GET_WORKLOAD_STATUS_RESPONSE__TIME_LOCATION|undefined,"wall": number};
 export type GET_WORKLOAD_STATUS_RESPONSE__TIME_ZONE = {"isDST": boolean,"name": string,"offset": number};
@@ -23634,12 +23701,12 @@ export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_APPS_V1_DAEMONSE
 export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_APPS_V1_DEPLOYMENT = {"TypeMeta": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA,"metadata": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OBJECTMETA,"spec": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_APPS_V1_DEPLOYMENTSPEC,"status": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_APPS_V1_DEPLOYMENTSTATUS};
 export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_APPS_V1_DEPLOYMENTCONDITION = {"lastTransitionTime": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME,"lastUpdateTime": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME,"message": string,"reason": string,"status": string,"type": string};
 export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_APPS_V1_DEPLOYMENTSPEC = {"minReadySeconds": number,"paused": boolean,"progressDeadlineSeconds": number|undefined,"replicas": number|undefined,"revisionHistoryLimit": number|undefined,"selector": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR|undefined,"strategy": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_APPS_V1_DEPLOYMENTSTRATEGY,"template": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_PODTEMPLATESPEC};
-export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_APPS_V1_DEPLOYMENTSTATUS = {"availableReplicas": number,"collisionCount": number|undefined,"conditions": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_APPS_V1_DEPLOYMENTCONDITION[],"observedGeneration": number,"readyReplicas": number,"replicas": number,"unavailableReplicas": number,"updatedReplicas": number};
+export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_APPS_V1_DEPLOYMENTSTATUS = {"availableReplicas": number,"collisionCount": number|undefined,"conditions": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_APPS_V1_DEPLOYMENTCONDITION[],"observedGeneration": number,"readyReplicas": number,"replicas": number,"terminatingReplicas": number|undefined,"unavailableReplicas": number,"updatedReplicas": number};
 export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_APPS_V1_DEPLOYMENTSTRATEGY = {"rollingUpdate": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_APPS_V1_ROLLINGUPDATEDEPLOYMENT|undefined,"type": string};
 export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_APPS_V1_REPLICASET = {"TypeMeta": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA,"metadata": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OBJECTMETA,"spec": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_APPS_V1_REPLICASETSPEC,"status": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_APPS_V1_REPLICASETSTATUS};
 export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_APPS_V1_REPLICASETCONDITION = {"lastTransitionTime": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME,"message": string,"reason": string,"status": string,"type": string};
 export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_APPS_V1_REPLICASETSPEC = {"minReadySeconds": number,"replicas": number|undefined,"selector": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR|undefined,"template": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_PODTEMPLATESPEC};
-export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_APPS_V1_REPLICASETSTATUS = {"availableReplicas": number,"conditions": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_APPS_V1_REPLICASETCONDITION[],"fullyLabeledReplicas": number,"observedGeneration": number,"readyReplicas": number,"replicas": number};
+export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_APPS_V1_REPLICASETSTATUS = {"availableReplicas": number,"conditions": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_APPS_V1_REPLICASETCONDITION[],"fullyLabeledReplicas": number,"observedGeneration": number,"readyReplicas": number,"replicas": number,"terminatingReplicas": number|undefined};
 export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_APPS_V1_ROLLINGUPDATEDAEMONSET = {"maxSurge": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_APIMACHINERY_PKG_UTIL_INTSTR_INTORSTRING|undefined,"maxUnavailable": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_APIMACHINERY_PKG_UTIL_INTSTR_INTORSTRING|undefined};
 export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_APPS_V1_ROLLINGUPDATEDEPLOYMENT = {"maxSurge": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_APIMACHINERY_PKG_UTIL_INTSTR_INTORSTRING|undefined,"maxUnavailable": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_APIMACHINERY_PKG_UTIL_INTSTR_INTORSTRING|undefined};
 export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_AWSELASTICBLOCKSTOREVOLUMESOURCE = {"fsType": string,"partition": number,"readOnly": boolean,"volumeID": string};
@@ -23665,7 +23732,7 @@ export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_CONTAINE
 export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATERUNNING = {"startedAt": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME};
 export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATETERMINATED = {"containerID": string,"exitCode": number,"finishedAt": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME,"message": string,"reason": string,"signal": number,"startedAt": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME};
 export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATEWAITING = {"message": string,"reason": string};
-export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATUS = {"allocatedResources": Record<string, NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY>,"allocatedResourcesStatus": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_RESOURCESTATUS[],"containerID": string,"image": string,"imageID": string,"lastState": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATE,"name": string,"ready": boolean,"resources": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_RESOURCEREQUIREMENTS|undefined,"restartCount": number,"started": boolean|undefined,"state": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATE,"user": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERUSER|undefined,"volumeMounts": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_VOLUMEMOUNTSTATUS[]};
+export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATUS = {"allocatedResources": Record<string, NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY>,"allocatedResourcesStatus": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_RESOURCESTATUS[],"containerID": string,"image": string,"imageID": string,"lastState": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATE,"name": string,"ready": boolean,"resources": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_RESOURCEREQUIREMENTS|undefined,"restartCount": number,"started": boolean|undefined,"state": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATE,"stopSignal": string|undefined,"user": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERUSER|undefined,"volumeMounts": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_VOLUMEMOUNTSTATUS[]};
 export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERUSER = {"linux": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_LINUXCONTAINERUSER|undefined};
 export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_DOWNWARDAPIPROJECTION = {"items": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_DOWNWARDAPIVOLUMEFILE[]};
 export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_DOWNWARDAPIVOLUMEFILE = {"fieldRef": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_OBJECTFIELDSELECTOR|undefined,"mode": number|undefined,"path": string,"resourceFieldRef": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_RESOURCEFIELDSELECTOR|undefined};
@@ -23693,7 +23760,7 @@ export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_HOSTPATH
 export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_ISCSIVOLUMESOURCE = {"chapAuthDiscovery": boolean,"chapAuthSession": boolean,"fsType": string,"initiatorName": string|undefined,"iqn": string,"iscsiInterface": string,"lun": number,"portals": string[],"readOnly": boolean,"secretRef": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_LOCALOBJECTREFERENCE|undefined,"targetPortal": string};
 export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_IMAGEVOLUMESOURCE = {"pullPolicy": string,"reference": string};
 export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_KEYTOPATH = {"key": string,"mode": number|undefined,"path": string};
-export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_LIFECYCLE = {"postStart": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_LIFECYCLEHANDLER|undefined,"preStop": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_LIFECYCLEHANDLER|undefined};
+export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_LIFECYCLE = {"postStart": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_LIFECYCLEHANDLER|undefined,"preStop": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_LIFECYCLEHANDLER|undefined,"stopSignal": string|undefined};
 export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_LIFECYCLEHANDLER = {"exec": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_EXECACTION|undefined,"httpGet": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_HTTPGETACTION|undefined,"sleep": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_SLEEPACTION|undefined,"tcpSocket": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_TCPSOCKETACTION|undefined};
 export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_LINUXCONTAINERUSER = {"gid": number,"supplementalGroups": number[],"uid": number};
 export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_LOADBALANCERINGRESS = {"hostname": string,"ip": string,"ipMode": string|undefined,"ports": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_PORTSTATUS[]};
@@ -23713,7 +23780,7 @@ export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_POD = {"
 export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_PODAFFINITY = {"preferredDuringSchedulingIgnoredDuringExecution": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_WEIGHTEDPODAFFINITYTERM[],"requiredDuringSchedulingIgnoredDuringExecution": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_PODAFFINITYTERM[]};
 export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_PODAFFINITYTERM = {"labelSelector": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR|undefined,"matchLabelKeys": string[],"mismatchLabelKeys": string[],"namespaceSelector": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR|undefined,"namespaces": string[],"topologyKey": string};
 export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_PODANTIAFFINITY = {"preferredDuringSchedulingIgnoredDuringExecution": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_WEIGHTEDPODAFFINITYTERM[],"requiredDuringSchedulingIgnoredDuringExecution": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_PODAFFINITYTERM[]};
-export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_PODCONDITION = {"lastProbeTime": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME,"lastTransitionTime": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME,"message": string,"reason": string,"status": string,"type": string};
+export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_PODCONDITION = {"lastProbeTime": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME,"lastTransitionTime": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME,"message": string,"observedGeneration": number,"reason": string,"status": string,"type": string};
 export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_PODDNSCONFIG = {"nameservers": string[],"options": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_PODDNSCONFIGOPTION[],"searches": string[]};
 export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_PODDNSCONFIGOPTION = {"name": string,"value": string|undefined};
 export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_PODIP = {"ip": string};
@@ -23724,7 +23791,7 @@ export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_PODRESOU
 export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_PODSCHEDULINGGATE = {"name": string};
 export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_PODSECURITYCONTEXT = {"appArmorProfile": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_APPARMORPROFILE|undefined,"fsGroup": number|undefined,"fsGroupChangePolicy": string|undefined,"runAsGroup": number|undefined,"runAsNonRoot": boolean|undefined,"runAsUser": number|undefined,"seLinuxChangePolicy": string|undefined,"seLinuxOptions": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_SELINUXOPTIONS|undefined,"seccompProfile": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_SECCOMPPROFILE|undefined,"supplementalGroups": number[],"supplementalGroupsPolicy": string|undefined,"sysctls": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_SYSCTL[],"windowsOptions": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_WINDOWSSECURITYCONTEXTOPTIONS|undefined};
 export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_PODSPEC = {"activeDeadlineSeconds": number|undefined,"affinity": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_AFFINITY|undefined,"automountServiceAccountToken": boolean|undefined,"containers": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_CONTAINER[],"dnsConfig": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_PODDNSCONFIG|undefined,"dnsPolicy": string,"enableServiceLinks": boolean|undefined,"ephemeralContainers": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_EPHEMERALCONTAINER[],"hostAliases": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_HOSTALIAS[],"hostIPC": boolean,"hostNetwork": boolean,"hostPID": boolean,"hostUsers": boolean|undefined,"hostname": string,"imagePullSecrets": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_LOCALOBJECTREFERENCE[],"initContainers": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_CONTAINER[],"nodeName": string,"nodeSelector": Record<string, string>,"os": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_PODOS|undefined,"overhead": Record<string, NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY>,"preemptionPolicy": string|undefined,"priority": number|undefined,"priorityClassName": string,"readinessGates": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_PODREADINESSGATE[],"resourceClaims": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_PODRESOURCECLAIM[],"resources": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_RESOURCEREQUIREMENTS|undefined,"restartPolicy": string,"runtimeClassName": string|undefined,"schedulerName": string,"schedulingGates": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_PODSCHEDULINGGATE[],"securityContext": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_PODSECURITYCONTEXT|undefined,"serviceAccount": string,"serviceAccountName": string,"setHostnameAsFQDN": boolean|undefined,"shareProcessNamespace": boolean|undefined,"subdomain": string,"terminationGracePeriodSeconds": number|undefined,"tolerations": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_TOLERATION[],"topologySpreadConstraints": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_TOPOLOGYSPREADCONSTRAINT[],"volumes": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_VOLUME[]};
-export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_PODSTATUS = {"conditions": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_PODCONDITION[],"containerStatuses": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATUS[],"ephemeralContainerStatuses": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATUS[],"hostIP": string,"hostIPs": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_HOSTIP[],"initContainerStatuses": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATUS[],"message": string,"nominatedNodeName": string,"phase": string,"podIP": string,"podIPs": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_PODIP[],"qosClass": string,"reason": string,"resize": string,"resourceClaimStatuses": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_PODRESOURCECLAIMSTATUS[],"startTime": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME|undefined};
+export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_PODSTATUS = {"conditions": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_PODCONDITION[],"containerStatuses": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATUS[],"ephemeralContainerStatuses": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATUS[],"hostIP": string,"hostIPs": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_HOSTIP[],"initContainerStatuses": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATUS[],"message": string,"nominatedNodeName": string,"observedGeneration": number,"phase": string,"podIP": string,"podIPs": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_PODIP[],"qosClass": string,"reason": string,"resize": string,"resourceClaimStatuses": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_PODRESOURCECLAIMSTATUS[],"startTime": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME|undefined};
 export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_PODTEMPLATESPEC = {"metadata": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OBJECTMETA,"spec": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_PODSPEC};
 export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_PORTSTATUS = {"error": string|undefined,"port": number,"protocol": string};
 export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_PORTWORXVOLUMESOURCE = {"fsType": string,"readOnly": boolean,"volumeID": string};
@@ -23814,7 +23881,7 @@ export type NAMESPACE_SHUTDOWN_REQUEST__K8S_IO_API_AUTOSCALING_V2_CONTAINERRESOU
 export type NAMESPACE_SHUTDOWN_REQUEST__K8S_IO_API_AUTOSCALING_V2_CROSSVERSIONOBJECTREFERENCE = {"apiVersion": string,"kind": string,"name": string};
 export type NAMESPACE_SHUTDOWN_REQUEST__K8S_IO_API_AUTOSCALING_V2_EXTERNALMETRICSOURCE = {"metric": NAMESPACE_SHUTDOWN_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICIDENTIFIER,"target": NAMESPACE_SHUTDOWN_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
 export type NAMESPACE_SHUTDOWN_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGPOLICY = {"periodSeconds": number,"type": string,"value": number};
-export type NAMESPACE_SHUTDOWN_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGRULES = {"policies": NAMESPACE_SHUTDOWN_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGPOLICY[],"selectPolicy": string|undefined,"stabilizationWindowSeconds": number|undefined};
+export type NAMESPACE_SHUTDOWN_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGRULES = {"policies": NAMESPACE_SHUTDOWN_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGPOLICY[],"selectPolicy": string|undefined,"stabilizationWindowSeconds": number|undefined,"tolerance": NAMESPACE_SHUTDOWN_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY|undefined};
 export type NAMESPACE_SHUTDOWN_REQUEST__K8S_IO_API_AUTOSCALING_V2_HORIZONTALPODAUTOSCALERBEHAVIOR = {"scaleDown": NAMESPACE_SHUTDOWN_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGRULES|undefined,"scaleUp": NAMESPACE_SHUTDOWN_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGRULES|undefined};
 export type NAMESPACE_SHUTDOWN_REQUEST__K8S_IO_API_AUTOSCALING_V2_HORIZONTALPODAUTOSCALERSPEC = {"behavior": NAMESPACE_SHUTDOWN_REQUEST__K8S_IO_API_AUTOSCALING_V2_HORIZONTALPODAUTOSCALERBEHAVIOR|undefined,"maxReplicas": number,"metrics": NAMESPACE_SHUTDOWN_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICSPEC[],"minReplicas": number|undefined,"scaleTargetRef": NAMESPACE_SHUTDOWN_REQUEST__K8S_IO_API_AUTOSCALING_V2_CROSSVERSIONOBJECTREFERENCE};
 export type NAMESPACE_SHUTDOWN_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICIDENTIFIER = {"name": string,"selector": NAMESPACE_SHUTDOWN_REQUEST__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR|undefined};
@@ -23866,7 +23933,7 @@ export type SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_CONTAINERRESOURCEM
 export type SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_CROSSVERSIONOBJECTREFERENCE = {"apiVersion": string,"kind": string,"name": string};
 export type SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_EXTERNALMETRICSOURCE = {"metric": SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICIDENTIFIER,"target": SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
 export type SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGPOLICY = {"periodSeconds": number,"type": string,"value": number};
-export type SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGRULES = {"policies": SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGPOLICY[],"selectPolicy": string|undefined,"stabilizationWindowSeconds": number|undefined};
+export type SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGRULES = {"policies": SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGPOLICY[],"selectPolicy": string|undefined,"stabilizationWindowSeconds": number|undefined,"tolerance": SERVICE_CREATE_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY|undefined};
 export type SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_HORIZONTALPODAUTOSCALERBEHAVIOR = {"scaleDown": SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGRULES|undefined,"scaleUp": SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGRULES|undefined};
 export type SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_HORIZONTALPODAUTOSCALERSPEC = {"behavior": SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_HORIZONTALPODAUTOSCALERBEHAVIOR|undefined,"maxReplicas": number,"metrics": SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICSPEC[],"minReplicas": number|undefined,"scaleTargetRef": SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_CROSSVERSIONOBJECTREFERENCE};
 export type SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICIDENTIFIER = {"name": string,"selector": SERVICE_CREATE_REQUEST__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR|undefined};
@@ -23911,7 +23978,7 @@ export type SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_CONTAINERRESOURCEM
 export type SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_CROSSVERSIONOBJECTREFERENCE = {"apiVersion": string,"kind": string,"name": string};
 export type SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_EXTERNALMETRICSOURCE = {"metric": SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICIDENTIFIER,"target": SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
 export type SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGPOLICY = {"periodSeconds": number,"type": string,"value": number};
-export type SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGRULES = {"policies": SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGPOLICY[],"selectPolicy": string|undefined,"stabilizationWindowSeconds": number|undefined};
+export type SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGRULES = {"policies": SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGPOLICY[],"selectPolicy": string|undefined,"stabilizationWindowSeconds": number|undefined,"tolerance": SERVICE_DELETE_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY|undefined};
 export type SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_HORIZONTALPODAUTOSCALERBEHAVIOR = {"scaleDown": SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGRULES|undefined,"scaleUp": SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGRULES|undefined};
 export type SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_HORIZONTALPODAUTOSCALERSPEC = {"behavior": SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_HORIZONTALPODAUTOSCALERBEHAVIOR|undefined,"maxReplicas": number,"metrics": SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICSPEC[],"minReplicas": number|undefined,"scaleTargetRef": SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_CROSSVERSIONOBJECTREFERENCE};
 export type SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICIDENTIFIER = {"name": string,"selector": SERVICE_DELETE_REQUEST__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR|undefined};
@@ -23996,7 +24063,7 @@ export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATE = {"running
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATERUNNING = {"startedAt": SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME};
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATETERMINATED = {"containerID": string,"exitCode": number,"finishedAt": SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME,"message": string,"reason": string,"signal": number,"startedAt": SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME};
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATEWAITING = {"message": string,"reason": string};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATUS = {"allocatedResources": Record<string, SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY>,"allocatedResourcesStatus": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_RESOURCESTATUS[],"containerID": string,"image": string,"imageID": string,"lastState": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATE,"name": string,"ready": boolean,"resources": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_RESOURCEREQUIREMENTS|undefined,"restartCount": number,"started": boolean|undefined,"state": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATE,"user": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERUSER|undefined,"volumeMounts": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_VOLUMEMOUNTSTATUS[]};
+export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATUS = {"allocatedResources": Record<string, SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY>,"allocatedResourcesStatus": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_RESOURCESTATUS[],"containerID": string,"image": string,"imageID": string,"lastState": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATE,"name": string,"ready": boolean,"resources": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_RESOURCEREQUIREMENTS|undefined,"restartCount": number,"started": boolean|undefined,"state": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATE,"stopSignal": string|undefined,"user": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERUSER|undefined,"volumeMounts": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_VOLUMEMOUNTSTATUS[]};
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERUSER = {"linux": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_LINUXCONTAINERUSER|undefined};
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_DOWNWARDAPIPROJECTION = {"items": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_DOWNWARDAPIVOLUMEFILE[]};
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_DOWNWARDAPIVOLUMEFILE = {"fieldRef": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_OBJECTFIELDSELECTOR|undefined,"mode": number|undefined,"path": string,"resourceFieldRef": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_RESOURCEFIELDSELECTOR|undefined};
@@ -24024,7 +24091,7 @@ export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_HOSTPATHVOLUMESOURCE = {"p
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_ISCSIVOLUMESOURCE = {"chapAuthDiscovery": boolean,"chapAuthSession": boolean,"fsType": string,"initiatorName": string|undefined,"iqn": string,"iscsiInterface": string,"lun": number,"portals": string[],"readOnly": boolean,"secretRef": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_LOCALOBJECTREFERENCE|undefined,"targetPortal": string};
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_IMAGEVOLUMESOURCE = {"pullPolicy": string,"reference": string};
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_KEYTOPATH = {"key": string,"mode": number|undefined,"path": string};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_LIFECYCLE = {"postStart": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_LIFECYCLEHANDLER|undefined,"preStop": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_LIFECYCLEHANDLER|undefined};
+export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_LIFECYCLE = {"postStart": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_LIFECYCLEHANDLER|undefined,"preStop": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_LIFECYCLEHANDLER|undefined,"stopSignal": string|undefined};
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_LIFECYCLEHANDLER = {"exec": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_EXECACTION|undefined,"httpGet": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_HTTPGETACTION|undefined,"sleep": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_SLEEPACTION|undefined,"tcpSocket": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_TCPSOCKETACTION|undefined};
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_LINUXCONTAINERUSER = {"gid": number,"supplementalGroups": number[],"uid": number};
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_LOCALOBJECTREFERENCE = {"name": string};
@@ -24042,7 +24109,7 @@ export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_POD = {"TypeMeta": SERVICE
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODAFFINITY = {"preferredDuringSchedulingIgnoredDuringExecution": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_WEIGHTEDPODAFFINITYTERM[],"requiredDuringSchedulingIgnoredDuringExecution": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODAFFINITYTERM[]};
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODAFFINITYTERM = {"labelSelector": SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR|undefined,"matchLabelKeys": string[],"mismatchLabelKeys": string[],"namespaceSelector": SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR|undefined,"namespaces": string[],"topologyKey": string};
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODANTIAFFINITY = {"preferredDuringSchedulingIgnoredDuringExecution": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_WEIGHTEDPODAFFINITYTERM[],"requiredDuringSchedulingIgnoredDuringExecution": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODAFFINITYTERM[]};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODCONDITION = {"lastProbeTime": SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME,"lastTransitionTime": SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME,"message": string,"reason": string,"status": string,"type": string};
+export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODCONDITION = {"lastProbeTime": SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME,"lastTransitionTime": SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME,"message": string,"observedGeneration": number,"reason": string,"status": string,"type": string};
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODDNSCONFIG = {"nameservers": string[],"options": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODDNSCONFIGOPTION[],"searches": string[]};
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODDNSCONFIGOPTION = {"name": string,"value": string|undefined};
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODIP = {"ip": string};
@@ -24053,7 +24120,7 @@ export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODRESOURCECLAIMSTATUS = {
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODSCHEDULINGGATE = {"name": string};
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODSECURITYCONTEXT = {"appArmorProfile": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_APPARMORPROFILE|undefined,"fsGroup": number|undefined,"fsGroupChangePolicy": string|undefined,"runAsGroup": number|undefined,"runAsNonRoot": boolean|undefined,"runAsUser": number|undefined,"seLinuxChangePolicy": string|undefined,"seLinuxOptions": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_SELINUXOPTIONS|undefined,"seccompProfile": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_SECCOMPPROFILE|undefined,"supplementalGroups": number[],"supplementalGroupsPolicy": string|undefined,"sysctls": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_SYSCTL[],"windowsOptions": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_WINDOWSSECURITYCONTEXTOPTIONS|undefined};
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODSPEC = {"activeDeadlineSeconds": number|undefined,"affinity": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_AFFINITY|undefined,"automountServiceAccountToken": boolean|undefined,"containers": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINER[],"dnsConfig": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODDNSCONFIG|undefined,"dnsPolicy": string,"enableServiceLinks": boolean|undefined,"ephemeralContainers": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_EPHEMERALCONTAINER[],"hostAliases": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_HOSTALIAS[],"hostIPC": boolean,"hostNetwork": boolean,"hostPID": boolean,"hostUsers": boolean|undefined,"hostname": string,"imagePullSecrets": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_LOCALOBJECTREFERENCE[],"initContainers": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINER[],"nodeName": string,"nodeSelector": Record<string, string>,"os": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODOS|undefined,"overhead": Record<string, SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY>,"preemptionPolicy": string|undefined,"priority": number|undefined,"priorityClassName": string,"readinessGates": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODREADINESSGATE[],"resourceClaims": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODRESOURCECLAIM[],"resources": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_RESOURCEREQUIREMENTS|undefined,"restartPolicy": string,"runtimeClassName": string|undefined,"schedulerName": string,"schedulingGates": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODSCHEDULINGGATE[],"securityContext": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODSECURITYCONTEXT|undefined,"serviceAccount": string,"serviceAccountName": string,"setHostnameAsFQDN": boolean|undefined,"shareProcessNamespace": boolean|undefined,"subdomain": string,"terminationGracePeriodSeconds": number|undefined,"tolerations": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_TOLERATION[],"topologySpreadConstraints": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_TOPOLOGYSPREADCONSTRAINT[],"volumes": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_VOLUME[]};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODSTATUS = {"conditions": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODCONDITION[],"containerStatuses": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATUS[],"ephemeralContainerStatuses": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATUS[],"hostIP": string,"hostIPs": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_HOSTIP[],"initContainerStatuses": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATUS[],"message": string,"nominatedNodeName": string,"phase": string,"podIP": string,"podIPs": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODIP[],"qosClass": string,"reason": string,"resize": string,"resourceClaimStatuses": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODRESOURCECLAIMSTATUS[],"startTime": SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME|undefined};
+export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODSTATUS = {"conditions": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODCONDITION[],"containerStatuses": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATUS[],"ephemeralContainerStatuses": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATUS[],"hostIP": string,"hostIPs": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_HOSTIP[],"initContainerStatuses": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATUS[],"message": string,"nominatedNodeName": string,"observedGeneration": number,"phase": string,"podIP": string,"podIPs": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODIP[],"qosClass": string,"reason": string,"resize": string,"resourceClaimStatuses": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODRESOURCECLAIMSTATUS[],"startTime": SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME|undefined};
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PORTWORXVOLUMESOURCE = {"fsType": string,"readOnly": boolean,"volumeID": string};
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PREFERREDSCHEDULINGTERM = {"preference": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_NODESELECTORTERM,"weight": number};
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PROBE = {"ProbeHandler": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PROBEHANDLER,"failureThreshold": number,"initialDelaySeconds": number,"periodSeconds": number,"successThreshold": number,"terminationGracePeriodSeconds": number|undefined,"timeoutSeconds": number};
@@ -24138,7 +24205,7 @@ export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATE 
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATERUNNING = {"startedAt": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME};
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATETERMINATED = {"containerID": string,"exitCode": number,"finishedAt": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME,"message": string,"reason": string,"signal": number,"startedAt": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME};
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATEWAITING = {"message": string,"reason": string};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATUS = {"allocatedResources": Record<string, SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY>,"allocatedResourcesStatus": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_RESOURCESTATUS[],"containerID": string,"image": string,"imageID": string,"lastState": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATE,"name": string,"ready": boolean,"resources": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_RESOURCEREQUIREMENTS|undefined,"restartCount": number,"started": boolean|undefined,"state": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATE,"user": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERUSER|undefined,"volumeMounts": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_VOLUMEMOUNTSTATUS[]};
+export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATUS = {"allocatedResources": Record<string, SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY>,"allocatedResourcesStatus": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_RESOURCESTATUS[],"containerID": string,"image": string,"imageID": string,"lastState": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATE,"name": string,"ready": boolean,"resources": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_RESOURCEREQUIREMENTS|undefined,"restartCount": number,"started": boolean|undefined,"state": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATE,"stopSignal": string|undefined,"user": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERUSER|undefined,"volumeMounts": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_VOLUMEMOUNTSTATUS[]};
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERUSER = {"linux": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_LINUXCONTAINERUSER|undefined};
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_DOWNWARDAPIPROJECTION = {"items": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_DOWNWARDAPIVOLUMEFILE[]};
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_DOWNWARDAPIVOLUMEFILE = {"fieldRef": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_OBJECTFIELDSELECTOR|undefined,"mode": number|undefined,"path": string,"resourceFieldRef": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_RESOURCEFIELDSELECTOR|undefined};
@@ -24166,7 +24233,7 @@ export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_HOSTPATHVOLUMES
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_ISCSIVOLUMESOURCE = {"chapAuthDiscovery": boolean,"chapAuthSession": boolean,"fsType": string,"initiatorName": string|undefined,"iqn": string,"iscsiInterface": string,"lun": number,"portals": string[],"readOnly": boolean,"secretRef": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_LOCALOBJECTREFERENCE|undefined,"targetPortal": string};
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_IMAGEVOLUMESOURCE = {"pullPolicy": string,"reference": string};
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_KEYTOPATH = {"key": string,"mode": number|undefined,"path": string};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_LIFECYCLE = {"postStart": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_LIFECYCLEHANDLER|undefined,"preStop": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_LIFECYCLEHANDLER|undefined};
+export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_LIFECYCLE = {"postStart": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_LIFECYCLEHANDLER|undefined,"preStop": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_LIFECYCLEHANDLER|undefined,"stopSignal": string|undefined};
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_LIFECYCLEHANDLER = {"exec": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_EXECACTION|undefined,"httpGet": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_HTTPGETACTION|undefined,"sleep": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_SLEEPACTION|undefined,"tcpSocket": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_TCPSOCKETACTION|undefined};
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_LINUXCONTAINERUSER = {"gid": number,"supplementalGroups": number[],"uid": number};
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_LOCALOBJECTREFERENCE = {"name": string};
@@ -24184,7 +24251,7 @@ export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_POD = {"TypeMet
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODAFFINITY = {"preferredDuringSchedulingIgnoredDuringExecution": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_WEIGHTEDPODAFFINITYTERM[],"requiredDuringSchedulingIgnoredDuringExecution": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODAFFINITYTERM[]};
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODAFFINITYTERM = {"labelSelector": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR|undefined,"matchLabelKeys": string[],"mismatchLabelKeys": string[],"namespaceSelector": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR|undefined,"namespaces": string[],"topologyKey": string};
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODANTIAFFINITY = {"preferredDuringSchedulingIgnoredDuringExecution": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_WEIGHTEDPODAFFINITYTERM[],"requiredDuringSchedulingIgnoredDuringExecution": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODAFFINITYTERM[]};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODCONDITION = {"lastProbeTime": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME,"lastTransitionTime": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME,"message": string,"reason": string,"status": string,"type": string};
+export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODCONDITION = {"lastProbeTime": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME,"lastTransitionTime": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME,"message": string,"observedGeneration": number,"reason": string,"status": string,"type": string};
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODDNSCONFIG = {"nameservers": string[],"options": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODDNSCONFIGOPTION[],"searches": string[]};
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODDNSCONFIGOPTION = {"name": string,"value": string|undefined};
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODIP = {"ip": string};
@@ -24195,7 +24262,7 @@ export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODRESOURCECLAI
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODSCHEDULINGGATE = {"name": string};
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODSECURITYCONTEXT = {"appArmorProfile": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_APPARMORPROFILE|undefined,"fsGroup": number|undefined,"fsGroupChangePolicy": string|undefined,"runAsGroup": number|undefined,"runAsNonRoot": boolean|undefined,"runAsUser": number|undefined,"seLinuxChangePolicy": string|undefined,"seLinuxOptions": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_SELINUXOPTIONS|undefined,"seccompProfile": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_SECCOMPPROFILE|undefined,"supplementalGroups": number[],"supplementalGroupsPolicy": string|undefined,"sysctls": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_SYSCTL[],"windowsOptions": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_WINDOWSSECURITYCONTEXTOPTIONS|undefined};
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODSPEC = {"activeDeadlineSeconds": number|undefined,"affinity": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_AFFINITY|undefined,"automountServiceAccountToken": boolean|undefined,"containers": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINER[],"dnsConfig": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODDNSCONFIG|undefined,"dnsPolicy": string,"enableServiceLinks": boolean|undefined,"ephemeralContainers": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_EPHEMERALCONTAINER[],"hostAliases": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_HOSTALIAS[],"hostIPC": boolean,"hostNetwork": boolean,"hostPID": boolean,"hostUsers": boolean|undefined,"hostname": string,"imagePullSecrets": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_LOCALOBJECTREFERENCE[],"initContainers": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINER[],"nodeName": string,"nodeSelector": Record<string, string>,"os": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODOS|undefined,"overhead": Record<string, SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY>,"preemptionPolicy": string|undefined,"priority": number|undefined,"priorityClassName": string,"readinessGates": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODREADINESSGATE[],"resourceClaims": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODRESOURCECLAIM[],"resources": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_RESOURCEREQUIREMENTS|undefined,"restartPolicy": string,"runtimeClassName": string|undefined,"schedulerName": string,"schedulingGates": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODSCHEDULINGGATE[],"securityContext": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODSECURITYCONTEXT|undefined,"serviceAccount": string,"serviceAccountName": string,"setHostnameAsFQDN": boolean|undefined,"shareProcessNamespace": boolean|undefined,"subdomain": string,"terminationGracePeriodSeconds": number|undefined,"tolerations": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_TOLERATION[],"topologySpreadConstraints": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_TOPOLOGYSPREADCONSTRAINT[],"volumes": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_VOLUME[]};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODSTATUS = {"conditions": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODCONDITION[],"containerStatuses": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATUS[],"ephemeralContainerStatuses": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATUS[],"hostIP": string,"hostIPs": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_HOSTIP[],"initContainerStatuses": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATUS[],"message": string,"nominatedNodeName": string,"phase": string,"podIP": string,"podIPs": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODIP[],"qosClass": string,"reason": string,"resize": string,"resourceClaimStatuses": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODRESOURCECLAIMSTATUS[],"startTime": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME|undefined};
+export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODSTATUS = {"conditions": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODCONDITION[],"containerStatuses": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATUS[],"ephemeralContainerStatuses": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATUS[],"hostIP": string,"hostIPs": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_HOSTIP[],"initContainerStatuses": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATUS[],"message": string,"nominatedNodeName": string,"observedGeneration": number,"phase": string,"podIP": string,"podIPs": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODIP[],"qosClass": string,"reason": string,"resize": string,"resourceClaimStatuses": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODRESOURCECLAIMSTATUS[],"startTime": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME|undefined};
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PORTWORXVOLUMESOURCE = {"fsType": string,"readOnly": boolean,"volumeID": string};
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PREFERREDSCHEDULINGTERM = {"preference": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_NODESELECTORTERM,"weight": number};
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PROBE = {"ProbeHandler": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PROBEHANDLER,"failureThreshold": number,"initialDelaySeconds": number,"periodSeconds": number,"successThreshold": number,"terminationGracePeriodSeconds": number|undefined,"timeoutSeconds": number};
@@ -24257,7 +24324,7 @@ export type SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_CONTAINERRESOURCE
 export type SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_CROSSVERSIONOBJECTREFERENCE = {"apiVersion": string,"kind": string,"name": string};
 export type SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_EXTERNALMETRICSOURCE = {"metric": SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICIDENTIFIER,"target": SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
 export type SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGPOLICY = {"periodSeconds": number,"type": string,"value": number};
-export type SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGRULES = {"policies": SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGPOLICY[],"selectPolicy": string|undefined,"stabilizationWindowSeconds": number|undefined};
+export type SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGRULES = {"policies": SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGPOLICY[],"selectPolicy": string|undefined,"stabilizationWindowSeconds": number|undefined,"tolerance": SERVICE_RESTART_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY|undefined};
 export type SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_HORIZONTALPODAUTOSCALERBEHAVIOR = {"scaleDown": SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGRULES|undefined,"scaleUp": SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGRULES|undefined};
 export type SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_HORIZONTALPODAUTOSCALERSPEC = {"behavior": SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_HORIZONTALPODAUTOSCALERBEHAVIOR|undefined,"maxReplicas": number,"metrics": SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICSPEC[],"minReplicas": number|undefined,"scaleTargetRef": SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_CROSSVERSIONOBJECTREFERENCE};
 export type SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICIDENTIFIER = {"name": string,"selector": SERVICE_RESTART_REQUEST__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR|undefined};
@@ -24302,7 +24369,7 @@ export type SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_CONTAINERRESOURCEME
 export type SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_CROSSVERSIONOBJECTREFERENCE = {"apiVersion": string,"kind": string,"name": string};
 export type SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_EXTERNALMETRICSOURCE = {"metric": SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICIDENTIFIER,"target": SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
 export type SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGPOLICY = {"periodSeconds": number,"type": string,"value": number};
-export type SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGRULES = {"policies": SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGPOLICY[],"selectPolicy": string|undefined,"stabilizationWindowSeconds": number|undefined};
+export type SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGRULES = {"policies": SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGPOLICY[],"selectPolicy": string|undefined,"stabilizationWindowSeconds": number|undefined,"tolerance": SERVICE_START_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY|undefined};
 export type SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_HORIZONTALPODAUTOSCALERBEHAVIOR = {"scaleDown": SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGRULES|undefined,"scaleUp": SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGRULES|undefined};
 export type SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_HORIZONTALPODAUTOSCALERSPEC = {"behavior": SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_HORIZONTALPODAUTOSCALERBEHAVIOR|undefined,"maxReplicas": number,"metrics": SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICSPEC[],"minReplicas": number|undefined,"scaleTargetRef": SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_CROSSVERSIONOBJECTREFERENCE};
 export type SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICIDENTIFIER = {"name": string,"selector": SERVICE_START_REQUEST__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR|undefined};
@@ -24357,7 +24424,7 @@ export type SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_CONTAINERRESOURCEMET
 export type SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_CROSSVERSIONOBJECTREFERENCE = {"apiVersion": string,"kind": string,"name": string};
 export type SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_EXTERNALMETRICSOURCE = {"metric": SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICIDENTIFIER,"target": SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
 export type SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGPOLICY = {"periodSeconds": number,"type": string,"value": number};
-export type SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGRULES = {"policies": SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGPOLICY[],"selectPolicy": string|undefined,"stabilizationWindowSeconds": number|undefined};
+export type SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGRULES = {"policies": SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGPOLICY[],"selectPolicy": string|undefined,"stabilizationWindowSeconds": number|undefined,"tolerance": SERVICE_STOP_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY|undefined};
 export type SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_HORIZONTALPODAUTOSCALERBEHAVIOR = {"scaleDown": SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGRULES|undefined,"scaleUp": SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGRULES|undefined};
 export type SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_HORIZONTALPODAUTOSCALERSPEC = {"behavior": SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_HORIZONTALPODAUTOSCALERBEHAVIOR|undefined,"maxReplicas": number,"metrics": SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICSPEC[],"minReplicas": number|undefined,"scaleTargetRef": SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_CROSSVERSIONOBJECTREFERENCE};
 export type SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICIDENTIFIER = {"name": string,"selector": SERVICE_STOP_REQUEST__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR|undefined};
@@ -24408,7 +24475,7 @@ export type SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_CONTAINERR
 export type SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_CROSSVERSIONOBJECTREFERENCE = {"apiVersion": string,"kind": string,"name": string};
 export type SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_EXTERNALMETRICSOURCE = {"metric": SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICIDENTIFIER,"target": SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
 export type SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGPOLICY = {"periodSeconds": number,"type": string,"value": number};
-export type SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGRULES = {"policies": SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGPOLICY[],"selectPolicy": string|undefined,"stabilizationWindowSeconds": number|undefined};
+export type SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGRULES = {"policies": SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGPOLICY[],"selectPolicy": string|undefined,"stabilizationWindowSeconds": number|undefined,"tolerance": SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY|undefined};
 export type SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_HORIZONTALPODAUTOSCALERBEHAVIOR = {"scaleDown": SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGRULES|undefined,"scaleUp": SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGRULES|undefined};
 export type SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_HORIZONTALPODAUTOSCALERSPEC = {"behavior": SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_HORIZONTALPODAUTOSCALERBEHAVIOR|undefined,"maxReplicas": number,"metrics": SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICSPEC[],"minReplicas": number|undefined,"scaleTargetRef": SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_CROSSVERSIONOBJECTREFERENCE};
 export type SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICIDENTIFIER = {"name": string,"selector": SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR|undefined};

@@ -676,6 +676,9 @@ SERVICE_PODS:
                     state:
                         structRef: k8s.io/api/core/v1.ContainerState
                         type: struct
+                    stopSignal:
+                        pointer: true
+                        type: string
                     user:
                         pointer: true
                         structRef: k8s.io/api/core/v1.ContainerUser
@@ -1071,6 +1074,9 @@ SERVICE_PODS:
                         pointer: true
                         structRef: k8s.io/api/core/v1.LifecycleHandler
                         type: struct
+                    stopSignal:
+                        pointer: true
+                        type: string
             k8s.io/api/core/v1.LifecycleHandler:
                 name: k8s.io/api/core/v1.LifecycleHandler
                 properties:
@@ -1299,6 +1305,8 @@ SERVICE_PODS:
                         type: struct
                     message:
                         type: string
+                    observedGeneration:
+                        type: int
                     reason:
                         type: string
                     status:
@@ -1596,6 +1604,8 @@ SERVICE_PODS:
                         type: string
                     nominatedNodeName:
                         type: string
+                    observedGeneration:
+                        type: int
                     phase:
                         type: string
                     podIP:
@@ -7240,6 +7250,9 @@ get/workload-status:
                         type: string
                     namespace:
                         type: string
+                    ownerReferences:
+                        pointer: true
+                        type: any
                     replicas:
                         pointer: true
                         type: int
@@ -9125,6 +9138,9 @@ namespace/gather-all-resources:
                         type: int
                     replicas:
                         type: int
+                    terminatingReplicas:
+                        pointer: true
+                        type: int
                     unavailableReplicas:
                         type: int
                     updatedReplicas:
@@ -9199,6 +9215,9 @@ namespace/gather-all-resources:
                     readyReplicas:
                         type: int
                     replicas:
+                        type: int
+                    terminatingReplicas:
+                        pointer: true
                         type: int
             k8s.io/api/apps/v1.RollingUpdateDaemonSet:
                 name: k8s.io/api/apps/v1.RollingUpdateDaemonSet
@@ -9641,6 +9660,9 @@ namespace/gather-all-resources:
                     state:
                         structRef: k8s.io/api/core/v1.ContainerState
                         type: struct
+                    stopSignal:
+                        pointer: true
+                        type: string
                     user:
                         pointer: true
                         structRef: k8s.io/api/core/v1.ContainerUser
@@ -10036,6 +10058,9 @@ namespace/gather-all-resources:
                         pointer: true
                         structRef: k8s.io/api/core/v1.LifecycleHandler
                         type: struct
+                    stopSignal:
+                        pointer: true
+                        type: string
             k8s.io/api/core/v1.LifecycleHandler:
                 name: k8s.io/api/core/v1.LifecycleHandler
                 properties:
@@ -10287,6 +10312,8 @@ namespace/gather-all-resources:
                         type: struct
                     message:
                         type: string
+                    observedGeneration:
+                        type: int
                     reason:
                         type: string
                     status:
@@ -10584,6 +10611,8 @@ namespace/gather-all-resources:
                         type: string
                     nominatedNodeName:
                         type: string
+                    observedGeneration:
+                        type: int
                     phase:
                         type: string
                     podIP:
@@ -11983,6 +12012,10 @@ namespace/shutdown:
                     stabilizationWindowSeconds:
                         pointer: true
                         type: int
+                    tolerance:
+                        pointer: true
+                        structRef: k8s.io/apimachinery/pkg/api/resource.Quantity
+                        type: struct
             k8s.io/api/autoscaling/v2.HorizontalPodAutoscalerBehavior:
                 name: k8s.io/api/autoscaling/v2.HorizontalPodAutoscalerBehavior
                 properties:
@@ -12747,6 +12780,10 @@ service/create:
                     stabilizationWindowSeconds:
                         pointer: true
                         type: int
+                    tolerance:
+                        pointer: true
+                        structRef: k8s.io/apimachinery/pkg/api/resource.Quantity
+                        type: struct
             k8s.io/api/autoscaling/v2.HorizontalPodAutoscalerBehavior:
                 name: k8s.io/api/autoscaling/v2.HorizontalPodAutoscalerBehavior
                 properties:
@@ -13434,6 +13471,10 @@ service/delete:
                     stabilizationWindowSeconds:
                         pointer: true
                         type: int
+                    tolerance:
+                        pointer: true
+                        structRef: k8s.io/apimachinery/pkg/api/resource.Quantity
+                        type: struct
             k8s.io/api/autoscaling/v2.HorizontalPodAutoscalerBehavior:
                 name: k8s.io/api/autoscaling/v2.HorizontalPodAutoscalerBehavior
                 properties:
@@ -14848,6 +14889,9 @@ service/resource-status:
                     state:
                         structRef: k8s.io/api/core/v1.ContainerState
                         type: struct
+                    stopSignal:
+                        pointer: true
+                        type: string
                     user:
                         pointer: true
                         structRef: k8s.io/api/core/v1.ContainerUser
@@ -15243,6 +15287,9 @@ service/resource-status:
                         pointer: true
                         structRef: k8s.io/api/core/v1.LifecycleHandler
                         type: struct
+                    stopSignal:
+                        pointer: true
+                        type: string
             k8s.io/api/core/v1.LifecycleHandler:
                 name: k8s.io/api/core/v1.LifecycleHandler
                 properties:
@@ -15471,6 +15518,8 @@ service/resource-status:
                         type: struct
                     message:
                         type: string
+                    observedGeneration:
+                        type: int
                     reason:
                         type: string
                     status:
@@ -15768,6 +15817,8 @@ service/resource-status:
                         type: string
                     nominatedNodeName:
                         type: string
+                    observedGeneration:
+                        type: int
                     phase:
                         type: string
                     podIP:
@@ -16740,6 +16791,10 @@ service/restart:
                     stabilizationWindowSeconds:
                         pointer: true
                         type: int
+                    tolerance:
+                        pointer: true
+                        structRef: k8s.io/apimachinery/pkg/api/resource.Quantity
+                        type: struct
             k8s.io/api/autoscaling/v2.HorizontalPodAutoscalerBehavior:
                 name: k8s.io/api/autoscaling/v2.HorizontalPodAutoscalerBehavior
                 properties:
@@ -17427,6 +17482,10 @@ service/start:
                     stabilizationWindowSeconds:
                         pointer: true
                         type: int
+                    tolerance:
+                        pointer: true
+                        structRef: k8s.io/apimachinery/pkg/api/resource.Quantity
+                        type: struct
             k8s.io/api/autoscaling/v2.HorizontalPodAutoscalerBehavior:
                 name: k8s.io/api/autoscaling/v2.HorizontalPodAutoscalerBehavior
                 properties:
@@ -18267,6 +18326,10 @@ service/stop:
                     stabilizationWindowSeconds:
                         pointer: true
                         type: int
+                    tolerance:
+                        pointer: true
+                        structRef: k8s.io/apimachinery/pkg/api/resource.Quantity
+                        type: struct
             k8s.io/api/autoscaling/v2.HorizontalPodAutoscalerBehavior:
                 name: k8s.io/api/autoscaling/v2.HorizontalPodAutoscalerBehavior
                 properties:
@@ -19050,6 +19113,10 @@ service/update-service:
                     stabilizationWindowSeconds:
                         pointer: true
                         type: int
+                    tolerance:
+                        pointer: true
+                        structRef: k8s.io/apimachinery/pkg/api/resource.Quantity
+                        type: struct
             k8s.io/api/autoscaling/v2.HorizontalPodAutoscalerBehavior:
                 name: k8s.io/api/autoscaling/v2.HorizontalPodAutoscalerBehavior
                 properties:
