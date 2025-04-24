@@ -386,7 +386,9 @@ func (self *PrettyPrintHandler) printLogLine(
 		case "ERROR":
 			logLine.Level = shell.Red + logLine.Level + shell.Reset
 		default:
-			panic(fmt.Errorf("unsupported error level: %s", logLine.Level))
+			err := fmt.Errorf("unsupported error level: %s\n%s", logLine.Level, logLine.ToJson())
+			fmt.Println(err)
+			return nil
 		}
 		logLine.Component = shell.Magenta + logLine.Component + shell.Reset
 		if logLine.Scope != nil {
