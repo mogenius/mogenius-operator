@@ -1,5 +1,5 @@
 FROM golang:1.24.2 AS golang
-FROM quay.io/clastix/kubectl:v1.32.0 AS kubectl
+FROM quay.io/clastix/kubectl:v1.33.0 AS kubectl
 
 FROM ubuntu:noble AS build-env
 
