@@ -19864,8 +19864,6 @@ stats/traffic/all-for-controller:
                         type: string
                     interface:
                         type: string
-                    interfaceId:
-                        type: int
                     ip:
                         type: string
                     namespace:
@@ -19886,8 +19884,6 @@ stats/traffic/all-for-controller:
                         type: uint
                     transmitStartBytes:
                         type: uint
-                    virtualInterface:
-                        type: string
         typeInfo:
             elementType:
                 structRef: mogenius-k8s-manager/src/networkmonitor.PodNetworkStats
@@ -19950,8 +19946,6 @@ stats/traffic/sum-for-controller:
                         type: string
                     interface:
                         type: string
-                    interfaceId:
-                        type: int
                     ip:
                         type: string
                     namespace:
@@ -19972,8 +19966,6 @@ stats/traffic/sum-for-controller:
                         type: uint
                     transmitStartBytes:
                         type: uint
-                    virtualInterface:
-                        type: string
         typeInfo:
             pointer: true
             structRef: mogenius-k8s-manager/src/networkmonitor.PodNetworkStats
@@ -19998,8 +19990,6 @@ stats/traffic/sum-for-namespace:
                         type: string
                     interface:
                         type: string
-                    interfaceId:
-                        type: int
                     ip:
                         type: string
                     namespace:
@@ -20020,8 +20010,6 @@ stats/traffic/sum-for-namespace:
                         type: uint
                     transmitStartBytes:
                         type: uint
-                    virtualInterface:
-                        type: string
         typeInfo:
             elementType:
                 structRef: mogenius-k8s-manager/src/networkmonitor.PodNetworkStats

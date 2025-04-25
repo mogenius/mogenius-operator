@@ -19,6 +19,7 @@ import (
 
 type ContainerNetworkEnumerator interface {
 	List(procPath string) map[ContainerId]InterfaceDescription
+	FindProcessesWithContainerIds(procPath string) map[ContainerId][]ProcessId
 	GetContainerIdFromCgroupWithPid(cgroupFileData string) (ContainerId, error)
 	RequestInterfaceDescription(procPath string) ([]IpLinkInfo, error)
 }
@@ -78,10 +79,6 @@ type containerNetworkEnumerator struct {
 	cgroupRegexes []*regexp.Regexp
 }
 
-type InterfaceId = int
-type ProcessId = string
-type ContainerId = string
-
 func NewContainerNetworkEnumerator(logger *slog.Logger) ContainerNetworkEnumerator {
 	self := &containerNetworkEnumerator{}
 
@@ -101,7 +98,7 @@ func NewContainerNetworkEnumerator(logger *slog.Logger) ContainerNetworkEnumerat
 }
 
 func (self *containerNetworkEnumerator) List(procPath string) map[ContainerId]InterfaceDescription {
-	processesWithContainerIds := self.findProcessesWithContainerIds(procPath)
+	processesWithContainerIds := self.FindProcessesWithContainerIds(procPath)
 	networkInterfaceList := map[ContainerId]InterfaceDescription{}
 	for containerId, pids := range processesWithContainerIds {
 		ifDesc, ok := networkInterfaceList[containerId]
@@ -112,7 +109,7 @@ func (self *containerNetworkEnumerator) List(procPath string) map[ContainerId]In
 		}
 		ifDesc = InterfaceDescription{}
 		assert.Assert(len(pids) > 0, "no container should exist without running processes")
-		assert.Assert(pids[0] != "", "the first pid in this list should be defined")
+		assert.Assert(pids[0] != 0, "the first pid in this list should be defined")
 		interfaces, err := self.requestNamespacedInterfaceDescription(procPath, pids[0])
 		if err != nil {
 			self.logger.Error("failed to request network interfaces", "procPath", procPath, "pid", pids[0], "error", err)
@@ -130,7 +127,7 @@ func (self *containerNetworkEnumerator) List(procPath string) map[ContainerId]In
 //  3. Parsing happens using a list of regexes. If a known container engine is
 //     found the regex extracts the container id.
 //  4. The returned map consists of all found container ids as a key to all process ids running within that container.
-func (self *containerNetworkEnumerator) findProcessesWithContainerIds(procPath string) map[ContainerId][]ProcessId {
+func (self *containerNetworkEnumerator) FindProcessesWithContainerIds(procPath string) map[ContainerId][]ProcessId {
 	data := map[ContainerId][]ProcessId{}
 
 	// to start get a list of all system processes
@@ -144,12 +141,13 @@ func (self *containerNetworkEnumerator) findProcessesWithContainerIds(procPath s
 		if !file.IsDir() {
 			continue
 		}
-		var pid ProcessId = file.Name()
-		_, err := strconv.ParseUint(pid, 10, 64)
+		pid := file.Name()
+		var pidN ProcessId
+		pidN, err := strconv.ParseUint(pid, 10, 64)
 		if err != nil {
 			continue
 		}
-		cgroup, err := self.readCgroupFile(procPath, pid)
+		cgroup, err := self.readCgroupFile(procPath, pidN)
 		if err != nil {
 			continue
 		}
@@ -158,14 +156,18 @@ func (self *containerNetworkEnumerator) findProcessesWithContainerIds(procPath s
 		if err != nil {
 			continue
 		}
-		data[containerId] = append(data[containerId], pid)
+		data[containerId] = append(data[containerId], pidN)
+	}
+
+	for key := range data {
+		slices.Sort(data[key])
 	}
 
 	return data
 }
 
 func (self *containerNetworkEnumerator) readCgroupFile(procPath string, pid ProcessId) (string, error) {
-	filePath := path.Join(procPath, pid, "cgroup")
+	filePath := path.Join(procPath, strconv.FormatUint(pid, 10), "cgroup")
 
 	file, err := os.ReadFile(filePath)
 	if err != nil {
@@ -246,7 +248,7 @@ func (self *containerNetworkEnumerator) RequestInterfaceDescription(procPath str
 	return ipOutput, nil
 }
 
-func (self *containerNetworkEnumerator) requestNamespacedInterfaceDescription(procPath string, pid string) ([]IpLinkInfo, error) {
+func (self *containerNetworkEnumerator) requestNamespacedInterfaceDescription(procPath string, pid ProcessId) ([]IpLinkInfo, error) {
 	if runtime.GOOS != "linux" && runtime.GOOS != "darwin" {
 		return []IpLinkInfo{}, fmt.Errorf("os not supported: %s", runtime.GOOS)
 	}
@@ -254,8 +256,8 @@ func (self *containerNetworkEnumerator) requestNamespacedInterfaceDescription(pr
 
 	cmd := exec.Command(
 		"nsenter",
-		"--target="+pid,
-		"--net="+procPath+"/"+pid+"/ns/net",
+		"--target="+strconv.FormatUint(pid, 10),
+		"--net="+procPath+"/"+strconv.FormatUint(pid, 10)+"/ns/net",
 		"ip",
 		"--json",
 		"link",
