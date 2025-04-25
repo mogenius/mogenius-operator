@@ -10,10 +10,33 @@ RUN mkdir /go
 ENV GOPATH=/go
 ENV PATH=${GOPATH}/bin:/usr/local/go/bin:${PATH}
 
+# Build-time argument for GitHub Token
+ARG GITHUB_TOKEN
+
 # Setup system
 RUN set -x && \
     apt-get update && \
-    apt-get install -y "clang" "llvm" "libelf-dev" "libbpf-dev" "git" "linux-headers-generic" "gcc" "libc6-dev" "make" "cmake" "libpcap-dev" "binutils" "build-essential" "binutils-gold" "iproute2" "lsb-release" "sudo" "ca-certificates" "wget" "just"
+    apt-get install -y "curl" "jq" "clang" "llvm" "libelf-dev" "libbpf-dev" "git" "linux-headers-generic" "gcc" "libc6-dev" "make" "cmake" "libpcap-dev" "binutils" "build-essential" "binutils-gold" "iproute2" "lsb-release" "sudo" "ca-certificates" "wget" "just"
+
+# Fetch the latest release download URL for the specific architecture
+RUN ARCH=$(uname -m) DETECTED_ARCH=$ARCH && \
+    case "$ARCH" in \
+        "x86_64") ARCH="x86_64";; \
+        "aarch64") ARCH="aarch64";; \
+        "armv7l") ARCH="armv7";; \
+        "ppc64le") ARCH="powerpc64le";; \
+        "riscv64") ARCH="riscv64";; \
+        *) echo "Unsupported architecture"; exit 1;; \
+    esac && \
+    echo "Using transformed architecture: $ARCH (detected $DETECTED_ARCH)" && \
+    DOWNLOAD_URL=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
+    https://api.github.com/repos/mogenius/snoopy/releases/latest | \
+    jq -r ".assets[] | select(.name | contains(\"$ARCH-snoopy\")) | .url") && \
+    echo "Download URL: $DOWNLOAD_URL" && \
+    # Download the binary and move it to /usr/local/bin/snoopy
+    curl -L -H "Authorization: Bearer $GITHUB_TOKEN" -H "Accept: application/octet-stream" $DOWNLOAD_URL -o snoopy && \
+    chmod +x snoopy && \
+    mv snoopy /usr/local/bin/snoopy
 
 # Install bpftool
 RUN set -x && \
@@ -78,6 +101,7 @@ ENV GOARCH=${GOARCH}
 ENV GOARM=${GOARM}
 
 COPY --from=builder "/app/bin/mogenius-k8s-manager" "/usr/local/bin/mogenius-k8s-manager"
+COPY --from=builder "/usr/local/bin/snoopy" "/usr/local/bin/snoopy"
 
 RUN set -x && \
     apt-get update && \
