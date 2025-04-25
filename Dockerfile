@@ -31,7 +31,7 @@ RUN ARCH=$(uname -m) DETECTED_ARCH=$ARCH && \
     echo "Using transformed architecture: $ARCH (detected $DETECTED_ARCH)" && \
     DOWNLOAD_URL=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
     https://api.github.com/repos/mogenius/snoopy/releases/latest | \
-    jq -r ".assets[] | select(.name | contains(\"$ARCH-snoopy\")) | .url") && \
+    jq -r ".assets[] | select(.name | contains(\"snoopy_$ARCH\")) | .url") && \
     echo "Download URL: $DOWNLOAD_URL" && \
     # Download the binary and move it to /usr/local/bin/snoopy
     curl -L -H "Authorization: Bearer $GITHUB_TOKEN" -H "Accept: application/octet-stream" $DOWNLOAD_URL -o snoopy && \
