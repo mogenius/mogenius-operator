@@ -8,11 +8,7 @@ import (
 	"mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/k8sclient"
 	"net/url"
-	"os"
 	"slices"
-	"strconv"
-	"strings"
-	"sync"
 	"sync/atomic"
 	"time"
 
@@ -35,11 +31,16 @@ type networkMonitor struct {
 	collectorStarted atomic.Bool
 	procFsMountPath  string
 	cne              ContainerNetworkEnumerator
-	ebpfApi          EbpfApi
+	snoopy           SnoopyManager
 
 	networkUsageTx chan struct{}
 	networkUsageRx chan []PodNetworkStats
 }
+
+type ContainerId = string
+type PodName = string
+type ProcessId = uint64
+type InterfaceName = string
 
 func NewNetworkMonitor(logger *slog.Logger, config config.ConfigModule, clientProvider k8sclient.K8sClientProvider, procFsMountPath string) NetworkMonitor {
 	self := &networkMonitor{}
@@ -52,7 +53,7 @@ func NewNetworkMonitor(logger *slog.Logger, config config.ConfigModule, clientPr
 	self.ctx = ctx
 	self.cancel = cancel
 	self.cne = NewContainerNetworkEnumerator(logger.With("scope", "network-enumerator"))
-	self.ebpfApi = NewEbpfApi(self.logger.With("scope", "ebpf"))
+	self.snoopy = NewSnoopyManager(self.logger.With("scope", "snoopy-manager"))
 	self.procFsMountPath = procFsMountPath
 	self.networkUsageTx = make(chan struct{})
 	self.networkUsageRx = make(chan []PodNetworkStats)
@@ -67,86 +68,179 @@ func (self *networkMonitor) Run() {
 	}
 
 	go func() {
-		defer self.cancel()
-
-		updateDevicesTicker := time.NewTicker(30 * time.Second)
-		defer updateDevicesTicker.Stop()
-
-		updateDataTicker := time.NewTicker(3 * time.Second)
-		defer updateDevicesTicker.Stop()
-
-		// holds the context of all network interfaces which are being watched
-		// the list has to be updated regularly for:
-		// - deleted interfaces where the handled is not valid anymore
-		// - added interfaces where new handles have to be created
-		ebpfDataHandles := map[int]ebpfCounterHandle{}
-		defer func() {
-			handles := []int{}
-			for interfaceId := range ebpfDataHandles {
-				handles = append(handles, interfaceId)
-			}
-			for _, interfaceId := range handles {
-				ebpfDataHandles[interfaceId].cancel()
-				delete(ebpfDataHandles, interfaceId)
-			}
-		}()
-
-		podList := &v1.PodList{}
-		startBytes := map[InterfaceId][2]uint64{}
 		fieldSelector := "metadata.namespace!=kube-system"
 		ownNodeName := self.config.Get("OWN_NODE_NAME")
 		if ownNodeName != "" {
 			fieldSelector = fmt.Sprintf("metadata.namespace!=kube-system,spec.nodeName=%s", ownNodeName)
 		}
 
-		// init
-		rootNetworkInterfaces, err := self.cne.RequestInterfaceDescription(self.procFsMountPath)
-		if err != nil {
-			self.logger.Error("failed to request root network interfaces", "error", err)
-		}
-		networkInterfaceMap := self.cne.List(self.procFsMountPath)
-		ebpfDataHandles = self.updateEbpfDataHandles(&rootNetworkInterfaces, ebpfDataHandles)
-		podList = self.updatePodList(fieldSelector)
-		collectedStats, err := self.updateCollectedStats(
-			&rootNetworkInterfaces,
-			&networkInterfaceMap,
-			&ebpfDataHandles,
-			&podList,
-			&startBytes,
-		)
-		if err != nil {
-			self.logger.Error("failed to update collect network interface stats", "error", err)
+		// first load of all pods on the current node
+		podList := self.updatePodList(fieldSelector)
+
+		// first load of all containers running on the current node
+		nodeContainersWithProcesses := self.cne.FindProcessesWithContainerIds(self.procFsMountPath)
+
+		// register all initially found containers which are also pods by indexing
+		// the nodeContainersWithProcesses map with all podContainerIds extracted from podList
+		for _, pod := range podList.Items {
+			podContainerIds := self.readContainerIds(pod)
+			for _, containerId := range podContainerIds {
+				pids, ok := nodeContainersWithProcesses[containerId]
+				if !ok {
+					continue
+				}
+				assert.Assert(len(pids) > 0, "every container is expected to have at least 1 active pid")
+				pid := pids[0]
+				err := self.snoopy.Register(pod.Namespace, pod.Name, containerId, pid)
+				if err != nil {
+					self.logger.Error("failed to register snoopy", "containerId", containerId, "pid", pid, "error", err)
+					continue
+				}
+			}
 		}
 
-		// loop
+		// get initial collected stats
+		metrics := self.snoopy.Metrics()
+		collectedStats := self.metricsToPodstats(metrics, podList)
+
+		// timers
+		updatePodAndContainersTicker := time.NewTicker(5 * time.Second)
+		defer updatePodAndContainersTicker.Stop()
+		updateCollectedStatsTicker := time.NewTicker(1 * time.Second)
+		defer updateCollectedStatsTicker.Stop()
+
+		// enter update loop
 		for {
 			select {
 			case <-self.ctx.Done():
-				return
-			case <-updateDevicesTicker.C:
-				rootNetworkInterfaces, err := self.cne.RequestInterfaceDescription(self.procFsMountPath)
-				if err != nil {
-					self.logger.Error("failed to request root network interfaces", "error", err)
+				break
+			case <-updatePodAndContainersTicker.C:
+				// get a new list of all pods and containers on the current node
+				newPodList := self.updatePodList(fieldSelector)
+				nodeContainersWithProcesses = self.cne.FindProcessesWithContainerIds(self.procFsMountPath)
+
+				// check for created and removed pods
+				oldPodContainerIds := []string{}
+				for _, pod := range podList.Items {
+					containerIds := self.readContainerIds(pod)
+					oldPodContainerIds = append(oldPodContainerIds, containerIds...)
 				}
-				networkInterfaceMap = self.cne.List(self.procFsMountPath)
-				ebpfDataHandles = self.updateEbpfDataHandles(&rootNetworkInterfaces, ebpfDataHandles)
-				podList = self.updatePodList(fieldSelector)
-			case <-updateDataTicker.C:
-				collectedStats, err = self.updateCollectedStats(
-					&rootNetworkInterfaces,
-					&networkInterfaceMap,
-					&ebpfDataHandles,
-					&podList,
-					&startBytes,
-				)
-				if err != nil {
-					self.logger.Error("failed to update collect network interface stats", "error", err)
+				newPodContainerIds := []string{}
+				for _, pod := range newPodList.Items {
+					containerIds := self.readContainerIds(pod)
+					newPodContainerIds = append(newPodContainerIds, containerIds...)
 				}
+				deletedPodContainerIds := []string{}
+				for _, uid := range oldPodContainerIds {
+					if !slices.Contains(newPodContainerIds, uid) {
+						deletedPodContainerIds = append(deletedPodContainerIds, uid)
+					}
+				}
+				createdPodContainerIds := []string{}
+				for _, uid := range newPodContainerIds {
+					if !slices.Contains(oldPodContainerIds, uid) {
+						createdPodContainerIds = append(createdPodContainerIds, uid)
+					}
+				}
+
+				// register new containers
+				for _, containerId := range createdPodContainerIds {
+					for _, pod := range newPodList.Items {
+						containerIds := self.readContainerIds(pod)
+						if !slices.Contains(containerIds, containerId) {
+							// this pod does not have the container id we are looking for
+							continue
+						}
+						pids, ok := nodeContainersWithProcesses[containerId]
+						assert.Assert(ok, "there has to be a list of processes")
+						assert.Assert(len(pids) > 0, "every container is expected to have at least 1 active pid")
+						pid := pids[0]
+						err := self.snoopy.Register(pod.Namespace, pod.Name, containerId, pid)
+						if err != nil {
+							self.logger.Error("failed to register snoopy", "containerId", containerId, "pid", pid, "error", err)
+							continue
+						}
+					}
+				}
+
+				// unregister old containers
+				for _, containerId := range deletedPodContainerIds {
+					for _, pod := range podList.Items {
+						containerIds := self.readContainerIds(pod)
+						if !slices.Contains(containerIds, containerId) {
+							// this pod does not have the container id we are looking for
+							continue
+						}
+						err := self.snoopy.Remove(containerId)
+						if err != nil {
+							self.logger.Error("failed to remove snoopy", "containerId", containerId, "error", err)
+							continue
+						}
+					}
+				}
+
+				// set the new podList as active podList
+				podList = newPodList
+
+			case <-updateCollectedStatsTicker.C:
+				metrics = self.snoopy.Metrics()
+				collectedStats = self.metricsToPodstats(metrics, podList)
 			case <-self.networkUsageTx:
 				self.networkUsageRx <- collectedStats
 			}
 		}
 	}()
+}
+
+func (self *networkMonitor) metricsToPodstats(
+	metrics map[ContainerId]ContainerInfo,
+	podList *v1.PodList,
+) []PodNetworkStats {
+	data := []PodNetworkStats{}
+
+	containerIds := []ContainerId{}
+	for containerId := range metrics {
+		containerIds = append(containerIds, containerId)
+	}
+
+	for _, containerId := range containerIds {
+		containerInfo := metrics[containerId]
+		var pod *v1.Pod
+		for _, podListItem := range podList.Items {
+			cids := self.readContainerIds(podListItem)
+			if slices.Contains(cids, containerId) {
+				pod = &podListItem
+				break
+			}
+		}
+		assert.Assert(pod != nil, "pod has to exist in podList")
+
+		interfaceNames := []InterfaceName{}
+		for interfaceName := range containerInfo.Metrics {
+			interfaceNames = append(interfaceNames, interfaceName)
+		}
+		slices.Sort(interfaceNames)
+
+		for _, interfaceName := range interfaceNames {
+			metrics := containerInfo.Metrics[interfaceName]
+			podNetworkStat := PodNetworkStats{}
+			podNetworkStat.Ip = pod.Status.PodIP
+			podNetworkStat.Pod = containerInfo.PodName
+			podNetworkStat.Namespace = containerInfo.PodNamespace
+			podNetworkStat.Interface = interfaceName
+			podNetworkStat.ReceivedPackets = metrics.Ingress.Packets
+			podNetworkStat.ReceivedBytes = metrics.Ingress.Bytes
+			podNetworkStat.ReceivedStartBytes = metrics.Ingress.StartBytes
+			podNetworkStat.TransmitPackets = metrics.Egress.Packets
+			podNetworkStat.TransmitBytes = metrics.Egress.Bytes
+			podNetworkStat.TransmitStartBytes = metrics.Egress.StartBytes
+			podNetworkStat.StartTime = pod.Status.StartTime.Format(time.RFC3339)
+			podNetworkStat.CreatedAt = time.Now().Format(time.RFC3339)
+			data = append(data, podNetworkStat)
+		}
+	}
+
+	return data
 }
 
 func (self *networkMonitor) GetPodNetworkUsage() []PodNetworkStats {
@@ -165,211 +259,29 @@ func (self *networkMonitor) GetPodNetworkUsage() []PodNetworkStats {
 	}
 }
 
-type ebpfCounterHandle struct {
-	dataChan chan CountState
-	ctx      context.Context
-	cancel   context.CancelFunc
-}
-
-//nolint:govet
-func (self *networkMonitor) updateEbpfDataHandles(
-	rootNetworkInterfaces *[]IpLinkInfo,
-	dataHandles map[int]ebpfCounterHandle,
-) map[int]ebpfCounterHandle {
-	rootNetworkInterfaceIds := []int{}
-	for _, rootIPLinkInfo := range *rootNetworkInterfaces {
-		rootInterfaceId := rootIPLinkInfo.Ifindex
-		rootNetworkInterfaceIds = append(rootNetworkInterfaceIds, rootInterfaceId)
-		_, ok := dataHandles[rootInterfaceId]
-
-		// create a new handle for interface if it is not in the map
-		if !ok {
-			ctx, cancel := context.WithCancel(context.Background())
-			dataChan, err := self.ebpfApi.WatchInterface(
-				ctx,
-				rootIPLinkInfo.Ifindex,
-				250*time.Millisecond,
-			)
-			if err != nil {
-				self.logger.Warn("unable to watch network interface", "id", rootInterfaceId, "linkIndex", rootIPLinkInfo.LinkIndex, "error", err)
-				continue
-			}
-			self.logger.Debug("started watch network interface", "id", rootInterfaceId, "linkIndex", rootIPLinkInfo.LinkIndex, "ifName", rootIPLinkInfo.Ifname, "error", err)
-			dataHandles[rootInterfaceId] = ebpfCounterHandle{dataChan, ctx, cancel}
-		}
-	}
-
-	// cancel and delete handles which are not found by the interface enumerator anymore
-	handlesToDelete := []int{}
-	for handleInterfaceId := range dataHandles {
-		if !slices.Contains(rootNetworkInterfaceIds, handleInterfaceId) {
-			handlesToDelete = append(handlesToDelete, handleInterfaceId)
-		}
-	}
-	for _, interfaceId := range handlesToDelete {
-		dataHandles[interfaceId].cancel()
-		delete(dataHandles, interfaceId)
-	}
-
-	return dataHandles
-}
-
-func (self *networkMonitor) updateCollectedStats(
-	rootNetworkInterfaces *[]IpLinkInfo,
-	networkInterfaceMap *map[ContainerId]InterfaceDescription,
-	ebpfDataHandles *map[int]ebpfCounterHandle,
-	podList **v1.PodList,
-	startBytes *map[InterfaceId][2]uint64,
-) ([]PodNetworkStats, error) {
-	// requesting interface data
-	// every handle has a poll rate so we wait for all of them to push once
-	// the map gets all keys pre-allocated to prevent resizing while filling up the data from multiple go-routines in parallel
-	lastInterfaceData := map[int]CountState{}
-	lastInterfaceDataMutex := sync.Mutex{}
-	var wg sync.WaitGroup
-	for interfaceId, handle := range *ebpfDataHandles {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			data := <-handle.dataChan
-			lastInterfaceDataMutex.Lock()
-			lastInterfaceData[interfaceId] = data
-			lastInterfaceDataMutex.Unlock()
-		}()
-	}
-	wg.Wait()
-
-	newCollectedStats := []PodNetworkStats{}
-	for _, pod := range (*podList).Items {
-		containerMap := self.buildContainerIdsMap(pod)
-		for podContainerId, pod := range containerMap {
-			for containerId, iDesc := range *networkInterfaceMap {
-				if containerId != podContainerId {
-					continue
-				}
-				for _, virtualInterface := range iDesc.LinkInfo {
-					if !virtualInterface.IsUp() {
-						continue
-					}
-					if virtualInterface.IsLoopback() {
-						continue
-					}
-					var rootInterface *IpLinkInfo = nil
-					if virtualInterface.LinkIndex == 0 {
-						// the virtual interface is also the root interface as there is no parent
-						rootInterface = &virtualInterface
-					} else {
-						// has parent interface
-						parentInterfaceId := virtualInterface.LinkIndex
-						assert.Assert(parentInterfaceId != 0, "since this is always a virtualized id there should always be a parent", virtualInterface)
-						for _, rootInterfaceInfo := range *rootNetworkInterfaces {
-							if parentInterfaceId == rootInterfaceInfo.Ifindex {
-								rootInterface = &rootInterfaceInfo
-								break
-							}
-						}
-					}
-					if rootInterface == nil {
-						self.logger.Warn("failed to find root interface for virtual interface", "virtualInterface.ifName", virtualInterface.Ifname, "pod", pod.GetName())
-						continue
-					}
-					// assert.Assert(rootInterface != nil, "the root index has to be resolved succesfully")
-
-					count, ok := lastInterfaceData[rootInterface.Ifindex]
-					if !ok {
-						self.logger.Warn("failed to read interface data for interface id", "rootInterface", rootInterface, "virtualInterface", virtualInterface)
-						continue
-					}
-
-					interfaceStartBytes, ok := (*startBytes)[rootInterface.Ifindex]
-					if !ok {
-						rx, err := self.loadUint64FromFile("/sys/class/net/" + rootInterface.Ifname + "/statistics/rx_bytes")
-						if err != nil {
-							self.logger.Debug("failed to read rx start bytes", "error", err)
-						}
-						tx, err := self.loadUint64FromFile("/sys/class/net/" + rootInterface.Ifname + "/statistics/tx_bytes")
-						if err != nil {
-							self.logger.Debug("failed to read tx start bytes", "error", err)
-						}
-						interfaceStartBytes = [2]uint64{rx, tx}
-						(*startBytes)[rootInterface.Ifindex] = interfaceStartBytes
-					}
-					stats := PodNetworkStats{}
-					stats.Ip = pod.Status.PodIP
-					stats.Pod = pod.GetName()
-					stats.Interface = rootInterface.Ifname
-					stats.VirtualInterface = virtualInterface.Ifname
-					stats.InterfaceId = rootInterface.Ifindex
-					stats.Namespace = pod.GetNamespace()
-					stats.ReceivedPackets = count.IngressPackets
-					stats.ReceivedBytes = count.IngressBytes
-					stats.ReceivedStartBytes = interfaceStartBytes[0]
-					stats.TransmitPackets = count.EgressPackets
-					stats.TransmitBytes = count.EgressBytes
-					stats.TransmitStartBytes = interfaceStartBytes[1]
-					stats.StartTime = pod.Status.StartTime.Format(time.RFC3339)
-					stats.CreatedAt = time.Now().Format(time.RFC3339)
-					newCollectedStats = append(newCollectedStats, stats)
-				}
-
-			}
-		}
-	}
-
-	podNames := []string{}
-	for _, stat := range newCollectedStats {
-		if !slices.Contains(podNames, stat.Pod) {
-			podNames = append(podNames, stat.Pod)
-		}
-	}
-	slices.Sort(podNames)
-
-	interfaceIds := []int{}
-	for _, info := range *rootNetworkInterfaces {
-		if !slices.Contains(interfaceIds, info.Ifindex) {
-			interfaceIds = append(interfaceIds, info.Ifindex)
-		}
-	}
-	slices.Sort(interfaceIds)
-
-	sortedCollectedStats := []PodNetworkStats{}
-	for _, podName := range podNames {
-		for _, interfaceId := range interfaceIds {
-			for _, stats := range newCollectedStats {
-				if stats.Pod == podName && stats.InterfaceId == interfaceId {
-					sortedCollectedStats = append(sortedCollectedStats, stats)
-				}
-			}
-		}
-	}
-	assert.Assert(len(sortedCollectedStats) == len(newCollectedStats), "this mapping should preserve all elements")
-
-	return sortedCollectedStats, nil
-}
-
 func (self *networkMonitor) updatePodList(fieldSelector string) *v1.PodList {
 	listOpts := metav1.ListOptions{FieldSelector: fieldSelector}
 	newPodList, err := self.clientProvider.K8sClientSet().CoreV1().Pods("").List(context.TODO(), listOpts)
+	if err != nil {
+		self.logger.Error("failed to list pods", "listOptions", listOpts, "error", err)
+		return &v1.PodList{}
+	}
 
 	// important step: Remove all pods with HostNetwork=true
 	filteredItems := []v1.Pod{}
-	for i := 0; i < len(newPodList.Items); i++ {
-		pod := newPodList.Items[i]
+	for idx := 0; idx < len(newPodList.Items); idx++ {
+		pod := newPodList.Items[idx]
 		if pod.Spec.HostNetwork == false {
 			filteredItems = append(filteredItems, pod)
 		}
 	}
 	newPodList.Items = filteredItems
 
-	if err != nil {
-		self.logger.Error("failed to list pods", "listOptions", listOpts, "error", err)
-		return &v1.PodList{}
-	}
 	return newPodList
 }
 
-func (self *networkMonitor) buildContainerIdsMap(pod v1.Pod) map[string]v1.Pod {
-	result := make(map[string]v1.Pod)
+func (self *networkMonitor) readContainerIds(pod v1.Pod) []ContainerId {
+	result := []ContainerId{}
 	for _, container := range pod.Status.ContainerStatuses {
 		parsedUrl, err := url.Parse(container.ContainerID)
 		if err != nil {
@@ -377,42 +289,26 @@ func (self *networkMonitor) buildContainerIdsMap(pod v1.Pod) map[string]v1.Pod {
 			continue
 		}
 
-		result[parsedUrl.Host] = pod
+		result = append(result, parsedUrl.Host)
 	}
+	slices.Sort(result)
 
 	return result
-}
-
-func (self *networkMonitor) loadUint64FromFile(filePath string) (uint64, error) {
-	fileContent, err := os.ReadFile(filePath)
-	if err != nil {
-		return uint64(0), err
-	}
-
-	var stringData = strings.TrimSuffix(string(fileContent), "\n")
-	number, err := strconv.ParseUint(stringData, 10, 64)
-	if err != nil {
-		return uint64(0), err
-	}
-
-	return number, nil
 }
 
 type PodNetworkStats struct {
 	Ip                 string `json:"ip"`
 	Pod                string `json:"pod"`
-	Interface          string `json:"interface"`
-	VirtualInterface   string `json:"virtualInterface"`
-	InterfaceId        int    `json:"interfaceId"`
 	Namespace          string `json:"namespace"`
+	Interface          string `json:"interface"`
 	ReceivedPackets    uint64 `json:"receivedPackets"`
 	ReceivedBytes      uint64 `json:"receivedBytes"`
-	ReceivedStartBytes uint64 `json:"receivedStartBytes"` // auslesen aus /sys
+	ReceivedStartBytes uint64 `json:"receivedStartBytes"`
 	TransmitPackets    uint64 `json:"transmitPackets"`
 	TransmitBytes      uint64 `json:"transmitBytes"`
-	TransmitStartBytes uint64 `json:"transmitStartBytes"` // auslesen aus /sys
-	StartTime          string `json:"startTime"`          // start time of the Interface/Pod
-	CreatedAt          string `json:"createdAt"`          // when the entry was written into the storage <- timestamp of write to redis
+	TransmitStartBytes uint64 `json:"transmitStartBytes"`
+	StartTime          string `json:"startTime"` // start time of the Interface/Pod
+	CreatedAt          string `json:"createdAt"` // when the entry was written into the storage <- timestamp of write to redis
 }
 
 func (self *PodNetworkStats) Sum(other *PodNetworkStats) {
