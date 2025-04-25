@@ -3,6 +3,8 @@ FROM quay.io/clastix/kubectl:v1.32.0 AS kubectl
 
 FROM ubuntu:noble AS build-env
 
+ENV SNOOPY_VERSION=v0.0.6
+
 COPY --from=golang /usr/local/go /usr/local/go
 COPY --from=kubectl /usr/local/bin/kubectl /usr/local/bin/kubectl
 
@@ -30,7 +32,7 @@ RUN ARCH=$(uname -m) DETECTED_ARCH=$ARCH && \
     esac && \
     echo "Using transformed architecture: $ARCH (detected $DETECTED_ARCH)" && \
     DOWNLOAD_URL=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
-    https://api.github.com/repos/mogenius/snoopy/releases/latest | \
+    "https://api.github.com/repos/mogenius/snoopy/releases/$SNOOPY_VERSION" | \
     jq -r ".assets[] | select(.name | contains(\"snoopy_$ARCH\")) | .url") && \
     echo "Download URL: $DOWNLOAD_URL" && \
     # Download the binary and move it to /usr/local/bin/snoopy
