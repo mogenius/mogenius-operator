@@ -5,7 +5,7 @@ go 1.24.1
 require (
 	github.com/Masterminds/semver/v3 v3.3.1
 	github.com/alecthomas/kong v1.10.0
-	github.com/cert-manager/cert-manager v1.17.1
+	github.com/cert-manager/cert-manager v1.17.2
 	github.com/cilium/ebpf v0.18.0
 	github.com/creack/pty v1.1.24
 	github.com/go-git/go-git/v5 v5.16.0
@@ -166,7 +166,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.34.0 // indirect
 	golang.org/x/crypto v0.37.0 // indirect
 	golang.org/x/net v0.39.0 // indirect
-	golang.org/x/oauth2 v0.27.0 // indirect
+	golang.org/x/oauth2 v0.28.0 // indirect
 	golang.org/x/sync v0.13.0 // indirect
 	golang.org/x/sys v0.32.0 // indirect
 	golang.org/x/text v0.24.0 // indirect
