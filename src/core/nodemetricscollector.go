@@ -20,6 +20,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/pointer"
 )
 
 type NodeMetricsCollector interface {
@@ -121,15 +122,69 @@ func (self *nodeMetricsCollector) Orchestrate() {
 												"mogenius-k8s-manager",
 												"nodemetrics",
 											},
-											Env:             ownDeployment.Spec.Template.Spec.Containers[0].Env,
-											SecurityContext: ownDeployment.Spec.Template.Spec.Containers[0].SecurityContext,
-											VolumeMounts:    ownDeployment.Spec.Template.Spec.Containers[0].VolumeMounts,
+											Env: ownDeployment.Spec.Template.Spec.Containers[0].Env,
+											SecurityContext: &corev1.SecurityContext{
+												Capabilities: &corev1.Capabilities{
+													Add: []corev1.Capability{
+														"NET_RAW",
+														"NET_ADMIN",
+														"SYS_ADMIN",
+														"SYS_PTRACE",
+														"DAC_OVERRIDE",
+														"SYS_RESOURCE",
+													},
+												},
+												Privileged:             pointer.BoolPtr(true),
+												ReadOnlyRootFilesystem: pointer.BoolPtr(true),
+											},
+											VolumeMounts: []corev1.VolumeMount{
+												{
+													MountPath: "/hostproc",
+													Name:      "proc",
+													ReadOnly:  true,
+												},
+												{
+													MountPath: "/hostcni",
+													Name:      "cni",
+													ReadOnly:  true,
+												},
+												{
+													MountPath: "/sys",
+													Name:      "sys",
+													ReadOnly:  true,
+												},
+											},
 										},
 									},
 									DNSPolicy:          corev1.DNSClusterFirstWithHostNet,
 									HostNetwork:        true,
 									ServiceAccountName: "mogenius-operator-service-account-app",
-									Volumes:            ownDeployment.Spec.Template.Spec.Volumes,
+									Volumes: []corev1.Volume{
+										{
+											Name: "proc",
+											VolumeSource: corev1.VolumeSource{
+												HostPath: &corev1.HostPathVolumeSource{
+													Path: "/proc",
+												},
+											},
+										},
+										{
+											Name: "cni",
+											VolumeSource: corev1.VolumeSource{
+												HostPath: &corev1.HostPathVolumeSource{
+													Path: "/etc/cni/net.d",
+												},
+											},
+										},
+										{
+											Name: "sys",
+											VolumeSource: corev1.VolumeSource{
+												HostPath: &corev1.HostPathVolumeSource{
+													Path: "/sys",
+												},
+											},
+										},
+									},
 								},
 							},
 						},
