@@ -2,8 +2,6 @@ package utils
 
 import (
 	_ "embed"
-
-	"gopkg.in/yaml.v3"
 )
 
 const HELM_INDEX string = "https://helm.mogenius.com/public/index.yaml"
@@ -40,15 +38,6 @@ type SyncResourceItem struct {
 	Version      string `json:"version"`
 	ResourceName string `json:"resourceName"`
 	Namespace    string `json:"namespace"`
-}
-
-func ToYaml(data interface{}) (string, error) {
-	bytes, err := yaml.Marshal(data)
-	if err != nil {
-		return "", err
-	}
-
-	return string(bytes), nil
 }
 
 const STAGE_DEV = "dev"

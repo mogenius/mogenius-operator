@@ -115,7 +115,8 @@ func testSetup() error {
 func TestHelmRepoAdd(t *testing.T) {
 	logManager := logging.NewSlogManager(slog.LevelDebug, []slog.Handler{slog.NewJSONHandler(os.Stderr, nil)})
 	config := cfg.NewConfig()
-	helm.Setup(logManager, config)
+	valkeyClient := valkeyclient.NewValkeyClient(logManager.CreateLogger("valkey"), config)
+	helm.Setup(logManager, config, valkeyClient)
 	config.Declare(cfg.ConfigDeclaration{
 		Key:          "MO_HELM_DATA_PATH",
 		DefaultValue: utils.Pointer(helmConfPath),
@@ -145,7 +146,8 @@ func TestHelmRepoAdd(t *testing.T) {
 func TestHelmRepoUpdate(t *testing.T) {
 	logManager := logging.NewSlogManager(slog.LevelDebug, []slog.Handler{slog.NewJSONHandler(os.Stderr, nil)})
 	config := config.NewConfig()
-	helm.Setup(logManager, config)
+	valkeyClient := valkeyclient.NewValkeyClient(logManager.CreateLogger("valkey"), config)
+	helm.Setup(logManager, config, valkeyClient)
 	config.Declare(cfg.ConfigDeclaration{
 		Key:          "MO_HELM_DATA_PATH",
 		DefaultValue: utils.Pointer(helmConfPath),
@@ -170,8 +172,7 @@ func TestHelmRepoList(t *testing.T) {
 	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"))
 
 	valkeyClientModule := valkeyclient.NewValkeyClient(logManager.CreateLogger("valkey"), config)
-	watcherModule := kubernetes.NewWatcher(logManager.CreateLogger("watcher"), clientProvider)
-	err := kubernetes.Setup(logManager, config, watcherModule, clientProvider, valkeyClientModule)
+	err := kubernetes.Setup(logManager, config, clientProvider, valkeyClientModule)
 	assert.AssertT(t, err == nil, err)
 
 	err = testSetup()
@@ -201,7 +202,8 @@ func TestHelmRepoList(t *testing.T) {
 func TestHelmInstallRequest(t *testing.T) {
 	logManager := logging.NewSlogManager(slog.LevelDebug, []slog.Handler{slog.NewJSONHandler(os.Stderr, nil)})
 	config := config.NewConfig()
-	helm.Setup(logManager, config)
+	valkeyClient := valkeyclient.NewValkeyClient(logManager.CreateLogger("valkey"), config)
+	helm.Setup(logManager, config, valkeyClient)
 	config.Declare(cfg.ConfigDeclaration{
 		Key:          "MO_HELM_DATA_PATH",
 		DefaultValue: utils.Pointer(helmConfPath),
@@ -234,7 +236,8 @@ func TestHelmUpgradeRequest(t *testing.T) {
 		Key:          "MO_HELM_DATA_PATH",
 		DefaultValue: utils.Pointer(helmConfPath),
 	})
-	helm.Setup(logManager, config)
+	valkeyClient := valkeyclient.NewValkeyClient(logManager.CreateLogger("valkey"), config)
+	helm.Setup(logManager, config, valkeyClient)
 
 	err := testSetup()
 	assert.AssertT(t, err == nil, err)
@@ -266,7 +269,8 @@ func TestHelmUpgradeRequest(t *testing.T) {
 func TestHelmListRequest(t *testing.T) {
 	logManager := logging.NewSlogManager(slog.LevelDebug, []slog.Handler{slog.NewJSONHandler(os.Stderr, nil)})
 	config := config.NewConfig()
-	helm.Setup(logManager, config)
+	valkeyClient := valkeyclient.NewValkeyClient(logManager.CreateLogger("valkey"), config)
+	helm.Setup(logManager, config, valkeyClient)
 	config.Declare(cfg.ConfigDeclaration{
 		Key:          "MO_HELM_DATA_PATH",
 		DefaultValue: utils.Pointer(helmConfPath),
@@ -307,7 +311,8 @@ func TestHelmListRequest(t *testing.T) {
 func TestHelmReleases(t *testing.T) {
 	logManager := logging.NewSlogManager(slog.LevelDebug, []slog.Handler{slog.NewJSONHandler(os.Stderr, nil)})
 	config := config.NewConfig()
-	helm.Setup(logManager, config)
+	valkeyClient := valkeyclient.NewValkeyClient(logManager.CreateLogger("valkey"), config)
+	helm.Setup(logManager, config, valkeyClient)
 	config.Declare(cfg.ConfigDeclaration{
 		Key:          "MO_HELM_DATA_PATH",
 		DefaultValue: utils.Pointer(helmConfPath),

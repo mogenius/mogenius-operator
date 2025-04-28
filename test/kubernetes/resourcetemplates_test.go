@@ -22,9 +22,8 @@ func TestResourceTemplates(t *testing.T) {
 		DefaultValue: utils.Pointer("mogenius"),
 	})
 	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"))
-	watcherModule := kubernetes.NewWatcher(logManager.CreateLogger("watcher"), clientProvider)
 	valkeyClient := valkeyclient.NewValkeyClient(logManager.CreateLogger("valkey"), config)
-	err := kubernetes.Setup(logManager, config, watcherModule, clientProvider, valkeyClient)
+	err := kubernetes.Setup(logManager, config, clientProvider, valkeyClient)
 	assert.AssertT(t, err == nil, err)
 
 	// CREATE

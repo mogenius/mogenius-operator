@@ -202,6 +202,7 @@ func (self *networkMonitor) metricsToPodstats(
 	for containerId := range metrics {
 		containerIds = append(containerIds, containerId)
 	}
+	slices.Sort(containerIds)
 
 	for _, containerId := range containerIds {
 		containerInfo := metrics[containerId]

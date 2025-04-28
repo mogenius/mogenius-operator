@@ -6,6 +6,7 @@ import (
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/store"
 	"mogenius-k8s-manager/src/utils"
+	"slices"
 	"strings"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -653,34 +654,6 @@ func CreateAllowNamespaceCommunicationNetworkPolicy(namespaceName string) error 
 	return nil
 }
 
-func cleanupUnusedDenyAllIngress(namespaceName string) {
-	// list all network policies and find all that have the marker label
-	policies, err := store.ListNetworkPolicies(valkeyClient, namespaceName)
-	if err != nil {
-		k8sLogger.Error("cleanupNetworkPolicies", "error", err)
-		return
-	}
-
-	// filter out all policies that are not created by mogenius
-	var netpols []v1.NetworkPolicy
-	for _, policy := range policies {
-		if policy.ObjectMeta.Labels != nil && policy.ObjectMeta.Labels[MarkerLabel] == "true" {
-			continue
-		}
-		netpols = append(netpols, policy)
-	}
-
-	if len(netpols) == 0 {
-		clientset := clientProvider.K8sClientSet()
-		netPolClient := clientset.NetworkingV1().NetworkPolicies(namespaceName)
-
-		err = netPolClient.Delete(context.TODO(), DenyAllIngressNetPolName, metav1.DeleteOptions{})
-		if err != nil {
-			k8sLogger.Error("cleanupNetworkPolicies", "error", err)
-		}
-	}
-}
-
 func InitNetworkPolicyConfigMap() error {
 	configMap := readDefaultConfigMap()
 
@@ -1176,7 +1149,7 @@ func RemoveUnmanagedNetworkPolicies(namespaceName string, policies []string) err
 
 	errors := []error{}
 	for _, netpol := range netpols.Items {
-		if !utils.ContainsString(policies, netpol.Name) {
+		if !slices.Contains(policies, netpol.Name) {
 			continue
 		}
 

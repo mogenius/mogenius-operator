@@ -86,11 +86,3 @@ const (
 	CONTAINER_GIT_REPOSITORY  K8sContainerTypeEnum = "GIT_REPOSITORY"
 	CONTAINER_CONTAINER_IMAGE K8sContainerTypeEnum = "CONTAINER_IMAGE"
 )
-
-func DefaultIgnoredNamespaces() []string {
-	return []string{
-		"kube-system",
-		"kube-public",
-		"kube-node-lease",
-	}
-}

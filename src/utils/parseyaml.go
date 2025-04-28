@@ -27,10 +27,6 @@ func InitUpgradeConfigMap() corev1.ConfigMap {
 	return app
 }
 
-func InitUpgradeConfigMapYaml() string {
-	return readYaml("yaml-templates/upgrade-configmap.yaml")
-}
-
 func InitUpgradeJob() v1job.Job {
 	file := "yaml-templates/upgrade-job.yaml"
 	yaml := readYaml(file)
@@ -190,22 +186,6 @@ func InitContainerSecret() corev1.Secret {
 	s := json.NewYAMLSerializer(json.DefaultMetaFactory, scheme.Scheme, scheme.Scheme)
 
 	var app corev1.Secret
-	_, _, err = s.Decode(yaml, nil, &app)
-	if err != nil {
-		panic(err)
-	}
-	return app
-}
-
-func InitNetPolNamespace() netv1.NetworkPolicy {
-	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/network-policy-namespace.yaml")
-	if err != nil {
-		panic(err.Error())
-	}
-
-	s := json.NewYAMLSerializer(json.DefaultMetaFactory, scheme.Scheme, scheme.Scheme)
-
-	var app netv1.NetworkPolicy
 	_, _, err = s.Decode(yaml, nil, &app)
 	if err != nil {
 		panic(err)

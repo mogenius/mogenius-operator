@@ -1,66 +1,14 @@
 package kubernetes
 
 import (
-	"context"
 	"fmt"
-	"mogenius-k8s-manager/src/dtos"
-	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/websocket"
-	"sync"
 	"time"
-
-	"mogenius-k8s-manager/src/utils"
 
 	v1Core "k8s.io/api/core/v1"
 	v1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
-
-func CreateNetworkPolicyNamespace(eventClient websocket.WebsocketClient, job *structs.Job, namespace dtos.K8sNamespaceDto, name string, wg *sync.WaitGroup) {
-	cmd := structs.CreateCommand(eventClient, "create", "Create NetworkPolicy namespace", job)
-	wg.Add(1)
-	go func(wg *sync.WaitGroup) {
-		defer wg.Done()
-		cmd.Start(eventClient, job, "Creating NetworkPolicy")
-
-		clientset := clientProvider.K8sClientSet()
-		netPolClient := clientset.NetworkingV1().NetworkPolicies(namespace.Name)
-
-		netpol := utils.InitNetPolNamespace()
-
-		netpol.ObjectMeta.Name = name
-		// netpol.ObjectMeta.Name = namespace.Name
-		netpol.ObjectMeta.Namespace = namespace.Name
-
-		netpol.Spec.PodSelector.MatchLabels["ns"] = namespace.Name
-		netpol.Spec.Ingress[0].From[0].PodSelector.MatchLabels["ns"] = namespace.Name
-
-		netpol.Labels = MoUpdateLabels(&netpol.Labels, nil, nil, nil)
-
-		_, err := netPolClient.Create(context.TODO(), &netpol, MoCreateOptions())
-		if err != nil {
-			cmd.Fail(eventClient, job, fmt.Sprintf("CreateNetworkPolicyNamespace ERROR: %s", err.Error()))
-		} else {
-			cmd.Success(eventClient, job, "Created NetworkPolicy")
-		}
-	}(wg)
-}
-
-func DeleteNetworkPolicy(namespaceName, name string) error {
-	clientset := clientProvider.K8sClientSet()
-	netPolClient := clientset.NetworkingV1().NetworkPolicies(namespaceName)
-
-	err := netPolClient.Delete(context.TODO(), name, metav1.DeleteOptions{})
-	if err != nil {
-		k8sLogger.Error("DeleteNetworkPolicy", "networkpolicy", name, "error", err)
-		return err
-	}
-
-	k8sLogger.Info("Deleted NetworkPolicy", "networkpolicy", name)
-
-	cleanupUnusedDenyAllIngress(namespaceName)
-	return nil
-}
 
 func HandleNetworkPolicyChange(eventClient websocket.WebsocketClient, netPol *v1.NetworkPolicy, reason string) {
 	annotations := createAnnotations("mogenius.io/created", time.Now().String())

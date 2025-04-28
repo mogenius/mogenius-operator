@@ -140,15 +140,3 @@ func ConfigMapFor(namespace string, configMapName string, showError bool) *v1Cor
 	configMap.APIVersion = "v1"
 	return configMap
 }
-
-func UpdateK8sConfigMap(data v1Core.ConfigMap) error {
-	clientset := clientProvider.K8sClientSet()
-	client := clientset.CoreV1().ConfigMaps(data.Namespace)
-
-	_, err := client.Update(context.TODO(), &data, metav1.UpdateOptions{})
-	if err != nil {
-		k8sLogger.Error("UpdateK8sConfigMap", "error", err.Error())
-		return err
-	}
-	return nil
-}
