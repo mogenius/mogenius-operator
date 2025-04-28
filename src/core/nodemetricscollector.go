@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"log/slog"
 	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/config"
@@ -14,6 +15,11 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type NodeMetricsCollector interface {
@@ -69,12 +75,97 @@ func (self *nodeMetricsCollector) Orchestrate() {
 	}
 
 	if self.clientProvider.RunsInCluster() {
-		assert.Assert(false, "TODO: not implemented")
 		// setup daemonset
 		self.leaderElector.OnLeading(func() {
 			// check if daemonset exists
 			// -> create if it doesnt
-			self.logger.Info("TODO: check if nodemetricscollector daemonset is installed and running")
+			// check if daemonset exists
+			daemonSetName := "mogenius-k8s-manager-nodemetrics"
+			namespace := self.config.Get("MO_OWN_NAMESPACE")
+
+			clientset := self.clientProvider.K8sClientSet()
+			if clientset == nil {
+				self.logger.Error("failed to get Kubernetes clientset", "error", err)
+				return
+			}
+
+			ownDeployment, err := clientset.AppsV1().Deployments(namespace).Get(context.TODO(), "mogenius-k8s-manager", metav1.GetOptions{})
+			if err != nil {
+				self.logger.Error("failed to get own deployment for image name determination", "error", err)
+				return
+			}
+
+			daemonSet, err := clientset.AppsV1().DaemonSets(namespace).Get(context.TODO(), daemonSetName, metav1.GetOptions{})
+			if err != nil {
+				if errors.IsNotFound(err) {
+					// DaemonSet does not exist, create it
+					daemonSetSpec := &appsv1.DaemonSet{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      daemonSetName,
+							Namespace: namespace,
+						},
+						Spec: appsv1.DaemonSetSpec{
+							Selector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{"app": daemonSetName},
+							},
+							Template: corev1.PodTemplateSpec{
+								ObjectMeta: metav1.ObjectMeta{
+									Labels: map[string]string{"app": daemonSetName},
+								},
+								Spec: corev1.PodSpec{
+									Containers: []corev1.Container{
+										{
+											Name:  daemonSetName,
+											Image: ownDeployment.Spec.Template.Spec.Containers[0].Image,
+											Args:  []string{"nodemetrics"},
+											Env: []corev1.EnvVar{
+												{
+													Name: "OWN_NAMESPACE",
+													ValueFrom: &corev1.EnvVarSource{
+														FieldRef: &corev1.ObjectFieldSelector{
+															APIVersion: "v1",
+															FieldPath:  "metadata.namespace",
+														},
+													},
+												},
+												{
+													Name: "OWN_NODE_NAME",
+													ValueFrom: &corev1.EnvVarSource{
+														FieldRef: &corev1.ObjectFieldSelector{
+															APIVersion: "v1",
+															FieldPath:  "spec.nodeName",
+														},
+													},
+												},
+												{
+													Name: "OWN_POD_NAME",
+													ValueFrom: &corev1.EnvVarSource{
+														FieldRef: &corev1.ObjectFieldSelector{
+															APIVersion: "v1",
+															FieldPath:  "metadata.name",
+														},
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					}
+					_, err := clientset.AppsV1().DaemonSets(namespace).Create(context.TODO(), daemonSetSpec, metav1.CreateOptions{})
+					if err != nil {
+						self.logger.Error("failed to create DaemonSet for node-metrics", "error", err)
+						return
+					}
+					self.logger.Info("DaemonSet for node-metrics created successfully", "name", daemonSetName)
+				} else {
+					self.logger.Error("failed to get DaemonSet for node-metrics", "error", err)
+					return
+				}
+			} else {
+				self.logger.Info("DaemonSet for node-metrics already exists", "name", daemonSet.Name)
+			}
 		})
 	} else {
 		go func() {
