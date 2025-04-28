@@ -69,9 +69,8 @@ type SnoopyHandle struct {
 	LastMetricsLock *sync.RWMutex
 	LastMetrics     map[InterfaceName]SnoopyInterfaceMetrics
 
-	Ctx    context.Context
-	Cancel context.CancelFunc
-	Cmd    *exec.Cmd
+	Cmd *exec.Cmd
+	Ctx context.Context
 
 	Stdout chan SnoopyEvent
 	Stderr chan SnoopyLogMessage
@@ -216,6 +215,8 @@ func (self *snoopyManager) Metrics() map[ContainerId]ContainerInfo {
 // Stderr chan SnoopyLogMessage
 
 func (self *snoopyManager) Register(podNamespace string, podName string, containerId ContainerId, pid ProcessId) error {
+	self.logger.Info("snoopy.Register", "podNamespace", podNamespace, "podName", podName, "containerId", containerId, "pid", pid)
+
 	handle, err := self.AttachToPidNamespace(pid)
 	if err != nil {
 		return fmt.Errorf("failed to attach snoopy to containerId(%s) pid(%d): %v", containerId, pid, err)
@@ -228,7 +229,7 @@ func (self *snoopyManager) Register(podNamespace string, podName string, contain
 		for {
 			select {
 			case <-handle.Ctx.Done():
-				break
+				return
 			case logMessage := <-handle.Stderr:
 				switch logMessage.Level {
 				case "DEBUG", "INFO":
@@ -275,11 +276,16 @@ func (self *snoopyManager) Register(podNamespace string, podName string, contain
 
 func (self *snoopyManager) Remove(containerId ContainerId) error {
 	self.handlesLock.Lock()
-	handle := self.handles[containerId]
-	delete(self.handles, containerId)
-	self.handlesLock.Unlock()
-
-	handle.Cancel()
+	defer self.handlesLock.Unlock()
+	handle, ok := self.handles[containerId]
+	if ok {
+		delete(self.handles, containerId)
+		self.logger.Info("snoopy.Remove", "podNamespace", handle.PodNamespace, "podName", handle.PodName, "containerId", containerId)
+		go func() {
+			handle.Cmd.Process.Kill()
+			handle.Cmd.Process.Wait()
+		}()
+	}
 
 	return nil
 }
@@ -318,33 +324,30 @@ func (self *snoopyManager) readTxBytesFromPidAndInterface(pid ProcessId, iface s
 
 func (self *snoopyManager) AttachToPidNamespace(pid ProcessId) (*SnoopyHandle, error) {
 	pidS := strconv.FormatUint(pid, 10)
-	ctx, cancel := context.WithCancel(context.Background())
-	cmd := exec.CommandContext(ctx, "nsenter", "--net=/proc/"+pidS+"/ns/net", "snoopy")
+	cmd := exec.Command("nsenter", "--net=/proc/"+pidS+"/ns/net", "snoopy")
 
 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 	stdoutPipe, err := cmd.StdoutPipe()
 	if err != nil {
-		cancel()
 		return nil, err
 	}
 
 	stderrPipe, err := cmd.StderrPipe()
 	if err != nil {
-		cancel()
 		return nil, err
 	}
 
 	err = cmd.Start()
 	if err != nil {
-		cancel()
 		return nil, err
 	}
 
+	ctx, cancel := context.WithCancel(context.Background())
+
 	snoopy := &SnoopyHandle{}
-	snoopy.Ctx = ctx
-	snoopy.Cancel = cancel
 	snoopy.Cmd = cmd
+	snoopy.Ctx = ctx
 	snoopy.Stdout = make(chan SnoopyEvent)
 	snoopy.Stderr = make(chan SnoopyLogMessage)
 	snoopy.StartBytesLock = &sync.RWMutex{}
@@ -420,6 +423,7 @@ func (self *snoopyManager) AttachToPidNamespace(pid ProcessId) (*SnoopyHandle, e
 				)
 			}
 		}
+		cancel()
 	}()
 
 	go func() {
