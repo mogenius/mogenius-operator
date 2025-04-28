@@ -117,38 +117,19 @@ func (self *nodeMetricsCollector) Orchestrate() {
 										{
 											Name:  daemonSetName,
 											Image: ownDeployment.Spec.Template.Spec.Containers[0].Image,
-											Args:  []string{"nodemetrics"},
-											Env: []corev1.EnvVar{
-												{
-													Name: "OWN_NAMESPACE",
-													ValueFrom: &corev1.EnvVarSource{
-														FieldRef: &corev1.ObjectFieldSelector{
-															APIVersion: "v1",
-															FieldPath:  "metadata.namespace",
-														},
-													},
-												},
-												{
-													Name: "OWN_NODE_NAME",
-													ValueFrom: &corev1.EnvVarSource{
-														FieldRef: &corev1.ObjectFieldSelector{
-															APIVersion: "v1",
-															FieldPath:  "spec.nodeName",
-														},
-													},
-												},
-												{
-													Name: "OWN_POD_NAME",
-													ValueFrom: &corev1.EnvVarSource{
-														FieldRef: &corev1.ObjectFieldSelector{
-															APIVersion: "v1",
-															FieldPath:  "metadata.name",
-														},
-													},
-												},
+											Command: []string{
+												"mogenius-k8s-manager",
+												"nodemetrics",
 											},
+											Env:             ownDeployment.Spec.Template.Spec.Containers[0].Env,
+											SecurityContext: ownDeployment.Spec.Template.Spec.Containers[0].SecurityContext,
+											VolumeMounts:    ownDeployment.Spec.Template.Spec.Containers[0].VolumeMounts,
 										},
 									},
+									DNSPolicy:          corev1.DNSClusterFirstWithHostNet,
+									HostNetwork:        true,
+									ServiceAccountName: "mogenius-operator-service-account-app",
+									Volumes:            ownDeployment.Spec.Template.Spec.Volumes,
 								},
 							},
 						},
