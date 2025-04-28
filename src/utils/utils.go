@@ -21,7 +21,6 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
 
 	"sigs.k8s.io/yaml"
@@ -483,65 +482,4 @@ func ContainsResourceEntry(resources []*SyncResourceEntry, target SyncResourceEn
 		}
 	}
 	return false
-}
-
-func ShouldLoadTrafficCollector(targetVersion string) (bool, error) {
-	var uname syscall.Utsname
-	if err := syscall.Uname(&uname); err != nil {
-		return false, err
-	}
-
-	// Convert byte arrays to strings
-	release := make([]byte, len(uname.Release))
-	for i, c := range uname.Release {
-		if c == 0 {
-			release = release[:i]
-			break
-		}
-		release[i] = byte(c)
-	}
-
-	// Parse current kernel version
-	currentVersion := string(release)
-	currentParts := strings.Split(currentVersion, ".")
-	if len(currentParts) < 2 {
-		return false, fmt.Errorf("unexpected version format")
-	}
-
-	currentMajor, err := strconv.Atoi(currentParts[0])
-	if err != nil {
-		return false, err
-	}
-
-	currentMinor, err := strconv.Atoi(currentParts[1])
-	if err != nil {
-		return false, err
-	}
-
-	// Parse target version
-	targetParts := strings.Split(targetVersion, ".")
-	if len(targetParts) < 2 {
-		return false, fmt.Errorf("unexpected target version format")
-	}
-
-	targetMajor, err := strconv.Atoi(targetParts[0])
-	if err != nil {
-		return false, err
-	}
-
-	targetMinor, err := strconv.Atoi(targetParts[1])
-	if err != nil {
-		return false, err
-	}
-
-	fmt.Printf("Kernel version 6.6 required to run the eBPF TCX module for traffic inspection. Your Kernel: %s\n\n", currentVersion)
-
-	// Compare versions
-	if currentMajor > targetMajor || (currentMajor == targetMajor && currentMinor > targetMinor) {
-		return true, nil
-	} else if currentMajor < targetMajor || (currentMajor == targetMajor && currentMinor < targetMinor) {
-		return false, nil
-	} else {
-		return true, nil
-	}
 }

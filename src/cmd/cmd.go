@@ -41,15 +41,16 @@ import (
 
 var CLI struct {
 	// Commands
-	Clean    struct{}     `cmd:"" help:"remove the operator from the cluster"`
-	Cluster  struct{}     `cmd:"" help:"start the operator"`
-	Config   struct{}     `cmd:"" help:"print application config in ENV format"`
-	Install  struct{}     `cmd:"" help:"install the operator into your cluster"`
-	System   struct{}     `cmd:"" help:"check the system for all required components and offer healing"`
-	Version  struct{}     `cmd:"" help:"print version information" default:"1"`
-	Patterns patternsArgs `cmd:"" help:"print patterns to shell"`
-	Exec     execArgs     `cmd:"" help:"open an interactive shell inside a container"`
-	Logs     logArgs      `cmd:"" help:"retrieve streaming logs of a container"`
+	Clean       struct{}     `cmd:"" help:"remove the operator from the cluster"`
+	Cluster     struct{}     `cmd:"" help:"start the operator"`
+	Nodemetrics struct{}     `cmd:"" help:"start the node metrics collector"`
+	Config      struct{}     `cmd:"" help:"print application config in ENV format"`
+	Install     struct{}     `cmd:"" help:"install the operator into your cluster"`
+	System      struct{}     `cmd:"" help:"check the system for all required components and offer healing"`
+	Version     struct{}     `cmd:"" help:"print version information" default:"1"`
+	Patterns    patternsArgs `cmd:"" help:"print patterns to shell"`
+	Exec        execArgs     `cmd:"" help:"open an interactive shell inside a container"`
+	Logs        logArgs      `cmd:"" help:"retrieve streaming logs of a container"`
 }
 
 func Run() error {
@@ -141,10 +142,10 @@ func Run() error {
 		}
 		return nil
 	case "cluster":
-		err := RunCluster(slogManager, configModule, cmdLogger, channelHandler.GetRecordChannel())
-		if err != nil {
-			return err
-		}
+		RunCluster(slogManager, configModule, cmdLogger, channelHandler.GetRecordChannel())
+		return nil
+	case "nodemetrics":
+		RunNodeMetrics(slogManager, configModule, cmdLogger)
 		return nil
 	case "install":
 		err := RunInstall(slogManager, configModule, cmdLogger, channelHandler.GetRecordChannel())
@@ -502,7 +503,7 @@ func InitializeSystems(
 	valkeyLoggerService := core.NewValkeyLogger(valkeyClient, valkeyLogChannel)
 	dbstatsService := core.NewValkeyStatsModule(logManagerModule.CreateLogger("db-stats"), configModule, valkeyClient)
 	podStatsCollector := core.NewPodStatsCollector(logManagerModule.CreateLogger("pod-stats-collector"), configModule, clientProvider)
-	trafficCollector := core.NewNodeMetricsCollector(logManagerModule.CreateLogger("traffic-collector"), configModule, clientProvider, cpuMonitor, ramMonitor, networkMonitor)
+	nodeMetricsCollector := core.NewNodeMetricsCollector(logManagerModule.CreateLogger("traffic-collector"), configModule, clientProvider, cpuMonitor, ramMonitor, networkMonitor)
 	moKubernetes := core.NewMoKubernetes(logManagerModule.CreateLogger("mokubernetes"), configModule, clientProvider)
 	mocore := core.NewCore(logManagerModule.CreateLogger("core"), configModule, clientProvider, valkeyClient, eventConnectionClient, jobConnectionClient)
 	leaderElector := core.NewLeaderElector(logManagerModule.CreateLogger("leader-elector"), configModule, clientProvider)
@@ -510,7 +511,7 @@ func InitializeSystems(
 	// initialization step 2 for services
 	mocore.Link(moKubernetes)
 	podStatsCollector.Link(dbstatsService)
-	trafficCollector.Link(dbstatsService)
+	nodeMetricsCollector.Link(dbstatsService)
 	socketApi.Link(httpApi, xtermService, dbstatsService, apiModule)
 	httpApi.Link(socketApi, dbstatsService, apiModule)
 	apiModule.Link(workspaceManager)
@@ -531,7 +532,7 @@ func InitializeSystems(
 		xtermService,
 		valkeyLoggerService,
 		podStatsCollector,
-		trafficCollector,
+		nodeMetricsCollector,
 		dbstatsService,
 		leaderElector,
 	}
@@ -553,7 +554,7 @@ type systems struct {
 	xtermService          core.XtermService
 	valkeyLoggerService   core.ValkeyLogger
 	podStatsCollector     core.PodStatsCollector
-	trafficCollector      core.NodeMetricsCollector
+	nodeMetricsCollector  core.NodeMetricsCollector
 	dbstatsService        core.ValkeyStatsDb
 	leaderElector         core.LeaderElector
 }
