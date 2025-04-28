@@ -19,6 +19,8 @@ import (
 
 type Core interface {
 	Initialize() error
+	InitializeClusterSecret()
+	InitializeValkey()
 	Link(
 		moKubernetes MoKubernetes,
 	)
@@ -61,15 +63,12 @@ func (self *core) Link(
 	self.moKubernetes = moKubernetes
 }
 
-func (self *core) Initialize() error {
+func (self *core) InitializeClusterSecret() {
 	clusterSecret, err := self.moKubernetes.CreateOrUpdateClusterSecret()
 	if err != nil {
-		return fmt.Errorf("failed retrieving cluster secret: %s", err)
-	}
-
-	err = self.moKubernetes.CreateOrUpdateResourceTemplateConfigmap()
-	if err != nil {
-		return fmt.Errorf("failed to create resource template configmap: %s", err)
+		self.logger.Error("failed to retrieve cluster secret", "error", err)
+		shutdown.SendShutdownSignal(true)
+		select {}
 	}
 
 	if clusterSecret.ClusterMfaId != "" {
@@ -86,8 +85,9 @@ func (self *core) Initialize() error {
 			self.logger.Debug("failed to set MO_CLUSTER_MFA_ID", "error", err)
 		}
 	}
+}
 
-	// connect valkey
+func (self *core) InitializeValkey() {
 	if !self.config.IsSet("MO_VALKEY_PASSWORD") {
 		valkeyPwd, err := mokubernetes.GetValkeyPwd()
 		if err != nil {
@@ -97,12 +97,15 @@ func (self *core) Initialize() error {
 			self.config.Set("MO_VALKEY_PASSWORD", *valkeyPwd)
 		}
 	}
-	err = self.valkeyClient.Connect()
+	err := self.valkeyClient.Connect()
 	if err != nil {
-		return fmt.Errorf("failed to connect to valkey: %s", err)
+		self.logger.Error("failed to connect to valkey", "error", err)
+		shutdown.SendShutdownSignal(true)
+		select {}
 	}
+}
 
-	// connect to websocket to MO_EVENT_SERVER
+func (self *core) InitializeWebsocketEventServer() {
 	url, err := url.Parse(self.config.Get("MO_EVENT_SERVER"))
 	assert.Assert(err == nil, err)
 	err = self.eventConnectionClient.SetUrl(*url)
@@ -112,7 +115,8 @@ func (self *core) Initialize() error {
 	err = self.eventConnectionClient.Connect()
 	if err != nil {
 		self.logger.Error("Failed to connect to mogenius api server. Aborting.", "url", url.String(), "error", err.Error())
-		return fmt.Errorf("failed to connect to mogenius api server: %s", err)
+		shutdown.SendShutdownSignal(true)
+		select {}
 	}
 	assert.Assert(err == nil, "cant connect to mogenius api server - aborting startup", url.String(), err)
 
@@ -147,9 +151,10 @@ func (self *core) Initialize() error {
 			self.logger.Error("failed to update eventConnectionClient header", "header", header, "error", err)
 		}
 	})
+}
 
-	// connect to websocket to MO_EVENT_SERVER
-	url, err = url.Parse(self.config.Get("MO_API_SERVER"))
+func (self *core) InitializeWebsocketApiServer() {
+	url, err := url.Parse(self.config.Get("MO_API_SERVER"))
 	assert.Assert(err == nil, err)
 	err = self.jobConnectionClient.SetUrl(*url)
 	assert.Assert(err == nil, err)
@@ -194,6 +199,19 @@ func (self *core) Initialize() error {
 			self.logger.Error("failed to update jobConnectionClient header", "header", header, "error", err)
 		}
 	})
+}
+
+func (self *core) Initialize() error {
+	self.InitializeClusterSecret()
+
+	err := self.moKubernetes.CreateOrUpdateResourceTemplateConfigmap()
+	if err != nil {
+		return fmt.Errorf("failed to create resource template configmap: %s", err)
+	}
+
+	self.InitializeValkey()
+	self.InitializeWebsocketEventServer()
+	self.InitializeWebsocketApiServer()
 
 	// INIT MOUNTS
 	autoMountNfs, err := strconv.ParseBool(self.config.Get("MO_AUTO_MOUNT_NFS"))

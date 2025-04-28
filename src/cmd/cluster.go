@@ -28,6 +28,7 @@ func RunCluster(logManagerModule logging.SlogManager, configModule *config.Confi
 		systems.httpApi.Run()
 		systems.socketApi.Run()
 		systems.podStatsCollector.Run()
+		systems.nodeMetricsCollector.Orchestrate()
 		systems.valkeyLoggerService.Run()
 		systems.dbstatsService.Run()
 		systems.leaderElector.Run()
