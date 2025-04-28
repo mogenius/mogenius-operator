@@ -511,7 +511,7 @@ func InitializeSystems(
 	// initialization step 2 for services
 	mocore.Link(moKubernetes)
 	podStatsCollector.Link(dbstatsService)
-	nodeMetricsCollector.Link(dbstatsService)
+	nodeMetricsCollector.Link(dbstatsService, leaderElector)
 	socketApi.Link(httpApi, xtermService, dbstatsService, apiModule)
 	httpApi.Link(socketApi, dbstatsService, apiModule)
 	apiModule.Link(workspaceManager)

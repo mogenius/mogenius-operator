@@ -25,7 +25,7 @@ import (
 
 type NodeMetricsCollector interface {
 	Run()
-	Link(statsDb ValkeyStatsDb)
+	Link(statsDb ValkeyStatsDb, leaderElector LeaderElector)
 	Orchestrate()
 }
 
@@ -61,10 +61,12 @@ func NewNodeMetricsCollector(
 	return self
 }
 
-func (self *nodeMetricsCollector) Link(statsDb ValkeyStatsDb) {
+func (self *nodeMetricsCollector) Link(statsDb ValkeyStatsDb, leaderElector LeaderElector) {
 	assert.Assert(statsDb != nil)
+	assert.Assert(leaderElector != nil)
 
 	self.statsDb = statsDb
+	self.leaderElector = leaderElector
 }
 
 func (self *nodeMetricsCollector) Orchestrate() {
