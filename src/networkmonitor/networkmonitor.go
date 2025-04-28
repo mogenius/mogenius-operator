@@ -152,7 +152,9 @@ func (self *networkMonitor) Run() {
 							continue
 						}
 						pids, ok := nodeContainersWithProcesses[containerId]
-						assert.Assert(ok, "there has to be a list of processes")
+						if !ok {
+							continue
+						}
 						assert.Assert(len(pids) > 0, "every container is expected to have at least 1 active pid")
 						pid := pids[0]
 						err := self.snoopy.Register(pod.Namespace, pod.Name, containerId, pid)

@@ -145,7 +145,7 @@ func Run() error {
 		RunCluster(slogManager, configModule, cmdLogger, channelHandler.GetRecordChannel())
 		return nil
 	case "nodemetrics":
-		RunNodeMetrics(slogManager, configModule, cmdLogger)
+		RunNodeMetrics(slogManager, configModule, cmdLogger, channelHandler.GetRecordChannel())
 		return nil
 	case "install":
 		err := RunInstall(slogManager, configModule, cmdLogger, channelHandler.GetRecordChannel())

@@ -7,7 +7,14 @@ import (
 	"mogenius-k8s-manager/src/shutdown"
 )
 
-func RunNodeMetrics(logManagerModule logging.SlogManager, configModule *config.Config, cmdLogger *slog.Logger) {
+func RunNodeMetrics(logManagerModule logging.SlogManager, configModule *config.Config, cmdLogger *slog.Logger, valkeyLogChannel chan logging.LogLine) {
+	go func() {
+		for {
+			select {
+			case <-valkeyLogChannel:
+			}
+		}
+	}()
 	go func() {
 		defer shutdown.SendShutdownSignal(true)
 		configModule.Validate()
@@ -23,6 +30,7 @@ func RunNodeMetrics(logManagerModule logging.SlogManager, configModule *config.C
 		systems.core.InitializeValkey()
 
 		systems.nodeMetricsCollector.Run()
+
 		select {}
 	}()
 	shutdown.Listen()
