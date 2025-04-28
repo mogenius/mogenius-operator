@@ -8,6 +8,7 @@ import (
 	"mogenius-k8s-manager/src/k8sclient"
 	"mogenius-k8s-manager/src/networkmonitor"
 	"mogenius-k8s-manager/src/rammonitor"
+	"mogenius-k8s-manager/src/shutdown"
 	"os"
 	"os/exec"
 	"strconv"
@@ -78,10 +79,7 @@ func (self *nodeMetricsCollector) Orchestrate() {
 	} else {
 		go func() {
 			bin, err := os.Executable()
-			if err != nil {
-				self.logger.Error("failed to get current executable path", "error", err)
-				return
-			}
+			assert.Assert(err == nil, "failed to get current executable path", err)
 
 			nodemetrics := exec.Command(bin, "nodemetrics")
 			outputBytes, err := nodemetrics.Output()
@@ -91,8 +89,9 @@ func (self *nodeMetricsCollector) Orchestrate() {
 				outputLines := strings.Split(output, "\n")
 				lastLinesStart := max(len(outputLines)-11, 0)
 				lastLines := strings.Join(outputLines[lastLinesStart:], "\n")
-				self.logger.Error("failed to start nodemetrics locally", "output", lastLines, "error", err)
-				return
+				self.logger.Error("failed to run nodemetrics locally", "output", lastLines, "error", err)
+				shutdown.SendShutdownSignal(true)
+				select {}
 			}
 		}()
 	}
