@@ -146,6 +146,11 @@ func (self *nodeMetricsCollector) Orchestrate() {
 													ReadOnly:  true,
 												},
 												{
+													MountPath: "/proc",
+													Name:      "proc",
+													ReadOnly:  true,
+												},
+												{
 													MountPath: "/hostcni",
 													Name:      "cni",
 													ReadOnly:  true,
