@@ -3,6 +3,7 @@ package rammonitor
 import (
 	"log/slog"
 	"mogenius-k8s-manager/src/assert"
+	"mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/k8sclient"
 	"os"
 	"runtime"
@@ -19,6 +20,7 @@ type RamMonitor interface {
 
 type ramMonitor struct {
 	logger         *slog.Logger
+	config         config.ConfigModule
 	clientProvider k8sclient.K8sClientProvider
 
 	collectorStarted atomic.Bool
@@ -27,11 +29,12 @@ type ramMonitor struct {
 	lastMetricsLock sync.RWMutex
 }
 
-func NewRamMonitor(logger *slog.Logger, clientProvider k8sclient.K8sClientProvider) RamMonitor {
+func NewRamMonitor(logger *slog.Logger, config config.ConfigModule, clientProvider k8sclient.K8sClientProvider) RamMonitor {
 	self := &ramMonitor{}
 
 	self.logger = logger
 	self.clientProvider = clientProvider
+	self.config = config
 	self.collectorStarted = atomic.Bool{}
 	self.lastMetrics = RamMetrics{}
 	self.lastMetricsLock = sync.RWMutex{}
@@ -58,7 +61,7 @@ func (self *ramMonitor) startCollector() {
 	}
 	go func() {
 		firstRun := true
-		nodeName := strings.TrimSpace(os.Getenv("OWN_NODE_NAME"))
+		nodeName := self.config.Get("OWN_NODE_NAME")
 		if !self.clientProvider.RunsInCluster() {
 			nodeName = "local"
 		}
