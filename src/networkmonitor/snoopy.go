@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"mogenius-k8s-manager/src/assert"
+	"mogenius-k8s-manager/src/shutdown"
 	"os/exec"
 	"slices"
 	"strconv"
@@ -134,6 +135,20 @@ func NewSnoopyManager(logger *slog.Logger) SnoopyManager {
 	self.logger = logger
 	self.handlesLock = &sync.RWMutex{}
 	self.handles = map[ContainerId]*SnoopyHandle{}
+
+	_, err := exec.LookPath("snoopy")
+	if err != nil {
+		self.logger.Error("failed to find snoopy in PATH")
+		shutdown.SendShutdownSignal(true)
+		select {}
+	}
+
+	_, err = exec.LookPath("nsenter")
+	if err != nil {
+		self.logger.Error("failed to find snoopy in PATH")
+		shutdown.SendShutdownSignal(true)
+		select {}
+	}
 
 	return self
 }
