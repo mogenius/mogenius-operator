@@ -7,7 +7,6 @@ import (
 	"log/slog"
 	"mogenius-k8s-manager/src/k8sclient"
 	"mogenius-k8s-manager/src/logging"
-	"mogenius-k8s-manager/src/secrets"
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/valkeyclient"
 	"net/url"
@@ -100,11 +99,6 @@ type LogEntry struct {
 	Component      string `json:"component"`
 	Message        string `json:"message"`
 	Time           string `json:"time"`
-}
-
-func (p *ScanImageLogConnectionRequest) AddSecretsToRedaction() {
-	secrets.AddSecret(p.ContainerRegistryUser)
-	secrets.AddSecret(p.ContainerRegistryPat)
 }
 
 type ClusterToolConnectionRequest struct {

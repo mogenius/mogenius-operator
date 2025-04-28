@@ -5,9 +5,7 @@ import (
 	"fmt"
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/structs"
-	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/websocket"
-	"strings"
 	"sync"
 
 	v1 "k8s.io/api/core/v1"
@@ -111,100 +109,6 @@ func GetService(namespace string, serviceName string) (*v1.Service, error) {
 	service.APIVersion = "v1"
 
 	return service, err
-}
-
-func UpdateTcpUdpPorts(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, additive bool) {
-	// 1. get configmap and ingress service
-	tcpConfigmap := ConfigMapFor(config.Get("MO_OWN_NAMESPACE"), "mogenius-ingress-nginx-tcp", true)
-	udpConfigmap := ConfigMapFor(config.Get("MO_OWN_NAMESPACE"), "mogenius-ingress-nginx-udp", true)
-	ingControllerService := ServiceFor(config.Get("MO_OWN_NAMESPACE"), "mogenius-ingress-nginx-controller")
-
-	if tcpConfigmap == nil {
-		k8sLogger.Error("ConfigMap for %s/%s not found. Aborting UpdateTcpUdpPorts(). Please check why this ConfigMap does not exist. It is essential.", config.Get("MO_OWN_NAMESPACE"), "mogenius-ingress-nginx-tcp")
-		return
-	}
-
-	if udpConfigmap == nil {
-		k8sLogger.Error("ConfigMap for %s/%s not found. Aborting UpdateTcpUdpPorts(). Please check why this ConfigMap does not exist. It is essential.", config.Get("MO_OWN_NAMESPACE"), "mogenius-ingress-nginx-udp")
-		return
-	}
-
-	if tcpConfigmap.Data == nil {
-		tcpConfigmap.Data = make(map[string]string)
-	}
-	if udpConfigmap.Data == nil {
-		udpConfigmap.Data = make(map[string]string)
-	}
-
-	k8sName := fmt.Sprintf("%s/%s", namespace.Name, service.ControllerName)
-	k8sNameIngresss := fmt.Sprintf("%s-%s", namespace.Name, service.ControllerName)
-
-	// 2. Remove all entries for this service
-	for cmKey, cmValue := range tcpConfigmap.Data {
-		if strings.HasPrefix(cmValue, k8sName) {
-			delete(tcpConfigmap.Data, cmKey)
-		}
-	}
-	for cmKey, cmValue := range udpConfigmap.Data {
-		if strings.HasPrefix(cmValue, k8sName) {
-			delete(udpConfigmap.Data, cmKey)
-		}
-	}
-	for index, port := range ingControllerService.Spec.Ports {
-		if strings.HasPrefix(port.Name, k8sNameIngresss) {
-			ingControllerService.Spec.Ports = utils.Remove(ingControllerService.Spec.Ports, index)
-		}
-	}
-
-	// 3. Add all entries for this servive
-	if additive {
-		for _, port := range service.Ports {
-			if port.Expose {
-				updated := false
-				if port.PortType == dtos.PortTypeTCP {
-					tcpConfigmap.Data[fmt.Sprint(port.ExternalPort)] = fmt.Sprintf("%s:%s", k8sName, port.InternalPort)
-					updated = true
-				}
-				if port.PortType == dtos.PortTypeUDP {
-					udpConfigmap.Data[fmt.Sprint(port.ExternalPort)] = fmt.Sprintf("%s:%s", k8sName, port.InternalPort)
-					updated = true
-				}
-
-				if updated {
-					ingControllerService.Spec.Ports = append(ingControllerService.Spec.Ports, v1.ServicePort{
-						Name:       fmt.Sprintf("%s-%s", k8sNameIngresss, port.ExternalPort),
-						Protocol:   v1.Protocol(port.PortType),
-						Port:       intstr.Parse(port.ExternalPort).IntVal,
-						TargetPort: intstr.Parse(port.ExternalPort),
-					})
-				}
-			}
-		}
-	}
-
-	// 4. write results to k8s
-	tcpErr := UpdateK8sConfigMap(*tcpConfigmap)
-	if tcpErr != nil {
-		k8sLogger.Error("UpdateK8sConfigMap", "error", tcpErr)
-	}
-	udpErr := UpdateK8sConfigMap(*udpConfigmap)
-	if udpErr != nil {
-		k8sLogger.Error("UpdateK8sConfigMap", "error", udpErr)
-	}
-	ingContrErr := UpdateK8sService(*ingControllerService)
-	if ingContrErr != nil {
-		k8sLogger.Error("UpdateK8sConfigMap", "error", ingContrErr)
-	}
-}
-
-func UpdateK8sService(data v1.Service) error {
-	clientset := clientProvider.K8sClientSet()
-	client := clientset.CoreV1().Services(data.ObjectMeta.Namespace)
-	_, err := client.Update(context.TODO(), &data, metav1.UpdateOptions{})
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 func generateService(existingService *v1.Service, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto) v1.Service {

@@ -363,26 +363,6 @@ func createCronJobHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sServic
 	return objectMeta, &SpecCronJob{spec, previousSpec}, &newCronJob, nil
 }
 
-func UpdateCronjobImage(namespaceName string, controllerName string, containerName string, imageName string) error {
-	clientset := clientProvider.K8sClientSet()
-	client := clientset.BatchV1().CronJobs(namespaceName)
-	crontjobToUpdate, err := client.Get(context.TODO(), controllerName, metav1.GetOptions{})
-	if err != nil {
-		return err
-	}
-
-	// SET NEW IMAGE
-	for index, container := range crontjobToUpdate.Spec.JobTemplate.Spec.Template.Spec.Containers {
-		if container.Name == containerName {
-			crontjobToUpdate.Spec.JobTemplate.Spec.Template.Spec.Containers[index].Image = imageName
-		}
-	}
-	// crontjobToUpdate.Spec.Suspend = utils.Pointer(false)
-
-	_, err = client.Update(context.TODO(), crontjobToUpdate, metav1.UpdateOptions{})
-	return err
-}
-
 func GetCronJob(namespaceName string, controllerName string) (*apibatchv1.CronJob, error) {
 	clientset := clientProvider.K8sClientSet()
 	client := clientset.BatchV1().CronJobs(namespaceName)

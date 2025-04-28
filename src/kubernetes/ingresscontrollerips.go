@@ -7,32 +7,10 @@ package kubernetes
 
 import (
 	"context"
-	"net"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
-
-func GetIngressControllerIps(useLocalKubeConfig bool) []net.IP {
-	var result []net.IP
-	labelSelector := "app.kubernetes.io/component=controller,app.kubernetes.io/instance=nginx-ingress,app.kubernetes.io/name=ingress-nginx"
-
-	clientset := clientProvider.K8sClientSet()
-	pods, err := clientset.CoreV1().Pods("").List(context.TODO(), metav1.ListOptions{LabelSelector: labelSelector})
-
-	for _, pod := range pods.Items {
-		ip := net.ParseIP(pod.Status.PodIP)
-		if ip != nil {
-			result = append(result, ip)
-		}
-	}
-
-	if err != nil {
-		k8sLogger.Error(err.Error())
-		return result
-	}
-	return result
-}
 
 func GetClusterExternalIps() []string {
 	var result []string = []string{}

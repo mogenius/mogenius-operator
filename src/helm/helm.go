@@ -365,17 +365,6 @@ func NewCli() *cli.EnvSettings {
 	return settings
 }
 
-func NewCliConfArgs() []string {
-	return []string{
-		"--registry-config",
-		registryConfig,
-		"--repository-config",
-		repositoryConfig,
-		"--repository-cache",
-		repositoryCache,
-	}
-}
-
 func HelmRepoAdd(data HelmRepoAddRequest) (string, error) {
 	settings := NewCli()
 

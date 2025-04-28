@@ -49,11 +49,6 @@ func ConnectToJobQueue(jobClient websocket.WebsocketClient) {
 	}
 }
 
-func JobServerSendData(jobClient websocket.WebsocketClient, datagram Datagram) {
-	jobDataQueue = append(jobDataQueue, datagram)
-	processJobNow(jobClient)
-}
-
 func processJobNow(jobClient websocket.WebsocketClient) {
 	jobSendMutex.Lock()
 	defer jobSendMutex.Unlock()

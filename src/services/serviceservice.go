@@ -91,23 +91,6 @@ func DeleteService(eventClient websocket.WebsocketClient, r ServiceDeleteRequest
 	return job
 }
 
-func UpdateSecrets(eventClient websocket.WebsocketClient, r ServiceUpdateRequest) interface{} {
-	var wg sync.WaitGroup
-	job := structs.CreateJob(eventClient, "Update Secrets "+r.Project.DisplayName+"/"+r.Namespace.DisplayName, r.Project.Id, r.Namespace.Name, r.Service.ControllerName)
-	job.Start(eventClient)
-
-	mokubernetes.UpdateOrCreateControllerSecret(eventClient, job, r.Namespace, r.Service, &wg)
-	mokubernetes.CreateOrUpdateClusterImagePullSecret(eventClient, job, r.Project, r.Namespace, &wg)
-	mokubernetes.CreateOrUpdateContainerImagePullSecret(eventClient, job, r.Namespace, r.Service, &wg)
-
-	go func() {
-		wg.Wait()
-		job.Finish(eventClient)
-	}()
-
-	return job
-}
-
 // func SetImage(r ServiceSetImageRequest) interface{} {
 // 	var wg sync.WaitGroup
 // 	job := structs.CreateJob("Set new image for service "+r.ServiceDisplayName, r.ProjectId, &r.NamespaceId, &r.ServiceId)
