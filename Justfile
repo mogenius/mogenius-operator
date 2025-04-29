@@ -21,7 +21,7 @@ build: generate
         -X 'mogenius-k8s-manager/src/version.GitCommitHash=$(git rev-parse --short HEAD)' \
         -X 'mogenius-k8s-manager/src/version.Branch=$(git branch | grep \* | cut -d ' ' -f2 | tr '[:upper:]' '[:lower:]')' \
         -X 'mogenius-k8s-manager/src/version.BuildTimestamp=$(date -Iseconds)' \
-        -X 'mogenius-k8s-manager/src/version.Ver=$(git describe --tags $(git rev-list --tags --max-count=1))'" -o dist/native/mogenius-k8s-manager ./src/main.go
+        -X 'mogenius-k8s-manager/src/version.Ver=$(git describe --tags $(git rev-list --tags --max-count=1))+dev'" -o dist/native/mogenius-k8s-manager ./src/main.go
     dist/native/mogenius-k8s-manager patterns --output=yaml > generated/spec.yaml
     dist/native/mogenius-k8s-manager patterns --output=typescript > generated/client.ts
 
@@ -35,7 +35,7 @@ build-linux-amd64:
         -X 'mogenius-k8s-manager/src/version.GitCommitHash=$(git rev-parse --short HEAD)' \
         -X 'mogenius-k8s-manager/src/version.Branch=$(git branch | grep \* | cut -d ' ' -f2 | tr '[:upper:]' '[:lower:]')' \
         -X 'mogenius-k8s-manager/src/version.BuildTimestamp=$(date -Iseconds)' \
-        -X 'mogenius-k8s-manager/src/version.Ver=$(git describe --tags $(git rev-list --tags --max-count=1))'" -o dist/amd64/mogenius-k8s-manager ./src/main.go
+        -X 'mogenius-k8s-manager/src/version.Ver=$(git describe --tags $(git rev-list --tags --max-count=1))+dev'" -o dist/amd64/mogenius-k8s-manager ./src/main.go
 
 # Build docker image for target linux-amd64
 build-docker-linux-amd64:
@@ -64,7 +64,7 @@ build-linux-arm64:
         -X 'mogenius-k8s-manager/src/version.GitCommitHash=$(git rev-parse --short HEAD)' \
         -X 'mogenius-k8s-manager/src/version.Branch=$(git branch | grep \* | cut -d ' ' -f2 | tr '[:upper:]' '[:lower:]')' \
         -X 'mogenius-k8s-manager/src/version.BuildTimestamp=$(date -Iseconds)' \
-        -X 'mogenius-k8s-manager/src/version.Ver=$(git describe --tags $(git rev-list --tags --max-count=1))'" -o dist/arm64/mogenius-k8s-manager ./src/main.go
+        -X 'mogenius-k8s-manager/src/version.Ver=$(git describe --tags $(git rev-list --tags --max-count=1))+dev'" -o dist/arm64/mogenius-k8s-manager ./src/main.go
 
 # Build docker image for target linux-arm64
 build-docker-linux-arm64:
@@ -93,7 +93,7 @@ build-linux-armv7:
         -X 'mogenius-k8s-manager/src/version.GitCommitHash=$(git rev-parse --short HEAD)' \
         -X 'mogenius-k8s-manager/src/version.Branch=$(git branch | grep \* | cut -d ' ' -f2 | tr '[:upper:]' '[:lower:]')' \
         -X 'mogenius-k8s-manager/src/version.BuildTimestamp=$(date -Iseconds)' \
-        -X 'mogenius-k8s-manager/src/version.Ver=$(git describe --tags $(git rev-list --tags --max-count=1))'" -o dist/armv7/mogenius-k8s-manager ./src/main.go
+        -X 'mogenius-k8s-manager/src/version.Ver=$(git describe --tags $(git rev-list --tags --max-count=1))+dev'" -o dist/armv7/mogenius-k8s-manager ./src/main.go
 
 # Build docker image for target linux-armv7
 build-docker-linux-armv7:
