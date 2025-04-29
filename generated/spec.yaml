@@ -50,6 +50,7 @@ ClusterResourceInfo:
                     kubletVersion:
                         type: string
                     machineStats:
+                        pointer: true
                         structRef: mogenius-k8s-manager/src/structs.MachineStats
                         type: struct
                     maschineId:
