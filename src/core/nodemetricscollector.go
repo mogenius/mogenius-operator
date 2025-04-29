@@ -112,112 +112,112 @@ func (self *nodeMetricsCollector) Orchestrate() {
 			}
 
 			daemonSet, err := clientset.AppsV1().DaemonSets(namespace).Get(context.TODO(), daemonSetName, metav1.GetOptions{})
+			daemonSetSpec := &appsv1.DaemonSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      daemonSetName,
+					Namespace: namespace,
+				},
+				Spec: appsv1.DaemonSetSpec{
+					Selector: &metav1.LabelSelector{
+						MatchLabels: map[string]string{"app": daemonSetName},
+					},
+					Template: corev1.PodTemplateSpec{
+						ObjectMeta: metav1.ObjectMeta{
+							Labels: map[string]string{"app": daemonSetName},
+							OwnerReferences: []metav1.OwnerReference{
+								{
+									APIVersion: ownDeployment.APIVersion,
+									Kind:       ownDeployment.Kind,
+									Name:       ownDeployment.GetName(),
+									UID:        ownDeployment.GetUID(),
+									Controller: ptr.To(true),
+								},
+							},
+						},
+						Spec: corev1.PodSpec{
+							Containers: []corev1.Container{
+								{
+									Name:  daemonSetName,
+									Image: ownDeployment.Spec.Template.Spec.Containers[0].Image,
+									Command: []string{
+										"mogenius-k8s-manager",
+										"nodemetrics",
+									},
+									Env: ownDeployment.Spec.Template.Spec.Containers[0].Env,
+									SecurityContext: &corev1.SecurityContext{
+										Capabilities: &corev1.Capabilities{
+											Add: []corev1.Capability{
+												"NET_RAW",
+												"NET_ADMIN",
+												"SYS_ADMIN",
+												"SYS_PTRACE",
+												"DAC_OVERRIDE",
+												"SYS_RESOURCE",
+											},
+										},
+										Privileged:             ptr.To(true),
+										ReadOnlyRootFilesystem: ptr.To(true),
+									},
+									VolumeMounts: []corev1.VolumeMount{
+										{
+											MountPath: "/hostproc",
+											Name:      "proc",
+											ReadOnly:  true,
+										},
+										{
+											MountPath: "/proc",
+											Name:      "proc",
+											ReadOnly:  true,
+										},
+										{
+											MountPath: "/hostcni",
+											Name:      "cni",
+											ReadOnly:  true,
+										},
+										{
+											MountPath: "/sys",
+											Name:      "sys",
+											ReadOnly:  true,
+										},
+									},
+								},
+							},
+							DNSPolicy:          corev1.DNSClusterFirstWithHostNet,
+							HostNetwork:        true,
+							ServiceAccountName: "mogenius-operator-service-account-app",
+							Volumes: []corev1.Volume{
+								{
+									Name: "proc",
+									VolumeSource: corev1.VolumeSource{
+										HostPath: &corev1.HostPathVolumeSource{
+											Path: "/proc",
+										},
+									},
+								},
+								{
+									Name: "cni",
+									VolumeSource: corev1.VolumeSource{
+										HostPath: &corev1.HostPathVolumeSource{
+											Path: "/etc/cni/net.d",
+										},
+									},
+								},
+								{
+									Name: "sys",
+									VolumeSource: corev1.VolumeSource{
+										HostPath: &corev1.HostPathVolumeSource{
+											Path: "/sys",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			}
 			if err != nil {
 				if k8sErrors.IsNotFound(err) {
-					// DaemonSet does not exist, create it
-					daemonSetSpec := &appsv1.DaemonSet{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      daemonSetName,
-							Namespace: namespace,
-						},
-						Spec: appsv1.DaemonSetSpec{
-							Selector: &metav1.LabelSelector{
-								MatchLabels: map[string]string{"app": daemonSetName},
-							},
-							Template: corev1.PodTemplateSpec{
-								ObjectMeta: metav1.ObjectMeta{
-									Labels: map[string]string{"app": daemonSetName},
-									OwnerReferences: []metav1.OwnerReference{
-										{
-											APIVersion: ownDeployment.APIVersion,
-											Kind:       ownDeployment.Kind,
-											Name:       ownDeployment.GetName(),
-											UID:        ownDeployment.GetUID(),
-											Controller: ptr.To(true),
-										},
-									},
-								},
-								Spec: corev1.PodSpec{
-									Containers: []corev1.Container{
-										{
-											Name:  daemonSetName,
-											Image: ownDeployment.Spec.Template.Spec.Containers[0].Image,
-											Command: []string{
-												"mogenius-k8s-manager",
-												"nodemetrics",
-											},
-											Env: ownDeployment.Spec.Template.Spec.Containers[0].Env,
-											SecurityContext: &corev1.SecurityContext{
-												Capabilities: &corev1.Capabilities{
-													Add: []corev1.Capability{
-														"NET_RAW",
-														"NET_ADMIN",
-														"SYS_ADMIN",
-														"SYS_PTRACE",
-														"DAC_OVERRIDE",
-														"SYS_RESOURCE",
-													},
-												},
-												Privileged:             ptr.To(true),
-												ReadOnlyRootFilesystem: ptr.To(true),
-											},
-											VolumeMounts: []corev1.VolumeMount{
-												{
-													MountPath: "/hostproc",
-													Name:      "proc",
-													ReadOnly:  true,
-												},
-												{
-													MountPath: "/proc",
-													Name:      "proc",
-													ReadOnly:  true,
-												},
-												{
-													MountPath: "/hostcni",
-													Name:      "cni",
-													ReadOnly:  true,
-												},
-												{
-													MountPath: "/sys",
-													Name:      "sys",
-													ReadOnly:  true,
-												},
-											},
-										},
-									},
-									DNSPolicy:          corev1.DNSClusterFirstWithHostNet,
-									HostNetwork:        true,
-									ServiceAccountName: "mogenius-operator-service-account-app",
-									Volumes: []corev1.Volume{
-										{
-											Name: "proc",
-											VolumeSource: corev1.VolumeSource{
-												HostPath: &corev1.HostPathVolumeSource{
-													Path: "/proc",
-												},
-											},
-										},
-										{
-											Name: "cni",
-											VolumeSource: corev1.VolumeSource{
-												HostPath: &corev1.HostPathVolumeSource{
-													Path: "/etc/cni/net.d",
-												},
-											},
-										},
-										{
-											Name: "sys",
-											VolumeSource: corev1.VolumeSource{
-												HostPath: &corev1.HostPathVolumeSource{
-													Path: "/sys",
-												},
-											},
-										},
-									},
-								},
-							},
-						},
-					}
+					// CREATE
 					_, err := clientset.AppsV1().DaemonSets(namespace).Create(context.TODO(), daemonSetSpec, metav1.CreateOptions{})
 					if err != nil {
 						self.logger.Error("failed to create DaemonSet for node-metrics", "error", err)
@@ -229,7 +229,13 @@ func (self *nodeMetricsCollector) Orchestrate() {
 					return
 				}
 			} else {
-				self.logger.Info("DaemonSet for node-metrics already exists", "name", daemonSet.Name)
+				// UPDATE
+				_, err := clientset.AppsV1().DaemonSets(namespace).Update(context.TODO(), daemonSetSpec, metav1.UpdateOptions{})
+				if err != nil {
+					self.logger.Error("failed to update DaemonSet for node-metrics", "error", err)
+					return
+				}
+				self.logger.Info("DaemonSet for node-metrics already exists. Updating DaemonSet because of possible changes", "name", daemonSet.Name)
 			}
 		})
 	} else {
