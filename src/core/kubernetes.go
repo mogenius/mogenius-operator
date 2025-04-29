@@ -315,7 +315,6 @@ func (self *moKubernetes) GetNodeStats() []dtos.NodeStat {
 			Architecture:           node.Status.NodeInfo.Architecture,
 		}
 		result = append(result, nodeStat)
-		//nodeStat.PrintPretty()
 	}
 
 	return result

@@ -3,7 +3,7 @@ FROM quay.io/clastix/kubectl:v1.33.0 AS kubectl
 
 FROM ubuntu:noble AS build-env
 
-ENV SNOOPY_VERSION=v0.0.9
+ENV SNOOPY_VERSION=v0.0.10
 
 COPY --from=golang /usr/local/go /usr/local/go
 COPY --from=kubectl /usr/local/bin/kubectl /usr/local/bin/kubectl
