@@ -290,7 +290,8 @@ func (self *moKubernetes) GetNodeStats() []dtos.NodeStat {
 
 		machineStats, err := self.valkeyStatsDb.GetMachineStatsForNode(node.Name)
 		if err != nil {
-			continue
+			machineStats = nil
+			self.logger.Warn("failed to get machines stats for node", "node", node.Name, "error", err)
 		}
 
 		nodeStat := dtos.NodeStat{
@@ -300,7 +301,7 @@ func (self *moKubernetes) GetNodeStats() []dtos.NodeStat {
 			CpuInCoresUtilized:     utilizedCores,
 			CpuInCoresRequested:    requestCpuCores,
 			CpuInCoresLimited:      limitCpuCores,
-			MachineStats:           *machineStats,
+			MachineStats:           machineStats,
 			MemoryInBytes:          mem,
 			MemoryInBytesUtilized:  utilizedMemory,
 			MemoryInBytesRequested: requestMemoryBytes,
@@ -318,5 +319,6 @@ func (self *moKubernetes) GetNodeStats() []dtos.NodeStat {
 		result = append(result, nodeStat)
 		//nodeStat.PrintPretty()
 	}
+
 	return result
 }
