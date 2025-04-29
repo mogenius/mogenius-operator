@@ -512,7 +512,8 @@ func InitializeSystems(
 	mocore.Link(moKubernetes)
 	podStatsCollector.Link(dbstatsService)
 	nodeMetricsCollector.Link(dbstatsService, leaderElector)
-	socketApi.Link(httpApi, xtermService, dbstatsService, apiModule)
+	socketApi.Link(httpApi, xtermService, dbstatsService, apiModule, moKubernetes)
+	moKubernetes.Link(dbstatsService)
 	httpApi.Link(socketApi, dbstatsService, apiModule)
 	apiModule.Link(workspaceManager)
 
