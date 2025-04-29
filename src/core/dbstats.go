@@ -16,15 +16,16 @@ import (
 )
 
 const (
-	DB_STATS_TRAFFIC_BUCKET_NAME    = "traffic-stats"
-	DB_STATS_POD_STATS_BUCKET_NAME  = "pod-stats"
-	DB_STATS_NODE_STATS_BUCKET_NAME = "node-stats"
-	DB_STATS_SOCKET_STATS_BUCKET    = "socket-stats"
-	DB_STATS_CNI_BUCKET_NAME        = "cluster-cni-configuration"
-	DB_STATS_LIVE_BUCKET_NAME       = "live-stats"
-	DB_STATS_TRAFFIC_NAME           = "traffic"
-	DB_STATS_CPU_NAME               = "cpu"
-	DB_STATS_MEMORY_NAME            = "memory"
+	DB_STATS_TRAFFIC_BUCKET_NAME       = "traffic-stats"
+	DB_STATS_POD_STATS_BUCKET_NAME     = "pod-stats"
+	DB_STATS_NODE_STATS_BUCKET_NAME    = "node-stats"
+	DB_STATS_MACHINE_STATS_BUCKET_NAME = "machine-stats"
+	DB_STATS_SOCKET_STATS_BUCKET       = "socket-stats"
+	DB_STATS_CNI_BUCKET_NAME           = "cluster-cni-configuration"
+	DB_STATS_LIVE_BUCKET_NAME          = "live-stats"
+	DB_STATS_TRAFFIC_NAME              = "traffic"
+	DB_STATS_CPU_NAME                  = "cpu"
+	DB_STATS_MEMORY_NAME               = "memory"
 )
 
 var DefaultMaxSize int64 = 60 * 24 * 7
@@ -34,6 +35,7 @@ type ValkeyStatsDb interface {
 	Run()
 	AddInterfaceStatsToDb(stats []networkmonitor.PodNetworkStats)
 	AddNodeStatsToDb(stats []structs.NodeStats) error
+	AddMachineStatsToDb(nodeName string, stats structs.MachineStats) error
 	AddPodStatsToDb(stats []structs.PodStats) error
 	AddNodeRamMetricsToDb(nodeName string, data interface{}) error
 	AddNodeCpuMetricsToDb(nodeName string, data interface{}) error
@@ -41,6 +43,7 @@ type ValkeyStatsDb interface {
 	GetCniData() ([]structs.CniData, error)
 	GetLastPodStatsEntriesForNamespace(namespace string) []structs.PodStats
 	GetLastPodStatsEntryForController(controller kubernetes.K8sController) *structs.PodStats
+	GetMachineStatsForNode(nodeName string) (*structs.MachineStats, error)
 	GetPodStatsEntriesForController(kind string, name string, namespace string, timeOffsetMinutes int64) *[]structs.PodStats
 	GetPodStatsEntriesForNamespace(namespace string) *[]structs.PodStats
 	GetSocketConnectionsForController(controller kubernetes.K8sController) *structs.SocketConnections
@@ -80,6 +83,22 @@ func (self *valkeyStatsDb) Run() {
 	if err != nil {
 		self.logger.Error("Error dropping all pod events from valkey", "error", err)
 	}
+}
+
+func (self *valkeyStatsDb) AddMachineStatsToDb(nodeName string, stats structs.MachineStats) error {
+	return self.valkey.SetObject(stats, 0, DB_STATS_MACHINE_STATS_BUCKET_NAME, nodeName)
+}
+
+func (self *valkeyStatsDb) GetMachineStatsForNode(nodeName string) (*structs.MachineStats, error) {
+	data, err := self.valkey.GetObject(DB_STATS_MACHINE_STATS_BUCKET_NAME, nodeName)
+	if err != nil {
+		return nil, err
+	}
+	machineStats, ok := data.(structs.MachineStats)
+	if !ok {
+		return nil, fmt.Errorf("failed to cast data as MachineStats")
+	}
+	return &machineStats, nil
 }
 
 func (self *valkeyStatsDb) AddInterfaceStatsToDb(stats []networkmonitor.PodNetworkStats) {

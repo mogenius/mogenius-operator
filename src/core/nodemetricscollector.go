@@ -13,6 +13,7 @@ import (
 	"mogenius-k8s-manager/src/networkmonitor"
 	"mogenius-k8s-manager/src/rammonitor"
 	"mogenius-k8s-manager/src/shutdown"
+	"mogenius-k8s-manager/src/structs"
 	"os"
 	"os/exec"
 	"strconv"
@@ -68,8 +69,8 @@ func NewNodeMetricsCollector(
 	self.networkMonitor = networkMonitor
 
 	self.btfAvailable = true
-	if _, err := os.Stat("/sys/kernel/btf/vmlinux"); errors.Is(err, os.ErrNotExist) {
-		self.logger.Warn("The Linux Kernel does not support BTF.")
+	if _, err := os.Stat("/sys/kernel/btf"); errors.Is(err, os.ErrNotExist) {
+		self.logger.Warn("This machines linux kernel does not support BTF.")
 		self.btfAvailable = false
 	}
 
@@ -302,6 +303,17 @@ func (self *nodeMetricsCollector) Run() {
 	}
 	assert.Assert(nodeName != "")
 
+	// node-stats monitor
+	go func() {
+		for {
+			machinestats := structs.MachineStats{
+				BtfSupport: self.btfAvailable,
+			}
+			self.statsDb.AddMachineStatsToDb(nodeName, machinestats)
+			time.Sleep(1 * time.Minute)
+		}
+	}()
+
 	// network monitor
 	go func() {
 		if self.btfAvailable {
@@ -324,8 +336,8 @@ func (self *nodeMetricsCollector) Run() {
 				}
 			}()
 		} else {
-			self.logger.Warn("Missing BTF Support. Network Monitoring is not available.")
 			// TODO: fallback to use something else?
+			self.logger.Warn("Missing BTF Support: Network Monitoring is not available.")
 		}
 	}()
 

@@ -2,8 +2,11 @@ package core
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
+	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/config"
+	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/k8sclient"
 	"mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/utils"
@@ -14,20 +17,25 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	v1metrics "k8s.io/metrics/pkg/apis/metrics/v1beta1"
 	"sigs.k8s.io/yaml"
 )
 
 type MoKubernetes interface {
 	Run()
+	Link(valkeyStatsDb ValkeyStatsDb)
 	GetAvailableResources() ([]utils.SyncResourceEntry, error)
 	CreateOrUpdateClusterSecret() (utils.ClusterSecret, error)
 	CreateOrUpdateResourceTemplateConfigmap() error
+	GetNodeStats() []dtos.NodeStat
 }
 
 type moKubernetes struct {
 	logger         *slog.Logger
 	config         config.ConfigModule
 	clientProvider k8sclient.K8sClientProvider
+
+	valkeyStatsDb ValkeyStatsDb
 }
 
 func NewMoKubernetes(
@@ -45,6 +53,12 @@ func NewMoKubernetes(
 }
 
 func (self *moKubernetes) Run() {}
+
+func (self *moKubernetes) Link(valkeyStatsDb ValkeyStatsDb) {
+	assert.Assert(valkeyStatsDb != nil)
+
+	self.valkeyStatsDb = valkeyStatsDb
+}
 
 func (self *moKubernetes) CreateOrUpdateClusterSecret() (utils.ClusterSecret, error) {
 	clientset := self.clientProvider.K8sClientSet()
@@ -224,4 +238,85 @@ func (self *moKubernetes) removeManagedFields(obj *unstructured.Unstructured) *u
 	}
 
 	return obj
+}
+
+func (self *moKubernetes) GetNodeStats() []dtos.NodeStat {
+	result := []dtos.NodeStat{}
+	nodes := kubernetes.ListNodes()
+	nodeMetrics := kubernetes.ListNodeMetricss()
+
+	for _, node := range nodes {
+		allPods := kubernetes.AllPodsOnNode(node.Name)
+		requestCpuCores, limitCpuCores := kubernetes.SumCpuResources(allPods)
+		requestMemoryBytes, limitMemoryBytes := kubernetes.SumMemoryResources(allPods)
+
+		utilizedCores := float64(0)
+		utilizedMemory := int64(0)
+		if len(nodeMetrics) > 0 {
+			// Find the corresponding node metrics
+			var nodeMetric *v1metrics.NodeMetrics
+			for _, nm := range nodeMetrics {
+				if nm.Name == node.Name {
+					nodeMetric = &nm
+					break
+				}
+			}
+			if nodeMetric == nil {
+				self.logger.Error("Failed to find node metrics for node", "node.name", node.Name)
+				continue
+			}
+
+			// CPU
+			cpuUsage, works := nodeMetric.Usage.Cpu().AsDec().Unscaled()
+			if !works {
+				self.logger.Error("Failed to get CPU usage for node", "node.name", node.Name)
+			}
+			if cpuUsage == 0 {
+				cpuUsage = 1
+			}
+			utilizedCores = float64(cpuUsage) / 1000000000
+
+			// Memory
+			utilizedMemory, works = nodeMetric.Usage.Memory().AsInt64()
+			if !works {
+				self.logger.Error("Failed to get MEMORY usage for node", "node.name", node.Name)
+			}
+		}
+
+		mem, _ := node.Status.Capacity.Memory().AsInt64()
+		cpu, _ := node.Status.Capacity.Cpu().AsInt64()
+		maxPods, _ := node.Status.Capacity.Pods().AsInt64()
+		ephemeral, _ := node.Status.Capacity.StorageEphemeral().AsInt64()
+
+		machineStats, err := self.valkeyStatsDb.GetMachineStatsForNode(node.Name)
+		if err != nil {
+			continue
+		}
+
+		nodeStat := dtos.NodeStat{
+			Name:                   node.Name,
+			MaschineId:             node.Status.NodeInfo.MachineID,
+			CpuInCores:             cpu,
+			CpuInCoresUtilized:     utilizedCores,
+			CpuInCoresRequested:    requestCpuCores,
+			CpuInCoresLimited:      limitCpuCores,
+			MachineStats:           *machineStats,
+			MemoryInBytes:          mem,
+			MemoryInBytesUtilized:  utilizedMemory,
+			MemoryInBytesRequested: requestMemoryBytes,
+			MemoryInBytesLimited:   limitMemoryBytes,
+			EphemeralInBytes:       ephemeral,
+			MaxPods:                maxPods,
+			TotalPods:              int64(len(allPods)),
+			KubletVersion:          node.Status.NodeInfo.KubeletVersion,
+			OsType:                 node.Status.NodeInfo.OperatingSystem,
+			OsImage:                node.Status.NodeInfo.OSImage,
+			OsKernelVersion:        node.Status.NodeInfo.KernelVersion,
+			Architecture:           node.Status.NodeInfo.Architecture,
+		}
+		fmt.Printf("%#v\n", nodeStat)
+		result = append(result, nodeStat)
+		//nodeStat.PrintPretty()
+	}
+	return result
 }

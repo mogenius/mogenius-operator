@@ -49,6 +49,9 @@ ClusterResourceInfo:
                         type: int
                     kubletVersion:
                         type: string
+                    machineStats:
+                        structRef: mogenius-k8s-manager/src/structs.MachineStats
+                        type: struct
                     maschineId:
                         type: string
                     maxPods:
@@ -102,6 +105,11 @@ ClusterResourceInfo:
                 properties:
                     type:
                         type: string
+            mogenius-k8s-manager/src/structs.MachineStats:
+                name: mogenius-k8s-manager/src/structs.MachineStats
+                properties:
+                    btfSupport:
+                        type: bool
             mogenius-k8s-manager/src/structs.Plugin:
                 name: mogenius-k8s-manager/src/structs.Plugin
                 properties:

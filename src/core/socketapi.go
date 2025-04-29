@@ -44,7 +44,13 @@ import (
 )
 
 type SocketApi interface {
-	Link(httpService HttpService, xtermService XtermService, dbstatsModule ValkeyStatsDb, apiService Api)
+	Link(
+		httpService HttpService,
+		xtermService XtermService,
+		dbstatsModule ValkeyStatsDb,
+		apiService Api,
+		moKubernetes MoKubernetes,
+	)
 	Run()
 	ExecuteCommandRequest(datagram structs.Datagram) interface{}
 	ParseDatagram(data []byte) (structs.Datagram, error)
@@ -79,6 +85,7 @@ type socketApi struct {
 	httpService        HttpService
 	xtermService       XtermService
 	apiService         Api
+	moKubernetes       MoKubernetes
 }
 
 type PatternHandler struct {
@@ -114,16 +121,24 @@ func NewSocketApi(
 	return self
 }
 
-func (self *socketApi) Link(httpService HttpService, xtermService XtermService, dbstatsModule ValkeyStatsDb, apiService Api) {
+func (self *socketApi) Link(
+	httpService HttpService,
+	xtermService XtermService,
+	dbstatsModule ValkeyStatsDb,
+	apiService Api,
+	moKubernetes MoKubernetes,
+) {
 	assert.Assert(apiService != nil)
 	assert.Assert(httpService != nil)
 	assert.Assert(xtermService != nil)
 	assert.Assert(dbstatsModule != nil)
+	assert.Assert(moKubernetes != nil)
 
 	self.apiService = apiService
 	self.httpService = httpService
 	self.xtermService = xtermService
 	self.dbstats = dbstatsModule
+	self.moKubernetes = moKubernetes
 }
 
 func (self *socketApi) Run() {
@@ -259,7 +274,7 @@ func (self *socketApi) registerPatterns() {
 				ResponseSchema: schema.Generate(Response{}),
 			},
 			func(datagram structs.Datagram) any {
-				nodeStats := kubernetes.GetNodeStats()
+				nodeStats := self.moKubernetes.GetNodeStats()
 				loadBalancerExternalIps := kubernetes.GetClusterExternalIps()
 				country, _ := utils.GuessClusterCountry()
 				cniConfig, _ := self.dbstats.GetCniData()
