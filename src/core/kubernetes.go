@@ -2,7 +2,6 @@ package core
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/config"
@@ -315,7 +314,6 @@ func (self *moKubernetes) GetNodeStats() []dtos.NodeStat {
 			OsKernelVersion:        node.Status.NodeInfo.KernelVersion,
 			Architecture:           node.Status.NodeInfo.Architecture,
 		}
-		fmt.Printf("%#v\n", nodeStat)
 		result = append(result, nodeStat)
 		//nodeStat.PrintPretty()
 	}
