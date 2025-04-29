@@ -111,6 +111,15 @@ func (self *nodeMetricsCollector) Orchestrate() {
 							Template: corev1.PodTemplateSpec{
 								ObjectMeta: metav1.ObjectMeta{
 									Labels: map[string]string{"app": daemonSetName},
+									OwnerReferences: []metav1.OwnerReference{
+										{
+											APIVersion: ownDeployment.APIVersion,
+											Kind:       ownDeployment.Kind,
+											Name:       ownDeployment.GetName(),
+											UID:        ownDeployment.GetUID(),
+											Controller: ptr.To(true),
+										},
+									},
 								},
 								Spec: corev1.PodSpec{
 									Containers: []corev1.Container{
