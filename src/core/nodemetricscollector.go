@@ -1,8 +1,10 @@
 package core
 
 import (
+	"bufio"
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/config"
@@ -14,7 +16,6 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
-	"strings"
 	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -247,14 +248,38 @@ func (self *nodeMetricsCollector) Orchestrate() {
 			assert.Assert(err == nil, "failed to get current executable path", err)
 
 			nodemetrics := exec.Command(bin, "nodemetrics")
-			outputBytes, err := nodemetrics.Output()
+
+			stdoutPipe, err := nodemetrics.StdoutPipe()
+			assert.Assert(err == nil, "reading stdout of this child process has to work", err)
+			stderrPipe, err := nodemetrics.StderrPipe()
+			assert.Assert(err == nil, "reading stderr of this child process has to work", err)
+
+			go func() {
+				scanner := bufio.NewScanner(stdoutPipe)
+				for scanner.Scan() {
+					output := string(scanner.Bytes())
+					fmt.Fprintf(os.Stderr, "node-metrics %s | %s\n", "stdout", output)
+				}
+			}()
+
+			go func() {
+				scanner := bufio.NewScanner(stderrPipe)
+				for scanner.Scan() {
+					output := scanner.Bytes()
+					fmt.Fprintf(os.Stderr, "| node-metrics %s | %s\n", "stderr", output)
+				}
+			}()
+
+			err = nodemetrics.Start()
 			if err != nil {
-				// only print the last few lines to hopefully capture error messages
-				output := string(outputBytes)
-				outputLines := strings.Split(output, "\n")
-				lastLinesStart := max(len(outputLines)-11, 0)
-				lastLines := strings.Join(outputLines[lastLinesStart:], "\n")
-				self.logger.Error("failed to run nodemetrics locally", "output", lastLines, "error", err)
+				self.logger.Error("failed to start node-metrics", "error", err)
+				shutdown.SendShutdownSignal(true)
+				select {}
+			}
+
+			err = nodemetrics.Wait()
+			if err != nil {
+				self.logger.Error("failed to wait for node-metrics", "error", err)
 				shutdown.SendShutdownSignal(true)
 				select {}
 			}
