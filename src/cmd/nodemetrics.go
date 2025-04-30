@@ -1,0 +1,37 @@
+package cmd
+
+import (
+	"log/slog"
+	"mogenius-k8s-manager/src/config"
+	"mogenius-k8s-manager/src/logging"
+	"mogenius-k8s-manager/src/shutdown"
+)
+
+func RunNodeMetrics(logManagerModule logging.SlogManager, configModule *config.Config, cmdLogger *slog.Logger, valkeyLogChannel chan logging.LogLine) {
+	go func() {
+		for {
+			select {
+			case <-valkeyLogChannel:
+			}
+		}
+	}()
+	go func() {
+		defer shutdown.SendShutdownSignal(true)
+		configModule.Validate()
+
+		systems := InitializeSystems(
+			logManagerModule,
+			configModule,
+			cmdLogger,
+			make(chan logging.LogLine), // logging to valkey is disabled -> this channel wont send anything
+		)
+
+		systems.core.InitializeClusterSecret()
+		systems.core.InitializeValkey()
+
+		systems.nodeMetricsCollector.Run()
+
+		select {}
+	}()
+	shutdown.Listen()
+}

@@ -1,10 +1,8 @@
 package structs
 
 import (
-	"encoding/json"
 	"fmt"
 	"log/slog"
-	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/shell"
 	"mogenius-k8s-manager/src/utils"
 	"time"
@@ -55,26 +53,6 @@ var UserSourceFromString = map[string]UserSource{
 	"queue-service":       SourceQueueService,
 	"k8s-manager-service": SourceK8sManagerService,
 	"git-service":         SourceGitService,
-}
-
-func (self UserSource) MarshalJSON() ([]byte, error) {
-	val, ok := UserSourceToString[self]
-	assert.Assert(ok, "unhandled enum variant", self)
-	return []byte(`"` + val + `"`), nil
-}
-
-func (self *UserSource) UnmarshalJSON(data []byte) error {
-	var dataString *string
-	err := json.Unmarshal(data, &dataString)
-	if err != nil {
-		return err
-	}
-	userSource, ok := UserSourceFromString[*dataString]
-	if !ok {
-		return fmt.Errorf("unknown user source: %s", *dataString)
-	}
-	*self = userSource
-	return nil
 }
 
 func CreateDatagramNotificationFromJob(data *Job) Datagram {

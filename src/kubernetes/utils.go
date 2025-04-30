@@ -10,7 +10,6 @@ import (
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/version"
-	"net"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -369,45 +368,6 @@ func StorageClassForClusterProvider(clusterProvider utils.KubernetesProvider) st
 	return nfsStorageClassStr
 }
 
-func GatherNamesForIps(ips []string) map[string]string {
-	result := map[string]string{}
-	pods := AllPods("")
-	services := AllServices("")
-
-outerLoop:
-	for _, ip := range ips {
-		owner := ""
-		for _, pod := range pods {
-			if pod.Status.PodIP == ip {
-				if len(pod.OwnerReferences) > 0 {
-					owner = fmt.Sprintf("/%s/%s", pod.OwnerReferences[0].Kind, pod.OwnerReferences[0].Name)
-				}
-				result[ip] = fmt.Sprintf("%s/%s%s", pod.Namespace, pod.Name, owner)
-				continue outerLoop
-			}
-		}
-		for _, service := range services {
-			if service.Spec.ClusterIP == ip {
-				if len(service.OwnerReferences) > 0 {
-					owner = fmt.Sprintf("/%s/%s", service.OwnerReferences[0].Kind, service.OwnerReferences[0].Name)
-				}
-				result[ip] = fmt.Sprintf("%s/%s%s", service.Namespace, service.Name, owner)
-				continue outerLoop
-			}
-		}
-		parsedIP := net.ParseIP(ip)
-		if parsedIP != nil {
-			if !parsedIP.IsPrivate() {
-				result[ip] = "@External"
-				continue outerLoop
-			}
-		}
-
-		result[ip] = ""
-	}
-	return result
-}
-
 func GetLabelValue(labels map[string]string, labelKey string) (string, error) {
 	if labels == nil {
 		return "", fmt.Errorf("labels are nil")
@@ -427,36 +387,6 @@ func ContainsLabelKey(labels map[string]string, key string) bool {
 
 	_, ok := labels[key]
 	return ok
-}
-
-func FindResourceKind(namespace string, name string) (*dtos.K8sServiceControllerEnum, error) {
-	clientset := clientProvider.K8sClientSet()
-
-	if _, err := clientset.AppsV1().Deployments(namespace).Get(context.TODO(), name, metav1.GetOptions{}); err == nil {
-		return utils.Pointer(dtos.DEPLOYMENT), nil
-	}
-
-	if _, err := clientset.AppsV1().ReplicaSets(namespace).Get(context.TODO(), name, metav1.GetOptions{}); err == nil {
-		return utils.Pointer(dtos.REPLICA_SET), nil
-	}
-
-	if _, err := clientset.AppsV1().StatefulSets(namespace).Get(context.TODO(), name, metav1.GetOptions{}); err == nil {
-		return utils.Pointer(dtos.STATEFUL_SET), nil
-	}
-
-	if _, err := clientset.AppsV1().DaemonSets(namespace).Get(context.TODO(), name, metav1.GetOptions{}); err == nil {
-		return utils.Pointer(dtos.DAEMON_SET), nil
-	}
-
-	if _, err := clientset.BatchV1().Jobs(namespace).Get(context.TODO(), name, metav1.GetOptions{}); err == nil {
-		return utils.Pointer(dtos.JOB), nil
-	}
-
-	if _, err := clientset.BatchV1beta1().CronJobs(namespace).Get(context.TODO(), name, metav1.GetOptions{}); err == nil {
-		return utils.Pointer(dtos.CRON_JOB), nil
-	}
-
-	return nil, fmt.Errorf("resource not found")
 }
 
 func GuessClusterProvider() (utils.KubernetesProvider, error) {
@@ -548,8 +478,8 @@ func GuessCluserProviderFromNodeList(nodes *core.NodeList) (utils.KubernetesProv
 		} else if ImagesContain(node.Status.Images, "pluscloudopen") {
 			return utils.PLUSSERVER, nil
 		} else {
-			k8sLogger.Error("This cluster's provider is unknown or it might be self-managed.")
-			return utils.UNKNOWN, nil
+			k8sLogger.Info("This cluster's provider is unknown. Falling back to vanilla K8S.")
+			return utils.VANILLA_K8S, nil
 		}
 	}
 	return utils.UNKNOWN, nil

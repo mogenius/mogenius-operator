@@ -25,12 +25,3 @@ func AllIngressClasses() []v1.IngressClass {
 
 	return result
 }
-
-func GetK8sIngressClass(name string) (*v1.IngressClass, error) {
-	clientset := clientProvider.K8sClientSet()
-	ingress, err := clientset.NetworkingV1().IngressClasses().Get(context.TODO(), name, metav1.GetOptions{})
-	ingress.Kind = "IngressClass"
-	ingress.APIVersion = "networking.k8s.io/v1"
-
-	return ingress, err
-}

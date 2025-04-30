@@ -30,6 +30,7 @@ type ValkeyClient interface {
 	AddToBucket(maxSize int64, value interface{}, bucketKey ...string) error
 	ListFromBucket(start int64, stop int64, bucketKey ...string) ([]string, error)
 	LastNEntryFromBucketWithType(number int64, bucketKey ...string) ([]string, error)
+	DeleteFromBucketWithNsAndReleaseName(namespace string, releaseName string, bucketKey ...string) error
 	SubscribeToBucket(bucketKey ...string) *redis.PubSub
 
 	Delete(keys ...string) error
@@ -216,6 +217,40 @@ func (self *valkeyClient) LastNEntryFromBucketWithType(number int64, bucketKey .
 	}
 
 	return elements, nil
+}
+
+func (self *valkeyClient) DeleteFromBucketWithNsAndReleaseName(namespace string, releaseName string, bucketKey ...string) error {
+	key := createKey(bucketKey...)
+	// Use LRANGE to get all elements in the bucket
+	elements, err := self.redisClient.LRange(self.ctx, key, 0, -1).Result()
+	if err != nil {
+		return err
+	}
+
+	for _, v := range elements {
+		var obj map[string]interface{}
+		err := json.Unmarshal([]byte(v), &obj)
+		if err != nil {
+			return fmt.Errorf("error unmarshalling value from Redis, error: %v", err)
+		}
+
+		// Check if the object contains a "Payload" field
+		payload, ok := obj["Payload"].(map[string]interface{})
+		if !ok {
+			continue
+		}
+
+		// Extract namespace and releaseName from the Payload
+		if payload["namespace"] == namespace && payload["releaseName"] == releaseName {
+			// Remove the specific entry from the bucket
+			err = self.redisClient.LRem(self.ctx, key, 1, v).Err()
+			if err != nil {
+				return fmt.Errorf("error removing entry from Redis bucket, error: %v", err)
+			}
+		}
+	}
+
+	return nil
 }
 
 func (self *valkeyClient) SubscribeToBucket(bucketKey ...string) *redis.PubSub {

@@ -25,10 +25,16 @@ func Assert(condition bool, messages ...any) {
 	if !condition {
 		logger.Println("== ASSERTION FAILURE ==")
 
-		if len(messages) > 0 {
+		if len(messages) == 1 {
+			logger.Println("Message:")
+			for _, message := range messages {
+				logger.Printf("  %s\n", stringify(message))
+			}
+		}
+		if len(messages) > 1 {
 			logger.Println("Messages:")
 			for _, message := range messages {
-				logger.Printf("  -> %v\n", tryStringify(message))
+				logger.Printf("  -> %s\n", stringify(message))
 			}
 		}
 
@@ -60,7 +66,7 @@ func AssertT(t *testing.T, condition bool, messages ...any) {
 		if len(messages) > 0 {
 			t.Log("Messages:")
 			for _, message := range messages {
-				t.Logf("  -> %v\n", tryStringify(message))
+				t.Logf("  -> %s\n", stringify(message))
 			}
 		}
 
@@ -85,14 +91,25 @@ func AssertT(t *testing.T, condition bool, messages ...any) {
 	}
 }
 
-func tryStringify(data any) any {
+func stringify(data any) string {
+	if data == nil {
+		return "nil"
+	}
+
+	strData, ok := data.(string)
+	if ok {
+		return strData
+	}
+
 	err, ok := data.(error)
 	if ok {
-		return err
+		return err.Error()
 	}
+
 	stringer, ok := data.(fmt.Stringer)
 	if ok {
 		return stringer.String()
 	}
-	return data
+
+	return fmt.Sprintf("%#v", data)
 }

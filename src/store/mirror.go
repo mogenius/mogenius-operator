@@ -6,7 +6,6 @@ import (
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
-	appsV1 "k8s.io/api/apps/v1"
 	coreV1 "k8s.io/api/core/v1"
 	networkingV1 "k8s.io/api/networking/v1"
 )
@@ -30,92 +29,6 @@ func ListNetworkPolicies(valkeyClient valkeyclient.ValkeyClient, namespace strin
 	}
 
 	for _, ref := range policies {
-		if namespace != "" && ref.Namespace != namespace {
-			continue
-		}
-
-		result = append(result, ref)
-	}
-
-	return result, nil
-}
-
-func ListDaemonSets(valkeyClient valkeyclient.ValkeyClient, namespace string) ([]appsV1.DaemonSet, error) {
-	result := []appsV1.DaemonSet{}
-
-	// TODO replace with GetAvailableResources in the future
-	resourceNamespace := ""
-	resource := utils.SyncResourceEntry{
-		Kind:      "DaemonSet",
-		Name:      "daemonsets",
-		Namespace: &resourceNamespace,
-		Group:     "apps/v1",
-		Version:   "",
-	}
-
-	daemonsets, err := valkeyclient.GetObjectsByPrefix[appsV1.DaemonSet](valkeyClient, valkeyclient.ORDER_NONE, resource.Group, "DaemonSet", namespace)
-	if err != nil {
-		return result, err
-	}
-
-	for _, ref := range daemonsets {
-		if namespace != "" && ref.Namespace != namespace {
-			continue
-		}
-
-		result = append(result, ref)
-	}
-
-	return result, nil
-}
-
-func ListDeployments(valkeyClient valkeyclient.ValkeyClient, namespace string) ([]appsV1.Deployment, error) {
-	result := []appsV1.Deployment{}
-
-	// TODO replace with GetAvailableResources in the future
-	resourceNamespace := ""
-	resource := utils.SyncResourceEntry{
-		Kind:      "Deployment",
-		Name:      "deployments",
-		Namespace: &resourceNamespace,
-		Group:     "apps/v1",
-		Version:   "",
-	}
-
-	deployments, err := valkeyclient.GetObjectsByPrefix[appsV1.Deployment](valkeyClient, valkeyclient.ORDER_NONE, VALKEY_RESOURCE_PREFIX, resource.Group, "Deployment", namespace)
-	if err != nil {
-		return result, err
-	}
-
-	for _, ref := range deployments {
-		if namespace != "" && ref.Namespace != namespace {
-			continue
-		}
-
-		result = append(result, ref)
-	}
-
-	return result, nil
-}
-
-func ListStatefulSets(valkeyClient valkeyclient.ValkeyClient, namespace string) ([]appsV1.StatefulSet, error) {
-	result := []appsV1.StatefulSet{}
-
-	// TODO replace with GetAvailableResources in the future
-	resourceNamespace := ""
-	resource := utils.SyncResourceEntry{
-		Kind:      "StatefulSet",
-		Name:      "statefulsets",
-		Namespace: &resourceNamespace,
-		Group:     "apps/v1",
-		Version:   "",
-	}
-	statefulsets, err := valkeyclient.GetObjectsByPrefix[appsV1.StatefulSet](valkeyClient, valkeyclient.ORDER_NONE, VALKEY_RESOURCE_PREFIX, resource.Group, "StatefulSet", namespace)
-	if err != nil {
-		return result, err
-	}
-
-	for _, ref := range statefulsets {
 		if namespace != "" && ref.Namespace != namespace {
 			continue
 		}

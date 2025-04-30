@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bufio"
+	"cmp"
 	"fmt"
 	"log/slog"
 	"mogenius-k8s-manager/src/assert"
@@ -212,8 +213,9 @@ func appendStructLayoutDefinitions(buff string, normalizedPatternList []string, 
 
 		if config.RequestSchema != nil {
 			normalizedPatternWithScope := normalizedPattern + "_REQUEST"
-			for structRef, layout := range config.RequestSchema.StructLayouts {
-				_ = layout
+			requestStructNames := mapKeysSorted(config.RequestSchema.StructLayouts)
+			for _, structRef := range requestStructNames {
+				layout := config.RequestSchema.StructLayouts[structRef]
 				tsTypeName := structRefToTypescriptName(normalizedPatternWithScope, structRef)
 				buff = buff + "export type " + tsTypeName + " = " + structLayoutToTypescriptType(normalizedPatternWithScope, config.RequestSchema, &layout) + ";\n"
 			}
@@ -221,8 +223,9 @@ func appendStructLayoutDefinitions(buff string, normalizedPatternList []string, 
 
 		if config.ResponseSchema != nil {
 			normalizedPatternWithScope := normalizedPattern + "_RESPONSE"
-			for structRef, layout := range config.ResponseSchema.StructLayouts {
-				_ = layout
+			responseStructNames := mapKeysSorted(config.ResponseSchema.StructLayouts)
+			for _, structRef := range responseStructNames {
+				layout := config.ResponseSchema.StructLayouts[structRef]
 				tsTypeName := structRefToTypescriptName(normalizedPatternWithScope, structRef)
 				buff = buff + "export type " + tsTypeName + " = " + structLayoutToTypescriptType(normalizedPatternWithScope, config.ResponseSchema, &layout) + ";\n"
 			}
@@ -239,8 +242,9 @@ func structLayoutToTypescriptType(normalizedPatternWithScope string, schema *sch
 
 	buff = buff + "{"
 	idx := 0
-	for name, property := range layout.Properties {
-		_ = property
+	propertyNames := mapKeysSorted(layout.Properties)
+	for _, name := range propertyNames {
+		property := layout.Properties[name]
 		buff = buff + `"` + name + `": ` + toTypescriptType(normalizedPatternWithScope, schema, property, 0)
 		idx++
 		if idx < len(layout.Properties) {
@@ -378,4 +382,13 @@ func structRefToTypescriptName(normalizedPatternWithScope string, structref stri
 	structref = strings.ReplaceAll(structref, ".", "_")
 	structref = strings.ReplaceAll(structref, "-", "_")
 	return normalizedPatternWithScope + "__" + structref
+}
+
+func mapKeysSorted[K cmp.Ordered, V any](data map[K]V) []K {
+	dataKeys := []K{}
+	for key := range data {
+		dataKeys = append(dataKeys, key)
+	}
+	slices.Sort(dataKeys)
+	return dataKeys
 }

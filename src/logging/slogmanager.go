@@ -12,6 +12,7 @@ import (
 	"runtime"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	jsoniter "github.com/json-iterator/go"
@@ -21,9 +22,6 @@ import (
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 const combinedLogComponentName = "all"
-const logfileMaxBackups int = 10
-const logfileMaxSize int = 10
-const logfileCompress bool = true
 
 type SlogManager interface {
 	// Get the pointer to an existing logger by its componentId
@@ -193,19 +191,34 @@ func (self *SlogMultiHandler) AddHandler(handler slog.Handler) {
 }
 
 func (self *SlogMultiHandler) Enabled(ctx context.Context, level slog.Level) bool {
-	return true
+	for _, handler := range self.inner {
+		if handler.Enabled(ctx, level) {
+			return true
+		}
+	}
+	return false
 }
 
 func (self *SlogMultiHandler) Handle(ctx context.Context, record slog.Record) error {
 	errors := []error{}
+	errorLock := sync.Mutex{}
+
+	var wg sync.WaitGroup
 	for _, handler := range self.inner {
 		if handler.Enabled(ctx, record.Level) {
-			err := handler.Handle(ctx, record)
-			if err != nil {
-				errors = append(errors, err)
-			}
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				err := handler.Handle(ctx, record)
+				if err != nil {
+					errorLock.Lock()
+					errors = append(errors, err)
+					errorLock.Unlock()
+				}
+			}()
 		}
 	}
+	wg.Wait()
 
 	if len(errors) > 0 {
 		errorMessages := []string{}
@@ -294,7 +307,7 @@ func (self *PrettyPrintHandler) Handle(ctx context.Context, record slog.Record) 
 
 	logLine := LogLine{}
 
-	logLine.Level = record.Level.String()
+	logLine.Level = strings.Split(record.Level.String(), "+")[0]
 	logLine.Component = component
 	logLine.Scope = self.tryGetScope()
 	logLine.Source = slogRecordToSourceString(record)
@@ -479,7 +492,7 @@ func (self *RecordChannelHandler) Handle(ctx context.Context, record slog.Record
 
 	if len(self.recordChannelTx) >= self.buffersize {
 		fmt.Fprintf(os.Stderr, "[WARNING] Logline buffer exhausted. Dropping the oldest entry.\n")
-		_ = <-self.recordChannelTx
+		<-self.recordChannelTx
 	}
 	self.recordChannelTx <- logLine
 

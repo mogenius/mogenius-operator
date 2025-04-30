@@ -12,6 +12,7 @@ import (
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/helm"
 	"mogenius-k8s-manager/src/kubernetes"
+	"mogenius-k8s-manager/src/networkmonitor"
 	"mogenius-k8s-manager/src/schema"
 	"mogenius-k8s-manager/src/secrets"
 	"mogenius-k8s-manager/src/services"
@@ -23,6 +24,7 @@ import (
 	"mogenius-k8s-manager/src/version"
 	"mogenius-k8s-manager/src/websocket"
 	"mogenius-k8s-manager/src/xterm"
+	"net/http"
 	"net/url"
 	"os"
 	"os/exec"
@@ -42,7 +44,13 @@ import (
 )
 
 type SocketApi interface {
-	Link(httpService HttpService, xtermService XtermService, dbstatsModule ValkeyStatsDb, apiService Api)
+	Link(
+		httpService HttpService,
+		xtermService XtermService,
+		dbstatsModule ValkeyStatsDb,
+		apiService Api,
+		moKubernetes MoKubernetes,
+	)
 	Run()
 	ExecuteCommandRequest(datagram structs.Datagram) interface{}
 	ParseDatagram(data []byte) (structs.Datagram, error)
@@ -77,6 +85,7 @@ type socketApi struct {
 	httpService        HttpService
 	xtermService       XtermService
 	apiService         Api
+	moKubernetes       MoKubernetes
 }
 
 type PatternHandler struct {
@@ -112,16 +121,24 @@ func NewSocketApi(
 	return self
 }
 
-func (self *socketApi) Link(httpService HttpService, xtermService XtermService, dbstatsModule ValkeyStatsDb, apiService Api) {
+func (self *socketApi) Link(
+	httpService HttpService,
+	xtermService XtermService,
+	dbstatsModule ValkeyStatsDb,
+	apiService Api,
+	moKubernetes MoKubernetes,
+) {
 	assert.Assert(apiService != nil)
 	assert.Assert(httpService != nil)
 	assert.Assert(xtermService != nil)
 	assert.Assert(dbstatsModule != nil)
+	assert.Assert(moKubernetes != nil)
 
 	self.apiService = apiService
 	self.httpService = httpService
 	self.xtermService = xtermService
 	self.dbstats = dbstatsModule
+	self.moKubernetes = moKubernetes
 }
 
 func (self *socketApi) Run() {
@@ -257,7 +274,7 @@ func (self *socketApi) registerPatterns() {
 				ResponseSchema: schema.Generate(Response{}),
 			},
 			func(datagram structs.Datagram) any {
-				nodeStats := kubernetes.GetNodeStats()
+				nodeStats := self.moKubernetes.GetNodeStats()
 				loadBalancerExternalIps := kubernetes.GetClusterExternalIps()
 				country, _ := utils.GuessClusterCountry()
 				cniConfig, _ := self.dbstats.GetCniData()
@@ -359,30 +376,6 @@ func (self *socketApi) registerPatterns() {
 		},
 	)
 
-	self.RegisterPatternHandlerRaw(
-		"cluster/sync-info",
-		PatternConfig{
-			ResponseSchema: schema.Generate(dtos.SyncRepoData{}),
-		},
-		func(datagram structs.Datagram) any {
-			result, err := kubernetes.GetSyncRepoData()
-			if err != nil {
-				return err
-			}
-			return result
-		},
-	)
-
-	self.RegisterPatternHandler(
-		"install-traffic-collector",
-		PatternConfig{
-			ResponseSchema: schema.String(),
-		},
-		func(datagram structs.Datagram) (any, error) {
-			return services.InstallTrafficCollector()
-		},
-	)
-
 	self.RegisterPatternHandler(
 		"install-metrics-server",
 		PatternConfig{
@@ -437,26 +430,6 @@ func (self *socketApi) registerPatterns() {
 	}
 
 	self.RegisterPatternHandler(
-		"install-container-registry",
-		PatternConfig{
-			ResponseSchema: schema.String(),
-		},
-		func(datagram structs.Datagram) (any, error) {
-			return services.InstallContainerRegistry()
-		},
-	)
-
-	self.RegisterPatternHandler(
-		"install-external-secrets",
-		PatternConfig{
-			ResponseSchema: schema.String(),
-		},
-		func(datagram structs.Datagram) (any, error) {
-			return services.InstallExternalSecrets()
-		},
-	)
-
-	self.RegisterPatternHandler(
 		"install-metallb",
 		PatternConfig{
 			ResponseSchema: schema.String(),
@@ -473,16 +446,6 @@ func (self *socketApi) registerPatterns() {
 		},
 		func(datagram structs.Datagram) (any, error) {
 			return services.InstallKepler()
-		},
-	)
-
-	self.RegisterPatternHandler(
-		"uninstall-traffic-collector",
-		PatternConfig{
-			ResponseSchema: schema.String(),
-		},
-		func(datagram structs.Datagram) (any, error) {
-			return services.UninstallTrafficCollector()
 		},
 	)
 
@@ -527,26 +490,6 @@ func (self *socketApi) registerPatterns() {
 	)
 
 	self.RegisterPatternHandler(
-		"uninstall-container-registry",
-		PatternConfig{
-			ResponseSchema: schema.String(),
-		},
-		func(datagram structs.Datagram) (any, error) {
-			return services.UninstallContainerRegistry()
-		},
-	)
-
-	self.RegisterPatternHandler(
-		"uninstall-external-secrets",
-		PatternConfig{
-			ResponseSchema: schema.String(),
-		},
-		func(datagram structs.Datagram) (any, error) {
-			return services.UninstallExternalSecrets()
-		},
-	)
-
-	self.RegisterPatternHandler(
 		"uninstall-metallb",
 		PatternConfig{
 			ResponseSchema: schema.String(),
@@ -563,16 +506,6 @@ func (self *socketApi) registerPatterns() {
 		},
 		func(datagram structs.Datagram) (any, error) {
 			return services.UninstallKepler()
-		},
-	)
-
-	self.RegisterPatternHandler(
-		"upgrade-traffic-collector",
-		PatternConfig{
-			ResponseSchema: schema.String(),
-		},
-		func(datagram structs.Datagram) (any, error) {
-			return services.UpgradeTrafficCollector()
 		},
 	)
 
@@ -603,16 +536,6 @@ func (self *socketApi) registerPatterns() {
 		},
 		func(datagram structs.Datagram) (any, error) {
 			return services.UpgradeCertManager()
-		},
-	)
-
-	self.RegisterPatternHandler(
-		"upgrade-container-registry",
-		PatternConfig{
-			ResponseSchema: schema.String(),
-		},
-		func(datagram structs.Datagram) (any, error) {
-			return services.UpgradeContainerRegistry()
 		},
 	)
 
@@ -667,7 +590,7 @@ func (self *socketApi) registerPatterns() {
 			"stats/traffic/all-for-controller",
 			PatternConfig{
 				RequestSchema:  schema.Generate(Request{}),
-				ResponseSchema: schema.Generate(&[]structs.InterfaceStats{}),
+				ResponseSchema: schema.Generate(&[]networkmonitor.PodNetworkStats{}),
 			},
 			func(datagram structs.Datagram) any {
 				data := Request{}
@@ -703,25 +626,7 @@ func (self *socketApi) registerPatterns() {
 		"stats/traffic/sum-for-controller",
 		PatternConfig{
 			RequestSchema:  schema.Generate(kubernetes.K8sController{}),
-			ResponseSchema: schema.Generate(&structs.InterfaceStats{}),
-		},
-		func(datagram structs.Datagram) any {
-			data := kubernetes.K8sController{}
-			_ = self.loadRequest(&datagram, &data)
-			if err := utils.ValidateJSON(data); err != nil {
-				return err
-			}
-			return self.dbstats.GetTrafficStatsEntrySumForController(data, false)
-		},
-	)
-
-	self.RegisterPatternHandlerRaw(
-		"stats/traffic/last-for-controller",
-		PatternConfig{
-			Deprecated:        true,
-			DeprecatedMessage: `Use "stats/traffic/sum-for-controller" instead`,
-			RequestSchema:     schema.Generate(kubernetes.K8sController{}),
-			ResponseSchema:    schema.Generate(&structs.InterfaceStats{}),
+			ResponseSchema: schema.Generate(&networkmonitor.PodNetworkStats{}),
 		},
 		func(datagram structs.Datagram) any {
 			data := kubernetes.K8sController{}
@@ -758,7 +663,7 @@ func (self *socketApi) registerPatterns() {
 			"stats/traffic/sum-for-namespace",
 			PatternConfig{
 				RequestSchema:  schema.Generate(Request{}),
-				ResponseSchema: schema.Generate([]structs.InterfaceStats{}),
+				ResponseSchema: schema.Generate([]networkmonitor.PodNetworkStats{}),
 			},
 			func(datagram structs.Datagram) any {
 				data := Request{}
@@ -1394,6 +1299,26 @@ func (self *socketApi) registerPatterns() {
 		},
 	)
 
+	{
+		type Request struct {
+			Nodes []string `json:"nodes" validate:"required"`
+		}
+		self.RegisterPatternHandlerRaw(
+			"cluster/machine-stats",
+			PatternConfig{
+				RequestSchema:  schema.Generate(Request{}),
+				ResponseSchema: schema.Generate([]structs.MachineStats{}),
+			},
+			func(datagram structs.Datagram) any {
+				data := Request{}
+				_ = self.loadRequest(&datagram, &data)
+				if err := utils.ValidateJSON(data); err != nil {
+					return err
+				}
+				return NewMessageResponse(self.dbstats.GetMachineStatsForNodes(data.Nodes), nil)
+			},
+		)
+	}
 	self.RegisterPatternHandlerRaw(
 		"cluster/helm-repo-add",
 		PatternConfig{
@@ -3611,7 +3536,14 @@ func (self *socketApi) sendDataWs(sendToServer string, reader io.ReadCloser) {
 	}()
 
 	header := utils.HttpHeader("-logs")
-	conn, _, err := gorillawebsocket.DefaultDialer.Dial(sendToServer, header)
+	var dialer *gorillawebsocket.Dialer = gorillawebsocket.DefaultDialer
+	if self.config.Get("MO_HTTP_PROXY") != "" {
+		dialer.Proxy = http.ProxyURL(&url.URL{
+			Scheme: "http",
+			Host:   self.config.Get("MO_HTTP_PROXY"),
+		})
+	}
+	conn, _, err := dialer.Dial(sendToServer, header)
 	if err != nil {
 		self.logger.Error("Connection to stream endpoint failed", "sendToServer", sendToServer, "error", err)
 		return

@@ -1,7 +1,5 @@
 package structs
 
-import jsoniter "github.com/json-iterator/go"
-
 type CniData struct {
 	Name       string   `json:"name"`
 	Node       string   `json:"node"`
@@ -33,13 +31,4 @@ type CniPolicy struct {
 type CniCapabilities struct {
 	PortMappings bool `json:"portMappings,omitempty"`
 	Bandwidth    bool `json:"bandwidth,omitempty"`
-}
-
-func UnmarshalCniData(dst *[]CniData, data []byte) error {
-	var json = jsoniter.ConfigCompatibleWithStandardLibrary
-	err := json.Unmarshal(data, dst)
-	if err != nil {
-		return err
-	}
-	return nil
 }

@@ -1,6 +1,27 @@
 services:
+  mogenius-operator:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: build-env
+    image: mogenius-operator
+    volumes:
+      # export KUBECONFIG="${HOME}/.kube/config"
+      - $KUBECONFIG:/root/.kube/config:ro
+      - .:/app
+    environment:
+      - KUBECONFIG=/root/.kube/config
+    working_dir: /app
+    privileged: true
+    pid: host
+    network_mode: host
+    stdin_open: true
+    tty: true
+    entrypoint: ""
+    command: sleep infinity
+
   valkey:
-    image: docker.io/bitnami/valkey:8.0
+    image: docker.io/bitnami/valkey:8.1
     restart: unless-stopped
     environment:
       - VALKEY_PASSWORD=0000
@@ -8,7 +29,7 @@ services:
       - 6379:6379
     volumes:
       - valkey_data:/bitnami/valkey/data
-      
+
 volumes:
   valkey_data:
     driver: local

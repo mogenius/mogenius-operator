@@ -14,7 +14,6 @@ import (
 	"mogenius-k8s-manager/src/valkeyclient"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"time"
 
@@ -229,7 +228,7 @@ func HelmStatus(namespace string, chartname string) release.Status {
 		return cachedData.(release.Status)
 	}
 
-	settings := cli.New()
+	settings := NewCli()
 	settings.SetNamespace(namespace)
 
 	logFn := func(msg string, args ...interface{}) {
@@ -285,10 +284,15 @@ func parseHelmEntry(entry *repo.Entry) *HelmEntryWithoutPassword {
 }
 
 func InitHelmConfig() error {
-	// Set the registryConfig, repositoryConfig and repositoryCache variables
-	registryConfig = fmt.Sprintf("%s/%s", config.Get("MO_HELM_DATA_PATH"), HELM_REGISTRY_CONFIG_FILE)
-	repositoryConfig = fmt.Sprintf("%s/%s", config.Get("MO_HELM_DATA_PATH"), HELM_REPOSITORY_CONFIG_FILE)
-	repositoryCache = fmt.Sprintf("%s/%s", config.Get("MO_HELM_DATA_PATH"), HELM_REPOSITORY_CACHE_FOLDER)
+	_repositoryCache, ok := os.LookupEnv("HELM_REPOSITORY_CACHE")
+	assert.Assert(ok)
+	_repositoryConfig, ok := os.LookupEnv("HELM_REGISTRY_CONFIG")
+	assert.Assert(ok)
+	_registryConfig, ok := os.LookupEnv("HELM_REPOSITORY_CONFIG")
+	assert.Assert(ok)
+	repositoryCache = _repositoryCache
+	repositoryConfig = _repositoryConfig
+	registryConfig = _registryConfig
 
 	// Set the HELM_HOME environment variable
 	path := fmt.Sprintf("%s/%s", config.Get("MO_HELM_DATA_PATH"), HELM_DATA_HOME)
@@ -324,17 +328,6 @@ func InitHelmConfig() error {
 		}
 	}
 
-	assert.Assert(runtime.Compiler != "gccgo", "using os.Setenv in multithreaded context with glibc is not allowed")
-
-	os.Setenv("HELM_CACHE_HOME", fmt.Sprintf("%s/%s", config.Get("MO_HELM_DATA_PATH"), HELM_CACHE_HOME))
-	os.Setenv("HELM_CONFIG_HOME", fmt.Sprintf("%s/%s", config.Get("MO_HELM_DATA_PATH"), HELM_CONFIG_HOME))
-	os.Setenv("HELM_DATA_HOME", fmt.Sprintf("%s/%s", config.Get("MO_HELM_DATA_PATH"), HELM_DATA_HOME))
-	os.Setenv("HELM_PLUGINS", fmt.Sprintf("%s/%s", config.Get("MO_HELM_DATA_PATH"), HELM_PLUGINS))
-	os.Setenv("HELM_REGISTRY_CONFIG", registryConfig)
-	os.Setenv("HELM_REPOSITORY_CACHE", repositoryCache)
-	os.Setenv("HELM_REPOSITORY_CONFIG", repositoryConfig)
-	os.Setenv("HELM_LOG_LEVEL", "trace")
-
 	if _, err := os.Stat(repositoryConfig); os.IsNotExist(err) {
 		destFile, err := os.Create(repositoryConfig)
 		if err != nil {
@@ -343,7 +336,7 @@ func InitHelmConfig() error {
 		defer destFile.Close()
 	}
 
-	restoreRepositoryFileFromValkey()
+	_ = restoreRepositoryFileFromValkey()
 
 	// add default repository
 	data := HelmRepoAddRequest{
@@ -370,17 +363,6 @@ func NewCli() *cli.EnvSettings {
 	settings.RepositoryCache = repositoryCache
 	settings.Debug = true
 	return settings
-}
-
-func NewCliConfArgs() []string {
-	return []string{
-		"--registry-config",
-		registryConfig,
-		"--repository-config",
-		repositoryConfig,
-		"--repository-cache",
-		repositoryCache,
-	}
 }
 
 func HelmRepoAdd(data HelmRepoAddRequest) (string, error) {
@@ -423,7 +405,7 @@ func HelmRepoAdd(data HelmRepoAddRequest) (string, error) {
 		return "", fmt.Errorf("failed to write repository file: %s", err)
 	}
 
-	saveRepositoryFileToValkey()
+	_ = saveRepositoryFileToValkey()
 
 	return fmt.Sprintf("repository '%s' added", data.Name), nil
 }
@@ -503,7 +485,7 @@ func HelmRepoUpdate() ([]HelmEntryStatus, error) {
 		results = append(results, HelmEntryStatus{Entry: parseHelmEntry(re), Status: "success", Message: fmt.Sprintf("repository '%s' updated", re.Name)})
 	}
 
-	saveRepositoryFileToValkey()
+	_ = saveRepositoryFileToValkey()
 
 	return results, nil
 }
@@ -553,13 +535,13 @@ func HelmRepoRemove(data HelmRepoRemoveRequest) (string, error) {
 		return "", fmt.Errorf("failed to write repository file: %s", err)
 	}
 
-	saveRepositoryFileToValkey()
+	_ = saveRepositoryFileToValkey()
 
 	return fmt.Sprintf("repository '%s' removed", data.Name), nil
 }
 
 func HelmChartSearch(data HelmChartSearchRequest) ([]HelmChartInfo, error) {
-	settings := cli.New()
+	settings := NewCli()
 
 	repositoriesFile, err := repo.LoadFile(settings.RepositoryConfig)
 	if err != nil {
@@ -643,7 +625,7 @@ func HelmChartShow(data HelmChartShowRequest) (string, error) {
 }
 
 func HelmChartVersion(data HelmChartVersionRequest) ([]HelmChartInfo, error) {
-	settings := cli.New()
+	settings := NewCli()
 
 	repositoriesFile, err := repo.LoadFile(settings.RepositoryConfig)
 	if err != nil {
@@ -891,6 +873,12 @@ func HelmReleaseUninstall(data HelmReleaseUninstallRequest) (string, error) {
 			"error", err,
 		)
 		return "", err
+	}
+
+	// delete release from logs (otherwise it will be kept forever)
+	err = valkeyClient.DeleteFromBucketWithNsAndReleaseName(data.Namespace, data.Release, "logs:helm")
+	if err != nil {
+		helmLogger.Error("failed to delete helm release logs", "releaseName", data.Release, "namespace", data.Namespace, "error", err)
 	}
 
 	return fmt.Sprintf("Release '%s' uninstalled", data.Release), nil
@@ -1204,7 +1192,10 @@ func saveRepositoryFileToValkey() error {
 		return fmt.Errorf("failed to marshal repositories.yaml: %w", err)
 	}
 
-	valkeyClient.Set(string(yamlData), 0, "helm", "repositories.yaml")
+	err = valkeyClient.Set(string(yamlData), 0, "helm", "repositories.yaml")
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

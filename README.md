@@ -2,6 +2,7 @@
   <img src="https://imagedelivery.net/T7YEW5IAgZJ0dY4-LDTpyQ/3ae4fcf0-289c-48d2-3323-d2c5bc932300/detail" alt="drawing" width="200"/>
 </p>
 
+
 ## run locally
 
 First you need to have the [mogenius helm chart installed and running](https://docs.mogenius.com/cluster-management/installing-mogenius).
@@ -127,14 +128,42 @@ rm -rf ~/.helm/repository/cache/*
 helm repo update
 ```
 
-## Send Pod-Stats & Traffic-Stats
+## eBPF Development
+### how to run the example ebpf program?
+  - run `go generate ./ebpf`
+  - run `sudo go run ./cmd/main.go`
+  OR
+  - run `just ebpf`
 
-Add this to the respective daemonset and deployment (on docker-desktop):
+### Generate load for eBPF to measure
+  - run `ping -i 0.002 127.0.0.1` in another terminal
 
-```sh
-- name: k8s_manager_server_ws
-  value: ws://host.docker.internal:1337/ws
+### docker-compose
+  - run `docker-compose build`
+  - run `docker-compose up -d`
+  - run `docker-compose exec mogenius-operator sh`
+  - run `just run`
+  - run `nsenter --target=40368 --net=/proc/40368/ns/net -n ip -o --json link | jq`
 
+### eBPF Docker examples
+test if eBPF is still working:
+```bash
+docker build -t my-go-ebpf-app -f Dockerfile-Dev-Environment . && docker run --rm -it --privileged --pid=host --net=host my-go-ebpf-app sh -c "cd /app && just ebpf"
+```
+
+standalone container:
+```bash
+docker build -t my-go-ebpf-app -f Dockerfile-Dev-Environment . && docker run --rm -it --privileged --pid=host --net=host my-go-ebpf-app sh
+```
+
+standalone with your local KUBECONFIG & .env 🚀🚀🚀
+```bash
+docker build -t my-go-ebpf-app -f Dockerfile-Dev-Environment . && docker run --rm -it -v $KUBECONFIG:/root/.kube/config:ro -v "$(pwd)/.env:/app/.env:ro" --privileged --pid=host --net=host my-go-ebpf-app sh
+```
+
+to access valkey from within the container (and to background it):
+```bash
+kubectl port-forward svc/mogenius-k8s-manager-valkey 6379:6379 -n mogenius &
 ```
 
 ## LINKS

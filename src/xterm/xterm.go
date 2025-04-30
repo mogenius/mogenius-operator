@@ -1,15 +1,12 @@
 package xterm
 
 import (
-	"bufio"
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"log/slog"
 	"mogenius-k8s-manager/src/k8sclient"
 	"mogenius-k8s-manager/src/logging"
-	"mogenius-k8s-manager/src/secrets"
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/valkeyclient"
 	"net/url"
@@ -29,13 +26,11 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-var logManager logging.SlogManager
 var xtermLogger *slog.Logger
 var clientProvider k8sclient.K8sClientProvider
 var store valkeyclient.ValkeyClient
 
 func Setup(logManagerModule logging.SlogManager, clientProviderModule k8sclient.K8sClientProvider, storeModule valkeyclient.ValkeyClient) {
-	logManager = logManagerModule
 	xtermLogger = logManagerModule.CreateLogger("xterm")
 	clientProvider = clientProviderModule
 	store = storeModule
@@ -104,11 +99,6 @@ type LogEntry struct {
 	Component      string `json:"component"`
 	Message        string `json:"message"`
 	Time           string `json:"time"`
-}
-
-func (p *ScanImageLogConnectionRequest) AddSecretsToRedaction() {
-	secrets.AddSecret(p.ContainerRegistryUser)
-	secrets.AddSecret(p.ContainerRegistryPat)
 }
 
 type ClusterToolConnectionRequest struct {
@@ -384,70 +374,6 @@ func cmdOutputToWebsocket(ctx context.Context, cancel context.CancelFunc, conn *
 				continue
 			}
 			return
-		}
-	}
-}
-
-func cmdOutputScannerToWebsocket(ctx context.Context, cancel context.CancelFunc, conn *websocket.Conn, connWriteLock *sync.Mutex, tty *os.File, injectPreContent io.Reader, component string, namespace *string, controllerName *string, release *string) {
-	_ = component
-	if injectPreContent != nil {
-		injectContent(injectPreContent, conn, connWriteLock)
-	}
-
-	defer func() {
-		cancel()
-	}()
-
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		default:
-			scanner := bufio.NewScanner(tty)
-			for scanner.Scan() {
-				line := scanner.Text()
-
-				var entry LogEntry
-				err := json.Unmarshal([]byte(line), &entry)
-				if err != nil {
-					continue
-				}
-
-				if namespace != nil {
-					// log.Infof("namespace: %s", *namespace)
-					if entry.Namespace != *namespace {
-						continue
-					}
-				}
-
-				if controllerName != nil {
-					// log.Infof("controllerName: %s", *controllerName)
-					if entry.ControllerName != *controllerName {
-						continue
-					}
-				}
-
-				if release != nil {
-					// log.Infof("release: %s", *release)
-					if entry.ReleaseName != *release {
-						continue
-					}
-				}
-
-				if conn != nil {
-					if !(strings.HasSuffix(entry.Message, "\n") || strings.HasSuffix(entry.Message, "\n\r")) {
-						entry.Message = entry.Message + "\n"
-					}
-					messageSt := fmt.Sprintf("[%s] %s %s", entry.Level, utils.FormatJsonTimePretty(entry.Time), entry.Message)
-					connWriteLock.Lock()
-					err := conn.WriteMessage(websocket.BinaryMessage, []byte(messageSt))
-					connWriteLock.Unlock()
-					if err != nil {
-						xtermLogger.Error("Error", "WriteMessage", err.Error())
-					}
-					continue
-				}
-			}
 		}
 	}
 }

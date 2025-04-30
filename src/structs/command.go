@@ -1,11 +1,8 @@
 package structs
 
 import (
-	"fmt"
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/websocket"
-	"os/exec"
-	"sync"
 	"time"
 )
 
@@ -30,55 +27,6 @@ func CreateCommand(eventClient websocket.WebsocketClient, command string, title 
 	}
 	job.AddCmd(eventClient, cmd)
 	return cmd
-}
-
-func CreateShellCommand(eventClient websocket.WebsocketClient, command string, title string, job *Job, shellCmd string, wg *sync.WaitGroup) {
-	wg.Add(1)
-	cmd := CreateCommand(eventClient, command, title, job)
-	go func() {
-		defer wg.Done()
-		cmd.Start(eventClient, job, title)
-
-		output, err := exec.Command("sh", "-c", shellCmd).Output()
-		structsLogger.Debug("executed command", "cmd", string(shellCmd), "output", string(output))
-
-		if exitErr, ok := err.(*exec.ExitError); ok {
-			exitCode := exitErr.ExitCode()
-			errorMsg := string(exitErr.Stderr)
-			structsLogger.Error("command failed", "cmd", shellCmd, "exitCode", exitCode, "errorMsg", errorMsg)
-			cmd.Fail(eventClient, job, fmt.Sprintf("'%s' ERROR: %s", title, errorMsg))
-		} else if err != nil {
-			structsLogger.Error("exec.Command", "cmd", shellCmd, "error", err)
-		} else {
-			cmd.Success(eventClient, job, title)
-		}
-	}()
-}
-
-func CreateShellCommandGoRoutine(title string, shellCmd string, successFunc func(), failFunc func(output string, err error)) {
-	go func() {
-		output, err := exec.Command("sh", "-c", shellCmd).Output()
-		structsLogger.Debug("executed command", "cmd", string(shellCmd), "output", string(output))
-
-		if exitErr, ok := err.(*exec.ExitError); ok {
-			exitCode := exitErr.ExitCode()
-			errorMsg := string(exitErr.Stderr)
-			structsLogger.Error("command failed", "cmd", shellCmd, "exitCode", exitCode, "errorMsg", errorMsg)
-			if failFunc != nil {
-				failFunc(string(output), exitErr)
-			}
-		} else if err != nil {
-			structsLogger.Error("exec.Command", "error", err)
-			if failFunc != nil {
-				failFunc(string(output), err)
-			}
-		} else {
-			structsLogger.Debug("SUCCESS", "shellCmd", shellCmd)
-			if successFunc != nil {
-				successFunc()
-			}
-		}
-	}()
 }
 
 func (cmd *Command) Start(eventClient websocket.WebsocketClient, job *Job, msg string) {

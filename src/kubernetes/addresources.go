@@ -5,9 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/crds"
-	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/shutdown"
 	"mogenius-k8s-manager/src/utils"
 
@@ -34,7 +32,7 @@ func Deploy() {
 		select {}
 	}
 	addDeployment()
-	_, err = CreateOrUpdateClusterSecret(nil)
+	_, err = CreateOrUpdateClusterSecret()
 	if err != nil {
 		k8sLogger.Error("Error Creating cluster secret. Aborting.", "error", err)
 		shutdown.SendShutdownSignal(true)
@@ -112,87 +110,12 @@ func applyNamespace() {
 	k8sLogger.Info("Created mogenius-k8s-manager namespace", result.GetObjectMeta().GetName(), ".")
 }
 
-func CreateOrUpdateClusterSecret(syncRepoReq *dtos.SyncRepoData) (utils.ClusterSecret, error) {
+func CreateOrUpdateClusterSecret() (utils.ClusterSecret, error) {
 	clientset := clientProvider.K8sClientSet()
 	secretClient := clientset.CoreV1().Secrets(config.Get("MO_OWN_NAMESPACE"))
 
 	existingSecret, getErr := secretClient.Get(context.TODO(), config.Get("MO_OWN_NAMESPACE"), metav1.GetOptions{})
-	return writeMogeniusSecret(secretClient, existingSecret, getErr, syncRepoReq)
-}
-
-func CreateAndUpdateClusterConfigmap() (utils.ClusterConfigmap, error) {
-	clientset := clientProvider.K8sClientSet()
-	configmapClient := clientset.CoreV1().ConfigMaps(config.Get("MO_OWN_NAMESPACE"))
-
-	configMap, getErr := configmapClient.Get(context.TODO(), config.Get("MO_OWN_NAMESPACE"), metav1.GetOptions{})
-
-	var err error
-	if getErr != nil {
-		if apierrors.IsNotFound(getErr) {
-			// create empty config map
-			newConfigmap := core.ConfigMap{}
-			newConfigmap.ObjectMeta.Name = config.Get("MO_OWN_NAMESPACE")
-			newConfigmap.ObjectMeta.Namespace = config.Get("MO_OWN_NAMESPACE")
-			newConfigmap.Data = make(map[string]string)
-			newConfigmap.Data["syncWorkloads"] = ""
-			newConfigmap.Data["availableWorkloads"] = ""
-			newConfigmap.Data["ignoredNamespaces"] = ""
-			newConfigmap.Data["ignoredNames"] = ""
-			configMap, err = configmapClient.Create(context.TODO(), &newConfigmap, MoCreateOptions())
-			if err != nil {
-				k8sLogger.Error("failed to create mogenius configmap.", "error", err)
-				return utils.ClusterConfigmap{}, err
-			}
-			k8sLogger.Debug("🗺️ Created new mogenius configmap.")
-		} else {
-			k8sLogger.Error("failed to get mogenius configmap.", "error", getErr)
-			return utils.ClusterConfigmap{}, getErr
-		}
-	}
-	assert.Assert(configMap != nil, "configMap cant be nil at this point")
-
-	availableRes, err := GetAvailableResources()
-	if err != nil {
-		return utils.ClusterConfigmap{}, err
-	}
-
-	// CONSTRUCT THE OBJECT
-	configMapData := utils.ClusterConfigmap{}
-	configMapData.AvailableWorkloads = availableRes
-	configMapData.IgnoredNamespaces = dtos.DefaultIgnoredNamespaces()
-	configMapData.IgnoredNames = []string{""}
-
-	availableWorkloadsYaml, err := utils.ToYaml(configMapData.AvailableWorkloads)
-	assert.Assert(err == nil, fmt.Sprintf("serializing the SyncWorkloads struct field should never fail: %#v", err))
-	configMap.Data["availableWorkloads"] = availableWorkloadsYaml
-
-	configMap.Data["ignoredNamespaces"] = strings.Join(configMapData.IgnoredNamespaces, ",")
-	configMap.Data["ignoredNames"] = strings.Join(configMapData.IgnoredNames, ",")
-
-	_, err = configmapClient.Update(context.TODO(), configMap, MoUpdateOptions())
-	if err != nil {
-		k8sLogger.Error("failed to update mogenius configmap.", "error", err)
-		return utils.ClusterConfigmap{}, err
-	}
-	k8sLogger.Debug("🗺️ Updated mogenius configmap.")
-
-	return configMapData, nil
-}
-
-func GetSyncRepoData() (*dtos.SyncRepoData, error) {
-	clientset := clientProvider.K8sClientSet()
-	secretClient := clientset.CoreV1().Secrets(config.Get("MO_OWN_NAMESPACE"))
-
-	existingSecret, getErr := secretClient.Get(context.TODO(), config.Get("MO_OWN_NAMESPACE"), metav1.GetOptions{})
-	if getErr != nil {
-		return nil, getErr
-	}
-
-	result := dtos.CreateSyncRepoDataFrom(existingSecret)
-	if result.Pat != "" {
-		result.Pat = "***"
-	}
-	return &result, nil
+	return writeMogeniusSecret(secretClient, existingSecret, getErr)
 }
 
 func GetValkeyPwd() (*string, error) {
@@ -212,7 +135,7 @@ func GetValkeyPwd() (*string, error) {
 	return &foundPwd, nil
 }
 
-func writeMogeniusSecret(secretClient v1.SecretInterface, existingSecret *core.Secret, getErr error, syncRepoReq *dtos.SyncRepoData) (utils.ClusterSecret, error) {
+func writeMogeniusSecret(secretClient v1.SecretInterface, existingSecret *core.Secret, getErr error) (utils.ClusterSecret, error) {
 	// CREATE NEW SECRET
 	apikey := config.Get("MO_API_KEY")
 	clusterName := config.Get("MO_CLUSTER_NAME")
@@ -226,26 +149,9 @@ func writeMogeniusSecret(secretClient v1.SecretInterface, existingSecret *core.S
 		if string(existingSecret.Data["cluster-mfa-id"]) != "" {
 			clusterSecret.ClusterMfaId = string(existingSecret.Data["cluster-mfa-id"])
 		}
-		syncdata := dtos.CreateSyncRepoDataFrom(existingSecret)
-		clusterSecret.SyncRepoUrl = syncdata.Repo
-		clusterSecret.SyncRepoPat = syncdata.Pat
-		clusterSecret.SyncRepoBranch = syncdata.Branch
-		clusterSecret.SyncAllowPull = syncdata.AllowPull
-		clusterSecret.SyncAllowPush = syncdata.AllowPush
-		clusterSecret.SyncFrequencyInSec = syncdata.SyncFrequencyInSec
 	}
 	if clusterSecret.ClusterMfaId == "" {
 		clusterSecret.ClusterMfaId = utils.NanoId()
-	}
-	if syncRepoReq != nil {
-		clusterSecret.SyncRepoUrl = syncRepoReq.Repo
-		if syncRepoReq.Pat != "***" {
-			clusterSecret.SyncRepoPat = syncRepoReq.Pat
-		}
-		clusterSecret.SyncRepoBranch = syncRepoReq.Branch
-		clusterSecret.SyncAllowPull = syncRepoReq.AllowPull
-		clusterSecret.SyncAllowPush = syncRepoReq.AllowPush
-		clusterSecret.SyncFrequencyInSec = syncRepoReq.SyncFrequencyInSec
 	}
 
 	secret := utils.InitSecret()
@@ -255,12 +161,6 @@ func writeMogeniusSecret(secretClient v1.SecretInterface, existingSecret *core.S
 	secret.StringData["cluster-mfa-id"] = clusterSecret.ClusterMfaId
 	secret.StringData["api-key"] = clusterSecret.ApiKey
 	secret.StringData["cluster-name"] = clusterSecret.ClusterName
-	secret.StringData["sync-repo-url"] = clusterSecret.SyncRepoUrl
-	secret.StringData["sync-repo-pat"] = clusterSecret.SyncRepoPat
-	secret.StringData["sync-repo-branch"] = clusterSecret.SyncRepoBranch
-	secret.StringData["sync-allow-pull"] = fmt.Sprintf("%t", clusterSecret.SyncAllowPull)
-	secret.StringData["sync-allow-push"] = fmt.Sprintf("%t", clusterSecret.SyncAllowPush)
-	secret.StringData["sync-frequency-in-sec"] = fmt.Sprintf("%d", clusterSecret.SyncFrequencyInSec)
 
 	if existingSecret == nil || getErr != nil {
 		k8sLogger.Info("🔑 Creating new mogenius secret ...")
@@ -273,13 +173,7 @@ func writeMogeniusSecret(secretClient v1.SecretInterface, existingSecret *core.S
 	} else {
 		if string(existingSecret.Data["cluster-mfa-id"]) != clusterSecret.ClusterMfaId ||
 			string(existingSecret.Data["api-key"]) != clusterSecret.ApiKey ||
-			string(existingSecret.Data["cluster-name"]) != clusterSecret.ClusterName ||
-			string(existingSecret.Data["sync-repo-url"]) != clusterSecret.SyncRepoUrl ||
-			string(existingSecret.Data["sync-repo-pat"]) != clusterSecret.SyncRepoPat ||
-			string(existingSecret.Data["sync-repo-branch"]) != clusterSecret.SyncRepoBranch ||
-			string(existingSecret.Data["sync-allow-pull"]) != fmt.Sprintf("%t", clusterSecret.SyncAllowPull) ||
-			string(existingSecret.Data["sync-allow-push"]) != fmt.Sprintf("%t", clusterSecret.SyncAllowPush) ||
-			string(existingSecret.Data["sync-frequency-in-sec"]) != fmt.Sprintf("%d", clusterSecret.SyncFrequencyInSec) {
+			string(existingSecret.Data["cluster-name"]) != clusterSecret.ClusterName {
 			k8sLogger.Info("🔑 Updating existing mogenius secret ...")
 			result, err := secretClient.Update(context.TODO(), &secret, MoUpdateOptions())
 			if err != nil {
