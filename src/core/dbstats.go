@@ -458,7 +458,7 @@ func (self *valkeyStatsDb) GetMachineStatsForNodes(nodes []string) []structs.Mac
 			self.logger.Error("failed to get machine stats for node", "node", node, "error", err)
 			continue
 		}
-		if stat == nil {
+		if stat != nil {
 			result = append(result, *stat)
 		}
 	}
