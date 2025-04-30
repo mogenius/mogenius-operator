@@ -4134,7 +4134,7 @@ cluster/list-persistent-volume-claims:
         typeInfo:
             structRef: mogenius-k8s-manager/src/kubernetes.K8sWorkloadResult
             type: struct
-cluster/machine-status:
+cluster/machine-stats:
     requestSchema:
         structs:
             mogenius-k8s-manager/src/core.Request:

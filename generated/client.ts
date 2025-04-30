@@ -32,7 +32,7 @@ export enum Pattern {
   CLUSTER_LIST_CONFIGMAPS = "cluster/list-configmaps",
   CLUSTER_LIST_DEPLOYMENTS = "cluster/list-deployments",
   CLUSTER_LIST_PERSISTENT_VOLUME_CLAIMS = "cluster/list-persistent-volume-claims",
-  CLUSTER_MACHINE_STATUS = "cluster/machine-status",
+  CLUSTER_MACHINE_STATS = "cluster/machine-stats",
   CLUSTER_READ_CONFIGMAP = "cluster/read-configmap",
   CLUSTER_READ_DEPLOYMENT = "cluster/read-deployment",
   CLUSTER_READ_PERSISTENT_VOLUME_CLAIM = "cluster/read-persistent-volume-claim",
@@ -205,7 +205,7 @@ export const StringToPattern = {
   "cluster/list-configmaps": Pattern.CLUSTER_LIST_CONFIGMAPS,
   "cluster/list-deployments": Pattern.CLUSTER_LIST_DEPLOYMENTS,
   "cluster/list-persistent-volume-claims": Pattern.CLUSTER_LIST_PERSISTENT_VOLUME_CLAIMS,
-  "cluster/machine-status": Pattern.CLUSTER_MACHINE_STATUS,
+  "cluster/machine-stats": Pattern.CLUSTER_MACHINE_STATS,
   "cluster/read-configmap": Pattern.CLUSTER_READ_CONFIGMAP,
   "cluster/read-deployment": Pattern.CLUSTER_READ_DEPLOYMENT,
   "cluster/read-persistent-volume-claim": Pattern.CLUSTER_READ_PERSISTENT_VOLUME_CLAIM,
@@ -374,7 +374,7 @@ export const PatternToString = {
   [Pattern.CLUSTER_LIST_CONFIGMAPS]: "cluster/list-configmaps",
   [Pattern.CLUSTER_LIST_DEPLOYMENTS]: "cluster/list-deployments",
   [Pattern.CLUSTER_LIST_PERSISTENT_VOLUME_CLAIMS]: "cluster/list-persistent-volume-claims",
-  [Pattern.CLUSTER_MACHINE_STATUS]: "cluster/machine-status",
+  [Pattern.CLUSTER_MACHINE_STATS]: "cluster/machine-stats",
   [Pattern.CLUSTER_READ_CONFIGMAP]: "cluster/read-configmap",
   [Pattern.CLUSTER_READ_DEPLOYMENT]: "cluster/read-deployment",
   [Pattern.CLUSTER_READ_PERSISTENT_VOLUME_CLAIM]: "cluster/read-persistent-volume-claim",
@@ -2631,7 +2631,7 @@ export type CLUSTER_LIST_PERSISTENT_VOLUME_CLAIMS_RESPONSE = CLUSTER_LIST_PERSIS
  * ```
  *
  */
-export type CLUSTER_MACHINE_STATUS_REQUEST = CLUSTER_MACHINE_STATUS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST;
+export type CLUSTER_MACHINE_STATS_REQUEST = CLUSTER_MACHINE_STATS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST;
 
 /**
  * #### Source
@@ -2651,7 +2651,7 @@ export type CLUSTER_MACHINE_STATUS_REQUEST = CLUSTER_MACHINE_STATUS_REQUEST__MOG
  * ```
  *
  */
-export type CLUSTER_MACHINE_STATUS_RESPONSE = CLUSTER_MACHINE_STATUS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_MACHINESTATS[];
+export type CLUSTER_MACHINE_STATS_RESPONSE = CLUSTER_MACHINE_STATS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_MACHINESTATS[];
 
 /**
  * #### Source
@@ -23420,8 +23420,8 @@ export type CLUSTER_LIST_DEPLOYMENTS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_
 export type CLUSTER_LIST_DEPLOYMENTS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_K8SWORKLOADRESULT = {"error": any,"result": any};
 export type CLUSTER_LIST_PERSISTENT_VOLUME_CLAIMS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_CLUSTERLISTWORKLOADS = {"labelSelector": string,"namespace": string,"prefix": string};
 export type CLUSTER_LIST_PERSISTENT_VOLUME_CLAIMS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_K8SWORKLOADRESULT = {"error": any,"result": any};
-export type CLUSTER_MACHINE_STATUS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"nodes": string[]};
-export type CLUSTER_MACHINE_STATUS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_MACHINESTATS = {"btfSupport": boolean};
+export type CLUSTER_MACHINE_STATS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"nodes": string[]};
+export type CLUSTER_MACHINE_STATS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_MACHINESTATS = {"btfSupport": boolean};
 export type CLUSTER_READ_CONFIGMAP_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_CLUSTERGETCONFIGMAP = {"name": string,"namespace": string};
 export type CLUSTER_READ_CONFIGMAP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_K8SWORKLOADRESULT = {"error": any,"result": any};
 export type CLUSTER_READ_DEPLOYMENT_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_CLUSTERGETDEPLOYMENT = {"name": string,"namespace": string};
@@ -24727,9 +24727,9 @@ export interface IPatternConfig {
     Request: CLUSTER_LIST_PERSISTENT_VOLUME_CLAIMS_REQUEST;
     Response: CLUSTER_LIST_PERSISTENT_VOLUME_CLAIMS_RESPONSE;
   };
-  [Pattern.CLUSTER_MACHINE_STATUS]: {
-    Request: CLUSTER_MACHINE_STATUS_REQUEST;
-    Response: CLUSTER_MACHINE_STATUS_RESPONSE;
+  [Pattern.CLUSTER_MACHINE_STATS]: {
+    Request: CLUSTER_MACHINE_STATS_REQUEST;
+    Response: CLUSTER_MACHINE_STATS_RESPONSE;
   };
   [Pattern.CLUSTER_READ_CONFIGMAP]: {
     Request: CLUSTER_READ_CONFIGMAP_REQUEST;

@@ -219,18 +219,15 @@ func (self *networkMonitor) metricsToPodstats(
 		assert.Assert(pod != nil, "pod has to exist in podList")
 
 		interfaceNames := []InterfaceName{}
-		interfaceBlacklist := []string{"lo", "tunl0", "erspan0", "gre0", "gretap0", "ip6_vti0", "ip6gre0", "ip6tnl0", "sit0", "vti0", "vxlan0", "vti4", "vti6"}
 
-		for interfaceName := range containerInfo.Metrics {
-			if slices.Contains(interfaceBlacklist, interfaceName) {
-				continue
-			}
-			interfaceNames = append(interfaceNames, interfaceName)
-		}
 		slices.Sort(interfaceNames)
 
 		for _, interfaceName := range interfaceNames {
 			metrics := containerInfo.Metrics[interfaceName]
+			// filter empty metrics (if all observed values are 0)
+			if metrics.Ingress.Packets == 0 && metrics.Ingress.Bytes == 0 && metrics.Egress.Packets == 0 && metrics.Egress.Bytes == 0 {
+				continue
+			}
 			podNetworkStat := PodNetworkStats{}
 			podNetworkStat.Ip = pod.Status.PodIP
 			podNetworkStat.Pod = containerInfo.PodName
