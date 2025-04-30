@@ -1304,7 +1304,7 @@ func (self *socketApi) registerPatterns() {
 			Nodes []string `json:"nodes" validate:"required"`
 		}
 		self.RegisterPatternHandlerRaw(
-			"cluster/machine-status",
+			"cluster/machine-stats",
 			PatternConfig{
 				RequestSchema:  schema.Generate(Request{}),
 				ResponseSchema: schema.Generate([]structs.MachineStats{}),
