@@ -44,6 +44,7 @@ type ValkeyStatsDb interface {
 	GetLastPodStatsEntriesForNamespace(namespace string) []structs.PodStats
 	GetLastPodStatsEntryForController(controller kubernetes.K8sController) *structs.PodStats
 	GetMachineStatsForNode(nodeName string) (*structs.MachineStats, error)
+	GetMachineStatsForNodes(nodeNames []string) []structs.MachineStats
 	GetPodStatsEntriesForController(kind string, name string, namespace string, timeOffsetMinutes int64) *[]structs.PodStats
 	GetPodStatsEntriesForNamespace(namespace string) *[]structs.PodStats
 	GetSocketConnectionsForController(controller kubernetes.K8sController) *structs.SocketConnections
@@ -446,4 +447,21 @@ func (self *valkeyStatsDb) AddNodeStatsToDb(stats []structs.NodeStats) error {
 type GenericChartEntry struct {
 	Time  string  `json:"time"`
 	Value float64 `json:"value"`
+}
+
+func (self *valkeyStatsDb) GetMachineStatsForNodes(nodes []string) []structs.MachineStats {
+	result := []structs.MachineStats{}
+
+	for _, node := range nodes {
+		stat, err := self.GetMachineStatsForNode(node)
+		if err != nil {
+			self.logger.Error("failed to get machine stats for node", "node", node, "error", err)
+			continue
+		}
+		if stat == nil {
+			result = append(result, *stat)
+		}
+	}
+
+	return result
 }

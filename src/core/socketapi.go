@@ -1299,6 +1299,26 @@ func (self *socketApi) registerPatterns() {
 		},
 	)
 
+	{
+		type Request struct {
+			Nodes []string `json:"nodes" validate:"required"`
+		}
+		self.RegisterPatternHandlerRaw(
+			"cluster/machine-status",
+			PatternConfig{
+				RequestSchema:  schema.Generate(Request{}),
+				ResponseSchema: schema.Generate([]structs.MachineStats{}),
+			},
+			func(datagram structs.Datagram) any {
+				data := Request{}
+				_ = self.loadRequest(&datagram, &data)
+				if err := utils.ValidateJSON(data); err != nil {
+					return err
+				}
+				return NewMessageResponse(self.dbstats.GetMachineStatsForNodes(data.Nodes), nil)
+			},
+		)
+	}
 	self.RegisterPatternHandlerRaw(
 		"cluster/helm-repo-add",
 		PatternConfig{

@@ -4134,6 +4134,31 @@ cluster/list-persistent-volume-claims:
         typeInfo:
             structRef: mogenius-k8s-manager/src/kubernetes.K8sWorkloadResult
             type: struct
+cluster/machine-status:
+    requestSchema:
+        structs:
+            mogenius-k8s-manager/src/core.Request:
+                name: mogenius-k8s-manager/src/core.Request
+                properties:
+                    nodes:
+                        elementType:
+                            type: string
+                        type: array
+        typeInfo:
+            structRef: mogenius-k8s-manager/src/core.Request
+            type: struct
+    responseSchema:
+        structs:
+            mogenius-k8s-manager/src/structs.MachineStats:
+                name: mogenius-k8s-manager/src/structs.MachineStats
+                properties:
+                    btfSupport:
+                        type: bool
+        typeInfo:
+            elementType:
+                structRef: mogenius-k8s-manager/src/structs.MachineStats
+                type: struct
+            type: array
 cluster/read-configmap:
     requestSchema:
         structs:
