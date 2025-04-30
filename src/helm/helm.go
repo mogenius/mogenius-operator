@@ -875,6 +875,12 @@ func HelmReleaseUninstall(data HelmReleaseUninstallRequest) (string, error) {
 		return "", err
 	}
 
+	// delete release from logs (otherwise it will be kept forever)
+	err = valkeyClient.DeleteFromBucketWithNsAndReleaseName(data.Namespace, data.Release, "logs:helm")
+	if err != nil {
+		helmLogger.Error("failed to delete helm release logs", "releaseName", data.Release, "namespace", data.Namespace, "error", err)
+	}
+
 	return fmt.Sprintf("Release '%s' uninstalled", data.Release), nil
 }
 
