@@ -93,9 +93,13 @@ func (self *nodeMetricsCollector) Orchestrate() {
 		return
 	}
 
-	daemonSetName := "mogenius-k8s-manager-nodemetrics"
+	ownDeploymentName := self.config.Get("OWN_DEPLOYMENT_NAME")
+	assert.Assert(ownDeploymentName != "")
+
 	namespace := self.config.Get("MO_OWN_NAMESPACE")
 	assert.Assert("MO_OWN_NAMESPACE" != "")
+
+	daemonSetName := fmt.Sprintf("%s-nodemetrics", ownDeploymentName)
 
 	if self.clientProvider.RunsInCluster() {
 		self.leaderElector.OnLeading(func() {
@@ -105,7 +109,7 @@ func (self *nodeMetricsCollector) Orchestrate() {
 				return
 			}
 
-			ownDeployment, err := clientset.AppsV1().Deployments(namespace).Get(context.TODO(), "mogenius-k8s-manager", metav1.GetOptions{})
+			ownDeployment, err := clientset.AppsV1().Deployments(namespace).Get(context.TODO(), ownDeploymentName, metav1.GetOptions{})
 			if err != nil {
 				self.logger.Error("failed to get own deployment for image name determination", "error", err)
 				return
