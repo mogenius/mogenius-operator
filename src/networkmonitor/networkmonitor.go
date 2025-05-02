@@ -219,7 +219,9 @@ func (self *networkMonitor) metricsToPodstats(
 		assert.Assert(pod != nil, "pod has to exist in podList")
 
 		interfaceNames := []InterfaceName{}
-
+		for interfaceName := range containerInfo.Metrics {
+			interfaceNames = append(interfaceNames, interfaceName)
+		}
 		slices.Sort(interfaceNames)
 
 		for _, interfaceName := range interfaceNames {
