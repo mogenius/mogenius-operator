@@ -428,6 +428,8 @@ github.com/shirou/gopsutil/v4 v4.25.2 h1:NMscG3l2CqtWFS86kj3vP7soOczqrQYIEhO/pMv
 github.com/shirou/gopsutil/v4 v4.25.2/go.mod h1:34gBYJzyqCDT11b6bMHP0XCvWeU3J61XRT7a2EmCRTA=
 github.com/shirou/gopsutil/v4 v4.25.3 h1:SeA68lsu8gLggyMbmCn8cmp97V1TI9ld9sVzAUcKcKE=
 github.com/shirou/gopsutil/v4 v4.25.3/go.mod h1:xbuxyoZj+UsgnZrENu3lQivsngRR5BdjbJwf2fv4szA=
+github.com/shirou/gopsutil/v4 v4.25.4 h1:cdtFO363VEOOFrUCjZRh4XVJkb548lyF0q0uTeMqYPw=
+github.com/shirou/gopsutil/v4 v4.25.4/go.mod h1:xbuxyoZj+UsgnZrENu3lQivsngRR5BdjbJwf2fv4szA=
 github.com/shopspring/decimal v1.4.0 h1:bxl37RwXBklmTi0C79JfXCEBD1cqqHt0bbgBAGFp81k=
 github.com/shopspring/decimal v1.4.0/go.mod h1:gawqmDU56v4yIKSwfBSFip1HdCCXN8/+DMd9qYNcwME=
 github.com/sirupsen/logrus v1.2.0/go.mod h1:LxeOpSwHxABJmUn/MG1IvRgCAasNZTLOkJPxbbu5VWo=
@@ -687,6 +689,8 @@ k8s.io/metrics v0.33.0 h1:sKe5sC9qb1RakMhs8LWYNuN2ne6OTCWexj8Jos3rO2Y=
 k8s.io/metrics v0.33.0/go.mod h1:XewckTFXmE2AJiP7PT3EXaY7hi7bler3t2ZLyOdQYzU=
 k8s.io/utils v0.0.0-20241210054802-24370beab758 h1:sdbE21q2nlQtFh65saZY+rRM6x6aJJI8IUa1AmH/qa0=
 k8s.io/utils v0.0.0-20241210054802-24370beab758/go.mod h1:OLgZIPagt7ERELqWJFomSt595RzquPNLL48iOWgYOg0=
+k8s.io/utils v0.0.0-20250321185631-1f6e0b77f77e h1:KqK5c/ghOm8xkHYhlodbp6i6+r+ChV2vuAuVRdFbLro=
+k8s.io/utils v0.0.0-20250321185631-1f6e0b77f77e/go.mod h1:OLgZIPagt7ERELqWJFomSt595RzquPNLL48iOWgYOg0=
 oras.land/oras-go v1.2.6 h1:z8cmxQXBU8yZ4mkytWqXfo6tZcamPwjsuxYU81xJ8Lk=
 oras.land/oras-go v1.2.6/go.mod h1:OVPc1PegSEe/K8YiLfosrlqlqTN9PUyFvOw5Y9gwrT8=
 sigs.k8s.io/controller-runtime v0.20.3 h1:I6Ln8JfQjHH7JbtCD2HCYHoIzajoRxPNuvhvcDbZgkI=
