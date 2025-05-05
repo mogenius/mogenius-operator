@@ -99,7 +99,7 @@ func applyNamespace() {
 
 	applyOptions := metav1.ApplyOptions{
 		Force:        true,
-		FieldManager: DEPLOYMENTNAME,
+		FieldManager: GetOwnDeploymentName(),
 	}
 
 	k8sLogger.Info("Creating mogenius-k8s-manager namespace ...")
@@ -236,7 +236,7 @@ func addDeployment() {
 
 	deploymentContainer := applyconfcore.Container()
 	deploymentContainer.WithImagePullPolicy(core.PullAlways)
-	deploymentContainer.WithName(DEPLOYMENTNAME)
+	deploymentContainer.WithName(GetOwnDeploymentName())
 	deploymentContainer.WithImage(DEPLOYMENTIMAGE)
 
 	envVars := []applyconfcore.EnvVarApplyConfiguration{}
@@ -261,7 +261,7 @@ func addDeployment() {
 	}
 	agentResources := applyconfcore.ResourceRequirements().WithRequests(agentResourceRequests).WithLimits(agentResourceLimits)
 	deploymentContainer.WithResources(agentResources)
-	deploymentContainer.WithName(DEPLOYMENTNAME)
+	deploymentContainer.WithName(GetOwnDeploymentName())
 
 	podSpec := applyconfcore.PodSpec()
 	podSpec.WithTerminationGracePeriodSeconds(0)
@@ -271,19 +271,19 @@ func addDeployment() {
 
 	applyOptions := metav1.ApplyOptions{
 		Force:        true,
-		FieldManager: DEPLOYMENTNAME,
+		FieldManager: GetOwnDeploymentName(),
 	}
 
 	labelSelector := applyconfmeta.LabelSelector()
-	labelSelector.WithMatchLabels(map[string]string{"app": DEPLOYMENTNAME})
+	labelSelector.WithMatchLabels(map[string]string{"app": GetOwnDeploymentName()})
 
 	podTemplate := applyconfcore.PodTemplateSpec()
 	podTemplate.WithLabels(map[string]string{
-		"app": DEPLOYMENTNAME,
+		"app": GetOwnDeploymentName(),
 	})
 	podTemplate.WithSpec(podSpec)
 
-	deployment := applyconfapp.Deployment(DEPLOYMENTNAME, config.Get("MO_OWN_NAMESPACE"))
+	deployment := applyconfapp.Deployment(GetOwnDeploymentName(), config.Get("MO_OWN_NAMESPACE"))
 	deployment.WithSpec(applyconfapp.DeploymentSpec().WithSelector(labelSelector).WithTemplate(podTemplate))
 
 	// Create Deployment

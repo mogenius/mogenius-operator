@@ -122,7 +122,7 @@ func (self *moKubernetes) writeMogeniusSecret(secretClient v1.SecretInterface, e
 }
 
 func (self *moKubernetes) getDeploymentName() string {
-	return self.config.Get("MO_DEPLOYMENT_NAME")
+	return self.config.Get("OWN_DEPLOYMENT_NAME")
 }
 
 func (self *moKubernetes) createOptions() metav1.CreateOptions {

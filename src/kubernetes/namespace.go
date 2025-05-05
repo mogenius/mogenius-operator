@@ -22,7 +22,7 @@ func CreateNamespace(eventClient websocket.WebsocketClient, job *structs.Job, pr
 
 	applyOptions := metav1.ApplyOptions{
 		Force:        true,
-		FieldManager: DEPLOYMENTNAME,
+		FieldManager: GetOwnDeploymentName(),
 	}
 
 	newNamespace.WithLabels(MoUpdateLabels(&map[string]string{"name": namespace.Name}, &project.Id, &namespace, nil))

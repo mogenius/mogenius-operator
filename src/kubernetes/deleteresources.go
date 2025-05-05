@@ -20,7 +20,7 @@ func removeDeployment() {
 	// DELETE Deployment
 	k8sLogger.Info("Deleting mogenius-k8s-manager deployment ...")
 	deletePolicy := metav1.DeletePropagationForeground
-	err := deploymentClient.Delete(context.TODO(), DEPLOYMENTNAME, metav1.DeleteOptions{PropagationPolicy: &deletePolicy})
+	err := deploymentClient.Delete(context.TODO(), GetOwnDeploymentName(), metav1.DeleteOptions{PropagationPolicy: &deletePolicy})
 	if err != nil {
 		k8sLogger.Error("Error deleting mogenius-k8s-manager deployment", "error", err.Error())
 		return

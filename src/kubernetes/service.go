@@ -72,7 +72,7 @@ func UpdateService(eventClient websocket.WebsocketClient, job *structs.Job, name
 		updateService := generateService(existingService, namespace, service)
 
 		updateOptions := metav1.UpdateOptions{
-			FieldManager: DEPLOYMENTNAME,
+			FieldManager: GetOwnDeploymentName(),
 		}
 
 		// bind/unbind ports globally
