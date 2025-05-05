@@ -83,7 +83,7 @@ func RestoreNamespace(inputYaml string, namespaceName string) (NamespaceRestoreR
 		ns, err := namespaceClient.Get(context.TODO(), namespaceName, v1.GetOptions{})
 		if err != nil || ns == nil {
 			newNs := applyconfcore.Namespace(namespaceName)
-			_, err = namespaceClient.Apply(context.TODO(), newNs, v1.ApplyOptions{FieldManager: DEPLOYMENTNAME})
+			_, err = namespaceClient.Apply(context.TODO(), newNs, v1.ApplyOptions{FieldManager: GetOwnDeploymentName()})
 			time.Sleep(3 * time.Second) // Wait for 3 for namespace to be created
 			if err != nil {
 				k8sLogger.Error(err.Error())
@@ -155,7 +155,7 @@ func ApplyUnstructured(ctx context.Context, dynamicClient dynamic.Interface, res
 	unstructuredObj.SetManagedFields(nil)
 
 	force := true
-	opts := v1.PatchOptions{FieldManager: DEPLOYMENTNAME, Force: &force}
+	opts := v1.PatchOptions{FieldManager: GetOwnDeploymentName(), Force: &force}
 	if _, err := dri.Patch(ctx, unstructuredObj.GetName(), types.ApplyPatchType, b, opts); err != nil {
 		if isIncompatibleServerError(err) {
 			err = fmt.Errorf("server-side apply not available on the server: (%v)", err)

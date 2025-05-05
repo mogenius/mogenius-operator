@@ -21,7 +21,7 @@ func ClusterForceReconnect() bool {
 	podClient := clientset.CoreV1().Pods(config.Get("MO_OWN_NAMESPACE"))
 
 	podsToKill := []string{}
-	podsToKill = append(podsToKill, AllPodNamesForLabel(config.Get("MO_OWN_NAMESPACE"), "app", DEPLOYMENTNAME)...)
+	podsToKill = append(podsToKill, AllPodNamesForLabel(config.Get("MO_OWN_NAMESPACE"), "app", GetOwnDeploymentName())...)
 
 	for _, podName := range podsToKill {
 		k8sLogger.Warn("Restarting pod ...", "podName", podName)
@@ -45,7 +45,7 @@ func ClusterForceDisconnect() bool {
 
 	// stop k8s-manager
 	deploymentClient := clientset.AppsV1().Deployments(config.Get("MO_OWN_NAMESPACE"))
-	deployment, _ := deploymentClient.Get(context.TODO(), DEPLOYMENTNAME, metav1.GetOptions{})
+	deployment, _ := deploymentClient.Get(context.TODO(), GetOwnDeploymentName(), metav1.GetOptions{})
 	deployment.Spec.Replicas = utils.Pointer[int32](0)
 	_, err := deploymentClient.Update(context.TODO(), deployment, metav1.UpdateOptions{})
 	if err != nil {
@@ -53,7 +53,7 @@ func ClusterForceDisconnect() bool {
 	}
 
 	podsToKill := []string{}
-	podsToKill = append(podsToKill, AllPodNamesForLabel(config.Get("MO_OWN_NAMESPACE"), "app", DEPLOYMENTNAME)...)
+	podsToKill = append(podsToKill, AllPodNamesForLabel(config.Get("MO_OWN_NAMESPACE"), "app", GetOwnDeploymentName())...)
 
 	for _, podName := range podsToKill {
 		k8sLogger.Warn("Restarting pod...", "pod", podName)

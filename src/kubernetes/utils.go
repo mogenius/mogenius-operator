@@ -10,6 +10,7 @@ import (
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/version"
+	"os"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -33,7 +34,6 @@ import (
 )
 
 var (
-	DEPLOYMENTNAME  = "mogenius-k8s-manager"
 	DEPLOYMENTIMAGE = "ghcr.io/mogenius/mogenius-k8s-manager:" + version.Ver
 
 	SERVICEACCOUNTNAME     = "mogenius-k8s-manager-service-account-app"
@@ -177,14 +177,18 @@ func KubernetesVersion() *version2.Info {
 
 func MoCreateOptions() metav1.CreateOptions {
 	return metav1.CreateOptions{
-		FieldManager: DEPLOYMENTNAME,
+		FieldManager: GetOwnDeploymentName(),
 	}
 }
 
 func MoUpdateOptions() metav1.UpdateOptions {
 	return metav1.UpdateOptions{
-		FieldManager: DEPLOYMENTNAME,
+		FieldManager: GetOwnDeploymentName(),
 	}
+}
+
+func GetOwnDeploymentName() string {
+	return os.Getenv("OWN_DEPLOYMENT_NAME")
 }
 
 func MoUpdateLabels(labels *map[string]string, projectId *string, namespace *dtos.K8sNamespaceDto, service *dtos.K8sServiceDto) map[string]string {
@@ -198,7 +202,7 @@ func MoUpdateLabels(labels *map[string]string, projectId *string, namespace *dto
 	}
 
 	// populate with mo labels
-	resultingLabels[MO_LABEL_CREATED_BY] = DEPLOYMENTNAME
+	resultingLabels[MO_LABEL_CREATED_BY] = GetOwnDeploymentName()
 	if service != nil {
 		resultingLabels[MO_LABEL_APP_NAME] = service.ControllerName
 	}

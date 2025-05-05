@@ -195,7 +195,7 @@ func UpdateIngress(eventClient websocket.WebsocketClient, job *structs.Job, name
 				cmd.Success(eventClient, job, fmt.Sprintf("Ingress '%s' deleted (not needed anymore)", ingressName))
 			} else {
 				// create
-				_, err := ingressClient.Create(context.TODO(), ingressToUpdate, metav1.CreateOptions{FieldManager: DEPLOYMENTNAME})
+				_, err := ingressClient.Create(context.TODO(), ingressToUpdate, metav1.CreateOptions{FieldManager: GetOwnDeploymentName()})
 				if err != nil {
 					cmd.Fail(eventClient, job, fmt.Sprintf("Create Ingress ERROR: %s", err.Error()))
 					return
