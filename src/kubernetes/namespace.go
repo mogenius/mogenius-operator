@@ -22,10 +22,10 @@ func CreateNamespace(eventClient websocket.WebsocketClient, job *structs.Job, pr
 
 	applyOptions := metav1.ApplyOptions{
 		Force:        true,
-		FieldManager: GetOwnDeploymentName(),
+		FieldManager: GetOwnDeploymentName(config),
 	}
 
-	newNamespace.WithLabels(MoUpdateLabels(&map[string]string{"name": namespace.Name}, &project.Id, &namespace, nil))
+	newNamespace.WithLabels(MoUpdateLabels(&map[string]string{"name": namespace.Name}, &project.Id, &namespace, nil, config))
 
 	_, err := namespaceClient.Apply(context.TODO(), newNamespace, applyOptions)
 	if err != nil {

@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	cfg "mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/gitmanager"
 	"mogenius-k8s-manager/src/kubernetes"
@@ -16,7 +17,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 )
 
-func UpdateService(eventClient websocket.WebsocketClient, r ServiceUpdateRequest) *structs.Job {
+func UpdateService(eventClient websocket.WebsocketClient, r ServiceUpdateRequest, config cfg.ConfigModule) *structs.Job {
 	var wg sync.WaitGroup
 	job := structs.CreateJob(eventClient, "Update Service "+r.Project.DisplayName+"/"+r.Namespace.DisplayName, r.Project.Id, r.Namespace.Name, r.Service.ControllerName)
 	job.Start(eventClient)
@@ -37,7 +38,7 @@ func UpdateService(eventClient websocket.WebsocketClient, r ServiceUpdateRequest
 	mokubernetes.CreateOrUpdateClusterImagePullSecret(eventClient, job, r.Project, r.Namespace, &wg)
 	mokubernetes.CreateOrUpdateContainerImagePullSecret(eventClient, job, r.Namespace, r.Service, &wg)
 	mokubernetes.UpdateOrCreateControllerSecret(eventClient, job, r.Namespace, r.Service, &wg)
-	mokubernetes.UpdateService(eventClient, job, r.Namespace, r.Service, &wg)
+	mokubernetes.UpdateService(eventClient, job, r.Namespace, r.Service, &wg, config)
 	// mokubernetes.CreateOrUpdateNetworkPolicyService(job, r.Namespace, r.Service, &wg)
 	mokubernetes.UpdateIngress(eventClient, job, r.Namespace, r.Service, &wg)
 
@@ -133,14 +134,14 @@ func TriggerJobService(eventClient websocket.WebsocketClient, r ServiceTriggerJo
 	return job
 }
 
-func Restart(eventClient websocket.WebsocketClient, r ServiceRestartRequest) *structs.Job {
+func Restart(eventClient websocket.WebsocketClient, r ServiceRestartRequest, config cfg.ConfigModule) *structs.Job {
 	var wg sync.WaitGroup
 	job := structs.CreateJob(eventClient, "Restart Service "+r.Namespace.DisplayName, r.Project.Id, r.Namespace.Name, r.Service.ControllerName)
 	job.Start(eventClient)
 
 	mokubernetes.CreateOrUpdateClusterImagePullSecret(eventClient, job, r.Project, r.Namespace, &wg)
 	mokubernetes.CreateOrUpdateContainerImagePullSecret(eventClient, job, r.Namespace, r.Service, &wg)
-	mokubernetes.UpdateService(eventClient, job, r.Namespace, r.Service, &wg)
+	mokubernetes.UpdateService(eventClient, job, r.Namespace, r.Service, &wg, config)
 	mokubernetes.UpdateOrCreateControllerSecret(eventClient, job, r.Namespace, r.Service, &wg)
 	// mokubernetes.CreateOrUpdateNetworkPolicyService(job, r.Namespace, r.Service, &wg)
 	mokubernetes.UpdateIngress(eventClient, job, r.Namespace, r.Service, &wg)
@@ -160,7 +161,7 @@ func Restart(eventClient websocket.WebsocketClient, r ServiceRestartRequest) *st
 	return job
 }
 
-func StopService(eventClient websocket.WebsocketClient, r ServiceStopRequest) *structs.Job {
+func StopService(eventClient websocket.WebsocketClient, r ServiceStopRequest, config cfg.ConfigModule) *structs.Job {
 	var wg sync.WaitGroup
 	job := structs.CreateJob(eventClient, "Stop Service "+r.Namespace.DisplayName, r.ProjectId, r.Namespace.Name, r.Service.ControllerName)
 	job.Start(eventClient)
@@ -172,7 +173,7 @@ func StopService(eventClient websocket.WebsocketClient, r ServiceStopRequest) *s
 		mokubernetes.StopCronJob(eventClient, job, r.Namespace, r.Service, &wg)
 	}
 
-	mokubernetes.UpdateService(eventClient, job, r.Namespace, r.Service, &wg)
+	mokubernetes.UpdateService(eventClient, job, r.Namespace, r.Service, &wg, config)
 	mokubernetes.UpdateIngress(eventClient, job, r.Namespace, r.Service, &wg)
 
 	go func() {
@@ -183,7 +184,7 @@ func StopService(eventClient websocket.WebsocketClient, r ServiceStopRequest) *s
 	return job
 }
 
-func StartService(eventClient websocket.WebsocketClient, r ServiceStartRequest) *structs.Job {
+func StartService(eventClient websocket.WebsocketClient, r ServiceStartRequest, config cfg.ConfigModule) *structs.Job {
 	var wg sync.WaitGroup
 
 	job := structs.CreateJob(eventClient, "Start Service "+r.Service.DisplayName, r.Project.Id, r.Namespace.Name, r.Service.ControllerName)
@@ -191,7 +192,7 @@ func StartService(eventClient websocket.WebsocketClient, r ServiceStartRequest) 
 
 	mokubernetes.CreateOrUpdateClusterImagePullSecret(eventClient, job, r.Project, r.Namespace, &wg)
 	mokubernetes.CreateOrUpdateContainerImagePullSecret(eventClient, job, r.Namespace, r.Service, &wg)
-	mokubernetes.UpdateService(eventClient, job, r.Namespace, r.Service, &wg)
+	mokubernetes.UpdateService(eventClient, job, r.Namespace, r.Service, &wg, config)
 	mokubernetes.UpdateOrCreateControllerSecret(eventClient, job, r.Namespace, r.Service, &wg)
 	// mokubernetes.CreateOrUpdateNetworkPolicyService(job, r.Namespace, r.Service, &wg)
 	mokubernetes.UpdateIngress(eventClient, job, r.Namespace, r.Service, &wg)

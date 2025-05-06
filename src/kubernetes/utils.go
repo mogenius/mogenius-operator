@@ -5,12 +5,12 @@ import (
 	json1 "encoding/json"
 	"fmt"
 	"mogenius-k8s-manager/src/assert"
+	cfg "mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/shutdown"
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/version"
-	"os"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -175,23 +175,23 @@ func KubernetesVersion() *version2.Info {
 	return info
 }
 
-func MoCreateOptions() metav1.CreateOptions {
+func MoCreateOptions(config cfg.ConfigModule) metav1.CreateOptions {
 	return metav1.CreateOptions{
-		FieldManager: GetOwnDeploymentName(),
+		FieldManager: GetOwnDeploymentName(config),
 	}
 }
 
-func MoUpdateOptions() metav1.UpdateOptions {
+func MoUpdateOptions(config cfg.ConfigModule) metav1.UpdateOptions {
 	return metav1.UpdateOptions{
-		FieldManager: GetOwnDeploymentName(),
+		FieldManager: GetOwnDeploymentName(config),
 	}
 }
 
-func GetOwnDeploymentName() string {
-	return os.Getenv("OWN_DEPLOYMENT_NAME")
+func GetOwnDeploymentName(config cfg.ConfigModule) string {
+	return config.Get("OWN_DEPLOYMENT_NAME")
 }
 
-func MoUpdateLabels(labels *map[string]string, projectId *string, namespace *dtos.K8sNamespaceDto, service *dtos.K8sServiceDto) map[string]string {
+func MoUpdateLabels(labels *map[string]string, projectId *string, namespace *dtos.K8sNamespaceDto, service *dtos.K8sServiceDto, config cfg.ConfigModule) map[string]string {
 	resultingLabels := map[string]string{}
 
 	// transfer existing values
@@ -202,7 +202,7 @@ func MoUpdateLabels(labels *map[string]string, projectId *string, namespace *dto
 	}
 
 	// populate with mo labels
-	resultingLabels[MO_LABEL_CREATED_BY] = GetOwnDeploymentName()
+	resultingLabels[MO_LABEL_CREATED_BY] = GetOwnDeploymentName(config)
 	if service != nil {
 		resultingLabels[MO_LABEL_APP_NAME] = service.ControllerName
 	}

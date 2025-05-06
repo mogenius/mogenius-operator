@@ -1593,7 +1593,7 @@ func (self *socketApi) registerPatterns() {
 			}
 			data.Service.AddSecretsToRedaction()
 			data.Project.AddSecretsToRedaction()
-			return services.UpdateService(self.eventsClient, data)
+			return services.UpdateService(self.eventsClient, data, self.config)
 		},
 	)
 
@@ -1724,7 +1724,7 @@ func (self *socketApi) registerPatterns() {
 				return err
 			}
 			data.Service.AddSecretsToRedaction()
-			return services.Restart(self.eventsClient, data)
+			return services.Restart(self.eventsClient, data, self.config)
 		},
 	)
 
@@ -1741,7 +1741,7 @@ func (self *socketApi) registerPatterns() {
 				return err
 			}
 			data.Service.AddSecretsToRedaction()
-			return services.StopService(self.eventsClient, data)
+			return services.StopService(self.eventsClient, data, self.config)
 		},
 	)
 
@@ -1758,7 +1758,7 @@ func (self *socketApi) registerPatterns() {
 				return err
 			}
 			data.Service.AddSecretsToRedaction()
-			return services.StartService(self.eventsClient, data)
+			return services.StartService(self.eventsClient, data, self.config)
 		},
 	)
 
@@ -1776,7 +1776,7 @@ func (self *socketApi) registerPatterns() {
 			}
 			data.Project.AddSecretsToRedaction()
 			data.Service.AddSecretsToRedaction()
-			return services.UpdateService(self.eventsClient, data)
+			return services.UpdateService(self.eventsClient, data, self.config)
 		},
 	)
 

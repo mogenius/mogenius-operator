@@ -36,7 +36,7 @@ func EnsureConfigMapExists(namespace string, configMap v1Core.ConfigMap) error {
 	_, err := client.Get(context.TODO(), configMap.Name, metav1.GetOptions{})
 	if err != nil {
 		if apierrors.IsNotFound(err) {
-			_, err = client.Create(context.TODO(), &configMap, MoCreateOptions())
+			_, err = client.Create(context.TODO(), &configMap, MoCreateOptions(config))
 			if err != nil {
 				k8sLogger.Error("InitNetworkPolicyConfigMap", "error", err)
 				return err
