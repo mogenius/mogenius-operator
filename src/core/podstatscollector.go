@@ -15,7 +15,6 @@ import (
 	jsoniter "github.com/json-iterator/go"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	metricsv1beta1 "k8s.io/metrics/pkg/apis/metrics/v1beta1"
 )
 
 type PodStatsCollector interface {
@@ -156,69 +155,43 @@ func (self *podStatsCollector) getRealNodeMetrics() []podstatscollector.NodeMetr
 }
 
 func (self *podStatsCollector) podStats(nodemetrics []podstatscollector.NodeMetrics, pods map[string]v1.Pod) ([]structs.PodStats, error) {
-	// Create a cache for pod metrics to avoid redundant lookups
-	podMetricsCache := make(map[string]*metricsv1beta1.PodMetrics)
-	
-	// Batch fetch all pod metrics at once
 	podMetricsList, err := self.clientProvider.MetricsClientSet().MetricsV1beta1().PodMetricses("").List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
 
-	// Build cache
-	for i := range podMetricsList.Items {
-		podMetricsCache[podMetricsList.Items[i].Name] = &podMetricsList.Items[i]
-	}
+	result := []structs.PodStats{}
+	// bene: I HATE THIS BUT I DONT SEE ANY OTHER SOLUTION! SPEND HOURS (to find something better) ON THIS UGGLY SHIT!!!!
 
-	result := make([]structs.PodStats, 0, len(pods))
-	
-	// Process pods in batches
-	for podName, pod := range pods {
-		podMetrics, exists := podMetricsCache[podName]
-		if !exists {
-			continue
-		}
+	for _, podMetrics := range podMetricsList.Items {
+		pod := pods[podMetrics.Name]
 
-		// Create a map of container metrics for quick lookup
-		containerMetricsMap := make(map[string]metricsv1beta1.ContainerMetrics)
-		for _, cm := range podMetrics.Containers {
-			containerMetricsMap[cm.Name] = cm
-		}
-
-		// Process all containers for this pod at once
 		for _, container := range pod.Spec.Containers {
-			entry := structs.PodStats{
-				Namespace:     podMetrics.Namespace,
-				PodName:      podName,
-				ContainerName: container.Name,
-				StartTime:    pod.Status.StartTime.Format(time.RFC3339),
+			entry := structs.PodStats{}
+			entry.Namespace = podMetrics.Namespace
+			entry.PodName = podMetrics.Name
+			entry.StartTime = pod.Status.StartTime.Format(time.RFC3339)
+
+			entry.ContainerName = container.Name
+			entry.CpuLimit += container.Resources.Limits.Cpu().MilliValue()
+			entry.MemoryLimit += container.Resources.Limits.Memory().Value()
+			entry.EphemeralStorageLimit += container.Resources.Limits.StorageEphemeral().Value()
+
+			for _, containerMetric := range podMetrics.Containers {
+				if containerMetric.Name == container.Name {
+					entry.Cpu += containerMetric.Usage.Cpu().MilliValue()
+					entry.Memory += containerMetric.Usage.Memory().Value()
+				}
 			}
-
-			// Set resource limits
-			entry.CpuLimit = container.Resources.Limits.Cpu().MilliValue()
-			entry.MemoryLimit = container.Resources.Limits.Memory().Value()
-			entry.EphemeralStorageLimit = container.Resources.Limits.StorageEphemeral().Value()
-
-			// Get container metrics from cache
-			if cm, ok := containerMetricsMap[container.Name]; ok {
-				entry.Cpu = cm.Usage.Cpu().MilliValue()
-				entry.Memory = cm.Usage.Memory().Value()
-			}
-
-			// Find ephemeral storage usage from node metrics
 			for _, nodeMetric := range nodemetrics {
 				for _, pod := range nodeMetric.Pods {
-					if pod.PodRef.Name == podName {
-						for _, metricContainer := range pod.Containers {
-							if metricContainer.Name == container.Name {
-								entry.EphemeralStorage = int64(pod.EphemeralStorage.UsedBytes)
-								break
-							}
+					for _, metricContainer := range pod.Containers {
+						if metricContainer.Name == container.Name && pod.PodRef.Name == podMetrics.Name {
+							entry.EphemeralStorage += int64(pod.EphemeralStorage.UsedBytes)
 						}
 					}
 				}
 			}
-
 			result = append(result, entry)
 		}
 	}
