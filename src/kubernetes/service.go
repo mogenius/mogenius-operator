@@ -3,6 +3,7 @@ package kubernetes
 import (
 	"context"
 	"fmt"
+	cfg "mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/websocket"
@@ -55,7 +56,7 @@ func DeleteService(eventClient websocket.WebsocketClient, job *structs.Job, name
 	}(wg)
 }
 
-func UpdateService(eventClient websocket.WebsocketClient, job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
+func UpdateService(eventClient websocket.WebsocketClient, job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup, config cfg.ConfigModule) {
 	cmd := structs.CreateCommand(eventClient, "update", "Update Application", job)
 	wg.Add(1)
 	go func(wg *sync.WaitGroup) {
@@ -72,7 +73,7 @@ func UpdateService(eventClient websocket.WebsocketClient, job *structs.Job, name
 		updateService := generateService(existingService, namespace, service)
 
 		updateOptions := metav1.UpdateOptions{
-			FieldManager: GetOwnDeploymentName(),
+			FieldManager: GetOwnDeploymentName(config),
 		}
 
 		// bind/unbind ports globally

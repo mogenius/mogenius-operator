@@ -16,7 +16,7 @@ func ApplyServiceAccount(serviceAccountName string, namespace string, annotation
 		},
 	}
 	clientset := clientProvider.K8sClientSet()
-	_, err := clientset.CoreV1().ServiceAccounts(namespace).Create(context.TODO(), serviceAccount, MoCreateOptions())
+	_, err := clientset.CoreV1().ServiceAccounts(namespace).Create(context.TODO(), serviceAccount, MoCreateOptions(config))
 	if err == nil {
 		k8sLogger.Info("ServiceAccount created successfully ✅")
 	} else {

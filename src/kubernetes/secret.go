@@ -87,7 +87,7 @@ func CreateOrUpdateClusterImagePullSecret(eventClient websocket.WebsocketClient,
 		secret := utils.InitContainerSecret()
 		secret.ObjectMeta.Name = secretName
 		secret.ObjectMeta.Namespace = namespace.Name
-		secret.Labels = MoUpdateLabels(&secret.Labels, nil, nil, nil)
+		secret.Labels = MoUpdateLabels(&secret.Labels, nil, nil, nil, config)
 
 		secretStringData := make(map[string]string)
 
@@ -99,13 +99,13 @@ func CreateOrUpdateClusterImagePullSecret(eventClient websocket.WebsocketClient,
 		secret.StringData = secretStringData
 
 		// Check if exists
-		_, err := secretClient.Update(context.TODO(), &secret, MoUpdateOptions())
+		_, err := secretClient.Update(context.TODO(), &secret, MoUpdateOptions(config))
 		if err == nil {
 			// UPDATED
 			cmd.Success(eventClient, job, "Created Cluster ImagePullSecret")
 		} else {
 			if apierrors.IsNotFound(err) {
-				_, err = secretClient.Create(context.TODO(), &secret, MoCreateOptions())
+				_, err = secretClient.Create(context.TODO(), &secret, MoCreateOptions(config))
 				if err != nil {
 					cmd.Fail(eventClient, job, fmt.Sprintf("CreateOrUpdateClusterImagePullSecret (create) ERROR: %s", err.Error()))
 				} else {
@@ -172,16 +172,16 @@ func CreateOrUpdateContainerImagePullSecret(eventClient websocket.WebsocketClien
 		secretStringData[".dockerconfigjson"] = *service.GetImageRepoSecretDecryptValue()
 		secret.StringData = secretStringData
 
-		secret.Labels = MoUpdateLabels(&secret.Labels, nil, nil, nil)
+		secret.Labels = MoUpdateLabels(&secret.Labels, nil, nil, nil, config)
 
 		// Check if exists
-		_, err := secretClient.Update(context.TODO(), &secret, MoUpdateOptions())
+		_, err := secretClient.Update(context.TODO(), &secret, MoUpdateOptions(config))
 		if err == nil {
 			// UPDATED
 			cmd.Success(eventClient, job, "Created Container ImagePullSecret")
 		} else {
 			if apierrors.IsNotFound(err) {
-				_, err = secretClient.Create(context.TODO(), &secret, MoCreateOptions())
+				_, err = secretClient.Create(context.TODO(), &secret, MoCreateOptions(config))
 				if err != nil {
 					cmd.Fail(eventClient, job, fmt.Sprintf("CreateOrUpdateContainerImagePullSecret (create) ERROR: %s", err.Error()))
 				} else {
@@ -287,10 +287,10 @@ func UpdateOrCreateControllerSecret(eventClient websocket.WebsocketClient, job *
 			return
 		}
 
-		_, err := secretClient.Update(context.TODO(), &secret, MoUpdateOptions())
+		_, err := secretClient.Update(context.TODO(), &secret, MoUpdateOptions(config))
 		if err != nil {
 			if apierrors.IsNotFound(err) {
-				_, err = secretClient.Create(context.TODO(), &secret, MoCreateOptions())
+				_, err = secretClient.Create(context.TODO(), &secret, MoCreateOptions(config))
 				if err != nil {
 					cmd.Fail(eventClient, job, fmt.Sprintf("UpdateOrCreateControllerSecrete ERROR: %s", err.Error()))
 				} else {

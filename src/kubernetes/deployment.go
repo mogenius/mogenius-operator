@@ -84,10 +84,10 @@ func UpdateDeployment(eventClient websocket.WebsocketClient, job *structs.Job, n
 		}
 
 		deployment := newController.(*v1.Deployment)
-		_, err = deploymentClient.Update(context.TODO(), deployment, MoUpdateOptions())
+		_, err = deploymentClient.Update(context.TODO(), deployment, MoUpdateOptions(config))
 		if err != nil {
 			if apierrors.IsNotFound(err) {
-				_, err = deploymentClient.Create(context.TODO(), deployment, MoCreateOptions())
+				_, err = deploymentClient.Create(context.TODO(), deployment, MoCreateOptions(config))
 				if err != nil {
 					cmd.Fail(eventClient, job, fmt.Sprintf("CreateDeployment ERROR: %s", err.Error()))
 				} else {

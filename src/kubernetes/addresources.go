@@ -79,11 +79,11 @@ func addRbac() error {
 	if err != nil && !apierrors.IsAlreadyExists(err) {
 		return err
 	}
-	_, err = clientset.RbacV1().ClusterRoles().Create(context.TODO(), clusterRole, MoCreateOptions())
+	_, err = clientset.RbacV1().ClusterRoles().Create(context.TODO(), clusterRole, MoCreateOptions(config))
 	if err != nil && !apierrors.IsAlreadyExists(err) {
 		return err
 	}
-	_, err = clientset.RbacV1().ClusterRoleBindings().Create(context.TODO(), clusterRoleBinding, MoCreateOptions())
+	_, err = clientset.RbacV1().ClusterRoleBindings().Create(context.TODO(), clusterRoleBinding, MoCreateOptions(config))
 	if err != nil && !apierrors.IsAlreadyExists(err) {
 		return err
 	}
@@ -99,7 +99,7 @@ func applyNamespace() {
 
 	applyOptions := metav1.ApplyOptions{
 		Force:        true,
-		FieldManager: GetOwnDeploymentName(),
+		FieldManager: GetOwnDeploymentName(config),
 	}
 
 	k8sLogger.Info("Creating mogenius-k8s-manager namespace ...")
@@ -164,7 +164,7 @@ func writeMogeniusSecret(secretClient v1.SecretInterface, existingSecret *core.S
 
 	if existingSecret == nil || getErr != nil {
 		k8sLogger.Info("🔑 Creating new mogenius secret ...")
-		result, err := secretClient.Create(context.TODO(), &secret, MoCreateOptions())
+		result, err := secretClient.Create(context.TODO(), &secret, MoCreateOptions(config))
 		if err != nil {
 			k8sLogger.Error("Error creating mogenius secret.", "error", err)
 			return clusterSecret, err
@@ -175,7 +175,7 @@ func writeMogeniusSecret(secretClient v1.SecretInterface, existingSecret *core.S
 			string(existingSecret.Data["api-key"]) != clusterSecret.ApiKey ||
 			string(existingSecret.Data["cluster-name"]) != clusterSecret.ClusterName {
 			k8sLogger.Info("🔑 Updating existing mogenius secret ...")
-			result, err := secretClient.Update(context.TODO(), &secret, MoUpdateOptions())
+			result, err := secretClient.Update(context.TODO(), &secret, MoUpdateOptions(config))
 			if err != nil {
 				k8sLogger.Error("Error updating mogenius secret.", "error", err)
 				return clusterSecret, err
@@ -236,7 +236,7 @@ func addDeployment() {
 
 	deploymentContainer := applyconfcore.Container()
 	deploymentContainer.WithImagePullPolicy(core.PullAlways)
-	deploymentContainer.WithName(GetOwnDeploymentName())
+	deploymentContainer.WithName(GetOwnDeploymentName(config))
 	deploymentContainer.WithImage(DEPLOYMENTIMAGE)
 
 	envVars := []applyconfcore.EnvVarApplyConfiguration{}
@@ -261,7 +261,7 @@ func addDeployment() {
 	}
 	agentResources := applyconfcore.ResourceRequirements().WithRequests(agentResourceRequests).WithLimits(agentResourceLimits)
 	deploymentContainer.WithResources(agentResources)
-	deploymentContainer.WithName(GetOwnDeploymentName())
+	deploymentContainer.WithName(GetOwnDeploymentName(config))
 
 	podSpec := applyconfcore.PodSpec()
 	podSpec.WithTerminationGracePeriodSeconds(0)
@@ -271,19 +271,19 @@ func addDeployment() {
 
 	applyOptions := metav1.ApplyOptions{
 		Force:        true,
-		FieldManager: GetOwnDeploymentName(),
+		FieldManager: GetOwnDeploymentName(config),
 	}
 
 	labelSelector := applyconfmeta.LabelSelector()
-	labelSelector.WithMatchLabels(map[string]string{"app": GetOwnDeploymentName()})
+	labelSelector.WithMatchLabels(map[string]string{"app": GetOwnDeploymentName(config)})
 
 	podTemplate := applyconfcore.PodTemplateSpec()
 	podTemplate.WithLabels(map[string]string{
-		"app": GetOwnDeploymentName(),
+		"app": GetOwnDeploymentName(config),
 	})
 	podTemplate.WithSpec(podSpec)
 
-	deployment := applyconfapp.Deployment(GetOwnDeploymentName(), config.Get("MO_OWN_NAMESPACE"))
+	deployment := applyconfapp.Deployment(GetOwnDeploymentName(config), config.Get("MO_OWN_NAMESPACE"))
 	deployment.WithSpec(applyconfapp.DeploymentSpec().WithSelector(labelSelector).WithTemplate(podTemplate))
 
 	// Create Deployment
