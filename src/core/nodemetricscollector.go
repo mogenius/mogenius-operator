@@ -86,7 +86,7 @@ func (self *nodeMetricsCollector) Link(statsDb ValkeyStatsDb, leaderElector Lead
 }
 
 func (self *nodeMetricsCollector) Orchestrate() {
-	enabled, err := strconv.ParseBool(self.config.Get("MO_ENABLE_TRAFFIC_COLLECTOR"))
+	trafficCollectorEnabled, err := strconv.ParseBool(self.config.Get("MO_ENABLE_TRAFFIC_COLLECTOR"))
 	assert.Assert(err == nil, err)
 
 	ownDeploymentName := self.config.Get("OWN_DEPLOYMENT_NAME")
@@ -97,15 +97,13 @@ func (self *nodeMetricsCollector) Orchestrate() {
 
 	daemonSetName := fmt.Sprintf("%s-nodemetrics", ownDeploymentName)
 
-	self.logger.Info("node metrics collector configuration", "enabled", enabled)
-	if !enabled {
+	self.logger.Info("node metrics collector configuration", "enabled", trafficCollectorEnabled)
+	if !trafficCollectorEnabled {
 		deleteDaemonSet(self, namespace, daemonSetName)
 		return
 	}
 
-	trafficCollectorEnabled := self.config.Get("MO_ENABLE_TRAFFIC_COLLECTOR")
-
-	if self.clientProvider.RunsInCluster() && trafficCollectorEnabled == "true" {
+	if self.clientProvider.RunsInCluster() && trafficCollectorEnabled {
 		self.leaderElector.OnLeading(func() {
 			clientset := self.clientProvider.K8sClientSet()
 			if clientset == nil {
