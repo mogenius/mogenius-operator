@@ -8,7 +8,6 @@ import (
 	cfg "mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/shutdown"
-	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/version"
 	"path/filepath"
@@ -18,7 +17,7 @@ import (
 	"time"
 
 	version2 "k8s.io/apimachinery/pkg/version"
-	"k8s.io/metrics/pkg/apis/metrics/v1beta1"
+	metricsv1beta1 "k8s.io/metrics/pkg/apis/metrics/v1beta1"
 	"sigs.k8s.io/yaml"
 
 	v1 "k8s.io/api/apps/v1"
@@ -314,17 +313,17 @@ func GetCustomDeploymentTemplate() *v1.Deployment {
 	}
 }
 
-func ListNodeMetricss() []v1beta1.NodeMetrics {
+func ListNodeMetricss() []metricsv1beta1.NodeMetrics {
 	provider, err := NewKubeProviderMetrics()
 	if provider == nil || err != nil {
 		k8sLogger.Error("ListNodeMetricss", "error", err.Error())
-		return []v1beta1.NodeMetrics{}
+		return []metricsv1beta1.NodeMetrics{}
 	}
 
 	nodeMetricsList, err := provider.ClientSet.MetricsV1beta1().NodeMetricses().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		k8sLogger.Error("ListNodeMetrics", "error", err.Error())
-		return []v1beta1.NodeMetrics{}
+		return []metricsv1beta1.NodeMetrics{}
 	}
 	return nodeMetricsList.Items
 }
@@ -517,100 +516,6 @@ func LabelsContain(labels map[string]string, str string) bool {
 		}
 	}
 	return false
-}
-
-func ClusterStatus() dtos.ClusterStatusDto {
-	var currentPods = make(map[string]core.Pod)
-	pods := AllPods("")
-	for _, pod := range pods {
-		currentPods[pod.Name] = pod
-	}
-
-	result, err := PodStats(currentPods)
-	if err != nil {
-		k8sLogger.Error("podStats:", "error", err)
-	}
-
-	var cpu int64 = 0
-	var cpuLimit int64 = 0
-	var memory int64 = 0
-	var memoryLimit int64 = 0
-	var ephemeralStorageLimit int64 = 0
-	for _, pod := range result {
-		cpu += pod.Cpu
-		cpuLimit += pod.CpuLimit
-		memory += pod.Memory
-		memoryLimit += pod.MemoryLimit
-		ephemeralStorageLimit += pod.EphemeralStorageLimit
-	}
-
-	kubernetesVersion := ""
-	platform := ""
-
-	info := KubernetesVersion()
-	if info != nil {
-		kubernetesVersion = info.String()
-		platform = info.Platform
-	}
-
-	country, err := utils.GuessClusterCountry()
-	if err != nil {
-		k8sLogger.Error("GuessClusterCountry: ", "error", err)
-	}
-
-	return dtos.ClusterStatusDto{
-		ClusterName:                  config.Get("MO_CLUSTER_NAME"),
-		Pods:                         len(result),
-		PodCpuUsageInMilliCores:      int(cpu),
-		PodCpuLimitInMilliCores:      int(cpuLimit),
-		PodMemoryUsageInBytes:        memory,
-		PodMemoryLimitInBytes:        memoryLimit,
-		EphemeralStorageLimitInBytes: ephemeralStorageLimit,
-		KubernetesVersion:            kubernetesVersion,
-		Platform:                     platform,
-		Country:                      country,
-	}
-}
-
-func PodStats(pods map[string]core.Pod) ([]structs.Stats, error) {
-	provider, err := NewKubeProviderMetrics()
-	if provider == nil || err != nil {
-		k8sLogger.Error(err.Error())
-		return []structs.Stats{}, err
-	}
-
-	podMetricsList, err := provider.ClientSet.MetricsV1beta1().PodMetricses("").List(context.TODO(), metav1.ListOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	var result []structs.Stats
-	// I HATE THIS BUT I DONT SEE ANY OTHER SOLUTION! SPEND HOURS (to find something better) ON THIS UGGLY SHIT!!!!
-
-	for _, podMetrics := range podMetricsList.Items {
-		var pod = pods[podMetrics.Name]
-
-		var entry = structs.Stats{}
-		entry.Cluster = config.Get("MO_CLUSTER_NAME")
-		entry.Namespace = podMetrics.Namespace
-		entry.PodName = podMetrics.Name
-		if pod.Status.StartTime != nil {
-			entry.StartTime = pod.Status.StartTime.Format(time.RFC3339)
-		}
-		for _, container := range pod.Spec.Containers {
-			entry.CpuLimit += container.Resources.Limits.Cpu().MilliValue()
-			entry.MemoryLimit += container.Resources.Limits.Memory().Value()
-			entry.EphemeralStorageLimit += container.Resources.Limits.StorageEphemeral().Value()
-		}
-		for _, containerMetric := range podMetrics.Containers {
-			entry.Cpu += containerMetric.Usage.Cpu().MilliValue()
-			entry.Memory += containerMetric.Usage.Memory().Value()
-		}
-
-		result = append(result, entry)
-	}
-
-	return result, nil
 }
 
 func AllResourcesFrom(namespace string, resourcesToLookFor []string) ([]interface{}, error) {

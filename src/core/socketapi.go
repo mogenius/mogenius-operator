@@ -249,16 +249,6 @@ func (self *socketApi) registerPatterns() {
 		},
 	)
 
-	self.RegisterPatternHandlerRaw(
-		"ClusterStatus",
-		PatternConfig{
-			ResponseSchema: schema.Generate(dtos.ClusterStatusDto{}),
-		},
-		func(datagram structs.Datagram) any {
-			return kubernetes.ClusterStatus()
-		},
-	)
-
 	{
 		type Response struct {
 			LoadBalancerExternalIps []string              `json:"loadBalancerExternalIps"`
