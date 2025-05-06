@@ -99,11 +99,11 @@ func (self *nodeMetricsCollector) Orchestrate() {
 
 	self.logger.Info("node metrics collector configuration", "enabled", trafficCollectorEnabled)
 	if !trafficCollectorEnabled {
-		deleteDaemonSet(self, namespace, daemonSetName)
+		self.deleteDaemonSet(namespace, daemonSetName)
 		return
 	}
 
-	if self.clientProvider.RunsInCluster() && trafficCollectorEnabled {
+	if self.clientProvider.RunsInCluster() {
 		self.leaderElector.OnLeading(func() {
 			clientset := self.clientProvider.K8sClientSet()
 			if clientset == nil {
@@ -246,7 +246,7 @@ func (self *nodeMetricsCollector) Orchestrate() {
 		})
 	} else {
 		go func() {
-			deleteDaemonSet(self, namespace, daemonSetName)
+			self.deleteDaemonSet(namespace, daemonSetName)
 
 			bin, err := os.Executable()
 			assert.Assert(err == nil, "failed to get current executable path", err)
@@ -291,7 +291,7 @@ func (self *nodeMetricsCollector) Orchestrate() {
 	}
 }
 
-func deleteDaemonSet(self *nodeMetricsCollector, namespace string, daemonSetName string) {
+func (self *nodeMetricsCollector) deleteDaemonSet(namespace string, daemonSetName string) {
 	clientset := self.clientProvider.K8sClientSet()
 	assert.Assert(clientset != nil, "failed to get Kubernetes clientset")
 
