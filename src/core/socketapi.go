@@ -249,16 +249,6 @@ func (self *socketApi) registerPatterns() {
 		},
 	)
 
-	self.RegisterPatternHandlerRaw(
-		"ClusterStatus",
-		PatternConfig{
-			ResponseSchema: schema.Generate(dtos.ClusterStatusDto{}),
-		},
-		func(datagram structs.Datagram) any {
-			return kubernetes.ClusterStatus()
-		},
-	)
-
 	{
 		type Response struct {
 			LoadBalancerExternalIps []string              `json:"loadBalancerExternalIps"`
@@ -1593,7 +1583,7 @@ func (self *socketApi) registerPatterns() {
 			}
 			data.Service.AddSecretsToRedaction()
 			data.Project.AddSecretsToRedaction()
-			return services.UpdateService(self.eventsClient, data)
+			return services.UpdateService(self.eventsClient, data, self.config)
 		},
 	)
 
@@ -1724,7 +1714,7 @@ func (self *socketApi) registerPatterns() {
 				return err
 			}
 			data.Service.AddSecretsToRedaction()
-			return services.Restart(self.eventsClient, data)
+			return services.Restart(self.eventsClient, data, self.config)
 		},
 	)
 
@@ -1741,7 +1731,7 @@ func (self *socketApi) registerPatterns() {
 				return err
 			}
 			data.Service.AddSecretsToRedaction()
-			return services.StopService(self.eventsClient, data)
+			return services.StopService(self.eventsClient, data, self.config)
 		},
 	)
 
@@ -1758,7 +1748,7 @@ func (self *socketApi) registerPatterns() {
 				return err
 			}
 			data.Service.AddSecretsToRedaction()
-			return services.StartService(self.eventsClient, data)
+			return services.StartService(self.eventsClient, data, self.config)
 		},
 	)
 
@@ -1776,7 +1766,7 @@ func (self *socketApi) registerPatterns() {
 			}
 			data.Project.AddSecretsToRedaction()
 			data.Service.AddSecretsToRedaction()
-			return services.UpdateService(self.eventsClient, data)
+			return services.UpdateService(self.eventsClient, data, self.config)
 		},
 	)
 
@@ -3005,7 +2995,7 @@ func (self *socketApi) startMessageHandler() {
 				continue
 			}
 			if strings.HasPrefix(rawDataStr, "######START_UPLOAD######;") {
-				preparedFileName = utils.Pointer(fmt.Sprintf("%s.zip", utils.NanoId()))
+				preparedFileName = utils.Pointer(fmt.Sprintf("/tmp/%s.zip", utils.NanoId()))
 				openFile, err = os.OpenFile(*preparedFileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 				if err != nil {
 					self.logger.Error("Cannot open uploadfile", "filename", *preparedFileName, "error", err)

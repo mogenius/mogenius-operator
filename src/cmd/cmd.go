@@ -250,6 +250,12 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		Envs:         []string{"OWN_NODE_NAME"},
 	})
 	configModule.Declare(config.ConfigDeclaration{
+		Key:          "OWN_DEPLOYMENT_NAME",
+		DefaultValue: utils.Pointer("mogenius-k8s-manager"),
+		Description:  utils.Pointer("the name of the deployment this application is running in"),
+		Envs:         []string{"OWN_DEPLOYMENT_NAME"},
+	})
+	configModule.Declare(config.ConfigDeclaration{
 		Key:         "MO_API_SERVER",
 		Description: utils.Pointer("URL of API Server"),
 		Validate: func(value string) error {

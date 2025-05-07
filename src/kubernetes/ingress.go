@@ -92,7 +92,7 @@ func UpdateIngress(eventClient websocket.WebsocketClient, job *structs.Job, name
 			ingressToUpdate = existingIngress.DeepCopy()
 		}
 
-		ingressToUpdate.Labels = MoUpdateLabels(&ingressToUpdate.Labels, &job.ProjectId, &namespace, &service)
+		ingressToUpdate.Labels = MoUpdateLabels(&ingressToUpdate.Labels, &job.ProjectId, &namespace, &service, config)
 		ingressToUpdate.Annotations = loadDefaultAnnotations() // TODO MERGE MAPS INSTEAD OF OVERWRITE
 
 		if IsLocalClusterSetup() {
@@ -195,7 +195,7 @@ func UpdateIngress(eventClient websocket.WebsocketClient, job *structs.Job, name
 				cmd.Success(eventClient, job, fmt.Sprintf("Ingress '%s' deleted (not needed anymore)", ingressName))
 			} else {
 				// create
-				_, err := ingressClient.Create(context.TODO(), ingressToUpdate, metav1.CreateOptions{FieldManager: DEPLOYMENTNAME})
+				_, err := ingressClient.Create(context.TODO(), ingressToUpdate, metav1.CreateOptions{FieldManager: GetOwnDeploymentName(config)})
 				if err != nil {
 					cmd.Fail(eventClient, job, fmt.Sprintf("Create Ingress ERROR: %s", err.Error()))
 					return

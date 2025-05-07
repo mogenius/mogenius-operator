@@ -117,10 +117,10 @@ func CreateOrUpdateHpa(eventClient websocket.WebsocketClient, job *structs.Job, 
 			return
 		}
 
-		_, err = hpaClient.Update(context.TODO(), newHpa, MoUpdateOptions())
+		_, err = hpaClient.Update(context.TODO(), newHpa, MoUpdateOptions(config))
 		if err != nil {
 			if apierrors.IsNotFound(err) {
-				_, err = hpaClient.Create(context.TODO(), newHpa, MoCreateOptions())
+				_, err = hpaClient.Create(context.TODO(), newHpa, MoCreateOptions(config))
 				if err != nil {
 					cmd.Fail(eventClient, job, fmt.Sprintf("Creating hpa ERROR: %s", err.Error()))
 				} else {

@@ -21,7 +21,7 @@ func ClusterForceReconnect() bool {
 	podClient := clientset.CoreV1().Pods(config.Get("MO_OWN_NAMESPACE"))
 
 	podsToKill := []string{}
-	podsToKill = append(podsToKill, AllPodNamesForLabel(config.Get("MO_OWN_NAMESPACE"), "app", DEPLOYMENTNAME)...)
+	podsToKill = append(podsToKill, AllPodNamesForLabel(config.Get("MO_OWN_NAMESPACE"), "app", GetOwnDeploymentName(config))...)
 
 	for _, podName := range podsToKill {
 		k8sLogger.Warn("Restarting pod ...", "podName", podName)
@@ -45,7 +45,7 @@ func ClusterForceDisconnect() bool {
 
 	// stop k8s-manager
 	deploymentClient := clientset.AppsV1().Deployments(config.Get("MO_OWN_NAMESPACE"))
-	deployment, _ := deploymentClient.Get(context.TODO(), DEPLOYMENTNAME, metav1.GetOptions{})
+	deployment, _ := deploymentClient.Get(context.TODO(), GetOwnDeploymentName(config), metav1.GetOptions{})
 	deployment.Spec.Replicas = utils.Pointer[int32](0)
 	_, err := deploymentClient.Update(context.TODO(), deployment, metav1.UpdateOptions{})
 	if err != nil {
@@ -53,7 +53,7 @@ func ClusterForceDisconnect() bool {
 	}
 
 	podsToKill := []string{}
-	podsToKill = append(podsToKill, AllPodNamesForLabel(config.Get("MO_OWN_NAMESPACE"), "app", DEPLOYMENTNAME)...)
+	podsToKill = append(podsToKill, AllPodNamesForLabel(config.Get("MO_OWN_NAMESPACE"), "app", GetOwnDeploymentName(config))...)
 
 	for _, podName := range podsToKill {
 		k8sLogger.Warn("Restarting pod...", "pod", podName)
@@ -90,7 +90,7 @@ func UpgradeMyself(eventClient websocket.WebsocketClient, job *structs.Job, comm
 		_, err := configmapClient.Get(context.TODO(), configmap.Name, metav1.GetOptions{})
 		if err != nil {
 			// CREATE
-			_, err = configmapClient.Create(context.TODO(), &configmap, MoCreateOptions())
+			_, err = configmapClient.Create(context.TODO(), &configmap, MoCreateOptions(config))
 			if err != nil {
 				cmd.Fail(eventClient, job, fmt.Sprintf("UpgradeMyself (configmap) ERROR: %s", err.Error()))
 				return
@@ -108,7 +108,7 @@ func UpgradeMyself(eventClient websocket.WebsocketClient, job *structs.Job, comm
 		_, err = jobClient.Get(context.TODO(), k8sjob.Name, metav1.GetOptions{})
 		if err != nil {
 			// CREATE
-			_, err = jobClient.Create(context.TODO(), &k8sjob, MoCreateOptions())
+			_, err = jobClient.Create(context.TODO(), &k8sjob, MoCreateOptions(config))
 			if err != nil {
 				cmd.Fail(eventClient, job, fmt.Sprintf("UpgradeMyself (job) ERROR: %s", err.Error()))
 				return

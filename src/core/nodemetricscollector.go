@@ -86,16 +86,22 @@ func (self *nodeMetricsCollector) Link(statsDb ValkeyStatsDb, leaderElector Lead
 }
 
 func (self *nodeMetricsCollector) Orchestrate() {
-	enabled, err := strconv.ParseBool(self.config.Get("MO_ENABLE_TRAFFIC_COLLECTOR"))
+	trafficCollectorEnabled, err := strconv.ParseBool(self.config.Get("MO_ENABLE_TRAFFIC_COLLECTOR"))
 	assert.Assert(err == nil, err)
-	self.logger.Info("node metrics collector configuration", "enabled", enabled)
-	if !enabled {
-		return
-	}
 
-	daemonSetName := "mogenius-k8s-manager-nodemetrics"
+	ownDeploymentName := self.config.Get("OWN_DEPLOYMENT_NAME")
+	assert.Assert(ownDeploymentName != "")
+
 	namespace := self.config.Get("MO_OWN_NAMESPACE")
 	assert.Assert("MO_OWN_NAMESPACE" != "")
+
+	daemonSetName := fmt.Sprintf("%s-nodemetrics", ownDeploymentName)
+
+	self.logger.Info("node metrics collector configuration", "enabled", trafficCollectorEnabled)
+	if !trafficCollectorEnabled {
+		self.deleteDaemonSet(namespace, daemonSetName)
+		return
+	}
 
 	if self.clientProvider.RunsInCluster() {
 		self.leaderElector.OnLeading(func() {
@@ -105,7 +111,7 @@ func (self *nodeMetricsCollector) Orchestrate() {
 				return
 			}
 
-			ownDeployment, err := clientset.AppsV1().Deployments(namespace).Get(context.TODO(), "mogenius-k8s-manager", metav1.GetOptions{})
+			ownDeployment, err := clientset.AppsV1().Deployments(namespace).Get(context.TODO(), ownDeploymentName, metav1.GetOptions{})
 			if err != nil {
 				self.logger.Error("failed to get own deployment for image name determination", "error", err)
 				return
@@ -240,16 +246,7 @@ func (self *nodeMetricsCollector) Orchestrate() {
 		})
 	} else {
 		go func() {
-			clientset := self.clientProvider.K8sClientSet()
-			assert.Assert(clientset != nil, "failed to get Kubernetes clientset")
-
-			_, err := clientset.AppsV1().DaemonSets(namespace).Get(context.TODO(), daemonSetName, metav1.GetOptions{})
-			if err == nil {
-				err := clientset.AppsV1().DaemonSets(namespace).Delete(context.TODO(), daemonSetName, metav1.DeleteOptions{})
-				if err != nil {
-					self.logger.Error("failed to delete node-metrics daemonset", "error", err)
-				}
-			}
+			self.deleteDaemonSet(namespace, daemonSetName)
 
 			bin, err := os.Executable()
 			assert.Assert(err == nil, "failed to get current executable path", err)
@@ -291,6 +288,21 @@ func (self *nodeMetricsCollector) Orchestrate() {
 				select {}
 			}
 		}()
+	}
+}
+
+func (self *nodeMetricsCollector) deleteDaemonSet(namespace string, daemonSetName string) {
+	clientset := self.clientProvider.K8sClientSet()
+	assert.Assert(clientset != nil, "failed to get Kubernetes clientset")
+
+	_, err := clientset.AppsV1().DaemonSets(namespace).Get(context.TODO(), daemonSetName, metav1.GetOptions{})
+	if err == nil {
+		err := clientset.AppsV1().DaemonSets(namespace).Delete(context.TODO(), daemonSetName, metav1.DeleteOptions{})
+		if err != nil {
+			self.logger.Error("failed to delete node-metrics daemonset", "error", err)
+		} else {
+			self.logger.Info("node-metrics daemonset deleted successfully")
+		}
 	}
 }
 

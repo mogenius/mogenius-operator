@@ -194,10 +194,10 @@ func UpdateCronJob(eventClient websocket.WebsocketClient, job *structs.Job, name
 
 		newCronJob := newController.(*apibatchv1.CronJob)
 
-		_, err = cronJobClient.Update(context.TODO(), newCronJob, MoUpdateOptions())
+		_, err = cronJobClient.Update(context.TODO(), newCronJob, MoUpdateOptions(config))
 		if err != nil {
 			if apierrors.IsNotFound(err) {
-				_, err = cronJobClient.Create(context.TODO(), newCronJob, MoCreateOptions())
+				_, err = cronJobClient.Create(context.TODO(), newCronJob, MoCreateOptions(config))
 				if err != nil {
 					cmd.Fail(eventClient, job, fmt.Sprintf("CreateCronJob ERROR: %s", err.Error()))
 				} else {

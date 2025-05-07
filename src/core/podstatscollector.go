@@ -167,6 +167,9 @@ func (self *podStatsCollector) podStats(nodemetrics []podstatscollector.NodeMetr
 		pod := pods[podMetrics.Name]
 
 		for _, container := range pod.Spec.Containers {
+			if pod.Status.StartTime == nil {
+				continue
+			}
 			entry := structs.PodStats{}
 			entry.Namespace = podMetrics.Namespace
 			entry.PodName = podMetrics.Name
