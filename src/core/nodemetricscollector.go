@@ -149,8 +149,14 @@ func (self *nodeMetricsCollector) Orchestrate() {
 									Name:  daemonSetName,
 									Image: ownDeployment.Spec.Template.Spec.Containers[0].Image,
 									Command: []string{
+										"dumb-init",
+										"--",
 										"mogenius-k8s-manager",
 										"nodemetrics",
+										"--metrics-rate",
+										"2000",
+										"--network-device-poll-rate",
+										"1000",
 									},
 									Env: ownDeployment.Spec.Template.Spec.Containers[0].Env,
 									SecurityContext: &corev1.SecurityContext{
