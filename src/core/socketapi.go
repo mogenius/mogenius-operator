@@ -16,7 +16,6 @@ import (
 	"mogenius-k8s-manager/src/schema"
 	"mogenius-k8s-manager/src/secrets"
 	"mogenius-k8s-manager/src/services"
-	"mogenius-k8s-manager/src/shell"
 	"mogenius-k8s-manager/src/shutdown"
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
@@ -29,12 +28,10 @@ import (
 	"os"
 	"os/exec"
 	"slices"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/Masterminds/semver/v3"
 	gorillawebsocket "github.com/gorilla/websocket"
 	jsoniter "github.com/json-iterator/go"
 	"helm.sh/helm/v3/pkg/release"
@@ -2968,8 +2965,6 @@ func (self *socketApi) loadRequest(datagram *structs.Datagram, data interface{})
 }
 
 func (self *socketApi) startK8sManager() {
-	self.updateCheck()
-	self.versionTicker()
 	self.startMessageHandler()
 }
 
@@ -3142,138 +3137,6 @@ func (self *socketApi) removeJobIndex(s []structs.Datagram, index int) []structs
 		return append(s[:index], s[index+1:]...)
 	}
 	return s
-}
-
-func (self *socketApi) versionTicker() {
-	interval, err := strconv.Atoi(self.config.Get("MO_UPDATE_INTERVAL"))
-	assert.Assert(err == nil, err)
-	updateTicker := time.NewTicker(time.Second * time.Duration(interval))
-	done := make(chan bool)
-
-	go func() {
-		for {
-			select {
-			case <-done:
-				return
-			case <-updateTicker.C:
-				self.updateCheck()
-			}
-		}
-	}()
-}
-
-func (self *socketApi) updateCheck() {
-	if !utils.IsProduction() {
-		self.logger.Info("Skipping updates ... [not production]")
-		return
-	}
-
-	self.logger.Info("Checking for updates ...")
-
-	helmData, err := utils.GetVersionData(utils.HELM_INDEX)
-	if err != nil {
-		self.logger.Error("GetVersionData", "error", err.Error())
-		return
-	}
-	// VALIDATE RESPONSE
-	if len(helmData.Entries) < 1 {
-		self.logger.Error("HelmIndex Entries length <= 0. Check the HelmIndex for errors.", "HelmIndex", utils.HELM_INDEX)
-		return
-	}
-	mogeniusPlatform, doesExist := helmData.Entries["mogenius-operator"]
-	if !doesExist {
-		self.logger.Error("HelmIndex does not contain the field 'mogenius-operator'. Check the HelmIndex for errors.", "HelmIndex", utils.HELM_INDEX)
-		return
-	}
-	if len(mogeniusPlatform) <= 0 {
-		self.logger.Error("Field 'mogenius-operator' does not contain a proper version. Check the HelmIndex for errors.", "HelmIndex", utils.HELM_INDEX)
-		return
-	}
-	var mok8smanager *utils.HelmDependency = nil
-	for _, dep := range mogeniusPlatform[0].Dependencies {
-		if dep.Name == "mogenius-k8s-manager" {
-			mok8smanager = &dep
-			break
-		}
-	}
-	if mok8smanager == nil {
-		self.logger.Error("The umbrella chart 'mogenius-operator' does not contain a dependency for 'mogenius-k8s-manager'. Check the HelmIndex for errors.", "HelmIndex", utils.HELM_INDEX)
-		return
-	}
-
-	if version.Ver != mok8smanager.Version {
-		fmt.Printf("\n####################################################################\n"+
-			"####################################################################\n"+
-			"######                  %s                ######\n"+
-			"######               %s              ######\n"+
-			"######                                                        ######\n"+
-			"######                    Available: %s                    ######\n"+
-			"######                    In-Use:    %s                    ######\n"+
-			"######                                                        ######\n"+
-			"######   %s   ######\n", shell.Colorize("Not updating might result in service interruption.", shell.Red)+
-			"####################################################################\n"+
-			"####################################################################\n",
-			shell.Colorize("NEW VERSION AVAILABLE!", shell.Blue),
-			shell.Colorize(" UPDATE AS FAST AS POSSIBLE", shell.Yellow),
-			shell.Colorize(mok8smanager.Version, shell.Green),
-			shell.Colorize(version.Ver, shell.Red),
-		)
-		self.notUpToDateAction(helmData)
-	} else {
-		self.logger.Debug(" Up-To-Date: 👍", "version", version.Ver)
-	}
-}
-
-func (self *socketApi) notUpToDateAction(helmData *utils.HelmData) {
-	localVer, err := semver.NewVersion(version.Ver)
-	if err != nil {
-		self.logger.Error("Error parsing local version", "error", err)
-		return
-	}
-
-	remoteVer, err := semver.NewVersion(helmData.Entries["mogenius-k8s-manager"][0].Version)
-	if err != nil {
-		self.logger.Error("Error parsing remote version", "error", err)
-		return
-	}
-
-	constraint, err := semver.NewConstraint(">= " + version.Ver)
-	if err != nil {
-		self.logger.Error("Error parsing constraint version", "error", err)
-		return
-	}
-
-	_, errors := constraint.Validate(remoteVer)
-	for _, m := range errors {
-		self.logger.Error("failed to validate semver constraint", "remoteVer", remoteVer, "error", m)
-	}
-	// Local version > Remote version (likely development version)
-	if remoteVer.LessThan(localVer) {
-		self.logger.Warn("Your local version is greater than the remote version. AI thinks: You are likely a developer.",
-			"localVer", localVer.String(),
-			"remoteVer", remoteVer.String(),
-		)
-		return
-	}
-
-	// MAYOR CHANGES: MUST UPGRADE TO CONTINUE
-	if remoteVer.GreaterThan(localVer) && remoteVer.Major() > localVer.Major() {
-		self.logger.Error("Your version is too low to continue. Please upgrade to and try again.\n",
-			"localVer", localVer.String(),
-			"remoteVer", remoteVer.String(),
-		)
-		shutdown.SendShutdownSignal(true)
-		select {}
-	}
-
-	// MINOR&PATCH CHANGES: SHOULD UPGRADE
-	if remoteVer.GreaterThan(localVer) {
-		self.logger.Warn("Your version is out-dated. Please upgrade to avoid service interruption.",
-			"localVer", localVer.String(),
-			"remoteVer", remoteVer.String(),
-		)
-		return
-	}
 }
 
 func (self *socketApi) ExecuteCommandRequest(datagram structs.Datagram) interface{} {
