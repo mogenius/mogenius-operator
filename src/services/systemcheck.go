@@ -328,29 +328,6 @@ func SystemCheck() SystemCheckResponse {
 		return metallbEntry
 	})
 
-	// check for local dev setup
-	wg.Add(1)
-	go SysCheckExec("CheckLocalDevSetup", &wg, &entries, func() SystemCheckEntry {
-		clusterIps := kubernetes.GetClusterExternalIps()
-		localDevEnvMsg := "Local development environment setup complete (192.168.66.1 found)."
-		contains192168661 := utils.Contains(clusterIps, "192.168.66.1")
-		if !contains192168661 {
-			localDevEnvMsg = "Local development environment not setup. Please run 'mocli cluster local-dev-setup' to setup your local environment."
-		}
-		localDevSetupEntry := CreateSystemCheckEntry(
-			NameLocalDevSetup,
-			contains192168661,
-			localDevEnvMsg,
-			"",
-			nil,
-			"",
-			false,
-			false,
-			"",
-			"")
-		return localDevSetupEntry
-	})
-
 	// check for nfs storage class
 	wg.Add(1)
 	go SysCheckExec("CheckNfsStorageClass", &wg, &entries, func() SystemCheckEntry {
@@ -450,9 +427,7 @@ func UpdateSystemCheckStatusForClusterVendor(entries []SystemCheckEntry) []Syste
 
 	switch provider {
 	case utils.EKS, utils.AKS, utils.GKE, utils.DOKS, utils.OTC, utils.PLUSSERVER:
-		entries = deleteSystemCheckEntryByName(entries, NameMetricsServer)
 		entries = deleteSystemCheckEntryByName(entries, NameMetalLB)
-		entries = deleteSystemCheckEntryByName(entries, NameLocalDevSetup)
 	case utils.UNKNOWN:
 		serviceLogger.Warn("Unknown ClusterProvider. Not modifying anything in UpdateSystemCheckStatusForClusterVendor().")
 	}

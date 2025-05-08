@@ -25,7 +25,6 @@ const (
 	NameMetricsServer         = "Metrics Server"
 	NameMetalLB               = "MetalLB (LoadBalancer)"
 	NameIngressController     = "Ingress Controller"
-	NameLocalDevSetup         = "Local Dev Setup"
 	NameClusterIssuerResource = "letsencrypt-cluster-issuer"
 	NameKepler                = "Kepler"
 	NameNfsStorageClass       = "nfs-storageclass"
