@@ -41,16 +41,16 @@ import (
 
 var CLI struct {
 	// Commands
-	Clean       struct{}     `cmd:"" help:"remove the operator from the cluster"`
-	Cluster     struct{}     `cmd:"" help:"start the operator"`
-	Nodemetrics struct{}     `cmd:"" help:"start the node metrics collector"`
-	Config      struct{}     `cmd:"" help:"print application config in ENV format"`
-	Install     struct{}     `cmd:"" help:"install the operator into your cluster"`
-	System      struct{}     `cmd:"" help:"check the system for all required components and offer healing"`
-	Version     struct{}     `cmd:"" help:"print version information" default:"1"`
-	Patterns    patternsArgs `cmd:"" help:"print patterns to shell"`
-	Exec        execArgs     `cmd:"" help:"open an interactive shell inside a container"`
-	Logs        logArgs      `cmd:"" help:"retrieve streaming logs of a container"`
+	Clean       struct{}        `cmd:"" help:"remove the operator from the cluster"`
+	Cluster     struct{}        `cmd:"" help:"start the operator"`
+	Nodemetrics nodeMetricsArgs `cmd:"" help:"start the node metrics collector"`
+	Config      struct{}        `cmd:"" help:"print application config in ENV format"`
+	Install     struct{}        `cmd:"" help:"install the operator into your cluster"`
+	System      struct{}        `cmd:"" help:"check the system for all required components and offer healing"`
+	Version     struct{}        `cmd:"" help:"print version information" default:"1"`
+	Patterns    patternsArgs    `cmd:"" help:"print patterns to shell"`
+	Exec        execArgs        `cmd:"" help:"open an interactive shell inside a container"`
+	Logs        logArgs         `cmd:"" help:"retrieve streaming logs of a container"`
 }
 
 func Run() error {
@@ -145,7 +145,7 @@ func Run() error {
 		RunCluster(slogManager, configModule, cmdLogger, channelHandler.GetRecordChannel())
 		return nil
 	case "nodemetrics":
-		RunNodeMetrics(slogManager, configModule, cmdLogger, channelHandler.GetRecordChannel())
+		RunNodeMetrics(&CLI.Nodemetrics, slogManager, configModule, cmdLogger, channelHandler.GetRecordChannel())
 		return nil
 	case "install":
 		err := RunInstall(slogManager, configModule, cmdLogger, channelHandler.GetRecordChannel())

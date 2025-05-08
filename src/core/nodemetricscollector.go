@@ -27,8 +27,11 @@ import (
 )
 
 type NodeMetricsCollector interface {
+	// Run the nodemetrics collector locally.
 	Run()
 	Link(statsDb ValkeyStatsDb, leaderElector LeaderElector)
+	// Manage instances of nodemetrics collector.
+	// Either create the required DaemonSet or handle execution locally.
 	Orchestrate()
 }
 

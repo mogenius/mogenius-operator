@@ -19,6 +19,7 @@ import (
 type NetworkMonitor interface {
 	Run()
 	GetPodNetworkUsage() []PodNetworkStats
+	SetSnoopyArgs(args SnoopyArgs)
 }
 
 type networkMonitor struct {
@@ -192,6 +193,10 @@ func (self *networkMonitor) Run() {
 			}
 		}
 	}()
+}
+
+func (self *networkMonitor) SetSnoopyArgs(args SnoopyArgs) {
+	self.snoopy.SetArgs(args)
 }
 
 func (self *networkMonitor) metricsToPodstats(

@@ -6,12 +6,10 @@ require (
 	github.com/Masterminds/semver/v3 v3.3.1
 	github.com/alecthomas/kong v1.10.0
 	github.com/cert-manager/cert-manager v1.17.2
-	github.com/cilium/ebpf v0.18.0
 	github.com/creack/pty v1.1.24
 	github.com/go-git/go-git/v5 v5.16.0
 	github.com/go-playground/validator/v10 v10.26.0
 	github.com/go-redis/redis/v8 v8.11.5
-	github.com/google/gopacket v1.1.19
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.4-0.20250319132907-e064f32e3674
 	github.com/jaevor/go-nanoid v1.4.0
@@ -22,7 +20,6 @@ require (
 	github.com/mattn/go-isatty v0.0.20
 	github.com/nwidger/jsoncolor v0.3.2
 	github.com/patrickmn/go-cache v2.1.0+incompatible
-	github.com/pkg/errors v0.9.1
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/shirou/gopsutil/v4 v4.25.4
 	github.com/stretchr/testify v1.10.0
@@ -96,11 +93,9 @@ require (
 	github.com/gobwas/glob v0.2.3 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8 // indirect
-	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/btree v1.1.3 // indirect
 	github.com/google/gnostic-models v0.6.9 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
-	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
 	github.com/gorilla/mux v1.8.1 // indirect
 	github.com/gosuri/uitable v0.0.4 // indirect
@@ -137,6 +132,7 @@ require (
 	github.com/opencontainers/image-spec v1.1.0 // indirect
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
 	github.com/pjbgf/sha1cd v0.3.2 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/power-devops/perfstat v0.0.0-20240221224432-82ca36839d55 // indirect
 	github.com/prometheus/client_golang v1.22.0 // indirect

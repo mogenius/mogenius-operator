@@ -7,7 +7,12 @@ import (
 	"mogenius-k8s-manager/src/shutdown"
 )
 
-func RunNodeMetrics(logManagerModule logging.SlogManager, configModule *config.Config, cmdLogger *slog.Logger, valkeyLogChannel chan logging.LogLine) {
+type nodeMetricsArgs struct {
+	NetworkDevicePollRate uint64 `help:"" default:"1000"`
+	MetricsRate           uint64 `help:"" default:"2000"`
+}
+
+func RunNodeMetrics(args *nodeMetricsArgs, logManagerModule logging.SlogManager, configModule *config.Config, cmdLogger *slog.Logger, valkeyLogChannel chan logging.LogLine) {
 	go func() {
 		for {
 			select {
