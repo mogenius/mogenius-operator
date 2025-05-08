@@ -637,6 +637,12 @@ func IsMetricsServerAvailable() (bool, string, error) {
 				return true, deployment.Spec.Template.Spec.Containers[0].Image, nil
 			}
 		}
+		if deployment.Name == "metrics-server" {
+			if deployment.Status.UnavailableReplicas > 0 {
+				return false, "", fmt.Errorf("metrics-server installed but not running")
+			}
+			return true, deployment.Spec.Template.Spec.Containers[0].Image, nil
+		}
 	}
 
 	return false, "", fmt.Errorf("no metrics-server found")

@@ -2,6 +2,7 @@ package networkmonitor
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"fmt"
 	"log/slog"
@@ -24,13 +25,22 @@ type SnoopyManager interface {
 	Remove(containerId ContainerId) error
 
 	Metrics() map[ContainerId]ContainerInfo
+
+	SetArgs(args SnoopyArgs)
 }
 
 type snoopyManager struct {
-	logger *slog.Logger
+	logger        *slog.Logger
+	args          SnoopyArgs
+	snoopyBinName *string
 
 	handlesLock *sync.RWMutex
 	handles     map[ContainerId]*SnoopyHandle
+}
+
+type SnoopyArgs struct {
+	NetworkDevicePollRate uint64
+	MetricsRate           uint64
 }
 
 type ContainerInfo struct {
@@ -61,6 +71,7 @@ type SnoopyLogMessage struct {
 type SnoopyHandle struct {
 	PodNamespace string
 	PodName      string
+	SnoopyPid    int
 
 	StartBytesLock    *sync.RWMutex
 	IngressStartBytes map[InterfaceName]uint64
@@ -135,14 +146,28 @@ func NewSnoopyManager(logger *slog.Logger) SnoopyManager {
 	self.handlesLock = &sync.RWMutex{}
 	self.handles = map[ContainerId]*SnoopyHandle{}
 
-	_, err := exec.LookPath("snoopy")
-	if err != nil {
+	self.args = SnoopyArgs{}
+	self.args.MetricsRate = 2000           // read network metrics from BPF every 2 seconds
+	self.args.NetworkDevicePollRate = 1000 // update network devices list once per second
+
+	// there are multiple possible names for this binary due to how the project was created
+	// all possible binary names are lookup up and the first hit is used
+	snoopyNames := []string{"snoopy", "mogenius-snoopy"}
+	for _, name := range snoopyNames {
+		binPath, err := exec.LookPath(name)
+		if err == nil {
+			self.snoopyBinName = &binPath
+			break
+		}
+	}
+
+	if self.snoopyBinName == nil {
 		self.logger.Error("failed to find snoopy in PATH")
 		shutdown.SendShutdownSignal(true)
 		select {}
 	}
 
-	_, err = exec.LookPath("nsenter")
+	_, err := exec.LookPath("nsenter")
 	if err != nil {
 		self.logger.Error("failed to find snoopy in PATH")
 		shutdown.SendShutdownSignal(true)
@@ -200,6 +225,10 @@ func (self *snoopyManager) Metrics() map[ContainerId]ContainerInfo {
 	return data
 }
 
+func (self *snoopyManager) SetArgs(args SnoopyArgs) {
+	self.args = args
+}
+
 // StartBytesLock    *sync.RWMutex
 // IngressStartBytes map[InterfaceName]uint64
 // EgressStartBytes  map[InterfaceName]uint64
@@ -214,12 +243,12 @@ func (self *snoopyManager) Metrics() map[ContainerId]ContainerInfo {
 // Stdout chan SnoopyEvent
 // Stderr chan SnoopyLogMessage
 
-func (self *snoopyManager) Register(podNamespace string, podName string, containerId ContainerId, pid ProcessId) error {
-	self.logger.Info("snoopy.Register", "podNamespace", podNamespace, "podName", podName, "containerId", containerId, "pid", pid)
+func (self *snoopyManager) Register(podNamespace string, podName string, containerId ContainerId, nsProcessPid ProcessId) error {
+	self.logger.Info("snoopy.Register", "podNamespace", podNamespace, "podName", podName, "containerId", containerId, "attachedProcessPid", nsProcessPid)
 
-	handle, err := self.AttachToPidNamespace(pid)
+	handle, err := self.AttachToPidNamespace(nsProcessPid)
 	if err != nil {
-		return fmt.Errorf("failed to attach snoopy to containerId(%s) pid(%d): %v", containerId, pid, err)
+		return fmt.Errorf("failed to attach snoopy to containerId(%s) pid(%d): %v", containerId, nsProcessPid, err)
 	}
 
 	handle.PodNamespace = podNamespace
@@ -233,18 +262,18 @@ func (self *snoopyManager) Register(podNamespace string, podName string, contain
 			case logMessage := <-handle.Stderr:
 				switch logMessage.Level {
 				case "DEBUG", "INFO":
-					self.logger.Debug("snoppy log message", "containerId", containerId, "pid", pid, "level", logMessage.Level, "target", logMessage.Target, "msg", logMessage.Message)
+					self.logger.Debug("snoppy log message", "containerId", containerId, "snoopyPid", handle.SnoopyPid, "attachedProcessPid", nsProcessPid, "level", logMessage.Level, "target", logMessage.Target, "msg", logMessage.Message)
 				case "WARN":
-					self.logger.Warn("snoppy warning", "containerId", containerId, "pid", pid, "level", logMessage.Level, "target", logMessage.Target, "msg", logMessage.Message)
+					self.logger.Warn("snoppy warning", "containerId", containerId, "snoopyPid", handle.SnoopyPid, "attachedProcessPid", nsProcessPid, "level", logMessage.Level, "target", logMessage.Target, "msg", logMessage.Message)
 				case "ERROR":
-					self.logger.Error("snoppy error", "containerId", containerId, "pid", pid, "level", logMessage.Level, "target", logMessage.Target, "msg", logMessage.Message)
+					self.logger.Error("snoppy error", "containerId", containerId, "snoopyPid", handle.SnoopyPid, "attachedProcessPid", nsProcessPid, "level", logMessage.Level, "target", logMessage.Target, "msg", logMessage.Message)
 				}
 			case metrics := <-handle.Stdout:
 				switch metrics.Type {
 				case "InterfaceAdded":
 					iface := metrics.InterfaceAdded.Interface.Name
-					rxBytes := self.readRxBytesFromPidAndInterface(pid, iface)
-					txBytes := self.readTxBytesFromPidAndInterface(pid, iface)
+					rxBytes := self.readRxBytesFromPidAndInterface(nsProcessPid, iface)
+					txBytes := self.readTxBytesFromPidAndInterface(nsProcessPid, iface)
 					handle.StartBytesLock.Lock()
 					handle.IngressStartBytes[iface] = rxBytes
 					handle.EgressStartBytes[iface] = txBytes
@@ -323,8 +352,19 @@ func (self *snoopyManager) readTxBytesFromPidAndInterface(pid ProcessId, iface s
 }
 
 func (self *snoopyManager) AttachToPidNamespace(pid ProcessId) (*SnoopyHandle, error) {
+	assert.Assert(self.snoopyBinName != nil, "the binary path has to be found and set previously")
+
 	pidS := strconv.FormatUint(pid, 10)
-	cmd := exec.Command("nsenter", "--net=/proc/"+pidS+"/ns/net", "snoopy")
+	cmd := exec.Command(
+		"nsenter",
+		"--net=/proc/"+pidS+"/ns/net",
+		"--",
+		*self.snoopyBinName,
+		"--metrics-rate",
+		strconv.FormatUint(self.args.MetricsRate, 10),
+		"--network-device-poll-rate",
+		strconv.FormatUint(self.args.NetworkDevicePollRate, 10),
+	)
 
 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
@@ -347,6 +387,7 @@ func (self *snoopyManager) AttachToPidNamespace(pid ProcessId) (*SnoopyHandle, e
 
 	snoopy := &SnoopyHandle{}
 	snoopy.Cmd = cmd
+	snoopy.SnoopyPid = cmd.Process.Pid
 	snoopy.Ctx = ctx
 	snoopy.Stdout = make(chan SnoopyEvent)
 	snoopy.Stderr = make(chan SnoopyLogMessage)
@@ -430,10 +471,14 @@ func (self *snoopyManager) AttachToPidNamespace(pid ProcessId) (*SnoopyHandle, e
 		scanner := bufio.NewScanner(stderrPipe)
 		for scanner.Scan() {
 			output := scanner.Bytes()
+			if bytes.HasPrefix(output, []byte("nsenter")) {
+				self.logger.Error("nsenter failed to execute snoopy", "error", string(output))
+				continue
+			}
 			var msg SnoopyLogMessage
 			err := json.Unmarshal(output, &msg)
 			if err != nil {
-				self.logger.Error("failed to parse snoopy log message", "message", output, "error", err)
+				self.logger.Error("failed to parse snoopy log message", "message", string(output), "error", err)
 				continue
 			}
 			snoopy.Stderr <- msg

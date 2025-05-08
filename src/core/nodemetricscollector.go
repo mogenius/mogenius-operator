@@ -27,8 +27,11 @@ import (
 )
 
 type NodeMetricsCollector interface {
+	// Run the nodemetrics collector locally.
 	Run()
 	Link(statsDb ValkeyStatsDb, leaderElector LeaderElector)
+	// Manage instances of nodemetrics collector.
+	// Either create the required DaemonSet or handle execution locally.
 	Orchestrate()
 }
 
@@ -146,8 +149,14 @@ func (self *nodeMetricsCollector) Orchestrate() {
 									Name:  daemonSetName,
 									Image: ownDeployment.Spec.Template.Spec.Containers[0].Image,
 									Command: []string{
+										"dumb-init",
+										"--",
 										"mogenius-k8s-manager",
 										"nodemetrics",
+										"--metrics-rate",
+										"2000",
+										"--network-device-poll-rate",
+										"1000",
 									},
 									Env: ownDeployment.Spec.Template.Spec.Containers[0].Env,
 									SecurityContext: &corev1.SecurityContext{
@@ -340,7 +349,7 @@ func (self *nodeMetricsCollector) Run() {
 				for {
 					metrics := self.networkMonitor.GetPodNetworkUsage()
 					self.statsDb.AddInterfaceStatsToDb(metrics)
-					time.Sleep(30 * time.Second)
+					time.Sleep(60 * time.Second)
 				}
 			}()
 			go func() {

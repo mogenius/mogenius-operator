@@ -19,6 +19,7 @@ import (
 type NetworkMonitor interface {
 	Run()
 	GetPodNetworkUsage() []PodNetworkStats
+	SetSnoopyArgs(args SnoopyArgs)
 }
 
 type networkMonitor struct {
@@ -194,6 +195,10 @@ func (self *networkMonitor) Run() {
 	}()
 }
 
+func (self *networkMonitor) SetSnoopyArgs(args SnoopyArgs) {
+	self.snoopy.SetArgs(args)
+}
+
 func (self *networkMonitor) metricsToPodstats(
 	metrics map[ContainerId]ContainerInfo,
 	podList *v1.PodList,
@@ -228,6 +233,10 @@ func (self *networkMonitor) metricsToPodstats(
 			metrics := containerInfo.Metrics[interfaceName]
 			// filter empty metrics (if all observed values are 0)
 			if metrics.Ingress.Packets == 0 && metrics.Ingress.Bytes == 0 && metrics.Egress.Packets == 0 && metrics.Egress.Bytes == 0 {
+				continue
+			}
+			// filter blacklisted interface names e.g. loopback
+			if slices.Contains([]string{"lo"}, interfaceName) {
 				continue
 			}
 			podNetworkStat := PodNetworkStats{}

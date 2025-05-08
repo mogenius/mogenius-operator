@@ -4,10 +4,16 @@ import (
 	"log/slog"
 	"mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/logging"
+	"mogenius-k8s-manager/src/networkmonitor"
 	"mogenius-k8s-manager/src/shutdown"
 )
 
-func RunNodeMetrics(logManagerModule logging.SlogManager, configModule *config.Config, cmdLogger *slog.Logger, valkeyLogChannel chan logging.LogLine) {
+type nodeMetricsArgs struct {
+	NetworkDevicePollRate uint64 `help:"" default:"1000"`
+	MetricsRate           uint64 `help:"" default:"2000"`
+}
+
+func RunNodeMetrics(args *nodeMetricsArgs, logManagerModule logging.SlogManager, configModule *config.Config, cmdLogger *slog.Logger, valkeyLogChannel chan logging.LogLine) {
 	go func() {
 		for {
 			select {
@@ -29,6 +35,10 @@ func RunNodeMetrics(logManagerModule logging.SlogManager, configModule *config.C
 		systems.core.InitializeClusterSecret()
 		systems.core.InitializeValkey()
 
+		systems.networkmonitor.SetSnoopyArgs(networkmonitor.SnoopyArgs{
+			MetricsRate:           args.MetricsRate,
+			NetworkDevicePollRate: args.NetworkDevicePollRate,
+		})
 		systems.nodeMetricsCollector.Run()
 
 		select {}

@@ -3,7 +3,7 @@ FROM quay.io/clastix/kubectl:v1.33.0 AS kubectl
 
 FROM ubuntu:noble AS build-env
 
-ENV SNOOPY_VERSION=v0.0.10
+ENV SNOOPY_VERSION=v0.0.13
 
 COPY --from=golang /usr/local/go /usr/local/go
 COPY --from=kubectl /usr/local/bin/kubectl /usr/local/bin/kubectl
@@ -103,7 +103,7 @@ ENV GOARCH=${GOARCH}
 ENV GOARM=${GOARM}
 
 COPY --from=builder "/app/bin/mogenius-k8s-manager" "/usr/local/bin/mogenius-k8s-manager"
-COPY --from=builder "/usr/local/bin/snoopy" "/usr/local/bin/snoopy"
+COPY --from=builder "/usr/local/bin/snoopy" "/usr/local/bin/mogenius-snoopy"
 
 RUN set -x && \
     apt-get update && \
