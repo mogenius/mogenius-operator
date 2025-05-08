@@ -677,7 +677,13 @@ func HelmChartVersion(data HelmChartVersionRequest) ([]HelmChartInfo, error) {
 	return allCharts, nil
 }
 
-func HelmChartInstall(data HelmChartInstallUpgradeRequest) (string, error) {
+func HelmChartInstall(data HelmChartInstallUpgradeRequest) (result string, err error) {
+	defer func() {
+		if err != nil {
+			cleanReleaseLogs(data.Namespace, data.Release)
+		}
+	}()
+
 	settings := NewCli()
 	settings.SetNamespace(data.Namespace)
 	settings.Debug = true
@@ -702,7 +708,6 @@ func HelmChartInstall(data HelmChartInstallUpgradeRequest) (string, error) {
 			"namespace", data.Namespace,
 			"error", err.Error(),
 		)
-		cleanReleaseLogs(data.Namespace, data.Release)
 		return "", err
 	}
 
@@ -727,7 +732,6 @@ func HelmChartInstall(data HelmChartInstallUpgradeRequest) (string, error) {
 			"namespace", data.Namespace,
 			"error", err.Error(),
 		)
-		cleanReleaseLogs(data.Namespace, data.Release)
 		return "", err
 	}
 
@@ -739,7 +743,6 @@ func HelmChartInstall(data HelmChartInstallUpgradeRequest) (string, error) {
 			"namespace", data.Namespace,
 			"error", err.Error(),
 		)
-		cleanReleaseLogs(data.Namespace, data.Release)
 		return "", err
 	}
 
@@ -751,7 +754,6 @@ func HelmChartInstall(data HelmChartInstallUpgradeRequest) (string, error) {
 			"namespace", data.Namespace,
 			"error", err.Error(),
 		)
-		cleanReleaseLogs(data.Namespace, data.Release)
 		return "", err
 	}
 
@@ -763,11 +765,9 @@ func HelmChartInstall(data HelmChartInstallUpgradeRequest) (string, error) {
 			"namespace", data.Namespace,
 			"error", err.Error(),
 		)
-		cleanReleaseLogs(data.Namespace, data.Release)
 		return "", err
 	}
 	if re == nil {
-		cleanReleaseLogs(data.Namespace, data.Release)
 		return "", fmt.Errorf("HelmInstall Error: Release not found")
 	}
 
@@ -776,7 +776,13 @@ func HelmChartInstall(data HelmChartInstallUpgradeRequest) (string, error) {
 	return installStatus(*re), nil
 }
 
-func HelmReleaseUpgrade(data HelmChartInstallUpgradeRequest) (string, error) {
+func HelmReleaseUpgrade(data HelmChartInstallUpgradeRequest) (result string, err error) {
+	defer func() {
+		if err != nil {
+			cleanReleaseLogs(data.Namespace, data.Release)
+		}
+	}()
+
 	settings := NewCli()
 	settings.SetNamespace(data.Namespace)
 
@@ -856,7 +862,13 @@ func HelmReleaseUpgrade(data HelmChartInstallUpgradeRequest) (string, error) {
 	return installStatus(*re), nil
 }
 
-func HelmReleaseUninstall(data HelmReleaseUninstallRequest) (string, error) {
+func HelmReleaseUninstall(data HelmReleaseUninstallRequest) (result string, err error) {
+	defer func() {
+		if err != nil {
+			cleanReleaseLogs(data.Namespace, data.Release)
+		}
+	}()
+
 	settings := NewCli()
 	settings.SetNamespace(data.Namespace)
 
@@ -882,7 +894,7 @@ func HelmReleaseUninstall(data HelmReleaseUninstallRequest) (string, error) {
 	uninstall := action.NewUninstall(actionConfig)
 	uninstall.DryRun = data.DryRun
 	uninstall.Wait = false
-	_, err := uninstall.Run(data.Release)
+	_, err = uninstall.Run(data.Release)
 	if err != nil {
 		helmLogger.Error("HelmUninstall Run",
 			"releaseName", data.Release,
@@ -891,8 +903,6 @@ func HelmReleaseUninstall(data HelmReleaseUninstallRequest) (string, error) {
 		)
 		return "", err
 	}
-
-	cleanReleaseLogs(data.Namespace, data.Release)
 
 	return fmt.Sprintf("Release '%s' uninstalled", data.Release), nil
 }
