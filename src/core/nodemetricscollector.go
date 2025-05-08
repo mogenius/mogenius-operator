@@ -349,7 +349,7 @@ func (self *nodeMetricsCollector) Run() {
 				for {
 					metrics := self.networkMonitor.GetPodNetworkUsage()
 					self.statsDb.AddInterfaceStatsToDb(metrics)
-					time.Sleep(30 * time.Second)
+					time.Sleep(60 * time.Second)
 				}
 			}()
 			go func() {

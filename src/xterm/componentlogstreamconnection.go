@@ -8,6 +8,7 @@ import (
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/valkeyclient"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -91,6 +92,10 @@ func ComponentStreamConnection(
 			err = conn.WriteMessage(websocket.TextMessage, []byte(messageSt))
 			connWriteLock.Unlock()
 			if err != nil {
+				if strings.Contains(err.Error(), "broken pipe") {
+					xtermLogger.Debug("write close:", "error", err)
+					break
+				}
 				xtermLogger.Error("WriteMessage", "error", err)
 			}
 		}
