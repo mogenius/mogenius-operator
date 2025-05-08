@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/logging"
+	"mogenius-k8s-manager/src/networkmonitor"
 	"mogenius-k8s-manager/src/shutdown"
 )
 
@@ -34,6 +35,10 @@ func RunNodeMetrics(args *nodeMetricsArgs, logManagerModule logging.SlogManager,
 		systems.core.InitializeClusterSecret()
 		systems.core.InitializeValkey()
 
+		systems.networkmonitor.SetSnoopyArgs(networkmonitor.SnoopyArgs{
+			MetricsRate:           args.MetricsRate,
+			NetworkDevicePollRate: args.NetworkDevicePollRate,
+		})
 		systems.nodeMetricsCollector.Run()
 
 		select {}

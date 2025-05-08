@@ -530,6 +530,7 @@ func InitializeSystems(
 		jobConnectionClient,
 		eventConnectionClient,
 		valkeyClient,
+		networkMonitor,
 		mocore,
 		moKubernetes,
 		workspaceManager,
@@ -552,6 +553,7 @@ type systems struct {
 	jobConnectionClient   websocket.WebsocketClient
 	eventConnectionClient websocket.WebsocketClient
 	valkeyClient          valkeyclient.ValkeyClient
+	networkmonitor        networkmonitor.NetworkMonitor
 	core                  core.Core
 	moKubernetes          core.MoKubernetes
 	workspaceManager      core.WorkspaceManager
