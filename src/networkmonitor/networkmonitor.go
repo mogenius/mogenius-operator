@@ -235,6 +235,10 @@ func (self *networkMonitor) metricsToPodstats(
 			if metrics.Ingress.Packets == 0 && metrics.Ingress.Bytes == 0 && metrics.Egress.Packets == 0 && metrics.Egress.Bytes == 0 {
 				continue
 			}
+			// filter blacklisted interface names e.g. loopback
+			if slices.Contains([]string{"lo"}, interfaceName) {
+				continue
+			}
 			podNetworkStat := PodNetworkStats{}
 			podNetworkStat.Ip = pod.Status.PodIP
 			podNetworkStat.Pod = containerInfo.PodName
