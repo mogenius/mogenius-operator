@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"mogenius-k8s-manager/src/assert"
+	"mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/shutdown"
 	"os/exec"
 	"slices"
@@ -31,6 +32,7 @@ type SnoopyManager interface {
 
 type snoopyManager struct {
 	logger        *slog.Logger
+	config        config.ConfigModule
 	args          SnoopyArgs
 	snoopyBinName *string
 
@@ -139,10 +141,11 @@ type SnoopyInterface struct {
 	Flags       uint64   `json:"flags"`
 }
 
-func NewSnoopyManager(logger *slog.Logger) SnoopyManager {
+func NewSnoopyManager(logger *slog.Logger, config config.ConfigModule) SnoopyManager {
 	self := &snoopyManager{}
 
 	self.logger = logger
+	self.config = config
 	self.handlesLock = &sync.RWMutex{}
 	self.handles = map[ContainerId]*SnoopyHandle{}
 
@@ -177,7 +180,22 @@ func NewSnoopyManager(logger *slog.Logger) SnoopyManager {
 	return self
 }
 
+// func (self *snoopyManager) pids() []int {
+// 	self.handlesLock.RLock()
+// 	defer self.handlesLock.RUnlock()
+
+// 	pids := []int{}
+
+// 	for _, handle := range self.handles {
+// 		pids = append(pids, handle.SnoopyPid)
+// 	}
+// 	slices.Sort(pids)
+
+// 	return pids
+// }
+
 func (self *snoopyManager) Metrics() map[ContainerId]ContainerInfo {
+	// fmt.Printf("%#v\n", self.pids())
 	data := map[ContainerId]ContainerInfo{}
 
 	self.handlesLock.RLock()
@@ -228,20 +246,6 @@ func (self *snoopyManager) Metrics() map[ContainerId]ContainerInfo {
 func (self *snoopyManager) SetArgs(args SnoopyArgs) {
 	self.args = args
 }
-
-// StartBytesLock    *sync.RWMutex
-// IngressStartBytes map[InterfaceName]uint64
-// EgressStartBytes  map[InterfaceName]uint64
-
-// LastMetricsLock *sync.RWMutex
-// LastMetrics     map[InterfaceName]SnoopyInterfaceMetrics
-
-// Ctx    context.Context
-// Cancel context.CancelFunc
-// Cmd    *exec.Cmd
-
-// Stdout chan SnoopyEvent
-// Stderr chan SnoopyLogMessage
 
 func (self *snoopyManager) Register(podNamespace string, podName string, containerId ContainerId, nsProcessPid ProcessId) error {
 	self.logger.Info("snoopy.Register", "podNamespace", podNamespace, "podName", podName, "containerId", containerId, "attachedProcessPid", nsProcessPid)
@@ -357,7 +361,7 @@ func (self *snoopyManager) AttachToPidNamespace(pid ProcessId) (*SnoopyHandle, e
 	pidS := strconv.FormatUint(pid, 10)
 	cmd := exec.Command(
 		"nsenter",
-		"--net=/proc/"+pidS+"/ns/net",
+		"--net="+self.config.Get("MO_HOST_PROC_PATH")+"/"+pidS+"/ns/net",
 		"--",
 		*self.snoopyBinName,
 		"--metrics-rate",
