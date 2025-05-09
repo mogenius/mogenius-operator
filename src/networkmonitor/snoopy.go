@@ -104,9 +104,11 @@ type SnoopyEvent struct {
 }
 
 type SnoopyInterfaceMetrics struct {
-	Type      string `json:"type"`
-	Interface string `json:"interface"`
-	Ingress   struct {
+	Type                  string `json:"type"`
+	Interface             string `json:"interface"`
+	IngressImplementation string `json:"ingress_implementation"`
+	EgressImplementation  string `json:"egress_implementation"`
+	Ingress               struct {
 		Packets uint64 `json:"packets"`
 		Bytes   uint64 `json:"bytes"`
 	} `json:"ingress"`
@@ -248,8 +250,6 @@ func (self *snoopyManager) SetArgs(args SnoopyArgs) {
 }
 
 func (self *snoopyManager) Register(podNamespace string, podName string, containerId ContainerId, nsProcessPid ProcessId) error {
-	self.logger.Info("snoopy.Register", "podNamespace", podNamespace, "podName", podName, "containerId", containerId, "attachedProcessPid", nsProcessPid)
-
 	handle, err := self.AttachToPidNamespace(nsProcessPid)
 	if err != nil {
 		return fmt.Errorf("failed to attach snoopy to containerId(%s) pid(%d): %v", containerId, nsProcessPid, err)
@@ -265,8 +265,10 @@ func (self *snoopyManager) Register(podNamespace string, podName string, contain
 				return
 			case logMessage := <-handle.Stderr:
 				switch logMessage.Level {
-				case "DEBUG", "INFO":
-					self.logger.Debug("snoppy log message", "containerId", containerId, "snoopyPid", handle.SnoopyPid, "attachedProcessPid", nsProcessPid, "level", logMessage.Level, "target", logMessage.Target, "msg", logMessage.Message)
+				case "DEBUG":
+					self.logger.Debug("snoppy debug", "containerId", containerId, "snoopyPid", handle.SnoopyPid, "attachedProcessPid", nsProcessPid, "level", logMessage.Level, "target", logMessage.Target, "msg", logMessage.Message)
+				case "INFO":
+					self.logger.Info("snoppy info", "containerId", containerId, "snoopyPid", handle.SnoopyPid, "attachedProcessPid", nsProcessPid, "level", logMessage.Level, "target", logMessage.Target, "msg", logMessage.Message)
 				case "WARN":
 					self.logger.Warn("snoppy warning", "containerId", containerId, "snoopyPid", handle.SnoopyPid, "attachedProcessPid", nsProcessPid, "level", logMessage.Level, "target", logMessage.Target, "msg", logMessage.Message)
 				case "ERROR":
