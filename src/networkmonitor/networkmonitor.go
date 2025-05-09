@@ -54,7 +54,7 @@ func NewNetworkMonitor(logger *slog.Logger, config config.ConfigModule, clientPr
 	self.ctx = ctx
 	self.cancel = cancel
 	self.cne = NewContainerNetworkEnumerator(logger.With("scope", "network-enumerator"))
-	self.snoopy = NewSnoopyManager(self.logger.With("scope", "snoopy-manager"))
+	self.snoopy = NewSnoopyManager(self.logger.With("scope", "snoopy-manager"), config)
 	self.procFsMountPath = procFsMountPath
 	self.networkUsageTx = make(chan struct{})
 	self.networkUsageRx = make(chan []PodNetworkStats)
