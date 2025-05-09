@@ -1,9 +1,8 @@
 module mogenius-k8s-manager
 
-go 1.24.1
+go 1.24.3
 
 require (
-	github.com/Masterminds/semver/v3 v3.3.1
 	github.com/alecthomas/kong v1.10.0
 	github.com/cert-manager/cert-manager v1.17.2
 	github.com/creack/pty v1.1.24
@@ -44,6 +43,7 @@ require (
 	github.com/BurntSushi/toml v1.4.0 // indirect
 	github.com/MakeNowJust/heredoc v1.0.0 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
+	github.com/Masterminds/semver/v3 v3.3.1 // indirect
 	github.com/Masterminds/sprig/v3 v3.3.0 // indirect
 	github.com/Masterminds/squirrel v1.5.4 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect

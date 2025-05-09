@@ -484,7 +484,7 @@ func InitializeSystems(
 	shutdown.Add(jobConnectionClient.Terminate)
 	eventConnectionClient := websocket.NewWebsocketClient(logManagerModule.CreateLogger("websocket-events-client"))
 	shutdown.Add(eventConnectionClient.Terminate)
-	cpuMonitor := cpumonitor.NewCpuMonitor(logManagerModule.CreateLogger("cpu-monitor"), clientProvider)
+	cpuMonitor := cpumonitor.NewCpuMonitor(logManagerModule.CreateLogger("cpu-monitor"), configModule, clientProvider)
 	ramMonitor := rammonitor.NewRamMonitor(logManagerModule.CreateLogger("ram-monitor"), configModule, clientProvider)
 	networkMonitor := networkmonitor.NewNetworkMonitor(logManagerModule.CreateLogger("network-monitor"), configModule, clientProvider, configModule.Get("MO_HOST_PROC_PATH"))
 

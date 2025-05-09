@@ -135,8 +135,8 @@ func (self *nodeMetricsCollector) Orchestrate() {
 							Labels: map[string]string{"app": daemonSetName},
 							OwnerReferences: []metav1.OwnerReference{
 								{
-									APIVersion: ownDeployment.APIVersion,
-									Kind:       ownDeployment.Kind,
+									APIVersion: "apps/v1",
+									Kind:       "Deployment",
 									Name:       ownDeployment.GetName(),
 									UID:        ownDeployment.GetUID(),
 									Controller: ptr.To(true),
@@ -175,12 +175,7 @@ func (self *nodeMetricsCollector) Orchestrate() {
 									},
 									VolumeMounts: []corev1.VolumeMount{
 										{
-											MountPath: "/hostproc",
-											Name:      "proc",
-											ReadOnly:  true,
-										},
-										{
-											MountPath: "/proc",
+											MountPath: self.config.Get("MO_HOST_PROC_PATH"),
 											Name:      "proc",
 											ReadOnly:  true,
 										},

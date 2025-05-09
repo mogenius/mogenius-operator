@@ -3,6 +3,7 @@ package cpumonitor
 import (
 	"log/slog"
 	"mogenius-k8s-manager/src/assert"
+	"mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/k8sclient"
 	"os"
 	"runtime"
@@ -19,6 +20,7 @@ type CpuMonitor interface {
 
 type cpuMonitor struct {
 	logger         *slog.Logger
+	config         config.ConfigModule
 	clientProvider k8sclient.K8sClientProvider
 
 	collectorStarted atomic.Bool
@@ -27,10 +29,11 @@ type cpuMonitor struct {
 	lastMetricsLock sync.RWMutex
 }
 
-func NewCpuMonitor(logger *slog.Logger, clientProvider k8sclient.K8sClientProvider) CpuMonitor {
+func NewCpuMonitor(logger *slog.Logger, config config.ConfigModule, clientProvider k8sclient.K8sClientProvider) CpuMonitor {
 	self := &cpuMonitor{}
 
 	self.logger = logger
+	self.config = config
 	self.clientProvider = clientProvider
 	self.collectorStarted = atomic.Bool{}
 	self.lastMetrics = CpuMetrics{}
@@ -62,10 +65,7 @@ func (self *cpuMonitor) startCollector() {
 		var lastSystem float64 = 0
 		var lastIdle float64 = 0
 
-		path := "/hostproc/stat"
-		if !self.clientProvider.RunsInCluster() {
-			path = "/proc/stat"
-		}
+		path := self.config.Get("MO_HOST_PROC_PATH") + "/stat"
 
 		for {
 			if !firstRun {
