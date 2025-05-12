@@ -55,10 +55,12 @@ func ComponentStreamConnection(
 		return
 	}
 
-	data, err := valkeyclient.LastNEntryFromBucketWithType[logging.LogLine](store, 50, "logs", component)
+	data, err := valkeyclient.LastNEntryFromBucketWithType[logging.LogLine](store, 100, "logs", component)
 	if err != nil {
 		xtermLogger.Error("Error getting last 50 logs", "error", err)
 	}
+
+	logEntriesWritten := false
 	for _, v := range data {
 		messageStr := processLogLine(component, namespace, release, v)
 		if messageStr == "" {
@@ -67,15 +69,20 @@ func ComponentStreamConnection(
 
 		connWriteLock.Lock()
 		err = conn.WriteMessage(websocket.TextMessage, []byte(messageStr))
+		logEntriesWritten = true
 		if err != nil {
 			xtermLogger.Error("WriteMessage", "error", err)
 		}
 		connWriteLock.Unlock()
 	}
 
-	if len(data) == 0 {
+	if !logEntriesWritten {
 		connWriteLock.Lock()
-		err = conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("[INFO] %s No recent log entries found.\n", utils.FormatJsonTimePrettyFromTime(time.Now()))))
+		if component == "helm" {
+			err = conn.WriteMessage(websocket.TextMessage, []byte("📝 No Log Entries Found\n🔍 This may occur due to the decentralized nature of Helm.\nIf the Helm chart was applied from a different machine, logs might not be available here.\n"))
+		} else {
+			err = conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("[INFO] %s No recent log entries found.\n", utils.FormatJsonTimePrettyFromTime(time.Now()))))
+		}
 		if err != nil {
 			xtermLogger.Error("WriteMessage", "error", err)
 		}
@@ -145,9 +152,6 @@ func processLogLine(component string, namespace *string, release *string, line l
 				return fmt.Sprintf("[%s] %s %s\n", line.Level, utils.FormatJsonTimePrettyFromTime(line.Time), line.Message)
 			}
 		} else {
-			if line.Payload["error"] != nil {
-				return fmt.Sprintf("[%s] %s %s %s\n", line.Level, utils.FormatJsonTimePrettyFromTime(line.Time), line.Message, line.Payload["error"])
-			}
 			return ""
 		}
 	}
