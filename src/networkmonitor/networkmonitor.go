@@ -18,8 +18,8 @@ import (
 
 type NetworkMonitor interface {
 	Run()
+	Snoopy() SnoopyManager
 	GetPodNetworkUsage() []PodNetworkStats
-	SetSnoopyArgs(args SnoopyArgs)
 }
 
 type networkMonitor struct {
@@ -68,6 +68,8 @@ func (self *networkMonitor) Run() {
 		return
 	}
 
+	self.snoopy.Run()
+
 	go func() {
 		fieldSelector := "metadata.namespace!=kube-system"
 		ownNodeName := self.config.Get("OWN_NODE_NAME")
@@ -75,10 +77,10 @@ func (self *networkMonitor) Run() {
 			fieldSelector = fmt.Sprintf("metadata.namespace!=kube-system,spec.nodeName=%s", ownNodeName)
 		}
 
-		// first load of all pods on the current node
+		// list of all pods on the current node
 		podList := self.updatePodList(fieldSelector)
 
-		// first load of all containers running on the current node
+		// map of all containers on the current machine with all pids running inside them
 		nodeContainersWithProcesses := self.cne.FindProcessesWithContainerIds(self.procFsMountPath)
 
 		// register all initially found containers which are also pods by indexing
@@ -195,8 +197,8 @@ func (self *networkMonitor) Run() {
 	}()
 }
 
-func (self *networkMonitor) SetSnoopyArgs(args SnoopyArgs) {
-	self.snoopy.SetArgs(args)
+func (self *networkMonitor) Snoopy() SnoopyManager {
+	return self.snoopy
 }
 
 func (self *networkMonitor) metricsToPodstats(
