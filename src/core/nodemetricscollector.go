@@ -357,6 +357,16 @@ func (self *nodeMetricsCollector) Run() {
 					time.Sleep(1 * time.Second)
 				}
 			}()
+			go func() {
+				for {
+					status := self.networkMonitor.Snoopy().Status()
+					err := self.statsDb.AddSnoopyStatusToDb(nodeName, status)
+					if err != nil {
+						self.logger.Error("failed to store snoopy status", "error", err)
+					}
+					time.Sleep(1 * time.Second)
+				}
+			}()
 		} else {
 			// TODO: fallback to use something else?
 			self.logger.Warn("Missing BTF Support: Network Monitoring is not available.")

@@ -14,19 +14,19 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	jsoniter "github.com/json-iterator/go"
 )
 
 type SnoopyManager interface {
+	Run()
 	// containerId: the primary id for which network interfaces are watched
 	// pid: a process id for initially connecting to the containerId -> if it dies snoopy stays connected to the containerId namespace
 	Register(podNamespace string, podName string, containerId ContainerId, pid ProcessId) error
-
 	Remove(containerId ContainerId) error
-
 	Metrics() map[ContainerId]ContainerInfo
-
+	Status() SnoopyStatus
 	SetArgs(args SnoopyArgs)
 }
 
@@ -35,6 +35,12 @@ type snoopyManager struct {
 	config        config.ConfigModule
 	args          SnoopyArgs
 	snoopyBinName *string
+	running       atomic.Bool
+
+	statusEventTx chan SnoopyStatusEvent
+
+	statusTx chan struct{}
+	statusRx chan SnoopyStatus
 
 	handlesLock *sync.RWMutex
 	handles     map[ContainerId]*SnoopyHandle
@@ -43,6 +49,80 @@ type snoopyManager struct {
 type SnoopyArgs struct {
 	NetworkDevicePollRate uint64
 	MetricsRate           uint64
+}
+
+type SnoopyStatus struct {
+	Initializing    []SnoopyStatusEventRegisterRequest `json:"initializing"`
+	Failure         []SnoopyStatusEventRegisterFailure `json:"failures"`
+	SnoopyProcesses []SnoopyStatusProcess              `json:"snoopy_processes"`
+}
+
+type SnoopyStatusProcess struct {
+	Pid        ProcessId               `json:"pid"`
+	Interfaces []SnoopyStatusInterface `json:"interfaces"`
+}
+
+type SnoopyStatusInterface struct {
+	Name                  string `json:"name"`
+	IngressImplementation string `json:"ingressImplementation"`
+	EgressImplementation  string `json:"egressImplementation"`
+}
+
+type SnoopyStatusEventType = string
+
+const (
+	// mogenius-k8s-manager attempts to start a snoopy instance
+	SnoopyStatusEventTypeRegisterRequest SnoopyStatusEventType = "register_request"
+	// mogenius-k8s-manager successfully attached a snoopy instance to a linux network namespace
+	SnoopyStatusEventTypeRegisterSuccess SnoopyStatusEventType = "register_failure"
+	// mogenius-k8s-manager failed to attach a snoopy instance to a linux network namespace
+	SnoopyStatusEventTypeRegisterFailure SnoopyStatusEventType = "register_success"
+	// mogenius-k8s-manager stopped a snoopy instance it managed
+	SnoopyStatusEventTypeRemove SnoopyStatusEventType = "remove"
+	// mogenius-k8s-manager received an event message from a snoopy instance
+	SnoopyStatusEventTypeSnoopyEvent SnoopyStatusEventType = "snoopy_event"
+)
+
+type SnoopyStatusEventRegisterRequest struct {
+	PodNamespace string      `json:"podNamespace"`
+	PodName      string      `json:"podName"`
+	ContainerId  ContainerId `json:"containerId"`
+	NsProcessPid ProcessId   `json:"NsProcessId"`
+}
+
+type SnoopyStatusEventRegisterSuccess struct {
+	PodNamespace string
+	PodName      string
+	ContainerId  ContainerId
+	NsProcessPid ProcessId
+	SnoopyPid    ProcessId
+}
+
+type SnoopyStatusEventRegisterFailure struct {
+	PodNamespace string      `json:"podNamespace"`
+	PodName      string      `json:"podName"`
+	ContainerId  ContainerId `json:"containerId"`
+	NsProcessPid ProcessId   `json:"NsProcessId"`
+	Err          error       `json:"error"`
+}
+
+type SnoopyStatusEventRemove struct {
+	SnoopyPid ProcessId
+}
+
+type SnoopyStatusEventSnoopyEvent struct {
+	SnoopyPid   ProcessId
+	SnoopyEvent SnoopyEvent
+}
+
+type SnoopyStatusEvent struct {
+	Type SnoopyStatusEventType
+
+	RegisterRequest *SnoopyStatusEventRegisterRequest
+	RegisterSuccess *SnoopyStatusEventRegisterSuccess
+	RegisterFailure *SnoopyStatusEventRegisterFailure
+	Remove          *SnoopyStatusEventRemove
+	SnoopyEvent     *SnoopyStatusEventSnoopyEvent
 }
 
 type ContainerInfo struct {
@@ -73,7 +153,7 @@ type SnoopyLogMessage struct {
 type SnoopyHandle struct {
 	PodNamespace string
 	PodName      string
-	SnoopyPid    int
+	SnoopyPid    ProcessId
 
 	StartBytesLock    *sync.RWMutex
 	IngressStartBytes map[InterfaceName]uint64
@@ -94,21 +174,37 @@ type SnoopyOutput struct {
 	LogMessage *SnoopyLogMessage
 }
 
-type SnoopyEvent struct {
-	Type string
+type SnoopyEventType = string
 
-	InterfaceMetric  *SnoopyInterfaceMetrics
-	InterfaceAdded   *SnoopyInterfaceAdded
-	InterfaceRemoved *SnoopyInterfaceRemoved
-	InterfaceChanged *SnoopyInterfaceChanged
+const (
+	SnoopyEventTypeInterfaceMetrics        SnoopyEventType = "InterfaceMetrics"
+	SnoopyEventTypeInterfaceChanged        SnoopyEventType = "InterfaceChanged"
+	SnoopyEventTypeInterfaceRemoved        SnoopyEventType = "InterfaceRemoved"
+	SnoopyEventTypeInterfaceAdded          SnoopyEventType = "InterfaceAdded"
+	SnoopyEventTypeInterfaceBpfInitialized SnoopyEventType = "InterfaceBpfInitialized"
+)
+
+type SnoopyEvent struct {
+	Type SnoopyEventType
+
+	InterfaceMetric         *SnoopyInterfaceMetrics
+	InterfaceAdded          *SnoopyInterfaceAdded
+	InterfaceRemoved        *SnoopyInterfaceRemoved
+	InterfaceChanged        *SnoopyInterfaceChanged
+	InterfaceBpfInitialized *SnoopyInterfaceBpfInitialized
 }
 
-type SnoopyInterfaceMetrics struct {
+type SnoopyInterfaceBpfInitialized struct {
 	Type                  string `json:"type"`
 	Interface             string `json:"interface"`
 	IngressImplementation string `json:"ingress_implementation"`
 	EgressImplementation  string `json:"egress_implementation"`
-	Ingress               struct {
+}
+
+type SnoopyInterfaceMetrics struct {
+	Type      string `json:"type"`
+	Interface string `json:"interface"`
+	Ingress   struct {
 		Packets uint64 `json:"packets"`
 		Bytes   uint64 `json:"bytes"`
 	} `json:"ingress"`
@@ -151,6 +247,9 @@ func NewSnoopyManager(logger *slog.Logger, config config.ConfigModule) SnoopyMan
 	self.handlesLock = &sync.RWMutex{}
 	self.handles = map[ContainerId]*SnoopyHandle{}
 
+	self.statusTx = make(chan struct{})
+	self.statusRx = make(chan SnoopyStatus)
+
 	self.args = SnoopyArgs{}
 	self.args.MetricsRate = 2000           // read network metrics from BPF every 2 seconds
 	self.args.NetworkDevicePollRate = 1000 // update network devices list once per second
@@ -182,22 +281,175 @@ func NewSnoopyManager(logger *slog.Logger, config config.ConfigModule) SnoopyMan
 	return self
 }
 
-// func (self *snoopyManager) pids() []int {
-// 	self.handlesLock.RLock()
-// 	defer self.handlesLock.RUnlock()
+func (self *snoopyManager) Status() SnoopyStatus {
+	assert.Assert(self.running.Load(), "snoopymanager has to be running before requesting its status")
 
-// 	pids := []int{}
+	self.statusTx <- struct{}{}
+	status := <-self.statusRx
 
-// 	for _, handle := range self.handles {
-// 		pids = append(pids, handle.SnoopyPid)
-// 	}
-// 	slices.Sort(pids)
+	return status
+}
 
-// 	return pids
-// }
+func (self *snoopyManager) Run() {
+	wasRunnning := self.running.Swap(true)
+	assert.Assert(!wasRunnning, "leader elector should only be started once")
+
+	self.statusEventTx = make(chan SnoopyStatusEvent)
+	go self.startStatusEventHandler()
+}
+
+func (self *snoopyManager) startStatusEventHandler() {
+	status := SnoopyStatus{
+		Initializing:    []SnoopyStatusEventRegisterRequest{},
+		Failure:         []SnoopyStatusEventRegisterFailure{},
+		SnoopyProcesses: []SnoopyStatusProcess{},
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	shutdown.Add(cancel)
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-self.statusTx:
+			self.statusRx <- status
+		case event := <-self.statusEventTx:
+			switch event.Type {
+			case SnoopyStatusEventTypeRegisterRequest:
+				assert.Assert(event.RegisterRequest != nil)
+				status.Initializing = append(status.Initializing, *event.RegisterRequest)
+			case SnoopyStatusEventTypeRegisterSuccess:
+				assert.Assert(event.RegisterSuccess != nil)
+				successEvent := *event.RegisterSuccess
+
+				// remove the corresponding event from the initializing list
+				initializingIdx := -1
+				for idx, initEvent := range status.Initializing {
+					if initEvent.ContainerId == successEvent.ContainerId && initEvent.NsProcessPid == successEvent.NsProcessPid && initEvent.PodName == successEvent.PodName && initEvent.PodNamespace == successEvent.PodNamespace {
+						initializingIdx = idx
+						break
+					}
+				}
+				assert.Assert(initializingIdx >= 0, "a corresponding initializing event has to exist before success can happen")
+				updatedInitializing := status.Initializing[:initializingIdx]
+				updatedInitializing = append(updatedInitializing, status.Initializing[initializingIdx+1:]...)
+				status.Initializing = updatedInitializing
+
+				// add the process to the process list
+				status.SnoopyProcesses = append(status.SnoopyProcesses, SnoopyStatusProcess{
+					Pid:        ProcessId(successEvent.SnoopyPid),
+					Interfaces: []SnoopyStatusInterface{},
+				})
+			case SnoopyStatusEventTypeRegisterFailure:
+				assert.Assert(event.RegisterFailure != nil)
+				failureEvent := *event.RegisterFailure
+
+				// remove the corresponding event from the initializing list
+				initializingIdx := -1
+				for idx, initEvent := range status.Initializing {
+					if initEvent.ContainerId == failureEvent.ContainerId && initEvent.NsProcessPid == failureEvent.NsProcessPid && initEvent.PodName == failureEvent.PodName && initEvent.PodNamespace == failureEvent.PodNamespace {
+						initializingIdx = idx
+						break
+					}
+				}
+				assert.Assert(initializingIdx >= 0, "a corresponding initializing event has to exist before failure can happen")
+				updatedInitializing := status.Initializing[:initializingIdx]
+				updatedInitializing = append(updatedInitializing, status.Initializing[initializingIdx+1:]...)
+				status.Initializing = updatedInitializing
+
+				// add the failure to the failure list
+				status.Failure = append(status.Failure, *event.RegisterFailure)
+			case SnoopyStatusEventTypeRemove:
+				assert.Assert(event.Remove != nil)
+				removeEvent := *event.Remove
+
+				// remove the process from the process list
+				processIdx := -1
+				for idx, snoopyProcess := range status.SnoopyProcesses {
+					if removeEvent.SnoopyPid == snoopyProcess.Pid {
+						processIdx = idx
+						break
+					}
+				}
+				assert.Assert(processIdx >= 0, "a corresponding initializing event has to exist before failure can happen")
+				updatedProcesses := status.SnoopyProcesses[:processIdx]
+				updatedProcesses = append(updatedProcesses, status.SnoopyProcesses[processIdx+1:]...)
+				status.SnoopyProcesses = updatedProcesses
+			case SnoopyStatusEventTypeSnoopyEvent:
+				assert.Assert(event.SnoopyEvent != nil)
+				snoopyEvent := *event.SnoopyEvent
+
+				switch snoopyEvent.SnoopyEvent.Type {
+				case SnoopyEventTypeInterfaceChanged:
+					// ignore
+				case SnoopyEventTypeInterfaceMetrics:
+					// ignore
+				case SnoopyEventTypeInterfaceAdded:
+					assert.Assert(snoopyEvent.SnoopyEvent.InterfaceAdded != nil)
+					snoopyEventInterfaceAdded := *snoopyEvent.SnoopyEvent.InterfaceAdded
+					var snoopyProcess *SnoopyStatusProcess
+					for idx, process := range status.SnoopyProcesses {
+						if process.Pid == snoopyEvent.SnoopyPid {
+							snoopyProcess = &status.SnoopyProcesses[idx]
+							break
+						}
+					}
+					assert.Assert(snoopyProcess != nil)
+					snoopyProcess.Interfaces = append(snoopyProcess.Interfaces, SnoopyStatusInterface{
+						Name: snoopyEventInterfaceAdded.Interface.Name,
+					})
+				case SnoopyEventTypeInterfaceRemoved:
+					assert.Assert(snoopyEvent.SnoopyEvent.InterfaceRemoved != nil)
+					snoopyEventInterfaceRemoved := *snoopyEvent.SnoopyEvent.InterfaceRemoved
+					var snoopyProcess *SnoopyStatusProcess
+					for idx, process := range status.SnoopyProcesses {
+						if process.Pid == snoopyEvent.SnoopyPid {
+							snoopyProcess = &status.SnoopyProcesses[idx]
+							break
+						}
+					}
+					assert.Assert(snoopyProcess != nil)
+					deleteIdx := -1
+					for idx, intf := range snoopyProcess.Interfaces {
+						if snoopyEventInterfaceRemoved.Interface.Name == intf.Name {
+							deleteIdx = idx
+							break
+						}
+					}
+					assert.Assert(deleteIdx >= 0)
+					cleanedInterfaces := append(snoopyProcess.Interfaces[:deleteIdx], snoopyProcess.Interfaces[deleteIdx+1:]...)
+					snoopyProcess.Interfaces = cleanedInterfaces
+				case SnoopyEventTypeInterfaceBpfInitialized:
+					assert.Assert(snoopyEvent.SnoopyEvent.InterfaceBpfInitialized != nil)
+					snoopyEventInterfaceBpfInitialized := *snoopyEvent.SnoopyEvent.InterfaceBpfInitialized
+					var snoopyProcess *SnoopyStatusProcess
+					for idx, process := range status.SnoopyProcesses {
+						if process.Pid == snoopyEvent.SnoopyPid {
+							snoopyProcess = &status.SnoopyProcesses[idx]
+							break
+						}
+					}
+					assert.Assert(snoopyProcess != nil)
+					initializedIdx := -1
+					for idx, intf := range snoopyProcess.Interfaces {
+						if snoopyEventInterfaceBpfInitialized.Interface == intf.Name {
+							initializedIdx = idx
+							break
+						}
+					}
+					assert.Assert(initializedIdx >= 0)
+					snoopyProcess.Interfaces[initializedIdx].IngressImplementation = snoopyEventInterfaceBpfInitialized.IngressImplementation
+					snoopyProcess.Interfaces[initializedIdx].EgressImplementation = snoopyEventInterfaceBpfInitialized.EgressImplementation
+				default:
+					assert.Assert(false, "Unhandled SnoopyEventType", snoopyEvent.SnoopyEvent.Type)
+				}
+			default:
+				assert.Assert(false, "Unhandled SnoopyStatusEventType", event.Type)
+			}
+		}
+	}
+}
 
 func (self *snoopyManager) Metrics() map[ContainerId]ContainerInfo {
-	// fmt.Printf("%#v\n", self.pids())
 	data := map[ContainerId]ContainerInfo{}
 
 	self.handlesLock.RLock()
@@ -250,9 +502,43 @@ func (self *snoopyManager) SetArgs(args SnoopyArgs) {
 }
 
 func (self *snoopyManager) Register(podNamespace string, podName string, containerId ContainerId, nsProcessPid ProcessId) error {
-	handle, err := self.AttachToPidNamespace(nsProcessPid)
+	assert.Assert(podNamespace != "", "podNamespace should not be empty")
+	assert.Assert(podName != "", "podName should not be empty")
+	assert.Assert(containerId != "", "containerId should not be empty")
+	assert.Assert(nsProcessPid != 0, "nsProcessPid should not be 0")
+
+	self.statusEventTx <- SnoopyStatusEvent{
+		Type: SnoopyStatusEventTypeRegisterRequest,
+		RegisterRequest: &SnoopyStatusEventRegisterRequest{
+			podNamespace,
+			podName,
+			containerId,
+			nsProcessPid,
+		},
+	}
+	handle, err := self.attachToPidNamespace(nsProcessPid)
 	if err != nil {
+		self.statusEventTx <- SnoopyStatusEvent{
+			Type: SnoopyStatusEventTypeRegisterFailure,
+			RegisterFailure: &SnoopyStatusEventRegisterFailure{
+				podNamespace,
+				podName,
+				containerId,
+				nsProcessPid,
+				err,
+			},
+		}
 		return fmt.Errorf("failed to attach snoopy to containerId(%s) pid(%d): %v", containerId, nsProcessPid, err)
+	}
+	self.statusEventTx <- SnoopyStatusEvent{
+		Type: SnoopyStatusEventTypeRegisterSuccess,
+		RegisterSuccess: &SnoopyStatusEventRegisterSuccess{
+			podNamespace,
+			podName,
+			containerId,
+			nsProcessPid,
+			handle.SnoopyPid,
+		},
 	}
 
 	handle.PodNamespace = podNamespace
@@ -275,8 +561,15 @@ func (self *snoopyManager) Register(podNamespace string, podName string, contain
 					self.logger.Error("snoppy error", "containerId", containerId, "snoopyPid", handle.SnoopyPid, "attachedProcessPid", nsProcessPid, "level", logMessage.Level, "target", logMessage.Target, "msg", logMessage.Message)
 				}
 			case metrics := <-handle.Stdout:
+				self.statusEventTx <- SnoopyStatusEvent{
+					Type: SnoopyStatusEventTypeSnoopyEvent,
+					SnoopyEvent: &SnoopyStatusEventSnoopyEvent{
+						SnoopyPid:   handle.SnoopyPid,
+						SnoopyEvent: metrics,
+					},
+				}
 				switch metrics.Type {
-				case "InterfaceAdded":
+				case SnoopyEventTypeInterfaceAdded:
 					iface := metrics.InterfaceAdded.Interface.Name
 					rxBytes := self.readRxBytesFromPidAndInterface(nsProcessPid, iface)
 					txBytes := self.readTxBytesFromPidAndInterface(nsProcessPid, iface)
@@ -284,17 +577,19 @@ func (self *snoopyManager) Register(podNamespace string, podName string, contain
 					handle.IngressStartBytes[iface] = rxBytes
 					handle.EgressStartBytes[iface] = txBytes
 					handle.StartBytesLock.Unlock()
-				case "InterfaceRemoved":
+				case SnoopyEventTypeInterfaceRemoved:
 					handle.StartBytesLock.Lock()
 					delete(handle.IngressStartBytes, metrics.InterfaceRemoved.Interface.Name)
 					delete(handle.EgressStartBytes, metrics.InterfaceRemoved.Interface.Name)
 					handle.StartBytesLock.Unlock()
-				case "InterfaceChanged":
+				case SnoopyEventTypeInterfaceChanged:
 					// ignore
-				case "InterfaceMetrics":
+				case SnoopyEventTypeInterfaceMetrics:
 					handle.LastMetricsLock.Lock()
 					handle.LastMetrics[metrics.InterfaceMetric.Interface] = *metrics.InterfaceMetric
 					handle.LastMetricsLock.Unlock()
+				case SnoopyEventTypeInterfaceBpfInitialized:
+					// ignore
 				default:
 					self.logger.Warn("unknown metric type", "type", metrics.Type, "metric", metrics)
 				}
@@ -315,7 +610,12 @@ func (self *snoopyManager) Remove(containerId ContainerId) error {
 	handle, ok := self.handles[containerId]
 	if ok {
 		delete(self.handles, containerId)
-		self.logger.Info("snoopy.Remove", "podNamespace", handle.PodNamespace, "podName", handle.PodName, "containerId", containerId)
+		self.statusEventTx <- SnoopyStatusEvent{
+			Type: SnoopyStatusEventTypeRemove,
+			Remove: &SnoopyStatusEventRemove{
+				SnoopyPid: handle.SnoopyPid,
+			},
+		}
 		go func() {
 			handle.Cmd.Process.Kill()
 			handle.Cmd.Process.Wait()
@@ -357,7 +657,7 @@ func (self *snoopyManager) readTxBytesFromPidAndInterface(pid ProcessId, iface s
 	return txBytes
 }
 
-func (self *snoopyManager) AttachToPidNamespace(pid ProcessId) (*SnoopyHandle, error) {
+func (self *snoopyManager) attachToPidNamespace(pid ProcessId) (*SnoopyHandle, error) {
 	assert.Assert(self.snoopyBinName != nil, "the binary path has to be found and set previously")
 
 	pidS := strconv.FormatUint(pid, 10)
@@ -393,7 +693,7 @@ func (self *snoopyManager) AttachToPidNamespace(pid ProcessId) (*SnoopyHandle, e
 
 	snoopy := &SnoopyHandle{}
 	snoopy.Cmd = cmd
-	snoopy.SnoopyPid = cmd.Process.Pid
+	snoopy.SnoopyPid = ProcessId(cmd.Process.Pid)
 	snoopy.Ctx = ctx
 	snoopy.Stdout = make(chan SnoopyEvent)
 	snoopy.Stderr = make(chan SnoopyLogMessage)
@@ -416,7 +716,7 @@ func (self *snoopyManager) AttachToPidNamespace(pid ProcessId) (*SnoopyHandle, e
 				continue
 			}
 			switch parsedOutputType.Type {
-			case "InterfaceAdded":
+			case SnoopyEventTypeInterfaceAdded:
 				var data SnoopyInterfaceAdded
 				err := json.Unmarshal(output, &data)
 				if err != nil {
@@ -427,7 +727,7 @@ func (self *snoopyManager) AttachToPidNamespace(pid ProcessId) (*SnoopyHandle, e
 					Type:           data.Type,
 					InterfaceAdded: &data,
 				}
-			case "InterfaceRemoved":
+			case SnoopyEventTypeInterfaceRemoved:
 				var data SnoopyInterfaceRemoved
 				err := json.Unmarshal(output, &data)
 				if err != nil {
@@ -438,7 +738,7 @@ func (self *snoopyManager) AttachToPidNamespace(pid ProcessId) (*SnoopyHandle, e
 					Type:             data.Type,
 					InterfaceRemoved: &data,
 				}
-			case "InterfaceChanged":
+			case SnoopyEventTypeInterfaceChanged:
 				var data SnoopyInterfaceChanged
 				err := json.Unmarshal(output, &data)
 				if err != nil {
@@ -449,7 +749,7 @@ func (self *snoopyManager) AttachToPidNamespace(pid ProcessId) (*SnoopyHandle, e
 					Type:             data.Type,
 					InterfaceChanged: &data,
 				}
-			case "InterfaceMetrics":
+			case SnoopyEventTypeInterfaceMetrics:
 				var interfaceMetrics SnoopyInterfaceMetrics
 				err := json.Unmarshal(output, &interfaceMetrics)
 				if err != nil {
@@ -459,6 +759,17 @@ func (self *snoopyManager) AttachToPidNamespace(pid ProcessId) (*SnoopyHandle, e
 				snoopy.Stdout <- SnoopyEvent{
 					Type:            interfaceMetrics.Type,
 					InterfaceMetric: &interfaceMetrics,
+				}
+			case SnoopyEventTypeInterfaceBpfInitialized:
+				var interfaceBpfInitialized SnoopyInterfaceBpfInitialized
+				err := json.Unmarshal(output, &interfaceBpfInitialized)
+				if err != nil {
+					self.logger.Error("failed to parse `SnoopyInterfaceBpfInitialized`", "message", output, "error", err)
+					continue
+				}
+				snoopy.Stdout <- SnoopyEvent{
+					Type:                    interfaceBpfInitialized.Type,
+					InterfaceBpfInitialized: &interfaceBpfInitialized,
 				}
 			default:
 				assert.Assert(
