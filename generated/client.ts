@@ -12,6 +12,7 @@ export enum Pattern {
   CLUSTER_ENERGY_CONSUMPTION = "cluster/energy-consumption",
   CLUSTER_EXECUTE_HELM_CHART_TASK = "cluster/execute-helm-chart-task",
   CLUSTER_HELM_CHART_INSTALL = "cluster/helm-chart-install",
+  CLUSTER_HELM_CHART_INSTALL_OCI = "cluster/helm-chart-install-oci",
   CLUSTER_HELM_CHART_REMOVE = "cluster/helm-chart-remove",
   CLUSTER_HELM_CHART_SEARCH = "cluster/helm-chart-search",
   CLUSTER_HELM_CHART_SHOW = "cluster/helm-chart-show",
@@ -184,6 +185,7 @@ export const StringToPattern = {
   "cluster/energy-consumption": Pattern.CLUSTER_ENERGY_CONSUMPTION,
   "cluster/execute-helm-chart-task": Pattern.CLUSTER_EXECUTE_HELM_CHART_TASK,
   "cluster/helm-chart-install": Pattern.CLUSTER_HELM_CHART_INSTALL,
+  "cluster/helm-chart-install-oci": Pattern.CLUSTER_HELM_CHART_INSTALL_OCI,
   "cluster/helm-chart-remove": Pattern.CLUSTER_HELM_CHART_REMOVE,
   "cluster/helm-chart-search": Pattern.CLUSTER_HELM_CHART_SEARCH,
   "cluster/helm-chart-show": Pattern.CLUSTER_HELM_CHART_SHOW,
@@ -352,6 +354,7 @@ export const PatternToString = {
   [Pattern.CLUSTER_ENERGY_CONSUMPTION]: "cluster/energy-consumption",
   [Pattern.CLUSTER_EXECUTE_HELM_CHART_TASK]: "cluster/execute-helm-chart-task",
   [Pattern.CLUSTER_HELM_CHART_INSTALL]: "cluster/helm-chart-install",
+  [Pattern.CLUSTER_HELM_CHART_INSTALL_OCI]: "cluster/helm-chart-install-oci",
   [Pattern.CLUSTER_HELM_CHART_REMOVE]: "cluster/helm-chart-remove",
   [Pattern.CLUSTER_HELM_CHART_SEARCH]: "cluster/helm-chart-search",
   [Pattern.CLUSTER_HELM_CHART_SHOW]: "cluster/helm-chart-show",
@@ -1096,6 +1099,51 @@ export type CLUSTER_HELM_CHART_INSTALL_REQUEST = CLUSTER_HELM_CHART_INSTALL_REQU
  *
  */
 export type CLUSTER_HELM_CHART_INSTALL_RESPONSE = string;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     mogenius-k8s-manager/src/helm.HelmChartOciInstallUpgradeRequest:
+ *         name: mogenius-k8s-manager/src/helm.HelmChartOciInstallUpgradeRequest
+ *         properties:
+ *             chart:
+ *                 type: string
+ *             dryRun:
+ *                 type: bool
+ *             namespace:
+ *                 type: string
+ *             password:
+ *                 type: string
+ *             registryUrl:
+ *                 type: string
+ *             release:
+ *                 type: string
+ *             username:
+ *                 type: string
+ *             values:
+ *                 type: string
+ *             version:
+ *                 type: string
+ * typeInfo:
+ *     structRef: mogenius-k8s-manager/src/helm.HelmChartOciInstallUpgradeRequest
+ *     type: struct
+ * ```
+ *
+ */
+export type CLUSTER_HELM_CHART_INSTALL_OCI_REQUEST = CLUSTER_HELM_CHART_INSTALL_OCI_REQUEST__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMCHARTOCIINSTALLUPGRADEREQUEST;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * typeInfo:
+ *     type: string
+ * ```
+ *
+ */
+export type CLUSTER_HELM_CHART_INSTALL_OCI_RESPONSE = string;
 
 /**
  * #### Source
@@ -23271,6 +23319,7 @@ export type CLUSTER_EXECUTE_HELM_CHART_TASK_RESPONSE__TIME_TIME = {"ext": number
 export type CLUSTER_EXECUTE_HELM_CHART_TASK_RESPONSE__TIME_ZONE = {"isDST": boolean,"name": string,"offset": number};
 export type CLUSTER_EXECUTE_HELM_CHART_TASK_RESPONSE__TIME_ZONETRANS = {"index": number,"isstd": boolean,"isutc": boolean,"when": number};
 export type CLUSTER_HELM_CHART_INSTALL_REQUEST__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMCHARTINSTALLUPGRADEREQUEST = {"chart": string,"dryRun": boolean,"namespace": string,"release": string,"values": string,"version": string};
+export type CLUSTER_HELM_CHART_INSTALL_OCI_REQUEST__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMCHARTOCIINSTALLUPGRADEREQUEST = {"chart": string,"dryRun": boolean,"namespace": string,"password": string,"registryUrl": string,"release": string,"username": string,"values": string,"version": string};
 export type CLUSTER_HELM_CHART_REMOVE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMREPOREMOVEREQUEST = {"name": string};
 export type CLUSTER_HELM_CHART_SEARCH_REQUEST__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMCHARTSEARCHREQUEST = {"name": string};
 export type CLUSTER_HELM_CHART_SEARCH_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMCHARTINFO = {"app_version": string,"description": string,"name": string,"version": string};
@@ -24559,6 +24608,10 @@ export interface IPatternConfig {
   [Pattern.CLUSTER_HELM_CHART_INSTALL]: {
     Request: CLUSTER_HELM_CHART_INSTALL_REQUEST;
     Response: CLUSTER_HELM_CHART_INSTALL_RESPONSE;
+  };
+  [Pattern.CLUSTER_HELM_CHART_INSTALL_OCI]: {
+    Request: CLUSTER_HELM_CHART_INSTALL_OCI_REQUEST;
+    Response: CLUSTER_HELM_CHART_INSTALL_OCI_RESPONSE;
   };
   [Pattern.CLUSTER_HELM_CHART_REMOVE]: {
     Request: CLUSTER_HELM_CHART_REMOVE_REQUEST;
