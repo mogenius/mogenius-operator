@@ -12,7 +12,6 @@ import (
 	"os/exec"
 	"slices"
 	"strconv"
-	"strings"
 	"sync"
 	"sync/atomic"
 
@@ -507,6 +506,8 @@ func (self *snoopyManager) Register(podNamespace string, podName string, contain
 	assert.Assert(containerId != "", "containerId should not be empty")
 	assert.Assert(nsProcessPid != 0, "nsProcessPid should not be 0")
 
+	procPath := self.config.Get("MO_HOST_PROC_PATH")
+
 	self.statusEventTx <- SnoopyStatusEvent{
 		Type: SnoopyStatusEventTypeRegisterRequest,
 		RegisterRequest: &SnoopyStatusEventRegisterRequest{
@@ -516,7 +517,7 @@ func (self *snoopyManager) Register(podNamespace string, podName string, contain
 			nsProcessPid,
 		},
 	}
-	handle, err := self.attachToPidNamespace(nsProcessPid)
+	handle, err := self.attachToPidNamespace(procPath, nsProcessPid)
 	if err != nil {
 		self.statusEventTx <- SnoopyStatusEvent{
 			Type: SnoopyStatusEventTypeRegisterFailure,
@@ -571,8 +572,8 @@ func (self *snoopyManager) Register(podNamespace string, podName string, contain
 				switch metrics.Type {
 				case SnoopyEventTypeInterfaceAdded:
 					iface := metrics.InterfaceAdded.Interface.Name
-					rxBytes := self.readRxBytesFromPidAndInterface(nsProcessPid, iface)
-					txBytes := self.readTxBytesFromPidAndInterface(nsProcessPid, iface)
+					rxBytes := self.readRxBytesFromPidAndInterface(procPath, nsProcessPid, iface)
+					txBytes := self.readTxBytesFromPidAndInterface(procPath, nsProcessPid, iface)
 					handle.StartBytesLock.Lock()
 					handle.IngressStartBytes[iface] = rxBytes
 					handle.EgressStartBytes[iface] = txBytes
@@ -625,45 +626,45 @@ func (self *snoopyManager) Remove(containerId ContainerId) error {
 	return nil
 }
 
-func (self *snoopyManager) readRxBytesFromPidAndInterface(pid ProcessId, iface string) uint64 {
+func (self *snoopyManager) readRxBytesFromPidAndInterface(procPath string, pid ProcessId, iface string) uint64 {
 	pidS := strconv.FormatUint(pid, 10)
-	cmd := exec.Command("nsenter", "--mount=/proc/"+pidS+"/ns/mnt", "cat", "/sys/class/net/"+iface+"/statistics/rx_bytes")
-	output, err := cmd.Output()
-	if err != nil {
-		return 0
-	}
-	numberString := strings.TrimSpace(string(output))
-	rxBytes, err := strconv.ParseUint(numberString, 10, 64)
+	infos, err := getNetworkInterfaceInfo(procPath, pidS)
 	if err != nil {
 		return 0
 	}
 
-	return rxBytes
+	for _, info := range infos {
+		if info.Interface == iface {
+			return info.ReceiveBytes
+		}
+	}
+
+	return 0
 }
 
-func (self *snoopyManager) readTxBytesFromPidAndInterface(pid ProcessId, iface string) uint64 {
+func (self *snoopyManager) readTxBytesFromPidAndInterface(procPath string, pid ProcessId, iface string) uint64 {
 	pidS := strconv.FormatUint(pid, 10)
-	cmd := exec.Command("nsenter", "--mount=/proc/"+pidS+"/ns/mnt", "cat", "/sys/class/net/"+iface+"/statistics/tx_bytes")
-	output, err := cmd.Output()
-	if err != nil {
-		return 0
-	}
-	numberString := strings.TrimSpace(string(output))
-	txBytes, err := strconv.ParseUint(numberString, 10, 64)
+	infos, err := getNetworkInterfaceInfo(procPath, pidS)
 	if err != nil {
 		return 0
 	}
 
-	return txBytes
+	for _, info := range infos {
+		if info.Interface == iface {
+			return info.TransmitBytes
+		}
+	}
+
+	return 0
 }
 
-func (self *snoopyManager) attachToPidNamespace(pid ProcessId) (*SnoopyHandle, error) {
+func (self *snoopyManager) attachToPidNamespace(procPath string, pid ProcessId) (*SnoopyHandle, error) {
 	assert.Assert(self.snoopyBinName != nil, "the binary path has to be found and set previously")
 
 	pidS := strconv.FormatUint(pid, 10)
 	cmd := exec.Command(
 		"nsenter",
-		"--net="+self.config.Get("MO_HOST_PROC_PATH")+"/"+pidS+"/ns/net",
+		"--net="+procPath+"/"+pidS+"/ns/net",
 		"--",
 		*self.snoopyBinName,
 		"--metrics-rate",
