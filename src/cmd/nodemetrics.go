@@ -35,7 +35,7 @@ func RunNodeMetrics(args *nodeMetricsArgs, logManagerModule logging.SlogManager,
 		systems.core.InitializeClusterSecret()
 		systems.core.InitializeValkey()
 
-		systems.networkmonitor.SetSnoopyArgs(networkmonitor.SnoopyArgs{
+		systems.networkmonitor.Snoopy().SetArgs(networkmonitor.SnoopyArgs{
 			MetricsRate:           args.MetricsRate,
 			NetworkDevicePollRate: args.NetworkDevicePollRate,
 		})

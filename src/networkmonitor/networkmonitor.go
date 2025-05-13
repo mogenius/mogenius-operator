@@ -1,6 +1,7 @@
 package networkmonitor
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"log/slog"
@@ -8,7 +9,11 @@ import (
 	"mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/k8sclient"
 	"net/url"
+	"os"
+	"path/filepath"
 	"slices"
+	"strconv"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -18,8 +23,8 @@ import (
 
 type NetworkMonitor interface {
 	Run()
+	Snoopy() SnoopyManager
 	GetPodNetworkUsage() []PodNetworkStats
-	SetSnoopyArgs(args SnoopyArgs)
 }
 
 type networkMonitor struct {
@@ -68,6 +73,8 @@ func (self *networkMonitor) Run() {
 		return
 	}
 
+	self.snoopy.Run()
+
 	go func() {
 		fieldSelector := "metadata.namespace!=kube-system"
 		ownNodeName := self.config.Get("OWN_NODE_NAME")
@@ -75,10 +82,10 @@ func (self *networkMonitor) Run() {
 			fieldSelector = fmt.Sprintf("metadata.namespace!=kube-system,spec.nodeName=%s", ownNodeName)
 		}
 
-		// first load of all pods on the current node
+		// list of all pods on the current node
 		podList := self.updatePodList(fieldSelector)
 
-		// first load of all containers running on the current node
+		// map of all containers on the current machine with all pids running inside them
 		nodeContainersWithProcesses := self.cne.FindProcessesWithContainerIds(self.procFsMountPath)
 
 		// register all initially found containers which are also pods by indexing
@@ -195,8 +202,8 @@ func (self *networkMonitor) Run() {
 	}()
 }
 
-func (self *networkMonitor) SetSnoopyArgs(args SnoopyArgs) {
-	self.snoopy.SetArgs(args)
+func (self *networkMonitor) Snoopy() SnoopyManager {
+	return self.snoopy
 }
 
 func (self *networkMonitor) metricsToPodstats(
@@ -354,4 +361,118 @@ func (self *PodNetworkStats) SumOrReplace(other *PodNetworkStats) {
 		self.TransmitPackets += other.TransmitPackets
 		self.TransmitBytes += other.TransmitBytes
 	}
+}
+
+type KernelNetworkInterfaceInfo struct {
+	Interface          string
+	ReceiveBytes       uint64
+	ReceivePackets     uint64
+	ReceiveErrs        uint64
+	ReceiveDrop        uint64
+	ReceiveFifo        uint64
+	ReceiveFrame       uint64
+	ReceiveCompressed  uint64
+	ReceiveMulticast   uint64
+	TransmitBytes      uint64
+	TransmitPackets    uint64
+	TransmitErrs       uint64
+	TransmitDrop       uint64
+	TransmitFifo       uint64
+	TransmitColls      uint64
+	TransmitCarrier    uint64
+	TransmitCompressed uint64
+}
+
+// read and parse `$procPath/$pid/net/dev` to get interface information from the kernel
+func getNetworkInterfaceInfo(procPath string, pid string) ([]KernelNetworkInterfaceInfo, error) {
+	// File Format of `/proc/$pid/net/dev`
+	// ===================================
+	//
+	// ```
+	// Inter-|   Receive                                                |  Transmit
+	// face |bytes    packets errs drop fifo frame compressed multicast|bytes    packets errs drop fifo colls carrier compressed
+	//    lo:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+	//  eth0:   37252     547    0    0    0     0          0         0     1802      25    0    0    0     0       0          0
+	// ```
+	//
+	// Parsing Rules
+	// =============
+	//
+	// - the first 2 lines have to be skipped
+	// - spaces have to be skipped
+	// - there are 17 fields in a fixed order
+	// - first field is a string
+	// - every other field is a number
+
+	processPath := filepath.Join(procPath, pid)
+	deviceInfoPath := filepath.Join(processPath, "net", "dev")
+	if _, err := os.Stat(processPath); err != nil {
+		return []KernelNetworkInterfaceInfo{}, err
+	}
+
+	file, err := os.Open(deviceInfoPath)
+	if err != nil {
+		return []KernelNetworkInterfaceInfo{}, err
+	}
+	defer file.Close()
+
+	toUint64 := func(data string) uint64 {
+		val, err := strconv.ParseUint(data, 10, 64)
+		assert.Assert(err == nil, "infallible conversion", err)
+
+		return val
+	}
+
+	interfaceInfos := []KernelNetworkInterfaceInfo{}
+
+	scanner := bufio.NewScanner(file)
+	lineNumber := 0
+	for scanner.Scan() {
+		lineNumber++
+		if lineNumber == 1 || lineNumber == 2 {
+			continue
+		}
+
+		line := scanner.Text()
+		tokens := []string{}
+		token := ""
+		for _, symbol := range line {
+			if symbol != ' ' {
+				token = token + string(symbol)
+			}
+			if symbol == ' ' {
+				if token != "" {
+					tokens = append(tokens, token)
+					token = ""
+				}
+				continue
+			}
+		}
+		tokens = append(tokens, token)
+
+		assert.Assert(len(tokens) == 17, "line should contain exactly 17 tokens", tokens)
+
+		tokens[0] = strings.TrimSuffix(tokens[0], ":")
+		interfaceInfos = append(interfaceInfos, KernelNetworkInterfaceInfo{
+			Interface:          tokens[0],
+			ReceiveBytes:       toUint64(tokens[1]),
+			ReceivePackets:     toUint64(tokens[2]),
+			ReceiveErrs:        toUint64(tokens[3]),
+			ReceiveDrop:        toUint64(tokens[4]),
+			ReceiveFifo:        toUint64(tokens[5]),
+			ReceiveFrame:       toUint64(tokens[6]),
+			ReceiveCompressed:  toUint64(tokens[7]),
+			ReceiveMulticast:   toUint64(tokens[8]),
+			TransmitBytes:      toUint64(tokens[9]),
+			TransmitPackets:    toUint64(tokens[10]),
+			TransmitErrs:       toUint64(tokens[11]),
+			TransmitDrop:       toUint64(tokens[12]),
+			TransmitFifo:       toUint64(tokens[13]),
+			TransmitColls:      toUint64(tokens[14]),
+			TransmitCarrier:    toUint64(tokens[15]),
+			TransmitCompressed: toUint64(tokens[16]),
+		})
+	}
+
+	return interfaceInfos, nil
 }

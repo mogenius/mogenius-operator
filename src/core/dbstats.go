@@ -40,6 +40,7 @@ type ValkeyStatsDb interface {
 	AddNodeRamMetricsToDb(nodeName string, data interface{}) error
 	AddNodeCpuMetricsToDb(nodeName string, data interface{}) error
 	AddNodeTrafficMetricsToDb(nodeName string, data interface{}) error
+	AddSnoopyStatusToDb(nodeName string, data networkmonitor.SnoopyStatus) error
 	GetCniData() ([]structs.CniData, error)
 	GetLastPodStatsEntriesForNamespace(namespace string) []structs.PodStats
 	GetLastPodStatsEntryForController(controller kubernetes.K8sController) *structs.PodStats
@@ -431,6 +432,10 @@ func (self *valkeyStatsDb) AddNodeCpuMetricsToDb(nodeName string, data interface
 
 func (self *valkeyStatsDb) AddNodeTrafficMetricsToDb(nodeName string, data interface{}) error {
 	return self.valkey.SetObject(data, 0, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_TRAFFIC_NAME, nodeName)
+}
+
+func (self *valkeyStatsDb) AddSnoopyStatusToDb(nodeName string, data networkmonitor.SnoopyStatus) error {
+	return self.valkey.SetObject(data, 0, "status", nodeName, "snoopy")
 }
 
 func (self *valkeyStatsDb) AddNodeStatsToDb(stats []structs.NodeStats) error {
