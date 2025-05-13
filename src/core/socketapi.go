@@ -1406,19 +1406,19 @@ func (self *socketApi) registerPatterns() {
 		},
 	)
 
-	self.RegisterPatternHandlerRaw(
+	self.RegisterPatternHandler(
 		"cluster/helm-chart-install-oci",
 		PatternConfig{
 			RequestSchema:  schema.Generate(helm.HelmChartOciInstallUpgradeRequest{}),
 			ResponseSchema: schema.String(),
 		},
-		func(datagram structs.Datagram) any {
+		func(datagram structs.Datagram) (any, error) {
 			data := helm.HelmChartOciInstallUpgradeRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
-				return err
+				return nil, err
 			}
-			return NewMessageResponse(helm.HelmOciInstall(data))
+			return helm.HelmOciInstall(data)
 		},
 	)
 
