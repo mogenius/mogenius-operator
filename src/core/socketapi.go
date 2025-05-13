@@ -398,20 +398,19 @@ func (self *socketApi) registerPatterns() {
 			Email string `json:"email" validate:"required,email"`
 		}
 
-		self.RegisterPatternHandlerRaw(
+		self.RegisterPatternHandler(
 			"install-cluster-issuer",
 			PatternConfig{
 				RequestSchema: schema.Generate(Request{}),
 			},
-			func(datagram structs.Datagram) any {
+			func(datagram structs.Datagram) (any, error) {
 				data := Request{}
 				_ = self.loadRequest(&datagram, &data)
 				if err := utils.ValidateJSON(data); err != nil {
-					return err
+					return nil, err
 				}
 				secrets.AddSecret(data.Email)
-				result, err := services.InstallClusterIssuer(data.Email, 0)
-				return NewMessageResponse(result, err)
+				return services.InstallClusterIssuer(data.Email, 0)
 			},
 		)
 	}
@@ -1054,19 +1053,19 @@ func (self *socketApi) registerPatterns() {
 		},
 	)
 
-	self.RegisterPatternHandlerRaw(
+	self.RegisterPatternHandler(
 		"cluster/read-persistent-volume-claim",
 		PatternConfig{
 			RequestSchema:  schema.Generate(services.ClusterGetPersistentVolume{}),
 			ResponseSchema: schema.Generate(&v1.PersistentVolumeClaim{}),
 		},
-		func(datagram structs.Datagram) any {
+		func(datagram structs.Datagram) (any, error) {
 			data := services.ClusterGetPersistentVolume{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
-				return err
+				return nil, err
 			}
-			return NewMessageResponse(kubernetes.GetPersistentVolumeClaim(data.Namespace, data.Name))
+			return kubernetes.GetPersistentVolumeClaim(data.Namespace, data.Name)
 		},
 	)
 
@@ -1290,51 +1289,51 @@ func (self *socketApi) registerPatterns() {
 		type Request struct {
 			Nodes []string `json:"nodes" validate:"required"`
 		}
-		self.RegisterPatternHandlerRaw(
+		self.RegisterPatternHandler(
 			"cluster/machine-stats",
 			PatternConfig{
 				RequestSchema:  schema.Generate(Request{}),
 				ResponseSchema: schema.Generate([]structs.MachineStats{}),
 			},
-			func(datagram structs.Datagram) any {
+			func(datagram structs.Datagram) (any, error) {
 				data := Request{}
 				_ = self.loadRequest(&datagram, &data)
 				if err := utils.ValidateJSON(data); err != nil {
-					return err
+					return nil, err
 				}
-				return NewMessageResponse(self.dbstats.GetMachineStatsForNodes(data.Nodes), nil)
+				return self.dbstats.GetMachineStatsForNodes(data.Nodes), nil
 			},
 		)
 	}
-	self.RegisterPatternHandlerRaw(
+	self.RegisterPatternHandler(
 		"cluster/helm-repo-add",
 		PatternConfig{
 			RequestSchema:  schema.Generate(helm.HelmRepoAddRequest{}),
 			ResponseSchema: schema.String(),
 		},
-		func(datagram structs.Datagram) any {
+		func(datagram structs.Datagram) (any, error) {
 			data := helm.HelmRepoAddRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
-				return err
+				return nil, err
 			}
-			return NewMessageResponse(helm.HelmRepoAdd(data))
+			return helm.HelmRepoAdd(data)
 		},
 	)
 
-	self.RegisterPatternHandlerRaw(
+	self.RegisterPatternHandler(
 		"cluster/helm-repo-patch",
 		PatternConfig{
 			RequestSchema:  schema.Generate(helm.HelmRepoPatchRequest{}),
 			ResponseSchema: schema.String(),
 		},
-		func(datagram structs.Datagram) any {
+		func(datagram structs.Datagram) (any, error) {
 			data := helm.HelmRepoPatchRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
-				return err
+				return nil, err
 			}
-			return NewMessageResponse(helm.HelmRepoPatch(data))
+			return helm.HelmRepoPatch(data)
 		},
 	)
 
@@ -1358,51 +1357,51 @@ func (self *socketApi) registerPatterns() {
 		},
 	)
 
-	self.RegisterPatternHandlerRaw(
+	self.RegisterPatternHandler(
 		"cluster/helm-chart-remove",
 		PatternConfig{
 			RequestSchema:  schema.Generate(helm.HelmRepoRemoveRequest{}),
 			ResponseSchema: schema.String(),
 		},
-		func(datagram structs.Datagram) any {
+		func(datagram structs.Datagram) (any, error) {
 			data := helm.HelmRepoRemoveRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
-				return err
+				return nil, err
 			}
-			return NewMessageResponse(helm.HelmRepoRemove(data))
+			return helm.HelmRepoRemove(data)
 		},
 	)
 
-	self.RegisterPatternHandlerRaw(
+	self.RegisterPatternHandler(
 		"cluster/helm-chart-search",
 		PatternConfig{
 			RequestSchema:  schema.Generate(helm.HelmChartSearchRequest{}),
 			ResponseSchema: schema.Generate([]helm.HelmChartInfo{}),
 		},
-		func(datagram structs.Datagram) any {
+		func(datagram structs.Datagram) (any, error) {
 			data := helm.HelmChartSearchRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
-				return err
+				return nil, err
 			}
-			return NewMessageResponse(helm.HelmChartSearch(data))
+			return helm.HelmChartSearch(data)
 		},
 	)
 
-	self.RegisterPatternHandlerRaw(
+	self.RegisterPatternHandler(
 		"cluster/helm-chart-install",
 		PatternConfig{
 			RequestSchema:  schema.Generate(helm.HelmChartInstallUpgradeRequest{}),
 			ResponseSchema: schema.String(),
 		},
-		func(datagram structs.Datagram) any {
+		func(datagram structs.Datagram) (any, error) {
 			data := helm.HelmChartInstallUpgradeRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
-				return err
+				return nil, err
 			}
-			return NewMessageResponse(helm.HelmChartInstall(data))
+			return helm.HelmChartInstall(data)
 		},
 	)
 
@@ -1422,163 +1421,163 @@ func (self *socketApi) registerPatterns() {
 		},
 	)
 
-	self.RegisterPatternHandlerRaw(
+	self.RegisterPatternHandler(
 		"cluster/helm-chart-show",
 		PatternConfig{
 			RequestSchema:  schema.Generate(helm.HelmChartShowRequest{}),
 			ResponseSchema: schema.String(),
 		},
-		func(datagram structs.Datagram) any {
+		func(datagram structs.Datagram) (any, error) {
 			data := helm.HelmChartShowRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
-				return err
+				return nil, err
 			}
-			return NewMessageResponse(helm.HelmChartShow(data))
+			return helm.HelmChartShow(data)
 		},
 	)
 
-	self.RegisterPatternHandlerRaw(
+	self.RegisterPatternHandler(
 		"cluster/helm-chart-versions",
 		PatternConfig{
 			RequestSchema:  schema.Generate(helm.HelmChartVersionRequest{}),
 			ResponseSchema: schema.Generate([]helm.HelmChartInfo{}),
 		},
-		func(datagram structs.Datagram) any {
+		func(datagram structs.Datagram) (any, error) {
 			data := helm.HelmChartVersionRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
-				return err
+				return nil, err
 			}
-			return NewMessageResponse(helm.HelmChartVersion(data))
+			return helm.HelmChartVersion(data)
 		},
 	)
 
-	self.RegisterPatternHandlerRaw(
+	self.RegisterPatternHandler(
 		"cluster/helm-release-upgrade",
 		PatternConfig{
 			RequestSchema:  schema.Generate(helm.HelmChartInstallUpgradeRequest{}),
 			ResponseSchema: schema.String(),
 		},
-		func(datagram structs.Datagram) any {
+		func(datagram structs.Datagram) (any, error) {
 			data := helm.HelmChartInstallUpgradeRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
-				return err
+				return nil, err
 			}
-			return NewMessageResponse(helm.HelmReleaseUpgrade(data))
+			return helm.HelmReleaseUpgrade(data)
 		},
 	)
 
-	self.RegisterPatternHandlerRaw(
+	self.RegisterPatternHandler(
 		"cluster/helm-release-uninstall",
 		PatternConfig{
 			RequestSchema:  schema.Generate(helm.HelmReleaseUninstallRequest{}),
 			ResponseSchema: schema.String(),
 		},
-		func(datagram structs.Datagram) any {
+		func(datagram structs.Datagram) (any, error) {
 			data := helm.HelmReleaseUninstallRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
-				return err
+				return nil, err
 			}
-			return NewMessageResponse(helm.HelmReleaseUninstall(data))
+			return helm.HelmReleaseUninstall(data)
 		},
 	)
 
-	self.RegisterPatternHandlerRaw(
+	self.RegisterPatternHandler(
 		"cluster/helm-release-list",
 		PatternConfig{
 			RequestSchema:  schema.Generate(helm.HelmReleaseListRequest{}),
 			ResponseSchema: schema.Generate([]*release.Release{}),
 		},
-		func(datagram structs.Datagram) any {
+		func(datagram structs.Datagram) (any, error) {
 			data := helm.HelmReleaseListRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
-				return err
+				return nil, err
 			}
-			return NewMessageResponse(helm.HelmReleaseList(data))
+			return helm.HelmReleaseList(data)
 		},
 	)
 
-	self.RegisterPatternHandlerRaw(
+	self.RegisterPatternHandler(
 		"cluster/helm-release-status",
 		PatternConfig{
 			RequestSchema:  schema.Generate(helm.HelmReleaseStatusRequest{}),
 			ResponseSchema: schema.Generate(&helm.HelmReleaseStatusInfo{}),
 		},
-		func(datagram structs.Datagram) any {
+		func(datagram structs.Datagram) (any, error) {
 			data := helm.HelmReleaseStatusRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
-				return err
+				return nil, err
 			}
-			return NewMessageResponse(helm.HelmReleaseStatus(data))
+			return helm.HelmReleaseStatus(data)
 		},
 	)
 
-	self.RegisterPatternHandlerRaw(
+	self.RegisterPatternHandler(
 		"cluster/helm-release-history",
 		PatternConfig{
 			RequestSchema:  schema.Generate(helm.HelmReleaseHistoryRequest{}),
 			ResponseSchema: schema.Generate([]*release.Release{}),
 		},
-		func(datagram structs.Datagram) any {
+		func(datagram structs.Datagram) (any, error) {
 			data := helm.HelmReleaseHistoryRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
-				return err
+				return nil, err
 			}
-			return NewMessageResponse(helm.HelmReleaseHistory(data))
+			return helm.HelmReleaseHistory(data)
 		},
 	)
 
-	self.RegisterPatternHandlerRaw(
+	self.RegisterPatternHandler(
 		"cluster/helm-release-rollback",
 		PatternConfig{
 			RequestSchema:  schema.Generate(helm.HelmReleaseRollbackRequest{}),
 			ResponseSchema: schema.String(),
 		},
-		func(datagram structs.Datagram) any {
+		func(datagram structs.Datagram) (any, error) {
 			data := helm.HelmReleaseRollbackRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
-				return err
+				return nil, err
 			}
-			return NewMessageResponse(helm.HelmReleaseRollback(data))
+			return helm.HelmReleaseRollback(data)
 		},
 	)
 
-	self.RegisterPatternHandlerRaw(
+	self.RegisterPatternHandler(
 		"cluster/helm-release-get",
 		PatternConfig{
 			RequestSchema:  schema.Generate(helm.HelmReleaseGetRequest{}),
 			ResponseSchema: schema.String(),
 		},
-		func(datagram structs.Datagram) any {
+		func(datagram structs.Datagram) (any, error) {
 			data := helm.HelmReleaseGetRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
-				return err
+				return nil, err
 			}
-			return NewMessageResponse(helm.HelmReleaseGet(data))
+			return helm.HelmReleaseGet(data)
 		},
 	)
 
-	self.RegisterPatternHandlerRaw(
+	self.RegisterPatternHandler(
 		"cluster/helm-release-get-workloads",
 		PatternConfig{
 			RequestSchema:  schema.Generate(helm.HelmReleaseGetWorkloadsRequest{}),
 			ResponseSchema: schema.Generate([]unstructured.Unstructured{}),
 		},
-		func(datagram structs.Datagram) any {
+		func(datagram structs.Datagram) (any, error) {
 			data := helm.HelmReleaseGetWorkloadsRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
-				return err
+				return nil, err
 			}
-			return NewMessageResponse(helm.HelmReleaseGetWorkloads(self.valkeyClient, data))
+			return helm.HelmReleaseGetWorkloads(self.valkeyClient, data)
 		},
 	)
 
@@ -2698,35 +2697,35 @@ func (self *socketApi) registerPatterns() {
 	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 	// Labeled Network Policies
 	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-	self.RegisterPatternHandlerRaw(
+	self.RegisterPatternHandler(
 		"attach/labeled_network_policy",
 		PatternConfig{
 			RequestSchema:  schema.Generate(controllers.AttachLabeledNetworkPolicyRequest{}),
 			ResponseSchema: schema.String(),
 		},
-		func(datagram structs.Datagram) any {
+		func(datagram structs.Datagram) (any, error) {
 			data := controllers.AttachLabeledNetworkPolicyRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
-				return err
+				return nil, err
 			}
-			return NewMessageResponse(controllers.AttachLabeledNetworkPolicy(data))
+			return controllers.AttachLabeledNetworkPolicy(data)
 		},
 	)
 
-	self.RegisterPatternHandlerRaw(
+	self.RegisterPatternHandler(
 		"detach/labeled_network_policy",
 		PatternConfig{
 			RequestSchema:  schema.Generate(controllers.DetachLabeledNetworkPolicyRequest{}),
 			ResponseSchema: schema.String(),
 		},
-		func(datagram structs.Datagram) any {
+		func(datagram structs.Datagram) (any, error) {
 			data := controllers.DetachLabeledNetworkPolicyRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
-				return err
+				return nil, err
 			}
-			return NewMessageResponse(controllers.DetachLabeledNetworkPolicy(data))
+			return controllers.DetachLabeledNetworkPolicy(data)
 		},
 	)
 
@@ -2740,51 +2739,51 @@ func (self *socketApi) registerPatterns() {
 		},
 	)
 
-	self.RegisterPatternHandlerRaw(
+	self.RegisterPatternHandler(
 		"list/conflicting_network_policies",
 		PatternConfig{
 			RequestSchema:  schema.Generate(controllers.ListConflictingNetworkPoliciesRequest{}),
 			ResponseSchema: schema.Generate([]controllers.K8sConflictingNetworkPolicyDto{}),
 		},
-		func(datagram structs.Datagram) any {
+		func(datagram structs.Datagram) (any, error) {
 			data := controllers.ListConflictingNetworkPoliciesRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
-				return err
+				return nil, err
 			}
-			return NewMessageResponse(controllers.ListAllConflictingNetworkPolicies(data))
+			return controllers.ListAllConflictingNetworkPolicies(data)
 		},
 	)
 
-	self.RegisterPatternHandlerRaw(
+	self.RegisterPatternHandler(
 		"remove/conflicting_network_policies",
 		PatternConfig{
 			RequestSchema:  schema.Generate(controllers.RemoveConflictingNetworkPoliciesRequest{}),
 			ResponseSchema: schema.String(),
 		},
-		func(datagram structs.Datagram) any {
+		func(datagram structs.Datagram) (any, error) {
 			data := controllers.RemoveConflictingNetworkPoliciesRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
-				return err
+				return nil, err
 			}
-			return NewMessageResponse(controllers.RemoveConflictingNetworkPolicies(data))
+			return controllers.RemoveConflictingNetworkPolicies(data)
 		},
 	)
 
-	self.RegisterPatternHandlerRaw(
+	self.RegisterPatternHandler(
 		"list/controller_network_policies",
 		PatternConfig{
 			RequestSchema:  schema.Generate(controllers.ListControllerLabeledNetworkPoliciesRequest{}),
 			ResponseSchema: schema.Generate(controllers.ListControllerLabeledNetworkPoliciesResponse{}),
 		},
-		func(datagram structs.Datagram) any {
+		func(datagram structs.Datagram) (any, error) {
 			data := controllers.ListControllerLabeledNetworkPoliciesRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
-				return err
+				return nil, err
 			}
-			return NewMessageResponse(controllers.ListControllerLabeledNetwork(data))
+			return controllers.ListControllerLabeledNetwork(data)
 		},
 	)
 
@@ -2810,80 +2809,80 @@ func (self *socketApi) registerPatterns() {
 		},
 	)
 
-	self.RegisterPatternHandlerRaw(
+	self.RegisterPatternHandler(
 		"list/namespace_network_policies",
 		PatternConfig{
 			RequestSchema:  schema.Generate(controllers.ListNamespaceLabeledNetworkPoliciesRequest{}),
 			ResponseSchema: schema.Generate([]controllers.ListNetworkPolicyNamespace{}),
 		},
-		func(datagram structs.Datagram) any {
+		func(datagram structs.Datagram) (any, error) {
 			data := controllers.ListNamespaceLabeledNetworkPoliciesRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
-				return err
+				return nil, err
 			}
-			return NewMessageResponse(controllers.ListNamespaceNetworkPolicies(self.valkeyClient, data))
+			return controllers.ListNamespaceNetworkPolicies(self.valkeyClient, data)
 		},
 	)
 
-	self.RegisterPatternHandlerRaw(
+	self.RegisterPatternHandler(
 		"enforce/network_policy_manager",
 		PatternConfig{
 			RequestSchema: schema.Generate(controllers.EnforceNetworkPolicyManagerRequest{}),
 		},
-		func(datagram structs.Datagram) any {
+		func(datagram structs.Datagram) (any, error) {
 			data := controllers.EnforceNetworkPolicyManagerRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
-				return err
+				return nil, err
 			}
-			return NewMessageResponse(nil, controllers.EnforceNetworkPolicyManager(data.NamespaceName))
+			return nil, controllers.EnforceNetworkPolicyManager(data.NamespaceName)
 		},
 	)
 
-	self.RegisterPatternHandlerRaw(
+	self.RegisterPatternHandler(
 		"disable/network_policy_manager",
 		PatternConfig{
 			RequestSchema: schema.Generate(controllers.DisableNetworkPolicyManagerRequest{}),
 		},
-		func(datagram structs.Datagram) any {
+		func(datagram structs.Datagram) (any, error) {
 			data := controllers.DisableNetworkPolicyManagerRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
-				return err
+				return nil, err
 			}
-			return NewMessageResponse(nil, controllers.DisableNetworkPolicyManager(data.NamespaceName))
+			return nil, controllers.DisableNetworkPolicyManager(data.NamespaceName)
 		},
 	)
 
-	self.RegisterPatternHandlerRaw(
+	self.RegisterPatternHandler(
 		"remove/unmanaged_network_policies",
 		PatternConfig{
 			RequestSchema: schema.Generate(controllers.RemoveUnmanagedNetworkPoliciesRequest{}),
 		},
-		func(datagram structs.Datagram) any {
+		func(datagram structs.Datagram) (any, error) {
 			data := controllers.RemoveUnmanagedNetworkPoliciesRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
-				return err
+				return nil, err
 			}
-			return NewMessageResponse(nil, controllers.RemoveUnmanagedNetworkPolicies(data))
+			return nil, controllers.RemoveUnmanagedNetworkPolicies(data)
 		},
 	)
 
-	self.RegisterPatternHandlerRaw(
+	self.RegisterPatternHandler(
 		"list/only_namespace_network_policies",
 		PatternConfig{
 			RequestSchema:  schema.Generate(controllers.ListNamespaceLabeledNetworkPoliciesRequest{}),
 			ResponseSchema: schema.Generate([]controllers.ListManagedAndUnmanagedNetworkPolicyNamespace{}),
 		},
-		func(datagram structs.Datagram) any {
+		func(datagram structs.Datagram) (any, error) {
 			data := controllers.ListNamespaceLabeledNetworkPoliciesRequest{}
 			_ = self.loadRequest(&datagram, &data)
 			if err := utils.ValidateJSON(data); err != nil {
-				return err
+				return nil, err
 			}
-			return NewMessageResponse(controllers.ListManagedAndUnmanagedNamespaceNetworkPolicies(self.valkeyClient, data))
+			return controllers.ListManagedAndUnmanagedNamespaceNetworkPolicies(self.valkeyClient, data)
 		},
 	)
 
