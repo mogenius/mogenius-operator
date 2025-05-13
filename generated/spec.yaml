@@ -2912,6 +2912,36 @@ cluster/helm-chart-install:
     responseSchema:
         typeInfo:
             type: string
+cluster/helm-chart-install-oci:
+    requestSchema:
+        structs:
+            mogenius-k8s-manager/src/helm.HelmChartOciInstallUpgradeRequest:
+                name: mogenius-k8s-manager/src/helm.HelmChartOciInstallUpgradeRequest
+                properties:
+                    chart:
+                        type: string
+                    dryRun:
+                        type: bool
+                    namespace:
+                        type: string
+                    password:
+                        type: string
+                    registryUrl:
+                        type: string
+                    release:
+                        type: string
+                    username:
+                        type: string
+                    values:
+                        type: string
+                    version:
+                        type: string
+        typeInfo:
+            structRef: mogenius-k8s-manager/src/helm.HelmChartOciInstallUpgradeRequest
+            type: struct
+    responseSchema:
+        typeInfo:
+            type: string
 cluster/helm-chart-remove:
     requestSchema:
         structs:
