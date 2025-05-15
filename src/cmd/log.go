@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"log/slog"
+	"mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/k8sclient"
 	"mogenius-k8s-manager/src/k8sexec"
 	"strconv"
@@ -16,7 +17,7 @@ type logArgs struct {
 	TailLines string `help:"" default:"1000"`
 }
 
-func RunLogs(args *logArgs, logger *slog.Logger) error {
+func RunLogs(args *logArgs, logger *slog.Logger, configModule config.ConfigModule) error {
 	namespace := strings.TrimSpace(args.Namespace)
 	if namespace == "" {
 		return fmt.Errorf("empty --namespace")
@@ -38,7 +39,7 @@ func RunLogs(args *logArgs, logger *slog.Logger) error {
 		tailLinesUint = 1000
 	}
 
-	clientProvider := k8sclient.NewK8sClientProvider(logger)
+	clientProvider := k8sclient.NewK8sClientProvider(logger, configModule)
 
 	executor, err := k8sexec.NewLogs(
 		logger,

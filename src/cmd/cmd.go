@@ -166,13 +166,13 @@ func Run() error {
 		fmt.Println(configModule.AsEnvs())
 		return nil
 	case "exec <command>":
-		err := RunExec(&CLI.Exec, cmdLogger)
+		err := RunExec(&CLI.Exec, cmdLogger, configModule)
 		if err != nil {
 			return err
 		}
 		return nil
 	case "logs":
-		err := RunLogs(&CLI.Logs, cmdLogger)
+		err := RunLogs(&CLI.Logs, cmdLogger, configModule)
 		if err != nil {
 			return err
 		}
@@ -392,6 +392,19 @@ func LoadConfigDeclarations(configModule *config.Config) {
 			return nil
 		},
 	})
+
+	configModule.Declare(config.ConfigDeclaration{
+		Key:          "KUBERNETES_DEBUG",
+		DefaultValue: utils.Pointer("false"),
+		Description:  utils.Pointer("enable kubernetes sdk debug output"),
+		Validate: func(value string) error {
+			_, err := strconv.ParseBool(value)
+			if err != nil {
+				return fmt.Errorf("'KUBERNETES_DEBUG' needs to be a boolean: %s", err.Error())
+			}
+			return nil
+		},
+	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_HOST_PROC_PATH",
 		DefaultValue: utils.Pointer("/proc"),
@@ -475,7 +488,7 @@ func InitializeSystems(
 
 	// initialize client modules
 	valkeyClient := valkeyclient.NewValkeyClient(logManagerModule.CreateLogger("valkey"), configModule)
-	clientProvider := k8sclient.NewK8sClientProvider(logManagerModule.CreateLogger("client-provider"))
+	clientProvider := k8sclient.NewK8sClientProvider(logManagerModule.CreateLogger("client-provider"), configModule)
 	versionModule := version.NewVersion()
 	watcherModule := kubernetes.NewWatcher(logManagerModule.CreateLogger("watcher"), clientProvider)
 	shutdown.Add(watcherModule.UnwatchAll)
