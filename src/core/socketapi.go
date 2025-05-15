@@ -358,7 +358,7 @@ func (self *socketApi) registerPatterns() {
 				if err := self.loadRequest(&datagram, &data); err != nil {
 					return nil, err
 				}
-				return nil, self.valkeyClient.ClearNonEssentialKeys(data.IncludeTraffic, data.IncludePodStats, data.IncludeNodeStats)
+				return self.valkeyClient.ClearNonEssentialKeys(data.IncludeTraffic, data.IncludePodStats, data.IncludeNodeStats)
 			},
 		)
 	}
