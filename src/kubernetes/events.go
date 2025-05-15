@@ -1,12 +1,9 @@
 package kubernetes
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
-	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/dtos"
-	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/websocket"
 	"strings"
 
@@ -14,7 +11,6 @@ import (
 	"time"
 
 	v1Core "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const RETRYTIMEOUT time.Duration = 3
@@ -60,37 +56,4 @@ func processEvent(eventClient websocket.WebsocketClient, event *v1Core.Event) {
 	} else {
 		k8sLogger.Error("malformed event received")
 	}
-}
-
-var allEventsForNamespaceDebounce = utils.NewDebounce("allEventsForNamespaceDebounce", 1000*time.Millisecond, 300*time.Millisecond)
-
-func AllEventsForNamespace(namespaceName string) []v1Core.Event {
-	result, _ := allEventsForNamespaceDebounce.CallFn(namespaceName, func() (interface{}, error) {
-		return AllEventsForNamespace2(namespaceName), nil
-	})
-	return result.([]v1Core.Event)
-}
-
-func AllEventsForNamespace2(namespaceName string) []v1Core.Event {
-	result := []v1Core.Event{}
-
-	clientset := clientProvider.K8sClientSet()
-	eventList, err := clientset.CoreV1().Events(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
-	if err != nil {
-		k8sLogger.Error("AllEvents", "error", err)
-		return result
-	}
-
-	moIgnoreNamespaces := config.Get("MO_IGNORE_NAMESPACES")
-	var ignoreNamespaces []string
-	err = json.Unmarshal([]byte(moIgnoreNamespaces), &ignoreNamespaces)
-	assert.Assert(err == nil, err)
-	for _, event := range eventList.Items {
-		if !utils.Contains(ignoreNamespaces, event.ObjectMeta.Namespace) {
-			event.Kind = "Event"
-			event.APIVersion = "v1"
-			result = append(result, event)
-		}
-	}
-	return result
 }

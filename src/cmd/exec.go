@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"log/slog"
+	"mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/k8sclient"
 	"mogenius-k8s-manager/src/k8sexec"
 	"mogenius-k8s-manager/src/shell"
@@ -18,7 +19,7 @@ type execArgs struct {
 	Command   []string `arg:"" help:"" default:"sh" passthrough:""`
 }
 
-func RunExec(args *execArgs, logger *slog.Logger) error {
+func RunExec(args *execArgs, logger *slog.Logger, configModule config.ConfigModule) error {
 	namespace := strings.TrimSpace(args.Namespace)
 	if namespace == "" {
 		return fmt.Errorf("empty --namespace")
@@ -49,7 +50,7 @@ func RunExec(args *execArgs, logger *slog.Logger) error {
 
 	fmt.Println(getConnectedBanner(namespace, pod, container, args.Command))
 
-	clientProvider := k8sclient.NewK8sClientProvider(logger)
+	clientProvider := k8sclient.NewK8sClientProvider(logger, configModule)
 	executor, err := k8sexec.NewExecutor(
 		logger,
 		clientProvider.K8sClientSet().CoreV1().RESTClient(),

@@ -9,6 +9,8 @@ import (
 	"os"
 	"slices"
 	"strings"
+	"sync"
+	"time"
 
 	v1 "k8s.io/api/core/v1"
 	v1Net "k8s.io/api/networking/v1"
@@ -37,30 +39,33 @@ type GetUnstructuredLabeledResourceListRequest struct {
 	Blacklist []*utils.SyncResourceEntry `json:"blacklist"`
 }
 
+var MirroredResourceKinds = []string{
+	"Deployment",
+	"ReplicaSet",
+	"CronJob",
+	"Pod",
+	"Job",
+	"Event",
+	"DaemonSet",
+	"StatefulSet",
+	"Namespace",
+	"NetworkPolicy",
+	"PersistentVolume",
+	"Service",
+	"Node",
+}
+
 func WatchStoreResources(watcher WatcherModule, eventClient websocket.WebsocketClient) error {
 	resources, err := GetAvailableResources()
 	if err != nil {
 		return err
 	}
-	relevantResourceKinds := []string{
-		"Deployment",
-		"ReplicaSet",
-		"CronJob",
-		"Pod",
-		"Job",
-		"Event",
-		"DaemonSet",
-		"StatefulSet",
-		"Namespace",
-		"NetworkPolicy",
-		"PersistentVolume",
-		"Node",
-	}
+
 	for _, v := range resources {
 		//if !slices.Contains(relevantResourceKinds, v.Kind) {
 		//	continue
 		//}
-		if v.Namespace == nil && !slices.Contains(relevantResourceKinds, v.Kind) {
+		if v.Namespace == nil && !slices.Contains(MirroredResourceKinds, v.Kind) {
 			k8sLogger.Debug("🚀 Skipping resource", "kind", v.Kind, "group", v.Group, "namespace", v.Namespace)
 			continue
 		}
@@ -184,6 +189,10 @@ func GetUnstructuredResourceListFromStore(group string, kind string, version str
 
 	// fallback: gather the data when the store is empty (can be slow)
 	if len(result) == 0 {
+		// dont bother kubernetes with mirrored resources
+		if slices.Contains(MirroredResourceKinds, kind) {
+			return results, nil
+		}
 		list, err := GetUnstructuredResourceList(group, version, name, namespace)
 		if err != nil {
 			return results, err
@@ -210,15 +219,8 @@ func GetUnstructuredNamespaceResourceList(namespace string, whitelist []*utils.S
 
 	results := []unstructured.Unstructured{}
 
-	// dynamicClient := clientProvider.DynamicClient()
 	for _, v := range resources {
 		if v.Namespace != nil {
-			//result, err := dynamicClient.Resource(CreateGroupVersionResource(v.Group, v.Version, v.Name)).Namespace(namespace).List(context.TODO(), metav1.ListOptions{})
-			//if err != nil {
-			//	if !os.IsNotExist(err) {
-			//		k8sLogger.Error("Error querying resource", "error", err)
-			//	}
-			//}
 			if (len(whitelist) > 0 && !utils.ContainsResourceEntry(whitelist, v)) || (blacklist != nil && utils.ContainsResourceEntry(blacklist, v)) {
 				continue
 			}
@@ -453,9 +455,28 @@ func GetObjectFromFile(file string) (*unstructured.Unstructured, error) {
 	return &obj, nil
 }
 
-func GetAvailableResources() ([]utils.SyncResourceEntry, error) {
-	clientset := clientProvider.K8sClientSet()
+type availableResourceCacheEntry struct {
+	timestamp          time.Time
+	availableResources []utils.SyncResourceEntry
+}
 
+var (
+	resourceCache      availableResourceCacheEntry
+	resourceCacheMutex sync.Mutex        // Mutex to ensure concurrent safe access to cache
+	resourceCacheTTL   = 1 * time.Minute // Cache duration
+)
+
+func GetAvailableResources() ([]utils.SyncResourceEntry, error) {
+	resourceCacheMutex.Lock()
+	defer resourceCacheMutex.Unlock()
+
+	// Check if we have cached resources and if they are still valid
+	if time.Since(resourceCache.timestamp) < resourceCacheTTL {
+		return resourceCache.availableResources, nil
+	}
+
+	// No valid cache, fetch resources from server
+	clientset := clientProvider.K8sClientSet()
 	resources, err := clientset.Discovery().ServerPreferredResources()
 	if err != nil {
 		k8sLogger.Error("Error discovering resources", "error", err)
@@ -470,7 +491,6 @@ func GetAvailableResources() ([]utils.SyncResourceEntry, error) {
 				if resource.Namespaced {
 					namespace = utils.Pointer("")
 				}
-
 				availableResources = append(availableResources, utils.SyncResourceEntry{
 					Group:     resourceList.GroupVersion,
 					Name:      resource.Name,
@@ -481,6 +501,10 @@ func GetAvailableResources() ([]utils.SyncResourceEntry, error) {
 			}
 		}
 	}
+
+	// Update the cache with the new data
+	resourceCache.availableResources = availableResources
+	resourceCache.timestamp = time.Now()
 
 	return availableResources, nil
 }
