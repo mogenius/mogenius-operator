@@ -8,6 +8,7 @@ export enum Pattern {
   CLUSTERFORCERECONNECT = "ClusterForceReconnect",
   CLUSTERRESOURCEINFO = "ClusterResourceInfo",
   CLUSTER_BACKUP = "cluster/backup",
+  CLUSTER_CLEAR_VALKEY_CACHE = "cluster/clear-valkey-cache",
   CLUSTER_COMPONENT_LOG_STREAM_CONNECTION_REQUEST = "cluster/component-log-stream-connection-request",
   CLUSTER_ENERGY_CONSUMPTION = "cluster/energy-consumption",
   CLUSTER_EXECUTE_HELM_CHART_TASK = "cluster/execute-helm-chart-task",
@@ -181,6 +182,7 @@ export const StringToPattern = {
   "ClusterForceReconnect": Pattern.CLUSTERFORCERECONNECT,
   "ClusterResourceInfo": Pattern.CLUSTERRESOURCEINFO,
   "cluster/backup": Pattern.CLUSTER_BACKUP,
+  "cluster/clear-valkey-cache": Pattern.CLUSTER_CLEAR_VALKEY_CACHE,
   "cluster/component-log-stream-connection-request": Pattern.CLUSTER_COMPONENT_LOG_STREAM_CONNECTION_REQUEST,
   "cluster/energy-consumption": Pattern.CLUSTER_ENERGY_CONSUMPTION,
   "cluster/execute-helm-chart-task": Pattern.CLUSTER_EXECUTE_HELM_CHART_TASK,
@@ -350,6 +352,7 @@ export const PatternToString = {
   [Pattern.CLUSTERFORCERECONNECT]: "ClusterForceReconnect",
   [Pattern.CLUSTERRESOURCEINFO]: "ClusterResourceInfo",
   [Pattern.CLUSTER_BACKUP]: "cluster/backup",
+  [Pattern.CLUSTER_CLEAR_VALKEY_CACHE]: "cluster/clear-valkey-cache",
   [Pattern.CLUSTER_COMPONENT_LOG_STREAM_CONNECTION_REQUEST]: "cluster/component-log-stream-connection-request",
   [Pattern.CLUSTER_ENERGY_CONSUMPTION]: "cluster/energy-consumption",
   [Pattern.CLUSTER_EXECUTE_HELM_CHART_TASK]: "cluster/execute-helm-chart-task",
@@ -813,6 +816,33 @@ export type CLUSTER_BACKUP_REQUEST = any;
  *
  */
 export type CLUSTER_BACKUP_RESPONSE = CLUSTER_BACKUP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_NAMESPACEBACKUPRESPONSE;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     mogenius-k8s-manager/src/core.Request:
+ *         name: mogenius-k8s-manager/src/core.Request
+ *         properties:
+ *             includeNodeStats:
+ *                 type: bool
+ *             includePodStats:
+ *                 type: bool
+ *             includeTraffic:
+ *                 type: bool
+ * typeInfo:
+ *     structRef: mogenius-k8s-manager/src/core.Request
+ *     type: struct
+ * ```
+ *
+ */
+export type CLUSTER_CLEAR_VALKEY_CACHE_REQUEST = CLUSTER_CLEAR_VALKEY_CACHE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST;
+
+/**
+ * api schema has not been defined by the operator
+ */
+export type CLUSTER_CLEAR_VALKEY_CACHE_RESPONSE = any;
 
 /**
  * #### Source
@@ -23307,6 +23337,7 @@ export type CLUSTERRESOURCEINFO_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_MACHI
 export type CLUSTERRESOURCEINFO_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_PLUGIN = {"capabilities": CLUSTERRESOURCEINFO_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_CNICAPABILITIES|undefined,"datastore_type": string,"ipam": CLUSTERRESOURCEINFO_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_CNIIPAM|undefined,"log_file_path": string,"log_level": string,"mtu": number,"nodename": string,"policy": CLUSTERRESOURCEINFO_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_CNIPOLICY|undefined,"snat": boolean|undefined,"type": string};
 export type CLUSTERRESOURCEINFO_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_UTILS_COUNTRYDETAILS = {"capitalCity": string,"capitalCityLat": number,"capitalCityLng": number,"code": string,"code3": string,"continent": string,"currency": string,"currencyName": string,"domainTld": string,"isActive": boolean,"isEuMember": boolean,"isoId": number,"languages": string[],"name": string,"phoneNumberPrefix": string,"taxPercent": number};
 export type CLUSTER_BACKUP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_NAMESPACEBACKUPRESPONSE = {"data": string,"messages": string[],"namespaceName": string};
+export type CLUSTER_CLEAR_VALKEY_CACHE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"includeNodeStats": boolean,"includePodStats": boolean,"includeTraffic": boolean};
 export type CLUSTER_COMPONENT_LOG_STREAM_CONNECTION_REQUEST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_COMPONENTLOGCONNECTIONREQUEST = {"component": string,"controller": string|undefined,"namespace": string|undefined,"release": string|undefined,"wsConnectionRequest": CLUSTER_COMPONENT_LOG_STREAM_CONNECTION_REQUEST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST};
 export type CLUSTER_COMPONENT_LOG_STREAM_CONNECTION_REQUEST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"websocketHost": string,"websocketScheme": string};
 export type CLUSTER_ENERGY_CONSUMPTION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_ENERGYCONSUMPTIONENTRY = {"containerName": string,"containerNamespace": string,"podName": string,"totalEnergyInJoule": number};
@@ -24592,6 +24623,10 @@ export interface IPatternConfig {
   [Pattern.CLUSTER_BACKUP]: {
     Request: CLUSTER_BACKUP_REQUEST;
     Response: CLUSTER_BACKUP_RESPONSE;
+  };
+  [Pattern.CLUSTER_CLEAR_VALKEY_CACHE]: {
+    Request: CLUSTER_CLEAR_VALKEY_CACHE_REQUEST;
+    Response: CLUSTER_CLEAR_VALKEY_CACHE_RESPONSE;
   };
   [Pattern.CLUSTER_COMPONENT_LOG_STREAM_CONNECTION_REQUEST]: {
     Request: CLUSTER_COMPONENT_LOG_STREAM_CONNECTION_REQUEST_REQUEST;

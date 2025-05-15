@@ -2680,6 +2680,21 @@ cluster/backup:
         typeInfo:
             structRef: mogenius-k8s-manager/src/kubernetes.NamespaceBackupResponse
             type: struct
+cluster/clear-valkey-cache:
+    requestSchema:
+        structs:
+            mogenius-k8s-manager/src/core.Request:
+                name: mogenius-k8s-manager/src/core.Request
+                properties:
+                    includeNodeStats:
+                        type: bool
+                    includePodStats:
+                        type: bool
+                    includeTraffic:
+                        type: bool
+        typeInfo:
+            structRef: mogenius-k8s-manager/src/core.Request
+            type: struct
 cluster/component-log-stream-connection-request:
     requestSchema:
         structs:
