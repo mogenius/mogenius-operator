@@ -3,7 +3,7 @@ module mogenius-k8s-manager
 go 1.24.3
 
 require (
-	github.com/alecthomas/kong v1.10.0
+	github.com/alecthomas/kong v1.11.0
 	github.com/cert-manager/cert-manager v1.17.2
 	github.com/creack/pty v1.1.24
 	github.com/go-git/go-git/v5 v5.16.0
