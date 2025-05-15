@@ -342,6 +342,27 @@ func (self *socketApi) registerPatterns() {
 		},
 	)
 
+	{
+		type Request struct {
+			IncludeTraffic   bool `json:"includeTraffic" validate:"boolean"`
+			IncludePodStats  bool `json:"includePodStats" validate:"boolean"`
+			IncludeNodeStats bool `json:"includeNodeStats" validate:"boolean"`
+		}
+		self.RegisterPatternHandler(
+			"cluster/clear-valkey-cache",
+			PatternConfig{
+				RequestSchema: schema.Generate(Request{}),
+			},
+			func(datagram structs.Datagram) (any, error) {
+				data := Request{}
+				if err := self.loadRequest(&datagram, &data); err != nil {
+					return nil, err
+				}
+				return nil, self.valkeyClient.ClearNonEssentialKeys(data.IncludeTraffic, data.IncludePodStats, data.IncludeNodeStats)
+			},
+		)
+	}
+
 	self.RegisterPatternHandlerRaw(
 		"print-current-config",
 		PatternConfig{
