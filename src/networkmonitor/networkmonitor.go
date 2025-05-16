@@ -3,12 +3,12 @@ package networkmonitor
 import (
 	"bufio"
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/k8sclient"
-	"net/url"
 	"os"
 	"path/filepath"
 	"slices"
@@ -25,6 +25,12 @@ type NetworkMonitor interface {
 	Run()
 	Snoopy() SnoopyManager
 	GetPodNetworkUsage() []PodNetworkStats
+	// BTF is the format used by BPF modules to be loaded across most linux distributions.
+	// Without BTF support we are not able to use BPF modules to implement features. This
+	// means limited feature availability. In some cases we might implement slower
+	// fallback solutions. In others it is impossible to support features if this is not
+	// available.
+	BtfAvailable() bool
 }
 
 type networkMonitor struct {
@@ -34,10 +40,11 @@ type networkMonitor struct {
 	cancel         context.CancelFunc
 	config         config.ConfigModule
 
-	collectorStarted atomic.Bool
-	procFsMountPath  string
-	cne              ContainerNetworkEnumerator
-	snoopy           SnoopyManager
+	collectorStarted   atomic.Bool
+	procFsMountPath    string
+	cne                ContainerNetworkEnumerator
+	snoopy             SnoopyManager
+	networkStatsReader SnoopyManager
 
 	networkUsageTx chan struct{}
 	networkUsageRx chan []PodNetworkStats
@@ -58,8 +65,13 @@ func NewNetworkMonitor(logger *slog.Logger, config config.ConfigModule, clientPr
 	ctx, cancel := context.WithCancel(context.Background())
 	self.ctx = ctx
 	self.cancel = cancel
-	self.cne = NewContainerNetworkEnumerator(logger.With("scope", "network-enumerator"))
-	self.snoopy = NewSnoopyManager(self.logger.With("scope", "snoopy-manager"), config)
+	cne := NewContainerNetworkEnumerator(logger.With("scope", "network-enumerator"))
+	self.cne = cne
+	if self.BtfAvailable() {
+		self.snoopy = NewSnoopyManager(self.logger.With("scope", "snoopy-manager"), config)
+	} else {
+		self.snoopy = NewNetworkStatsReader(self.logger.With("scope", "network-stats-reader"), cne, procFsMountPath)
+	}
 	self.procFsMountPath = procFsMountPath
 	self.networkUsageTx = make(chan struct{})
 	self.networkUsageRx = make(chan []PodNetworkStats)
@@ -82,34 +94,21 @@ func (self *networkMonitor) Run() {
 			fieldSelector = fmt.Sprintf("metadata.namespace!=kube-system,spec.nodeName=%s", ownNodeName)
 		}
 
-		// list of all pods on the current node
-		podList := self.updatePodList(fieldSelector)
+		podInfoList := self.generateCurrentPodList(fieldSelector)
 
-		// map of all containers on the current machine with all pids running inside them
-		nodeContainersWithProcesses := self.cne.FindProcessesWithContainerIds(self.procFsMountPath)
-
-		// register all initially found containers which are also pods by indexing
-		// the nodeContainersWithProcesses map with all podContainerIds extracted from podList
-		for _, pod := range podList.Items {
-			podContainerIds := self.readContainerIds(pod)
-			for _, containerId := range podContainerIds {
-				pids, ok := nodeContainersWithProcesses[containerId]
-				if !ok {
-					continue
-				}
-				assert.Assert(len(pids) > 0, "every container is expected to have at least 1 active pid")
-				pid := pids[0]
-				err := self.snoopy.Register(pod.Namespace, pod.Name, containerId, pid)
-				if err != nil {
-					self.logger.Error("failed to register snoopy", "containerId", containerId, "pid", pid, "error", err)
-					continue
-				}
+		for _, podInfo := range podInfoList {
+			errs := self.snoopy.Register(podInfo)
+			if len(errs) > 0 {
+				self.logger.Error("failed to register snoopy", "podInfo", podInfo, "error", errs)
+				continue
 			}
 		}
 
 		// get initial collected stats
-		metrics := self.snoopy.Metrics()
-		collectedStats := self.metricsToPodstats(metrics, podList)
+		var metrics map[ContainerId]ContainerInfo
+		var collectedStats []PodNetworkStats
+		metrics = self.snoopy.Metrics()
+		collectedStats = self.metricsToPodstats(metrics)
 
 		// timers
 		updatePodAndContainersTicker := time.NewTicker(5 * time.Second)
@@ -124,82 +123,114 @@ func (self *networkMonitor) Run() {
 				break
 			case <-updatePodAndContainersTicker.C:
 				// get a new list of all pods and containers on the current node
-				newPodList := self.updatePodList(fieldSelector)
-				nodeContainersWithProcesses = self.cne.FindProcessesWithContainerIds(self.procFsMountPath)
+				nextPodInfoList := self.generateCurrentPodList(fieldSelector)
 
-				// check for created and removed pods
-				oldPodContainerIds := []string{}
-				for _, pod := range podList.Items {
-					containerIds := self.readContainerIds(pod)
-					oldPodContainerIds = append(oldPodContainerIds, containerIds...)
-				}
-				newPodContainerIds := []string{}
-				for _, pod := range newPodList.Items {
-					containerIds := self.readContainerIds(pod)
-					newPodContainerIds = append(newPodContainerIds, containerIds...)
-				}
-				deletedPodContainerIds := []string{}
-				for _, uid := range oldPodContainerIds {
-					if !slices.Contains(newPodContainerIds, uid) {
-						deletedPodContainerIds = append(deletedPodContainerIds, uid)
-					}
-				}
-				createdPodContainerIds := []string{}
-				for _, uid := range newPodContainerIds {
-					if !slices.Contains(oldPodContainerIds, uid) {
-						createdPodContainerIds = append(createdPodContainerIds, uid)
-					}
-				}
-
-				// register new containers
-				for _, containerId := range createdPodContainerIds {
-					for _, pod := range newPodList.Items {
-						containerIds := self.readContainerIds(pod)
-						if !slices.Contains(containerIds, containerId) {
-							// this pod does not have the container id we are looking for
-							continue
+				// unregister removed pods
+				for _, podInfo := range podInfoList {
+					id := podInfo.NamespaceAndName()
+					found := false
+					for _, nextPodInfo := range nextPodInfoList {
+						nextId := nextPodInfo.NamespaceAndName()
+						if id == nextId {
+							found = true
+							break
 						}
-						pids, ok := nodeContainersWithProcesses[containerId]
-						if !ok {
-							continue
-						}
-						assert.Assert(len(pids) > 0, "every container is expected to have at least 1 active pid")
-						pid := pids[0]
-						err := self.snoopy.Register(pod.Namespace, pod.Name, containerId, pid)
-						if err != nil {
-							self.logger.Error("failed to register snoopy", "containerId", containerId, "pid", pid, "error", err)
-							continue
+					}
+					if !found {
+						self.logger.Info("Remove Pod", "podInfo", podInfo)
+						errs := self.snoopy.Remove(podInfo)
+						if len(errs) > 0 {
+							self.logger.Error("failed to remove old pod", "id", id, "errors", errs)
 						}
 					}
 				}
 
-				// unregister old containers
-				for _, containerId := range deletedPodContainerIds {
-					for _, pod := range podList.Items {
-						containerIds := self.readContainerIds(pod)
-						if !slices.Contains(containerIds, containerId) {
-							// this pod does not have the container id we are looking for
-							continue
+				// register new pods
+				for _, nextPodInfo := range nextPodInfoList {
+					nextId := nextPodInfo.NamespaceAndName()
+					found := false
+					for _, podInfo := range podInfoList {
+						id := podInfo.NamespaceAndName()
+						if id == nextId {
+							found = true
+							break
 						}
-						err := self.snoopy.Remove(containerId)
-						if err != nil {
-							self.logger.Error("failed to remove snoopy", "containerId", containerId, "error", err)
-							continue
+					}
+					if !found {
+						self.logger.Info("Register Pod", "nextPodInfo", nextPodInfo)
+						errs := self.snoopy.Register(nextPodInfo)
+						if len(errs) > 0 {
+							self.logger.Error("failed to register new pod", "id", nextId, "errors", errs)
+						}
+					}
+				}
+
+				// update pods which changed by removing the old and adding the new version
+				for _, podInfo := range podInfoList {
+					id := podInfo.NamespaceAndName()
+					for _, nextPodInfo := range nextPodInfoList {
+						nextId := nextPodInfo.NamespaceAndName()
+						if id == nextId && !podInfo.Equals(&nextPodInfo) {
+							self.logger.Info("Update Pod", "podInfo", podInfo, "nextPodInfo", nextPodInfo)
+							errs := self.snoopy.Remove(podInfo)
+							if len(errs) > 0 {
+								self.logger.Error("failed to remove old pod", "id", id, "errors", errs)
+							}
+							errs = self.snoopy.Register(nextPodInfo)
+							if len(errs) > 0 {
+								self.logger.Error("failed to register new pod", "id", nextId, "errors", errs)
+							}
 						}
 					}
 				}
 
 				// set the new podList as active podList
-				podList = newPodList
+				podInfoList = nextPodInfoList
 
 			case <-updateCollectedStatsTicker.C:
 				metrics = self.snoopy.Metrics()
-				collectedStats = self.metricsToPodstats(metrics, podList)
+				collectedStats = self.metricsToPodstats(metrics)
 			case <-self.networkUsageTx:
 				self.networkUsageRx <- collectedStats
 			}
 		}
 	}()
+}
+
+func (self *networkMonitor) generateCurrentPodList(fieldSelector string) []PodInfo {
+	// query for all pods on current node
+	listOpts := metav1.ListOptions{FieldSelector: fieldSelector}
+	newPodList, err := self.clientProvider.K8sClientSet().CoreV1().Pods("").List(context.TODO(), listOpts)
+	if err != nil {
+		self.logger.Error("failed to list pods", "listOpts", listOpts, "error", err)
+		return []PodInfo{}
+	}
+
+	// important step: Remove all pods with HostNetwork=true
+	filteredItems := []v1.Pod{}
+	for idx := range len(newPodList.Items) {
+		pod := newPodList.Items[idx]
+		if pod.Spec.HostNetwork == false {
+			filteredItems = append(filteredItems, pod)
+		}
+	}
+
+	// parse kernel processes to find all running containers with their pids
+	nodecontainers := self.cne.FindProcessesWithContainerIds(self.procFsMountPath)
+
+	// merge and normalize a list of pods with containers and processes
+	podInfoList := NewPodInfoList(self.logger, filteredItems, nodecontainers)
+
+	return podInfoList
+}
+
+func (self *networkMonitor) BtfAvailable() bool {
+	_, err := os.Stat("/sys/kernel/btf")
+	if errors.Is(err, os.ErrNotExist) {
+		return false
+	}
+
+	return true
 }
 
 func (self *networkMonitor) Snoopy() SnoopyManager {
@@ -208,7 +239,6 @@ func (self *networkMonitor) Snoopy() SnoopyManager {
 
 func (self *networkMonitor) metricsToPodstats(
 	metrics map[ContainerId]ContainerInfo,
-	podList *v1.PodList,
 ) []PodNetworkStats {
 	data := []PodNetworkStats{}
 
@@ -220,15 +250,6 @@ func (self *networkMonitor) metricsToPodstats(
 
 	for _, containerId := range containerIds {
 		containerInfo := metrics[containerId]
-		var pod *v1.Pod
-		for _, podListItem := range podList.Items {
-			cids := self.readContainerIds(podListItem)
-			if slices.Contains(cids, containerId) {
-				pod = &podListItem
-				break
-			}
-		}
-		assert.Assert(pod != nil, "pod has to exist in podList")
 
 		interfaceNames := []InterfaceName{}
 		for interfaceName := range containerInfo.Metrics {
@@ -247,9 +268,9 @@ func (self *networkMonitor) metricsToPodstats(
 				continue
 			}
 			podNetworkStat := PodNetworkStats{}
-			podNetworkStat.Ip = pod.Status.PodIP
-			podNetworkStat.Pod = containerInfo.PodName
-			podNetworkStat.Namespace = containerInfo.PodNamespace
+			podNetworkStat.Ip = containerInfo.PodInfo.PodIp
+			podNetworkStat.Pod = containerInfo.PodInfo.Name
+			podNetworkStat.Namespace = containerInfo.PodInfo.Namespace
 			podNetworkStat.Interface = interfaceName
 			podNetworkStat.ReceivedPackets = metrics.Ingress.Packets
 			podNetworkStat.ReceivedBytes = metrics.Ingress.Bytes
@@ -257,7 +278,7 @@ func (self *networkMonitor) metricsToPodstats(
 			podNetworkStat.TransmitPackets = metrics.Egress.Packets
 			podNetworkStat.TransmitBytes = metrics.Egress.Bytes
 			podNetworkStat.TransmitStartBytes = metrics.Egress.StartBytes
-			podNetworkStat.StartTime = pod.Status.StartTime.Format(time.RFC3339)
+			podNetworkStat.StartTime = containerInfo.PodInfo.StartTime
 			podNetworkStat.CreatedAt = time.Now().Format(time.RFC3339)
 			data = append(data, podNetworkStat)
 		}
@@ -280,43 +301,6 @@ func (self *networkMonitor) GetPodNetworkUsage() []PodNetworkStats {
 			return result
 		}
 	}
-}
-
-func (self *networkMonitor) updatePodList(fieldSelector string) *v1.PodList {
-	listOpts := metav1.ListOptions{FieldSelector: fieldSelector}
-	newPodList, err := self.clientProvider.K8sClientSet().CoreV1().Pods("").List(context.TODO(), listOpts)
-	if err != nil {
-		self.logger.Error("failed to list pods", "listOptions", listOpts, "error", err)
-		return &v1.PodList{}
-	}
-
-	// important step: Remove all pods with HostNetwork=true
-	filteredItems := []v1.Pod{}
-	for idx := 0; idx < len(newPodList.Items); idx++ {
-		pod := newPodList.Items[idx]
-		if pod.Spec.HostNetwork == false {
-			filteredItems = append(filteredItems, pod)
-		}
-	}
-	newPodList.Items = filteredItems
-
-	return newPodList
-}
-
-func (self *networkMonitor) readContainerIds(pod v1.Pod) []ContainerId {
-	result := []ContainerId{}
-	for _, container := range pod.Status.ContainerStatuses {
-		parsedUrl, err := url.Parse(container.ContainerID)
-		if err != nil {
-			self.logger.Warn("Expecting URL like container ID", "container", container.ContainerID)
-			continue
-		}
-
-		result = append(result, parsedUrl.Host)
-	}
-	slices.Sort(result)
-
-	return result
 }
 
 type PodNetworkStats struct {

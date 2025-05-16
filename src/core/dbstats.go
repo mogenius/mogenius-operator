@@ -94,11 +94,8 @@ func (self *valkeyStatsDb) AddMachineStatsToDb(nodeName string, stats structs.Ma
 func (self *valkeyStatsDb) GetMachineStatsForNode(nodeName string) (*structs.MachineStats, error) {
 	machineStats, err := valkeyclient.GetObjectForKey[structs.MachineStats](self.valkey, DB_STATS_MACHINE_STATS_BUCKET_NAME, nodeName)
 	if err != nil {
-		self.logger.Error("failed to marshal data as MachineStats", "error", err)
 		return nil, fmt.Errorf("failed to marshal data as MachineStats: %s", err)
 	}
-
-	self.logger.Info("machinestats from redis", "stats", machineStats)
 
 	return machineStats, nil
 }

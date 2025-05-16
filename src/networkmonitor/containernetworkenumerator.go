@@ -6,10 +6,8 @@ import (
 	"log/slog"
 	"mogenius-k8s-manager/src/assert"
 	"os"
-	"os/exec"
 	"path"
 	"regexp"
-	"runtime"
 	"slices"
 	"strconv"
 	"strings"
@@ -18,10 +16,8 @@ import (
 )
 
 type ContainerNetworkEnumerator interface {
-	List(procPath string) map[ContainerId]InterfaceDescription
 	FindProcessesWithContainerIds(procPath string) map[ContainerId][]ProcessId
 	GetContainerIdFromCgroupWithPid(cgroupFileData string) (ContainerId, error)
-	RequestInterfaceDescription(procPath string) ([]IpLinkInfo, error)
 }
 
 type InterfaceDescription struct {
@@ -95,31 +91,6 @@ func NewContainerNetworkEnumerator(logger *slog.Logger) ContainerNetworkEnumerat
 	}
 
 	return self
-}
-
-func (self *containerNetworkEnumerator) List(procPath string) map[ContainerId]InterfaceDescription {
-	processesWithContainerIds := self.FindProcessesWithContainerIds(procPath)
-	networkInterfaceList := map[ContainerId]InterfaceDescription{}
-	for containerId, pids := range processesWithContainerIds {
-		ifDesc, ok := networkInterfaceList[containerId]
-		if !ok {
-			ifDesc = InterfaceDescription{}
-			ifDesc.LinkInfo = []IpLinkInfo{}
-			ifDesc.Pids = []ProcessId{}
-		}
-		ifDesc = InterfaceDescription{}
-		assert.Assert(len(pids) > 0, "no container should exist without running processes")
-		assert.Assert(pids[0] != 0, "the first pid in this list should be defined")
-		interfaces, err := self.requestNamespacedInterfaceDescription(procPath, pids[0])
-		if err != nil {
-			self.logger.Error("failed to request network interfaces", "procPath", procPath, "pid", pids[0], "error", err)
-			break
-		}
-		ifDesc.LinkInfo = interfaces
-		ifDesc.Pids = pids
-		networkInterfaceList[containerId] = ifDesc
-	}
-	return networkInterfaceList
 }
 
 //  1. Scan **all** processes running on the system.
@@ -219,61 +190,4 @@ func (self *containerNetworkEnumerator) GetContainerIdFromCgroupWithPid(cgroupFi
 	}
 
 	return result.data, nil
-}
-
-func (self *containerNetworkEnumerator) RequestInterfaceDescription(procPath string) ([]IpLinkInfo, error) {
-	if runtime.GOOS != "linux" && runtime.GOOS != "darwin" {
-		return []IpLinkInfo{}, fmt.Errorf("os not supported: %s", runtime.GOOS)
-	}
-	var json = jsoniter.ConfigCompatibleWithStandardLibrary
-
-	cmd := exec.Command(
-		"ip",
-		"--json",
-		"link",
-	)
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		self.logger.Error("failed to execute command", "hostProc", procPath, "output", strings.TrimSpace(string(out)), "error", err)
-		return []IpLinkInfo{}, err
-	}
-
-	var ipOutput []IpLinkInfo
-	err = json.Unmarshal(out, &ipOutput)
-	if err != nil {
-		self.logger.Error("failed to unmarshal output of nsenter with ip link", "output", string(out), "error", err)
-		return []IpLinkInfo{}, err
-	}
-
-	return ipOutput, nil
-}
-
-func (self *containerNetworkEnumerator) requestNamespacedInterfaceDescription(procPath string, pid ProcessId) ([]IpLinkInfo, error) {
-	if runtime.GOOS != "linux" && runtime.GOOS != "darwin" {
-		return []IpLinkInfo{}, fmt.Errorf("os not supported: %s", runtime.GOOS)
-	}
-	var json = jsoniter.ConfigCompatibleWithStandardLibrary
-
-	cmd := exec.Command(
-		"nsenter",
-		"--target="+strconv.FormatUint(pid, 10),
-		"--net="+procPath+"/"+strconv.FormatUint(pid, 10)+"/ns/net",
-		"ip",
-		"--json",
-		"link",
-	)
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		self.logger.Error("failed to execute command", "pid", pid, "hostProc", procPath, "output", strings.TrimSpace(string(out)), "error", err)
-		return []IpLinkInfo{}, err
-	}
-
-	var ipOutput []IpLinkInfo
-	err = json.Unmarshal(out, &ipOutput)
-	if err != nil {
-		self.logger.Error("failed to unmarshal output of nsenter with ip link", "output", string(out), "error", err)
-		return []IpLinkInfo{}, err
-	}
-
-	return ipOutput, nil
 }
