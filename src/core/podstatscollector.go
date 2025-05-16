@@ -19,6 +19,7 @@ import (
 
 type PodStatsCollector interface {
 	Run()
+	Link(statsDb ValkeyStatsDb)
 }
 
 type podStatsCollector struct {
@@ -35,21 +36,30 @@ func NewPodStatsCollector(
 	logger *slog.Logger,
 	configModule config.ConfigModule,
 	clientProviderModule k8sclient.K8sClientProvider,
-	statsDb ValkeyStatsDb,
 ) PodStatsCollector {
 	self := &podStatsCollector{}
 
 	self.logger = logger
 	self.config = configModule
 	self.clientProvider = clientProviderModule
-	self.statsDb = statsDb
 	self.startTime = time.Now()
 	self.updateInterval = 60
 
 	return self
 }
 
+func (self *podStatsCollector) Link(statsDb ValkeyStatsDb) {
+	assert.Assert(statsDb != nil)
+
+	self.statsDb = statsDb
+}
+
 func (self *podStatsCollector) Run() {
+	assert.Assert(self.logger != nil)
+	assert.Assert(self.config != nil)
+	assert.Assert(self.clientProvider != nil)
+	assert.Assert(self.statsDb != nil)
+
 	enabled, err := strconv.ParseBool(self.config.Get("MO_ENABLE_POD_STATS_COLLECTOR"))
 	assert.Assert(err == nil, err)
 	if enabled {
@@ -66,11 +76,13 @@ func (self *podStatsCollector) Run() {
 				podsResult, err := self.podStats(nodemetrics, currentPods)
 				if err != nil {
 					self.logger.Error("failed to get podStats", "error", err)
+					time.Sleep(time.Duration(self.updateInterval) * time.Second)
 					continue
 				}
 				err = self.statsDb.AddPodStatsToDb(podsResult)
 				if err != nil {
 					self.logger.Error("failed to store pod stats", "error", err)
+					time.Sleep(time.Duration(self.updateInterval) * time.Second)
 					continue
 				}
 
@@ -78,6 +90,7 @@ func (self *podStatsCollector) Run() {
 				err = self.statsDb.AddNodeStatsToDb(nodesResult)
 				if err != nil {
 					self.logger.Error("failed to store node stats", "error", err)
+					time.Sleep(time.Duration(self.updateInterval) * time.Second)
 					continue
 				}
 
@@ -154,6 +167,9 @@ func (self *podStatsCollector) podStats(nodemetrics []podstatscollector.NodeMetr
 		pod := pods[podMetrics.Name]
 
 		for _, container := range pod.Spec.Containers {
+			if pod.Status.StartTime == nil {
+				continue
+			}
 			entry := structs.PodStats{}
 			entry.Namespace = podMetrics.Namespace
 			entry.PodName = podMetrics.Name

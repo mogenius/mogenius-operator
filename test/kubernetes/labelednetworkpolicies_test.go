@@ -2,7 +2,6 @@ package kubernetes_test
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"mogenius-k8s-manager/src/assert"
 	cfg "mogenius-k8s-manager/src/config"
@@ -10,7 +9,6 @@ import (
 	"mogenius-k8s-manager/src/k8sclient"
 	"mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/logging"
-	"mogenius-k8s-manager/src/store"
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/valkeyclient"
 	"os"
@@ -92,9 +90,8 @@ func TestCreateNetworkPolicyServiceWithLabel(t *testing.T) {
 		DefaultValue: utils.Pointer("mogenius"),
 	})
 	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"))
-	watcherModule := kubernetes.NewWatcher(logManager.CreateLogger("watcher"), clientProvider)
 	storeModule := valkeyclient.NewValkeyClient(logManager.CreateLogger("valkey"), config)
-	err := kubernetes.Setup(logManager, config, watcherModule, clientProvider, storeModule)
+	err := kubernetes.Setup(logManager, config, clientProvider, storeModule)
 	assert.AssertT(t, err == nil, err)
 
 	err = kubernetes.EnsureLabeledNetworkPolicy("default", labelPolicy1)
@@ -108,9 +105,8 @@ func TestInitNetworkPolicyConfigMap(t *testing.T) {
 	logManager := logging.NewSlogManager(slog.LevelDebug, []slog.Handler{slog.NewJSONHandler(os.Stderr, nil)})
 	config := cfg.NewConfig()
 	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"))
-	watcherModule := kubernetes.NewWatcher(logManager.CreateLogger("watcher"), clientProvider)
 	storeModule := valkeyclient.NewValkeyClient(logManager.CreateLogger("valkey"), config)
-	err := kubernetes.Setup(logManager, config, watcherModule, clientProvider, storeModule)
+	err := kubernetes.Setup(logManager, config, clientProvider, storeModule)
 	assert.AssertT(t, err == nil, err)
 
 	err = kubernetes.InitNetworkPolicyConfigMap()
@@ -125,9 +121,8 @@ func TestReadNetworkPolicyPorts(t *testing.T) {
 		DefaultValue: utils.Pointer("mogenius"),
 	})
 	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"))
-	watcherModule := kubernetes.NewWatcher(logManager.CreateLogger("watcher"), clientProvider)
 	storeModule := valkeyclient.NewValkeyClient(logManager.CreateLogger("valkey"), config)
-	err := kubernetes.Setup(logManager, config, watcherModule, clientProvider, storeModule)
+	err := kubernetes.Setup(logManager, config, clientProvider, storeModule)
 	assert.AssertT(t, err == nil, err)
 
 	ports, err := kubernetes.ReadNetworkPolicyPorts()
@@ -189,10 +184,8 @@ func TestListAllConflictingNetworkPolicies(t *testing.T) {
 	logManager := logging.NewSlogManager(slog.LevelDebug, []slog.Handler{slog.NewJSONHandler(os.Stderr, nil)})
 	config := cfg.NewConfig()
 	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"))
-	watcherModule := kubernetes.NewWatcher(logManager.CreateLogger("watcher"), clientProvider)
 	storeModule := valkeyclient.NewValkeyClient(logManager.CreateLogger("valkey"), config)
-	store.Setup(logManager, storeModule)
-	err := kubernetes.Setup(logManager, config, watcherModule, clientProvider, storeModule)
+	err := kubernetes.Setup(logManager, config, clientProvider, storeModule)
 	assert.AssertT(t, err == nil, err)
 	list, err := kubernetes.ListAllConflictingNetworkPolicies("mogenius")
 	assert.AssertT(t, err == nil, err)
@@ -209,9 +202,8 @@ func TestCleanupMogeniusNetworkPolicies(t *testing.T) {
 	logManager := logging.NewSlogManager(slog.LevelDebug, []slog.Handler{slog.NewJSONHandler(os.Stderr, nil)})
 	config := cfg.NewConfig()
 	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"))
-	watcherModule := kubernetes.NewWatcher(logManager.CreateLogger("watcher"), clientProvider)
 	storeModule := valkeyclient.NewValkeyClient(logManager.CreateLogger("valkey"), config)
-	err := kubernetes.Setup(logManager, config, watcherModule, clientProvider, storeModule)
+	err := kubernetes.Setup(logManager, config, clientProvider, storeModule)
 	assert.AssertT(t, err == nil, err)
 
 	err = kubernetes.CleanupLabeledNetworkPolicies("mogenius")
@@ -222,10 +214,7 @@ func TestListControllerLabeledNetworkPolicy(t *testing.T) {
 	t.Skip("test currently relies on sleep introducing flakyness")
 	var namespaceName = "mogenius"
 
-	config := cfg.NewConfig()
 	logManager := logging.NewSlogManager(slog.LevelDebug, []slog.Handler{slog.NewJSONHandler(os.Stderr, nil)})
-	storeModule := valkeyclient.NewValkeyClient(logManager.CreateLogger("valkey"), config)
-	store.Setup(logManager, storeModule)
 
 	// create simple nginx deployment with k8s
 	exampleDeploy := createNginxDeployment()
@@ -261,19 +250,4 @@ func TestListControllerLabeledNetworkPolicy(t *testing.T) {
 	list, err := kubernetes.ListControllerLabeledNetworkPolicies(exampleDeploy.Name, dtos.K8sServiceControllerEnum(exampleDeploy.Kind), namespaceName)
 	assert.AssertT(t, err == nil, err)
 	t.Log(list)
-}
-
-func TestDeleteNetworkPolicy(t *testing.T) {
-	logManager := logging.NewSlogManager(slog.LevelDebug, []slog.Handler{slog.NewJSONHandler(os.Stderr, nil)})
-	config := cfg.NewConfig()
-	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"))
-	watcherModule := kubernetes.NewWatcher(logManager.CreateLogger("watcher"), clientProvider)
-	storeModule := valkeyclient.NewValkeyClient(logManager.CreateLogger("valkey"), config)
-	err := kubernetes.Setup(logManager, config, watcherModule, clientProvider, storeModule)
-	assert.AssertT(t, err == nil, err)
-
-	err = kubernetes.DeleteNetworkPolicy("mogenius", kubernetes.GetNetworkPolicyName(labelPolicy1))
-	assert.AssertT(t, err != nil, err, fmt.Sprintf("error deleting network policy %s", PolicyName1))
-	err = kubernetes.DeleteNetworkPolicy("mogenius", kubernetes.GetNetworkPolicyName(labelPolicy2))
-	assert.AssertT(t, err != nil, err, fmt.Sprintf("error deleting network policy %s", PolicyName2))
 }

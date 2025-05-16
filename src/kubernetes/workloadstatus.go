@@ -21,6 +21,7 @@ type WorkloadStatusItemDto struct {
 	Name              string      `json:"name" validate:"required"`
 	Namespace         string      `json:"namespace" validate:"required"`
 	CreationTimestamp metav1.Time `json:"creationTimestamp"`
+	OwnerReferences   interface{} `json:"ownerReferences,omitempty"`
 
 	Status        interface{} `json:"status,omitempty"`
 	Events        []v1.Event  `json:"events,omitempty"`
@@ -142,7 +143,11 @@ func GetWorkloadStatusItems(
 	}
 	endpoints, _, err := unstructured.NestedFieldNoCopy(workload.Object, "endpoints")
 	if err != nil {
-		k8sLogger.Warn("Error getting status", "error", err)
+		k8sLogger.Warn("Error getting endpoints", "error", err)
+	}
+	ownerReferences, _, err := unstructured.NestedFieldNoCopy(workload.Object, "metadata", "ownerReferences")
+	if err != nil {
+		k8sLogger.Warn("Error getting metadata.ownerReferences", "error", err)
 	}
 
 	// Append a new WorkloadStatusItemDto object to the result list.
@@ -154,6 +159,7 @@ func GetWorkloadStatusItems(
 		Namespace:         workload.GetNamespace(),
 		CreationTimestamp: workload.GetCreationTimestamp(),
 		Status:            status,
+		OwnerReferences:   ownerReferences,
 
 		Events:        itemEvents,
 		Replicas:      replicas,
@@ -389,13 +395,13 @@ func GetWorkloadStatus(requestData GetWorkloadStatusRequest) ([]WorkloadStatusDt
 
 	// get all events from the store
 	eventResource := utils.SyncResourceEntry{
-		Kind:      "Event",
 		Name:      "events",
+		Kind:      "Event",
 		Namespace: utils.Pointer(""),
 		Group:     "v1",
 		Version:   "",
 	}
-	eventUnstructuredList, err := GetUnstructuredResourceListFromStore(eventResource.Group, eventResource.Name, eventResource.Version, eventResource.Name, eventResource.Namespace)
+	eventUnstructuredList, err := GetUnstructuredResourceListFromStore(eventResource.Group, eventResource.Kind, eventResource.Version, eventResource.Name, eventResource.Namespace)
 	var eventList []v1.Event
 	if err != nil {
 		eventList = []v1.Event{}

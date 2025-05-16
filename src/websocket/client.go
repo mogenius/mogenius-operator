@@ -8,6 +8,7 @@ import (
 	"mogenius-k8s-manager/src/assert"
 	"net/http"
 	"net/url"
+	"os"
 	"sync/atomic"
 	"syscall"
 	"time"
@@ -351,6 +352,8 @@ func NewWebsocketClient(logger *slog.Logger) WebsocketClient {
 
 	self.apiSetUrlTx = make(chan url.URL)
 	self.apiSetUrlRx = make(chan error)
+	self.apiGetUrlTx = make(chan struct{})
+	self.apiGetUrlRx = make(chan url.URL)
 	self.apiSetHeaderTx = make(chan http.Header)
 	self.apiSetHeaderRx = make(chan error)
 	self.apiConnectTx = make(chan struct{})
@@ -391,7 +394,7 @@ func NewWebsocketClient(logger *slog.Logger) WebsocketClient {
 // https://pkg.go.dev/github.com/gorilla/websocket#hdr-Concurrency
 func (self *websocketClient) startRuntime() {
 	isRunning := false
-	url := &url.URL{}
+	connectionUrl := &url.URL{}
 	header := &http.Header{}
 
 	for {
@@ -415,13 +418,13 @@ func (self *websocketClient) startRuntime() {
 			self.ctxCancel()
 			return
 		case newUrl := <-self.apiSetUrlTx:
-			url = &newUrl
+			connectionUrl = &newUrl
 			if isRunning {
 				go self.requestReconnect()
 			}
 			self.apiSetUrlRx <- nil
 		case <-self.apiGetUrlTx:
-			self.apiGetUrlRx <- *url
+			self.apiGetUrlRx <- *connectionUrl
 		case newHeader := <-self.apiSetHeaderTx:
 			header = &newHeader
 			if isRunning {
@@ -435,12 +438,21 @@ func (self *websocketClient) startRuntime() {
 				self.apiConnectRx <- fmt.Errorf("already connected")
 				continue
 			}
-			conn, _, err := gorillaWebsocket.DefaultDialer.Dial(url.String(), *header)
+			var dialer *gorillaWebsocket.Dialer = gorillaWebsocket.DefaultDialer
+			httpProxy := os.Getenv("MO_HTTP_PROXY")
+			if httpProxy != "" {
+				self.runtimeLogger.Info("using http proxy", "proxy", httpProxy)
+				dialer.Proxy = http.ProxyURL(&url.URL{
+					Scheme: "http",
+					Host:   httpProxy,
+				})
+			}
+			conn, _, err := dialer.Dial(connectionUrl.String(), *header)
 			if err != nil {
 				self.apiConnectRx <- err
 				continue
 			}
-			self.runtimeLogger.Info("established websocket connection", "url", url.String(), "localAddr", conn.LocalAddr())
+			self.runtimeLogger.Info("established websocket connection", "url", connectionUrl.String(), "localAddr", conn.LocalAddr())
 			self.connection = conn
 			go self.startReadThread()
 			go self.startWriteThread()

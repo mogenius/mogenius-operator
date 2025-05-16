@@ -6,12 +6,11 @@ import (
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/store"
 	"mogenius-k8s-manager/src/utils"
+	"slices"
 	"strings"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-
-	v2 "k8s.io/api/apps/v1"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -66,7 +65,7 @@ func AttachLabeledNetworkPolicy(controllerName string,
 		deployment.Spec.Template.ObjectMeta.Labels[label] = "true"
 		deployment.ObjectMeta.Labels[label] = "true"
 
-		_, err = client.Deployments(namespaceName).Update(context.TODO(), deployment, MoUpdateOptions())
+		_, err = client.Deployments(namespaceName).Update(context.TODO(), deployment, MoUpdateOptions(config))
 		if err != nil {
 			return fmt.Errorf("AttachLabeledNetworkPolicy ERROR: %s", err)
 		}
@@ -84,7 +83,7 @@ func AttachLabeledNetworkPolicy(controllerName string,
 		daemonset.Spec.Template.ObjectMeta.Labels[label] = "true"
 		daemonset.ObjectMeta.Labels[label] = "true"
 
-		_, err = client.DaemonSets(namespaceName).Update(context.TODO(), daemonset, MoUpdateOptions())
+		_, err = client.DaemonSets(namespaceName).Update(context.TODO(), daemonset, MoUpdateOptions(config))
 		if err != nil {
 			return fmt.Errorf("AttachLabeledNetworkPolicy ERROR: %s", err)
 		}
@@ -102,7 +101,7 @@ func AttachLabeledNetworkPolicy(controllerName string,
 		statefulset.Spec.Template.ObjectMeta.Labels[label] = "true"
 		statefulset.ObjectMeta.Labels[label] = "true"
 
-		_, err = client.StatefulSets(namespaceName).Update(context.TODO(), statefulset, MoUpdateOptions())
+		_, err = client.StatefulSets(namespaceName).Update(context.TODO(), statefulset, MoUpdateOptions(config))
 		if err != nil {
 			return fmt.Errorf("AttachLabeledNetworkPolicy ERROR: %s", err)
 		}
@@ -118,9 +117,9 @@ func AttachLabeledNetworkPolicies(controllerName string,
 	labelPolicy []dtos.K8sLabeledNetworkPolicyDto,
 ) error {
 	client := clientProvider.K8sClientSet().AppsV1()
-	var deployment *v2.Deployment
-	var daemonSet *v2.DaemonSet
-	var statefulSet *v2.StatefulSet
+	var deployment *appsv1.Deployment
+	var daemonSet *appsv1.DaemonSet
+	var statefulSet *appsv1.StatefulSet
 	var err error
 
 	switch controllerType {
@@ -180,17 +179,17 @@ func AttachLabeledNetworkPolicies(controllerName string,
 
 	switch controllerType {
 	case dtos.DEPLOYMENT:
-		_, err = client.Deployments(namespaceName).Update(context.TODO(), deployment, MoUpdateOptions())
+		_, err = client.Deployments(namespaceName).Update(context.TODO(), deployment, MoUpdateOptions(config))
 		if err != nil {
 			return fmt.Errorf("AttachLabeledNetworkPolicy ERROR: %s", err)
 		}
 	case dtos.DAEMON_SET:
-		_, err = client.DaemonSets(namespaceName).Update(context.TODO(), daemonSet, MoUpdateOptions())
+		_, err = client.DaemonSets(namespaceName).Update(context.TODO(), daemonSet, MoUpdateOptions(config))
 		if err != nil {
 			return fmt.Errorf("AttachLabeledNetworkPolicy ERROR: %s", err)
 		}
 	case dtos.STATEFUL_SET:
-		_, err = client.StatefulSets(namespaceName).Update(context.TODO(), statefulSet, MoUpdateOptions())
+		_, err = client.StatefulSets(namespaceName).Update(context.TODO(), statefulSet, MoUpdateOptions(config))
 		if err != nil {
 			return fmt.Errorf("AttachLabeledNetworkPolicy ERROR: %s", err)
 		}
@@ -217,7 +216,7 @@ func DetachLabeledNetworkPolicy(controllerName string,
 		}
 		delete(deployment.Spec.Template.ObjectMeta.Labels, label)
 		delete(deployment.ObjectMeta.Labels, label)
-		_, err = client.Deployments(namespaceName).Update(context.TODO(), deployment, MoUpdateOptions())
+		_, err = client.Deployments(namespaceName).Update(context.TODO(), deployment, MoUpdateOptions(config))
 		if err != nil {
 			return fmt.Errorf("AttachLabeledNetworkPolicy ERROR: %s", err)
 		}
@@ -228,7 +227,7 @@ func DetachLabeledNetworkPolicy(controllerName string,
 		}
 		delete(daemonset.Spec.Template.ObjectMeta.Labels, label)
 		delete(daemonset.ObjectMeta.Labels, label)
-		_, err = client.DaemonSets(namespaceName).Update(context.TODO(), daemonset, MoUpdateOptions())
+		_, err = client.DaemonSets(namespaceName).Update(context.TODO(), daemonset, MoUpdateOptions(config))
 		if err != nil {
 			return fmt.Errorf("AttachLabeledNetworkPolicy ERROR: %s", err)
 		}
@@ -239,7 +238,7 @@ func DetachLabeledNetworkPolicy(controllerName string,
 		}
 		delete(statefulset.Spec.Template.ObjectMeta.Labels, label)
 		delete(statefulset.ObjectMeta.Labels, label)
-		_, err = client.StatefulSets(namespaceName).Update(context.TODO(), statefulset, MoUpdateOptions())
+		_, err = client.StatefulSets(namespaceName).Update(context.TODO(), statefulset, MoUpdateOptions(config))
 		if err != nil {
 			return fmt.Errorf("AttachLabeledNetworkPolicy ERROR: %s", err)
 		}
@@ -255,9 +254,9 @@ func DetachLabeledNetworkPolicies(controllerName string,
 	labelPolicy []dtos.K8sLabeledNetworkPolicyDto,
 ) error {
 	client := clientProvider.K8sClientSet().AppsV1()
-	var deployment *v2.Deployment
-	var daemonSet *v2.DaemonSet
-	var statefulSet *v2.StatefulSet
+	var deployment *appsv1.Deployment
+	var daemonSet *appsv1.DaemonSet
+	var statefulSet *appsv1.StatefulSet
 	var err error
 
 	switch controllerType {
@@ -304,17 +303,17 @@ func DetachLabeledNetworkPolicies(controllerName string,
 
 	switch controllerType {
 	case dtos.DEPLOYMENT:
-		_, err = client.Deployments(namespaceName).Update(context.TODO(), deployment, MoUpdateOptions())
+		_, err = client.Deployments(namespaceName).Update(context.TODO(), deployment, MoUpdateOptions(config))
 		if err != nil {
 			return fmt.Errorf("AttachLabeledNetworkPolicy ERROR: %s", err)
 		}
 	case dtos.DAEMON_SET:
-		_, err = client.DaemonSets(namespaceName).Update(context.TODO(), daemonSet, MoUpdateOptions())
+		_, err = client.DaemonSets(namespaceName).Update(context.TODO(), daemonSet, MoUpdateOptions(config))
 		if err != nil {
 			return fmt.Errorf("AttachLabeledNetworkPolicy ERROR: %s", err)
 		}
 	case dtos.STATEFUL_SET:
-		_, err = client.StatefulSets(namespaceName).Update(context.TODO(), statefulSet, MoUpdateOptions())
+		_, err = client.StatefulSets(namespaceName).Update(context.TODO(), statefulSet, MoUpdateOptions(config))
 		if err != nil {
 			return fmt.Errorf("AttachLabeledNetworkPolicy ERROR: %s", err)
 		}
@@ -447,7 +446,7 @@ func EnsureLabeledNetworkPolicy(namespaceName string, labelPolicy dtos.K8sLabele
 
 	clientset := clientProvider.K8sClientSet()
 	netPolClient := clientset.NetworkingV1().NetworkPolicies(namespaceName)
-	_, err := netPolClient.Create(context.TODO(), &netpol, MoCreateOptions())
+	_, err := netPolClient.Create(context.TODO(), &netpol, MoCreateOptions(config))
 	if err != nil && !strings.Contains(err.Error(), "already exists") {
 		k8sLogger.Error("CreateNetworkPolicyServiceWithLabel ERROR: %s, trying to create labelPolicy %v ", err.Error(), labelPolicy)
 		return err
@@ -517,7 +516,7 @@ func EnsureLabeledNetworkPolicies(namespaceName string, labelPolicy []dtos.K8sLa
 
 		clientset := clientProvider.K8sClientSet()
 		netPolClient := clientset.NetworkingV1().NetworkPolicies(namespaceName)
-		_, err := netPolClient.Create(context.TODO(), &netpol, MoCreateOptions())
+		_, err := netPolClient.Create(context.TODO(), &netpol, MoCreateOptions(config))
 		if err != nil && !strings.Contains(err.Error(), "already exists") {
 			k8sLogger.Error("CreateNetworkPolicyServiceWithLabel ERROR: %s, trying to create labelPolicy %v ", err.Error(), labelPolicy)
 			return err
@@ -592,7 +591,7 @@ func CreateDenyAllIngressNetworkPolicy(namespaceName string) error {
 	_, err := netPolClient.Get(context.TODO(), DenyAllIngressNetPolName, metav1.GetOptions{})
 	if err != nil {
 		// create the deny-all-ingress policy
-		_, err := netPolClient.Create(context.TODO(), &netpol, MoCreateOptions())
+		_, err := netPolClient.Create(context.TODO(), &netpol, MoCreateOptions(config))
 		if err != nil {
 			k8sLogger.Error("CreateDenyAllIngressNetworkPolicy", "error", err)
 			return err
@@ -601,7 +600,7 @@ func CreateDenyAllIngressNetworkPolicy(namespaceName string) error {
 	}
 
 	// update the deny-all-ingress policy
-	_, err = netPolClient.Update(context.TODO(), &netpol, MoUpdateOptions())
+	_, err = netPolClient.Update(context.TODO(), &netpol, MoUpdateOptions(config))
 	if err != nil {
 		k8sLogger.Error("CreateDenyAllIngressNetworkPolicy", "error", err)
 		return err
@@ -638,7 +637,7 @@ func CreateAllowNamespaceCommunicationNetworkPolicy(namespaceName string) error 
 	_, err := netPolClient.Get(context.TODO(), AllowNamespaceCommunicationNetPolName, metav1.GetOptions{})
 	if err != nil {
 		// create the deny-all-ingress policy
-		_, err := netPolClient.Create(context.TODO(), &netpol, MoCreateOptions())
+		_, err := netPolClient.Create(context.TODO(), &netpol, MoCreateOptions(config))
 		if err != nil {
 			k8sLogger.Error("CreateAllowNamespaceCommunicationNetworkPolicy", "error", err)
 			return err
@@ -647,40 +646,12 @@ func CreateAllowNamespaceCommunicationNetworkPolicy(namespaceName string) error 
 	}
 
 	// update the deny-all-ingress policy
-	_, err = netPolClient.Update(context.TODO(), &netpol, MoUpdateOptions())
+	_, err = netPolClient.Update(context.TODO(), &netpol, MoUpdateOptions(config))
 	if err != nil {
 		k8sLogger.Error("CreateAllowNamespaceCommunicationNetworkPolicy", "error", err)
 		return err
 	}
 	return nil
-}
-
-func cleanupUnusedDenyAllIngress(namespaceName string) {
-	// list all network policies and find all that have the marker label
-	policies, err := store.ListNetworkPolicies(valkeyClient, namespaceName)
-	if err != nil {
-		k8sLogger.Error("cleanupNetworkPolicies", "error", err)
-		return
-	}
-
-	// filter out all policies that are not created by mogenius
-	var netpols []v1.NetworkPolicy
-	for _, policy := range policies {
-		if policy.ObjectMeta.Labels != nil && policy.ObjectMeta.Labels[MarkerLabel] == "true" {
-			continue
-		}
-		netpols = append(netpols, policy)
-	}
-
-	if len(netpols) == 0 {
-		clientset := clientProvider.K8sClientSet()
-		netPolClient := clientset.NetworkingV1().NetworkPolicies(namespaceName)
-
-		err = netPolClient.Delete(context.TODO(), DenyAllIngressNetPolName, metav1.DeleteOptions{})
-		if err != nil {
-			k8sLogger.Error("cleanupNetworkPolicies", "error", err)
-		}
-	}
 }
 
 func InitNetworkPolicyConfigMap() error {
@@ -742,7 +713,7 @@ func UpdateNetworkPolicyTemplate(policies []NetworkPolicy) error {
 	_, err = client.Update(context.TODO(), cfgMap, metav1.UpdateOptions{})
 	if err != nil {
 		if apierrors.IsNotFound(err) {
-			_, err = client.Create(context.TODO(), cfgMap, MoCreateOptions())
+			_, err = client.Create(context.TODO(), cfgMap, MoCreateOptions(config))
 			if err != nil {
 				k8sLogger.Error("InitNetworkPolicyConfigMap", "error", err)
 				return err
@@ -941,7 +912,7 @@ func DeleteNetworkPolicyByName(namespaceName string, policyName string) error {
 		_, err = dynamicClient.Resource(gvr).Namespace(namespaceName).Update(
 			context.TODO(),
 			latestObject,
-			MoUpdateOptions(),
+			MoUpdateOptions(config),
 		)
 		if err != nil {
 			k8sLogger.Error("DeleteNetworkPolicyByName", "error", err)
@@ -1041,14 +1012,9 @@ func ListControllerLabeledNetworkPolicies(
 	var labels map[string]string
 	switch controllerType {
 	case dtos.DEPLOYMENT:
-		// TODO replace with GetAvailableResources in the future
-		resourceNamespace := ""
 		resource := utils.SyncResourceEntry{
-			Kind:      "Deployment",
-			Name:      "deployments",
-			Namespace: &resourceNamespace,
-			Group:     "apps/v1",
-			Version:   "",
+			Kind:  "Deployment",
+			Group: "apps/v1",
 		}
 
 		deployment, err := store.GetByKeyParts[appsv1.Deployment](valkeyClient, VALKEY_RESOURCE_PREFIX, resource.Group, resource.Kind, namespaceName, controllerName)
@@ -1057,14 +1023,9 @@ func ListControllerLabeledNetworkPolicies(
 		}
 		labels = extractLabels(deployment.ObjectMeta.Labels, deployment.Spec.Template.ObjectMeta.Labels)
 	case dtos.DAEMON_SET:
-		// TODO replace with GetAvailableResources in the future
-		resourceNamespace := ""
 		resource := utils.SyncResourceEntry{
-			Kind:      "DaemonSet",
-			Name:      "daemonsets",
-			Namespace: &resourceNamespace,
-			Group:     "apps/v1",
-			Version:   "",
+			Kind:  "DaemonSet",
+			Group: "apps/v1",
 		}
 
 		daemonset, err := store.GetByKeyParts[appsv1.DaemonSet](valkeyClient, VALKEY_RESOURCE_PREFIX, resource.Group, resource.Kind, namespaceName, controllerName)
@@ -1073,14 +1034,9 @@ func ListControllerLabeledNetworkPolicies(
 		}
 		labels = extractLabels(daemonset.ObjectMeta.Labels, daemonset.Spec.Template.ObjectMeta.Labels)
 	case dtos.STATEFUL_SET:
-		// TODO replace with GetAvailableResources in the future
-		resourceNamespace := ""
 		resource := utils.SyncResourceEntry{
-			Kind:      "StatefulSet",
-			Name:      "statefulsets",
-			Namespace: &resourceNamespace,
-			Group:     "apps/v1",
-			Version:   "",
+			Kind:  "StatefulSet",
+			Group: "apps/v1",
 		}
 
 		statefulset, err := store.GetByKeyParts[appsv1.StatefulSet](valkeyClient, VALKEY_RESOURCE_PREFIX, resource.Group, resource.Kind, namespaceName, controllerName)
@@ -1193,7 +1149,7 @@ func RemoveUnmanagedNetworkPolicies(namespaceName string, policies []string) err
 
 	errors := []error{}
 	for _, netpol := range netpols.Items {
-		if !utils.ContainsString(policies, netpol.Name) {
+		if !slices.Contains(policies, netpol.Name) {
 			continue
 		}
 

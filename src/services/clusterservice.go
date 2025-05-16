@@ -22,22 +22,17 @@ import (
 )
 
 const (
-	NameMetricsServer             = "Metrics Server"
-	NameMetalLB                   = "MetalLB (LoadBalancer)"
-	NameIngressController         = "Ingress Controller"
-	NameLocalDevSetup             = "Local Dev Setup"
-	NameInternalContainerRegistry = "Internal Container Registry"
-	NameExternalSecrets           = "External Secrets"
-	NameClusterIssuerResource     = "letsencrypt-cluster-issuer"
-	NameKepler                    = "Kepler"
-	NameNfsStorageClass           = "nfs-storageclass"
+	NameMetricsServer         = "Metrics Server"
+	NameMetalLB               = "MetalLB (LoadBalancer)"
+	NameIngressController     = "Ingress Controller"
+	NameClusterIssuerResource = "letsencrypt-cluster-issuer"
+	NameKepler                = "Kepler"
+	NameNfsStorageClass       = "nfs-storageclass"
 )
 
 const (
 	MetricsHelmIndex                  = "https://kubernetes-sigs.github.io/metrics-server"
 	IngressControllerTraefikHelmIndex = "https://traefik.github.io/charts"
-	ContainerRegistryHelmIndex        = "https://phntom.kix.co.il/charts"
-	ExternalSecretsHelmIndex          = "https://charts.external-secrets.io"
 	CertManagerHelmIndex              = "https://charts.jetstack.io"
 	KeplerHelmIndex                   = "https://sustainable-computing-io.github.io/kepler-helm-chart"
 	MetalLBHelmIndex                  = "https://metallb.github.io/metallb"
@@ -380,51 +375,6 @@ func EnergyConsumption() []structs.EnergyConsumptionResponse {
 	return structs.CurrentEnergyConsumptionResponse
 }
 
-func InstallTrafficCollector() (string, error) {
-	r := ClusterHelmRequest{
-		HelmRepoUrl:     MogeniusHelmIndex,
-		HelmRepoName:    "mogenius",
-		HelmReleaseName: utils.HelmReleaseNameTrafficCollector,
-		HelmChartName:   "mogenius/" + utils.HelmReleaseNameTrafficCollector,
-		HelmValues: fmt.Sprintf(`global:
-  namespace: %s
-  stage: %s
-`, config.Get("MO_OWN_NAMESPACE"), config.Get("MO_STAGE")),
-	}
-	if config.Get("MO_STAGE") == utils.STAGE_DEV {
-		r.HelmChartName = "mogenius/dev-" + utils.HelmReleaseNameTrafficCollector
-		r.HelmReleaseName = "dev-" + utils.HelmReleaseNameTrafficCollector
-		version, err := GetCurrentTrafficCollectorVersion()
-		if err != nil {
-			serviceLogger.Error("Error getting current traffic collector version", "error", err)
-		}
-		r.HelmChartVersion = version
-	}
-	return helm.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues, r.HelmChartVersion)
-}
-
-func UpgradeTrafficCollector() (string, error) {
-	r := helm.HelmChartInstallUpgradeRequest{
-		Namespace: config.Get("MO_OWN_NAMESPACE"),
-		Release:   utils.HelmReleaseNameTrafficCollector,
-		Chart:     "mogenius/" + utils.HelmReleaseNameTrafficCollector,
-		Values: fmt.Sprintf(`global:
-  namespace: %s
-  stage: %s
-`, config.Get("MO_OWN_NAMESPACE"), config.Get("MO_STAGE")),
-	}
-	if config.Get("MO_STAGE") == utils.STAGE_DEV {
-		r.Chart = "mogenius/dev-" + utils.HelmReleaseNameTrafficCollector
-		r.Release = "dev-" + utils.HelmReleaseNameTrafficCollector
-		version, err := GetCurrentTrafficCollectorVersion()
-		if err != nil {
-			serviceLogger.Error("Error getting current traffic collector version", "error", err)
-		}
-		r.Version = version
-	}
-	return helm.HelmReleaseUpgrade(r)
-}
-
 func InstallMetricsServer() (string, error) {
 	r := ClusterHelmRequest{
 		HelmRepoName:    utils.HelmReleaseNameMetricsServer,
@@ -501,37 +451,6 @@ func UpgradeCertManager() (string, error) {
 		Release:   utils.HelmReleaseNameCertManager,
 		Chart:     "jetstack/" + utils.HelmReleaseNameCertManager,
 		Values:    "startupapicheck.enabled=false\ninstallCRDs=true",
-	}
-	return helm.HelmReleaseUpgrade(r)
-}
-
-func InstallContainerRegistry() (string, error) {
-	r := ClusterHelmRequest{
-		HelmRepoName:    "phntom",
-		HelmRepoUrl:     ContainerRegistryHelmIndex,
-		HelmReleaseName: utils.HelmReleaseNameDistributionRegistry,
-		HelmChartName:   "phntom/docker-registry",
-		HelmValues:      "",
-	}
-	return helm.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues, r.HelmChartVersion)
-}
-
-func InstallExternalSecrets() (string, error) {
-	r := ClusterHelmRequest{
-		HelmRepoName:    utils.HelmReleaseNameExternalSecrets,
-		HelmRepoUrl:     ExternalSecretsHelmIndex,
-		HelmReleaseName: utils.HelmReleaseNameExternalSecrets,
-		HelmChartName:   "external-secrets/external-secrets",
-		HelmValues:      "",
-	}
-	return helm.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues, r.HelmChartVersion)
-}
-
-func UpgradeContainerRegistry() (string, error) {
-	r := helm.HelmChartInstallUpgradeRequest{
-		Namespace: config.Get("MO_OWN_NAMESPACE"),
-		Release:   utils.HelmReleaseNameDistributionRegistry,
-		Chart:     "phntom/docker-registry",
 	}
 	return helm.HelmReleaseUpgrade(r)
 }
@@ -656,17 +575,6 @@ func InstallClusterIssuer(email string, currentRetries int) (string, error) {
 	}
 }
 
-func UninstallTrafficCollector() (string, error) {
-	r := ClusterHelmRequest{
-		Namespace:       config.Get("MO_OWN_NAMESPACE"),
-		HelmReleaseName: utils.HelmReleaseNameTrafficCollector,
-	}
-	if config.Get("MO_STAGE") == utils.STAGE_DEV {
-		r.HelmReleaseName = "dev-" + utils.HelmReleaseNameTrafficCollector
-	}
-	return helm.DeleteHelmChart(r.HelmReleaseName, r.Namespace)
-}
-
 func UninstallMetricsServer() (string, error) {
 	r := ClusterHelmRequest{
 		Namespace:       config.Get("MO_OWN_NAMESPACE"),
@@ -687,22 +595,6 @@ func UninstallCertManager() (string, error) {
 	r := ClusterHelmRequest{
 		Namespace:       config.Get("MO_OWN_NAMESPACE"),
 		HelmReleaseName: utils.HelmReleaseNameCertManager,
-	}
-	return helm.DeleteHelmChart(r.HelmReleaseName, r.Namespace)
-}
-
-func UninstallContainerRegistry() (string, error) {
-	r := ClusterHelmRequest{
-		Namespace:       config.Get("MO_OWN_NAMESPACE"),
-		HelmReleaseName: utils.HelmReleaseNameDistributionRegistry,
-	}
-	return helm.DeleteHelmChart(r.HelmReleaseName, r.Namespace)
-}
-
-func UninstallExternalSecrets() (string, error) {
-	r := ClusterHelmRequest{
-		Namespace:       config.Get("MO_OWN_NAMESPACE"),
-		HelmReleaseName: utils.HelmReleaseNameExternalSecrets,
 	}
 	return helm.DeleteHelmChart(r.HelmReleaseName, r.Namespace)
 }
@@ -789,24 +681,6 @@ spec:
   addresses:
   - 192.168.66.1-192.168.66.50
   - fc00:f853:0ccd:e797::/124`
-}
-
-func GetCurrentTrafficCollectorVersion() (string, error) {
-	data, err := utils.GetVersionData(utils.HELM_INDEX)
-	if err != nil {
-		return "NO_VERSION_FOUND", err
-	}
-
-	chartName := utils.HelmReleaseNameTrafficCollector
-	if config.Get("MO_STAGE") == utils.STAGE_DEV {
-		chartName = "dev-" + utils.HelmReleaseNameTrafficCollector
-	}
-	trafficCollector := data.Entries[chartName]
-	trafficResult := "NO_VERSION_FOUND"
-	if len(trafficCollector) > 0 {
-		trafficResult = trafficCollector[0].Version
-	}
-	return trafficResult, nil
 }
 
 func getMostCurrentHelmChartVersion(url string, chartname string) string {

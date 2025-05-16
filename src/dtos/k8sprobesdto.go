@@ -9,14 +9,14 @@ type K8sProbeHTTPHeader struct {
 
 type K8sProbeHTTPGet struct {
 	Path        string                `json:"path,omitempty"`
-	Port        int                   `json:"port"`
+	Port        string                `json:"port"`
 	Host        *string               `json:"host,omitempty"`
 	Scheme      *v1.URIScheme         `json:"scheme,omitempty"`
 	HTTPHeaders *[]K8sProbeHTTPHeader `json:"httpHeaders,omitempty"`
 }
 
 type K8sProbeTCPSocket struct {
-	Port int `json:"port"`
+	Port string `json:"port"`
 }
 
 type K8sProbeExec struct {

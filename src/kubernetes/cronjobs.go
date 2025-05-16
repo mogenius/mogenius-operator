@@ -13,9 +13,7 @@ import (
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/structs"
 
-	apipatchv1 "k8s.io/api/batch/v1"
-	v1job "k8s.io/api/batch/v1"
-	core "k8s.io/api/core/v1"
+	apibatchv1 "k8s.io/api/batch/v1"
 	v1core "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -82,7 +80,7 @@ func TriggerJobFromCronjob(eventClient websocket.WebsocketClient, job *structs.J
 
 		// convert cronjob to job
 		jobs := clientset.BatchV1().Jobs(namespace)
-		jobSpec := &v1job.Job{
+		jobSpec := &apibatchv1.Job{
 			ObjectMeta: cronjob.Spec.JobTemplate.ObjectMeta,
 			Spec:       cronjob.Spec.JobTemplate.Spec,
 		}
@@ -194,12 +192,12 @@ func UpdateCronJob(eventClient websocket.WebsocketClient, job *structs.Job, name
 			k8sLogger.Error("Failed to create controller configuration", "error", err)
 		}
 
-		newCronJob := newController.(*v1job.CronJob)
+		newCronJob := newController.(*apibatchv1.CronJob)
 
-		_, err = cronJobClient.Update(context.TODO(), newCronJob, MoUpdateOptions())
+		_, err = cronJobClient.Update(context.TODO(), newCronJob, MoUpdateOptions(config))
 		if err != nil {
 			if apierrors.IsNotFound(err) {
-				_, err = cronJobClient.Create(context.TODO(), newCronJob, MoCreateOptions())
+				_, err = cronJobClient.Create(context.TODO(), newCronJob, MoCreateOptions(config))
 				if err != nil {
 					cmd.Fail(eventClient, job, fmt.Sprintf("CreateCronJob ERROR: %s", err.Error()))
 				} else {
@@ -230,7 +228,7 @@ func StartCronJob(eventClient websocket.WebsocketClient, job *structs.Job, names
 			k8sLogger.Error("Failed to create controller configuration", "error", err)
 		}
 
-		cronJob := newController.(*v1job.CronJob)
+		cronJob := newController.(*apibatchv1.CronJob)
 
 		_, err = cronJobClient.Update(context.TODO(), cronJob, metav1.UpdateOptions{})
 		if err != nil {
@@ -254,7 +252,7 @@ func StopCronJob(eventClient websocket.WebsocketClient, job *structs.Job, namesp
 		if err != nil {
 			k8sLogger.Error("Failed to create controller configuration", "error", err)
 		}
-		cronJob := newController.(*v1job.CronJob)
+		cronJob := newController.(*apibatchv1.CronJob)
 		cronJob.Spec.Suspend = utils.Pointer(true)
 
 		_, err = cronJobClient.Update(context.TODO(), cronJob, metav1.UpdateOptions{})
@@ -280,7 +278,7 @@ func RestartCronJob(eventClient websocket.WebsocketClient, job *structs.Job, nam
 		if err != nil {
 			k8sLogger.Error("Failed to create controller configuration", "error", err)
 		}
-		cronJob := newController.(*v1job.CronJob)
+		cronJob := newController.(*apibatchv1.CronJob)
 
 		// KUBERNETES ISSUES A "rollout restart deployment" WHENETHER THE METADATA IS CHANGED.
 		if cronJob.ObjectMeta.Annotations == nil {
@@ -300,7 +298,7 @@ func RestartCronJob(eventClient websocket.WebsocketClient, job *structs.Job, nam
 }
 
 func createCronJobHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, freshlyCreated bool, client interface{}) (*metav1.ObjectMeta, HasSpec, interface{}, error) {
-	var previousSpec *v1job.CronJobSpec
+	var previousSpec *apibatchv1.CronJobSpec
 	previousCronjob, err := client.(batchv1.CronJobInterface).Get(context.TODO(), service.ControllerName, metav1.GetOptions{})
 	if err == nil {
 		previousSpec = &(*previousCronjob).Spec
@@ -326,8 +324,8 @@ func createCronJobHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sServic
 
 	// INIT CONTAINER
 	if len(spec.JobTemplate.Spec.Template.Spec.Containers) == 0 {
-		spec.JobTemplate.Spec.Template.Spec.Containers = []core.Container{}
-		spec.JobTemplate.Spec.Template.Spec.Containers = append(spec.JobTemplate.Spec.Template.Spec.Containers, core.Container{})
+		spec.JobTemplate.Spec.Template.Spec.Containers = []v1core.Container{}
+		spec.JobTemplate.Spec.Template.Spec.Containers = append(spec.JobTemplate.Spec.Template.Spec.Containers, v1core.Container{})
 	}
 
 	// SUSPEND -> PAUSE
@@ -365,27 +363,7 @@ func createCronJobHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sServic
 	return objectMeta, &SpecCronJob{spec, previousSpec}, &newCronJob, nil
 }
 
-func UpdateCronjobImage(namespaceName string, controllerName string, containerName string, imageName string) error {
-	clientset := clientProvider.K8sClientSet()
-	client := clientset.BatchV1().CronJobs(namespaceName)
-	crontjobToUpdate, err := client.Get(context.TODO(), controllerName, metav1.GetOptions{})
-	if err != nil {
-		return err
-	}
-
-	// SET NEW IMAGE
-	for index, container := range crontjobToUpdate.Spec.JobTemplate.Spec.Template.Spec.Containers {
-		if container.Name == containerName {
-			crontjobToUpdate.Spec.JobTemplate.Spec.Template.Spec.Containers[index].Image = imageName
-		}
-	}
-	// crontjobToUpdate.Spec.Suspend = utils.Pointer(false)
-
-	_, err = client.Update(context.TODO(), crontjobToUpdate, metav1.UpdateOptions{})
-	return err
-}
-
-func GetCronJob(namespaceName string, controllerName string) (*v1job.CronJob, error) {
+func GetCronJob(namespaceName string, controllerName string) (*apibatchv1.CronJob, error) {
 	clientset := clientProvider.K8sClientSet()
 	client := clientset.BatchV1().CronJobs(namespaceName)
 	return client.Get(context.TODO(), controllerName, metav1.GetOptions{})
@@ -399,18 +377,18 @@ func getNextSchedule(cronExpr string, lastScheduleTime time.Time) (time.Time, er
 	return sched.Next(lastScheduleTime), nil
 }
 
-func getJobStatus(conditions []apipatchv1.JobCondition) JobInfoStatusType {
+func getJobStatus(conditions []apibatchv1.JobCondition) JobInfoStatusType {
 	for _, condition := range conditions {
 		switch condition.Type {
-		case apipatchv1.JobSuspended:
+		case apibatchv1.JobSuspended:
 			return JobInfoStatusTypeSuspended
-		case apipatchv1.JobComplete:
+		case apibatchv1.JobComplete:
 			return JobInfoStatusTypeSucceeded
-		case apipatchv1.JobFailed:
+		case apibatchv1.JobFailed:
 			return JobInfoStatusTypeFailed
-		case apipatchv1.JobFailureTarget:
+		case apibatchv1.JobFailureTarget:
 			return JobInfoStatusTypeFailed
-		case apipatchv1.JobSuccessCriteriaMet:
+		case apibatchv1.JobSuccessCriteriaMet:
 			return JobInfoStatusTypeSucceeded
 		}
 	}

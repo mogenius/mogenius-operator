@@ -8,6 +8,7 @@ import (
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/valkeyclient"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -54,23 +55,34 @@ func ComponentStreamConnection(
 		return
 	}
 
-	data, err := valkeyclient.LastNEntryFromBucketWithType[logging.LogLine](store, 50, "logs", component)
+	data, err := valkeyclient.LastNEntryFromBucketWithType[logging.LogLine](store, 100, "logs", component)
 	if err != nil {
 		xtermLogger.Error("Error getting last 50 logs", "error", err)
 	}
+
+	logEntriesWritten := false
 	for _, v := range data {
-		messageStr := fmt.Sprintf("[%s] %s %s", v.Level, utils.FormatJsonTimePrettyFromTime(v.Time), v.Message)
+		messageStr := processLogLine(component, namespace, release, v)
+		if messageStr == "" {
+			continue
+		}
+
 		connWriteLock.Lock()
 		err = conn.WriteMessage(websocket.TextMessage, []byte(messageStr))
+		logEntriesWritten = true
 		if err != nil {
 			xtermLogger.Error("WriteMessage", "error", err)
 		}
 		connWriteLock.Unlock()
 	}
 
-	if len(data) == 0 {
+	if !logEntriesWritten {
 		connWriteLock.Lock()
-		err = conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("[INFO] %s No recent log entries found.\n", utils.FormatJsonTimePrettyFromTime(time.Now()))))
+		if component == "helm" {
+			err = conn.WriteMessage(websocket.TextMessage, []byte("📝 No Log Entries Found\n🔍 This may occur due to the decentralized nature of Helm.\nIf the Helm chart was applied from a different machine, logs might not be available here.\n"))
+		} else {
+			err = conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("[INFO] %s No recent log entries found.\n", utils.FormatJsonTimePrettyFromTime(time.Now()))))
+		}
 		if err != nil {
 			xtermLogger.Error("WriteMessage", "error", err)
 		}
@@ -85,12 +97,19 @@ func ComponentStreamConnection(
 				xtermLogger.Error("Unmarshal", "error", err)
 				continue
 			}
-			messageSt := fmt.Sprintf("[%s] %s %s", entry.Level, utils.FormatJsonTimePrettyFromTime(entry.Time), entry.Message)
+			messageStr := processLogLine(component, namespace, release, entry)
+			if messageStr == "" {
+				continue
+			}
 
 			connWriteLock.Lock()
-			err = conn.WriteMessage(websocket.TextMessage, []byte(messageSt))
+			err = conn.WriteMessage(websocket.TextMessage, []byte(messageStr))
 			connWriteLock.Unlock()
 			if err != nil {
+				if strings.Contains(err.Error(), "broken pipe") {
+					xtermLogger.Debug("write close:", "error", err)
+					break
+				}
 				xtermLogger.Error("WriteMessage", "error", err)
 			}
 		}
@@ -105,4 +124,37 @@ func ComponentStreamConnection(
 			xtermLogger.Debug("write close:", "error", err)
 		}
 	}
+}
+
+func processLogLine(component string, namespace *string, release *string, line logging.LogLine) string {
+	if line.Level == "debug" {
+		return ""
+	}
+
+	messageStr := fmt.Sprintf("[%s] %s %s", line.Level, utils.FormatJsonTimePrettyFromTime(line.Time), line.Message)
+
+	if component == "helm" {
+		givenNs := ""
+		if namespace != nil {
+			givenNs = *namespace
+		}
+		givenRelease := ""
+		if release != nil {
+			givenRelease = *release
+		}
+		gatheredNs, _ := line.Payload["namespace"].(string)
+		gatheredRelease, _ := line.Payload["releaseName"].(string)
+
+		if gatheredNs == givenNs && gatheredRelease == givenRelease {
+			if line.Payload["error"] != nil {
+				return fmt.Sprintf("[%s] %s %s %s\n", line.Level, utils.FormatJsonTimePrettyFromTime(line.Time), line.Message, line.Payload["error"])
+			} else {
+				return fmt.Sprintf("[%s] %s %s\n", line.Level, utils.FormatJsonTimePrettyFromTime(line.Time), line.Message)
+			}
+		} else {
+			return ""
+		}
+	}
+
+	return messageStr
 }

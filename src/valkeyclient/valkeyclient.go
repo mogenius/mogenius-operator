@@ -30,7 +30,10 @@ type ValkeyClient interface {
 	AddToBucket(maxSize int64, value interface{}, bucketKey ...string) error
 	ListFromBucket(start int64, stop int64, bucketKey ...string) ([]string, error)
 	LastNEntryFromBucketWithType(number int64, bucketKey ...string) ([]string, error)
+	DeleteFromBucketWithNsAndReleaseName(namespace string, releaseName string, bucketKey ...string) error
 	SubscribeToBucket(bucketKey ...string) *redis.PubSub
+
+	ClearNonEssentialKeys(includeTraffic bool, includePodStats bool, includeNodestats bool) (string, error)
 
 	Delete(keys ...string) error
 	Keys(pattern string) ([]string, error)
@@ -216,6 +219,104 @@ func (self *valkeyClient) LastNEntryFromBucketWithType(number int64, bucketKey .
 	}
 
 	return elements, nil
+}
+
+func (self *valkeyClient) DeleteFromBucketWithNsAndReleaseName(namespace string, releaseName string, bucketKey ...string) error {
+	key := createKey(bucketKey...)
+	// Use LRANGE to get all elements in the bucket
+	elements, err := self.redisClient.LRange(self.ctx, key, 0, -1).Result()
+	if err != nil {
+		return err
+	}
+
+	for _, v := range elements {
+		var obj map[string]interface{}
+		err := json.Unmarshal([]byte(v), &obj)
+		if err != nil {
+			return fmt.Errorf("error unmarshalling value from Redis, error: %v", err)
+		}
+
+		// Check if the object contains a "Payload" field
+		payload, ok := obj["Payload"].(map[string]interface{})
+		if !ok {
+			continue
+		}
+
+		// Extract namespace and releaseName from the Payload
+		if payload["namespace"] == namespace && payload["releaseName"] == releaseName {
+			// Remove the specific entry from the bucket
+			err = self.redisClient.LRem(self.ctx, key, 1, v).Err()
+			if err != nil {
+				return fmt.Errorf("error removing entry from Redis bucket, error: %v", err)
+			}
+		}
+	}
+
+	return nil
+}
+
+func (self *valkeyClient) ClearNonEssentialKeys(includeTraffic bool, includePodStats bool, includeNodestats bool) (string, error) {
+	// Get all keys
+	keys, err := self.redisClient.Keys(self.ctx, "*").Result()
+	if err != nil {
+		return "", err
+	}
+
+	// resources & helm have to be kept
+	prefixesToDelete := []string{
+		"live-stats:",
+		"logs:cmd",
+		"logs:core",
+		"logs:client-provider",
+		"logs:db-stats",
+		"logs:http",
+		"logs:klog",
+		"logs:pod-stats-collector",
+		"logs:kubernetes",
+		"logs:leader-elector",
+		"logs:mokubernetes",
+		"logs:socketapi",
+		"logs:structs",
+		"logs:utils",
+		"logs:xterm",
+		"logs:traffic-collector",
+		"logs:valkey",
+		"logs:websocket-events-client",
+		"logs:websocket-job-client",
+		"maschine-stats:",
+		"pod-events:",
+		"status:",
+	}
+
+	if includeTraffic {
+		prefixesToDelete = append(prefixesToDelete, "traffic-stats:")
+	}
+	if includePodStats {
+		prefixesToDelete = append(prefixesToDelete, "pod-stats:")
+	}
+	if includeNodestats {
+		prefixesToDelete = append(prefixesToDelete, "node-stats:")
+	}
+
+	self.logger.Info("Deleting non-essential keys from Redis", "includeTraffic", includeTraffic, "includePodStats", includePodStats, "includeNodestats", includeNodestats)
+
+	// Iterate over the keys and delete them
+	cacheDeleteCounter := 0
+	for _, key := range keys {
+		for _, keyToDelete := range prefixesToDelete {
+			if strings.HasPrefix(key, keyToDelete) {
+				err = self.redisClient.Del(self.ctx, key).Err()
+				if err != nil {
+					return "", fmt.Errorf("error deleting non-essential key from Redis, error: %v", err)
+				}
+				cacheDeleteCounter++
+			}
+		}
+	}
+	resultMsg := fmt.Sprintf("Deleted %d non-essential keys from Redis", cacheDeleteCounter)
+	self.logger.Info(resultMsg, "deletedKeys", cacheDeleteCounter)
+
+	return resultMsg, nil
 }
 
 func (self *valkeyClient) SubscribeToBucket(bucketKey ...string) *redis.PubSub {

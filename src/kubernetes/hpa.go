@@ -63,7 +63,7 @@ func DeleteK8sHpaBy(namespace string, name string) error {
 func CreateHpa(namespaceName, controllerName string, hpaSettings *dtos.K8sHpaSettingsDto) (*v2.HorizontalPodAutoscaler, error) {
 	deployment, err := GetK8sDeployment(namespaceName, controllerName)
 	if err != nil || deployment == nil {
-		return nil, fmt.Errorf("Cannot create hpa, Deployment not found")
+		return nil, fmt.Errorf("cannot create hpa, deployment not found")
 	}
 
 	meta := &metav1.ObjectMeta{
@@ -117,10 +117,10 @@ func CreateOrUpdateHpa(eventClient websocket.WebsocketClient, job *structs.Job, 
 			return
 		}
 
-		_, err = hpaClient.Update(context.TODO(), newHpa, MoUpdateOptions())
+		_, err = hpaClient.Update(context.TODO(), newHpa, MoUpdateOptions(config))
 		if err != nil {
 			if apierrors.IsNotFound(err) {
-				_, err = hpaClient.Create(context.TODO(), newHpa, MoCreateOptions())
+				_, err = hpaClient.Create(context.TODO(), newHpa, MoCreateOptions(config))
 				if err != nil {
 					cmd.Fail(eventClient, job, fmt.Sprintf("Creating hpa ERROR: %s", err.Error()))
 				} else {

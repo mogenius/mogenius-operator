@@ -19,12 +19,3 @@ func MarshalUnmarshal(datagram *Datagram, data interface{}) {
 		datagram.Err = err.Error()
 	}
 }
-
-func UnmarshalLog(dst *Log, data []byte) error {
-	var json = jsoniter.ConfigCompatibleWithStandardLibrary
-	err := json.Unmarshal(data, dst)
-	if err != nil {
-		return err
-	}
-	return nil
-}

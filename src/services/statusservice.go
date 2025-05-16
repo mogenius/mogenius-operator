@@ -602,10 +602,6 @@ type ResourceItem struct {
 	Events       []corev1.Event `json:"events,omitempty"`
 }
 
-func (item ResourceItem) String() string {
-	return fmt.Sprintf("%s, %s, %s, %s, %s, %+v", item.Kind, item.Name, item.Namespace, item.OwnerKind, item.OwnerName, item.StatusObject)
-}
-
 type ResourceController int
 
 // Keep the order, only add elements at end

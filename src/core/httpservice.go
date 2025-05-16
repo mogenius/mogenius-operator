@@ -11,8 +11,6 @@ import (
 	"mogenius-k8s-manager/src/version"
 	"net/http"
 	"sync"
-
-	"github.com/gorilla/websocket"
 )
 
 type HttpService interface {
@@ -119,8 +117,6 @@ func (self *httpService) Run() {
 	mux.Handle("GET /healtz", self.withRequestLogging(http.HandlerFunc(self.getHealthz)))
 	mux.Handle("GET /healthz", self.withRequestLogging(http.HandlerFunc(self.getHealthz)))
 
-	mux.Handle("GET /ws", self.withRequestLogging(http.HandlerFunc(self.handleWs)))
-
 	if utils.IsDevBuild() {
 		self.addApiRoutes(mux)
 	}
@@ -176,90 +172,4 @@ func (self *httpService) withRequestLogging(handler http.Handler) http.Handler {
 		)
 		handler.ServeHTTP(w, r)
 	})
-}
-
-// WEBSOCKET
-// only for internal connections from pod-stat-collector or traffic-collector
-// this enables us to have a bi-directional communication channel
-// Example:
-// User whats to get CPU utilization stream for all Nodes
-// 1. User sends a pattern "cpu-utilization"
-// 2. K8sManager broadcasts the message to all connected clients (DaemonSet in this case, pod on each node)
-// 3. All connected Pods which implement the pattern respond with the datastream
-// 4. K8sManager receives the datastream and relay it to the requesting client via websocket
-
-var upgrader = websocket.Upgrader{
-	CheckOrigin: func(r *http.Request) bool {
-		return true
-	},
-}
-
-func (self *httpService) handleWs(w http.ResponseWriter, r *http.Request) {
-	ws, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		self.logger.Error("Upgrading connection to WebSocket", "error", err)
-		return
-	}
-	defer func() {
-		if ws != nil {
-			ws.Close()
-		}
-	}()
-
-	self.logger.Info("WebSocket connection established")
-
-	for {
-		datagram := &structs.Datagram{}
-		err := ws.ReadJSON(datagram)
-		if err != nil {
-			self.logger.Error("Reading message from websocket", "error", err)
-			break
-		}
-		self.handleIncomingDatagram(datagram)
-	}
-}
-
-func (self *httpService) handleIncomingDatagram(datagram *structs.Datagram) {
-	switch datagram.Pattern {
-	case "traffic-utilization":
-		self.broadcaster.BroadcastResponse(datagram.Payload, "live-stream/nodes-traffic")
-
-	case "cpu-utilization":
-		self.broadcaster.BroadcastResponse(datagram.Payload, "live-stream/nodes-cpu")
-
-	case "mem-utilization":
-		self.broadcaster.BroadcastResponse(datagram.Payload, "live-stream/nodes-memory")
-
-	// SAVE TO DB
-	case "traffic-status":
-		stat := &structs.InterfaceStats{}
-		dataBytes, err := json.Marshal(datagram.Payload)
-		if err != nil {
-			self.logger.Error("failed to marshal interface stats", "error", err)
-			return
-		}
-		err = json.Unmarshal(dataBytes, stat)
-		if err != nil {
-			self.logger.Error("failed to unmarshal interface stats", "error", err)
-			return
-		}
-		self.dbstats.AddInterfaceStatsToDb(*stat)
-
-	case "cni-status":
-		cniData := &[]structs.CniData{}
-		dataBytes, err := json.Marshal(datagram.Payload)
-		if err != nil {
-			self.logger.Error("failed to marshal cniData", "error", err)
-			return
-		}
-		err = json.Unmarshal(dataBytes, cniData)
-		if err != nil {
-			self.logger.Error("failed to unmarshal cniData", "error", err)
-			return
-		}
-		self.dbstats.ReplaceCniData(*cniData)
-
-	default:
-		self.logger.Warn("Unknown pattern", "pattern", datagram.Pattern)
-	}
 }

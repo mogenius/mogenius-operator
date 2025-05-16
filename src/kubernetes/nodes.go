@@ -2,86 +2,10 @@ package kubernetes
 
 import (
 	"context"
-	"mogenius-k8s-manager/src/dtos"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	v1metrics "k8s.io/metrics/pkg/apis/metrics/v1beta1"
 )
-
-func GetNodeStats() []dtos.NodeStat {
-	result := []dtos.NodeStat{}
-	nodes := ListNodes()
-	nodeMetrics := ListNodeMetricss()
-
-	for _, node := range nodes {
-
-		allPods := AllPodsOnNode(node.Name)
-		requestCpuCores, limitCpuCores := SumCpuResources(allPods)
-		requestMemoryBytes, limitMemoryBytes := SumMemoryResources(allPods)
-
-		utilizedCores := float64(0)
-		utilizedMemory := int64(0)
-		if len(nodeMetrics) > 0 {
-			// Find the corresponding node metrics
-			var nodeMetric *v1metrics.NodeMetrics
-			for _, nm := range nodeMetrics {
-				if nm.Name == node.Name {
-					nodeMetric = &nm
-					break
-				}
-			}
-			if nodeMetric == nil {
-				k8sLogger.Error("Failed to find node metrics for node", "node.name", node.Name)
-				continue
-			}
-
-			// CPU
-			cpuUsage, works := nodeMetric.Usage.Cpu().AsDec().Unscaled()
-			if !works {
-				k8sLogger.Error("Failed to get CPU usage for node", "node.name", node.Name)
-			}
-			if cpuUsage == 0 {
-				cpuUsage = 1
-			}
-			utilizedCores = float64(cpuUsage) / 1000000000
-
-			// Memory
-			utilizedMemory, works = nodeMetric.Usage.Memory().AsInt64()
-			if !works {
-				k8sLogger.Error("Failed to get MEMORY usage for node", "node.name", node.Name)
-			}
-		}
-
-		mem, _ := node.Status.Capacity.Memory().AsInt64()
-		cpu, _ := node.Status.Capacity.Cpu().AsInt64()
-		maxPods, _ := node.Status.Capacity.Pods().AsInt64()
-		ephemeral, _ := node.Status.Capacity.StorageEphemeral().AsInt64()
-
-		nodeStat := dtos.NodeStat{
-			Name:                   node.Name,
-			MaschineId:             node.Status.NodeInfo.MachineID,
-			CpuInCores:             cpu,
-			CpuInCoresUtilized:     utilizedCores,
-			CpuInCoresRequested:    requestCpuCores,
-			CpuInCoresLimited:      limitCpuCores,
-			MemoryInBytes:          mem,
-			MemoryInBytesUtilized:  utilizedMemory,
-			MemoryInBytesRequested: requestMemoryBytes,
-			MemoryInBytesLimited:   limitMemoryBytes,
-			EphemeralInBytes:       ephemeral,
-			MaxPods:                maxPods,
-			TotalPods:              int64(len(allPods)),
-			KubletVersion:          node.Status.NodeInfo.KubeletVersion,
-			OsType:                 node.Status.NodeInfo.OperatingSystem,
-			OsImage:                node.Status.NodeInfo.OSImage,
-			Architecture:           node.Status.NodeInfo.Architecture,
-		}
-		result = append(result, nodeStat)
-		//nodeStat.PrintPretty()
-	}
-	return result
-}
 
 func SumMemoryResources(pods []v1.Pod) (request int64, limit int64) {
 	resultRequest := int64(0)

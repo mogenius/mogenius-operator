@@ -8,12 +8,14 @@ import (
 	"mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/controllers"
 	"mogenius-k8s-manager/src/core"
+	"mogenius-k8s-manager/src/cpumonitor"
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/helm"
 	"mogenius-k8s-manager/src/k8sclient"
 	"mogenius-k8s-manager/src/kubernetes"
-	mokubernetes "mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/logging"
+	"mogenius-k8s-manager/src/networkmonitor"
+	"mogenius-k8s-manager/src/rammonitor"
 	"mogenius-k8s-manager/src/secrets"
 	"mogenius-k8s-manager/src/services"
 	"mogenius-k8s-manager/src/servicesexternal"
@@ -37,19 +39,18 @@ import (
 	"k8s.io/klog/v2"
 )
 
-const defaultLogDir string = "logs"
-
 var CLI struct {
 	// Commands
-	Clean    struct{}     `cmd:"" help:"remove the operator from the cluster"`
-	Cluster  struct{}     `cmd:"" help:"start the operator"`
-	Config   struct{}     `cmd:"" help:"print application config in ENV format"`
-	Install  struct{}     `cmd:"" help:"install the operator into your cluster"`
-	System   struct{}     `cmd:"" help:"check the system for all required components and offer healing"`
-	Version  struct{}     `cmd:"" help:"print version information" default:"1"`
-	Patterns patternsArgs `cmd:"" help:"print patterns to shell"`
-	Exec     execArgs     `cmd:"" help:"open an interactive shell inside a container"`
-	Logs     logArgs      `cmd:"" help:"retrieve streaming logs of a container"`
+	Clean       struct{}        `cmd:"" help:"remove the operator from the cluster"`
+	Cluster     struct{}        `cmd:"" help:"start the operator"`
+	Nodemetrics nodeMetricsArgs `cmd:"" help:"start the node metrics collector"`
+	Config      struct{}        `cmd:"" help:"print application config in ENV format"`
+	Install     struct{}        `cmd:"" help:"install the operator into your cluster"`
+	System      struct{}        `cmd:"" help:"check the system for all required components and offer healing"`
+	Version     struct{}        `cmd:"" help:"print version information" default:"1"`
+	Patterns    patternsArgs    `cmd:"" help:"print patterns to shell"`
+	Exec        execArgs        `cmd:"" help:"open an interactive shell inside a container"`
+	Logs        logArgs         `cmd:"" help:"retrieve streaming logs of a container"`
 }
 
 func Run() error {
@@ -84,9 +85,13 @@ func Run() error {
 		logFilter,
 		secrets.EraseSecrets,
 	)
+	recordChannelLogLevel := slog.LevelInfo
+	if logLevel == slog.LevelDebug {
+		recordChannelLogLevel = slog.LevelDebug
+	}
 	channelHandler := logging.NewRecordChannelHandler(
 		512,
-		logLevel,
+		recordChannelLogLevel,
 		secrets.EraseSecrets,
 	)
 	slogManager := logging.NewSlogManager(
@@ -97,8 +102,7 @@ func Run() error {
 		},
 	)
 	cmdLogger := slogManager.CreateLogger("cmd")
-	klogLogger := slogManager.CreateLogger("klog")
-	klog.SetSlogLogger(klogLogger)
+	klog.SetSlogLogger(slogManager.CreateLogger("klog"))
 
 	//===============================================================
 	//========================= Parse Args ==========================
@@ -116,6 +120,17 @@ func Run() error {
 	)
 
 	//===============================================================
+	//=================== Setup ENVs for Helm SDK ===================
+	//===============================================================
+	os.Setenv("HELM_CACHE_HOME", fmt.Sprintf("%s/%s", configModule.Get("MO_HELM_DATA_PATH"), helm.HELM_CACHE_HOME))
+	os.Setenv("HELM_CONFIG_HOME", fmt.Sprintf("%s/%s", configModule.Get("MO_HELM_DATA_PATH"), helm.HELM_CONFIG_HOME))
+	os.Setenv("HELM_DATA_HOME", fmt.Sprintf("%s/%s", configModule.Get("MO_HELM_DATA_PATH"), helm.HELM_DATA_HOME))
+	os.Setenv("HELM_PLUGINS", fmt.Sprintf("%s/%s", configModule.Get("MO_HELM_DATA_PATH"), helm.HELM_PLUGINS))
+	os.Setenv("HELM_REPOSITORY_CACHE", fmt.Sprintf("%s/%s", configModule.Get("MO_HELM_DATA_PATH"), helm.HELM_REPOSITORY_CACHE_FOLDER))
+	os.Setenv("HELM_REPOSITORY_CONFIG", fmt.Sprintf("%s/%s", configModule.Get("MO_HELM_DATA_PATH"), helm.HELM_REPOSITORY_CONFIG_FILE))
+	os.Setenv("HELM_LOG_LEVEL", "trace")
+
+	//===============================================================
 	//======================= Execute Command =======================
 	//===============================================================
 	switch ctx.Command() {
@@ -126,10 +141,10 @@ func Run() error {
 		}
 		return nil
 	case "cluster":
-		err := RunCluster(slogManager, configModule, cmdLogger, channelHandler.GetRecordChannel())
-		if err != nil {
-			return err
-		}
+		RunCluster(slogManager, configModule, cmdLogger, channelHandler.GetRecordChannel())
+		return nil
+	case "nodemetrics":
+		RunNodeMetrics(&CLI.Nodemetrics, slogManager, configModule, cmdLogger, channelHandler.GetRecordChannel())
 		return nil
 	case "install":
 		err := RunInstall(slogManager, configModule, cmdLogger, channelHandler.GetRecordChannel())
@@ -151,13 +166,13 @@ func Run() error {
 		fmt.Println(configModule.AsEnvs())
 		return nil
 	case "exec <command>":
-		err := RunExec(&CLI.Exec, cmdLogger)
+		err := RunExec(&CLI.Exec, cmdLogger, configModule)
 		if err != nil {
 			return err
 		}
 		return nil
 	case "logs":
-		err := RunLogs(&CLI.Logs, cmdLogger)
+		err := RunLogs(&CLI.Logs, cmdLogger, configModule)
 		if err != nil {
 			return err
 		}
@@ -228,6 +243,18 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		Envs:         []string{"OWN_NAMESPACE"},
 	})
 	configModule.Declare(config.ConfigDeclaration{
+		Key:          "OWN_NODE_NAME",
+		DefaultValue: utils.Pointer(os.Getenv("OWN_NODE_NAME")),
+		Description:  utils.Pointer("the name of the node this application is running in"),
+		Envs:         []string{"OWN_NODE_NAME"},
+	})
+	configModule.Declare(config.ConfigDeclaration{
+		Key:          "OWN_DEPLOYMENT_NAME",
+		DefaultValue: utils.Pointer("mogenius-k8s-manager"),
+		Description:  utils.Pointer("the name of the deployment this application is running in"),
+		Envs:         []string{"OWN_DEPLOYMENT_NAME"},
+	})
+	configModule.Declare(config.ConfigDeclaration{
 		Key:         "MO_API_SERVER",
 		Description: utils.Pointer("URL of API Server"),
 		Validate: func(value string) error {
@@ -245,6 +272,21 @@ func LoadConfigDeclarations(configModule *config.Config) {
 			_, err := url.Parse(value)
 			if err != nil {
 				return fmt.Errorf("'MO_EVENT_SERVER' needs to be a URL: %s", err.Error())
+			}
+			return nil
+		},
+	})
+	configModule.Declare(config.ConfigDeclaration{
+		Key:          "MO_HTTP_PROXY",
+		DefaultValue: utils.Pointer(""),
+		Description:  utils.Pointer("URL of a HTTPS Proxy"),
+		Validate: func(value string) error {
+			if value == "" {
+				return nil
+			}
+			_, err := url.Parse(value)
+			if err != nil {
+				return fmt.Errorf("'MO_HTTP_PROXY' needs to be a URL: %s", err.Error())
 			}
 			return nil
 		},
@@ -339,6 +381,36 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		},
 	})
 	configModule.Declare(config.ConfigDeclaration{
+		Key:          "MO_ENABLE_TRAFFIC_COLLECTOR",
+		DefaultValue: utils.Pointer("false"),
+		Description:  utils.Pointer("enable collection of network stats"),
+		Validate: func(value string) error {
+			_, err := strconv.ParseBool(value)
+			if err != nil {
+				return fmt.Errorf("'MO_ENABLE_TRAFFIC_COLLECTOR' needs to be a boolean: %s", err.Error())
+			}
+			return nil
+		},
+	})
+
+	configModule.Declare(config.ConfigDeclaration{
+		Key:          "KUBERNETES_DEBUG",
+		DefaultValue: utils.Pointer("false"),
+		Description:  utils.Pointer("enable kubernetes sdk debug output"),
+		Validate: func(value string) error {
+			_, err := strconv.ParseBool(value)
+			if err != nil {
+				return fmt.Errorf("'KUBERNETES_DEBUG' needs to be a boolean: %s", err.Error())
+			}
+			return nil
+		},
+	})
+	configModule.Declare(config.ConfigDeclaration{
+		Key:          "MO_HOST_PROC_PATH",
+		DefaultValue: utils.Pointer("/proc"),
+		Description:  utils.Pointer("mountpath of /proc"),
+	})
+	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_IGNORE_NAMESPACES",
 		DefaultValue: utils.Pointer(`["kube-system"]`),
 		Description:  utils.Pointer("list of all ignored namespaces"),
@@ -416,7 +488,7 @@ func InitializeSystems(
 
 	// initialize client modules
 	valkeyClient := valkeyclient.NewValkeyClient(logManagerModule.CreateLogger("valkey"), configModule)
-	clientProvider := k8sclient.NewK8sClientProvider(logManagerModule.CreateLogger("client-provider"))
+	clientProvider := k8sclient.NewK8sClientProvider(logManagerModule.CreateLogger("client-provider"), configModule)
 	versionModule := version.NewVersion()
 	watcherModule := kubernetes.NewWatcher(logManagerModule.CreateLogger("watcher"), clientProvider)
 	shutdown.Add(watcherModule.UnwatchAll)
@@ -424,10 +496,13 @@ func InitializeSystems(
 	shutdown.Add(jobConnectionClient.Terminate)
 	eventConnectionClient := websocket.NewWebsocketClient(logManagerModule.CreateLogger("websocket-events-client"))
 	shutdown.Add(eventConnectionClient.Terminate)
+	cpuMonitor := cpumonitor.NewCpuMonitor(logManagerModule.CreateLogger("cpu-monitor"), configModule, clientProvider)
+	ramMonitor := rammonitor.NewRamMonitor(logManagerModule.CreateLogger("ram-monitor"), configModule, clientProvider)
+	networkMonitor := networkmonitor.NewNetworkMonitor(logManagerModule.CreateLogger("network-monitor"), configModule, clientProvider, configModule.Get("MO_HOST_PROC_PATH"))
 
 	// golang package setups are deprecated and will be removed in the future by migrating all state to services
 	helm.Setup(logManagerModule, configModule, valkeyClient)
-	err := mokubernetes.Setup(logManagerModule, configModule, watcherModule, clientProvider, valkeyClient)
+	err := kubernetes.Setup(logManagerModule, configModule, clientProvider, valkeyClient)
 	assert.Assert(err == nil, err)
 	controllers.Setup(logManagerModule, configModule)
 	dtos.Setup(logManagerModule)
@@ -445,10 +520,18 @@ func InitializeSystems(
 	xtermService := core.NewXtermService(logManagerModule.CreateLogger("xterm-service"))
 	valkeyLoggerService := core.NewValkeyLogger(valkeyClient, valkeyLogChannel)
 	dbstatsService := core.NewValkeyStatsModule(logManagerModule.CreateLogger("db-stats"), configModule, valkeyClient)
-	podStatsCollector := core.NewPodStatsCollector(logManagerModule.CreateLogger("pod-stats-collector"), configModule, clientProvider, dbstatsService)
+	podStatsCollector := core.NewPodStatsCollector(logManagerModule.CreateLogger("pod-stats-collector"), configModule, clientProvider)
+	nodeMetricsCollector := core.NewNodeMetricsCollector(logManagerModule.CreateLogger("traffic-collector"), configModule, clientProvider, cpuMonitor, ramMonitor, networkMonitor)
+	moKubernetes := core.NewMoKubernetes(logManagerModule.CreateLogger("mokubernetes"), configModule, clientProvider)
+	mocore := core.NewCore(logManagerModule.CreateLogger("core"), configModule, clientProvider, valkeyClient, eventConnectionClient, jobConnectionClient)
+	leaderElector := core.NewLeaderElector(logManagerModule.CreateLogger("leader-elector"), configModule, clientProvider)
 
 	// initialization step 2 for services
-	socketApi.Link(httpApi, xtermService, dbstatsService, apiModule)
+	mocore.Link(moKubernetes)
+	podStatsCollector.Link(dbstatsService)
+	nodeMetricsCollector.Link(dbstatsService, leaderElector)
+	socketApi.Link(httpApi, xtermService, dbstatsService, apiModule, moKubernetes)
+	moKubernetes.Link(dbstatsService)
 	httpApi.Link(socketApi, dbstatsService, apiModule)
 	apiModule.Link(workspaceManager)
 
@@ -459,6 +542,9 @@ func InitializeSystems(
 		jobConnectionClient,
 		eventConnectionClient,
 		valkeyClient,
+		networkMonitor,
+		mocore,
+		moKubernetes,
 		workspaceManager,
 		apiModule,
 		socketApi,
@@ -466,7 +552,9 @@ func InitializeSystems(
 		xtermService,
 		valkeyLoggerService,
 		podStatsCollector,
+		nodeMetricsCollector,
 		dbstatsService,
+		leaderElector,
 	}
 }
 
@@ -477,6 +565,9 @@ type systems struct {
 	jobConnectionClient   websocket.WebsocketClient
 	eventConnectionClient websocket.WebsocketClient
 	valkeyClient          valkeyclient.ValkeyClient
+	networkmonitor        networkmonitor.NetworkMonitor
+	core                  core.Core
+	moKubernetes          core.MoKubernetes
 	workspaceManager      core.WorkspaceManager
 	apiModule             core.Api
 	socketApi             core.SocketApi
@@ -484,5 +575,7 @@ type systems struct {
 	xtermService          core.XtermService
 	valkeyLoggerService   core.ValkeyLogger
 	podStatsCollector     core.PodStatsCollector
+	nodeMetricsCollector  core.NodeMetricsCollector
 	dbstatsService        core.ValkeyStatsDb
+	leaderElector         core.LeaderElector
 }

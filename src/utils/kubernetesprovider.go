@@ -52,6 +52,7 @@ const (
 	SPECTROCLOUD                 KubernetesProvider = "SPECTROCLOUD"                 // Spectro Cloud Kubernetes
 	DIAMANTI                     KubernetesProvider = "DIAMANTI"                     // Diamanti Kubernetes
 	PLUSSERVER                   KubernetesProvider = "plusserver"                   // plusserver Kubernetes Engine (PSKE)
+	VANILLA_K8S                  KubernetesProvider = "Vanilla K8S"                  // Vanilla Kubernetes
 )
 
 var ALL_PROVIDER []string = []string{

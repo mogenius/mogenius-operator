@@ -5,12 +5,11 @@ import (
 	json1 "encoding/json"
 	"fmt"
 	"mogenius-k8s-manager/src/assert"
+	cfg "mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/shutdown"
-	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/version"
-	"net"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -18,7 +17,7 @@ import (
 	"time"
 
 	version2 "k8s.io/apimachinery/pkg/version"
-	"k8s.io/metrics/pkg/apis/metrics/v1beta1"
+	metricsv1beta1 "k8s.io/metrics/pkg/apis/metrics/v1beta1"
 	"sigs.k8s.io/yaml"
 
 	v1 "k8s.io/api/apps/v1"
@@ -34,7 +33,6 @@ import (
 )
 
 var (
-	DEPLOYMENTNAME  = "mogenius-k8s-manager"
 	DEPLOYMENTIMAGE = "ghcr.io/mogenius/mogenius-k8s-manager:" + version.Ver
 
 	SERVICEACCOUNTNAME     = "mogenius-k8s-manager-service-account-app"
@@ -176,19 +174,23 @@ func KubernetesVersion() *version2.Info {
 	return info
 }
 
-func MoCreateOptions() metav1.CreateOptions {
+func MoCreateOptions(config cfg.ConfigModule) metav1.CreateOptions {
 	return metav1.CreateOptions{
-		FieldManager: DEPLOYMENTNAME,
+		FieldManager: GetOwnDeploymentName(config),
 	}
 }
 
-func MoUpdateOptions() metav1.UpdateOptions {
+func MoUpdateOptions(config cfg.ConfigModule) metav1.UpdateOptions {
 	return metav1.UpdateOptions{
-		FieldManager: DEPLOYMENTNAME,
+		FieldManager: GetOwnDeploymentName(config),
 	}
 }
 
-func MoUpdateLabels(labels *map[string]string, projectId *string, namespace *dtos.K8sNamespaceDto, service *dtos.K8sServiceDto) map[string]string {
+func GetOwnDeploymentName(config cfg.ConfigModule) string {
+	return config.Get("OWN_DEPLOYMENT_NAME")
+}
+
+func MoUpdateLabels(labels *map[string]string, projectId *string, namespace *dtos.K8sNamespaceDto, service *dtos.K8sServiceDto, config cfg.ConfigModule) map[string]string {
 	resultingLabels := map[string]string{}
 
 	// transfer existing values
@@ -199,7 +201,7 @@ func MoUpdateLabels(labels *map[string]string, projectId *string, namespace *dto
 	}
 
 	// populate with mo labels
-	resultingLabels[MO_LABEL_CREATED_BY] = DEPLOYMENTNAME
+	resultingLabels[MO_LABEL_CREATED_BY] = GetOwnDeploymentName(config)
 	if service != nil {
 		resultingLabels[MO_LABEL_APP_NAME] = service.ControllerName
 	}
@@ -311,17 +313,17 @@ func GetCustomDeploymentTemplate() *v1.Deployment {
 	}
 }
 
-func ListNodeMetricss() []v1beta1.NodeMetrics {
+func ListNodeMetricss() []metricsv1beta1.NodeMetrics {
 	provider, err := NewKubeProviderMetrics()
 	if provider == nil || err != nil {
 		k8sLogger.Error("ListNodeMetricss", "error", err.Error())
-		return []v1beta1.NodeMetrics{}
+		return []metricsv1beta1.NodeMetrics{}
 	}
 
 	nodeMetricsList, err := provider.ClientSet.MetricsV1beta1().NodeMetricses().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		k8sLogger.Error("ListNodeMetrics", "error", err.Error())
-		return []v1beta1.NodeMetrics{}
+		return []metricsv1beta1.NodeMetrics{}
 	}
 	return nodeMetricsList.Items
 }
@@ -369,55 +371,16 @@ func StorageClassForClusterProvider(clusterProvider utils.KubernetesProvider) st
 	return nfsStorageClassStr
 }
 
-func GatherNamesForIps(ips []string) map[string]string {
-	result := map[string]string{}
-	pods := AllPods("")
-	services := AllServices("")
-
-outerLoop:
-	for _, ip := range ips {
-		owner := ""
-		for _, pod := range pods {
-			if pod.Status.PodIP == ip {
-				if len(pod.OwnerReferences) > 0 {
-					owner = fmt.Sprintf("/%s/%s", pod.OwnerReferences[0].Kind, pod.OwnerReferences[0].Name)
-				}
-				result[ip] = fmt.Sprintf("%s/%s%s", pod.Namespace, pod.Name, owner)
-				continue outerLoop
-			}
-		}
-		for _, service := range services {
-			if service.Spec.ClusterIP == ip {
-				if len(service.OwnerReferences) > 0 {
-					owner = fmt.Sprintf("/%s/%s", service.OwnerReferences[0].Kind, service.OwnerReferences[0].Name)
-				}
-				result[ip] = fmt.Sprintf("%s/%s%s", service.Namespace, service.Name, owner)
-				continue outerLoop
-			}
-		}
-		parsedIP := net.ParseIP(ip)
-		if parsedIP != nil {
-			if !parsedIP.IsPrivate() {
-				result[ip] = "@External"
-				continue outerLoop
-			}
-		}
-
-		result[ip] = ""
-	}
-	return result
-}
-
 func GetLabelValue(labels map[string]string, labelKey string) (string, error) {
 	if labels == nil {
-		return "", fmt.Errorf("Labels are nil")
+		return "", fmt.Errorf("labels are nil")
 	}
 
 	if val, ok := labels[labelKey]; ok {
 		return val, nil
 	}
 
-	return "", fmt.Errorf("Label value for key:'%s' not found", labelKey)
+	return "", fmt.Errorf("label value for key:'%s' not found", labelKey)
 }
 
 func ContainsLabelKey(labels map[string]string, key string) bool {
@@ -427,36 +390,6 @@ func ContainsLabelKey(labels map[string]string, key string) bool {
 
 	_, ok := labels[key]
 	return ok
-}
-
-func FindResourceKind(namespace string, name string) (*dtos.K8sServiceControllerEnum, error) {
-	clientset := clientProvider.K8sClientSet()
-
-	if _, err := clientset.AppsV1().Deployments(namespace).Get(context.TODO(), name, metav1.GetOptions{}); err == nil {
-		return utils.Pointer(dtos.DEPLOYMENT), nil
-	}
-
-	if _, err := clientset.AppsV1().ReplicaSets(namespace).Get(context.TODO(), name, metav1.GetOptions{}); err == nil {
-		return utils.Pointer(dtos.REPLICA_SET), nil
-	}
-
-	if _, err := clientset.AppsV1().StatefulSets(namespace).Get(context.TODO(), name, metav1.GetOptions{}); err == nil {
-		return utils.Pointer(dtos.STATEFUL_SET), nil
-	}
-
-	if _, err := clientset.AppsV1().DaemonSets(namespace).Get(context.TODO(), name, metav1.GetOptions{}); err == nil {
-		return utils.Pointer(dtos.DAEMON_SET), nil
-	}
-
-	if _, err := clientset.BatchV1().Jobs(namespace).Get(context.TODO(), name, metav1.GetOptions{}); err == nil {
-		return utils.Pointer(dtos.JOB), nil
-	}
-
-	if _, err := clientset.BatchV1beta1().CronJobs(namespace).Get(context.TODO(), name, metav1.GetOptions{}); err == nil {
-		return utils.Pointer(dtos.CRON_JOB), nil
-	}
-
-	return nil, fmt.Errorf("Resource not found")
 }
 
 func GuessClusterProvider() (utils.KubernetesProvider, error) {
@@ -548,8 +481,8 @@ func GuessCluserProviderFromNodeList(nodes *core.NodeList) (utils.KubernetesProv
 		} else if ImagesContain(node.Status.Images, "pluscloudopen") {
 			return utils.PLUSSERVER, nil
 		} else {
-			k8sLogger.Error("This cluster's provider is unknown or it might be self-managed.")
-			return utils.UNKNOWN, nil
+			k8sLogger.Info("This cluster's provider is unknown. Falling back to vanilla K8S.")
+			return utils.VANILLA_K8S, nil
 		}
 	}
 	return utils.UNKNOWN, nil
@@ -583,100 +516,6 @@ func LabelsContain(labels map[string]string, str string) bool {
 		}
 	}
 	return false
-}
-
-func ClusterStatus() dtos.ClusterStatusDto {
-	var currentPods = make(map[string]core.Pod)
-	pods := AllPods("")
-	for _, pod := range pods {
-		currentPods[pod.Name] = pod
-	}
-
-	result, err := PodStats(currentPods)
-	if err != nil {
-		k8sLogger.Error("podStats:", "error", err)
-	}
-
-	var cpu int64 = 0
-	var cpuLimit int64 = 0
-	var memory int64 = 0
-	var memoryLimit int64 = 0
-	var ephemeralStorageLimit int64 = 0
-	for _, pod := range result {
-		cpu += pod.Cpu
-		cpuLimit += pod.CpuLimit
-		memory += pod.Memory
-		memoryLimit += pod.MemoryLimit
-		ephemeralStorageLimit += pod.EphemeralStorageLimit
-	}
-
-	kubernetesVersion := ""
-	platform := ""
-
-	info := KubernetesVersion()
-	if info != nil {
-		kubernetesVersion = info.String()
-		platform = info.Platform
-	}
-
-	country, err := utils.GuessClusterCountry()
-	if err != nil {
-		k8sLogger.Error("GuessClusterCountry: ", "error", err)
-	}
-
-	return dtos.ClusterStatusDto{
-		ClusterName:                  config.Get("MO_CLUSTER_NAME"),
-		Pods:                         len(result),
-		PodCpuUsageInMilliCores:      int(cpu),
-		PodCpuLimitInMilliCores:      int(cpuLimit),
-		PodMemoryUsageInBytes:        memory,
-		PodMemoryLimitInBytes:        memoryLimit,
-		EphemeralStorageLimitInBytes: ephemeralStorageLimit,
-		KubernetesVersion:            kubernetesVersion,
-		Platform:                     platform,
-		Country:                      country,
-	}
-}
-
-func PodStats(pods map[string]core.Pod) ([]structs.Stats, error) {
-	provider, err := NewKubeProviderMetrics()
-	if provider == nil || err != nil {
-		k8sLogger.Error(err.Error())
-		return []structs.Stats{}, err
-	}
-
-	podMetricsList, err := provider.ClientSet.MetricsV1beta1().PodMetricses("").List(context.TODO(), metav1.ListOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	var result []structs.Stats
-	// I HATE THIS BUT I DONT SEE ANY OTHER SOLUTION! SPEND HOURS (to find something better) ON THIS UGGLY SHIT!!!!
-
-	for _, podMetrics := range podMetricsList.Items {
-		var pod = pods[podMetrics.Name]
-
-		var entry = structs.Stats{}
-		entry.Cluster = config.Get("MO_CLUSTER_NAME")
-		entry.Namespace = podMetrics.Namespace
-		entry.PodName = podMetrics.Name
-		if pod.Status.StartTime != nil {
-			entry.StartTime = pod.Status.StartTime.Format(time.RFC3339)
-		}
-		for _, container := range pod.Spec.Containers {
-			entry.CpuLimit += container.Resources.Limits.Cpu().MilliValue()
-			entry.MemoryLimit += container.Resources.Limits.Memory().Value()
-			entry.EphemeralStorageLimit += container.Resources.Limits.StorageEphemeral().Value()
-		}
-		for _, containerMetric := range podMetrics.Containers {
-			entry.Cpu += containerMetric.Usage.Cpu().MilliValue()
-			entry.Memory += containerMetric.Usage.Memory().Value()
-		}
-
-		result = append(result, entry)
-	}
-
-	return result, nil
 }
 
 func AllResourcesFrom(namespace string, resourcesToLookFor []string) ([]interface{}, error) {
@@ -797,6 +636,12 @@ func IsMetricsServerAvailable() (bool, string, error) {
 				}
 				return true, deployment.Spec.Template.Spec.Containers[0].Image, nil
 			}
+		}
+		if deployment.Name == "metrics-server" {
+			if deployment.Status.UnavailableReplicas > 0 {
+				return false, "", fmt.Errorf("metrics-server installed but not running")
+			}
+			return true, deployment.Spec.Template.Spec.Containers[0].Image, nil
 		}
 	}
 

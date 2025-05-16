@@ -2,8 +2,6 @@ package utils
 
 import (
 	_ "embed"
-
-	"gopkg.in/yaml.v3"
 )
 
 const HELM_INDEX string = "https://helm.mogenius.com/public/index.yaml"
@@ -11,22 +9,9 @@ const NFS_POD_PREFIX string = "nfs-server-pod"
 
 // This object will initially created in secrets when the software is installed into the cluster for the first time (resource: secret -> mogenius/mogenius)
 type ClusterSecret struct {
-	ApiKey             string
-	ClusterMfaId       string
-	ClusterName        string
-	SyncRepoUrl        string
-	SyncRepoPat        string
-	SyncRepoBranch     string
-	SyncAllowPull      bool
-	SyncAllowPush      bool
-	SyncFrequencyInSec int
-}
-
-type ClusterConfigmap struct {
-	SyncWorkloads      []SyncResourceEntry
-	AvailableWorkloads []SyncResourceEntry
-	IgnoredNamespaces  []string
-	IgnoredNames       []string
+	ApiKey       string
+	ClusterMfaId string
+	ClusterName  string
 }
 
 type SyncResourceEntry struct {
@@ -55,34 +40,8 @@ type SyncResourceItem struct {
 	Namespace    string `json:"namespace"`
 }
 
-func ToYaml(data interface{}) (string, error) {
-	bytes, err := yaml.Marshal(data)
-	if err != nil {
-		return "", err
-	}
-
-	return string(bytes), nil
-}
-
 const STAGE_DEV = "dev"
 const STAGE_PROD = "prod"
 const STAGE_LOCAL = "local"
 
 var ClusterProviderCached KubernetesProvider = UNKNOWN
-
-func SetupClusterSecret(clusterSecret ClusterSecret) {
-	if clusterSecret.ClusterMfaId != "" {
-		err := config.TrySet("MO_API_KEY", clusterSecret.ApiKey)
-		if err != nil {
-			utilsLogger.Debug("failed to set MO_API_KEY", "error", err)
-		}
-		err = config.TrySet("MO_CLUSTER_NAME", clusterSecret.ClusterName)
-		if err != nil {
-			utilsLogger.Debug("failed to set MO_CLUSTER_NAME", "error", err)
-		}
-		err = config.TrySet("MO_CLUSTER_MFA_ID", clusterSecret.ClusterMfaId)
-		if err != nil {
-			utilsLogger.Debug("failed to set MO_CLUSTER_MFA_ID", "error", err)
-		}
-	}
-}

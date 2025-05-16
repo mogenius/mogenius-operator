@@ -3,7 +3,6 @@ package kubernetes
 import (
 	"context"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/structs"
@@ -36,45 +35,6 @@ func AllSecrets(namespaceName string) []v1.Secret {
 
 	}
 	return result
-}
-
-func CreateSecret(namespace string, secret *v1.Secret) (*v1.Secret, error) {
-	if secret == nil {
-		var err error
-		secret, err = exampleSecret(namespace)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	clientset := clientProvider.K8sClientSet()
-	return clientset.CoreV1().Secrets(namespace).Create(context.TODO(), secret, MoCreateOptions())
-}
-
-func exampleSecret(namespace string) (*v1.Secret, error) {
-	jsonData := map[string]string{
-		"key1": "value1",
-		"key2": "value2",
-		"key3": "value3",
-	}
-
-	jsonString, err := json.Marshal(jsonData)
-	if err != nil {
-		return nil, err
-	}
-	// encodedJson := base64.StdEncoding.EncodeToString(jsonString)
-	return &v1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "customer-blue-backend-project-vault-secret-list",
-			Namespace: namespace,
-		},
-		Type: v1.SecretTypeOpaque,
-		Data: map[string][]byte{
-			"project001":      []byte(jsonString),
-			"backend-project": []byte(jsonString),
-		},
-	}, nil
-
 }
 
 func GetDecodedSecret(secretName string, namespace string) (map[string]string, error) {
@@ -127,7 +87,7 @@ func CreateOrUpdateClusterImagePullSecret(eventClient websocket.WebsocketClient,
 		secret := utils.InitContainerSecret()
 		secret.ObjectMeta.Name = secretName
 		secret.ObjectMeta.Namespace = namespace.Name
-		secret.Labels = MoUpdateLabels(&secret.Labels, nil, nil, nil)
+		secret.Labels = MoUpdateLabels(&secret.Labels, nil, nil, nil, config)
 
 		secretStringData := make(map[string]string)
 
@@ -139,13 +99,13 @@ func CreateOrUpdateClusterImagePullSecret(eventClient websocket.WebsocketClient,
 		secret.StringData = secretStringData
 
 		// Check if exists
-		_, err := secretClient.Update(context.TODO(), &secret, MoUpdateOptions())
+		_, err := secretClient.Update(context.TODO(), &secret, MoUpdateOptions(config))
 		if err == nil {
 			// UPDATED
 			cmd.Success(eventClient, job, "Created Cluster ImagePullSecret")
 		} else {
 			if apierrors.IsNotFound(err) {
-				_, err = secretClient.Create(context.TODO(), &secret, MoCreateOptions())
+				_, err = secretClient.Create(context.TODO(), &secret, MoCreateOptions(config))
 				if err != nil {
 					cmd.Fail(eventClient, job, fmt.Sprintf("CreateOrUpdateClusterImagePullSecret (create) ERROR: %s", err.Error()))
 				} else {
@@ -212,16 +172,16 @@ func CreateOrUpdateContainerImagePullSecret(eventClient websocket.WebsocketClien
 		secretStringData[".dockerconfigjson"] = *service.GetImageRepoSecretDecryptValue()
 		secret.StringData = secretStringData
 
-		secret.Labels = MoUpdateLabels(&secret.Labels, nil, nil, nil)
+		secret.Labels = MoUpdateLabels(&secret.Labels, nil, nil, nil, config)
 
 		// Check if exists
-		_, err := secretClient.Update(context.TODO(), &secret, MoUpdateOptions())
+		_, err := secretClient.Update(context.TODO(), &secret, MoUpdateOptions(config))
 		if err == nil {
 			// UPDATED
 			cmd.Success(eventClient, job, "Created Container ImagePullSecret")
 		} else {
 			if apierrors.IsNotFound(err) {
-				_, err = secretClient.Create(context.TODO(), &secret, MoCreateOptions())
+				_, err = secretClient.Create(context.TODO(), &secret, MoCreateOptions(config))
 				if err != nil {
 					cmd.Fail(eventClient, job, fmt.Sprintf("CreateOrUpdateContainerImagePullSecret (create) ERROR: %s", err.Error()))
 				} else {
@@ -327,10 +287,10 @@ func UpdateOrCreateControllerSecret(eventClient websocket.WebsocketClient, job *
 			return
 		}
 
-		_, err := secretClient.Update(context.TODO(), &secret, MoUpdateOptions())
+		_, err := secretClient.Update(context.TODO(), &secret, MoUpdateOptions(config))
 		if err != nil {
 			if apierrors.IsNotFound(err) {
-				_, err = secretClient.Create(context.TODO(), &secret, MoCreateOptions())
+				_, err = secretClient.Create(context.TODO(), &secret, MoCreateOptions(config))
 				if err != nil {
 					cmd.Fail(eventClient, job, fmt.Sprintf("UpdateOrCreateControllerSecrete ERROR: %s", err.Error()))
 				} else {

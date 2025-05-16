@@ -13,6 +13,7 @@ import (
 	v1 "k8s.io/api/networking/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 const (
@@ -91,7 +92,7 @@ func UpdateIngress(eventClient websocket.WebsocketClient, job *structs.Job, name
 			ingressToUpdate = existingIngress.DeepCopy()
 		}
 
-		ingressToUpdate.Labels = MoUpdateLabels(&ingressToUpdate.Labels, &job.ProjectId, &namespace, &service)
+		ingressToUpdate.Labels = MoUpdateLabels(&ingressToUpdate.Labels, &job.ProjectId, &namespace, &service, config)
 		ingressToUpdate.Annotations = loadDefaultAnnotations() // TODO MERGE MAPS INSTEAD OF OVERWRITE
 
 		if IsLocalClusterSetup() {
@@ -139,7 +140,7 @@ func UpdateIngress(eventClient websocket.WebsocketClient, job *structs.Job, name
 
 			// 2. ALL CNAMES
 			for _, cname := range port.CNames {
-				ingressToUpdate.Spec.Rules = append(ingressToUpdate.Spec.Rules, *createIngressRule(cname.CName, service.ControllerName, int32(port.InternalPort)))
+				ingressToUpdate.Spec.Rules = append(ingressToUpdate.Spec.Rules, *createIngressRule(cname.CName, service.ControllerName, intstr.Parse(port.InternalPort).IntVal))
 				if cname.AddToTlsHosts {
 					tlsHosts = append(tlsHosts, cname.CName)
 				}
@@ -194,7 +195,7 @@ func UpdateIngress(eventClient websocket.WebsocketClient, job *structs.Job, name
 				cmd.Success(eventClient, job, fmt.Sprintf("Ingress '%s' deleted (not needed anymore)", ingressName))
 			} else {
 				// create
-				_, err := ingressClient.Create(context.TODO(), ingressToUpdate, metav1.CreateOptions{FieldManager: DEPLOYMENTNAME})
+				_, err := ingressClient.Create(context.TODO(), ingressToUpdate, metav1.CreateOptions{FieldManager: GetOwnDeploymentName(config)})
 				if err != nil {
 					cmd.Fail(eventClient, job, fmt.Sprintf("Create Ingress ERROR: %s", err.Error()))
 					return

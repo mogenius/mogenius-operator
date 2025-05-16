@@ -8,6 +8,8 @@ import (
 	"time"
 )
 
+// TODO: @daniel -> use channels and goroutine-local queue instead
+
 type EventData struct {
 	Datagram   Datagram
 	K8sKind    string
@@ -20,6 +22,7 @@ type EventData struct {
 const RETRYTIMEOUT time.Duration = 3
 
 var eventDataQueue []EventData = []EventData{}
+var eventDataQueueMutex sync.Mutex
 var eventSendMutex sync.Mutex
 var eventConnectionGuard = make(chan struct{}, 1)
 
@@ -75,7 +78,9 @@ func EventServerSendData(eventClient websocket.WebsocketClient, datagram Datagra
 		Count:      count,
 		EventType:  eventType,
 	}
+	eventDataQueueMutex.Lock()
 	eventDataQueue = append(eventDataQueue, data)
+	eventDataQueueMutex.Unlock()
 	processEventQueueNow(eventClient)
 }
 
@@ -87,11 +92,14 @@ func processEventQueueNow(eventClient websocket.WebsocketClient) {
 		element := eventDataQueue[i]
 
 		err := eventClient.WriteJSON(element.Datagram)
-		if err == nil {
-			eventDataQueue = RemoveEventIndex(eventDataQueue, i)
-		} else {
+		if err != nil {
 			structsLogger.Error("Error sending data to EventServer", "error", err)
+			continue
 		}
+
+		eventDataQueueMutex.Lock()
+		eventDataQueue = RemoveEventIndex(eventDataQueue, i)
+		eventDataQueueMutex.Unlock()
 	}
 }
 

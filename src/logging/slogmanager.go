@@ -12,6 +12,7 @@ import (
 	"runtime"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	jsoniter "github.com/json-iterator/go"
@@ -21,9 +22,6 @@ import (
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 const combinedLogComponentName = "all"
-const logfileMaxBackups int = 10
-const logfileMaxSize int = 10
-const logfileCompress bool = true
 
 type SlogManager interface {
 	// Get the pointer to an existing logger by its componentId
@@ -193,30 +191,41 @@ func (self *SlogMultiHandler) AddHandler(handler slog.Handler) {
 }
 
 func (self *SlogMultiHandler) Enabled(ctx context.Context, level slog.Level) bool {
-	var enabled *bool
 	for _, handler := range self.inner {
-		if enabled != nil {
-			assert.Assert(*enabled == handler.Enabled(ctx, level))
-			continue
+		if handler.Enabled(ctx, level) {
+			return true
 		}
-
-		handlerEnabled := handler.Enabled(ctx, level)
-		enabled = &handlerEnabled
 	}
-
-	if enabled != nil {
-		return *enabled
-	}
-
 	return false
 }
 
 func (self *SlogMultiHandler) Handle(ctx context.Context, record slog.Record) error {
+	errors := []error{}
+	errorLock := sync.Mutex{}
+
+	var wg sync.WaitGroup
 	for _, handler := range self.inner {
-		err := handler.Handle(ctx, record)
-		if err != nil {
-			return err
+		if handler.Enabled(ctx, record.Level) {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				err := handler.Handle(ctx, record)
+				if err != nil {
+					errorLock.Lock()
+					errors = append(errors, err)
+					errorLock.Unlock()
+				}
+			}()
 		}
+	}
+	wg.Wait()
+
+	if len(errors) > 0 {
+		errorMessages := []string{}
+		for _, err := range errors {
+			errorMessages = append(errorMessages, err.Error())
+		}
+		return fmt.Errorf("Failed to dispatch all log messages. Enountered %d errors: %#v", len(errors), errorMessages)
 	}
 
 	return nil
@@ -285,6 +294,9 @@ func (self *PrettyPrintHandler) Enabled(ctx context.Context, level slog.Level) b
 }
 
 func (self *PrettyPrintHandler) Handle(ctx context.Context, record slog.Record) error {
+	if !self.Enabled(ctx, record.Level) {
+		return nil
+	}
 	component, err := self.getComponent()
 	assert.Assert(err == nil, "the SlogManager enforces an component attribute to exist", err)
 
@@ -295,7 +307,7 @@ func (self *PrettyPrintHandler) Handle(ctx context.Context, record slog.Record) 
 
 	logLine := LogLine{}
 
-	logLine.Level = record.Level.String()
+	logLine.Level = strings.Split(record.Level.String(), "+")[0]
 	logLine.Component = component
 	logLine.Scope = self.tryGetScope()
 	logLine.Source = slogRecordToSourceString(record)
@@ -454,6 +466,9 @@ func (self *RecordChannelHandler) Enabled(ctx context.Context, level slog.Level)
 }
 
 func (self *RecordChannelHandler) Handle(ctx context.Context, record slog.Record) error {
+	if !self.Enabled(ctx, record.Level) {
+		return nil
+	}
 	record.Attrs(func(attr slog.Attr) bool {
 		str, ok := attr.Value.Any().(string)
 		if ok && self.filterFunc != nil {
@@ -477,7 +492,7 @@ func (self *RecordChannelHandler) Handle(ctx context.Context, record slog.Record
 
 	if len(self.recordChannelTx) >= self.buffersize {
 		fmt.Fprintf(os.Stderr, "[WARNING] Logline buffer exhausted. Dropping the oldest entry.\n")
-		_ = <-self.recordChannelTx
+		<-self.recordChannelTx
 	}
 	self.recordChannelTx <- logLine
 

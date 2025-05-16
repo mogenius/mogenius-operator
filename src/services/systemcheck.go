@@ -304,92 +304,6 @@ func SystemCheck() SystemCheckResponse {
 		return clusterIssuerEntry
 	})
 
-	// check for trafficcollector
-	wg.Add(1)
-	go SysCheckExec("CheckTrafficCollector", &wg, &entries, func() SystemCheckEntry {
-		trafficCollectorNewestVersion, err := GetCurrentTrafficCollectorVersion()
-		if err != nil {
-			serviceLogger.Error("getCurrentTrafficCollectorVersion", "error", err)
-		}
-		trafficCollectorVersion, trafficCollectorInstalledErr := kubernetes.IsDaemonSetInstalled(config.Get("MO_OWN_NAMESPACE"), utils.HelmReleaseNameTrafficCollector)
-		if trafficCollectorVersion == "" && trafficCollectorInstalledErr == nil {
-			trafficCollectorVersion = "6.6.6" // flag local version without tag
-		}
-		trafficMsg := fmt.Sprintf("%s (Version: %s) is installed.", utils.HelmReleaseNameTrafficCollector, trafficCollectorVersion)
-		trafficEntry := CreateSystemCheckEntry(
-			utils.HelmReleaseNameTrafficCollector,
-			trafficCollectorInstalledErr == nil,
-			trafficMsg,
-			fmt.Sprintf("%s is not installed.\nTo gather traffic information you need to install this component.", utils.HelmReleaseNameTrafficCollector),
-			trafficCollectorInstalledErr,
-			"Collects and exposes detailed traffic data for your mogenius services for better monitoring.",
-			true,
-			true,
-			trafficCollectorVersion,
-			trafficCollectorNewestVersion)
-		trafficEntry.InstallPattern = structs.PAT_INSTALL_TRAFFIC_COLLECTOR
-		trafficEntry.UninstallPattern = structs.PAT_UNINSTALL_TRAFFIC_COLLECTOR
-		trafficEntry.UpgradePattern = structs.PAT_UPGRADE_TRAFFIC_COLLECTOR
-		trafficEntry.HelmStatus = helm.HelmStatus(config.Get("MO_OWN_NAMESPACE"), utils.HelmReleaseNameTrafficCollector)
-		return trafficEntry
-	})
-
-	// check for distribution registry
-	wg.Add(1)
-	go SysCheckExec("CheckDistributionRegistry", &wg, &entries, func() SystemCheckEntry {
-		distributionRegistryName := "distribution-registry-docker-registry"
-		distriRegistryVersion, distriRegistryInstalledErr := kubernetes.IsDeploymentInstalled(config.Get("MO_OWN_NAMESPACE"), distributionRegistryName)
-		distriRegistryMsg := fmt.Sprintf("%s (Version: %s) is installed.", distributionRegistryName, distriRegistryVersion)
-		currentDistriRegistryVersion := getMostCurrentHelmChartVersion(ContainerRegistryHelmIndex, "docker-registry")
-		distriEntry := CreateSystemCheckEntry(
-			NameInternalContainerRegistry,
-			distriRegistryInstalledErr == nil,
-			distriRegistryMsg,
-			fmt.Sprintf("%s is not installed.\nTo have a private container registry running inside your cluster, you need to install this component.", distributionRegistryName),
-			distriRegistryInstalledErr,
-			"A Docker-based container registry inside Kubernetes.",
-			false,
-			true,
-			distriRegistryVersion,
-			currentDistriRegistryVersion)
-		distriEntry.InstallPattern = structs.PAT_INSTALL_CONTAINER_REGISTRY
-		distriEntry.UninstallPattern = structs.PAT_UNINSTALL_CONTAINER_REGISTRY
-		distriEntry.UpgradePattern = "" // structs.PAT_UPGRADE_CONTAINER_REGISTRY
-		distriEntry.HelmStatus = helm.HelmStatus(config.Get("MO_OWN_NAMESPACE"), utils.HelmReleaseNameDistributionRegistry)
-		return distriEntry
-	})
-
-	// check for external secrets
-	wg.Add(1)
-	go SysCheckExec("CheckExternalSecrets", &wg, &entries, func() SystemCheckEntry {
-		externalSecretsName := "external-secrets"
-		externalSecretsVersion, externalSecretsInstalledErr := kubernetes.IsDeploymentInstalled(config.Get("MO_OWN_NAMESPACE"), externalSecretsName)
-		externalSecretsMsg := fmt.Sprintf("%s (Version: %s) is installed.", externalSecretsName, externalSecretsVersion)
-		helmstatus := helm.HelmStatus(config.Get("MO_OWN_NAMESPACE"), utils.HelmReleaseNameExternalSecrets)
-		if helmstatus == release.StatusUnknown {
-			externalSecretsInstalledErr = nil
-			externalSecretsMsg = "External Secrets not installed."
-		}
-
-		currentExternalSecretsVersion := getMostCurrentHelmChartVersion(ExternalSecretsHelmIndex, "docker-registry")
-		externalSecretsEntry := CreateSystemCheckEntry(
-			NameExternalSecrets,
-			externalSecretsInstalledErr == nil && helmstatus != release.StatusUnknown,
-			externalSecretsMsg,
-			fmt.Sprintf("%s is not installed.\nTo load secrets from 3rd party vaults (e.g. e.g. Hashicorp Vault, AWS KMS or Azure Key Vault), you need to install this component.", externalSecretsName),
-			externalSecretsInstalledErr,
-			"A Docker-based External Secrets loader inside Kubernetes that allows you to connect to e.g. Hashicorp Vault, AWS KMS or Azure Key Vault",
-			false,
-			false,
-			externalSecretsVersion,
-			currentExternalSecretsVersion)
-		externalSecretsEntry.InstallPattern = structs.PAT_INSTALL_EXTERNAL_SECRETS
-		externalSecretsEntry.UninstallPattern = structs.PAT_UNINSTALL_EXTERNAL_SECRETS
-		externalSecretsEntry.UpgradePattern = "" // NONE?
-		externalSecretsEntry.HelmStatus = helmstatus
-		return externalSecretsEntry
-	})
-
 	// check for metallb
 	wg.Add(1)
 	go SysCheckExec("CheckMetalLb", &wg, &entries, func() SystemCheckEntry {
@@ -412,29 +326,6 @@ func SystemCheck() SystemCheckResponse {
 		metallbEntry.UpgradePattern = "" // structs.PAT_UPGRADE_METALLB
 		metallbEntry.HelmStatus = helm.HelmStatus(config.Get("MO_OWN_NAMESPACE"), utils.HelmReleaseNameMetalLb)
 		return metallbEntry
-	})
-
-	// check for local dev setup
-	wg.Add(1)
-	go SysCheckExec("CheckLocalDevSetup", &wg, &entries, func() SystemCheckEntry {
-		clusterIps := kubernetes.GetClusterExternalIps()
-		localDevEnvMsg := "Local development environment setup complete (192.168.66.1 found)."
-		contains192168661 := utils.Contains(clusterIps, "192.168.66.1")
-		if !contains192168661 {
-			localDevEnvMsg = "Local development environment not setup. Please run 'mocli cluster local-dev-setup' to setup your local environment."
-		}
-		localDevSetupEntry := CreateSystemCheckEntry(
-			NameLocalDevSetup,
-			contains192168661,
-			localDevEnvMsg,
-			"",
-			nil,
-			"",
-			false,
-			false,
-			"",
-			"")
-		return localDevSetupEntry
 	})
 
 	// check for nfs storage class
@@ -536,9 +427,7 @@ func UpdateSystemCheckStatusForClusterVendor(entries []SystemCheckEntry) []Syste
 
 	switch provider {
 	case utils.EKS, utils.AKS, utils.GKE, utils.DOKS, utils.OTC, utils.PLUSSERVER:
-		entries = deleteSystemCheckEntryByName(entries, NameMetricsServer)
 		entries = deleteSystemCheckEntryByName(entries, NameMetalLB)
-		entries = deleteSystemCheckEntryByName(entries, NameLocalDevSetup)
 	case utils.UNKNOWN:
 		serviceLogger.Warn("Unknown ClusterProvider. Not modifying anything in UpdateSystemCheckStatusForClusterVendor().")
 	}

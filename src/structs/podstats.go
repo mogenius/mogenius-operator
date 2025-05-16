@@ -16,15 +16,6 @@ type PodStats struct {
 	CreatedAt             string `json:"createdAt"`
 }
 
-func UnmarshalPodStats(dst *PodStats, data []byte) error {
-	var json = jsoniter.ConfigCompatibleWithStandardLibrary
-	err := json.Unmarshal(data, dst)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 func (data *PodStats) ToBytes() []byte {
 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	bytes, err := json.Marshal(data)
