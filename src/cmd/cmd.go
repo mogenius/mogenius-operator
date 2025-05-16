@@ -392,7 +392,22 @@ func LoadConfigDeclarations(configModule *config.Config) {
 			return nil
 		},
 	})
-
+	configModule.Declare(config.ConfigDeclaration{
+		Key:          "MO_SNOOPY_IMPLEMENTATION",
+		DefaultValue: utils.Pointer("auto"),
+		Description:  utils.Pointer("set which implementation for tracking network traffic should be used"),
+		Validate: func(value string) error {
+			allowedValues := []string{
+				"auto",    // choose the best option based on whats available on the machine
+				"snoopy",  // use snoopy to collect traffic data through eBPF
+				"procdev", // read traffic data from the linux proc device
+			}
+			if !slices.Contains(allowedValues, value) {
+				return fmt.Errorf("'MO_SNOOPY_IMPLEMENTATION' needs to be one of: %#v", allowedValues)
+			}
+			return nil
+		},
+	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "KUBERNETES_DEBUG",
 		DefaultValue: utils.Pointer("false"),
