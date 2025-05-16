@@ -20,11 +20,9 @@ import (
 
 type SnoopyManager interface {
 	Run()
-	// containerId: the primary id for which network interfaces are watched
-	// pid: a process id for initially connecting to the containerId -> if it dies snoopy stays connected to the containerId namespace
-	Register(podNamespace string, podName string, containerId ContainerId, pid ProcessId) error
-	Remove(containerId ContainerId) error
-	Metrics() map[ContainerId]ContainerInfo
+	Register(podInfo PodInfo) []error
+	Remove(podInfo PodInfo) []error
+	Metrics() map[PodInfoIdentifier]ContainerInfo
 	Status() SnoopyStatus
 	SetArgs(args SnoopyArgs)
 }
@@ -42,7 +40,7 @@ type snoopyManager struct {
 	statusRx chan SnoopyStatus
 
 	handlesLock *sync.RWMutex
-	handles     map[ContainerId]*SnoopyHandle
+	handles     map[PodInfoIdentifier]*SnoopyHandle
 }
 
 type SnoopyArgs struct {
@@ -125,9 +123,8 @@ type SnoopyStatusEvent struct {
 }
 
 type ContainerInfo struct {
-	PodName      string
-	PodNamespace string
-	Metrics      map[InterfaceName]MetricSnapshot
+	PodInfo PodInfo
+	Metrics map[InterfaceName]MetricSnapshot
 }
 
 type MetricSnapshot struct {
@@ -150,9 +147,8 @@ type SnoopyLogMessage struct {
 }
 
 type SnoopyHandle struct {
-	PodNamespace string
-	PodName      string
-	SnoopyPid    ProcessId
+	PodInfo   PodInfo
+	SnoopyPid ProcessId
 
 	StartBytesLock    *sync.RWMutex
 	IngressStartBytes map[InterfaceName]uint64
@@ -244,7 +240,7 @@ func NewSnoopyManager(logger *slog.Logger, config config.ConfigModule) SnoopyMan
 	self.logger = logger
 	self.config = config
 	self.handlesLock = &sync.RWMutex{}
-	self.handles = map[ContainerId]*SnoopyHandle{}
+	self.handles = map[PodInfoIdentifier]*SnoopyHandle{}
 
 	self.statusTx = make(chan struct{})
 	self.statusRx = make(chan SnoopyStatus)
@@ -272,7 +268,7 @@ func NewSnoopyManager(logger *slog.Logger, config config.ConfigModule) SnoopyMan
 
 	_, err := exec.LookPath("nsenter")
 	if err != nil {
-		self.logger.Error("failed to find snoopy in PATH")
+		self.logger.Error("failed to find nsenter in PATH")
 		shutdown.SendShutdownSignal(true)
 		select {}
 	}
@@ -448,21 +444,20 @@ func (self *snoopyManager) startStatusEventHandler() {
 	}
 }
 
-func (self *snoopyManager) Metrics() map[ContainerId]ContainerInfo {
-	data := map[ContainerId]ContainerInfo{}
+func (self *snoopyManager) Metrics() map[PodInfoIdentifier]ContainerInfo {
+	data := map[PodInfoIdentifier]ContainerInfo{}
 
 	self.handlesLock.RLock()
-	containerIds := []ContainerId{}
-	for containerId := range self.handles {
-		containerIds = append(containerIds, containerId)
+	podInfoIds := []PodInfoIdentifier{}
+	for podInfoId := range self.handles {
+		podInfoIds = append(podInfoIds, podInfoId)
 	}
-	slices.Sort(containerIds)
+	slices.Sort(podInfoIds)
 
-	for _, containerId := range containerIds {
-		handle := self.handles[containerId]
+	for _, podInfoId := range podInfoIds {
+		handle := self.handles[podInfoId]
 		containerInfo := ContainerInfo{}
-		containerInfo.PodNamespace = handle.PodNamespace
-		containerInfo.PodName = handle.PodName
+		containerInfo.PodInfo = handle.PodInfo
 		containerInfo.Metrics = map[InterfaceName]MetricSnapshot{}
 
 		interfaceNames := []InterfaceName{}
@@ -489,7 +484,7 @@ func (self *snoopyManager) Metrics() map[ContainerId]ContainerInfo {
 			containerInfo.Metrics[interfaceName] = interfaceInfo
 		}
 
-		data[containerId] = containerInfo
+		data[podInfoId] = containerInfo
 	}
 	self.handlesLock.RUnlock()
 
@@ -500,130 +495,138 @@ func (self *snoopyManager) SetArgs(args SnoopyArgs) {
 	self.args = args
 }
 
-func (self *snoopyManager) Register(podNamespace string, podName string, containerId ContainerId, nsProcessPid ProcessId) error {
-	assert.Assert(podNamespace != "", "podNamespace should not be empty")
-	assert.Assert(podName != "", "podName should not be empty")
-	assert.Assert(containerId != "", "containerId should not be empty")
-	assert.Assert(nsProcessPid != 0, "nsProcessPid should not be 0")
-
+func (self *snoopyManager) Register(podInfo PodInfo) []error {
 	procPath := self.config.Get("MO_HOST_PROC_PATH")
 
-	self.statusEventTx <- SnoopyStatusEvent{
-		Type: SnoopyStatusEventTypeRegisterRequest,
-		RegisterRequest: &SnoopyStatusEventRegisterRequest{
-			podNamespace,
-			podName,
-			containerId,
-			nsProcessPid,
-		},
-	}
-	handle, err := self.attachToPidNamespace(procPath, nsProcessPid)
-	if err != nil {
+	errors := []error{}
+	for containerId, pid := range podInfo.ContainersWithFirstPid() {
 		self.statusEventTx <- SnoopyStatusEvent{
-			Type: SnoopyStatusEventTypeRegisterFailure,
-			RegisterFailure: &SnoopyStatusEventRegisterFailure{
-				podNamespace,
-				podName,
+			Type: SnoopyStatusEventTypeRegisterRequest,
+			RegisterRequest: &SnoopyStatusEventRegisterRequest{
+				podInfo.Namespace,
+				podInfo.Name,
 				containerId,
-				nsProcessPid,
-				err,
+				pid,
 			},
 		}
-		return fmt.Errorf("failed to attach snoopy to containerId(%s) pid(%d): %v", containerId, nsProcessPid, err)
-	}
-	self.statusEventTx <- SnoopyStatusEvent{
-		Type: SnoopyStatusEventTypeRegisterSuccess,
-		RegisterSuccess: &SnoopyStatusEventRegisterSuccess{
-			podNamespace,
-			podName,
-			containerId,
-			nsProcessPid,
-			handle.SnoopyPid,
-		},
-	}
+		handle, err := self.attachToPidNamespace(procPath, pid)
+		if err != nil {
+			self.statusEventTx <- SnoopyStatusEvent{
+				Type: SnoopyStatusEventTypeRegisterFailure,
+				RegisterFailure: &SnoopyStatusEventRegisterFailure{
+					podInfo.Namespace,
+					podInfo.Name,
+					containerId,
+					pid,
+					err,
+				},
+			}
+			errors = append(errors, fmt.Errorf("failed to attach snoopy to containerId(%s) pid(%d): %v", containerId, pid, err))
+			continue
+		}
+		self.statusEventTx <- SnoopyStatusEvent{
+			Type: SnoopyStatusEventTypeRegisterSuccess,
+			RegisterSuccess: &SnoopyStatusEventRegisterSuccess{
+				podInfo.Namespace,
+				podInfo.Name,
+				containerId,
+				pid,
+				handle.SnoopyPid,
+			},
+		}
 
-	handle.PodNamespace = podNamespace
-	handle.PodName = podName
+		handle.PodInfo = podInfo
 
-	go func() {
-		for {
-			select {
-			case <-handle.Ctx.Done():
-				return
-			case logMessage := <-handle.Stderr:
-				switch logMessage.Level {
-				case "DEBUG":
-					self.logger.Debug("snoppy debug", "containerId", containerId, "snoopyPid", handle.SnoopyPid, "attachedProcessPid", nsProcessPid, "level", logMessage.Level, "target", logMessage.Target, "msg", logMessage.Message)
-				case "INFO":
-					self.logger.Info("snoppy info", "containerId", containerId, "snoopyPid", handle.SnoopyPid, "attachedProcessPid", nsProcessPid, "level", logMessage.Level, "target", logMessage.Target, "msg", logMessage.Message)
-				case "WARN":
-					self.logger.Warn("snoppy warning", "containerId", containerId, "snoopyPid", handle.SnoopyPid, "attachedProcessPid", nsProcessPid, "level", logMessage.Level, "target", logMessage.Target, "msg", logMessage.Message)
-				case "ERROR":
-					self.logger.Error("snoppy error", "containerId", containerId, "snoopyPid", handle.SnoopyPid, "attachedProcessPid", nsProcessPid, "level", logMessage.Level, "target", logMessage.Target, "msg", logMessage.Message)
-				}
-			case metrics := <-handle.Stdout:
-				self.statusEventTx <- SnoopyStatusEvent{
-					Type: SnoopyStatusEventTypeSnoopyEvent,
-					SnoopyEvent: &SnoopyStatusEventSnoopyEvent{
-						SnoopyPid:   handle.SnoopyPid,
-						SnoopyEvent: metrics,
-					},
-				}
-				switch metrics.Type {
-				case SnoopyEventTypeInterfaceAdded:
-					iface := metrics.InterfaceAdded.Interface.Name
-					rxBytes := self.readRxBytesFromPidAndInterface(procPath, nsProcessPid, iface)
-					txBytes := self.readTxBytesFromPidAndInterface(procPath, nsProcessPid, iface)
-					handle.StartBytesLock.Lock()
-					handle.IngressStartBytes[iface] = rxBytes
-					handle.EgressStartBytes[iface] = txBytes
-					handle.StartBytesLock.Unlock()
-				case SnoopyEventTypeInterfaceRemoved:
-					handle.StartBytesLock.Lock()
-					delete(handle.IngressStartBytes, metrics.InterfaceRemoved.Interface.Name)
-					delete(handle.EgressStartBytes, metrics.InterfaceRemoved.Interface.Name)
-					handle.StartBytesLock.Unlock()
-				case SnoopyEventTypeInterfaceChanged:
-					// ignore
-				case SnoopyEventTypeInterfaceMetrics:
-					handle.LastMetricsLock.Lock()
-					handle.LastMetrics[metrics.InterfaceMetric.Interface] = *metrics.InterfaceMetric
-					handle.LastMetricsLock.Unlock()
-				case SnoopyEventTypeInterfaceBpfInitialized:
-					// ignore
-				default:
-					self.logger.Warn("unknown metric type", "type", metrics.Type, "metric", metrics)
+		go func() {
+			for {
+				select {
+				case <-handle.Ctx.Done():
+					return
+				case logMessage := <-handle.Stderr:
+					switch logMessage.Level {
+					case "DEBUG":
+						self.logger.Debug("snoppy debug", "containerId", containerId, "snoopyPid", handle.SnoopyPid, "attachedProcessPid", pid, "level", logMessage.Level, "target", logMessage.Target, "msg", logMessage.Message)
+					case "INFO":
+						self.logger.Info("snoppy info", "containerId", containerId, "snoopyPid", handle.SnoopyPid, "attachedProcessPid", pid, "level", logMessage.Level, "target", logMessage.Target, "msg", logMessage.Message)
+					case "WARN":
+						self.logger.Warn("snoppy warning", "containerId", containerId, "snoopyPid", handle.SnoopyPid, "attachedProcessPid", pid, "level", logMessage.Level, "target", logMessage.Target, "msg", logMessage.Message)
+					case "ERROR":
+						self.logger.Error("snoppy error", "containerId", containerId, "snoopyPid", handle.SnoopyPid, "attachedProcessPid", pid, "level", logMessage.Level, "target", logMessage.Target, "msg", logMessage.Message)
+					}
+				case metrics := <-handle.Stdout:
+					self.statusEventTx <- SnoopyStatusEvent{
+						Type: SnoopyStatusEventTypeSnoopyEvent,
+						SnoopyEvent: &SnoopyStatusEventSnoopyEvent{
+							SnoopyPid:   handle.SnoopyPid,
+							SnoopyEvent: metrics,
+						},
+					}
+					switch metrics.Type {
+					case SnoopyEventTypeInterfaceAdded:
+						iface := metrics.InterfaceAdded.Interface.Name
+						rxBytes := self.readRxBytesFromPidAndInterface(procPath, pid, iface)
+						txBytes := self.readTxBytesFromPidAndInterface(procPath, pid, iface)
+						handle.StartBytesLock.Lock()
+						handle.IngressStartBytes[iface] = rxBytes
+						handle.EgressStartBytes[iface] = txBytes
+						handle.StartBytesLock.Unlock()
+					case SnoopyEventTypeInterfaceRemoved:
+						handle.StartBytesLock.Lock()
+						delete(handle.IngressStartBytes, metrics.InterfaceRemoved.Interface.Name)
+						delete(handle.EgressStartBytes, metrics.InterfaceRemoved.Interface.Name)
+						handle.StartBytesLock.Unlock()
+					case SnoopyEventTypeInterfaceChanged:
+						// ignore
+					case SnoopyEventTypeInterfaceMetrics:
+						handle.LastMetricsLock.Lock()
+						handle.LastMetrics[metrics.InterfaceMetric.Interface] = *metrics.InterfaceMetric
+						handle.LastMetricsLock.Unlock()
+					case SnoopyEventTypeInterfaceBpfInitialized:
+						// ignore
+					default:
+						self.logger.Warn("unknown metric type", "type", metrics.Type, "metric", metrics)
+					}
 				}
 			}
-		}
-	}()
-
-	self.handlesLock.Lock()
-	self.handles[containerId] = handle
-	self.handlesLock.Unlock()
-
-	return nil
-}
-
-func (self *snoopyManager) Remove(containerId ContainerId) error {
-	self.handlesLock.Lock()
-	defer self.handlesLock.Unlock()
-	handle, ok := self.handles[containerId]
-	if ok {
-		delete(self.handles, containerId)
-		self.statusEventTx <- SnoopyStatusEvent{
-			Type: SnoopyStatusEventTypeRemove,
-			Remove: &SnoopyStatusEventRemove{
-				SnoopyPid: handle.SnoopyPid,
-			},
-		}
-		go func() {
-			handle.Cmd.Process.Kill()
-			handle.Cmd.Process.Wait()
 		}()
+
+		handleId := self.formatHandleId(podInfo.Namespace, podInfo.Name, containerId, pid)
+		self.handlesLock.Lock()
+		self.handles[handleId] = handle
+		self.handlesLock.Unlock()
 	}
 
-	return nil
+	return errors
+}
+
+func (self *snoopyManager) formatHandleId(namespace string, name string, containerId string, pid ProcessId) string {
+	return namespace + "/" + name + "/" + containerId + "/" + strconv.FormatUint(pid, 10)
+}
+
+func (self *snoopyManager) Remove(podInfo PodInfo) []error {
+	errors := []error{}
+
+	self.handlesLock.Lock()
+	defer self.handlesLock.Unlock()
+	for containerId, pid := range podInfo.ContainersWithFirstPid() {
+		handleId := self.formatHandleId(podInfo.Namespace, podInfo.Name, containerId, pid)
+		handle, ok := self.handles[handleId]
+		if ok {
+			delete(self.handles, handleId)
+			self.statusEventTx <- SnoopyStatusEvent{
+				Type: SnoopyStatusEventTypeRemove,
+				Remove: &SnoopyStatusEventRemove{
+					SnoopyPid: handle.SnoopyPid,
+				},
+			}
+			go func() {
+				handle.Cmd.Process.Kill()
+				handle.Cmd.Process.Wait()
+			}()
+		}
+	}
+
+	return errors
 }
 
 func (self *snoopyManager) readRxBytesFromPidAndInterface(procPath string, pid ProcessId, iface string) uint64 {
