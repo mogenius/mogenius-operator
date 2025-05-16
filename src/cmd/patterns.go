@@ -50,20 +50,6 @@ func RunPatterns(args *patternsArgs, logManagerModule logging.SlogManager, confi
 	return nil
 }
 
-func PatternsToString() string {
-	systems := InitializeSystems(nil, nil, nil, nil)
-	socketApi := systems.socketApi
-	socketApi.AssertPatternsUnique()
-	patternConfig := systems.socketApi.PatternConfigs()
-
-	var json = jsoniter.ConfigCompatibleWithStandardLibrary
-
-	data, err := json.Marshal(patternConfig)
-	assert.Assert(err == nil, err)
-
-	return string(data)
-}
-
 func patternsToJson(patternConfig map[string]core.PatternConfig) string {
 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
