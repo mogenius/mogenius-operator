@@ -309,7 +309,7 @@ func GetWorkloadStatus(requestData GetWorkloadStatusRequest) ([]WorkloadStatusDt
 			if err != nil {
 				k8sLogger.Warn("Error getting workload list", "error", err)
 			} else {
-				workloadList = append(workloadList, *unstructuredResourceList...)
+				workloadList = append(workloadList, unstructuredResourceList...)
 			}
 		}
 

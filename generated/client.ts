@@ -840,9 +840,15 @@ export type CLUSTER_BACKUP_RESPONSE = CLUSTER_BACKUP_RESPONSE__MOGENIUS_K8S_MANA
 export type CLUSTER_CLEAR_VALKEY_CACHE_REQUEST = CLUSTER_CLEAR_VALKEY_CACHE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST;
 
 /**
- * api schema has not been defined by the operator
+ * #### Source
+ *
+ * ```yaml
+ * typeInfo:
+ *     type: string
+ * ```
+ *
  */
-export type CLUSTER_CLEAR_VALKEY_CACHE_RESPONSE = any;
+export type CLUSTER_CLEAR_VALKEY_CACHE_RESPONSE = string;
 
 /**
  * #### Source
@@ -2360,9 +2366,20 @@ export type CLUSTER_HELM_REPO_ADD_REQUEST = CLUSTER_HELM_REPO_ADD_REQUEST__MOGEN
 export type CLUSTER_HELM_REPO_ADD_RESPONSE = string;
 
 /**
- * api schema has not been defined by the operator
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     ANON_STRUCT_0:
+ *         properties: {}
+ * typeInfo:
+ *     pointer: true
+ *     structRef: ANON_STRUCT_0
+ *     type: struct
+ * ```
+ *
  */
-export type CLUSTER_HELM_REPO_LIST_REQUEST = any;
+export type CLUSTER_HELM_REPO_LIST_REQUEST = CLUSTER_HELM_REPO_LIST_REQUEST__ANON_STRUCT_0|undefined;
 
 /**
  * #### Source
@@ -2433,9 +2450,20 @@ export type CLUSTER_HELM_REPO_PATCH_REQUEST = CLUSTER_HELM_REPO_PATCH_REQUEST__M
 export type CLUSTER_HELM_REPO_PATCH_RESPONSE = string;
 
 /**
- * api schema has not been defined by the operator
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     ANON_STRUCT_0:
+ *         properties: {}
+ * typeInfo:
+ *     pointer: true
+ *     structRef: ANON_STRUCT_0
+ *     type: struct
+ * ```
+ *
  */
-export type CLUSTER_HELM_REPO_UPDATE_REQUEST = any;
+export type CLUSTER_HELM_REPO_UPDATE_REQUEST = CLUSTER_HELM_REPO_UPDATE_REQUEST__ANON_STRUCT_0|undefined;
 
 /**
  * #### Source
@@ -3708,9 +3736,20 @@ export type DELETE_USER_RESPONSE = string;
 export type DELETE_WORKLOAD_REQUEST = DELETE_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_SYNCRESOURCEITEM;
 
 /**
- * api schema has not been defined by the operator
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     ANON_STRUCT_0:
+ *         properties: {}
+ * typeInfo:
+ *     pointer: true
+ *     structRef: ANON_STRUCT_0
+ *     type: struct
+ * ```
+ *
  */
-export type DELETE_WORKLOAD_RESPONSE = any;
+export type DELETE_WORKLOAD_RESPONSE = DELETE_WORKLOAD_RESPONSE__ANON_STRUCT_0|undefined;
 
 /**
  * #### Source
@@ -3742,9 +3781,20 @@ export type DELETE_WORKSPACE_REQUEST = DELETE_WORKSPACE_REQUEST__MOGENIUS_K8S_MA
 export type DELETE_WORKSPACE_RESPONSE = string;
 
 /**
- * api schema has not been defined by the operator
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     ANON_STRUCT_0:
+ *         properties: {}
+ * typeInfo:
+ *     pointer: true
+ *     structRef: ANON_STRUCT_0
+ *     type: struct
+ * ```
+ *
  */
-export type DESCRIBE_REQUEST = any;
+export type DESCRIBE_REQUEST = DESCRIBE_REQUEST__ANON_STRUCT_0|undefined;
 
 /**
  * #### Source
@@ -3971,9 +4021,20 @@ export type DETACH_LABELED_NETWORK_POLICY_RESPONSE = string;
 export type DISABLE_NETWORK_POLICY_MANAGER_REQUEST = DISABLE_NETWORK_POLICY_MANAGER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_DISABLENETWORKPOLICYMANAGERREQUEST;
 
 /**
- * api schema has not been defined by the operator
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     ANON_STRUCT_0:
+ *         properties: {}
+ * typeInfo:
+ *     pointer: true
+ *     structRef: ANON_STRUCT_0
+ *     type: struct
+ * ```
+ *
  */
-export type DISABLE_NETWORK_POLICY_MANAGER_RESPONSE = any;
+export type DISABLE_NETWORK_POLICY_MANAGER_RESPONSE = DISABLE_NETWORK_POLICY_MANAGER_RESPONSE__ANON_STRUCT_0|undefined;
 
 /**
  * #### Source
@@ -3994,9 +4055,20 @@ export type DISABLE_NETWORK_POLICY_MANAGER_RESPONSE = any;
 export type ENFORCE_NETWORK_POLICY_MANAGER_REQUEST = ENFORCE_NETWORK_POLICY_MANAGER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_ENFORCENETWORKPOLICYMANAGERREQUEST;
 
 /**
- * api schema has not been defined by the operator
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     ANON_STRUCT_0:
+ *         properties: {}
+ * typeInfo:
+ *     pointer: true
+ *     structRef: ANON_STRUCT_0
+ *     type: struct
+ * ```
+ *
  */
-export type ENFORCE_NETWORK_POLICY_MANAGER_RESPONSE = any;
+export type ENFORCE_NETWORK_POLICY_MANAGER_RESPONSE = ENFORCE_NETWORK_POLICY_MANAGER_RESPONSE__ANON_STRUCT_0|undefined;
 
 /**
  * #### Source
@@ -5025,13 +5097,12 @@ export type GET_LABELED_WORKLOAD_LIST_REQUEST = GET_LABELED_WORKLOAD_LIST_REQUES
  *                     type: struct
  *                 type: array
  * typeInfo:
- *     pointer: true
  *     structRef: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.UnstructuredList
  *     type: struct
  * ```
  *
  */
-export type GET_LABELED_WORKLOAD_LIST_RESPONSE = GET_LABELED_WORKLOAD_LIST_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTUREDLIST|undefined;
+export type GET_LABELED_WORKLOAD_LIST_RESPONSE = GET_LABELED_WORKLOAD_LIST_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTUREDLIST;
 
 /**
  * #### Source
@@ -5096,12 +5167,11 @@ export type GET_NAMESPACE_WORKLOAD_LIST_REQUEST = GET_NAMESPACE_WORKLOAD_LIST_RE
  *     elementType:
  *         structRef: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured
  *         type: struct
- *     pointer: true
  *     type: array
  * ```
  *
  */
-export type GET_NAMESPACE_WORKLOAD_LIST_RESPONSE = GET_NAMESPACE_WORKLOAD_LIST_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED[]|undefined;
+export type GET_NAMESPACE_WORKLOAD_LIST_RESPONSE = GET_NAMESPACE_WORKLOAD_LIST_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED[];
 
 /**
  * #### Source
@@ -5326,9 +5396,20 @@ export type GET_TEAM_REQUEST = GET_TEAM_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_R
 export type GET_TEAM_RESPONSE = GET_TEAM_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_TEAM|undefined;
 
 /**
- * api schema has not been defined by the operator
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     ANON_STRUCT_0:
+ *         properties: {}
+ * typeInfo:
+ *     pointer: true
+ *     structRef: ANON_STRUCT_0
+ *     type: struct
+ * ```
+ *
  */
-export type GET_TEAMS_REQUEST = any;
+export type GET_TEAMS_REQUEST = GET_TEAMS_REQUEST__ANON_STRUCT_0|undefined;
 
 /**
  * #### Source
@@ -6621,9 +6702,20 @@ export type GET_WORKSPACE_REQUEST = GET_WORKSPACE_REQUEST__MOGENIUS_K8S_MANAGER_
 export type GET_WORKSPACE_RESPONSE = GET_WORKSPACE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_GETWORKSPACERESULT|undefined;
 
 /**
- * api schema has not been defined by the operator
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     ANON_STRUCT_0:
+ *         properties: {}
+ * typeInfo:
+ *     pointer: true
+ *     structRef: ANON_STRUCT_0
+ *     type: struct
+ * ```
+ *
  */
-export type GET_WORKSPACES_REQUEST = any;
+export type GET_WORKSPACES_REQUEST = GET_WORKSPACES_REQUEST__ANON_STRUCT_0|undefined;
 
 /**
  * #### Source
@@ -6798,9 +6890,20 @@ export type GET_WORKSPACE_WORKLOADS_REQUEST = GET_WORKSPACE_WORKLOADS_REQUEST__M
 export type GET_WORKSPACE_WORKLOADS_RESPONSE = GET_WORKSPACE_WORKLOADS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED[];
 
 /**
- * api schema has not been defined by the operator
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     ANON_STRUCT_0:
+ *         properties: {}
+ * typeInfo:
+ *     pointer: true
+ *     structRef: ANON_STRUCT_0
+ *     type: struct
+ * ```
+ *
  */
-export type INSTALL_CERT_MANAGER_REQUEST = any;
+export type INSTALL_CERT_MANAGER_REQUEST = INSTALL_CERT_MANAGER_REQUEST__ANON_STRUCT_0|undefined;
 
 /**
  * #### Source
@@ -6832,14 +6935,31 @@ export type INSTALL_CERT_MANAGER_RESPONSE = string;
 export type INSTALL_CLUSTER_ISSUER_REQUEST = INSTALL_CLUSTER_ISSUER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST;
 
 /**
- * api schema has not been defined by the operator
+ * #### Source
+ *
+ * ```yaml
+ * typeInfo:
+ *     type: string
+ * ```
+ *
  */
-export type INSTALL_CLUSTER_ISSUER_RESPONSE = any;
+export type INSTALL_CLUSTER_ISSUER_RESPONSE = string;
 
 /**
- * api schema has not been defined by the operator
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     ANON_STRUCT_0:
+ *         properties: {}
+ * typeInfo:
+ *     pointer: true
+ *     structRef: ANON_STRUCT_0
+ *     type: struct
+ * ```
+ *
  */
-export type INSTALL_INGRESS_CONTROLLER_TRAEFIK_REQUEST = any;
+export type INSTALL_INGRESS_CONTROLLER_TRAEFIK_REQUEST = INSTALL_INGRESS_CONTROLLER_TRAEFIK_REQUEST__ANON_STRUCT_0|undefined;
 
 /**
  * #### Source
@@ -6853,9 +6973,20 @@ export type INSTALL_INGRESS_CONTROLLER_TRAEFIK_REQUEST = any;
 export type INSTALL_INGRESS_CONTROLLER_TRAEFIK_RESPONSE = string;
 
 /**
- * api schema has not been defined by the operator
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     ANON_STRUCT_0:
+ *         properties: {}
+ * typeInfo:
+ *     pointer: true
+ *     structRef: ANON_STRUCT_0
+ *     type: struct
+ * ```
+ *
  */
-export type INSTALL_KEPLER_REQUEST = any;
+export type INSTALL_KEPLER_REQUEST = INSTALL_KEPLER_REQUEST__ANON_STRUCT_0|undefined;
 
 /**
  * #### Source
@@ -6869,9 +7000,20 @@ export type INSTALL_KEPLER_REQUEST = any;
 export type INSTALL_KEPLER_RESPONSE = string;
 
 /**
- * api schema has not been defined by the operator
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     ANON_STRUCT_0:
+ *         properties: {}
+ * typeInfo:
+ *     pointer: true
+ *     structRef: ANON_STRUCT_0
+ *     type: struct
+ * ```
+ *
  */
-export type INSTALL_METALLB_REQUEST = any;
+export type INSTALL_METALLB_REQUEST = INSTALL_METALLB_REQUEST__ANON_STRUCT_0|undefined;
 
 /**
  * #### Source
@@ -6885,9 +7027,20 @@ export type INSTALL_METALLB_REQUEST = any;
 export type INSTALL_METALLB_RESPONSE = string;
 
 /**
- * api schema has not been defined by the operator
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     ANON_STRUCT_0:
+ *         properties: {}
+ * typeInfo:
+ *     pointer: true
+ *     structRef: ANON_STRUCT_0
+ *     type: struct
+ * ```
+ *
  */
-export type INSTALL_METRICS_SERVER_REQUEST = any;
+export type INSTALL_METRICS_SERVER_REQUEST = INSTALL_METRICS_SERVER_REQUEST__ANON_STRUCT_0|undefined;
 
 /**
  * #### Source
@@ -6911,9 +7064,20 @@ export type K8SNOTIFICATION_REQUEST = any;
 export type K8SNOTIFICATION_RESPONSE = any;
 
 /**
- * api schema has not been defined by the operator
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     ANON_STRUCT_0:
+ *         properties: {}
+ * typeInfo:
+ *     pointer: true
+ *     structRef: ANON_STRUCT_0
+ *     type: struct
+ * ```
+ *
  */
-export type LIST_ALL_NETWORK_POLICIES_REQUEST = any;
+export type LIST_ALL_NETWORK_POLICIES_REQUEST = LIST_ALL_NETWORK_POLICIES_REQUEST__ANON_STRUCT_0|undefined;
 
 /**
  * #### Source
@@ -7110,9 +7274,20 @@ export type LIST_ALL_NETWORK_POLICIES_REQUEST = any;
 export type LIST_ALL_NETWORK_POLICIES_RESPONSE = LIST_ALL_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTNETWORKPOLICYNAMESPACE[];
 
 /**
- * api schema has not been defined by the operator
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     ANON_STRUCT_0:
+ *         properties: {}
+ * typeInfo:
+ *     pointer: true
+ *     structRef: ANON_STRUCT_0
+ *     type: struct
+ * ```
+ *
  */
-export type LIST_ALL_WORKLOADS_REQUEST = any;
+export type LIST_ALL_WORKLOADS_REQUEST = LIST_ALL_WORKLOADS_REQUEST__ANON_STRUCT_0|undefined;
 
 /**
  * #### Source
@@ -7392,9 +7567,20 @@ export type LIST_CRONJOB_JOBS_REQUEST = LIST_CRONJOB_JOBS_REQUEST__MOGENIUS_K8S_
 export type LIST_CRONJOB_JOBS_RESPONSE = any;
 
 /**
- * api schema has not been defined by the operator
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     ANON_STRUCT_0:
+ *         properties: {}
+ * typeInfo:
+ *     pointer: true
+ *     structRef: ANON_STRUCT_0
+ *     type: struct
+ * ```
+ *
  */
-export type LIST_LABELED_NETWORK_POLICY_PORTS_REQUEST = any;
+export type LIST_LABELED_NETWORK_POLICY_PORTS_REQUEST = LIST_LABELED_NETWORK_POLICY_PORTS_REQUEST__ANON_STRUCT_0|undefined;
 
 /**
  * #### Source
@@ -12346,9 +12532,20 @@ export type REMOVE_CONFLICTING_NETWORK_POLICIES_RESPONSE = string;
 export type REMOVE_UNMANAGED_NETWORK_POLICIES_REQUEST = REMOVE_UNMANAGED_NETWORK_POLICIES_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_REMOVEUNMANAGEDNETWORKPOLICIESREQUEST;
 
 /**
- * api schema has not been defined by the operator
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     ANON_STRUCT_0:
+ *         properties: {}
+ * typeInfo:
+ *     pointer: true
+ *     structRef: ANON_STRUCT_0
+ *     type: struct
+ * ```
+ *
  */
-export type REMOVE_UNMANAGED_NETWORK_POLICIES_RESPONSE = any;
+export type REMOVE_UNMANAGED_NETWORK_POLICIES_RESPONSE = REMOVE_UNMANAGED_NETWORK_POLICIES_RESPONSE__ANON_STRUCT_0|undefined;
 
 /**
  * #### Source
@@ -22766,14 +22963,44 @@ export type SYSTEM_CHECK_RESPONSE = SYSTEM_CHECK_RESPONSE__MOGENIUS_K8S_MANAGER_
 export type TRIGGER_WORKLOAD_REQUEST = TRIGGER_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_SYNCRESOURCEITEM;
 
 /**
- * api schema has not been defined by the operator
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured:
+ *         name: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured
+ *         properties:
+ *             Object:
+ *                 keyType:
+ *                     type: string
+ *                 type: map
+ *                 valueType:
+ *                     pointer: true
+ *                     type: any
+ * typeInfo:
+ *     pointer: true
+ *     structRef: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured
+ *     type: struct
+ * ```
+ *
  */
-export type TRIGGER_WORKLOAD_RESPONSE = any;
+export type TRIGGER_WORKLOAD_RESPONSE = TRIGGER_WORKLOAD_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED|undefined;
 
 /**
- * api schema has not been defined by the operator
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     ANON_STRUCT_0:
+ *         properties: {}
+ * typeInfo:
+ *     pointer: true
+ *     structRef: ANON_STRUCT_0
+ *     type: struct
+ * ```
+ *
  */
-export type UNINSTALL_CERT_MANAGER_REQUEST = any;
+export type UNINSTALL_CERT_MANAGER_REQUEST = UNINSTALL_CERT_MANAGER_REQUEST__ANON_STRUCT_0|undefined;
 
 /**
  * #### Source
@@ -22787,9 +23014,20 @@ export type UNINSTALL_CERT_MANAGER_REQUEST = any;
 export type UNINSTALL_CERT_MANAGER_RESPONSE = string;
 
 /**
- * api schema has not been defined by the operator
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     ANON_STRUCT_0:
+ *         properties: {}
+ * typeInfo:
+ *     pointer: true
+ *     structRef: ANON_STRUCT_0
+ *     type: struct
+ * ```
+ *
  */
-export type UNINSTALL_CLUSTER_ISSUER_REQUEST = any;
+export type UNINSTALL_CLUSTER_ISSUER_REQUEST = UNINSTALL_CLUSTER_ISSUER_REQUEST__ANON_STRUCT_0|undefined;
 
 /**
  * #### Source
@@ -22803,9 +23041,20 @@ export type UNINSTALL_CLUSTER_ISSUER_REQUEST = any;
 export type UNINSTALL_CLUSTER_ISSUER_RESPONSE = string;
 
 /**
- * api schema has not been defined by the operator
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     ANON_STRUCT_0:
+ *         properties: {}
+ * typeInfo:
+ *     pointer: true
+ *     structRef: ANON_STRUCT_0
+ *     type: struct
+ * ```
+ *
  */
-export type UNINSTALL_INGRESS_CONTROLLER_TRAEFIK_REQUEST = any;
+export type UNINSTALL_INGRESS_CONTROLLER_TRAEFIK_REQUEST = UNINSTALL_INGRESS_CONTROLLER_TRAEFIK_REQUEST__ANON_STRUCT_0|undefined;
 
 /**
  * #### Source
@@ -22819,9 +23068,20 @@ export type UNINSTALL_INGRESS_CONTROLLER_TRAEFIK_REQUEST = any;
 export type UNINSTALL_INGRESS_CONTROLLER_TRAEFIK_RESPONSE = string;
 
 /**
- * api schema has not been defined by the operator
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     ANON_STRUCT_0:
+ *         properties: {}
+ * typeInfo:
+ *     pointer: true
+ *     structRef: ANON_STRUCT_0
+ *     type: struct
+ * ```
+ *
  */
-export type UNINSTALL_KEPLER_REQUEST = any;
+export type UNINSTALL_KEPLER_REQUEST = UNINSTALL_KEPLER_REQUEST__ANON_STRUCT_0|undefined;
 
 /**
  * #### Source
@@ -22835,9 +23095,20 @@ export type UNINSTALL_KEPLER_REQUEST = any;
 export type UNINSTALL_KEPLER_RESPONSE = string;
 
 /**
- * api schema has not been defined by the operator
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     ANON_STRUCT_0:
+ *         properties: {}
+ * typeInfo:
+ *     pointer: true
+ *     structRef: ANON_STRUCT_0
+ *     type: struct
+ * ```
+ *
  */
-export type UNINSTALL_METALLB_REQUEST = any;
+export type UNINSTALL_METALLB_REQUEST = UNINSTALL_METALLB_REQUEST__ANON_STRUCT_0|undefined;
 
 /**
  * #### Source
@@ -22851,9 +23122,20 @@ export type UNINSTALL_METALLB_REQUEST = any;
 export type UNINSTALL_METALLB_RESPONSE = string;
 
 /**
- * api schema has not been defined by the operator
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     ANON_STRUCT_0:
+ *         properties: {}
+ * typeInfo:
+ *     pointer: true
+ *     structRef: ANON_STRUCT_0
+ *     type: struct
+ * ```
+ *
  */
-export type UNINSTALL_METRICS_SERVER_REQUEST = any;
+export type UNINSTALL_METRICS_SERVER_REQUEST = UNINSTALL_METRICS_SERVER_REQUEST__ANON_STRUCT_0|undefined;
 
 /**
  * #### Source
@@ -22930,9 +23212,20 @@ export type UPDATE_GRANT_RESPONSE = string;
 export type UPDATE_NETWORK_POLICIES_TEMPLATE_REQUEST = UPDATE_NETWORK_POLICIES_TEMPLATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_NETWORKPOLICY[];
 
 /**
- * api schema has not been defined by the operator
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     ANON_STRUCT_0:
+ *         properties: {}
+ * typeInfo:
+ *     pointer: true
+ *     structRef: ANON_STRUCT_0
+ *     type: struct
+ * ```
+ *
  */
-export type UPDATE_NETWORK_POLICIES_TEMPLATE_RESPONSE = any;
+export type UPDATE_NETWORK_POLICIES_TEMPLATE_RESPONSE = UPDATE_NETWORK_POLICIES_TEMPLATE_RESPONSE__ANON_STRUCT_0|undefined;
 
 /**
  * #### Source
@@ -23241,9 +23534,20 @@ export type UPGRADEK8SMANAGER_REQUEST = UPGRADEK8SMANAGER_REQUEST__MOGENIUS_K8S_
 export type UPGRADEK8SMANAGER_RESPONSE = UPGRADEK8SMANAGER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_JOB|undefined;
 
 /**
- * api schema has not been defined by the operator
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     ANON_STRUCT_0:
+ *         properties: {}
+ * typeInfo:
+ *     pointer: true
+ *     structRef: ANON_STRUCT_0
+ *     type: struct
+ * ```
+ *
  */
-export type UPGRADE_CERT_MANAGER_REQUEST = any;
+export type UPGRADE_CERT_MANAGER_REQUEST = UPGRADE_CERT_MANAGER_REQUEST__ANON_STRUCT_0|undefined;
 
 /**
  * #### Source
@@ -23257,9 +23561,20 @@ export type UPGRADE_CERT_MANAGER_REQUEST = any;
 export type UPGRADE_CERT_MANAGER_RESPONSE = string;
 
 /**
- * api schema has not been defined by the operator
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     ANON_STRUCT_0:
+ *         properties: {}
+ * typeInfo:
+ *     pointer: true
+ *     structRef: ANON_STRUCT_0
+ *     type: struct
+ * ```
+ *
  */
-export type UPGRADE_INGRESS_CONTROLLER_TRAEFIK_REQUEST = any;
+export type UPGRADE_INGRESS_CONTROLLER_TRAEFIK_REQUEST = UPGRADE_INGRESS_CONTROLLER_TRAEFIK_REQUEST__ANON_STRUCT_0|undefined;
 
 /**
  * #### Source
@@ -23273,9 +23588,20 @@ export type UPGRADE_INGRESS_CONTROLLER_TRAEFIK_REQUEST = any;
 export type UPGRADE_INGRESS_CONTROLLER_TRAEFIK_RESPONSE = string;
 
 /**
- * api schema has not been defined by the operator
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     ANON_STRUCT_0:
+ *         properties: {}
+ * typeInfo:
+ *     pointer: true
+ *     structRef: ANON_STRUCT_0
+ *     type: struct
+ * ```
+ *
  */
-export type UPGRADE_KEPLER_REQUEST = any;
+export type UPGRADE_KEPLER_REQUEST = UPGRADE_KEPLER_REQUEST__ANON_STRUCT_0|undefined;
 
 /**
  * #### Source
@@ -23289,9 +23615,20 @@ export type UPGRADE_KEPLER_REQUEST = any;
 export type UPGRADE_KEPLER_RESPONSE = string;
 
 /**
- * api schema has not been defined by the operator
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     ANON_STRUCT_0:
+ *         properties: {}
+ * typeInfo:
+ *     pointer: true
+ *     structRef: ANON_STRUCT_0
+ *     type: struct
+ * ```
+ *
  */
-export type UPGRADE_METALLB_REQUEST = any;
+export type UPGRADE_METALLB_REQUEST = UPGRADE_METALLB_REQUEST__ANON_STRUCT_0|undefined;
 
 /**
  * #### Source
@@ -23305,9 +23642,20 @@ export type UPGRADE_METALLB_REQUEST = any;
 export type UPGRADE_METALLB_RESPONSE = string;
 
 /**
- * api schema has not been defined by the operator
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     ANON_STRUCT_0:
+ *         properties: {}
+ * typeInfo:
+ *     pointer: true
+ *     structRef: ANON_STRUCT_0
+ *     type: struct
+ * ```
+ *
  */
-export type UPGRADE_METRICS_SERVER_REQUEST = any;
+export type UPGRADE_METRICS_SERVER_REQUEST = UPGRADE_METRICS_SERVER_REQUEST__ANON_STRUCT_0|undefined;
 
 /**
  * #### Source
@@ -23403,8 +23751,10 @@ export type CLUSTER_HELM_RELEASE_STATUS_RESPONSE__TIME_ZONETRANS = {"index": num
 export type CLUSTER_HELM_RELEASE_UNINSTALL_REQUEST__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMRELEASEUNINSTALLREQUEST = {"dryRun": boolean,"namespace": string,"release": string};
 export type CLUSTER_HELM_RELEASE_UPGRADE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMCHARTINSTALLUPGRADEREQUEST = {"chart": string,"dryRun": boolean,"namespace": string,"release": string,"values": string,"version": string};
 export type CLUSTER_HELM_REPO_ADD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMREPOADDREQUEST = {"insecureSkipTLSverify": boolean,"name": string,"passCredentialsAll": boolean,"password": string,"url": string,"username": string};
+export type CLUSTER_HELM_REPO_LIST_REQUEST__ANON_STRUCT_0 = {};
 export type CLUSTER_HELM_REPO_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMENTRYWITHOUTPASSWORD = {"insecure_skip_tls_verify": boolean,"name": string,"pass_credentials_all": boolean,"url": string};
 export type CLUSTER_HELM_REPO_PATCH_REQUEST__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMREPOPATCHREQUEST = {"insecureSkipTLSverify": boolean,"name": string,"newName": string,"passCredentialsAll": boolean,"password": string,"url": string,"username": string};
+export type CLUSTER_HELM_REPO_UPDATE_REQUEST__ANON_STRUCT_0 = {};
 export type CLUSTER_HELM_REPO_UPDATE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMENTRYSTATUS = {"entry": CLUSTER_HELM_REPO_UPDATE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMENTRYWITHOUTPASSWORD|undefined,"message": string,"status": string};
 export type CLUSTER_HELM_REPO_UPDATE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMENTRYWITHOUTPASSWORD = {"insecure_skip_tls_verify": boolean,"name": string,"pass_credentials_all": boolean,"url": string};
 export type CLUSTER_LIST_CONFIGMAPS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_CLUSTERLISTWORKLOADS = {"labelSelector": string,"namespace": string,"prefix": string};
@@ -23466,7 +23816,9 @@ export type DELETE_GRANT_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"name
 export type DELETE_TEAM_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"name": string};
 export type DELETE_USER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"name": string};
 export type DELETE_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_SYNCRESOURCEITEM = {"group": string,"kind": string,"name": string,"namespace": string,"resourceName": string,"version": string};
+export type DELETE_WORKLOAD_RESPONSE__ANON_STRUCT_0 = {};
 export type DELETE_WORKSPACE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"name": string};
+export type DESCRIBE_REQUEST__ANON_STRUCT_0 = {};
 export type DESCRIBE_RESPONSE__ANON_STRUCT_1 = {"buildType": string,"version": DESCRIBE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_VERSION_VERSION};
 export type DESCRIBE_RESPONSE__ANON_STRUCT_3 = {};
 export type DESCRIBE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_PATTERNCONFIG = {"deprecated": boolean,"deprecatedMessage": string,"needsUser": boolean,"requestSchema": DESCRIBE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_SCHEMA_SCHEMA|undefined,"responseSchema": DESCRIBE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_SCHEMA_SCHEMA|undefined};
@@ -23479,7 +23831,9 @@ export type DESCRIBE_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_SYNCRESOUR
 export type DETACH_LABELED_NETWORK_POLICY_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_DETACHLABELEDNETWORKPOLICYREQUEST = {"controllerName": string,"controllerType": string,"labeledNetworkPolicies": DETACH_LABELED_NETWORK_POLICY_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SLABELEDNETWORKPOLICYDTO[],"namespaceName": string};
 export type DETACH_LABELED_NETWORK_POLICY_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SLABELEDNETWORKPOLICYDTO = {"name": string,"port": number,"portType": string,"type": string};
 export type DISABLE_NETWORK_POLICY_MANAGER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_DISABLENETWORKPOLICYMANAGERREQUEST = {"namespaceName": string};
+export type DISABLE_NETWORK_POLICY_MANAGER_RESPONSE__ANON_STRUCT_0 = {};
 export type ENFORCE_NETWORK_POLICY_MANAGER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_ENFORCENETWORKPOLICYMANAGERREQUEST = {"namespaceName": string};
+export type ENFORCE_NETWORK_POLICY_MANAGER_RESPONSE__ANON_STRUCT_0 = {};
 export type EXTERNAL_SECRET_LIST_AVAILABLE_SECRETS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTSECRETSREQUEST = {"namePrefix": string};
 export type EXTERNAL_SECRET_STORE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_CREATESECRETSSTOREREQUEST = {"displayName": string,"projectId": string,"role": string,"secretPath": string,"vaultServerUrl": string};
 export type EXTERNAL_SECRET_STORE_CREATE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_CREATESECRETSSTORERESPONSE = {"errorMessage": string,"status": string};
@@ -23553,6 +23907,7 @@ export type GET_TEAM_RESPONSE__TIME_LOCATION = {"cacheEnd": number,"cacheStart":
 export type GET_TEAM_RESPONSE__TIME_TIME = {"ext": number,"loc": GET_TEAM_RESPONSE__TIME_LOCATION|undefined,"wall": number};
 export type GET_TEAM_RESPONSE__TIME_ZONE = {"isDST": boolean,"name": string,"offset": number};
 export type GET_TEAM_RESPONSE__TIME_ZONETRANS = {"index": number,"isstd": boolean,"isutc": boolean,"when": number};
+export type GET_TEAMS_REQUEST__ANON_STRUCT_0 = {};
 export type GET_TEAMS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_FIELDSV1 = {};
 export type GET_TEAMS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_MANAGEDFIELDSENTRY = {"apiVersion": string,"fieldsType": string,"fieldsV1": GET_TEAMS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_FIELDSV1|undefined,"manager": string,"operation": string,"subresource": string,"time": GET_TEAMS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME|undefined};
 export type GET_TEAMS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OBJECTMETA = {"annotations": Record<string, string>,"creationTimestamp": GET_TEAMS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME,"deletionGracePeriodSeconds": number|undefined,"deletionTimestamp": GET_TEAMS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME|undefined,"finalizers": string[],"generateName": string,"generation": number,"labels": Record<string, string>,"managedFields": GET_TEAMS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_MANAGEDFIELDSENTRY[],"name": string,"namespace": string,"ownerReferences": GET_TEAMS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OWNERREFERENCE[],"resourceVersion": string,"selfLink": string,"uid": string};
@@ -23628,6 +23983,7 @@ export type GET_WORKSPACE_RESPONSE__TIME_LOCATION = {"cacheEnd": number,"cacheSt
 export type GET_WORKSPACE_RESPONSE__TIME_TIME = {"ext": number,"loc": GET_WORKSPACE_RESPONSE__TIME_LOCATION|undefined,"wall": number};
 export type GET_WORKSPACE_RESPONSE__TIME_ZONE = {"isDST": boolean,"name": string,"offset": number};
 export type GET_WORKSPACE_RESPONSE__TIME_ZONETRANS = {"index": number,"isstd": boolean,"isutc": boolean,"when": number};
+export type GET_WORKSPACES_REQUEST__ANON_STRUCT_0 = {};
 export type GET_WORKSPACES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME = {"Time": GET_WORKSPACES_RESPONSE__TIME_TIME};
 export type GET_WORKSPACES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_GETWORKSPACERESULT = {"creationTimestamp": GET_WORKSPACES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME,"name": string,"resources": GET_WORKSPACES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_WORKSPACERESOURCEIDENTIFIER[]};
 export type GET_WORKSPACES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_WORKSPACERESOURCEIDENTIFIER = {"id": string,"namespace": string,"type": string};
@@ -23638,7 +23994,13 @@ export type GET_WORKSPACES_RESPONSE__TIME_ZONETRANS = {"index": number,"isstd": 
 export type GET_WORKSPACE_WORKLOADS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"blacklist": GET_WORKSPACE_WORKLOADS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_SYNCRESOURCEENTRY|undefined[],"namespaceWhitelist": string[],"whitelist": GET_WORKSPACE_WORKLOADS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_SYNCRESOURCEENTRY|undefined[],"workspaceName": string};
 export type GET_WORKSPACE_WORKLOADS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_SYNCRESOURCEENTRY = {"group": string,"kind": string,"name": string,"namespace": string|undefined,"version": string};
 export type GET_WORKSPACE_WORKLOADS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"Object": Record<string, any>};
+export type INSTALL_CERT_MANAGER_REQUEST__ANON_STRUCT_0 = {};
 export type INSTALL_CLUSTER_ISSUER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"email": string};
+export type INSTALL_INGRESS_CONTROLLER_TRAEFIK_REQUEST__ANON_STRUCT_0 = {};
+export type INSTALL_KEPLER_REQUEST__ANON_STRUCT_0 = {};
+export type INSTALL_METALLB_REQUEST__ANON_STRUCT_0 = {};
+export type INSTALL_METRICS_SERVER_REQUEST__ANON_STRUCT_0 = {};
+export type LIST_ALL_NETWORK_POLICIES_REQUEST__ANON_STRUCT_0 = {};
 export type LIST_ALL_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_IPBLOCK = {"cidr": string,"except": string[]};
 export type LIST_ALL_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYEGRESSRULE = {"ports": LIST_ALL_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYPORT[],"to": LIST_ALL_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYPEER[]};
 export type LIST_ALL_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYINGRESSRULE = {"from": LIST_ALL_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYPEER[],"ports": LIST_ALL_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYPORT[]};
@@ -23652,6 +24014,7 @@ export type LIST_ALL_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CONTROL
 export type LIST_ALL_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTNETWORKPOLICYCONTROLLER = {"controllerName": string,"controllerType": string,"networkPolicies": LIST_ALL_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SLABELEDNETWORKPOLICYDTO[],"serviceId": string};
 export type LIST_ALL_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTNETWORKPOLICYNAMESPACE = {"controllers": LIST_ALL_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTNETWORKPOLICYCONTROLLER[],"displayName": string,"id": string,"managedPolicies": LIST_ALL_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_K8SNETWORKPOLICYDTO[],"name": string,"projectId": string,"unmanagedPolicies": LIST_ALL_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_K8SNETWORKPOLICYDTO[]};
 export type LIST_ALL_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SLABELEDNETWORKPOLICYDTO = {"name": string,"port": number,"portType": string,"type": string};
+export type LIST_ALL_WORKLOADS_REQUEST__ANON_STRUCT_0 = {};
 export type LIST_ALL_WORKLOADS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_UTILS_SYNCRESOURCEENTRY = {"group": string,"kind": string,"name": string,"namespace": string|undefined,"version": string};
 export type LIST_CONFLICTING_NETWORK_POLICIES_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTCONFLICTINGNETWORKPOLICIESREQUEST = {"namespaceName": string};
 export type LIST_CONFLICTING_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_IPBLOCK = {"cidr": string,"except": string[]};
@@ -23668,6 +24031,7 @@ export type LIST_CONTROLLER_NETWORK_POLICIES_REQUEST__MOGENIUS_K8S_MANAGER_SRC_C
 export type LIST_CONTROLLER_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTCONTROLLERLABELEDNETWORKPOLICIESRESPONSE = {"controllerName": string,"controllerType": string,"labeledNetworkPolicies": LIST_CONTROLLER_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SLABELEDNETWORKPOLICYDTO[],"namespaceName": string};
 export type LIST_CONTROLLER_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SLABELEDNETWORKPOLICYDTO = {"name": string,"port": number,"portType": string,"type": string};
 export type LIST_CRONJOB_JOBS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"controllerName": string,"namespaceName": string,"projectId": string};
+export type LIST_LABELED_NETWORK_POLICY_PORTS_REQUEST__ANON_STRUCT_0 = {};
 export type LIST_LABELED_NETWORK_POLICY_PORTS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SLABELEDNETWORKPOLICYDTO = {"name": string,"port": number,"portType": string,"type": string};
 export type LIST_NAMESPACE_NETWORK_POLICIES_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTNAMESPACELABELEDNETWORKPOLICIESREQUEST = {"namespaceName": string};
 export type LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_IPBLOCK = {"cidr": string,"except": string[]};
@@ -23962,6 +24326,7 @@ export type NAMESPACE_VALIDATE_PORTS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_NAME
 export type NAMESPACE_VALIDATE_PORTS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_NAMESPACEVALIDATEPORTSREQUEST = {"ports": NAMESPACE_VALIDATE_PORTS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_NAMESPACESERVICEPORTDTO[]};
 export type REMOVE_CONFLICTING_NETWORK_POLICIES_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_REMOVECONFLICTINGNETWORKPOLICIESREQUEST = {"namespaceName": string};
 export type REMOVE_UNMANAGED_NETWORK_POLICIES_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_REMOVEUNMANAGEDNETWORKPOLICIESREQUEST = {"namespaceName": string,"policies": string[]};
+export type REMOVE_UNMANAGED_NETWORK_POLICIES_RESPONSE__ANON_STRUCT_0 = {};
 export type SERVICE_CLUSTER_TOOL_STREAM_CONNECTION_REQUEST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_CLUSTERTOOLCONNECTIONREQUEST = {"cmdType": string,"tool": string,"wsConnectionRequest": SERVICE_CLUSTER_TOOL_STREAM_CONNECTION_REQUEST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST};
 export type SERVICE_CLUSTER_TOOL_STREAM_CONNECTION_REQUEST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"websocketHost": string,"websocketScheme": string};
 export type SERVICE_CREATE_REQUEST__GOPKG_IN_INF_V0_DEC = {"scale": number,"unscaled": SERVICE_CREATE_REQUEST__MATH_BIG_INT};
@@ -24583,8 +24948,16 @@ export type STORAGE_STATUS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_SERVICES_VOLUMESTA
 export type SYSTEM_CHECK_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_SERVICES_SYSTEMCHECKENTRY = {"checkName": string,"description": string,"errorMessage": string|undefined,"helmStatus": string,"installPattern": string,"isRequired": boolean,"isRunning": boolean,"processTimeInMs": number,"solutionMessage": string,"successMessage": string,"uninstallPattern": string,"upgradePattern": string,"versionAvailable": string,"versionInstalled": string,"wantsToBeInstalled": boolean};
 export type SYSTEM_CHECK_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_SERVICES_SYSTEMCHECKRESPONSE = {"entries": SYSTEM_CHECK_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_SERVICES_SYSTEMCHECKENTRY[],"terminalString": string};
 export type TRIGGER_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_SYNCRESOURCEITEM = {"group": string,"kind": string,"name": string,"namespace": string,"resourceName": string,"version": string};
+export type TRIGGER_WORKLOAD_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"Object": Record<string, any>};
+export type UNINSTALL_CERT_MANAGER_REQUEST__ANON_STRUCT_0 = {};
+export type UNINSTALL_CLUSTER_ISSUER_REQUEST__ANON_STRUCT_0 = {};
+export type UNINSTALL_INGRESS_CONTROLLER_TRAEFIK_REQUEST__ANON_STRUCT_0 = {};
+export type UNINSTALL_KEPLER_REQUEST__ANON_STRUCT_0 = {};
+export type UNINSTALL_METALLB_REQUEST__ANON_STRUCT_0 = {};
+export type UNINSTALL_METRICS_SERVER_REQUEST__ANON_STRUCT_0 = {};
 export type UPDATE_GRANT_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"grantee": string,"name": string,"role": string,"targetName": string,"targetType": string};
 export type UPDATE_NETWORK_POLICIES_TEMPLATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_NETWORKPOLICY = {"Name": string,"Port": number,"Protocol": string,"Type": string};
+export type UPDATE_NETWORK_POLICIES_TEMPLATE_RESPONSE__ANON_STRUCT_0 = {};
 export type UPDATE_TEAM_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"displayName": string,"name": string,"users": string[]};
 export type UPDATE_USER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"email": string,"firstName": string,"lastName": string,"name": string};
 export type UPDATE_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_SYNCRESOURCEDATA = {"group": string,"kind": string,"name": string,"namespace": string|undefined,"version": string,"yamlData": string};
@@ -24598,6 +24971,11 @@ export type UPGRADEK8SMANAGER_RESPONSE__TIME_LOCATION = {"cacheEnd": number,"cac
 export type UPGRADEK8SMANAGER_RESPONSE__TIME_TIME = {"ext": number,"loc": UPGRADEK8SMANAGER_RESPONSE__TIME_LOCATION|undefined,"wall": number};
 export type UPGRADEK8SMANAGER_RESPONSE__TIME_ZONE = {"isDST": boolean,"name": string,"offset": number};
 export type UPGRADEK8SMANAGER_RESPONSE__TIME_ZONETRANS = {"index": number,"isstd": boolean,"isutc": boolean,"when": number};
+export type UPGRADE_CERT_MANAGER_REQUEST__ANON_STRUCT_0 = {};
+export type UPGRADE_INGRESS_CONTROLLER_TRAEFIK_REQUEST__ANON_STRUCT_0 = {};
+export type UPGRADE_KEPLER_REQUEST__ANON_STRUCT_0 = {};
+export type UPGRADE_METALLB_REQUEST__ANON_STRUCT_0 = {};
+export type UPGRADE_METRICS_SERVER_REQUEST__ANON_STRUCT_0 = {};
 
 //===============================================================
 //==================== Pattern Type Mapping =====================

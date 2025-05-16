@@ -331,7 +331,7 @@ func (self *api) GetWorkspaceResources(workspaceName string, whitelist []*utils.
 			if err != nil {
 				return result, err
 			}
-			result = append(result, *nsResources...)
+			result = append(result, nsResources...)
 		}
 		if v.Type == "helm" {
 			if len(namespaceWhitelist) > 0 {
