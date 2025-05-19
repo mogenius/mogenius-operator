@@ -203,10 +203,12 @@ func GetUnstructuredResourceListFromStore(group string, kind string, version str
 	return results, nil
 }
 
-func GetUnstructuredNamespaceResourceList(namespace string, whitelist []*utils.SyncResourceEntry, blacklist []*utils.SyncResourceEntry) (*[]unstructured.Unstructured, error) {
+func GetUnstructuredNamespaceResourceList(namespace string, whitelist []*utils.SyncResourceEntry, blacklist []*utils.SyncResourceEntry) ([]unstructured.Unstructured, error) {
+	results := []unstructured.Unstructured{}
+
 	resources, err := GetAvailableResources()
 	if err != nil {
-		return nil, err
+		return results, err
 	}
 
 	if whitelist == nil {
@@ -216,8 +218,6 @@ func GetUnstructuredNamespaceResourceList(namespace string, whitelist []*utils.S
 	if blacklist == nil {
 		blacklist = []*utils.SyncResourceEntry{}
 	}
-
-	results := []unstructured.Unstructured{}
 
 	for _, v := range resources {
 		if v.Namespace != nil {
@@ -231,13 +231,18 @@ func GetUnstructuredNamespaceResourceList(namespace string, whitelist []*utils.S
 			}
 		}
 	}
-	return &results, nil
+	return results, nil
 }
 
-func GetUnstructuredLabeledResourceList(label string, whitelist []*utils.SyncResourceEntry, blacklist []*utils.SyncResourceEntry) (*unstructured.UnstructuredList, error) {
+func GetUnstructuredLabeledResourceList(label string, whitelist []*utils.SyncResourceEntry, blacklist []*utils.SyncResourceEntry) (unstructured.UnstructuredList, error) {
+	results := unstructured.UnstructuredList{
+		Object: map[string]interface{}{},
+		Items:  []unstructured.Unstructured{},
+	}
+
 	resources, err := GetAvailableResources()
 	if err != nil {
-		return nil, err
+		return results, err
 	}
 
 	if whitelist == nil {
@@ -247,8 +252,6 @@ func GetUnstructuredLabeledResourceList(label string, whitelist []*utils.SyncRes
 	if blacklist == nil {
 		blacklist = []*utils.SyncResourceEntry{}
 	}
-
-	results := []unstructured.Unstructured{}
 
 	dynamicClient := clientProvider.DynamicClient()
 	//// dynamicClient := clientProvider.DynamicClient()
@@ -268,11 +271,11 @@ func GetUnstructuredLabeledResourceList(label string, whitelist []*utils.SyncRes
 			}
 			// result := store.GetResourceByKindAndNamespace(v.Group, v.Kind, namespace)
 			if result != nil {
-				results = append(results, result.Items...)
+				results.Items = append(results.Items, result.Items...)
 			}
 		}
 	}
-	return &unstructured.UnstructuredList{Items: results}, nil
+	return results, nil
 }
 
 func GetUnstructuredResource(group string, version string, name string, namespace, resourceName string) (*unstructured.Unstructured, error) {

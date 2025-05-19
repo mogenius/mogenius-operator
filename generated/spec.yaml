@@ -2695,6 +2695,9 @@ cluster/clear-valkey-cache:
         typeInfo:
             structRef: mogenius-k8s-manager/src/core.Request
             type: struct
+    responseSchema:
+        typeInfo:
+            type: string
 cluster/component-log-stream-connection-request:
     requestSchema:
         structs:
@@ -3947,6 +3950,14 @@ cluster/helm-repo-add:
         typeInfo:
             type: string
 cluster/helm-repo-list:
+    requestSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
     responseSchema:
         structs:
             mogenius-k8s-manager/src/helm.HelmEntryWithoutPassword:
@@ -3993,6 +4004,14 @@ cluster/helm-repo-patch:
         typeInfo:
             type: string
 cluster/helm-repo-update:
+    requestSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
     responseSchema:
         structs:
             mogenius-k8s-manager/src/helm.HelmEntryStatus:
@@ -4963,6 +4982,14 @@ delete/workload:
         typeInfo:
             structRef: mogenius-k8s-manager/src/utils.SyncResourceItem
             type: struct
+    responseSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
 delete/workspace:
     requestSchema:
         structs:
@@ -4978,6 +5005,14 @@ delete/workspace:
         typeInfo:
             type: string
 describe:
+    requestSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
     responseSchema:
         structs:
             ANON_STRUCT_1:
@@ -5157,6 +5192,14 @@ disable/network_policy_manager:
         typeInfo:
             structRef: mogenius-k8s-manager/src/controllers.DisableNetworkPolicyManagerRequest
             type: struct
+    responseSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
 enforce/network_policy_manager:
     requestSchema:
         structs:
@@ -5167,6 +5210,14 @@ enforce/network_policy_manager:
                         type: string
         typeInfo:
             structRef: mogenius-k8s-manager/src/controllers.EnforceNetworkPolicyManagerRequest
+            type: struct
+    responseSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
             type: struct
 external-secret-store/create:
     requestSchema:
@@ -5993,7 +6044,6 @@ get/labeled-workload-list:
                             type: struct
                         type: array
         typeInfo:
-            pointer: true
             structRef: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.UnstructuredList
             type: struct
 get/namespace-workload-list:
@@ -6049,7 +6099,6 @@ get/namespace-workload-list:
             elementType:
                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured
                 type: struct
-            pointer: true
             type: array
 get/team:
     requestSchema:
@@ -6259,6 +6308,14 @@ get/team:
             structRef: mogenius-k8s-manager/src/crds/v1alpha1.Team
             type: struct
 get/teams:
+    requestSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
     responseSchema:
         structs:
             k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1:
@@ -7495,6 +7552,14 @@ get/workspace-workloads:
                 type: struct
             type: array
 get/workspaces:
+    requestSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
     responseSchema:
         structs:
             k8s.io/apimachinery/pkg/apis/meta/v1.Time:
@@ -7587,6 +7652,14 @@ get/workspaces:
                 type: struct
             type: array
 install-cert-manager:
+    requestSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
     responseSchema:
         typeInfo:
             type: string
@@ -7601,23 +7674,66 @@ install-cluster-issuer:
         typeInfo:
             structRef: mogenius-k8s-manager/src/core.Request
             type: struct
+    responseSchema:
+        typeInfo:
+            type: string
 install-ingress-controller-traefik:
+    requestSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
     responseSchema:
         typeInfo:
             type: string
 install-kepler:
+    requestSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
     responseSchema:
         typeInfo:
             type: string
 install-metallb:
+    requestSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
     responseSchema:
         typeInfo:
             type: string
 install-metrics-server:
+    requestSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
     responseSchema:
         typeInfo:
             type: string
 list/all-workloads:
+    requestSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
     responseSchema:
         structs:
             mogenius-k8s-manager/src/utils.SyncResourceEntry:
@@ -7640,6 +7756,14 @@ list/all-workloads:
                 type: struct
             type: array
 list/all_network_policies:
+    requestSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
     responseSchema:
         structs:
             k8s.io/api/networking/v1.IPBlock:
@@ -8033,6 +8157,14 @@ list/cronjob-jobs:
             structRef: mogenius-k8s-manager/src/core.Request
             type: struct
 list/labeled_network_policy_ports:
+    requestSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
     responseSchema:
         structs:
             mogenius-k8s-manager/src/dtos.K8sLabeledNetworkPolicyDto:
@@ -12699,6 +12831,14 @@ remove/unmanaged_network_policies:
                         type: array
         typeInfo:
             structRef: mogenius-k8s-manager/src/controllers.RemoveUnmanagedNetworkPoliciesRequest
+            type: struct
+    responseSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
             type: struct
 service/cluster-tool-stream-connection-request:
     requestSchema:
@@ -20289,27 +20429,91 @@ trigger/workload:
         typeInfo:
             structRef: mogenius-k8s-manager/src/utils.SyncResourceItem
             type: struct
+    responseSchema:
+        structs:
+            k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured:
+                name: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured
+                properties:
+                    Object:
+                        keyType:
+                            type: string
+                        type: map
+                        valueType:
+                            pointer: true
+                            type: any
+        typeInfo:
+            pointer: true
+            structRef: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured
+            type: struct
 uninstall-cert-manager:
+    requestSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
     responseSchema:
         typeInfo:
             type: string
 uninstall-cluster-issuer:
+    requestSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
     responseSchema:
         typeInfo:
             type: string
 uninstall-ingress-controller-traefik:
+    requestSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
     responseSchema:
         typeInfo:
             type: string
 uninstall-kepler:
+    requestSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
     responseSchema:
         typeInfo:
             type: string
 uninstall-metallb:
+    requestSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
     responseSchema:
         typeInfo:
             type: string
 uninstall-metrics-server:
+    requestSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
     responseSchema:
         typeInfo:
             type: string
@@ -20354,6 +20558,14 @@ update/network_policies_template:
                 structRef: mogenius-k8s-manager/src/kubernetes.NetworkPolicy
                 type: struct
             type: array
+    responseSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
 update/team:
     requestSchema:
         structs:
@@ -20463,22 +20675,62 @@ update/workspace:
         typeInfo:
             type: string
 upgrade-cert-manager:
+    requestSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
     responseSchema:
         typeInfo:
             type: string
 upgrade-ingress-controller-traefik:
+    requestSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
     responseSchema:
         typeInfo:
             type: string
 upgrade-kepler:
+    requestSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
     responseSchema:
         typeInfo:
             type: string
 upgrade-metallb:
+    requestSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
     responseSchema:
         typeInfo:
             type: string
 upgrade-metrics-server:
+    requestSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
     responseSchema:
         typeInfo:
             type: string
