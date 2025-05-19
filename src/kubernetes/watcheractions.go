@@ -14,7 +14,6 @@ import (
 	"time"
 
 	v1 "k8s.io/api/core/v1"
-	v1Net "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -108,33 +107,14 @@ func WatchStoreResources(watcher WatcherModule, eventClient websocket.WebsocketC
 func setStoreIfNeeded(eventClient websocket.WebsocketClient, groupVersion string, kind string, namespace string, name string, obj *unstructured.Unstructured, eventType string) {
 	obj = removeUnusedFieds(obj)
 
-	if kind == "NetworkPolicy" {
-		var netPol v1Net.NetworkPolicy
-		err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &netPol)
-		if err != nil {
-			k8sLogger.Error("Error cannot cast from unstructured", "error", err)
-			return
-		}
-		HandleNetworkPolicyChange(eventClient, &netPol, "Added/Updated")
-	}
-
 	// other resources
 	err := valkeyClient.SetObject(obj, 0, VALKEY_RESOURCE_PREFIX, groupVersion, kind, namespace, name)
 	if err != nil {
 		k8sLogger.Error("Error setting object in store", "error", err)
 	}
-	if kind == "Event" {
-		var event v1.Event
-		err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &event)
-		if err != nil {
-			k8sLogger.Error("Error cannot cast from unstructured", "error", err)
-			return
-		}
-		processEvent(eventClient, &event, eventType)
-	} else {
-		datagram := structs.CreateDatagramFrom("KubernetesEvent", nil)
-		structs.EventServerSendData(eventClient, datagram, kind, eventType, fmt.Sprintf("NS: %s,", namespace), 1, eventType)
-	}
+
+	datagram := structs.CreateDatagramForClusterEvent("ClusterEvent", groupVersion, kind, namespace, name, eventType)
+	structs.EventServerSendData(eventClient, datagram)
 }
 
 func deleteFromStoreIfNeeded(eventClient websocket.WebsocketClient, groupVersion string, kind string, namespace string, name string, obj *unstructured.Unstructured, eventType string) {
@@ -146,24 +126,6 @@ func deleteFromStoreIfNeeded(eventClient websocket.WebsocketClient, groupVersion
 			return
 		}
 		handlePVDeletion(&pv)
-		return
-	}
-
-	if kind == "NetworkPolicy" {
-		err := valkeyClient.Delete(VALKEY_RESOURCE_PREFIX, groupVersion, kind, namespace, name)
-		if err != nil {
-			k8sLogger.Error("Error deleting object in store", "error", err)
-		}
-
-		var netPol v1Net.NetworkPolicy
-		err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &netPol)
-		if err != nil {
-			k8sLogger.Error("Error cannot cast from unstructured", "error", err)
-			return
-		}
-
-		HandleNetworkPolicyChange(eventClient, &netPol, "Deleted")
-		return
 	}
 
 	// other resources
@@ -171,18 +133,9 @@ func deleteFromStoreIfNeeded(eventClient websocket.WebsocketClient, groupVersion
 	if err != nil {
 		k8sLogger.Error("Error deleting object in store", "error", err)
 	}
-	if kind == "Event" {
-		var event v1.Event
-		err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &event)
-		if err != nil {
-			k8sLogger.Error("Error cannot cast from unstructured", "error", err)
-			return
-		}
-		processEvent(eventClient, &event, eventType)
-	} else {
-		datagram := structs.CreateDatagramFrom("KubernetesEvent", nil)
-		structs.EventServerSendData(eventClient, datagram, kind, eventType, fmt.Sprintf("NS: %s,", namespace), 1, eventType)
-	}
+
+	datagram := structs.CreateDatagramForClusterEvent("ClusterEvent", groupVersion, kind, namespace, name, eventType)
+	structs.EventServerSendData(eventClient, datagram)
 }
 
 func GetUnstructuredResourceList(group string, version string, name string, namespace *string) (*unstructured.UnstructuredList, error) {

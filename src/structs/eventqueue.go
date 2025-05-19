@@ -10,18 +10,9 @@ import (
 
 // TODO: @daniel -> use channels and goroutine-local queue instead
 
-type EventData struct {
-	Datagram   Datagram
-	K8sKind    string
-	K8sReason  string
-	K8sMessage string
-	Count      int32
-	EventType  string
-}
-
 const RETRYTIMEOUT time.Duration = 3
 
-var eventDataQueue []EventData = []EventData{}
+var eventDataQueue []Datagram = []Datagram{}
 var eventDataQueueMutex sync.Mutex
 var eventSendMutex sync.Mutex
 var eventConnectionGuard = make(chan struct{}, 1)
@@ -69,17 +60,9 @@ func ConnectToEventQueue(eventClient websocket.WebsocketClient) {
 	}
 }
 
-func EventServerSendData(eventClient websocket.WebsocketClient, datagram Datagram, k8sKind string, k8sReason string, k8sMessage string, count int32, eventType string) {
-	data := EventData{
-		Datagram:   datagram,
-		K8sKind:    k8sKind,
-		K8sReason:  k8sReason,
-		K8sMessage: k8sMessage,
-		Count:      count,
-		EventType:  eventType,
-	}
+func EventServerSendData(eventClient websocket.WebsocketClient, datagram Datagram) {
 	eventDataQueueMutex.Lock()
-	eventDataQueue = append(eventDataQueue, data)
+	eventDataQueue = append(eventDataQueue, datagram)
 	eventDataQueueMutex.Unlock()
 	processEventQueueNow(eventClient)
 }
@@ -91,7 +74,7 @@ func processEventQueueNow(eventClient websocket.WebsocketClient) {
 	for i := 0; i < len(eventDataQueue); i++ {
 		element := eventDataQueue[i]
 
-		err := eventClient.WriteJSON(element.Datagram)
+		err := eventClient.WriteJSON(element)
 		if err != nil {
 			structsLogger.Error("Error sending data to EventServer", "error", err)
 			continue
@@ -103,7 +86,7 @@ func processEventQueueNow(eventClient websocket.WebsocketClient) {
 	}
 }
 
-func RemoveEventIndex(s []EventData, index int) []EventData {
+func RemoveEventIndex(s []Datagram, index int) []Datagram {
 	if len(s) > index {
 		return append(s[:index], s[index+1:]...)
 	}

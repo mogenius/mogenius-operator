@@ -111,13 +111,13 @@ func (j *Job) AddCmds(eventClient websocket.WebsocketClient, cmds []*Command) {
 func ReportJobStateToServer(eventClient websocket.WebsocketClient, job *Job) {
 	stateLogJob(job)
 	result := CreateDatagramNotificationFromJob(job)
-	EventServerSendData(eventClient, result, "", "", "", 1, "job")
+	EventServerSendData(eventClient, result)
 }
 
 func ReportCmdStateToServer(eventClient websocket.WebsocketClient, job *Job, cmd *Command) {
 	stateLogCmd(cmd, job.NamespaceName, job.ControllerName)
 	result := CreateDatagramNotificationFromJob(job)
-	EventServerSendData(eventClient, result, "", "", "", 1, "cmd")
+	EventServerSendData(eventClient, result)
 }
 
 func stateLogJob(data *Job) {
