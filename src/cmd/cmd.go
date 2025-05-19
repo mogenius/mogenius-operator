@@ -126,6 +126,7 @@ func Run() error {
 	os.Setenv("HELM_CONFIG_HOME", fmt.Sprintf("%s/%s", configModule.Get("MO_HELM_DATA_PATH"), helm.HELM_CONFIG_HOME))
 	os.Setenv("HELM_DATA_HOME", fmt.Sprintf("%s/%s", configModule.Get("MO_HELM_DATA_PATH"), helm.HELM_DATA_HOME))
 	os.Setenv("HELM_PLUGINS", fmt.Sprintf("%s/%s", configModule.Get("MO_HELM_DATA_PATH"), helm.HELM_PLUGINS))
+	os.Setenv("HELM_REGISTRY_CONFIG", fmt.Sprintf("%s/%s", configModule.Get("MO_HELM_DATA_PATH"), helm.HELM_REGISTRY_CONFIG_FILE))
 	os.Setenv("HELM_REPOSITORY_CACHE", fmt.Sprintf("%s/%s", configModule.Get("MO_HELM_DATA_PATH"), helm.HELM_REPOSITORY_CACHE_FOLDER))
 	os.Setenv("HELM_REPOSITORY_CONFIG", fmt.Sprintf("%s/%s", configModule.Get("MO_HELM_DATA_PATH"), helm.HELM_REPOSITORY_CONFIG_FILE))
 	os.Setenv("HELM_LOG_LEVEL", "trace")

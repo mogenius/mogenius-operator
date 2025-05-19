@@ -25,3 +25,4 @@ bin
 /dist
 /.vscode/settings.json
 /docker-compose.override.yml
+.kubeconfig
