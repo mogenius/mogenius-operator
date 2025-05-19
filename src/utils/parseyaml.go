@@ -266,3 +266,11 @@ func readYaml(filePath string) string {
 	}
 	return string(yaml)
 }
+
+func IndexHtml() string {
+	html, err := HtmlFolder.ReadFile("html/index.html")
+	if err != nil {
+		utilsLogger.Error("failed to read embedded file from HtmlFolder", "error", err)
+	}
+	return string(html)
+}

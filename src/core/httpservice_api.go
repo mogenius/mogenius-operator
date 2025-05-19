@@ -3,11 +3,17 @@ package core
 import (
 	"encoding/json"
 	"io"
+	"mogenius-k8s-manager/src/assert"
+	"mogenius-k8s-manager/src/utils"
 	"net/http"
+
+	jsoniter "github.com/json-iterator/go"
 )
 
 func (self *httpService) addApiRoutes(mux *http.ServeMux) {
 	mux.Handle("/socketapi", self.withRequestLogging(http.HandlerFunc(self.httpSocketApi)))
+	mux.HandleFunc("/api-doc", self.serveApiDocHtml)
+	mux.HandleFunc("/spec.yaml", self.serveSpecYaml)
 }
 
 func (self *httpService) httpSocketApi(w http.ResponseWriter, r *http.Request) {
@@ -42,4 +48,34 @@ func (self *httpService) httpSocketApi(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		self.logger.Error("failed to json encode response", "error", err)
 	}
+}
+
+func (self *httpService) serveApiDocHtml(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html")
+	html := utils.IndexHtml()
+	_, err := w.Write([]byte(html))
+	if err != nil {
+		self.logger.Error("failed to write index.html response", "error", err)
+	}
+}
+
+func (self *httpService) serveSpecYaml(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/yaml")
+	data := self.generatePatterns()
+	_, err := w.Write([]byte(data))
+	if err != nil {
+		self.logger.Error("failed to write index.html response", "error", err)
+	}
+}
+
+func (self *httpService) generatePatterns() string {
+	self.socketapi.AssertPatternsUnique()
+	patternConfig := self.socketapi.PatternConfigs()
+
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
+
+	data, err := json.Marshal(patternConfig)
+	assert.Assert(err == nil, err)
+
+	return string(data)
 }

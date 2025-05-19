@@ -94,10 +94,13 @@ const (
 	IacSecurityNeedsEncryptionButStateIsUnknown IacSecurity = "EncryptButStateIsUnknown" // Encrypt the data field values
 )
 
-// this includes the yaml-templates folder into the binary
+// this includes the yaml-templates & html folder into the binary
 //
 //go:embed yaml-templates
 var YamlTemplatesFolder embed.FS
+
+//go:embed html
+var HtmlFolder embed.FS
 
 var helmDataVersion = cache.New(2*time.Hour, 30*time.Minute)
 
