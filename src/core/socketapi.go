@@ -1801,7 +1801,7 @@ func (self *socketApi) registerPatterns() {
 	{
 		type Request struct {
 			Name        string                                 `json:"name" validate:"required"`
-			DisplayName string                                 `json:"displayName" validate:"required"`
+			DisplayName string                                 `json:"displayName"`
 			Resources   []v1alpha1.WorkspaceResourceIdentifier `json:"resources" validate:"required"`
 		}
 
@@ -1834,7 +1834,7 @@ func (self *socketApi) registerPatterns() {
 	{
 		type Request struct {
 			Name        string                                 `json:"name" validate:"required"`
-			DisplayName string                                 `json:"displayName" validate:"required"`
+			DisplayName string                                 `json:"displayName"`
 			Resources   []v1alpha1.WorkspaceResourceIdentifier `json:"resources" validate:"required"`
 		}
 
