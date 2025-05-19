@@ -190,36 +190,9 @@ func writeMogeniusSecret(secretClient v1.SecretInterface, existingSecret *core.S
 }
 
 func InitOrUpdateCrds() {
-	err := CreateOrUpdateYamlString(utils.InitMogeniusCrdProjectsYaml())
-	if err != nil && !apierrors.IsAlreadyExists(err) {
-		k8sLogger.Error("Error updating/creating mogenius Project-CRDs.", "error", err)
-		shutdown.SendShutdownSignal(true)
-		select {}
-	} else {
-		k8sLogger.Info("Created/updated mogenius Project-CRDs. 🚀")
-	}
-
-	err = CreateOrUpdateYamlString(utils.InitMogeniusCrdEnvironmentsYaml())
-	if err != nil && !apierrors.IsAlreadyExists(err) {
-		k8sLogger.Error("Error updating/creating mogenius Environment-CRDs.", "error", err)
-		shutdown.SendShutdownSignal(true)
-		select {}
-	} else {
-		k8sLogger.Info("Created/updated mogenius Environment-CRDs. 🚀")
-	}
-
-	err = CreateOrUpdateYamlString(utils.InitMogeniusCrdApplicationKitYaml())
-	if err != nil && !apierrors.IsAlreadyExists(err) {
-		k8sLogger.Error("Error updating/creating mogenius ApplicationKit-CRDs.", "error", err)
-		shutdown.SendShutdownSignal(true)
-		select {}
-	} else {
-		k8sLogger.Info("Created/updated mogenius ApplicationKit-CRDs. 🚀")
-	}
-
 	crds := crds.GetCRDs()
 	for _, crd := range crds {
-		err = CreateOrUpdateYamlString(crd.Content)
+		err := CreateOrUpdateYamlString(crd.Content)
 		if err != nil && !apierrors.IsAlreadyExists(err) {
 			k8sLogger.Error("error updating/creating mogenius CRD", "filename", crd.Filename, "error", err)
 			shutdown.SendShutdownSignal(true)

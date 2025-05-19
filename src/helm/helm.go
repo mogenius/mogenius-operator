@@ -1351,7 +1351,7 @@ func HelmReleaseGetWorkloads(valkeyClient valkeyclient.ValkeyClient, data HelmRe
 			if !replicaSetsFetched {
 				replicaSets, err = store.SearchByKeyParts(valkeyClient, "apps/v1", "ReplicaSet", data.Namespace)
 				if errors.Is(err, store.ErrNotFound) {
-					helmLogger.Warn("ReplicaSet not found", "error", err.Error())
+					helmLogger.Warn("ReplicaSets not found", "namespace", data.Namespace, "error", err.Error())
 					replicaSets = nil
 				}
 				replicaSetsFetched = true
