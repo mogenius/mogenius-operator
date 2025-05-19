@@ -67,11 +67,22 @@ func NewNetworkMonitor(logger *slog.Logger, config config.ConfigModule, clientPr
 	self.cancel = cancel
 	cne := NewContainerNetworkEnumerator(logger.With("scope", "network-enumerator"))
 	self.cne = cne
-	if self.BtfAvailable() {
+
+	switch config.Get("MO_SNOOPY_IMPLEMENTATION") {
+	case "auto":
+		if self.BtfAvailable() {
+			self.snoopy = NewSnoopyManager(self.logger.With("scope", "snoopy-manager"), config)
+		} else {
+			self.snoopy = NewNetworkStatsReader(self.logger.With("scope", "network-stats-reader"), cne, procFsMountPath)
+		}
+	case "snoopy":
 		self.snoopy = NewSnoopyManager(self.logger.With("scope", "snoopy-manager"), config)
-	} else {
+	case "procdev":
 		self.snoopy = NewNetworkStatsReader(self.logger.With("scope", "network-stats-reader"), cne, procFsMountPath)
+	default:
+		assert.Assert(false, "UNREACHABLE", "config parser should not let any unexpected variant pass", config.Get("MO_SNOOPY_IMPLEMENTATION"))
 	}
+
 	self.procFsMountPath = procFsMountPath
 	self.networkUsageTx = make(chan struct{})
 	self.networkUsageRx = make(chan []PodNetworkStats)
