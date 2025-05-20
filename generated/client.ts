@@ -982,12 +982,6 @@ export type CLUSTER_EXECUTE_HELM_CHART_TASK_REQUEST = CLUSTER_EXECUTE_HELM_CHART
  *
  * ```yaml
  * structs:
- *     log/slog.Logger:
- *         name: log/slog.Logger
- *         properties:
- *             handler:
- *                 pointer: true
- *                 type: any
  *     mogenius-k8s-manager/src/structs.Command:
  *         name: mogenius-k8s-manager/src/structs.Command
  *         properties:
@@ -1025,10 +1019,6 @@ export type CLUSTER_EXECUTE_HELM_CHART_TASK_REQUEST = CLUSTER_EXECUTE_HELM_CHART
  *                 type: struct
  *             id:
  *                 type: string
- *             logger:
- *                 pointer: true
- *                 structRef: log/slog.Logger
- *                 type: struct
  *             message:
  *                 type: string
  *             namespaceName:
@@ -1042,62 +1032,9 @@ export type CLUSTER_EXECUTE_HELM_CHART_TASK_REQUEST = CLUSTER_EXECUTE_HELM_CHART
  *                 type: string
  *             title:
  *                 type: string
- *     time.Location:
- *         name: time.Location
- *         properties:
- *             cacheEnd:
- *                 type: int
- *             cacheStart:
- *                 type: int
- *             cacheZone:
- *                 pointer: true
- *                 structRef: time.zone
- *                 type: struct
- *             extend:
- *                 type: string
- *             name:
- *                 type: string
- *             tx:
- *                 elementType:
- *                     structRef: time.zoneTrans
- *                     type: struct
- *                 type: array
- *             zone:
- *                 elementType:
- *                     structRef: time.zone
- *                     type: struct
- *                 type: array
  *     time.Time:
  *         name: time.Time
- *         properties:
- *             ext:
- *                 type: int
- *             loc:
- *                 pointer: true
- *                 structRef: time.Location
- *                 type: struct
- *             wall:
- *                 type: uint
- *     time.zone:
- *         name: time.zone
- *         properties:
- *             isDST:
- *                 type: bool
- *             name:
- *                 type: string
- *             offset:
- *                 type: int
- *     time.zoneTrans:
- *         name: time.zoneTrans
- *         properties:
- *             index:
- *                 type: uint
- *             isstd:
- *                 type: bool
- *             isutc:
- *                 type: bool
- *             when:
- *                 type: int
+ *         properties: {}
  * typeInfo:
  *     pointer: true
  *     structRef: mogenius-k8s-manager/src/structs.Job
@@ -1465,12 +1402,6 @@ export type CLUSTER_HELM_RELEASE_HISTORY_REQUEST = CLUSTER_HELM_RELEASE_HISTORY_
  *     helm.sh/helm/v3/pkg/chart.Chart:
  *         name: helm.sh/helm/v3/pkg/chart.Chart
  *         properties:
- *             dependencies:
- *                 elementType:
- *                     pointer: true
- *                     structRef: helm.sh/helm/v3/pkg/chart.Chart
- *                     type: struct
- *                 type: array
  *             files:
  *                 elementType:
  *                     pointer: true
@@ -1484,10 +1415,6 @@ export type CLUSTER_HELM_RELEASE_HISTORY_REQUEST = CLUSTER_HELM_RELEASE_HISTORY_
  *             metadata:
  *                 pointer: true
  *                 structRef: helm.sh/helm/v3/pkg/chart.Metadata
- *                 type: struct
- *             parent:
- *                 pointer: true
- *                 structRef: helm.sh/helm/v3/pkg/chart.Chart
  *                 type: struct
  *             schema:
  *                 elementType:
@@ -1715,62 +1642,9 @@ export type CLUSTER_HELM_RELEASE_HISTORY_REQUEST = CLUSTER_HELM_RELEASE_HISTORY_
  *             Time:
  *                 structRef: time.Time
  *                 type: struct
- *     time.Location:
- *         name: time.Location
- *         properties:
- *             cacheEnd:
- *                 type: int
- *             cacheStart:
- *                 type: int
- *             cacheZone:
- *                 pointer: true
- *                 structRef: time.zone
- *                 type: struct
- *             extend:
- *                 type: string
- *             name:
- *                 type: string
- *             tx:
- *                 elementType:
- *                     structRef: time.zoneTrans
- *                     type: struct
- *                 type: array
- *             zone:
- *                 elementType:
- *                     structRef: time.zone
- *                     type: struct
- *                 type: array
  *     time.Time:
  *         name: time.Time
- *         properties:
- *             ext:
- *                 type: int
- *             loc:
- *                 pointer: true
- *                 structRef: time.Location
- *                 type: struct
- *             wall:
- *                 type: uint
- *     time.zone:
- *         name: time.zone
- *         properties:
- *             isDST:
- *                 type: bool
- *             name:
- *                 type: string
- *             offset:
- *                 type: int
- *     time.zoneTrans:
- *         name: time.zoneTrans
- *         properties:
- *             index:
- *                 type: uint
- *             isstd:
- *                 type: bool
- *             isutc:
- *                 type: bool
- *             when:
- *                 type: int
+ *         properties: {}
  * typeInfo:
  *     elementType:
  *         pointer: true
@@ -1808,12 +1682,6 @@ export type CLUSTER_HELM_RELEASE_LIST_REQUEST = CLUSTER_HELM_RELEASE_LIST_REQUES
  *     helm.sh/helm/v3/pkg/chart.Chart:
  *         name: helm.sh/helm/v3/pkg/chart.Chart
  *         properties:
- *             dependencies:
- *                 elementType:
- *                     pointer: true
- *                     structRef: helm.sh/helm/v3/pkg/chart.Chart
- *                     type: struct
- *                 type: array
  *             files:
  *                 elementType:
  *                     pointer: true
@@ -1827,10 +1695,6 @@ export type CLUSTER_HELM_RELEASE_LIST_REQUEST = CLUSTER_HELM_RELEASE_LIST_REQUES
  *             metadata:
  *                 pointer: true
  *                 structRef: helm.sh/helm/v3/pkg/chart.Metadata
- *                 type: struct
- *             parent:
- *                 pointer: true
- *                 structRef: helm.sh/helm/v3/pkg/chart.Chart
  *                 type: struct
  *             schema:
  *                 elementType:
@@ -2058,62 +1922,9 @@ export type CLUSTER_HELM_RELEASE_LIST_REQUEST = CLUSTER_HELM_RELEASE_LIST_REQUES
  *             Time:
  *                 structRef: time.Time
  *                 type: struct
- *     time.Location:
- *         name: time.Location
- *         properties:
- *             cacheEnd:
- *                 type: int
- *             cacheStart:
- *                 type: int
- *             cacheZone:
- *                 pointer: true
- *                 structRef: time.zone
- *                 type: struct
- *             extend:
- *                 type: string
- *             name:
- *                 type: string
- *             tx:
- *                 elementType:
- *                     structRef: time.zoneTrans
- *                     type: struct
- *                 type: array
- *             zone:
- *                 elementType:
- *                     structRef: time.zone
- *                     type: struct
- *                 type: array
  *     time.Time:
  *         name: time.Time
- *         properties:
- *             ext:
- *                 type: int
- *             loc:
- *                 pointer: true
- *                 structRef: time.Location
- *                 type: struct
- *             wall:
- *                 type: uint
- *     time.zone:
- *         name: time.zone
- *         properties:
- *             isDST:
- *                 type: bool
- *             name:
- *                 type: string
- *             offset:
- *                 type: int
- *     time.zoneTrans:
- *         name: time.zoneTrans
- *         properties:
- *             index:
- *                 type: uint
- *             isstd:
- *                 type: bool
- *             isutc:
- *                 type: bool
- *             when:
- *                 type: int
+ *         properties: {}
  * typeInfo:
  *     elementType:
  *         pointer: true
@@ -2199,62 +2010,9 @@ export type CLUSTER_HELM_RELEASE_STATUS_REQUEST = CLUSTER_HELM_RELEASE_STATUS_RE
  *                 type: string
  *             version:
  *                 type: int
- *     time.Location:
- *         name: time.Location
- *         properties:
- *             cacheEnd:
- *                 type: int
- *             cacheStart:
- *                 type: int
- *             cacheZone:
- *                 pointer: true
- *                 structRef: time.zone
- *                 type: struct
- *             extend:
- *                 type: string
- *             name:
- *                 type: string
- *             tx:
- *                 elementType:
- *                     structRef: time.zoneTrans
- *                     type: struct
- *                 type: array
- *             zone:
- *                 elementType:
- *                     structRef: time.zone
- *                     type: struct
- *                 type: array
  *     time.Time:
  *         name: time.Time
- *         properties:
- *             ext:
- *                 type: int
- *             loc:
- *                 pointer: true
- *                 structRef: time.Location
- *                 type: struct
- *             wall:
- *                 type: uint
- *     time.zone:
- *         name: time.zone
- *         properties:
- *             isDST:
- *                 type: bool
- *             name:
- *                 type: string
- *             offset:
- *                 type: int
- *     time.zoneTrans:
- *         name: time.zoneTrans
- *         properties:
- *             index:
- *                 type: uint
- *             isstd:
- *                 type: bool
- *             isutc:
- *                 type: bool
- *             when:
- *                 type: int
+ *         properties: {}
  * typeInfo:
  *     pointer: true
  *     structRef: mogenius-k8s-manager/src/helm.HelmReleaseStatusInfo
@@ -2793,14 +2551,6 @@ export type CLUSTER_READ_PERSISTENT_VOLUME_CLAIM_REQUEST = CLUSTER_READ_PERSISTE
  *
  * ```yaml
  * structs:
- *     gopkg.in/inf.v0.Dec:
- *         name: gopkg.in/inf.v0.Dec
- *         properties:
- *             scale:
- *                 type: int
- *             unscaled:
- *                 structRef: math/big.Int
- *                 type: struct
  *     k8s.io/api/core/v1.ModifyVolumeStatus:
  *         name: k8s.io/api/core/v1.ModifyVolumeStatus
  *         properties:
@@ -2959,28 +2709,6 @@ export type CLUSTER_READ_PERSISTENT_VOLUME_CLAIM_REQUEST = CLUSTER_READ_PERSISTE
  *         properties:
  *             Format:
  *                 type: string
- *             d:
- *                 structRef: k8s.io/apimachinery/pkg/api/resource.infDecAmount
- *                 type: struct
- *             i:
- *                 structRef: k8s.io/apimachinery/pkg/api/resource.int64Amount
- *                 type: struct
- *             s:
- *                 type: string
- *     k8s.io/apimachinery/pkg/api/resource.infDecAmount:
- *         name: k8s.io/apimachinery/pkg/api/resource.infDecAmount
- *         properties:
- *             Dec:
- *                 pointer: true
- *                 structRef: gopkg.in/inf.v0.Dec
- *                 type: struct
- *     k8s.io/apimachinery/pkg/api/resource.int64Amount:
- *         name: k8s.io/apimachinery/pkg/api/resource.int64Amount
- *         properties:
- *             scale:
- *                 type: int
- *             value:
- *                 type: int
  *     k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1:
  *         name: k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1
  *         properties: {}
@@ -3113,71 +2841,9 @@ export type CLUSTER_READ_PERSISTENT_VOLUME_CLAIM_REQUEST = CLUSTER_READ_PERSISTE
  *                 type: string
  *             kind:
  *                 type: string
- *     math/big.Int:
- *         name: math/big.Int
- *         properties:
- *             abs:
- *                 elementType:
- *                     type: uint
- *                 type: array
- *             neg:
- *                 type: bool
- *     time.Location:
- *         name: time.Location
- *         properties:
- *             cacheEnd:
- *                 type: int
- *             cacheStart:
- *                 type: int
- *             cacheZone:
- *                 pointer: true
- *                 structRef: time.zone
- *                 type: struct
- *             extend:
- *                 type: string
- *             name:
- *                 type: string
- *             tx:
- *                 elementType:
- *                     structRef: time.zoneTrans
- *                     type: struct
- *                 type: array
- *             zone:
- *                 elementType:
- *                     structRef: time.zone
- *                     type: struct
- *                 type: array
  *     time.Time:
  *         name: time.Time
- *         properties:
- *             ext:
- *                 type: int
- *             loc:
- *                 pointer: true
- *                 structRef: time.Location
- *                 type: struct
- *             wall:
- *                 type: uint
- *     time.zone:
- *         name: time.zone
- *         properties:
- *             isDST:
- *                 type: bool
- *             name:
- *                 type: string
- *             offset:
- *                 type: int
- *     time.zoneTrans:
- *         name: time.zoneTrans
- *         properties:
- *             index:
- *                 type: uint
- *             isstd:
- *                 type: bool
- *             isutc:
- *                 type: bool
- *             when:
- *                 type: int
+ *         properties: {}
  * typeInfo:
  *     pointer: true
  *     structRef: k8s.io/api/core/v1.PersistentVolumeClaim
@@ -3252,12 +2918,6 @@ export type CLUSTER_UNINSTALL_HELM_CHART_REQUEST = CLUSTER_UNINSTALL_HELM_CHART_
  *
  * ```yaml
  * structs:
- *     log/slog.Logger:
- *         name: log/slog.Logger
- *         properties:
- *             handler:
- *                 pointer: true
- *                 type: any
  *     mogenius-k8s-manager/src/structs.Command:
  *         name: mogenius-k8s-manager/src/structs.Command
  *         properties:
@@ -3295,10 +2955,6 @@ export type CLUSTER_UNINSTALL_HELM_CHART_REQUEST = CLUSTER_UNINSTALL_HELM_CHART_
  *                 type: struct
  *             id:
  *                 type: string
- *             logger:
- *                 pointer: true
- *                 structRef: log/slog.Logger
- *                 type: struct
  *             message:
  *                 type: string
  *             namespaceName:
@@ -3312,62 +2968,9 @@ export type CLUSTER_UNINSTALL_HELM_CHART_REQUEST = CLUSTER_UNINSTALL_HELM_CHART_
  *                 type: string
  *             title:
  *                 type: string
- *     time.Location:
- *         name: time.Location
- *         properties:
- *             cacheEnd:
- *                 type: int
- *             cacheStart:
- *                 type: int
- *             cacheZone:
- *                 pointer: true
- *                 structRef: time.zone
- *                 type: struct
- *             extend:
- *                 type: string
- *             name:
- *                 type: string
- *             tx:
- *                 elementType:
- *                     structRef: time.zoneTrans
- *                     type: struct
- *                 type: array
- *             zone:
- *                 elementType:
- *                     structRef: time.zone
- *                     type: struct
- *                 type: array
  *     time.Time:
  *         name: time.Time
- *         properties:
- *             ext:
- *                 type: int
- *             loc:
- *                 pointer: true
- *                 structRef: time.Location
- *                 type: struct
- *             wall:
- *                 type: uint
- *     time.zone:
- *         name: time.zone
- *         properties:
- *             isDST:
- *                 type: bool
- *             name:
- *                 type: string
- *             offset:
- *                 type: int
- *     time.zoneTrans:
- *         name: time.zoneTrans
- *         properties:
- *             index:
- *                 type: uint
- *             isstd:
- *                 type: bool
- *             isutc:
- *                 type: bool
- *             when:
- *                 type: int
+ *         properties: {}
  * typeInfo:
  *     pointer: true
  *     structRef: mogenius-k8s-manager/src/structs.Job
@@ -4748,62 +4351,9 @@ export type GET_GRANT_REQUEST = GET_GRANT_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE
  *     mogenius-k8s-manager/src/crds/v1alpha1.GrantStatus:
  *         name: mogenius-k8s-manager/src/crds/v1alpha1.GrantStatus
  *         properties: {}
- *     time.Location:
- *         name: time.Location
- *         properties:
- *             cacheEnd:
- *                 type: int
- *             cacheStart:
- *                 type: int
- *             cacheZone:
- *                 pointer: true
- *                 structRef: time.zone
- *                 type: struct
- *             extend:
- *                 type: string
- *             name:
- *                 type: string
- *             tx:
- *                 elementType:
- *                     structRef: time.zoneTrans
- *                     type: struct
- *                 type: array
- *             zone:
- *                 elementType:
- *                     structRef: time.zone
- *                     type: struct
- *                 type: array
  *     time.Time:
  *         name: time.Time
- *         properties:
- *             ext:
- *                 type: int
- *             loc:
- *                 pointer: true
- *                 structRef: time.Location
- *                 type: struct
- *             wall:
- *                 type: uint
- *     time.zone:
- *         name: time.zone
- *         properties:
- *             isDST:
- *                 type: bool
- *             name:
- *                 type: string
- *             offset:
- *                 type: int
- *     time.zoneTrans:
- *         name: time.zoneTrans
- *         properties:
- *             index:
- *                 type: uint
- *             isstd:
- *                 type: bool
- *             isutc:
- *                 type: bool
- *             when:
- *                 type: int
+ *         properties: {}
  * typeInfo:
  *     pointer: true
  *     structRef: mogenius-k8s-manager/src/crds/v1alpha1.Grant
@@ -4976,62 +4526,9 @@ export type GET_GRANTS_REQUEST = GET_GRANTS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CO
  *     mogenius-k8s-manager/src/crds/v1alpha1.GrantStatus:
  *         name: mogenius-k8s-manager/src/crds/v1alpha1.GrantStatus
  *         properties: {}
- *     time.Location:
- *         name: time.Location
- *         properties:
- *             cacheEnd:
- *                 type: int
- *             cacheStart:
- *                 type: int
- *             cacheZone:
- *                 pointer: true
- *                 structRef: time.zone
- *                 type: struct
- *             extend:
- *                 type: string
- *             name:
- *                 type: string
- *             tx:
- *                 elementType:
- *                     structRef: time.zoneTrans
- *                     type: struct
- *                 type: array
- *             zone:
- *                 elementType:
- *                     structRef: time.zone
- *                     type: struct
- *                 type: array
  *     time.Time:
  *         name: time.Time
- *         properties:
- *             ext:
- *                 type: int
- *             loc:
- *                 pointer: true
- *                 structRef: time.Location
- *                 type: struct
- *             wall:
- *                 type: uint
- *     time.zone:
- *         name: time.zone
- *         properties:
- *             isDST:
- *                 type: bool
- *             name:
- *                 type: string
- *             offset:
- *                 type: int
- *     time.zoneTrans:
- *         name: time.zoneTrans
- *         properties:
- *             index:
- *                 type: uint
- *             isstd:
- *                 type: bool
- *             isutc:
- *                 type: bool
- *             when:
- *                 type: int
+ *         properties: {}
  * typeInfo:
  *     elementType:
  *         structRef: mogenius-k8s-manager/src/crds/v1alpha1.Grant
@@ -5350,62 +4847,9 @@ export type GET_TEAM_REQUEST = GET_TEAM_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_R
  *     mogenius-k8s-manager/src/crds/v1alpha1.TeamStatus:
  *         name: mogenius-k8s-manager/src/crds/v1alpha1.TeamStatus
  *         properties: {}
- *     time.Location:
- *         name: time.Location
- *         properties:
- *             cacheEnd:
- *                 type: int
- *             cacheStart:
- *                 type: int
- *             cacheZone:
- *                 pointer: true
- *                 structRef: time.zone
- *                 type: struct
- *             extend:
- *                 type: string
- *             name:
- *                 type: string
- *             tx:
- *                 elementType:
- *                     structRef: time.zoneTrans
- *                     type: struct
- *                 type: array
- *             zone:
- *                 elementType:
- *                     structRef: time.zone
- *                     type: struct
- *                 type: array
  *     time.Time:
  *         name: time.Time
- *         properties:
- *             ext:
- *                 type: int
- *             loc:
- *                 pointer: true
- *                 structRef: time.Location
- *                 type: struct
- *             wall:
- *                 type: uint
- *     time.zone:
- *         name: time.zone
- *         properties:
- *             isDST:
- *                 type: bool
- *             name:
- *                 type: string
- *             offset:
- *                 type: int
- *     time.zoneTrans:
- *         name: time.zoneTrans
- *         properties:
- *             index:
- *                 type: uint
- *             isstd:
- *                 type: bool
- *             isutc:
- *                 type: bool
- *             when:
- *                 type: int
+ *         properties: {}
  * typeInfo:
  *     pointer: true
  *     structRef: mogenius-k8s-manager/src/crds/v1alpha1.Team
@@ -5570,62 +5014,9 @@ export type GET_TEAMS_REQUEST = GET_TEAMS_REQUEST__ANON_STRUCT_0|undefined;
  *     mogenius-k8s-manager/src/crds/v1alpha1.TeamStatus:
  *         name: mogenius-k8s-manager/src/crds/v1alpha1.TeamStatus
  *         properties: {}
- *     time.Location:
- *         name: time.Location
- *         properties:
- *             cacheEnd:
- *                 type: int
- *             cacheStart:
- *                 type: int
- *             cacheZone:
- *                 pointer: true
- *                 structRef: time.zone
- *                 type: struct
- *             extend:
- *                 type: string
- *             name:
- *                 type: string
- *             tx:
- *                 elementType:
- *                     structRef: time.zoneTrans
- *                     type: struct
- *                 type: array
- *             zone:
- *                 elementType:
- *                     structRef: time.zone
- *                     type: struct
- *                 type: array
  *     time.Time:
  *         name: time.Time
- *         properties:
- *             ext:
- *                 type: int
- *             loc:
- *                 pointer: true
- *                 structRef: time.Location
- *                 type: struct
- *             wall:
- *                 type: uint
- *     time.zone:
- *         name: time.zone
- *         properties:
- *             isDST:
- *                 type: bool
- *             name:
- *                 type: string
- *             offset:
- *                 type: int
- *     time.zoneTrans:
- *         name: time.zoneTrans
- *         properties:
- *             index:
- *                 type: uint
- *             isstd:
- *                 type: bool
- *             isutc:
- *                 type: bool
- *             when:
- *                 type: int
+ *         properties: {}
  * typeInfo:
  *     elementType:
  *         structRef: mogenius-k8s-manager/src/crds/v1alpha1.Team
@@ -5793,62 +5184,9 @@ export type GET_USER_REQUEST = GET_USER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_R
  *     mogenius-k8s-manager/src/crds/v1alpha1.UserStatus:
  *         name: mogenius-k8s-manager/src/crds/v1alpha1.UserStatus
  *         properties: {}
- *     time.Location:
- *         name: time.Location
- *         properties:
- *             cacheEnd:
- *                 type: int
- *             cacheStart:
- *                 type: int
- *             cacheZone:
- *                 pointer: true
- *                 structRef: time.zone
- *                 type: struct
- *             extend:
- *                 type: string
- *             name:
- *                 type: string
- *             tx:
- *                 elementType:
- *                     structRef: time.zoneTrans
- *                     type: struct
- *                 type: array
- *             zone:
- *                 elementType:
- *                     structRef: time.zone
- *                     type: struct
- *                 type: array
  *     time.Time:
  *         name: time.Time
- *         properties:
- *             ext:
- *                 type: int
- *             loc:
- *                 pointer: true
- *                 structRef: time.Location
- *                 type: struct
- *             wall:
- *                 type: uint
- *     time.zone:
- *         name: time.zone
- *         properties:
- *             isDST:
- *                 type: bool
- *             name:
- *                 type: string
- *             offset:
- *                 type: int
- *     time.zoneTrans:
- *         name: time.zoneTrans
- *         properties:
- *             index:
- *                 type: uint
- *             isstd:
- *                 type: bool
- *             isutc:
- *                 type: bool
- *             when:
- *                 type: int
+ *         properties: {}
  * typeInfo:
  *     pointer: true
  *     structRef: mogenius-k8s-manager/src/crds/v1alpha1.User
@@ -6016,62 +5354,9 @@ export type GET_USERS_REQUEST = GET_USERS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE
  *     mogenius-k8s-manager/src/crds/v1alpha1.UserStatus:
  *         name: mogenius-k8s-manager/src/crds/v1alpha1.UserStatus
  *         properties: {}
- *     time.Location:
- *         name: time.Location
- *         properties:
- *             cacheEnd:
- *                 type: int
- *             cacheStart:
- *                 type: int
- *             cacheZone:
- *                 pointer: true
- *                 structRef: time.zone
- *                 type: struct
- *             extend:
- *                 type: string
- *             name:
- *                 type: string
- *             tx:
- *                 elementType:
- *                     structRef: time.zoneTrans
- *                     type: struct
- *                 type: array
- *             zone:
- *                 elementType:
- *                     structRef: time.zone
- *                     type: struct
- *                 type: array
  *     time.Time:
  *         name: time.Time
- *         properties:
- *             ext:
- *                 type: int
- *             loc:
- *                 pointer: true
- *                 structRef: time.Location
- *                 type: struct
- *             wall:
- *                 type: uint
- *     time.zone:
- *         name: time.zone
- *         properties:
- *             isDST:
- *                 type: bool
- *             name:
- *                 type: string
- *             offset:
- *                 type: int
- *     time.zoneTrans:
- *         name: time.zoneTrans
- *         properties:
- *             index:
- *                 type: uint
- *             isstd:
- *                 type: bool
- *             isutc:
- *                 type: bool
- *             when:
- *                 type: int
+ *         properties: {}
  * typeInfo:
  *     elementType:
  *         structRef: mogenius-k8s-manager/src/crds/v1alpha1.User
@@ -6539,62 +5824,9 @@ export type GET_WORKLOAD_STATUS_REQUEST = GET_WORKLOAD_STATUS_REQUEST__MOGENIUS_
  *                 type: any
  *             uid:
  *                 type: string
- *     time.Location:
- *         name: time.Location
- *         properties:
- *             cacheEnd:
- *                 type: int
- *             cacheStart:
- *                 type: int
- *             cacheZone:
- *                 pointer: true
- *                 structRef: time.zone
- *                 type: struct
- *             extend:
- *                 type: string
- *             name:
- *                 type: string
- *             tx:
- *                 elementType:
- *                     structRef: time.zoneTrans
- *                     type: struct
- *                 type: array
- *             zone:
- *                 elementType:
- *                     structRef: time.zone
- *                     type: struct
- *                 type: array
  *     time.Time:
  *         name: time.Time
- *         properties:
- *             ext:
- *                 type: int
- *             loc:
- *                 pointer: true
- *                 structRef: time.Location
- *                 type: struct
- *             wall:
- *                 type: uint
- *     time.zone:
- *         name: time.zone
- *         properties:
- *             isDST:
- *                 type: bool
- *             name:
- *                 type: string
- *             offset:
- *                 type: int
- *     time.zoneTrans:
- *         name: time.zoneTrans
- *         properties:
- *             index:
- *                 type: uint
- *             isstd:
- *                 type: bool
- *             isutc:
- *                 type: bool
- *             when:
- *                 type: int
+ *         properties: {}
  * typeInfo:
  *     elementType:
  *         structRef: mogenius-k8s-manager/src/kubernetes.WorkloadStatusDto
@@ -6656,62 +5888,9 @@ export type GET_WORKSPACE_REQUEST = GET_WORKSPACE_REQUEST__MOGENIUS_K8S_MANAGER_
  *                 type: string
  *             type:
  *                 type: string
- *     time.Location:
- *         name: time.Location
- *         properties:
- *             cacheEnd:
- *                 type: int
- *             cacheStart:
- *                 type: int
- *             cacheZone:
- *                 pointer: true
- *                 structRef: time.zone
- *                 type: struct
- *             extend:
- *                 type: string
- *             name:
- *                 type: string
- *             tx:
- *                 elementType:
- *                     structRef: time.zoneTrans
- *                     type: struct
- *                 type: array
- *             zone:
- *                 elementType:
- *                     structRef: time.zone
- *                     type: struct
- *                 type: array
  *     time.Time:
  *         name: time.Time
- *         properties:
- *             ext:
- *                 type: int
- *             loc:
- *                 pointer: true
- *                 structRef: time.Location
- *                 type: struct
- *             wall:
- *                 type: uint
- *     time.zone:
- *         name: time.zone
- *         properties:
- *             isDST:
- *                 type: bool
- *             name:
- *                 type: string
- *             offset:
- *                 type: int
- *     time.zoneTrans:
- *         name: time.zoneTrans
- *         properties:
- *             index:
- *                 type: uint
- *             isstd:
- *                 type: bool
- *             isutc:
- *                 type: bool
- *             when:
- *                 type: int
+ *         properties: {}
  * typeInfo:
  *     pointer: true
  *     structRef: mogenius-k8s-manager/src/core.GetWorkspaceResult
@@ -6770,62 +5949,9 @@ export type GET_WORKSPACES_REQUEST = GET_WORKSPACES_REQUEST__ANON_STRUCT_0|undef
  *                 type: string
  *             type:
  *                 type: string
- *     time.Location:
- *         name: time.Location
- *         properties:
- *             cacheEnd:
- *                 type: int
- *             cacheStart:
- *                 type: int
- *             cacheZone:
- *                 pointer: true
- *                 structRef: time.zone
- *                 type: struct
- *             extend:
- *                 type: string
- *             name:
- *                 type: string
- *             tx:
- *                 elementType:
- *                     structRef: time.zoneTrans
- *                     type: struct
- *                 type: array
- *             zone:
- *                 elementType:
- *                     structRef: time.zone
- *                     type: struct
- *                 type: array
  *     time.Time:
  *         name: time.Time
- *         properties:
- *             ext:
- *                 type: int
- *             loc:
- *                 pointer: true
- *                 structRef: time.Location
- *                 type: struct
- *             wall:
- *                 type: uint
- *     time.zone:
- *         name: time.zone
- *         properties:
- *             isDST:
- *                 type: bool
- *             name:
- *                 type: string
- *             offset:
- *                 type: int
- *     time.zoneTrans:
- *         name: time.zoneTrans
- *         properties:
- *             index:
- *                 type: uint
- *             isstd:
- *                 type: bool
- *             isutc:
- *                 type: bool
- *             when:
- *                 type: int
+ *         properties: {}
  * typeInfo:
  *     elementType:
  *         structRef: mogenius-k8s-manager/src/core.GetWorkspaceResult
@@ -8188,62 +7314,9 @@ export type METRICS_DEPLOYMENT_AVERAGE_UTILIZATION_REQUEST = METRICS_DEPLOYMENT_
  *                 type: array
  *             name:
  *                 type: string
- *     time.Location:
- *         name: time.Location
- *         properties:
- *             cacheEnd:
- *                 type: int
- *             cacheStart:
- *                 type: int
- *             cacheZone:
- *                 pointer: true
- *                 structRef: time.zone
- *                 type: struct
- *             extend:
- *                 type: string
- *             name:
- *                 type: string
- *             tx:
- *                 elementType:
- *                     structRef: time.zoneTrans
- *                     type: struct
- *                 type: array
- *             zone:
- *                 elementType:
- *                     structRef: time.zone
- *                     type: struct
- *                 type: array
  *     time.Time:
  *         name: time.Time
- *         properties:
- *             ext:
- *                 type: int
- *             loc:
- *                 pointer: true
- *                 structRef: time.Location
- *                 type: struct
- *             wall:
- *                 type: uint
- *     time.zone:
- *         name: time.zone
- *         properties:
- *             isDST:
- *                 type: bool
- *             name:
- *                 type: string
- *             offset:
- *                 type: int
- *     time.zoneTrans:
- *         name: time.zoneTrans
- *         properties:
- *             index:
- *                 type: uint
- *             isstd:
- *                 type: bool
- *             isutc:
- *                 type: bool
- *             when:
- *                 type: int
+ *         properties: {}
  * typeInfo:
  *     pointer: true
  *     structRef: mogenius-k8s-manager/src/kubernetes.Metrics
@@ -8367,12 +7440,6 @@ export type NAMESPACE_CREATE_REQUEST = NAMESPACE_CREATE_REQUEST__MOGENIUS_K8S_MA
  *
  * ```yaml
  * structs:
- *     log/slog.Logger:
- *         name: log/slog.Logger
- *         properties:
- *             handler:
- *                 pointer: true
- *                 type: any
  *     mogenius-k8s-manager/src/structs.Command:
  *         name: mogenius-k8s-manager/src/structs.Command
  *         properties:
@@ -8410,10 +7477,6 @@ export type NAMESPACE_CREATE_REQUEST = NAMESPACE_CREATE_REQUEST__MOGENIUS_K8S_MA
  *                 type: struct
  *             id:
  *                 type: string
- *             logger:
- *                 pointer: true
- *                 structRef: log/slog.Logger
- *                 type: struct
  *             message:
  *                 type: string
  *             namespaceName:
@@ -8427,62 +7490,9 @@ export type NAMESPACE_CREATE_REQUEST = NAMESPACE_CREATE_REQUEST__MOGENIUS_K8S_MA
  *                 type: string
  *             title:
  *                 type: string
- *     time.Location:
- *         name: time.Location
- *         properties:
- *             cacheEnd:
- *                 type: int
- *             cacheStart:
- *                 type: int
- *             cacheZone:
- *                 pointer: true
- *                 structRef: time.zone
- *                 type: struct
- *             extend:
- *                 type: string
- *             name:
- *                 type: string
- *             tx:
- *                 elementType:
- *                     structRef: time.zoneTrans
- *                     type: struct
- *                 type: array
- *             zone:
- *                 elementType:
- *                     structRef: time.zone
- *                     type: struct
- *                 type: array
  *     time.Time:
  *         name: time.Time
- *         properties:
- *             ext:
- *                 type: int
- *             loc:
- *                 pointer: true
- *                 structRef: time.Location
- *                 type: struct
- *             wall:
- *                 type: uint
- *     time.zone:
- *         name: time.zone
- *         properties:
- *             isDST:
- *                 type: bool
- *             name:
- *                 type: string
- *             offset:
- *                 type: int
- *     time.zoneTrans:
- *         name: time.zoneTrans
- *         properties:
- *             index:
- *                 type: uint
- *             isstd:
- *                 type: bool
- *             isutc:
- *                 type: bool
- *             when:
- *                 type: int
+ *         properties: {}
  * typeInfo:
  *     pointer: true
  *     structRef: mogenius-k8s-manager/src/structs.Job
@@ -8564,12 +7574,6 @@ export type NAMESPACE_DELETE_REQUEST = NAMESPACE_DELETE_REQUEST__MOGENIUS_K8S_MA
  *
  * ```yaml
  * structs:
- *     log/slog.Logger:
- *         name: log/slog.Logger
- *         properties:
- *             handler:
- *                 pointer: true
- *                 type: any
  *     mogenius-k8s-manager/src/structs.Command:
  *         name: mogenius-k8s-manager/src/structs.Command
  *         properties:
@@ -8607,10 +7611,6 @@ export type NAMESPACE_DELETE_REQUEST = NAMESPACE_DELETE_REQUEST__MOGENIUS_K8S_MA
  *                 type: struct
  *             id:
  *                 type: string
- *             logger:
- *                 pointer: true
- *                 structRef: log/slog.Logger
- *                 type: struct
  *             message:
  *                 type: string
  *             namespaceName:
@@ -8624,62 +7624,9 @@ export type NAMESPACE_DELETE_REQUEST = NAMESPACE_DELETE_REQUEST__MOGENIUS_K8S_MA
  *                 type: string
  *             title:
  *                 type: string
- *     time.Location:
- *         name: time.Location
- *         properties:
- *             cacheEnd:
- *                 type: int
- *             cacheStart:
- *                 type: int
- *             cacheZone:
- *                 pointer: true
- *                 structRef: time.zone
- *                 type: struct
- *             extend:
- *                 type: string
- *             name:
- *                 type: string
- *             tx:
- *                 elementType:
- *                     structRef: time.zoneTrans
- *                     type: struct
- *                 type: array
- *             zone:
- *                 elementType:
- *                     structRef: time.zone
- *                     type: struct
- *                 type: array
  *     time.Time:
  *         name: time.Time
- *         properties:
- *             ext:
- *                 type: int
- *             loc:
- *                 pointer: true
- *                 structRef: time.Location
- *                 type: struct
- *             wall:
- *                 type: uint
- *     time.zone:
- *         name: time.zone
- *         properties:
- *             isDST:
- *                 type: bool
- *             name:
- *                 type: string
- *             offset:
- *                 type: int
- *     time.zoneTrans:
- *         name: time.zoneTrans
- *         properties:
- *             index:
- *                 type: uint
- *             isstd:
- *                 type: bool
- *             isutc:
- *                 type: bool
- *             when:
- *                 type: int
+ *         properties: {}
  * typeInfo:
  *     pointer: true
  *     structRef: mogenius-k8s-manager/src/structs.Job
@@ -8712,14 +7659,6 @@ export type NAMESPACE_GATHER_ALL_RESOURCES_REQUEST = NAMESPACE_GATHER_ALL_RESOUR
  *
  * ```yaml
  * structs:
- *     gopkg.in/inf.v0.Dec:
- *         name: gopkg.in/inf.v0.Dec
- *         properties:
- *             scale:
- *                 type: int
- *             unscaled:
- *                 structRef: math/big.Int
- *                 type: struct
  *     k8s.io/api/apps/v1.DaemonSet:
  *         name: k8s.io/api/apps/v1.DaemonSet
  *         properties:
@@ -11335,28 +10274,6 @@ export type NAMESPACE_GATHER_ALL_RESOURCES_REQUEST = NAMESPACE_GATHER_ALL_RESOUR
  *         properties:
  *             Format:
  *                 type: string
- *             d:
- *                 structRef: k8s.io/apimachinery/pkg/api/resource.infDecAmount
- *                 type: struct
- *             i:
- *                 structRef: k8s.io/apimachinery/pkg/api/resource.int64Amount
- *                 type: struct
- *             s:
- *                 type: string
- *     k8s.io/apimachinery/pkg/api/resource.infDecAmount:
- *         name: k8s.io/apimachinery/pkg/api/resource.infDecAmount
- *         properties:
- *             Dec:
- *                 pointer: true
- *                 structRef: gopkg.in/inf.v0.Dec
- *                 type: struct
- *     k8s.io/apimachinery/pkg/api/resource.int64Amount:
- *         name: k8s.io/apimachinery/pkg/api/resource.int64Amount
- *         properties:
- *             scale:
- *                 type: int
- *             value:
- *                 type: int
  *     k8s.io/apimachinery/pkg/apis/meta/v1.Condition:
  *         name: k8s.io/apimachinery/pkg/apis/meta/v1.Condition
  *         properties:
@@ -11514,15 +10431,6 @@ export type NAMESPACE_GATHER_ALL_RESOURCES_REQUEST = NAMESPACE_GATHER_ALL_RESOUR
  *                 type: string
  *             Type:
  *                 type: int
- *     math/big.Int:
- *         name: math/big.Int
- *         properties:
- *             abs:
- *                 elementType:
- *                     type: uint
- *                 type: array
- *             neg:
- *                 type: bool
  *     mogenius-k8s-manager/src/dtos.NamespaceResourcesDto:
  *         name: mogenius-k8s-manager/src/dtos.NamespaceResourcesDto
  *         properties:
@@ -11566,62 +10474,9 @@ export type NAMESPACE_GATHER_ALL_RESOURCES_REQUEST = NAMESPACE_GATHER_ALL_RESOUR
  *                     structRef: k8s.io/api/core/v1.Service
  *                     type: struct
  *                 type: array
- *     time.Location:
- *         name: time.Location
- *         properties:
- *             cacheEnd:
- *                 type: int
- *             cacheStart:
- *                 type: int
- *             cacheZone:
- *                 pointer: true
- *                 structRef: time.zone
- *                 type: struct
- *             extend:
- *                 type: string
- *             name:
- *                 type: string
- *             tx:
- *                 elementType:
- *                     structRef: time.zoneTrans
- *                     type: struct
- *                 type: array
- *             zone:
- *                 elementType:
- *                     structRef: time.zone
- *                     type: struct
- *                 type: array
  *     time.Time:
  *         name: time.Time
- *         properties:
- *             ext:
- *                 type: int
- *             loc:
- *                 pointer: true
- *                 structRef: time.Location
- *                 type: struct
- *             wall:
- *                 type: uint
- *     time.zone:
- *         name: time.zone
- *         properties:
- *             isDST:
- *                 type: bool
- *             name:
- *                 type: string
- *             offset:
- *                 type: int
- *     time.zoneTrans:
- *         name: time.zoneTrans
- *         properties:
- *             index:
- *                 type: uint
- *             isstd:
- *                 type: bool
- *             isutc:
- *                 type: bool
- *             when:
- *                 type: int
+ *         properties: {}
  * typeInfo:
  *     structRef: mogenius-k8s-manager/src/dtos.NamespaceResourcesDto
  *     type: struct
@@ -11759,14 +10614,6 @@ export type NAMESPACE_RESTORE_RESPONSE = NAMESPACE_RESTORE_RESPONSE__MOGENIUS_K8
  *
  * ```yaml
  * structs:
- *     gopkg.in/inf.v0.Dec:
- *         name: gopkg.in/inf.v0.Dec
- *         properties:
- *             scale:
- *                 type: int
- *             unscaled:
- *                 structRef: math/big.Int
- *                 type: struct
  *     k8s.io/api/autoscaling/v2.ContainerResourceMetricSource:
  *         name: k8s.io/api/autoscaling/v2.ContainerResourceMetricSource
  *         properties:
@@ -11937,28 +10784,6 @@ export type NAMESPACE_RESTORE_RESPONSE = NAMESPACE_RESTORE_RESPONSE__MOGENIUS_K8
  *         properties:
  *             Format:
  *                 type: string
- *             d:
- *                 structRef: k8s.io/apimachinery/pkg/api/resource.infDecAmount
- *                 type: struct
- *             i:
- *                 structRef: k8s.io/apimachinery/pkg/api/resource.int64Amount
- *                 type: struct
- *             s:
- *                 type: string
- *     k8s.io/apimachinery/pkg/api/resource.infDecAmount:
- *         name: k8s.io/apimachinery/pkg/api/resource.infDecAmount
- *         properties:
- *             Dec:
- *                 pointer: true
- *                 structRef: gopkg.in/inf.v0.Dec
- *                 type: struct
- *     k8s.io/apimachinery/pkg/api/resource.int64Amount:
- *         name: k8s.io/apimachinery/pkg/api/resource.int64Amount
- *         properties:
- *             scale:
- *                 type: int
- *             value:
- *                 type: int
  *     k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector:
  *         name: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
  *         properties:
@@ -11984,15 +10809,6 @@ export type NAMESPACE_RESTORE_RESPONSE = NAMESPACE_RESTORE_RESPONSE__MOGENIUS_K8
  *                 elementType:
  *                     type: string
  *                 type: array
- *     math/big.Int:
- *         name: math/big.Int
- *         properties:
- *             abs:
- *                 elementType:
- *                     type: uint
- *                 type: array
- *             neg:
- *                 type: bool
  *     mogenius-k8s-manager/src/dtos.K8sCnameDto:
  *         name: mogenius-k8s-manager/src/dtos.K8sCnameDto
  *         properties:
@@ -12308,12 +11124,6 @@ export type NAMESPACE_SHUTDOWN_REQUEST = NAMESPACE_SHUTDOWN_REQUEST__MOGENIUS_K8
  *
  * ```yaml
  * structs:
- *     log/slog.Logger:
- *         name: log/slog.Logger
- *         properties:
- *             handler:
- *                 pointer: true
- *                 type: any
  *     mogenius-k8s-manager/src/structs.Command:
  *         name: mogenius-k8s-manager/src/structs.Command
  *         properties:
@@ -12351,10 +11161,6 @@ export type NAMESPACE_SHUTDOWN_REQUEST = NAMESPACE_SHUTDOWN_REQUEST__MOGENIUS_K8
  *                 type: struct
  *             id:
  *                 type: string
- *             logger:
- *                 pointer: true
- *                 structRef: log/slog.Logger
- *                 type: struct
  *             message:
  *                 type: string
  *             namespaceName:
@@ -12368,62 +11174,9 @@ export type NAMESPACE_SHUTDOWN_REQUEST = NAMESPACE_SHUTDOWN_REQUEST__MOGENIUS_K8
  *                 type: string
  *             title:
  *                 type: string
- *     time.Location:
- *         name: time.Location
- *         properties:
- *             cacheEnd:
- *                 type: int
- *             cacheStart:
- *                 type: int
- *             cacheZone:
- *                 pointer: true
- *                 structRef: time.zone
- *                 type: struct
- *             extend:
- *                 type: string
- *             name:
- *                 type: string
- *             tx:
- *                 elementType:
- *                     structRef: time.zoneTrans
- *                     type: struct
- *                 type: array
- *             zone:
- *                 elementType:
- *                     structRef: time.zone
- *                     type: struct
- *                 type: array
  *     time.Time:
  *         name: time.Time
- *         properties:
- *             ext:
- *                 type: int
- *             loc:
- *                 pointer: true
- *                 structRef: time.Location
- *                 type: struct
- *             wall:
- *                 type: uint
- *     time.zone:
- *         name: time.zone
- *         properties:
- *             isDST:
- *                 type: bool
- *             name:
- *                 type: string
- *             offset:
- *                 type: int
- *     time.zoneTrans:
- *         name: time.zoneTrans
- *         properties:
- *             index:
- *                 type: uint
- *             isstd:
- *                 type: bool
- *             isutc:
- *                 type: bool
- *             when:
- *                 type: int
+ *         properties: {}
  * typeInfo:
  *     pointer: true
  *     structRef: mogenius-k8s-manager/src/structs.Job
@@ -12641,14 +11394,6 @@ export type SERVICE_CLUSTER_TOOL_STREAM_CONNECTION_REQUEST_RESPONSE = any;
  *
  * ```yaml
  * structs:
- *     gopkg.in/inf.v0.Dec:
- *         name: gopkg.in/inf.v0.Dec
- *         properties:
- *             scale:
- *                 type: int
- *             unscaled:
- *                 structRef: math/big.Int
- *                 type: struct
  *     k8s.io/api/autoscaling/v2.ContainerResourceMetricSource:
  *         name: k8s.io/api/autoscaling/v2.ContainerResourceMetricSource
  *         properties:
@@ -12819,28 +11564,6 @@ export type SERVICE_CLUSTER_TOOL_STREAM_CONNECTION_REQUEST_RESPONSE = any;
  *         properties:
  *             Format:
  *                 type: string
- *             d:
- *                 structRef: k8s.io/apimachinery/pkg/api/resource.infDecAmount
- *                 type: struct
- *             i:
- *                 structRef: k8s.io/apimachinery/pkg/api/resource.int64Amount
- *                 type: struct
- *             s:
- *                 type: string
- *     k8s.io/apimachinery/pkg/api/resource.infDecAmount:
- *         name: k8s.io/apimachinery/pkg/api/resource.infDecAmount
- *         properties:
- *             Dec:
- *                 pointer: true
- *                 structRef: gopkg.in/inf.v0.Dec
- *                 type: struct
- *     k8s.io/apimachinery/pkg/api/resource.int64Amount:
- *         name: k8s.io/apimachinery/pkg/api/resource.int64Amount
- *         properties:
- *             scale:
- *                 type: int
- *             value:
- *                 type: int
  *     k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector:
  *         name: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
  *         properties:
@@ -12866,15 +11589,6 @@ export type SERVICE_CLUSTER_TOOL_STREAM_CONNECTION_REQUEST_RESPONSE = any;
  *                 elementType:
  *                     type: string
  *                 type: array
- *     math/big.Int:
- *         name: math/big.Int
- *         properties:
- *             abs:
- *                 elementType:
- *                     type: uint
- *                 type: array
- *             neg:
- *                 type: bool
  *     mogenius-k8s-manager/src/dtos.K8sCnameDto:
  *         name: mogenius-k8s-manager/src/dtos.K8sCnameDto
  *         properties:
@@ -13227,12 +11941,6 @@ export type SERVICE_CREATE_REQUEST = SERVICE_CREATE_REQUEST__MOGENIUS_K8S_MANAGE
  *
  * ```yaml
  * structs:
- *     log/slog.Logger:
- *         name: log/slog.Logger
- *         properties:
- *             handler:
- *                 pointer: true
- *                 type: any
  *     mogenius-k8s-manager/src/structs.Command:
  *         name: mogenius-k8s-manager/src/structs.Command
  *         properties:
@@ -13270,10 +11978,6 @@ export type SERVICE_CREATE_REQUEST = SERVICE_CREATE_REQUEST__MOGENIUS_K8S_MANAGE
  *                 type: struct
  *             id:
  *                 type: string
- *             logger:
- *                 pointer: true
- *                 structRef: log/slog.Logger
- *                 type: struct
  *             message:
  *                 type: string
  *             namespaceName:
@@ -13287,62 +11991,9 @@ export type SERVICE_CREATE_REQUEST = SERVICE_CREATE_REQUEST__MOGENIUS_K8S_MANAGE
  *                 type: string
  *             title:
  *                 type: string
- *     time.Location:
- *         name: time.Location
- *         properties:
- *             cacheEnd:
- *                 type: int
- *             cacheStart:
- *                 type: int
- *             cacheZone:
- *                 pointer: true
- *                 structRef: time.zone
- *                 type: struct
- *             extend:
- *                 type: string
- *             name:
- *                 type: string
- *             tx:
- *                 elementType:
- *                     structRef: time.zoneTrans
- *                     type: struct
- *                 type: array
- *             zone:
- *                 elementType:
- *                     structRef: time.zone
- *                     type: struct
- *                 type: array
  *     time.Time:
  *         name: time.Time
- *         properties:
- *             ext:
- *                 type: int
- *             loc:
- *                 pointer: true
- *                 structRef: time.Location
- *                 type: struct
- *             wall:
- *                 type: uint
- *     time.zone:
- *         name: time.zone
- *         properties:
- *             isDST:
- *                 type: bool
- *             name:
- *                 type: string
- *             offset:
- *                 type: int
- *     time.zoneTrans:
- *         name: time.zoneTrans
- *         properties:
- *             index:
- *                 type: uint
- *             isstd:
- *                 type: bool
- *             isutc:
- *                 type: bool
- *             when:
- *                 type: int
+ *         properties: {}
  * typeInfo:
  *     pointer: true
  *     structRef: mogenius-k8s-manager/src/structs.Job
@@ -13357,14 +12008,6 @@ export type SERVICE_CREATE_RESPONSE = SERVICE_CREATE_RESPONSE__MOGENIUS_K8S_MANA
  *
  * ```yaml
  * structs:
- *     gopkg.in/inf.v0.Dec:
- *         name: gopkg.in/inf.v0.Dec
- *         properties:
- *             scale:
- *                 type: int
- *             unscaled:
- *                 structRef: math/big.Int
- *                 type: struct
  *     k8s.io/api/autoscaling/v2.ContainerResourceMetricSource:
  *         name: k8s.io/api/autoscaling/v2.ContainerResourceMetricSource
  *         properties:
@@ -13535,28 +12178,6 @@ export type SERVICE_CREATE_RESPONSE = SERVICE_CREATE_RESPONSE__MOGENIUS_K8S_MANA
  *         properties:
  *             Format:
  *                 type: string
- *             d:
- *                 structRef: k8s.io/apimachinery/pkg/api/resource.infDecAmount
- *                 type: struct
- *             i:
- *                 structRef: k8s.io/apimachinery/pkg/api/resource.int64Amount
- *                 type: struct
- *             s:
- *                 type: string
- *     k8s.io/apimachinery/pkg/api/resource.infDecAmount:
- *         name: k8s.io/apimachinery/pkg/api/resource.infDecAmount
- *         properties:
- *             Dec:
- *                 pointer: true
- *                 structRef: gopkg.in/inf.v0.Dec
- *                 type: struct
- *     k8s.io/apimachinery/pkg/api/resource.int64Amount:
- *         name: k8s.io/apimachinery/pkg/api/resource.int64Amount
- *         properties:
- *             scale:
- *                 type: int
- *             value:
- *                 type: int
  *     k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector:
  *         name: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
  *         properties:
@@ -13582,15 +12203,6 @@ export type SERVICE_CREATE_RESPONSE = SERVICE_CREATE_RESPONSE__MOGENIUS_K8S_MANA
  *                 elementType:
  *                     type: string
  *                 type: array
- *     math/big.Int:
- *         name: math/big.Int
- *         properties:
- *             abs:
- *                 elementType:
- *                     type: uint
- *                 type: array
- *             neg:
- *                 type: bool
  *     mogenius-k8s-manager/src/dtos.K8sCnameDto:
  *         name: mogenius-k8s-manager/src/dtos.K8sCnameDto
  *         properties:
@@ -13943,12 +12555,6 @@ export type SERVICE_DELETE_REQUEST = SERVICE_DELETE_REQUEST__MOGENIUS_K8S_MANAGE
  *
  * ```yaml
  * structs:
- *     log/slog.Logger:
- *         name: log/slog.Logger
- *         properties:
- *             handler:
- *                 pointer: true
- *                 type: any
  *     mogenius-k8s-manager/src/structs.Command:
  *         name: mogenius-k8s-manager/src/structs.Command
  *         properties:
@@ -13986,10 +12592,6 @@ export type SERVICE_DELETE_REQUEST = SERVICE_DELETE_REQUEST__MOGENIUS_K8S_MANAGE
  *                 type: struct
  *             id:
  *                 type: string
- *             logger:
- *                 pointer: true
- *                 structRef: log/slog.Logger
- *                 type: struct
  *             message:
  *                 type: string
  *             namespaceName:
@@ -14003,62 +12605,9 @@ export type SERVICE_DELETE_REQUEST = SERVICE_DELETE_REQUEST__MOGENIUS_K8S_MANAGE
  *                 type: string
  *             title:
  *                 type: string
- *     time.Location:
- *         name: time.Location
- *         properties:
- *             cacheEnd:
- *                 type: int
- *             cacheStart:
- *                 type: int
- *             cacheZone:
- *                 pointer: true
- *                 structRef: time.zone
- *                 type: struct
- *             extend:
- *                 type: string
- *             name:
- *                 type: string
- *             tx:
- *                 elementType:
- *                     structRef: time.zoneTrans
- *                     type: struct
- *                 type: array
- *             zone:
- *                 elementType:
- *                     structRef: time.zone
- *                     type: struct
- *                 type: array
  *     time.Time:
  *         name: time.Time
- *         properties:
- *             ext:
- *                 type: int
- *             loc:
- *                 pointer: true
- *                 structRef: time.Location
- *                 type: struct
- *             wall:
- *                 type: uint
- *     time.zone:
- *         name: time.zone
- *         properties:
- *             isDST:
- *                 type: bool
- *             name:
- *                 type: string
- *             offset:
- *                 type: int
- *     time.zoneTrans:
- *         name: time.zoneTrans
- *         properties:
- *             index:
- *                 type: uint
- *             isstd:
- *                 type: bool
- *             isutc:
- *                 type: bool
- *             when:
- *                 type: int
+ *         properties: {}
  * typeInfo:
  *     pointer: true
  *     structRef: mogenius-k8s-manager/src/structs.Job
@@ -14129,62 +12678,9 @@ export type SERVICE_EXEC_SH_CONNECTION_REQUEST_RESPONSE = any;
  *                 pointer: true
  *                 structRef: time.Time
  *                 type: struct
- *     time.Location:
- *         name: time.Location
- *         properties:
- *             cacheEnd:
- *                 type: int
- *             cacheStart:
- *                 type: int
- *             cacheZone:
- *                 pointer: true
- *                 structRef: time.zone
- *                 type: struct
- *             extend:
- *                 type: string
- *             name:
- *                 type: string
- *             tx:
- *                 elementType:
- *                     structRef: time.zoneTrans
- *                     type: struct
- *                 type: array
- *             zone:
- *                 elementType:
- *                     structRef: time.zone
- *                     type: struct
- *                 type: array
  *     time.Time:
  *         name: time.Time
- *         properties:
- *             ext:
- *                 type: int
- *             loc:
- *                 pointer: true
- *                 structRef: time.Location
- *                 type: struct
- *             wall:
- *                 type: uint
- *     time.zone:
- *         name: time.zone
- *         properties:
- *             isDST:
- *                 type: bool
- *             name:
- *                 type: string
- *             offset:
- *                 type: int
- *     time.zoneTrans:
- *         name: time.zoneTrans
- *         properties:
- *             index:
- *                 type: uint
- *             isstd:
- *                 type: bool
- *             isutc:
- *                 type: bool
- *             when:
- *                 type: int
+ *         properties: {}
  * typeInfo:
  *     structRef: mogenius-k8s-manager/src/services.ServiceGetLogRequest
  *     type: struct
@@ -14210,62 +12706,9 @@ export type SERVICE_LOG_REQUEST = SERVICE_LOG_REQUEST__MOGENIUS_K8S_MANAGER_SRC_
  *             serverTimestamp:
  *                 structRef: time.Time
  *                 type: struct
- *     time.Location:
- *         name: time.Location
- *         properties:
- *             cacheEnd:
- *                 type: int
- *             cacheStart:
- *                 type: int
- *             cacheZone:
- *                 pointer: true
- *                 structRef: time.zone
- *                 type: struct
- *             extend:
- *                 type: string
- *             name:
- *                 type: string
- *             tx:
- *                 elementType:
- *                     structRef: time.zoneTrans
- *                     type: struct
- *                 type: array
- *             zone:
- *                 elementType:
- *                     structRef: time.zone
- *                     type: struct
- *                 type: array
  *     time.Time:
  *         name: time.Time
- *         properties:
- *             ext:
- *                 type: int
- *             loc:
- *                 pointer: true
- *                 structRef: time.Location
- *                 type: struct
- *             wall:
- *                 type: uint
- *     time.zone:
- *         name: time.zone
- *         properties:
- *             isDST:
- *                 type: bool
- *             name:
- *                 type: string
- *             offset:
- *                 type: int
- *     time.zoneTrans:
- *         name: time.zoneTrans
- *         properties:
- *             index:
- *                 type: uint
- *             isstd:
- *                 type: bool
- *             isutc:
- *                 type: bool
- *             when:
- *                 type: int
+ *         properties: {}
  * typeInfo:
  *     structRef: mogenius-k8s-manager/src/kubernetes.ServiceGetLogResult
  *     type: struct
@@ -14290,62 +12733,9 @@ export type SERVICE_LOG_RESPONSE = SERVICE_LOG_RESPONSE__MOGENIUS_K8S_MANAGER_SR
  *                 pointer: true
  *                 structRef: time.Time
  *                 type: struct
- *     time.Location:
- *         name: time.Location
- *         properties:
- *             cacheEnd:
- *                 type: int
- *             cacheStart:
- *                 type: int
- *             cacheZone:
- *                 pointer: true
- *                 structRef: time.zone
- *                 type: struct
- *             extend:
- *                 type: string
- *             name:
- *                 type: string
- *             tx:
- *                 elementType:
- *                     structRef: time.zoneTrans
- *                     type: struct
- *                 type: array
- *             zone:
- *                 elementType:
- *                     structRef: time.zone
- *                     type: struct
- *                 type: array
  *     time.Time:
  *         name: time.Time
- *         properties:
- *             ext:
- *                 type: int
- *             loc:
- *                 pointer: true
- *                 structRef: time.Location
- *                 type: struct
- *             wall:
- *                 type: uint
- *     time.zone:
- *         name: time.zone
- *         properties:
- *             isDST:
- *                 type: bool
- *             name:
- *                 type: string
- *             offset:
- *                 type: int
- *     time.zoneTrans:
- *         name: time.zoneTrans
- *         properties:
- *             index:
- *                 type: uint
- *             isstd:
- *                 type: bool
- *             isutc:
- *                 type: bool
- *             when:
- *                 type: int
+ *         properties: {}
  * typeInfo:
  *     structRef: mogenius-k8s-manager/src/services.ServiceGetLogRequest
  *     type: struct
@@ -14492,14 +12882,6 @@ export type SERVICE_PODS_REQUEST = SERVICE_PODS_REQUEST__MOGENIUS_K8S_MANAGER_SR
  *
  * ```yaml
  * structs:
- *     gopkg.in/inf.v0.Dec:
- *         name: gopkg.in/inf.v0.Dec
- *         properties:
- *             scale:
- *                 type: int
- *             unscaled:
- *                 structRef: math/big.Int
- *                 type: struct
  *     k8s.io/api/core/v1.AWSElasticBlockStoreVolumeSource:
  *         name: k8s.io/api/core/v1.AWSElasticBlockStoreVolumeSource
  *         properties:
@@ -16495,28 +14877,6 @@ export type SERVICE_PODS_REQUEST = SERVICE_PODS_REQUEST__MOGENIUS_K8S_MANAGER_SR
  *         properties:
  *             Format:
  *                 type: string
- *             d:
- *                 structRef: k8s.io/apimachinery/pkg/api/resource.infDecAmount
- *                 type: struct
- *             i:
- *                 structRef: k8s.io/apimachinery/pkg/api/resource.int64Amount
- *                 type: struct
- *             s:
- *                 type: string
- *     k8s.io/apimachinery/pkg/api/resource.infDecAmount:
- *         name: k8s.io/apimachinery/pkg/api/resource.infDecAmount
- *         properties:
- *             Dec:
- *                 pointer: true
- *                 structRef: gopkg.in/inf.v0.Dec
- *                 type: struct
- *     k8s.io/apimachinery/pkg/api/resource.int64Amount:
- *         name: k8s.io/apimachinery/pkg/api/resource.int64Amount
- *         properties:
- *             scale:
- *                 type: int
- *             value:
- *                 type: int
  *     k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1:
  *         name: k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1
  *         properties: {}
@@ -16658,71 +15018,9 @@ export type SERVICE_PODS_REQUEST = SERVICE_PODS_REQUEST__MOGENIUS_K8S_MANAGER_SR
  *                 type: string
  *             Type:
  *                 type: int
- *     math/big.Int:
- *         name: math/big.Int
- *         properties:
- *             abs:
- *                 elementType:
- *                     type: uint
- *                 type: array
- *             neg:
- *                 type: bool
- *     time.Location:
- *         name: time.Location
- *         properties:
- *             cacheEnd:
- *                 type: int
- *             cacheStart:
- *                 type: int
- *             cacheZone:
- *                 pointer: true
- *                 structRef: time.zone
- *                 type: struct
- *             extend:
- *                 type: string
- *             name:
- *                 type: string
- *             tx:
- *                 elementType:
- *                     structRef: time.zoneTrans
- *                     type: struct
- *                 type: array
- *             zone:
- *                 elementType:
- *                     structRef: time.zone
- *                     type: struct
- *                 type: array
  *     time.Time:
  *         name: time.Time
- *         properties:
- *             ext:
- *                 type: int
- *             loc:
- *                 pointer: true
- *                 structRef: time.Location
- *                 type: struct
- *             wall:
- *                 type: uint
- *     time.zone:
- *         name: time.zone
- *         properties:
- *             isDST:
- *                 type: bool
- *             name:
- *                 type: string
- *             offset:
- *                 type: int
- *     time.zoneTrans:
- *         name: time.zoneTrans
- *         properties:
- *             index:
- *                 type: uint
- *             isstd:
- *                 type: bool
- *             isutc:
- *                 type: bool
- *             when:
- *                 type: int
+ *         properties: {}
  * typeInfo:
  *     elementType:
  *         structRef: k8s.io/api/core/v1.Pod
@@ -16872,14 +15170,6 @@ export type SERVICE_RESOURCE_STATUS_REQUEST = SERVICE_RESOURCE_STATUS_REQUEST__M
  *
  * ```yaml
  * structs:
- *     gopkg.in/inf.v0.Dec:
- *         name: gopkg.in/inf.v0.Dec
- *         properties:
- *             scale:
- *                 type: int
- *             unscaled:
- *                 structRef: math/big.Int
- *                 type: struct
  *     k8s.io/api/core/v1.AWSElasticBlockStoreVolumeSource:
  *         name: k8s.io/api/core/v1.AWSElasticBlockStoreVolumeSource
  *         properties:
@@ -18875,28 +17165,6 @@ export type SERVICE_RESOURCE_STATUS_REQUEST = SERVICE_RESOURCE_STATUS_REQUEST__M
  *         properties:
  *             Format:
  *                 type: string
- *             d:
- *                 structRef: k8s.io/apimachinery/pkg/api/resource.infDecAmount
- *                 type: struct
- *             i:
- *                 structRef: k8s.io/apimachinery/pkg/api/resource.int64Amount
- *                 type: struct
- *             s:
- *                 type: string
- *     k8s.io/apimachinery/pkg/api/resource.infDecAmount:
- *         name: k8s.io/apimachinery/pkg/api/resource.infDecAmount
- *         properties:
- *             Dec:
- *                 pointer: true
- *                 structRef: gopkg.in/inf.v0.Dec
- *                 type: struct
- *     k8s.io/apimachinery/pkg/api/resource.int64Amount:
- *         name: k8s.io/apimachinery/pkg/api/resource.int64Amount
- *         properties:
- *             scale:
- *                 type: int
- *             value:
- *                 type: int
  *     k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1:
  *         name: k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1
  *         properties: {}
@@ -19038,71 +17306,9 @@ export type SERVICE_RESOURCE_STATUS_REQUEST = SERVICE_RESOURCE_STATUS_REQUEST__M
  *                 type: string
  *             Type:
  *                 type: int
- *     math/big.Int:
- *         name: math/big.Int
- *         properties:
- *             abs:
- *                 elementType:
- *                     type: uint
- *                 type: array
- *             neg:
- *                 type: bool
- *     time.Location:
- *         name: time.Location
- *         properties:
- *             cacheEnd:
- *                 type: int
- *             cacheStart:
- *                 type: int
- *             cacheZone:
- *                 pointer: true
- *                 structRef: time.zone
- *                 type: struct
- *             extend:
- *                 type: string
- *             name:
- *                 type: string
- *             tx:
- *                 elementType:
- *                     structRef: time.zoneTrans
- *                     type: struct
- *                 type: array
- *             zone:
- *                 elementType:
- *                     structRef: time.zone
- *                     type: struct
- *                 type: array
  *     time.Time:
  *         name: time.Time
- *         properties:
- *             ext:
- *                 type: int
- *             loc:
- *                 pointer: true
- *                 structRef: time.Location
- *                 type: struct
- *             wall:
- *                 type: uint
- *     time.zone:
- *         name: time.zone
- *         properties:
- *             isDST:
- *                 type: bool
- *             name:
- *                 type: string
- *             offset:
- *                 type: int
- *     time.zoneTrans:
- *         name: time.zoneTrans
- *         properties:
- *             index:
- *                 type: uint
- *             isstd:
- *                 type: bool
- *             isutc:
- *                 type: bool
- *             when:
- *                 type: int
+ *         properties: {}
  * typeInfo:
  *     pointer: true
  *     structRef: k8s.io/api/core/v1.Pod
@@ -19117,14 +17323,6 @@ export type SERVICE_RESOURCE_STATUS_RESPONSE = SERVICE_RESOURCE_STATUS_RESPONSE_
  *
  * ```yaml
  * structs:
- *     gopkg.in/inf.v0.Dec:
- *         name: gopkg.in/inf.v0.Dec
- *         properties:
- *             scale:
- *                 type: int
- *             unscaled:
- *                 structRef: math/big.Int
- *                 type: struct
  *     k8s.io/api/autoscaling/v2.ContainerResourceMetricSource:
  *         name: k8s.io/api/autoscaling/v2.ContainerResourceMetricSource
  *         properties:
@@ -19295,28 +17493,6 @@ export type SERVICE_RESOURCE_STATUS_RESPONSE = SERVICE_RESOURCE_STATUS_RESPONSE_
  *         properties:
  *             Format:
  *                 type: string
- *             d:
- *                 structRef: k8s.io/apimachinery/pkg/api/resource.infDecAmount
- *                 type: struct
- *             i:
- *                 structRef: k8s.io/apimachinery/pkg/api/resource.int64Amount
- *                 type: struct
- *             s:
- *                 type: string
- *     k8s.io/apimachinery/pkg/api/resource.infDecAmount:
- *         name: k8s.io/apimachinery/pkg/api/resource.infDecAmount
- *         properties:
- *             Dec:
- *                 pointer: true
- *                 structRef: gopkg.in/inf.v0.Dec
- *                 type: struct
- *     k8s.io/apimachinery/pkg/api/resource.int64Amount:
- *         name: k8s.io/apimachinery/pkg/api/resource.int64Amount
- *         properties:
- *             scale:
- *                 type: int
- *             value:
- *                 type: int
  *     k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector:
  *         name: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
  *         properties:
@@ -19342,15 +17518,6 @@ export type SERVICE_RESOURCE_STATUS_RESPONSE = SERVICE_RESOURCE_STATUS_RESPONSE_
  *                 elementType:
  *                     type: string
  *                 type: array
- *     math/big.Int:
- *         name: math/big.Int
- *         properties:
- *             abs:
- *                 elementType:
- *                     type: uint
- *                 type: array
- *             neg:
- *                 type: bool
  *     mogenius-k8s-manager/src/dtos.K8sCnameDto:
  *         name: mogenius-k8s-manager/src/dtos.K8sCnameDto
  *         properties:
@@ -19703,12 +17870,6 @@ export type SERVICE_RESTART_REQUEST = SERVICE_RESTART_REQUEST__MOGENIUS_K8S_MANA
  *
  * ```yaml
  * structs:
- *     log/slog.Logger:
- *         name: log/slog.Logger
- *         properties:
- *             handler:
- *                 pointer: true
- *                 type: any
  *     mogenius-k8s-manager/src/structs.Command:
  *         name: mogenius-k8s-manager/src/structs.Command
  *         properties:
@@ -19746,10 +17907,6 @@ export type SERVICE_RESTART_REQUEST = SERVICE_RESTART_REQUEST__MOGENIUS_K8S_MANA
  *                 type: struct
  *             id:
  *                 type: string
- *             logger:
- *                 pointer: true
- *                 structRef: log/slog.Logger
- *                 type: struct
  *             message:
  *                 type: string
  *             namespaceName:
@@ -19763,62 +17920,9 @@ export type SERVICE_RESTART_REQUEST = SERVICE_RESTART_REQUEST__MOGENIUS_K8S_MANA
  *                 type: string
  *             title:
  *                 type: string
- *     time.Location:
- *         name: time.Location
- *         properties:
- *             cacheEnd:
- *                 type: int
- *             cacheStart:
- *                 type: int
- *             cacheZone:
- *                 pointer: true
- *                 structRef: time.zone
- *                 type: struct
- *             extend:
- *                 type: string
- *             name:
- *                 type: string
- *             tx:
- *                 elementType:
- *                     structRef: time.zoneTrans
- *                     type: struct
- *                 type: array
- *             zone:
- *                 elementType:
- *                     structRef: time.zone
- *                     type: struct
- *                 type: array
  *     time.Time:
  *         name: time.Time
- *         properties:
- *             ext:
- *                 type: int
- *             loc:
- *                 pointer: true
- *                 structRef: time.Location
- *                 type: struct
- *             wall:
- *                 type: uint
- *     time.zone:
- *         name: time.zone
- *         properties:
- *             isDST:
- *                 type: bool
- *             name:
- *                 type: string
- *             offset:
- *                 type: int
- *     time.zoneTrans:
- *         name: time.zoneTrans
- *         properties:
- *             index:
- *                 type: uint
- *             isstd:
- *                 type: bool
- *             isutc:
- *                 type: bool
- *             when:
- *                 type: int
+ *         properties: {}
  * typeInfo:
  *     pointer: true
  *     structRef: mogenius-k8s-manager/src/structs.Job
@@ -19833,14 +17937,6 @@ export type SERVICE_RESTART_RESPONSE = SERVICE_RESTART_RESPONSE__MOGENIUS_K8S_MA
  *
  * ```yaml
  * structs:
- *     gopkg.in/inf.v0.Dec:
- *         name: gopkg.in/inf.v0.Dec
- *         properties:
- *             scale:
- *                 type: int
- *             unscaled:
- *                 structRef: math/big.Int
- *                 type: struct
  *     k8s.io/api/autoscaling/v2.ContainerResourceMetricSource:
  *         name: k8s.io/api/autoscaling/v2.ContainerResourceMetricSource
  *         properties:
@@ -20011,28 +18107,6 @@ export type SERVICE_RESTART_RESPONSE = SERVICE_RESTART_RESPONSE__MOGENIUS_K8S_MA
  *         properties:
  *             Format:
  *                 type: string
- *             d:
- *                 structRef: k8s.io/apimachinery/pkg/api/resource.infDecAmount
- *                 type: struct
- *             i:
- *                 structRef: k8s.io/apimachinery/pkg/api/resource.int64Amount
- *                 type: struct
- *             s:
- *                 type: string
- *     k8s.io/apimachinery/pkg/api/resource.infDecAmount:
- *         name: k8s.io/apimachinery/pkg/api/resource.infDecAmount
- *         properties:
- *             Dec:
- *                 pointer: true
- *                 structRef: gopkg.in/inf.v0.Dec
- *                 type: struct
- *     k8s.io/apimachinery/pkg/api/resource.int64Amount:
- *         name: k8s.io/apimachinery/pkg/api/resource.int64Amount
- *         properties:
- *             scale:
- *                 type: int
- *             value:
- *                 type: int
  *     k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector:
  *         name: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
  *         properties:
@@ -20058,15 +18132,6 @@ export type SERVICE_RESTART_RESPONSE = SERVICE_RESTART_RESPONSE__MOGENIUS_K8S_MA
  *                 elementType:
  *                     type: string
  *                 type: array
- *     math/big.Int:
- *         name: math/big.Int
- *         properties:
- *             abs:
- *                 elementType:
- *                     type: uint
- *                 type: array
- *             neg:
- *                 type: bool
  *     mogenius-k8s-manager/src/dtos.K8sCnameDto:
  *         name: mogenius-k8s-manager/src/dtos.K8sCnameDto
  *         properties:
@@ -20419,12 +18484,6 @@ export type SERVICE_START_REQUEST = SERVICE_START_REQUEST__MOGENIUS_K8S_MANAGER_
  *
  * ```yaml
  * structs:
- *     log/slog.Logger:
- *         name: log/slog.Logger
- *         properties:
- *             handler:
- *                 pointer: true
- *                 type: any
  *     mogenius-k8s-manager/src/structs.Command:
  *         name: mogenius-k8s-manager/src/structs.Command
  *         properties:
@@ -20462,10 +18521,6 @@ export type SERVICE_START_REQUEST = SERVICE_START_REQUEST__MOGENIUS_K8S_MANAGER_
  *                 type: struct
  *             id:
  *                 type: string
- *             logger:
- *                 pointer: true
- *                 structRef: log/slog.Logger
- *                 type: struct
  *             message:
  *                 type: string
  *             namespaceName:
@@ -20479,62 +18534,9 @@ export type SERVICE_START_REQUEST = SERVICE_START_REQUEST__MOGENIUS_K8S_MANAGER_
  *                 type: string
  *             title:
  *                 type: string
- *     time.Location:
- *         name: time.Location
- *         properties:
- *             cacheEnd:
- *                 type: int
- *             cacheStart:
- *                 type: int
- *             cacheZone:
- *                 pointer: true
- *                 structRef: time.zone
- *                 type: struct
- *             extend:
- *                 type: string
- *             name:
- *                 type: string
- *             tx:
- *                 elementType:
- *                     structRef: time.zoneTrans
- *                     type: struct
- *                 type: array
- *             zone:
- *                 elementType:
- *                     structRef: time.zone
- *                     type: struct
- *                 type: array
  *     time.Time:
  *         name: time.Time
- *         properties:
- *             ext:
- *                 type: int
- *             loc:
- *                 pointer: true
- *                 structRef: time.Location
- *                 type: struct
- *             wall:
- *                 type: uint
- *     time.zone:
- *         name: time.zone
- *         properties:
- *             isDST:
- *                 type: bool
- *             name:
- *                 type: string
- *             offset:
- *                 type: int
- *     time.zoneTrans:
- *         name: time.zoneTrans
- *         properties:
- *             index:
- *                 type: uint
- *             isstd:
- *                 type: bool
- *             isutc:
- *                 type: bool
- *             when:
- *                 type: int
+ *         properties: {}
  * typeInfo:
  *     pointer: true
  *     structRef: mogenius-k8s-manager/src/structs.Job
@@ -20648,62 +18650,9 @@ export type SERVICE_STATUS_REQUEST = SERVICE_STATUS_REQUEST__MOGENIUS_K8S_MANAGE
  *                 type: struct
  *             restartCount:
  *                 type: int
- *     time.Location:
- *         name: time.Location
- *         properties:
- *             cacheEnd:
- *                 type: int
- *             cacheStart:
- *                 type: int
- *             cacheZone:
- *                 pointer: true
- *                 structRef: time.zone
- *                 type: struct
- *             extend:
- *                 type: string
- *             name:
- *                 type: string
- *             tx:
- *                 elementType:
- *                     structRef: time.zoneTrans
- *                     type: struct
- *                 type: array
- *             zone:
- *                 elementType:
- *                     structRef: time.zone
- *                     type: struct
- *                 type: array
  *     time.Time:
  *         name: time.Time
- *         properties:
- *             ext:
- *                 type: int
- *             loc:
- *                 pointer: true
- *                 structRef: time.Location
- *                 type: struct
- *             wall:
- *                 type: uint
- *     time.zone:
- *         name: time.zone
- *         properties:
- *             isDST:
- *                 type: bool
- *             name:
- *                 type: string
- *             offset:
- *                 type: int
- *     time.zoneTrans:
- *         name: time.zoneTrans
- *         properties:
- *             index:
- *                 type: uint
- *             isstd:
- *                 type: bool
- *             isutc:
- *                 type: bool
- *             when:
- *                 type: int
+ *         properties: {}
  * typeInfo:
  *     structRef: mogenius-k8s-manager/src/services.ServiceStatusResponse
  *     type: struct
@@ -20717,14 +18666,6 @@ export type SERVICE_STATUS_RESPONSE = SERVICE_STATUS_RESPONSE__MOGENIUS_K8S_MANA
  *
  * ```yaml
  * structs:
- *     gopkg.in/inf.v0.Dec:
- *         name: gopkg.in/inf.v0.Dec
- *         properties:
- *             scale:
- *                 type: int
- *             unscaled:
- *                 structRef: math/big.Int
- *                 type: struct
  *     k8s.io/api/autoscaling/v2.ContainerResourceMetricSource:
  *         name: k8s.io/api/autoscaling/v2.ContainerResourceMetricSource
  *         properties:
@@ -20895,28 +18836,6 @@ export type SERVICE_STATUS_RESPONSE = SERVICE_STATUS_RESPONSE__MOGENIUS_K8S_MANA
  *         properties:
  *             Format:
  *                 type: string
- *             d:
- *                 structRef: k8s.io/apimachinery/pkg/api/resource.infDecAmount
- *                 type: struct
- *             i:
- *                 structRef: k8s.io/apimachinery/pkg/api/resource.int64Amount
- *                 type: struct
- *             s:
- *                 type: string
- *     k8s.io/apimachinery/pkg/api/resource.infDecAmount:
- *         name: k8s.io/apimachinery/pkg/api/resource.infDecAmount
- *         properties:
- *             Dec:
- *                 pointer: true
- *                 structRef: gopkg.in/inf.v0.Dec
- *                 type: struct
- *     k8s.io/apimachinery/pkg/api/resource.int64Amount:
- *         name: k8s.io/apimachinery/pkg/api/resource.int64Amount
- *         properties:
- *             scale:
- *                 type: int
- *             value:
- *                 type: int
  *     k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector:
  *         name: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
  *         properties:
@@ -20942,15 +18861,6 @@ export type SERVICE_STATUS_RESPONSE = SERVICE_STATUS_RESPONSE__MOGENIUS_K8S_MANA
  *                 elementType:
  *                     type: string
  *                 type: array
- *     math/big.Int:
- *         name: math/big.Int
- *         properties:
- *             abs:
- *                 elementType:
- *                     type: uint
- *                 type: array
- *             neg:
- *                 type: bool
  *     mogenius-k8s-manager/src/dtos.K8sCnameDto:
  *         name: mogenius-k8s-manager/src/dtos.K8sCnameDto
  *         properties:
@@ -21266,12 +19176,6 @@ export type SERVICE_STOP_REQUEST = SERVICE_STOP_REQUEST__MOGENIUS_K8S_MANAGER_SR
  *
  * ```yaml
  * structs:
- *     log/slog.Logger:
- *         name: log/slog.Logger
- *         properties:
- *             handler:
- *                 pointer: true
- *                 type: any
  *     mogenius-k8s-manager/src/structs.Command:
  *         name: mogenius-k8s-manager/src/structs.Command
  *         properties:
@@ -21309,10 +19213,6 @@ export type SERVICE_STOP_REQUEST = SERVICE_STOP_REQUEST__MOGENIUS_K8S_MANAGER_SR
  *                 type: struct
  *             id:
  *                 type: string
- *             logger:
- *                 pointer: true
- *                 structRef: log/slog.Logger
- *                 type: struct
  *             message:
  *                 type: string
  *             namespaceName:
@@ -21326,62 +19226,9 @@ export type SERVICE_STOP_REQUEST = SERVICE_STOP_REQUEST__MOGENIUS_K8S_MANAGER_SR
  *                 type: string
  *             title:
  *                 type: string
- *     time.Location:
- *         name: time.Location
- *         properties:
- *             cacheEnd:
- *                 type: int
- *             cacheStart:
- *                 type: int
- *             cacheZone:
- *                 pointer: true
- *                 structRef: time.zone
- *                 type: struct
- *             extend:
- *                 type: string
- *             name:
- *                 type: string
- *             tx:
- *                 elementType:
- *                     structRef: time.zoneTrans
- *                     type: struct
- *                 type: array
- *             zone:
- *                 elementType:
- *                     structRef: time.zone
- *                     type: struct
- *                 type: array
  *     time.Time:
  *         name: time.Time
- *         properties:
- *             ext:
- *                 type: int
- *             loc:
- *                 pointer: true
- *                 structRef: time.Location
- *                 type: struct
- *             wall:
- *                 type: uint
- *     time.zone:
- *         name: time.zone
- *         properties:
- *             isDST:
- *                 type: bool
- *             name:
- *                 type: string
- *             offset:
- *                 type: int
- *     time.zoneTrans:
- *         name: time.zoneTrans
- *         properties:
- *             index:
- *                 type: uint
- *             isstd:
- *                 type: bool
- *             isutc:
- *                 type: bool
- *             when:
- *                 type: int
+ *         properties: {}
  * typeInfo:
  *     pointer: true
  *     structRef: mogenius-k8s-manager/src/structs.Job
@@ -21424,12 +19271,6 @@ export type SERVICE_TRIGGER_JOB_REQUEST = SERVICE_TRIGGER_JOB_REQUEST__MOGENIUS_
  *
  * ```yaml
  * structs:
- *     log/slog.Logger:
- *         name: log/slog.Logger
- *         properties:
- *             handler:
- *                 pointer: true
- *                 type: any
  *     mogenius-k8s-manager/src/structs.Command:
  *         name: mogenius-k8s-manager/src/structs.Command
  *         properties:
@@ -21467,10 +19308,6 @@ export type SERVICE_TRIGGER_JOB_REQUEST = SERVICE_TRIGGER_JOB_REQUEST__MOGENIUS_
  *                 type: struct
  *             id:
  *                 type: string
- *             logger:
- *                 pointer: true
- *                 structRef: log/slog.Logger
- *                 type: struct
  *             message:
  *                 type: string
  *             namespaceName:
@@ -21484,62 +19321,9 @@ export type SERVICE_TRIGGER_JOB_REQUEST = SERVICE_TRIGGER_JOB_REQUEST__MOGENIUS_
  *                 type: string
  *             title:
  *                 type: string
- *     time.Location:
- *         name: time.Location
- *         properties:
- *             cacheEnd:
- *                 type: int
- *             cacheStart:
- *                 type: int
- *             cacheZone:
- *                 pointer: true
- *                 structRef: time.zone
- *                 type: struct
- *             extend:
- *                 type: string
- *             name:
- *                 type: string
- *             tx:
- *                 elementType:
- *                     structRef: time.zoneTrans
- *                     type: struct
- *                 type: array
- *             zone:
- *                 elementType:
- *                     structRef: time.zone
- *                     type: struct
- *                 type: array
  *     time.Time:
  *         name: time.Time
- *         properties:
- *             ext:
- *                 type: int
- *             loc:
- *                 pointer: true
- *                 structRef: time.Location
- *                 type: struct
- *             wall:
- *                 type: uint
- *     time.zone:
- *         name: time.zone
- *         properties:
- *             isDST:
- *                 type: bool
- *             name:
- *                 type: string
- *             offset:
- *                 type: int
- *     time.zoneTrans:
- *         name: time.zoneTrans
- *         properties:
- *             index:
- *                 type: uint
- *             isstd:
- *                 type: bool
- *             isutc:
- *                 type: bool
- *             when:
- *                 type: int
+ *         properties: {}
  * typeInfo:
  *     pointer: true
  *     structRef: mogenius-k8s-manager/src/structs.Job
@@ -21554,14 +19338,6 @@ export type SERVICE_TRIGGER_JOB_RESPONSE = SERVICE_TRIGGER_JOB_RESPONSE__MOGENIU
  *
  * ```yaml
  * structs:
- *     gopkg.in/inf.v0.Dec:
- *         name: gopkg.in/inf.v0.Dec
- *         properties:
- *             scale:
- *                 type: int
- *             unscaled:
- *                 structRef: math/big.Int
- *                 type: struct
  *     k8s.io/api/autoscaling/v2.ContainerResourceMetricSource:
  *         name: k8s.io/api/autoscaling/v2.ContainerResourceMetricSource
  *         properties:
@@ -21732,28 +19508,6 @@ export type SERVICE_TRIGGER_JOB_RESPONSE = SERVICE_TRIGGER_JOB_RESPONSE__MOGENIU
  *         properties:
  *             Format:
  *                 type: string
- *             d:
- *                 structRef: k8s.io/apimachinery/pkg/api/resource.infDecAmount
- *                 type: struct
- *             i:
- *                 structRef: k8s.io/apimachinery/pkg/api/resource.int64Amount
- *                 type: struct
- *             s:
- *                 type: string
- *     k8s.io/apimachinery/pkg/api/resource.infDecAmount:
- *         name: k8s.io/apimachinery/pkg/api/resource.infDecAmount
- *         properties:
- *             Dec:
- *                 pointer: true
- *                 structRef: gopkg.in/inf.v0.Dec
- *                 type: struct
- *     k8s.io/apimachinery/pkg/api/resource.int64Amount:
- *         name: k8s.io/apimachinery/pkg/api/resource.int64Amount
- *         properties:
- *             scale:
- *                 type: int
- *             value:
- *                 type: int
  *     k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector:
  *         name: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
  *         properties:
@@ -21779,15 +19533,6 @@ export type SERVICE_TRIGGER_JOB_RESPONSE = SERVICE_TRIGGER_JOB_RESPONSE__MOGENIU
  *                 elementType:
  *                     type: string
  *                 type: array
- *     math/big.Int:
- *         name: math/big.Int
- *         properties:
- *             abs:
- *                 elementType:
- *                     type: uint
- *                 type: array
- *             neg:
- *                 type: bool
  *     mogenius-k8s-manager/src/dtos.K8sCnameDto:
  *         name: mogenius-k8s-manager/src/dtos.K8sCnameDto
  *         properties:
@@ -22140,12 +19885,6 @@ export type SERVICE_UPDATE_SERVICE_REQUEST = SERVICE_UPDATE_SERVICE_REQUEST__MOG
  *
  * ```yaml
  * structs:
- *     log/slog.Logger:
- *         name: log/slog.Logger
- *         properties:
- *             handler:
- *                 pointer: true
- *                 type: any
  *     mogenius-k8s-manager/src/structs.Command:
  *         name: mogenius-k8s-manager/src/structs.Command
  *         properties:
@@ -22183,10 +19922,6 @@ export type SERVICE_UPDATE_SERVICE_REQUEST = SERVICE_UPDATE_SERVICE_REQUEST__MOG
  *                 type: struct
  *             id:
  *                 type: string
- *             logger:
- *                 pointer: true
- *                 structRef: log/slog.Logger
- *                 type: struct
  *             message:
  *                 type: string
  *             namespaceName:
@@ -22200,62 +19935,9 @@ export type SERVICE_UPDATE_SERVICE_REQUEST = SERVICE_UPDATE_SERVICE_REQUEST__MOG
  *                 type: string
  *             title:
  *                 type: string
- *     time.Location:
- *         name: time.Location
- *         properties:
- *             cacheEnd:
- *                 type: int
- *             cacheStart:
- *                 type: int
- *             cacheZone:
- *                 pointer: true
- *                 structRef: time.zone
- *                 type: struct
- *             extend:
- *                 type: string
- *             name:
- *                 type: string
- *             tx:
- *                 elementType:
- *                     structRef: time.zoneTrans
- *                     type: struct
- *                 type: array
- *             zone:
- *                 elementType:
- *                     structRef: time.zone
- *                     type: struct
- *                 type: array
  *     time.Time:
  *         name: time.Time
- *         properties:
- *             ext:
- *                 type: int
- *             loc:
- *                 pointer: true
- *                 structRef: time.Location
- *                 type: struct
- *             wall:
- *                 type: uint
- *     time.zone:
- *         name: time.zone
- *         properties:
- *             isDST:
- *                 type: bool
- *             name:
- *                 type: string
- *             offset:
- *                 type: int
- *     time.zoneTrans:
- *         name: time.zoneTrans
- *         properties:
- *             index:
- *                 type: uint
- *             isstd:
- *                 type: bool
- *             isutc:
- *                 type: bool
- *             when:
- *                 type: int
+ *         properties: {}
  * typeInfo:
  *     pointer: true
  *     structRef: mogenius-k8s-manager/src/structs.Job
@@ -23538,12 +21220,6 @@ export type UPGRADEK8SMANAGER_REQUEST = UPGRADEK8SMANAGER_REQUEST__MOGENIUS_K8S_
  *
  * ```yaml
  * structs:
- *     log/slog.Logger:
- *         name: log/slog.Logger
- *         properties:
- *             handler:
- *                 pointer: true
- *                 type: any
  *     mogenius-k8s-manager/src/structs.Command:
  *         name: mogenius-k8s-manager/src/structs.Command
  *         properties:
@@ -23581,10 +21257,6 @@ export type UPGRADEK8SMANAGER_REQUEST = UPGRADEK8SMANAGER_REQUEST__MOGENIUS_K8S_
  *                 type: struct
  *             id:
  *                 type: string
- *             logger:
- *                 pointer: true
- *                 structRef: log/slog.Logger
- *                 type: struct
  *             message:
  *                 type: string
  *             namespaceName:
@@ -23598,62 +21270,9 @@ export type UPGRADEK8SMANAGER_REQUEST = UPGRADEK8SMANAGER_REQUEST__MOGENIUS_K8S_
  *                 type: string
  *             title:
  *                 type: string
- *     time.Location:
- *         name: time.Location
- *         properties:
- *             cacheEnd:
- *                 type: int
- *             cacheStart:
- *                 type: int
- *             cacheZone:
- *                 pointer: true
- *                 structRef: time.zone
- *                 type: struct
- *             extend:
- *                 type: string
- *             name:
- *                 type: string
- *             tx:
- *                 elementType:
- *                     structRef: time.zoneTrans
- *                     type: struct
- *                 type: array
- *             zone:
- *                 elementType:
- *                     structRef: time.zone
- *                     type: struct
- *                 type: array
  *     time.Time:
  *         name: time.Time
- *         properties:
- *             ext:
- *                 type: int
- *             loc:
- *                 pointer: true
- *                 structRef: time.Location
- *                 type: struct
- *             wall:
- *                 type: uint
- *     time.zone:
- *         name: time.zone
- *         properties:
- *             isDST:
- *                 type: bool
- *             name:
- *                 type: string
- *             offset:
- *                 type: int
- *     time.zoneTrans:
- *         name: time.zoneTrans
- *         properties:
- *             index:
- *                 type: uint
- *             isstd:
- *                 type: bool
- *             isutc:
- *                 type: bool
- *             when:
- *                 type: int
+ *         properties: {}
  * typeInfo:
  *     pointer: true
  *     structRef: mogenius-k8s-manager/src/structs.Job
@@ -23821,13 +21440,9 @@ export type CLUSTER_COMPONENT_LOG_STREAM_CONNECTION_REQUEST_REQUEST__MOGENIUS_K8
 export type CLUSTER_ENERGY_CONSUMPTION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_ENERGYCONSUMPTIONENTRY = {"containerName": string,"containerNamespace": string,"podName": string,"totalEnergyInJoule": number};
 export type CLUSTER_ENERGY_CONSUMPTION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_ENERGYCONSUMPTIONRESPONSE = {"energyInWatt": number,"entries": CLUSTER_ENERGY_CONSUMPTION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_ENERGYCONSUMPTIONENTRY[],"secondsBetweenInspections": number,"timestamp": number,"totalEnergyInJoule": number,"totalEnergyInJouleSince": number};
 export type CLUSTER_EXECUTE_HELM_CHART_TASK_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_CLUSTERHELMREQUEST = {"helmChartName": string,"helmChartVersion": string,"helmReleaseName": string,"helmRepoName": string,"helmRepoUrl": string,"helmValues": string,"namespace": string,"namespaceId": string};
-export type CLUSTER_EXECUTE_HELM_CHART_TASK_RESPONSE__LOG_SLOG_LOGGER = {"handler": any};
 export type CLUSTER_EXECUTE_HELM_CHART_TASK_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_COMMAND = {"command": string,"finished": CLUSTER_EXECUTE_HELM_CHART_TASK_RESPONSE__TIME_TIME,"id": string,"message": string,"started": CLUSTER_EXECUTE_HELM_CHART_TASK_RESPONSE__TIME_TIME,"state": string,"title": string};
-export type CLUSTER_EXECUTE_HELM_CHART_TASK_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_JOB = {"commands": CLUSTER_EXECUTE_HELM_CHART_TASK_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_COMMAND|undefined[],"containerName": string,"controllerName": string,"finished": CLUSTER_EXECUTE_HELM_CHART_TASK_RESPONSE__TIME_TIME,"id": string,"logger": CLUSTER_EXECUTE_HELM_CHART_TASK_RESPONSE__LOG_SLOG_LOGGER|undefined,"message": string,"namespaceName": string,"projectId": string,"started": CLUSTER_EXECUTE_HELM_CHART_TASK_RESPONSE__TIME_TIME,"state": string,"title": string};
-export type CLUSTER_EXECUTE_HELM_CHART_TASK_RESPONSE__TIME_LOCATION = {"cacheEnd": number,"cacheStart": number,"cacheZone": CLUSTER_EXECUTE_HELM_CHART_TASK_RESPONSE__TIME_ZONE|undefined,"extend": string,"name": string,"tx": CLUSTER_EXECUTE_HELM_CHART_TASK_RESPONSE__TIME_ZONETRANS[],"zone": CLUSTER_EXECUTE_HELM_CHART_TASK_RESPONSE__TIME_ZONE[]};
-export type CLUSTER_EXECUTE_HELM_CHART_TASK_RESPONSE__TIME_TIME = {"ext": number,"loc": CLUSTER_EXECUTE_HELM_CHART_TASK_RESPONSE__TIME_LOCATION|undefined,"wall": number};
-export type CLUSTER_EXECUTE_HELM_CHART_TASK_RESPONSE__TIME_ZONE = {"isDST": boolean,"name": string,"offset": number};
-export type CLUSTER_EXECUTE_HELM_CHART_TASK_RESPONSE__TIME_ZONETRANS = {"index": number,"isstd": boolean,"isutc": boolean,"when": number};
+export type CLUSTER_EXECUTE_HELM_CHART_TASK_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_JOB = {"commands": CLUSTER_EXECUTE_HELM_CHART_TASK_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_COMMAND|undefined[],"containerName": string,"controllerName": string,"finished": CLUSTER_EXECUTE_HELM_CHART_TASK_RESPONSE__TIME_TIME,"id": string,"message": string,"namespaceName": string,"projectId": string,"started": CLUSTER_EXECUTE_HELM_CHART_TASK_RESPONSE__TIME_TIME,"state": string,"title": string};
+export type CLUSTER_EXECUTE_HELM_CHART_TASK_RESPONSE__TIME_TIME = {};
 export type CLUSTER_HELM_CHART_INSTALL_REQUEST__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMCHARTINSTALLUPGRADEREQUEST = {"chart": string,"dryRun": boolean,"namespace": string,"release": string,"values": string,"version": string};
 export type CLUSTER_HELM_CHART_INSTALL_OCI_REQUEST__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMCHARTOCIINSTALLUPGRADEREQUEST = {"chart": string,"dryRun": boolean,"namespace": string,"password": string,"registryUrl": string,"release": string,"username": string,"values": string,"version": string};
 export type CLUSTER_HELM_CHART_REMOVE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMREPOREMOVEREQUEST = {"name": string};
@@ -23841,7 +21456,7 @@ export type CLUSTER_HELM_RELEASE_GET_WORKLOADS_REQUEST__MOGENIUS_K8S_MANAGER_SRC
 export type CLUSTER_HELM_RELEASE_GET_WORKLOADS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_SYNCRESOURCEENTRY = {"group": string,"kind": string,"name": string,"namespace": string|undefined,"version": string};
 export type CLUSTER_HELM_RELEASE_GET_WORKLOADS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"Object": Record<string, any>};
 export type CLUSTER_HELM_RELEASE_HISTORY_REQUEST__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMRELEASEHISTORYREQUEST = {"namespace": string,"release": string};
-export type CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_CHART = {"dependencies": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_CHART|undefined[],"files": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_FILE|undefined[],"lock": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_LOCK|undefined,"metadata": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_METADATA|undefined,"parent": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_CHART|undefined,"schema": number[],"templates": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_FILE|undefined[],"values": Record<string, any>};
+export type CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_CHART = {"files": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_FILE|undefined[],"lock": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_LOCK|undefined,"metadata": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_METADATA|undefined,"schema": number[],"templates": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_FILE|undefined[],"values": Record<string, any>};
 export type CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_DEPENDENCY = {"alias": string,"condition": string,"enabled": boolean,"import-values": any[],"name": string,"repository": string,"tags": string[],"version": string};
 export type CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_FILE = {"data": number[],"name": string};
 export type CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_LOCK = {"dependencies": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_DEPENDENCY|undefined[],"digest": string,"generated": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__TIME_TIME};
@@ -23852,12 +21467,9 @@ export type CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_RELEASE_H
 export type CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_RELEASE_INFO = {"deleted": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_TIME_TIME,"description": string,"first_deployed": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_TIME_TIME,"last_deployed": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_TIME_TIME,"notes": string,"resources": Record<string, any[]>,"status": string};
 export type CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_RELEASE_RELEASE = {"chart": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_CHART|undefined,"config": Record<string, any>,"hooks": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_RELEASE_HOOK|undefined[],"info": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_RELEASE_INFO|undefined,"manifest": string,"name": string,"namespace": string,"version": number};
 export type CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_TIME_TIME = {"Time": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__TIME_TIME};
-export type CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__TIME_LOCATION = {"cacheEnd": number,"cacheStart": number,"cacheZone": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__TIME_ZONE|undefined,"extend": string,"name": string,"tx": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__TIME_ZONETRANS[],"zone": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__TIME_ZONE[]};
-export type CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__TIME_TIME = {"ext": number,"loc": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__TIME_LOCATION|undefined,"wall": number};
-export type CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__TIME_ZONE = {"isDST": boolean,"name": string,"offset": number};
-export type CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__TIME_ZONETRANS = {"index": number,"isstd": boolean,"isutc": boolean,"when": number};
+export type CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__TIME_TIME = {};
 export type CLUSTER_HELM_RELEASE_LIST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMRELEASELISTREQUEST = {"namespace": string};
-export type CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_CHART = {"dependencies": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_CHART|undefined[],"files": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_FILE|undefined[],"lock": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_LOCK|undefined,"metadata": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_METADATA|undefined,"parent": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_CHART|undefined,"schema": number[],"templates": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_FILE|undefined[],"values": Record<string, any>};
+export type CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_CHART = {"files": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_FILE|undefined[],"lock": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_LOCK|undefined,"metadata": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_METADATA|undefined,"schema": number[],"templates": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_FILE|undefined[],"values": Record<string, any>};
 export type CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_DEPENDENCY = {"alias": string,"condition": string,"enabled": boolean,"import-values": any[],"name": string,"repository": string,"tags": string[],"version": string};
 export type CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_FILE = {"data": number[],"name": string};
 export type CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_LOCK = {"dependencies": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_DEPENDENCY|undefined[],"digest": string,"generated": CLUSTER_HELM_RELEASE_LIST_RESPONSE__TIME_TIME};
@@ -23868,17 +21480,11 @@ export type CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_RELEASE_HOOK
 export type CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_RELEASE_INFO = {"deleted": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_TIME_TIME,"description": string,"first_deployed": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_TIME_TIME,"last_deployed": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_TIME_TIME,"notes": string,"resources": Record<string, any[]>,"status": string};
 export type CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_RELEASE_RELEASE = {"chart": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_CHART|undefined,"config": Record<string, any>,"hooks": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_RELEASE_HOOK|undefined[],"info": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_RELEASE_INFO|undefined,"manifest": string,"name": string,"namespace": string,"version": number};
 export type CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_TIME_TIME = {"Time": CLUSTER_HELM_RELEASE_LIST_RESPONSE__TIME_TIME};
-export type CLUSTER_HELM_RELEASE_LIST_RESPONSE__TIME_LOCATION = {"cacheEnd": number,"cacheStart": number,"cacheZone": CLUSTER_HELM_RELEASE_LIST_RESPONSE__TIME_ZONE|undefined,"extend": string,"name": string,"tx": CLUSTER_HELM_RELEASE_LIST_RESPONSE__TIME_ZONETRANS[],"zone": CLUSTER_HELM_RELEASE_LIST_RESPONSE__TIME_ZONE[]};
-export type CLUSTER_HELM_RELEASE_LIST_RESPONSE__TIME_TIME = {"ext": number,"loc": CLUSTER_HELM_RELEASE_LIST_RESPONSE__TIME_LOCATION|undefined,"wall": number};
-export type CLUSTER_HELM_RELEASE_LIST_RESPONSE__TIME_ZONE = {"isDST": boolean,"name": string,"offset": number};
-export type CLUSTER_HELM_RELEASE_LIST_RESPONSE__TIME_ZONETRANS = {"index": number,"isstd": boolean,"isutc": boolean,"when": number};
+export type CLUSTER_HELM_RELEASE_LIST_RESPONSE__TIME_TIME = {};
 export type CLUSTER_HELM_RELEASE_ROLLBACK_REQUEST__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMRELEASEROLLBACKREQUEST = {"namespace": string,"release": string,"revision": number};
 export type CLUSTER_HELM_RELEASE_STATUS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMRELEASESTATUSREQUEST = {"namespace": string,"release": string};
 export type CLUSTER_HELM_RELEASE_STATUS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMRELEASESTATUSINFO = {"chart": string,"lastDeployed": CLUSTER_HELM_RELEASE_STATUS_RESPONSE__TIME_TIME,"name": string,"namespace": string,"status": string,"version": number};
-export type CLUSTER_HELM_RELEASE_STATUS_RESPONSE__TIME_LOCATION = {"cacheEnd": number,"cacheStart": number,"cacheZone": CLUSTER_HELM_RELEASE_STATUS_RESPONSE__TIME_ZONE|undefined,"extend": string,"name": string,"tx": CLUSTER_HELM_RELEASE_STATUS_RESPONSE__TIME_ZONETRANS[],"zone": CLUSTER_HELM_RELEASE_STATUS_RESPONSE__TIME_ZONE[]};
-export type CLUSTER_HELM_RELEASE_STATUS_RESPONSE__TIME_TIME = {"ext": number,"loc": CLUSTER_HELM_RELEASE_STATUS_RESPONSE__TIME_LOCATION|undefined,"wall": number};
-export type CLUSTER_HELM_RELEASE_STATUS_RESPONSE__TIME_ZONE = {"isDST": boolean,"name": string,"offset": number};
-export type CLUSTER_HELM_RELEASE_STATUS_RESPONSE__TIME_ZONETRANS = {"index": number,"isstd": boolean,"isutc": boolean,"when": number};
+export type CLUSTER_HELM_RELEASE_STATUS_RESPONSE__TIME_TIME = {};
 export type CLUSTER_HELM_RELEASE_UNINSTALL_REQUEST__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMRELEASEUNINSTALLREQUEST = {"dryRun": boolean,"namespace": string,"release": string};
 export type CLUSTER_HELM_RELEASE_UPGRADE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMCHARTINSTALLUPGRADEREQUEST = {"chart": string,"dryRun": boolean,"namespace": string,"release": string,"values": string,"version": string};
 export type CLUSTER_HELM_REPO_ADD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMREPOADDREQUEST = {"insecureSkipTLSverify": boolean,"name": string,"passCredentialsAll": boolean,"password": string,"url": string,"username": string};
@@ -23901,7 +21507,6 @@ export type CLUSTER_READ_CONFIGMAP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES
 export type CLUSTER_READ_DEPLOYMENT_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_CLUSTERGETDEPLOYMENT = {"name": string,"namespace": string};
 export type CLUSTER_READ_DEPLOYMENT_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_K8SWORKLOADRESULT = {"error": any,"result": any};
 export type CLUSTER_READ_PERSISTENT_VOLUME_CLAIM_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_CLUSTERGETPERSISTENTVOLUME = {"name": string,"namespace": string};
-export type CLUSTER_READ_PERSISTENT_VOLUME_CLAIM_RESPONSE__GOPKG_IN_INF_V0_DEC = {"scale": number,"unscaled": CLUSTER_READ_PERSISTENT_VOLUME_CLAIM_RESPONSE__MATH_BIG_INT};
 export type CLUSTER_READ_PERSISTENT_VOLUME_CLAIM_RESPONSE__K8S_IO_API_CORE_V1_MODIFYVOLUMESTATUS = {"status": string,"targetVolumeAttributesClassName": string};
 export type CLUSTER_READ_PERSISTENT_VOLUME_CLAIM_RESPONSE__K8S_IO_API_CORE_V1_PERSISTENTVOLUMECLAIM = {"TypeMeta": CLUSTER_READ_PERSISTENT_VOLUME_CLAIM_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA,"metadata": CLUSTER_READ_PERSISTENT_VOLUME_CLAIM_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OBJECTMETA,"spec": CLUSTER_READ_PERSISTENT_VOLUME_CLAIM_RESPONSE__K8S_IO_API_CORE_V1_PERSISTENTVOLUMECLAIMSPEC,"status": CLUSTER_READ_PERSISTENT_VOLUME_CLAIM_RESPONSE__K8S_IO_API_CORE_V1_PERSISTENTVOLUMECLAIMSTATUS};
 export type CLUSTER_READ_PERSISTENT_VOLUME_CLAIM_RESPONSE__K8S_IO_API_CORE_V1_PERSISTENTVOLUMECLAIMCONDITION = {"lastProbeTime": CLUSTER_READ_PERSISTENT_VOLUME_CLAIM_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME,"lastTransitionTime": CLUSTER_READ_PERSISTENT_VOLUME_CLAIM_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME,"message": string,"reason": string,"status": string,"type": string};
@@ -23910,9 +21515,7 @@ export type CLUSTER_READ_PERSISTENT_VOLUME_CLAIM_RESPONSE__K8S_IO_API_CORE_V1_PE
 export type CLUSTER_READ_PERSISTENT_VOLUME_CLAIM_RESPONSE__K8S_IO_API_CORE_V1_TYPEDLOCALOBJECTREFERENCE = {"apiGroup": string|undefined,"kind": string,"name": string};
 export type CLUSTER_READ_PERSISTENT_VOLUME_CLAIM_RESPONSE__K8S_IO_API_CORE_V1_TYPEDOBJECTREFERENCE = {"apiGroup": string|undefined,"kind": string,"name": string,"namespace": string|undefined};
 export type CLUSTER_READ_PERSISTENT_VOLUME_CLAIM_RESPONSE__K8S_IO_API_CORE_V1_VOLUMERESOURCEREQUIREMENTS = {"limits": Record<string, CLUSTER_READ_PERSISTENT_VOLUME_CLAIM_RESPONSE__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY>,"requests": Record<string, CLUSTER_READ_PERSISTENT_VOLUME_CLAIM_RESPONSE__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY>};
-export type CLUSTER_READ_PERSISTENT_VOLUME_CLAIM_RESPONSE__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY = {"Format": string,"d": CLUSTER_READ_PERSISTENT_VOLUME_CLAIM_RESPONSE__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_INFDECAMOUNT,"i": CLUSTER_READ_PERSISTENT_VOLUME_CLAIM_RESPONSE__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_INT64AMOUNT,"s": string};
-export type CLUSTER_READ_PERSISTENT_VOLUME_CLAIM_RESPONSE__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_INFDECAMOUNT = {"Dec": CLUSTER_READ_PERSISTENT_VOLUME_CLAIM_RESPONSE__GOPKG_IN_INF_V0_DEC|undefined};
-export type CLUSTER_READ_PERSISTENT_VOLUME_CLAIM_RESPONSE__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_INT64AMOUNT = {"scale": number,"value": number};
+export type CLUSTER_READ_PERSISTENT_VOLUME_CLAIM_RESPONSE__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY = {"Format": string};
 export type CLUSTER_READ_PERSISTENT_VOLUME_CLAIM_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_FIELDSV1 = {};
 export type CLUSTER_READ_PERSISTENT_VOLUME_CLAIM_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR = {"matchExpressions": CLUSTER_READ_PERSISTENT_VOLUME_CLAIM_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTORREQUIREMENT[],"matchLabels": Record<string, string>};
 export type CLUSTER_READ_PERSISTENT_VOLUME_CLAIM_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTORREQUIREMENT = {"key": string,"operator": string,"values": string[]};
@@ -23921,20 +21524,12 @@ export type CLUSTER_READ_PERSISTENT_VOLUME_CLAIM_RESPONSE__K8S_IO_APIMACHINERY_P
 export type CLUSTER_READ_PERSISTENT_VOLUME_CLAIM_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OWNERREFERENCE = {"apiVersion": string,"blockOwnerDeletion": boolean|undefined,"controller": boolean|undefined,"kind": string,"name": string,"uid": string};
 export type CLUSTER_READ_PERSISTENT_VOLUME_CLAIM_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME = {"Time": CLUSTER_READ_PERSISTENT_VOLUME_CLAIM_RESPONSE__TIME_TIME};
 export type CLUSTER_READ_PERSISTENT_VOLUME_CLAIM_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA = {"apiVersion": string,"kind": string};
-export type CLUSTER_READ_PERSISTENT_VOLUME_CLAIM_RESPONSE__MATH_BIG_INT = {"abs": number[],"neg": boolean};
-export type CLUSTER_READ_PERSISTENT_VOLUME_CLAIM_RESPONSE__TIME_LOCATION = {"cacheEnd": number,"cacheStart": number,"cacheZone": CLUSTER_READ_PERSISTENT_VOLUME_CLAIM_RESPONSE__TIME_ZONE|undefined,"extend": string,"name": string,"tx": CLUSTER_READ_PERSISTENT_VOLUME_CLAIM_RESPONSE__TIME_ZONETRANS[],"zone": CLUSTER_READ_PERSISTENT_VOLUME_CLAIM_RESPONSE__TIME_ZONE[]};
-export type CLUSTER_READ_PERSISTENT_VOLUME_CLAIM_RESPONSE__TIME_TIME = {"ext": number,"loc": CLUSTER_READ_PERSISTENT_VOLUME_CLAIM_RESPONSE__TIME_LOCATION|undefined,"wall": number};
-export type CLUSTER_READ_PERSISTENT_VOLUME_CLAIM_RESPONSE__TIME_ZONE = {"isDST": boolean,"name": string,"offset": number};
-export type CLUSTER_READ_PERSISTENT_VOLUME_CLAIM_RESPONSE__TIME_ZONETRANS = {"index": number,"isstd": boolean,"isutc": boolean,"when": number};
+export type CLUSTER_READ_PERSISTENT_VOLUME_CLAIM_RESPONSE__TIME_TIME = {};
 export type CLUSTER_TCP_UDP_CONFIGURATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_DTOS_TCPUDPCLUSTERCONFIGURATIONDTO = {"ingressServices": any,"tcpServices": any,"udpServices": any};
 export type CLUSTER_UNINSTALL_HELM_CHART_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_CLUSTERHELMUNINSTALLREQUEST = {"helmReleaseName": string,"namespaceId": string};
-export type CLUSTER_UNINSTALL_HELM_CHART_RESPONSE__LOG_SLOG_LOGGER = {"handler": any};
 export type CLUSTER_UNINSTALL_HELM_CHART_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_COMMAND = {"command": string,"finished": CLUSTER_UNINSTALL_HELM_CHART_RESPONSE__TIME_TIME,"id": string,"message": string,"started": CLUSTER_UNINSTALL_HELM_CHART_RESPONSE__TIME_TIME,"state": string,"title": string};
-export type CLUSTER_UNINSTALL_HELM_CHART_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_JOB = {"commands": CLUSTER_UNINSTALL_HELM_CHART_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_COMMAND|undefined[],"containerName": string,"controllerName": string,"finished": CLUSTER_UNINSTALL_HELM_CHART_RESPONSE__TIME_TIME,"id": string,"logger": CLUSTER_UNINSTALL_HELM_CHART_RESPONSE__LOG_SLOG_LOGGER|undefined,"message": string,"namespaceName": string,"projectId": string,"started": CLUSTER_UNINSTALL_HELM_CHART_RESPONSE__TIME_TIME,"state": string,"title": string};
-export type CLUSTER_UNINSTALL_HELM_CHART_RESPONSE__TIME_LOCATION = {"cacheEnd": number,"cacheStart": number,"cacheZone": CLUSTER_UNINSTALL_HELM_CHART_RESPONSE__TIME_ZONE|undefined,"extend": string,"name": string,"tx": CLUSTER_UNINSTALL_HELM_CHART_RESPONSE__TIME_ZONETRANS[],"zone": CLUSTER_UNINSTALL_HELM_CHART_RESPONSE__TIME_ZONE[]};
-export type CLUSTER_UNINSTALL_HELM_CHART_RESPONSE__TIME_TIME = {"ext": number,"loc": CLUSTER_UNINSTALL_HELM_CHART_RESPONSE__TIME_LOCATION|undefined,"wall": number};
-export type CLUSTER_UNINSTALL_HELM_CHART_RESPONSE__TIME_ZONE = {"isDST": boolean,"name": string,"offset": number};
-export type CLUSTER_UNINSTALL_HELM_CHART_RESPONSE__TIME_ZONETRANS = {"index": number,"isstd": boolean,"isutc": boolean,"when": number};
+export type CLUSTER_UNINSTALL_HELM_CHART_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_JOB = {"commands": CLUSTER_UNINSTALL_HELM_CHART_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_COMMAND|undefined[],"containerName": string,"controllerName": string,"finished": CLUSTER_UNINSTALL_HELM_CHART_RESPONSE__TIME_TIME,"id": string,"message": string,"namespaceName": string,"projectId": string,"started": CLUSTER_UNINSTALL_HELM_CHART_RESPONSE__TIME_TIME,"state": string,"title": string};
+export type CLUSTER_UNINSTALL_HELM_CHART_RESPONSE__TIME_TIME = {};
 export type CLUSTER_UPDATE_LOCAL_TLS_SECRET_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_CLUSTERUPDATELOCALTLSSECRET = {"localTlsCrt": string,"localTlsKey": string};
 export type CLUSTER_WRITE_CONFIGMAP_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_CLUSTERWRITECONFIGMAP = {"data": string,"labels": Record<string, string>,"name": string,"namespace": string};
 export type CREATE_GRANT_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"grantee": string,"name": string,"role": string,"targetName": string,"targetType": string};
@@ -24000,10 +21595,7 @@ export type GET_GRANT_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA = 
 export type GET_GRANT_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_GRANT = {"TypeMeta": GET_GRANT_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA,"metadata": GET_GRANT_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OBJECTMETA,"spec": GET_GRANT_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_GRANTSPEC,"status": GET_GRANT_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_GRANTSTATUS};
 export type GET_GRANT_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_GRANTSPEC = {"grantee": string,"role": string,"targetName": string,"targetType": string};
 export type GET_GRANT_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_GRANTSTATUS = {};
-export type GET_GRANT_RESPONSE__TIME_LOCATION = {"cacheEnd": number,"cacheStart": number,"cacheZone": GET_GRANT_RESPONSE__TIME_ZONE|undefined,"extend": string,"name": string,"tx": GET_GRANT_RESPONSE__TIME_ZONETRANS[],"zone": GET_GRANT_RESPONSE__TIME_ZONE[]};
-export type GET_GRANT_RESPONSE__TIME_TIME = {"ext": number,"loc": GET_GRANT_RESPONSE__TIME_LOCATION|undefined,"wall": number};
-export type GET_GRANT_RESPONSE__TIME_ZONE = {"isDST": boolean,"name": string,"offset": number};
-export type GET_GRANT_RESPONSE__TIME_ZONETRANS = {"index": number,"isstd": boolean,"isutc": boolean,"when": number};
+export type GET_GRANT_RESPONSE__TIME_TIME = {};
 export type GET_GRANTS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"targetName": string|undefined,"targetType": string|undefined};
 export type GET_GRANTS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_FIELDSV1 = {};
 export type GET_GRANTS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_MANAGEDFIELDSENTRY = {"apiVersion": string,"fieldsType": string,"fieldsV1": GET_GRANTS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_FIELDSV1|undefined,"manager": string,"operation": string,"subresource": string,"time": GET_GRANTS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME|undefined};
@@ -24014,10 +21606,7 @@ export type GET_GRANTS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA =
 export type GET_GRANTS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_GRANT = {"TypeMeta": GET_GRANTS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA,"metadata": GET_GRANTS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OBJECTMETA,"spec": GET_GRANTS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_GRANTSPEC,"status": GET_GRANTS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_GRANTSTATUS};
 export type GET_GRANTS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_GRANTSPEC = {"grantee": string,"role": string,"targetName": string,"targetType": string};
 export type GET_GRANTS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_GRANTSTATUS = {};
-export type GET_GRANTS_RESPONSE__TIME_LOCATION = {"cacheEnd": number,"cacheStart": number,"cacheZone": GET_GRANTS_RESPONSE__TIME_ZONE|undefined,"extend": string,"name": string,"tx": GET_GRANTS_RESPONSE__TIME_ZONETRANS[],"zone": GET_GRANTS_RESPONSE__TIME_ZONE[]};
-export type GET_GRANTS_RESPONSE__TIME_TIME = {"ext": number,"loc": GET_GRANTS_RESPONSE__TIME_LOCATION|undefined,"wall": number};
-export type GET_GRANTS_RESPONSE__TIME_ZONE = {"isDST": boolean,"name": string,"offset": number};
-export type GET_GRANTS_RESPONSE__TIME_ZONETRANS = {"index": number,"isstd": boolean,"isutc": boolean,"when": number};
+export type GET_GRANTS_RESPONSE__TIME_TIME = {};
 export type GET_LABELED_WORKLOAD_LIST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_GETUNSTRUCTUREDLABELEDRESOURCELISTREQUEST = {"blacklist": GET_LABELED_WORKLOAD_LIST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_SYNCRESOURCEENTRY|undefined[],"label": string,"whitelist": GET_LABELED_WORKLOAD_LIST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_SYNCRESOURCEENTRY|undefined[]};
 export type GET_LABELED_WORKLOAD_LIST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_SYNCRESOURCEENTRY = {"group": string,"kind": string,"name": string,"namespace": string|undefined,"version": string};
 export type GET_LABELED_WORKLOAD_LIST_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"Object": Record<string, any>};
@@ -24035,10 +21624,7 @@ export type GET_TEAM_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA = {
 export type GET_TEAM_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_TEAM = {"TypeMeta": GET_TEAM_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA,"metadata": GET_TEAM_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OBJECTMETA,"spec": GET_TEAM_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_TEAMSPEC,"status": GET_TEAM_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_TEAMSTATUS};
 export type GET_TEAM_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_TEAMSPEC = {"displayName": string,"users": string[]};
 export type GET_TEAM_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_TEAMSTATUS = {};
-export type GET_TEAM_RESPONSE__TIME_LOCATION = {"cacheEnd": number,"cacheStart": number,"cacheZone": GET_TEAM_RESPONSE__TIME_ZONE|undefined,"extend": string,"name": string,"tx": GET_TEAM_RESPONSE__TIME_ZONETRANS[],"zone": GET_TEAM_RESPONSE__TIME_ZONE[]};
-export type GET_TEAM_RESPONSE__TIME_TIME = {"ext": number,"loc": GET_TEAM_RESPONSE__TIME_LOCATION|undefined,"wall": number};
-export type GET_TEAM_RESPONSE__TIME_ZONE = {"isDST": boolean,"name": string,"offset": number};
-export type GET_TEAM_RESPONSE__TIME_ZONETRANS = {"index": number,"isstd": boolean,"isutc": boolean,"when": number};
+export type GET_TEAM_RESPONSE__TIME_TIME = {};
 export type GET_TEAMS_REQUEST__ANON_STRUCT_0 = {};
 export type GET_TEAMS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_FIELDSV1 = {};
 export type GET_TEAMS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_MANAGEDFIELDSENTRY = {"apiVersion": string,"fieldsType": string,"fieldsV1": GET_TEAMS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_FIELDSV1|undefined,"manager": string,"operation": string,"subresource": string,"time": GET_TEAMS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME|undefined};
@@ -24049,10 +21635,7 @@ export type GET_TEAMS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA = 
 export type GET_TEAMS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_TEAM = {"TypeMeta": GET_TEAMS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA,"metadata": GET_TEAMS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OBJECTMETA,"spec": GET_TEAMS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_TEAMSPEC,"status": GET_TEAMS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_TEAMSTATUS};
 export type GET_TEAMS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_TEAMSPEC = {"displayName": string,"users": string[]};
 export type GET_TEAMS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_TEAMSTATUS = {};
-export type GET_TEAMS_RESPONSE__TIME_LOCATION = {"cacheEnd": number,"cacheStart": number,"cacheZone": GET_TEAMS_RESPONSE__TIME_ZONE|undefined,"extend": string,"name": string,"tx": GET_TEAMS_RESPONSE__TIME_ZONETRANS[],"zone": GET_TEAMS_RESPONSE__TIME_ZONE[]};
-export type GET_TEAMS_RESPONSE__TIME_TIME = {"ext": number,"loc": GET_TEAMS_RESPONSE__TIME_LOCATION|undefined,"wall": number};
-export type GET_TEAMS_RESPONSE__TIME_ZONE = {"isDST": boolean,"name": string,"offset": number};
-export type GET_TEAMS_RESPONSE__TIME_ZONETRANS = {"index": number,"isstd": boolean,"isutc": boolean,"when": number};
+export type GET_TEAMS_RESPONSE__TIME_TIME = {};
 export type GET_USER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"name": string};
 export type GET_USER_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_FIELDSV1 = {};
 export type GET_USER_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_MANAGEDFIELDSENTRY = {"apiVersion": string,"fieldsType": string,"fieldsV1": GET_USER_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_FIELDSV1|undefined,"manager": string,"operation": string,"subresource": string,"time": GET_USER_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME|undefined};
@@ -24063,10 +21646,7 @@ export type GET_USER_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA = {
 export type GET_USER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_USER = {"TypeMeta": GET_USER_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA,"metadata": GET_USER_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OBJECTMETA,"spec": GET_USER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_USERSPEC,"status": GET_USER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_USERSTATUS};
 export type GET_USER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_USERSPEC = {"email": string,"firstName": string,"lastName": string};
 export type GET_USER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_USERSTATUS = {};
-export type GET_USER_RESPONSE__TIME_LOCATION = {"cacheEnd": number,"cacheStart": number,"cacheZone": GET_USER_RESPONSE__TIME_ZONE|undefined,"extend": string,"name": string,"tx": GET_USER_RESPONSE__TIME_ZONETRANS[],"zone": GET_USER_RESPONSE__TIME_ZONE[]};
-export type GET_USER_RESPONSE__TIME_TIME = {"ext": number,"loc": GET_USER_RESPONSE__TIME_LOCATION|undefined,"wall": number};
-export type GET_USER_RESPONSE__TIME_ZONE = {"isDST": boolean,"name": string,"offset": number};
-export type GET_USER_RESPONSE__TIME_ZONETRANS = {"index": number,"isstd": boolean,"isutc": boolean,"when": number};
+export type GET_USER_RESPONSE__TIME_TIME = {};
 export type GET_USERS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"email": string|undefined};
 export type GET_USERS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_FIELDSV1 = {};
 export type GET_USERS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_MANAGEDFIELDSENTRY = {"apiVersion": string,"fieldsType": string,"fieldsV1": GET_USERS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_FIELDSV1|undefined,"manager": string,"operation": string,"subresource": string,"time": GET_USERS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME|undefined};
@@ -24077,10 +21657,7 @@ export type GET_USERS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA = 
 export type GET_USERS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_USER = {"TypeMeta": GET_USERS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA,"metadata": GET_USERS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OBJECTMETA,"spec": GET_USERS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_USERSPEC,"status": GET_USERS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_USERSTATUS};
 export type GET_USERS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_USERSPEC = {"email": string,"firstName": string,"lastName": string};
 export type GET_USERS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_USERSTATUS = {};
-export type GET_USERS_RESPONSE__TIME_LOCATION = {"cacheEnd": number,"cacheStart": number,"cacheZone": GET_USERS_RESPONSE__TIME_ZONE|undefined,"extend": string,"name": string,"tx": GET_USERS_RESPONSE__TIME_ZONETRANS[],"zone": GET_USERS_RESPONSE__TIME_ZONE[]};
-export type GET_USERS_RESPONSE__TIME_TIME = {"ext": number,"loc": GET_USERS_RESPONSE__TIME_LOCATION|undefined,"wall": number};
-export type GET_USERS_RESPONSE__TIME_ZONE = {"isDST": boolean,"name": string,"offset": number};
-export type GET_USERS_RESPONSE__TIME_ZONETRANS = {"index": number,"isstd": boolean,"isutc": boolean,"when": number};
+export type GET_USERS_RESPONSE__TIME_TIME = {};
 export type GET_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_SYNCRESOURCEITEM = {"group": string,"kind": string,"name": string,"namespace": string,"resourceName": string,"version": string};
 export type GET_WORKLOAD_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"Object": Record<string, any>};
 export type GET_WORKLOAD_EXAMPLE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_SYNCRESOURCEITEM = {"group": string,"kind": string,"name": string,"namespace": string,"resourceName": string,"version": string};
@@ -24103,26 +21680,17 @@ export type GET_WORKLOAD_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_T
 export type GET_WORKLOAD_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA = {"apiVersion": string,"kind": string};
 export type GET_WORKLOAD_STATUS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_WORKLOADSTATUSDTO = {"items": GET_WORKLOAD_STATUS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_WORKLOADSTATUSITEMDTO[]};
 export type GET_WORKLOAD_STATUS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_WORKLOADSTATUSITEMDTO = {"creationTimestamp": GET_WORKLOAD_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME,"endpoints": any,"events": GET_WORKLOAD_STATUS_RESPONSE__K8S_IO_API_CORE_V1_EVENT[],"group": string,"kind": string,"name": string,"namespace": string,"ownerReferences": any,"replicas": number|undefined,"specClusterIP": string,"specType": string,"status": any,"uid": string};
-export type GET_WORKLOAD_STATUS_RESPONSE__TIME_LOCATION = {"cacheEnd": number,"cacheStart": number,"cacheZone": GET_WORKLOAD_STATUS_RESPONSE__TIME_ZONE|undefined,"extend": string,"name": string,"tx": GET_WORKLOAD_STATUS_RESPONSE__TIME_ZONETRANS[],"zone": GET_WORKLOAD_STATUS_RESPONSE__TIME_ZONE[]};
-export type GET_WORKLOAD_STATUS_RESPONSE__TIME_TIME = {"ext": number,"loc": GET_WORKLOAD_STATUS_RESPONSE__TIME_LOCATION|undefined,"wall": number};
-export type GET_WORKLOAD_STATUS_RESPONSE__TIME_ZONE = {"isDST": boolean,"name": string,"offset": number};
-export type GET_WORKLOAD_STATUS_RESPONSE__TIME_ZONETRANS = {"index": number,"isstd": boolean,"isutc": boolean,"when": number};
+export type GET_WORKLOAD_STATUS_RESPONSE__TIME_TIME = {};
 export type GET_WORKSPACE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"name": string};
 export type GET_WORKSPACE_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME = {"Time": GET_WORKSPACE_RESPONSE__TIME_TIME};
 export type GET_WORKSPACE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_GETWORKSPACERESULT = {"creationTimestamp": GET_WORKSPACE_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME,"name": string,"resources": GET_WORKSPACE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_WORKSPACERESOURCEIDENTIFIER[]};
 export type GET_WORKSPACE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_WORKSPACERESOURCEIDENTIFIER = {"id": string,"namespace": string,"type": string};
-export type GET_WORKSPACE_RESPONSE__TIME_LOCATION = {"cacheEnd": number,"cacheStart": number,"cacheZone": GET_WORKSPACE_RESPONSE__TIME_ZONE|undefined,"extend": string,"name": string,"tx": GET_WORKSPACE_RESPONSE__TIME_ZONETRANS[],"zone": GET_WORKSPACE_RESPONSE__TIME_ZONE[]};
-export type GET_WORKSPACE_RESPONSE__TIME_TIME = {"ext": number,"loc": GET_WORKSPACE_RESPONSE__TIME_LOCATION|undefined,"wall": number};
-export type GET_WORKSPACE_RESPONSE__TIME_ZONE = {"isDST": boolean,"name": string,"offset": number};
-export type GET_WORKSPACE_RESPONSE__TIME_ZONETRANS = {"index": number,"isstd": boolean,"isutc": boolean,"when": number};
+export type GET_WORKSPACE_RESPONSE__TIME_TIME = {};
 export type GET_WORKSPACES_REQUEST__ANON_STRUCT_0 = {};
 export type GET_WORKSPACES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME = {"Time": GET_WORKSPACES_RESPONSE__TIME_TIME};
 export type GET_WORKSPACES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_GETWORKSPACERESULT = {"creationTimestamp": GET_WORKSPACES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME,"name": string,"resources": GET_WORKSPACES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_WORKSPACERESOURCEIDENTIFIER[]};
 export type GET_WORKSPACES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_WORKSPACERESOURCEIDENTIFIER = {"id": string,"namespace": string,"type": string};
-export type GET_WORKSPACES_RESPONSE__TIME_LOCATION = {"cacheEnd": number,"cacheStart": number,"cacheZone": GET_WORKSPACES_RESPONSE__TIME_ZONE|undefined,"extend": string,"name": string,"tx": GET_WORKSPACES_RESPONSE__TIME_ZONETRANS[],"zone": GET_WORKSPACES_RESPONSE__TIME_ZONE[]};
-export type GET_WORKSPACES_RESPONSE__TIME_TIME = {"ext": number,"loc": GET_WORKSPACES_RESPONSE__TIME_LOCATION|undefined,"wall": number};
-export type GET_WORKSPACES_RESPONSE__TIME_ZONE = {"isDST": boolean,"name": string,"offset": number};
-export type GET_WORKSPACES_RESPONSE__TIME_ZONETRANS = {"index": number,"isstd": boolean,"isutc": boolean,"when": number};
+export type GET_WORKSPACES_RESPONSE__TIME_TIME = {};
 export type GET_WORKSPACE_WORKLOADS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"blacklist": GET_WORKSPACE_WORKLOADS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_SYNCRESOURCEENTRY|undefined[],"namespaceWhitelist": string[],"whitelist": GET_WORKSPACE_WORKLOADS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_SYNCRESOURCEENTRY|undefined[],"workspaceName": string};
 export type GET_WORKSPACE_WORKLOADS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_SYNCRESOURCEENTRY = {"group": string,"kind": string,"name": string,"namespace": string|undefined,"version": string};
 export type GET_WORKSPACE_WORKLOADS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"Object": Record<string, any>};
@@ -24199,34 +21767,22 @@ export type METRICS_DEPLOYMENT_AVERAGE_UTILIZATION_RESPONSE__K8S_IO_APIMACHINERY
 export type METRICS_DEPLOYMENT_AVERAGE_UTILIZATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_CONTAINERMETRICS = {"cpuRequest": number,"cpuUsage": number,"memRequest": number,"memUsage": number,"name": string};
 export type METRICS_DEPLOYMENT_AVERAGE_UTILIZATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_METRICS = {"cpuAverageUtilization": number,"createdAt": METRICS_DEPLOYMENT_AVERAGE_UTILIZATION_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME,"kind": string,"memoryAverageUtilization": number,"name": string,"namespace": string,"podsMetrics": METRICS_DEPLOYMENT_AVERAGE_UTILIZATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_PODMETRICS[],"windowInMs": number};
 export type METRICS_DEPLOYMENT_AVERAGE_UTILIZATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_PODMETRICS = {"containers": METRICS_DEPLOYMENT_AVERAGE_UTILIZATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_CONTAINERMETRICS[],"name": string};
-export type METRICS_DEPLOYMENT_AVERAGE_UTILIZATION_RESPONSE__TIME_LOCATION = {"cacheEnd": number,"cacheStart": number,"cacheZone": METRICS_DEPLOYMENT_AVERAGE_UTILIZATION_RESPONSE__TIME_ZONE|undefined,"extend": string,"name": string,"tx": METRICS_DEPLOYMENT_AVERAGE_UTILIZATION_RESPONSE__TIME_ZONETRANS[],"zone": METRICS_DEPLOYMENT_AVERAGE_UTILIZATION_RESPONSE__TIME_ZONE[]};
-export type METRICS_DEPLOYMENT_AVERAGE_UTILIZATION_RESPONSE__TIME_TIME = {"ext": number,"loc": METRICS_DEPLOYMENT_AVERAGE_UTILIZATION_RESPONSE__TIME_LOCATION|undefined,"wall": number};
-export type METRICS_DEPLOYMENT_AVERAGE_UTILIZATION_RESPONSE__TIME_ZONE = {"isDST": boolean,"name": string,"offset": number};
-export type METRICS_DEPLOYMENT_AVERAGE_UTILIZATION_RESPONSE__TIME_ZONETRANS = {"index": number,"isstd": boolean,"isutc": boolean,"when": number};
+export type METRICS_DEPLOYMENT_AVERAGE_UTILIZATION_RESPONSE__TIME_TIME = {};
 export type NAMESPACE_BACKUP_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_NAMESPACEBACKUPREQUEST = {"namespaceName": string};
 export type NAMESPACE_BACKUP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_NAMESPACEBACKUPRESPONSE = {"data": string,"messages": string[],"namespaceName": string};
 export type NAMESPACE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SNAMESPACEDTO = {"Name": string,"displayName": string,"id": string};
 export type NAMESPACE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROJECTDTO = {"clusterDisplayName": string,"clusterId": string,"clusterMfaId": string,"containerRegistryPat": string|undefined,"containerRegistryPath": string|undefined,"containerRegistryUrl": string|undefined,"containerRegistryUser": string|undefined,"displayName": string,"gitAccessToken": string|undefined,"gitConnectionType": string|undefined,"gitUserId": string|undefined,"id": string,"name": string};
 export type NAMESPACE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_NAMESPACECREATEREQUEST = {"namespace": NAMESPACE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SNAMESPACEDTO,"project": NAMESPACE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROJECTDTO};
-export type NAMESPACE_CREATE_RESPONSE__LOG_SLOG_LOGGER = {"handler": any};
 export type NAMESPACE_CREATE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_COMMAND = {"command": string,"finished": NAMESPACE_CREATE_RESPONSE__TIME_TIME,"id": string,"message": string,"started": NAMESPACE_CREATE_RESPONSE__TIME_TIME,"state": string,"title": string};
-export type NAMESPACE_CREATE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_JOB = {"commands": NAMESPACE_CREATE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_COMMAND|undefined[],"containerName": string,"controllerName": string,"finished": NAMESPACE_CREATE_RESPONSE__TIME_TIME,"id": string,"logger": NAMESPACE_CREATE_RESPONSE__LOG_SLOG_LOGGER|undefined,"message": string,"namespaceName": string,"projectId": string,"started": NAMESPACE_CREATE_RESPONSE__TIME_TIME,"state": string,"title": string};
-export type NAMESPACE_CREATE_RESPONSE__TIME_LOCATION = {"cacheEnd": number,"cacheStart": number,"cacheZone": NAMESPACE_CREATE_RESPONSE__TIME_ZONE|undefined,"extend": string,"name": string,"tx": NAMESPACE_CREATE_RESPONSE__TIME_ZONETRANS[],"zone": NAMESPACE_CREATE_RESPONSE__TIME_ZONE[]};
-export type NAMESPACE_CREATE_RESPONSE__TIME_TIME = {"ext": number,"loc": NAMESPACE_CREATE_RESPONSE__TIME_LOCATION|undefined,"wall": number};
-export type NAMESPACE_CREATE_RESPONSE__TIME_ZONE = {"isDST": boolean,"name": string,"offset": number};
-export type NAMESPACE_CREATE_RESPONSE__TIME_ZONETRANS = {"index": number,"isstd": boolean,"isutc": boolean,"when": number};
+export type NAMESPACE_CREATE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_JOB = {"commands": NAMESPACE_CREATE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_COMMAND|undefined[],"containerName": string,"controllerName": string,"finished": NAMESPACE_CREATE_RESPONSE__TIME_TIME,"id": string,"message": string,"namespaceName": string,"projectId": string,"started": NAMESPACE_CREATE_RESPONSE__TIME_TIME,"state": string,"title": string};
+export type NAMESPACE_CREATE_RESPONSE__TIME_TIME = {};
 export type NAMESPACE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SNAMESPACEDTO = {"Name": string,"displayName": string,"id": string};
 export type NAMESPACE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROJECTDTO = {"clusterDisplayName": string,"clusterId": string,"clusterMfaId": string,"containerRegistryPat": string|undefined,"containerRegistryPath": string|undefined,"containerRegistryUrl": string|undefined,"containerRegistryUser": string|undefined,"displayName": string,"gitAccessToken": string|undefined,"gitConnectionType": string|undefined,"gitUserId": string|undefined,"id": string,"name": string};
 export type NAMESPACE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_NAMESPACEDELETEREQUEST = {"namespace": NAMESPACE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SNAMESPACEDTO,"project": NAMESPACE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROJECTDTO};
-export type NAMESPACE_DELETE_RESPONSE__LOG_SLOG_LOGGER = {"handler": any};
 export type NAMESPACE_DELETE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_COMMAND = {"command": string,"finished": NAMESPACE_DELETE_RESPONSE__TIME_TIME,"id": string,"message": string,"started": NAMESPACE_DELETE_RESPONSE__TIME_TIME,"state": string,"title": string};
-export type NAMESPACE_DELETE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_JOB = {"commands": NAMESPACE_DELETE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_COMMAND|undefined[],"containerName": string,"controllerName": string,"finished": NAMESPACE_DELETE_RESPONSE__TIME_TIME,"id": string,"logger": NAMESPACE_DELETE_RESPONSE__LOG_SLOG_LOGGER|undefined,"message": string,"namespaceName": string,"projectId": string,"started": NAMESPACE_DELETE_RESPONSE__TIME_TIME,"state": string,"title": string};
-export type NAMESPACE_DELETE_RESPONSE__TIME_LOCATION = {"cacheEnd": number,"cacheStart": number,"cacheZone": NAMESPACE_DELETE_RESPONSE__TIME_ZONE|undefined,"extend": string,"name": string,"tx": NAMESPACE_DELETE_RESPONSE__TIME_ZONETRANS[],"zone": NAMESPACE_DELETE_RESPONSE__TIME_ZONE[]};
-export type NAMESPACE_DELETE_RESPONSE__TIME_TIME = {"ext": number,"loc": NAMESPACE_DELETE_RESPONSE__TIME_LOCATION|undefined,"wall": number};
-export type NAMESPACE_DELETE_RESPONSE__TIME_ZONE = {"isDST": boolean,"name": string,"offset": number};
-export type NAMESPACE_DELETE_RESPONSE__TIME_ZONETRANS = {"index": number,"isstd": boolean,"isutc": boolean,"when": number};
+export type NAMESPACE_DELETE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_JOB = {"commands": NAMESPACE_DELETE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_COMMAND|undefined[],"containerName": string,"controllerName": string,"finished": NAMESPACE_DELETE_RESPONSE__TIME_TIME,"id": string,"message": string,"namespaceName": string,"projectId": string,"started": NAMESPACE_DELETE_RESPONSE__TIME_TIME,"state": string,"title": string};
+export type NAMESPACE_DELETE_RESPONSE__TIME_TIME = {};
 export type NAMESPACE_GATHER_ALL_RESOURCES_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_NAMESPACEGATHERALLRESOURCESREQUEST = {"namespaceName": string};
-export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__GOPKG_IN_INF_V0_DEC = {"scale": number,"unscaled": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__MATH_BIG_INT};
 export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_APPS_V1_DAEMONSET = {"TypeMeta": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA,"metadata": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OBJECTMETA,"spec": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_APPS_V1_DAEMONSETSPEC,"status": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_APPS_V1_DAEMONSETSTATUS};
 export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_APPS_V1_DAEMONSETCONDITION = {"lastTransitionTime": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME,"message": string,"reason": string,"status": string,"type": string};
 export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_APPS_V1_DAEMONSETSPEC = {"minReadySeconds": number,"revisionHistoryLimit": number|undefined,"selector": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR|undefined,"template": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_PODTEMPLATESPEC,"updateStrategy": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_APPS_V1_DAEMONSETUPDATESTRATEGY};
@@ -24387,9 +21943,7 @@ export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_NETWORKING_V1_IN
 export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_NETWORKING_V1_INGRESSSTATUS = {"loadBalancer": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_NETWORKING_V1_INGRESSLOADBALANCERSTATUS};
 export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_NETWORKING_V1_INGRESSTLS = {"hosts": string[],"secretName": string};
 export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_NETWORKING_V1_SERVICEBACKENDPORT = {"name": string,"number": number};
-export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY = {"Format": string,"d": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_INFDECAMOUNT,"i": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_INT64AMOUNT,"s": string};
-export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_INFDECAMOUNT = {"Dec": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__GOPKG_IN_INF_V0_DEC|undefined};
-export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_INT64AMOUNT = {"scale": number,"value": number};
+export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY = {"Format": string};
 export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_CONDITION = {"lastTransitionTime": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME,"message": string,"observedGeneration": number,"reason": string,"status": string,"type": string};
 export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_FIELDSV1 = {};
 export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR = {"matchExpressions": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTORREQUIREMENT[],"matchLabels": Record<string, string>};
@@ -24400,17 +21954,12 @@ export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_APIMACHINERY_PKG_API
 export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME = {"Time": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__TIME_TIME};
 export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA = {"apiVersion": string,"kind": string};
 export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_APIMACHINERY_PKG_UTIL_INTSTR_INTORSTRING = {"IntVal": number,"StrVal": string,"Type": number};
-export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__MATH_BIG_INT = {"abs": number[],"neg": boolean};
 export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_DTOS_NAMESPACERESOURCESDTO = {"configmaps": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_CONFIGMAP[],"daemonsets": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_APPS_V1_DAEMONSET[],"deployments": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_APPS_V1_DEPLOYMENT[],"ingresses": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_NETWORKING_V1_INGRESS[],"pods": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_POD[],"replicasets": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_APPS_V1_REPLICASET[],"secrets": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_SECRET[],"services": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__K8S_IO_API_CORE_V1_SERVICE[]};
-export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__TIME_LOCATION = {"cacheEnd": number,"cacheStart": number,"cacheZone": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__TIME_ZONE|undefined,"extend": string,"name": string,"tx": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__TIME_ZONETRANS[],"zone": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__TIME_ZONE[]};
-export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__TIME_TIME = {"ext": number,"loc": NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__TIME_LOCATION|undefined,"wall": number};
-export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__TIME_ZONE = {"isDST": boolean,"name": string,"offset": number};
-export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__TIME_ZONETRANS = {"index": number,"isstd": boolean,"isutc": boolean,"when": number};
+export type NAMESPACE_GATHER_ALL_RESOURCES_RESPONSE__TIME_TIME = {};
 export type NAMESPACE_POD_IDS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_NAMESPACEPODIDSREQUEST = {"namespace": string};
 export type NAMESPACE_RESOURCE_YAML_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_NAMESPACERESOURCEYAMLREQUEST = {"namespaceName": string,"resources": string[]};
 export type NAMESPACE_RESTORE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_NAMESPACERESTOREREQUEST = {"namespaceName": string,"yamlData": string};
 export type NAMESPACE_RESTORE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_NAMESPACERESTORERESPONSE = {"messages": string[],"namespaceName": string};
-export type NAMESPACE_SHUTDOWN_REQUEST__GOPKG_IN_INF_V0_DEC = {"scale": number,"unscaled": NAMESPACE_SHUTDOWN_REQUEST__MATH_BIG_INT};
 export type NAMESPACE_SHUTDOWN_REQUEST__K8S_IO_API_AUTOSCALING_V2_CONTAINERRESOURCEMETRICSOURCE = {"container": string,"name": string,"target": NAMESPACE_SHUTDOWN_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
 export type NAMESPACE_SHUTDOWN_REQUEST__K8S_IO_API_AUTOSCALING_V2_CROSSVERSIONOBJECTREFERENCE = {"apiVersion": string,"kind": string,"name": string};
 export type NAMESPACE_SHUTDOWN_REQUEST__K8S_IO_API_AUTOSCALING_V2_EXTERNALMETRICSOURCE = {"metric": NAMESPACE_SHUTDOWN_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICIDENTIFIER,"target": NAMESPACE_SHUTDOWN_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
@@ -24424,12 +21973,9 @@ export type NAMESPACE_SHUTDOWN_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET =
 export type NAMESPACE_SHUTDOWN_REQUEST__K8S_IO_API_AUTOSCALING_V2_OBJECTMETRICSOURCE = {"describedObject": NAMESPACE_SHUTDOWN_REQUEST__K8S_IO_API_AUTOSCALING_V2_CROSSVERSIONOBJECTREFERENCE,"metric": NAMESPACE_SHUTDOWN_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICIDENTIFIER,"target": NAMESPACE_SHUTDOWN_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
 export type NAMESPACE_SHUTDOWN_REQUEST__K8S_IO_API_AUTOSCALING_V2_PODSMETRICSOURCE = {"metric": NAMESPACE_SHUTDOWN_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICIDENTIFIER,"target": NAMESPACE_SHUTDOWN_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
 export type NAMESPACE_SHUTDOWN_REQUEST__K8S_IO_API_AUTOSCALING_V2_RESOURCEMETRICSOURCE = {"name": string,"target": NAMESPACE_SHUTDOWN_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
-export type NAMESPACE_SHUTDOWN_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY = {"Format": string,"d": NAMESPACE_SHUTDOWN_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_INFDECAMOUNT,"i": NAMESPACE_SHUTDOWN_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_INT64AMOUNT,"s": string};
-export type NAMESPACE_SHUTDOWN_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_INFDECAMOUNT = {"Dec": NAMESPACE_SHUTDOWN_REQUEST__GOPKG_IN_INF_V0_DEC|undefined};
-export type NAMESPACE_SHUTDOWN_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_INT64AMOUNT = {"scale": number,"value": number};
+export type NAMESPACE_SHUTDOWN_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY = {"Format": string};
 export type NAMESPACE_SHUTDOWN_REQUEST__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR = {"matchExpressions": NAMESPACE_SHUTDOWN_REQUEST__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTORREQUIREMENT[],"matchLabels": Record<string, string>};
 export type NAMESPACE_SHUTDOWN_REQUEST__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTORREQUIREMENT = {"key": string,"operator": string,"values": string[]};
-export type NAMESPACE_SHUTDOWN_REQUEST__MATH_BIG_INT = {"abs": number[],"neg": boolean};
 export type NAMESPACE_SHUTDOWN_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCNAMEDTO = {"addToTlsHosts": boolean,"cName": string};
 export type NAMESPACE_SHUTDOWN_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCONTAINERDTO = {"KubernetesLimits": NAMESPACE_SHUTDOWN_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SSERVICESETTINGSDTO,"appGitRepositoryCloneUrl": string|undefined,"appSetupCommands": string|undefined,"containerImage": string|undefined,"containerImageCommand": string|undefined,"containerImageCommandArgs": string|undefined,"containerImageRepoSecretDecryptValue": string|undefined,"containerImageRepoSecretId": string|undefined,"displayName": string,"dockerContext": string|undefined,"dockerfileName": string|undefined,"envVars": NAMESPACE_SHUTDOWN_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SENVVARDTO[],"gitBranch": string|undefined,"gitCommitAuthor": string|undefined,"gitCommitHash": string|undefined,"gitCommitMessage": string|undefined,"gitRepository": string|undefined,"id": string,"name": string,"probes": NAMESPACE_SHUTDOWN_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBES|undefined,"settingsYaml": string|undefined,"type": string};
 export type NAMESPACE_SHUTDOWN_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCRONJOBSETTINGSDTO = {"activeDeadlineSeconds": number,"backoffLimit": number,"failedJobsHistoryLimit": number,"schedule": string,"successfulJobsHistoryLimit": number};
@@ -24448,13 +21994,9 @@ export type NAMESPACE_SHUTDOWN_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBES 
 export type NAMESPACE_SHUTDOWN_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SSERVICEDTO = {"containers": NAMESPACE_SHUTDOWN_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCONTAINERDTO[],"controller": string,"controllerName": string,"cronJobSettings": NAMESPACE_SHUTDOWN_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCRONJOBSETTINGSDTO|undefined,"deploymentStrategy": string,"displayName": string,"hpaSettings": NAMESPACE_SHUTDOWN_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SHPASETTINGSDTO|undefined,"id": string,"ports": NAMESPACE_SHUTDOWN_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPORTSDTO[],"replicaCount": number};
 export type NAMESPACE_SHUTDOWN_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SSERVICESETTINGSDTO = {"ephemeralStorageMB": number,"imagePullPolicy": string,"limitCpuCores": number,"limitMemoryMB": number};
 export type NAMESPACE_SHUTDOWN_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_NAMESPACESHUTDOWNREQUEST = {"namespace": NAMESPACE_SHUTDOWN_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SNAMESPACEDTO,"projectId": string,"service": NAMESPACE_SHUTDOWN_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SSERVICEDTO};
-export type NAMESPACE_SHUTDOWN_RESPONSE__LOG_SLOG_LOGGER = {"handler": any};
 export type NAMESPACE_SHUTDOWN_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_COMMAND = {"command": string,"finished": NAMESPACE_SHUTDOWN_RESPONSE__TIME_TIME,"id": string,"message": string,"started": NAMESPACE_SHUTDOWN_RESPONSE__TIME_TIME,"state": string,"title": string};
-export type NAMESPACE_SHUTDOWN_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_JOB = {"commands": NAMESPACE_SHUTDOWN_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_COMMAND|undefined[],"containerName": string,"controllerName": string,"finished": NAMESPACE_SHUTDOWN_RESPONSE__TIME_TIME,"id": string,"logger": NAMESPACE_SHUTDOWN_RESPONSE__LOG_SLOG_LOGGER|undefined,"message": string,"namespaceName": string,"projectId": string,"started": NAMESPACE_SHUTDOWN_RESPONSE__TIME_TIME,"state": string,"title": string};
-export type NAMESPACE_SHUTDOWN_RESPONSE__TIME_LOCATION = {"cacheEnd": number,"cacheStart": number,"cacheZone": NAMESPACE_SHUTDOWN_RESPONSE__TIME_ZONE|undefined,"extend": string,"name": string,"tx": NAMESPACE_SHUTDOWN_RESPONSE__TIME_ZONETRANS[],"zone": NAMESPACE_SHUTDOWN_RESPONSE__TIME_ZONE[]};
-export type NAMESPACE_SHUTDOWN_RESPONSE__TIME_TIME = {"ext": number,"loc": NAMESPACE_SHUTDOWN_RESPONSE__TIME_LOCATION|undefined,"wall": number};
-export type NAMESPACE_SHUTDOWN_RESPONSE__TIME_ZONE = {"isDST": boolean,"name": string,"offset": number};
-export type NAMESPACE_SHUTDOWN_RESPONSE__TIME_ZONETRANS = {"index": number,"isstd": boolean,"isutc": boolean,"when": number};
+export type NAMESPACE_SHUTDOWN_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_JOB = {"commands": NAMESPACE_SHUTDOWN_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_COMMAND|undefined[],"containerName": string,"controllerName": string,"finished": NAMESPACE_SHUTDOWN_RESPONSE__TIME_TIME,"id": string,"message": string,"namespaceName": string,"projectId": string,"started": NAMESPACE_SHUTDOWN_RESPONSE__TIME_TIME,"state": string,"title": string};
+export type NAMESPACE_SHUTDOWN_RESPONSE__TIME_TIME = {};
 export type NAMESPACE_VALIDATE_CLUSTER_PODS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_NAMESPACEVALIDATECLUSTERPODSREQUEST = {"dbPodNames": string[]};
 export type NAMESPACE_VALIDATE_CLUSTER_PODS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_DTOS_VALIDATECLUSTERPODSDTO = {"inClusterButNotInDb": string[],"inDbButNotInCluster": string[]};
 export type NAMESPACE_VALIDATE_PORTS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_NAMESPACESERVICEPORTDTO = {"expose": boolean,"externalPort": number,"internalPort": number,"portType": string};
@@ -24464,7 +22006,6 @@ export type REMOVE_UNMANAGED_NETWORK_POLICIES_REQUEST__MOGENIUS_K8S_MANAGER_SRC_
 export type REMOVE_UNMANAGED_NETWORK_POLICIES_RESPONSE__ANON_STRUCT_0 = {};
 export type SERVICE_CLUSTER_TOOL_STREAM_CONNECTION_REQUEST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_CLUSTERTOOLCONNECTIONREQUEST = {"cmdType": string,"tool": string,"wsConnectionRequest": SERVICE_CLUSTER_TOOL_STREAM_CONNECTION_REQUEST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST};
 export type SERVICE_CLUSTER_TOOL_STREAM_CONNECTION_REQUEST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"websocketHost": string,"websocketScheme": string};
-export type SERVICE_CREATE_REQUEST__GOPKG_IN_INF_V0_DEC = {"scale": number,"unscaled": SERVICE_CREATE_REQUEST__MATH_BIG_INT};
 export type SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_CONTAINERRESOURCEMETRICSOURCE = {"container": string,"name": string,"target": SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
 export type SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_CROSSVERSIONOBJECTREFERENCE = {"apiVersion": string,"kind": string,"name": string};
 export type SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_EXTERNALMETRICSOURCE = {"metric": SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICIDENTIFIER,"target": SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
@@ -24478,12 +22019,9 @@ export type SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET = {"a
 export type SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_OBJECTMETRICSOURCE = {"describedObject": SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_CROSSVERSIONOBJECTREFERENCE,"metric": SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICIDENTIFIER,"target": SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
 export type SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_PODSMETRICSOURCE = {"metric": SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICIDENTIFIER,"target": SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
 export type SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_RESOURCEMETRICSOURCE = {"name": string,"target": SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
-export type SERVICE_CREATE_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY = {"Format": string,"d": SERVICE_CREATE_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_INFDECAMOUNT,"i": SERVICE_CREATE_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_INT64AMOUNT,"s": string};
-export type SERVICE_CREATE_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_INFDECAMOUNT = {"Dec": SERVICE_CREATE_REQUEST__GOPKG_IN_INF_V0_DEC|undefined};
-export type SERVICE_CREATE_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_INT64AMOUNT = {"scale": number,"value": number};
+export type SERVICE_CREATE_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY = {"Format": string};
 export type SERVICE_CREATE_REQUEST__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR = {"matchExpressions": SERVICE_CREATE_REQUEST__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTORREQUIREMENT[],"matchLabels": Record<string, string>};
 export type SERVICE_CREATE_REQUEST__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTORREQUIREMENT = {"key": string,"operator": string,"values": string[]};
-export type SERVICE_CREATE_REQUEST__MATH_BIG_INT = {"abs": number[],"neg": boolean};
 export type SERVICE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCNAMEDTO = {"addToTlsHosts": boolean,"cName": string};
 export type SERVICE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCONTAINERDTO = {"KubernetesLimits": SERVICE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SSERVICESETTINGSDTO,"appGitRepositoryCloneUrl": string|undefined,"appSetupCommands": string|undefined,"containerImage": string|undefined,"containerImageCommand": string|undefined,"containerImageCommandArgs": string|undefined,"containerImageRepoSecretDecryptValue": string|undefined,"containerImageRepoSecretId": string|undefined,"displayName": string,"dockerContext": string|undefined,"dockerfileName": string|undefined,"envVars": SERVICE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SENVVARDTO[],"gitBranch": string|undefined,"gitCommitAuthor": string|undefined,"gitCommitHash": string|undefined,"gitCommitMessage": string|undefined,"gitRepository": string|undefined,"id": string,"name": string,"probes": SERVICE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBES|undefined,"settingsYaml": string|undefined,"type": string};
 export type SERVICE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCRONJOBSETTINGSDTO = {"activeDeadlineSeconds": number,"backoffLimit": number,"failedJobsHistoryLimit": number,"schedule": string,"successfulJobsHistoryLimit": number};
@@ -24503,14 +22041,9 @@ export type SERVICE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROJECTDTO 
 export type SERVICE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SSERVICEDTO = {"containers": SERVICE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCONTAINERDTO[],"controller": string,"controllerName": string,"cronJobSettings": SERVICE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCRONJOBSETTINGSDTO|undefined,"deploymentStrategy": string,"displayName": string,"hpaSettings": SERVICE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SHPASETTINGSDTO|undefined,"id": string,"ports": SERVICE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPORTSDTO[],"replicaCount": number};
 export type SERVICE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SSERVICESETTINGSDTO = {"ephemeralStorageMB": number,"imagePullPolicy": string,"limitCpuCores": number,"limitMemoryMB": number};
 export type SERVICE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_SERVICEUPDATEREQUEST = {"namespace": SERVICE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SNAMESPACEDTO,"project": SERVICE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROJECTDTO,"service": SERVICE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SSERVICEDTO};
-export type SERVICE_CREATE_RESPONSE__LOG_SLOG_LOGGER = {"handler": any};
 export type SERVICE_CREATE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_COMMAND = {"command": string,"finished": SERVICE_CREATE_RESPONSE__TIME_TIME,"id": string,"message": string,"started": SERVICE_CREATE_RESPONSE__TIME_TIME,"state": string,"title": string};
-export type SERVICE_CREATE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_JOB = {"commands": SERVICE_CREATE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_COMMAND|undefined[],"containerName": string,"controllerName": string,"finished": SERVICE_CREATE_RESPONSE__TIME_TIME,"id": string,"logger": SERVICE_CREATE_RESPONSE__LOG_SLOG_LOGGER|undefined,"message": string,"namespaceName": string,"projectId": string,"started": SERVICE_CREATE_RESPONSE__TIME_TIME,"state": string,"title": string};
-export type SERVICE_CREATE_RESPONSE__TIME_LOCATION = {"cacheEnd": number,"cacheStart": number,"cacheZone": SERVICE_CREATE_RESPONSE__TIME_ZONE|undefined,"extend": string,"name": string,"tx": SERVICE_CREATE_RESPONSE__TIME_ZONETRANS[],"zone": SERVICE_CREATE_RESPONSE__TIME_ZONE[]};
-export type SERVICE_CREATE_RESPONSE__TIME_TIME = {"ext": number,"loc": SERVICE_CREATE_RESPONSE__TIME_LOCATION|undefined,"wall": number};
-export type SERVICE_CREATE_RESPONSE__TIME_ZONE = {"isDST": boolean,"name": string,"offset": number};
-export type SERVICE_CREATE_RESPONSE__TIME_ZONETRANS = {"index": number,"isstd": boolean,"isutc": boolean,"when": number};
-export type SERVICE_DELETE_REQUEST__GOPKG_IN_INF_V0_DEC = {"scale": number,"unscaled": SERVICE_DELETE_REQUEST__MATH_BIG_INT};
+export type SERVICE_CREATE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_JOB = {"commands": SERVICE_CREATE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_COMMAND|undefined[],"containerName": string,"controllerName": string,"finished": SERVICE_CREATE_RESPONSE__TIME_TIME,"id": string,"message": string,"namespaceName": string,"projectId": string,"started": SERVICE_CREATE_RESPONSE__TIME_TIME,"state": string,"title": string};
+export type SERVICE_CREATE_RESPONSE__TIME_TIME = {};
 export type SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_CONTAINERRESOURCEMETRICSOURCE = {"container": string,"name": string,"target": SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
 export type SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_CROSSVERSIONOBJECTREFERENCE = {"apiVersion": string,"kind": string,"name": string};
 export type SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_EXTERNALMETRICSOURCE = {"metric": SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICIDENTIFIER,"target": SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
@@ -24524,12 +22057,9 @@ export type SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET = {"a
 export type SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_OBJECTMETRICSOURCE = {"describedObject": SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_CROSSVERSIONOBJECTREFERENCE,"metric": SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICIDENTIFIER,"target": SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
 export type SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_PODSMETRICSOURCE = {"metric": SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICIDENTIFIER,"target": SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
 export type SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_RESOURCEMETRICSOURCE = {"name": string,"target": SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
-export type SERVICE_DELETE_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY = {"Format": string,"d": SERVICE_DELETE_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_INFDECAMOUNT,"i": SERVICE_DELETE_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_INT64AMOUNT,"s": string};
-export type SERVICE_DELETE_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_INFDECAMOUNT = {"Dec": SERVICE_DELETE_REQUEST__GOPKG_IN_INF_V0_DEC|undefined};
-export type SERVICE_DELETE_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_INT64AMOUNT = {"scale": number,"value": number};
+export type SERVICE_DELETE_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY = {"Format": string};
 export type SERVICE_DELETE_REQUEST__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR = {"matchExpressions": SERVICE_DELETE_REQUEST__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTORREQUIREMENT[],"matchLabels": Record<string, string>};
 export type SERVICE_DELETE_REQUEST__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTORREQUIREMENT = {"key": string,"operator": string,"values": string[]};
-export type SERVICE_DELETE_REQUEST__MATH_BIG_INT = {"abs": number[],"neg": boolean};
 export type SERVICE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCNAMEDTO = {"addToTlsHosts": boolean,"cName": string};
 export type SERVICE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCONTAINERDTO = {"KubernetesLimits": SERVICE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SSERVICESETTINGSDTO,"appGitRepositoryCloneUrl": string|undefined,"appSetupCommands": string|undefined,"containerImage": string|undefined,"containerImageCommand": string|undefined,"containerImageCommandArgs": string|undefined,"containerImageRepoSecretDecryptValue": string|undefined,"containerImageRepoSecretId": string|undefined,"displayName": string,"dockerContext": string|undefined,"dockerfileName": string|undefined,"envVars": SERVICE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SENVVARDTO[],"gitBranch": string|undefined,"gitCommitAuthor": string|undefined,"gitCommitHash": string|undefined,"gitCommitMessage": string|undefined,"gitRepository": string|undefined,"id": string,"name": string,"probes": SERVICE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBES|undefined,"settingsYaml": string|undefined,"type": string};
 export type SERVICE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCRONJOBSETTINGSDTO = {"activeDeadlineSeconds": number,"backoffLimit": number,"failedJobsHistoryLimit": number,"schedule": string,"successfulJobsHistoryLimit": number};
@@ -24549,37 +22079,23 @@ export type SERVICE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROJECTDTO 
 export type SERVICE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SSERVICEDTO = {"containers": SERVICE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCONTAINERDTO[],"controller": string,"controllerName": string,"cronJobSettings": SERVICE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCRONJOBSETTINGSDTO|undefined,"deploymentStrategy": string,"displayName": string,"hpaSettings": SERVICE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SHPASETTINGSDTO|undefined,"id": string,"ports": SERVICE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPORTSDTO[],"replicaCount": number};
 export type SERVICE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SSERVICESETTINGSDTO = {"ephemeralStorageMB": number,"imagePullPolicy": string,"limitCpuCores": number,"limitMemoryMB": number};
 export type SERVICE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_SERVICEDELETEREQUEST = {"namespace": SERVICE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SNAMESPACEDTO,"project": SERVICE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROJECTDTO,"service": SERVICE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SSERVICEDTO};
-export type SERVICE_DELETE_RESPONSE__LOG_SLOG_LOGGER = {"handler": any};
 export type SERVICE_DELETE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_COMMAND = {"command": string,"finished": SERVICE_DELETE_RESPONSE__TIME_TIME,"id": string,"message": string,"started": SERVICE_DELETE_RESPONSE__TIME_TIME,"state": string,"title": string};
-export type SERVICE_DELETE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_JOB = {"commands": SERVICE_DELETE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_COMMAND|undefined[],"containerName": string,"controllerName": string,"finished": SERVICE_DELETE_RESPONSE__TIME_TIME,"id": string,"logger": SERVICE_DELETE_RESPONSE__LOG_SLOG_LOGGER|undefined,"message": string,"namespaceName": string,"projectId": string,"started": SERVICE_DELETE_RESPONSE__TIME_TIME,"state": string,"title": string};
-export type SERVICE_DELETE_RESPONSE__TIME_LOCATION = {"cacheEnd": number,"cacheStart": number,"cacheZone": SERVICE_DELETE_RESPONSE__TIME_ZONE|undefined,"extend": string,"name": string,"tx": SERVICE_DELETE_RESPONSE__TIME_ZONETRANS[],"zone": SERVICE_DELETE_RESPONSE__TIME_ZONE[]};
-export type SERVICE_DELETE_RESPONSE__TIME_TIME = {"ext": number,"loc": SERVICE_DELETE_RESPONSE__TIME_LOCATION|undefined,"wall": number};
-export type SERVICE_DELETE_RESPONSE__TIME_ZONE = {"isDST": boolean,"name": string,"offset": number};
-export type SERVICE_DELETE_RESPONSE__TIME_ZONETRANS = {"index": number,"isstd": boolean,"isutc": boolean,"when": number};
+export type SERVICE_DELETE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_JOB = {"commands": SERVICE_DELETE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_COMMAND|undefined[],"containerName": string,"controllerName": string,"finished": SERVICE_DELETE_RESPONSE__TIME_TIME,"id": string,"message": string,"namespaceName": string,"projectId": string,"started": SERVICE_DELETE_RESPONSE__TIME_TIME,"state": string,"title": string};
+export type SERVICE_DELETE_RESPONSE__TIME_TIME = {};
 export type SERVICE_EXEC_SH_CONNECTION_REQUEST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_PODCMDCONNECTIONREQUEST = {"container": string,"controller": string,"logTail": string,"namespace": string,"pod": string,"wsConnectionRequest": SERVICE_EXEC_SH_CONNECTION_REQUEST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST};
 export type SERVICE_EXEC_SH_CONNECTION_REQUEST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"websocketHost": string,"websocketScheme": string};
 export type SERVICE_LOG_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_SERVICEGETLOGREQUEST = {"namespace": string,"podId": string,"timestamp": SERVICE_LOG_REQUEST__TIME_TIME|undefined};
-export type SERVICE_LOG_REQUEST__TIME_LOCATION = {"cacheEnd": number,"cacheStart": number,"cacheZone": SERVICE_LOG_REQUEST__TIME_ZONE|undefined,"extend": string,"name": string,"tx": SERVICE_LOG_REQUEST__TIME_ZONETRANS[],"zone": SERVICE_LOG_REQUEST__TIME_ZONE[]};
-export type SERVICE_LOG_REQUEST__TIME_TIME = {"ext": number,"loc": SERVICE_LOG_REQUEST__TIME_LOCATION|undefined,"wall": number};
-export type SERVICE_LOG_REQUEST__TIME_ZONE = {"isDST": boolean,"name": string,"offset": number};
-export type SERVICE_LOG_REQUEST__TIME_ZONETRANS = {"index": number,"isstd": boolean,"isutc": boolean,"when": number};
+export type SERVICE_LOG_REQUEST__TIME_TIME = {};
 export type SERVICE_LOG_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_SERVICEGETLOGRESULT = {"log": string,"namespace": string,"podId": string,"serverTimestamp": SERVICE_LOG_RESPONSE__TIME_TIME};
-export type SERVICE_LOG_RESPONSE__TIME_LOCATION = {"cacheEnd": number,"cacheStart": number,"cacheZone": SERVICE_LOG_RESPONSE__TIME_ZONE|undefined,"extend": string,"name": string,"tx": SERVICE_LOG_RESPONSE__TIME_ZONETRANS[],"zone": SERVICE_LOG_RESPONSE__TIME_ZONE[]};
-export type SERVICE_LOG_RESPONSE__TIME_TIME = {"ext": number,"loc": SERVICE_LOG_RESPONSE__TIME_LOCATION|undefined,"wall": number};
-export type SERVICE_LOG_RESPONSE__TIME_ZONE = {"isDST": boolean,"name": string,"offset": number};
-export type SERVICE_LOG_RESPONSE__TIME_ZONETRANS = {"index": number,"isstd": boolean,"isutc": boolean,"when": number};
+export type SERVICE_LOG_RESPONSE__TIME_TIME = {};
 export type SERVICE_LOG_ERROR_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_SERVICEGETLOGREQUEST = {"namespace": string,"podId": string,"timestamp": SERVICE_LOG_ERROR_REQUEST__TIME_TIME|undefined};
-export type SERVICE_LOG_ERROR_REQUEST__TIME_LOCATION = {"cacheEnd": number,"cacheStart": number,"cacheZone": SERVICE_LOG_ERROR_REQUEST__TIME_ZONE|undefined,"extend": string,"name": string,"tx": SERVICE_LOG_ERROR_REQUEST__TIME_ZONETRANS[],"zone": SERVICE_LOG_ERROR_REQUEST__TIME_ZONE[]};
-export type SERVICE_LOG_ERROR_REQUEST__TIME_TIME = {"ext": number,"loc": SERVICE_LOG_ERROR_REQUEST__TIME_LOCATION|undefined,"wall": number};
-export type SERVICE_LOG_ERROR_REQUEST__TIME_ZONE = {"isDST": boolean,"name": string,"offset": number};
-export type SERVICE_LOG_ERROR_REQUEST__TIME_ZONETRANS = {"index": number,"isstd": boolean,"isutc": boolean,"when": number};
+export type SERVICE_LOG_ERROR_REQUEST__TIME_TIME = {};
 export type SERVICE_LOG_ERROR_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_SERVICEGETLOGERRORRESULT = {"log": string,"namespace": string,"podId": string,"restarts": number};
 export type SERVICE_LOG_STREAM_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_SERVICELOGSTREAMREQUEST = {"namespace": string,"podId": string,"postTo": string,"sinceSeconds": number};
 export type SERVICE_LOG_STREAM_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_SERVICES_SERVICELOGSTREAMRESULT = {"error": string,"success": boolean};
 export type SERVICE_LOG_STREAM_CONNECTION_REQUEST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_PODCMDCONNECTIONREQUEST = {"container": string,"controller": string,"logTail": string,"namespace": string,"pod": string,"wsConnectionRequest": SERVICE_LOG_STREAM_CONNECTION_REQUEST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST};
 export type SERVICE_LOG_STREAM_CONNECTION_REQUEST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"websocketHost": string,"websocketScheme": string};
 export type SERVICE_PODS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_SERVICEPODSREQUEST = {"controllerName": string,"namespace": string};
-export type SERVICE_PODS_RESPONSE__GOPKG_IN_INF_V0_DEC = {"scale": number,"unscaled": SERVICE_PODS_RESPONSE__MATH_BIG_INT};
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_AWSELASTICBLOCKSTOREVOLUMESOURCE = {"fsType": string,"partition": number,"readOnly": boolean,"volumeID": string};
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_AFFINITY = {"nodeAffinity": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_NODEAFFINITY|undefined,"podAffinity": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODAFFINITY|undefined,"podAntiAffinity": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODANTIAFFINITY|undefined};
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_APPARMORPROFILE = {"localhostProfile": string|undefined,"type": string};
@@ -24698,9 +22214,7 @@ export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_VOLUMESOURCE = {"awsElasti
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_VSPHEREVIRTUALDISKVOLUMESOURCE = {"fsType": string,"storagePolicyID": string,"storagePolicyName": string,"volumePath": string};
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_WEIGHTEDPODAFFINITYTERM = {"podAffinityTerm": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODAFFINITYTERM,"weight": number};
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_WINDOWSSECURITYCONTEXTOPTIONS = {"gmsaCredentialSpec": string|undefined,"gmsaCredentialSpecName": string|undefined,"hostProcess": boolean|undefined,"runAsUserName": string|undefined};
-export type SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY = {"Format": string,"d": SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_INFDECAMOUNT,"i": SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_INT64AMOUNT,"s": string};
-export type SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_INFDECAMOUNT = {"Dec": SERVICE_PODS_RESPONSE__GOPKG_IN_INF_V0_DEC|undefined};
-export type SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_INT64AMOUNT = {"scale": number,"value": number};
+export type SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY = {"Format": string};
 export type SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_FIELDSV1 = {};
 export type SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR = {"matchExpressions": SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTORREQUIREMENT[],"matchLabels": Record<string, string>};
 export type SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTORREQUIREMENT = {"key": string,"operator": string,"values": string[]};
@@ -24710,18 +22224,13 @@ export type SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OWNERREF
 export type SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME = {"Time": SERVICE_PODS_RESPONSE__TIME_TIME};
 export type SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA = {"apiVersion": string,"kind": string};
 export type SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_UTIL_INTSTR_INTORSTRING = {"IntVal": number,"StrVal": string,"Type": number};
-export type SERVICE_PODS_RESPONSE__MATH_BIG_INT = {"abs": number[],"neg": boolean};
-export type SERVICE_PODS_RESPONSE__TIME_LOCATION = {"cacheEnd": number,"cacheStart": number,"cacheZone": SERVICE_PODS_RESPONSE__TIME_ZONE|undefined,"extend": string,"name": string,"tx": SERVICE_PODS_RESPONSE__TIME_ZONETRANS[],"zone": SERVICE_PODS_RESPONSE__TIME_ZONE[]};
-export type SERVICE_PODS_RESPONSE__TIME_TIME = {"ext": number,"loc": SERVICE_PODS_RESPONSE__TIME_LOCATION|undefined,"wall": number};
-export type SERVICE_PODS_RESPONSE__TIME_ZONE = {"isDST": boolean,"name": string,"offset": number};
-export type SERVICE_PODS_RESPONSE__TIME_ZONETRANS = {"index": number,"isstd": boolean,"isutc": boolean,"when": number};
+export type SERVICE_PODS_RESPONSE__TIME_TIME = {};
 export type SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_PODEVENTCONNECTIONREQUEST = {"controller": string,"namespace": string,"wsConnectionRequest": SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST};
 export type SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"websocketHost": string,"websocketScheme": string};
 export type SERVICE_POD_EXISTS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_SERVICEPODEXISTSREQUEST = {"k8sNamespace": string,"k8sPod": string};
 export type SERVICE_POD_EXISTS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_SERVICEPODEXISTSRESULT = {"podExists": boolean};
 export type SERVICE_POD_IDS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_SERVICEGETPODIDSREQUEST = {"namespace": string,"serviceId": string};
 export type SERVICE_RESOURCE_STATUS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_SERVICERESOURCESTATUSREQUEST = {"name": string,"namespace": string,"resource": string,"statusOnly": boolean};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__GOPKG_IN_INF_V0_DEC = {"scale": number,"unscaled": SERVICE_RESOURCE_STATUS_RESPONSE__MATH_BIG_INT};
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_AWSELASTICBLOCKSTOREVOLUMESOURCE = {"fsType": string,"partition": number,"readOnly": boolean,"volumeID": string};
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_AFFINITY = {"nodeAffinity": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_NODEAFFINITY|undefined,"podAffinity": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODAFFINITY|undefined,"podAntiAffinity": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODANTIAFFINITY|undefined};
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_APPARMORPROFILE = {"localhostProfile": string|undefined,"type": string};
@@ -24840,9 +22349,7 @@ export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_VOLUMESOURCE = 
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_VSPHEREVIRTUALDISKVOLUMESOURCE = {"fsType": string,"storagePolicyID": string,"storagePolicyName": string,"volumePath": string};
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_WEIGHTEDPODAFFINITYTERM = {"podAffinityTerm": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODAFFINITYTERM,"weight": number};
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_WINDOWSSECURITYCONTEXTOPTIONS = {"gmsaCredentialSpec": string|undefined,"gmsaCredentialSpecName": string|undefined,"hostProcess": boolean|undefined,"runAsUserName": string|undefined};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY = {"Format": string,"d": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_INFDECAMOUNT,"i": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_INT64AMOUNT,"s": string};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_INFDECAMOUNT = {"Dec": SERVICE_RESOURCE_STATUS_RESPONSE__GOPKG_IN_INF_V0_DEC|undefined};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_INT64AMOUNT = {"scale": number,"value": number};
+export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY = {"Format": string};
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_FIELDSV1 = {};
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR = {"matchExpressions": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTORREQUIREMENT[],"matchLabels": Record<string, string>};
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTORREQUIREMENT = {"key": string,"operator": string,"values": string[]};
@@ -24852,12 +22359,7 @@ export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME = {"Time": SERVICE_RESOURCE_STATUS_RESPONSE__TIME_TIME};
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA = {"apiVersion": string,"kind": string};
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_UTIL_INTSTR_INTORSTRING = {"IntVal": number,"StrVal": string,"Type": number};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__MATH_BIG_INT = {"abs": number[],"neg": boolean};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__TIME_LOCATION = {"cacheEnd": number,"cacheStart": number,"cacheZone": SERVICE_RESOURCE_STATUS_RESPONSE__TIME_ZONE|undefined,"extend": string,"name": string,"tx": SERVICE_RESOURCE_STATUS_RESPONSE__TIME_ZONETRANS[],"zone": SERVICE_RESOURCE_STATUS_RESPONSE__TIME_ZONE[]};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__TIME_TIME = {"ext": number,"loc": SERVICE_RESOURCE_STATUS_RESPONSE__TIME_LOCATION|undefined,"wall": number};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__TIME_ZONE = {"isDST": boolean,"name": string,"offset": number};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__TIME_ZONETRANS = {"index": number,"isstd": boolean,"isutc": boolean,"when": number};
-export type SERVICE_RESTART_REQUEST__GOPKG_IN_INF_V0_DEC = {"scale": number,"unscaled": SERVICE_RESTART_REQUEST__MATH_BIG_INT};
+export type SERVICE_RESOURCE_STATUS_RESPONSE__TIME_TIME = {};
 export type SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_CONTAINERRESOURCEMETRICSOURCE = {"container": string,"name": string,"target": SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
 export type SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_CROSSVERSIONOBJECTREFERENCE = {"apiVersion": string,"kind": string,"name": string};
 export type SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_EXTERNALMETRICSOURCE = {"metric": SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICIDENTIFIER,"target": SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
@@ -24871,12 +22373,9 @@ export type SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET = {"
 export type SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_OBJECTMETRICSOURCE = {"describedObject": SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_CROSSVERSIONOBJECTREFERENCE,"metric": SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICIDENTIFIER,"target": SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
 export type SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_PODSMETRICSOURCE = {"metric": SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICIDENTIFIER,"target": SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
 export type SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_RESOURCEMETRICSOURCE = {"name": string,"target": SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
-export type SERVICE_RESTART_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY = {"Format": string,"d": SERVICE_RESTART_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_INFDECAMOUNT,"i": SERVICE_RESTART_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_INT64AMOUNT,"s": string};
-export type SERVICE_RESTART_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_INFDECAMOUNT = {"Dec": SERVICE_RESTART_REQUEST__GOPKG_IN_INF_V0_DEC|undefined};
-export type SERVICE_RESTART_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_INT64AMOUNT = {"scale": number,"value": number};
+export type SERVICE_RESTART_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY = {"Format": string};
 export type SERVICE_RESTART_REQUEST__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR = {"matchExpressions": SERVICE_RESTART_REQUEST__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTORREQUIREMENT[],"matchLabels": Record<string, string>};
 export type SERVICE_RESTART_REQUEST__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTORREQUIREMENT = {"key": string,"operator": string,"values": string[]};
-export type SERVICE_RESTART_REQUEST__MATH_BIG_INT = {"abs": number[],"neg": boolean};
 export type SERVICE_RESTART_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCNAMEDTO = {"addToTlsHosts": boolean,"cName": string};
 export type SERVICE_RESTART_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCONTAINERDTO = {"KubernetesLimits": SERVICE_RESTART_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SSERVICESETTINGSDTO,"appGitRepositoryCloneUrl": string|undefined,"appSetupCommands": string|undefined,"containerImage": string|undefined,"containerImageCommand": string|undefined,"containerImageCommandArgs": string|undefined,"containerImageRepoSecretDecryptValue": string|undefined,"containerImageRepoSecretId": string|undefined,"displayName": string,"dockerContext": string|undefined,"dockerfileName": string|undefined,"envVars": SERVICE_RESTART_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SENVVARDTO[],"gitBranch": string|undefined,"gitCommitAuthor": string|undefined,"gitCommitHash": string|undefined,"gitCommitMessage": string|undefined,"gitRepository": string|undefined,"id": string,"name": string,"probes": SERVICE_RESTART_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBES|undefined,"settingsYaml": string|undefined,"type": string};
 export type SERVICE_RESTART_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCRONJOBSETTINGSDTO = {"activeDeadlineSeconds": number,"backoffLimit": number,"failedJobsHistoryLimit": number,"schedule": string,"successfulJobsHistoryLimit": number};
@@ -24896,14 +22395,9 @@ export type SERVICE_RESTART_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROJECTDTO
 export type SERVICE_RESTART_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SSERVICEDTO = {"containers": SERVICE_RESTART_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCONTAINERDTO[],"controller": string,"controllerName": string,"cronJobSettings": SERVICE_RESTART_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCRONJOBSETTINGSDTO|undefined,"deploymentStrategy": string,"displayName": string,"hpaSettings": SERVICE_RESTART_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SHPASETTINGSDTO|undefined,"id": string,"ports": SERVICE_RESTART_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPORTSDTO[],"replicaCount": number};
 export type SERVICE_RESTART_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SSERVICESETTINGSDTO = {"ephemeralStorageMB": number,"imagePullPolicy": string,"limitCpuCores": number,"limitMemoryMB": number};
 export type SERVICE_RESTART_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_SERVICERESTARTREQUEST = {"namespace": SERVICE_RESTART_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SNAMESPACEDTO,"project": SERVICE_RESTART_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROJECTDTO,"service": SERVICE_RESTART_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SSERVICEDTO};
-export type SERVICE_RESTART_RESPONSE__LOG_SLOG_LOGGER = {"handler": any};
 export type SERVICE_RESTART_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_COMMAND = {"command": string,"finished": SERVICE_RESTART_RESPONSE__TIME_TIME,"id": string,"message": string,"started": SERVICE_RESTART_RESPONSE__TIME_TIME,"state": string,"title": string};
-export type SERVICE_RESTART_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_JOB = {"commands": SERVICE_RESTART_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_COMMAND|undefined[],"containerName": string,"controllerName": string,"finished": SERVICE_RESTART_RESPONSE__TIME_TIME,"id": string,"logger": SERVICE_RESTART_RESPONSE__LOG_SLOG_LOGGER|undefined,"message": string,"namespaceName": string,"projectId": string,"started": SERVICE_RESTART_RESPONSE__TIME_TIME,"state": string,"title": string};
-export type SERVICE_RESTART_RESPONSE__TIME_LOCATION = {"cacheEnd": number,"cacheStart": number,"cacheZone": SERVICE_RESTART_RESPONSE__TIME_ZONE|undefined,"extend": string,"name": string,"tx": SERVICE_RESTART_RESPONSE__TIME_ZONETRANS[],"zone": SERVICE_RESTART_RESPONSE__TIME_ZONE[]};
-export type SERVICE_RESTART_RESPONSE__TIME_TIME = {"ext": number,"loc": SERVICE_RESTART_RESPONSE__TIME_LOCATION|undefined,"wall": number};
-export type SERVICE_RESTART_RESPONSE__TIME_ZONE = {"isDST": boolean,"name": string,"offset": number};
-export type SERVICE_RESTART_RESPONSE__TIME_ZONETRANS = {"index": number,"isstd": boolean,"isutc": boolean,"when": number};
-export type SERVICE_START_REQUEST__GOPKG_IN_INF_V0_DEC = {"scale": number,"unscaled": SERVICE_START_REQUEST__MATH_BIG_INT};
+export type SERVICE_RESTART_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_JOB = {"commands": SERVICE_RESTART_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_COMMAND|undefined[],"containerName": string,"controllerName": string,"finished": SERVICE_RESTART_RESPONSE__TIME_TIME,"id": string,"message": string,"namespaceName": string,"projectId": string,"started": SERVICE_RESTART_RESPONSE__TIME_TIME,"state": string,"title": string};
+export type SERVICE_RESTART_RESPONSE__TIME_TIME = {};
 export type SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_CONTAINERRESOURCEMETRICSOURCE = {"container": string,"name": string,"target": SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
 export type SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_CROSSVERSIONOBJECTREFERENCE = {"apiVersion": string,"kind": string,"name": string};
 export type SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_EXTERNALMETRICSOURCE = {"metric": SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICIDENTIFIER,"target": SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
@@ -24917,12 +22411,9 @@ export type SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET = {"av
 export type SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_OBJECTMETRICSOURCE = {"describedObject": SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_CROSSVERSIONOBJECTREFERENCE,"metric": SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICIDENTIFIER,"target": SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
 export type SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_PODSMETRICSOURCE = {"metric": SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICIDENTIFIER,"target": SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
 export type SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_RESOURCEMETRICSOURCE = {"name": string,"target": SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
-export type SERVICE_START_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY = {"Format": string,"d": SERVICE_START_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_INFDECAMOUNT,"i": SERVICE_START_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_INT64AMOUNT,"s": string};
-export type SERVICE_START_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_INFDECAMOUNT = {"Dec": SERVICE_START_REQUEST__GOPKG_IN_INF_V0_DEC|undefined};
-export type SERVICE_START_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_INT64AMOUNT = {"scale": number,"value": number};
+export type SERVICE_START_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY = {"Format": string};
 export type SERVICE_START_REQUEST__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR = {"matchExpressions": SERVICE_START_REQUEST__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTORREQUIREMENT[],"matchLabels": Record<string, string>};
 export type SERVICE_START_REQUEST__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTORREQUIREMENT = {"key": string,"operator": string,"values": string[]};
-export type SERVICE_START_REQUEST__MATH_BIG_INT = {"abs": number[],"neg": boolean};
 export type SERVICE_START_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCNAMEDTO = {"addToTlsHosts": boolean,"cName": string};
 export type SERVICE_START_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCONTAINERDTO = {"KubernetesLimits": SERVICE_START_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SSERVICESETTINGSDTO,"appGitRepositoryCloneUrl": string|undefined,"appSetupCommands": string|undefined,"containerImage": string|undefined,"containerImageCommand": string|undefined,"containerImageCommandArgs": string|undefined,"containerImageRepoSecretDecryptValue": string|undefined,"containerImageRepoSecretId": string|undefined,"displayName": string,"dockerContext": string|undefined,"dockerfileName": string|undefined,"envVars": SERVICE_START_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SENVVARDTO[],"gitBranch": string|undefined,"gitCommitAuthor": string|undefined,"gitCommitHash": string|undefined,"gitCommitMessage": string|undefined,"gitRepository": string|undefined,"id": string,"name": string,"probes": SERVICE_START_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBES|undefined,"settingsYaml": string|undefined,"type": string};
 export type SERVICE_START_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCRONJOBSETTINGSDTO = {"activeDeadlineSeconds": number,"backoffLimit": number,"failedJobsHistoryLimit": number,"schedule": string,"successfulJobsHistoryLimit": number};
@@ -24942,24 +22433,16 @@ export type SERVICE_START_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROJECTDTO =
 export type SERVICE_START_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SSERVICEDTO = {"containers": SERVICE_START_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCONTAINERDTO[],"controller": string,"controllerName": string,"cronJobSettings": SERVICE_START_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCRONJOBSETTINGSDTO|undefined,"deploymentStrategy": string,"displayName": string,"hpaSettings": SERVICE_START_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SHPASETTINGSDTO|undefined,"id": string,"ports": SERVICE_START_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPORTSDTO[],"replicaCount": number};
 export type SERVICE_START_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SSERVICESETTINGSDTO = {"ephemeralStorageMB": number,"imagePullPolicy": string,"limitCpuCores": number,"limitMemoryMB": number};
 export type SERVICE_START_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_SERVICESTARTREQUEST = {"namespace": SERVICE_START_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SNAMESPACEDTO,"project": SERVICE_START_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROJECTDTO,"service": SERVICE_START_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SSERVICEDTO};
-export type SERVICE_START_RESPONSE__LOG_SLOG_LOGGER = {"handler": any};
 export type SERVICE_START_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_COMMAND = {"command": string,"finished": SERVICE_START_RESPONSE__TIME_TIME,"id": string,"message": string,"started": SERVICE_START_RESPONSE__TIME_TIME,"state": string,"title": string};
-export type SERVICE_START_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_JOB = {"commands": SERVICE_START_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_COMMAND|undefined[],"containerName": string,"controllerName": string,"finished": SERVICE_START_RESPONSE__TIME_TIME,"id": string,"logger": SERVICE_START_RESPONSE__LOG_SLOG_LOGGER|undefined,"message": string,"namespaceName": string,"projectId": string,"started": SERVICE_START_RESPONSE__TIME_TIME,"state": string,"title": string};
-export type SERVICE_START_RESPONSE__TIME_LOCATION = {"cacheEnd": number,"cacheStart": number,"cacheZone": SERVICE_START_RESPONSE__TIME_ZONE|undefined,"extend": string,"name": string,"tx": SERVICE_START_RESPONSE__TIME_ZONETRANS[],"zone": SERVICE_START_RESPONSE__TIME_ZONE[]};
-export type SERVICE_START_RESPONSE__TIME_TIME = {"ext": number,"loc": SERVICE_START_RESPONSE__TIME_LOCATION|undefined,"wall": number};
-export type SERVICE_START_RESPONSE__TIME_ZONE = {"isDST": boolean,"name": string,"offset": number};
-export type SERVICE_START_RESPONSE__TIME_ZONETRANS = {"index": number,"isstd": boolean,"isutc": boolean,"when": number};
+export type SERVICE_START_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_JOB = {"commands": SERVICE_START_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_COMMAND|undefined[],"containerName": string,"controllerName": string,"finished": SERVICE_START_RESPONSE__TIME_TIME,"id": string,"message": string,"namespaceName": string,"projectId": string,"started": SERVICE_START_RESPONSE__TIME_TIME,"state": string,"title": string};
+export type SERVICE_START_RESPONSE__TIME_TIME = {};
 export type SERVICE_STATUS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_SERVICESTATUSREQUEST = {"controller": string,"controllerName": string,"gitRepository": boolean,"namespace": string};
 export type SERVICE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME = {"Time": SERVICE_STATUS_RESPONSE__TIME_TIME};
 export type SERVICE_STATUS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_SERVICES_SERVICESTATUSITEM = {"containerStatus": SERVICE_STATUS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_SERVICES_XCONTAINERSTATUS|undefined,"createdAt": SERVICE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME|undefined,"kind": string,"messages": SERVICE_STATUS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_SERVICES_SERVICESTATUSMESSAGE[],"name": string,"namespace": string,"ownerKind": string,"ownerName": string,"status": string};
 export type SERVICE_STATUS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_SERVICES_SERVICESTATUSMESSAGE = {"message": string,"type": string};
 export type SERVICE_STATUS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_SERVICES_SERVICESTATUSRESPONSE = {"hasContainers": boolean,"hasCronJob": boolean,"hasDeployment": boolean,"hasJob": boolean,"hasPods": boolean,"items": SERVICE_STATUS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_SERVICES_SERVICESTATUSITEM[],"switchedOn": boolean,"warnings": SERVICE_STATUS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_SERVICES_SERVICESTATUSMESSAGE[]};
 export type SERVICE_STATUS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_SERVICES_XCONTAINERSTATUS = {"createdAt": SERVICE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME|undefined,"restartCount": number};
-export type SERVICE_STATUS_RESPONSE__TIME_LOCATION = {"cacheEnd": number,"cacheStart": number,"cacheZone": SERVICE_STATUS_RESPONSE__TIME_ZONE|undefined,"extend": string,"name": string,"tx": SERVICE_STATUS_RESPONSE__TIME_ZONETRANS[],"zone": SERVICE_STATUS_RESPONSE__TIME_ZONE[]};
-export type SERVICE_STATUS_RESPONSE__TIME_TIME = {"ext": number,"loc": SERVICE_STATUS_RESPONSE__TIME_LOCATION|undefined,"wall": number};
-export type SERVICE_STATUS_RESPONSE__TIME_ZONE = {"isDST": boolean,"name": string,"offset": number};
-export type SERVICE_STATUS_RESPONSE__TIME_ZONETRANS = {"index": number,"isstd": boolean,"isutc": boolean,"when": number};
-export type SERVICE_STOP_REQUEST__GOPKG_IN_INF_V0_DEC = {"scale": number,"unscaled": SERVICE_STOP_REQUEST__MATH_BIG_INT};
+export type SERVICE_STATUS_RESPONSE__TIME_TIME = {};
 export type SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_CONTAINERRESOURCEMETRICSOURCE = {"container": string,"name": string,"target": SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
 export type SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_CROSSVERSIONOBJECTREFERENCE = {"apiVersion": string,"kind": string,"name": string};
 export type SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_EXTERNALMETRICSOURCE = {"metric": SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICIDENTIFIER,"target": SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
@@ -24973,12 +22456,9 @@ export type SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET = {"ave
 export type SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_OBJECTMETRICSOURCE = {"describedObject": SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_CROSSVERSIONOBJECTREFERENCE,"metric": SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICIDENTIFIER,"target": SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
 export type SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_PODSMETRICSOURCE = {"metric": SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICIDENTIFIER,"target": SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
 export type SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_RESOURCEMETRICSOURCE = {"name": string,"target": SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
-export type SERVICE_STOP_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY = {"Format": string,"d": SERVICE_STOP_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_INFDECAMOUNT,"i": SERVICE_STOP_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_INT64AMOUNT,"s": string};
-export type SERVICE_STOP_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_INFDECAMOUNT = {"Dec": SERVICE_STOP_REQUEST__GOPKG_IN_INF_V0_DEC|undefined};
-export type SERVICE_STOP_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_INT64AMOUNT = {"scale": number,"value": number};
+export type SERVICE_STOP_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY = {"Format": string};
 export type SERVICE_STOP_REQUEST__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR = {"matchExpressions": SERVICE_STOP_REQUEST__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTORREQUIREMENT[],"matchLabels": Record<string, string>};
 export type SERVICE_STOP_REQUEST__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTORREQUIREMENT = {"key": string,"operator": string,"values": string[]};
-export type SERVICE_STOP_REQUEST__MATH_BIG_INT = {"abs": number[],"neg": boolean};
 export type SERVICE_STOP_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCNAMEDTO = {"addToTlsHosts": boolean,"cName": string};
 export type SERVICE_STOP_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCONTAINERDTO = {"KubernetesLimits": SERVICE_STOP_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SSERVICESETTINGSDTO,"appGitRepositoryCloneUrl": string|undefined,"appSetupCommands": string|undefined,"containerImage": string|undefined,"containerImageCommand": string|undefined,"containerImageCommandArgs": string|undefined,"containerImageRepoSecretDecryptValue": string|undefined,"containerImageRepoSecretId": string|undefined,"displayName": string,"dockerContext": string|undefined,"dockerfileName": string|undefined,"envVars": SERVICE_STOP_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SENVVARDTO[],"gitBranch": string|undefined,"gitCommitAuthor": string|undefined,"gitCommitHash": string|undefined,"gitCommitMessage": string|undefined,"gitRepository": string|undefined,"id": string,"name": string,"probes": SERVICE_STOP_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBES|undefined,"settingsYaml": string|undefined,"type": string};
 export type SERVICE_STOP_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCRONJOBSETTINGSDTO = {"activeDeadlineSeconds": number,"backoffLimit": number,"failedJobsHistoryLimit": number,"schedule": string,"successfulJobsHistoryLimit": number};
@@ -24997,22 +22477,13 @@ export type SERVICE_STOP_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBES = {"is
 export type SERVICE_STOP_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SSERVICEDTO = {"containers": SERVICE_STOP_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCONTAINERDTO[],"controller": string,"controllerName": string,"cronJobSettings": SERVICE_STOP_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCRONJOBSETTINGSDTO|undefined,"deploymentStrategy": string,"displayName": string,"hpaSettings": SERVICE_STOP_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SHPASETTINGSDTO|undefined,"id": string,"ports": SERVICE_STOP_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPORTSDTO[],"replicaCount": number};
 export type SERVICE_STOP_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SSERVICESETTINGSDTO = {"ephemeralStorageMB": number,"imagePullPolicy": string,"limitCpuCores": number,"limitMemoryMB": number};
 export type SERVICE_STOP_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_SERVICESTOPREQUEST = {"namespace": SERVICE_STOP_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SNAMESPACEDTO,"projectId": string,"service": SERVICE_STOP_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SSERVICEDTO};
-export type SERVICE_STOP_RESPONSE__LOG_SLOG_LOGGER = {"handler": any};
 export type SERVICE_STOP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_COMMAND = {"command": string,"finished": SERVICE_STOP_RESPONSE__TIME_TIME,"id": string,"message": string,"started": SERVICE_STOP_RESPONSE__TIME_TIME,"state": string,"title": string};
-export type SERVICE_STOP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_JOB = {"commands": SERVICE_STOP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_COMMAND|undefined[],"containerName": string,"controllerName": string,"finished": SERVICE_STOP_RESPONSE__TIME_TIME,"id": string,"logger": SERVICE_STOP_RESPONSE__LOG_SLOG_LOGGER|undefined,"message": string,"namespaceName": string,"projectId": string,"started": SERVICE_STOP_RESPONSE__TIME_TIME,"state": string,"title": string};
-export type SERVICE_STOP_RESPONSE__TIME_LOCATION = {"cacheEnd": number,"cacheStart": number,"cacheZone": SERVICE_STOP_RESPONSE__TIME_ZONE|undefined,"extend": string,"name": string,"tx": SERVICE_STOP_RESPONSE__TIME_ZONETRANS[],"zone": SERVICE_STOP_RESPONSE__TIME_ZONE[]};
-export type SERVICE_STOP_RESPONSE__TIME_TIME = {"ext": number,"loc": SERVICE_STOP_RESPONSE__TIME_LOCATION|undefined,"wall": number};
-export type SERVICE_STOP_RESPONSE__TIME_ZONE = {"isDST": boolean,"name": string,"offset": number};
-export type SERVICE_STOP_RESPONSE__TIME_ZONETRANS = {"index": number,"isstd": boolean,"isutc": boolean,"when": number};
+export type SERVICE_STOP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_JOB = {"commands": SERVICE_STOP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_COMMAND|undefined[],"containerName": string,"controllerName": string,"finished": SERVICE_STOP_RESPONSE__TIME_TIME,"id": string,"message": string,"namespaceName": string,"projectId": string,"started": SERVICE_STOP_RESPONSE__TIME_TIME,"state": string,"title": string};
+export type SERVICE_STOP_RESPONSE__TIME_TIME = {};
 export type SERVICE_TRIGGER_JOB_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_SERVICETRIGGERJOBREQUEST = {"controllerName": string,"namespaceDisplayName": string,"namespaceId": string,"namespaceName": string,"projectId": string,"serviceId": string};
-export type SERVICE_TRIGGER_JOB_RESPONSE__LOG_SLOG_LOGGER = {"handler": any};
 export type SERVICE_TRIGGER_JOB_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_COMMAND = {"command": string,"finished": SERVICE_TRIGGER_JOB_RESPONSE__TIME_TIME,"id": string,"message": string,"started": SERVICE_TRIGGER_JOB_RESPONSE__TIME_TIME,"state": string,"title": string};
-export type SERVICE_TRIGGER_JOB_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_JOB = {"commands": SERVICE_TRIGGER_JOB_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_COMMAND|undefined[],"containerName": string,"controllerName": string,"finished": SERVICE_TRIGGER_JOB_RESPONSE__TIME_TIME,"id": string,"logger": SERVICE_TRIGGER_JOB_RESPONSE__LOG_SLOG_LOGGER|undefined,"message": string,"namespaceName": string,"projectId": string,"started": SERVICE_TRIGGER_JOB_RESPONSE__TIME_TIME,"state": string,"title": string};
-export type SERVICE_TRIGGER_JOB_RESPONSE__TIME_LOCATION = {"cacheEnd": number,"cacheStart": number,"cacheZone": SERVICE_TRIGGER_JOB_RESPONSE__TIME_ZONE|undefined,"extend": string,"name": string,"tx": SERVICE_TRIGGER_JOB_RESPONSE__TIME_ZONETRANS[],"zone": SERVICE_TRIGGER_JOB_RESPONSE__TIME_ZONE[]};
-export type SERVICE_TRIGGER_JOB_RESPONSE__TIME_TIME = {"ext": number,"loc": SERVICE_TRIGGER_JOB_RESPONSE__TIME_LOCATION|undefined,"wall": number};
-export type SERVICE_TRIGGER_JOB_RESPONSE__TIME_ZONE = {"isDST": boolean,"name": string,"offset": number};
-export type SERVICE_TRIGGER_JOB_RESPONSE__TIME_ZONETRANS = {"index": number,"isstd": boolean,"isutc": boolean,"when": number};
-export type SERVICE_UPDATE_SERVICE_REQUEST__GOPKG_IN_INF_V0_DEC = {"scale": number,"unscaled": SERVICE_UPDATE_SERVICE_REQUEST__MATH_BIG_INT};
+export type SERVICE_TRIGGER_JOB_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_JOB = {"commands": SERVICE_TRIGGER_JOB_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_COMMAND|undefined[],"containerName": string,"controllerName": string,"finished": SERVICE_TRIGGER_JOB_RESPONSE__TIME_TIME,"id": string,"message": string,"namespaceName": string,"projectId": string,"started": SERVICE_TRIGGER_JOB_RESPONSE__TIME_TIME,"state": string,"title": string};
+export type SERVICE_TRIGGER_JOB_RESPONSE__TIME_TIME = {};
 export type SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_CONTAINERRESOURCEMETRICSOURCE = {"container": string,"name": string,"target": SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
 export type SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_CROSSVERSIONOBJECTREFERENCE = {"apiVersion": string,"kind": string,"name": string};
 export type SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_EXTERNALMETRICSOURCE = {"metric": SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICIDENTIFIER,"target": SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
@@ -25026,12 +22497,9 @@ export type SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARG
 export type SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_OBJECTMETRICSOURCE = {"describedObject": SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_CROSSVERSIONOBJECTREFERENCE,"metric": SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICIDENTIFIER,"target": SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
 export type SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_PODSMETRICSOURCE = {"metric": SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICIDENTIFIER,"target": SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
 export type SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_RESOURCEMETRICSOURCE = {"name": string,"target": SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
-export type SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY = {"Format": string,"d": SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_INFDECAMOUNT,"i": SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_INT64AMOUNT,"s": string};
-export type SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_INFDECAMOUNT = {"Dec": SERVICE_UPDATE_SERVICE_REQUEST__GOPKG_IN_INF_V0_DEC|undefined};
-export type SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_INT64AMOUNT = {"scale": number,"value": number};
+export type SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY = {"Format": string};
 export type SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR = {"matchExpressions": SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTORREQUIREMENT[],"matchLabels": Record<string, string>};
 export type SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTORREQUIREMENT = {"key": string,"operator": string,"values": string[]};
-export type SERVICE_UPDATE_SERVICE_REQUEST__MATH_BIG_INT = {"abs": number[],"neg": boolean};
 export type SERVICE_UPDATE_SERVICE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCNAMEDTO = {"addToTlsHosts": boolean,"cName": string};
 export type SERVICE_UPDATE_SERVICE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCONTAINERDTO = {"KubernetesLimits": SERVICE_UPDATE_SERVICE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SSERVICESETTINGSDTO,"appGitRepositoryCloneUrl": string|undefined,"appSetupCommands": string|undefined,"containerImage": string|undefined,"containerImageCommand": string|undefined,"containerImageCommandArgs": string|undefined,"containerImageRepoSecretDecryptValue": string|undefined,"containerImageRepoSecretId": string|undefined,"displayName": string,"dockerContext": string|undefined,"dockerfileName": string|undefined,"envVars": SERVICE_UPDATE_SERVICE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SENVVARDTO[],"gitBranch": string|undefined,"gitCommitAuthor": string|undefined,"gitCommitHash": string|undefined,"gitCommitMessage": string|undefined,"gitRepository": string|undefined,"id": string,"name": string,"probes": SERVICE_UPDATE_SERVICE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBES|undefined,"settingsYaml": string|undefined,"type": string};
 export type SERVICE_UPDATE_SERVICE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCRONJOBSETTINGSDTO = {"activeDeadlineSeconds": number,"backoffLimit": number,"failedJobsHistoryLimit": number,"schedule": string,"successfulJobsHistoryLimit": number};
@@ -25051,13 +22519,9 @@ export type SERVICE_UPDATE_SERVICE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPRO
 export type SERVICE_UPDATE_SERVICE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SSERVICEDTO = {"containers": SERVICE_UPDATE_SERVICE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCONTAINERDTO[],"controller": string,"controllerName": string,"cronJobSettings": SERVICE_UPDATE_SERVICE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCRONJOBSETTINGSDTO|undefined,"deploymentStrategy": string,"displayName": string,"hpaSettings": SERVICE_UPDATE_SERVICE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SHPASETTINGSDTO|undefined,"id": string,"ports": SERVICE_UPDATE_SERVICE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPORTSDTO[],"replicaCount": number};
 export type SERVICE_UPDATE_SERVICE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SSERVICESETTINGSDTO = {"ephemeralStorageMB": number,"imagePullPolicy": string,"limitCpuCores": number,"limitMemoryMB": number};
 export type SERVICE_UPDATE_SERVICE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_SERVICEUPDATEREQUEST = {"namespace": SERVICE_UPDATE_SERVICE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SNAMESPACEDTO,"project": SERVICE_UPDATE_SERVICE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROJECTDTO,"service": SERVICE_UPDATE_SERVICE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SSERVICEDTO};
-export type SERVICE_UPDATE_SERVICE_RESPONSE__LOG_SLOG_LOGGER = {"handler": any};
 export type SERVICE_UPDATE_SERVICE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_COMMAND = {"command": string,"finished": SERVICE_UPDATE_SERVICE_RESPONSE__TIME_TIME,"id": string,"message": string,"started": SERVICE_UPDATE_SERVICE_RESPONSE__TIME_TIME,"state": string,"title": string};
-export type SERVICE_UPDATE_SERVICE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_JOB = {"commands": SERVICE_UPDATE_SERVICE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_COMMAND|undefined[],"containerName": string,"controllerName": string,"finished": SERVICE_UPDATE_SERVICE_RESPONSE__TIME_TIME,"id": string,"logger": SERVICE_UPDATE_SERVICE_RESPONSE__LOG_SLOG_LOGGER|undefined,"message": string,"namespaceName": string,"projectId": string,"started": SERVICE_UPDATE_SERVICE_RESPONSE__TIME_TIME,"state": string,"title": string};
-export type SERVICE_UPDATE_SERVICE_RESPONSE__TIME_LOCATION = {"cacheEnd": number,"cacheStart": number,"cacheZone": SERVICE_UPDATE_SERVICE_RESPONSE__TIME_ZONE|undefined,"extend": string,"name": string,"tx": SERVICE_UPDATE_SERVICE_RESPONSE__TIME_ZONETRANS[],"zone": SERVICE_UPDATE_SERVICE_RESPONSE__TIME_ZONE[]};
-export type SERVICE_UPDATE_SERVICE_RESPONSE__TIME_TIME = {"ext": number,"loc": SERVICE_UPDATE_SERVICE_RESPONSE__TIME_LOCATION|undefined,"wall": number};
-export type SERVICE_UPDATE_SERVICE_RESPONSE__TIME_ZONE = {"isDST": boolean,"name": string,"offset": number};
-export type SERVICE_UPDATE_SERVICE_RESPONSE__TIME_ZONETRANS = {"index": number,"isstd": boolean,"isutc": boolean,"when": number};
+export type SERVICE_UPDATE_SERVICE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_JOB = {"commands": SERVICE_UPDATE_SERVICE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_COMMAND|undefined[],"containerName": string,"controllerName": string,"finished": SERVICE_UPDATE_SERVICE_RESPONSE__TIME_TIME,"id": string,"message": string,"namespaceName": string,"projectId": string,"started": SERVICE_UPDATE_SERVICE_RESPONSE__TIME_TIME,"state": string,"title": string};
+export type SERVICE_UPDATE_SERVICE_RESPONSE__TIME_TIME = {};
 export type STATS_PODSTAT_ALL_FOR_CONTROLLER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"kind": string,"name": string,"namespace": string,"timeOffsetMinutes": number};
 export type STATS_PODSTAT_ALL_FOR_CONTROLLER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_PODSTATS = {"containerName": string,"cpu": number,"cpuLimit": number,"createdAt": string,"ephemeralStorage": number,"ephemeralStorageLimit": number,"memory": number,"memoryLimit": number,"namespace": string,"podName": string,"startTime": string};
 export type STATS_PODSTAT_LAST_FOR_CONTROLLER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_K8SCONTROLLER = {"kind": string,"name": string,"namespace": string};
@@ -25107,13 +22571,9 @@ export type UPDATE_WORKLOAD_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTR
 export type UPDATE_WORKSPACE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"displayName": string,"name": string,"resources": UPDATE_WORKSPACE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_WORKSPACERESOURCEIDENTIFIER[]};
 export type UPDATE_WORKSPACE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_WORKSPACERESOURCEIDENTIFIER = {"id": string,"namespace": string,"type": string};
 export type UPGRADEK8SMANAGER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"command": string};
-export type UPGRADEK8SMANAGER_RESPONSE__LOG_SLOG_LOGGER = {"handler": any};
 export type UPGRADEK8SMANAGER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_COMMAND = {"command": string,"finished": UPGRADEK8SMANAGER_RESPONSE__TIME_TIME,"id": string,"message": string,"started": UPGRADEK8SMANAGER_RESPONSE__TIME_TIME,"state": string,"title": string};
-export type UPGRADEK8SMANAGER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_JOB = {"commands": UPGRADEK8SMANAGER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_COMMAND|undefined[],"containerName": string,"controllerName": string,"finished": UPGRADEK8SMANAGER_RESPONSE__TIME_TIME,"id": string,"logger": UPGRADEK8SMANAGER_RESPONSE__LOG_SLOG_LOGGER|undefined,"message": string,"namespaceName": string,"projectId": string,"started": UPGRADEK8SMANAGER_RESPONSE__TIME_TIME,"state": string,"title": string};
-export type UPGRADEK8SMANAGER_RESPONSE__TIME_LOCATION = {"cacheEnd": number,"cacheStart": number,"cacheZone": UPGRADEK8SMANAGER_RESPONSE__TIME_ZONE|undefined,"extend": string,"name": string,"tx": UPGRADEK8SMANAGER_RESPONSE__TIME_ZONETRANS[],"zone": UPGRADEK8SMANAGER_RESPONSE__TIME_ZONE[]};
-export type UPGRADEK8SMANAGER_RESPONSE__TIME_TIME = {"ext": number,"loc": UPGRADEK8SMANAGER_RESPONSE__TIME_LOCATION|undefined,"wall": number};
-export type UPGRADEK8SMANAGER_RESPONSE__TIME_ZONE = {"isDST": boolean,"name": string,"offset": number};
-export type UPGRADEK8SMANAGER_RESPONSE__TIME_ZONETRANS = {"index": number,"isstd": boolean,"isutc": boolean,"when": number};
+export type UPGRADEK8SMANAGER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_JOB = {"commands": UPGRADEK8SMANAGER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_COMMAND|undefined[],"containerName": string,"controllerName": string,"finished": UPGRADEK8SMANAGER_RESPONSE__TIME_TIME,"id": string,"message": string,"namespaceName": string,"projectId": string,"started": UPGRADEK8SMANAGER_RESPONSE__TIME_TIME,"state": string,"title": string};
+export type UPGRADEK8SMANAGER_RESPONSE__TIME_TIME = {};
 export type UPGRADE_CERT_MANAGER_REQUEST__ANON_STRUCT_0 = {};
 export type UPGRADE_INGRESS_CONTROLLER_TRAEFIK_REQUEST__ANON_STRUCT_0 = {};
 export type UPGRADE_KEPLER_REQUEST__ANON_STRUCT_0 = {};
