@@ -11,6 +11,7 @@ import (
 	"path"
 	"runtime"
 	"slices"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -260,13 +261,14 @@ func (self *SlogMultiHandler) WithGroup(group string) slog.Handler {
 // ##########################
 
 type PrettyPrintHandler struct {
-	out        io.Writer
-	colors     bool
-	logLevel   slog.Level
-	logFilter  []string
-	attrs      []slog.Attr
-	group      string
-	filterFunc func(msg string) string
+	out          io.Writer
+	colors       bool
+	logLevel     slog.Level
+	logFilter    []string
+	attrs        []slog.Attr
+	group        string
+	logMessageTx chan string
+	filterFunc   func(msg string) string
 }
 
 func NewPrettyPrintHandler(
@@ -285,8 +287,64 @@ func NewPrettyPrintHandler(
 	self.attrs = []slog.Attr{}
 	self.group = ""
 	self.filterFunc = filterFunc
+	self.logMessageTx = make(chan string)
+
+	self.startDebouncedPrinter()
 
 	return self
+}
+
+func (self *PrettyPrintHandler) startDebouncedPrinter() {
+	type MessageWithCount struct {
+		message string
+		count   uint32
+	}
+	go func() {
+		printedMessages := []string{}
+		messageQueue := []string{}
+
+		flush := time.NewTicker(1 * time.Second)
+		defer flush.Stop()
+
+		for {
+			select {
+			case msg := <-self.logMessageTx:
+				if !slices.Contains(printedMessages, msg) {
+					_, err := self.out.Write([]byte(msg))
+					assert.Assert(err == nil, err)
+					printedMessages = append(printedMessages, msg)
+					continue
+				}
+				messageQueue = append(messageQueue, msg)
+			case <-flush.C:
+				printedMessages = []string{}
+
+				messagesWithCount := []MessageWithCount{}
+				for _, msg := range messageQueue {
+					found := false
+					for idx := range messagesWithCount {
+						if msg == messagesWithCount[idx].message {
+							messagesWithCount[idx].count = messagesWithCount[idx].count + 1
+							found = true
+							break
+						}
+					}
+					if !found {
+						messagesWithCount = append(messagesWithCount, MessageWithCount{
+							message: msg,
+							count:   1,
+						})
+					}
+				}
+				messageQueue = []string{}
+
+				for _, messageWithCount := range messagesWithCount {
+					_, err := self.out.Write([]byte("(" + strconv.FormatUint(uint64(messageWithCount.count), 10) + "x)" + messageWithCount.message))
+					assert.Assert(err == nil, err)
+				}
+			}
+		}
+	}()
 }
 
 func (self *PrettyPrintHandler) Enabled(ctx context.Context, level slog.Level) bool {
@@ -315,11 +373,10 @@ func (self *PrettyPrintHandler) Handle(ctx context.Context, record slog.Record) 
 	logLine.Time = record.Time
 	logLine.Payload = slogRecordToPayload(record, self.filterFunc)
 
-	return self.printLogLine(
-		self.out,
-		self.colors,
-		logLine,
-	)
+	logMessage := self.formatLogMessage(logLine, self.colors)
+	self.logMessageTx <- logMessage
+
+	return nil
 }
 
 func (self *PrettyPrintHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
@@ -332,6 +389,8 @@ func (self *PrettyPrintHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 	other.attrs = append(self.attrs, attrs...)
 	other.group = self.group
 	other.filterFunc = self.filterFunc
+	other.logMessageTx = make(chan string)
+	other.startDebouncedPrinter()
 
 	return other
 }
@@ -346,6 +405,8 @@ func (self *PrettyPrintHandler) WithGroup(group string) slog.Handler {
 	other.attrs = self.attrs
 	other.group = group
 	other.filterFunc = self.filterFunc
+	other.logMessageTx = make(chan string)
+	other.startDebouncedPrinter()
 
 	return other
 }
@@ -369,11 +430,10 @@ func (self *PrettyPrintHandler) tryGetScope() *string {
 	return nil
 }
 
-func (self *PrettyPrintHandler) printLogLine(
-	writer io.Writer,
-	enableColor bool,
+func (self *PrettyPrintHandler) formatLogMessage(
 	logLine LogLine,
-) error {
+	enableColor bool,
+) string {
 	payloadString := ""
 	if enableColor {
 		switch logLine.Level {
@@ -413,19 +473,16 @@ func (self *PrettyPrintHandler) printLogLine(
 		}
 	}
 
-	_, err := writer.Write([]byte(fmt.Sprintf(
+	logMessage := fmt.Sprintf(
 		"%s %s %s %s %s",
 		logLine.Level,
 		logLine.Component,
 		logLine.Source,
 		logLine.Message,
 		payloadString,
-	) + "\n"))
-	if err != nil {
-		return err
-	}
+	) + "\n"
 
-	return nil
+	return logMessage
 }
 
 // ############################
