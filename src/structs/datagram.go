@@ -89,11 +89,9 @@ func CreateDatagramForClusterEvent(pattern string, group string, version string,
 				"kind":         kind,
 				"namespace":    namespace,
 				"name":         name,
-				"eventType":    eventType,
 				"resourceName": resourceName,
 			},
 		},
-
 		CreatedAt: time.Now(),
 	}
 	return datagram
