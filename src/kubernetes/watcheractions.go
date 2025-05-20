@@ -78,7 +78,7 @@ func WatchStoreResources(watcher WatcherModule, eventClient websocket.WebsocketC
 		return err
 	}
 	for _, v := range resources {
-		if v.Namespace == nil && !slices.Contains(MirroredResourceKinds, v.Kind) {
+		if !slices.Contains(MirroredResourceKinds, v.Kind) {
 			k8sLogger.Debug("🚀 Skipping resource", "kind", v.Kind, "group", v.Group, "namespace", v.Namespace)
 			continue
 		}
