@@ -149,9 +149,6 @@ func (self *socketApi) Run() {
 
 	self.AssertPatternsUnique()
 	self.startK8sManager()
-
-	go structs.ConnectToEventQueue(self.eventsClient)
-	go structs.ConnectToJobQueue(self.jobClient)
 }
 
 func (self *socketApi) AssertPatternsUnique() {
@@ -2606,36 +2603,13 @@ func (self *socketApi) ParseDatagram(data []byte) (structs.Datagram, error) {
 	return datagram, nil
 }
 
-var jobDataQueue []structs.Datagram = []structs.Datagram{}
-var jobSendMutex sync.Mutex
-
 func (self *socketApi) JobServerSendData(jobClient websocket.WebsocketClient, datagram structs.Datagram) {
-	jobDataQueue = append(jobDataQueue, datagram)
-	self.processJobNow(jobClient)
-}
-
-func (self *socketApi) processJobNow(jobClient websocket.WebsocketClient) {
-	jobSendMutex.Lock()
-	defer jobSendMutex.Unlock()
-	for i := 0; i < len(jobDataQueue); i++ {
-		element := jobDataQueue[i]
-		err := jobClient.WriteJSON(element)
-		if err == nil {
-			element.DisplaySentSummary(self.logger, i+1, len(jobDataQueue))
-			self.logger.Debug("sent summary", "payload", element.Payload)
-			jobDataQueue = self.removeJobIndex(jobDataQueue, i)
-		} else {
-			self.logger.Error("Error writing json in job queue", "error", err)
-			return
+	go func() {
+		err := jobClient.WriteJSON(datagram)
+		if err != nil {
+			self.logger.Error("Error sending data to EventServer", "error", err)
 		}
-	}
-}
-
-func (self *socketApi) removeJobIndex(s []structs.Datagram, index int) []structs.Datagram {
-	if len(s) > index {
-		return append(s[:index], s[index+1:]...)
-	}
-	return s
+	}()
 }
 
 func (self *socketApi) ExecuteCommandRequest(datagram structs.Datagram) interface{} {
@@ -2681,7 +2655,7 @@ func NewMessageResponse(result interface{}, err error) MessageResponse {
 func (self *socketApi) upgradeK8sManager(command string) *structs.Job {
 	var wg sync.WaitGroup
 
-	job := structs.CreateJob(self.eventsClient, "Upgrade mogenius platform", "UPGRADE", "", "")
+	job := structs.CreateJob(self.eventsClient, "Upgrade mogenius platform", "UPGRADE", "", "", self.logger)
 	job.Start(self.eventsClient)
 	kubernetes.UpgradeMyself(self.eventsClient, job, command, &wg)
 	wg.Wait()

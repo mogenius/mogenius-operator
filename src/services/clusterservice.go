@@ -40,7 +40,7 @@ const (
 )
 
 func InstallHelmChart(eventClient websocket.WebsocketClient, r ClusterHelmRequest) *structs.Job {
-	job := structs.CreateJob(eventClient, "Install Helm Chart "+r.HelmReleaseName, r.NamespaceId, "", "")
+	job := structs.CreateJob(eventClient, "Install Helm Chart "+r.HelmReleaseName, r.NamespaceId, "", "", serviceLogger)
 	job.Start(eventClient)
 	result, err := helm.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues, r.HelmChartVersion)
 	if err != nil {
@@ -51,7 +51,7 @@ func InstallHelmChart(eventClient websocket.WebsocketClient, r ClusterHelmReques
 }
 
 func DeleteHelmChart(eventClient websocket.WebsocketClient, r ClusterHelmUninstallRequest) *structs.Job {
-	job := structs.CreateJob(eventClient, "Delete Helm Chart "+r.HelmReleaseName, r.NamespaceId, "", "")
+	job := structs.CreateJob(eventClient, "Delete Helm Chart "+r.HelmReleaseName, r.NamespaceId, "", "", serviceLogger)
 	job.Start(eventClient)
 	result, err := helm.DeleteHelmChart(r.HelmReleaseName, r.NamespaceId)
 	if err != nil {
@@ -63,7 +63,7 @@ func DeleteHelmChart(eventClient websocket.WebsocketClient, r ClusterHelmUninsta
 
 func CreateMogeniusNfsVolume(eventClient websocket.WebsocketClient, r NfsVolumeRequest) structs.DefaultResponse {
 	var wg sync.WaitGroup
-	job := structs.CreateJob(eventClient, "Create mogenius nfs-volume.", r.NamespaceName, "", "")
+	job := structs.CreateJob(eventClient, "Create mogenius nfs-volume.", r.NamespaceName, "", "", serviceLogger)
 	job.Start(eventClient)
 	// FOR K8SMANAGER
 	mokubernetes.CreateMogeniusNfsServiceSync(eventClient, job, r.NamespaceName, r.VolumeName)
@@ -83,7 +83,7 @@ func CreateMogeniusNfsVolume(eventClient websocket.WebsocketClient, r NfsVolumeR
 
 func DeleteMogeniusNfsVolume(eventClient websocket.WebsocketClient, r NfsVolumeRequest) structs.DefaultResponse {
 	var wg sync.WaitGroup
-	job := structs.CreateJob(eventClient, "Delete mogenius nfs-volume.", r.NamespaceName, "", "")
+	job := structs.CreateJob(eventClient, "Delete mogenius nfs-volume.", r.NamespaceName, "", "", serviceLogger)
 	job.Start(eventClient)
 	// FOR K8SMANAGER
 	mokubernetes.DeleteMogeniusNfsDeployment(eventClient, job, r.NamespaceName, r.VolumeName, &wg)

@@ -5,6 +5,7 @@ import (
 	"mogenius-k8s-manager/src/assert"
 	"reflect"
 	"strings"
+	"unicode"
 
 	jsoniter "github.com/json-iterator/go"
 	"gopkg.in/yaml.v3"
@@ -225,12 +226,17 @@ func parseSchema(schema *Schema, input reflect.Type, depth int) (*TypeInfo, erro
 		fieldAmount := input.NumField()
 		for n := 0; n < fieldAmount; n++ {
 			inputStructField := input.Field(n)
-			fieldName := strings.Split(inputStructField.Tag.Get("json"), ",")[0]
-			if fieldName == "" {
-				fieldName = inputStructField.Name
+			// skip private fields
+			firstRune := rune(inputStructField.Name[0])
+			if !unicode.IsLetter(firstRune) || !unicode.IsUpper(firstRune) {
+				continue
 			}
+			fieldName := strings.Split(inputStructField.Tag.Get("json"), ",")[0]
 			if fieldName == "-" { // special syntax for the json serializer to hide a field so we do the same
 				continue
+			}
+			if fieldName == "" { // use the variables name directly as fallback if json annotation is missing
+				fieldName = inputStructField.Name
 			}
 			assert.Assert(fieldName != "")
 			fieldType, err := parseSchema(schema, inputStructField.Type, depth+1)
