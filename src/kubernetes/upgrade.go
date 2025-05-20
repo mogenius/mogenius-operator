@@ -78,16 +78,23 @@ func UpgradeMyself(eventClient websocket.WebsocketClient, job *structs.Job, comm
 		jobClient := clientset.BatchV1().Jobs(config.Get("MO_OWN_NAMESPACE"))
 		configmapClient := clientset.CoreV1().ConfigMaps(config.Get("MO_OWN_NAMESPACE"))
 
+		ownerReference, err := utils.GetOwnDeploymentOwnerReference(clientset, config)
+		if err != nil {
+			k8sLogger.Error("Error getting owner reference for upgrade job", "error", err)
+		}
+
 		configmap := utils.InitUpgradeConfigMap()
 		configmap.Namespace = config.Get("MO_OWN_NAMESPACE")
 		configmap.Data["values.command"] = command
+		configmap.OwnerReferences = ownerReference
 
 		k8sjob := utils.InitUpgradeJob()
 		k8sjob.Namespace = config.Get("MO_OWN_NAMESPACE")
 		k8sjob.Name = fmt.Sprintf("%s-%s", k8sjob.Name, utils.NanoIdSmallLowerCase())
+		k8sjob.OwnerReferences = ownerReference
 
 		// CONFIGMAP
-		_, err := configmapClient.Get(context.TODO(), configmap.Name, metav1.GetOptions{})
+		_, err = configmapClient.Get(context.TODO(), configmap.Name, metav1.GetOptions{})
 		if err != nil {
 			// CREATE
 			_, err = configmapClient.Create(context.TODO(), &configmap, MoCreateOptions(config))

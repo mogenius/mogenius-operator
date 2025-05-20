@@ -13,6 +13,7 @@ import (
 	"mogenius-k8s-manager/src/rammonitor"
 	"mogenius-k8s-manager/src/shutdown"
 	"mogenius-k8s-manager/src/structs"
+	"mogenius-k8s-manager/src/utils"
 	"os"
 	"os/exec"
 	"strconv"
@@ -106,11 +107,17 @@ func (self *nodeMetricsCollector) Orchestrate() {
 				return
 			}
 
+			ownerReference, err := utils.GetOwnDeploymentOwnerReference(clientset, self.config)
+			if err != nil {
+				self.logger.Error("failed to get own deployment owner reference", "error", err)
+			}
+
 			daemonSet, err := clientset.AppsV1().DaemonSets(namespace).Get(context.TODO(), daemonSetName, metav1.GetOptions{})
 			daemonSetSpec := &appsv1.DaemonSet{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      daemonSetName,
-					Namespace: namespace,
+					Name:            daemonSetName,
+					Namespace:       namespace,
+					OwnerReferences: ownerReference,
 				},
 				Spec: appsv1.DaemonSetSpec{
 					Selector: &metav1.LabelSelector{
@@ -119,15 +126,6 @@ func (self *nodeMetricsCollector) Orchestrate() {
 					Template: corev1.PodTemplateSpec{
 						ObjectMeta: metav1.ObjectMeta{
 							Labels: map[string]string{"app": daemonSetName},
-							OwnerReferences: []metav1.OwnerReference{
-								{
-									APIVersion: "apps/v1",
-									Kind:       "Deployment",
-									Name:       ownDeployment.GetName(),
-									UID:        ownDeployment.GetUID(),
-									Controller: ptr.To(true),
-								},
-							},
 						},
 						Spec: corev1.PodSpec{
 							Containers: []corev1.Container{
