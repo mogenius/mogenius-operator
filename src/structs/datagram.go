@@ -82,14 +82,18 @@ func CreateDatagramForClusterEvent(pattern string, group string, version string,
 		Id:      utils.NanoId(),
 		Pattern: pattern,
 		Payload: map[string]interface{}{
-			"group":        group,
-			"version":      version,
-			"kind":         kind,
-			"namespace":    namespace,
-			"name":         name, // der shit mit plural
-			"eventType":    eventType,
-			"resourceName": resourceName,
+			"eventType": eventType,
+			"resource": map[string]interface{}{
+				"group":        group,
+				"version":      version,
+				"kind":         kind,
+				"namespace":    namespace,
+				"name":         name,
+				"eventType":    eventType,
+				"resourceName": resourceName,
+			},
 		},
+
 		CreatedAt: time.Now(),
 	}
 	return datagram
