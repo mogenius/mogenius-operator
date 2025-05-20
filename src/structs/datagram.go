@@ -77,16 +77,18 @@ func CreateDatagramFrom(pattern string, data interface{}) Datagram {
 	return datagram
 }
 
-func CreateDatagramForClusterEvent(pattern string, groupVersion string, kind string, namespace string, name string, eventType string) Datagram {
+func CreateDatagramForClusterEvent(pattern string, group string, version string, kind string, namespace string, name string, resourceName string, eventType string) Datagram {
 	datagram := Datagram{
 		Id:      utils.NanoId(),
 		Pattern: pattern,
 		Payload: map[string]interface{}{
-			"groupVersion": groupVersion,
+			"group":        group,
+			"version":      version,
 			"kind":         kind,
 			"namespace":    namespace,
-			"name":         name,
+			"name":         name, // der shit mit plural
 			"eventType":    eventType,
+			"resourceName": resourceName,
 		},
 		CreatedAt: time.Now(),
 	}
