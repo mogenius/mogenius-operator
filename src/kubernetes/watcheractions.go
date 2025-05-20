@@ -73,6 +73,8 @@ var MirroredResourceKinds = []string{
 }
 
 func WatchStoreResources(watcher WatcherModule, eventClient websocket.WebsocketClient) error {
+	start := time.Now()
+
 	resources, err := GetAvailableResources()
 	if err != nil {
 		return err
@@ -87,11 +89,18 @@ func WatchStoreResources(watcher WatcherModule, eventClient websocket.WebsocketC
 			Kind:         v.Kind,
 			GroupVersion: v.Group,
 		}, func(resource WatcherResourceIdentifier, obj *unstructured.Unstructured) {
-			setStoreIfNeeded(eventClient, resource.GroupVersion, v.Group, resource.Version, obj.GetName(), resource.Kind, obj.GetNamespace(), resource.Name, obj, "add")
+			setStoreIfNeeded(resource.GroupVersion, obj.GetName(), resource.Kind, obj.GetNamespace(), obj)
+			// suppress the add events for the first 10 seconds (because all resources are added initially)
+			if time.Since(start) < 10*time.Second {
+				return
+			}
+			sendEventServerEvent(eventClient, v.Group, resource.Version, obj.GetName(), resource.Kind, obj.GetNamespace(), resource.Name, "add")
 		}, func(resource WatcherResourceIdentifier, oldObj, newObj *unstructured.Unstructured) {
-			setStoreIfNeeded(eventClient, resource.GroupVersion, v.Group, resource.Version, newObj.GetName(), resource.Kind, newObj.GetNamespace(), resource.Name, newObj, "update")
+			setStoreIfNeeded(resource.GroupVersion, newObj.GetName(), resource.Kind, newObj.GetNamespace(), newObj)
+			sendEventServerEvent(eventClient, v.Group, resource.Version, newObj.GetName(), resource.Kind, newObj.GetNamespace(), resource.Name, "update")
 		}, func(resource WatcherResourceIdentifier, obj *unstructured.Unstructured) {
-			deleteFromStoreIfNeeded(eventClient, resource.GroupVersion, v.Group, resource.Version, obj.GetName(), resource.Kind, obj.GetNamespace(), resource.Name, obj, "delete")
+			deleteFromStoreIfNeeded(resource.GroupVersion, obj.GetName(), resource.Kind, obj.GetNamespace(), obj)
+			sendEventServerEvent(eventClient, v.Group, resource.Version, obj.GetName(), resource.Kind, obj.GetNamespace(), resource.Name, "delete")
 		})
 		if err != nil {
 			k8sLogger.Error("failed to initialize watchhandler for resource", "groupVersion", v.Group, "kind", v.Kind, "version", v.Version, "error", err)
@@ -100,19 +109,20 @@ func WatchStoreResources(watcher WatcherModule, eventClient websocket.WebsocketC
 			k8sLogger.Debug("🚀 Watching resource", "kind", v.Kind, "group", v.Group)
 		}
 	}
-
 	return nil
 }
 
-func setStoreIfNeeded(eventClient websocket.WebsocketClient, groupVersion string, group string, version string, resourceName string, kind string, namespace string, name string, obj *unstructured.Unstructured, eventType string) {
+func setStoreIfNeeded(groupVersion string, resourceName string, kind string, namespace string, obj *unstructured.Unstructured) {
 	obj = removeUnusedFieds(obj)
 
-	// other resources
+	// store in valkey
 	err := valkeyClient.SetObject(obj, 0, VALKEY_RESOURCE_PREFIX, groupVersion, kind, namespace, resourceName)
 	if err != nil {
 		k8sLogger.Error("Error setting object in store", "error", err)
 	}
+}
 
+func sendEventServerEvent(eventClient websocket.WebsocketClient, group string, version string, resourceName string, kind string, namespace string, name string, eventType string) {
 	datagram := structs.CreateDatagramForClusterEvent("ClusterEvent", group, version, kind, namespace, name, resourceName, eventType)
 
 	// send the datagram to the event server
@@ -125,7 +135,7 @@ func setStoreIfNeeded(eventClient websocket.WebsocketClient, groupVersion string
 	}()
 }
 
-func deleteFromStoreIfNeeded(eventClient websocket.WebsocketClient, groupVersion string, group string, version string, resourceName string, kind string, namespace string, name string, obj *unstructured.Unstructured, eventType string) {
+func deleteFromStoreIfNeeded(groupVersion string, resourceName string, kind string, namespace string, obj *unstructured.Unstructured) {
 	if kind == "PersistentVolume" {
 		var pv v1.PersistentVolume
 		err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &pv)
@@ -141,17 +151,6 @@ func deleteFromStoreIfNeeded(eventClient websocket.WebsocketClient, groupVersion
 	if err != nil {
 		k8sLogger.Error("Error deleting object in store", "error", err)
 	}
-
-	datagram := structs.CreateDatagramForClusterEvent("ClusterEvent", group, version, kind, namespace, name, resourceName, eventType)
-
-	// send the datagram to the event server
-	go func() {
-		err := eventClient.WriteJSON(datagram)
-		if err != nil {
-			k8sLogger.Error("Error sending data to EventServer", "error", err)
-
-		}
-	}()
 }
 
 func GetUnstructuredResourceList(group string, version string, name string, namespace *string) (*unstructured.UnstructuredList, error) {
