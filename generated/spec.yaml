@@ -3096,6 +3096,10 @@ cluster/helm-release-history:
                         type: string
                     name:
                         type: string
+                    output_log_policies:
+                        elementType:
+                            type: string
+                        type: array
                     path:
                         type: string
                     weight:
@@ -3361,6 +3365,10 @@ cluster/helm-release-list:
                         type: string
                     name:
                         type: string
+                    output_log_policies:
+                        elementType:
+                            type: string
+                        type: array
                     path:
                         type: string
                     weight:
