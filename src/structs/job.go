@@ -2,6 +2,7 @@ package structs
 
 import (
 	"fmt"
+	"log/slog"
 	"time"
 
 	"mogenius-k8s-manager/src/assert"
@@ -27,9 +28,11 @@ type Job struct {
 	Started        time.Time    `json:"started"`
 	Finished       time.Time    `json:"finished"`
 	ContainerName  string       `json:"containerName,omitempty"`
+
+	logger *slog.Logger
 }
 
-func CreateJob(eventClient websocket.WebsocketClient, title string, projectId string, namespace string, controllerName string) *Job {
+func CreateJob(eventClient websocket.WebsocketClient, title string, projectId string, namespace string, controllerName string, logger *slog.Logger) *Job {
 	job := &Job{
 		Id:             utils.NanoId(),
 		ProjectId:      projectId,
@@ -41,6 +44,7 @@ func CreateJob(eventClient websocket.WebsocketClient, title string, projectId st
 		State:          JobStatePending,
 		Started:        time.Now(),
 	}
+	job.logger = logger
 	ReportJobStateToServer(eventClient, job)
 	return job
 }
@@ -111,13 +115,27 @@ func (j *Job) AddCmds(eventClient websocket.WebsocketClient, cmds []*Command) {
 func ReportJobStateToServer(eventClient websocket.WebsocketClient, job *Job) {
 	stateLogJob(job)
 	result := CreateDatagramNotificationFromJob(job)
-	EventServerSendData(eventClient, result)
+
+	// send the datagram to the event server
+	go func() {
+		err := eventClient.WriteJSON(result)
+		if err != nil {
+			job.logger.Error("Error sending data to JobServer", "error", err)
+		}
+	}()
 }
 
 func ReportCmdStateToServer(eventClient websocket.WebsocketClient, job *Job, cmd *Command) {
 	stateLogCmd(cmd, job.NamespaceName, job.ControllerName)
 	result := CreateDatagramNotificationFromJob(job)
-	EventServerSendData(eventClient, result)
+
+	// send the datagram to the event server
+	go func() {
+		err := eventClient.WriteJSON(result)
+		if err != nil {
+			job.logger.Error("Error sending data to JobServer", "error", err)
+		}
+	}()
 }
 
 func stateLogJob(data *Job) {

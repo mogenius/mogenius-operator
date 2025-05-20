@@ -114,7 +114,15 @@ func setStoreIfNeeded(eventClient websocket.WebsocketClient, groupVersion string
 	}
 
 	datagram := structs.CreateDatagramForClusterEvent("ClusterEvent", groupVersion, kind, namespace, name, eventType)
-	structs.EventServerSendData(eventClient, datagram)
+
+	// send the datagram to the event server
+	go func() {
+		err := eventClient.WriteJSON(datagram)
+		if err != nil {
+			k8sLogger.Error("Error sending data to EventServer", "error", err)
+
+		}
+	}()
 }
 
 func deleteFromStoreIfNeeded(eventClient websocket.WebsocketClient, groupVersion string, kind string, namespace string, name string, obj *unstructured.Unstructured, eventType string) {
@@ -135,7 +143,15 @@ func deleteFromStoreIfNeeded(eventClient websocket.WebsocketClient, groupVersion
 	}
 
 	datagram := structs.CreateDatagramForClusterEvent("ClusterEvent", groupVersion, kind, namespace, name, eventType)
-	structs.EventServerSendData(eventClient, datagram)
+
+	// send the datagram to the event server
+	go func() {
+		err := eventClient.WriteJSON(datagram)
+		if err != nil {
+			k8sLogger.Error("Error sending data to EventServer", "error", err)
+
+		}
+	}()
 }
 
 func GetUnstructuredResourceList(group string, version string, name string, namespace *string) (*unstructured.UnstructuredList, error) {

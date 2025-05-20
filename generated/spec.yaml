@@ -2519,6 +2519,12 @@ UpgradeK8sManager:
             type: struct
     responseSchema:
         structs:
+            log/slog.Logger:
+                name: log/slog.Logger
+                properties:
+                    handler:
+                        pointer: true
+                        type: any
             mogenius-k8s-manager/src/structs.Command:
                 name: mogenius-k8s-manager/src/structs.Command
                 properties:
@@ -2556,6 +2562,10 @@ UpgradeK8sManager:
                         type: struct
                     id:
                         type: string
+                    logger:
+                        pointer: true
+                        structRef: log/slog.Logger
+                        type: struct
                     message:
                         type: string
                     namespaceName:
@@ -2796,6 +2806,12 @@ cluster/execute-helm-chart-task:
             type: struct
     responseSchema:
         structs:
+            log/slog.Logger:
+                name: log/slog.Logger
+                properties:
+                    handler:
+                        pointer: true
+                        type: any
             mogenius-k8s-manager/src/structs.Command:
                 name: mogenius-k8s-manager/src/structs.Command
                 properties:
@@ -2833,6 +2849,10 @@ cluster/execute-helm-chart-task:
                         type: struct
                     id:
                         type: string
+                    logger:
+                        pointer: true
+                        structRef: log/slog.Logger
+                        type: struct
                     message:
                         type: string
                     namespaceName:
@@ -4645,6 +4665,12 @@ cluster/uninstall-helm-chart:
             type: struct
     responseSchema:
         structs:
+            log/slog.Logger:
+                name: log/slog.Logger
+                properties:
+                    handler:
+                        pointer: true
+                        type: any
             mogenius-k8s-manager/src/structs.Command:
                 name: mogenius-k8s-manager/src/structs.Command
                 properties:
@@ -4682,6 +4708,10 @@ cluster/uninstall-helm-chart:
                         type: struct
                     id:
                         type: string
+                    logger:
+                        pointer: true
+                        structRef: log/slog.Logger
+                        type: struct
                     message:
                         type: string
                     namespaceName:
@@ -8816,6 +8846,12 @@ namespace/create:
             type: struct
     responseSchema:
         structs:
+            log/slog.Logger:
+                name: log/slog.Logger
+                properties:
+                    handler:
+                        pointer: true
+                        type: any
             mogenius-k8s-manager/src/structs.Command:
                 name: mogenius-k8s-manager/src/structs.Command
                 properties:
@@ -8853,6 +8889,10 @@ namespace/create:
                         type: struct
                     id:
                         type: string
+                    logger:
+                        pointer: true
+                        structRef: log/slog.Logger
+                        type: struct
                     message:
                         type: string
                     namespaceName:
@@ -8988,6 +9028,12 @@ namespace/delete:
             type: struct
     responseSchema:
         structs:
+            log/slog.Logger:
+                name: log/slog.Logger
+                properties:
+                    handler:
+                        pointer: true
+                        type: any
             mogenius-k8s-manager/src/structs.Command:
                 name: mogenius-k8s-manager/src/structs.Command
                 properties:
@@ -9025,6 +9071,10 @@ namespace/delete:
                         type: struct
                     id:
                         type: string
+                    logger:
+                        pointer: true
+                        structRef: log/slog.Logger
+                        type: struct
                     message:
                         type: string
                     namespaceName:
@@ -12635,6 +12685,12 @@ namespace/shutdown:
             type: struct
     responseSchema:
         structs:
+            log/slog.Logger:
+                name: log/slog.Logger
+                properties:
+                    handler:
+                        pointer: true
+                        type: any
             mogenius-k8s-manager/src/structs.Command:
                 name: mogenius-k8s-manager/src/structs.Command
                 properties:
@@ -12672,6 +12728,10 @@ namespace/shutdown:
                         type: struct
                     id:
                         type: string
+                    logger:
+                        pointer: true
+                        structRef: log/slog.Logger
+                        type: struct
                     message:
                         type: string
                     namespaceName:
@@ -13448,6 +13508,12 @@ service/create:
             type: struct
     responseSchema:
         structs:
+            log/slog.Logger:
+                name: log/slog.Logger
+                properties:
+                    handler:
+                        pointer: true
+                        type: any
             mogenius-k8s-manager/src/structs.Command:
                 name: mogenius-k8s-manager/src/structs.Command
                 properties:
@@ -13485,6 +13551,10 @@ service/create:
                         type: struct
                     id:
                         type: string
+                    logger:
+                        pointer: true
+                        structRef: log/slog.Logger
+                        type: struct
                     message:
                         type: string
                     namespaceName:
@@ -14139,6 +14209,12 @@ service/delete:
             type: struct
     responseSchema:
         structs:
+            log/slog.Logger:
+                name: log/slog.Logger
+                properties:
+                    handler:
+                        pointer: true
+                        type: any
             mogenius-k8s-manager/src/structs.Command:
                 name: mogenius-k8s-manager/src/structs.Command
                 properties:
@@ -14176,6 +14252,10 @@ service/delete:
                         type: struct
                     id:
                         type: string
+                    logger:
+                        pointer: true
+                        structRef: log/slog.Logger
+                        type: struct
                     message:
                         type: string
                     namespaceName:
@@ -17459,6 +17539,12 @@ service/restart:
             type: struct
     responseSchema:
         structs:
+            log/slog.Logger:
+                name: log/slog.Logger
+                properties:
+                    handler:
+                        pointer: true
+                        type: any
             mogenius-k8s-manager/src/structs.Command:
                 name: mogenius-k8s-manager/src/structs.Command
                 properties:
@@ -17496,6 +17582,10 @@ service/restart:
                         type: struct
                     id:
                         type: string
+                    logger:
+                        pointer: true
+                        structRef: log/slog.Logger
+                        type: struct
                     message:
                         type: string
                     namespaceName:
@@ -18150,6 +18240,12 @@ service/start:
             type: struct
     responseSchema:
         structs:
+            log/slog.Logger:
+                name: log/slog.Logger
+                properties:
+                    handler:
+                        pointer: true
+                        type: any
             mogenius-k8s-manager/src/structs.Command:
                 name: mogenius-k8s-manager/src/structs.Command
                 properties:
@@ -18187,6 +18283,10 @@ service/start:
                         type: struct
                     id:
                         type: string
+                    logger:
+                        pointer: true
+                        structRef: log/slog.Logger
+                        type: struct
                     message:
                         type: string
                     namespaceName:
@@ -18957,6 +19057,12 @@ service/stop:
             type: struct
     responseSchema:
         structs:
+            log/slog.Logger:
+                name: log/slog.Logger
+                properties:
+                    handler:
+                        pointer: true
+                        type: any
             mogenius-k8s-manager/src/structs.Command:
                 name: mogenius-k8s-manager/src/structs.Command
                 properties:
@@ -18994,6 +19100,10 @@ service/stop:
                         type: struct
                     id:
                         type: string
+                    logger:
+                        pointer: true
+                        structRef: log/slog.Logger
+                        type: struct
                     message:
                         type: string
                     namespaceName:
@@ -19090,6 +19200,12 @@ service/trigger-job:
             type: struct
     responseSchema:
         structs:
+            log/slog.Logger:
+                name: log/slog.Logger
+                properties:
+                    handler:
+                        pointer: true
+                        type: any
             mogenius-k8s-manager/src/structs.Command:
                 name: mogenius-k8s-manager/src/structs.Command
                 properties:
@@ -19127,6 +19243,10 @@ service/trigger-job:
                         type: struct
                     id:
                         type: string
+                    logger:
+                        pointer: true
+                        structRef: log/slog.Logger
+                        type: struct
                     message:
                         type: string
                     namespaceName:
@@ -19781,6 +19901,12 @@ service/update-service:
             type: struct
     responseSchema:
         structs:
+            log/slog.Logger:
+                name: log/slog.Logger
+                properties:
+                    handler:
+                        pointer: true
+                        type: any
             mogenius-k8s-manager/src/structs.Command:
                 name: mogenius-k8s-manager/src/structs.Command
                 properties:
@@ -19818,6 +19944,10 @@ service/update-service:
                         type: struct
                     id:
                         type: string
+                    logger:
+                        pointer: true
+                        structRef: log/slog.Logger
+                        type: struct
                     message:
                         type: string
                     namespaceName:

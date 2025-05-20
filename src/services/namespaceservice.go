@@ -15,7 +15,7 @@ import (
 func CreateNamespace(eventClient websocket.WebsocketClient, r NamespaceCreateRequest) *structs.Job {
 	var wg sync.WaitGroup
 
-	job := structs.CreateJob(eventClient, "Create namespace "+r.Project.DisplayName+"/"+r.Namespace.DisplayName, r.Project.Id, r.Namespace.Name, "")
+	job := structs.CreateJob(eventClient, "Create namespace "+r.Project.DisplayName+"/"+r.Namespace.DisplayName, r.Project.Id, r.Namespace.Name, "", serviceLogger)
 	job.Start(eventClient)
 	CreateNamespaceCmds(eventClient, job, r, &wg)
 
@@ -39,7 +39,7 @@ func CreateNamespaceCmds(eventClient websocket.WebsocketClient, job *structs.Job
 func DeleteNamespace(eventClient websocket.WebsocketClient, r NamespaceDeleteRequest) *structs.Job {
 	var wg sync.WaitGroup
 
-	job := structs.CreateJob(eventClient, "Delete namespace "+r.Project.DisplayName+"/"+r.Namespace.DisplayName, r.Project.Id, r.Namespace.Name, "")
+	job := structs.CreateJob(eventClient, "Delete namespace "+r.Project.DisplayName+"/"+r.Namespace.DisplayName, r.Project.Id, r.Namespace.Name, "", serviceLogger)
 	job.Start(eventClient)
 	mokubernetes.DeleteNamespace(eventClient, job, r.Namespace, &wg)
 
@@ -54,7 +54,7 @@ func DeleteNamespace(eventClient websocket.WebsocketClient, r NamespaceDeleteReq
 func ShutdownNamespace(eventClient websocket.WebsocketClient, r NamespaceShutdownRequest) *structs.Job {
 	var wg sync.WaitGroup
 
-	job := structs.CreateJob(eventClient, "Shutdown Stage "+r.Namespace.DisplayName, r.ProjectId, r.Namespace.Name, r.Service.ControllerName)
+	job := structs.CreateJob(eventClient, "Shutdown Stage "+r.Namespace.DisplayName, r.ProjectId, r.Namespace.Name, r.Service.ControllerName, serviceLogger)
 	job.Start(eventClient)
 	mokubernetes.StopDeployment(eventClient, job, r.Namespace, r.Service, &wg)
 	mokubernetes.DeleteService(eventClient, job, r.Namespace, r.Service, &wg)
