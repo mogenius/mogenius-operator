@@ -33,7 +33,7 @@ var CURRENT_COUNTRY *CountryDetails
 
 var config cfg.ConfigModule
 var utilsLogger *slog.Logger
-var validate *validator.Validate
+var validate = validator.New(validator.WithRequiredStructEnabled())
 
 func Setup(logManagerModule logging.SlogManager, configModule cfg.ConfigModule) {
 	utilsLogger = logManagerModule.CreateLogger("utils")

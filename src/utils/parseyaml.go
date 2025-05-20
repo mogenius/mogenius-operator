@@ -225,18 +225,6 @@ func InitDeployment() v1.Deployment {
 	return app
 }
 
-func InitMogeniusCrdProjectsYaml() string {
-	return readYaml("yaml-templates/crds-projects.yaml")
-}
-
-func InitMogeniusCrdEnvironmentsYaml() string {
-	return readYaml("yaml-templates/crds-environments.yaml")
-}
-
-func InitMogeniusCrdApplicationKitYaml() string {
-	return readYaml("yaml-templates/crds-applicationkit.yaml")
-}
-
 func InitExternalSecretsStoreYaml() string {
 	return readYaml("yaml-templates/external-secrets-store-vault.yaml")
 }

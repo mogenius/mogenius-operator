@@ -40,8 +40,8 @@ const (
 
 	HELM_CACHE_HOME              = "helm/cache"
 	HELM_REPOSITORY_CACHE_FOLDER = "helm/cache/repository"
-
-	HELM_REPOSITORY_CONFIG_FILE = "helm/repositories.yaml"
+	HELM_REGISTRY_CONFIG_FILE    = "helm/config.json"
+	HELM_REPOSITORY_CONFIG_FILE  = "helm/repositories.yaml"
 
 	HELM_PLUGINS = "helm/plugins"
 
@@ -298,9 +298,13 @@ func parseHelmEntry(entry *repo.Entry) *HelmEntryWithoutPassword {
 func InitHelmConfig() error {
 	_repositoryCache, ok := os.LookupEnv("HELM_REPOSITORY_CACHE")
 	assert.Assert(ok)
+	_repositoryConfig, ok := os.LookupEnv("HELM_REGISTRY_CONFIG")
+	assert.Assert(ok)
 	_registryConfig, ok := os.LookupEnv("HELM_REPOSITORY_CONFIG")
 	assert.Assert(ok)
+
 	repositoryCache = _repositoryCache
+	repositoryConfig = _repositoryConfig
 	registryConfig = _registryConfig
 
 	// Set the HELM_HOME environment variable
@@ -1347,7 +1351,7 @@ func HelmReleaseGetWorkloads(valkeyClient valkeyclient.ValkeyClient, data HelmRe
 			if !replicaSetsFetched {
 				replicaSets, err = store.SearchByKeyParts(valkeyClient, "apps/v1", "ReplicaSet", data.Namespace)
 				if errors.Is(err, store.ErrNotFound) {
-					helmLogger.Warn("ReplicaSet not found", "error", err.Error())
+					helmLogger.Warn("ReplicaSets not found", "namespace", data.Namespace, "error", err.Error())
 					replicaSets = nil
 				}
 				replicaSetsFetched = true

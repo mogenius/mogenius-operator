@@ -124,9 +124,6 @@ jobs:
   #         kubectl create namespace mogenius
   #         helm repo add external-secrets https://charts.external-secrets.io
   #         helm install external-secrets external-secrets/external-secrets
-  #         kubectl apply -f utils/yaml-templates/crds-applicationkit.yaml
-  #         kubectl apply -f utils/yaml-templates/crds-environments.yaml
-  #         kubectl apply -f utils/yaml-templates/crds-projects.yaml
 
   #         kubectl rollout status deployment external-secrets
   #         kubectl rollout status deployment external-secrets-cert-controller
