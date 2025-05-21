@@ -496,9 +496,9 @@
                 };
 
                 const startTime = performance.now();
-                // Add a 5 second timeout to the fetch
+                // Add a 10 second timeout to the fetch
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 5000);
+                const timeoutId = setTimeout(() => controller.abort(), 10000);
                 let response;
                 try {
                     response = await fetch('http://localhost:1337/socketapi', {

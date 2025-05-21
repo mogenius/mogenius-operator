@@ -11,15 +11,33 @@ import (
 	"mogenius-k8s-manager/src/utils"
 	"slices"
 
+	appsv1 "k8s.io/api/apps/v1"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	netv1 "k8s.io/api/networking/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	v1metrics "k8s.io/metrics/pkg/apis/metrics/v1beta1"
 	"sigs.k8s.io/yaml"
 )
 
+type CleanUpResult struct {
+	Pods        []CleanUpResultEntry
+	ReplicaSets []CleanUpResultEntry
+	Services    []CleanUpResultEntry
+	Secrets     []CleanUpResultEntry
+	ConfigMaps  []CleanUpResultEntry
+	Jobs        []CleanUpResultEntry
+	Ingresses   []CleanUpResultEntry
+}
+type CleanUpResultEntry struct {
+	Name      string
+	Namespace string
+	Reason    string
+}
 type MoKubernetes interface {
 	Run()
 	Link(valkeyStatsDb ValkeyStatsDb)
@@ -27,6 +45,7 @@ type MoKubernetes interface {
 	CreateOrUpdateClusterSecret() (utils.ClusterSecret, error)
 	CreateOrUpdateResourceTemplateConfigmap() error
 	GetNodeStats() []dtos.NodeStat
+	CleanUp(apiService Api, workspaceName string, dryRun bool, replicaSets bool, pods bool, services bool, secrets bool, configMaps bool, jobs bool, ingresses bool) (CleanUpResult, error)
 }
 
 type moKubernetes struct {
@@ -318,4 +337,298 @@ func (self *moKubernetes) GetNodeStats() []dtos.NodeStat {
 	}
 
 	return result
+}
+
+func (self *moKubernetes) CleanUp(apiService Api, workspaceName string, dryRun bool, replicaSets bool, pods bool, services bool, secrets bool, configMaps bool, jobs bool, ingresses bool) (CleanUpResult, error) {
+	result := CleanUpResult{}
+
+	entries, err := apiService.GetWorkspaceResources(workspaceName, nil, nil, nil)
+	if err != nil {
+		self.logger.Error("failed to get workspace resources", "error", err)
+		return result, err
+	}
+
+	workspacePods := []corev1.Pod{}
+	workspaceIngresses := []netv1.Ingress{}
+	workSpaceServices := []corev1.Service{}
+
+	// Filter pods,ingresses,services in workspace first because we need them for later checks
+	for _, entry := range entries {
+		// PODS
+		if entry.GetKind() == "Pod" && pods {
+			var pod corev1.Pod
+			err := runtime.DefaultUnstructuredConverter.FromUnstructured(entry.UnstructuredContent(), &pod)
+			if err != nil {
+				continue
+			}
+			workspacePods = append(workspacePods, pod)
+			if pod.Status.Phase == corev1.PodSucceeded || pod.Status.Phase == corev1.PodFailed || pod.Status.Phase == corev1.PodUnknown {
+				result.Pods = append(result.Pods, createCURE(pod.Name, pod.Namespace, "pod is in succeeded/failed/unknown state"))
+				if !dryRun {
+					kubernetes.DeleteResource(entry.GroupVersionKind().Group, entry.GroupVersionKind().Version, entry.GetKind(), entry.GetNamespace(), entry.GetNamespace(), false)
+				}
+			}
+		}
+
+		// Ingresses
+		if entry.GetKind() == "Ingress" {
+			var ingress netv1.Ingress
+			err := runtime.DefaultUnstructuredConverter.FromUnstructured(entry.UnstructuredContent(), &ingress)
+			if err != nil {
+				continue
+			}
+			workspaceIngresses = append(workspaceIngresses, ingress)
+		}
+
+		// Services
+		if entry.GetKind() == "Service" {
+			var service corev1.Service
+			err := runtime.DefaultUnstructuredConverter.FromUnstructured(entry.UnstructuredContent(), &service)
+			if err != nil {
+				continue
+			}
+			workSpaceServices = append(workSpaceServices, service)
+		}
+	}
+
+	for _, entry := range entries {
+		// REPLICASETS
+		if entry.GetKind() == "ReplicaSet" && replicaSets {
+			var replicaSet appsv1.ReplicaSet
+			err := runtime.DefaultUnstructuredConverter.FromUnstructured(entry.UnstructuredContent(), &replicaSet)
+			if err != nil {
+				continue
+			}
+			if replicaSet.Status.Replicas == 0 && int(*replicaSet.Spec.Replicas) == 0 {
+				result.ReplicaSets = append(result.ReplicaSets, createCURE(replicaSet.Name, replicaSet.Namespace, "replicaset unused. (replicas == 0 and status.replicas == 0)"))
+				if !dryRun {
+					kubernetes.DeleteResource(entry.GroupVersionKind().Group, entry.GroupVersionKind().Version, entry.GetKind(), entry.GetNamespace(), entry.GetNamespace(), false)
+				}
+			}
+		}
+
+		// SERVICES
+		if entry.GetKind() == "Service" && services {
+			var service corev1.Service
+			err := runtime.DefaultUnstructuredConverter.FromUnstructured(entry.UnstructuredContent(), &service)
+			if err != nil {
+				continue
+			}
+
+			// Determine if service is orphaned
+			if len(service.Spec.Selector) == 0 {
+				continue
+			}
+			matchingPods := 0
+			for _, pod := range workspacePods {
+				if podMatchesSelector(&pod, service.Spec.Selector) {
+					matchingPods++
+					break
+				}
+			}
+			if matchingPods == 0 {
+				result.Services = append(result.Services, createCURE(service.Name, service.Namespace, "service not used by any running pod"))
+				if !dryRun {
+					kubernetes.DeleteResource(entry.GroupVersionKind().Group, entry.GroupVersionKind().Version, entry.GetKind(), entry.GetNamespace(), entry.GetNamespace(), false)
+				}
+			}
+		}
+
+		// SECRETS
+		if entry.GetKind() == "Secret" && secrets {
+			var secret corev1.Secret
+			err := runtime.DefaultUnstructuredConverter.FromUnstructured(entry.UnstructuredContent(), &secret)
+			if err != nil {
+				continue
+			}
+			isInUse := false
+			for _, pod := range workspacePods {
+				// check if configmap is used by any pod
+				if pod.Spec.Volumes != nil {
+					for _, volume := range pod.Spec.Volumes {
+						if volume.ConfigMap != nil && volume.ConfigMap.Name == secret.Name {
+							isInUse = true
+							break
+						}
+					}
+				}
+				if pod.Spec.Containers != nil {
+					for _, container := range pod.Spec.Containers {
+						if container.VolumeMounts != nil {
+							for _, volumeMount := range container.VolumeMounts {
+								if volumeMount.Name == secret.Name {
+									isInUse = true
+									break
+								}
+							}
+						}
+						for _, env := range container.Env {
+							if env.ValueFrom != nil && env.ValueFrom.SecretKeyRef != nil && env.ValueFrom.SecretKeyRef.Name == secret.Name {
+								isInUse = true
+								break
+							}
+						}
+					}
+				}
+				if pod.Spec.InitContainers != nil {
+					for _, initContainer := range pod.Spec.InitContainers {
+						if initContainer.VolumeMounts != nil {
+							for _, volumeMount := range initContainer.VolumeMounts {
+								if volumeMount.Name == secret.Name {
+									isInUse = true
+									break
+								}
+							}
+						}
+					}
+				}
+				if pod.Spec.ImagePullSecrets != nil {
+					for _, imagePullSecret := range pod.Spec.ImagePullSecrets {
+						if imagePullSecret.Name == secret.Name {
+							isInUse = true
+							break
+						}
+					}
+				}
+			}
+			for _, ingress := range workspaceIngresses {
+				for _, tls := range ingress.Spec.TLS {
+					if tls.SecretName == secret.Name {
+						isInUse = true
+						break
+					}
+				}
+			}
+			if !isInUse {
+				result.Secrets = append(result.Secrets, createCURE(secret.Name, secret.Namespace, "secret is not used by any pod or ingress"))
+				if !dryRun {
+					kubernetes.DeleteResource(entry.GroupVersionKind().Group, entry.GroupVersionKind().Version, entry.GetKind(), entry.GetNamespace(), entry.GetNamespace(), false)
+				}
+			}
+		}
+
+		// CONFIGMAPS
+		if entry.GetKind() == "ConfigMap" && configMaps {
+			var configMap corev1.ConfigMap
+			err := runtime.DefaultUnstructuredConverter.FromUnstructured(entry.UnstructuredContent(), &configMap)
+			if err != nil {
+				continue
+			}
+			isInUse := false
+			if configMap.Name == "kube-root-ca.crt" {
+				isInUse = true
+			} else {
+				for _, pod := range workspacePods {
+					// check if configmap is used by any pod
+					if pod.Spec.Volumes != nil {
+						for _, volume := range pod.Spec.Volumes {
+							if volume.ConfigMap != nil && volume.ConfigMap.Name == configMap.Name {
+								isInUse = true
+								break
+							}
+						}
+					}
+					if pod.Spec.Containers != nil {
+						for _, container := range pod.Spec.Containers {
+							if container.VolumeMounts != nil {
+								for _, volumeMount := range container.VolumeMounts {
+									if volumeMount.Name == configMap.Name {
+										isInUse = true
+										break
+									}
+								}
+							}
+							for _, env := range container.Env {
+								if env.ValueFrom != nil && env.ValueFrom.SecretKeyRef != nil && env.ValueFrom.SecretKeyRef.Name == configMap.Name {
+									isInUse = true
+									break
+								}
+							}
+						}
+					}
+					if pod.Spec.InitContainers != nil {
+						for _, initContainer := range pod.Spec.InitContainers {
+							if initContainer.VolumeMounts != nil {
+								for _, volumeMount := range initContainer.VolumeMounts {
+									if volumeMount.Name == configMap.Name {
+										isInUse = true
+										break
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+			if !isInUse {
+				result.ConfigMaps = append(result.ConfigMaps, createCURE(configMap.Name, configMap.Namespace, "configmap not used by any pod"))
+				if !dryRun {
+					kubernetes.DeleteResource(entry.GroupVersionKind().Group, entry.GroupVersionKind().Version, entry.GetKind(), entry.GetNamespace(), entry.GetNamespace(), false)
+				}
+			}
+		}
+
+		// JOBS
+		if entry.GetKind() == "Job" && jobs {
+			var job batchv1.Job
+			err := runtime.DefaultUnstructuredConverter.FromUnstructured(entry.UnstructuredContent(), &job)
+			if err != nil {
+				continue
+			}
+			if job.Status.Succeeded == *job.Spec.Completions && job.Status.Failed == 0 {
+				result.Jobs = append(result.Jobs, createCURE(job.Name, job.Namespace, "job completed"))
+				if !dryRun {
+					kubernetes.DeleteResource(entry.GroupVersionKind().Group, entry.GroupVersionKind().Version, entry.GetKind(), entry.GetNamespace(), entry.GetNamespace(), false)
+				}
+			}
+		}
+
+		// INGRESSES
+		if entry.GetKind() == "Ingress" && jobs {
+			var ingress netv1.Ingress
+			err := runtime.DefaultUnstructuredConverter.FromUnstructured(entry.UnstructuredContent(), &ingress)
+			if err != nil {
+				continue
+			}
+			serviceExists := false
+			for _, service := range workSpaceServices {
+				for _, v := range ingress.Spec.Rules {
+					if v.HTTP != nil {
+						for _, path := range v.HTTP.Paths {
+							if path.Backend.Service.Name == service.Name {
+								serviceExists = true
+								break
+							}
+						}
+					}
+
+				}
+			}
+			if !serviceExists {
+				result.Ingresses = append(result.Ingresses, createCURE(ingress.Name, ingress.Namespace, "ingress not used by any service"))
+				if !dryRun {
+					kubernetes.DeleteResource(entry.GroupVersionKind().Group, entry.GroupVersionKind().Version, entry.GetKind(), entry.GetNamespace(), entry.GetNamespace(), false)
+				}
+			}
+		}
+	}
+	return result, nil
+}
+
+func createCURE(name, namespace, reason string) CleanUpResultEntry {
+	return CleanUpResultEntry{
+		Name:      name,
+		Namespace: namespace,
+		Reason:    reason,
+	}
+}
+
+func podMatchesSelector(pod *corev1.Pod, selector map[string]string) bool {
+	labels := pod.GetLabels()
+	for key, value := range selector {
+		if podValue, exists := labels[key]; !exists || podValue != value {
+			return false
+		}
+	}
+	return true
 }

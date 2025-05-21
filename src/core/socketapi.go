@@ -1829,6 +1829,38 @@ func (self *socketApi) registerPatterns() {
 
 	{
 		type Request struct {
+			Name        string `json:"name" validate:"required"`
+			DryRun      bool   `json:"dryRun" validate:"required"`
+			ReplicaSets bool   `json:"replicaSets" validate:"required"`
+			Pods        bool   `json:"pods" validate:"required"`
+			Services    bool   `json:"services" validate:"required"`
+			Secrets     bool   `json:"secrets" validate:"required"`
+			ConfigMaps  bool   `json:"configMaps" validate:"required"`
+			Jobs        bool   `json:"jobs" validate:"required"`
+			Ingresses   bool   `json:"ingresses" validate:"required"`
+		}
+
+		RegisterPatternHandler(
+			PatternHandle{self, "clean/workspace"},
+			PatternConfig{},
+			func(request Request) (CleanUpResult, error) {
+				return self.moKubernetes.CleanUp(
+					self.apiService,
+					request.Name,
+					request.DryRun,
+					request.ReplicaSets,
+					request.Pods,
+					request.Services,
+					request.Secrets,
+					request.ConfigMaps,
+					request.Jobs,
+					request.Ingresses)
+			},
+		)
+	}
+
+	{
+		type Request struct {
 			Name        string                                 `json:"name" validate:"required"`
 			DisplayName string                                 `json:"displayName"`
 			Resources   []v1alpha1.WorkspaceResourceIdentifier `json:"resources" validate:"required"`
