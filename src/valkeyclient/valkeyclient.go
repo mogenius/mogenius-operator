@@ -26,6 +26,7 @@ type ValkeyClient interface {
 	SetObject(value interface{}, expiration time.Duration, keys ...string) error
 	Get(keys ...string) (string, error)
 	GetObject(keys ...string) (interface{}, error)
+	List(limit int, keys ...string) ([]string, error)
 
 	AddToBucket(maxSize int64, value interface{}, bucketKey ...string) error
 	ListFromBucket(start int64, stop int64, bucketKey ...string) ([]string, error)
@@ -162,6 +163,39 @@ func (self *valkeyClient) GetObject(keys ...string) (interface{}, error) {
 	if err != nil {
 		self.logger.Error("Error unmarshalling value from Redis", "key", key, "error", err)
 		return result, err
+	}
+	return result, nil
+}
+
+func (self *valkeyClient) List(limit int, keys ...string) ([]string, error) {
+	key := createKey(keys...)
+	key = key + ":*"
+
+	selectedKeys, err := self.redisClient.Keys(self.ctx, key).Result()
+	if err != nil {
+		self.logger.Error("Error listing keys from Redis", "pattern", key, "error", err)
+		return nil, err
+	}
+	if len(selectedKeys) == 0 {
+		self.logger.Debug("No keys found for pattern", "pattern", key)
+		return selectedKeys, nil
+	}
+
+	// Fetch the values for these keys
+	values, err := self.redisClient.MGet(self.ctx, selectedKeys...).Result()
+	if err != nil {
+		self.logger.Error("Error fetching values from Redis", "keys", selectedKeys, "error", err)
+		return nil, err
+	}
+	// Convert the values to a slice of strings
+	var result []string
+	for index, v := range values {
+		if limit > 0 && index >= limit {
+			break
+		}
+		if v != nil {
+			result = append(result, v.(string))
+		}
 	}
 	return result, nil
 }

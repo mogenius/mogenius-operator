@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"mogenius-k8s-manager/src/kubernetes"
+	"mogenius-k8s-manager/src/utils"
 	"net/url"
 	"strings"
 	"sync"
@@ -15,6 +16,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+var eventChannels = make(map[string]chan string)
+
 func readChannelPodEvent(ch chan string, conn *websocket.Conn, connWriteLock *sync.Mutex, ctx context.Context) {
 	for message := range ch {
 		select {
@@ -22,23 +25,26 @@ func readChannelPodEvent(ch chan string, conn *websocket.Conn, connWriteLock *sy
 			return
 		default:
 			if conn != nil {
-				var events []v1.Event
+				var event v1.Event
 
-				if err := json.Unmarshal([]byte(message), &events); err != nil {
+				if err := json.Unmarshal([]byte(message), &event); err != nil {
 					xtermLogger.Error("Unable to unmarshal event", "error", err)
 					continue
 				}
-				for _, event := range events {
-					formattedTime := event.FirstTimestamp.Time.Format("2006-01-02 15:04:05")
-					if !strings.HasSuffix(event.Message, "\n") && !strings.HasSuffix(event.Message, "\n\r") {
-						event.Message = event.Message + "\n\r"
-					}
-					connWriteLock.Lock()
-					err := conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("[%s] %s", formattedTime, event.Message)))
-					connWriteLock.Unlock()
-					if err != nil {
-						xtermLogger.Error("WriteMessage", "error", err)
-					}
+				formattedTime := event.ObjectMeta.CreationTimestamp.Time.Format("2006-01-02 15:04:05")
+				if !strings.HasSuffix(event.Message, "\n") && !strings.HasSuffix(event.Message, "\n\r") {
+					event.Message = event.Message + "\n\r"
+				}
+				connWriteLock.Lock()
+				var err error
+				if strings.HasPrefix(event.Message, "No recent events found.") {
+					err = conn.WriteMessage(websocket.TextMessage, []byte(string(event.Message)))
+				} else {
+					err = conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("[%s] %s%s", formattedTime, utils.FillWith(event.Reason, 28, " "), event.Message)))
+				}
+				connWriteLock.Unlock()
+				if err != nil {
+					xtermLogger.Error("WriteMessage", "error", err)
 				}
 
 			}
@@ -71,55 +77,48 @@ func PodEventStreamConnection(wsConnectionRequest WsConnectionRequest, namespace
 	defer func() {
 		cancel()
 
-		ch := kubernetes.EventChannels[key]
-		_, exists := kubernetes.EventChannels[key]
+		ch := eventChannels[key]
+		_, exists := eventChannels[key]
 		if exists {
 			if ch != nil {
 				close(ch)
 			}
-			delete(kubernetes.EventChannels, key)
+			delete(eventChannels, key)
 		}
 	}()
 
-	ch, exists := kubernetes.EventChannels[key]
+	ch, exists := eventChannels[key]
 	if exists {
 		if ch != nil {
 			close(ch)
 		}
-		delete(kubernetes.EventChannels, key)
+		delete(eventChannels, key)
 	}
-	kubernetes.EventChannels[key] = make(chan string)
-	ch = kubernetes.EventChannels[key]
+	eventChannels[key] = make(chan string)
+	ch = eventChannels[key]
 
 	go readChannelPodEvent(ch, conn, connWriteLock, ctx)
 
 	// init
 	go func(ch chan string) {
-		data, err := store.LastNEntryFromBucketWithType(50, "pod-events", key)
+		data, err := store.List(50, kubernetes.VALKEY_RESOURCE_PREFIX, "v1", "Event", namespace)
 		if err != nil {
 			xtermLogger.Error("Error getting events from pod-events", "error", err.Error())
 			return
 		}
-		var events []*v1.Event
-		for _, v := range data {
-			var event v1.Event
-			err := json.Unmarshal([]byte(v), &event)
+
+		if len(data) == 0 {
+			emptyEvent := &v1.Event{Message: "No recent events found. Restart the Pod to generate visible events or enjoy the silence.", FirstTimestamp: metav1.Time{Time: time.Now()}}
+			emptyEventData, err := json.Marshal(emptyEvent)
 			if err != nil {
 				xtermLogger.Error("Error getting events from pod-events", "error", err.Error())
-				continue
+				return
 			}
-			events = append(events, &event)
+			data = append(data, string(emptyEventData))
 		}
-		if len(events) == 0 {
-			events = append(events, &v1.Event{Message: "No recent events found. Restart the Pod to generate visible events or enjoy the silence.", FirstTimestamp: metav1.Time{Time: time.Now()}})
-		}
-		updatedData, err := json.Marshal(events)
-		if err != nil {
-			xtermLogger.Error("Error getting events from pod-events", "error", err.Error())
-			return
-		}
-		if ch != nil {
-			ch <- string(updatedData)
+
+		for _, v := range data {
+			ch <- v
 		}
 	}(ch)
 
