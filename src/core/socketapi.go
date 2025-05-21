@@ -1032,9 +1032,8 @@ func (self *socketApi) registerPatterns() {
 	RegisterPatternHandler(
 		PatternHandle{self, "cluster/list-persistent-volume-claims"},
 		PatternConfig{},
-		func(request services.ClusterListWorkloads) (kubernetes.K8sWorkloadResult, error) {
-			// AllPersistentVolumes
-			return kubernetes.ListPersistentVolumeClaimsWithFieldSelector(request.Namespace, request.LabelSelector, request.Prefix), nil
+		func(request services.ClusterListWorkloads) ([]v1.PersistentVolumeClaim, error) {
+			return kubernetes.ListPersistentVolumeClaimsWithFieldSelector(request.Namespace, request.LabelSelector, request.Prefix)
 		},
 	)
 

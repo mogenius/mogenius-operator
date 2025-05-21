@@ -7,6 +7,7 @@ import (
 	"mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/utils"
 	"net/url"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -18,37 +19,22 @@ import (
 
 var eventChannels = make(map[string]chan string)
 
-func readChannelPodEvent(ch chan string, conn *websocket.Conn, connWriteLock *sync.Mutex, ctx context.Context) {
-	for message := range ch {
-		select {
-		case <-ctx.Done():
-			return
-		default:
-			if conn != nil {
-				var event v1.Event
-
-				if err := json.Unmarshal([]byte(message), &event); err != nil {
-					xtermLogger.Error("Unable to unmarshal event", "error", err)
-					continue
-				}
-				formattedTime := event.ObjectMeta.CreationTimestamp.Time.Format("2006-01-02 15:04:05")
-				if !strings.HasSuffix(event.Message, "\n") && !strings.HasSuffix(event.Message, "\n\r") {
-					event.Message = event.Message + "\n\r"
-				}
-				connWriteLock.Lock()
-				var err error
-				if strings.HasPrefix(event.Message, "No recent events found.") {
-					err = conn.WriteMessage(websocket.TextMessage, []byte(string(event.Message)))
-				} else {
-					err = conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("[%s] %s%s", formattedTime, utils.FillWith(event.Reason, 28, " "), event.Message)))
-				}
-				connWriteLock.Unlock()
-				if err != nil {
-					xtermLogger.Error("WriteMessage", "error", err)
-				}
-
-			}
-			continue
+func writeEvent(conn *websocket.Conn, connWriteLock *sync.Mutex, event v1.Event) {
+	if conn != nil {
+		formattedTime := event.ObjectMeta.CreationTimestamp.Time.Format("2006-01-02 15:04:05")
+		if !strings.HasSuffix(event.Message, "\n") && !strings.HasSuffix(event.Message, "\n\r") {
+			event.Message = event.Message + "\n\r"
+		}
+		connWriteLock.Lock()
+		var err error
+		if strings.HasPrefix(event.Message, "No recent events found.") {
+			err = conn.WriteMessage(websocket.TextMessage, []byte(string(event.Message)))
+		} else {
+			err = conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("[%s] %s%s", formattedTime, utils.FillWith(event.Reason, 28, " "), event.Message)))
+		}
+		connWriteLock.Unlock()
+		if err != nil {
+			xtermLogger.Error("WriteMessage", "error", err)
 		}
 	}
 }
@@ -72,55 +58,41 @@ func PodEventStreamConnection(wsConnectionRequest WsConnectionRequest, namespace
 		return
 	}
 
-	key := fmt.Sprintf("%s:%s", namespace, controller)
-
-	defer func() {
-		cancel()
-
-		ch := eventChannels[key]
-		_, exists := eventChannels[key]
-		if exists {
-			if ch != nil {
-				close(ch)
-			}
-			delete(eventChannels, key)
-		}
-	}()
-
-	ch, exists := eventChannels[key]
-	if exists {
-		if ch != nil {
-			close(ch)
-		}
-		delete(eventChannels, key)
+	data, err := store.List(50, kubernetes.VALKEY_RESOURCE_PREFIX, "v1", "Event", namespace)
+	if err != nil {
+		xtermLogger.Error("Error getting events from pod-events", "error", err.Error())
+		return
 	}
-	eventChannels[key] = make(chan string)
-	ch = eventChannels[key]
 
-	go readChannelPodEvent(ch, conn, connWriteLock, ctx)
-
-	// init
-	go func(ch chan string) {
-		data, err := store.List(50, kubernetes.VALKEY_RESOURCE_PREFIX, "v1", "Event", namespace)
-		if err != nil {
-			xtermLogger.Error("Error getting events from pod-events", "error", err.Error())
-			return
-		}
-
-		if len(data) == 0 {
-			emptyEvent := &v1.Event{Message: "No recent events found. Restart the Pod to generate visible events or enjoy the silence.", FirstTimestamp: metav1.Time{Time: time.Now()}}
-			emptyEventData, err := json.Marshal(emptyEvent)
-			if err != nil {
-				xtermLogger.Error("Error getting events from pod-events", "error", err.Error())
-				return
+	// sort the events by timestamp
+	if len(data) > 0 {
+		sort.Slice(data, func(i, j int) bool {
+			event := &v1.Event{}
+			if err := json.Unmarshal([]byte(data[i]), event); err != nil {
+				xtermLogger.Error("Unable to unmarshal event", "error", err)
+				return false
 			}
-			data = append(data, string(emptyEventData))
-		}
+			event2 := &v1.Event{}
+			if err := json.Unmarshal([]byte(data[j]), event2); err != nil {
+				xtermLogger.Error("Unable to unmarshal event", "error", err)
+				return false
+			}
+			return event.ObjectMeta.CreationTimestamp.Time.After(event2.ObjectMeta.CreationTimestamp.Time)
+		})
+	}
 
-		for _, v := range data {
-			ch <- v
+	if len(data) == 0 {
+		emptyEvent := v1.Event{Message: "No recent events found. Restart the Pod to generate visible events or enjoy the silence.", FirstTimestamp: metav1.Time{Time: time.Now()}}
+		writeEvent(conn, connWriteLock, emptyEvent)
+	}
+	for _, item := range data {
+		event := v1.Event{}
+		if err := json.Unmarshal([]byte(item), &event); err != nil {
+			xtermLogger.Error("Unable to unmarshal event", "error", err)
+			continue
 		}
-	}(ch)
+		writeEvent(conn, connWriteLock, event)
+	}
 
 	// websocket to input
 	websocketToCmdInput(*readMessages, ctx, nil, nil)
