@@ -2518,6 +2518,85 @@ attach/labeled_network_policy:
     responseSchema:
         typeInfo:
             type: string
+clean/workspace:
+    requestSchema:
+        structs:
+            mogenius-k8s-manager/src/core.Request:
+                name: mogenius-k8s-manager/src/core.Request
+                properties:
+                    configMaps:
+                        type: bool
+                    dryRun:
+                        type: bool
+                    ingresses:
+                        type: bool
+                    jobs:
+                        type: bool
+                    name:
+                        type: string
+                    pods:
+                        type: bool
+                    replicaSets:
+                        type: bool
+                    secrets:
+                        type: bool
+                    services:
+                        type: bool
+        typeInfo:
+            structRef: mogenius-k8s-manager/src/core.Request
+            type: struct
+    responseSchema:
+        structs:
+            mogenius-k8s-manager/src/core.CleanUpResult:
+                name: mogenius-k8s-manager/src/core.CleanUpResult
+                properties:
+                    ConfigMaps:
+                        elementType:
+                            structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
+                            type: struct
+                        type: array
+                    Ingresses:
+                        elementType:
+                            structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
+                            type: struct
+                        type: array
+                    Jobs:
+                        elementType:
+                            structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
+                            type: struct
+                        type: array
+                    Pods:
+                        elementType:
+                            structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
+                            type: struct
+                        type: array
+                    ReplicaSets:
+                        elementType:
+                            structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
+                            type: struct
+                        type: array
+                    Secrets:
+                        elementType:
+                            structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
+                            type: struct
+                        type: array
+                    Services:
+                        elementType:
+                            structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
+                            type: struct
+                        type: array
+            mogenius-k8s-manager/src/core.CleanUpResultEntry:
+                name: mogenius-k8s-manager/src/core.CleanUpResultEntry
+                properties:
+                    Name:
+                        type: string
+                    Namespace:
+                        type: string
+                    Reason:
+                        type: string
+        typeInfo:
+            structRef: mogenius-k8s-manager/src/core.CleanUpResult
+            type: struct
 cluster/backup:
     responseSchema:
         structs:
@@ -3747,18 +3826,304 @@ cluster/list-persistent-volume-claims:
             type: struct
     responseSchema:
         structs:
-            mogenius-k8s-manager/src/kubernetes.K8sWorkloadResult:
-                name: mogenius-k8s-manager/src/kubernetes.K8sWorkloadResult
+            k8s.io/api/core/v1.ModifyVolumeStatus:
+                name: k8s.io/api/core/v1.ModifyVolumeStatus
                 properties:
-                    error:
+                    status:
+                        type: string
+                    targetVolumeAttributesClassName:
+                        type: string
+            k8s.io/api/core/v1.PersistentVolumeClaim:
+                name: k8s.io/api/core/v1.PersistentVolumeClaim
+                properties:
+                    TypeMeta:
+                        structRef: k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta
+                        type: struct
+                    metadata:
+                        structRef: k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta
+                        type: struct
+                    spec:
+                        structRef: k8s.io/api/core/v1.PersistentVolumeClaimSpec
+                        type: struct
+                    status:
+                        structRef: k8s.io/api/core/v1.PersistentVolumeClaimStatus
+                        type: struct
+            k8s.io/api/core/v1.PersistentVolumeClaimCondition:
+                name: k8s.io/api/core/v1.PersistentVolumeClaimCondition
+                properties:
+                    lastProbeTime:
+                        structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
+                        type: struct
+                    lastTransitionTime:
+                        structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
+                        type: struct
+                    message:
+                        type: string
+                    reason:
+                        type: string
+                    status:
+                        type: string
+                    type:
+                        type: string
+            k8s.io/api/core/v1.PersistentVolumeClaimSpec:
+                name: k8s.io/api/core/v1.PersistentVolumeClaimSpec
+                properties:
+                    accessModes:
+                        elementType:
+                            type: string
+                        type: array
+                    dataSource:
                         pointer: true
-                        type: any
-                    result:
+                        structRef: k8s.io/api/core/v1.TypedLocalObjectReference
+                        type: struct
+                    dataSourceRef:
                         pointer: true
-                        type: any
+                        structRef: k8s.io/api/core/v1.TypedObjectReference
+                        type: struct
+                    resources:
+                        structRef: k8s.io/api/core/v1.VolumeResourceRequirements
+                        type: struct
+                    selector:
+                        pointer: true
+                        structRef: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
+                        type: struct
+                    storageClassName:
+                        pointer: true
+                        type: string
+                    volumeAttributesClassName:
+                        pointer: true
+                        type: string
+                    volumeMode:
+                        pointer: true
+                        type: string
+                    volumeName:
+                        type: string
+            k8s.io/api/core/v1.PersistentVolumeClaimStatus:
+                name: k8s.io/api/core/v1.PersistentVolumeClaimStatus
+                properties:
+                    accessModes:
+                        elementType:
+                            type: string
+                        type: array
+                    allocatedResourceStatuses:
+                        keyType:
+                            type: string
+                        type: map
+                        valueType:
+                            type: string
+                    allocatedResources:
+                        keyType:
+                            type: string
+                        type: map
+                        valueType:
+                            structRef: k8s.io/apimachinery/pkg/api/resource.Quantity
+                            type: struct
+                    capacity:
+                        keyType:
+                            type: string
+                        type: map
+                        valueType:
+                            structRef: k8s.io/apimachinery/pkg/api/resource.Quantity
+                            type: struct
+                    conditions:
+                        elementType:
+                            structRef: k8s.io/api/core/v1.PersistentVolumeClaimCondition
+                            type: struct
+                        type: array
+                    currentVolumeAttributesClassName:
+                        pointer: true
+                        type: string
+                    modifyVolumeStatus:
+                        pointer: true
+                        structRef: k8s.io/api/core/v1.ModifyVolumeStatus
+                        type: struct
+                    phase:
+                        type: string
+            k8s.io/api/core/v1.TypedLocalObjectReference:
+                name: k8s.io/api/core/v1.TypedLocalObjectReference
+                properties:
+                    apiGroup:
+                        pointer: true
+                        type: string
+                    kind:
+                        type: string
+                    name:
+                        type: string
+            k8s.io/api/core/v1.TypedObjectReference:
+                name: k8s.io/api/core/v1.TypedObjectReference
+                properties:
+                    apiGroup:
+                        pointer: true
+                        type: string
+                    kind:
+                        type: string
+                    name:
+                        type: string
+                    namespace:
+                        pointer: true
+                        type: string
+            k8s.io/api/core/v1.VolumeResourceRequirements:
+                name: k8s.io/api/core/v1.VolumeResourceRequirements
+                properties:
+                    limits:
+                        keyType:
+                            type: string
+                        type: map
+                        valueType:
+                            structRef: k8s.io/apimachinery/pkg/api/resource.Quantity
+                            type: struct
+                    requests:
+                        keyType:
+                            type: string
+                        type: map
+                        valueType:
+                            structRef: k8s.io/apimachinery/pkg/api/resource.Quantity
+                            type: struct
+            k8s.io/apimachinery/pkg/api/resource.Quantity:
+                name: k8s.io/apimachinery/pkg/api/resource.Quantity
+                properties:
+                    Format:
+                        type: string
+            k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1:
+                name: k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1
+                properties: {}
+            k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector:
+                name: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
+                properties:
+                    matchExpressions:
+                        elementType:
+                            structRef: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelectorRequirement
+                            type: struct
+                        type: array
+                    matchLabels:
+                        keyType:
+                            type: string
+                        type: map
+                        valueType:
+                            type: string
+            k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelectorRequirement:
+                name: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelectorRequirement
+                properties:
+                    key:
+                        type: string
+                    operator:
+                        type: string
+                    values:
+                        elementType:
+                            type: string
+                        type: array
+            k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry:
+                name: k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry
+                properties:
+                    apiVersion:
+                        type: string
+                    fieldsType:
+                        type: string
+                    fieldsV1:
+                        pointer: true
+                        structRef: k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1
+                        type: struct
+                    manager:
+                        type: string
+                    operation:
+                        type: string
+                    subresource:
+                        type: string
+                    time:
+                        pointer: true
+                        structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
+                        type: struct
+            k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta:
+                name: k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta
+                properties:
+                    annotations:
+                        keyType:
+                            type: string
+                        type: map
+                        valueType:
+                            type: string
+                    creationTimestamp:
+                        structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
+                        type: struct
+                    deletionGracePeriodSeconds:
+                        pointer: true
+                        type: int
+                    deletionTimestamp:
+                        pointer: true
+                        structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
+                        type: struct
+                    finalizers:
+                        elementType:
+                            type: string
+                        type: array
+                    generateName:
+                        type: string
+                    generation:
+                        type: int
+                    labels:
+                        keyType:
+                            type: string
+                        type: map
+                        valueType:
+                            type: string
+                    managedFields:
+                        elementType:
+                            structRef: k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry
+                            type: struct
+                        type: array
+                    name:
+                        type: string
+                    namespace:
+                        type: string
+                    ownerReferences:
+                        elementType:
+                            structRef: k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference
+                            type: struct
+                        type: array
+                    resourceVersion:
+                        type: string
+                    selfLink:
+                        type: string
+                    uid:
+                        type: string
+            k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference:
+                name: k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference
+                properties:
+                    apiVersion:
+                        type: string
+                    blockOwnerDeletion:
+                        pointer: true
+                        type: bool
+                    controller:
+                        pointer: true
+                        type: bool
+                    kind:
+                        type: string
+                    name:
+                        type: string
+                    uid:
+                        type: string
+            k8s.io/apimachinery/pkg/apis/meta/v1.Time:
+                name: k8s.io/apimachinery/pkg/apis/meta/v1.Time
+                properties:
+                    Time:
+                        structRef: time.Time
+                        type: struct
+            k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta:
+                name: k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta
+                properties:
+                    apiVersion:
+                        type: string
+                    kind:
+                        type: string
+            time.Time:
+                name: time.Time
+                properties: {}
         typeInfo:
-            structRef: mogenius-k8s-manager/src/kubernetes.K8sWorkloadResult
-            type: struct
+            elementType:
+                structRef: k8s.io/api/core/v1.PersistentVolumeClaim
+                type: struct
+            type: array
 cluster/machine-stats:
     requestSchema:
         structs:
