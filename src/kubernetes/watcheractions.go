@@ -51,6 +51,7 @@ var MirroredResourceKinds = []string{
 	"Namespace",
 	"NetworkPolicy",
 	"PersistentVolume",
+	"PersistentVolumeClaim",
 	"Service",
 	"Node",
 
