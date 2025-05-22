@@ -145,11 +145,68 @@
         .json-number { color: #b76b00; }
         .json-boolean { color: #d73a49; }
         .json-null { color: #6f42c1; }
+
+        /* Dark mode styles */
+        .dark-mode {
+            background-color: #181a1b !important;
+            color: #e0e0e0 !important;
+        }
+        .dark-mode .container {
+            background-color: #23272a !important;
+            color: #e0e0e0 !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+        }
+        .dark-mode label,
+        .dark-mode #pattern-count,
+        .dark-mode .choices__item--selectable,
+        .dark-mode .choices__placeholder {
+            color: #bdbdbd !important;
+        }
+        .dark-mode select,
+        .dark-mode textarea,
+        .dark-mode .choices__inner,
+        .dark-mode .choices__list--dropdown {
+            background: #23272a !important;
+            color: #e0e0e0 !important;
+            border-color: #444 !important;
+        }
+        .dark-mode .choices__item--selectable.is-highlighted {
+            background: #333d33 !important;
+            color: #fff !important;
+        }
+        .dark-mode button {
+            background-color: #333d33 !important;
+            color: #e0e0e0 !important;
+        }
+        .dark-mode button:hover {
+            background-color: #4CAF50 !important;
+            color: #fff !important;
+        }
+        .dark-mode #response,
+        .dark-mode #response-schema-content,
+        .dark-mode pre,
+        .dark-mode #curl-command {
+            background: #23272a !important;
+            color: #e0e0e0 !important;
+            border-color: #444 !important;
+        }
+        .dark-mode .json-key { color: #8ab4f8; }
+        .dark-mode .json-string { color: #a3e635; }
+        .dark-mode .json-number { color: #fbbc04; }
+        .dark-mode .json-boolean { color: #f28b82; }
+        .dark-mode .json-null { color: #c58af9; }
+        .dark-mode .error { color: #ffb4b4 !important; }
+        .dark-mode .loading { color: #bdbdbd !important; }
+        .dark-mode .spinner {
+            border: 3px solid #444;
+            border-top: 3px solid #4CAF50;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>K8s Manager API Interface</h1>
+        <button id="darkmode-toggle" style="float:right; margin-top:-50px; margin-bottom:10px;">🌙 Dark Mode</button>
         <div id="pattern-count" style="margin-bottom: 10px; color: #666; font-size: 0.95em;"></div>
         <div class="form-group">
             <label for="pattern">🧩 Select Pattern:</label>
@@ -600,6 +657,22 @@
 
         // Load the spec file when the page loads
         loadSpec();
+
+        // Dark mode toggle logic
+        const darkModeBtn = document.getElementById('darkmode-toggle');
+        function setDarkMode(on) {
+            document.body.classList.toggle('dark-mode', on);
+            darkModeBtn.textContent = on ? '☀️ Light Mode' : '🌙 Dark Mode';
+            localStorage.setItem('darkmode', on ? '1' : '0');
+        }
+        darkModeBtn.addEventListener('click', () => {
+            setDarkMode(!document.body.classList.contains('dark-mode'));
+        });
+        // On load, set dark mode if preferred
+        if (localStorage.getItem('darkmode') === '1' ||
+            (localStorage.getItem('darkmode') === null && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            setDarkMode(true);
+        }
 
         window.executeRequest = executeRequest;
     </script>
