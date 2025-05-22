@@ -208,17 +208,32 @@ func GetUnstructuredNamespaceResourceList(namespace string, whitelist []*utils.S
 		blacklist = []*utils.SyncResourceEntry{}
 	}
 
+	var wg sync.WaitGroup
+	resultCh := make(chan []unstructured.Unstructured, len(resources))
+
 	for _, v := range resources {
 		if v.Namespace != nil {
 			if (len(whitelist) > 0 && !utils.ContainsResourceEntry(whitelist, v)) || (blacklist != nil && utils.ContainsResourceEntry(blacklist, v)) {
 				continue
 			}
-
-			result := store.GetResourceByKindAndNamespace(valkeyClient, v.Group, v.Kind, namespace)
-			if result != nil {
-				results = append(results, result...)
-			}
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				result := store.GetResourceByKindAndNamespace(valkeyClient, v.Group, v.Kind, namespace)
+				if result != nil && len(result) > 0 {
+					results = append(results, result...)
+					resultCh <- result
+				}
+			}()
 		}
+	}
+	go func() {
+		wg.Wait()
+		close(resultCh)
+	}()
+
+	for res := range resultCh {
+		results = append(results, res...)
 	}
 	return results, nil
 }
@@ -459,13 +474,13 @@ var (
 )
 
 func GetAvailableResources() ([]utils.SyncResourceEntry, error) {
-	resourceCacheMutex.Lock()
-	defer resourceCacheMutex.Unlock()
-
 	// Check if we have cached resources and if they are still valid
 	if time.Since(resourceCache.timestamp) < resourceCacheTTL {
 		return resourceCache.availableResources, nil
 	}
+
+	resourceCacheMutex.Lock()
+	defer resourceCacheMutex.Unlock()
 
 	// No valid cache, fetch resources from server
 	clientset := clientProvider.K8sClientSet()
@@ -499,6 +514,20 @@ func GetAvailableResources() ([]utils.SyncResourceEntry, error) {
 	resourceCache.timestamp = time.Now()
 
 	return availableResources, nil
+}
+
+func GetResourcesNameForKind(kind string) (name string, err error) {
+	resources, err := GetAvailableResources()
+	if err != nil {
+		return "", err
+	}
+
+	for _, resource := range resources {
+		if resource.Kind == kind {
+			return resource.Name, nil
+		}
+	}
+	return "", fmt.Errorf("resource not found for name %s", name)
 }
 
 func GetAvailableResourcesSerialized() string {
