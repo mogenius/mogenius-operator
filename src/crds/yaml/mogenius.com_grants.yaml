@@ -17,6 +17,17 @@ spec:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
+        description: |-
+          A mogenius `Grant` assigns permissions for mogenius `User` or `Team`
+          resources to mogenius `Workspace` resources.
+
+          In the first iteration we chose to keep existing hardcoded `Role` definitions as
+          found ob the mogenius web platform ("viewer", "editor" and "admin"). These roles
+          are only designed with the website in mind and are not yet speaking the same language
+          as RBAC `Role` and `ClusterRole` resources.
+
+          However this system could be easily extended by another resource (e.g. a mogenius `Role` resource)
+          which could then allow in-depth configuration for what users should be allowed to do.
         properties:
           apiVersion:
             description: |-
@@ -68,6 +79,10 @@ spec:
             type: object
           status:
             type: object
+        required:
+        - metadata
+        - spec
+        - status
         type: object
     served: true
     storage: true

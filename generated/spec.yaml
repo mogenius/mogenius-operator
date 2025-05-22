@@ -6165,6 +6165,17 @@ get/user:
             type: struct
     responseSchema:
         structs:
+            k8s.io/api/rbac/v1.Subject:
+                name: k8s.io/api/rbac/v1.Subject
+                properties:
+                    apiGroup:
+                        type: string
+                    kind:
+                        type: string
+                    name:
+                        type: string
+                    namespace:
+                        type: string
             k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1:
                 name: k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1
                 properties: {}
@@ -6296,6 +6307,11 @@ get/user:
                         type: string
                     lastName:
                         type: string
+                    subjects:
+                        elementType:
+                            structRef: k8s.io/api/rbac/v1.Subject
+                            type: struct
+                        type: array
             mogenius-k8s-manager/src/crds/v1alpha1.UserStatus:
                 name: mogenius-k8s-manager/src/crds/v1alpha1.UserStatus
                 properties: {}
@@ -6320,6 +6336,17 @@ get/users:
             type: struct
     responseSchema:
         structs:
+            k8s.io/api/rbac/v1.Subject:
+                name: k8s.io/api/rbac/v1.Subject
+                properties:
+                    apiGroup:
+                        type: string
+                    kind:
+                        type: string
+                    name:
+                        type: string
+                    namespace:
+                        type: string
             k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1:
                 name: k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1
                 properties: {}
@@ -6451,6 +6478,11 @@ get/users:
                         type: string
                     lastName:
                         type: string
+                    subjects:
+                        elementType:
+                            structRef: k8s.io/api/rbac/v1.Subject
+                            type: struct
+                        type: array
             mogenius-k8s-manager/src/crds/v1alpha1.UserStatus:
                 name: mogenius-k8s-manager/src/crds/v1alpha1.UserStatus
                 properties: {}

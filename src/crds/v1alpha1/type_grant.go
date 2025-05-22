@@ -17,15 +17,26 @@ type GrantList struct {
 	Items []Grant `json:"items"`
 }
 
+// A mogenius `Grant` assigns permissions for mogenius `User` or `Team`
+// resources to mogenius `Workspace` resources.
+//
+// In the first iteration we chose to keep existing hardcoded `Role` definitions as
+// found ob the mogenius web platform ("viewer", "editor" and "admin"). These roles
+// are only designed with the website in mind and are not yet speaking the same language
+// as RBAC `Role` and `ClusterRole` resources.
+//
+// However this system could be easily extended by another resource (e.g. a mogenius `Role` resource)
+// which could then allow in-depth configuration for what users should be allowed to do.
+//
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type Grant struct {
 	metav1.TypeMeta `json:",inline"`
 
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+	metav1.ObjectMeta `json:"metadata"`
 
-	Spec GrantSpec `json:"spec,omitempty"`
+	Spec GrantSpec `json:"spec"`
 
-	Status GrantStatus `json:"status,omitempty"`
+	Status GrantStatus `json:"status"`
 }
 
 // Grant permissions to a workspace for a group
