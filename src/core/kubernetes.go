@@ -264,7 +264,7 @@ func (self *moKubernetes) GetNodeStats() []dtos.NodeStat {
 	nodeMetrics := kubernetes.ListNodeMetricss()
 
 	if len(nodeMetrics) == 0 {
-		self.logger.Warn("No node metrics found. Make sure the metrics-server is installed to gather metrics.")
+		self.logger.Error("CRITICAL: No node metrics found. Make sure the metrics-server is installed and running.")
 		return result
 	}
 
