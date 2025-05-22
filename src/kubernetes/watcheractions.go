@@ -221,7 +221,6 @@ func GetUnstructuredNamespaceResourceList(namespace string, whitelist []*utils.S
 				defer wg.Done()
 				result := store.GetResourceByKindAndNamespace(valkeyClient, v.Group, v.Kind, namespace)
 				if result != nil && len(result) > 0 {
-					results = append(results, result...)
 					resultCh <- result
 				}
 			}()
