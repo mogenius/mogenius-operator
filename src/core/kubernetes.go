@@ -263,6 +263,11 @@ func (self *moKubernetes) GetNodeStats() []dtos.NodeStat {
 	nodes := kubernetes.ListNodes()
 	nodeMetrics := kubernetes.ListNodeMetricss()
 
+	if len(nodeMetrics) == 0 {
+		self.logger.Warn("No node metrics found. Make sure the metrics-server is installed to gather metrics.")
+		return result
+	}
+
 	for _, node := range nodes {
 		allPods := kubernetes.AllPodsOnNode(node.Name)
 		requestCpuCores, limitCpuCores := kubernetes.SumCpuResources(allPods)
