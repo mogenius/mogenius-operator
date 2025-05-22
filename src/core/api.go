@@ -331,7 +331,7 @@ func (self *api) GetWorkspaceResources(workspaceName string, whitelist []*utils.
 			if err != nil {
 				return result, err
 			}
-			result = append(result, nsResources...)
+			result = appendIfNotExists(result, nsResources...)
 		}
 		if v.Type == "helm" {
 			if len(namespaceWhitelist) > 0 {
@@ -348,7 +348,7 @@ func (self *api) GetWorkspaceResources(workspaceName string, whitelist []*utils.
 			if err != nil {
 				return result, err
 			}
-			result = append(result, helmResources...)
+			result = appendIfNotExists(result, helmResources...)
 		}
 	}
 
@@ -365,4 +365,15 @@ func (self *api) GetWorkspaceControllers(workspaceName string, whitelist []*util
 		}
 	}
 	return result, err
+}
+
+func appendIfNotExists(list []unstructured.Unstructured, item ...unstructured.Unstructured) []unstructured.Unstructured {
+	for _, i := range item {
+		if !slices.ContainsFunc(list, func(u unstructured.Unstructured) bool {
+			return u.GetName() == i.GetName() && u.GetNamespace() == i.GetNamespace()
+		}) {
+			list = append(list, i)
+		}
+	}
+	return list
 }

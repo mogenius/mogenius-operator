@@ -370,9 +370,17 @@ func (self *moKubernetes) CleanUp(apiService Api, workspaceName string, dryRun b
 			if pod.Status.Phase == corev1.PodSucceeded || pod.Status.Phase == corev1.PodFailed || pod.Status.Phase == corev1.PodUnknown {
 				result.Pods = append(result.Pods, createCURE(pod.Name, pod.Namespace, "pod is in succeeded/failed/unknown state"))
 				if !dryRun {
-					kubernetes.DeleteResource(entry.GroupVersionKind().Group, entry.GroupVersionKind().Version, entry.GetKind(), entry.GetNamespace(), entry.GetNamespace(), false)
+					resName, err := kubernetes.GetResourcesNameForKind(entry.GetKind())
+					if err != nil {
+						continue
+					}
+					err = kubernetes.DeleteResource(entry.GroupVersionKind().Group, entry.GroupVersionKind().Version, resName, entry.GetName(), entry.GetNamespace(), false)
+					if err != nil {
+						self.logger.Error("failed to delete pod", "pod", pod.Name, "error", err)
+					}
 				}
 			}
+			continue
 		}
 
 		// Ingresses
@@ -383,6 +391,7 @@ func (self *moKubernetes) CleanUp(apiService Api, workspaceName string, dryRun b
 				continue
 			}
 			workspaceIngresses = append(workspaceIngresses, ingress)
+			continue
 		}
 
 		// Services
@@ -393,6 +402,7 @@ func (self *moKubernetes) CleanUp(apiService Api, workspaceName string, dryRun b
 				continue
 			}
 			workSpaceServices = append(workSpaceServices, service)
+			continue
 		}
 	}
 
@@ -407,9 +417,17 @@ func (self *moKubernetes) CleanUp(apiService Api, workspaceName string, dryRun b
 			if replicaSet.Status.Replicas == 0 && int(*replicaSet.Spec.Replicas) == 0 {
 				result.ReplicaSets = append(result.ReplicaSets, createCURE(replicaSet.Name, replicaSet.Namespace, "replicaset unused. (replicas == 0 and status.replicas == 0)"))
 				if !dryRun {
-					kubernetes.DeleteResource(entry.GroupVersionKind().Group, entry.GroupVersionKind().Version, entry.GetKind(), entry.GetNamespace(), entry.GetNamespace(), false)
+					resName, err := kubernetes.GetResourcesNameForKind(entry.GetKind())
+					if err != nil {
+						continue
+					}
+					err = kubernetes.DeleteResource(entry.GroupVersionKind().Group, entry.GroupVersionKind().Version, resName, entry.GetName(), entry.GetNamespace(), false)
+					if err != nil {
+						self.logger.Error("failed to delete replicaset", "replicaset", replicaSet.Name, "error", err)
+					}
 				}
 			}
+			continue
 		}
 
 		// SERVICES
@@ -434,9 +452,17 @@ func (self *moKubernetes) CleanUp(apiService Api, workspaceName string, dryRun b
 			if matchingPods == 0 {
 				result.Services = append(result.Services, createCURE(service.Name, service.Namespace, "service not used by any running pod"))
 				if !dryRun {
-					kubernetes.DeleteResource(entry.GroupVersionKind().Group, entry.GroupVersionKind().Version, entry.GetKind(), entry.GetNamespace(), entry.GetNamespace(), false)
+					resName, err := kubernetes.GetResourcesNameForKind(entry.GetKind())
+					if err != nil {
+						continue
+					}
+					err = kubernetes.DeleteResource(entry.GroupVersionKind().Group, entry.GroupVersionKind().Version, resName, entry.GetName(), entry.GetNamespace(), false)
+					if err != nil {
+						self.logger.Error("failed to delete service", "service", service.Name, "error", err)
+					}
 				}
 			}
+			continue
 		}
 
 		// SECRETS
@@ -507,9 +533,17 @@ func (self *moKubernetes) CleanUp(apiService Api, workspaceName string, dryRun b
 			if !isInUse {
 				result.Secrets = append(result.Secrets, createCURE(secret.Name, secret.Namespace, "secret is not used by any pod or ingress"))
 				if !dryRun {
-					kubernetes.DeleteResource(entry.GroupVersionKind().Group, entry.GroupVersionKind().Version, entry.GetKind(), entry.GetNamespace(), entry.GetNamespace(), false)
+					resName, err := kubernetes.GetResourcesNameForKind(entry.GetKind())
+					if err != nil {
+						continue
+					}
+					err = kubernetes.DeleteResource(entry.GroupVersionKind().Group, entry.GroupVersionKind().Version, resName, entry.GetName(), entry.GetNamespace(), false)
+					if err != nil {
+						self.logger.Error("failed to delete secret", "secret", secret.Name, "error", err)
+					}
 				}
 			}
+			continue
 		}
 
 		// CONFIGMAPS
@@ -568,9 +602,17 @@ func (self *moKubernetes) CleanUp(apiService Api, workspaceName string, dryRun b
 			if !isInUse {
 				result.ConfigMaps = append(result.ConfigMaps, createCURE(configMap.Name, configMap.Namespace, "configmap not used by any pod"))
 				if !dryRun {
-					kubernetes.DeleteResource(entry.GroupVersionKind().Group, entry.GroupVersionKind().Version, entry.GetKind(), entry.GetNamespace(), entry.GetNamespace(), false)
+					resName, err := kubernetes.GetResourcesNameForKind(entry.GetKind())
+					if err != nil {
+						continue
+					}
+					err = kubernetes.DeleteResource(entry.GroupVersionKind().Group, entry.GroupVersionKind().Version, resName, entry.GetName(), entry.GetNamespace(), false)
+					if err != nil {
+						self.logger.Error("failed to delete configmap", "configmap", configMap.Name, "error", err)
+					}
 				}
 			}
+			continue
 		}
 
 		// JOBS
@@ -583,9 +625,17 @@ func (self *moKubernetes) CleanUp(apiService Api, workspaceName string, dryRun b
 			if job.Status.Succeeded == *job.Spec.Completions && job.Status.Failed == 0 {
 				result.Jobs = append(result.Jobs, createCURE(job.Name, job.Namespace, "job completed"))
 				if !dryRun {
-					kubernetes.DeleteResource(entry.GroupVersionKind().Group, entry.GroupVersionKind().Version, entry.GetKind(), entry.GetNamespace(), entry.GetNamespace(), false)
+					resName, err := kubernetes.GetResourcesNameForKind(entry.GetKind())
+					if err != nil {
+						continue
+					}
+					err = kubernetes.DeleteResource(entry.GroupVersionKind().Group, entry.GroupVersionKind().Version, resName, entry.GetName(), entry.GetNamespace(), false)
+					if err != nil {
+						self.logger.Error("failed to delete job", "job", job.Name, "error", err)
+					}
 				}
 			}
+			continue
 		}
 
 		// INGRESSES
@@ -612,10 +662,18 @@ func (self *moKubernetes) CleanUp(apiService Api, workspaceName string, dryRun b
 			if !serviceExists {
 				result.Ingresses = append(result.Ingresses, createCURE(ingress.Name, ingress.Namespace, "ingress not used by any service"))
 				if !dryRun {
-					kubernetes.DeleteResource(entry.GroupVersionKind().Group, entry.GroupVersionKind().Version, entry.GetKind(), entry.GetNamespace(), entry.GetNamespace(), false)
+					resName, err := kubernetes.GetResourcesNameForKind(entry.GetKind())
+					if err != nil {
+						continue
+					}
+					err = kubernetes.DeleteResource(entry.GroupVersionKind().Group, entry.GroupVersionKind().Version, resName, entry.GetName(), entry.GetNamespace(), false)
+					if err != nil {
+						self.logger.Error("failed to delete ingress", "ingress", ingress.Name, "error", err)
+					}
 				}
 			}
 		}
+		continue
 	}
 	return result, nil
 }

@@ -145,7 +145,6 @@ func ListResources(group string, version string, resource string, namespace stri
 }
 
 func DeleteResource(group string, version string, resource string, name string, namespace string, isClusterWideResource bool) error {
-
 	gvr := schema.GroupVersionResource{
 		Group:    group,
 		Version:  version,

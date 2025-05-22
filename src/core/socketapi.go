@@ -1830,14 +1830,14 @@ func (self *socketApi) registerPatterns() {
 	{
 		type Request struct {
 			Name        string `json:"name" validate:"required"`
-			DryRun      bool   `json:"dryRun" validate:"required"`
-			ReplicaSets bool   `json:"replicaSets" validate:"required"`
-			Pods        bool   `json:"pods" validate:"required"`
-			Services    bool   `json:"services" validate:"required"`
-			Secrets     bool   `json:"secrets" validate:"required"`
-			ConfigMaps  bool   `json:"configMaps" validate:"required"`
-			Jobs        bool   `json:"jobs" validate:"required"`
-			Ingresses   bool   `json:"ingresses" validate:"required"`
+			DryRun      bool   `json:"dryRun" validate:"boolean"`
+			ReplicaSets bool   `json:"replicaSets" validate:"boolean"`
+			Pods        bool   `json:"pods" validate:"boolean"`
+			Services    bool   `json:"services" validate:"boolean"`
+			Secrets     bool   `json:"secrets" validate:"boolean"`
+			ConfigMaps  bool   `json:"configMaps" validate:"boolean"`
+			Jobs        bool   `json:"jobs" validate:"boolean"`
+			Ingresses   bool   `json:"ingresses" validate:"boolean"`
 		}
 
 		RegisterPatternHandler(
