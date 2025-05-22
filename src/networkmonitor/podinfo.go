@@ -24,6 +24,10 @@ type PodInfo struct {
 func NewPodInfoList(logger *slog.Logger, k8sPods []v1.Pod, nodecontainers map[ContainerId][]ProcessId) []PodInfo {
 	podInfoList := []PodInfo{}
 	for _, item := range k8sPods {
+		if item.Status.StartTime == nil {
+			// startup hasnt completed yet
+			continue
+		}
 		podInfo := PodInfo{}
 		podInfo.Namespace = item.Namespace
 		podInfo.Name = item.Name
