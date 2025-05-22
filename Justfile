@@ -1,5 +1,4 @@
-export CGO_ENABLED := "1"
-export BPF2GO_FLAGS := "-O2 -g -Wall -Werror $(CFLAGS)"
+export CGO_ENABLED := "0"
 
 set dotenv-load
 

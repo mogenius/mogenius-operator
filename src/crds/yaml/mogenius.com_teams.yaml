@@ -17,6 +17,10 @@ spec:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
+        description: |-
+          A mogenius `Group` resource connects a list of mogenius `User` resources
+          and gives this collection a name to reference for example in mogenius
+          `Workspace` resources.
         properties:
           apiVersion:
             description: |-
@@ -51,6 +55,10 @@ spec:
             type: object
           status:
             type: object
+        required:
+        - metadata
+        - spec
+        - status
         type: object
     served: true
     storage: true

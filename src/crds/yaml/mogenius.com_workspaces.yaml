@@ -17,6 +17,9 @@ spec:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
+        description: |-
+          A mogenius `Workspace` resource contains references to all resources included
+          in a workspace. In addition it contains a human-readable name for the workspace.
         properties:
           apiVersion:
             description: |-
@@ -54,6 +57,10 @@ spec:
             type: object
           status:
             type: object
+        required:
+        - metadata
+        - spec
+        - status
         type: object
     served: true
     storage: true
