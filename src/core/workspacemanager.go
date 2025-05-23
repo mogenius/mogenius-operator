@@ -21,12 +21,6 @@ type WorkspaceManager interface {
 	UpdateUser(name string, spec v1alpha1.UserSpec) (*v1alpha1.User, error)
 	DeleteUser(name string) error
 
-	GetAllTeams() ([]v1alpha1.Team, error)
-	CreateTeam(name string, spec v1alpha1.TeamSpec) (*v1alpha1.Team, error)
-	GetTeam(name string) (*v1alpha1.Team, error)
-	UpdateTeam(name string, spec v1alpha1.TeamSpec) (*v1alpha1.Team, error)
-	DeleteTeam(name string) error
-
 	GetAllGrants(targetType, targetName *string) ([]v1alpha1.Grant, error)
 	CreateGrant(name string, spec v1alpha1.GrantSpec) (*v1alpha1.Grant, error)
 	GetGrant(name string) (*v1alpha1.Grant, error)
@@ -130,36 +124,6 @@ func (self *workspaceManager) DeleteUser(name string) error {
 	self.namespaceLock.RLock()
 	defer self.namespaceLock.RUnlock()
 	return self.mogeniusClientSet.MogeniusV1alpha1.DeleteUser(self.namespace, name)
-}
-
-func (self *workspaceManager) GetAllTeams() ([]v1alpha1.Team, error) {
-	self.namespaceLock.RLock()
-	defer self.namespaceLock.RUnlock()
-	return self.mogeniusClientSet.MogeniusV1alpha1.ListTeams(self.namespace)
-}
-
-func (self *workspaceManager) GetTeam(name string) (*v1alpha1.Team, error) {
-	self.namespaceLock.RLock()
-	defer self.namespaceLock.RUnlock()
-	return self.mogeniusClientSet.MogeniusV1alpha1.GetTeam(self.namespace, name)
-}
-
-func (self *workspaceManager) CreateTeam(name string, spec v1alpha1.TeamSpec) (*v1alpha1.Team, error) {
-	self.namespaceLock.RLock()
-	defer self.namespaceLock.RUnlock()
-	return self.mogeniusClientSet.MogeniusV1alpha1.CreateTeam(self.namespace, name, spec)
-}
-
-func (self *workspaceManager) UpdateTeam(name string, spec v1alpha1.TeamSpec) (*v1alpha1.Team, error) {
-	self.namespaceLock.RLock()
-	defer self.namespaceLock.RUnlock()
-	return self.mogeniusClientSet.MogeniusV1alpha1.UpdateTeam(self.namespace, name, spec)
-}
-
-func (self *workspaceManager) DeleteTeam(name string) error {
-	self.namespaceLock.RLock()
-	defer self.namespaceLock.RUnlock()
-	return self.mogeniusClientSet.MogeniusV1alpha1.DeleteTeam(self.namespace, name)
 }
 
 func (self *workspaceManager) GetAllGrants(targetType, targetName *string) ([]v1alpha1.Grant, error) {

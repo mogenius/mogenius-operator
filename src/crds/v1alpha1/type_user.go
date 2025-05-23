@@ -53,9 +53,9 @@ type UserList struct {
 //
 //	```
 //	subjects:
-//	- kind: ServiceAccount
-//	name: default
-//	namespace: my-namespace
+//	  - kind: ServiceAccount
+//	    name: default
+//	    namespace: my-namespace
 //	```
 //
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -74,7 +74,7 @@ type UserSpec struct {
 	LastName  string `json:"lastName,omitempty"`
 	Email     string `json:"email,omitempty"`
 
-	Subjects []rbacv1.Subject `json:"subjects,omitempty"`
+	Subject *rbacv1.Subject `json:"subject"`
 }
 
 func NewUserSpec(firstName string, lastName string, email string) UserSpec {

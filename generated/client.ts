@@ -45,11 +45,9 @@ export enum Pattern {
   CLUSTER_WRITE_CONFIGMAP = "cluster/write-configmap",
   CREATE_GRANT = "create/grant",
   CREATE_NEW_WORKLOAD = "create/new-workload",
-  CREATE_TEAM = "create/team",
   CREATE_USER = "create/user",
   CREATE_WORKSPACE = "create/workspace",
   DELETE_GRANT = "delete/grant",
-  DELETE_TEAM = "delete/team",
   DELETE_USER = "delete/user",
   DELETE_WORKLOAD = "delete/workload",
   DELETE_WORKSPACE = "delete/workspace",
@@ -74,8 +72,6 @@ export enum Pattern {
   GET_GRANTS = "get/grants",
   GET_LABELED_WORKLOAD_LIST = "get/labeled-workload-list",
   GET_NAMESPACE_WORKLOAD_LIST = "get/namespace-workload-list",
-  GET_TEAM = "get/team",
-  GET_TEAMS = "get/teams",
   GET_USER = "get/user",
   GET_USERS = "get/users",
   GET_WORKLOAD = "get/workload",
@@ -161,7 +157,6 @@ export enum Pattern {
   UNINSTALL_METRICS_SERVER = "uninstall-metrics-server",
   UPDATE_GRANT = "update/grant",
   UPDATE_NETWORK_POLICIES_TEMPLATE = "update/network_policies_template",
-  UPDATE_TEAM = "update/team",
   UPDATE_USER = "update/user",
   UPDATE_WORKLOAD = "update/workload",
   UPDATE_WORKSPACE = "update/workspace",
@@ -220,11 +215,9 @@ export const StringToPattern = {
   "cluster/write-configmap": Pattern.CLUSTER_WRITE_CONFIGMAP,
   "create/grant": Pattern.CREATE_GRANT,
   "create/new-workload": Pattern.CREATE_NEW_WORKLOAD,
-  "create/team": Pattern.CREATE_TEAM,
   "create/user": Pattern.CREATE_USER,
   "create/workspace": Pattern.CREATE_WORKSPACE,
   "delete/grant": Pattern.DELETE_GRANT,
-  "delete/team": Pattern.DELETE_TEAM,
   "delete/user": Pattern.DELETE_USER,
   "delete/workload": Pattern.DELETE_WORKLOAD,
   "delete/workspace": Pattern.DELETE_WORKSPACE,
@@ -249,8 +242,6 @@ export const StringToPattern = {
   "get/grants": Pattern.GET_GRANTS,
   "get/labeled-workload-list": Pattern.GET_LABELED_WORKLOAD_LIST,
   "get/namespace-workload-list": Pattern.GET_NAMESPACE_WORKLOAD_LIST,
-  "get/team": Pattern.GET_TEAM,
-  "get/teams": Pattern.GET_TEAMS,
   "get/user": Pattern.GET_USER,
   "get/users": Pattern.GET_USERS,
   "get/workload": Pattern.GET_WORKLOAD,
@@ -336,7 +327,6 @@ export const StringToPattern = {
   "uninstall-metrics-server": Pattern.UNINSTALL_METRICS_SERVER,
   "update/grant": Pattern.UPDATE_GRANT,
   "update/network_policies_template": Pattern.UPDATE_NETWORK_POLICIES_TEMPLATE,
-  "update/team": Pattern.UPDATE_TEAM,
   "update/user": Pattern.UPDATE_USER,
   "update/workload": Pattern.UPDATE_WORKLOAD,
   "update/workspace": Pattern.UPDATE_WORKSPACE,
@@ -391,11 +381,9 @@ export const PatternToString = {
   [Pattern.CLUSTER_WRITE_CONFIGMAP]: "cluster/write-configmap",
   [Pattern.CREATE_GRANT]: "create/grant",
   [Pattern.CREATE_NEW_WORKLOAD]: "create/new-workload",
-  [Pattern.CREATE_TEAM]: "create/team",
   [Pattern.CREATE_USER]: "create/user",
   [Pattern.CREATE_WORKSPACE]: "create/workspace",
   [Pattern.DELETE_GRANT]: "delete/grant",
-  [Pattern.DELETE_TEAM]: "delete/team",
   [Pattern.DELETE_USER]: "delete/user",
   [Pattern.DELETE_WORKLOAD]: "delete/workload",
   [Pattern.DELETE_WORKSPACE]: "delete/workspace",
@@ -420,8 +408,6 @@ export const PatternToString = {
   [Pattern.GET_GRANTS]: "get/grants",
   [Pattern.GET_LABELED_WORKLOAD_LIST]: "get/labeled-workload-list",
   [Pattern.GET_NAMESPACE_WORKLOAD_LIST]: "get/namespace-workload-list",
-  [Pattern.GET_TEAM]: "get/team",
-  [Pattern.GET_TEAMS]: "get/teams",
   [Pattern.GET_USER]: "get/user",
   [Pattern.GET_USERS]: "get/users",
   [Pattern.GET_WORKLOAD]: "get/workload",
@@ -507,7 +493,6 @@ export const PatternToString = {
   [Pattern.UNINSTALL_METRICS_SERVER]: "uninstall-metrics-server",
   [Pattern.UPDATE_GRANT]: "update/grant",
   [Pattern.UPDATE_NETWORK_POLICIES_TEMPLATE]: "update/network_policies_template",
-  [Pattern.UPDATE_TEAM]: "update/team",
   [Pattern.UPDATE_USER]: "update/user",
   [Pattern.UPDATE_WORKLOAD]: "update/workload",
   [Pattern.UPDATE_WORKSPACE]: "update/workspace",
@@ -3527,41 +3512,6 @@ export type CREATE_NEW_WORKLOAD_RESPONSE = CREATE_NEW_WORKLOAD_RESPONSE__K8S_IO_
  *     mogenius-k8s-manager/src/core.Request:
  *         name: mogenius-k8s-manager/src/core.Request
  *         properties:
- *             displayName:
- *                 type: string
- *             name:
- *                 type: string
- *             users:
- *                 elementType:
- *                     type: string
- *                 type: array
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Request
- *     type: struct
- * ```
- *
- */
-export type CREATE_TEAM_REQUEST = CREATE_TEAM_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST;
-
-/**
- * #### Source
- *
- * ```yaml
- * typeInfo:
- *     type: string
- * ```
- *
- */
-export type CREATE_TEAM_RESPONSE = string;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     mogenius-k8s-manager/src/core.Request:
- *         name: mogenius-k8s-manager/src/core.Request
- *         properties:
  *             email:
  *                 type: string
  *             firstName:
@@ -3662,35 +3612,6 @@ export type DELETE_GRANT_REQUEST = DELETE_GRANT_REQUEST__MOGENIUS_K8S_MANAGER_SR
  *
  */
 export type DELETE_GRANT_RESPONSE = string;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     mogenius-k8s-manager/src/core.Request:
- *         name: mogenius-k8s-manager/src/core.Request
- *         properties:
- *             name:
- *                 type: string
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Request
- *     type: struct
- * ```
- *
- */
-export type DELETE_TEAM_REQUEST = DELETE_TEAM_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST;
-
-/**
- * #### Source
- *
- * ```yaml
- * typeInfo:
- *     type: string
- * ```
- *
- */
-export type DELETE_TEAM_RESPONSE = string;
 
 /**
  * #### Source
@@ -5097,343 +5018,6 @@ export type GET_NAMESPACE_WORKLOAD_LIST_RESPONSE = GET_NAMESPACE_WORKLOAD_LIST_R
  * ```
  *
  */
-export type GET_TEAM_REQUEST = GET_TEAM_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1
- *         properties: {}
- *     k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry
- *         properties:
- *             apiVersion:
- *                 type: string
- *             fieldsType:
- *                 type: string
- *             fieldsV1:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1
- *                 type: struct
- *             manager:
- *                 type: string
- *             operation:
- *                 type: string
- *             subresource:
- *                 type: string
- *             time:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *                 type: struct
- *     k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta
- *         properties:
- *             annotations:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     type: string
- *             creationTimestamp:
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *                 type: struct
- *             deletionGracePeriodSeconds:
- *                 pointer: true
- *                 type: int
- *             deletionTimestamp:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *                 type: struct
- *             finalizers:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             generateName:
- *                 type: string
- *             generation:
- *                 type: int
- *             labels:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     type: string
- *             managedFields:
- *                 elementType:
- *                     structRef: k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry
- *                     type: struct
- *                 type: array
- *             name:
- *                 type: string
- *             namespace:
- *                 type: string
- *             ownerReferences:
- *                 elementType:
- *                     structRef: k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference
- *                     type: struct
- *                 type: array
- *             resourceVersion:
- *                 type: string
- *             selfLink:
- *                 type: string
- *             uid:
- *                 type: string
- *     k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference
- *         properties:
- *             apiVersion:
- *                 type: string
- *             blockOwnerDeletion:
- *                 pointer: true
- *                 type: bool
- *             controller:
- *                 pointer: true
- *                 type: bool
- *             kind:
- *                 type: string
- *             name:
- *                 type: string
- *             uid:
- *                 type: string
- *     k8s.io/apimachinery/pkg/apis/meta/v1.Time:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *         properties:
- *             Time:
- *                 structRef: time.Time
- *                 type: struct
- *     k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta
- *         properties:
- *             apiVersion:
- *                 type: string
- *             kind:
- *                 type: string
- *     mogenius-k8s-manager/src/crds/v1alpha1.Team:
- *         name: mogenius-k8s-manager/src/crds/v1alpha1.Team
- *         properties:
- *             TypeMeta:
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta
- *                 type: struct
- *             metadata:
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta
- *                 type: struct
- *             spec:
- *                 structRef: mogenius-k8s-manager/src/crds/v1alpha1.TeamSpec
- *                 type: struct
- *             status:
- *                 structRef: mogenius-k8s-manager/src/crds/v1alpha1.TeamStatus
- *                 type: struct
- *     mogenius-k8s-manager/src/crds/v1alpha1.TeamSpec:
- *         name: mogenius-k8s-manager/src/crds/v1alpha1.TeamSpec
- *         properties:
- *             displayName:
- *                 type: string
- *             users:
- *                 elementType:
- *                     type: string
- *                 type: array
- *     mogenius-k8s-manager/src/crds/v1alpha1.TeamStatus:
- *         name: mogenius-k8s-manager/src/crds/v1alpha1.TeamStatus
- *         properties: {}
- *     time.Time:
- *         name: time.Time
- *         properties: {}
- * typeInfo:
- *     pointer: true
- *     structRef: mogenius-k8s-manager/src/crds/v1alpha1.Team
- *     type: struct
- * ```
- *
- */
-export type GET_TEAM_RESPONSE = GET_TEAM_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_TEAM|undefined;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     ANON_STRUCT_0:
- *         properties: {}
- * typeInfo:
- *     pointer: true
- *     structRef: ANON_STRUCT_0
- *     type: struct
- * ```
- *
- */
-export type GET_TEAMS_REQUEST = GET_TEAMS_REQUEST__ANON_STRUCT_0|undefined;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1
- *         properties: {}
- *     k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry
- *         properties:
- *             apiVersion:
- *                 type: string
- *             fieldsType:
- *                 type: string
- *             fieldsV1:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1
- *                 type: struct
- *             manager:
- *                 type: string
- *             operation:
- *                 type: string
- *             subresource:
- *                 type: string
- *             time:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *                 type: struct
- *     k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta
- *         properties:
- *             annotations:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     type: string
- *             creationTimestamp:
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *                 type: struct
- *             deletionGracePeriodSeconds:
- *                 pointer: true
- *                 type: int
- *             deletionTimestamp:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *                 type: struct
- *             finalizers:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             generateName:
- *                 type: string
- *             generation:
- *                 type: int
- *             labels:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     type: string
- *             managedFields:
- *                 elementType:
- *                     structRef: k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry
- *                     type: struct
- *                 type: array
- *             name:
- *                 type: string
- *             namespace:
- *                 type: string
- *             ownerReferences:
- *                 elementType:
- *                     structRef: k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference
- *                     type: struct
- *                 type: array
- *             resourceVersion:
- *                 type: string
- *             selfLink:
- *                 type: string
- *             uid:
- *                 type: string
- *     k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference
- *         properties:
- *             apiVersion:
- *                 type: string
- *             blockOwnerDeletion:
- *                 pointer: true
- *                 type: bool
- *             controller:
- *                 pointer: true
- *                 type: bool
- *             kind:
- *                 type: string
- *             name:
- *                 type: string
- *             uid:
- *                 type: string
- *     k8s.io/apimachinery/pkg/apis/meta/v1.Time:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *         properties:
- *             Time:
- *                 structRef: time.Time
- *                 type: struct
- *     k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta
- *         properties:
- *             apiVersion:
- *                 type: string
- *             kind:
- *                 type: string
- *     mogenius-k8s-manager/src/crds/v1alpha1.Team:
- *         name: mogenius-k8s-manager/src/crds/v1alpha1.Team
- *         properties:
- *             TypeMeta:
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta
- *                 type: struct
- *             metadata:
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta
- *                 type: struct
- *             spec:
- *                 structRef: mogenius-k8s-manager/src/crds/v1alpha1.TeamSpec
- *                 type: struct
- *             status:
- *                 structRef: mogenius-k8s-manager/src/crds/v1alpha1.TeamStatus
- *                 type: struct
- *     mogenius-k8s-manager/src/crds/v1alpha1.TeamSpec:
- *         name: mogenius-k8s-manager/src/crds/v1alpha1.TeamSpec
- *         properties:
- *             displayName:
- *                 type: string
- *             users:
- *                 elementType:
- *                     type: string
- *                 type: array
- *     mogenius-k8s-manager/src/crds/v1alpha1.TeamStatus:
- *         name: mogenius-k8s-manager/src/crds/v1alpha1.TeamStatus
- *         properties: {}
- *     time.Time:
- *         name: time.Time
- *         properties: {}
- * typeInfo:
- *     elementType:
- *         structRef: mogenius-k8s-manager/src/crds/v1alpha1.Team
- *         type: struct
- *     type: array
- * ```
- *
- */
-export type GET_TEAMS_RESPONSE = GET_TEAMS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_TEAM[];
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     mogenius-k8s-manager/src/core.Request:
- *         name: mogenius-k8s-manager/src/core.Request
- *         properties:
- *             name:
- *                 type: string
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Request
- *     type: struct
- * ```
- *
- */
 export type GET_USER_REQUEST = GET_USER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST;
 
 /**
@@ -5583,11 +5167,10 @@ export type GET_USER_REQUEST = GET_USER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_R
  *                 type: string
  *             lastName:
  *                 type: string
- *             subjects:
- *                 elementType:
- *                     structRef: k8s.io/api/rbac/v1.Subject
- *                     type: struct
- *                 type: array
+ *             subject:
+ *                 pointer: true
+ *                 structRef: k8s.io/api/rbac/v1.Subject
+ *                 type: struct
  *     mogenius-k8s-manager/src/crds/v1alpha1.UserStatus:
  *         name: mogenius-k8s-manager/src/crds/v1alpha1.UserStatus
  *         properties: {}
@@ -5769,11 +5352,10 @@ export type GET_USERS_REQUEST = GET_USERS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE
  *                 type: string
  *             lastName:
  *                 type: string
- *             subjects:
- *                 elementType:
- *                     structRef: k8s.io/api/rbac/v1.Subject
- *                     type: struct
- *                 type: array
+ *             subject:
+ *                 pointer: true
+ *                 structRef: k8s.io/api/rbac/v1.Subject
+ *                 type: struct
  *     mogenius-k8s-manager/src/crds/v1alpha1.UserStatus:
  *         name: mogenius-k8s-manager/src/crds/v1alpha1.UserStatus
  *         properties: {}
@@ -21460,41 +21042,6 @@ export type UPDATE_NETWORK_POLICIES_TEMPLATE_RESPONSE = UPDATE_NETWORK_POLICIES_
  *     mogenius-k8s-manager/src/core.Request:
  *         name: mogenius-k8s-manager/src/core.Request
  *         properties:
- *             displayName:
- *                 type: string
- *             name:
- *                 type: string
- *             users:
- *                 elementType:
- *                     type: string
- *                 type: array
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Request
- *     type: struct
- * ```
- *
- */
-export type UPDATE_TEAM_REQUEST = UPDATE_TEAM_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST;
-
-/**
- * #### Source
- *
- * ```yaml
- * typeInfo:
- *     type: string
- * ```
- *
- */
-export type UPDATE_TEAM_RESPONSE = string;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     mogenius-k8s-manager/src/core.Request:
- *         name: mogenius-k8s-manager/src/core.Request
- *         properties:
  *             email:
  *                 type: string
  *             firstName:
@@ -21978,12 +21525,10 @@ export type CLUSTER_WRITE_CONFIGMAP_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_C
 export type CREATE_GRANT_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"grantee": string,"name": string,"role": string,"targetName": string,"targetType": string};
 export type CREATE_NEW_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_SYNCRESOURCEDATA = {"group": string,"kind": string,"name": string,"namespace": string|undefined,"version": string,"yamlData": string};
 export type CREATE_NEW_WORKLOAD_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"Object": Record<string, any>};
-export type CREATE_TEAM_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"displayName": string,"name": string,"users": string[]};
 export type CREATE_USER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"email": string,"firstName": string,"lastName": string,"name": string};
 export type CREATE_WORKSPACE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"displayName": string,"name": string,"resources": CREATE_WORKSPACE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_WORKSPACERESOURCEIDENTIFIER[]};
 export type CREATE_WORKSPACE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_WORKSPACERESOURCEIDENTIFIER = {"id": string,"namespace": string,"type": string};
 export type DELETE_GRANT_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"name": string};
-export type DELETE_TEAM_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"name": string};
 export type DELETE_USER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"name": string};
 export type DELETE_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_SYNCRESOURCEITEM = {"group": string,"kind": string,"name": string,"namespace": string,"resourceName": string,"version": string};
 export type DELETE_WORKLOAD_RESPONSE__ANON_STRUCT_0 = {};
@@ -22057,28 +21602,6 @@ export type GET_LABELED_WORKLOAD_LIST_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_MET
 export type GET_NAMESPACE_WORKLOAD_LIST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_GETUNSTRUCTUREDNAMESPACERESOURCELISTREQUEST = {"blacklist": GET_NAMESPACE_WORKLOAD_LIST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_SYNCRESOURCEENTRY|undefined[],"namespace": string,"whitelist": GET_NAMESPACE_WORKLOAD_LIST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_SYNCRESOURCEENTRY|undefined[]};
 export type GET_NAMESPACE_WORKLOAD_LIST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_SYNCRESOURCEENTRY = {"group": string,"kind": string,"name": string,"namespace": string|undefined,"version": string};
 export type GET_NAMESPACE_WORKLOAD_LIST_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"Object": Record<string, any>};
-export type GET_TEAM_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"name": string};
-export type GET_TEAM_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_FIELDSV1 = {};
-export type GET_TEAM_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_MANAGEDFIELDSENTRY = {"apiVersion": string,"fieldsType": string,"fieldsV1": GET_TEAM_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_FIELDSV1|undefined,"manager": string,"operation": string,"subresource": string,"time": GET_TEAM_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME|undefined};
-export type GET_TEAM_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OBJECTMETA = {"annotations": Record<string, string>,"creationTimestamp": GET_TEAM_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME,"deletionGracePeriodSeconds": number|undefined,"deletionTimestamp": GET_TEAM_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME|undefined,"finalizers": string[],"generateName": string,"generation": number,"labels": Record<string, string>,"managedFields": GET_TEAM_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_MANAGEDFIELDSENTRY[],"name": string,"namespace": string,"ownerReferences": GET_TEAM_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OWNERREFERENCE[],"resourceVersion": string,"selfLink": string,"uid": string};
-export type GET_TEAM_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OWNERREFERENCE = {"apiVersion": string,"blockOwnerDeletion": boolean|undefined,"controller": boolean|undefined,"kind": string,"name": string,"uid": string};
-export type GET_TEAM_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME = {"Time": GET_TEAM_RESPONSE__TIME_TIME};
-export type GET_TEAM_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA = {"apiVersion": string,"kind": string};
-export type GET_TEAM_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_TEAM = {"TypeMeta": GET_TEAM_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA,"metadata": GET_TEAM_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OBJECTMETA,"spec": GET_TEAM_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_TEAMSPEC,"status": GET_TEAM_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_TEAMSTATUS};
-export type GET_TEAM_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_TEAMSPEC = {"displayName": string,"users": string[]};
-export type GET_TEAM_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_TEAMSTATUS = {};
-export type GET_TEAM_RESPONSE__TIME_TIME = {};
-export type GET_TEAMS_REQUEST__ANON_STRUCT_0 = {};
-export type GET_TEAMS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_FIELDSV1 = {};
-export type GET_TEAMS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_MANAGEDFIELDSENTRY = {"apiVersion": string,"fieldsType": string,"fieldsV1": GET_TEAMS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_FIELDSV1|undefined,"manager": string,"operation": string,"subresource": string,"time": GET_TEAMS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME|undefined};
-export type GET_TEAMS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OBJECTMETA = {"annotations": Record<string, string>,"creationTimestamp": GET_TEAMS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME,"deletionGracePeriodSeconds": number|undefined,"deletionTimestamp": GET_TEAMS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME|undefined,"finalizers": string[],"generateName": string,"generation": number,"labels": Record<string, string>,"managedFields": GET_TEAMS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_MANAGEDFIELDSENTRY[],"name": string,"namespace": string,"ownerReferences": GET_TEAMS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OWNERREFERENCE[],"resourceVersion": string,"selfLink": string,"uid": string};
-export type GET_TEAMS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OWNERREFERENCE = {"apiVersion": string,"blockOwnerDeletion": boolean|undefined,"controller": boolean|undefined,"kind": string,"name": string,"uid": string};
-export type GET_TEAMS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME = {"Time": GET_TEAMS_RESPONSE__TIME_TIME};
-export type GET_TEAMS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA = {"apiVersion": string,"kind": string};
-export type GET_TEAMS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_TEAM = {"TypeMeta": GET_TEAMS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA,"metadata": GET_TEAMS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OBJECTMETA,"spec": GET_TEAMS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_TEAMSPEC,"status": GET_TEAMS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_TEAMSTATUS};
-export type GET_TEAMS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_TEAMSPEC = {"displayName": string,"users": string[]};
-export type GET_TEAMS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_TEAMSTATUS = {};
-export type GET_TEAMS_RESPONSE__TIME_TIME = {};
 export type GET_USER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"name": string};
 export type GET_USER_RESPONSE__K8S_IO_API_RBAC_V1_SUBJECT = {"apiGroup": string,"kind": string,"name": string,"namespace": string};
 export type GET_USER_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_FIELDSV1 = {};
@@ -22088,7 +21611,7 @@ export type GET_USER_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OWNERREFEREN
 export type GET_USER_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME = {"Time": GET_USER_RESPONSE__TIME_TIME};
 export type GET_USER_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA = {"apiVersion": string,"kind": string};
 export type GET_USER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_USER = {"TypeMeta": GET_USER_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA,"metadata": GET_USER_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OBJECTMETA,"spec": GET_USER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_USERSPEC,"status": GET_USER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_USERSTATUS};
-export type GET_USER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_USERSPEC = {"email": string,"firstName": string,"lastName": string,"subjects": GET_USER_RESPONSE__K8S_IO_API_RBAC_V1_SUBJECT[]};
+export type GET_USER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_USERSPEC = {"email": string,"firstName": string,"lastName": string,"subject": GET_USER_RESPONSE__K8S_IO_API_RBAC_V1_SUBJECT|undefined};
 export type GET_USER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_USERSTATUS = {};
 export type GET_USER_RESPONSE__TIME_TIME = {};
 export type GET_USERS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"email": string|undefined};
@@ -22100,7 +21623,7 @@ export type GET_USERS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OWNERREFERE
 export type GET_USERS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME = {"Time": GET_USERS_RESPONSE__TIME_TIME};
 export type GET_USERS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA = {"apiVersion": string,"kind": string};
 export type GET_USERS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_USER = {"TypeMeta": GET_USERS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA,"metadata": GET_USERS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OBJECTMETA,"spec": GET_USERS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_USERSPEC,"status": GET_USERS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_USERSTATUS};
-export type GET_USERS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_USERSPEC = {"email": string,"firstName": string,"lastName": string,"subjects": GET_USERS_RESPONSE__K8S_IO_API_RBAC_V1_SUBJECT[]};
+export type GET_USERS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_USERSPEC = {"email": string,"firstName": string,"lastName": string,"subject": GET_USERS_RESPONSE__K8S_IO_API_RBAC_V1_SUBJECT|undefined};
 export type GET_USERS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_USERSTATUS = {};
 export type GET_USERS_RESPONSE__TIME_TIME = {};
 export type GET_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_SYNCRESOURCEITEM = {"group": string,"kind": string,"name": string,"namespace": string,"resourceName": string,"version": string};
@@ -23009,7 +22532,6 @@ export type UNINSTALL_METRICS_SERVER_REQUEST__ANON_STRUCT_0 = {};
 export type UPDATE_GRANT_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"grantee": string,"name": string,"role": string,"targetName": string,"targetType": string};
 export type UPDATE_NETWORK_POLICIES_TEMPLATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_NETWORKPOLICY = {"Name": string,"Port": number,"Protocol": string,"Type": string};
 export type UPDATE_NETWORK_POLICIES_TEMPLATE_RESPONSE__ANON_STRUCT_0 = {};
-export type UPDATE_TEAM_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"displayName": string,"name": string,"users": string[]};
 export type UPDATE_USER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"email": string,"firstName": string,"lastName": string,"name": string};
 export type UPDATE_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_SYNCRESOURCEDATA = {"group": string,"kind": string,"name": string,"namespace": string|undefined,"version": string,"yamlData": string};
 export type UPDATE_WORKLOAD_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"Object": Record<string, any>};
@@ -23198,10 +22720,6 @@ export interface IPatternConfig {
     Request: CREATE_NEW_WORKLOAD_REQUEST;
     Response: CREATE_NEW_WORKLOAD_RESPONSE;
   };
-  [Pattern.CREATE_TEAM]: {
-    Request: CREATE_TEAM_REQUEST;
-    Response: CREATE_TEAM_RESPONSE;
-  };
   [Pattern.CREATE_USER]: {
     Request: CREATE_USER_REQUEST;
     Response: CREATE_USER_RESPONSE;
@@ -23213,10 +22731,6 @@ export interface IPatternConfig {
   [Pattern.DELETE_GRANT]: {
     Request: DELETE_GRANT_REQUEST;
     Response: DELETE_GRANT_RESPONSE;
-  };
-  [Pattern.DELETE_TEAM]: {
-    Request: DELETE_TEAM_REQUEST;
-    Response: DELETE_TEAM_RESPONSE;
   };
   [Pattern.DELETE_USER]: {
     Request: DELETE_USER_REQUEST;
@@ -23313,14 +22827,6 @@ export interface IPatternConfig {
   [Pattern.GET_NAMESPACE_WORKLOAD_LIST]: {
     Request: GET_NAMESPACE_WORKLOAD_LIST_REQUEST;
     Response: GET_NAMESPACE_WORKLOAD_LIST_RESPONSE;
-  };
-  [Pattern.GET_TEAM]: {
-    Request: GET_TEAM_REQUEST;
-    Response: GET_TEAM_RESPONSE;
-  };
-  [Pattern.GET_TEAMS]: {
-    Request: GET_TEAMS_REQUEST;
-    Response: GET_TEAMS_RESPONSE;
   };
   [Pattern.GET_USER]: {
     Request: GET_USER_REQUEST;
@@ -23661,10 +23167,6 @@ export interface IPatternConfig {
   [Pattern.UPDATE_NETWORK_POLICIES_TEMPLATE]: {
     Request: UPDATE_NETWORK_POLICIES_TEMPLATE_REQUEST;
     Response: UPDATE_NETWORK_POLICIES_TEMPLATE_RESPONSE;
-  };
-  [Pattern.UPDATE_TEAM]: {
-    Request: UPDATE_TEAM_REQUEST;
-    Response: UPDATE_TEAM_RESPONSE;
   };
   [Pattern.UPDATE_USER]: {
     Request: UPDATE_USER_REQUEST;

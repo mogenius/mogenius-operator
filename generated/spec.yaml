@@ -4700,26 +4700,6 @@ create/new-workload:
             pointer: true
             structRef: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured
             type: struct
-create/team:
-    requestSchema:
-        structs:
-            mogenius-k8s-manager/src/core.Request:
-                name: mogenius-k8s-manager/src/core.Request
-                properties:
-                    displayName:
-                        type: string
-                    name:
-                        type: string
-                    users:
-                        elementType:
-                            type: string
-                        type: array
-        typeInfo:
-            structRef: mogenius-k8s-manager/src/core.Request
-            type: struct
-    responseSchema:
-        typeInfo:
-            type: string
 create/user:
     requestSchema:
         structs:
@@ -4771,20 +4751,6 @@ create/workspace:
         typeInfo:
             type: string
 delete/grant:
-    requestSchema:
-        structs:
-            mogenius-k8s-manager/src/core.Request:
-                name: mogenius-k8s-manager/src/core.Request
-                properties:
-                    name:
-                        type: string
-        typeInfo:
-            structRef: mogenius-k8s-manager/src/core.Request
-            type: struct
-    responseSchema:
-        typeInfo:
-            type: string
-delete/team:
     requestSchema:
         structs:
             mogenius-k8s-manager/src/core.Request:
@@ -5845,313 +5811,6 @@ get/namespace-workload-list:
                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured
                 type: struct
             type: array
-get/team:
-    requestSchema:
-        structs:
-            mogenius-k8s-manager/src/core.Request:
-                name: mogenius-k8s-manager/src/core.Request
-                properties:
-                    name:
-                        type: string
-        typeInfo:
-            structRef: mogenius-k8s-manager/src/core.Request
-            type: struct
-    responseSchema:
-        structs:
-            k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1:
-                name: k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1
-                properties: {}
-            k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry:
-                name: k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry
-                properties:
-                    apiVersion:
-                        type: string
-                    fieldsType:
-                        type: string
-                    fieldsV1:
-                        pointer: true
-                        structRef: k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1
-                        type: struct
-                    manager:
-                        type: string
-                    operation:
-                        type: string
-                    subresource:
-                        type: string
-                    time:
-                        pointer: true
-                        structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
-                        type: struct
-            k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta:
-                name: k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta
-                properties:
-                    annotations:
-                        keyType:
-                            type: string
-                        type: map
-                        valueType:
-                            type: string
-                    creationTimestamp:
-                        structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
-                        type: struct
-                    deletionGracePeriodSeconds:
-                        pointer: true
-                        type: int
-                    deletionTimestamp:
-                        pointer: true
-                        structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
-                        type: struct
-                    finalizers:
-                        elementType:
-                            type: string
-                        type: array
-                    generateName:
-                        type: string
-                    generation:
-                        type: int
-                    labels:
-                        keyType:
-                            type: string
-                        type: map
-                        valueType:
-                            type: string
-                    managedFields:
-                        elementType:
-                            structRef: k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry
-                            type: struct
-                        type: array
-                    name:
-                        type: string
-                    namespace:
-                        type: string
-                    ownerReferences:
-                        elementType:
-                            structRef: k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference
-                            type: struct
-                        type: array
-                    resourceVersion:
-                        type: string
-                    selfLink:
-                        type: string
-                    uid:
-                        type: string
-            k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference:
-                name: k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference
-                properties:
-                    apiVersion:
-                        type: string
-                    blockOwnerDeletion:
-                        pointer: true
-                        type: bool
-                    controller:
-                        pointer: true
-                        type: bool
-                    kind:
-                        type: string
-                    name:
-                        type: string
-                    uid:
-                        type: string
-            k8s.io/apimachinery/pkg/apis/meta/v1.Time:
-                name: k8s.io/apimachinery/pkg/apis/meta/v1.Time
-                properties:
-                    Time:
-                        structRef: time.Time
-                        type: struct
-            k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta:
-                name: k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta
-                properties:
-                    apiVersion:
-                        type: string
-                    kind:
-                        type: string
-            mogenius-k8s-manager/src/crds/v1alpha1.Team:
-                name: mogenius-k8s-manager/src/crds/v1alpha1.Team
-                properties:
-                    TypeMeta:
-                        structRef: k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta
-                        type: struct
-                    metadata:
-                        structRef: k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta
-                        type: struct
-                    spec:
-                        structRef: mogenius-k8s-manager/src/crds/v1alpha1.TeamSpec
-                        type: struct
-                    status:
-                        structRef: mogenius-k8s-manager/src/crds/v1alpha1.TeamStatus
-                        type: struct
-            mogenius-k8s-manager/src/crds/v1alpha1.TeamSpec:
-                name: mogenius-k8s-manager/src/crds/v1alpha1.TeamSpec
-                properties:
-                    displayName:
-                        type: string
-                    users:
-                        elementType:
-                            type: string
-                        type: array
-            mogenius-k8s-manager/src/crds/v1alpha1.TeamStatus:
-                name: mogenius-k8s-manager/src/crds/v1alpha1.TeamStatus
-                properties: {}
-            time.Time:
-                name: time.Time
-                properties: {}
-        typeInfo:
-            pointer: true
-            structRef: mogenius-k8s-manager/src/crds/v1alpha1.Team
-            type: struct
-get/teams:
-    requestSchema:
-        structs:
-            ANON_STRUCT_0:
-                properties: {}
-        typeInfo:
-            pointer: true
-            structRef: ANON_STRUCT_0
-            type: struct
-    responseSchema:
-        structs:
-            k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1:
-                name: k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1
-                properties: {}
-            k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry:
-                name: k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry
-                properties:
-                    apiVersion:
-                        type: string
-                    fieldsType:
-                        type: string
-                    fieldsV1:
-                        pointer: true
-                        structRef: k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1
-                        type: struct
-                    manager:
-                        type: string
-                    operation:
-                        type: string
-                    subresource:
-                        type: string
-                    time:
-                        pointer: true
-                        structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
-                        type: struct
-            k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta:
-                name: k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta
-                properties:
-                    annotations:
-                        keyType:
-                            type: string
-                        type: map
-                        valueType:
-                            type: string
-                    creationTimestamp:
-                        structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
-                        type: struct
-                    deletionGracePeriodSeconds:
-                        pointer: true
-                        type: int
-                    deletionTimestamp:
-                        pointer: true
-                        structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
-                        type: struct
-                    finalizers:
-                        elementType:
-                            type: string
-                        type: array
-                    generateName:
-                        type: string
-                    generation:
-                        type: int
-                    labels:
-                        keyType:
-                            type: string
-                        type: map
-                        valueType:
-                            type: string
-                    managedFields:
-                        elementType:
-                            structRef: k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry
-                            type: struct
-                        type: array
-                    name:
-                        type: string
-                    namespace:
-                        type: string
-                    ownerReferences:
-                        elementType:
-                            structRef: k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference
-                            type: struct
-                        type: array
-                    resourceVersion:
-                        type: string
-                    selfLink:
-                        type: string
-                    uid:
-                        type: string
-            k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference:
-                name: k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference
-                properties:
-                    apiVersion:
-                        type: string
-                    blockOwnerDeletion:
-                        pointer: true
-                        type: bool
-                    controller:
-                        pointer: true
-                        type: bool
-                    kind:
-                        type: string
-                    name:
-                        type: string
-                    uid:
-                        type: string
-            k8s.io/apimachinery/pkg/apis/meta/v1.Time:
-                name: k8s.io/apimachinery/pkg/apis/meta/v1.Time
-                properties:
-                    Time:
-                        structRef: time.Time
-                        type: struct
-            k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta:
-                name: k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta
-                properties:
-                    apiVersion:
-                        type: string
-                    kind:
-                        type: string
-            mogenius-k8s-manager/src/crds/v1alpha1.Team:
-                name: mogenius-k8s-manager/src/crds/v1alpha1.Team
-                properties:
-                    TypeMeta:
-                        structRef: k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta
-                        type: struct
-                    metadata:
-                        structRef: k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta
-                        type: struct
-                    spec:
-                        structRef: mogenius-k8s-manager/src/crds/v1alpha1.TeamSpec
-                        type: struct
-                    status:
-                        structRef: mogenius-k8s-manager/src/crds/v1alpha1.TeamStatus
-                        type: struct
-            mogenius-k8s-manager/src/crds/v1alpha1.TeamSpec:
-                name: mogenius-k8s-manager/src/crds/v1alpha1.TeamSpec
-                properties:
-                    displayName:
-                        type: string
-                    users:
-                        elementType:
-                            type: string
-                        type: array
-            mogenius-k8s-manager/src/crds/v1alpha1.TeamStatus:
-                name: mogenius-k8s-manager/src/crds/v1alpha1.TeamStatus
-                properties: {}
-            time.Time:
-                name: time.Time
-                properties: {}
-        typeInfo:
-            elementType:
-                structRef: mogenius-k8s-manager/src/crds/v1alpha1.Team
-                type: struct
-            type: array
 get/user:
     requestSchema:
         structs:
@@ -6307,11 +5966,10 @@ get/user:
                         type: string
                     lastName:
                         type: string
-                    subjects:
-                        elementType:
-                            structRef: k8s.io/api/rbac/v1.Subject
-                            type: struct
-                        type: array
+                    subject:
+                        pointer: true
+                        structRef: k8s.io/api/rbac/v1.Subject
+                        type: struct
             mogenius-k8s-manager/src/crds/v1alpha1.UserStatus:
                 name: mogenius-k8s-manager/src/crds/v1alpha1.UserStatus
                 properties: {}
@@ -6478,11 +6136,10 @@ get/users:
                         type: string
                     lastName:
                         type: string
-                    subjects:
-                        elementType:
-                            structRef: k8s.io/api/rbac/v1.Subject
-                            type: struct
-                        type: array
+                    subject:
+                        pointer: true
+                        structRef: k8s.io/api/rbac/v1.Subject
+                        type: struct
             mogenius-k8s-manager/src/crds/v1alpha1.UserStatus:
                 name: mogenius-k8s-manager/src/crds/v1alpha1.UserStatus
                 properties: {}
@@ -18720,26 +18377,6 @@ update/network_policies_template:
             pointer: true
             structRef: ANON_STRUCT_0
             type: struct
-update/team:
-    requestSchema:
-        structs:
-            mogenius-k8s-manager/src/core.Request:
-                name: mogenius-k8s-manager/src/core.Request
-                properties:
-                    displayName:
-                        type: string
-                    name:
-                        type: string
-                    users:
-                        elementType:
-                            type: string
-                        type: array
-        typeInfo:
-            structRef: mogenius-k8s-manager/src/core.Request
-            type: struct
-    responseSchema:
-        typeInfo:
-            type: string
 update/user:
     requestSchema:
         structs:
