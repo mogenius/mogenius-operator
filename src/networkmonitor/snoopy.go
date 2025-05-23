@@ -388,7 +388,9 @@ func (self *snoopyManager) startStatusEventHandler() {
 							break
 						}
 					}
-					assert.Assert(snoopyProcess != nil)
+					if snoopyProcess == nil {
+						continue
+					}
 					snoopyProcess.Interfaces = append(snoopyProcess.Interfaces, SnoopyStatusInterface{
 						Name: snoopyEventInterfaceAdded.Interface.Name,
 					})
@@ -402,7 +404,9 @@ func (self *snoopyManager) startStatusEventHandler() {
 							break
 						}
 					}
-					assert.Assert(snoopyProcess != nil)
+					if snoopyProcess == nil {
+						continue
+					}
 					deleteIdx := -1
 					for idx, intf := range snoopyProcess.Interfaces {
 						if snoopyEventInterfaceRemoved.Interface.Name == intf.Name {
@@ -423,7 +427,9 @@ func (self *snoopyManager) startStatusEventHandler() {
 							break
 						}
 					}
-					assert.Assert(snoopyProcess != nil)
+					if snoopyProcess == nil {
+						continue
+					}
 					initializedIdx := -1
 					for idx, intf := range snoopyProcess.Interfaces {
 						if snoopyEventInterfaceBpfInitialized.Interface == intf.Name {
