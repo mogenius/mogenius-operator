@@ -62,12 +62,6 @@ type Api interface {
 	UpdateUser(name string, spec v1alpha1.UserSpec) (string, error)
 	DeleteUser(name string) (string, error)
 
-	GetAllTeams() ([]v1alpha1.Team, error)
-	GetTeam(name string) (*v1alpha1.Team, error)
-	CreateTeam(name string, spec v1alpha1.TeamSpec) (string, error)
-	UpdateTeam(name string, spec v1alpha1.TeamSpec) (string, error)
-	DeleteTeam(name string) (string, error)
-
 	GetAllGrants(targetType, targetName *string) ([]v1alpha1.Grant, error)
 	GetGrant(name string) (*v1alpha1.Grant, error)
 	CreateGrant(name string, spec v1alpha1.GrantSpec) (string, error)
@@ -214,51 +208,6 @@ func (self *api) UpdateUser(name string, spec v1alpha1.UserSpec) (string, error)
 
 func (self *api) DeleteUser(name string) (string, error) {
 	err := self.workspaceManager.DeleteUser(name)
-	if err != nil {
-		return "", err
-	}
-
-	return "Resource deleted successfully", nil
-}
-
-func (self *api) GetAllTeams() ([]v1alpha1.Team, error) {
-	resources, err := self.workspaceManager.GetAllTeams()
-	if err != nil {
-		return []v1alpha1.Team{}, err
-	}
-
-	return resources, nil
-}
-
-func (self *api) GetTeam(name string) (*v1alpha1.Team, error) {
-	resource, err := self.workspaceManager.GetTeam(name)
-	if err != nil {
-		return nil, err
-	}
-
-	return resource, nil
-}
-
-func (self *api) CreateTeam(name string, spec v1alpha1.TeamSpec) (string, error) {
-	_, err := self.workspaceManager.CreateTeam(name, spec)
-	if err != nil {
-		return "", err
-	}
-
-	return "Resource created successfully", nil
-}
-
-func (self *api) UpdateTeam(name string, spec v1alpha1.TeamSpec) (string, error) {
-	_, err := self.workspaceManager.UpdateTeam(name, spec)
-	if err != nil {
-		return "", err
-	}
-
-	return "Resource updated successfully", nil
-}
-
-func (self *api) DeleteTeam(name string) (string, error) {
-	err := self.workspaceManager.DeleteTeam(name)
 	if err != nil {
 		return "", err
 	}
