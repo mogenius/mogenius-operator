@@ -208,32 +208,23 @@ func GetUnstructuredNamespaceResourceList(namespace string, whitelist []*utils.S
 		blacklist = []*utils.SyncResourceEntry{}
 	}
 
-	var wg sync.WaitGroup
-	resultCh := make(chan []unstructured.Unstructured, len(resources))
-
+	promise := utils.NewPromise[unstructured.Unstructured]()
 	for _, v := range resources {
 		if v.Namespace != nil {
 			if (len(whitelist) > 0 && !utils.ContainsResourceEntry(whitelist, v)) || (blacklist != nil && utils.ContainsResourceEntry(blacklist, v)) {
 				continue
 			}
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
+			promise.RunArray(func() *[]unstructured.Unstructured {
 				result := store.GetResourceByKindAndNamespace(valkeyClient, v.Group, v.Kind, namespace)
 				if result != nil && len(result) > 0 {
-					resultCh <- result
+					return &result
 				}
-			}()
+				return nil
+			})
 		}
 	}
-	go func() {
-		wg.Wait()
-		close(resultCh)
-	}()
+	results = promise.Wait()
 
-	for res := range resultCh {
-		results = append(results, res...)
-	}
 	return results, nil
 }
 
