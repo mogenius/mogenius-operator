@@ -310,10 +310,10 @@ func (self *snoopyManager) startStatusEventHandler() {
 		case event := <-self.statusEventTx:
 			switch event.Type {
 			case SnoopyStatusEventTypeRegisterRequest:
-				assert.Assert(event.RegisterRequest != nil)
+				assert.Assert(event.RegisterRequest != nil, "event.RegisterRequest should be set", event)
 				status.Initializing = append(status.Initializing, *event.RegisterRequest)
 			case SnoopyStatusEventTypeRegisterSuccess:
-				assert.Assert(event.RegisterSuccess != nil)
+				assert.Assert(event.RegisterSuccess != nil, "event.RegisterSuccess should be set", event)
 				successEvent := *event.RegisterSuccess
 
 				// remove the corresponding event from the initializing list
@@ -335,7 +335,7 @@ func (self *snoopyManager) startStatusEventHandler() {
 					Interfaces: []SnoopyStatusInterface{},
 				})
 			case SnoopyStatusEventTypeRegisterFailure:
-				assert.Assert(event.RegisterFailure != nil)
+				assert.Assert(event.RegisterFailure != nil, "event.RegisterFailure should be set", event)
 				failureEvent := *event.RegisterFailure
 
 				// remove the corresponding event from the initializing list
@@ -354,7 +354,7 @@ func (self *snoopyManager) startStatusEventHandler() {
 				// add the failure to the failure list
 				status.Failure = append(status.Failure, *event.RegisterFailure)
 			case SnoopyStatusEventTypeRemove:
-				assert.Assert(event.Remove != nil)
+				assert.Assert(event.Remove != nil, "event.Remove should be set", event)
 				removeEvent := *event.Remove
 
 				// remove the process from the process list
@@ -370,20 +370,23 @@ func (self *snoopyManager) startStatusEventHandler() {
 				updatedProcesses = append(updatedProcesses, status.SnoopyProcesses[processIdx+1:]...)
 				status.SnoopyProcesses = updatedProcesses
 			case SnoopyStatusEventTypeSnoopyEvent:
-				assert.Assert(event.SnoopyEvent != nil)
-				snoopyEvent := *event.SnoopyEvent
+				assert.Assert(event.SnoopyEvent != nil, "event.SnoopyEvent should be set", event)
 
-				switch snoopyEvent.SnoopyEvent.Type {
+				switch event.SnoopyEvent.SnoopyEvent.Type {
 				case SnoopyEventTypeInterfaceChanged:
 					// ignore
 				case SnoopyEventTypeInterfaceMetrics:
 					// ignore
 				case SnoopyEventTypeInterfaceAdded:
-					assert.Assert(snoopyEvent.SnoopyEvent.InterfaceAdded != nil)
-					snoopyEventInterfaceAdded := *snoopyEvent.SnoopyEvent.InterfaceAdded
+					assert.Assert(
+						event.SnoopyEvent.SnoopyEvent.InterfaceAdded != nil,
+						"event.SnoopyEvent.SnoopyEvent.InterfaceAdded should be set",
+						event,
+					)
+					snoopyEventInterfaceAdded := *event.SnoopyEvent.SnoopyEvent.InterfaceAdded
 					var snoopyProcess *SnoopyStatusProcess
 					for idx, process := range status.SnoopyProcesses {
-						if process.Pid == snoopyEvent.SnoopyPid {
+						if process.Pid == event.SnoopyEvent.SnoopyPid {
 							snoopyProcess = &status.SnoopyProcesses[idx]
 							break
 						}
@@ -395,11 +398,15 @@ func (self *snoopyManager) startStatusEventHandler() {
 						Name: snoopyEventInterfaceAdded.Interface.Name,
 					})
 				case SnoopyEventTypeInterfaceRemoved:
-					assert.Assert(snoopyEvent.SnoopyEvent.InterfaceRemoved != nil)
-					snoopyEventInterfaceRemoved := *snoopyEvent.SnoopyEvent.InterfaceRemoved
+					assert.Assert(
+						event.SnoopyEvent.SnoopyEvent.InterfaceRemoved != nil,
+						"event.SnoopyEvent.SnoopyEvent.InterfaceRemoved should be set",
+						event,
+					)
+					snoopyEventInterfaceRemoved := *event.SnoopyEvent.SnoopyEvent.InterfaceRemoved
 					var snoopyProcess *SnoopyStatusProcess
 					for idx, process := range status.SnoopyProcesses {
-						if process.Pid == snoopyEvent.SnoopyPid {
+						if process.Pid == event.SnoopyEvent.SnoopyPid {
 							snoopyProcess = &status.SnoopyProcesses[idx]
 							break
 						}
@@ -414,15 +421,24 @@ func (self *snoopyManager) startStatusEventHandler() {
 							break
 						}
 					}
-					assert.Assert(deleteIdx >= 0)
+					assert.Assert(
+						deleteIdx >= 0,
+						"the removed interface should be found in the running snoopy interface list",
+						event.SnoopyEvent.SnoopyEvent,
+						snoopyProcess,
+					)
 					cleanedInterfaces := append(snoopyProcess.Interfaces[:deleteIdx], snoopyProcess.Interfaces[deleteIdx+1:]...)
 					snoopyProcess.Interfaces = cleanedInterfaces
 				case SnoopyEventTypeInterfaceBpfInitialized:
-					assert.Assert(snoopyEvent.SnoopyEvent.InterfaceBpfInitialized != nil)
-					snoopyEventInterfaceBpfInitialized := *snoopyEvent.SnoopyEvent.InterfaceBpfInitialized
+					assert.Assert(
+						event.SnoopyEvent.SnoopyEvent.InterfaceBpfInitialized != nil,
+						"event.SnoopyEvent.SnoopyEvent.InterfaceBpfInitialized should be set",
+						event,
+					)
+					payload := *event.SnoopyEvent.SnoopyEvent.InterfaceBpfInitialized
 					var snoopyProcess *SnoopyStatusProcess
 					for idx, process := range status.SnoopyProcesses {
-						if process.Pid == snoopyEvent.SnoopyPid {
+						if process.Pid == event.SnoopyEvent.SnoopyPid {
 							snoopyProcess = &status.SnoopyProcesses[idx]
 							break
 						}
@@ -432,19 +448,34 @@ func (self *snoopyManager) startStatusEventHandler() {
 					}
 					initializedIdx := -1
 					for idx, intf := range snoopyProcess.Interfaces {
-						if snoopyEventInterfaceBpfInitialized.Interface == intf.Name {
+						if payload.Interface == intf.Name {
 							initializedIdx = idx
 							break
 						}
 					}
-					assert.Assert(initializedIdx >= 0)
-					snoopyProcess.Interfaces[initializedIdx].IngressImplementation = snoopyEventInterfaceBpfInitialized.IngressImplementation
-					snoopyProcess.Interfaces[initializedIdx].EgressImplementation = snoopyEventInterfaceBpfInitialized.EgressImplementation
+					assert.Assert(
+						initializedIdx >= 0,
+						"the initialized interface should be found in the running snoopy interface list",
+						event.SnoopyEvent.SnoopyEvent,
+						snoopyProcess,
+					)
+					snoopyProcess.Interfaces[initializedIdx].IngressImplementation = payload.IngressImplementation
+					snoopyProcess.Interfaces[initializedIdx].EgressImplementation = payload.EgressImplementation
 				default:
-					assert.Assert(false, "Unhandled SnoopyEventType", snoopyEvent.SnoopyEvent.Type)
+					assert.Assert(
+						false,
+						"Unhandled event.SnoopyEvent.SnoopyEvent.Type",
+						event.SnoopyEvent.SnoopyEvent.Type,
+						event,
+					)
 				}
 			default:
-				assert.Assert(false, "Unhandled SnoopyStatusEventType", event.Type)
+				assert.Assert(
+					false,
+					"Unhandled event.Type",
+					event.Type,
+					event,
+				)
 			}
 		}
 	}
