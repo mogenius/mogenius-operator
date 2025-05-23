@@ -38,12 +38,10 @@ const (
 	HELM_DATA_HOME   = "helm"
 	HELM_CONFIG_HOME = "helm"
 
-	HELM_REGISTRY_CONFIG_FILE = "helm/config.json"
-
 	HELM_CACHE_HOME              = "helm/cache"
 	HELM_REPOSITORY_CACHE_FOLDER = "helm/cache/repository"
-
-	HELM_REPOSITORY_CONFIG_FILE = "helm/repositories.yaml"
+	HELM_REGISTRY_CONFIG_FILE    = "helm/config.json"
+	HELM_REPOSITORY_CONFIG_FILE  = "helm/repositories.yaml"
 
 	HELM_PLUGINS = "helm/plugins"
 
@@ -108,6 +106,20 @@ type HelmChartInstallUpgradeRequest struct {
 	Version string `json:"version,omitempty"`
 	Values  string `json:"values,omitempty"`
 	DryRun  bool   `json:"dryRun,omitempty"`
+}
+
+type HelmChartOciInstallUpgradeRequest struct {
+	RegistryUrl string `json:"registryUrl" validate:"required"`
+	Namespace   string `json:"namespace" validate:"required"`
+	Chart       string `json:"chart" validate:"required"`
+	Release     string `json:"release" validate:"required"`
+	// Optional fields
+	Version string `json:"version,omitempty"`
+	Values  string `json:"values,omitempty"`
+	DryRun  bool   `json:"dryRun,omitempty"`
+	// OCI specific fields
+	Username string `json:"username,omitempty"`
+	Password string `json:"password,omitempty"`
 }
 
 type HelmChartShowRequest struct {
@@ -290,6 +302,7 @@ func InitHelmConfig() error {
 	assert.Assert(ok)
 	_registryConfig, ok := os.LookupEnv("HELM_REPOSITORY_CONFIG")
 	assert.Assert(ok)
+
 	repositoryCache = _repositoryCache
 	repositoryConfig = _repositoryConfig
 	registryConfig = _registryConfig
@@ -677,7 +690,211 @@ func HelmChartVersion(data HelmChartVersionRequest) ([]HelmChartInfo, error) {
 	return allCharts, nil
 }
 
-func HelmChartInstall(data HelmChartInstallUpgradeRequest) (string, error) {
+func HelmOciInstall(data HelmChartOciInstallUpgradeRequest) (result string, err error) {
+	defer func() {
+		if err != nil {
+			cleanReleaseLogs(data.Namespace, data.Release)
+		}
+	}()
+
+	settings := NewCli()
+	settings.Debug = false
+	settings.SetNamespace(data.Namespace)
+	helmLogger.Info("Setting up Helm OCI installation...", "releaseName", data.Release, "namespace", data.Namespace)
+
+	logFn := func(msg string, args ...interface{}) {
+		helmLogger.Info(
+			fmt.Sprintf(msg, args...),
+			"releaseName", data.Release,
+			"namespace", data.Namespace,
+		)
+	}
+
+	actionConfig := new(action.Configuration)
+	if err := actionConfig.Init(settings.RESTClientGetter(), data.Namespace, "", logFn); err != nil {
+		helmLogger.Error("HelmOCIInstall Init",
+			"releaseName", data.Release,
+			"namespace", data.Namespace,
+			"error", err.Error(),
+		)
+		return "", err
+	}
+
+	if !registry.IsOCI(data.RegistryUrl) {
+		return "", fmt.Errorf("non-OCI charts are not supported in OCI installation")
+	}
+
+	// Pull the OCI chart
+	chartPath, err := pullOCIChart(data, settings)
+	if err != nil {
+		helmLogger.Error("HelmOCIInstall Pull",
+			"releaseName", data.Release,
+			"namespace", data.Namespace,
+			"error", err.Error(),
+		)
+		return "", err
+	}
+
+	// Load the chart from the pulled location
+	helmLogger.Info("Loading pulled OCI chart ...", "releaseName", data.Release, "namespace", data.Namespace)
+	chartRequested, err := loader.Load(chartPath)
+	if err != nil {
+		helmLogger.Error("HelmOCIInstall Load",
+			"releaseName", data.Release,
+			"namespace", data.Namespace,
+			"error", err.Error(),
+		)
+		return "", err
+	}
+
+	// Parse the values string into a map
+	valuesMap := map[string]interface{}{}
+	if err := yaml.Unmarshal([]byte(data.Values), &valuesMap); err != nil {
+		helmLogger.Error("failed to Unmarshal HelmOCIInstall Values",
+			"releaseName", data.Release,
+			"namespace", data.Namespace,
+			"error", err.Error(),
+		)
+		return "", err
+	}
+
+	// Install the pulled chart
+	helmLogger.Info("Installing OCI chart ...", "releaseName", data.Release, "namespace", data.Namespace)
+	install := action.NewInstall(actionConfig)
+	install.DryRun = data.DryRun
+	install.ReleaseName = data.Release
+	install.Namespace = data.Namespace
+	install.Version = data.Version
+	install.Wait = false
+	install.Timeout = 300 * time.Second
+
+	re, err := install.Run(chartRequested, valuesMap)
+	if err != nil {
+		helmLogger.Error("HelmOCIInstall Run",
+			"releaseName", data.Release,
+			"namespace", data.Namespace,
+			"error", err.Error(),
+		)
+		return "", err
+	}
+	if re == nil {
+		return "", fmt.Errorf("HelmOCIInstall Error: Release not found")
+	}
+
+	helmLogger.Info(installStatus(*re), "releaseName", data.Release, "namespace", data.Namespace)
+	return installStatus(*re), nil
+}
+
+func pullOCIChart(data HelmChartOciInstallUpgradeRequest, settings *cli.EnvSettings) (downloadedTo string, err error) {
+	chartRef := data.RegistryUrl + "/" + data.Chart
+	if data.Version != "" {
+		chartRef = fmt.Sprintf("%s:%s", data.Chart, data.Version)
+	}
+
+	actionConfig, err := initActionConfigList(settings, true)
+	if err != nil {
+		return "", fmt.Errorf("failed to init action config: %w", err)
+	}
+
+	registryClient, err := newRegistryClient(settings, false)
+	if err != nil {
+		return "", fmt.Errorf("failed to created registry client: %w", err)
+	}
+	actionConfig.RegistryClient = registryClient
+
+	// check auth if needed
+	if data.Username != "" || data.Password != "" {
+		return "", fmt.Errorf("OCI AUTH currently not supported")
+		// TODO: Uncomment this when OCI auth is supported
+		// err = registryClient.Login(
+		// 	data.RegistryUrl,
+		// 	registry.LoginOptBasicAuth(data.Username, data.Password),
+		// )
+		// if err != nil {
+		// 	helmLogger.Error("OCI registry login failed",
+		// 		"releaseName", data.Release,
+		// 		"namespace", data.Namespace,
+		// 		"error", err.Error(),
+		// 	)
+		// 	return "", err
+		// }
+	}
+
+	tempDir, err := os.MkdirTemp("", "helm-pull")
+	if err != nil {
+		return "", fmt.Errorf("failed to create temp dir: %w", err)
+	}
+
+	pullClient := action.NewPullWithOpts(
+		action.WithConfig(actionConfig))
+	pullClient.DestDir = tempDir
+	pullClient.Settings = settings
+	pullClient.Version = data.Version
+	pullClient.Untar = true
+	pullClient.Devel = false
+
+	_, err = pullClient.Run(chartRef)
+	if err != nil {
+		return "", fmt.Errorf("failed to pull chart: %w", err)
+	}
+
+	return tempDir + "/" + data.Chart, nil
+}
+
+func initActionConfigList(settings *cli.EnvSettings, allNamespaces bool) (*action.Configuration, error) {
+
+	actionConfig := new(action.Configuration)
+
+	namespace := func() string {
+		// For list action, you can pass an empty string instead of settings.Namespace() to list
+		// all namespaces
+		if allNamespaces {
+			return ""
+		}
+		return settings.Namespace()
+	}()
+
+	logFn := func(msg string, args ...interface{}) {
+		helmLogger.Info(
+			fmt.Sprintf(msg, args...),
+		)
+	}
+
+	if err := actionConfig.Init(
+		settings.RESTClientGetter(),
+		namespace,
+		"",
+		logFn); err != nil {
+		return nil, err
+	}
+
+	return actionConfig, nil
+}
+
+func newRegistryClient(settings *cli.EnvSettings, plainHTTP bool) (*registry.Client, error) {
+	opts := []registry.ClientOption{
+		registry.ClientOptEnableCache(true),
+		registry.ClientOptCredentialsFile(settings.RegistryConfig),
+	}
+	if plainHTTP {
+		opts = append(opts, registry.ClientOptPlainHTTP())
+	}
+
+	// Create a new registry client
+	registryClient, err := registry.NewClient(opts...)
+	if err != nil {
+		return nil, err
+	}
+	return registryClient, nil
+}
+
+func HelmChartInstall(data HelmChartInstallUpgradeRequest) (result string, err error) {
+	defer func() {
+		if err != nil {
+			cleanReleaseLogs(data.Namespace, data.Release)
+		}
+	}()
+
 	settings := NewCli()
 	settings.SetNamespace(data.Namespace)
 	settings.Debug = true
@@ -702,7 +919,6 @@ func HelmChartInstall(data HelmChartInstallUpgradeRequest) (string, error) {
 			"namespace", data.Namespace,
 			"error", err.Error(),
 		)
-		cleanReleaseLogs(data.Namespace, data.Release)
 		return "", err
 	}
 
@@ -727,7 +943,6 @@ func HelmChartInstall(data HelmChartInstallUpgradeRequest) (string, error) {
 			"namespace", data.Namespace,
 			"error", err.Error(),
 		)
-		cleanReleaseLogs(data.Namespace, data.Release)
 		return "", err
 	}
 
@@ -739,7 +954,6 @@ func HelmChartInstall(data HelmChartInstallUpgradeRequest) (string, error) {
 			"namespace", data.Namespace,
 			"error", err.Error(),
 		)
-		cleanReleaseLogs(data.Namespace, data.Release)
 		return "", err
 	}
 
@@ -751,7 +965,6 @@ func HelmChartInstall(data HelmChartInstallUpgradeRequest) (string, error) {
 			"namespace", data.Namespace,
 			"error", err.Error(),
 		)
-		cleanReleaseLogs(data.Namespace, data.Release)
 		return "", err
 	}
 
@@ -763,11 +976,9 @@ func HelmChartInstall(data HelmChartInstallUpgradeRequest) (string, error) {
 			"namespace", data.Namespace,
 			"error", err.Error(),
 		)
-		cleanReleaseLogs(data.Namespace, data.Release)
 		return "", err
 	}
 	if re == nil {
-		cleanReleaseLogs(data.Namespace, data.Release)
 		return "", fmt.Errorf("HelmInstall Error: Release not found")
 	}
 
@@ -776,7 +987,13 @@ func HelmChartInstall(data HelmChartInstallUpgradeRequest) (string, error) {
 	return installStatus(*re), nil
 }
 
-func HelmReleaseUpgrade(data HelmChartInstallUpgradeRequest) (string, error) {
+func HelmReleaseUpgrade(data HelmChartInstallUpgradeRequest) (result string, err error) {
+	defer func() {
+		if err != nil {
+			cleanReleaseLogs(data.Namespace, data.Release)
+		}
+	}()
+
 	settings := NewCli()
 	settings.SetNamespace(data.Namespace)
 
@@ -856,7 +1073,13 @@ func HelmReleaseUpgrade(data HelmChartInstallUpgradeRequest) (string, error) {
 	return installStatus(*re), nil
 }
 
-func HelmReleaseUninstall(data HelmReleaseUninstallRequest) (string, error) {
+func HelmReleaseUninstall(data HelmReleaseUninstallRequest) (result string, err error) {
+	defer func() {
+		if err != nil {
+			cleanReleaseLogs(data.Namespace, data.Release)
+		}
+	}()
+
 	settings := NewCli()
 	settings.SetNamespace(data.Namespace)
 
@@ -882,7 +1105,7 @@ func HelmReleaseUninstall(data HelmReleaseUninstallRequest) (string, error) {
 	uninstall := action.NewUninstall(actionConfig)
 	uninstall.DryRun = data.DryRun
 	uninstall.Wait = false
-	_, err := uninstall.Run(data.Release)
+	_, err = uninstall.Run(data.Release)
 	if err != nil {
 		helmLogger.Error("HelmUninstall Run",
 			"releaseName", data.Release,
@@ -891,8 +1114,6 @@ func HelmReleaseUninstall(data HelmReleaseUninstallRequest) (string, error) {
 		)
 		return "", err
 	}
-
-	cleanReleaseLogs(data.Namespace, data.Release)
 
 	return fmt.Sprintf("Release '%s' uninstalled", data.Release), nil
 }
@@ -1130,7 +1351,6 @@ func HelmReleaseGetWorkloads(valkeyClient valkeyclient.ValkeyClient, data HelmRe
 			if !replicaSetsFetched {
 				replicaSets, err = store.SearchByKeyParts(valkeyClient, "apps/v1", "ReplicaSet", data.Namespace)
 				if errors.Is(err, store.ErrNotFound) {
-					helmLogger.Warn("ReplicaSet not found", "error", err.Error())
 					replicaSets = nil
 				}
 				replicaSetsFetched = true

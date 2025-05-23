@@ -167,13 +167,13 @@ func Run() error {
 		fmt.Println(configModule.AsEnvs())
 		return nil
 	case "exec <command>":
-		err := RunExec(&CLI.Exec, cmdLogger)
+		err := RunExec(&CLI.Exec, cmdLogger, configModule)
 		if err != nil {
 			return err
 		}
 		return nil
 	case "logs":
-		err := RunLogs(&CLI.Logs, cmdLogger)
+		err := RunLogs(&CLI.Logs, cmdLogger, configModule)
 		if err != nil {
 			return err
 		}
@@ -394,6 +394,34 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		},
 	})
 	configModule.Declare(config.ConfigDeclaration{
+		Key:          "MO_SNOOPY_IMPLEMENTATION",
+		DefaultValue: utils.Pointer("auto"),
+		Description:  utils.Pointer("set which implementation for tracking network traffic should be used"),
+		Validate: func(value string) error {
+			allowedValues := []string{
+				"auto",    // choose the best option based on whats available on the machine
+				"snoopy",  // use snoopy to collect traffic data through eBPF
+				"procdev", // read traffic data from the linux proc device
+			}
+			if !slices.Contains(allowedValues, value) {
+				return fmt.Errorf("'MO_SNOOPY_IMPLEMENTATION' needs to be one of: %#v", allowedValues)
+			}
+			return nil
+		},
+	})
+	configModule.Declare(config.ConfigDeclaration{
+		Key:          "KUBERNETES_DEBUG",
+		DefaultValue: utils.Pointer("false"),
+		Description:  utils.Pointer("enable kubernetes sdk debug output"),
+		Validate: func(value string) error {
+			_, err := strconv.ParseBool(value)
+			if err != nil {
+				return fmt.Errorf("'KUBERNETES_DEBUG' needs to be a boolean: %s", err.Error())
+			}
+			return nil
+		},
+	})
+	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_HOST_PROC_PATH",
 		DefaultValue: utils.Pointer("/proc"),
 		Description:  utils.Pointer("mountpath of /proc"),
@@ -476,7 +504,7 @@ func InitializeSystems(
 
 	// initialize client modules
 	valkeyClient := valkeyclient.NewValkeyClient(logManagerModule.CreateLogger("valkey"), configModule)
-	clientProvider := k8sclient.NewK8sClientProvider(logManagerModule.CreateLogger("client-provider"))
+	clientProvider := k8sclient.NewK8sClientProvider(logManagerModule.CreateLogger("client-provider"), configModule)
 	versionModule := version.NewVersion()
 	watcherModule := kubernetes.NewWatcher(logManagerModule.CreateLogger("watcher"), clientProvider)
 	shutdown.Add(watcherModule.UnwatchAll)
@@ -484,7 +512,7 @@ func InitializeSystems(
 	shutdown.Add(jobConnectionClient.Terminate)
 	eventConnectionClient := websocket.NewWebsocketClient(logManagerModule.CreateLogger("websocket-events-client"))
 	shutdown.Add(eventConnectionClient.Terminate)
-	cpuMonitor := cpumonitor.NewCpuMonitor(logManagerModule.CreateLogger("cpu-monitor"), clientProvider)
+	cpuMonitor := cpumonitor.NewCpuMonitor(logManagerModule.CreateLogger("cpu-monitor"), configModule, clientProvider)
 	ramMonitor := rammonitor.NewRamMonitor(logManagerModule.CreateLogger("ram-monitor"), configModule, clientProvider)
 	networkMonitor := networkmonitor.NewNetworkMonitor(logManagerModule.CreateLogger("network-monitor"), configModule, clientProvider, configModule.Get("MO_HOST_PROC_PATH"))
 

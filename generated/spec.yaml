@@ -220,14 +220,6 @@ SERVICE_PODS:
             type: struct
     responseSchema:
         structs:
-            gopkg.in/inf.v0.Dec:
-                name: gopkg.in/inf.v0.Dec
-                properties:
-                    scale:
-                        type: int
-                    unscaled:
-                        structRef: math/big.Int
-                        type: struct
             k8s.io/api/core/v1.AWSElasticBlockStoreVolumeSource:
                 name: k8s.io/api/core/v1.AWSElasticBlockStoreVolumeSource
                 properties:
@@ -2223,28 +2215,6 @@ SERVICE_PODS:
                 properties:
                     Format:
                         type: string
-                    d:
-                        structRef: k8s.io/apimachinery/pkg/api/resource.infDecAmount
-                        type: struct
-                    i:
-                        structRef: k8s.io/apimachinery/pkg/api/resource.int64Amount
-                        type: struct
-                    s:
-                        type: string
-            k8s.io/apimachinery/pkg/api/resource.infDecAmount:
-                name: k8s.io/apimachinery/pkg/api/resource.infDecAmount
-                properties:
-                    Dec:
-                        pointer: true
-                        structRef: gopkg.in/inf.v0.Dec
-                        type: struct
-            k8s.io/apimachinery/pkg/api/resource.int64Amount:
-                name: k8s.io/apimachinery/pkg/api/resource.int64Amount
-                properties:
-                    scale:
-                        type: int
-                    value:
-                        type: int
             k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1:
                 name: k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1
                 properties: {}
@@ -2386,71 +2356,9 @@ SERVICE_PODS:
                         type: string
                     Type:
                         type: int
-            math/big.Int:
-                name: math/big.Int
-                properties:
-                    abs:
-                        elementType:
-                            type: uint
-                        type: array
-                    neg:
-                        type: bool
-            time.Location:
-                name: time.Location
-                properties:
-                    cacheEnd:
-                        type: int
-                    cacheStart:
-                        type: int
-                    cacheZone:
-                        pointer: true
-                        structRef: time.zone
-                        type: struct
-                    extend:
-                        type: string
-                    name:
-                        type: string
-                    tx:
-                        elementType:
-                            structRef: time.zoneTrans
-                            type: struct
-                        type: array
-                    zone:
-                        elementType:
-                            structRef: time.zone
-                            type: struct
-                        type: array
             time.Time:
                 name: time.Time
-                properties:
-                    ext:
-                        type: int
-                    loc:
-                        pointer: true
-                        structRef: time.Location
-                        type: struct
-                    wall:
-                        type: uint
-            time.zone:
-                name: time.zone
-                properties:
-                    isDST:
-                        type: bool
-                    name:
-                        type: string
-                    offset:
-                        type: int
-            time.zoneTrans:
-                name: time.zoneTrans
-                properties:
-                    index:
-                        type: uint
-                    isstd:
-                        type: bool
-                    isutc:
-                        type: bool
-                    when:
-                        type: int
+                properties: {}
         typeInfo:
             elementType:
                 structRef: k8s.io/api/core/v1.Pod
@@ -2569,62 +2477,9 @@ UpgradeK8sManager:
                         type: string
                     title:
                         type: string
-            time.Location:
-                name: time.Location
-                properties:
-                    cacheEnd:
-                        type: int
-                    cacheStart:
-                        type: int
-                    cacheZone:
-                        pointer: true
-                        structRef: time.zone
-                        type: struct
-                    extend:
-                        type: string
-                    name:
-                        type: string
-                    tx:
-                        elementType:
-                            structRef: time.zoneTrans
-                            type: struct
-                        type: array
-                    zone:
-                        elementType:
-                            structRef: time.zone
-                            type: struct
-                        type: array
             time.Time:
                 name: time.Time
-                properties:
-                    ext:
-                        type: int
-                    loc:
-                        pointer: true
-                        structRef: time.Location
-                        type: struct
-                    wall:
-                        type: uint
-            time.zone:
-                name: time.zone
-                properties:
-                    isDST:
-                        type: bool
-                    name:
-                        type: string
-                    offset:
-                        type: int
-            time.zoneTrans:
-                name: time.zoneTrans
-                properties:
-                    index:
-                        type: uint
-                    isstd:
-                        type: bool
-                    isutc:
-                        type: bool
-                    when:
-                        type: int
+                properties: {}
         typeInfo:
             pointer: true
             structRef: mogenius-k8s-manager/src/structs.Job
@@ -2663,6 +2518,85 @@ attach/labeled_network_policy:
     responseSchema:
         typeInfo:
             type: string
+clean/workspace:
+    requestSchema:
+        structs:
+            mogenius-k8s-manager/src/core.Request:
+                name: mogenius-k8s-manager/src/core.Request
+                properties:
+                    configMaps:
+                        type: bool
+                    dryRun:
+                        type: bool
+                    ingresses:
+                        type: bool
+                    jobs:
+                        type: bool
+                    name:
+                        type: string
+                    pods:
+                        type: bool
+                    replicaSets:
+                        type: bool
+                    secrets:
+                        type: bool
+                    services:
+                        type: bool
+        typeInfo:
+            structRef: mogenius-k8s-manager/src/core.Request
+            type: struct
+    responseSchema:
+        structs:
+            mogenius-k8s-manager/src/core.CleanUpResult:
+                name: mogenius-k8s-manager/src/core.CleanUpResult
+                properties:
+                    ConfigMaps:
+                        elementType:
+                            structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
+                            type: struct
+                        type: array
+                    Ingresses:
+                        elementType:
+                            structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
+                            type: struct
+                        type: array
+                    Jobs:
+                        elementType:
+                            structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
+                            type: struct
+                        type: array
+                    Pods:
+                        elementType:
+                            structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
+                            type: struct
+                        type: array
+                    ReplicaSets:
+                        elementType:
+                            structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
+                            type: struct
+                        type: array
+                    Secrets:
+                        elementType:
+                            structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
+                            type: struct
+                        type: array
+                    Services:
+                        elementType:
+                            structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
+                            type: struct
+                        type: array
+            mogenius-k8s-manager/src/core.CleanUpResultEntry:
+                name: mogenius-k8s-manager/src/core.CleanUpResultEntry
+                properties:
+                    Name:
+                        type: string
+                    Namespace:
+                        type: string
+                    Reason:
+                        type: string
+        typeInfo:
+            structRef: mogenius-k8s-manager/src/core.CleanUpResult
+            type: struct
 cluster/backup:
     responseSchema:
         structs:
@@ -2680,6 +2614,24 @@ cluster/backup:
         typeInfo:
             structRef: mogenius-k8s-manager/src/kubernetes.NamespaceBackupResponse
             type: struct
+cluster/clear-valkey-cache:
+    requestSchema:
+        structs:
+            mogenius-k8s-manager/src/core.Request:
+                name: mogenius-k8s-manager/src/core.Request
+                properties:
+                    includeNodeStats:
+                        type: bool
+                    includePodStats:
+                        type: bool
+                    includeTraffic:
+                        type: bool
+        typeInfo:
+            structRef: mogenius-k8s-manager/src/core.Request
+            type: struct
+    responseSchema:
+        typeInfo:
+            type: string
 cluster/component-log-stream-connection-request:
     requestSchema:
         structs:
@@ -2828,62 +2780,9 @@ cluster/execute-helm-chart-task:
                         type: string
                     title:
                         type: string
-            time.Location:
-                name: time.Location
-                properties:
-                    cacheEnd:
-                        type: int
-                    cacheStart:
-                        type: int
-                    cacheZone:
-                        pointer: true
-                        structRef: time.zone
-                        type: struct
-                    extend:
-                        type: string
-                    name:
-                        type: string
-                    tx:
-                        elementType:
-                            structRef: time.zoneTrans
-                            type: struct
-                        type: array
-                    zone:
-                        elementType:
-                            structRef: time.zone
-                            type: struct
-                        type: array
             time.Time:
                 name: time.Time
-                properties:
-                    ext:
-                        type: int
-                    loc:
-                        pointer: true
-                        structRef: time.Location
-                        type: struct
-                    wall:
-                        type: uint
-            time.zone:
-                name: time.zone
-                properties:
-                    isDST:
-                        type: bool
-                    name:
-                        type: string
-                    offset:
-                        type: int
-            time.zoneTrans:
-                name: time.zoneTrans
-                properties:
-                    index:
-                        type: uint
-                    isstd:
-                        type: bool
-                    isutc:
-                        type: bool
-                    when:
-                        type: int
+                properties: {}
         typeInfo:
             pointer: true
             structRef: mogenius-k8s-manager/src/structs.Job
@@ -2908,6 +2807,36 @@ cluster/helm-chart-install:
                         type: string
         typeInfo:
             structRef: mogenius-k8s-manager/src/helm.HelmChartInstallUpgradeRequest
+            type: struct
+    responseSchema:
+        typeInfo:
+            type: string
+cluster/helm-chart-install-oci:
+    requestSchema:
+        structs:
+            mogenius-k8s-manager/src/helm.HelmChartOciInstallUpgradeRequest:
+                name: mogenius-k8s-manager/src/helm.HelmChartOciInstallUpgradeRequest
+                properties:
+                    chart:
+                        type: string
+                    dryRun:
+                        type: bool
+                    namespace:
+                        type: string
+                    password:
+                        type: string
+                    registryUrl:
+                        type: string
+                    release:
+                        type: string
+                    username:
+                        type: string
+                    values:
+                        type: string
+                    version:
+                        type: string
+        typeInfo:
+            structRef: mogenius-k8s-manager/src/helm.HelmChartOciInstallUpgradeRequest
             type: struct
     responseSchema:
         typeInfo:
@@ -3086,12 +3015,6 @@ cluster/helm-release-history:
             helm.sh/helm/v3/pkg/chart.Chart:
                 name: helm.sh/helm/v3/pkg/chart.Chart
                 properties:
-                    dependencies:
-                        elementType:
-                            pointer: true
-                            structRef: helm.sh/helm/v3/pkg/chart.Chart
-                            type: struct
-                        type: array
                     files:
                         elementType:
                             pointer: true
@@ -3105,10 +3028,6 @@ cluster/helm-release-history:
                     metadata:
                         pointer: true
                         structRef: helm.sh/helm/v3/pkg/chart.Metadata
-                        type: struct
-                    parent:
-                        pointer: true
-                        structRef: helm.sh/helm/v3/pkg/chart.Chart
                         type: struct
                     schema:
                         elementType:
@@ -3256,6 +3175,10 @@ cluster/helm-release-history:
                         type: string
                     name:
                         type: string
+                    output_log_policies:
+                        elementType:
+                            type: string
+                        type: array
                     path:
                         type: string
                     weight:
@@ -3336,62 +3259,9 @@ cluster/helm-release-history:
                     Time:
                         structRef: time.Time
                         type: struct
-            time.Location:
-                name: time.Location
-                properties:
-                    cacheEnd:
-                        type: int
-                    cacheStart:
-                        type: int
-                    cacheZone:
-                        pointer: true
-                        structRef: time.zone
-                        type: struct
-                    extend:
-                        type: string
-                    name:
-                        type: string
-                    tx:
-                        elementType:
-                            structRef: time.zoneTrans
-                            type: struct
-                        type: array
-                    zone:
-                        elementType:
-                            structRef: time.zone
-                            type: struct
-                        type: array
             time.Time:
                 name: time.Time
-                properties:
-                    ext:
-                        type: int
-                    loc:
-                        pointer: true
-                        structRef: time.Location
-                        type: struct
-                    wall:
-                        type: uint
-            time.zone:
-                name: time.zone
-                properties:
-                    isDST:
-                        type: bool
-                    name:
-                        type: string
-                    offset:
-                        type: int
-            time.zoneTrans:
-                name: time.zoneTrans
-                properties:
-                    index:
-                        type: uint
-                    isstd:
-                        type: bool
-                    isutc:
-                        type: bool
-                    when:
-                        type: int
+                properties: {}
         typeInfo:
             elementType:
                 pointer: true
@@ -3414,12 +3284,6 @@ cluster/helm-release-list:
             helm.sh/helm/v3/pkg/chart.Chart:
                 name: helm.sh/helm/v3/pkg/chart.Chart
                 properties:
-                    dependencies:
-                        elementType:
-                            pointer: true
-                            structRef: helm.sh/helm/v3/pkg/chart.Chart
-                            type: struct
-                        type: array
                     files:
                         elementType:
                             pointer: true
@@ -3433,10 +3297,6 @@ cluster/helm-release-list:
                     metadata:
                         pointer: true
                         structRef: helm.sh/helm/v3/pkg/chart.Metadata
-                        type: struct
-                    parent:
-                        pointer: true
-                        structRef: helm.sh/helm/v3/pkg/chart.Chart
                         type: struct
                     schema:
                         elementType:
@@ -3584,6 +3444,10 @@ cluster/helm-release-list:
                         type: string
                     name:
                         type: string
+                    output_log_policies:
+                        elementType:
+                            type: string
+                        type: array
                     path:
                         type: string
                     weight:
@@ -3664,62 +3528,9 @@ cluster/helm-release-list:
                     Time:
                         structRef: time.Time
                         type: struct
-            time.Location:
-                name: time.Location
-                properties:
-                    cacheEnd:
-                        type: int
-                    cacheStart:
-                        type: int
-                    cacheZone:
-                        pointer: true
-                        structRef: time.zone
-                        type: struct
-                    extend:
-                        type: string
-                    name:
-                        type: string
-                    tx:
-                        elementType:
-                            structRef: time.zoneTrans
-                            type: struct
-                        type: array
-                    zone:
-                        elementType:
-                            structRef: time.zone
-                            type: struct
-                        type: array
             time.Time:
                 name: time.Time
-                properties:
-                    ext:
-                        type: int
-                    loc:
-                        pointer: true
-                        structRef: time.Location
-                        type: struct
-                    wall:
-                        type: uint
-            time.zone:
-                name: time.zone
-                properties:
-                    isDST:
-                        type: bool
-                    name:
-                        type: string
-                    offset:
-                        type: int
-            time.zoneTrans:
-                name: time.zoneTrans
-                properties:
-                    index:
-                        type: uint
-                    isstd:
-                        type: bool
-                    isutc:
-                        type: bool
-                    when:
-                        type: int
+                properties: {}
         typeInfo:
             elementType:
                 pointer: true
@@ -3775,62 +3586,9 @@ cluster/helm-release-status:
                         type: string
                     version:
                         type: int
-            time.Location:
-                name: time.Location
-                properties:
-                    cacheEnd:
-                        type: int
-                    cacheStart:
-                        type: int
-                    cacheZone:
-                        pointer: true
-                        structRef: time.zone
-                        type: struct
-                    extend:
-                        type: string
-                    name:
-                        type: string
-                    tx:
-                        elementType:
-                            structRef: time.zoneTrans
-                            type: struct
-                        type: array
-                    zone:
-                        elementType:
-                            structRef: time.zone
-                            type: struct
-                        type: array
             time.Time:
                 name: time.Time
-                properties:
-                    ext:
-                        type: int
-                    loc:
-                        pointer: true
-                        structRef: time.Location
-                        type: struct
-                    wall:
-                        type: uint
-            time.zone:
-                name: time.zone
-                properties:
-                    isDST:
-                        type: bool
-                    name:
-                        type: string
-                    offset:
-                        type: int
-            time.zoneTrans:
-                name: time.zoneTrans
-                properties:
-                    index:
-                        type: uint
-                    isstd:
-                        type: bool
-                    isutc:
-                        type: bool
-                    when:
-                        type: int
+                properties: {}
         typeInfo:
             pointer: true
             structRef: mogenius-k8s-manager/src/helm.HelmReleaseStatusInfo
@@ -3902,6 +3660,14 @@ cluster/helm-repo-add:
         typeInfo:
             type: string
 cluster/helm-repo-list:
+    requestSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
     responseSchema:
         structs:
             mogenius-k8s-manager/src/helm.HelmEntryWithoutPassword:
@@ -3948,6 +3714,14 @@ cluster/helm-repo-patch:
         typeInfo:
             type: string
 cluster/helm-repo-update:
+    requestSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
     responseSchema:
         structs:
             mogenius-k8s-manager/src/helm.HelmEntryStatus:
@@ -4052,120 +3826,6 @@ cluster/list-persistent-volume-claims:
             type: struct
     responseSchema:
         structs:
-            mogenius-k8s-manager/src/kubernetes.K8sWorkloadResult:
-                name: mogenius-k8s-manager/src/kubernetes.K8sWorkloadResult
-                properties:
-                    error:
-                        pointer: true
-                        type: any
-                    result:
-                        pointer: true
-                        type: any
-        typeInfo:
-            structRef: mogenius-k8s-manager/src/kubernetes.K8sWorkloadResult
-            type: struct
-cluster/machine-stats:
-    requestSchema:
-        structs:
-            mogenius-k8s-manager/src/core.Request:
-                name: mogenius-k8s-manager/src/core.Request
-                properties:
-                    nodes:
-                        elementType:
-                            type: string
-                        type: array
-        typeInfo:
-            structRef: mogenius-k8s-manager/src/core.Request
-            type: struct
-    responseSchema:
-        structs:
-            mogenius-k8s-manager/src/structs.MachineStats:
-                name: mogenius-k8s-manager/src/structs.MachineStats
-                properties:
-                    btfSupport:
-                        type: bool
-        typeInfo:
-            elementType:
-                structRef: mogenius-k8s-manager/src/structs.MachineStats
-                type: struct
-            type: array
-cluster/read-configmap:
-    requestSchema:
-        structs:
-            mogenius-k8s-manager/src/services.ClusterGetConfigMap:
-                name: mogenius-k8s-manager/src/services.ClusterGetConfigMap
-                properties:
-                    name:
-                        type: string
-                    namespace:
-                        type: string
-        typeInfo:
-            structRef: mogenius-k8s-manager/src/services.ClusterGetConfigMap
-            type: struct
-    responseSchema:
-        structs:
-            mogenius-k8s-manager/src/kubernetes.K8sWorkloadResult:
-                name: mogenius-k8s-manager/src/kubernetes.K8sWorkloadResult
-                properties:
-                    error:
-                        pointer: true
-                        type: any
-                    result:
-                        pointer: true
-                        type: any
-        typeInfo:
-            structRef: mogenius-k8s-manager/src/kubernetes.K8sWorkloadResult
-            type: struct
-cluster/read-deployment:
-    requestSchema:
-        structs:
-            mogenius-k8s-manager/src/services.ClusterGetDeployment:
-                name: mogenius-k8s-manager/src/services.ClusterGetDeployment
-                properties:
-                    name:
-                        type: string
-                    namespace:
-                        type: string
-        typeInfo:
-            structRef: mogenius-k8s-manager/src/services.ClusterGetDeployment
-            type: struct
-    responseSchema:
-        structs:
-            mogenius-k8s-manager/src/kubernetes.K8sWorkloadResult:
-                name: mogenius-k8s-manager/src/kubernetes.K8sWorkloadResult
-                properties:
-                    error:
-                        pointer: true
-                        type: any
-                    result:
-                        pointer: true
-                        type: any
-        typeInfo:
-            structRef: mogenius-k8s-manager/src/kubernetes.K8sWorkloadResult
-            type: struct
-cluster/read-persistent-volume-claim:
-    requestSchema:
-        structs:
-            mogenius-k8s-manager/src/services.ClusterGetPersistentVolume:
-                name: mogenius-k8s-manager/src/services.ClusterGetPersistentVolume
-                properties:
-                    name:
-                        type: string
-                    namespace:
-                        type: string
-        typeInfo:
-            structRef: mogenius-k8s-manager/src/services.ClusterGetPersistentVolume
-            type: struct
-    responseSchema:
-        structs:
-            gopkg.in/inf.v0.Dec:
-                name: gopkg.in/inf.v0.Dec
-                properties:
-                    scale:
-                        type: int
-                    unscaled:
-                        structRef: math/big.Int
-                        type: struct
             k8s.io/api/core/v1.ModifyVolumeStatus:
                 name: k8s.io/api/core/v1.ModifyVolumeStatus
                 properties:
@@ -4324,28 +3984,6 @@ cluster/read-persistent-volume-claim:
                 properties:
                     Format:
                         type: string
-                    d:
-                        structRef: k8s.io/apimachinery/pkg/api/resource.infDecAmount
-                        type: struct
-                    i:
-                        structRef: k8s.io/apimachinery/pkg/api/resource.int64Amount
-                        type: struct
-                    s:
-                        type: string
-            k8s.io/apimachinery/pkg/api/resource.infDecAmount:
-                name: k8s.io/apimachinery/pkg/api/resource.infDecAmount
-                properties:
-                    Dec:
-                        pointer: true
-                        structRef: gopkg.in/inf.v0.Dec
-                        type: struct
-            k8s.io/apimachinery/pkg/api/resource.int64Amount:
-                name: k8s.io/apimachinery/pkg/api/resource.int64Amount
-                properties:
-                    scale:
-                        type: int
-                    value:
-                        type: int
             k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1:
                 name: k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1
                 properties: {}
@@ -4478,71 +4116,401 @@ cluster/read-persistent-volume-claim:
                         type: string
                     kind:
                         type: string
-            math/big.Int:
-                name: math/big.Int
-                properties:
-                    abs:
-                        elementType:
-                            type: uint
-                        type: array
-                    neg:
-                        type: bool
-            time.Location:
-                name: time.Location
-                properties:
-                    cacheEnd:
-                        type: int
-                    cacheStart:
-                        type: int
-                    cacheZone:
-                        pointer: true
-                        structRef: time.zone
-                        type: struct
-                    extend:
-                        type: string
-                    name:
-                        type: string
-                    tx:
-                        elementType:
-                            structRef: time.zoneTrans
-                            type: struct
-                        type: array
-                    zone:
-                        elementType:
-                            structRef: time.zone
-                            type: struct
-                        type: array
             time.Time:
                 name: time.Time
+                properties: {}
+        typeInfo:
+            elementType:
+                structRef: k8s.io/api/core/v1.PersistentVolumeClaim
+                type: struct
+            type: array
+cluster/machine-stats:
+    requestSchema:
+        structs:
+            mogenius-k8s-manager/src/core.Request:
+                name: mogenius-k8s-manager/src/core.Request
                 properties:
-                    ext:
-                        type: int
-                    loc:
-                        pointer: true
-                        structRef: time.Location
-                        type: struct
-                    wall:
-                        type: uint
-            time.zone:
-                name: time.zone
+                    nodes:
+                        elementType:
+                            type: string
+                        type: array
+        typeInfo:
+            structRef: mogenius-k8s-manager/src/core.Request
+            type: struct
+    responseSchema:
+        structs:
+            mogenius-k8s-manager/src/structs.MachineStats:
+                name: mogenius-k8s-manager/src/structs.MachineStats
                 properties:
-                    isDST:
+                    btfSupport:
                         type: bool
+        typeInfo:
+            elementType:
+                structRef: mogenius-k8s-manager/src/structs.MachineStats
+                type: struct
+            type: array
+cluster/read-configmap:
+    requestSchema:
+        structs:
+            mogenius-k8s-manager/src/services.ClusterGetConfigMap:
+                name: mogenius-k8s-manager/src/services.ClusterGetConfigMap
+                properties:
                     name:
                         type: string
-                    offset:
-                        type: int
-            time.zoneTrans:
-                name: time.zoneTrans
+                    namespace:
+                        type: string
+        typeInfo:
+            structRef: mogenius-k8s-manager/src/services.ClusterGetConfigMap
+            type: struct
+    responseSchema:
+        structs:
+            mogenius-k8s-manager/src/kubernetes.K8sWorkloadResult:
+                name: mogenius-k8s-manager/src/kubernetes.K8sWorkloadResult
                 properties:
-                    index:
-                        type: uint
-                    isstd:
-                        type: bool
-                    isutc:
-                        type: bool
-                    when:
+                    error:
+                        pointer: true
+                        type: any
+                    result:
+                        pointer: true
+                        type: any
+        typeInfo:
+            structRef: mogenius-k8s-manager/src/kubernetes.K8sWorkloadResult
+            type: struct
+cluster/read-deployment:
+    requestSchema:
+        structs:
+            mogenius-k8s-manager/src/services.ClusterGetDeployment:
+                name: mogenius-k8s-manager/src/services.ClusterGetDeployment
+                properties:
+                    name:
+                        type: string
+                    namespace:
+                        type: string
+        typeInfo:
+            structRef: mogenius-k8s-manager/src/services.ClusterGetDeployment
+            type: struct
+    responseSchema:
+        structs:
+            mogenius-k8s-manager/src/kubernetes.K8sWorkloadResult:
+                name: mogenius-k8s-manager/src/kubernetes.K8sWorkloadResult
+                properties:
+                    error:
+                        pointer: true
+                        type: any
+                    result:
+                        pointer: true
+                        type: any
+        typeInfo:
+            structRef: mogenius-k8s-manager/src/kubernetes.K8sWorkloadResult
+            type: struct
+cluster/read-persistent-volume-claim:
+    requestSchema:
+        structs:
+            mogenius-k8s-manager/src/services.ClusterGetPersistentVolume:
+                name: mogenius-k8s-manager/src/services.ClusterGetPersistentVolume
+                properties:
+                    name:
+                        type: string
+                    namespace:
+                        type: string
+        typeInfo:
+            structRef: mogenius-k8s-manager/src/services.ClusterGetPersistentVolume
+            type: struct
+    responseSchema:
+        structs:
+            k8s.io/api/core/v1.ModifyVolumeStatus:
+                name: k8s.io/api/core/v1.ModifyVolumeStatus
+                properties:
+                    status:
+                        type: string
+                    targetVolumeAttributesClassName:
+                        type: string
+            k8s.io/api/core/v1.PersistentVolumeClaim:
+                name: k8s.io/api/core/v1.PersistentVolumeClaim
+                properties:
+                    TypeMeta:
+                        structRef: k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta
+                        type: struct
+                    metadata:
+                        structRef: k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta
+                        type: struct
+                    spec:
+                        structRef: k8s.io/api/core/v1.PersistentVolumeClaimSpec
+                        type: struct
+                    status:
+                        structRef: k8s.io/api/core/v1.PersistentVolumeClaimStatus
+                        type: struct
+            k8s.io/api/core/v1.PersistentVolumeClaimCondition:
+                name: k8s.io/api/core/v1.PersistentVolumeClaimCondition
+                properties:
+                    lastProbeTime:
+                        structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
+                        type: struct
+                    lastTransitionTime:
+                        structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
+                        type: struct
+                    message:
+                        type: string
+                    reason:
+                        type: string
+                    status:
+                        type: string
+                    type:
+                        type: string
+            k8s.io/api/core/v1.PersistentVolumeClaimSpec:
+                name: k8s.io/api/core/v1.PersistentVolumeClaimSpec
+                properties:
+                    accessModes:
+                        elementType:
+                            type: string
+                        type: array
+                    dataSource:
+                        pointer: true
+                        structRef: k8s.io/api/core/v1.TypedLocalObjectReference
+                        type: struct
+                    dataSourceRef:
+                        pointer: true
+                        structRef: k8s.io/api/core/v1.TypedObjectReference
+                        type: struct
+                    resources:
+                        structRef: k8s.io/api/core/v1.VolumeResourceRequirements
+                        type: struct
+                    selector:
+                        pointer: true
+                        structRef: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
+                        type: struct
+                    storageClassName:
+                        pointer: true
+                        type: string
+                    volumeAttributesClassName:
+                        pointer: true
+                        type: string
+                    volumeMode:
+                        pointer: true
+                        type: string
+                    volumeName:
+                        type: string
+            k8s.io/api/core/v1.PersistentVolumeClaimStatus:
+                name: k8s.io/api/core/v1.PersistentVolumeClaimStatus
+                properties:
+                    accessModes:
+                        elementType:
+                            type: string
+                        type: array
+                    allocatedResourceStatuses:
+                        keyType:
+                            type: string
+                        type: map
+                        valueType:
+                            type: string
+                    allocatedResources:
+                        keyType:
+                            type: string
+                        type: map
+                        valueType:
+                            structRef: k8s.io/apimachinery/pkg/api/resource.Quantity
+                            type: struct
+                    capacity:
+                        keyType:
+                            type: string
+                        type: map
+                        valueType:
+                            structRef: k8s.io/apimachinery/pkg/api/resource.Quantity
+                            type: struct
+                    conditions:
+                        elementType:
+                            structRef: k8s.io/api/core/v1.PersistentVolumeClaimCondition
+                            type: struct
+                        type: array
+                    currentVolumeAttributesClassName:
+                        pointer: true
+                        type: string
+                    modifyVolumeStatus:
+                        pointer: true
+                        structRef: k8s.io/api/core/v1.ModifyVolumeStatus
+                        type: struct
+                    phase:
+                        type: string
+            k8s.io/api/core/v1.TypedLocalObjectReference:
+                name: k8s.io/api/core/v1.TypedLocalObjectReference
+                properties:
+                    apiGroup:
+                        pointer: true
+                        type: string
+                    kind:
+                        type: string
+                    name:
+                        type: string
+            k8s.io/api/core/v1.TypedObjectReference:
+                name: k8s.io/api/core/v1.TypedObjectReference
+                properties:
+                    apiGroup:
+                        pointer: true
+                        type: string
+                    kind:
+                        type: string
+                    name:
+                        type: string
+                    namespace:
+                        pointer: true
+                        type: string
+            k8s.io/api/core/v1.VolumeResourceRequirements:
+                name: k8s.io/api/core/v1.VolumeResourceRequirements
+                properties:
+                    limits:
+                        keyType:
+                            type: string
+                        type: map
+                        valueType:
+                            structRef: k8s.io/apimachinery/pkg/api/resource.Quantity
+                            type: struct
+                    requests:
+                        keyType:
+                            type: string
+                        type: map
+                        valueType:
+                            structRef: k8s.io/apimachinery/pkg/api/resource.Quantity
+                            type: struct
+            k8s.io/apimachinery/pkg/api/resource.Quantity:
+                name: k8s.io/apimachinery/pkg/api/resource.Quantity
+                properties:
+                    Format:
+                        type: string
+            k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1:
+                name: k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1
+                properties: {}
+            k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector:
+                name: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
+                properties:
+                    matchExpressions:
+                        elementType:
+                            structRef: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelectorRequirement
+                            type: struct
+                        type: array
+                    matchLabels:
+                        keyType:
+                            type: string
+                        type: map
+                        valueType:
+                            type: string
+            k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelectorRequirement:
+                name: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelectorRequirement
+                properties:
+                    key:
+                        type: string
+                    operator:
+                        type: string
+                    values:
+                        elementType:
+                            type: string
+                        type: array
+            k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry:
+                name: k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry
+                properties:
+                    apiVersion:
+                        type: string
+                    fieldsType:
+                        type: string
+                    fieldsV1:
+                        pointer: true
+                        structRef: k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1
+                        type: struct
+                    manager:
+                        type: string
+                    operation:
+                        type: string
+                    subresource:
+                        type: string
+                    time:
+                        pointer: true
+                        structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
+                        type: struct
+            k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta:
+                name: k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta
+                properties:
+                    annotations:
+                        keyType:
+                            type: string
+                        type: map
+                        valueType:
+                            type: string
+                    creationTimestamp:
+                        structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
+                        type: struct
+                    deletionGracePeriodSeconds:
+                        pointer: true
                         type: int
+                    deletionTimestamp:
+                        pointer: true
+                        structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
+                        type: struct
+                    finalizers:
+                        elementType:
+                            type: string
+                        type: array
+                    generateName:
+                        type: string
+                    generation:
+                        type: int
+                    labels:
+                        keyType:
+                            type: string
+                        type: map
+                        valueType:
+                            type: string
+                    managedFields:
+                        elementType:
+                            structRef: k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry
+                            type: struct
+                        type: array
+                    name:
+                        type: string
+                    namespace:
+                        type: string
+                    ownerReferences:
+                        elementType:
+                            structRef: k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference
+                            type: struct
+                        type: array
+                    resourceVersion:
+                        type: string
+                    selfLink:
+                        type: string
+                    uid:
+                        type: string
+            k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference:
+                name: k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference
+                properties:
+                    apiVersion:
+                        type: string
+                    blockOwnerDeletion:
+                        pointer: true
+                        type: bool
+                    controller:
+                        pointer: true
+                        type: bool
+                    kind:
+                        type: string
+                    name:
+                        type: string
+                    uid:
+                        type: string
+            k8s.io/apimachinery/pkg/apis/meta/v1.Time:
+                name: k8s.io/apimachinery/pkg/apis/meta/v1.Time
+                properties:
+                    Time:
+                        structRef: time.Time
+                        type: struct
+            k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta:
+                name: k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta
+                properties:
+                    apiVersion:
+                        type: string
+                    kind:
+                        type: string
+            time.Time:
+                name: time.Time
+                properties: {}
         typeInfo:
             pointer: true
             structRef: k8s.io/api/core/v1.PersistentVolumeClaim
@@ -4631,62 +4599,9 @@ cluster/uninstall-helm-chart:
                         type: string
                     title:
                         type: string
-            time.Location:
-                name: time.Location
-                properties:
-                    cacheEnd:
-                        type: int
-                    cacheStart:
-                        type: int
-                    cacheZone:
-                        pointer: true
-                        structRef: time.zone
-                        type: struct
-                    extend:
-                        type: string
-                    name:
-                        type: string
-                    tx:
-                        elementType:
-                            structRef: time.zoneTrans
-                            type: struct
-                        type: array
-                    zone:
-                        elementType:
-                            structRef: time.zone
-                            type: struct
-                        type: array
             time.Time:
                 name: time.Time
-                properties:
-                    ext:
-                        type: int
-                    loc:
-                        pointer: true
-                        structRef: time.Location
-                        type: struct
-                    wall:
-                        type: uint
-            time.zone:
-                name: time.zone
-                properties:
-                    isDST:
-                        type: bool
-                    name:
-                        type: string
-                    offset:
-                        type: int
-            time.zoneTrans:
-                name: time.zoneTrans
-                properties:
-                    index:
-                        type: uint
-                    isstd:
-                        type: bool
-                    isutc:
-                        type: bool
-                    when:
-                        type: int
+                properties: {}
         typeInfo:
             pointer: true
             structRef: mogenius-k8s-manager/src/structs.Job
@@ -4918,6 +4833,14 @@ delete/workload:
         typeInfo:
             structRef: mogenius-k8s-manager/src/utils.SyncResourceItem
             type: struct
+    responseSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
 delete/workspace:
     requestSchema:
         structs:
@@ -4933,6 +4856,14 @@ delete/workspace:
         typeInfo:
             type: string
 describe:
+    requestSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
     responseSchema:
         structs:
             ANON_STRUCT_1:
@@ -5112,6 +5043,14 @@ disable/network_policy_manager:
         typeInfo:
             structRef: mogenius-k8s-manager/src/controllers.DisableNetworkPolicyManagerRequest
             type: struct
+    responseSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
 enforce/network_policy_manager:
     requestSchema:
         structs:
@@ -5122,6 +5061,14 @@ enforce/network_policy_manager:
                         type: string
         typeInfo:
             structRef: mogenius-k8s-manager/src/controllers.EnforceNetworkPolicyManagerRequest
+            type: struct
+    responseSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
             type: struct
 external-secret-store/create:
     requestSchema:
@@ -5609,62 +5556,9 @@ get/grant:
             mogenius-k8s-manager/src/crds/v1alpha1.GrantStatus:
                 name: mogenius-k8s-manager/src/crds/v1alpha1.GrantStatus
                 properties: {}
-            time.Location:
-                name: time.Location
-                properties:
-                    cacheEnd:
-                        type: int
-                    cacheStart:
-                        type: int
-                    cacheZone:
-                        pointer: true
-                        structRef: time.zone
-                        type: struct
-                    extend:
-                        type: string
-                    name:
-                        type: string
-                    tx:
-                        elementType:
-                            structRef: time.zoneTrans
-                            type: struct
-                        type: array
-                    zone:
-                        elementType:
-                            structRef: time.zone
-                            type: struct
-                        type: array
             time.Time:
                 name: time.Time
-                properties:
-                    ext:
-                        type: int
-                    loc:
-                        pointer: true
-                        structRef: time.Location
-                        type: struct
-                    wall:
-                        type: uint
-            time.zone:
-                name: time.zone
-                properties:
-                    isDST:
-                        type: bool
-                    name:
-                        type: string
-                    offset:
-                        type: int
-            time.zoneTrans:
-                name: time.zoneTrans
-                properties:
-                    index:
-                        type: uint
-                    isstd:
-                        type: bool
-                    isutc:
-                        type: bool
-                    when:
-                        type: int
+                properties: {}
         typeInfo:
             pointer: true
             structRef: mogenius-k8s-manager/src/crds/v1alpha1.Grant
@@ -5822,62 +5716,9 @@ get/grants:
             mogenius-k8s-manager/src/crds/v1alpha1.GrantStatus:
                 name: mogenius-k8s-manager/src/crds/v1alpha1.GrantStatus
                 properties: {}
-            time.Location:
-                name: time.Location
-                properties:
-                    cacheEnd:
-                        type: int
-                    cacheStart:
-                        type: int
-                    cacheZone:
-                        pointer: true
-                        structRef: time.zone
-                        type: struct
-                    extend:
-                        type: string
-                    name:
-                        type: string
-                    tx:
-                        elementType:
-                            structRef: time.zoneTrans
-                            type: struct
-                        type: array
-                    zone:
-                        elementType:
-                            structRef: time.zone
-                            type: struct
-                        type: array
             time.Time:
                 name: time.Time
-                properties:
-                    ext:
-                        type: int
-                    loc:
-                        pointer: true
-                        structRef: time.Location
-                        type: struct
-                    wall:
-                        type: uint
-            time.zone:
-                name: time.zone
-                properties:
-                    isDST:
-                        type: bool
-                    name:
-                        type: string
-                    offset:
-                        type: int
-            time.zoneTrans:
-                name: time.zoneTrans
-                properties:
-                    index:
-                        type: uint
-                    isstd:
-                        type: bool
-                    isutc:
-                        type: bool
-                    when:
-                        type: int
+                properties: {}
         typeInfo:
             elementType:
                 structRef: mogenius-k8s-manager/src/crds/v1alpha1.Grant
@@ -5948,7 +5789,6 @@ get/labeled-workload-list:
                             type: struct
                         type: array
         typeInfo:
-            pointer: true
             structRef: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.UnstructuredList
             type: struct
 get/namespace-workload-list:
@@ -6004,7 +5844,6 @@ get/namespace-workload-list:
             elementType:
                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured
                 type: struct
-            pointer: true
             type: array
 get/team:
     requestSchema:
@@ -6153,67 +5992,22 @@ get/team:
             mogenius-k8s-manager/src/crds/v1alpha1.TeamStatus:
                 name: mogenius-k8s-manager/src/crds/v1alpha1.TeamStatus
                 properties: {}
-            time.Location:
-                name: time.Location
-                properties:
-                    cacheEnd:
-                        type: int
-                    cacheStart:
-                        type: int
-                    cacheZone:
-                        pointer: true
-                        structRef: time.zone
-                        type: struct
-                    extend:
-                        type: string
-                    name:
-                        type: string
-                    tx:
-                        elementType:
-                            structRef: time.zoneTrans
-                            type: struct
-                        type: array
-                    zone:
-                        elementType:
-                            structRef: time.zone
-                            type: struct
-                        type: array
             time.Time:
                 name: time.Time
-                properties:
-                    ext:
-                        type: int
-                    loc:
-                        pointer: true
-                        structRef: time.Location
-                        type: struct
-                    wall:
-                        type: uint
-            time.zone:
-                name: time.zone
-                properties:
-                    isDST:
-                        type: bool
-                    name:
-                        type: string
-                    offset:
-                        type: int
-            time.zoneTrans:
-                name: time.zoneTrans
-                properties:
-                    index:
-                        type: uint
-                    isstd:
-                        type: bool
-                    isutc:
-                        type: bool
-                    when:
-                        type: int
+                properties: {}
         typeInfo:
             pointer: true
             structRef: mogenius-k8s-manager/src/crds/v1alpha1.Team
             type: struct
 get/teams:
+    requestSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
     responseSchema:
         structs:
             k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1:
@@ -6350,62 +6144,9 @@ get/teams:
             mogenius-k8s-manager/src/crds/v1alpha1.TeamStatus:
                 name: mogenius-k8s-manager/src/crds/v1alpha1.TeamStatus
                 properties: {}
-            time.Location:
-                name: time.Location
-                properties:
-                    cacheEnd:
-                        type: int
-                    cacheStart:
-                        type: int
-                    cacheZone:
-                        pointer: true
-                        structRef: time.zone
-                        type: struct
-                    extend:
-                        type: string
-                    name:
-                        type: string
-                    tx:
-                        elementType:
-                            structRef: time.zoneTrans
-                            type: struct
-                        type: array
-                    zone:
-                        elementType:
-                            structRef: time.zone
-                            type: struct
-                        type: array
             time.Time:
                 name: time.Time
-                properties:
-                    ext:
-                        type: int
-                    loc:
-                        pointer: true
-                        structRef: time.Location
-                        type: struct
-                    wall:
-                        type: uint
-            time.zone:
-                name: time.zone
-                properties:
-                    isDST:
-                        type: bool
-                    name:
-                        type: string
-                    offset:
-                        type: int
-            time.zoneTrans:
-                name: time.zoneTrans
-                properties:
-                    index:
-                        type: uint
-                    isstd:
-                        type: bool
-                    isutc:
-                        type: bool
-                    when:
-                        type: int
+                properties: {}
         typeInfo:
             elementType:
                 structRef: mogenius-k8s-manager/src/crds/v1alpha1.Team
@@ -6558,62 +6299,9 @@ get/user:
             mogenius-k8s-manager/src/crds/v1alpha1.UserStatus:
                 name: mogenius-k8s-manager/src/crds/v1alpha1.UserStatus
                 properties: {}
-            time.Location:
-                name: time.Location
-                properties:
-                    cacheEnd:
-                        type: int
-                    cacheStart:
-                        type: int
-                    cacheZone:
-                        pointer: true
-                        structRef: time.zone
-                        type: struct
-                    extend:
-                        type: string
-                    name:
-                        type: string
-                    tx:
-                        elementType:
-                            structRef: time.zoneTrans
-                            type: struct
-                        type: array
-                    zone:
-                        elementType:
-                            structRef: time.zone
-                            type: struct
-                        type: array
             time.Time:
                 name: time.Time
-                properties:
-                    ext:
-                        type: int
-                    loc:
-                        pointer: true
-                        structRef: time.Location
-                        type: struct
-                    wall:
-                        type: uint
-            time.zone:
-                name: time.zone
-                properties:
-                    isDST:
-                        type: bool
-                    name:
-                        type: string
-                    offset:
-                        type: int
-            time.zoneTrans:
-                name: time.zoneTrans
-                properties:
-                    index:
-                        type: uint
-                    isstd:
-                        type: bool
-                    isutc:
-                        type: bool
-                    when:
-                        type: int
+                properties: {}
         typeInfo:
             pointer: true
             structRef: mogenius-k8s-manager/src/crds/v1alpha1.User
@@ -6766,62 +6454,9 @@ get/users:
             mogenius-k8s-manager/src/crds/v1alpha1.UserStatus:
                 name: mogenius-k8s-manager/src/crds/v1alpha1.UserStatus
                 properties: {}
-            time.Location:
-                name: time.Location
-                properties:
-                    cacheEnd:
-                        type: int
-                    cacheStart:
-                        type: int
-                    cacheZone:
-                        pointer: true
-                        structRef: time.zone
-                        type: struct
-                    extend:
-                        type: string
-                    name:
-                        type: string
-                    tx:
-                        elementType:
-                            structRef: time.zoneTrans
-                            type: struct
-                        type: array
-                    zone:
-                        elementType:
-                            structRef: time.zone
-                            type: struct
-                        type: array
             time.Time:
                 name: time.Time
-                properties:
-                    ext:
-                        type: int
-                    loc:
-                        pointer: true
-                        structRef: time.Location
-                        type: struct
-                    wall:
-                        type: uint
-            time.zone:
-                name: time.zone
-                properties:
-                    isDST:
-                        type: bool
-                    name:
-                        type: string
-                    offset:
-                        type: int
-            time.zoneTrans:
-                name: time.zoneTrans
-                properties:
-                    index:
-                        type: uint
-                    isstd:
-                        type: bool
-                    isutc:
-                        type: bool
-                    when:
-                        type: int
+                properties: {}
         typeInfo:
             elementType:
                 structRef: mogenius-k8s-manager/src/crds/v1alpha1.User
@@ -7229,62 +6864,9 @@ get/workload-status:
                         type: any
                     uid:
                         type: string
-            time.Location:
-                name: time.Location
-                properties:
-                    cacheEnd:
-                        type: int
-                    cacheStart:
-                        type: int
-                    cacheZone:
-                        pointer: true
-                        structRef: time.zone
-                        type: struct
-                    extend:
-                        type: string
-                    name:
-                        type: string
-                    tx:
-                        elementType:
-                            structRef: time.zoneTrans
-                            type: struct
-                        type: array
-                    zone:
-                        elementType:
-                            structRef: time.zone
-                            type: struct
-                        type: array
             time.Time:
                 name: time.Time
-                properties:
-                    ext:
-                        type: int
-                    loc:
-                        pointer: true
-                        structRef: time.Location
-                        type: struct
-                    wall:
-                        type: uint
-            time.zone:
-                name: time.zone
-                properties:
-                    isDST:
-                        type: bool
-                    name:
-                        type: string
-                    offset:
-                        type: int
-            time.zoneTrans:
-                name: time.zoneTrans
-                properties:
-                    index:
-                        type: uint
-                    isstd:
-                        type: bool
-                    isutc:
-                        type: bool
-                    when:
-                        type: int
+                properties: {}
         typeInfo:
             elementType:
                 structRef: mogenius-k8s-manager/src/kubernetes.WorkloadStatusDto
@@ -7331,62 +6913,9 @@ get/workspace:
                         type: string
                     type:
                         type: string
-            time.Location:
-                name: time.Location
-                properties:
-                    cacheEnd:
-                        type: int
-                    cacheStart:
-                        type: int
-                    cacheZone:
-                        pointer: true
-                        structRef: time.zone
-                        type: struct
-                    extend:
-                        type: string
-                    name:
-                        type: string
-                    tx:
-                        elementType:
-                            structRef: time.zoneTrans
-                            type: struct
-                        type: array
-                    zone:
-                        elementType:
-                            structRef: time.zone
-                            type: struct
-                        type: array
             time.Time:
                 name: time.Time
-                properties:
-                    ext:
-                        type: int
-                    loc:
-                        pointer: true
-                        structRef: time.Location
-                        type: struct
-                    wall:
-                        type: uint
-            time.zone:
-                name: time.zone
-                properties:
-                    isDST:
-                        type: bool
-                    name:
-                        type: string
-                    offset:
-                        type: int
-            time.zoneTrans:
-                name: time.zoneTrans
-                properties:
-                    index:
-                        type: uint
-                    isstd:
-                        type: bool
-                    isutc:
-                        type: bool
-                    when:
-                        type: int
+                properties: {}
         typeInfo:
             pointer: true
             structRef: mogenius-k8s-manager/src/core.GetWorkspaceResult
@@ -7450,6 +6979,14 @@ get/workspace-workloads:
                 type: struct
             type: array
 get/workspaces:
+    requestSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
     responseSchema:
         structs:
             k8s.io/apimachinery/pkg/apis/meta/v1.Time:
@@ -7480,68 +7017,23 @@ get/workspaces:
                         type: string
                     type:
                         type: string
-            time.Location:
-                name: time.Location
-                properties:
-                    cacheEnd:
-                        type: int
-                    cacheStart:
-                        type: int
-                    cacheZone:
-                        pointer: true
-                        structRef: time.zone
-                        type: struct
-                    extend:
-                        type: string
-                    name:
-                        type: string
-                    tx:
-                        elementType:
-                            structRef: time.zoneTrans
-                            type: struct
-                        type: array
-                    zone:
-                        elementType:
-                            structRef: time.zone
-                            type: struct
-                        type: array
             time.Time:
                 name: time.Time
-                properties:
-                    ext:
-                        type: int
-                    loc:
-                        pointer: true
-                        structRef: time.Location
-                        type: struct
-                    wall:
-                        type: uint
-            time.zone:
-                name: time.zone
-                properties:
-                    isDST:
-                        type: bool
-                    name:
-                        type: string
-                    offset:
-                        type: int
-            time.zoneTrans:
-                name: time.zoneTrans
-                properties:
-                    index:
-                        type: uint
-                    isstd:
-                        type: bool
-                    isutc:
-                        type: bool
-                    when:
-                        type: int
+                properties: {}
         typeInfo:
             elementType:
                 structRef: mogenius-k8s-manager/src/core.GetWorkspaceResult
                 type: struct
             type: array
 install-cert-manager:
+    requestSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
     responseSchema:
         typeInfo:
             type: string
@@ -7556,23 +7048,66 @@ install-cluster-issuer:
         typeInfo:
             structRef: mogenius-k8s-manager/src/core.Request
             type: struct
+    responseSchema:
+        typeInfo:
+            type: string
 install-ingress-controller-traefik:
+    requestSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
     responseSchema:
         typeInfo:
             type: string
 install-kepler:
+    requestSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
     responseSchema:
         typeInfo:
             type: string
 install-metallb:
+    requestSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
     responseSchema:
         typeInfo:
             type: string
 install-metrics-server:
+    requestSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
     responseSchema:
         typeInfo:
             type: string
 list/all-workloads:
+    requestSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
     responseSchema:
         structs:
             mogenius-k8s-manager/src/utils.SyncResourceEntry:
@@ -7595,6 +7130,14 @@ list/all-workloads:
                 type: struct
             type: array
 list/all_network_policies:
+    requestSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
     responseSchema:
         structs:
             k8s.io/api/networking/v1.IPBlock:
@@ -7988,6 +7531,14 @@ list/cronjob-jobs:
             structRef: mogenius-k8s-manager/src/core.Request
             type: struct
 list/labeled_network_policy_ports:
+    requestSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
     responseSchema:
         structs:
             mogenius-k8s-manager/src/dtos.K8sLabeledNetworkPolicyDto:
@@ -8490,62 +8041,9 @@ metrics/deployment/average-utilization:
                         type: array
                     name:
                         type: string
-            time.Location:
-                name: time.Location
-                properties:
-                    cacheEnd:
-                        type: int
-                    cacheStart:
-                        type: int
-                    cacheZone:
-                        pointer: true
-                        structRef: time.zone
-                        type: struct
-                    extend:
-                        type: string
-                    name:
-                        type: string
-                    tx:
-                        elementType:
-                            structRef: time.zoneTrans
-                            type: struct
-                        type: array
-                    zone:
-                        elementType:
-                            structRef: time.zone
-                            type: struct
-                        type: array
             time.Time:
                 name: time.Time
-                properties:
-                    ext:
-                        type: int
-                    loc:
-                        pointer: true
-                        structRef: time.Location
-                        type: struct
-                    wall:
-                        type: uint
-            time.zone:
-                name: time.zone
-                properties:
-                    isDST:
-                        type: bool
-                    name:
-                        type: string
-                    offset:
-                        type: int
-            time.zoneTrans:
-                name: time.zoneTrans
-                properties:
-                    index:
-                        type: uint
-                    isstd:
-                        type: bool
-                    isutc:
-                        type: bool
-                    when:
-                        type: int
+                properties: {}
         typeInfo:
             pointer: true
             structRef: mogenius-k8s-manager/src/kubernetes.Metrics
@@ -8689,62 +8187,9 @@ namespace/create:
                         type: string
                     title:
                         type: string
-            time.Location:
-                name: time.Location
-                properties:
-                    cacheEnd:
-                        type: int
-                    cacheStart:
-                        type: int
-                    cacheZone:
-                        pointer: true
-                        structRef: time.zone
-                        type: struct
-                    extend:
-                        type: string
-                    name:
-                        type: string
-                    tx:
-                        elementType:
-                            structRef: time.zoneTrans
-                            type: struct
-                        type: array
-                    zone:
-                        elementType:
-                            structRef: time.zone
-                            type: struct
-                        type: array
             time.Time:
                 name: time.Time
-                properties:
-                    ext:
-                        type: int
-                    loc:
-                        pointer: true
-                        structRef: time.Location
-                        type: struct
-                    wall:
-                        type: uint
-            time.zone:
-                name: time.zone
-                properties:
-                    isDST:
-                        type: bool
-                    name:
-                        type: string
-                    offset:
-                        type: int
-            time.zoneTrans:
-                name: time.zoneTrans
-                properties:
-                    index:
-                        type: uint
-                    isstd:
-                        type: bool
-                    isutc:
-                        type: bool
-                    when:
-                        type: int
+                properties: {}
         typeInfo:
             pointer: true
             structRef: mogenius-k8s-manager/src/structs.Job
@@ -8861,62 +8306,9 @@ namespace/delete:
                         type: string
                     title:
                         type: string
-            time.Location:
-                name: time.Location
-                properties:
-                    cacheEnd:
-                        type: int
-                    cacheStart:
-                        type: int
-                    cacheZone:
-                        pointer: true
-                        structRef: time.zone
-                        type: struct
-                    extend:
-                        type: string
-                    name:
-                        type: string
-                    tx:
-                        elementType:
-                            structRef: time.zoneTrans
-                            type: struct
-                        type: array
-                    zone:
-                        elementType:
-                            structRef: time.zone
-                            type: struct
-                        type: array
             time.Time:
                 name: time.Time
-                properties:
-                    ext:
-                        type: int
-                    loc:
-                        pointer: true
-                        structRef: time.Location
-                        type: struct
-                    wall:
-                        type: uint
-            time.zone:
-                name: time.zone
-                properties:
-                    isDST:
-                        type: bool
-                    name:
-                        type: string
-                    offset:
-                        type: int
-            time.zoneTrans:
-                name: time.zoneTrans
-                properties:
-                    index:
-                        type: uint
-                    isstd:
-                        type: bool
-                    isutc:
-                        type: bool
-                    when:
-                        type: int
+                properties: {}
         typeInfo:
             pointer: true
             structRef: mogenius-k8s-manager/src/structs.Job
@@ -8934,14 +8326,6 @@ namespace/gather-all-resources:
             type: struct
     responseSchema:
         structs:
-            gopkg.in/inf.v0.Dec:
-                name: gopkg.in/inf.v0.Dec
-                properties:
-                    scale:
-                        type: int
-                    unscaled:
-                        structRef: math/big.Int
-                        type: struct
             k8s.io/api/apps/v1.DaemonSet:
                 name: k8s.io/api/apps/v1.DaemonSet
                 properties:
@@ -11557,28 +10941,6 @@ namespace/gather-all-resources:
                 properties:
                     Format:
                         type: string
-                    d:
-                        structRef: k8s.io/apimachinery/pkg/api/resource.infDecAmount
-                        type: struct
-                    i:
-                        structRef: k8s.io/apimachinery/pkg/api/resource.int64Amount
-                        type: struct
-                    s:
-                        type: string
-            k8s.io/apimachinery/pkg/api/resource.infDecAmount:
-                name: k8s.io/apimachinery/pkg/api/resource.infDecAmount
-                properties:
-                    Dec:
-                        pointer: true
-                        structRef: gopkg.in/inf.v0.Dec
-                        type: struct
-            k8s.io/apimachinery/pkg/api/resource.int64Amount:
-                name: k8s.io/apimachinery/pkg/api/resource.int64Amount
-                properties:
-                    scale:
-                        type: int
-                    value:
-                        type: int
             k8s.io/apimachinery/pkg/apis/meta/v1.Condition:
                 name: k8s.io/apimachinery/pkg/apis/meta/v1.Condition
                 properties:
@@ -11736,15 +11098,6 @@ namespace/gather-all-resources:
                         type: string
                     Type:
                         type: int
-            math/big.Int:
-                name: math/big.Int
-                properties:
-                    abs:
-                        elementType:
-                            type: uint
-                        type: array
-                    neg:
-                        type: bool
             mogenius-k8s-manager/src/dtos.NamespaceResourcesDto:
                 name: mogenius-k8s-manager/src/dtos.NamespaceResourcesDto
                 properties:
@@ -11788,62 +11141,9 @@ namespace/gather-all-resources:
                             structRef: k8s.io/api/core/v1.Service
                             type: struct
                         type: array
-            time.Location:
-                name: time.Location
-                properties:
-                    cacheEnd:
-                        type: int
-                    cacheStart:
-                        type: int
-                    cacheZone:
-                        pointer: true
-                        structRef: time.zone
-                        type: struct
-                    extend:
-                        type: string
-                    name:
-                        type: string
-                    tx:
-                        elementType:
-                            structRef: time.zoneTrans
-                            type: struct
-                        type: array
-                    zone:
-                        elementType:
-                            structRef: time.zone
-                            type: struct
-                        type: array
             time.Time:
                 name: time.Time
-                properties:
-                    ext:
-                        type: int
-                    loc:
-                        pointer: true
-                        structRef: time.Location
-                        type: struct
-                    wall:
-                        type: uint
-            time.zone:
-                name: time.zone
-                properties:
-                    isDST:
-                        type: bool
-                    name:
-                        type: string
-                    offset:
-                        type: int
-            time.zoneTrans:
-                name: time.zoneTrans
-                properties:
-                    index:
-                        type: uint
-                    isstd:
-                        type: bool
-                    isutc:
-                        type: bool
-                    when:
-                        type: int
+                properties: {}
         typeInfo:
             structRef: mogenius-k8s-manager/src/dtos.NamespaceResourcesDto
             type: struct
@@ -11917,14 +11217,6 @@ namespace/restore:
 namespace/shutdown:
     requestSchema:
         structs:
-            gopkg.in/inf.v0.Dec:
-                name: gopkg.in/inf.v0.Dec
-                properties:
-                    scale:
-                        type: int
-                    unscaled:
-                        structRef: math/big.Int
-                        type: struct
             k8s.io/api/autoscaling/v2.ContainerResourceMetricSource:
                 name: k8s.io/api/autoscaling/v2.ContainerResourceMetricSource
                 properties:
@@ -12095,28 +11387,6 @@ namespace/shutdown:
                 properties:
                     Format:
                         type: string
-                    d:
-                        structRef: k8s.io/apimachinery/pkg/api/resource.infDecAmount
-                        type: struct
-                    i:
-                        structRef: k8s.io/apimachinery/pkg/api/resource.int64Amount
-                        type: struct
-                    s:
-                        type: string
-            k8s.io/apimachinery/pkg/api/resource.infDecAmount:
-                name: k8s.io/apimachinery/pkg/api/resource.infDecAmount
-                properties:
-                    Dec:
-                        pointer: true
-                        structRef: gopkg.in/inf.v0.Dec
-                        type: struct
-            k8s.io/apimachinery/pkg/api/resource.int64Amount:
-                name: k8s.io/apimachinery/pkg/api/resource.int64Amount
-                properties:
-                    scale:
-                        type: int
-                    value:
-                        type: int
             k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector:
                 name: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
                 properties:
@@ -12142,15 +11412,6 @@ namespace/shutdown:
                         elementType:
                             type: string
                         type: array
-            math/big.Int:
-                name: math/big.Int
-                properties:
-                    abs:
-                        elementType:
-                            type: uint
-                        type: array
-                    neg:
-                        type: bool
             mogenius-k8s-manager/src/dtos.K8sCnameDto:
                 name: mogenius-k8s-manager/src/dtos.K8sCnameDto
                 properties:
@@ -12508,62 +11769,9 @@ namespace/shutdown:
                         type: string
                     title:
                         type: string
-            time.Location:
-                name: time.Location
-                properties:
-                    cacheEnd:
-                        type: int
-                    cacheStart:
-                        type: int
-                    cacheZone:
-                        pointer: true
-                        structRef: time.zone
-                        type: struct
-                    extend:
-                        type: string
-                    name:
-                        type: string
-                    tx:
-                        elementType:
-                            structRef: time.zoneTrans
-                            type: struct
-                        type: array
-                    zone:
-                        elementType:
-                            structRef: time.zone
-                            type: struct
-                        type: array
             time.Time:
                 name: time.Time
-                properties:
-                    ext:
-                        type: int
-                    loc:
-                        pointer: true
-                        structRef: time.Location
-                        type: struct
-                    wall:
-                        type: uint
-            time.zone:
-                name: time.zone
-                properties:
-                    isDST:
-                        type: bool
-                    name:
-                        type: string
-                    offset:
-                        type: int
-            time.zoneTrans:
-                name: time.zoneTrans
-                properties:
-                    index:
-                        type: uint
-                    isstd:
-                        type: bool
-                    isutc:
-                        type: bool
-                    when:
-                        type: int
+                properties: {}
         typeInfo:
             pointer: true
             structRef: mogenius-k8s-manager/src/structs.Job
@@ -12655,6 +11863,14 @@ remove/unmanaged_network_policies:
         typeInfo:
             structRef: mogenius-k8s-manager/src/controllers.RemoveUnmanagedNetworkPoliciesRequest
             type: struct
+    responseSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
 service/cluster-tool-stream-connection-request:
     requestSchema:
         structs:
@@ -12685,14 +11901,6 @@ service/cluster-tool-stream-connection-request:
 service/create:
     requestSchema:
         structs:
-            gopkg.in/inf.v0.Dec:
-                name: gopkg.in/inf.v0.Dec
-                properties:
-                    scale:
-                        type: int
-                    unscaled:
-                        structRef: math/big.Int
-                        type: struct
             k8s.io/api/autoscaling/v2.ContainerResourceMetricSource:
                 name: k8s.io/api/autoscaling/v2.ContainerResourceMetricSource
                 properties:
@@ -12863,28 +12071,6 @@ service/create:
                 properties:
                     Format:
                         type: string
-                    d:
-                        structRef: k8s.io/apimachinery/pkg/api/resource.infDecAmount
-                        type: struct
-                    i:
-                        structRef: k8s.io/apimachinery/pkg/api/resource.int64Amount
-                        type: struct
-                    s:
-                        type: string
-            k8s.io/apimachinery/pkg/api/resource.infDecAmount:
-                name: k8s.io/apimachinery/pkg/api/resource.infDecAmount
-                properties:
-                    Dec:
-                        pointer: true
-                        structRef: gopkg.in/inf.v0.Dec
-                        type: struct
-            k8s.io/apimachinery/pkg/api/resource.int64Amount:
-                name: k8s.io/apimachinery/pkg/api/resource.int64Amount
-                properties:
-                    scale:
-                        type: int
-                    value:
-                        type: int
             k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector:
                 name: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
                 properties:
@@ -12910,15 +12096,6 @@ service/create:
                         elementType:
                             type: string
                         type: array
-            math/big.Int:
-                name: math/big.Int
-                properties:
-                    abs:
-                        elementType:
-                            type: uint
-                        type: array
-                    neg:
-                        type: bool
             mogenius-k8s-manager/src/dtos.K8sCnameDto:
                 name: mogenius-k8s-manager/src/dtos.K8sCnameDto
                 properties:
@@ -13313,62 +12490,9 @@ service/create:
                         type: string
                     title:
                         type: string
-            time.Location:
-                name: time.Location
-                properties:
-                    cacheEnd:
-                        type: int
-                    cacheStart:
-                        type: int
-                    cacheZone:
-                        pointer: true
-                        structRef: time.zone
-                        type: struct
-                    extend:
-                        type: string
-                    name:
-                        type: string
-                    tx:
-                        elementType:
-                            structRef: time.zoneTrans
-                            type: struct
-                        type: array
-                    zone:
-                        elementType:
-                            structRef: time.zone
-                            type: struct
-                        type: array
             time.Time:
                 name: time.Time
-                properties:
-                    ext:
-                        type: int
-                    loc:
-                        pointer: true
-                        structRef: time.Location
-                        type: struct
-                    wall:
-                        type: uint
-            time.zone:
-                name: time.zone
-                properties:
-                    isDST:
-                        type: bool
-                    name:
-                        type: string
-                    offset:
-                        type: int
-            time.zoneTrans:
-                name: time.zoneTrans
-                properties:
-                    index:
-                        type: uint
-                    isstd:
-                        type: bool
-                    isutc:
-                        type: bool
-                    when:
-                        type: int
+                properties: {}
         typeInfo:
             pointer: true
             structRef: mogenius-k8s-manager/src/structs.Job
@@ -13376,14 +12500,6 @@ service/create:
 service/delete:
     requestSchema:
         structs:
-            gopkg.in/inf.v0.Dec:
-                name: gopkg.in/inf.v0.Dec
-                properties:
-                    scale:
-                        type: int
-                    unscaled:
-                        structRef: math/big.Int
-                        type: struct
             k8s.io/api/autoscaling/v2.ContainerResourceMetricSource:
                 name: k8s.io/api/autoscaling/v2.ContainerResourceMetricSource
                 properties:
@@ -13554,28 +12670,6 @@ service/delete:
                 properties:
                     Format:
                         type: string
-                    d:
-                        structRef: k8s.io/apimachinery/pkg/api/resource.infDecAmount
-                        type: struct
-                    i:
-                        structRef: k8s.io/apimachinery/pkg/api/resource.int64Amount
-                        type: struct
-                    s:
-                        type: string
-            k8s.io/apimachinery/pkg/api/resource.infDecAmount:
-                name: k8s.io/apimachinery/pkg/api/resource.infDecAmount
-                properties:
-                    Dec:
-                        pointer: true
-                        structRef: gopkg.in/inf.v0.Dec
-                        type: struct
-            k8s.io/apimachinery/pkg/api/resource.int64Amount:
-                name: k8s.io/apimachinery/pkg/api/resource.int64Amount
-                properties:
-                    scale:
-                        type: int
-                    value:
-                        type: int
             k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector:
                 name: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
                 properties:
@@ -13601,15 +12695,6 @@ service/delete:
                         elementType:
                             type: string
                         type: array
-            math/big.Int:
-                name: math/big.Int
-                properties:
-                    abs:
-                        elementType:
-                            type: uint
-                        type: array
-                    neg:
-                        type: bool
             mogenius-k8s-manager/src/dtos.K8sCnameDto:
                 name: mogenius-k8s-manager/src/dtos.K8sCnameDto
                 properties:
@@ -14004,62 +13089,9 @@ service/delete:
                         type: string
                     title:
                         type: string
-            time.Location:
-                name: time.Location
-                properties:
-                    cacheEnd:
-                        type: int
-                    cacheStart:
-                        type: int
-                    cacheZone:
-                        pointer: true
-                        structRef: time.zone
-                        type: struct
-                    extend:
-                        type: string
-                    name:
-                        type: string
-                    tx:
-                        elementType:
-                            structRef: time.zoneTrans
-                            type: struct
-                        type: array
-                    zone:
-                        elementType:
-                            structRef: time.zone
-                            type: struct
-                        type: array
             time.Time:
                 name: time.Time
-                properties:
-                    ext:
-                        type: int
-                    loc:
-                        pointer: true
-                        structRef: time.Location
-                        type: struct
-                    wall:
-                        type: uint
-            time.zone:
-                name: time.zone
-                properties:
-                    isDST:
-                        type: bool
-                    name:
-                        type: string
-                    offset:
-                        type: int
-            time.zoneTrans:
-                name: time.zoneTrans
-                properties:
-                    index:
-                        type: uint
-                    isstd:
-                        type: bool
-                    isutc:
-                        type: bool
-                    when:
-                        type: int
+                properties: {}
         typeInfo:
             pointer: true
             structRef: mogenius-k8s-manager/src/structs.Job
@@ -14111,62 +13143,9 @@ service/log:
                         pointer: true
                         structRef: time.Time
                         type: struct
-            time.Location:
-                name: time.Location
-                properties:
-                    cacheEnd:
-                        type: int
-                    cacheStart:
-                        type: int
-                    cacheZone:
-                        pointer: true
-                        structRef: time.zone
-                        type: struct
-                    extend:
-                        type: string
-                    name:
-                        type: string
-                    tx:
-                        elementType:
-                            structRef: time.zoneTrans
-                            type: struct
-                        type: array
-                    zone:
-                        elementType:
-                            structRef: time.zone
-                            type: struct
-                        type: array
             time.Time:
                 name: time.Time
-                properties:
-                    ext:
-                        type: int
-                    loc:
-                        pointer: true
-                        structRef: time.Location
-                        type: struct
-                    wall:
-                        type: uint
-            time.zone:
-                name: time.zone
-                properties:
-                    isDST:
-                        type: bool
-                    name:
-                        type: string
-                    offset:
-                        type: int
-            time.zoneTrans:
-                name: time.zoneTrans
-                properties:
-                    index:
-                        type: uint
-                    isstd:
-                        type: bool
-                    isutc:
-                        type: bool
-                    when:
-                        type: int
+                properties: {}
         typeInfo:
             structRef: mogenius-k8s-manager/src/services.ServiceGetLogRequest
             type: struct
@@ -14184,62 +13163,9 @@ service/log:
                     serverTimestamp:
                         structRef: time.Time
                         type: struct
-            time.Location:
-                name: time.Location
-                properties:
-                    cacheEnd:
-                        type: int
-                    cacheStart:
-                        type: int
-                    cacheZone:
-                        pointer: true
-                        structRef: time.zone
-                        type: struct
-                    extend:
-                        type: string
-                    name:
-                        type: string
-                    tx:
-                        elementType:
-                            structRef: time.zoneTrans
-                            type: struct
-                        type: array
-                    zone:
-                        elementType:
-                            structRef: time.zone
-                            type: struct
-                        type: array
             time.Time:
                 name: time.Time
-                properties:
-                    ext:
-                        type: int
-                    loc:
-                        pointer: true
-                        structRef: time.Location
-                        type: struct
-                    wall:
-                        type: uint
-            time.zone:
-                name: time.zone
-                properties:
-                    isDST:
-                        type: bool
-                    name:
-                        type: string
-                    offset:
-                        type: int
-            time.zoneTrans:
-                name: time.zoneTrans
-                properties:
-                    index:
-                        type: uint
-                    isstd:
-                        type: bool
-                    isutc:
-                        type: bool
-                    when:
-                        type: int
+                properties: {}
         typeInfo:
             structRef: mogenius-k8s-manager/src/kubernetes.ServiceGetLogResult
             type: struct
@@ -14257,62 +13183,9 @@ service/log-error:
                         pointer: true
                         structRef: time.Time
                         type: struct
-            time.Location:
-                name: time.Location
-                properties:
-                    cacheEnd:
-                        type: int
-                    cacheStart:
-                        type: int
-                    cacheZone:
-                        pointer: true
-                        structRef: time.zone
-                        type: struct
-                    extend:
-                        type: string
-                    name:
-                        type: string
-                    tx:
-                        elementType:
-                            structRef: time.zoneTrans
-                            type: struct
-                        type: array
-                    zone:
-                        elementType:
-                            structRef: time.zone
-                            type: struct
-                        type: array
             time.Time:
                 name: time.Time
-                properties:
-                    ext:
-                        type: int
-                    loc:
-                        pointer: true
-                        structRef: time.Location
-                        type: struct
-                    wall:
-                        type: uint
-            time.zone:
-                name: time.zone
-                properties:
-                    isDST:
-                        type: bool
-                    name:
-                        type: string
-                    offset:
-                        type: int
-            time.zoneTrans:
-                name: time.zoneTrans
-                properties:
-                    index:
-                        type: uint
-                    isstd:
-                        type: bool
-                    isutc:
-                        type: bool
-                    when:
-                        type: int
+                properties: {}
         typeInfo:
             structRef: mogenius-k8s-manager/src/services.ServiceGetLogRequest
             type: struct
@@ -14458,14 +13331,6 @@ service/resource-status:
             type: struct
     responseSchema:
         structs:
-            gopkg.in/inf.v0.Dec:
-                name: gopkg.in/inf.v0.Dec
-                properties:
-                    scale:
-                        type: int
-                    unscaled:
-                        structRef: math/big.Int
-                        type: struct
             k8s.io/api/core/v1.AWSElasticBlockStoreVolumeSource:
                 name: k8s.io/api/core/v1.AWSElasticBlockStoreVolumeSource
                 properties:
@@ -16461,28 +15326,6 @@ service/resource-status:
                 properties:
                     Format:
                         type: string
-                    d:
-                        structRef: k8s.io/apimachinery/pkg/api/resource.infDecAmount
-                        type: struct
-                    i:
-                        structRef: k8s.io/apimachinery/pkg/api/resource.int64Amount
-                        type: struct
-                    s:
-                        type: string
-            k8s.io/apimachinery/pkg/api/resource.infDecAmount:
-                name: k8s.io/apimachinery/pkg/api/resource.infDecAmount
-                properties:
-                    Dec:
-                        pointer: true
-                        structRef: gopkg.in/inf.v0.Dec
-                        type: struct
-            k8s.io/apimachinery/pkg/api/resource.int64Amount:
-                name: k8s.io/apimachinery/pkg/api/resource.int64Amount
-                properties:
-                    scale:
-                        type: int
-                    value:
-                        type: int
             k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1:
                 name: k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1
                 properties: {}
@@ -16624,71 +15467,9 @@ service/resource-status:
                         type: string
                     Type:
                         type: int
-            math/big.Int:
-                name: math/big.Int
-                properties:
-                    abs:
-                        elementType:
-                            type: uint
-                        type: array
-                    neg:
-                        type: bool
-            time.Location:
-                name: time.Location
-                properties:
-                    cacheEnd:
-                        type: int
-                    cacheStart:
-                        type: int
-                    cacheZone:
-                        pointer: true
-                        structRef: time.zone
-                        type: struct
-                    extend:
-                        type: string
-                    name:
-                        type: string
-                    tx:
-                        elementType:
-                            structRef: time.zoneTrans
-                            type: struct
-                        type: array
-                    zone:
-                        elementType:
-                            structRef: time.zone
-                            type: struct
-                        type: array
             time.Time:
                 name: time.Time
-                properties:
-                    ext:
-                        type: int
-                    loc:
-                        pointer: true
-                        structRef: time.Location
-                        type: struct
-                    wall:
-                        type: uint
-            time.zone:
-                name: time.zone
-                properties:
-                    isDST:
-                        type: bool
-                    name:
-                        type: string
-                    offset:
-                        type: int
-            time.zoneTrans:
-                name: time.zoneTrans
-                properties:
-                    index:
-                        type: uint
-                    isstd:
-                        type: bool
-                    isutc:
-                        type: bool
-                    when:
-                        type: int
+                properties: {}
         typeInfo:
             pointer: true
             structRef: k8s.io/api/core/v1.Pod
@@ -16696,14 +15477,6 @@ service/resource-status:
 service/restart:
     requestSchema:
         structs:
-            gopkg.in/inf.v0.Dec:
-                name: gopkg.in/inf.v0.Dec
-                properties:
-                    scale:
-                        type: int
-                    unscaled:
-                        structRef: math/big.Int
-                        type: struct
             k8s.io/api/autoscaling/v2.ContainerResourceMetricSource:
                 name: k8s.io/api/autoscaling/v2.ContainerResourceMetricSource
                 properties:
@@ -16874,28 +15647,6 @@ service/restart:
                 properties:
                     Format:
                         type: string
-                    d:
-                        structRef: k8s.io/apimachinery/pkg/api/resource.infDecAmount
-                        type: struct
-                    i:
-                        structRef: k8s.io/apimachinery/pkg/api/resource.int64Amount
-                        type: struct
-                    s:
-                        type: string
-            k8s.io/apimachinery/pkg/api/resource.infDecAmount:
-                name: k8s.io/apimachinery/pkg/api/resource.infDecAmount
-                properties:
-                    Dec:
-                        pointer: true
-                        structRef: gopkg.in/inf.v0.Dec
-                        type: struct
-            k8s.io/apimachinery/pkg/api/resource.int64Amount:
-                name: k8s.io/apimachinery/pkg/api/resource.int64Amount
-                properties:
-                    scale:
-                        type: int
-                    value:
-                        type: int
             k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector:
                 name: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
                 properties:
@@ -16921,15 +15672,6 @@ service/restart:
                         elementType:
                             type: string
                         type: array
-            math/big.Int:
-                name: math/big.Int
-                properties:
-                    abs:
-                        elementType:
-                            type: uint
-                        type: array
-                    neg:
-                        type: bool
             mogenius-k8s-manager/src/dtos.K8sCnameDto:
                 name: mogenius-k8s-manager/src/dtos.K8sCnameDto
                 properties:
@@ -17324,62 +16066,9 @@ service/restart:
                         type: string
                     title:
                         type: string
-            time.Location:
-                name: time.Location
-                properties:
-                    cacheEnd:
-                        type: int
-                    cacheStart:
-                        type: int
-                    cacheZone:
-                        pointer: true
-                        structRef: time.zone
-                        type: struct
-                    extend:
-                        type: string
-                    name:
-                        type: string
-                    tx:
-                        elementType:
-                            structRef: time.zoneTrans
-                            type: struct
-                        type: array
-                    zone:
-                        elementType:
-                            structRef: time.zone
-                            type: struct
-                        type: array
             time.Time:
                 name: time.Time
-                properties:
-                    ext:
-                        type: int
-                    loc:
-                        pointer: true
-                        structRef: time.Location
-                        type: struct
-                    wall:
-                        type: uint
-            time.zone:
-                name: time.zone
-                properties:
-                    isDST:
-                        type: bool
-                    name:
-                        type: string
-                    offset:
-                        type: int
-            time.zoneTrans:
-                name: time.zoneTrans
-                properties:
-                    index:
-                        type: uint
-                    isstd:
-                        type: bool
-                    isutc:
-                        type: bool
-                    when:
-                        type: int
+                properties: {}
         typeInfo:
             pointer: true
             structRef: mogenius-k8s-manager/src/structs.Job
@@ -17387,14 +16076,6 @@ service/restart:
 service/start:
     requestSchema:
         structs:
-            gopkg.in/inf.v0.Dec:
-                name: gopkg.in/inf.v0.Dec
-                properties:
-                    scale:
-                        type: int
-                    unscaled:
-                        structRef: math/big.Int
-                        type: struct
             k8s.io/api/autoscaling/v2.ContainerResourceMetricSource:
                 name: k8s.io/api/autoscaling/v2.ContainerResourceMetricSource
                 properties:
@@ -17565,28 +16246,6 @@ service/start:
                 properties:
                     Format:
                         type: string
-                    d:
-                        structRef: k8s.io/apimachinery/pkg/api/resource.infDecAmount
-                        type: struct
-                    i:
-                        structRef: k8s.io/apimachinery/pkg/api/resource.int64Amount
-                        type: struct
-                    s:
-                        type: string
-            k8s.io/apimachinery/pkg/api/resource.infDecAmount:
-                name: k8s.io/apimachinery/pkg/api/resource.infDecAmount
-                properties:
-                    Dec:
-                        pointer: true
-                        structRef: gopkg.in/inf.v0.Dec
-                        type: struct
-            k8s.io/apimachinery/pkg/api/resource.int64Amount:
-                name: k8s.io/apimachinery/pkg/api/resource.int64Amount
-                properties:
-                    scale:
-                        type: int
-                    value:
-                        type: int
             k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector:
                 name: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
                 properties:
@@ -17612,15 +16271,6 @@ service/start:
                         elementType:
                             type: string
                         type: array
-            math/big.Int:
-                name: math/big.Int
-                properties:
-                    abs:
-                        elementType:
-                            type: uint
-                        type: array
-                    neg:
-                        type: bool
             mogenius-k8s-manager/src/dtos.K8sCnameDto:
                 name: mogenius-k8s-manager/src/dtos.K8sCnameDto
                 properties:
@@ -18015,62 +16665,9 @@ service/start:
                         type: string
                     title:
                         type: string
-            time.Location:
-                name: time.Location
-                properties:
-                    cacheEnd:
-                        type: int
-                    cacheStart:
-                        type: int
-                    cacheZone:
-                        pointer: true
-                        structRef: time.zone
-                        type: struct
-                    extend:
-                        type: string
-                    name:
-                        type: string
-                    tx:
-                        elementType:
-                            structRef: time.zoneTrans
-                            type: struct
-                        type: array
-                    zone:
-                        elementType:
-                            structRef: time.zone
-                            type: struct
-                        type: array
             time.Time:
                 name: time.Time
-                properties:
-                    ext:
-                        type: int
-                    loc:
-                        pointer: true
-                        structRef: time.Location
-                        type: struct
-                    wall:
-                        type: uint
-            time.zone:
-                name: time.zone
-                properties:
-                    isDST:
-                        type: bool
-                    name:
-                        type: string
-                    offset:
-                        type: int
-            time.zoneTrans:
-                name: time.zoneTrans
-                properties:
-                    index:
-                        type: uint
-                    isstd:
-                        type: bool
-                    isutc:
-                        type: bool
-                    when:
-                        type: int
+                properties: {}
         typeInfo:
             pointer: true
             structRef: mogenius-k8s-manager/src/structs.Job
@@ -18169,76 +16766,15 @@ service/status:
                         type: struct
                     restartCount:
                         type: int
-            time.Location:
-                name: time.Location
-                properties:
-                    cacheEnd:
-                        type: int
-                    cacheStart:
-                        type: int
-                    cacheZone:
-                        pointer: true
-                        structRef: time.zone
-                        type: struct
-                    extend:
-                        type: string
-                    name:
-                        type: string
-                    tx:
-                        elementType:
-                            structRef: time.zoneTrans
-                            type: struct
-                        type: array
-                    zone:
-                        elementType:
-                            structRef: time.zone
-                            type: struct
-                        type: array
             time.Time:
                 name: time.Time
-                properties:
-                    ext:
-                        type: int
-                    loc:
-                        pointer: true
-                        structRef: time.Location
-                        type: struct
-                    wall:
-                        type: uint
-            time.zone:
-                name: time.zone
-                properties:
-                    isDST:
-                        type: bool
-                    name:
-                        type: string
-                    offset:
-                        type: int
-            time.zoneTrans:
-                name: time.zoneTrans
-                properties:
-                    index:
-                        type: uint
-                    isstd:
-                        type: bool
-                    isutc:
-                        type: bool
-                    when:
-                        type: int
+                properties: {}
         typeInfo:
             structRef: mogenius-k8s-manager/src/services.ServiceStatusResponse
             type: struct
 service/stop:
     requestSchema:
         structs:
-            gopkg.in/inf.v0.Dec:
-                name: gopkg.in/inf.v0.Dec
-                properties:
-                    scale:
-                        type: int
-                    unscaled:
-                        structRef: math/big.Int
-                        type: struct
             k8s.io/api/autoscaling/v2.ContainerResourceMetricSource:
                 name: k8s.io/api/autoscaling/v2.ContainerResourceMetricSource
                 properties:
@@ -18409,28 +16945,6 @@ service/stop:
                 properties:
                     Format:
                         type: string
-                    d:
-                        structRef: k8s.io/apimachinery/pkg/api/resource.infDecAmount
-                        type: struct
-                    i:
-                        structRef: k8s.io/apimachinery/pkg/api/resource.int64Amount
-                        type: struct
-                    s:
-                        type: string
-            k8s.io/apimachinery/pkg/api/resource.infDecAmount:
-                name: k8s.io/apimachinery/pkg/api/resource.infDecAmount
-                properties:
-                    Dec:
-                        pointer: true
-                        structRef: gopkg.in/inf.v0.Dec
-                        type: struct
-            k8s.io/apimachinery/pkg/api/resource.int64Amount:
-                name: k8s.io/apimachinery/pkg/api/resource.int64Amount
-                properties:
-                    scale:
-                        type: int
-                    value:
-                        type: int
             k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector:
                 name: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
                 properties:
@@ -18456,15 +16970,6 @@ service/stop:
                         elementType:
                             type: string
                         type: array
-            math/big.Int:
-                name: math/big.Int
-                properties:
-                    abs:
-                        elementType:
-                            type: uint
-                        type: array
-                    neg:
-                        type: bool
             mogenius-k8s-manager/src/dtos.K8sCnameDto:
                 name: mogenius-k8s-manager/src/dtos.K8sCnameDto
                 properties:
@@ -18822,62 +17327,9 @@ service/stop:
                         type: string
                     title:
                         type: string
-            time.Location:
-                name: time.Location
-                properties:
-                    cacheEnd:
-                        type: int
-                    cacheStart:
-                        type: int
-                    cacheZone:
-                        pointer: true
-                        structRef: time.zone
-                        type: struct
-                    extend:
-                        type: string
-                    name:
-                        type: string
-                    tx:
-                        elementType:
-                            structRef: time.zoneTrans
-                            type: struct
-                        type: array
-                    zone:
-                        elementType:
-                            structRef: time.zone
-                            type: struct
-                        type: array
             time.Time:
                 name: time.Time
-                properties:
-                    ext:
-                        type: int
-                    loc:
-                        pointer: true
-                        structRef: time.Location
-                        type: struct
-                    wall:
-                        type: uint
-            time.zone:
-                name: time.zone
-                properties:
-                    isDST:
-                        type: bool
-                    name:
-                        type: string
-                    offset:
-                        type: int
-            time.zoneTrans:
-                name: time.zoneTrans
-                properties:
-                    index:
-                        type: uint
-                    isstd:
-                        type: bool
-                    isutc:
-                        type: bool
-                    when:
-                        type: int
+                properties: {}
         typeInfo:
             pointer: true
             structRef: mogenius-k8s-manager/src/structs.Job
@@ -18955,62 +17407,9 @@ service/trigger-job:
                         type: string
                     title:
                         type: string
-            time.Location:
-                name: time.Location
-                properties:
-                    cacheEnd:
-                        type: int
-                    cacheStart:
-                        type: int
-                    cacheZone:
-                        pointer: true
-                        structRef: time.zone
-                        type: struct
-                    extend:
-                        type: string
-                    name:
-                        type: string
-                    tx:
-                        elementType:
-                            structRef: time.zoneTrans
-                            type: struct
-                        type: array
-                    zone:
-                        elementType:
-                            structRef: time.zone
-                            type: struct
-                        type: array
             time.Time:
                 name: time.Time
-                properties:
-                    ext:
-                        type: int
-                    loc:
-                        pointer: true
-                        structRef: time.Location
-                        type: struct
-                    wall:
-                        type: uint
-            time.zone:
-                name: time.zone
-                properties:
-                    isDST:
-                        type: bool
-                    name:
-                        type: string
-                    offset:
-                        type: int
-            time.zoneTrans:
-                name: time.zoneTrans
-                properties:
-                    index:
-                        type: uint
-                    isstd:
-                        type: bool
-                    isutc:
-                        type: bool
-                    when:
-                        type: int
+                properties: {}
         typeInfo:
             pointer: true
             structRef: mogenius-k8s-manager/src/structs.Job
@@ -19018,14 +17417,6 @@ service/trigger-job:
 service/update-service:
     requestSchema:
         structs:
-            gopkg.in/inf.v0.Dec:
-                name: gopkg.in/inf.v0.Dec
-                properties:
-                    scale:
-                        type: int
-                    unscaled:
-                        structRef: math/big.Int
-                        type: struct
             k8s.io/api/autoscaling/v2.ContainerResourceMetricSource:
                 name: k8s.io/api/autoscaling/v2.ContainerResourceMetricSource
                 properties:
@@ -19196,28 +17587,6 @@ service/update-service:
                 properties:
                     Format:
                         type: string
-                    d:
-                        structRef: k8s.io/apimachinery/pkg/api/resource.infDecAmount
-                        type: struct
-                    i:
-                        structRef: k8s.io/apimachinery/pkg/api/resource.int64Amount
-                        type: struct
-                    s:
-                        type: string
-            k8s.io/apimachinery/pkg/api/resource.infDecAmount:
-                name: k8s.io/apimachinery/pkg/api/resource.infDecAmount
-                properties:
-                    Dec:
-                        pointer: true
-                        structRef: gopkg.in/inf.v0.Dec
-                        type: struct
-            k8s.io/apimachinery/pkg/api/resource.int64Amount:
-                name: k8s.io/apimachinery/pkg/api/resource.int64Amount
-                properties:
-                    scale:
-                        type: int
-                    value:
-                        type: int
             k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector:
                 name: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
                 properties:
@@ -19243,15 +17612,6 @@ service/update-service:
                         elementType:
                             type: string
                         type: array
-            math/big.Int:
-                name: math/big.Int
-                properties:
-                    abs:
-                        elementType:
-                            type: uint
-                        type: array
-                    neg:
-                        type: bool
             mogenius-k8s-manager/src/dtos.K8sCnameDto:
                 name: mogenius-k8s-manager/src/dtos.K8sCnameDto
                 properties:
@@ -19646,62 +18006,9 @@ service/update-service:
                         type: string
                     title:
                         type: string
-            time.Location:
-                name: time.Location
-                properties:
-                    cacheEnd:
-                        type: int
-                    cacheStart:
-                        type: int
-                    cacheZone:
-                        pointer: true
-                        structRef: time.zone
-                        type: struct
-                    extend:
-                        type: string
-                    name:
-                        type: string
-                    tx:
-                        elementType:
-                            structRef: time.zoneTrans
-                            type: struct
-                        type: array
-                    zone:
-                        elementType:
-                            structRef: time.zone
-                            type: struct
-                        type: array
             time.Time:
                 name: time.Time
-                properties:
-                    ext:
-                        type: int
-                    loc:
-                        pointer: true
-                        structRef: time.Location
-                        type: struct
-                    wall:
-                        type: uint
-            time.zone:
-                name: time.zone
-                properties:
-                    isDST:
-                        type: bool
-                    name:
-                        type: string
-                    offset:
-                        type: int
-            time.zoneTrans:
-                name: time.zoneTrans
-                properties:
-                    index:
-                        type: uint
-                    isstd:
-                        type: bool
-                    isutc:
-                        type: bool
-                    when:
-                        type: int
+                properties: {}
         typeInfo:
             pointer: true
             structRef: mogenius-k8s-manager/src/structs.Job
@@ -20244,27 +18551,91 @@ trigger/workload:
         typeInfo:
             structRef: mogenius-k8s-manager/src/utils.SyncResourceItem
             type: struct
+    responseSchema:
+        structs:
+            k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured:
+                name: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured
+                properties:
+                    Object:
+                        keyType:
+                            type: string
+                        type: map
+                        valueType:
+                            pointer: true
+                            type: any
+        typeInfo:
+            pointer: true
+            structRef: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured
+            type: struct
 uninstall-cert-manager:
+    requestSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
     responseSchema:
         typeInfo:
             type: string
 uninstall-cluster-issuer:
+    requestSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
     responseSchema:
         typeInfo:
             type: string
 uninstall-ingress-controller-traefik:
+    requestSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
     responseSchema:
         typeInfo:
             type: string
 uninstall-kepler:
+    requestSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
     responseSchema:
         typeInfo:
             type: string
 uninstall-metallb:
+    requestSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
     responseSchema:
         typeInfo:
             type: string
 uninstall-metrics-server:
+    requestSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
     responseSchema:
         typeInfo:
             type: string
@@ -20309,6 +18680,14 @@ update/network_policies_template:
                 structRef: mogenius-k8s-manager/src/kubernetes.NetworkPolicy
                 type: struct
             type: array
+    responseSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
 update/team:
     requestSchema:
         structs:
@@ -20418,22 +18797,62 @@ update/workspace:
         typeInfo:
             type: string
 upgrade-cert-manager:
+    requestSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
     responseSchema:
         typeInfo:
             type: string
 upgrade-ingress-controller-traefik:
+    requestSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
     responseSchema:
         typeInfo:
             type: string
 upgrade-kepler:
+    requestSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
     responseSchema:
         typeInfo:
             type: string
 upgrade-metallb:
+    requestSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
     responseSchema:
         typeInfo:
             type: string
 upgrade-metrics-server:
+    requestSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
     responseSchema:
         typeInfo:
             type: string

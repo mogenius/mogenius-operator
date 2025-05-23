@@ -1,9 +1,9 @@
-FROM golang:1.24.2 AS golang
-FROM quay.io/clastix/kubectl:v1.33.0 AS kubectl
+FROM golang:1.24.3 AS golang
+FROM quay.io/clastix/kubectl:v1.33.1 AS kubectl
 
 FROM ubuntu:noble AS build-env
 
-ENV SNOOPY_VERSION=v0.0.13
+ENV SNOOPY_VERSION=v0.2.2
 
 COPY --from=golang /usr/local/go /usr/local/go
 COPY --from=kubectl /usr/local/bin/kubectl /usr/local/bin/kubectl

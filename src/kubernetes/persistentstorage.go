@@ -355,13 +355,13 @@ func DeleteMogeniusNfsDeployment(eventClient websocket.WebsocketClient, job *str
 	}(wg)
 }
 
-func ListPersistentVolumeClaimsWithFieldSelector(namespace string, labelSelector string, prefix string) K8sWorkloadResult {
+func ListPersistentVolumeClaimsWithFieldSelector(namespace string, labelSelector string, prefix string) ([]v1.PersistentVolumeClaim, error) {
 	clientset := clientProvider.K8sClientSet()
 	client := clientset.CoreV1().PersistentVolumeClaims(namespace)
 
 	persistentVolumeClaims, err := client.List(context.TODO(), metav1.ListOptions{LabelSelector: labelSelector})
 	if err != nil {
-		return WorkloadResult(nil, err)
+		return persistentVolumeClaims.Items, err
 	}
 
 	// delete all persistentVolumeClaims that do not start with prefix
@@ -373,7 +373,7 @@ func ListPersistentVolumeClaimsWithFieldSelector(namespace string, labelSelector
 		}
 	}
 
-	return WorkloadResult(persistentVolumeClaims.Items, err)
+	return persistentVolumeClaims.Items, err
 }
 
 func GetPersistentVolumeClaim(namespace string, name string) (*v1.PersistentVolumeClaim, error) {

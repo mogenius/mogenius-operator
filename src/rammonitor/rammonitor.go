@@ -67,10 +67,7 @@ func (self *ramMonitor) startCollector() {
 		}
 		assert.Assert(nodeName != "")
 
-		path := "/hostproc/meminfo"
-		if !self.clientProvider.RunsInCluster() {
-			path = "/proc/meminfo"
-		}
+		path := self.config.Get("MO_HOST_PROC_PATH") + "/meminfo"
 
 		for {
 			if !firstRun {

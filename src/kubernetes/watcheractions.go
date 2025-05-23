@@ -4,14 +4,16 @@ import (
 	"context"
 	"fmt"
 	"mogenius-k8s-manager/src/store"
+	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/websocket"
 	"os"
 	"slices"
 	"strings"
+	"sync"
+	"time"
 
 	v1 "k8s.io/api/core/v1"
-	v1Net "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -37,30 +39,49 @@ type GetUnstructuredLabeledResourceListRequest struct {
 	Blacklist []*utils.SyncResourceEntry `json:"blacklist"`
 }
 
+var MirroredResourceKinds = []string{
+	"Deployment",
+	"ReplicaSet",
+	"CronJob",
+	"Pod",
+	"Job",
+	"Event",
+	"DaemonSet",
+	"StatefulSet",
+	"Namespace",
+	"NetworkPolicy",
+	"PersistentVolume",
+	"PersistentVolumeClaim",
+	"Service",
+	"Node",
+
+	"StorageClass",
+	"IngressClass",
+	"Ingress",
+	"Secret",
+	"ConfigMap",
+	"HorizontalPodAutoscaler",
+	"ServiceAccount",
+	"Service",
+	"RoleBinding",
+	"Role",
+	"ClusterRoleBinding",
+	"ClusterRole",
+	"Workspace", // mogenius specific
+	"User",      // mogenius specific
+	"Grant",     // mogenius specific
+	"Team",      // mogenius specific
+}
+
 func WatchStoreResources(watcher WatcherModule, eventClient websocket.WebsocketClient) error {
+	start := time.Now()
+
 	resources, err := GetAvailableResources()
 	if err != nil {
 		return err
 	}
-	relevantResourceKinds := []string{
-		"Deployment",
-		"ReplicaSet",
-		"CronJob",
-		"Pod",
-		"Job",
-		"Event",
-		"DaemonSet",
-		"StatefulSet",
-		"Namespace",
-		"NetworkPolicy",
-		"PersistentVolume",
-		"Node",
-	}
 	for _, v := range resources {
-		//if !slices.Contains(relevantResourceKinds, v.Kind) {
-		//	continue
-		//}
-		if v.Namespace == nil && !slices.Contains(relevantResourceKinds, v.Kind) {
+		if !slices.Contains(MirroredResourceKinds, v.Kind) {
 			k8sLogger.Debug("🚀 Skipping resource", "kind", v.Kind, "group", v.Group, "namespace", v.Namespace)
 			continue
 		}
@@ -69,11 +90,18 @@ func WatchStoreResources(watcher WatcherModule, eventClient websocket.WebsocketC
 			Kind:         v.Kind,
 			GroupVersion: v.Group,
 		}, func(resource WatcherResourceIdentifier, obj *unstructured.Unstructured) {
-			setStoreIfNeeded(eventClient, resource.GroupVersion, resource.Kind, obj.GetNamespace(), obj.GetName(), obj)
+			setStoreIfNeeded(resource.GroupVersion, obj.GetName(), resource.Kind, obj.GetNamespace(), obj)
+			// suppress the add events for the first 10 seconds (because all resources are added initially)
+			if time.Since(start) < 10*time.Second {
+				return
+			}
+			sendEventServerEvent(eventClient, v.Group, resource.Version, obj.GetName(), resource.Kind, obj.GetNamespace(), resource.Name, "add")
 		}, func(resource WatcherResourceIdentifier, oldObj, newObj *unstructured.Unstructured) {
-			setStoreIfNeeded(eventClient, resource.GroupVersion, resource.Kind, newObj.GetNamespace(), newObj.GetName(), newObj)
+			setStoreIfNeeded(resource.GroupVersion, newObj.GetName(), resource.Kind, newObj.GetNamespace(), newObj)
+			sendEventServerEvent(eventClient, v.Group, resource.Version, newObj.GetName(), resource.Kind, newObj.GetNamespace(), resource.Name, "update")
 		}, func(resource WatcherResourceIdentifier, obj *unstructured.Unstructured) {
-			deleteFromStoreIfNeeded(eventClient, resource.GroupVersion, resource.Kind, obj.GetNamespace(), obj.GetName(), obj)
+			deleteFromStoreIfNeeded(resource.GroupVersion, obj.GetName(), resource.Kind, obj.GetNamespace(), obj)
+			sendEventServerEvent(eventClient, v.Group, resource.Version, obj.GetName(), resource.Kind, obj.GetNamespace(), resource.Name, "delete")
 		})
 		if err != nil {
 			k8sLogger.Error("failed to initialize watchhandler for resource", "groupVersion", v.Group, "kind", v.Kind, "version", v.Version, "error", err)
@@ -82,40 +110,33 @@ func WatchStoreResources(watcher WatcherModule, eventClient websocket.WebsocketC
 			k8sLogger.Debug("🚀 Watching resource", "kind", v.Kind, "group", v.Group)
 		}
 	}
-
 	return nil
 }
 
-func setStoreIfNeeded(eventClient websocket.WebsocketClient, groupVersion string, kind string, namespace string, name string, obj *unstructured.Unstructured) {
+func setStoreIfNeeded(groupVersion string, resourceName string, kind string, namespace string, obj *unstructured.Unstructured) {
 	obj = removeUnusedFieds(obj)
 
-	if kind == "NetworkPolicy" {
-		var netPol v1Net.NetworkPolicy
-		err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &netPol)
-		if err != nil {
-			k8sLogger.Error("Error cannot cast from unstructured", "error", err)
-			return
-		}
-		HandleNetworkPolicyChange(eventClient, &netPol, "Added/Updated")
-	}
-
-	// other resources
-	err := valkeyClient.SetObject(obj, 0, VALKEY_RESOURCE_PREFIX, groupVersion, kind, namespace, name)
+	// store in valkey
+	err := valkeyClient.SetObject(obj, 0, VALKEY_RESOURCE_PREFIX, groupVersion, kind, namespace, resourceName)
 	if err != nil {
 		k8sLogger.Error("Error setting object in store", "error", err)
 	}
-	if kind == "Event" {
-		var event v1.Event
-		err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &event)
-		if err != nil {
-			k8sLogger.Error("Error cannot cast from unstructured", "error", err)
-			return
-		}
-		processEvent(eventClient, &event)
-	}
 }
 
-func deleteFromStoreIfNeeded(eventClient websocket.WebsocketClient, groupVersion string, kind string, namespace string, name string, obj *unstructured.Unstructured) {
+func sendEventServerEvent(eventClient websocket.WebsocketClient, group string, version string, resourceName string, kind string, namespace string, name string, eventType string) {
+	datagram := structs.CreateDatagramForClusterEvent("ClusterEvent", group, version, kind, namespace, name, resourceName, eventType)
+
+	// send the datagram to the event server
+	go func() {
+		err := eventClient.WriteJSON(datagram)
+		if err != nil {
+			k8sLogger.Error("Error sending data to EventServer", "error", err)
+
+		}
+	}()
+}
+
+func deleteFromStoreIfNeeded(groupVersion string, resourceName string, kind string, namespace string, obj *unstructured.Unstructured) {
 	if kind == "PersistentVolume" {
 		var pv v1.PersistentVolume
 		err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &pv)
@@ -124,39 +145,12 @@ func deleteFromStoreIfNeeded(eventClient websocket.WebsocketClient, groupVersion
 			return
 		}
 		handlePVDeletion(&pv)
-		return
-	}
-
-	if kind == "NetworkPolicy" {
-		err := valkeyClient.Delete(VALKEY_RESOURCE_PREFIX, groupVersion, kind, namespace, name)
-		if err != nil {
-			k8sLogger.Error("Error deleting object in store", "error", err)
-		}
-
-		var netPol v1Net.NetworkPolicy
-		err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &netPol)
-		if err != nil {
-			k8sLogger.Error("Error cannot cast from unstructured", "error", err)
-			return
-		}
-
-		HandleNetworkPolicyChange(eventClient, &netPol, "Deleted")
-		return
 	}
 
 	// other resources
-	err := valkeyClient.Delete(VALKEY_RESOURCE_PREFIX, groupVersion, kind, namespace, name)
+	err := valkeyClient.Delete(VALKEY_RESOURCE_PREFIX, groupVersion, kind, namespace, resourceName)
 	if err != nil {
 		k8sLogger.Error("Error deleting object in store", "error", err)
-	}
-	if kind == "Event" {
-		var event v1.Event
-		err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &event)
-		if err != nil {
-			k8sLogger.Error("Error cannot cast from unstructured", "error", err)
-			return
-		}
-		processEvent(eventClient, &event)
 	}
 }
 
@@ -184,6 +178,10 @@ func GetUnstructuredResourceListFromStore(group string, kind string, version str
 
 	// fallback: gather the data when the store is empty (can be slow)
 	if len(result) == 0 {
+		// dont bother kubernetes with mirrored resources
+		if slices.Contains(MirroredResourceKinds, kind) {
+			return results, nil
+		}
 		list, err := GetUnstructuredResourceList(group, version, name, namespace)
 		if err != nil {
 			return results, err
@@ -194,10 +192,12 @@ func GetUnstructuredResourceListFromStore(group string, kind string, version str
 	return results, nil
 }
 
-func GetUnstructuredNamespaceResourceList(namespace string, whitelist []*utils.SyncResourceEntry, blacklist []*utils.SyncResourceEntry) (*[]unstructured.Unstructured, error) {
+func GetUnstructuredNamespaceResourceList(namespace string, whitelist []*utils.SyncResourceEntry, blacklist []*utils.SyncResourceEntry) ([]unstructured.Unstructured, error) {
+	results := []unstructured.Unstructured{}
+
 	resources, err := GetAvailableResources()
 	if err != nil {
-		return nil, err
+		return results, err
 	}
 
 	if whitelist == nil {
@@ -208,34 +208,44 @@ func GetUnstructuredNamespaceResourceList(namespace string, whitelist []*utils.S
 		blacklist = []*utils.SyncResourceEntry{}
 	}
 
-	results := []unstructured.Unstructured{}
+	var wg sync.WaitGroup
+	resultCh := make(chan []unstructured.Unstructured, len(resources))
 
-	// dynamicClient := clientProvider.DynamicClient()
 	for _, v := range resources {
 		if v.Namespace != nil {
-			//result, err := dynamicClient.Resource(CreateGroupVersionResource(v.Group, v.Version, v.Name)).Namespace(namespace).List(context.TODO(), metav1.ListOptions{})
-			//if err != nil {
-			//	if !os.IsNotExist(err) {
-			//		k8sLogger.Error("Error querying resource", "error", err)
-			//	}
-			//}
 			if (len(whitelist) > 0 && !utils.ContainsResourceEntry(whitelist, v)) || (blacklist != nil && utils.ContainsResourceEntry(blacklist, v)) {
 				continue
 			}
-
-			result := store.GetResourceByKindAndNamespace(valkeyClient, v.Group, v.Kind, namespace)
-			if result != nil {
-				results = append(results, result...)
-			}
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				result := store.GetResourceByKindAndNamespace(valkeyClient, v.Group, v.Kind, namespace)
+				if result != nil && len(result) > 0 {
+					resultCh <- result
+				}
+			}()
 		}
 	}
-	return &results, nil
+	go func() {
+		wg.Wait()
+		close(resultCh)
+	}()
+
+	for res := range resultCh {
+		results = append(results, res...)
+	}
+	return results, nil
 }
 
-func GetUnstructuredLabeledResourceList(label string, whitelist []*utils.SyncResourceEntry, blacklist []*utils.SyncResourceEntry) (*unstructured.UnstructuredList, error) {
+func GetUnstructuredLabeledResourceList(label string, whitelist []*utils.SyncResourceEntry, blacklist []*utils.SyncResourceEntry) (unstructured.UnstructuredList, error) {
+	results := unstructured.UnstructuredList{
+		Object: map[string]interface{}{},
+		Items:  []unstructured.Unstructured{},
+	}
+
 	resources, err := GetAvailableResources()
 	if err != nil {
-		return nil, err
+		return results, err
 	}
 
 	if whitelist == nil {
@@ -245,8 +255,6 @@ func GetUnstructuredLabeledResourceList(label string, whitelist []*utils.SyncRes
 	if blacklist == nil {
 		blacklist = []*utils.SyncResourceEntry{}
 	}
-
-	results := []unstructured.Unstructured{}
 
 	dynamicClient := clientProvider.DynamicClient()
 	//// dynamicClient := clientProvider.DynamicClient()
@@ -266,11 +274,11 @@ func GetUnstructuredLabeledResourceList(label string, whitelist []*utils.SyncRes
 			}
 			// result := store.GetResourceByKindAndNamespace(v.Group, v.Kind, namespace)
 			if result != nil {
-				results = append(results, result.Items...)
+				results.Items = append(results.Items, result.Items...)
 			}
 		}
 	}
-	return &unstructured.UnstructuredList{Items: results}, nil
+	return results, nil
 }
 
 func GetUnstructuredResource(group string, version string, name string, namespace, resourceName string) (*unstructured.Unstructured, error) {
@@ -453,9 +461,28 @@ func GetObjectFromFile(file string) (*unstructured.Unstructured, error) {
 	return &obj, nil
 }
 
-func GetAvailableResources() ([]utils.SyncResourceEntry, error) {
-	clientset := clientProvider.K8sClientSet()
+type availableResourceCacheEntry struct {
+	timestamp          time.Time
+	availableResources []utils.SyncResourceEntry
+}
 
+var (
+	resourceCache      availableResourceCacheEntry
+	resourceCacheMutex sync.Mutex        // Mutex to ensure concurrent safe access to cache
+	resourceCacheTTL   = 1 * time.Minute // Cache duration
+)
+
+func GetAvailableResources() ([]utils.SyncResourceEntry, error) {
+	// Check if we have cached resources and if they are still valid
+	if time.Since(resourceCache.timestamp) < resourceCacheTTL {
+		return resourceCache.availableResources, nil
+	}
+
+	resourceCacheMutex.Lock()
+	defer resourceCacheMutex.Unlock()
+
+	// No valid cache, fetch resources from server
+	clientset := clientProvider.K8sClientSet()
 	resources, err := clientset.Discovery().ServerPreferredResources()
 	if err != nil {
 		k8sLogger.Error("Error discovering resources", "error", err)
@@ -470,7 +497,6 @@ func GetAvailableResources() ([]utils.SyncResourceEntry, error) {
 				if resource.Namespaced {
 					namespace = utils.Pointer("")
 				}
-
 				availableResources = append(availableResources, utils.SyncResourceEntry{
 					Group:     resourceList.GroupVersion,
 					Name:      resource.Name,
@@ -482,7 +508,25 @@ func GetAvailableResources() ([]utils.SyncResourceEntry, error) {
 		}
 	}
 
+	// Update the cache with the new data
+	resourceCache.availableResources = availableResources
+	resourceCache.timestamp = time.Now()
+
 	return availableResources, nil
+}
+
+func GetResourcesNameForKind(kind string) (name string, err error) {
+	resources, err := GetAvailableResources()
+	if err != nil {
+		return "", err
+	}
+
+	for _, resource := range resources {
+		if resource.Kind == kind {
+			return resource.Name, nil
+		}
+	}
+	return "", fmt.Errorf("resource not found for name %s", name)
 }
 
 func GetAvailableResourcesSerialized() string {

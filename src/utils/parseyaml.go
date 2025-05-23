@@ -225,18 +225,6 @@ func InitDeployment() v1.Deployment {
 	return app
 }
 
-func InitMogeniusCrdProjectsYaml() string {
-	return readYaml("yaml-templates/crds-projects.yaml")
-}
-
-func InitMogeniusCrdEnvironmentsYaml() string {
-	return readYaml("yaml-templates/crds-environments.yaml")
-}
-
-func InitMogeniusCrdApplicationKitYaml() string {
-	return readYaml("yaml-templates/crds-applicationkit.yaml")
-}
-
 func InitExternalSecretsStoreYaml() string {
 	return readYaml("yaml-templates/external-secrets-store-vault.yaml")
 }
@@ -265,4 +253,12 @@ func readYaml(filePath string) string {
 		select {}
 	}
 	return string(yaml)
+}
+
+func IndexHtml() string {
+	html, err := HtmlFolder.ReadFile("html/index.html")
+	if err != nil {
+		utilsLogger.Error("failed to read embedded file from HtmlFolder", "error", err)
+	}
+	return string(html)
 }

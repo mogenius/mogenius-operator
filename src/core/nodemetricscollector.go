@@ -3,7 +3,6 @@ package core
 import (
 	"bufio"
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
 	"mogenius-k8s-manager/src/assert"
@@ -14,6 +13,7 @@ import (
 	"mogenius-k8s-manager/src/rammonitor"
 	"mogenius-k8s-manager/src/shutdown"
 	"mogenius-k8s-manager/src/structs"
+	"mogenius-k8s-manager/src/utils"
 	"os"
 	"os/exec"
 	"strconv"
@@ -45,13 +45,6 @@ type nodeMetricsCollector struct {
 	cpuMonitor     cpumonitor.CpuMonitor
 	ramMonitor     rammonitor.RamMonitor
 	networkMonitor networkmonitor.NetworkMonitor
-
-	// BTF is the format used by BPF modules to be loaded across most linux distributions.
-	// Without BTF support we are not able to use BPF modules to implement features. This
-	// means limited feature availability. In some cases we might implement slower
-	// fallback solutions. In others it is impossible to support features if this is not
-	// available.
-	btfAvailable bool
 }
 
 func NewNodeMetricsCollector(
@@ -70,12 +63,6 @@ func NewNodeMetricsCollector(
 	self.cpuMonitor = cpuMonitor
 	self.ramMonitor = ramMonitor
 	self.networkMonitor = networkMonitor
-
-	self.btfAvailable = true
-	if _, err := os.Stat("/sys/kernel/btf"); errors.Is(err, os.ErrNotExist) {
-		self.logger.Warn("This machines linux kernel does not support BTF.")
-		self.btfAvailable = false
-	}
 
 	return self
 }
@@ -120,11 +107,17 @@ func (self *nodeMetricsCollector) Orchestrate() {
 				return
 			}
 
+			ownerReference, err := utils.GetOwnDeploymentOwnerReference(clientset, self.config)
+			if err != nil {
+				self.logger.Error("failed to get own deployment owner reference", "error", err)
+			}
+
 			daemonSet, err := clientset.AppsV1().DaemonSets(namespace).Get(context.TODO(), daemonSetName, metav1.GetOptions{})
 			daemonSetSpec := &appsv1.DaemonSet{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      daemonSetName,
-					Namespace: namespace,
+					Name:            daemonSetName,
+					Namespace:       namespace,
+					OwnerReferences: ownerReference,
 				},
 				Spec: appsv1.DaemonSetSpec{
 					Selector: &metav1.LabelSelector{
@@ -133,15 +126,6 @@ func (self *nodeMetricsCollector) Orchestrate() {
 					Template: corev1.PodTemplateSpec{
 						ObjectMeta: metav1.ObjectMeta{
 							Labels: map[string]string{"app": daemonSetName},
-							OwnerReferences: []metav1.OwnerReference{
-								{
-									APIVersion: ownDeployment.APIVersion,
-									Kind:       ownDeployment.Kind,
-									Name:       ownDeployment.GetName(),
-									UID:        ownDeployment.GetUID(),
-									Controller: ptr.To(true),
-								},
-							},
 						},
 						Spec: corev1.PodSpec{
 							Containers: []corev1.Container{
@@ -175,12 +159,7 @@ func (self *nodeMetricsCollector) Orchestrate() {
 									},
 									VolumeMounts: []corev1.VolumeMount{
 										{
-											MountPath: "/hostproc",
-											Name:      "proc",
-											ReadOnly:  true,
-										},
-										{
-											MountPath: "/proc",
+											MountPath: self.config.Get("MO_HOST_PROC_PATH"),
 											Name:      "proc",
 											ReadOnly:  true,
 										},
@@ -332,10 +311,10 @@ func (self *nodeMetricsCollector) Run() {
 
 	// node-stats monitor
 	go func() {
+		machinestats := structs.MachineStats{
+			BtfSupport: self.networkMonitor.BtfAvailable(),
+		}
 		for {
-			machinestats := structs.MachineStats{
-				BtfSupport: self.btfAvailable,
-			}
 			self.statsDb.AddMachineStatsToDb(nodeName, machinestats)
 			time.Sleep(1 * time.Minute)
 		}
@@ -343,29 +322,34 @@ func (self *nodeMetricsCollector) Run() {
 
 	// network monitor
 	go func() {
-		if self.btfAvailable {
-			self.networkMonitor.Run()
-			go func() {
-				for {
-					metrics := self.networkMonitor.GetPodNetworkUsage()
-					self.statsDb.AddInterfaceStatsToDb(metrics)
-					time.Sleep(60 * time.Second)
+		self.networkMonitor.Run()
+		go func() {
+			for {
+				metrics := self.networkMonitor.GetPodNetworkUsage()
+				self.statsDb.AddInterfaceStatsToDb(metrics)
+				time.Sleep(60 * time.Second)
+			}
+		}()
+		go func() {
+			for {
+				metrics := self.networkMonitor.GetPodNetworkUsage()
+				err := self.statsDb.AddNodeTrafficMetricsToDb(nodeName, metrics)
+				if err != nil {
+					self.logger.Error("failed to add node traffic metrics", "error", err)
 				}
-			}()
-			go func() {
-				for {
-					metrics := self.networkMonitor.GetPodNetworkUsage()
-					err := self.statsDb.AddNodeTrafficMetricsToDb(nodeName, metrics)
-					if err != nil {
-						self.logger.Error("failed to add node traffic metrics", "error", err)
-					}
-					time.Sleep(1 * time.Second)
+				time.Sleep(1 * time.Second)
+			}
+		}()
+		go func() {
+			for {
+				status := self.networkMonitor.Snoopy().Status()
+				err := self.statsDb.AddSnoopyStatusToDb(nodeName, status)
+				if err != nil {
+					self.logger.Error("failed to store snoopy status", "error", err)
 				}
-			}()
-		} else {
-			// TODO: fallback to use something else?
-			self.logger.Warn("Missing BTF Support: Network Monitoring is not available.")
-		}
+				time.Sleep(1 * time.Second)
+			}
+		}()
 	}()
 
 	// cpu usage

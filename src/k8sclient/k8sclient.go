@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"log/slog"
 	"mogenius-k8s-manager/src/assert"
+	"mogenius-k8s-manager/src/config"
 	mocrds "mogenius-k8s-manager/src/crds"
 	"mogenius-k8s-manager/src/shutdown"
 	"mogenius-k8s-manager/src/utils"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -39,12 +41,15 @@ type K8sClientProvider interface {
 type k8sClientProvider struct {
 	clientConfig     *rest.Config
 	executionContext ExecutionContext
+	config           config.ConfigModule
 }
 
-func NewK8sClientProvider(logger *slog.Logger) K8sClientProvider {
+func NewK8sClientProvider(logger *slog.Logger, configModule config.ConfigModule) K8sClientProvider {
 	assert.Assert(logger != nil)
+	assert.Assert(configModule != nil)
 
 	provider := new(k8sClientProvider)
+	provider.config = configModule
 
 	config, err := provider.detectAndGetKubeConfig(logger)
 	if err != nil {
@@ -111,9 +116,25 @@ func (self *k8sClientProvider) MogeniusClientSet() *mocrds.MogeniusClientSet {
 	return clientSet
 }
 
+type loggingRoundTripper struct {
+	rt     http.RoundTripper
+	logger *slog.Logger
+}
+
+func (l *loggingRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	l.logger.Info("K8s API request", "method", req.Method, "url", req.URL.String()) // debug.Stack() if you want to see the stack trace
+	return l.rt.RoundTrip(req)
+}
+
 func (self *k8sClientProvider) detectAndGetKubeConfig(logger *slog.Logger) (*rest.Config, error) {
 	config, err := rest.InClusterConfig()
 	if err == nil {
+		config.UserAgent = "mogenius-k8s-manager"
+		if self.config.Get("KUBERNETES_DEBUG") == "true" {
+			config.WrapTransport = func(rt http.RoundTripper) http.RoundTripper {
+				return &loggingRoundTripper{rt: rt, logger: logger}
+			}
+		}
 		self.executionContext = execution_context_cluster
 		return config, nil
 	}
@@ -121,6 +142,12 @@ func (self *k8sClientProvider) detectAndGetKubeConfig(logger *slog.Logger) (*res
 
 	config, err = self.contextConfigLoader(logger)
 	if err == nil {
+		config.UserAgent = "mogenius-k8s-manager"
+		if self.config.Get("KUBERNETES_DEBUG") == "true" {
+			config.WrapTransport = func(rt http.RoundTripper) http.RoundTripper {
+				return &loggingRoundTripper{rt: rt, logger: logger}
+			}
+		}
 		self.executionContext = execution_context_local
 		return config, nil
 	}

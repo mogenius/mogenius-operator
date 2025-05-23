@@ -75,7 +75,6 @@ func (self *podStatsCollector) Run() {
 
 				podsResult, err := self.podStats(nodemetrics, currentPods)
 				if err != nil {
-					self.logger.Error("failed to get podStats", "error", err)
 					time.Sleep(time.Duration(self.updateInterval) * time.Second)
 					continue
 				}

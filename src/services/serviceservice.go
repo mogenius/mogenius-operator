@@ -19,7 +19,7 @@ import (
 
 func UpdateService(eventClient websocket.WebsocketClient, r ServiceUpdateRequest, config cfg.ConfigModule) *structs.Job {
 	var wg sync.WaitGroup
-	job := structs.CreateJob(eventClient, "Update Service "+r.Project.DisplayName+"/"+r.Namespace.DisplayName, r.Project.Id, r.Namespace.Name, r.Service.ControllerName)
+	job := structs.CreateJob(eventClient, "Update Service "+r.Project.DisplayName+"/"+r.Namespace.DisplayName, r.Project.Id, r.Namespace.Name, r.Service.ControllerName, serviceLogger)
 	job.Start(eventClient)
 
 	// check if namespace exists and CREATE IT IF NOT
@@ -71,7 +71,7 @@ func UpdateService(eventClient websocket.WebsocketClient, r ServiceUpdateRequest
 
 func DeleteService(eventClient websocket.WebsocketClient, r ServiceDeleteRequest) *structs.Job {
 	var wg sync.WaitGroup
-	job := structs.CreateJob(eventClient, "Delete Service "+r.Project.DisplayName+"/"+r.Namespace.DisplayName, r.Project.Id, r.Namespace.Name, r.Service.ControllerName)
+	job := structs.CreateJob(eventClient, "Delete Service "+r.Project.DisplayName+"/"+r.Namespace.DisplayName, r.Project.Id, r.Namespace.Name, r.Service.ControllerName, serviceLogger)
 	job.Start(eventClient)
 	mokubernetes.DeleteService(eventClient, job, r.Namespace, r.Service, &wg)
 	mokubernetes.DeleteContainerImagePullSecret(eventClient, job, r.Namespace, r.Service, &wg)
@@ -122,7 +122,7 @@ func ServicePodStatus(eventClient websocket.WebsocketClient, r ServicePodsReques
 func TriggerJobService(eventClient websocket.WebsocketClient, r ServiceTriggerJobRequest) *structs.Job {
 	var wg sync.WaitGroup
 
-	job := structs.CreateJob(eventClient, "Trigger Job Service "+r.NamespaceDisplayName, r.ProjectId, r.NamespaceName, r.ControllerName)
+	job := structs.CreateJob(eventClient, "Trigger Job Service "+r.NamespaceDisplayName, r.ProjectId, r.NamespaceName, r.ControllerName, serviceLogger)
 	job.Start(eventClient)
 	mokubernetes.TriggerJobFromCronjob(eventClient, job, r.NamespaceName, r.ControllerName, &wg)
 
@@ -136,7 +136,7 @@ func TriggerJobService(eventClient websocket.WebsocketClient, r ServiceTriggerJo
 
 func Restart(eventClient websocket.WebsocketClient, r ServiceRestartRequest, config cfg.ConfigModule) *structs.Job {
 	var wg sync.WaitGroup
-	job := structs.CreateJob(eventClient, "Restart Service "+r.Namespace.DisplayName, r.Project.Id, r.Namespace.Name, r.Service.ControllerName)
+	job := structs.CreateJob(eventClient, "Restart Service "+r.Namespace.DisplayName, r.Project.Id, r.Namespace.Name, r.Service.ControllerName, serviceLogger)
 	job.Start(eventClient)
 
 	mokubernetes.CreateOrUpdateClusterImagePullSecret(eventClient, job, r.Project, r.Namespace, &wg)
@@ -163,7 +163,7 @@ func Restart(eventClient websocket.WebsocketClient, r ServiceRestartRequest, con
 
 func StopService(eventClient websocket.WebsocketClient, r ServiceStopRequest, config cfg.ConfigModule) *structs.Job {
 	var wg sync.WaitGroup
-	job := structs.CreateJob(eventClient, "Stop Service "+r.Namespace.DisplayName, r.ProjectId, r.Namespace.Name, r.Service.ControllerName)
+	job := structs.CreateJob(eventClient, "Stop Service "+r.Namespace.DisplayName, r.ProjectId, r.Namespace.Name, r.Service.ControllerName, serviceLogger)
 	job.Start(eventClient)
 
 	switch r.Service.Controller {
@@ -187,7 +187,7 @@ func StopService(eventClient websocket.WebsocketClient, r ServiceStopRequest, co
 func StartService(eventClient websocket.WebsocketClient, r ServiceStartRequest, config cfg.ConfigModule) *structs.Job {
 	var wg sync.WaitGroup
 
-	job := structs.CreateJob(eventClient, "Start Service "+r.Service.DisplayName, r.Project.Id, r.Namespace.Name, r.Service.ControllerName)
+	job := structs.CreateJob(eventClient, "Start Service "+r.Service.DisplayName, r.Project.Id, r.Namespace.Name, r.Service.ControllerName, serviceLogger)
 	job.Start(eventClient)
 
 	mokubernetes.CreateOrUpdateClusterImagePullSecret(eventClient, job, r.Project, r.Namespace, &wg)

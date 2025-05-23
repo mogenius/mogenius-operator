@@ -322,7 +322,6 @@ func ListNodeMetricss() []metricsv1beta1.NodeMetrics {
 
 	nodeMetricsList, err := provider.ClientSet.MetricsV1beta1().NodeMetricses().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		k8sLogger.Error("ListNodeMetrics", "error", err.Error())
 		return []metricsv1beta1.NodeMetrics{}
 	}
 	return nodeMetricsList.Items

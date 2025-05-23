@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- Choices.js for searchable select -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>K8s Manager API Interface</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: visible;
+        }
+        .form-group {
+            margin-bottom: 15px;
+            position: relative;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+            letter-spacing: 0.5px;
+            font-size: 1.08em;
+        }
+        select, textarea {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1.5px solid #d1d5db;
+            border-radius: 6px;
+            box-sizing: border-box;
+            background: #f9fafb;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        select:focus, .choices__inner.is-focused {
+            border-color: #4CAF50;
+            box-shadow: 0 0 0 2px #4caf5040;
+            outline: none;
+        }
+        .choices {
+            margin-bottom: 0;
+            margin-right: 0px;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+        .choices__inner {
+            min-height: 44px;
+            border-radius: 6px;
+            border: 1.5px solid #d1d5db;
+            background: #f9fafb;
+            box-shadow: 0 1px 4px 0 #0001;
+            font-size: 1.08em;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            margin-right: 8px;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+        .choices__inner.is-focused {
+            border-color: #4CAF50;
+            box-shadow: 0 0 0 2px #4caf5040;
+        }
+        .choices__list--dropdown {
+            border-radius: 6px;
+            box-shadow: 0 4px 16px 0 #0002;
+            border: 1.5px solid #d1d5db;
+            background: #fff;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+        .choices__item--selectable {
+            padding: 10px 14px;
+            font-size: 1.08em;
+        }
+        .choices__item--selectable.is-highlighted {
+            background: #e8f5e9;
+            color: #222;
+        }
+        .choices__placeholder {
+            color: #aaa;
+        }
+        textarea {
+            height: 150px;
+            font-family: monospace;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #response {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 1.08em;
+        }
+        .error {
+            color: red;
+        }
+        .loading {
+            color: #666;
+            font-style: italic;
+        }
+        .curl-method { color: #d73a49; font-weight: bold; }
+        .curl-url { color: #005cc5; }
+        .curl-header { color: #6f42c1; }
+        .curl-data { color: #22863a; }
+        .curl-flag { color: #e36209; }
+        .curl-comment { color: #999; font-style: italic; }
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #ccc;
+            border-top: 3px solid #4CAF50;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            vertical-align: middle;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .json-key { color: #005cc5; }
+        .json-string { color: #22863a; }
+        .json-number { color: #b76b00; }
+        .json-boolean { color: #d73a49; }
+        .json-null { color: #6f42c1; }
+
+        /* Dark mode styles */
+        .dark-mode {
+            background-color: #181a1b !important;
+            color: #e0e0e0 !important;
+        }
+        .dark-mode .container {
+            background-color: #23272a !important;
+            color: #e0e0e0 !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+        }
+        .dark-mode label,
+        .dark-mode #pattern-count,
+        .dark-mode .choices__item--selectable,
+        .dark-mode .choices__placeholder {
+            color: #bdbdbd !important;
+        }
+        .dark-mode select,
+        .dark-mode textarea,
+        .dark-mode .choices__inner,
+        .dark-mode .choices__list--dropdown {
+            background: #23272a !important;
+            color: #e0e0e0 !important;
+            border-color: #444 !important;
+        }
+        .dark-mode .choices__item--selectable.is-highlighted {
+            background: #333d33 !important;
+            color: #fff !important;
+        }
+        .dark-mode button {
+            background-color: #333d33 !important;
+            color: #e0e0e0 !important;
+        }
+        .dark-mode button:hover {
+            background-color: #4CAF50 !important;
+            color: #fff !important;
+        }
+        .dark-mode #response,
+        .dark-mode #response-schema-content,
+        .dark-mode pre,
+        .dark-mode #curl-command {
+            background: #23272a !important;
+            color: #e0e0e0 !important;
+            border-color: #444 !important;
+        }
+        .dark-mode .json-key { color: #8ab4f8; }
+        .dark-mode .json-string { color: #a3e635; }
+        .dark-mode .json-number { color: #fbbc04; }
+        .dark-mode .json-boolean { color: #f28b82; }
+        .dark-mode .json-null { color: #c58af9; }
+        .dark-mode .error { color: #ffb4b4 !important; }
+        .dark-mode .loading { color: #bdbdbd !important; }
+        .dark-mode .spinner {
+            border: 3px solid #444;
+            border-top: 3px solid #4CAF50;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>K8s Manager API Interface</h1>
+        <button id="darkmode-toggle" style="float:right; margin-top:-50px; margin-bottom:10px;">🌙 Dark Mode</button>
+        <div id="pattern-count" style="margin-bottom: 10px; color: #666; font-size: 0.95em;"></div>
+        <div class="form-group">
+            <label for="pattern">🧩 Select Pattern:</label>
+            <select id="pattern">
+                <option value="">Loading patterns...</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="payload">📦 Request Payload (JSON):</label>
+            <textarea id="payload" placeholder="Select a pattern to see the payload template"></textarea>
+        </div>
+        <div id="payload-schema" style="margin-bottom: 15px;"></div>
+        <div class="form-group" id="response-payload-group" style="display:none;">
+            <label for="response-payload">📬 Expected Response (JSON):</label>
+            <textarea id="response-payload" readonly style="background:#f4f4f4; color:#333;"></textarea>
+        </div>
+        <div id="response-schema-box" style="display:none; margin-bottom: 15px;">
+            <b>Expected Response Schema:</b>
+            <pre id="response-schema-content" style="background:#f4f4f4; padding:10px; border-radius:4px; border:1px solid #bbb; max-height:250px; overflow:auto;"></pre>
+        </div>
+
+        <button id="execute-btn" onclick="executeRequest()">Execute Request 🚀</button>
+        <span id="loading-indicator" style="display:none; margin-left:10px;"><span class="spinner"></span></span>
+
+        <div id="curl-section" style="margin-top: 20px;">
+            <label style="font-weight: bold;">🧑‍💻 cURL Command:</label>
+            <pre id="curl-command" style="background:#f4f4f4; padding:10px; border-radius:4px; white-space:pre-wrap; font-family:monospace;"></pre>
+        </div>
+
+        <div id="response"></div>
+        <div id="request-stats" style="margin-top: 10px; color: #444; font-size: 1.05em;"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+    <script>
+        let specData = null;
+
+        async function loadSpec() {
+            try {
+                const response = await fetch('spec.yaml');
+                const yamlText = await response.text();
+                specData = parseYaml(yamlText);
+                populatePatterns();
+            } catch (error) {
+                console.error('Error loading spec:', error);
+                document.getElementById('pattern').innerHTML = '<option value="">Error loading patterns</option>';
+            }
+        }
+
+        function parseYaml(yamlText) {
+            // Use js-yaml to parse YAML into JS object
+            const doc = window.jsyaml.load(yamlText);
+            const patterns = {};
+            for (const patternName in doc) {
+                const pattern = doc[patternName] || {};
+                let properties = null;
+                // Traverse to requestSchema > structs > first struct > properties
+                if (pattern.requestSchema && pattern.requestSchema.structs) {
+                    const structs = pattern.requestSchema.structs;
+                    const firstStructKey = Object.keys(structs)[0];
+                    if (firstStructKey && structs[firstStructKey].properties) {
+                        properties = structs[firstStructKey].properties;
+                    }
+                }
+                // Fallback: try direct properties under requestSchema
+                if (!properties && pattern.requestSchema && pattern.requestSchema.properties) {
+                    properties = pattern.requestSchema.properties;
+                }
+                // Flatten: { key: { type: ... } } => { key: type }
+                const flatProps = {};
+                if (properties) {
+                    for (const key in properties) {
+                        if (properties[key] && typeof properties[key] === 'object' && properties[key].type) {
+                            flatProps[key] = properties[key].type;
+                        }
+                    }
+                }
+                // Extract the actual responseSchema if available
+                let responseSchema = pattern.responseSchema || {};
+                // Extract description if available
+                let description = pattern.description || '';
+                // Always add every pattern, even if no requestSchema/properties
+                patterns[patternName] = {
+                    requestSchema: { properties: flatProps },
+                    responseSchema: responseSchema,
+                    description: description
+                };
+            }
+            return patterns;
+        }
+
+        function populatePatterns() {
+            const select = document.getElementById('pattern');
+            select.innerHTML = '';
+
+            Object.keys(specData).forEach(pattern => {
+                const option = document.createElement('option');
+                option.value = pattern;
+                option.textContent = pattern;
+                if (specData[pattern].description) {
+                    option.setAttribute('data-description', specData[pattern].description);
+                }
+                select.appendChild(option);
+            });
+
+            // Show the number of loaded patterns
+            document.getElementById('pattern-count').textContent = `Loaded patterns: ${Object.keys(specData).length}`;
+
+            // Add change event listener
+            select.addEventListener('change', updatePayloadTemplate);
+            
+            // Trigger initial payload template
+            updatePayloadTemplate();
+
+            // Initialize Choices.js for searchable dropdown
+            if (window.patternChoices) {
+                window.patternChoices.destroy();
+            }
+            window.patternChoices = new Choices(select, {
+                searchEnabled: true,
+                itemSelectText: '',
+                shouldSort: false,
+                callbackOnCreateTemplates: function(template) {
+                    return {
+                        item: (classNames, data) => {
+                            const desc = data.customProperties && data.customProperties.description;
+                            return template(
+                                `
+                                <div class="choices__item ${classNames.item} ${data.highlighted ? classNames.highlightedState : classNames.itemSelectable}" data-item data-id="${data.id}" data-value="${data.value}" ${data.active ? 'aria-selected="true"' : ''} ${data.disabled ? 'aria-disabled="true"' : ''}>
+                                    <div><strong>${data.label}</strong></div>
+                                    ${desc ? `<div style='font-size:0.95em; color:#666; margin-top:2px;'>${desc}</div>` : ''}
+                                </div>
+                                `
+                            );
+                        },
+                        choice: (classNames, data) => {
+                            const desc = data.customProperties && data.customProperties.description;
+                            return template(
+                                `
+                                <div class="choices__item ${classNames.item} ${classNames.itemChoice} ${data.disabled ? classNames.itemDisabled : classNames.itemSelectable}" data-select-text="" data-choice data-id="${data.id}" data-value="${data.value}" ${data.disabled ? 'data-choice-disabled aria-disabled="true"' : 'data-choice-selectable'}>
+                                    <div><strong>${data.label}</strong></div>
+                                    ${desc ? `<div style='font-size:0.95em; color:#666; margin-top:2px;'>${desc}</div>` : ''}
+                                </div>
+                                `
+                            );
+                        }
+                    };
+                },
+                shouldSortItems: false,
+                addItemFilter: null,
+                addItemText: null,
+                removeItemButton: false,
+                renderSelectedChoices: 'auto',
+                duplicateItemsAllowed: false,
+                searchResultLimit: 1000,
+                renderChoiceLimit: 1000,
+                searchFields: ['label', 'value', 'customProperties.description']
+            });
+            // Set customProperties for Choices.js
+            window.patternChoices._store.choices.forEach(choice => {
+                const desc = specData[choice.value] && specData[choice.value].description;
+                if (desc) {
+                    choice.customProperties = { description: desc };
+                }
+            });
+        }
+
+        function updateCurlCommand() {
+            const pattern = window.patternChoices ? window.patternChoices.getValue(true) : document.getElementById('pattern').value;
+            const payloadTextarea = document.getElementById('payload');
+            let payload = payloadTextarea.value;
+            let curl = '';
+            if (pattern) {
+                try {
+                    // Format JSON payload for curl
+                    const parsed = payload ? JSON.parse(payload) : {};
+                    const jsonPayload = JSON.stringify({ pattern: pattern, payload: parsed }, null, 2);
+                    curl = `<span class='curl-method'>curl</span> <span class='curl-flag'>-X POST \\</span>\n` +
+                        `  <span class='curl-url'>http://localhost:1337/socketapi</span> <span class='curl-flag'>\\</span>\n` +
+                        `  <span class='curl-flag'>-H</span> <span class='curl-header'>'Content-Type: application/json'</span> <span class='curl-flag'>\\</span>\n` +
+                        `  <span class='curl-flag'>-d</span> <span class='curl-data'>'${jsonPayload.replace(/'/g, "'\\''")}'</span>`;
+                } catch (e) {
+                    curl = `<span class='curl-comment'># Invalid JSON payload</span>`;
+                }
+            } else {
+                curl = `<span class='curl-comment'># Select a pattern to see the curl command</span>`;
+            }
+            document.getElementById('curl-command').innerHTML = curl;
+        }
+
+        function updatePayloadTemplate() {
+            const pattern = window.patternChoices ? window.patternChoices.getValue(true) : document.getElementById('pattern').value;
+            const payloadTextarea = document.getElementById('payload');
+            const responsePayloadGroup = document.getElementById('response-payload-group');
+            const responsePayloadTextarea = document.getElementById('response-payload');
+
+            // Hardcoded example values for string fields
+            const stringExamples = ['testdata', 'asdas', ''];
+            let stringExampleIdx = 0;
+
+            function nextStringExample() {
+                const val = stringExamples[stringExampleIdx % stringExamples.length];
+                stringExampleIdx++;
+                return val;
+            }
+            function randomBool() {
+                return false;
+            }
+            function randomNumber() {
+                return 0;
+            }
+            function randomArray() {
+                return [];
+            }
+            function randomObject() {
+                return {};
+            }
+
+            function makeExampleFromProperties(properties) {
+                const obj = {};
+                for (const [key, type] of Object.entries(properties)) {
+                    const t = typeof type === 'string' ? type.toLowerCase() : '';
+                    if (t.includes('string')) {
+                        obj[key] = nextStringExample();
+                    } else if (t.includes('bool')) {
+                        obj[key] = randomBool();
+                    } else if (t.includes('int') || t.includes('float') || t.includes('number')) {
+                        obj[key] = randomNumber();
+                    } else if (t.includes('array')) {
+                        obj[key] = randomArray();
+                    } else if (t.includes('object')) {
+                        obj[key] = randomObject();
+                    } else {
+                        obj[key] = null;
+                    }
+                }
+                return obj;
+            }
+
+            function makeExampleFromType(type) {
+                const t = typeof type === 'string' ? type.toLowerCase() : '';
+                if (t.includes('string')) return nextStringExample();
+                if (t.includes('bool')) return randomBool();
+                if (t.includes('int') || t.includes('float') || t.includes('number')) return randomNumber();
+                if (t.includes('array')) return randomArray();
+                if (t.includes('object')) return randomObject();
+                return null;
+            }
+
+            if (!pattern || !specData[pattern]) {
+                payloadTextarea.value = '';
+                updateCurlCommand();
+                document.getElementById('payload-schema').innerHTML = '';
+                responsePayloadGroup.style.display = 'none';
+                return;
+            }
+
+            const requestSchema = specData[pattern].requestSchema;
+            if (requestSchema && requestSchema.properties && Object.keys(requestSchema.properties).length > 0) {
+                const template = makeExampleFromProperties(requestSchema.properties);
+                payloadTextarea.value = JSON.stringify(template, null, 2);
+            } else {
+                payloadTextarea.value = '{}';
+            }
+            updateCurlCommand();
+
+            // Show expected responseSchema as example object if available
+            const responseSchema = specData[pattern].responseSchema;
+            let responseExample = null;
+            if (responseSchema && responseSchema.structs) {
+                const firstStructKey = Object.keys(responseSchema.structs)[0];
+                if (firstStructKey && responseSchema.structs[firstStructKey].properties) {
+                    responseExample = makeExampleFromProperties(
+                        Object.fromEntries(
+                            Object.entries(responseSchema.structs[firstStructKey].properties).map(([k, v]) => [k, v.type])
+                        )
+                    );
+                }
+            }
+            // Handle primitive typeInfo (e.g. type: bool, string, int, etc.)
+            if (!responseExample && responseSchema && responseSchema.typeInfo && responseSchema.typeInfo.type) {
+                responseExample = makeExampleFromType(responseSchema.typeInfo.type);
+            }
+            if (responseExample !== null && responseExample !== undefined) {
+                responsePayloadGroup.style.display = '';
+                if (typeof responseExample === 'object' && responseExample !== null) {
+                    responsePayloadTextarea.value = JSON.stringify(responseExample, null, 2);
+                } else if (typeof responseExample === 'string') {
+                    responsePayloadTextarea.value = 'raw string response. (must be refactored into a structured object)';
+                } else {
+                    responsePayloadTextarea.value = String(responseExample);
+                }
+            } else {
+                responsePayloadGroup.style.display = 'none';
+                responsePayloadTextarea.value = '';
+            }
+        }
+
+        function colorizeJson(json) {
+            if (typeof json !== 'string') {
+                json = JSON.stringify(json, null, 2);
+            }
+            json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+                let cls = 'json-number';
+                if (/^".*"$/.test(match)) {
+                    if (/:$/.test(match)) {
+                        cls = 'json-key';
+                    } else {
+                        cls = 'json-string';
+                    }
+                } else if (/true|false/.test(match)) {
+                    cls = 'json-boolean';
+                } else if (/null/.test(match)) {
+                    cls = 'json-null';
+                }
+                return `<span class="${cls}">${match}</span>`;
+            });
+        }
+
+        async function executeRequest() {
+            const pattern = window.patternChoices ? window.patternChoices.getValue(true) : document.getElementById('pattern').value;
+            const payloadText = document.getElementById('payload').value;
+            const responseDiv = document.getElementById('response');
+            const loadingIndicator = document.getElementById('loading-indicator');
+            const statsDiv = document.getElementById('request-stats');
+
+            if (loadingIndicator) loadingIndicator.style.display = '';
+            if (statsDiv) statsDiv.innerHTML = '';
+            if (!pattern) {
+                responseDiv.innerHTML = '<span class="error">Please select a pattern</span>';
+                if (loadingIndicator) loadingIndicator.style.display = 'none';
+                if (statsDiv) statsDiv.innerHTML = '';
+                return;
+            }
+
+            try {
+                const payload = payloadText ? JSON.parse(payloadText) : {};
+
+                const requestData = {
+                    pattern: pattern,
+                    payload: payload
+                };
+
+                const startTime = performance.now();
+                // Add a 10 second timeout to the fetch
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 10000);
+                let response;
+                try {
+                    response = await fetch('http://localhost:1337/socketapi', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(requestData),
+                        signal: controller.signal
+                    });
+                } finally {
+                    clearTimeout(timeoutId);
+                }
+                const endTime = performance.now();
+                const duration = endTime - startTime;
+
+                let data;
+                let errorDetails = '';
+                if (!response.ok) {
+                    try {
+                        data = await response.json();
+                        errorDetails = data && data.error ? `<br><b>Server error:</b> ${data.error}` : '';
+                    } catch (e) {
+                        errorDetails = '';
+                    }
+                    let errorMsg = `<span class='error'>Request failed with status <b>${response.status} ${response.statusText}</b>${errorDetails}</span>`;
+                    // Show expected response schema if available
+                    if (specData && specData[pattern] && specData[pattern].responseSchema && specData[pattern].responseSchema.properties) {
+                        errorMsg += `<br><br><b>Expected Response Schema:</b><br><pre style='background:#f4f4f4; padding:10px; border-radius:4px;'>` +
+                            JSON.stringify(specData[pattern].responseSchema.properties, null, 2) + '</pre>';
+                    }
+                    responseDiv.innerHTML = errorMsg;
+                    // Calculate response size if possible
+                    let responseSize = 0;
+                    try {
+                        responseSize = JSON.stringify(data).length;
+                    } catch {}
+                    if (statsDiv) {
+                        statsDiv.innerHTML = `📊 <b>Request Stats:</b> ⏱️ <b>Time:</b> ${duration.toFixed(1)} ms &nbsp; | &nbsp; 📦 <b>Response Size:</b> ${responseSize} bytes`;
+                    }
+                    if (loadingIndicator) loadingIndicator.style.display = 'none';
+                    return;
+                } else {
+                    data = await response.json();
+                }
+                responseDiv.innerHTML = `<pre style='margin:0;'>${colorizeJson(data)}</pre>`;
+                responseDiv.className = '';
+                // Calculate response size
+                let responseSize = 0;
+                try {
+                    responseSize = JSON.stringify(data).length;
+                } catch {}
+                if (statsDiv) {
+                    statsDiv.innerHTML = `📊 <b>Request Stats:</b> ⏱️ <b>Time:</b> ${duration.toFixed(1)} ms &nbsp; | &nbsp; 📦 <b>Response Size:</b> ${responseSize} bytes`;
+                }
+                if (loadingIndicator) loadingIndicator.style.display = 'none';
+            } catch (error) {
+                let errorMsg = '';
+                if (error.name === 'AbortError') {
+                    errorMsg = `<span class='error'>Request timed out after 5 seconds.</span>`;
+                } else if (error.message && error.message.toLowerCase().includes('failed to fetch')) {
+                    errorMsg = `<span class='error'>Network Error: Failed to connect to the backend API.<br><br>
+<b>Possible reasons:</b><ul>
+<li>The backend server is not running or not reachable at <code>http://localhost:1337/socketapi</code>.</li>
+<li>CORS (Cross-Origin Resource Sharing) is not enabled on the backend.</li>
+<li>There is a network or firewall issue.</li>
+<li>The URL or port is incorrect.</li>
+</ul>
+<b>How to fix:</b><ul>
+<li>Start your backend server and ensure it listens on <code>http://localhost:1337/socketapi</code>.</li>
+<li>Check your backend logs for errors or CORS issues.</li>
+<li>Verify the URL and port in your frontend code.</li>
+</ul>
+<i>(Browser error: ${error.message})</i></span>`;
+                } else {
+                    errorMsg = `<span class='error'>Error: ${error.message}</span>`;
+                }
+                // Show expected response schema if available
+                if (specData && specData[pattern] && specData[pattern].responseSchema && specData[pattern].responseSchema.properties) {
+                    errorMsg += `<br><br><b>Expected Response Schema:</b><br><pre style='background:#f4f4f4; padding:10px; border-radius:4px;'>` +
+                        JSON.stringify(specData[pattern].responseSchema.properties, null, 2) + '</pre>';
+                }
+                responseDiv.innerHTML = errorMsg;
+                responseDiv.className = 'error';
+                // Show stats even on error
+                if (statsDiv) {
+                    let duration = 0;
+                    if (window.__lastRequestStartTime) {
+                        duration = performance.now() - window.__lastRequestStartTime;
+                    }
+                    statsDiv.innerHTML = `📊 <b>Request Stats:</b> ⏱️ <b>Time:</b> ${duration.toFixed(1)} ms &nbsp; | &nbsp; 📦 <b>Response Size:</b> 0 bytes`;
+                }
+                if (loadingIndicator) loadingIndicator.style.display = 'none';
+            }
+            window.__lastRequestStartTime = performance.now();
+        }
+
+        document.getElementById('payload').addEventListener('input', updateCurlCommand);
+
+        // Load the spec file when the page loads
+        loadSpec();
+
+        // Dark mode toggle logic
+        const darkModeBtn = document.getElementById('darkmode-toggle');
+        function setDarkMode(on) {
+            document.body.classList.toggle('dark-mode', on);
+            darkModeBtn.textContent = on ? '☀️ Light Mode' : '🌙 Dark Mode';
+            localStorage.setItem('darkmode', on ? '1' : '0');
+        }
+        darkModeBtn.addEventListener('click', () => {
+            setDarkMode(!document.body.classList.contains('dark-mode'));
+        });
+        // On load, set dark mode if preferred
+        if (localStorage.getItem('darkmode') === '1' ||
+            (localStorage.getItem('darkmode') === null && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            setDarkMode(true);
+        }
+
+        window.executeRequest = executeRequest;
+    </script>
+</body>
+</html>

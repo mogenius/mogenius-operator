@@ -26,12 +26,15 @@ type ValkeyClient interface {
 	SetObject(value interface{}, expiration time.Duration, keys ...string) error
 	Get(keys ...string) (string, error)
 	GetObject(keys ...string) (interface{}, error)
+	List(limit int, keys ...string) ([]string, error)
 
 	AddToBucket(maxSize int64, value interface{}, bucketKey ...string) error
 	ListFromBucket(start int64, stop int64, bucketKey ...string) ([]string, error)
 	LastNEntryFromBucketWithType(number int64, bucketKey ...string) ([]string, error)
 	DeleteFromBucketWithNsAndReleaseName(namespace string, releaseName string, bucketKey ...string) error
 	SubscribeToBucket(bucketKey ...string) *redis.PubSub
+
+	ClearNonEssentialKeys(includeTraffic bool, includePodStats bool, includeNodestats bool) (string, error)
 
 	Delete(keys ...string) error
 	Keys(pattern string) ([]string, error)
@@ -164,6 +167,39 @@ func (self *valkeyClient) GetObject(keys ...string) (interface{}, error) {
 	return result, nil
 }
 
+func (self *valkeyClient) List(limit int, keys ...string) ([]string, error) {
+	key := createKey(keys...)
+	key = key + ":*"
+
+	selectedKeys, err := self.redisClient.Keys(self.ctx, key).Result()
+	if err != nil {
+		self.logger.Error("Error listing keys from Redis", "pattern", key, "error", err)
+		return nil, err
+	}
+	if len(selectedKeys) == 0 {
+		self.logger.Debug("No keys found for pattern", "pattern", key)
+		return selectedKeys, nil
+	}
+
+	// Fetch the values for these keys
+	values, err := self.redisClient.MGet(self.ctx, selectedKeys...).Result()
+	if err != nil {
+		self.logger.Error("Error fetching values from Redis", "keys", selectedKeys, "error", err)
+		return nil, err
+	}
+	// Convert the values to a slice of strings
+	var result []string
+	for index, v := range values {
+		if limit > 0 && index >= limit {
+			break
+		}
+		if v != nil {
+			result = append(result, v.(string))
+		}
+	}
+	return result, nil
+}
+
 func (self *valkeyClient) AddToBucket(maxSize int64, value interface{}, bucketKey ...string) error {
 	key := createKey(bucketKey...)
 	// Add the new elements to the end of the list
@@ -251,6 +287,70 @@ func (self *valkeyClient) DeleteFromBucketWithNsAndReleaseName(namespace string,
 	}
 
 	return nil
+}
+
+func (self *valkeyClient) ClearNonEssentialKeys(includeTraffic bool, includePodStats bool, includeNodestats bool) (string, error) {
+	// Get all keys
+	keys, err := self.redisClient.Keys(self.ctx, "*").Result()
+	if err != nil {
+		return "", err
+	}
+
+	// resources & helm have to be kept
+	prefixesToDelete := []string{
+		"live-stats:",
+		"logs:cmd",
+		"logs:core",
+		"logs:client-provider",
+		"logs:db-stats",
+		"logs:http",
+		"logs:klog",
+		"logs:pod-stats-collector",
+		"logs:kubernetes",
+		"logs:leader-elector",
+		"logs:mokubernetes",
+		"logs:socketapi",
+		"logs:structs",
+		"logs:utils",
+		"logs:xterm",
+		"logs:traffic-collector",
+		"logs:valkey",
+		"logs:websocket-events-client",
+		"logs:websocket-job-client",
+		"maschine-stats:",
+		"pod-events:",
+		"status:",
+	}
+
+	if includeTraffic {
+		prefixesToDelete = append(prefixesToDelete, "traffic-stats:")
+	}
+	if includePodStats {
+		prefixesToDelete = append(prefixesToDelete, "pod-stats:")
+	}
+	if includeNodestats {
+		prefixesToDelete = append(prefixesToDelete, "node-stats:")
+	}
+
+	self.logger.Info("Deleting non-essential keys from Redis", "includeTraffic", includeTraffic, "includePodStats", includePodStats, "includeNodestats", includeNodestats)
+
+	// Iterate over the keys and delete them
+	cacheDeleteCounter := 0
+	for _, key := range keys {
+		for _, keyToDelete := range prefixesToDelete {
+			if strings.HasPrefix(key, keyToDelete) {
+				err = self.redisClient.Del(self.ctx, key).Err()
+				if err != nil {
+					return "", fmt.Errorf("error deleting non-essential key from Redis, error: %v", err)
+				}
+				cacheDeleteCounter++
+			}
+		}
+	}
+	resultMsg := fmt.Sprintf("Deleted %d non-essential keys from Redis", cacheDeleteCounter)
+	self.logger.Info(resultMsg, "deletedKeys", cacheDeleteCounter)
+
+	return resultMsg, nil
 }
 
 func (self *valkeyClient) SubscribeToBucket(bucketKey ...string) *redis.PubSub {

@@ -14,29 +14,33 @@ type ValidationError struct {
 	Errors []string `json:"errors"`
 }
 
-func createEmptyValidationErr() *ValidationError {
-	return &ValidationError{
-		Errors: []string{},
-	}
-}
-
 func (self *ValidationError) Error() string {
 	return strings.Join(self.Errors, " | ")
 }
 
 func ValidateJSON(obj interface{}) *ValidationError {
-	result := createEmptyValidationErr()
 	err := validate.Struct(obj)
 	if err != nil {
+		// the library dislikes the empty struct pointer `type Void *struct{}`
+		if _, ok := err.(*validator.InvalidValidationError); ok {
+			return nil
+		}
+
+		result := &ValidationError{
+			Errors: []string{},
+		}
+
 		if validationErrors, ok := err.(validator.ValidationErrors); ok {
 			for _, fieldError := range validationErrors {
 				errorMessage := fmt.Sprintf("Field '%s' failed validation, Condition: %s", fieldError.Field(), fieldError.Tag())
 				result.Errors = append(result.Errors, errorMessage)
 			}
 		}
-		utilsLogger.Error("struct validation failed", "result", result)
+
+		utilsLogger.Error("struct validation failed", "result", result, "error", err)
 		return result
 	}
+
 	return nil
 }
 
