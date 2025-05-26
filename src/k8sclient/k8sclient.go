@@ -7,7 +7,6 @@ import (
 	"mogenius-k8s-manager/src/config"
 	mocrds "mogenius-k8s-manager/src/crds"
 	"mogenius-k8s-manager/src/shutdown"
-	"mogenius-k8s-manager/src/utils"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -15,6 +14,7 @@ import (
 
 	metricsv "k8s.io/metrics/pkg/client/clientset/versioned"
 
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -35,6 +35,7 @@ type K8sClientProvider interface {
 	DynamicClient() *dynamic.DynamicClient
 	MogeniusClientSet() *mocrds.MogeniusClientSet
 	RunsInCluster() bool
+	WithImpersonate(subject rbacv1.Subject) (K8sClientProvider, error)
 	ClientConfig() *rest.Config
 }
 
@@ -84,8 +85,61 @@ func NewK8sClientProvider(logger *slog.Logger, configModule config.ConfigModule)
 	return provider
 }
 
+func (self *k8sClientProvider) WithImpersonate(subject rbacv1.Subject) (K8sClientProvider, error) {
+	other := &k8sClientProvider{}
+	other.executionContext = self.executionContext
+	other.config = self.config
+	other.clientConfig = self.ClientConfig()
+
+	switch subject.Kind {
+	case "User":
+		if subject.Name == "" {
+			return nil, fmt.Errorf(`User Name should be set`)
+		}
+		if subject.Namespace != "" {
+			return nil, fmt.Errorf(`User Namespace should be empty`)
+		}
+		if subject.APIGroup != "rbac.authorization.k8s.io" {
+			return nil, fmt.Errorf(`User APIGroup should be "rbac.authorization.k8s.io"`)
+		}
+		other.clientConfig.Impersonate = rest.ImpersonationConfig{
+			UserName: subject.Name,
+		}
+	case "Group":
+		if subject.Name == "" {
+			return nil, fmt.Errorf(`Group Name should be set`)
+		}
+		if subject.Namespace != "" {
+			return nil, fmt.Errorf(`Group Namespace should be empty`)
+		}
+		if subject.APIGroup != "rbac.authorization.k8s.io" {
+			return nil, fmt.Errorf(`Group APIGroup should be "rbac.authorization.k8s.io"`)
+		}
+		other.clientConfig.Impersonate = rest.ImpersonationConfig{
+			Groups: []string{subject.Name},
+		}
+	case "ServiceAccount":
+		if subject.Name == "" {
+			return nil, fmt.Errorf(`ServiceAccount Name should be set`)
+		}
+		if subject.Namespace == "" {
+			return nil, fmt.Errorf(`ServiceAccount Namespace should be set`)
+		}
+		if subject.APIGroup != "" {
+			return nil, fmt.Errorf(`ServiceAccount APIGroup should be empty`)
+		}
+		other.clientConfig.Impersonate = rest.ImpersonationConfig{
+			UserName: "system:serviceaccount:" + subject.Namespace + ":" + subject.Name + "",
+		}
+	default:
+		assert.Assert(false, "Unknown subject.Kind for impersonate config", subject)
+	}
+
+	return other, nil
+}
+
 func (self *k8sClientProvider) ClientConfig() *rest.Config {
-	return utils.ShallowCopy(self.clientConfig)
+	return rest.CopyConfig(self.clientConfig)
 }
 
 func (self *k8sClientProvider) K8sClientSet() *kubernetes.Clientset {
