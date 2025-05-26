@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"sort"
 	"strings"
 	"text/template"
 
@@ -208,36 +207,6 @@ func ServicePodStatus(namespace string, serviceName string) []v1.Pod {
 			result = append(result, pod)
 		}
 	}
-
-	return result
-}
-
-func PodIdsFor(namespace string, serviceId *string) []string {
-	result := []string{}
-
-	provider, err := NewKubeProviderMetrics()
-	if provider == nil || err != nil {
-		k8sLogger.Error(err.Error())
-		return result
-	}
-
-	podMetricsList, err := provider.ClientSet.MetricsV1beta1().PodMetricses(namespace).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
-	if err != nil {
-		k8sLogger.Error("PodIdsForServiceId podMetricsList", "error", err.Error())
-		return result
-	}
-
-	for _, podMetrics := range podMetricsList.Items {
-		if serviceId != nil {
-			if strings.Contains(podMetrics.ObjectMeta.Name, *serviceId) {
-				result = append(result, podMetrics.ObjectMeta.Name)
-			}
-		} else {
-			result = append(result, podMetrics.ObjectMeta.Name)
-		}
-	}
-	// SORT TO HAVE A DETERMINISTIC ORDERING
-	sort.Strings(result)
 
 	return result
 }

@@ -212,14 +212,6 @@ func StartService(eventClient websocket.WebsocketClient, r ServiceStartRequest, 
 	return job
 }
 
-func TcpUdpClusterConfiguration() dtos.TcpUdpClusterConfigurationDto {
-	return dtos.TcpUdpClusterConfigurationDto{
-		IngressServices: kubernetes.ServiceFor(config.Get("MO_OWN_NAMESPACE"), "mogenius-ingress-nginx-controller"),
-		TcpServices:     kubernetes.ConfigMapFor(config.Get("MO_OWN_NAMESPACE"), "mogenius-ingress-nginx-tcp", false),
-		UdpServices:     kubernetes.ConfigMapFor(config.Get("MO_OWN_NAMESPACE"), "mogenius-ingress-nginx-udp", false),
-	}
-}
-
 func serviceHasYamlSettings(service dtos.K8sServiceDto) bool {
 	for _, container := range service.Containers {
 		if container.SettingsYaml != nil {

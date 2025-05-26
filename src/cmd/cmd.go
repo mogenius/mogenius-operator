@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"mogenius-k8s-manager/src/assert"
@@ -425,20 +424,6 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		Key:          "MO_HOST_PROC_PATH",
 		DefaultValue: utils.Pointer("/proc"),
 		Description:  utils.Pointer("mountpath of /proc"),
-	})
-	configModule.Declare(config.ConfigDeclaration{
-		Key:          "MO_IGNORE_NAMESPACES",
-		DefaultValue: utils.Pointer(`["kube-system"]`),
-		Description:  utils.Pointer("list of all ignored namespaces"),
-		Envs:         []string{"ignore_namespaces"},
-		Validate: func(value string) error {
-			var ignoreNamespaces []string
-			err := json.Unmarshal([]byte(value), &ignoreNamespaces)
-			if err != nil {
-				return fmt.Errorf("'MO_IGNORE_NAMESPACES' needs to be a json `[]string`: %s", err.Error())
-			}
-			return nil
-		},
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_LOG_LEVEL",

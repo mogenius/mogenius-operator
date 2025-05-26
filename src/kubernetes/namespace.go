@@ -60,22 +60,3 @@ func NamespaceExists(namespaceName string) (bool, error) {
 	ns, err := namespaceClient.Get(context.TODO(), namespaceName, metav1.GetOptions{})
 	return (ns != nil && err == nil), err
 }
-
-func ListAllNamespaceNames() []string {
-	result := []string{}
-
-	clientset := clientProvider.K8sClientSet()
-	namespaceClient := clientset.CoreV1().Namespaces()
-
-	namespaceList, err := namespaceClient.List(context.TODO(), metav1.ListOptions{})
-	if err != nil {
-		k8sLogger.Error("ListAll", "error", err.Error())
-		return result
-	}
-
-	for _, ns := range namespaceList.Items {
-		result = append(result, ns.Name)
-	}
-
-	return result
-}

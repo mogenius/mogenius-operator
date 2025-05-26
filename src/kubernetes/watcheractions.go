@@ -148,7 +148,7 @@ func deleteFromStoreIfNeeded(groupVersion string, resourceName string, kind stri
 	}
 
 	// other resources
-	err := valkeyClient.Delete(VALKEY_RESOURCE_PREFIX, groupVersion, kind, namespace, resourceName)
+	err := valkeyClient.DeleteSingle(VALKEY_RESOURCE_PREFIX, groupVersion, kind, namespace, resourceName)
 	if err != nil {
 		k8sLogger.Error("Error deleting object in store", "error", err)
 	}
@@ -171,7 +171,7 @@ func GetUnstructuredResourceListFromStore(group string, kind string, version str
 		namespace = utils.Pointer("")
 	}
 	// try to get the data from the store (very fast)
-	result := store.GetResourceByKindAndNamespace(valkeyClient, group, kind, *namespace)
+	result := store.GetResourceByKindAndNamespace(valkeyClient, group, kind, *namespace, k8sLogger)
 	if result != nil {
 		results.Items = result
 	}
@@ -215,7 +215,10 @@ func GetUnstructuredNamespaceResourceList(namespace string, whitelist []*utils.S
 				continue
 			}
 			promise.RunArray(func() *[]unstructured.Unstructured {
-				result := store.GetResourceByKindAndNamespace(valkeyClient, v.Group, v.Kind, namespace)
+				if namespace == "harbor" && v.Kind == "Service" {
+					fmt.Println()
+				}
+				result := store.GetResourceByKindAndNamespace(valkeyClient, v.Group, v.Kind, namespace, k8sLogger)
 				if result != nil && len(result) > 0 {
 					return &result
 				}

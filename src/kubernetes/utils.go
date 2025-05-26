@@ -18,15 +18,12 @@ import (
 
 	version2 "k8s.io/apimachinery/pkg/version"
 	metricsv1beta1 "k8s.io/metrics/pkg/apis/metrics/v1beta1"
-	"sigs.k8s.io/yaml"
 
 	v1 "k8s.io/api/apps/v1"
 	core "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer/json"
-	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
 	"k8s.io/kubectl/pkg/scheme"
@@ -515,92 +512,6 @@ func LabelsContain(labels map[string]string, str string) bool {
 		}
 	}
 	return false
-}
-
-func AllResourcesFrom(namespace string, resourcesToLookFor []string) ([]interface{}, error) {
-	ignoredResources := []string{
-		"events.k8s.io/v1",
-		"events.k8s.io/v1beta1",
-		"metrics.k8s.io/v1beta1",
-		"discovery.k8s.io/v1",
-	}
-
-	result := []interface{}{}
-
-	// Get a list of all resource types in the cluster
-	clientset := clientProvider.K8sClientSet()
-	resourceList, err := clientset.Discovery().ServerPreferredResources()
-	if err != nil {
-		return result, err
-	}
-
-	// Iterate over each resource type and backup all resources in the namespace
-	for _, resource := range resourceList {
-		if utils.Contains(ignoredResources, resource.GroupVersion) {
-			continue
-		}
-		gv, _ := schema.ParseGroupVersion(resource.GroupVersion)
-		if len(resource.APIResources) <= 0 {
-			continue
-		}
-
-		for _, aApiResource := range resource.APIResources {
-			if !aApiResource.Namespaced {
-				continue
-			}
-
-			resourceId := schema.GroupVersionResource{
-				Group:    gv.Group,
-				Version:  gv.Version,
-				Resource: aApiResource.Name,
-			}
-			// Get the REST client for this resource type
-			restClient := dynamic.New(clientset.RESTClient()).Resource(resourceId).Namespace(namespace)
-
-			// Get a list of all resources of this type in the namespace
-			list, err := restClient.List(context.Background(), metav1.ListOptions{})
-			if err != nil {
-				k8sLogger.Error("error listing namespaces", "resourceId", resourceId.Resource, "error", err.Error())
-				continue
-			}
-
-			// Iterate over each resource and write it to a file
-			for _, obj := range list.Items {
-				obj.SetManagedFields(nil)
-				delete(obj.Object, "status")
-				obj.SetUID("")
-				obj.SetResourceVersion("")
-				obj.SetCreationTimestamp(metav1.Time{})
-
-				if len(resourcesToLookFor) > 0 {
-					if utils.ContainsToLowercase(resourcesToLookFor, obj.GetKind()) {
-						result = append(result, obj.Object)
-					}
-				} else {
-					result = append(result, obj.Object)
-				}
-			}
-		}
-	}
-	return result, nil
-}
-
-func AllResourcesFromToCombinedYaml(namespace string, resourcesToLookFor []string) (string, error) {
-	result := ""
-	resources, err := AllResourcesFrom(namespace, resourcesToLookFor)
-	if err != nil {
-		return result, err
-	}
-	for _, res := range resources {
-		yamlData, err := yaml.Marshal(res)
-		if err != nil {
-			return result, err
-		}
-
-		// Print the YAML string.
-		result += fmt.Sprintf("---\n%s\n", string(yamlData))
-	}
-	return result, err
 }
 
 func ApiVersions() ([]string, error) {

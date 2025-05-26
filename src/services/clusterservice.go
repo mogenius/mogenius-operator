@@ -2,14 +2,12 @@ package services
 
 import (
 	"fmt"
-	"io"
 	"mogenius-k8s-manager/src/helm"
 	"mogenius-k8s-manager/src/kubernetes"
 	mokubernetes "mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/websocket"
-	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -38,17 +36,6 @@ const (
 	MetalLBHelmIndex                  = "https://metallb.github.io/metallb"
 	MogeniusHelmIndex                 = "https://helm.mogenius.com/public"
 )
-
-func InstallHelmChart(eventClient websocket.WebsocketClient, r ClusterHelmRequest) *structs.Job {
-	job := structs.CreateJob(eventClient, "Install Helm Chart "+r.HelmReleaseName, r.NamespaceId, "", "", serviceLogger)
-	job.Start(eventClient)
-	result, err := helm.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues, r.HelmChartVersion)
-	if err != nil {
-		job.Fail(fmt.Sprintf("Failed to install helm chart %s: %s\n%s", r.HelmReleaseName, result, err.Error()))
-	}
-	job.Finish(eventClient)
-	return job
-}
 
 func DeleteHelmChart(eventClient websocket.WebsocketClient, r ClusterHelmUninstallRequest) *structs.Job {
 	job := structs.CreateJob(eventClient, "Delete Helm Chart "+r.HelmReleaseName, r.NamespaceId, "", "", serviceLogger)
@@ -317,62 +304,6 @@ type NfsStatusResponse struct {
 	Status        VolumeStatusType      `json:"status"`
 	Messages      []VolumeStatusMessage `json:"messages,omitempty"`
 	UsedByPods    []string              `json:"usedByPods,omitempty"`
-}
-
-var keplerHostAndPort string = ""
-
-var energyConsumptionCollectionInProgress bool = false
-
-func EnergyConsumption() []structs.EnergyConsumptionResponse {
-	if energyConsumptionCollectionInProgress {
-		return structs.CurrentEnergyConsumptionResponse
-	}
-
-	if keplerHostAndPort == "" {
-		keplerservice := mokubernetes.ServiceWithLabels("app.kubernetes.io/component=exporter,app.kubernetes.io/name=kepler")
-		if keplerservice != nil {
-			keplerHostAndPort = fmt.Sprintf("%s:%d", keplerservice.Name, keplerservice.Spec.Ports[0].Port)
-		} else {
-			serviceLogger.Error("EnergyConsumption", "error", "kepler service not found.")
-			return structs.CurrentEnergyConsumptionResponse
-		}
-		// if config.Get("MO_STAGE") == utils.STAGE_LOCAL {
-		// 	ServiceLogger.Warning("OVERWRITTEN ACTUAL IP BECAUSE RUNNING IN LOCAL MODE! 192.168.178.132:9102")
-		// 	keplerHostAndPort = "127.0.0.1:9102"
-		// }
-	}
-	if structs.KeplerDaemonsetRunningSince == 0 {
-		keplerPod := mokubernetes.KeplerPod()
-		if keplerPod != nil && keplerPod.Status.StartTime != nil {
-			structs.KeplerDaemonsetRunningSince = keplerPod.Status.StartTime.Time.Unix()
-		}
-	}
-
-	go func() {
-		energyConsumptionCollectionInProgress = true
-		structs.CurrentEnergyConsumptionResponse = make([]structs.EnergyConsumptionResponse, structs.EnergyConsumptionResponseSize)
-		for i := 0; i < structs.EnergyConsumptionResponseSize; i++ {
-			// download the data
-			response, err := http.Get(fmt.Sprintf("http://%s/metrics", keplerHostAndPort))
-			if err != nil {
-				serviceLogger.Error("EnergyConsumption", "error", err)
-				return
-			}
-			defer response.Body.Close()
-			data, err := io.ReadAll(response.Body)
-			if err != nil {
-				serviceLogger.Error("EnergyConsumptionRead", "error", err)
-				return
-			}
-
-			// parse the data
-			structs.CreateEnergyConsumptionResponse(string(data), i)
-			time.Sleep(structs.EnergyConsumptionTimeInterval * time.Second)
-		}
-		energyConsumptionCollectionInProgress = false
-	}()
-
-	return structs.CurrentEnergyConsumptionResponse
 }
 
 func InstallMetricsServer() (string, error) {

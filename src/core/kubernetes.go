@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/config"
@@ -368,7 +369,7 @@ func (self *moKubernetes) CleanUp(apiService Api, workspaceName string, dryRun b
 			}
 			workspacePods = append(workspacePods, pod)
 			if pod.Status.Phase == corev1.PodSucceeded || pod.Status.Phase == corev1.PodFailed || pod.Status.Phase == corev1.PodUnknown {
-				result.Pods = append(result.Pods, createCURE(pod.Name, pod.Namespace, "pod is in succeeded/failed/unknown state"))
+				result.Pods = append(result.Pods, createCURE(pod.Name, pod.Namespace, fmt.Sprintf("pod is in %s (%s) state", pod.Status.Phase, pod.Status.Reason)))
 				if !dryRun {
 					resName, err := kubernetes.GetResourcesNameForKind(entry.GetKind())
 					if err != nil {
@@ -449,8 +450,31 @@ func (self *moKubernetes) CleanUp(apiService Api, workspaceName string, dryRun b
 					break
 				}
 			}
-			if matchingPods == 0 {
-				result.Services = append(result.Services, createCURE(service.Name, service.Namespace, "service not used by any running pod"))
+			// Check if service is not referenced by any ingress
+			ingressExists := false
+			for _, ingress := range workspaceIngresses {
+				if ingress.Namespace != service.Namespace {
+					continue // Only match ingresses in the same namespace
+				}
+				for _, rule := range ingress.Spec.Rules {
+					if rule.HTTP != nil {
+						for _, path := range rule.HTTP.Paths {
+							if path.Backend.Service != nil && path.Backend.Service.Name == service.Name {
+								ingressExists = true
+								break
+							}
+						}
+					}
+					if ingressExists {
+						break
+					}
+				}
+				if ingressExists {
+					break
+				}
+			}
+			if matchingPods == 0 && !ingressExists {
+				result.Services = append(result.Services, createCURE(service.Name, service.Namespace, "service not used by any running pod or ingress"))
 				if !dryRun {
 					resName, err := kubernetes.GetResourcesNameForKind(entry.GetKind())
 					if err != nil {
@@ -639,24 +663,29 @@ func (self *moKubernetes) CleanUp(apiService Api, workspaceName string, dryRun b
 		}
 
 		// INGRESSES
-		if entry.GetKind() == "Ingress" && jobs {
+		if entry.GetKind() == "Ingress" && ingresses {
 			var ingress netv1.Ingress
 			err := runtime.DefaultUnstructuredConverter.FromUnstructured(entry.UnstructuredContent(), &ingress)
 			if err != nil {
 				continue
 			}
 			serviceExists := false
-			for _, service := range workSpaceServices {
-				for _, v := range ingress.Spec.Rules {
-					if v.HTTP != nil {
-						for _, path := range v.HTTP.Paths {
+			for _, v := range ingress.Spec.Rules {
+				if v.HTTP != nil {
+					for _, path := range v.HTTP.Paths {
+						for _, service := range workSpaceServices {
 							if path.Backend.Service.Name == service.Name {
 								serviceExists = true
 								break
 							}
 						}
+						if serviceExists {
+							break
+						}
 					}
-
+				}
+				if serviceExists {
+					break
 				}
 			}
 			if !serviceExists {

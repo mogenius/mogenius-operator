@@ -461,27 +461,6 @@ func GetDeploymentImage(namespaceName string, controllerName string, containerNa
 	return "", fmt.Errorf("container '%s' not found in Deployment '%s'", containerName, controllerName)
 }
 
-func ListDeploymentsWithFieldSelector(namespace string, labelSelector string, prefix string) K8sWorkloadResult {
-	clientset := clientProvider.K8sClientSet()
-	client := clientset.AppsV1().Deployments(namespace)
-
-	deployments, err := client.List(context.TODO(), metav1.ListOptions{LabelSelector: labelSelector})
-	if err != nil {
-		return WorkloadResult(nil, err)
-	}
-
-	// delete all deployments that do not start with prefix
-	if prefix != "" {
-		for i := len(deployments.Items) - 1; i >= 0; i-- {
-			if !strings.HasPrefix(deployments.Items[i].Name, prefix) {
-				deployments.Items = append(deployments.Items[:i], deployments.Items[i+1:]...)
-			}
-		}
-	}
-
-	return WorkloadResult(deployments.Items, err)
-}
-
 func GetDeploymentsWithFieldSelector(namespace string, labelSelector string) ([]v1.Deployment, error) {
 	result := []v1.Deployment{}
 	clientset := clientProvider.K8sClientSet()
@@ -493,14 +472,6 @@ func GetDeploymentsWithFieldSelector(namespace string, labelSelector string) ([]
 	}
 
 	return deployments.Items, err
-}
-
-func GetDeploymentResult(namespace string, name string) K8sWorkloadResult {
-	deployment, err := GetK8sDeployment(namespace, name)
-	if err != nil {
-		return WorkloadResult(nil, err)
-	}
-	return WorkloadResult(deployment, err)
 }
 
 func GetK8sDeployment(namespaceName string, name string) (*v1.Deployment, error) {

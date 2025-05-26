@@ -283,49 +283,6 @@ func createIngressRule(hostname string, controllerName string, port int32) *v1.I
 	return &rule
 }
 
-func CleanupIngressControllerServicePorts(ports []dtos.NamespaceServicePortDto) {
-	indexesToRemove := []int{}
-	service := ServiceFor(config.Get("MO_OWN_NAMESPACE"), "mogenius-ingress-nginx-controller")
-	if service != nil {
-		portsDb := []dtos.NamespaceServicePortDto{}
-		for _, port := range ports {
-			if port.ExternalPort != 0 {
-				portsDb = append(portsDb, port)
-			}
-		}
-		if service.Spec.Ports != nil {
-			for index, ingressPort := range service.Spec.Ports {
-				if ingressPort.Port < 9999 {
-					continue
-				}
-				isInDb := false
-				for _, item := range portsDb {
-					if item.ExternalPort == int(ingressPort.Port) && string(item.PortType) == string(ingressPort.Protocol) {
-						isInDb = true
-						break
-					}
-				}
-				if !isInDb {
-					indexesToRemove = append(indexesToRemove, index)
-				}
-			}
-			k8sLogger.Info("indexes will be removed", "indexes", indexesToRemove)
-			if len(indexesToRemove) > 0 {
-				for _, indexToRemove := range indexesToRemove {
-					service.Spec.Ports = utils.Remove(service.Spec.Ports, indexToRemove)
-				}
-				k8sLogger.Info("indexes successfully removed", "amount", len(indexesToRemove))
-
-				// TODO wieder einkommentieren wenn ordentlich getest in DEV. sieht gut aus.
-				//UpdateServiceWith(service)
-			}
-			return
-		}
-		k8sLogger.Error("IngressController has no ports defined")
-	}
-	k8sLogger.Error("Could not load service mogenius/mogenius-ingress-nginx-controller")
-}
-
 func CreateMogeniusContainerRegistryIngress() {
 	ing := utils.InitMogeniusContainerRegistryIngress()
 	ing.Namespace = config.Get("MO_OWN_NAMESPACE")

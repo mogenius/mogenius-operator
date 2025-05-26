@@ -309,7 +309,7 @@ func DisableNetworkPolicyManager(namespaceName string) error {
 }
 
 func ListNamespaceNetworkPolicies(valkeyClient valkeyclient.ValkeyClient, data ListNamespaceLabeledNetworkPoliciesRequest) ([]ListNetworkPolicyNamespace, error) {
-	namespace := store.GetNamespace(valkeyClient, data.NamespaceName)
+	namespace := store.GetNamespace(valkeyClient, data.NamespaceName, controllerLogger)
 	if namespace == nil {
 		return nil, fmt.Errorf("failed to get namespace")
 	}
@@ -444,7 +444,7 @@ func listNetworkPoliciesByNamespaces(namespaces []v1Core.Namespace, policies []v
 }
 
 func ListManagedAndUnmanagedNamespaceNetworkPolicies(valkeyClient valkeyclient.ValkeyClient, data ListNamespaceLabeledNetworkPoliciesRequest) ([]ListManagedAndUnmanagedNetworkPolicyNamespace, error) {
-	namespace := store.GetNamespace(valkeyClient, data.NamespaceName)
+	namespace := store.GetNamespace(valkeyClient, data.NamespaceName, controllerLogger)
 	if namespace == nil {
 		return nil, fmt.Errorf("failed to get namespace")
 	}
