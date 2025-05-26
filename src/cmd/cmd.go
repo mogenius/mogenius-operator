@@ -35,6 +35,7 @@ import (
 
 	"github.com/alecthomas/kong"
 	"github.com/mattn/go-isatty"
+	v1 "k8s.io/api/rbac/v1"
 	"k8s.io/klog/v2"
 )
 
@@ -476,6 +477,15 @@ func InitializeSystems(
 	// initialize client modules
 	valkeyClient := valkeyclient.NewValkeyClient(logManagerModule.CreateLogger("valkey"), configModule)
 	clientProvider := k8sclient.NewK8sClientProvider(logManagerModule.CreateLogger("client-provider"), configModule)
+	if !clientProvider.RunsInCluster() {
+		impersonatedClientProvider, err := clientProvider.WithImpersonate(v1.Subject{
+			Kind:      "ServiceAccount",
+			Name:      "mogenius-operator-service-account-app",
+			Namespace: configModule.Get("MO_OWN_NAMESPACE"),
+		})
+		assert.Assert(err == nil, err)
+		clientProvider = impersonatedClientProvider
+	}
 	versionModule := version.NewVersion()
 	watcherModule := kubernetes.NewWatcher(logManagerModule.CreateLogger("watcher"), clientProvider)
 	shutdown.Add(watcherModule.UnwatchAll)
