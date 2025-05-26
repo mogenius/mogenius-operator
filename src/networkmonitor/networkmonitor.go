@@ -289,8 +289,11 @@ func (self *networkMonitor) metricsToPodstats(
 			podNetworkStat.TransmitPackets = metrics.Egress.Packets
 			podNetworkStat.TransmitBytes = metrics.Egress.Bytes
 			podNetworkStat.TransmitStartBytes = metrics.Egress.StartBytes
-			podNetworkStat.StartTime = containerInfo.PodInfo.StartTime
-			podNetworkStat.CreatedAt = time.Now().Format(time.RFC3339)
+			startTime, err := time.Parse(time.RFC3339, containerInfo.PodInfo.StartTime)
+			if err != nil {
+				podNetworkStat.StartTime = startTime
+			}
+			podNetworkStat.CreatedAt = time.Now()
 			data = append(data, podNetworkStat)
 		}
 	}
@@ -315,18 +318,18 @@ func (self *networkMonitor) GetPodNetworkUsage() []PodNetworkStats {
 }
 
 type PodNetworkStats struct {
-	Ip                 string `json:"ip"`
-	Pod                string `json:"pod"`
-	Namespace          string `json:"namespace"`
-	Interface          string `json:"interface"`
-	ReceivedPackets    uint64 `json:"receivedPackets"`
-	ReceivedBytes      uint64 `json:"receivedBytes"`
-	ReceivedStartBytes uint64 `json:"receivedStartBytes"`
-	TransmitPackets    uint64 `json:"transmitPackets"`
-	TransmitBytes      uint64 `json:"transmitBytes"`
-	TransmitStartBytes uint64 `json:"transmitStartBytes"`
-	StartTime          string `json:"startTime"` // start time of the Interface/Pod
-	CreatedAt          string `json:"createdAt"` // when the entry was written into the storage <- timestamp of write to redis
+	Ip                 string    `json:"ip"`
+	Pod                string    `json:"pod"`
+	Namespace          string    `json:"namespace"`
+	Interface          string    `json:"interface"`
+	ReceivedPackets    uint64    `json:"receivedPackets"`
+	ReceivedBytes      uint64    `json:"receivedBytes"`
+	ReceivedStartBytes uint64    `json:"receivedStartBytes"`
+	TransmitPackets    uint64    `json:"transmitPackets"`
+	TransmitBytes      uint64    `json:"transmitBytes"`
+	TransmitStartBytes uint64    `json:"transmitStartBytes"`
+	StartTime          time.Time `json:"startTime"` // start time of the Interface/Pod
+	CreatedAt          time.Time `json:"createdAt"` // when the entry was written into the storage <- timestamp of write to redis
 }
 
 func (self *PodNetworkStats) Sum(other *PodNetworkStats) {

@@ -448,9 +448,9 @@ func LastNEntryFromBucketWithType[T any](store ValkeyClient, number int64, bucke
 	}
 
 	var objects []T
-	for _, v := range elements {
+	for i := len(elements) - 1; i >= 0; i-- {
 		var obj T
-		if err := json.Unmarshal([]byte(v), &obj); err != nil {
+		if err := json.Unmarshal([]byte(elements[i]), &obj); err != nil {
 			return nil, fmt.Errorf("error unmarshalling value from valkey bucket, error: %v", err)
 		}
 		objects = append(objects, obj)

@@ -298,17 +298,12 @@ func (self *valkeyStatsDb) GetWorkspaceStatsTrafficUtilization(timeOffsetInMinut
 			self.logger.Error(err.Error())
 		}
 		for index, entry := range values {
-			parsedDate, err := time.Parse(time.RFC3339, entry.CreatedAt)
-			if err != nil {
-				continue
-			}
-			formattedDate := parsedDate.Round(time.Minute).Format(time.RFC3339)
+			formattedDate := entry.CreatedAt.Round(time.Minute).Format(time.RFC3339)
 
 			if _, exists := result[formattedDate]; !exists {
 				result[formattedDate] = GenericChartEntry{Time: formattedDate, Value: 0.0}
 			}
-			// TODO: @bene es gibt jetzt einzelne felder fuer rx und tx bytes und pakete -> trag bitte den richtigen wert hier ein
-			result[formattedDate] = GenericChartEntry{Time: formattedDate, Value: result[formattedDate].Value + float64(entry.TransmitBytes)}
+			result[formattedDate] = GenericChartEntry{Time: formattedDate, Value: result[formattedDate].Value + float64(entry.TransmitBytes+entry.ReceivedBytes)}
 
 			if index >= timeOffsetInMinutes {
 				break

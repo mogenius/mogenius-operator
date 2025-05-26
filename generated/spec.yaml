@@ -17821,7 +17821,8 @@ stats/traffic/all-for-controller:
                 name: mogenius-k8s-manager/src/networkmonitor.PodNetworkStats
                 properties:
                     createdAt:
-                        type: string
+                        structRef: time.Time
+                        type: struct
                     interface:
                         type: string
                     ip:
@@ -17837,13 +17838,17 @@ stats/traffic/all-for-controller:
                     receivedStartBytes:
                         type: uint
                     startTime:
-                        type: string
+                        structRef: time.Time
+                        type: struct
                     transmitBytes:
                         type: uint
                     transmitPackets:
                         type: uint
                     transmitStartBytes:
                         type: uint
+            time.Time:
+                name: time.Time
+                properties: {}
         typeInfo:
             elementType:
                 structRef: mogenius-k8s-manager/src/networkmonitor.PodNetworkStats
@@ -17903,7 +17908,8 @@ stats/traffic/sum-for-controller:
                 name: mogenius-k8s-manager/src/networkmonitor.PodNetworkStats
                 properties:
                     createdAt:
-                        type: string
+                        structRef: time.Time
+                        type: struct
                     interface:
                         type: string
                     ip:
@@ -17919,13 +17925,17 @@ stats/traffic/sum-for-controller:
                     receivedStartBytes:
                         type: uint
                     startTime:
-                        type: string
+                        structRef: time.Time
+                        type: struct
                     transmitBytes:
                         type: uint
                     transmitPackets:
                         type: uint
                     transmitStartBytes:
                         type: uint
+            time.Time:
+                name: time.Time
+                properties: {}
         typeInfo:
             pointer: true
             structRef: mogenius-k8s-manager/src/networkmonitor.PodNetworkStats
@@ -17947,7 +17957,8 @@ stats/traffic/sum-for-namespace:
                 name: mogenius-k8s-manager/src/networkmonitor.PodNetworkStats
                 properties:
                     createdAt:
-                        type: string
+                        structRef: time.Time
+                        type: struct
                     interface:
                         type: string
                     ip:
@@ -17963,13 +17974,17 @@ stats/traffic/sum-for-namespace:
                     receivedStartBytes:
                         type: uint
                     startTime:
-                        type: string
+                        structRef: time.Time
+                        type: struct
                     transmitBytes:
                         type: uint
                     transmitPackets:
                         type: uint
                     transmitStartBytes:
                         type: uint
+            time.Time:
+                name: time.Time
+                properties: {}
         typeInfo:
             elementType:
                 structRef: mogenius-k8s-manager/src/networkmonitor.PodNetworkStats
