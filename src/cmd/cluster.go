@@ -31,6 +31,7 @@ func RunCluster(logManagerModule logging.SlogManager, configModule *config.Confi
 		systems.nodeMetricsCollector.Orchestrate()
 		systems.valkeyLoggerService.Run()
 		systems.dbstatsService.Run()
+		systems.reconciler.Run()
 		systems.leaderElector.Run()
 
 		// services have to be started before this otherwise watcher events will get missing

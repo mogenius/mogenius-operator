@@ -512,6 +512,7 @@ func InitializeSystems(
 	moKubernetes := core.NewMoKubernetes(logManagerModule.CreateLogger("mokubernetes"), configModule, clientProvider)
 	mocore := core.NewCore(logManagerModule.CreateLogger("core"), configModule, clientProvider, valkeyClient, eventConnectionClient, jobConnectionClient)
 	leaderElector := core.NewLeaderElector(logManagerModule.CreateLogger("leader-elector"), configModule, clientProvider)
+	reconciler := core.NewReconciler(logManagerModule.CreateLogger("reconciler"), configModule, clientProvider)
 
 	// initialization step 2 for services
 	mocore.Link(moKubernetes)
@@ -521,6 +522,7 @@ func InitializeSystems(
 	moKubernetes.Link(dbstatsService)
 	httpApi.Link(socketApi, dbstatsService, apiModule)
 	apiModule.Link(workspaceManager)
+	reconciler.Link(leaderElector)
 
 	return systems{
 		clientProvider,
@@ -542,6 +544,7 @@ func InitializeSystems(
 		nodeMetricsCollector,
 		dbstatsService,
 		leaderElector,
+		reconciler,
 	}
 }
 
@@ -565,4 +568,5 @@ type systems struct {
 	nodeMetricsCollector  core.NodeMetricsCollector
 	dbstatsService        core.ValkeyStatsDb
 	leaderElector         core.LeaderElector
+	reconciler            core.Reconciler
 }
