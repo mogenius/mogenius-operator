@@ -16,7 +16,6 @@ import (
 	"mogenius-k8s-manager/src/schema"
 	"mogenius-k8s-manager/src/secrets"
 	"mogenius-k8s-manager/src/services"
-	"mogenius-k8s-manager/src/shutdown"
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/valkeyclient"
@@ -364,20 +363,6 @@ func (self *socketApi) registerPatterns() {
 		},
 		func(datagram structs.Datagram) any {
 			return services.SystemCheck()
-		},
-	)
-
-	self.RegisterPatternHandlerRaw(
-		"cluster/restart",
-		PatternConfig{},
-		func(datagram structs.Datagram) any {
-			go func() {
-				shutdownDelay := 1 * time.Second
-				self.logger.Info("😵😵😵 Received RESTART COMMAND. Initialized restart.", "delay", shutdownDelay)
-				time.Sleep(shutdownDelay)
-				shutdown.SendShutdownSignal(false)
-			}()
-			return nil
 		},
 	)
 
