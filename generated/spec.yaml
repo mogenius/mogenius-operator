@@ -3947,7 +3947,6 @@ cluster/machine-stats:
                 structRef: mogenius-k8s-manager/src/structs.MachineStats
                 type: struct
             type: array
-cluster/restart: {}
 cluster/update-local-tls-secret:
     requestSchema:
         structs:

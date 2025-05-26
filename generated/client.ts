@@ -31,7 +31,6 @@ export enum Pattern {
   CLUSTER_HELM_REPO_UPDATE = "cluster/helm-repo-update",
   CLUSTER_LIST_PERSISTENT_VOLUME_CLAIMS = "cluster/list-persistent-volume-claims",
   CLUSTER_MACHINE_STATS = "cluster/machine-stats",
-  CLUSTER_RESTART = "cluster/restart",
   CLUSTER_UPDATE_LOCAL_TLS_SECRET = "cluster/update-local-tls-secret",
   CREATE_GRANT = "create/grant",
   CREATE_NEW_WORKLOAD = "create/new-workload",
@@ -177,7 +176,6 @@ export const StringToPattern = {
   "cluster/helm-repo-update": Pattern.CLUSTER_HELM_REPO_UPDATE,
   "cluster/list-persistent-volume-claims": Pattern.CLUSTER_LIST_PERSISTENT_VOLUME_CLAIMS,
   "cluster/machine-stats": Pattern.CLUSTER_MACHINE_STATS,
-  "cluster/restart": Pattern.CLUSTER_RESTART,
   "cluster/update-local-tls-secret": Pattern.CLUSTER_UPDATE_LOCAL_TLS_SECRET,
   "create/grant": Pattern.CREATE_GRANT,
   "create/new-workload": Pattern.CREATE_NEW_WORKLOAD,
@@ -319,7 +317,6 @@ export const PatternToString = {
   [Pattern.CLUSTER_HELM_REPO_UPDATE]: "cluster/helm-repo-update",
   [Pattern.CLUSTER_LIST_PERSISTENT_VOLUME_CLAIMS]: "cluster/list-persistent-volume-claims",
   [Pattern.CLUSTER_MACHINE_STATS]: "cluster/machine-stats",
-  [Pattern.CLUSTER_RESTART]: "cluster/restart",
   [Pattern.CLUSTER_UPDATE_LOCAL_TLS_SECRET]: "cluster/update-local-tls-secret",
   [Pattern.CREATE_GRANT]: "create/grant",
   [Pattern.CREATE_NEW_WORKLOAD]: "create/new-workload",
@@ -2509,16 +2506,6 @@ export type CLUSTER_MACHINE_STATS_REQUEST = CLUSTER_MACHINE_STATS_REQUEST__MOGEN
  *
  */
 export type CLUSTER_MACHINE_STATS_RESPONSE = CLUSTER_MACHINE_STATS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_MACHINESTATS[];
-
-/**
- * api schema has not been defined by the operator
- */
-export type CLUSTER_RESTART_REQUEST = any;
-
-/**
- * api schema has not been defined by the operator
- */
-export type CLUSTER_RESTART_RESPONSE = any;
 
 /**
  * #### Source
@@ -17649,10 +17636,6 @@ export interface IPatternConfig {
   [Pattern.CLUSTER_MACHINE_STATS]: {
     Request: CLUSTER_MACHINE_STATS_REQUEST;
     Response: CLUSTER_MACHINE_STATS_RESPONSE;
-  };
-  [Pattern.CLUSTER_RESTART]: {
-    Request: CLUSTER_RESTART_REQUEST;
-    Response: CLUSTER_RESTART_RESPONSE;
   };
   [Pattern.CLUSTER_UPDATE_LOCAL_TLS_SECRET]: {
     Request: CLUSTER_UPDATE_LOCAL_TLS_SECRET_REQUEST;
