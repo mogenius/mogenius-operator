@@ -70,7 +70,6 @@ var MirroredResourceKinds = []string{
 	"Workspace", // mogenius specific
 	"User",      // mogenius specific
 	"Grant",     // mogenius specific
-	"Team",      // mogenius specific
 }
 
 func WatchStoreResources(watcher WatcherModule, eventClient websocket.WebsocketClient) error {
