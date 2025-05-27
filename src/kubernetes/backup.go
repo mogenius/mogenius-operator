@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"mogenius-k8s-manager/src/structs"
-	"sort"
 
 	realJson "encoding/json"
 
@@ -104,19 +103,6 @@ func BackupNamespace(namespace string) (NamespaceBackupResponse, error) {
 	k8sLogger.Info("USED", "resources", usedResources.Display())
 
 	return result, nil
-}
-
-// Some Kinds must be executed before other kinds. The order is important.
-func sortWithPreference(objs []unstructured.Unstructured) {
-	sort.Slice(objs, func(i, j int) bool {
-		if objs[i].GetKind() == "ServiceAccount" {
-			return true
-		} else if objs[i].GetKind() == "ServiceAccount" {
-			return false
-		} else {
-			return objs[i].GetKind() < objs[j].GetKind() // sort remaining elements in ascending order
-		}
-	})
 }
 
 func namespaceString(ns string) string {

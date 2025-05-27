@@ -56,7 +56,7 @@ def extract_type_names_and_lines(file_path: str):
 
 def find_unused_types(directory: str):
     """Find and report unused type names in the Go project directory."""
-    go_files = get_go_files(directory)
+    go_files = [f for f in get_go_files(directory) if not f.endswith('_test.go')]
     all_types = set()
     types_per_file = {}
     type_lines_per_file = {}
@@ -90,7 +90,7 @@ def extract_func_names_and_lines(file_path: str):
     func_names = set()
     func_lines = dict()
     # This regex matches both regular and method functions (with receiver)
-    func_decl = re.compile(r'^\s*func\s+(?:\([^)]+\)\s*)?([A-Z]\w*)\b', re.MULTILINE)
+    func_decl = re.compile(r'^\s*func\s+(?:\([^)]+\)\s*)?([A-Za-z_]\w*)\b', re.MULTILINE)
     with open(file_path, 'r', encoding='utf-8') as f:
         for idx, line in enumerate(f):
             match = func_decl.match(line)
@@ -116,7 +116,7 @@ def is_func_used(func_name: str, files: List[str], def_file: str, def_lines: Set
 
 def find_unused_functions(directory: str):
     """Find and report unused function names in the Go project directory."""
-    go_files = get_go_files(directory)
+    go_files = [f for f in get_go_files(directory) if not f.endswith('_test.go')]
     all_funcs = set()
     funcs_per_file = {}
     func_lines_per_file = {}

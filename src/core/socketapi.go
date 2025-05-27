@@ -1,7 +1,6 @@
 package core
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"log/slog"
@@ -37,7 +36,6 @@ import (
 	"helm.sh/helm/v3/pkg/release"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/client-go/rest"
 )
 
 type SocketApi interface {
@@ -2263,52 +2261,6 @@ func (self *socketApi) upgradeK8sManager(command string) *structs.Job {
 	wg.Wait()
 	job.Finish(self.eventsClient)
 	return job
-}
-
-func (self *socketApi) streamData(restReq *rest.Request, toServerUrl string) {
-	ctx := context.Background()
-	cancelCtx, endGofunc := context.WithCancel(ctx)
-	stream, err := restReq.Stream(cancelCtx)
-	if err != nil {
-		self.logger.Error(err.Error())
-	} else {
-		self.sendDataWs(toServerUrl, stream)
-	}
-	endGofunc()
-}
-
-func (self *socketApi) multiStreamData(previousRestReq *rest.Request, restReq *rest.Request, terminatedState *v1.ContainerStateTerminated, toServerUrl string) {
-	ctx := context.Background()
-	ctx, endGofunc := context.WithCancel(ctx)
-	defer endGofunc()
-
-	lastState := kubernetes.LastTerminatedStateToString(terminatedState)
-
-	var previousStream io.ReadCloser
-	if previousRestReq != nil {
-		tmpPreviousStream, err := previousRestReq.Stream(ctx)
-		if err != nil {
-			self.logger.Error(err.Error())
-			previousStream = io.NopCloser(strings.NewReader(fmt.Sprintln(err.Error())))
-		} else {
-			previousStream = tmpPreviousStream
-		}
-	}
-
-	stream, err := restReq.Stream(ctx)
-	if err != nil {
-		self.logger.Error(err.Error())
-		stream = io.NopCloser(strings.NewReader(fmt.Sprintln(err.Error())))
-	}
-
-	nl := strings.NewReader("\n")
-	previousState := strings.NewReader(lastState)
-	headlineLastLog := strings.NewReader("Last Log:\n")
-	headlineCurrentLog := strings.NewReader("Current Log:\n")
-
-	mergedStream := io.MultiReader(previousState, nl, headlineLastLog, nl, previousStream, nl, headlineCurrentLog, nl, stream)
-
-	self.sendDataWs(toServerUrl, io.NopCloser(mergedStream))
 }
 
 func (self *socketApi) execShConnection(podCmdConnectionRequest xterm.PodCmdConnectionRequest) {
