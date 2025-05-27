@@ -61,16 +61,6 @@ func (i IngressType) String() string {
 	return [...]string{"NGINX", "TRAEFIK", "MULTIPLE", "NONE", "UNKNOWN"}[i]
 }
 
-type K8sWorkloadResult struct {
-	Result interface{} `json:"result"`
-	Error  interface{} `json:"error"`
-}
-
-type MogeniusNfsInstallationStatus struct {
-	Error       string `json:"error,omitempty"`
-	IsInstalled bool   `json:"isInstalled"`
-}
-
 // Define the expected JSON structure
 type AuthConfig struct {
 	Auths map[string]Credentials `json:"auths"`
@@ -107,13 +97,6 @@ func ValidateContainerRegistryAuthString(input string) error {
 func init() {
 	// SETUP DOWNFAULT VALUE
 	dtos.KubernetesGetSecretValueByPrefixControllerNameAndKey = GetSecretValueByPrefixControllerNameAndKey
-}
-
-func WorkloadResult(result interface{}, error interface{}) K8sWorkloadResult {
-	return K8sWorkloadResult{
-		Result: result,
-		Error:  error,
-	}
 }
 
 func CurrentContextName() string {

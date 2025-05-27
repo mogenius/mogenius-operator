@@ -53,12 +53,4 @@ type WorkspaceResourceIdentifier struct {
 	Namespace string `json:"namespace,omitempty"`
 }
 
-func NewWorkspaceResourceIdentifier(id string, resourceType string, namespace string) WorkspaceResourceIdentifier {
-	return WorkspaceResourceIdentifier{
-		Id:        id,
-		Type:      resourceType,
-		Namespace: namespace,
-	}
-}
-
 type WorkspaceStatus struct{}

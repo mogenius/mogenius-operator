@@ -208,10 +208,6 @@ func UpdateNetworkPolicyTemplate(policies []kubernetes.NetworkPolicy) error {
 	return kubernetes.UpdateNetworkPolicyTemplate(policies)
 }
 
-type ListNetworkPolicyResponse struct {
-	Namespaces []ListNetworkPolicyNamespace `json:"namespaces" validate:"required"`
-}
-
 type ListNetworkPolicyNamespace struct {
 	Id                string                           `json:"id" validate:"required"`
 	DisplayName       string                           `json:"displayName" validate:"required"`

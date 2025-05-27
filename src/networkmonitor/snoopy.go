@@ -164,11 +164,6 @@ type SnoopyHandle struct {
 	Stderr chan SnoopyLogMessage
 }
 
-type SnoopyOutput struct {
-	Metric     *SnoopyEvent
-	LogMessage *SnoopyLogMessage
-}
-
 type SnoopyEventType = string
 
 const (

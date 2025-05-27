@@ -1,9 +1,7 @@
 package structs
 
 import (
-	"fmt"
 	"log/slog"
-	"mogenius-k8s-manager/src/shell"
 	"mogenius-k8s-manager/src/utils"
 	"time"
 )
@@ -67,16 +65,6 @@ func CreateDatagramNotificationFromJob(data *Job) Datagram {
 	return datagram
 }
 
-func CreateDatagramFrom(pattern string, data interface{}) Datagram {
-	datagram := Datagram{
-		Id:        utils.NanoId(),
-		Pattern:   pattern,
-		Payload:   data,
-		CreatedAt: time.Now(),
-	}
-	return datagram
-}
-
 func CreateDatagramForClusterEvent(pattern string, group string, version string, kind string, namespace string, name string, resourceName string, eventType string) Datagram {
 	datagram := Datagram{
 		Id:      utils.NanoId(),
@@ -116,50 +104,12 @@ func CreateEmptyDatagram() Datagram {
 	return datagram
 }
 
-func (d *Datagram) DisplayBeautiful() {
-	fmt.Printf("%s %s\n", shell.Colorize("ID:      ", shell.White, shell.BgBlue), d.Id)
-	fmt.Printf("%s %s\n", shell.Colorize("PATTERN: ", shell.White, shell.BgYellow), shell.Colorize(d.Pattern, shell.Blue))
-	fmt.Printf("%s %s\n", shell.Colorize("TIME:    ", shell.White, shell.BgRed), time.Now().Format(time.RFC3339))
-	fmt.Printf("%s %s\n", shell.Colorize("Duration:", shell.White, shell.BgRed), utils.DurationStrSince(d.CreatedAt))
-	fmt.Printf("%s %s\n", shell.Colorize("Size:    ", shell.Black, shell.BgGreen), utils.BytesToHumanReadable(d.GetSize()))
-	fmt.Printf("%s %s\n\n", shell.Colorize("PAYLOAD: ", shell.Black, shell.Green), utils.PrettyPrintInterface(d.Payload))
-}
-
 func (d *Datagram) DisplayReceiveSummary(logger *slog.Logger) {
 	logger.Debug("RECEIVED",
 		"pattern", d.Pattern,
 		"id", d.Id,
 		"username", d.Username,
 		"size", d.GetSize(),
-	)
-}
-
-func (d *Datagram) DisplaySentSummary(logger *slog.Logger, queuePosition int, queueLen int) {
-	logger.Debug("SENT",
-		"pattern", d.Pattern,
-		"id", d.Id,
-		"username", d.Username,
-		"size", d.GetSize(),
-		"createdAt", d.CreatedAt,
-		"queuePosition", queuePosition,
-		"queueLen", queueLen,
-	)
-}
-
-func (d *Datagram) DisplaySentSummaryEvent(logger *slog.Logger, kind string, reason string, msg string, count int32) {
-	logger.Debug("SENT",
-		"pattern", d.Pattern,
-		"kind", kind,
-		"reason", reason,
-		"msg", msg,
-		"count", count,
-	)
-}
-
-func (d *Datagram) DisplayStreamSummary(logger *slog.Logger) {
-	logger.Debug("STREAMING",
-		"pattern", d.Pattern,
-		"id", d.Id,
 	)
 }
 

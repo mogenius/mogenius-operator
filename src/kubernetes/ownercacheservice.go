@@ -21,10 +21,6 @@ func NewK8sController(kind string, name string, namespace string) K8sController 
 	}
 }
 
-func (owner *K8sController) Identifier() string {
-	return owner.Namespace
-}
-
 var ownerCache = make(map[string]K8sController)
 
 var dataLock sync.Mutex = sync.Mutex{}

@@ -56,13 +56,6 @@ type PodCmdConnectionRequest struct {
 	LogTail      string              `json:"logTail"`
 }
 
-type OperatorLogConnectionRequest struct {
-	Namespace    string              `json:"namespace" validate:"required"`
-	Controller   string              `json:"controller" validate:"required"`
-	WsConnection WsConnectionRequest `json:"wsConnectionRequest" validate:"required"`
-	LogTail      string              `json:"logTail"`
-}
-
 type ComponentLogConnectionRequest struct {
 	WsConnection WsConnectionRequest `json:"wsConnectionRequest" validate:"required"`
 	Component    string              `json:"component" validate:"required"`
@@ -74,37 +67,6 @@ type ComponentLogConnectionRequest struct {
 type PodEventConnectionRequest struct {
 	Namespace    string              `json:"namespace" validate:"required"`
 	Controller   string              `json:"controller" validate:"required"`
-	WsConnection WsConnectionRequest `json:"wsConnectionRequest" validate:"required"`
-}
-
-type ScanImageLogConnectionRequest struct {
-	Namespace     string `json:"namespace" validate:"required"`
-	Controller    string `json:"controller" validate:"required"`
-	Container     string `json:"container" validate:"required"`
-	CmdType       string `json:"cmdType" validate:"required"`
-	ScanImageType string `json:"scanImageType" validate:"required"`
-
-	ContainerRegistryUrl  string `json:"containerRegistryUrl"`
-	ContainerRegistryUser string `json:"containerRegistryUser"`
-	ContainerRegistryPat  string `json:"containerRegistryPat"`
-
-	WsConnection WsConnectionRequest `json:"wsConnectionRequest" validate:"required"`
-}
-
-type LogEntry struct {
-	ControllerName string `json:"controllerName"`
-	Level          string `json:"level"`
-	Namespace      string `json:"namespace"`
-	ReleaseName    string `json:"releaseName"`
-	Component      string `json:"component"`
-	Message        string `json:"message"`
-	Time           string `json:"time"`
-}
-
-type ClusterToolConnectionRequest struct {
-	CmdType string `json:"cmdType" validate:"required"`
-	Tool    string `json:"tool" validate:"required"`
-
 	WsConnection WsConnectionRequest `json:"wsConnectionRequest" validate:"required"`
 }
 

@@ -20,11 +20,6 @@ type ContainerNetworkEnumerator interface {
 	GetContainerIdFromCgroupWithPid(cgroupFileData string) (ContainerId, error)
 }
 
-type InterfaceDescription struct {
-	LinkInfo []IpLinkInfo
-	Pids     []ProcessId
-}
-
 type IpLinkInfo struct {
 	Ifindex     int      `json:"ifindex,omitempty"`
 	Ifname      string   `json:"ifname"`
@@ -43,27 +38,10 @@ type IpLinkInfo struct {
 	LinkNetnsid int      `json:"link_netnsid,omitempty"`
 }
 
-func (self *IpLinkInfo) IsUp() bool {
-	return slices.Contains(self.Flags, "UP")
-}
-
-func (self *IpLinkInfo) IsLoopback() bool {
-	return slices.Contains(self.Flags, "LOOPBACK")
-}
-
 func (self *IpLinkInfo) ToJson() string {
 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 	data, err := json.Marshal(&self)
-	assert.Assert(err == nil, err)
-
-	return string(data)
-}
-
-func (self *IpLinkInfo) ToJsonPretty() string {
-	var json = jsoniter.ConfigCompatibleWithStandardLibrary
-
-	data, err := json.MarshalIndent(&self, "", "  ")
 	assert.Assert(err == nil, err)
 
 	return string(data)

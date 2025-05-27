@@ -15,11 +15,6 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-type NamespaceRestoreResponse struct {
-	NamespaceName string   `json:"namespaceName"`
-	Messages      []string `json:"messages"`
-}
-
 type NamespaceBackupResponse struct {
 	NamespaceName string   `json:"namespaceName"`
 	Data          string   `json:"data"`
