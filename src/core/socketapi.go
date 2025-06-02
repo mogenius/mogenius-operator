@@ -1330,7 +1330,7 @@ func (self *socketApi) registerPatterns() {
 	RegisterPatternHandler(
 		PatternHandle{self, "list/all-workloads"},
 		PatternConfig{},
-		func(request Void) ([]utils.SyncResourceEntry, error) {
+		func(request Void) ([]utils.ResourceEntry, error) {
 			return kubernetes.GetAvailableResources()
 		},
 	)
@@ -1338,7 +1338,7 @@ func (self *socketApi) registerPatterns() {
 	RegisterPatternHandler(
 		PatternHandle{self, "get/workload-list"},
 		PatternConfig{},
-		func(request utils.SyncResourceEntry) (unstructured.UnstructuredList, error) {
+		func(request utils.ResourceEntry) (unstructured.UnstructuredList, error) {
 			return kubernetes.GetUnstructuredResourceListFromStore(request.Group, request.Kind, request.Version, request.Name, request.Namespace)
 		},
 	)
@@ -1362,7 +1362,7 @@ func (self *socketApi) registerPatterns() {
 	RegisterPatternHandler(
 		PatternHandle{self, "describe/workload"},
 		PatternConfig{},
-		func(request utils.SyncResourceItem) (string, error) {
+		func(request utils.ResourceItem) (string, error) {
 			return kubernetes.DescribeUnstructuredResource(request.Group, request.Version, request.Name, request.Namespace, request.ResourceName)
 		},
 	)
@@ -1370,7 +1370,7 @@ func (self *socketApi) registerPatterns() {
 	RegisterPatternHandler(
 		PatternHandle{self, "create/new-workload"},
 		PatternConfig{},
-		func(request utils.SyncResourceData) (*unstructured.Unstructured, error) {
+		func(request utils.ResourceData) (*unstructured.Unstructured, error) {
 			return kubernetes.CreateUnstructuredResource(request.Group, request.Version, request.Name, request.Namespace, request.YamlData)
 		},
 	)
@@ -1378,7 +1378,7 @@ func (self *socketApi) registerPatterns() {
 	RegisterPatternHandler(
 		PatternHandle{self, "get/workload"},
 		PatternConfig{},
-		func(request utils.SyncResourceItem) (*unstructured.Unstructured, error) {
+		func(request utils.ResourceItem) (*unstructured.Unstructured, error) {
 			return kubernetes.GetUnstructuredResource(request.Group, request.Version, request.Name, request.Namespace, request.ResourceName)
 		},
 	)
@@ -1394,7 +1394,7 @@ func (self *socketApi) registerPatterns() {
 	RegisterPatternHandler(
 		PatternHandle{self, "get/workload-example"},
 		PatternConfig{},
-		func(request utils.SyncResourceItem) (string, error) {
+		func(request utils.ResourceItem) (string, error) {
 			return kubernetes.GetResourceTemplateYaml(request.Group, request.Version, request.Name, request.Kind, request.Namespace, request.ResourceName), nil
 		},
 	)
@@ -1402,7 +1402,7 @@ func (self *socketApi) registerPatterns() {
 	RegisterPatternHandler(
 		PatternHandle{self, "update/workload"},
 		PatternConfig{},
-		func(request utils.SyncResourceData) (*unstructured.Unstructured, error) {
+		func(request utils.ResourceData) (*unstructured.Unstructured, error) {
 			return kubernetes.UpdateUnstructuredResource(request.Group, request.Version, request.Name, request.Namespace, request.YamlData)
 		},
 	)
@@ -1410,7 +1410,7 @@ func (self *socketApi) registerPatterns() {
 	RegisterPatternHandler(
 		PatternHandle{self, "delete/workload"},
 		PatternConfig{},
-		func(request utils.SyncResourceItem) (Void, error) {
+		func(request utils.ResourceItem) (Void, error) {
 			return nil, kubernetes.DeleteUnstructuredResource(request.Group, request.Version, request.Name, request.Namespace, request.ResourceName)
 		},
 	)
@@ -1418,7 +1418,7 @@ func (self *socketApi) registerPatterns() {
 	RegisterPatternHandler(
 		PatternHandle{self, "trigger/workload"},
 		PatternConfig{},
-		func(request utils.SyncResourceItem) (*unstructured.Unstructured, error) {
+		func(request utils.ResourceItem) (*unstructured.Unstructured, error) {
 			return kubernetes.TriggerUnstructuredResource(request.Group, request.Version, request.Name, request.Namespace, request.ResourceName)
 		},
 	)
@@ -1705,10 +1705,10 @@ func (self *socketApi) registerPatterns() {
 
 	{
 		type Request struct {
-			WorkspaceName      string                     `json:"workspaceName"`
-			Whitelist          []*utils.SyncResourceEntry `json:"whitelist"`
-			Blacklist          []*utils.SyncResourceEntry `json:"blacklist"`
-			NamespaceWhitelist []string                   `json:"namespaceWhitelist"`
+			WorkspaceName      string                 `json:"workspaceName"`
+			Whitelist          []*utils.ResourceEntry `json:"whitelist"`
+			Blacklist          []*utils.ResourceEntry `json:"blacklist"`
+			NamespaceWhitelist []string               `json:"namespaceWhitelist"`
 		}
 
 		RegisterPatternHandler(

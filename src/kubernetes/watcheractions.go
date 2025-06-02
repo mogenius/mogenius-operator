@@ -28,15 +28,15 @@ const (
 )
 
 type GetUnstructuredNamespaceResourceListRequest struct {
-	Namespace string                     `json:"namespace" validate:"required"`
-	Whitelist []*utils.SyncResourceEntry `json:"whitelist"`
-	Blacklist []*utils.SyncResourceEntry `json:"blacklist"`
+	Namespace string                 `json:"namespace" validate:"required"`
+	Whitelist []*utils.ResourceEntry `json:"whitelist"`
+	Blacklist []*utils.ResourceEntry `json:"blacklist"`
 }
 
 type GetUnstructuredLabeledResourceListRequest struct {
-	Label     string                     `json:"label" validate:"required"`
-	Whitelist []*utils.SyncResourceEntry `json:"whitelist"`
-	Blacklist []*utils.SyncResourceEntry `json:"blacklist"`
+	Label     string                 `json:"label" validate:"required"`
+	Whitelist []*utils.ResourceEntry `json:"whitelist"`
+	Blacklist []*utils.ResourceEntry `json:"blacklist"`
 }
 
 var MirroredResourceKinds = []string{
@@ -192,7 +192,7 @@ func GetUnstructuredResourceListFromStore(group string, kind string, version str
 	return results, nil
 }
 
-func GetUnstructuredNamespaceResourceList(namespace string, whitelist []*utils.SyncResourceEntry, blacklist []*utils.SyncResourceEntry) ([]unstructured.Unstructured, error) {
+func GetUnstructuredNamespaceResourceList(namespace string, whitelist []*utils.ResourceEntry, blacklist []*utils.ResourceEntry) ([]unstructured.Unstructured, error) {
 	results := []unstructured.Unstructured{}
 
 	resources, err := GetAvailableResources()
@@ -201,11 +201,11 @@ func GetUnstructuredNamespaceResourceList(namespace string, whitelist []*utils.S
 	}
 
 	if whitelist == nil {
-		whitelist = []*utils.SyncResourceEntry{}
+		whitelist = []*utils.ResourceEntry{}
 	}
 
 	if blacklist == nil {
-		blacklist = []*utils.SyncResourceEntry{}
+		blacklist = []*utils.ResourceEntry{}
 	}
 
 	promise := utils.NewPromise[unstructured.Unstructured]()
@@ -228,7 +228,7 @@ func GetUnstructuredNamespaceResourceList(namespace string, whitelist []*utils.S
 	return results, nil
 }
 
-func GetUnstructuredLabeledResourceList(label string, whitelist []*utils.SyncResourceEntry, blacklist []*utils.SyncResourceEntry) (unstructured.UnstructuredList, error) {
+func GetUnstructuredLabeledResourceList(label string, whitelist []*utils.ResourceEntry, blacklist []*utils.ResourceEntry) (unstructured.UnstructuredList, error) {
 	results := unstructured.UnstructuredList{
 		Object: map[string]interface{}{},
 		Items:  []unstructured.Unstructured{},
@@ -240,11 +240,11 @@ func GetUnstructuredLabeledResourceList(label string, whitelist []*utils.SyncRes
 	}
 
 	if whitelist == nil {
-		whitelist = []*utils.SyncResourceEntry{}
+		whitelist = []*utils.ResourceEntry{}
 	}
 
 	if blacklist == nil {
-		blacklist = []*utils.SyncResourceEntry{}
+		blacklist = []*utils.ResourceEntry{}
 	}
 
 	dynamicClient := clientProvider.DynamicClient()
@@ -454,7 +454,7 @@ func GetObjectFromFile(file string) (*unstructured.Unstructured, error) {
 
 type availableResourceCacheEntry struct {
 	timestamp          time.Time
-	availableResources []utils.SyncResourceEntry
+	availableResources []utils.ResourceEntry
 }
 
 var (
@@ -463,7 +463,7 @@ var (
 	resourceCacheTTL   = 1 * time.Minute // Cache duration
 )
 
-func GetAvailableResources() ([]utils.SyncResourceEntry, error) {
+func GetAvailableResources() ([]utils.ResourceEntry, error) {
 	// Check if we have cached resources and if they are still valid
 	if time.Since(resourceCache.timestamp) < resourceCacheTTL {
 		return resourceCache.availableResources, nil
@@ -480,7 +480,7 @@ func GetAvailableResources() ([]utils.SyncResourceEntry, error) {
 		return nil, err
 	}
 
-	var availableResources []utils.SyncResourceEntry
+	var availableResources []utils.ResourceEntry
 	for _, resourceList := range resources {
 		for _, resource := range resourceList.APIResources {
 			if slices.Contains(resource.Verbs, "list") && slices.Contains(resource.Verbs, "watch") {
@@ -488,7 +488,7 @@ func GetAvailableResources() ([]utils.SyncResourceEntry, error) {
 				if resource.Namespaced {
 					namespace = utils.Pointer("")
 				}
-				availableResources = append(availableResources, utils.SyncResourceEntry{
+				availableResources = append(availableResources, utils.ResourceEntry{
 					Group:     resourceList.GroupVersion,
 					Name:      resource.Name,
 					Kind:      resource.Kind,

@@ -25,8 +25,8 @@ package iacmanager
 // 	SyncFrequencyInSec int                       `json:"syncFrequencyInSec"`
 // 	AllowPush          bool                      `json:"allowPush"`
 // 	AllowPull          bool                      `json:"allowPull"`
-// 	SyncWorkloads      []utils.SyncResourceEntry `json:"syncWorkloads"`
-// 	AvailableWorkloads []utils.SyncResourceEntry `json:"availableWorkloads"`
+// 	SyncWorkloads      []utils.ResourceEntry `json:"syncWorkloads"`
+// 	AvailableWorkloads []utils.ResourceEntry `json:"availableWorkloads"`
 // 	ShowDiffInLog      bool                      `json:"showDiffInLog"`
 // 	IgnoredNamespaces  []string                  `json:"ignoredNamespaces"`
 // 	IgnoredNames       []string                  `json:"ignoredNames"`

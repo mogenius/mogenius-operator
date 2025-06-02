@@ -14,7 +14,7 @@ type ClusterSecret struct {
 	ClusterName  string
 }
 
-type SyncResourceEntry struct {
+type ResourceEntry struct {
 	Kind      string  `json:"kind"`
 	Name      string  `json:"name"`
 	Group     string  `json:"group"`
@@ -22,7 +22,7 @@ type SyncResourceEntry struct {
 	Namespace *string `json:"namespace"`
 }
 
-type SyncResourceData struct {
+type ResourceData struct {
 	Kind      string  `json:"kind"`
 	Name      string  `json:"name"`
 	Group     string  `json:"group"`
@@ -31,7 +31,7 @@ type SyncResourceData struct {
 	YamlData  string  `json:"yamlData"`
 }
 
-type SyncResourceItem struct {
+type ResourceItem struct {
 	Kind         string `json:"kind"`
 	Name         string `json:"name"`
 	Group        string `json:"group"`
@@ -40,59 +40,59 @@ type SyncResourceItem struct {
 	Namespace    string `json:"namespace"`
 }
 
-var DeploymentResource = SyncResourceEntry{
+var DeploymentResource = ResourceEntry{
 	Kind:  "Deployment",
 	Name:  "deployments",
 	Group: "apps/v1",
 }
-var StatefulSetResource = SyncResourceEntry{
+var StatefulSetResource = ResourceEntry{
 	Kind:  "StatefulSet",
 	Name:  "statefulsets",
 	Group: "apps/v1",
 }
-var DaemonSetResource = SyncResourceEntry{
+var DaemonSetResource = ResourceEntry{
 	Kind:  "DaemonSet",
 	Name:  "daemonsets",
 	Group: "apps/v1",
 }
 
-var JobResource = SyncResourceEntry{
+var JobResource = ResourceEntry{
 	Kind:  "Job",
 	Name:  "jobs",
 	Group: "batch/v1",
 }
 
-var CronJobResource = SyncResourceEntry{
+var CronJobResource = ResourceEntry{
 	Kind:  "CronJob",
 	Name:  "cronjobs",
 	Group: "batch/v1",
 }
 
-var ReplicaSetResource = SyncResourceEntry{
+var ReplicaSetResource = ResourceEntry{
 	Kind:  "ReplicaSet",
 	Name:  "replicasets",
 	Group: "apps/v1",
 }
 
-var NetworkPolicyResource = SyncResourceEntry{
+var NetworkPolicyResource = ResourceEntry{
 	Kind:  "NetworkPolicy",
 	Name:  "networkpolicies",
 	Group: "networking.k8s.io/v1",
 }
 
-var PodResource = SyncResourceEntry{
+var PodResource = ResourceEntry{
 	Kind:  "Pod",
 	Name:  "pods",
 	Group: "v1",
 }
 
-var NamespaceResource = SyncResourceEntry{
+var NamespaceResource = ResourceEntry{
 	Kind:  "Namespace",
 	Name:  "namespaces",
 	Group: "v1",
 }
 
-var EventResource = SyncResourceEntry{
+var EventResource = ResourceEntry{
 	Kind:  "Event",
 	Name:  "events",
 	Group: "v1",

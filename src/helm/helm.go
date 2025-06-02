@@ -168,7 +168,7 @@ type HelmReleaseGetWorkloadsRequest struct {
 	Namespace string `json:"namespace" validate:"required"`
 	Release   string `json:"release" validate:"required"`
 
-	Whitelist []*utils.SyncResourceEntry `json:"whitelist"`
+	Whitelist []*utils.ResourceEntry `json:"whitelist"`
 }
 
 type HelmEntryWithoutPassword struct {

@@ -42,7 +42,7 @@ type CleanUpResultEntry struct {
 type MoKubernetes interface {
 	Run()
 	Link(valkeyStatsDb ValkeyStatsDb)
-	GetAvailableResources() ([]utils.SyncResourceEntry, error)
+	GetAvailableResources() ([]utils.ResourceEntry, error)
 	CreateOrUpdateClusterSecret() (utils.ClusterSecret, error)
 	CreateOrUpdateResourceTemplateConfigmap() error
 	GetNodeStats() []dtos.NodeStat
@@ -157,7 +157,7 @@ func (self *moKubernetes) updateOptions() metav1.UpdateOptions {
 	}
 }
 
-func (self *moKubernetes) GetAvailableResources() ([]utils.SyncResourceEntry, error) {
+func (self *moKubernetes) GetAvailableResources() ([]utils.ResourceEntry, error) {
 	clientset := self.clientProvider.K8sClientSet()
 
 	resources, err := clientset.Discovery().ServerPreferredResources()
@@ -166,7 +166,7 @@ func (self *moKubernetes) GetAvailableResources() ([]utils.SyncResourceEntry, er
 		return nil, err
 	}
 
-	var availableResources []utils.SyncResourceEntry
+	var availableResources []utils.ResourceEntry
 	for _, resourceList := range resources {
 		for _, resource := range resourceList.APIResources {
 			if slices.Contains(resource.Verbs, "list") && slices.Contains(resource.Verbs, "watch") {
@@ -175,7 +175,7 @@ func (self *moKubernetes) GetAvailableResources() ([]utils.SyncResourceEntry, er
 					namespace = utils.Pointer("")
 				}
 
-				availableResources = append(availableResources, utils.SyncResourceEntry{
+				availableResources = append(availableResources, utils.ResourceEntry{
 					Group:     resourceList.GroupVersion,
 					Name:      resource.Name,
 					Kind:      resource.Kind,

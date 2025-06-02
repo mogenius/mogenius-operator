@@ -44,7 +44,7 @@ type GetWorkloadStatusHelmReleaseNameRequest struct {
 	Namespace string `json:"namespace" validate:"required"`
 }
 type GetWorkloadStatusRequest struct {
-	ResourceEntity *utils.SyncResourceEntry                   `json:"resourceEntity,omitempty"`
+	ResourceEntity *utils.ResourceEntry                       `json:"resourceEntity,omitempty"`
 	Namespaces     *[]string                                  `json:"namespaces,omitempty"`
 	HelmReleases   *[]GetWorkloadStatusHelmReleaseNameRequest `json:"helmReleases,omitempty"`
 	ResourceNames  *[]string                                  `json:"resourceNames,omitempty"`
@@ -277,7 +277,7 @@ func GetWorkloadStatus(requestData GetWorkloadStatusRequest) ([]WorkloadStatusDt
 
 	// filter by HelmReleaseNames
 	if requestData.HelmReleases != nil && len(*requestData.HelmReleases) > 0 {
-		var whitelist []*utils.SyncResourceEntry
+		var whitelist []*utils.ResourceEntry
 		if requestData.ResourceEntity != nil {
 			whitelist = append(whitelist, requestData.ResourceEntity)
 		}

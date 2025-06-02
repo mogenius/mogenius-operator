@@ -60,7 +60,7 @@ func SearchByGroupKindNameNamespace(valkeyClient valkeyclient.ValkeyClient, grou
 	return items, err
 }
 
-func SearchByNamespace(valkeyClient valkeyclient.ValkeyClient, namespace string, whitelist []*utils.SyncResourceEntry) ([]unstructured.Unstructured, error) {
+func SearchByNamespace(valkeyClient valkeyclient.ValkeyClient, namespace string, whitelist []*utils.ResourceEntry) ([]unstructured.Unstructured, error) {
 	pattern := CreateKeyPattern(nil, nil, &namespace, nil)
 
 	var searchKeys []string

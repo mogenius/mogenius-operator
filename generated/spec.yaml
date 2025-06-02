@@ -2816,11 +2816,11 @@ cluster/helm-release-get-workloads:
                     whitelist:
                         elementType:
                             pointer: true
-                            structRef: mogenius-k8s-manager/src/utils.SyncResourceEntry
+                            structRef: mogenius-k8s-manager/src/utils.ResourceEntry
                             type: struct
                         type: array
-            mogenius-k8s-manager/src/utils.SyncResourceEntry:
-                name: mogenius-k8s-manager/src/utils.SyncResourceEntry
+            mogenius-k8s-manager/src/utils.ResourceEntry:
+                name: mogenius-k8s-manager/src/utils.ResourceEntry
                 properties:
                     group:
                         type: string
@@ -3985,8 +3985,8 @@ create/grant:
 create/new-workload:
     requestSchema:
         structs:
-            mogenius-k8s-manager/src/utils.SyncResourceData:
-                name: mogenius-k8s-manager/src/utils.SyncResourceData
+            mogenius-k8s-manager/src/utils.ResourceData:
+                name: mogenius-k8s-manager/src/utils.ResourceData
                 properties:
                     group:
                         type: string
@@ -4002,7 +4002,7 @@ create/new-workload:
                     yamlData:
                         type: string
         typeInfo:
-            structRef: mogenius-k8s-manager/src/utils.SyncResourceData
+            structRef: mogenius-k8s-manager/src/utils.ResourceData
             type: struct
     responseSchema:
         structs:
@@ -4101,8 +4101,8 @@ delete/user:
 delete/workload:
     requestSchema:
         structs:
-            mogenius-k8s-manager/src/utils.SyncResourceItem:
-                name: mogenius-k8s-manager/src/utils.SyncResourceItem
+            mogenius-k8s-manager/src/utils.ResourceItem:
+                name: mogenius-k8s-manager/src/utils.ResourceItem
                 properties:
                     group:
                         type: string
@@ -4117,7 +4117,7 @@ delete/workload:
                     version:
                         type: string
         typeInfo:
-            structRef: mogenius-k8s-manager/src/utils.SyncResourceItem
+            structRef: mogenius-k8s-manager/src/utils.ResourceItem
             type: struct
     responseSchema:
         structs:
@@ -4263,8 +4263,8 @@ describe:
 describe/workload:
     requestSchema:
         structs:
-            mogenius-k8s-manager/src/utils.SyncResourceItem:
-                name: mogenius-k8s-manager/src/utils.SyncResourceItem
+            mogenius-k8s-manager/src/utils.ResourceItem:
+                name: mogenius-k8s-manager/src/utils.ResourceItem
                 properties:
                     group:
                         type: string
@@ -4279,7 +4279,7 @@ describe/workload:
                     version:
                         type: string
         typeInfo:
-            structRef: mogenius-k8s-manager/src/utils.SyncResourceItem
+            structRef: mogenius-k8s-manager/src/utils.ResourceItem
             type: struct
     responseSchema:
         typeInfo:
@@ -5019,7 +5019,7 @@ get/labeled-workload-list:
                     blacklist:
                         elementType:
                             pointer: true
-                            structRef: mogenius-k8s-manager/src/utils.SyncResourceEntry
+                            structRef: mogenius-k8s-manager/src/utils.ResourceEntry
                             type: struct
                         type: array
                     label:
@@ -5027,11 +5027,11 @@ get/labeled-workload-list:
                     whitelist:
                         elementType:
                             pointer: true
-                            structRef: mogenius-k8s-manager/src/utils.SyncResourceEntry
+                            structRef: mogenius-k8s-manager/src/utils.ResourceEntry
                             type: struct
                         type: array
-            mogenius-k8s-manager/src/utils.SyncResourceEntry:
-                name: mogenius-k8s-manager/src/utils.SyncResourceEntry
+            mogenius-k8s-manager/src/utils.ResourceEntry:
+                name: mogenius-k8s-manager/src/utils.ResourceEntry
                 properties:
                     group:
                         type: string
@@ -5086,7 +5086,7 @@ get/namespace-workload-list:
                     blacklist:
                         elementType:
                             pointer: true
-                            structRef: mogenius-k8s-manager/src/utils.SyncResourceEntry
+                            structRef: mogenius-k8s-manager/src/utils.ResourceEntry
                             type: struct
                         type: array
                     namespace:
@@ -5094,11 +5094,11 @@ get/namespace-workload-list:
                     whitelist:
                         elementType:
                             pointer: true
-                            structRef: mogenius-k8s-manager/src/utils.SyncResourceEntry
+                            structRef: mogenius-k8s-manager/src/utils.ResourceEntry
                             type: struct
                         type: array
-            mogenius-k8s-manager/src/utils.SyncResourceEntry:
-                name: mogenius-k8s-manager/src/utils.SyncResourceEntry
+            mogenius-k8s-manager/src/utils.ResourceEntry:
+                name: mogenius-k8s-manager/src/utils.ResourceEntry
                 properties:
                     group:
                         type: string
@@ -5474,8 +5474,8 @@ get/users:
 get/workload:
     requestSchema:
         structs:
-            mogenius-k8s-manager/src/utils.SyncResourceItem:
-                name: mogenius-k8s-manager/src/utils.SyncResourceItem
+            mogenius-k8s-manager/src/utils.ResourceItem:
+                name: mogenius-k8s-manager/src/utils.ResourceItem
                 properties:
                     group:
                         type: string
@@ -5490,7 +5490,7 @@ get/workload:
                     version:
                         type: string
         typeInfo:
-            structRef: mogenius-k8s-manager/src/utils.SyncResourceItem
+            structRef: mogenius-k8s-manager/src/utils.ResourceItem
             type: struct
     responseSchema:
         structs:
@@ -5511,8 +5511,8 @@ get/workload:
 get/workload-example:
     requestSchema:
         structs:
-            mogenius-k8s-manager/src/utils.SyncResourceItem:
-                name: mogenius-k8s-manager/src/utils.SyncResourceItem
+            mogenius-k8s-manager/src/utils.ResourceItem:
+                name: mogenius-k8s-manager/src/utils.ResourceItem
                 properties:
                     group:
                         type: string
@@ -5527,7 +5527,7 @@ get/workload-example:
                     version:
                         type: string
         typeInfo:
-            structRef: mogenius-k8s-manager/src/utils.SyncResourceItem
+            structRef: mogenius-k8s-manager/src/utils.ResourceItem
             type: struct
     responseSchema:
         typeInfo:
@@ -5535,8 +5535,8 @@ get/workload-example:
 get/workload-list:
     requestSchema:
         structs:
-            mogenius-k8s-manager/src/utils.SyncResourceEntry:
-                name: mogenius-k8s-manager/src/utils.SyncResourceEntry
+            mogenius-k8s-manager/src/utils.ResourceEntry:
+                name: mogenius-k8s-manager/src/utils.ResourceEntry
                 properties:
                     group:
                         type: string
@@ -5550,7 +5550,7 @@ get/workload-list:
                     version:
                         type: string
         typeInfo:
-            structRef: mogenius-k8s-manager/src/utils.SyncResourceEntry
+            structRef: mogenius-k8s-manager/src/utils.ResourceEntry
             type: struct
     responseSchema:
         structs:
@@ -5611,15 +5611,15 @@ get/workload-status:
                         type: array
                     resourceEntity:
                         pointer: true
-                        structRef: mogenius-k8s-manager/src/utils.SyncResourceEntry
+                        structRef: mogenius-k8s-manager/src/utils.ResourceEntry
                         type: struct
                     resourceNames:
                         elementType:
                             type: string
                         pointer: true
                         type: array
-            mogenius-k8s-manager/src/utils.SyncResourceEntry:
-                name: mogenius-k8s-manager/src/utils.SyncResourceEntry
+            mogenius-k8s-manager/src/utils.ResourceEntry:
+                name: mogenius-k8s-manager/src/utils.ResourceEntry
                 properties:
                     group:
                         type: string
@@ -5938,7 +5938,7 @@ get/workspace-workloads:
                     blacklist:
                         elementType:
                             pointer: true
-                            structRef: mogenius-k8s-manager/src/utils.SyncResourceEntry
+                            structRef: mogenius-k8s-manager/src/utils.ResourceEntry
                             type: struct
                         type: array
                     namespaceWhitelist:
@@ -5948,13 +5948,13 @@ get/workspace-workloads:
                     whitelist:
                         elementType:
                             pointer: true
-                            structRef: mogenius-k8s-manager/src/utils.SyncResourceEntry
+                            structRef: mogenius-k8s-manager/src/utils.ResourceEntry
                             type: struct
                         type: array
                     workspaceName:
                         type: string
-            mogenius-k8s-manager/src/utils.SyncResourceEntry:
-                name: mogenius-k8s-manager/src/utils.SyncResourceEntry
+            mogenius-k8s-manager/src/utils.ResourceEntry:
+                name: mogenius-k8s-manager/src/utils.ResourceEntry
                 properties:
                     group:
                         type: string
@@ -6119,8 +6119,8 @@ list/all-workloads:
             type: struct
     responseSchema:
         structs:
-            mogenius-k8s-manager/src/utils.SyncResourceEntry:
-                name: mogenius-k8s-manager/src/utils.SyncResourceEntry
+            mogenius-k8s-manager/src/utils.ResourceEntry:
+                name: mogenius-k8s-manager/src/utils.ResourceEntry
                 properties:
                     group:
                         type: string
@@ -6135,7 +6135,7 @@ list/all-workloads:
                         type: string
         typeInfo:
             elementType:
-                structRef: mogenius-k8s-manager/src/utils.SyncResourceEntry
+                structRef: mogenius-k8s-manager/src/utils.ResourceEntry
                 type: struct
             type: array
 list/all_network_policies:
@@ -13890,8 +13890,8 @@ storage/status:
 trigger/workload:
     requestSchema:
         structs:
-            mogenius-k8s-manager/src/utils.SyncResourceItem:
-                name: mogenius-k8s-manager/src/utils.SyncResourceItem
+            mogenius-k8s-manager/src/utils.ResourceItem:
+                name: mogenius-k8s-manager/src/utils.ResourceItem
                 properties:
                     group:
                         type: string
@@ -13906,7 +13906,7 @@ trigger/workload:
                     version:
                         type: string
         typeInfo:
-            structRef: mogenius-k8s-manager/src/utils.SyncResourceItem
+            structRef: mogenius-k8s-manager/src/utils.ResourceItem
             type: struct
     responseSchema:
         structs:
@@ -14068,8 +14068,8 @@ update/user:
 update/workload:
     requestSchema:
         structs:
-            mogenius-k8s-manager/src/utils.SyncResourceData:
-                name: mogenius-k8s-manager/src/utils.SyncResourceData
+            mogenius-k8s-manager/src/utils.ResourceData:
+                name: mogenius-k8s-manager/src/utils.ResourceData
                 properties:
                     group:
                         type: string
@@ -14085,7 +14085,7 @@ update/workload:
                     yamlData:
                         type: string
         typeInfo:
-            structRef: mogenius-k8s-manager/src/utils.SyncResourceData
+            structRef: mogenius-k8s-manager/src/utils.ResourceData
             type: struct
     responseSchema:
         structs:

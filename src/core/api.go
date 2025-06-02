@@ -68,7 +68,7 @@ type Api interface {
 	UpdateGrant(name string, spec v1alpha1.GrantSpec) (string, error)
 	DeleteGrant(name string) (string, error)
 
-	GetWorkspaceResources(workspaceName string, whitelist []*utils.SyncResourceEntry, blacklist []*utils.SyncResourceEntry, namespaceWhitelist []string) ([]unstructured.Unstructured, error)
+	GetWorkspaceResources(workspaceName string, whitelist []*utils.ResourceEntry, blacklist []*utils.ResourceEntry, namespaceWhitelist []string) ([]unstructured.Unstructured, error)
 	GetWorkspaceControllers(workspaceName string) ([]unstructured.Unstructured, error)
 
 	Link(workspaceManager WorkspaceManager)
@@ -260,7 +260,7 @@ func (self *api) DeleteGrant(name string) (string, error) {
 	return "Resource deleted successfully", nil
 }
 
-func (self *api) GetWorkspaceResources(workspaceName string, whitelist []*utils.SyncResourceEntry, blacklist []*utils.SyncResourceEntry, namespaceWhitelist []string) ([]unstructured.Unstructured, error) {
+func (self *api) GetWorkspaceResources(workspaceName string, whitelist []*utils.ResourceEntry, blacklist []*utils.ResourceEntry, namespaceWhitelist []string) ([]unstructured.Unstructured, error) {
 	result := []unstructured.Unstructured{}
 
 	// Get workspace
@@ -305,7 +305,7 @@ func (self *api) GetWorkspaceResources(workspaceName string, whitelist []*utils.
 }
 
 func (self *api) GetWorkspaceControllers(workspaceName string) ([]unstructured.Unstructured, error) {
-	whiteList := []*utils.SyncResourceEntry{
+	whiteList := []*utils.ResourceEntry{
 		&utils.DaemonSetResource,
 		&utils.StatefulSetResource,
 		&utils.DeploymentResource,
