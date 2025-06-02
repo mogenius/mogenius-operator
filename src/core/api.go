@@ -69,7 +69,7 @@ type Api interface {
 	DeleteGrant(name string) (string, error)
 
 	GetWorkspaceResources(workspaceName string, whitelist []*utils.SyncResourceEntry, blacklist []*utils.SyncResourceEntry, namespaceWhitelist []string) ([]unstructured.Unstructured, error)
-	GetWorkspaceControllers(workspaceName string, whitelist []*utils.SyncResourceEntry, blacklist []*utils.SyncResourceEntry, namespaceWhitelist []string) ([]unstructured.Unstructured, error)
+	GetWorkspaceControllers(workspaceName string) ([]unstructured.Unstructured, error)
 
 	Link(workspaceManager WorkspaceManager)
 }
@@ -304,16 +304,13 @@ func (self *api) GetWorkspaceResources(workspaceName string, whitelist []*utils.
 	return result, nil
 }
 
-func (self *api) GetWorkspaceControllers(workspaceName string, whitelist []*utils.SyncResourceEntry, blacklist []*utils.SyncResourceEntry, namespaceWhitelist []string) ([]unstructured.Unstructured, error) {
-	result := []unstructured.Unstructured{}
-	res, err := self.GetWorkspaceResources(workspaceName, whitelist, blacklist, namespaceWhitelist)
-
-	for _, v := range res {
-		if v.GetKind() == "Deployment" || v.GetKind() == "StatefulSet" || v.GetKind() == "DaemonSet" {
-			result = append(result, v)
-		}
+func (self *api) GetWorkspaceControllers(workspaceName string) ([]unstructured.Unstructured, error) {
+	whiteList := []*utils.SyncResourceEntry{
+		&utils.DaemonSetResource,
+		&utils.StatefulSetResource,
+		&utils.DeploymentResource,
 	}
-	return result, err
+	return self.GetWorkspaceResources(workspaceName, whiteList, nil, nil)
 }
 
 func appendIfNotExists(list []unstructured.Unstructured, item ...unstructured.Unstructured) []unstructured.Unstructured {

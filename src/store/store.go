@@ -142,17 +142,7 @@ func CreateKeyPattern(groupVersion, kind, namespace, name *string) string {
 func ListNetworkPolicies(valkeyClient valkeyclient.ValkeyClient, namespace string) ([]networkingV1.NetworkPolicy, error) {
 	result := []networkingV1.NetworkPolicy{}
 
-	// TODO replace with GetAvailableResources in the future
-	resourceNamespace := ""
-	resource := utils.SyncResourceEntry{
-		Kind:      "NetworkPolicy",
-		Name:      "networkpolicies",
-		Namespace: &resourceNamespace,
-		Group:     "networking.k8s.io/v1",
-		Version:   "",
-	}
-
-	policies, err := valkeyclient.GetObjectsByPrefix[networkingV1.NetworkPolicy](valkeyClient, valkeyclient.ORDER_NONE, VALKEY_RESOURCE_PREFIX, resource.Group, "NetworkPolicy", namespace)
+	policies, err := valkeyclient.GetObjectsByPrefix[networkingV1.NetworkPolicy](valkeyClient, valkeyclient.ORDER_NONE, VALKEY_RESOURCE_PREFIX, utils.NetworkPolicyResource.Group, "NetworkPolicy", namespace)
 	if err != nil {
 		return result, err
 	}
@@ -190,17 +180,7 @@ func ListEvents(valkeyClient valkeyclient.ValkeyClient, namespace string) ([]cor
 func ListPods(valkeyClient valkeyclient.ValkeyClient, parts ...string) ([]coreV1.Pod, error) {
 	result := []coreV1.Pod{}
 
-	// TODO replace with GetAvailableResources in the future
-	resourceNamespace := ""
-	resource := utils.SyncResourceEntry{
-		Kind:      "Pod",
-		Name:      "pods",
-		Namespace: &resourceNamespace,
-		Group:     "v1",
-		Version:   "",
-	}
-
-	args := append([]string{VALKEY_RESOURCE_PREFIX, resource.Group, "Pod"}, parts...)
+	args := append([]string{VALKEY_RESOURCE_PREFIX, utils.PodResource.Group, "Pod"}, parts...)
 	pods, err := valkeyclient.GetObjectsByPrefix[coreV1.Pod](valkeyClient, valkeyclient.ORDER_NONE, args...)
 	if err != nil {
 		return result, err
@@ -212,17 +192,7 @@ func ListPods(valkeyClient valkeyclient.ValkeyClient, parts ...string) ([]coreV1
 func ListAllNamespaces(valkeyClient valkeyclient.ValkeyClient) ([]coreV1.Namespace, error) {
 	result := []coreV1.Namespace{}
 
-	// TODO replace with GetAvailableResources in the future
-	resourceNamespace := ""
-	resource := utils.SyncResourceEntry{
-		Kind:      "Namespace",
-		Name:      "namespaces",
-		Namespace: &resourceNamespace,
-		Group:     "v1",
-		Version:   "",
-	}
-
-	namespaces, err := valkeyclient.GetObjectsByPrefix[coreV1.Namespace](valkeyClient, valkeyclient.ORDER_NONE, VALKEY_RESOURCE_PREFIX, resource.Group, "Namespace")
+	namespaces, err := valkeyclient.GetObjectsByPrefix[coreV1.Namespace](valkeyClient, valkeyclient.ORDER_NONE, VALKEY_RESOURCE_PREFIX, utils.NamespaceResource.Group, "Namespace")
 	if err != nil {
 		return result, err
 	}
@@ -231,15 +201,7 @@ func ListAllNamespaces(valkeyClient valkeyclient.ValkeyClient) ([]coreV1.Namespa
 }
 
 func GetNamespace(valkeyClient valkeyclient.ValkeyClient, name string, logger *slog.Logger) *coreV1.Namespace {
-	// TODO replace with GetAvailableResources in the future
-	resource := utils.SyncResourceEntry{
-		Kind:    "Namespace",
-		Name:    "namespaces",
-		Group:   "v1",
-		Version: "",
-	}
-
-	namespace, err := valkeyclient.GetObjectForKey[coreV1.Namespace](valkeyClient, VALKEY_RESOURCE_PREFIX, resource.Group, resource.Kind, "", name)
+	namespace, err := valkeyclient.GetObjectForKey[coreV1.Namespace](valkeyClient, VALKEY_RESOURCE_PREFIX, utils.NamespaceResource.Group, utils.NamespaceResource.Kind, "", name)
 	if err != nil {
 		logger.Error("failed to get namespace", "name", name, "error", err)
 		return nil

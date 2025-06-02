@@ -654,7 +654,7 @@ func (self *socketApi) registerPatterns() {
 			PatternHandle{self, "stats/workspace-cpu-utilization"},
 			PatternConfig{},
 			func(request Request) ([]GenericChartEntry, error) {
-				resources, err := self.apiService.GetWorkspaceControllers(request.WorkspaceName, nil, nil, []string{})
+				resources, err := self.apiService.GetWorkspaceControllers(request.WorkspaceName)
 				if err != nil {
 					return nil, err
 				}
@@ -666,7 +666,7 @@ func (self *socketApi) registerPatterns() {
 			PatternHandle{self, "stats/workspace-memory-utilization"},
 			PatternConfig{},
 			func(request Request) ([]GenericChartEntry, error) {
-				resources, err := self.apiService.GetWorkspaceControllers(request.WorkspaceName, nil, nil, []string{})
+				resources, err := self.apiService.GetWorkspaceControllers(request.WorkspaceName)
 				if err != nil {
 					return nil, err
 				}
@@ -678,7 +678,7 @@ func (self *socketApi) registerPatterns() {
 			PatternHandle{self, "stats/workspace-traffic-utilization"},
 			PatternConfig{},
 			func(request Request) ([]GenericChartEntry, error) {
-				resources, err := self.apiService.GetWorkspaceControllers(request.WorkspaceName, nil, nil, []string{})
+				resources, err := self.apiService.GetWorkspaceControllers(request.WorkspaceName)
 				if err != nil {
 					return nil, err
 				}

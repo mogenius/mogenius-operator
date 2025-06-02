@@ -40,6 +40,64 @@ type SyncResourceItem struct {
 	Namespace    string `json:"namespace"`
 }
 
+var DeploymentResource = SyncResourceEntry{
+	Kind:  "Deployment",
+	Name:  "deployments",
+	Group: "apps/v1",
+}
+var StatefulSetResource = SyncResourceEntry{
+	Kind:  "StatefulSet",
+	Name:  "statefulsets",
+	Group: "apps/v1",
+}
+var DaemonSetResource = SyncResourceEntry{
+	Kind:  "DaemonSet",
+	Name:  "daemonsets",
+	Group: "apps/v1",
+}
+
+var JobResource = SyncResourceEntry{
+	Kind:  "Job",
+	Name:  "jobs",
+	Group: "batch/v1",
+}
+
+var CronJobResource = SyncResourceEntry{
+	Kind:  "CronJob",
+	Name:  "cronjobs",
+	Group: "batch/v1",
+}
+
+var ReplicaSetResource = SyncResourceEntry{
+	Kind:  "ReplicaSet",
+	Name:  "replicasets",
+	Group: "apps/v1",
+}
+
+var NetworkPolicyResource = SyncResourceEntry{
+	Kind:  "NetworkPolicy",
+	Name:  "networkpolicies",
+	Group: "networking.k8s.io/v1",
+}
+
+var PodResource = SyncResourceEntry{
+	Kind:  "Pod",
+	Name:  "pods",
+	Group: "v1",
+}
+
+var NamespaceResource = SyncResourceEntry{
+	Kind:  "Namespace",
+	Name:  "namespaces",
+	Group: "v1",
+}
+
+var EventResource = SyncResourceEntry{
+	Kind:  "Event",
+	Name:  "events",
+	Group: "v1",
+}
+
 const STAGE_DEV = "dev"
 const STAGE_PROD = "prod"
 const STAGE_LOCAL = "local"
