@@ -147,27 +147,6 @@ func generateService(existingService *v1.Service, namespace dtos.K8sNamespaceDto
 	return *newService
 }
 
-func ServiceWithLabels(labelSelector string) *v1.Service {
-	clientset := clientProvider.K8sClientSet()
-	namespace := ""
-	serviceClient := clientset.CoreV1().Services(namespace)
-	service, err := serviceClient.List(context.TODO(), metav1.ListOptions{LabelSelector: labelSelector})
-	if err != nil {
-		k8sLogger.Error("ServiceFor: failed to list services", "namespace", namespace, "labelSelector", labelSelector, "error", err)
-		return nil
-	}
-
-	if len(service.Items) == 1 {
-		return &service.Items[0]
-	} else if len(service.Items) > 1 {
-		k8sLogger.Error("ServiceFor: More than one service found. Returning first one.", "amountFoundServices", len(service.Items), "labelSelector", labelSelector)
-		return &service.Items[0]
-	} else {
-		k8sLogger.Error("ServiceFor: No service found for labelSelector.", "labelSelector", labelSelector)
-		return nil
-	}
-}
-
 func ServiceFor(namespace string, serviceName string) *v1.Service {
 	clientset := clientProvider.K8sClientSet()
 	serviceClient := clientset.CoreV1().Services(namespace)

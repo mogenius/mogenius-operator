@@ -24,23 +24,6 @@ func GetPod(namespace string, podName string) *v1.Pod {
 	return pod
 }
 
-func KeplerPod() *v1.Pod {
-	clientset := clientProvider.K8sClientSet()
-	podClient := clientset.CoreV1().Pods("")
-	labelSelector := "app.kubernetes.io/component=exporter,app.kubernetes.io/name=kepler"
-	pods, err := podClient.List(context.TODO(), metav1.ListOptions{LabelSelector: labelSelector})
-	if err != nil {
-		k8sLogger.Error("failed to list kepler pods", "labelSelector", labelSelector, "error", err.Error())
-		return nil
-	}
-	for _, pod := range pods.Items {
-		if pod.GenerateName == "kepler-" {
-			return &pod
-		}
-	}
-	return nil
-}
-
 type ServicePodExistsResult struct {
 	PodExists bool `json:"podExists"`
 }
@@ -77,15 +60,6 @@ func AllPodsOnNode(nodeName string) []v1.Pod {
 		result = append(result, pod)
 	}
 
-	return result
-}
-
-func AllPodNames() []string {
-	result := []string{}
-	allPods := AllPods("")
-	for _, pod := range allPods {
-		result = append(result, pod.ObjectMeta.Name)
-	}
 	return result
 }
 

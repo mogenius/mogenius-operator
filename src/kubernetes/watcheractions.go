@@ -523,36 +523,6 @@ func GetResourcesNameForKind(kind string) (name string, err error) {
 	return "", fmt.Errorf("resource not found for name %s", name)
 }
 
-func GetAvailableResourcesSerialized() string {
-	resources, err := GetAvailableResources()
-	if err != nil {
-		k8sLogger.Error("Error updating available resources", "error", err)
-		return ""
-	}
-
-	bytes, err := yaml.Marshal(resources)
-	if err != nil {
-		k8sLogger.Error("Error serializing available resources", "error", err)
-		return ""
-	}
-
-	return string(bytes)
-}
-
-func GetSyncResourcesFromString(resourcesStr string) ([]utils.SyncResourceEntry, error) {
-	var resources []utils.SyncResourceEntry
-	err := yaml.Unmarshal([]byte(resourcesStr), &resources)
-	if err != nil {
-		return nil, err
-	}
-
-	return resources, nil
-}
-
-func CommaSeperatedStringToArray(str string) []string {
-	return strings.Split(str, ",")
-}
-
 func CreateGroupVersionResource(group string, version string, name string) schema.GroupVersionResource {
 	// for core apis we need change the group to empty string
 	if group == "v1" && version == "" {

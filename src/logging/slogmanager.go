@@ -43,11 +43,6 @@ type slogManager struct {
 	combinedLogWriter io.Writer
 }
 
-type SlogManagerOpts struct {
-	LogLevel           slog.Level
-	AdditionalHandlers []slog.Handler
-}
-
 func NewSlogManager(logLevel slog.Level, handlers []slog.Handler) SlogManager {
 	self := slogManager{}
 

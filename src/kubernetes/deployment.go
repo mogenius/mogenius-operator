@@ -427,40 +427,6 @@ func createDeploymentHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sSer
 	return objectMeta, &SpecDeployment{spec, previousSpec}, &newDeployment, nil
 }
 
-func UpdateDeploymentImage(namespaceName string, controllerName string, containerName string, imageName string) error {
-	clientset := clientProvider.K8sClientSet()
-	deploymentClient := clientset.AppsV1().Deployments(namespaceName)
-	deploymentToUpdate, err := deploymentClient.Get(context.TODO(), controllerName, metav1.GetOptions{})
-	if err != nil {
-		return err
-	}
-
-	// SET NEW IMAGE
-	for index, container := range deploymentToUpdate.Spec.Template.Spec.Containers {
-		if container.Name == containerName {
-			deploymentToUpdate.Spec.Template.Spec.Containers[index].Image = imageName
-		}
-	}
-
-	_, err = deploymentClient.Update(context.TODO(), deploymentToUpdate, metav1.UpdateOptions{})
-	return err
-}
-
-func GetDeploymentImage(namespaceName string, controllerName string, containerName string) (string, error) {
-	clientset := clientProvider.K8sClientSet()
-	deploymentClient := clientset.AppsV1().Deployments(namespaceName)
-	deploymentToUpdate, err := deploymentClient.Get(context.TODO(), controllerName, metav1.GetOptions{})
-	if err != nil {
-		return "", err
-	}
-	for _, container := range deploymentToUpdate.Spec.Template.Spec.Containers {
-		if container.Name == containerName {
-			return container.Image, nil
-		}
-	}
-	return "", fmt.Errorf("container '%s' not found in Deployment '%s'", containerName, controllerName)
-}
-
 func GetDeploymentsWithFieldSelector(namespace string, labelSelector string) ([]v1.Deployment, error) {
 	result := []v1.Deployment{}
 	clientset := clientProvider.K8sClientSet()

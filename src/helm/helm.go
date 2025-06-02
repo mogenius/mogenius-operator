@@ -271,21 +271,7 @@ func HelmStatus(namespace string, chartname string) release.Status {
 	}
 }
 
-//
-//
-//
-//
 // NEW CODE
-//
-//
-//
-//
-
-type IndexFile struct {
-	APIVersion string                 `yaml:"apiVersion"`
-	Entries    map[string]interface{} `yaml:"entries"`
-}
-
 func parseHelmEntry(entry *repo.Entry) *HelmEntryWithoutPassword {
 	return &HelmEntryWithoutPassword{
 		Name:                  entry.Name,

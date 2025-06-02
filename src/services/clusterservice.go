@@ -230,13 +230,6 @@ type ClusterHelmUninstallRequest struct {
 	HelmReleaseName string `json:"helmReleaseName" validate:"required"`
 }
 
-type ClusterWriteConfigMap struct {
-	Namespace string            `json:"namespace" validate:"required"`
-	Name      string            `json:"name" validate:"required"`
-	Labels    map[string]string `json:"labels" validate:"required"`
-	Data      string            `json:"data" validate:"required"`
-}
-
 type ClusterListWorkloads struct {
 	Namespace     string `json:"namespace"`
 	LabelSelector string `json:"labelSelector"`
@@ -246,25 +239,6 @@ type ClusterListWorkloads struct {
 type ClusterUpdateLocalTlsSecret struct {
 	LocalTlsCrt string `json:"localTlsCrt" validate:"required"`
 	LocalTlsKey string `json:"localTlsKey" validate:"required"`
-}
-
-type ClusterGetConfigMap struct {
-	Namespace string `json:"namespace" validate:"required"`
-	Name      string `json:"name" validate:"required"`
-}
-
-type ClusterGetDeployment struct {
-	Namespace string `json:"namespace" validate:"required"`
-	Name      string `json:"name" validate:"required"`
-}
-
-type ClusterGetPersistentVolume struct {
-	Namespace string `json:"namespace" validate:"required"`
-	Name      string `json:"name" validate:"required"`
-}
-
-type NfsStorageInstallRequest struct {
-	ClusterProvider utils.KubernetesProvider `json:"clusterProvider"`
 }
 
 type NfsVolumeRequest struct {

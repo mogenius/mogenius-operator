@@ -40,11 +40,9 @@ import (
 
 var CLI struct {
 	// Commands
-	Clean       struct{}        `cmd:"" help:"remove the operator from the cluster"`
 	Cluster     struct{}        `cmd:"" help:"start the operator"`
 	Nodemetrics nodeMetricsArgs `cmd:"" help:"start the node metrics collector"`
 	Config      struct{}        `cmd:"" help:"print application config in ENV format"`
-	Install     struct{}        `cmd:"" help:"install the operator into your cluster"`
 	System      struct{}        `cmd:"" help:"check the system for all required components and offer healing"`
 	Version     struct{}        `cmd:"" help:"print version information" default:"1"`
 	Patterns    patternsArgs    `cmd:"" help:"print patterns to shell"`
@@ -134,23 +132,11 @@ func Run() error {
 	//======================= Execute Command =======================
 	//===============================================================
 	switch ctx.Command() {
-	case "clean":
-		err := RunClean(slogManager, configModule, cmdLogger, channelHandler.GetRecordChannel())
-		if err != nil {
-			return err
-		}
-		return nil
 	case "cluster":
 		RunCluster(slogManager, configModule, cmdLogger, channelHandler.GetRecordChannel())
 		return nil
 	case "nodemetrics":
 		RunNodeMetrics(&CLI.Nodemetrics, slogManager, configModule, cmdLogger, channelHandler.GetRecordChannel())
-		return nil
-	case "install":
-		err := RunInstall(slogManager, configModule, cmdLogger, channelHandler.GetRecordChannel())
-		if err != nil {
-			return err
-		}
 		return nil
 	case "system":
 		err := RunSystem(slogManager, configModule, cmdLogger, channelHandler.GetRecordChannel())

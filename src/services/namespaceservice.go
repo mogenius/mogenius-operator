@@ -6,8 +6,6 @@ import (
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/websocket"
 	"sync"
-
-	"helm.sh/helm/v3/pkg/action"
 )
 
 func CreateNamespace(eventClient websocket.WebsocketClient, r NamespaceCreateRequest) *structs.Job {
@@ -59,52 +57,6 @@ type NamespaceDeleteRequest struct {
 	Namespace dtos.K8sNamespaceDto `json:"namespace" validate:"required"`
 }
 
-type NamespaceShutdownRequest struct {
-	ProjectId string               `json:"projectId" validate:"required"`
-	Namespace dtos.K8sNamespaceDto `json:"namespace" validate:"required"`
-	Service   dtos.K8sServiceDto   `json:"service" validate:"required"`
-}
-
-type NamespacePodIdsRequest struct {
-	Namespace string `json:"namespace" validate:"required"`
-}
-
-type NamespaceValidateClusterPodsRequest struct {
-	DbPodNames []string `json:"dbPodNames" validate:"required"`
-}
-
-type NamespaceValidatePortsRequest struct {
-	Ports []dtos.NamespaceServicePortDto `json:"ports" validate:"required,dive"`
-}
-
-type NamespaceGatherAllResourcesRequest struct {
-	NamespaceName string `json:"namespaceName" validate:"required"`
-}
-
 type NamespaceBackupRequest struct {
 	NamespaceName string `json:"namespaceName" validate:"required"`
-}
-
-type NamespaceRestoreRequest struct {
-	NamespaceName string `json:"namespaceName" validate:"required"`
-	YamlData      string `json:"yamlData" validate:"required"`
-}
-
-type NamespaceResourceYamlRequest struct {
-	NamespaceName string   `json:"namespaceName" validate:"required"`
-	Resources     []string `json:"resources" validate:"required"`
-}
-
-type HelmDataRequest struct {
-	Namespace  string                  `json:"namespace,omitempty"`
-	Repo       string                  `json:"repo,omitempty"`
-	ChartUrl   string                  `json:"chartUrl,omitempty"`
-	Chart      string                  `json:"chart,omitempty"`
-	Version    string                  `json:"version,omitempty"`
-	Release    string                  `json:"release,omitempty"`
-	Values     string                  `json:"values,omitempty"`
-	DryRun     bool                    `json:"dryRun,omitempty"`
-	ShowFormat action.ShowOutputFormat `json:"format,omitempty"`    // "all" "chart" "values" "readme" "crds"
-	GetFormat  structs.HelmGetEnum     `json:"getFormat,omitempty"` // "all" "hooks" "manifest" "notes" "values"
-	Revision   int                     `json:"revision,omitempty"`
 }

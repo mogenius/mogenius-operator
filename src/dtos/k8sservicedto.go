@@ -40,25 +40,6 @@ func (k *K8sServiceDto) HasContainerWithGitRepo() bool {
 	return false
 }
 
-func (k *K8sServiceDto) HasSeedRepo() bool {
-	for _, v := range k.Containers {
-		if v.AppGitRepositoryCloneUrl != nil {
-			return true
-		}
-	}
-	return false
-}
-
-func (k *K8sServiceDto) HasPorts() bool {
-	// TODO REMOVE
-	//for _, v := range k.Containers {
-	//	if len(v.Ports) > 0 {
-	//		return true
-	//	}
-	//}
-	return len(k.Ports) > 0
-}
-
 func (k *K8sServiceDto) HpaEnabled() bool {
 	return k.HpaSettings != nil
 }
