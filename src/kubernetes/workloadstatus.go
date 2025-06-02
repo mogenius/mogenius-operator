@@ -437,14 +437,7 @@ func GetWorkloadStatus(requestData GetWorkloadStatusRequest) ([]WorkloadStatusDt
 	}
 
 	// get all events from the store
-	eventResource := utils.SyncResourceEntry{
-		Name:      "events",
-		Kind:      "Event",
-		Namespace: utils.Pointer(""),
-		Group:     "v1",
-		Version:   "",
-	}
-	eventUnstructuredList, err := GetUnstructuredResourceListFromStore(eventResource.Group, eventResource.Kind, eventResource.Version, eventResource.Name, eventResource.Namespace)
+	eventUnstructuredList, err := GetUnstructuredResourceListFromStore(utils.EventResource.Group, utils.EventResource.Kind, utils.EventResource.Version, utils.EventResource.Name, utils.Pointer(""))
 	var eventList []v1.Event
 	if err != nil {
 		eventList = []v1.Event{}

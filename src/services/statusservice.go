@@ -724,31 +724,13 @@ func kubernetesItems(valkeyClient valkeyclient.ValkeyClient, namespace string, n
 func controller(valkeyClient valkeyclient.ValkeyClient, namespace string, controllerName string, resourceController ResourceController) (interface{}, error) {
 	switch resourceController {
 	case Deployment:
-		// TODO replace with GetAvailableResources in the future
-		resourceNamespace := ""
-		resource := utils.SyncResourceEntry{
-			Kind:      "Deployment",
-			Name:      "deployments",
-			Namespace: &resourceNamespace,
-			Group:     "apps/v1",
-			Version:   "",
-		}
-		resourceInterface, err := store.GetByKeyParts[appsv1.Deployment](valkeyClient, store.VALKEY_RESOURCE_PREFIX, resource.Group, resourceController.String(), namespace, controllerName)
+		resourceInterface, err := store.GetByKeyParts[appsv1.Deployment](valkeyClient, store.VALKEY_RESOURCE_PREFIX, utils.DeploymentResource.Group, resourceController.String(), namespace, controllerName)
 		if err != nil {
 			return nil, err
 		}
 		return resourceInterface, nil
 	case ReplicaSet:
-		// TODO replace with GetAvailableResources in the future
-		resourceNamespace := ""
-		resource := utils.SyncResourceEntry{
-			Kind:      "ReplicaSet",
-			Name:      "replicasets",
-			Namespace: &resourceNamespace,
-			Group:     "apps/v1",
-			Version:   "",
-		}
-		resourceInterface, err := store.GetByKeyParts[appsv1.ReplicaSet](valkeyClient, store.VALKEY_RESOURCE_PREFIX, resource.Group, resourceController.String(), namespace, controllerName)
+		resourceInterface, err := store.GetByKeyParts[appsv1.ReplicaSet](valkeyClient, store.VALKEY_RESOURCE_PREFIX, utils.ReplicaSetResource.Group, resourceController.String(), namespace, controllerName)
 		if err != nil {
 			return nil, err
 		}
@@ -760,31 +742,13 @@ func controller(valkeyClient valkeyclient.ValkeyClient, namespace string, contro
 	// 	// ae: not used at the moment, old code
 	// 	resourceInterface, err = provider.ClientSet.AppsV1().DaemonSets(namespace).Get(context.TODO(), controllerName, metav1.GetOptions{})
 	case Job:
-		// TODO replace with GetAvailableResources in the future
-		resourceNamespace := ""
-		resource := utils.SyncResourceEntry{
-			Kind:      "Job",
-			Name:      "jobs",
-			Namespace: &resourceNamespace,
-			Group:     "batch/v1",
-			Version:   "",
-		}
-		resourceInterface, err := store.GetByKeyParts[batchv1.Job](valkeyClient, store.VALKEY_RESOURCE_PREFIX, resource.Group, resourceController.String(), namespace, controllerName)
+		resourceInterface, err := store.GetByKeyParts[batchv1.Job](valkeyClient, store.VALKEY_RESOURCE_PREFIX, utils.JobResource.Group, resourceController.String(), namespace, controllerName)
 		if err != nil {
 			return nil, err
 		}
 		return resourceInterface, nil
 	case CronJob:
-		// TODO replace with GetAvailableResources in the future
-		resourceNamespace := ""
-		resource := utils.SyncResourceEntry{
-			Kind:      "CronJob",
-			Name:      "cronjobs",
-			Namespace: &resourceNamespace,
-			Group:     "batch/v1",
-			Version:   "",
-		}
-		resourceInterface, err := store.GetByKeyParts[batchv1.CronJob](valkeyClient, store.VALKEY_RESOURCE_PREFIX, resource.Group, resourceController.String(), namespace, controllerName)
+		resourceInterface, err := store.GetByKeyParts[batchv1.CronJob](valkeyClient, store.VALKEY_RESOURCE_PREFIX, utils.CronJobResource.Group, resourceController.String(), namespace, controllerName)
 		if err != nil {
 			return nil, err
 		}

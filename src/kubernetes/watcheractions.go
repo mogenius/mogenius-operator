@@ -215,11 +215,8 @@ func GetUnstructuredNamespaceResourceList(namespace string, whitelist []*utils.S
 				continue
 			}
 			promise.RunArray(func() *[]unstructured.Unstructured {
-				if namespace == "harbor" && v.Kind == "Service" {
-					fmt.Println()
-				}
 				result := store.GetResourceByKindAndNamespace(valkeyClient, v.Group, v.Kind, namespace, k8sLogger)
-				if result != nil && len(result) > 0 {
+				if len(result) > 0 {
 					return &result
 				}
 				return nil
