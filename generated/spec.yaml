@@ -2636,6 +2636,8 @@ cluster/component-log-stream-connection-request:
                         type: string
                     cmdType:
                         type: string
+                    nodeName:
+                        type: string
                     websocketHost:
                         type: string
                     websocketScheme:
@@ -6940,6 +6942,8 @@ live-stream/nodes-cpu:
                         type: string
                     cmdType:
                         type: string
+                    nodeName:
+                        type: string
                     websocketHost:
                         type: string
                     websocketScheme:
@@ -6957,6 +6961,8 @@ live-stream/nodes-memory:
                         type: string
                     cmdType:
                         type: string
+                    nodeName:
+                        type: string
                     websocketHost:
                         type: string
                     websocketScheme:
@@ -6973,6 +6979,8 @@ live-stream/nodes-traffic:
                     channelId:
                         type: string
                     cmdType:
+                        type: string
+                    nodeName:
                         type: string
                     websocketHost:
                         type: string
@@ -8587,6 +8595,8 @@ service/exec-sh-connection-request:
                         type: string
                     cmdType:
                         type: string
+                    nodeName:
+                        type: string
                     websocketHost:
                         type: string
                     websocketScheme:
@@ -8620,6 +8630,8 @@ service/log-stream-connection-request:
                         type: string
                     cmdType:
                         type: string
+                    nodeName:
+                        type: string
                     websocketHost:
                         type: string
                     websocketScheme:
@@ -8646,6 +8658,8 @@ service/pod-event-stream-connection-request:
                     channelId:
                         type: string
                     cmdType:
+                        type: string
+                    nodeName:
                         type: string
                     websocketHost:
                         type: string
