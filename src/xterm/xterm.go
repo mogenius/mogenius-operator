@@ -44,7 +44,7 @@ type WsConnectionRequest struct {
 	ChannelId       string `json:"channelId" validate:"required"`
 	WebsocketScheme string `json:"websocketScheme" validate:"required"`
 	WebsocketHost   string `json:"websocketHost" validate:"required"`
-	NodeName        string `json:"nodeName" validate:"required"`
+	NodeName        string `json:"nodeName"`
 	CmdType         string `json:"cmdType"`
 }
 
