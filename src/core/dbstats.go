@@ -8,6 +8,7 @@ import (
 	"mogenius-k8s-manager/src/networkmonitor"
 	"mogenius-k8s-manager/src/store"
 	"mogenius-k8s-manager/src/structs"
+	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/valkeyclient"
 	"sort"
 	"time"
@@ -415,14 +416,26 @@ func (self *valkeyStatsDb) AddPodStatsToDb(stats []structs.PodStats) error {
 }
 
 func (self *valkeyStatsDb) AddNodeRamMetricsToDb(nodeName string, data interface{}) error {
+	err := self.valkey.GetRedisClient().Publish(self.valkey.GetContext(), DB_STATS_LIVE_BUCKET_NAME+":memory:"+nodeName, utils.PrintJson(data)).Err()
+	if err != nil {
+		self.logger.Error("Error publishing memory metrics to Redis", "error", err, "nodeName", nodeName)
+	}
 	return self.valkey.SetObject(data, 0, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_MEMORY_NAME, nodeName)
 }
 
 func (self *valkeyStatsDb) AddNodeCpuMetricsToDb(nodeName string, data interface{}) error {
+	err := self.valkey.GetRedisClient().Publish(self.valkey.GetContext(), DB_STATS_LIVE_BUCKET_NAME+":cpu:"+nodeName, utils.PrintJson(data)).Err()
+	if err != nil {
+		self.logger.Error("Error publishing CPU metrics to Redis", "error", err, "nodeName", nodeName)
+	}
 	return self.valkey.SetObject(data, 0, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_CPU_NAME, nodeName)
 }
 
 func (self *valkeyStatsDb) AddNodeTrafficMetricsToDb(nodeName string, data interface{}) error {
+	err := self.valkey.GetRedisClient().Publish(self.valkey.GetContext(), DB_STATS_LIVE_BUCKET_NAME+":traffic:"+nodeName, utils.PrintJson(data)).Err()
+	if err != nil {
+		self.logger.Error("Error publishing traffic metrics to Redis", "error", err, "nodeName", nodeName)
+	}
 	return self.valkey.SetObject(data, 0, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_TRAFFIC_NAME, nodeName)
 }
 

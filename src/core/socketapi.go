@@ -2001,7 +2001,7 @@ func (self *socketApi) registerPatterns() {
 			if err := self.LoadRequest(&datagram, &data); err != nil {
 				return err
 			}
-			go self.xtermService.LiveStreamConnection(data, datagram, self.httpService)
+			go self.xtermService.LiveStreamConnection(data, datagram, self.httpService, self.valkeyClient)
 			return nil
 		},
 	)
@@ -2016,7 +2016,7 @@ func (self *socketApi) registerPatterns() {
 			if err := self.LoadRequest(&datagram, &data); err != nil {
 				return err
 			}
-			go self.xtermService.LiveStreamConnection(data, datagram, self.httpService)
+			go self.xtermService.LiveStreamConnection(data, datagram, self.httpService, self.valkeyClient)
 			return nil
 		},
 	)
@@ -2031,7 +2031,7 @@ func (self *socketApi) registerPatterns() {
 			if err := self.LoadRequest(&datagram, &data); err != nil {
 				return err
 			}
-			go self.xtermService.LiveStreamConnection(data, datagram, self.httpService)
+			go self.xtermService.LiveStreamConnection(data, datagram, self.httpService, self.valkeyClient)
 			return nil
 		},
 	)

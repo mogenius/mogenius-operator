@@ -374,8 +374,8 @@ func (self *valkeyClient) ClearNonEssentialKeys(includeTraffic bool, includePodS
 }
 
 func (self *valkeyClient) SubscribeToBucket(bucketKey ...string) *redis.PubSub {
-	channelName := createChannel(bucketKey...)
-	return self.redisClient.Subscribe(self.ctx, channelName)
+	keyName := createChannel(bucketKey...)
+	return self.redisClient.Subscribe(self.ctx, keyName)
 }
 
 func (self *valkeyClient) DeleteSingle(keys ...string) error {
