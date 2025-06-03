@@ -451,9 +451,6 @@ func (self *valkeyStatsDb) Publish(data interface{}, keys ...string) {
 	key := strings.Join(keys, ":")
 	err := self.valkey.GetRedisClient().Publish(self.valkey.GetContext(), key, utils.PrintJson(data)).Err()
 
-	// XXX please remove
-	self.logger.Info("Publishing to Redis", "key", key)
-
 	if err != nil {
 		self.logger.Error("Error publishing to Redis", "error", err, "key", key)
 	}

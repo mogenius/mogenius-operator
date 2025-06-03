@@ -28,15 +28,15 @@ func NewXtermService(logger *slog.Logger) XtermService {
 	return self
 }
 
-func (self *xtermService) LiveStreamConnection(wsConnectionRequest xterm.WsConnectionRequest, datagram structs.Datagram, httpApi HttpService, store valkeyclient.ValkeyClient) {
+func (self *xtermService) LiveStreamConnection(conReq xterm.WsConnectionRequest, datagram structs.Datagram, httpApi HttpService, store valkeyclient.ValkeyClient) {
 	logger := self.logger.With("scope", "LiveStreamConnection")
 
 	var pubsub *redis.PubSub
 	switch datagram.Pattern {
 	case "live-stream/nodes-traffic":
-		pubsub = store.SubscribeToKey(DB_STATS_LIVE_BUCKET_NAME, "traffic", "homeserver")
+		pubsub = store.SubscribeToKey(DB_STATS_LIVE_BUCKET_NAME, "traffic", conReq.NodeName)
 	case "live-stream/nodes-memory":
-		pubsub = store.SubscribeToKey(DB_STATS_LIVE_BUCKET_NAME, "memory", "homeserver")
+		pubsub = store.SubscribeToKey(DB_STATS_LIVE_BUCKET_NAME, "memory", conReq.NodeName)
 	case "live-stream/nodes-cpu":
 		pubsub = store.SubscribeToKey(DB_STATS_LIVE_BUCKET_NAME, "cpu", "homeserver")
 	default:
@@ -45,21 +45,22 @@ func (self *xtermService) LiveStreamConnection(wsConnectionRequest xterm.WsConne
 	}
 	defer pubsub.Close()
 
-	if wsConnectionRequest.WebsocketScheme == "" {
+	if conReq.WebsocketScheme == "" {
 		logger.Error("WebsocketScheme is empty")
 		return
 	}
 
-	if wsConnectionRequest.WebsocketHost == "" {
+	if conReq.WebsocketHost == "" {
 		logger.Error("WebsocketHost is empty")
 		return
 	}
 
-	websocketUrl := url.URL{Scheme: wsConnectionRequest.WebsocketScheme, Host: wsConnectionRequest.WebsocketHost, Path: "/xterm-stream"}
+	websocketUrl := url.URL{Scheme: conReq.WebsocketScheme, Host: conReq.WebsocketHost, Path: "/xterm-stream"}
 	// context
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3600)
+	defer cancel()
 	// websocket connection
-	_, conn, connWriteLock, _, err := xterm.GenerateWsConnection(datagram.Pattern, "", "", "", "", websocketUrl, wsConnectionRequest, ctx, cancel)
+	_, conn, connWriteLock, _, err := xterm.GenerateWsConnection(datagram.Pattern, "", "", "", "", websocketUrl, conReq, ctx, cancel)
 	if err != nil {
 		logger.Error("Unable to connect to websocket", "error", err)
 		return
@@ -72,6 +73,8 @@ func (self *xtermService) LiveStreamConnection(wsConnectionRequest xterm.WsConne
 			connWriteLock.Unlock()
 			if err != nil {
 				logger.Error("WriteMessage Broadcast", "error", err)
+				cancel()       // Close the context to stop the connection
+				pubsub.Close() // Close the pubsub channel
 			}
 		}
 	})
@@ -96,8 +99,6 @@ func (self *xtermService) LiveStreamConnection(wsConnectionRequest xterm.WsConne
 			logger.Error("Unmarshal", "error", err)
 			continue
 		}
-		// XXX remove
-		logger.Info("Received message from pubsub", "pattern", datagram.Pattern)
 		httpApi.Broadcaster().BroadcastResponse(entry, datagram.Pattern)
 	}
 }

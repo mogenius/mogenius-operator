@@ -56,7 +56,7 @@ func (self *Watcher) Watch(logger *slog.Logger, resource WatcherResourceIdentifi
 		return fmt.Errorf("invalid groupVersion: %s", err)
 	}
 
-	informerFactory := dynamicinformer.NewFilteredDynamicSharedInformerFactory(dynamicClient, time.Minute*10, v1.NamespaceAll, nil)
+	informerFactory := dynamicinformer.NewFilteredDynamicSharedInformerFactory(dynamicClient, time.Minute*30, v1.NamespaceAll, nil)
 
 	resourceInformer := informerFactory.ForResource(CreateGroupVersionResource(gv.Group, gv.Version, resource.Name)).Informer()
 
@@ -95,6 +95,10 @@ func (self *Watcher) Watch(logger *slog.Logger, resource WatcherResourceIdentifi
 				body, _ := json.Marshal(newObj)
 				bodyString := string(body)
 				logger.Warn(`failed to deserialize`, "resourceJson", bodyString)
+				return
+			}
+			// Skip resync updates - same resource version means no actual change
+			if oldUnstructuredObj.GetResourceVersion() == newUnstructuredObj.GetResourceVersion() {
 				return
 			}
 			if onUpdate != nil {

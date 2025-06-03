@@ -65,7 +65,7 @@ func CreateDatagramNotificationFromJob(data *Job) Datagram {
 	return datagram
 }
 
-func CreateDatagramForClusterEvent(pattern string, group string, version string, kind string, namespace string, name string, resourceName string, eventType string) Datagram {
+func CreateDatagramForClusterEvent(pattern string, group string, version string, kind string, namespace string, name string, resourceName string, eventType string, uid string) Datagram {
 	datagram := Datagram{
 		Id:      utils.NanoId(),
 		Pattern: pattern,
@@ -78,6 +78,7 @@ func CreateDatagramForClusterEvent(pattern string, group string, version string,
 				"namespace":    namespace,
 				"name":         name,
 				"resourceName": resourceName,
+				"uid":          uid,
 			},
 		},
 		CreatedAt: time.Now(),

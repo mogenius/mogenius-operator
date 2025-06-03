@@ -381,8 +381,6 @@ func (self *valkeyClient) SubscribeToBucket(bucketKey ...string) *redis.PubSub {
 
 func (self *valkeyClient) SubscribeToKey(bucketKey ...string) *redis.PubSub {
 	keyName := createKey(bucketKey...)
-	// XXX remove
-	self.logger.Info("Subscribing to key", "key", keyName)
 	return self.redisClient.Subscribe(self.ctx, keyName)
 }
 
