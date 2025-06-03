@@ -33,6 +33,7 @@ type ValkeyClient interface {
 	LastNEntryFromBucketWithType(number int64, bucketKey ...string) ([]string, error)
 	DeleteFromBucketWithNsAndReleaseName(namespace string, releaseName string, bucketKey ...string) error
 	SubscribeToBucket(bucketKey ...string) *redis.PubSub
+	SubscribeToKey(key ...string) *redis.PubSub
 
 	ClearNonEssentialKeys(includeTraffic bool, includePodStats bool, includeNodestats bool) (string, error)
 
@@ -375,6 +376,13 @@ func (self *valkeyClient) ClearNonEssentialKeys(includeTraffic bool, includePodS
 
 func (self *valkeyClient) SubscribeToBucket(bucketKey ...string) *redis.PubSub {
 	keyName := createChannel(bucketKey...)
+	return self.redisClient.Subscribe(self.ctx, keyName)
+}
+
+func (self *valkeyClient) SubscribeToKey(bucketKey ...string) *redis.PubSub {
+	keyName := createKey(bucketKey...)
+	// XXX remove
+	self.logger.Info("Subscribing to key", "key", keyName)
 	return self.redisClient.Subscribe(self.ctx, keyName)
 }
 

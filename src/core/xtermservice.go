@@ -34,11 +34,11 @@ func (self *xtermService) LiveStreamConnection(wsConnectionRequest xterm.WsConne
 	var pubsub *redis.PubSub
 	switch datagram.Pattern {
 	case "live-stream/nodes-traffic":
-		pubsub = store.SubscribeToBucket(DB_STATS_LIVE_BUCKET_NAME, "traffic", "homeserver")
+		pubsub = store.SubscribeToKey(DB_STATS_LIVE_BUCKET_NAME, "traffic", "homeserver")
 	case "live-stream/nodes-memory":
-		pubsub = store.SubscribeToBucket(DB_STATS_LIVE_BUCKET_NAME, "memory", "homeserver")
+		pubsub = store.SubscribeToKey(DB_STATS_LIVE_BUCKET_NAME, "memory", "homeserver")
 	case "live-stream/nodes-cpu":
-		pubsub = store.SubscribeToBucket(DB_STATS_LIVE_BUCKET_NAME, "cpu", "homeserver")
+		pubsub = store.SubscribeToKey(DB_STATS_LIVE_BUCKET_NAME, "cpu", "homeserver")
 	default:
 		logger.Error("Unsupported pattern for LiveStreamConnection", "pattern", datagram.Pattern)
 		return
@@ -96,6 +96,8 @@ func (self *xtermService) LiveStreamConnection(wsConnectionRequest xterm.WsConne
 			logger.Error("Unmarshal", "error", err)
 			continue
 		}
+		// XXX remove
+		logger.Info("Received message from pubsub", "pattern", datagram.Pattern)
 		httpApi.Broadcaster().BroadcastResponse(entry, datagram.Pattern)
 	}
 }

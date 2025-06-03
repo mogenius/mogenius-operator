@@ -11,6 +11,7 @@ import (
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/valkeyclient"
 	"sort"
+	"strings"
 	"time"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -58,6 +59,7 @@ type ValkeyStatsDb interface {
 	GetWorkspaceStatsMemoryUtilization(timeOffsetInMinutes int, resources []unstructured.Unstructured) ([]GenericChartEntry, error)
 	GetWorkspaceStatsTrafficUtilization(timeOffsetInMinutes int, resources []unstructured.Unstructured) ([]GenericChartEntry, error)
 	ReplaceCniData(data []structs.CniData)
+	Publish(data interface{}, keys ...string)
 }
 
 type valkeyStatsDb struct {
@@ -416,26 +418,17 @@ func (self *valkeyStatsDb) AddPodStatsToDb(stats []structs.PodStats) error {
 }
 
 func (self *valkeyStatsDb) AddNodeRamMetricsToDb(nodeName string, data interface{}) error {
-	err := self.valkey.GetRedisClient().Publish(self.valkey.GetContext(), DB_STATS_LIVE_BUCKET_NAME+":memory:"+nodeName, utils.PrintJson(data)).Err()
-	if err != nil {
-		self.logger.Error("Error publishing memory metrics to Redis", "error", err, "nodeName", nodeName)
-	}
+	self.Publish(data, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_MEMORY_NAME, nodeName)
 	return self.valkey.SetObject(data, 0, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_MEMORY_NAME, nodeName)
 }
 
 func (self *valkeyStatsDb) AddNodeCpuMetricsToDb(nodeName string, data interface{}) error {
-	err := self.valkey.GetRedisClient().Publish(self.valkey.GetContext(), DB_STATS_LIVE_BUCKET_NAME+":cpu:"+nodeName, utils.PrintJson(data)).Err()
-	if err != nil {
-		self.logger.Error("Error publishing CPU metrics to Redis", "error", err, "nodeName", nodeName)
-	}
+	self.Publish(data, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_CPU_NAME, nodeName)
 	return self.valkey.SetObject(data, 0, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_CPU_NAME, nodeName)
 }
 
 func (self *valkeyStatsDb) AddNodeTrafficMetricsToDb(nodeName string, data interface{}) error {
-	err := self.valkey.GetRedisClient().Publish(self.valkey.GetContext(), DB_STATS_LIVE_BUCKET_NAME+":traffic:"+nodeName, utils.PrintJson(data)).Err()
-	if err != nil {
-		self.logger.Error("Error publishing traffic metrics to Redis", "error", err, "nodeName", nodeName)
-	}
+	self.Publish(data, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_TRAFFIC_NAME, nodeName)
 	return self.valkey.SetObject(data, 0, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_TRAFFIC_NAME, nodeName)
 }
 
@@ -452,6 +445,18 @@ func (self *valkeyStatsDb) AddNodeStatsToDb(stats []structs.NodeStats) error {
 		}
 	}
 	return nil
+}
+
+func (self *valkeyStatsDb) Publish(data interface{}, keys ...string) {
+	key := strings.Join(keys, ":")
+	err := self.valkey.GetRedisClient().Publish(self.valkey.GetContext(), key, utils.PrintJson(data)).Err()
+
+	// XXX please remove
+	self.logger.Info("Publishing to Redis", "key", key)
+
+	if err != nil {
+		self.logger.Error("Error publishing to Redis", "error", err, "key", key)
+	}
 }
 
 type GenericChartEntry struct {
