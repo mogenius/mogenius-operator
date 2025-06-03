@@ -17,8 +17,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var eventChannels = make(map[string]chan string)
-
 func writeEvent(conn *websocket.Conn, connWriteLock *sync.Mutex, event v1.Event) {
 	if conn != nil {
 		formattedTime := event.ObjectMeta.CreationTimestamp.Time.Format("2006-01-02 15:04:05")

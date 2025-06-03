@@ -12,20 +12,23 @@ import (
 type WorkspaceList struct {
 	metav1.TypeMeta `json:",inline"`
 
-	metav1.ListMeta `json:"metadata,omitempty"`
+	metav1.ListMeta `json:"metadata"`
 
 	Items []Workspace `json:"items"`
 }
 
+// A mogenius `Workspace` resource contains references to all resources included
+// in a workspace. In addition it contains a human-readable name for the workspace.
+//
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type Workspace struct {
 	metav1.TypeMeta `json:",inline"`
 
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+	metav1.ObjectMeta `json:"metadata"`
 
-	Spec WorkspaceSpec `json:"spec,omitempty"`
+	Spec WorkspaceSpec `json:"spec"`
 
-	Status WorkspaceStatus `json:"status,omitempty"`
+	Status WorkspaceStatus `json:"status"`
 }
 
 type WorkspaceSpec struct {
@@ -48,14 +51,6 @@ type WorkspaceResourceIdentifier struct {
 	Type string `json:"type,omitempty"`
 
 	Namespace string `json:"namespace,omitempty"`
-}
-
-func NewWorkspaceResourceIdentifier(id string, resourceType string, namespace string) WorkspaceResourceIdentifier {
-	return WorkspaceResourceIdentifier{
-		Id:        id,
-		Type:      resourceType,
-		Namespace: namespace,
-	}
 }
 
 type WorkspaceStatus struct{}

@@ -106,12 +106,6 @@ func (j *Job) AddCmd(eventClient websocket.WebsocketClient, cmd *Command) {
 	ReportCmdStateToServer(eventClient, j, cmd)
 }
 
-func (j *Job) AddCmds(eventClient websocket.WebsocketClient, cmds []*Command) {
-	for _, cmd := range cmds {
-		j.AddCmd(eventClient, cmd)
-	}
-}
-
 func ReportJobStateToServer(eventClient websocket.WebsocketClient, job *Job) {
 	stateLogJob(job)
 	result := CreateDatagramNotificationFromJob(job)

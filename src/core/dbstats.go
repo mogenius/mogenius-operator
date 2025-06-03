@@ -8,8 +8,10 @@ import (
 	"mogenius-k8s-manager/src/networkmonitor"
 	"mogenius-k8s-manager/src/store"
 	"mogenius-k8s-manager/src/structs"
+	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/valkeyclient"
 	"sort"
+	"strings"
 	"time"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -57,6 +59,7 @@ type ValkeyStatsDb interface {
 	GetWorkspaceStatsMemoryUtilization(timeOffsetInMinutes int, resources []unstructured.Unstructured) ([]GenericChartEntry, error)
 	GetWorkspaceStatsTrafficUtilization(timeOffsetInMinutes int, resources []unstructured.Unstructured) ([]GenericChartEntry, error)
 	ReplaceCniData(data []structs.CniData)
+	Publish(data interface{}, keys ...string)
 }
 
 type valkeyStatsDb struct {
@@ -298,17 +301,12 @@ func (self *valkeyStatsDb) GetWorkspaceStatsTrafficUtilization(timeOffsetInMinut
 			self.logger.Error(err.Error())
 		}
 		for index, entry := range values {
-			parsedDate, err := time.Parse(time.RFC3339, entry.CreatedAt)
-			if err != nil {
-				continue
-			}
-			formattedDate := parsedDate.Round(time.Minute).Format(time.RFC3339)
+			formattedDate := entry.CreatedAt.Round(time.Minute).Format(time.RFC3339)
 
 			if _, exists := result[formattedDate]; !exists {
 				result[formattedDate] = GenericChartEntry{Time: formattedDate, Value: 0.0}
 			}
-			// TODO: @bene es gibt jetzt einzelne felder fuer rx und tx bytes und pakete -> trag bitte den richtigen wert hier ein
-			result[formattedDate] = GenericChartEntry{Time: formattedDate, Value: result[formattedDate].Value + float64(entry.TransmitBytes)}
+			result[formattedDate] = GenericChartEntry{Time: formattedDate, Value: result[formattedDate].Value + float64(entry.TransmitBytes+entry.ReceivedBytes)}
 
 			if index >= timeOffsetInMinutes {
 				break
@@ -420,14 +418,17 @@ func (self *valkeyStatsDb) AddPodStatsToDb(stats []structs.PodStats) error {
 }
 
 func (self *valkeyStatsDb) AddNodeRamMetricsToDb(nodeName string, data interface{}) error {
+	self.Publish(data, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_MEMORY_NAME, nodeName)
 	return self.valkey.SetObject(data, 0, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_MEMORY_NAME, nodeName)
 }
 
 func (self *valkeyStatsDb) AddNodeCpuMetricsToDb(nodeName string, data interface{}) error {
+	self.Publish(data, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_CPU_NAME, nodeName)
 	return self.valkey.SetObject(data, 0, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_CPU_NAME, nodeName)
 }
 
 func (self *valkeyStatsDb) AddNodeTrafficMetricsToDb(nodeName string, data interface{}) error {
+	self.Publish(data, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_TRAFFIC_NAME, nodeName)
 	return self.valkey.SetObject(data, 0, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_TRAFFIC_NAME, nodeName)
 }
 
@@ -444,6 +445,15 @@ func (self *valkeyStatsDb) AddNodeStatsToDb(stats []structs.NodeStats) error {
 		}
 	}
 	return nil
+}
+
+func (self *valkeyStatsDb) Publish(data interface{}, keys ...string) {
+	key := strings.Join(keys, ":")
+	err := self.valkey.GetRedisClient().Publish(self.valkey.GetContext(), key, utils.PrintJson(data)).Err()
+
+	if err != nil {
+		self.logger.Error("Error publishing to Redis", "error", err, "key", key)
+	}
 }
 
 type GenericChartEntry struct {

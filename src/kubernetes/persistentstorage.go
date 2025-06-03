@@ -376,17 +376,6 @@ func ListPersistentVolumeClaimsWithFieldSelector(namespace string, labelSelector
 	return persistentVolumeClaims.Items, err
 }
 
-func GetPersistentVolumeClaim(namespace string, name string) (*v1.PersistentVolumeClaim, error) {
-	clientset := clientProvider.K8sClientSet()
-	client := clientset.CoreV1().PersistentVolumeClaims(namespace)
-
-	deployment, err := client.Get(context.TODO(), name, metav1.GetOptions{})
-	if err != nil {
-		return nil, err
-	}
-	return deployment, nil
-}
-
 func AllPersistentVolumeClaims(namespaceName string) []v1.PersistentVolumeClaim {
 	result := []v1.PersistentVolumeClaim{}
 

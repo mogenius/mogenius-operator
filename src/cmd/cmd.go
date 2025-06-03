@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"mogenius-k8s-manager/src/assert"
@@ -41,11 +40,9 @@ import (
 
 var CLI struct {
 	// Commands
-	Clean       struct{}        `cmd:"" help:"remove the operator from the cluster"`
 	Cluster     struct{}        `cmd:"" help:"start the operator"`
 	Nodemetrics nodeMetricsArgs `cmd:"" help:"start the node metrics collector"`
 	Config      struct{}        `cmd:"" help:"print application config in ENV format"`
-	Install     struct{}        `cmd:"" help:"install the operator into your cluster"`
 	System      struct{}        `cmd:"" help:"check the system for all required components and offer healing"`
 	Version     struct{}        `cmd:"" help:"print version information" default:"1"`
 	Patterns    patternsArgs    `cmd:"" help:"print patterns to shell"`
@@ -135,23 +132,11 @@ func Run() error {
 	//======================= Execute Command =======================
 	//===============================================================
 	switch ctx.Command() {
-	case "clean":
-		err := RunClean(slogManager, configModule, cmdLogger, channelHandler.GetRecordChannel())
-		if err != nil {
-			return err
-		}
-		return nil
 	case "cluster":
 		RunCluster(slogManager, configModule, cmdLogger, channelHandler.GetRecordChannel())
 		return nil
 	case "nodemetrics":
 		RunNodeMetrics(&CLI.Nodemetrics, slogManager, configModule, cmdLogger, channelHandler.GetRecordChannel())
-		return nil
-	case "install":
-		err := RunInstall(slogManager, configModule, cmdLogger, channelHandler.GetRecordChannel())
-		if err != nil {
-			return err
-		}
 		return nil
 	case "system":
 		err := RunSystem(slogManager, configModule, cmdLogger, channelHandler.GetRecordChannel())
@@ -425,20 +410,6 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		Key:          "MO_HOST_PROC_PATH",
 		DefaultValue: utils.Pointer("/proc"),
 		Description:  utils.Pointer("mountpath of /proc"),
-	})
-	configModule.Declare(config.ConfigDeclaration{
-		Key:          "MO_IGNORE_NAMESPACES",
-		DefaultValue: utils.Pointer(`["kube-system"]`),
-		Description:  utils.Pointer("list of all ignored namespaces"),
-		Envs:         []string{"ignore_namespaces"},
-		Validate: func(value string) error {
-			var ignoreNamespaces []string
-			err := json.Unmarshal([]byte(value), &ignoreNamespaces)
-			if err != nil {
-				return fmt.Errorf("'MO_IGNORE_NAMESPACES' needs to be a json `[]string`: %s", err.Error())
-			}
-			return nil
-		},
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_LOG_LEVEL",

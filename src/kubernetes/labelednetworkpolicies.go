@@ -1012,34 +1012,19 @@ func ListControllerLabeledNetworkPolicies(
 	var labels map[string]string
 	switch controllerType {
 	case dtos.DEPLOYMENT:
-		resource := utils.SyncResourceEntry{
-			Kind:  "Deployment",
-			Group: "apps/v1",
-		}
-
-		deployment, err := store.GetByKeyParts[appsv1.Deployment](valkeyClient, VALKEY_RESOURCE_PREFIX, resource.Group, resource.Kind, namespaceName, controllerName)
+		deployment, err := store.GetByKeyParts[appsv1.Deployment](valkeyClient, VALKEY_RESOURCE_PREFIX, utils.DeploymentResource.Group, utils.DeploymentResource.Kind, namespaceName, controllerName)
 		if err != nil {
 			return nil, fmt.Errorf("ListControllerLabeledNetworkPolicies %s ERROR: %s", controllerType, err.Error())
 		}
 		labels = extractLabels(deployment.ObjectMeta.Labels, deployment.Spec.Template.ObjectMeta.Labels)
 	case dtos.DAEMON_SET:
-		resource := utils.SyncResourceEntry{
-			Kind:  "DaemonSet",
-			Group: "apps/v1",
-		}
-
-		daemonset, err := store.GetByKeyParts[appsv1.DaemonSet](valkeyClient, VALKEY_RESOURCE_PREFIX, resource.Group, resource.Kind, namespaceName, controllerName)
+		daemonset, err := store.GetByKeyParts[appsv1.DaemonSet](valkeyClient, VALKEY_RESOURCE_PREFIX, utils.DaemonSetResource.Group, utils.DaemonSetResource.Kind, namespaceName, controllerName)
 		if err != nil {
 			return nil, fmt.Errorf("ListControllerLabeledNetworkPolicies %s ERROR: %s", controllerType, err.Error())
 		}
 		labels = extractLabels(daemonset.ObjectMeta.Labels, daemonset.Spec.Template.ObjectMeta.Labels)
 	case dtos.STATEFUL_SET:
-		resource := utils.SyncResourceEntry{
-			Kind:  "StatefulSet",
-			Group: "apps/v1",
-		}
-
-		statefulset, err := store.GetByKeyParts[appsv1.StatefulSet](valkeyClient, VALKEY_RESOURCE_PREFIX, resource.Group, resource.Kind, namespaceName, controllerName)
+		statefulset, err := store.GetByKeyParts[appsv1.StatefulSet](valkeyClient, VALKEY_RESOURCE_PREFIX, utils.StatefulSetResource.Group, utils.StatefulSetResource.Kind, namespaceName, controllerName)
 		if err != nil {
 			return nil, fmt.Errorf("ListControllerLabeledNetworkPolicies %s ERROR: %s", controllerType, err.Error())
 		}

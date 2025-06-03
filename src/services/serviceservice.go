@@ -212,14 +212,6 @@ func StartService(eventClient websocket.WebsocketClient, r ServiceStartRequest, 
 	return job
 }
 
-func TcpUdpClusterConfiguration() dtos.TcpUdpClusterConfigurationDto {
-	return dtos.TcpUdpClusterConfigurationDto{
-		IngressServices: kubernetes.ServiceFor(config.Get("MO_OWN_NAMESPACE"), "mogenius-ingress-nginx-controller"),
-		TcpServices:     kubernetes.ConfigMapFor(config.Get("MO_OWN_NAMESPACE"), "mogenius-ingress-nginx-tcp", false),
-		UdpServices:     kubernetes.ConfigMapFor(config.Get("MO_OWN_NAMESPACE"), "mogenius-ingress-nginx-udp", false),
-	}
-}
-
 func serviceHasYamlSettings(service dtos.K8sServiceDto) bool {
 	for _, container := range service.Containers {
 		if container.SettingsYaml != nil {
@@ -317,42 +309,14 @@ type ServiceDeleteRequest struct {
 	Service   dtos.K8sServiceDto   `json:"service" validate:"required"`
 }
 
-type ServiceGetPodIdsRequest struct {
-	Namespace string `json:"namespace" validate:"required"`
-	ServiceId string `json:"serviceId" validate:"required"`
-}
-
-type ServicePodExistsRequest struct {
-	K8sNamespace string `json:"k8sNamespace" validate:"required"`
-	K8sPod       string `json:"k8sPod" validate:"required"`
-}
-
 type ServicePodsRequest struct {
 	Namespace      string `json:"namespace" validate:"required"`
 	ControllerName string `json:"controllerName" validate:"required"`
 }
 
-type ServiceGetLogRequest struct {
-	Namespace string     `json:"namespace" validate:"required"`
-	PodId     string     `json:"podId" validate:"required"`
-	Timestamp *time.Time `json:"timestamp"`
-}
-
-type ServiceLogStreamRequest struct {
-	Namespace    string `json:"namespace" validate:"required"`
-	PodId        string `json:"podId" validate:"required"`
-	SinceSeconds int    `json:"sinceSeconds" validate:"required"`
-	PostTo       string `json:"postTo" validate:"required"`
-}
-
 type CmdWindowSize struct {
 	Rows uint16 `json:"rows"`
 	Cols uint16 `json:"cols"`
-}
-
-type ServiceLogStreamResult struct {
-	Success bool   `json:"success"`
-	Error   string `json:"error,omitempty"`
 }
 
 type ServiceResourceStatusRequest struct {

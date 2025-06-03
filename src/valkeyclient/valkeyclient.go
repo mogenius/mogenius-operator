@@ -33,10 +33,12 @@ type ValkeyClient interface {
 	LastNEntryFromBucketWithType(number int64, bucketKey ...string) ([]string, error)
 	DeleteFromBucketWithNsAndReleaseName(namespace string, releaseName string, bucketKey ...string) error
 	SubscribeToBucket(bucketKey ...string) *redis.PubSub
+	SubscribeToKey(key ...string) *redis.PubSub
 
 	ClearNonEssentialKeys(includeTraffic bool, includePodStats bool, includeNodestats bool) (string, error)
 
-	Delete(keys ...string) error
+	DeleteSingle(key ...string) error
+	DeleteMultiple(keys ...string) error
 	Keys(pattern string) ([]string, error)
 	Exists(keys ...string) (bool, error)
 
@@ -51,6 +53,8 @@ const (
 	ORDER_NONE SortOrder = 0
 	ORDER_ASC  SortOrder = 1
 	ORDER_DESC SortOrder = 2
+
+	MAX_CHUNK_GET_SIZE = 100
 )
 
 type valkeyClient struct {
@@ -181,20 +185,37 @@ func (self *valkeyClient) List(limit int, keys ...string) ([]string, error) {
 		return selectedKeys, nil
 	}
 
-	// Fetch the values for these keys
-	values, err := self.redisClient.MGet(self.ctx, selectedKeys...).Result()
-	if err != nil {
-		self.logger.Error("Error fetching values from Redis", "keys", selectedKeys, "error", err)
-		return nil, err
+	// apply limit to the number of keys to fetch
+	if limit > 0 && len(selectedKeys) > limit {
+		selectedKeys = selectedKeys[:limit]
 	}
-	// Convert the values to a slice of strings
-	var result []string
-	for index, v := range values {
-		if limit > 0 && index >= limit {
-			break
+
+	// Fetch the values in 100 chunks to avoid memory issues with large datasets
+	var chunks [][]string
+	for i := 0; i < len(selectedKeys); i += MAX_CHUNK_GET_SIZE {
+		end := i + MAX_CHUNK_GET_SIZE
+		if end > len(selectedKeys) {
+			end = len(selectedKeys)
 		}
-		if v != nil {
-			result = append(result, v.(string))
+		chunks = append(chunks, selectedKeys[i:end])
+	}
+
+	// Fetch the values for these keys
+	var result []string
+	for _, v := range chunks {
+		values, err := self.redisClient.MGet(self.ctx, v...).Result()
+		if err != nil {
+			self.logger.Error("Error fetching values from Redis", "keys", v, "error", err)
+			return nil, err
+		}
+		// Convert the values to a slice of strings
+		for index, v := range values {
+			if limit > 0 && index >= limit {
+				break
+			}
+			if v != nil {
+				result = append(result, v.(string))
+			}
 		}
 	}
 	return result, nil
@@ -354,16 +375,33 @@ func (self *valkeyClient) ClearNonEssentialKeys(includeTraffic bool, includePodS
 }
 
 func (self *valkeyClient) SubscribeToBucket(bucketKey ...string) *redis.PubSub {
-	channelName := createChannel(bucketKey...)
-	return self.redisClient.Subscribe(self.ctx, channelName)
+	keyName := createChannel(bucketKey...)
+	return self.redisClient.Subscribe(self.ctx, keyName)
 }
 
-func (self *valkeyClient) Delete(keys ...string) error {
-	key := createKey(keys...)
+func (self *valkeyClient) SubscribeToKey(bucketKey ...string) *redis.PubSub {
+	keyName := createKey(bucketKey...)
+	return self.redisClient.Subscribe(self.ctx, keyName)
+}
 
+func (self *valkeyClient) DeleteSingle(keys ...string) error {
+	key := createKey(keys...)
 	_, err := self.redisClient.Del(self.ctx, key).Result()
 	if err != nil {
-		self.logger.Error("Error deleting key from Redis", "key", key, "error", err)
+		self.logger.Error("Error deleting key from Redis", "key", keys, "error", err)
+		return err
+	}
+
+	return nil
+}
+
+func (self *valkeyClient) DeleteMultiple(keys ...string) error {
+	if len(keys) == 0 {
+		return nil
+	}
+	_, err := self.redisClient.Del(self.ctx, keys...).Result()
+	if err != nil {
+		self.logger.Error("Error deleting key from Redis", "key", keys, "error", err)
 		return err
 	}
 
@@ -409,18 +447,30 @@ func GetObjectsByPattern[T any](store ValkeyClient, pattern string, keywords []s
 		return nil, nil
 	}
 
+	// Fetch the values in 100 chunks to avoid memory issues with large datasets
+	var chunks [][]string
+	for i := 0; i < len(keyList); i += MAX_CHUNK_GET_SIZE {
+		end := i + MAX_CHUNK_GET_SIZE
+		if end > len(keyList) {
+			end = len(keyList)
+		}
+		chunks = append(chunks, keyList[i:end])
+	}
+
 	// Fetch the values for these keys
 	var objects []T
-	values, err := store.GetRedisClient().MGet(store.GetContext(), keyList...).Result()
-	if err != nil {
-		return nil, err
-	}
-	for _, v := range values {
-		var obj T
-		if err := json.Unmarshal([]byte(v.(string)), &obj); err != nil {
-			return nil, fmt.Errorf("error unmarshalling value from Redis, error: %v", err)
+	for _, v := range chunks {
+		values, err := store.GetRedisClient().MGet(store.GetContext(), v...).Result()
+		if err != nil {
+			return nil, err
 		}
-		objects = append(objects, obj)
+		for _, v := range values {
+			var obj T
+			if err := json.Unmarshal([]byte(v.(string)), &obj); err != nil {
+				return nil, fmt.Errorf("error unmarshalling value from Redis, error: %v", err)
+			}
+			objects = append(objects, obj)
+		}
 	}
 
 	return objects, nil
@@ -448,9 +498,9 @@ func LastNEntryFromBucketWithType[T any](store ValkeyClient, number int64, bucke
 	}
 
 	var objects []T
-	for _, v := range elements {
+	for i := len(elements) - 1; i >= 0; i-- {
 		var obj T
-		if err := json.Unmarshal([]byte(v), &obj); err != nil {
+		if err := json.Unmarshal([]byte(elements[i]), &obj); err != nil {
 			return nil, fmt.Errorf("error unmarshalling value from valkey bucket, error: %v", err)
 		}
 		objects = append(objects, obj)
@@ -471,19 +521,31 @@ func GetObjectsByPrefix[T any](redisStore ValkeyClient, order SortOrder, keys ..
 	// Sort keys
 	sortStringsByTimestamp(keyList, order)
 
-	// Fetch the values
-	var objects []T
-	values, err := redisStore.GetRedisClient().MGet(redisStore.GetContext(), keyList...).Result()
-	if err != nil {
-		return nil, err
+	// Fetch the values in 100 chunks to avoid memory issues with large datasets
+	var chunks [][]string
+	// Loop over the original array and divide it into chunks
+	for i := 0; i < len(keyList); i += MAX_CHUNK_GET_SIZE {
+		end := i + MAX_CHUNK_GET_SIZE
+		if end > len(keyList) {
+			end = len(keyList)
+		}
+		chunks = append(chunks, keyList[i:end])
 	}
-	for _, v := range values {
-		if v != nil {
-			var obj T
-			if err := json.Unmarshal([]byte(v.(string)), &obj); err != nil {
-				return nil, fmt.Errorf("error unmarshalling value from Redis, error: %v", err)
+
+	var objects []T
+	for _, v := range chunks {
+		values, err := redisStore.GetRedisClient().MGet(redisStore.GetContext(), v...).Result()
+		if err != nil {
+			return nil, err
+		}
+		for _, v := range values {
+			if v != nil {
+				var obj T
+				if err := json.Unmarshal([]byte(v.(string)), &obj); err != nil {
+					return nil, fmt.Errorf("error unmarshalling value from Redis, error: %v", err)
+				}
+				objects = append(objects, obj)
 			}
-			objects = append(objects, obj)
 		}
 	}
 	return objects, nil

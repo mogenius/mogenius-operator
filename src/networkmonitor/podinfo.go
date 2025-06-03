@@ -11,7 +11,6 @@ import (
 )
 
 type PodInfoIdentifier = string
-type PodInfoContainerIdentifier = string
 
 type PodInfo struct {
 	Namespace  string

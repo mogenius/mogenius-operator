@@ -208,10 +208,6 @@ func UpdateNetworkPolicyTemplate(policies []kubernetes.NetworkPolicy) error {
 	return kubernetes.UpdateNetworkPolicyTemplate(policies)
 }
 
-type ListNetworkPolicyResponse struct {
-	Namespaces []ListNetworkPolicyNamespace `json:"namespaces" validate:"required"`
-}
-
 type ListNetworkPolicyNamespace struct {
 	Id                string                           `json:"id" validate:"required"`
 	DisplayName       string                           `json:"displayName" validate:"required"`
@@ -309,7 +305,7 @@ func DisableNetworkPolicyManager(namespaceName string) error {
 }
 
 func ListNamespaceNetworkPolicies(valkeyClient valkeyclient.ValkeyClient, data ListNamespaceLabeledNetworkPoliciesRequest) ([]ListNetworkPolicyNamespace, error) {
-	namespace := store.GetNamespace(valkeyClient, data.NamespaceName)
+	namespace := store.GetNamespace(valkeyClient, data.NamespaceName, controllerLogger)
 	if namespace == nil {
 		return nil, fmt.Errorf("failed to get namespace")
 	}
@@ -444,7 +440,7 @@ func listNetworkPoliciesByNamespaces(namespaces []v1Core.Namespace, policies []v
 }
 
 func ListManagedAndUnmanagedNamespaceNetworkPolicies(valkeyClient valkeyclient.ValkeyClient, data ListNamespaceLabeledNetworkPoliciesRequest) ([]ListManagedAndUnmanagedNetworkPolicyNamespace, error) {
-	namespace := store.GetNamespace(valkeyClient, data.NamespaceName)
+	namespace := store.GetNamespace(valkeyClient, data.NamespaceName, controllerLogger)
 	if namespace == nil {
 		return nil, fmt.Errorf("failed to get namespace")
 	}

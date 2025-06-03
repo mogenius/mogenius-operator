@@ -17,6 +17,18 @@ spec:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
+        description: "A mogenius `User` resource contains information about a user
+          on the mogenius\nplatform.\n\nIn addition it maps the mogenius user to `subjects`
+          using the same information\nas RBAC uses. This could be `User` or `Group`
+          references or `ServiceAccount`\nreferences.\n\n## User\n\nRefers to a human
+          or system account authenticated by Kubernetes.\n\n\t```\n\tsubjects:\n\t
+          \ - kind: User\n\t    name: jane\n\t    apiGroup: rbac.authorization.k8s.io\n\t```\n\n##
+          Group\n\nRefers to a collection of users. Group memberships are typically
+          established by the authentication provider.\n\n\t```\n\tsubjects:\n\t  -
+          kind: Group\n\t    name: operations\n\t    apiGroup: rbac.authorization.k8s.io\n\t```\n\n##
+          ServiceAccount\n\nA Kubernetes resource that acts as an identity for processes
+          running in a Pod.\n\n\t```\n\tsubjects:\n\t  - kind: ServiceAccount\n\t
+          \   name: default\n\t    namespace: my-namespace\n\t```"
         properties:
           apiVersion:
             description: |-
@@ -43,9 +55,44 @@ spec:
                 type: string
               lastName:
                 type: string
+              subject:
+                description: |-
+                  Subject contains a reference to the object or user identities a role binding applies to.  This can either hold a direct API object reference,
+                  or a value for non-objects such as user and group names.
+                properties:
+                  apiGroup:
+                    description: |-
+                      APIGroup holds the API group of the referenced subject.
+                      Defaults to "" for ServiceAccount subjects.
+                      Defaults to "rbac.authorization.k8s.io" for User and Group subjects.
+                    type: string
+                  kind:
+                    description: |-
+                      Kind of object being referenced. Values defined by this API group are "User", "Group", and "ServiceAccount".
+                      If the Authorizer does not recognized the kind value, the Authorizer should report an error.
+                    type: string
+                  name:
+                    description: Name of the object being referenced.
+                    type: string
+                  namespace:
+                    description: |-
+                      Namespace of the referenced object.  If the object kind is non-namespace, such as "User" or "Group", and this value is not empty
+                      the Authorizer should report an error.
+                    type: string
+                required:
+                - kind
+                - name
+                type: object
+                x-kubernetes-map-type: atomic
+            required:
+            - subject
             type: object
           status:
             type: object
+        required:
+        - metadata
+        - spec
+        - status
         type: object
     served: true
     storage: true

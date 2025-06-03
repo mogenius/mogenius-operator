@@ -44,7 +44,7 @@ type GetWorkloadStatusHelmReleaseNameRequest struct {
 	Namespace string `json:"namespace" validate:"required"`
 }
 type GetWorkloadStatusRequest struct {
-	ResourceEntity *utils.SyncResourceEntry                   `json:"resourceEntity,omitempty"`
+	ResourceEntity *utils.ResourceEntry                       `json:"resourceEntity,omitempty"`
 	Namespaces     *[]string                                  `json:"namespaces,omitempty"`
 	HelmReleases   *[]GetWorkloadStatusHelmReleaseNameRequest `json:"helmReleases,omitempty"`
 	ResourceNames  *[]string                                  `json:"resourceNames,omitempty"`
@@ -277,7 +277,7 @@ func GetWorkloadStatus(requestData GetWorkloadStatusRequest) ([]WorkloadStatusDt
 
 	// filter by HelmReleaseNames
 	if requestData.HelmReleases != nil && len(*requestData.HelmReleases) > 0 {
-		var whitelist []*utils.SyncResourceEntry
+		var whitelist []*utils.ResourceEntry
 		if requestData.ResourceEntity != nil {
 			whitelist = append(whitelist, requestData.ResourceEntity)
 		}
@@ -437,14 +437,7 @@ func GetWorkloadStatus(requestData GetWorkloadStatusRequest) ([]WorkloadStatusDt
 	}
 
 	// get all events from the store
-	eventResource := utils.SyncResourceEntry{
-		Name:      "events",
-		Kind:      "Event",
-		Namespace: utils.Pointer(""),
-		Group:     "v1",
-		Version:   "",
-	}
-	eventUnstructuredList, err := GetUnstructuredResourceListFromStore(eventResource.Group, eventResource.Kind, eventResource.Version, eventResource.Name, eventResource.Namespace)
+	eventUnstructuredList, err := GetUnstructuredResourceListFromStore(utils.EventResource.Group, utils.EventResource.Kind, utils.EventResource.Version, utils.EventResource.Name, utils.Pointer(""))
 	var eventList []v1.Event
 	if err != nil {
 		eventList = []v1.Event{}

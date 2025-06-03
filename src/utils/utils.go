@@ -1,13 +1,11 @@
 package utils
 
 import (
-	"bufio"
 	"context"
 	"embed"
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"log/slog"
 	"mogenius-k8s-manager/src/assert"
 	cfg "mogenius-k8s-manager/src/config"
@@ -126,24 +124,6 @@ func HttpHeader(additionalName string) http.Header {
 		"x-app":            []string{fmt.Sprintf("%s%s", APP_NAME, additionalName)},
 		"x-app-version":    []string{version.Ver},
 		"x-cluster-name":   []string{config.Get("MO_CLUSTER_NAME")}}
-}
-
-func ConfirmTask(s string) bool {
-	r := bufio.NewReader(os.Stdin)
-
-	fmt.Printf("%s [Y/n]: ", s)
-
-	res, err := r.ReadString('\n')
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// Empty input (i.e. "\n")
-	if res == "\n" {
-		return true
-	}
-
-	return strings.ToLower(strings.TrimSpace(res)) == "y"
 }
 
 func ExecuteShellCommandSilent(title string, shellCmd string) error {
@@ -318,24 +298,6 @@ func ExecuteShellCommandWithResponse(title string, shellCmd string) string {
 	return string(returnStr)
 }
 
-func MilliSecSince(since time.Time) int64 {
-	return time.Since(since).Milliseconds()
-}
-
-func MicroSecSince(since time.Time) int64 {
-	return time.Since(since).Microseconds()
-}
-
-func DurationStrSince(since time.Time) string {
-	duration := MilliSecSince(since)
-	durationStr := fmt.Sprintf("%d ms", duration)
-	if duration <= 0 {
-		duration = MicroSecSince(since)
-		durationStr = fmt.Sprintf("%d μs", duration)
-	}
-	return durationStr
-}
-
 func MergeMaps(maps ...map[string]string) map[string]string {
 	resultMap := make(map[string]string)
 
@@ -380,15 +342,6 @@ func GuessClusterCountry() (*CountryDetails, error) {
 		}
 	}
 	return nil, nil
-}
-
-func ContainsToLowercase(s []string, str string) bool {
-	for _, v := range s {
-		if strings.Contains(strings.ToLower(str), strings.ToLower(v)) {
-			return true
-		}
-	}
-	return false
 }
 
 func ContainsPatterns(s string, pattern []string) bool {
@@ -478,7 +431,7 @@ func ParseJsonStringArray(input string) []string {
 	return val
 }
 
-func ContainsResourceEntry(resources []*SyncResourceEntry, target SyncResourceEntry) bool {
+func ContainsResourceEntry(resources []*ResourceEntry, target ResourceEntry) bool {
 	for _, r := range resources {
 		if r.Kind == target.Kind && r.Group == target.Group {
 			return true

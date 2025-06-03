@@ -1,7 +1,6 @@
 package core
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"log/slog"
@@ -16,7 +15,6 @@ import (
 	"mogenius-k8s-manager/src/schema"
 	"mogenius-k8s-manager/src/secrets"
 	"mogenius-k8s-manager/src/services"
-	"mogenius-k8s-manager/src/shutdown"
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/valkeyclient"
@@ -38,7 +36,6 @@ import (
 	"helm.sh/helm/v3/pkg/release"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/client-go/rest"
 )
 
 type SocketApi interface {
@@ -367,20 +364,6 @@ func (self *socketApi) registerPatterns() {
 		},
 	)
 
-	self.RegisterPatternHandlerRaw(
-		"cluster/restart",
-		PatternConfig{},
-		func(datagram structs.Datagram) any {
-			go func() {
-				shutdownDelay := 1 * time.Second
-				self.logger.Info("😵😵😵 Received RESTART COMMAND. Initialized restart.", "delay", shutdownDelay)
-				time.Sleep(shutdownDelay)
-				shutdown.SendShutdownSignal(false)
-			}()
-			return nil
-		},
-	)
-
 	{
 		type Request struct {
 			IncludeTraffic   bool `json:"includeTraffic" validate:"boolean"`
@@ -403,16 +386,6 @@ func (self *socketApi) registerPatterns() {
 		},
 		func(datagram structs.Datagram) any {
 			return self.config.AsEnvs()
-		},
-	)
-
-	self.RegisterPatternHandlerRaw(
-		"cluster/energy-consumption",
-		PatternConfig{
-			ResponseSchema: schema.Generate([]structs.EnergyConsumptionResponse{}),
-		},
-		func(datagram structs.Datagram) any {
-			return services.EnergyConsumption()
 		},
 	)
 
@@ -681,7 +654,7 @@ func (self *socketApi) registerPatterns() {
 			PatternHandle{self, "stats/workspace-cpu-utilization"},
 			PatternConfig{},
 			func(request Request) ([]GenericChartEntry, error) {
-				resources, err := self.apiService.GetWorkspaceControllers(request.WorkspaceName, nil, nil, []string{})
+				resources, err := self.apiService.GetWorkspaceControllers(request.WorkspaceName)
 				if err != nil {
 					return nil, err
 				}
@@ -693,7 +666,7 @@ func (self *socketApi) registerPatterns() {
 			PatternHandle{self, "stats/workspace-memory-utilization"},
 			PatternConfig{},
 			func(request Request) ([]GenericChartEntry, error) {
-				resources, err := self.apiService.GetWorkspaceControllers(request.WorkspaceName, nil, nil, []string{})
+				resources, err := self.apiService.GetWorkspaceControllers(request.WorkspaceName)
 				if err != nil {
 					return nil, err
 				}
@@ -705,7 +678,7 @@ func (self *socketApi) registerPatterns() {
 			PatternHandle{self, "stats/workspace-traffic-utilization"},
 			PatternConfig{},
 			func(request Request) ([]GenericChartEntry, error) {
-				resources, err := self.apiService.GetWorkspaceControllers(request.WorkspaceName, nil, nil, []string{})
+				resources, err := self.apiService.GetWorkspaceControllers(request.WorkspaceName)
 				if err != nil {
 					return nil, err
 				}
@@ -894,46 +867,6 @@ func (self *socketApi) registerPatterns() {
 	)
 
 	self.RegisterPatternHandlerRaw(
-		"cluster/execute-helm-chart-task",
-		PatternConfig{
-			RequestSchema:  schema.Generate(services.ClusterHelmRequest{}),
-			ResponseSchema: schema.Generate(&structs.Job{}),
-		},
-		func(datagram structs.Datagram) any {
-			data := services.ClusterHelmRequest{}
-			if err := self.LoadRequest(&datagram, &data); err != nil {
-				return err
-			}
-			return services.InstallHelmChart(self.eventsClient, data)
-		},
-	)
-
-	self.RegisterPatternHandlerRaw(
-		"cluster/uninstall-helm-chart",
-		PatternConfig{
-			RequestSchema:  schema.Generate(services.ClusterHelmUninstallRequest{}),
-			ResponseSchema: schema.Generate(&structs.Job{}),
-		},
-		func(datagram structs.Datagram) any {
-			data := services.ClusterHelmUninstallRequest{}
-			if err := self.LoadRequest(&datagram, &data); err != nil {
-				return err
-			}
-			return services.DeleteHelmChart(self.eventsClient, data)
-		},
-	)
-
-	self.RegisterPatternHandlerRaw(
-		"cluster/tcp-udp-configuration",
-		PatternConfig{
-			ResponseSchema: schema.Generate(dtos.TcpUdpClusterConfigurationDto{}),
-		},
-		func(datagram structs.Datagram) any {
-			return services.TcpUdpClusterConfiguration()
-		},
-	)
-
-	self.RegisterPatternHandlerRaw(
 		"cluster/backup",
 		PatternConfig{
 			ResponseSchema: schema.Generate(kubernetes.NamespaceBackupResponse{}),
@@ -944,88 +877,6 @@ func (self *socketApi) registerPatterns() {
 				return err.Error()
 			}
 			return result
-		},
-	)
-
-	self.RegisterPatternHandlerRaw(
-		"cluster/read-configmap",
-		PatternConfig{
-			RequestSchema:  schema.Generate(services.ClusterGetConfigMap{}),
-			ResponseSchema: schema.Generate(kubernetes.K8sWorkloadResult{}),
-		},
-		func(datagram structs.Datagram) any {
-			data := services.ClusterGetConfigMap{}
-			if err := self.LoadRequest(&datagram, &data); err != nil {
-				return err
-			}
-			return kubernetes.GetConfigMapWR(data.Namespace, data.Name)
-		},
-	)
-
-	self.RegisterPatternHandlerRaw(
-		"cluster/write-configmap",
-		PatternConfig{
-			RequestSchema: schema.Generate(services.ClusterWriteConfigMap{}),
-		},
-		func(datagram structs.Datagram) any {
-			data := services.ClusterWriteConfigMap{}
-			if err := self.LoadRequest(&datagram, &data); err != nil {
-				return err
-			}
-			return kubernetes.WriteConfigMap(data.Namespace, data.Name, data.Data, data.Labels)
-		},
-	)
-
-	self.RegisterPatternHandlerRaw(
-		"cluster/list-configmaps",
-		PatternConfig{
-			RequestSchema:  schema.Generate(services.ClusterListWorkloads{}),
-			ResponseSchema: schema.Generate(kubernetes.K8sWorkloadResult{}),
-		},
-		func(datagram structs.Datagram) any {
-			data := services.ClusterListWorkloads{}
-			if err := self.LoadRequest(&datagram, &data); err != nil {
-				return err
-			}
-			return kubernetes.ListConfigMapWithFieldSelector(data.Namespace, data.LabelSelector, data.Prefix)
-		},
-	)
-
-	self.RegisterPatternHandlerRaw(
-		"cluster/read-deployment",
-		PatternConfig{
-			RequestSchema:  schema.Generate(services.ClusterGetDeployment{}),
-			ResponseSchema: schema.Generate(kubernetes.K8sWorkloadResult{}),
-		},
-		func(datagram structs.Datagram) any {
-			data := services.ClusterGetDeployment{}
-			if err := self.LoadRequest(&datagram, &data); err != nil {
-				return err
-			}
-			return kubernetes.GetDeploymentResult(data.Namespace, data.Name)
-		},
-	)
-
-	self.RegisterPatternHandlerRaw(
-		"cluster/list-deployments",
-		PatternConfig{
-			RequestSchema:  schema.Generate(services.ClusterListWorkloads{}),
-			ResponseSchema: schema.Generate(kubernetes.K8sWorkloadResult{}),
-		},
-		func(datagram structs.Datagram) any {
-			data := services.ClusterListWorkloads{}
-			if err := self.LoadRequest(&datagram, &data); err != nil {
-				return err
-			}
-			return kubernetes.ListDeploymentsWithFieldSelector(data.Namespace, data.LabelSelector, data.Prefix)
-		},
-	)
-
-	RegisterPatternHandler(
-		PatternHandle{self, "cluster/read-persistent-volume-claim"},
-		PatternConfig{},
-		func(request services.ClusterGetPersistentVolume) (*v1.PersistentVolumeClaim, error) {
-			return kubernetes.GetPersistentVolumeClaim(request.Namespace, request.Name)
 		},
 	)
 
@@ -1083,92 +934,6 @@ func (self *socketApi) registerPatterns() {
 	)
 
 	self.RegisterPatternHandlerRaw(
-		"namespace/shutdown",
-		PatternConfig{
-			RequestSchema:  schema.Generate(services.NamespaceShutdownRequest{}),
-			ResponseSchema: schema.Generate(&structs.Job{}),
-		},
-		func(datagram structs.Datagram) any {
-			data := services.NamespaceShutdownRequest{}
-			if err := self.LoadRequest(&datagram, &data); err != nil {
-				return err
-			}
-			data.Service.AddSecretsToRedaction()
-			return services.ShutdownNamespace(self.eventsClient, data)
-		},
-	)
-
-	self.RegisterPatternHandlerRaw(
-		"namespace/pod-ids",
-		PatternConfig{
-			RequestSchema:  schema.Generate(services.NamespacePodIdsRequest{}),
-			ResponseSchema: schema.Generate([]string{}),
-		},
-		func(datagram structs.Datagram) any {
-			data := services.NamespacePodIdsRequest{}
-			if err := self.LoadRequest(&datagram, &data); err != nil {
-				return err
-			}
-			return kubernetes.PodIdsFor(data.Namespace, nil)
-		},
-	)
-
-	self.RegisterPatternHandlerRaw(
-		"namespace/validate-cluster-pods",
-		PatternConfig{
-			RequestSchema:  schema.Generate(services.NamespaceValidateClusterPodsRequest{}),
-			ResponseSchema: schema.Generate(dtos.ValidateClusterPodsDto{}),
-		},
-		func(datagram structs.Datagram) any {
-			data := services.NamespaceValidateClusterPodsRequest{}
-			if err := self.LoadRequest(&datagram, &data); err != nil {
-				return err
-			}
-			return services.ValidateClusterPods(data)
-		},
-	)
-
-	self.RegisterPatternHandlerRaw(
-		"namespace/validate-ports",
-		PatternConfig{
-			RequestSchema: schema.Generate(services.NamespaceValidatePortsRequest{}),
-		},
-		func(datagram structs.Datagram) any {
-			data := services.NamespaceValidatePortsRequest{}
-			if err := self.LoadRequest(&datagram, &data); err != nil {
-				return err
-			}
-			services.ValidateClusterPorts(data)
-			return nil
-		},
-	)
-
-	self.RegisterPatternHandlerRaw(
-		"namespace/list-all",
-		PatternConfig{
-			ResponseSchema: schema.Generate([]string{}),
-		},
-		func(datagram structs.Datagram) any {
-			return services.ListAllNamespaces()
-		},
-	)
-
-	self.RegisterPatternHandlerRaw(
-		"namespace/gather-all-resources",
-		PatternConfig{
-			RequestSchema:  schema.Generate(services.NamespaceGatherAllResourcesRequest{}),
-			ResponseSchema: schema.Generate(dtos.NamespaceResourcesDto{}),
-		},
-		func(datagram structs.Datagram) any {
-			data := services.NamespaceGatherAllResourcesRequest{}
-			if err := self.LoadRequest(&datagram, &data); err != nil {
-				return err
-			}
-			return services.ListAllResourcesForNamespace(data)
-		},
-	)
-
-	self.RegisterPatternHandlerRaw(
 		"namespace/backup",
 		PatternConfig{
 			RequestSchema:  schema.Generate(services.NamespaceBackupRequest{}),
@@ -1180,44 +945,6 @@ func (self *socketApi) registerPatterns() {
 				return err.Error()
 			}
 			result, err := kubernetes.BackupNamespace(data.NamespaceName)
-			if err != nil {
-				return err.Error()
-			}
-			return result
-		},
-	)
-
-	self.RegisterPatternHandlerRaw(
-		"namespace/restore",
-		PatternConfig{
-			RequestSchema:  schema.Generate(services.NamespaceRestoreRequest{}),
-			ResponseSchema: schema.Generate(kubernetes.NamespaceRestoreResponse{}),
-		},
-		func(datagram structs.Datagram) any {
-			data := services.NamespaceRestoreRequest{}
-			if err := self.LoadRequest(&datagram, &data); err != nil {
-				return err
-			}
-			result, err := kubernetes.RestoreNamespace(data.YamlData, data.NamespaceName)
-			if err != nil {
-				return err.Error()
-			}
-			return result
-		},
-	)
-
-	self.RegisterPatternHandlerRaw(
-		"namespace/resource-yaml",
-		PatternConfig{
-			RequestSchema:  schema.Generate(services.NamespaceResourceYamlRequest{}),
-			ResponseSchema: schema.String(),
-		},
-		func(datagram structs.Datagram) any {
-			data := services.NamespaceResourceYamlRequest{}
-			if err := self.LoadRequest(&datagram, &data); err != nil {
-				return err
-			}
-			result, err := kubernetes.AllResourcesFromToCombinedYaml(data.NamespaceName, data.Resources)
 			if err != nil {
 				return err.Error()
 			}
@@ -1416,36 +1143,6 @@ func (self *socketApi) registerPatterns() {
 	)
 
 	self.RegisterPatternHandlerRaw(
-		"service/pod-ids",
-		PatternConfig{
-			RequestSchema:  schema.Generate(services.ServiceGetPodIdsRequest{}),
-			ResponseSchema: schema.Generate([]string{}),
-		},
-		func(datagram structs.Datagram) any {
-			data := services.ServiceGetPodIdsRequest{}
-			if err := self.LoadRequest(&datagram, &data); err != nil {
-				return err
-			}
-			return kubernetes.PodIdsFor(data.Namespace, &data.ServiceId)
-		},
-	)
-
-	self.RegisterPatternHandlerRaw(
-		"SERVICE_POD_EXISTS",
-		PatternConfig{
-			RequestSchema:  schema.Generate(services.ServicePodExistsRequest{}),
-			ResponseSchema: schema.Generate(kubernetes.ServicePodExistsResult{}),
-		},
-		func(datagram structs.Datagram) any {
-			data := services.ServicePodExistsRequest{}
-			if err := self.LoadRequest(&datagram, &data); err != nil {
-				return err
-			}
-			return kubernetes.PodExists(data.K8sNamespace, data.K8sPod)
-		},
-	)
-
-	self.RegisterPatternHandlerRaw(
 		"SERVICE_PODS",
 		PatternConfig{
 			RequestSchema:  schema.Generate(services.ServicePodsRequest{}),
@@ -1457,36 +1154,6 @@ func (self *socketApi) registerPatterns() {
 				return err
 			}
 			return services.ServicePodStatus(self.eventsClient, data)
-		},
-	)
-
-	self.RegisterPatternHandlerRaw(
-		"service/log",
-		PatternConfig{
-			RequestSchema:  schema.Generate(services.ServiceGetLogRequest{}),
-			ResponseSchema: schema.Generate(kubernetes.ServiceGetLogResult{}),
-		},
-		func(datagram structs.Datagram) any {
-			data := services.ServiceGetLogRequest{}
-			if err := self.LoadRequest(&datagram, &data); err != nil {
-				return err
-			}
-			return kubernetes.GetLog(data.Namespace, data.PodId, data.Timestamp)
-		},
-	)
-
-	self.RegisterPatternHandlerRaw(
-		"service/log-error",
-		PatternConfig{
-			RequestSchema:  schema.Generate(services.ServiceGetLogRequest{}),
-			ResponseSchema: schema.Generate(kubernetes.ServiceGetLogErrorResult{}),
-		},
-		func(datagram structs.Datagram) any {
-			data := services.ServiceGetLogRequest{}
-			if err := self.LoadRequest(&datagram, &data); err != nil {
-				return err
-			}
-			return kubernetes.GetLogError(data.Namespace, data.PodId)
 		},
 	)
 
@@ -1601,21 +1268,6 @@ func (self *socketApi) registerPatterns() {
 	)
 
 	self.RegisterPatternHandlerRaw(
-		"service/log-stream",
-		PatternConfig{
-			RequestSchema:  schema.Generate(services.ServiceLogStreamRequest{}),
-			ResponseSchema: schema.Generate(services.ServiceLogStreamResult{}),
-		},
-		func(datagram structs.Datagram) any {
-			data := services.ServiceLogStreamRequest{}
-			if err := self.LoadRequest(&datagram, &data); err != nil {
-				return err
-			}
-			return self.logStream(data, datagram)
-		},
-	)
-
-	self.RegisterPatternHandlerRaw(
 		"service/exec-sh-connection-request",
 		PatternConfig{
 			RequestSchema: schema.Generate(xterm.PodCmdConnectionRequest{}),
@@ -1675,25 +1327,10 @@ func (self *socketApi) registerPatterns() {
 		},
 	)
 
-	self.RegisterPatternHandlerRaw(
-		"service/cluster-tool-stream-connection-request",
-		PatternConfig{
-			RequestSchema: schema.Generate(xterm.ClusterToolConnectionRequest{}),
-		},
-		func(datagram structs.Datagram) any {
-			data := xterm.ClusterToolConnectionRequest{}
-			if err := self.LoadRequest(&datagram, &data); err != nil {
-				return err
-			}
-			go services.XTermClusterToolStreamConnection(data)
-			return nil
-		},
-	)
-
 	RegisterPatternHandler(
 		PatternHandle{self, "list/all-workloads"},
 		PatternConfig{},
-		func(request Void) ([]utils.SyncResourceEntry, error) {
+		func(request Void) ([]utils.ResourceEntry, error) {
 			return kubernetes.GetAvailableResources()
 		},
 	)
@@ -1701,7 +1338,7 @@ func (self *socketApi) registerPatterns() {
 	RegisterPatternHandler(
 		PatternHandle{self, "get/workload-list"},
 		PatternConfig{},
-		func(request utils.SyncResourceEntry) (unstructured.UnstructuredList, error) {
+		func(request utils.ResourceEntry) (unstructured.UnstructuredList, error) {
 			return kubernetes.GetUnstructuredResourceListFromStore(request.Group, request.Kind, request.Version, request.Name, request.Namespace)
 		},
 	)
@@ -1725,7 +1362,7 @@ func (self *socketApi) registerPatterns() {
 	RegisterPatternHandler(
 		PatternHandle{self, "describe/workload"},
 		PatternConfig{},
-		func(request utils.SyncResourceItem) (string, error) {
+		func(request utils.ResourceItem) (string, error) {
 			return kubernetes.DescribeUnstructuredResource(request.Group, request.Version, request.Name, request.Namespace, request.ResourceName)
 		},
 	)
@@ -1733,7 +1370,7 @@ func (self *socketApi) registerPatterns() {
 	RegisterPatternHandler(
 		PatternHandle{self, "create/new-workload"},
 		PatternConfig{},
-		func(request utils.SyncResourceData) (*unstructured.Unstructured, error) {
+		func(request utils.ResourceData) (*unstructured.Unstructured, error) {
 			return kubernetes.CreateUnstructuredResource(request.Group, request.Version, request.Name, request.Namespace, request.YamlData)
 		},
 	)
@@ -1741,7 +1378,7 @@ func (self *socketApi) registerPatterns() {
 	RegisterPatternHandler(
 		PatternHandle{self, "get/workload"},
 		PatternConfig{},
-		func(request utils.SyncResourceItem) (*unstructured.Unstructured, error) {
+		func(request utils.ResourceItem) (*unstructured.Unstructured, error) {
 			return kubernetes.GetUnstructuredResource(request.Group, request.Version, request.Name, request.Namespace, request.ResourceName)
 		},
 	)
@@ -1757,7 +1394,7 @@ func (self *socketApi) registerPatterns() {
 	RegisterPatternHandler(
 		PatternHandle{self, "get/workload-example"},
 		PatternConfig{},
-		func(request utils.SyncResourceItem) (string, error) {
+		func(request utils.ResourceItem) (string, error) {
 			return kubernetes.GetResourceTemplateYaml(request.Group, request.Version, request.Name, request.Kind, request.Namespace, request.ResourceName), nil
 		},
 	)
@@ -1765,7 +1402,7 @@ func (self *socketApi) registerPatterns() {
 	RegisterPatternHandler(
 		PatternHandle{self, "update/workload"},
 		PatternConfig{},
-		func(request utils.SyncResourceData) (*unstructured.Unstructured, error) {
+		func(request utils.ResourceData) (*unstructured.Unstructured, error) {
 			return kubernetes.UpdateUnstructuredResource(request.Group, request.Version, request.Name, request.Namespace, request.YamlData)
 		},
 	)
@@ -1773,7 +1410,7 @@ func (self *socketApi) registerPatterns() {
 	RegisterPatternHandler(
 		PatternHandle{self, "delete/workload"},
 		PatternConfig{},
-		func(request utils.SyncResourceItem) (Void, error) {
+		func(request utils.ResourceItem) (Void, error) {
 			return nil, kubernetes.DeleteUnstructuredResource(request.Group, request.Version, request.Name, request.Namespace, request.ResourceName)
 		},
 	)
@@ -1781,7 +1418,7 @@ func (self *socketApi) registerPatterns() {
 	RegisterPatternHandler(
 		PatternHandle{self, "trigger/workload"},
 		PatternConfig{},
-		func(request utils.SyncResourceItem) (*unstructured.Unstructured, error) {
+		func(request utils.ResourceItem) (*unstructured.Unstructured, error) {
 			return kubernetes.TriggerUnstructuredResource(request.Group, request.Version, request.Name, request.Namespace, request.ResourceName)
 		},
 	)
@@ -1976,74 +1613,6 @@ func (self *socketApi) registerPatterns() {
 		)
 	}
 
-	RegisterPatternHandler(
-		PatternHandle{self, "get/teams"},
-		PatternConfig{},
-		func(request Void) ([]v1alpha1.Team, error) {
-			return self.apiService.GetAllTeams()
-		},
-	)
-
-	{
-		type Request struct {
-			Name        string   `json:"name" validate:"required"`
-			DisplayName string   `json:"displayName" validate:"required"`
-			Users       []string `json:"users" validate:"required"`
-		}
-
-		RegisterPatternHandler(
-			PatternHandle{self, "create/team"},
-			PatternConfig{},
-			func(request Request) (string, error) {
-				return self.apiService.CreateTeam(request.Name, v1alpha1.NewTeamSpec(request.DisplayName, request.Users))
-			},
-		)
-	}
-
-	{
-		type Request struct {
-			Name string `json:"name" validate:"required"`
-		}
-
-		RegisterPatternHandler(
-			PatternHandle{self, "get/team"},
-			PatternConfig{},
-			func(request Request) (*v1alpha1.Team, error) {
-				return self.apiService.GetTeam(request.Name)
-			},
-		)
-	}
-
-	{
-		type Request struct {
-			Name        string   `json:"name" validate:"required"`
-			DisplayName string   `json:"displayName" validate:"required"`
-			Users       []string `json:"users" validate:"required"`
-		}
-
-		RegisterPatternHandler(
-			PatternHandle{self, "update/team"},
-			PatternConfig{},
-			func(request Request) (string, error) {
-				return self.apiService.UpdateTeam(request.Name, v1alpha1.NewTeamSpec(request.DisplayName, request.Users))
-			},
-		)
-	}
-
-	{
-		type Request struct {
-			Name string `json:"name" validate:"required"`
-		}
-
-		RegisterPatternHandler(
-			PatternHandle{self, "delete/team"},
-			PatternConfig{},
-			func(request Request) (string, error) {
-				return self.apiService.DeleteTeam(request.Name)
-			},
-		)
-	}
-
 	{
 
 		type Request struct {
@@ -2136,10 +1705,10 @@ func (self *socketApi) registerPatterns() {
 
 	{
 		type Request struct {
-			WorkspaceName      string                     `json:"workspaceName"`
-			Whitelist          []*utils.SyncResourceEntry `json:"whitelist"`
-			Blacklist          []*utils.SyncResourceEntry `json:"blacklist"`
-			NamespaceWhitelist []string                   `json:"namespaceWhitelist"`
+			WorkspaceName      string                 `json:"workspaceName"`
+			Whitelist          []*utils.ResourceEntry `json:"whitelist"`
+			Blacklist          []*utils.ResourceEntry `json:"blacklist"`
+			NamespaceWhitelist []string               `json:"namespaceWhitelist"`
 		}
 
 		RegisterPatternHandler(
@@ -2432,7 +2001,7 @@ func (self *socketApi) registerPatterns() {
 			if err := self.LoadRequest(&datagram, &data); err != nil {
 				return err
 			}
-			go self.xtermService.LiveStreamConnection(data, datagram, self.httpService)
+			go self.xtermService.LiveStreamConnection(data, datagram, self.httpService, self.valkeyClient)
 			return nil
 		},
 	)
@@ -2447,7 +2016,7 @@ func (self *socketApi) registerPatterns() {
 			if err := self.LoadRequest(&datagram, &data); err != nil {
 				return err
 			}
-			go self.xtermService.LiveStreamConnection(data, datagram, self.httpService)
+			go self.xtermService.LiveStreamConnection(data, datagram, self.httpService, self.valkeyClient)
 			return nil
 		},
 	)
@@ -2462,7 +2031,7 @@ func (self *socketApi) registerPatterns() {
 			if err := self.LoadRequest(&datagram, &data); err != nil {
 				return err
 			}
-			go self.xtermService.LiveStreamConnection(data, datagram, self.httpService)
+			go self.xtermService.LiveStreamConnection(data, datagram, self.httpService, self.valkeyClient)
 			return nil
 		},
 	)
@@ -2692,98 +2261,6 @@ func (self *socketApi) upgradeK8sManager(command string) *structs.Job {
 	wg.Wait()
 	job.Finish(self.eventsClient)
 	return job
-}
-
-func (self *socketApi) logStream(data services.ServiceLogStreamRequest, datagram structs.Datagram) services.ServiceLogStreamResult {
-	_ = datagram
-	result := services.ServiceLogStreamResult{}
-
-	url, err := url.Parse(data.PostTo)
-	if err != nil {
-		result.Error = err.Error()
-		result.Success = false
-		self.logger.Error(result.Error)
-		return result
-	}
-
-	pod := kubernetes.PodStatus(data.Namespace, data.PodId, false)
-	terminatedState := kubernetes.LastTerminatedStateIfAny(pod)
-
-	var previousResReq *rest.Request
-	if terminatedState != nil {
-		tmpPreviousResReq, err := kubernetes.StreamPreviousLog(data.Namespace, data.PodId)
-		if err != nil {
-			self.logger.Error("failed to get previous pod log stream", "error", err)
-		} else {
-			previousResReq = tmpPreviousResReq
-		}
-	}
-
-	restReq, err := kubernetes.StreamLog(data.Namespace, data.PodId, int64(data.SinceSeconds))
-	if err != nil {
-		result.Error = err.Error()
-		result.Success = false
-		self.logger.Error(result.Error)
-		return result
-	}
-
-	if terminatedState != nil {
-		self.logger.Info("Logger try multiStreamData")
-		go self.multiStreamData(previousResReq, restReq, terminatedState, url.String())
-	} else {
-		self.logger.Info("Logger try streamData")
-		go self.streamData(restReq, url.String())
-	}
-
-	result.Success = true
-
-	return result
-}
-
-func (self *socketApi) streamData(restReq *rest.Request, toServerUrl string) {
-	ctx := context.Background()
-	cancelCtx, endGofunc := context.WithCancel(ctx)
-	stream, err := restReq.Stream(cancelCtx)
-	if err != nil {
-		self.logger.Error(err.Error())
-	} else {
-		self.sendDataWs(toServerUrl, stream)
-	}
-	endGofunc()
-}
-
-func (self *socketApi) multiStreamData(previousRestReq *rest.Request, restReq *rest.Request, terminatedState *v1.ContainerStateTerminated, toServerUrl string) {
-	ctx := context.Background()
-	ctx, endGofunc := context.WithCancel(ctx)
-	defer endGofunc()
-
-	lastState := kubernetes.LastTerminatedStateToString(terminatedState)
-
-	var previousStream io.ReadCloser
-	if previousRestReq != nil {
-		tmpPreviousStream, err := previousRestReq.Stream(ctx)
-		if err != nil {
-			self.logger.Error(err.Error())
-			previousStream = io.NopCloser(strings.NewReader(fmt.Sprintln(err.Error())))
-		} else {
-			previousStream = tmpPreviousStream
-		}
-	}
-
-	stream, err := restReq.Stream(ctx)
-	if err != nil {
-		self.logger.Error(err.Error())
-		stream = io.NopCloser(strings.NewReader(fmt.Sprintln(err.Error())))
-	}
-
-	nl := strings.NewReader("\n")
-	previousState := strings.NewReader(lastState)
-	headlineLastLog := strings.NewReader("Last Log:\n")
-	headlineCurrentLog := strings.NewReader("Current Log:\n")
-
-	mergedStream := io.MultiReader(previousState, nl, headlineLastLog, nl, previousStream, nl, headlineCurrentLog, nl, stream)
-
-	self.sendDataWs(toServerUrl, io.NopCloser(mergedStream))
 }
 
 func (self *socketApi) execShConnection(podCmdConnectionRequest xterm.PodCmdConnectionRequest) {

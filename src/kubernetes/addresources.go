@@ -10,105 +10,13 @@ import (
 	"mogenius-k8s-manager/src/utils"
 
 	core "k8s.io/api/core/v1"
-	rbac "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer/yaml"
-	applyconfapp "k8s.io/client-go/applyconfigurations/apps/v1"
-	applyconfcore "k8s.io/client-go/applyconfigurations/core/v1"
-	applyconfmeta "k8s.io/client-go/applyconfigurations/meta/v1"
 	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 )
-
-func Deploy() {
-	applyNamespace()
-	err := addRbac()
-	if err != nil {
-		k8sLogger.Error("Error Creating RBAC. Aborting.", "error", err)
-		shutdown.SendShutdownSignal(true)
-		select {}
-	}
-	addDeployment()
-	_, err = CreateOrUpdateClusterSecret()
-	if err != nil {
-		k8sLogger.Error("Error Creating cluster secret. Aborting.", "error", err)
-		shutdown.SendShutdownSignal(true)
-		select {}
-	}
-}
-
-func addRbac() error {
-	clientset := clientProvider.K8sClientSet()
-	clusterRole := &rbac.ClusterRole{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: CLUSTERROLENAME,
-		},
-		Rules: []rbac.PolicyRule{
-			{
-				APIGroups: []string{"", "extensions", "apps"},
-				Resources: RBACRESOURCES,
-				Verbs:     []string{"list", "get", "watch", "create", "update"},
-			},
-		},
-	}
-	clusterRoleBinding := &rbac.ClusterRoleBinding{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: CLUSTERROLEBINDINGNAME,
-		},
-		RoleRef: rbac.RoleRef{
-			Name:     CLUSTERROLENAME,
-			Kind:     "ClusterRole",
-			APIGroup: "rbac.authorization.k8s.io",
-		},
-		Subjects: []rbac.Subject{
-			{
-				Kind:      "ServiceAccount",
-				Name:      SERVICEACCOUNTNAME,
-				Namespace: config.Get("MO_OWN_NAMESPACE"),
-			},
-		},
-	}
-
-	// CREATE RBAC
-	k8sLogger.Info("Creating mogenius-k8s-manager RBAC ...")
-
-	err := ApplyServiceAccount(SERVICEACCOUNTNAME, config.Get("MO_OWN_NAMESPACE"), nil)
-	if err != nil && !apierrors.IsAlreadyExists(err) {
-		return err
-	}
-	_, err = clientset.RbacV1().ClusterRoles().Create(context.TODO(), clusterRole, MoCreateOptions(config))
-	if err != nil && !apierrors.IsAlreadyExists(err) {
-		return err
-	}
-	_, err = clientset.RbacV1().ClusterRoleBindings().Create(context.TODO(), clusterRoleBinding, MoCreateOptions(config))
-	if err != nil && !apierrors.IsAlreadyExists(err) {
-		return err
-	}
-	k8sLogger.Info("Created mogenius-k8s-manager RBAC.")
-	return nil
-}
-
-func applyNamespace() {
-	clientset := clientProvider.K8sClientSet()
-	serviceClient := clientset.CoreV1().Namespaces()
-
-	namespace := applyconfcore.Namespace(config.Get("MO_OWN_NAMESPACE"))
-
-	applyOptions := metav1.ApplyOptions{
-		Force:        true,
-		FieldManager: GetOwnDeploymentName(config),
-	}
-
-	k8sLogger.Info("Creating mogenius-k8s-manager namespace ...")
-	result, err := serviceClient.Apply(context.TODO(), namespace, applyOptions)
-	if err != nil {
-		k8sLogger.Error("Error applying mogenius-k8s-manager namespace.", "error", err)
-	}
-	k8sLogger.Info("Created mogenius-k8s-manager namespace", result.GetObjectMeta().GetName(), ".")
-}
 
 func CreateOrUpdateClusterSecret() (utils.ClusterSecret, error) {
 	clientset := clientProvider.K8sClientSet()
@@ -201,71 +109,6 @@ func InitOrUpdateCrds() {
 			k8sLogger.Info("created/updated mogenius CRD 🚀", "filename", crd.Filename)
 		}
 	}
-}
-
-func addDeployment() {
-	clientset := clientProvider.K8sClientSet()
-	deploymentClient := clientset.AppsV1().Deployments(config.Get("MO_OWN_NAMESPACE"))
-
-	deploymentContainer := applyconfcore.Container()
-	deploymentContainer.WithImagePullPolicy(core.PullAlways)
-	deploymentContainer.WithName(GetOwnDeploymentName(config))
-	deploymentContainer.WithImage(DEPLOYMENTIMAGE)
-
-	envVars := []applyconfcore.EnvVarApplyConfiguration{}
-	envVars = append(envVars, applyconfcore.EnvVarApplyConfiguration{
-		Name:  utils.Pointer("cluster_name"),
-		Value: utils.Pointer("TestClusterFromCode"),
-	})
-	envVars = append(envVars, applyconfcore.EnvVarApplyConfiguration{
-		Name:  utils.Pointer("api_key"),
-		Value: utils.Pointer("94E23575-A689-4F88-8D67-215A274F4E6E"), // dont worry. this is a test key
-	})
-	deploymentContainer.Env = envVars
-	agentResourceLimits := core.ResourceList{
-		"cpu":               resource.MustParse("300m"),
-		"memory":            resource.MustParse("256Mi"),
-		"ephemeral-storage": resource.MustParse("100Mi"),
-	}
-	agentResourceRequests := core.ResourceList{
-		"cpu":               resource.MustParse("100m"),
-		"memory":            resource.MustParse("128Mi"),
-		"ephemeral-storage": resource.MustParse("10Mi"),
-	}
-	agentResources := applyconfcore.ResourceRequirements().WithRequests(agentResourceRequests).WithLimits(agentResourceLimits)
-	deploymentContainer.WithResources(agentResources)
-	deploymentContainer.WithName(GetOwnDeploymentName(config))
-
-	podSpec := applyconfcore.PodSpec()
-	podSpec.WithTerminationGracePeriodSeconds(0)
-	podSpec.WithServiceAccountName(SERVICEACCOUNTNAME)
-
-	podSpec.WithContainers(deploymentContainer)
-
-	applyOptions := metav1.ApplyOptions{
-		Force:        true,
-		FieldManager: GetOwnDeploymentName(config),
-	}
-
-	labelSelector := applyconfmeta.LabelSelector()
-	labelSelector.WithMatchLabels(map[string]string{"app": GetOwnDeploymentName(config)})
-
-	podTemplate := applyconfcore.PodTemplateSpec()
-	podTemplate.WithLabels(map[string]string{
-		"app": GetOwnDeploymentName(config),
-	})
-	podTemplate.WithSpec(podSpec)
-
-	deployment := applyconfapp.Deployment(GetOwnDeploymentName(config), config.Get("MO_OWN_NAMESPACE"))
-	deployment.WithSpec(applyconfapp.DeploymentSpec().WithSelector(labelSelector).WithTemplate(podTemplate))
-
-	// Create Deployment
-	k8sLogger.Info("Creating mogenius-k8s-manager deployment ...")
-	result, err := deploymentClient.Apply(context.TODO(), deployment, applyOptions)
-	if err != nil {
-		k8sLogger.Error("Error creating mogenius-k8s-manager deployment.", "error", err)
-	}
-	k8sLogger.Info("Created mogenius-k8s-manager deployment.", result.GetObjectMeta().GetName(), ".")
 }
 
 func CreateYamlString(yamlContent string) error {

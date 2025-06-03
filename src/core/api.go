@@ -62,20 +62,14 @@ type Api interface {
 	UpdateUser(name string, spec v1alpha1.UserSpec) (string, error)
 	DeleteUser(name string) (string, error)
 
-	GetAllTeams() ([]v1alpha1.Team, error)
-	GetTeam(name string) (*v1alpha1.Team, error)
-	CreateTeam(name string, spec v1alpha1.TeamSpec) (string, error)
-	UpdateTeam(name string, spec v1alpha1.TeamSpec) (string, error)
-	DeleteTeam(name string) (string, error)
-
 	GetAllGrants(targetType, targetName *string) ([]v1alpha1.Grant, error)
 	GetGrant(name string) (*v1alpha1.Grant, error)
 	CreateGrant(name string, spec v1alpha1.GrantSpec) (string, error)
 	UpdateGrant(name string, spec v1alpha1.GrantSpec) (string, error)
 	DeleteGrant(name string) (string, error)
 
-	GetWorkspaceResources(workspaceName string, whitelist []*utils.SyncResourceEntry, blacklist []*utils.SyncResourceEntry, namespaceWhitelist []string) ([]unstructured.Unstructured, error)
-	GetWorkspaceControllers(workspaceName string, whitelist []*utils.SyncResourceEntry, blacklist []*utils.SyncResourceEntry, namespaceWhitelist []string) ([]unstructured.Unstructured, error)
+	GetWorkspaceResources(workspaceName string, whitelist []*utils.ResourceEntry, blacklist []*utils.ResourceEntry, namespaceWhitelist []string) ([]unstructured.Unstructured, error)
+	GetWorkspaceControllers(workspaceName string) ([]unstructured.Unstructured, error)
 
 	Link(workspaceManager WorkspaceManager)
 }
@@ -221,51 +215,6 @@ func (self *api) DeleteUser(name string) (string, error) {
 	return "Resource deleted successfully", nil
 }
 
-func (self *api) GetAllTeams() ([]v1alpha1.Team, error) {
-	resources, err := self.workspaceManager.GetAllTeams()
-	if err != nil {
-		return []v1alpha1.Team{}, err
-	}
-
-	return resources, nil
-}
-
-func (self *api) GetTeam(name string) (*v1alpha1.Team, error) {
-	resource, err := self.workspaceManager.GetTeam(name)
-	if err != nil {
-		return nil, err
-	}
-
-	return resource, nil
-}
-
-func (self *api) CreateTeam(name string, spec v1alpha1.TeamSpec) (string, error) {
-	_, err := self.workspaceManager.CreateTeam(name, spec)
-	if err != nil {
-		return "", err
-	}
-
-	return "Resource created successfully", nil
-}
-
-func (self *api) UpdateTeam(name string, spec v1alpha1.TeamSpec) (string, error) {
-	_, err := self.workspaceManager.UpdateTeam(name, spec)
-	if err != nil {
-		return "", err
-	}
-
-	return "Resource updated successfully", nil
-}
-
-func (self *api) DeleteTeam(name string) (string, error) {
-	err := self.workspaceManager.DeleteTeam(name)
-	if err != nil {
-		return "", err
-	}
-
-	return "Resource deleted successfully", nil
-}
-
 func (self *api) GetAllGrants(targetType, targetName *string) ([]v1alpha1.Grant, error) {
 	resources, err := self.workspaceManager.GetAllGrants(targetType, targetName)
 	if err != nil {
@@ -311,7 +260,7 @@ func (self *api) DeleteGrant(name string) (string, error) {
 	return "Resource deleted successfully", nil
 }
 
-func (self *api) GetWorkspaceResources(workspaceName string, whitelist []*utils.SyncResourceEntry, blacklist []*utils.SyncResourceEntry, namespaceWhitelist []string) ([]unstructured.Unstructured, error) {
+func (self *api) GetWorkspaceResources(workspaceName string, whitelist []*utils.ResourceEntry, blacklist []*utils.ResourceEntry, namespaceWhitelist []string) ([]unstructured.Unstructured, error) {
 	result := []unstructured.Unstructured{}
 
 	// Get workspace
@@ -355,16 +304,13 @@ func (self *api) GetWorkspaceResources(workspaceName string, whitelist []*utils.
 	return result, nil
 }
 
-func (self *api) GetWorkspaceControllers(workspaceName string, whitelist []*utils.SyncResourceEntry, blacklist []*utils.SyncResourceEntry, namespaceWhitelist []string) ([]unstructured.Unstructured, error) {
-	result := []unstructured.Unstructured{}
-	res, err := self.GetWorkspaceResources(workspaceName, whitelist, blacklist, namespaceWhitelist)
-
-	for _, v := range res {
-		if v.GetKind() == "Deployment" || v.GetKind() == "StatefulSet" || v.GetKind() == "DaemonSet" {
-			result = append(result, v)
-		}
+func (self *api) GetWorkspaceControllers(workspaceName string) ([]unstructured.Unstructured, error) {
+	whiteList := []*utils.ResourceEntry{
+		&utils.DaemonSetResource,
+		&utils.StatefulSetResource,
+		&utils.DeploymentResource,
 	}
-	return result, err
+	return self.GetWorkspaceResources(workspaceName, whiteList, nil, nil)
 }
 
 func appendIfNotExists(list []unstructured.Unstructured, item ...unstructured.Unstructured) []unstructured.Unstructured {

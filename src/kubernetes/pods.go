@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"sort"
 	"strings"
 	"text/template"
 
@@ -23,23 +22,6 @@ func GetPod(namespace string, podName string) *v1.Pod {
 		return nil
 	}
 	return pod
-}
-
-func KeplerPod() *v1.Pod {
-	clientset := clientProvider.K8sClientSet()
-	podClient := clientset.CoreV1().Pods("")
-	labelSelector := "app.kubernetes.io/component=exporter,app.kubernetes.io/name=kepler"
-	pods, err := podClient.List(context.TODO(), metav1.ListOptions{LabelSelector: labelSelector})
-	if err != nil {
-		k8sLogger.Error("failed to list kepler pods", "labelSelector", labelSelector, "error", err.Error())
-		return nil
-	}
-	for _, pod := range pods.Items {
-		if pod.GenerateName == "kepler-" {
-			return &pod
-		}
-	}
-	return nil
 }
 
 type ServicePodExistsResult struct {
@@ -78,15 +60,6 @@ func AllPodsOnNode(nodeName string) []v1.Pod {
 		result = append(result, pod)
 	}
 
-	return result
-}
-
-func AllPodNames() []string {
-	result := []string{}
-	allPods := AllPods("")
-	for _, pod := range allPods {
-		result = append(result, pod.ObjectMeta.Name)
-	}
 	return result
 }
 
@@ -208,36 +181,6 @@ func ServicePodStatus(namespace string, serviceName string) []v1.Pod {
 			result = append(result, pod)
 		}
 	}
-
-	return result
-}
-
-func PodIdsFor(namespace string, serviceId *string) []string {
-	result := []string{}
-
-	provider, err := NewKubeProviderMetrics()
-	if provider == nil || err != nil {
-		k8sLogger.Error(err.Error())
-		return result
-	}
-
-	podMetricsList, err := provider.ClientSet.MetricsV1beta1().PodMetricses(namespace).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
-	if err != nil {
-		k8sLogger.Error("PodIdsForServiceId podMetricsList", "error", err.Error())
-		return result
-	}
-
-	for _, podMetrics := range podMetricsList.Items {
-		if serviceId != nil {
-			if strings.Contains(podMetrics.ObjectMeta.Name, *serviceId) {
-				result = append(result, podMetrics.ObjectMeta.Name)
-			}
-		} else {
-			result = append(result, podMetrics.ObjectMeta.Name)
-		}
-	}
-	// SORT TO HAVE A DETERMINISTIC ORDERING
-	sort.Strings(result)
 
 	return result
 }

@@ -168,7 +168,7 @@ type HelmReleaseGetWorkloadsRequest struct {
 	Namespace string `json:"namespace" validate:"required"`
 	Release   string `json:"release" validate:"required"`
 
-	Whitelist []*utils.SyncResourceEntry `json:"whitelist"`
+	Whitelist []*utils.ResourceEntry `json:"whitelist"`
 }
 
 type HelmEntryWithoutPassword struct {
@@ -271,21 +271,7 @@ func HelmStatus(namespace string, chartname string) release.Status {
 	}
 }
 
-//
-//
-//
-//
 // NEW CODE
-//
-//
-//
-//
-
-type IndexFile struct {
-	APIVersion string                 `yaml:"apiVersion"`
-	Entries    map[string]interface{} `yaml:"entries"`
-}
-
 func parseHelmEntry(entry *repo.Entry) *HelmEntryWithoutPassword {
 	return &HelmEntryWithoutPassword{
 		Name:                  entry.Name,
