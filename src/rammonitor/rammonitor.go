@@ -85,7 +85,7 @@ func (self *ramMonitor) startCollector() {
 			}
 
 			lines := strings.Split(string(fileData), "\n")
-			var memFree float64
+			var memAvailable float64
 
 			for _, line := range lines {
 				fields := strings.Fields(line)
@@ -102,11 +102,11 @@ func (self *ramMonitor) startCollector() {
 				switch fields[0] {
 				case "MemTotal:":
 					data.TotalKb = val
-				case "MemFree:":
-					memFree = val
+				case "MemAvailable:":
+					memAvailable = val
 				}
 			}
-			data.UsedKb = data.TotalKb - memFree
+			data.UsedKb = data.TotalKb - memAvailable
 
 			self.lastMetricsLock.Lock()
 			self.lastMetrics = data
