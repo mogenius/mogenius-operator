@@ -6,7 +6,7 @@ require (
 	github.com/alecthomas/kong v1.11.0
 	github.com/cert-manager/cert-manager v1.17.2
 	github.com/creack/pty v1.1.24
-	github.com/go-git/go-git/v5 v5.16.0
+	github.com/go-git/go-git/v5 v5.16.1
 	github.com/go-playground/validator/v10 v10.26.0
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/google/uuid v1.6.0
