@@ -71,7 +71,7 @@ func (self *ramMonitor) startCollector() {
 
 		for {
 			if !firstRun {
-				time.Sleep(100 * time.Millisecond)
+				time.Sleep(1000 * time.Millisecond)
 			}
 			firstRun = false
 
