@@ -38,7 +38,7 @@ func (self *xtermService) LiveStreamConnection(conReq xterm.WsConnectionRequest,
 	case "live-stream/nodes-memory":
 		pubsub = store.SubscribeToKey(DB_STATS_LIVE_BUCKET_NAME, "memory", conReq.NodeName)
 	case "live-stream/nodes-cpu":
-		pubsub = store.SubscribeToKey(DB_STATS_LIVE_BUCKET_NAME, "cpu", "homeserver")
+		pubsub = store.SubscribeToKey(DB_STATS_LIVE_BUCKET_NAME, "cpu", conReq.NodeName)
 	default:
 		logger.Error("Unsupported pattern for LiveStreamConnection", "pattern", datagram.Pattern)
 		return
