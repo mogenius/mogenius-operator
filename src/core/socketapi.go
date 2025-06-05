@@ -866,6 +866,30 @@ func (self *socketApi) registerPatterns() {
 		},
 	)
 
+	RegisterPatternHandler(
+		PatternHandle{self, "cluster/prometheus/query"},
+		PatternConfig{},
+		func(request PrometheusRequest) (*PrometheusQueryResponse, error) {
+			return ExecutePrometheusQuery(request)
+		},
+	)
+
+	RegisterPatternHandler(
+		PatternHandle{self, "cluster/prometheus/is-reachable"},
+		PatternConfig{},
+		func(request PrometheusRequest) (bool, error) {
+			return IsPrometheusReachable(request)
+		},
+	)
+
+	RegisterPatternHandler(
+		PatternHandle{self, "cluster/prometheus/values"},
+		PatternConfig{},
+		func(request PrometheusRequest) ([]string, error) {
+			return PrometheusValues(request)
+		},
+	)
+
 	self.RegisterPatternHandlerRaw(
 		"cluster/backup",
 		PatternConfig{
