@@ -867,7 +867,7 @@ func (self *socketApi) registerPatterns() {
 	)
 
 	RegisterPatternHandler(
-		PatternHandle{self, "cluster/prometheus/query"},
+		PatternHandle{self, "prometheus/query"},
 		PatternConfig{},
 		func(request PrometheusRequest) (*PrometheusQueryResponse, error) {
 			return ExecutePrometheusQuery(request)
@@ -875,7 +875,7 @@ func (self *socketApi) registerPatterns() {
 	)
 
 	RegisterPatternHandler(
-		PatternHandle{self, "cluster/prometheus/is-reachable"},
+		PatternHandle{self, "prometheus/is-reachable"},
 		PatternConfig{},
 		func(request PrometheusRequest) (bool, error) {
 			return IsPrometheusReachable(request)
@@ -883,7 +883,7 @@ func (self *socketApi) registerPatterns() {
 	)
 
 	RegisterPatternHandler(
-		PatternHandle{self, "cluster/prometheus/values"},
+		PatternHandle{self, "prometheus/values"},
 		PatternConfig{},
 		func(request PrometheusRequest) ([]string, error) {
 			return PrometheusValues(request)
@@ -891,7 +891,7 @@ func (self *socketApi) registerPatterns() {
 	)
 
 	RegisterPatternHandler(
-		PatternHandle{self, "cluster/prometheus-charts/add"},
+		PatternHandle{self, "prometheus/charts/add"},
 		PatternConfig{},
 		func(request PrometheusRequestRedis) (*string, error) {
 			return PrometheusSaveQueryToRedis(self.valkeyClient, request)
@@ -899,7 +899,7 @@ func (self *socketApi) registerPatterns() {
 	)
 
 	RegisterPatternHandler(
-		PatternHandle{self, "cluster/prometheus-charts/remove"},
+		PatternHandle{self, "prometheus/charts/remove"},
 		PatternConfig{},
 		func(request PrometheusRequestRedis) (*string, error) {
 			return PrometheusRemoveQueryFromRedis(self.valkeyClient, request)
@@ -907,7 +907,7 @@ func (self *socketApi) registerPatterns() {
 	)
 
 	RegisterPatternHandler(
-		PatternHandle{self, "cluster/prometheus-charts/get"},
+		PatternHandle{self, "prometheus/charts/get"},
 		PatternConfig{},
 		func(request PrometheusRequestRedis) (*string, error) {
 			return PrometheusGetQueryFromRedis(self.valkeyClient, request)
@@ -915,7 +915,7 @@ func (self *socketApi) registerPatterns() {
 	)
 
 	RegisterPatternHandler(
-		PatternHandle{self, "cluster/prometheus-charts/list"},
+		PatternHandle{self, "prometheus/charts/list"},
 		PatternConfig{},
 		func(request PrometheusRequestRedisList) (map[string]string, error) {
 			return PrometheusListQueriesFromRedis(self.valkeyClient, request)
