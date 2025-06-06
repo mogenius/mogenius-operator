@@ -55,11 +55,13 @@ type PrometheusValuesResponse struct {
 
 func IsPrometheusReachable(data PrometheusRequest) (bool, error) {
 	data.Query = "up" // Default query to check if Prometheus is reachable
-	urlString := PrometheusUrlString(data, "")
+	urlString, header := PrometheusUrlAndHeader(data, "")
 	if urlString == "" {
 		return false, fmt.Errorf("Prometheus API URL is not set or query is empty")
 	}
 	req, err := http.NewRequest("GET", urlString, nil)
+	req.Header = header
+
 	if err != nil {
 		return false, fmt.Errorf("Failed to create request: %v", err)
 	}
@@ -78,7 +80,7 @@ func IsPrometheusReachable(data PrometheusRequest) (bool, error) {
 }
 
 func PrometheusValues(data PrometheusRequest) ([]string, error) {
-	urlString := PrometheusUrlString(data, "/api/v1/label/__name__/values")
+	urlString, header := PrometheusUrlAndHeader(data, "/api/v1/label/__name__/values")
 	if urlString == "" {
 		return []string{}, fmt.Errorf("Prometheus API URL is not set or query is empty")
 	}
@@ -86,6 +88,8 @@ func PrometheusValues(data PrometheusRequest) ([]string, error) {
 	if err != nil {
 		return []string{}, fmt.Errorf("Failed to create request: %v", err)
 	}
+	req.Header = header
+
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -111,7 +115,7 @@ func PrometheusValues(data PrometheusRequest) ([]string, error) {
 }
 
 func ExecutePrometheusQuery(data PrometheusRequest) (*PrometheusQueryResponse, error) {
-	urlString := PrometheusUrlString(data, "")
+	urlString, header := PrometheusUrlAndHeader(data, "")
 	if urlString == "" {
 		return nil, fmt.Errorf("Prometheus API URL is not set or query is empty")
 	}
@@ -119,15 +123,7 @@ func ExecutePrometheusQuery(data PrometheusRequest) (*PrometheusQueryResponse, e
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create request: %v", err)
 	}
-
-	if data.Prometheus_User != "" && data.Prometheus_Pass != "" {
-		username := data.Prometheus_User
-		password := data.Prometheus_Pass
-		req.Header.Add("Authorization", "Basic "+basicAuth(username, password))
-	} else if data.Prometheus_Token != "" {
-		token := data.Prometheus_Token
-		req.Header.Add("Authorization", "Bearer "+token)
-	}
+	req.Header = header
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
@@ -195,12 +191,23 @@ func PrometheusGetQueryFromRedis(valkey valkeyclient.ValkeyClient, req Prometheu
 	return &query, nil
 }
 
-func PrometheusUrlString(data PrometheusRequest, customEndpoint string) string {
+func PrometheusUrlAndHeader(data PrometheusRequest, customEndpoint string) (urlString string, header map[string][]string) {
+	header = make(map[string][]string)
+
+	if data.Prometheus_User != "" && data.Prometheus_Pass != "" {
+		username := data.Prometheus_User
+		password := data.Prometheus_Pass
+		header["Authorization"] = []string{"Basic " + basicAuth(username, password)}
+	} else if data.Prometheus_Token != "" {
+		token := data.Prometheus_Token
+		header["Authorization"] = []string{"Bearer " + token}
+	}
+
 	result := data.Prometheus_API_URL
 	if data.Prometheus_API_URL == "" {
 		namespace, serviceName, _, err := kubernetes.FindPrometheusService()
 		if err != nil {
-			return ""
+			return "", header
 		}
 		result = fmt.Sprintf("http://%s.%s.svc.cluster.local", serviceName, namespace)
 	}
@@ -211,7 +218,7 @@ func PrometheusUrlString(data PrometheusRequest, customEndpoint string) string {
 		result += fmt.Sprintf("/api/v1/query?query=%s", url.QueryEscape(data.Query))
 	}
 
-	return result
+	return result, header
 }
 
 func basicAuth(username, password string) string {
