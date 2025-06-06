@@ -890,6 +890,38 @@ func (self *socketApi) registerPatterns() {
 		},
 	)
 
+	RegisterPatternHandler(
+		PatternHandle{self, "cluster/prometheus-charts/add"},
+		PatternConfig{},
+		func(request PrometheusRequestRedis) (*string, error) {
+			return PrometheusSaveQueryToRedis(self.valkeyClient, request)
+		},
+	)
+
+	RegisterPatternHandler(
+		PatternHandle{self, "cluster/prometheus-charts/remove"},
+		PatternConfig{},
+		func(request PrometheusRequestRedis) (*string, error) {
+			return PrometheusRemoveQueryFromRedis(self.valkeyClient, request)
+		},
+	)
+
+	RegisterPatternHandler(
+		PatternHandle{self, "cluster/prometheus-charts/get"},
+		PatternConfig{},
+		func(request PrometheusRequestRedis) (*string, error) {
+			return PrometheusGetQueryFromRedis(self.valkeyClient, request)
+		},
+	)
+
+	RegisterPatternHandler(
+		PatternHandle{self, "cluster/prometheus-charts/list"},
+		PatternConfig{},
+		func(request PrometheusRequestRedisList) (map[string]string, error) {
+			return PrometheusListQueriesFromRedis(self.valkeyClient, request)
+		},
+	)
+
 	self.RegisterPatternHandlerRaw(
 		"cluster/backup",
 		PatternConfig{
