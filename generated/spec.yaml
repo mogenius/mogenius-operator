@@ -2495,85 +2495,6 @@ attach/labeled_network_policy:
     responseSchema:
         typeInfo:
             type: string
-clean/workspace:
-    requestSchema:
-        structs:
-            mogenius-k8s-manager/src/core.Request:
-                name: mogenius-k8s-manager/src/core.Request
-                properties:
-                    configMaps:
-                        type: bool
-                    dryRun:
-                        type: bool
-                    ingresses:
-                        type: bool
-                    jobs:
-                        type: bool
-                    name:
-                        type: string
-                    pods:
-                        type: bool
-                    replicaSets:
-                        type: bool
-                    secrets:
-                        type: bool
-                    services:
-                        type: bool
-        typeInfo:
-            structRef: mogenius-k8s-manager/src/core.Request
-            type: struct
-    responseSchema:
-        structs:
-            mogenius-k8s-manager/src/core.CleanUpResult:
-                name: mogenius-k8s-manager/src/core.CleanUpResult
-                properties:
-                    ConfigMaps:
-                        elementType:
-                            structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
-                            type: struct
-                        type: array
-                    Ingresses:
-                        elementType:
-                            structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
-                            type: struct
-                        type: array
-                    Jobs:
-                        elementType:
-                            structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
-                            type: struct
-                        type: array
-                    Pods:
-                        elementType:
-                            structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
-                            type: struct
-                        type: array
-                    ReplicaSets:
-                        elementType:
-                            structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
-                            type: struct
-                        type: array
-                    Secrets:
-                        elementType:
-                            structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
-                            type: struct
-                        type: array
-                    Services:
-                        elementType:
-                            structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
-                            type: struct
-                        type: array
-            mogenius-k8s-manager/src/core.CleanUpResultEntry:
-                name: mogenius-k8s-manager/src/core.CleanUpResultEntry
-                properties:
-                    Name:
-                        type: string
-                    Namespace:
-                        type: string
-                    Reason:
-                        type: string
-        typeInfo:
-            structRef: mogenius-k8s-manager/src/core.CleanUpResult
-            type: struct
 cluster/backup:
     responseSchema:
         structs:
@@ -14395,3 +14316,82 @@ upgrade-metrics-server:
     responseSchema:
         typeInfo:
             type: string
+workspace/clean-up:
+    requestSchema:
+        structs:
+            mogenius-k8s-manager/src/core.Request:
+                name: mogenius-k8s-manager/src/core.Request
+                properties:
+                    configMaps:
+                        type: bool
+                    dryRun:
+                        type: bool
+                    ingresses:
+                        type: bool
+                    jobs:
+                        type: bool
+                    name:
+                        type: string
+                    pods:
+                        type: bool
+                    replicaSets:
+                        type: bool
+                    secrets:
+                        type: bool
+                    services:
+                        type: bool
+        typeInfo:
+            structRef: mogenius-k8s-manager/src/core.Request
+            type: struct
+    responseSchema:
+        structs:
+            mogenius-k8s-manager/src/core.CleanUpResult:
+                name: mogenius-k8s-manager/src/core.CleanUpResult
+                properties:
+                    ConfigMaps:
+                        elementType:
+                            structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
+                            type: struct
+                        type: array
+                    Ingresses:
+                        elementType:
+                            structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
+                            type: struct
+                        type: array
+                    Jobs:
+                        elementType:
+                            structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
+                            type: struct
+                        type: array
+                    Pods:
+                        elementType:
+                            structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
+                            type: struct
+                        type: array
+                    ReplicaSets:
+                        elementType:
+                            structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
+                            type: struct
+                        type: array
+                    Secrets:
+                        elementType:
+                            structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
+                            type: struct
+                        type: array
+                    Services:
+                        elementType:
+                            structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
+                            type: struct
+                        type: array
+            mogenius-k8s-manager/src/core.CleanUpResultEntry:
+                name: mogenius-k8s-manager/src/core.CleanUpResultEntry
+                properties:
+                    Name:
+                        type: string
+                    Namespace:
+                        type: string
+                    Reason:
+                        type: string
+        typeInfo:
+            structRef: mogenius-k8s-manager/src/core.CleanUpResult
+            type: struct

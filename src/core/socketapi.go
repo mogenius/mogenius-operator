@@ -1534,7 +1534,7 @@ func (self *socketApi) registerPatterns() {
 		}
 
 		RegisterPatternHandler(
-			PatternHandle{self, "clean/workspace"},
+			PatternHandle{self, "workspace/clean-up"},
 			PatternConfig{},
 			func(request Request) (CleanUpResult, error) {
 				return self.moKubernetes.CleanUp(

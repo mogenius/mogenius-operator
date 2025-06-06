@@ -4,7 +4,6 @@
 
 export enum Pattern {
   ATTACH_LABELED_NETWORK_POLICY = "attach/labeled_network_policy",
-  CLEAN_WORKSPACE = "clean/workspace",
   CLUSTERFORCEDISCONNECT = "ClusterForceDisconnect",
   CLUSTERFORCERECONNECT = "ClusterForceReconnect",
   CLUSTERRESOURCEINFO = "ClusterResourceInfo",
@@ -148,6 +147,7 @@ export enum Pattern {
   UPGRADE_KEPLER = "upgrade-kepler",
   UPGRADE_METALLB = "upgrade-metallb",
   UPGRADE_METRICS_SERVER = "upgrade-metrics-server",
+  WORKSPACE_CLEAN_UP = "workspace/clean-up",
 }
 
 //===============================================================
@@ -156,7 +156,6 @@ export enum Pattern {
 
 export const StringToPattern = {
   "attach/labeled_network_policy": Pattern.ATTACH_LABELED_NETWORK_POLICY,
-  "clean/workspace": Pattern.CLEAN_WORKSPACE,
   "ClusterForceDisconnect": Pattern.CLUSTERFORCEDISCONNECT,
   "ClusterForceReconnect": Pattern.CLUSTERFORCERECONNECT,
   "ClusterResourceInfo": Pattern.CLUSTERRESOURCEINFO,
@@ -300,11 +299,11 @@ export const StringToPattern = {
   "upgrade-kepler": Pattern.UPGRADE_KEPLER,
   "upgrade-metallb": Pattern.UPGRADE_METALLB,
   "upgrade-metrics-server": Pattern.UPGRADE_METRICS_SERVER,
+  "workspace/clean-up": Pattern.WORKSPACE_CLEAN_UP,
 };
 
 export const PatternToString = {
   [Pattern.ATTACH_LABELED_NETWORK_POLICY]: "attach/labeled_network_policy",
-  [Pattern.CLEAN_WORKSPACE]: "clean/workspace",
   [Pattern.CLUSTERFORCEDISCONNECT]: "ClusterForceDisconnect",
   [Pattern.CLUSTERFORCERECONNECT]: "ClusterForceReconnect",
   [Pattern.CLUSTERRESOURCEINFO]: "ClusterResourceInfo",
@@ -448,6 +447,7 @@ export const PatternToString = {
   [Pattern.UPGRADE_KEPLER]: "upgrade-kepler",
   [Pattern.UPGRADE_METALLB]: "upgrade-metallb",
   [Pattern.UPGRADE_METRICS_SERVER]: "upgrade-metrics-server",
+  [Pattern.WORKSPACE_CLEAN_UP]: "workspace/clean-up",
 };
 
 //===============================================================
@@ -502,100 +502,6 @@ export type ATTACH_LABELED_NETWORK_POLICY_REQUEST = ATTACH_LABELED_NETWORK_POLIC
  *
  */
 export type ATTACH_LABELED_NETWORK_POLICY_RESPONSE = string;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     mogenius-k8s-manager/src/core.Request:
- *         name: mogenius-k8s-manager/src/core.Request
- *         properties:
- *             configMaps:
- *                 type: bool
- *             dryRun:
- *                 type: bool
- *             ingresses:
- *                 type: bool
- *             jobs:
- *                 type: bool
- *             name:
- *                 type: string
- *             pods:
- *                 type: bool
- *             replicaSets:
- *                 type: bool
- *             secrets:
- *                 type: bool
- *             services:
- *                 type: bool
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Request
- *     type: struct
- * ```
- *
- */
-export type CLEAN_WORKSPACE_REQUEST = CLEAN_WORKSPACE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     mogenius-k8s-manager/src/core.CleanUpResult:
- *         name: mogenius-k8s-manager/src/core.CleanUpResult
- *         properties:
- *             ConfigMaps:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
- *                     type: struct
- *                 type: array
- *             Ingresses:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
- *                     type: struct
- *                 type: array
- *             Jobs:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
- *                     type: struct
- *                 type: array
- *             Pods:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
- *                     type: struct
- *                 type: array
- *             ReplicaSets:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
- *                     type: struct
- *                 type: array
- *             Secrets:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
- *                     type: struct
- *                 type: array
- *             Services:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
- *                     type: struct
- *                 type: array
- *     mogenius-k8s-manager/src/core.CleanUpResultEntry:
- *         name: mogenius-k8s-manager/src/core.CleanUpResultEntry
- *         properties:
- *             Name:
- *                 type: string
- *             Namespace:
- *                 type: string
- *             Reason:
- *                 type: string
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.CleanUpResult
- *     type: struct
- * ```
- *
- */
-export type CLEAN_WORKSPACE_RESPONSE = CLEAN_WORKSPACE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_CLEANUPRESULT;
 
 /**
  * api schema has not been defined by the operator
@@ -16957,6 +16863,100 @@ export type UPGRADE_METRICS_SERVER_REQUEST = UPGRADE_METRICS_SERVER_REQUEST__ANO
  */
 export type UPGRADE_METRICS_SERVER_RESPONSE = string;
 
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     mogenius-k8s-manager/src/core.Request:
+ *         name: mogenius-k8s-manager/src/core.Request
+ *         properties:
+ *             configMaps:
+ *                 type: bool
+ *             dryRun:
+ *                 type: bool
+ *             ingresses:
+ *                 type: bool
+ *             jobs:
+ *                 type: bool
+ *             name:
+ *                 type: string
+ *             pods:
+ *                 type: bool
+ *             replicaSets:
+ *                 type: bool
+ *             secrets:
+ *                 type: bool
+ *             services:
+ *                 type: bool
+ * typeInfo:
+ *     structRef: mogenius-k8s-manager/src/core.Request
+ *     type: struct
+ * ```
+ *
+ */
+export type WORKSPACE_CLEAN_UP_REQUEST = WORKSPACE_CLEAN_UP_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     mogenius-k8s-manager/src/core.CleanUpResult:
+ *         name: mogenius-k8s-manager/src/core.CleanUpResult
+ *         properties:
+ *             ConfigMaps:
+ *                 elementType:
+ *                     structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
+ *                     type: struct
+ *                 type: array
+ *             Ingresses:
+ *                 elementType:
+ *                     structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
+ *                     type: struct
+ *                 type: array
+ *             Jobs:
+ *                 elementType:
+ *                     structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
+ *                     type: struct
+ *                 type: array
+ *             Pods:
+ *                 elementType:
+ *                     structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
+ *                     type: struct
+ *                 type: array
+ *             ReplicaSets:
+ *                 elementType:
+ *                     structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
+ *                     type: struct
+ *                 type: array
+ *             Secrets:
+ *                 elementType:
+ *                     structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
+ *                     type: struct
+ *                 type: array
+ *             Services:
+ *                 elementType:
+ *                     structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
+ *                     type: struct
+ *                 type: array
+ *     mogenius-k8s-manager/src/core.CleanUpResultEntry:
+ *         name: mogenius-k8s-manager/src/core.CleanUpResultEntry
+ *         properties:
+ *             Name:
+ *                 type: string
+ *             Namespace:
+ *                 type: string
+ *             Reason:
+ *                 type: string
+ * typeInfo:
+ *     structRef: mogenius-k8s-manager/src/core.CleanUpResult
+ *     type: struct
+ * ```
+ *
+ */
+export type WORKSPACE_CLEAN_UP_RESPONSE = WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_CLEANUPRESULT;
+
 
 //===============================================================
 //===================== Struct Definitions ======================
@@ -16964,9 +16964,6 @@ export type UPGRADE_METRICS_SERVER_RESPONSE = string;
 
 export type ATTACH_LABELED_NETWORK_POLICY_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_ATTACHLABELEDNETWORKPOLICYREQUEST = {"controllerName": string,"controllerType": string,"labeledNetworkPolicies": ATTACH_LABELED_NETWORK_POLICY_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SLABELEDNETWORKPOLICYDTO[],"namespaceName": string};
 export type ATTACH_LABELED_NETWORK_POLICY_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SLABELEDNETWORKPOLICYDTO = {"name": string,"port": number,"portType": string,"type": string};
-export type CLEAN_WORKSPACE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"configMaps": boolean,"dryRun": boolean,"ingresses": boolean,"jobs": boolean,"name": string,"pods": boolean,"replicaSets": boolean,"secrets": boolean,"services": boolean};
-export type CLEAN_WORKSPACE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_CLEANUPRESULT = {"ConfigMaps": CLEAN_WORKSPACE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_CLEANUPRESULTENTRY[],"Ingresses": CLEAN_WORKSPACE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_CLEANUPRESULTENTRY[],"Jobs": CLEAN_WORKSPACE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_CLEANUPRESULTENTRY[],"Pods": CLEAN_WORKSPACE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_CLEANUPRESULTENTRY[],"ReplicaSets": CLEAN_WORKSPACE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_CLEANUPRESULTENTRY[],"Secrets": CLEAN_WORKSPACE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_CLEANUPRESULTENTRY[],"Services": CLEAN_WORKSPACE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_CLEANUPRESULTENTRY[]};
-export type CLEAN_WORKSPACE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_CLEANUPRESULTENTRY = {"Name": string,"Namespace": string,"Reason": string};
 export type CLUSTERRESOURCEINFO_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESPONSE = {"cniConfig": CLUSTERRESOURCEINFO_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_CNIDATA[],"country": CLUSTERRESOURCEINFO_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_UTILS_COUNTRYDETAILS|undefined,"loadBalancerExternalIps": string[],"nodeStats": CLUSTERRESOURCEINFO_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_DTOS_NODESTAT[],"provider": string};
 export type CLUSTERRESOURCEINFO_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_DTOS_NODESTAT = {"architecture": string,"cpuInCores": number,"cpuInCoresLimited": number,"cpuInCoresRequested": number,"cpuInCoresUtilized": number,"ephemeralInBytes": number,"kubletVersion": string,"machineStats": CLUSTERRESOURCEINFO_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_MACHINESTATS|undefined,"maschineId": string,"maxPods": number,"memoryInBytes": number,"memoryInBytesLimited": number,"memoryInBytesRequested": number,"memoryInBytesUtilized": number,"name": string,"osImage": string,"osKernelVersion": string,"osType": string,"totalPods": number};
 export type CLUSTERRESOURCEINFO_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_CNICAPABILITIES = {"bandwidth": boolean,"portMappings": boolean};
@@ -17857,6 +17854,9 @@ export type UPGRADE_INGRESS_CONTROLLER_TRAEFIK_REQUEST__ANON_STRUCT_0 = {};
 export type UPGRADE_KEPLER_REQUEST__ANON_STRUCT_0 = {};
 export type UPGRADE_METALLB_REQUEST__ANON_STRUCT_0 = {};
 export type UPGRADE_METRICS_SERVER_REQUEST__ANON_STRUCT_0 = {};
+export type WORKSPACE_CLEAN_UP_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"configMaps": boolean,"dryRun": boolean,"ingresses": boolean,"jobs": boolean,"name": string,"pods": boolean,"replicaSets": boolean,"secrets": boolean,"services": boolean};
+export type WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_CLEANUPRESULT = {"ConfigMaps": WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_CLEANUPRESULTENTRY[],"Ingresses": WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_CLEANUPRESULTENTRY[],"Jobs": WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_CLEANUPRESULTENTRY[],"Pods": WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_CLEANUPRESULTENTRY[],"ReplicaSets": WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_CLEANUPRESULTENTRY[],"Secrets": WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_CLEANUPRESULTENTRY[],"Services": WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_CLEANUPRESULTENTRY[]};
+export type WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_CLEANUPRESULTENTRY = {"Name": string,"Namespace": string,"Reason": string};
 
 //===============================================================
 //==================== Pattern Type Mapping =====================
@@ -17866,10 +17866,6 @@ export interface IPatternConfig {
   [Pattern.ATTACH_LABELED_NETWORK_POLICY]: {
     Request: ATTACH_LABELED_NETWORK_POLICY_REQUEST;
     Response: ATTACH_LABELED_NETWORK_POLICY_RESPONSE;
-  };
-  [Pattern.CLEAN_WORKSPACE]: {
-    Request: CLEAN_WORKSPACE_REQUEST;
-    Response: CLEAN_WORKSPACE_RESPONSE;
   };
   [Pattern.CLUSTERFORCEDISCONNECT]: {
     Request: CLUSTERFORCEDISCONNECT_REQUEST;
@@ -18442,6 +18438,10 @@ export interface IPatternConfig {
   [Pattern.UPGRADE_METRICS_SERVER]: {
     Request: UPGRADE_METRICS_SERVER_REQUEST;
     Response: UPGRADE_METRICS_SERVER_RESPONSE;
+  };
+  [Pattern.WORKSPACE_CLEAN_UP]: {
+    Request: WORKSPACE_CLEAN_UP_REQUEST;
+    Response: WORKSPACE_CLEAN_UP_RESPONSE;
   };
 };
 
