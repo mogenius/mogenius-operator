@@ -866,6 +866,62 @@ func (self *socketApi) registerPatterns() {
 		},
 	)
 
+	RegisterPatternHandler(
+		PatternHandle{self, "prometheus/query"},
+		PatternConfig{},
+		func(request PrometheusRequest) (*PrometheusQueryResponse, error) {
+			return ExecutePrometheusQuery(request)
+		},
+	)
+
+	RegisterPatternHandler(
+		PatternHandle{self, "prometheus/is-reachable"},
+		PatternConfig{},
+		func(request PrometheusRequest) (bool, error) {
+			return IsPrometheusReachable(request)
+		},
+	)
+
+	RegisterPatternHandler(
+		PatternHandle{self, "prometheus/values"},
+		PatternConfig{},
+		func(request PrometheusRequest) ([]string, error) {
+			return PrometheusValues(request)
+		},
+	)
+
+	RegisterPatternHandler(
+		PatternHandle{self, "prometheus/charts/add"},
+		PatternConfig{},
+		func(request PrometheusRequestRedis) (*string, error) {
+			return PrometheusSaveQueryToRedis(self.valkeyClient, request)
+		},
+	)
+
+	RegisterPatternHandler(
+		PatternHandle{self, "prometheus/charts/remove"},
+		PatternConfig{},
+		func(request PrometheusRequestRedis) (*string, error) {
+			return PrometheusRemoveQueryFromRedis(self.valkeyClient, request)
+		},
+	)
+
+	RegisterPatternHandler(
+		PatternHandle{self, "prometheus/charts/get"},
+		PatternConfig{},
+		func(request PrometheusRequestRedis) (*string, error) {
+			return PrometheusGetQueryFromRedis(self.valkeyClient, request)
+		},
+	)
+
+	RegisterPatternHandler(
+		PatternHandle{self, "prometheus/charts/list"},
+		PatternConfig{},
+		func(request PrometheusRequestRedisList) (map[string]string, error) {
+			return PrometheusListQueriesFromRedis(self.valkeyClient, request)
+		},
+	)
+
 	self.RegisterPatternHandlerRaw(
 		"cluster/backup",
 		PatternConfig{
@@ -1478,7 +1534,7 @@ func (self *socketApi) registerPatterns() {
 		}
 
 		RegisterPatternHandler(
-			PatternHandle{self, "clean/workspace"},
+			PatternHandle{self, "workspace/clean-up"},
 			PatternConfig{},
 			func(request Request) (CleanUpResult, error) {
 				return self.moKubernetes.CleanUp(
