@@ -16,6 +16,7 @@ import (
 	"mogenius-k8s-manager/src/utils"
 	"os"
 	"os/exec"
+	"runtime"
 	"strconv"
 	"time"
 
@@ -86,6 +87,11 @@ func (self *nodeMetricsCollector) Orchestrate() {
 	assert.Assert("MO_OWN_NAMESPACE" != "")
 
 	daemonSetName := fmt.Sprintf("%s-nodemetrics", ownDeploymentName)
+
+	if runtime.GOOS == "darwin" {
+		self.logger.Error("SKIPPING node metrics collector setup on macOS", "reason", "not supported on macOS")
+		return
+	}
 
 	self.logger.Info("node metrics collector configuration", "enabled", trafficCollectorEnabled)
 	if !trafficCollectorEnabled {

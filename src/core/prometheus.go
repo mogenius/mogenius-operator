@@ -9,6 +9,7 @@ import (
 	"mogenius-k8s-manager/src/valkeyclient"
 	"net/http"
 	"net/url"
+	"time"
 )
 
 const (
@@ -17,6 +18,8 @@ const (
 
 type PrometheusRequest struct {
 	Query              string `json:"query"`
+	Step               int    `json:"step"`
+	TimeOffsetSeconds  int64  `json:"timeOffsetSeconds"`
 	Prometheus_API_URL string `json:"prometheusUrl"`
 	Prometheus_User    string `json:"prometheusUser"`
 	Prometheus_Pass    string `json:"prometheusPass"`
@@ -38,11 +41,8 @@ type PrometheusRequestRedisList struct {
 type PrometheusQueryResponse struct {
 	Status string `json:"status"`
 	Data   struct {
-		ResultType string `json:"resultType"`
-		Result     []struct {
-			Metric map[string]string `json:"metric"`
-			Value  []interface{}     `json:"value"`
-		} `json:"result"`
+		ResultType string        `json:"resultType"`
+		Result     []interface{} `json:"result"`
 	} `json:"data"`
 	ErrorType string `json:"errorType,omitempty"`
 	Error     string `json:"error,omitempty"`
@@ -215,7 +215,19 @@ func PrometheusUrlAndHeader(data PrometheusRequest, customEndpoint string) (urlS
 	if customEndpoint != "" {
 		result += customEndpoint
 	} else {
-		result += fmt.Sprintf("/api/v1/query?query=%s", url.QueryEscape(data.Query))
+		if data.TimeOffsetSeconds == 0 {
+			result += fmt.Sprintf("/api/v1/query?query=%s", url.QueryEscape(data.Query))
+		} else {
+			if data.Step <= 0 {
+				data.Step = 1 // Default step if not provided
+			}
+			if data.TimeOffsetSeconds < 60 {
+				data.TimeOffsetSeconds = 60 // Minimum offset to avoid too frequent queries
+			}
+			start := time.Now().Add(-time.Duration(data.TimeOffsetSeconds) * time.Second).Unix()
+			end := time.Now().Unix()
+			result += fmt.Sprintf("/api/v1/query_range?query=%s&step=%d&start=%d&end=%d", url.QueryEscape(data.Query), data.Step, start, end)
+		}
 	}
 
 	return result, header
