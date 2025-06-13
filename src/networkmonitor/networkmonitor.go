@@ -4,11 +4,10 @@ import (
 	"bufio"
 	"context"
 	"errors"
-	"fmt"
 	"log/slog"
 	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/config"
-	"mogenius-k8s-manager/src/k8sclient"
+	"mogenius-k8s-manager/src/containerenumerator"
 	"os"
 	"path/filepath"
 	"slices"
@@ -16,9 +15,6 @@ import (
 	"strings"
 	"sync/atomic"
 	"time"
-
-	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type NetworkMonitor interface {
@@ -34,15 +30,14 @@ type NetworkMonitor interface {
 }
 
 type networkMonitor struct {
-	logger         *slog.Logger
-	clientProvider k8sclient.K8sClientProvider
-	ctx            context.Context
-	cancel         context.CancelFunc
-	config         config.ConfigModule
+	logger *slog.Logger
+	ctx    context.Context
+	cancel context.CancelFunc
+	config config.ConfigModule
 
 	collectorStarted   atomic.Bool
 	procFsMountPath    string
-	cne                ContainerNetworkEnumerator
+	cne                containerenumerator.ContainerEnumerator
 	snoopy             SnoopyManager
 	networkStatsReader SnoopyManager
 
@@ -55,17 +50,21 @@ type PodName = string
 type ProcessId = uint64
 type InterfaceName = string
 
-func NewNetworkMonitor(logger *slog.Logger, config config.ConfigModule, clientProvider k8sclient.K8sClientProvider, procFsMountPath string) NetworkMonitor {
+func NewNetworkMonitor(
+	logger *slog.Logger,
+	config config.ConfigModule,
+	containerEnumerator containerenumerator.ContainerEnumerator,
+	procFsMountPath string,
+) NetworkMonitor {
 	self := &networkMonitor{}
 
 	self.logger = logger
 	self.config = config
-	self.clientProvider = clientProvider
 	self.collectorStarted = atomic.Bool{}
 	ctx, cancel := context.WithCancel(context.Background())
 	self.ctx = ctx
 	self.cancel = cancel
-	cne := NewContainerNetworkEnumerator(logger.With("scope", "network-enumerator"))
+	cne := containerEnumerator
 	self.cne = cne
 
 	switch config.Get("MO_SNOOPY_IMPLEMENTATION") {
@@ -99,13 +98,7 @@ func (self *networkMonitor) Run() {
 	self.snoopy.Run()
 
 	go func() {
-		fieldSelector := "metadata.namespace!=kube-system"
-		ownNodeName := self.config.Get("OWN_NODE_NAME")
-		if ownNodeName != "" {
-			fieldSelector = fmt.Sprintf("metadata.namespace!=kube-system,spec.nodeName=%s", ownNodeName)
-		}
-
-		podInfoList := self.generateCurrentPodList(fieldSelector)
+		podInfoList := self.cne.GetPodsWithContainerIds()
 
 		for _, podInfo := range podInfoList {
 			errs := self.snoopy.Register(podInfo)
@@ -134,7 +127,7 @@ func (self *networkMonitor) Run() {
 				break
 			case <-updatePodAndContainersTicker.C:
 				// get a new list of all pods and containers on the current node
-				nextPodInfoList := self.generateCurrentPodList(fieldSelector)
+				nextPodInfoList := self.cne.GetPodsWithContainerIds()
 
 				// unregister removed pods
 				for _, podInfo := range podInfoList {
@@ -206,33 +199,6 @@ func (self *networkMonitor) Run() {
 			}
 		}
 	}()
-}
-
-func (self *networkMonitor) generateCurrentPodList(fieldSelector string) []PodInfo {
-	// query for all pods on current node
-	listOpts := metav1.ListOptions{FieldSelector: fieldSelector}
-	newPodList, err := self.clientProvider.K8sClientSet().CoreV1().Pods("").List(context.TODO(), listOpts)
-	if err != nil {
-		self.logger.Error("failed to list pods", "listOpts", listOpts, "error", err)
-		return []PodInfo{}
-	}
-
-	// important step: Remove all pods with HostNetwork=true
-	filteredItems := []v1.Pod{}
-	for idx := range len(newPodList.Items) {
-		pod := newPodList.Items[idx]
-		if pod.Spec.HostNetwork == false {
-			filteredItems = append(filteredItems, pod)
-		}
-	}
-
-	// parse kernel processes to find all running containers with their pids
-	nodecontainers := self.cne.FindProcessesWithContainerIds(self.procFsMountPath)
-
-	// merge and normalize a list of pods with containers and processes
-	podInfoList := NewPodInfoList(self.logger, filteredItems, nodecontainers)
-
-	return podInfoList
 }
 
 func (self *networkMonitor) BtfAvailable() bool {

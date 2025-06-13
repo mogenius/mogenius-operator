@@ -247,6 +247,9 @@ func (self *nodeMetricsCollector) Orchestrate() {
 
 			nodemetrics := exec.Command(bin, "nodemetrics")
 
+			// This buffer is allocated both for stdout and stderr.
+			// Since this only happens in local development we dont have to care for a few megabytes of statically allocated memory.
+			bufSize := 5 * 1024 * 1024 // 5MiB
 			stdoutPipe, err := nodemetrics.StdoutPipe()
 			assert.Assert(err == nil, "reading stdout of this child process has to work", err)
 			stderrPipe, err := nodemetrics.StderrPipe()
@@ -254,6 +257,7 @@ func (self *nodeMetricsCollector) Orchestrate() {
 
 			go func() {
 				scanner := bufio.NewScanner(stdoutPipe)
+				scanner.Buffer(make([]byte, bufSize), bufSize)
 				for scanner.Scan() {
 					output := string(scanner.Bytes())
 					fmt.Fprintf(os.Stderr, "node-metrics %s | %s\n", "stdout", output)
@@ -262,6 +266,7 @@ func (self *nodeMetricsCollector) Orchestrate() {
 
 			go func() {
 				scanner := bufio.NewScanner(stderrPipe)
+				scanner.Buffer(make([]byte, bufSize), bufSize)
 				for scanner.Scan() {
 					output := scanner.Bytes()
 					fmt.Fprintf(os.Stderr, "| node-metrics %s | %s\n", "stderr", output)
@@ -321,7 +326,10 @@ func (self *nodeMetricsCollector) Run() {
 			BtfSupport: self.networkMonitor.BtfAvailable(),
 		}
 		for {
-			self.statsDb.AddMachineStatsToDb(nodeName, machinestats)
+			err := self.statsDb.AddMachineStatsToDb(nodeName, machinestats)
+			if err != nil {
+				self.logger.Warn("failed to write machine stats for node", "node", nodeName, "error", err)
+			}
 			time.Sleep(1 * time.Minute)
 		}
 	}()
@@ -360,25 +368,46 @@ func (self *nodeMetricsCollector) Run() {
 
 	// cpu usage
 	go func() {
-		for {
-			metrics := self.cpuMonitor.CpuUsage()
-			err := self.statsDb.AddNodeCpuMetricsToDb(nodeName, metrics)
-			if err != nil {
-				self.logger.Error("failed to add node cpu metrics", "error", err)
+		go func() {
+			for {
+				metrics := self.cpuMonitor.CpuUsageGlobal()
+				err := self.statsDb.AddNodeCpuMetricsToDb(nodeName, metrics)
+				if err != nil {
+					self.logger.Error("failed to add node cpu metrics", "error", err)
+				}
+				time.Sleep(1 * time.Second)
 			}
-			time.Sleep(1 * time.Second)
-		}
+		}()
+		go func() {
+			for {
+				metrics := self.cpuMonitor.CpuUsageProcesses()
+				_ = metrics
+				self.logger.Info("collected process cpu info", "metrics", metrics)
+				time.Sleep(1 * time.Second)
+			}
+		}()
 	}()
 
 	// ram usage
 	go func() {
-		for {
-			metrics := self.ramMonitor.RamUsage()
-			err := self.statsDb.AddNodeRamMetricsToDb(nodeName, metrics)
-			if err != nil {
-				self.logger.Error("failed to add node ram metrics", "error", err)
+		go func() {
+			for {
+				metrics := self.ramMonitor.RamUsageGlobal()
+				err := self.statsDb.AddNodeRamMetricsToDb(nodeName, metrics)
+				if err != nil {
+					self.logger.Error("failed to add node ram metrics", "error", err)
+				}
+				time.Sleep(1 * time.Second)
 			}
-			time.Sleep(1 * time.Second)
-		}
+		}()
+
+		go func() {
+			for {
+				metrics := self.ramMonitor.RamUsageProcesses()
+				_ = metrics
+				// self.logger.Info("collected process memory info", "metrics", metrics)
+				time.Sleep(1 * time.Second)
+			}
+		}()
 	}()
 }

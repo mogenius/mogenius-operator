@@ -137,6 +137,7 @@ func (self *valkeyClient) SetObject(value interface{}, expiration time.Duration,
 		self.logger.Error("Error marshalling object for Redis", "key", key, "error", err)
 		return err
 	}
+
 	return self.Set(objStr, expiration, key)
 }
 
@@ -553,7 +554,6 @@ func GetObjectsByPrefix[T any](redisStore ValkeyClient, order SortOrder, keys ..
 
 func GetObjectForKey[T any](store ValkeyClient, keys ...string) (*T, error) {
 	key := createKey(keys...)
-
 	data, err := store.GetRedisClient().Get(store.GetContext(), key).Result()
 	if err != nil {
 		return nil, err

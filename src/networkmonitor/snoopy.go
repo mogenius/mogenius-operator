@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/config"
+	"mogenius-k8s-manager/src/containerenumerator"
 	"mogenius-k8s-manager/src/shutdown"
 	"os/exec"
 	"slices"
@@ -20,9 +21,9 @@ import (
 
 type SnoopyManager interface {
 	Run()
-	Register(podInfo PodInfo) []error
-	Remove(podInfo PodInfo) []error
-	Metrics() map[PodInfoIdentifier]ContainerInfo
+	Register(podInfo containerenumerator.PodInfo) []error
+	Remove(podInfo containerenumerator.PodInfo) []error
+	Metrics() map[containerenumerator.PodInfoIdentifier]ContainerInfo
 	Status() SnoopyStatus
 	SetArgs(args SnoopyArgs)
 }
@@ -40,7 +41,7 @@ type snoopyManager struct {
 	statusRx chan SnoopyStatus
 
 	handlesLock *sync.RWMutex
-	handles     map[PodInfoIdentifier]*SnoopyHandle
+	handles     map[containerenumerator.PodInfoIdentifier]*SnoopyHandle
 }
 
 type SnoopyArgs struct {
@@ -123,7 +124,7 @@ type SnoopyStatusEvent struct {
 }
 
 type ContainerInfo struct {
-	PodInfo PodInfo
+	PodInfo containerenumerator.PodInfo
 	Metrics map[InterfaceName]MetricSnapshot
 }
 
@@ -147,7 +148,7 @@ type SnoopyLogMessage struct {
 }
 
 type SnoopyHandle struct {
-	PodInfo   PodInfo
+	PodInfo   containerenumerator.PodInfo
 	SnoopyPid ProcessId
 
 	StartBytesLock    *sync.RWMutex
@@ -235,7 +236,7 @@ func NewSnoopyManager(logger *slog.Logger, config config.ConfigModule) SnoopyMan
 	self.logger = logger
 	self.config = config
 	self.handlesLock = &sync.RWMutex{}
-	self.handles = map[PodInfoIdentifier]*SnoopyHandle{}
+	self.handles = map[containerenumerator.PodInfoIdentifier]*SnoopyHandle{}
 
 	self.statusTx = make(chan struct{})
 	self.statusRx = make(chan SnoopyStatus)
@@ -476,11 +477,11 @@ func (self *snoopyManager) startStatusEventHandler() {
 	}
 }
 
-func (self *snoopyManager) Metrics() map[PodInfoIdentifier]ContainerInfo {
-	data := map[PodInfoIdentifier]ContainerInfo{}
+func (self *snoopyManager) Metrics() map[containerenumerator.PodInfoIdentifier]ContainerInfo {
+	data := map[containerenumerator.PodInfoIdentifier]ContainerInfo{}
 
 	self.handlesLock.RLock()
-	podInfoIds := []PodInfoIdentifier{}
+	podInfoIds := []containerenumerator.PodInfoIdentifier{}
 	for podInfoId := range self.handles {
 		podInfoIds = append(podInfoIds, podInfoId)
 	}
@@ -527,7 +528,7 @@ func (self *snoopyManager) SetArgs(args SnoopyArgs) {
 	self.args = args
 }
 
-func (self *snoopyManager) Register(podInfo PodInfo) []error {
+func (self *snoopyManager) Register(podInfo containerenumerator.PodInfo) []error {
 	procPath := self.config.Get("MO_HOST_PROC_PATH")
 
 	errors := []error{}
@@ -635,7 +636,7 @@ func (self *snoopyManager) formatHandleId(namespace string, name string, contain
 	return namespace + "/" + name + "/" + containerId + "/" + strconv.FormatUint(pid, 10)
 }
 
-func (self *snoopyManager) Remove(podInfo PodInfo) []error {
+func (self *snoopyManager) Remove(podInfo containerenumerator.PodInfo) []error {
 	errors := []error{}
 
 	self.handlesLock.Lock()

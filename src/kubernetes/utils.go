@@ -94,11 +94,6 @@ func ValidateContainerRegistryAuthString(input string) error {
 	return nil
 }
 
-func init() {
-	// SETUP DOWNFAULT VALUE
-	dtos.KubernetesGetSecretValueByPrefixControllerNameAndKey = GetSecretValueByPrefixControllerNameAndKey
-}
-
 func CurrentContextName() string {
 	context := config.Get("MO_CLUSTER_NAME")
 	if context != "" {
