@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"mogenius-k8s-manager/src/assert"
+	"mogenius-k8s-manager/src/containerenumerator"
 	"os"
 	"slices"
 	"strconv"
@@ -26,17 +27,18 @@ type networkStatsReader struct {
 
 	running atomic.Bool
 
-	cne ContainerNetworkEnumerator
+	cne containerenumerator.ContainerEnumerator
 }
 
 type networkStatsReaderDeviceBaseInfo struct {
-	PodInfo     PodInfo
+	PodInfo     containerenumerator.PodInfo
 	ContainerId ContainerId
 	Pid         ProcessId
+	Pids        []ProcessId
 	StartInfos  []KernelNetworkInterfaceInfo
 }
 
-func NewNetworkStatsReader(logger *slog.Logger, cne ContainerNetworkEnumerator, procPath string) SnoopyManager {
+func NewNetworkStatsReader(logger *slog.Logger, cne containerenumerator.ContainerEnumerator, procPath string) SnoopyManager {
 	self := &networkStatsReader{}
 
 	self.logger = logger
@@ -55,7 +57,12 @@ func NewNetworkStatsReader(logger *slog.Logger, cne ContainerNetworkEnumerator, 
 	return self
 }
 
+// shim to be comptabile with Snoopy
 func (self *networkStatsReader) Run() {
+	self.startWorker()
+}
+
+func (self *networkStatsReader) startWorker() {
 	wasRunning := self.running.Swap(true)
 	if wasRunning {
 		return
@@ -64,7 +71,7 @@ func (self *networkStatsReader) Run() {
 	go func() {
 		baseDeviceInfos := []networkStatsReaderDeviceBaseInfo{}
 		metrics := map[ContainerId]ContainerInfo{}
-		containers := self.cne.FindProcessesWithContainerIds(self.procPath)
+		containers := self.cne.GetProcessesWithContainerIds()
 
 		networkEnumeratorTicker := time.NewTicker(5 * time.Second)
 		defer networkEnumeratorTicker.Stop()
@@ -103,7 +110,7 @@ func (self *networkStatsReader) Run() {
 				baseDeviceInfos = slices.Delete(baseDeviceInfos, removeIdx, removeIdx+1)
 				self.removeRx <- nil
 			case <-networkEnumeratorTicker.C:
-				containers = self.cne.FindProcessesWithContainerIds(self.procPath)
+				containers = self.cne.GetProcessesWithContainerIds()
 			case <-updateTicker.C:
 				newMetrics := map[ContainerId]ContainerInfo{}
 
@@ -129,6 +136,7 @@ func (self *networkStatsReader) Run() {
 
 					assert.Assert(len(pids) > 0, "every running container should have at least 1 active pid")
 					baseDeviceInfos[idx].Pid = pids[0]
+					baseDeviceInfos[idx].Pids = pids
 					self.logger.Debug("updated pid", "baseInfo", baseDeviceInfos[idx])
 				}
 
@@ -187,7 +195,7 @@ func (self *networkStatsReader) Run() {
 }
 
 func (self *networkStatsReader) Metrics() map[ContainerId]ContainerInfo {
-	assert.Assert(self.running.Load(), "networkStatsReader has to be running before requesting metrics")
+	self.Run()
 
 	self.metricsTx <- struct{}{}
 	metrics := <-self.metricsRx
@@ -195,7 +203,7 @@ func (self *networkStatsReader) Metrics() map[ContainerId]ContainerInfo {
 	return metrics
 }
 
-func (self *networkStatsReader) Register(podInfo PodInfo) []error {
+func (self *networkStatsReader) Register(podInfo containerenumerator.PodInfo) []error {
 	errors := []error{}
 	for containerId, pid := range podInfo.ContainersWithFirstPid() {
 		kernelNetworkInterfaceInfos, err := getNetworkInterfaceInfo(self.procPath, strconv.FormatUint(pid, 10))
@@ -220,7 +228,7 @@ func (self *networkStatsReader) Register(podInfo PodInfo) []error {
 	return errors
 }
 
-func (self *networkStatsReader) Remove(podInfo PodInfo) []error {
+func (self *networkStatsReader) Remove(podInfo containerenumerator.PodInfo) []error {
 	errors := []error{}
 	for containerId := range podInfo.ContainersWithFirstPid() {
 		self.removeTx <- containerId

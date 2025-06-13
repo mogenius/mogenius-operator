@@ -24,5 +24,3 @@ type K8sContainerDto struct {
 	EnvVars                              []K8sEnvVarDto        `json:"envVars"`
 	SettingsYaml                         *string               `json:"settingsYaml,omitempty"`
 }
-
-var KubernetesGetSecretValueByPrefixControllerNameAndKey func(string, string, string, string) (string, error)

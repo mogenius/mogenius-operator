@@ -1,15 +1,12 @@
 package kubernetes
 
 import (
-	"context"
 	"fmt"
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/websocket"
 	"sync"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"strings"
 
@@ -84,23 +81,6 @@ func CreateExternalSecret(data CreateExternalSecretProps) (string, error) {
 		return "", err
 	}
 	return props.SecretName, nil
-}
-
-func GetSecretValueByPrefixControllerNameAndKey(namespaceName string, controllerName string, prefix string, key string) (string, error) {
-	secretName := utils.GetSecretName(prefix, controllerName, key)
-
-	secretClient := clientProvider.K8sClientSet().CoreV1().Secrets(namespaceName)
-
-	data, err := secretClient.Get(context.TODO(), secretName, metav1.GetOptions{})
-	if err != nil {
-		return "", err
-	}
-
-	base64Data := data.Data[key]
-	if base64Data == nil {
-		return "", fmt.Errorf("key %s not found in secret %s", key, secretName)
-	}
-	return string(base64Data), nil
 }
 
 func DeleteExternalSecretList(namePrefix string, projectName string) error {

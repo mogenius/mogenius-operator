@@ -15,10 +15,8 @@ type nodeMetricsArgs struct {
 
 func RunNodeMetrics(args *nodeMetricsArgs, logManagerModule logging.SlogManager, configModule *config.Config, cmdLogger *slog.Logger, valkeyLogChannel chan logging.LogLine) {
 	go func() {
-		for {
-			select {
-			case <-valkeyLogChannel:
-			}
+		for range valkeyLogChannel {
+			// throw away
 		}
 	}()
 	go func() {
