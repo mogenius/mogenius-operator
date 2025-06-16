@@ -28,6 +28,7 @@ const (
 	DB_STATS_TRAFFIC_NAME              = "traffic"
 	DB_STATS_CPU_NAME                  = "cpu"
 	DB_STATS_MEMORY_NAME               = "memory"
+	DB_STATS_PROCESSES_NAME            = "proc"
 )
 
 var DefaultMaxSize int64 = 60 * 24 * 7
@@ -40,7 +41,9 @@ type ValkeyStatsDb interface {
 	AddMachineStatsToDb(nodeName string, stats structs.MachineStats) error
 	AddPodStatsToDb(stats []structs.PodStats) error
 	AddNodeRamMetricsToDb(nodeName string, data interface{}) error
+	AddNodeRamProcessMetricsToDb(nodeName string, data interface{}) error
 	AddNodeCpuMetricsToDb(nodeName string, data interface{}) error
+	AddNodeCpuProcessMetricsToDb(nodeName string, data interface{}) error
 	AddNodeTrafficMetricsToDb(nodeName string, data interface{}) error
 	AddSnoopyStatusToDb(nodeName string, data networkmonitor.SnoopyStatus) error
 	GetCniData() ([]structs.CniData, error)
@@ -417,9 +420,19 @@ func (self *valkeyStatsDb) AddNodeRamMetricsToDb(nodeName string, data interface
 	return self.valkey.SetObject(data, 0, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_MEMORY_NAME, nodeName)
 }
 
+func (self *valkeyStatsDb) AddNodeRamProcessMetricsToDb(nodeName string, data interface{}) error {
+	self.Publish(data, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_MEMORY_NAME, DB_STATS_PROCESSES_NAME, nodeName)
+	return self.valkey.SetObject(data, 0, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_MEMORY_NAME, DB_STATS_PROCESSES_NAME, nodeName)
+}
+
 func (self *valkeyStatsDb) AddNodeCpuMetricsToDb(nodeName string, data interface{}) error {
 	self.Publish(data, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_CPU_NAME, nodeName)
 	return self.valkey.SetObject(data, 0, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_CPU_NAME, nodeName)
+}
+
+func (self *valkeyStatsDb) AddNodeCpuProcessMetricsToDb(nodeName string, data interface{}) error {
+	self.Publish(data, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_CPU_NAME, DB_STATS_PROCESSES_NAME, nodeName)
+	return self.valkey.SetObject(data, 0, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_CPU_NAME, DB_STATS_PROCESSES_NAME, nodeName)
 }
 
 func (self *valkeyStatsDb) AddNodeTrafficMetricsToDb(nodeName string, data interface{}) error {

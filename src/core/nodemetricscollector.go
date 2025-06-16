@@ -378,8 +378,10 @@ func (self *nodeMetricsCollector) Run() {
 		go func() {
 			for {
 				metrics := self.cpuMonitor.CpuUsageProcesses()
-				_ = metrics
-				// self.logger.Info("collected process cpu info", "metrics", metrics)
+				err := self.statsDb.AddNodeCpuProcessMetricsToDb(nodeName, metrics)
+				if err != nil {
+					self.logger.Error("failed to add node cpu proc metrics", "error", err)
+				}
 				time.Sleep(1 * time.Second)
 			}
 		}()
@@ -401,8 +403,10 @@ func (self *nodeMetricsCollector) Run() {
 		go func() {
 			for {
 				metrics := self.ramMonitor.RamUsageProcesses()
-				_ = metrics
-				// self.logger.Info("collected process memory info", "metrics", metrics)
+				err := self.statsDb.AddNodeRamProcessMetricsToDb(nodeName, metrics)
+				if err != nil {
+					self.logger.Error("failed to add node ram proc metrics", "error", err)
+				}
 				time.Sleep(1 * time.Second)
 			}
 		}()
