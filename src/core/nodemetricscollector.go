@@ -382,7 +382,7 @@ func (self *nodeMetricsCollector) Run() {
 			for {
 				metrics := self.cpuMonitor.CpuUsageProcesses()
 				_ = metrics
-				self.logger.Info("collected process cpu info", "metrics", metrics)
+				// self.logger.Info("collected process cpu info", "metrics", metrics)
 				time.Sleep(1 * time.Second)
 			}
 		}()
