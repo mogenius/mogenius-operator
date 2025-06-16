@@ -909,7 +909,7 @@ func (self *socketApi) registerPatterns() {
 	RegisterPatternHandler(
 		PatternHandle{self, "prometheus/charts/get"},
 		PatternConfig{},
-		func(request PrometheusRequestRedis) (*string, error) {
+		func(request PrometheusRequestRedis) (*PrometheusStoreObject, error) {
 			return PrometheusGetQueryFromRedis(self.valkeyClient, request)
 		},
 	)
@@ -917,7 +917,7 @@ func (self *socketApi) registerPatterns() {
 	RegisterPatternHandler(
 		PatternHandle{self, "prometheus/charts/list"},
 		PatternConfig{},
-		func(request PrometheusRequestRedisList) (map[string]string, error) {
+		func(request PrometheusRequestRedisList) (map[string]PrometheusStoreObject, error) {
 			return PrometheusListQueriesFromRedis(self.valkeyClient, request)
 		},
 	)

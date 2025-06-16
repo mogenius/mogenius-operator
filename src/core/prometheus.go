@@ -31,6 +31,7 @@ type PrometheusRequestRedis struct {
 	QueryName  string `json:"queryName" validate:"required"`
 	Namespace  string `json:"namespace" validate:"required"`
 	Controller string `json:"controller" validate:"required"`
+	Step       int    `json:"step" validate:"required"`
 }
 
 type PrometheusRequestRedisList struct {
@@ -46,6 +47,11 @@ type PrometheusQueryResponse struct {
 	} `json:"data"`
 	ErrorType string `json:"errorType,omitempty"`
 	Error     string `json:"error,omitempty"`
+}
+
+type PrometheusStoreObject struct {
+	Query string `json:"query"`
+	Step  int    `json:"step"`
 }
 
 type PrometheusValuesResponse struct {
@@ -150,7 +156,11 @@ func ExecutePrometheusQuery(data PrometheusRequest) (*PrometheusQueryResponse, e
 }
 
 func PrometheusSaveQueryToRedis(valkey valkeyclient.ValkeyClient, req PrometheusRequestRedis) (*string, error) {
-	err := valkey.SetObject(req.Query, 0, DB_PROMETHEUS_QUERIES, req.Namespace, req.Controller, req.QueryName)
+	prometheusStoreObject := PrometheusStoreObject{
+		Query: req.Query,
+		Step:  req.Step,
+	}
+	err := valkey.SetObject(prometheusStoreObject, 0, DB_PROMETHEUS_QUERIES, req.Namespace, req.Controller, req.QueryName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to save query to Redis: %v", err)
 	}
@@ -166,29 +176,38 @@ func PrometheusRemoveQueryFromRedis(valkey valkeyclient.ValkeyClient, req Promet
 	return &req.QueryName, nil
 }
 
-func PrometheusListQueriesFromRedis(valkey valkeyclient.ValkeyClient, req PrometheusRequestRedisList) (map[string]string, error) {
+func PrometheusListQueriesFromRedis(valkey valkeyclient.ValkeyClient, req PrometheusRequestRedisList) (map[string]PrometheusStoreObject, error) {
 	pattern := fmt.Sprintf("%s:%s:%s:*", DB_PROMETHEUS_QUERIES, req.Namespace, req.Controller)
 	keys, err := valkey.Keys(pattern)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list queries from Redis: %v", err)
 	}
-	queries := make(map[string]string)
+	queries := make(map[string]PrometheusStoreObject)
 	for _, key := range keys {
 		query, err := valkey.Get(key)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get query from Redis: %v", err)
 		}
-		queries[key] = query
+		var queryObj PrometheusStoreObject
+		if err := json.Unmarshal([]byte(query), &queryObj); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal query: %v", err)
+		}
+		queries[key] = queryObj
 	}
 	return queries, nil
 }
 
-func PrometheusGetQueryFromRedis(valkey valkeyclient.ValkeyClient, req PrometheusRequestRedis) (*string, error) {
+func PrometheusGetQueryFromRedis(valkey valkeyclient.ValkeyClient, req PrometheusRequestRedis) (*PrometheusStoreObject, error) {
 	query, err := valkey.Get(DB_PROMETHEUS_QUERIES, req.Namespace, req.Controller, req.QueryName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get query from Redis: %v", err)
 	}
-	return &query, nil
+	var queryObj PrometheusStoreObject
+	if err := json.Unmarshal([]byte(query), &queryObj); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal query: %v", err)
+	}
+
+	return &queryObj, nil
 }
 
 func PrometheusUrlAndHeader(data PrometheusRequest, customEndpoint string) (urlString string, header map[string][]string) {
