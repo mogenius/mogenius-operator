@@ -163,7 +163,7 @@ func (self *reconciler) Stop() {
 }
 
 func (self *reconciler) reconcile() {
-	startTime := time.Now()
+	// startTime := time.Now()
 
 	workspaces := self.getWorkspaces()
 	users := self.getUsers()
@@ -215,16 +215,16 @@ func (self *reconciler) reconcile() {
 
 	wg.Wait()
 
-	updateTime := time.Since(startTime)
-	updateTimeSeconds := updateTime.Seconds()
+	// updateTime := time.Since(startTime)
+	// updateTimeSeconds := updateTime.Seconds()
 
-	if updateTimeSeconds < 2 {
-		self.logger.Info("reconciler update finished", "updateTimeSeconds", updateTimeSeconds)
-	} else if updateTimeSeconds < 5 {
-		self.logger.Warn("reconciler update finished", "updateTimeSeconds", updateTimeSeconds)
-	} else {
-		self.logger.Error("reconciler update finished", "updateTimeSeconds", updateTimeSeconds)
-	}
+	// if updateTimeSeconds < 2 {
+	// 	self.logger.Info("reconciler update finished", "updateTimeSeconds", updateTimeSeconds)
+	// } else if updateTimeSeconds < 5 {
+	// 	self.logger.Warn("reconciler update finished", "updateTimeSeconds", updateTimeSeconds)
+	// } else {
+	// 	self.logger.Error("reconciler update finished", "updateTimeSeconds", updateTimeSeconds)
+	// }
 }
 
 func (self *reconciler) enableWatcher() {
@@ -563,15 +563,15 @@ func (self *reconciler) setReconcilerState(
 	roleBindings []rbacv1.RoleBinding,
 	clusterRoleBindings []rbacv1.ClusterRoleBinding,
 ) error {
-	self.logger.Info(
-		"TICK: reconciler.setReconcilerState",
-		"workspaces", len(workspaces),
-		"users", len(users),
-		"clusterRoles", len(clusterRoles),
-		"grants", len(grants),
-		"roleBindings", len(roleBindings),
-		"clusterRoleBindings", len(clusterRoleBindings),
-	)
+	// self.logger.Info(
+	// 	"TICK: reconciler.setReconcilerState",
+	// 	"workspaces", len(workspaces),
+	// 	"users", len(users),
+	// 	"clusterRoles", len(clusterRoles),
+	// 	"grants", len(grants),
+	// 	"roleBindings", len(roleBindings),
+	// 	"clusterRoleBindings", len(clusterRoleBindings),
+	// )
 
 	// check if all grants are pointing to existing users
 	// collect all errors
@@ -589,15 +589,15 @@ func (self *reconciler) deleteObsoleteRoleBindings(
 	roleBindings []rbacv1.RoleBinding,
 	clusterRoleBindings []rbacv1.ClusterRoleBinding,
 ) error {
-	self.logger.Info(
-		"TICK: reconciler.deleteObsoleteRoleBindings",
-		"workspaces", len(workspaces),
-		"users", len(users),
-		"clusterRoles", len(clusterRoles),
-		"grants", len(grants),
-		"roleBindings", len(roleBindings),
-		"clusterRoleBindings", len(clusterRoleBindings),
-	)
+	// self.logger.Info(
+	// 	"TICK: reconciler.deleteObsoleteRoleBindings",
+	// 	"workspaces", len(workspaces),
+	// 	"users", len(users),
+	// 	"clusterRoles", len(clusterRoles),
+	// 	"grants", len(grants),
+	// 	"roleBindings", len(roleBindings),
+	// 	"clusterRoleBindings", len(clusterRoleBindings),
+	// )
 
 	// create a list of expected rolebindings
 	//   skip grants which point to non-existent sources
@@ -619,15 +619,15 @@ func (self *reconciler) createMissingRoleBindings(
 	roleBindings []rbacv1.RoleBinding,
 	clusterRoleBindings []rbacv1.ClusterRoleBinding,
 ) error {
-	self.logger.Info(
-		"TICK: reconciler.createMissingRoleBindings",
-		"workspaces", len(workspaces),
-		"users", len(users),
-		"clusterRoles", len(clusterRoles),
-		"grants", len(grants),
-		"roleBindings", len(roleBindings),
-		"clusterRoleBindings", len(clusterRoleBindings),
-	)
+	// self.logger.Info(
+	// 	"TICK: reconciler.createMissingRoleBindings",
+	// 	"workspaces", len(workspaces),
+	// 	"users", len(users),
+	// 	"clusterRoles", len(clusterRoles),
+	// 	"grants", len(grants),
+	// 	"roleBindings", len(roleBindings),
+	// 	"clusterRoleBindings", len(clusterRoleBindings),
+	// )
 
 	// create a list of expected rolebindings
 	//   skip grants which point to non-existent sources
