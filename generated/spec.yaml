@@ -7269,6 +7269,8 @@ prometheus/charts/add:
                         type: string
                     queryName:
                         type: string
+                    step:
+                        type: int
         typeInfo:
             structRef: mogenius-k8s-manager/src/core.PrometheusRequestRedis
             type: struct
@@ -7290,13 +7292,24 @@ prometheus/charts/get:
                         type: string
                     queryName:
                         type: string
+                    step:
+                        type: int
         typeInfo:
             structRef: mogenius-k8s-manager/src/core.PrometheusRequestRedis
             type: struct
     responseSchema:
+        structs:
+            mogenius-k8s-manager/src/core.PrometheusStoreObject:
+                name: mogenius-k8s-manager/src/core.PrometheusStoreObject
+                properties:
+                    query:
+                        type: string
+                    step:
+                        type: int
         typeInfo:
             pointer: true
-            type: string
+            structRef: mogenius-k8s-manager/src/core.PrometheusStoreObject
+            type: struct
 prometheus/charts/list:
     requestSchema:
         structs:
@@ -7311,12 +7324,21 @@ prometheus/charts/list:
             structRef: mogenius-k8s-manager/src/core.PrometheusRequestRedisList
             type: struct
     responseSchema:
+        structs:
+            mogenius-k8s-manager/src/core.PrometheusStoreObject:
+                name: mogenius-k8s-manager/src/core.PrometheusStoreObject
+                properties:
+                    query:
+                        type: string
+                    step:
+                        type: int
         typeInfo:
             keyType:
                 type: string
             type: map
             valueType:
-                type: string
+                structRef: mogenius-k8s-manager/src/core.PrometheusStoreObject
+                type: struct
 prometheus/charts/remove:
     requestSchema:
         structs:
@@ -7331,6 +7353,8 @@ prometheus/charts/remove:
                         type: string
                     queryName:
                         type: string
+                    step:
+                        type: int
         typeInfo:
             structRef: mogenius-k8s-manager/src/core.PrometheusRequestRedis
             type: struct
@@ -7354,6 +7378,10 @@ prometheus/is-reachable:
                         type: string
                     query:
                         type: string
+                    step:
+                        type: int
+                    timeOffsetSeconds:
+                        type: int
         typeInfo:
             structRef: mogenius-k8s-manager/src/core.PrometheusRequest
             type: struct
@@ -7376,6 +7404,10 @@ prometheus/query:
                         type: string
                     query:
                         type: string
+                    step:
+                        type: int
+                    timeOffsetSeconds:
+                        type: int
         typeInfo:
             structRef: mogenius-k8s-manager/src/core.PrometheusRequest
             type: struct
@@ -7385,24 +7417,11 @@ prometheus/query:
                 properties:
                     result:
                         elementType:
-                            structRef: ANON_STRUCT_2
-                            type: struct
-                        type: array
-                    resultType:
-                        type: string
-            ANON_STRUCT_2:
-                properties:
-                    metric:
-                        keyType:
-                            type: string
-                        type: map
-                        valueType:
-                            type: string
-                    value:
-                        elementType:
                             pointer: true
                             type: any
                         type: array
+                    resultType:
+                        type: string
             mogenius-k8s-manager/src/core.PrometheusQueryResponse:
                 name: mogenius-k8s-manager/src/core.PrometheusQueryResponse
                 properties:
@@ -7435,6 +7454,10 @@ prometheus/values:
                         type: string
                     query:
                         type: string
+                    step:
+                        type: int
+                    timeOffsetSeconds:
+                        type: int
         typeInfo:
             structRef: mogenius-k8s-manager/src/core.PrometheusRequest
             type: struct
@@ -14348,37 +14371,37 @@ workspace/clean-up:
             mogenius-k8s-manager/src/core.CleanUpResult:
                 name: mogenius-k8s-manager/src/core.CleanUpResult
                 properties:
-                    ConfigMaps:
+                    configMaps:
                         elementType:
                             structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
                             type: struct
                         type: array
-                    Ingresses:
+                    ingresses:
                         elementType:
                             structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
                             type: struct
                         type: array
-                    Jobs:
+                    jobs:
                         elementType:
                             structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
                             type: struct
                         type: array
-                    Pods:
+                    pods:
                         elementType:
                             structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
                             type: struct
                         type: array
-                    ReplicaSets:
+                    replicaSets:
                         elementType:
                             structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
                             type: struct
                         type: array
-                    Secrets:
+                    secrets:
                         elementType:
                             structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
                             type: struct
                         type: array
-                    Services:
+                    services:
                         elementType:
                             structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
                             type: struct
@@ -14386,11 +14409,11 @@ workspace/clean-up:
             mogenius-k8s-manager/src/core.CleanUpResultEntry:
                 name: mogenius-k8s-manager/src/core.CleanUpResultEntry
                 properties:
-                    Name:
+                    name:
                         type: string
-                    Namespace:
+                    namespace:
                         type: string
-                    Reason:
+                    reason:
                         type: string
         typeInfo:
             structRef: mogenius-k8s-manager/src/core.CleanUpResult

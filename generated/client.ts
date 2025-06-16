@@ -6726,6 +6726,8 @@ export type PRINT_CURRENT_CONFIG_RESPONSE = string;
  *                 type: string
  *             queryName:
  *                 type: string
+ *             step:
+ *                 type: int
  * typeInfo:
  *     structRef: mogenius-k8s-manager/src/core.PrometheusRequestRedis
  *     type: struct
@@ -6762,6 +6764,8 @@ export type PROMETHEUS_CHARTS_ADD_RESPONSE = string|undefined;
  *                 type: string
  *             queryName:
  *                 type: string
+ *             step:
+ *                 type: int
  * typeInfo:
  *     structRef: mogenius-k8s-manager/src/core.PrometheusRequestRedis
  *     type: struct
@@ -6774,13 +6778,22 @@ export type PROMETHEUS_CHARTS_GET_REQUEST = PROMETHEUS_CHARTS_GET_REQUEST__MOGEN
  * #### Source
  *
  * ```yaml
+ * structs:
+ *     mogenius-k8s-manager/src/core.PrometheusStoreObject:
+ *         name: mogenius-k8s-manager/src/core.PrometheusStoreObject
+ *         properties:
+ *             query:
+ *                 type: string
+ *             step:
+ *                 type: int
  * typeInfo:
  *     pointer: true
- *     type: string
+ *     structRef: mogenius-k8s-manager/src/core.PrometheusStoreObject
+ *     type: struct
  * ```
  *
  */
-export type PROMETHEUS_CHARTS_GET_RESPONSE = string|undefined;
+export type PROMETHEUS_CHARTS_GET_RESPONSE = PROMETHEUS_CHARTS_GET_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSSTOREOBJECT|undefined;
 
 /**
  * #### Source
@@ -6806,16 +6819,25 @@ export type PROMETHEUS_CHARTS_LIST_REQUEST = PROMETHEUS_CHARTS_LIST_REQUEST__MOG
  * #### Source
  *
  * ```yaml
+ * structs:
+ *     mogenius-k8s-manager/src/core.PrometheusStoreObject:
+ *         name: mogenius-k8s-manager/src/core.PrometheusStoreObject
+ *         properties:
+ *             query:
+ *                 type: string
+ *             step:
+ *                 type: int
  * typeInfo:
  *     keyType:
  *         type: string
  *     type: map
  *     valueType:
- *         type: string
+ *         structRef: mogenius-k8s-manager/src/core.PrometheusStoreObject
+ *         type: struct
  * ```
  *
  */
-export type PROMETHEUS_CHARTS_LIST_RESPONSE = Record<string, string>;
+export type PROMETHEUS_CHARTS_LIST_RESPONSE = Record<string, PROMETHEUS_CHARTS_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSSTOREOBJECT>;
 
 /**
  * #### Source
@@ -6833,6 +6855,8 @@ export type PROMETHEUS_CHARTS_LIST_RESPONSE = Record<string, string>;
  *                 type: string
  *             queryName:
  *                 type: string
+ *             step:
+ *                 type: int
  * typeInfo:
  *     structRef: mogenius-k8s-manager/src/core.PrometheusRequestRedis
  *     type: struct
@@ -6871,6 +6895,10 @@ export type PROMETHEUS_CHARTS_REMOVE_RESPONSE = string|undefined;
  *                 type: string
  *             query:
  *                 type: string
+ *             step:
+ *                 type: int
+ *             timeOffsetSeconds:
+ *                 type: int
  * typeInfo:
  *     structRef: mogenius-k8s-manager/src/core.PrometheusRequest
  *     type: struct
@@ -6908,6 +6936,10 @@ export type PROMETHEUS_IS_REACHABLE_RESPONSE = boolean;
  *                 type: string
  *             query:
  *                 type: string
+ *             step:
+ *                 type: int
+ *             timeOffsetSeconds:
+ *                 type: int
  * typeInfo:
  *     structRef: mogenius-k8s-manager/src/core.PrometheusRequest
  *     type: struct
@@ -6925,24 +6957,11 @@ export type PROMETHEUS_QUERY_REQUEST = PROMETHEUS_QUERY_REQUEST__MOGENIUS_K8S_MA
  *         properties:
  *             result:
  *                 elementType:
- *                     structRef: ANON_STRUCT_2
- *                     type: struct
- *                 type: array
- *             resultType:
- *                 type: string
- *     ANON_STRUCT_2:
- *         properties:
- *             metric:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     type: string
- *             value:
- *                 elementType:
  *                     pointer: true
  *                     type: any
  *                 type: array
+ *             resultType:
+ *                 type: string
  *     mogenius-k8s-manager/src/core.PrometheusQueryResponse:
  *         name: mogenius-k8s-manager/src/core.PrometheusQueryResponse
  *         properties:
@@ -6982,6 +7001,10 @@ export type PROMETHEUS_QUERY_RESPONSE = PROMETHEUS_QUERY_RESPONSE__MOGENIUS_K8S_
  *                 type: string
  *             query:
  *                 type: string
+ *             step:
+ *                 type: int
+ *             timeOffsetSeconds:
+ *                 type: int
  * typeInfo:
  *     structRef: mogenius-k8s-manager/src/core.PrometheusRequest
  *     type: struct
@@ -16905,37 +16928,37 @@ export type WORKSPACE_CLEAN_UP_REQUEST = WORKSPACE_CLEAN_UP_REQUEST__MOGENIUS_K8
  *     mogenius-k8s-manager/src/core.CleanUpResult:
  *         name: mogenius-k8s-manager/src/core.CleanUpResult
  *         properties:
- *             ConfigMaps:
+ *             configMaps:
  *                 elementType:
  *                     structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
  *                     type: struct
  *                 type: array
- *             Ingresses:
+ *             ingresses:
  *                 elementType:
  *                     structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
  *                     type: struct
  *                 type: array
- *             Jobs:
+ *             jobs:
  *                 elementType:
  *                     structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
  *                     type: struct
  *                 type: array
- *             Pods:
+ *             pods:
  *                 elementType:
  *                     structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
  *                     type: struct
  *                 type: array
- *             ReplicaSets:
+ *             replicaSets:
  *                 elementType:
  *                     structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
  *                     type: struct
  *                 type: array
- *             Secrets:
+ *             secrets:
  *                 elementType:
  *                     structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
  *                     type: struct
  *                 type: array
- *             Services:
+ *             services:
  *                 elementType:
  *                     structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
  *                     type: struct
@@ -16943,11 +16966,11 @@ export type WORKSPACE_CLEAN_UP_REQUEST = WORKSPACE_CLEAN_UP_REQUEST__MOGENIUS_K8
  *     mogenius-k8s-manager/src/core.CleanUpResultEntry:
  *         name: mogenius-k8s-manager/src/core.CleanUpResultEntry
  *         properties:
- *             Name:
+ *             name:
  *                 type: string
- *             Namespace:
+ *             namespace:
  *                 type: string
- *             Reason:
+ *             reason:
  *                 type: string
  * typeInfo:
  *     structRef: mogenius-k8s-manager/src/core.CleanUpResult
@@ -17278,16 +17301,17 @@ export type NAMESPACE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_NAMESPAC
 export type NAMESPACE_DELETE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_COMMAND = {"command": string,"finished": NAMESPACE_DELETE_RESPONSE__TIME_TIME,"id": string,"message": string,"started": NAMESPACE_DELETE_RESPONSE__TIME_TIME,"state": string,"title": string};
 export type NAMESPACE_DELETE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_JOB = {"commands": NAMESPACE_DELETE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_COMMAND|undefined[],"containerName": string,"controllerName": string,"finished": NAMESPACE_DELETE_RESPONSE__TIME_TIME,"id": string,"message": string,"namespaceName": string,"projectId": string,"started": NAMESPACE_DELETE_RESPONSE__TIME_TIME,"state": string,"title": string};
 export type NAMESPACE_DELETE_RESPONSE__TIME_TIME = {};
-export type PROMETHEUS_CHARTS_ADD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSREQUESTREDIS = {"controller": string,"namespace": string,"query": string,"queryName": string};
-export type PROMETHEUS_CHARTS_GET_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSREQUESTREDIS = {"controller": string,"namespace": string,"query": string,"queryName": string};
+export type PROMETHEUS_CHARTS_ADD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSREQUESTREDIS = {"controller": string,"namespace": string,"query": string,"queryName": string,"step": number};
+export type PROMETHEUS_CHARTS_GET_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSREQUESTREDIS = {"controller": string,"namespace": string,"query": string,"queryName": string,"step": number};
+export type PROMETHEUS_CHARTS_GET_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSSTOREOBJECT = {"query": string,"step": number};
 export type PROMETHEUS_CHARTS_LIST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSREQUESTREDISLIST = {"controller": string,"namespace": string};
-export type PROMETHEUS_CHARTS_REMOVE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSREQUESTREDIS = {"controller": string,"namespace": string,"query": string,"queryName": string};
-export type PROMETHEUS_IS_REACHABLE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSREQUEST = {"prometheusPass": string,"prometheusToken": string,"prometheusUrl": string,"prometheusUser": string,"query": string};
-export type PROMETHEUS_QUERY_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSREQUEST = {"prometheusPass": string,"prometheusToken": string,"prometheusUrl": string,"prometheusUser": string,"query": string};
-export type PROMETHEUS_QUERY_RESPONSE__ANON_STRUCT_1 = {"result": PROMETHEUS_QUERY_RESPONSE__ANON_STRUCT_2[],"resultType": string};
-export type PROMETHEUS_QUERY_RESPONSE__ANON_STRUCT_2 = {"metric": Record<string, string>,"value": any[]};
+export type PROMETHEUS_CHARTS_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSSTOREOBJECT = {"query": string,"step": number};
+export type PROMETHEUS_CHARTS_REMOVE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSREQUESTREDIS = {"controller": string,"namespace": string,"query": string,"queryName": string,"step": number};
+export type PROMETHEUS_IS_REACHABLE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSREQUEST = {"prometheusPass": string,"prometheusToken": string,"prometheusUrl": string,"prometheusUser": string,"query": string,"step": number,"timeOffsetSeconds": number};
+export type PROMETHEUS_QUERY_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSREQUEST = {"prometheusPass": string,"prometheusToken": string,"prometheusUrl": string,"prometheusUser": string,"query": string,"step": number,"timeOffsetSeconds": number};
+export type PROMETHEUS_QUERY_RESPONSE__ANON_STRUCT_1 = {"result": any[],"resultType": string};
 export type PROMETHEUS_QUERY_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSQUERYRESPONSE = {"data": PROMETHEUS_QUERY_RESPONSE__ANON_STRUCT_1,"error": string,"errorType": string,"status": string};
-export type PROMETHEUS_VALUES_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSREQUEST = {"prometheusPass": string,"prometheusToken": string,"prometheusUrl": string,"prometheusUser": string,"query": string};
+export type PROMETHEUS_VALUES_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSREQUEST = {"prometheusPass": string,"prometheusToken": string,"prometheusUrl": string,"prometheusUser": string,"query": string,"step": number,"timeOffsetSeconds": number};
 export type REMOVE_CONFLICTING_NETWORK_POLICIES_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_REMOVECONFLICTINGNETWORKPOLICIESREQUEST = {"namespaceName": string};
 export type REMOVE_UNMANAGED_NETWORK_POLICIES_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_REMOVEUNMANAGEDNETWORKPOLICIESREQUEST = {"namespaceName": string,"policies": string[]};
 export type REMOVE_UNMANAGED_NETWORK_POLICIES_RESPONSE__ANON_STRUCT_0 = {};
@@ -17855,8 +17879,8 @@ export type UPGRADE_KEPLER_REQUEST__ANON_STRUCT_0 = {};
 export type UPGRADE_METALLB_REQUEST__ANON_STRUCT_0 = {};
 export type UPGRADE_METRICS_SERVER_REQUEST__ANON_STRUCT_0 = {};
 export type WORKSPACE_CLEAN_UP_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"configMaps": boolean,"dryRun": boolean,"ingresses": boolean,"jobs": boolean,"name": string,"pods": boolean,"replicaSets": boolean,"secrets": boolean,"services": boolean};
-export type WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_CLEANUPRESULT = {"ConfigMaps": WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_CLEANUPRESULTENTRY[],"Ingresses": WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_CLEANUPRESULTENTRY[],"Jobs": WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_CLEANUPRESULTENTRY[],"Pods": WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_CLEANUPRESULTENTRY[],"ReplicaSets": WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_CLEANUPRESULTENTRY[],"Secrets": WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_CLEANUPRESULTENTRY[],"Services": WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_CLEANUPRESULTENTRY[]};
-export type WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_CLEANUPRESULTENTRY = {"Name": string,"Namespace": string,"Reason": string};
+export type WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_CLEANUPRESULT = {"configMaps": WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_CLEANUPRESULTENTRY[],"ingresses": WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_CLEANUPRESULTENTRY[],"jobs": WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_CLEANUPRESULTENTRY[],"pods": WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_CLEANUPRESULTENTRY[],"replicaSets": WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_CLEANUPRESULTENTRY[],"secrets": WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_CLEANUPRESULTENTRY[],"services": WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_CLEANUPRESULTENTRY[]};
+export type WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_CLEANUPRESULTENTRY = {"name": string,"namespace": string,"reason": string};
 
 //===============================================================
 //==================== Pattern Type Mapping =====================
