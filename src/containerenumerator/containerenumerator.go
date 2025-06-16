@@ -87,11 +87,9 @@ func (self *containerEnumerator) startWorker() {
 	go func() {
 		procPath := self.config.Get("MO_HOST_PROC_PATH")
 
-		fieldSelector := "metadata.namespace!=kube-system"
 		ownNodeName := self.config.Get("OWN_NODE_NAME")
-		if ownNodeName != "" {
-			fieldSelector = fmt.Sprintf("metadata.namespace!=kube-system,spec.nodeName=%s", ownNodeName)
-		}
+		assert.Assert(ownNodeName != "", "OWN_NODE_NAME has to be defined and non-empty", ownNodeName)
+		fieldSelector := fmt.Sprintf("metadata.namespace!=kube-system,spec.nodeName=%s", ownNodeName)
 
 		containers := self.collectContainers(procPath)
 		pods := self.generateCurrentPodList(fieldSelector, containers)

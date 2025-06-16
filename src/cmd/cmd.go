@@ -236,6 +236,12 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		DefaultValue: utils.Pointer(os.Getenv("OWN_NODE_NAME")),
 		Description:  utils.Pointer("the name of the node this application is running in"),
 		Envs:         []string{"OWN_NODE_NAME"},
+		Validate: func(val string) error {
+			if val == "" {
+				return fmt.Errorf("'OWN_NODE_NAME' has to be defined and may not be empty: %#v", val)
+			}
+			return nil
+		},
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "OWN_DEPLOYMENT_NAME",

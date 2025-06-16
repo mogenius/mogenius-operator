@@ -62,10 +62,7 @@ func (self *ramMonitor) startCollector() {
 	}
 	go func() {
 		nodeName := self.config.Get("OWN_NODE_NAME")
-		if !self.clientProvider.RunsInCluster() {
-			nodeName = "local"
-		}
-		assert.Assert(nodeName != "")
+		assert.Assert(nodeName != "", "OWN_NODE_NAME has to be defined and non-empty", nodeName)
 
 		procPath := self.config.Get("MO_HOST_PROC_PATH")
 

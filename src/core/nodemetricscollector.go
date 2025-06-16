@@ -315,10 +315,7 @@ func (self *nodeMetricsCollector) Run() {
 	assert.Assert(self.networkMonitor != nil)
 
 	nodeName := self.config.Get("OWN_NODE_NAME")
-	if !self.clientProvider.RunsInCluster() {
-		nodeName = "local"
-	}
-	assert.Assert(nodeName != "")
+	assert.Assert(nodeName != "", "OWN_NODE_NAME has to be defined and non-empty", nodeName)
 
 	// node-stats monitor
 	go func() {

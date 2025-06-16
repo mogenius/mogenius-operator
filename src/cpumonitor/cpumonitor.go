@@ -12,7 +12,6 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
-	"sync"
 	"sync/atomic"
 	"time"
 
@@ -34,9 +33,6 @@ type cpuMonitor struct {
 	procPath            string
 
 	running atomic.Bool
-
-	lastMetrics     CpuMetrics
-	lastMetricsLock sync.RWMutex
 
 	cpuUsageGlobalTx chan struct{}
 	cpuUsageGlobalRx chan CpuMetrics
@@ -64,9 +60,6 @@ func NewCpuMonitor(
 	assert.Assert(err == nil, err)
 	self.SC_CLK_TCK = uint64(clktck)
 
-	self.lastMetrics = CpuMetrics{}
-	self.lastMetricsLock = sync.RWMutex{}
-
 	self.cpuUsageGlobalTx = make(chan struct{})
 	self.cpuUsageGlobalRx = make(chan CpuMetrics)
 	self.cpuUsageProcessesTx = make(chan struct{})
@@ -78,9 +71,8 @@ func NewCpuMonitor(
 func (self *cpuMonitor) CpuUsageGlobal() CpuMetrics {
 	self.startCollector()
 
-	self.lastMetricsLock.RLock()
-	metrics := self.lastMetrics
-	self.lastMetricsLock.RUnlock()
+	self.cpuUsageGlobalTx <- struct{}{}
+	metrics := <-self.cpuUsageGlobalRx
 
 	return metrics
 }
