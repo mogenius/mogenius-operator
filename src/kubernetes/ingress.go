@@ -2,13 +2,14 @@ package kubernetes
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/websocket"
 	"sync"
+
+	json "github.com/json-iterator/go"
 
 	v1 "k8s.io/api/networking/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"

@@ -2,7 +2,6 @@ package core
 
 import (
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"io"
 	"mogenius-k8s-manager/src/kubernetes"
@@ -10,6 +9,8 @@ import (
 	"net/http"
 	"net/url"
 	"time"
+
+	json "github.com/json-iterator/go"
 )
 
 const (
