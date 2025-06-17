@@ -3,7 +3,6 @@ package containerenumerator
 import (
 	"context"
 	"fmt"
-	"log"
 	"log/slog"
 	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/config"
@@ -139,9 +138,7 @@ func (self *containerEnumerator) collectContainers(procPath string) map[Containe
 
 	// to start get a list of all system processes
 	files, err := os.ReadDir(procPath)
-	if err != nil {
-		log.Fatal(err)
-	}
+	assert.Assert(err == nil, "procPath has to be readable", procPath, err)
 
 	for _, file := range files {
 		// we are only interested in the contents of /proc/$pid/cgroup for PIDs which are numeric
