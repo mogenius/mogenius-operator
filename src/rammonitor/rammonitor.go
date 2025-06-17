@@ -23,6 +23,7 @@ type RamMonitor interface {
 type ramMonitor struct {
 	logger              *slog.Logger
 	config              config.ConfigModule
+	procPath            string
 	clientProvider      k8sclient.K8sClientProvider
 	containerEnumerator containerenumerator.ContainerEnumerator
 
@@ -42,6 +43,7 @@ func NewRamMonitor(logger *slog.Logger, config config.ConfigModule, clientProvid
 	self.config = config
 	self.clientProvider = clientProvider
 	self.containerEnumerator = containerEnumerator
+	self.procPath = config.Get("MO_HOST_PROC_PATH")
 	self.running = atomic.Bool{}
 
 	self.ramUsageGlobalTx = make(chan struct{})
@@ -64,23 +66,21 @@ func (self *ramMonitor) startCollector() {
 		nodeName := self.config.Get("OWN_NODE_NAME")
 		assert.Assert(nodeName != "", "OWN_NODE_NAME has to be defined and non-empty", nodeName)
 
-		procPath := self.config.Get("MO_HOST_PROC_PATH")
-
 		globalMetricsUpdater := time.NewTicker(1 * time.Second)
 		defer globalMetricsUpdater.Stop()
 
 		processMetricsUpdater := time.NewTicker(1 * time.Second)
 		defer processMetricsUpdater.Stop()
 
-		globalMetrics := self.collectGlobalMetrics(procPath, nodeName)
-		processMetrics := self.collectProcessMetrics(procPath)
+		globalMetrics := self.collectGlobalMetrics(nodeName)
+		processMetrics := self.collectProcessMetrics()
 
 		for {
 			select {
 			case <-globalMetricsUpdater.C:
-				globalMetrics = self.collectGlobalMetrics(procPath, nodeName)
+				globalMetrics = self.collectGlobalMetrics(nodeName)
 			case <-processMetricsUpdater.C:
-				processMetrics = self.collectProcessMetrics(procPath)
+				processMetrics = self.collectProcessMetrics()
 			case <-self.ramUsageGlobalTx:
 				self.ramUsageGlobalRx <- globalMetrics
 			case <-self.ramUsageProcessesTx:
@@ -96,8 +96,8 @@ type RamMetrics struct {
 	NodeName string  `json:"nodeName"`
 }
 
-func (self *ramMonitor) collectGlobalMetrics(procPath string, nodeName string) RamMetrics {
-	path := procPath + "/meminfo"
+func (self *ramMonitor) collectGlobalMetrics(nodeName string) RamMetrics {
+	path := self.procPath + "/meminfo"
 	data := RamMetrics{}
 
 	data.NodeName = nodeName
@@ -143,14 +143,14 @@ func (self *ramMonitor) RamUsageGlobal() RamMetrics {
 	return data
 }
 
-func (self *ramMonitor) collectProcessMetrics(procPath string) map[containerenumerator.ContainerId][]ProcPidStatm {
+func (self *ramMonitor) collectProcessMetrics() map[containerenumerator.ContainerId][]ProcPidStatm {
 	data := make(map[containerenumerator.ContainerId][]ProcPidStatm)
 	containers := self.containerEnumerator.GetProcessesWithContainerIds()
 
 	for containerId, pids := range containers {
 		infos := []ProcPidStatm{}
 		for _, pid := range pids {
-			info, err := getMemoryUsageInfo(procPath, strconv.FormatUint(pid, 10))
+			info, err := getMemoryUsageInfo(self.procPath, strconv.FormatUint(pid, 10))
 			if err != nil {
 				continue
 			}

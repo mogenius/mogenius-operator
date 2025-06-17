@@ -39,6 +39,7 @@ type NodeMetricsCollector interface {
 type nodeMetricsCollector struct {
 	logger         *slog.Logger
 	config         config.ConfigModule
+	procPath       string
 	clientProvider k8sclient.K8sClientProvider
 	statsDb        ValkeyStatsDb
 	leaderElector  LeaderElector
@@ -50,7 +51,7 @@ type nodeMetricsCollector struct {
 
 func NewNodeMetricsCollector(
 	logger *slog.Logger,
-	configModule config.ConfigModule,
+	config config.ConfigModule,
 	clientProviderModule k8sclient.K8sClientProvider,
 	cpuMonitor cpumonitor.CpuMonitor,
 	ramMonitor rammonitor.RamMonitor,
@@ -59,7 +60,8 @@ func NewNodeMetricsCollector(
 	self := &nodeMetricsCollector{}
 
 	self.logger = logger
-	self.config = configModule
+	self.config = config
+	self.procPath = config.Get("MO_HOST_PROC_PATH")
 	self.clientProvider = clientProviderModule
 	self.cpuMonitor = cpuMonitor
 	self.ramMonitor = ramMonitor
@@ -165,7 +167,7 @@ func (self *nodeMetricsCollector) Orchestrate() {
 									},
 									VolumeMounts: []corev1.VolumeMount{
 										{
-											MountPath: self.config.Get("MO_HOST_PROC_PATH"),
+											MountPath: self.procPath,
 											Name:      "proc",
 											ReadOnly:  true,
 										},

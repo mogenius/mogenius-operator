@@ -32,6 +32,7 @@ type snoopyManager struct {
 	logger        *slog.Logger
 	config        config.ConfigModule
 	args          SnoopyArgs
+	procPath      string
 	snoopyBinName *string
 	running       atomic.Bool
 
@@ -235,6 +236,7 @@ func NewSnoopyManager(logger *slog.Logger, config config.ConfigModule) SnoopyMan
 
 	self.logger = logger
 	self.config = config
+	self.procPath = config.Get("MO_HOST_PROC_PATH")
 	self.handlesLock = &sync.RWMutex{}
 	self.handles = map[containerenumerator.PodInfoIdentifier]*SnoopyHandle{}
 
@@ -529,8 +531,6 @@ func (self *snoopyManager) SetArgs(args SnoopyArgs) {
 }
 
 func (self *snoopyManager) Register(podInfo containerenumerator.PodInfo) []error {
-	procPath := self.config.Get("MO_HOST_PROC_PATH")
-
 	errors := []error{}
 	for containerId, pid := range podInfo.ContainersWithFirstPid() {
 		self.statusEventTx <- SnoopyStatusEvent{
@@ -542,7 +542,7 @@ func (self *snoopyManager) Register(podInfo containerenumerator.PodInfo) []error
 				pid,
 			},
 		}
-		handle, err := self.attachToPidNamespace(procPath, pid)
+		handle, err := self.attachToPidNamespace(pid)
 		if err != nil {
 			self.statusEventTx <- SnoopyStatusEvent{
 				Type: SnoopyStatusEventTypeRegisterFailure,
@@ -597,8 +597,8 @@ func (self *snoopyManager) Register(podInfo containerenumerator.PodInfo) []error
 					switch metrics.Type {
 					case SnoopyEventTypeInterfaceAdded:
 						iface := metrics.InterfaceAdded.Interface.Name
-						rxBytes := self.readRxBytesFromPidAndInterface(procPath, pid, iface)
-						txBytes := self.readTxBytesFromPidAndInterface(procPath, pid, iface)
+						rxBytes := self.readRxBytesFromPidAndInterface(pid, iface)
+						txBytes := self.readTxBytesFromPidAndInterface(pid, iface)
 						handle.StartBytesLock.Lock()
 						handle.IngressStartBytes[iface] = rxBytes
 						handle.EgressStartBytes[iface] = txBytes
@@ -662,9 +662,9 @@ func (self *snoopyManager) Remove(podInfo containerenumerator.PodInfo) []error {
 	return errors
 }
 
-func (self *snoopyManager) readRxBytesFromPidAndInterface(procPath string, pid ProcessId, iface string) uint64 {
+func (self *snoopyManager) readRxBytesFromPidAndInterface(pid ProcessId, iface string) uint64 {
 	pidS := strconv.FormatUint(pid, 10)
-	infos, err := getNetworkInterfaceInfo(procPath, pidS)
+	infos, err := getNetworkInterfaceInfo(self.procPath, pidS)
 	if err != nil {
 		return 0
 	}
@@ -678,9 +678,9 @@ func (self *snoopyManager) readRxBytesFromPidAndInterface(procPath string, pid P
 	return 0
 }
 
-func (self *snoopyManager) readTxBytesFromPidAndInterface(procPath string, pid ProcessId, iface string) uint64 {
+func (self *snoopyManager) readTxBytesFromPidAndInterface(pid ProcessId, iface string) uint64 {
 	pidS := strconv.FormatUint(pid, 10)
-	infos, err := getNetworkInterfaceInfo(procPath, pidS)
+	infos, err := getNetworkInterfaceInfo(self.procPath, pidS)
 	if err != nil {
 		return 0
 	}
@@ -694,13 +694,13 @@ func (self *snoopyManager) readTxBytesFromPidAndInterface(procPath string, pid P
 	return 0
 }
 
-func (self *snoopyManager) attachToPidNamespace(procPath string, pid ProcessId) (*SnoopyHandle, error) {
+func (self *snoopyManager) attachToPidNamespace(pid ProcessId) (*SnoopyHandle, error) {
 	assert.Assert(self.snoopyBinName != nil, "the binary path has to be found and set previously")
 
 	pidS := strconv.FormatUint(pid, 10)
 	cmd := exec.Command(
 		"nsenter",
-		"--net="+procPath+"/"+pidS+"/ns/net",
+		"--net="+self.procPath+"/"+pidS+"/ns/net",
 		"--",
 		*self.snoopyBinName,
 		"--metrics-rate",

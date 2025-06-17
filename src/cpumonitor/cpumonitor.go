@@ -53,7 +53,7 @@ func NewCpuMonitor(
 	self.config = config
 	self.clientProvider = clientProvider
 	self.containerEnumerator = containerEnumerator
-	self.procPath = self.config.Get("MO_HOST_PROC_PATH")
+	self.procPath = config.Get("MO_HOST_PROC_PATH")
 	self.running = atomic.Bool{}
 
 	clktck, err := sysconf.Sysconf(sysconf.SC_CLK_TCK)
