@@ -294,6 +294,7 @@ func (self *cpuMonitor) procPidStatToCpuUsage(pod containerenumerator.PodInfo, s
 	data.Name = pod.Name
 	data.Namespace = pod.Namespace
 	data.StartTime = pod.StartTime
+	data.Pids = make([]CpuUsagePodPid, 0, len(stats))
 
 	for _, stat := range stats {
 		pidData := CpuUsagePodPid{}
@@ -364,49 +365,49 @@ type ProcPidStat struct {
 	//        P      Parked (Linux 3.9 to 3.13 only)
 	//
 	//        I      Idle (Linux 4.14 onward)
-	State string `json:"state"`
+	// State string `json:"state"`
 
 	// (4) ppid  %d
 	//        The PID of the parent of this process.
-	Ppid int64 `json:"ppid"`
+	// Ppid int64 `json:"ppid"`
 
 	// (5) pgrp  %d
 	//        The process group ID of the process.
-	Pgrp int64 `json:"pgrp"`
+	// Pgrp int64 `json:"pgrp"`
 
 	// (6) session  %d
 	//        The session ID of the process.
-	Session int64 `json:"session"`
+	// Session int64 `json:"session"`
 
 	// (7) tty_nr  %d
 	//        The controlling terminal of the process.  (The minor device number is contained in the combination of bits 31 to 20 and 7 to 0; the major device number is in bits 15 to 8.)
-	TtyNr int64 `json:"tty_nr"`
+	// TtyNr int64 `json:"tty_nr"`
 
 	// (8) tpgid  %d
 	//        The ID of the foreground process group of the controlling terminal of the process.
-	Tpgid int64 `json:"tpgid"`
+	// Tpgid int64 `json:"tpgid"`
 
 	// (9) flags  %u
 	//        The kernel flags word of the process.  For bit meanings, see the PF_* defines in the Linux kernel source file include/linux/sched.h.  Details depend on the kernel version.
 	//
 	//        The format for this field was %lu before Linux 2.6.
-	Flags uint64 `json:"flags"`
+	// Flags uint64 `json:"flags"`
 
 	// (10) minflt  %lu
 	//        The number of minor faults the process has made which have not required loading a memory page from disk.
-	Minflt uint64 `json:"minflt"`
+	// Minflt uint64 `json:"minflt"`
 
 	// (11) cminflt  %lu
 	//        The number of minor faults that the process's waited-for children have made.
-	Cminflt uint64 `json:"cminflt"`
+	// Cminflt uint64 `json:"cminflt"`
 
 	// (12) majflt  %lu
 	//        The number of major faults the process has made which have required loading a memory page from disk.
-	Majflt uint64 `json:"majflt"`
+	// Majflt uint64 `json:"majflt"`
 
 	// (13) cmajflt  %lu
 	//        The number of major faults that the process's waited-for children have made.
-	Cmajflt uint64 `json:"cmajflt"`
+	// Cmajflt uint64 `json:"cmajflt"`
 
 	// (14) utime  %lu
 	//        Amount of time that this process has been scheduled in user mode, measured in clock ticks (divide by sysconf(_SC_CLK_TCK)).  This includes guest time, guest_time (time spent running a virtual CPU, see below), so that applications that are not aware  of
@@ -432,19 +433,19 @@ type ProcPidStat struct {
 	//        user-visible nice range of -20 to 19.
 	//
 	//        Before Linux 2.6, this was a scaled value based on the scheduler weighting given to this process.
-	Priority int64 `json:"priority"`
+	// Priority int64 `json:"priority"`
 
 	// (19) nice  %ld
 	//        The nice value (see setpriority(2)), a value in the range 19 (low priority) to -20 (high priority).
-	Nice int64 `json:"nice"`
+	// Nice int64 `json:"nice"`
 
 	// (20) num_threads  %ld
 	//        Number of threads in this process (since Linux 2.6).  Before Linux 2.6, this field was hard coded to 0 as a placeholder for an earlier removed field.
-	NumThreads int64 `json:"num_threads"`
+	// NumThreads int64 `json:"num_threads"`
 
 	// (21) itrealvalue  %ld
 	//        The time in jiffies before the next SIGALRM is sent to the process due to an interval timer.  Since Linux 2.6.17, this field is no longer maintained, and is hard coded as 0.
-	Itrealvalue int64 `json:"itrealvalue"`
+	// Itrealvalue int64 `json:"itrealvalue"`
 
 	// (22) starttime  %llu
 	//        The time the process started after system boot.  Before Linux 2.6, this value was expressed in jiffies.  Since Linux 2.6, the value is expressed in clock ticks (divide by sysconf(_SC_CLK_TCK)).
@@ -454,126 +455,126 @@ type ProcPidStat struct {
 
 	// (23) vsize  %lu
 	//        Virtual memory size in bytes.
-	Vsize uint64 `json:"vsize"`
+	// Vsize uint64 `json:"vsize"`
 
 	// (24) rss  %ld
 	//        Resident  Set Size: number of pages the process has in real memory.  This is just the pages which count toward text, data, or stack space.  This does not include pages which have not been demand-loaded in, or which are swapped out.  This value is inac‐
 	//        curate; see /proc/pid/statm below.
-	Rss int64 `json:"rss"`
+	// Rss int64 `json:"rss"`
 
 	// (25) rsslim  %lu
 	//        Current soft limit in bytes on the rss of the process; see the description of RLIMIT_RSS in getrlimit(2).
-	Rsslim uint64 `json:"rsslim"`
+	// Rsslim uint64 `json:"rsslim"`
 
 	// (26) startcode  %lu  [PT]
 	//        The address above which program text can run.
-	Startcode uint64 `json:"startcode"`
+	// Startcode uint64 `json:"startcode"`
 
 	// (27) endcode  %lu  [PT]
 	//        The address below which program text can run.
-	Endcode uint64 `json:"endcode"`
+	// Endcode uint64 `json:"endcode"`
 
 	// (28) startstack  %lu  [PT]
 	//        The address of the start (i.e., bottom) of the stack.
-	Startstack uint64 `json:"startstack"`
+	// Startstack uint64 `json:"startstack"`
 
 	// (29) kstkesp  %lu  [PT]
 	//        The current value of ESP (stack pointer), as found in the kernel stack page for the process.
-	Kstkesp uint64 `json:"kstkesp"`
+	// Kstkesp uint64 `json:"kstkesp"`
 
 	// (30) kstkeip  %lu  [PT]
 	//        The current EIP (instruction pointer).
-	Kstkeip uint64 `json:"kstkeip"`
+	// Kstkeip uint64 `json:"kstkeip"`
 
 	// (31) signal  %lu
 	//        The bitmap of pending signals, displayed as a decimal number.  Obsolete, because it does not provide information on real-time signals; use /proc/pid/status instead.
-	Signal uint64 `json:"signal"`
+	// Signal uint64 `json:"signal"`
 
 	// (32) blocked  %lu
 	//        The bitmap of blocked signals, displayed as a decimal number.  Obsolete, because it does not provide information on real-time signals; use /proc/pid/status instead.
-	Blocked uint64 `json:"blocked"`
+	// Blocked uint64 `json:"blocked"`
 
 	// (33) sigignore  %lu
 	//        The bitmap of ignored signals, displayed as a decimal number.  Obsolete, because it does not provide information on real-time signals; use /proc/pid/status instead.
-	Sigignore uint64 `json:"sigignore"`
+	// Sigignore uint64 `json:"sigignore"`
 
 	// (34) sigcatch  %lu
 	//        The bitmap of caught signals, displayed as a decimal number.  Obsolete, because it does not provide information on real-time signals; use /proc/pid/status instead.
-	Sigcatch uint64 `json:"sigcatch"`
+	// Sigcatch uint64 `json:"sigcatch"`
 
 	// (35) wchan  %lu  [PT]
 	//        This is the "channel" in which the process is waiting.  It is the address of a location in the kernel where the process is sleeping.  The corresponding symbolic name can be found in /proc/pid/wchan.
-	Wchan uint64 `json:"wchan"`
+	// Wchan uint64 `json:"wchan"`
 
 	// (36) nswap  %lu
 	//        Number of pages swapped (not maintained).
-	Nswap uint64 `json:"nswap"`
+	// Nswap uint64 `json:"nswap"`
 
 	// (37) cnswap  %lu
 	//        Cumulative nswap for child processes (not maintained).
-	Cnswap uint64 `json:"cnswap"`
+	// Cnswap uint64 `json:"cnswap"`
 
 	// (38) exit_signal  %d  (since Linux 2.1.22)
 	//        Signal to be sent to parent when we die.
-	ExitSignal uint64 `json:"exit_signal"`
+	// ExitSignal uint64 `json:"exit_signal"`
 
 	// (39) processor  %d  (since Linux 2.2.8)
 	//        CPU number last executed on.
-	Processor int64 `json:"processor"`
+	// Processor int64 `json:"processor"`
 
 	// (40) rt_priority  %u  (since Linux 2.5.19)
 	//        Real-time scheduling priority, a number in the range 1 to 99 for processes scheduled under a real-time policy, or 0, for non-real-time processes (see sched_setscheduler(2)).
-	RtPriority uint64 `json:"rt_priority"`
+	// RtPriority uint64 `json:"rt_priority"`
 
 	// (41) policy  %u  (since Linux 2.5.19)
 	//        Scheduling policy (see sched_setscheduler(2)).  Decode using the SCHED_* constants in linux/sched.h.
 	//
 	//        The format for this field was %lu before Linux 2.6.22.
-	Policy uint64 `json:"policy"`
+	// Policy uint64 `json:"policy"`
 
 	// (42) delayacct_blkio_ticks  %llu  (since Linux 2.6.18)
 	//        Aggregated block I/O delays, measured in clock ticks (centiseconds).
-	DelayacctBlkioTicks uint64 `json:"delayacct_blkio_ticks"`
+	// DelayacctBlkioTicks uint64 `json:"delayacct_blkio_ticks"`
 
 	// (43) guest_time  %lu  (since Linux 2.6.24)
 	//        Guest time of the process (time spent running a virtual CPU for a guest operating system), measured in clock ticks (divide by sysconf(_SC_CLK_TCK)).
-	GuestTime uint64 `json:"guest_time"`
+	// GuestTime uint64 `json:"guest_time"`
 
 	// (44) cguest_time  %ld  (since Linux 2.6.24)
 	//        Guest time of the process's children, measured in clock ticks (divide by sysconf(_SC_CLK_TCK)).
-	CguestTime int64 `json:"cguest_time"`
+	// CguestTime int64 `json:"cguest_time"`
 
 	// (45) start_data  %lu  (since Linux 3.3)  [PT]
 	//        Address above which program initialized and uninitialized (BSS) data are placed.
-	StartData uint64 `json:"start_data"`
+	// StartData uint64 `json:"start_data"`
 
 	// (46) end_data  %lu  (since Linux 3.3)  [PT]
 	//        Address below which program initialized and uninitialized (BSS) data are placed.
-	EndData uint64 `json:"end_data"`
+	// EndData uint64 `json:"end_data"`
 
 	// (47) start_brk  %lu  (since Linux 3.3)  [PT]
 	//        Address above which program heap can be expanded with brk(2).
-	StartBrk uint64 `json:"start_brk"`
+	// StartBrk uint64 `json:"start_brk"`
 
 	// (48) arg_start  %lu  (since Linux 3.5)  [PT]
 	//        Address above which program command-line arguments (argv) are placed.
-	ArgStart uint64 `json:"arg_start"`
+	// ArgStart uint64 `json:"arg_start"`
 
 	// (49) arg_end  %lu  (since Linux 3.5)  [PT]
 	//        Address below program command-line arguments (argv) are placed.
-	ArgEnd uint64 `json:"arg_end"`
+	// ArgEnd uint64 `json:"arg_end"`
 
 	// (50) env_start  %lu  (since Linux 3.5)  [PT]
 	//        Address above which program environment is placed.
-	EnvStart uint64 `json:"env_start"`
+	// EnvStart uint64 `json:"env_start"`
 
 	// (51) env_end  %lu  (since Linux 3.5)  [PT]
 	//        Address below which program environment is placed.
-	EnvEnd uint64 `json:"env_end"`
+	// EnvEnd uint64 `json:"env_end"`
 
 	// (52) exit_code  %d  (since Linux 3.5)  [PT]
 	//        The thread's exit status in the form reported by waitpid(2).
-	ExitCode int64 `json:"exit_code"`
+	// ExitCode int64 `json:"exit_code"`
 }
 
 // read and parse `$procPath/$pid/stat` to read process cpu usage information from the kernel
@@ -594,14 +595,28 @@ func getCpuUsageInfo(procPath string, pid string) (ProcPidStat, error) {
 	processPath := filepath.Join(procPath, pid)
 	deviceInfoPath := filepath.Join(processPath, "stat")
 
-	data, err := os.ReadFile(deviceInfoPath)
+	f, err := os.Open(deviceInfoPath)
 	if err != nil {
 		return ProcPidStat{}, err
 	}
 
-	statcontent := strings.TrimSpace(string(data))
+	// a common size encountered is about 350 bytes but can vary largely between processes
+	// this buffer size is a guess to be *always* larger in *any* environment than what the `/proc/$pid/stat` contains
+	dataMaxLen := 5 * 1024
 
-	dataPieces := []string{}
+	data := make([]byte, dataMaxLen)
+	bytesRead, err := f.Read(data)
+	if err != nil {
+		return ProcPidStat{}, err
+	}
+	if bytesRead >= dataMaxLen {
+		return ProcPidStat{}, fmt.Errorf("buffersize(%d) exhausted while reading File(%s)", dataMaxLen, deviceInfoPath)
+	}
+	data = data[0 : bytesRead-1]
+
+	statcontent := string(data)
+
+	dataPieces := make([]string, 0, 52)
 	elementIdx := 0
 	stringCapture := false
 	value := ""
@@ -638,56 +653,56 @@ func getCpuUsageInfo(procPath string, pid string) (ProcPidStat, error) {
 	info := ProcPidStat{}
 	info.Pid = asInt64(dataPieces[0])
 	info.Comm = dataPieces[1]
-	info.State = dataPieces[2]
-	info.Ppid = asInt64(dataPieces[3])
-	info.Pgrp = asInt64(dataPieces[4])
-	info.Session = asInt64(dataPieces[5])
-	info.TtyNr = asInt64(dataPieces[6])
-	info.Tpgid = asInt64(dataPieces[7])
-	info.Flags = asUint64(dataPieces[8])
-	info.Minflt = asUint64(dataPieces[9])
-	info.Cminflt = asUint64(dataPieces[10])
-	info.Majflt = asUint64(dataPieces[11])
-	info.Cmajflt = asUint64(dataPieces[12])
+	// info.State = dataPieces[2]
+	// info.Ppid = asInt64(dataPieces[3])
+	// info.Pgrp = asInt64(dataPieces[4])
+	// info.Session = asInt64(dataPieces[5])
+	// info.TtyNr = asInt64(dataPieces[6])
+	// info.Tpgid = asInt64(dataPieces[7])
+	// info.Flags = asUint64(dataPieces[8])
+	// info.Minflt = asUint64(dataPieces[9])
+	// info.Cminflt = asUint64(dataPieces[10])
+	// info.Majflt = asUint64(dataPieces[11])
+	// info.Cmajflt = asUint64(dataPieces[12])
 	info.Utime = asUint64(dataPieces[13])
 	info.Stime = asUint64(dataPieces[14])
 	info.Cutime = asUint64(dataPieces[15])
 	info.Cstime = asUint64(dataPieces[16])
-	info.Priority = asInt64(dataPieces[17])
-	info.Nice = asInt64(dataPieces[18])
-	info.NumThreads = asInt64(dataPieces[19])
-	info.Itrealvalue = asInt64(dataPieces[20])
+	// info.Priority = asInt64(dataPieces[17])
+	// info.Nice = asInt64(dataPieces[18])
+	// info.NumThreads = asInt64(dataPieces[19])
+	// info.Itrealvalue = asInt64(dataPieces[20])
 	info.Starttime = asUint64(dataPieces[21])
-	info.Vsize = asUint64(dataPieces[22])
-	info.Rss = asInt64(dataPieces[23])
-	info.Rsslim = asUint64(dataPieces[24])
-	info.Startcode = asUint64(dataPieces[25])
-	info.Endcode = asUint64(dataPieces[26])
-	info.Startstack = asUint64(dataPieces[27])
-	info.Kstkesp = asUint64(dataPieces[28])
-	info.Kstkeip = asUint64(dataPieces[29])
-	info.Signal = asUint64(dataPieces[30])
-	info.Blocked = asUint64(dataPieces[31])
-	info.Sigignore = asUint64(dataPieces[32])
-	info.Sigcatch = asUint64(dataPieces[33])
-	info.Wchan = asUint64(dataPieces[34])
-	info.Nswap = asUint64(dataPieces[35])
-	info.Cnswap = asUint64(dataPieces[36])
-	info.ExitSignal = asUint64(dataPieces[37])
-	info.Processor = asInt64(dataPieces[38])
-	info.RtPriority = asUint64(dataPieces[39])
-	info.Policy = asUint64(dataPieces[40])
-	info.DelayacctBlkioTicks = asUint64(dataPieces[41])
-	info.GuestTime = asUint64(dataPieces[42])
-	info.CguestTime = asInt64(dataPieces[43])
-	info.StartData = asUint64(dataPieces[44])
-	info.EndData = asUint64(dataPieces[45])
-	info.StartBrk = asUint64(dataPieces[46])
-	info.ArgStart = asUint64(dataPieces[47])
-	info.ArgEnd = asUint64(dataPieces[48])
-	info.EnvStart = asUint64(dataPieces[49])
-	info.EnvEnd = asUint64(dataPieces[50])
-	info.ExitCode = asInt64(dataPieces[51])
+	// info.Vsize = asUint64(dataPieces[22])
+	// info.Rss = asInt64(dataPieces[23])
+	// info.Rsslim = asUint64(dataPieces[24])
+	// info.Startcode = asUint64(dataPieces[25])
+	// info.Endcode = asUint64(dataPieces[26])
+	// info.Startstack = asUint64(dataPieces[27])
+	// info.Kstkesp = asUint64(dataPieces[28])
+	// info.Kstkeip = asUint64(dataPieces[29])
+	// info.Signal = asUint64(dataPieces[30])
+	// info.Blocked = asUint64(dataPieces[31])
+	// info.Sigignore = asUint64(dataPieces[32])
+	// info.Sigcatch = asUint64(dataPieces[33])
+	// info.Wchan = asUint64(dataPieces[34])
+	// info.Nswap = asUint64(dataPieces[35])
+	// info.Cnswap = asUint64(dataPieces[36])
+	// info.ExitSignal = asUint64(dataPieces[37])
+	// info.Processor = asInt64(dataPieces[38])
+	// info.RtPriority = asUint64(dataPieces[39])
+	// info.Policy = asUint64(dataPieces[40])
+	// info.DelayacctBlkioTicks = asUint64(dataPieces[41])
+	// info.GuestTime = asUint64(dataPieces[42])
+	// info.CguestTime = asInt64(dataPieces[43])
+	// info.StartData = asUint64(dataPieces[44])
+	// info.EndData = asUint64(dataPieces[45])
+	// info.StartBrk = asUint64(dataPieces[46])
+	// info.ArgStart = asUint64(dataPieces[47])
+	// info.ArgEnd = asUint64(dataPieces[48])
+	// info.EnvStart = asUint64(dataPieces[49])
+	// info.EnvEnd = asUint64(dataPieces[50])
+	// info.ExitCode = asInt64(dataPieces[51])
 
 	return info, nil
 }
