@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"gopkg.in/yaml.v3"
+	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -44,6 +45,8 @@ type reconciler struct {
 
 	// managed resources
 	managedResources        []watcher.WatcherResourceIdentifier
+	namespaces              []v1.Namespace
+	namespacesLock          sync.RWMutex
 	clusterRoles            []rbacv1.ClusterRole
 	clusterRolesLock        sync.RWMutex
 	clusterRoleBindings     []rbacv1.ClusterRoleBinding
@@ -77,10 +80,13 @@ func NewReconciler(
 	self.usersLock = sync.RWMutex{}
 
 	self.managedResources = []watcher.WatcherResourceIdentifier{
+		{Name: "namespaces", Kind: "Namespace", Version: "", GroupVersion: "v1", Namespaced: false},
 		{Name: "clusterroles", Kind: "ClusterRole", Version: "", GroupVersion: "rbac.authorization.k8s.io/v1", Namespaced: false},
 		{Name: "clusterrolebindings", Kind: "ClusterRoleBinding", Version: "", GroupVersion: "rbac.authorization.k8s.io/v1", Namespaced: false},
 		{Name: "rolebindings", Kind: "RoleBinding", Version: "", GroupVersion: "rbac.authorization.k8s.io/v1", Namespaced: false},
 	}
+	self.namespaces = []v1.Namespace{}
+	self.namespacesLock = sync.RWMutex{}
 	self.clusterRoles = []rbacv1.ClusterRole{}
 	self.clusterRolesLock = sync.RWMutex{}
 	self.clusterRoleBindings = []rbacv1.ClusterRoleBinding{}
@@ -164,6 +170,7 @@ func (self *reconciler) Stop() {
 func (self *reconciler) reconcile() {
 	// startTime := time.Now()
 
+	namespaces := self.getNamespaces()
 	workspaces := self.getWorkspaces()
 	users := self.getUsers()
 	clusterRoles := self.getClusterRoles()
@@ -176,6 +183,7 @@ func (self *reconciler) reconcile() {
 	wg.Add(1)
 	go func() {
 		self.setReconcilerState(
+			namespaces,
 			workspaces,
 			users,
 			clusterRoles,
@@ -189,6 +197,7 @@ func (self *reconciler) reconcile() {
 	wg.Add(1)
 	go func() {
 		self.deleteObsoleteRoleBindings(
+			namespaces,
 			workspaces,
 			users,
 			clusterRoles,
@@ -202,6 +211,7 @@ func (self *reconciler) reconcile() {
 	wg.Add(1)
 	go func() {
 		self.createMissingRoleBindings(
+			namespaces,
 			workspaces,
 			users,
 			clusterRoles,
@@ -246,6 +256,8 @@ func (self *reconciler) enableWatcher() {
 					self.addClusterRoleBinding(obj)
 				case "ClusterRole":
 					self.addClusterRole(obj)
+				case "Namespace":
+					self.addNamespace(obj)
 				default:
 					assert.Assert(false, "Unreachable", "All allowed kinds should be handled", obj.GetKind(), obj)
 				}
@@ -273,6 +285,9 @@ func (self *reconciler) enableWatcher() {
 				case "ClusterRole":
 					self.removeClusterRole(oldObj)
 					self.addClusterRole(newObj)
+				case "Namespace":
+					self.removeNamespace(oldObj)
+					self.addNamespace(newObj)
 				default:
 					assert.Assert(false, "Unreachable", "All allowed kinds should be handled", newObj.GetKind(), newObj)
 				}
@@ -292,6 +307,8 @@ func (self *reconciler) enableWatcher() {
 					self.removeClusterRoleBinding(obj)
 				case "ClusterRole":
 					self.removeClusterRole(obj)
+				case "Namespace":
+					self.removeNamespace(obj)
 				default:
 					assert.Assert(false, "Unreachable", "All allowed kinds should be handled", obj.GetKind(), obj)
 				}
@@ -584,7 +601,49 @@ func (self *reconciler) removeClusterRole(obj *unstructured.Unstructured) {
 	self.clusterRoles = append(self.clusterRoles[:needle], self.clusterRoles[needle+1:]...)
 }
 
+func (self *reconciler) getNamespaces() []v1.Namespace {
+	self.namespacesLock.Lock()
+	defer self.namespacesLock.Unlock()
+
+	namespaces := make([]v1.Namespace, len(self.namespaces))
+	for idx, namespace := range self.namespaces {
+		namespaces[idx] = *namespace.DeepCopy()
+	}
+
+	return namespaces
+}
+
+func (self *reconciler) addNamespace(obj *unstructured.Unstructured) {
+	var namespace v1.Namespace
+	err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &namespace)
+	assert.Assert(err == nil, "failed to cast unstructured object as namespace", err, obj)
+
+	self.namespacesLock.Lock()
+	defer self.namespacesLock.Unlock()
+	self.namespaces = append(self.namespaces, namespace)
+}
+
+func (self *reconciler) removeNamespace(obj *unstructured.Unstructured) {
+	self.namespacesLock.Lock()
+	defer self.namespacesLock.Unlock()
+
+	needle := -1
+	for idx, namespace := range self.namespaces {
+		if obj.GetName() == namespace.Name {
+			needle = idx
+			break
+		}
+	}
+
+	if needle == -1 {
+		return
+	}
+
+	self.namespaces = append(self.namespaces[:needle], self.namespaces[needle+1:]...)
+}
+
 func (self *reconciler) setReconcilerState(
+	namespaces []v1.Namespace,
 	workspaces []v1alpha1.Workspace,
 	users []v1alpha1.User,
 	clusterRoles []rbacv1.ClusterRole,
@@ -611,6 +670,7 @@ func (self *reconciler) setReconcilerState(
 }
 
 func (self *reconciler) deleteObsoleteRoleBindings(
+	namespaces []v1.Namespace,
 	workspaces []v1alpha1.Workspace,
 	users []v1alpha1.User,
 	clusterRoles []rbacv1.ClusterRole,
@@ -641,6 +701,7 @@ func (self *reconciler) deleteObsoleteRoleBindings(
 }
 
 func (self *reconciler) createMissingRoleBindings(
+	namespaces []v1.Namespace,
 	workspaces []v1alpha1.Workspace,
 	users []v1alpha1.User,
 	clusterRoles []rbacv1.ClusterRole,
