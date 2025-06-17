@@ -2057,7 +2057,7 @@ func (self *socketApi) registerPatterns() {
 			if err := self.LoadRequest(&datagram, &data); err != nil {
 				return err
 			}
-			go self.xtermService.LiveStreamConnection(data, datagram, self.httpService, self.valkeyClient)
+			go self.xtermService.LiveStreamConnection(data, datagram, self.httpService, self.valkeyClient, []string{})
 			return nil
 		},
 	)
@@ -2072,7 +2072,7 @@ func (self *socketApi) registerPatterns() {
 			if err := self.LoadRequest(&datagram, &data); err != nil {
 				return err
 			}
-			go self.xtermService.LiveStreamConnection(data, datagram, self.httpService, self.valkeyClient)
+			go self.xtermService.LiveStreamConnection(data, datagram, self.httpService, self.valkeyClient, []string{})
 			return nil
 		},
 	)
@@ -2087,7 +2087,7 @@ func (self *socketApi) registerPatterns() {
 			if err := self.LoadRequest(&datagram, &data); err != nil {
 				return err
 			}
-			go self.xtermService.LiveStreamConnection(data, datagram, self.httpService, self.valkeyClient)
+			go self.xtermService.LiveStreamConnection(data, datagram, self.httpService, self.valkeyClient, []string{})
 			return nil
 		},
 	)
@@ -2102,7 +2102,7 @@ func (self *socketApi) registerPatterns() {
 			if err := self.LoadRequest(&datagram, &data); err != nil {
 				return err
 			}
-			go self.xtermService.LiveStreamConnection(data, datagram, self.httpService, self.valkeyClient)
+			go self.xtermService.LiveStreamConnection(data, datagram, self.httpService, self.valkeyClient, []string{data.PodName})
 			return nil
 		},
 	)
@@ -2117,7 +2117,7 @@ func (self *socketApi) registerPatterns() {
 			if err := self.LoadRequest(&datagram, &data); err != nil {
 				return err
 			}
-			go self.xtermService.LiveStreamConnection(data, datagram, self.httpService, self.valkeyClient)
+			go self.xtermService.LiveStreamConnection(data, datagram, self.httpService, self.valkeyClient, []string{data.PodName})
 			return nil
 		},
 	)
@@ -2132,7 +2132,64 @@ func (self *socketApi) registerPatterns() {
 			if err := self.LoadRequest(&datagram, &data); err != nil {
 				return err
 			}
-			go self.xtermService.LiveStreamConnection(data, datagram, self.httpService, self.valkeyClient)
+			go self.xtermService.LiveStreamConnection(data, datagram, self.httpService, self.valkeyClient, []string{data.PodName})
+			return nil
+		},
+	)
+
+	self.RegisterPatternHandlerRaw(
+		"live-stream/workspace-cpu",
+		PatternConfig{
+			RequestSchema: schema.Generate(xterm.WsConnectionRequest{}),
+		},
+		func(datagram structs.Datagram) any {
+			data := xterm.WsConnectionRequest{}
+			if err := self.LoadRequest(&datagram, &data); err != nil {
+				return err
+			}
+			podNames, err := self.apiService.GetWorkspacePodsNames(data.Workspace)
+			if err != nil {
+				return fmt.Errorf("failed to get workspace pods: %w", err)
+			}
+			go self.xtermService.LiveStreamConnection(data, datagram, self.httpService, self.valkeyClient, podNames)
+			return nil
+		},
+	)
+
+	self.RegisterPatternHandlerRaw(
+		"live-stream/workspace-memory",
+		PatternConfig{
+			RequestSchema: schema.Generate(xterm.WsConnectionRequest{}),
+		},
+		func(datagram structs.Datagram) any {
+			data := xterm.WsConnectionRequest{}
+			if err := self.LoadRequest(&datagram, &data); err != nil {
+				return err
+			}
+			podNames, err := self.apiService.GetWorkspacePodsNames(data.Workspace)
+			if err != nil {
+				return fmt.Errorf("failed to get workspace pods: %w", err)
+			}
+			go self.xtermService.LiveStreamConnection(data, datagram, self.httpService, self.valkeyClient, podNames)
+			return nil
+		},
+	)
+
+	self.RegisterPatternHandlerRaw(
+		"live-stream/workspace-traffic",
+		PatternConfig{
+			RequestSchema: schema.Generate(xterm.WsConnectionRequest{}),
+		},
+		func(datagram structs.Datagram) any {
+			data := xterm.WsConnectionRequest{}
+			if err := self.LoadRequest(&datagram, &data); err != nil {
+				return err
+			}
+			podNames, err := self.apiService.GetWorkspacePodsNames(data.Workspace)
+			if err != nil {
+				return fmt.Errorf("failed to get workspace pods: %w", err)
+			}
+			go self.xtermService.LiveStreamConnection(data, datagram, self.httpService, self.valkeyClient, podNames)
 			return nil
 		},
 	)

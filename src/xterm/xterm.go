@@ -48,6 +48,7 @@ type WsConnectionRequest struct {
 	NodeName        string `json:"nodeName"`
 	CmdType         string `json:"cmdType"`
 	PodName         string `json:"podName"`
+	Workspace       string `json:"workspace"`
 }
 
 type PodCmdConnectionRequest struct {
