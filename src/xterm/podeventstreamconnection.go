@@ -2,7 +2,6 @@ package xterm
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/utils"
@@ -11,6 +10,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	json "github.com/json-iterator/go"
 
 	"github.com/gorilla/websocket"
 	v1 "k8s.io/api/core/v1"

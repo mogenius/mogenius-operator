@@ -2091,6 +2091,51 @@ func (self *socketApi) registerPatterns() {
 			return nil
 		},
 	)
+
+	self.RegisterPatternHandlerRaw(
+		"live-stream/pod-cpu",
+		PatternConfig{
+			RequestSchema: schema.Generate(xterm.WsConnectionRequest{}),
+		},
+		func(datagram structs.Datagram) any {
+			data := xterm.WsConnectionRequest{}
+			if err := self.LoadRequest(&datagram, &data); err != nil {
+				return err
+			}
+			go self.xtermService.LiveStreamConnection(data, datagram, self.httpService, self.valkeyClient)
+			return nil
+		},
+	)
+
+	self.RegisterPatternHandlerRaw(
+		"live-stream/pod-memory",
+		PatternConfig{
+			RequestSchema: schema.Generate(xterm.WsConnectionRequest{}),
+		},
+		func(datagram structs.Datagram) any {
+			data := xterm.WsConnectionRequest{}
+			if err := self.LoadRequest(&datagram, &data); err != nil {
+				return err
+			}
+			go self.xtermService.LiveStreamConnection(data, datagram, self.httpService, self.valkeyClient)
+			return nil
+		},
+	)
+
+	self.RegisterPatternHandlerRaw(
+		"live-stream/pod-traffic",
+		PatternConfig{
+			RequestSchema: schema.Generate(xterm.WsConnectionRequest{}),
+		},
+		func(datagram structs.Datagram) any {
+			data := xterm.WsConnectionRequest{}
+			if err := self.LoadRequest(&datagram, &data); err != nil {
+				return err
+			}
+			go self.xtermService.LiveStreamConnection(data, datagram, self.httpService, self.valkeyClient)
+			return nil
+		},
+	)
 }
 
 func (self *socketApi) LoadRequest(datagram *structs.Datagram, data interface{}) error {

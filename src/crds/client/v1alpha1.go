@@ -2,9 +2,10 @@ package client
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	mov1alpha1 "mogenius-k8s-manager/src/crds/v1alpha1"
+
+	json "github.com/json-iterator/go"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
