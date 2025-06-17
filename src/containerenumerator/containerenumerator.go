@@ -30,8 +30,9 @@ type ContainerId = string
 type ProcessId = uint64
 
 type containerEnumerator struct {
-	logger *slog.Logger
-	config config.ConfigModule
+	logger   *slog.Logger
+	config   config.ConfigModule
+	procPath string
 
 	running atomic.Bool
 
@@ -56,6 +57,7 @@ func NewContainerEnumerator(
 
 	self.logger = logger
 	self.config = config
+	self.procPath = config.Get("MO_HOST_PROC_PATH")
 	self.clientProvider = clientProvider
 	self.cgroupRegexes = []*regexp.Regexp{
 		regexp.MustCompile(`cri-containerd-([0-9a-fA-F]+)\.scope`),
@@ -84,13 +86,12 @@ func (self *containerEnumerator) startWorker() {
 	}
 
 	go func() {
-		procPath := self.config.Get("MO_HOST_PROC_PATH")
 
 		ownNodeName := self.config.Get("OWN_NODE_NAME")
 		assert.Assert(ownNodeName != "", "OWN_NODE_NAME has to be defined and non-empty", ownNodeName)
 		fieldSelector := fmt.Sprintf("metadata.namespace!=kube-system,spec.nodeName=%s", ownNodeName)
 
-		containers := self.collectContainers(procPath)
+		containers := self.collectContainers()
 		pods := self.generateCurrentPodList(fieldSelector, containers)
 
 		updateTicker := time.NewTicker(5 * time.Second)
@@ -99,7 +100,7 @@ func (self *containerEnumerator) startWorker() {
 		for {
 			select {
 			case <-updateTicker.C:
-				containers = self.collectContainers(procPath)
+				containers = self.collectContainers()
 				pods = self.generateCurrentPodList(fieldSelector, containers)
 			case <-self.getProcessesWithContainerIdsRx:
 				self.getProcessesWithContainerIdsTx <- containers
@@ -133,12 +134,12 @@ func (self *containerEnumerator) GetPodsWithContainerIds() []PodInfo {
 //  3. Parsing happens using a list of regexes. If a known container engine is
 //     found the regex extracts the container id.
 //  4. The returned map consists of all found container ids as a key to all process ids running within that container.
-func (self *containerEnumerator) collectContainers(procPath string) map[ContainerId][]ProcessId {
+func (self *containerEnumerator) collectContainers() map[ContainerId][]ProcessId {
 	data := map[ContainerId][]ProcessId{}
 
 	// to start get a list of all system processes
-	files, err := os.ReadDir(procPath)
-	assert.Assert(err == nil, "procPath has to be readable", procPath, err)
+	files, err := os.ReadDir(self.procPath)
+	assert.Assert(err == nil, "procPath has to be readable", self.procPath, err)
 
 	for _, file := range files {
 		// we are only interested in the contents of /proc/$pid/cgroup for PIDs which are numeric
@@ -151,7 +152,7 @@ func (self *containerEnumerator) collectContainers(procPath string) map[Containe
 		if err != nil {
 			continue
 		}
-		cgroup, err := self.readCgroupFile(procPath, pidN)
+		cgroup, err := self.readCgroupFile(pidN)
 		if err != nil {
 			continue
 		}
@@ -170,8 +171,8 @@ func (self *containerEnumerator) collectContainers(procPath string) map[Containe
 	return data
 }
 
-func (self *containerEnumerator) readCgroupFile(procPath string, pid ProcessId) (string, error) {
-	filePath := path.Join(procPath, strconv.FormatUint(pid, 10), "cgroup")
+func (self *containerEnumerator) readCgroupFile(pid ProcessId) (string, error) {
+	filePath := path.Join(self.procPath, strconv.FormatUint(pid, 10), "cgroup")
 
 	file, err := os.ReadFile(filePath)
 	if err != nil {
