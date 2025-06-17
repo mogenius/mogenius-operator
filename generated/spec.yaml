@@ -2559,9 +2559,13 @@ cluster/component-log-stream-connection-request:
                         type: string
                     nodeName:
                         type: string
+                    podName:
+                        type: string
                     websocketHost:
                         type: string
                     websocketScheme:
+                        type: string
+                    workspace:
                         type: string
         typeInfo:
             structRef: mogenius-k8s-manager/src/xterm.ComponentLogConnectionRequest
@@ -6865,9 +6869,13 @@ live-stream/nodes-cpu:
                         type: string
                     nodeName:
                         type: string
+                    podName:
+                        type: string
                     websocketHost:
                         type: string
                     websocketScheme:
+                        type: string
+                    workspace:
                         type: string
         typeInfo:
             structRef: mogenius-k8s-manager/src/xterm.WsConnectionRequest
@@ -6884,9 +6892,13 @@ live-stream/nodes-memory:
                         type: string
                     nodeName:
                         type: string
+                    podName:
+                        type: string
                     websocketHost:
                         type: string
                     websocketScheme:
+                        type: string
+                    workspace:
                         type: string
         typeInfo:
             structRef: mogenius-k8s-manager/src/xterm.WsConnectionRequest
@@ -6903,9 +6915,151 @@ live-stream/nodes-traffic:
                         type: string
                     nodeName:
                         type: string
+                    podName:
+                        type: string
                     websocketHost:
                         type: string
                     websocketScheme:
+                        type: string
+                    workspace:
+                        type: string
+        typeInfo:
+            structRef: mogenius-k8s-manager/src/xterm.WsConnectionRequest
+            type: struct
+live-stream/pod-cpu:
+    requestSchema:
+        structs:
+            mogenius-k8s-manager/src/xterm.WsConnectionRequest:
+                name: mogenius-k8s-manager/src/xterm.WsConnectionRequest
+                properties:
+                    channelId:
+                        type: string
+                    cmdType:
+                        type: string
+                    nodeName:
+                        type: string
+                    podName:
+                        type: string
+                    websocketHost:
+                        type: string
+                    websocketScheme:
+                        type: string
+                    workspace:
+                        type: string
+        typeInfo:
+            structRef: mogenius-k8s-manager/src/xterm.WsConnectionRequest
+            type: struct
+live-stream/pod-memory:
+    requestSchema:
+        structs:
+            mogenius-k8s-manager/src/xterm.WsConnectionRequest:
+                name: mogenius-k8s-manager/src/xterm.WsConnectionRequest
+                properties:
+                    channelId:
+                        type: string
+                    cmdType:
+                        type: string
+                    nodeName:
+                        type: string
+                    podName:
+                        type: string
+                    websocketHost:
+                        type: string
+                    websocketScheme:
+                        type: string
+                    workspace:
+                        type: string
+        typeInfo:
+            structRef: mogenius-k8s-manager/src/xterm.WsConnectionRequest
+            type: struct
+live-stream/pod-traffic:
+    requestSchema:
+        structs:
+            mogenius-k8s-manager/src/xterm.WsConnectionRequest:
+                name: mogenius-k8s-manager/src/xterm.WsConnectionRequest
+                properties:
+                    channelId:
+                        type: string
+                    cmdType:
+                        type: string
+                    nodeName:
+                        type: string
+                    podName:
+                        type: string
+                    websocketHost:
+                        type: string
+                    websocketScheme:
+                        type: string
+                    workspace:
+                        type: string
+        typeInfo:
+            structRef: mogenius-k8s-manager/src/xterm.WsConnectionRequest
+            type: struct
+live-stream/workspace-cpu:
+    requestSchema:
+        structs:
+            mogenius-k8s-manager/src/xterm.WsConnectionRequest:
+                name: mogenius-k8s-manager/src/xterm.WsConnectionRequest
+                properties:
+                    channelId:
+                        type: string
+                    cmdType:
+                        type: string
+                    nodeName:
+                        type: string
+                    podName:
+                        type: string
+                    websocketHost:
+                        type: string
+                    websocketScheme:
+                        type: string
+                    workspace:
+                        type: string
+        typeInfo:
+            structRef: mogenius-k8s-manager/src/xterm.WsConnectionRequest
+            type: struct
+live-stream/workspace-memory:
+    requestSchema:
+        structs:
+            mogenius-k8s-manager/src/xterm.WsConnectionRequest:
+                name: mogenius-k8s-manager/src/xterm.WsConnectionRequest
+                properties:
+                    channelId:
+                        type: string
+                    cmdType:
+                        type: string
+                    nodeName:
+                        type: string
+                    podName:
+                        type: string
+                    websocketHost:
+                        type: string
+                    websocketScheme:
+                        type: string
+                    workspace:
+                        type: string
+        typeInfo:
+            structRef: mogenius-k8s-manager/src/xterm.WsConnectionRequest
+            type: struct
+live-stream/workspace-traffic:
+    requestSchema:
+        structs:
+            mogenius-k8s-manager/src/xterm.WsConnectionRequest:
+                name: mogenius-k8s-manager/src/xterm.WsConnectionRequest
+                properties:
+                    channelId:
+                        type: string
+                    cmdType:
+                        type: string
+                    nodeName:
+                        type: string
+                    podName:
+                        type: string
+                    websocketHost:
+                        type: string
+                    websocketScheme:
+                        type: string
+                    workspace:
                         type: string
         typeInfo:
             structRef: mogenius-k8s-manager/src/xterm.WsConnectionRequest
@@ -8729,9 +8883,13 @@ service/exec-sh-connection-request:
                         type: string
                     nodeName:
                         type: string
+                    podName:
+                        type: string
                     websocketHost:
                         type: string
                     websocketScheme:
+                        type: string
+                    workspace:
                         type: string
         typeInfo:
             structRef: mogenius-k8s-manager/src/xterm.PodCmdConnectionRequest
@@ -8764,9 +8922,13 @@ service/log-stream-connection-request:
                         type: string
                     nodeName:
                         type: string
+                    podName:
+                        type: string
                     websocketHost:
                         type: string
                     websocketScheme:
+                        type: string
+                    workspace:
                         type: string
         typeInfo:
             structRef: mogenius-k8s-manager/src/xterm.PodCmdConnectionRequest
@@ -8793,9 +8955,13 @@ service/pod-event-stream-connection-request:
                         type: string
                     nodeName:
                         type: string
+                    podName:
+                        type: string
                     websocketHost:
                         type: string
                     websocketScheme:
+                        type: string
+                    workspace:
                         type: string
         typeInfo:
             structRef: mogenius-k8s-manager/src/xterm.PodEventConnectionRequest

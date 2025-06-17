@@ -87,6 +87,12 @@ export enum Pattern {
   LIVE_STREAM_NODES_CPU = "live-stream/nodes-cpu",
   LIVE_STREAM_NODES_MEMORY = "live-stream/nodes-memory",
   LIVE_STREAM_NODES_TRAFFIC = "live-stream/nodes-traffic",
+  LIVE_STREAM_POD_CPU = "live-stream/pod-cpu",
+  LIVE_STREAM_POD_MEMORY = "live-stream/pod-memory",
+  LIVE_STREAM_POD_TRAFFIC = "live-stream/pod-traffic",
+  LIVE_STREAM_WORKSPACE_CPU = "live-stream/workspace-cpu",
+  LIVE_STREAM_WORKSPACE_MEMORY = "live-stream/workspace-memory",
+  LIVE_STREAM_WORKSPACE_TRAFFIC = "live-stream/workspace-traffic",
   METRICS_DEPLOYMENT_AVERAGE_UTILIZATION = "metrics/deployment/average-utilization",
   NAMESPACE_BACKUP = "namespace/backup",
   NAMESPACE_CREATE = "namespace/create",
@@ -239,6 +245,12 @@ export const StringToPattern = {
   "live-stream/nodes-cpu": Pattern.LIVE_STREAM_NODES_CPU,
   "live-stream/nodes-memory": Pattern.LIVE_STREAM_NODES_MEMORY,
   "live-stream/nodes-traffic": Pattern.LIVE_STREAM_NODES_TRAFFIC,
+  "live-stream/pod-cpu": Pattern.LIVE_STREAM_POD_CPU,
+  "live-stream/pod-memory": Pattern.LIVE_STREAM_POD_MEMORY,
+  "live-stream/pod-traffic": Pattern.LIVE_STREAM_POD_TRAFFIC,
+  "live-stream/workspace-cpu": Pattern.LIVE_STREAM_WORKSPACE_CPU,
+  "live-stream/workspace-memory": Pattern.LIVE_STREAM_WORKSPACE_MEMORY,
+  "live-stream/workspace-traffic": Pattern.LIVE_STREAM_WORKSPACE_TRAFFIC,
   "metrics/deployment/average-utilization": Pattern.METRICS_DEPLOYMENT_AVERAGE_UTILIZATION,
   "namespace/backup": Pattern.NAMESPACE_BACKUP,
   "namespace/create": Pattern.NAMESPACE_CREATE,
@@ -387,6 +399,12 @@ export const PatternToString = {
   [Pattern.LIVE_STREAM_NODES_CPU]: "live-stream/nodes-cpu",
   [Pattern.LIVE_STREAM_NODES_MEMORY]: "live-stream/nodes-memory",
   [Pattern.LIVE_STREAM_NODES_TRAFFIC]: "live-stream/nodes-traffic",
+  [Pattern.LIVE_STREAM_POD_CPU]: "live-stream/pod-cpu",
+  [Pattern.LIVE_STREAM_POD_MEMORY]: "live-stream/pod-memory",
+  [Pattern.LIVE_STREAM_POD_TRAFFIC]: "live-stream/pod-traffic",
+  [Pattern.LIVE_STREAM_WORKSPACE_CPU]: "live-stream/workspace-cpu",
+  [Pattern.LIVE_STREAM_WORKSPACE_MEMORY]: "live-stream/workspace-memory",
+  [Pattern.LIVE_STREAM_WORKSPACE_TRAFFIC]: "live-stream/workspace-traffic",
   [Pattern.METRICS_DEPLOYMENT_AVERAGE_UTILIZATION]: "metrics/deployment/average-utilization",
   [Pattern.NAMESPACE_BACKUP]: "namespace/backup",
   [Pattern.NAMESPACE_CREATE]: "namespace/create",
@@ -815,9 +833,13 @@ export type CLUSTER_CLEAR_VALKEY_CACHE_RESPONSE = string;
  *                 type: string
  *             nodeName:
  *                 type: string
+ *             podName:
+ *                 type: string
  *             websocketHost:
  *                 type: string
  *             websocketScheme:
+ *                 type: string
+ *             workspace:
  *                 type: string
  * typeInfo:
  *     structRef: mogenius-k8s-manager/src/xterm.ComponentLogConnectionRequest
@@ -6214,9 +6236,13 @@ export type LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE = LIST_ONLY_NAMESPACE_
  *                 type: string
  *             nodeName:
  *                 type: string
+ *             podName:
+ *                 type: string
  *             websocketHost:
  *                 type: string
  *             websocketScheme:
+ *                 type: string
+ *             workspace:
  *                 type: string
  * typeInfo:
  *     structRef: mogenius-k8s-manager/src/xterm.WsConnectionRequest
@@ -6245,9 +6271,13 @@ export type LIVE_STREAM_NODES_CPU_RESPONSE = any;
  *                 type: string
  *             nodeName:
  *                 type: string
+ *             podName:
+ *                 type: string
  *             websocketHost:
  *                 type: string
  *             websocketScheme:
+ *                 type: string
+ *             workspace:
  *                 type: string
  * typeInfo:
  *     structRef: mogenius-k8s-manager/src/xterm.WsConnectionRequest
@@ -6276,9 +6306,13 @@ export type LIVE_STREAM_NODES_MEMORY_RESPONSE = any;
  *                 type: string
  *             nodeName:
  *                 type: string
+ *             podName:
+ *                 type: string
  *             websocketHost:
  *                 type: string
  *             websocketScheme:
+ *                 type: string
+ *             workspace:
  *                 type: string
  * typeInfo:
  *     structRef: mogenius-k8s-manager/src/xterm.WsConnectionRequest
@@ -6292,6 +6326,216 @@ export type LIVE_STREAM_NODES_TRAFFIC_REQUEST = LIVE_STREAM_NODES_TRAFFIC_REQUES
  * api schema has not been defined by the operator
  */
 export type LIVE_STREAM_NODES_TRAFFIC_RESPONSE = any;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     mogenius-k8s-manager/src/xterm.WsConnectionRequest:
+ *         name: mogenius-k8s-manager/src/xterm.WsConnectionRequest
+ *         properties:
+ *             channelId:
+ *                 type: string
+ *             cmdType:
+ *                 type: string
+ *             nodeName:
+ *                 type: string
+ *             podName:
+ *                 type: string
+ *             websocketHost:
+ *                 type: string
+ *             websocketScheme:
+ *                 type: string
+ *             workspace:
+ *                 type: string
+ * typeInfo:
+ *     structRef: mogenius-k8s-manager/src/xterm.WsConnectionRequest
+ *     type: struct
+ * ```
+ *
+ */
+export type LIVE_STREAM_POD_CPU_REQUEST = LIVE_STREAM_POD_CPU_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST;
+
+/**
+ * api schema has not been defined by the operator
+ */
+export type LIVE_STREAM_POD_CPU_RESPONSE = any;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     mogenius-k8s-manager/src/xterm.WsConnectionRequest:
+ *         name: mogenius-k8s-manager/src/xterm.WsConnectionRequest
+ *         properties:
+ *             channelId:
+ *                 type: string
+ *             cmdType:
+ *                 type: string
+ *             nodeName:
+ *                 type: string
+ *             podName:
+ *                 type: string
+ *             websocketHost:
+ *                 type: string
+ *             websocketScheme:
+ *                 type: string
+ *             workspace:
+ *                 type: string
+ * typeInfo:
+ *     structRef: mogenius-k8s-manager/src/xterm.WsConnectionRequest
+ *     type: struct
+ * ```
+ *
+ */
+export type LIVE_STREAM_POD_MEMORY_REQUEST = LIVE_STREAM_POD_MEMORY_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST;
+
+/**
+ * api schema has not been defined by the operator
+ */
+export type LIVE_STREAM_POD_MEMORY_RESPONSE = any;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     mogenius-k8s-manager/src/xterm.WsConnectionRequest:
+ *         name: mogenius-k8s-manager/src/xterm.WsConnectionRequest
+ *         properties:
+ *             channelId:
+ *                 type: string
+ *             cmdType:
+ *                 type: string
+ *             nodeName:
+ *                 type: string
+ *             podName:
+ *                 type: string
+ *             websocketHost:
+ *                 type: string
+ *             websocketScheme:
+ *                 type: string
+ *             workspace:
+ *                 type: string
+ * typeInfo:
+ *     structRef: mogenius-k8s-manager/src/xterm.WsConnectionRequest
+ *     type: struct
+ * ```
+ *
+ */
+export type LIVE_STREAM_POD_TRAFFIC_REQUEST = LIVE_STREAM_POD_TRAFFIC_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST;
+
+/**
+ * api schema has not been defined by the operator
+ */
+export type LIVE_STREAM_POD_TRAFFIC_RESPONSE = any;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     mogenius-k8s-manager/src/xterm.WsConnectionRequest:
+ *         name: mogenius-k8s-manager/src/xterm.WsConnectionRequest
+ *         properties:
+ *             channelId:
+ *                 type: string
+ *             cmdType:
+ *                 type: string
+ *             nodeName:
+ *                 type: string
+ *             podName:
+ *                 type: string
+ *             websocketHost:
+ *                 type: string
+ *             websocketScheme:
+ *                 type: string
+ *             workspace:
+ *                 type: string
+ * typeInfo:
+ *     structRef: mogenius-k8s-manager/src/xterm.WsConnectionRequest
+ *     type: struct
+ * ```
+ *
+ */
+export type LIVE_STREAM_WORKSPACE_CPU_REQUEST = LIVE_STREAM_WORKSPACE_CPU_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST;
+
+/**
+ * api schema has not been defined by the operator
+ */
+export type LIVE_STREAM_WORKSPACE_CPU_RESPONSE = any;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     mogenius-k8s-manager/src/xterm.WsConnectionRequest:
+ *         name: mogenius-k8s-manager/src/xterm.WsConnectionRequest
+ *         properties:
+ *             channelId:
+ *                 type: string
+ *             cmdType:
+ *                 type: string
+ *             nodeName:
+ *                 type: string
+ *             podName:
+ *                 type: string
+ *             websocketHost:
+ *                 type: string
+ *             websocketScheme:
+ *                 type: string
+ *             workspace:
+ *                 type: string
+ * typeInfo:
+ *     structRef: mogenius-k8s-manager/src/xterm.WsConnectionRequest
+ *     type: struct
+ * ```
+ *
+ */
+export type LIVE_STREAM_WORKSPACE_MEMORY_REQUEST = LIVE_STREAM_WORKSPACE_MEMORY_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST;
+
+/**
+ * api schema has not been defined by the operator
+ */
+export type LIVE_STREAM_WORKSPACE_MEMORY_RESPONSE = any;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     mogenius-k8s-manager/src/xterm.WsConnectionRequest:
+ *         name: mogenius-k8s-manager/src/xterm.WsConnectionRequest
+ *         properties:
+ *             channelId:
+ *                 type: string
+ *             cmdType:
+ *                 type: string
+ *             nodeName:
+ *                 type: string
+ *             podName:
+ *                 type: string
+ *             websocketHost:
+ *                 type: string
+ *             websocketScheme:
+ *                 type: string
+ *             workspace:
+ *                 type: string
+ * typeInfo:
+ *     structRef: mogenius-k8s-manager/src/xterm.WsConnectionRequest
+ *     type: struct
+ * ```
+ *
+ */
+export type LIVE_STREAM_WORKSPACE_TRAFFIC_REQUEST = LIVE_STREAM_WORKSPACE_TRAFFIC_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST;
+
+/**
+ * api schema has not been defined by the operator
+ */
+export type LIVE_STREAM_WORKSPACE_TRAFFIC_RESPONSE = any;
 
 /**
  * #### Source
@@ -8351,9 +8595,13 @@ export type SERVICE_DELETE_RESPONSE = SERVICE_DELETE_RESPONSE__MOGENIUS_K8S_MANA
  *                 type: string
  *             nodeName:
  *                 type: string
+ *             podName:
+ *                 type: string
  *             websocketHost:
  *                 type: string
  *             websocketScheme:
+ *                 type: string
+ *             workspace:
  *                 type: string
  * typeInfo:
  *     structRef: mogenius-k8s-manager/src/xterm.PodCmdConnectionRequest
@@ -8398,9 +8646,13 @@ export type SERVICE_EXEC_SH_CONNECTION_REQUEST_RESPONSE = any;
  *                 type: string
  *             nodeName:
  *                 type: string
+ *             podName:
+ *                 type: string
  *             websocketHost:
  *                 type: string
  *             websocketScheme:
+ *                 type: string
+ *             workspace:
  *                 type: string
  * typeInfo:
  *     structRef: mogenius-k8s-manager/src/xterm.PodCmdConnectionRequest
@@ -10613,9 +10865,13 @@ export type SERVICE_PODS_RESPONSE = SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PO
  *                 type: string
  *             nodeName:
  *                 type: string
+ *             podName:
+ *                 type: string
  *             websocketHost:
  *                 type: string
  *             websocketScheme:
+ *                 type: string
+ *             workspace:
  *                 type: string
  * typeInfo:
  *     structRef: mogenius-k8s-manager/src/xterm.PodEventConnectionRequest
@@ -16999,7 +17255,7 @@ export type CLUSTERRESOURCEINFO_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_UTILS_COUNTRY
 export type CLUSTER_BACKUP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_NAMESPACEBACKUPRESPONSE = {"data": string,"messages": string[],"namespaceName": string};
 export type CLUSTER_CLEAR_VALKEY_CACHE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"includeNodeStats": boolean,"includePodStats": boolean,"includeTraffic": boolean};
 export type CLUSTER_COMPONENT_LOG_STREAM_CONNECTION_REQUEST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_COMPONENTLOGCONNECTIONREQUEST = {"component": string,"controller": string|undefined,"namespace": string|undefined,"release": string|undefined,"wsConnectionRequest": CLUSTER_COMPONENT_LOG_STREAM_CONNECTION_REQUEST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST};
-export type CLUSTER_COMPONENT_LOG_STREAM_CONNECTION_REQUEST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"nodeName": string,"websocketHost": string,"websocketScheme": string};
+export type CLUSTER_COMPONENT_LOG_STREAM_CONNECTION_REQUEST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"nodeName": string,"podName": string,"websocketHost": string,"websocketScheme": string,"workspace": string};
 export type CLUSTER_HELM_CHART_INSTALL_REQUEST__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMCHARTINSTALLUPGRADEREQUEST = {"chart": string,"dryRun": boolean,"namespace": string,"release": string,"values": string,"version": string};
 export type CLUSTER_HELM_CHART_INSTALL_OCI_REQUEST__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMCHARTOCIINSTALLUPGRADEREQUEST = {"chart": string,"dryRun": boolean,"namespace": string,"password": string,"registryUrl": string,"release": string,"username": string,"values": string,"version": string};
 export type CLUSTER_HELM_CHART_REMOVE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMREPOREMOVEREQUEST = {"name": string};
@@ -17278,9 +17534,15 @@ export type LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_APIMACHINERY_P
 export type LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_APIMACHINERY_PKG_UTIL_INTSTR_INTORSTRING = {"IntVal": number,"StrVal": string,"Type": number};
 export type LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_K8SNETWORKPOLICYDTO = {"name": string|undefined,"namespaceName": string,"spec": LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYSPEC};
 export type LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTMANAGEDANDUNMANAGEDNETWORKPOLICYNAMESPACE = {"displayName": string,"id": string,"managedPolicies": LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_K8SNETWORKPOLICYDTO[],"name": string,"projectId": string,"unmanagedPolicies": LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_K8SNETWORKPOLICYDTO[]};
-export type LIVE_STREAM_NODES_CPU_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"nodeName": string,"websocketHost": string,"websocketScheme": string};
-export type LIVE_STREAM_NODES_MEMORY_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"nodeName": string,"websocketHost": string,"websocketScheme": string};
-export type LIVE_STREAM_NODES_TRAFFIC_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"nodeName": string,"websocketHost": string,"websocketScheme": string};
+export type LIVE_STREAM_NODES_CPU_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"nodeName": string,"podName": string,"websocketHost": string,"websocketScheme": string,"workspace": string};
+export type LIVE_STREAM_NODES_MEMORY_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"nodeName": string,"podName": string,"websocketHost": string,"websocketScheme": string,"workspace": string};
+export type LIVE_STREAM_NODES_TRAFFIC_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"nodeName": string,"podName": string,"websocketHost": string,"websocketScheme": string,"workspace": string};
+export type LIVE_STREAM_POD_CPU_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"nodeName": string,"podName": string,"websocketHost": string,"websocketScheme": string,"workspace": string};
+export type LIVE_STREAM_POD_MEMORY_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"nodeName": string,"podName": string,"websocketHost": string,"websocketScheme": string,"workspace": string};
+export type LIVE_STREAM_POD_TRAFFIC_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"nodeName": string,"podName": string,"websocketHost": string,"websocketScheme": string,"workspace": string};
+export type LIVE_STREAM_WORKSPACE_CPU_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"nodeName": string,"podName": string,"websocketHost": string,"websocketScheme": string,"workspace": string};
+export type LIVE_STREAM_WORKSPACE_MEMORY_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"nodeName": string,"podName": string,"websocketHost": string,"websocketScheme": string,"workspace": string};
+export type LIVE_STREAM_WORKSPACE_TRAFFIC_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"nodeName": string,"podName": string,"websocketHost": string,"websocketScheme": string,"workspace": string};
 export type METRICS_DEPLOYMENT_AVERAGE_UTILIZATION_REQUEST__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_K8SCONTROLLER = {"kind": string,"name": string,"namespace": string};
 export type METRICS_DEPLOYMENT_AVERAGE_UTILIZATION_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME = {"Time": METRICS_DEPLOYMENT_AVERAGE_UTILIZATION_RESPONSE__TIME_TIME};
 export type METRICS_DEPLOYMENT_AVERAGE_UTILIZATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_CONTAINERMETRICS = {"cpuRequest": number,"cpuUsage": number,"memRequest": number,"memUsage": number,"name": string};
@@ -17392,9 +17654,9 @@ export type SERVICE_DELETE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_COMMAND = 
 export type SERVICE_DELETE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_JOB = {"commands": SERVICE_DELETE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_COMMAND|undefined[],"containerName": string,"controllerName": string,"finished": SERVICE_DELETE_RESPONSE__TIME_TIME,"id": string,"message": string,"namespaceName": string,"projectId": string,"started": SERVICE_DELETE_RESPONSE__TIME_TIME,"state": string,"title": string};
 export type SERVICE_DELETE_RESPONSE__TIME_TIME = {};
 export type SERVICE_EXEC_SH_CONNECTION_REQUEST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_PODCMDCONNECTIONREQUEST = {"container": string,"controller": string,"logTail": string,"namespace": string,"pod": string,"wsConnectionRequest": SERVICE_EXEC_SH_CONNECTION_REQUEST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST};
-export type SERVICE_EXEC_SH_CONNECTION_REQUEST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"nodeName": string,"websocketHost": string,"websocketScheme": string};
+export type SERVICE_EXEC_SH_CONNECTION_REQUEST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"nodeName": string,"podName": string,"websocketHost": string,"websocketScheme": string,"workspace": string};
 export type SERVICE_LOG_STREAM_CONNECTION_REQUEST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_PODCMDCONNECTIONREQUEST = {"container": string,"controller": string,"logTail": string,"namespace": string,"pod": string,"wsConnectionRequest": SERVICE_LOG_STREAM_CONNECTION_REQUEST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST};
-export type SERVICE_LOG_STREAM_CONNECTION_REQUEST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"nodeName": string,"websocketHost": string,"websocketScheme": string};
+export type SERVICE_LOG_STREAM_CONNECTION_REQUEST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"nodeName": string,"podName": string,"websocketHost": string,"websocketScheme": string,"workspace": string};
 export type SERVICE_PODS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_SERVICEPODSREQUEST = {"controllerName": string,"namespace": string};
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_AWSELASTICBLOCKSTOREVOLUMESOURCE = {"fsType": string,"partition": number,"readOnly": boolean,"volumeID": string};
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_AFFINITY = {"nodeAffinity": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_NODEAFFINITY|undefined,"podAffinity": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODAFFINITY|undefined,"podAntiAffinity": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODANTIAFFINITY|undefined};
@@ -17526,7 +17788,7 @@ export type SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA
 export type SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_UTIL_INTSTR_INTORSTRING = {"IntVal": number,"StrVal": string,"Type": number};
 export type SERVICE_PODS_RESPONSE__TIME_TIME = {};
 export type SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_PODEVENTCONNECTIONREQUEST = {"controller": string,"namespace": string,"wsConnectionRequest": SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST};
-export type SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"nodeName": string,"websocketHost": string,"websocketScheme": string};
+export type SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"nodeName": string,"podName": string,"websocketHost": string,"websocketScheme": string,"workspace": string};
 export type SERVICE_RESOURCE_STATUS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_SERVICERESOURCESTATUSREQUEST = {"name": string,"namespace": string,"resource": string,"statusOnly": boolean};
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_AWSELASTICBLOCKSTOREVOLUMESOURCE = {"fsType": string,"partition": number,"readOnly": boolean,"volumeID": string};
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_AFFINITY = {"nodeAffinity": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_NODEAFFINITY|undefined,"podAffinity": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODAFFINITY|undefined,"podAntiAffinity": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODANTIAFFINITY|undefined};
@@ -18222,6 +18484,30 @@ export interface IPatternConfig {
   [Pattern.LIVE_STREAM_NODES_TRAFFIC]: {
     Request: LIVE_STREAM_NODES_TRAFFIC_REQUEST;
     Response: LIVE_STREAM_NODES_TRAFFIC_RESPONSE;
+  };
+  [Pattern.LIVE_STREAM_POD_CPU]: {
+    Request: LIVE_STREAM_POD_CPU_REQUEST;
+    Response: LIVE_STREAM_POD_CPU_RESPONSE;
+  };
+  [Pattern.LIVE_STREAM_POD_MEMORY]: {
+    Request: LIVE_STREAM_POD_MEMORY_REQUEST;
+    Response: LIVE_STREAM_POD_MEMORY_RESPONSE;
+  };
+  [Pattern.LIVE_STREAM_POD_TRAFFIC]: {
+    Request: LIVE_STREAM_POD_TRAFFIC_REQUEST;
+    Response: LIVE_STREAM_POD_TRAFFIC_RESPONSE;
+  };
+  [Pattern.LIVE_STREAM_WORKSPACE_CPU]: {
+    Request: LIVE_STREAM_WORKSPACE_CPU_REQUEST;
+    Response: LIVE_STREAM_WORKSPACE_CPU_RESPONSE;
+  };
+  [Pattern.LIVE_STREAM_WORKSPACE_MEMORY]: {
+    Request: LIVE_STREAM_WORKSPACE_MEMORY_REQUEST;
+    Response: LIVE_STREAM_WORKSPACE_MEMORY_RESPONSE;
+  };
+  [Pattern.LIVE_STREAM_WORKSPACE_TRAFFIC]: {
+    Request: LIVE_STREAM_WORKSPACE_TRAFFIC_REQUEST;
+    Response: LIVE_STREAM_WORKSPACE_TRAFFIC_RESPONSE;
   };
   [Pattern.METRICS_DEPLOYMENT_AVERAGE_UTILIZATION]: {
     Request: METRICS_DEPLOYMENT_AVERAGE_UTILIZATION_REQUEST;
