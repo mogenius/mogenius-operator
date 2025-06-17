@@ -8,7 +8,6 @@ import (
 	"mogenius-k8s-manager/src/crds/v1alpha1"
 	"mogenius-k8s-manager/src/k8sclient"
 	"mogenius-k8s-manager/src/watcher"
-	"slices"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -343,7 +342,12 @@ func (self *reconciler) getWorkspaces() []v1alpha1.Workspace {
 	self.workspacesLock.Lock()
 	defer self.workspacesLock.Unlock()
 
-	return slices.Clone(self.workspaces)
+	workspaces := make([]v1alpha1.Workspace, len(self.workspaces))
+	for idx, workspace := range self.workspaces {
+		workspaces[idx] = *workspace.DeepCopy()
+	}
+
+	return workspaces
 }
 
 func (self *reconciler) addWorkspace(obj *unstructured.Unstructured) {
@@ -379,7 +383,12 @@ func (self *reconciler) getUsers() []v1alpha1.User {
 	self.usersLock.Lock()
 	defer self.usersLock.Unlock()
 
-	return slices.Clone(self.users)
+	users := make([]v1alpha1.User, len(self.users))
+	for idx, user := range self.users {
+		users[idx] = *user.DeepCopy()
+	}
+
+	return users
 }
 
 func (self *reconciler) addUser(obj *unstructured.Unstructured) {
@@ -415,7 +424,12 @@ func (self *reconciler) getGrants() []v1alpha1.Grant {
 	self.grantsLock.Lock()
 	defer self.grantsLock.Unlock()
 
-	return slices.Clone(self.grants)
+	grants := make([]v1alpha1.Grant, len(self.grants))
+	for idx, grant := range self.grants {
+		grants[idx] = *grant.DeepCopy()
+	}
+
+	return grants
 }
 
 func (self *reconciler) addGrant(obj *unstructured.Unstructured) {
@@ -451,7 +465,12 @@ func (self *reconciler) getRoleBindings() []rbacv1.RoleBinding {
 	self.roleBindingsLock.Lock()
 	defer self.roleBindingsLock.Unlock()
 
-	return slices.Clone(self.roleBindings)
+	roleBindings := make([]rbacv1.RoleBinding, len(self.roleBindings))
+	for idx, roleBinding := range self.roleBindings {
+		roleBindings[idx] = *roleBinding.DeepCopy()
+	}
+
+	return roleBindings
 }
 
 func (self *reconciler) addRoleBinding(obj *unstructured.Unstructured) {
@@ -487,7 +506,12 @@ func (self *reconciler) getClusterRoleBindings() []rbacv1.ClusterRoleBinding {
 	self.clusterRoleBindingsLock.Lock()
 	defer self.clusterRoleBindingsLock.Unlock()
 
-	return slices.Clone(self.clusterRoleBindings)
+	clusterRoleBindings := make([]rbacv1.ClusterRoleBinding, len(self.clusterRoleBindings))
+	for idx, clusterRoleBinding := range self.clusterRoleBindings {
+		clusterRoleBindings[idx] = *clusterRoleBinding.DeepCopy()
+	}
+
+	return clusterRoleBindings
 }
 
 func (self *reconciler) addClusterRoleBinding(obj *unstructured.Unstructured) {
@@ -523,7 +547,12 @@ func (self *reconciler) getClusterRoles() []rbacv1.ClusterRole {
 	self.clusterRolesLock.Lock()
 	defer self.clusterRolesLock.Unlock()
 
-	return slices.Clone(self.clusterRoles)
+	clusterRoles := make([]rbacv1.ClusterRole, len(self.clusterRoles))
+	for idx, clusterRole := range self.clusterRoles {
+		clusterRoles[idx] = *clusterRole.DeepCopy()
+	}
+
+	return clusterRoles
 }
 
 func (self *reconciler) addClusterRole(obj *unstructured.Unstructured) {
