@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"mogenius-k8s-manager/src/structs"
 
-	realJson "encoding/json"
+	json "github.com/json-iterator/go"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -82,7 +82,7 @@ func BackupNamespace(namespace string) (NamespaceBackupResponse, error) {
 
 				obj = cleanBackupResources(obj)
 
-				json, err := realJson.Marshal(obj.Object)
+				json, err := json.Marshal(obj.Object)
 				if err != nil {
 					return result, err
 				}

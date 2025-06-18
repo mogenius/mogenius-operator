@@ -2,7 +2,6 @@ package xterm
 
 import (
 	"context"
-	"encoding/json"
 	"io"
 	"log/slog"
 	"mogenius-k8s-manager/src/k8sclient"
@@ -16,6 +15,8 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	json "github.com/json-iterator/go"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -46,6 +47,8 @@ type WsConnectionRequest struct {
 	WebsocketHost   string `json:"websocketHost" validate:"required"`
 	NodeName        string `json:"nodeName"`
 	CmdType         string `json:"cmdType"`
+	PodName         string `json:"podName"`
+	Workspace       string `json:"workspace"`
 }
 
 type PodCmdConnectionRequest struct {

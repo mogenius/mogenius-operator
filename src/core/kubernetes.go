@@ -26,18 +26,18 @@ import (
 )
 
 type CleanUpResult struct {
-	Pods        []CleanUpResultEntry
-	ReplicaSets []CleanUpResultEntry
-	Services    []CleanUpResultEntry
-	Secrets     []CleanUpResultEntry
-	ConfigMaps  []CleanUpResultEntry
-	Jobs        []CleanUpResultEntry
-	Ingresses   []CleanUpResultEntry
+	Pods        []CleanUpResultEntry `json:"pods"`
+	ReplicaSets []CleanUpResultEntry `json:"replicaSets"`
+	Services    []CleanUpResultEntry `json:"services"`
+	Secrets     []CleanUpResultEntry `json:"secrets"`
+	ConfigMaps  []CleanUpResultEntry `json:"configMaps"`
+	Jobs        []CleanUpResultEntry `json:"jobs"`
+	Ingresses   []CleanUpResultEntry `json:"ingresses"`
 }
 type CleanUpResultEntry struct {
-	Name      string
-	Namespace string
-	Reason    string
+	Name      string `json:"name"`
+	Namespace string `json:"namespace"`
+	Reason    string `json:"reason"`
 }
 type MoKubernetes interface {
 	Run()

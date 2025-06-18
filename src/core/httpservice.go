@@ -1,7 +1,6 @@
 package core
 
 import (
-	"encoding/json"
 	"log/slog"
 	"mogenius-k8s-manager/src/assert"
 	cfg "mogenius-k8s-manager/src/config"
@@ -11,6 +10,8 @@ import (
 	"mogenius-k8s-manager/src/version"
 	"net/http"
 	"sync"
+
+	json "github.com/json-iterator/go"
 )
 
 type HttpService interface {

@@ -1,4 +1,4 @@
-package networkmonitor
+package containerenumerator
 
 import (
 	"log/slog"

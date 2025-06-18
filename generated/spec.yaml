@@ -2495,85 +2495,6 @@ attach/labeled_network_policy:
     responseSchema:
         typeInfo:
             type: string
-clean/workspace:
-    requestSchema:
-        structs:
-            mogenius-k8s-manager/src/core.Request:
-                name: mogenius-k8s-manager/src/core.Request
-                properties:
-                    configMaps:
-                        type: bool
-                    dryRun:
-                        type: bool
-                    ingresses:
-                        type: bool
-                    jobs:
-                        type: bool
-                    name:
-                        type: string
-                    pods:
-                        type: bool
-                    replicaSets:
-                        type: bool
-                    secrets:
-                        type: bool
-                    services:
-                        type: bool
-        typeInfo:
-            structRef: mogenius-k8s-manager/src/core.Request
-            type: struct
-    responseSchema:
-        structs:
-            mogenius-k8s-manager/src/core.CleanUpResult:
-                name: mogenius-k8s-manager/src/core.CleanUpResult
-                properties:
-                    ConfigMaps:
-                        elementType:
-                            structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
-                            type: struct
-                        type: array
-                    Ingresses:
-                        elementType:
-                            structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
-                            type: struct
-                        type: array
-                    Jobs:
-                        elementType:
-                            structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
-                            type: struct
-                        type: array
-                    Pods:
-                        elementType:
-                            structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
-                            type: struct
-                        type: array
-                    ReplicaSets:
-                        elementType:
-                            structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
-                            type: struct
-                        type: array
-                    Secrets:
-                        elementType:
-                            structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
-                            type: struct
-                        type: array
-                    Services:
-                        elementType:
-                            structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
-                            type: struct
-                        type: array
-            mogenius-k8s-manager/src/core.CleanUpResultEntry:
-                name: mogenius-k8s-manager/src/core.CleanUpResultEntry
-                properties:
-                    Name:
-                        type: string
-                    Namespace:
-                        type: string
-                    Reason:
-                        type: string
-        typeInfo:
-            structRef: mogenius-k8s-manager/src/core.CleanUpResult
-            type: struct
 cluster/backup:
     responseSchema:
         structs:
@@ -2638,9 +2559,13 @@ cluster/component-log-stream-connection-request:
                         type: string
                     nodeName:
                         type: string
+                    podName:
+                        type: string
                     websocketHost:
                         type: string
                     websocketScheme:
+                        type: string
+                    workspace:
                         type: string
         typeInfo:
             structRef: mogenius-k8s-manager/src/xterm.ComponentLogConnectionRequest
@@ -6944,9 +6869,13 @@ live-stream/nodes-cpu:
                         type: string
                     nodeName:
                         type: string
+                    podName:
+                        type: string
                     websocketHost:
                         type: string
                     websocketScheme:
+                        type: string
+                    workspace:
                         type: string
         typeInfo:
             structRef: mogenius-k8s-manager/src/xterm.WsConnectionRequest
@@ -6963,9 +6892,13 @@ live-stream/nodes-memory:
                         type: string
                     nodeName:
                         type: string
+                    podName:
+                        type: string
                     websocketHost:
                         type: string
                     websocketScheme:
+                        type: string
+                    workspace:
                         type: string
         typeInfo:
             structRef: mogenius-k8s-manager/src/xterm.WsConnectionRequest
@@ -6982,9 +6915,151 @@ live-stream/nodes-traffic:
                         type: string
                     nodeName:
                         type: string
+                    podName:
+                        type: string
                     websocketHost:
                         type: string
                     websocketScheme:
+                        type: string
+                    workspace:
+                        type: string
+        typeInfo:
+            structRef: mogenius-k8s-manager/src/xterm.WsConnectionRequest
+            type: struct
+live-stream/pod-cpu:
+    requestSchema:
+        structs:
+            mogenius-k8s-manager/src/xterm.WsConnectionRequest:
+                name: mogenius-k8s-manager/src/xterm.WsConnectionRequest
+                properties:
+                    channelId:
+                        type: string
+                    cmdType:
+                        type: string
+                    nodeName:
+                        type: string
+                    podName:
+                        type: string
+                    websocketHost:
+                        type: string
+                    websocketScheme:
+                        type: string
+                    workspace:
+                        type: string
+        typeInfo:
+            structRef: mogenius-k8s-manager/src/xterm.WsConnectionRequest
+            type: struct
+live-stream/pod-memory:
+    requestSchema:
+        structs:
+            mogenius-k8s-manager/src/xterm.WsConnectionRequest:
+                name: mogenius-k8s-manager/src/xterm.WsConnectionRequest
+                properties:
+                    channelId:
+                        type: string
+                    cmdType:
+                        type: string
+                    nodeName:
+                        type: string
+                    podName:
+                        type: string
+                    websocketHost:
+                        type: string
+                    websocketScheme:
+                        type: string
+                    workspace:
+                        type: string
+        typeInfo:
+            structRef: mogenius-k8s-manager/src/xterm.WsConnectionRequest
+            type: struct
+live-stream/pod-traffic:
+    requestSchema:
+        structs:
+            mogenius-k8s-manager/src/xterm.WsConnectionRequest:
+                name: mogenius-k8s-manager/src/xterm.WsConnectionRequest
+                properties:
+                    channelId:
+                        type: string
+                    cmdType:
+                        type: string
+                    nodeName:
+                        type: string
+                    podName:
+                        type: string
+                    websocketHost:
+                        type: string
+                    websocketScheme:
+                        type: string
+                    workspace:
+                        type: string
+        typeInfo:
+            structRef: mogenius-k8s-manager/src/xterm.WsConnectionRequest
+            type: struct
+live-stream/workspace-cpu:
+    requestSchema:
+        structs:
+            mogenius-k8s-manager/src/xterm.WsConnectionRequest:
+                name: mogenius-k8s-manager/src/xterm.WsConnectionRequest
+                properties:
+                    channelId:
+                        type: string
+                    cmdType:
+                        type: string
+                    nodeName:
+                        type: string
+                    podName:
+                        type: string
+                    websocketHost:
+                        type: string
+                    websocketScheme:
+                        type: string
+                    workspace:
+                        type: string
+        typeInfo:
+            structRef: mogenius-k8s-manager/src/xterm.WsConnectionRequest
+            type: struct
+live-stream/workspace-memory:
+    requestSchema:
+        structs:
+            mogenius-k8s-manager/src/xterm.WsConnectionRequest:
+                name: mogenius-k8s-manager/src/xterm.WsConnectionRequest
+                properties:
+                    channelId:
+                        type: string
+                    cmdType:
+                        type: string
+                    nodeName:
+                        type: string
+                    podName:
+                        type: string
+                    websocketHost:
+                        type: string
+                    websocketScheme:
+                        type: string
+                    workspace:
+                        type: string
+        typeInfo:
+            structRef: mogenius-k8s-manager/src/xterm.WsConnectionRequest
+            type: struct
+live-stream/workspace-traffic:
+    requestSchema:
+        structs:
+            mogenius-k8s-manager/src/xterm.WsConnectionRequest:
+                name: mogenius-k8s-manager/src/xterm.WsConnectionRequest
+                properties:
+                    channelId:
+                        type: string
+                    cmdType:
+                        type: string
+                    nodeName:
+                        type: string
+                    podName:
+                        type: string
+                    websocketHost:
+                        type: string
+                    websocketScheme:
+                        type: string
+                    workspace:
                         type: string
         typeInfo:
             structRef: mogenius-k8s-manager/src/xterm.WsConnectionRequest
@@ -7334,6 +7409,217 @@ print-current-config:
     responseSchema:
         typeInfo:
             type: string
+prometheus/charts/add:
+    requestSchema:
+        structs:
+            mogenius-k8s-manager/src/core.PrometheusRequestRedis:
+                name: mogenius-k8s-manager/src/core.PrometheusRequestRedis
+                properties:
+                    controller:
+                        type: string
+                    namespace:
+                        type: string
+                    query:
+                        type: string
+                    queryName:
+                        type: string
+                    step:
+                        type: int
+        typeInfo:
+            structRef: mogenius-k8s-manager/src/core.PrometheusRequestRedis
+            type: struct
+    responseSchema:
+        typeInfo:
+            pointer: true
+            type: string
+prometheus/charts/get:
+    requestSchema:
+        structs:
+            mogenius-k8s-manager/src/core.PrometheusRequestRedis:
+                name: mogenius-k8s-manager/src/core.PrometheusRequestRedis
+                properties:
+                    controller:
+                        type: string
+                    namespace:
+                        type: string
+                    query:
+                        type: string
+                    queryName:
+                        type: string
+                    step:
+                        type: int
+        typeInfo:
+            structRef: mogenius-k8s-manager/src/core.PrometheusRequestRedis
+            type: struct
+    responseSchema:
+        structs:
+            mogenius-k8s-manager/src/core.PrometheusStoreObject:
+                name: mogenius-k8s-manager/src/core.PrometheusStoreObject
+                properties:
+                    query:
+                        type: string
+                    step:
+                        type: int
+        typeInfo:
+            pointer: true
+            structRef: mogenius-k8s-manager/src/core.PrometheusStoreObject
+            type: struct
+prometheus/charts/list:
+    requestSchema:
+        structs:
+            mogenius-k8s-manager/src/core.PrometheusRequestRedisList:
+                name: mogenius-k8s-manager/src/core.PrometheusRequestRedisList
+                properties:
+                    controller:
+                        type: string
+                    namespace:
+                        type: string
+        typeInfo:
+            structRef: mogenius-k8s-manager/src/core.PrometheusRequestRedisList
+            type: struct
+    responseSchema:
+        structs:
+            mogenius-k8s-manager/src/core.PrometheusStoreObject:
+                name: mogenius-k8s-manager/src/core.PrometheusStoreObject
+                properties:
+                    query:
+                        type: string
+                    step:
+                        type: int
+        typeInfo:
+            keyType:
+                type: string
+            type: map
+            valueType:
+                structRef: mogenius-k8s-manager/src/core.PrometheusStoreObject
+                type: struct
+prometheus/charts/remove:
+    requestSchema:
+        structs:
+            mogenius-k8s-manager/src/core.PrometheusRequestRedis:
+                name: mogenius-k8s-manager/src/core.PrometheusRequestRedis
+                properties:
+                    controller:
+                        type: string
+                    namespace:
+                        type: string
+                    query:
+                        type: string
+                    queryName:
+                        type: string
+                    step:
+                        type: int
+        typeInfo:
+            structRef: mogenius-k8s-manager/src/core.PrometheusRequestRedis
+            type: struct
+    responseSchema:
+        typeInfo:
+            pointer: true
+            type: string
+prometheus/is-reachable:
+    requestSchema:
+        structs:
+            mogenius-k8s-manager/src/core.PrometheusRequest:
+                name: mogenius-k8s-manager/src/core.PrometheusRequest
+                properties:
+                    prometheusPass:
+                        type: string
+                    prometheusToken:
+                        type: string
+                    prometheusUrl:
+                        type: string
+                    prometheusUser:
+                        type: string
+                    query:
+                        type: string
+                    step:
+                        type: int
+                    timeOffsetSeconds:
+                        type: int
+        typeInfo:
+            structRef: mogenius-k8s-manager/src/core.PrometheusRequest
+            type: struct
+    responseSchema:
+        typeInfo:
+            type: bool
+prometheus/query:
+    requestSchema:
+        structs:
+            mogenius-k8s-manager/src/core.PrometheusRequest:
+                name: mogenius-k8s-manager/src/core.PrometheusRequest
+                properties:
+                    prometheusPass:
+                        type: string
+                    prometheusToken:
+                        type: string
+                    prometheusUrl:
+                        type: string
+                    prometheusUser:
+                        type: string
+                    query:
+                        type: string
+                    step:
+                        type: int
+                    timeOffsetSeconds:
+                        type: int
+        typeInfo:
+            structRef: mogenius-k8s-manager/src/core.PrometheusRequest
+            type: struct
+    responseSchema:
+        structs:
+            ANON_STRUCT_1:
+                properties:
+                    result:
+                        elementType:
+                            pointer: true
+                            type: any
+                        type: array
+                    resultType:
+                        type: string
+            mogenius-k8s-manager/src/core.PrometheusQueryResponse:
+                name: mogenius-k8s-manager/src/core.PrometheusQueryResponse
+                properties:
+                    data:
+                        structRef: ANON_STRUCT_1
+                        type: struct
+                    error:
+                        type: string
+                    errorType:
+                        type: string
+                    status:
+                        type: string
+        typeInfo:
+            pointer: true
+            structRef: mogenius-k8s-manager/src/core.PrometheusQueryResponse
+            type: struct
+prometheus/values:
+    requestSchema:
+        structs:
+            mogenius-k8s-manager/src/core.PrometheusRequest:
+                name: mogenius-k8s-manager/src/core.PrometheusRequest
+                properties:
+                    prometheusPass:
+                        type: string
+                    prometheusToken:
+                        type: string
+                    prometheusUrl:
+                        type: string
+                    prometheusUser:
+                        type: string
+                    query:
+                        type: string
+                    step:
+                        type: int
+                    timeOffsetSeconds:
+                        type: int
+        typeInfo:
+            structRef: mogenius-k8s-manager/src/core.PrometheusRequest
+            type: struct
+    responseSchema:
+        typeInfo:
+            elementType:
+                type: string
+            type: array
 remove/conflicting_network_policies:
     requestSchema:
         structs:
@@ -8597,9 +8883,13 @@ service/exec-sh-connection-request:
                         type: string
                     nodeName:
                         type: string
+                    podName:
+                        type: string
                     websocketHost:
                         type: string
                     websocketScheme:
+                        type: string
+                    workspace:
                         type: string
         typeInfo:
             structRef: mogenius-k8s-manager/src/xterm.PodCmdConnectionRequest
@@ -8632,9 +8922,13 @@ service/log-stream-connection-request:
                         type: string
                     nodeName:
                         type: string
+                    podName:
+                        type: string
                     websocketHost:
                         type: string
                     websocketScheme:
+                        type: string
+                    workspace:
                         type: string
         typeInfo:
             structRef: mogenius-k8s-manager/src/xterm.PodCmdConnectionRequest
@@ -8661,9 +8955,13 @@ service/pod-event-stream-connection-request:
                         type: string
                     nodeName:
                         type: string
+                    podName:
+                        type: string
                     websocketHost:
                         type: string
                     websocketScheme:
+                        type: string
+                    workspace:
                         type: string
         typeInfo:
             structRef: mogenius-k8s-manager/src/xterm.PodEventConnectionRequest
@@ -14207,3 +14505,82 @@ upgrade-metrics-server:
     responseSchema:
         typeInfo:
             type: string
+workspace/clean-up:
+    requestSchema:
+        structs:
+            mogenius-k8s-manager/src/core.Request:
+                name: mogenius-k8s-manager/src/core.Request
+                properties:
+                    configMaps:
+                        type: bool
+                    dryRun:
+                        type: bool
+                    ingresses:
+                        type: bool
+                    jobs:
+                        type: bool
+                    name:
+                        type: string
+                    pods:
+                        type: bool
+                    replicaSets:
+                        type: bool
+                    secrets:
+                        type: bool
+                    services:
+                        type: bool
+        typeInfo:
+            structRef: mogenius-k8s-manager/src/core.Request
+            type: struct
+    responseSchema:
+        structs:
+            mogenius-k8s-manager/src/core.CleanUpResult:
+                name: mogenius-k8s-manager/src/core.CleanUpResult
+                properties:
+                    configMaps:
+                        elementType:
+                            structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
+                            type: struct
+                        type: array
+                    ingresses:
+                        elementType:
+                            structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
+                            type: struct
+                        type: array
+                    jobs:
+                        elementType:
+                            structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
+                            type: struct
+                        type: array
+                    pods:
+                        elementType:
+                            structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
+                            type: struct
+                        type: array
+                    replicaSets:
+                        elementType:
+                            structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
+                            type: struct
+                        type: array
+                    secrets:
+                        elementType:
+                            structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
+                            type: struct
+                        type: array
+                    services:
+                        elementType:
+                            structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
+                            type: struct
+                        type: array
+            mogenius-k8s-manager/src/core.CleanUpResultEntry:
+                name: mogenius-k8s-manager/src/core.CleanUpResultEntry
+                properties:
+                    name:
+                        type: string
+                    namespace:
+                        type: string
+                    reason:
+                        type: string
+        typeInfo:
+            structRef: mogenius-k8s-manager/src/core.CleanUpResult
+            type: struct

@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/config"
+	"mogenius-k8s-manager/src/containerenumerator"
 	"mogenius-k8s-manager/src/shutdown"
 	"os/exec"
 	"slices"
@@ -20,9 +21,9 @@ import (
 
 type SnoopyManager interface {
 	Run()
-	Register(podInfo PodInfo) []error
-	Remove(podInfo PodInfo) []error
-	Metrics() map[PodInfoIdentifier]ContainerInfo
+	Register(podInfo containerenumerator.PodInfo) []error
+	Remove(podInfo containerenumerator.PodInfo) []error
+	Metrics() map[containerenumerator.PodInfoIdentifier]ContainerInfo
 	Status() SnoopyStatus
 	SetArgs(args SnoopyArgs)
 }
@@ -31,6 +32,7 @@ type snoopyManager struct {
 	logger        *slog.Logger
 	config        config.ConfigModule
 	args          SnoopyArgs
+	procPath      string
 	snoopyBinName *string
 	running       atomic.Bool
 
@@ -40,7 +42,7 @@ type snoopyManager struct {
 	statusRx chan SnoopyStatus
 
 	handlesLock *sync.RWMutex
-	handles     map[PodInfoIdentifier]*SnoopyHandle
+	handles     map[containerenumerator.PodInfoIdentifier]*SnoopyHandle
 }
 
 type SnoopyArgs struct {
@@ -123,7 +125,7 @@ type SnoopyStatusEvent struct {
 }
 
 type ContainerInfo struct {
-	PodInfo PodInfo
+	PodInfo containerenumerator.PodInfo
 	Metrics map[InterfaceName]MetricSnapshot
 }
 
@@ -147,7 +149,7 @@ type SnoopyLogMessage struct {
 }
 
 type SnoopyHandle struct {
-	PodInfo   PodInfo
+	PodInfo   containerenumerator.PodInfo
 	SnoopyPid ProcessId
 
 	StartBytesLock    *sync.RWMutex
@@ -234,8 +236,9 @@ func NewSnoopyManager(logger *slog.Logger, config config.ConfigModule) SnoopyMan
 
 	self.logger = logger
 	self.config = config
+	self.procPath = config.Get("MO_HOST_PROC_PATH")
 	self.handlesLock = &sync.RWMutex{}
-	self.handles = map[PodInfoIdentifier]*SnoopyHandle{}
+	self.handles = map[containerenumerator.PodInfoIdentifier]*SnoopyHandle{}
 
 	self.statusTx = make(chan struct{})
 	self.statusRx = make(chan SnoopyStatus)
@@ -476,11 +479,11 @@ func (self *snoopyManager) startStatusEventHandler() {
 	}
 }
 
-func (self *snoopyManager) Metrics() map[PodInfoIdentifier]ContainerInfo {
-	data := map[PodInfoIdentifier]ContainerInfo{}
+func (self *snoopyManager) Metrics() map[containerenumerator.PodInfoIdentifier]ContainerInfo {
+	data := map[containerenumerator.PodInfoIdentifier]ContainerInfo{}
 
 	self.handlesLock.RLock()
-	podInfoIds := []PodInfoIdentifier{}
+	podInfoIds := []containerenumerator.PodInfoIdentifier{}
 	for podInfoId := range self.handles {
 		podInfoIds = append(podInfoIds, podInfoId)
 	}
@@ -527,9 +530,7 @@ func (self *snoopyManager) SetArgs(args SnoopyArgs) {
 	self.args = args
 }
 
-func (self *snoopyManager) Register(podInfo PodInfo) []error {
-	procPath := self.config.Get("MO_HOST_PROC_PATH")
-
+func (self *snoopyManager) Register(podInfo containerenumerator.PodInfo) []error {
 	errors := []error{}
 	for containerId, pid := range podInfo.ContainersWithFirstPid() {
 		self.statusEventTx <- SnoopyStatusEvent{
@@ -541,7 +542,7 @@ func (self *snoopyManager) Register(podInfo PodInfo) []error {
 				pid,
 			},
 		}
-		handle, err := self.attachToPidNamespace(procPath, pid)
+		handle, err := self.attachToPidNamespace(pid)
 		if err != nil {
 			self.statusEventTx <- SnoopyStatusEvent{
 				Type: SnoopyStatusEventTypeRegisterFailure,
@@ -596,8 +597,8 @@ func (self *snoopyManager) Register(podInfo PodInfo) []error {
 					switch metrics.Type {
 					case SnoopyEventTypeInterfaceAdded:
 						iface := metrics.InterfaceAdded.Interface.Name
-						rxBytes := self.readRxBytesFromPidAndInterface(procPath, pid, iface)
-						txBytes := self.readTxBytesFromPidAndInterface(procPath, pid, iface)
+						rxBytes := self.readRxBytesFromPidAndInterface(pid, iface)
+						txBytes := self.readTxBytesFromPidAndInterface(pid, iface)
 						handle.StartBytesLock.Lock()
 						handle.IngressStartBytes[iface] = rxBytes
 						handle.EgressStartBytes[iface] = txBytes
@@ -635,7 +636,7 @@ func (self *snoopyManager) formatHandleId(namespace string, name string, contain
 	return namespace + "/" + name + "/" + containerId + "/" + strconv.FormatUint(pid, 10)
 }
 
-func (self *snoopyManager) Remove(podInfo PodInfo) []error {
+func (self *snoopyManager) Remove(podInfo containerenumerator.PodInfo) []error {
 	errors := []error{}
 
 	self.handlesLock.Lock()
@@ -661,9 +662,9 @@ func (self *snoopyManager) Remove(podInfo PodInfo) []error {
 	return errors
 }
 
-func (self *snoopyManager) readRxBytesFromPidAndInterface(procPath string, pid ProcessId, iface string) uint64 {
+func (self *snoopyManager) readRxBytesFromPidAndInterface(pid ProcessId, iface string) uint64 {
 	pidS := strconv.FormatUint(pid, 10)
-	infos, err := getNetworkInterfaceInfo(procPath, pidS)
+	infos, err := getNetworkInterfaceInfo(self.procPath, pidS)
 	if err != nil {
 		return 0
 	}
@@ -677,9 +678,9 @@ func (self *snoopyManager) readRxBytesFromPidAndInterface(procPath string, pid P
 	return 0
 }
 
-func (self *snoopyManager) readTxBytesFromPidAndInterface(procPath string, pid ProcessId, iface string) uint64 {
+func (self *snoopyManager) readTxBytesFromPidAndInterface(pid ProcessId, iface string) uint64 {
 	pidS := strconv.FormatUint(pid, 10)
-	infos, err := getNetworkInterfaceInfo(procPath, pidS)
+	infos, err := getNetworkInterfaceInfo(self.procPath, pidS)
 	if err != nil {
 		return 0
 	}
@@ -693,13 +694,13 @@ func (self *snoopyManager) readTxBytesFromPidAndInterface(procPath string, pid P
 	return 0
 }
 
-func (self *snoopyManager) attachToPidNamespace(procPath string, pid ProcessId) (*SnoopyHandle, error) {
+func (self *snoopyManager) attachToPidNamespace(pid ProcessId) (*SnoopyHandle, error) {
 	assert.Assert(self.snoopyBinName != nil, "the binary path has to be found and set previously")
 
 	pidS := strconv.FormatUint(pid, 10)
 	cmd := exec.Command(
 		"nsenter",
-		"--net="+procPath+"/"+pidS+"/ns/net",
+		"--net="+self.procPath+"/"+pidS+"/ns/net",
 		"--",
 		*self.snoopyBinName,
 		"--metrics-rate",

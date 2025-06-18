@@ -70,6 +70,8 @@ type Api interface {
 
 	GetWorkspaceResources(workspaceName string, whitelist []*utils.ResourceEntry, blacklist []*utils.ResourceEntry, namespaceWhitelist []string) ([]unstructured.Unstructured, error)
 	GetWorkspaceControllers(workspaceName string) ([]unstructured.Unstructured, error)
+	GetWorkspacePods(workspaceName string) ([]unstructured.Unstructured, error)
+	GetWorkspacePodsNames(workspaceName string) ([]string, error)
 
 	Link(workspaceManager WorkspaceManager)
 }
@@ -311,6 +313,30 @@ func (self *api) GetWorkspaceControllers(workspaceName string) ([]unstructured.U
 		&utils.DeploymentResource,
 	}
 	return self.GetWorkspaceResources(workspaceName, whiteList, nil, nil)
+}
+
+func (self *api) GetWorkspacePods(workspaceName string) ([]unstructured.Unstructured, error) {
+	whiteList := []*utils.ResourceEntry{
+		&utils.PodResource,
+	}
+	return self.GetWorkspaceResources(workspaceName, whiteList, nil, nil)
+}
+
+func (self *api) GetWorkspacePodsNames(workspaceName string) ([]string, error) {
+	whiteList := []*utils.ResourceEntry{
+		&utils.PodResource,
+	}
+	pods, err := self.GetWorkspaceResources(workspaceName, whiteList, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	podNames := []string{}
+	for _, pod := range pods {
+		podNames = append(podNames, pod.GetName())
+	}
+
+	return podNames, nil
 }
 
 func appendIfNotExists(list []unstructured.Unstructured, item ...unstructured.Unstructured) []unstructured.Unstructured {

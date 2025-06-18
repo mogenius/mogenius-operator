@@ -2,19 +2,24 @@ package core
 
 import (
 	"context"
-	"encoding/json"
 	"log/slog"
+	"mogenius-k8s-manager/src/cpumonitor"
+	"mogenius-k8s-manager/src/networkmonitor"
+	"mogenius-k8s-manager/src/rammonitor"
 	"mogenius-k8s-manager/src/structs"
+	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/valkeyclient"
 	"mogenius-k8s-manager/src/xterm"
 	"net/url"
 	"time"
 
+	json "github.com/json-iterator/go"
+
 	"github.com/go-redis/redis/v8"
 )
 
 type XtermService interface {
-	LiveStreamConnection(wsConnectionRequest xterm.WsConnectionRequest, datagram structs.Datagram, httpApi HttpService, store valkeyclient.ValkeyClient)
+	LiveStreamConnection(wsConnectionRequest xterm.WsConnectionRequest, datagram structs.Datagram, httpApi HttpService, store valkeyclient.ValkeyClient, podNames []string)
 }
 
 type xtermService struct {
@@ -28,17 +33,21 @@ func NewXtermService(logger *slog.Logger) XtermService {
 	return self
 }
 
-func (self *xtermService) LiveStreamConnection(conReq xterm.WsConnectionRequest, datagram structs.Datagram, httpApi HttpService, store valkeyclient.ValkeyClient) {
+func (self *xtermService) LiveStreamConnection(conReq xterm.WsConnectionRequest, datagram structs.Datagram, httpApi HttpService, store valkeyclient.ValkeyClient, podNames []string) {
 	logger := self.logger.With("scope", "LiveStreamConnection")
 
 	var pubsub *redis.PubSub
 	switch datagram.Pattern {
-	case "live-stream/nodes-traffic":
+	case "live-stream/nodes-traffic", "live-stream/pod-traffic", "live-stream/workspace-traffic":
 		pubsub = store.SubscribeToKey(DB_STATS_LIVE_BUCKET_NAME, "traffic", conReq.NodeName)
 	case "live-stream/nodes-memory":
 		pubsub = store.SubscribeToKey(DB_STATS_LIVE_BUCKET_NAME, "memory", conReq.NodeName)
 	case "live-stream/nodes-cpu":
-		pubsub = store.SubscribeToKey(DB_STATS_LIVE_BUCKET_NAME, "cpu", "homeserver")
+		pubsub = store.SubscribeToKey(DB_STATS_LIVE_BUCKET_NAME, "cpu", conReq.NodeName)
+	case "live-stream/pod-memory", "live-stream/workspace-memory":
+		pubsub = store.SubscribeToKey(DB_STATS_LIVE_BUCKET_NAME, "memory", "proc", conReq.NodeName)
+	case "live-stream/pod-cpu", "live-stream/workspace-cpu":
+		pubsub = store.SubscribeToKey(DB_STATS_LIVE_BUCKET_NAME, "cpu", "proc", conReq.NodeName)
 	default:
 		logger.Error("Unsupported pattern for LiveStreamConnection", "pattern", datagram.Pattern)
 		return
@@ -94,11 +103,60 @@ func (self *xtermService) LiveStreamConnection(conReq xterm.WsConnectionRequest,
 
 	for msg := range pubsub.Channel() {
 		var entry interface{}
-		err := json.Unmarshal([]byte(msg.Payload), &entry)
-		if err != nil {
-			logger.Error("Unmarshal", "error", err)
-			continue
+		// remove unnecessary fields for pods to save bandwidth
+		switch datagram.Pattern {
+		case "live-stream/pod-memory", "live-stream/workspace-memory":
+			data := []rammonitor.PodRamStats{}
+			err := json.Unmarshal([]byte(msg.Payload), &data)
+			if err != nil {
+				logger.Error("Unmarshal", "error", err)
+				continue
+			}
+			// remove entries which are not the requested pod
+			for i := 0; i < len(data); i++ {
+				if !utils.Contains(podNames, data[i].Name) {
+					data = append(data[:i], data[i+1:]...)
+					i--
+				}
+			}
+			entry = data
+		case "live-stream/pod-cpu", "live-stream/workspace-cpu":
+			data := []cpumonitor.PodCpuStats{}
+			err := json.Unmarshal([]byte(msg.Payload), &data)
+			if err != nil {
+				logger.Error("Unmarshal", "error", err)
+				continue
+			}
+			for i := 0; i < len(data); i++ {
+				if !utils.Contains(podNames, data[i].Name) {
+					data = append(data[:i], data[i+1:]...)
+					i--
+				}
+			}
+			entry = data
+		case "live-stream/pod-traffic", "live-stream/workspace-traffic":
+			data := []networkmonitor.PodNetworkStats{}
+			err := json.Unmarshal([]byte(msg.Payload), &data)
+			if err != nil {
+				logger.Error("Unmarshal", "error", err)
+				continue
+			}
+			for i := 0; i < len(data); i++ {
+				if !utils.Contains(podNames, data[i].Pod) {
+					data = append(data[:i], data[i+1:]...)
+					i--
+				}
+			}
+			entry = data
+		default:
+			// For other patterns, we can directly use the entry as it is already in the correct format
+			err := json.Unmarshal([]byte(msg.Payload), &entry)
+			if err != nil {
+				logger.Error("Unmarshal", "error", err)
+				continue
+			}
 		}
+
 		httpApi.Broadcaster().BroadcastResponse(entry, datagram.Pattern)
 	}
 }

@@ -1,15 +1,17 @@
-package kubernetes
+package watcher
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"log/slog"
 	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/k8sclient"
+	"strings"
 	"sync"
 	"time"
+
+	json "github.com/json-iterator/go"
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -18,20 +20,55 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-type Watcher struct {
+// A generic kubernetes resource watcher
+type WatcherModule interface {
+	// Register a watcher for the given resource
+	Watch(resource WatcherResourceIdentifier, onAdd WatcherOnAdd, onUpdate WatcherOnUpdate, onDelete WatcherOnDelete) error
+	// Stop the watcher for the given resource
+	Unwatch(resource WatcherResourceIdentifier) error
+	// Query the status of the resource
+	State(resource WatcherResourceIdentifier) (WatcherResourceState, error)
+	// List all currently watched resources
+	ListWatchedResources() []WatcherResourceIdentifier
+	UnwatchAll()
+}
+
+type WatcherOnAdd func(resource WatcherResourceIdentifier, obj *unstructured.Unstructured)
+type WatcherOnUpdate func(resource WatcherResourceIdentifier, oldObj *unstructured.Unstructured, newObj *unstructured.Unstructured)
+type WatcherOnDelete func(resource WatcherResourceIdentifier, obj *unstructured.Unstructured)
+
+type WatcherResourceIdentifier struct {
+	Name         string
+	Kind         string
+	Version      string
+	GroupVersion string
+	Namespaced   bool
+}
+
+type WatcherResourceState string
+
+const (
+	Unknown             WatcherResourceState = "Unknown"
+	Watching            WatcherResourceState = "Watching"
+	WatcherInitializing WatcherResourceState = "WatcherInitializing"
+	WatchingFailed      WatcherResourceState = "WatchingFailed"
+)
+
+type watcher struct {
 	handlerMapLock sync.Mutex
 	activeHandlers map[WatcherResourceIdentifier]resourceContext
 	clientProvider k8sclient.K8sClientProvider
 	logger         *slog.Logger
 }
 
-func NewWatcher(logger *slog.Logger, clientProvider k8sclient.K8sClientProvider) *Watcher {
-	return &Watcher{
-		handlerMapLock: sync.Mutex{},
-		activeHandlers: make(map[WatcherResourceIdentifier]resourceContext, 0),
-		clientProvider: clientProvider,
-		logger:         logger,
-	}
+func NewWatcher(logger *slog.Logger, clientProvider k8sclient.K8sClientProvider) WatcherModule {
+	self := &watcher{}
+	self.handlerMapLock = sync.Mutex{}
+	self.activeHandlers = make(map[WatcherResourceIdentifier]resourceContext, 0)
+	self.clientProvider = clientProvider
+	self.logger = logger
+
+	return self
 }
 
 type resourceContext struct {
@@ -41,8 +78,8 @@ type resourceContext struct {
 	cancelCtx context.CancelFunc
 }
 
-func (self *Watcher) Watch(logger *slog.Logger, resource WatcherResourceIdentifier, onAdd WatcherOnAdd, onUpdate WatcherOnUpdate, onDelete WatcherOnDelete) error {
-	assert.Assert(logger != nil)
+func (self *watcher) Watch(resource WatcherResourceIdentifier, onAdd WatcherOnAdd, onUpdate WatcherOnUpdate, onDelete WatcherOnDelete) error {
+	assert.Assert(self.logger != nil)
 	self.handlerMapLock.Lock()
 	defer self.handlerMapLock.Unlock()
 
@@ -63,12 +100,12 @@ func (self *Watcher) Watch(logger *slog.Logger, resource WatcherResourceIdentifi
 	self.activeHandlers[resource] = resourceCtx
 
 	// Start the watcher with retry logic in a goroutine
-	go self.watchWithRetry(ctx, logger, resource, onAdd, onUpdate, onDelete)
+	go self.watchWithRetry(ctx, resource, onAdd, onUpdate, onDelete)
 
 	return nil
 }
 
-func (self *Watcher) watchWithRetry(ctx context.Context, logger *slog.Logger, resource WatcherResourceIdentifier, onAdd WatcherOnAdd, onUpdate WatcherOnUpdate, onDelete WatcherOnDelete) {
+func (self *watcher) watchWithRetry(ctx context.Context, resource WatcherResourceIdentifier, onAdd WatcherOnAdd, onUpdate WatcherOnUpdate, onDelete WatcherOnDelete) {
 	backoff := time.Second
 	maxBackoff := time.Minute * 2
 	maxRetries := 20
@@ -77,36 +114,36 @@ func (self *Watcher) watchWithRetry(ctx context.Context, logger *slog.Logger, re
 	for {
 		select {
 		case <-ctx.Done():
-			logger.Info("Watcher context cancelled, stopping", "resource", resource)
+			self.logger.Info("Watcher context cancelled, stopping", "resource", resource)
 			return
 		default:
 		}
 
 		// Check if we've exceeded max retries
 		if retryCount >= maxRetries {
-			logger.Error("Max retry attempts reached, giving up on watcher",
+			self.logger.Error("Max retry attempts reached, giving up on watcher",
 				"resource", resource, "retries", retryCount)
 			self.setWatcherState(resource, WatchingFailed)
 			return
 		}
 
-		logger.Info("Starting watcher", "resource", resource, "attempt", retryCount+1)
+		self.logger.Debug("Starting watcher", "resource", resource, "attempt", retryCount+1)
 
 		watcherDone := make(chan error, 1)
 		go func() {
-			err := self.startSingleWatcher(ctx, logger, resource, onAdd, onUpdate, onDelete)
+			err := self.startSingleWatcher(ctx, resource, onAdd, onUpdate, onDelete)
 			watcherDone <- err
 		}()
 
 		// Wait for watcher to complete or context to be cancelled
 		select {
 		case <-ctx.Done():
-			logger.Info("Watcher context cancelled during execution", "resource", resource)
+			self.logger.Info("Watcher context cancelled during execution", "resource", resource)
 			return
 		case err := <-watcherDone:
 			if err != nil {
 				retryCount++
-				logger.Warn("Watcher failed, will retry",
+				self.logger.Warn("Watcher failed, will retry",
 					"resource", resource,
 					"error", err,
 					"attempt", retryCount,
@@ -123,14 +160,14 @@ func (self *Watcher) watchWithRetry(ctx context.Context, logger *slog.Logger, re
 				}
 			} else {
 				// Successful completion (shouldn't normally happen unless context cancelled)
-				logger.Warn("Watcher completed successfully (this should not happen)", "resource", resource)
+				self.logger.Warn("Watcher completed successfully (this should not happen)", "resource", resource)
 				return
 			}
 		}
 	}
 }
 
-func (self *Watcher) startSingleWatcher(ctx context.Context, logger *slog.Logger, resource WatcherResourceIdentifier, onAdd WatcherOnAdd, onUpdate WatcherOnUpdate, onDelete WatcherOnDelete) error {
+func (self *watcher) startSingleWatcher(ctx context.Context, resource WatcherResourceIdentifier, onAdd WatcherOnAdd, onUpdate WatcherOnUpdate, onDelete WatcherOnDelete) error {
 	dynamicClient := self.clientProvider.DynamicClient()
 	gv, err := schema.ParseGroupVersion(resource.GroupVersion)
 	if err != nil {
@@ -138,15 +175,15 @@ func (self *Watcher) startSingleWatcher(ctx context.Context, logger *slog.Logger
 	}
 
 	informerFactory := dynamicinformer.NewFilteredDynamicSharedInformerFactory(dynamicClient, time.Minute*30, v1.NamespaceAll, nil)
-	resourceInformer := informerFactory.ForResource(CreateGroupVersionResource(gv.Group, gv.Version, resource.Name)).Informer()
+	resourceInformer := informerFactory.ForResource(self.createGroupVersionResource(gv.Group, gv.Version, resource.Name)).Informer()
 
 	// Enhanced error handler that can detect fatal errors
 	err = resourceInformer.SetWatchErrorHandler(func(r *cache.Reflector, err error) {
 		if err == io.EOF {
-			logger.Debug("Watch connection closed normally", "resource", resource)
+			self.logger.Debug("Watch connection closed normally", "resource", resource)
 			return // closed normally, its fine
 		}
-		logger.Error("Encountered error while watching resource",
+		self.logger.Error("Encountered error while watching resource",
 			"resourceName", resource.Name,
 			"resourceKind", resource.Kind,
 			"resourceGroupVersion", resource.GroupVersion,
@@ -162,7 +199,7 @@ func (self *Watcher) startSingleWatcher(ctx context.Context, logger *slog.Logger
 			if !ok {
 				body, _ := json.Marshal(obj)
 				bodyString := string(body)
-				logger.Warn("failed to deserialize", "resourceJson", bodyString)
+				self.logger.Warn("failed to deserialize", "resourceJson", bodyString)
 				return
 			}
 			if onAdd != nil {
@@ -174,14 +211,14 @@ func (self *Watcher) startSingleWatcher(ctx context.Context, logger *slog.Logger
 			if !ok {
 				body, _ := json.Marshal(oldObj)
 				bodyString := string(body)
-				logger.Warn("failed to deserialize old object", "resourceJson", bodyString)
+				self.logger.Warn("failed to deserialize old object", "resourceJson", bodyString)
 				return
 			}
 			newUnstructuredObj, ok := newObj.(*unstructured.Unstructured)
 			if !ok {
 				body, _ := json.Marshal(newObj)
 				bodyString := string(body)
-				logger.Warn("failed to deserialize new object", "resourceJson", bodyString)
+				self.logger.Warn("failed to deserialize new object", "resourceJson", bodyString)
 				return
 			}
 
@@ -199,7 +236,7 @@ func (self *Watcher) startSingleWatcher(ctx context.Context, logger *slog.Logger
 			if !ok {
 				body, _ := json.Marshal(obj)
 				bodyString := string(body)
-				logger.Warn("failed to deserialize", "resourceJson", bodyString)
+				self.logger.Warn("failed to deserialize", "resourceJson", bodyString)
 				return
 			}
 			if onDelete != nil {
@@ -245,18 +282,18 @@ func (self *Watcher) startSingleWatcher(ctx context.Context, logger *slog.Logger
 	}
 
 	// Cache sync successful
-	logger.Info("Watcher cache synced successfully", "resource", resource)
+	self.logger.Debug("Watcher cache synced successfully", "resource", resource)
 	self.setWatcherState(resource, Watching)
 
 	// Keep the watcher running until context is cancelled
 	<-ctx.Done()
 	close(stopCh)
 
-	logger.Info("Stopping watcher", "resource", resource)
+	self.logger.Info("Stopping watcher", "resource", resource)
 	return nil
 }
 
-func (self *Watcher) setWatcherState(resource WatcherResourceIdentifier, state WatcherResourceState) {
+func (self *watcher) setWatcherState(resource WatcherResourceIdentifier, state WatcherResourceState) {
 	self.handlerMapLock.Lock()
 	defer self.handlerMapLock.Unlock()
 
@@ -266,7 +303,7 @@ func (self *Watcher) setWatcherState(resource WatcherResourceIdentifier, state W
 	}
 }
 
-func (self *Watcher) updateResourceContext(resource WatcherResourceIdentifier, informer cache.SharedIndexInformer, handler cache.ResourceEventHandlerRegistration) {
+func (self *watcher) updateResourceContext(resource WatcherResourceIdentifier, informer cache.SharedIndexInformer, handler cache.ResourceEventHandlerRegistration) {
 	self.handlerMapLock.Lock()
 	defer self.handlerMapLock.Unlock()
 
@@ -277,7 +314,7 @@ func (self *Watcher) updateResourceContext(resource WatcherResourceIdentifier, i
 	}
 }
 
-func (m *Watcher) Unwatch(resource WatcherResourceIdentifier) error {
+func (m *watcher) Unwatch(resource WatcherResourceIdentifier) error {
 	m.handlerMapLock.Lock()
 	defer m.handlerMapLock.Unlock()
 
@@ -295,7 +332,7 @@ func (m *Watcher) Unwatch(resource WatcherResourceIdentifier) error {
 	return nil
 }
 
-func (m *Watcher) ListWatchedResources() []WatcherResourceIdentifier {
+func (m *watcher) ListWatchedResources() []WatcherResourceIdentifier {
 	m.handlerMapLock.Lock()
 	defer m.handlerMapLock.Unlock()
 
@@ -307,7 +344,7 @@ func (m *Watcher) ListWatchedResources() []WatcherResourceIdentifier {
 	return resources
 }
 
-func (m *Watcher) State(resource WatcherResourceIdentifier) (WatcherResourceState, error) {
+func (m *watcher) State(resource WatcherResourceIdentifier) (WatcherResourceState, error) {
 	m.handlerMapLock.Lock()
 	defer m.handlerMapLock.Unlock()
 
@@ -319,11 +356,31 @@ func (m *Watcher) State(resource WatcherResourceIdentifier) (WatcherResourceStat
 	return resourceContext.state, nil
 }
 
-func (self *Watcher) UnwatchAll() {
+func (self *watcher) UnwatchAll() {
 	for _, resource := range self.ListWatchedResources() {
 		err := self.Unwatch(resource)
 		if err != nil {
 			self.logger.Error("failed to unwatch resource", "resource", resource, "error", err)
 		}
+	}
+}
+
+func (self *watcher) createGroupVersionResource(group string, version string, name string) schema.GroupVersionResource {
+	// for core apis we need change the group to empty string
+	if group == "v1" && version == "" {
+		return schema.GroupVersionResource{
+			Group:    "",
+			Version:  group,
+			Resource: name,
+		}
+	}
+	if strings.HasSuffix(group, version) {
+		version = ""
+	}
+
+	return schema.GroupVersionResource{
+		Group:    group,
+		Version:  version,
+		Resource: name,
 	}
 }

@@ -1,9 +1,10 @@
 package servicesexternal
 
 import (
-	"encoding/json"
 	"fmt"
 	mokubernetes "mogenius-k8s-manager/src/kubernetes"
+
+	json "github.com/json-iterator/go"
 
 	"mogenius-k8s-manager/src/utils"
 

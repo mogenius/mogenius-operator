@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/config"
+	"mogenius-k8s-manager/src/containerenumerator"
 	"mogenius-k8s-manager/src/controllers"
 	"mogenius-k8s-manager/src/core"
 	"mogenius-k8s-manager/src/cpumonitor"
@@ -23,6 +24,7 @@ import (
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/valkeyclient"
 	"mogenius-k8s-manager/src/version"
+	"mogenius-k8s-manager/src/watcher"
 	"mogenius-k8s-manager/src/websocket"
 	"mogenius-k8s-manager/src/xterm"
 	"net"
@@ -35,6 +37,7 @@ import (
 
 	"github.com/alecthomas/kong"
 	"github.com/mattn/go-isatty"
+	v1 "k8s.io/api/rbac/v1"
 	"k8s.io/klog/v2"
 )
 
@@ -233,6 +236,12 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		DefaultValue: utils.Pointer(os.Getenv("OWN_NODE_NAME")),
 		Description:  utils.Pointer("the name of the node this application is running in"),
 		Envs:         []string{"OWN_NODE_NAME"},
+		Validate: func(val string) error {
+			if val == "" {
+				return fmt.Errorf("'OWN_NODE_NAME' has to be defined and may not be empty: %#v", val)
+			}
+			return nil
+		},
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "OWN_DEPLOYMENT_NAME",
@@ -476,16 +485,26 @@ func InitializeSystems(
 	// initialize client modules
 	valkeyClient := valkeyclient.NewValkeyClient(logManagerModule.CreateLogger("valkey"), configModule)
 	clientProvider := k8sclient.NewK8sClientProvider(logManagerModule.CreateLogger("client-provider"), configModule)
+	if !clientProvider.RunsInCluster() {
+		impersonatedClientProvider, err := clientProvider.WithImpersonate(v1.Subject{
+			Kind:      "ServiceAccount",
+			Name:      "mogenius-operator-service-account-app",
+			Namespace: configModule.Get("MO_OWN_NAMESPACE"),
+		})
+		assert.Assert(err == nil, err)
+		clientProvider = impersonatedClientProvider
+	}
 	versionModule := version.NewVersion()
-	watcherModule := kubernetes.NewWatcher(logManagerModule.CreateLogger("watcher"), clientProvider)
+	watcherModule := watcher.NewWatcher(logManagerModule.CreateLogger("watcher"), clientProvider)
 	shutdown.Add(watcherModule.UnwatchAll)
 	jobConnectionClient := websocket.NewWebsocketClient(logManagerModule.CreateLogger("websocket-job-client"))
 	shutdown.Add(jobConnectionClient.Terminate)
 	eventConnectionClient := websocket.NewWebsocketClient(logManagerModule.CreateLogger("websocket-events-client"))
 	shutdown.Add(eventConnectionClient.Terminate)
-	cpuMonitor := cpumonitor.NewCpuMonitor(logManagerModule.CreateLogger("cpu-monitor"), configModule, clientProvider)
-	ramMonitor := rammonitor.NewRamMonitor(logManagerModule.CreateLogger("ram-monitor"), configModule, clientProvider)
-	networkMonitor := networkmonitor.NewNetworkMonitor(logManagerModule.CreateLogger("network-monitor"), configModule, clientProvider, configModule.Get("MO_HOST_PROC_PATH"))
+	containerEnumerator := containerenumerator.NewContainerEnumerator(logManagerModule.CreateLogger("container-enumerator"), configModule, clientProvider)
+	cpuMonitor := cpumonitor.NewCpuMonitor(logManagerModule.CreateLogger("cpu-monitor"), configModule, clientProvider, containerEnumerator)
+	ramMonitor := rammonitor.NewRamMonitor(logManagerModule.CreateLogger("ram-monitor"), configModule, clientProvider, containerEnumerator)
+	networkMonitor := networkmonitor.NewNetworkMonitor(logManagerModule.CreateLogger("network-monitor"), configModule, containerEnumerator, configModule.Get("MO_HOST_PROC_PATH"))
 
 	// golang package setups are deprecated and will be removed in the future by migrating all state to services
 	helm.Setup(logManagerModule, configModule, valkeyClient)
@@ -508,10 +527,18 @@ func InitializeSystems(
 	valkeyLoggerService := core.NewValkeyLogger(valkeyClient, valkeyLogChannel)
 	dbstatsService := core.NewValkeyStatsModule(logManagerModule.CreateLogger("db-stats"), configModule, valkeyClient)
 	podStatsCollector := core.NewPodStatsCollector(logManagerModule.CreateLogger("pod-stats-collector"), configModule, clientProvider)
-	nodeMetricsCollector := core.NewNodeMetricsCollector(logManagerModule.CreateLogger("traffic-collector"), configModule, clientProvider, cpuMonitor, ramMonitor, networkMonitor)
+	nodeMetricsCollector := core.NewNodeMetricsCollector(
+		logManagerModule.CreateLogger("traffic-collector"),
+		configModule,
+		clientProvider,
+		cpuMonitor,
+		ramMonitor,
+		networkMonitor,
+	)
 	moKubernetes := core.NewMoKubernetes(logManagerModule.CreateLogger("mokubernetes"), configModule, clientProvider)
 	mocore := core.NewCore(logManagerModule.CreateLogger("core"), configModule, clientProvider, valkeyClient, eventConnectionClient, jobConnectionClient)
 	leaderElector := core.NewLeaderElector(logManagerModule.CreateLogger("leader-elector"), configModule, clientProvider)
+	reconciler := core.NewReconciler(logManagerModule.CreateLogger("reconciler"), configModule, clientProvider)
 
 	// initialization step 2 for services
 	mocore.Link(moKubernetes)
@@ -521,6 +548,7 @@ func InitializeSystems(
 	moKubernetes.Link(dbstatsService)
 	httpApi.Link(socketApi, dbstatsService, apiModule)
 	apiModule.Link(workspaceManager)
+	reconciler.Link(leaderElector)
 
 	return systems{
 		clientProvider,
@@ -542,13 +570,14 @@ func InitializeSystems(
 		nodeMetricsCollector,
 		dbstatsService,
 		leaderElector,
+		reconciler,
 	}
 }
 
 type systems struct {
 	clientProvider        k8sclient.K8sClientProvider
 	versionModule         *version.Version
-	watcherModule         *kubernetes.Watcher
+	watcherModule         watcher.WatcherModule
 	jobConnectionClient   websocket.WebsocketClient
 	eventConnectionClient websocket.WebsocketClient
 	valkeyClient          valkeyclient.ValkeyClient
@@ -565,4 +594,5 @@ type systems struct {
 	nodeMetricsCollector  core.NodeMetricsCollector
 	dbstatsService        core.ValkeyStatsDb
 	leaderElector         core.LeaderElector
+	reconciler            core.Reconciler
 }

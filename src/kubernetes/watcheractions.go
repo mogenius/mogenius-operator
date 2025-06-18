@@ -6,6 +6,7 @@ import (
 	"mogenius-k8s-manager/src/store"
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
+	"mogenius-k8s-manager/src/watcher"
 	"mogenius-k8s-manager/src/websocket"
 	"os"
 	"slices"
@@ -70,10 +71,9 @@ var MirroredResourceKinds = []string{
 	"Workspace", // mogenius specific
 	"User",      // mogenius specific
 	"Grant",     // mogenius specific
-	"Team",      // mogenius specific
 }
 
-func WatchStoreResources(watcher WatcherModule, eventClient websocket.WebsocketClient) error {
+func WatchStoreResources(wm watcher.WatcherModule, eventClient websocket.WebsocketClient) error {
 	start := time.Now()
 
 	resources, err := GetAvailableResources()
@@ -85,21 +85,21 @@ func WatchStoreResources(watcher WatcherModule, eventClient websocket.WebsocketC
 			k8sLogger.Debug("Skipping resource", "kind", v.Kind, "group", v.Group, "namespace", v.Namespace)
 			continue
 		}
-		err := watcher.Watch(k8sLogger, WatcherResourceIdentifier{
+		err := wm.Watch(watcher.WatcherResourceIdentifier{
 			Name:         v.Name,
 			Kind:         v.Kind,
 			GroupVersion: v.Group,
-		}, func(resource WatcherResourceIdentifier, obj *unstructured.Unstructured) {
+		}, func(resource watcher.WatcherResourceIdentifier, obj *unstructured.Unstructured) {
 			setStoreIfNeeded(resource.GroupVersion, obj.GetName(), resource.Kind, obj.GetNamespace(), obj)
 			// suppress the add events for the first 10 seconds (because all resources are added initially)
 			if time.Since(start) < 10*time.Second {
 				return
 			}
 			sendEventServerEvent(eventClient, v.Group, resource.Version, obj.GetName(), resource.Kind, obj.GetNamespace(), resource.Name, "add", string(obj.GetUID()))
-		}, func(resource WatcherResourceIdentifier, oldObj, newObj *unstructured.Unstructured) {
+		}, func(resource watcher.WatcherResourceIdentifier, oldObj, newObj *unstructured.Unstructured) {
 			setStoreIfNeeded(resource.GroupVersion, newObj.GetName(), resource.Kind, newObj.GetNamespace(), newObj)
 			sendEventServerEvent(eventClient, v.Group, resource.Version, newObj.GetName(), resource.Kind, newObj.GetNamespace(), resource.Name, "update", string(newObj.GetUID()))
-		}, func(resource WatcherResourceIdentifier, obj *unstructured.Unstructured) {
+		}, func(resource watcher.WatcherResourceIdentifier, obj *unstructured.Unstructured) {
 			deleteFromStoreIfNeeded(resource.GroupVersion, obj.GetName(), resource.Kind, obj.GetNamespace(), obj)
 			sendEventServerEvent(eventClient, v.Group, resource.Version, obj.GetName(), resource.Kind, obj.GetNamespace(), resource.Name, "delete", string(obj.GetUID()))
 		})

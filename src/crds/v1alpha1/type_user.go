@@ -74,7 +74,7 @@ type UserSpec struct {
 	LastName  string `json:"lastName,omitempty"`
 	Email     string `json:"email,omitempty"`
 
-	Subject *rbacv1.Subject `json:"subject"`
+	Subject *rbacv1.Subject `json:"subject,omitempty"`
 }
 
 func NewUserSpec(firstName string, lastName string, email string) UserSpec {

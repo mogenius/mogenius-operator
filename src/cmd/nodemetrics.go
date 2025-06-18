@@ -14,11 +14,14 @@ type nodeMetricsArgs struct {
 }
 
 func RunNodeMetrics(args *nodeMetricsArgs, logManagerModule logging.SlogManager, configModule *config.Config, cmdLogger *slog.Logger, valkeyLogChannel chan logging.LogLine) {
+	// f, perr := os.Create("cpu-nodemetrics-" + strconv.FormatInt(time.Now().Unix(), 10) + ".pprof")
+	// assert.Assert(perr == nil, perr)
+	// pprof.StartCPUProfile(f)
+	// shutdown.Add(pprof.StopCPUProfile)
+
 	go func() {
-		for {
-			select {
-			case <-valkeyLogChannel:
-			}
+		for range valkeyLogChannel {
+			// throw away
 		}
 	}()
 	go func() {

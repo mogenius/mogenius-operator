@@ -28,6 +28,7 @@ const (
 	DB_STATS_TRAFFIC_NAME              = "traffic"
 	DB_STATS_CPU_NAME                  = "cpu"
 	DB_STATS_MEMORY_NAME               = "memory"
+	DB_STATS_PROCESSES_NAME            = "proc"
 )
 
 var DefaultMaxSize int64 = 60 * 24 * 7
@@ -40,7 +41,9 @@ type ValkeyStatsDb interface {
 	AddMachineStatsToDb(nodeName string, stats structs.MachineStats) error
 	AddPodStatsToDb(stats []structs.PodStats) error
 	AddNodeRamMetricsToDb(nodeName string, data interface{}) error
+	AddNodeRamProcessMetricsToDb(nodeName string, data interface{}) error
 	AddNodeCpuMetricsToDb(nodeName string, data interface{}) error
+	AddNodeCpuProcessMetricsToDb(nodeName string, data interface{}) error
 	AddNodeTrafficMetricsToDb(nodeName string, data interface{}) error
 	AddSnoopyStatusToDb(nodeName string, data networkmonitor.SnoopyStatus) error
 	GetCniData() ([]structs.CniData, error)
@@ -286,62 +289,57 @@ func (self *valkeyStatsDb) GetWorkspaceStatsMemoryUtilization(timeOffsetInMinute
 }
 
 func (self *valkeyStatsDb) GetWorkspaceStatsTrafficUtilization(timeOffsetInMinutes int, resources []unstructured.Unstructured) ([]GenericChartEntry, error) {
-	// setup min value
+	// Clamp to valid range
 	if timeOffsetInMinutes < 5 {
 		timeOffsetInMinutes = 5
 	}
 	if timeOffsetInMinutes > 60*24*7 {
-		timeOffsetInMinutes = 60 * 24 * 7 // 7 days
+		timeOffsetInMinutes = 60 * 24 * 7
 	}
 
-	result := make(map[string]GenericChartEntry)
+	// Aggregate all traffic by minute
+	trafficByMinute := make(map[string]float64)
+
 	for _, controller := range resources {
-		values, err := valkeyclient.LastNEntryFromBucketWithType[networkmonitor.PodNetworkStats](self.valkey, int64(timeOffsetInMinutes), DB_STATS_TRAFFIC_BUCKET_NAME, controller.GetNamespace(), controller.GetName())
+		values, err := valkeyclient.LastNEntryFromBucketWithType[networkmonitor.PodNetworkStats](
+			self.valkey, int64(timeOffsetInMinutes), DB_STATS_TRAFFIC_BUCKET_NAME,
+			controller.GetNamespace(), controller.GetName())
 		if err != nil {
 			self.logger.Error(err.Error())
+			continue
 		}
-		for index, entry := range values {
-			formattedDate := entry.CreatedAt.Round(time.Minute).Format(time.RFC3339)
 
-			if _, exists := result[formattedDate]; !exists {
-				result[formattedDate] = GenericChartEntry{Time: formattedDate, Value: 0.0}
-			}
-			result[formattedDate] = GenericChartEntry{Time: formattedDate, Value: result[formattedDate].Value + float64(entry.TransmitBytes+entry.ReceivedBytes)}
-
-			if index >= timeOffsetInMinutes {
+		// Add traffic for each minute
+		for i, entry := range values {
+			if i >= timeOffsetInMinutes {
 				break
 			}
+			minute := entry.CreatedAt.Round(time.Minute).Format(time.RFC3339)
+			trafficByMinute[minute] += float64(entry.TransmitBytes + entry.ReceivedBytes)
 		}
 	}
 
-	// SORT
-	var keys []string
-	for key := range result {
-		keys = append(keys, key)
+	// Sort minutes
+	var minutes []string
+	for minute := range trafficByMinute {
+		minutes = append(minutes, minute)
 	}
-	sort.Strings(keys)
+	sort.Strings(minutes)
 
-	// Step 2: Build a sorted slice of GenericChartEntry
-	var sortedEntries []GenericChartEntry
-	for _, key := range keys {
-		sortedEntries = append(sortedEntries, result[key])
-	}
-
-	// the entries in traffic are always incremental, so we need to normalize the values (11, 14, 16, 19 -> 3, 2, 3)
-	for i := 0; i < len(sortedEntries); i++ {
-		if i+1 < len(result) {
-			normalized := sortedEntries[i+1].Value - sortedEntries[i].Value
-			if normalized > 0 {
-				sortedEntries[i].Value = normalized
-			}
+	// Calculate deltas between consecutive minutes
+	var result []GenericChartEntry
+	for i := 0; i < len(minutes)-1; i++ {
+		delta := trafficByMinute[minutes[i+1]] - trafficByMinute[minutes[i]]
+		if delta < 0 {
+			delta = 0
 		}
-	}
-	// delete last entry of the array because it cannot be calculated correctly (because of the subtraction of the next value)
-	if len(result) > 0 {
-		sortedEntries = sortedEntries[:len(result)-1]
+		result = append(result, GenericChartEntry{
+			Time:  minutes[i],
+			Value: delta,
+		})
 	}
 
-	return sortedEntries, nil
+	return result, nil
 }
 
 func (self *valkeyStatsDb) GetSocketConnectionsForController(controller kubernetes.K8sController) *structs.SocketConnections {
@@ -422,9 +420,19 @@ func (self *valkeyStatsDb) AddNodeRamMetricsToDb(nodeName string, data interface
 	return self.valkey.SetObject(data, 0, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_MEMORY_NAME, nodeName)
 }
 
+func (self *valkeyStatsDb) AddNodeRamProcessMetricsToDb(nodeName string, data interface{}) error {
+	self.Publish(data, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_MEMORY_NAME, DB_STATS_PROCESSES_NAME, nodeName)
+	return self.valkey.SetObject(data, 0, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_MEMORY_NAME, DB_STATS_PROCESSES_NAME, nodeName)
+}
+
 func (self *valkeyStatsDb) AddNodeCpuMetricsToDb(nodeName string, data interface{}) error {
 	self.Publish(data, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_CPU_NAME, nodeName)
 	return self.valkey.SetObject(data, 0, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_CPU_NAME, nodeName)
+}
+
+func (self *valkeyStatsDb) AddNodeCpuProcessMetricsToDb(nodeName string, data interface{}) error {
+	self.Publish(data, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_CPU_NAME, DB_STATS_PROCESSES_NAME, nodeName)
+	return self.valkey.SetObject(data, 0, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_CPU_NAME, DB_STATS_PROCESSES_NAME, nodeName)
 }
 
 func (self *valkeyStatsDb) AddNodeTrafficMetricsToDb(nodeName string, data interface{}) error {
