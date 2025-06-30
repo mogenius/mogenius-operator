@@ -7026,10 +7026,16 @@ export type PROMETHEUS_CHARTS_GET_REQUEST = PROMETHEUS_CHARTS_GET_REQUEST__MOGEN
  *     mogenius-k8s-manager/src/core.PrometheusStoreObject:
  *         name: mogenius-k8s-manager/src/core.PrometheusStoreObject
  *         properties:
+ *             createdAt:
+ *                 structRef: time.Time
+ *                 type: struct
  *             query:
  *                 type: string
  *             step:
  *                 type: int
+ *     time.Time:
+ *         name: time.Time
+ *         properties: {}
  * typeInfo:
  *     pointer: true
  *     structRef: mogenius-k8s-manager/src/core.PrometheusStoreObject
@@ -7067,10 +7073,16 @@ export type PROMETHEUS_CHARTS_LIST_REQUEST = PROMETHEUS_CHARTS_LIST_REQUEST__MOG
  *     mogenius-k8s-manager/src/core.PrometheusStoreObject:
  *         name: mogenius-k8s-manager/src/core.PrometheusStoreObject
  *         properties:
+ *             createdAt:
+ *                 structRef: time.Time
+ *                 type: struct
  *             query:
  *                 type: string
  *             step:
  *                 type: int
+ *     time.Time:
+ *         name: time.Time
+ *         properties: {}
  * typeInfo:
  *     keyType:
  *         type: string
@@ -17565,9 +17577,11 @@ export type NAMESPACE_DELETE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_JOB = {"
 export type NAMESPACE_DELETE_RESPONSE__TIME_TIME = {};
 export type PROMETHEUS_CHARTS_ADD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSREQUESTREDIS = {"controller": string,"namespace": string,"query": string,"queryName": string,"step": number};
 export type PROMETHEUS_CHARTS_GET_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSREQUESTREDIS = {"controller": string,"namespace": string,"query": string,"queryName": string,"step": number};
-export type PROMETHEUS_CHARTS_GET_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSSTOREOBJECT = {"query": string,"step": number};
+export type PROMETHEUS_CHARTS_GET_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSSTOREOBJECT = {"createdAt": PROMETHEUS_CHARTS_GET_RESPONSE__TIME_TIME,"query": string,"step": number};
+export type PROMETHEUS_CHARTS_GET_RESPONSE__TIME_TIME = {};
 export type PROMETHEUS_CHARTS_LIST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSREQUESTREDISLIST = {"controller": string,"namespace": string};
-export type PROMETHEUS_CHARTS_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSSTOREOBJECT = {"query": string,"step": number};
+export type PROMETHEUS_CHARTS_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSSTOREOBJECT = {"createdAt": PROMETHEUS_CHARTS_LIST_RESPONSE__TIME_TIME,"query": string,"step": number};
+export type PROMETHEUS_CHARTS_LIST_RESPONSE__TIME_TIME = {};
 export type PROMETHEUS_CHARTS_REMOVE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSREQUESTREDIS = {"controller": string,"namespace": string,"query": string,"queryName": string,"step": number};
 export type PROMETHEUS_IS_REACHABLE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSREQUEST = {"prometheusPass": string,"prometheusToken": string,"prometheusUrl": string,"prometheusUser": string,"query": string,"step": number,"timeOffsetSeconds": number};
 export type PROMETHEUS_QUERY_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSREQUEST = {"prometheusPass": string,"prometheusToken": string,"prometheusUrl": string,"prometheusUser": string,"query": string,"step": number,"timeOffsetSeconds": number};

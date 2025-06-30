@@ -51,10 +51,10 @@ type PrometheusQueryResponse struct {
 }
 
 type PrometheusStoreObject struct {
-	Query string `json:"query"`
-	Step  int    `json:"step"`
+	Query     string    `json:"query"`
+	Step      int       `json:"step"`
+	CreatedAt time.Time `json:"createdAt,omitempty"`
 }
-
 type PrometheusValuesResponse struct {
 	Status string   `json:"status"`
 	Data   []string `json:"data"`
@@ -158,8 +158,9 @@ func ExecutePrometheusQuery(data PrometheusRequest) (*PrometheusQueryResponse, e
 
 func PrometheusSaveQueryToRedis(valkey valkeyclient.ValkeyClient, req PrometheusRequestRedis) (*string, error) {
 	prometheusStoreObject := PrometheusStoreObject{
-		Query: req.Query,
-		Step:  req.Step,
+		Query:     req.Query,
+		Step:      req.Step,
+		CreatedAt: time.Now(),
 	}
 	err := valkey.SetObject(prometheusStoreObject, 0, DB_PROMETHEUS_QUERIES, req.Namespace, req.Controller, req.QueryName)
 	if err != nil {
@@ -195,6 +196,7 @@ func PrometheusListQueriesFromRedis(valkey valkeyclient.ValkeyClient, req Promet
 		}
 		queries[key] = queryObj
 	}
+
 	return queries, nil
 }
 

@@ -7456,10 +7456,16 @@ prometheus/charts/get:
             mogenius-k8s-manager/src/core.PrometheusStoreObject:
                 name: mogenius-k8s-manager/src/core.PrometheusStoreObject
                 properties:
+                    createdAt:
+                        structRef: time.Time
+                        type: struct
                     query:
                         type: string
                     step:
                         type: int
+            time.Time:
+                name: time.Time
+                properties: {}
         typeInfo:
             pointer: true
             structRef: mogenius-k8s-manager/src/core.PrometheusStoreObject
@@ -7482,10 +7488,16 @@ prometheus/charts/list:
             mogenius-k8s-manager/src/core.PrometheusStoreObject:
                 name: mogenius-k8s-manager/src/core.PrometheusStoreObject
                 properties:
+                    createdAt:
+                        structRef: time.Time
+                        type: struct
                     query:
                         type: string
                     step:
                         type: int
+            time.Time:
+                name: time.Time
+                properties: {}
         typeInfo:
             keyType:
                 type: string
