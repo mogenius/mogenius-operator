@@ -98,6 +98,12 @@ var EventResource = ResourceEntry{
 	Group: "v1",
 }
 
+var NodeResource = ResourceEntry{
+	Kind:  "Node",
+	Name:  "nodes",
+	Group: "v1",
+}
+
 const STAGE_DEV = "dev"
 const STAGE_PROD = "prod"
 const STAGE_LOCAL = "local"

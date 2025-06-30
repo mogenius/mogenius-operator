@@ -115,6 +115,7 @@ func checkPodIsReady(ctx context.Context, wg *sync.WaitGroup, namespace string, 
 			return
 		default:
 			clientset := clientProvider.K8sClientSet()
+			// TODO: Bene refactor with store to avoid multiple calls to k8s
 			pod, err := clientset.CoreV1().Pods(namespace).Get(context.TODO(), podName, metav1.GetOptions{})
 			if err != nil {
 				xtermLogger.Error("Unable to get pod", "error", err)

@@ -10,32 +10,12 @@ import (
 	"mogenius-k8s-manager/src/websocket"
 	"sync"
 
-	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const ClusterImagePullSecretName = "cluster-img-pull-sec"
 const ContainerImagePullSecretName = "container-img-pull-sec"
-
-func AllSecrets(namespaceName string) []v1.Secret {
-	result := []v1.Secret{}
-
-	clientset := clientProvider.K8sClientSet()
-	secretList, err := clientset.CoreV1().Secrets(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
-	if err != nil {
-		k8sLogger.Error("AllSecrets", "error", err.Error())
-		return result
-	}
-
-	for _, secret := range secretList.Items {
-		secret.Kind = "Secret"
-		secret.APIVersion = "v1"
-		result = append(result, secret)
-
-	}
-	return result
-}
 
 func GetDecodedSecret(secretName string, namespace string) (map[string]string, error) {
 	clientset := clientProvider.K8sClientSet()

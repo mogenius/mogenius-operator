@@ -7067,8 +7067,8 @@ live-stream/workspace-traffic:
 metrics/deployment/average-utilization:
     requestSchema:
         structs:
-            mogenius-k8s-manager/src/kubernetes.K8sController:
-                name: mogenius-k8s-manager/src/kubernetes.K8sController
+            mogenius-k8s-manager/src/dtos.K8sController:
+                name: mogenius-k8s-manager/src/dtos.K8sController
                 properties:
                     kind:
                         type: string
@@ -7077,7 +7077,7 @@ metrics/deployment/average-utilization:
                     namespace:
                         type: string
         typeInfo:
-            structRef: mogenius-k8s-manager/src/kubernetes.K8sController
+            structRef: mogenius-k8s-manager/src/dtos.K8sController
             type: struct
     responseSchema:
         structs:
@@ -13732,8 +13732,8 @@ stats/podstat/all-for-controller:
 stats/podstat/last-for-controller:
     requestSchema:
         structs:
-            mogenius-k8s-manager/src/kubernetes.K8sController:
-                name: mogenius-k8s-manager/src/kubernetes.K8sController
+            mogenius-k8s-manager/src/dtos.K8sController:
+                name: mogenius-k8s-manager/src/dtos.K8sController
                 properties:
                     kind:
                         type: string
@@ -13742,7 +13742,7 @@ stats/podstat/last-for-controller:
                     namespace:
                         type: string
         typeInfo:
-            structRef: mogenius-k8s-manager/src/kubernetes.K8sController
+            structRef: mogenius-k8s-manager/src/dtos.K8sController
             type: struct
     responseSchema:
         structs:
@@ -13835,8 +13835,8 @@ stats/traffic/all-for-controller:
 stats/traffic/for-controller-socket-connections:
     requestSchema:
         structs:
-            mogenius-k8s-manager/src/kubernetes.K8sController:
-                name: mogenius-k8s-manager/src/kubernetes.K8sController
+            mogenius-k8s-manager/src/dtos.K8sController:
+                name: mogenius-k8s-manager/src/dtos.K8sController
                 properties:
                     kind:
                         type: string
@@ -13845,7 +13845,7 @@ stats/traffic/for-controller-socket-connections:
                     namespace:
                         type: string
         typeInfo:
-            structRef: mogenius-k8s-manager/src/kubernetes.K8sController
+            structRef: mogenius-k8s-manager/src/dtos.K8sController
             type: struct
     responseSchema:
         structs:
@@ -13867,8 +13867,8 @@ stats/traffic/for-controller-socket-connections:
 stats/traffic/sum-for-controller:
     requestSchema:
         structs:
-            mogenius-k8s-manager/src/kubernetes.K8sController:
-                name: mogenius-k8s-manager/src/kubernetes.K8sController
+            mogenius-k8s-manager/src/dtos.K8sController:
+                name: mogenius-k8s-manager/src/dtos.K8sController
                 properties:
                     kind:
                         type: string
@@ -13877,7 +13877,7 @@ stats/traffic/sum-for-controller:
                     namespace:
                         type: string
         typeInfo:
-            structRef: mogenius-k8s-manager/src/kubernetes.K8sController
+            structRef: mogenius-k8s-manager/src/dtos.K8sController
             type: struct
     responseSchema:
         structs:

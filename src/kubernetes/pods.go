@@ -11,6 +11,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// TODO: Bene delete this file, as it is not used anymore.
 func GetPod(namespace string, podName string) *v1.Pod {
 	clientset := clientProvider.K8sClientSet()
 	client := clientset.CoreV1().Pods(namespace)

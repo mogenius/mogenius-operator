@@ -9,24 +9,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func AllConfigmaps(namespaceName string) []v1Core.ConfigMap {
-	result := []v1Core.ConfigMap{}
-
-	clientset := clientProvider.K8sClientSet()
-	configmapList, err := clientset.CoreV1().ConfigMaps(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
-	if err != nil {
-		k8sLogger.Error("AllConfigmaps", "error", err.Error())
-		return result
-	}
-
-	for _, configmap := range configmapList.Items {
-		configmap.Kind = "ConfigMap"
-		configmap.APIVersion = "v1"
-		result = append(result, configmap)
-	}
-	return result
-}
-
 // only create the configmap if it does not exist
 func EnsureConfigMapExists(namespace string, configMap v1Core.ConfigMap) error {
 	client := clientProvider.K8sClientSet().CoreV1().ConfigMaps(namespace)

@@ -147,19 +147,6 @@ func generateService(existingService *v1.Service, namespace dtos.K8sNamespaceDto
 	return *newService
 }
 
-func ServiceFor(namespace string, serviceName string) *v1.Service {
-	clientset := clientProvider.K8sClientSet()
-	serviceClient := clientset.CoreV1().Services(namespace)
-	service, err := serviceClient.Get(context.TODO(), serviceName, metav1.GetOptions{})
-	service.Kind = "Service"
-	service.APIVersion = "v1"
-	if err != nil {
-		k8sLogger.Error("ServiceFor", "error", err.Error())
-		return nil
-	}
-	return service
-}
-
 func FindPrometheusService() (namespace string, service string, port string, err error) {
 	clientset := clientProvider.K8sClientSet()
 	serviceClient := clientset.CoreV1().Services("")

@@ -2,8 +2,9 @@ package kubernetes
 
 import (
 	"context"
+	"mogenius-k8s-manager/src/dtos"
 
-	corev1 "k8s.io/api/core/v1" // Add this line to import the corev1 package
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -31,7 +32,8 @@ type ContainerMetrics struct {
 	MemRequest int64  `json:"memRequest"`
 }
 
-func GetAverageUtilizationForDeployment(data K8sController) *Metrics {
+// TODO: Bene remove this when project is removed
+func GetAverageUtilizationForDeployment(data dtos.K8sController) *Metrics {
 	clientset := clientProvider.K8sClientSet()
 
 	metricsProvider, err := NewKubeProviderMetrics()

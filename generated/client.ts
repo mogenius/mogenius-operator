@@ -6542,8 +6542,8 @@ export type LIVE_STREAM_WORKSPACE_TRAFFIC_RESPONSE = any;
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/kubernetes.K8sController:
- *         name: mogenius-k8s-manager/src/kubernetes.K8sController
+ *     mogenius-k8s-manager/src/dtos.K8sController:
+ *         name: mogenius-k8s-manager/src/dtos.K8sController
  *         properties:
  *             kind:
  *                 type: string
@@ -6552,12 +6552,12 @@ export type LIVE_STREAM_WORKSPACE_TRAFFIC_RESPONSE = any;
  *             namespace:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/kubernetes.K8sController
+ *     structRef: mogenius-k8s-manager/src/dtos.K8sController
  *     type: struct
  * ```
  *
  */
-export type METRICS_DEPLOYMENT_AVERAGE_UTILIZATION_REQUEST = METRICS_DEPLOYMENT_AVERAGE_UTILIZATION_REQUEST__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_K8SCONTROLLER;
+export type METRICS_DEPLOYMENT_AVERAGE_UTILIZATION_REQUEST = METRICS_DEPLOYMENT_AVERAGE_UTILIZATION_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCONTROLLER;
 
 /**
  * #### Source
@@ -15774,8 +15774,8 @@ export type STATS_PODSTAT_ALL_FOR_CONTROLLER_RESPONSE = STATS_PODSTAT_ALL_FOR_CO
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/kubernetes.K8sController:
- *         name: mogenius-k8s-manager/src/kubernetes.K8sController
+ *     mogenius-k8s-manager/src/dtos.K8sController:
+ *         name: mogenius-k8s-manager/src/dtos.K8sController
  *         properties:
  *             kind:
  *                 type: string
@@ -15784,12 +15784,12 @@ export type STATS_PODSTAT_ALL_FOR_CONTROLLER_RESPONSE = STATS_PODSTAT_ALL_FOR_CO
  *             namespace:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/kubernetes.K8sController
+ *     structRef: mogenius-k8s-manager/src/dtos.K8sController
  *     type: struct
  * ```
  *
  */
-export type STATS_PODSTAT_LAST_FOR_CONTROLLER_REQUEST = STATS_PODSTAT_LAST_FOR_CONTROLLER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_K8SCONTROLLER;
+export type STATS_PODSTAT_LAST_FOR_CONTROLLER_REQUEST = STATS_PODSTAT_LAST_FOR_CONTROLLER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCONTROLLER;
 
 /**
  * #### Source
@@ -15907,8 +15907,8 @@ export type STATS_TRAFFIC_ALL_FOR_CONTROLLER_RESPONSE = STATS_TRAFFIC_ALL_FOR_CO
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/kubernetes.K8sController:
- *         name: mogenius-k8s-manager/src/kubernetes.K8sController
+ *     mogenius-k8s-manager/src/dtos.K8sController:
+ *         name: mogenius-k8s-manager/src/dtos.K8sController
  *         properties:
  *             kind:
  *                 type: string
@@ -15917,12 +15917,12 @@ export type STATS_TRAFFIC_ALL_FOR_CONTROLLER_RESPONSE = STATS_TRAFFIC_ALL_FOR_CO
  *             namespace:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/kubernetes.K8sController
+ *     structRef: mogenius-k8s-manager/src/dtos.K8sController
  *     type: struct
  * ```
  *
  */
-export type STATS_TRAFFIC_FOR_CONTROLLER_SOCKET_CONNECTIONS_REQUEST = STATS_TRAFFIC_FOR_CONTROLLER_SOCKET_CONNECTIONS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_K8SCONTROLLER;
+export type STATS_TRAFFIC_FOR_CONTROLLER_SOCKET_CONNECTIONS_REQUEST = STATS_TRAFFIC_FOR_CONTROLLER_SOCKET_CONNECTIONS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCONTROLLER;
 
 /**
  * #### Source
@@ -15954,8 +15954,8 @@ export type STATS_TRAFFIC_FOR_CONTROLLER_SOCKET_CONNECTIONS_RESPONSE = STATS_TRA
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/kubernetes.K8sController:
- *         name: mogenius-k8s-manager/src/kubernetes.K8sController
+ *     mogenius-k8s-manager/src/dtos.K8sController:
+ *         name: mogenius-k8s-manager/src/dtos.K8sController
  *         properties:
  *             kind:
  *                 type: string
@@ -15964,12 +15964,12 @@ export type STATS_TRAFFIC_FOR_CONTROLLER_SOCKET_CONNECTIONS_RESPONSE = STATS_TRA
  *             namespace:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/kubernetes.K8sController
+ *     structRef: mogenius-k8s-manager/src/dtos.K8sController
  *     type: struct
  * ```
  *
  */
-export type STATS_TRAFFIC_SUM_FOR_CONTROLLER_REQUEST = STATS_TRAFFIC_SUM_FOR_CONTROLLER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_K8SCONTROLLER;
+export type STATS_TRAFFIC_SUM_FOR_CONTROLLER_REQUEST = STATS_TRAFFIC_SUM_FOR_CONTROLLER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCONTROLLER;
 
 /**
  * #### Source
@@ -17555,7 +17555,7 @@ export type LIVE_STREAM_POD_TRAFFIC_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCO
 export type LIVE_STREAM_WORKSPACE_CPU_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"nodeName": string,"podName": string,"websocketHost": string,"websocketScheme": string,"workspace": string};
 export type LIVE_STREAM_WORKSPACE_MEMORY_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"nodeName": string,"podName": string,"websocketHost": string,"websocketScheme": string,"workspace": string};
 export type LIVE_STREAM_WORKSPACE_TRAFFIC_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"nodeName": string,"podName": string,"websocketHost": string,"websocketScheme": string,"workspace": string};
-export type METRICS_DEPLOYMENT_AVERAGE_UTILIZATION_REQUEST__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_K8SCONTROLLER = {"kind": string,"name": string,"namespace": string};
+export type METRICS_DEPLOYMENT_AVERAGE_UTILIZATION_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCONTROLLER = {"kind": string,"name": string,"namespace": string};
 export type METRICS_DEPLOYMENT_AVERAGE_UTILIZATION_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME = {"Time": METRICS_DEPLOYMENT_AVERAGE_UTILIZATION_RESPONSE__TIME_TIME};
 export type METRICS_DEPLOYMENT_AVERAGE_UTILIZATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_CONTAINERMETRICS = {"cpuRequest": number,"cpuUsage": number,"memRequest": number,"memUsage": number,"name": string};
 export type METRICS_DEPLOYMENT_AVERAGE_UTILIZATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_METRICS = {"cpuAverageUtilization": number,"createdAt": METRICS_DEPLOYMENT_AVERAGE_UTILIZATION_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME,"kind": string,"memoryAverageUtilization": number,"name": string,"namespace": string,"podsMetrics": METRICS_DEPLOYMENT_AVERAGE_UTILIZATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_PODMETRICS[],"windowInMs": number};
@@ -18097,14 +18097,14 @@ export type SERVICE_UPDATE_SERVICE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_JO
 export type SERVICE_UPDATE_SERVICE_RESPONSE__TIME_TIME = {};
 export type STATS_PODSTAT_ALL_FOR_CONTROLLER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"kind": string,"name": string,"namespace": string,"timeOffsetMinutes": number};
 export type STATS_PODSTAT_ALL_FOR_CONTROLLER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_PODSTATS = {"containerName": string,"cpu": number,"cpuLimit": number,"createdAt": string,"ephemeralStorage": number,"ephemeralStorageLimit": number,"memory": number,"memoryLimit": number,"namespace": string,"podName": string,"startTime": string};
-export type STATS_PODSTAT_LAST_FOR_CONTROLLER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_K8SCONTROLLER = {"kind": string,"name": string,"namespace": string};
+export type STATS_PODSTAT_LAST_FOR_CONTROLLER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCONTROLLER = {"kind": string,"name": string,"namespace": string};
 export type STATS_PODSTAT_LAST_FOR_CONTROLLER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_PODSTATS = {"containerName": string,"cpu": number,"cpuLimit": number,"createdAt": string,"ephemeralStorage": number,"ephemeralStorageLimit": number,"memory": number,"memoryLimit": number,"namespace": string,"podName": string,"startTime": string};
 export type STATS_TRAFFIC_ALL_FOR_CONTROLLER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"kind": string,"name": string,"namespace": string,"timeOffsetMinutes": number};
 export type STATS_TRAFFIC_ALL_FOR_CONTROLLER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_NETWORKMONITOR_PODNETWORKSTATS = {"createdAt": STATS_TRAFFIC_ALL_FOR_CONTROLLER_RESPONSE__TIME_TIME,"interface": string,"ip": string,"namespace": string,"pod": string,"receivedBytes": number,"receivedPackets": number,"receivedStartBytes": number,"startTime": STATS_TRAFFIC_ALL_FOR_CONTROLLER_RESPONSE__TIME_TIME,"transmitBytes": number,"transmitPackets": number,"transmitStartBytes": number};
 export type STATS_TRAFFIC_ALL_FOR_CONTROLLER_RESPONSE__TIME_TIME = {};
-export type STATS_TRAFFIC_FOR_CONTROLLER_SOCKET_CONNECTIONS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_K8SCONTROLLER = {"kind": string,"name": string,"namespace": string};
+export type STATS_TRAFFIC_FOR_CONTROLLER_SOCKET_CONNECTIONS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCONTROLLER = {"kind": string,"name": string,"namespace": string};
 export type STATS_TRAFFIC_FOR_CONTROLLER_SOCKET_CONNECTIONS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_SOCKETCONNECTIONS = {"connections": Record<string, number>,"lastUpdate": string};
-export type STATS_TRAFFIC_SUM_FOR_CONTROLLER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_K8SCONTROLLER = {"kind": string,"name": string,"namespace": string};
+export type STATS_TRAFFIC_SUM_FOR_CONTROLLER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCONTROLLER = {"kind": string,"name": string,"namespace": string};
 export type STATS_TRAFFIC_SUM_FOR_CONTROLLER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_NETWORKMONITOR_PODNETWORKSTATS = {"createdAt": STATS_TRAFFIC_SUM_FOR_CONTROLLER_RESPONSE__TIME_TIME,"interface": string,"ip": string,"namespace": string,"pod": string,"receivedBytes": number,"receivedPackets": number,"receivedStartBytes": number,"startTime": STATS_TRAFFIC_SUM_FOR_CONTROLLER_RESPONSE__TIME_TIME,"transmitBytes": number,"transmitPackets": number,"transmitStartBytes": number};
 export type STATS_TRAFFIC_SUM_FOR_CONTROLLER_RESPONSE__TIME_TIME = {};
 export type STATS_TRAFFIC_SUM_FOR_NAMESPACE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"namespace": string};
