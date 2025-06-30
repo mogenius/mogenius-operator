@@ -20,6 +20,7 @@ import (
 	"mogenius-k8s-manager/src/services"
 	"mogenius-k8s-manager/src/servicesexternal"
 	"mogenius-k8s-manager/src/shutdown"
+	"mogenius-k8s-manager/src/store"
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/valkeyclient"
@@ -517,6 +518,8 @@ func InitializeSystems(
 	structs.Setup(logManagerModule)
 	xterm.Setup(logManagerModule, clientProvider, valkeyClient)
 	utils.Setup(logManagerModule, configModule)
+	err = store.Setup(logManagerModule, valkeyClient)
+	assert.Assert(err == nil, err)
 
 	// initialization step 1 for services
 	workspaceManager := core.NewWorkspaceManager(configModule, clientProvider)
@@ -525,7 +528,8 @@ func InitializeSystems(
 	socketApi := core.NewSocketApi(logManagerModule.CreateLogger("socketapi"), configModule, jobConnectionClient, eventConnectionClient, valkeyClient)
 	xtermService := core.NewXtermService(logManagerModule.CreateLogger("xterm-service"))
 	valkeyLoggerService := core.NewValkeyLogger(valkeyClient, valkeyLogChannel)
-	dbstatsService := core.NewValkeyStatsModule(logManagerModule.CreateLogger("db-stats"), configModule, valkeyClient)
+	ownerCacheService := core.NewOwnerCacheService(logManagerModule.CreateLogger("owner-cache"), configModule)
+	dbstatsService := core.NewValkeyStatsModule(logManagerModule.CreateLogger("db-stats"), configModule, valkeyClient, ownerCacheService)
 	podStatsCollector := core.NewPodStatsCollector(logManagerModule.CreateLogger("pod-stats-collector"), configModule, clientProvider)
 	nodeMetricsCollector := core.NewNodeMetricsCollector(
 		logManagerModule.CreateLogger("traffic-collector"),

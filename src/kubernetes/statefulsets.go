@@ -7,6 +7,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// TODO: Bene delete this file, as it is not used anymore.
 func GetStatefulSet(namespaceName string, name string) (*v1.StatefulSet, error) {
 	clientset := clientProvider.K8sClientSet()
 	statefulSet, err := clientset.AppsV1().StatefulSets(namespaceName).Get(context.TODO(), name, metav1.GetOptions{})

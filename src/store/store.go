@@ -4,12 +4,15 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/valkeyclient"
 	"strings"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
+	v1 "k8s.io/api/apps/v1"
+	v1batch "k8s.io/api/batch/v1"
 	coreV1 "k8s.io/api/core/v1"
 	networkingV1 "k8s.io/api/networking/v1"
 )
@@ -19,6 +22,18 @@ const (
 )
 
 var ErrNotFound = errors.New("not found")
+
+var storeLogger *slog.Logger
+var valkeyClient valkeyclient.ValkeyClient
+
+func Setup(
+	logManagerModule logging.SlogManager,
+	valkey valkeyclient.ValkeyClient,
+) error {
+	storeLogger = logManagerModule.CreateLogger("store")
+	valkeyClient = valkey
+	return nil
+}
 
 func GetByKeyParts[T any](valkeyClient valkeyclient.ValkeyClient, keys ...string) (*T, error) {
 	value, err := valkeyclient.GetObjectForKey[T](valkeyClient, keys...)
@@ -226,4 +241,92 @@ func GetResourceByKindAndNamespace(valkeyClient valkeyclient.ValkeyClient, group
 		results = append(results, ref)
 	}
 	return results
+}
+
+func GetPod(namespace string, name string) *coreV1.Pod {
+	pod, err := valkeyclient.GetObjectForKey[coreV1.Pod](valkeyClient, VALKEY_RESOURCE_PREFIX, utils.PodResource.Group, utils.PodResource.Kind, namespace, name)
+	if err != nil || pod == nil {
+		return nil
+	}
+	pod.Kind = utils.PodResource.Kind
+	pod.APIVersion = utils.PodResource.Group
+
+	return pod
+}
+
+func GetReplicaset(namespace string, name string) *v1.ReplicaSet {
+	replicaSet, err := valkeyclient.GetObjectForKey[v1.ReplicaSet](valkeyClient, VALKEY_RESOURCE_PREFIX, utils.ReplicaSetResource.Group, utils.ReplicaSetResource.Kind, namespace, name)
+	if err != nil || replicaSet == nil {
+		return nil
+	}
+	replicaSet.Kind = utils.ReplicaSetResource.Kind
+	replicaSet.APIVersion = utils.ReplicaSetResource.Group
+
+	return replicaSet
+}
+
+func GetDeployment(namespace string, name string) *v1.Deployment {
+	deployment, err := valkeyclient.GetObjectForKey[v1.Deployment](valkeyClient, VALKEY_RESOURCE_PREFIX, utils.DeploymentResource.Group, utils.DeploymentResource.Kind, namespace, name)
+	if err != nil || deployment == nil {
+		return nil
+	}
+	deployment.Kind = utils.DeploymentResource.Kind
+	deployment.APIVersion = utils.DeploymentResource.Group
+
+	return deployment
+}
+
+func GetStatefulSet(namespace string, name string) *v1.StatefulSet {
+	statefulSet, err := valkeyclient.GetObjectForKey[v1.StatefulSet](valkeyClient, VALKEY_RESOURCE_PREFIX, utils.StatefulSetResource.Group, utils.StatefulSetResource.Kind, namespace, name)
+	if err != nil || statefulSet == nil {
+		return nil
+	}
+	statefulSet.Kind = utils.StatefulSetResource.Kind
+	statefulSet.APIVersion = utils.StatefulSetResource.Group
+
+	return statefulSet
+}
+
+func GetDaemonSet(namespace string, name string) *v1.DaemonSet {
+	daemonSet, err := valkeyclient.GetObjectForKey[v1.DaemonSet](valkeyClient, VALKEY_RESOURCE_PREFIX, utils.DaemonSetResource.Group, utils.DaemonSetResource.Kind, namespace, name)
+	if err != nil || daemonSet == nil {
+		return nil
+	}
+	daemonSet.Kind = utils.DaemonSetResource.Kind
+	daemonSet.APIVersion = utils.DaemonSetResource.Group
+
+	return daemonSet
+}
+
+func GetJob(namespace string, name string) *v1batch.Job {
+	job, err := valkeyclient.GetObjectForKey[v1batch.Job](valkeyClient, VALKEY_RESOURCE_PREFIX, utils.JobResource.Group, utils.JobResource.Kind, namespace, name)
+	if err != nil || job == nil {
+		return nil
+	}
+	job.Kind = utils.JobResource.Kind
+	job.APIVersion = utils.JobResource.Group
+
+	return job
+}
+
+func GetCronJob(namespace string, name string) *v1batch.CronJob {
+	cronJob, err := valkeyclient.GetObjectForKey[v1batch.CronJob](valkeyClient, VALKEY_RESOURCE_PREFIX, utils.CronJobResource.Group, utils.CronJobResource.Kind, namespace, name)
+	if err != nil || cronJob == nil {
+		return nil
+	}
+	cronJob.Kind = utils.CronJobResource.Kind
+	cronJob.APIVersion = utils.CronJobResource.Group
+
+	return cronJob
+}
+
+func GetNode(name string) *coreV1.Node {
+	node, err := valkeyclient.GetObjectForKey[coreV1.Node](valkeyClient, VALKEY_RESOURCE_PREFIX, utils.NodeResource.Group, utils.NodeResource.Kind, "", name)
+	if err != nil || node == nil {
+		return nil
+	}
+	node.Kind = utils.NodeResource.Kind
+	node.APIVersion = utils.NodeResource.Group
+
+	return node
 }

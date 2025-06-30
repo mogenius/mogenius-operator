@@ -580,11 +580,11 @@ func (self *socketApi) registerPatterns() {
 	self.RegisterPatternHandlerRaw(
 		"stats/podstat/last-for-controller",
 		PatternConfig{
-			RequestSchema:  schema.Generate(kubernetes.K8sController{}),
+			RequestSchema:  schema.Generate(dtos.K8sController{}),
 			ResponseSchema: schema.Generate(&structs.PodStats{}),
 		},
 		func(datagram structs.Datagram) any {
-			data := kubernetes.K8sController{}
+			data := dtos.K8sController{}
 			if err := self.LoadRequest(&datagram, &data); err != nil {
 				return err
 			}
@@ -595,11 +595,11 @@ func (self *socketApi) registerPatterns() {
 	self.RegisterPatternHandlerRaw(
 		"stats/traffic/sum-for-controller",
 		PatternConfig{
-			RequestSchema:  schema.Generate(kubernetes.K8sController{}),
+			RequestSchema:  schema.Generate(dtos.K8sController{}),
 			ResponseSchema: schema.Generate(&networkmonitor.PodNetworkStats{}),
 		},
 		func(datagram structs.Datagram) any {
-			data := kubernetes.K8sController{}
+			data := dtos.K8sController{}
 			if err := self.LoadRequest(&datagram, &data); err != nil {
 				return err
 			}
@@ -610,11 +610,11 @@ func (self *socketApi) registerPatterns() {
 	self.RegisterPatternHandlerRaw(
 		"stats/traffic/for-controller-socket-connections",
 		PatternConfig{
-			RequestSchema:  schema.Generate(kubernetes.K8sController{}),
+			RequestSchema:  schema.Generate(dtos.K8sController{}),
 			ResponseSchema: schema.Generate(&structs.SocketConnections{}),
 		},
 		func(datagram structs.Datagram) any {
-			data := kubernetes.K8sController{}
+			data := dtos.K8sController{}
 			if err := self.LoadRequest(&datagram, &data); err != nil {
 				return err
 			}
@@ -691,11 +691,11 @@ func (self *socketApi) registerPatterns() {
 		self.RegisterPatternHandlerRaw(
 			"metrics/deployment/average-utilization",
 			PatternConfig{
-				RequestSchema:  schema.Generate(kubernetes.K8sController{}),
+				RequestSchema:  schema.Generate(dtos.K8sController{}),
 				ResponseSchema: schema.Generate(&kubernetes.Metrics{}),
 			},
 			func(datagram structs.Datagram) any {
-				data := kubernetes.K8sController{}
+				data := dtos.K8sController{}
 				data.Kind = "Deployment"
 				if err := self.LoadRequest(&datagram, &data); err != nil {
 					return err

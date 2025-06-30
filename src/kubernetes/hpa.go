@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"mogenius-k8s-manager/src/dtos"
+	"mogenius-k8s-manager/src/store"
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/websocket"
 
@@ -61,8 +62,8 @@ func DeleteK8sHpaBy(namespace string, name string) error {
 }
 
 func CreateHpa(namespaceName, controllerName string, hpaSettings *dtos.K8sHpaSettingsDto) (*v2.HorizontalPodAutoscaler, error) {
-	deployment, err := GetK8sDeployment(namespaceName, controllerName)
-	if err != nil || deployment == nil {
+	deployment := store.GetDeployment(namespaceName, controllerName)
+	if deployment == nil {
 		return nil, fmt.Errorf("cannot create hpa, deployment not found")
 	}
 
