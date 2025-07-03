@@ -6,6 +6,7 @@ import (
 	"mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/containerenumerator"
 	"mogenius-k8s-manager/src/k8sclient"
+	"mogenius-k8s-manager/src/utils"
 	"os"
 	"testing"
 )
@@ -14,6 +15,14 @@ func TestEmptyCgroup(t *testing.T) {
 	cgroup := ""
 	logger := slog.New(slog.NewJSONHandler(os.Stderr, nil))
 	configModule := config.NewConfig()
+	configModule.Declare(config.ConfigDeclaration{
+		Key:          "KUBERNETES_DEBUG",
+		DefaultValue: utils.Pointer("false"),
+	})
+	configModule.Declare(config.ConfigDeclaration{
+		Key:          "MO_HOST_PROC_PATH",
+		DefaultValue: utils.Pointer("/proc"),
+	})
 	clientProvider := k8sclient.NewK8sClientProvider(logger, configModule)
 	cne := containerenumerator.NewContainerEnumerator(slog.New(slog.NewJSONHandler(os.Stdout, nil)), configModule, clientProvider)
 	_, err := cne.GetContainerIdFromCgroupWithPid(cgroup)
@@ -24,6 +33,14 @@ func TestBaseCgroup(t *testing.T) {
 	cgroup := "0::/"
 	logger := slog.New(slog.NewJSONHandler(os.Stderr, nil))
 	configModule := config.NewConfig()
+	configModule.Declare(config.ConfigDeclaration{
+		Key:          "KUBERNETES_DEBUG",
+		DefaultValue: utils.Pointer("false"),
+	})
+	configModule.Declare(config.ConfigDeclaration{
+		Key:          "MO_HOST_PROC_PATH",
+		DefaultValue: utils.Pointer("/proc"),
+	})
 	clientProvider := k8sclient.NewK8sClientProvider(logger, configModule)
 	cne := containerenumerator.NewContainerEnumerator(slog.New(slog.NewJSONHandler(os.Stdout, nil)), configModule, clientProvider)
 	_, err := cne.GetContainerIdFromCgroupWithPid(cgroup)
@@ -34,6 +51,14 @@ func TestBasicCgroup(t *testing.T) {
 	cgroup := "0::/system.slice/docker-01db6847f45cdd13b3cba393e5f352c6027761aa8d16a2a86f7b2dd2dc03c232.scope"
 	logger := slog.New(slog.NewJSONHandler(os.Stderr, nil))
 	configModule := config.NewConfig()
+	configModule.Declare(config.ConfigDeclaration{
+		Key:          "KUBERNETES_DEBUG",
+		DefaultValue: utils.Pointer("false"),
+	})
+	configModule.Declare(config.ConfigDeclaration{
+		Key:          "MO_HOST_PROC_PATH",
+		DefaultValue: utils.Pointer("/proc"),
+	})
 	clientProvider := k8sclient.NewK8sClientProvider(logger, configModule)
 	cne := containerenumerator.NewContainerEnumerator(slog.New(slog.NewJSONHandler(os.Stdout, nil)), configModule, clientProvider)
 	cid, err := cne.GetContainerIdFromCgroupWithPid(cgroup)
@@ -45,6 +70,14 @@ func TestBasicNestedCgroup(t *testing.T) {
 	cgroup := "0::/system.slice/docker-8a1a0fe17b454b2cc04fdf4a170cbc2da174e9be52b743ea4309afdb64e655cc.scope/kubepods/besteffort/pod014985db-fbc4-4130-b0bd-ce878c609340/c14ff86ea52c0a9c515430750773a03f4b2d744a5aaaf9e5c8154a5325f4c126"
 	logger := slog.New(slog.NewJSONHandler(os.Stderr, nil))
 	configModule := config.NewConfig()
+	configModule.Declare(config.ConfigDeclaration{
+		Key:          "KUBERNETES_DEBUG",
+		DefaultValue: utils.Pointer("false"),
+	})
+	configModule.Declare(config.ConfigDeclaration{
+		Key:          "MO_HOST_PROC_PATH",
+		DefaultValue: utils.Pointer("/proc"),
+	})
 	clientProvider := k8sclient.NewK8sClientProvider(logger, configModule)
 	cne := containerenumerator.NewContainerEnumerator(slog.New(slog.NewJSONHandler(os.Stdout, nil)), configModule, clientProvider)
 	cid, err := cne.GetContainerIdFromCgroupWithPid(cgroup)
@@ -56,6 +89,14 @@ func TestNestedCgroupSameEngine(t *testing.T) {
 	cgroup := "0::/system.slice/docker-8a1a0fe17b454b2cc04fdf4a170cbc2da174e9be52b743ea4309afdb64e655cc.scope/docker-c14ff86ea52c0a9c515430750773a03f4b2d744a5aaaf9e5c8154a5325f4c126.scope"
 	logger := slog.New(slog.NewJSONHandler(os.Stderr, nil))
 	configModule := config.NewConfig()
+	configModule.Declare(config.ConfigDeclaration{
+		Key:          "KUBERNETES_DEBUG",
+		DefaultValue: utils.Pointer("false"),
+	})
+	configModule.Declare(config.ConfigDeclaration{
+		Key:          "MO_HOST_PROC_PATH",
+		DefaultValue: utils.Pointer("/proc"),
+	})
 	clientProvider := k8sclient.NewK8sClientProvider(logger, configModule)
 	cne := containerenumerator.NewContainerEnumerator(slog.New(slog.NewJSONHandler(os.Stdout, nil)), configModule, clientProvider)
 	cid, err := cne.GetContainerIdFromCgroupWithPid(cgroup)
@@ -67,6 +108,14 @@ func TestNestedCgroupThreeLayers(t *testing.T) {
 	cgroup := "0::/system.slice/docker-8a1a0fe17b454b2cc04fdf4a170cbc2da174e9be52b743ea4309afdb64e655cc.scope/kubepods/besteffort/pod014985db-fbc4-4130-b0bd-ce878c609340/c14ff86ea52c0a9c515430750773a03f4b2d744a5aaaf9e5c8154a5325f4c126/kubepods/besteffort/pod23d64312-0ae9-471b-9af3-6c606f8e4fc5/6bbf0ddf216c09e3e0a2e60331faed61f1c254d72341e9a6db20afd44d45338b"
 	logger := slog.New(slog.NewJSONHandler(os.Stderr, nil))
 	configModule := config.NewConfig()
+	configModule.Declare(config.ConfigDeclaration{
+		Key:          "KUBERNETES_DEBUG",
+		DefaultValue: utils.Pointer("false"),
+	})
+	configModule.Declare(config.ConfigDeclaration{
+		Key:          "MO_HOST_PROC_PATH",
+		DefaultValue: utils.Pointer("/proc"),
+	})
 	clientProvider := k8sclient.NewK8sClientProvider(logger, configModule)
 	cne := containerenumerator.NewContainerEnumerator(slog.New(slog.NewJSONHandler(os.Stdout, nil)), configModule, clientProvider)
 	cid, err := cne.GetContainerIdFromCgroupWithPid(cgroup)
@@ -84,6 +133,14 @@ func TestCgroupMatches(t *testing.T) {
 	}
 	logger := slog.New(slog.NewJSONHandler(os.Stderr, nil))
 	configModule := config.NewConfig()
+	configModule.Declare(config.ConfigDeclaration{
+		Key:          "KUBERNETES_DEBUG",
+		DefaultValue: utils.Pointer("false"),
+	})
+	configModule.Declare(config.ConfigDeclaration{
+		Key:          "MO_HOST_PROC_PATH",
+		DefaultValue: utils.Pointer("/proc"),
+	})
 	clientProvider := k8sclient.NewK8sClientProvider(logger, configModule)
 	cne := containerenumerator.NewContainerEnumerator(slog.New(slog.NewJSONHandler(os.Stdout, nil)), configModule, clientProvider)
 	errorCount := 0

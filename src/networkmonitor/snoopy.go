@@ -169,21 +169,23 @@ type SnoopyHandle struct {
 type SnoopyEventType = string
 
 const (
-	SnoopyEventTypeInterfaceMetrics        SnoopyEventType = "InterfaceMetrics"
-	SnoopyEventTypeInterfaceChanged        SnoopyEventType = "InterfaceChanged"
-	SnoopyEventTypeInterfaceRemoved        SnoopyEventType = "InterfaceRemoved"
-	SnoopyEventTypeInterfaceAdded          SnoopyEventType = "InterfaceAdded"
-	SnoopyEventTypeInterfaceBpfInitialized SnoopyEventType = "InterfaceBpfInitialized"
+	SnoopyEventTypeInterfaceMetrics                 SnoopyEventType = "InterfaceMetrics"
+	SnoopyEventTypeInterfaceChanged                 SnoopyEventType = "InterfaceChanged"
+	SnoopyEventTypeInterfaceRemoved                 SnoopyEventType = "InterfaceRemoved"
+	SnoopyEventTypeInterfaceAdded                   SnoopyEventType = "InterfaceAdded"
+	SnoopyEventTypeInterfaceBpfInitialized          SnoopyEventType = "InterfaceBpfInitialized"
+	SnoopyEventTypeInterfaceBpfInitializationFailed SnoopyEventType = "InterfaceBpfInitializationFailed"
 )
 
 type SnoopyEvent struct {
 	Type SnoopyEventType
 
-	InterfaceMetric         *SnoopyInterfaceMetrics
-	InterfaceAdded          *SnoopyInterfaceAdded
-	InterfaceRemoved        *SnoopyInterfaceRemoved
-	InterfaceChanged        *SnoopyInterfaceChanged
-	InterfaceBpfInitialized *SnoopyInterfaceBpfInitialized
+	InterfaceMetric                  *SnoopyInterfaceMetrics
+	InterfaceAdded                   *SnoopyInterfaceAdded
+	InterfaceRemoved                 *SnoopyInterfaceRemoved
+	InterfaceChanged                 *SnoopyInterfaceChanged
+	InterfaceBpfInitialized          *SnoopyInterfaceBpfInitialized
+	InterfaceBpfInitializationFailed *SnoopyInterfaceBpfInitializationFailed
 }
 
 type SnoopyInterfaceBpfInitialized struct {
@@ -191,6 +193,12 @@ type SnoopyInterfaceBpfInitialized struct {
 	Interface             string `json:"interface"`
 	IngressImplementation string `json:"ingress_implementation"`
 	EgressImplementation  string `json:"egress_implementation"`
+}
+
+type SnoopyInterfaceBpfInitializationFailed struct {
+	Type      string `json:"type"`
+	Interface string `json:"interface"`
+	Error     string `json:"error"`
 }
 
 type SnoopyInterfaceMetrics struct {
@@ -459,6 +467,14 @@ func (self *snoopyManager) startStatusEventHandler() {
 					)
 					snoopyProcess.Interfaces[initializedIdx].IngressImplementation = payload.IngressImplementation
 					snoopyProcess.Interfaces[initializedIdx].EgressImplementation = payload.EgressImplementation
+				case SnoopyEventTypeInterfaceBpfInitializationFailed:
+					assert.Assert(
+						event.SnoopyEvent.SnoopyEvent.InterfaceBpfInitializationFailed != nil,
+						"event.SnoopyEvent.SnoopyEvent.InterfaceBpfInitializationFailed should be set",
+						event,
+					)
+					payload := *event.SnoopyEvent.SnoopyEvent.InterfaceBpfInitializationFailed
+					self.logger.Warn("failed to initialize eBPF module", "interface", payload.Interface, "error", payload.Error)
 				default:
 					assert.Assert(
 						false,
@@ -616,6 +632,8 @@ func (self *snoopyManager) Register(podInfo containerenumerator.PodInfo) []error
 						handle.LastMetricsLock.Unlock()
 					case SnoopyEventTypeInterfaceBpfInitialized:
 						// ignore
+					case SnoopyEventTypeInterfaceBpfInitializationFailed:
+						// ignore
 					default:
 						self.logger.Warn("unknown metric type", "type", metrics.Type, "metric", metrics)
 					}
@@ -653,8 +671,16 @@ func (self *snoopyManager) Remove(podInfo containerenumerator.PodInfo) []error {
 				},
 			}
 			go func() {
-				handle.Cmd.Process.Kill()
-				handle.Cmd.Process.Wait()
+				err := handle.Cmd.Process.Kill()
+				if err != nil {
+					self.logger.Debug("failed to kill process", "process", handle.Cmd.Process, "error", err)
+					return
+				}
+				_, err = handle.Cmd.Process.Wait()
+				if err != nil {
+					self.logger.Debug("failed to wait for process", "process", handle.Cmd.Process, "error", err)
+					return
+				}
 			}()
 		}
 	}
@@ -807,6 +833,17 @@ func (self *snoopyManager) attachToPidNamespace(pid ProcessId) (*SnoopyHandle, e
 				snoopy.Stdout <- SnoopyEvent{
 					Type:                    interfaceBpfInitialized.Type,
 					InterfaceBpfInitialized: &interfaceBpfInitialized,
+				}
+			case SnoopyEventTypeInterfaceBpfInitializationFailed:
+				var interfaceBpfInitializationFailed SnoopyInterfaceBpfInitializationFailed
+				err := json.Unmarshal(output, &interfaceBpfInitializationFailed)
+				if err != nil {
+					self.logger.Error("failed to parse `SnoopyInterfaceBpfInitialized`", "message", output, "error", err)
+					continue
+				}
+				snoopy.Stdout <- SnoopyEvent{
+					Type:                             interfaceBpfInitializationFailed.Type,
+					InterfaceBpfInitializationFailed: &interfaceBpfInitializationFailed,
 				}
 			default:
 				assert.Assert(

@@ -45,11 +45,14 @@ func NewWorkspaceSpec(displayName string, resources []WorkspaceResourceIdentifie
 }
 
 type WorkspaceResourceIdentifier struct {
+	// target entity identifier (name)
 	Id string `json:"id,omitempty"`
 
 	// allowed values: "namespace", "helm"
 	Type string `json:"type,omitempty"`
 
+	// Type=="namespace": unused
+	// Type=="helm": namespace in which the chart was installed
 	Namespace string `json:"namespace,omitempty"`
 }
 

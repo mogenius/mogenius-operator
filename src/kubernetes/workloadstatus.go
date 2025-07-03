@@ -255,7 +255,7 @@ func GetWorkloadStatus(requestData GetWorkloadStatusRequest) ([]WorkloadStatusDt
 	var workloadList []unstructured.Unstructured = []unstructured.Unstructured{}
 
 	var wg sync.WaitGroup
-	workloadListChan := make(chan []unstructured.Unstructured, 0)
+	workloadListChan := make(chan []unstructured.Unstructured)
 
 	// Check if ResourceEntity is empty (considered empty if all fields are empty strings or nil)
 	isResourceEntityEmpty := requestData.ResourceEntity == nil || (requestData.ResourceEntity.Kind == "" && requestData.ResourceEntity.Group == "" && requestData.ResourceEntity.Version == "")
