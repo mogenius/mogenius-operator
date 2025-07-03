@@ -23,14 +23,12 @@ const (
 
 var ErrNotFound = errors.New("not found")
 
-var storeLogger *slog.Logger
 var valkeyClient valkeyclient.ValkeyClient
 
 func Setup(
 	logManagerModule logging.SlogManager,
 	valkey valkeyclient.ValkeyClient,
 ) error {
-	storeLogger = logManagerModule.CreateLogger("store")
 	valkeyClient = valkey
 	return nil
 }
