@@ -35,11 +35,10 @@ type networkMonitor struct {
 	cancel context.CancelFunc
 	config config.ConfigModule
 
-	collectorStarted   atomic.Bool
-	procFsMountPath    string
-	cne                containerenumerator.ContainerEnumerator
-	snoopy             SnoopyManager
-	networkStatsReader SnoopyManager
+	collectorStarted atomic.Bool
+	procFsMountPath  string
+	cne              containerenumerator.ContainerEnumerator
+	snoopy           SnoopyManager
 
 	networkUsageTx chan struct{}
 	networkUsageRx chan []PodNetworkStats
@@ -124,7 +123,7 @@ func (self *networkMonitor) Run() {
 		for {
 			select {
 			case <-self.ctx.Done():
-				break
+				return
 			case <-updatePodAndContainersTicker.C:
 				// get a new list of all pods and containers on the current node
 				nextPodInfoList := self.cne.GetPodsWithContainerIds()
@@ -203,11 +202,7 @@ func (self *networkMonitor) Run() {
 
 func (self *networkMonitor) BtfAvailable() bool {
 	_, err := os.Stat("/sys/kernel/btf")
-	if errors.Is(err, os.ErrNotExist) {
-		return false
-	}
-
-	return true
+	return !errors.Is(err, os.ErrNotExist)
 }
 
 func (self *networkMonitor) Snoopy() SnoopyManager {

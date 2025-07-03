@@ -2,7 +2,6 @@ package core
 
 import (
 	"fmt"
-	"io"
 	"log/slog"
 	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/config"
@@ -21,8 +20,6 @@ import (
 	"mogenius-k8s-manager/src/version"
 	"mogenius-k8s-manager/src/websocket"
 	"mogenius-k8s-manager/src/xterm"
-	"net/http"
-	"net/url"
 	"os"
 	"os/exec"
 	"reflect"
@@ -31,7 +28,6 @@ import (
 	"sync"
 	"time"
 
-	gorillawebsocket "github.com/gorilla/websocket"
 	jsoniter "github.com/json-iterator/go"
 	"helm.sh/helm/v3/pkg/release"
 	v1 "k8s.io/api/core/v1"
@@ -2515,81 +2511,4 @@ func (self *socketApi) NormalizePatternName(pattern string) string {
 	pattern = strings.ReplaceAll(pattern, "/", "_")
 	pattern = strings.ReplaceAll(pattern, "-", "_")
 	return pattern
-}
-
-func (self *socketApi) sendDataWs(sendToServer string, reader io.ReadCloser) {
-	defer func() {
-		if reader != nil {
-			err := reader.Close()
-			if err != nil {
-				self.logger.Debug("failed to close reader", "error", err)
-			}
-		}
-	}()
-
-	header := utils.HttpHeader("-logs")
-	var dialer *gorillawebsocket.Dialer = gorillawebsocket.DefaultDialer
-	if self.config.Get("MO_HTTP_PROXY") != "" {
-		dialer.Proxy = http.ProxyURL(&url.URL{
-			Scheme: "http",
-			Host:   self.config.Get("MO_HTTP_PROXY"),
-		})
-	}
-	conn, _, err := dialer.Dial(sendToServer, header)
-	if err != nil {
-		self.logger.Error("Connection to stream endpoint failed", "sendToServer", sendToServer, "error", err)
-		return
-	}
-
-	defer func() {
-		err := conn.Close()
-		if err != nil {
-			self.logger.Debug("failed to close connection", "error", err)
-		}
-	}()
-
-	// API send ack when it is ready to receive messages.
-	err = conn.SetReadDeadline(time.Now().Add(2 * time.Second))
-	if err != nil {
-		self.logger.Error("Error setting read deadline.", "error", err)
-		return
-	}
-	_, ack, err := conn.ReadMessage()
-	if err != nil {
-		self.logger.Error("Error reading ack message.", "error", err)
-		return
-	}
-
-	self.logger.Info("Ready ack from stream endpoint.", "ack", string(ack))
-
-	buf := make([]byte, 1024)
-	for {
-		if reader != nil {
-			n, err := reader.Read(buf)
-			if err != nil {
-				if err != io.EOF {
-					self.logger.Error("Unexpected stop of stream.", "sendToServer", sendToServer)
-				}
-				return
-			}
-			// debugging
-			// str := string(buf[:n])
-			// StructsLogger.Info("Send data ws.", "data", str)
-
-			err = conn.WriteMessage(gorillawebsocket.BinaryMessage, buf[:n])
-			if err != nil {
-				self.logger.Error("Error sending data", "sendToServer", sendToServer, "error", err)
-				return
-			}
-
-			// if conn, ok := conn.UnderlyingConn().(*net.TCPConn); ok {
-			// 	err := conn.SetWriteBuffer(0)
-			// 	if err != nil {
-			// 		StructsLogger.Error("Error flushing connection", "error", err)
-			// 	}
-			// }
-		} else {
-			return
-		}
-	}
 }

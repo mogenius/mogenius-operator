@@ -1,6 +1,9 @@
 package core
 
 import (
+	"context"
+	"fmt"
+	"hash/fnv"
 	"log/slog"
 	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/config"
@@ -8,6 +11,7 @@ import (
 	"mogenius-k8s-manager/src/crds/v1alpha1"
 	"mogenius-k8s-manager/src/k8sclient"
 	"mogenius-k8s-manager/src/watcher"
+	"slices"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -15,6 +19,7 @@ import (
 	"gopkg.in/yaml.v3"
 	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -143,14 +148,11 @@ func (self *reconciler) Run() {
 		updateTicker := time.NewTicker(15 * time.Second)
 		defer updateTicker.Stop()
 
-		for {
-			select {
-			case <-updateTicker.C:
-				if !self.active.Load() {
-					continue
-				}
-				self.reconcile()
+		for range updateTicker.C {
+			if !self.active.Load() {
+				continue
 			}
+			self.reconcile()
 		}
 	}()
 }
@@ -168,8 +170,6 @@ func (self *reconciler) Stop() {
 }
 
 func (self *reconciler) reconcile() {
-	// startTime := time.Now()
-
 	namespaces := self.getNamespaces()
 	workspaces := self.getWorkspaces()
 	users := self.getUsers()
@@ -178,62 +178,35 @@ func (self *reconciler) reconcile() {
 	roleBindings := self.getRoleBindings()
 	clusterRoleBindings := self.getClusterRoleBindings()
 
+	requiredRoleBindings, requiredClusterRoleBindings := self.generateMissingRoleBindings(namespaces, workspaces, users, clusterRoles, grants)
+	managedRoleBindings := self.filterManagedRoleBindings(roleBindings)
+	managedClusterRoleBindings := self.filterManagedClusterRoleBindings(clusterRoleBindings)
+
 	wg := sync.WaitGroup{}
 
 	wg.Add(1)
 	go func() {
-		self.setReconcilerState(
-			namespaces,
-			workspaces,
-			users,
-			clusterRoles,
-			grants,
-			roleBindings,
-			clusterRoleBindings,
-		)
-		wg.Done()
-	}()
-
-	wg.Add(1)
-	go func() {
+		defer wg.Done()
 		self.deleteObsoleteRoleBindings(
-			namespaces,
-			workspaces,
-			users,
-			clusterRoles,
-			grants,
-			roleBindings,
-			clusterRoleBindings,
+			requiredRoleBindings,
+			managedRoleBindings,
+			requiredClusterRoleBindings,
+			managedClusterRoleBindings,
 		)
-		wg.Done()
 	}()
 
 	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		self.createMissingRoleBindings(
-			namespaces,
-			workspaces,
-			users,
-			clusterRoles,
-			grants,
-			roleBindings,
-			clusterRoleBindings,
+			requiredRoleBindings,
+			managedRoleBindings,
+			requiredClusterRoleBindings,
+			managedClusterRoleBindings,
 		)
-		wg.Done()
 	}()
 
 	wg.Wait()
-
-	// updateTime := time.Since(startTime)
-	// updateTimeSeconds := updateTime.Seconds()
-
-	// if updateTimeSeconds < 2 {
-	// 	self.logger.Info("reconciler update finished", "updateTimeSeconds", updateTimeSeconds)
-	// } else if updateTimeSeconds < 5 {
-	// 	self.logger.Warn("reconciler update finished", "updateTimeSeconds", updateTimeSeconds)
-	// } else {
-	// 	self.logger.Error("reconciler update finished", "updateTimeSeconds", updateTimeSeconds)
-	// }
 }
 
 func (self *reconciler) enableWatcher() {
@@ -642,91 +615,507 @@ func (self *reconciler) removeNamespace(obj *unstructured.Unstructured) {
 	self.namespaces = append(self.namespaces[:needle], self.namespaces[needle+1:]...)
 }
 
-func (self *reconciler) setReconcilerState(
-	namespaces []v1.Namespace,
-	workspaces []v1alpha1.Workspace,
-	users []v1alpha1.User,
-	clusterRoles []rbacv1.ClusterRole,
-	grants []v1alpha1.Grant,
-	roleBindings []rbacv1.RoleBinding,
-	clusterRoleBindings []rbacv1.ClusterRoleBinding,
-) error {
-	// self.logger.Info(
-	// 	"TICK: reconciler.setReconcilerState",
-	// 	"workspaces", len(workspaces),
-	// 	"users", len(users),
-	// 	"clusterRoles", len(clusterRoles),
-	// 	"grants", len(grants),
-	// 	"roleBindings", len(roleBindings),
-	// 	"clusterRoleBindings", len(clusterRoleBindings),
-	// )
-
-	// check if all grants are pointing to existing users
-	// collect all errors
-	// store all errors
-	// provide information for healthcheck
-
-	return nil
-}
-
 func (self *reconciler) deleteObsoleteRoleBindings(
-	namespaces []v1.Namespace,
-	workspaces []v1alpha1.Workspace,
-	users []v1alpha1.User,
-	clusterRoles []rbacv1.ClusterRole,
-	grants []v1alpha1.Grant,
-	roleBindings []rbacv1.RoleBinding,
-	clusterRoleBindings []rbacv1.ClusterRoleBinding,
-) error {
-	// self.logger.Info(
-	// 	"TICK: reconciler.deleteObsoleteRoleBindings",
-	// 	"workspaces", len(workspaces),
-	// 	"users", len(users),
-	// 	"clusterRoles", len(clusterRoles),
-	// 	"grants", len(grants),
-	// 	"roleBindings", len(roleBindings),
-	// 	"clusterRoleBindings", len(clusterRoleBindings),
-	// )
+	requiredRoleBindings []rbacv1.RoleBinding,
+	managedRoleBindings []rbacv1.RoleBinding,
+	requiredClusterRoleBindings []rbacv1.ClusterRoleBinding,
+	managedClusterRoleBindings []rbacv1.ClusterRoleBinding,
+) {
+	superfluousRoleBindings, superfluousClusterRoleBindings := self.findSuperfluousRoleBindings(
+		requiredRoleBindings,
+		managedRoleBindings,
+		requiredClusterRoleBindings,
+		managedClusterRoleBindings,
+	)
 
-	// create a list of expected rolebindings
-	//   skip grants which point to non-existent sources
-	// create a list of expected clusterrolebindings
-	//   skip grants which point to non-existent sources
-	// check if every existing rolebinding (with "managed-by:mogenius") should exist
-	//   delete if not
-	// check if every existing clusterrolebinding (with "managed-by:mogenius") should exist
-	//   delete if not
+	client := self.clientProvider.K8sClientSet()
 
-	return nil
+	for _, rb := range superfluousRoleBindings {
+		err := client.RbacV1().RoleBindings(rb.Namespace).Delete(context.Background(), rb.GetName(), metav1.DeleteOptions{})
+		if err != nil {
+			self.logger.Error("failed to delete rolebinding", "rolebinding", rb, "error", err)
+			continue
+		}
+		self.logger.Debug("deleted resource", "RoleBinding.Name", rb.GetName(), "RoleBinding.Namespace", rb.GetNamespace())
+	}
+
+	for _, rb := range superfluousClusterRoleBindings {
+		err := client.RbacV1().ClusterRoleBindings().Delete(context.Background(), rb.GetName(), metav1.DeleteOptions{})
+		if err != nil {
+			self.logger.Error("failed to delete clusterrolebinding", "rolebinding", rb, "error", err)
+			continue
+		}
+		self.logger.Debug("deleted resource", "ClusterRoleBinding.Name", rb.GetName())
+	}
 }
 
 func (self *reconciler) createMissingRoleBindings(
+	requiredRoleBindings []rbacv1.RoleBinding,
+	managedRoleBindings []rbacv1.RoleBinding,
+	requiredClusterRoleBindings []rbacv1.ClusterRoleBinding,
+	managedClusterRoleBindings []rbacv1.ClusterRoleBinding,
+) {
+	newRoleBindings, newClusterRoleBindings := self.findMissingRoleBindings(
+		requiredRoleBindings,
+		managedRoleBindings,
+		requiredClusterRoleBindings,
+		managedClusterRoleBindings,
+	)
+
+	client := self.clientProvider.K8sClientSet()
+
+	for _, rb := range newRoleBindings {
+		_, err := client.RbacV1().RoleBindings(rb.Namespace).Update(context.Background(), &rb, metav1.UpdateOptions{})
+		if err != nil {
+			self.logger.Error("failed to create rolebinding", "rolebinding", rb, "error", err)
+			continue
+		}
+		self.logger.Info("created resource", "RoleBinding.Name", rb.GetName(), "RoleBinding.Namespace", rb.GetNamespace())
+	}
+	for _, rb := range newClusterRoleBindings {
+		_, err := client.RbacV1().ClusterRoleBindings().Update(context.Background(), &rb, metav1.UpdateOptions{})
+		if err != nil {
+			self.logger.Error("failed to create rolebinding", "rolebinding", rb, "error", err)
+			continue
+		}
+		self.logger.Debug("created resource", "ClusterRoleBinding.Name", rb.GetName())
+	}
+}
+
+func (self *reconciler) generateMissingRoleBindings(
 	namespaces []v1.Namespace,
 	workspaces []v1alpha1.Workspace,
 	users []v1alpha1.User,
 	clusterRoles []rbacv1.ClusterRole,
 	grants []v1alpha1.Grant,
-	roleBindings []rbacv1.RoleBinding,
-	clusterRoleBindings []rbacv1.ClusterRoleBinding,
-) error {
-	// self.logger.Info(
-	// 	"TICK: reconciler.createMissingRoleBindings",
-	// 	"workspaces", len(workspaces),
-	// 	"users", len(users),
-	// 	"clusterRoles", len(clusterRoles),
-	// 	"grants", len(grants),
-	// 	"roleBindings", len(roleBindings),
-	// 	"clusterRoleBindings", len(clusterRoleBindings),
-	// )
+) ([]rbacv1.RoleBinding, []rbacv1.ClusterRoleBinding) {
+	requiredRoleBindings := []rbacv1.RoleBinding{}
+	requiredClusterRoleBindings := []rbacv1.ClusterRoleBinding{}
 
-	// create a list of expected rolebindings
-	//   skip grants which point to non-existent sources
-	// create a list of expected clusterrolebindings
-	//   skip grants which point to non-existent sources
-	// check if all expected rolebindings exist
-	//   create if not
-	// check if all expected clusterrolebindings exist
-	//   create if not
+	for _, grant := range grants {
+		user, err := self.findUserByName(users, grant.Spec.Grantee)
+		if err != nil {
+			// the referenced user does not exist
+			continue
+		}
+		if user.Spec.Subject == nil {
+			// no rolebinding needed as the user has no identity in the cluster
+			continue
+		}
+		clusterRole, err := self.findRoleByRolename(clusterRoles, grant.Spec.Role)
+		if err != nil {
+			// the referenced clusterrole does not exist
+			continue
+		}
+		switch grant.Spec.TargetType {
+		case "workspace":
+			workspace, err := self.findWorkspaceByName(workspaces, grant.Spec.TargetName)
+			if err != nil {
+				// the referenced workspace does not exist
+				continue
+			}
+			for _, resource := range workspace.Spec.Resources {
+				namespace := ""
+				switch resource.Type {
+				case "namespace":
+					namespace = resource.Id
+				case "helm":
+					// assigning permissions to helm charts means allowing access to the namespace they are installed in
+					namespace = resource.Namespace
+				default:
+					// invalid type of resource reference
+					continue
+				}
+				if !slices.ContainsFunc(namespaces, func(ns v1.Namespace) bool {
+					return ns.GetName() == namespace
+				}) {
+					// the namespace doesn't exist
+					continue
+				}
+				roleBinding := rbacv1.RoleBinding{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "mogenius-rb-" + self.generateManagedRoleBindingNameSuffixGrantResource(grant, resource),
+						Namespace: namespace,
+						Labels:    self.createManagedRoleBindingLabels(grant, resource),
+					},
+					RoleRef: rbacv1.RoleRef{
+						APIGroup: "rbac.authorization.k8s.io",
+						Kind:     "ClusterRole",
+						Name:     clusterRole.GetName(),
+					},
+					Subjects: []rbacv1.Subject{*user.Spec.Subject},
+				}
+				requiredRoleBindings = append(requiredRoleBindings, roleBinding)
 
-	return nil
+				if resource.Type == "helm" {
+					// allow installing CRDs
+					clusterRoleBinding := rbacv1.ClusterRoleBinding{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "mogenius-crb-" + self.generateManagedRoleBindingNameSuffixGrantResource(grant, resource),
+							Namespace: namespace,
+							Labels:    self.createManagedRoleBindingLabels(grant, resource),
+						},
+						RoleRef: rbacv1.RoleRef{
+							APIGroup: "rbac.authorization.k8s.io",
+							Kind:     "ClusterRole",
+							Name:     clusterRole.GetName(),
+						},
+						Subjects: []rbacv1.Subject{*user.Spec.Subject},
+					}
+					requiredClusterRoleBindings = append(requiredClusterRoleBindings, clusterRoleBinding)
+				}
+			}
+		default:
+			continue
+		}
+	}
+
+	return requiredRoleBindings, requiredClusterRoleBindings
+}
+
+func (self *reconciler) filterManagedRoleBindings(rolebindings []rbacv1.RoleBinding) []rbacv1.RoleBinding {
+	managedRoleBindings := make([]rbacv1.RoleBinding, 0, len(rolebindings))
+
+	for _, rb := range rolebindings {
+		labels := rb.GetLabels()
+		_, ok := labels[self.getLabelManagedByMogenius()]
+		if !ok {
+			continue
+		}
+		_, err := self.managedRoleBindingLabelFields(rb.GetLabels())
+		if err != nil {
+			continue
+		}
+
+		managedRoleBindings = append(managedRoleBindings, rb)
+	}
+
+	return managedRoleBindings
+}
+
+func (self *reconciler) filterManagedClusterRoleBindings(rolebindings []rbacv1.ClusterRoleBinding) []rbacv1.ClusterRoleBinding {
+	managedRoleBindings := make([]rbacv1.ClusterRoleBinding, 0, len(rolebindings))
+
+	for _, rb := range rolebindings {
+		labels := rb.GetLabels()
+		_, ok := labels[self.getLabelManagedByMogenius()]
+		if !ok {
+			continue
+		}
+		_, err := self.managedRoleBindingLabelFields(rb.GetLabels())
+		if err != nil {
+			continue
+		}
+
+		managedRoleBindings = append(managedRoleBindings, rb)
+	}
+
+	return managedRoleBindings
+}
+
+func (self *reconciler) findSuperfluousRoleBindings(
+	requiredRoleBindings []rbacv1.RoleBinding,
+	existingRoleBindings []rbacv1.RoleBinding,
+	requiredClusterRoleBindings []rbacv1.ClusterRoleBinding,
+	existingClusterRoleBindings []rbacv1.ClusterRoleBinding,
+) ([]rbacv1.RoleBinding, []rbacv1.ClusterRoleBinding) {
+	superfluousRoleBindings := make([]rbacv1.RoleBinding, 0, len(requiredRoleBindings))
+	superfluousClusterRoleBindings := make([]rbacv1.ClusterRoleBinding, 0, len(requiredClusterRoleBindings))
+
+	for _, erb := range existingRoleBindings {
+		erbManagedFields, err := self.managedRoleBindingLabelFields(erb.GetLabels())
+		if err != nil {
+			continue
+		}
+		found := false
+		for _, rb := range requiredRoleBindings {
+			rbManagedFields, err := self.managedRoleBindingLabelFields(rb.GetLabels())
+			if err != nil {
+				continue
+			}
+			if erbManagedFields.equals(&rbManagedFields) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			superfluousRoleBindings = append(superfluousRoleBindings, erb)
+		}
+	}
+
+	for _, erb := range existingClusterRoleBindings {
+		erbManagedFields, err := self.managedRoleBindingLabelFields(erb.GetLabels())
+		if err != nil {
+			continue
+		}
+		found := false
+		for _, rb := range requiredClusterRoleBindings {
+			rbManagedFields, err := self.managedRoleBindingLabelFields(rb.GetLabels())
+			if err != nil {
+				continue
+			}
+			if erbManagedFields.equals(&rbManagedFields) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			superfluousClusterRoleBindings = append(superfluousClusterRoleBindings, erb)
+		}
+	}
+
+	return superfluousRoleBindings, superfluousClusterRoleBindings
+}
+
+func (self *reconciler) findMissingRoleBindings(
+	requiredRoleBindings []rbacv1.RoleBinding,
+	existingRoleBindings []rbacv1.RoleBinding,
+	requiredClusterRoleBindings []rbacv1.ClusterRoleBinding,
+	existingClusterRoleBindings []rbacv1.ClusterRoleBinding,
+) ([]rbacv1.RoleBinding, []rbacv1.ClusterRoleBinding) {
+	filteredRoleBindings := make([]rbacv1.RoleBinding, 0, len(requiredRoleBindings))
+	filteredClusterRoleBindings := make([]rbacv1.ClusterRoleBinding, 0, len(requiredClusterRoleBindings))
+
+	for _, rb := range requiredRoleBindings {
+		rbManagedFields, err := self.managedRoleBindingLabelFields(rb.GetLabels())
+		if err != nil {
+			continue
+		}
+		found := false
+		for _, erb := range existingRoleBindings {
+			erbManagedFields, err := self.managedRoleBindingLabelFields(erb.GetLabels())
+			if err != nil {
+				continue
+			}
+			if rbManagedFields.equals(&erbManagedFields) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			filteredRoleBindings = append(filteredRoleBindings, rb)
+		}
+	}
+
+	for _, rb := range requiredClusterRoleBindings {
+		rbManagedFields, err := self.managedRoleBindingLabelFields(rb.GetLabels())
+		assert.Assert(err == nil, "the newly constructed and not yet applied managed resource should not be lacking a field", err)
+		found := false
+		for _, erb := range existingClusterRoleBindings {
+			erbManagedFields, err := self.managedRoleBindingLabelFields(erb.GetLabels())
+			if err != nil {
+				continue
+			}
+			if rbManagedFields.equals(&erbManagedFields) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			filteredClusterRoleBindings = append(filteredClusterRoleBindings, rb)
+		}
+	}
+
+	return filteredRoleBindings, filteredClusterRoleBindings
+}
+
+func (self *reconciler) getLabelOrg() string {
+	return "app.mogenius.com"
+}
+
+func (self *reconciler) getLabelManagedByMogenius() string {
+	return self.getLabelOrg() + "/" + "managed-by-mogenius"
+}
+
+func (self *reconciler) getLabelRoleName() string {
+	return self.getLabelOrg() + "/" + "role-name"
+}
+
+func (self *reconciler) findUserByName(users []v1alpha1.User, name string) (v1alpha1.User, error) {
+	for _, user := range users {
+		if user.GetObjectMeta().GetName() == name {
+			return user, nil
+		}
+	}
+
+	return v1alpha1.User{}, fmt.Errorf("user not found")
+}
+
+func (self *reconciler) findRoleByRolename(clusterRoles []rbacv1.ClusterRole, rolename string) (rbacv1.ClusterRole, error) {
+	// check for matches in labels
+	for _, clusterRole := range clusterRoles {
+		labels := clusterRole.GetObjectMeta().GetLabels()
+		for key, val := range labels {
+			if key == self.getLabelRoleName() {
+				if val == rolename {
+					return clusterRole, nil
+				}
+				break
+			}
+		}
+	}
+
+	// continue search by regular resource names
+	for _, clusterRole := range clusterRoles {
+		if clusterRole.GetObjectMeta().GetName() == rolename {
+			return clusterRole, nil
+		}
+	}
+
+	return rbacv1.ClusterRole{}, fmt.Errorf("clusterrole not found")
+}
+
+func (self *reconciler) findWorkspaceByName(workspaces []v1alpha1.Workspace, name string) (v1alpha1.Workspace, error) {
+	for _, workspace := range workspaces {
+		if workspace.GetObjectMeta().GetName() == name {
+			return workspace, nil
+		}
+	}
+
+	return v1alpha1.Workspace{}, fmt.Errorf("workspace not found")
+}
+
+func (self *reconciler) generateManagedRoleBindingNameSuffixGrantResource(
+	grant v1alpha1.Grant,
+	resource v1alpha1.WorkspaceResourceIdentifier,
+) string {
+	h := fnv.New64a()
+	h.Write([]byte(grant.Spec.Grantee))
+	h.Write([]byte(grant.Spec.TargetType))
+	h.Write([]byte(grant.Spec.TargetName))
+	h.Write([]byte(grant.Spec.Role))
+	h.Write([]byte(resource.Id))
+	h.Write([]byte(resource.Type))
+	h.Write([]byte(resource.Namespace))
+	return fmt.Sprintf("%x", h.Sum64())
+}
+
+type ManagedRoleBindingLabelFields struct {
+	GrantGrantee      string
+	GrantTargetType   string
+	GrantTargetName   string
+	GrantRole         string
+	ResourceId        string
+	ResourceType      string
+	ResourceNamespace string
+}
+
+func (self *ManagedRoleBindingLabelFields) equals(other *ManagedRoleBindingLabelFields) bool {
+	if self.GrantGrantee != other.GrantGrantee {
+		return false
+	}
+	if self.GrantTargetType != other.GrantTargetType {
+		return false
+	}
+	if self.GrantTargetName != other.GrantTargetName {
+		return false
+	}
+	if self.GrantRole != other.GrantRole {
+		return false
+	}
+	if self.ResourceId != other.ResourceId {
+		return false
+	}
+	if self.ResourceType != other.ResourceType {
+		return false
+	}
+	if self.ResourceNamespace != other.ResourceNamespace {
+		return false
+	}
+
+	return true
+}
+
+func (self *reconciler) getReconcilerLabelGrantGrantee() string {
+	return self.getLabelOrg() + "/grant-grantee"
+}
+
+func (self *reconciler) getReconcilerLabelGrantTargetType() string {
+	return self.getLabelOrg() + "/grant-target-type"
+}
+
+func (self *reconciler) getReconcilerLabelGrantTargetName() string {
+	return self.getLabelOrg() + "/grant-target-name"
+}
+
+func (self *reconciler) getReconcilerLabelGrantRole() string {
+	return self.getLabelOrg() + "/grant-role"
+}
+
+func (self *reconciler) getReconcilerLabelResourceId() string {
+	return self.getLabelOrg() + "/resource-id"
+}
+
+func (self *reconciler) getReconcilerLabelResourceType() string {
+	return self.getLabelOrg() + "/resource-type"
+}
+
+func (self *reconciler) getReconcilerLabelResourceNamespace() string {
+	return self.getLabelOrg() + "/resource-namespace"
+}
+
+func (self *reconciler) createManagedRoleBindingLabels(
+	grant v1alpha1.Grant,
+	resource v1alpha1.WorkspaceResourceIdentifier,
+) map[string]string {
+	labels := make(map[string]string)
+
+	labels[self.getLabelManagedByMogenius()] = ""
+	labels[self.getReconcilerLabelGrantGrantee()] = grant.Spec.Grantee
+	labels[self.getReconcilerLabelGrantTargetType()] = grant.Spec.TargetType
+	labels[self.getReconcilerLabelGrantTargetName()] = grant.Spec.TargetName
+	labels[self.getReconcilerLabelGrantRole()] = grant.Spec.Role
+	labels[self.getReconcilerLabelResourceId()] = resource.Id
+	labels[self.getReconcilerLabelResourceType()] = resource.Type
+	labels[self.getReconcilerLabelResourceNamespace()] = resource.Namespace
+
+	return labels
+}
+
+func (self *reconciler) managedRoleBindingLabelFields(labels map[string]string) (ManagedRoleBindingLabelFields, error) {
+	data := ManagedRoleBindingLabelFields{}
+
+	grantee, ok := labels[self.getReconcilerLabelGrantGrantee()]
+	if !ok {
+		return ManagedRoleBindingLabelFields{}, fmt.Errorf("missing label: grant-grantee")
+	}
+	data.GrantGrantee = grantee
+
+	targetType, ok := labels[self.getReconcilerLabelGrantTargetType()]
+	if !ok {
+		return ManagedRoleBindingLabelFields{}, fmt.Errorf("missing label: grant-target-type")
+	}
+	data.GrantTargetType = targetType
+
+	targetName, ok := labels[self.getReconcilerLabelGrantTargetName()]
+	if !ok {
+		return ManagedRoleBindingLabelFields{}, fmt.Errorf("missing label: grant-target-name")
+	}
+	data.GrantTargetName = targetName
+
+	role, ok := labels[self.getReconcilerLabelGrantRole()]
+	if !ok {
+		return ManagedRoleBindingLabelFields{}, fmt.Errorf("missing label: grant-role")
+	}
+	data.GrantRole = role
+
+	resourceId, ok := labels[self.getReconcilerLabelResourceId()]
+	if !ok {
+		return ManagedRoleBindingLabelFields{}, fmt.Errorf("missing label: resource-id")
+	}
+	data.ResourceId = resourceId
+
+	resourceType, ok := labels[self.getReconcilerLabelResourceType()]
+	if !ok {
+		return ManagedRoleBindingLabelFields{}, fmt.Errorf("missing label: resource-type")
+	}
+	data.ResourceType = resourceType
+
+	resourceNamespace, ok := labels[self.getReconcilerLabelResourceNamespace()]
+	if !ok {
+		return ManagedRoleBindingLabelFields{}, fmt.Errorf("missing label: resource-namespace")
+	}
+	data.ResourceNamespace = resourceNamespace
+
+	return data, nil
 }

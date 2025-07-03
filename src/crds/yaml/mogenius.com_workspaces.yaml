@@ -46,8 +46,12 @@ spec:
                 items:
                   properties:
                     id:
+                      description: target entity identifier (name)
                       type: string
                     namespace:
+                      description: |-
+                        Type=="namespace": unused
+                        Type=="helm": namespace in which the chart was installed
                       type: string
                     type:
                       description: 'allowed values: "namespace", "helm"'

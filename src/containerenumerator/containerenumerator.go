@@ -86,7 +86,6 @@ func (self *containerEnumerator) startWorker() {
 	}
 
 	go func() {
-
 		ownNodeName := self.config.Get("OWN_NODE_NAME")
 		assert.Assert(ownNodeName != "", "OWN_NODE_NAME has to be defined and non-empty", ownNodeName)
 		fieldSelector := fmt.Sprintf("metadata.namespace!=kube-system,spec.nodeName=%s", ownNodeName)
