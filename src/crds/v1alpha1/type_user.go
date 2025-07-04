@@ -77,11 +77,12 @@ type UserSpec struct {
 	Subject *rbacv1.Subject `json:"subject,omitempty"`
 }
 
-func NewUserSpec(firstName string, lastName string, email string) UserSpec {
+func NewUserSpec(firstName string, lastName string, email string, subject *rbacv1.Subject) UserSpec {
 	return UserSpec{
 		FirstName: firstName,
 		LastName:  lastName,
 		Email:     email,
+		Subject:   subject,
 	}
 }
 

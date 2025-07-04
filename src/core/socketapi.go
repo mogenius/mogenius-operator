@@ -31,6 +31,7 @@ import (
 	jsoniter "github.com/json-iterator/go"
 	"helm.sh/helm/v3/pkg/release"
 	v1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
@@ -43,6 +44,7 @@ type SocketApi interface {
 		moKubernetes MoKubernetes,
 	)
 	Run()
+	Status() SocketApiStatus
 	ExecuteCommandRequest(datagram structs.Datagram) interface{}
 	ParseDatagram(data []byte) (structs.Datagram, error)
 	RegisterPatternHandler(
@@ -61,6 +63,21 @@ type SocketApi interface {
 	LoadRequest(datagram *structs.Datagram, data interface{}) error
 }
 
+type SocketApiStatus struct {
+	IsRunning bool `json:"is_running"`
+}
+
+func NewSocketApiStatus() SocketApiStatus {
+	status := SocketApiStatus{}
+	return status
+}
+
+func (self *SocketApiStatus) Clone() SocketApiStatus {
+	return SocketApiStatus{
+		self.IsRunning,
+	}
+}
+
 type socketApi struct {
 	logger *slog.Logger
 
@@ -70,6 +87,9 @@ type socketApi struct {
 	config       config.ConfigModule
 	valkeyClient valkeyclient.ValkeyClient
 	dbstats      ValkeyStatsDb
+
+	status     SocketApiStatus
+	statusLock sync.RWMutex
 
 	// the patternHandler should only be edited on startup
 	patternHandlerLock sync.RWMutex
@@ -109,6 +129,8 @@ func NewSocketApi(
 	self.logger = logger
 	self.patternHandler = map[string]PatternHandler{}
 	self.valkeyClient = valkeyClient
+	self.status = NewSocketApiStatus()
+	self.statusLock = sync.RWMutex{}
 
 	self.registerPatterns()
 
@@ -142,6 +164,16 @@ func (self *socketApi) Run() {
 
 	self.AssertPatternsUnique()
 	self.startK8sManager()
+
+	self.statusLock.Lock()
+	self.status.IsRunning = true
+	self.statusLock.Unlock()
+}
+
+func (self *socketApi) Status() SocketApiStatus {
+	self.statusLock.RLock()
+	defer self.statusLock.RUnlock()
+	return self.status.Clone()
 }
 
 func (self *socketApi) AssertPatternsUnique() {
@@ -1597,10 +1629,11 @@ func (self *socketApi) registerPatterns() {
 
 	{
 		type Request struct {
-			Name      string `json:"name"`
-			FirstName string `json:"firstName"`
-			LastName  string `json:"lastName"`
-			Email     string `json:"email"`
+			Name      string          `json:"name"`
+			FirstName string          `json:"firstName"`
+			LastName  string          `json:"lastName"`
+			Email     string          `json:"email"`
+			Subject   *rbacv1.Subject `json:"subject"`
 		}
 
 		RegisterPatternHandler(
@@ -1611,6 +1644,7 @@ func (self *socketApi) registerPatterns() {
 					request.FirstName,
 					request.LastName,
 					request.Email,
+					request.Subject,
 				))
 			},
 		)
@@ -1632,10 +1666,11 @@ func (self *socketApi) registerPatterns() {
 
 	{
 		type Request struct {
-			Name      string `json:"name" validate:"required"`
-			FirstName string `json:"firstName"`
-			LastName  string `json:"lastName"`
-			Email     string `json:"email"`
+			Name      string          `json:"name" validate:"required"`
+			FirstName string          `json:"firstName"`
+			LastName  string          `json:"lastName"`
+			Email     string          `json:"email"`
+			Subject   *rbacv1.Subject `json:"subject"`
 		}
 
 		RegisterPatternHandler(
@@ -1646,6 +1681,7 @@ func (self *socketApi) registerPatterns() {
 					request.FirstName,
 					request.LastName,
 					request.Email,
+					request.Subject,
 				))
 			},
 		)

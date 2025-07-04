@@ -2578,6 +2578,17 @@ export type CREATE_NEW_WORKLOAD_RESPONSE = CREATE_NEW_WORKLOAD_RESPONSE__K8S_IO_
  *
  * ```yaml
  * structs:
+ *     k8s.io/api/rbac/v1.Subject:
+ *         name: k8s.io/api/rbac/v1.Subject
+ *         properties:
+ *             apiGroup:
+ *                 type: string
+ *             kind:
+ *                 type: string
+ *             name:
+ *                 type: string
+ *             namespace:
+ *                 type: string
  *     mogenius-k8s-manager/src/core.Request:
  *         name: mogenius-k8s-manager/src/core.Request
  *         properties:
@@ -2589,6 +2600,10 @@ export type CREATE_NEW_WORKLOAD_RESPONSE = CREATE_NEW_WORKLOAD_RESPONSE__K8S_IO_
  *                 type: string
  *             name:
  *                 type: string
+ *             subject:
+ *                 pointer: true
+ *                 structRef: k8s.io/api/rbac/v1.Subject
+ *                 type: struct
  * typeInfo:
  *     structRef: mogenius-k8s-manager/src/core.Request
  *     type: struct
@@ -16806,6 +16821,17 @@ export type UPDATE_NETWORK_POLICIES_TEMPLATE_RESPONSE = UPDATE_NETWORK_POLICIES_
  *
  * ```yaml
  * structs:
+ *     k8s.io/api/rbac/v1.Subject:
+ *         name: k8s.io/api/rbac/v1.Subject
+ *         properties:
+ *             apiGroup:
+ *                 type: string
+ *             kind:
+ *                 type: string
+ *             name:
+ *                 type: string
+ *             namespace:
+ *                 type: string
  *     mogenius-k8s-manager/src/core.Request:
  *         name: mogenius-k8s-manager/src/core.Request
  *         properties:
@@ -16817,6 +16843,10 @@ export type UPDATE_NETWORK_POLICIES_TEMPLATE_RESPONSE = UPDATE_NETWORK_POLICIES_
  *                 type: string
  *             name:
  *                 type: string
+ *             subject:
+ *                 pointer: true
+ *                 structRef: k8s.io/api/rbac/v1.Subject
+ *                 type: struct
  * typeInfo:
  *     structRef: mogenius-k8s-manager/src/core.Request
  *     type: struct
@@ -17344,7 +17374,8 @@ export type CLUSTER_UPDATE_LOCAL_TLS_SECRET_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SE
 export type CREATE_GRANT_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"grantee": string,"name": string,"role": string,"targetName": string,"targetType": string};
 export type CREATE_NEW_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDATA = {"group": string,"kind": string,"name": string,"namespace": string|undefined,"version": string,"yamlData": string};
 export type CREATE_NEW_WORKLOAD_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"Object": Record<string, any>};
-export type CREATE_USER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"email": string,"firstName": string,"lastName": string,"name": string};
+export type CREATE_USER_REQUEST__K8S_IO_API_RBAC_V1_SUBJECT = {"apiGroup": string,"kind": string,"name": string,"namespace": string};
+export type CREATE_USER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"email": string,"firstName": string,"lastName": string,"name": string,"subject": CREATE_USER_REQUEST__K8S_IO_API_RBAC_V1_SUBJECT|undefined};
 export type CREATE_WORKSPACE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"displayName": string,"name": string,"resources": CREATE_WORKSPACE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_WORKSPACERESOURCEIDENTIFIER[]};
 export type CREATE_WORKSPACE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_WORKSPACERESOURCEIDENTIFIER = {"id": string,"namespace": string,"type": string};
 export type DELETE_GRANT_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"name": string};
@@ -18140,7 +18171,8 @@ export type UNINSTALL_METRICS_SERVER_REQUEST__ANON_STRUCT_0 = {};
 export type UPDATE_GRANT_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"grantee": string,"name": string,"role": string,"targetName": string,"targetType": string};
 export type UPDATE_NETWORK_POLICIES_TEMPLATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_NETWORKPOLICY = {"Name": string,"Port": number,"Protocol": string,"Type": string};
 export type UPDATE_NETWORK_POLICIES_TEMPLATE_RESPONSE__ANON_STRUCT_0 = {};
-export type UPDATE_USER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"email": string,"firstName": string,"lastName": string,"name": string};
+export type UPDATE_USER_REQUEST__K8S_IO_API_RBAC_V1_SUBJECT = {"apiGroup": string,"kind": string,"name": string,"namespace": string};
+export type UPDATE_USER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"email": string,"firstName": string,"lastName": string,"name": string,"subject": UPDATE_USER_REQUEST__K8S_IO_API_RBAC_V1_SUBJECT|undefined};
 export type UPDATE_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDATA = {"group": string,"kind": string,"name": string,"namespace": string|undefined,"version": string,"yamlData": string};
 export type UPDATE_WORKLOAD_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"Object": Record<string, any>};
 export type UPDATE_WORKSPACE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"displayName": string,"name": string,"resources": UPDATE_WORKSPACE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_WORKSPACERESOURCEIDENTIFIER[]};

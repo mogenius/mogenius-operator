@@ -3950,6 +3950,17 @@ create/new-workload:
 create/user:
     requestSchema:
         structs:
+            k8s.io/api/rbac/v1.Subject:
+                name: k8s.io/api/rbac/v1.Subject
+                properties:
+                    apiGroup:
+                        type: string
+                    kind:
+                        type: string
+                    name:
+                        type: string
+                    namespace:
+                        type: string
             mogenius-k8s-manager/src/core.Request:
                 name: mogenius-k8s-manager/src/core.Request
                 properties:
@@ -3961,6 +3972,10 @@ create/user:
                         type: string
                     name:
                         type: string
+                    subject:
+                        pointer: true
+                        structRef: k8s.io/api/rbac/v1.Subject
+                        type: struct
         typeInfo:
             structRef: mogenius-k8s-manager/src/core.Request
             type: struct
@@ -14372,6 +14387,17 @@ update/network_policies_template:
 update/user:
     requestSchema:
         structs:
+            k8s.io/api/rbac/v1.Subject:
+                name: k8s.io/api/rbac/v1.Subject
+                properties:
+                    apiGroup:
+                        type: string
+                    kind:
+                        type: string
+                    name:
+                        type: string
+                    namespace:
+                        type: string
             mogenius-k8s-manager/src/core.Request:
                 name: mogenius-k8s-manager/src/core.Request
                 properties:
@@ -14383,6 +14409,10 @@ update/user:
                         type: string
                     name:
                         type: string
+                    subject:
+                        pointer: true
+                        structRef: k8s.io/api/rbac/v1.Subject
+                        type: struct
         typeInfo:
             structRef: mogenius-k8s-manager/src/core.Request
             type: struct

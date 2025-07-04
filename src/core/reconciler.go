@@ -10,6 +10,7 @@ import (
 	"mogenius-k8s-manager/src/crds"
 	"mogenius-k8s-manager/src/crds/v1alpha1"
 	"mogenius-k8s-manager/src/k8sclient"
+	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/watcher"
 	"slices"
 	"sync"
@@ -26,6 +27,7 @@ import (
 
 type Reconciler interface {
 	Link(leaderElector LeaderElector)
+	Status() ReconcilerStatus
 	Run()
 	Start()
 	Stop()
@@ -38,6 +40,8 @@ type reconciler struct {
 	leaderElector  LeaderElector
 	active         atomic.Bool
 	watcher        watcher.WatcherModule
+	status         ReconcilerStatus
+	statusLock     sync.RWMutex
 
 	// crd resources
 	crdResources   []watcher.WatcherResourceIdentifier
@@ -71,6 +75,8 @@ func NewReconciler(
 	self.clientProvider = clientProvider
 	self.active = atomic.Bool{}
 	self.watcher = watcher.NewWatcher(self.logger.With("scope", "watcher"), self.clientProvider)
+	self.status = NewReconcilerStatus()
+	self.statusLock = sync.RWMutex{}
 
 	self.crdResources = []watcher.WatcherResourceIdentifier{
 		{Name: "workspaces", Kind: "Workspace", Version: "", GroupVersion: "mogenius.com/v1alpha1", Namespaced: false},
@@ -161,12 +167,271 @@ func (self *reconciler) Start() {
 	self.clearCaches()
 	self.enableWatcher()
 	self.active.Store(true)
+	self.statusLock.Lock()
+	self.status.IsActive = true
+	self.statusLock.Unlock()
 }
 
 func (self *reconciler) Stop() {
 	self.active.Store(false)
 	self.disableWatcher()
 	self.clearCaches()
+	self.statusLock.Lock()
+	self.status.IsActive = false
+	self.statusLock.Unlock()
+}
+
+type ReconcilerStatus struct {
+	IsActive                       bool                      `json:"is_active"`
+	LastUpdate                     *time.Time                `json:"last_update,omitempty"`
+	ResourceWarnings               []ReconcilerResourceError `json:"resource_warnings"`
+	ResourceErrors                 []ReconcilerResourceError `json:"resource_errors"`
+	ManagedRoleBindingCount        int                       `json:"managed_role_binding_count"`
+	ManagedClusterRoleBindingCount int                       `json:"managed_cluster_role_binding_count"`
+	MogeniusUsersCount             int                       `json:"mogenius_users_count"`
+	MogeniusWorkspacesCount        int                       `json:"mogenius_workspaces_count"`
+	MogeniusGrantsCount            int                       `json:"mogenius_grants_count"`
+}
+
+func NewReconcilerStatus() ReconcilerStatus {
+	status := ReconcilerStatus{}
+	status.ResourceWarnings = []ReconcilerResourceError{}
+	status.ResourceErrors = []ReconcilerResourceError{}
+	return status
+}
+
+func (self *ReconcilerStatus) Clone() ReconcilerStatus {
+	other := ReconcilerStatus{
+		self.IsActive,
+		self.LastUpdate,
+		make([]ReconcilerResourceError, 0, len(self.ResourceWarnings)),
+		make([]ReconcilerResourceError, 0, len(self.ResourceErrors)),
+		self.ManagedRoleBindingCount,
+		self.ManagedClusterRoleBindingCount,
+		self.MogeniusUsersCount,
+		self.MogeniusWorkspacesCount,
+		self.MogeniusGrantsCount,
+	}
+	for _, r := range self.ResourceWarnings {
+		other.ResourceWarnings = append(other.ResourceWarnings, r.Clone())
+	}
+	for _, r := range self.ResourceErrors {
+		other.ResourceErrors = append(other.ResourceErrors, r.Clone())
+	}
+	return other
+}
+
+type ReconcilerResourceError struct {
+	ResourceGroup     string
+	ResourceVersion   string
+	ResourceName      string
+	ResourceNamespace string
+	Error             string
+}
+
+func (self *ReconcilerResourceError) Clone() ReconcilerResourceError {
+	return ReconcilerResourceError{
+		self.ResourceGroup,
+		self.ResourceVersion,
+		self.ResourceName,
+		self.ResourceNamespace,
+		self.Error,
+	}
+}
+
+func (self *reconciler) Status() ReconcilerStatus {
+	self.statusLock.RLock()
+	defer self.statusLock.RUnlock()
+	return self.status.Clone()
+}
+
+func (self *reconciler) updateStatus(
+	namespaces []v1.Namespace,
+	workspaces []v1alpha1.Workspace,
+	users []v1alpha1.User,
+	clusterRoles []rbacv1.ClusterRole,
+	grants []v1alpha1.Grant,
+	roleBindings []rbacv1.RoleBinding,
+	clusterRoleBindings []rbacv1.ClusterRoleBinding,
+) {
+	self.statusLock.RLock()
+	status := self.status.Clone()
+	self.statusLock.RUnlock()
+	status.LastUpdate = utils.Pointer(time.Now())
+	status.MogeniusUsersCount = len(users)
+	status.MogeniusWorkspacesCount = len(workspaces)
+	status.MogeniusGrantsCount = len(grants)
+
+	for _, user := range users {
+		if user.Spec.Email == "" {
+			resourceErr := ReconcilerResourceError{}
+			resourceErr.ResourceGroup = user.GetObjectKind().GroupVersionKind().Group
+			resourceErr.ResourceVersion = user.GetObjectKind().GroupVersionKind().Version
+			resourceErr.ResourceName = user.GetName()
+			resourceErr.ResourceNamespace = user.GetNamespace()
+			resourceErr.Error = "User email is not set - mogenius does not have an identifier for this user"
+			status.ResourceErrors = append(status.ResourceErrors, resourceErr)
+		}
+		if user.Spec.Subject == nil {
+			resourceErr := ReconcilerResourceError{}
+			resourceErr.ResourceGroup = user.GetObjectKind().GroupVersionKind().Group
+			resourceErr.ResourceVersion = user.GetObjectKind().GroupVersionKind().Version
+			resourceErr.ResourceName = user.GetName()
+			resourceErr.ResourceNamespace = user.GetNamespace()
+			resourceErr.Error = "User subject is not set - no permissions in the cluster can be granted"
+			status.ResourceWarnings = append(status.ResourceErrors, resourceErr)
+		}
+	}
+
+	for _, workspace := range workspaces {
+		for _, resource := range workspace.Spec.Resources {
+			switch resource.Type {
+			case "namespace":
+				namespace := resource.Id
+				if namespace == "" {
+					resourceErr := ReconcilerResourceError{}
+					resourceErr.ResourceGroup = workspace.GetObjectKind().GroupVersionKind().Group
+					resourceErr.ResourceVersion = workspace.GetObjectKind().GroupVersionKind().Version
+					resourceErr.ResourceName = workspace.GetName()
+					resourceErr.ResourceNamespace = workspace.GetNamespace()
+					resourceErr.Error = "Workspace contains a resource of type 'namespace' which does not specifiy the namespace name in resource.Id"
+					status.ResourceErrors = append(status.ResourceErrors, resourceErr)
+				}
+				_, err := self.findNamespaceByName(namespaces, namespace)
+				if err != nil {
+					resourceErr := ReconcilerResourceError{}
+					resourceErr.ResourceGroup = workspace.GetObjectKind().GroupVersionKind().Group
+					resourceErr.ResourceVersion = workspace.GetObjectKind().GroupVersionKind().Version
+					resourceErr.ResourceName = workspace.GetName()
+					resourceErr.ResourceNamespace = workspace.GetNamespace()
+					resourceErr.Error = fmt.Sprintf("Workspace contains a resource of type 'namespace' pointing to a namespace which does not exist: %#v", namespace)
+					status.ResourceErrors = append(status.ResourceErrors, resourceErr)
+				}
+			case "helm":
+				namespace := resource.Namespace
+				if namespace == "" {
+					resourceErr := ReconcilerResourceError{}
+					resourceErr.ResourceGroup = workspace.GetObjectKind().GroupVersionKind().Group
+					resourceErr.ResourceVersion = workspace.GetObjectKind().GroupVersionKind().Version
+					resourceErr.ResourceName = workspace.GetName()
+					resourceErr.ResourceNamespace = workspace.GetNamespace()
+					resourceErr.Error = "Workspace contains a resource of type 'helm' which does not specifiy the namespace name in resource.Namespace"
+					status.ResourceErrors = append(status.ResourceErrors, resourceErr)
+				}
+				_, err := self.findNamespaceByName(namespaces, namespace)
+				if err != nil {
+					resourceErr := ReconcilerResourceError{}
+					resourceErr.ResourceGroup = workspace.GetObjectKind().GroupVersionKind().Group
+					resourceErr.ResourceVersion = workspace.GetObjectKind().GroupVersionKind().Version
+					resourceErr.ResourceName = workspace.GetName()
+					resourceErr.ResourceNamespace = workspace.GetNamespace()
+					resourceErr.Error = fmt.Sprintf("Workspace contains a resource of type 'helm' pointing to a namespace which does not exist: %#v", namespace)
+					status.ResourceErrors = append(status.ResourceErrors, resourceErr)
+				}
+				// TODO: find an efficient way to check if the referenced helm chart exists as specified
+			default:
+				resourceErr := ReconcilerResourceError{}
+				resourceErr.ResourceGroup = workspace.GetObjectKind().GroupVersionKind().Group
+				resourceErr.ResourceVersion = workspace.GetObjectKind().GroupVersionKind().Version
+				resourceErr.ResourceName = workspace.GetName()
+				resourceErr.ResourceNamespace = workspace.GetNamespace()
+				resourceErr.Error = fmt.Sprintf("Workspace contains a resource with the invalid type: %#v", resource.Type)
+				status.ResourceErrors = append(status.ResourceErrors, resourceErr)
+			}
+		}
+	}
+
+	for _, grant := range grants {
+		_, err := self.findUserByName(users, grant.Spec.Grantee)
+		if err != nil {
+			resourceErr := ReconcilerResourceError{}
+			resourceErr.ResourceGroup = grant.GetObjectKind().GroupVersionKind().Group
+			resourceErr.ResourceVersion = grant.GetObjectKind().GroupVersionKind().Version
+			resourceErr.ResourceName = grant.GetName()
+			resourceErr.ResourceNamespace = grant.GetNamespace()
+			resourceErr.Error = fmt.Sprintf("Grant is pointing to a user which does not exist: %#v", grant.Spec.Grantee)
+			status.ResourceErrors = append(status.ResourceErrors, resourceErr)
+		}
+
+		_, err = self.findClusterRoleByRolename(clusterRoles, grant.Spec.Role)
+		if err != nil {
+			resourceErr := ReconcilerResourceError{}
+			resourceErr.ResourceGroup = grant.GetObjectKind().GroupVersionKind().Group
+			resourceErr.ResourceVersion = grant.GetObjectKind().GroupVersionKind().Version
+			resourceErr.ResourceName = grant.GetName()
+			resourceErr.ResourceNamespace = grant.GetNamespace()
+			resourceErr.Error = fmt.Sprintf("Grant is pointing to a ClusterRole which does not exist: %#v", grant.Spec.Role)
+			status.ResourceErrors = append(status.ResourceErrors, resourceErr)
+		}
+
+		switch grant.Spec.TargetType {
+		case "workspace":
+			_, err := self.findWorkspaceByName(workspaces, grant.Spec.TargetName)
+			if err != nil {
+				resourceErr := ReconcilerResourceError{}
+				resourceErr.ResourceGroup = grant.GetObjectKind().GroupVersionKind().Group
+				resourceErr.ResourceVersion = grant.GetObjectKind().GroupVersionKind().Version
+				resourceErr.ResourceName = grant.GetName()
+				resourceErr.ResourceNamespace = grant.GetNamespace()
+				resourceErr.Error = fmt.Sprintf("Grant is pointing to a Workspace which does not exist: %#v", grant.Spec.TargetName)
+				status.ResourceErrors = append(status.ResourceErrors, resourceErr)
+			}
+		default:
+			resourceErr := ReconcilerResourceError{}
+			resourceErr.ResourceGroup = grant.GetObjectKind().GroupVersionKind().Group
+			resourceErr.ResourceVersion = grant.GetObjectKind().GroupVersionKind().Version
+			resourceErr.ResourceName = grant.GetName()
+			resourceErr.ResourceNamespace = grant.GetNamespace()
+			resourceErr.Error = fmt.Sprintf("Grant contains a resource with the invalid type: %#v", grant.Spec.TargetType)
+			status.ResourceErrors = append(status.ResourceErrors, resourceErr)
+		}
+	}
+
+	status.ManagedRoleBindingCount = 0
+	for _, rolebinding := range roleBindings {
+		managedLabel := self.getLabelManagedByMogenius()
+		labels := rolebinding.GetLabels()
+		_, isManaged := labels[managedLabel]
+		if !isManaged {
+			continue // dont care for stuff that isnt managed by mogenius
+		}
+		_, err := self.managedRoleBindingLabelFields(labels)
+		if err != nil {
+			resourceErr := ReconcilerResourceError{}
+			resourceErr.ResourceGroup = rolebinding.GetObjectKind().GroupVersionKind().Group
+			resourceErr.ResourceVersion = rolebinding.GetObjectKind().GroupVersionKind().Version
+			resourceErr.ResourceName = rolebinding.GetName()
+			resourceErr.ResourceNamespace = rolebinding.GetNamespace()
+			resourceErr.Error = fmt.Sprintf("RoleBinding should contain all required managed labels as it is managed by mogenius: %s", err)
+			status.ResourceErrors = append(status.ResourceErrors, resourceErr)
+		}
+		status.ManagedRoleBindingCount += 1
+	}
+
+	status.ManagedClusterRoleBindingCount = 0
+	for _, rolebinding := range clusterRoleBindings {
+		managedLabel := self.getLabelManagedByMogenius()
+		labels := rolebinding.GetLabels()
+		_, isManaged := labels[managedLabel]
+		if !isManaged {
+			continue // dont care for stuff that isnt managed by mogenius
+		}
+		_, err := self.managedRoleBindingLabelFields(labels)
+		if err != nil {
+			resourceErr := ReconcilerResourceError{}
+			resourceErr.ResourceGroup = rolebinding.GetObjectKind().GroupVersionKind().Group
+			resourceErr.ResourceVersion = rolebinding.GetObjectKind().GroupVersionKind().Version
+			resourceErr.ResourceName = rolebinding.GetName()
+			resourceErr.ResourceNamespace = rolebinding.GetNamespace()
+			resourceErr.Error = fmt.Sprintf("ClusterRoleBinding should contain all required managed labels as it is managed by mogenius: %s", err)
+			status.ResourceErrors = append(status.ResourceErrors, resourceErr)
+		}
+		status.ManagedClusterRoleBindingCount += 1
+	}
+
+	self.statusLock.Lock()
+	self.status = status
+	self.statusLock.Unlock()
 }
 
 func (self *reconciler) reconcile() {
@@ -183,6 +448,20 @@ func (self *reconciler) reconcile() {
 	managedClusterRoleBindings := self.filterManagedClusterRoleBindings(clusterRoleBindings)
 
 	wg := sync.WaitGroup{}
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		self.updateStatus(
+			namespaces,
+			workspaces,
+			users,
+			clusterRoles,
+			grants,
+			roleBindings,
+			clusterRoleBindings,
+		)
+	}()
 
 	wg.Add(1)
 	go func() {
@@ -702,7 +981,7 @@ func (self *reconciler) generateMissingRoleBindings(
 			// no rolebinding needed as the user has no identity in the cluster
 			continue
 		}
-		clusterRole, err := self.findRoleByRolename(clusterRoles, grant.Spec.Role)
+		clusterRole, err := self.findClusterRoleByRolename(clusterRoles, grant.Spec.Role)
 		if err != nil {
 			// the referenced clusterrole does not exist
 			continue
@@ -931,6 +1210,16 @@ func (self *reconciler) getLabelRoleName() string {
 	return self.getLabelOrg() + "/" + "role-name"
 }
 
+func (self *reconciler) findWorkspaceByName(workspaces []v1alpha1.Workspace, name string) (v1alpha1.Workspace, error) {
+	for _, workspace := range workspaces {
+		if workspace.GetName() == name {
+			return workspace, nil
+		}
+	}
+
+	return v1alpha1.Workspace{}, fmt.Errorf("workspace not found")
+}
+
 func (self *reconciler) findUserByName(users []v1alpha1.User, name string) (v1alpha1.User, error) {
 	for _, user := range users {
 		if user.GetObjectMeta().GetName() == name {
@@ -941,7 +1230,17 @@ func (self *reconciler) findUserByName(users []v1alpha1.User, name string) (v1al
 	return v1alpha1.User{}, fmt.Errorf("user not found")
 }
 
-func (self *reconciler) findRoleByRolename(clusterRoles []rbacv1.ClusterRole, rolename string) (rbacv1.ClusterRole, error) {
+func (self *reconciler) findNamespaceByName(namespaces []v1.Namespace, name string) (v1.Namespace, error) {
+	for _, namespace := range namespaces {
+		if namespace.GetName() == name {
+			return namespace, nil
+		}
+	}
+
+	return v1.Namespace{}, fmt.Errorf("namespace not found")
+}
+
+func (self *reconciler) findClusterRoleByRolename(clusterRoles []rbacv1.ClusterRole, rolename string) (rbacv1.ClusterRole, error) {
 	// check for matches in labels
 	for _, clusterRole := range clusterRoles {
 		labels := clusterRole.GetObjectMeta().GetLabels()
@@ -963,16 +1262,6 @@ func (self *reconciler) findRoleByRolename(clusterRoles []rbacv1.ClusterRole, ro
 	}
 
 	return rbacv1.ClusterRole{}, fmt.Errorf("clusterrole not found")
-}
-
-func (self *reconciler) findWorkspaceByName(workspaces []v1alpha1.Workspace, name string) (v1alpha1.Workspace, error) {
-	for _, workspace := range workspaces {
-		if workspace.GetObjectMeta().GetName() == name {
-			return workspace, nil
-		}
-	}
-
-	return v1alpha1.Workspace{}, fmt.Errorf("workspace not found")
 }
 
 func (self *reconciler) generateManagedRoleBindingNameSuffixGrantResource(
