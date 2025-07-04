@@ -224,6 +224,7 @@ func (self *ReconcilerStatus) Clone() ReconcilerStatus {
 type ReconcilerResourceError struct {
 	ResourceGroup     string
 	ResourceVersion   string
+	ResourceKind      string
 	ResourceName      string
 	ResourceNamespace string
 	Error             string
@@ -233,6 +234,7 @@ func (self *ReconcilerResourceError) Clone() ReconcilerResourceError {
 	return ReconcilerResourceError{
 		self.ResourceGroup,
 		self.ResourceVersion,
+		self.ResourceKind,
 		self.ResourceName,
 		self.ResourceNamespace,
 		self.Error,
@@ -267,6 +269,7 @@ func (self *reconciler) updateStatus(
 			resourceErr := ReconcilerResourceError{}
 			resourceErr.ResourceGroup = user.GetObjectKind().GroupVersionKind().Group
 			resourceErr.ResourceVersion = user.GetObjectKind().GroupVersionKind().Version
+			resourceErr.ResourceKind = user.GetObjectKind().GroupVersionKind().Kind
 			resourceErr.ResourceName = user.GetName()
 			resourceErr.ResourceNamespace = user.GetNamespace()
 			resourceErr.Error = "User email is not set - mogenius does not have an identifier for this user"
@@ -276,6 +279,7 @@ func (self *reconciler) updateStatus(
 			resourceErr := ReconcilerResourceError{}
 			resourceErr.ResourceGroup = user.GetObjectKind().GroupVersionKind().Group
 			resourceErr.ResourceVersion = user.GetObjectKind().GroupVersionKind().Version
+			resourceErr.ResourceKind = user.GetObjectKind().GroupVersionKind().Kind
 			resourceErr.ResourceName = user.GetName()
 			resourceErr.ResourceNamespace = user.GetNamespace()
 			resourceErr.Error = "User subject is not set - no permissions in the cluster can be granted"
@@ -292,6 +296,7 @@ func (self *reconciler) updateStatus(
 					resourceErr := ReconcilerResourceError{}
 					resourceErr.ResourceGroup = workspace.GetObjectKind().GroupVersionKind().Group
 					resourceErr.ResourceVersion = workspace.GetObjectKind().GroupVersionKind().Version
+					resourceErr.ResourceKind = workspace.GetObjectKind().GroupVersionKind().Kind
 					resourceErr.ResourceName = workspace.GetName()
 					resourceErr.ResourceNamespace = workspace.GetNamespace()
 					resourceErr.Error = "Workspace contains a resource of type 'namespace' which does not specifiy the namespace name in resource.Id"
@@ -302,6 +307,7 @@ func (self *reconciler) updateStatus(
 					resourceErr := ReconcilerResourceError{}
 					resourceErr.ResourceGroup = workspace.GetObjectKind().GroupVersionKind().Group
 					resourceErr.ResourceVersion = workspace.GetObjectKind().GroupVersionKind().Version
+					resourceErr.ResourceKind = workspace.GetObjectKind().GroupVersionKind().Kind
 					resourceErr.ResourceName = workspace.GetName()
 					resourceErr.ResourceNamespace = workspace.GetNamespace()
 					resourceErr.Error = fmt.Sprintf("Workspace contains a resource of type 'namespace' pointing to a namespace which does not exist: %#v", namespace)
@@ -313,6 +319,7 @@ func (self *reconciler) updateStatus(
 					resourceErr := ReconcilerResourceError{}
 					resourceErr.ResourceGroup = workspace.GetObjectKind().GroupVersionKind().Group
 					resourceErr.ResourceVersion = workspace.GetObjectKind().GroupVersionKind().Version
+					resourceErr.ResourceKind = workspace.GetObjectKind().GroupVersionKind().Kind
 					resourceErr.ResourceName = workspace.GetName()
 					resourceErr.ResourceNamespace = workspace.GetNamespace()
 					resourceErr.Error = "Workspace contains a resource of type 'helm' which does not specifiy the namespace name in resource.Namespace"
@@ -323,6 +330,7 @@ func (self *reconciler) updateStatus(
 					resourceErr := ReconcilerResourceError{}
 					resourceErr.ResourceGroup = workspace.GetObjectKind().GroupVersionKind().Group
 					resourceErr.ResourceVersion = workspace.GetObjectKind().GroupVersionKind().Version
+					resourceErr.ResourceKind = workspace.GetObjectKind().GroupVersionKind().Kind
 					resourceErr.ResourceName = workspace.GetName()
 					resourceErr.ResourceNamespace = workspace.GetNamespace()
 					resourceErr.Error = fmt.Sprintf("Workspace contains a resource of type 'helm' pointing to a namespace which does not exist: %#v", namespace)
@@ -333,6 +341,7 @@ func (self *reconciler) updateStatus(
 				resourceErr := ReconcilerResourceError{}
 				resourceErr.ResourceGroup = workspace.GetObjectKind().GroupVersionKind().Group
 				resourceErr.ResourceVersion = workspace.GetObjectKind().GroupVersionKind().Version
+				resourceErr.ResourceKind = workspace.GetObjectKind().GroupVersionKind().Kind
 				resourceErr.ResourceName = workspace.GetName()
 				resourceErr.ResourceNamespace = workspace.GetNamespace()
 				resourceErr.Error = fmt.Sprintf("Workspace contains a resource with the invalid type: %#v", resource.Type)
@@ -347,6 +356,7 @@ func (self *reconciler) updateStatus(
 			resourceErr := ReconcilerResourceError{}
 			resourceErr.ResourceGroup = grant.GetObjectKind().GroupVersionKind().Group
 			resourceErr.ResourceVersion = grant.GetObjectKind().GroupVersionKind().Version
+			resourceErr.ResourceKind = grant.GetObjectKind().GroupVersionKind().Kind
 			resourceErr.ResourceName = grant.GetName()
 			resourceErr.ResourceNamespace = grant.GetNamespace()
 			resourceErr.Error = fmt.Sprintf("Grant is pointing to a user which does not exist: %#v", grant.Spec.Grantee)
@@ -358,6 +368,7 @@ func (self *reconciler) updateStatus(
 			resourceErr := ReconcilerResourceError{}
 			resourceErr.ResourceGroup = grant.GetObjectKind().GroupVersionKind().Group
 			resourceErr.ResourceVersion = grant.GetObjectKind().GroupVersionKind().Version
+			resourceErr.ResourceKind = grant.GetObjectKind().GroupVersionKind().Kind
 			resourceErr.ResourceName = grant.GetName()
 			resourceErr.ResourceNamespace = grant.GetNamespace()
 			resourceErr.Error = fmt.Sprintf("Grant is pointing to a ClusterRole which does not exist: %#v", grant.Spec.Role)
@@ -371,6 +382,7 @@ func (self *reconciler) updateStatus(
 				resourceErr := ReconcilerResourceError{}
 				resourceErr.ResourceGroup = grant.GetObjectKind().GroupVersionKind().Group
 				resourceErr.ResourceVersion = grant.GetObjectKind().GroupVersionKind().Version
+				resourceErr.ResourceKind = grant.GetObjectKind().GroupVersionKind().Kind
 				resourceErr.ResourceName = grant.GetName()
 				resourceErr.ResourceNamespace = grant.GetNamespace()
 				resourceErr.Error = fmt.Sprintf("Grant is pointing to a Workspace which does not exist: %#v", grant.Spec.TargetName)
@@ -380,6 +392,7 @@ func (self *reconciler) updateStatus(
 			resourceErr := ReconcilerResourceError{}
 			resourceErr.ResourceGroup = grant.GetObjectKind().GroupVersionKind().Group
 			resourceErr.ResourceVersion = grant.GetObjectKind().GroupVersionKind().Version
+			resourceErr.ResourceKind = grant.GetObjectKind().GroupVersionKind().Kind
 			resourceErr.ResourceName = grant.GetName()
 			resourceErr.ResourceNamespace = grant.GetNamespace()
 			resourceErr.Error = fmt.Sprintf("Grant contains a resource with the invalid type: %#v", grant.Spec.TargetType)
@@ -400,6 +413,7 @@ func (self *reconciler) updateStatus(
 			resourceErr := ReconcilerResourceError{}
 			resourceErr.ResourceGroup = rolebinding.GetObjectKind().GroupVersionKind().Group
 			resourceErr.ResourceVersion = rolebinding.GetObjectKind().GroupVersionKind().Version
+			resourceErr.ResourceKind = rolebinding.GetObjectKind().GroupVersionKind().Kind
 			resourceErr.ResourceName = rolebinding.GetName()
 			resourceErr.ResourceNamespace = rolebinding.GetNamespace()
 			resourceErr.Error = fmt.Sprintf("RoleBinding should contain all required managed labels as it is managed by mogenius: %s", err)
@@ -421,6 +435,7 @@ func (self *reconciler) updateStatus(
 			resourceErr := ReconcilerResourceError{}
 			resourceErr.ResourceGroup = rolebinding.GetObjectKind().GroupVersionKind().Group
 			resourceErr.ResourceVersion = rolebinding.GetObjectKind().GroupVersionKind().Version
+			resourceErr.ResourceKind = rolebinding.GetObjectKind().GroupVersionKind().Kind
 			resourceErr.ResourceName = rolebinding.GetName()
 			resourceErr.ResourceNamespace = rolebinding.GetNamespace()
 			resourceErr.Error = fmt.Sprintf("ClusterRoleBinding should contain all required managed labels as it is managed by mogenius: %s", err)
@@ -1025,24 +1040,6 @@ func (self *reconciler) generateMissingRoleBindings(
 					Subjects: []rbacv1.Subject{*user.Spec.Subject},
 				}
 				requiredRoleBindings = append(requiredRoleBindings, roleBinding)
-
-				if resource.Type == "helm" {
-					// allow installing CRDs
-					clusterRoleBinding := rbacv1.ClusterRoleBinding{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "mogenius-crb-" + self.generateManagedRoleBindingNameSuffixGrantResource(grant, resource),
-							Namespace: namespace,
-							Labels:    self.createManagedRoleBindingLabels(grant, resource),
-						},
-						RoleRef: rbacv1.RoleRef{
-							APIGroup: "rbac.authorization.k8s.io",
-							Kind:     "ClusterRole",
-							Name:     clusterRole.GetName(),
-						},
-						Subjects: []rbacv1.Subject{*user.Spec.Subject},
-					}
-					requiredClusterRoleBindings = append(requiredClusterRoleBindings, clusterRoleBinding)
-				}
 			}
 		default:
 			continue
