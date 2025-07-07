@@ -21,7 +21,11 @@ func TestResourceTemplates(t *testing.T) {
 		Key:          "MO_OWN_NAMESPACE",
 		DefaultValue: utils.Pointer("mogenius"),
 	})
-	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"))
+	config.Declare(cfg.ConfigDeclaration{
+		Key:          "KUBERNETES_DEBUG",
+		DefaultValue: utils.Pointer("false"),
+	})
+	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"), config)
 	valkeyClient := valkeyclient.NewValkeyClient(logManager.CreateLogger("valkey"), config)
 	err := kubernetes.Setup(logManager, config, clientProvider, valkeyClient)
 	assert.AssertT(t, err == nil, err)
