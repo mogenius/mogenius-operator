@@ -230,8 +230,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: main
-          # token: ${{ secrets.MO_K8s_TOKEN }}
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.MO_K8s_TOKEN }}
           repository: ${{ env.HELMREPO }}
           path: "helm"
 
