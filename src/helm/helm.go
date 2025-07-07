@@ -69,6 +69,17 @@ func Setup(logManager logging.SlogManager, configModule cfg.ConfigModule, valkey
 	valkeyClient = valkey
 }
 
+func InitEnvs(configModule cfg.ConfigModule) {
+	os.Setenv("HELM_CACHE_HOME", fmt.Sprintf("%s/%s", configModule.Get("MO_HELM_DATA_PATH"), HELM_CACHE_HOME))
+	os.Setenv("HELM_CONFIG_HOME", fmt.Sprintf("%s/%s", configModule.Get("MO_HELM_DATA_PATH"), HELM_CONFIG_HOME))
+	os.Setenv("HELM_DATA_HOME", fmt.Sprintf("%s/%s", configModule.Get("MO_HELM_DATA_PATH"), HELM_DATA_HOME))
+	os.Setenv("HELM_PLUGINS", fmt.Sprintf("%s/%s", configModule.Get("MO_HELM_DATA_PATH"), HELM_PLUGINS))
+	os.Setenv("HELM_REGISTRY_CONFIG", fmt.Sprintf("%s/%s", configModule.Get("MO_HELM_DATA_PATH"), HELM_REGISTRY_CONFIG_FILE))
+	os.Setenv("HELM_REPOSITORY_CACHE", fmt.Sprintf("%s/%s", configModule.Get("MO_HELM_DATA_PATH"), HELM_REPOSITORY_CACHE_FOLDER))
+	os.Setenv("HELM_REPOSITORY_CONFIG", fmt.Sprintf("%s/%s", configModule.Get("MO_HELM_DATA_PATH"), HELM_REPOSITORY_CONFIG_FILE))
+	os.Setenv("HELM_LOG_LEVEL", "trace")
+}
+
 type HelmRepoAddRequest struct {
 	Name string `json:"name" validate:"required"`
 	Url  string `json:"url" validate:"required"`
