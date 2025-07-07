@@ -3950,6 +3950,17 @@ create/new-workload:
 create/user:
     requestSchema:
         structs:
+            k8s.io/api/rbac/v1.Subject:
+                name: k8s.io/api/rbac/v1.Subject
+                properties:
+                    apiGroup:
+                        type: string
+                    kind:
+                        type: string
+                    name:
+                        type: string
+                    namespace:
+                        type: string
             mogenius-k8s-manager/src/core.Request:
                 name: mogenius-k8s-manager/src/core.Request
                 properties:
@@ -3961,6 +3972,10 @@ create/user:
                         type: string
                     name:
                         type: string
+                    subject:
+                        pointer: true
+                        structRef: k8s.io/api/rbac/v1.Subject
+                        type: struct
         typeInfo:
             structRef: mogenius-k8s-manager/src/core.Request
             type: struct
@@ -7067,8 +7082,8 @@ live-stream/workspace-traffic:
 metrics/deployment/average-utilization:
     requestSchema:
         structs:
-            mogenius-k8s-manager/src/kubernetes.K8sController:
-                name: mogenius-k8s-manager/src/kubernetes.K8sController
+            mogenius-k8s-manager/src/dtos.K8sController:
+                name: mogenius-k8s-manager/src/dtos.K8sController
                 properties:
                     kind:
                         type: string
@@ -7077,7 +7092,7 @@ metrics/deployment/average-utilization:
                     namespace:
                         type: string
         typeInfo:
-            structRef: mogenius-k8s-manager/src/kubernetes.K8sController
+            structRef: mogenius-k8s-manager/src/dtos.K8sController
             type: struct
     responseSchema:
         structs:
@@ -7456,10 +7471,16 @@ prometheus/charts/get:
             mogenius-k8s-manager/src/core.PrometheusStoreObject:
                 name: mogenius-k8s-manager/src/core.PrometheusStoreObject
                 properties:
+                    createdAt:
+                        structRef: time.Time
+                        type: struct
                     query:
                         type: string
                     step:
                         type: int
+            time.Time:
+                name: time.Time
+                properties: {}
         typeInfo:
             pointer: true
             structRef: mogenius-k8s-manager/src/core.PrometheusStoreObject
@@ -7482,10 +7503,16 @@ prometheus/charts/list:
             mogenius-k8s-manager/src/core.PrometheusStoreObject:
                 name: mogenius-k8s-manager/src/core.PrometheusStoreObject
                 properties:
+                    createdAt:
+                        structRef: time.Time
+                        type: struct
                     query:
                         type: string
                     step:
                         type: int
+            time.Time:
+                name: time.Time
+                properties: {}
         typeInfo:
             keyType:
                 type: string
@@ -13720,8 +13747,8 @@ stats/podstat/all-for-controller:
 stats/podstat/last-for-controller:
     requestSchema:
         structs:
-            mogenius-k8s-manager/src/kubernetes.K8sController:
-                name: mogenius-k8s-manager/src/kubernetes.K8sController
+            mogenius-k8s-manager/src/dtos.K8sController:
+                name: mogenius-k8s-manager/src/dtos.K8sController
                 properties:
                     kind:
                         type: string
@@ -13730,7 +13757,7 @@ stats/podstat/last-for-controller:
                     namespace:
                         type: string
         typeInfo:
-            structRef: mogenius-k8s-manager/src/kubernetes.K8sController
+            structRef: mogenius-k8s-manager/src/dtos.K8sController
             type: struct
     responseSchema:
         structs:
@@ -13823,8 +13850,8 @@ stats/traffic/all-for-controller:
 stats/traffic/for-controller-socket-connections:
     requestSchema:
         structs:
-            mogenius-k8s-manager/src/kubernetes.K8sController:
-                name: mogenius-k8s-manager/src/kubernetes.K8sController
+            mogenius-k8s-manager/src/dtos.K8sController:
+                name: mogenius-k8s-manager/src/dtos.K8sController
                 properties:
                     kind:
                         type: string
@@ -13833,7 +13860,7 @@ stats/traffic/for-controller-socket-connections:
                     namespace:
                         type: string
         typeInfo:
-            structRef: mogenius-k8s-manager/src/kubernetes.K8sController
+            structRef: mogenius-k8s-manager/src/dtos.K8sController
             type: struct
     responseSchema:
         structs:
@@ -13855,8 +13882,8 @@ stats/traffic/for-controller-socket-connections:
 stats/traffic/sum-for-controller:
     requestSchema:
         structs:
-            mogenius-k8s-manager/src/kubernetes.K8sController:
-                name: mogenius-k8s-manager/src/kubernetes.K8sController
+            mogenius-k8s-manager/src/dtos.K8sController:
+                name: mogenius-k8s-manager/src/dtos.K8sController
                 properties:
                     kind:
                         type: string
@@ -13865,7 +13892,7 @@ stats/traffic/sum-for-controller:
                     namespace:
                         type: string
         typeInfo:
-            structRef: mogenius-k8s-manager/src/kubernetes.K8sController
+            structRef: mogenius-k8s-manager/src/dtos.K8sController
             type: struct
     responseSchema:
         structs:
@@ -14360,6 +14387,17 @@ update/network_policies_template:
 update/user:
     requestSchema:
         structs:
+            k8s.io/api/rbac/v1.Subject:
+                name: k8s.io/api/rbac/v1.Subject
+                properties:
+                    apiGroup:
+                        type: string
+                    kind:
+                        type: string
+                    name:
+                        type: string
+                    namespace:
+                        type: string
             mogenius-k8s-manager/src/core.Request:
                 name: mogenius-k8s-manager/src/core.Request
                 properties:
@@ -14371,6 +14409,10 @@ update/user:
                         type: string
                     name:
                         type: string
+                    subject:
+                        pointer: true
+                        structRef: k8s.io/api/rbac/v1.Subject
+                        type: struct
         typeInfo:
             structRef: mogenius-k8s-manager/src/core.Request
             type: struct

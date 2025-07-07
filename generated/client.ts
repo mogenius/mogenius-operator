@@ -2578,6 +2578,17 @@ export type CREATE_NEW_WORKLOAD_RESPONSE = CREATE_NEW_WORKLOAD_RESPONSE__K8S_IO_
  *
  * ```yaml
  * structs:
+ *     k8s.io/api/rbac/v1.Subject:
+ *         name: k8s.io/api/rbac/v1.Subject
+ *         properties:
+ *             apiGroup:
+ *                 type: string
+ *             kind:
+ *                 type: string
+ *             name:
+ *                 type: string
+ *             namespace:
+ *                 type: string
  *     mogenius-k8s-manager/src/core.Request:
  *         name: mogenius-k8s-manager/src/core.Request
  *         properties:
@@ -2589,6 +2600,10 @@ export type CREATE_NEW_WORKLOAD_RESPONSE = CREATE_NEW_WORKLOAD_RESPONSE__K8S_IO_
  *                 type: string
  *             name:
  *                 type: string
+ *             subject:
+ *                 pointer: true
+ *                 structRef: k8s.io/api/rbac/v1.Subject
+ *                 type: struct
  * typeInfo:
  *     structRef: mogenius-k8s-manager/src/core.Request
  *     type: struct
@@ -6542,8 +6557,8 @@ export type LIVE_STREAM_WORKSPACE_TRAFFIC_RESPONSE = any;
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/kubernetes.K8sController:
- *         name: mogenius-k8s-manager/src/kubernetes.K8sController
+ *     mogenius-k8s-manager/src/dtos.K8sController:
+ *         name: mogenius-k8s-manager/src/dtos.K8sController
  *         properties:
  *             kind:
  *                 type: string
@@ -6552,12 +6567,12 @@ export type LIVE_STREAM_WORKSPACE_TRAFFIC_RESPONSE = any;
  *             namespace:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/kubernetes.K8sController
+ *     structRef: mogenius-k8s-manager/src/dtos.K8sController
  *     type: struct
  * ```
  *
  */
-export type METRICS_DEPLOYMENT_AVERAGE_UTILIZATION_REQUEST = METRICS_DEPLOYMENT_AVERAGE_UTILIZATION_REQUEST__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_K8SCONTROLLER;
+export type METRICS_DEPLOYMENT_AVERAGE_UTILIZATION_REQUEST = METRICS_DEPLOYMENT_AVERAGE_UTILIZATION_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCONTROLLER;
 
 /**
  * #### Source
@@ -7026,10 +7041,16 @@ export type PROMETHEUS_CHARTS_GET_REQUEST = PROMETHEUS_CHARTS_GET_REQUEST__MOGEN
  *     mogenius-k8s-manager/src/core.PrometheusStoreObject:
  *         name: mogenius-k8s-manager/src/core.PrometheusStoreObject
  *         properties:
+ *             createdAt:
+ *                 structRef: time.Time
+ *                 type: struct
  *             query:
  *                 type: string
  *             step:
  *                 type: int
+ *     time.Time:
+ *         name: time.Time
+ *         properties: {}
  * typeInfo:
  *     pointer: true
  *     structRef: mogenius-k8s-manager/src/core.PrometheusStoreObject
@@ -7067,10 +7088,16 @@ export type PROMETHEUS_CHARTS_LIST_REQUEST = PROMETHEUS_CHARTS_LIST_REQUEST__MOG
  *     mogenius-k8s-manager/src/core.PrometheusStoreObject:
  *         name: mogenius-k8s-manager/src/core.PrometheusStoreObject
  *         properties:
+ *             createdAt:
+ *                 structRef: time.Time
+ *                 type: struct
  *             query:
  *                 type: string
  *             step:
  *                 type: int
+ *     time.Time:
+ *         name: time.Time
+ *         properties: {}
  * typeInfo:
  *     keyType:
  *         type: string
@@ -15762,8 +15789,8 @@ export type STATS_PODSTAT_ALL_FOR_CONTROLLER_RESPONSE = STATS_PODSTAT_ALL_FOR_CO
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/kubernetes.K8sController:
- *         name: mogenius-k8s-manager/src/kubernetes.K8sController
+ *     mogenius-k8s-manager/src/dtos.K8sController:
+ *         name: mogenius-k8s-manager/src/dtos.K8sController
  *         properties:
  *             kind:
  *                 type: string
@@ -15772,12 +15799,12 @@ export type STATS_PODSTAT_ALL_FOR_CONTROLLER_RESPONSE = STATS_PODSTAT_ALL_FOR_CO
  *             namespace:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/kubernetes.K8sController
+ *     structRef: mogenius-k8s-manager/src/dtos.K8sController
  *     type: struct
  * ```
  *
  */
-export type STATS_PODSTAT_LAST_FOR_CONTROLLER_REQUEST = STATS_PODSTAT_LAST_FOR_CONTROLLER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_K8SCONTROLLER;
+export type STATS_PODSTAT_LAST_FOR_CONTROLLER_REQUEST = STATS_PODSTAT_LAST_FOR_CONTROLLER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCONTROLLER;
 
 /**
  * #### Source
@@ -15895,8 +15922,8 @@ export type STATS_TRAFFIC_ALL_FOR_CONTROLLER_RESPONSE = STATS_TRAFFIC_ALL_FOR_CO
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/kubernetes.K8sController:
- *         name: mogenius-k8s-manager/src/kubernetes.K8sController
+ *     mogenius-k8s-manager/src/dtos.K8sController:
+ *         name: mogenius-k8s-manager/src/dtos.K8sController
  *         properties:
  *             kind:
  *                 type: string
@@ -15905,12 +15932,12 @@ export type STATS_TRAFFIC_ALL_FOR_CONTROLLER_RESPONSE = STATS_TRAFFIC_ALL_FOR_CO
  *             namespace:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/kubernetes.K8sController
+ *     structRef: mogenius-k8s-manager/src/dtos.K8sController
  *     type: struct
  * ```
  *
  */
-export type STATS_TRAFFIC_FOR_CONTROLLER_SOCKET_CONNECTIONS_REQUEST = STATS_TRAFFIC_FOR_CONTROLLER_SOCKET_CONNECTIONS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_K8SCONTROLLER;
+export type STATS_TRAFFIC_FOR_CONTROLLER_SOCKET_CONNECTIONS_REQUEST = STATS_TRAFFIC_FOR_CONTROLLER_SOCKET_CONNECTIONS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCONTROLLER;
 
 /**
  * #### Source
@@ -15942,8 +15969,8 @@ export type STATS_TRAFFIC_FOR_CONTROLLER_SOCKET_CONNECTIONS_RESPONSE = STATS_TRA
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/kubernetes.K8sController:
- *         name: mogenius-k8s-manager/src/kubernetes.K8sController
+ *     mogenius-k8s-manager/src/dtos.K8sController:
+ *         name: mogenius-k8s-manager/src/dtos.K8sController
  *         properties:
  *             kind:
  *                 type: string
@@ -15952,12 +15979,12 @@ export type STATS_TRAFFIC_FOR_CONTROLLER_SOCKET_CONNECTIONS_RESPONSE = STATS_TRA
  *             namespace:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/kubernetes.K8sController
+ *     structRef: mogenius-k8s-manager/src/dtos.K8sController
  *     type: struct
  * ```
  *
  */
-export type STATS_TRAFFIC_SUM_FOR_CONTROLLER_REQUEST = STATS_TRAFFIC_SUM_FOR_CONTROLLER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_K8SCONTROLLER;
+export type STATS_TRAFFIC_SUM_FOR_CONTROLLER_REQUEST = STATS_TRAFFIC_SUM_FOR_CONTROLLER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCONTROLLER;
 
 /**
  * #### Source
@@ -16794,6 +16821,17 @@ export type UPDATE_NETWORK_POLICIES_TEMPLATE_RESPONSE = UPDATE_NETWORK_POLICIES_
  *
  * ```yaml
  * structs:
+ *     k8s.io/api/rbac/v1.Subject:
+ *         name: k8s.io/api/rbac/v1.Subject
+ *         properties:
+ *             apiGroup:
+ *                 type: string
+ *             kind:
+ *                 type: string
+ *             name:
+ *                 type: string
+ *             namespace:
+ *                 type: string
  *     mogenius-k8s-manager/src/core.Request:
  *         name: mogenius-k8s-manager/src/core.Request
  *         properties:
@@ -16805,6 +16843,10 @@ export type UPDATE_NETWORK_POLICIES_TEMPLATE_RESPONSE = UPDATE_NETWORK_POLICIES_
  *                 type: string
  *             name:
  *                 type: string
+ *             subject:
+ *                 pointer: true
+ *                 structRef: k8s.io/api/rbac/v1.Subject
+ *                 type: struct
  * typeInfo:
  *     structRef: mogenius-k8s-manager/src/core.Request
  *     type: struct
@@ -17332,7 +17374,8 @@ export type CLUSTER_UPDATE_LOCAL_TLS_SECRET_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SE
 export type CREATE_GRANT_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"grantee": string,"name": string,"role": string,"targetName": string,"targetType": string};
 export type CREATE_NEW_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDATA = {"group": string,"kind": string,"name": string,"namespace": string|undefined,"version": string,"yamlData": string};
 export type CREATE_NEW_WORKLOAD_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"Object": Record<string, any>};
-export type CREATE_USER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"email": string,"firstName": string,"lastName": string,"name": string};
+export type CREATE_USER_REQUEST__K8S_IO_API_RBAC_V1_SUBJECT = {"apiGroup": string,"kind": string,"name": string,"namespace": string};
+export type CREATE_USER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"email": string,"firstName": string,"lastName": string,"name": string,"subject": CREATE_USER_REQUEST__K8S_IO_API_RBAC_V1_SUBJECT|undefined};
 export type CREATE_WORKSPACE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"displayName": string,"name": string,"resources": CREATE_WORKSPACE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_WORKSPACERESOURCEIDENTIFIER[]};
 export type CREATE_WORKSPACE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_WORKSPACERESOURCEIDENTIFIER = {"id": string,"namespace": string,"type": string};
 export type DELETE_GRANT_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"name": string};
@@ -17543,7 +17586,7 @@ export type LIVE_STREAM_POD_TRAFFIC_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCO
 export type LIVE_STREAM_WORKSPACE_CPU_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"nodeName": string,"podName": string,"websocketHost": string,"websocketScheme": string,"workspace": string};
 export type LIVE_STREAM_WORKSPACE_MEMORY_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"nodeName": string,"podName": string,"websocketHost": string,"websocketScheme": string,"workspace": string};
 export type LIVE_STREAM_WORKSPACE_TRAFFIC_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"nodeName": string,"podName": string,"websocketHost": string,"websocketScheme": string,"workspace": string};
-export type METRICS_DEPLOYMENT_AVERAGE_UTILIZATION_REQUEST__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_K8SCONTROLLER = {"kind": string,"name": string,"namespace": string};
+export type METRICS_DEPLOYMENT_AVERAGE_UTILIZATION_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCONTROLLER = {"kind": string,"name": string,"namespace": string};
 export type METRICS_DEPLOYMENT_AVERAGE_UTILIZATION_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME = {"Time": METRICS_DEPLOYMENT_AVERAGE_UTILIZATION_RESPONSE__TIME_TIME};
 export type METRICS_DEPLOYMENT_AVERAGE_UTILIZATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_CONTAINERMETRICS = {"cpuRequest": number,"cpuUsage": number,"memRequest": number,"memUsage": number,"name": string};
 export type METRICS_DEPLOYMENT_AVERAGE_UTILIZATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_METRICS = {"cpuAverageUtilization": number,"createdAt": METRICS_DEPLOYMENT_AVERAGE_UTILIZATION_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME,"kind": string,"memoryAverageUtilization": number,"name": string,"namespace": string,"podsMetrics": METRICS_DEPLOYMENT_AVERAGE_UTILIZATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_PODMETRICS[],"windowInMs": number};
@@ -17565,9 +17608,11 @@ export type NAMESPACE_DELETE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_JOB = {"
 export type NAMESPACE_DELETE_RESPONSE__TIME_TIME = {};
 export type PROMETHEUS_CHARTS_ADD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSREQUESTREDIS = {"controller": string,"namespace": string,"query": string,"queryName": string,"step": number};
 export type PROMETHEUS_CHARTS_GET_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSREQUESTREDIS = {"controller": string,"namespace": string,"query": string,"queryName": string,"step": number};
-export type PROMETHEUS_CHARTS_GET_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSSTOREOBJECT = {"query": string,"step": number};
+export type PROMETHEUS_CHARTS_GET_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSSTOREOBJECT = {"createdAt": PROMETHEUS_CHARTS_GET_RESPONSE__TIME_TIME,"query": string,"step": number};
+export type PROMETHEUS_CHARTS_GET_RESPONSE__TIME_TIME = {};
 export type PROMETHEUS_CHARTS_LIST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSREQUESTREDISLIST = {"controller": string,"namespace": string};
-export type PROMETHEUS_CHARTS_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSSTOREOBJECT = {"query": string,"step": number};
+export type PROMETHEUS_CHARTS_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSSTOREOBJECT = {"createdAt": PROMETHEUS_CHARTS_LIST_RESPONSE__TIME_TIME,"query": string,"step": number};
+export type PROMETHEUS_CHARTS_LIST_RESPONSE__TIME_TIME = {};
 export type PROMETHEUS_CHARTS_REMOVE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSREQUESTREDIS = {"controller": string,"namespace": string,"query": string,"queryName": string,"step": number};
 export type PROMETHEUS_IS_REACHABLE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSREQUEST = {"prometheusPass": string,"prometheusToken": string,"prometheusUrl": string,"prometheusUser": string,"query": string,"step": number,"timeOffsetSeconds": number};
 export type PROMETHEUS_QUERY_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSREQUEST = {"prometheusPass": string,"prometheusToken": string,"prometheusUrl": string,"prometheusUser": string,"query": string,"step": number,"timeOffsetSeconds": number};
@@ -18083,14 +18128,14 @@ export type SERVICE_UPDATE_SERVICE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_JO
 export type SERVICE_UPDATE_SERVICE_RESPONSE__TIME_TIME = {};
 export type STATS_PODSTAT_ALL_FOR_CONTROLLER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"kind": string,"name": string,"namespace": string,"timeOffsetMinutes": number};
 export type STATS_PODSTAT_ALL_FOR_CONTROLLER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_PODSTATS = {"containerName": string,"cpu": number,"cpuLimit": number,"createdAt": string,"ephemeralStorage": number,"ephemeralStorageLimit": number,"memory": number,"memoryLimit": number,"namespace": string,"podName": string,"startTime": string};
-export type STATS_PODSTAT_LAST_FOR_CONTROLLER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_K8SCONTROLLER = {"kind": string,"name": string,"namespace": string};
+export type STATS_PODSTAT_LAST_FOR_CONTROLLER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCONTROLLER = {"kind": string,"name": string,"namespace": string};
 export type STATS_PODSTAT_LAST_FOR_CONTROLLER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_PODSTATS = {"containerName": string,"cpu": number,"cpuLimit": number,"createdAt": string,"ephemeralStorage": number,"ephemeralStorageLimit": number,"memory": number,"memoryLimit": number,"namespace": string,"podName": string,"startTime": string};
 export type STATS_TRAFFIC_ALL_FOR_CONTROLLER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"kind": string,"name": string,"namespace": string,"timeOffsetMinutes": number};
 export type STATS_TRAFFIC_ALL_FOR_CONTROLLER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_NETWORKMONITOR_PODNETWORKSTATS = {"createdAt": STATS_TRAFFIC_ALL_FOR_CONTROLLER_RESPONSE__TIME_TIME,"interface": string,"ip": string,"namespace": string,"pod": string,"receivedBytes": number,"receivedPackets": number,"receivedStartBytes": number,"startTime": STATS_TRAFFIC_ALL_FOR_CONTROLLER_RESPONSE__TIME_TIME,"transmitBytes": number,"transmitPackets": number,"transmitStartBytes": number};
 export type STATS_TRAFFIC_ALL_FOR_CONTROLLER_RESPONSE__TIME_TIME = {};
-export type STATS_TRAFFIC_FOR_CONTROLLER_SOCKET_CONNECTIONS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_K8SCONTROLLER = {"kind": string,"name": string,"namespace": string};
+export type STATS_TRAFFIC_FOR_CONTROLLER_SOCKET_CONNECTIONS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCONTROLLER = {"kind": string,"name": string,"namespace": string};
 export type STATS_TRAFFIC_FOR_CONTROLLER_SOCKET_CONNECTIONS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_SOCKETCONNECTIONS = {"connections": Record<string, number>,"lastUpdate": string};
-export type STATS_TRAFFIC_SUM_FOR_CONTROLLER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_K8SCONTROLLER = {"kind": string,"name": string,"namespace": string};
+export type STATS_TRAFFIC_SUM_FOR_CONTROLLER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCONTROLLER = {"kind": string,"name": string,"namespace": string};
 export type STATS_TRAFFIC_SUM_FOR_CONTROLLER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_NETWORKMONITOR_PODNETWORKSTATS = {"createdAt": STATS_TRAFFIC_SUM_FOR_CONTROLLER_RESPONSE__TIME_TIME,"interface": string,"ip": string,"namespace": string,"pod": string,"receivedBytes": number,"receivedPackets": number,"receivedStartBytes": number,"startTime": STATS_TRAFFIC_SUM_FOR_CONTROLLER_RESPONSE__TIME_TIME,"transmitBytes": number,"transmitPackets": number,"transmitStartBytes": number};
 export type STATS_TRAFFIC_SUM_FOR_CONTROLLER_RESPONSE__TIME_TIME = {};
 export type STATS_TRAFFIC_SUM_FOR_NAMESPACE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"namespace": string};
@@ -18126,7 +18171,8 @@ export type UNINSTALL_METRICS_SERVER_REQUEST__ANON_STRUCT_0 = {};
 export type UPDATE_GRANT_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"grantee": string,"name": string,"role": string,"targetName": string,"targetType": string};
 export type UPDATE_NETWORK_POLICIES_TEMPLATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_NETWORKPOLICY = {"Name": string,"Port": number,"Protocol": string,"Type": string};
 export type UPDATE_NETWORK_POLICIES_TEMPLATE_RESPONSE__ANON_STRUCT_0 = {};
-export type UPDATE_USER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"email": string,"firstName": string,"lastName": string,"name": string};
+export type UPDATE_USER_REQUEST__K8S_IO_API_RBAC_V1_SUBJECT = {"apiGroup": string,"kind": string,"name": string,"namespace": string};
+export type UPDATE_USER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"email": string,"firstName": string,"lastName": string,"name": string,"subject": UPDATE_USER_REQUEST__K8S_IO_API_RBAC_V1_SUBJECT|undefined};
 export type UPDATE_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDATA = {"group": string,"kind": string,"name": string,"namespace": string|undefined,"version": string,"yamlData": string};
 export type UPDATE_WORKLOAD_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"Object": Record<string, any>};
 export type UPDATE_WORKSPACE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"displayName": string,"name": string,"resources": UPDATE_WORKSPACE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_WORKSPACERESOURCEIDENTIFIER[]};

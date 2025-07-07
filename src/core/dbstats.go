@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	cfg "mogenius-k8s-manager/src/config"
-	"mogenius-k8s-manager/src/kubernetes"
+	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/networkmonitor"
 	"mogenius-k8s-manager/src/store"
 	"mogenius-k8s-manager/src/structs"
@@ -48,16 +48,16 @@ type ValkeyStatsDb interface {
 	AddSnoopyStatusToDb(nodeName string, data networkmonitor.SnoopyStatus) error
 	GetCniData() ([]structs.CniData, error)
 	GetLastPodStatsEntriesForNamespace(namespace string) []structs.PodStats
-	GetLastPodStatsEntryForController(controller kubernetes.K8sController) *structs.PodStats
+	GetLastPodStatsEntryForController(controller dtos.K8sController) *structs.PodStats
 	GetMachineStatsForNode(nodeName string) (*structs.MachineStats, error)
 	GetMachineStatsForNodes(nodeNames []string) []structs.MachineStats
 	GetPodStatsEntriesForController(kind string, name string, namespace string, timeOffsetMinutes int64) *[]structs.PodStats
 	GetPodStatsEntriesForNamespace(namespace string) *[]structs.PodStats
-	GetSocketConnectionsForController(controller kubernetes.K8sController) *structs.SocketConnections
+	GetSocketConnectionsForController(controller dtos.K8sController) *structs.SocketConnections
 	GetTrafficStatsEntriesForController(kind string, name string, namespace string, timeOffsetMinutes int64) *[]networkmonitor.PodNetworkStats
 	GetTrafficStatsEntriesForNamespace(namespace string) *[]networkmonitor.PodNetworkStats
 	GetTrafficStatsEntriesSumForNamespace(namespace string) []networkmonitor.PodNetworkStats
-	GetTrafficStatsEntrySumForController(controller kubernetes.K8sController, includeSocketConnections bool) *networkmonitor.PodNetworkStats
+	GetTrafficStatsEntrySumForController(controller dtos.K8sController, includeSocketConnections bool) *networkmonitor.PodNetworkStats
 	GetWorkspaceStatsCpuUtilization(timeOffsetInMinutes int, resources []unstructured.Unstructured) ([]GenericChartEntry, error)
 	GetWorkspaceStatsMemoryUtilization(timeOffsetInMinutes int, resources []unstructured.Unstructured) ([]GenericChartEntry, error)
 	GetWorkspaceStatsTrafficUtilization(timeOffsetInMinutes int, resources []unstructured.Unstructured) ([]GenericChartEntry, error)
@@ -66,16 +66,18 @@ type ValkeyStatsDb interface {
 }
 
 type valkeyStatsDb struct {
-	config cfg.ConfigModule
-	logger *slog.Logger
-	valkey valkeyclient.ValkeyClient
+	config            cfg.ConfigModule
+	logger            *slog.Logger
+	valkey            valkeyclient.ValkeyClient
+	ownerCacheService OwnerCacheService
 }
 
-func NewValkeyStatsModule(logger *slog.Logger, config cfg.ConfigModule, valkey valkeyclient.ValkeyClient) ValkeyStatsDb {
+func NewValkeyStatsModule(logger *slog.Logger, config cfg.ConfigModule, valkey valkeyclient.ValkeyClient, ownerCacheService OwnerCacheService) ValkeyStatsDb {
 	dbStatsModule := valkeyStatsDb{
-		config: config,
-		logger: logger,
-		valkey: valkey,
+		config:            config,
+		logger:            logger,
+		valkey:            valkey,
+		ownerCacheService: ownerCacheService,
 	}
 
 	return &dbStatsModule
@@ -108,10 +110,10 @@ func (self *valkeyStatsDb) GetMachineStatsForNode(nodeName string) (*structs.Mac
 
 func (self *valkeyStatsDb) AddInterfaceStatsToDb(stats []networkmonitor.PodNetworkStats) {
 	for _, stat := range stats {
-		controller := kubernetes.ControllerForPod(stat.Namespace, stat.Pod)
+		controller := self.ownerCacheService.ControllerForPod(stat.Namespace, stat.Pod)
 		if controller == nil {
 			// in case we cannot determine a controller
-			controller = &kubernetes.K8sController{
+			controller = &dtos.K8sController{
 				Kind:      "Pod",
 				Name:      stat.Pod,
 				Namespace: stat.Namespace,
@@ -147,7 +149,7 @@ func (self *valkeyStatsDb) GetPodStatsEntriesForController(kind string, name str
 	return &result
 }
 
-func (self *valkeyStatsDb) GetLastPodStatsEntryForController(controller kubernetes.K8sController) *structs.PodStats {
+func (self *valkeyStatsDb) GetLastPodStatsEntryForController(controller dtos.K8sController) *structs.PodStats {
 	values, err := valkeyclient.LastNEntryFromBucketWithType[structs.PodStats](self.valkey, 1, DB_STATS_POD_STATS_BUCKET_NAME, controller.Namespace, controller.Name)
 	if err != nil {
 		self.logger.Error(err.Error())
@@ -166,7 +168,7 @@ func (self *valkeyStatsDb) GetTrafficStatsEntriesForController(kind string, name
 	return &result
 }
 
-func (self *valkeyStatsDb) GetTrafficStatsEntrySumForController(controller kubernetes.K8sController, includeSocketConnections bool) *networkmonitor.PodNetworkStats {
+func (self *valkeyStatsDb) GetTrafficStatsEntrySumForController(controller dtos.K8sController, includeSocketConnections bool) *networkmonitor.PodNetworkStats {
 	entries, err := valkeyclient.GetObjectsByPrefix[networkmonitor.PodNetworkStats](self.valkey, valkeyclient.ORDER_DESC, DB_STATS_TRAFFIC_BUCKET_NAME, controller.Namespace, controller.Name)
 	if err != nil {
 		self.logger.Error(err.Error())
@@ -342,7 +344,7 @@ func (self *valkeyStatsDb) GetWorkspaceStatsTrafficUtilization(timeOffsetInMinut
 	return result, nil
 }
 
-func (self *valkeyStatsDb) GetSocketConnectionsForController(controller kubernetes.K8sController) *structs.SocketConnections {
+func (self *valkeyStatsDb) GetSocketConnectionsForController(controller dtos.K8sController) *structs.SocketConnections {
 	value, err := valkeyclient.GetObjectForKey[structs.SocketConnections](self.valkey, DB_STATS_SOCKET_STATS_BUCKET, controller.Namespace, controller.Name)
 	if err != nil {
 		self.logger.Error(err.Error())
@@ -389,7 +391,7 @@ func (self *valkeyStatsDb) GetTrafficStatsEntriesSumForNamespace(namespace strin
 
 	for _, entry := range keys {
 		controllerName := entry[len(DB_STATS_TRAFFIC_BUCKET_NAME)+1+len(namespace)+1:]
-		controller := kubernetes.NewK8sController("", string(controllerName), namespace)
+		controller := dtos.NewK8sController("", string(controllerName), namespace)
 		entry := self.GetTrafficStatsEntrySumForController(controller, false)
 		if entry != nil {
 			result = append(result, *entry)
@@ -401,7 +403,7 @@ func (self *valkeyStatsDb) GetTrafficStatsEntriesSumForNamespace(namespace strin
 
 func (self *valkeyStatsDb) AddPodStatsToDb(stats []structs.PodStats) error {
 	for _, stat := range stats {
-		controller := kubernetes.ControllerForPod(stat.Namespace, stat.PodName)
+		controller := self.ownerCacheService.ControllerForPod(stat.Namespace, stat.PodName)
 		if controller == nil {
 			return fmt.Errorf("controller not found for pod %s in namespace %s", stat.PodName, stat.Namespace)
 		}

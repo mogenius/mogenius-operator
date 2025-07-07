@@ -11,19 +11,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func GetPod(namespace string, podName string) *v1.Pod {
-	clientset := clientProvider.K8sClientSet()
-	client := clientset.CoreV1().Pods(namespace)
-	pod, err := client.Get(context.TODO(), podName, metav1.GetOptions{})
-	pod.Kind = "Pod"
-	pod.APIVersion = "v1"
-	if err != nil {
-		k8sLogger.Error("GetPod", "error", err.Error())
-		return nil
-	}
-	return pod
-}
-
 type ServicePodExistsResult struct {
 	PodExists bool `json:"podExists"`
 }

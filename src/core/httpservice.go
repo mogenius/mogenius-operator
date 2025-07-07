@@ -16,7 +16,7 @@ import (
 
 type HttpService interface {
 	Run()
-	Link(socketapi SocketApi, dbstats ValkeyStatsDb, apiModule Api)
+	Link(socketapi SocketApi, dbstats ValkeyStatsDb, apiModule Api, reconciler Reconciler)
 	Broadcaster() *Broadcaster
 }
 
@@ -26,6 +26,7 @@ type httpService struct {
 	dbstats     ValkeyStatsDb
 	api         Api
 	broadcaster *Broadcaster
+	reconciler  Reconciler
 
 	socketapi SocketApi
 }
@@ -118,6 +119,8 @@ func (self *httpService) Run() {
 	mux.Handle("GET /healtz", self.withRequestLogging(http.HandlerFunc(self.getHealthz)))
 	mux.Handle("GET /healthz", self.withRequestLogging(http.HandlerFunc(self.getHealthz)))
 
+	mux.Handle("GET /status", self.withRequestLogging(http.HandlerFunc(self.getAppStatus)))
+
 	if utils.IsDevBuild() {
 		self.addApiRoutes(mux)
 	}
@@ -131,14 +134,16 @@ func (self *httpService) Run() {
 	}()
 }
 
-func (self *httpService) Link(socketapi SocketApi, dbstats ValkeyStatsDb, apiModule Api) {
+func (self *httpService) Link(socketapi SocketApi, dbstats ValkeyStatsDb, apiModule Api, reconciler Reconciler) {
 	assert.Assert(socketapi != nil)
 	assert.Assert(dbstats != nil)
 	assert.Assert(apiModule != nil)
+	assert.Assert(reconciler != nil)
 
 	self.socketapi = socketapi
 	self.dbstats = dbstats
 	self.api = apiModule
+	self.reconciler = reconciler
 }
 
 func (self *httpService) Broadcaster() *Broadcaster {
@@ -173,4 +178,17 @@ func (self *httpService) withRequestLogging(handler http.Handler) http.Handler {
 		)
 		handler.ServeHTTP(w, r)
 	})
+}
+
+func (self *httpService) getAppStatus(w http.ResponseWriter, _ *http.Request) {
+	status := map[string]any{}
+	status["reconciler"] = self.reconciler.Status()
+	status["socketapi"] = self.socketapi.Status()
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	err := json.NewEncoder(w).Encode(status)
+	if err != nil {
+		self.logger.Error("failed to json encode response", "error", err)
+	}
 }

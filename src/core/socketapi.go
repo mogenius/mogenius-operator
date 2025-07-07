@@ -2,7 +2,6 @@ package core
 
 import (
 	"fmt"
-	"io"
 	"log/slog"
 	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/config"
@@ -21,8 +20,6 @@ import (
 	"mogenius-k8s-manager/src/version"
 	"mogenius-k8s-manager/src/websocket"
 	"mogenius-k8s-manager/src/xterm"
-	"net/http"
-	"net/url"
 	"os"
 	"os/exec"
 	"reflect"
@@ -31,10 +28,10 @@ import (
 	"sync"
 	"time"
 
-	gorillawebsocket "github.com/gorilla/websocket"
 	jsoniter "github.com/json-iterator/go"
 	"helm.sh/helm/v3/pkg/release"
 	v1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
@@ -47,6 +44,7 @@ type SocketApi interface {
 		moKubernetes MoKubernetes,
 	)
 	Run()
+	Status() SocketApiStatus
 	ExecuteCommandRequest(datagram structs.Datagram) interface{}
 	ParseDatagram(data []byte) (structs.Datagram, error)
 	RegisterPatternHandler(
@@ -65,6 +63,21 @@ type SocketApi interface {
 	LoadRequest(datagram *structs.Datagram, data interface{}) error
 }
 
+type SocketApiStatus struct {
+	IsRunning bool `json:"is_running"`
+}
+
+func NewSocketApiStatus() SocketApiStatus {
+	status := SocketApiStatus{}
+	return status
+}
+
+func (self *SocketApiStatus) Clone() SocketApiStatus {
+	return SocketApiStatus{
+		self.IsRunning,
+	}
+}
+
 type socketApi struct {
 	logger *slog.Logger
 
@@ -74,6 +87,9 @@ type socketApi struct {
 	config       config.ConfigModule
 	valkeyClient valkeyclient.ValkeyClient
 	dbstats      ValkeyStatsDb
+
+	status     SocketApiStatus
+	statusLock sync.RWMutex
 
 	// the patternHandler should only be edited on startup
 	patternHandlerLock sync.RWMutex
@@ -113,6 +129,8 @@ func NewSocketApi(
 	self.logger = logger
 	self.patternHandler = map[string]PatternHandler{}
 	self.valkeyClient = valkeyClient
+	self.status = NewSocketApiStatus()
+	self.statusLock = sync.RWMutex{}
 
 	self.registerPatterns()
 
@@ -146,6 +164,16 @@ func (self *socketApi) Run() {
 
 	self.AssertPatternsUnique()
 	self.startK8sManager()
+
+	self.statusLock.Lock()
+	self.status.IsRunning = true
+	self.statusLock.Unlock()
+}
+
+func (self *socketApi) Status() SocketApiStatus {
+	self.statusLock.RLock()
+	defer self.statusLock.RUnlock()
+	return self.status.Clone()
 }
 
 func (self *socketApi) AssertPatternsUnique() {
@@ -580,11 +608,11 @@ func (self *socketApi) registerPatterns() {
 	self.RegisterPatternHandlerRaw(
 		"stats/podstat/last-for-controller",
 		PatternConfig{
-			RequestSchema:  schema.Generate(kubernetes.K8sController{}),
+			RequestSchema:  schema.Generate(dtos.K8sController{}),
 			ResponseSchema: schema.Generate(&structs.PodStats{}),
 		},
 		func(datagram structs.Datagram) any {
-			data := kubernetes.K8sController{}
+			data := dtos.K8sController{}
 			if err := self.LoadRequest(&datagram, &data); err != nil {
 				return err
 			}
@@ -595,11 +623,11 @@ func (self *socketApi) registerPatterns() {
 	self.RegisterPatternHandlerRaw(
 		"stats/traffic/sum-for-controller",
 		PatternConfig{
-			RequestSchema:  schema.Generate(kubernetes.K8sController{}),
+			RequestSchema:  schema.Generate(dtos.K8sController{}),
 			ResponseSchema: schema.Generate(&networkmonitor.PodNetworkStats{}),
 		},
 		func(datagram structs.Datagram) any {
-			data := kubernetes.K8sController{}
+			data := dtos.K8sController{}
 			if err := self.LoadRequest(&datagram, &data); err != nil {
 				return err
 			}
@@ -610,11 +638,11 @@ func (self *socketApi) registerPatterns() {
 	self.RegisterPatternHandlerRaw(
 		"stats/traffic/for-controller-socket-connections",
 		PatternConfig{
-			RequestSchema:  schema.Generate(kubernetes.K8sController{}),
+			RequestSchema:  schema.Generate(dtos.K8sController{}),
 			ResponseSchema: schema.Generate(&structs.SocketConnections{}),
 		},
 		func(datagram structs.Datagram) any {
-			data := kubernetes.K8sController{}
+			data := dtos.K8sController{}
 			if err := self.LoadRequest(&datagram, &data); err != nil {
 				return err
 			}
@@ -691,11 +719,11 @@ func (self *socketApi) registerPatterns() {
 		self.RegisterPatternHandlerRaw(
 			"metrics/deployment/average-utilization",
 			PatternConfig{
-				RequestSchema:  schema.Generate(kubernetes.K8sController{}),
+				RequestSchema:  schema.Generate(dtos.K8sController{}),
 				ResponseSchema: schema.Generate(&kubernetes.Metrics{}),
 			},
 			func(datagram structs.Datagram) any {
-				data := kubernetes.K8sController{}
+				data := dtos.K8sController{}
 				data.Kind = "Deployment"
 				if err := self.LoadRequest(&datagram, &data); err != nil {
 					return err
@@ -1601,10 +1629,11 @@ func (self *socketApi) registerPatterns() {
 
 	{
 		type Request struct {
-			Name      string `json:"name"`
-			FirstName string `json:"firstName"`
-			LastName  string `json:"lastName"`
-			Email     string `json:"email"`
+			Name      string          `json:"name"`
+			FirstName string          `json:"firstName"`
+			LastName  string          `json:"lastName"`
+			Email     string          `json:"email"`
+			Subject   *rbacv1.Subject `json:"subject"`
 		}
 
 		RegisterPatternHandler(
@@ -1615,6 +1644,7 @@ func (self *socketApi) registerPatterns() {
 					request.FirstName,
 					request.LastName,
 					request.Email,
+					request.Subject,
 				))
 			},
 		)
@@ -1636,10 +1666,11 @@ func (self *socketApi) registerPatterns() {
 
 	{
 		type Request struct {
-			Name      string `json:"name" validate:"required"`
-			FirstName string `json:"firstName"`
-			LastName  string `json:"lastName"`
-			Email     string `json:"email"`
+			Name      string          `json:"name" validate:"required"`
+			FirstName string          `json:"firstName"`
+			LastName  string          `json:"lastName"`
+			Email     string          `json:"email"`
+			Subject   *rbacv1.Subject `json:"subject"`
 		}
 
 		RegisterPatternHandler(
@@ -1650,6 +1681,7 @@ func (self *socketApi) registerPatterns() {
 					request.FirstName,
 					request.LastName,
 					request.Email,
+					request.Subject,
 				))
 			},
 		)
@@ -2515,81 +2547,4 @@ func (self *socketApi) NormalizePatternName(pattern string) string {
 	pattern = strings.ReplaceAll(pattern, "/", "_")
 	pattern = strings.ReplaceAll(pattern, "-", "_")
 	return pattern
-}
-
-func (self *socketApi) sendDataWs(sendToServer string, reader io.ReadCloser) {
-	defer func() {
-		if reader != nil {
-			err := reader.Close()
-			if err != nil {
-				self.logger.Debug("failed to close reader", "error", err)
-			}
-		}
-	}()
-
-	header := utils.HttpHeader("-logs")
-	var dialer *gorillawebsocket.Dialer = gorillawebsocket.DefaultDialer
-	if self.config.Get("MO_HTTP_PROXY") != "" {
-		dialer.Proxy = http.ProxyURL(&url.URL{
-			Scheme: "http",
-			Host:   self.config.Get("MO_HTTP_PROXY"),
-		})
-	}
-	conn, _, err := dialer.Dial(sendToServer, header)
-	if err != nil {
-		self.logger.Error("Connection to stream endpoint failed", "sendToServer", sendToServer, "error", err)
-		return
-	}
-
-	defer func() {
-		err := conn.Close()
-		if err != nil {
-			self.logger.Debug("failed to close connection", "error", err)
-		}
-	}()
-
-	// API send ack when it is ready to receive messages.
-	err = conn.SetReadDeadline(time.Now().Add(2 * time.Second))
-	if err != nil {
-		self.logger.Error("Error setting read deadline.", "error", err)
-		return
-	}
-	_, ack, err := conn.ReadMessage()
-	if err != nil {
-		self.logger.Error("Error reading ack message.", "error", err)
-		return
-	}
-
-	self.logger.Info("Ready ack from stream endpoint.", "ack", string(ack))
-
-	buf := make([]byte, 1024)
-	for {
-		if reader != nil {
-			n, err := reader.Read(buf)
-			if err != nil {
-				if err != io.EOF {
-					self.logger.Error("Unexpected stop of stream.", "sendToServer", sendToServer)
-				}
-				return
-			}
-			// debugging
-			// str := string(buf[:n])
-			// StructsLogger.Info("Send data ws.", "data", str)
-
-			err = conn.WriteMessage(gorillawebsocket.BinaryMessage, buf[:n])
-			if err != nil {
-				self.logger.Error("Error sending data", "sendToServer", sendToServer, "error", err)
-				return
-			}
-
-			// if conn, ok := conn.UnderlyingConn().(*net.TCPConn); ok {
-			// 	err := conn.SetWriteBuffer(0)
-			// 	if err != nil {
-			// 		StructsLogger.Error("Error flushing connection", "error", err)
-			// 	}
-			// }
-		} else {
-			return
-		}
-	}
 }

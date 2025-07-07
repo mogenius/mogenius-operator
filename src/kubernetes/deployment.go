@@ -440,15 +440,6 @@ func GetDeploymentsWithFieldSelector(namespace string, labelSelector string) ([]
 	return deployments.Items, err
 }
 
-func GetK8sDeployment(namespaceName string, name string) (*v1.Deployment, error) {
-	clientset := clientProvider.K8sClientSet()
-	deployment, err := clientset.AppsV1().Deployments(namespaceName).Get(context.TODO(), name, metav1.GetOptions{})
-	deployment.Kind = "Deployment"
-	deployment.APIVersion = "apps/v1"
-
-	return deployment, err
-}
-
 func IsDeploymentInstalled(namespaceName string, name string) (string, error) {
 	ownDeployment, err := GetDeployment(namespaceName, name)
 	if err != nil {

@@ -20,6 +20,7 @@ import (
 	"mogenius-k8s-manager/src/services"
 	"mogenius-k8s-manager/src/servicesexternal"
 	"mogenius-k8s-manager/src/shutdown"
+	"mogenius-k8s-manager/src/store"
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/valkeyclient"
@@ -287,6 +288,18 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		},
 	})
 	configModule.Declare(config.ConfigDeclaration{
+		Key:          "MO_SKIP_TLS_VERIFICATION",
+		DefaultValue: utils.Pointer("false"),
+		Description:  utils.Pointer("Skip TLS verification for API and Event Server"),
+		Validate: func(value string) error {
+			_, err := strconv.ParseBool(value)
+			if err != nil {
+				return fmt.Errorf("'MO_SKIP_TLS_VERIFICATION' needs to be a boolean: %s", err.Error())
+			}
+			return nil
+		},
+	})
+	configModule.Declare(config.ConfigDeclaration{
 		Key:         "MO_VALKEY_ADDR",
 		Description: utils.Pointer("Address of operator valkey Server"),
 		Validate: func(value string) error {
@@ -517,6 +530,8 @@ func InitializeSystems(
 	structs.Setup(logManagerModule)
 	xterm.Setup(logManagerModule, clientProvider, valkeyClient)
 	utils.Setup(logManagerModule, configModule)
+	err = store.Setup(logManagerModule, valkeyClient)
+	assert.Assert(err == nil, err)
 
 	// initialization step 1 for services
 	workspaceManager := core.NewWorkspaceManager(configModule, clientProvider)
@@ -525,7 +540,8 @@ func InitializeSystems(
 	socketApi := core.NewSocketApi(logManagerModule.CreateLogger("socketapi"), configModule, jobConnectionClient, eventConnectionClient, valkeyClient)
 	xtermService := core.NewXtermService(logManagerModule.CreateLogger("xterm-service"))
 	valkeyLoggerService := core.NewValkeyLogger(valkeyClient, valkeyLogChannel)
-	dbstatsService := core.NewValkeyStatsModule(logManagerModule.CreateLogger("db-stats"), configModule, valkeyClient)
+	ownerCacheService := core.NewOwnerCacheService(logManagerModule.CreateLogger("owner-cache"), configModule)
+	dbstatsService := core.NewValkeyStatsModule(logManagerModule.CreateLogger("db-stats"), configModule, valkeyClient, ownerCacheService)
 	podStatsCollector := core.NewPodStatsCollector(logManagerModule.CreateLogger("pod-stats-collector"), configModule, clientProvider)
 	nodeMetricsCollector := core.NewNodeMetricsCollector(
 		logManagerModule.CreateLogger("traffic-collector"),
@@ -546,7 +562,7 @@ func InitializeSystems(
 	nodeMetricsCollector.Link(dbstatsService, leaderElector)
 	socketApi.Link(httpApi, xtermService, dbstatsService, apiModule, moKubernetes)
 	moKubernetes.Link(dbstatsService)
-	httpApi.Link(socketApi, dbstatsService, apiModule)
+	httpApi.Link(socketApi, dbstatsService, apiModule, reconciler)
 	apiModule.Link(workspaceManager)
 	reconciler.Link(leaderElector)
 

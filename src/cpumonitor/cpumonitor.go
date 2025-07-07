@@ -95,8 +95,7 @@ func (self *cpuMonitor) startCollector() {
 		defer processMetricsUpdater.Stop()
 
 		lastProcStatCpu := ProcStatCpu{}
-		metrics := CpuMetrics{}
-		lastProcStatCpu, metrics = self.updateMetrics(statPath, lastProcStatCpu)
+		lastProcStatCpu, metrics := self.updateMetrics(statPath, lastProcStatCpu)
 		processMetrics := self.collectProcessMetrics()
 
 		for {
