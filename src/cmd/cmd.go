@@ -288,6 +288,18 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		},
 	})
 	configModule.Declare(config.ConfigDeclaration{
+		Key:          "MO_SKIP_TLS_VERIFICATION",
+		DefaultValue: utils.Pointer("false"),
+		Description:  utils.Pointer("Skip TLS verification for API and Event Server"),
+		Validate: func(value string) error {
+			_, err := strconv.ParseBool(value)
+			if err != nil {
+				return fmt.Errorf("'MO_SKIP_TLS_VERIFICATION' needs to be a boolean: %s", err.Error())
+			}
+			return nil
+		},
+	})
+	configModule.Declare(config.ConfigDeclaration{
 		Key:         "MO_VALKEY_ADDR",
 		Description: utils.Pointer("Address of operator valkey Server"),
 		Validate: func(value string) error {

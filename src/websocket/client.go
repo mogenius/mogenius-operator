@@ -2,6 +2,7 @@ package websocket
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -9,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 	"sync/atomic"
 	"syscall"
 	"time"
@@ -446,6 +448,10 @@ func (self *websocketClient) startRuntime() {
 					Scheme: "http",
 					Host:   httpProxy,
 				})
+			}
+			skipTlsVerification := strings.ToLower(os.Getenv("MO_SKIP_TLS_VERIFICATION"))
+			if skipTlsVerification == "true" {
+				dialer.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 			}
 			conn, _, err := dialer.Dial(connectionUrl.String(), *header)
 			if err != nil {
