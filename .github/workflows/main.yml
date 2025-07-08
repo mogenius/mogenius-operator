@@ -239,7 +239,7 @@ jobs:
         id: install
 
       - name: Run helm-docs
-        uses: losisin/helm-docs-github-action@v1.5.2
+        uses: losisin/helm-docs-github-action@v1.6.0
         with:
           chart-search-root: helm
 
