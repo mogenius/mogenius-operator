@@ -11,6 +11,7 @@ import (
 	"time"
 
 	json "github.com/json-iterator/go"
+	"github.com/valkey-io/valkey-go"
 
 	"github.com/gorilla/websocket"
 )
@@ -22,8 +23,7 @@ func ComponentStreamConnection(
 	controllerName *string,
 	release *string,
 ) {
-	pubsub := store.SubscribeToBucket("logs", component)
-	defer pubsub.Close()
+	valkeyKey := strings.Join([]string{"logs", component, "channel"}, ":")
 
 	if wsConnectionRequest.WebsocketScheme == "" {
 		xtermLogger.Error("WebsocketScheme is empty")
@@ -90,17 +90,18 @@ func ComponentStreamConnection(
 		connWriteLock.Unlock()
 	}
 
-	for msg := range pubsub.Channel() {
+	client := store.GetValkeyClient()
+	client.Receive(ctx, client.B().Subscribe().Channel(valkeyKey).Build(), func(msg valkey.PubSubMessage) {
 		if conn != nil {
 			var entry logging.LogLine
-			err := json.Unmarshal([]byte(msg.Payload), &entry)
+			err := json.Unmarshal([]byte(msg.Message), &entry)
 			if err != nil {
 				xtermLogger.Error("Unmarshal", "error", err)
-				continue
+				return
 			}
 			messageStr := processLogLine(component, namespace, release, entry)
 			if messageStr == "" {
-				continue
+				return
 			}
 
 			connWriteLock.Lock()
@@ -109,12 +110,13 @@ func ComponentStreamConnection(
 			if err != nil {
 				if strings.Contains(err.Error(), "broken pipe") {
 					xtermLogger.Debug("write close:", "error", err)
-					break
+					cancel()
+					return
 				}
 				xtermLogger.Error("WriteMessage", "error", err)
 			}
 		}
-	}
+	})
 
 	if conn != nil {
 		closeMsg := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "CLOSE_CONNECTION_FROM_PEER")

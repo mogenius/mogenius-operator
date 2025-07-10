@@ -15,14 +15,14 @@ import (
 
 	jsoniter "github.com/json-iterator/go"
 
-	"github.com/go-redis/redis/v8"
+	valkeyclient "github.com/valkey-io/valkey-go"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 type ValkeyClient interface {
 	Connect() error
-	Set(value interface{}, expiration time.Duration, keys ...string) error
+	Set(value string, expiration time.Duration, keys ...string) error
 	SetObject(value interface{}, expiration time.Duration, keys ...string) error
 	Get(keys ...string) (string, error)
 	GetObject(keys ...string) (interface{}, error)
@@ -32,8 +32,6 @@ type ValkeyClient interface {
 	ListFromBucket(start int64, stop int64, bucketKey ...string) ([]string, error)
 	LastNEntryFromBucketWithType(number int64, bucketKey ...string) ([]string, error)
 	DeleteFromBucketWithNsAndReleaseName(namespace string, releaseName string, bucketKey ...string) error
-	SubscribeToBucket(bucketKey ...string) *redis.PubSub
-	SubscribeToKey(key ...string) *redis.PubSub
 
 	ClearNonEssentialKeys(includeTraffic bool, includePodStats bool, includeNodestats bool) (string, error)
 
@@ -42,7 +40,7 @@ type ValkeyClient interface {
 	Keys(pattern string) ([]string, error)
 	Exists(keys ...string) (bool, error)
 
-	GetRedisClient() *redis.Client
+	GetValkeyClient() valkeyclient.Client
 	GetContext() context.Context
 	GetLogger() *slog.Logger
 }
@@ -62,8 +60,8 @@ type valkeyClient struct {
 	config config.ConfigModule
 
 	ctx context.Context
-	// internal redis client used to connect to a valkey instance
-	redisClient *redis.Client
+	// internal valkey client used to connect to a valkey instance
+	valkeyClient valkeyclient.Client
 }
 
 func NewValkeyClient(logger *slog.Logger, configModule config.ConfigModule) ValkeyClient {
@@ -72,7 +70,6 @@ func NewValkeyClient(logger *slog.Logger, configModule config.ConfigModule) Valk
 	self.ctx = context.Background()
 	self.logger = logger
 	self.config = configModule
-	self.redisClient = redis.NewClient(&redis.Options{})
 
 	return self
 }
@@ -88,17 +85,21 @@ func (self *valkeyClient) Connect() error {
 	valkeyAddr := valkeyHost + ":" + valkeyPort
 	valkeyPwd := self.config.Get("MO_VALKEY_PASSWORD")
 
-	self.redisClient = redis.NewClient(&redis.Options{
-		Addr:       valkeyAddr,
-		Password:   valkeyPwd,
-		DB:         0,
-		MaxRetries: 0,
+	client, err := valkeyclient.NewClient(valkeyclient.ClientOption{
+		InitAddress:  []string{valkeyAddr},
+		Password:     valkeyPwd,
+		SelectDB:     0,
+		DisableRetry: true,
 	})
-
-	_, err = self.redisClient.Ping(self.ctx).Result()
 	if err != nil {
-		self.logger.Info("connection to Redis failed", "addr", valkeyAddr, "password", valkeyPwd, "error", err)
-		return fmt.Errorf("could not connect to Redis: %v", err)
+		self.logger.Info("connection to Valkey failed", "valkeyAddr", valkeyAddr, "password", valkeyPwd, "error", err)
+		return fmt.Errorf("could not connect to Valkey: %s", err)
+	}
+	self.valkeyClient = client
+	err = self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Ping().Build()).Error()
+	if err != nil {
+		self.logger.Info("connection to Valkey failed", "addr", valkeyAddr, "password", valkeyPwd, "error", err)
+		return fmt.Errorf("could not connect to Valkey: %v", err)
 	}
 
 	self.logger.Info("Connected to valkey", "addr", valkeyAddr)
@@ -106,8 +107,8 @@ func (self *valkeyClient) Connect() error {
 	return nil
 }
 
-func (self *valkeyClient) GetRedisClient() *redis.Client {
-	return self.redisClient
+func (self *valkeyClient) GetValkeyClient() valkeyclient.Client {
+	return self.valkeyClient
 }
 
 func (self *valkeyClient) GetContext() context.Context {
@@ -118,14 +119,19 @@ func (self *valkeyClient) GetLogger() *slog.Logger {
 	return self.logger
 }
 
-func (self *valkeyClient) Set(value interface{}, expiration time.Duration, keys ...string) error {
+func (self *valkeyClient) Set(value string, expiration time.Duration, keys ...string) error {
 	key := createKey(keys...)
 
-	err := self.redisClient.Set(self.ctx, key, value, expiration).Err()
+	cmd := self.valkeyClient.B().Set().Key(key).Value(value)
+	if expiration != time.Duration(0) {
+		cmd.Ex(expiration)
+	}
+	err := self.valkeyClient.Do(self.ctx, cmd.Build()).Error()
 	if err != nil {
 		self.logger.Error("Error setting value in Redis", "key", key, "error", err)
 		return err
 	}
+
 	return nil
 }
 
@@ -138,21 +144,22 @@ func (self *valkeyClient) SetObject(value interface{}, expiration time.Duration,
 		return err
 	}
 
-	return self.Set(objStr, expiration, key)
+	return self.Set(string(objStr), expiration, key)
 }
 
 func (self *valkeyClient) Get(keys ...string) (string, error) {
 	key := createKey(keys...)
 
-	val, err := self.redisClient.Get(self.ctx, key).Result()
+	val, err := self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Get().Key(key).Build()).ToString()
 	if err != nil {
-		if err == redis.Nil {
+		if err == valkeyclient.Nil {
 			self.logger.Info("Key does not exist", "key", key)
 			return "", nil
 		}
-		self.logger.Error("Error getting value from Redis", "key", key, "error", err)
+		self.logger.Error("Error getting value from Valkey", "key", key, "error", err)
 		return "", err
 	}
+
 	return val, nil
 }
 
@@ -176,7 +183,7 @@ func (self *valkeyClient) List(limit int, keys ...string) ([]string, error) {
 	key := createKey(keys...)
 	key = key + ":*"
 
-	selectedKeys, err := self.redisClient.Keys(self.ctx, key).Result()
+	selectedKeys, err := self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Keys().Pattern(key).Build()).AsStrSlice()
 	if err != nil {
 		self.logger.Error("Error listing keys from Redis", "pattern", key, "error", err)
 		return []string{}, err
@@ -204,39 +211,37 @@ func (self *valkeyClient) List(limit int, keys ...string) ([]string, error) {
 	// Fetch the values for these keys
 	result := []string{}
 	for _, v := range chunks {
-		values, err := self.redisClient.MGet(self.ctx, v...).Result()
+		values, err := self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Mget().Key(v...).Build()).AsStrSlice()
 		if err != nil {
 			self.logger.Error("Error fetching values from Redis", "keys", v, "error", err)
 			return result, err
 		}
-		// Convert the values to a slice of strings
 		for index, v := range values {
 			if limit > 0 && index >= limit {
 				break
 			}
-			if v != nil {
-				result = append(result, v.(string))
-			}
+			result = append(result, v)
 		}
 	}
+
 	return result, nil
 }
 
 func (self *valkeyClient) AddToBucket(maxSize int64, value interface{}, bucketKey ...string) error {
 	key := createKey(bucketKey...)
 	// Add the new elements to the end of the list
-	err := self.redisClient.RPush(self.ctx, key, utils.PrintJson(value)).Err()
+	err := self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Rpush().Key(key).Element(utils.PrintJson(value)).Build()).Error()
 	if err != nil {
 		return err
 	}
 
 	// Trim the list to keep only the last maxSize elements
-	err = self.redisClient.LTrim(self.ctx, key, -maxSize, -1).Err()
+	err = self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Ltrim().Key(key).Start(-maxSize).Stop(-1).Build()).Error()
 	if err != nil {
 		return err
 	}
 
-	err = self.redisClient.Publish(self.ctx, createChannel(bucketKey...), utils.PrintJson(value)).Err()
+	err = self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Publish().Channel(createChannel(bucketKey...)).Message(utils.PrintJson(value)).Build()).Error()
 	if err != nil {
 		return err
 	}
@@ -248,7 +253,7 @@ func (self *valkeyClient) ListFromBucket(start int64, stop int64, bucketKey ...s
 	key := createKey(bucketKey...)
 	// start=0 stop=-1 to retrieve all elements from start to the end of the list
 
-	elements, err := self.redisClient.LRange(self.ctx, key, start, stop).Result()
+	elements, err := self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Lrange().Key(key).Start(start).Stop(stop).Build()).AsStrSlice()
 	if err != nil {
 		return []string{}, err
 	}
@@ -260,7 +265,7 @@ func (self *valkeyClient) LastNEntryFromBucketWithType(number int64, bucketKey .
 	key := createKey(bucketKey...)
 
 	// Get the length of the list
-	length, err := self.redisClient.LLen(self.ctx, key).Result()
+	length, err := self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Llen().Key(key).Build()).AsInt64()
 	if err != nil {
 		return []string{}, err
 	}
@@ -272,7 +277,7 @@ func (self *valkeyClient) LastNEntryFromBucketWithType(number int64, bucketKey .
 	}
 
 	// Use LRANGE to get the last N elements
-	elements, err := self.redisClient.LRange(self.ctx, key, start, -1).Result()
+	elements, err := self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Lrange().Key(key).Start(start).Stop(-1).Build()).AsStrSlice()
 	if err != nil {
 		return []string{}, err
 	}
@@ -283,7 +288,7 @@ func (self *valkeyClient) LastNEntryFromBucketWithType(number int64, bucketKey .
 func (self *valkeyClient) DeleteFromBucketWithNsAndReleaseName(namespace string, releaseName string, bucketKey ...string) error {
 	key := createKey(bucketKey...)
 	// Use LRANGE to get all elements in the bucket
-	elements, err := self.redisClient.LRange(self.ctx, key, 0, -1).Result()
+	elements, err := self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Lrange().Key(key).Start(0).Stop(-1).Build()).AsStrSlice()
 	if err != nil {
 		return err
 	}
@@ -304,7 +309,7 @@ func (self *valkeyClient) DeleteFromBucketWithNsAndReleaseName(namespace string,
 		// Extract namespace and releaseName from the Payload
 		if payload["namespace"] == namespace && payload["releaseName"] == releaseName {
 			// Remove the specific entry from the bucket
-			err = self.redisClient.LRem(self.ctx, key, 1, v).Err()
+			err = self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Lrem().Key(key).Count(1).Element(v).Build()).Error()
 			if err != nil {
 				return fmt.Errorf("error removing entry from Redis bucket, error: %v", err)
 			}
@@ -316,7 +321,7 @@ func (self *valkeyClient) DeleteFromBucketWithNsAndReleaseName(namespace string,
 
 func (self *valkeyClient) ClearNonEssentialKeys(includeTraffic bool, includePodStats bool, includeNodestats bool) (string, error) {
 	// Get all keys
-	keys, err := self.redisClient.Keys(self.ctx, "*").Result()
+	keys, err := self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Keys().Pattern("*").Build()).AsStrSlice()
 	if err != nil {
 		return "", err
 	}
@@ -364,7 +369,7 @@ func (self *valkeyClient) ClearNonEssentialKeys(includeTraffic bool, includePodS
 	for _, key := range keys {
 		for _, keyToDelete := range prefixesToDelete {
 			if strings.HasPrefix(key, keyToDelete) {
-				err = self.redisClient.Del(self.ctx, key).Err()
+				err = self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Del().Key(key).Build()).Error()
 				if err != nil {
 					return "", fmt.Errorf("error deleting non-essential key from Redis, error: %v", err)
 				}
@@ -378,19 +383,9 @@ func (self *valkeyClient) ClearNonEssentialKeys(includeTraffic bool, includePodS
 	return resultMsg, nil
 }
 
-func (self *valkeyClient) SubscribeToBucket(bucketKey ...string) *redis.PubSub {
-	keyName := createChannel(bucketKey...)
-	return self.redisClient.Subscribe(self.ctx, keyName)
-}
-
-func (self *valkeyClient) SubscribeToKey(bucketKey ...string) *redis.PubSub {
-	keyName := createKey(bucketKey...)
-	return self.redisClient.Subscribe(self.ctx, keyName)
-}
-
 func (self *valkeyClient) DeleteSingle(keys ...string) error {
 	key := createKey(keys...)
-	_, err := self.redisClient.Del(self.ctx, key).Result()
+	err := self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Del().Key(key).Build()).Error()
 	if err != nil {
 		self.logger.Error("Error deleting key from Redis", "key", keys, "error", err)
 		return err
@@ -403,7 +398,7 @@ func (self *valkeyClient) DeleteMultiple(keys ...string) error {
 	if len(keys) == 0 {
 		return nil
 	}
-	_, err := self.redisClient.Del(self.ctx, keys...).Result()
+	err := self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Del().Key(keys...).Build()).Error()
 	if err != nil {
 		self.logger.Error("Error deleting key from Redis", "key", keys, "error", err)
 		return err
@@ -413,7 +408,7 @@ func (self *valkeyClient) DeleteMultiple(keys ...string) error {
 }
 
 func (self *valkeyClient) Keys(pattern string) ([]string, error) {
-	keys, err := self.redisClient.Keys(self.ctx, pattern).Result()
+	keys, err := self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Keys().Pattern(pattern).Build()).AsStrSlice()
 	if err != nil {
 		self.logger.Error("Error listing keys from Redis", "pattern", pattern, "error", err)
 		return []string{}, err
@@ -425,7 +420,7 @@ func (self *valkeyClient) Keys(pattern string) ([]string, error) {
 func (self *valkeyClient) Exists(keys ...string) (bool, error) {
 	key := createKey(keys...)
 
-	exists, err := self.redisClient.Exists(self.ctx, key).Result()
+	exists, err := self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Exists().Key(key).Build()).AsInt64()
 	if err != nil {
 		self.logger.Error("Error checking if key exists in Redis", "key", key, "error", err)
 		return false, err
@@ -436,7 +431,11 @@ func (self *valkeyClient) Exists(keys ...string) (bool, error) {
 
 func GetObjectsByPattern[T any](store ValkeyClient, pattern string, keywords []string) ([]T, error) {
 	var result []T
-	keyList := store.GetRedisClient().Keys(store.GetContext(), pattern).Val()
+	client := store.GetValkeyClient()
+	keyList, err := client.Do(store.GetContext(), client.B().Keys().Pattern(pattern).Build()).AsStrSlice()
+	if err != nil {
+		return result, err
+	}
 
 	// filter for keywords
 	if len(keywords) > 0 {
@@ -464,13 +463,13 @@ func GetObjectsByPattern[T any](store ValkeyClient, pattern string, keywords []s
 
 	// Fetch the values for these keys
 	for _, v := range chunks {
-		values, err := store.GetRedisClient().MGet(store.GetContext(), v...).Result()
+		values, err := client.Do(store.GetContext(), client.B().Mget().Key(v...).Build()).AsStrSlice()
 		if err != nil {
 			return result, err
 		}
 		for _, v := range values {
 			var obj T
-			if err := json.Unmarshal([]byte(v.(string)), &obj); err != nil {
+			if err := json.Unmarshal([]byte(v), &obj); err != nil {
 				return result, fmt.Errorf("error unmarshalling value from Redis, error: %v", err)
 			}
 			result = append(result, obj)
@@ -483,9 +482,10 @@ func GetObjectsByPattern[T any](store ValkeyClient, pattern string, keywords []s
 func LastNEntryFromBucketWithType[T any](store ValkeyClient, number int64, bucketKey ...string) ([]T, error) {
 	var result []T
 	key := createKey(bucketKey...)
+	client := store.GetValkeyClient()
 
 	// Get the length of the list
-	length, err := store.GetRedisClient().LLen(store.GetContext(), key).Result()
+	length, err := client.Do(store.GetContext(), client.B().Llen().Key(key).Build()).AsInt64()
 	if err != nil {
 		return result, err
 	}
@@ -497,7 +497,7 @@ func LastNEntryFromBucketWithType[T any](store ValkeyClient, number int64, bucke
 	}
 
 	// Use LRANGE to get the last N elements
-	elements, err := store.GetRedisClient().LRange(store.GetContext(), key, start, -1).Result()
+	elements, err := client.Do(store.GetContext(), client.B().Lrange().Key(key).Start(start).Stop(-1).Build()).AsStrSlice()
 	if err != nil {
 		return result, err
 	}
@@ -513,12 +513,16 @@ func LastNEntryFromBucketWithType[T any](store ValkeyClient, number int64, bucke
 	return result, nil
 }
 
-func GetObjectsByPrefix[T any](redisStore ValkeyClient, order SortOrder, keys ...string) ([]T, error) {
+func GetObjectsByPrefix[T any](store ValkeyClient, order SortOrder, keys ...string) ([]T, error) {
 	var result []T
 	key := createKey(keys...)
 	pattern := key + "*"
+	client := store.GetValkeyClient()
 	// Get the keys
-	keyList := redisStore.GetRedisClient().Keys(redisStore.GetContext(), pattern).Val()
+	keyList, err := client.Do(store.GetContext(), client.B().Keys().Pattern(pattern).Build()).AsStrSlice()
+	if err != nil {
+		return result, err
+	}
 	if len(keyList) == 0 {
 		return result, nil
 	}
@@ -538,18 +542,16 @@ func GetObjectsByPrefix[T any](redisStore ValkeyClient, order SortOrder, keys ..
 	}
 
 	for _, v := range chunks {
-		values, err := redisStore.GetRedisClient().MGet(redisStore.GetContext(), v...).Result()
+		values, err := client.Do(store.GetContext(), client.B().Mget().Key(v...).Build()).AsStrSlice()
 		if err != nil {
 			return result, err
 		}
 		for _, v := range values {
-			if v != nil {
-				var obj T
-				if err := json.Unmarshal([]byte(v.(string)), &obj); err != nil {
-					return result, fmt.Errorf("error unmarshalling value from Redis, error: %v", err)
-				}
-				result = append(result, obj)
+			var obj T
+			if err := json.Unmarshal([]byte(v), &obj); err != nil {
+				return result, fmt.Errorf("error unmarshalling value from Redis, error: %v", err)
 			}
+			result = append(result, obj)
 		}
 	}
 	return result, nil
@@ -557,7 +559,8 @@ func GetObjectsByPrefix[T any](redisStore ValkeyClient, order SortOrder, keys ..
 
 func GetObjectForKey[T any](store ValkeyClient, keys ...string) (*T, error) {
 	key := createKey(keys...)
-	data, err := store.GetRedisClient().Get(store.GetContext(), key).Result()
+	client := store.GetValkeyClient()
+	data, err := client.Do(store.GetContext(), client.B().Get().Key(key).Build()).ToString()
 	if err != nil {
 		return nil, err
 	}
