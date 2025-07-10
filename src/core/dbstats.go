@@ -459,7 +459,8 @@ func (self *valkeyStatsDb) AddNodeStatsToDb(stats []structs.NodeStats) error {
 
 func (self *valkeyStatsDb) Publish(data interface{}, keys ...string) {
 	key := strings.Join(keys, ":")
-	err := self.valkey.GetRedisClient().Publish(self.valkey.GetContext(), key, utils.PrintJson(data)).Err()
+	client := self.valkey.GetValkeyClient()
+	err := client.Do(self.valkey.GetContext(), client.B().Publish().Channel(key).Message(utils.PrintJson(data)).Build()).Error()
 
 	if err != nil {
 		self.logger.Error("Error publishing to Redis", "error", err, "key", key)

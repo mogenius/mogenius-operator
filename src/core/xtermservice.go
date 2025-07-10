@@ -11,11 +11,11 @@ import (
 	"mogenius-k8s-manager/src/valkeyclient"
 	"mogenius-k8s-manager/src/xterm"
 	"net/url"
+	"strings"
 	"time"
 
 	json "github.com/json-iterator/go"
-
-	"github.com/go-redis/redis/v8"
+	"github.com/valkey-io/valkey-go"
 )
 
 type XtermService interface {
@@ -36,23 +36,22 @@ func NewXtermService(logger *slog.Logger) XtermService {
 func (self *xtermService) LiveStreamConnection(conReq xterm.WsConnectionRequest, datagram structs.Datagram, httpApi HttpService, store valkeyclient.ValkeyClient, podNames []string) {
 	logger := self.logger.With("scope", "LiveStreamConnection")
 
-	var pubsub *redis.PubSub
+	var valkeyKey string
 	switch datagram.Pattern {
 	case "live-stream/nodes-traffic", "live-stream/pod-traffic", "live-stream/workspace-traffic":
-		pubsub = store.SubscribeToKey(DB_STATS_LIVE_BUCKET_NAME, "traffic", conReq.NodeName)
+		valkeyKey = strings.Join([]string{DB_STATS_LIVE_BUCKET_NAME, "traffic", conReq.NodeName}, ":")
 	case "live-stream/nodes-memory":
-		pubsub = store.SubscribeToKey(DB_STATS_LIVE_BUCKET_NAME, "memory", conReq.NodeName)
+		valkeyKey = strings.Join([]string{DB_STATS_LIVE_BUCKET_NAME, "memory", conReq.NodeName}, ":")
 	case "live-stream/nodes-cpu":
-		pubsub = store.SubscribeToKey(DB_STATS_LIVE_BUCKET_NAME, "cpu", conReq.NodeName)
+		valkeyKey = strings.Join([]string{DB_STATS_LIVE_BUCKET_NAME, "cpu", conReq.NodeName}, ":")
 	case "live-stream/pod-memory", "live-stream/workspace-memory":
-		pubsub = store.SubscribeToKey(DB_STATS_LIVE_BUCKET_NAME, "memory", "proc", conReq.NodeName)
+		valkeyKey = strings.Join([]string{DB_STATS_LIVE_BUCKET_NAME, "memory", "proc", conReq.NodeName}, ":")
 	case "live-stream/pod-cpu", "live-stream/workspace-cpu":
-		pubsub = store.SubscribeToKey(DB_STATS_LIVE_BUCKET_NAME, "cpu", "proc", conReq.NodeName)
+		valkeyKey = strings.Join([]string{DB_STATS_LIVE_BUCKET_NAME, "cpu", "proc", conReq.NodeName}, ":")
 	default:
 		logger.Error("Unsupported pattern for LiveStreamConnection", "pattern", datagram.Pattern)
 		return
 	}
-	defer pubsub.Close()
 
 	if conReq.WebsocketScheme == "" {
 		logger.Error("WebsocketScheme is empty")
@@ -82,8 +81,7 @@ func (self *xtermService) LiveStreamConnection(conReq xterm.WsConnectionRequest,
 			connWriteLock.Unlock()
 			if err != nil {
 				logger.Error("WriteMessage Broadcast", "error", err)
-				cancel()       // Close the context to stop the connection
-				pubsub.Close() // Close the pubsub channel
+				cancel() // Close the context to stop the connection
 			}
 		}
 	})
@@ -101,16 +99,17 @@ func (self *xtermService) LiveStreamConnection(conReq xterm.WsConnectionRequest,
 		}
 	}()
 
-	for msg := range pubsub.Channel() {
+	client := store.GetValkeyClient()
+	client.Receive(ctx, client.B().Subscribe().Channel(valkeyKey).Build(), func(msg valkey.PubSubMessage) {
 		var entry interface{}
 		// remove unnecessary fields for pods to save bandwidth
 		switch datagram.Pattern {
 		case "live-stream/pod-memory", "live-stream/workspace-memory":
 			data := []rammonitor.PodRamStats{}
-			err := json.Unmarshal([]byte(msg.Payload), &data)
+			err := json.Unmarshal([]byte(msg.Message), &data)
 			if err != nil {
 				logger.Error("Unmarshal", "error", err)
-				continue
+				return
 			}
 			// remove entries which are not the requested pod
 			for i := 0; i < len(data); i++ {
@@ -122,10 +121,10 @@ func (self *xtermService) LiveStreamConnection(conReq xterm.WsConnectionRequest,
 			entry = data
 		case "live-stream/pod-cpu", "live-stream/workspace-cpu":
 			data := []cpumonitor.PodCpuStats{}
-			err := json.Unmarshal([]byte(msg.Payload), &data)
+			err := json.Unmarshal([]byte(msg.Message), &data)
 			if err != nil {
 				logger.Error("Unmarshal", "error", err)
-				continue
+				return
 			}
 			for i := 0; i < len(data); i++ {
 				if !utils.Contains(podNames, data[i].Name) {
@@ -136,10 +135,10 @@ func (self *xtermService) LiveStreamConnection(conReq xterm.WsConnectionRequest,
 			entry = data
 		case "live-stream/pod-traffic", "live-stream/workspace-traffic":
 			data := []networkmonitor.PodNetworkStats{}
-			err := json.Unmarshal([]byte(msg.Payload), &data)
+			err := json.Unmarshal([]byte(msg.Message), &data)
 			if err != nil {
 				logger.Error("Unmarshal", "error", err)
-				continue
+				return
 			}
 			for i := 0; i < len(data); i++ {
 				if !utils.Contains(podNames, data[i].Pod) {
@@ -150,13 +149,13 @@ func (self *xtermService) LiveStreamConnection(conReq xterm.WsConnectionRequest,
 			entry = data
 		default:
 			// For other patterns, we can directly use the entry as it is already in the correct format
-			err := json.Unmarshal([]byte(msg.Payload), &entry)
+			err := json.Unmarshal([]byte(msg.Message), &entry)
 			if err != nil {
 				logger.Error("Unmarshal", "error", err)
-				continue
+				return
 			}
 		}
 
 		httpApi.Broadcaster().BroadcastResponse(entry, datagram.Pattern)
-	}
+	})
 }
