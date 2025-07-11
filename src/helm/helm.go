@@ -28,10 +28,11 @@ import (
 	"sigs.k8s.io/yaml"
 
 	"helm.sh/helm/v3/pkg/action"
+	chart "helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/getter"
-	"helm.sh/helm/v3/pkg/release"
+	release "helm.sh/helm/v3/pkg/release"
 )
 
 const (
@@ -99,6 +100,24 @@ type HelmRepoPatchRequest struct {
 	Password              string `json:"password,omitempty"`
 	InsecureSkipTLSverify bool   `json:"insecureSkipTLSverify,omitempty"`
 	PassCredentialsAll    bool   `json:"passCredentialsAll,omitempty"`
+}
+
+// in valkey release-NS:release-Name {repoName, repoUrl}
+type HelmRelease struct {
+	Name      string                 `json:"name,omitempty"`
+	Info      *release.Info          `json:"info,omitempty"`
+	Chart     *chart.Chart           `json:"chart,omitempty"`
+	Config    map[string]interface{} `json:"config,omitempty"`
+	Manifest  string                 `json:"manifest,omitempty"`
+	Hooks     []*release.Hook        `json:"hooks,omitempty"`
+	Version   int                    `json:"version,omitempty"`
+	Namespace string                 `json:"namespace,omitempty"`
+	Labels    map[string]string      `json:"-"`
+	RepoName  string                 `json:"repoName"`
+}
+
+type HelmValkeyRepoName struct {
+	RepoName string `json:"repoName"`
 }
 
 type HelmRepoRemoveRequest struct {
@@ -981,6 +1000,16 @@ func HelmChartInstall(data HelmChartInstallUpgradeRequest) (result string, err e
 
 	helmLogger.Info(installStatus(*re), "releaseName", data.Release, "namespace", data.Namespace)
 
+	err = SaveRepoNameToValkey(data.Namespace, data.Release, data.Chart)
+	if err != nil {
+		helmLogger.Error("failed to SaveRepoNameToValkey",
+			"releaseName", data.Release,
+			"namespace", data.Namespace,
+			"error", err.Error(),
+		)
+		return "", err
+	}
+
 	return installStatus(*re), nil
 }
 
@@ -1067,6 +1096,16 @@ func HelmReleaseUpgrade(data HelmChartInstallUpgradeRequest) (result string, err
 		return "", fmt.Errorf("HelmUpgrade Error: Release not found")
 	}
 
+	err = SaveRepoNameToValkey(data.Namespace, data.Release, data.Chart)
+	if err != nil {
+		helmLogger.Error("failed to SaveRepoNameToValkey",
+			"releaseName", data.Release,
+			"namespace", data.Namespace,
+			"error", err.Error(),
+		)
+		return "", err
+	}
+
 	return installStatus(*re), nil
 }
 
@@ -1112,6 +1151,8 @@ func HelmReleaseUninstall(data HelmReleaseUninstallRequest) (result string, err 
 		return "", err
 	}
 
+	_ = DeleteRepoNameFromValkey(data.Namespace, data.Release)
+
 	return fmt.Sprintf("Release '%s' uninstalled", data.Release), nil
 }
 
@@ -1131,7 +1172,7 @@ func installStatus(rel release.Release) string {
 	return result
 }
 
-func HelmReleaseList(data HelmReleaseListRequest) ([]*release.Release, error) {
+func HelmReleaseList(data HelmReleaseListRequest) ([]*HelmRelease, error) {
 	settings := NewCli()
 	settings.SetNamespace(data.Namespace)
 
@@ -1146,24 +1187,33 @@ func HelmReleaseList(data HelmReleaseListRequest) ([]*release.Release, error) {
 	actionConfig := new(action.Configuration)
 	if err := actionConfig.Init(settings.RESTClientGetter(), data.Namespace, "", logFn); err != nil {
 		helmLogger.Error("HelmReleaseList Init", "namespace", data.Namespace, "error", err.Error())
-		return []*release.Release{}, err
+		return []*HelmRelease{}, err
 	}
 
 	list := action.NewList(actionConfig)
 	list.StateMask = action.ListAll
 	releases, err := list.Run()
+	result := []*HelmRelease{}
 	// remove unnecessary fields
 	for _, release := range releases {
 		release.Chart.Files = nil
 		release.Chart.Templates = nil
 		release.Chart.Values = nil
 		release.Manifest = ""
+
+		rep, _ := GetRepoNameFromValkey(release.Name, release.Namespace)
+		repoName := ""
+		if rep != nil {
+			repoName = rep.RepoName
+		}
+
+		result = append(result, helmReleaseFromRelease(release, repoName))
 	}
 	if err != nil {
 		helmLogger.Error("HelmReleaseList List", "namespace", data.Namespace, "error", err.Error())
-		return releases, err
+		return result, err
 	}
-	return releases, nil
+	return result, nil
 }
 
 func HelmReleaseStatus(data HelmReleaseStatusRequest) (*HelmReleaseStatusInfo, error) {
@@ -1452,4 +1502,49 @@ func restoreRepositoryFileFromValkey() error {
 	}
 
 	return nil
+}
+
+func SaveRepoNameToValkey(namespace, releaseName, repoName string) error {
+	data := HelmValkeyRepoName{
+		RepoName: repoName,
+	}
+
+	err := valkeyClient.SetObject(data, 0, "helm-repos", namespace, releaseName)
+	if err != nil {
+		return fmt.Errorf("failed to save repository to valkey: %s", err.Error())
+	}
+
+	return nil
+}
+
+func DeleteRepoNameFromValkey(namespace, releaseName string) error {
+	err := valkeyClient.DeleteSingle("helm-repos", namespace, releaseName)
+	if err != nil {
+		return fmt.Errorf("failed to delete repository from valkey: %s", err.Error())
+	}
+
+	return nil
+}
+
+func GetRepoNameFromValkey(releaseName, namespace string) (*HelmValkeyRepoName, error) {
+	data, err := valkeyclient.GetObjectForKey[HelmValkeyRepoName](valkeyClient, "helm-repos", namespace, releaseName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get repository from valkey: %s", err.Error())
+	}
+	return data, nil
+}
+
+func helmReleaseFromRelease(release *release.Release, repoName string) *HelmRelease {
+	return &HelmRelease{
+		Name:      release.Name,
+		Info:      release.Info,
+		Chart:     release.Chart,
+		Config:    release.Config,
+		Manifest:  release.Manifest,
+		Hooks:     release.Hooks,
+		Version:   release.Version,
+		Namespace: release.Namespace,
+		Labels:    release.Labels,
+		RepoName:  repoName,
+	}
 }

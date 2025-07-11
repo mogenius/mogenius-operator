@@ -3273,8 +3273,14 @@ cluster/helm-release-list:
                             type: array
                     status:
                         type: string
-            helm.sh/helm/v3/pkg/release.Release:
-                name: helm.sh/helm/v3/pkg/release.Release
+            helm.sh/helm/v3/pkg/time.Time:
+                name: helm.sh/helm/v3/pkg/time.Time
+                properties:
+                    Time:
+                        structRef: time.Time
+                        type: struct
+            mogenius-k8s-manager/src/helm.HelmRelease:
+                name: mogenius-k8s-manager/src/helm.HelmRelease
                 properties:
                     chart:
                         pointer: true
@@ -3303,21 +3309,17 @@ cluster/helm-release-list:
                         type: string
                     namespace:
                         type: string
+                    repoName:
+                        type: string
                     version:
                         type: int
-            helm.sh/helm/v3/pkg/time.Time:
-                name: helm.sh/helm/v3/pkg/time.Time
-                properties:
-                    Time:
-                        structRef: time.Time
-                        type: struct
             time.Time:
                 name: time.Time
                 properties: {}
         typeInfo:
             elementType:
                 pointer: true
-                structRef: helm.sh/helm/v3/pkg/release.Release
+                structRef: mogenius-k8s-manager/src/helm.HelmRelease
                 type: struct
             type: array
 cluster/helm-release-rollback:

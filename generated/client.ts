@@ -1702,8 +1702,14 @@ export type CLUSTER_HELM_RELEASE_LIST_REQUEST = CLUSTER_HELM_RELEASE_LIST_REQUES
  *                     type: array
  *             status:
  *                 type: string
- *     helm.sh/helm/v3/pkg/release.Release:
- *         name: helm.sh/helm/v3/pkg/release.Release
+ *     helm.sh/helm/v3/pkg/time.Time:
+ *         name: helm.sh/helm/v3/pkg/time.Time
+ *         properties:
+ *             Time:
+ *                 structRef: time.Time
+ *                 type: struct
+ *     mogenius-k8s-manager/src/helm.HelmRelease:
+ *         name: mogenius-k8s-manager/src/helm.HelmRelease
  *         properties:
  *             chart:
  *                 pointer: true
@@ -1732,27 +1738,23 @@ export type CLUSTER_HELM_RELEASE_LIST_REQUEST = CLUSTER_HELM_RELEASE_LIST_REQUES
  *                 type: string
  *             namespace:
  *                 type: string
+ *             repoName:
+ *                 type: string
  *             version:
  *                 type: int
- *     helm.sh/helm/v3/pkg/time.Time:
- *         name: helm.sh/helm/v3/pkg/time.Time
- *         properties:
- *             Time:
- *                 structRef: time.Time
- *                 type: struct
  *     time.Time:
  *         name: time.Time
  *         properties: {}
  * typeInfo:
  *     elementType:
  *         pointer: true
- *         structRef: helm.sh/helm/v3/pkg/release.Release
+ *         structRef: mogenius-k8s-manager/src/helm.HelmRelease
  *         type: struct
  *     type: array
  * ```
  *
  */
-export type CLUSTER_HELM_RELEASE_LIST_RESPONSE = CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_RELEASE_RELEASE|undefined[];
+export type CLUSTER_HELM_RELEASE_LIST_RESPONSE = CLUSTER_HELM_RELEASE_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMRELEASE|undefined[];
 
 /**
  * #### Source
@@ -17333,8 +17335,8 @@ export type CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_METADA
 export type CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_RELEASE_HOOK = {"delete_policies": string[],"events": string[],"kind": string,"last_run": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_RELEASE_HOOKEXECUTION,"manifest": string,"name": string,"output_log_policies": string[],"path": string,"weight": number};
 export type CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_RELEASE_HOOKEXECUTION = {"completed_at": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_TIME_TIME,"phase": string,"started_at": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_TIME_TIME};
 export type CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_RELEASE_INFO = {"deleted": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_TIME_TIME,"description": string,"first_deployed": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_TIME_TIME,"last_deployed": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_TIME_TIME,"notes": string,"resources": Record<string, any[]>,"status": string};
-export type CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_RELEASE_RELEASE = {"chart": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_CHART|undefined,"config": Record<string, any>,"hooks": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_RELEASE_HOOK|undefined[],"info": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_RELEASE_INFO|undefined,"manifest": string,"name": string,"namespace": string,"version": number};
 export type CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_TIME_TIME = {"Time": CLUSTER_HELM_RELEASE_LIST_RESPONSE__TIME_TIME};
+export type CLUSTER_HELM_RELEASE_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMRELEASE = {"chart": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_CHART|undefined,"config": Record<string, any>,"hooks": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_RELEASE_HOOK|undefined[],"info": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_RELEASE_INFO|undefined,"manifest": string,"name": string,"namespace": string,"repoName": string,"version": number};
 export type CLUSTER_HELM_RELEASE_LIST_RESPONSE__TIME_TIME = {};
 export type CLUSTER_HELM_RELEASE_ROLLBACK_REQUEST__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMRELEASEROLLBACKREQUEST = {"namespace": string,"release": string,"revision": number};
 export type CLUSTER_HELM_RELEASE_STATUS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMRELEASESTATUSREQUEST = {"namespace": string,"release": string};
