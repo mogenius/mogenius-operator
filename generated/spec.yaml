@@ -3469,8 +3469,27 @@ cluster/helm-release-list:
                             type: array
                     status:
                         type: string
-            helm.sh/helm/v3/pkg/release.Release:
-                name: helm.sh/helm/v3/pkg/release.Release
+            helm.sh/helm/v3/pkg/time.Time:
+                name: helm.sh/helm/v3/pkg/time.Time
+                properties:
+                    Time:
+                        structRef: time.Time
+                        type: struct
+            ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/helm.HelmReleaseListRequest,[]*mogenius-k8s-manager/src/helm.HelmRelease]
+            :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/helm.HelmReleaseListRequest,[]*mogenius-k8s-manager/src/helm.HelmRelease]
+                properties:
+                    data:
+                        elementType:
+                            pointer: true
+                            structRef: mogenius-k8s-manager/src/helm.HelmRelease
+                            type: struct
+                        type: array
+                    message:
+                        type: string
+                    status:
+                        type: string
+            mogenius-k8s-manager/src/helm.HelmRelease:
+                name: mogenius-k8s-manager/src/helm.HelmRelease
                 properties:
                     chart:
                         pointer: true
@@ -3499,32 +3518,15 @@ cluster/helm-release-list:
                         type: string
                     namespace:
                         type: string
+                    repoName:
+                        type: string
                     version:
                         type: int
-            helm.sh/helm/v3/pkg/time.Time:
-                name: helm.sh/helm/v3/pkg/time.Time
-                properties:
-                    Time:
-                        structRef: time.Time
-                        type: struct
-            ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/helm.HelmReleaseListRequest,[]*helm.sh/helm/v3/pkg/release.Release]
-            :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/helm.HelmReleaseListRequest,[]*helm.sh/helm/v3/pkg/release.Release]
-                properties:
-                    data:
-                        elementType:
-                            pointer: true
-                            structRef: helm.sh/helm/v3/pkg/release.Release
-                            type: struct
-                        type: array
-                    message:
-                        type: string
-                    status:
-                        type: string
             time.Time:
                 name: time.Time
                 properties: {}
         typeInfo:
-            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/helm.HelmReleaseListRequest,[]*helm.sh/helm/v3/pkg/release.Release]
+            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/helm.HelmReleaseListRequest,[]*mogenius-k8s-manager/src/helm.HelmRelease]
             type: struct
 cluster/helm-release-rollback:
     requestSchema:

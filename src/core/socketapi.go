@@ -1131,7 +1131,7 @@ func (self *socketApi) registerPatterns() {
 	RegisterPatternHandler(
 		PatternHandle{self, "cluster/helm-release-list"},
 		PatternConfig{},
-		func(datagram structs.Datagram, request helm.HelmReleaseListRequest) ([]*release.Release, error) {
+		func(datagram structs.Datagram, request helm.HelmReleaseListRequest) ([]*helm.HelmRelease, error) {
 			return helm.HelmReleaseList(request)
 		},
 	)
