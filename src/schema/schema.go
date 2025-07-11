@@ -146,6 +146,12 @@ func parseSchema(schema *Schema, input reflect.Type, depth int) (*TypeInfo, erro
 	typeInfo := &TypeInfo{}
 	typeInfo.Pointer = false
 
+	if input == nil {
+		typeInfo.Type = SchemaTypeAny
+		typeInfo.Pointer = true
+		return typeInfo, nil
+	}
+
 	if input.Kind() == reflect.Ptr {
 		input = input.Elem()
 		typeInfo.Pointer = true
