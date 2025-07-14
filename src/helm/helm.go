@@ -155,6 +155,7 @@ type HelmChartOciInstallUpgradeRequest struct {
 type HelmChartShowRequest struct {
 	Chart      string                  `json:"chart" validate:"required"`
 	ShowFormat action.ShowOutputFormat `json:"format" validate:"required"` // "all" "chart" "values" "readme" "crds"
+	Version    string                  `json:"version,omitempty"`          // optional, if not set, the latest version will be used
 }
 
 type HelmChartVersionRequest struct {
@@ -636,6 +637,7 @@ func HelmChartShow(data HelmChartShowRequest) (string, error) {
 
 	// Fetch the chart
 	chartPathOptions := action.ChartPathOptions{}
+	chartPathOptions.Version = data.Version
 	chartPath, err := chartPathOptions.LocateChart(data.Chart, settings)
 	if err != nil {
 		helmLogger.Error("HelmShow LocateChart", "error", err.Error())
@@ -1204,7 +1206,7 @@ func HelmReleaseList(data HelmReleaseListRequest) ([]*HelmRelease, error) {
 		rep, _ := GetRepoNameFromValkey(release.Name, release.Namespace)
 		repoName := ""
 		if rep != nil {
-			repoName = rep.RepoName
+			repoName = strings.Replace(rep.RepoName, "/"+release.Name, "", 1)
 		}
 
 		result = append(result, helmReleaseFromRelease(release, repoName))
