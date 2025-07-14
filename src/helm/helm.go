@@ -1206,7 +1206,7 @@ func HelmReleaseList(data HelmReleaseListRequest) ([]*HelmRelease, error) {
 		rep, _ := GetRepoNameFromValkey(release.Name, release.Namespace)
 		repoName := ""
 		if rep != nil {
-			repoName = strings.Replace(rep.RepoName, "/"+release.Name, "", 1)
+			repoName = strings.Replace(rep.RepoName, "/"+release.Chart.Metadata.Name, "", 1)
 		}
 
 		result = append(result, helmReleaseFromRelease(release, repoName))
