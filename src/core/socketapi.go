@@ -303,7 +303,6 @@ func RegisterPatternHandlerRaw[RequestType any, ResponseType any](
 			"files/download",
 			"files/info",
 			"cluster/backup",
-			"cluster/update-local-tls-secret",
 			"namespace/create",
 			"namespace/delete",
 			"namespace/backup",
@@ -979,14 +978,6 @@ func (self *socketApi) registerPatterns() {
 		PatternConfig{},
 		func(datagram structs.Datagram, request services.ClusterListWorkloads) ([]v1.PersistentVolumeClaim, error) {
 			return kubernetes.ListPersistentVolumeClaimsWithFieldSelector(request.Namespace, request.LabelSelector, request.Prefix)
-		},
-	)
-
-	RegisterPatternHandlerRaw(
-		PatternHandle{self, "cluster/update-local-tls-secret"},
-		PatternConfig{},
-		func(datagram structs.Datagram, request services.ClusterUpdateLocalTlsSecret) error {
-			return kubernetes.CreateMogeniusContainerRegistryTlsSecret(request.LocalTlsCrt, request.LocalTlsKey)
 		},
 	)
 

@@ -4218,24 +4218,6 @@ cluster/machine-stats:
         typeInfo:
             structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·17,[]mogenius-k8s-manager/src/structs.MachineStats]
             type: struct
-cluster/update-local-tls-secret:
-    legacyResponseLayout: true
-    requestSchema:
-        structs:
-            mogenius-k8s-manager/src/services.ClusterUpdateLocalTlsSecret:
-                name: mogenius-k8s-manager/src/services.ClusterUpdateLocalTlsSecret
-                properties:
-                    localTlsCrt:
-                        type: string
-                    localTlsKey:
-                        type: string
-        typeInfo:
-            structRef: mogenius-k8s-manager/src/services.ClusterUpdateLocalTlsSecret
-            type: struct
-    responseSchema:
-        typeInfo:
-            pointer: true
-            type: any
 create/grant:
     requestSchema:
         structs:

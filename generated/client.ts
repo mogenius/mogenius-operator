@@ -31,7 +31,6 @@ export enum Pattern {
   CLUSTER_HELM_REPO_UPDATE = "cluster/helm-repo-update",
   CLUSTER_LIST_PERSISTENT_VOLUME_CLAIMS = "cluster/list-persistent-volume-claims",
   CLUSTER_MACHINE_STATS = "cluster/machine-stats",
-  CLUSTER_UPDATE_LOCAL_TLS_SECRET = "cluster/update-local-tls-secret",
   CREATE_GRANT = "create/grant",
   CREATE_NEW_WORKLOAD = "create/new-workload",
   CREATE_USER = "create/user",
@@ -190,7 +189,6 @@ export const StringToPattern = {
   "cluster/helm-repo-update": Pattern.CLUSTER_HELM_REPO_UPDATE,
   "cluster/list-persistent-volume-claims": Pattern.CLUSTER_LIST_PERSISTENT_VOLUME_CLAIMS,
   "cluster/machine-stats": Pattern.CLUSTER_MACHINE_STATS,
-  "cluster/update-local-tls-secret": Pattern.CLUSTER_UPDATE_LOCAL_TLS_SECRET,
   "create/grant": Pattern.CREATE_GRANT,
   "create/new-workload": Pattern.CREATE_NEW_WORKLOAD,
   "create/user": Pattern.CREATE_USER,
@@ -345,7 +343,6 @@ export const PatternToString = {
   [Pattern.CLUSTER_HELM_REPO_UPDATE]: "cluster/helm-repo-update",
   [Pattern.CLUSTER_LIST_PERSISTENT_VOLUME_CLAIMS]: "cluster/list-persistent-volume-claims",
   [Pattern.CLUSTER_MACHINE_STATS]: "cluster/machine-stats",
-  [Pattern.CLUSTER_UPDATE_LOCAL_TLS_SECRET]: "cluster/update-local-tls-secret",
   [Pattern.CREATE_GRANT]: "create/grant",
   [Pattern.CREATE_NEW_WORKLOAD]: "create/new-workload",
   [Pattern.CREATE_USER]: "create/user",
@@ -2793,38 +2790,6 @@ export type CLUSTER_MACHINE_STATS_REQUEST = CLUSTER_MACHINE_STATS_REQUEST__MOGEN
  *
  */
 export type CLUSTER_MACHINE_STATS_RESPONSE = CLUSTER_MACHINE_STATS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST17_MOGENIUS_K8S_MANAGER_SRC_STRUCTS_MACHINESTATS;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     mogenius-k8s-manager/src/services.ClusterUpdateLocalTlsSecret:
- *         name: mogenius-k8s-manager/src/services.ClusterUpdateLocalTlsSecret
- *         properties:
- *             localTlsCrt:
- *                 type: string
- *             localTlsKey:
- *                 type: string
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/services.ClusterUpdateLocalTlsSecret
- *     type: struct
- * ```
- *
- */
-export type CLUSTER_UPDATE_LOCAL_TLS_SECRET_REQUEST = CLUSTER_UPDATE_LOCAL_TLS_SECRET_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_CLUSTERUPDATELOCALTLSSECRET;
-
-/**
- * #### Source
- *
- * ```yaml
- * typeInfo:
- *     pointer: true
- *     type: any
- * ```
- *
- */
-export type CLUSTER_UPDATE_LOCAL_TLS_SECRET_RESPONSE = any;
 
 /**
  * #### Source
@@ -18789,7 +18754,6 @@ export type CLUSTER_LIST_PERSISTENT_VOLUME_CLAIMS_RESPONSE__TIME_TIME = {};
 export type CLUSTER_MACHINE_STATS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"nodes": string[]};
 export type CLUSTER_MACHINE_STATS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST17_MOGENIUS_K8S_MANAGER_SRC_STRUCTS_MACHINESTATS = {"data": CLUSTER_MACHINE_STATS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_MACHINESTATS[],"message": string,"status": string};
 export type CLUSTER_MACHINE_STATS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_MACHINESTATS = {"btfSupport": boolean};
-export type CLUSTER_UPDATE_LOCAL_TLS_SECRET_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_CLUSTERUPDATELOCALTLSSECRET = {"localTlsCrt": string,"localTlsKey": string};
 export type CREATE_GRANT_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"grantee": string,"name": string,"role": string,"targetName": string,"targetType": string};
 export type CREATE_GRANT_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST29_STRING = {"data": string,"message": string,"status": string};
 export type CREATE_NEW_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDATA = {"group": string,"kind": string,"name": string,"namespace": string|undefined,"version": string,"yamlData": string};
@@ -19818,10 +19782,6 @@ export interface IPatternConfig {
   [Pattern.CLUSTER_MACHINE_STATS]: {
     Request: CLUSTER_MACHINE_STATS_REQUEST;
     Response: CLUSTER_MACHINE_STATS_RESPONSE;
-  };
-  [Pattern.CLUSTER_UPDATE_LOCAL_TLS_SECRET]: {
-    Request: CLUSTER_UPDATE_LOCAL_TLS_SECRET_REQUEST;
-    Response: CLUSTER_UPDATE_LOCAL_TLS_SECRET_RESPONSE;
   };
   [Pattern.CREATE_GRANT]: {
     Request: CREATE_GRANT_REQUEST;
