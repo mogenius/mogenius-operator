@@ -11,6 +11,7 @@ import (
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/version"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -262,11 +263,7 @@ func Umount(volumeNamespace string, volumeName string) {
 
 func IsLocalClusterSetup() bool {
 	ips := GetClusterExternalIps()
-	if utils.Contains(ips, "192.168.66.1") || utils.Contains(ips, "localhost") {
-		return true
-	} else {
-		return false
-	}
+	return slices.Contains(ips, "192.168.66.1") || slices.Contains(ips, "localhost")
 }
 
 func GetCustomDeploymentTemplate() *v1.Deployment {

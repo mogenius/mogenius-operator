@@ -260,15 +260,6 @@ func CreateError(err error) ResponseError {
 	}
 }
 
-func Contains(s []string, str string) bool {
-	for _, v := range s {
-		if strings.Contains(str, v) {
-			return true
-		}
-	}
-	return false
-}
-
 func RunOnLocalShell(cmd string) *exec.Cmd {
 	switch runtime.GOOS {
 	case "linux":

@@ -220,7 +220,7 @@ func GetUnstructuredNamespaceResourceList(namespace string, whitelist []*utils.R
 					return &result
 				} else {
 					// fallback: gather the data when the store is empty (can be slow)
-					if utils.Contains(MirroredResourceKinds, v.Kind) {
+					if slices.Contains(MirroredResourceKinds, v.Kind) {
 						return nil
 					}
 					list, err := GetUnstructuredResourceList(v.Group, v.Version, v.Name, v.Namespace)
