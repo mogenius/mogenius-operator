@@ -19,6 +19,7 @@ export enum Pattern {
   CLUSTER_HELM_RELEASE_GET = "cluster/helm-release-get",
   CLUSTER_HELM_RELEASE_GET_WORKLOADS = "cluster/helm-release-get-workloads",
   CLUSTER_HELM_RELEASE_HISTORY = "cluster/helm-release-history",
+  CLUSTER_HELM_RELEASE_LINK = "cluster/helm-release-link",
   CLUSTER_HELM_RELEASE_LIST = "cluster/helm-release-list",
   CLUSTER_HELM_RELEASE_ROLLBACK = "cluster/helm-release-rollback",
   CLUSTER_HELM_RELEASE_STATUS = "cluster/helm-release-status",
@@ -177,6 +178,7 @@ export const StringToPattern = {
   "cluster/helm-release-get": Pattern.CLUSTER_HELM_RELEASE_GET,
   "cluster/helm-release-get-workloads": Pattern.CLUSTER_HELM_RELEASE_GET_WORKLOADS,
   "cluster/helm-release-history": Pattern.CLUSTER_HELM_RELEASE_HISTORY,
+  "cluster/helm-release-link": Pattern.CLUSTER_HELM_RELEASE_LINK,
   "cluster/helm-release-list": Pattern.CLUSTER_HELM_RELEASE_LIST,
   "cluster/helm-release-rollback": Pattern.CLUSTER_HELM_RELEASE_ROLLBACK,
   "cluster/helm-release-status": Pattern.CLUSTER_HELM_RELEASE_STATUS,
@@ -331,6 +333,7 @@ export const PatternToString = {
   [Pattern.CLUSTER_HELM_RELEASE_GET]: "cluster/helm-release-get",
   [Pattern.CLUSTER_HELM_RELEASE_GET_WORKLOADS]: "cluster/helm-release-get-workloads",
   [Pattern.CLUSTER_HELM_RELEASE_HISTORY]: "cluster/helm-release-history",
+  [Pattern.CLUSTER_HELM_RELEASE_LINK]: "cluster/helm-release-link",
   [Pattern.CLUSTER_HELM_RELEASE_LIST]: "cluster/helm-release-list",
   [Pattern.CLUSTER_HELM_RELEASE_ROLLBACK]: "cluster/helm-release-rollback",
   [Pattern.CLUSTER_HELM_RELEASE_STATUS]: "cluster/helm-release-status",
@@ -1641,6 +1644,50 @@ export type CLUSTER_HELM_RELEASE_HISTORY_REQUEST = CLUSTER_HELM_RELEASE_HISTORY_
  *
  */
 export type CLUSTER_HELM_RELEASE_HISTORY_RESPONSE = CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_HELM_HELMRELEASEHISTORYREQUEST_HELM_SH_HELM_V3_PKG_RELEASE_RELEASE;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     mogenius-k8s-manager/src/helm.HelmReleaseLinkRequest:
+ *         name: mogenius-k8s-manager/src/helm.HelmReleaseLinkRequest
+ *         properties:
+ *             namespace:
+ *                 type: string
+ *             releaseName:
+ *                 type: string
+ *             repoName:
+ *                 type: string
+ * typeInfo:
+ *     structRef: mogenius-k8s-manager/src/helm.HelmReleaseLinkRequest
+ *     type: struct
+ * ```
+ *
+ */
+export type CLUSTER_HELM_RELEASE_LINK_REQUEST = CLUSTER_HELM_RELEASE_LINK_REQUEST__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMRELEASELINKREQUEST;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/helm.HelmReleaseLinkRequest,string]:
+ *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/helm.HelmReleaseLinkRequest,string]
+ *         properties:
+ *             data:
+ *                 type: string
+ *             message:
+ *                 type: string
+ *             status:
+ *                 type: string
+ * typeInfo:
+ *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/helm.HelmReleaseLinkRequest,string]
+ *     type: struct
+ * ```
+ *
+ */
+export type CLUSTER_HELM_RELEASE_LINK_RESPONSE = CLUSTER_HELM_RELEASE_LINK_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_HELM_HELMRELEASELINKREQUEST_STRING;
 
 /**
  * #### Source
@@ -18682,6 +18729,8 @@ export type CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_RELEASE_R
 export type CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_TIME_TIME = {"Time": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__TIME_TIME};
 export type CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_HELM_HELMRELEASEHISTORYREQUEST_HELM_SH_HELM_V3_PKG_RELEASE_RELEASE = {"data": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_RELEASE_RELEASE|undefined[],"message": string,"status": string};
 export type CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__TIME_TIME = {};
+export type CLUSTER_HELM_RELEASE_LINK_REQUEST__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMRELEASELINKREQUEST = {"namespace": string,"releaseName": string,"repoName": string};
+export type CLUSTER_HELM_RELEASE_LINK_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_HELM_HELMRELEASELINKREQUEST_STRING = {"data": string,"message": string,"status": string};
 export type CLUSTER_HELM_RELEASE_LIST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMRELEASELISTREQUEST = {"namespace": string};
 export type CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_CHART = {"files": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_FILE|undefined[],"lock": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_LOCK|undefined,"metadata": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_METADATA|undefined,"schema": number[],"templates": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_FILE|undefined[],"values": Record<string, any>};
 export type CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_DEPENDENCY = {"alias": string,"condition": string,"enabled": boolean,"import-values": any[],"name": string,"repository": string,"tags": string[],"version": string};
@@ -19721,6 +19770,10 @@ export interface IPatternConfig {
   [Pattern.CLUSTER_HELM_RELEASE_HISTORY]: {
     Request: CLUSTER_HELM_RELEASE_HISTORY_REQUEST;
     Response: CLUSTER_HELM_RELEASE_HISTORY_RESPONSE;
+  };
+  [Pattern.CLUSTER_HELM_RELEASE_LINK]: {
+    Request: CLUSTER_HELM_RELEASE_LINK_REQUEST;
+    Response: CLUSTER_HELM_RELEASE_LINK_RESPONSE;
   };
   [Pattern.CLUSTER_HELM_RELEASE_LIST]: {
     Request: CLUSTER_HELM_RELEASE_LIST_REQUEST;

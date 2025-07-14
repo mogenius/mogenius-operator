@@ -3249,6 +3249,35 @@ cluster/helm-release-history:
         typeInfo:
             structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/helm.HelmReleaseHistoryRequest,[]*helm.sh/helm/v3/pkg/release.Release]
             type: struct
+cluster/helm-release-link:
+    requestSchema:
+        structs:
+            mogenius-k8s-manager/src/helm.HelmReleaseLinkRequest:
+                name: mogenius-k8s-manager/src/helm.HelmReleaseLinkRequest
+                properties:
+                    namespace:
+                        type: string
+                    releaseName:
+                        type: string
+                    repoName:
+                        type: string
+        typeInfo:
+            structRef: mogenius-k8s-manager/src/helm.HelmReleaseLinkRequest
+            type: struct
+    responseSchema:
+        structs:
+            mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/helm.HelmReleaseLinkRequest,string]:
+                name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/helm.HelmReleaseLinkRequest,string]
+                properties:
+                    data:
+                        type: string
+                    message:
+                        type: string
+                    status:
+                        type: string
+        typeInfo:
+            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/helm.HelmReleaseLinkRequest,string]
+            type: struct
 cluster/helm-release-list:
     requestSchema:
         structs:
