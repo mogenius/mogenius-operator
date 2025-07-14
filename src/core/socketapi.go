@@ -2177,38 +2177,12 @@ func (self *socketApi) ExecuteCommandRequest(datagram structs.Datagram) interfac
 		return patternHandler.Callback(datagram)
 	}
 
-	return NewMessageResponse(nil, fmt.Errorf("Pattern not found"))
-}
-
-type MessageResponseStatus string
-
-const (
-	StatusSuccess MessageResponseStatus = "success"
-	StatusError   MessageResponseStatus = "error"
-)
-
-type MessageResponse struct {
-	Status  MessageResponseStatus `json:"status"` // success, error
-	Message string                `json:"message,omitempty"`
-	Data    interface{}           `json:"data,omitempty"`
-}
-
-func NewMessageResponse(result interface{}, err error) MessageResponse {
-	if err != nil {
-		return MessageResponse{
-			Status:  StatusError,
-			Message: err.Error(),
-		}
-	}
-	if str, ok := result.(string); ok {
-		return MessageResponse{
-			Status:  StatusSuccess,
-			Message: str,
-		}
-	}
-	return MessageResponse{
-		Status: StatusSuccess,
-		Data:   result,
+	return struct {
+		Status  string `json:"status"`
+		Message string `json:"message"`
+	}{
+		Status:  "error",
+		Message: "Pattern not found",
 	}
 }
 
