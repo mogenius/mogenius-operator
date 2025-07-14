@@ -1169,6 +1169,14 @@ func (self *socketApi) registerPatterns() {
 	)
 
 	RegisterPatternHandler(
+		PatternHandle{self, "cluster/helm-release-link"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request helm.HelmReleaseLinkRequest) (string, error) {
+			return "", helm.SaveRepoNameToValkey(request.Namespace, request.ReleaseName, request.RepoName)
+		},
+	)
+
+	RegisterPatternHandler(
 		PatternHandle{self, "cluster/helm-release-get-workloads"},
 		PatternConfig{},
 		func(datagram structs.Datagram, request helm.HelmReleaseGetWorkloadsRequest) ([]unstructured.Unstructured, error) {

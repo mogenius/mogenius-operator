@@ -189,6 +189,12 @@ type HelmReleaseRollbackRequest struct {
 	Revision  int    `json:"revision" validate:"required"`
 }
 
+type HelmReleaseLinkRequest struct {
+	Namespace   string `json:"namespace" validate:"required"`
+	ReleaseName string `json:"releaseName" validate:"required"`
+	RepoName    string `json:"repoName" validate:"required"` // e.g. bitnami/nginx
+}
+
 type HelmReleaseGetRequest struct {
 	Namespace string              `json:"namespace" validate:"required"`
 	Release   string              `json:"release" validate:"required"`
