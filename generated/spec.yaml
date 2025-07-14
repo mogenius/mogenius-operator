@@ -2821,6 +2821,8 @@ cluster/helm-chart-show:
                         type: string
                     format:
                         type: string
+                    version:
+                        type: string
         typeInfo:
             structRef: mogenius-k8s-manager/src/helm.HelmChartShowRequest
             type: struct
