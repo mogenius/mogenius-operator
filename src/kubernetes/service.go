@@ -157,7 +157,8 @@ func FindPrometheusService() (namespace string, service string, port string, err
 	}
 	for _, service := range serviceList.Items {
 		if containsPair(service.Labels, "app.kubernetes.io/component", "server") &&
-			containsPair(service.Labels, "app.kubernetes.io/name", "prometheus") {
+			containsPair(service.Labels, "app.kubernetes.io/name", "prometheus") ||
+			containsPair(service.Labels, "app", "kube-prometheus-stack-prometheus") {
 			if len(service.Spec.Ports) > 0 {
 				return service.Namespace, service.Name, string(service.Spec.Ports[0].Port), nil
 			}
