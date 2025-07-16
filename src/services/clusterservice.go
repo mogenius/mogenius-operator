@@ -236,11 +236,6 @@ type ClusterListWorkloads struct {
 	Prefix        string `json:"prefix"`
 }
 
-type ClusterUpdateLocalTlsSecret struct {
-	LocalTlsCrt string `json:"localTlsCrt" validate:"required"`
-	LocalTlsKey string `json:"localTlsKey" validate:"required"`
-}
-
 type NfsVolumeRequest struct {
 	NamespaceName string `json:"namespaceName" validate:"required"`
 	VolumeName    string `json:"volumeName" validate:"required"`

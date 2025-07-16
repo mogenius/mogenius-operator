@@ -89,7 +89,15 @@ func TestCreateNetworkPolicyServiceWithLabel(t *testing.T) {
 		Key:          "MO_OWN_NAMESPACE",
 		DefaultValue: utils.Pointer("mogenius"),
 	})
-	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"))
+	config.Declare(cfg.ConfigDeclaration{
+		Key:          "KUBERNETES_DEBUG",
+		DefaultValue: utils.Pointer("false"),
+	})
+	config.Declare(cfg.ConfigDeclaration{
+		Key:          "OWN_DEPLOYMENT_NAME",
+		DefaultValue: utils.Pointer("local"),
+	})
+	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"), config)
 	storeModule := valkeyclient.NewValkeyClient(logManager.CreateLogger("valkey"), config)
 	err := kubernetes.Setup(logManager, config, clientProvider, storeModule)
 	assert.AssertT(t, err == nil, err)
@@ -104,7 +112,11 @@ func TestCreateNetworkPolicyServiceWithLabel(t *testing.T) {
 func TestInitNetworkPolicyConfigMap(t *testing.T) {
 	logManager := logging.NewSlogManager(slog.LevelDebug, []slog.Handler{slog.NewJSONHandler(os.Stderr, nil)})
 	config := cfg.NewConfig()
-	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"))
+	config.Declare(cfg.ConfigDeclaration{
+		Key:          "KUBERNETES_DEBUG",
+		DefaultValue: utils.Pointer("false"),
+	})
+	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"), config)
 	storeModule := valkeyclient.NewValkeyClient(logManager.CreateLogger("valkey"), config)
 	err := kubernetes.Setup(logManager, config, clientProvider, storeModule)
 	assert.AssertT(t, err == nil, err)
@@ -120,7 +132,11 @@ func TestReadNetworkPolicyPorts(t *testing.T) {
 		Key:          "MO_OWN_NAMESPACE",
 		DefaultValue: utils.Pointer("mogenius"),
 	})
-	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"))
+	config.Declare(cfg.ConfigDeclaration{
+		Key:          "KUBERNETES_DEBUG",
+		DefaultValue: utils.Pointer("false"),
+	})
+	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"), config)
 	storeModule := valkeyclient.NewValkeyClient(logManager.CreateLogger("valkey"), config)
 	err := kubernetes.Setup(logManager, config, clientProvider, storeModule)
 	assert.AssertT(t, err == nil, err)
@@ -148,8 +164,9 @@ func TestAttachAndDetachLabeledNetworkPolicy(t *testing.T) {
 	// create simple nginx deployment with k8s
 	exampleDeploy := createNginxDeployment()
 
+	config := cfg.NewConfig()
 	logManager := logging.NewSlogManager(slog.LevelDebug, []slog.Handler{slog.NewJSONHandler(os.Stderr, nil)})
-	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"))
+	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"), config)
 	clientset := clientProvider.K8sClientSet()
 	client := clientset.AppsV1()
 	_, err := client.Deployments(namespaceName).Create(context.TODO(), exampleDeploy, metav1.CreateOptions{})
@@ -183,7 +200,11 @@ func TestAttachAndDetachLabeledNetworkPolicy(t *testing.T) {
 func TestListAllConflictingNetworkPolicies(t *testing.T) {
 	logManager := logging.NewSlogManager(slog.LevelDebug, []slog.Handler{slog.NewJSONHandler(os.Stderr, nil)})
 	config := cfg.NewConfig()
-	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"))
+	config.Declare(cfg.ConfigDeclaration{
+		Key:          "KUBERNETES_DEBUG",
+		DefaultValue: utils.Pointer("false"),
+	})
+	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"), config)
 	storeModule := valkeyclient.NewValkeyClient(logManager.CreateLogger("valkey"), config)
 	err := kubernetes.Setup(logManager, config, clientProvider, storeModule)
 	assert.AssertT(t, err == nil, err)
@@ -201,7 +222,11 @@ func TestRemoveAllNetworkPolicies(t *testing.T) {
 func TestCleanupMogeniusNetworkPolicies(t *testing.T) {
 	logManager := logging.NewSlogManager(slog.LevelDebug, []slog.Handler{slog.NewJSONHandler(os.Stderr, nil)})
 	config := cfg.NewConfig()
-	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"))
+	config.Declare(cfg.ConfigDeclaration{
+		Key:          "KUBERNETES_DEBUG",
+		DefaultValue: utils.Pointer("false"),
+	})
+	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"), config)
 	storeModule := valkeyclient.NewValkeyClient(logManager.CreateLogger("valkey"), config)
 	err := kubernetes.Setup(logManager, config, clientProvider, storeModule)
 	assert.AssertT(t, err == nil, err)
@@ -219,7 +244,8 @@ func TestListControllerLabeledNetworkPolicy(t *testing.T) {
 	// create simple nginx deployment with k8s
 	exampleDeploy := createNginxDeployment()
 
-	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"))
+	config := cfg.NewConfig()
+	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"), config)
 	clientset := clientProvider.K8sClientSet()
 	client := clientset.AppsV1()
 	_, err := client.Deployments(namespaceName).Create(context.Background(), exampleDeploy, metav1.CreateOptions{})

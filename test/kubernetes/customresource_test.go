@@ -7,6 +7,7 @@ import (
 	"mogenius-k8s-manager/src/k8sclient"
 	"mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/logging"
+	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/valkeyclient"
 	"mogenius-k8s-manager/test"
 	"os"
@@ -18,7 +19,11 @@ import (
 func TestCustomResource(t *testing.T) {
 	logManager := logging.NewSlogManager(slog.LevelDebug, []slog.Handler{slog.NewJSONHandler(os.Stderr, nil)})
 	config := cfg.NewConfig()
-	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"))
+	config.Declare(cfg.ConfigDeclaration{
+		Key:          "KUBERNETES_DEBUG",
+		DefaultValue: utils.Pointer("false"),
+	})
+	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"), config)
 	valkeyClient := valkeyclient.NewValkeyClient(logManager.CreateLogger("valkey"), config)
 	err := kubernetes.Setup(logManager, config, clientProvider, valkeyClient)
 	assert.AssertT(t, err == nil, err)
@@ -60,7 +65,11 @@ func TestSecretStoreResource(t *testing.T) {
 	t.Skip("test currently relies on sleep introducing flakyness")
 	logManager := logging.NewSlogManager(slog.LevelDebug, []slog.Handler{slog.NewJSONHandler(os.Stderr, nil)})
 	config := cfg.NewConfig()
-	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"))
+	config.Declare(cfg.ConfigDeclaration{
+		Key:          "KUBERNETES_DEBUG",
+		DefaultValue: utils.Pointer("false"),
+	})
+	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"), config)
 	valkeyClient := valkeyclient.NewValkeyClient(logManager.CreateLogger("valkey"), config)
 	err := kubernetes.Setup(logManager, config, clientProvider, valkeyClient)
 	assert.AssertT(t, err == nil, err)

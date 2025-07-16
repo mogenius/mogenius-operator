@@ -270,6 +270,11 @@ func (self *moKubernetes) GetNodeStats() []dtos.NodeStat {
 	}
 
 	for _, node := range nodes {
+		for _, taint := range node.Spec.Taints {
+			if taint.Effect == corev1.TaintEffectNoSchedule || taint.Key == "CriticalAddonsOnly" {
+				continue // Skip nodes with NoSchedule/CriticalAddonsOnly taints
+			}
+		}
 		allPods := kubernetes.AllPodsOnNode(node.Name)
 		requestCpuCores, limitCpuCores := kubernetes.SumCpuResources(allPods)
 		requestMemoryBytes, limitMemoryBytes := kubernetes.SumMemoryResources(allPods)

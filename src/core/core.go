@@ -241,8 +241,6 @@ func (self *core) Initialize() error {
 
 	mokubernetes.InitOrUpdateCrds()
 
-	mokubernetes.CreateMogeniusContainerRegistryIngress()
-
 	// Init Helm Config
 	go func() {
 		if err := helm.InitHelmConfig(); err != nil {

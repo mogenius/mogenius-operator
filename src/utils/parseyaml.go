@@ -6,7 +6,6 @@ import (
 	v1 "k8s.io/api/apps/v1"
 	v1job "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
-	netv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/runtime/serializer/json"
 	"k8s.io/kubectl/pkg/scheme"
 )
@@ -121,44 +120,6 @@ func InitMogeniusNfsService() corev1.Service {
 		select {}
 	}
 	return service
-}
-
-func InitMogeniusContainerRegistryIngress() netv1.Ingress {
-	file := "yaml-templates/mo-container-registry-ingress.yaml"
-	yaml := readYaml("yaml-templates/mo-container-registry-ingress.yaml")
-
-	s := json.NewYAMLSerializer(json.DefaultMetaFactory, scheme.Scheme, scheme.Scheme)
-
-	var ingress netv1.Ingress
-	_, _, err := s.Decode([]byte(yaml), nil, &ingress)
-	if err != nil {
-		utilsLogger.Error("failed to decode ingress", "file", file, "error", err)
-		shutdown.SendShutdownSignal(true)
-		select {}
-	}
-	return ingress
-}
-
-func InitMogeniusContainerRegistrySecret(crt string, key string) corev1.Secret {
-	file := "yaml-templates/mo-container-registry-tls-secret.yaml"
-	yaml := readYaml(file)
-
-	s := json.NewYAMLSerializer(json.DefaultMetaFactory, scheme.Scheme, scheme.Scheme)
-
-	var secret corev1.Secret
-	_, _, err := s.Decode([]byte(yaml), nil, &secret)
-	if err != nil {
-		utilsLogger.Error("failed to decode", "file", file, "error", err)
-		shutdown.SendShutdownSignal(true)
-		select {}
-	}
-
-	secret.StringData = make(map[string]string)
-	secret.StringData["tls.crt"] = crt
-	secret.StringData["tls.key"] = key
-	secret.Namespace = config.Get("MO_OWN_NAMESPACE")
-
-	return secret
 }
 
 func InitSecret() corev1.Secret {

@@ -381,6 +381,11 @@ func structRefToTypescriptName(normalizedPatternWithScope string, structref stri
 	structref = strings.ReplaceAll(structref, "/", "_")
 	structref = strings.ReplaceAll(structref, ".", "_")
 	structref = strings.ReplaceAll(structref, "-", "_")
+	structref = strings.ReplaceAll(structref, ",", "_")
+	structref = strings.ReplaceAll(structref, "[", "")
+	structref = strings.ReplaceAll(structref, "]", "")
+	structref = strings.ReplaceAll(structref, "*", "")
+	structref = strings.ReplaceAll(structref, "·", "")
 	return normalizedPatternWithScope + "__" + structref
 }
 

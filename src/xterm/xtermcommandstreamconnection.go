@@ -34,7 +34,7 @@ func injectContent(content io.Reader, conn *websocket.Conn, connWriteLock *sync.
 			err := conn.WriteMessage(websocket.TextMessage, []byte(err.Error()))
 			connWriteLock.Unlock()
 			if err != nil {
-				xtermLogger.Error("WriteMessage", "error", err)
+				xtermLogger.Error("failed to write websocket message", "error", err)
 			}
 		}
 		return
@@ -49,16 +49,15 @@ func injectContent(content io.Reader, conn *websocket.Conn, connWriteLock *sync.
 			if err == io.EOF {
 				break
 			}
-
-			xtermLogger.Error("WriteMessage", "error", err)
-			break
+			xtermLogger.Error("failed to read from pseudoterminal", "error", err)
+			continue
 		}
 		if conn != nil {
 			connWriteLock.Lock()
 			err := conn.WriteMessage(websocket.BinaryMessage, buf[:n])
 			connWriteLock.Unlock()
 			if err != nil {
-				xtermLogger.Error("WriteMessage", "error", err)
+				xtermLogger.Error("failed to write websocket message", "error", err)
 				break
 			}
 		} else {
