@@ -76,7 +76,7 @@ func PodEventStreamConnection(wsConnectionRequest WsConnectionRequest, namespace
 				xtermLogger.Error("Unable to unmarshal event", "error", err)
 				return false
 			}
-			return event.ObjectMeta.CreationTimestamp.Time.After(event2.ObjectMeta.CreationTimestamp.Time)
+			return event.ObjectMeta.CreationTimestamp.Time.Before(event2.ObjectMeta.CreationTimestamp.Time)
 		})
 	}
 
