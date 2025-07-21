@@ -4,6 +4,7 @@
 
 export enum Pattern {
   ATTACH_LABELED_NETWORK_POLICY = "attach/labeled_network_policy",
+  AUDIT_LOG_LIST = "audit-log/list",
   CLUSTERFORCEDISCONNECT = "ClusterForceDisconnect",
   CLUSTERFORCERECONNECT = "ClusterForceReconnect",
   CLUSTERRESOURCEINFO = "ClusterResourceInfo",
@@ -162,6 +163,7 @@ export enum Pattern {
 
 export const StringToPattern = {
   "attach/labeled_network_policy": Pattern.ATTACH_LABELED_NETWORK_POLICY,
+  "audit-log/list": Pattern.AUDIT_LOG_LIST,
   "ClusterForceDisconnect": Pattern.CLUSTERFORCEDISCONNECT,
   "ClusterForceReconnect": Pattern.CLUSTERFORCERECONNECT,
   "ClusterResourceInfo": Pattern.CLUSTERRESOURCEINFO,
@@ -316,6 +318,7 @@ export const StringToPattern = {
 
 export const PatternToString = {
   [Pattern.ATTACH_LABELED_NETWORK_POLICY]: "attach/labeled_network_policy",
+  [Pattern.AUDIT_LOG_LIST]: "audit-log/list",
   [Pattern.CLUSTERFORCEDISCONNECT]: "ClusterForceDisconnect",
   [Pattern.CLUSTERFORCERECONNECT]: "ClusterForceReconnect",
   [Pattern.CLUSTERRESOURCEINFO]: "ClusterResourceInfo",
@@ -531,6 +534,81 @@ export type ATTACH_LABELED_NETWORK_POLICY_REQUEST = ATTACH_LABELED_NETWORK_POLIC
  *
  */
 export type ATTACH_LABELED_NETWORK_POLICY_RESPONSE = ATTACH_LABELED_NETWORK_POLICY_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_ATTACHLABELEDNETWORKPOLICYREQUEST_STRING;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     mogenius-k8s-manager/src/core.Request:
+ *         name: mogenius-k8s-manager/src/core.Request
+ *         properties:
+ *             limit:
+ *                 type: int
+ *             offset:
+ *                 type: int
+ * typeInfo:
+ *     structRef: mogenius-k8s-manager/src/core.Request
+ *     type: struct
+ * ```
+ *
+ */
+export type AUDIT_LOG_LIST_REQUEST = AUDIT_LOG_LIST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·34,[]mogenius-k8s-manager/src/store.AuditLogEntry]:
+ *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·34,[]mogenius-k8s-manager/src/store.AuditLogEntry]
+ *         properties:
+ *             data:
+ *                 elementType:
+ *                     structRef: mogenius-k8s-manager/src/store.AuditLogEntry
+ *                     type: struct
+ *                 type: array
+ *             message:
+ *                 type: string
+ *             status:
+ *                 type: string
+ *     mogenius-k8s-manager/src/store.AuditLogEntry:
+ *         name: mogenius-k8s-manager/src/store.AuditLogEntry
+ *         properties:
+ *             createdAt:
+ *                 structRef: time.Time
+ *                 type: struct
+ *             diff:
+ *                 type: string
+ *             pattern:
+ *                 type: string
+ *             payload:
+ *                 pointer: true
+ *                 type: any
+ *             user:
+ *                 structRef: mogenius-k8s-manager/src/structs.User
+ *                 type: struct
+ *     mogenius-k8s-manager/src/structs.User:
+ *         name: mogenius-k8s-manager/src/structs.User
+ *         properties:
+ *             email:
+ *                 type: string
+ *             firstName:
+ *                 type: string
+ *             lastName:
+ *                 type: string
+ *             source:
+ *                 type: string
+ *     time.Time:
+ *         name: time.Time
+ *         properties: {}
+ * typeInfo:
+ *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·34,[]mogenius-k8s-manager/src/store.AuditLogEntry]
+ *     type: struct
+ * ```
+ *
+ */
+export type AUDIT_LOG_LIST_RESPONSE = AUDIT_LOG_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST34_MOGENIUS_K8S_MANAGER_SRC_STORE_AUDITLOGENTRY;
 
 /**
  * #### Source
@@ -18641,6 +18719,11 @@ export type WORKSPACE_CLEAN_UP_RESPONSE = WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_
 export type ATTACH_LABELED_NETWORK_POLICY_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_ATTACHLABELEDNETWORKPOLICYREQUEST = {"controllerName": string,"controllerType": string,"labeledNetworkPolicies": ATTACH_LABELED_NETWORK_POLICY_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SLABELEDNETWORKPOLICYDTO[],"namespaceName": string};
 export type ATTACH_LABELED_NETWORK_POLICY_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SLABELEDNETWORKPOLICYDTO = {"name": string,"port": number,"portType": string,"type": string};
 export type ATTACH_LABELED_NETWORK_POLICY_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_ATTACHLABELEDNETWORKPOLICYREQUEST_STRING = {"data": string,"message": string,"status": string};
+export type AUDIT_LOG_LIST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"limit": number,"offset": number};
+export type AUDIT_LOG_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST34_MOGENIUS_K8S_MANAGER_SRC_STORE_AUDITLOGENTRY = {"data": AUDIT_LOG_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STORE_AUDITLOGENTRY[],"message": string,"status": string};
+export type AUDIT_LOG_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STORE_AUDITLOGENTRY = {"createdAt": AUDIT_LOG_LIST_RESPONSE__TIME_TIME,"diff": string,"pattern": string,"payload": any,"user": AUDIT_LOG_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_USER};
+export type AUDIT_LOG_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_USER = {"email": string,"firstName": string,"lastName": string,"source": string};
+export type AUDIT_LOG_LIST_RESPONSE__TIME_TIME = {};
 export type CLUSTERFORCEDISCONNECT_REQUEST__ANON_STRUCT_0 = {};
 export type CLUSTERFORCERECONNECT_REQUEST__ANON_STRUCT_0 = {};
 export type CLUSTERRESOURCEINFO_REQUEST__ANON_STRUCT_0 = {};
@@ -19674,6 +19757,10 @@ export interface IPatternConfig {
   [Pattern.ATTACH_LABELED_NETWORK_POLICY]: {
     Request: ATTACH_LABELED_NETWORK_POLICY_REQUEST;
     Response: ATTACH_LABELED_NETWORK_POLICY_RESPONSE;
+  };
+  [Pattern.AUDIT_LOG_LIST]: {
+    Request: AUDIT_LOG_LIST_REQUEST;
+    Response: AUDIT_LOG_LIST_RESPONSE;
   };
   [Pattern.CLUSTERFORCEDISCONNECT]: {
     Request: CLUSTERFORCEDISCONNECT_REQUEST;

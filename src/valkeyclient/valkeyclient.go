@@ -479,7 +479,7 @@ func GetObjectsByPattern[T any](store ValkeyClient, pattern string, keywords []s
 	return result, nil
 }
 
-func LastNEntryFromBucketWithType[T any](store ValkeyClient, number int64, bucketKey ...string) ([]T, error) {
+func RangeFromEndOfBucketWithType[T any](store ValkeyClient, numberOfElements int64, offset int64, bucketKey ...string) ([]T, error) {
 	var result []T
 	key := createKey(bucketKey...)
 	client := store.GetValkeyClient()
@@ -491,13 +491,14 @@ func LastNEntryFromBucketWithType[T any](store ValkeyClient, number int64, bucke
 	}
 
 	// Calculate start index for LRANGE
-	start := length - number
+	start := length - (numberOfElements + offset)
 	if start < 0 {
 		start = 0 // Ensure start index is not negative
 	}
+	stop := length - offset
 
 	// Use LRANGE to get the last N elements
-	elements, err := client.Do(store.GetContext(), client.B().Lrange().Key(key).Start(start).Stop(-1).Build()).AsStrSlice()
+	elements, err := client.Do(store.GetContext(), client.B().Lrange().Key(key).Start(start).Stop(stop).Build()).AsStrSlice()
 	if err != nil {
 		return result, err
 	}
