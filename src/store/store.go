@@ -382,13 +382,25 @@ func auditLogFromDatagram(datagram structs.Datagram) AuditLogEntry {
 }
 
 func Diff(oldObj, newObj *unstructured.Unstructured) (string, error) {
-	originalPath := os.TempDir() + "/original.yaml"
-	modifiedPath := os.TempDir() + "/modified.yaml"
 	modified := []byte{}
 	original := []byte{}
 	err := error(nil)
 	ns := ""
 	resourceName := ""
+
+	if oldObj != nil {
+		ns = oldObj.GetNamespace()
+		resourceName = oldObj.GetName()
+	} else if newObj != nil {
+		ns = newObj.GetNamespace()
+		resourceName = newObj.GetName()
+	} else {
+		return "", fmt.Errorf("both oldObj and newObj are nil, cannot create diff")
+	}
+
+	tempDir := os.TempDir()
+	originalPath := tempDir + "/original.yaml"
+	modifiedPath := tempDir + "/modified.yaml"
 
 	defer func() {
 		_ = os.Remove(originalPath)
@@ -417,16 +429,6 @@ func Diff(oldObj, newObj *unstructured.Unstructured) (string, error) {
 	err = os.WriteFile(modifiedPath, modified, 0644)
 	if err != nil {
 		return "", fmt.Errorf("failed to write modified data to file: %w", err)
-	}
-
-	if oldObj != nil {
-		ns = oldObj.GetNamespace()
-		resourceName = oldObj.GetName()
-	} else if newObj != nil {
-		ns = newObj.GetNamespace()
-		resourceName = newObj.GetName()
-	} else {
-		return "", fmt.Errorf("both oldObj and newObj are nil, cannot create diff")
 	}
 
 	diff, err := unifiedDiff(originalPath, modifiedPath, ns, resourceName)
