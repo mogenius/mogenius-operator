@@ -5,9 +5,15 @@ import (
 	"fmt"
 	"log/slog"
 	"mogenius-k8s-manager/src/logging"
+	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/valkeyclient"
+	"os"
+	"os/exec"
 	"strings"
+	"time"
+
+	"sigs.k8s.io/yaml"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
@@ -327,4 +333,143 @@ func GetNode(name string) *coreV1.Node {
 	node.APIVersion = utils.NodeResource.Group
 
 	return node
+}
+
+// Audit Log
+type AuditLogEntry struct {
+	Pattern   string       `json:"pattern" validate:"required"`
+	Payload   interface{}  `json:"payload,omitempty"`
+	Diff      string       `json:"diff,omitempty"`
+	CreatedAt time.Time    `json:"createdAt"`
+	User      structs.User `json:"user,omitempty"`
+}
+
+func AddToAuditLog(datagram structs.Datagram, logger *slog.Logger, oldObj *unstructured.Unstructured, updatedObj *unstructured.Unstructured) {
+	auditLogEntry := auditLogFromDatagram(datagram)
+	if oldObj != nil || updatedObj != nil {
+		patch, err := Diff(oldObj, updatedObj)
+		if err != nil {
+			logger.Error("failed to create kubectl style diff", "error", err)
+			return
+		}
+		auditLogEntry.Diff = patch
+	}
+	err := valkeyClient.AddToBucket(1000, auditLogEntry, "audit-log")
+	if err != nil {
+		logger.Error("failed to add to audit log", "error", err)
+	}
+}
+
+func ListAuditLog(limit int64, offset int64) ([]AuditLogEntry, error) {
+	if limit <= 0 {
+		limit = 100
+	}
+
+	entries, err := valkeyclient.RangeFromEndOfBucketWithType[AuditLogEntry](valkeyClient, limit, offset, "audit-log")
+	if err != nil {
+		return nil, fmt.Errorf("failed to list audit log: %w", err)
+	}
+	return entries, nil
+}
+
+func auditLogFromDatagram(datagram structs.Datagram) AuditLogEntry {
+	return AuditLogEntry{
+		Pattern:   datagram.Pattern,
+		Payload:   datagram.Payload,
+		CreatedAt: datagram.CreatedAt,
+		User:      datagram.User,
+	}
+}
+
+func Diff(oldObj, newObj *unstructured.Unstructured) (string, error) {
+	modified := []byte{}
+	original := []byte{}
+	err := error(nil)
+	ns := ""
+	resourceName := ""
+
+	if oldObj != nil {
+		ns = oldObj.GetNamespace()
+		resourceName = oldObj.GetName()
+	} else if newObj != nil {
+		ns = newObj.GetNamespace()
+		resourceName = newObj.GetName()
+	} else {
+		return "", fmt.Errorf("both oldObj and newObj are nil, cannot create diff")
+	}
+
+	tempDir := os.TempDir()
+	originalPath := tempDir + "/original.yaml"
+	modifiedPath := tempDir + "/modified.yaml"
+
+	defer func() {
+		_ = os.Remove(originalPath)
+		_ = os.Remove(modifiedPath)
+	}()
+
+	if oldObj != nil {
+		oldObj = removeUnusedFields(oldObj)
+		original, err = yaml.Marshal(oldObj.Object)
+		if err != nil {
+			return "", fmt.Errorf("failed to marshal original data: %w", err)
+		}
+	}
+	err = os.WriteFile(originalPath, original, 0644)
+	if err != nil {
+		return "", fmt.Errorf("failed to write original data to file: %w", err)
+	}
+
+	if newObj != nil {
+		newObj = removeUnusedFields(newObj)
+		modified, err = yaml.Marshal(newObj.Object)
+		if err != nil {
+			return "", fmt.Errorf("failed to marshal modified data: %w", err)
+		}
+	}
+	err = os.WriteFile(modifiedPath, modified, 0644)
+	if err != nil {
+		return "", fmt.Errorf("failed to write modified data to file: %w", err)
+	}
+
+	diff, err := unifiedDiff(originalPath, modifiedPath, ns, resourceName)
+	if err != nil {
+		return "", fmt.Errorf("failed to create unified diff: %w", err)
+	}
+	return diff, nil
+}
+
+func unifiedDiff(filePath1 string, filePath2 string, ns, resourceName string) (string, error) {
+	cmd := exec.Command("diff", "-u", "-N", "-u", "--label", ns+"/"+resourceName, "--label", ns+"/"+resourceName, filePath1, filePath2)
+	cmd.Dir = os.TempDir()
+	out, err := cmd.CombinedOutput()
+
+	if err != nil {
+		// diff returns exit code 1 if files differ
+		if exitError, ok := err.(*exec.ExitError); ok {
+			if exitError.ExitCode() == 1 {
+				return string(out), nil
+			} else {
+				return "", fmt.Errorf("Error running diff: %s\n%s\n", err.Error(), string(out))
+			}
+		} else {
+			return "", err
+		}
+	}
+	return "", nil
+}
+
+func removeUnusedFields(obj *unstructured.Unstructured) *unstructured.Unstructured {
+	if obj == nil {
+		return obj
+	}
+
+	obj.SetManagedFields(nil)
+	unstructured.RemoveNestedField(obj.Object, "status")
+	unstructured.RemoveNestedField(obj.Object, "metadata", "managedFields")
+	unstructured.RemoveNestedField(obj.Object, "metadata", "generation")
+	unstructured.RemoveNestedField(obj.Object, "metadata", "resourceVersion")
+	unstructured.RemoveNestedField(obj.Object, "metadata", "uid")
+	unstructured.RemoveNestedField(obj.Object, "metadata", "creationTimestamp")
+
+	return obj
 }
