@@ -547,6 +547,8 @@ export type ATTACH_LABELED_NETWORK_POLICY_RESPONSE = ATTACH_LABELED_NETWORK_POLI
  *                 type: int
  *             offset:
  *                 type: int
+ *             workspaceName:
+ *                 type: string
  * typeInfo:
  *     structRef: mogenius-k8s-manager/src/core.Request
  *     type: struct
@@ -580,9 +582,15 @@ export type AUDIT_LOG_LIST_REQUEST = AUDIT_LOG_LIST_REQUEST__MOGENIUS_K8S_MANAGE
  *                 type: struct
  *             diff:
  *                 type: string
+ *             error:
+ *                 pointer: true
+ *                 type: any
  *             pattern:
  *                 type: string
  *             payload:
+ *                 pointer: true
+ *                 type: any
+ *             result:
  *                 pointer: true
  *                 type: any
  *             user:
@@ -18719,9 +18727,9 @@ export type WORKSPACE_CLEAN_UP_RESPONSE = WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_
 export type ATTACH_LABELED_NETWORK_POLICY_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_ATTACHLABELEDNETWORKPOLICYREQUEST = {"controllerName": string,"controllerType": string,"labeledNetworkPolicies": ATTACH_LABELED_NETWORK_POLICY_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SLABELEDNETWORKPOLICYDTO[],"namespaceName": string};
 export type ATTACH_LABELED_NETWORK_POLICY_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SLABELEDNETWORKPOLICYDTO = {"name": string,"port": number,"portType": string,"type": string};
 export type ATTACH_LABELED_NETWORK_POLICY_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_ATTACHLABELEDNETWORKPOLICYREQUEST_STRING = {"data": string,"message": string,"status": string};
-export type AUDIT_LOG_LIST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"limit": number,"offset": number};
+export type AUDIT_LOG_LIST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"limit": number,"offset": number,"workspaceName": string};
 export type AUDIT_LOG_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST34_MOGENIUS_K8S_MANAGER_SRC_STORE_AUDITLOGENTRY = {"data": AUDIT_LOG_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STORE_AUDITLOGENTRY[],"message": string,"status": string};
-export type AUDIT_LOG_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STORE_AUDITLOGENTRY = {"createdAt": AUDIT_LOG_LIST_RESPONSE__TIME_TIME,"diff": string,"pattern": string,"payload": any,"user": AUDIT_LOG_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_USER};
+export type AUDIT_LOG_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STORE_AUDITLOGENTRY = {"createdAt": AUDIT_LOG_LIST_RESPONSE__TIME_TIME,"diff": string,"error": any,"pattern": string,"payload": any,"result": any,"user": AUDIT_LOG_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_USER};
 export type AUDIT_LOG_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_USER = {"email": string,"firstName": string,"lastName": string,"source": string};
 export type AUDIT_LOG_LIST_RESPONSE__TIME_TIME = {};
 export type CLUSTERFORCEDISCONNECT_REQUEST__ANON_STRUCT_0 = {};

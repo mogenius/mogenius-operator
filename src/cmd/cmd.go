@@ -266,21 +266,6 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		},
 	})
 	configModule.Declare(config.ConfigDeclaration{
-		Key:          "MO_HTTP_PROXY",
-		DefaultValue: utils.Pointer(""),
-		Description:  utils.Pointer("URL of a HTTPS Proxy"),
-		Validate: func(value string) error {
-			if value == "" {
-				return nil
-			}
-			_, err := url.Parse(value)
-			if err != nil {
-				return fmt.Errorf("'MO_HTTP_PROXY' needs to be a URL: %s", err.Error())
-			}
-			return nil
-		},
-	})
-	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_SKIP_TLS_VERIFICATION",
 		DefaultValue: utils.Pointer("false"),
 		Description:  utils.Pointer("Skip TLS verification for API and Event Server"),
@@ -332,26 +317,20 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		Envs:         []string{"git_user_email"},
 	})
 	configModule.Declare(config.ConfigDeclaration{
-		Key:          "MO_LOCAL_CONTAINER_REGISTRY_HOST",
-		DefaultValue: utils.Pointer("mocr.local.mogenius.io"),
-		Description:  utils.Pointer("local container registry inside the cluster"),
-		Envs:         []string{"local_registry_host"},
-	})
-	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_DEFAULT_MOUNT_PATH",
 		DefaultValue: utils.Pointer(filepath.Join(workDir, "mo-data")),
 		Description:  utils.Pointer("all containers have access to this mount point"),
 		Envs:         []string{"default_mount_path"},
 	})
 	configModule.Declare(config.ConfigDeclaration{
-		Key:          "MO_UPDATE_INTERVAL",
-		DefaultValue: utils.Pointer("86400"),
-		Description:  utils.Pointer("time interval between update checks"),
-		Envs:         []string{"check_for_updates"},
+		Key:          "MO_AUDIT_LOG_LIMIT",
+		DefaultValue: utils.Pointer("1000"),
+		Description:  utils.Pointer("maximum number of audit log entries to persist"),
+		Envs:         []string{"audit_log_limit"},
 		Validate: func(value string) error {
 			_, err := strconv.Atoi(value)
 			if err != nil {
-				return fmt.Errorf("'MO_UPDATE_INTERVAL' needs to be an integer: %s", err.Error())
+				return fmt.Errorf("'MO_AUDIT_LOG_LIMIT' needs to be an integer: %s", err.Error())
 			}
 			return nil
 		},
@@ -523,7 +502,7 @@ func InitializeSystems(
 	structs.Setup(logManagerModule)
 	xterm.Setup(logManagerModule, clientProvider, valkeyClient)
 	utils.Setup(logManagerModule, configModule)
-	err = store.Setup(logManagerModule, valkeyClient)
+	err = store.Setup(logManagerModule, valkeyClient, configModule.Get("MO_AUDIT_LOG_LIMIT"))
 	assert.Assert(err == nil, err)
 
 	// initialization step 1 for services

@@ -10,6 +10,7 @@ import (
 	"mogenius-k8s-manager/src/valkeyclient"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 	"time"
 
@@ -27,6 +28,8 @@ const (
 	VALKEY_RESOURCE_PREFIX = "resources"
 )
 
+var AuditLogLimit = int64(1000)
+
 var ErrNotFound = errors.New("not found")
 
 var valkeyClient valkeyclient.ValkeyClient
@@ -34,8 +37,14 @@ var valkeyClient valkeyclient.ValkeyClient
 func Setup(
 	logManagerModule logging.SlogManager,
 	valkey valkeyclient.ValkeyClient,
+	auditLogLimitStr string,
 ) error {
 	valkeyClient = valkey
+	auditLogLimit, _ := strconv.ParseInt(auditLogLimitStr, 10, 64)
+	if auditLogLimit > 0 {
+		AuditLogLimit = auditLogLimit
+	}
+
 	return nil
 }
 
@@ -340,27 +349,30 @@ type AuditLogEntry struct {
 	Pattern   string       `json:"pattern" validate:"required"`
 	Payload   interface{}  `json:"payload,omitempty"`
 	Diff      string       `json:"diff,omitempty"`
+	Result    interface{}  `json:"result,omitempty"`
+	Error     error        `json:"error,omitempty"`
 	CreatedAt time.Time    `json:"createdAt"`
 	User      structs.User `json:"user,omitempty"`
 }
 
-func AddToAuditLog(datagram structs.Datagram, logger *slog.Logger, oldObj *unstructured.Unstructured, updatedObj *unstructured.Unstructured) {
-	auditLogEntry := auditLogFromDatagram(datagram)
+func AddToAuditLog[T any](datagram structs.Datagram, logger *slog.Logger, result T, err error, oldObj *unstructured.Unstructured, updatedObj *unstructured.Unstructured) (T, error) {
+	auditLogEntry := auditLogFromDatagram(datagram, result, err)
 	if oldObj != nil || updatedObj != nil {
-		patch, err := Diff(oldObj, updatedObj)
-		if err != nil {
-			logger.Error("failed to create kubectl style diff", "error", err)
-			return
+		patch, diffErr := Diff(oldObj, updatedObj)
+		if diffErr != nil {
+			logger.Error("failed to create kubectl style diff", "error", diffErr)
+			return result, err
 		}
 		auditLogEntry.Diff = patch
 	}
-	err := valkeyClient.AddToBucket(1000, auditLogEntry, "audit-log")
-	if err != nil {
-		logger.Error("failed to add to audit log", "error", err)
+	bucketErr := valkeyClient.AddToBucket(AuditLogLimit, auditLogEntry, "audit-log")
+	if bucketErr != nil {
+		logger.Error("failed to add to audit log", "error", bucketErr)
 	}
+	return result, err
 }
 
-func ListAuditLog(limit int64, offset int64) ([]AuditLogEntry, error) {
+func ListAuditLog(limit int64, offset int64, workspaceResources []unstructured.Unstructured) ([]AuditLogEntry, error) {
 	if limit <= 0 {
 		limit = 100
 	}
@@ -369,15 +381,41 @@ func ListAuditLog(limit int64, offset int64) ([]AuditLogEntry, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to list audit log: %w", err)
 	}
+
+	// TODO: not working yet, needs to be fixed BENE
+	if len(workspaceResources) > 0 {
+		filteredEntries := []AuditLogEntry{}
+		for i := 0; i < len(entries); i++ {
+			entry := entries[i]
+			found := false
+			for _, resource := range workspaceResources {
+				payload, ok := entry.Payload.(map[string]interface{})
+				if ok &&
+					resource.GetName() == payload["resourceName"] &&
+					resource.GetNamespace() == payload["namespace"] &&
+					resource.GetKind() == payload["kind"] {
+					found = true
+					break
+				}
+			}
+			if found {
+				filteredEntries = append(filteredEntries, entry)
+			}
+		}
+		return filteredEntries, nil
+	}
+
 	return entries, nil
 }
 
-func auditLogFromDatagram(datagram structs.Datagram) AuditLogEntry {
+func auditLogFromDatagram(datagram structs.Datagram, result interface{}, err error) AuditLogEntry {
 	return AuditLogEntry{
 		Pattern:   datagram.Pattern,
 		Payload:   datagram.Payload,
 		CreatedAt: datagram.CreatedAt,
 		User:      datagram.User,
+		Error:     err,
+		Result:    result,
 	}
 }
 
@@ -439,7 +477,7 @@ func Diff(oldObj, newObj *unstructured.Unstructured) (string, error) {
 }
 
 func unifiedDiff(filePath1 string, filePath2 string, ns, resourceName string) (string, error) {
-	cmd := exec.Command("diff", "-u", "-N", "-u", "--label", ns+"/"+resourceName, "--label", ns+"/"+resourceName, filePath1, filePath2)
+	cmd := exec.Command("diff", "-u", "-N", "--label", ns+"/"+resourceName, "--label", ns+"/"+resourceName, filePath1, filePath2)
 	cmd.Dir = os.TempDir()
 	out, err := cmd.CombinedOutput()
 
