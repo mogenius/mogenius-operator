@@ -562,14 +562,12 @@ export type AUDIT_LOG_LIST_REQUEST = AUDIT_LOG_LIST_REQUEST__MOGENIUS_K8S_MANAGE
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·34,[]mogenius-k8s-manager/src/store.AuditLogEntry]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·34,[]mogenius-k8s-manager/src/store.AuditLogEntry]
+ *     mogenius-k8s-manager/src/core.Response:
+ *         name: mogenius-k8s-manager/src/core.Response
  *         properties:
  *             data:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/store.AuditLogEntry
- *                     type: struct
- *                 type: array
+ *                 structRef: mogenius-k8s-manager/src/store.AuditLogResponse
+ *                 type: struct
  *             message:
  *                 type: string
  *             status:
@@ -596,6 +594,16 @@ export type AUDIT_LOG_LIST_REQUEST = AUDIT_LOG_LIST_REQUEST__MOGENIUS_K8S_MANAGE
  *             user:
  *                 structRef: mogenius-k8s-manager/src/structs.User
  *                 type: struct
+ *     mogenius-k8s-manager/src/store.AuditLogResponse:
+ *         name: mogenius-k8s-manager/src/store.AuditLogResponse
+ *         properties:
+ *             data:
+ *                 elementType:
+ *                     structRef: mogenius-k8s-manager/src/store.AuditLogEntry
+ *                     type: struct
+ *                 type: array
+ *             totalCount:
+ *                 type: int
  *     mogenius-k8s-manager/src/structs.User:
  *         name: mogenius-k8s-manager/src/structs.User
  *         properties:
@@ -611,12 +619,12 @@ export type AUDIT_LOG_LIST_REQUEST = AUDIT_LOG_LIST_REQUEST__MOGENIUS_K8S_MANAGE
  *         name: time.Time
  *         properties: {}
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·34,[]mogenius-k8s-manager/src/store.AuditLogEntry]
+ *     structRef: mogenius-k8s-manager/src/core.Response
  *     type: struct
  * ```
  *
  */
-export type AUDIT_LOG_LIST_RESPONSE = AUDIT_LOG_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST34_MOGENIUS_K8S_MANAGER_SRC_STORE_AUDITLOGENTRY;
+export type AUDIT_LOG_LIST_RESPONSE = AUDIT_LOG_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESPONSE;
 
 /**
  * #### Source
@@ -18728,8 +18736,9 @@ export type ATTACH_LABELED_NETWORK_POLICY_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CONT
 export type ATTACH_LABELED_NETWORK_POLICY_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SLABELEDNETWORKPOLICYDTO = {"name": string,"port": number,"portType": string,"type": string};
 export type ATTACH_LABELED_NETWORK_POLICY_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_ATTACHLABELEDNETWORKPOLICYREQUEST_STRING = {"data": string,"message": string,"status": string};
 export type AUDIT_LOG_LIST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"limit": number,"offset": number,"workspaceName": string};
-export type AUDIT_LOG_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST34_MOGENIUS_K8S_MANAGER_SRC_STORE_AUDITLOGENTRY = {"data": AUDIT_LOG_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STORE_AUDITLOGENTRY[],"message": string,"status": string};
+export type AUDIT_LOG_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESPONSE = {"data": AUDIT_LOG_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STORE_AUDITLOGRESPONSE,"message": string,"status": string};
 export type AUDIT_LOG_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STORE_AUDITLOGENTRY = {"createdAt": AUDIT_LOG_LIST_RESPONSE__TIME_TIME,"diff": string,"error": any,"pattern": string,"payload": any,"result": any,"user": AUDIT_LOG_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_USER};
+export type AUDIT_LOG_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STORE_AUDITLOGRESPONSE = {"data": AUDIT_LOG_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STORE_AUDITLOGENTRY[],"totalCount": number};
 export type AUDIT_LOG_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_USER = {"email": string,"firstName": string,"lastName": string,"source": string};
 export type AUDIT_LOG_LIST_RESPONSE__TIME_TIME = {};
 export type CLUSTERFORCEDISCONNECT_REQUEST__ANON_STRUCT_0 = {};

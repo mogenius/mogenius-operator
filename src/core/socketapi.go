@@ -331,6 +331,7 @@ func RegisterPatternHandlerRaw[RequestType any, ResponseType any](
 			"live-stream/workspace-cpu",
 			"live-stream/workspace-memory",
 			"live-stream/workspace-traffic",
+			"audit-log/list",
 		}, handle.Pattern),
 		"DEPRECATED: new patterns should always be implemented using `RegisterPatternHandler`",
 		"this assertion is here to prevent new routes from accidentally (e.g. AI slop) using the legacy register system",
@@ -1788,19 +1789,44 @@ func (self *socketApi) registerPatterns() {
 			WorkspaceName string `json:"workspaceName"`
 		}
 
-		RegisterPatternHandler(
+		type Response struct {
+			Status  string                 `json:"status"`
+			Message string                 `json:"message"`
+			Data    store.AuditLogResponse `json:"data"`
+		}
+
+		RegisterPatternHandlerRaw(
 			PatternHandle{self, "audit-log/list"},
 			PatternConfig{},
-			func(datagram structs.Datagram, request Request) ([]store.AuditLogEntry, error) {
+			func(datagram structs.Datagram, request Request) Response {
 				res := []unstructured.Unstructured{}
 				var err error
 				if request.WorkspaceName != "" {
 					res, err = self.apiService.GetWorkspaceResources(request.WorkspaceName, nil, nil, nil)
 					if err != nil {
-						return nil, fmt.Errorf("failed to get workspace resources: %w", err)
+						return Response{
+							Status:  "error",
+							Message: fmt.Sprintf("failed to get workspace resources: %s", err.Error()),
+							Data:    store.AuditLogResponse{},
+						}
 					}
 				}
-				return store.ListAuditLog(request.Limit, request.Offset, res)
+				data, size, err := store.ListAuditLog(request.Limit, request.Offset, res)
+				if err != nil {
+					return Response{
+						Status:  "error",
+						Message: fmt.Sprintf("failed to list audit log: %s", err.Error()),
+						Data:    store.AuditLogResponse{},
+					}
+				}
+				return Response{
+					Status:  "success",
+					Message: "audit log retrieved successfully",
+					Data: store.AuditLogResponse{
+						TotalCount: size,
+						Data:       data,
+					},
+				}
 			},
 		)
 	}

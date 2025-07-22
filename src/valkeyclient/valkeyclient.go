@@ -514,6 +514,41 @@ func RangeFromEndOfBucketWithType[T any](store ValkeyClient, numberOfElements in
 	return result, nil
 }
 
+func RangeFromEndOfBucketWithSizeWithType[T any](store ValkeyClient, numberOfElements int64, offset int64, bucketKey ...string) ([]T, int64, error) {
+	var result []T
+	key := createKey(bucketKey...)
+	client := store.GetValkeyClient()
+
+	// Get the length of the list
+	length, err := client.Do(store.GetContext(), client.B().Llen().Key(key).Build()).AsInt64()
+	if err != nil {
+		return result, length, err
+	}
+
+	// Calculate start index for LRANGE
+	start := length - (numberOfElements + offset)
+	if start < 0 {
+		start = 0 // Ensure start index is not negative
+	}
+	stop := length - offset
+
+	// Use LRANGE to get the last N elements
+	elements, err := client.Do(store.GetContext(), client.B().Lrange().Key(key).Start(start).Stop(stop).Build()).AsStrSlice()
+	if err != nil {
+		return result, length, err
+	}
+
+	for i := len(elements) - 1; i >= 0; i-- {
+		var obj T
+		if err := json.Unmarshal([]byte(elements[i]), &obj); err != nil {
+			return result, length, fmt.Errorf("error unmarshalling value from valkey bucket, error: %v", err)
+		}
+		result = append(result, obj)
+	}
+
+	return result, length, nil
+}
+
 func GetObjectsByPrefix[T any](store ValkeyClient, order SortOrder, keys ...string) ([]T, error) {
 	var result []T
 	key := createKey(keys...)

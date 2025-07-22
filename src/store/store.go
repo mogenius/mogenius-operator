@@ -355,6 +355,11 @@ type AuditLogEntry struct {
 	User      structs.User `json:"user,omitempty"`
 }
 
+type AuditLogResponse struct {
+	Data       []AuditLogEntry `json:"data"`
+	TotalCount int64           `json:"totalCount"`
+}
+
 func AddToAuditLog[T any](datagram structs.Datagram, logger *slog.Logger, result T, err error, oldObj *unstructured.Unstructured, updatedObj *unstructured.Unstructured) (T, error) {
 	auditLogEntry := auditLogFromDatagram(datagram, result, err)
 	if oldObj != nil || updatedObj != nil {
@@ -372,14 +377,14 @@ func AddToAuditLog[T any](datagram structs.Datagram, logger *slog.Logger, result
 	return result, err
 }
 
-func ListAuditLog(limit int64, offset int64, workspaceResources []unstructured.Unstructured) ([]AuditLogEntry, error) {
+func ListAuditLog(limit int64, offset int64, workspaceResources []unstructured.Unstructured) ([]AuditLogEntry, int64, error) {
 	if limit <= 0 {
 		limit = 100
 	}
 
-	entries, err := valkeyclient.RangeFromEndOfBucketWithType[AuditLogEntry](valkeyClient, limit, offset, "audit-log")
+	entries, size, err := valkeyclient.RangeFromEndOfBucketWithSizeWithType[AuditLogEntry](valkeyClient, limit, offset, "audit-log")
 	if err != nil {
-		return nil, fmt.Errorf("failed to list audit log: %w", err)
+		return nil, size, fmt.Errorf("failed to list audit log: %w", err)
 	}
 
 	// TODO: not working yet, needs to be fixed BENE
@@ -402,10 +407,10 @@ func ListAuditLog(limit int64, offset int64, workspaceResources []unstructured.U
 				filteredEntries = append(filteredEntries, entry)
 			}
 		}
-		return filteredEntries, nil
+		return filteredEntries, size, nil
 	}
 
-	return entries, nil
+	return entries, size, nil
 }
 
 func auditLogFromDatagram(datagram structs.Datagram, result interface{}, err error) AuditLogEntry {
