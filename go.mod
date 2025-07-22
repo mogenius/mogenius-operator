@@ -1,6 +1,6 @@
 module mogenius-k8s-manager
 
-go 1.24.1
+go 1.24.5
 
 require (
 	github.com/alecthomas/kong v1.12.1
