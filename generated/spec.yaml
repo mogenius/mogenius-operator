@@ -2580,6 +2580,8 @@ audit-log/list:
                         type: int
                     offset:
                         type: int
+                    workspaceName:
+                        type: string
         typeInfo:
             structRef: mogenius-k8s-manager/src/core.Request
             type: struct
@@ -2605,9 +2607,15 @@ audit-log/list:
                         type: struct
                     diff:
                         type: string
+                    error:
+                        pointer: true
+                        type: any
                     pattern:
                         type: string
                     payload:
+                        pointer: true
+                        type: any
+                    result:
                         pointer: true
                         type: any
                     user:
