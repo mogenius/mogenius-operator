@@ -43,6 +43,8 @@ type slogManager struct {
 	combinedLogWriter io.Writer
 }
 
+var _ SlogManager = &slogManager{}
+
 func NewSlogManager(logLevel slog.Level, handlers []slog.Handler) SlogManager {
 	self := slogManager{}
 
