@@ -1228,6 +1228,7 @@ func (self *socketApi) registerPatterns() {
 		PatternConfig{},
 		func(datagram structs.Datagram, request services.ServiceRestartRequest) *structs.Job {
 			request.Service.AddSecretsToRedaction()
+			store.AddToAuditLog(datagram, self.logger, interface{}(nil), nil, nil, nil)
 			return services.Restart(self.eventsClient, request, self.config)
 		},
 	)
@@ -1237,6 +1238,7 @@ func (self *socketApi) registerPatterns() {
 		PatternConfig{},
 		func(datagram structs.Datagram, request services.ServiceStopRequest) *structs.Job {
 			request.Service.AddSecretsToRedaction()
+			store.AddToAuditLog(datagram, self.logger, interface{}(nil), nil, nil, nil)
 			return services.StopService(self.eventsClient, request, self.config)
 		},
 	)
@@ -1246,6 +1248,7 @@ func (self *socketApi) registerPatterns() {
 		PatternConfig{},
 		func(datagram structs.Datagram, request services.ServiceStartRequest) *structs.Job {
 			request.Service.AddSecretsToRedaction()
+			store.AddToAuditLog(datagram, self.logger, interface{}(nil), nil, nil, nil)
 			return services.StartService(self.eventsClient, request, self.config)
 		},
 	)
@@ -1784,8 +1787,8 @@ func (self *socketApi) registerPatterns() {
 
 	{
 		type Request struct {
-			Limit         int64  `json:"limit" validate:"required"`
-			Offset        int64  `json:"offset"`
+			Limit         int    `json:"limit" validate:"required"`
+			Offset        int    `json:"offset"`
 			WorkspaceName string `json:"workspaceName"`
 		}
 
@@ -1799,24 +1802,30 @@ func (self *socketApi) registerPatterns() {
 			PatternHandle{self, "audit-log/list"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) Response {
-				res := []unstructured.Unstructured{}
+				namespaces := []string{}
 				var err error
 				if request.WorkspaceName != "" {
-					res, err = self.apiService.GetWorkspaceResources(request.WorkspaceName, nil, nil, nil)
+					namespaces, err = self.apiService.GetWorkspaceNamespaces(request.WorkspaceName)
 					if err != nil {
 						return Response{
 							Status:  "error",
 							Message: fmt.Sprintf("failed to get workspace resources: %s", err.Error()),
-							Data:    store.AuditLogResponse{},
+							Data: store.AuditLogResponse{
+								Data:       []store.AuditLogEntry{},
+								TotalCount: 0,
+							},
 						}
 					}
 				}
-				data, size, err := store.ListAuditLog(request.Limit, request.Offset, res)
+				data, size, err := store.ListAuditLog(request.Limit, request.Offset, namespaces)
 				if err != nil {
 					return Response{
 						Status:  "error",
 						Message: fmt.Sprintf("failed to list audit log: %s", err.Error()),
-						Data:    store.AuditLogResponse{},
+						Data: store.AuditLogResponse{
+							Data:       []store.AuditLogEntry{},
+							TotalCount: 0,
+						},
 					}
 				}
 				return Response{

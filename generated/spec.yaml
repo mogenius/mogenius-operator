@@ -2607,8 +2607,7 @@ audit-log/list:
                     diff:
                         type: string
                     error:
-                        pointer: true
-                        type: any
+                        type: string
                     pattern:
                         type: string
                     payload:

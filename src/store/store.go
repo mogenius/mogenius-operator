@@ -28,7 +28,7 @@ const (
 	VALKEY_RESOURCE_PREFIX = "resources"
 )
 
-var AuditLogLimit = int64(1000)
+var AuditLogLimit = int64(100) // Default limit for audit log entries IMPORTANT: this is set per resource not globally
 
 var ErrNotFound = errors.New("not found")
 
@@ -350,17 +350,20 @@ type AuditLogEntry struct {
 	Payload   interface{}  `json:"payload,omitempty"`
 	Diff      string       `json:"diff,omitempty"`
 	Result    interface{}  `json:"result,omitempty"`
-	Error     error        `json:"error,omitempty"`
+	Error     string       `json:"error,omitempty"`
 	CreatedAt time.Time    `json:"createdAt"`
 	User      structs.User `json:"user,omitempty"`
 }
 
 type AuditLogResponse struct {
 	Data       []AuditLogEntry `json:"data"`
-	TotalCount int64           `json:"totalCount"`
+	TotalCount int             `json:"totalCount"`
 }
 
 func AddToAuditLog[T any](datagram structs.Datagram, logger *slog.Logger, result T, err error, oldObj *unstructured.Unstructured, updatedObj *unstructured.Unstructured) (T, error) {
+	resourceNamespace := ""
+	resourceName := ""
+
 	auditLogEntry := auditLogFromDatagram(datagram, result, err)
 	if oldObj != nil || updatedObj != nil {
 		patch, diffErr := Diff(oldObj, updatedObj)
@@ -370,56 +373,66 @@ func AddToAuditLog[T any](datagram structs.Datagram, logger *slog.Logger, result
 		}
 		auditLogEntry.Diff = patch
 	}
-	bucketErr := valkeyClient.AddToBucket(AuditLogLimit, auditLogEntry, "audit-log")
-	if bucketErr != nil {
-		logger.Error("failed to add to audit log", "error", bucketErr)
+	if oldObj != nil {
+		resourceNamespace = oldObj.GetNamespace()
+		resourceName = oldObj.GetName()
+	} else if updatedObj != nil {
+		resourceNamespace = updatedObj.GetNamespace()
+		resourceName = updatedObj.GetName()
+	} else if payload, ok := datagram.Payload.(map[string]interface{}); ok {
+		if payload["namespace"] != nil {
+			resourceNamespace = payload["namespace"].(string)
+		}
+		if payload["name"] != nil {
+			resourceName = payload["name"].(string)
+		}
+		if payload["pod"] != nil {
+			resourceName = payload["pod"].(string)
+		}
+	} else if yamlData, ok := payload["yamlData"].(string); ok {
+		var unstruct unstructured.Unstructured
+		err := yaml.Unmarshal([]byte(yamlData), &unstruct)
+		if err == nil {
+			resourceNamespace = unstruct.GetNamespace()
+			resourceName = unstruct.GetName()
+		} else {
+			return result, fmt.Errorf("failed to guess Namespace and ResourceName from datagram payload: %w", err)
+		}
+	} else {
+		return result, fmt.Errorf("Could not determine Namespace and ResourceName from datagram payload: %w", err)
+	}
+
+	auditLogAddErr := valkeyClient.SetObjectWithAutoincrementLimit(auditLogEntry, AuditLogLimit, "audit-log", resourceNamespace, resourceName)
+	if auditLogAddErr != nil {
+		logger.Error("failed to add to audit log", "error", auditLogAddErr)
 	}
 	return result, err
 }
 
-func ListAuditLog(limit int64, offset int64, workspaceResources []unstructured.Unstructured) ([]AuditLogEntry, int64, error) {
+func ListAuditLog(limit int, offset int, namespaces []string) ([]AuditLogEntry, int, error) {
 	if limit <= 0 {
 		limit = 100
 	}
 
-	entries, size, err := valkeyclient.RangeFromEndOfBucketWithSizeWithType[AuditLogEntry](valkeyClient, limit, offset, "audit-log")
+	entries, size, err := valkeyclient.GetObjectsByPrefixWithSizeAndNs[AuditLogEntry](valkeyClient, limit, offset, namespaces, "audit-log")
 	if err != nil {
-		return nil, size, fmt.Errorf("failed to list audit log: %w", err)
-	}
-
-	// TODO: not working yet, needs to be fixed BENE
-	if len(workspaceResources) > 0 {
-		filteredEntries := []AuditLogEntry{}
-		for i := 0; i < len(entries); i++ {
-			entry := entries[i]
-			found := false
-			for _, resource := range workspaceResources {
-				payload, ok := entry.Payload.(map[string]interface{})
-				if ok &&
-					resource.GetName() == payload["resourceName"] &&
-					resource.GetNamespace() == payload["namespace"] &&
-					resource.GetKind() == payload["kind"] {
-					found = true
-					break
-				}
-			}
-			if found {
-				filteredEntries = append(filteredEntries, entry)
-			}
-		}
-		return filteredEntries, size, nil
+		return nil, size, err
 	}
 
 	return entries, size, nil
 }
 
 func auditLogFromDatagram(datagram structs.Datagram, result interface{}, err error) AuditLogEntry {
+	errStr := ""
+	if err != nil {
+		errStr = err.Error()
+	}
 	return AuditLogEntry{
 		Pattern:   datagram.Pattern,
 		Payload:   datagram.Payload,
 		CreatedAt: datagram.CreatedAt,
 		User:      datagram.User,
-		Error:     err,
+		Error:     errStr,
 		Result:    result,
 	}
 }

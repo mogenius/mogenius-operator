@@ -8,6 +8,7 @@ import (
 	"mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/utils"
 	"net"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -15,6 +16,7 @@ import (
 
 	jsoniter "github.com/json-iterator/go"
 
+	"github.com/valkey-io/valkey-go"
 	valkeyclient "github.com/valkey-io/valkey-go"
 )
 
@@ -24,6 +26,7 @@ type ValkeyClient interface {
 	Connect() error
 	Set(value string, expiration time.Duration, keys ...string) error
 	SetObject(value interface{}, expiration time.Duration, keys ...string) error
+	SetObjectWithAutoincrementLimit(value interface{}, limit int64, keys ...string) error
 	Get(keys ...string) (string, error)
 	GetObject(keys ...string) (interface{}, error)
 	List(limit int, keys ...string) ([]string, error)
@@ -145,6 +148,90 @@ func (self *valkeyClient) SetObject(value interface{}, expiration time.Duration,
 	}
 
 	return self.Set(string(objStr), expiration, key)
+}
+
+func (self *valkeyClient) SetObjectWithAutoincrementLimit(value interface{}, limit int64, keys ...string) error {
+	ctx := context.Background()
+
+	// Basis-Key aus den übergebenen Keys erstellen
+	baseKey := strings.Join(keys, ":")
+
+	// Pattern für die Suche nach existierenden Keys mit diesem Präfix
+	pattern := baseKey + ":*"
+
+	// Alle existierenden Keys mit diesem Präfix finden
+	existingKeysResp := self.valkeyClient.Do(ctx, self.valkeyClient.B().Keys().Pattern(pattern).Build())
+	if err := existingKeysResp.Error(); err != nil {
+		return fmt.Errorf("fehler beim Abrufen existierender Keys: %w", err)
+	}
+
+	existingKeys, err := existingKeysResp.AsStrSlice()
+	if err != nil {
+		return fmt.Errorf("fehler beim Parsen der Keys: %w", err)
+	}
+
+	// Keys nach ihrer Nummer sortieren (aufsteigend)
+	sort.Slice(existingKeys, func(i, j int) bool {
+		numI := extractNumber(existingKeys[i], baseKey)
+		numJ := extractNumber(existingKeys[j], baseKey)
+		return numI < numJ
+	})
+
+	// Nächste Nummer bestimmen
+	var nextNum int64 = 1
+	if len(existingKeys) > 0 {
+		lastKey := existingKeys[len(existingKeys)-1]
+		lastNum := extractNumber(lastKey, baseKey)
+		nextNum = lastNum + 1
+	}
+
+	// Neuen Key mit Autoincrement erstellen
+	newKey := fmt.Sprintf("%s:%d", baseKey, nextNum)
+
+	// Wert serialisieren (JSON als Beispiel)
+	jsonValue, err := json.Marshal(value)
+	if err != nil {
+		return fmt.Errorf("fehler beim Serialisieren des Wertes: %w", err)
+	}
+
+	// Commands für Multi-Operation erstellen
+	var cmds []valkey.Completed
+
+	// Neuen Wert setzen
+	cmds = append(cmds, self.valkeyClient.B().Set().Key(newKey).Value(string(jsonValue)).Build())
+
+	// Alte Einträge löschen, wenn Limit überschritten wird
+	if int64(len(existingKeys)) >= limit {
+		keysToDelete := int64(len(existingKeys)) - limit + 1
+		for i := int64(0); i < keysToDelete; i++ {
+			cmds = append(cmds, self.valkeyClient.B().Del().Key(existingKeys[i]).Build())
+		}
+	}
+
+	// Alle Commands ausführen
+	for _, resp := range self.valkeyClient.DoMulti(ctx, cmds...) {
+		if err := resp.Error(); err != nil {
+			return fmt.Errorf("fehler beim Ausführen der Commands: %w", err)
+		}
+	}
+
+	return nil
+}
+
+// Hilfsfunktion zum Extrahieren der Nummer aus einem Key
+func extractNumber(key, baseKey string) int64 {
+	prefix := baseKey + ":"
+	if !strings.HasPrefix(key, prefix) {
+		return 0
+	}
+
+	numStr := strings.TrimPrefix(key, prefix)
+	num, err := strconv.ParseInt(numStr, 10, 64)
+	if err != nil {
+		return 0
+	}
+
+	return num
 }
 
 func (self *valkeyClient) Get(keys ...string) (string, error) {
@@ -514,41 +601,6 @@ func RangeFromEndOfBucketWithType[T any](store ValkeyClient, numberOfElements in
 	return result, nil
 }
 
-func RangeFromEndOfBucketWithSizeWithType[T any](store ValkeyClient, numberOfElements int64, offset int64, bucketKey ...string) ([]T, int64, error) {
-	var result []T
-	key := createKey(bucketKey...)
-	client := store.GetValkeyClient()
-
-	// Get the length of the list
-	length, err := client.Do(store.GetContext(), client.B().Llen().Key(key).Build()).AsInt64()
-	if err != nil {
-		return result, length, err
-	}
-
-	// Calculate start index for LRANGE
-	start := length - (numberOfElements + offset)
-	if start < 0 {
-		start = 0 // Ensure start index is not negative
-	}
-	stop := length - offset
-
-	// Use LRANGE to get the last N elements
-	elements, err := client.Do(store.GetContext(), client.B().Lrange().Key(key).Start(start).Stop(stop).Build()).AsStrSlice()
-	if err != nil {
-		return result, length, err
-	}
-
-	for i := len(elements) - 1; i >= 0; i-- {
-		var obj T
-		if err := json.Unmarshal([]byte(elements[i]), &obj); err != nil {
-			return result, length, fmt.Errorf("error unmarshalling value from valkey bucket, error: %v", err)
-		}
-		result = append(result, obj)
-	}
-
-	return result, length, nil
-}
-
 func GetObjectsByPrefix[T any](store ValkeyClient, order SortOrder, keys ...string) ([]T, error) {
 	var result []T
 	key := createKey(keys...)
@@ -591,6 +643,56 @@ func GetObjectsByPrefix[T any](store ValkeyClient, order SortOrder, keys ...stri
 		}
 	}
 	return result, nil
+}
+
+func GetObjectsByPrefixWithSizeAndNs[T any](store ValkeyClient, limit int, offset int, namespaces []string, keys ...string) ([]T, int, error) {
+	var result []T
+	key := createKey(keys...)
+	pattern := key + "*"
+	client := store.GetValkeyClient()
+	// Get the keys
+	keyList, err := client.Do(store.GetContext(), client.B().Keys().Pattern(pattern).Build()).AsStrSlice()
+	if err != nil {
+		return result, 0, err
+	}
+
+	// remove elements which are not in the namespaces
+	for i := len(keyList) - 1; i >= 0; i-- {
+		split := strings.Split(keyList[i], ":")
+		if len(split) < 3 {
+			continue
+		}
+		namespace := split[1]
+		if !slices.Contains(namespaces, namespace) {
+			keyList = append(keyList[:i], keyList[i+1:]...)
+		}
+	}
+
+	for i := 0; i < len(keyList); i++ {
+		if i < offset {
+			keyList = append(keyList[:i], keyList[i+1:]...)
+		}
+		if i >= offset+limit {
+			keyList = append(keyList[:i], keyList[i+1:]...)
+		}
+	}
+
+	if len(keyList) <= 0 {
+		return result, 0, nil
+	}
+
+	values, err := client.Do(store.GetContext(), client.B().Mget().Key(keyList...).Build()).AsStrSlice()
+	if err != nil {
+		return result, 0, err
+	}
+	for _, v := range values {
+		var obj T
+		if err := json.Unmarshal([]byte(v), &obj); err != nil {
+			return result, 0, fmt.Errorf("error unmarshalling value from Redis, error: %v", err)
+		}
+		result = append(result, obj)
+	}
+	return result, len(keyList), nil
 }
 
 func GetObjectForKey[T any](store ValkeyClient, keys ...string) (*T, error) {
