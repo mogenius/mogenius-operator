@@ -1746,7 +1746,7 @@ func (self *socketApi) registerPatterns() {
 		PatternConfig{},
 		func(datagram structs.Datagram, request services.NfsVolumeRequest) structs.DefaultResponse {
 			res := services.CreateMogeniusNfsVolume(self.eventsClient, request)
-			store.AddToAuditLog(datagram, self.logger, res, fmt.Errorf(res.Error), nil, nil)
+			store.AddToAuditLog(datagram, self.logger, res, fmt.Errorf("%s", res.Error), nil, nil)
 			return res
 		},
 	)
@@ -1756,7 +1756,7 @@ func (self *socketApi) registerPatterns() {
 		PatternConfig{},
 		func(datagram structs.Datagram, request services.NfsVolumeRequest) structs.DefaultResponse {
 			res := services.DeleteMogeniusNfsVolume(self.eventsClient, request)
-			store.AddToAuditLog(datagram, self.logger, res, fmt.Errorf(res.Error), nil, nil)
+			store.AddToAuditLog(datagram, self.logger, res, fmt.Errorf("%s", res.Error), nil, nil)
 			return res
 		},
 	)

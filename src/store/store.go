@@ -353,6 +353,7 @@ type AuditLogEntry struct {
 	Error     string       `json:"error,omitempty"`
 	CreatedAt time.Time    `json:"createdAt"`
 	User      structs.User `json:"user,omitempty"`
+	Workspace string       `json:"workspace,omitempty"`
 }
 
 type AuditLogResponse struct {
@@ -432,6 +433,7 @@ func auditLogFromDatagram(datagram structs.Datagram, result interface{}, err err
 		Payload:   datagram.Payload,
 		CreatedAt: datagram.CreatedAt,
 		User:      datagram.User,
+		Workspace: datagram.Workspace,
 		Error:     errStr,
 		Result:    result,
 	}

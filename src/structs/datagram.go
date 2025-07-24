@@ -14,6 +14,7 @@ type Datagram struct {
 	Err       string      `json:"err,omitempty"`
 	CreatedAt time.Time   `json:"-"`
 	User      User        `json:"user,omitempty"`
+	Workspace string      `json:"workspace,omitempty"`
 	Zlib      bool        `json:"zlib,omitempty"`
 }
 

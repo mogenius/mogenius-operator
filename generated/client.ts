@@ -593,6 +593,8 @@ export type AUDIT_LOG_LIST_REQUEST = AUDIT_LOG_LIST_REQUEST__MOGENIUS_K8S_MANAGE
  *             user:
  *                 structRef: mogenius-k8s-manager/src/structs.User
  *                 type: struct
+ *             workspace:
+ *                 type: string
  *     mogenius-k8s-manager/src/store.AuditLogResponse:
  *         name: mogenius-k8s-manager/src/store.AuditLogResponse
  *         properties:
@@ -18736,7 +18738,7 @@ export type ATTACH_LABELED_NETWORK_POLICY_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS
 export type ATTACH_LABELED_NETWORK_POLICY_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_ATTACHLABELEDNETWORKPOLICYREQUEST_STRING = {"data": string,"message": string,"status": string};
 export type AUDIT_LOG_LIST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"limit": number,"offset": number,"workspaceName": string};
 export type AUDIT_LOG_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESPONSE = {"data": AUDIT_LOG_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STORE_AUDITLOGRESPONSE,"message": string,"status": string};
-export type AUDIT_LOG_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STORE_AUDITLOGENTRY = {"createdAt": AUDIT_LOG_LIST_RESPONSE__TIME_TIME,"diff": string,"error": string,"pattern": string,"payload": any,"result": any,"user": AUDIT_LOG_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_USER};
+export type AUDIT_LOG_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STORE_AUDITLOGENTRY = {"createdAt": AUDIT_LOG_LIST_RESPONSE__TIME_TIME,"diff": string,"error": string,"pattern": string,"payload": any,"result": any,"user": AUDIT_LOG_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_USER,"workspace": string};
 export type AUDIT_LOG_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STORE_AUDITLOGRESPONSE = {"data": AUDIT_LOG_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STORE_AUDITLOGENTRY[],"totalCount": number};
 export type AUDIT_LOG_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_USER = {"email": string,"firstName": string,"lastName": string,"source": string};
 export type AUDIT_LOG_LIST_RESPONSE__TIME_TIME = {};

@@ -2619,6 +2619,8 @@ audit-log/list:
                     user:
                         structRef: mogenius-k8s-manager/src/structs.User
                         type: struct
+                    workspace:
+                        type: string
             mogenius-k8s-manager/src/store.AuditLogResponse:
                 name: mogenius-k8s-manager/src/store.AuditLogResponse
                 properties:
