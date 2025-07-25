@@ -50,7 +50,7 @@ func injectContent(content io.Reader, conn *websocket.Conn, connWriteLock *sync.
 				break
 			}
 			xtermLogger.Error("failed to read from pseudoterminal", "error", err)
-			continue
+			break
 		}
 		if conn != nil {
 			connWriteLock.Lock()
