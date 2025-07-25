@@ -1,9 +1,9 @@
 module mogenius-k8s-manager
 
-go 1.24.1
+go 1.24.5
 
 require (
-	github.com/alecthomas/kong v1.12.0
+	github.com/alecthomas/kong v1.12.1
 	github.com/cert-manager/cert-manager v1.18.2
 	github.com/creack/pty v1.1.24
 	github.com/go-git/go-git/v5 v5.16.2
@@ -34,7 +34,7 @@ require (
 	k8s.io/metrics v0.33.3
 	k8s.io/utils v0.0.0-20250604170112-4c0f3b243397
 	sigs.k8s.io/controller-runtime v0.21.0
-	sigs.k8s.io/yaml v1.5.0
+	sigs.k8s.io/yaml v1.6.0
 )
 
 require (

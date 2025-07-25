@@ -14,6 +14,7 @@ import (
 	"mogenius-k8s-manager/src/schema"
 	"mogenius-k8s-manager/src/secrets"
 	"mogenius-k8s-manager/src/services"
+	"mogenius-k8s-manager/src/store"
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/valkeyclient"
@@ -33,6 +34,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"sigs.k8s.io/yaml"
 )
 
 type SocketApi interface {
@@ -329,6 +331,7 @@ func RegisterPatternHandlerRaw[RequestType any, ResponseType any](
 			"live-stream/workspace-cpu",
 			"live-stream/workspace-memory",
 			"live-stream/workspace-traffic",
+			"audit-log/list",
 		}, handle.Pattern),
 		"DEPRECATED: new patterns should always be implemented using `RegisterPatternHandler`",
 		"this assertion is here to prevent new routes from accidentally (e.g. AI slop) using the legacy register system",
@@ -1028,7 +1031,8 @@ func (self *socketApi) registerPatterns() {
 		PatternHandle{self, "cluster/helm-repo-add"},
 		PatternConfig{},
 		func(datagram structs.Datagram, request helm.HelmRepoAddRequest) (string, error) {
-			return helm.HelmRepoAdd(request)
+			result, err := helm.HelmRepoAdd(request)
+			return store.AddToAuditLog(datagram, self.logger, result, err, nil, nil)
 		},
 	)
 
@@ -1044,7 +1048,8 @@ func (self *socketApi) registerPatterns() {
 		PatternHandle{self, "cluster/helm-repo-update"},
 		PatternConfig{},
 		func(datagram structs.Datagram, request Void) ([]helm.HelmEntryStatus, error) {
-			return helm.HelmRepoUpdate()
+			result, err := helm.HelmRepoUpdate()
+			return store.AddToAuditLog(datagram, self.logger, result, err, nil, nil)
 		},
 	)
 
@@ -1059,7 +1064,8 @@ func (self *socketApi) registerPatterns() {
 	RegisterPatternHandler(
 		PatternHandle{self, "cluster/helm-chart-remove"},
 		PatternConfig{}, func(datagram structs.Datagram, request helm.HelmRepoRemoveRequest) (string, error) {
-			return helm.HelmRepoRemove(request)
+			res, err := helm.HelmRepoRemove(request)
+			return store.AddToAuditLog(datagram, self.logger, res, err, nil, nil)
 		},
 	)
 
@@ -1075,7 +1081,8 @@ func (self *socketApi) registerPatterns() {
 		PatternHandle{self, "cluster/helm-chart-install"},
 		PatternConfig{},
 		func(datagram structs.Datagram, request helm.HelmChartInstallUpgradeRequest) (string, error) {
-			return helm.HelmChartInstall(request)
+			res, err := helm.HelmChartInstall(request)
+			return store.AddToAuditLog(datagram, self.logger, res, err, nil, nil)
 		},
 	)
 
@@ -1083,7 +1090,8 @@ func (self *socketApi) registerPatterns() {
 		PatternHandle{self, "cluster/helm-chart-install-oci"},
 		PatternConfig{},
 		func(datagram structs.Datagram, request helm.HelmChartOciInstallUpgradeRequest) (string, error) {
-			return helm.HelmOciInstall(request)
+			res, err := helm.HelmOciInstall(request)
+			return store.AddToAuditLog(datagram, self.logger, res, err, nil, nil)
 		},
 	)
 
@@ -1107,7 +1115,8 @@ func (self *socketApi) registerPatterns() {
 		PatternHandle{self, "cluster/helm-release-upgrade"},
 		PatternConfig{},
 		func(datagram structs.Datagram, request helm.HelmChartInstallUpgradeRequest) (string, error) {
-			return helm.HelmReleaseUpgrade(request)
+			res, err := helm.HelmReleaseUpgrade(request)
+			return store.AddToAuditLog(datagram, self.logger, res, err, nil, nil)
 		},
 	)
 
@@ -1115,7 +1124,8 @@ func (self *socketApi) registerPatterns() {
 		PatternHandle{self, "cluster/helm-release-uninstall"},
 		PatternConfig{},
 		func(datagram structs.Datagram, request helm.HelmReleaseUninstallRequest) (string, error) {
-			return helm.HelmReleaseUninstall(request)
+			res, err := helm.HelmReleaseUninstall(request)
+			return store.AddToAuditLog(datagram, self.logger, res, err, nil, nil)
 		},
 	)
 
@@ -1147,7 +1157,8 @@ func (self *socketApi) registerPatterns() {
 		PatternHandle{self, "cluster/helm-release-rollback"},
 		PatternConfig{},
 		func(datagram structs.Datagram, request helm.HelmReleaseRollbackRequest) (string, error) {
-			return helm.HelmReleaseRollback(request)
+			result, err := helm.HelmReleaseRollback(request)
+			return store.AddToAuditLog(datagram, self.logger, result, err, nil, nil)
 		},
 	)
 
@@ -1163,7 +1174,8 @@ func (self *socketApi) registerPatterns() {
 		PatternHandle{self, "cluster/helm-release-link"},
 		PatternConfig{},
 		func(datagram structs.Datagram, request helm.HelmReleaseLinkRequest) (string, error) {
-			return "", helm.SaveRepoNameToValkey(request.Namespace, request.ReleaseName, request.RepoName)
+			err := helm.SaveRepoNameToValkey(request.Namespace, request.ReleaseName, request.RepoName)
+			return store.AddToAuditLog(datagram, self.logger, "", err, nil, nil)
 		},
 	)
 
@@ -1216,6 +1228,7 @@ func (self *socketApi) registerPatterns() {
 		PatternConfig{},
 		func(datagram structs.Datagram, request services.ServiceRestartRequest) *structs.Job {
 			request.Service.AddSecretsToRedaction()
+			store.AddToAuditLog(datagram, self.logger, interface{}(nil), nil, nil, nil)
 			return services.Restart(self.eventsClient, request, self.config)
 		},
 	)
@@ -1225,6 +1238,7 @@ func (self *socketApi) registerPatterns() {
 		PatternConfig{},
 		func(datagram structs.Datagram, request services.ServiceStopRequest) *structs.Job {
 			request.Service.AddSecretsToRedaction()
+			store.AddToAuditLog(datagram, self.logger, interface{}(nil), nil, nil, nil)
 			return services.StopService(self.eventsClient, request, self.config)
 		},
 	)
@@ -1234,6 +1248,7 @@ func (self *socketApi) registerPatterns() {
 		PatternConfig{},
 		func(datagram structs.Datagram, request services.ServiceStartRequest) *structs.Job {
 			request.Service.AddSecretsToRedaction()
+			store.AddToAuditLog(datagram, self.logger, interface{}(nil), nil, nil, nil)
 			return services.StartService(self.eventsClient, request, self.config)
 		},
 	)
@@ -1269,6 +1284,7 @@ func (self *socketApi) registerPatterns() {
 		PatternConfig{},
 		func(datagram structs.Datagram, request xterm.PodCmdConnectionRequest) (Void, error) {
 			go self.execShConnection(request)
+			store.AddToAuditLog(datagram, self.logger, interface{}(nil), nil, nil, nil)
 			return nil, nil
 		},
 	)
@@ -1336,7 +1352,8 @@ func (self *socketApi) registerPatterns() {
 		PatternHandle{self, "describe/workload"},
 		PatternConfig{},
 		func(datagram structs.Datagram, request utils.ResourceItem) (string, error) {
-			return kubernetes.DescribeUnstructuredResource(request.Group, request.Version, request.Name, request.Namespace, request.ResourceName)
+			result, err := kubernetes.DescribeUnstructuredResource(request.Group, request.Version, request.Name, request.Namespace, request.ResourceName)
+			return store.AddToAuditLog(datagram, self.logger, result, err, nil, nil)
 		},
 	)
 
@@ -1344,7 +1361,8 @@ func (self *socketApi) registerPatterns() {
 		PatternHandle{self, "create/new-workload"},
 		PatternConfig{},
 		func(datagram structs.Datagram, request utils.ResourceData) (*unstructured.Unstructured, error) {
-			return kubernetes.CreateUnstructuredResource(request.Group, request.Version, request.Name, request.Namespace, request.YamlData)
+			createdRes, err := kubernetes.CreateUnstructuredResource(request.Group, request.Version, request.Name, request.Namespace, request.YamlData)
+			return store.AddToAuditLog(datagram, self.logger, createdRes, err, nil, createdRes)
 		},
 	)
 
@@ -1352,6 +1370,7 @@ func (self *socketApi) registerPatterns() {
 		PatternHandle{self, "get/workload"},
 		PatternConfig{},
 		func(datagram structs.Datagram, request utils.ResourceItem) (*unstructured.Unstructured, error) {
+			// we skip the audit log here because this is a read operation and it would spam the logs
 			return kubernetes.GetUnstructuredResource(request.Group, request.Version, request.Name, request.Namespace, request.ResourceName)
 		},
 	)
@@ -1376,7 +1395,18 @@ func (self *socketApi) registerPatterns() {
 		PatternHandle{self, "update/workload"},
 		PatternConfig{},
 		func(datagram structs.Datagram, request utils.ResourceData) (*unstructured.Unstructured, error) {
-			return kubernetes.UpdateUnstructuredResource(request.Group, request.Version, request.Name, request.Namespace, request.YamlData)
+			ns := ""
+			if request.Namespace != nil {
+				ns = *request.Namespace
+			}
+			var updatedObj *unstructured.Unstructured
+			err := yaml.Unmarshal([]byte(request.YamlData), &updatedObj)
+			if err != nil {
+				return nil, fmt.Errorf("failed to unmarshal YAML data: %w", err)
+			}
+			oldObj, _ := kubernetes.GetUnstructuredResource(request.Group, request.Version, request.Name, ns, updatedObj.GetName())
+			updatedRes, err := kubernetes.UpdateUnstructuredResource(request.Group, request.Version, request.Name, request.Namespace, request.YamlData)
+			return store.AddToAuditLog(datagram, self.logger, updatedRes, err, oldObj, updatedRes)
 		},
 	)
 
@@ -1384,7 +1414,10 @@ func (self *socketApi) registerPatterns() {
 		PatternHandle{self, "delete/workload"},
 		PatternConfig{},
 		func(datagram structs.Datagram, request utils.ResourceItem) (Void, error) {
-			return nil, kubernetes.DeleteUnstructuredResource(request.Group, request.Version, request.Name, request.Namespace, request.ResourceName)
+			objToDel, _ := kubernetes.GetUnstructuredResource(request.Group, request.Version, request.Name, request.Namespace, request.ResourceName)
+			err := kubernetes.DeleteUnstructuredResource(request.Group, request.Version, request.Name, request.Namespace, request.ResourceName)
+			store.AddToAuditLog(datagram, self.logger, interface{}(nil), err, objToDel, nil)
+			return nil, err
 		},
 	)
 
@@ -1392,7 +1425,8 @@ func (self *socketApi) registerPatterns() {
 		PatternHandle{self, "trigger/workload"},
 		PatternConfig{},
 		func(datagram structs.Datagram, request utils.ResourceItem) (*unstructured.Unstructured, error) {
-			return kubernetes.TriggerUnstructuredResource(request.Group, request.Version, request.Name, request.Namespace, request.ResourceName)
+			res, err := kubernetes.TriggerUnstructuredResource(request.Group, request.Version, request.Name, request.Namespace, request.ResourceName)
+			return store.AddToAuditLog(datagram, self.logger, res, err, nil, nil)
 		},
 	)
 
@@ -1415,10 +1449,12 @@ func (self *socketApi) registerPatterns() {
 			PatternHandle{self, "create/workspace"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (string, error) {
-				return self.apiService.CreateWorkspace(request.Name, v1alpha1.NewWorkspaceSpec(
+
+				res, err := self.apiService.CreateWorkspace(request.Name, v1alpha1.NewWorkspaceSpec(
 					request.DisplayName,
 					request.Resources,
 				))
+				return store.AddToAuditLog(datagram, self.logger, res, err, nil, nil)
 			},
 		)
 	}
@@ -1480,10 +1516,11 @@ func (self *socketApi) registerPatterns() {
 			PatternHandle{self, "update/workspace"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (string, error) {
-				return self.apiService.UpdateWorkspace(request.Name, v1alpha1.NewWorkspaceSpec(
+				res, err := self.apiService.UpdateWorkspace(request.Name, v1alpha1.NewWorkspaceSpec(
 					request.DisplayName,
 					request.Resources,
 				))
+				return store.AddToAuditLog(datagram, self.logger, res, err, nil, nil)
 			},
 		)
 	}
@@ -1497,7 +1534,8 @@ func (self *socketApi) registerPatterns() {
 			PatternHandle{self, "delete/workspace"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (string, error) {
-				return self.apiService.DeleteWorkspace(request.Name)
+				res, err := self.apiService.DeleteWorkspace(request.Name)
+				return store.AddToAuditLog(datagram, self.logger, res, err, nil, nil)
 			},
 		)
 	}
@@ -1529,12 +1567,13 @@ func (self *socketApi) registerPatterns() {
 			PatternHandle{self, "create/user"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (string, error) {
-				return self.apiService.CreateUser(request.Name, v1alpha1.NewUserSpec(
+				res, err := self.apiService.CreateUser(request.Name, v1alpha1.NewUserSpec(
 					request.FirstName,
 					request.LastName,
 					request.Email,
 					request.Subject,
 				))
+				return store.AddToAuditLog(datagram, self.logger, res, err, nil, nil)
 			},
 		)
 	}
@@ -1566,12 +1605,13 @@ func (self *socketApi) registerPatterns() {
 			PatternHandle{self, "update/user"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (string, error) {
-				return self.apiService.UpdateUser(request.Name, v1alpha1.NewUserSpec(
+				res, err := self.apiService.UpdateUser(request.Name, v1alpha1.NewUserSpec(
 					request.FirstName,
 					request.LastName,
 					request.Email,
 					request.Subject,
 				))
+				return store.AddToAuditLog(datagram, self.logger, res, err, nil, nil)
 			},
 		)
 	}
@@ -1585,7 +1625,8 @@ func (self *socketApi) registerPatterns() {
 			PatternHandle{self, "delete/user"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (string, error) {
-				return self.apiService.DeleteUser(request.Name)
+				res, err := self.apiService.DeleteUser(request.Name)
+				return store.AddToAuditLog(datagram, self.logger, res, err, nil, nil)
 			},
 		)
 	}
@@ -1619,12 +1660,13 @@ func (self *socketApi) registerPatterns() {
 			PatternHandle{self, "create/grant"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (string, error) {
-				return self.apiService.CreateGrant(request.Name, v1alpha1.NewGrantSpec(
+				res, err := self.apiService.CreateGrant(request.Name, v1alpha1.NewGrantSpec(
 					request.Grantee,
 					request.TargetType,
 					request.TargetName,
 					request.Role,
 				))
+				return store.AddToAuditLog(datagram, self.logger, res, err, nil, nil)
 			},
 		)
 	}
@@ -1656,12 +1698,13 @@ func (self *socketApi) registerPatterns() {
 			PatternHandle{self, "update/grant"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (string, error) {
-				return self.apiService.UpdateGrant(request.Name, v1alpha1.NewGrantSpec(
+				res, err := self.apiService.UpdateGrant(request.Name, v1alpha1.NewGrantSpec(
 					request.Grantee,
 					request.TargetType,
 					request.TargetName,
 					request.Role,
 				))
+				return store.AddToAuditLog(datagram, self.logger, res, err, nil, nil)
 			},
 		)
 	}
@@ -1675,7 +1718,8 @@ func (self *socketApi) registerPatterns() {
 			PatternHandle{self, "delete/grant"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (string, error) {
-				return self.apiService.DeleteGrant(request.Name)
+				res, err := self.apiService.DeleteGrant(request.Name)
+				return store.AddToAuditLog(datagram, self.logger, res, err, nil, nil)
 			},
 		)
 	}
@@ -1701,7 +1745,9 @@ func (self *socketApi) registerPatterns() {
 		PatternHandle{self, "storage/create-volume"},
 		PatternConfig{},
 		func(datagram structs.Datagram, request services.NfsVolumeRequest) structs.DefaultResponse {
-			return services.CreateMogeniusNfsVolume(self.eventsClient, request)
+			res := services.CreateMogeniusNfsVolume(self.eventsClient, request)
+			store.AddToAuditLog(datagram, self.logger, res, fmt.Errorf("%s", res.Error), nil, nil)
+			return res
 		},
 	)
 
@@ -1709,7 +1755,9 @@ func (self *socketApi) registerPatterns() {
 		PatternHandle{self, "storage/delete-volume"},
 		PatternConfig{},
 		func(datagram structs.Datagram, request services.NfsVolumeRequest) structs.DefaultResponse {
-			return services.DeleteMogeniusNfsVolume(self.eventsClient, request)
+			res := services.DeleteMogeniusNfsVolume(self.eventsClient, request)
+			store.AddToAuditLog(datagram, self.logger, res, fmt.Errorf("%s", res.Error), nil, nil)
+			return res
 		},
 	)
 
@@ -1736,6 +1784,61 @@ func (self *socketApi) registerPatterns() {
 			return services.StatusMogeniusNfs(request)
 		},
 	)
+
+	{
+		type Request struct {
+			Limit         int    `json:"limit" validate:"required"`
+			Offset        int    `json:"offset"`
+			WorkspaceName string `json:"workspaceName"`
+		}
+
+		type Response struct {
+			Status  string                 `json:"status"`
+			Message string                 `json:"message"`
+			Data    store.AuditLogResponse `json:"data"`
+		}
+
+		RegisterPatternHandlerRaw(
+			PatternHandle{self, "audit-log/list"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Request) Response {
+				namespaces := []string{}
+				var err error
+				if request.WorkspaceName != "" {
+					namespaces, err = self.apiService.GetWorkspaceNamespaces(request.WorkspaceName)
+					if err != nil {
+						return Response{
+							Status:  "error",
+							Message: fmt.Sprintf("failed to get workspace resources: %s", err.Error()),
+							Data: store.AuditLogResponse{
+								Data:       []store.AuditLogEntry{},
+								TotalCount: 0,
+							},
+						}
+					}
+				}
+				data, size, err := store.ListAuditLog(request.Limit, request.Offset, namespaces)
+				if err != nil {
+					return Response{
+						Status:  "error",
+						Message: fmt.Sprintf("failed to list audit log: %s", err.Error()),
+						Data: store.AuditLogResponse{
+							Data:       []store.AuditLogEntry{},
+							TotalCount: 0,
+						},
+					}
+				}
+				return Response{
+					Status:  "success",
+					Message: "audit log retrieved successfully",
+					Data: store.AuditLogResponse{
+						TotalCount: size,
+						Data:       data,
+					},
+				}
+			},
+		)
+	}
 
 	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 	// External Secrets

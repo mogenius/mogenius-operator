@@ -5,9 +5,16 @@ import (
 	"fmt"
 	"log/slog"
 	"mogenius-k8s-manager/src/logging"
+	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/valkeyclient"
+	"os"
+	"os/exec"
+	"strconv"
 	"strings"
+	"time"
+
+	"sigs.k8s.io/yaml"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
@@ -21,6 +28,8 @@ const (
 	VALKEY_RESOURCE_PREFIX = "resources"
 )
 
+var AuditLogLimit = int64(100) // Default limit for audit log entries IMPORTANT: this is set per resource not globally
+
 var ErrNotFound = errors.New("not found")
 
 var valkeyClient valkeyclient.ValkeyClient
@@ -28,8 +37,14 @@ var valkeyClient valkeyclient.ValkeyClient
 func Setup(
 	logManagerModule logging.SlogManager,
 	valkey valkeyclient.ValkeyClient,
+	auditLogLimitStr string,
 ) error {
 	valkeyClient = valkey
+	auditLogLimit, _ := strconv.ParseInt(auditLogLimitStr, 10, 64)
+	if auditLogLimit > 0 {
+		AuditLogLimit = auditLogLimit
+	}
+
 	return nil
 }
 
@@ -327,4 +342,192 @@ func GetNode(name string) *coreV1.Node {
 	node.APIVersion = utils.NodeResource.Group
 
 	return node
+}
+
+// Audit Log
+type AuditLogEntry struct {
+	Pattern   string       `json:"pattern" validate:"required"`
+	Payload   interface{}  `json:"payload,omitempty"`
+	Diff      string       `json:"diff,omitempty"`
+	Result    interface{}  `json:"result,omitempty"`
+	Error     string       `json:"error,omitempty"`
+	CreatedAt time.Time    `json:"createdAt"`
+	User      structs.User `json:"user,omitempty"`
+	Workspace string       `json:"workspace,omitempty"`
+}
+
+type AuditLogResponse struct {
+	Data       []AuditLogEntry `json:"data"`
+	TotalCount int             `json:"totalCount"`
+}
+
+func AddToAuditLog[T any](datagram structs.Datagram, logger *slog.Logger, result T, err error, oldObj *unstructured.Unstructured, updatedObj *unstructured.Unstructured) (T, error) {
+	resourceNamespace := ""
+	resourceName := ""
+
+	auditLogEntry := auditLogFromDatagram(datagram, result, err)
+	if oldObj != nil || updatedObj != nil {
+		patch, diffErr := Diff(oldObj, updatedObj)
+		if diffErr != nil {
+			logger.Error("failed to create kubectl style diff", "error", diffErr)
+			return result, err
+		}
+		auditLogEntry.Diff = patch
+	}
+	if oldObj != nil {
+		resourceNamespace = oldObj.GetNamespace()
+		resourceName = oldObj.GetName()
+	} else if updatedObj != nil {
+		resourceNamespace = updatedObj.GetNamespace()
+		resourceName = updatedObj.GetName()
+	} else if payload, ok := datagram.Payload.(map[string]interface{}); ok {
+		if payload["namespace"] != nil {
+			resourceNamespace = payload["namespace"].(string)
+		}
+		if payload["name"] != nil {
+			resourceName = payload["name"].(string)
+		}
+		if payload["pod"] != nil {
+			resourceName = payload["pod"].(string)
+		}
+	} else if yamlData, ok := payload["yamlData"].(string); ok {
+		var unstruct unstructured.Unstructured
+		err := yaml.Unmarshal([]byte(yamlData), &unstruct)
+		if err == nil {
+			resourceNamespace = unstruct.GetNamespace()
+			resourceName = unstruct.GetName()
+		} else {
+			return result, fmt.Errorf("failed to guess Namespace and ResourceName from datagram payload: %w", err)
+		}
+	} else {
+		return result, fmt.Errorf("Could not determine Namespace and ResourceName from datagram payload: %w", err)
+	}
+
+	auditLogAddErr := valkeyClient.SetObjectWithAutoincrementLimit(auditLogEntry, AuditLogLimit, "audit-log", resourceNamespace, resourceName)
+	if auditLogAddErr != nil {
+		logger.Error("failed to add to audit log", "error", auditLogAddErr)
+	}
+	return result, err
+}
+
+func ListAuditLog(limit int, offset int, namespaces []string) ([]AuditLogEntry, int, error) {
+	if limit <= 0 {
+		limit = 100
+	}
+
+	entries, size, err := valkeyclient.GetObjectsByPrefixWithSizeAndNs[AuditLogEntry](valkeyClient, limit, offset, namespaces, "audit-log")
+	if err != nil {
+		return nil, size, err
+	}
+
+	return entries, size, nil
+}
+
+func auditLogFromDatagram(datagram structs.Datagram, result interface{}, err error) AuditLogEntry {
+	errStr := ""
+	if err != nil {
+		errStr = err.Error()
+	}
+	return AuditLogEntry{
+		Pattern:   datagram.Pattern,
+		Payload:   datagram.Payload,
+		CreatedAt: datagram.CreatedAt,
+		User:      datagram.User,
+		Workspace: datagram.Workspace,
+		Error:     errStr,
+		Result:    result,
+	}
+}
+
+func Diff(oldObj, newObj *unstructured.Unstructured) (string, error) {
+	modified := []byte{}
+	original := []byte{}
+	err := error(nil)
+	ns := ""
+	resourceName := ""
+
+	if oldObj != nil {
+		ns = oldObj.GetNamespace()
+		resourceName = oldObj.GetName()
+	} else if newObj != nil {
+		ns = newObj.GetNamespace()
+		resourceName = newObj.GetName()
+	} else {
+		return "", fmt.Errorf("both oldObj and newObj are nil, cannot create diff")
+	}
+
+	tempDir := os.TempDir()
+	originalPath := tempDir + "/original.yaml"
+	modifiedPath := tempDir + "/modified.yaml"
+
+	defer func() {
+		_ = os.Remove(originalPath)
+		_ = os.Remove(modifiedPath)
+	}()
+
+	if oldObj != nil {
+		oldObj = removeUnusedFields(oldObj)
+		original, err = yaml.Marshal(oldObj.Object)
+		if err != nil {
+			return "", fmt.Errorf("failed to marshal original data: %w", err)
+		}
+	}
+	err = os.WriteFile(originalPath, original, 0644)
+	if err != nil {
+		return "", fmt.Errorf("failed to write original data to file: %w", err)
+	}
+
+	if newObj != nil {
+		newObj = removeUnusedFields(newObj)
+		modified, err = yaml.Marshal(newObj.Object)
+		if err != nil {
+			return "", fmt.Errorf("failed to marshal modified data: %w", err)
+		}
+	}
+	err = os.WriteFile(modifiedPath, modified, 0644)
+	if err != nil {
+		return "", fmt.Errorf("failed to write modified data to file: %w", err)
+	}
+
+	diff, err := unifiedDiff(originalPath, modifiedPath, ns, resourceName)
+	if err != nil {
+		return "", fmt.Errorf("failed to create unified diff: %w", err)
+	}
+	return diff, nil
+}
+
+func unifiedDiff(filePath1 string, filePath2 string, ns, resourceName string) (string, error) {
+	cmd := exec.Command("diff", "-u", "-N", "--label", ns+"/"+resourceName, "--label", ns+"/"+resourceName, filePath1, filePath2)
+	cmd.Dir = os.TempDir()
+	out, err := cmd.CombinedOutput()
+
+	if err != nil {
+		// diff returns exit code 1 if files differ
+		if exitError, ok := err.(*exec.ExitError); ok {
+			if exitError.ExitCode() == 1 {
+				return string(out), nil
+			} else {
+				return "", fmt.Errorf("Error running diff: %s\n%s\n", err.Error(), string(out))
+			}
+		} else {
+			return "", err
+		}
+	}
+	return "", nil
+}
+
+func removeUnusedFields(obj *unstructured.Unstructured) *unstructured.Unstructured {
+	if obj == nil {
+		return obj
+	}
+
+	obj.SetManagedFields(nil)
+	unstructured.RemoveNestedField(obj.Object, "status")
+	unstructured.RemoveNestedField(obj.Object, "metadata", "managedFields")
+	unstructured.RemoveNestedField(obj.Object, "metadata", "generation")
+	unstructured.RemoveNestedField(obj.Object, "metadata", "resourceVersion")
+	unstructured.RemoveNestedField(obj.Object, "metadata", "uid")
+	unstructured.RemoveNestedField(obj.Object, "metadata", "creationTimestamp")
+
+	return obj
 }

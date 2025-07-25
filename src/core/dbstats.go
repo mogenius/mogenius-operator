@@ -142,7 +142,7 @@ func (self *valkeyStatsDb) GetCniData() ([]structs.CniData, error) {
 }
 
 func (self *valkeyStatsDb) GetPodStatsEntriesForController(kind string, name string, namespace string, timeOffsetMinutes int64) *[]structs.PodStats {
-	result, err := valkeyclient.LastNEntryFromBucketWithType[structs.PodStats](self.valkey, timeOffsetMinutes, DB_STATS_POD_STATS_BUCKET_NAME, namespace, name)
+	result, err := valkeyclient.RangeFromEndOfBucketWithType[structs.PodStats](self.valkey, timeOffsetMinutes, 0, DB_STATS_POD_STATS_BUCKET_NAME, namespace, name)
 	if err != nil {
 		self.logger.Error("GetPodStatsEntriesForController", "error", err)
 	}
@@ -150,7 +150,7 @@ func (self *valkeyStatsDb) GetPodStatsEntriesForController(kind string, name str
 }
 
 func (self *valkeyStatsDb) GetLastPodStatsEntryForController(controller dtos.K8sController) *structs.PodStats {
-	values, err := valkeyclient.LastNEntryFromBucketWithType[structs.PodStats](self.valkey, 1, DB_STATS_POD_STATS_BUCKET_NAME, controller.Namespace, controller.Name)
+	values, err := valkeyclient.RangeFromEndOfBucketWithType[structs.PodStats](self.valkey, 1, 0, DB_STATS_POD_STATS_BUCKET_NAME, controller.Namespace, controller.Name)
 	if err != nil {
 		self.logger.Error(err.Error())
 	}
@@ -161,7 +161,7 @@ func (self *valkeyStatsDb) GetLastPodStatsEntryForController(controller dtos.K8s
 }
 
 func (self *valkeyStatsDb) GetTrafficStatsEntriesForController(kind string, name string, namespace string, timeOffsetMinutes int64) *[]networkmonitor.PodNetworkStats {
-	result, err := valkeyclient.LastNEntryFromBucketWithType[networkmonitor.PodNetworkStats](self.valkey, timeOffsetMinutes, DB_STATS_TRAFFIC_BUCKET_NAME, namespace, name)
+	result, err := valkeyclient.RangeFromEndOfBucketWithType[networkmonitor.PodNetworkStats](self.valkey, timeOffsetMinutes, 0, DB_STATS_TRAFFIC_BUCKET_NAME, namespace, name)
 	if err != nil {
 		self.logger.Error(err.Error())
 	}
@@ -203,7 +203,7 @@ func (self *valkeyStatsDb) GetWorkspaceStatsCpuUtilization(timeOffsetInMinutes i
 
 	result := make(map[string]GenericChartEntry)
 	for _, controller := range resources {
-		values, err := valkeyclient.LastNEntryFromBucketWithType[structs.PodStats](self.valkey, int64(timeOffsetInMinutes), DB_STATS_POD_STATS_BUCKET_NAME, controller.GetNamespace(), controller.GetName())
+		values, err := valkeyclient.RangeFromEndOfBucketWithType[structs.PodStats](self.valkey, int64(timeOffsetInMinutes), 0, DB_STATS_POD_STATS_BUCKET_NAME, controller.GetNamespace(), controller.GetName())
 		if err != nil {
 			self.logger.Error(err.Error())
 		}
@@ -252,7 +252,7 @@ func (self *valkeyStatsDb) GetWorkspaceStatsMemoryUtilization(timeOffsetInMinute
 
 	result := make(map[string]GenericChartEntry)
 	for _, controller := range resources {
-		values, err := valkeyclient.LastNEntryFromBucketWithType[structs.PodStats](self.valkey, int64(timeOffsetInMinutes), DB_STATS_POD_STATS_BUCKET_NAME, controller.GetNamespace(), controller.GetName())
+		values, err := valkeyclient.RangeFromEndOfBucketWithType[structs.PodStats](self.valkey, int64(timeOffsetInMinutes), 0, DB_STATS_POD_STATS_BUCKET_NAME, controller.GetNamespace(), controller.GetName())
 		if err != nil {
 			self.logger.Error(err.Error())
 		}
@@ -303,8 +303,8 @@ func (self *valkeyStatsDb) GetWorkspaceStatsTrafficUtilization(timeOffsetInMinut
 	trafficByMinute := make(map[string]float64)
 
 	for _, controller := range resources {
-		values, err := valkeyclient.LastNEntryFromBucketWithType[networkmonitor.PodNetworkStats](
-			self.valkey, int64(timeOffsetInMinutes), DB_STATS_TRAFFIC_BUCKET_NAME,
+		values, err := valkeyclient.RangeFromEndOfBucketWithType[networkmonitor.PodNetworkStats](
+			self.valkey, int64(timeOffsetInMinutes), 0, DB_STATS_TRAFFIC_BUCKET_NAME,
 			controller.GetNamespace(), controller.GetName())
 		if err != nil {
 			self.logger.Error(err.Error())
@@ -363,7 +363,7 @@ func (self *valkeyStatsDb) GetPodStatsEntriesForNamespace(namespace string) *[]s
 }
 
 func (self *valkeyStatsDb) GetLastPodStatsEntriesForNamespace(namespace string) []structs.PodStats {
-	values, err := valkeyclient.LastNEntryFromBucketWithType[structs.PodStats](self.valkey, 1, DB_STATS_POD_STATS_BUCKET_NAME, namespace)
+	values, err := valkeyclient.RangeFromEndOfBucketWithType[structs.PodStats](self.valkey, 1, 0, DB_STATS_POD_STATS_BUCKET_NAME, namespace)
 	if err != nil {
 		self.logger.Error(err.Error())
 	}

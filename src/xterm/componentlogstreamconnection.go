@@ -56,13 +56,14 @@ func ComponentStreamConnection(
 		return
 	}
 
-	data, err := valkeyclient.LastNEntryFromBucketWithType[logging.LogLine](store, 100, "logs", component)
+	data, err := valkeyclient.RangeFromEndOfBucketWithType[logging.LogLine](store, 100, 0, "logs", component)
 	if err != nil {
 		xtermLogger.Error("Error getting last 50 logs", "error", err)
 	}
 
 	logEntriesWritten := false
-	for _, v := range data {
+	for i := len(data) - 1; i >= 0; i-- {
+		v := data[i]
 		messageStr := processLogLine(component, namespace, release, v)
 		if messageStr == "" {
 			continue

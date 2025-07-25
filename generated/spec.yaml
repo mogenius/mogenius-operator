@@ -2570,6 +2570,84 @@ attach/labeled_network_policy:
         typeInfo:
             structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/controllers.AttachLabeledNetworkPolicyRequest,string]
             type: struct
+audit-log/list:
+    legacyResponseLayout: true
+    requestSchema:
+        structs:
+            mogenius-k8s-manager/src/core.Request:
+                name: mogenius-k8s-manager/src/core.Request
+                properties:
+                    limit:
+                        type: int
+                    offset:
+                        type: int
+                    workspaceName:
+                        type: string
+        typeInfo:
+            structRef: mogenius-k8s-manager/src/core.Request
+            type: struct
+    responseSchema:
+        structs:
+            mogenius-k8s-manager/src/core.Response:
+                name: mogenius-k8s-manager/src/core.Response
+                properties:
+                    data:
+                        structRef: mogenius-k8s-manager/src/store.AuditLogResponse
+                        type: struct
+                    message:
+                        type: string
+                    status:
+                        type: string
+            mogenius-k8s-manager/src/store.AuditLogEntry:
+                name: mogenius-k8s-manager/src/store.AuditLogEntry
+                properties:
+                    createdAt:
+                        structRef: time.Time
+                        type: struct
+                    diff:
+                        type: string
+                    error:
+                        type: string
+                    pattern:
+                        type: string
+                    payload:
+                        pointer: true
+                        type: any
+                    result:
+                        pointer: true
+                        type: any
+                    user:
+                        structRef: mogenius-k8s-manager/src/structs.User
+                        type: struct
+                    workspace:
+                        type: string
+            mogenius-k8s-manager/src/store.AuditLogResponse:
+                name: mogenius-k8s-manager/src/store.AuditLogResponse
+                properties:
+                    data:
+                        elementType:
+                            structRef: mogenius-k8s-manager/src/store.AuditLogEntry
+                            type: struct
+                        type: array
+                    totalCount:
+                        type: int
+            mogenius-k8s-manager/src/structs.User:
+                name: mogenius-k8s-manager/src/structs.User
+                properties:
+                    email:
+                        type: string
+                    firstName:
+                        type: string
+                    lastName:
+                        type: string
+                    source:
+                        type: string
+            time.Time:
+                name: time.Time
+                properties: {}
+        typeInfo:
+            structRef: mogenius-k8s-manager/src/core.Response
+            type: struct
 cluster/backup:
     legacyResponseLayout: true
     requestSchema:

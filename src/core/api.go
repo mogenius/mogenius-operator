@@ -72,6 +72,7 @@ type Api interface {
 	GetWorkspaceControllers(workspaceName string) ([]unstructured.Unstructured, error)
 	GetWorkspacePods(workspaceName string) ([]unstructured.Unstructured, error)
 	GetWorkspacePodsNames(workspaceName string) ([]string, error)
+	GetWorkspaceNamespaces(workspaceName string) ([]string, error)
 
 	Link(workspaceManager WorkspaceManager)
 }
@@ -337,6 +338,22 @@ func (self *api) GetWorkspacePodsNames(workspaceName string) ([]string, error) {
 	}
 
 	return podNames, nil
+}
+
+func (self *api) GetWorkspaceNamespaces(workspaceName string) ([]string, error) {
+	workspace, err := self.GetWorkspace(workspaceName)
+	if err != nil {
+		return nil, err
+	}
+
+	namespaceNames := []string{}
+	for _, v := range workspace.Resources {
+		if v.Type == "namespace" {
+			namespaceNames = append(namespaceNames, v.Id)
+		}
+	}
+
+	return namespaceNames, nil
 }
 
 func appendIfNotExists(list []unstructured.Unstructured, item ...unstructured.Unstructured) []unstructured.Unstructured {

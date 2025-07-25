@@ -441,14 +441,6 @@ func (self *websocketClient) startRuntime() {
 				continue
 			}
 			var dialer *gorillaWebsocket.Dialer = gorillaWebsocket.DefaultDialer
-			httpProxy := os.Getenv("MO_HTTP_PROXY")
-			if httpProxy != "" {
-				self.runtimeLogger.Info("using http proxy", "proxy", httpProxy)
-				dialer.Proxy = http.ProxyURL(&url.URL{
-					Scheme: "http",
-					Host:   httpProxy,
-				})
-			}
 			skipTlsVerification := strings.ToLower(os.Getenv("MO_SKIP_TLS_VERIFICATION"))
 			if skipTlsVerification == "true" {
 				dialer.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
