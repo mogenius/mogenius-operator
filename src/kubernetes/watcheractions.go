@@ -40,38 +40,38 @@ type GetUnstructuredLabeledResourceListRequest struct {
 	Blacklist []*utils.ResourceEntry `json:"blacklist"`
 }
 
-var MirroredResourceKinds = []string{
-	"Deployment",
-	"ReplicaSet",
-	"CronJob",
-	"Pod",
-	"Job",
-	"Event",
-	"DaemonSet",
-	"StatefulSet",
-	"Namespace",
-	"NetworkPolicy",
-	"PersistentVolume",
-	"PersistentVolumeClaim",
-	"Service",
-	"Node",
+// var MirroredResourceKinds = []string{
+// 	"Deployment",
+// 	"ReplicaSet",
+// 	"CronJob",
+// 	"Pod",
+// 	"Job",
+// 	"Event",
+// 	"DaemonSet",
+// 	"StatefulSet",
+// 	"Namespace",
+// 	"NetworkPolicy",
+// 	"PersistentVolume",
+// 	"PersistentVolumeClaim",
+// 	"Service",
+// 	"Node",
 
-	"StorageClass",
-	"IngressClass",
-	"Ingress",
-	"Secret",
-	"ConfigMap",
-	"HorizontalPodAutoscaler",
-	"ServiceAccount",
-	"Service",
-	"RoleBinding",
-	"Role",
-	"ClusterRoleBinding",
-	"ClusterRole",
-	"Workspace", // mogenius specific
-	"User",      // mogenius specific
-	"Grant",     // mogenius specific
-}
+// 	"StorageClass",
+// 	"IngressClass",
+// 	"Ingress",
+// 	"Secret",
+// 	"ConfigMap",
+// 	"HorizontalPodAutoscaler",
+// 	"ServiceAccount",
+// 	"Service",
+// 	"RoleBinding",
+// 	"Role",
+// 	"ClusterRoleBinding",
+// 	"ClusterRole",
+// 	"Workspace", // mogenius specific
+// 	"User",      // mogenius specific
+// 	"Grant",     // mogenius specific
+// }
 
 func WatchStoreResources(wm watcher.WatcherModule, eventClient websocket.WebsocketClient) error {
 	start := time.Now()
@@ -81,10 +81,10 @@ func WatchStoreResources(wm watcher.WatcherModule, eventClient websocket.Websock
 		return err
 	}
 	for _, v := range resources {
-		if !slices.Contains(MirroredResourceKinds, v.Kind) {
-			k8sLogger.Debug("Skipping resource", "kind", v.Kind, "group", v.Group, "namespace", v.Namespace)
-			continue
-		}
+		// if !slices.Contains(MirroredResourceKinds, v.Kind) {
+		// 	k8sLogger.Debug("Skipping resource", "kind", v.Kind, "group", v.Group, "namespace", v.Namespace)
+		// 	continue
+		// }
 		err := wm.Watch(watcher.WatcherResourceIdentifier{
 			Name:         v.Name,
 			Kind:         v.Kind,
@@ -176,18 +176,18 @@ func GetUnstructuredResourceListFromStore(group string, kind string, version str
 		results.Items = result
 	}
 
-	// fallback: gather the data when the store is empty (can be slow)
-	if len(result) == 0 {
-		// dont bother kubernetes with mirrored resources
-		if slices.Contains(MirroredResourceKinds, kind) {
-			return results, nil
-		}
-		list, err := GetUnstructuredResourceList(group, version, name, namespace)
-		if err != nil {
-			return results, err
-		}
-		results.Items = list.Items
-	}
+	// // fallback: gather the data when the store is empty (can be slow)
+	// if len(result) == 0 {
+	// 	// dont bother kubernetes with mirrored resources
+	// 	if slices.Contains(MirroredResourceKinds, kind) {
+	// 		return results, nil
+	// 	}
+	// 	list, err := GetUnstructuredResourceList(group, version, name, namespace)
+	// 	if err != nil {
+	// 		return results, err
+	// 	}
+	// 	results.Items = list.Items
+	// }
 
 	return results, nil
 }
@@ -216,19 +216,20 @@ func GetUnstructuredNamespaceResourceList(namespace string, whitelist []*utils.R
 			}
 			promise.RunArray(func() *[]unstructured.Unstructured {
 				result := store.GetResourceByKindAndNamespace(valkeyClient, v.Group, v.Kind, namespace, k8sLogger)
-				if len(result) > 0 {
-					return &result
-				} else {
-					// fallback: gather the data when the store is empty (can be slow)
-					if utils.Contains(MirroredResourceKinds, v.Kind) {
-						return nil
-					}
-					list, err := GetUnstructuredResourceList(v.Group, v.Version, v.Name, v.Namespace)
-					if err != nil {
-						return nil
-					}
-					return &list.Items
-				}
+				return &result
+				// if len(result) > 0 {
+				// 	return &result
+				// } else {
+				// 	// fallback: gather the data when the store is empty (can be slow)
+				// 	if utils.Contains(MirroredResourceKinds, v.Kind) {
+				// 		return nil
+				// 	}
+				// 	list, err := GetUnstructuredResourceList(v.Group, v.Version, v.Name, v.Namespace)
+				// 	if err != nil {
+				// 		return nil
+				// 	}
+				// 	return &list.Items
+				// }
 			})
 		}
 	}
