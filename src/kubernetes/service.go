@@ -156,25 +156,16 @@ func FindPrometheusService() (namespace string, service string, port string, err
 		return "", "", "", fmt.Errorf("failed to list services: %v", err)
 	}
 	for _, service := range serviceList.Items {
-		if containsPair(service.Labels, "app.kubernetes.io/component", "server") &&
-			containsPair(service.Labels, "app.kubernetes.io/name", "prometheus") ||
-			containsPair(service.Labels, "app", "kube-prometheus-stack-prometheus") {
+		if service.Name == "prometheus-kube-prometheus-prometheus" ||
+			service.Name == "kube-prometheus-stack-prometheus" ||
+			service.Name == "prometheus-server" ||
+			service.Name == "prometheus-service" ||
+			service.Name == "prometheus" ||
+			service.Name == "prometheus-prometheus-server" {
 			if len(service.Spec.Ports) > 0 {
 				return service.Namespace, service.Name, string(service.Spec.Ports[0].Port), nil
 			}
 		}
 	}
 	return "", "", "", fmt.Errorf("prometheus service not found in any namespace")
-}
-
-func containsPair(labels map[string]string, key, value string) bool {
-	if labels == nil {
-		return false
-	}
-	for k, v := range labels {
-		if k == key && v == value {
-			return true
-		}
-	}
-	return false
 }
