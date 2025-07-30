@@ -434,7 +434,8 @@ func (self *valkeyStatsDb) AddPodStatsToDb(stats []structs.PodStats) error {
 	for _, stat := range stats {
 		controller := self.ownerCacheService.ControllerForPod(stat.Namespace, stat.PodName)
 		if controller == nil {
-			return fmt.Errorf("controller not found for pod %s in namespace %s", stat.PodName, stat.Namespace)
+			self.logger.Debug("No controller found for pod", "podName", stat.PodName, "namespace", stat.Namespace)
+			continue
 		}
 
 		stat.CreatedAt = time.Now().Format(time.RFC3339)
