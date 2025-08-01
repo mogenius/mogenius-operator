@@ -272,38 +272,47 @@ func (self *api) GetWorkspaceResources(workspaceName string, whitelist []*utils.
 		return result, err
 	}
 
+	promise := utils.NewPromise[unstructured.Unstructured]()
 	for _, v := range workspace.Resources {
-		if v.Type == "namespace" {
-			if len(namespaceWhitelist) > 0 {
-				if !slices.Contains(namespaceWhitelist, v.Id) {
-					continue
+		promise.RunArray(func() *[]unstructured.Unstructured {
+			if v.Type == "namespace" {
+				if len(namespaceWhitelist) > 0 {
+					if !slices.Contains(namespaceWhitelist, v.Id) {
+						return nil
+					}
 				}
-			}
-			nsResources, err := kubernetes.GetUnstructuredNamespaceResourceList(v.Id, whitelist, blacklist)
-			if err != nil {
-				return result, err
-			}
-			result = appendIfNotExists(result, nsResources...)
-		}
-		if v.Type == "helm" {
-			if len(namespaceWhitelist) > 0 {
-				if !slices.Contains(namespaceWhitelist, v.Namespace) {
-					continue
+				nsResources, err := kubernetes.GetUnstructuredNamespaceResourceList(v.Id, whitelist, blacklist)
+				if err != nil {
+					self.logger.Error("Failed to get namespace resources", "namespace", v.Id, "error", err)
 				}
+				return &nsResources
 			}
-			helmReq := helm.HelmReleaseGetWorkloadsRequest{
-				Namespace: v.Namespace,
-				Release:   v.Id,
-				Whitelist: whitelist,
+			if v.Type == "helm" {
+				if len(namespaceWhitelist) > 0 {
+					if !slices.Contains(namespaceWhitelist, v.Namespace) {
+						return nil
+					}
+				}
+				helmReq := helm.HelmReleaseGetWorkloadsRequest{
+					Namespace: v.Namespace,
+					Release:   v.Id,
+					Whitelist: whitelist,
+				}
+				helmResources, err := helm.HelmReleaseGetWorkloads(self.valkeyClient, helmReq)
+				if err != nil {
+					self.logger.Error("Failed to get helm resources", "release", v.Id, "namespace", v.Namespace, "error", err)
+				}
+				return &helmResources
 			}
-			helmResources, err := helm.HelmReleaseGetWorkloads(self.valkeyClient, helmReq)
-			if err != nil {
-				return result, err
-			}
-			result = appendIfNotExists(result, helmResources...)
-		}
+			return nil
+		})
 	}
 
+	allResults := promise.Wait()
+
+	for _, res := range allResults {
+		result = appendIfNotExists(result, res)
+	}
 	return result, nil
 }
 
