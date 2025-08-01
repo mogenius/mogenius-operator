@@ -153,31 +153,20 @@ func (self *valkeyClient) SetObject(value interface{}, expiration time.Duration,
 func (self *valkeyClient) SetObjectWithAutoincrementLimit(value interface{}, limit int64, keys ...string) error {
 	ctx := context.Background()
 
-	// Basis-Key aus den übergebenen Keys erstellen
 	baseKey := strings.Join(keys, ":")
-
-	// Pattern für die Suche nach existierenden Keys mit diesem Präfix
 	pattern := baseKey + ":*"
 
-	// Alle existierenden Keys mit diesem Präfix finden
-	existingKeysResp := self.valkeyClient.Do(ctx, self.valkeyClient.B().Keys().Pattern(pattern).Build())
-	if err := existingKeysResp.Error(); err != nil {
-		return fmt.Errorf("fehler beim Abrufen existierender Keys: %w", err)
-	}
-
-	existingKeys, err := existingKeysResp.AsStrSlice()
+	existingKeys, err := self.Keys(pattern)
 	if err != nil {
-		return fmt.Errorf("fehler beim Parsen der Keys: %w", err)
+		return fmt.Errorf("error while parsing keys: %w", err)
 	}
 
-	// Keys nach ihrer Nummer sortieren (aufsteigend)
 	sort.Slice(existingKeys, func(i, j int) bool {
 		numI := extractNumber(existingKeys[i], baseKey)
 		numJ := extractNumber(existingKeys[j], baseKey)
 		return numI < numJ
 	})
 
-	// Nächste Nummer bestimmen
 	var nextNum int64 = 1
 	if len(existingKeys) > 0 {
 		lastKey := existingKeys[len(existingKeys)-1]
@@ -185,22 +174,16 @@ func (self *valkeyClient) SetObjectWithAutoincrementLimit(value interface{}, lim
 		nextNum = lastNum + 1
 	}
 
-	// Neuen Key mit Autoincrement erstellen
 	newKey := fmt.Sprintf("%s:%d", baseKey, nextNum)
 
-	// Wert serialisieren (JSON als Beispiel)
 	jsonValue, err := json.Marshal(value)
 	if err != nil {
-		return fmt.Errorf("fehler beim Serialisieren des Wertes: %w", err)
+		return fmt.Errorf("error while serializing value: %w", err)
 	}
 
-	// Commands für Multi-Operation erstellen
 	var cmds []valkey.Completed
-
-	// Neuen Wert setzen
 	cmds = append(cmds, self.valkeyClient.B().Set().Key(newKey).Value(string(jsonValue)).Build())
 
-	// Alte Einträge löschen, wenn Limit überschritten wird
 	if int64(len(existingKeys)) >= limit {
 		keysToDelete := int64(len(existingKeys)) - limit + 1
 		for i := int64(0); i < keysToDelete; i++ {
@@ -208,10 +191,9 @@ func (self *valkeyClient) SetObjectWithAutoincrementLimit(value interface{}, lim
 		}
 	}
 
-	// Alle Commands ausführen
 	for _, resp := range self.valkeyClient.DoMulti(ctx, cmds...) {
 		if err := resp.Error(); err != nil {
-			return fmt.Errorf("fehler beim Ausführen der Commands: %w", err)
+			return fmt.Errorf("error while executing commands: %w", err)
 		}
 	}
 
@@ -270,7 +252,7 @@ func (self *valkeyClient) List(limit int, keys ...string) ([]string, error) {
 	key := createKey(keys...)
 	key = key + ":*"
 
-	selectedKeys, err := self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Keys().Pattern(key).Build()).AsStrSlice()
+	selectedKeys, err := self.Keys(key)
 	if err != nil {
 		self.logger.Error("Error listing keys from Redis", "pattern", key, "error", err)
 		return []string{}, err
@@ -408,7 +390,7 @@ func (self *valkeyClient) DeleteFromBucketWithNsAndReleaseName(namespace string,
 
 func (self *valkeyClient) ClearNonEssentialKeys(includeTraffic bool, includePodStats bool, includeNodestats bool) (string, error) {
 	// Get all keys
-	keys, err := self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Keys().Pattern("*").Build()).AsStrSlice()
+	keys, err := self.Keys("*")
 	if err != nil {
 		return "", err
 	}
@@ -495,13 +477,52 @@ func (self *valkeyClient) DeleteMultiple(keys ...string) error {
 }
 
 func (self *valkeyClient) Keys(pattern string) ([]string, error) {
-	keys, err := self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Keys().Pattern(pattern).Build()).AsStrSlice()
-	if err != nil {
-		self.logger.Error("Error listing keys from Redis", "pattern", pattern, "error", err)
-		return []string{}, err
+	// Pre-allocate with reasonable capacity to reduce reallocations
+	allKeys := make([]string, 0, 1000)
+	cursor := uint64(0)
+
+	for {
+		// Use larger count for fewer network round trips
+		cmd := self.valkeyClient.B().Scan().Cursor(cursor).Match(pattern).Count(5000).Build()
+		result, err := self.valkeyClient.Do(self.ctx, cmd).ToArray()
+		if err != nil {
+			self.logger.Error("Error scanning keys from Valkey", "pattern", pattern, "cursor", cursor, "error", err)
+			return nil, err
+		}
+
+		if len(result) != 2 {
+			self.logger.Error("Unexpected SCAN response format", "pattern", pattern, "result_length", len(result))
+			return nil, fmt.Errorf("unexpected SCAN response format")
+		}
+
+		// Get new cursor
+		newCursor, err := result[0].AsUint64()
+		if err != nil {
+			self.logger.Error("Error parsing cursor from SCAN response", "pattern", pattern, "error", err)
+			return nil, err
+		}
+
+		// Get keys from this iteration
+		keys, err := result[1].AsStrSlice()
+		if err != nil {
+			self.logger.Error("Error parsing keys from SCAN response", "pattern", pattern, "error", err)
+			return nil, err
+		}
+
+		// Filter out empty strings
+		for _, key := range keys {
+			if key != "" {
+				allKeys = append(allKeys, key)
+			}
+		}
+
+		cursor = newCursor
+		if cursor == 0 {
+			break // Scan completed
+		}
 	}
 
-	return keys, nil
+	return allKeys, nil
 }
 
 func (self *valkeyClient) Exists(keys ...string) (bool, error) {
@@ -519,7 +540,7 @@ func (self *valkeyClient) Exists(keys ...string) (bool, error) {
 func GetObjectsByPattern[T any](store ValkeyClient, pattern string, keywords []string) ([]T, error) {
 	var result []T
 	client := store.GetValkeyClient()
-	keyList, err := client.Do(store.GetContext(), client.B().Keys().Pattern(pattern).Build()).AsStrSlice()
+	keyList, err := store.Keys(pattern)
 	if err != nil {
 		return result, err
 	}
@@ -606,8 +627,9 @@ func GetObjectsByPrefix[T any](store ValkeyClient, order SortOrder, keys ...stri
 	key := createKey(keys...)
 	pattern := key + "*"
 	client := store.GetValkeyClient()
+
 	// Get the keys
-	keyList, err := client.Do(store.GetContext(), client.B().Keys().Pattern(pattern).Build()).AsStrSlice()
+	keyList, err := store.Keys(pattern)
 	if err != nil {
 		return result, err
 	}
@@ -650,8 +672,9 @@ func GetObjectsByPrefixWithSizeAndNs[T any](store ValkeyClient, limit int, offse
 	key := createKey(keys...)
 	pattern := key + "*"
 	client := store.GetValkeyClient()
+
 	// Get the keys
-	keyList, err := client.Do(store.GetContext(), client.B().Keys().Pattern(pattern).Build()).AsStrSlice()
+	keyList, err := store.Keys(pattern)
 	if err != nil {
 		return result, 0, err
 	}

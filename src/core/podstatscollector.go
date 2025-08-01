@@ -80,7 +80,7 @@ func (self *podStatsCollector) Run() {
 				}
 				err = self.statsDb.AddPodStatsToDb(podsResult)
 				if err != nil {
-					self.logger.Error("failed to store pod stats", "error", err)
+					self.logger.Debug("failed to store pod stats", "error", err)
 					time.Sleep(time.Duration(self.updateInterval) * time.Second)
 					continue
 				}

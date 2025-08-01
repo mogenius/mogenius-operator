@@ -919,7 +919,8 @@ func (self *socketApi) registerPatterns() {
 		PatternHandle{self, "prometheus/is-reachable"},
 		PatternConfig{},
 		func(datagram structs.Datagram, request PrometheusRequest) (bool, error) {
-			return IsPrometheusReachable(request)
+			data, err := IsPrometheusReachable(request)
+			return data, err
 		},
 	)
 
