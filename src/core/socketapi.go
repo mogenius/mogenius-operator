@@ -1805,7 +1805,9 @@ func (self *socketApi) registerPatterns() {
 			func(datagram structs.Datagram, request Request) Response {
 				namespaces := []string{}
 				var err error
+				clusterwide := true
 				if request.WorkspaceName != "" {
+					clusterwide = false
 					namespaces, err = self.apiService.GetWorkspaceNamespaces(request.WorkspaceName)
 					if err != nil {
 						return Response{
@@ -1818,7 +1820,7 @@ func (self *socketApi) registerPatterns() {
 						}
 					}
 				}
-				data, size, err := store.ListAuditLog(request.Limit, request.Offset, namespaces)
+				data, size, err := store.ListAuditLog(request.Limit, request.Offset, namespaces, clusterwide)
 				if err != nil {
 					return Response{
 						Status:  "error",

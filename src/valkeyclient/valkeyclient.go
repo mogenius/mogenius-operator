@@ -667,7 +667,7 @@ func GetObjectsByPrefix[T any](store ValkeyClient, order SortOrder, keys ...stri
 	return result, nil
 }
 
-func GetObjectsByPrefixWithSizeAndNs[T any](store ValkeyClient, limit int, offset int, namespaces []string, keys ...string) ([]T, int, error) {
+func GetObjectsByPrefixWithSizeAndNs[T any](store ValkeyClient, limit int, offset int, namespaces []string, clusterWide bool, keys ...string) ([]T, int, error) {
 	var result []T
 	key := createKey(keys...)
 	pattern := key + "*"
@@ -680,14 +680,16 @@ func GetObjectsByPrefixWithSizeAndNs[T any](store ValkeyClient, limit int, offse
 	}
 
 	// remove elements which are not in the namespaces
-	for i := len(keyList) - 1; i >= 0; i-- {
-		split := strings.Split(keyList[i], ":")
-		if len(split) < 3 {
-			continue
-		}
-		namespace := split[1]
-		if !slices.Contains(namespaces, namespace) {
-			keyList = append(keyList[:i], keyList[i+1:]...)
+	if !clusterWide {
+		for i := len(keyList) - 1; i >= 0; i-- {
+			split := strings.Split(keyList[i], ":")
+			if len(split) < 3 {
+				continue
+			}
+			namespace := split[1]
+			if !slices.Contains(namespaces, namespace) {
+				keyList = append(keyList[:i], keyList[i+1:]...)
+			}
 		}
 	}
 
