@@ -227,11 +227,11 @@ func PrometheusUrlAndHeader(data PrometheusRequest, customEndpoint string) (urlS
 
 	result := data.Prometheus_API_URL
 	if data.Prometheus_API_URL == "" {
-		namespace, serviceName, _, err := kubernetes.FindPrometheusService()
+		namespace, serviceName, port, err := kubernetes.FindPrometheusService()
 		if err != nil {
 			return "", header
 		}
-		result = fmt.Sprintf("http://%s.%s.svc.cluster.local", serviceName, namespace)
+		result = fmt.Sprintf("http://%s.%s.svc.cluster.local:%d", serviceName, namespace, port)
 	}
 
 	if customEndpoint != "" {
