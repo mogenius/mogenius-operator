@@ -410,12 +410,12 @@ func AddToAuditLog[T any](datagram structs.Datagram, logger *slog.Logger, result
 	return result, err
 }
 
-func ListAuditLog(limit int, offset int, namespaces []string) ([]AuditLogEntry, int, error) {
+func ListAuditLog(limit int, offset int, namespaces []string, clusterWide bool) ([]AuditLogEntry, int, error) {
 	if limit <= 0 {
 		limit = 100
 	}
 
-	entries, size, err := valkeyclient.GetObjectsByPrefixWithSizeAndNs[AuditLogEntry](valkeyClient, limit, offset, namespaces, "audit-log")
+	entries, size, err := valkeyclient.GetObjectsByPrefixWithSizeAndNs[AuditLogEntry](valkeyClient, limit, offset, namespaces, clusterWide, "audit-log")
 	if err != nil {
 		return nil, size, err
 	}

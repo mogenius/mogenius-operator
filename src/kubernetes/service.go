@@ -147,34 +147,25 @@ func generateService(existingService *v1.Service, namespace dtos.K8sNamespaceDto
 	return *newService
 }
 
-func FindPrometheusService() (namespace string, service string, port string, err error) {
+func FindPrometheusService() (namespace string, service string, port int32, err error) {
 	clientset := clientProvider.K8sClientSet()
 	serviceClient := clientset.CoreV1().Services("")
 	serviceList, err := serviceClient.List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		k8sLogger.Error("findPrometheusHost", "error", err.Error())
-		return "", "", "", fmt.Errorf("failed to list services: %v", err)
+		return "", "", -1, fmt.Errorf("failed to list services: %v", err)
 	}
 	for _, service := range serviceList.Items {
-		if containsPair(service.Labels, "app.kubernetes.io/component", "server") &&
-			containsPair(service.Labels, "app.kubernetes.io/name", "prometheus") ||
-			containsPair(service.Labels, "app", "kube-prometheus-stack-prometheus") {
+		if service.Name == "prometheus-kube-prometheus-prometheus" ||
+			service.Name == "kube-prometheus-stack-prometheus" ||
+			service.Name == "prometheus-server" ||
+			service.Name == "prometheus-service" ||
+			service.Name == "prometheus" ||
+			service.Name == "prometheus-prometheus-server" {
 			if len(service.Spec.Ports) > 0 {
-				return service.Namespace, service.Name, string(service.Spec.Ports[0].Port), nil
+				return service.Namespace, service.Name, service.Spec.Ports[0].Port, nil
 			}
 		}
 	}
-	return "", "", "", fmt.Errorf("prometheus service not found in any namespace")
-}
-
-func containsPair(labels map[string]string, key, value string) bool {
-	if labels == nil {
-		return false
-	}
-	for k, v := range labels {
-		if k == key && v == value {
-			return true
-		}
-	}
-	return false
+	return "", "", -1, fmt.Errorf("prometheus service not found in any namespace")
 }

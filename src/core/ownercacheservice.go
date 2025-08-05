@@ -46,7 +46,7 @@ func (self *ownerCacheService) ControllerForPod(namespace string, podName string
 
 	pod := store.GetPod(namespace, podName)
 	if pod == nil {
-		self.logger.Error("Pod not found.", "namespace", namespace, "pod", podName)
+		self.logger.Debug("Pod not found.", "namespace", namespace, "pod", podName)
 		return nil
 	}
 	ctlr := self.OwnerFromReference(pod.Namespace, pod.OwnerReferences)

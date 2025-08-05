@@ -12,6 +12,7 @@ import (
 	"mogenius-k8s-manager/src/valkeyclient"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -202,28 +203,38 @@ func (self *valkeyStatsDb) GetWorkspaceStatsCpuUtilization(timeOffsetInMinutes i
 	}
 
 	result := make(map[string]GenericChartEntry)
+	promise := utils.NewPromise[structs.PodStats]()
+	var resultMutex sync.Mutex
+
 	for _, controller := range resources {
-		values, err := valkeyclient.RangeFromEndOfBucketWithType[structs.PodStats](self.valkey, int64(timeOffsetInMinutes), 0, DB_STATS_POD_STATS_BUCKET_NAME, controller.GetNamespace(), controller.GetName())
-		if err != nil {
-			self.logger.Error(err.Error())
-		}
-		for index, entry := range values {
-			parsedDate, err := time.Parse(time.RFC3339, entry.CreatedAt)
+		promise.RunArray(func() *[]structs.PodStats {
+			values, err := valkeyclient.RangeFromEndOfBucketWithType[structs.PodStats](self.valkey, int64(timeOffsetInMinutes), 0, DB_STATS_POD_STATS_BUCKET_NAME, controller.GetNamespace(), controller.GetName())
 			if err != nil {
-				continue
+				self.logger.Error(err.Error())
 			}
-			formattedDate := parsedDate.Round(time.Minute).Format(time.RFC3339)
+			for index, entry := range values {
+				parsedDate, err := time.Parse(time.RFC3339, entry.CreatedAt)
+				if err != nil {
+					continue
+				}
+				formattedDate := parsedDate.Round(time.Minute).Format(time.RFC3339)
 
-			if _, exists := result[formattedDate]; !exists {
-				result[formattedDate] = GenericChartEntry{Time: formattedDate, Value: 0.0}
-			}
-			result[formattedDate] = GenericChartEntry{Time: formattedDate, Value: result[formattedDate].Value + float64(entry.Cpu)}
+				resultMutex.Lock()
+				if _, exists := result[formattedDate]; !exists {
+					result[formattedDate] = GenericChartEntry{Time: formattedDate, Value: 0.0}
+				}
+				result[formattedDate] = GenericChartEntry{Time: formattedDate, Value: result[formattedDate].Value + float64(entry.Cpu)}
+				resultMutex.Unlock()
 
-			if index >= timeOffsetInMinutes {
-				break
+				if index >= timeOffsetInMinutes {
+					break
+				}
 			}
-		}
+			return &values
+		})
 	}
+
+	_ = promise.Wait()
 
 	// SORT
 	var keys []string
@@ -251,28 +262,37 @@ func (self *valkeyStatsDb) GetWorkspaceStatsMemoryUtilization(timeOffsetInMinute
 	}
 
 	result := make(map[string]GenericChartEntry)
+	promise := utils.NewPromise[structs.PodStats]()
+	var resultMutex sync.Mutex
 	for _, controller := range resources {
-		values, err := valkeyclient.RangeFromEndOfBucketWithType[structs.PodStats](self.valkey, int64(timeOffsetInMinutes), 0, DB_STATS_POD_STATS_BUCKET_NAME, controller.GetNamespace(), controller.GetName())
-		if err != nil {
-			self.logger.Error(err.Error())
-		}
-		for index, entry := range values {
-			parsedDate, err := time.Parse(time.RFC3339, entry.CreatedAt)
+		promise.RunArray(func() *[]structs.PodStats {
+			values, err := valkeyclient.RangeFromEndOfBucketWithType[structs.PodStats](self.valkey, int64(timeOffsetInMinutes), 0, DB_STATS_POD_STATS_BUCKET_NAME, controller.GetNamespace(), controller.GetName())
 			if err != nil {
-				continue
+				self.logger.Error(err.Error())
 			}
-			formattedDate := parsedDate.Round(time.Minute).Format(time.RFC3339)
+			for index, entry := range values {
+				parsedDate, err := time.Parse(time.RFC3339, entry.CreatedAt)
+				if err != nil {
+					continue
+				}
+				formattedDate := parsedDate.Round(time.Minute).Format(time.RFC3339)
 
-			if _, exists := result[formattedDate]; !exists {
-				result[formattedDate] = GenericChartEntry{Time: formattedDate, Value: 0.0}
-			}
-			result[formattedDate] = GenericChartEntry{Time: formattedDate, Value: result[formattedDate].Value + float64(entry.Memory)}
+				resultMutex.Lock()
+				if _, exists := result[formattedDate]; !exists {
+					result[formattedDate] = GenericChartEntry{Time: formattedDate, Value: 0.0}
+				}
+				result[formattedDate] = GenericChartEntry{Time: formattedDate, Value: result[formattedDate].Value + float64(entry.Memory)}
+				resultMutex.Unlock()
 
-			if index >= timeOffsetInMinutes {
-				break
+				if index >= timeOffsetInMinutes {
+					break
+				}
 			}
-		}
+			return &values
+		})
 	}
+
+	_ = promise.Wait()
 
 	// SORT
 	var keys []string
@@ -302,24 +322,33 @@ func (self *valkeyStatsDb) GetWorkspaceStatsTrafficUtilization(timeOffsetInMinut
 	// Aggregate all traffic by minute
 	trafficByMinute := make(map[string]float64)
 
+	promise := utils.NewPromise[networkmonitor.PodNetworkStats]()
+	var resultMutex sync.Mutex
 	for _, controller := range resources {
-		values, err := valkeyclient.RangeFromEndOfBucketWithType[networkmonitor.PodNetworkStats](
-			self.valkey, int64(timeOffsetInMinutes), 0, DB_STATS_TRAFFIC_BUCKET_NAME,
-			controller.GetNamespace(), controller.GetName())
-		if err != nil {
-			self.logger.Error(err.Error())
-			continue
-		}
-
-		// Add traffic for each minute
-		for i, entry := range values {
-			if i >= timeOffsetInMinutes {
-				break
+		promise.RunArray(func() *[]networkmonitor.PodNetworkStats {
+			values, err := valkeyclient.RangeFromEndOfBucketWithType[networkmonitor.PodNetworkStats](
+				self.valkey, int64(timeOffsetInMinutes), 0, DB_STATS_TRAFFIC_BUCKET_NAME,
+				controller.GetNamespace(), controller.GetName())
+			if err != nil {
+				self.logger.Error(err.Error())
+				return nil
 			}
-			minute := entry.CreatedAt.Round(time.Minute).Format(time.RFC3339)
-			trafficByMinute[minute] += float64(entry.TransmitBytes + entry.ReceivedBytes)
-		}
+
+			// Add traffic for each minute
+			for i, entry := range values {
+				if i >= timeOffsetInMinutes {
+					break
+				}
+				minute := entry.CreatedAt.Round(time.Minute).Format(time.RFC3339)
+				resultMutex.Lock()
+				trafficByMinute[minute] += float64(entry.TransmitBytes + entry.ReceivedBytes)
+				resultMutex.Unlock()
+			}
+			return &values
+		})
 	}
+
+	_ = promise.Wait()
 
 	// Sort minutes
 	var minutes []string
