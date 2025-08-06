@@ -22,7 +22,7 @@ require (
 	github.com/shirou/gopsutil/v4 v4.25.7
 	github.com/stretchr/testify v1.10.0
 	github.com/tklauser/go-sysconf v0.3.15
-	github.com/valkey-io/valkey-go v1.0.63
+	github.com/valkey-io/valkey-go v1.0.64
 	golang.org/x/term v0.33.0
 	gopkg.in/yaml.v3 v3.0.1
 	helm.sh/helm/v3 v3.18.4
