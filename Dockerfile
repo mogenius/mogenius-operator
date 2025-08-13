@@ -1,12 +1,12 @@
 FROM golang:1.24.6 AS golang
-FROM quay.io/clastix/kubectl:v1.33.3 AS kubectl
+# FROM quay.io/clastix/kubectl:v1.33.3 AS kubectl
 
 FROM ubuntu:noble AS build-env
 
-ENV SNOOPY_VERSION=v0.2.5
+ENV SNOOPY_VERSION=v0.2.7
 
 COPY --from=golang /usr/local/go /usr/local/go
-COPY --from=kubectl /usr/local/bin/kubectl /usr/local/bin/kubectl
+# COPY --from=kubectl /usr/local/bin/kubectl /usr/local/bin/kubectl
 
 RUN mkdir /go
 ENV GOPATH=/go
@@ -60,7 +60,7 @@ RUN git config --global --add safe.directory "/app"
 WORKDIR /app
 
 RUN go version
-RUN kubectl --help
+# RUN kubectl --help
 RUN bpftool version
 
 FROM build-env AS builder
