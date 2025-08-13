@@ -548,7 +548,7 @@ func GetObjectsByPattern[T any](store ValkeyClient, pattern string, keywords []s
 	// filter for keywords
 	if len(keywords) > 0 {
 		for i := 0; i < len(keyList); {
-			if !utils.ContainsPatterns(keyList[i], keywords) {
+			if !slices.Contains(keywords, keyList[i]) {
 				keyList = append(keyList[:i], keyList[i+1:]...)
 			} else {
 				i++

@@ -260,15 +260,6 @@ func CreateError(err error) ResponseError {
 	}
 }
 
-func Contains(s []string, str string) bool {
-	for _, v := range s {
-		if strings.Contains(str, v) {
-			return true
-		}
-	}
-	return false
-}
-
 func RunOnLocalShell(cmd string) *exec.Cmd {
 	switch runtime.GOOS {
 	case "linux":
@@ -343,15 +334,6 @@ func GuessClusterCountry() (*CountryDetails, error) {
 		}
 	}
 	return nil, nil
-}
-
-func ContainsPatterns(s string, pattern []string) bool {
-	for _, p := range pattern {
-		if strings.Contains(s, p) {
-			return true
-		}
-	}
-	return false
 }
 
 func IsProduction() bool {

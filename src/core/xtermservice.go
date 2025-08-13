@@ -7,10 +7,10 @@ import (
 	"mogenius-k8s-manager/src/networkmonitor"
 	"mogenius-k8s-manager/src/rammonitor"
 	"mogenius-k8s-manager/src/structs"
-	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/valkeyclient"
 	"mogenius-k8s-manager/src/xterm"
 	"net/url"
+	"slices"
 	"strings"
 	"time"
 
@@ -113,7 +113,7 @@ func (self *xtermService) LiveStreamConnection(conReq xterm.WsConnectionRequest,
 			}
 			// remove entries which are not the requested pod
 			for i := 0; i < len(data); i++ {
-				if !utils.Contains(podNames, data[i].Name) {
+				if !slices.Contains(podNames, data[i].Name) {
 					data = append(data[:i], data[i+1:]...)
 					i--
 				}
@@ -127,7 +127,7 @@ func (self *xtermService) LiveStreamConnection(conReq xterm.WsConnectionRequest,
 				return
 			}
 			for i := 0; i < len(data); i++ {
-				if !utils.Contains(podNames, data[i].Name) {
+				if !slices.Contains(podNames, data[i].Name) {
 					data = append(data[:i], data[i+1:]...)
 					i--
 				}
@@ -141,7 +141,7 @@ func (self *xtermService) LiveStreamConnection(conReq xterm.WsConnectionRequest,
 				return
 			}
 			for i := 0; i < len(data); i++ {
-				if !utils.Contains(podNames, data[i].Pod) {
+				if !slices.Contains(podNames, data[i].Pod) {
 					data = append(data[:i], data[i+1:]...)
 					i--
 				}
