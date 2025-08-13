@@ -2130,15 +2130,13 @@ func (self *socketApi) startK8sManager() {
 }
 
 func (self *socketApi) startMessageHandler() {
-	var preparedFileName *string
-	var preparedFileRequest *services.FilesUploadRequest
-	var openFile *os.File
-
-	maxGoroutines := 100
-	semaphoreChan := make(chan struct{}, maxGoroutines)
-	var wg sync.WaitGroup
-
 	go func() {
+		var preparedFileName *string
+		var preparedFileRequest *services.FilesUploadRequest
+		var openFile *os.File
+
+		messageHandlerSemaphore := make(chan struct{}, 100)
+
 		for !self.jobClient.IsTerminated() {
 			_, message, err := self.jobClient.ReadMessage()
 			if err != nil {
@@ -2169,7 +2167,7 @@ func (self *socketApi) startMessageHandler() {
 				os.Remove(*preparedFileName)
 
 				var ack = structs.CreateDatagramAck("ack:files/upload:end", preparedFileRequest.Id)
-				self.JobServerSendData(self.jobClient, ack)
+				go self.JobServerSendData(self.jobClient, ack)
 
 				preparedFileName = nil
 				preparedFileRequest = nil
@@ -2197,18 +2195,15 @@ func (self *socketApi) startMessageHandler() {
 				preparedFileRequest = self.executeBinaryRequestUpload(datagram)
 
 				var ack = structs.CreateDatagramAck("ack:files/upload:datagram", datagram.Id)
-				self.JobServerSendData(self.jobClient, ack)
+				go self.JobServerSendData(self.jobClient, ack)
 				continue
 			}
 
 			if self.patternHandlerExists(datagram.Pattern) {
-				semaphoreChan <- struct{}{}
-
-				wg.Add(1)
+				messageHandlerSemaphore <- struct{}{}
 				go func() {
 					defer func() {
-						<-semaphoreChan
-						wg.Done()
+						<-messageHandlerSemaphore
 					}()
 
 					if datagram.Zlib {
@@ -2236,7 +2231,8 @@ func (self *socketApi) startMessageHandler() {
 						CreatedAt: datagram.CreatedAt,
 						Zlib:      err == nil,
 					}
-					self.JobServerSendData(self.jobClient, result)
+
+					go self.JobServerSendData(self.jobClient, result)
 				}()
 			}
 		}
@@ -2269,12 +2265,10 @@ func (self *socketApi) ParseDatagram(data []byte) (structs.Datagram, error) {
 }
 
 func (self *socketApi) JobServerSendData(jobClient websocket.WebsocketClient, datagram structs.Datagram) {
-	go func() {
-		err := jobClient.WriteJSON(datagram)
-		if err != nil {
-			self.logger.Error("Error sending data to EventServer", "error", err)
-		}
-	}()
+	err := jobClient.WriteJSON(datagram)
+	if err != nil {
+		self.logger.Error("Error sending data to EventServer", "error", err)
+	}
 }
 
 func (self *socketApi) ExecuteCommandRequest(datagram structs.Datagram) interface{} {
