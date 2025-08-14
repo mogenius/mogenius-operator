@@ -527,12 +527,13 @@ func InitializeSystems(
 	mocore := core.NewCore(logManagerModule.CreateLogger("core"), configModule, clientProvider, valkeyClient, eventConnectionClient, jobConnectionClient)
 	leaderElector := core.NewLeaderElector(logManagerModule.CreateLogger("leader-elector"), configModule, clientProvider)
 	reconciler := core.NewReconciler(logManagerModule.CreateLogger("reconciler"), configModule, clientProvider)
+	sealedSecret := core.NewSealedSecretManager(logManagerModule.CreateLogger("sealed-secret"), configModule, clientProvider)
 
 	// initialization step 2 for services
 	mocore.Link(moKubernetes)
 	podStatsCollector.Link(dbstatsService)
 	nodeMetricsCollector.Link(dbstatsService, leaderElector)
-	socketApi.Link(httpApi, xtermService, dbstatsService, apiModule, moKubernetes)
+	socketApi.Link(httpApi, xtermService, dbstatsService, apiModule, moKubernetes, sealedSecret)
 	moKubernetes.Link(dbstatsService)
 	httpApi.Link(socketApi, dbstatsService, apiModule, reconciler)
 	apiModule.Link(workspaceManager)
@@ -559,6 +560,7 @@ func InitializeSystems(
 		dbstatsService,
 		leaderElector,
 		reconciler,
+		sealedSecret,
 	}
 }
 
@@ -583,4 +585,5 @@ type systems struct {
 	dbstatsService        core.ValkeyStatsDb
 	leaderElector         core.LeaderElector
 	reconciler            core.Reconciler
+	sealedSecret          core.SealedSecretManager
 }

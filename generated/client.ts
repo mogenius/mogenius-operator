@@ -108,6 +108,7 @@ export enum Pattern {
   PROMETHEUS_VALUES = "prometheus/values",
   REMOVE_CONFLICTING_NETWORK_POLICIES = "remove/conflicting_network_policies",
   REMOVE_UNMANAGED_NETWORK_POLICIES = "remove/unmanaged_network_policies",
+  SEALED_SECRET_CREATE_FROM_EXISTING = "sealed-secret/create-from-existing",
   SERVICE_CREATE = "service/create",
   SERVICE_DELETE = "service/delete",
   SERVICE_EXEC_SH_CONNECTION_REQUEST = "service/exec-sh-connection-request",
@@ -267,6 +268,7 @@ export const StringToPattern = {
   "prometheus/values": Pattern.PROMETHEUS_VALUES,
   "remove/conflicting_network_policies": Pattern.REMOVE_CONFLICTING_NETWORK_POLICIES,
   "remove/unmanaged_network_policies": Pattern.REMOVE_UNMANAGED_NETWORK_POLICIES,
+  "sealed-secret/create-from-existing": Pattern.SEALED_SECRET_CREATE_FROM_EXISTING,
   "service/create": Pattern.SERVICE_CREATE,
   "service/delete": Pattern.SERVICE_DELETE,
   "service/exec-sh-connection-request": Pattern.SERVICE_EXEC_SH_CONNECTION_REQUEST,
@@ -422,6 +424,7 @@ export const PatternToString = {
   [Pattern.PROMETHEUS_VALUES]: "prometheus/values",
   [Pattern.REMOVE_CONFLICTING_NETWORK_POLICIES]: "remove/conflicting_network_policies",
   [Pattern.REMOVE_UNMANAGED_NETWORK_POLICIES]: "remove/unmanaged_network_policies",
+  [Pattern.SEALED_SECRET_CREATE_FROM_EXISTING]: "sealed-secret/create-from-existing",
   [Pattern.SERVICE_CREATE]: "service/create",
   [Pattern.SERVICE_DELETE]: "service/delete",
   [Pattern.SERVICE_EXEC_SH_CONNECTION_REQUEST]: "service/exec-sh-connection-request",
@@ -8570,6 +8573,60 @@ export type REMOVE_UNMANAGED_NETWORK_POLICIES_REQUEST = REMOVE_UNMANAGED_NETWORK
  *
  */
 export type REMOVE_UNMANAGED_NETWORK_POLICIES_RESPONSE = REMOVE_UNMANAGED_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_REMOVEUNMANAGEDNETWORKPOLICIESREQUEST_MOGENIUS_K8S_MANAGER_SRC_CORE_VOID;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     mogenius-k8s-manager/src/core.Request:
+ *         name: mogenius-k8s-manager/src/core.Request
+ *         properties:
+ *             name:
+ *                 type: string
+ *             namespace:
+ *                 type: string
+ * typeInfo:
+ *     structRef: mogenius-k8s-manager/src/core.Request
+ *     type: struct
+ * ```
+ *
+ */
+export type SEALED_SECRET_CREATE_FROM_EXISTING_REQUEST = SEALED_SECRET_CREATE_FROM_EXISTING_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured:
+ *         name: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured
+ *         properties:
+ *             Object:
+ *                 keyType:
+ *                     type: string
+ *                 type: map
+ *                 valueType:
+ *                     pointer: true
+ *                     type: any
+ *     ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·37,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *     :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·37,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *         properties:
+ *             data:
+ *                 pointer: true
+ *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured
+ *                 type: struct
+ *             message:
+ *                 type: string
+ *             status:
+ *                 type: string
+ * typeInfo:
+ *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·37,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *     type: struct
+ * ```
+ *
+ */
+export type SEALED_SECRET_CREATE_FROM_EXISTING_RESPONSE = SEALED_SECRET_CREATE_FROM_EXISTING_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST37_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED;
 
 /**
  * #### Source
@@ -19174,6 +19231,9 @@ export type REMOVE_CONFLICTING_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_S
 export type REMOVE_UNMANAGED_NETWORK_POLICIES_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_REMOVEUNMANAGEDNETWORKPOLICIESREQUEST = {"namespaceName": string,"policies": string[]};
 export type REMOVE_UNMANAGED_NETWORK_POLICIES_RESPONSE__ANON_STRUCT_1 = {};
 export type REMOVE_UNMANAGED_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_REMOVEUNMANAGEDNETWORKPOLICIESREQUEST_MOGENIUS_K8S_MANAGER_SRC_CORE_VOID = {"data": REMOVE_UNMANAGED_NETWORK_POLICIES_RESPONSE__ANON_STRUCT_1|undefined,"message": string,"status": string};
+export type SEALED_SECRET_CREATE_FROM_EXISTING_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"name": string,"namespace": string};
+export type SEALED_SECRET_CREATE_FROM_EXISTING_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"Object": Record<string, any>};
+export type SEALED_SECRET_CREATE_FROM_EXISTING_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST37_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"data": SEALED_SECRET_CREATE_FROM_EXISTING_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED|undefined,"message": string,"status": string};
 export type SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_CONTAINERRESOURCEMETRICSOURCE = {"container": string,"name": string,"target": SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
 export type SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_CROSSVERSIONOBJECTREFERENCE = {"apiVersion": string,"kind": string,"name": string};
 export type SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_EXTERNALMETRICSOURCE = {"metric": SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICIDENTIFIER,"target": SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
@@ -20191,6 +20251,10 @@ export interface IPatternConfig {
   [Pattern.REMOVE_UNMANAGED_NETWORK_POLICIES]: {
     Request: REMOVE_UNMANAGED_NETWORK_POLICIES_REQUEST;
     Response: REMOVE_UNMANAGED_NETWORK_POLICIES_RESPONSE;
+  };
+  [Pattern.SEALED_SECRET_CREATE_FROM_EXISTING]: {
+    Request: SEALED_SECRET_CREATE_FROM_EXISTING_REQUEST;
+    Response: SEALED_SECRET_CREATE_FROM_EXISTING_RESPONSE;
   };
   [Pattern.SERVICE_CREATE]: {
     Request: SERVICE_CREATE_REQUEST;

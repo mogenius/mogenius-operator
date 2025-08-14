@@ -152,7 +152,7 @@ func FindPrometheusService() (namespace string, service string, port int32, err 
 	serviceClient := clientset.CoreV1().Services("")
 	serviceList, err := serviceClient.List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		k8sLogger.Error("findPrometheusHost", "error", err.Error())
+		k8sLogger.Error("findPrometheusService", "error", err.Error())
 		return "", "", -1, fmt.Errorf("failed to list services: %v", err)
 	}
 	for _, service := range serviceList.Items {
@@ -168,4 +168,22 @@ func FindPrometheusService() (namespace string, service string, port int32, err 
 		}
 	}
 	return "", "", -1, fmt.Errorf("prometheus service not found in any namespace")
+}
+
+func FindSealedSecretsService() (namespace string, service string, port int32, err error) {
+	clientset := clientProvider.K8sClientSet()
+	serviceClient := clientset.CoreV1().Services("")
+	serviceList, err := serviceClient.List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		k8sLogger.Error("findSealedSecretsService", "error", err.Error())
+		return "", "", -1, fmt.Errorf("failed to list services: %v", err)
+	}
+	for _, service := range serviceList.Items {
+		if service.Name == "sealed-secrets" {
+			if len(service.Spec.Ports) > 0 {
+				return service.Namespace, service.Name, service.Spec.Ports[0].Port, nil
+			}
+		}
+	}
+	return "", "", -1, fmt.Errorf("sealed-secrets service not found in any namespace")
 }
