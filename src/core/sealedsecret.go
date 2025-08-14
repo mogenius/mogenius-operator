@@ -12,9 +12,11 @@ import (
 	"mogenius-k8s-manager/src/k8sclient"
 	"mogenius-k8s-manager/src/kubernetes"
 	"net/http"
+	"strings"
 
 	sealedsecretv1alpha1 "github.com/bitnami-labs/sealed-secrets/pkg/apis/sealedsecrets/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -24,6 +26,7 @@ import (
 
 type SealedSecretManager interface {
 	CreateSealedSecretFromExisting(secretName, namespace string) (*unstructured.Unstructured, error)
+	GetMainSecret() (*v1.Secret, error)
 }
 
 type sealedSecretManager struct {
@@ -155,6 +158,21 @@ func (s *sealedSecretManager) CreateSealedSecretFromExisting(secretName, namespa
 	unstructured.RemoveNestedField(createdSealedSecret.Object, "spec", "template", "metadata", "managedFields")
 
 	return createdSealedSecret, nil
+}
+
+func (s *sealedSecretManager) GetMainSecret() (*v1.Secret, error) {
+	clientset := s.clientProvider.K8sClientSet()
+	client := clientset.CoreV1().Secrets("")
+	secretsList, err := client.List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list secrets: %v", err)
+	}
+	for _, secret := range secretsList.Items {
+		if strings.HasPrefix(secret.Name, "sealed-secrets-key") {
+			return &secret, nil
+		}
+	}
+	return nil, fmt.Errorf("sealed-secrets secret not found in any namespace")
 }
 
 func (s *sealedSecretManager) createUnstructuredSealedSecretFromSecret(secret *corev1.Secret, publicKey *rsa.PublicKey) (*unstructured.Unstructured, error) {

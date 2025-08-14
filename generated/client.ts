@@ -109,6 +109,7 @@ export enum Pattern {
   REMOVE_CONFLICTING_NETWORK_POLICIES = "remove/conflicting_network_policies",
   REMOVE_UNMANAGED_NETWORK_POLICIES = "remove/unmanaged_network_policies",
   SEALED_SECRET_CREATE_FROM_EXISTING = "sealed-secret/create-from-existing",
+  SEALED_SECRET_GET_CERTIFICATE = "sealed-secret/get-certificate",
   SERVICE_CREATE = "service/create",
   SERVICE_DELETE = "service/delete",
   SERVICE_EXEC_SH_CONNECTION_REQUEST = "service/exec-sh-connection-request",
@@ -269,6 +270,7 @@ export const StringToPattern = {
   "remove/conflicting_network_policies": Pattern.REMOVE_CONFLICTING_NETWORK_POLICIES,
   "remove/unmanaged_network_policies": Pattern.REMOVE_UNMANAGED_NETWORK_POLICIES,
   "sealed-secret/create-from-existing": Pattern.SEALED_SECRET_CREATE_FROM_EXISTING,
+  "sealed-secret/get-certificate": Pattern.SEALED_SECRET_GET_CERTIFICATE,
   "service/create": Pattern.SERVICE_CREATE,
   "service/delete": Pattern.SERVICE_DELETE,
   "service/exec-sh-connection-request": Pattern.SERVICE_EXEC_SH_CONNECTION_REQUEST,
@@ -425,6 +427,7 @@ export const PatternToString = {
   [Pattern.REMOVE_CONFLICTING_NETWORK_POLICIES]: "remove/conflicting_network_policies",
   [Pattern.REMOVE_UNMANAGED_NETWORK_POLICIES]: "remove/unmanaged_network_policies",
   [Pattern.SEALED_SECRET_CREATE_FROM_EXISTING]: "sealed-secret/create-from-existing",
+  [Pattern.SEALED_SECRET_GET_CERTIFICATE]: "sealed-secret/get-certificate",
   [Pattern.SERVICE_CREATE]: "service/create",
   [Pattern.SERVICE_DELETE]: "service/delete",
   [Pattern.SERVICE_EXEC_SH_CONNECTION_REQUEST]: "service/exec-sh-connection-request",
@@ -8627,6 +8630,184 @@ export type SEALED_SECRET_CREATE_FROM_EXISTING_REQUEST = SEALED_SECRET_CREATE_FR
  *
  */
 export type SEALED_SECRET_CREATE_FROM_EXISTING_RESPONSE = SEALED_SECRET_CREATE_FROM_EXISTING_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST37_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     ANON_STRUCT_0:
+ *         properties: {}
+ * typeInfo:
+ *     pointer: true
+ *     structRef: ANON_STRUCT_0
+ *     type: struct
+ * ```
+ *
+ */
+export type SEALED_SECRET_GET_CERTIFICATE_REQUEST = SEALED_SECRET_GET_CERTIFICATE_REQUEST__ANON_STRUCT_0|undefined;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     k8s.io/api/core/v1.Secret:
+ *         name: k8s.io/api/core/v1.Secret
+ *         properties:
+ *             TypeMeta:
+ *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta
+ *                 type: struct
+ *             data:
+ *                 keyType:
+ *                     type: string
+ *                 type: map
+ *                 valueType:
+ *                     elementType:
+ *                         type: uint
+ *                     type: array
+ *             immutable:
+ *                 pointer: true
+ *                 type: bool
+ *             metadata:
+ *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta
+ *                 type: struct
+ *             stringData:
+ *                 keyType:
+ *                     type: string
+ *                 type: map
+ *                 valueType:
+ *                     type: string
+ *             type:
+ *                 type: string
+ *     k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1:
+ *         name: k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1
+ *         properties: {}
+ *     k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry:
+ *         name: k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry
+ *         properties:
+ *             apiVersion:
+ *                 type: string
+ *             fieldsType:
+ *                 type: string
+ *             fieldsV1:
+ *                 pointer: true
+ *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1
+ *                 type: struct
+ *             manager:
+ *                 type: string
+ *             operation:
+ *                 type: string
+ *             subresource:
+ *                 type: string
+ *             time:
+ *                 pointer: true
+ *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
+ *                 type: struct
+ *     k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta:
+ *         name: k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta
+ *         properties:
+ *             annotations:
+ *                 keyType:
+ *                     type: string
+ *                 type: map
+ *                 valueType:
+ *                     type: string
+ *             creationTimestamp:
+ *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
+ *                 type: struct
+ *             deletionGracePeriodSeconds:
+ *                 pointer: true
+ *                 type: int
+ *             deletionTimestamp:
+ *                 pointer: true
+ *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
+ *                 type: struct
+ *             finalizers:
+ *                 elementType:
+ *                     type: string
+ *                 type: array
+ *             generateName:
+ *                 type: string
+ *             generation:
+ *                 type: int
+ *             labels:
+ *                 keyType:
+ *                     type: string
+ *                 type: map
+ *                 valueType:
+ *                     type: string
+ *             managedFields:
+ *                 elementType:
+ *                     structRef: k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry
+ *                     type: struct
+ *                 type: array
+ *             name:
+ *                 type: string
+ *             namespace:
+ *                 type: string
+ *             ownerReferences:
+ *                 elementType:
+ *                     structRef: k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference
+ *                     type: struct
+ *                 type: array
+ *             resourceVersion:
+ *                 type: string
+ *             selfLink:
+ *                 type: string
+ *             uid:
+ *                 type: string
+ *     k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference:
+ *         name: k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference
+ *         properties:
+ *             apiVersion:
+ *                 type: string
+ *             blockOwnerDeletion:
+ *                 pointer: true
+ *                 type: bool
+ *             controller:
+ *                 pointer: true
+ *                 type: bool
+ *             kind:
+ *                 type: string
+ *             name:
+ *                 type: string
+ *             uid:
+ *                 type: string
+ *     k8s.io/apimachinery/pkg/apis/meta/v1.Time:
+ *         name: k8s.io/apimachinery/pkg/apis/meta/v1.Time
+ *         properties:
+ *             Time:
+ *                 structRef: time.Time
+ *                 type: struct
+ *     k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta:
+ *         name: k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta
+ *         properties:
+ *             apiVersion:
+ *                 type: string
+ *             kind:
+ *                 type: string
+ *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,*k8s.io/api/core/v1.Secret]:
+ *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,*k8s.io/api/core/v1.Secret]
+ *         properties:
+ *             data:
+ *                 pointer: true
+ *                 structRef: k8s.io/api/core/v1.Secret
+ *                 type: struct
+ *             message:
+ *                 type: string
+ *             status:
+ *                 type: string
+ *     time.Time:
+ *         name: time.Time
+ *         properties: {}
+ * typeInfo:
+ *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,*k8s.io/api/core/v1.Secret]
+ *     type: struct
+ * ```
+ *
+ */
+export type SEALED_SECRET_GET_CERTIFICATE_RESPONSE = SEALED_SECRET_GET_CERTIFICATE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_K8S_IO_API_CORE_V1_SECRET;
 
 /**
  * #### Source
@@ -19234,6 +19415,16 @@ export type REMOVE_UNMANAGED_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC
 export type SEALED_SECRET_CREATE_FROM_EXISTING_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"name": string,"namespace": string};
 export type SEALED_SECRET_CREATE_FROM_EXISTING_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"Object": Record<string, any>};
 export type SEALED_SECRET_CREATE_FROM_EXISTING_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST37_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"data": SEALED_SECRET_CREATE_FROM_EXISTING_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED|undefined,"message": string,"status": string};
+export type SEALED_SECRET_GET_CERTIFICATE_REQUEST__ANON_STRUCT_0 = {};
+export type SEALED_SECRET_GET_CERTIFICATE_RESPONSE__K8S_IO_API_CORE_V1_SECRET = {"TypeMeta": SEALED_SECRET_GET_CERTIFICATE_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA,"data": Record<string, number[]>,"immutable": boolean|undefined,"metadata": SEALED_SECRET_GET_CERTIFICATE_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OBJECTMETA,"stringData": Record<string, string>,"type": string};
+export type SEALED_SECRET_GET_CERTIFICATE_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_FIELDSV1 = {};
+export type SEALED_SECRET_GET_CERTIFICATE_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_MANAGEDFIELDSENTRY = {"apiVersion": string,"fieldsType": string,"fieldsV1": SEALED_SECRET_GET_CERTIFICATE_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_FIELDSV1|undefined,"manager": string,"operation": string,"subresource": string,"time": SEALED_SECRET_GET_CERTIFICATE_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME|undefined};
+export type SEALED_SECRET_GET_CERTIFICATE_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OBJECTMETA = {"annotations": Record<string, string>,"creationTimestamp": SEALED_SECRET_GET_CERTIFICATE_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME,"deletionGracePeriodSeconds": number|undefined,"deletionTimestamp": SEALED_SECRET_GET_CERTIFICATE_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME|undefined,"finalizers": string[],"generateName": string,"generation": number,"labels": Record<string, string>,"managedFields": SEALED_SECRET_GET_CERTIFICATE_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_MANAGEDFIELDSENTRY[],"name": string,"namespace": string,"ownerReferences": SEALED_SECRET_GET_CERTIFICATE_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OWNERREFERENCE[],"resourceVersion": string,"selfLink": string,"uid": string};
+export type SEALED_SECRET_GET_CERTIFICATE_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OWNERREFERENCE = {"apiVersion": string,"blockOwnerDeletion": boolean|undefined,"controller": boolean|undefined,"kind": string,"name": string,"uid": string};
+export type SEALED_SECRET_GET_CERTIFICATE_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME = {"Time": SEALED_SECRET_GET_CERTIFICATE_RESPONSE__TIME_TIME};
+export type SEALED_SECRET_GET_CERTIFICATE_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA = {"apiVersion": string,"kind": string};
+export type SEALED_SECRET_GET_CERTIFICATE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_K8S_IO_API_CORE_V1_SECRET = {"data": SEALED_SECRET_GET_CERTIFICATE_RESPONSE__K8S_IO_API_CORE_V1_SECRET|undefined,"message": string,"status": string};
+export type SEALED_SECRET_GET_CERTIFICATE_RESPONSE__TIME_TIME = {};
 export type SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_CONTAINERRESOURCEMETRICSOURCE = {"container": string,"name": string,"target": SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
 export type SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_CROSSVERSIONOBJECTREFERENCE = {"apiVersion": string,"kind": string,"name": string};
 export type SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_EXTERNALMETRICSOURCE = {"metric": SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICIDENTIFIER,"target": SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
@@ -20255,6 +20446,10 @@ export interface IPatternConfig {
   [Pattern.SEALED_SECRET_CREATE_FROM_EXISTING]: {
     Request: SEALED_SECRET_CREATE_FROM_EXISTING_REQUEST;
     Response: SEALED_SECRET_CREATE_FROM_EXISTING_RESPONSE;
+  };
+  [Pattern.SEALED_SECRET_GET_CERTIFICATE]: {
+    Request: SEALED_SECRET_GET_CERTIFICATE_REQUEST;
+    Response: SEALED_SECRET_GET_CERTIFICATE_RESPONSE;
   };
   [Pattern.SERVICE_CREATE]: {
     Request: SERVICE_CREATE_REQUEST;

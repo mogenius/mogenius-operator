@@ -2119,6 +2119,14 @@ func (self *socketApi) registerPatterns() {
 			},
 		)
 	}
+
+	RegisterPatternHandler(
+		PatternHandle{self, "sealed-secret/get-certificate"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request Void) (*v1.Secret, error) {
+			return self.sealedSecret.GetMainSecret()
+		},
+	)
 }
 
 func (self *socketApi) LoadRequest(datagram *structs.Datagram, data interface{}) error {
