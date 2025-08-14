@@ -136,13 +136,15 @@ func (s *sealedSecretManager) CreateSealedSecretFromExisting(secretName, namespa
 		sealedSecret,
 		metav1.CreateOptions{},
 	)
-	if err != nil {
+	if err != nil || createdSealedSecret == nil {
 		return nil, fmt.Errorf("failed to create sealed secret: %w", err)
 	}
 
 	s.logger.Debug("Created SealedSecret", "name", sealedSecret.GetName(), "namespace", namespace)
 
 	// update the original secret
+	if secret.Annotations == nil {
+		secret.Annotations = make(map[string]string)
 	secret.Annotations["sealedsecrets.bitnami.com/managed"] = "true"
 	_, err = s.clientProvider.K8sClientSet().CoreV1().Secrets(namespace).Update(
 		context.TODO(),
