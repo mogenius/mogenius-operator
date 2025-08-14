@@ -8835,6 +8835,45 @@ remove/unmanaged_network_policies:
         typeInfo:
             structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/controllers.RemoveUnmanagedNetworkPoliciesRequest,mogenius-k8s-manager/src/core.Void]
             type: struct
+sealed-secret/create-from-existing:
+    requestSchema:
+        structs:
+            mogenius-k8s-manager/src/core.Request:
+                name: mogenius-k8s-manager/src/core.Request
+                properties:
+                    name:
+                        type: string
+                    namespace:
+                        type: string
+        typeInfo:
+            structRef: mogenius-k8s-manager/src/core.Request
+            type: struct
+    responseSchema:
+        structs:
+            k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured:
+                name: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured
+                properties:
+                    Object:
+                        keyType:
+                            type: string
+                        type: map
+                        valueType:
+                            pointer: true
+                            type: any
+            ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·37,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+            :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·37,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+                properties:
+                    data:
+                        pointer: true
+                        structRef: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured
+                        type: struct
+                    message:
+                        type: string
+                    status:
+                        type: string
+        typeInfo:
+            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·37,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+            type: struct
 service/create:
     legacyResponseLayout: true
     requestSchema:

@@ -86,6 +86,12 @@ var PodResource = ResourceEntry{
 	Group: "v1",
 }
 
+var SecretResource = ResourceEntry{
+	Kind:  "Secret",
+	Name:  "secrets",
+	Group: "v1",
+}
+
 var NamespaceResource = ResourceEntry{
 	Kind:  "Namespace",
 	Name:  "namespaces",

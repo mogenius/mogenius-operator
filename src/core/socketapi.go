@@ -44,6 +44,7 @@ type SocketApi interface {
 		dbstatsModule ValkeyStatsDb,
 		apiService Api,
 		moKubernetes MoKubernetes,
+		sealedSecret SealedSecretManager,
 	)
 	Run()
 	Status() SocketApiStatus
@@ -95,6 +96,7 @@ type socketApi struct {
 	xtermService       XtermService
 	apiService         Api
 	moKubernetes       MoKubernetes
+	sealedSecret       SealedSecretManager
 }
 
 type PatternHandler struct {
@@ -144,6 +146,7 @@ func (self *socketApi) Link(
 	dbstatsModule ValkeyStatsDb,
 	apiService Api,
 	moKubernetes MoKubernetes,
+	sealedSecret SealedSecretManager,
 ) {
 	assert.Assert(apiService != nil)
 	assert.Assert(httpService != nil)
@@ -156,6 +159,7 @@ func (self *socketApi) Link(
 	self.xtermService = xtermService
 	self.dbstats = dbstatsModule
 	self.moKubernetes = moKubernetes
+	self.sealedSecret = sealedSecret
 }
 
 func (self *socketApi) Run() {
@@ -2100,6 +2104,21 @@ func (self *socketApi) registerPatterns() {
 			return nil
 		},
 	)
+
+	{
+		type Request struct {
+			Namespace string `json:"namespace" validate:"required"`
+			Name      string `json:"name" validate:"required"`
+		}
+
+		RegisterPatternHandler(
+			PatternHandle{self, "sealed-secret/create-from-existing"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Request) (*unstructured.Unstructured, error) {
+				return self.sealedSecret.CreateSealedSecretFromExisting(request.Name, request.Namespace)
+			},
+		)
+	}
 }
 
 func (self *socketApi) LoadRequest(datagram *structs.Datagram, data interface{}) error {
