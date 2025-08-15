@@ -145,6 +145,7 @@ func (s *sealedSecretManager) CreateSealedSecretFromExisting(secretName, namespa
 	// update the original secret
 	if secret.Annotations == nil {
 		secret.Annotations = make(map[string]string)
+	}
 	secret.Annotations["sealedsecrets.bitnami.com/managed"] = "true"
 	_, err = s.clientProvider.K8sClientSet().CoreV1().Secrets(namespace).Update(
 		context.TODO(),
