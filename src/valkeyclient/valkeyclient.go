@@ -95,7 +95,6 @@ func (self *valkeyClient) Connect() error {
 		DisableRetry:        true,
 		ReadBufferEachConn:  2 * (1 << 20), // 2 MiB
 		WriteBufferEachConn: 2 * (1 << 20), // 2 MiB
-		PipelineMultiplex:   valkey.MaxPipelineMultiplex,
 	})
 	if err != nil {
 		self.logger.Info("connection to Valkey failed", "valkeyAddr", valkeyAddr, "password", valkeyPwd, "error", err)
