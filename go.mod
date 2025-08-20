@@ -26,7 +26,7 @@ require (
 	github.com/valkey-io/valkey-go v1.0.64
 	golang.org/x/term v0.34.0
 	gopkg.in/yaml.v3 v3.0.1
-	helm.sh/helm/v3 v3.18.5
+	helm.sh/helm/v3 v3.18.6
 	k8s.io/api v0.33.4
 	k8s.io/apimachinery v0.33.4
 	k8s.io/client-go v0.33.4
