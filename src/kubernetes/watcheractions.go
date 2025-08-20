@@ -95,13 +95,14 @@ func WatchStoreResources(wm watcher.WatcherModule, eventClient websocket.Websock
 			if time.Since(start) < 10*time.Second {
 				return
 			}
-			sendEventServerEvent(eventClient, v.Group, resource.Version, obj.GetName(), resource.Kind, obj.GetNamespace(), resource.Name, "add", string(obj.GetUID()))
+
+			sendEventServerEvent(eventClient, v.Group, resource.Version, obj.GetName(), resource.Kind, obj.GetNamespace(), resource.Name, "add", string(obj.GetUID()), obj.GetResourceVersion())
 		}, func(resource watcher.WatcherResourceIdentifier, oldObj, newObj *unstructured.Unstructured) {
 			setStoreIfNeeded(resource.GroupVersion, newObj.GetName(), resource.Kind, newObj.GetNamespace(), newObj)
-			sendEventServerEvent(eventClient, v.Group, resource.Version, newObj.GetName(), resource.Kind, newObj.GetNamespace(), resource.Name, "update", string(newObj.GetUID()))
+			sendEventServerEvent(eventClient, v.Group, resource.Version, newObj.GetName(), resource.Kind, newObj.GetNamespace(), resource.Name, "update", string(newObj.GetUID()), newObj.GetResourceVersion())
 		}, func(resource watcher.WatcherResourceIdentifier, obj *unstructured.Unstructured) {
 			deleteFromStoreIfNeeded(resource.GroupVersion, obj.GetName(), resource.Kind, obj.GetNamespace(), obj)
-			sendEventServerEvent(eventClient, v.Group, resource.Version, obj.GetName(), resource.Kind, obj.GetNamespace(), resource.Name, "delete", string(obj.GetUID()))
+			sendEventServerEvent(eventClient, v.Group, resource.Version, obj.GetName(), resource.Kind, obj.GetNamespace(), resource.Name, "delete", string(obj.GetUID()), obj.GetResourceVersion())
 		})
 		if err != nil {
 			k8sLogger.Error("failed to initialize watchhandler for resource", "groupVersion", v.Group, "kind", v.Kind, "version", v.Version, "error", err)
@@ -123,8 +124,8 @@ func setStoreIfNeeded(groupVersion string, resourceName string, kind string, nam
 	}
 }
 
-func sendEventServerEvent(eventClient websocket.WebsocketClient, group string, version string, resourceName string, kind string, namespace string, name string, eventType string, uid string) {
-	datagram := structs.CreateDatagramForClusterEvent("ClusterEvent", group, version, kind, namespace, name, resourceName, eventType, uid)
+func sendEventServerEvent(eventClient websocket.WebsocketClient, group string, version string, resourceName string, kind string, namespace string, name string, eventType string, uid string, resourceVersion string) {
+	datagram := structs.CreateDatagramForClusterEvent("ClusterEvent", group, version, kind, namespace, name, resourceName, eventType, uid, resourceVersion)
 
 	// send the datagram to the event server
 	go func() {

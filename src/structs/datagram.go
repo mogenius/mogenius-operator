@@ -66,20 +66,21 @@ func CreateDatagramNotificationFromJob(data *Job) Datagram {
 	return datagram
 }
 
-func CreateDatagramForClusterEvent(pattern string, group string, version string, kind string, namespace string, name string, resourceName string, eventType string, uid string) Datagram {
+func CreateDatagramForClusterEvent(pattern string, group string, version string, kind string, namespace string, name string, resourceName string, eventType string, uid string, resourceVersion string) Datagram {
 	datagram := Datagram{
 		Id:      utils.NanoId(),
 		Pattern: pattern,
 		Payload: map[string]interface{}{
 			"eventType": eventType,
 			"resource": map[string]interface{}{
-				"group":        group,
-				"version":      version,
-				"kind":         kind,
-				"namespace":    namespace,
-				"name":         name,
-				"resourceName": resourceName,
-				"uid":          uid,
+				"group":           group,
+				"version":         version,
+				"kind":            kind,
+				"namespace":       namespace,
+				"name":            name,
+				"resourceName":    resourceName,
+				"uid":             uid,
+				"resourceVersion": resourceVersion,
 			},
 		},
 		CreatedAt: time.Now(),
