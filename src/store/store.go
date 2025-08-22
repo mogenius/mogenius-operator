@@ -399,8 +399,6 @@ func AddToAuditLog[T any](datagram structs.Datagram, logger *slog.Logger, result
 		} else {
 			return result, fmt.Errorf("failed to guess Namespace and ResourceName from datagram payload: %w", err)
 		}
-	} else {
-		return result, fmt.Errorf("Could not determine Namespace and ResourceName from datagram payload: %w", err)
 	}
 
 	auditLogAddErr := valkeyClient.SetObjectWithAutoincrementLimit(auditLogEntry, AuditLogLimit, "audit-log", resourceNamespace, resourceName)
