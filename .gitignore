@@ -26,3 +26,5 @@ bin
 /.vscode/settings.json
 /docker-compose.override.yml
 .kubeconfig
+/patternlogs_*
+/patternlogs.jsonl

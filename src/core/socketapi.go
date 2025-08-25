@@ -14,6 +14,7 @@ import (
 	"mogenius-k8s-manager/src/schema"
 	"mogenius-k8s-manager/src/secrets"
 	"mogenius-k8s-manager/src/services"
+	"mogenius-k8s-manager/src/shutdown"
 	"mogenius-k8s-manager/src/store"
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
@@ -89,6 +90,8 @@ type socketApi struct {
 	status     SocketApiStatus
 	statusLock sync.RWMutex
 
+	patternlog *os.File
+
 	// the patternHandler should only be edited on startup
 	patternHandlerLock sync.RWMutex
 	patternHandler     map[string]PatternHandler
@@ -135,6 +138,7 @@ func NewSocketApi(
 	self.status = NewSocketApiStatus()
 	self.statusLock = sync.RWMutex{}
 
+	self.loadpatternlogger()
 	self.registerPatterns()
 
 	return self
@@ -2158,6 +2162,7 @@ func (self *socketApi) startK8sManager() {
 
 func (self *socketApi) startMessageHandler() {
 	go func() {
+
 		var preparedFileName *string
 		var preparedFileRequest *services.FilesUploadRequest
 		var openFile *os.File
@@ -2242,7 +2247,10 @@ func (self *socketApi) startMessageHandler() {
 						datagram.Payload = decompressedData
 					}
 
+					start := time.Now()
 					responsePayload := self.ExecuteCommandRequest(datagram)
+					executionTime := time.Since(start)
+					self.logdatagram(executionTime, datagram)
 
 					compressedData, err := utils.TryZlibCompress(responsePayload)
 					if err != nil {
@@ -2264,6 +2272,49 @@ func (self *socketApi) startMessageHandler() {
 			}
 		}
 		self.logger.Debug("api messagehandler finished as the websocket client was terminated")
+	}()
+}
+
+func (self *socketApi) loadpatternlogger() {
+	if len(os.Args) < 2 || os.Args[1] != "cluster" {
+		return
+	}
+
+	_, ok := os.LookupEnv("MO_ENABLE_PATTERNLOGGING")
+	if ok {
+		patternlogpath := "/tmp/patternlogs.jsonl"
+
+		self.logger.Info("patternlogging is enabled", "path", patternlogpath, "args", os.Args)
+
+		patternlog, err := os.Create(patternlogpath)
+		assert.Assert(err == nil, err)
+
+		self.patternlog = patternlog
+		shutdown.Add(func() {
+			err := self.patternlog.Close()
+			if err != nil {
+				self.logger.Error("failed to close patternlog file", "error", err)
+			}
+		})
+	}
+}
+
+func (self *socketApi) logdatagram(executionTime time.Duration, datagram structs.Datagram) {
+	if self.patternlog == nil {
+		return
+	}
+	go func() {
+		var json = jsoniter.ConfigCompatibleWithStandardLibrary
+		type LogLine struct {
+			Time     time.Duration    `json:"time"`
+			Datagram structs.Datagram `json:"datagram"`
+		}
+		ll := LogLine{executionTime, datagram}
+		data, err := json.Marshal(ll)
+		assert.Assert(err == nil, err)
+		jsonline := fmt.Sprintf("%s\n", string(data))
+		_, err = self.patternlog.WriteString(jsonline)
+		assert.Assert(err == nil, "failed to write patternlog line", err)
 	}()
 }
 
