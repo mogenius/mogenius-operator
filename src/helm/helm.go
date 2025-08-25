@@ -1404,7 +1404,7 @@ func HelmReleaseGetWorkloads(valkeyClient valkeyclient.ValkeyClient, data HelmRe
 
 		if workload.GetKind() == "Pod" {
 			if !replicaSetsFetched {
-				replicaSets, err = store.SearchByKeyParts(valkeyClient, "apps/v1", "ReplicaSet", data.Namespace)
+				replicaSets, err = store.SearchByKeyParts(valkeyClient, utils.ReplicaSetResource.Group, utils.ReplicaSetResource.Kind, data.Namespace)
 				if errors.Is(err, store.ErrNotFound) {
 					replicaSets = nil
 				}

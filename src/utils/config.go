@@ -110,6 +110,12 @@ var NodeResource = ResourceEntry{
 	Group: "v1",
 }
 
+var WorkspaceResource = ResourceEntry{
+	Kind:  "Workspace",
+	Name:  "workspaces",
+	Group: "mogenius.com/v1alpha1",
+}
+
 const STAGE_DEV = "dev"
 const STAGE_PROD = "prod"
 const STAGE_LOCAL = "local"

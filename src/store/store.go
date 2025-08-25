@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"mogenius-k8s-manager/src/crds/v1alpha1"
 	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
@@ -342,6 +343,23 @@ func GetNode(name string) *coreV1.Node {
 	node.APIVersion = utils.NodeResource.Group
 
 	return node
+}
+
+func GetAllWorkspaces() ([]v1alpha1.Workspace, error) {
+	pattern := strings.Join([]string{VALKEY_RESOURCE_PREFIX, utils.WorkspaceResource.Group, utils.WorkspaceResource.Kind}, ":")
+	workspaces, err := valkeyclient.GetObjectsByPrefix[v1alpha1.Workspace](valkeyClient, valkeyclient.ORDER_ASC, pattern)
+	if err != nil || workspaces == nil {
+		return nil, err
+	}
+	return workspaces, nil
+}
+
+func GetWorkspace(name string) (*v1alpha1.Workspace, error) {
+	workspace, err := valkeyclient.GetObjectForKey[v1alpha1.Workspace](valkeyClient, VALKEY_RESOURCE_PREFIX, utils.WorkspaceResource.Group, utils.WorkspaceResource.Kind, "mogenius", name)
+	if err != nil || workspace == nil {
+		return nil, err
+	}
+	return workspace, nil
 }
 
 // Audit Log
