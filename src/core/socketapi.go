@@ -1439,7 +1439,16 @@ func (self *socketApi) registerPatterns() {
 		PatternHandle{self, "get/workspaces"},
 		PatternConfig{},
 		func(datagram structs.Datagram, request Void) ([]GetWorkspaceResult, error) {
-			return self.apiService.GetAllWorkspaces()
+			workspaces, err := store.GetAllWorkspaces()
+			result := []GetWorkspaceResult{}
+			for _, v := range workspaces {
+				result = append(result, GetWorkspaceResult{
+					Name:              v.Name,
+					CreationTimestamp: v.CreationTimestamp,
+					Resources:         v.Spec.Resources,
+				})
+			}
+			return result, err
 		},
 	)
 
@@ -1473,7 +1482,12 @@ func (self *socketApi) registerPatterns() {
 			PatternHandle{self, "get/workspace"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (*GetWorkspaceResult, error) {
-				return self.apiService.GetWorkspace(request.Name)
+				workspace, err := store.GetWorkspace(request.Name)
+				if err != nil || workspace == nil {
+					return nil, err
+				}
+				result := NewGetWorkspaceResult(workspace.Name, workspace.CreationTimestamp, workspace.Spec.Resources)
+				return &result, nil
 			},
 		)
 	}
