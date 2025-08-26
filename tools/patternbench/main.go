@@ -286,23 +286,23 @@ func evaluateBenchmarkResults(summaryfile *os.File, logdir string, idx int, logl
 	prefix := fmt.Sprintf("%d_%s", idx, logline.Datagram.Id)
 	results, err := os.ReadFile(HYPERFINE_EXPORT_JSON)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to read hyperfine results: %w", err)
 	}
 
 	datagramExportJson := path.Join(logdir, prefix+"_"+HYPERFINE_EXPORT_JSON)
 	err = os.WriteFile(datagramExportJson, results, 0644)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to write datagram export json: %w", err)
 	}
 
 	err = os.Remove(HYPERFINE_EXPORT_JSON)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to remove hyperfine export json: %w", err)
 	}
 
 	datagramJson, err := json.Marshal(logline.Datagram)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to marshal datagram to json: %w", err)
 	}
 
 	summarytext := fmt.Sprintf("## Pattern: __`%s`__ ID: __`%s`__\n\n", logline.Datagram.Pattern, logline.Datagram.Id)
@@ -315,7 +315,7 @@ func evaluateBenchmarkResults(summaryfile *os.File, logdir string, idx int, logl
 	cmd := exec.Command(advancedMetricsBin, datagramExportJson)
 	output, err := cmd.Output()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get advanced metrics: %w", err)
 	}
 	summarytext = summarytext + "### Advanced Metrics\n\n"
 	summarytext = summarytext + "```\n"
@@ -326,14 +326,14 @@ func evaluateBenchmarkResults(summaryfile *os.File, logdir string, idx int, logl
 	progressionDiagramPath := path.Join(logdir, progressionDiagram)
 	err = execCmd(plotProgressionBin, datagramExportJson, "--output", progressionDiagramPath)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to generate progression diagram: %w", err)
 	}
 
 	whiskerDiagram := prefix + "_whisker.jpg"
 	whiskerDiagramPath := path.Join(logdir, whiskerDiagram)
 	err = execCmd(plotWhiskerBin, datagramExportJson, "--output", whiskerDiagramPath)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to generate whisker diagram: %w", err)
 	}
 
 	summarytext = summarytext + "### Diagrams\n\n"
@@ -343,7 +343,7 @@ func evaluateBenchmarkResults(summaryfile *os.File, logdir string, idx int, logl
 
 	_, err = summaryfile.WriteString(summarytext)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to write summary text: %w", err)
 	}
 
 	return nil

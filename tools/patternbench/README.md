@@ -13,9 +13,8 @@ pip install matplotlib
 
 ## Enable collection of `patternlogs.jsonl`
 
-1. Collection of pattern requests only works with Dev-Builds.
-2. Export the ENV variable `MO_ENABLE_PATTERNLOGGING` with any value.
-3. Start the operator with `just run`. Use the platform website and navigate around to trigger patterns. `patternlogs.jsonl` will contain all calls to patterns in the patternhandler.
+1. Export the ENV variable `MO_ENABLE_PATTERNLOGGING` with any value.
+2. Start the operator with `just run`. Use the platform website and navigate around to trigger patterns. `patternlogs.jsonl` will contain all calls to patterns in the patternhandler.
 
 ## Generate Summary
 
