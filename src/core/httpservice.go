@@ -51,7 +51,7 @@ func (self *MessageCallback) Equals(other *MessageCallback) bool {
 }
 
 type Broadcaster struct {
-	mu        sync.Mutex
+	mu        sync.RWMutex
 	Listeners []MessageCallback
 }
 
@@ -76,8 +76,8 @@ func (self *Broadcaster) RemoveListener(callback MessageCallback) {
 }
 
 func (self *Broadcaster) BroadcastResponse(message interface{}, messageType string) {
-	self.mu.Lock()
-	defer self.mu.Unlock()
+	self.mu.RLock()
+	defer self.mu.RUnlock()
 
 	for _, listener := range self.Listeners {
 		if listener.MsgType == messageType {
@@ -99,7 +99,7 @@ func NewHttpApi(
 	self.config = configModule
 	self.broadcaster = &Broadcaster{
 		Listeners: []MessageCallback{},
-		mu:        sync.Mutex{},
+		mu:        sync.RWMutex{},
 	}
 
 	return self
