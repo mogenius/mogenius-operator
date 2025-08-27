@@ -55,7 +55,7 @@ const (
 )
 
 type watcher struct {
-	handlerMapLock sync.Mutex
+	handlerMapLock sync.RWMutex
 	activeHandlers map[WatcherResourceIdentifier]resourceContext
 	clientProvider k8sclient.K8sClientProvider
 	logger         *slog.Logger
@@ -63,7 +63,7 @@ type watcher struct {
 
 func NewWatcher(logger *slog.Logger, clientProvider k8sclient.K8sClientProvider) WatcherModule {
 	self := &watcher{}
-	self.handlerMapLock = sync.Mutex{}
+	self.handlerMapLock = sync.RWMutex{}
 	self.activeHandlers = make(map[WatcherResourceIdentifier]resourceContext, 0)
 	self.clientProvider = clientProvider
 	self.logger = logger
@@ -333,8 +333,8 @@ func (m *watcher) Unwatch(resource WatcherResourceIdentifier) error {
 }
 
 func (m *watcher) ListWatchedResources() []WatcherResourceIdentifier {
-	m.handlerMapLock.Lock()
-	defer m.handlerMapLock.Unlock()
+	m.handlerMapLock.RLock()
+	defer m.handlerMapLock.RUnlock()
 
 	resources := []WatcherResourceIdentifier{}
 	for r := range m.activeHandlers {
@@ -345,8 +345,8 @@ func (m *watcher) ListWatchedResources() []WatcherResourceIdentifier {
 }
 
 func (m *watcher) State(resource WatcherResourceIdentifier) (WatcherResourceState, error) {
-	m.handlerMapLock.Lock()
-	defer m.handlerMapLock.Unlock()
+	m.handlerMapLock.RLock()
+	defer m.handlerMapLock.RUnlock()
 
 	resourceContext, ok := m.activeHandlers[resource]
 	if !ok {
