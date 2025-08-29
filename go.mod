@@ -34,7 +34,7 @@ require (
 	k8s.io/kubectl v0.34.0
 	k8s.io/metrics v0.34.0
 	k8s.io/utils v0.0.0-20250820121507-0af2bda4dd1d
-	sigs.k8s.io/controller-runtime v0.21.0
+	sigs.k8s.io/controller-runtime v0.22.0
 	sigs.k8s.io/yaml v1.6.0
 )
 
@@ -155,8 +155,8 @@ require (
 	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
-	k8s.io/apiextensions-apiserver v0.33.3 // indirect
-	k8s.io/apiserver v0.33.3 // indirect
+	k8s.io/apiextensions-apiserver v0.34.0 // indirect
+	k8s.io/apiserver v0.34.0 // indirect
 	k8s.io/cli-runtime v0.34.0 // indirect
 	k8s.io/component-base v0.34.0 // indirect
 	k8s.io/component-helpers v0.34.0 // indirect
