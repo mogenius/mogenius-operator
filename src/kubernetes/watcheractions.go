@@ -20,6 +20,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/discovery"
 	"k8s.io/kubectl/pkg/describe"
 	"sigs.k8s.io/yaml"
 )
@@ -487,8 +488,12 @@ func GetAvailableResources() ([]utils.ResourceEntry, error) {
 	clientset := clientProvider.K8sClientSet()
 	resources, err := clientset.Discovery().ServerPreferredResources()
 	if err != nil {
-		k8sLogger.Error("Error discovering resources", "error", err)
-		return nil, err
+		if discovery.IsGroupDiscoveryFailedError(err) {
+			k8sLogger.Error("Failed to discover group resources", "error", err)
+		} else {
+			k8sLogger.Error("Error discovering resources", "error", err)
+			return nil, err
+		}
 	}
 
 	var availableResources []utils.ResourceEntry

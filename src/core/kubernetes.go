@@ -45,7 +45,7 @@ type MoKubernetes interface {
 	GetAvailableResources() ([]utils.ResourceEntry, error)
 	CreateOrUpdateClusterSecret() (utils.ClusterSecret, error)
 	CreateOrUpdateResourceTemplateConfigmap() error
-	GetNodeStats() []dtos.NodeStat
+	GetNodeStats() ([]dtos.NodeStat, error)
 	CleanUp(apiService Api, workspaceName string, dryRun bool, replicaSets bool, pods bool, services bool, secrets bool, configMaps bool, jobs bool, ingresses bool) (CleanUpResult, error)
 }
 
@@ -259,14 +259,14 @@ func (self *moKubernetes) removeManagedFields(obj *unstructured.Unstructured) *u
 	return obj
 }
 
-func (self *moKubernetes) GetNodeStats() []dtos.NodeStat {
+func (self *moKubernetes) GetNodeStats() ([]dtos.NodeStat, error) {
 	result := []dtos.NodeStat{}
 	nodes := kubernetes.ListNodes()
 	nodeMetrics := kubernetes.ListNodeMetricss()
 
 	if len(nodeMetrics) == 0 {
 		self.logger.Error("CRITICAL: No node metrics found. Make sure the metrics-server is installed and running.")
-		return result
+		return result, fmt.Errorf("no metrics-server found")
 	}
 
 	for _, node := range nodes {
@@ -347,7 +347,7 @@ func (self *moKubernetes) GetNodeStats() []dtos.NodeStat {
 		result = append(result, nodeStat)
 	}
 
-	return result
+	return result, nil
 }
 
 func (self *moKubernetes) CleanUp(apiService Api, workspaceName string, dryRun bool, replicaSets bool, pods bool, services bool, secrets bool, configMaps bool, jobs bool, ingresses bool) (CleanUpResult, error) {

@@ -35,6 +35,8 @@ const (
 var DefaultMaxSize int64 = 60 * 24 * 7
 var DefaultMaxSizeSocketConnections int64 = 60
 
+var lastNetworkPodStats = make(map[string]networkmonitor.PodNetworkStats)
+
 type ValkeyStatsDb interface {
 	Run()
 	AddInterfaceStatsToDb(stats []networkmonitor.PodNetworkStats)
@@ -121,6 +123,23 @@ func (self *valkeyStatsDb) AddInterfaceStatsToDb(stats []networkmonitor.PodNetwo
 			}
 		}
 
+		// Compute deltas if we have previous stats
+		if entry, exist := lastNetworkPodStats[stat.Pod]; exist {
+			// calculate delta
+			stat.TransmitBytes = stat.TransmitBytes - entry.TransmitBytes
+			stat.ReceivedBytes = stat.ReceivedBytes - entry.ReceivedBytes
+			stat.ReceivedPackets = stat.ReceivedPackets - entry.ReceivedPackets
+			stat.TransmitPackets = stat.TransmitPackets - entry.TransmitPackets
+		} else {
+			// start from zero
+			stat.TransmitBytes = 0
+			stat.ReceivedBytes = 0
+			stat.ReceivedPackets = 0
+			stat.TransmitPackets = 0
+		}
+
+		lastNetworkPodStats[stat.Pod] = stat
+
 		err := self.valkey.AddToBucket(DefaultMaxSize, stat, DB_STATS_TRAFFIC_BUCKET_NAME, stat.Namespace, controller.Name)
 		if err != nil {
 			self.logger.Error("Error adding interface stats", "namespace", stat.Namespace, "podName", stat.Pod, "error", err)
@@ -193,8 +212,12 @@ func (self *valkeyStatsDb) GetTrafficStatsEntrySumForController(controller dtos.
 	return result
 }
 
-func (self *valkeyStatsDb) GetWorkspaceStatsCpuUtilization(timeOffsetInMinutes int, resources []unstructured.Unstructured) ([]GenericChartEntry, error) {
-	// setup min value
+func (self *valkeyStatsDb) GetWorkspaceStatsCpuUtilization(
+	timeOffsetInMinutes int,
+	resources []unstructured.Unstructured,
+) ([]GenericChartEntry, error) {
+
+	// Clamp to valid range
 	if timeOffsetInMinutes < 5 {
 		timeOffsetInMinutes = 5
 	}
@@ -202,58 +225,113 @@ func (self *valkeyStatsDb) GetWorkspaceStatsCpuUtilization(timeOffsetInMinutes i
 		timeOffsetInMinutes = 60 * 24 * 7 // 7 days
 	}
 
-	result := make(map[string]GenericChartEntry)
+	result := make(map[time.Time]GenericChartEntry)
+	var mu sync.Mutex
+
 	promise := utils.NewPromise[structs.PodStats]()
-	var resultMutex sync.Mutex
 
 	for _, controller := range resources {
+		ns, name := controller.GetNamespace(), controller.GetName()
+
 		promise.RunArray(func() *[]structs.PodStats {
-			values, err := valkeyclient.RangeFromEndOfBucketWithType[structs.PodStats](self.valkey, int64(timeOffsetInMinutes), 0, DB_STATS_POD_STATS_BUCKET_NAME, controller.GetNamespace(), controller.GetName())
+			values, err := valkeyclient.RangeFromEndOfBucketWithType[structs.PodStats](
+				self.valkey, int64(timeOffsetInMinutes), 0,
+				DB_STATS_POD_STATS_BUCKET_NAME, ns, name,
+			)
 			if err != nil {
 				self.logger.Error(err.Error())
+				return nil
 			}
-			for index, entry := range values {
-				parsedDate, err := time.Parse(time.RFC3339, entry.CreatedAt)
-				if err != nil {
-					continue
-				}
-				formattedDate := parsedDate.Round(time.Minute).Format(time.RFC3339)
 
-				resultMutex.Lock()
-				if _, exists := result[formattedDate]; !exists {
-					result[formattedDate] = GenericChartEntry{Time: formattedDate, Value: 0.0}
-				}
-				result[formattedDate] = GenericChartEntry{Time: formattedDate, Value: result[formattedDate].Value + float64(entry.Cpu)}
-				resultMutex.Unlock()
+			// Aggregate locally for this resource
+			localAgg := make(map[time.Time]GenericChartEntry)
 
-				if index >= timeOffsetInMinutes {
+			for i, entry := range values {
+				if i >= timeOffsetInMinutes {
 					break
 				}
+
+				if entry.CreatedAt.IsZero() {
+					continue
+				}
+				minute := entry.CreatedAt.Truncate(time.Minute)
+
+				e := localAgg[minute]
+				if e.Pods == nil {
+					e = GenericChartEntry{
+						Time: minute.Format(time.RFC3339),
+						Pods: make(map[string]float64),
+					}
+				}
+
+				cpu := float64(entry.Cpu)
+				e.Value += cpu
+				e.Pods = updateTop5Pods(e.Pods, cpu, entry.PodName)
+
+				localAgg[minute] = e
 			}
+
+			// Merge local aggregation into global map
+			mu.Lock()
+			for t, e := range localAgg {
+				g := result[t]
+				if g.Pods == nil {
+					g = GenericChartEntry{
+						Time: e.Time,
+						Pods: make(map[string]float64),
+					}
+				}
+				g.Value += e.Value
+				for pod, v := range e.Pods {
+					g.Pods = updateTop5Pods(g.Pods, v, pod)
+				}
+				result[t] = g
+			}
+			mu.Unlock()
+
 			return &values
 		})
 	}
 
 	_ = promise.Wait()
 
-	// SORT
-	var keys []string
-	for key := range result {
-		keys = append(keys, key)
+	// Collect timestamps
+	times := make([]time.Time, 0, len(result))
+	for t := range result {
+		times = append(times, t)
 	}
-	sort.Strings(keys)
+	sort.Slice(times, func(i, j int) bool { return times[i].Before(times[j]) })
 
-	// Step 2: Build a sorted slice of GenericChartEntry
-	var sortedEntries []GenericChartEntry
-	for _, key := range keys {
-		sortedEntries = append(sortedEntries, result[key])
+	// Build ordered result
+	sortedEntries := make([]GenericChartEntry, 0, len(times))
+	for _, t := range times {
+		sortedEntries = append(sortedEntries, result[t])
 	}
 
 	return sortedEntries, nil
 }
 
-func (self *valkeyStatsDb) GetWorkspaceStatsMemoryUtilization(timeOffsetInMinutes int, resources []unstructured.Unstructured) ([]GenericChartEntry, error) {
-	// setup min value
+func updateTop5Pods(pods map[string]float64, compareValue float64, podName string) map[string]float64 {
+	if smallestKey, smallestValue, found := findSmallest(pods); found {
+		if len(pods) >= 5 {
+			pods[smallestKey] = compareValue
+		} else {
+			if smallestValue < compareValue {
+				pods[podName] = compareValue
+			}
+		}
+	} else {
+		pods[podName] = compareValue
+	}
+	return pods
+}
+
+func (self *valkeyStatsDb) GetWorkspaceStatsMemoryUtilization(
+	timeOffsetInMinutes int,
+	resources []unstructured.Unstructured,
+) ([]GenericChartEntry, error) {
+
+	// Clamp ranges
 	if timeOffsetInMinutes < 5 {
 		timeOffsetInMinutes = 5
 	}
@@ -261,50 +339,88 @@ func (self *valkeyStatsDb) GetWorkspaceStatsMemoryUtilization(timeOffsetInMinute
 		timeOffsetInMinutes = 60 * 24 * 7 // 7 days
 	}
 
-	result := make(map[string]GenericChartEntry)
+	result := make(map[time.Time]GenericChartEntry)
+	var mu sync.Mutex
+
 	promise := utils.NewPromise[structs.PodStats]()
-	var resultMutex sync.Mutex
+
 	for _, controller := range resources {
+		ns := controller.GetNamespace()
+		name := controller.GetName()
+
 		promise.RunArray(func() *[]structs.PodStats {
-			values, err := valkeyclient.RangeFromEndOfBucketWithType[structs.PodStats](self.valkey, int64(timeOffsetInMinutes), 0, DB_STATS_POD_STATS_BUCKET_NAME, controller.GetNamespace(), controller.GetName())
+			values, err := valkeyclient.RangeFromEndOfBucketWithType[structs.PodStats](
+				self.valkey, int64(timeOffsetInMinutes), 0,
+				DB_STATS_POD_STATS_BUCKET_NAME, ns, name)
 			if err != nil {
 				self.logger.Error(err.Error())
+				return nil
 			}
-			for index, entry := range values {
-				parsedDate, err := time.Parse(time.RFC3339, entry.CreatedAt)
-				if err != nil {
-					continue
-				}
-				formattedDate := parsedDate.Round(time.Minute).Format(time.RFC3339)
 
-				resultMutex.Lock()
-				if _, exists := result[formattedDate]; !exists {
-					result[formattedDate] = GenericChartEntry{Time: formattedDate, Value: 0.0}
-				}
-				result[formattedDate] = GenericChartEntry{Time: formattedDate, Value: result[formattedDate].Value + float64(entry.Memory)}
-				resultMutex.Unlock()
+			// Local aggregation per goroutine
+			localAgg := make(map[time.Time]GenericChartEntry)
 
-				if index >= timeOffsetInMinutes {
+			for i, entry := range values {
+				if i >= timeOffsetInMinutes {
 					break
 				}
+
+				if entry.CreatedAt.IsZero() {
+					continue
+				}
+				minute := entry.CreatedAt.Truncate(time.Minute)
+
+				e := localAgg[minute]
+				if e.Pods == nil {
+					e = GenericChartEntry{
+						Time:  minute.Format(time.RFC3339),
+						Value: 0.0,
+						Pods:  map[string]float64{},
+					}
+				}
+
+				mem := float64(entry.Memory)
+				e.Value += mem
+				e.Pods = updateTop5Pods(e.Pods, mem, entry.PodName)
+				localAgg[minute] = e
 			}
+
+			// Merge aggregated values into global map under one lock
+			mu.Lock()
+			for t, e := range localAgg {
+				g := result[t]
+				if g.Pods == nil {
+					g = GenericChartEntry{
+						Time:  e.Time,
+						Value: 0.0,
+						Pods:  map[string]float64{},
+					}
+				}
+				g.Value += e.Value
+				for pod, v := range e.Pods {
+					g.Pods = updateTop5Pods(g.Pods, v, pod)
+				}
+				result[t] = g
+			}
+			mu.Unlock()
+
 			return &values
 		})
 	}
 
 	_ = promise.Wait()
 
-	// SORT
-	var keys []string
-	for key := range result {
-		keys = append(keys, key)
+	// Collect keys and sort them chronologically
+	times := make([]time.Time, 0, len(result))
+	for t := range result {
+		times = append(times, t)
 	}
-	sort.Strings(keys)
+	sort.Slice(times, func(i, j int) bool { return times[i].Before(times[j]) })
 
-	// Step 2: Build a sorted slice of GenericChartEntry
-	var sortedEntries []GenericChartEntry
-	for _, key := range keys {
-		sortedEntries = append(sortedEntries, result[key])
+	// Build sorted slice of results
+	sortedEntries := make([]GenericChartEntry, 0, len(times))
+	for _, t := range times {
+		sortedEntries = append(sortedEntries, result[t])
 	}
 
 	return sortedEntries, nil
@@ -347,7 +463,6 @@ func (self *valkeyStatsDb) GetWorkspaceStatsTrafficUtilization(timeOffsetInMinut
 			return &values
 		})
 	}
-
 	_ = promise.Wait()
 
 	// Sort minutes
@@ -438,7 +553,7 @@ func (self *valkeyStatsDb) AddPodStatsToDb(stats []structs.PodStats) error {
 			continue
 		}
 
-		stat.CreatedAt = time.Now().Format(time.RFC3339)
+		stat.CreatedAt = time.Now()
 		err := self.valkey.AddToBucket(DefaultMaxSize, stat, DB_STATS_POD_STATS_BUCKET_NAME, stat.Namespace, controller.Name)
 		if err != nil {
 			return fmt.Errorf("error adding pod stats: %s", err)
@@ -498,8 +613,29 @@ func (self *valkeyStatsDb) Publish(data interface{}, keys ...string) {
 }
 
 type GenericChartEntry struct {
-	Time  string  `json:"time"`
-	Value float64 `json:"value"`
+	Time  string             `json:"time"`
+	Value float64            `json:"value"`          // this is the total value of all counted pods per time entry
+	Pods  map[string]float64 `json:"pods,omitempty"` // this list is limited to 5 entries
+}
+
+func findSmallest(m map[string]float64) (string, float64, bool) {
+	if len(m) == 0 {
+		return "", 0, false
+	}
+
+	var smallestKey string
+	var smallestValue float64
+	first := true
+
+	for key, value := range m {
+		if first || value < smallestValue {
+			smallestKey = key
+			smallestValue = value
+			first = false
+		}
+	}
+
+	return smallestKey, smallestValue, true
 }
 
 func (self *valkeyStatsDb) GetMachineStatsForNodes(nodes []string) []structs.MachineStats {

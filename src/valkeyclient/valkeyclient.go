@@ -133,7 +133,7 @@ func (self *valkeyClient) Set(value string, expiration time.Duration, keys ...st
 	}
 	err := self.valkeyClient.Do(self.ctx, cmd.Build()).Error()
 	if err != nil {
-		self.logger.Error("Error setting value in Redis", "key", key, "error", err)
+		self.logger.Error("Error setting value in Valkey", "key", key, "error", err)
 		return err
 	}
 
@@ -145,7 +145,7 @@ func (self *valkeyClient) SetObject(value interface{}, expiration time.Duration,
 
 	objStr, err := json.Marshal(value)
 	if err != nil {
-		self.logger.Error("Error marshalling object for Redis", "key", key, "error", err)
+		self.logger.Error("Error marshalling object for Valkey", "key", key, "error", err)
 		return err
 	}
 
@@ -244,7 +244,7 @@ func (self *valkeyClient) GetObject(keys ...string) (interface{}, error) {
 	// Correct usage of Unmarshal
 	err = json.Unmarshal([]byte(val), &result)
 	if err != nil {
-		self.logger.Error("Error unmarshalling value from Redis", "key", key, "error", err)
+		self.logger.Error("Error unmarshalling value from Valkey", "key", key, "error", err)
 		return result, err
 	}
 	return result, nil
@@ -256,7 +256,7 @@ func (self *valkeyClient) List(limit int, keys ...string) ([]string, error) {
 
 	selectedKeys, err := self.Keys(key)
 	if err != nil {
-		self.logger.Error("Error listing keys from Redis", "pattern", key, "error", err)
+		self.logger.Error("Error listing keys from Valkey", "pattern", key, "error", err)
 		return []string{}, err
 	}
 	if len(selectedKeys) == 0 {
@@ -284,7 +284,7 @@ func (self *valkeyClient) List(limit int, keys ...string) ([]string, error) {
 	for _, v := range chunks {
 		values, err := self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Mget().Key(v...).Build()).AsStrSlice()
 		if err != nil {
-			self.logger.Error("Error fetching values from Redis", "keys", v, "error", err)
+			self.logger.Error("Error fetching values from Valkey", "keys", v, "error", err)
 			return result, err
 		}
 		for index, v := range values {
@@ -299,22 +299,43 @@ func (self *valkeyClient) List(limit int, keys ...string) ([]string, error) {
 }
 
 func (self *valkeyClient) AddToBucket(maxSize int64, value interface{}, bucketKey ...string) error {
+	// key := createKey(bucketKey...)
+	// // Add the new elements to the end of the list
+	// err := self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Rpush().Key(key).Element(utils.PrintJson(value)).Build()).Error()
+	// if err != nil {
+	// 	return err
+	// }
+
+	// // Trim the list to keep only the last maxSize elements
+	// err = self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Ltrim().Key(key).Start(-maxSize).Stop(-1).Build()).Error()
+	// if err != nil {
+	// 	return err
+	// }
+
+	// err = self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Publish().Channel(createChannel(bucketKey...)).Message(utils.PrintJson(value)).Build()).Error()
+	// if err != nil {
+	// 	return err
+	// }
+
+	// return nil
+
 	key := createKey(bucketKey...)
-	// Add the new elements to the end of the list
-	err := self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Rpush().Key(key).Element(utils.PrintJson(value)).Build()).Error()
-	if err != nil {
-		return err
-	}
 
-	// Trim the list to keep only the last maxSize elements
-	err = self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Ltrim().Key(key).Start(-maxSize).Stop(-1).Build()).Error()
-	if err != nil {
-		return err
-	}
+	obj := utils.PrintJson(value)
 
-	err = self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Publish().Channel(createChannel(bucketKey...)).Message(utils.PrintJson(value)).Build()).Error()
-	if err != nil {
-		return err
+	// Build all commands (same pipeline approach as before)
+	rpushCmd := self.valkeyClient.B().Rpush().Key(key).Element(obj).Build()
+	ltrimCmd := self.valkeyClient.B().Ltrim().Key(key).Start(-maxSize).Stop(-1).Build()
+	publishCmd := self.valkeyClient.B().Publish().Channel(createChannel(bucketKey...)).Message(obj).Build()
+
+	// Execute all commands in one pipeline
+	results := self.valkeyClient.DoMulti(self.ctx, rpushCmd, ltrimCmd, publishCmd)
+
+	// Check for errors
+	for _, result := range results {
+		if err := result.Error(); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -382,7 +403,7 @@ func (self *valkeyClient) DeleteFromBucketWithNsAndReleaseName(namespace string,
 			// Remove the specific entry from the bucket
 			err = self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Lrem().Key(key).Count(1).Element(v).Build()).Error()
 			if err != nil {
-				return fmt.Errorf("error removing entry from Redis bucket, error: %v", err)
+				return fmt.Errorf("error removing entry from Valkey bucket, error: %v", err)
 			}
 		}
 	}
@@ -433,7 +454,7 @@ func (self *valkeyClient) ClearNonEssentialKeys(includeTraffic bool, includePodS
 		prefixesToDelete = append(prefixesToDelete, "node-stats:")
 	}
 
-	self.logger.Info("Deleting non-essential keys from Redis", "includeTraffic", includeTraffic, "includePodStats", includePodStats, "includeNodestats", includeNodestats)
+	self.logger.Info("Deleting non-essential keys from Valkey", "includeTraffic", includeTraffic, "includePodStats", includePodStats, "includeNodestats", includeNodestats)
 
 	// Iterate over the keys and delete them
 	cacheDeleteCounter := 0
@@ -442,13 +463,13 @@ func (self *valkeyClient) ClearNonEssentialKeys(includeTraffic bool, includePodS
 			if strings.HasPrefix(key, keyToDelete) {
 				err = self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Del().Key(key).Build()).Error()
 				if err != nil {
-					return "", fmt.Errorf("error deleting non-essential key from Redis, error: %v", err)
+					return "", fmt.Errorf("error deleting non-essential key from Valkey, error: %v", err)
 				}
 				cacheDeleteCounter++
 			}
 		}
 	}
-	resultMsg := fmt.Sprintf("Deleted %d non-essential keys from Redis", cacheDeleteCounter)
+	resultMsg := fmt.Sprintf("Deleted %d non-essential keys from Valkey", cacheDeleteCounter)
 	self.logger.Info(resultMsg, "deletedKeys", cacheDeleteCounter)
 
 	return resultMsg, nil
@@ -458,7 +479,7 @@ func (self *valkeyClient) DeleteSingle(keys ...string) error {
 	key := createKey(keys...)
 	err := self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Del().Key(key).Build()).Error()
 	if err != nil {
-		self.logger.Error("Error deleting key from Redis", "key", keys, "error", err)
+		self.logger.Error("Error deleting key from Valkey", "key", keys, "error", err)
 		return err
 	}
 
@@ -471,7 +492,7 @@ func (self *valkeyClient) DeleteMultiple(keys ...string) error {
 	}
 	err := self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Del().Key(keys...).Build()).Error()
 	if err != nil {
-		self.logger.Error("Error deleting key from Redis", "key", keys, "error", err)
+		self.logger.Error("Error deleting key from Valkey", "key", keys, "error", err)
 		return err
 	}
 
@@ -532,7 +553,7 @@ func (self *valkeyClient) Exists(keys ...string) (bool, error) {
 
 	exists, err := self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Exists().Key(key).Build()).AsInt64()
 	if err != nil {
-		self.logger.Error("Error checking if key exists in Redis", "key", key, "error", err)
+		self.logger.Error("Error checking if key exists in Valkey", "key", key, "error", err)
 		return false, err
 	}
 
@@ -580,7 +601,7 @@ func GetObjectsByPattern[T any](store ValkeyClient, pattern string, keywords []s
 		for _, v := range values {
 			var obj T
 			if err := json.Unmarshal([]byte(v), &obj); err != nil {
-				return result, fmt.Errorf("error unmarshalling value from Redis, error: %v", err)
+				return result, fmt.Errorf("error unmarshalling value from Valkey, error: %v", err)
 			}
 			result = append(result, obj)
 		}
@@ -613,12 +634,13 @@ func RangeFromEndOfBucketWithType[T any](store ValkeyClient, numberOfElements in
 		return result, err
 	}
 
-	for i := len(elements) - 1; i >= 0; i-- {
+	result = make([]T, len(elements))
+	for i := 0; i < len(elements); i++ {
 		var obj T
 		if err := json.Unmarshal([]byte(elements[i]), &obj); err != nil {
 			return result, fmt.Errorf("error unmarshalling value from valkey bucket, error: %v", err)
 		}
-		result = append(result, obj)
+		result[i] = obj
 	}
 
 	return result, nil
@@ -661,7 +683,7 @@ func GetObjectsByPrefix[T any](store ValkeyClient, order SortOrder, keys ...stri
 		for _, v := range values {
 			var obj T
 			if err := json.Unmarshal([]byte(v), &obj); err != nil {
-				return result, fmt.Errorf("error unmarshalling value from Redis, error: %v", err)
+				return result, fmt.Errorf("error unmarshalling value from Valkey, error: %v", err)
 			}
 			result = append(result, obj)
 		}
@@ -715,7 +737,7 @@ func GetObjectsByPrefixWithSizeAndNs[T any](store ValkeyClient, limit int, offse
 	for _, v := range values {
 		var obj T
 		if err := json.Unmarshal([]byte(v), &obj); err != nil {
-			return result, 0, fmt.Errorf("error unmarshalling value from Redis, error: %v", err)
+			return result, 0, fmt.Errorf("error unmarshalling value from Valkey, error: %v", err)
 		}
 		result = append(result, obj)
 	}

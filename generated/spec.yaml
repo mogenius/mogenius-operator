@@ -48,6 +48,10 @@ ClusterResourceInfo:
                         pointer: true
                         structRef: mogenius-k8s-manager/src/utils.CountryDetails
                         type: struct
+                    error:
+                        elementType:
+                            type: string
+                        type: array
                     loadBalancerExternalIps:
                         elementType:
                             type: string
@@ -15085,7 +15089,8 @@ stats/podstat/all-for-controller:
                     cpuLimit:
                         type: int
                     createdAt:
-                        type: string
+                        structRef: time.Time
+                        type: struct
                     ephemeralStorage:
                         type: int
                     ephemeralStorageLimit:
@@ -15099,7 +15104,11 @@ stats/podstat/all-for-controller:
                     podName:
                         type: string
                     startTime:
-                        type: string
+                        structRef: time.Time
+                        type: struct
+            time.Time:
+                name: time.Time
+                properties: {}
         typeInfo:
             elementType:
                 structRef: mogenius-k8s-manager/src/structs.PodStats
@@ -15134,7 +15143,8 @@ stats/podstat/last-for-controller:
                     cpuLimit:
                         type: int
                     createdAt:
-                        type: string
+                        structRef: time.Time
+                        type: struct
                     ephemeralStorage:
                         type: int
                     ephemeralStorageLimit:
@@ -15148,7 +15158,11 @@ stats/podstat/last-for-controller:
                     podName:
                         type: string
                     startTime:
-                        type: string
+                        structRef: time.Time
+                        type: struct
+            time.Time:
+                name: time.Time
+                properties: {}
         typeInfo:
             pointer: true
             structRef: mogenius-k8s-manager/src/structs.PodStats
@@ -15179,10 +15193,6 @@ stats/traffic/all-for-controller:
                     createdAt:
                         structRef: time.Time
                         type: struct
-                    interface:
-                        type: string
-                    ip:
-                        type: string
                     namespace:
                         type: string
                     pod:
@@ -15193,9 +15203,6 @@ stats/traffic/all-for-controller:
                         type: uint
                     receivedStartBytes:
                         type: uint
-                    startTime:
-                        structRef: time.Time
-                        type: struct
                     transmitBytes:
                         type: uint
                     transmitPackets:
@@ -15268,10 +15275,6 @@ stats/traffic/sum-for-controller:
                     createdAt:
                         structRef: time.Time
                         type: struct
-                    interface:
-                        type: string
-                    ip:
-                        type: string
                     namespace:
                         type: string
                     pod:
@@ -15282,9 +15285,6 @@ stats/traffic/sum-for-controller:
                         type: uint
                     receivedStartBytes:
                         type: uint
-                    startTime:
-                        structRef: time.Time
-                        type: struct
                     transmitBytes:
                         type: uint
                     transmitPackets:
@@ -15318,10 +15318,6 @@ stats/traffic/sum-for-namespace:
                     createdAt:
                         structRef: time.Time
                         type: struct
-                    interface:
-                        type: string
-                    ip:
-                        type: string
                     namespace:
                         type: string
                     pod:
@@ -15332,9 +15328,6 @@ stats/traffic/sum-for-namespace:
                         type: uint
                     receivedStartBytes:
                         type: uint
-                    startTime:
-                        structRef: time.Time
-                        type: struct
                     transmitBytes:
                         type: uint
                     transmitPackets:
@@ -15367,6 +15360,12 @@ stats/workspace-cpu-utilization:
             mogenius-k8s-manager/src/core.GenericChartEntry:
                 name: mogenius-k8s-manager/src/core.GenericChartEntry
                 properties:
+                    pods:
+                        keyType:
+                            type: string
+                        type: map
+                        valueType:
+                            type: float
                     time:
                         type: string
                     value:
@@ -15404,6 +15403,12 @@ stats/workspace-memory-utilization:
             mogenius-k8s-manager/src/core.GenericChartEntry:
                 name: mogenius-k8s-manager/src/core.GenericChartEntry
                 properties:
+                    pods:
+                        keyType:
+                            type: string
+                        type: map
+                        valueType:
+                            type: float
                     time:
                         type: string
                     value:
@@ -15441,6 +15446,12 @@ stats/workspace-traffic-utilization:
             mogenius-k8s-manager/src/core.GenericChartEntry:
                 name: mogenius-k8s-manager/src/core.GenericChartEntry
                 properties:
+                    pods:
+                        keyType:
+                            type: string
+                        type: map
+                        valueType:
+                            type: float
                     time:
                         type: string
                     value:

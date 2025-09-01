@@ -172,7 +172,7 @@ func (self *podStatsCollector) podStats(nodemetrics []podstatscollector.NodeMetr
 			entry := structs.PodStats{}
 			entry.Namespace = podMetrics.Namespace
 			entry.PodName = podMetrics.Name
-			entry.StartTime = pod.Status.StartTime.Format(time.RFC3339)
+			entry.StartTime = pod.Status.StartTime.Time
 
 			entry.ContainerName = container.Name
 			entry.CpuLimit += container.Resources.Limits.Cpu().MilliValue()

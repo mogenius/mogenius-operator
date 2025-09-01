@@ -452,13 +452,18 @@ func (self *socketApi) registerPatterns() {
 			Country                 *utils.CountryDetails `json:"country"`
 			Provider                string                `json:"provider"`
 			CniConfig               []structs.CniData     `json:"cniConfig"`
+			Errors                  []string              `json:"error,omitempty"`
 		}
 
 		RegisterPatternHandlerRaw(
 			PatternHandle{self, "ClusterResourceInfo"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Void) Response {
-				nodeStats := self.moKubernetes.GetNodeStats()
+				errors := []string{}
+				nodeStats, nodeErr := self.moKubernetes.GetNodeStats()
+				if nodeErr != nil {
+					errors = append(errors, nodeErr.Error())
+				}
 				loadBalancerExternalIps := kubernetes.GetClusterExternalIps()
 				country, _ := utils.GuessClusterCountry()
 				cniConfig, _ := self.dbstats.GetCniData()
@@ -468,6 +473,7 @@ func (self *socketApi) registerPatterns() {
 					Country:                 country,
 					Provider:                string(utils.ClusterProviderCached),
 					CniConfig:               cniConfig,
+					Errors:                  errors,
 				}
 				return response
 			},
