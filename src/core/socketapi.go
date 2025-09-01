@@ -291,12 +291,11 @@ func RegisterPatternHandlerRaw[RequestType any, ResponseType any](
 ) {
 	assert.Assert(
 		slices.Contains([]string{
-			"ClusterResourceInfo",
+			//"cluster/resource-info", // "ClusterResourceInfo" -> "cluster/resource-info"
 			"UpgradeK8sManager",
-			"ClusterForceReconnect",
-			"ClusterForceDisconnect",
-			"SYSTEM_CHECK",
-			"print-current-config",
+			//"cluster/force-reconnect",  // "ClusterForceReconnect" -> cluster/force-reconnect
+			//"cluster/force-disconnect", // "ClusterForceDisconnect" -> "cluster/force-disconnect"
+			//"system/check", // "SYSTEM_CHECK -> "system/check"
 			"stats/podstat/all-for-controller",
 			"stats/traffic/all-for-controller",
 			"stats/podstat/last-for-controller",
@@ -446,7 +445,7 @@ func (self *socketApi) registerPatterns() {
 	)
 
 	{
-		type Response struct {
+		type ClusterResourceInfo struct {
 			LoadBalancerExternalIps []string              `json:"loadBalancerExternalIps"`
 			NodeStats               []dtos.NodeStat       `json:"nodeStats"`
 			Country                 *utils.CountryDetails `json:"country"`
@@ -455,10 +454,10 @@ func (self *socketApi) registerPatterns() {
 			Errors                  []string              `json:"error,omitempty"`
 		}
 
-		RegisterPatternHandlerRaw(
-			PatternHandle{self, "ClusterResourceInfo"},
+		RegisterPatternHandler(
+			PatternHandle{self, "cluster/resource-info"},
 			PatternConfig{},
-			func(datagram structs.Datagram, request Void) Response {
+			func(datagram structs.Datagram, request Void) (ClusterResourceInfo, error) {
 				errors := []string{}
 				nodeStats, nodeErr := self.moKubernetes.GetNodeStats()
 				if nodeErr != nil {
@@ -467,7 +466,7 @@ func (self *socketApi) registerPatterns() {
 				loadBalancerExternalIps := kubernetes.GetClusterExternalIps()
 				country, _ := utils.GuessClusterCountry()
 				cniConfig, _ := self.dbstats.GetCniData()
-				response := Response{
+				response := ClusterResourceInfo{
 					NodeStats:               nodeStats,
 					LoadBalancerExternalIps: loadBalancerExternalIps,
 					Country:                 country,
@@ -475,7 +474,7 @@ func (self *socketApi) registerPatterns() {
 					CniConfig:               cniConfig,
 					Errors:                  errors,
 				}
-				return response
+				return response, nil
 			},
 		)
 	}
@@ -494,29 +493,29 @@ func (self *socketApi) registerPatterns() {
 		)
 	}
 
-	RegisterPatternHandlerRaw(
-		PatternHandle{self, "ClusterForceReconnect"},
+	RegisterPatternHandler(
+		PatternHandle{self, "cluster/force-reconnect"},
 		PatternConfig{},
-		func(datagram structs.Datagram, request Void) bool {
+		func(datagram structs.Datagram, request Void) (bool, error) {
 			time.Sleep(1 * time.Second)
-			return kubernetes.ClusterForceReconnect()
+			return kubernetes.ClusterForceReconnect(), nil
 		},
 	)
 
-	RegisterPatternHandlerRaw(
-		PatternHandle{self, "ClusterForceDisconnect"},
+	RegisterPatternHandler(
+		PatternHandle{self, "cluster/force-disconnect"},
 		PatternConfig{},
-		func(datagram structs.Datagram, request Void) bool {
+		func(datagram structs.Datagram, request Void) (bool, error) {
 			time.Sleep(1 * time.Second)
-			return kubernetes.ClusterForceDisconnect()
+			return kubernetes.ClusterForceDisconnect(), nil
 		},
 	)
 
-	RegisterPatternHandlerRaw(
-		PatternHandle{self, "SYSTEM_CHECK"},
+	RegisterPatternHandler(
+		PatternHandle{self, "system/check"},
 		PatternConfig{},
-		func(datagram structs.Datagram, request Void) services.SystemCheckResponse {
-			return services.SystemCheck()
+		func(datagram structs.Datagram, request Void) (services.SystemCheckResponse, error) {
+			return services.SystemCheck(), nil
 		},
 	)
 
@@ -534,14 +533,6 @@ func (self *socketApi) registerPatterns() {
 			},
 		)
 	}
-
-	RegisterPatternHandlerRaw(
-		PatternHandle{self, "print-current-config"},
-		PatternConfig{},
-		func(datagram structs.Datagram, request Void) string {
-			return self.config.AsEnvs()
-		},
-	)
 
 	RegisterPatternHandler(
 		PatternHandle{self, "install-metrics-server"},
