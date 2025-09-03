@@ -36,7 +36,7 @@ type ValkeyClient interface {
 	// LastNEntryFromBucketWithType(number int64, bucketKey ...string) ([]string, error)
 	DeleteFromBucketWithNsAndReleaseName(namespace string, releaseName string, bucketKey ...string) error
 
-	StoreSortedListEntry(data interface{}, timestamp time.Time, keys ...string) error
+	StoreSortedListEntry(data interface{}, timestamp time.Time, enforceUnique bool, keys ...string) error
 
 	ClearNonEssentialKeys(includeTraffic bool, includePodStats bool, includeNodestats bool) (string, error)
 
@@ -829,7 +829,7 @@ func parseStreamMessages[T any](messages []valkey.XRangeEntry) ([]T, error) {
 			var dataPoint T
 			err := json.Unmarshal([]byte(dataStr), &dataPoint)
 			if err != nil {
-				// log.Printf("Failed to unmarshal stream data for ID %s: %v", msg.ID, err)
+				log.Printf("Failed to unmarshal stream data for ID %s: %v", msg.ID, err)
 				continue
 			}
 			dataPoints = append(dataPoints, dataPoint)
@@ -838,7 +838,7 @@ func parseStreamMessages[T any](messages []valkey.XRangeEntry) ([]T, error) {
 	return dataPoints, nil
 }
 
-func (self *valkeyClient) StoreSortedListEntry(data interface{}, timestamp time.Time, keys ...string) error {
+func (self *valkeyClient) StoreSortedListEntry(data interface{}, timestamp time.Time, enforceUnique bool, keys ...string) error {
 	streamKey := createKey(keys...)
 
 	jsonData, err := json.Marshal(data)
@@ -846,8 +846,13 @@ func (self *valkeyClient) StoreSortedListEntry(data interface{}, timestamp time.
 		return fmt.Errorf("failed to marshal data: %w", err)
 	}
 
+	idType := fmt.Sprintf("%d-0", timestamp.Unix()) // results in ids like: 1680000000000-0
+	if enforceUnique {
+		idType = "*" // results in ids like: 1680000000000-0, 1680000000000-1, 1680000000000-2, ...
+	}
+
 	// Build XADD command using valkey-go command builder
-	cmd := self.valkeyClient.B().Xadd().Key(streamKey).Id("*").FieldValue().
+	cmd := self.valkeyClient.B().Xadd().Key(streamKey).Id(idType).FieldValue().
 		FieldValue("data", string(jsonData)).
 		FieldValue("timestamp", strconv.FormatInt(timestamp.Unix(), 10)).
 		Build()
