@@ -840,12 +840,8 @@ func parseStreamMessages[T any](messages []valkey.XRangeEntry) ([]T, error) {
 
 func (self *valkeyClient) StoreSortedListEntry(data interface{}, timestamp time.Time, keys ...string) error {
 	streamKey := createKey(keys...)
-	dataPoint := DataPoint{
-		Timestamp: timestamp,
-		Data:      data,
-	}
 
-	jsonData, err := json.Marshal(dataPoint)
+	jsonData, err := json.Marshal(data)
 	if err != nil {
 		return fmt.Errorf("failed to marshal data: %w", err)
 	}
@@ -870,8 +866,8 @@ func (self *valkeyClient) StoreSortedListEntry(data interface{}, timestamp time.
 }
 
 func GetObjectsFromSortedListWithDuration[T any](store ValkeyClient, duration int64, keys ...string) ([]T, error) {
-	end := time.Now()
-	start := end.Add(-time.Duration(duration) * time.Minute)
+	end := time.Now().UTC()
+	start := end.Add(-time.Duration(duration) * time.Minute).UTC()
 	return GetObjectsFromSortedListWithRange[T](store, start, end, keys...)
 }
 
