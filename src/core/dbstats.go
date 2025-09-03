@@ -32,7 +32,6 @@ const (
 	DB_STATS_PROCESSES_NAME            = "proc"
 )
 
-var DefaultMaxSize int64 = 60 * 24 * 7
 var DefaultMaxSizeSocketConnections int64 = 60
 
 var lastNetworkPodStats = make(map[string]networkmonitor.PodNetworkStats)
@@ -140,7 +139,8 @@ func (self *valkeyStatsDb) AddInterfaceStatsToDb(stats []networkmonitor.PodNetwo
 
 		lastNetworkPodStats[stat.Pod] = stat
 
-		err := self.valkey.AddToBucket(DefaultMaxSize, stat, DB_STATS_TRAFFIC_BUCKET_NAME, stat.Namespace, controller.Name)
+		// err := self.valkey.AddToBucket(DefaultMaxSize, stat, DB_STATS_TRAFFIC_BUCKET_NAME, stat.Namespace, controller.Name)
+		err := self.valkey.StoreSortedListEntry(stat, time.Now().Round(time.Minute), DB_STATS_TRAFFIC_BUCKET_NAME, stat.Namespace, controller.Name)
 		if err != nil {
 			self.logger.Error("Error adding interface stats", "namespace", stat.Namespace, "podName", stat.Pod, "error", err)
 		}
@@ -554,7 +554,8 @@ func (self *valkeyStatsDb) AddPodStatsToDb(stats []structs.PodStats) error {
 		}
 
 		stat.CreatedAt = time.Now()
-		err := self.valkey.AddToBucket(DefaultMaxSize, stat, DB_STATS_POD_STATS_BUCKET_NAME, stat.Namespace, controller.Name)
+		// err := self.valkey.AddToBucket(DefaultMaxSize, stat, DB_STATS_POD_STATS_BUCKET_NAME, stat.Namespace, controller.Name)
+		err := self.valkey.StoreSortedListEntry(stat, time.Now().Round(time.Minute), DB_STATS_POD_STATS_BUCKET_NAME, stat.Namespace, controller.Name)
 		if err != nil {
 			return fmt.Errorf("error adding pod stats: %s", err)
 		}
@@ -594,7 +595,8 @@ func (self *valkeyStatsDb) AddSnoopyStatusToDb(nodeName string, data networkmoni
 func (self *valkeyStatsDb) AddNodeStatsToDb(stats []structs.NodeStats) error {
 	for _, stat := range stats {
 		stat.CreatedAt = time.Now().Format(time.RFC3339)
-		err := self.valkey.AddToBucket(DefaultMaxSize, stat, DB_STATS_NODE_STATS_BUCKET_NAME, stat.Name)
+		// err := self.valkey.AddToBucket(DefaultMaxSize, stat, DB_STATS_NODE_STATS_BUCKET_NAME, stat.Name)
+		err := self.valkey.StoreSortedListEntry(stat, time.Now().Round(time.Minute), DB_STATS_NODE_STATS_BUCKET_NAME, stat.Name)
 		if err != nil {
 			return fmt.Errorf("error adding node stats: %s", err)
 		}

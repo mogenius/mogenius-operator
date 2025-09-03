@@ -10460,6 +10460,11 @@ export type SERVICE_PODS_REQUEST = SERVICE_PODS_REQUEST__MOGENIUS_K8S_MANAGER_SR
  *             restartPolicy:
  *                 pointer: true
  *                 type: string
+ *             restartPolicyRules:
+ *                 elementType:
+ *                     structRef: k8s.io/api/core/v1.ContainerRestartRule
+ *                     type: struct
+ *                 type: array
  *             securityContext:
  *                 pointer: true
  *                 structRef: k8s.io/api/core/v1.SecurityContext
@@ -10490,6 +10495,15 @@ export type SERVICE_PODS_REQUEST = SERVICE_PODS_REQUEST__MOGENIUS_K8S_MANAGER_SR
  *                 type: array
  *             workingDir:
  *                 type: string
+ *     k8s.io/api/core/v1.ContainerExtendedResourceRequest:
+ *         name: k8s.io/api/core/v1.ContainerExtendedResourceRequest
+ *         properties:
+ *             containerName:
+ *                 type: string
+ *             requestName:
+ *                 type: string
+ *             resourceName:
+ *                 type: string
  *     k8s.io/api/core/v1.ContainerPort:
  *         name: k8s.io/api/core/v1.ContainerPort
  *         properties:
@@ -10510,6 +10524,24 @@ export type SERVICE_PODS_REQUEST = SERVICE_PODS_REQUEST__MOGENIUS_K8S_MANAGER_SR
  *                 type: string
  *             restartPolicy:
  *                 type: string
+ *     k8s.io/api/core/v1.ContainerRestartRule:
+ *         name: k8s.io/api/core/v1.ContainerRestartRule
+ *         properties:
+ *             action:
+ *                 type: string
+ *             exitCodes:
+ *                 pointer: true
+ *                 structRef: k8s.io/api/core/v1.ContainerRestartRuleOnExitCodes
+ *                 type: struct
+ *     k8s.io/api/core/v1.ContainerRestartRuleOnExitCodes:
+ *         name: k8s.io/api/core/v1.ContainerRestartRuleOnExitCodes
+ *         properties:
+ *             operator:
+ *                 type: string
+ *             values:
+ *                 elementType:
+ *                     type: int
+ *                 type: array
  *     k8s.io/api/core/v1.ContainerState:
  *         name: k8s.io/api/core/v1.ContainerState
  *         properties:
@@ -10695,6 +10727,10 @@ export type SERVICE_PODS_REQUEST = SERVICE_PODS_REQUEST__MOGENIUS_K8S_MANAGER_SR
  *                 pointer: true
  *                 structRef: k8s.io/api/core/v1.ObjectFieldSelector
  *                 type: struct
+ *             fileKeyRef:
+ *                 pointer: true
+ *                 structRef: k8s.io/api/core/v1.FileKeySelector
+ *                 type: struct
  *             resourceFieldRef:
  *                 pointer: true
  *                 structRef: k8s.io/api/core/v1.ResourceFieldSelector
@@ -10766,6 +10802,11 @@ export type SERVICE_PODS_REQUEST = SERVICE_PODS_REQUEST__MOGENIUS_K8S_MANAGER_SR
  *             restartPolicy:
  *                 pointer: true
  *                 type: string
+ *             restartPolicyRules:
+ *                 elementType:
+ *                     structRef: k8s.io/api/core/v1.ContainerRestartRule
+ *                     type: struct
+ *                 type: array
  *             securityContext:
  *                 pointer: true
  *                 structRef: k8s.io/api/core/v1.SecurityContext
@@ -10828,6 +10869,18 @@ export type SERVICE_PODS_REQUEST = SERVICE_PODS_REQUEST__MOGENIUS_K8S_MANAGER_SR
  *                 elementType:
  *                     type: string
  *                 type: array
+ *     k8s.io/api/core/v1.FileKeySelector:
+ *         name: k8s.io/api/core/v1.FileKeySelector
+ *         properties:
+ *             key:
+ *                 type: string
+ *             optional:
+ *                 pointer: true
+ *                 type: bool
+ *             path:
+ *                 type: string
+ *             volumeName:
+ *                 type: string
  *     k8s.io/api/core/v1.FlexVolumeSource:
  *         name: k8s.io/api/core/v1.FlexVolumeSource
  *         properties:
@@ -11215,6 +11268,22 @@ export type SERVICE_PODS_REQUEST = SERVICE_PODS_REQUEST__MOGENIUS_K8S_MANAGER_SR
  *                     structRef: k8s.io/api/core/v1.PodAffinityTerm
  *                     type: struct
  *                 type: array
+ *     k8s.io/api/core/v1.PodCertificateProjection:
+ *         name: k8s.io/api/core/v1.PodCertificateProjection
+ *         properties:
+ *             certificateChainPath:
+ *                 type: string
+ *             credentialBundlePath:
+ *                 type: string
+ *             keyPath:
+ *                 type: string
+ *             keyType:
+ *                 type: string
+ *             maxExpirationSeconds:
+ *                 pointer: true
+ *                 type: int
+ *             signerName:
+ *                 type: string
  *     k8s.io/api/core/v1.PodCondition:
  *         name: k8s.io/api/core/v1.PodCondition
  *         properties:
@@ -11257,6 +11326,16 @@ export type SERVICE_PODS_REQUEST = SERVICE_PODS_REQUEST__MOGENIUS_K8S_MANAGER_SR
  *                 type: string
  *             value:
  *                 pointer: true
+ *                 type: string
+ *     k8s.io/api/core/v1.PodExtendedResourceClaimStatus:
+ *         name: k8s.io/api/core/v1.PodExtendedResourceClaimStatus
+ *         properties:
+ *             requestMappings:
+ *                 elementType:
+ *                     structRef: k8s.io/api/core/v1.ContainerExtendedResourceRequest
+ *                     type: struct
+ *                 type: array
+ *             resourceClaimName:
  *                 type: string
  *     k8s.io/api/core/v1.PodIP:
  *         name: k8s.io/api/core/v1.PodIP
@@ -11394,6 +11473,9 @@ export type SERVICE_PODS_REQUEST = SERVICE_PODS_REQUEST__MOGENIUS_K8S_MANAGER_SR
  *                 type: bool
  *             hostname:
  *                 type: string
+ *             hostnameOverride:
+ *                 pointer: true
+ *                 type: string
  *             imagePullSecrets:
  *                 elementType:
  *                     structRef: k8s.io/api/core/v1.LocalObjectReference
@@ -11509,6 +11591,10 @@ export type SERVICE_PODS_REQUEST = SERVICE_PODS_REQUEST__MOGENIUS_K8S_MANAGER_SR
  *                     structRef: k8s.io/api/core/v1.ContainerStatus
  *                     type: struct
  *                 type: array
+ *             extendedResourceClaimStatus:
+ *                 pointer: true
+ *                 structRef: k8s.io/api/core/v1.PodExtendedResourceClaimStatus
+ *                 type: struct
  *             hostIP:
  *                 type: string
  *             hostIPs:
@@ -12017,6 +12103,10 @@ export type SERVICE_PODS_REQUEST = SERVICE_PODS_REQUEST__MOGENIUS_K8S_MANAGER_SR
  *             downwardAPI:
  *                 pointer: true
  *                 structRef: k8s.io/api/core/v1.DownwardAPIProjection
+ *                 type: struct
+ *             podCertificate:
+ *                 pointer: true
+ *                 structRef: k8s.io/api/core/v1.PodCertificateProjection
  *                 type: struct
  *             secret:
  *                 pointer: true
@@ -12704,6 +12794,11 @@ export type SERVICE_RESOURCE_STATUS_REQUEST = SERVICE_RESOURCE_STATUS_REQUEST__M
  *             restartPolicy:
  *                 pointer: true
  *                 type: string
+ *             restartPolicyRules:
+ *                 elementType:
+ *                     structRef: k8s.io/api/core/v1.ContainerRestartRule
+ *                     type: struct
+ *                 type: array
  *             securityContext:
  *                 pointer: true
  *                 structRef: k8s.io/api/core/v1.SecurityContext
@@ -12734,6 +12829,15 @@ export type SERVICE_RESOURCE_STATUS_REQUEST = SERVICE_RESOURCE_STATUS_REQUEST__M
  *                 type: array
  *             workingDir:
  *                 type: string
+ *     k8s.io/api/core/v1.ContainerExtendedResourceRequest:
+ *         name: k8s.io/api/core/v1.ContainerExtendedResourceRequest
+ *         properties:
+ *             containerName:
+ *                 type: string
+ *             requestName:
+ *                 type: string
+ *             resourceName:
+ *                 type: string
  *     k8s.io/api/core/v1.ContainerPort:
  *         name: k8s.io/api/core/v1.ContainerPort
  *         properties:
@@ -12754,6 +12858,24 @@ export type SERVICE_RESOURCE_STATUS_REQUEST = SERVICE_RESOURCE_STATUS_REQUEST__M
  *                 type: string
  *             restartPolicy:
  *                 type: string
+ *     k8s.io/api/core/v1.ContainerRestartRule:
+ *         name: k8s.io/api/core/v1.ContainerRestartRule
+ *         properties:
+ *             action:
+ *                 type: string
+ *             exitCodes:
+ *                 pointer: true
+ *                 structRef: k8s.io/api/core/v1.ContainerRestartRuleOnExitCodes
+ *                 type: struct
+ *     k8s.io/api/core/v1.ContainerRestartRuleOnExitCodes:
+ *         name: k8s.io/api/core/v1.ContainerRestartRuleOnExitCodes
+ *         properties:
+ *             operator:
+ *                 type: string
+ *             values:
+ *                 elementType:
+ *                     type: int
+ *                 type: array
  *     k8s.io/api/core/v1.ContainerState:
  *         name: k8s.io/api/core/v1.ContainerState
  *         properties:
@@ -12939,6 +13061,10 @@ export type SERVICE_RESOURCE_STATUS_REQUEST = SERVICE_RESOURCE_STATUS_REQUEST__M
  *                 pointer: true
  *                 structRef: k8s.io/api/core/v1.ObjectFieldSelector
  *                 type: struct
+ *             fileKeyRef:
+ *                 pointer: true
+ *                 structRef: k8s.io/api/core/v1.FileKeySelector
+ *                 type: struct
  *             resourceFieldRef:
  *                 pointer: true
  *                 structRef: k8s.io/api/core/v1.ResourceFieldSelector
@@ -13010,6 +13136,11 @@ export type SERVICE_RESOURCE_STATUS_REQUEST = SERVICE_RESOURCE_STATUS_REQUEST__M
  *             restartPolicy:
  *                 pointer: true
  *                 type: string
+ *             restartPolicyRules:
+ *                 elementType:
+ *                     structRef: k8s.io/api/core/v1.ContainerRestartRule
+ *                     type: struct
+ *                 type: array
  *             securityContext:
  *                 pointer: true
  *                 structRef: k8s.io/api/core/v1.SecurityContext
@@ -13072,6 +13203,18 @@ export type SERVICE_RESOURCE_STATUS_REQUEST = SERVICE_RESOURCE_STATUS_REQUEST__M
  *                 elementType:
  *                     type: string
  *                 type: array
+ *     k8s.io/api/core/v1.FileKeySelector:
+ *         name: k8s.io/api/core/v1.FileKeySelector
+ *         properties:
+ *             key:
+ *                 type: string
+ *             optional:
+ *                 pointer: true
+ *                 type: bool
+ *             path:
+ *                 type: string
+ *             volumeName:
+ *                 type: string
  *     k8s.io/api/core/v1.FlexVolumeSource:
  *         name: k8s.io/api/core/v1.FlexVolumeSource
  *         properties:
@@ -13459,6 +13602,22 @@ export type SERVICE_RESOURCE_STATUS_REQUEST = SERVICE_RESOURCE_STATUS_REQUEST__M
  *                     structRef: k8s.io/api/core/v1.PodAffinityTerm
  *                     type: struct
  *                 type: array
+ *     k8s.io/api/core/v1.PodCertificateProjection:
+ *         name: k8s.io/api/core/v1.PodCertificateProjection
+ *         properties:
+ *             certificateChainPath:
+ *                 type: string
+ *             credentialBundlePath:
+ *                 type: string
+ *             keyPath:
+ *                 type: string
+ *             keyType:
+ *                 type: string
+ *             maxExpirationSeconds:
+ *                 pointer: true
+ *                 type: int
+ *             signerName:
+ *                 type: string
  *     k8s.io/api/core/v1.PodCondition:
  *         name: k8s.io/api/core/v1.PodCondition
  *         properties:
@@ -13501,6 +13660,16 @@ export type SERVICE_RESOURCE_STATUS_REQUEST = SERVICE_RESOURCE_STATUS_REQUEST__M
  *                 type: string
  *             value:
  *                 pointer: true
+ *                 type: string
+ *     k8s.io/api/core/v1.PodExtendedResourceClaimStatus:
+ *         name: k8s.io/api/core/v1.PodExtendedResourceClaimStatus
+ *         properties:
+ *             requestMappings:
+ *                 elementType:
+ *                     structRef: k8s.io/api/core/v1.ContainerExtendedResourceRequest
+ *                     type: struct
+ *                 type: array
+ *             resourceClaimName:
  *                 type: string
  *     k8s.io/api/core/v1.PodIP:
  *         name: k8s.io/api/core/v1.PodIP
@@ -13638,6 +13807,9 @@ export type SERVICE_RESOURCE_STATUS_REQUEST = SERVICE_RESOURCE_STATUS_REQUEST__M
  *                 type: bool
  *             hostname:
  *                 type: string
+ *             hostnameOverride:
+ *                 pointer: true
+ *                 type: string
  *             imagePullSecrets:
  *                 elementType:
  *                     structRef: k8s.io/api/core/v1.LocalObjectReference
@@ -13753,6 +13925,10 @@ export type SERVICE_RESOURCE_STATUS_REQUEST = SERVICE_RESOURCE_STATUS_REQUEST__M
  *                     structRef: k8s.io/api/core/v1.ContainerStatus
  *                     type: struct
  *                 type: array
+ *             extendedResourceClaimStatus:
+ *                 pointer: true
+ *                 structRef: k8s.io/api/core/v1.PodExtendedResourceClaimStatus
+ *                 type: struct
  *             hostIP:
  *                 type: string
  *             hostIPs:
@@ -14261,6 +14437,10 @@ export type SERVICE_RESOURCE_STATUS_REQUEST = SERVICE_RESOURCE_STATUS_REQUEST__M
  *             downwardAPI:
  *                 pointer: true
  *                 structRef: k8s.io/api/core/v1.DownwardAPIProjection
+ *                 type: struct
+ *             podCertificate:
+ *                 pointer: true
+ *                 structRef: k8s.io/api/core/v1.PodCertificateProjection
  *                 type: struct
  *             secret:
  *                 pointer: true
@@ -19535,9 +19715,12 @@ export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONFIGMAPENVSOURCE = {"Loc
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONFIGMAPKEYSELECTOR = {"LocalObjectReference": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_LOCALOBJECTREFERENCE,"key": string,"optional": boolean|undefined};
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONFIGMAPPROJECTION = {"LocalObjectReference": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_LOCALOBJECTREFERENCE,"items": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_KEYTOPATH[],"optional": boolean|undefined};
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONFIGMAPVOLUMESOURCE = {"LocalObjectReference": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_LOCALOBJECTREFERENCE,"defaultMode": number|undefined,"items": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_KEYTOPATH[],"optional": boolean|undefined};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINER = {"args": string[],"command": string[],"env": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_ENVVAR[],"envFrom": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_ENVFROMSOURCE[],"image": string,"imagePullPolicy": string,"lifecycle": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_LIFECYCLE|undefined,"livenessProbe": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PROBE|undefined,"name": string,"ports": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERPORT[],"readinessProbe": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PROBE|undefined,"resizePolicy": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERRESIZEPOLICY[],"resources": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_RESOURCEREQUIREMENTS,"restartPolicy": string|undefined,"securityContext": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_SECURITYCONTEXT|undefined,"startupProbe": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PROBE|undefined,"stdin": boolean,"stdinOnce": boolean,"terminationMessagePath": string,"terminationMessagePolicy": string,"tty": boolean,"volumeDevices": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_VOLUMEDEVICE[],"volumeMounts": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_VOLUMEMOUNT[],"workingDir": string};
+export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINER = {"args": string[],"command": string[],"env": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_ENVVAR[],"envFrom": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_ENVFROMSOURCE[],"image": string,"imagePullPolicy": string,"lifecycle": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_LIFECYCLE|undefined,"livenessProbe": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PROBE|undefined,"name": string,"ports": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERPORT[],"readinessProbe": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PROBE|undefined,"resizePolicy": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERRESIZEPOLICY[],"resources": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_RESOURCEREQUIREMENTS,"restartPolicy": string|undefined,"restartPolicyRules": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERRESTARTRULE[],"securityContext": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_SECURITYCONTEXT|undefined,"startupProbe": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PROBE|undefined,"stdin": boolean,"stdinOnce": boolean,"terminationMessagePath": string,"terminationMessagePolicy": string,"tty": boolean,"volumeDevices": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_VOLUMEDEVICE[],"volumeMounts": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_VOLUMEMOUNT[],"workingDir": string};
+export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINEREXTENDEDRESOURCEREQUEST = {"containerName": string,"requestName": string,"resourceName": string};
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERPORT = {"containerPort": number,"hostIP": string,"hostPort": number,"name": string,"protocol": string};
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERRESIZEPOLICY = {"resourceName": string,"restartPolicy": string};
+export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERRESTARTRULE = {"action": string,"exitCodes": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERRESTARTRULEONEXITCODES|undefined};
+export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERRESTARTRULEONEXITCODES = {"operator": string,"values": number[]};
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATE = {"running": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATERUNNING|undefined,"terminated": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATETERMINATED|undefined,"waiting": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATEWAITING|undefined};
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATERUNNING = {"startedAt": SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME};
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATETERMINATED = {"containerID": string,"exitCode": number,"finishedAt": SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME,"message": string,"reason": string,"signal": number,"startedAt": SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME};
@@ -19550,12 +19733,13 @@ export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_DOWNWARDAPIVOLUMESOURCE = 
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_EMPTYDIRVOLUMESOURCE = {"medium": string,"sizeLimit": SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY|undefined};
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_ENVFROMSOURCE = {"configMapRef": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONFIGMAPENVSOURCE|undefined,"prefix": string,"secretRef": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_SECRETENVSOURCE|undefined};
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_ENVVAR = {"name": string,"value": string,"valueFrom": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_ENVVARSOURCE|undefined};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_ENVVARSOURCE = {"configMapKeyRef": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONFIGMAPKEYSELECTOR|undefined,"fieldRef": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_OBJECTFIELDSELECTOR|undefined,"resourceFieldRef": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_RESOURCEFIELDSELECTOR|undefined,"secretKeyRef": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_SECRETKEYSELECTOR|undefined};
+export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_ENVVARSOURCE = {"configMapKeyRef": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONFIGMAPKEYSELECTOR|undefined,"fieldRef": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_OBJECTFIELDSELECTOR|undefined,"fileKeyRef": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_FILEKEYSELECTOR|undefined,"resourceFieldRef": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_RESOURCEFIELDSELECTOR|undefined,"secretKeyRef": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_SECRETKEYSELECTOR|undefined};
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_EPHEMERALCONTAINER = {"EphemeralContainerCommon": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_EPHEMERALCONTAINERCOMMON,"targetContainerName": string};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_EPHEMERALCONTAINERCOMMON = {"args": string[],"command": string[],"env": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_ENVVAR[],"envFrom": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_ENVFROMSOURCE[],"image": string,"imagePullPolicy": string,"lifecycle": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_LIFECYCLE|undefined,"livenessProbe": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PROBE|undefined,"name": string,"ports": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERPORT[],"readinessProbe": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PROBE|undefined,"resizePolicy": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERRESIZEPOLICY[],"resources": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_RESOURCEREQUIREMENTS,"restartPolicy": string|undefined,"securityContext": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_SECURITYCONTEXT|undefined,"startupProbe": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PROBE|undefined,"stdin": boolean,"stdinOnce": boolean,"terminationMessagePath": string,"terminationMessagePolicy": string,"tty": boolean,"volumeDevices": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_VOLUMEDEVICE[],"volumeMounts": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_VOLUMEMOUNT[],"workingDir": string};
+export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_EPHEMERALCONTAINERCOMMON = {"args": string[],"command": string[],"env": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_ENVVAR[],"envFrom": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_ENVFROMSOURCE[],"image": string,"imagePullPolicy": string,"lifecycle": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_LIFECYCLE|undefined,"livenessProbe": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PROBE|undefined,"name": string,"ports": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERPORT[],"readinessProbe": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PROBE|undefined,"resizePolicy": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERRESIZEPOLICY[],"resources": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_RESOURCEREQUIREMENTS,"restartPolicy": string|undefined,"restartPolicyRules": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERRESTARTRULE[],"securityContext": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_SECURITYCONTEXT|undefined,"startupProbe": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PROBE|undefined,"stdin": boolean,"stdinOnce": boolean,"terminationMessagePath": string,"terminationMessagePolicy": string,"tty": boolean,"volumeDevices": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_VOLUMEDEVICE[],"volumeMounts": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_VOLUMEMOUNT[],"workingDir": string};
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_EPHEMERALVOLUMESOURCE = {"volumeClaimTemplate": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PERSISTENTVOLUMECLAIMTEMPLATE|undefined};
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_EXECACTION = {"command": string[]};
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_FCVOLUMESOURCE = {"fsType": string,"lun": number|undefined,"readOnly": boolean,"targetWWNs": string[],"wwids": string[]};
+export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_FILEKEYSELECTOR = {"key": string,"optional": boolean|undefined,"path": string,"volumeName": string};
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_FLEXVOLUMESOURCE = {"driver": string,"fsType": string,"options": Record<string, string>,"readOnly": boolean,"secretRef": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_LOCALOBJECTREFERENCE|undefined};
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_FLOCKERVOLUMESOURCE = {"datasetName": string,"datasetUUID": string};
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_GCEPERSISTENTDISKVOLUMESOURCE = {"fsType": string,"partition": number,"pdName": string,"readOnly": boolean};
@@ -19588,9 +19772,11 @@ export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_POD = {"TypeMeta": SERVICE
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODAFFINITY = {"preferredDuringSchedulingIgnoredDuringExecution": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_WEIGHTEDPODAFFINITYTERM[],"requiredDuringSchedulingIgnoredDuringExecution": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODAFFINITYTERM[]};
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODAFFINITYTERM = {"labelSelector": SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR|undefined,"matchLabelKeys": string[],"mismatchLabelKeys": string[],"namespaceSelector": SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR|undefined,"namespaces": string[],"topologyKey": string};
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODANTIAFFINITY = {"preferredDuringSchedulingIgnoredDuringExecution": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_WEIGHTEDPODAFFINITYTERM[],"requiredDuringSchedulingIgnoredDuringExecution": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODAFFINITYTERM[]};
+export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODCERTIFICATEPROJECTION = {"certificateChainPath": string,"credentialBundlePath": string,"keyPath": string,"keyType": string,"maxExpirationSeconds": number|undefined,"signerName": string};
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODCONDITION = {"lastProbeTime": SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME,"lastTransitionTime": SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME,"message": string,"observedGeneration": number,"reason": string,"status": string,"type": string};
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODDNSCONFIG = {"nameservers": string[],"options": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODDNSCONFIGOPTION[],"searches": string[]};
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODDNSCONFIGOPTION = {"name": string,"value": string|undefined};
+export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODEXTENDEDRESOURCECLAIMSTATUS = {"requestMappings": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINEREXTENDEDRESOURCEREQUEST[],"resourceClaimName": string};
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODIP = {"ip": string};
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODOS = {"name": string};
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODREADINESSGATE = {"conditionType": string};
@@ -19598,8 +19784,8 @@ export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODRESOURCECLAIM = {"name"
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODRESOURCECLAIMSTATUS = {"name": string,"resourceClaimName": string|undefined};
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODSCHEDULINGGATE = {"name": string};
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODSECURITYCONTEXT = {"appArmorProfile": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_APPARMORPROFILE|undefined,"fsGroup": number|undefined,"fsGroupChangePolicy": string|undefined,"runAsGroup": number|undefined,"runAsNonRoot": boolean|undefined,"runAsUser": number|undefined,"seLinuxChangePolicy": string|undefined,"seLinuxOptions": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_SELINUXOPTIONS|undefined,"seccompProfile": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_SECCOMPPROFILE|undefined,"supplementalGroups": number[],"supplementalGroupsPolicy": string|undefined,"sysctls": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_SYSCTL[],"windowsOptions": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_WINDOWSSECURITYCONTEXTOPTIONS|undefined};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODSPEC = {"activeDeadlineSeconds": number|undefined,"affinity": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_AFFINITY|undefined,"automountServiceAccountToken": boolean|undefined,"containers": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINER[],"dnsConfig": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODDNSCONFIG|undefined,"dnsPolicy": string,"enableServiceLinks": boolean|undefined,"ephemeralContainers": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_EPHEMERALCONTAINER[],"hostAliases": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_HOSTALIAS[],"hostIPC": boolean,"hostNetwork": boolean,"hostPID": boolean,"hostUsers": boolean|undefined,"hostname": string,"imagePullSecrets": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_LOCALOBJECTREFERENCE[],"initContainers": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINER[],"nodeName": string,"nodeSelector": Record<string, string>,"os": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODOS|undefined,"overhead": Record<string, SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY>,"preemptionPolicy": string|undefined,"priority": number|undefined,"priorityClassName": string,"readinessGates": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODREADINESSGATE[],"resourceClaims": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODRESOURCECLAIM[],"resources": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_RESOURCEREQUIREMENTS|undefined,"restartPolicy": string,"runtimeClassName": string|undefined,"schedulerName": string,"schedulingGates": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODSCHEDULINGGATE[],"securityContext": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODSECURITYCONTEXT|undefined,"serviceAccount": string,"serviceAccountName": string,"setHostnameAsFQDN": boolean|undefined,"shareProcessNamespace": boolean|undefined,"subdomain": string,"terminationGracePeriodSeconds": number|undefined,"tolerations": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_TOLERATION[],"topologySpreadConstraints": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_TOPOLOGYSPREADCONSTRAINT[],"volumes": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_VOLUME[]};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODSTATUS = {"conditions": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODCONDITION[],"containerStatuses": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATUS[],"ephemeralContainerStatuses": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATUS[],"hostIP": string,"hostIPs": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_HOSTIP[],"initContainerStatuses": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATUS[],"message": string,"nominatedNodeName": string,"observedGeneration": number,"phase": string,"podIP": string,"podIPs": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODIP[],"qosClass": string,"reason": string,"resize": string,"resourceClaimStatuses": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODRESOURCECLAIMSTATUS[],"startTime": SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME|undefined};
+export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODSPEC = {"activeDeadlineSeconds": number|undefined,"affinity": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_AFFINITY|undefined,"automountServiceAccountToken": boolean|undefined,"containers": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINER[],"dnsConfig": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODDNSCONFIG|undefined,"dnsPolicy": string,"enableServiceLinks": boolean|undefined,"ephemeralContainers": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_EPHEMERALCONTAINER[],"hostAliases": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_HOSTALIAS[],"hostIPC": boolean,"hostNetwork": boolean,"hostPID": boolean,"hostUsers": boolean|undefined,"hostname": string,"hostnameOverride": string|undefined,"imagePullSecrets": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_LOCALOBJECTREFERENCE[],"initContainers": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINER[],"nodeName": string,"nodeSelector": Record<string, string>,"os": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODOS|undefined,"overhead": Record<string, SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY>,"preemptionPolicy": string|undefined,"priority": number|undefined,"priorityClassName": string,"readinessGates": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODREADINESSGATE[],"resourceClaims": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODRESOURCECLAIM[],"resources": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_RESOURCEREQUIREMENTS|undefined,"restartPolicy": string,"runtimeClassName": string|undefined,"schedulerName": string,"schedulingGates": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODSCHEDULINGGATE[],"securityContext": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODSECURITYCONTEXT|undefined,"serviceAccount": string,"serviceAccountName": string,"setHostnameAsFQDN": boolean|undefined,"shareProcessNamespace": boolean|undefined,"subdomain": string,"terminationGracePeriodSeconds": number|undefined,"tolerations": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_TOLERATION[],"topologySpreadConstraints": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_TOPOLOGYSPREADCONSTRAINT[],"volumes": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_VOLUME[]};
+export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODSTATUS = {"conditions": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODCONDITION[],"containerStatuses": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATUS[],"ephemeralContainerStatuses": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATUS[],"extendedResourceClaimStatus": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODEXTENDEDRESOURCECLAIMSTATUS|undefined,"hostIP": string,"hostIPs": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_HOSTIP[],"initContainerStatuses": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATUS[],"message": string,"nominatedNodeName": string,"observedGeneration": number,"phase": string,"podIP": string,"podIPs": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODIP[],"qosClass": string,"reason": string,"resize": string,"resourceClaimStatuses": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODRESOURCECLAIMSTATUS[],"startTime": SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME|undefined};
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PORTWORXVOLUMESOURCE = {"fsType": string,"readOnly": boolean,"volumeID": string};
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PREFERREDSCHEDULINGTERM = {"preference": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_NODESELECTORTERM,"weight": number};
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PROBE = {"ProbeHandler": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PROBEHANDLER,"failureThreshold": number,"initialDelaySeconds": number,"periodSeconds": number,"successThreshold": number,"terminationGracePeriodSeconds": number|undefined,"timeoutSeconds": number};
@@ -19633,7 +19819,7 @@ export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_VOLUME = {"VolumeSource": 
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_VOLUMEDEVICE = {"devicePath": string,"name": string};
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_VOLUMEMOUNT = {"mountPath": string,"mountPropagation": string|undefined,"name": string,"readOnly": boolean,"recursiveReadOnly": string|undefined,"subPath": string,"subPathExpr": string};
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_VOLUMEMOUNTSTATUS = {"mountPath": string,"name": string,"readOnly": boolean,"recursiveReadOnly": string|undefined};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_VOLUMEPROJECTION = {"clusterTrustBundle": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CLUSTERTRUSTBUNDLEPROJECTION|undefined,"configMap": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONFIGMAPPROJECTION|undefined,"downwardAPI": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_DOWNWARDAPIPROJECTION|undefined,"secret": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_SECRETPROJECTION|undefined,"serviceAccountToken": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_SERVICEACCOUNTTOKENPROJECTION|undefined};
+export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_VOLUMEPROJECTION = {"clusterTrustBundle": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CLUSTERTRUSTBUNDLEPROJECTION|undefined,"configMap": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONFIGMAPPROJECTION|undefined,"downwardAPI": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_DOWNWARDAPIPROJECTION|undefined,"podCertificate": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODCERTIFICATEPROJECTION|undefined,"secret": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_SECRETPROJECTION|undefined,"serviceAccountToken": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_SERVICEACCOUNTTOKENPROJECTION|undefined};
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_VOLUMERESOURCEREQUIREMENTS = {"limits": Record<string, SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY>,"requests": Record<string, SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY>};
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_VOLUMESOURCE = {"awsElasticBlockStore": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_AWSELASTICBLOCKSTOREVOLUMESOURCE|undefined,"azureDisk": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_AZUREDISKVOLUMESOURCE|undefined,"azureFile": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_AZUREFILEVOLUMESOURCE|undefined,"cephfs": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CEPHFSVOLUMESOURCE|undefined,"cinder": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CINDERVOLUMESOURCE|undefined,"configMap": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONFIGMAPVOLUMESOURCE|undefined,"csi": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CSIVOLUMESOURCE|undefined,"downwardAPI": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_DOWNWARDAPIVOLUMESOURCE|undefined,"emptyDir": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_EMPTYDIRVOLUMESOURCE|undefined,"ephemeral": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_EPHEMERALVOLUMESOURCE|undefined,"fc": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_FCVOLUMESOURCE|undefined,"flexVolume": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_FLEXVOLUMESOURCE|undefined,"flocker": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_FLOCKERVOLUMESOURCE|undefined,"gcePersistentDisk": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_GCEPERSISTENTDISKVOLUMESOURCE|undefined,"gitRepo": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_GITREPOVOLUMESOURCE|undefined,"glusterfs": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_GLUSTERFSVOLUMESOURCE|undefined,"hostPath": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_HOSTPATHVOLUMESOURCE|undefined,"image": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_IMAGEVOLUMESOURCE|undefined,"iscsi": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_ISCSIVOLUMESOURCE|undefined,"nfs": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_NFSVOLUMESOURCE|undefined,"persistentVolumeClaim": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PERSISTENTVOLUMECLAIMVOLUMESOURCE|undefined,"photonPersistentDisk": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PHOTONPERSISTENTDISKVOLUMESOURCE|undefined,"portworxVolume": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PORTWORXVOLUMESOURCE|undefined,"projected": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PROJECTEDVOLUMESOURCE|undefined,"quobyte": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_QUOBYTEVOLUMESOURCE|undefined,"rbd": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_RBDVOLUMESOURCE|undefined,"scaleIO": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_SCALEIOVOLUMESOURCE|undefined,"secret": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_SECRETVOLUMESOURCE|undefined,"storageos": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_STORAGEOSVOLUMESOURCE|undefined,"vsphereVolume": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_VSPHEREVIRTUALDISKVOLUMESOURCE|undefined};
 export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_VSPHEREVIRTUALDISKVOLUMESOURCE = {"fsType": string,"storagePolicyID": string,"storagePolicyName": string,"volumePath": string};
@@ -19669,9 +19855,12 @@ export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONFIGMAPENVSOU
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONFIGMAPKEYSELECTOR = {"LocalObjectReference": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_LOCALOBJECTREFERENCE,"key": string,"optional": boolean|undefined};
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONFIGMAPPROJECTION = {"LocalObjectReference": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_LOCALOBJECTREFERENCE,"items": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_KEYTOPATH[],"optional": boolean|undefined};
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONFIGMAPVOLUMESOURCE = {"LocalObjectReference": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_LOCALOBJECTREFERENCE,"defaultMode": number|undefined,"items": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_KEYTOPATH[],"optional": boolean|undefined};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINER = {"args": string[],"command": string[],"env": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_ENVVAR[],"envFrom": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_ENVFROMSOURCE[],"image": string,"imagePullPolicy": string,"lifecycle": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_LIFECYCLE|undefined,"livenessProbe": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PROBE|undefined,"name": string,"ports": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERPORT[],"readinessProbe": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PROBE|undefined,"resizePolicy": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERRESIZEPOLICY[],"resources": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_RESOURCEREQUIREMENTS,"restartPolicy": string|undefined,"securityContext": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_SECURITYCONTEXT|undefined,"startupProbe": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PROBE|undefined,"stdin": boolean,"stdinOnce": boolean,"terminationMessagePath": string,"terminationMessagePolicy": string,"tty": boolean,"volumeDevices": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_VOLUMEDEVICE[],"volumeMounts": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_VOLUMEMOUNT[],"workingDir": string};
+export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINER = {"args": string[],"command": string[],"env": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_ENVVAR[],"envFrom": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_ENVFROMSOURCE[],"image": string,"imagePullPolicy": string,"lifecycle": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_LIFECYCLE|undefined,"livenessProbe": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PROBE|undefined,"name": string,"ports": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERPORT[],"readinessProbe": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PROBE|undefined,"resizePolicy": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERRESIZEPOLICY[],"resources": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_RESOURCEREQUIREMENTS,"restartPolicy": string|undefined,"restartPolicyRules": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERRESTARTRULE[],"securityContext": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_SECURITYCONTEXT|undefined,"startupProbe": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PROBE|undefined,"stdin": boolean,"stdinOnce": boolean,"terminationMessagePath": string,"terminationMessagePolicy": string,"tty": boolean,"volumeDevices": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_VOLUMEDEVICE[],"volumeMounts": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_VOLUMEMOUNT[],"workingDir": string};
+export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINEREXTENDEDRESOURCEREQUEST = {"containerName": string,"requestName": string,"resourceName": string};
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERPORT = {"containerPort": number,"hostIP": string,"hostPort": number,"name": string,"protocol": string};
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERRESIZEPOLICY = {"resourceName": string,"restartPolicy": string};
+export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERRESTARTRULE = {"action": string,"exitCodes": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERRESTARTRULEONEXITCODES|undefined};
+export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERRESTARTRULEONEXITCODES = {"operator": string,"values": number[]};
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATE = {"running": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATERUNNING|undefined,"terminated": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATETERMINATED|undefined,"waiting": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATEWAITING|undefined};
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATERUNNING = {"startedAt": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME};
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATETERMINATED = {"containerID": string,"exitCode": number,"finishedAt": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME,"message": string,"reason": string,"signal": number,"startedAt": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME};
@@ -19684,12 +19873,13 @@ export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_DOWNWARDAPIVOLU
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_EMPTYDIRVOLUMESOURCE = {"medium": string,"sizeLimit": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY|undefined};
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_ENVFROMSOURCE = {"configMapRef": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONFIGMAPENVSOURCE|undefined,"prefix": string,"secretRef": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_SECRETENVSOURCE|undefined};
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_ENVVAR = {"name": string,"value": string,"valueFrom": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_ENVVARSOURCE|undefined};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_ENVVARSOURCE = {"configMapKeyRef": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONFIGMAPKEYSELECTOR|undefined,"fieldRef": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_OBJECTFIELDSELECTOR|undefined,"resourceFieldRef": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_RESOURCEFIELDSELECTOR|undefined,"secretKeyRef": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_SECRETKEYSELECTOR|undefined};
+export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_ENVVARSOURCE = {"configMapKeyRef": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONFIGMAPKEYSELECTOR|undefined,"fieldRef": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_OBJECTFIELDSELECTOR|undefined,"fileKeyRef": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_FILEKEYSELECTOR|undefined,"resourceFieldRef": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_RESOURCEFIELDSELECTOR|undefined,"secretKeyRef": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_SECRETKEYSELECTOR|undefined};
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_EPHEMERALCONTAINER = {"EphemeralContainerCommon": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_EPHEMERALCONTAINERCOMMON,"targetContainerName": string};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_EPHEMERALCONTAINERCOMMON = {"args": string[],"command": string[],"env": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_ENVVAR[],"envFrom": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_ENVFROMSOURCE[],"image": string,"imagePullPolicy": string,"lifecycle": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_LIFECYCLE|undefined,"livenessProbe": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PROBE|undefined,"name": string,"ports": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERPORT[],"readinessProbe": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PROBE|undefined,"resizePolicy": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERRESIZEPOLICY[],"resources": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_RESOURCEREQUIREMENTS,"restartPolicy": string|undefined,"securityContext": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_SECURITYCONTEXT|undefined,"startupProbe": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PROBE|undefined,"stdin": boolean,"stdinOnce": boolean,"terminationMessagePath": string,"terminationMessagePolicy": string,"tty": boolean,"volumeDevices": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_VOLUMEDEVICE[],"volumeMounts": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_VOLUMEMOUNT[],"workingDir": string};
+export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_EPHEMERALCONTAINERCOMMON = {"args": string[],"command": string[],"env": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_ENVVAR[],"envFrom": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_ENVFROMSOURCE[],"image": string,"imagePullPolicy": string,"lifecycle": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_LIFECYCLE|undefined,"livenessProbe": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PROBE|undefined,"name": string,"ports": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERPORT[],"readinessProbe": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PROBE|undefined,"resizePolicy": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERRESIZEPOLICY[],"resources": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_RESOURCEREQUIREMENTS,"restartPolicy": string|undefined,"restartPolicyRules": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERRESTARTRULE[],"securityContext": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_SECURITYCONTEXT|undefined,"startupProbe": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PROBE|undefined,"stdin": boolean,"stdinOnce": boolean,"terminationMessagePath": string,"terminationMessagePolicy": string,"tty": boolean,"volumeDevices": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_VOLUMEDEVICE[],"volumeMounts": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_VOLUMEMOUNT[],"workingDir": string};
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_EPHEMERALVOLUMESOURCE = {"volumeClaimTemplate": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PERSISTENTVOLUMECLAIMTEMPLATE|undefined};
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_EXECACTION = {"command": string[]};
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_FCVOLUMESOURCE = {"fsType": string,"lun": number|undefined,"readOnly": boolean,"targetWWNs": string[],"wwids": string[]};
+export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_FILEKEYSELECTOR = {"key": string,"optional": boolean|undefined,"path": string,"volumeName": string};
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_FLEXVOLUMESOURCE = {"driver": string,"fsType": string,"options": Record<string, string>,"readOnly": boolean,"secretRef": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_LOCALOBJECTREFERENCE|undefined};
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_FLOCKERVOLUMESOURCE = {"datasetName": string,"datasetUUID": string};
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_GCEPERSISTENTDISKVOLUMESOURCE = {"fsType": string,"partition": number,"pdName": string,"readOnly": boolean};
@@ -19722,9 +19912,11 @@ export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_POD = {"TypeMet
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODAFFINITY = {"preferredDuringSchedulingIgnoredDuringExecution": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_WEIGHTEDPODAFFINITYTERM[],"requiredDuringSchedulingIgnoredDuringExecution": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODAFFINITYTERM[]};
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODAFFINITYTERM = {"labelSelector": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR|undefined,"matchLabelKeys": string[],"mismatchLabelKeys": string[],"namespaceSelector": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR|undefined,"namespaces": string[],"topologyKey": string};
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODANTIAFFINITY = {"preferredDuringSchedulingIgnoredDuringExecution": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_WEIGHTEDPODAFFINITYTERM[],"requiredDuringSchedulingIgnoredDuringExecution": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODAFFINITYTERM[]};
+export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODCERTIFICATEPROJECTION = {"certificateChainPath": string,"credentialBundlePath": string,"keyPath": string,"keyType": string,"maxExpirationSeconds": number|undefined,"signerName": string};
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODCONDITION = {"lastProbeTime": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME,"lastTransitionTime": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME,"message": string,"observedGeneration": number,"reason": string,"status": string,"type": string};
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODDNSCONFIG = {"nameservers": string[],"options": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODDNSCONFIGOPTION[],"searches": string[]};
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODDNSCONFIGOPTION = {"name": string,"value": string|undefined};
+export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODEXTENDEDRESOURCECLAIMSTATUS = {"requestMappings": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINEREXTENDEDRESOURCEREQUEST[],"resourceClaimName": string};
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODIP = {"ip": string};
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODOS = {"name": string};
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODREADINESSGATE = {"conditionType": string};
@@ -19732,8 +19924,8 @@ export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODRESOURCECLAI
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODRESOURCECLAIMSTATUS = {"name": string,"resourceClaimName": string|undefined};
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODSCHEDULINGGATE = {"name": string};
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODSECURITYCONTEXT = {"appArmorProfile": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_APPARMORPROFILE|undefined,"fsGroup": number|undefined,"fsGroupChangePolicy": string|undefined,"runAsGroup": number|undefined,"runAsNonRoot": boolean|undefined,"runAsUser": number|undefined,"seLinuxChangePolicy": string|undefined,"seLinuxOptions": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_SELINUXOPTIONS|undefined,"seccompProfile": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_SECCOMPPROFILE|undefined,"supplementalGroups": number[],"supplementalGroupsPolicy": string|undefined,"sysctls": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_SYSCTL[],"windowsOptions": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_WINDOWSSECURITYCONTEXTOPTIONS|undefined};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODSPEC = {"activeDeadlineSeconds": number|undefined,"affinity": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_AFFINITY|undefined,"automountServiceAccountToken": boolean|undefined,"containers": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINER[],"dnsConfig": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODDNSCONFIG|undefined,"dnsPolicy": string,"enableServiceLinks": boolean|undefined,"ephemeralContainers": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_EPHEMERALCONTAINER[],"hostAliases": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_HOSTALIAS[],"hostIPC": boolean,"hostNetwork": boolean,"hostPID": boolean,"hostUsers": boolean|undefined,"hostname": string,"imagePullSecrets": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_LOCALOBJECTREFERENCE[],"initContainers": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINER[],"nodeName": string,"nodeSelector": Record<string, string>,"os": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODOS|undefined,"overhead": Record<string, SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY>,"preemptionPolicy": string|undefined,"priority": number|undefined,"priorityClassName": string,"readinessGates": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODREADINESSGATE[],"resourceClaims": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODRESOURCECLAIM[],"resources": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_RESOURCEREQUIREMENTS|undefined,"restartPolicy": string,"runtimeClassName": string|undefined,"schedulerName": string,"schedulingGates": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODSCHEDULINGGATE[],"securityContext": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODSECURITYCONTEXT|undefined,"serviceAccount": string,"serviceAccountName": string,"setHostnameAsFQDN": boolean|undefined,"shareProcessNamespace": boolean|undefined,"subdomain": string,"terminationGracePeriodSeconds": number|undefined,"tolerations": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_TOLERATION[],"topologySpreadConstraints": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_TOPOLOGYSPREADCONSTRAINT[],"volumes": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_VOLUME[]};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODSTATUS = {"conditions": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODCONDITION[],"containerStatuses": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATUS[],"ephemeralContainerStatuses": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATUS[],"hostIP": string,"hostIPs": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_HOSTIP[],"initContainerStatuses": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATUS[],"message": string,"nominatedNodeName": string,"observedGeneration": number,"phase": string,"podIP": string,"podIPs": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODIP[],"qosClass": string,"reason": string,"resize": string,"resourceClaimStatuses": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODRESOURCECLAIMSTATUS[],"startTime": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME|undefined};
+export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODSPEC = {"activeDeadlineSeconds": number|undefined,"affinity": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_AFFINITY|undefined,"automountServiceAccountToken": boolean|undefined,"containers": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINER[],"dnsConfig": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODDNSCONFIG|undefined,"dnsPolicy": string,"enableServiceLinks": boolean|undefined,"ephemeralContainers": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_EPHEMERALCONTAINER[],"hostAliases": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_HOSTALIAS[],"hostIPC": boolean,"hostNetwork": boolean,"hostPID": boolean,"hostUsers": boolean|undefined,"hostname": string,"hostnameOverride": string|undefined,"imagePullSecrets": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_LOCALOBJECTREFERENCE[],"initContainers": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINER[],"nodeName": string,"nodeSelector": Record<string, string>,"os": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODOS|undefined,"overhead": Record<string, SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY>,"preemptionPolicy": string|undefined,"priority": number|undefined,"priorityClassName": string,"readinessGates": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODREADINESSGATE[],"resourceClaims": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODRESOURCECLAIM[],"resources": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_RESOURCEREQUIREMENTS|undefined,"restartPolicy": string,"runtimeClassName": string|undefined,"schedulerName": string,"schedulingGates": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODSCHEDULINGGATE[],"securityContext": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODSECURITYCONTEXT|undefined,"serviceAccount": string,"serviceAccountName": string,"setHostnameAsFQDN": boolean|undefined,"shareProcessNamespace": boolean|undefined,"subdomain": string,"terminationGracePeriodSeconds": number|undefined,"tolerations": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_TOLERATION[],"topologySpreadConstraints": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_TOPOLOGYSPREADCONSTRAINT[],"volumes": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_VOLUME[]};
+export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODSTATUS = {"conditions": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODCONDITION[],"containerStatuses": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATUS[],"ephemeralContainerStatuses": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATUS[],"extendedResourceClaimStatus": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODEXTENDEDRESOURCECLAIMSTATUS|undefined,"hostIP": string,"hostIPs": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_HOSTIP[],"initContainerStatuses": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATUS[],"message": string,"nominatedNodeName": string,"observedGeneration": number,"phase": string,"podIP": string,"podIPs": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODIP[],"qosClass": string,"reason": string,"resize": string,"resourceClaimStatuses": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODRESOURCECLAIMSTATUS[],"startTime": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME|undefined};
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PORTWORXVOLUMESOURCE = {"fsType": string,"readOnly": boolean,"volumeID": string};
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PREFERREDSCHEDULINGTERM = {"preference": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_NODESELECTORTERM,"weight": number};
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PROBE = {"ProbeHandler": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PROBEHANDLER,"failureThreshold": number,"initialDelaySeconds": number,"periodSeconds": number,"successThreshold": number,"terminationGracePeriodSeconds": number|undefined,"timeoutSeconds": number};
@@ -19767,7 +19959,7 @@ export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_VOLUME = {"Volu
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_VOLUMEDEVICE = {"devicePath": string,"name": string};
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_VOLUMEMOUNT = {"mountPath": string,"mountPropagation": string|undefined,"name": string,"readOnly": boolean,"recursiveReadOnly": string|undefined,"subPath": string,"subPathExpr": string};
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_VOLUMEMOUNTSTATUS = {"mountPath": string,"name": string,"readOnly": boolean,"recursiveReadOnly": string|undefined};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_VOLUMEPROJECTION = {"clusterTrustBundle": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CLUSTERTRUSTBUNDLEPROJECTION|undefined,"configMap": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONFIGMAPPROJECTION|undefined,"downwardAPI": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_DOWNWARDAPIPROJECTION|undefined,"secret": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_SECRETPROJECTION|undefined,"serviceAccountToken": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_SERVICEACCOUNTTOKENPROJECTION|undefined};
+export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_VOLUMEPROJECTION = {"clusterTrustBundle": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CLUSTERTRUSTBUNDLEPROJECTION|undefined,"configMap": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONFIGMAPPROJECTION|undefined,"downwardAPI": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_DOWNWARDAPIPROJECTION|undefined,"podCertificate": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODCERTIFICATEPROJECTION|undefined,"secret": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_SECRETPROJECTION|undefined,"serviceAccountToken": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_SERVICEACCOUNTTOKENPROJECTION|undefined};
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_VOLUMERESOURCEREQUIREMENTS = {"limits": Record<string, SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY>,"requests": Record<string, SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY>};
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_VOLUMESOURCE = {"awsElasticBlockStore": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_AWSELASTICBLOCKSTOREVOLUMESOURCE|undefined,"azureDisk": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_AZUREDISKVOLUMESOURCE|undefined,"azureFile": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_AZUREFILEVOLUMESOURCE|undefined,"cephfs": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CEPHFSVOLUMESOURCE|undefined,"cinder": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CINDERVOLUMESOURCE|undefined,"configMap": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONFIGMAPVOLUMESOURCE|undefined,"csi": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CSIVOLUMESOURCE|undefined,"downwardAPI": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_DOWNWARDAPIVOLUMESOURCE|undefined,"emptyDir": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_EMPTYDIRVOLUMESOURCE|undefined,"ephemeral": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_EPHEMERALVOLUMESOURCE|undefined,"fc": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_FCVOLUMESOURCE|undefined,"flexVolume": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_FLEXVOLUMESOURCE|undefined,"flocker": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_FLOCKERVOLUMESOURCE|undefined,"gcePersistentDisk": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_GCEPERSISTENTDISKVOLUMESOURCE|undefined,"gitRepo": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_GITREPOVOLUMESOURCE|undefined,"glusterfs": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_GLUSTERFSVOLUMESOURCE|undefined,"hostPath": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_HOSTPATHVOLUMESOURCE|undefined,"image": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_IMAGEVOLUMESOURCE|undefined,"iscsi": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_ISCSIVOLUMESOURCE|undefined,"nfs": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_NFSVOLUMESOURCE|undefined,"persistentVolumeClaim": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PERSISTENTVOLUMECLAIMVOLUMESOURCE|undefined,"photonPersistentDisk": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PHOTONPERSISTENTDISKVOLUMESOURCE|undefined,"portworxVolume": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PORTWORXVOLUMESOURCE|undefined,"projected": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PROJECTEDVOLUMESOURCE|undefined,"quobyte": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_QUOBYTEVOLUMESOURCE|undefined,"rbd": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_RBDVOLUMESOURCE|undefined,"scaleIO": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_SCALEIOVOLUMESOURCE|undefined,"secret": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_SECRETVOLUMESOURCE|undefined,"storageos": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_STORAGEOSVOLUMESOURCE|undefined,"vsphereVolume": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_VSPHEREVIRTUALDISKVOLUMESOURCE|undefined};
 export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_VSPHEREVIRTUALDISKVOLUMESOURCE = {"fsType": string,"storagePolicyID": string,"storagePolicyName": string,"volumePath": string};

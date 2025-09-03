@@ -505,6 +505,11 @@ SERVICE_PODS:
                     restartPolicy:
                         pointer: true
                         type: string
+                    restartPolicyRules:
+                        elementType:
+                            structRef: k8s.io/api/core/v1.ContainerRestartRule
+                            type: struct
+                        type: array
                     securityContext:
                         pointer: true
                         structRef: k8s.io/api/core/v1.SecurityContext
@@ -535,6 +540,15 @@ SERVICE_PODS:
                         type: array
                     workingDir:
                         type: string
+            k8s.io/api/core/v1.ContainerExtendedResourceRequest:
+                name: k8s.io/api/core/v1.ContainerExtendedResourceRequest
+                properties:
+                    containerName:
+                        type: string
+                    requestName:
+                        type: string
+                    resourceName:
+                        type: string
             k8s.io/api/core/v1.ContainerPort:
                 name: k8s.io/api/core/v1.ContainerPort
                 properties:
@@ -555,6 +569,24 @@ SERVICE_PODS:
                         type: string
                     restartPolicy:
                         type: string
+            k8s.io/api/core/v1.ContainerRestartRule:
+                name: k8s.io/api/core/v1.ContainerRestartRule
+                properties:
+                    action:
+                        type: string
+                    exitCodes:
+                        pointer: true
+                        structRef: k8s.io/api/core/v1.ContainerRestartRuleOnExitCodes
+                        type: struct
+            k8s.io/api/core/v1.ContainerRestartRuleOnExitCodes:
+                name: k8s.io/api/core/v1.ContainerRestartRuleOnExitCodes
+                properties:
+                    operator:
+                        type: string
+                    values:
+                        elementType:
+                            type: int
+                        type: array
             k8s.io/api/core/v1.ContainerState:
                 name: k8s.io/api/core/v1.ContainerState
                 properties:
@@ -740,6 +772,10 @@ SERVICE_PODS:
                         pointer: true
                         structRef: k8s.io/api/core/v1.ObjectFieldSelector
                         type: struct
+                    fileKeyRef:
+                        pointer: true
+                        structRef: k8s.io/api/core/v1.FileKeySelector
+                        type: struct
                     resourceFieldRef:
                         pointer: true
                         structRef: k8s.io/api/core/v1.ResourceFieldSelector
@@ -811,6 +847,11 @@ SERVICE_PODS:
                     restartPolicy:
                         pointer: true
                         type: string
+                    restartPolicyRules:
+                        elementType:
+                            structRef: k8s.io/api/core/v1.ContainerRestartRule
+                            type: struct
+                        type: array
                     securityContext:
                         pointer: true
                         structRef: k8s.io/api/core/v1.SecurityContext
@@ -873,6 +914,18 @@ SERVICE_PODS:
                         elementType:
                             type: string
                         type: array
+            k8s.io/api/core/v1.FileKeySelector:
+                name: k8s.io/api/core/v1.FileKeySelector
+                properties:
+                    key:
+                        type: string
+                    optional:
+                        pointer: true
+                        type: bool
+                    path:
+                        type: string
+                    volumeName:
+                        type: string
             k8s.io/api/core/v1.FlexVolumeSource:
                 name: k8s.io/api/core/v1.FlexVolumeSource
                 properties:
@@ -1260,6 +1313,22 @@ SERVICE_PODS:
                             structRef: k8s.io/api/core/v1.PodAffinityTerm
                             type: struct
                         type: array
+            k8s.io/api/core/v1.PodCertificateProjection:
+                name: k8s.io/api/core/v1.PodCertificateProjection
+                properties:
+                    certificateChainPath:
+                        type: string
+                    credentialBundlePath:
+                        type: string
+                    keyPath:
+                        type: string
+                    keyType:
+                        type: string
+                    maxExpirationSeconds:
+                        pointer: true
+                        type: int
+                    signerName:
+                        type: string
             k8s.io/api/core/v1.PodCondition:
                 name: k8s.io/api/core/v1.PodCondition
                 properties:
@@ -1302,6 +1371,16 @@ SERVICE_PODS:
                         type: string
                     value:
                         pointer: true
+                        type: string
+            k8s.io/api/core/v1.PodExtendedResourceClaimStatus:
+                name: k8s.io/api/core/v1.PodExtendedResourceClaimStatus
+                properties:
+                    requestMappings:
+                        elementType:
+                            structRef: k8s.io/api/core/v1.ContainerExtendedResourceRequest
+                            type: struct
+                        type: array
+                    resourceClaimName:
                         type: string
             k8s.io/api/core/v1.PodIP:
                 name: k8s.io/api/core/v1.PodIP
@@ -1439,6 +1518,9 @@ SERVICE_PODS:
                         type: bool
                     hostname:
                         type: string
+                    hostnameOverride:
+                        pointer: true
+                        type: string
                     imagePullSecrets:
                         elementType:
                             structRef: k8s.io/api/core/v1.LocalObjectReference
@@ -1554,6 +1636,10 @@ SERVICE_PODS:
                             structRef: k8s.io/api/core/v1.ContainerStatus
                             type: struct
                         type: array
+                    extendedResourceClaimStatus:
+                        pointer: true
+                        structRef: k8s.io/api/core/v1.PodExtendedResourceClaimStatus
+                        type: struct
                     hostIP:
                         type: string
                     hostIPs:
@@ -2062,6 +2148,10 @@ SERVICE_PODS:
                     downwardAPI:
                         pointer: true
                         structRef: k8s.io/api/core/v1.DownwardAPIProjection
+                        type: struct
+                    podCertificate:
+                        pointer: true
+                        structRef: k8s.io/api/core/v1.PodCertificateProjection
                         type: struct
                     secret:
                         pointer: true
@@ -10676,6 +10766,11 @@ service/resource-status:
                     restartPolicy:
                         pointer: true
                         type: string
+                    restartPolicyRules:
+                        elementType:
+                            structRef: k8s.io/api/core/v1.ContainerRestartRule
+                            type: struct
+                        type: array
                     securityContext:
                         pointer: true
                         structRef: k8s.io/api/core/v1.SecurityContext
@@ -10706,6 +10801,15 @@ service/resource-status:
                         type: array
                     workingDir:
                         type: string
+            k8s.io/api/core/v1.ContainerExtendedResourceRequest:
+                name: k8s.io/api/core/v1.ContainerExtendedResourceRequest
+                properties:
+                    containerName:
+                        type: string
+                    requestName:
+                        type: string
+                    resourceName:
+                        type: string
             k8s.io/api/core/v1.ContainerPort:
                 name: k8s.io/api/core/v1.ContainerPort
                 properties:
@@ -10726,6 +10830,24 @@ service/resource-status:
                         type: string
                     restartPolicy:
                         type: string
+            k8s.io/api/core/v1.ContainerRestartRule:
+                name: k8s.io/api/core/v1.ContainerRestartRule
+                properties:
+                    action:
+                        type: string
+                    exitCodes:
+                        pointer: true
+                        structRef: k8s.io/api/core/v1.ContainerRestartRuleOnExitCodes
+                        type: struct
+            k8s.io/api/core/v1.ContainerRestartRuleOnExitCodes:
+                name: k8s.io/api/core/v1.ContainerRestartRuleOnExitCodes
+                properties:
+                    operator:
+                        type: string
+                    values:
+                        elementType:
+                            type: int
+                        type: array
             k8s.io/api/core/v1.ContainerState:
                 name: k8s.io/api/core/v1.ContainerState
                 properties:
@@ -10911,6 +11033,10 @@ service/resource-status:
                         pointer: true
                         structRef: k8s.io/api/core/v1.ObjectFieldSelector
                         type: struct
+                    fileKeyRef:
+                        pointer: true
+                        structRef: k8s.io/api/core/v1.FileKeySelector
+                        type: struct
                     resourceFieldRef:
                         pointer: true
                         structRef: k8s.io/api/core/v1.ResourceFieldSelector
@@ -10982,6 +11108,11 @@ service/resource-status:
                     restartPolicy:
                         pointer: true
                         type: string
+                    restartPolicyRules:
+                        elementType:
+                            structRef: k8s.io/api/core/v1.ContainerRestartRule
+                            type: struct
+                        type: array
                     securityContext:
                         pointer: true
                         structRef: k8s.io/api/core/v1.SecurityContext
@@ -11044,6 +11175,18 @@ service/resource-status:
                         elementType:
                             type: string
                         type: array
+            k8s.io/api/core/v1.FileKeySelector:
+                name: k8s.io/api/core/v1.FileKeySelector
+                properties:
+                    key:
+                        type: string
+                    optional:
+                        pointer: true
+                        type: bool
+                    path:
+                        type: string
+                    volumeName:
+                        type: string
             k8s.io/api/core/v1.FlexVolumeSource:
                 name: k8s.io/api/core/v1.FlexVolumeSource
                 properties:
@@ -11431,6 +11574,22 @@ service/resource-status:
                             structRef: k8s.io/api/core/v1.PodAffinityTerm
                             type: struct
                         type: array
+            k8s.io/api/core/v1.PodCertificateProjection:
+                name: k8s.io/api/core/v1.PodCertificateProjection
+                properties:
+                    certificateChainPath:
+                        type: string
+                    credentialBundlePath:
+                        type: string
+                    keyPath:
+                        type: string
+                    keyType:
+                        type: string
+                    maxExpirationSeconds:
+                        pointer: true
+                        type: int
+                    signerName:
+                        type: string
             k8s.io/api/core/v1.PodCondition:
                 name: k8s.io/api/core/v1.PodCondition
                 properties:
@@ -11473,6 +11632,16 @@ service/resource-status:
                         type: string
                     value:
                         pointer: true
+                        type: string
+            k8s.io/api/core/v1.PodExtendedResourceClaimStatus:
+                name: k8s.io/api/core/v1.PodExtendedResourceClaimStatus
+                properties:
+                    requestMappings:
+                        elementType:
+                            structRef: k8s.io/api/core/v1.ContainerExtendedResourceRequest
+                            type: struct
+                        type: array
+                    resourceClaimName:
                         type: string
             k8s.io/api/core/v1.PodIP:
                 name: k8s.io/api/core/v1.PodIP
@@ -11610,6 +11779,9 @@ service/resource-status:
                         type: bool
                     hostname:
                         type: string
+                    hostnameOverride:
+                        pointer: true
+                        type: string
                     imagePullSecrets:
                         elementType:
                             structRef: k8s.io/api/core/v1.LocalObjectReference
@@ -11725,6 +11897,10 @@ service/resource-status:
                             structRef: k8s.io/api/core/v1.ContainerStatus
                             type: struct
                         type: array
+                    extendedResourceClaimStatus:
+                        pointer: true
+                        structRef: k8s.io/api/core/v1.PodExtendedResourceClaimStatus
+                        type: struct
                     hostIP:
                         type: string
                     hostIPs:
@@ -12233,6 +12409,10 @@ service/resource-status:
                     downwardAPI:
                         pointer: true
                         structRef: k8s.io/api/core/v1.DownwardAPIProjection
+                        type: struct
+                    podCertificate:
+                        pointer: true
+                        structRef: k8s.io/api/core/v1.PodCertificateProjection
                         type: struct
                     secret:
                         pointer: true

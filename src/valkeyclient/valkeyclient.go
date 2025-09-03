@@ -3,6 +3,7 @@ package valkeyclient
 import (
 	"context"
 	"fmt"
+	"log"
 	"log/slog"
 	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/config"
@@ -36,6 +37,8 @@ type ValkeyClient interface {
 	LastNEntryFromBucketWithType(number int64, bucketKey ...string) ([]string, error)
 	DeleteFromBucketWithNsAndReleaseName(namespace string, releaseName string, bucketKey ...string) error
 
+	StoreSortedListEntry(data interface{}, timestamp time.Time, keys ...string) error
+
 	ClearNonEssentialKeys(includeTraffic bool, includePodStats bool, includeNodestats bool) (string, error)
 
 	DeleteSingle(key ...string) error
@@ -57,6 +60,13 @@ const (
 
 	MAX_CHUNK_GET_SIZE = 100
 )
+
+type DataPoint struct {
+	Timestamp time.Time   `json:"timestamp"`
+	Data      interface{} `json:"data"`
+}
+
+var MAX_RETENTION_TIME = 7 * 24 * time.Hour // 7 days
 
 type valkeyClient struct {
 	logger *slog.Logger
@@ -790,4 +800,93 @@ func sortStringsByTimestamp(stringsToSort []string, order SortOrder) {
 		}
 		return timestamp1 > timestamp2
 	})
+}
+
+// trimStream removes old entries based on retention policy
+func trimStream(self *valkeyClient, streamKey string) error {
+	// Trim by time (remove entries older than retention period)
+	if MAX_RETENTION_TIME > 0 {
+		cutoffTime := time.Now().Add(-MAX_RETENTION_TIME)
+		cutoffID := fmt.Sprintf("%d-0", cutoffTime.UnixMilli())
+
+		// Correct syntax for XTRIM key MINID cutoffID
+		cmd := self.valkeyClient.B().Xtrim().Key(streamKey).Minid().Threshold(cutoffID).Build()
+		if err := self.valkeyClient.Do(self.ctx, cmd).Error(); err != nil {
+			// Ignore "no such key" errors
+			if err.Error() != "ERR no such key" {
+				return fmt.Errorf("failed to trim by time: %w", err)
+			}
+		}
+	}
+
+	return nil
+}
+
+func parseStreamMessages[T any](messages []valkey.XRangeEntry) ([]T, error) {
+	var dataPoints []T
+
+	for _, msg := range messages {
+		if dataStr, ok := msg.FieldValues["data"]; ok {
+			var dataPoint T
+			err := json.Unmarshal([]byte(dataStr), &dataPoint)
+			if err != nil {
+				// log.Printf("Failed to unmarshal stream data for ID %s: %v", msg.ID, err)
+				continue
+			}
+			dataPoints = append(dataPoints, dataPoint)
+		}
+	}
+	return dataPoints, nil
+}
+
+func (self *valkeyClient) StoreSortedListEntry(data interface{}, timestamp time.Time, keys ...string) error {
+	streamKey := createKey(keys...)
+	dataPoint := DataPoint{
+		Timestamp: timestamp,
+		Data:      data,
+	}
+
+	jsonData, err := json.Marshal(dataPoint)
+	if err != nil {
+		return fmt.Errorf("failed to marshal data: %w", err)
+	}
+
+	// Build XADD command using valkey-go command builder
+	cmd := self.valkeyClient.B().Xadd().Key(streamKey).Id("*").FieldValue().
+		FieldValue("data", string(jsonData)).
+		FieldValue("timestamp", strconv.FormatInt(timestamp.Unix(), 10)).
+		Build()
+
+	result := self.valkeyClient.Do(self.ctx, cmd)
+	if err := result.Error(); err != nil {
+		return fmt.Errorf("failed to add to stream: %w", err)
+	}
+
+	// Trim stream to maintain retention policy
+	if err := trimStream(self, streamKey); err != nil {
+		log.Printf("Warning: failed to trim stream: %v", err)
+	}
+
+	return nil
+}
+
+func GetObjectsFromSortedListWithRange[T any](store ValkeyClient, streamKey string, start, end time.Time) ([]T, error) {
+	startID := fmt.Sprintf("%d-0", start.UnixMilli())
+	endID := fmt.Sprintf("%d-0", end.UnixMilli())
+
+	// Build XRANGE command using valkey-go command builder
+	cmd := store.GetValkeyClient().B().Xrange().Key(streamKey).Start(startID).End(endID).Build()
+	result := store.GetValkeyClient().Do(store.GetContext(), cmd)
+
+	if err := result.Error(); err != nil {
+		return nil, fmt.Errorf("failed to query stream: %w", err)
+	}
+
+	// Parse the stream messages
+	messages, err := result.AsXRange()
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse stream result: %w", err)
+	}
+
+	return parseStreamMessages[T](messages)
 }
