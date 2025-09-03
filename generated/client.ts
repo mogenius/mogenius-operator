@@ -124,7 +124,6 @@ export enum Pattern {
   SERVICE_TRIGGER_JOB = "service/trigger-job",
   SERVICE_UPDATE_SERVICE = "service/update-service",
   STATS_PODSTAT_ALL_FOR_CONTROLLER = "stats/podstat/all-for-controller",
-  STATS_PODSTAT_LAST_FOR_CONTROLLER = "stats/podstat/last-for-controller",
   STATS_TRAFFIC_ALL_FOR_CONTROLLER = "stats/traffic/all-for-controller",
   STATS_TRAFFIC_FOR_CONTROLLER_SOCKET_CONNECTIONS = "stats/traffic/for-controller-socket-connections",
   STATS_TRAFFIC_SUM_FOR_CONTROLLER = "stats/traffic/sum-for-controller",
@@ -285,7 +284,6 @@ export const StringToPattern = {
   "service/trigger-job": Pattern.SERVICE_TRIGGER_JOB,
   "service/update-service": Pattern.SERVICE_UPDATE_SERVICE,
   "stats/podstat/all-for-controller": Pattern.STATS_PODSTAT_ALL_FOR_CONTROLLER,
-  "stats/podstat/last-for-controller": Pattern.STATS_PODSTAT_LAST_FOR_CONTROLLER,
   "stats/traffic/all-for-controller": Pattern.STATS_TRAFFIC_ALL_FOR_CONTROLLER,
   "stats/traffic/for-controller-socket-connections": Pattern.STATS_TRAFFIC_FOR_CONTROLLER_SOCKET_CONNECTIONS,
   "stats/traffic/sum-for-controller": Pattern.STATS_TRAFFIC_SUM_FOR_CONTROLLER,
@@ -442,7 +440,6 @@ export const PatternToString = {
   [Pattern.SERVICE_TRIGGER_JOB]: "service/trigger-job",
   [Pattern.SERVICE_UPDATE_SERVICE]: "service/update-service",
   [Pattern.STATS_PODSTAT_ALL_FOR_CONTROLLER]: "stats/podstat/all-for-controller",
-  [Pattern.STATS_PODSTAT_LAST_FOR_CONTROLLER]: "stats/podstat/last-for-controller",
   [Pattern.STATS_TRAFFIC_ALL_FOR_CONTROLLER]: "stats/traffic/all-for-controller",
   [Pattern.STATS_TRAFFIC_FOR_CONTROLLER_SOCKET_CONNECTIONS]: "stats/traffic/for-controller-socket-connections",
   [Pattern.STATS_TRAFFIC_SUM_FOR_CONTROLLER]: "stats/traffic/sum-for-controller",
@@ -17431,72 +17428,6 @@ export type STATS_PODSTAT_ALL_FOR_CONTROLLER_RESPONSE = STATS_PODSTAT_ALL_FOR_CO
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/dtos.K8sController:
- *         name: mogenius-k8s-manager/src/dtos.K8sController
- *         properties:
- *             kind:
- *                 type: string
- *             name:
- *                 type: string
- *             namespace:
- *                 type: string
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/dtos.K8sController
- *     type: struct
- * ```
- *
- */
-export type STATS_PODSTAT_LAST_FOR_CONTROLLER_REQUEST = STATS_PODSTAT_LAST_FOR_CONTROLLER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCONTROLLER;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     mogenius-k8s-manager/src/structs.PodStats:
- *         name: mogenius-k8s-manager/src/structs.PodStats
- *         properties:
- *             containerName:
- *                 type: string
- *             cpu:
- *                 type: int
- *             cpuLimit:
- *                 type: int
- *             createdAt:
- *                 structRef: time.Time
- *                 type: struct
- *             ephemeralStorage:
- *                 type: int
- *             ephemeralStorageLimit:
- *                 type: int
- *             memory:
- *                 type: int
- *             memoryLimit:
- *                 type: int
- *             namespace:
- *                 type: string
- *             podName:
- *                 type: string
- *             startTime:
- *                 structRef: time.Time
- *                 type: struct
- *     time.Time:
- *         name: time.Time
- *         properties: {}
- * typeInfo:
- *     pointer: true
- *     structRef: mogenius-k8s-manager/src/structs.PodStats
- *     type: struct
- * ```
- *
- */
-export type STATS_PODSTAT_LAST_FOR_CONTROLLER_RESPONSE = STATS_PODSTAT_LAST_FOR_CONTROLLER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_PODSTATS|undefined;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
  *     mogenius-k8s-manager/src/core.Request:
  *         name: mogenius-k8s-manager/src/core.Request
  *         properties:
@@ -20138,9 +20069,6 @@ export type SERVICE_UPDATE_SERVICE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_SE
 export type STATS_PODSTAT_ALL_FOR_CONTROLLER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"kind": string,"name": string,"namespace": string,"timeOffsetMinutes": number};
 export type STATS_PODSTAT_ALL_FOR_CONTROLLER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_PODSTATS = {"containerName": string,"cpu": number,"cpuLimit": number,"createdAt": STATS_PODSTAT_ALL_FOR_CONTROLLER_RESPONSE__TIME_TIME,"ephemeralStorage": number,"ephemeralStorageLimit": number,"memory": number,"memoryLimit": number,"namespace": string,"podName": string,"startTime": STATS_PODSTAT_ALL_FOR_CONTROLLER_RESPONSE__TIME_TIME};
 export type STATS_PODSTAT_ALL_FOR_CONTROLLER_RESPONSE__TIME_TIME = {};
-export type STATS_PODSTAT_LAST_FOR_CONTROLLER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCONTROLLER = {"kind": string,"name": string,"namespace": string};
-export type STATS_PODSTAT_LAST_FOR_CONTROLLER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_PODSTATS = {"containerName": string,"cpu": number,"cpuLimit": number,"createdAt": STATS_PODSTAT_LAST_FOR_CONTROLLER_RESPONSE__TIME_TIME,"ephemeralStorage": number,"ephemeralStorageLimit": number,"memory": number,"memoryLimit": number,"namespace": string,"podName": string,"startTime": STATS_PODSTAT_LAST_FOR_CONTROLLER_RESPONSE__TIME_TIME};
-export type STATS_PODSTAT_LAST_FOR_CONTROLLER_RESPONSE__TIME_TIME = {};
 export type STATS_TRAFFIC_ALL_FOR_CONTROLLER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"kind": string,"name": string,"namespace": string,"timeOffsetMinutes": number};
 export type STATS_TRAFFIC_ALL_FOR_CONTROLLER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_NETWORKMONITOR_PODNETWORKSTATS = {"createdAt": STATS_TRAFFIC_ALL_FOR_CONTROLLER_RESPONSE__TIME_TIME,"namespace": string,"pod": string,"receivedBytes": number,"receivedPackets": number,"receivedStartBytes": number,"transmitBytes": number,"transmitPackets": number,"transmitStartBytes": number};
 export type STATS_TRAFFIC_ALL_FOR_CONTROLLER_RESPONSE__TIME_TIME = {};
@@ -20711,10 +20639,6 @@ export interface IPatternConfig {
   [Pattern.STATS_PODSTAT_ALL_FOR_CONTROLLER]: {
     Request: STATS_PODSTAT_ALL_FOR_CONTROLLER_REQUEST;
     Response: STATS_PODSTAT_ALL_FOR_CONTROLLER_RESPONSE;
-  };
-  [Pattern.STATS_PODSTAT_LAST_FOR_CONTROLLER]: {
-    Request: STATS_PODSTAT_LAST_FOR_CONTROLLER_REQUEST;
-    Response: STATS_PODSTAT_LAST_FOR_CONTROLLER_RESPONSE;
   };
   [Pattern.STATS_TRAFFIC_ALL_FOR_CONTROLLER]: {
     Request: STATS_TRAFFIC_ALL_FOR_CONTROLLER_REQUEST;

@@ -15295,58 +15295,6 @@ stats/podstat/all-for-controller:
                 type: struct
             pointer: true
             type: array
-stats/podstat/last-for-controller:
-    legacyResponseLayout: true
-    requestSchema:
-        structs:
-            mogenius-k8s-manager/src/dtos.K8sController:
-                name: mogenius-k8s-manager/src/dtos.K8sController
-                properties:
-                    kind:
-                        type: string
-                    name:
-                        type: string
-                    namespace:
-                        type: string
-        typeInfo:
-            structRef: mogenius-k8s-manager/src/dtos.K8sController
-            type: struct
-    responseSchema:
-        structs:
-            mogenius-k8s-manager/src/structs.PodStats:
-                name: mogenius-k8s-manager/src/structs.PodStats
-                properties:
-                    containerName:
-                        type: string
-                    cpu:
-                        type: int
-                    cpuLimit:
-                        type: int
-                    createdAt:
-                        structRef: time.Time
-                        type: struct
-                    ephemeralStorage:
-                        type: int
-                    ephemeralStorageLimit:
-                        type: int
-                    memory:
-                        type: int
-                    memoryLimit:
-                        type: int
-                    namespace:
-                        type: string
-                    podName:
-                        type: string
-                    startTime:
-                        structRef: time.Time
-                        type: struct
-            time.Time:
-                name: time.Time
-                properties: {}
-        typeInfo:
-            pointer: true
-            structRef: mogenius-k8s-manager/src/structs.PodStats
-            type: struct
 stats/traffic/all-for-controller:
     legacyResponseLayout: true
     requestSchema:

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/valkeyclient"
+	"time"
 )
 
 type ValkeyLogger interface {
@@ -28,7 +29,8 @@ func (self *valkeyLogger) Run() {
 	go func() {
 		for {
 			record := <-self.logChannel
-			err := self.valkey.AddToBucket(10000, record, "logs", record.Component)
+			// err := self.valkey.AddToBucket(10000, record, "logs", record.Component)
+			err := self.valkey.StoreSortedListEntry(record, time.Now(), "logs", record.Component)
 			if err != nil {
 				fmt.Printf("Failed to log record: %v\n", err)
 			}

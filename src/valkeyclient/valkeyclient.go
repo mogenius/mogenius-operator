@@ -7,7 +7,6 @@ import (
 	"log/slog"
 	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/config"
-	"mogenius-k8s-manager/src/utils"
 	"net"
 	"slices"
 	"sort"
@@ -32,9 +31,9 @@ type ValkeyClient interface {
 	GetObject(keys ...string) (interface{}, error)
 	List(limit int, keys ...string) ([]string, error)
 
-	AddToBucket(maxSize int64, value interface{}, bucketKey ...string) error
-	ListFromBucket(start int64, stop int64, bucketKey ...string) ([]string, error)
-	LastNEntryFromBucketWithType(number int64, bucketKey ...string) ([]string, error)
+	// AddToBucket(maxSize int64, value interface{}, bucketKey ...string) error
+	// ListFromBucket(start int64, stop int64, bucketKey ...string) ([]string, error)
+	// LastNEntryFromBucketWithType(number int64, bucketKey ...string) ([]string, error)
 	DeleteFromBucketWithNsAndReleaseName(namespace string, releaseName string, bucketKey ...string) error
 
 	StoreSortedListEntry(data interface{}, timestamp time.Time, keys ...string) error
@@ -66,7 +65,7 @@ type DataPoint struct {
 	Data      interface{} `json:"data"`
 }
 
-var MAX_RETENTION_TIME = 7 * 24 * time.Hour // 7 days
+var MAX_RETENTION_TIME = 1 * time.Hour //7 * 24 * time.Hour // 7 days
 
 type valkeyClient struct {
 	logger *slog.Logger
@@ -308,84 +307,84 @@ func (self *valkeyClient) List(limit int, keys ...string) ([]string, error) {
 	return result, nil
 }
 
-func (self *valkeyClient) AddToBucket(maxSize int64, value interface{}, bucketKey ...string) error {
-	// key := createKey(bucketKey...)
-	// // Add the new elements to the end of the list
-	// err := self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Rpush().Key(key).Element(utils.PrintJson(value)).Build()).Error()
-	// if err != nil {
-	// 	return err
-	// }
+// func (self *valkeyClient) AddToBucket(maxSize int64, value interface{}, bucketKey ...string) error {
+// 	// key := createKey(bucketKey...)
+// 	// // Add the new elements to the end of the list
+// 	// err := self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Rpush().Key(key).Element(utils.PrintJson(value)).Build()).Error()
+// 	// if err != nil {
+// 	// 	return err
+// 	// }
 
-	// // Trim the list to keep only the last maxSize elements
-	// err = self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Ltrim().Key(key).Start(-maxSize).Stop(-1).Build()).Error()
-	// if err != nil {
-	// 	return err
-	// }
+// 	// // Trim the list to keep only the last maxSize elements
+// 	// err = self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Ltrim().Key(key).Start(-maxSize).Stop(-1).Build()).Error()
+// 	// if err != nil {
+// 	// 	return err
+// 	// }
 
-	// err = self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Publish().Channel(createChannel(bucketKey...)).Message(utils.PrintJson(value)).Build()).Error()
-	// if err != nil {
-	// 	return err
-	// }
+// 	// err = self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Publish().Channel(createChannel(bucketKey...)).Message(utils.PrintJson(value)).Build()).Error()
+// 	// if err != nil {
+// 	// 	return err
+// 	// }
 
-	// return nil
+// 	// return nil
 
-	key := createKey(bucketKey...)
+// 	key := createKey(bucketKey...)
 
-	obj := utils.PrintJson(value)
+// 	obj := utils.PrintJson(value)
 
-	// Build all commands (same pipeline approach as before)
-	rpushCmd := self.valkeyClient.B().Rpush().Key(key).Element(obj).Build()
-	ltrimCmd := self.valkeyClient.B().Ltrim().Key(key).Start(-maxSize).Stop(-1).Build()
-	publishCmd := self.valkeyClient.B().Publish().Channel(createChannel(bucketKey...)).Message(obj).Build()
+// 	// Build all commands (same pipeline approach as before)
+// 	rpushCmd := self.valkeyClient.B().Rpush().Key(key).Element(obj).Build()
+// 	ltrimCmd := self.valkeyClient.B().Ltrim().Key(key).Start(-maxSize).Stop(-1).Build()
+// 	publishCmd := self.valkeyClient.B().Publish().Channel(createChannel(bucketKey...)).Message(obj).Build()
 
-	// Execute all commands in one pipeline
-	results := self.valkeyClient.DoMulti(self.ctx, rpushCmd, ltrimCmd, publishCmd)
+// 	// Execute all commands in one pipeline
+// 	results := self.valkeyClient.DoMulti(self.ctx, rpushCmd, ltrimCmd, publishCmd)
 
-	// Check for errors
-	for _, result := range results {
-		if err := result.Error(); err != nil {
-			return err
-		}
-	}
+// 	// Check for errors
+// 	for _, result := range results {
+// 		if err := result.Error(); err != nil {
+// 			return err
+// 		}
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
-func (self *valkeyClient) ListFromBucket(start int64, stop int64, bucketKey ...string) ([]string, error) {
-	key := createKey(bucketKey...)
-	// start=0 stop=-1 to retrieve all elements from start to the end of the list
+// func (self *valkeyClient) ListFromBucket(start int64, stop int64, bucketKey ...string) ([]string, error) {
+// 	key := createKey(bucketKey...)
+// 	// start=0 stop=-1 to retrieve all elements from start to the end of the list
 
-	elements, err := self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Lrange().Key(key).Start(start).Stop(stop).Build()).AsStrSlice()
-	if err != nil {
-		return []string{}, err
-	}
+// 	elements, err := self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Lrange().Key(key).Start(start).Stop(stop).Build()).AsStrSlice()
+// 	if err != nil {
+// 		return []string{}, err
+// 	}
 
-	return elements, nil
-}
+// 	return elements, nil
+// }
 
-func (self *valkeyClient) LastNEntryFromBucketWithType(number int64, bucketKey ...string) ([]string, error) {
-	key := createKey(bucketKey...)
+// func (self *valkeyClient) LastNEntryFromBucketWithType(number int64, bucketKey ...string) ([]string, error) {
+// 	key := createKey(bucketKey...)
 
-	// Get the length of the list
-	length, err := self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Llen().Key(key).Build()).AsInt64()
-	if err != nil {
-		return []string{}, err
-	}
+// 	// Get the length of the list
+// 	length, err := self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Llen().Key(key).Build()).AsInt64()
+// 	if err != nil {
+// 		return []string{}, err
+// 	}
 
-	// Calculate start index for LRANGE
-	start := length - number
-	if start < 0 {
-		start = 0 // Ensure start index is not negative
-	}
+// 	// Calculate start index for LRANGE
+// 	start := length - number
+// 	if start < 0 {
+// 		start = 0 // Ensure start index is not negative
+// 	}
 
-	// Use LRANGE to get the last N elements
-	elements, err := self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Lrange().Key(key).Start(start).Stop(-1).Build()).AsStrSlice()
-	if err != nil {
-		return []string{}, err
-	}
+// 	// Use LRANGE to get the last N elements
+// 	elements, err := self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Lrange().Key(key).Start(start).Stop(-1).Build()).AsStrSlice()
+// 	if err != nil {
+// 		return []string{}, err
+// 	}
 
-	return elements, nil
-}
+// 	return elements, nil
+// }
 
 func (self *valkeyClient) DeleteFromBucketWithNsAndReleaseName(namespace string, releaseName string, bucketKey ...string) error {
 	key := createKey(bucketKey...)
@@ -620,41 +619,41 @@ func GetObjectsByPattern[T any](store ValkeyClient, pattern string, keywords []s
 	return result, nil
 }
 
-func RangeFromEndOfBucketWithType[T any](store ValkeyClient, numberOfElements int64, offset int64, bucketKey ...string) ([]T, error) {
-	var result []T
-	key := createKey(bucketKey...)
-	client := store.GetValkeyClient()
+// func RangeFromEndOfBucketWithType[T any](store ValkeyClient, numberOfElements int64, offset int64, bucketKey ...string) ([]T, error) {
+// 	var result []T
+// 	key := createKey(bucketKey...)
+// 	client := store.GetValkeyClient()
 
-	// Get the length of the list
-	length, err := client.Do(store.GetContext(), client.B().Llen().Key(key).Build()).AsInt64()
-	if err != nil {
-		return result, err
-	}
+// 	// Get the length of the list
+// 	length, err := client.Do(store.GetContext(), client.B().Llen().Key(key).Build()).AsInt64()
+// 	if err != nil {
+// 		return result, err
+// 	}
 
-	// Calculate start index for LRANGE
-	start := length - (numberOfElements + offset)
-	if start < 0 {
-		start = 0 // Ensure start index is not negative
-	}
-	stop := length - offset
+// 	// Calculate start index for LRANGE
+// 	start := length - (numberOfElements + offset)
+// 	if start < 0 {
+// 		start = 0 // Ensure start index is not negative
+// 	}
+// 	stop := length - offset
 
-	// Use LRANGE to get the last N elements
-	elements, err := client.Do(store.GetContext(), client.B().Lrange().Key(key).Start(start).Stop(stop).Build()).AsStrSlice()
-	if err != nil {
-		return result, err
-	}
+// 	// Use LRANGE to get the last N elements
+// 	elements, err := client.Do(store.GetContext(), client.B().Lrange().Key(key).Start(start).Stop(stop).Build()).AsStrSlice()
+// 	if err != nil {
+// 		return result, err
+// 	}
 
-	result = make([]T, len(elements))
-	for i := 0; i < len(elements); i++ {
-		var obj T
-		if err := json.Unmarshal([]byte(elements[i]), &obj); err != nil {
-			return result, fmt.Errorf("error unmarshalling value from valkey bucket, error: %v", err)
-		}
-		result[i] = obj
-	}
+// 	result = make([]T, len(elements))
+// 	for i := 0; i < len(elements); i++ {
+// 		var obj T
+// 		if err := json.Unmarshal([]byte(elements[i]), &obj); err != nil {
+// 			return result, fmt.Errorf("error unmarshalling value from valkey bucket, error: %v", err)
+// 		}
+// 		result[i] = obj
+// 	}
 
-	return result, nil
-}
+// 	return result, nil
+// }
 
 func GetObjectsByPrefix[T any](store ValkeyClient, order SortOrder, keys ...string) ([]T, error) {
 	var result []T
@@ -859,7 +858,7 @@ func (self *valkeyClient) StoreSortedListEntry(data interface{}, timestamp time.
 
 	result := self.valkeyClient.Do(self.ctx, cmd)
 	if err := result.Error(); err != nil {
-		return fmt.Errorf("failed to add to stream: %w", err)
+		return fmt.Errorf("failed to add to stream: %w, key:%s", err, streamKey)
 	}
 
 	// Trim stream to maintain retention policy
@@ -870,12 +869,40 @@ func (self *valkeyClient) StoreSortedListEntry(data interface{}, timestamp time.
 	return nil
 }
 
-func GetObjectsFromSortedListWithRange[T any](store ValkeyClient, streamKey string, start, end time.Time) ([]T, error) {
+func GetObjectsFromSortedListWithDuration[T any](store ValkeyClient, duration int64, keys ...string) ([]T, error) {
+	end := time.Now()
+	start := end.Add(-time.Duration(duration) * time.Minute)
+	return GetObjectsFromSortedListWithRange[T](store, start, end, keys...)
+}
+
+func GetObjectsFromSortedListWithRange[T any](store ValkeyClient, start, end time.Time, keys ...string) ([]T, error) {
+	key := createKey(keys...)
 	startID := fmt.Sprintf("%d-0", start.UnixMilli())
 	endID := fmt.Sprintf("%d-0", end.UnixMilli())
 
 	// Build XRANGE command using valkey-go command builder
-	cmd := store.GetValkeyClient().B().Xrange().Key(streamKey).Start(startID).End(endID).Build()
+	cmd := store.GetValkeyClient().B().Xrange().Key(key).Start(startID).End(endID).Build()
+	result := store.GetValkeyClient().Do(store.GetContext(), cmd)
+
+	if err := result.Error(); err != nil {
+		return nil, fmt.Errorf("failed to query stream: %w", err)
+	}
+
+	// Parse the stream messages
+	messages, err := result.AsXRange()
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse stream result: %w", err)
+	}
+
+	return parseStreamMessages[T](messages)
+}
+
+func GetLastObjectsFromSortedList[T any](store ValkeyClient, count int64, keys ...string) ([]T, error) {
+	key := createKey(keys...)
+
+	// Build XREVRANGE command to get entries in reverse order (newest first)
+	// Using "+" as end (latest) and "-" as start (oldest), with COUNT to limit results
+	cmd := store.GetValkeyClient().B().Xrevrange().Key(key).End("+").Start("-").Count(count).Build()
 	result := store.GetValkeyClient().Do(store.GetContext(), cmd)
 
 	if err := result.Error(); err != nil {

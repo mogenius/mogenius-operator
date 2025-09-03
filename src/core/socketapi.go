@@ -719,13 +719,13 @@ func (self *socketApi) registerPatterns() {
 		)
 	}
 
-	RegisterPatternHandlerRaw(
-		PatternHandle{self, "stats/podstat/last-for-controller"},
-		PatternConfig{},
-		func(datagram structs.Datagram, request dtos.K8sController) *structs.PodStats {
-			return self.dbstats.GetLastPodStatsEntryForController(request)
-		},
-	)
+	// RegisterPatternHandlerRaw(
+	// 	PatternHandle{self, "stats/podstat/last-for-controller"},
+	// 	PatternConfig{},
+	// 	func(datagram structs.Datagram, request dtos.K8sController) *structs.PodStats {
+	// 		return self.dbstats.GetLastPodStatsEntryForController(request)
+	// 	},
+	// )
 
 	RegisterPatternHandlerRaw(
 		PatternHandle{self, "stats/traffic/sum-for-controller"},

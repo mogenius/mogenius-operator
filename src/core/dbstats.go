@@ -49,8 +49,8 @@ type ValkeyStatsDb interface {
 	AddNodeTrafficMetricsToDb(nodeName string, data interface{}) error
 	AddSnoopyStatusToDb(nodeName string, data networkmonitor.SnoopyStatus) error
 	GetCniData() ([]structs.CniData, error)
-	GetLastPodStatsEntriesForNamespace(namespace string) []structs.PodStats
-	GetLastPodStatsEntryForController(controller dtos.K8sController) *structs.PodStats
+	// GetLastPodStatsEntriesForNamespace(namespace string) []structs.PodStats
+	// GetLastPodStatsEntryForController(controller dtos.K8sController) *structs.PodStats
 	GetMachineStatsForNode(nodeName string) (*structs.MachineStats, error)
 	GetMachineStatsForNodes(nodeNames []string) []structs.MachineStats
 	GetPodStatsEntriesForController(kind string, name string, namespace string, timeOffsetMinutes int64) *[]structs.PodStats
@@ -162,26 +162,27 @@ func (self *valkeyStatsDb) GetCniData() ([]structs.CniData, error) {
 }
 
 func (self *valkeyStatsDb) GetPodStatsEntriesForController(kind string, name string, namespace string, timeOffsetMinutes int64) *[]structs.PodStats {
-	result, err := valkeyclient.RangeFromEndOfBucketWithType[structs.PodStats](self.valkey, timeOffsetMinutes, 0, DB_STATS_POD_STATS_BUCKET_NAME, namespace, name)
+	result, err := valkeyclient.GetObjectsFromSortedListWithDuration[structs.PodStats](self.valkey, timeOffsetMinutes, DB_STATS_POD_STATS_BUCKET_NAME, namespace, name)
 	if err != nil {
 		self.logger.Error("GetPodStatsEntriesForController", "error", err)
 	}
 	return &result
 }
 
-func (self *valkeyStatsDb) GetLastPodStatsEntryForController(controller dtos.K8sController) *structs.PodStats {
-	values, err := valkeyclient.RangeFromEndOfBucketWithType[structs.PodStats](self.valkey, 1, 0, DB_STATS_POD_STATS_BUCKET_NAME, controller.Namespace, controller.Name)
-	if err != nil {
-		self.logger.Error(err.Error())
-	}
-	if len(values) > 0 {
-		return &values[0]
-	}
-	return nil
-}
+// func (self *valkeyStatsDb) GetLastPodStatsEntryForController(controller dtos.K8sController) *structs.PodStats {
+// 	values, err := valkeyclient.RangeFromEndOfBucketWithType[structs.PodStats](self.valkey, 1, 0, DB_STATS_POD_STATS_BUCKET_NAME, controller.Namespace, controller.Name)
+// 	if err != nil {
+// 		self.logger.Error(err.Error())
+// 	}
+// 	if len(values) > 0 {
+// 		return &values[0]
+// 	}
+// 	return nil
+// }
 
 func (self *valkeyStatsDb) GetTrafficStatsEntriesForController(kind string, name string, namespace string, timeOffsetMinutes int64) *[]networkmonitor.PodNetworkStats {
-	result, err := valkeyclient.RangeFromEndOfBucketWithType[networkmonitor.PodNetworkStats](self.valkey, timeOffsetMinutes, 0, DB_STATS_TRAFFIC_BUCKET_NAME, namespace, name)
+	// result, err := valkeyclient.RangeFromEndOfBucketWithType[networkmonitor.PodNetworkStats](self.valkey, timeOffsetMinutes, 0, DB_STATS_TRAFFIC_BUCKET_NAME, namespace, name)
+	result, err := valkeyclient.GetObjectsFromSortedListWithDuration[networkmonitor.PodNetworkStats](self.valkey, timeOffsetMinutes, DB_STATS_TRAFFIC_BUCKET_NAME, namespace, name)
 	if err != nil {
 		self.logger.Error(err.Error())
 	}
@@ -234,10 +235,11 @@ func (self *valkeyStatsDb) GetWorkspaceStatsCpuUtilization(
 		ns, name := controller.GetNamespace(), controller.GetName()
 
 		promise.RunArray(func() *[]structs.PodStats {
-			values, err := valkeyclient.RangeFromEndOfBucketWithType[structs.PodStats](
-				self.valkey, int64(timeOffsetInMinutes), 0,
-				DB_STATS_POD_STATS_BUCKET_NAME, ns, name,
-			)
+			values, err := valkeyclient.GetObjectsFromSortedListWithDuration[structs.PodStats](self.valkey, int64(timeOffsetInMinutes), DB_STATS_POD_STATS_BUCKET_NAME, ns, name)
+			// values, err := valkeyclient.RangeFromEndOfBucketWithType[structs.PodStats](
+			// 	self.valkey, int64(timeOffsetInMinutes), 0,
+			// 	DB_STATS_POD_STATS_BUCKET_NAME, ns, name,
+			// )
 			if err != nil {
 				self.logger.Error(err.Error())
 				return nil
@@ -349,9 +351,10 @@ func (self *valkeyStatsDb) GetWorkspaceStatsMemoryUtilization(
 		name := controller.GetName()
 
 		promise.RunArray(func() *[]structs.PodStats {
-			values, err := valkeyclient.RangeFromEndOfBucketWithType[structs.PodStats](
-				self.valkey, int64(timeOffsetInMinutes), 0,
-				DB_STATS_POD_STATS_BUCKET_NAME, ns, name)
+			values, err := valkeyclient.GetObjectsFromSortedListWithDuration[structs.PodStats](self.valkey, int64(timeOffsetInMinutes), DB_STATS_POD_STATS_BUCKET_NAME, ns, name)
+			// values, err := valkeyclient.RangeFromEndOfBucketWithType[structs.PodStats](
+			// 	self.valkey, int64(timeOffsetInMinutes), 0,
+			// 	DB_STATS_POD_STATS_BUCKET_NAME, ns, name)
 			if err != nil {
 				self.logger.Error(err.Error())
 				return nil
@@ -442,9 +445,10 @@ func (self *valkeyStatsDb) GetWorkspaceStatsTrafficUtilization(timeOffsetInMinut
 	var resultMutex sync.Mutex
 	for _, controller := range resources {
 		promise.RunArray(func() *[]networkmonitor.PodNetworkStats {
-			values, err := valkeyclient.RangeFromEndOfBucketWithType[networkmonitor.PodNetworkStats](
-				self.valkey, int64(timeOffsetInMinutes), 0, DB_STATS_TRAFFIC_BUCKET_NAME,
-				controller.GetNamespace(), controller.GetName())
+			values, err := valkeyclient.GetObjectsFromSortedListWithDuration[networkmonitor.PodNetworkStats](self.valkey, int64(timeOffsetInMinutes), DB_STATS_TRAFFIC_BUCKET_NAME, controller.GetNamespace(), controller.GetName())
+			// values, err := valkeyclient.RangeFromEndOfBucketWithType[networkmonitor.PodNetworkStats](
+			// 	self.valkey, int64(timeOffsetInMinutes), 0, DB_STATS_TRAFFIC_BUCKET_NAME,
+			// 	controller.GetNamespace(), controller.GetName())
 			if err != nil {
 				self.logger.Error(err.Error())
 				return nil
@@ -506,13 +510,14 @@ func (self *valkeyStatsDb) GetPodStatsEntriesForNamespace(namespace string) *[]s
 	return &values
 }
 
-func (self *valkeyStatsDb) GetLastPodStatsEntriesForNamespace(namespace string) []structs.PodStats {
-	values, err := valkeyclient.RangeFromEndOfBucketWithType[structs.PodStats](self.valkey, 1, 0, DB_STATS_POD_STATS_BUCKET_NAME, namespace)
-	if err != nil {
-		self.logger.Error(err.Error())
-	}
-	return values
-}
+// func (self *valkeyStatsDb) GetLastPodStatsEntriesForNamespace(namespace string) []structs.PodStats {
+// 	values, err := valkeyclient.GetObjectsFromSortedListWithDuration[structs.PodStats](self.valkey, int64(timeOffsetInMinutes), DB_STATS_POD_STATS_BUCKET_NAME, namespace)
+// 	values, err := valkeyclient.RangeFromEndOfBucketWithType[structs.PodStats](self.valkey, 1, 0, DB_STATS_POD_STATS_BUCKET_NAME, namespace)
+// 	if err != nil {
+// 		self.logger.Error(err.Error())
+// 	}
+// 	return values
+// }
 
 func (self *valkeyStatsDb) GetTrafficStatsEntriesForNamespace(namespace string) *[]networkmonitor.PodNetworkStats {
 	values, err := valkeyclient.GetObjectsByPrefix[networkmonitor.PodNetworkStats](self.valkey, valkeyclient.ORDER_DESC, DB_STATS_TRAFFIC_BUCKET_NAME, namespace)
