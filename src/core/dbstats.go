@@ -56,7 +56,7 @@ type ValkeyStatsDb interface {
 	GetMachineStatsForNodes(nodeNames []string) []structs.MachineStats
 	GetPodStatsEntriesForController(kind string, name string, namespace string, timeOffsetMinutes int64) *[]structs.PodStats
 	GetPodStatsEntriesForNamespace(namespace string) *[]structs.PodStats
-	GetSocketConnectionsForController(controller dtos.K8sController) *structs.SocketConnections
+	//GetSocketConnectionsForController(controller dtos.K8sController) *structs.SocketConnections
 	GetTrafficStatsEntriesForController(kind string, name string, namespace string, timeOffsetMinutes int64) *[]networkmonitor.PodNetworkStats
 	GetTrafficStatsEntriesForNamespace(namespace string) *[]networkmonitor.PodNetworkStats
 	GetTrafficStatsEntriesSumForNamespace(namespace string) []networkmonitor.PodNetworkStats
@@ -488,14 +488,14 @@ func (self *valkeyStatsDb) GetWorkspaceStatsTrafficUtilization(timeOffsetInMinut
 	return result, nil
 }
 
-func (self *valkeyStatsDb) GetSocketConnectionsForController(controller dtos.K8sController) *structs.SocketConnections {
-	value, err := valkeyclient.GetObjectForKey[structs.SocketConnections](self.valkey, DB_STATS_SOCKET_STATS_BUCKET, controller.Namespace, controller.Name)
-	if err != nil {
-		self.logger.Error(err.Error())
-	}
-
-	return value
-}
+//func (self *valkeyStatsDb) GetSocketConnectionsForController(controller dtos.K8sController) *structs.SocketConnections {
+//	value, err := valkeyclient.GetObjectForKey[structs.SocketConnections](self.valkey, DB_STATS_SOCKET_STATS_BUCKET, controller.Namespace, controller.Name)
+//	if err != nil {
+//		self.logger.Error(err.Error())
+//	}
+//
+//	return value
+//}
 
 func (self *valkeyStatsDb) GetPodStatsEntriesForNamespace(namespace string) *[]structs.PodStats {
 	values, err := valkeyclient.GetObjectsByPrefix[structs.PodStats](self.valkey, valkeyclient.ORDER_NONE, DB_STATS_POD_STATS_BUCKET_NAME, namespace)

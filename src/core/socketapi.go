@@ -296,12 +296,12 @@ func RegisterPatternHandlerRaw[RequestType any, ResponseType any](
 			//"cluster/force-reconnect",  // "ClusterForceReconnect" -> cluster/force-reconnect
 			//"cluster/force-disconnect", // "ClusterForceDisconnect" -> "cluster/force-disconnect"
 			//"system/check", // "SYSTEM_CHECK -> "system/check"
-			"stats/podstat/all-for-controller",
-			"stats/traffic/all-for-controller",
-			"stats/podstat/last-for-controller",
-			"stats/traffic/sum-for-controller",
-			"stats/traffic/for-controller-socket-connections",
-			"stats/traffic/sum-for-namespace",
+			//"stats/podstat/all-for-controller", // "stats/podstat/all-for-controller" -> "stats/pod/all-for-controller"
+			//"stats/traffic/all-for-controller",
+			//"stats/podstat/last-for-controller", // DEPRECATED
+			//"stats/traffic/sum-for-controller",
+			//"stats/traffic/for-controller-socket-connections",
+			//"stats/traffic/sum-for-namespace",
 			"metrics/deployment/average-utilization",
 			"files/list",
 			"files/create-folder",
@@ -685,65 +685,67 @@ func (self *socketApi) registerPatterns() {
 			TimeOffsetMinutes int    `json:"timeOffsetMinutes"`
 		}
 
-		RegisterPatternHandlerRaw(
-			PatternHandle{self, "stats/podstat/all-for-controller"},
+		RegisterPatternHandler(
+			PatternHandle{self, "stats/pod/all-for-controller"},
 			PatternConfig{},
-			func(datagram structs.Datagram, request Request) *[]structs.PodStats {
+			func(datagram structs.Datagram, request Request) (*[]structs.PodStats, error) {
 				if request.TimeOffsetMinutes <= 0 {
 					request.TimeOffsetMinutes = 60 * 24 // 1 day
 				}
 				entries := self.dbstats.GetPodStatsEntriesForController(request.Kind, request.Name, request.Namespace, int64(request.TimeOffsetMinutes))
-				return entries
+				return entries, nil
 			},
 		)
 
-		RegisterPatternHandlerRaw(
+		RegisterPatternHandler(
 			PatternHandle{self, "stats/traffic/all-for-controller"},
 			PatternConfig{},
-			func(datagram structs.Datagram, request Request) *[]networkmonitor.PodNetworkStats {
+			func(datagram structs.Datagram, request Request) (*[]networkmonitor.PodNetworkStats, error) {
 				if request.TimeOffsetMinutes <= 0 {
 					request.TimeOffsetMinutes = 60 * 24 // 1 day
 				}
 				stats := self.dbstats.GetTrafficStatsEntriesForController(request.Kind, request.Name, request.Namespace, int64(request.TimeOffsetMinutes))
-				return stats
+				return stats, nil
 			},
 		)
 	}
 
-	RegisterPatternHandlerRaw(
-		PatternHandle{self, "stats/podstat/last-for-controller"},
-		PatternConfig{},
-		func(datagram structs.Datagram, request dtos.K8sController) *structs.PodStats {
-			return self.dbstats.GetLastPodStatsEntryForController(request)
-		},
-	)
+	// DEPRECATED
+	//RegisterPatternHandlerRaw(
+	//	PatternHandle{self, "stats/podstat/last-for-controller"},
+	//	PatternConfig{},
+	//	func(datagram structs.Datagram, request dtos.K8sController) *structs.PodStats {
+	//		return self.dbstats.GetLastPodStatsEntryForController(request)
+	//	},
+	//)
 
-	RegisterPatternHandlerRaw(
+	RegisterPatternHandler(
 		PatternHandle{self, "stats/traffic/sum-for-controller"},
 		PatternConfig{},
-		func(datagram structs.Datagram, request dtos.K8sController) *networkmonitor.PodNetworkStats {
-			return self.dbstats.GetTrafficStatsEntrySumForController(request, false)
+		func(datagram structs.Datagram, request dtos.K8sController) (*networkmonitor.PodNetworkStats, error) {
+			return self.dbstats.GetTrafficStatsEntrySumForController(request, false), nil
 		},
 	)
 
-	RegisterPatternHandlerRaw(
-		PatternHandle{self, "stats/traffic/for-controller-socket-connections"},
-		PatternConfig{},
-		func(datagram structs.Datagram, request dtos.K8sController) *structs.SocketConnections {
-			return self.dbstats.GetSocketConnectionsForController(request)
-		},
-	)
+	// DEPRECATED
+	//RegisterPatternHandlerRaw(
+	//	PatternHandle{self, "stats/traffic/for-controller-socket-connections"},
+	//	PatternConfig{},
+	//	func(datagram structs.Datagram, request dtos.K8sController) *structs.SocketConnections {
+	//		return self.dbstats.GetSocketConnectionsForController(request)
+	//	},
+	//)
 
 	{
 		type Request struct {
 			Namespace string `json:"namespace" validate:"required"`
 		}
 
-		RegisterPatternHandlerRaw(
+		RegisterPatternHandler(
 			PatternHandle{self, "stats/traffic/sum-for-namespace"},
 			PatternConfig{},
-			func(datagram structs.Datagram, request Request) []networkmonitor.PodNetworkStats {
-				return self.dbstats.GetTrafficStatsEntriesSumForNamespace(request.Namespace)
+			func(datagram structs.Datagram, request Request) ([]networkmonitor.PodNetworkStats, error) {
+				return self.dbstats.GetTrafficStatsEntriesSumForNamespace(request.Namespace), nil
 			},
 		)
 	}
