@@ -302,7 +302,7 @@ func RegisterPatternHandlerRaw[RequestType any, ResponseType any](
 			//"stats/traffic/sum-for-controller",
 			//"stats/traffic/for-controller-socket-connections",
 			//"stats/traffic/sum-for-namespace",
-			"metrics/deployment/average-utilization",
+			//"metrics/deployment/average-utilization",
 			"files/list",
 			"files/create-folder",
 			"files/rename",
@@ -794,12 +794,12 @@ func (self *socketApi) registerPatterns() {
 		)
 	}
 
-	RegisterPatternHandlerRaw(
+	RegisterPatternHandler(
 		PatternHandle{self, "metrics/deployment/average-utilization"},
 		PatternConfig{},
-		func(datagram structs.Datagram, request dtos.K8sController) *kubernetes.Metrics {
+		func(datagram structs.Datagram, request dtos.K8sController) (*kubernetes.Metrics, error) {
 			request.Kind = "Deployment"
-			return kubernetes.GetAverageUtilizationForDeployment(request)
+			return kubernetes.GetAverageUtilizationForDeployment(request), nil
 		},
 	)
 
