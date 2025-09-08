@@ -588,6 +588,16 @@ func (self *websocketClient) requestReconnect() {
 		}
 		defer self.reconnectRequested.Store(false)
 		shouldReconnect := self.enableReconnecting.Load()
+
+		if shouldReconnect {
+			self.apiLogger.Warn("Reconnect has been triggered.")
+		}
+		defer func() {
+			if shouldReconnect {
+				self.apiLogger.Warn("Reconnect has finished.")
+			}
+		}()
+
 		err := self.Disconnect()
 		if err != nil {
 			self.apiLogger.Error("disconnect failed", "error", err)

@@ -921,7 +921,6 @@ func (self *valkeyClient) StoreSortedListEntry(data interface{}, timestamp int64
 
 	result := self.valkeyClient.Do(self.ctx, cmd)
 	if err := result.Error(); err != nil {
-		// Only ignore the "ID too small" error when not enforcing uniqueness
 		if strings.Contains(err.Error(), "The ID specified in XADD is equal or smaller than the target stream top item") {
 			// This means we're trying to insert a duplicate entry
 			// we dont care about duplicates

@@ -170,8 +170,24 @@ func FindPrometheusService() (namespace string, service string, port int32, err 
 	return "", "", -1, fmt.Errorf("prometheus service not found in any namespace")
 }
 
-func FindSealedSecretsService() (namespace string, service string, port int32, err error) {
+func FindSealedSecretsService(cfg cfg.ConfigModule) (namespace string, service string, port int32, err error) {
 	clientset := clientProvider.K8sClientSet()
+
+	ownNamespace := cfg.Get("MO_OWN_NAMESPACE")
+	
+	// exists mogenius sealed-secrets config
+	sealedSecretsConfig, err := clientset.CoreV1().ConfigMaps(ownNamespace).Get(context.TODO(), "sealed-secrets-config", metav1.GetOptions{})
+	if err == nil {
+		if namespaceName, ok := sealedSecretsConfig.Data["namespaceName"]; ok {
+			if releaseName, ok := sealedSecretsConfig.Data["releaseName"]; ok {
+				serviceClient, err := clientset.CoreV1().Services(namespaceName).Get(context.TODO(), releaseName, metav1.GetOptions{})
+				if err == nil {
+					return serviceClient.Namespace, serviceClient.Name, serviceClient.Spec.Ports[0].Port, nil
+				}
+			}
+		}
+	}
+
 	serviceClient := clientset.CoreV1().Services("")
 	serviceList, err := serviceClient.List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
