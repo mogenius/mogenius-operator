@@ -64,7 +64,7 @@ func (s *sealedSecretManager) fetchPublicKeyViaHTTP() (*rsa.PublicKey, error) {
 	// here you can add a certificate for testing
 	publicKeyData := []byte("")
 	if len(publicKeyData) == 0 {
-		namespace, serviceName, port, err := kubernetes.FindSealedSecretsService()
+		namespace, serviceName, port, err := kubernetes.FindSealedSecretsService(config)
 		if err != nil {
 			return nil, err
 		}
