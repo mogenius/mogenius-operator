@@ -220,6 +220,12 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		Description:  utils.Pointer("address of the controllers http api server"),
 	})
 	configModule.Declare(config.ConfigDeclaration{
+		Key:          "CLUSTER_DOMAIN",
+		DefaultValue: utils.Pointer("cluster.local"),
+		Description:  utils.Pointer("the cluster domain of the kubernetes cluster"),
+		Envs:         []string{"CLUSTER_DOMAIN"},
+	})
+	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_OWN_NAMESPACE",
 		DefaultValue: utils.Pointer("mogenius"),
 		Description:  utils.Pointer("the Namespace of mogenius platform"),
