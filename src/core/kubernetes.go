@@ -101,6 +101,11 @@ func (self *moKubernetes) writeMogeniusSecret(secretClient v1.SecretInterface, e
 		if string(existingSecret.Data["cluster-mfa-id"]) != "" {
 			clusterSecret.ClusterMfaId = string(existingSecret.Data["cluster-mfa-id"])
 		}
+		if string(existingSecret.Data["redis-data-model-version"]) == "" {
+			clusterSecret.RedisDataModelVersion = "0"
+		} else {
+			clusterSecret.RedisDataModelVersion = "1"
+		}
 	}
 	if clusterSecret.ClusterMfaId == "" {
 		clusterSecret.ClusterMfaId = utils.NanoId()
@@ -113,6 +118,7 @@ func (self *moKubernetes) writeMogeniusSecret(secretClient v1.SecretInterface, e
 	secret.StringData["cluster-mfa-id"] = clusterSecret.ClusterMfaId
 	secret.StringData["api-key"] = clusterSecret.ApiKey
 	secret.StringData["cluster-name"] = clusterSecret.ClusterName
+	secret.StringData["redis-data-model-version"] = clusterSecret.RedisDataModelVersion
 
 	if existingSecret == nil || getErr != nil {
 		self.logger.Info("🔑 Creating new mogenius secret ...")
@@ -125,7 +131,8 @@ func (self *moKubernetes) writeMogeniusSecret(secretClient v1.SecretInterface, e
 	} else {
 		if string(existingSecret.Data["cluster-mfa-id"]) != clusterSecret.ClusterMfaId ||
 			string(existingSecret.Data["api-key"]) != clusterSecret.ApiKey ||
-			string(existingSecret.Data["cluster-name"]) != clusterSecret.ClusterName {
+			string(existingSecret.Data["cluster-name"]) != clusterSecret.ClusterName ||
+			string(existingSecret.Data["redis-data-model-version"]) != clusterSecret.RedisDataModelVersion {
 			self.logger.Info("🔑 Updating existing mogenius secret ...")
 			result, err := secretClient.Update(context.TODO(), &secret, self.updateOptions())
 			if err != nil {

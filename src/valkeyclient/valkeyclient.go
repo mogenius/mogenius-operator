@@ -3,7 +3,6 @@ package valkeyclient
 import (
 	"context"
 	"fmt"
-	"log"
 	"log/slog"
 	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/config"
@@ -36,12 +35,12 @@ type ValkeyClient interface {
 	// LastNEntryFromBucketWithType(number int64, bucketKey ...string) ([]string, error)
 	DeleteFromBucketWithNsAndReleaseName(namespace string, releaseName string, bucketKey ...string) error
 
-	StoreSortedListEntry(data interface{}, timestamp time.Time, enforceUnique bool, keys ...string) error
+	StoreSortedListEntry(data interface{}, timestamp int64, keys ...string) error
 
 	ClearNonEssentialKeys(includeTraffic bool, includePodStats bool, includeNodestats bool) (string, error)
 
 	DeleteSingle(key ...string) error
-	DeleteMultiple(keys ...string) error
+	DeleteMultiple(patterns ...string) error
 	Keys(pattern string) ([]string, error)
 	Exists(keys ...string) (bool, error)
 
@@ -65,7 +64,8 @@ type DataPoint struct {
 	Data      interface{} `json:"data"`
 }
 
-var MAX_RETENTION_TIME = 1 * time.Hour //7 * 24 * time.Hour // 7 days
+var MAX_RETENTION_TIME = 7 * 24 * time.Hour // 7 days
+var MAX_RETENTION_SIZE = 10800
 
 type valkeyClient struct {
 	logger *slog.Logger
@@ -495,16 +495,60 @@ func (self *valkeyClient) DeleteSingle(keys ...string) error {
 	return nil
 }
 
-func (self *valkeyClient) DeleteMultiple(keys ...string) error {
-	if len(keys) == 0 {
+func (self *valkeyClient) DeleteMultiple(patterns ...string) error {
+	if len(patterns) == 0 {
 		return nil
 	}
-	err := self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Del().Key(keys...).Build()).Error()
-	if err != nil {
-		self.logger.Error("Error deleting key from Valkey", "key", keys, "error", err)
-		return err
+
+	var allKeys []string
+
+	for _, pattern := range patterns {
+		cursor := uint64(0)
+		for {
+			// Use SCAN with pattern
+			result := self.valkeyClient.Do(self.ctx,
+				self.valkeyClient.B().Scan().Cursor(cursor).Match(pattern).Count(100).Build())
+
+			if result.Error() != nil {
+				return result.Error()
+			}
+
+			scanResult, err := result.AsScanEntry()
+			if err != nil {
+				return err
+			}
+
+			allKeys = append(allKeys, scanResult.Elements...)
+			cursor = scanResult.Cursor
+
+			if cursor == 0 {
+				break // Scan complete
+			}
+		}
 	}
 
+	if len(allKeys) == 0 {
+		self.logger.Info("No keys found matching patterns", "patterns", patterns)
+		return nil
+	}
+
+	// Delete in batches to avoid very large commands
+	batchSize := 100
+	for i := 0; i < len(allKeys); i += batchSize {
+		end := i + batchSize
+		if end > len(allKeys) {
+			end = len(allKeys)
+		}
+
+		batch := allKeys[i:end]
+		err := self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Del().Key(batch...).Build()).Error()
+		if err != nil {
+			self.logger.Error("Error deleting batch", "keys", batch, "error", err)
+			return err
+		}
+	}
+
+	self.logger.Info("Successfully deleted keys", "count", len(allKeys), "patterns", patterns)
 	return nil
 }
 
@@ -808,20 +852,37 @@ func trimStream(self *valkeyClient, streamKey string) error {
 		cutoffTime := time.Now().Add(-MAX_RETENTION_TIME)
 		cutoffID := fmt.Sprintf("%d-0", cutoffTime.UnixMilli())
 
-		// Correct syntax for XTRIM key MINID cutoffID
+		// Build XTRIM MINID command
 		cmd := self.valkeyClient.B().Xtrim().Key(streamKey).Minid().Threshold(cutoffID).Build()
-		if err := self.valkeyClient.Do(self.ctx, cmd).Error(); err != nil {
+
+		trimResult := self.valkeyClient.Do(self.ctx, cmd)
+		if err := trimResult.Error(); err != nil {
 			// Ignore "no such key" errors
 			if err.Error() != "ERR no such key" {
 				return fmt.Errorf("failed to trim by time: %w", err)
 			}
+			return nil
+		}
+	}
+
+	if MAX_RETENTION_SIZE > 0 {
+		// Build XTRIM MAXLEN command
+		cmd := self.valkeyClient.B().Xtrim().Key(streamKey).Maxlen().Threshold(fmt.Sprintf("%d", MAX_RETENTION_SIZE)).Build()
+
+		trimResult := self.valkeyClient.Do(self.ctx, cmd)
+		if err := trimResult.Error(); err != nil {
+			// Ignore "no such key" errors
+			if err.Error() != "ERR no such key" {
+				return fmt.Errorf("failed to trim by size: %w", err)
+			}
+			return nil
 		}
 	}
 
 	return nil
 }
 
-func parseStreamMessages[T any](messages []valkey.XRangeEntry) ([]T, error) {
+func parseStreamMessages[T any](logger *slog.Logger, messages []valkey.XRangeEntry) ([]T, error) {
 	var dataPoints []T
 
 	for _, msg := range messages {
@@ -829,7 +890,7 @@ func parseStreamMessages[T any](messages []valkey.XRangeEntry) ([]T, error) {
 			var dataPoint T
 			err := json.Unmarshal([]byte(dataStr), &dataPoint)
 			if err != nil {
-				log.Printf("Failed to unmarshal stream data for ID %s: %v", msg.ID, err)
+				logger.Error("Failed to unmarshal stream data for ID %s: %v", msg.ID, err)
 				continue
 			}
 			dataPoints = append(dataPoints, dataPoint)
@@ -838,7 +899,7 @@ func parseStreamMessages[T any](messages []valkey.XRangeEntry) ([]T, error) {
 	return dataPoints, nil
 }
 
-func (self *valkeyClient) StoreSortedListEntry(data interface{}, timestamp time.Time, enforceUnique bool, keys ...string) error {
+func (self *valkeyClient) StoreSortedListEntry(data interface{}, timestamp int64, keys ...string) error {
 	streamKey := createKey(keys...)
 
 	jsonData, err := json.Marshal(data)
@@ -846,25 +907,32 @@ func (self *valkeyClient) StoreSortedListEntry(data interface{}, timestamp time.
 		return fmt.Errorf("failed to marshal data: %w", err)
 	}
 
-	idType := fmt.Sprintf("%d-0", timestamp.Unix()) // results in ids like: 1680000000000-0
-	if enforceUnique {
-		idType = "*" // results in ids like: 1680000000000-0, 1680000000000-1, 1680000000000-2, ...
+	//  make sure it's in milliseconds because valkey requires it
+	if timestamp < 10000000000 {
+		timestamp = timestamp * 1000
 	}
 
-	// Build XADD command using valkey-go command builder
-	cmd := self.valkeyClient.B().Xadd().Key(streamKey).Id(idType).FieldValue().
+	id := fmt.Sprintf("%d-0", timestamp)
+	// Build XADD command - removed the empty FieldValue() call
+	cmd := self.valkeyClient.B().Xadd().Key(streamKey).Id(id).FieldValue().
 		FieldValue("data", string(jsonData)).
-		FieldValue("timestamp", strconv.FormatInt(timestamp.Unix(), 10)).
+		FieldValue("timestamp", strconv.FormatInt(timestamp, 10)).
 		Build()
 
 	result := self.valkeyClient.Do(self.ctx, cmd)
 	if err := result.Error(); err != nil {
+		// Only ignore the "ID too small" error when not enforcing uniqueness
+		if strings.Contains(err.Error(), "The ID specified in XADD is equal or smaller than the target stream top item") {
+			// This means we're trying to insert a duplicate entry
+			// we dont care about duplicates
+			return nil
+		}
 		return fmt.Errorf("failed to add to stream: %w, key:%s", err, streamKey)
 	}
 
 	// Trim stream to maintain retention policy
 	if err := trimStream(self, streamKey); err != nil {
-		log.Printf("Warning: failed to trim stream: %v", err)
+		self.logger.Error("failed to trim stream", "key", streamKey, "error", err.Error())
 	}
 
 	return nil
@@ -895,7 +963,7 @@ func GetObjectsFromSortedListWithRange[T any](store ValkeyClient, start, end tim
 		return nil, fmt.Errorf("failed to parse stream result: %w", err)
 	}
 
-	return parseStreamMessages[T](messages)
+	return parseStreamMessages[T](store.GetLogger(), messages)
 }
 
 func GetLastObjectsFromSortedList[T any](store ValkeyClient, count int64, keys ...string) ([]T, error) {
@@ -916,5 +984,5 @@ func GetLastObjectsFromSortedList[T any](store ValkeyClient, count int64, keys .
 		return nil, fmt.Errorf("failed to parse stream result: %w", err)
 	}
 
-	return parseStreamMessages[T](messages)
+	return parseStreamMessages[T](store.GetLogger(), messages)
 }

@@ -130,6 +130,14 @@ func DropAllPodEventsFromValkey(valkeyClient valkeyclient.ValkeyClient, logger *
 	return err
 }
 
+func DropKey(valkeyClient valkeyclient.ValkeyClient, logger *slog.Logger, key string) error {
+	err := valkeyClient.DeleteMultiple(key)
+	if err != nil {
+		logger.Error("failed to DropKey", "error", err)
+	}
+	return err
+}
+
 func CreateKey(parts ...string) string {
 	parts = append([]string{VALKEY_RESOURCE_PREFIX}, parts...)
 	return strings.Join(parts, ":")
