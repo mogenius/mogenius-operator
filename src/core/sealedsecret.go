@@ -64,11 +64,17 @@ func (s *sealedSecretManager) fetchPublicKeyViaHTTP() (*rsa.PublicKey, error) {
 	// here you can add a certificate for testing
 	publicKeyData := []byte("")
 	if len(publicKeyData) == 0 {
-		namespace, serviceName, port, err := kubernetes.FindSealedSecretsService(config)
+		namespace, serviceName, port, err := kubernetes.FindSealedSecretsService(s.config)
 		if err != nil {
 			return nil, err
 		}
-		url := fmt.Sprintf("http://%s.%s.svc.cluster.local:%d/v1/cert.pem", serviceName, namespace, port)
+
+		clusterDomain, err := s.config.TryGet("CLUSTER_DOMAIN")
+		if err != nil {
+			clusterDomain = "cluster.local"
+		}
+
+		url := fmt.Sprintf("http://%s.%s.svc.%s:%d/v1/cert.pem", serviceName, namespace, clusterDomain, port)
 
 		resp, err := http.Get(url)
 		if err != nil {
