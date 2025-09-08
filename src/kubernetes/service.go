@@ -172,6 +172,20 @@ func FindPrometheusService() (namespace string, service string, port int32, err 
 
 func FindSealedSecretsService() (namespace string, service string, port int32, err error) {
 	clientset := clientProvider.K8sClientSet()
+
+	// exists mogenius sealed-secrets config
+	sealedSecretsConfig, err := clientset.CoreV1().ConfigMaps("mogenius").Get(context.TODO(), "sealed-secrets-config", metav1.GetOptions{})
+	if err == nil {
+		if namespaceName, ok := sealedSecretsConfig.Data["namespaceName"]; ok {
+			if releaseName, ok := sealedSecretsConfig.Data["releaseName"]; ok {
+				serviceClient, err := clientset.CoreV1().Services(namespaceName).Get(context.TODO(), releaseName, metav1.GetOptions{})
+				if err == nil {
+					return serviceClient.Namespace, serviceClient.Name, serviceClient.Spec.Ports[0].Port, nil
+				}
+			}
+		}
+	}
+
 	serviceClient := clientset.CoreV1().Services("")
 	serviceList, err := serviceClient.List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
