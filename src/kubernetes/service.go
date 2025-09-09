@@ -180,9 +180,9 @@ func FindSealedSecretsService(cfg cfg.ConfigModule) (namespace string, service s
 	if err == nil {
 		if namespaceName, ok := sealedSecretsConfig.Data["namespaceName"]; ok {
 			if releaseName, ok := sealedSecretsConfig.Data["releaseName"]; ok {
-				serviceClient, err := clientset.CoreV1().Services(namespaceName).Get(context.TODO(), releaseName, metav1.GetOptions{})
-				if err == nil {
-					return serviceClient.Namespace, serviceClient.Name, serviceClient.Spec.Ports[0].Port, nil
+				sealedSecretsService, err := clientset.CoreV1().Services(namespaceName).Get(context.TODO(), releaseName, metav1.GetOptions{})
+				if err == nil && len(sealedSecretsService.Spec.Ports) > 0 && sealedSecretsService.Spec.Ports[0].Port != 0 {
+					return sealedSecretsService.Namespace, sealedSecretsService.Name, sealedSecretsService.Spec.Ports[0].Port, nil
 				}
 			}
 		}
