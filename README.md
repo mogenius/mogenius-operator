@@ -1,176 +1,290 @@
 <p align="center">
-  <img src="https://imagedelivery.net/T7YEW5IAgZJ0dY4-LDTpyQ/3ae4fcf0-289c-48d2-3323-d2c5bc932300/detail" alt="drawing" width="200"/>
+  <img src="https://imagedelivery.net/T7YEW5IAgZJ0dY4-LDTpyQ/3ae4fcf0-289c-48d2-3323-d2c5bc932300/detail" alt="mogenius" width="140"/>
 </p>
+<h1 align="center">mogenius-k8s-manager</h1>
+<p align="center">Kubernetes cluster manager & runtime control-plane components for the <a href="https://mogenius.com" target="_blank">mogenius</a> platform.</p>
 
+---
 
-## run locally
+## Table of Contents
+1. Overview
+2. Features
+3. Architecture (High-Level)
+4. Quick Start (Local Development)
+5. Configuration (.env)
+6. Build & Code Generation
+7. Running & Tasks (Justfile)
+8. Testing & Linting
+9. Docker & Images
+10. Helm (Install / Upgrade / Uninstall)
+11. eBPF Development Helpers
+12. Troubleshooting
+13. Contributing
+14. License & Attribution
 
-First you need to have the [mogenius helm chart installed and running](https://docs.mogenius.com/cluster-management/installing-mogenius).
+---
 
-Then create a file called `.env` with the mandatory settings:
+## 1. Overview
+`mogenius-k8s-manager` is a Go (>=1.25) service that coordinates cluster resources, patterns, secrets, metrics collection, and auxiliary runtime capabilities (websockets, git/helm/iac integration, valkey caching, etc.) for the mogenius platform.
 
+Major subsystems include:
+- Kubernetes controllers & reconcilers
+- Pattern (spec) generation (YAML + TypeScript client in `generated/`)
+- Git, Helm & IaC managers
+- Metrics & node monitoring (CPU, pod stats, Prometheus integration)
+- Websocket multiplexing & terminal/xterm services
+- Valkey (Redis compatible) caching layer
+- eBPF based system/network insights (optional)
+
+---
+
+## 2. Features
+- Declarative pattern & client generation (`just build` auto-updates `generated/spec.yaml` & `generated/client.ts`).
+- Multi-environment configuration via `.env` or environment variables.
+- Pluggable secret & external config handling.
+- Node & workload metrics collection.
+- Rich CLI powered by `kong` (see `go run -trimpath src/main.go --help`).
+- Built-in task automation with `just`.
+- Helm deployment artifacts & local override workflows.
+- Optional eBPF utilities for advanced networking/CPU visibility.
+
+---
+
+## 3. Architecture (High-Level)
+Monolithic binary with modular packages under `src/`:
+- `core/` – lifecycle, reconcilers, socket APIs.
+- `kubernetes/` – resource CRUD, backups, issuers, cronjobs, etc.
+- `valkeyclient/` – caching & time-series helpers.
+- `gitmanager/`, `helm/`, `iacmanager/` – integration layers.
+- `xterm/`, `websocket/` – interactive & streaming comms.
+- `cpumonitor/`, `podstatscollector/`, `nodemetricscollector.go` – telemetry.
+- `dtos/` – transport/data contracts.
+
+Generated artifacts:
+- `generated/spec.yaml` – pattern specification (YAML)
+- `generated/client.ts` – TypeScript client bindings.
+
+---
+
+## 4. Quick Start (Local Development)
+Prerequisites:
+- A running mogenius platform (see official docs) or at least the helm chart installed.
+- Go 1.25+
+- `just` task runner (https://github.com/casey/just)
+- Access to a Kubernetes cluster with the operator namespace (`mogenius`).
+
+Steps:
+1. Create `.env` (see section 5).
+2. Optionally scale down in-cluster deployment to avoid conflicts:
+   ```sh
+   just scale-down
+   ```
+3. Build & generate artifacts:
+   ```sh
+   just build
+   ```
+4. Run locally:
+   ```sh
+   just run
+   ```
+
+Restore cluster components afterward with:
 ```sh
-## mogenius cluster configuration
-MO_API_KEY=
-MO_CLUSTER_NAME=
-MO_CLUSTER_MFA_ID=
-
-## Select the mogenius environment to run against:
-##
-## - "prod" to run against the prod APIs
-## - "pre-prod": to run against the pre-prod APIs
-## - "dev": to run against the dev APIs
-## - "local": to run agains APIs on localhost
-## - "": to define APIs manually using `MO_API_SERVER` and `MO_EVENT_SERVER`
-MO_STAGE=dev
-
-## A full list of available configs can be generated using:
-##
-## ```sh
-## go run -trimpath src/main.go config
-## ```
+just scale-up
 ```
 
-## .env update
+---
+
+## 5. Configuration (.env)
+Create a `.env` file in repo root. Minimal keys:
+```sh
+MO_API_KEY=                       # From operator secret (mogenius/mogenius)
+MO_CLUSTER_NAME=                  # Cluster identifier
+MO_CLUSTER_MFA_ID=                # MFA/instance id
+MO_STAGE=dev                      # prod | pre-prod | dev | local | (empty for manual URLs)
+# Optional advanced overrides:
+# MO_API_SERVER=...
+# MO_EVENT_SERVER=...
 ```
+Load (bash/zsh):
+```sh
 if [[ -f .env ]]; then export $(grep -v '^#' .env | xargs); fi
 ```
-
-Get the `api-key`, `mfa-id` and `cluster-name` from the operator secret `mogenius/mogenius` and adjust the `.env` accordingly.
-
-Change the replicas to `0`:
-
+List available runtime config options:
 ```sh
-kubectl scale -n mogenius deployment mogenius-k8s-manager --replicas=0
+go run -trimpath src/main.go config
 ```
 
-Now mogenius can be run locally:
+---
 
+## 6. Build & Code Generation
+The build step embeds version metadata (commit, branch, timestamp) and regenerates patterns + TypeScript client.
 ```sh
-just run
+just build
 ```
+Artifacts:
+- `dist/native/mogenius-k8s-manager`
+- `generated/spec.yaml`
+- `generated/client.ts`
 
-## local docker image in docker-desktop kubernetes
-
-RUN:
-
+Cross compilation & images:
 ```sh
-docker build -t localk8smanager --build-arg GOOS=linux --build-arg GOARCH=arm64 --build-arg BUILD_TIMESTAMP="$(date)" --build-arg COMMIT_HASH="XXX" --build-arg GIT_BRANCH=local-development --build-arg VERSION="6.6.6" -f Dockerfile .
+just build-all                # All target architectures
+just build-docker-linux-amd64 # Docker image (amd64)
+just build-docker-linux-arm64 # Docker image (arm64)
 ```
 
-Assuming you already have a [prod operator running](https://docs.mogenius.com/cluster-management/installing-mogenius#mogenius-cli), you can adjust the deployment of the operator with e.g. `kubectl edit deployments -n mogenius mogenius-k8s-manager`
+---
 
-```yaml
-## FROM:
-image: ghcr.io/mogenius/mogenius-k8s-manager:latest
-imagePullPolicy: Always
+## 7. Running & Tasks (Justfile)
+Discover tasks:
+```sh
+just --list --unsorted
+```
+Key tasks:
+- `just run` – Start cluster manager (local dev)
+- `just run-node-metrics` – Run only node metrics mode
+- `just scale-down` / `scale-up` – Toggle in-cluster instances
+- `just generate` – Run `go generate`
+- `just check` – Lint + unit tests
+- `just test-unit` / `test-integration`
+- `just golangci-lint`
 
-## TO:
-image: localk8smanager:latest
-imagePullPolicy: Never
+---
+
+## 8. Testing & Linting
+```sh
+just check            # generate + lint + unit tests
+just test-unit        # unit tests only
+just test-integration # integration suite
+just golangci-lint    # lint only
 ```
 
-After that simply restart the deployment and you are good to go.
-
-## Upgrade Modules
-
+Upgrade dependencies:
 ```sh
 go get -u ./...
 go mod tidy
 ```
 
-## Testing/Linting Locally
+---
 
+## 9. Docker & Images
+Local development image example:
 ```sh
-# Run linter and unit tests locally
-just check
-
-# Run linter
-just golangci-lint
-
-# Run quick unit tests
-just test-unit
-
-# Run slow integration tests
-just test-integration
+docker build -t localk8smanager \
+  --build-arg GOOS=linux \
+  --build-arg GOARCH=arm64 \
+  --build-arg BUILD_TIMESTAMP="$(date -Iseconds)" \
+  --build-arg COMMIT_HASH="$(git rev-parse --short HEAD || echo XXX)" \
+  --build-arg GIT_BRANCH=local-development \
+  --build-arg VERSION="dev-local" \
+  -f Dockerfile .
 ```
+Swap image in deployment:
+```yaml
+# from
+image: ghcr.io/mogenius/mogenius-k8s-manager:latest
+imagePullPolicy: Always
+# to
+image: localk8smanager:latest
+imagePullPolicy: Never
+```
+Then restart the deployment.
 
-## Helm Install
+---
 
+## 10. Helm
+Add & install:
 ```sh
 helm repo add mo-public helm.mogenius.com/public
 helm repo update
 helm search repo mogenius-platform
 helm install mogenius-platform mo-public/mogenius-platform \
-  --set global.cluster_name="mo7-mogenius-io" \
-  --set global.api_key="mo_7bf5c2b5-d7bc-4f0e-b8fc-b29d09108928_0hkga6vjum3p1mvezith" \
+  --set global.cluster_name="<cluster>" \
+  --set global.api_key="<api-key>" \
   --set global.namespace="mogenius"
 ```
-
-## Helm Upgrade
-
+Upgrade:
 ```sh
 helm repo update
 helm upgrade mogenius-platform mo-public/mogenius-platform
 ```
-
-## Helm Uninstall
-
+Uninstall:
 ```sh
 helm uninstall mogenius-platform
 ```
-
-## Clean Helm Cache
-
+Clean local helm cache (if needed):
 ```sh
-rm -rf ~/.helm/cache/archive/*
-rm -rf ~/.helm/repository/cache/*
+rm -rf ~/.helm/cache/archive/* ~/.helm/repository/cache/*
 helm repo update
 ```
 
-## eBPF Development
-### how to run the example ebpf program?
-  - run `go generate ./ebpf`
-  - run `sudo go run ./cmd/main.go`
-  OR
-  - run `just ebpf`
+---
 
-### Generate load for eBPF to measure
-  - run `ping -i 0.002 127.0.0.1` in another terminal
+## 11. eBPF Development Helpers
+Run example program:
+```sh
+go generate ./ebpf
+sudo go run ./cmd/main.go
+# or
+just ebpf
+```
+Generate synthetic network load:
+```sh
+ping -i 0.002 127.0.0.1
+```
+Docker dev environment examples:
+```sh
+# test inside ephemeral container
+docker build -t my-go-ebpf-app -f Dockerfile-Dev-Environment . \
+  && docker run --rm -it --privileged --pid=host --net=host my-go-ebpf-app \
+  sh -c "cd /app && just ebpf"
 
-### docker-compose
-  - run `docker-compose build`
-  - run `docker-compose up -d`
-  - run `docker-compose exec mogenius-operator sh`
-  - run `just run`
-  - run `nsenter --target=40368 --net=/proc/40368/ns/net -n ip -o --json link | jq`
+# interactive shell
+docker build -t my-go-ebpf-app -f Dockerfile-Dev-Environment . \
+  && docker run --rm -it --privileged --pid=host --net=host my-go-ebpf-app sh
 
-### eBPF Docker examples
-test if eBPF is still working:
-```bash
-docker build -t my-go-ebpf-app -f Dockerfile-Dev-Environment . && docker run --rm -it --privileged --pid=host --net=host my-go-ebpf-app sh -c "cd /app && just ebpf"
+# with local kubeconfig + .env
+docker build -t my-go-ebpf-app -f Dockerfile-Dev-Environment . \
+  && docker run --rm -it \
+     -v "$KUBECONFIG:/root/.kube/config:ro" \
+     -v "$(pwd)/.env:/app/.env:ro" \
+     --privileged --pid=host --net=host my-go-ebpf-app sh
+```
+Access valkey from container:
+```sh
+kubectl -n mogenius port-forward svc/mogenius-k8s-manager-valkey 6379:6379 &
 ```
 
-standalone container:
-```bash
-docker build -t my-go-ebpf-app -f Dockerfile-Dev-Environment . && docker run --rm -it --privileged --pid=host --net=host my-go-ebpf-app sh
-```
+---
 
-standalone with your local KUBECONFIG & .env 🚀🚀🚀
-```bash
-docker build -t my-go-ebpf-app -f Dockerfile-Dev-Environment . && docker run --rm -it -v $KUBECONFIG:/root/.kube/config:ro -v "$(pwd)/.env:/app/.env:ro" --privileged --pid=host --net=host my-go-ebpf-app sh
-```
+## 12. Troubleshooting
+- Ensure in-cluster manager scaled down when running locally: `just scale-down`.
+- Regenerate patterns after structural changes: `just build` or `just generate`.
+- Connection / auth issues: verify `.env` secrets still match operator secret in namespace `mogenius`.
+- Helm drift: run `helm repo update` before upgrade.
+- Stale dependencies: run `go clean -modcache` then `go mod tidy`.
 
-to access valkey from within the container (and to background it):
-```bash
-kubectl port-forward svc/mogenius-k8s-manager-valkey 6379:6379 -n mogenius &
-```
+---
 
-## LINKS
+## 13. Contributing
+1. Fork & create a feature branch.
+2. Keep PRs small & focused.
+3. Run `just check` before pushing.
+4. Add/update tests where behavior changes.
 
-- [Just](https://github.com/casey/just) - A Task Runner. Checkout the `Justfile` for details or use `just --list --unsorted` for an quick overview.
+Issues & PRs welcome.
 
----------------------
+---
 
+## 14. License & Attribution
+Copyright (c) mogenius. All rights reserved.
 
-mogenius-k8s-manager was created by [mogenius](https://mogenius.com) - The Virtual DevOps platform
+Built with ❤️ by the <a href="https://mogenius.com" target="_blank">mogenius</a> team.
+
+---
+
+References:
+- Task runner: https://github.com/casey/just
+- Go module: `mogenius-k8s-manager`
+
