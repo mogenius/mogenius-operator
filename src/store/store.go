@@ -238,6 +238,10 @@ func GetNamespace(valkeyClient valkeyclient.ValkeyClient, name string, logger *s
 	return namespace
 }
 
+func GetResource(valkeyClient valkeyclient.ValkeyClient, groupVersion string, kind string, namespace string, name string, logger *slog.Logger) (*unstructured.Unstructured, error) {
+	return valkeyclient.GetObjectForKey[unstructured.Unstructured](valkeyClient, VALKEY_RESOURCE_PREFIX, groupVersion, kind, namespace, name)
+}
+
 func GetResourceByKindAndNamespace(valkeyClient valkeyclient.ValkeyClient, groupVersion string, kind string, namespace string, logger *slog.Logger) []unstructured.Unstructured {
 	var results []unstructured.Unstructured
 

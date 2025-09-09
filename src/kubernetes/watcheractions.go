@@ -295,6 +295,10 @@ func GetUnstructuredResource(group string, version string, name string, namespac
 	}
 }
 
+func GetUnstructuredResourceFromStore(group string, kind string, namespace, resourceName string) (*unstructured.Unstructured, error) {
+	return store.GetResource(valkeyClient, group, kind, namespace, resourceName, k8sLogger)
+}
+
 func CreateUnstructuredResource(group string, version string, name string, namespace *string, yamlData string) (*unstructured.Unstructured, error) {
 	dynamicClient := clientProvider.DynamicClient()
 	obj := &unstructured.Unstructured{}

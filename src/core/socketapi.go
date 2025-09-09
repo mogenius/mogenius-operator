@@ -1379,7 +1379,7 @@ func (self *socketApi) registerPatterns() {
 		PatternConfig{},
 		func(datagram structs.Datagram, request utils.ResourceItem) (*unstructured.Unstructured, error) {
 			// we skip the audit log here because this is a read operation and it would spam the logs
-			return kubernetes.GetUnstructuredResource(request.Group, request.Version, request.Name, request.Namespace, request.ResourceName)
+			return kubernetes.GetUnstructuredResourceFromStore(request.Group, request.Kind, request.Namespace, request.ResourceName)
 		},
 	)
 
@@ -1412,7 +1412,7 @@ func (self *socketApi) registerPatterns() {
 			if err != nil {
 				return nil, fmt.Errorf("failed to unmarshal YAML data: %w", err)
 			}
-			oldObj, _ := kubernetes.GetUnstructuredResource(request.Group, request.Version, request.Name, ns, updatedObj.GetName())
+			oldObj, _ := kubernetes.GetUnstructuredResourceFromStore(request.Group, request.Kind, ns, updatedObj.GetName())
 			updatedRes, err := kubernetes.UpdateUnstructuredResource(request.Group, request.Version, request.Name, request.Namespace, request.YamlData)
 			return store.AddToAuditLog(datagram, self.logger, updatedRes, err, oldObj, updatedRes)
 		},
@@ -1422,7 +1422,7 @@ func (self *socketApi) registerPatterns() {
 		PatternHandle{self, "delete/workload"},
 		PatternConfig{},
 		func(datagram structs.Datagram, request utils.ResourceItem) (Void, error) {
-			objToDel, _ := kubernetes.GetUnstructuredResource(request.Group, request.Version, request.Name, request.Namespace, request.ResourceName)
+			objToDel, _ := kubernetes.GetUnstructuredResourceFromStore(request.Group, request.Kind, request.Namespace, request.ResourceName)
 			err := kubernetes.DeleteUnstructuredResource(request.Group, request.Version, request.Name, request.Namespace, request.ResourceName)
 			store.AddToAuditLog(datagram, self.logger, interface{}(nil), err, objToDel, nil)
 			return nil, err
