@@ -59,11 +59,6 @@ const (
 	MAX_CHUNK_GET_SIZE = 100
 )
 
-type DataPoint struct {
-	Timestamp time.Time   `json:"timestamp"`
-	Data      interface{} `json:"data"`
-}
-
 var MAX_RETENTION_TIME = 7 * 24 * time.Hour // 7 days
 var MAX_RETENTION_SIZE = 10800
 
@@ -449,7 +444,7 @@ func (self *valkeyClient) ClearNonEssentialKeys(includeTraffic bool, includePodS
 		"logs:websocket-events-client",
 		"logs:websocket-job-client",
 		"maschine-stats:",
-		"pod-events:",
+		"pod-events:", // Todo: is this still really in use? Looks like no data is written to this key
 		"status:",
 	}
 
@@ -916,7 +911,6 @@ func (self *valkeyClient) StoreSortedListEntry(data interface{}, timestamp int64
 	// Build XADD command - removed the empty FieldValue() call
 	cmd := self.valkeyClient.B().Xadd().Key(streamKey).Id(id).FieldValue().
 		FieldValue("data", string(jsonData)).
-		FieldValue("timestamp", strconv.FormatInt(timestamp, 10)).
 		Build()
 
 	result := self.valkeyClient.Do(self.ctx, cmd)

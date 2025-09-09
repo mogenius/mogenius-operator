@@ -450,7 +450,6 @@ func (self *valkeyStatsDb) GetWorkspaceStatsTrafficUtilization(timeOffsetInMinut
 						Value: existingEntry.Value + float64(entry.TransmitBytes+entry.ReceivedBytes),
 						Pods:  updateTop5Pods(existingEntry.Pods, float64(entry.TransmitBytes+entry.ReceivedBytes), entry.Pod),
 					}
-					fmt.Println("Updated existing entry:", trafficByMinute[minute].Time, entry.Pod, entry.TransmitBytes+entry.ReceivedBytes)
 				}
 				resultMutex.Unlock()
 			}
@@ -468,8 +467,21 @@ func (self *valkeyStatsDb) GetWorkspaceStatsTrafficUtilization(timeOffsetInMinut
 
 	// Build sorted slice of results
 	sortedEntries := make([]GenericChartEntry, 0, len(times))
-	for _, t := range times {
-		sortedEntries = append(sortedEntries, trafficByMinute[t])
+	for i := 1; i < len(times); i++ {
+		currentEntry := trafficByMinute[times[i]]
+		prevEntry := trafficByMinute[times[i-1]]
+
+		// Calculate delta, handle resets/negative values
+		delta := currentEntry.Value - prevEntry.Value
+		if delta < 0 {
+			// Counter reset or restart - use current value as delta
+			delta = currentEntry.Value
+			// Or skip this entry entirely:
+			// continue
+		}
+
+		currentEntry.Value = delta
+		sortedEntries = append(sortedEntries, currentEntry)
 	}
 
 	return sortedEntries, nil
