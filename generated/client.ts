@@ -17691,7 +17691,8 @@ export type STATS_WORKSPACE_CPU_UTILIZATION_REQUEST = STATS_WORKSPACE_CPU_UTILIZ
  *                 valueType:
  *                     type: float
  *             time:
- *                 type: string
+ *                 structRef: time.Time
+ *                 type: struct
  *             value:
  *                 type: float
  *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·9,[]mogenius-k8s-manager/src/core.GenericChartEntry]:
@@ -17706,6 +17707,9 @@ export type STATS_WORKSPACE_CPU_UTILIZATION_REQUEST = STATS_WORKSPACE_CPU_UTILIZ
  *                 type: string
  *             status:
  *                 type: string
+ *     time.Time:
+ *         name: time.Time
+ *         properties: {}
  * typeInfo:
  *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·9,[]mogenius-k8s-manager/src/core.GenericChartEntry]
  *     type: struct
@@ -17749,7 +17753,8 @@ export type STATS_WORKSPACE_MEMORY_UTILIZATION_REQUEST = STATS_WORKSPACE_MEMORY_
  *                 valueType:
  *                     type: float
  *             time:
- *                 type: string
+ *                 structRef: time.Time
+ *                 type: struct
  *             value:
  *                 type: float
  *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·9,[]mogenius-k8s-manager/src/core.GenericChartEntry]:
@@ -17764,6 +17769,9 @@ export type STATS_WORKSPACE_MEMORY_UTILIZATION_REQUEST = STATS_WORKSPACE_MEMORY_
  *                 type: string
  *             status:
  *                 type: string
+ *     time.Time:
+ *         name: time.Time
+ *         properties: {}
  * typeInfo:
  *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·9,[]mogenius-k8s-manager/src/core.GenericChartEntry]
  *     type: struct
@@ -17807,7 +17815,8 @@ export type STATS_WORKSPACE_TRAFFIC_UTILIZATION_REQUEST = STATS_WORKSPACE_TRAFFI
  *                 valueType:
  *                     type: float
  *             time:
- *                 type: string
+ *                 structRef: time.Time
+ *                 type: struct
  *             value:
  *                 type: float
  *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·9,[]mogenius-k8s-manager/src/core.GenericChartEntry]:
@@ -17822,6 +17831,9 @@ export type STATS_WORKSPACE_TRAFFIC_UTILIZATION_REQUEST = STATS_WORKSPACE_TRAFFI
  *                 type: string
  *             status:
  *                 type: string
+ *     time.Time:
+ *         name: time.Time
+ *         properties: {}
  * typeInfo:
  *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·9,[]mogenius-k8s-manager/src/core.GenericChartEntry]
  *     type: struct
@@ -20098,14 +20110,17 @@ export type STATS_TRAFFIC_SUM_FOR_NAMESPACE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_C
 export type STATS_TRAFFIC_SUM_FOR_NAMESPACE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_NETWORKMONITOR_PODNETWORKSTATS = {"createdAt": STATS_TRAFFIC_SUM_FOR_NAMESPACE_RESPONSE__TIME_TIME,"namespace": string,"pod": string,"receivedBytes": number,"receivedPackets": number,"receivedStartBytes": number,"transmitBytes": number,"transmitPackets": number,"transmitStartBytes": number};
 export type STATS_TRAFFIC_SUM_FOR_NAMESPACE_RESPONSE__TIME_TIME = {};
 export type STATS_WORKSPACE_CPU_UTILIZATION_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"timeOffsetMinutes": number,"workspaceName": string};
-export type STATS_WORKSPACE_CPU_UTILIZATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_GENERICCHARTENTRY = {"pods": Record<string, number>,"time": string,"value": number};
+export type STATS_WORKSPACE_CPU_UTILIZATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_GENERICCHARTENTRY = {"pods": Record<string, number>,"time": STATS_WORKSPACE_CPU_UTILIZATION_RESPONSE__TIME_TIME,"value": number};
 export type STATS_WORKSPACE_CPU_UTILIZATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST9_MOGENIUS_K8S_MANAGER_SRC_CORE_GENERICCHARTENTRY = {"data": STATS_WORKSPACE_CPU_UTILIZATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_GENERICCHARTENTRY[],"message": string,"status": string};
+export type STATS_WORKSPACE_CPU_UTILIZATION_RESPONSE__TIME_TIME = {};
 export type STATS_WORKSPACE_MEMORY_UTILIZATION_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"timeOffsetMinutes": number,"workspaceName": string};
-export type STATS_WORKSPACE_MEMORY_UTILIZATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_GENERICCHARTENTRY = {"pods": Record<string, number>,"time": string,"value": number};
+export type STATS_WORKSPACE_MEMORY_UTILIZATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_GENERICCHARTENTRY = {"pods": Record<string, number>,"time": STATS_WORKSPACE_MEMORY_UTILIZATION_RESPONSE__TIME_TIME,"value": number};
 export type STATS_WORKSPACE_MEMORY_UTILIZATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST9_MOGENIUS_K8S_MANAGER_SRC_CORE_GENERICCHARTENTRY = {"data": STATS_WORKSPACE_MEMORY_UTILIZATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_GENERICCHARTENTRY[],"message": string,"status": string};
+export type STATS_WORKSPACE_MEMORY_UTILIZATION_RESPONSE__TIME_TIME = {};
 export type STATS_WORKSPACE_TRAFFIC_UTILIZATION_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"timeOffsetMinutes": number,"workspaceName": string};
-export type STATS_WORKSPACE_TRAFFIC_UTILIZATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_GENERICCHARTENTRY = {"pods": Record<string, number>,"time": string,"value": number};
+export type STATS_WORKSPACE_TRAFFIC_UTILIZATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_GENERICCHARTENTRY = {"pods": Record<string, number>,"time": STATS_WORKSPACE_TRAFFIC_UTILIZATION_RESPONSE__TIME_TIME,"value": number};
 export type STATS_WORKSPACE_TRAFFIC_UTILIZATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST9_MOGENIUS_K8S_MANAGER_SRC_CORE_GENERICCHARTENTRY = {"data": STATS_WORKSPACE_TRAFFIC_UTILIZATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_GENERICCHARTENTRY[],"message": string,"status": string};
+export type STATS_WORKSPACE_TRAFFIC_UTILIZATION_RESPONSE__TIME_TIME = {};
 export type STORAGE_CREATE_VOLUME_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_NFSVOLUMEREQUEST = {"namespaceName": string,"sizeInGb": number,"volumeName": string};
 export type STORAGE_CREATE_VOLUME_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_DEFAULTRESPONSE = {"error": string,"success": boolean};
 export type STORAGE_DELETE_VOLUME_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_NFSVOLUMEREQUEST = {"namespaceName": string,"sizeInGb": number,"volumeName": string};

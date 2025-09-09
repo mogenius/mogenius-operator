@@ -15464,7 +15464,8 @@ stats/workspace-cpu-utilization:
                         valueType:
                             type: float
                     time:
-                        type: string
+                        structRef: time.Time
+                        type: struct
                     value:
                         type: float
             mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·9,[]mogenius-k8s-manager/src/core.GenericChartEntry]:
@@ -15479,6 +15480,9 @@ stats/workspace-cpu-utilization:
                         type: string
                     status:
                         type: string
+            time.Time:
+                name: time.Time
+                properties: {}
         typeInfo:
             structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·9,[]mogenius-k8s-manager/src/core.GenericChartEntry]
             type: struct
@@ -15507,7 +15511,8 @@ stats/workspace-memory-utilization:
                         valueType:
                             type: float
                     time:
-                        type: string
+                        structRef: time.Time
+                        type: struct
                     value:
                         type: float
             mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·9,[]mogenius-k8s-manager/src/core.GenericChartEntry]:
@@ -15522,6 +15527,9 @@ stats/workspace-memory-utilization:
                         type: string
                     status:
                         type: string
+            time.Time:
+                name: time.Time
+                properties: {}
         typeInfo:
             structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·9,[]mogenius-k8s-manager/src/core.GenericChartEntry]
             type: struct
@@ -15550,7 +15558,8 @@ stats/workspace-traffic-utilization:
                         valueType:
                             type: float
                     time:
-                        type: string
+                        structRef: time.Time
+                        type: struct
                     value:
                         type: float
             mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·9,[]mogenius-k8s-manager/src/core.GenericChartEntry]:
@@ -15565,6 +15574,9 @@ stats/workspace-traffic-utilization:
                         type: string
                     status:
                         type: string
+            time.Time:
+                name: time.Time
+                properties: {}
         typeInfo:
             structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·9,[]mogenius-k8s-manager/src/core.GenericChartEntry]
             type: struct
