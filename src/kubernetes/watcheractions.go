@@ -175,21 +175,12 @@ func GetUnstructuredResourceListFromStore(group string, kind string, version str
 	// try to get the data from the store (very fast)
 	result := store.GetResourceByKindAndNamespace(valkeyClient, group, kind, *namespace, k8sLogger)
 	if result != nil {
+		// delete data field to speed up transfer
+		for i := range result {
+			delete(result[i].Object, "data")
+		}
 		results.Items = result
 	}
-
-	// // fallback: gather the data when the store is empty (can be slow)
-	// if len(result) == 0 {
-	// 	// dont bother kubernetes with mirrored resources
-	// 	if slices.Contains(MirroredResourceKinds, kind) {
-	// 		return results, nil
-	// 	}
-	// 	list, err := GetUnstructuredResourceList(group, version, name, namespace)
-	// 	if err != nil {
-	// 		return results, err
-	// 	}
-	// 	results.Items = list.Items
-	// }
 
 	return results, nil
 }
