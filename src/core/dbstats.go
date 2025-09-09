@@ -471,7 +471,7 @@ func (self *valkeyStatsDb) GetWorkspaceStatsTrafficUtilization(timeOffsetInMinut
 	// sort and create array
 	times := slices.Collect(maps.Keys(trafficByMinute))
 	slices.SortFunc(times, time.Time.Compare)
-	sortedEntries := make([]GenericChartEntry, 0, len(times)-1)
+	sortedEntries := make([]GenericChartEntry, 0, len(times))
 	for i := 0; i < len(times); i++ {
 		sortedEntries = append(sortedEntries, trafficByMinute[times[i]])
 	}
