@@ -4,6 +4,8 @@ import (
 	"log/slog"
 	"mogenius-k8s-manager/src/utils"
 	"time"
+
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 type Datagram struct {
@@ -66,7 +68,13 @@ func CreateDatagramNotificationFromJob(data *Job) Datagram {
 	return datagram
 }
 
-func CreateDatagramForClusterEvent(pattern string, group string, version string, kind string, namespace string, name string, resourceName string, eventType string, uid string, resourceVersion string) Datagram {
+func CreateDatagramForClusterEvent(pattern, group, version, kind, name, eventType string, obj *unstructured.Unstructured) Datagram {
+
+	var status interface{}
+	if kind == "Application" {
+		status, _, _ = unstructured.NestedFieldNoCopy(obj.Object, "status", "resources")
+	}
+
 	datagram := Datagram{
 		Id:      utils.NanoId(),
 		Pattern: pattern,
@@ -76,11 +84,13 @@ func CreateDatagramForClusterEvent(pattern string, group string, version string,
 				"group":           group,
 				"version":         version,
 				"kind":            kind,
-				"namespace":       namespace,
+				"namespace":       obj.GetNamespace(),
 				"name":            name,
-				"resourceName":    resourceName,
-				"uid":             uid,
-				"resourceVersion": resourceVersion,
+				"resourceName":    obj.GetName(),
+				"uid":             string(obj.GetUID()),
+				"resourceVersion": obj.GetResourceVersion(),
+
+				"status": status,
 			},
 		},
 		CreatedAt: time.Now(),

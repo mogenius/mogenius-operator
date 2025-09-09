@@ -97,13 +97,13 @@ func WatchStoreResources(wm watcher.WatcherModule, eventClient websocket.Websock
 				return
 			}
 
-			sendEventServerEvent(eventClient, v.Group, resource.Version, obj.GetName(), resource.Kind, obj.GetNamespace(), resource.Name, "add", string(obj.GetUID()), obj.GetResourceVersion())
+			sendEventServerEvent(eventClient, v.Group, resource.Version, resource.Kind, resource.Name, "add", obj)
 		}, func(resource watcher.WatcherResourceIdentifier, oldObj, newObj *unstructured.Unstructured) {
 			setStoreIfNeeded(resource.GroupVersion, newObj.GetName(), resource.Kind, newObj.GetNamespace(), newObj)
-			sendEventServerEvent(eventClient, v.Group, resource.Version, newObj.GetName(), resource.Kind, newObj.GetNamespace(), resource.Name, "update", string(newObj.GetUID()), newObj.GetResourceVersion())
+			sendEventServerEvent(eventClient, v.Group, resource.Version, resource.Kind, resource.Name, "update", newObj)
 		}, func(resource watcher.WatcherResourceIdentifier, obj *unstructured.Unstructured) {
 			deleteFromStoreIfNeeded(resource.GroupVersion, obj.GetName(), resource.Kind, obj.GetNamespace(), obj)
-			sendEventServerEvent(eventClient, v.Group, resource.Version, obj.GetName(), resource.Kind, obj.GetNamespace(), resource.Name, "delete", string(obj.GetUID()), obj.GetResourceVersion())
+			sendEventServerEvent(eventClient, v.Group, resource.Version, resource.Kind, resource.Name, "delete", obj)
 		})
 		if err != nil {
 			k8sLogger.Error("failed to initialize watchhandler for resource", "groupVersion", v.Group, "kind", v.Kind, "version", v.Version, "error", err)
@@ -125,8 +125,8 @@ func setStoreIfNeeded(groupVersion string, resourceName string, kind string, nam
 	}
 }
 
-func sendEventServerEvent(eventClient websocket.WebsocketClient, group string, version string, resourceName string, kind string, namespace string, name string, eventType string, uid string, resourceVersion string) {
-	datagram := structs.CreateDatagramForClusterEvent("ClusterEvent", group, version, kind, namespace, name, resourceName, eventType, uid, resourceVersion)
+func sendEventServerEvent(eventClient websocket.WebsocketClient, group, version, kind, name, eventType string, obj *unstructured.Unstructured) {
+	datagram := structs.CreateDatagramForClusterEvent("ClusterEvent", group, version, kind, name, eventType, obj)
 
 	// send the datagram to the event server
 	go func() {
