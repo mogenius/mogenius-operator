@@ -10,6 +10,7 @@ import (
 	mokubernetes "mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/services"
 	"mogenius-k8s-manager/src/shutdown"
+	"mogenius-k8s-manager/src/store"
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/valkeyclient"
 	"mogenius-k8s-manager/src/websocket"
@@ -83,6 +84,23 @@ func (self *core) InitializeClusterSecret() {
 		err = self.config.TrySet("MO_CLUSTER_MFA_ID", clusterSecret.ClusterMfaId)
 		if err != nil {
 			self.logger.Debug("failed to set MO_CLUSTER_MFA_ID", "error", err)
+		}
+
+		// migration needed
+		if clusterSecret.RedisDataModelVersion == "0" || clusterSecret.RedisDataModelVersion == "" {
+			self.logger.Info("Migrating Redis Data Model to version 1 ...")
+			err := store.DropKey(self.valkeyClient, self.logger, "logs:*")
+			if err != nil {
+				self.logger.Error("failed to DropKey (logs)", "error", err)
+			}
+			err = store.DropKey(self.valkeyClient, self.logger, "pod-stats:*")
+			if err != nil {
+				self.logger.Error("failed to DropKey (pod-stats)", "error", err)
+			}
+			err = store.DropKey(self.valkeyClient, self.logger, "traffic-stats:*")
+			if err != nil {
+				self.logger.Error("failed to DropKey (traffic-stats)", "error", err)
+			}
 		}
 	}
 }
@@ -202,6 +220,7 @@ func (self *core) InitializeWebsocketApiServer() {
 }
 
 func (self *core) Initialize() error {
+	self.InitializeValkey()
 	self.InitializeClusterSecret()
 
 	err := self.moKubernetes.CreateOrUpdateResourceTemplateConfigmap()
@@ -209,7 +228,6 @@ func (self *core) Initialize() error {
 		return fmt.Errorf("failed to create resource template configmap: %s", err)
 	}
 
-	self.InitializeValkey()
 	self.InitializeWebsocketEventServer()
 	self.InitializeWebsocketApiServer()
 

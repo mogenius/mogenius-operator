@@ -10,6 +10,9 @@ default:
 run: build
     dist/native/mogenius-k8s-manager cluster
 
+run-node-metrics: build
+    dist/native/mogenius-k8s-manager nodemetrics
+
 run-privileged: build
     sudo -E dist/native/mogenius-k8s-manager cluster
 
