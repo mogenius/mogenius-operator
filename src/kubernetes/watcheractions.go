@@ -584,13 +584,6 @@ func removeManagedFieldsFromList(objList *unstructured.UnstructuredList) *unstru
 }
 
 func removeUnusedFieds(obj *unstructured.Unstructured) *unstructured.Unstructured {
-	if obj == nil {
-		return obj
-	}
-
 	obj = removeManagedFields(obj)
-	unstructuredContent := obj.Object
-	delete(unstructuredContent, "data")
-
 	return obj
 }
