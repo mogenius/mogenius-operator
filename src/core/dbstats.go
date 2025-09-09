@@ -3,6 +3,7 @@ package core
 import (
 	"fmt"
 	"log/slog"
+	"maps"
 	cfg "mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/networkmonitor"
@@ -10,6 +11,7 @@ import (
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/valkeyclient"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -466,30 +468,12 @@ func (self *valkeyStatsDb) GetWorkspaceStatsTrafficUtilization(timeOffsetInMinut
 	}
 	wg.Wait()
 
-	// Collect keys and sort them chronologically
-	times := make([]time.Time, 0, len(trafficByMinute))
-	for t := range trafficByMinute {
-		times = append(times, t)
-	}
-	sort.Slice(times, func(i, j int) bool { return times[i].Before(times[j]) })
-
-	// Build sorted slice of results
-	sortedEntries := make([]GenericChartEntry, 0, len(times))
-	for i := 1; i < len(times); i++ {
-		currentEntry := trafficByMinute[times[i]]
-		prevEntry := trafficByMinute[times[i-1]]
-
-		// Calculate delta, handle resets/negative values
-		delta := currentEntry.Value - prevEntry.Value
-		if delta < 0 {
-			// Counter reset or restart - use current value as delta
-			delta = currentEntry.Value
-			// Or skip this entry entirely:
-			// continue
-		}
-
-		currentEntry.Value = delta
-		sortedEntries = append(sortedEntries, currentEntry)
+	// sort and create array
+	times := slices.Collect(maps.Keys(trafficByMinute))
+	slices.SortFunc(times, time.Time.Compare)
+	sortedEntries := make([]GenericChartEntry, 0, len(times)-1)
+	for i := 0; i < len(times); i++ {
+		sortedEntries = append(sortedEntries, trafficByMinute[times[i]])
 	}
 
 	return sortedEntries, nil
