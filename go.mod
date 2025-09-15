@@ -4,7 +4,7 @@ go 1.25
 
 require (
 	github.com/alecthomas/kong v1.12.1
-	github.com/bitnami-labs/sealed-secrets v0.32.1
+	github.com/bitnami-labs/sealed-secrets v0.32.2
 	github.com/cert-manager/cert-manager v1.18.2
 	github.com/creack/pty v1.1.24
 	github.com/go-git/go-git/v5 v5.16.2
