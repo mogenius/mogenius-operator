@@ -45,6 +45,8 @@ github.com/bitnami-labs/sealed-secrets v0.31.0 h1:W/B31YStZWn7ey+SidLynyq6BbQkNy
 github.com/bitnami-labs/sealed-secrets v0.31.0/go.mod h1:vKliF6W17c7YgGeSN0BjydTvGw4QoPzKalF4dwKNYWE=
 github.com/bitnami-labs/sealed-secrets v0.32.1 h1:GHoVSC8fKcESsXO36jjFlgZ+PSHhCExY221+j6acr4U=
 github.com/bitnami-labs/sealed-secrets v0.32.1/go.mod h1:hF1RORQkvHCXwSgaM0PxS2SFMUmLLB1JQBdKwPlFoec=
+github.com/bitnami-labs/sealed-secrets v0.32.2 h1:YP3g8JLQqm482GbkaGLmO9AzelOsRaVSs41wv15CeB8=
+github.com/bitnami-labs/sealed-secrets v0.32.2/go.mod h1:8iA/Br4ihF6kgU/bsmuIIm8sqZks50vMkdE4SF2EBSw=
 github.com/blang/semver/v4 v4.0.0 h1:1PFHFE6yCCTv8C1TeyNNarDzntLi7wMI5i/pzqYIsAM=
 github.com/blang/semver/v4 v4.0.0/go.mod h1:IbckMUScFkM3pff0VJDNKRiT6TG/YpiHIM2yvyW5YoQ=
 github.com/bshuster-repo/logrus-logstash-hook v1.0.0 h1:e+C0SB5R1pu//O4MQ3f9cFuPGoOVeF2fE4Og9otCc70=
