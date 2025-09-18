@@ -304,7 +304,7 @@ func GetWorkloadStatus(requestData GetWorkloadStatusRequest) ([]WorkloadStatusDt
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			unstructuredResourceList, err := GetUnstructuredResourceListFromStore(requestData.ResourceEntity.Group, requestData.ResourceEntity.Kind, requestData.ResourceEntity.Version, requestData.ResourceEntity.Name, nil)
+			unstructuredResourceList, err := GetUnstructuredResourceListFromStore(requestData.ResourceEntity.Group, requestData.ResourceEntity.Kind, requestData.ResourceEntity.Version, requestData.ResourceEntity.Name, nil, nil)
 			if err != nil {
 				k8sLogger.Warn("Error getting workload list", "error", err)
 			} else {
@@ -336,7 +336,7 @@ func GetWorkloadStatus(requestData GetWorkloadStatusRequest) ([]WorkloadStatusDt
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				unstructuredResourceNamespaceList, err := GetUnstructuredResourceListFromStore(requestData.ResourceEntity.Group, requestData.ResourceEntity.Kind, requestData.ResourceEntity.Version, requestData.ResourceEntity.Name, nil)
+				unstructuredResourceNamespaceList, err := GetUnstructuredResourceListFromStore(requestData.ResourceEntity.Group, requestData.ResourceEntity.Kind, requestData.ResourceEntity.Version, requestData.ResourceEntity.Name, nil, nil)
 				if err != nil {
 					k8sLogger.Warn("Error getting workload list", "error", err)
 				} else {
@@ -357,7 +357,7 @@ func GetWorkloadStatus(requestData GetWorkloadStatusRequest) ([]WorkloadStatusDt
 				wg.Add(1)
 				go func() {
 					defer wg.Done()
-					unstructuredResourceList, err := GetUnstructuredResourceListFromStore(requestData.ResourceEntity.Group, requestData.ResourceEntity.Kind, requestData.ResourceEntity.Version, requestData.ResourceEntity.Name, &namespace)
+					unstructuredResourceList, err := GetUnstructuredResourceListFromStore(requestData.ResourceEntity.Group, requestData.ResourceEntity.Kind, requestData.ResourceEntity.Version, requestData.ResourceEntity.Name, &namespace, nil)
 					if err != nil {
 						k8sLogger.Warn("Error getting workload list", "error", err)
 					} else {
@@ -437,7 +437,7 @@ func GetWorkloadStatus(requestData GetWorkloadStatusRequest) ([]WorkloadStatusDt
 	}
 
 	// get all events from the store
-	eventUnstructuredList, err := GetUnstructuredResourceListFromStore(utils.EventResource.Group, utils.EventResource.Kind, utils.EventResource.Version, utils.EventResource.Name, utils.Pointer(""))
+	eventUnstructuredList, err := GetUnstructuredResourceListFromStore(utils.EventResource.Group, utils.EventResource.Kind, utils.EventResource.Version, utils.EventResource.Name, utils.Pointer(""), nil)
 	var eventList []v1.Event
 	if err != nil {
 		eventList = []v1.Event{}

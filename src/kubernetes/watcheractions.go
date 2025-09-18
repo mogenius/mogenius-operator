@@ -167,7 +167,7 @@ func GetUnstructuredResourceList(group string, version string, name string, name
 	}
 }
 
-func GetUnstructuredResourceListFromStore(group string, kind string, version string, name string, namespace *string) (unstructured.UnstructuredList, error) {
+func GetUnstructuredResourceListFromStore(group string, kind string, version string, name string, namespace *string, withData *bool) (unstructured.UnstructuredList, error) {
 	results := unstructured.UnstructuredList{}
 	if namespace == nil {
 		namespace = utils.Pointer("")
@@ -176,8 +176,10 @@ func GetUnstructuredResourceListFromStore(group string, kind string, version str
 	result := store.GetResourceByKindAndNamespace(valkeyClient, group, kind, *namespace, k8sLogger)
 	if result != nil {
 		// delete data field to speed up transfer
-		for i := range result {
-			delete(result[i].Object, "data")
+		if withData == nil || !*withData {
+			for i := range result {
+				delete(result[i].Object, "data")
+			}
 		}
 		results.Items = result
 	}

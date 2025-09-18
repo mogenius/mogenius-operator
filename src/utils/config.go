@@ -23,6 +23,16 @@ type ResourceEntry struct {
 	Namespace *string `json:"namespace"`
 }
 
+type ResourceListRequestEntry struct {
+	Kind      string  `json:"kind"`
+	Name      string  `json:"name"`
+	Group     string  `json:"group"`
+	Version   string  `json:"version"`
+	Namespace *string `json:"namespace"`
+
+	WithData *bool `json:"withData"`
+}
+
 type ResourceData struct {
 	Kind      string  `json:"kind"`
 	Name      string  `json:"name"`

@@ -1335,8 +1335,8 @@ func (self *socketApi) registerPatterns() {
 	RegisterPatternHandler(
 		PatternHandle{self, "get/workload-list"},
 		PatternConfig{},
-		func(datagram structs.Datagram, request utils.ResourceEntry) (unstructured.UnstructuredList, error) {
-			return kubernetes.GetUnstructuredResourceListFromStore(request.Group, request.Kind, request.Version, request.Name, request.Namespace)
+		func(datagram structs.Datagram, request utils.ResourceListRequestEntry) (unstructured.UnstructuredList, error) {
+			return kubernetes.GetUnstructuredResourceListFromStore(request.Group, request.Kind, request.Version, request.Name, request.Namespace, request.WithData)
 		},
 	)
 
