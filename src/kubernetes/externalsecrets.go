@@ -2,11 +2,12 @@ package kubernetes
 
 import (
 	"fmt"
+	"maps"
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/websocket"
-	"sync"
+	"slices"
 
 	"strings"
 
@@ -87,64 +88,48 @@ func DeleteExternalSecretList(namePrefix string, projectName string) error {
 	return DeleteExternalSecret(utils.GetSecretListName(namePrefix))
 }
 
-func DeleteUnusedSecretsForNamespace(eventClient websocket.WebsocketClient, job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
+func DeleteUnusedSecretsForNamespace(eventClient websocket.WebsocketClient, job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto) {
 	cmd := structs.CreateCommand(eventClient, "delete", "Delete Unused Secrets", job)
-	wg.Add(1)
-	go func(wg *sync.WaitGroup) {
-		defer wg.Done()
-		cmd.Start(eventClient, job, "Deleting unused secrets")
+	cmd.Start(eventClient, job, "Deleting unused secrets")
 
-		deployments := AllDeployments(namespace.Name)
+	deployments := AllDeployments(namespace.Name)
 
-		mountedSecretNames := []string{}
-		for _, deployment := range deployments {
-			for _, volume := range deployment.Spec.Template.Spec.Volumes {
-				if volume.Secret != nil {
-					mountedSecretNames = append(mountedSecretNames, volume.Secret.SecretName)
-				}
+	mountedSecretNames := []string{}
+	for _, deployment := range deployments {
+		for _, volume := range deployment.Spec.Template.Spec.Volumes {
+			if volume.Secret != nil {
+				mountedSecretNames = append(mountedSecretNames, volume.Secret.SecretName)
 			}
 		}
+	}
 
-		// LIST ns secrets
-		secrets, err := ListResources("external-secrets.io", "v1beta1", "externalsecrets", "", true)
-		if err != nil {
-			k8sLogger.Error("Error listing resources", "error", err)
-		}
-		if secrets == nil {
-			cmd.Success(eventClient, job, "Deleted unused secrets")
-			return
-		}
-		existingSecrets, err := parseExternalSecretsListing(secrets)
-		if err != nil {
-			cmd.Fail(eventClient, job, fmt.Sprintf("DeleteUnusedSecretsForNamespace ERROR: %s", err.Error()))
-			return
-		}
-		for _, secret := range existingSecrets {
-			isMoExternalSecret := false
-			for key := range secret.Labels {
-				if key == "used-by-mo-service" {
-					isMoExternalSecret = true
-					break
-				}
-			}
-			isUsedByDeployment := false
-			for _, mountedSecretName := range mountedSecretNames {
-				if mountedSecretName == secret.Name {
-					isUsedByDeployment = true
-					break
-				}
-			}
-
-			if isMoExternalSecret && !isUsedByDeployment {
-				err = DeleteExternalSecret(secret.Name)
-				if err != nil {
-					k8sLogger.Error("Error deleting unsed secret %s: %s", secret.Name, err.Error())
-					break
-				}
-			}
-		}
+	// LIST ns secrets
+	secrets, err := ListResources("external-secrets.io", "v1beta1", "externalsecrets", "", true)
+	if err != nil {
+		k8sLogger.Error("Error listing resources", "error", err)
+	}
+	if secrets == nil {
 		cmd.Success(eventClient, job, "Deleted unused secrets")
-	}(wg)
+		return
+	}
+	existingSecrets, err := parseExternalSecretsListing(secrets)
+	if err != nil {
+		cmd.Fail(eventClient, job, fmt.Sprintf("DeleteUnusedSecretsForNamespace ERROR: %s", err.Error()))
+		return
+	}
+	for _, secret := range existingSecrets {
+		isMoExternalSecret := slices.Contains(slices.Collect(maps.Keys(secret.Labels)), "used-by-mo-service")
+		isUsedByDeployment := slices.Contains(mountedSecretNames, secret.Name)
+
+		if isMoExternalSecret && !isUsedByDeployment {
+			err = DeleteExternalSecret(secret.Name)
+			if err != nil {
+				k8sLogger.Error("Error deleting unsed secret %s: %s", secret.Name, err.Error())
+				break
+			}
+		}
+	}
+	cmd.Success(eventClient, job, "Deleted unused secrets")
 }
 
 func DeleteExternalSecret(name string) error {

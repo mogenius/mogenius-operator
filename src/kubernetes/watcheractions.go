@@ -253,7 +253,6 @@ func GetUnstructuredLabeledResourceList(label string, whitelist []*utils.Resourc
 	}
 
 	dynamicClient := clientProvider.DynamicClient()
-	//// dynamicClient := clientProvider.DynamicClient()
 	for _, v := range resources {
 		if v.Namespace != nil {
 

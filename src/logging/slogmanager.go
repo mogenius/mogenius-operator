@@ -204,16 +204,14 @@ func (self *SlogMultiHandler) Handle(ctx context.Context, record slog.Record) er
 	var wg sync.WaitGroup
 	for _, handler := range self.inner {
 		if handler.Enabled(ctx, record.Level) {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
+			wg.Go(func() {
 				err := handler.Handle(ctx, record)
 				if err != nil {
 					errorLock.Lock()
 					errors = append(errors, err)
 					errorLock.Unlock()
 				}
-			}()
+			})
 		}
 	}
 	wg.Wait()

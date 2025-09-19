@@ -63,11 +63,7 @@ func (self *Shutdown) ExecuteShutdownHandlers() chan struct{} {
 		defer self.mutex.Unlock()
 		var wg sync.WaitGroup
 		for _, fn := range self.hooks {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				fn()
-			}()
+			wg.Go(fn)
 		}
 		wg.Wait()
 		finishedSignaler <- struct{}{}

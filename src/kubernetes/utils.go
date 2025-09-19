@@ -85,13 +85,6 @@ func ValidateContainerRegistryAuthString(input string) error {
 		return fmt.Errorf("missing 'auths' field in JSON")
 	}
 
-	// removed because for GCP these fields are not needed
-	// for _, creds := range config.Auths {
-	// 	// if creds.Username == "" || creds.Password == "" || creds.Auth == "" {
-	// 	// 	return fmt.Errorf("missing required fields in credentials (username, password, auth)")
-	// 	// }
-	// }
-
 	return nil
 }
 
@@ -118,15 +111,6 @@ func CurrentContextName() string {
 
 	return config.CurrentContext
 }
-
-// func Hostname() string {
-// 	provider, err := NewKubeProvider()
-// 	if provider == nil || err != nil {
-// 		K8sLogger.Fatal("error creating kubeprovider")
-// 	}
-
-// 	return provider.ClientConfig.Host
-// }
 
 func ListNodes() []core.Node {
 	clientset := clientProvider.K8sClientSet()
@@ -550,11 +534,12 @@ func DetermineIngressControllerType() (IngressType, error) {
 
 	unknownController := ""
 	for _, ingressClass := range ingressClasses {
-		if ingressClass.Spec.Controller == "k8s.io/ingress-nginx" || ingressClass.Spec.Controller == "nginx.org/ingress-controller" {
+		switch ingressClass.Spec.Controller {
+		case "k8s.io/ingress-nginx", "nginx.org/ingress-controller":
 			return NGINX, nil
-		} else if ingressClass.Spec.Controller == "traefik.io/ingress-controller" {
+		case "traefik.io/ingress-controller":
 			return TRAEFIK, nil
-		} else {
+		default:
 			unknownController = ingressClass.Spec.Controller
 		}
 	}

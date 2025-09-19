@@ -283,9 +283,7 @@ func GetWorkloadStatus(requestData GetWorkloadStatusRequest) ([]WorkloadStatusDt
 		}
 
 		for _, helmRelease := range *requestData.HelmReleases {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
+			wg.Go(func() {
 				unstructuredResourceList, err := helm.HelmReleaseGetWorkloads(valkeyClient, helm.HelmReleaseGetWorkloadsRequest{
 					Release:   helmRelease.Release,
 					Namespace: helmRelease.Namespace,
@@ -296,14 +294,12 @@ func GetWorkloadStatus(requestData GetWorkloadStatusRequest) ([]WorkloadStatusDt
 				} else {
 					workloadListChan <- unstructuredResourceList
 				}
-			}()
+			})
 		}
 	}
 	// only filter by ResourceEntity
 	if !isResourceEntityEmpty && requestData.Namespaces == nil && requestData.ResourceNames == nil {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			unstructuredResourceList, err := GetUnstructuredResourceListFromStore(requestData.ResourceEntity.Group, requestData.ResourceEntity.Kind, requestData.ResourceEntity.Version, requestData.ResourceEntity.Name, nil, nil)
 			if err != nil {
 				k8sLogger.Warn("Error getting workload list", "error", err)
@@ -312,30 +308,26 @@ func GetWorkloadStatus(requestData GetWorkloadStatusRequest) ([]WorkloadStatusDt
 					workloadListChan <- unstructuredResourceList.Items
 				}
 			}
-		}()
+		})
 	} else
 	// only filter by namespaces
 	if isResourceEntityEmpty && requestData.Namespaces != nil && requestData.ResourceNames == nil {
 		for _, namespace := range *requestData.Namespaces {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
+			wg.Go(func() {
 				unstructuredResourceList, err := GetUnstructuredNamespaceResourceList(namespace, nil, nil)
 				if err != nil {
 					k8sLogger.Warn("Error getting workload list", "error", err)
 				} else {
 					workloadListChan <- unstructuredResourceList
 				}
-			}()
+			})
 		}
 
 	} else
 	// filter by ResourceEntity and namespaces
 	if !isResourceEntityEmpty && requestData.Namespaces != nil && requestData.ResourceNames == nil {
 		if requestData.ResourceEntity.Kind == "Namespace" && requestData.ResourceEntity.Group == "v1" {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
+			wg.Go(func() {
 				unstructuredResourceNamespaceList, err := GetUnstructuredResourceListFromStore(requestData.ResourceEntity.Group, requestData.ResourceEntity.Kind, requestData.ResourceEntity.Version, requestData.ResourceEntity.Name, nil, nil)
 				if err != nil {
 					k8sLogger.Warn("Error getting workload list", "error", err)
@@ -351,12 +343,10 @@ func GetWorkloadStatus(requestData GetWorkloadStatusRequest) ([]WorkloadStatusDt
 						}
 					}
 				}
-			}()
+			})
 		} else {
 			for _, namespace := range *requestData.Namespaces {
-				wg.Add(1)
-				go func() {
-					defer wg.Done()
+				wg.Go(func() {
 					unstructuredResourceList, err := GetUnstructuredResourceListFromStore(requestData.ResourceEntity.Group, requestData.ResourceEntity.Kind, requestData.ResourceEntity.Version, requestData.ResourceEntity.Name, &namespace, nil)
 					if err != nil {
 						k8sLogger.Warn("Error getting workload list", "error", err)
@@ -365,7 +355,7 @@ func GetWorkloadStatus(requestData GetWorkloadStatusRequest) ([]WorkloadStatusDt
 							workloadListChan <- unstructuredResourceList.Items
 						}
 					}
-				}()
+				})
 			}
 		}
 
@@ -374,48 +364,42 @@ func GetWorkloadStatus(requestData GetWorkloadStatusRequest) ([]WorkloadStatusDt
 	if !isResourceEntityEmpty && requestData.Namespaces != nil && requestData.ResourceNames != nil {
 		for _, resourceName := range *requestData.ResourceNames {
 			for _, namespace := range *requestData.Namespaces {
-				wg.Add(1)
-				go func() {
-					defer wg.Done()
+				wg.Go(func() {
 					workloads, err := store.SearchByGroupKindNameNamespace(valkeyClient, requestData.ResourceEntity.Group, requestData.ResourceEntity.Kind, resourceName, &namespace)
 					if err != nil {
 						k8sLogger.Warn("Error getting workload", "error", err)
 					} else {
 						workloadListChan <- workloads
 					}
-				}()
+				})
 			}
 		}
 	} else
 	// filter by ResourceEntity and resourceNames
 	if !isResourceEntityEmpty && requestData.Namespaces == nil && requestData.ResourceNames != nil {
 		for _, resourceName := range *requestData.ResourceNames {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
+			wg.Go(func() {
 				workloads, err := store.SearchByGroupKindNameNamespace(valkeyClient, requestData.ResourceEntity.Group, requestData.ResourceEntity.Kind, resourceName, nil)
 				if err != nil {
 					k8sLogger.Warn("Error getting workload", "error", err)
 				} else {
 					workloadListChan <- workloads
 				}
-			}()
+			})
 		}
 	} else
 	// filter by namespaces and resourceNames
 	if isResourceEntityEmpty && requestData.Namespaces != nil && requestData.ResourceNames != nil {
 		for _, resourceName := range *requestData.ResourceNames {
 			for _, namespace := range *requestData.Namespaces {
-				wg.Add(1)
-				go func() {
-					defer wg.Done()
+				wg.Go(func() {
 					workloads, err := store.SearchByNamespaceAndName(valkeyClient, namespace, resourceName)
 					if err != nil {
 						k8sLogger.Warn("Error getting workload", "error", err)
 					} else {
 						workloadListChan <- workloads
 					}
-				}()
+				})
 			}
 		}
 	} else {

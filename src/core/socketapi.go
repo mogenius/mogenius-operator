@@ -1236,7 +1236,10 @@ func (self *socketApi) registerPatterns() {
 		PatternConfig{},
 		func(datagram structs.Datagram, request services.ServiceRestartRequest) *structs.Job {
 			request.Service.AddSecretsToRedaction()
-			store.AddToAuditLog(datagram, self.logger, interface{}(nil), nil, nil, nil)
+			_, err := store.AddToAuditLog(datagram, self.logger, interface{}(nil), nil, nil, nil)
+			if err != nil {
+				self.logger.Warn("failed to add event to audit log", "request", request, "error", err)
+			}
 			return services.Restart(self.eventsClient, request, self.config)
 		},
 	)
@@ -1246,7 +1249,10 @@ func (self *socketApi) registerPatterns() {
 		PatternConfig{},
 		func(datagram structs.Datagram, request services.ServiceStopRequest) *structs.Job {
 			request.Service.AddSecretsToRedaction()
-			store.AddToAuditLog(datagram, self.logger, interface{}(nil), nil, nil, nil)
+			_, err := store.AddToAuditLog(datagram, self.logger, interface{}(nil), nil, nil, nil)
+			if err != nil {
+				self.logger.Warn("failed to add event to audit log", "request", request, "error", err)
+			}
 			return services.StopService(self.eventsClient, request, self.config)
 		},
 	)
@@ -1256,7 +1262,10 @@ func (self *socketApi) registerPatterns() {
 		PatternConfig{},
 		func(datagram structs.Datagram, request services.ServiceStartRequest) *structs.Job {
 			request.Service.AddSecretsToRedaction()
-			store.AddToAuditLog(datagram, self.logger, interface{}(nil), nil, nil, nil)
+			_, err := store.AddToAuditLog(datagram, self.logger, interface{}(nil), nil, nil, nil)
+			if err != nil {
+				self.logger.Warn("failed to add event to audit log", "request", request, "error", err)
+			}
 			return services.StartService(self.eventsClient, request, self.config)
 		},
 	)
@@ -1292,7 +1301,10 @@ func (self *socketApi) registerPatterns() {
 		PatternConfig{},
 		func(datagram structs.Datagram, request xterm.PodCmdConnectionRequest) (Void, error) {
 			go self.execShConnection(request)
-			store.AddToAuditLog(datagram, self.logger, interface{}(nil), nil, nil, nil)
+			_, err := store.AddToAuditLog(datagram, self.logger, interface{}(nil), nil, nil, nil)
+			if err != nil {
+				self.logger.Warn("failed to add event to audit log", "request", request, "error", err)
+			}
 			return nil, nil
 		},
 	)
@@ -1332,13 +1344,25 @@ func (self *socketApi) registerPatterns() {
 		},
 	)
 
-	RegisterPatternHandler(
-		PatternHandle{self, "get/workload-list"},
-		PatternConfig{},
-		func(datagram structs.Datagram, request utils.ResourceListRequestEntry) (unstructured.UnstructuredList, error) {
-			return kubernetes.GetUnstructuredResourceListFromStore(request.Group, request.Kind, request.Version, request.Name, request.Namespace, request.WithData)
-		},
-	)
+	{
+		type Request struct {
+			Kind      string  `json:"kind"`
+			Name      string  `json:"name"`
+			Group     string  `json:"group"`
+			Version   string  `json:"version"`
+			Namespace *string `json:"namespace"`
+
+			WithData *bool `json:"withData"`
+		}
+
+		RegisterPatternHandler(
+			PatternHandle{self, "get/workload-list"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Request) (unstructured.UnstructuredList, error) {
+				return kubernetes.GetUnstructuredResourceListFromStore(request.Group, request.Kind, request.Version, request.Name, request.Namespace, request.WithData)
+			},
+		)
+	}
 
 	RegisterPatternHandler(
 		PatternHandle{self, "get/namespace-workload-list"},
@@ -1424,7 +1448,10 @@ func (self *socketApi) registerPatterns() {
 		func(datagram structs.Datagram, request utils.ResourceItem) (Void, error) {
 			objToDel, _ := kubernetes.GetUnstructuredResourceFromStore(request.Group, request.Kind, request.Namespace, request.ResourceName)
 			err := kubernetes.DeleteUnstructuredResource(request.Group, request.Version, request.Name, request.Namespace, request.ResourceName)
-			store.AddToAuditLog(datagram, self.logger, interface{}(nil), err, objToDel, nil)
+			_, auditErr := store.AddToAuditLog(datagram, self.logger, interface{}(nil), err, objToDel, nil)
+			if auditErr != nil {
+				self.logger.Warn("failed to add event to audit log", "request", request, "error", err)
+			}
 			return nil, err
 		},
 	)
@@ -1768,7 +1795,10 @@ func (self *socketApi) registerPatterns() {
 		PatternConfig{},
 		func(datagram structs.Datagram, request services.NfsVolumeRequest) structs.DefaultResponse {
 			res := services.CreateMogeniusNfsVolume(self.eventsClient, request)
-			store.AddToAuditLog(datagram, self.logger, res, fmt.Errorf("%s", res.Error), nil, nil)
+			_, err := store.AddToAuditLog(datagram, self.logger, res, fmt.Errorf("%s", res.Error), nil, nil)
+			if err != nil {
+				self.logger.Warn("failed to add event to audit log", "request", request, "error", err)
+			}
 			return res
 		},
 	)
@@ -1778,7 +1808,10 @@ func (self *socketApi) registerPatterns() {
 		PatternConfig{},
 		func(datagram structs.Datagram, request services.NfsVolumeRequest) structs.DefaultResponse {
 			res := services.DeleteMogeniusNfsVolume(self.eventsClient, request)
-			store.AddToAuditLog(datagram, self.logger, res, fmt.Errorf("%s", res.Error), nil, nil)
+			_, err := store.AddToAuditLog(datagram, self.logger, res, fmt.Errorf("%s", res.Error), nil, nil)
+			if err != nil {
+				self.logger.Warn("failed to add event to audit log", "request", request, "error", err)
+			}
 			return res
 		},
 	)
@@ -2381,7 +2414,9 @@ func (self *socketApi) upgradeK8sManager(command string) *structs.Job {
 
 	job := structs.CreateJob(self.eventsClient, "Upgrade mogenius platform", "UPGRADE", "", "", self.logger)
 	job.Start(self.eventsClient)
-	kubernetes.UpgradeMyself(self.eventsClient, job, command, &wg)
+	wg.Go(func() {
+		kubernetes.UpgradeMyself(self.eventsClient, job, command)
+	})
 	wg.Wait()
 	job.Finish(self.eventsClient)
 	return job

@@ -54,11 +54,19 @@ func CreateMogeniusNfsVolume(eventClient websocket.WebsocketClient, r NfsVolumeR
 	job.Start(eventClient)
 	// FOR K8SMANAGER
 	mokubernetes.CreateMogeniusNfsServiceSync(eventClient, job, r.NamespaceName, r.VolumeName)
-	mokubernetes.CreateMogeniusNfsPersistentVolumeClaim(eventClient, job, r.NamespaceName, r.VolumeName, r.SizeInGb, &wg)
-	mokubernetes.CreateMogeniusNfsDeployment(eventClient, job, r.NamespaceName, r.VolumeName, &wg)
+	wg.Go(func() {
+		mokubernetes.CreateMogeniusNfsPersistentVolumeClaim(eventClient, job, r.NamespaceName, r.VolumeName, r.SizeInGb)
+	})
+	wg.Go(func() {
+		mokubernetes.CreateMogeniusNfsDeployment(eventClient, job, r.NamespaceName, r.VolumeName)
+	})
 	// FOR SERVICES THAT WANT TO MOUNT
-	mokubernetes.CreateMogeniusNfsPersistentVolumeForService(eventClient, job, r.NamespaceName, r.VolumeName, r.SizeInGb, &wg)
-	mokubernetes.CreateMogeniusNfsPersistentVolumeClaimForService(eventClient, job, r.NamespaceName, r.VolumeName, r.SizeInGb, &wg)
+	wg.Go(func() {
+		mokubernetes.CreateMogeniusNfsPersistentVolumeForService(eventClient, job, r.NamespaceName, r.VolumeName, r.SizeInGb)
+	})
+	wg.Go(func() {
+		mokubernetes.CreateMogeniusNfsPersistentVolumeClaimForService(eventClient, job, r.NamespaceName, r.VolumeName, r.SizeInGb)
+	})
 	wg.Wait()
 	job.Finish(eventClient)
 
@@ -73,12 +81,22 @@ func DeleteMogeniusNfsVolume(eventClient websocket.WebsocketClient, r NfsVolumeR
 	job := structs.CreateJob(eventClient, "Delete mogenius nfs-volume.", r.NamespaceName, "", "", serviceLogger)
 	job.Start(eventClient)
 	// FOR K8SMANAGER
-	mokubernetes.DeleteMogeniusNfsDeployment(eventClient, job, r.NamespaceName, r.VolumeName, &wg)
-	mokubernetes.DeleteMogeniusNfsService(eventClient, job, r.NamespaceName, r.VolumeName, &wg)
-	mokubernetes.DeleteMogeniusNfsPersistentVolumeClaim(eventClient, job, r.NamespaceName, r.VolumeName, &wg)
+	wg.Go(func() {
+		mokubernetes.DeleteMogeniusNfsDeployment(eventClient, job, r.NamespaceName, r.VolumeName)
+	})
+	wg.Go(func() {
+		mokubernetes.DeleteMogeniusNfsService(eventClient, job, r.NamespaceName, r.VolumeName)
+	})
+	wg.Go(func() {
+		mokubernetes.DeleteMogeniusNfsPersistentVolumeClaim(eventClient, job, r.NamespaceName, r.VolumeName)
+	})
 	// FOR SERVICES THAT WANT TO MOUNT
-	mokubernetes.DeleteMogeniusNfsPersistentVolumeForService(eventClient, job, r.VolumeName, r.NamespaceName, &wg)
-	mokubernetes.DeleteMogeniusNfsPersistentVolumeClaimForService(eventClient, job, r.NamespaceName, r.VolumeName, &wg)
+	wg.Go(func() {
+		mokubernetes.DeleteMogeniusNfsPersistentVolumeForService(eventClient, job, r.VolumeName, r.NamespaceName)
+	})
+	wg.Go(func() {
+		mokubernetes.DeleteMogeniusNfsPersistentVolumeClaimForService(eventClient, job, r.NamespaceName, r.VolumeName)
+	})
 	wg.Wait()
 	job.Finish(eventClient)
 
@@ -176,14 +194,11 @@ func sumAllBytesOfFolder(root string) uint64 {
 	var sumWg sync.WaitGroup
 	fileSizes := make(chan uint64)
 
-	sumWg.Add(1)
-	// Start a goroutine to sum file sizes.
-	go func() {
-		defer sumWg.Done() // Signal completion of summing
+	sumWg.Go(func() {
 		for size := range fileSizes {
 			total += size
 		}
-	}()
+	})
 
 	// Walk the file tree concurrently.
 	err := filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
@@ -191,15 +206,13 @@ func sumAllBytesOfFolder(root string) uint64 {
 			return err
 		}
 		if !d.IsDir() {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
+			wg.Go(func() {
 				info, err := d.Info()
 				if err != nil {
 					return // handle error
 				}
 				fileSizes <- uint64(info.Size())
-			}()
+			})
 		}
 		return nil
 	})

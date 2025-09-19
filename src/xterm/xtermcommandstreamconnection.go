@@ -117,12 +117,8 @@ func XTermCommandStreamConnection(
 		return
 	}
 
-	// kube provider
-	var wg sync.WaitGroup
-	wg.Add(1)
 	// check if pod is ready
-	go checkPodIsReady(ctx, &wg, namespace, podName, conn, connWriteLock)
-	wg.Wait()
+	checkPodIsReady(ctx, namespace, podName, conn, connWriteLock)
 
 	// send ping
 	err = wsPing(conn)

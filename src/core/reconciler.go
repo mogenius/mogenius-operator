@@ -464,9 +464,7 @@ func (self *reconciler) reconcile() {
 
 	wg := sync.WaitGroup{}
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		self.updateStatus(
 			namespaces,
 			workspaces,
@@ -476,29 +474,25 @@ func (self *reconciler) reconcile() {
 			roleBindings,
 			clusterRoleBindings,
 		)
-	}()
+	})
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		self.deleteObsoleteRoleBindings(
 			requiredRoleBindings,
 			managedRoleBindings,
 			requiredClusterRoleBindings,
 			managedClusterRoleBindings,
 		)
-	}()
+	})
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		self.createMissingRoleBindings(
 			requiredRoleBindings,
 			managedRoleBindings,
 			requiredClusterRoleBindings,
 			managedClusterRoleBindings,
 		)
-	}()
+	})
 
 	wg.Wait()
 }
