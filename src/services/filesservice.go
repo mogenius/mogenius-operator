@@ -131,12 +131,6 @@ func Download(pfile dtos.PersistentFileRequestDto, postTo string) FilesDownloadR
 		}
 	} else {
 		// SEND FILE TO HTTP
-		if err != nil {
-			serviceLogger.Error("Error creating form file", "error", err)
-			result.Error = err.Error()
-			return result
-		}
-
 		_, err = io.Copy(w, file)
 		if err != nil {
 			serviceLogger.Error("Error copying file", "error", err)
@@ -339,9 +333,7 @@ func ListDir(ctx context.Context, root string) ([]dtos.PersistentFileDto, error)
 		item := dtos.PersistentFileDtoFrom(root, path)
 
 		if entry.IsDir() {
-			wg.Add(1)
-			go func(item dtos.PersistentFileDto, path string) {
-				defer wg.Done()
+			wg.Go(func() {
 				select {
 				case <-ctx.Done():
 					return
@@ -359,9 +351,11 @@ func ListDir(ctx context.Context, root string) ([]dtos.PersistentFileDto, error)
 					items = append(items, item)
 					mu.Unlock()
 				}
-			}(item, path)
+			})
 		} else {
+			mu.Lock()
 			items = append(items, item)
+			mu.Unlock()
 		}
 	}
 
@@ -386,9 +380,7 @@ func DirSize(ctx context.Context, path string) (int64, error) {
 		}
 
 		if info.IsDir() && p != path {
-			wg.Add(1)
-			go func(p string) {
-				defer wg.Done()
+			wg.Go(func() {
 				select {
 				case <-ctx.Done():
 					return
@@ -404,7 +396,7 @@ func DirSize(ctx context.Context, path string) (int64, error) {
 					size += dirSize
 					mu.Unlock()
 				}
-			}(p)
+			})
 			return filepath.SkipDir
 		}
 

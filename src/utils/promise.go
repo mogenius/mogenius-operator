@@ -35,25 +35,21 @@ func (self *promise[T]) Wait() []T {
 }
 
 func (self *promise[T]) Run(execFunc func() *T) {
-	self.wg.Add(1)
-	go func() {
-		defer self.wg.Done()
+	self.wg.Go(func() {
 		result := execFunc()
 		if result != nil {
 			self.resultCh <- *result
 		}
-	}()
+	})
 }
 
 func (self *promise[T]) RunArray(execFunc func() *[]T) {
-	self.wg.Add(1)
-	go func() {
-		defer self.wg.Done()
+	self.wg.Go(func() {
 		result := execFunc()
 		if result != nil {
 			for _, res := range *result {
 				self.resultCh <- res
 			}
 		}
-	}()
+	})
 }

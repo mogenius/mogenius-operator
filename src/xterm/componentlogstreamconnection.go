@@ -92,7 +92,7 @@ func ComponentStreamConnection(
 	}
 
 	client := store.GetValkeyClient()
-	client.Receive(ctx, client.B().Subscribe().Channel(valkeyKey).Build(), func(msg valkey.PubSubMessage) {
+	err = client.Receive(ctx, client.B().Subscribe().Channel(valkeyKey).Build(), func(msg valkey.PubSubMessage) {
 		if conn != nil {
 			var entry logging.LogLine
 			err := json.Unmarshal([]byte(msg.Message), &entry)
@@ -118,6 +118,9 @@ func ComponentStreamConnection(
 			}
 		}
 	})
+	if err != nil {
+		xtermLogger.Error("failed to register receive handler", "error", err)
+	}
 
 	if conn != nil {
 		closeMsg := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "CLOSE_CONNECTION_FROM_PEER")

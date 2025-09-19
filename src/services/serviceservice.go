@@ -32,25 +32,43 @@ func UpdateService(eventClient websocket.WebsocketClient, r ServiceUpdateRequest
 			Project:   r.Project,
 			Namespace: r.Namespace,
 		}
-		CreateNamespaceCmds(eventClient, job, nsReq, &wg)
+		wg.Go(func() {
+			CreateNamespaceCmds(eventClient, job, nsReq)
+		})
 	}
 
-	mokubernetes.CreateOrUpdateClusterImagePullSecret(eventClient, job, r.Project, r.Namespace, &wg)
-	mokubernetes.CreateOrUpdateContainerImagePullSecret(eventClient, job, r.Namespace, r.Service, &wg)
-	mokubernetes.UpdateOrCreateControllerSecret(eventClient, job, r.Namespace, r.Service, &wg)
-	mokubernetes.UpdateService(eventClient, job, r.Namespace, r.Service, &wg, config)
+	wg.Go(func() {
+		mokubernetes.CreateOrUpdateClusterImagePullSecret(eventClient, job, r.Project, r.Namespace)
+	})
+	wg.Go(func() {
+		mokubernetes.CreateOrUpdateContainerImagePullSecret(eventClient, job, r.Namespace, r.Service)
+	})
+	wg.Go(func() {
+		mokubernetes.UpdateOrCreateControllerSecret(eventClient, job, r.Namespace, r.Service)
+	})
+	wg.Go(func() {
+		mokubernetes.UpdateService(eventClient, job, r.Namespace, r.Service, config)
+	})
 	// mokubernetes.CreateOrUpdateNetworkPolicyService(job, r.Namespace, r.Service, &wg)
-	mokubernetes.UpdateIngress(eventClient, job, r.Namespace, r.Service, &wg)
+	wg.Go(func() {
+		mokubernetes.UpdateIngress(eventClient, job, r.Namespace, r.Service)
+	})
 
 	switch r.Service.Controller {
 	case dtos.DEPLOYMENT:
-		mokubernetes.UpdateDeployment(eventClient, job, r.Namespace, r.Service, &wg)
+		wg.Go(func() {
+			mokubernetes.UpdateDeployment(eventClient, job, r.Namespace, r.Service)
+		})
 	case dtos.CRON_JOB:
-		mokubernetes.UpdateCronJob(eventClient, job, r.Namespace, r.Service, &wg)
+		wg.Go(func() {
+			mokubernetes.UpdateCronJob(eventClient, job, r.Namespace, r.Service)
+		})
 	}
 
 	if r.Service.HasContainerWithGitRepo() && serviceHasYamlSettings(r.Service) {
-		updateInfrastructureYaml(eventClient, job, r.Service, &wg)
+		wg.Go(func() {
+			updateInfrastructureYaml(eventClient, job, r.Service)
+		})
 	}
 
 	// crds.CreateOrUpdateApplicationKitCmd(job, r.Namespace.Name, r.Service.ControllerName, crds.CrdApplicationKit{
@@ -73,21 +91,35 @@ func DeleteService(eventClient websocket.WebsocketClient, r ServiceDeleteRequest
 	var wg sync.WaitGroup
 	job := structs.CreateJob(eventClient, "Delete Service "+r.Project.DisplayName+"/"+r.Namespace.DisplayName, r.Project.Id, r.Namespace.Name, r.Service.ControllerName, serviceLogger)
 	job.Start(eventClient)
-	mokubernetes.DeleteService(eventClient, job, r.Namespace, r.Service, &wg)
-	mokubernetes.DeleteContainerImagePullSecret(eventClient, job, r.Namespace, r.Service, &wg)
-	mokubernetes.DeleteControllerSecret(eventClient, job, r.Namespace, r.Service, &wg)
+	wg.Go(func() {
+		mokubernetes.DeleteService(eventClient, job, r.Namespace, r.Service)
+	})
+	wg.Go(func() {
+		mokubernetes.DeleteContainerImagePullSecret(eventClient, job, r.Namespace, r.Service)
+	})
+	wg.Go(func() {
+		mokubernetes.DeleteControllerSecret(eventClient, job, r.Namespace, r.Service)
+	})
 
 	switch r.Service.Controller {
 	case dtos.DEPLOYMENT:
-		mokubernetes.DeleteDeployment(eventClient, job, r.Namespace, r.Service, &wg)
+		wg.Go(func() {
+			mokubernetes.DeleteDeployment(eventClient, job, r.Namespace, r.Service)
+		})
 	case dtos.CRON_JOB:
-		mokubernetes.DeleteCronJob(eventClient, job, r.Namespace, r.Service, &wg)
+		wg.Go(func() {
+			mokubernetes.DeleteCronJob(eventClient, job, r.Namespace, r.Service)
+		})
 	}
 
 	// EXTERNAL SECRETS OPERATOR - cleanup unused secrets
-	mokubernetes.DeleteUnusedSecretsForNamespace(eventClient, job, r.Namespace, r.Service, &wg)
+	wg.Go(func() {
+		mokubernetes.DeleteUnusedSecretsForNamespace(eventClient, job, r.Namespace, r.Service)
+	})
 
-	mokubernetes.DeleteIngress(eventClient, job, r.Namespace, r.Service, &wg)
+	wg.Go(func() {
+		mokubernetes.DeleteIngress(eventClient, job, r.Namespace, r.Service)
+	})
 
 	return job
 }
@@ -124,7 +156,9 @@ func TriggerJobService(eventClient websocket.WebsocketClient, r ServiceTriggerJo
 
 	job := structs.CreateJob(eventClient, "Trigger Job Service "+r.NamespaceDisplayName, r.ProjectId, r.NamespaceName, r.ControllerName, serviceLogger)
 	job.Start(eventClient)
-	mokubernetes.TriggerJobFromCronjob(eventClient, job, r.NamespaceName, r.ControllerName, &wg)
+	wg.Go(func() {
+		mokubernetes.TriggerJobFromCronjob(eventClient, job, r.NamespaceName, r.ControllerName)
+	})
 
 	go func() {
 		wg.Wait()
@@ -139,18 +173,32 @@ func Restart(eventClient websocket.WebsocketClient, r ServiceRestartRequest, con
 	job := structs.CreateJob(eventClient, "Restart Service "+r.Namespace.DisplayName, r.Project.Id, r.Namespace.Name, r.Service.ControllerName, serviceLogger)
 	job.Start(eventClient)
 
-	mokubernetes.CreateOrUpdateClusterImagePullSecret(eventClient, job, r.Project, r.Namespace, &wg)
-	mokubernetes.CreateOrUpdateContainerImagePullSecret(eventClient, job, r.Namespace, r.Service, &wg)
-	mokubernetes.UpdateService(eventClient, job, r.Namespace, r.Service, &wg, config)
-	mokubernetes.UpdateOrCreateControllerSecret(eventClient, job, r.Namespace, r.Service, &wg)
+	wg.Go(func() {
+		mokubernetes.CreateOrUpdateClusterImagePullSecret(eventClient, job, r.Project, r.Namespace)
+	})
+	wg.Go(func() {
+		mokubernetes.CreateOrUpdateContainerImagePullSecret(eventClient, job, r.Namespace, r.Service)
+	})
+	wg.Go(func() {
+		mokubernetes.UpdateService(eventClient, job, r.Namespace, r.Service, config)
+	})
+	wg.Go(func() {
+		mokubernetes.UpdateOrCreateControllerSecret(eventClient, job, r.Namespace, r.Service)
+	})
 	// mokubernetes.CreateOrUpdateNetworkPolicyService(job, r.Namespace, r.Service, &wg)
-	mokubernetes.UpdateIngress(eventClient, job, r.Namespace, r.Service, &wg)
+	wg.Go(func() {
+		mokubernetes.UpdateIngress(eventClient, job, r.Namespace, r.Service)
+	})
 
 	switch r.Service.Controller {
 	case dtos.DEPLOYMENT:
-		mokubernetes.RestartDeployment(eventClient, job, r.Namespace, r.Service, &wg)
+		wg.Go(func() {
+			mokubernetes.RestartDeployment(eventClient, job, r.Namespace, r.Service)
+		})
 	case dtos.CRON_JOB:
-		mokubernetes.RestartCronJob(eventClient, job, r.Namespace, r.Service, &wg)
+		wg.Go(func() {
+			mokubernetes.RestartCronJob(eventClient, job, r.Namespace, r.Service)
+		})
 	}
 
 	go func() {
@@ -168,13 +216,21 @@ func StopService(eventClient websocket.WebsocketClient, r ServiceStopRequest, co
 
 	switch r.Service.Controller {
 	case dtos.DEPLOYMENT:
-		mokubernetes.StopDeployment(eventClient, job, r.Namespace, r.Service, &wg)
+		wg.Go(func() {
+			mokubernetes.StopDeployment(eventClient, job, r.Namespace, r.Service)
+		})
 	case dtos.CRON_JOB:
-		mokubernetes.StopCronJob(eventClient, job, r.Namespace, r.Service, &wg)
+		wg.Go(func() {
+			mokubernetes.StopCronJob(eventClient, job, r.Namespace, r.Service)
+		})
 	}
 
-	mokubernetes.UpdateService(eventClient, job, r.Namespace, r.Service, &wg, config)
-	mokubernetes.UpdateIngress(eventClient, job, r.Namespace, r.Service, &wg)
+	wg.Go(func() {
+		mokubernetes.UpdateService(eventClient, job, r.Namespace, r.Service, config)
+	})
+	wg.Go(func() {
+		mokubernetes.UpdateIngress(eventClient, job, r.Namespace, r.Service)
+	})
 
 	go func() {
 		wg.Wait()
@@ -190,18 +246,32 @@ func StartService(eventClient websocket.WebsocketClient, r ServiceStartRequest, 
 	job := structs.CreateJob(eventClient, "Start Service "+r.Service.DisplayName, r.Project.Id, r.Namespace.Name, r.Service.ControllerName, serviceLogger)
 	job.Start(eventClient)
 
-	mokubernetes.CreateOrUpdateClusterImagePullSecret(eventClient, job, r.Project, r.Namespace, &wg)
-	mokubernetes.CreateOrUpdateContainerImagePullSecret(eventClient, job, r.Namespace, r.Service, &wg)
-	mokubernetes.UpdateService(eventClient, job, r.Namespace, r.Service, &wg, config)
-	mokubernetes.UpdateOrCreateControllerSecret(eventClient, job, r.Namespace, r.Service, &wg)
+	wg.Go(func() {
+		mokubernetes.CreateOrUpdateClusterImagePullSecret(eventClient, job, r.Project, r.Namespace)
+	})
+	wg.Go(func() {
+		mokubernetes.CreateOrUpdateContainerImagePullSecret(eventClient, job, r.Namespace, r.Service)
+	})
+	wg.Go(func() {
+		mokubernetes.UpdateService(eventClient, job, r.Namespace, r.Service, config)
+	})
+	wg.Go(func() {
+		mokubernetes.UpdateOrCreateControllerSecret(eventClient, job, r.Namespace, r.Service)
+	})
 	// mokubernetes.CreateOrUpdateNetworkPolicyService(job, r.Namespace, r.Service, &wg)
-	mokubernetes.UpdateIngress(eventClient, job, r.Namespace, r.Service, &wg)
+	wg.Go(func() {
+		mokubernetes.UpdateIngress(eventClient, job, r.Namespace, r.Service)
+	})
 
 	switch r.Service.Controller {
 	case dtos.DEPLOYMENT:
-		mokubernetes.StartDeployment(eventClient, job, r.Namespace, r.Service, &wg)
+		wg.Go(func() {
+			mokubernetes.StartDeployment(eventClient, job, r.Namespace, r.Service)
+		})
 	case dtos.CRON_JOB:
-		mokubernetes.StartCronJob(eventClient, job, r.Namespace, r.Service, &wg)
+		wg.Go(func() {
+			mokubernetes.StartCronJob(eventClient, job, r.Namespace, r.Service)
+		})
 	}
 
 	go func() {
@@ -221,86 +291,82 @@ func serviceHasYamlSettings(service dtos.K8sServiceDto) bool {
 	return false
 }
 
-func updateInfrastructureYaml(eventClient websocket.WebsocketClient, job *structs.Job, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
+func updateInfrastructureYaml(eventClient websocket.WebsocketClient, job *structs.Job, service dtos.K8sServiceDto) {
 	cmd := structs.CreateCommand(eventClient, "update", "Update infrastructure YAML", job)
-	wg.Add(1)
-	go func(wg *sync.WaitGroup) {
-		defer wg.Done()
-		cmd.Start(eventClient, job, "Update infrastructure YAML")
+	cmd.Start(eventClient, job, "Update infrastructure YAML")
 
-		// dont do this in local environment
-		// if config.Get("MO_STAGE") == "local" {
-		// 	cmd.Success(job, "Skipping infrastructure YAML update")
-		// 	return
-		// }
+	// dont do this in local environment
+	// if config.Get("MO_STAGE") == "local" {
+	// 	cmd.Success(job, "Skipping infrastructure YAML update")
+	// 	return
+	// }
 
-		for _, container := range service.Containers {
-			if container.SettingsYaml != nil && container.GitBranch != nil && container.GitRepository != nil {
-				if container.GitRepository == nil {
-					serviceLogger.Error("GitRepository cannot be nil", "controller", service.ControllerName, "namespace", job.NamespaceName)
-					continue
-				}
-				if container.GitBranch == nil {
-					serviceLogger.Error("GitBranch cannot be nil", "controller", service.ControllerName, "namespace", job.NamespaceName)
-					continue
-				}
-				if container.SettingsYaml == nil {
-					serviceLogger.Error("SettingsYaml cannot be nil", "controller", service.ControllerName, "namespace", job.NamespaceName)
-					continue
-				}
+	for _, container := range service.Containers {
+		if container.SettingsYaml != nil && container.GitBranch != nil && container.GitRepository != nil {
+			if container.GitRepository == nil {
+				serviceLogger.Error("GitRepository cannot be nil", "controller", service.ControllerName, "namespace", job.NamespaceName)
+				continue
+			}
+			if container.GitBranch == nil {
+				serviceLogger.Error("GitBranch cannot be nil", "controller", service.ControllerName, "namespace", job.NamespaceName)
+				continue
+			}
+			if container.SettingsYaml == nil {
+				serviceLogger.Error("SettingsYaml cannot be nil", "controller", service.ControllerName, "namespace", job.NamespaceName)
+				continue
+			}
 
-				tempDir := os.TempDir()
-				gitDir := fmt.Sprintf("%s/%s", tempDir, utils.NanoId())
+			tempDir := os.TempDir()
+			gitDir := fmt.Sprintf("%s/%s", tempDir, utils.NanoId())
 
-				err := utils.ExecuteShellCommandSilent("Cleanup", fmt.Sprintf("mkdir %s; rm -rf %s", tempDir, gitDir))
-				if err != nil {
-					serviceLogger.Error("Error cleaning up before", "error", err.Error(), "controller", service.ControllerName, "namespace", job.NamespaceName)
-					cmd.Fail(eventClient, job, fmt.Sprintf("Error cleaning up before: %s", err.Error()))
-					return
-				}
-				err = gitmanager.CloneFast(*container.GitRepository, gitDir, *container.GitBranch)
-				if err != nil {
-					serviceLogger.Error("Error while cloning", "error", err.Error(), "controller", service.ControllerName, "namespace", job.NamespaceName)
-					cmd.Fail(eventClient, job, fmt.Sprintf("Error cloning: %s", err.Error()))
-					return
-				}
+			err := utils.ExecuteShellCommandSilent("Cleanup", fmt.Sprintf("mkdir %s; rm -rf %s", tempDir, gitDir))
+			if err != nil {
+				serviceLogger.Error("Error cleaning up before", "error", err.Error(), "controller", service.ControllerName, "namespace", job.NamespaceName)
+				cmd.Fail(eventClient, job, fmt.Sprintf("Error cleaning up before: %s", err.Error()))
+				return
+			}
+			err = gitmanager.CloneFast(*container.GitRepository, gitDir, *container.GitBranch)
+			if err != nil {
+				serviceLogger.Error("Error while cloning", "error", err.Error(), "controller", service.ControllerName, "namespace", job.NamespaceName)
+				cmd.Fail(eventClient, job, fmt.Sprintf("Error cloning: %s", err.Error()))
+				return
+			}
 
-				err = utils.ExecuteShellCommandSilent("Update infrastructure YAML", fmt.Sprintf("cd %s; mkdir -p .mogenius; echo '%s' > .mogenius/%s.yaml", gitDir, *container.SettingsYaml, *container.GitBranch))
-				if err != nil {
-					serviceLogger.Error("Error updating infrastructure YAML", "error", err.Error(), "controller", service.ControllerName, "namespace", job.NamespaceName)
-					cmd.Fail(eventClient, job, fmt.Sprintf("Error updating file: %s", err.Error()))
-					return
-				}
+			err = utils.ExecuteShellCommandSilent("Update infrastructure YAML", fmt.Sprintf("cd %s; mkdir -p .mogenius; echo '%s' > .mogenius/%s.yaml", gitDir, *container.SettingsYaml, *container.GitBranch))
+			if err != nil {
+				serviceLogger.Error("Error updating infrastructure YAML", "error", err.Error(), "controller", service.ControllerName, "namespace", job.NamespaceName)
+				cmd.Fail(eventClient, job, fmt.Sprintf("Error updating file: %s", err.Error()))
+				return
+			}
 
-				err = gitmanager.Commit(
-					gitDir,
-					[]string{fmt.Sprintf(".mogenius/%s.yaml", *container.GitBranch)},
-					[]string{},
-					"[skip ci]: Update infrastructure yaml.",
-					config.Get("MO_GIT_USER_NAME"),
-					config.Get("MO_GIT_USER_EMAIL"),
-				)
-				if err != nil {
-					serviceLogger.Error("Error while commiting", "error", err.Error(), "controller", service.ControllerName, "namespace", job.NamespaceName)
-					cmd.Fail(eventClient, job, fmt.Sprintf("Error commiting: %s", err.Error()))
-					return
-				}
-				err = gitmanager.Push(gitDir, "origin")
-				if err != nil {
-					serviceLogger.Error("Error while pushing", "error", err.Error(), "controller", service.ControllerName, "namespace", job.NamespaceName)
-					cmd.Fail(eventClient, job, fmt.Sprintf("Error pushing: %s", err.Error()))
-					return
-				}
-				err = utils.ExecuteShellCommandSilent("Cleanup", fmt.Sprintf("rm -rf %s", gitDir))
-				if err != nil {
-					serviceLogger.Error("Error cleaning up after done", "error", err.Error(), "controller", service.ControllerName, "namespace", job.NamespaceName)
-					cmd.Fail(eventClient, job, fmt.Sprintf("Error cleaning up after: %s", err.Error()))
-					return
-				}
+			err = gitmanager.Commit(
+				gitDir,
+				[]string{fmt.Sprintf(".mogenius/%s.yaml", *container.GitBranch)},
+				[]string{},
+				"[skip ci]: Update infrastructure yaml.",
+				config.Get("MO_GIT_USER_NAME"),
+				config.Get("MO_GIT_USER_EMAIL"),
+			)
+			if err != nil {
+				serviceLogger.Error("Error while commiting", "error", err.Error(), "controller", service.ControllerName, "namespace", job.NamespaceName)
+				cmd.Fail(eventClient, job, fmt.Sprintf("Error commiting: %s", err.Error()))
+				return
+			}
+			err = gitmanager.Push(gitDir, "origin")
+			if err != nil {
+				serviceLogger.Error("Error while pushing", "error", err.Error(), "controller", service.ControllerName, "namespace", job.NamespaceName)
+				cmd.Fail(eventClient, job, fmt.Sprintf("Error pushing: %s", err.Error()))
+				return
+			}
+			err = utils.ExecuteShellCommandSilent("Cleanup", fmt.Sprintf("rm -rf %s", gitDir))
+			if err != nil {
+				serviceLogger.Error("Error cleaning up after done", "error", err.Error(), "controller", service.ControllerName, "namespace", job.NamespaceName)
+				cmd.Fail(eventClient, job, fmt.Sprintf("Error cleaning up after: %s", err.Error()))
+				return
 			}
 		}
-		cmd.Success(eventClient, job, "Update infrastructure YAML")
-	}(wg)
+	}
+	cmd.Success(eventClient, job, "Update infrastructure YAML")
 }
 
 type ServiceDeleteRequest struct {

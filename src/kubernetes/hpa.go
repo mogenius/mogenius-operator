@@ -3,7 +3,6 @@ package kubernetes
 import (
 	"context"
 	"fmt"
-	"sync"
 
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/store"
@@ -19,31 +18,27 @@ const (
 	HpaNameSuffix = "-hpa"
 )
 
-func HandleHpa(eventClient websocket.WebsocketClient, job *structs.Job, namespaceName, controllerName string, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
+func HandleHpa(eventClient websocket.WebsocketClient, job *structs.Job, namespaceName, controllerName string, service dtos.K8sServiceDto) {
 	if service.HpaEnabled() {
-		CreateOrUpdateHpa(eventClient, job, namespaceName, service.ControllerName, service.HpaSettings, wg)
+		CreateOrUpdateHpa(eventClient, job, namespaceName, service.ControllerName, service.HpaSettings)
 	} else {
 		hpa, error := GetHpa(namespaceName, service.ControllerName+HpaNameSuffix)
 		if error == nil && hpa.DeletionTimestamp == nil {
-			DeleteHpa(eventClient, job, namespaceName, service.ControllerName, wg)
+			DeleteHpa(eventClient, job, namespaceName, service.ControllerName)
 		}
 	}
 }
 
-func DeleteHpa(eventClient websocket.WebsocketClient, job *structs.Job, namespaceName, controllerName string, wg *sync.WaitGroup) {
+func DeleteHpa(eventClient websocket.WebsocketClient, job *structs.Job, namespaceName, controllerName string) {
 	cmd := structs.CreateCommand(eventClient, "delete", fmt.Sprintf("Delete hpa '%s'.", controllerName+HpaNameSuffix), job)
-	wg.Add(1)
-	go func(wg *sync.WaitGroup) {
-		defer wg.Done()
-		cmd.Start(eventClient, job, "Delete hpa")
+	cmd.Start(eventClient, job, "Delete hpa")
 
-		err := DeleteK8sHpaBy(namespaceName, controllerName+HpaNameSuffix)
-		if err != nil {
-			cmd.Fail(eventClient, job, fmt.Sprintf("Deleting hpa ERROR: '%s'", err.Error()))
-		} else {
-			cmd.Success(eventClient, job, "Deleted hpa")
-		}
-	}(wg)
+	err := DeleteK8sHpaBy(namespaceName, controllerName+HpaNameSuffix)
+	if err != nil {
+		cmd.Fail(eventClient, job, fmt.Sprintf("Deleting hpa ERROR: '%s'", err.Error()))
+	} else {
+		cmd.Success(eventClient, job, "Deleted hpa")
+	}
 }
 
 func GetHpa(namespaceName string, name string) (*v2.HorizontalPodAutoscaler, error) {
@@ -97,41 +92,37 @@ func CreateHpa(namespaceName, controllerName string, hpaSettings *dtos.K8sHpaSet
 	return hpa, nil
 }
 
-func CreateOrUpdateHpa(eventClient websocket.WebsocketClient, job *structs.Job, namespaceName, controllerName string, hpaSettings *dtos.K8sHpaSettingsDto, wg *sync.WaitGroup) {
+func CreateOrUpdateHpa(eventClient websocket.WebsocketClient, job *structs.Job, namespaceName, controllerName string, hpaSettings *dtos.K8sHpaSettingsDto) {
 	if hpaSettings == nil {
 		k8sLogger.Warn("CreateOrUpdate hpa warning: hpaSettings is nil")
 		return
 	}
 
 	cmd := structs.CreateCommand(eventClient, "CreateOrUpdate", "CreateOrUpdate hpa", job)
-	wg.Add(1)
-	go func(wg *sync.WaitGroup) {
-		defer wg.Done()
-		cmd.Start(eventClient, job, "CreateOrUpdate hpa")
+	cmd.Start(eventClient, job, "CreateOrUpdate hpa")
 
-		clientset := clientProvider.K8sClientSet()
+	clientset := clientProvider.K8sClientSet()
 
-		hpaClient := clientset.AutoscalingV2().HorizontalPodAutoscalers(namespaceName)
-		newHpa, err := CreateHpa(namespaceName, controllerName, hpaSettings)
-		if err != nil {
-			cmd.Fail(eventClient, job, fmt.Sprintf("Creating hpa ERROR: %s", err.Error()))
-			return
-		}
+	hpaClient := clientset.AutoscalingV2().HorizontalPodAutoscalers(namespaceName)
+	newHpa, err := CreateHpa(namespaceName, controllerName, hpaSettings)
+	if err != nil {
+		cmd.Fail(eventClient, job, fmt.Sprintf("Creating hpa ERROR: %s", err.Error()))
+		return
+	}
 
-		_, err = hpaClient.Update(context.TODO(), newHpa, MoUpdateOptions(config))
-		if err != nil {
-			if apierrors.IsNotFound(err) {
-				_, err = hpaClient.Create(context.TODO(), newHpa, MoCreateOptions(config))
-				if err != nil {
-					cmd.Fail(eventClient, job, fmt.Sprintf("Creating hpa ERROR: %s", err.Error()))
-				} else {
-					cmd.Success(eventClient, job, "Created hpa")
-				}
+	_, err = hpaClient.Update(context.TODO(), newHpa, MoUpdateOptions(config))
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			_, err = hpaClient.Create(context.TODO(), newHpa, MoCreateOptions(config))
+			if err != nil {
+				cmd.Fail(eventClient, job, fmt.Sprintf("Creating hpa ERROR: %s", err.Error()))
 			} else {
-				cmd.Fail(eventClient, job, fmt.Sprintf("Updating hpa ERROR: %s", err.Error()))
+				cmd.Success(eventClient, job, "Created hpa")
 			}
 		} else {
-			cmd.Success(eventClient, job, "Updated hpa")
+			cmd.Fail(eventClient, job, fmt.Sprintf("Updating hpa ERROR: %s", err.Error()))
 		}
-	}(wg)
+	} else {
+		cmd.Success(eventClient, job, "Updated hpa")
+	}
 }

@@ -6,7 +6,6 @@ import (
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/websocket"
-	"sync"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	applyconfcore "k8s.io/client-go/applyconfigurations/core/v1"
@@ -35,23 +34,19 @@ func CreateNamespace(eventClient websocket.WebsocketClient, job *structs.Job, pr
 	}
 }
 
-func DeleteNamespace(eventClient websocket.WebsocketClient, job *structs.Job, namespace dtos.K8sNamespaceDto, wg *sync.WaitGroup) {
+func DeleteNamespace(eventClient websocket.WebsocketClient, job *structs.Job, namespace dtos.K8sNamespaceDto) {
 	cmd := structs.CreateCommand(eventClient, "create", "Delete Kubernetes namespace", job)
-	wg.Add(1)
-	go func(wg *sync.WaitGroup) {
-		defer wg.Done()
-		cmd.Start(eventClient, job, "Deleting namespace")
+	cmd.Start(eventClient, job, "Deleting namespace")
 
-		clientset := clientProvider.K8sClientSet()
-		namespaceClient := clientset.CoreV1().Namespaces()
+	clientset := clientProvider.K8sClientSet()
+	namespaceClient := clientset.CoreV1().Namespaces()
 
-		err := namespaceClient.Delete(context.TODO(), namespace.Name, metav1.DeleteOptions{})
-		if err != nil {
-			cmd.Fail(eventClient, job, fmt.Sprintf("DeleteNamespace ERROR: %s", err.Error()))
-		} else {
-			cmd.Success(eventClient, job, "Deleted namespace")
-		}
-	}(wg)
+	err := namespaceClient.Delete(context.TODO(), namespace.Name, metav1.DeleteOptions{})
+	if err != nil {
+		cmd.Fail(eventClient, job, fmt.Sprintf("DeleteNamespace ERROR: %s", err.Error()))
+	} else {
+		cmd.Success(eventClient, job, "Deleted namespace")
+	}
 }
 
 func NamespaceExists(namespaceName string) (bool, error) {

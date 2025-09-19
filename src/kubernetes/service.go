@@ -7,7 +7,6 @@ import (
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/websocket"
-	"sync"
 
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -33,73 +32,65 @@ func AllServices(namespaceName string) []v1.Service {
 	return result
 }
 
-func DeleteService(eventClient websocket.WebsocketClient, job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
+func DeleteService(eventClient websocket.WebsocketClient, job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto) {
 	cmd := structs.CreateCommand(eventClient, "delete", "Delete Service", job)
-	wg.Add(1)
-	go func(wg *sync.WaitGroup) {
-		defer wg.Done()
-		cmd.Start(eventClient, job, "Deleting Service")
+	cmd.Start(eventClient, job, "Deleting Service")
 
-		clientset := clientProvider.K8sClientSet()
-		serviceClient := clientset.CoreV1().Services(namespace.Name)
+	clientset := clientProvider.K8sClientSet()
+	serviceClient := clientset.CoreV1().Services(namespace.Name)
 
-		// bind/unbind ports globally
-		// TODO: rework TCP/UDP stuff
-		// UpdateTcpUdpPorts(namespace, service, false)
+	// bind/unbind ports globally
+	// TODO: rework TCP/UDP stuff
+	// UpdateTcpUdpPorts(namespace, service, false)
 
-		err := serviceClient.Delete(context.TODO(), service.ControllerName, metav1.DeleteOptions{})
-		if err != nil && !apierrors.IsNotFound(err) {
-			cmd.Fail(eventClient, job, fmt.Sprintf("DeleteService ERROR: %s", err.Error()))
-		} else {
-			cmd.Success(eventClient, job, "Deleted Service")
-		}
-	}(wg)
+	err := serviceClient.Delete(context.TODO(), service.ControllerName, metav1.DeleteOptions{})
+	if err != nil && !apierrors.IsNotFound(err) {
+		cmd.Fail(eventClient, job, fmt.Sprintf("DeleteService ERROR: %s", err.Error()))
+	} else {
+		cmd.Success(eventClient, job, "Deleted Service")
+	}
 }
 
-func UpdateService(eventClient websocket.WebsocketClient, job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup, config cfg.ConfigModule) {
+func UpdateService(eventClient websocket.WebsocketClient, job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, config cfg.ConfigModule) {
 	cmd := structs.CreateCommand(eventClient, "update", "Update Application", job)
-	wg.Add(1)
-	go func(wg *sync.WaitGroup) {
-		defer wg.Done()
-		cmd.Start(eventClient, job, "Update Application")
+	cmd.Start(eventClient, job, "Update Application")
 
-		existingService, getSrvErr := GetService(namespace.Name, service.ControllerName)
-		if getSrvErr != nil {
-			existingService = nil
-		}
+	existingService, getSrvErr := GetService(namespace.Name, service.ControllerName)
+	if getSrvErr != nil {
+		existingService = nil
+	}
 
-		clientset := clientProvider.K8sClientSet()
-		serviceClient := clientset.CoreV1().Services(namespace.Name)
-		updateService := generateService(existingService, namespace, service)
+	clientset := clientProvider.K8sClientSet()
+	serviceClient := clientset.CoreV1().Services(namespace.Name)
+	updateService := generateService(existingService, namespace, service)
 
-		updateOptions := metav1.UpdateOptions{
-			FieldManager: GetOwnDeploymentName(config),
-		}
+	updateOptions := metav1.UpdateOptions{
+		FieldManager: GetOwnDeploymentName(config),
+	}
 
-		// bind/unbind ports globally
-		// TODO: rework TCP/UDP stuff
-		// UpdateTcpUdpPorts(namespace, service, true)
+	// bind/unbind ports globally
+	// TODO: rework TCP/UDP stuff
+	// UpdateTcpUdpPorts(namespace, service, true)
 
-		if len(updateService.Spec.Ports) <= 0 {
-			if getSrvErr == nil {
-				err := serviceClient.Delete(context.TODO(), service.ControllerName, metav1.DeleteOptions{})
-				if err != nil {
-					cmd.Fail(eventClient, job, fmt.Sprintf("UpdateApplication (Delete) ERROR: %s", err.Error()))
-				} else {
-					cmd.Success(eventClient, job, "Updated Application")
-				}
+	if len(updateService.Spec.Ports) <= 0 {
+		if getSrvErr == nil {
+			err := serviceClient.Delete(context.TODO(), service.ControllerName, metav1.DeleteOptions{})
+			if err != nil {
+				cmd.Fail(eventClient, job, fmt.Sprintf("UpdateApplication (Delete) ERROR: %s", err.Error()))
 			} else {
 				cmd.Success(eventClient, job, "Updated Application")
 			}
 		} else {
-			_, err := serviceClient.Update(context.TODO(), &updateService, updateOptions)
-			if err != nil {
-				cmd.Fail(eventClient, job, fmt.Sprintf("UpdateApplication ERROR: %s", err.Error()))
-			} else {
-				cmd.Success(eventClient, job, "Updated Application")
-			}
+			cmd.Success(eventClient, job, "Updated Application")
 		}
-	}(wg)
+	} else {
+		_, err := serviceClient.Update(context.TODO(), &updateService, updateOptions)
+		if err != nil {
+			cmd.Fail(eventClient, job, fmt.Sprintf("UpdateApplication ERROR: %s", err.Error()))
+		} else {
+			cmd.Success(eventClient, job, "Updated Application")
+		}
+	}
 }
 
 func GetService(namespace string, serviceName string) (*v1.Service, error) {
@@ -174,7 +165,7 @@ func FindSealedSecretsService(cfg cfg.ConfigModule) (namespace string, service s
 	clientset := clientProvider.K8sClientSet()
 
 	ownNamespace := cfg.Get("MO_OWN_NAMESPACE")
-	
+
 	// exists mogenius sealed-secrets config
 	sealedSecretsConfig, err := clientset.CoreV1().ConfigMaps(ownNamespace).Get(context.TODO(), "sealed-secrets-config", metav1.GetOptions{})
 	if err == nil {

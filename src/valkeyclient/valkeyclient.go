@@ -57,10 +57,9 @@ const (
 	ORDER_DESC SortOrder = 2
 
 	MAX_CHUNK_GET_SIZE = 100
+	MAX_RETENTION_SIZE = 10800
+	MAX_RETENTION_TIME = 7 * 24 * time.Hour // 7 days
 )
-
-var MAX_RETENTION_TIME = 7 * 24 * time.Hour // 7 days
-var MAX_RETENTION_SIZE = 10800
 
 type valkeyClient struct {
 	logger *slog.Logger
@@ -806,10 +805,6 @@ func GetObjectForKey[T any](store ValkeyClient, keys ...string) (*T, error) {
 
 func createKey(parts ...string) string {
 	return strings.Join(parts, ":")
-}
-
-func createChannel(parts ...string) string {
-	return strings.Join(parts, ":") + ":channel"
 }
 
 func sortStringsByTimestamp(stringsToSort []string, order SortOrder) {

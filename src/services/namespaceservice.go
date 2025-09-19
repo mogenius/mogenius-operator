@@ -13,7 +13,9 @@ func CreateNamespace(eventClient websocket.WebsocketClient, r NamespaceCreateReq
 
 	job := structs.CreateJob(eventClient, "Create namespace "+r.Project.DisplayName+"/"+r.Namespace.DisplayName, r.Project.Id, r.Namespace.Name, "", serviceLogger)
 	job.Start(eventClient)
-	CreateNamespaceCmds(eventClient, job, r, &wg)
+	wg.Go(func() {
+		CreateNamespaceCmds(eventClient, job, r)
+	})
 
 	go func() {
 		wg.Wait()
@@ -23,12 +25,12 @@ func CreateNamespace(eventClient websocket.WebsocketClient, r NamespaceCreateReq
 	return job
 }
 
-func CreateNamespaceCmds(eventClient websocket.WebsocketClient, job *structs.Job, r NamespaceCreateRequest, wg *sync.WaitGroup) {
+func CreateNamespaceCmds(eventClient websocket.WebsocketClient, job *structs.Job, r NamespaceCreateRequest) {
 	mokubernetes.CreateNamespace(eventClient, job, r.Project, r.Namespace)
 	// mokubernetes.CreateNetworkPolicyNamespace(job, r.Namespace, "allow-namespace-communication", wg)
 
 	// if r.Project.ContainerRegistryUser != nil && r.Project.ContainerRegistryPat != nil {
-	mokubernetes.CreateOrUpdateClusterImagePullSecret(eventClient, job, r.Project, r.Namespace, wg)
+	mokubernetes.CreateOrUpdateClusterImagePullSecret(eventClient, job, r.Project, r.Namespace)
 	// }
 }
 
@@ -37,7 +39,9 @@ func DeleteNamespace(eventClient websocket.WebsocketClient, r NamespaceDeleteReq
 
 	job := structs.CreateJob(eventClient, "Delete namespace "+r.Project.DisplayName+"/"+r.Namespace.DisplayName, r.Project.Id, r.Namespace.Name, "", serviceLogger)
 	job.Start(eventClient)
-	mokubernetes.DeleteNamespace(eventClient, job, r.Namespace, &wg)
+	wg.Go(func() {
+		mokubernetes.DeleteNamespace(eventClient, job, r.Namespace)
+	})
 
 	go func() {
 		wg.Wait()

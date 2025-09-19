@@ -425,17 +425,20 @@ func (s *VolumeStatus) collectEventsAndUsedByPods() (*VolumeStatus, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(VolumeStatusTimeout)*time.Millisecond)
 	defer cancel()
 
-	wg.Add(1)
-	go s.getUsedByPods(ctx, &wg, podsEventsChan, errorChan)
+	wg.Go(func() {
+		s.getUsedByPods(ctx, podsEventsChan, errorChan)
+	})
 
 	if s.PersistentVolumeClaim.Name != "" {
-		wg.Add(1)
-		go s.getEvents(s.PersistentVolumeClaim.Name, VolumeTypePersistentVolumeClaim.String(), ctx, &wg, pvcsEventsChan, errorChan)
+		wg.Go(func() {
+			s.getEvents(s.PersistentVolumeClaim.Name, VolumeTypePersistentVolumeClaim.String(), ctx, pvcsEventsChan, errorChan)
+		})
 	}
 
 	if s.PersistentVolume.Name != "" {
-		wg.Add(1)
-		go s.getEvents(s.PersistentVolume.Name, VolumeTypePersistentVolume.String(), ctx, &wg, pvsEventsChan, errorChan)
+		wg.Go(func() {
+			s.getEvents(s.PersistentVolume.Name, VolumeTypePersistentVolume.String(), ctx, pvsEventsChan, errorChan)
+		})
 	}
 
 	go func() {
@@ -549,9 +552,7 @@ func (s *VolumeStatus) getPV(name string) (*v1.PersistentVolume, error) {
 	return pv, nil
 }
 
-func (s *VolumeStatus) getEvents(name, kind string, ctx context.Context, wg *sync.WaitGroup, channel chan<- []v1.Event, errChannel chan<- error) {
-	defer wg.Done()
-
+func (s *VolumeStatus) getEvents(name, kind string, ctx context.Context, channel chan<- []v1.Event, errChannel chan<- error) {
 	if s.client == nil {
 		errChannel <- fmt.Errorf("client is not set")
 		return
@@ -583,9 +584,7 @@ func (s *VolumeStatus) getEvents(name, kind string, ctx context.Context, wg *syn
 	}
 }
 
-func (s *VolumeStatus) getUsedByPods(ctx context.Context, wg *sync.WaitGroup, channel chan<- []string, errChannel chan<- error) {
-	defer wg.Done()
-
+func (s *VolumeStatus) getUsedByPods(ctx context.Context, channel chan<- []string, errChannel chan<- error) {
 	if s.client == nil {
 		errChannel <- fmt.Errorf("client is not set")
 		return

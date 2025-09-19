@@ -88,11 +88,8 @@ type XtermReadMessages struct {
 var LogChannels = make(map[string]chan string)
 
 func isPodAvailable(pod *v1.Pod) bool {
-	if pod.Status.Phase == v1.PodRunning {
-		return true
-	} else if pod.Status.Phase == v1.PodSucceeded {
-		return true
-	} else if pod.Status.Phase == v1.PodFailed {
+	switch pod.Status.Phase {
+	case v1.PodRunning, v1.PodSucceeded, v1.PodFailed:
 		return true
 	}
 	for _, cond := range pod.Status.Conditions {
@@ -103,10 +100,7 @@ func isPodAvailable(pod *v1.Pod) bool {
 	return false
 }
 
-func checkPodIsReady(ctx context.Context, wg *sync.WaitGroup, namespace string, podName string, conn *websocket.Conn, connWriteLock *sync.Mutex) {
-	defer func() {
-		wg.Done()
-	}()
+func checkPodIsReady(ctx context.Context, namespace string, podName string, conn *websocket.Conn, connWriteLock *sync.Mutex) {
 	firstCount := false
 	for {
 		select {

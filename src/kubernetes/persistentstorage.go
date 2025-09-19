@@ -7,7 +7,6 @@ import (
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/websocket"
 	"strings"
-	"sync"
 	"time"
 
 	v1 "k8s.io/api/core/v1"
@@ -93,184 +92,160 @@ func GetVolumeMountsForK8sManager() ([]structs.Volume, error) {
 // 3. DEPLOYMENT
 // 4. SERVICE
 
-func CreateMogeniusNfsPersistentVolumeClaim(eventClient websocket.WebsocketClient, job *structs.Job, namespaceName string, volumeName string, volumeSizeInGb int, wg *sync.WaitGroup) {
+func CreateMogeniusNfsPersistentVolumeClaim(eventClient websocket.WebsocketClient, job *structs.Job, namespaceName string, volumeName string, volumeSizeInGb int) {
 	cmd := structs.CreateCommand(eventClient, "create", "Create PersistentVolumeClaim", job)
-	wg.Add(1)
-	go func(wg *sync.WaitGroup) {
-		defer wg.Done()
-		cmd.Start(eventClient, job, "Creating PersistentVolumeClaim")
+	cmd.Start(eventClient, job, "Creating PersistentVolumeClaim")
 
-		storageClass := StorageClassForClusterProvider(utils.ClusterProviderCached)
-		if storageClass == "" {
-			cmd.Fail(eventClient, job, fmt.Sprintf("No default storageClass found and could not find storage class for cluster provider '%s'.", utils.ClusterProviderCached))
-			return
-		}
+	storageClass := StorageClassForClusterProvider(utils.ClusterProviderCached)
+	if storageClass == "" {
+		cmd.Fail(eventClient, job, fmt.Sprintf("No default storageClass found and could not find storage class for cluster provider '%s'.", utils.ClusterProviderCached))
+		return
+	}
 
-		pvc := utils.InitMogeniusNfsPersistentVolumeClaim()
-		pvc.Name = fmt.Sprintf("%s-%s", utils.NFS_POD_PREFIX, volumeName)
-		pvc.Namespace = namespaceName
-		pvc.Spec.StorageClassName = utils.Pointer(storageClass)
-		pvc.Spec.Resources.Requests = v1.ResourceList{}
-		pvc.Spec.Resources.Requests[v1.ResourceStorage] = resource.MustParse(fmt.Sprintf("%dGi", volumeSizeInGb))
+	pvc := utils.InitMogeniusNfsPersistentVolumeClaim()
+	pvc.Name = fmt.Sprintf("%s-%s", utils.NFS_POD_PREFIX, volumeName)
+	pvc.Namespace = namespaceName
+	pvc.Spec.StorageClassName = utils.Pointer(storageClass)
+	pvc.Spec.Resources.Requests = v1.ResourceList{}
+	pvc.Spec.Resources.Requests[v1.ResourceStorage] = resource.MustParse(fmt.Sprintf("%dGi", volumeSizeInGb))
 
-		// add labels
-		pvc.Labels = MoAddLabels(&pvc.Labels, map[string]string{
-			LabelKeyVolumeIdentifier: fmt.Sprintf("%s-%s", utils.NFS_POD_PREFIX, volumeName),
-			LabelKeyVolumeName:       volumeName,
-		})
+	// add labels
+	pvc.Labels = MoAddLabels(&pvc.Labels, map[string]string{
+		LabelKeyVolumeIdentifier: fmt.Sprintf("%s-%s", utils.NFS_POD_PREFIX, volumeName),
+		LabelKeyVolumeName:       volumeName,
+	})
 
-		clientset := clientProvider.K8sClientSet()
-		pvcClient := clientset.CoreV1().PersistentVolumeClaims(namespaceName)
-		_, err := pvcClient.Create(context.TODO(), &pvc, metav1.CreateOptions{})
-		if err != nil {
-			cmd.Fail(eventClient, job, fmt.Sprintf("CreateMogeniusNfsPersistentVolumeClaim ERROR: %s", err.Error()))
-		} else {
-			cmd.Success(eventClient, job, "Created PersistentVolumeClaim")
-		}
-	}(wg)
+	clientset := clientProvider.K8sClientSet()
+	pvcClient := clientset.CoreV1().PersistentVolumeClaims(namespaceName)
+	_, err := pvcClient.Create(context.TODO(), &pvc, metav1.CreateOptions{})
+	if err != nil {
+		cmd.Fail(eventClient, job, fmt.Sprintf("CreateMogeniusNfsPersistentVolumeClaim ERROR: %s", err.Error()))
+	} else {
+		cmd.Success(eventClient, job, "Created PersistentVolumeClaim")
+	}
 }
 
-func DeleteMogeniusNfsPersistentVolumeClaim(eventClient websocket.WebsocketClient, job *structs.Job, namespaceName string, volumeName string, wg *sync.WaitGroup) {
+func DeleteMogeniusNfsPersistentVolumeClaim(eventClient websocket.WebsocketClient, job *structs.Job, namespaceName string, volumeName string) {
 	cmd := structs.CreateCommand(eventClient, "delete", "Delete PersistentVolumeClaim", job)
-	wg.Add(1)
-	go func(wg *sync.WaitGroup) {
-		defer wg.Done()
-		cmd.Start(eventClient, job, "Deleting PersistentVolumeClaim")
+	cmd.Start(eventClient, job, "Deleting PersistentVolumeClaim")
 
-		clientset := clientProvider.K8sClientSet()
-		pvcClient := clientset.CoreV1().PersistentVolumeClaims(namespaceName)
-		err := pvcClient.Delete(context.TODO(), fmt.Sprintf("%s-%s", utils.NFS_POD_PREFIX, volumeName), metav1.DeleteOptions{})
-		if err != nil {
-			cmd.Fail(eventClient, job, fmt.Sprintf("DeleteMogeniusNfsPersistentVolumeClaim ERROR: %s", err.Error()))
-		} else {
-			cmd.Success(eventClient, job, "Deleted PersistentVolumeClaim")
-		}
-	}(wg)
+	clientset := clientProvider.K8sClientSet()
+	pvcClient := clientset.CoreV1().PersistentVolumeClaims(namespaceName)
+	err := pvcClient.Delete(context.TODO(), fmt.Sprintf("%s-%s", utils.NFS_POD_PREFIX, volumeName), metav1.DeleteOptions{})
+	if err != nil {
+		cmd.Fail(eventClient, job, fmt.Sprintf("DeleteMogeniusNfsPersistentVolumeClaim ERROR: %s", err.Error()))
+	} else {
+		cmd.Success(eventClient, job, "Deleted PersistentVolumeClaim")
+	}
 }
 
-func CreateMogeniusNfsPersistentVolumeForService(eventClient websocket.WebsocketClient, job *structs.Job, namespaceName string, volumeName string, volumeSizeInGb int, wg *sync.WaitGroup) {
+func CreateMogeniusNfsPersistentVolumeForService(eventClient websocket.WebsocketClient, job *structs.Job, namespaceName string, volumeName string, volumeSizeInGb int) {
 	cmd := structs.CreateCommand(eventClient, "create", "Create PersistentVolume", job)
-	wg.Add(1)
-	go func(wg *sync.WaitGroup) {
-		defer wg.Done()
-		k8sVolumeName := fmt.Sprintf("%s-%s", namespaceName, volumeName)
-		cmd.Start(eventClient, job, "Creating PersistentVolume")
+	k8sVolumeName := fmt.Sprintf("%s-%s", namespaceName, volumeName)
+	cmd.Start(eventClient, job, "Creating PersistentVolume")
 
-		nfsService := ServiceForNfsVolume(namespaceName, volumeName)
-		if nfsService == nil {
-			cmd.Fail(eventClient, job, fmt.Sprintf("CreateMogeniusNfsPersistentVolume ERROR: Could not find service for volume '%s' in order to get IP-Address.", k8sVolumeName))
-			return
-		}
+	nfsService := ServiceForNfsVolume(namespaceName, volumeName)
+	if nfsService == nil {
+		cmd.Fail(eventClient, job, fmt.Sprintf("CreateMogeniusNfsPersistentVolume ERROR: Could not find service for volume '%s' in order to get IP-Address.", k8sVolumeName))
+		return
+	}
 
-		pv := utils.InitMogeniusNfsPersistentVolumeForService()
-		pv.Name = k8sVolumeName
-		pv.Namespace = namespaceName
-		pv.Spec.NFS.Server = nfsService.Spec.ClusterIP
-		pv.Spec.Capacity = v1.ResourceList{}
-		pv.Spec.Capacity[v1.ResourceStorage] = resource.MustParse(fmt.Sprintf("%dGi", volumeSizeInGb))
+	pv := utils.InitMogeniusNfsPersistentVolumeForService()
+	pv.Name = k8sVolumeName
+	pv.Namespace = namespaceName
+	pv.Spec.NFS.Server = nfsService.Spec.ClusterIP
+	pv.Spec.Capacity = v1.ResourceList{}
+	pv.Spec.Capacity[v1.ResourceStorage] = resource.MustParse(fmt.Sprintf("%dGi", volumeSizeInGb))
 
-		// add labels
-		pv.Labels = MoAddLabels(&pv.Labels, map[string]string{
-			LabelKeyVolumeIdentifier: fmt.Sprintf("%s-%s", utils.NFS_POD_PREFIX, volumeName),
-			LabelKeyVolumeName:       volumeName,
-		})
+	// add labels
+	pv.Labels = MoAddLabels(&pv.Labels, map[string]string{
+		LabelKeyVolumeIdentifier: fmt.Sprintf("%s-%s", utils.NFS_POD_PREFIX, volumeName),
+		LabelKeyVolumeName:       volumeName,
+	})
 
-		clientset := clientProvider.K8sClientSet()
-		client := clientset.CoreV1().PersistentVolumes()
-		_, err := client.Create(context.TODO(), &pv, metav1.CreateOptions{})
-		if err != nil {
-			cmd.Fail(eventClient, job, fmt.Sprintf("CreateMogeniusNfsPersistentVolume ERROR: %s", err.Error()))
-		} else {
-			cmd.Success(eventClient, job, "Created PersistentVolume")
-		}
-	}(wg)
+	clientset := clientProvider.K8sClientSet()
+	client := clientset.CoreV1().PersistentVolumes()
+	_, err := client.Create(context.TODO(), &pv, metav1.CreateOptions{})
+	if err != nil {
+		cmd.Fail(eventClient, job, fmt.Sprintf("CreateMogeniusNfsPersistentVolume ERROR: %s", err.Error()))
+	} else {
+		cmd.Success(eventClient, job, "Created PersistentVolume")
+	}
 }
 
-func DeleteMogeniusNfsPersistentVolumeForService(eventClient websocket.WebsocketClient, job *structs.Job, volumeName string, namespaceName string, wg *sync.WaitGroup) {
+func DeleteMogeniusNfsPersistentVolumeForService(eventClient websocket.WebsocketClient, job *structs.Job, volumeName string, namespaceName string) {
 	cmd := structs.CreateCommand(eventClient, "delete", "Delete PersistentVolume", job)
-	wg.Add(1)
-	go func(wg *sync.WaitGroup) {
-		defer wg.Done()
-		k8sVolumeName := fmt.Sprintf("%s-%s", namespaceName, volumeName)
-		cmd.Start(eventClient, job, "Deleting DeleteMogeniusNfsPersistentVolumeForService")
+	k8sVolumeName := fmt.Sprintf("%s-%s", namespaceName, volumeName)
+	cmd.Start(eventClient, job, "Deleting DeleteMogeniusNfsPersistentVolumeForService")
 
-		clientset := clientProvider.K8sClientSet()
-		pvcClient := clientset.CoreV1().PersistentVolumes()
+	clientset := clientProvider.K8sClientSet()
+	pvcClient := clientset.CoreV1().PersistentVolumes()
 
-		// LIST ALL PV
-		pvList, err := pvcClient.List(context.TODO(), metav1.ListOptions{})
-		if err != nil {
-			if apierrors.IsNotFound(err) {
-				// IN CASE: NOT FOUND -> IT HAS ALREADY BEEN DELETED. e.g. by the provisioneer
-				cmd.Success(eventClient, job, "Deleted PersistentVolumeForService")
-			} else {
-				cmd.Fail(eventClient, job, fmt.Sprintf("DeleteMogeniusNfsPersistentVolumeForService ERROR: %s", err.Error()))
-			}
+	// LIST ALL PV
+	pvList, err := pvcClient.List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			// IN CASE: NOT FOUND -> IT HAS ALREADY BEEN DELETED. e.g. by the provisioneer
+			cmd.Success(eventClient, job, "Deleted PersistentVolumeForService")
+		} else {
+			cmd.Fail(eventClient, job, fmt.Sprintf("DeleteMogeniusNfsPersistentVolumeForService ERROR: %s", err.Error()))
 		}
-		// FIND VOLUME WITH THE RIGHT CLAIM AND DELETE IT
-		for _, pv := range pvList.Items {
-			if pv.Spec.ClaimRef != nil {
-				if pv.Spec.ClaimRef.Name == volumeName && pv.Spec.ClaimRef.Namespace == namespaceName {
-					err := pvcClient.Delete(context.TODO(), k8sVolumeName, metav1.DeleteOptions{})
-					if err != nil {
-						if apierrors.IsNotFound(err) {
-							// IN CASE: NOT FOUND -> IT HAS ALREADY BEEN DELETED. e.g. by the provisioneer
-							cmd.Success(eventClient, job, "Deleted PersistentVolume")
-						} else {
-							cmd.Fail(eventClient, job, fmt.Sprintf("DeleteMogeniusNfsPersistentVolumeForService ERROR: %s", err.Error()))
-						}
-						return
-					} else {
+	}
+	// FIND VOLUME WITH THE RIGHT CLAIM AND DELETE IT
+	for _, pv := range pvList.Items {
+		if pv.Spec.ClaimRef != nil {
+			if pv.Spec.ClaimRef.Name == volumeName && pv.Spec.ClaimRef.Namespace == namespaceName {
+				err := pvcClient.Delete(context.TODO(), k8sVolumeName, metav1.DeleteOptions{})
+				if err != nil {
+					if apierrors.IsNotFound(err) {
+						// IN CASE: NOT FOUND -> IT HAS ALREADY BEEN DELETED. e.g. by the provisioneer
 						cmd.Success(eventClient, job, "Deleted PersistentVolume")
-						return
+					} else {
+						cmd.Fail(eventClient, job, fmt.Sprintf("DeleteMogeniusNfsPersistentVolumeForService ERROR: %s", err.Error()))
 					}
+					return
+				} else {
+					cmd.Success(eventClient, job, "Deleted PersistentVolume")
+					return
 				}
 			}
 		}
-	}(wg)
+	}
 }
 
-func CreateMogeniusNfsPersistentVolumeClaimForService(eventClient websocket.WebsocketClient, job *structs.Job, namespaceName string, volumeName string, volumeSizeInGb int, wg *sync.WaitGroup) {
+func CreateMogeniusNfsPersistentVolumeClaimForService(eventClient websocket.WebsocketClient, job *structs.Job, namespaceName string, volumeName string, volumeSizeInGb int) {
 	cmd := structs.CreateCommand(eventClient, "create", "Create PersistentVolumeClaim", job)
-	wg.Add(1)
-	go func(wg *sync.WaitGroup) {
-		defer wg.Done()
-		cmd.Start(eventClient, job, "Creating PersistentVolumeClaim '%s'.")
+	cmd.Start(eventClient, job, "Creating PersistentVolumeClaim '%s'.")
 
-		pvc := utils.InitMogeniusNfsPersistentVolumeClaimForService()
-		pvc.Name = volumeName
-		pvc.Namespace = namespaceName
-		pvc.Spec.Resources.Requests = v1.ResourceList{}
-		pvc.Spec.VolumeName = fmt.Sprintf("%s-%s", namespaceName, volumeName)
-		pvc.Spec.Resources.Requests[v1.ResourceStorage] = resource.MustParse(fmt.Sprintf("%dGi", volumeSizeInGb))
+	pvc := utils.InitMogeniusNfsPersistentVolumeClaimForService()
+	pvc.Name = volumeName
+	pvc.Namespace = namespaceName
+	pvc.Spec.Resources.Requests = v1.ResourceList{}
+	pvc.Spec.VolumeName = fmt.Sprintf("%s-%s", namespaceName, volumeName)
+	pvc.Spec.Resources.Requests[v1.ResourceStorage] = resource.MustParse(fmt.Sprintf("%dGi", volumeSizeInGb))
 
-		clientset := clientProvider.K8sClientSet()
-		pvcClient := clientset.CoreV1().PersistentVolumeClaims(namespaceName)
-		_, err := pvcClient.Create(context.TODO(), &pvc, metav1.CreateOptions{})
-		if err != nil {
-			cmd.Fail(eventClient, job, fmt.Sprintf("CreateMogeniusNfsPersistentVolumeClaim ERROR: %s", err.Error()))
-		} else {
-			cmd.Success(eventClient, job, "Created PersistentVolumeClaim")
-		}
-	}(wg)
+	clientset := clientProvider.K8sClientSet()
+	pvcClient := clientset.CoreV1().PersistentVolumeClaims(namespaceName)
+	_, err := pvcClient.Create(context.TODO(), &pvc, metav1.CreateOptions{})
+	if err != nil {
+		cmd.Fail(eventClient, job, fmt.Sprintf("CreateMogeniusNfsPersistentVolumeClaim ERROR: %s", err.Error()))
+	} else {
+		cmd.Success(eventClient, job, "Created PersistentVolumeClaim")
+	}
 }
 
-func DeleteMogeniusNfsPersistentVolumeClaimForService(eventClient websocket.WebsocketClient, job *structs.Job, namespaceName string, volumeName string, wg *sync.WaitGroup) {
+func DeleteMogeniusNfsPersistentVolumeClaimForService(eventClient websocket.WebsocketClient, job *structs.Job, namespaceName string, volumeName string) {
 	cmd := structs.CreateCommand(eventClient, "delete", "Delete PersistentVolumeClaim", job)
-	wg.Add(1)
-	go func(wg *sync.WaitGroup) {
-		defer wg.Done()
-		cmd.Start(eventClient, job, "Deleting PersistentVolumeClaim")
+	cmd.Start(eventClient, job, "Deleting PersistentVolumeClaim")
 
-		clientset := clientProvider.K8sClientSet()
-		pvcClient := clientset.CoreV1().PersistentVolumeClaims(namespaceName)
-		err := pvcClient.Delete(context.TODO(), volumeName, metav1.DeleteOptions{})
-		if err != nil {
-			cmd.Fail(eventClient, job, fmt.Sprintf("DeleteMogeniusNfsPersistentVolumeClaimForService ERROR: %s", err.Error()))
-		} else {
-			cmd.Success(eventClient, job, "Deleted PersistentVolumeClaim")
-		}
-	}(wg)
+	clientset := clientProvider.K8sClientSet()
+	pvcClient := clientset.CoreV1().PersistentVolumeClaims(namespaceName)
+	err := pvcClient.Delete(context.TODO(), volumeName, metav1.DeleteOptions{})
+	if err != nil {
+		cmd.Fail(eventClient, job, fmt.Sprintf("DeleteMogeniusNfsPersistentVolumeClaimForService ERROR: %s", err.Error()))
+	} else {
+		cmd.Success(eventClient, job, "Deleted PersistentVolumeClaim")
+	}
 }
 
 func CreateMogeniusNfsServiceSync(eventClient websocket.WebsocketClient, job *structs.Job, namespaceName string, volumeName string) {
@@ -292,67 +267,55 @@ func CreateMogeniusNfsServiceSync(eventClient websocket.WebsocketClient, job *st
 	}
 }
 
-func DeleteMogeniusNfsService(eventClient websocket.WebsocketClient, job *structs.Job, namespaceName string, volumeName string, wg *sync.WaitGroup) {
+func DeleteMogeniusNfsService(eventClient websocket.WebsocketClient, job *structs.Job, namespaceName string, volumeName string) {
 	cmd := structs.CreateCommand(eventClient, "create", "Delete PersistentVolume Service", job)
-	wg.Add(1)
-	go func(wg *sync.WaitGroup) {
-		defer wg.Done()
-		cmd.Start(eventClient, job, "Deleting PersistentVolume Service")
+	cmd.Start(eventClient, job, "Deleting PersistentVolume Service")
 
-		clientset := clientProvider.K8sClientSet()
-		pvcClient := clientset.CoreV1().Services(namespaceName)
-		err := pvcClient.Delete(context.TODO(), fmt.Sprintf("%s-%s", utils.NFS_POD_PREFIX, volumeName), metav1.DeleteOptions{})
-		if err != nil {
-			cmd.Fail(eventClient, job, fmt.Sprintf("DeleteMogeniusNfsService ERROR: %s", err.Error()))
-		} else {
-			cmd.Success(eventClient, job, "Deleted PersistentVolume Service")
-		}
-	}(wg)
+	clientset := clientProvider.K8sClientSet()
+	pvcClient := clientset.CoreV1().Services(namespaceName)
+	err := pvcClient.Delete(context.TODO(), fmt.Sprintf("%s-%s", utils.NFS_POD_PREFIX, volumeName), metav1.DeleteOptions{})
+	if err != nil {
+		cmd.Fail(eventClient, job, fmt.Sprintf("DeleteMogeniusNfsService ERROR: %s", err.Error()))
+	} else {
+		cmd.Success(eventClient, job, "Deleted PersistentVolume Service")
+	}
 }
 
-func CreateMogeniusNfsDeployment(eventClient websocket.WebsocketClient, job *structs.Job, namespaceName string, volumeName string, wg *sync.WaitGroup) {
+func CreateMogeniusNfsDeployment(eventClient websocket.WebsocketClient, job *structs.Job, namespaceName string, volumeName string) {
 	cmd := structs.CreateCommand(eventClient, "create", "Create PersistentVolume Deployment", job)
-	wg.Add(1)
-	go func(wg *sync.WaitGroup) {
-		defer wg.Done()
-		cmd.Start(eventClient, job, "Creating PersistentVolume Deployment")
+	cmd.Start(eventClient, job, "Creating PersistentVolume Deployment")
 
-		deployment := utils.InitMogeniusNfsDeployment()
-		deployment.Name = fmt.Sprintf("%s-%s", utils.NFS_POD_PREFIX, volumeName)
-		deployment.Namespace = namespaceName
-		deployment.Spec.Template.Labels = make(map[string]string)
-		deployment.Spec.Template.Labels["app"] = fmt.Sprintf("%s-%s", utils.NFS_POD_PREFIX, volumeName)
-		deployment.Spec.Selector.MatchLabels = make(map[string]string)
-		deployment.Spec.Selector.MatchLabels["app"] = fmt.Sprintf("%s-%s", utils.NFS_POD_PREFIX, volumeName)
-		deployment.Spec.Template.Spec.Volumes[0].PersistentVolumeClaim.ClaimName = fmt.Sprintf("%s-%s", utils.NFS_POD_PREFIX, volumeName)
+	deployment := utils.InitMogeniusNfsDeployment()
+	deployment.Name = fmt.Sprintf("%s-%s", utils.NFS_POD_PREFIX, volumeName)
+	deployment.Namespace = namespaceName
+	deployment.Spec.Template.Labels = make(map[string]string)
+	deployment.Spec.Template.Labels["app"] = fmt.Sprintf("%s-%s", utils.NFS_POD_PREFIX, volumeName)
+	deployment.Spec.Selector.MatchLabels = make(map[string]string)
+	deployment.Spec.Selector.MatchLabels["app"] = fmt.Sprintf("%s-%s", utils.NFS_POD_PREFIX, volumeName)
+	deployment.Spec.Template.Spec.Volumes[0].PersistentVolumeClaim.ClaimName = fmt.Sprintf("%s-%s", utils.NFS_POD_PREFIX, volumeName)
 
-		clientset := clientProvider.K8sClientSet()
-		deploymentClient := clientset.AppsV1().Deployments(namespaceName)
-		_, err := deploymentClient.Create(context.TODO(), &deployment, metav1.CreateOptions{})
-		if err != nil {
-			cmd.Fail(eventClient, job, fmt.Sprintf("CreateMogeniusNfsDeployment ERROR: %s", err.Error()))
-		} else {
-			cmd.Success(eventClient, job, "Created PersistentVolume Deployment")
-		}
-	}(wg)
+	clientset := clientProvider.K8sClientSet()
+	deploymentClient := clientset.AppsV1().Deployments(namespaceName)
+	_, err := deploymentClient.Create(context.TODO(), &deployment, metav1.CreateOptions{})
+	if err != nil {
+		cmd.Fail(eventClient, job, fmt.Sprintf("CreateMogeniusNfsDeployment ERROR: %s", err.Error()))
+	} else {
+		cmd.Success(eventClient, job, "Created PersistentVolume Deployment")
+	}
 }
 
-func DeleteMogeniusNfsDeployment(eventClient websocket.WebsocketClient, job *structs.Job, namespaceName string, volumeName string, wg *sync.WaitGroup) {
+func DeleteMogeniusNfsDeployment(eventClient websocket.WebsocketClient, job *structs.Job, namespaceName string, volumeName string) {
 	cmd := structs.CreateCommand(eventClient, "delete", "Delete PersistentVolume Deployment", job)
-	wg.Add(1)
-	go func(wg *sync.WaitGroup) {
-		defer wg.Done()
-		cmd.Start(eventClient, job, "Deleting PersistentVolume Deployment")
+	cmd.Start(eventClient, job, "Deleting PersistentVolume Deployment")
 
-		clientset := clientProvider.K8sClientSet()
-		deploymentClient := clientset.AppsV1().Deployments(namespaceName)
-		err := deploymentClient.Delete(context.TODO(), fmt.Sprintf("%s-%s", utils.NFS_POD_PREFIX, volumeName), metav1.DeleteOptions{})
-		if err != nil {
-			cmd.Fail(eventClient, job, fmt.Sprintf("DeleteMogeniusNfsDeployment ERROR: %s", err.Error()))
-		} else {
-			cmd.Success(eventClient, job, "Deleted PersistentVolume Deployment")
-		}
-	}(wg)
+	clientset := clientProvider.K8sClientSet()
+	deploymentClient := clientset.AppsV1().Deployments(namespaceName)
+	err := deploymentClient.Delete(context.TODO(), fmt.Sprintf("%s-%s", utils.NFS_POD_PREFIX, volumeName), metav1.DeleteOptions{})
+	if err != nil {
+		cmd.Fail(eventClient, job, fmt.Sprintf("DeleteMogeniusNfsDeployment ERROR: %s", err.Error()))
+	} else {
+		cmd.Success(eventClient, job, "Deleted PersistentVolume Deployment")
+	}
 }
 
 func ListPersistentVolumeClaimsWithFieldSelector(namespace string, labelSelector string, prefix string) ([]v1.PersistentVolumeClaim, error) {

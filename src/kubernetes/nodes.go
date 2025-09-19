@@ -1,10 +1,7 @@
 package kubernetes
 
 import (
-	"context"
-
 	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func SumMemoryResources(pods []v1.Pod) (request int64, limit int64) {
@@ -41,12 +38,4 @@ func SumCpuResources(pods []v1.Pod) (request float64, limit float64) {
 		resultRequest = resultRequest / 1000
 	}
 	return resultRequest, resultLimit
-}
-
-func GetK8sNode(name string) (*v1.Node, error) {
-	clientset := clientProvider.K8sClientSet()
-	node, err := clientset.CoreV1().Nodes().Get(context.TODO(), name, metav1.GetOptions{})
-	node.Kind = "Node"
-	node.APIVersion = "v1"
-	return node, err
 }

@@ -100,8 +100,8 @@ func (self *xtermService) LiveStreamConnection(conReq xterm.WsConnectionRequest,
 	}()
 
 	client := store.GetValkeyClient()
-	client.Receive(ctx, client.B().Subscribe().Channel(valkeyKey).Build(), func(msg valkey.PubSubMessage) {
-		var entry interface{}
+	err = client.Receive(ctx, client.B().Subscribe().Channel(valkeyKey).Build(), func(msg valkey.PubSubMessage) {
+		var entry any
 		// remove unnecessary fields for pods to save bandwidth
 		switch datagram.Pattern {
 		case "live-stream/pod-memory", "live-stream/workspace-memory":
@@ -158,4 +158,7 @@ func (self *xtermService) LiveStreamConnection(conReq xterm.WsConnectionRequest,
 
 		httpApi.Broadcaster().BroadcastResponse(entry, datagram.Pattern)
 	})
+	if err != nil {
+		self.logger.Error("failed to register receive handler", "error", err)
+	}
 }
