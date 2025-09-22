@@ -918,7 +918,7 @@ func (self *socketApi) registerPatterns() {
 		PatternHandle{self, "prometheus/query"},
 		PatternConfig{},
 		func(datagram structs.Datagram, request PrometheusRequest) (*PrometheusQueryResponse, error) {
-			return ExecutePrometheusQuery(request)
+			return ExecutePrometheusQuery(request, self.config)
 		},
 	)
 
@@ -926,7 +926,7 @@ func (self *socketApi) registerPatterns() {
 		PatternHandle{self, "prometheus/is-reachable"},
 		PatternConfig{},
 		func(datagram structs.Datagram, request PrometheusRequest) (bool, error) {
-			data, err := IsPrometheusReachable(request)
+			data, err := IsPrometheusReachable(request, self.config)
 			return data, err
 		},
 	)
@@ -935,7 +935,7 @@ func (self *socketApi) registerPatterns() {
 		PatternHandle{self, "prometheus/values"},
 		PatternConfig{},
 		func(datagram structs.Datagram, request PrometheusRequest) ([]string, error) {
-			return PrometheusValues(request)
+			return PrometheusValues(request, self.config)
 		},
 	)
 
