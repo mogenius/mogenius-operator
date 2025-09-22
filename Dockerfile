@@ -2,7 +2,7 @@ FROM golang:1.25.1 AS golang
 
 FROM ubuntu:noble AS build-env
 
-ENV SNOOPY_VERSION=v0.3.0
+ENV SNOOPY_VERSION=v0.3.2
 
 COPY --from=golang /usr/local/go /usr/local/go
 # COPY --from=kubectl /usr/local/bin/kubectl /usr/local/bin/kubectl
