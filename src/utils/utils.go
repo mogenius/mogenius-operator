@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"maps"
 	"mogenius-k8s-manager/src/assert"
 	cfg "mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/logging"
@@ -16,6 +17,7 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -222,7 +224,7 @@ func ParseK8sName(name string) string {
 	return strings.ToLower(name)
 }
 
-func PrettyPrintInterface(i interface{}) string {
+func PrettyPrintInterface(i any) string {
 	str := PrettyPrintString(i)
 	return RedactString(str)
 }
@@ -234,7 +236,7 @@ func RedactString(targetSring string) string {
 	return targetSring
 }
 
-func PrettyPrintString(i interface{}) string {
+func PrettyPrintString(i any) string {
 	iJson, err := json.MarshalIndent(i, "", "  ")
 	if err != nil {
 		utilsLogger.Error(err.Error())
@@ -242,7 +244,7 @@ func PrettyPrintString(i interface{}) string {
 	return string(iJson)
 }
 
-func PrintJson(i interface{}) string {
+func PrintJson(i any) string {
 	data, err := json.Marshal(i)
 	if err != nil {
 		utilsLogger.Error(err.Error())
@@ -290,16 +292,15 @@ func ExecuteShellCommandWithResponse(title string, shellCmd string) string {
 	return string(returnStr)
 }
 
-func MergeMaps(maps ...map[string]string) map[string]string {
+func MergeMaps(maplist ...map[string]string) map[string]string {
 	resultMap := make(map[string]string)
 
 	// Iterate over the slice of maps
-	for _, m := range maps {
+	for _, m := range maplist {
 		// Add all elements from each map, potentially overwriting
-		for key, value := range m {
-			resultMap[key] = value
-		}
+		maps.Copy(resultMap, m)
 	}
+
 	return resultMap
 }
 
@@ -338,16 +339,7 @@ func GuessClusterCountry() (*CountryDetails, error) {
 
 func IsProduction() bool {
 	stage := config.Get("MO_STAGE")
-	return Equals([]string{"prod", "production"}, strings.ToLower(stage))
-}
-
-func Equals(s []string, str string) bool {
-	for _, v := range s {
-		if str == v {
-			return true
-		}
-	}
-	return false
+	return slices.Contains([]string{"prod", "production"}, strings.ToLower(stage))
 }
 
 func Remove[T any](slice []T, s int) []T {

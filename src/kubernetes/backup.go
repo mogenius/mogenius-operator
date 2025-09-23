@@ -3,10 +3,9 @@ package kubernetes
 import (
 	"context"
 	"fmt"
-	"mogenius-k8s-manager/src/structs"
+	"mogenius-k8s-manager/src/collections"
 
 	json "github.com/json-iterator/go"
-
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -24,9 +23,9 @@ func BackupNamespace(namespace string) (NamespaceBackupResponse, error) {
 	result := NamespaceBackupResponse{
 		NamespaceName: namespace,
 	}
-	skippedGroups := structs.NewUniqueStringArray()
-	allResources := structs.NewUniqueStringArray()
-	usedResources := structs.NewUniqueStringArray()
+	skippedGroups := collections.NewHashSet[string]()
+	allResources := collections.NewHashSet[string]()
+	usedResources := collections.NewHashSet[string]()
 
 	// Get a list of all resource types in the cluster
 	clientset := clientProvider.K8sClientSet()
@@ -47,9 +46,9 @@ func BackupNamespace(namespace string) (NamespaceBackupResponse, error) {
 		}
 
 		for _, aApiResource := range resource.APIResources {
-			allResources.Add(aApiResource.Name)
+			allResources.Insert(aApiResource.Name)
 			if !aApiResource.Namespaced && namespace != "" {
-				skippedGroups.Add(aApiResource.Name)
+				skippedGroups.Insert(aApiResource.Name)
 				continue
 			}
 
@@ -69,7 +68,7 @@ func BackupNamespace(namespace string) (NamespaceBackupResponse, error) {
 			}
 
 			if len(list.Items) > 0 {
-				usedResources.Add(aApiResource.Name)
+				usedResources.Insert(aApiResource.Name)
 			}
 
 			// Iterate over each resource and write it to a file
@@ -98,9 +97,9 @@ func BackupNamespace(namespace string) (NamespaceBackupResponse, error) {
 
 	//os.WriteFile("/Users/bene/Desktop/omg.yaml", []byte(output), 0777)
 
-	k8sLogger.Info("ALL", "resources", allResources.Display())
-	k8sLogger.Info("SKIPPED", "resources", skippedGroups.Display())
-	k8sLogger.Info("USED", "resources", usedResources.Display())
+	k8sLogger.Info("ALL", "resources", allResources.Slice())
+	k8sLogger.Info("SKIPPED", "resources", skippedGroups.Slice())
+	k8sLogger.Info("USED", "resources", usedResources.Slice())
 
 	return result, nil
 }
@@ -121,7 +120,7 @@ func cleanBackupResources(obj unstructured.Unstructured) unstructured.Unstructur
 	obj.SetCreationTimestamp(v1.Time{})
 
 	if obj.GetKind() == "PersistentVolumeClaim" {
-		if nested, ok := obj.Object["spec"].(map[string]interface{}); ok {
+		if nested, ok := obj.Object["spec"].(map[string]any); ok {
 			delete(nested, "volumeName")
 			obj.Object["spec"] = nested
 		}

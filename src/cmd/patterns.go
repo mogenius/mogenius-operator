@@ -63,7 +63,7 @@ func patternsToYaml(patternConfig map[string]core.PatternConfig) string {
 	// this is going through json to inherit the json tag config
 	jsonData := patternsToJson(patternConfig)
 
-	var data interface{}
+	var data any
 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	err := json.Unmarshal([]byte(jsonData), &data)
 	assert.Assert(err == nil, err)

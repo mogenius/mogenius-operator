@@ -16,6 +16,7 @@ import (
 	"mogenius-k8s-manager/src/websocket"
 	"net/url"
 	"strconv"
+	"sync"
 )
 
 type Core interface {
@@ -243,8 +244,11 @@ func (self *core) Initialize() error {
 			mokubernetes.Mount(vol.Namespace, vol.VolumeName, nil)
 		}
 	}
+	mokubernetes.InitOrUpdateCrds()
 
-	go func() {
+	var wg sync.WaitGroup
+
+	wg.Go(func() {
 		basicApps, userApps := services.InstallDefaultApplications()
 		if basicApps != "" || userApps != "" {
 			err := utils.ExecuteShellCommandSilent("Installing default applications ...", fmt.Sprintf("%s\n%s", basicApps, userApps))
@@ -255,27 +259,27 @@ func (self *core) Initialize() error {
 				select {}
 			}
 		}
-	}()
-
-	mokubernetes.InitOrUpdateCrds()
+	})
 
 	// Init Helm Config
-	go func() {
+	wg.Go(func() {
 		if err := helm.InitHelmConfig(); err != nil {
 			self.logger.Error("failed to initialize Helm config", "error", err)
 			return
 		}
 		self.logger.Info("Helm config initialized")
-	}()
+	})
 
 	// Init Network Policy Configmap
-	go func() {
+	wg.Go(func() {
 		if err := mokubernetes.InitNetworkPolicyConfigMap(); err != nil {
 			self.logger.Error("Error initializing Network Policy Configmap", "error", err)
 			return
 		}
 		self.logger.Info("Network Policy Configmap initialized")
-	}()
+	})
+
+	wg.Wait()
 
 	return nil
 }

@@ -18,7 +18,7 @@ func AllServices(namespaceName string) []v1.Service {
 	result := []v1.Service{}
 
 	clientset := clientProvider.K8sClientSet()
-	serviceList, err := clientset.CoreV1().Services(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
+	serviceList, err := clientset.CoreV1().Services(namespaceName).List(context.Background(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
 	if err != nil {
 		k8sLogger.Error("AllServices", "error", err.Error())
 		return result
@@ -43,7 +43,7 @@ func DeleteService(eventClient websocket.WebsocketClient, job *structs.Job, name
 	// TODO: rework TCP/UDP stuff
 	// UpdateTcpUdpPorts(namespace, service, false)
 
-	err := serviceClient.Delete(context.TODO(), service.ControllerName, metav1.DeleteOptions{})
+	err := serviceClient.Delete(context.Background(), service.ControllerName, metav1.DeleteOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
 		cmd.Fail(eventClient, job, fmt.Sprintf("DeleteService ERROR: %s", err.Error()))
 	} else {
@@ -74,7 +74,7 @@ func UpdateService(eventClient websocket.WebsocketClient, job *structs.Job, name
 
 	if len(updateService.Spec.Ports) <= 0 {
 		if getSrvErr == nil {
-			err := serviceClient.Delete(context.TODO(), service.ControllerName, metav1.DeleteOptions{})
+			err := serviceClient.Delete(context.Background(), service.ControllerName, metav1.DeleteOptions{})
 			if err != nil {
 				cmd.Fail(eventClient, job, fmt.Sprintf("UpdateApplication (Delete) ERROR: %s", err.Error()))
 			} else {
@@ -84,7 +84,7 @@ func UpdateService(eventClient websocket.WebsocketClient, job *structs.Job, name
 			cmd.Success(eventClient, job, "Updated Application")
 		}
 	} else {
-		_, err := serviceClient.Update(context.TODO(), &updateService, updateOptions)
+		_, err := serviceClient.Update(context.Background(), &updateService, updateOptions)
 		if err != nil {
 			cmd.Fail(eventClient, job, fmt.Sprintf("UpdateApplication ERROR: %s", err.Error()))
 		} else {
@@ -96,7 +96,7 @@ func UpdateService(eventClient websocket.WebsocketClient, job *structs.Job, name
 func GetService(namespace string, serviceName string) (*v1.Service, error) {
 	clientset := clientProvider.K8sClientSet()
 	serviceClient := clientset.CoreV1().Services(namespace)
-	service, err := serviceClient.Get(context.TODO(), serviceName, metav1.GetOptions{})
+	service, err := serviceClient.Get(context.Background(), serviceName, metav1.GetOptions{})
 	service.Kind = "Service"
 	service.APIVersion = "v1"
 
@@ -141,7 +141,7 @@ func generateService(existingService *v1.Service, namespace dtos.K8sNamespaceDto
 func FindPrometheusService() (namespace string, service string, port int32, err error) {
 	clientset := clientProvider.K8sClientSet()
 	serviceClient := clientset.CoreV1().Services("")
-	serviceList, err := serviceClient.List(context.TODO(), metav1.ListOptions{})
+	serviceList, err := serviceClient.List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		k8sLogger.Error("findPrometheusService", "error", err.Error())
 		return "", "", -1, fmt.Errorf("failed to list services: %v", err)
@@ -167,11 +167,11 @@ func FindSealedSecretsService(cfg cfg.ConfigModule) (namespace string, service s
 	ownNamespace := cfg.Get("MO_OWN_NAMESPACE")
 
 	// exists mogenius sealed-secrets config
-	sealedSecretsConfig, err := clientset.CoreV1().ConfigMaps(ownNamespace).Get(context.TODO(), "sealed-secrets-config", metav1.GetOptions{})
+	sealedSecretsConfig, err := clientset.CoreV1().ConfigMaps(ownNamespace).Get(context.Background(), "sealed-secrets-config", metav1.GetOptions{})
 	if err == nil {
 		if namespaceName, ok := sealedSecretsConfig.Data["namespaceName"]; ok {
 			if releaseName, ok := sealedSecretsConfig.Data["releaseName"]; ok {
-				sealedSecretsService, err := clientset.CoreV1().Services(namespaceName).Get(context.TODO(), releaseName, metav1.GetOptions{})
+				sealedSecretsService, err := clientset.CoreV1().Services(namespaceName).Get(context.Background(), releaseName, metav1.GetOptions{})
 				if err == nil && len(sealedSecretsService.Spec.Ports) > 0 && sealedSecretsService.Spec.Ports[0].Port != 0 {
 					return sealedSecretsService.Namespace, sealedSecretsService.Name, sealedSecretsService.Spec.Ports[0].Port, nil
 				}
@@ -180,7 +180,7 @@ func FindSealedSecretsService(cfg cfg.ConfigModule) (namespace string, service s
 	}
 
 	serviceClient := clientset.CoreV1().Services("")
-	serviceList, err := serviceClient.List(context.TODO(), metav1.ListOptions{})
+	serviceList, err := serviceClient.List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		k8sLogger.Error("findSealedSecretsService", "error", err.Error())
 		return "", "", -1, fmt.Errorf("failed to list services: %v", err)

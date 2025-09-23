@@ -18,7 +18,7 @@ const ContainerImagePullSecretName = "container-img-pull-sec"
 
 func GetDecodedSecret(secretName string, namespace string) (map[string]string, error) {
 	clientset := clientProvider.K8sClientSet()
-	secret, err := clientset.CoreV1().Secrets(namespace).Get(context.TODO(), secretName, metav1.GetOptions{})
+	secret, err := clientset.CoreV1().Secrets(namespace).Get(context.Background(), secretName, metav1.GetOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get secret %s in namespace %s: %w", secretName, namespace, err)
 	}
@@ -34,7 +34,7 @@ func GetDecodedSecret(secretName string, namespace string) (map[string]string, e
 func DeleteK8sSecretBy(namespace string, name string) error {
 	clientset := clientProvider.K8sClientSet()
 	secretClient := clientset.CoreV1().Secrets(namespace)
-	return secretClient.Delete(context.TODO(), name, metav1.DeleteOptions{})
+	return secretClient.Delete(context.Background(), name, metav1.DeleteOptions{})
 }
 
 // -----------------------------------------------------
@@ -75,13 +75,13 @@ func CreateOrUpdateClusterImagePullSecret(eventClient websocket.WebsocketClient,
 	secret.StringData = secretStringData
 
 	// Check if exists
-	_, err := secretClient.Update(context.TODO(), &secret, MoUpdateOptions(config))
+	_, err := secretClient.Update(context.Background(), &secret, MoUpdateOptions(config))
 	if err == nil {
 		// UPDATED
 		cmd.Success(eventClient, job, "Created Cluster ImagePullSecret")
 	} else {
 		if apierrors.IsNotFound(err) {
-			_, err = secretClient.Create(context.TODO(), &secret, MoCreateOptions(config))
+			_, err = secretClient.Create(context.Background(), &secret, MoCreateOptions(config))
 			if err != nil {
 				cmd.Fail(eventClient, job, fmt.Sprintf("CreateOrUpdateClusterImagePullSecret (create) ERROR: %s", err.Error()))
 			} else {
@@ -97,7 +97,7 @@ func CreateOrUpdateClusterImagePullSecret(eventClient websocket.WebsocketClient,
 func ExistsClusterImagePullSecret(namespace string) bool {
 	secretName := utils.ParseK8sName(fmt.Sprintf("%s-%s", ClusterImagePullSecretName, namespace))
 	clientset := clientProvider.K8sClientSet()
-	secret, err := clientset.CoreV1().Secrets(namespace).Get(context.TODO(), secretName, metav1.GetOptions{})
+	secret, err := clientset.CoreV1().Secrets(namespace).Get(context.Background(), secretName, metav1.GetOptions{})
 	if err != nil {
 		return false
 	}
@@ -145,13 +145,13 @@ func CreateOrUpdateContainerImagePullSecret(eventClient websocket.WebsocketClien
 	secret.Labels = MoUpdateLabels(&secret.Labels, nil, nil, nil, config)
 
 	// Check if exists
-	_, err = secretClient.Update(context.TODO(), &secret, MoUpdateOptions(config))
+	_, err = secretClient.Update(context.Background(), &secret, MoUpdateOptions(config))
 	if err == nil {
 		// UPDATED
 		cmd.Success(eventClient, job, "Created Container ImagePullSecret")
 	} else {
 		if apierrors.IsNotFound(err) {
-			_, err = secretClient.Create(context.TODO(), &secret, MoCreateOptions(config))
+			_, err = secretClient.Create(context.Background(), &secret, MoCreateOptions(config))
 			if err != nil {
 				cmd.Fail(eventClient, job, fmt.Sprintf("CreateOrUpdateContainerImagePullSecret (create) ERROR: %s", err.Error()))
 			} else {
@@ -177,7 +177,7 @@ func DeleteContainerImagePullSecret(eventClient websocket.WebsocketClient, job *
 		GracePeriodSeconds: utils.Pointer[int64](5),
 	}
 
-	_, err := secretClient.Get(context.TODO(), secretName, metav1.GetOptions{})
+	_, err := secretClient.Get(context.Background(), secretName, metav1.GetOptions{})
 
 	// ignore if not found
 	if apierrors.IsNotFound(err) {
@@ -188,7 +188,7 @@ func DeleteContainerImagePullSecret(eventClient websocket.WebsocketClient, job *
 		return
 	}
 
-	err = secretClient.Delete(context.TODO(), secretName, deleteOptions)
+	err = secretClient.Delete(context.Background(), secretName, deleteOptions)
 	if err != nil {
 		cmd.Fail(eventClient, job, fmt.Sprintf("DeleteContainerSecret ERROR: %s", err.Error()))
 	} else {
@@ -229,7 +229,7 @@ func UpdateOrCreateControllerSecret(eventClient websocket.WebsocketClient, job *
 
 	// delete secret if empty
 	if len(secret.StringData) == 0 {
-		_, err := secretClient.Get(context.TODO(), service.ControllerName, metav1.GetOptions{})
+		_, err := secretClient.Get(context.Background(), service.ControllerName, metav1.GetOptions{})
 
 		// ignore if not found
 		if apierrors.IsNotFound(err) {
@@ -240,7 +240,7 @@ func UpdateOrCreateControllerSecret(eventClient websocket.WebsocketClient, job *
 			return
 		}
 
-		err = secretClient.Delete(context.TODO(), service.ControllerName, metav1.DeleteOptions{})
+		err = secretClient.Delete(context.Background(), service.ControllerName, metav1.DeleteOptions{})
 		if err != nil {
 			cmd.Fail(eventClient, job, fmt.Sprintf("Deleted unneeded secret ERROR: %s", err.Error()))
 		} else {
@@ -249,10 +249,10 @@ func UpdateOrCreateControllerSecret(eventClient websocket.WebsocketClient, job *
 		return
 	}
 
-	_, err := secretClient.Update(context.TODO(), &secret, MoUpdateOptions(config))
+	_, err := secretClient.Update(context.Background(), &secret, MoUpdateOptions(config))
 	if err != nil {
 		if apierrors.IsNotFound(err) {
-			_, err = secretClient.Create(context.TODO(), &secret, MoCreateOptions(config))
+			_, err = secretClient.Create(context.Background(), &secret, MoCreateOptions(config))
 			if err != nil {
 				cmd.Fail(eventClient, job, fmt.Sprintf("UpdateOrCreateControllerSecrete ERROR: %s", err.Error()))
 			} else {
@@ -279,7 +279,7 @@ func DeleteControllerSecret(eventClient websocket.WebsocketClient, job *structs.
 		GracePeriodSeconds: utils.Pointer[int64](5),
 	}
 
-	_, err := secretClient.Get(context.TODO(), secretName, metav1.GetOptions{})
+	_, err := secretClient.Get(context.Background(), secretName, metav1.GetOptions{})
 
 	// ignore if not found
 	if apierrors.IsNotFound(err) {
@@ -290,7 +290,7 @@ func DeleteControllerSecret(eventClient websocket.WebsocketClient, job *structs.
 		return
 	}
 
-	err = secretClient.Delete(context.TODO(), secretName, deleteOptions)
+	err = secretClient.Delete(context.Background(), secretName, deleteOptions)
 	if err != nil {
 		cmd.Fail(eventClient, job, fmt.Sprintf("DeleteControllerSecret ERROR: %s", err.Error()))
 	} else {

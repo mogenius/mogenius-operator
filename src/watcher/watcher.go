@@ -194,7 +194,7 @@ func (self *watcher) startSingleWatcher(ctx context.Context, resource WatcherRes
 	}
 
 	handler, err := resourceInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc: func(obj interface{}) {
+		AddFunc: func(obj any) {
 			unstructuredObj, ok := obj.(*unstructured.Unstructured)
 			if !ok {
 				body, _ := json.Marshal(obj)
@@ -206,7 +206,7 @@ func (self *watcher) startSingleWatcher(ctx context.Context, resource WatcherRes
 				onAdd(resource, unstructuredObj)
 			}
 		},
-		UpdateFunc: func(oldObj, newObj interface{}) {
+		UpdateFunc: func(oldObj, newObj any) {
 			oldUnstructuredObj, ok := oldObj.(*unstructured.Unstructured)
 			if !ok {
 				body, _ := json.Marshal(oldObj)
@@ -231,7 +231,7 @@ func (self *watcher) startSingleWatcher(ctx context.Context, resource WatcherRes
 				onUpdate(resource, oldUnstructuredObj, newUnstructuredObj)
 			}
 		},
-		DeleteFunc: func(obj interface{}) {
+		DeleteFunc: func(obj any) {
 			unstructuredObj, ok := obj.(*unstructured.Unstructured)
 			if !ok {
 				body, _ := json.Marshal(obj)

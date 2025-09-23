@@ -34,10 +34,10 @@ type httpService struct {
 type MessageCallback struct {
 	Id      string
 	MsgType string
-	MsgFunc func(message interface{})
+	MsgFunc func(message any)
 }
 
-func NewMessageCallback(datagram structs.Datagram, callback func(message interface{})) MessageCallback {
+func NewMessageCallback(datagram structs.Datagram, callback func(message any)) MessageCallback {
 	self := MessageCallback{}
 	self.Id = datagram.Id
 	self.MsgType = datagram.Pattern
@@ -75,7 +75,7 @@ func (self *Broadcaster) RemoveListener(callback MessageCallback) {
 	}
 }
 
-func (self *Broadcaster) BroadcastResponse(message interface{}, messageType string) {
+func (self *Broadcaster) BroadcastResponse(message any, messageType string) {
 	self.mu.RLock()
 	defer self.mu.RUnlock()
 

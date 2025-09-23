@@ -26,7 +26,7 @@ func CreateNamespace(eventClient websocket.WebsocketClient, job *structs.Job, pr
 
 	newNamespace.WithLabels(MoUpdateLabels(&map[string]string{"name": namespace.Name}, &project.Id, &namespace, nil, config))
 
-	_, err := namespaceClient.Apply(context.TODO(), newNamespace, applyOptions)
+	_, err := namespaceClient.Apply(context.Background(), newNamespace, applyOptions)
 	if err != nil {
 		cmd.Fail(eventClient, job, fmt.Sprintf("CreateNamespace ERROR: %s", err.Error()))
 	} else {
@@ -41,7 +41,7 @@ func DeleteNamespace(eventClient websocket.WebsocketClient, job *structs.Job, na
 	clientset := clientProvider.K8sClientSet()
 	namespaceClient := clientset.CoreV1().Namespaces()
 
-	err := namespaceClient.Delete(context.TODO(), namespace.Name, metav1.DeleteOptions{})
+	err := namespaceClient.Delete(context.Background(), namespace.Name, metav1.DeleteOptions{})
 	if err != nil {
 		cmd.Fail(eventClient, job, fmt.Sprintf("DeleteNamespace ERROR: %s", err.Error()))
 	} else {
@@ -52,6 +52,6 @@ func DeleteNamespace(eventClient websocket.WebsocketClient, job *structs.Job, na
 func NamespaceExists(namespaceName string) (bool, error) {
 	clientset := clientProvider.K8sClientSet()
 	namespaceClient := clientset.CoreV1().Namespaces()
-	ns, err := namespaceClient.Get(context.TODO(), namespaceName, metav1.GetOptions{})
+	ns, err := namespaceClient.Get(context.Background(), namespaceName, metav1.GetOptions{})
 	return (ns != nil && err == nil), err
 }

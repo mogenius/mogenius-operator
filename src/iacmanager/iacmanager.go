@@ -308,7 +308,7 @@ package iacmanager
 // 	return false
 // }
 
-// func WriteResourceYaml(kind string, namespace string, resourceName string, dataInf interface{}) {
+// func WriteResourceYaml(kind string, namespace string, resourceName string, dataInf any) {
 // 	var err error
 
 // 	if SetupInProcess.Load() {
@@ -404,7 +404,7 @@ package iacmanager
 // 	}
 // }
 
-// func DeleteResourceYaml(kind string, namespace string, resourceName string, objectToDelete interface{}) {
+// func DeleteResourceYaml(kind string, namespace string, resourceName string, objectToDelete any) {
 // 	if SetupInProcess.Load() {
 // 		return
 // 	}
@@ -420,7 +420,7 @@ package iacmanager
 // 		return
 // 	}
 
-// 	diff, err := createDiff(kind, namespace, resourceName, make(map[string]interface{}))
+// 	diff, err := createDiff(kind, namespace, resourceName, make(map[string]any))
 // 	if err != nil {
 // 		UpdateResourceStatus(kind, namespace, resourceName, SyncStateDeleted, fmt.Errorf("Error creating diff: %s", err.Error()))
 // 		return
@@ -472,7 +472,7 @@ package iacmanager
 // 	}
 // }
 
-// func createDiff(kind string, namespace string, resourceName string, dataInf interface{}) (string, error) {
+// func createDiff(kind string, namespace string, resourceName string, dataInf any) (string, error) {
 // 	filePath1 := fileNameForRaw(kind, namespace, resourceName)
 
 // 	yamlRawData2, err := yaml.Marshal(dataInf)

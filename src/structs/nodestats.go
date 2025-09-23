@@ -1,7 +1,5 @@
 package structs
 
-import jsoniter "github.com/json-iterator/go"
-
 type NodeStats struct {
 	Name                  string `json:"name"`
 	PodCount              int    `json:"podCount"`
@@ -16,13 +14,4 @@ type NodeStats struct {
 	FsCapacityBytes       int64  `json:"fsCapacityBytes"`
 	FsUsedBytes           int64  `json:"fsUsedBytes"`
 	CreatedAt             string `json:"createdAt"`
-}
-
-func (data *NodeStats) ToBytes() []byte {
-	var json = jsoniter.ConfigCompatibleWithStandardLibrary
-	bytes, err := json.Marshal(data)
-	if err != nil {
-		return nil
-	}
-	return bytes
 }

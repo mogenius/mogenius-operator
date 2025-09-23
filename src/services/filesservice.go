@@ -177,7 +177,13 @@ func Uploaded(tempZipFileSrc string, fileReq FilesUploadRequest) error {
 	if err != nil {
 		return fmt.Errorf("Error verifying file %s: %s", fileReq.File.Path, err.Error())
 	}
-	serviceLogger.Info("verified file", "VolumeName", fileReq.File.VolumeName, "targetDestionation", targetDestination, "size", utils.BytesToHumanReadable(fileReq.SizeInBytes), "path", fileReq.File.Path)
+	serviceLogger.Info(
+		"verified file",
+		"VolumeName", fileReq.File.VolumeName,
+		"targetDestionation", targetDestination,
+		"size", utils.BytesToHumanReadable(fileReq.SizeInBytes),
+		"path", fileReq.File.Path,
+	)
 
 	//2: UNZIP FILE TO TEMP
 	files, err := utils.ZipExtract(tempZipFileSrc, targetDestination)
@@ -218,7 +224,7 @@ func Rename(file dtos.PersistentFileRequestDto, newName string) error {
 	return nil
 }
 
-func Chown(file dtos.PersistentFileRequestDto, uidString string, gidString string) interface{} {
+func Chown(file dtos.PersistentFileRequestDto, uidString string, gidString string) any {
 	pathToDir, err := verify(&file)
 	if err != nil {
 		return utils.CreateError(err)
@@ -245,7 +251,7 @@ func Chown(file dtos.PersistentFileRequestDto, uidString string, gidString strin
 	return nil
 }
 
-func Chmod(file dtos.PersistentFileRequestDto, mode string) interface{} {
+func Chmod(file dtos.PersistentFileRequestDto, mode string) any {
 	pathToDir, err := verify(&file)
 	if err != nil {
 		return utils.CreateError(err)
@@ -269,7 +275,7 @@ func Chmod(file dtos.PersistentFileRequestDto, mode string) interface{} {
 	return nil
 }
 
-func Delete(file dtos.PersistentFileRequestDto) interface{} {
+func Delete(file dtos.PersistentFileRequestDto) any {
 	pathToDir, err := verify(&file)
 	if err != nil {
 		return err

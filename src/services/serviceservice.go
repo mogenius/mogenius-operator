@@ -124,7 +124,7 @@ func DeleteService(eventClient websocket.WebsocketClient, r ServiceDeleteRequest
 	return job
 }
 
-// func SetImage(r ServiceSetImageRequest) interface{} {
+// func SetImage(r ServiceSetImageRequest) any {
 // 	var wg sync.WaitGroup
 // 	job := structs.CreateJob("Set new image for service "+r.ServiceDisplayName, r.ProjectId, &r.NamespaceId, &r.ServiceId)
 // 	job.Start()
@@ -145,7 +145,7 @@ var servicePodStatusDebounce = utils.NewDebounce("servicePodStatusDebounce", 100
 
 func ServicePodStatus(eventClient websocket.WebsocketClient, r ServicePodsRequest) []v1.Pod {
 	key := fmt.Sprintf("%s-%s", r.Namespace, r.ControllerName)
-	result, _ := servicePodStatusDebounce.CallFn(key, func() (interface{}, error) {
+	result, _ := servicePodStatusDebounce.CallFn(key, func() (any, error) {
 		return kubernetes.ServicePodStatus(r.Namespace, r.ControllerName), nil
 	})
 	return result.([]v1.Pod)

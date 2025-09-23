@@ -153,9 +153,9 @@ func (self *nodeMetricsCollector) deleteDaemonSet(namespace string, daemonSetNam
 	clientset := self.clientProvider.K8sClientSet()
 	assert.Assert(clientset != nil, "failed to get Kubernetes clientset")
 
-	_, err := clientset.AppsV1().DaemonSets(namespace).Get(context.TODO(), daemonSetName, metav1.GetOptions{})
+	_, err := clientset.AppsV1().DaemonSets(namespace).Get(context.Background(), daemonSetName, metav1.GetOptions{})
 	if err == nil {
-		err := clientset.AppsV1().DaemonSets(namespace).Delete(context.TODO(), daemonSetName, metav1.DeleteOptions{})
+		err := clientset.AppsV1().DaemonSets(namespace).Delete(context.Background(), daemonSetName, metav1.DeleteOptions{})
 		if err != nil {
 			self.logger.Error("failed to delete node-metrics daemonset", "error", err)
 		} else {

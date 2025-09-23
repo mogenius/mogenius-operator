@@ -115,7 +115,7 @@ func CurrentContextName() string {
 func ListNodes() []core.Node {
 	clientset := clientProvider.K8sClientSet()
 
-	nodeMetricsList, err := clientset.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
+	nodeMetricsList, err := clientset.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		k8sLogger.Error("failed to list nodes", "error", err)
 		shutdown.SendShutdownSignal(true)
@@ -257,7 +257,7 @@ func IsLocalClusterSetup() bool {
 func GetCustomDeploymentTemplate() *v1.Deployment {
 	clientset := clientProvider.K8sClientSet()
 	client := clientset.CoreV1().ConfigMaps(config.Get("MO_OWN_NAMESPACE"))
-	configmap, err := client.Get(context.TODO(), utils.MOGENIUS_CONFIGMAP_DEFAULT_DEPLOYMENT_NAME, metav1.GetOptions{})
+	configmap, err := client.Get(context.Background(), utils.MOGENIUS_CONFIGMAP_DEFAULT_DEPLOYMENT_NAME, metav1.GetOptions{})
 	if err != nil {
 		return nil
 	} else {
@@ -280,7 +280,7 @@ func ListNodeMetricss() []metricsv1beta1.NodeMetrics {
 		return []metricsv1beta1.NodeMetrics{}
 	}
 
-	nodeMetricsList, err := provider.ClientSet.MetricsV1beta1().NodeMetricses().List(context.TODO(), metav1.ListOptions{})
+	nodeMetricsList, err := provider.ClientSet.MetricsV1beta1().NodeMetricses().List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		return []metricsv1beta1.NodeMetrics{}
 	}
@@ -292,7 +292,7 @@ func StorageClassForClusterProvider(clusterProvider utils.KubernetesProvider) st
 
 	// 1. WE TRY TO GET THE DEFAULT STORAGE CLASS
 	clientset := clientProvider.K8sClientSet()
-	storageClasses, err := clientset.StorageV1().StorageClasses().List(context.TODO(), metav1.ListOptions{})
+	storageClasses, err := clientset.StorageV1().StorageClasses().List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		k8sLogger.Error("StorageClassForClusterProvider List", "error", err)
 		return nfsStorageClassStr
@@ -353,7 +353,7 @@ func ContainsLabelKey(labels map[string]string, key string) bool {
 
 func GuessClusterProvider() (utils.KubernetesProvider, error) {
 	clientset := clientProvider.K8sClientSet()
-	nodes, err := clientset.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
+	nodes, err := clientset.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		return utils.SELF_HOSTED, err
 	}

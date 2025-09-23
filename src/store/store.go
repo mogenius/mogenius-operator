@@ -377,9 +377,9 @@ func GetWorkspace(name string) (*v1alpha1.Workspace, error) {
 // Audit Log
 type AuditLogEntry struct {
 	Pattern   string       `json:"pattern" validate:"required"`
-	Payload   interface{}  `json:"payload,omitempty"`
+	Payload   any          `json:"payload,omitempty"`
 	Diff      string       `json:"diff,omitempty"`
-	Result    interface{}  `json:"result,omitempty"`
+	Result    any          `json:"result,omitempty"`
 	Error     string       `json:"error,omitempty"`
 	CreatedAt time.Time    `json:"createdAt"`
 	User      structs.User `json:"user,omitempty"`
@@ -410,7 +410,7 @@ func AddToAuditLog[T any](datagram structs.Datagram, logger *slog.Logger, result
 	} else if updatedObj != nil {
 		resourceNamespace = updatedObj.GetNamespace()
 		resourceName = updatedObj.GetName()
-	} else if payload, ok := datagram.Payload.(map[string]interface{}); ok {
+	} else if payload, ok := datagram.Payload.(map[string]any); ok {
 		if payload["namespace"] != nil {
 			resourceNamespace = payload["namespace"].(string)
 		}
@@ -451,7 +451,7 @@ func ListAuditLog(limit int, offset int, namespaces []string, clusterWide bool) 
 	return entries, size, nil
 }
 
-func auditLogFromDatagram(datagram structs.Datagram, result interface{}, err error) AuditLogEntry {
+func auditLogFromDatagram(datagram structs.Datagram, result any, err error) AuditLogEntry {
 	errStr := ""
 	if err != nil {
 		errStr = err.Error()

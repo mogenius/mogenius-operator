@@ -19,7 +19,7 @@ func GetOwnDeploymentOwnerReference(clientset *kubernetes.Clientset, config cfg.
 	assert.Assert("MO_OWN_NAMESPACE" != "")
 
 	// TODO: Bene refactor with store to avoid multiple calls to k8s
-	ownDeployment, err := clientset.AppsV1().Deployments(namespace).Get(context.TODO(), ownDeploymentName, metav1.GetOptions{})
+	ownDeployment, err := clientset.AppsV1().Deployments(namespace).Get(context.Background(), ownDeploymentName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}

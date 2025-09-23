@@ -20,7 +20,7 @@ func PodExists(namespace string, name string) ServicePodExistsResult {
 
 	clientset := clientProvider.K8sClientSet()
 	podClient := clientset.CoreV1().Pods(namespace)
-	pod, err := podClient.Get(context.TODO(), name, metav1.GetOptions{})
+	pod, err := podClient.Get(context.Background(), name, metav1.GetOptions{})
 	if err != nil || pod == nil {
 		result.PodExists = false
 		return result
@@ -34,7 +34,7 @@ func AllPodsOnNode(nodeName string) []v1.Pod {
 	result := []v1.Pod{}
 
 	clientset := clientProvider.K8sClientSet()
-	podsList, err := clientset.CoreV1().Pods("").List(context.TODO(), metav1.ListOptions{
+	podsList, err := clientset.CoreV1().Pods("").List(context.Background(), metav1.ListOptions{
 		FieldSelector: "spec.nodeName=" + nodeName,
 	})
 	if err != nil {
@@ -65,7 +65,7 @@ func AllPods(namespaceName string) []v1.Pod {
 	result := []v1.Pod{}
 
 	clientset := clientProvider.K8sClientSet()
-	podsList, err := clientset.CoreV1().Pods(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
+	podsList, err := clientset.CoreV1().Pods(namespaceName).List(context.Background(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
 	if err != nil {
 		k8sLogger.Error("AllPods podMetricsList", "error", err.Error())
 		return result
@@ -85,7 +85,7 @@ func PodStatus(namespace string, name string, statusOnly bool) *v1.Pod {
 
 	podClient := clientset.CoreV1().Pods(namespace)
 
-	pod, err := podClient.Get(context.TODO(), name, getOptions)
+	pod, err := podClient.Get(context.Background(), name, getOptions)
 	pod.Kind = "Pod"
 	pod.APIVersion = "v1"
 	if err != nil {
@@ -153,7 +153,7 @@ func ServicePodStatus(namespace string, serviceName string) []v1.Pod {
 	clientset := clientProvider.K8sClientSet()
 	podClient := clientset.CoreV1().Pods(namespace)
 
-	pods, err := podClient.List(context.TODO(), metav1.ListOptions{})
+	pods, err := podClient.List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		k8sLogger.Error("ServicePodStatus", "error", err.Error())
 		return result
@@ -176,14 +176,14 @@ func DeleteAllPodsInNamespace(namespace string) error {
 	clientset := clientProvider.K8sClientSet()
 	podClient := clientset.CoreV1().Pods(namespace)
 
-	pods, err := podClient.List(context.TODO(), metav1.ListOptions{})
+	pods, err := podClient.List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		k8sLogger.Error("DeleteAllPodsInNamespace", "error", err.Error())
 		return fmt.Errorf("failed to list pods in namespace %s: %s", namespace, err.Error())
 	}
 
 	for _, pod := range pods.Items {
-		err := podClient.Delete(context.TODO(), pod.Name, metav1.DeleteOptions{})
+		err := podClient.Delete(context.Background(), pod.Name, metav1.DeleteOptions{})
 		if err != nil {
 			k8sLogger.Error("DeleteAllPodsInNamespace", "error", err.Error())
 			return fmt.Errorf("failed to delete pod %s in namespace %s: %s", pod.Name, namespace, err.Error())

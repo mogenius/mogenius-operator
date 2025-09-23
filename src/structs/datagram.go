@@ -9,15 +9,15 @@ import (
 )
 
 type Datagram struct {
-	Id        string      `json:"id" validate:"required"`
-	Pattern   string      `json:"pattern" validate:"required"`
-	Payload   interface{} `json:"payload,omitempty"`
-	Username  string      `json:"username,omitempty"`
-	Err       string      `json:"err,omitempty"`
-	CreatedAt time.Time   `json:"-"`
-	User      User        `json:"user,omitempty"`
-	Workspace string      `json:"workspace,omitempty"`
-	Zlib      bool        `json:"zlib,omitempty"`
+	Id        string    `json:"id" validate:"required"`
+	Pattern   string    `json:"pattern" validate:"required"`
+	Payload   any       `json:"payload,omitempty"`
+	Username  string    `json:"username,omitempty"`
+	Err       string    `json:"err,omitempty"`
+	CreatedAt time.Time `json:"-"`
+	User      User      `json:"user,omitempty"`
+	Workspace string    `json:"workspace,omitempty"`
+	Zlib      bool      `json:"zlib,omitempty"`
 }
 
 type User struct {
@@ -70,7 +70,7 @@ func CreateDatagramNotificationFromJob(data *Job) Datagram {
 
 func CreateDatagramForClusterEvent(pattern, group, version, kind, name, eventType string, obj *unstructured.Unstructured) Datagram {
 
-	var status interface{}
+	var status any
 	if kind == "Application" {
 		status, _, _ = unstructured.NestedFieldNoCopy(obj.Object, "status", "resources")
 	}
@@ -78,9 +78,9 @@ func CreateDatagramForClusterEvent(pattern, group, version, kind, name, eventTyp
 	datagram := Datagram{
 		Id:      utils.NanoId(),
 		Pattern: pattern,
-		Payload: map[string]interface{}{
+		Payload: map[string]any{
 			"eventType": eventType,
-			"resource": map[string]interface{}{
+			"resource": map[string]any{
 				"group":           group,
 				"version":         version,
 				"kind":            kind,

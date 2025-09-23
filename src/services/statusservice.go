@@ -578,16 +578,16 @@ func (r *ResourceItem) DeploymentStatus() (*ServiceStatusType, bool) {
 }
 
 type CronJobStatus struct {
-	Suspend      bool        `json:"suspend,omitempty"`
-	Image        string      `json:"image,omitempty"`
-	StatusObject interface{} `json:"status,omitempty"`
+	Suspend      bool   `json:"suspend,omitempty"`
+	Image        string `json:"image,omitempty"`
+	StatusObject any    `json:"status,omitempty"`
 }
 
 type DeploymentStatus struct {
-	Replicas     int32       `json:"replicas,omitempty"`
-	Paused       bool        `json:"paused,omitempty"`
-	Image        string      `json:"image,omitempty"`
-	StatusObject interface{} `json:"status,omitempty"`
+	Replicas     int32  `json:"replicas,omitempty"`
+	Paused       bool   `json:"paused,omitempty"`
+	Image        string `json:"image,omitempty"`
+	StatusObject any    `json:"status,omitempty"`
 }
 
 // END new status and messages
@@ -598,7 +598,7 @@ type ResourceItem struct {
 	Namespace    string         `json:"namespace"`
 	OwnerName    string         `json:"ownerName,omitempty"`
 	OwnerKind    string         `json:"ownerKind,omitempty"`
-	StatusObject interface{}    `json:"statusObject,omitempty"`
+	StatusObject any            `json:"statusObject,omitempty"`
 	Events       []corev1.Event `json:"events,omitempty"`
 }
 
@@ -645,7 +645,7 @@ var statusServiceDebounce = utils.NewDebounce("statusServiceDebounce", 1000*time
 
 func StatusServiceDebounced(valkeyClient valkeyclient.ValkeyClient, r ServiceStatusRequest) ServiceStatusResponse {
 	key := fmt.Sprintf("%s-%s-%s", r.Namespace, r.ControllerName, r.Controller)
-	result, _ := statusServiceDebounce.CallFn(key, func() (interface{}, error) {
+	result, _ := statusServiceDebounce.CallFn(key, func() (any, error) {
 		return statusService(valkeyClient, r), nil
 	})
 	return result.(ServiceStatusResponse)
@@ -721,7 +721,7 @@ func kubernetesItems(valkeyClient valkeyclient.ValkeyClient, namespace string, n
 	return resourceItems, nil
 }
 
-func controller(valkeyClient valkeyclient.ValkeyClient, namespace string, controllerName string, resourceController ResourceController) (interface{}, error) {
+func controller(valkeyClient valkeyclient.ValkeyClient, namespace string, controllerName string, resourceController ResourceController) (any, error) {
 	switch resourceController {
 	case Deployment:
 		resourceInterface, err := store.GetByKeyParts[appsv1.Deployment](valkeyClient, store.VALKEY_RESOURCE_PREFIX, utils.DeploymentResource.Group, resourceController.String(), namespace, controllerName)
@@ -737,10 +737,10 @@ func controller(valkeyClient valkeyclient.ValkeyClient, namespace string, contro
 		return resourceInterface, nil
 	// case StatefulSet:
 	// 	// ae: not used at the moment, old code
-	// 	resourceInterface, err = provider.ClientSet.AppsV1().StatefulSets(namespace).Get(context.TODO(), controllerName, metav1.GetOptions{})
+	// 	resourceInterface, err = provider.ClientSet.AppsV1().StatefulSets(namespace).Get(context.Background(), controllerName, metav1.GetOptions{})
 	// case DaemonSet:
 	// 	// ae: not used at the moment, old code
-	// 	resourceInterface, err = provider.ClientSet.AppsV1().DaemonSets(namespace).Get(context.TODO(), controllerName, metav1.GetOptions{})
+	// 	resourceInterface, err = provider.ClientSet.AppsV1().DaemonSets(namespace).Get(context.Background(), controllerName, metav1.GetOptions{})
 	case Job:
 		resourceInterface, err := store.GetByKeyParts[batchv1.Job](valkeyClient, store.VALKEY_RESOURCE_PREFIX, utils.JobResource.Group, resourceController.String(), namespace, controllerName)
 		if err != nil {
@@ -774,7 +774,7 @@ func containerItems(pod corev1.Pod, resourceItems []ResourceItem) []ResourceItem
 	return resourceItems
 }
 
-func controllerItem(name, kind, namespace, resourceController string, references []metav1.OwnerReference, object interface{}, resourceItems []ResourceItem) []ResourceItem {
+func controllerItem(name, kind, namespace, resourceController string, references []metav1.OwnerReference, object any, resourceItems []ResourceItem) []ResourceItem {
 	_ = resourceController
 	if len(references) > 0 {
 		for _, parentRef := range references {
@@ -860,7 +860,7 @@ func recursiveOwnerRef(valkeyClient valkeyclient.ValkeyClient, namespace string,
 
 }
 
-func status(resource interface{}) (string, string, string, []metav1.OwnerReference, *metav1.LabelSelector, interface{}) {
+func status(resource any) (string, string, string, []metav1.OwnerReference, *metav1.LabelSelector, any) {
 	switch r := resource.(type) {
 	case *appsv1.Deployment:
 		status := DeploymentStatus{

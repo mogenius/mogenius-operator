@@ -14,10 +14,10 @@ func EnsureConfigMapExists(namespace string, configMap v1Core.ConfigMap) error {
 	client := clientProvider.K8sClientSet().CoreV1().ConfigMaps(namespace)
 
 	// check if the configmap already exists
-	_, err := client.Get(context.TODO(), configMap.Name, metav1.GetOptions{})
+	_, err := client.Get(context.Background(), configMap.Name, metav1.GetOptions{})
 	if err != nil {
 		if apierrors.IsNotFound(err) {
-			_, err = client.Create(context.TODO(), &configMap, MoCreateOptions(config))
+			_, err = client.Create(context.Background(), &configMap, MoCreateOptions(config))
 			if err != nil {
 				k8sLogger.Error("InitNetworkPolicyConfigMap", "error", err)
 				return err
@@ -33,25 +33,26 @@ func EnsureConfigMapExists(namespace string, configMap v1Core.ConfigMap) error {
 func GetConfigMap(namespace string, name string) v1Core.ConfigMap {
 	client := clientProvider.K8sClientSet().CoreV1().ConfigMaps(namespace)
 
-	cfgMap, err := client.Get(context.TODO(), name, metav1.GetOptions{})
+	cfgMap, err := client.Get(context.Background(), name, metav1.GetOptions{})
 	if err != nil {
 		return v1Core.ConfigMap{}
 	}
 	return *cfgMap
 }
 
-func ConfigMapFor(namespace string, configMapName string, showError bool) *v1Core.ConfigMap {
+func ConfigMapFor(namespace string, configMapName string, showError bool) (*v1Core.ConfigMap, error) {
 	clientset := clientProvider.K8sClientSet()
 	client := clientset.CoreV1().ConfigMaps(namespace)
 
-	configMap, err := client.Get(context.TODO(), configMapName, metav1.GetOptions{})
+	configMap, err := client.Get(context.Background(), configMapName, metav1.GetOptions{})
 	if err != nil {
 		if showError {
 			k8sLogger.Error("ConfigMapFor", "error", err.Error())
 		}
-		return nil
+		return nil, err
 	}
+
 	configMap.Kind = "ConfigMap"
 	configMap.APIVersion = "v1"
-	return configMap
+	return configMap, nil
 }

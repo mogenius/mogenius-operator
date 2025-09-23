@@ -74,7 +74,7 @@ func (self *xtermService) LiveStreamConnection(conReq xterm.WsConnectionRequest,
 		return
 	}
 
-	listener := NewMessageCallback(datagram, func(message interface{}) {
+	listener := NewMessageCallback(datagram, func(message any) {
 		if conn != nil {
 			connWriteLock.Lock()
 			err := conn.WriteJSON(message)

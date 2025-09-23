@@ -7,7 +7,7 @@ import (
 )
 
 type DebounceEntry struct {
-	result interface{}
+	result any
 	err    *error
 	done   chan struct{}
 	timer  *time.Timer
@@ -30,7 +30,7 @@ func NewDebounce(name string, cacheTTL time.Duration, timer time.Duration) *Debo
 	}
 }
 
-func (d *Debounce) CallFn(key string, fn func() (interface{}, error)) (interface{}, *error) {
+func (d *Debounce) CallFn(key string, fn func() (any, error)) (any, *error) {
 	key = fmt.Sprintf("%s-%s", d.name, key)
 	d.mutex.Lock()
 

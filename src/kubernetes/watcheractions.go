@@ -158,22 +158,29 @@ func deleteFromStoreIfNeeded(groupVersion string, resourceName string, kind stri
 
 func GetUnstructuredResourceList(group string, version string, name string, namespace *string) (*unstructured.UnstructuredList, error) {
 	dynamicClient := clientProvider.DynamicClient()
-	if namespace != nil {
-		result, err := dynamicClient.Resource(CreateGroupVersionResource(group, version, name)).Namespace(*namespace).List(context.TODO(), metav1.ListOptions{})
-		return removeManagedFieldsFromList(result), err
+	resource := CreateGroupVersionResource(group, version, name)
+
+	var result *unstructured.UnstructuredList
+	var err error
+	if namespace == nil {
+		result, err = dynamicClient.Resource(resource).List(context.Background(), metav1.ListOptions{})
 	} else {
-		result, err := dynamicClient.Resource(CreateGroupVersionResource(group, version, name)).List(context.TODO(), metav1.ListOptions{})
-		return removeManagedFieldsFromList(result), err
+		result, err = dynamicClient.Resource(resource).Namespace(*namespace).List(context.Background(), metav1.ListOptions{})
 	}
+
+	result = removeManagedFieldsFromList(result)
+	return result, err
 }
 
-func GetUnstructuredResourceListFromStore(group string, kind string, version string, name string, namespace *string, withData *bool) (unstructured.UnstructuredList, error) {
-	results := unstructured.UnstructuredList{}
-	if namespace == nil {
-		namespace = utils.Pointer("")
+func GetUnstructuredResourceListFromStore(group string, kind string, version string, name string, namespace *string, withData *bool) unstructured.UnstructuredList {
+	selectedNamespace := ""
+	if namespace != nil {
+		selectedNamespace = *namespace
 	}
+
 	// try to get the data from the store (very fast)
-	result := store.GetResourceByKindAndNamespace(valkeyClient, group, kind, *namespace, k8sLogger)
+	results := unstructured.UnstructuredList{}
+	result := store.GetResourceByKindAndNamespace(valkeyClient, group, kind, selectedNamespace, k8sLogger)
 	if result != nil {
 		// delete data field to speed up transfer
 		if withData == nil || !*withData {
@@ -184,11 +191,12 @@ func GetUnstructuredResourceListFromStore(group string, kind string, version str
 		results.Items = result
 	}
 
-	return results, nil
+	return results
 }
 
 func GetUnstructuredNamespaceResourceList(namespace string, whitelist []*utils.ResourceEntry, blacklist []*utils.ResourceEntry) ([]unstructured.Unstructured, error) {
 	results := []unstructured.Unstructured{}
+	resultsMutex := sync.Mutex{}
 
 	resources, err := GetAvailableResources()
 	if err != nil {
@@ -203,39 +211,31 @@ func GetUnstructuredNamespaceResourceList(namespace string, whitelist []*utils.R
 		blacklist = []*utils.ResourceEntry{}
 	}
 
-	promise := utils.NewPromise[unstructured.Unstructured]()
+	var wg sync.WaitGroup
 	for _, v := range resources {
 		if v.Namespace != nil {
-			if (len(whitelist) > 0 && !utils.ContainsResourceEntry(whitelist, v)) || (blacklist != nil && utils.ContainsResourceEntry(blacklist, v)) {
+			if len(whitelist) > 0 && !utils.ContainsResourceEntry(whitelist, v) {
 				continue
 			}
-			promise.RunArray(func() *[]unstructured.Unstructured {
+			if blacklist != nil && utils.ContainsResourceEntry(blacklist, v) {
+				continue
+			}
+			wg.Go(func() {
 				result := store.GetResourceByKindAndNamespace(valkeyClient, v.Group, v.Kind, namespace, k8sLogger)
-				return &result
-				// if len(result) > 0 {
-				// 	return &result
-				// } else {
-				// 	// fallback: gather the data when the store is empty (can be slow)
-				// 	if slices.Contains(MirroredResourceKinds, v.Kind) {
-				// 		return nil
-				// 	}
-				// 	list, err := GetUnstructuredResourceList(v.Group, v.Version, v.Name, v.Namespace)
-				// 	if err != nil {
-				// 		return nil
-				// 	}
-				// 	return &list.Items
-				// }
+				resultsMutex.Lock()
+				results = append(results, result...)
+				resultsMutex.Unlock()
 			})
 		}
 	}
-	results = promise.Wait()
+	wg.Wait()
 
 	return results, nil
 }
 
 func GetUnstructuredLabeledResourceList(label string, whitelist []*utils.ResourceEntry, blacklist []*utils.ResourceEntry) (unstructured.UnstructuredList, error) {
 	results := unstructured.UnstructuredList{
-		Object: map[string]interface{}{},
+		Object: map[string]any{},
 		Items:  []unstructured.Unstructured{},
 	}
 
@@ -259,7 +259,7 @@ func GetUnstructuredLabeledResourceList(label string, whitelist []*utils.Resourc
 			if (len(whitelist) > 0 && !utils.ContainsResourceEntry(whitelist, v)) || (blacklist != nil && utils.ContainsResourceEntry(blacklist, v)) {
 				continue
 			}
-			result, err := dynamicClient.Resource(CreateGroupVersionResource(v.Group, v.Version, v.Name)).List(context.TODO(), metav1.ListOptions{LabelSelector: label})
+			result, err := dynamicClient.Resource(CreateGroupVersionResource(v.Group, v.Version, v.Name)).List(context.Background(), metav1.ListOptions{LabelSelector: label})
 
 			if err != nil {
 				if !os.IsNotExist(err) {
@@ -279,10 +279,10 @@ func GetUnstructuredLabeledResourceList(label string, whitelist []*utils.Resourc
 func GetUnstructuredResource(group string, version string, name string, namespace, resourceName string) (*unstructured.Unstructured, error) {
 	dynamicClient := clientProvider.DynamicClient()
 	if namespace != "" {
-		result, err := dynamicClient.Resource(CreateGroupVersionResource(group, version, name)).Namespace(namespace).Get(context.TODO(), resourceName, metav1.GetOptions{})
+		result, err := dynamicClient.Resource(CreateGroupVersionResource(group, version, name)).Namespace(namespace).Get(context.Background(), resourceName, metav1.GetOptions{})
 		return removeManagedFields(result), err
 	} else {
-		result, err := dynamicClient.Resource(CreateGroupVersionResource(group, version, name)).Get(context.TODO(), resourceName, metav1.GetOptions{})
+		result, err := dynamicClient.Resource(CreateGroupVersionResource(group, version, name)).Get(context.Background(), resourceName, metav1.GetOptions{})
 		return removeManagedFields(result), err
 	}
 }
@@ -300,10 +300,10 @@ func CreateUnstructuredResource(group string, version string, name string, names
 	}
 
 	if namespace != nil {
-		result, err := dynamicClient.Resource(CreateGroupVersionResource(group, version, name)).Namespace(obj.GetNamespace()).Create(context.TODO(), obj, metav1.CreateOptions{})
+		result, err := dynamicClient.Resource(CreateGroupVersionResource(group, version, name)).Namespace(obj.GetNamespace()).Create(context.Background(), obj, metav1.CreateOptions{})
 		return removeManagedFields(result), err
 	} else {
-		result, err := dynamicClient.Resource(CreateGroupVersionResource(group, version, name)).Create(context.TODO(), obj, metav1.CreateOptions{})
+		result, err := dynamicClient.Resource(CreateGroupVersionResource(group, version, name)).Create(context.Background(), obj, metav1.CreateOptions{})
 		return removeManagedFields(result), err
 	}
 }
@@ -317,10 +317,10 @@ func UpdateUnstructuredResource(group string, version string, name string, names
 	}
 
 	if namespace != nil {
-		result, err := dynamicClient.Resource(CreateGroupVersionResource(group, version, name)).Namespace(obj.GetNamespace()).Update(context.TODO(), obj, metav1.UpdateOptions{})
+		result, err := dynamicClient.Resource(CreateGroupVersionResource(group, version, name)).Namespace(obj.GetNamespace()).Update(context.Background(), obj, metav1.UpdateOptions{})
 		return removeManagedFields(result), err
 	} else {
-		result, err := dynamicClient.Resource(CreateGroupVersionResource(group, version, name)).Update(context.TODO(), obj, metav1.UpdateOptions{})
+		result, err := dynamicClient.Resource(CreateGroupVersionResource(group, version, name)).Update(context.Background(), obj, metav1.UpdateOptions{})
 		return removeManagedFields(result), err
 	}
 }
@@ -328,9 +328,9 @@ func UpdateUnstructuredResource(group string, version string, name string, names
 func DeleteUnstructuredResource(group string, version string, name string, namespace string, resourceName string) error {
 	dynamicClient := clientProvider.DynamicClient()
 	if namespace != "" {
-		return dynamicClient.Resource(CreateGroupVersionResource(group, version, name)).Namespace(namespace).Delete(context.TODO(), resourceName, metav1.DeleteOptions{})
+		return dynamicClient.Resource(CreateGroupVersionResource(group, version, name)).Namespace(namespace).Delete(context.Background(), resourceName, metav1.DeleteOptions{})
 	} else {
-		return dynamicClient.Resource(CreateGroupVersionResource(group, version, name)).Delete(context.TODO(), resourceName, metav1.DeleteOptions{})
+		return dynamicClient.Resource(CreateGroupVersionResource(group, version, name)).Delete(context.Background(), resourceName, metav1.DeleteOptions{})
 	}
 }
 
@@ -397,12 +397,12 @@ func TriggerUnstructuredResource(group string, version string, name string, name
 			name = "jobs"
 		}
 
-		return dynamicClient.Resource(CreateGroupVersionResource(group, version, name)).Namespace(namespace).Create(context.TODO(), job, metav1.CreateOptions{})
+		return dynamicClient.Resource(CreateGroupVersionResource(group, version, name)).Namespace(namespace).Create(context.Background(), job, metav1.CreateOptions{})
 	}
 	return nil, fmt.Errorf("%s is a invalid resource for trigger. Only jobs or cronjobs can be triggert", name)
 }
 
-func GetK8sObjectFor(file string, namespaced bool) (interface{}, error) {
+func GetK8sObjectFor(file string, namespaced bool) (any, error) {
 	dynamicClient := clientProvider.DynamicClient()
 	obj, err := GetObjectFromFile(file)
 	if err != nil {
@@ -416,14 +416,14 @@ func GetK8sObjectFor(file string, namespaced bool) (interface{}, error) {
 
 	if namespaced {
 		res, err := dynamicClient.Resource(
-			CreateGroupVersionResource(obj.GroupVersionKind().Group, obj.GroupVersionKind().Version, resourceName)).Namespace(obj.GetNamespace()).Get(context.TODO(), obj.GetName(), metav1.GetOptions{})
+			CreateGroupVersionResource(obj.GroupVersionKind().Group, obj.GroupVersionKind().Version, resourceName)).Namespace(obj.GetNamespace()).Get(context.Background(), obj.GetName(), metav1.GetOptions{})
 		if err != nil {
 			k8sLogger.Error("Error querying resource", "error", err)
 			return nil, err
 		}
 		return res.Object, nil
 	} else {
-		res, err := dynamicClient.Resource(CreateGroupVersionResource(obj.GroupVersionKind().Group, obj.GroupVersionKind().Version, resourceName)).List(context.TODO(), metav1.ListOptions{})
+		res, err := dynamicClient.Resource(CreateGroupVersionResource(obj.GroupVersionKind().Group, obj.GroupVersionKind().Version, resourceName)).List(context.Background(), metav1.ListOptions{})
 		if err != nil {
 			k8sLogger.Error("Error listing resource", "error", err)
 			return nil, err
@@ -473,12 +473,11 @@ var (
 
 func GetAvailableResources() ([]utils.ResourceEntry, error) {
 	// Check if we have cached resources and if they are still valid
+	resourceCacheMutex.Lock()
+	defer resourceCacheMutex.Unlock()
 	if time.Since(resourceCache.timestamp) < resourceCacheTTL {
 		return resourceCache.availableResources, nil
 	}
-
-	resourceCacheMutex.Lock()
-	defer resourceCacheMutex.Unlock()
 
 	// No valid cache, fetch resources from server
 	clientset := clientProvider.K8sClientSet()
@@ -559,7 +558,7 @@ func removeManagedFields(obj *unstructured.Unstructured) *unstructured.Unstructu
 	unstructuredContent := obj.Object
 	delete(unstructuredContent, "managedFields")
 	if unstructuredContent["metadata"] != nil {
-		delete(unstructuredContent["metadata"].(map[string]interface{}), "managedFields")
+		delete(unstructuredContent["metadata"].(map[string]any), "managedFields")
 	}
 	return obj
 }

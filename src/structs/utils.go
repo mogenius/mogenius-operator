@@ -6,7 +6,7 @@ import (
 
 const PingSeconds = 3
 
-func MarshalUnmarshal(datagram *Datagram, data interface{}) {
+func MarshalUnmarshal(datagram *Datagram, data any) {
 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 	bytes, err := json.Marshal(datagram.Payload)

@@ -107,7 +107,7 @@ func (self *Schema) Yaml() string {
 	// this is going through json to inherit the json tag config
 	jsonData := self.Json()
 
-	var data interface{}
+	var data any
 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	err := json.Unmarshal([]byte(jsonData), &data)
 	assert.Assert(err == nil, err)
@@ -152,7 +152,7 @@ func parseSchema(schema *Schema, input reflect.Type, depth int) (*TypeInfo, erro
 		return typeInfo, nil
 	}
 
-	if input.Kind() == reflect.Ptr {
+	if input.Kind() == reflect.Pointer {
 		input = input.Elem()
 		typeInfo.Pointer = true
 	}

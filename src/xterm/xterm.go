@@ -110,7 +110,7 @@ func checkPodIsReady(ctx context.Context, namespace string, podName string, conn
 		default:
 			clientset := clientProvider.K8sClientSet()
 			// TODO: Bene refactor with store to avoid multiple calls to k8s
-			pod, err := clientset.CoreV1().Pods(namespace).Get(context.TODO(), podName, metav1.GetOptions{})
+			pod, err := clientset.CoreV1().Pods(namespace).Get(context.Background(), podName, metav1.GetOptions{})
 			if err != nil {
 				xtermLogger.Error("Unable to get pod", "error", err)
 				if conn != nil {

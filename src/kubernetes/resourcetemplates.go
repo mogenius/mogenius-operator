@@ -18,7 +18,7 @@ func CreateOrUpdateResourceTemplateConfigmap() error {
 	yamlData := utils.InitResourceTemplatesYaml()
 
 	// Decode YAML data into a generic map
-	var decodedData map[string]interface{}
+	var decodedData map[string]any
 	err := yaml.Unmarshal([]byte(yamlData), &decodedData)
 	if err != nil {
 		return err
@@ -90,7 +90,7 @@ func loadResourceTemplateData(kind, namespace, resourcename string) (string, err
 	if err != nil {
 		return "", err
 	}
-	configmapData, ok := configmap.Object["data"].(map[string]interface{})
+	configmapData, ok := configmap.Object["data"].(map[string]any)
 	if !ok {
 		return "", nil
 	}

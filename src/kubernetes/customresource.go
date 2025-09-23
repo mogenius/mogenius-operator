@@ -34,7 +34,7 @@ func ApplyResource(yamlData string, isClusterWideResource bool) error {
 	if err != nil {
 		return err
 	}
-	_, err = client.Create(context.TODO(), obj, metav1.CreateOptions{})
+	_, err = client.Create(context.Background(), obj, metav1.CreateOptions{})
 	if err != nil {
 		// get fresh metadata about existing resource
 		gvr := getGVR(obj)
@@ -59,7 +59,7 @@ func ApplyResource(yamlData string, isClusterWideResource bool) error {
 			time.Sleep(2 * time.Second)
 		}
 		// Try update if already exists
-		obj, err = client.Update(context.TODO(), res, metav1.UpdateOptions{})
+		obj, err = client.Update(context.Background(), res, metav1.UpdateOptions{})
 		if err != nil {
 			return err
 		}
@@ -118,7 +118,7 @@ func GetResource(group string, version string, resource string, name string, nam
 	if err != nil {
 		return nil, err
 	}
-	resourceResult, err := client.Get(context.TODO(), name, metav1.GetOptions{})
+	resourceResult, err := client.Get(context.Background(), name, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -136,7 +136,7 @@ func ListResources(group string, version string, resource string, namespace stri
 	if err != nil {
 		return nil, err
 	}
-	resourceResult, err := client.List(context.TODO(), metav1.ListOptions{})
+	resourceResult, err := client.List(context.Background(), metav1.ListOptions{})
 
 	if err != nil {
 		return nil, err
@@ -155,7 +155,7 @@ func DeleteResource(group string, version string, resource string, name string, 
 	if err != nil {
 		return err
 	}
-	err = client.Delete(context.TODO(), name, metav1.DeleteOptions{})
+	err = client.Delete(context.Background(), name, metav1.DeleteOptions{})
 	if err != nil {
 		return err
 	}
