@@ -135,19 +135,14 @@ func ReportCmdStateToServer(eventClient websocket.WebsocketClient, job *Job, cmd
 func stateLogJob(data *Job) {
 	typeName := "JOB"
 	// COLOR MILLISECONDS IF >500
-	durationMs := data.Finished.Sub(data.Started).Milliseconds()
-	if durationMs < 0 {
-		durationMs = 0
-	}
+	durationMs := max(data.Finished.Sub(data.Started).Milliseconds(), 0)
 	duration := fmt.Sprintf("%d", durationMs)
 	if durationMs > 500 {
 		duration = shell.Colorize(fmt.Sprintf("%d", durationMs), shell.Red)
 	}
 
 	serviceLogger, err := logManager.GetLogger("services")
-	if err != nil {
-		assert.Assert(serviceLogger != nil, "serviceLogger has to be initialized for stateLogJob")
-	}
+	assert.Assert(err == nil, "serviceLogger has to be initialized for stateLogJob", err)
 
 	var message string
 	switch data.State {
@@ -199,19 +194,14 @@ func stateLogCmd(data *Command, ns string, controllerName string) {
 	typeName := "CMD"
 
 	// COLOR MILLISECONDS IF >500
-	durationMs := data.Finished.Sub(data.Started).Milliseconds()
-	if durationMs < 0 {
-		durationMs = 0
-	}
+	durationMs := max(data.Finished.Sub(data.Started).Milliseconds(), 0)
 	duration := fmt.Sprintf("%d", durationMs)
 	if durationMs > 500 {
 		duration = shell.Colorize(fmt.Sprintf("%d", durationMs), shell.Red)
 	}
 
 	serviceLogger, err := logManager.GetLogger("services")
-	if err != nil {
-		assert.Assert(serviceLogger != nil, "serviceLogger has to be initialized for stateLogCmd")
-	}
+	assert.Assert(err == nil, "serviceLogger has to be initialized for stateLogCmd", err)
 
 	var message string
 	switch data.State {

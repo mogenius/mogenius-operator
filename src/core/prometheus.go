@@ -44,8 +44,8 @@ type PrometheusRequestRedisList struct {
 type PrometheusQueryResponse struct {
 	Status string `json:"status"`
 	Data   struct {
-		ResultType string        `json:"resultType"`
-		Result     []interface{} `json:"result"`
+		ResultType string `json:"resultType"`
+		Result     []any  `json:"result"`
 	} `json:"data"`
 	ErrorType string `json:"errorType,omitempty"`
 	Error     string `json:"error,omitempty"`

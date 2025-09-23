@@ -67,7 +67,7 @@ func GetVolumeMountsForK8sManager() ([]structs.Volume, error) {
 
 	clientset := clientProvider.K8sClientSet()
 	pvcClient := clientset.CoreV1().PersistentVolumeClaims("")
-	pvcList, err := pvcClient.List(context.TODO(), metav1.ListOptions{})
+	pvcList, err := pvcClient.List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		return result, err
 	}
@@ -117,7 +117,7 @@ func CreateMogeniusNfsPersistentVolumeClaim(eventClient websocket.WebsocketClien
 
 	clientset := clientProvider.K8sClientSet()
 	pvcClient := clientset.CoreV1().PersistentVolumeClaims(namespaceName)
-	_, err := pvcClient.Create(context.TODO(), &pvc, metav1.CreateOptions{})
+	_, err := pvcClient.Create(context.Background(), &pvc, metav1.CreateOptions{})
 	if err != nil {
 		cmd.Fail(eventClient, job, fmt.Sprintf("CreateMogeniusNfsPersistentVolumeClaim ERROR: %s", err.Error()))
 	} else {
@@ -131,7 +131,7 @@ func DeleteMogeniusNfsPersistentVolumeClaim(eventClient websocket.WebsocketClien
 
 	clientset := clientProvider.K8sClientSet()
 	pvcClient := clientset.CoreV1().PersistentVolumeClaims(namespaceName)
-	err := pvcClient.Delete(context.TODO(), fmt.Sprintf("%s-%s", utils.NFS_POD_PREFIX, volumeName), metav1.DeleteOptions{})
+	err := pvcClient.Delete(context.Background(), fmt.Sprintf("%s-%s", utils.NFS_POD_PREFIX, volumeName), metav1.DeleteOptions{})
 	if err != nil {
 		cmd.Fail(eventClient, job, fmt.Sprintf("DeleteMogeniusNfsPersistentVolumeClaim ERROR: %s", err.Error()))
 	} else {
@@ -165,7 +165,7 @@ func CreateMogeniusNfsPersistentVolumeForService(eventClient websocket.Websocket
 
 	clientset := clientProvider.K8sClientSet()
 	client := clientset.CoreV1().PersistentVolumes()
-	_, err := client.Create(context.TODO(), &pv, metav1.CreateOptions{})
+	_, err := client.Create(context.Background(), &pv, metav1.CreateOptions{})
 	if err != nil {
 		cmd.Fail(eventClient, job, fmt.Sprintf("CreateMogeniusNfsPersistentVolume ERROR: %s", err.Error()))
 	} else {
@@ -182,7 +182,7 @@ func DeleteMogeniusNfsPersistentVolumeForService(eventClient websocket.Websocket
 	pvcClient := clientset.CoreV1().PersistentVolumes()
 
 	// LIST ALL PV
-	pvList, err := pvcClient.List(context.TODO(), metav1.ListOptions{})
+	pvList, err := pvcClient.List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			// IN CASE: NOT FOUND -> IT HAS ALREADY BEEN DELETED. e.g. by the provisioneer
@@ -195,7 +195,7 @@ func DeleteMogeniusNfsPersistentVolumeForService(eventClient websocket.Websocket
 	for _, pv := range pvList.Items {
 		if pv.Spec.ClaimRef != nil {
 			if pv.Spec.ClaimRef.Name == volumeName && pv.Spec.ClaimRef.Namespace == namespaceName {
-				err := pvcClient.Delete(context.TODO(), k8sVolumeName, metav1.DeleteOptions{})
+				err := pvcClient.Delete(context.Background(), k8sVolumeName, metav1.DeleteOptions{})
 				if err != nil {
 					if apierrors.IsNotFound(err) {
 						// IN CASE: NOT FOUND -> IT HAS ALREADY BEEN DELETED. e.g. by the provisioneer
@@ -226,7 +226,7 @@ func CreateMogeniusNfsPersistentVolumeClaimForService(eventClient websocket.Webs
 
 	clientset := clientProvider.K8sClientSet()
 	pvcClient := clientset.CoreV1().PersistentVolumeClaims(namespaceName)
-	_, err := pvcClient.Create(context.TODO(), &pvc, metav1.CreateOptions{})
+	_, err := pvcClient.Create(context.Background(), &pvc, metav1.CreateOptions{})
 	if err != nil {
 		cmd.Fail(eventClient, job, fmt.Sprintf("CreateMogeniusNfsPersistentVolumeClaim ERROR: %s", err.Error()))
 	} else {
@@ -240,7 +240,7 @@ func DeleteMogeniusNfsPersistentVolumeClaimForService(eventClient websocket.Webs
 
 	clientset := clientProvider.K8sClientSet()
 	pvcClient := clientset.CoreV1().PersistentVolumeClaims(namespaceName)
-	err := pvcClient.Delete(context.TODO(), volumeName, metav1.DeleteOptions{})
+	err := pvcClient.Delete(context.Background(), volumeName, metav1.DeleteOptions{})
 	if err != nil {
 		cmd.Fail(eventClient, job, fmt.Sprintf("DeleteMogeniusNfsPersistentVolumeClaimForService ERROR: %s", err.Error()))
 	} else {
@@ -259,7 +259,7 @@ func CreateMogeniusNfsServiceSync(eventClient websocket.WebsocketClient, job *st
 
 	clientset := clientProvider.K8sClientSet()
 	serviceClient := clientset.CoreV1().Services(namespaceName)
-	_, err := serviceClient.Create(context.TODO(), &service, metav1.CreateOptions{})
+	_, err := serviceClient.Create(context.Background(), &service, metav1.CreateOptions{})
 	if err != nil {
 		cmd.Fail(eventClient, job, fmt.Sprintf("CreateMogeniusNfsService ERROR: %s", err.Error()))
 	} else {
@@ -273,7 +273,7 @@ func DeleteMogeniusNfsService(eventClient websocket.WebsocketClient, job *struct
 
 	clientset := clientProvider.K8sClientSet()
 	pvcClient := clientset.CoreV1().Services(namespaceName)
-	err := pvcClient.Delete(context.TODO(), fmt.Sprintf("%s-%s", utils.NFS_POD_PREFIX, volumeName), metav1.DeleteOptions{})
+	err := pvcClient.Delete(context.Background(), fmt.Sprintf("%s-%s", utils.NFS_POD_PREFIX, volumeName), metav1.DeleteOptions{})
 	if err != nil {
 		cmd.Fail(eventClient, job, fmt.Sprintf("DeleteMogeniusNfsService ERROR: %s", err.Error()))
 	} else {
@@ -296,7 +296,7 @@ func CreateMogeniusNfsDeployment(eventClient websocket.WebsocketClient, job *str
 
 	clientset := clientProvider.K8sClientSet()
 	deploymentClient := clientset.AppsV1().Deployments(namespaceName)
-	_, err := deploymentClient.Create(context.TODO(), &deployment, metav1.CreateOptions{})
+	_, err := deploymentClient.Create(context.Background(), &deployment, metav1.CreateOptions{})
 	if err != nil {
 		cmd.Fail(eventClient, job, fmt.Sprintf("CreateMogeniusNfsDeployment ERROR: %s", err.Error()))
 	} else {
@@ -310,7 +310,7 @@ func DeleteMogeniusNfsDeployment(eventClient websocket.WebsocketClient, job *str
 
 	clientset := clientProvider.K8sClientSet()
 	deploymentClient := clientset.AppsV1().Deployments(namespaceName)
-	err := deploymentClient.Delete(context.TODO(), fmt.Sprintf("%s-%s", utils.NFS_POD_PREFIX, volumeName), metav1.DeleteOptions{})
+	err := deploymentClient.Delete(context.Background(), fmt.Sprintf("%s-%s", utils.NFS_POD_PREFIX, volumeName), metav1.DeleteOptions{})
 	if err != nil {
 		cmd.Fail(eventClient, job, fmt.Sprintf("DeleteMogeniusNfsDeployment ERROR: %s", err.Error()))
 	} else {
@@ -322,7 +322,7 @@ func ListPersistentVolumeClaimsWithFieldSelector(namespace string, labelSelector
 	clientset := clientProvider.K8sClientSet()
 	client := clientset.CoreV1().PersistentVolumeClaims(namespace)
 
-	persistentVolumeClaims, err := client.List(context.TODO(), metav1.ListOptions{LabelSelector: labelSelector})
+	persistentVolumeClaims, err := client.List(context.Background(), metav1.ListOptions{LabelSelector: labelSelector})
 	if err != nil {
 		return persistentVolumeClaims.Items, err
 	}
@@ -343,7 +343,7 @@ func AllPersistentVolumeClaims(namespaceName string) []v1.PersistentVolumeClaim 
 	result := []v1.PersistentVolumeClaim{}
 
 	clientset := clientProvider.K8sClientSet()
-	pvList, err := clientset.CoreV1().PersistentVolumeClaims(namespaceName).List(context.TODO(), metav1.ListOptions{})
+	pvList, err := clientset.CoreV1().PersistentVolumeClaims(namespaceName).List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		k8sLogger.Error("AllPersistentVolumeClaims", "error", err.Error())
 		return result

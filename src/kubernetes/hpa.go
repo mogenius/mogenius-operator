@@ -43,7 +43,7 @@ func DeleteHpa(eventClient websocket.WebsocketClient, job *structs.Job, namespac
 
 func GetHpa(namespaceName string, name string) (*v2.HorizontalPodAutoscaler, error) {
 	clientset := clientProvider.K8sClientSet()
-	hpa, err := clientset.AutoscalingV2().HorizontalPodAutoscalers(namespaceName).Get(context.TODO(), name, metav1.GetOptions{})
+	hpa, err := clientset.AutoscalingV2().HorizontalPodAutoscalers(namespaceName).Get(context.Background(), name, metav1.GetOptions{})
 	hpa.Kind = "HorizontalPodAutoscaler"
 	hpa.APIVersion = "autoscaling/v2"
 
@@ -53,7 +53,7 @@ func GetHpa(namespaceName string, name string) (*v2.HorizontalPodAutoscaler, err
 func DeleteK8sHpaBy(namespace string, name string) error {
 	clientset := clientProvider.K8sClientSet()
 	client := clientset.AutoscalingV2().HorizontalPodAutoscalers(namespace)
-	return client.Delete(context.TODO(), name, metav1.DeleteOptions{})
+	return client.Delete(context.Background(), name, metav1.DeleteOptions{})
 }
 
 func CreateHpa(namespaceName, controllerName string, hpaSettings *dtos.K8sHpaSettingsDto) (*v2.HorizontalPodAutoscaler, error) {
@@ -110,10 +110,10 @@ func CreateOrUpdateHpa(eventClient websocket.WebsocketClient, job *structs.Job, 
 		return
 	}
 
-	_, err = hpaClient.Update(context.TODO(), newHpa, MoUpdateOptions(config))
+	_, err = hpaClient.Update(context.Background(), newHpa, MoUpdateOptions(config))
 	if err != nil {
 		if apierrors.IsNotFound(err) {
-			_, err = hpaClient.Create(context.TODO(), newHpa, MoCreateOptions(config))
+			_, err = hpaClient.Create(context.Background(), newHpa, MoCreateOptions(config))
 			if err != nil {
 				cmd.Fail(eventClient, job, fmt.Sprintf("Creating hpa ERROR: %s", err.Error()))
 			} else {

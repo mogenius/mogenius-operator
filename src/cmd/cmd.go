@@ -75,9 +75,10 @@ func Run() error {
 	moLogFilter := strings.SplitSeq(configModule.Get("MO_LOG_FILTER"), ",")
 	for f := range moLogFilter {
 		f = strings.TrimSpace(f)
-		if f != "" {
-			logFilter = append(logFilter, f)
+		if f == "" {
+			continue
 		}
+		logFilter = append(logFilter, f)
 	}
 	prettyPrintHandler := logging.NewPrettyPrintHandler(
 		os.Stderr,

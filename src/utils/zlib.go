@@ -37,7 +37,7 @@ func ZlibDecompress(compressedData []byte) ([]byte, error) {
 }
 
 // the data variable will be modified in place (inOut-variable)
-func TryZlibCompress(data interface{}) (interface{}, error) {
+func TryZlibCompress(data any) (any, error) {
 	dataBytes, err := Marshal(data)
 	if err != nil {
 		return nil, err
@@ -50,7 +50,7 @@ func TryZlibCompress(data interface{}) (interface{}, error) {
 }
 
 // the data variable will be modified in place (inOut-variable)
-func TryZlibDecompress(data interface{}) (interface{}, error) {
+func TryZlibDecompress(data any) (any, error) {
 	dataBytes, err := Marshal(data)
 	if err != nil {
 		return nil, err

@@ -35,16 +35,18 @@ func CreateNamespaceCmds(eventClient websocket.WebsocketClient, job *structs.Job
 }
 
 func DeleteNamespace(eventClient websocket.WebsocketClient, r NamespaceDeleteRequest) *structs.Job {
-	var wg sync.WaitGroup
-
-	job := structs.CreateJob(eventClient, "Delete namespace "+r.Project.DisplayName+"/"+r.Namespace.DisplayName, r.Project.Id, r.Namespace.Name, "", serviceLogger)
+	job := structs.CreateJob(
+		eventClient,
+		"Delete namespace "+r.Project.DisplayName+"/"+r.Namespace.DisplayName,
+		r.Project.Id,
+		r.Namespace.Name,
+		"",
+		serviceLogger,
+	)
 	job.Start(eventClient)
-	wg.Go(func() {
-		mokubernetes.DeleteNamespace(eventClient, job, r.Namespace)
-	})
 
 	go func() {
-		wg.Wait()
+		mokubernetes.DeleteNamespace(eventClient, job, r.Namespace)
 		job.Finish(eventClient)
 	}()
 

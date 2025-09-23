@@ -95,7 +95,7 @@ var statusMogeniusNfsDebounce = utils.NewDebounce("statusMogeniusNfsDebounce", 1
 
 func StatusMogeniusNfs(r NfsStatusRequest) NfsStatusResponse {
 	key := fmt.Sprintf("%s-%s-%s", r.Name, r.Namespace, r.StorageAPIObject)
-	result, _ := statusMogeniusNfsDebounce.CallFn(key, func() (interface{}, error) {
+	result, _ := statusMogeniusNfsDebounce.CallFn(key, func() (any, error) {
 		return StatusMogeniusNfs2(r), nil
 	})
 	return result.(NfsStatusResponse)
@@ -511,7 +511,7 @@ func (s *VolumeStatus) findPVCByPVName(name string) (*v1.PersistentVolumeClaim, 
 		return nil, fmt.Errorf("client is not set")
 	}
 
-	pvcs, err := s.client.CoreV1().PersistentVolumeClaims("").List(context.TODO(), metav1.ListOptions{
+	pvcs, err := s.client.CoreV1().PersistentVolumeClaims("").List(context.Background(), metav1.ListOptions{
 		FieldSelector: fmt.Sprintf("spec.volumeName=%s", name),
 	})
 
@@ -531,7 +531,7 @@ func (s *VolumeStatus) getPVC(namespace, name string) (*v1.PersistentVolumeClaim
 		return nil, fmt.Errorf("client is not set")
 	}
 
-	pvc, err := s.client.CoreV1().PersistentVolumeClaims(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+	pvc, err := s.client.CoreV1().PersistentVolumeClaims(namespace).Get(context.Background(), name, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -544,7 +544,7 @@ func (s *VolumeStatus) getPV(name string) (*v1.PersistentVolume, error) {
 		return nil, fmt.Errorf("client is not set")
 	}
 
-	pv, err := s.client.CoreV1().PersistentVolumes().Get(context.TODO(), name, metav1.GetOptions{})
+	pv, err := s.client.CoreV1().PersistentVolumes().Get(context.Background(), name, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -559,7 +559,7 @@ func (s *VolumeStatus) getEvents(name, kind string, ctx context.Context, channel
 	}
 
 	fieldSelector := fmt.Sprintf("involvedObject.name=%s,involvedObject.kind=%s", name, kind)
-	eventList, err := s.client.CoreV1().Events(s.Namespace).List(context.TODO(), metav1.ListOptions{
+	eventList, err := s.client.CoreV1().Events(s.Namespace).List(context.Background(), metav1.ListOptions{
 		FieldSelector: fieldSelector,
 	})
 
@@ -595,7 +595,7 @@ func (s *VolumeStatus) getUsedByPods(ctx context.Context, channel chan<- []strin
 		return
 	}
 
-	pods, err := s.client.CoreV1().Pods(s.Namespace).List(context.TODO(), metav1.ListOptions{})
+	pods, err := s.client.CoreV1().Pods(s.Namespace).List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		errChannel <- err
 		return

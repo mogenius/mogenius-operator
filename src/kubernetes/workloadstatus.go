@@ -23,16 +23,16 @@ type WorkloadStatusItemDto struct {
 	Name              string      `json:"name" validate:"required"`
 	Namespace         string      `json:"namespace" validate:"required"`
 	CreationTimestamp metav1.Time `json:"creationTimestamp"`
-	OwnerReferences   interface{} `json:"ownerReferences,omitempty"`
+	OwnerReferences   any         `json:"ownerReferences,omitempty"`
 
-	Status        interface{} `json:"status,omitempty"`
-	Events        []v1.Event  `json:"events,omitempty"`
-	Replicas      *int        `json:"replicas,omitempty"`
-	SpecClusterIP string      `json:"specClusterIP,omitempty"`
-	SpecType      string      `json:"specType,omitempty"`
+	Status        any        `json:"status,omitempty"`
+	Events        []v1.Event `json:"events,omitempty"`
+	Replicas      *int       `json:"replicas,omitempty"`
+	SpecClusterIP string     `json:"specClusterIP,omitempty"`
+	SpecType      string     `json:"specType,omitempty"`
 
 	// only for EndpointSlice
-	Endpoints interface{} `json:"endpoints,omitempty"`
+	Endpoints any `json:"endpoints,omitempty"`
 }
 
 type WorkloadStatusDto struct {
@@ -300,13 +300,9 @@ func GetWorkloadStatus(requestData GetWorkloadStatusRequest) ([]WorkloadStatusDt
 	// only filter by ResourceEntity
 	if !isResourceEntityEmpty && requestData.Namespaces == nil && requestData.ResourceNames == nil {
 		wg.Go(func() {
-			unstructuredResourceList, err := GetUnstructuredResourceListFromStore(requestData.ResourceEntity.Group, requestData.ResourceEntity.Kind, requestData.ResourceEntity.Version, requestData.ResourceEntity.Name, nil, nil)
-			if err != nil {
-				k8sLogger.Warn("Error getting workload list", "error", err)
-			} else {
-				if len(unstructuredResourceList.Items) > 0 {
-					workloadListChan <- unstructuredResourceList.Items
-				}
+			unstructuredResourceList := GetUnstructuredResourceListFromStore(requestData.ResourceEntity.Group, requestData.ResourceEntity.Kind, requestData.ResourceEntity.Version, requestData.ResourceEntity.Name, nil, nil)
+			if len(unstructuredResourceList.Items) > 0 {
+				workloadListChan <- unstructuredResourceList.Items
 			}
 		})
 	} else
@@ -328,18 +324,14 @@ func GetWorkloadStatus(requestData GetWorkloadStatusRequest) ([]WorkloadStatusDt
 	if !isResourceEntityEmpty && requestData.Namespaces != nil && requestData.ResourceNames == nil {
 		if requestData.ResourceEntity.Kind == "Namespace" && requestData.ResourceEntity.Group == "v1" {
 			wg.Go(func() {
-				unstructuredResourceNamespaceList, err := GetUnstructuredResourceListFromStore(requestData.ResourceEntity.Group, requestData.ResourceEntity.Kind, requestData.ResourceEntity.Version, requestData.ResourceEntity.Name, nil, nil)
-				if err != nil {
-					k8sLogger.Warn("Error getting workload list", "error", err)
-				} else {
-					for _, namespace := range *requestData.Namespaces {
-						if namespace == "" {
-							continue
-						}
-						for _, item := range unstructuredResourceNamespaceList.Items {
-							if item.GetName() == namespace {
-								workloadListChan <- []unstructured.Unstructured{item}
-							}
+				unstructuredResourceNamespaceList := GetUnstructuredResourceListFromStore(requestData.ResourceEntity.Group, requestData.ResourceEntity.Kind, requestData.ResourceEntity.Version, requestData.ResourceEntity.Name, nil, nil)
+				for _, namespace := range *requestData.Namespaces {
+					if namespace == "" {
+						continue
+					}
+					for _, item := range unstructuredResourceNamespaceList.Items {
+						if item.GetName() == namespace {
+							workloadListChan <- []unstructured.Unstructured{item}
 						}
 					}
 				}
@@ -347,13 +339,9 @@ func GetWorkloadStatus(requestData GetWorkloadStatusRequest) ([]WorkloadStatusDt
 		} else {
 			for _, namespace := range *requestData.Namespaces {
 				wg.Go(func() {
-					unstructuredResourceList, err := GetUnstructuredResourceListFromStore(requestData.ResourceEntity.Group, requestData.ResourceEntity.Kind, requestData.ResourceEntity.Version, requestData.ResourceEntity.Name, &namespace, nil)
-					if err != nil {
-						k8sLogger.Warn("Error getting workload list", "error", err)
-					} else {
-						if len(unstructuredResourceList.Items) > 0 {
-							workloadListChan <- unstructuredResourceList.Items
-						}
+					unstructuredResourceList := GetUnstructuredResourceListFromStore(requestData.ResourceEntity.Group, requestData.ResourceEntity.Kind, requestData.ResourceEntity.Version, requestData.ResourceEntity.Name, &namespace, nil)
+					if len(unstructuredResourceList.Items) > 0 {
+						workloadListChan <- unstructuredResourceList.Items
 					}
 				})
 			}
@@ -421,19 +409,15 @@ func GetWorkloadStatus(requestData GetWorkloadStatusRequest) ([]WorkloadStatusDt
 	}
 
 	// get all events from the store
-	eventUnstructuredList, err := GetUnstructuredResourceListFromStore(utils.EventResource.Group, utils.EventResource.Kind, utils.EventResource.Version, utils.EventResource.Name, utils.Pointer(""), nil)
+	eventUnstructuredList := GetUnstructuredResourceListFromStore(utils.EventResource.Group, utils.EventResource.Kind, utils.EventResource.Version, utils.EventResource.Name, utils.Pointer(""), nil)
 	var eventList []v1.Event
-	if err != nil {
-		eventList = []v1.Event{}
-	} else {
-		for _, item := range eventUnstructuredList.Items {
-			var event v1.Event
-			err := runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &event)
-			if err != nil {
-				continue
-			}
-			eventList = append(eventList, event)
+	for _, item := range eventUnstructuredList.Items {
+		var event v1.Event
+		err := runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &event)
+		if err != nil {
+			continue
 		}
+		eventList = append(eventList, event)
 	}
 
 	var results []WorkloadStatusDto

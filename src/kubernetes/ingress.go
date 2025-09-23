@@ -3,6 +3,8 @@ package kubernetes
 import (
 	"context"
 	"fmt"
+	"maps"
+	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
@@ -24,7 +26,7 @@ func AllIngresses(namespaceName string) []v1.Ingress {
 	result := []v1.Ingress{}
 
 	clientset := clientProvider.K8sClientSet()
-	ingressList, err := clientset.NetworkingV1().Ingresses(namespaceName).List(context.TODO(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
+	ingressList, err := clientset.NetworkingV1().Ingresses(namespaceName).List(context.Background(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
 	if err != nil {
 		k8sLogger.Error("AllIngresses", "error", err.Error())
 		return result
@@ -57,12 +59,12 @@ func UpdateIngress(eventClient websocket.WebsocketClient, job *structs.Job, name
 
 	for _, container := range service.Containers {
 		containerIngressName := INGRESS_PREFIX + "-" + service.ControllerName + "-" + container.Name
-		existingIngress, err := ingressClient.Get(context.TODO(), containerIngressName, metav1.GetOptions{})
+		existingIngress, err := ingressClient.Get(context.Background(), containerIngressName, metav1.GetOptions{})
 		if err != nil && !apierrors.IsNotFound(err) {
 			continue
 		}
 		if existingIngress != nil {
-			err := ingressClient.Delete(context.TODO(), containerIngressName, metav1.DeleteOptions{})
+			err := ingressClient.Delete(context.Background(), containerIngressName, metav1.DeleteOptions{})
 			if err != nil {
 				k8sLogger.Error("Error deleting ingress", "error", err)
 			}
@@ -73,7 +75,7 @@ func UpdateIngress(eventClient websocket.WebsocketClient, job *structs.Job, name
 	var ingressToUpdate *v1.Ingress
 
 	// check if ingress already exists
-	existingIngress, err := ingressClient.Get(context.TODO(), ingressName, metav1.GetOptions{})
+	existingIngress, err := ingressClient.Get(context.Background(), ingressName, metav1.GetOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
 		cmd.Fail(eventClient, job, fmt.Sprintf("Get Ingress ERROR: %s", err.Error()))
 		return
@@ -168,7 +170,7 @@ func UpdateIngress(eventClient websocket.WebsocketClient, job *structs.Job, name
 	if existingIngress != nil {
 		// delete if no rules
 		if len(ingressToUpdate.Spec.Rules) <= 0 {
-			err := ingressClient.Delete(context.TODO(), ingressName, metav1.DeleteOptions{})
+			err := ingressClient.Delete(context.Background(), ingressName, metav1.DeleteOptions{})
 			if err != nil {
 				cmd.Fail(eventClient, job, fmt.Sprintf("Delete Ingress ERROR: %s", err.Error()))
 				return
@@ -176,7 +178,7 @@ func UpdateIngress(eventClient websocket.WebsocketClient, job *structs.Job, name
 				cmd.Success(eventClient, job, fmt.Sprintf("Ingress '%s' deleted (not needed anymore)", ingressName))
 			}
 		} else {
-			_, err := ingressClient.Update(context.TODO(), ingressToUpdate, metav1.UpdateOptions{})
+			_, err := ingressClient.Update(context.Background(), ingressToUpdate, metav1.UpdateOptions{})
 			if err != nil {
 				cmd.Fail(eventClient, job, fmt.Sprintf("Update Ingress ERROR: %s", err.Error()))
 				return
@@ -186,14 +188,14 @@ func UpdateIngress(eventClient websocket.WebsocketClient, job *structs.Job, name
 		}
 	} else {
 		if len(ingressToUpdate.Spec.Rules) <= 0 {
-			err := ingressClient.Delete(context.TODO(), ingressName, metav1.DeleteOptions{})
+			err := ingressClient.Delete(context.Background(), ingressName, metav1.DeleteOptions{})
 			if err != nil {
 				k8sLogger.Error("Error deleting ingress", "error", err)
 			}
 			cmd.Success(eventClient, job, fmt.Sprintf("Ingress '%s' deleted (not needed anymore)", ingressName))
 		} else {
 			// create
-			_, err := ingressClient.Create(context.TODO(), ingressToUpdate, metav1.CreateOptions{FieldManager: GetOwnDeploymentName(config)})
+			_, err := ingressClient.Create(context.Background(), ingressToUpdate, metav1.CreateOptions{FieldManager: GetOwnDeploymentName(config)})
 			if err != nil {
 				cmd.Fail(eventClient, job, fmt.Sprintf("Create Ingress ERROR: %s", err.Error()))
 				return
@@ -213,9 +215,9 @@ func DeleteIngress(eventClient websocket.WebsocketClient, job *structs.Job, name
 
 	for _, container := range service.Containers {
 		ingressName := INGRESS_PREFIX + "-" + service.ControllerName + "-" + container.Name
-		existingIngress, err := ingressClient.Get(context.TODO(), ingressName, metav1.GetOptions{})
+		existingIngress, err := ingressClient.Get(context.Background(), ingressName, metav1.GetOptions{})
 		if existingIngress != nil && err == nil {
-			err := ingressClient.Delete(context.TODO(), ingressName, metav1.DeleteOptions{})
+			err := ingressClient.Delete(context.Background(), ingressName, metav1.DeleteOptions{})
 			if err != nil {
 				cmd.Fail(eventClient, job, fmt.Sprintf("Delete Ingress ERROR: %s", err.Error()))
 				return
@@ -233,33 +235,34 @@ func loadDefaultAnnotations() map[string]string {
 		"cert-manager.io/cluster-issuer": "letsencrypt-cluster-issuer",
 	}
 
-	defaultIngAnnotations := ConfigMapFor(config.Get("MO_OWN_NAMESPACE"), "mogenius-default-ingress-values", false)
-	if defaultIngAnnotations != nil {
-		if annotationsRaw, exists := defaultIngAnnotations.Data["annotations"]; exists {
-			var annotations map[string]string
-			if err := json.Unmarshal([]byte(annotationsRaw), &annotations); err != nil {
-				k8sLogger.Error("Error unmarshalling annotations from mogenius-default-ingress-values", "error", err)
-				return result
-			}
-			for key, value := range annotations {
-				result[key] = value
-			}
-		}
+	defaultIngAnnotations, err := ConfigMapFor(config.Get("MO_OWN_NAMESPACE"), "mogenius-default-ingress-values", false)
+	if err != nil {
+		return result
 	}
+	assert.Assert(defaultIngAnnotations != nil)
+
+	if annotationsRaw, exists := defaultIngAnnotations.Data["annotations"]; exists {
+		var annotations map[string]string
+		err := json.Unmarshal([]byte(annotationsRaw), &annotations)
+		if err != nil {
+			k8sLogger.Error("Error unmarshalling annotations from mogenius-default-ingress-values", "error", err)
+			return result
+		}
+
+		maps.Copy(result, annotations)
+	}
+
 	return result
 }
 
 func createIngressRule(hostname string, controllerName string, port int32) *v1.IngressRule {
 	rule := v1.IngressRule{}
 	rule.Host = hostname
-	path := "/"
-	pathType := v1.PathTypePrefix
-
 	rule.HTTP = &v1.HTTPIngressRuleValue{
 		Paths: []v1.HTTPIngressPath{
 			{
-				PathType: &pathType,
-				Path:     path,
+				PathType: utils.Pointer(v1.PathTypePrefix),
+				Path:     "/",
 				Backend: v1.IngressBackend{
 					Service: &v1.IngressServiceBackend{
 						Name: controllerName,

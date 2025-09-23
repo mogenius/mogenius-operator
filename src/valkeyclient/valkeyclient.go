@@ -24,18 +24,18 @@ var json = jsoniter.ConfigCompatibleWithStandardLibrary
 type ValkeyClient interface {
 	Connect() error
 	Set(value string, expiration time.Duration, keys ...string) error
-	SetObject(value interface{}, expiration time.Duration, keys ...string) error
-	SetObjectWithAutoincrementLimit(value interface{}, limit int64, keys ...string) error
+	SetObject(value any, expiration time.Duration, keys ...string) error
+	SetObjectWithAutoincrementLimit(value any, limit int64, keys ...string) error
 	Get(keys ...string) (string, error)
-	GetObject(keys ...string) (interface{}, error)
+	GetObject(keys ...string) (any, error)
 	List(limit int, keys ...string) ([]string, error)
 
-	// AddToBucket(maxSize int64, value interface{}, bucketKey ...string) error
+	// AddToBucket(maxSize int64, value any, bucketKey ...string) error
 	// ListFromBucket(start int64, stop int64, bucketKey ...string) ([]string, error)
 	// LastNEntryFromBucketWithType(number int64, bucketKey ...string) ([]string, error)
 	DeleteFromBucketWithNsAndReleaseName(namespace string, releaseName string, bucketKey ...string) error
 
-	StoreSortedListEntry(data interface{}, timestamp int64, keys ...string) error
+	StoreSortedListEntry(data any, timestamp int64, keys ...string) error
 
 	ClearNonEssentialKeys(includeTraffic bool, includePodStats bool, includeNodestats bool) (string, error)
 
@@ -143,7 +143,7 @@ func (self *valkeyClient) Set(value string, expiration time.Duration, keys ...st
 	return nil
 }
 
-func (self *valkeyClient) SetObject(value interface{}, expiration time.Duration, keys ...string) error {
+func (self *valkeyClient) SetObject(value any, expiration time.Duration, keys ...string) error {
 	key := createKey(keys...)
 
 	objStr, err := json.Marshal(value)
@@ -155,7 +155,7 @@ func (self *valkeyClient) SetObject(value interface{}, expiration time.Duration,
 	return self.Set(string(objStr), expiration, key)
 }
 
-func (self *valkeyClient) SetObjectWithAutoincrementLimit(value interface{}, limit int64, keys ...string) error {
+func (self *valkeyClient) SetObjectWithAutoincrementLimit(value any, limit int64, keys ...string) error {
 	ctx := context.Background()
 
 	baseKey := strings.Join(keys, ":")
@@ -237,9 +237,9 @@ func (self *valkeyClient) Get(keys ...string) (string, error) {
 	return val, nil
 }
 
-func (self *valkeyClient) GetObject(keys ...string) (interface{}, error) {
+func (self *valkeyClient) GetObject(keys ...string) (any, error) {
 	key := createKey(keys...)
-	var result interface{}
+	var result any
 	val, err := self.Get(key)
 	if err != nil {
 		return result, err
@@ -275,10 +275,7 @@ func (self *valkeyClient) List(limit int, keys ...string) ([]string, error) {
 	// Fetch the values in 100 chunks to avoid memory issues with large datasets
 	var chunks [][]string
 	for i := 0; i < len(selectedKeys); i += MAX_CHUNK_GET_SIZE {
-		end := i + MAX_CHUNK_GET_SIZE
-		if end > len(selectedKeys) {
-			end = len(selectedKeys)
-		}
+		end := min(i+MAX_CHUNK_GET_SIZE, len(selectedKeys))
 		chunks = append(chunks, selectedKeys[i:end])
 	}
 
@@ -301,7 +298,7 @@ func (self *valkeyClient) List(limit int, keys ...string) ([]string, error) {
 	return result, nil
 }
 
-// func (self *valkeyClient) AddToBucket(maxSize int64, value interface{}, bucketKey ...string) error {
+// func (self *valkeyClient) AddToBucket(maxSize int64, value any, bucketKey ...string) error {
 // 	// key := createKey(bucketKey...)
 // 	// // Add the new elements to the end of the list
 // 	// err := self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Rpush().Key(key).Element(utils.PrintJson(value)).Build()).Error()
@@ -389,14 +386,14 @@ func (self *valkeyClient) DeleteFromBucketWithNsAndReleaseName(namespace string,
 	}
 
 	for _, v := range elements {
-		var obj map[string]interface{}
+		var obj map[string]any
 		err := json.Unmarshal([]byte(v), &obj)
 		if err != nil {
 			return fmt.Errorf("error unmarshalling value from Redis, error: %v", err)
 		}
 
 		// Check if the object contains a "Payload" field
-		payload, ok := obj["Payload"].(map[string]interface{})
+		payload, ok := obj["Payload"].(map[string]any)
 		if !ok {
 			continue
 		}
@@ -632,10 +629,7 @@ func GetObjectsByPattern[T any](store ValkeyClient, pattern string, keywords []s
 	// Fetch the values in 100 chunks to avoid memory issues with large datasets
 	var chunks [][]string
 	for i := 0; i < len(keyList); i += MAX_CHUNK_GET_SIZE {
-		end := i + MAX_CHUNK_GET_SIZE
-		if end > len(keyList) {
-			end = len(keyList)
-		}
+		end := min(i+MAX_CHUNK_GET_SIZE, len(keyList))
 		chunks = append(chunks, keyList[i:end])
 	}
 
@@ -889,7 +883,7 @@ func parseStreamMessages[T any](logger *slog.Logger, messages []valkey.XRangeEnt
 	return dataPoints, nil
 }
 
-func (self *valkeyClient) StoreSortedListEntry(data interface{}, timestamp int64, keys ...string) error {
+func (self *valkeyClient) StoreSortedListEntry(data any, timestamp int64, keys ...string) error {
 	streamKey := createKey(keys...)
 
 	jsonData, err := json.Marshal(data)

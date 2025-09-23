@@ -23,7 +23,7 @@ func AllDeployments(namespaceName string) []v1.Deployment {
 	result := []v1.Deployment{}
 
 	clientset := clientProvider.K8sClientSet()
-	deploymentList, err := clientset.AppsV1().Deployments(namespaceName).List(context.TODO(), metav1.ListOptions{})
+	deploymentList, err := clientset.AppsV1().Deployments(namespaceName).List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		k8sLogger.Error("AllDeployments", "error", err.Error())
 		return result
@@ -48,7 +48,7 @@ func DeleteDeployment(eventClient websocket.WebsocketClient, job *structs.Job, n
 		GracePeriodSeconds: utils.Pointer[int64](5),
 	}
 
-	err := deploymentClient.Delete(context.TODO(), service.ControllerName, deleteOptions)
+	err := deploymentClient.Delete(context.Background(), service.ControllerName, deleteOptions)
 	if err != nil {
 		cmd.Fail(eventClient, job, fmt.Sprintf("DeleteDeployment ERROR: %s", err.Error()))
 	} else {
@@ -59,7 +59,7 @@ func DeleteDeployment(eventClient websocket.WebsocketClient, job *structs.Job, n
 func GetDeployment(namespaceName string, controllerName string) (*v1.Deployment, error) {
 	clientset := clientProvider.K8sClientSet()
 	client := clientset.AppsV1().Deployments(namespaceName)
-	return client.Get(context.TODO(), controllerName, metav1.GetOptions{})
+	return client.Get(context.Background(), controllerName, metav1.GetOptions{})
 }
 
 func UpdateDeployment(eventClient websocket.WebsocketClient, job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto) {
@@ -76,10 +76,10 @@ func UpdateDeployment(eventClient websocket.WebsocketClient, job *structs.Job, n
 	}
 
 	deployment := newController.(*v1.Deployment)
-	_, err = deploymentClient.Update(context.TODO(), deployment, MoUpdateOptions(config))
+	_, err = deploymentClient.Update(context.Background(), deployment, MoUpdateOptions(config))
 	if err != nil {
 		if apierrors.IsNotFound(err) {
-			_, err = deploymentClient.Create(context.TODO(), deployment, MoCreateOptions(config))
+			_, err = deploymentClient.Create(context.Background(), deployment, MoCreateOptions(config))
 			if err != nil {
 				cmd.Fail(eventClient, job, fmt.Sprintf("CreateDeployment ERROR: %s", err.Error()))
 			} else {
@@ -112,7 +112,7 @@ func StartDeployment(eventClient websocket.WebsocketClient, job *structs.Job, na
 	// deployment := generateDeployment(namespace, service, false, deploymentClient)
 	deployment := newController.(*v1.Deployment)
 
-	_, err = deploymentClient.Update(context.TODO(), deployment, metav1.UpdateOptions{})
+	_, err = deploymentClient.Update(context.Background(), deployment, metav1.UpdateOptions{})
 	if err != nil {
 		cmd.Fail(eventClient, job, fmt.Sprintf("StartingDeployment ERROR: %s", err.Error()))
 	} else {
@@ -140,7 +140,7 @@ func StopDeployment(eventClient websocket.WebsocketClient, job *structs.Job, nam
 
 	deployment.Spec.Replicas = utils.Pointer[int32](0)
 
-	_, err = deploymentClient.Update(context.TODO(), deployment, metav1.UpdateOptions{})
+	_, err = deploymentClient.Update(context.Background(), deployment, metav1.UpdateOptions{})
 	if err != nil {
 		cmd.Fail(eventClient, job, fmt.Sprintf("StopDeployment ERROR: %s", err.Error()))
 	} else {
@@ -175,7 +175,7 @@ func RestartDeployment(eventClient websocket.WebsocketClient, job *structs.Job, 
 		deployment.Spec.Template.ObjectMeta.Annotations["kubectl.kubernetes.io/restartedAt"] = time.Now().Format(time.RFC3339)
 	}
 
-	_, err = deploymentClient.Update(context.TODO(), deployment, metav1.UpdateOptions{})
+	_, err = deploymentClient.Update(context.Background(), deployment, metav1.UpdateOptions{})
 	if err != nil {
 		cmd.Fail(eventClient, job, fmt.Sprintf("RestartDeployment ERROR: %s", err.Error()))
 	} else {
@@ -185,9 +185,9 @@ func RestartDeployment(eventClient websocket.WebsocketClient, job *structs.Job, 
 	HandleHpa(eventClient, job, namespace.Name, service.ControllerName, service)
 }
 
-func createDeploymentHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, freshlyCreated bool, client interface{}) (*metav1.ObjectMeta, HasSpec, interface{}, error) {
+func createDeploymentHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, freshlyCreated bool, client any) (*metav1.ObjectMeta, HasSpec, any, error) {
 	var previousSpec *v1.DeploymentSpec
-	previousDeployment, err := client.(v1depl.DeploymentInterface).Get(context.TODO(), service.ControllerName, metav1.GetOptions{})
+	previousDeployment, err := client.(v1depl.DeploymentInterface).Get(context.Background(), service.ControllerName, metav1.GetOptions{})
 	if err != nil {
 		previousDeployment = nil
 	} else {
@@ -412,7 +412,7 @@ func GetDeploymentsWithFieldSelector(namespace string, labelSelector string) ([]
 	clientset := clientProvider.K8sClientSet()
 	client := clientset.AppsV1().Deployments(namespace)
 
-	deployments, err := client.List(context.TODO(), metav1.ListOptions{LabelSelector: labelSelector})
+	deployments, err := client.List(context.Background(), metav1.ListOptions{LabelSelector: labelSelector})
 	if err != nil {
 		return result, err
 	}
@@ -438,7 +438,7 @@ func IsDeploymentInstalled(namespaceName string, name string) (string, error) {
 func AllDeploymentsIncludeIgnored(namespaceName string) []v1.Deployment {
 	result := []v1.Deployment{}
 	clientset := clientProvider.K8sClientSet()
-	deploymentList, err := clientset.AppsV1().Deployments(namespaceName).List(context.TODO(), metav1.ListOptions{})
+	deploymentList, err := clientset.AppsV1().Deployments(namespaceName).List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		k8sLogger.Error("AllDeployment", "error", err.Error())
 		return result

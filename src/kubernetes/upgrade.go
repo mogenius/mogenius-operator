@@ -24,7 +24,7 @@ func ClusterForceReconnect() bool {
 
 	for _, podName := range podsToKill {
 		k8sLogger.Warn("Restarting pod ...", "podName", podName)
-		err := podClient.Delete(context.TODO(), podName, metav1.DeleteOptions{})
+		err := podClient.Delete(context.Background(), podName, metav1.DeleteOptions{})
 		if err != nil {
 			k8sLogger.Error("failed to delete pod", "podName", podName, "error", err)
 		}
@@ -44,9 +44,9 @@ func ClusterForceDisconnect() bool {
 
 	// stop k8s-manager
 	deploymentClient := clientset.AppsV1().Deployments(config.Get("MO_OWN_NAMESPACE"))
-	deployment, _ := deploymentClient.Get(context.TODO(), GetOwnDeploymentName(config), metav1.GetOptions{})
+	deployment, _ := deploymentClient.Get(context.Background(), GetOwnDeploymentName(config), metav1.GetOptions{})
 	deployment.Spec.Replicas = utils.Pointer[int32](0)
-	_, err := deploymentClient.Update(context.TODO(), deployment, metav1.UpdateOptions{})
+	_, err := deploymentClient.Update(context.Background(), deployment, metav1.UpdateOptions{})
 	if err != nil {
 		k8sLogger.Error("Error updating deployment", "deployment", deployment, "error", err)
 	}
@@ -56,7 +56,7 @@ func ClusterForceDisconnect() bool {
 
 	for _, podName := range podsToKill {
 		k8sLogger.Warn("Restarting pod...", "pod", podName)
-		err := podClient.Delete(context.TODO(), podName, metav1.DeleteOptions{})
+		err := podClient.Delete(context.Background(), podName, metav1.DeleteOptions{})
 
 		if err != nil {
 			k8sLogger.Error("failed to delete pod", "pod", podName, "error", err)
@@ -90,17 +90,17 @@ func UpgradeMyself(eventClient websocket.WebsocketClient, job *structs.Job, comm
 	k8sjob.OwnerReferences = ownerReference
 
 	// CONFIGMAP
-	_, err = configmapClient.Get(context.TODO(), configmap.Name, metav1.GetOptions{})
+	_, err = configmapClient.Get(context.Background(), configmap.Name, metav1.GetOptions{})
 	if err != nil {
 		// CREATE
-		_, err = configmapClient.Create(context.TODO(), &configmap, MoCreateOptions(config))
+		_, err = configmapClient.Create(context.Background(), &configmap, MoCreateOptions(config))
 		if err != nil {
 			cmd.Fail(eventClient, job, fmt.Sprintf("UpgradeMyself (configmap) ERROR: %s", err.Error()))
 			return
 		}
 	} else {
 		// UPDATE
-		_, err = configmapClient.Update(context.TODO(), &configmap, metav1.UpdateOptions{})
+		_, err = configmapClient.Update(context.Background(), &configmap, metav1.UpdateOptions{})
 		if err != nil {
 			cmd.Fail(eventClient, job, fmt.Sprintf("UpgradeMyself (update_configmap) ERROR: %s", err.Error()))
 			return
@@ -108,17 +108,17 @@ func UpgradeMyself(eventClient websocket.WebsocketClient, job *structs.Job, comm
 	}
 
 	// JOB
-	_, err = jobClient.Get(context.TODO(), k8sjob.Name, metav1.GetOptions{})
+	_, err = jobClient.Get(context.Background(), k8sjob.Name, metav1.GetOptions{})
 	if err != nil {
 		// CREATE
-		_, err = jobClient.Create(context.TODO(), &k8sjob, MoCreateOptions(config))
+		_, err = jobClient.Create(context.Background(), &k8sjob, MoCreateOptions(config))
 		if err != nil {
 			cmd.Fail(eventClient, job, fmt.Sprintf("UpgradeMyself (job) ERROR: %s", err.Error()))
 			return
 		}
 	} else {
 		// UPDATE
-		_, err = jobClient.Update(context.TODO(), &k8sjob, metav1.UpdateOptions{})
+		_, err = jobClient.Update(context.Background(), &k8sjob, metav1.UpdateOptions{})
 		if err != nil {
 			cmd.Fail(eventClient, job, fmt.Sprintf("UpgradeMyself (update_job) ERROR: %s", err.Error()))
 			return

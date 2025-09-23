@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/helm"
 	"mogenius-k8s-manager/src/kubernetes"
 	mokubernetes "mogenius-k8s-manager/src/kubernetes"
@@ -574,11 +575,19 @@ else
 	echo "trivy is installed. 🚀"
 fi
 `
-	defaultAppsConfigmap := kubernetes.ConfigMapFor(config.Get("MO_OWN_NAMESPACE"), utils.MOGENIUS_CONFIGMAP_DEFAULT_APPS_NAME, false)
-	if defaultAppsConfigmap != nil {
-		if installCommands, exists := defaultAppsConfigmap.Data["install-commands"]; exists {
-			userApps = installCommands
-		}
+	defaultAppsConfigmap, err := kubernetes.ConfigMapFor(
+		config.Get("MO_OWN_NAMESPACE"),
+		utils.MOGENIUS_CONFIGMAP_DEFAULT_APPS_NAME,
+		false,
+	)
+	if err != nil {
+		return basicApps, userApps
+	}
+	assert.Assert(defaultAppsConfigmap != nil)
+	assert.Assert(defaultAppsConfigmap.Data != nil)
+
+	if installCommands, exists := defaultAppsConfigmap.Data["install-commands"]; exists {
+		userApps = installCommands
 	}
 
 	return basicApps, userApps

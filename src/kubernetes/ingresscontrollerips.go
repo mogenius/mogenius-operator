@@ -18,7 +18,7 @@ func GetClusterExternalIps() []string {
 
 	clientset := clientProvider.K8sClientSet()
 	labelSelector := "app.kubernetes.io/component=controller,app.kubernetes.io/name=ingress-nginx"
-	services, err := clientset.CoreV1().Services("").List(context.TODO(), metav1.ListOptions{LabelSelector: labelSelector})
+	services, err := clientset.CoreV1().Services("").List(context.Background(), metav1.ListOptions{LabelSelector: labelSelector})
 	if err != nil {
 		k8sLogger.Error(err.Error())
 		return result
@@ -28,7 +28,7 @@ func GetClusterExternalIps() []string {
 	// check if traefik is used
 	if len(result) <= 0 {
 		traefikSelector := "app.kubernetes.io/name=traefik"
-		services, err := clientset.CoreV1().Services("").List(context.TODO(), metav1.ListOptions{LabelSelector: traefikSelector})
+		services, err := clientset.CoreV1().Services("").List(context.Background(), metav1.ListOptions{LabelSelector: traefikSelector})
 		if err != nil {
 			k8sLogger.Error(err.Error())
 			return result

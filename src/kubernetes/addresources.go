@@ -22,7 +22,7 @@ func CreateOrUpdateClusterSecret() (utils.ClusterSecret, error) {
 	clientset := clientProvider.K8sClientSet()
 	secretClient := clientset.CoreV1().Secrets(config.Get("MO_OWN_NAMESPACE"))
 
-	existingSecret, getErr := secretClient.Get(context.TODO(), config.Get("MO_OWN_NAMESPACE"), metav1.GetOptions{})
+	existingSecret, getErr := secretClient.Get(context.Background(), config.Get("MO_OWN_NAMESPACE"), metav1.GetOptions{})
 	return writeMogeniusSecret(secretClient, existingSecret, getErr)
 }
 
@@ -30,7 +30,7 @@ func GetValkeyPwd() (*string, error) {
 	clientset := clientProvider.K8sClientSet()
 	secretClient := clientset.CoreV1().Secrets(config.Get("MO_OWN_NAMESPACE"))
 
-	existingSecret, getErr := secretClient.Get(context.TODO(), "mogenius-k8s-manager-valkey", metav1.GetOptions{})
+	existingSecret, getErr := secretClient.Get(context.Background(), "mogenius-k8s-manager-valkey", metav1.GetOptions{})
 	if getErr != nil {
 		return nil, getErr
 	}
@@ -72,7 +72,7 @@ func writeMogeniusSecret(secretClient v1.SecretInterface, existingSecret *core.S
 
 	if existingSecret == nil || getErr != nil {
 		k8sLogger.Info("🔑 Creating new mogenius secret ...")
-		result, err := secretClient.Create(context.TODO(), &secret, MoCreateOptions(config))
+		result, err := secretClient.Create(context.Background(), &secret, MoCreateOptions(config))
 		if err != nil {
 			k8sLogger.Error("Error creating mogenius secret.", "error", err)
 			return clusterSecret, err
@@ -83,7 +83,7 @@ func writeMogeniusSecret(secretClient v1.SecretInterface, existingSecret *core.S
 			string(existingSecret.Data["api-key"]) != clusterSecret.ApiKey ||
 			string(existingSecret.Data["cluster-name"]) != clusterSecret.ClusterName {
 			k8sLogger.Info("🔑 Updating existing mogenius secret ...")
-			result, err := secretClient.Update(context.TODO(), &secret, MoUpdateOptions(config))
+			result, err := secretClient.Update(context.Background(), &secret, MoUpdateOptions(config))
 			if err != nil {
 				k8sLogger.Error("Error updating mogenius secret.", "error", err)
 				return clusterSecret, err
@@ -105,9 +105,9 @@ func InitOrUpdateCrds() {
 			k8sLogger.Error("error updating/creating mogenius CRD", "filename", crd.Filename, "error", err)
 			shutdown.SendShutdownSignal(true)
 			select {}
-		} else {
-			k8sLogger.Info("created/updated mogenius CRD 🚀", "filename", crd.Filename)
 		}
+
+		k8sLogger.Info("created/updated mogenius CRD 🚀", "filename", crd.Filename)
 	}
 }
 
@@ -134,8 +134,12 @@ func CreateYamlString(yamlContent string) error {
 	}
 
 	dynamicResource := dynamicClient.Resource(groupVersionResource).Namespace(resource.GetNamespace())
-
-	if _, err := dynamicResource.Create(context.TODO(), resource, metav1.CreateOptions{}); err != nil {
+	_, err = dynamicResource.Create(
+		context.Background(),
+		resource,
+		metav1.CreateOptions{},
+	)
+	if err != nil {
 		return err
 	}
 
@@ -147,13 +151,8 @@ func CreateOrUpdateYamlString(yamlContent string) error {
 	dynamicClient := clientProvider.DynamicClient()
 	decUnstructured := yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme)
 
-	_, groupVersionKind, err := decUnstructured.Decode([]byte(yamlContent), nil, nil)
-	if err != nil {
-		return err
-	}
-
 	resource := &unstructured.Unstructured{}
-	_, _, err = decUnstructured.Decode([]byte(yamlContent), nil, resource)
+	_, groupVersionKind, err := decUnstructured.Decode([]byte(yamlContent), nil, resource)
 	if err != nil {
 		return err
 	}
@@ -166,12 +165,24 @@ func CreateOrUpdateYamlString(yamlContent string) error {
 
 	dynamicResource := dynamicClient.Resource(groupVersionResource).Namespace(resource.GetNamespace())
 
-	if _, err := dynamicResource.Create(context.TODO(), resource, metav1.CreateOptions{}); err != nil {
+	if _, err := dynamicResource.Create(
+		context.Background(),
+		resource,
+		metav1.CreateOptions{},
+	); err != nil {
 		if apierrors.IsAlreadyExists(err) {
 			// get the current resourcerevision to update the existing object
-			currentObject, _ := dynamicResource.Get(context.TODO(), resource.GetName(), metav1.GetOptions{})
+			currentObject, _ := dynamicResource.Get(
+				context.Background(),
+				resource.GetName(),
+				metav1.GetOptions{},
+			)
 			resource.SetResourceVersion(currentObject.GetResourceVersion())
-			if _, err := dynamicResource.Update(context.TODO(), resource, metav1.UpdateOptions{}); err != nil {
+			if _, err := dynamicResource.Update(
+				context.Background(),
+				resource,
+				metav1.UpdateOptions{},
+			); err != nil {
 				return err
 			}
 		} else {

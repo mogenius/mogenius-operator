@@ -42,11 +42,11 @@ type ValkeyStatsDb interface {
 	AddNodeStatsToDb(stats []structs.NodeStats) error
 	AddMachineStatsToDb(nodeName string, stats structs.MachineStats) error
 	AddPodStatsToDb(stats []structs.PodStats) error
-	AddNodeRamMetricsToDb(nodeName string, data interface{}) error
-	AddNodeRamProcessMetricsToDb(nodeName string, data interface{}) error
-	AddNodeCpuMetricsToDb(nodeName string, data interface{}) error
-	AddNodeCpuProcessMetricsToDb(nodeName string, data interface{}) error
-	AddNodeTrafficMetricsToDb(nodeName string, data interface{}) error
+	AddNodeRamMetricsToDb(nodeName string, data any) error
+	AddNodeRamProcessMetricsToDb(nodeName string, data any) error
+	AddNodeCpuMetricsToDb(nodeName string, data any) error
+	AddNodeCpuProcessMetricsToDb(nodeName string, data any) error
+	AddNodeTrafficMetricsToDb(nodeName string, data any) error
 	AddSnoopyStatusToDb(nodeName string, data networkmonitor.SnoopyStatus) error
 	GetCniData() ([]structs.CniData, error)
 	// GetLastPodStatsEntriesForNamespace(namespace string) []structs.PodStats
@@ -64,7 +64,7 @@ type ValkeyStatsDb interface {
 	GetWorkspaceStatsMemoryUtilization(timeOffsetInMinutes int, resources []unstructured.Unstructured) ([]GenericChartEntry, error)
 	GetWorkspaceStatsTrafficUtilization(timeOffsetInMinutes int, resources []unstructured.Unstructured) ([]GenericChartEntry, error)
 	ReplaceCniData(data []structs.CniData)
-	Publish(data interface{}, keys ...string)
+	Publish(data any, keys ...string)
 }
 
 type valkeyStatsDb struct {
@@ -105,7 +105,10 @@ func (self *valkeyStatsDb) AddMachineStatsToDb(nodeName string, stats structs.Ma
 }
 
 func (self *valkeyStatsDb) GetMachineStatsForNode(nodeName string) (*structs.MachineStats, error) {
-	machineStats, err := valkeyclient.GetObjectForKey[structs.MachineStats](self.valkey, DB_STATS_MACHINE_STATS_BUCKET_NAME, nodeName)
+	machineStats, err := valkeyclient.GetObjectForKey[structs.MachineStats](
+		self.valkey,
+		DB_STATS_MACHINE_STATS_BUCKET_NAME, nodeName,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal data as MachineStats: %s", err)
 	}
@@ -146,7 +149,11 @@ func (self *valkeyStatsDb) AddInterfaceStatsToDb(currentStats []networkmonitor.P
 		}
 
 		// err := self.valkey.AddToBucket(DefaultMaxSize, stat, DB_STATS_TRAFFIC_BUCKET_NAME, stat.Namespace, controller.Name)
-		err := self.valkey.StoreSortedListEntry(deltaStat, time.Now().Truncate(time.Minute).Unix(), DB_STATS_TRAFFIC_BUCKET_NAME, currentStat.Namespace, controller.Name)
+		err := self.valkey.StoreSortedListEntry(
+			deltaStat,
+			time.Now().Truncate(time.Minute).Unix(),
+			DB_STATS_TRAFFIC_BUCKET_NAME, currentStat.Namespace, controller.Name,
+		)
 		if err != nil {
 			self.logger.Error("Error adding interface stats", "namespace", currentStat.Namespace, "podName", currentStat.Pod, "error", err)
 		}
@@ -163,28 +170,44 @@ func (self *valkeyStatsDb) ReplaceCniData(data []structs.CniData) {
 }
 
 func (self *valkeyStatsDb) GetCniData() ([]structs.CniData, error) {
-	result, err := valkeyclient.GetObjectsByPrefix[structs.CniData](self.valkey, valkeyclient.ORDER_NONE, DB_STATS_CNI_BUCKET_NAME)
+	result, err := valkeyclient.GetObjectsByPrefix[structs.CniData](
+		self.valkey,
+		valkeyclient.ORDER_NONE,
+		DB_STATS_CNI_BUCKET_NAME,
+	)
 	return result, err
 }
 
 func (self *valkeyStatsDb) GetPodStatsEntriesForController(kind string, name string, namespace string, timeOffsetMinutes int64) *[]structs.PodStats {
-	result, err := valkeyclient.GetObjectsFromSortedListWithDuration[structs.PodStats](self.valkey, timeOffsetMinutes, DB_STATS_POD_STATS_BUCKET_NAME, namespace, name)
+	result, err := valkeyclient.GetObjectsFromSortedListWithDuration[structs.PodStats](
+		self.valkey,
+		timeOffsetMinutes,
+		DB_STATS_POD_STATS_BUCKET_NAME, namespace, name,
+	)
 	if err != nil {
-		self.logger.Error("GetPodStatsEntriesForController", "error", err)
+		self.logger.Error("failed to GetPodStatsEntriesForController", "error", err)
 	}
 	return &result
 }
 
 func (self *valkeyStatsDb) GetTrafficStatsEntriesForController(kind string, name string, namespace string, timeOffsetMinutes int64) *[]networkmonitor.PodNetworkStats {
-	result, err := valkeyclient.GetObjectsFromSortedListWithDuration[networkmonitor.PodNetworkStats](self.valkey, timeOffsetMinutes, DB_STATS_TRAFFIC_BUCKET_NAME, namespace, name)
+	result, err := valkeyclient.GetObjectsFromSortedListWithDuration[networkmonitor.PodNetworkStats](
+		self.valkey,
+		timeOffsetMinutes,
+		DB_STATS_TRAFFIC_BUCKET_NAME, namespace, name,
+	)
 	if err != nil {
-		self.logger.Error(err.Error())
+		self.logger.Error("failed to GetTrafficStatsEntriesForController", "error", err)
 	}
 	return &result
 }
 
 func (self *valkeyStatsDb) GetTrafficStatsEntrySumForController(controller dtos.K8sController, includeSocketConnections bool) *networkmonitor.PodNetworkStats {
-	entries, err := valkeyclient.GetObjectsByPrefix[networkmonitor.PodNetworkStats](self.valkey, valkeyclient.ORDER_DESC, DB_STATS_TRAFFIC_BUCKET_NAME, controller.Namespace, controller.Name)
+	entries, err := valkeyclient.GetObjectsByPrefix[networkmonitor.PodNetworkStats](
+		self.valkey,
+		valkeyclient.ORDER_DESC,
+		DB_STATS_TRAFFIC_BUCKET_NAME, controller.Namespace, controller.Name,
+	)
 	if err != nil {
 		self.logger.Error(err.Error())
 	}
@@ -221,18 +244,21 @@ func (self *valkeyStatsDb) GetWorkspaceStatsCpuUtilization(
 	}
 
 	result := make(map[time.Time]GenericChartEntry)
-	var mu sync.Mutex
-
-	promise := utils.NewPromise[structs.PodStats]()
+	var resultMutex sync.Mutex
+	var wg sync.WaitGroup
 
 	for _, controller := range resources {
 		ns, name := controller.GetNamespace(), controller.GetName()
 
-		promise.RunArray(func() *[]structs.PodStats {
-			values, err := valkeyclient.GetObjectsFromSortedListWithDuration[structs.PodStats](self.valkey, int64(timeOffsetInMinutes), DB_STATS_POD_STATS_BUCKET_NAME, ns, name)
+		wg.Go(func() {
+			values, err := valkeyclient.GetObjectsFromSortedListWithDuration[structs.PodStats](
+				self.valkey,
+				int64(timeOffsetInMinutes),
+				DB_STATS_POD_STATS_BUCKET_NAME, ns, name,
+			)
 			if err != nil {
 				self.logger.Error(err.Error())
-				return nil
+				return
 			}
 
 			// Aggregate locally for this resource
@@ -264,7 +290,7 @@ func (self *valkeyStatsDb) GetWorkspaceStatsCpuUtilization(
 			}
 
 			// Merge local aggregation into global map
-			mu.Lock()
+			resultMutex.Lock()
 			for t, e := range localAgg {
 				g := result[t]
 				if g.Pods == nil {
@@ -279,13 +305,10 @@ func (self *valkeyStatsDb) GetWorkspaceStatsCpuUtilization(
 				}
 				result[t] = g
 			}
-			mu.Unlock()
-
-			return &values
+			resultMutex.Unlock()
 		})
 	}
-
-	_ = promise.Wait()
+	wg.Wait()
 
 	// Collect timestamps
 	times := make([]time.Time, 0, len(result))
@@ -304,17 +327,22 @@ func (self *valkeyStatsDb) GetWorkspaceStatsCpuUtilization(
 }
 
 func updateTop5Pods(pods map[string]float64, compareValue float64, podName string) map[string]float64 {
-	if smallestKey, smallestValue, found := findSmallest(pods); found {
-		if len(pods) >= 5 {
-			pods[smallestKey] = compareValue
-		} else {
-			if smallestValue < compareValue {
-				pods[podName] = compareValue
-			}
-		}
-	} else {
+	smallestKey, smallestValue, found := findSmallest(pods)
+	if !found {
 		pods[podName] = compareValue
+		return pods
 	}
+
+	if len(pods) >= 5 {
+		pods[smallestKey] = compareValue
+		return pods
+	}
+
+	if smallestValue < compareValue {
+		pods[podName] = compareValue
+		return pods
+	}
+
 	return pods
 }
 
@@ -322,7 +350,6 @@ func (self *valkeyStatsDb) GetWorkspaceStatsMemoryUtilization(
 	timeOffsetInMinutes int,
 	resources []unstructured.Unstructured,
 ) ([]GenericChartEntry, error) {
-
 	// Clamp ranges
 	if timeOffsetInMinutes < 5 {
 		timeOffsetInMinutes = 5
@@ -332,19 +359,22 @@ func (self *valkeyStatsDb) GetWorkspaceStatsMemoryUtilization(
 	}
 
 	result := make(map[time.Time]GenericChartEntry)
-	var mu sync.Mutex
-
-	promise := utils.NewPromise[structs.PodStats]()
+	var resultMutex sync.Mutex
+	var wg sync.WaitGroup
 
 	for _, controller := range resources {
 		ns := controller.GetNamespace()
 		name := controller.GetName()
 
-		promise.RunArray(func() *[]structs.PodStats {
-			values, err := valkeyclient.GetObjectsFromSortedListWithDuration[structs.PodStats](self.valkey, int64(timeOffsetInMinutes), DB_STATS_POD_STATS_BUCKET_NAME, ns, name)
+		wg.Go(func() {
+			values, err := valkeyclient.GetObjectsFromSortedListWithDuration[structs.PodStats](
+				self.valkey,
+				int64(timeOffsetInMinutes),
+				DB_STATS_POD_STATS_BUCKET_NAME, ns, name,
+			)
 			if err != nil {
-				self.logger.Error(err.Error())
-				return nil
+				self.logger.Error("failed to GetObjectsFromSortedListWithDuration", "error", err)
+				return
 			}
 
 			// Local aggregation per goroutine
@@ -376,7 +406,8 @@ func (self *valkeyStatsDb) GetWorkspaceStatsMemoryUtilization(
 			}
 
 			// Merge aggregated values into global map under one lock
-			mu.Lock()
+			resultMutex.Lock()
+			defer resultMutex.Unlock()
 			for t, e := range localAgg {
 				g := result[t]
 				if g.Pods == nil {
@@ -392,13 +423,9 @@ func (self *valkeyStatsDb) GetWorkspaceStatsMemoryUtilization(
 				}
 				result[t] = g
 			}
-			mu.Unlock()
-
-			return &values
 		})
 	}
-
-	_ = promise.Wait()
+	wg.Wait()
 
 	// Collect keys and sort them chronologically
 	times := make([]time.Time, 0, len(result))
@@ -434,7 +461,11 @@ func (self *valkeyStatsDb) GetWorkspaceStatsTrafficUtilization(timeOffsetInMinut
 	var resultMutex sync.Mutex
 	for _, controller := range resources {
 		wg.Go(func() {
-			values, err := valkeyclient.GetObjectsFromSortedListWithDuration[networkmonitor.PodNetworkStats](self.valkey, int64(timeOffsetInMinutes), DB_STATS_TRAFFIC_BUCKET_NAME, controller.GetNamespace(), controller.GetName())
+			values, err := valkeyclient.GetObjectsFromSortedListWithDuration[networkmonitor.PodNetworkStats](
+				self.valkey,
+				int64(timeOffsetInMinutes),
+				DB_STATS_TRAFFIC_BUCKET_NAME, controller.GetNamespace(), controller.GetName(),
+			)
 			if err != nil {
 				self.logger.Error("failed to fetch objects from valkey", "error", err)
 				return
@@ -480,18 +511,26 @@ func (self *valkeyStatsDb) GetWorkspaceStatsTrafficUtilization(timeOffsetInMinut
 }
 
 func (self *valkeyStatsDb) GetPodStatsEntriesForNamespace(namespace string) *[]structs.PodStats {
-	values, err := valkeyclient.GetObjectsByPrefix[structs.PodStats](self.valkey, valkeyclient.ORDER_NONE, DB_STATS_POD_STATS_BUCKET_NAME, namespace)
+	values, err := valkeyclient.GetObjectsByPrefix[structs.PodStats](
+		self.valkey,
+		valkeyclient.ORDER_NONE,
+		DB_STATS_POD_STATS_BUCKET_NAME, namespace,
+	)
 	if err != nil {
-		self.logger.Error(err.Error())
+		self.logger.Error("failed to GetPodStatsEntriesForNamespace", "error", err)
 	}
 
 	return &values
 }
 
 func (self *valkeyStatsDb) GetTrafficStatsEntriesForNamespace(namespace string) *[]networkmonitor.PodNetworkStats {
-	values, err := valkeyclient.GetObjectsByPrefix[networkmonitor.PodNetworkStats](self.valkey, valkeyclient.ORDER_DESC, DB_STATS_TRAFFIC_BUCKET_NAME, namespace)
+	values, err := valkeyclient.GetObjectsByPrefix[networkmonitor.PodNetworkStats](
+		self.valkey,
+		valkeyclient.ORDER_DESC,
+		DB_STATS_TRAFFIC_BUCKET_NAME, namespace,
+	)
 	if err != nil {
-		self.logger.Error(err.Error())
+		self.logger.Error("failed to GetTrafficStatsEntriesForNamespace", "error", err)
 	}
 
 	return &values
@@ -516,6 +555,7 @@ func (self *valkeyStatsDb) GetTrafficStatsEntriesSumForNamespace(namespace strin
 		}
 
 	}
+
 	return result
 }
 
@@ -528,7 +568,11 @@ func (self *valkeyStatsDb) AddPodStatsToDb(stats []structs.PodStats) error {
 		}
 
 		stat.CreatedAt = time.Now()
-		err := self.valkey.StoreSortedListEntry(stat, time.Now().Truncate(time.Minute).Unix(), DB_STATS_POD_STATS_BUCKET_NAME, stat.Namespace, controller.Name)
+		err := self.valkey.StoreSortedListEntry(
+			stat,
+			time.Now().Truncate(time.Minute).Unix(),
+			DB_STATS_POD_STATS_BUCKET_NAME, stat.Namespace, controller.Name,
+		)
 		if err != nil {
 			return fmt.Errorf("error adding pod stats: %s", err)
 		}
@@ -536,27 +580,27 @@ func (self *valkeyStatsDb) AddPodStatsToDb(stats []structs.PodStats) error {
 	return nil
 }
 
-func (self *valkeyStatsDb) AddNodeRamMetricsToDb(nodeName string, data interface{}) error {
+func (self *valkeyStatsDb) AddNodeRamMetricsToDb(nodeName string, data any) error {
 	self.Publish(data, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_MEMORY_NAME, nodeName)
 	return self.valkey.SetObject(data, 0, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_MEMORY_NAME, nodeName)
 }
 
-func (self *valkeyStatsDb) AddNodeRamProcessMetricsToDb(nodeName string, data interface{}) error {
+func (self *valkeyStatsDb) AddNodeRamProcessMetricsToDb(nodeName string, data any) error {
 	self.Publish(data, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_MEMORY_NAME, DB_STATS_PROCESSES_NAME, nodeName)
 	return self.valkey.SetObject(data, 0, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_MEMORY_NAME, DB_STATS_PROCESSES_NAME, nodeName)
 }
 
-func (self *valkeyStatsDb) AddNodeCpuMetricsToDb(nodeName string, data interface{}) error {
+func (self *valkeyStatsDb) AddNodeCpuMetricsToDb(nodeName string, data any) error {
 	self.Publish(data, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_CPU_NAME, nodeName)
 	return self.valkey.SetObject(data, 0, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_CPU_NAME, nodeName)
 }
 
-func (self *valkeyStatsDb) AddNodeCpuProcessMetricsToDb(nodeName string, data interface{}) error {
+func (self *valkeyStatsDb) AddNodeCpuProcessMetricsToDb(nodeName string, data any) error {
 	self.Publish(data, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_CPU_NAME, DB_STATS_PROCESSES_NAME, nodeName)
 	return self.valkey.SetObject(data, 0, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_CPU_NAME, DB_STATS_PROCESSES_NAME, nodeName)
 }
 
-func (self *valkeyStatsDb) AddNodeTrafficMetricsToDb(nodeName string, data interface{}) error {
+func (self *valkeyStatsDb) AddNodeTrafficMetricsToDb(nodeName string, data any) error {
 	self.Publish(data, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_TRAFFIC_NAME, nodeName)
 	return self.valkey.SetObject(data, 0, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_TRAFFIC_NAME, nodeName)
 }
@@ -569,7 +613,11 @@ func (self *valkeyStatsDb) AddNodeStatsToDb(stats []structs.NodeStats) error {
 	for _, stat := range stats {
 		stat.CreatedAt = time.Now().Format(time.RFC3339)
 		// err := self.valkey.AddToBucket(DefaultMaxSize, stat, DB_STATS_NODE_STATS_BUCKET_NAME, stat.Name)
-		err := self.valkey.StoreSortedListEntry(stat, time.Now().Truncate(time.Minute).Unix(), DB_STATS_NODE_STATS_BUCKET_NAME, stat.Name)
+		err := self.valkey.StoreSortedListEntry(
+			stat,
+			time.Now().Truncate(time.Minute).Unix(),
+			DB_STATS_NODE_STATS_BUCKET_NAME, stat.Name,
+		)
 		if err != nil {
 			return fmt.Errorf("error adding node stats: %s", err)
 		}
@@ -577,10 +625,13 @@ func (self *valkeyStatsDb) AddNodeStatsToDb(stats []structs.NodeStats) error {
 	return nil
 }
 
-func (self *valkeyStatsDb) Publish(data interface{}, keys ...string) {
+func (self *valkeyStatsDb) Publish(data any, keys ...string) {
 	key := strings.Join(keys, ":")
 	client := self.valkey.GetValkeyClient()
-	err := client.Do(self.valkey.GetContext(), client.B().Publish().Channel(key).Message(utils.PrintJson(data)).Build()).Error()
+	err := client.Do(
+		self.valkey.GetContext(),
+		client.B().Publish().Channel(key).Message(utils.PrintJson(data)).Build(),
+	).Error()
 
 	if err != nil {
 		self.logger.Error("Error publishing to Redis", "error", err, "key", key)

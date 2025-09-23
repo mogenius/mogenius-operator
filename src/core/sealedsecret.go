@@ -117,7 +117,7 @@ func (s *sealedSecretManager) CreateSealedSecretFromExisting(secretName, namespa
 	}
 	// Get the existing secret
 	secretUnstr, err := s.clientProvider.DynamicClient().Resource(secretGVR).Namespace(namespace).Get(
-		context.TODO(),
+		context.Background(),
 		secretName,
 		metav1.GetOptions{},
 	)
@@ -138,7 +138,7 @@ func (s *sealedSecretManager) CreateSealedSecretFromExisting(secretName, namespa
 
 	// Apply the SealedSecret
 	createdSealedSecret, err := s.clientProvider.DynamicClient().Resource(sealedSecretGVR).Namespace(namespace).Create(
-		context.TODO(),
+		context.Background(),
 		sealedSecret,
 		metav1.CreateOptions{},
 	)
@@ -154,7 +154,7 @@ func (s *sealedSecretManager) CreateSealedSecretFromExisting(secretName, namespa
 	}
 	secret.Annotations["sealedsecrets.bitnami.com/managed"] = "true"
 	_, err = s.clientProvider.K8sClientSet().CoreV1().Secrets(namespace).Update(
-		context.TODO(),
+		context.Background(),
 		secret,
 		metav1.UpdateOptions{},
 	)
@@ -172,7 +172,7 @@ func (s *sealedSecretManager) CreateSealedSecretFromExisting(secretName, namespa
 func (s *sealedSecretManager) GetMainSecret() (*v1.Secret, error) {
 	clientset := s.clientProvider.K8sClientSet()
 	client := clientset.CoreV1().Secrets("")
-	secretsList, err := client.List(context.TODO(), metav1.ListOptions{})
+	secretsList, err := client.List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to list secrets: %v", err)
 	}
