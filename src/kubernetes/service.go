@@ -68,10 +68,6 @@ func UpdateService(eventClient websocket.WebsocketClient, job *structs.Job, name
 		FieldManager: GetOwnDeploymentName(config),
 	}
 
-	// bind/unbind ports globally
-	// TODO: rework TCP/UDP stuff
-	// UpdateTcpUdpPorts(namespace, service, true)
-
 	if len(updateService.Spec.Ports) <= 0 {
 		if getSrvErr == nil {
 			err := serviceClient.Delete(context.Background(), service.ControllerName, metav1.DeleteOptions{})
