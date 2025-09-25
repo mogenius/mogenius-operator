@@ -192,10 +192,6 @@ func MoAddLabels(existingLabels *map[string]string, newLabels map[string]string)
 
 // mount nfs server in k8s-manager
 func Mount(volumeNamespace string, volumeName string, nfsService *core.Service) {
-	if config.Get("MO_STAGE") == utils.STAGE_LOCAL {
-		return
-	}
-
 	go func() {
 		var service *core.Service = nfsService
 		if service == nil {

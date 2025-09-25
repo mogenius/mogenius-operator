@@ -237,7 +237,7 @@ func (self *core) Initialize() error {
 	assert.Assert(err == nil, err)
 	if autoMountNfs {
 		volumesToMount, err := mokubernetes.GetVolumeMountsForK8sManager()
-		if err != nil && self.config.Get("MO_STAGE") != utils.STAGE_LOCAL {
+		if err != nil {
 			self.logger.Error("GetVolumeMountsForK8sManager", "error", err)
 		}
 		for _, vol := range volumesToMount {

@@ -295,12 +295,6 @@ func updateInfrastructureYaml(eventClient websocket.WebsocketClient, job *struct
 	cmd := structs.CreateCommand(eventClient, "update", "Update infrastructure YAML", job)
 	cmd.Start(eventClient, job, "Update infrastructure YAML")
 
-	// dont do this in local environment
-	// if config.Get("MO_STAGE") == "local" {
-	// 	cmd.Success(job, "Skipping infrastructure YAML update")
-	// 	return
-	// }
-
 	for _, container := range service.Containers {
 		if container.SettingsYaml != nil && container.GitBranch != nil && container.GitRepository != nil {
 			if container.GitRepository == nil {

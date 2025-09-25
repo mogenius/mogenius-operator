@@ -119,6 +119,5 @@ var WorkspaceResource = ResourceEntry{
 
 const STAGE_DEV = "dev"
 const STAGE_PROD = "prod"
-const STAGE_LOCAL = "local"
 
 var ClusterProviderCached KubernetesProvider = UNKNOWN

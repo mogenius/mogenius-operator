@@ -198,16 +198,13 @@ func LoadConfigDeclarations(configModule *config.Config) {
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_STAGE",
-		DefaultValue: utils.Pointer("prod"),
+		DefaultValue: utils.Pointer(string(utils.STAGE_PROD)),
 		Description:  utils.Pointer("the stage automatically overrides API server configs"),
 		Envs:         []string{"STAGE", "stage"},
 		Validate: func(val string) error {
 			allowedStages := []string{
-				"prod",
-				"pre-prod",
-				"dev",
-				"local",
-				"", // empty to skip overrides
+				utils.STAGE_PROD,
+				utils.STAGE_DEV,
 			}
 			if !slices.Contains(allowedStages, val) {
 				return fmt.Errorf("'MO_STAGE' needs to be one of '%v' but is '%s'", allowedStages, val)
@@ -251,8 +248,9 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		Envs:         []string{"OWN_DEPLOYMENT_NAME"},
 	})
 	configModule.Declare(config.ConfigDeclaration{
-		Key:         "MO_API_SERVER",
-		Description: utils.Pointer("URL of API Server"),
+		Key:          "MO_API_SERVER",
+		Description:  utils.Pointer("URL of API Server"),
+		DefaultValue: utils.Pointer(""),
 		Validate: func(value string) error {
 			_, err := url.Parse(value)
 			if err != nil {
@@ -262,8 +260,9 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		},
 	})
 	configModule.Declare(config.ConfigDeclaration{
-		Key:         "MO_EVENT_SERVER",
-		Description: utils.Pointer("URL of Event Server"),
+		Key:          "MO_EVENT_SERVER",
+		Description:  utils.Pointer("URL of Event Server"),
+		DefaultValue: utils.Pointer(""),
 		Validate: func(value string) error {
 			_, err := url.Parse(value)
 			if err != nil {
@@ -446,20 +445,20 @@ func LoadConfigDeclarations(configModule *config.Config) {
 func ApplyStageOverrides(configModule *config.Config) {
 	stage := configModule.Get("MO_STAGE")
 	switch stage {
-	case "prod":
-		configModule.Set("MO_API_SERVER", "wss://k8s-ws.mogenius.com/ws")
-		configModule.Set("MO_EVENT_SERVER", "wss://k8s-dispatcher.mogenius.com/ws")
-	case "pre-prod":
-		configModule.Set("MO_API_SERVER", "wss://k8s-ws.pre-prod.mogenius.com/ws")
-		configModule.Set("MO_EVENT_SERVER", "wss://k8s-dispatcher.pre-prod.mogenius.com/ws")
-	case "dev":
-		configModule.Set("MO_API_SERVER", "wss://k8s-ws.dev.mogenius.com/ws")
-		configModule.Set("MO_EVENT_SERVER", "wss://k8s-dispatcher.dev.mogenius.com/ws")
-	case "local":
-		configModule.Set("MO_API_SERVER", "ws://127.0.0.1:7011/ws")
-		configModule.Set("MO_EVENT_SERVER", "ws://127.0.0.1:7011/ws")
-	case "":
-		// does not override
+	case utils.STAGE_PROD:
+		if configModule.Get("MO_API_SERVER") == "" {
+			configModule.Set("MO_API_SERVER", "wss://k8s-ws.mogenius.com/ws")
+		}
+		if configModule.Get("MO_EVENT_SERVER") == "" {
+			configModule.Set("MO_EVENT_SERVER", "wss://k8s-dispatcher.mogenius.com/ws")
+		}
+	case utils.STAGE_DEV:
+		if configModule.Get("MO_API_SERVER") == "" {
+			configModule.Set("MO_API_SERVER", "wss://k8s-ws.dev.mogenius.com/ws")
+		}
+		if configModule.Get("MO_EVENT_SERVER") == "" {
+			configModule.Set("MO_EVENT_SERVER", "wss://k8s-dispatcher.dev.mogenius.com/ws")
+		}
 	}
 }
 

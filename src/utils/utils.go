@@ -339,7 +339,7 @@ func GuessClusterCountry() (*CountryDetails, error) {
 
 func IsProduction() bool {
 	stage := config.Get("MO_STAGE")
-	return slices.Contains([]string{"prod", "production"}, strings.ToLower(stage))
+	return slices.Contains([]string{STAGE_PROD, "production"}, strings.ToLower(stage))
 }
 
 func Remove[T any](slice []T, s int) []T {

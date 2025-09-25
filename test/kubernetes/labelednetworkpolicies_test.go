@@ -93,10 +93,6 @@ func TestCreateNetworkPolicyServiceWithLabel(t *testing.T) {
 		Key:          "KUBERNETES_DEBUG",
 		DefaultValue: utils.Pointer("false"),
 	})
-	config.Declare(cfg.ConfigDeclaration{
-		Key:          "OWN_DEPLOYMENT_NAME",
-		DefaultValue: utils.Pointer("local"),
-	})
 	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"), config)
 	storeModule := valkeyclient.NewValkeyClient(logManager.CreateLogger("valkey"), config)
 	err := kubernetes.Setup(logManager, config, clientProvider, storeModule)

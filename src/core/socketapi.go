@@ -425,9 +425,9 @@ func (self *socketApi) registerPatterns() {
 			PatternConfig{},
 			func(datagram structs.Datagram, request Void) (Response, error) {
 				resp := Response{}
-				resp.BuildInfo.BuildType = "prod"
+				resp.BuildInfo.BuildType = utils.STAGE_PROD
 				if utils.IsDevBuild() {
-					resp.BuildInfo.BuildType = "dev"
+					resp.BuildInfo.BuildType = utils.STAGE_DEV
 				}
 				resp.BuildInfo.Version = *version.NewVersion()
 				resp.Patterns = self.PatternConfigs()
