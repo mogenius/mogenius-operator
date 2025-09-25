@@ -440,7 +440,6 @@ func (self *valkeyClient) ClearNonEssentialKeys(includeTraffic bool, includePodS
 		"logs:websocket-events-client",
 		"logs:websocket-job-client",
 		"maschine-stats:",
-		"pod-events:", // Todo: is this still really in use? Looks like no data is written to this key
 		"status:",
 	}
 
