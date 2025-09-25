@@ -5,6 +5,7 @@
 <p align="center">Kubernetes cluster manager & runtime control-plane components for the <a href="https://mogenius.com" target="_blank">mogenius</a> platform.</p>
 
 ---
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/mogenius)](https://artifacthub.io/packages/helm/mogenius/mogenius-k8s-manager)
 
 ## Table of Contents
 1. Overview
@@ -198,16 +199,16 @@ Add & install:
 ```sh
 helm repo add mo-public helm.mogenius.com/public
 helm repo update
-helm search repo mogenius-platform
-helm install mogenius-platform mo-public/mogenius-platform \
+helm search repo mo-public
+helm upgrade --install mogenius-platform mo-public/mogenius-k8s-manager \
+  --namespace mogenius --create-namespace \
   --set global.cluster_name="<cluster>" \
-  --set global.api_key="<api-key>" \
-  --set global.namespace="mogenius"
+  --set global.api_key="<api-key>"
 ```
 Upgrade:
 ```sh
 helm repo update
-helm upgrade mogenius-platform mo-public/mogenius-platform
+helm upgrade mogenius-platform mo-public/mogenius-k8s-manager
 ```
 Uninstall:
 ```sh
@@ -287,4 +288,3 @@ Built with ❤️ by the <a href="https://mogenius.com" target="_blank">mogenius
 References:
 - Task runner: https://github.com/casey/just
 - Go module: `mogenius-k8s-manager`
-
