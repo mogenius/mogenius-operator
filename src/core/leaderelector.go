@@ -93,9 +93,9 @@ func (self *leaderElector) Run() {
 		leaderelection.RunOrDie(ctx, leaderelection.LeaderElectionConfig{
 			Lock:            lock,
 			ReleaseOnCancel: true,
-			LeaseDuration:   60 * time.Second,
-			RenewDeadline:   15 * time.Second,
-			RetryPeriod:     5 * time.Second,
+			LeaseDuration:   300 * time.Second,
+			RenewDeadline:   60 * time.Second,
+			RetryPeriod:     30 * time.Second,
 			Callbacks: leaderelection.LeaderCallbacks{
 				OnStartedLeading: func(ctx context.Context) {
 					self.leading.Store(true)
