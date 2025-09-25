@@ -94,10 +94,6 @@ func (self *valkeyStatsDb) Run() {
 	if err != nil {
 		self.logger.Error("Error dropping all resources from valkey", "error", err)
 	}
-	err = store.DropAllPodEventsFromValkey(self.valkey, self.logger)
-	if err != nil {
-		self.logger.Error("Error dropping all pod events from valkey", "error", err)
-	}
 }
 
 func (self *valkeyStatsDb) AddMachineStatsToDb(nodeName string, stats structs.MachineStats) error {

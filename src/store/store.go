@@ -117,19 +117,6 @@ func DropAllResourcesFromValkey(valkeyClient valkeyclient.ValkeyClient, logger *
 	return err
 }
 
-func DropAllPodEventsFromValkey(valkeyClient valkeyclient.ValkeyClient, logger *slog.Logger) error {
-	keys, err := valkeyClient.Keys("pod-events" + ":*")
-	if err != nil {
-		logger.Error("failed to get keys", "error", err)
-		return err
-	}
-	err = valkeyClient.DeleteMultiple(keys...)
-	if err != nil {
-		logger.Error("failed to DropAllPodEventsFromValkey", "error", err)
-	}
-	return err
-}
-
 func DropKey(valkeyClient valkeyclient.ValkeyClient, logger *slog.Logger, key string) error {
 	err := valkeyClient.DeleteMultiple(key)
 	if err != nil {

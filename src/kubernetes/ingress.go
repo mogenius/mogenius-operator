@@ -106,9 +106,6 @@ func UpdateIngress(eventClient websocket.WebsocketClient, job *structs.Job, name
 	}
 	tlsHosts := []string{}
 
-	// TODO REMOVE
-	// ingressToUpdate.Spec.Rules = []v1.IngressRule{} // reset rules to regenerate them
-
 	// clean up rules and paths for this service
 	if len(ingressToUpdate.Spec.Rules) > 0 {
 		for ruleIndex := len(ingressToUpdate.Spec.Rules) - 1; ruleIndex >= 0; ruleIndex-- {
