@@ -144,7 +144,6 @@ func (self *valkeyStatsDb) AddInterfaceStatsToDb(currentStats []networkmonitor.P
 			deltaStat.TransmitPackets = deltaStat.TransmitPackets - lastEntry.TransmitPackets
 		}
 
-		// err := self.valkey.AddToBucket(DefaultMaxSize, stat, DB_STATS_TRAFFIC_BUCKET_NAME, stat.Namespace, controller.Name)
 		err := self.valkey.StoreSortedListEntry(
 			deltaStat,
 			time.Now().Truncate(time.Minute).Unix(),
@@ -470,22 +469,43 @@ func (self *valkeyStatsDb) GetWorkspaceStatsTrafficUtilization(timeOffsetInMinut
 			// Add traffic for each minute
 			for _, entry := range values {
 				minute := entry.CreatedAt.Round(time.Minute)
+				// normalize Values TODO: this needs to be removed as soon as we find the overflowing/underflowing value
+				if entry.ReceivedPackets > 184467440736991000 {
+					entry.ReceivedPackets = 0xffffffffffffffff - entry.ReceivedPackets
+				}
+				if entry.TransmitPackets > 184467440736991000 {
+					entry.TransmitPackets = 0xffffffffffffffff - entry.TransmitPackets
+				}
+				if entry.ReceivedBytes > 184467440736991000 {
+					entry.ReceivedBytes = 0xffffffffffffffff - entry.ReceivedBytes
+				}
+				if entry.TransmitBytes > 184467440736991000 {
+					entry.TransmitBytes = 0xffffffffffffffff - entry.TransmitBytes
+				}
+				if entry.ReceivedStartBytes > 184467440736991000 {
+					entry.ReceivedStartBytes = 0xffffffffffffffff - entry.ReceivedStartBytes
+				}
+				if entry.TransmitStartBytes > 184467440736991000 {
+					entry.TransmitStartBytes = 0xffffffffffffffff - entry.TransmitStartBytes
+				}
+
 				resultMutex.Lock()
 				{
 					existingEntry, exists := trafficByMinute[minute]
+					value := float64(entry.TransmitBytes + entry.ReceivedBytes)
 					if !exists {
 						trafficByMinute[minute] = GenericChartEntry{
 							Time:  minute,
-							Value: float64(entry.TransmitBytes + entry.ReceivedBytes),
+							Value: value,
 							Pods: map[string]float64{
-								entry.Pod: float64(entry.TransmitBytes + entry.ReceivedBytes),
+								entry.Pod: value,
 							},
 						}
 					} else {
 						trafficByMinute[minute] = GenericChartEntry{
 							Time:  minute,
-							Value: existingEntry.Value + float64(entry.TransmitBytes+entry.ReceivedBytes),
-							Pods:  updateTop5Pods(existingEntry.Pods, float64(entry.TransmitBytes+entry.ReceivedBytes), entry.Pod),
+							Value: existingEntry.Value + value,
+							Pods:  updateTop5Pods(existingEntry.Pods, value, entry.Pod),
 						}
 					}
 				}
