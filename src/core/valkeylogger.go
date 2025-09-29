@@ -29,7 +29,6 @@ func (self *valkeyLogger) Run() {
 	go func() {
 		for {
 			record := <-self.logChannel
-			// err := self.valkey.AddToBucket(10000, record, "logs", record.Component)
 			err := self.valkey.StoreSortedListEntry(record, time.Now().UnixNano(), "logs", record.Component)
 			if err != nil {
 				fmt.Printf("Failed to log record: %v\n", err)
