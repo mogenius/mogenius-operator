@@ -8,6 +8,7 @@ import (
 	"mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/utils"
 	"net"
+	"path/filepath"
 	"slices"
 	"sort"
 	"strconv"
@@ -416,55 +417,53 @@ func (self *valkeyClient) DeleteMultiple(patterns ...string) error {
 		return nil
 	}
 
-	var allKeys []string
+	cursor := uint64(0)
+	batch := make([]string, 0, 100)
+	totalDeleted := 0
 
-	for _, pattern := range patterns {
-		cursor := uint64(0)
-		for {
-			// Use SCAN with pattern
-			result := self.valkeyClient.Do(self.ctx,
-				self.valkeyClient.B().Scan().Cursor(cursor).Match(pattern).Count(100).Build())
+	for {
+		result := self.valkeyClient.Do(self.ctx,
+			self.valkeyClient.B().Scan().Cursor(cursor).Count(1000).Build())
 
-			if result.Error() != nil {
-				return result.Error()
-			}
-
-			scanResult, err := result.AsScanEntry()
-			if err != nil {
-				return err
-			}
-
-			allKeys = append(allKeys, scanResult.Elements...)
-			cursor = scanResult.Cursor
-
-			if cursor == 0 {
-				break // Scan complete
-			}
-		}
-	}
-
-	if len(allKeys) == 0 {
-		self.logger.Info("No keys found matching patterns", "patterns", patterns)
-		return nil
-	}
-
-	// Delete in batches to avoid very large commands
-	batchSize := 100
-	for i := 0; i < len(allKeys); i += batchSize {
-		end := i + batchSize
-		if end > len(allKeys) {
-			end = len(allKeys)
+		if result.Error() != nil {
+			return result.Error()
 		}
 
-		batch := allKeys[i:end]
-		err := self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Del().Key(batch...).Build()).Error()
+		scanResult, err := result.AsScanEntry()
 		if err != nil {
-			self.logger.Error("Error deleting batch", "keys", batch, "error", err)
 			return err
 		}
+
+		// Check each key against patterns
+		for _, key := range scanResult.Elements {
+			for _, pattern := range patterns {
+				if matched, _ := filepath.Match(pattern, key); matched {
+					batch = append(batch, key)
+					break
+				}
+			}
+
+			// Delete batch when full
+			if len(batch) >= 100 {
+				self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Del().Key(batch...).Build())
+				totalDeleted += len(batch)
+				batch = batch[:0]
+			}
+		}
+
+		cursor = scanResult.Cursor
+		if cursor == 0 {
+			break
+		}
 	}
 
-	self.logger.Info("Successfully deleted keys", "count", len(allKeys), "patterns", patterns)
+	// Delete remaining keys
+	if len(batch) > 0 {
+		self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Del().Key(batch...).Build())
+		totalDeleted += len(batch)
+	}
+
+	self.logger.Info("Successfully deleted keys", "count", totalDeleted)
 	return nil
 }
 
