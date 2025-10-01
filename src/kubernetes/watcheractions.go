@@ -41,7 +41,7 @@ type GetUnstructuredLabeledResourceListRequest struct {
 	Blacklist []*utils.ResourceEntry `json:"blacklist"`
 }
 
-var lastWatchCheckStart = time.Now()
+var lastWatchCheckStart time.Time = time.Time{}
 
 func WatchStoreResources(wm watcher.WatcherModule, eventClient websocket.WebsocketClient) error {
 	start := time.Now()
