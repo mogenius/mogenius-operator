@@ -41,62 +41,36 @@ type GetUnstructuredLabeledResourceListRequest struct {
 	Blacklist []*utils.ResourceEntry `json:"blacklist"`
 }
 
-// var MirroredResourceKinds = []string{
-// 	"Deployment",
-// 	"ReplicaSet",
-// 	"CronJob",
-// 	"Pod",
-// 	"Job",
-// 	"Event",
-// 	"DaemonSet",
-// 	"StatefulSet",
-// 	"Namespace",
-// 	"NetworkPolicy",
-// 	"PersistentVolume",
-// 	"PersistentVolumeClaim",
-// 	"Service",
-// 	"Node",
-
-// 	"StorageClass",
-// 	"IngressClass",
-// 	"Ingress",
-// 	"Secret",
-// 	"ConfigMap",
-// 	"HorizontalPodAutoscaler",
-// 	"ServiceAccount",
-// 	"Service",
-// 	"RoleBinding",
-// 	"Role",
-// 	"ClusterRoleBinding",
-// 	"ClusterRole",
-// 	"Workspace", // mogenius specific
-// 	"User",      // mogenius specific
-// 	"Grant",     // mogenius specific
-// }
+var lastWatchCheckStart = time.Now()
 
 func WatchStoreResources(wm watcher.WatcherModule, eventClient websocket.WebsocketClient) error {
 	start := time.Now()
+
+	// function should not be called more often than every 5 seconds
+	// to avoid too many calls to the k8s api server
+	// which can lead to rate limiting
+	if time.Since(lastWatchCheckStart) < 5*time.Second {
+		return nil
+	}
+	lastWatchCheckStart = time.Now()
 
 	resources, err := GetAvailableResources()
 	if err != nil {
 		return err
 	}
 	for _, v := range resources {
-		// if !slices.Contains(MirroredResourceKinds, v.Kind) {
-		// 	k8sLogger.Debug("Skipping resource", "kind", v.Kind, "group", v.Group, "namespace", v.Namespace)
-		// 	continue
-		// }
 		err := wm.Watch(watcher.WatcherResourceIdentifier{
 			Name:         v.Name,
 			Kind:         v.Kind,
 			GroupVersion: v.Group,
 		}, func(resource watcher.WatcherResourceIdentifier, obj *unstructured.Unstructured) {
 			setStoreIfNeeded(resource.GroupVersion, obj.GetName(), resource.Kind, obj.GetNamespace(), obj)
+			handleCRDAddition(wm, eventClient, resource)
+
 			// suppress the add events for the first 10 seconds (because all resources are added initially)
 			if time.Since(start) < 10*time.Second {
 				return
 			}
-
 			sendEventServerEvent(eventClient, v.Group, resource.Version, resource.Kind, resource.Name, "add", obj)
 		}, func(resource watcher.WatcherResourceIdentifier, oldObj, newObj *unstructured.Unstructured) {
 			setStoreIfNeeded(resource.GroupVersion, newObj.GetName(), resource.Kind, newObj.GetNamespace(), newObj)
@@ -104,15 +78,84 @@ func WatchStoreResources(wm watcher.WatcherModule, eventClient websocket.Websock
 		}, func(resource watcher.WatcherResourceIdentifier, obj *unstructured.Unstructured) {
 			deleteFromStoreIfNeeded(resource.GroupVersion, obj.GetName(), resource.Kind, obj.GetNamespace(), obj)
 			sendEventServerEvent(eventClient, v.Group, resource.Version, resource.Kind, resource.Name, "delete", obj)
+			handleCRDDeletion(wm, resource, obj)
 		})
 		if err != nil {
-			k8sLogger.Error("failed to initialize watchhandler for resource", "groupVersion", v.Group, "kind", v.Kind, "version", v.Version, "error", err)
-			return err
+			if !strings.Contains(err.Error(), "resource is already being watched") {
+				k8sLogger.Error("failed to initialize watchhandler for resource", "groupVersion", v.Group, "kind", v.Kind, "version", v.Version, "error", err)
+				return err
+			}
 		} else {
-			k8sLogger.Debug("🚀 Watching resource", "kind", v.Kind, "group", v.Group)
+			k8sLogger.Info("🚀 Watching resource", "kind", v.Kind, "name", v.Name)
 		}
 	}
 	return nil
+}
+
+var (
+	crdDebounceTimer *time.Timer
+	crdDebounceMutex sync.Mutex
+)
+
+// no matter how many CRD addition events we get in a short time frame
+// this method will debounce them and only execute the logic once after 3 seconds
+func handleCRDAddition(wm watcher.WatcherModule, eventClient websocket.WebsocketClient, resource watcher.WatcherResourceIdentifier) {
+	if resource.Kind == "CustomResourceDefinition" {
+		crdDebounceMutex.Lock()
+		defer crdDebounceMutex.Unlock()
+
+		// Cancel existing timer if it exists
+		if crdDebounceTimer != nil {
+			crdDebounceTimer.Stop()
+		}
+
+		// Create new timer that executes after 3 seconds
+		crdDebounceTimer = time.AfterFunc(3*time.Second, func() {
+			resetAvailableResourceCache()
+
+			res, err := GetAvailableResources()
+			if err != nil {
+				k8sLogger.Error("Error getting available resources", "error", err)
+				return
+			}
+			currentlyWatchedResources := wm.ListWatchedResources()
+			if len(res) != len(currentlyWatchedResources) {
+				err := WatchStoreResources(wm, eventClient)
+				if err != nil {
+					k8sLogger.Error("Error watching store resources", "error", err)
+				}
+			}
+		})
+	}
+}
+
+func handleCRDDeletion(wm watcher.WatcherModule, resource watcher.WatcherResourceIdentifier, obj *unstructured.Unstructured) {
+	if resource.Kind == "CustomResourceDefinition" {
+		name, _, _ := unstructured.NestedString(obj.Object, "spec", "names", "plural")
+		kind, _, _ := unstructured.NestedString(obj.Object, "spec", "names", "kind")
+		group, _, _ := unstructured.NestedString(obj.Object, "spec", "group")
+		versions, _, _ := unstructured.NestedSlice(obj.Object, "spec", "versions")
+
+		if name == "" || kind == "" || group == "" || len(versions) == 0 {
+			k8sLogger.Error("Error parsing CRD for unwatching", "name", name, "kind", kind, "group", group, "versions", versions)
+			return
+		}
+		if firstVersion, ok := versions[0].(map[string]interface{}); ok {
+			if versionName, ok := firstVersion["name"].(string); ok {
+				resourceToDelete := watcher.WatcherResourceIdentifier{
+					Name:         name,
+					Kind:         kind,
+					GroupVersion: group + "/" + versionName,
+				}
+				err := wm.Unwatch(resourceToDelete)
+				if err != nil {
+					k8sLogger.Error("Error unwatching resource", "name", obj.GetName(), "error", err)
+				} else {
+					k8sLogger.Info("STOP Watching resource", "kind", obj.GetKind(), "name", obj.GetName())
+				}
+			}
+		}
+	}
 }
 
 func setStoreIfNeeded(groupVersion string, resourceName string, kind string, namespace string, obj *unstructured.Unstructured) {
@@ -515,6 +558,12 @@ func GetAvailableResources() ([]utils.ResourceEntry, error) {
 	resourceCache.timestamp = time.Now()
 
 	return availableResources, nil
+}
+
+func resetAvailableResourceCache() {
+	resourceCacheMutex.Lock()
+	defer resourceCacheMutex.Unlock()
+	resourceCache = availableResourceCacheEntry{}
 }
 
 func GetResourcesNameForKind(kind string) (name string, err error) {

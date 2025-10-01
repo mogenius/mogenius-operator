@@ -10,7 +10,6 @@ import (
 	"mogenius-k8s-manager/src/k8sclient"
 	"mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/utils"
-	"slices"
 
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
@@ -42,7 +41,6 @@ type CleanUpResultEntry struct {
 type MoKubernetes interface {
 	Run()
 	Link(valkeyStatsDb ValkeyStatsDb)
-	GetAvailableResources() ([]utils.ResourceEntry, error)
 	CreateOrUpdateClusterSecret() (utils.ClusterSecret, error)
 	CreateOrUpdateResourceTemplateConfigmap() error
 	GetNodeStats() ([]dtos.NodeStat, error)
@@ -162,38 +160,6 @@ func (self *moKubernetes) updateOptions() metav1.UpdateOptions {
 	return metav1.UpdateOptions{
 		FieldManager: self.getDeploymentName(),
 	}
-}
-
-func (self *moKubernetes) GetAvailableResources() ([]utils.ResourceEntry, error) {
-	clientset := self.clientProvider.K8sClientSet()
-
-	resources, err := clientset.Discovery().ServerPreferredResources()
-	if err != nil {
-		self.logger.Error("Error discovering resources", "error", err)
-		return nil, err
-	}
-
-	var availableResources []utils.ResourceEntry
-	for _, resourceList := range resources {
-		for _, resource := range resourceList.APIResources {
-			if slices.Contains(resource.Verbs, "list") && slices.Contains(resource.Verbs, "watch") {
-				var namespace *string
-				if resource.Namespaced {
-					namespace = utils.Pointer("")
-				}
-
-				availableResources = append(availableResources, utils.ResourceEntry{
-					Group:     resourceList.GroupVersion,
-					Name:      resource.Name,
-					Kind:      resource.Kind,
-					Version:   resource.Version,
-					Namespace: namespace,
-				})
-			}
-		}
-	}
-
-	return availableResources, nil
 }
 
 func (self *moKubernetes) getResourceTemplateConfigMap() string {

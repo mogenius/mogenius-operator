@@ -183,6 +183,9 @@ func (self *watcher) startSingleWatcher(ctx context.Context, resource WatcherRes
 			self.logger.Debug("Watch connection closed normally", "resource", resource)
 			return // closed normally, its fine
 		}
+		if strings.Contains(err.Error(), "the server could not find the requested resource") {
+			return // Resource might have been deleted, no need to retry
+		}
 		self.logger.Error("Encountered error while watching resource",
 			"resourceName", resource.Name,
 			"resourceKind", resource.Kind,
