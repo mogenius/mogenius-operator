@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"log/slog"
+	"mogenius-operator/src/ai"
 	"mogenius-operator/src/argocd"
 	"mogenius-operator/src/assert"
 	"mogenius-operator/src/config"
@@ -492,6 +493,7 @@ func InitializeSystems(
 	cpuMonitor := cpumonitor.NewCpuMonitor(logManagerModule.CreateLogger("cpu-monitor"), configModule, clientProvider, containerEnumerator)
 	ramMonitor := rammonitor.NewRamMonitor(logManagerModule.CreateLogger("ram-monitor"), configModule, clientProvider, containerEnumerator)
 	networkMonitor := networkmonitor.NewNetworkMonitor(logManagerModule.CreateLogger("network-monitor"), configModule, containerEnumerator, configModule.Get("MO_HOST_PROC_PATH"))
+	aiManager := ai.NewAiManager(logManagerModule.CreateLogger("ai-manager"), valkeyClient)
 
 	// golang package setups are deprecated and will be removed in the future by migrating all state to services
 	helm.Setup(logManagerModule, configModule, valkeyClient)
@@ -562,6 +564,7 @@ func InitializeSystems(
 		reconciler,
 		sealedSecret,
 		argocd,
+		aiManager,
 	}
 }
 
@@ -588,4 +591,5 @@ type systems struct {
 	reconciler            core.Reconciler
 	sealedSecret          core.SealedSecretManager
 	argocd                argocd.Argocd
+	aiManager             ai.AiManager
 }
