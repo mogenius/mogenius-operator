@@ -3,6 +3,7 @@ package kubernetes
 import (
 	"context"
 	"fmt"
+	"mogenius-operator/src/ai"
 	"mogenius-operator/src/store"
 	"mogenius-operator/src/structs"
 	"mogenius-operator/src/utils"
@@ -43,7 +44,7 @@ type GetUnstructuredLabeledResourceListRequest struct {
 
 var lastWatchCheckStart time.Time = time.Time{}
 
-func WatchStoreResources(wm watcher.WatcherModule, eventClient websocket.WebsocketClient) error {
+func WatchStoreResources(wm watcher.WatcherModule, aiManager ai.AiManager, eventClient websocket.WebsocketClient) error {
 	start := time.Now()
 
 	// function should not be called more often than every 5 seconds
@@ -66,13 +67,14 @@ func WatchStoreResources(wm watcher.WatcherModule, eventClient websocket.Websock
 			Namespaced: v.Namespaced,
 		}, func(resource watcher.WatcherResourceIdentifier, obj *unstructured.Unstructured) {
 			setStoreIfNeeded(resource.ApiVersion, obj.GetName(), resource.Kind, obj.GetNamespace(), obj)
-			handleCRDAddition(wm, eventClient, resource)
+			handleCRDAddition(wm, aiManager, eventClient, resource)
 
 			// suppress the add events for the first 10 seconds (because all resources are added initially)
 			if time.Since(start) < 10*time.Second {
 				return
 			}
 			sendEventServerEvent(eventClient, v.ApiVersion, resource.Kind, obj.GetName(), "add", obj)
+			aiManager.ProcessObject(obj, "add")
 		}, func(resource watcher.WatcherResourceIdentifier, oldObj, newObj *unstructured.Unstructured) {
 			setStoreIfNeeded(resource.ApiVersion, newObj.GetName(), resource.Kind, newObj.GetNamespace(), newObj)
 
@@ -81,10 +83,12 @@ func WatchStoreResources(wm watcher.WatcherModule, eventClient websocket.Websock
 				return
 			}
 			sendEventServerEvent(eventClient, v.ApiVersion, resource.Kind, newObj.GetName(), "update", newObj)
+			aiManager.ProcessObject(newObj, "update")
 		}, func(resource watcher.WatcherResourceIdentifier, obj *unstructured.Unstructured) {
 			deleteFromStoreIfNeeded(resource.ApiVersion, obj.GetName(), resource.Kind, obj.GetNamespace(), obj)
 			sendEventServerEvent(eventClient, v.ApiVersion, resource.Kind, obj.GetName(), "delete", obj)
 			handleCRDDeletion(wm, resource, obj)
+			aiManager.ProcessObject(obj, "delete")
 		})
 		if err != nil {
 			if !strings.Contains(err.Error(), "resource is already being watched") {
@@ -105,7 +109,7 @@ var (
 
 // no matter how many CRD addition events we get in a short time frame
 // this method will debounce them and only execute the logic once after 3 seconds
-func handleCRDAddition(wm watcher.WatcherModule, eventClient websocket.WebsocketClient, resource watcher.WatcherResourceIdentifier) {
+func handleCRDAddition(wm watcher.WatcherModule, aiManager ai.AiManager, eventClient websocket.WebsocketClient, resource watcher.WatcherResourceIdentifier) {
 	if resource.Kind == "CustomResourceDefinition" {
 		crdDebounceMutex.Lock()
 		defer crdDebounceMutex.Unlock()
@@ -126,7 +130,7 @@ func handleCRDAddition(wm watcher.WatcherModule, eventClient websocket.Websocket
 			}
 			currentlyWatchedResources := wm.ListWatchedResources()
 			if len(res) != len(currentlyWatchedResources) {
-				err := WatchStoreResources(wm, eventClient)
+				err := WatchStoreResources(wm, aiManager, eventClient)
 				if err != nil {
 					k8sLogger.Error("Error watching store resources", "error", err)
 				}
