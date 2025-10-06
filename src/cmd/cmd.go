@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"log/slog"
+	"mogenius-k8s-manager/src/ai"
 	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/containerenumerator"
@@ -496,6 +497,7 @@ func InitializeSystems(
 	cpuMonitor := cpumonitor.NewCpuMonitor(logManagerModule.CreateLogger("cpu-monitor"), configModule, clientProvider, containerEnumerator)
 	ramMonitor := rammonitor.NewRamMonitor(logManagerModule.CreateLogger("ram-monitor"), configModule, clientProvider, containerEnumerator)
 	networkMonitor := networkmonitor.NewNetworkMonitor(logManagerModule.CreateLogger("network-monitor"), configModule, containerEnumerator, configModule.Get("MO_HOST_PROC_PATH"))
+	aiManager := ai.NewAiManager(logManagerModule.CreateLogger("ai-manager"), valkeyClient)
 
 	// golang package setups are deprecated and will be removed in the future by migrating all state to services
 	helm.Setup(logManagerModule, configModule, valkeyClient)
@@ -567,6 +569,7 @@ func InitializeSystems(
 		leaderElector,
 		reconciler,
 		sealedSecret,
+		aiManager,
 	}
 }
 
@@ -592,4 +595,5 @@ type systems struct {
 	leaderElector         core.LeaderElector
 	reconciler            core.Reconciler
 	sealedSecret          core.SealedSecretManager
+	aiManager             ai.AiManager
 }

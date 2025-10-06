@@ -40,7 +40,7 @@ func RunCluster(logManagerModule logging.SlogManager, configModule *config.Confi
 		systems.leaderElector.Run()
 
 		// services have to be started before this otherwise watcher events will get missing
-		err = mokubernetes.WatchStoreResources(systems.watcherModule, systems.eventConnectionClient)
+		err = mokubernetes.WatchStoreResources(systems.watcherModule, systems.aiManager, systems.eventConnectionClient)
 		if err != nil {
 			cmdLogger.Error("failed to start watcher", "error", err)
 			return
