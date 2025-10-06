@@ -31,14 +31,14 @@ func TestResourceTemplates(t *testing.T) {
 	assert.AssertT(t, err == nil, err)
 
 	// unknown resource
-	yaml := kubernetes.GetResourceTemplateYaml("v1", "Pod", "default", "mypod")
+	yaml := kubernetes.GetResourceTemplateYaml("v1", "Pod")
 	assert.AssertT(t, yaml != "", "Error getting resource template")
 
 	// known resource Deployment
-	knownResourceYaml := kubernetes.GetResourceTemplateYaml("v1", "Pod", "default", "mypod")
+	knownResourceYaml := kubernetes.GetResourceTemplateYaml("v1", "Pod")
 	assert.AssertT(t, knownResourceYaml != "", "Error getting resource template")
 
 	// known resource Certificate
-	knownResourceYamlCert := kubernetes.GetResourceTemplateYaml("cert-manager.io/v1", "Certificate", "default", "mypod")
+	knownResourceYamlCert := kubernetes.GetResourceTemplateYaml("cert-manager.io/v1", "Certificate")
 	assert.AssertT(t, knownResourceYamlCert != "", "Error getting resource template")
 }
