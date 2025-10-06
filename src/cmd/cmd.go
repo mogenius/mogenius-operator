@@ -306,12 +306,6 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		Envs:         []string{"helm_data_path"},
 	})
 	configModule.Declare(config.ConfigDeclaration{
-		Key:          "MO_GIT_VAULT_DATA_PATH",
-		DefaultValue: utils.Pointer(filepath.Join(workDir, "git-vault-data")),
-		Description:  utils.Pointer("path to the git vault data"),
-		Envs:         []string{"git_vault_data_path"},
-	})
-	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_GIT_USER_NAME",
 		DefaultValue: utils.Pointer("mogenius git-user"),
 		Description:  utils.Pointer("user name which is used when interacting with git"),
