@@ -52,9 +52,10 @@ spec:
                       description: |-
                         Type=="namespace": unused
                         Type=="helm": namespace in which the chart was installed
+                        Type=="argocd": namespace in which the application was installed
                       type: string
                     type:
-                      description: 'allowed values: "namespace", "helm"'
+                      description: 'allowed values: "namespace", "helm", "argocd"'
                       type: string
                   type: object
                 type: array
