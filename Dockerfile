@@ -17,7 +17,7 @@ ARG GITHUB_TOKEN
 # Setup system
 RUN set -x && \
     apt-get update && \
-    apt-get install -y "curl" "jq" "clang" "llvm" "libelf-dev" "libbpf-dev" "git" "linux-headers-generic" "gcc" "libc6-dev" "make" "cmake" "libpcap-dev" "binutils" "build-essential" "binutils-gold" "iproute2" "lsb-release" "sudo" "ca-certificates" "wget" "just"
+    apt-get install -y "curl" "jq" "clang" "llvm" "libelf-dev" "libbpf-dev" "git" "linux-headers-generic" "gcc" "libc6-dev" "make" "cmake" "libpcap-dev" "binutils" "build-essential" "binutils-gold" "iproute2" "lsb-release" "sudo" "ca-certificates" "wget" "just" "libssl-dev"
 
 # Fetch the latest release download URL for the specific architecture
 RUN ARCH=$(uname -m) DETECTED_ARCH=$ARCH && \
