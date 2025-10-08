@@ -1,4 +1,4 @@
-FROM golang:1.25.1 AS golang
+FROM golang:1.25.2 AS golang
 
 FROM ubuntu:noble AS build-env
 
