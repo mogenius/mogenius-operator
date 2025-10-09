@@ -254,7 +254,6 @@ func (self *valkeyClient) GetObject(keys ...string) (any, error) {
 
 func (self *valkeyClient) List(limit int, keys ...string) ([]string, error) {
 	key := createKey(keys...)
-	key = key + ":*"
 
 	selectedKeys, err := self.Keys(key)
 	if err != nil {

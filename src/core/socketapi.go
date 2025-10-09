@@ -2293,7 +2293,8 @@ func (self *socketApi) startMessageHandler() {
 					executionTime := time.Since(start)
 					self.logdatagram(executionTime, datagram)
 
-					compressedData, err := utils.TryZlibCompress(responsePayload)
+					sendStart := time.Now()
+					compressedData, size, err := utils.TryZlibCompress(responsePayload)
 					if err != nil {
 						self.logger.Error("failed to compress response payload", "error", err)
 					} else {
@@ -2308,7 +2309,9 @@ func (self *socketApi) startMessageHandler() {
 						Zlib:      err == nil,
 					}
 
-					go self.JobServerSendData(self.jobClient, result)
+					self.JobServerSendData(self.jobClient, result)
+					sendTime := time.Since(sendStart)
+					self.logPattern(executionTime, sendTime, datagram, size)
 				}()
 			}
 		}
@@ -2357,6 +2360,19 @@ func (self *socketApi) logdatagram(executionTime time.Duration, datagram structs
 		_, err = self.patternlog.WriteString(jsonline)
 		assert.Assert(err == nil, "failed to write patternlog line", err)
 	}()
+}
+
+func (self *socketApi) logPattern(executionTime time.Duration, sendTime time.Duration, datagram structs.Datagram, size int64) {
+	if self.config.Get("MO_LOG_LEVEL") != "mo" {
+		return
+	}
+	fmt.Printf("🌐 \033[36m%-50s\033[0m │ exec: \033[33m%5d ms\033[0m │ send: \033[32m%5d ms\033[0m │ size: \033[34m%9s\033[0m │ \033[35m%s\033[0m\n",
+		datagram.Pattern,
+		executionTime.Milliseconds(),
+		sendTime.Milliseconds(),
+		utils.BytesToHumanReadable(size),
+		datagram.User.Email,
+	)
 }
 
 func (self *socketApi) patternHandlerExists(pattern string) bool {

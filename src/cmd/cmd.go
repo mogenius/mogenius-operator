@@ -70,6 +70,10 @@ func Run() error {
 	//====================== Initialize Logger ======================
 	//===============================================================
 	logLevel, err := logging.ParseLogLevel(configModule.Get("MO_LOG_LEVEL"))
+	if configModule.Get("MO_LOG_LEVEL") == "mo" {
+		logLevel = slog.LevelInfo
+		err = nil
+	}
 	assert.Assert(err == nil, "failed to parse log level", err)
 	logFilter := []string{}
 	moLogFilter := strings.SplitSeq(configModule.Get("MO_LOG_FILTER"), ",")
@@ -408,9 +412,9 @@ func LoadConfigDeclarations(configModule *config.Config) {
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_LOG_LEVEL",
 		DefaultValue: utils.Pointer("info"),
-		Description:  utils.Pointer(`a log level: "debug", "info", "warn" or "error"`),
+		Description:  utils.Pointer(`a log level: "mo","debug", "info", "warn" or "error"`),
 		Validate: func(val string) error {
-			allowedLogLevels := []string{"debug", "info", "warn", "error"}
+			allowedLogLevels := []string{"mo", "debug", "info", "warn", "error"}
 			if !slices.Contains(allowedLogLevels, val) {
 				return fmt.Errorf("'MO_LOG_LEVEL' needs to be one of '%v' but is '%s'", allowedLogLevels, val)
 			}
