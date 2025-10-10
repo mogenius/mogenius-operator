@@ -6612,6 +6612,8 @@ get/workspace:
                 properties:
                     name:
                         type: string
+                    namespace:
+                        type: string
         typeInfo:
             structRef: mogenius-k8s-manager/src/core.Request
             type: struct
