@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/k8sclient"
+	"mogenius-k8s-manager/src/utils"
 	"strings"
 	"sync"
 	"time"
@@ -174,7 +175,7 @@ func (self *watcher) startSingleWatcher(ctx context.Context, resource WatcherRes
 		return fmt.Errorf("invalid groupVersion: %s", err)
 	}
 
-	informerFactory := dynamicinformer.NewFilteredDynamicSharedInformerFactory(dynamicClient, time.Minute*30, v1.NamespaceAll, nil)
+	informerFactory := dynamicinformer.NewFilteredDynamicSharedInformerFactory(dynamicClient, utils.ResourceResyncTime, v1.NamespaceAll, nil)
 	resourceInformer := informerFactory.ForResource(self.createGroupVersionResource(gv.Group, gv.Version, resource.Name)).Informer()
 
 	// Enhanced error handler that can detect fatal errors
@@ -222,11 +223,6 @@ func (self *watcher) startSingleWatcher(ctx context.Context, resource WatcherRes
 				body, _ := json.Marshal(newObj)
 				bodyString := string(body)
 				self.logger.Warn("failed to deserialize new object", "resourceJson", bodyString)
-				return
-			}
-
-			// Filter out resync updates - same resource version means no actual change
-			if oldUnstructuredObj.GetResourceVersion() == newUnstructuredObj.GetResourceVersion() {
 				return
 			}
 

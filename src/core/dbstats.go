@@ -89,6 +89,7 @@ func NewValkeyStatsModule(logger *slog.Logger, config cfg.ConfigModule, valkey v
 }
 
 func (self *valkeyStatsDb) Run() {
+	// THIS CAN BE REMOVED IN THE NEXT PRODUCTION RELEASE
 	// clean valkey on every startup
 	err := store.DropAllResourcesFromValkey(self.valkey, self.logger)
 	if err != nil {

@@ -74,6 +74,11 @@ func WatchStoreResources(wm watcher.WatcherModule, eventClient websocket.Websock
 			sendEventServerEvent(eventClient, v.Group, resource.Version, resource.Kind, resource.Name, "add", obj)
 		}, func(resource watcher.WatcherResourceIdentifier, oldObj, newObj *unstructured.Unstructured) {
 			setStoreIfNeeded(resource.GroupVersion, newObj.GetName(), resource.Kind, newObj.GetNamespace(), newObj)
+
+			// Filter out resync updates - same resource version means no actual change
+			if oldObj.GetResourceVersion() == newObj.GetResourceVersion() {
+				return
+			}
 			sendEventServerEvent(eventClient, v.Group, resource.Version, resource.Kind, resource.Name, "update", newObj)
 		}, func(resource watcher.WatcherResourceIdentifier, obj *unstructured.Unstructured) {
 			deleteFromStoreIfNeeded(resource.GroupVersion, obj.GetName(), resource.Kind, obj.GetNamespace(), obj)
@@ -162,7 +167,7 @@ func setStoreIfNeeded(groupVersion string, resourceName string, kind string, nam
 	obj = removeUnusedFieds(obj)
 
 	// store in valkey
-	err := valkeyClient.SetObject(obj, 0, VALKEY_RESOURCE_PREFIX, groupVersion, kind, namespace, resourceName)
+	err := valkeyClient.SetObject(obj, utils.ResourceResyncTime*2, VALKEY_RESOURCE_PREFIX, groupVersion, kind, namespace, resourceName)
 	if err != nil {
 		k8sLogger.Error("Error setting object in store", "error", err)
 	}
