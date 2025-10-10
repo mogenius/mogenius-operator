@@ -3,6 +3,7 @@ package core
 import (
 	"log/slog"
 	"mogenius-k8s-manager/src/assert"
+	cfg "mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/crds/v1alpha1"
 	"mogenius-k8s-manager/src/helm"
 	"mogenius-k8s-manager/src/kubernetes"
@@ -82,13 +83,15 @@ type api struct {
 	workspaceManager WorkspaceManager
 	logger           *slog.Logger
 	valkeyClient     valkeyclient.ValkeyClient
+	config           cfg.ConfigModule
 }
 
-func NewApi(logger *slog.Logger, valkeyClient valkeyclient.ValkeyClient) Api {
+func NewApi(logger *slog.Logger, valkeyClient valkeyclient.ValkeyClient, config cfg.ConfigModule) Api {
 	self := &api{}
 
 	self.logger = logger
 	self.valkeyClient = valkeyClient
+	self.config = config
 
 	return self
 }
@@ -116,7 +119,8 @@ func NewGetWorkspaceResult(name string, creationTimestamp v1.Time, resources []v
 func (self *api) GetAllWorkspaces() ([]GetWorkspaceResult, error) {
 	result := []GetWorkspaceResult{}
 
-	resources, err := store.GetAllWorkspaces()
+	namespace := self.config.Get("MO_OWN_NAMESPACE")
+	resources, err := store.GetAllWorkspaces(namespace)
 	if err != nil {
 		return result, err
 	}
@@ -133,7 +137,8 @@ func (self *api) GetAllWorkspaces() ([]GetWorkspaceResult, error) {
 }
 
 func (self *api) GetWorkspace(name string) (*GetWorkspaceResult, error) {
-	resource, err := store.GetWorkspace(name)
+	namespace := self.config.Get("MO_OWN_NAMESPACE")
+	resource, err := store.GetWorkspace(namespace, name)
 	if err != nil {
 		return nil, err
 	}
@@ -268,7 +273,8 @@ func (self *api) GetWorkspaceResources(workspaceName string, whitelist []*utils.
 	result := []unstructured.Unstructured{}
 
 	// Get workspace
-	workspace, err := store.GetWorkspace(workspaceName)
+	namespace := self.config.Get("MO_OWN_NAMESPACE")
+	workspace, err := store.GetWorkspace(namespace, workspaceName)
 	if err != nil {
 		return result, err
 	}
@@ -342,7 +348,8 @@ func (self *api) GetWorkspacePodsNames(workspaceName string) ([]string, error) {
 }
 
 func (self *api) GetWorkspaceNamespaces(workspaceName string) ([]string, error) {
-	workspace, err := store.GetWorkspace(workspaceName)
+	namespace := self.config.Get("MO_OWN_NAMESPACE")
+	workspace, err := store.GetWorkspace(namespace, workspaceName)
 	if err != nil {
 		return nil, err
 	}

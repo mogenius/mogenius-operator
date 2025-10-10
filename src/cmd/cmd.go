@@ -511,7 +511,7 @@ func InitializeSystems(
 
 	// initialization step 1 for services
 	workspaceManager := core.NewWorkspaceManager(configModule, clientProvider)
-	apiModule := core.NewApi(logManagerModule.CreateLogger("api"), valkeyClient)
+	apiModule := core.NewApi(logManagerModule.CreateLogger("api"), valkeyClient, configModule)
 	httpApi := core.NewHttpApi(logManagerModule, configModule)
 	socketApi := core.NewSocketApi(logManagerModule.CreateLogger("socketapi"), configModule, jobConnectionClient, eventConnectionClient, valkeyClient)
 	xtermService := core.NewXtermService(logManagerModule.CreateLogger("xterm-service"))

@@ -1469,7 +1469,8 @@ func (self *socketApi) registerPatterns() {
 		PatternHandle{self, "get/workspaces"},
 		PatternConfig{},
 		func(datagram structs.Datagram, request Void) ([]GetWorkspaceResult, error) {
-			workspaces, err := store.GetAllWorkspaces()
+			namespace := self.config.Get("MO_OWN_NAMESPACE")
+			workspaces, err := store.GetAllWorkspaces(namespace)
 			result := []GetWorkspaceResult{}
 			for _, v := range workspaces {
 				result = append(result, GetWorkspaceResult{
@@ -1505,14 +1506,20 @@ func (self *socketApi) registerPatterns() {
 
 	{
 		type Request struct {
-			Name string `json:"name" validate:"required"`
+			Name      string `json:"name" validate:"required"`
+			Namespace string `json:"namespace"`
 		}
 
 		RegisterPatternHandler(
 			PatternHandle{self, "get/workspace"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (*GetWorkspaceResult, error) {
-				workspace, err := store.GetWorkspace(request.Name)
+				namespace := request.Namespace
+				if namespace == "" {
+					namespace = self.config.Get("MO_OWN_NAMESPACE")
+				}
+
+				workspace, err := store.GetWorkspace(namespace, request.Name)
 				if err != nil || workspace == nil {
 					return nil, err
 				}

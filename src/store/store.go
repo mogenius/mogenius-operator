@@ -344,8 +344,8 @@ func GetNode(name string) *coreV1.Node {
 	return node
 }
 
-func GetAllWorkspaces() ([]v1alpha1.Workspace, error) {
-	pattern := strings.Join([]string{VALKEY_RESOURCE_PREFIX, utils.WorkspaceResource.Group, utils.WorkspaceResource.Kind}, ":")
+func GetAllWorkspaces(namespace string) ([]v1alpha1.Workspace, error) {
+	pattern := strings.Join([]string{VALKEY_RESOURCE_PREFIX, utils.WorkspaceResource.Group, utils.WorkspaceResource.Kind, namespace}, ":")
 	workspaces, err := valkeyclient.GetObjectsByPrefix[v1alpha1.Workspace](valkeyClient, valkeyclient.ORDER_ASC, pattern)
 	if err != nil || workspaces == nil {
 		return nil, err
@@ -353,8 +353,8 @@ func GetAllWorkspaces() ([]v1alpha1.Workspace, error) {
 	return workspaces, nil
 }
 
-func GetWorkspace(name string) (*v1alpha1.Workspace, error) {
-	workspace, err := valkeyclient.GetObjectForKey[v1alpha1.Workspace](valkeyClient, VALKEY_RESOURCE_PREFIX, utils.WorkspaceResource.Group, utils.WorkspaceResource.Kind, "mogenius", name)
+func GetWorkspace(namespace string, name string) (*v1alpha1.Workspace, error) {
+	workspace, err := valkeyclient.GetObjectForKey[v1alpha1.Workspace](valkeyClient, VALKEY_RESOURCE_PREFIX, utils.WorkspaceResource.Group, utils.WorkspaceResource.Kind, namespace, name)
 	if err != nil || workspace == nil {
 		return nil, err
 	}
