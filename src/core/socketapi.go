@@ -92,6 +92,8 @@ type socketApi struct {
 
 	patternlog *os.File
 
+	logLevelMo bool
+
 	// the patternHandler should only be edited on startup
 	patternHandlerLock sync.RWMutex
 	patternHandler     map[string]PatternHandler
@@ -2331,6 +2333,12 @@ func (self *socketApi) loadpatternlogger() {
 		return
 	}
 
+	if self.config.Get("MO_LOG_LEVEL") == "mo" {
+		self.logLevelMo = true
+	} else {
+		self.logLevelMo = false
+	}
+
 	_, ok := os.LookupEnv("MO_ENABLE_PATTERNLOGGING")
 	if ok {
 		patternlogpath := "/tmp/patternlogs.jsonl"
@@ -2370,7 +2378,7 @@ func (self *socketApi) logdatagram(executionTime time.Duration, datagram structs
 }
 
 func (self *socketApi) logPattern(executionTime time.Duration, sendTime time.Duration, datagram structs.Datagram, size int64) {
-	if self.config.Get("MO_LOG_LEVEL") != "mo" {
+	if !self.logLevelMo {
 		return
 	}
 	fmt.Printf("🌐 \033[36m%-50s\033[0m │ exec: \033[33m%5d ms\033[0m │ send: \033[32m%5d ms\033[0m │ size: \033[34m%9s\033[0m │ \033[35m%s\033[0m\n",
