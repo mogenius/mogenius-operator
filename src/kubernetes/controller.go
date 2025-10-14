@@ -60,9 +60,9 @@ func (spec *SpecCronJob) PreviousGetTemplate() *v1core.PodTemplateSpec {
 	return nil
 }
 
-type customControllerConfigHandler func(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, freshlyCreated bool, client interface{}) (*metav1.ObjectMeta, HasSpec, interface{}, error)
+type customControllerConfigHandler func(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, freshlyCreated bool, client any) (*metav1.ObjectMeta, HasSpec, any, error)
 
-func CreateControllerConfiguration(projectId string, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, freshlyCreated bool, client interface{}, handler customControllerConfigHandler) (interface{}, error) {
+func CreateControllerConfiguration(projectId string, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, freshlyCreated bool, client any, handler customControllerConfigHandler) (any, error) {
 	objectMeta, hasSpec, controller, err := handler(namespace, service, freshlyCreated, client)
 	if err != nil {
 		return nil, err

@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/k8sclient"
+	"mogenius-k8s-manager/src/utils"
 	"strings"
 	"sync"
 	"time"
@@ -55,7 +56,7 @@ const (
 )
 
 type watcher struct {
-	handlerMapLock sync.Mutex
+	handlerMapLock sync.RWMutex
 	activeHandlers map[WatcherResourceIdentifier]resourceContext
 	clientProvider k8sclient.K8sClientProvider
 	logger         *slog.Logger
@@ -63,7 +64,7 @@ type watcher struct {
 
 func NewWatcher(logger *slog.Logger, clientProvider k8sclient.K8sClientProvider) WatcherModule {
 	self := &watcher{}
-	self.handlerMapLock = sync.Mutex{}
+	self.handlerMapLock = sync.RWMutex{}
 	self.activeHandlers = make(map[WatcherResourceIdentifier]resourceContext, 0)
 	self.clientProvider = clientProvider
 	self.logger = logger
@@ -174,7 +175,7 @@ func (self *watcher) startSingleWatcher(ctx context.Context, resource WatcherRes
 		return fmt.Errorf("invalid groupVersion: %s", err)
 	}
 
-	informerFactory := dynamicinformer.NewFilteredDynamicSharedInformerFactory(dynamicClient, time.Minute*30, v1.NamespaceAll, nil)
+	informerFactory := dynamicinformer.NewFilteredDynamicSharedInformerFactory(dynamicClient, utils.ResourceResyncTime, v1.NamespaceAll, nil)
 	resourceInformer := informerFactory.ForResource(self.createGroupVersionResource(gv.Group, gv.Version, resource.Name)).Informer()
 
 	// Enhanced error handler that can detect fatal errors
@@ -182,6 +183,9 @@ func (self *watcher) startSingleWatcher(ctx context.Context, resource WatcherRes
 		if err == io.EOF {
 			self.logger.Debug("Watch connection closed normally", "resource", resource)
 			return // closed normally, its fine
+		}
+		if strings.Contains(err.Error(), "the server could not find the requested resource") {
+			return // Resource might have been deleted, no need to retry
 		}
 		self.logger.Error("Encountered error while watching resource",
 			"resourceName", resource.Name,
@@ -194,7 +198,7 @@ func (self *watcher) startSingleWatcher(ctx context.Context, resource WatcherRes
 	}
 
 	handler, err := resourceInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc: func(obj interface{}) {
+		AddFunc: func(obj any) {
 			unstructuredObj, ok := obj.(*unstructured.Unstructured)
 			if !ok {
 				body, _ := json.Marshal(obj)
@@ -206,7 +210,7 @@ func (self *watcher) startSingleWatcher(ctx context.Context, resource WatcherRes
 				onAdd(resource, unstructuredObj)
 			}
 		},
-		UpdateFunc: func(oldObj, newObj interface{}) {
+		UpdateFunc: func(oldObj, newObj any) {
 			oldUnstructuredObj, ok := oldObj.(*unstructured.Unstructured)
 			if !ok {
 				body, _ := json.Marshal(oldObj)
@@ -222,16 +226,11 @@ func (self *watcher) startSingleWatcher(ctx context.Context, resource WatcherRes
 				return
 			}
 
-			// Filter out resync updates - same resource version means no actual change
-			if oldUnstructuredObj.GetResourceVersion() == newUnstructuredObj.GetResourceVersion() {
-				return
-			}
-
 			if onUpdate != nil {
 				onUpdate(resource, oldUnstructuredObj, newUnstructuredObj)
 			}
 		},
-		DeleteFunc: func(obj interface{}) {
+		DeleteFunc: func(obj any) {
 			unstructuredObj, ok := obj.(*unstructured.Unstructured)
 			if !ok {
 				body, _ := json.Marshal(obj)
@@ -333,8 +332,8 @@ func (m *watcher) Unwatch(resource WatcherResourceIdentifier) error {
 }
 
 func (m *watcher) ListWatchedResources() []WatcherResourceIdentifier {
-	m.handlerMapLock.Lock()
-	defer m.handlerMapLock.Unlock()
+	m.handlerMapLock.RLock()
+	defer m.handlerMapLock.RUnlock()
 
 	resources := []WatcherResourceIdentifier{}
 	for r := range m.activeHandlers {
@@ -345,8 +344,8 @@ func (m *watcher) ListWatchedResources() []WatcherResourceIdentifier {
 }
 
 func (m *watcher) State(resource WatcherResourceIdentifier) (WatcherResourceState, error) {
-	m.handlerMapLock.Lock()
-	defer m.handlerMapLock.Unlock()
+	m.handlerMapLock.RLock()
+	defer m.handlerMapLock.RUnlock()
 
 	resourceContext, ok := m.activeHandlers[resource]
 	if !ok {

@@ -70,14 +70,19 @@ func Run() error {
 	//====================== Initialize Logger ======================
 	//===============================================================
 	logLevel, err := logging.ParseLogLevel(configModule.Get("MO_LOG_LEVEL"))
+	if configModule.Get("MO_LOG_LEVEL") == "mo" {
+		logLevel = slog.LevelInfo
+		err = nil
+	}
 	assert.Assert(err == nil, "failed to parse log level", err)
 	logFilter := []string{}
 	moLogFilter := strings.SplitSeq(configModule.Get("MO_LOG_FILTER"), ",")
 	for f := range moLogFilter {
 		f = strings.TrimSpace(f)
-		if f != "" {
-			logFilter = append(logFilter, f)
+		if f == "" {
+			continue
 		}
+		logFilter = append(logFilter, f)
 	}
 	prettyPrintHandler := logging.NewPrettyPrintHandler(
 		os.Stderr,
@@ -197,16 +202,13 @@ func LoadConfigDeclarations(configModule *config.Config) {
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_STAGE",
-		DefaultValue: utils.Pointer("prod"),
+		DefaultValue: utils.Pointer(string(utils.STAGE_PROD)),
 		Description:  utils.Pointer("the stage automatically overrides API server configs"),
 		Envs:         []string{"STAGE", "stage"},
 		Validate: func(val string) error {
 			allowedStages := []string{
-				"prod",
-				"pre-prod",
-				"dev",
-				"local",
-				"", // empty to skip overrides
+				utils.STAGE_PROD,
+				utils.STAGE_DEV,
 			}
 			if !slices.Contains(allowedStages, val) {
 				return fmt.Errorf("'MO_STAGE' needs to be one of '%v' but is '%s'", allowedStages, val)
@@ -218,6 +220,12 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		Key:          "MO_HTTP_ADDR",
 		DefaultValue: utils.Pointer(":1337"),
 		Description:  utils.Pointer("address of the controllers http api server"),
+	})
+	configModule.Declare(config.ConfigDeclaration{
+		Key:          "CLUSTER_DOMAIN",
+		DefaultValue: utils.Pointer("cluster.local"),
+		Description:  utils.Pointer("the cluster domain of the kubernetes cluster"),
+		Envs:         []string{"CLUSTER_DOMAIN"},
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_OWN_NAMESPACE",
@@ -244,8 +252,9 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		Envs:         []string{"OWN_DEPLOYMENT_NAME"},
 	})
 	configModule.Declare(config.ConfigDeclaration{
-		Key:         "MO_API_SERVER",
-		Description: utils.Pointer("URL of API Server"),
+		Key:          "MO_API_SERVER",
+		Description:  utils.Pointer("URL of API Server"),
+		DefaultValue: utils.Pointer(""),
 		Validate: func(value string) error {
 			_, err := url.Parse(value)
 			if err != nil {
@@ -255,8 +264,9 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		},
 	})
 	configModule.Declare(config.ConfigDeclaration{
-		Key:         "MO_EVENT_SERVER",
-		Description: utils.Pointer("URL of Event Server"),
+		Key:          "MO_EVENT_SERVER",
+		Description:  utils.Pointer("URL of Event Server"),
+		DefaultValue: utils.Pointer(""),
 		Validate: func(value string) error {
 			_, err := url.Parse(value)
 			if err != nil {
@@ -297,12 +307,6 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		DefaultValue: utils.Pointer(filepath.Join(workDir, "helm-data")),
 		Description:  utils.Pointer("path to the helm data"),
 		Envs:         []string{"helm_data_path"},
-	})
-	configModule.Declare(config.ConfigDeclaration{
-		Key:          "MO_GIT_VAULT_DATA_PATH",
-		DefaultValue: utils.Pointer(filepath.Join(workDir, "git-vault-data")),
-		Description:  utils.Pointer("path to the git vault data"),
-		Envs:         []string{"git_vault_data_path"},
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_GIT_USER_NAME",
@@ -408,9 +412,9 @@ func LoadConfigDeclarations(configModule *config.Config) {
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_LOG_LEVEL",
 		DefaultValue: utils.Pointer("info"),
-		Description:  utils.Pointer(`a log level: "debug", "info", "warn" or "error"`),
+		Description:  utils.Pointer(`a log level: "mo","debug", "info", "warn" or "error"`),
 		Validate: func(val string) error {
-			allowedLogLevels := []string{"debug", "info", "warn", "error"}
+			allowedLogLevels := []string{"mo", "debug", "info", "warn", "error"}
 			if !slices.Contains(allowedLogLevels, val) {
 				return fmt.Errorf("'MO_LOG_LEVEL' needs to be one of '%v' but is '%s'", allowedLogLevels, val)
 			}
@@ -439,20 +443,20 @@ func LoadConfigDeclarations(configModule *config.Config) {
 func ApplyStageOverrides(configModule *config.Config) {
 	stage := configModule.Get("MO_STAGE")
 	switch stage {
-	case "prod":
-		configModule.Set("MO_API_SERVER", "wss://k8s-ws.mogenius.com/ws")
-		configModule.Set("MO_EVENT_SERVER", "wss://k8s-dispatcher.mogenius.com/ws")
-	case "pre-prod":
-		configModule.Set("MO_API_SERVER", "wss://k8s-ws.pre-prod.mogenius.com/ws")
-		configModule.Set("MO_EVENT_SERVER", "wss://k8s-dispatcher.pre-prod.mogenius.com/ws")
-	case "dev":
-		configModule.Set("MO_API_SERVER", "wss://k8s-ws.dev.mogenius.com/ws")
-		configModule.Set("MO_EVENT_SERVER", "wss://k8s-dispatcher.dev.mogenius.com/ws")
-	case "local":
-		configModule.Set("MO_API_SERVER", "ws://127.0.0.1:7011/ws")
-		configModule.Set("MO_EVENT_SERVER", "ws://127.0.0.1:7011/ws")
-	case "":
-		// does not override
+	case utils.STAGE_PROD:
+		if configModule.Get("MO_API_SERVER") == "" {
+			configModule.Set("MO_API_SERVER", "wss://k8s-ws.mogenius.com/ws")
+		}
+		if configModule.Get("MO_EVENT_SERVER") == "" {
+			configModule.Set("MO_EVENT_SERVER", "wss://k8s-dispatcher.mogenius.com/ws")
+		}
+	case utils.STAGE_DEV:
+		if configModule.Get("MO_API_SERVER") == "" {
+			configModule.Set("MO_API_SERVER", "wss://k8s-ws.dev.mogenius.com/ws")
+		}
+		if configModule.Get("MO_EVENT_SERVER") == "" {
+			configModule.Set("MO_EVENT_SERVER", "wss://k8s-dispatcher.dev.mogenius.com/ws")
+		}
 	}
 }
 
@@ -507,7 +511,7 @@ func InitializeSystems(
 
 	// initialization step 1 for services
 	workspaceManager := core.NewWorkspaceManager(configModule, clientProvider)
-	apiModule := core.NewApi(logManagerModule.CreateLogger("api"), valkeyClient)
+	apiModule := core.NewApi(logManagerModule.CreateLogger("api"), valkeyClient, configModule)
 	httpApi := core.NewHttpApi(logManagerModule, configModule)
 	socketApi := core.NewSocketApi(logManagerModule.CreateLogger("socketapi"), configModule, jobConnectionClient, eventConnectionClient, valkeyClient)
 	xtermService := core.NewXtermService(logManagerModule.CreateLogger("xterm-service"))
@@ -527,12 +531,13 @@ func InitializeSystems(
 	mocore := core.NewCore(logManagerModule.CreateLogger("core"), configModule, clientProvider, valkeyClient, eventConnectionClient, jobConnectionClient)
 	leaderElector := core.NewLeaderElector(logManagerModule.CreateLogger("leader-elector"), configModule, clientProvider)
 	reconciler := core.NewReconciler(logManagerModule.CreateLogger("reconciler"), configModule, clientProvider)
+	sealedSecret := core.NewSealedSecretManager(logManagerModule.CreateLogger("sealed-secret"), configModule, clientProvider)
 
 	// initialization step 2 for services
 	mocore.Link(moKubernetes)
 	podStatsCollector.Link(dbstatsService)
 	nodeMetricsCollector.Link(dbstatsService, leaderElector)
-	socketApi.Link(httpApi, xtermService, dbstatsService, apiModule, moKubernetes)
+	socketApi.Link(httpApi, xtermService, dbstatsService, apiModule, moKubernetes, sealedSecret)
 	moKubernetes.Link(dbstatsService)
 	httpApi.Link(socketApi, dbstatsService, apiModule, reconciler)
 	apiModule.Link(workspaceManager)
@@ -559,6 +564,7 @@ func InitializeSystems(
 		dbstatsService,
 		leaderElector,
 		reconciler,
+		sealedSecret,
 	}
 }
 
@@ -583,4 +589,5 @@ type systems struct {
 	dbstatsService        core.ValkeyStatsDb
 	leaderElector         core.LeaderElector
 	reconciler            core.Reconciler
+	sealedSecret          core.SealedSecretManager
 }

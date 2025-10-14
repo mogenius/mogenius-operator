@@ -1,12 +1,11 @@
-FROM golang:1.24.5 AS golang
-FROM quay.io/clastix/kubectl:v1.33.3 AS kubectl
+FROM golang:1.25.3 AS golang
 
 FROM ubuntu:noble AS build-env
 
-ENV SNOOPY_VERSION=v0.2.5
+ENV SNOOPY_VERSION=v0.3.5
 
 COPY --from=golang /usr/local/go /usr/local/go
-COPY --from=kubectl /usr/local/bin/kubectl /usr/local/bin/kubectl
+# COPY --from=kubectl /usr/local/bin/kubectl /usr/local/bin/kubectl
 
 RUN mkdir /go
 ENV GOPATH=/go
@@ -18,7 +17,7 @@ ARG GITHUB_TOKEN
 # Setup system
 RUN set -x && \
     apt-get update && \
-    apt-get install -y "curl" "jq" "clang" "llvm" "libelf-dev" "libbpf-dev" "git" "linux-headers-generic" "gcc" "libc6-dev" "make" "cmake" "libpcap-dev" "binutils" "build-essential" "binutils-gold" "iproute2" "lsb-release" "sudo" "ca-certificates" "wget" "just"
+    apt-get install -y "curl" "jq" "clang" "llvm" "libelf-dev" "libbpf-dev" "git" "linux-headers-generic" "gcc" "libc6-dev" "make" "cmake" "libpcap-dev" "binutils" "build-essential" "binutils-gold" "iproute2" "lsb-release" "sudo" "ca-certificates" "wget" "just" "libssl-dev"
 
 # Fetch the latest release download URL for the specific architecture
 RUN ARCH=$(uname -m) DETECTED_ARCH=$ARCH && \
@@ -60,7 +59,7 @@ RUN git config --global --add safe.directory "/app"
 WORKDIR /app
 
 RUN go version
-RUN kubectl --help
+# RUN kubectl --help
 RUN bpftool version
 
 FROM build-env AS builder

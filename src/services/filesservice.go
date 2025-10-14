@@ -131,12 +131,6 @@ func Download(pfile dtos.PersistentFileRequestDto, postTo string) FilesDownloadR
 		}
 	} else {
 		// SEND FILE TO HTTP
-		if err != nil {
-			serviceLogger.Error("Error creating form file", "error", err)
-			result.Error = err.Error()
-			return result
-		}
-
 		_, err = io.Copy(w, file)
 		if err != nil {
 			serviceLogger.Error("Error copying file", "error", err)
@@ -183,7 +177,13 @@ func Uploaded(tempZipFileSrc string, fileReq FilesUploadRequest) error {
 	if err != nil {
 		return fmt.Errorf("Error verifying file %s: %s", fileReq.File.Path, err.Error())
 	}
-	serviceLogger.Info("verified file", "VolumeName", fileReq.File.VolumeName, "targetDestionation", targetDestination, "size", utils.BytesToHumanReadable(fileReq.SizeInBytes), "path", fileReq.File.Path)
+	serviceLogger.Info(
+		"verified file",
+		"VolumeName", fileReq.File.VolumeName,
+		"targetDestionation", targetDestination,
+		"size", utils.BytesToHumanReadable(fileReq.SizeInBytes),
+		"path", fileReq.File.Path,
+	)
 
 	//2: UNZIP FILE TO TEMP
 	files, err := utils.ZipExtract(tempZipFileSrc, targetDestination)
@@ -224,7 +224,7 @@ func Rename(file dtos.PersistentFileRequestDto, newName string) error {
 	return nil
 }
 
-func Chown(file dtos.PersistentFileRequestDto, uidString string, gidString string) interface{} {
+func Chown(file dtos.PersistentFileRequestDto, uidString string, gidString string) any {
 	pathToDir, err := verify(&file)
 	if err != nil {
 		return utils.CreateError(err)
@@ -251,7 +251,7 @@ func Chown(file dtos.PersistentFileRequestDto, uidString string, gidString strin
 	return nil
 }
 
-func Chmod(file dtos.PersistentFileRequestDto, mode string) interface{} {
+func Chmod(file dtos.PersistentFileRequestDto, mode string) any {
 	pathToDir, err := verify(&file)
 	if err != nil {
 		return utils.CreateError(err)
@@ -275,7 +275,7 @@ func Chmod(file dtos.PersistentFileRequestDto, mode string) interface{} {
 	return nil
 }
 
-func Delete(file dtos.PersistentFileRequestDto) interface{} {
+func Delete(file dtos.PersistentFileRequestDto) any {
 	pathToDir, err := verify(&file)
 	if err != nil {
 		return err
@@ -339,9 +339,7 @@ func ListDir(ctx context.Context, root string) ([]dtos.PersistentFileDto, error)
 		item := dtos.PersistentFileDtoFrom(root, path)
 
 		if entry.IsDir() {
-			wg.Add(1)
-			go func(item dtos.PersistentFileDto, path string) {
-				defer wg.Done()
+			wg.Go(func() {
 				select {
 				case <-ctx.Done():
 					return
@@ -359,9 +357,11 @@ func ListDir(ctx context.Context, root string) ([]dtos.PersistentFileDto, error)
 					items = append(items, item)
 					mu.Unlock()
 				}
-			}(item, path)
+			})
 		} else {
+			mu.Lock()
 			items = append(items, item)
+			mu.Unlock()
 		}
 	}
 
@@ -386,9 +386,7 @@ func DirSize(ctx context.Context, path string) (int64, error) {
 		}
 
 		if info.IsDir() && p != path {
-			wg.Add(1)
-			go func(p string) {
-				defer wg.Done()
+			wg.Go(func() {
 				select {
 				case <-ctx.Done():
 					return
@@ -404,7 +402,7 @@ func DirSize(ctx context.Context, path string) (int64, error) {
 					size += dirSize
 					mu.Unlock()
 				}
-			}(p)
+			})
 			return filepath.SkipDir
 		}
 

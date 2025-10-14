@@ -1,17 +1,18 @@
 package secrets
 
 import (
+	"mogenius-k8s-manager/src/assert"
+	"mogenius-k8s-manager/src/collections"
 	"mogenius-k8s-manager/src/config"
-	"slices"
 	"strings"
 	"sync"
 )
 
 var (
-	secrets           []string     = []string{}
-	secretsLock       sync.RWMutex = sync.RWMutex{}
-	configSecrets     []string     = []string{}
-	configSecretsLock sync.RWMutex = sync.RWMutex{}
+	secrets           collections.HashSet[string] = collections.NewHashSet[string]()
+	secretsLock       sync.RWMutex                = sync.RWMutex{}
+	configSecrets     collections.HashSet[string] = collections.NewHashSet[string]()
+	configSecretsLock sync.RWMutex                = sync.RWMutex{}
 )
 
 const REDACTED = "***[REDACTED]***"
@@ -24,17 +25,19 @@ func AddSecret(secret string) {
 	secretsLock.Lock()
 	defer secretsLock.Unlock()
 
-	if !slices.Contains(secrets, secret) {
-		secrets = append(secrets, secret)
-	}
+	secrets.Insert(secret)
 }
 
 func UpdateConfigSecrets(configVariables []config.ConfigVariable) {
-	newConfigSecrets := []string{}
+	newConfigSecrets := collections.NewHashSet[string]()
 	for _, cv := range configVariables {
-		if cv.IsSecret && cv.Value != "" && !slices.Contains(newConfigSecrets, cv.Value) {
-			newConfigSecrets = append(newConfigSecrets, cv.Value)
+		if !cv.IsSecret {
+			continue
 		}
+		if cv.Value == "" {
+			continue
+		}
+		newConfigSecrets.Insert(cv.Value)
 	}
 
 	configSecretsLock.Lock()
@@ -44,25 +47,27 @@ func UpdateConfigSecrets(configVariables []config.ConfigVariable) {
 }
 
 func SecretArray() []string {
-	var data []string
-
 	secretsLock.RLock()
-	for _, secret := range secrets {
-		if secret != "" {
-			data = append(data, secret)
-		}
-	}
+	secretVals := secrets.Slice()
 	secretsLock.RUnlock()
 
 	configSecretsLock.RLock()
-	for _, secret := range configSecrets {
-		if secret != "" {
-			data = append(data, secret)
-		}
-	}
+	configVals := configSecrets.Slice()
 	configSecretsLock.RUnlock()
 
-	return data
+	data := collections.NewHashSet[string]()
+
+	for _, secret := range secretVals {
+		assert.Assert(secret != "", "there should never be an empty string as a secret")
+		data.Insert(secret)
+	}
+
+	for _, secret := range configVals {
+		assert.Assert(secret != "", "there should never be an empty string as a config value")
+		data.Insert(secret)
+	}
+
+	return data.Slice()
 }
 
 func EraseSecrets(data string) string {

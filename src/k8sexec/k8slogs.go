@@ -61,7 +61,7 @@ func (e *k8sLogs) Start() error {
 		req := e.restClient.GetLogs(e.pod, &v1core.PodLogOptions{
 			Container: e.container,
 			Follow:    true,
-			TailLines: utils.Pointer[int64](e.tailLines),
+			TailLines: utils.Pointer(e.tailLines),
 		})
 		readCloser, err := req.Stream(ctx)
 		if err != nil {

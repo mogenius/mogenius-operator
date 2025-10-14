@@ -10,11 +10,13 @@ import (
 	mokubernetes "mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/services"
 	"mogenius-k8s-manager/src/shutdown"
+	"mogenius-k8s-manager/src/store"
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/valkeyclient"
 	"mogenius-k8s-manager/src/websocket"
 	"net/url"
 	"strconv"
+	"sync"
 )
 
 type Core interface {
@@ -83,6 +85,23 @@ func (self *core) InitializeClusterSecret() {
 		err = self.config.TrySet("MO_CLUSTER_MFA_ID", clusterSecret.ClusterMfaId)
 		if err != nil {
 			self.logger.Debug("failed to set MO_CLUSTER_MFA_ID", "error", err)
+		}
+
+		// migration needed
+		if clusterSecret.RedisDataModelVersion == "0" || clusterSecret.RedisDataModelVersion == "" {
+			self.logger.Info("Migrating Redis Data Model to version 1 ...")
+			err := store.DropKey(self.valkeyClient, self.logger, "logs:*")
+			if err != nil {
+				self.logger.Error("failed to DropKey (logs)", "error", err)
+			}
+			err = store.DropKey(self.valkeyClient, self.logger, "pod-stats:*")
+			if err != nil {
+				self.logger.Error("failed to DropKey (pod-stats)", "error", err)
+			}
+			err = store.DropKey(self.valkeyClient, self.logger, "traffic-stats:*")
+			if err != nil {
+				self.logger.Error("failed to DropKey (traffic-stats)", "error", err)
+			}
 		}
 	}
 }
@@ -202,6 +221,7 @@ func (self *core) InitializeWebsocketApiServer() {
 }
 
 func (self *core) Initialize() error {
+	self.InitializeValkey()
 	self.InitializeClusterSecret()
 
 	err := self.moKubernetes.CreateOrUpdateResourceTemplateConfigmap()
@@ -209,7 +229,6 @@ func (self *core) Initialize() error {
 		return fmt.Errorf("failed to create resource template configmap: %s", err)
 	}
 
-	self.InitializeValkey()
 	self.InitializeWebsocketEventServer()
 	self.InitializeWebsocketApiServer()
 
@@ -218,15 +237,18 @@ func (self *core) Initialize() error {
 	assert.Assert(err == nil, err)
 	if autoMountNfs {
 		volumesToMount, err := mokubernetes.GetVolumeMountsForK8sManager()
-		if err != nil && self.config.Get("MO_STAGE") != utils.STAGE_LOCAL {
+		if err != nil {
 			self.logger.Error("GetVolumeMountsForK8sManager", "error", err)
 		}
 		for _, vol := range volumesToMount {
 			mokubernetes.Mount(vol.Namespace, vol.VolumeName, nil)
 		}
 	}
+	mokubernetes.InitOrUpdateCrds()
 
-	go func() {
+	var wg sync.WaitGroup
+
+	wg.Go(func() {
 		basicApps, userApps := services.InstallDefaultApplications()
 		if basicApps != "" || userApps != "" {
 			err := utils.ExecuteShellCommandSilent("Installing default applications ...", fmt.Sprintf("%s\n%s", basicApps, userApps))
@@ -237,27 +259,27 @@ func (self *core) Initialize() error {
 				select {}
 			}
 		}
-	}()
-
-	mokubernetes.InitOrUpdateCrds()
+	})
 
 	// Init Helm Config
-	go func() {
+	wg.Go(func() {
 		if err := helm.InitHelmConfig(); err != nil {
 			self.logger.Error("failed to initialize Helm config", "error", err)
 			return
 		}
 		self.logger.Info("Helm config initialized")
-	}()
+	})
 
 	// Init Network Policy Configmap
-	go func() {
+	wg.Go(func() {
 		if err := mokubernetes.InitNetworkPolicyConfigMap(); err != nil {
 			self.logger.Error("Error initializing Network Policy Configmap", "error", err)
 			return
 		}
 		self.logger.Info("Network Policy Configmap initialized")
-	}()
+	})
+
+	wg.Wait()
 
 	return nil
 }

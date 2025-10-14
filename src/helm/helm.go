@@ -104,16 +104,16 @@ type HelmRepoPatchRequest struct {
 
 // in valkey release-NS:release-Name {repoName, repoUrl}
 type HelmRelease struct {
-	Name      string                 `json:"name,omitempty"`
-	Info      *release.Info          `json:"info,omitempty"`
-	Chart     *chart.Chart           `json:"chart,omitempty"`
-	Config    map[string]interface{} `json:"config,omitempty"`
-	Manifest  string                 `json:"manifest,omitempty"`
-	Hooks     []*release.Hook        `json:"hooks,omitempty"`
-	Version   int                    `json:"version,omitempty"`
-	Namespace string                 `json:"namespace,omitempty"`
-	Labels    map[string]string      `json:"-"`
-	RepoName  string                 `json:"repoName"`
+	Name      string            `json:"name,omitempty"`
+	Info      *release.Info     `json:"info,omitempty"`
+	Chart     *chart.Chart      `json:"chart,omitempty"`
+	Config    map[string]any    `json:"config,omitempty"`
+	Manifest  string            `json:"manifest,omitempty"`
+	Hooks     []*release.Hook   `json:"hooks,omitempty"`
+	Version   int               `json:"version,omitempty"`
+	Namespace string            `json:"namespace,omitempty"`
+	Labels    map[string]string `json:"-"`
+	RepoName  string            `json:"repoName"`
 }
 
 type HelmValkeyRepoName struct {
@@ -280,7 +280,7 @@ func HelmStatus(namespace string, chartname string) release.Status {
 	settings := NewCli()
 	settings.SetNamespace(namespace)
 
-	logFn := func(msg string, args ...interface{}) {
+	logFn := func(msg string, args ...any) {
 		helmLogger.Info(
 			fmt.Sprintf(msg, args...),
 		)
@@ -630,7 +630,7 @@ func filterCharts(charts []HelmChartInfo, query string) []HelmChartInfo {
 func HelmChartShow(data HelmChartShowRequest) (string, error) {
 	settings := NewCli()
 
-	logFn := func(msg string, args ...interface{}) {
+	logFn := func(msg string, args ...any) {
 		helmLogger.Info(
 			fmt.Sprintf(msg, args...),
 		)
@@ -726,7 +726,7 @@ func HelmOciInstall(data HelmChartOciInstallUpgradeRequest) (result string, err 
 	settings.SetNamespace(data.Namespace)
 	helmLogger.Info("Setting up Helm OCI installation...", "releaseName", data.Release, "namespace", data.Namespace)
 
-	logFn := func(msg string, args ...interface{}) {
+	logFn := func(msg string, args ...any) {
 		helmLogger.Info(
 			fmt.Sprintf(msg, args...),
 			"releaseName", data.Release,
@@ -772,7 +772,7 @@ func HelmOciInstall(data HelmChartOciInstallUpgradeRequest) (result string, err 
 	}
 
 	// Parse the values string into a map
-	valuesMap := map[string]interface{}{}
+	valuesMap := map[string]any{}
 	if err := yaml.Unmarshal([]byte(data.Values), &valuesMap); err != nil {
 		helmLogger.Error("failed to Unmarshal HelmOCIInstall Values",
 			"releaseName", data.Release,
@@ -878,7 +878,7 @@ func initActionConfigList(settings *cli.EnvSettings, allNamespaces bool) (*actio
 		return settings.Namespace()
 	}()
 
-	logFn := func(msg string, args ...interface{}) {
+	logFn := func(msg string, args ...any) {
 		helmLogger.Info(
 			fmt.Sprintf(msg, args...),
 		)
@@ -928,7 +928,7 @@ func HelmChartInstall(data HelmChartInstallUpgradeRequest) (result string, err e
 		helmLogger.Error("failed to update helm repositories", "error", err.Error())
 	}
 
-	logFn := func(msg string, args ...interface{}) {
+	logFn := func(msg string, args ...any) {
 		helmLogger.Info(
 			fmt.Sprintf(msg, args...),
 			"releaseName", data.Release,
@@ -982,7 +982,7 @@ func HelmChartInstall(data HelmChartInstallUpgradeRequest) (result string, err e
 	}
 
 	// Parse the values string into a map
-	valuesMap := map[string]interface{}{}
+	valuesMap := map[string]any{}
 	if err := yaml.Unmarshal([]byte(data.Values), &valuesMap); err != nil {
 		helmLogger.Error("failed to Unmarshal HelmInstall Values",
 			"releaseName", data.Release,
@@ -1036,7 +1036,7 @@ func HelmReleaseUpgrade(data HelmChartInstallUpgradeRequest) (result string, err
 		helmLogger.Error("failed to update helm repositories", "error", err.Error())
 	}
 
-	logFn := func(msg string, args ...interface{}) {
+	logFn := func(msg string, args ...any) {
 		helmLogger.Info(
 			fmt.Sprintf(msg, args...),
 			"releaseName", data.Release,
@@ -1081,7 +1081,7 @@ func HelmReleaseUpgrade(data HelmChartInstallUpgradeRequest) (result string, err
 	}
 
 	// Parse the values string into a map
-	valuesMap := map[string]interface{}{}
+	valuesMap := map[string]any{}
 	if err := yaml.Unmarshal([]byte(data.Values), &valuesMap); err != nil {
 		helmLogger.Error("failed to Unmarshal HelmUpgrade Values",
 			"releaseName", data.Release,
@@ -1127,7 +1127,7 @@ func HelmReleaseUninstall(data HelmReleaseUninstallRequest) (result string, err 
 	settings := NewCli()
 	settings.SetNamespace(data.Namespace)
 
-	logFn := func(msg string, args ...interface{}) {
+	logFn := func(msg string, args ...any) {
 		helmLogger.Info(
 			fmt.Sprintf(msg, args...),
 			"releaseName", data.Release,
@@ -1166,7 +1166,7 @@ func HelmReleaseUninstall(data HelmReleaseUninstallRequest) (result string, err 
 
 // delete release from logs (otherwise it will be kept forever)
 func cleanReleaseLogs(namespace string, release string) {
-	err := valkeyClient.DeleteFromBucketWithNsAndReleaseName(namespace, release, "logs:helm")
+	err := valkeyClient.DeleteFromSortedListWithNsAndReleaseName(namespace, release, "logs:helm")
 	if err != nil {
 		helmLogger.Error("failed to delete helm release logs", "releaseName", release, "namespace", namespace, "error", err.Error())
 	}
@@ -1184,7 +1184,7 @@ func HelmReleaseList(data HelmReleaseListRequest) ([]*HelmRelease, error) {
 	settings := NewCli()
 	settings.SetNamespace(data.Namespace)
 
-	logFn := func(msg string, args ...interface{}) {
+	logFn := func(msg string, args ...any) {
 		helmLogger.Info(
 			fmt.Sprintf(msg, args...),
 			"namespace",
@@ -1228,7 +1228,7 @@ func HelmReleaseStatus(data HelmReleaseStatusRequest) (*HelmReleaseStatusInfo, e
 	settings := NewCli()
 	settings.SetNamespace(data.Namespace)
 
-	logFn := func(msg string, args ...interface{}) {
+	logFn := func(msg string, args ...any) {
 		helmLogger.Info(
 			fmt.Sprintf(msg, args...),
 			"releaseName",
@@ -1269,7 +1269,7 @@ func HelmReleaseHistory(data HelmReleaseHistoryRequest) ([]*release.Release, err
 	settings := NewCli()
 	settings.SetNamespace(data.Namespace)
 
-	logFn := func(msg string, args ...interface{}) {
+	logFn := func(msg string, args ...any) {
 		helmLogger.Info(
 			fmt.Sprintf(msg, args...),
 			"releaseName", data.Release,
@@ -1306,7 +1306,7 @@ func HelmReleaseRollback(data HelmReleaseRollbackRequest) (string, error) {
 	settings := NewCli()
 	settings.SetNamespace(data.Namespace)
 
-	logFn := func(msg string, args ...interface{}) {
+	logFn := func(msg string, args ...any) {
 		helmLogger.Info(
 			fmt.Sprintf(msg, args...),
 			"releaseName", data.Release,
@@ -1335,7 +1335,7 @@ func HelmReleaseGet(data HelmReleaseGetRequest) (string, error) {
 	settings := NewCli()
 	settings.SetNamespace(data.Namespace)
 
-	logFn := func(msg string, args ...interface{}) {
+	logFn := func(msg string, args ...any) {
 		helmLogger.Info(
 			fmt.Sprintf(msg, args...),
 			"releaseName", data.Release,
@@ -1404,7 +1404,7 @@ func HelmReleaseGetWorkloads(valkeyClient valkeyclient.ValkeyClient, data HelmRe
 
 		if workload.GetKind() == "Pod" {
 			if !replicaSetsFetched {
-				replicaSets, err = store.SearchByKeyParts(valkeyClient, "apps/v1", "ReplicaSet", data.Namespace)
+				replicaSets, err = store.SearchByKeyParts(valkeyClient, utils.ReplicaSetResource.Group, utils.ReplicaSetResource.Kind, data.Namespace)
 				if errors.Is(err, store.ErrNotFound) {
 					replicaSets = nil
 				}
@@ -1465,7 +1465,7 @@ func printHooks(rel *release.Release) string {
 	return result
 }
 
-func yamlString(data map[string]interface{}) string {
+func yamlString(data map[string]any) string {
 	yamlData, err := yaml.Marshal(data)
 	if err != nil {
 		helmLogger.Error("failed to Marshal", "error", err.Error())

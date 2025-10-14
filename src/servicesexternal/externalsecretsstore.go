@@ -103,7 +103,7 @@ func ListAvailableExternalSecrets(namePrefix string) []string {
 	result := []string{}
 	// for the current prefix, there's only one secret list
 	for _, secretValue := range response {
-		var secretMap map[string]interface{}
+		var secretMap map[string]any
 		err := json.Unmarshal([]byte(secretValue), &secretMap)
 		if err != nil {
 			esoLogger.Error("Error unmarshalling secret", "error", err.Error())

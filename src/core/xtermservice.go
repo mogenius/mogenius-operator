@@ -7,10 +7,10 @@ import (
 	"mogenius-k8s-manager/src/networkmonitor"
 	"mogenius-k8s-manager/src/rammonitor"
 	"mogenius-k8s-manager/src/structs"
-	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/valkeyclient"
 	"mogenius-k8s-manager/src/xterm"
 	"net/url"
+	"slices"
 	"strings"
 	"time"
 
@@ -74,7 +74,7 @@ func (self *xtermService) LiveStreamConnection(conReq xterm.WsConnectionRequest,
 		return
 	}
 
-	listener := NewMessageCallback(datagram, func(message interface{}) {
+	listener := NewMessageCallback(datagram, func(message any) {
 		if conn != nil {
 			connWriteLock.Lock()
 			err := conn.WriteJSON(message)
@@ -100,8 +100,8 @@ func (self *xtermService) LiveStreamConnection(conReq xterm.WsConnectionRequest,
 	}()
 
 	client := store.GetValkeyClient()
-	client.Receive(ctx, client.B().Subscribe().Channel(valkeyKey).Build(), func(msg valkey.PubSubMessage) {
-		var entry interface{}
+	err = client.Receive(ctx, client.B().Subscribe().Channel(valkeyKey).Build(), func(msg valkey.PubSubMessage) {
+		var entry any
 		// remove unnecessary fields for pods to save bandwidth
 		switch datagram.Pattern {
 		case "live-stream/pod-memory", "live-stream/workspace-memory":
@@ -113,7 +113,7 @@ func (self *xtermService) LiveStreamConnection(conReq xterm.WsConnectionRequest,
 			}
 			// remove entries which are not the requested pod
 			for i := 0; i < len(data); i++ {
-				if !utils.Contains(podNames, data[i].Name) {
+				if !slices.Contains(podNames, data[i].Name) {
 					data = append(data[:i], data[i+1:]...)
 					i--
 				}
@@ -127,7 +127,7 @@ func (self *xtermService) LiveStreamConnection(conReq xterm.WsConnectionRequest,
 				return
 			}
 			for i := 0; i < len(data); i++ {
-				if !utils.Contains(podNames, data[i].Name) {
+				if !slices.Contains(podNames, data[i].Name) {
 					data = append(data[:i], data[i+1:]...)
 					i--
 				}
@@ -141,7 +141,7 @@ func (self *xtermService) LiveStreamConnection(conReq xterm.WsConnectionRequest,
 				return
 			}
 			for i := 0; i < len(data); i++ {
-				if !utils.Contains(podNames, data[i].Pod) {
+				if !slices.Contains(podNames, data[i].Pod) {
 					data = append(data[:i], data[i+1:]...)
 					i--
 				}
@@ -158,4 +158,7 @@ func (self *xtermService) LiveStreamConnection(conReq xterm.WsConnectionRequest,
 
 		httpApi.Broadcaster().BroadcastResponse(entry, datagram.Pattern)
 	})
+	if err != nil {
+		self.logger.Error("failed to register receive handler", "error", err)
+	}
 }

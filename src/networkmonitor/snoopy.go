@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"mogenius-k8s-manager/src/assert"
@@ -202,16 +203,54 @@ type SnoopyInterfaceBpfInitializationFailed struct {
 }
 
 type SnoopyInterfaceMetrics struct {
-	Type      string `json:"type"`
-	Interface string `json:"interface"`
-	Ingress   struct {
-		Packets uint64 `json:"packets"`
-		Bytes   uint64 `json:"bytes"`
-	} `json:"ingress"`
-	Egress struct {
-		Packets uint64 `json:"packets"`
-		Bytes   uint64 `json:"bytes"`
-	} `json:"egress"`
+	Type      string                        `json:"type"`
+	Interface string                        `json:"interface"`
+	Ingress   SnoopyInterfaceMetricsCounter `json:"ingress"`
+	Egress    SnoopyInterfaceMetricsCounter `json:"egress"`
+}
+
+type SnoopyInterfaceMetricsCounter struct {
+	Packets uint64 `json:"packets"`
+	Bytes   uint64 `json:"bytes"`
+}
+
+func (self SnoopyInterfaceMetricsCounter) MarshalJSON() ([]byte, error) {
+	type StringCounter struct {
+		Packets string `json:"packets"`
+		Bytes   string `json:"bytes"`
+	}
+
+	return json.Marshal(&StringCounter{
+		Packets: strconv.FormatUint(self.Packets, 10),
+		Bytes:   strconv.FormatUint(self.Bytes, 10),
+	})
+}
+
+func (self *SnoopyInterfaceMetricsCounter) UnmarshalJSON(data []byte) error {
+	type StringCounter struct {
+		Packets string `json:"packets"`
+		Bytes   string `json:"bytes"`
+	}
+
+	tmp := &StringCounter{}
+
+	if err := json.Unmarshal(data, tmp); err != nil {
+		return err
+	}
+
+	packets, err := strconv.ParseUint(tmp.Packets, 10, 64)
+	if err != nil {
+		return err
+	}
+
+	bytes, err := strconv.ParseUint(tmp.Bytes, 10, 64)
+	if err != nil {
+		return err
+	}
+
+	self.Packets = packets
+	self.Bytes = bytes
+	return nil
 }
 
 type SnoopyInterfaceAdded struct {

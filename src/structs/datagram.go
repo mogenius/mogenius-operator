@@ -4,18 +4,20 @@ import (
 	"log/slog"
 	"mogenius-k8s-manager/src/utils"
 	"time"
+
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 type Datagram struct {
-	Id        string      `json:"id" validate:"required"`
-	Pattern   string      `json:"pattern" validate:"required"`
-	Payload   interface{} `json:"payload,omitempty"`
-	Username  string      `json:"username,omitempty"`
-	Err       string      `json:"err,omitempty"`
-	CreatedAt time.Time   `json:"-"`
-	User      User        `json:"user,omitempty"`
-	Workspace string      `json:"workspace,omitempty"`
-	Zlib      bool        `json:"zlib,omitempty"`
+	Id        string    `json:"id" validate:"required"`
+	Pattern   string    `json:"pattern" validate:"required"`
+	Payload   any       `json:"payload,omitempty"`
+	Username  string    `json:"username,omitempty"`
+	Err       string    `json:"err,omitempty"`
+	CreatedAt time.Time `json:"-"`
+	User      User      `json:"user,omitempty"`
+	Workspace string    `json:"workspace,omitempty"`
+	Zlib      bool      `json:"zlib,omitempty"`
 }
 
 type User struct {
@@ -66,20 +68,29 @@ func CreateDatagramNotificationFromJob(data *Job) Datagram {
 	return datagram
 }
 
-func CreateDatagramForClusterEvent(pattern string, group string, version string, kind string, namespace string, name string, resourceName string, eventType string, uid string) Datagram {
+func CreateDatagramForClusterEvent(pattern, group, version, kind, name, eventType string, obj *unstructured.Unstructured) Datagram {
+
+	var status any
+	if kind == "Application" {
+		status, _, _ = unstructured.NestedFieldNoCopy(obj.Object, "status", "resources")
+	}
+
 	datagram := Datagram{
 		Id:      utils.NanoId(),
 		Pattern: pattern,
-		Payload: map[string]interface{}{
+		Payload: map[string]any{
 			"eventType": eventType,
-			"resource": map[string]interface{}{
-				"group":        group,
-				"version":      version,
-				"kind":         kind,
-				"namespace":    namespace,
-				"name":         name,
-				"resourceName": resourceName,
-				"uid":          uid,
+			"resource": map[string]any{
+				"group":           group,
+				"version":         version,
+				"kind":            kind,
+				"namespace":       obj.GetNamespace(),
+				"name":            name,
+				"resourceName":    obj.GetName(),
+				"uid":             string(obj.GetUID()),
+				"resourceVersion": obj.GetResourceVersion(),
+
+				"status": status,
 			},
 		},
 		CreatedAt: time.Now(),

@@ -93,10 +93,6 @@ func TestCreateNetworkPolicyServiceWithLabel(t *testing.T) {
 		Key:          "KUBERNETES_DEBUG",
 		DefaultValue: utils.Pointer("false"),
 	})
-	config.Declare(cfg.ConfigDeclaration{
-		Key:          "OWN_DEPLOYMENT_NAME",
-		DefaultValue: utils.Pointer("local"),
-	})
 	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"), config)
 	storeModule := valkeyclient.NewValkeyClient(logManager.CreateLogger("valkey"), config)
 	err := kubernetes.Setup(logManager, config, clientProvider, storeModule)
@@ -169,7 +165,7 @@ func TestAttachAndDetachLabeledNetworkPolicy(t *testing.T) {
 	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"), config)
 	clientset := clientProvider.K8sClientSet()
 	client := clientset.AppsV1()
-	_, err := client.Deployments(namespaceName).Create(context.TODO(), exampleDeploy, metav1.CreateOptions{})
+	_, err := client.Deployments(namespaceName).Create(context.Background(), exampleDeploy, metav1.CreateOptions{})
 	if err != nil && !apierrors.IsAlreadyExists(err) {
 		t.Errorf("Error creating deployment: %s", err.Error())
 	}
@@ -178,7 +174,7 @@ func TestAttachAndDetachLabeledNetworkPolicy(t *testing.T) {
 	time.Sleep(5 * time.Second)
 
 	t.Cleanup(func() {
-		err := client.Deployments(namespaceName).Delete(context.TODO(), exampleDeploy.Name, metav1.DeleteOptions{})
+		err := client.Deployments(namespaceName).Delete(context.Background(), exampleDeploy.Name, metav1.DeleteOptions{})
 		if err != nil {
 			t.Error(err)
 		}
@@ -255,7 +251,7 @@ func TestListControllerLabeledNetworkPolicy(t *testing.T) {
 	// real world scenario wouldn't have this problem, as we assume existing controllers
 	// time.Sleep(5 * time.Second)
 	t.Cleanup(func() {
-		err := client.Deployments(namespaceName).Delete(context.TODO(), exampleDeploy.Name, metav1.DeleteOptions{})
+		err := client.Deployments(namespaceName).Delete(context.Background(), exampleDeploy.Name, metav1.DeleteOptions{})
 		if err != nil {
 			t.Error(err)
 		}

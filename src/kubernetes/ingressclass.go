@@ -11,7 +11,7 @@ func AllIngressClasses() []v1.IngressClass {
 	result := []v1.IngressClass{}
 
 	clientset := clientProvider.K8sClientSet()
-	ingressList, err := clientset.NetworkingV1().IngressClasses().List(context.TODO(), metav1.ListOptions{})
+	ingressList, err := clientset.NetworkingV1().IngressClasses().List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		k8sLogger.Error("AllIngressClasses", "error", err.Error())
 		return result

@@ -42,8 +42,8 @@ type WebsocketClient interface {
 	SetHeader(header http.Header) error
 	GetHeader() (http.Header, error)
 
-	WriteJSON(data interface{}) error
-	ReadJSON(buf interface{}) error
+	WriteJSON(data any) error
+	ReadJSON(buf any) error
 
 	WriteMessage(messageType int, data []byte) error
 	ReadMessage() (messageType int, p []byte, err error)
@@ -187,7 +187,7 @@ func (self *websocketClient) ReadMessage() (messageType int, p []byte, err error
 	}
 }
 
-func (self *websocketClient) WriteJSON(data interface{}) error {
+func (self *websocketClient) WriteJSON(data any) error {
 	select {
 	case <-self.ctx.Done():
 		return fmt.Errorf("WebsocketClient is terminated")
@@ -202,7 +202,7 @@ func (self *websocketClient) WriteJSON(data interface{}) error {
 	}
 }
 
-func (self *websocketClient) ReadJSON(buf interface{}) error {
+func (self *websocketClient) ReadJSON(buf any) error {
 	select {
 	case <-self.ctx.Done():
 		return fmt.Errorf("WebsocketClient is terminated")
@@ -299,11 +299,11 @@ type websocketClient struct {
 	apiReadMessageRx chan websocketReadMessageOutput
 
 	// api: self.WriteJson()
-	apiWriteJsonTx chan interface{}
+	apiWriteJsonTx chan any
 	apiWriteJsonRx chan error
 
 	// api: self.ReadJson()
-	apiReadJsonTx chan interface{}
+	apiReadJsonTx chan any
 	apiReadJsonRx chan error
 
 	// api: self.Terminate()
@@ -366,9 +366,9 @@ func NewWebsocketClient(logger *slog.Logger) WebsocketClient {
 	self.apiWriteMessageRx = make(chan error)
 	self.apiReadMessageTx = make(chan struct{})
 	self.apiReadMessageRx = make(chan websocketReadMessageOutput)
-	self.apiWriteJsonTx = make(chan interface{})
+	self.apiWriteJsonTx = make(chan any)
 	self.apiWriteJsonRx = make(chan error)
-	self.apiReadJsonTx = make(chan interface{})
+	self.apiReadJsonTx = make(chan any)
 	self.apiReadJsonRx = make(chan error)
 	self.apiTerminateTx = make(chan struct{})
 	self.apiTerminateRx = make(chan struct{})
@@ -588,6 +588,16 @@ func (self *websocketClient) requestReconnect() {
 		}
 		defer self.reconnectRequested.Store(false)
 		shouldReconnect := self.enableReconnecting.Load()
+
+		if shouldReconnect {
+			self.apiLogger.Warn("Reconnect has been triggered.")
+		}
+		defer func() {
+			if shouldReconnect {
+				self.apiLogger.Warn("Reconnect has finished.")
+			}
+		}()
+
 		err := self.Disconnect()
 		if err != nil {
 			self.apiLogger.Error("disconnect failed", "error", err)

@@ -18,7 +18,7 @@ func (self *ValidationError) Error() string {
 	return strings.Join(self.Errors, " | ")
 }
 
-func ValidateJSON(obj interface{}) *ValidationError {
+func ValidateJSON(obj any) *ValidationError {
 	err := validate.Struct(obj)
 	if err != nil {
 		// the library dislikes the empty struct pointer `type Void *struct{}`

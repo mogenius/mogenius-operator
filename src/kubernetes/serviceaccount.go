@@ -16,17 +16,15 @@ func ApplyServiceAccount(serviceAccountName string, namespace string, annotation
 		},
 	}
 	clientset := clientProvider.K8sClientSet()
-	_, err := clientset.CoreV1().ServiceAccounts(namespace).Create(context.TODO(), serviceAccount, MoCreateOptions(config))
-	if err == nil {
-		k8sLogger.Info("ServiceAccount created successfully ✅")
-	} else {
+	_, err := clientset.CoreV1().ServiceAccounts(namespace).Create(context.Background(), serviceAccount, MoCreateOptions(config))
+	if err != nil {
 		// Check if already exists
 		serviceAccount, err := GetServiceAccount(serviceAccountName, namespace)
 		if err != nil {
 			return err
-		} else {
-			k8sLogger.Info("ServiceAccount retrieved", "namespace", serviceAccount.GetNamespace(), "name", serviceAccount.GetName())
 		}
+		k8sLogger.Info("ServiceAccount retrieved", "namespace", serviceAccount.GetNamespace(), "name", serviceAccount.GetName())
+
 		if serviceAccount.Annotations == nil {
 			serviceAccount.Annotations = make(map[string]string)
 		}
@@ -38,12 +36,14 @@ func ApplyServiceAccount(serviceAccountName string, namespace string, annotation
 		// Try update if already exists
 		return UpdateServiceAccount(serviceAccount)
 	}
+
+	k8sLogger.Info("ServiceAccount created successfully ✅")
 	return nil
 }
 
 func UpdateServiceAccount(serviceAccount *core.ServiceAccount) error {
 	clientset := clientProvider.K8sClientSet()
-	_, err := clientset.CoreV1().ServiceAccounts(serviceAccount.GetNamespace()).Update(context.TODO(), serviceAccount, metav1.UpdateOptions{})
+	_, err := clientset.CoreV1().ServiceAccounts(serviceAccount.GetNamespace()).Update(context.Background(), serviceAccount, metav1.UpdateOptions{})
 	if err != nil {
 		return err
 	}
@@ -53,12 +53,12 @@ func UpdateServiceAccount(serviceAccount *core.ServiceAccount) error {
 
 func GetServiceAccount(serviceAccountName string, namespace string) (*core.ServiceAccount, error) {
 	clientset := clientProvider.K8sClientSet()
-	return clientset.CoreV1().ServiceAccounts(namespace).Get(context.TODO(), serviceAccountName, metav1.GetOptions{})
+	return clientset.CoreV1().ServiceAccounts(namespace).Get(context.Background(), serviceAccountName, metav1.GetOptions{})
 }
 
 func DeleteServiceAccount(serviceAccountName string, namespace string) error {
 	clientset := clientProvider.K8sClientSet()
-	err := clientset.CoreV1().ServiceAccounts(namespace).Delete(context.TODO(), serviceAccountName, metav1.DeleteOptions{})
+	err := clientset.CoreV1().ServiceAccounts(namespace).Delete(context.Background(), serviceAccountName, metav1.DeleteOptions{})
 	if err != nil {
 		return err
 	}

@@ -20,6 +20,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/discovery"
 	"k8s.io/kubectl/pkg/describe"
 	"sigs.k8s.io/yaml"
 )
@@ -40,91 +41,140 @@ type GetUnstructuredLabeledResourceListRequest struct {
 	Blacklist []*utils.ResourceEntry `json:"blacklist"`
 }
 
-// var MirroredResourceKinds = []string{
-// 	"Deployment",
-// 	"ReplicaSet",
-// 	"CronJob",
-// 	"Pod",
-// 	"Job",
-// 	"Event",
-// 	"DaemonSet",
-// 	"StatefulSet",
-// 	"Namespace",
-// 	"NetworkPolicy",
-// 	"PersistentVolume",
-// 	"PersistentVolumeClaim",
-// 	"Service",
-// 	"Node",
-
-// 	"StorageClass",
-// 	"IngressClass",
-// 	"Ingress",
-// 	"Secret",
-// 	"ConfigMap",
-// 	"HorizontalPodAutoscaler",
-// 	"ServiceAccount",
-// 	"Service",
-// 	"RoleBinding",
-// 	"Role",
-// 	"ClusterRoleBinding",
-// 	"ClusterRole",
-// 	"Workspace", // mogenius specific
-// 	"User",      // mogenius specific
-// 	"Grant",     // mogenius specific
-// }
+var lastWatchCheckStart time.Time = time.Time{}
 
 func WatchStoreResources(wm watcher.WatcherModule, eventClient websocket.WebsocketClient) error {
 	start := time.Now()
+
+	// function should not be called more often than every 5 seconds
+	// to avoid too many calls to the k8s api server
+	// which can lead to rate limiting
+	if time.Since(lastWatchCheckStart) < 5*time.Second {
+		return nil
+	}
+	lastWatchCheckStart = time.Now()
 
 	resources, err := GetAvailableResources()
 	if err != nil {
 		return err
 	}
 	for _, v := range resources {
-		// if !slices.Contains(MirroredResourceKinds, v.Kind) {
-		// 	k8sLogger.Debug("Skipping resource", "kind", v.Kind, "group", v.Group, "namespace", v.Namespace)
-		// 	continue
-		// }
 		err := wm.Watch(watcher.WatcherResourceIdentifier{
 			Name:         v.Name,
 			Kind:         v.Kind,
 			GroupVersion: v.Group,
 		}, func(resource watcher.WatcherResourceIdentifier, obj *unstructured.Unstructured) {
 			setStoreIfNeeded(resource.GroupVersion, obj.GetName(), resource.Kind, obj.GetNamespace(), obj)
+			handleCRDAddition(wm, eventClient, resource)
+
 			// suppress the add events for the first 10 seconds (because all resources are added initially)
 			if time.Since(start) < 10*time.Second {
 				return
 			}
-			sendEventServerEvent(eventClient, v.Group, resource.Version, obj.GetName(), resource.Kind, obj.GetNamespace(), resource.Name, "add", string(obj.GetUID()))
+			sendEventServerEvent(eventClient, v.Group, resource.Version, resource.Kind, resource.Name, "add", obj)
 		}, func(resource watcher.WatcherResourceIdentifier, oldObj, newObj *unstructured.Unstructured) {
 			setStoreIfNeeded(resource.GroupVersion, newObj.GetName(), resource.Kind, newObj.GetNamespace(), newObj)
-			sendEventServerEvent(eventClient, v.Group, resource.Version, newObj.GetName(), resource.Kind, newObj.GetNamespace(), resource.Name, "update", string(newObj.GetUID()))
+
+			// Filter out resync updates - same resource version means no actual change
+			if oldObj.GetResourceVersion() == newObj.GetResourceVersion() {
+				return
+			}
+			sendEventServerEvent(eventClient, v.Group, resource.Version, resource.Kind, resource.Name, "update", newObj)
 		}, func(resource watcher.WatcherResourceIdentifier, obj *unstructured.Unstructured) {
 			deleteFromStoreIfNeeded(resource.GroupVersion, obj.GetName(), resource.Kind, obj.GetNamespace(), obj)
-			sendEventServerEvent(eventClient, v.Group, resource.Version, obj.GetName(), resource.Kind, obj.GetNamespace(), resource.Name, "delete", string(obj.GetUID()))
+			sendEventServerEvent(eventClient, v.Group, resource.Version, resource.Kind, resource.Name, "delete", obj)
+			handleCRDDeletion(wm, resource, obj)
 		})
 		if err != nil {
-			k8sLogger.Error("failed to initialize watchhandler for resource", "groupVersion", v.Group, "kind", v.Kind, "version", v.Version, "error", err)
-			return err
+			if !strings.Contains(err.Error(), "resource is already being watched") {
+				k8sLogger.Error("failed to initialize watchhandler for resource", "groupVersion", v.Group, "kind", v.Kind, "version", v.Version, "error", err)
+				return err
+			}
 		} else {
-			k8sLogger.Debug("🚀 Watching resource", "kind", v.Kind, "group", v.Group)
+			k8sLogger.Info("🚀 Watching resource", "kind", v.Kind, "name", v.Name)
 		}
 	}
 	return nil
+}
+
+var (
+	crdDebounceTimer *time.Timer
+	crdDebounceMutex sync.Mutex
+)
+
+// no matter how many CRD addition events we get in a short time frame
+// this method will debounce them and only execute the logic once after 3 seconds
+func handleCRDAddition(wm watcher.WatcherModule, eventClient websocket.WebsocketClient, resource watcher.WatcherResourceIdentifier) {
+	if resource.Kind == "CustomResourceDefinition" {
+		crdDebounceMutex.Lock()
+		defer crdDebounceMutex.Unlock()
+
+		// Cancel existing timer if it exists
+		if crdDebounceTimer != nil {
+			crdDebounceTimer.Stop()
+		}
+
+		// Create new timer that executes after 3 seconds
+		crdDebounceTimer = time.AfterFunc(3*time.Second, func() {
+			resetAvailableResourceCache()
+
+			res, err := GetAvailableResources()
+			if err != nil {
+				k8sLogger.Error("Error getting available resources", "error", err)
+				return
+			}
+			currentlyWatchedResources := wm.ListWatchedResources()
+			if len(res) != len(currentlyWatchedResources) {
+				err := WatchStoreResources(wm, eventClient)
+				if err != nil {
+					k8sLogger.Error("Error watching store resources", "error", err)
+				}
+			}
+		})
+	}
+}
+
+func handleCRDDeletion(wm watcher.WatcherModule, resource watcher.WatcherResourceIdentifier, obj *unstructured.Unstructured) {
+	if resource.Kind == "CustomResourceDefinition" {
+		name, _, _ := unstructured.NestedString(obj.Object, "spec", "names", "plural")
+		kind, _, _ := unstructured.NestedString(obj.Object, "spec", "names", "kind")
+		group, _, _ := unstructured.NestedString(obj.Object, "spec", "group")
+		versions, _, _ := unstructured.NestedSlice(obj.Object, "spec", "versions")
+
+		if name == "" || kind == "" || group == "" || len(versions) == 0 {
+			k8sLogger.Error("Error parsing CRD for unwatching", "name", name, "kind", kind, "group", group, "versions", versions)
+			return
+		}
+		if firstVersion, ok := versions[0].(map[string]interface{}); ok {
+			if versionName, ok := firstVersion["name"].(string); ok {
+				resourceToDelete := watcher.WatcherResourceIdentifier{
+					Name:         name,
+					Kind:         kind,
+					GroupVersion: group + "/" + versionName,
+				}
+				err := wm.Unwatch(resourceToDelete)
+				if err != nil {
+					k8sLogger.Error("Error unwatching resource", "name", obj.GetName(), "error", err)
+				} else {
+					k8sLogger.Info("STOP Watching resource", "kind", obj.GetKind(), "name", obj.GetName())
+				}
+			}
+		}
+	}
 }
 
 func setStoreIfNeeded(groupVersion string, resourceName string, kind string, namespace string, obj *unstructured.Unstructured) {
 	obj = removeUnusedFieds(obj)
 
 	// store in valkey
-	err := valkeyClient.SetObject(obj, 0, VALKEY_RESOURCE_PREFIX, groupVersion, kind, namespace, resourceName)
+	err := valkeyClient.SetObject(obj, utils.ResourceResyncTime*2, VALKEY_RESOURCE_PREFIX, groupVersion, kind, namespace, resourceName)
 	if err != nil {
 		k8sLogger.Error("Error setting object in store", "error", err)
 	}
 }
 
-func sendEventServerEvent(eventClient websocket.WebsocketClient, group string, version string, resourceName string, kind string, namespace string, name string, eventType string, uid string) {
-	datagram := structs.CreateDatagramForClusterEvent("ClusterEvent", group, version, kind, namespace, name, resourceName, eventType, uid)
+func sendEventServerEvent(eventClient websocket.WebsocketClient, group, version, kind, name, eventType string, obj *unstructured.Unstructured) {
+	datagram := structs.CreateDatagramForClusterEvent("ClusterEvent", group, version, kind, name, eventType, obj)
 
 	// send the datagram to the event server
 	go func() {
@@ -156,44 +206,45 @@ func deleteFromStoreIfNeeded(groupVersion string, resourceName string, kind stri
 
 func GetUnstructuredResourceList(group string, version string, name string, namespace *string) (*unstructured.UnstructuredList, error) {
 	dynamicClient := clientProvider.DynamicClient()
-	if namespace != nil {
-		result, err := dynamicClient.Resource(CreateGroupVersionResource(group, version, name)).Namespace(*namespace).List(context.TODO(), metav1.ListOptions{})
-		return removeManagedFieldsFromList(result), err
+	resource := CreateGroupVersionResource(group, version, name)
+
+	var result *unstructured.UnstructuredList
+	var err error
+	if namespace == nil {
+		result, err = dynamicClient.Resource(resource).List(context.Background(), metav1.ListOptions{})
 	} else {
-		result, err := dynamicClient.Resource(CreateGroupVersionResource(group, version, name)).List(context.TODO(), metav1.ListOptions{})
-		return removeManagedFieldsFromList(result), err
+		result, err = dynamicClient.Resource(resource).Namespace(*namespace).List(context.Background(), metav1.ListOptions{})
 	}
+
+	result = removeManagedFieldsFromList(result)
+	return result, err
 }
 
-func GetUnstructuredResourceListFromStore(group string, kind string, version string, name string, namespace *string) (unstructured.UnstructuredList, error) {
-	results := unstructured.UnstructuredList{}
-	if namespace == nil {
-		namespace = utils.Pointer("")
+func GetUnstructuredResourceListFromStore(group string, kind string, version string, name string, namespace *string, withData *bool) unstructured.UnstructuredList {
+	selectedNamespace := ""
+	if namespace != nil {
+		selectedNamespace = *namespace
 	}
+
 	// try to get the data from the store (very fast)
-	result := store.GetResourceByKindAndNamespace(valkeyClient, group, kind, *namespace, k8sLogger)
+	results := unstructured.UnstructuredList{}
+	result := store.GetResourceByKindAndNamespace(valkeyClient, group, kind, selectedNamespace, k8sLogger)
 	if result != nil {
+		// delete data field to speed up transfer
+		if withData == nil || !*withData {
+			for i := range result {
+				delete(result[i].Object, "data")
+			}
+		}
 		results.Items = result
 	}
 
-	// // fallback: gather the data when the store is empty (can be slow)
-	// if len(result) == 0 {
-	// 	// dont bother kubernetes with mirrored resources
-	// 	if slices.Contains(MirroredResourceKinds, kind) {
-	// 		return results, nil
-	// 	}
-	// 	list, err := GetUnstructuredResourceList(group, version, name, namespace)
-	// 	if err != nil {
-	// 		return results, err
-	// 	}
-	// 	results.Items = list.Items
-	// }
-
-	return results, nil
+	return results
 }
 
 func GetUnstructuredNamespaceResourceList(namespace string, whitelist []*utils.ResourceEntry, blacklist []*utils.ResourceEntry) ([]unstructured.Unstructured, error) {
 	results := []unstructured.Unstructured{}
+	resultsMutex := sync.Mutex{}
 
 	resources, err := GetAvailableResources()
 	if err != nil {
@@ -208,39 +259,31 @@ func GetUnstructuredNamespaceResourceList(namespace string, whitelist []*utils.R
 		blacklist = []*utils.ResourceEntry{}
 	}
 
-	promise := utils.NewPromise[unstructured.Unstructured]()
+	var wg sync.WaitGroup
 	for _, v := range resources {
 		if v.Namespace != nil {
-			if (len(whitelist) > 0 && !utils.ContainsResourceEntry(whitelist, v)) || (blacklist != nil && utils.ContainsResourceEntry(blacklist, v)) {
+			if len(whitelist) > 0 && !utils.ContainsResourceEntry(whitelist, v) {
 				continue
 			}
-			promise.RunArray(func() *[]unstructured.Unstructured {
+			if blacklist != nil && utils.ContainsResourceEntry(blacklist, v) {
+				continue
+			}
+			wg.Go(func() {
 				result := store.GetResourceByKindAndNamespace(valkeyClient, v.Group, v.Kind, namespace, k8sLogger)
-				return &result
-				// if len(result) > 0 {
-				// 	return &result
-				// } else {
-				// 	// fallback: gather the data when the store is empty (can be slow)
-				// 	if utils.Contains(MirroredResourceKinds, v.Kind) {
-				// 		return nil
-				// 	}
-				// 	list, err := GetUnstructuredResourceList(v.Group, v.Version, v.Name, v.Namespace)
-				// 	if err != nil {
-				// 		return nil
-				// 	}
-				// 	return &list.Items
-				// }
+				resultsMutex.Lock()
+				results = append(results, result...)
+				resultsMutex.Unlock()
 			})
 		}
 	}
-	results = promise.Wait()
+	wg.Wait()
 
 	return results, nil
 }
 
 func GetUnstructuredLabeledResourceList(label string, whitelist []*utils.ResourceEntry, blacklist []*utils.ResourceEntry) (unstructured.UnstructuredList, error) {
 	results := unstructured.UnstructuredList{
-		Object: map[string]interface{}{},
+		Object: map[string]any{},
 		Items:  []unstructured.Unstructured{},
 	}
 
@@ -258,14 +301,13 @@ func GetUnstructuredLabeledResourceList(label string, whitelist []*utils.Resourc
 	}
 
 	dynamicClient := clientProvider.DynamicClient()
-	//// dynamicClient := clientProvider.DynamicClient()
 	for _, v := range resources {
 		if v.Namespace != nil {
 
 			if (len(whitelist) > 0 && !utils.ContainsResourceEntry(whitelist, v)) || (blacklist != nil && utils.ContainsResourceEntry(blacklist, v)) {
 				continue
 			}
-			result, err := dynamicClient.Resource(CreateGroupVersionResource(v.Group, v.Version, v.Name)).List(context.TODO(), metav1.ListOptions{LabelSelector: label})
+			result, err := dynamicClient.Resource(CreateGroupVersionResource(v.Group, v.Version, v.Name)).List(context.Background(), metav1.ListOptions{LabelSelector: label})
 
 			if err != nil {
 				if !os.IsNotExist(err) {
@@ -285,12 +327,16 @@ func GetUnstructuredLabeledResourceList(label string, whitelist []*utils.Resourc
 func GetUnstructuredResource(group string, version string, name string, namespace, resourceName string) (*unstructured.Unstructured, error) {
 	dynamicClient := clientProvider.DynamicClient()
 	if namespace != "" {
-		result, err := dynamicClient.Resource(CreateGroupVersionResource(group, version, name)).Namespace(namespace).Get(context.TODO(), resourceName, metav1.GetOptions{})
+		result, err := dynamicClient.Resource(CreateGroupVersionResource(group, version, name)).Namespace(namespace).Get(context.Background(), resourceName, metav1.GetOptions{})
 		return removeManagedFields(result), err
 	} else {
-		result, err := dynamicClient.Resource(CreateGroupVersionResource(group, version, name)).Get(context.TODO(), resourceName, metav1.GetOptions{})
+		result, err := dynamicClient.Resource(CreateGroupVersionResource(group, version, name)).Get(context.Background(), resourceName, metav1.GetOptions{})
 		return removeManagedFields(result), err
 	}
+}
+
+func GetUnstructuredResourceFromStore(group string, kind string, namespace, resourceName string) (*unstructured.Unstructured, error) {
+	return store.GetResource(valkeyClient, group, kind, namespace, resourceName, k8sLogger)
 }
 
 func CreateUnstructuredResource(group string, version string, name string, namespace *string, yamlData string) (*unstructured.Unstructured, error) {
@@ -302,10 +348,10 @@ func CreateUnstructuredResource(group string, version string, name string, names
 	}
 
 	if namespace != nil {
-		result, err := dynamicClient.Resource(CreateGroupVersionResource(group, version, name)).Namespace(obj.GetNamespace()).Create(context.TODO(), obj, metav1.CreateOptions{})
+		result, err := dynamicClient.Resource(CreateGroupVersionResource(group, version, name)).Namespace(obj.GetNamespace()).Create(context.Background(), obj, metav1.CreateOptions{})
 		return removeManagedFields(result), err
 	} else {
-		result, err := dynamicClient.Resource(CreateGroupVersionResource(group, version, name)).Create(context.TODO(), obj, metav1.CreateOptions{})
+		result, err := dynamicClient.Resource(CreateGroupVersionResource(group, version, name)).Create(context.Background(), obj, metav1.CreateOptions{})
 		return removeManagedFields(result), err
 	}
 }
@@ -319,10 +365,10 @@ func UpdateUnstructuredResource(group string, version string, name string, names
 	}
 
 	if namespace != nil {
-		result, err := dynamicClient.Resource(CreateGroupVersionResource(group, version, name)).Namespace(obj.GetNamespace()).Update(context.TODO(), obj, metav1.UpdateOptions{})
+		result, err := dynamicClient.Resource(CreateGroupVersionResource(group, version, name)).Namespace(obj.GetNamespace()).Update(context.Background(), obj, metav1.UpdateOptions{})
 		return removeManagedFields(result), err
 	} else {
-		result, err := dynamicClient.Resource(CreateGroupVersionResource(group, version, name)).Update(context.TODO(), obj, metav1.UpdateOptions{})
+		result, err := dynamicClient.Resource(CreateGroupVersionResource(group, version, name)).Update(context.Background(), obj, metav1.UpdateOptions{})
 		return removeManagedFields(result), err
 	}
 }
@@ -330,9 +376,9 @@ func UpdateUnstructuredResource(group string, version string, name string, names
 func DeleteUnstructuredResource(group string, version string, name string, namespace string, resourceName string) error {
 	dynamicClient := clientProvider.DynamicClient()
 	if namespace != "" {
-		return dynamicClient.Resource(CreateGroupVersionResource(group, version, name)).Namespace(namespace).Delete(context.TODO(), resourceName, metav1.DeleteOptions{})
+		return dynamicClient.Resource(CreateGroupVersionResource(group, version, name)).Namespace(namespace).Delete(context.Background(), resourceName, metav1.DeleteOptions{})
 	} else {
-		return dynamicClient.Resource(CreateGroupVersionResource(group, version, name)).Delete(context.TODO(), resourceName, metav1.DeleteOptions{})
+		return dynamicClient.Resource(CreateGroupVersionResource(group, version, name)).Delete(context.Background(), resourceName, metav1.DeleteOptions{})
 	}
 }
 
@@ -399,12 +445,12 @@ func TriggerUnstructuredResource(group string, version string, name string, name
 			name = "jobs"
 		}
 
-		return dynamicClient.Resource(CreateGroupVersionResource(group, version, name)).Namespace(namespace).Create(context.TODO(), job, metav1.CreateOptions{})
+		return dynamicClient.Resource(CreateGroupVersionResource(group, version, name)).Namespace(namespace).Create(context.Background(), job, metav1.CreateOptions{})
 	}
 	return nil, fmt.Errorf("%s is a invalid resource for trigger. Only jobs or cronjobs can be triggert", name)
 }
 
-func GetK8sObjectFor(file string, namespaced bool) (interface{}, error) {
+func GetK8sObjectFor(file string, namespaced bool) (any, error) {
 	dynamicClient := clientProvider.DynamicClient()
 	obj, err := GetObjectFromFile(file)
 	if err != nil {
@@ -418,14 +464,14 @@ func GetK8sObjectFor(file string, namespaced bool) (interface{}, error) {
 
 	if namespaced {
 		res, err := dynamicClient.Resource(
-			CreateGroupVersionResource(obj.GroupVersionKind().Group, obj.GroupVersionKind().Version, resourceName)).Namespace(obj.GetNamespace()).Get(context.TODO(), obj.GetName(), metav1.GetOptions{})
+			CreateGroupVersionResource(obj.GroupVersionKind().Group, obj.GroupVersionKind().Version, resourceName)).Namespace(obj.GetNamespace()).Get(context.Background(), obj.GetName(), metav1.GetOptions{})
 		if err != nil {
 			k8sLogger.Error("Error querying resource", "error", err)
 			return nil, err
 		}
 		return res.Object, nil
 	} else {
-		res, err := dynamicClient.Resource(CreateGroupVersionResource(obj.GroupVersionKind().Group, obj.GroupVersionKind().Version, resourceName)).List(context.TODO(), metav1.ListOptions{})
+		res, err := dynamicClient.Resource(CreateGroupVersionResource(obj.GroupVersionKind().Group, obj.GroupVersionKind().Version, resourceName)).List(context.Background(), metav1.ListOptions{})
 		if err != nil {
 			k8sLogger.Error("Error listing resource", "error", err)
 			return nil, err
@@ -475,19 +521,22 @@ var (
 
 func GetAvailableResources() ([]utils.ResourceEntry, error) {
 	// Check if we have cached resources and if they are still valid
+	resourceCacheMutex.Lock()
+	defer resourceCacheMutex.Unlock()
 	if time.Since(resourceCache.timestamp) < resourceCacheTTL {
 		return resourceCache.availableResources, nil
 	}
-
-	resourceCacheMutex.Lock()
-	defer resourceCacheMutex.Unlock()
 
 	// No valid cache, fetch resources from server
 	clientset := clientProvider.K8sClientSet()
 	resources, err := clientset.Discovery().ServerPreferredResources()
 	if err != nil {
-		k8sLogger.Error("Error discovering resources", "error", err)
-		return nil, err
+		if discovery.IsGroupDiscoveryFailedError(err) {
+			k8sLogger.Error("Failed to discover group resources", "error", err)
+		} else {
+			k8sLogger.Error("Error discovering resources", "error", err)
+			return nil, err
+		}
 	}
 
 	var availableResources []utils.ResourceEntry
@@ -514,6 +563,12 @@ func GetAvailableResources() ([]utils.ResourceEntry, error) {
 	resourceCache.timestamp = time.Now()
 
 	return availableResources, nil
+}
+
+func resetAvailableResourceCache() {
+	resourceCacheMutex.Lock()
+	defer resourceCacheMutex.Unlock()
+	resourceCache = availableResourceCacheEntry{}
 }
 
 func GetResourcesNameForKind(kind string) (name string, err error) {
@@ -557,7 +612,7 @@ func removeManagedFields(obj *unstructured.Unstructured) *unstructured.Unstructu
 	unstructuredContent := obj.Object
 	delete(unstructuredContent, "managedFields")
 	if unstructuredContent["metadata"] != nil {
-		delete(unstructuredContent["metadata"].(map[string]interface{}), "managedFields")
+		delete(unstructuredContent["metadata"].(map[string]any), "managedFields")
 	}
 	return obj
 }
@@ -574,13 +629,6 @@ func removeManagedFieldsFromList(objList *unstructured.UnstructuredList) *unstru
 }
 
 func removeUnusedFieds(obj *unstructured.Unstructured) *unstructured.Unstructured {
-	if obj == nil {
-		return obj
-	}
-
 	obj = removeManagedFields(obj)
-	unstructuredContent := obj.Object
-	delete(unstructuredContent, "data")
-
 	return obj
 }

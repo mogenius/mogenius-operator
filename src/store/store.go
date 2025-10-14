@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"mogenius-k8s-manager/src/crds/v1alpha1"
 	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
@@ -116,15 +117,10 @@ func DropAllResourcesFromValkey(valkeyClient valkeyclient.ValkeyClient, logger *
 	return err
 }
 
-func DropAllPodEventsFromValkey(valkeyClient valkeyclient.ValkeyClient, logger *slog.Logger) error {
-	keys, err := valkeyClient.Keys("pod-events" + ":*")
+func DropKey(valkeyClient valkeyclient.ValkeyClient, logger *slog.Logger, key string) error {
+	err := valkeyClient.DeleteMultiple(key)
 	if err != nil {
-		logger.Error("failed to get keys", "error", err)
-		return err
-	}
-	err = valkeyClient.DeleteMultiple(keys...)
-	if err != nil {
-		logger.Error("failed to DropAllPodEventsFromValkey", "error", err)
+		logger.Error("failed to DropKey", "error", err)
 	}
 	return err
 }
@@ -237,6 +233,10 @@ func GetNamespace(valkeyClient valkeyclient.ValkeyClient, name string, logger *s
 	return namespace
 }
 
+func GetResource(valkeyClient valkeyclient.ValkeyClient, groupVersion string, kind string, namespace string, name string, logger *slog.Logger) (*unstructured.Unstructured, error) {
+	return valkeyclient.GetObjectForKey[unstructured.Unstructured](valkeyClient, VALKEY_RESOURCE_PREFIX, groupVersion, kind, namespace, name)
+}
+
 func GetResourceByKindAndNamespace(valkeyClient valkeyclient.ValkeyClient, groupVersion string, kind string, namespace string, logger *slog.Logger) []unstructured.Unstructured {
 	var results []unstructured.Unstructured
 
@@ -344,12 +344,29 @@ func GetNode(name string) *coreV1.Node {
 	return node
 }
 
+func GetAllWorkspaces(namespace string) ([]v1alpha1.Workspace, error) {
+	pattern := strings.Join([]string{VALKEY_RESOURCE_PREFIX, utils.WorkspaceResource.Group, utils.WorkspaceResource.Kind, namespace}, ":")
+	workspaces, err := valkeyclient.GetObjectsByPrefix[v1alpha1.Workspace](valkeyClient, valkeyclient.ORDER_ASC, pattern)
+	if err != nil || workspaces == nil {
+		return nil, err
+	}
+	return workspaces, nil
+}
+
+func GetWorkspace(namespace string, name string) (*v1alpha1.Workspace, error) {
+	workspace, err := valkeyclient.GetObjectForKey[v1alpha1.Workspace](valkeyClient, VALKEY_RESOURCE_PREFIX, utils.WorkspaceResource.Group, utils.WorkspaceResource.Kind, namespace, name)
+	if err != nil || workspace == nil {
+		return nil, err
+	}
+	return workspace, nil
+}
+
 // Audit Log
 type AuditLogEntry struct {
 	Pattern   string       `json:"pattern" validate:"required"`
-	Payload   interface{}  `json:"payload,omitempty"`
+	Payload   any          `json:"payload,omitempty"`
 	Diff      string       `json:"diff,omitempty"`
-	Result    interface{}  `json:"result,omitempty"`
+	Result    any          `json:"result,omitempty"`
 	Error     string       `json:"error,omitempty"`
 	CreatedAt time.Time    `json:"createdAt"`
 	User      structs.User `json:"user,omitempty"`
@@ -380,7 +397,7 @@ func AddToAuditLog[T any](datagram structs.Datagram, logger *slog.Logger, result
 	} else if updatedObj != nil {
 		resourceNamespace = updatedObj.GetNamespace()
 		resourceName = updatedObj.GetName()
-	} else if payload, ok := datagram.Payload.(map[string]interface{}); ok {
+	} else if payload, ok := datagram.Payload.(map[string]any); ok {
 		if payload["namespace"] != nil {
 			resourceNamespace = payload["namespace"].(string)
 		}
@@ -399,8 +416,6 @@ func AddToAuditLog[T any](datagram structs.Datagram, logger *slog.Logger, result
 		} else {
 			return result, fmt.Errorf("failed to guess Namespace and ResourceName from datagram payload: %w", err)
 		}
-	} else {
-		return result, fmt.Errorf("Could not determine Namespace and ResourceName from datagram payload: %w", err)
 	}
 
 	auditLogAddErr := valkeyClient.SetObjectWithAutoincrementLimit(auditLogEntry, AuditLogLimit, "audit-log", resourceNamespace, resourceName)
@@ -423,7 +438,7 @@ func ListAuditLog(limit int, offset int, namespaces []string, clusterWide bool) 
 	return entries, size, nil
 }
 
-func auditLogFromDatagram(datagram structs.Datagram, result interface{}, err error) AuditLogEntry {
+func auditLogFromDatagram(datagram structs.Datagram, result any, err error) AuditLogEntry {
 	errStr := ""
 	if err != nil {
 		errStr = err.Error()

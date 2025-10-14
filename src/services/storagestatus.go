@@ -95,7 +95,7 @@ var statusMogeniusNfsDebounce = utils.NewDebounce("statusMogeniusNfsDebounce", 1
 
 func StatusMogeniusNfs(r NfsStatusRequest) NfsStatusResponse {
 	key := fmt.Sprintf("%s-%s-%s", r.Name, r.Namespace, r.StorageAPIObject)
-	result, _ := statusMogeniusNfsDebounce.CallFn(key, func() (interface{}, error) {
+	result, _ := statusMogeniusNfsDebounce.CallFn(key, func() (any, error) {
 		return StatusMogeniusNfs2(r), nil
 	})
 	return result.(NfsStatusResponse)
@@ -425,17 +425,20 @@ func (s *VolumeStatus) collectEventsAndUsedByPods() (*VolumeStatus, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(VolumeStatusTimeout)*time.Millisecond)
 	defer cancel()
 
-	wg.Add(1)
-	go s.getUsedByPods(ctx, &wg, podsEventsChan, errorChan)
+	wg.Go(func() {
+		s.getUsedByPods(ctx, podsEventsChan, errorChan)
+	})
 
 	if s.PersistentVolumeClaim.Name != "" {
-		wg.Add(1)
-		go s.getEvents(s.PersistentVolumeClaim.Name, VolumeTypePersistentVolumeClaim.String(), ctx, &wg, pvcsEventsChan, errorChan)
+		wg.Go(func() {
+			s.getEvents(s.PersistentVolumeClaim.Name, VolumeTypePersistentVolumeClaim.String(), ctx, pvcsEventsChan, errorChan)
+		})
 	}
 
 	if s.PersistentVolume.Name != "" {
-		wg.Add(1)
-		go s.getEvents(s.PersistentVolume.Name, VolumeTypePersistentVolume.String(), ctx, &wg, pvsEventsChan, errorChan)
+		wg.Go(func() {
+			s.getEvents(s.PersistentVolume.Name, VolumeTypePersistentVolume.String(), ctx, pvsEventsChan, errorChan)
+		})
 	}
 
 	go func() {
@@ -508,7 +511,7 @@ func (s *VolumeStatus) findPVCByPVName(name string) (*v1.PersistentVolumeClaim, 
 		return nil, fmt.Errorf("client is not set")
 	}
 
-	pvcs, err := s.client.CoreV1().PersistentVolumeClaims("").List(context.TODO(), metav1.ListOptions{
+	pvcs, err := s.client.CoreV1().PersistentVolumeClaims("").List(context.Background(), metav1.ListOptions{
 		FieldSelector: fmt.Sprintf("spec.volumeName=%s", name),
 	})
 
@@ -528,7 +531,7 @@ func (s *VolumeStatus) getPVC(namespace, name string) (*v1.PersistentVolumeClaim
 		return nil, fmt.Errorf("client is not set")
 	}
 
-	pvc, err := s.client.CoreV1().PersistentVolumeClaims(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+	pvc, err := s.client.CoreV1().PersistentVolumeClaims(namespace).Get(context.Background(), name, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -541,7 +544,7 @@ func (s *VolumeStatus) getPV(name string) (*v1.PersistentVolume, error) {
 		return nil, fmt.Errorf("client is not set")
 	}
 
-	pv, err := s.client.CoreV1().PersistentVolumes().Get(context.TODO(), name, metav1.GetOptions{})
+	pv, err := s.client.CoreV1().PersistentVolumes().Get(context.Background(), name, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -549,16 +552,14 @@ func (s *VolumeStatus) getPV(name string) (*v1.PersistentVolume, error) {
 	return pv, nil
 }
 
-func (s *VolumeStatus) getEvents(name, kind string, ctx context.Context, wg *sync.WaitGroup, channel chan<- []v1.Event, errChannel chan<- error) {
-	defer wg.Done()
-
+func (s *VolumeStatus) getEvents(name, kind string, ctx context.Context, channel chan<- []v1.Event, errChannel chan<- error) {
 	if s.client == nil {
 		errChannel <- fmt.Errorf("client is not set")
 		return
 	}
 
 	fieldSelector := fmt.Sprintf("involvedObject.name=%s,involvedObject.kind=%s", name, kind)
-	eventList, err := s.client.CoreV1().Events(s.Namespace).List(context.TODO(), metav1.ListOptions{
+	eventList, err := s.client.CoreV1().Events(s.Namespace).List(context.Background(), metav1.ListOptions{
 		FieldSelector: fieldSelector,
 	})
 
@@ -583,9 +584,7 @@ func (s *VolumeStatus) getEvents(name, kind string, ctx context.Context, wg *syn
 	}
 }
 
-func (s *VolumeStatus) getUsedByPods(ctx context.Context, wg *sync.WaitGroup, channel chan<- []string, errChannel chan<- error) {
-	defer wg.Done()
-
+func (s *VolumeStatus) getUsedByPods(ctx context.Context, channel chan<- []string, errChannel chan<- error) {
 	if s.client == nil {
 		errChannel <- fmt.Errorf("client is not set")
 		return
@@ -596,7 +595,7 @@ func (s *VolumeStatus) getUsedByPods(ctx context.Context, wg *sync.WaitGroup, ch
 		return
 	}
 
-	pods, err := s.client.CoreV1().Pods(s.Namespace).List(context.TODO(), metav1.ListOptions{})
+	pods, err := s.client.CoreV1().Pods(s.Namespace).List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		errChannel <- err
 		return

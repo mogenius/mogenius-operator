@@ -10,8 +10,21 @@ default:
 run: build
     dist/native/mogenius-k8s-manager cluster
 
+run-node-metrics: build
+    dist/native/mogenius-k8s-manager nodemetrics
+
 run-privileged: build
     sudo -E dist/native/mogenius-k8s-manager cluster
+
+# disable mogenius-k8s-manager instances running in the cluster which interfere with local development
+scale-down:
+    kubectl -n mogenius scale deployment mogenius-k8s-manager --replicas=0
+    kubectl -n mogenius patch daemonset mogenius-k8s-manager-node-metrics -p '{"spec": {"template": {"spec": {"nodeSelector": {"non-existing": "true"}}}}}'
+
+# re-enable mogenius-k8s-manager instances running in the cluster which interfere with local development
+scale-up:
+    kubectl -n mogenius scale deployment mogenius-k8s-manager --replicas=1
+    kubectl -n mogenius patch daemonset mogenius-k8s-manager-node-metrics --type json -p='[{"op": "remove", "path": "/spec/template/spec/nodeSelector/non-existing"}]'
 
 # Build a native binary with flags similar to the production build
 build: generate

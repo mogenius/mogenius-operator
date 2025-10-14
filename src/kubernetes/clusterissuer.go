@@ -12,8 +12,13 @@ func GetClusterIssuer(name string) (*cmapi.ClusterIssuer, error) {
 	if err != nil {
 		return nil, err
 	}
-	issuer, err := provider.ClientSet.CertmanagerV1().ClusterIssuers().Get(context.TODO(), name, metav1.GetOptions{})
+
+	issuer, err := provider.ClientSet.CertmanagerV1().ClusterIssuers().Get(context.Background(), name, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+
 	issuer.Kind = "ClusterIssuer"
 	issuer.APIVersion = "cert-manager.io/v1"
-	return issuer, err
+	return issuer, nil
 }

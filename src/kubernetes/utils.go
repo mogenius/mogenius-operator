@@ -11,6 +11,7 @@ import (
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/version"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -84,13 +85,6 @@ func ValidateContainerRegistryAuthString(input string) error {
 		return fmt.Errorf("missing 'auths' field in JSON")
 	}
 
-	// removed because for GCP these fields are not needed
-	// for _, creds := range config.Auths {
-	// 	// if creds.Username == "" || creds.Password == "" || creds.Auth == "" {
-	// 	// 	return fmt.Errorf("missing required fields in credentials (username, password, auth)")
-	// 	// }
-	// }
-
 	return nil
 }
 
@@ -118,19 +112,10 @@ func CurrentContextName() string {
 	return config.CurrentContext
 }
 
-// func Hostname() string {
-// 	provider, err := NewKubeProvider()
-// 	if provider == nil || err != nil {
-// 		K8sLogger.Fatal("error creating kubeprovider")
-// 	}
-
-// 	return provider.ClientConfig.Host
-// }
-
 func ListNodes() []core.Node {
 	clientset := clientProvider.K8sClientSet()
 
-	nodeMetricsList, err := clientset.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
+	nodeMetricsList, err := clientset.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		k8sLogger.Error("failed to list nodes", "error", err)
 		shutdown.SendShutdownSignal(true)
@@ -207,10 +192,6 @@ func MoAddLabels(existingLabels *map[string]string, newLabels map[string]string)
 
 // mount nfs server in k8s-manager
 func Mount(volumeNamespace string, volumeName string, nfsService *core.Service) {
-	if config.Get("MO_STAGE") == utils.STAGE_LOCAL {
-		return
-	}
-
 	go func() {
 		var service *core.Service = nfsService
 		if service == nil {
@@ -262,7 +243,7 @@ func Umount(volumeNamespace string, volumeName string) {
 
 func IsLocalClusterSetup() bool {
 	ips := GetClusterExternalIps()
-	if utils.Contains(ips, "192.168.66.1") || utils.Contains(ips, "localhost") {
+	if slices.Contains(ips, "192.168.66.1") || slices.Contains(ips, "localhost") {
 		return true
 	} else {
 		return false
@@ -272,7 +253,7 @@ func IsLocalClusterSetup() bool {
 func GetCustomDeploymentTemplate() *v1.Deployment {
 	clientset := clientProvider.K8sClientSet()
 	client := clientset.CoreV1().ConfigMaps(config.Get("MO_OWN_NAMESPACE"))
-	configmap, err := client.Get(context.TODO(), utils.MOGENIUS_CONFIGMAP_DEFAULT_DEPLOYMENT_NAME, metav1.GetOptions{})
+	configmap, err := client.Get(context.Background(), utils.MOGENIUS_CONFIGMAP_DEFAULT_DEPLOYMENT_NAME, metav1.GetOptions{})
 	if err != nil {
 		return nil
 	} else {
@@ -295,7 +276,7 @@ func ListNodeMetricss() []metricsv1beta1.NodeMetrics {
 		return []metricsv1beta1.NodeMetrics{}
 	}
 
-	nodeMetricsList, err := provider.ClientSet.MetricsV1beta1().NodeMetricses().List(context.TODO(), metav1.ListOptions{})
+	nodeMetricsList, err := provider.ClientSet.MetricsV1beta1().NodeMetricses().List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		return []metricsv1beta1.NodeMetrics{}
 	}
@@ -307,7 +288,7 @@ func StorageClassForClusterProvider(clusterProvider utils.KubernetesProvider) st
 
 	// 1. WE TRY TO GET THE DEFAULT STORAGE CLASS
 	clientset := clientProvider.K8sClientSet()
-	storageClasses, err := clientset.StorageV1().StorageClasses().List(context.TODO(), metav1.ListOptions{})
+	storageClasses, err := clientset.StorageV1().StorageClasses().List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		k8sLogger.Error("StorageClassForClusterProvider List", "error", err)
 		return nfsStorageClassStr
@@ -368,7 +349,7 @@ func ContainsLabelKey(labels map[string]string, key string) bool {
 
 func GuessClusterProvider() (utils.KubernetesProvider, error) {
 	clientset := clientProvider.K8sClientSet()
-	nodes, err := clientset.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
+	nodes, err := clientset.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		return utils.SELF_HOSTED, err
 	}
@@ -380,8 +361,6 @@ func GuessCluserProviderFromNodeList(nodes *core.NodeList) (utils.KubernetesProv
 
 	for _, node := range nodes.Items {
 		nodeInfo := map[string]string{}
-		// TODO: this is broken and deprecated (because it is broken)
-		nodeInfo["kubeProxyVersion"] = node.Status.NodeInfo.KubeProxyVersion //nolint:staticcheck
 		nodeInfo["kubeletVersion"] = node.Status.NodeInfo.KubeletVersion
 
 		labelsAndAnnotations := utils.MergeMaps(node.GetLabels(), node.GetAnnotations(), nodeInfo)
@@ -549,11 +528,12 @@ func DetermineIngressControllerType() (IngressType, error) {
 
 	unknownController := ""
 	for _, ingressClass := range ingressClasses {
-		if ingressClass.Spec.Controller == "k8s.io/ingress-nginx" || ingressClass.Spec.Controller == "nginx.org/ingress-controller" {
+		switch ingressClass.Spec.Controller {
+		case "k8s.io/ingress-nginx", "nginx.org/ingress-controller":
 			return NGINX, nil
-		} else if ingressClass.Spec.Controller == "traefik.io/ingress-controller" {
+		case "traefik.io/ingress-controller":
 			return TRAEFIK, nil
-		} else {
+		default:
 			unknownController = ingressClass.Spec.Controller
 		}
 	}

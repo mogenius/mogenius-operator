@@ -10,7 +10,6 @@ import (
 	"mogenius-k8s-manager/src/k8sclient"
 	"mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/utils"
-	"slices"
 
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
@@ -42,10 +41,9 @@ type CleanUpResultEntry struct {
 type MoKubernetes interface {
 	Run()
 	Link(valkeyStatsDb ValkeyStatsDb)
-	GetAvailableResources() ([]utils.ResourceEntry, error)
 	CreateOrUpdateClusterSecret() (utils.ClusterSecret, error)
 	CreateOrUpdateResourceTemplateConfigmap() error
-	GetNodeStats() []dtos.NodeStat
+	GetNodeStats() ([]dtos.NodeStat, error)
 	CleanUp(apiService Api, workspaceName string, dryRun bool, replicaSets bool, pods bool, services bool, secrets bool, configMaps bool, jobs bool, ingresses bool) (CleanUpResult, error)
 }
 
@@ -83,7 +81,7 @@ func (self *moKubernetes) CreateOrUpdateClusterSecret() (utils.ClusterSecret, er
 	clientset := self.clientProvider.K8sClientSet()
 	secretClient := clientset.CoreV1().Secrets(self.config.Get("MO_OWN_NAMESPACE"))
 
-	existingSecret, getErr := secretClient.Get(context.TODO(), self.config.Get("MO_OWN_NAMESPACE"), metav1.GetOptions{})
+	existingSecret, getErr := secretClient.Get(context.Background(), self.config.Get("MO_OWN_NAMESPACE"), metav1.GetOptions{})
 	return self.writeMogeniusSecret(secretClient, existingSecret, getErr)
 }
 
@@ -101,6 +99,11 @@ func (self *moKubernetes) writeMogeniusSecret(secretClient v1.SecretInterface, e
 		if string(existingSecret.Data["cluster-mfa-id"]) != "" {
 			clusterSecret.ClusterMfaId = string(existingSecret.Data["cluster-mfa-id"])
 		}
+		if string(existingSecret.Data["redis-data-model-version"]) == "" {
+			clusterSecret.RedisDataModelVersion = "0"
+		} else {
+			clusterSecret.RedisDataModelVersion = "1"
+		}
 	}
 	if clusterSecret.ClusterMfaId == "" {
 		clusterSecret.ClusterMfaId = utils.NanoId()
@@ -113,10 +116,11 @@ func (self *moKubernetes) writeMogeniusSecret(secretClient v1.SecretInterface, e
 	secret.StringData["cluster-mfa-id"] = clusterSecret.ClusterMfaId
 	secret.StringData["api-key"] = clusterSecret.ApiKey
 	secret.StringData["cluster-name"] = clusterSecret.ClusterName
+	secret.StringData["redis-data-model-version"] = clusterSecret.RedisDataModelVersion
 
 	if existingSecret == nil || getErr != nil {
 		self.logger.Info("🔑 Creating new mogenius secret ...")
-		result, err := secretClient.Create(context.TODO(), &secret, self.createOptions())
+		result, err := secretClient.Create(context.Background(), &secret, self.createOptions())
 		if err != nil {
 			self.logger.Error("Error creating mogenius secret.", "error", err)
 			return clusterSecret, err
@@ -125,9 +129,10 @@ func (self *moKubernetes) writeMogeniusSecret(secretClient v1.SecretInterface, e
 	} else {
 		if string(existingSecret.Data["cluster-mfa-id"]) != clusterSecret.ClusterMfaId ||
 			string(existingSecret.Data["api-key"]) != clusterSecret.ApiKey ||
-			string(existingSecret.Data["cluster-name"]) != clusterSecret.ClusterName {
+			string(existingSecret.Data["cluster-name"]) != clusterSecret.ClusterName ||
+			string(existingSecret.Data["redis-data-model-version"]) != clusterSecret.RedisDataModelVersion {
 			self.logger.Info("🔑 Updating existing mogenius secret ...")
-			result, err := secretClient.Update(context.TODO(), &secret, self.updateOptions())
+			result, err := secretClient.Update(context.Background(), &secret, self.updateOptions())
 			if err != nil {
 				self.logger.Error("Error updating mogenius secret.", "error", err)
 				return clusterSecret, err
@@ -157,38 +162,6 @@ func (self *moKubernetes) updateOptions() metav1.UpdateOptions {
 	}
 }
 
-func (self *moKubernetes) GetAvailableResources() ([]utils.ResourceEntry, error) {
-	clientset := self.clientProvider.K8sClientSet()
-
-	resources, err := clientset.Discovery().ServerPreferredResources()
-	if err != nil {
-		self.logger.Error("Error discovering resources", "error", err)
-		return nil, err
-	}
-
-	var availableResources []utils.ResourceEntry
-	for _, resourceList := range resources {
-		for _, resource := range resourceList.APIResources {
-			if slices.Contains(resource.Verbs, "list") && slices.Contains(resource.Verbs, "watch") {
-				var namespace *string
-				if resource.Namespaced {
-					namespace = utils.Pointer("")
-				}
-
-				availableResources = append(availableResources, utils.ResourceEntry{
-					Group:     resourceList.GroupVersion,
-					Name:      resource.Name,
-					Kind:      resource.Kind,
-					Version:   resource.Version,
-					Namespace: namespace,
-				})
-			}
-		}
-	}
-
-	return availableResources, nil
-}
-
 func (self *moKubernetes) getResourceTemplateConfigMap() string {
 	return "mogenius-resource-templates"
 }
@@ -197,7 +170,7 @@ func (self *moKubernetes) CreateOrUpdateResourceTemplateConfigmap() error {
 	yamlData := utils.InitResourceTemplatesYaml()
 
 	// Decode YAML data into a generic map
-	var decodedData map[string]interface{}
+	var decodedData map[string]any
 	err := yaml.Unmarshal([]byte(yamlData), &decodedData)
 	if err != nil {
 		return err
@@ -237,10 +210,10 @@ func (self *moKubernetes) CreateUnstructuredResource(group string, version strin
 	}
 
 	if namespace != nil {
-		result, err := dynamicClient.Resource(kubernetes.CreateGroupVersionResource(group, version, name)).Namespace(obj.GetNamespace()).Create(context.TODO(), obj, metav1.CreateOptions{})
+		result, err := dynamicClient.Resource(kubernetes.CreateGroupVersionResource(group, version, name)).Namespace(obj.GetNamespace()).Create(context.Background(), obj, metav1.CreateOptions{})
 		return self.removeManagedFields(result), err
 	} else {
-		result, err := dynamicClient.Resource(kubernetes.CreateGroupVersionResource(group, version, name)).Create(context.TODO(), obj, metav1.CreateOptions{})
+		result, err := dynamicClient.Resource(kubernetes.CreateGroupVersionResource(group, version, name)).Create(context.Background(), obj, metav1.CreateOptions{})
 		return self.removeManagedFields(result), err
 	}
 }
@@ -253,20 +226,20 @@ func (self *moKubernetes) removeManagedFields(obj *unstructured.Unstructured) *u
 	unstructuredContent := obj.Object
 	delete(unstructuredContent, "managedFields")
 	if unstructuredContent["metadata"] != nil {
-		delete(unstructuredContent["metadata"].(map[string]interface{}), "managedFields")
+		delete(unstructuredContent["metadata"].(map[string]any), "managedFields")
 	}
 
 	return obj
 }
 
-func (self *moKubernetes) GetNodeStats() []dtos.NodeStat {
+func (self *moKubernetes) GetNodeStats() ([]dtos.NodeStat, error) {
 	result := []dtos.NodeStat{}
 	nodes := kubernetes.ListNodes()
 	nodeMetrics := kubernetes.ListNodeMetricss()
 
 	if len(nodeMetrics) == 0 {
 		self.logger.Error("CRITICAL: No node metrics found. Make sure the metrics-server is installed and running.")
-		return result
+		return result, fmt.Errorf("no metrics-server found")
 	}
 
 	for _, node := range nodes {
@@ -347,7 +320,7 @@ func (self *moKubernetes) GetNodeStats() []dtos.NodeStat {
 		result = append(result, nodeStat)
 	}
 
-	return result
+	return result, nil
 }
 
 func (self *moKubernetes) CleanUp(apiService Api, workspaceName string, dryRun bool, replicaSets bool, pods bool, services bool, secrets bool, configMaps bool, jobs bool, ingresses bool) (CleanUpResult, error) {

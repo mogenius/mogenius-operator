@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
+	cfg "mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/valkeyclient"
 	"net/http"
@@ -43,8 +44,8 @@ type PrometheusRequestRedisList struct {
 type PrometheusQueryResponse struct {
 	Status string `json:"status"`
 	Data   struct {
-		ResultType string        `json:"resultType"`
-		Result     []interface{} `json:"result"`
+		ResultType string `json:"resultType"`
+		Result     []any  `json:"result"`
 	} `json:"data"`
 	ErrorType string `json:"errorType,omitempty"`
 	Error     string `json:"error,omitempty"`
@@ -60,9 +61,9 @@ type PrometheusValuesResponse struct {
 	Data   []string `json:"data"`
 }
 
-func IsPrometheusReachable(data PrometheusRequest) (bool, error) {
+func IsPrometheusReachable(data PrometheusRequest, config cfg.ConfigModule) (bool, error) {
 	data.Query = "up" // Default query to check if Prometheus is reachable
-	urlString, header := PrometheusUrlAndHeader(data, "")
+	urlString, header := prometheusUrlAndHeader(data, "", config)
 	if urlString == "" {
 		return false, fmt.Errorf("Prometheus API URL is not set or query is empty")
 	}
@@ -86,8 +87,8 @@ func IsPrometheusReachable(data PrometheusRequest) (bool, error) {
 	return true, nil
 }
 
-func PrometheusValues(data PrometheusRequest) ([]string, error) {
-	urlString, header := PrometheusUrlAndHeader(data, "/api/v1/label/__name__/values")
+func PrometheusValues(data PrometheusRequest, config cfg.ConfigModule) ([]string, error) {
+	urlString, header := prometheusUrlAndHeader(data, "/api/v1/label/__name__/values", config)
 	if urlString == "" {
 		return []string{}, fmt.Errorf("Prometheus API URL is not set or query is empty")
 	}
@@ -121,8 +122,8 @@ func PrometheusValues(data PrometheusRequest) ([]string, error) {
 	return promResp.Data, nil
 }
 
-func ExecutePrometheusQuery(data PrometheusRequest) (*PrometheusQueryResponse, error) {
-	urlString, header := PrometheusUrlAndHeader(data, "")
+func ExecutePrometheusQuery(data PrometheusRequest, config cfg.ConfigModule) (*PrometheusQueryResponse, error) {
+	urlString, header := prometheusUrlAndHeader(data, "", config)
 	if urlString == "" {
 		return nil, fmt.Errorf("Prometheus API URL is not set or query is empty")
 	}
@@ -213,7 +214,7 @@ func PrometheusGetQueryFromRedis(valkey valkeyclient.ValkeyClient, req Prometheu
 	return &queryObj, nil
 }
 
-func PrometheusUrlAndHeader(data PrometheusRequest, customEndpoint string) (urlString string, header map[string][]string) {
+func prometheusUrlAndHeader(data PrometheusRequest, customEndpoint string, config cfg.ConfigModule) (urlString string, header map[string][]string) {
 	header = make(map[string][]string)
 
 	if data.Prometheus_User != "" && data.Prometheus_Pass != "" {
@@ -231,7 +232,12 @@ func PrometheusUrlAndHeader(data PrometheusRequest, customEndpoint string) (urlS
 		if err != nil {
 			return "", header
 		}
-		result = fmt.Sprintf("http://%s.%s.svc.cluster.local:%d", serviceName, namespace, port)
+		clusterDomain, err := config.TryGet("CLUSTER_DOMAIN")
+		if err != nil {
+			clusterDomain = "cluster.local"
+		}
+
+		result = fmt.Sprintf("http://%s.%s.svc.%s:%d", serviceName, namespace, clusterDomain, port)
 	}
 
 	if customEndpoint != "" {

@@ -231,7 +231,7 @@ func (self *containerEnumerator) generateCurrentPodList(
 ) []PodInfo {
 	// query for all pods on current node
 	listOpts := metav1.ListOptions{FieldSelector: fieldSelector}
-	newPodList, err := self.clientProvider.K8sClientSet().CoreV1().Pods("").List(context.TODO(), listOpts)
+	newPodList, err := self.clientProvider.K8sClientSet().CoreV1().Pods("").List(context.Background(), listOpts)
 	if err != nil {
 		self.logger.Error("failed to list pods", "listOpts", listOpts, "error", err)
 		return []PodInfo{}

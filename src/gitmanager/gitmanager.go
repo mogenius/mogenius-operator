@@ -229,18 +229,19 @@ func CheckoutBranch(path, branchName string) error {
 	// Check if the branch exists locally
 	branchRef := plumbing.NewBranchReferenceName(branchName)
 	_, err = r.Reference(branchRef, true)
-	if err == plumbing.ErrReferenceNotFound {
+	switch err {
+	case nil:
+		// Branch exists locally, check it out
+		err = w.Checkout(&git.CheckoutOptions{
+			Branch: branchRef,
+		})
+	case plumbing.ErrReferenceNotFound:
 		// Branch doesn't exist locally, create and track the remote branch
 		err = w.Checkout(&git.CheckoutOptions{
 			Branch: plumbing.NewRemoteReferenceName("origin", branchName),
 			Create: true,
 			Force:  true,
 			Keep:   false,
-		})
-	} else if err == nil {
-		// Branch exists locally, check it out
-		err = w.Checkout(&git.CheckoutOptions{
-			Branch: branchRef,
 		})
 	}
 	if err != nil {

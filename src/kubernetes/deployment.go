@@ -8,7 +8,6 @@ import (
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/websocket"
 	"strings"
-	"sync"
 	"time"
 
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -24,7 +23,7 @@ func AllDeployments(namespaceName string) []v1.Deployment {
 	result := []v1.Deployment{}
 
 	clientset := clientProvider.K8sClientSet()
-	deploymentList, err := clientset.AppsV1().Deployments(namespaceName).List(context.TODO(), metav1.ListOptions{})
+	deploymentList, err := clientset.AppsV1().Deployments(namespaceName).List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		k8sLogger.Error("AllDeployments", "error", err.Error())
 		return result
@@ -38,177 +37,157 @@ func AllDeployments(namespaceName string) []v1.Deployment {
 	return result
 }
 
-func DeleteDeployment(eventClient websocket.WebsocketClient, job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
+func DeleteDeployment(eventClient websocket.WebsocketClient, job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto) {
 	cmd := structs.CreateCommand(eventClient, "delete", "Delete Deployment", job)
-	wg.Add(1)
-	go func(wg *sync.WaitGroup) {
-		defer wg.Done()
-		cmd.Start(eventClient, job, "Deleting Deployment")
+	cmd.Start(eventClient, job, "Deleting Deployment")
 
-		clientset := clientProvider.K8sClientSet()
-		deploymentClient := clientset.AppsV1().Deployments(namespace.Name)
+	clientset := clientProvider.K8sClientSet()
+	deploymentClient := clientset.AppsV1().Deployments(namespace.Name)
 
-		deleteOptions := metav1.DeleteOptions{
-			GracePeriodSeconds: utils.Pointer[int64](5),
-		}
+	deleteOptions := metav1.DeleteOptions{
+		GracePeriodSeconds: utils.Pointer[int64](5),
+	}
 
-		err := deploymentClient.Delete(context.TODO(), service.ControllerName, deleteOptions)
-		if err != nil {
-			cmd.Fail(eventClient, job, fmt.Sprintf("DeleteDeployment ERROR: %s", err.Error()))
-		} else {
-			cmd.Success(eventClient, job, "Deleted Deployment")
-		}
-	}(wg)
+	err := deploymentClient.Delete(context.Background(), service.ControllerName, deleteOptions)
+	if err != nil {
+		cmd.Fail(eventClient, job, fmt.Sprintf("DeleteDeployment ERROR: %s", err.Error()))
+	} else {
+		cmd.Success(eventClient, job, "Deleted Deployment")
+	}
 }
 
 func GetDeployment(namespaceName string, controllerName string) (*v1.Deployment, error) {
 	clientset := clientProvider.K8sClientSet()
 	client := clientset.AppsV1().Deployments(namespaceName)
-	return client.Get(context.TODO(), controllerName, metav1.GetOptions{})
+	return client.Get(context.Background(), controllerName, metav1.GetOptions{})
 }
 
-func UpdateDeployment(eventClient websocket.WebsocketClient, job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
+func UpdateDeployment(eventClient websocket.WebsocketClient, job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto) {
 	cmd := structs.CreateCommand(eventClient, "update", "Update Deployment", job)
-	wg.Add(1)
-	go func(wg *sync.WaitGroup) {
-		defer wg.Done()
-		cmd.Start(eventClient, job, "Updating Deployment")
+	cmd.Start(eventClient, job, "Updating Deployment")
 
-		deploymentClient := clientProvider.K8sClientSet().AppsV1().Deployments(namespace.Name)
+	deploymentClient := clientProvider.K8sClientSet().AppsV1().Deployments(namespace.Name)
 
-		newController, err := CreateControllerConfiguration(job.ProjectId, namespace, service, false, deploymentClient, createDeploymentHandler)
-		if err != nil {
-			k8sLogger.Error("Failed to create controller configuration", "error", err)
-			cmd.Fail(eventClient, job, fmt.Sprintf("UpdateDeployment ERROR: %s", err.Error()))
-			return
-		}
+	newController, err := CreateControllerConfiguration(job.ProjectId, namespace, service, false, deploymentClient, createDeploymentHandler)
+	if err != nil {
+		k8sLogger.Error("Failed to create controller configuration", "error", err)
+		cmd.Fail(eventClient, job, fmt.Sprintf("UpdateDeployment ERROR: %s", err.Error()))
+		return
+	}
 
-		deployment := newController.(*v1.Deployment)
-		_, err = deploymentClient.Update(context.TODO(), deployment, MoUpdateOptions(config))
-		if err != nil {
-			if apierrors.IsNotFound(err) {
-				_, err = deploymentClient.Create(context.TODO(), deployment, MoCreateOptions(config))
-				if err != nil {
-					cmd.Fail(eventClient, job, fmt.Sprintf("CreateDeployment ERROR: %s", err.Error()))
-				} else {
-					cmd.Success(eventClient, job, "Created deployment")
-				}
+	deployment := newController.(*v1.Deployment)
+	_, err = deploymentClient.Update(context.Background(), deployment, MoUpdateOptions(config))
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			_, err = deploymentClient.Create(context.Background(), deployment, MoCreateOptions(config))
+			if err != nil {
+				cmd.Fail(eventClient, job, fmt.Sprintf("CreateDeployment ERROR: %s", err.Error()))
 			} else {
-				cmd.Fail(eventClient, job, fmt.Sprintf("UpdatingDeployment ERROR: %s", err.Error()))
+				cmd.Success(eventClient, job, "Created deployment")
 			}
 		} else {
-			cmd.Success(eventClient, job, "Updating deployment")
+			cmd.Fail(eventClient, job, fmt.Sprintf("UpdatingDeployment ERROR: %s", err.Error()))
 		}
+	} else {
+		cmd.Success(eventClient, job, "Updating deployment")
+	}
 
-		HandleHpa(eventClient, job, namespace.Name, service.ControllerName, service, wg)
-	}(wg)
+	HandleHpa(eventClient, job, namespace.Name, service.ControllerName, service)
 }
 
-func StartDeployment(eventClient websocket.WebsocketClient, job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
+func StartDeployment(eventClient websocket.WebsocketClient, job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto) {
 	cmd := structs.CreateCommand(eventClient, "start", "Start Deployment", job)
-	wg.Add(1)
-	go func(wg *sync.WaitGroup) {
-		defer wg.Done()
-		cmd.Start(eventClient, job, "Starting Deployment")
+	cmd.Start(eventClient, job, "Starting Deployment")
 
-		clientset := clientProvider.K8sClientSet()
-		deploymentClient := clientset.AppsV1().Deployments(namespace.Name)
+	clientset := clientProvider.K8sClientSet()
+	deploymentClient := clientset.AppsV1().Deployments(namespace.Name)
 
-		newController, err := CreateControllerConfiguration(job.ProjectId, namespace, service, false, deploymentClient, createDeploymentHandler)
-		if err != nil {
-			k8sLogger.Error("Failed to create controller configuration", "error", err)
-			cmd.Fail(eventClient, job, fmt.Sprintf("StartDeployment ERROR: %s", err.Error()))
-			return
-		}
+	newController, err := CreateControllerConfiguration(job.ProjectId, namespace, service, false, deploymentClient, createDeploymentHandler)
+	if err != nil {
+		k8sLogger.Error("Failed to create controller configuration", "error", err)
+		cmd.Fail(eventClient, job, fmt.Sprintf("StartDeployment ERROR: %s", err.Error()))
+		return
+	}
 
-		// deployment := generateDeployment(namespace, service, false, deploymentClient)
-		deployment := newController.(*v1.Deployment)
+	// deployment := generateDeployment(namespace, service, false, deploymentClient)
+	deployment := newController.(*v1.Deployment)
 
-		_, err = deploymentClient.Update(context.TODO(), deployment, metav1.UpdateOptions{})
-		if err != nil {
-			cmd.Fail(eventClient, job, fmt.Sprintf("StartingDeployment ERROR: %s", err.Error()))
-		} else {
-			cmd.Success(eventClient, job, "Started Deployment")
-		}
+	_, err = deploymentClient.Update(context.Background(), deployment, metav1.UpdateOptions{})
+	if err != nil {
+		cmd.Fail(eventClient, job, fmt.Sprintf("StartingDeployment ERROR: %s", err.Error()))
+	} else {
+		cmd.Success(eventClient, job, "Started Deployment")
+	}
 
-		HandleHpa(eventClient, job, namespace.Name, service.ControllerName, service, wg)
-	}(wg)
+	HandleHpa(eventClient, job, namespace.Name, service.ControllerName, service)
 }
 
-func StopDeployment(eventClient websocket.WebsocketClient, job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
+func StopDeployment(eventClient websocket.WebsocketClient, job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto) {
 	cmd := structs.CreateCommand(eventClient, "stop", "Stopping Deployment", job)
-	wg.Add(1)
-	go func(wg *sync.WaitGroup) {
-		defer wg.Done()
-		cmd.Start(eventClient, job, "Stopping Deployment")
+	cmd.Start(eventClient, job, "Stopping Deployment")
 
-		clientset := clientProvider.K8sClientSet()
-		deploymentClient := clientset.AppsV1().Deployments(namespace.Name)
-		newController, err := CreateControllerConfiguration(job.ProjectId, namespace, service, false, deploymentClient, createDeploymentHandler)
-		if err != nil {
-			k8sLogger.Error("Failed to create controller configuration", "error", err)
-			cmd.Fail(eventClient, job, fmt.Sprintf("StopDeployment ERROR: %s", err.Error()))
-			return
-		}
+	clientset := clientProvider.K8sClientSet()
+	deploymentClient := clientset.AppsV1().Deployments(namespace.Name)
+	newController, err := CreateControllerConfiguration(job.ProjectId, namespace, service, false, deploymentClient, createDeploymentHandler)
+	if err != nil {
+		k8sLogger.Error("Failed to create controller configuration", "error", err)
+		cmd.Fail(eventClient, job, fmt.Sprintf("StopDeployment ERROR: %s", err.Error()))
+		return
+	}
 
-		// deployment := generateDeployment(namespace, service, false, deploymentClient)
-		deployment := newController.(*v1.Deployment)
+	// deployment := generateDeployment(namespace, service, false, deploymentClient)
+	deployment := newController.(*v1.Deployment)
 
-		deployment.Spec.Replicas = utils.Pointer[int32](0)
+	deployment.Spec.Replicas = utils.Pointer[int32](0)
 
-		_, err = deploymentClient.Update(context.TODO(), deployment, metav1.UpdateOptions{})
-		if err != nil {
-			cmd.Fail(eventClient, job, fmt.Sprintf("StopDeployment ERROR: %s", err.Error()))
-		} else {
-			cmd.Success(eventClient, job, "Stopped Deployment")
-		}
+	_, err = deploymentClient.Update(context.Background(), deployment, metav1.UpdateOptions{})
+	if err != nil {
+		cmd.Fail(eventClient, job, fmt.Sprintf("StopDeployment ERROR: %s", err.Error()))
+	} else {
+		cmd.Success(eventClient, job, "Stopped Deployment")
+	}
 
-		HandleHpa(eventClient, job, namespace.Name, service.ControllerName, service, wg)
-	}(wg)
+	HandleHpa(eventClient, job, namespace.Name, service.ControllerName, service)
 }
 
-func RestartDeployment(eventClient websocket.WebsocketClient, job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, wg *sync.WaitGroup) {
+func RestartDeployment(eventClient websocket.WebsocketClient, job *structs.Job, namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto) {
 	cmd := structs.CreateCommand(eventClient, "restart", "Restart Deployment", job)
-	wg.Add(1)
-	go func(wg *sync.WaitGroup) {
-		defer wg.Done()
-		cmd.Start(eventClient, job, "Restarting Deployment")
+	cmd.Start(eventClient, job, "Restarting Deployment")
 
-		clientset := clientProvider.K8sClientSet()
-		deploymentClient := clientset.AppsV1().Deployments(namespace.Name)
+	clientset := clientProvider.K8sClientSet()
+	deploymentClient := clientset.AppsV1().Deployments(namespace.Name)
 
-		newController, err := CreateControllerConfiguration(job.ProjectId, namespace, service, false, deploymentClient, createDeploymentHandler)
-		if err != nil {
-			k8sLogger.Error("Failed to create controller configuration", "error", err)
-			cmd.Fail(eventClient, job, fmt.Sprintf("RestartDeployment ERROR: %s", err.Error()))
-			return
-		}
+	newController, err := CreateControllerConfiguration(job.ProjectId, namespace, service, false, deploymentClient, createDeploymentHandler)
+	if err != nil {
+		k8sLogger.Error("Failed to create controller configuration", "error", err)
+		cmd.Fail(eventClient, job, fmt.Sprintf("RestartDeployment ERROR: %s", err.Error()))
+		return
+	}
 
-		// deployment := generateDeployment(namespace, service, false, deploymentClient)
-		deployment := newController.(*v1.Deployment)
+	// deployment := generateDeployment(namespace, service, false, deploymentClient)
+	deployment := newController.(*v1.Deployment)
 
-		// KUBERNETES ISSUES A "rollout restart deployment" WHENETHER THE METADATA IS CHANGED.
-		if deployment.Spec.Template.ObjectMeta.Annotations == nil {
-			deployment.Spec.Template.ObjectMeta.Annotations = map[string]string{}
-			deployment.Spec.Template.ObjectMeta.Annotations["kubectl.kubernetes.io/restartedAt"] = time.Now().Format(time.RFC3339)
-		} else {
-			deployment.Spec.Template.ObjectMeta.Annotations["kubectl.kubernetes.io/restartedAt"] = time.Now().Format(time.RFC3339)
-		}
+	// KUBERNETES ISSUES A "rollout restart deployment" WHENETHER THE METADATA IS CHANGED.
+	if deployment.Spec.Template.ObjectMeta.Annotations == nil {
+		deployment.Spec.Template.ObjectMeta.Annotations = map[string]string{}
+		deployment.Spec.Template.ObjectMeta.Annotations["kubectl.kubernetes.io/restartedAt"] = time.Now().Format(time.RFC3339)
+	} else {
+		deployment.Spec.Template.ObjectMeta.Annotations["kubectl.kubernetes.io/restartedAt"] = time.Now().Format(time.RFC3339)
+	}
 
-		_, err = deploymentClient.Update(context.TODO(), deployment, metav1.UpdateOptions{})
-		if err != nil {
-			cmd.Fail(eventClient, job, fmt.Sprintf("RestartDeployment ERROR: %s", err.Error()))
-		} else {
-			cmd.Success(eventClient, job, "Restart Deployment")
-		}
+	_, err = deploymentClient.Update(context.Background(), deployment, metav1.UpdateOptions{})
+	if err != nil {
+		cmd.Fail(eventClient, job, fmt.Sprintf("RestartDeployment ERROR: %s", err.Error()))
+	} else {
+		cmd.Success(eventClient, job, "Restart Deployment")
+	}
 
-		HandleHpa(eventClient, job, namespace.Name, service.ControllerName, service, wg)
-	}(wg)
+	HandleHpa(eventClient, job, namespace.Name, service.ControllerName, service)
 }
 
-func createDeploymentHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, freshlyCreated bool, client interface{}) (*metav1.ObjectMeta, HasSpec, interface{}, error) {
+func createDeploymentHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sServiceDto, freshlyCreated bool, client any) (*metav1.ObjectMeta, HasSpec, any, error) {
 	var previousSpec *v1.DeploymentSpec
-	previousDeployment, err := client.(v1depl.DeploymentInterface).Get(context.TODO(), service.ControllerName, metav1.GetOptions{})
+	previousDeployment, err := client.(v1depl.DeploymentInterface).Get(context.Background(), service.ControllerName, metav1.GetOptions{})
 	if err != nil {
 		previousDeployment = nil
 	} else {
@@ -231,11 +210,12 @@ func createDeploymentHandler(namespace dtos.K8sNamespaceDto, service dtos.K8sSer
 	spec := &newDeployment.Spec
 
 	// STRATEGY
-	if service.DeploymentStrategy == dtos.StrategyRolling {
+	switch service.DeploymentStrategy {
+	case dtos.StrategyRolling:
 		spec.Strategy.Type = v1.RollingUpdateDeploymentStrategyType
-	} else if service.DeploymentStrategy == dtos.StrategyRecreate {
+	case dtos.StrategyRecreate:
 		spec.Strategy.Type = v1.RecreateDeploymentStrategyType
-	} else {
+	default:
 		spec.Strategy.Type = v1.RecreateDeploymentStrategyType
 	}
 
@@ -432,7 +412,7 @@ func GetDeploymentsWithFieldSelector(namespace string, labelSelector string) ([]
 	clientset := clientProvider.K8sClientSet()
 	client := clientset.AppsV1().Deployments(namespace)
 
-	deployments, err := client.List(context.TODO(), metav1.ListOptions{LabelSelector: labelSelector})
+	deployments, err := client.List(context.Background(), metav1.ListOptions{LabelSelector: labelSelector})
 	if err != nil {
 		return result, err
 	}
@@ -458,7 +438,7 @@ func IsDeploymentInstalled(namespaceName string, name string) (string, error) {
 func AllDeploymentsIncludeIgnored(namespaceName string) []v1.Deployment {
 	result := []v1.Deployment{}
 	clientset := clientProvider.K8sClientSet()
-	deploymentList, err := clientset.AppsV1().Deployments(namespaceName).List(context.TODO(), metav1.ListOptions{})
+	deploymentList, err := clientset.AppsV1().Deployments(namespaceName).List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		k8sLogger.Error("AllDeployment", "error", err.Error())
 		return result

@@ -48,11 +48,12 @@ type WorkspaceResourceIdentifier struct {
 	// target entity identifier (name)
 	Id string `json:"id,omitempty"`
 
-	// allowed values: "namespace", "helm"
+	// allowed values: "namespace", "helm", "argocd"
 	Type string `json:"type,omitempty"`
 
 	// Type=="namespace": unused
 	// Type=="helm": namespace in which the chart was installed
+	// Type=="argocd": namespace in which the application was installed
 	Namespace string `json:"namespace,omitempty"`
 }
 

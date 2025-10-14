@@ -34,10 +34,10 @@ type httpService struct {
 type MessageCallback struct {
 	Id      string
 	MsgType string
-	MsgFunc func(message interface{})
+	MsgFunc func(message any)
 }
 
-func NewMessageCallback(datagram structs.Datagram, callback func(message interface{})) MessageCallback {
+func NewMessageCallback(datagram structs.Datagram, callback func(message any)) MessageCallback {
 	self := MessageCallback{}
 	self.Id = datagram.Id
 	self.MsgType = datagram.Pattern
@@ -51,7 +51,7 @@ func (self *MessageCallback) Equals(other *MessageCallback) bool {
 }
 
 type Broadcaster struct {
-	mu        sync.Mutex
+	mu        sync.RWMutex
 	Listeners []MessageCallback
 }
 
@@ -75,9 +75,9 @@ func (self *Broadcaster) RemoveListener(callback MessageCallback) {
 	}
 }
 
-func (self *Broadcaster) BroadcastResponse(message interface{}, messageType string) {
-	self.mu.Lock()
-	defer self.mu.Unlock()
+func (self *Broadcaster) BroadcastResponse(message any, messageType string) {
+	self.mu.RLock()
+	defer self.mu.RUnlock()
 
 	for _, listener := range self.Listeners {
 		if listener.MsgType == messageType {
@@ -99,7 +99,7 @@ func NewHttpApi(
 	self.config = configModule
 	self.broadcaster = &Broadcaster{
 		Listeners: []MessageCallback{},
-		mu:        sync.Mutex{},
+		mu:        sync.RWMutex{},
 	}
 
 	return self

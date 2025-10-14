@@ -2,16 +2,20 @@ package utils
 
 import (
 	_ "embed"
+	"time"
 )
 
 const HELM_INDEX string = "https://helm.mogenius.com/public/index.yaml"
 const NFS_POD_PREFIX string = "nfs-server-pod"
 
+var ResourceResyncTime time.Duration = time.Minute * 30
+
 // This object will initially created in secrets when the software is installed into the cluster for the first time (resource: secret -> mogenius/mogenius)
 type ClusterSecret struct {
-	ApiKey       string
-	ClusterMfaId string
-	ClusterName  string
+	ApiKey                string
+	ClusterMfaId          string
+	ClusterName           string
+	RedisDataModelVersion string
 }
 
 type ResourceEntry struct {
@@ -86,6 +90,12 @@ var PodResource = ResourceEntry{
 	Group: "v1",
 }
 
+var SecretResource = ResourceEntry{
+	Kind:  "Secret",
+	Name:  "secrets",
+	Group: "v1",
+}
+
 var NamespaceResource = ResourceEntry{
 	Kind:  "Namespace",
 	Name:  "namespaces",
@@ -104,8 +114,13 @@ var NodeResource = ResourceEntry{
 	Group: "v1",
 }
 
+var WorkspaceResource = ResourceEntry{
+	Kind:  "Workspace",
+	Name:  "workspaces",
+	Group: "mogenius.com/v1alpha1",
+}
+
 const STAGE_DEV = "dev"
 const STAGE_PROD = "prod"
-const STAGE_LOCAL = "local"
 
 var ClusterProviderCached KubernetesProvider = UNKNOWN

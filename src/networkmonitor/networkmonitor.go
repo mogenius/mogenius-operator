@@ -240,20 +240,20 @@ func (self *networkMonitor) metricsToPodstats(
 				continue
 			}
 			podNetworkStat := PodNetworkStats{}
-			podNetworkStat.Ip = containerInfo.PodInfo.PodIp
+			// podNetworkStat.Ip = containerInfo.PodInfo.PodIp
 			podNetworkStat.Pod = containerInfo.PodInfo.Name
 			podNetworkStat.Namespace = containerInfo.PodInfo.Namespace
-			podNetworkStat.Interface = interfaceName
+			// podNetworkStat.Interface = interfaceName
 			podNetworkStat.ReceivedPackets = metrics.Ingress.Packets
 			podNetworkStat.ReceivedBytes = metrics.Ingress.Bytes
 			podNetworkStat.ReceivedStartBytes = metrics.Ingress.StartBytes
 			podNetworkStat.TransmitPackets = metrics.Egress.Packets
 			podNetworkStat.TransmitBytes = metrics.Egress.Bytes
 			podNetworkStat.TransmitStartBytes = metrics.Egress.StartBytes
-			startTime, err := time.Parse(time.RFC3339, containerInfo.PodInfo.StartTime)
-			if err != nil {
-				podNetworkStat.StartTime = startTime
-			}
+			// startTime, err := time.Parse(time.RFC3339, containerInfo.PodInfo.StartTime)
+			// if err != nil {
+			// 	podNetworkStat.StartTime = startTime
+			// }
 			podNetworkStat.CreatedAt = time.Now()
 			data = append(data, podNetworkStat)
 		}
@@ -279,18 +279,18 @@ func (self *networkMonitor) GetPodNetworkUsage() []PodNetworkStats {
 }
 
 type PodNetworkStats struct {
-	Ip                 string    `json:"ip"`
-	Pod                string    `json:"pod"`
-	Namespace          string    `json:"namespace"`
-	Interface          string    `json:"interface"`
-	ReceivedPackets    uint64    `json:"receivedPackets"`
-	ReceivedBytes      uint64    `json:"receivedBytes"`
-	ReceivedStartBytes uint64    `json:"receivedStartBytes"`
-	TransmitPackets    uint64    `json:"transmitPackets"`
-	TransmitBytes      uint64    `json:"transmitBytes"`
-	TransmitStartBytes uint64    `json:"transmitStartBytes"`
-	StartTime          time.Time `json:"startTime"` // start time of the Interface/Pod
-	CreatedAt          time.Time `json:"createdAt"` // when the entry was written into the storage <- timestamp of write to redis
+	// Ip                 string    `json:"ip"`
+	Pod       string `json:"pod"`
+	Namespace string `json:"namespace"`
+	// Interface          string    `json:"interface"`
+	ReceivedPackets    uint64 `json:"receivedPackets"`
+	ReceivedBytes      uint64 `json:"receivedBytes"`
+	ReceivedStartBytes uint64 `json:"receivedStartBytes"`
+	TransmitPackets    uint64 `json:"transmitPackets"`
+	TransmitBytes      uint64 `json:"transmitBytes"`
+	TransmitStartBytes uint64 `json:"transmitStartBytes"`
+	// StartTime          time.Time `json:"startTime"` // start time of the Interface/Pod
+	CreatedAt time.Time `json:"createdAt"` // when the entry was written into the storage <- timestamp of write to redis
 }
 
 func (self *PodNetworkStats) Sum(other *PodNetworkStats) {

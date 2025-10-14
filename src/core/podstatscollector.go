@@ -88,7 +88,7 @@ func (self *podStatsCollector) Run() {
 				nodesResult := self.nodeStats(nodemetrics)
 				err = self.statsDb.AddNodeStatsToDb(nodesResult)
 				if err != nil {
-					self.logger.Error("failed to store node stats", "error", err)
+					self.logger.Error("failed to store node stats", "stats", nodesResult, "error", err)
 					time.Sleep(time.Duration(self.updateInterval) * time.Second)
 					continue
 				}
@@ -102,7 +102,7 @@ func (self *podStatsCollector) Run() {
 func (self *podStatsCollector) listAllPods() []v1.Pod {
 	result := []v1.Pod{}
 
-	pods, err := self.clientProvider.K8sClientSet().CoreV1().Pods("").List(context.TODO(), metav1.ListOptions{})
+	pods, err := self.clientProvider.K8sClientSet().CoreV1().Pods("").List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		self.logger.Error("failed to listAllPods", "error", err)
 		return result
@@ -135,7 +135,7 @@ func (self *podStatsCollector) nodeStats(nodemetrics []podstatscollector.NodeMet
 }
 
 func (self *podStatsCollector) getRealNodeMetrics() []podstatscollector.NodeMetrics {
-	nodeList, err := self.clientProvider.K8sClientSet().CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
+	nodeList, err := self.clientProvider.K8sClientSet().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		self.logger.Error("failed to getRealNodeMetrics", "error", err)
 	}
@@ -154,7 +154,7 @@ func (self *podStatsCollector) getRealNodeMetrics() []podstatscollector.NodeMetr
 }
 
 func (self *podStatsCollector) podStats(nodemetrics []podstatscollector.NodeMetrics, pods map[string]v1.Pod) ([]structs.PodStats, error) {
-	podMetricsList, err := self.clientProvider.MetricsClientSet().MetricsV1beta1().PodMetricses("").List(context.TODO(), metav1.ListOptions{})
+	podMetricsList, err := self.clientProvider.MetricsClientSet().MetricsV1beta1().PodMetricses("").List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -172,7 +172,7 @@ func (self *podStatsCollector) podStats(nodemetrics []podstatscollector.NodeMetr
 			entry := structs.PodStats{}
 			entry.Namespace = podMetrics.Namespace
 			entry.PodName = podMetrics.Name
-			entry.StartTime = pod.Status.StartTime.Format(time.RFC3339)
+			entry.StartTime = pod.Status.StartTime.Time
 
 			entry.ContainerName = container.Name
 			entry.CpuLimit += container.Resources.Limits.Cpu().MilliValue()
@@ -205,7 +205,7 @@ func (self *podStatsCollector) requestMetricsDataFromNode(nodeName string) (*pod
 	restClient := self.clientProvider.K8sClientSet().CoreV1().RESTClient()
 	path := fmt.Sprintf("/api/v1/nodes/%s/proxy/stats/summary", nodeName)
 
-	resultData := restClient.Get().AbsPath(path).Do(context.TODO())
+	resultData := restClient.Get().AbsPath(path).Do(context.Background())
 	if err := resultData.Error(); err != nil {
 		return nil, fmt.Errorf("failed to make request: %v", err)
 	}

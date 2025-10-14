@@ -3,9 +3,11 @@ package core
 import (
 	"log/slog"
 	"mogenius-k8s-manager/src/assert"
+	cfg "mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/crds/v1alpha1"
 	"mogenius-k8s-manager/src/helm"
 	"mogenius-k8s-manager/src/kubernetes"
+	"mogenius-k8s-manager/src/store"
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/valkeyclient"
 	"slices"
@@ -81,13 +83,15 @@ type api struct {
 	workspaceManager WorkspaceManager
 	logger           *slog.Logger
 	valkeyClient     valkeyclient.ValkeyClient
+	config           cfg.ConfigModule
 }
 
-func NewApi(logger *slog.Logger, valkeyClient valkeyclient.ValkeyClient) Api {
+func NewApi(logger *slog.Logger, valkeyClient valkeyclient.ValkeyClient, config cfg.ConfigModule) Api {
 	self := &api{}
 
 	self.logger = logger
 	self.valkeyClient = valkeyClient
+	self.config = config
 
 	return self
 }
@@ -115,7 +119,8 @@ func NewGetWorkspaceResult(name string, creationTimestamp v1.Time, resources []v
 func (self *api) GetAllWorkspaces() ([]GetWorkspaceResult, error) {
 	result := []GetWorkspaceResult{}
 
-	resources, err := self.workspaceManager.GetAllWorkspaces()
+	namespace := self.config.Get("MO_OWN_NAMESPACE")
+	resources, err := store.GetAllWorkspaces(namespace)
 	if err != nil {
 		return result, err
 	}
@@ -132,7 +137,8 @@ func (self *api) GetAllWorkspaces() ([]GetWorkspaceResult, error) {
 }
 
 func (self *api) GetWorkspace(name string) (*GetWorkspaceResult, error) {
-	resource, err := self.workspaceManager.GetWorkspace(name)
+	namespace := self.config.Get("MO_OWN_NAMESPACE")
+	resource, err := store.GetWorkspace(namespace, name)
 	if err != nil {
 		return nil, err
 	}
@@ -267,12 +273,13 @@ func (self *api) GetWorkspaceResources(workspaceName string, whitelist []*utils.
 	result := []unstructured.Unstructured{}
 
 	// Get workspace
-	workspace, err := self.GetWorkspace(workspaceName)
+	namespace := self.config.Get("MO_OWN_NAMESPACE")
+	workspace, err := store.GetWorkspace(namespace, workspaceName)
 	if err != nil {
 		return result, err
 	}
 
-	for _, v := range workspace.Resources {
+	for _, v := range workspace.Spec.Resources {
 		if v.Type == "namespace" {
 			if len(namespaceWhitelist) > 0 {
 				if !slices.Contains(namespaceWhitelist, v.Id) {
@@ -341,13 +348,14 @@ func (self *api) GetWorkspacePodsNames(workspaceName string) ([]string, error) {
 }
 
 func (self *api) GetWorkspaceNamespaces(workspaceName string) ([]string, error) {
-	workspace, err := self.GetWorkspace(workspaceName)
+	namespace := self.config.Get("MO_OWN_NAMESPACE")
+	workspace, err := store.GetWorkspace(namespace, workspaceName)
 	if err != nil {
 		return nil, err
 	}
 
 	namespaceNames := []string{}
-	for _, v := range workspace.Resources {
+	for _, v := range workspace.Spec.Resources {
 		if v.Type == "namespace" {
 			namespaceNames = append(namespaceNames, v.Id)
 		}
