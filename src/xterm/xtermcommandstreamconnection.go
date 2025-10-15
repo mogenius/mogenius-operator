@@ -118,7 +118,7 @@ func XTermCommandStreamConnection(
 	}
 
 	// check if pod is ready
-	checkPodIsReady(ctx, namespace, podName, conn, connWriteLock)
+	checkPodIsReady(ctx, namespace, podName, container, conn, connWriteLock)
 
 	// send ping
 	err = wsPing(conn)

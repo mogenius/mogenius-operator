@@ -87,7 +87,29 @@ type XtermReadMessages struct {
 
 var LogChannels = make(map[string]chan string)
 
-func isPodAvailable(pod *v1.Pod) bool {
+func isPodAvailable(pod *v1.Pod, container string) bool {
+	if pod.Status.InitContainerStatuses != nil {
+		for _, cs := range pod.Status.InitContainerStatuses {
+			if cs.Name != container {
+				continue
+			}
+			if *cs.Started == true {
+				return true
+			}
+		}
+	}
+
+	if pod.Status.ContainerStatuses != nil {
+		for _, cs := range pod.Status.ContainerStatuses {
+			if cs.Name != container {
+				continue
+			}
+			if *cs.Started == true {
+				return true
+			}
+		}
+	}
+
 	switch pod.Status.Phase {
 	case v1.PodRunning, v1.PodSucceeded, v1.PodFailed:
 		return true
@@ -100,7 +122,7 @@ func isPodAvailable(pod *v1.Pod) bool {
 	return false
 }
 
-func checkPodIsReady(ctx context.Context, namespace string, podName string, conn *websocket.Conn, connWriteLock *sync.Mutex) {
+func checkPodIsReady(ctx context.Context, namespace string, podName string, container string, conn *websocket.Conn, connWriteLock *sync.Mutex) {
 	firstCount := false
 	for {
 		select {
@@ -127,7 +149,7 @@ func checkPodIsReady(ctx context.Context, namespace string, podName string, conn
 				return
 			}
 
-			if isPodAvailable(pod) {
+			if isPodAvailable(pod, container) {
 				xtermLogger.Debug("Pod is ready", "podName", pod.Name)
 				// clear screen
 				clearScreen(conn, connWriteLock)
