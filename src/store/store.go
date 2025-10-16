@@ -165,8 +165,8 @@ func CreateKeyPattern(groupVersion, kind, namespace, name *string) string {
 
 func ListNetworkPolicies(valkeyClient valkeyclient.ValkeyClient, namespace string) ([]networkingV1.NetworkPolicy, error) {
 	result := []networkingV1.NetworkPolicy{}
-
-	policies, err := valkeyclient.GetObjectsByPrefix[networkingV1.NetworkPolicy](valkeyClient, valkeyclient.ORDER_NONE, VALKEY_RESOURCE_PREFIX, utils.NetworkPolicyResource.Group, "NetworkPolicy", namespace)
+	pattern := CreateKeyPattern(&utils.NetworkPolicyResource.Group, &utils.NetworkPolicyResource.Kind, &namespace, nil)
+	policies, err := valkeyclient.GetObjectsByPrefix[networkingV1.NetworkPolicy](valkeyClient, valkeyclient.ORDER_NONE, pattern)
 	if err != nil {
 		return result, err
 	}
@@ -185,7 +185,8 @@ func ListNetworkPolicies(valkeyClient valkeyclient.ValkeyClient, namespace strin
 func ListEvents(valkeyClient valkeyclient.ValkeyClient, namespace string) ([]coreV1.Event, error) {
 	result := []coreV1.Event{}
 
-	events, err := valkeyclient.GetObjectsByPrefix[coreV1.Event](valkeyClient, valkeyclient.ORDER_DESC, VALKEY_RESOURCE_PREFIX, "v1", "Event", namespace)
+	pattern := CreateKeyPattern(&utils.EventResource.Group, &utils.EventResource.Kind, &namespace, nil)
+	events, err := valkeyclient.GetObjectsByPrefix[coreV1.Event](valkeyClient, valkeyclient.ORDER_DESC, pattern)
 	if err != nil {
 		return result, err
 	}
@@ -204,7 +205,7 @@ func ListEvents(valkeyClient valkeyclient.ValkeyClient, namespace string) ([]cor
 func ListPods(valkeyClient valkeyclient.ValkeyClient, parts ...string) ([]coreV1.Pod, error) {
 	result := []coreV1.Pod{}
 
-	args := append([]string{VALKEY_RESOURCE_PREFIX, utils.PodResource.Group, "Pod"}, parts...)
+	args := append([]string{VALKEY_RESOURCE_PREFIX, utils.PodResource.Group, utils.PodResource.Kind}, parts...)
 	pods, err := valkeyclient.GetObjectsByPrefix[coreV1.Pod](valkeyClient, valkeyclient.ORDER_NONE, args...)
 	if err != nil {
 		return result, err
@@ -240,7 +241,8 @@ func GetResource(valkeyClient valkeyclient.ValkeyClient, groupVersion string, ki
 func GetResourceByKindAndNamespace(valkeyClient valkeyclient.ValkeyClient, groupVersion string, kind string, namespace string, logger *slog.Logger) []unstructured.Unstructured {
 	var results []unstructured.Unstructured
 
-	storeResults, err := valkeyclient.GetObjectsByPrefix[unstructured.Unstructured](valkeyClient, valkeyclient.ORDER_NONE, VALKEY_RESOURCE_PREFIX, groupVersion, kind, namespace)
+	pattern := CreateKeyPattern(&groupVersion, &kind, &namespace, nil)
+	storeResults, err := valkeyclient.GetObjectsByPrefix[unstructured.Unstructured](valkeyClient, valkeyclient.ORDER_NONE, pattern)
 	if err != nil {
 		logger.Error("failed to get resources by kind and namespace", "groupVersion", groupVersion, "kind", kind, "namespace", namespace, "error", err)
 		return results
@@ -345,7 +347,7 @@ func GetNode(name string) *coreV1.Node {
 }
 
 func GetAllWorkspaces(namespace string) ([]v1alpha1.Workspace, error) {
-	pattern := strings.Join([]string{VALKEY_RESOURCE_PREFIX, utils.WorkspaceResource.Group, utils.WorkspaceResource.Kind, namespace}, ":")
+	pattern := CreateKeyPattern(&utils.WorkspaceResource.Group, &utils.WorkspaceResource.Kind, &namespace, nil)
 	workspaces, err := valkeyclient.GetObjectsByPrefix[v1alpha1.Workspace](valkeyClient, valkeyclient.ORDER_ASC, pattern)
 	if err != nil || workspaces == nil {
 		return nil, err
