@@ -89,13 +89,11 @@ func getArgoCdSecret(valkeyClient valkeyclient.ValkeyClient) (*corev1.Secret, er
 }
 
 func ArgoCdCreateApiToken(valkeyClient valkeyclient.ValkeyClient, data ArgoCdCreateApiTokenRequest) (bool, error) {
-	argoCdLogger.Info("ArgoCdCreateApiToken", "data", data)
 	// Check if argo-cd-config ConfigMap exists in the MO_OWN_NAMESPACE
 	argoCdConfig, err := getArgoCdConfig(valkeyClient)
 	if err != nil {
 		return false, err
 	}
-	argoCdLogger.Info("ArgoCdCreateApiToken", "argoCdConfig", argoCdConfig)
 	if argoCdConfig.Data == nil {
 		return false, fmt.Errorf("argo-cd-config ConfigMap data is nil")
 	}
@@ -104,7 +102,6 @@ func ArgoCdCreateApiToken(valkeyClient valkeyclient.ValkeyClient, data ArgoCdCre
 	}
 
 	argoCdSecret, err := getArgoCdSecret(valkeyClient)
-	argoCdLogger.Info("ArgoCdCreateApiToken", "argoCdSecret", argoCdSecret)
 	if argoCdSecret.Data == nil {
 		return false, fmt.Errorf("argo-cd-user-secret Secret data is nil")
 	}
@@ -112,7 +109,6 @@ func ArgoCdCreateApiToken(valkeyClient valkeyclient.ValkeyClient, data ArgoCdCre
 	if pw, ok := argoCdSecret.Data[fmt.Sprintf("accounts.%s.password", data.Username)]; !ok || pw == nil {
 		return false, fmt.Errorf("accounts.%s.password key not found in argo-cd-user-secret Secret", data.Username)
 	}
-	fmt.Print(argoCdSecret.Data[fmt.Sprintf("accounts.%s.password", data.Username)])
 	// base64 decode password
 	password := string(argoCdSecret.Data[fmt.Sprintf("accounts.%s.password", data.Username)])
 	argoURL := fmt.Sprintf("https://argo-cd-argocd-server.%s.svc.cluster.local:443", argoCdConfig.Data["namespaceName"])
@@ -152,7 +148,7 @@ func ArgoCdApplicationRefresh(valkeyClient valkeyclient.ValkeyClient, data ArgoC
 	}
 
 	argoCdSecret, err := getArgoCdSecret(valkeyClient)
-	if argoCdSecret.Data == nil {
+	if err != nil {
 		return false, fmt.Errorf("argo-cd-user-secret Secret data is nil")
 	}
 	// accounts.mogenius.token
@@ -266,6 +262,5 @@ func refreshApplication(argoURL, applicationName, token string) (bool, error) {
 		return false, fmt.Errorf("refresh failed: %s – %s", resp.Status, string(body))
 	}
 
-	fmt.Printf("✅ Application '%s' refreshed successfully\n", applicationName)
 	return true, nil
 }
