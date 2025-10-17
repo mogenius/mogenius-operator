@@ -5,6 +5,8 @@
 export enum Pattern {
   ATTACH_LABELED_NETWORK_POLICY = "attach/labeled_network_policy",
   AUDIT_LOG_LIST = "audit-log/list",
+  CLUSTER_ARGO_CD_APPLICATION_REFRESH = "cluster/argo-cd-application-refresh",
+  CLUSTER_ARGO_CD_CREATE_API_TOKEN = "cluster/argo-cd-create-api-token",
   CLUSTER_BACKUP = "cluster/backup",
   CLUSTER_CLEAR_VALKEY_CACHE = "cluster/clear-valkey-cache",
   CLUSTER_COMPONENT_LOG_STREAM_CONNECTION_REQUEST = "cluster/component-log-stream-connection-request",
@@ -163,6 +165,8 @@ export enum Pattern {
 export const StringToPattern = {
   "attach/labeled_network_policy": Pattern.ATTACH_LABELED_NETWORK_POLICY,
   "audit-log/list": Pattern.AUDIT_LOG_LIST,
+  "cluster/argo-cd-application-refresh": Pattern.CLUSTER_ARGO_CD_APPLICATION_REFRESH,
+  "cluster/argo-cd-create-api-token": Pattern.CLUSTER_ARGO_CD_CREATE_API_TOKEN,
   "cluster/backup": Pattern.CLUSTER_BACKUP,
   "cluster/clear-valkey-cache": Pattern.CLUSTER_CLEAR_VALKEY_CACHE,
   "cluster/component-log-stream-connection-request": Pattern.CLUSTER_COMPONENT_LOG_STREAM_CONNECTION_REQUEST,
@@ -317,6 +321,8 @@ export const StringToPattern = {
 export const PatternToString = {
   [Pattern.ATTACH_LABELED_NETWORK_POLICY]: "attach/labeled_network_policy",
   [Pattern.AUDIT_LOG_LIST]: "audit-log/list",
+  [Pattern.CLUSTER_ARGO_CD_APPLICATION_REFRESH]: "cluster/argo-cd-application-refresh",
+  [Pattern.CLUSTER_ARGO_CD_CREATE_API_TOKEN]: "cluster/argo-cd-create-api-token",
   [Pattern.CLUSTER_BACKUP]: "cluster/backup",
   [Pattern.CLUSTER_CLEAR_VALKEY_CACHE]: "cluster/clear-valkey-cache",
   [Pattern.CLUSTER_COMPONENT_LOG_STREAM_CONNECTION_REQUEST]: "cluster/component-log-stream-connection-request",
@@ -623,6 +629,88 @@ export type AUDIT_LOG_LIST_REQUEST = AUDIT_LOG_LIST_REQUEST__MOGENIUS_K8S_MANAGE
  *
  */
 export type AUDIT_LOG_LIST_RESPONSE = AUDIT_LOG_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESPONSE;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     mogenius-k8s-manager/src/argo-cd.ArgoCdApplicationRefreshRequest:
+ *         name: mogenius-k8s-manager/src/argo-cd.ArgoCdApplicationRefreshRequest
+ *         properties:
+ *             applicationName:
+ *                 type: string
+ *             username:
+ *                 type: string
+ * typeInfo:
+ *     structRef: mogenius-k8s-manager/src/argo-cd.ArgoCdApplicationRefreshRequest
+ *     type: struct
+ * ```
+ *
+ */
+export type CLUSTER_ARGO_CD_APPLICATION_REFRESH_REQUEST = CLUSTER_ARGO_CD_APPLICATION_REFRESH_REQUEST__MOGENIUS_K8S_MANAGER_SRC_ARGO_CD_ARGOCDAPPLICATIONREFRESHREQUEST;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/argo-cd.ArgoCdApplicationRefreshRequest,bool]:
+ *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/argo-cd.ArgoCdApplicationRefreshRequest,bool]
+ *         properties:
+ *             data:
+ *                 type: bool
+ *             message:
+ *                 type: string
+ *             status:
+ *                 type: string
+ * typeInfo:
+ *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/argo-cd.ArgoCdApplicationRefreshRequest,bool]
+ *     type: struct
+ * ```
+ *
+ */
+export type CLUSTER_ARGO_CD_APPLICATION_REFRESH_RESPONSE = CLUSTER_ARGO_CD_APPLICATION_REFRESH_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_ARGO_CD_ARGOCDAPPLICATIONREFRESHREQUEST_BOOL;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     mogenius-k8s-manager/src/argo-cd.ArgoCdCreateApiTokenRequest:
+ *         name: mogenius-k8s-manager/src/argo-cd.ArgoCdCreateApiTokenRequest
+ *         properties:
+ *             username:
+ *                 type: string
+ * typeInfo:
+ *     structRef: mogenius-k8s-manager/src/argo-cd.ArgoCdCreateApiTokenRequest
+ *     type: struct
+ * ```
+ *
+ */
+export type CLUSTER_ARGO_CD_CREATE_API_TOKEN_REQUEST = CLUSTER_ARGO_CD_CREATE_API_TOKEN_REQUEST__MOGENIUS_K8S_MANAGER_SRC_ARGO_CD_ARGOCDCREATEAPITOKENREQUEST;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/argo-cd.ArgoCdCreateApiTokenRequest,bool]:
+ *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/argo-cd.ArgoCdCreateApiTokenRequest,bool]
+ *         properties:
+ *             data:
+ *                 type: bool
+ *             message:
+ *                 type: string
+ *             status:
+ *                 type: string
+ * typeInfo:
+ *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/argo-cd.ArgoCdCreateApiTokenRequest,bool]
+ *     type: struct
+ * ```
+ *
+ */
+export type CLUSTER_ARGO_CD_CREATE_API_TOKEN_RESPONSE = CLUSTER_ARGO_CD_CREATE_API_TOKEN_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_ARGO_CD_ARGOCDCREATEAPITOKENREQUEST_BOOL;
 
 /**
  * #### Source
@@ -19131,6 +19219,10 @@ export type AUDIT_LOG_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STORE_AUDITLOGENTR
 export type AUDIT_LOG_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STORE_AUDITLOGRESPONSE = {"data": AUDIT_LOG_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STORE_AUDITLOGENTRY[],"totalCount": number};
 export type AUDIT_LOG_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_USER = {"email": string,"firstName": string,"lastName": string,"source": string};
 export type AUDIT_LOG_LIST_RESPONSE__TIME_TIME = {};
+export type CLUSTER_ARGO_CD_APPLICATION_REFRESH_REQUEST__MOGENIUS_K8S_MANAGER_SRC_ARGO_CD_ARGOCDAPPLICATIONREFRESHREQUEST = {"applicationName": string,"username": string};
+export type CLUSTER_ARGO_CD_APPLICATION_REFRESH_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_ARGO_CD_ARGOCDAPPLICATIONREFRESHREQUEST_BOOL = {"data": boolean,"message": string,"status": string};
+export type CLUSTER_ARGO_CD_CREATE_API_TOKEN_REQUEST__MOGENIUS_K8S_MANAGER_SRC_ARGO_CD_ARGOCDCREATEAPITOKENREQUEST = {"username": string};
+export type CLUSTER_ARGO_CD_CREATE_API_TOKEN_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_ARGO_CD_ARGOCDCREATEAPITOKENREQUEST_BOOL = {"data": boolean,"message": string,"status": string};
 export type CLUSTER_BACKUP_REQUEST__ANON_STRUCT_0 = {};
 export type CLUSTER_CLEAR_VALKEY_CACHE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"includeNodeStats": boolean,"includePodStats": boolean,"includeTraffic": boolean};
 export type CLUSTER_CLEAR_VALKEY_CACHE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST5_STRING = {"data": string,"message": string,"status": string};
@@ -20201,6 +20293,14 @@ export interface IPatternConfig {
   [Pattern.AUDIT_LOG_LIST]: {
     Request: AUDIT_LOG_LIST_REQUEST;
     Response: AUDIT_LOG_LIST_RESPONSE;
+  };
+  [Pattern.CLUSTER_ARGO_CD_APPLICATION_REFRESH]: {
+    Request: CLUSTER_ARGO_CD_APPLICATION_REFRESH_REQUEST;
+    Response: CLUSTER_ARGO_CD_APPLICATION_REFRESH_RESPONSE;
+  };
+  [Pattern.CLUSTER_ARGO_CD_CREATE_API_TOKEN]: {
+    Request: CLUSTER_ARGO_CD_CREATE_API_TOKEN_REQUEST;
+    Response: CLUSTER_ARGO_CD_CREATE_API_TOKEN_RESPONSE;
   };
   [Pattern.CLUSTER_BACKUP]: {
     Request: CLUSTER_BACKUP_REQUEST;

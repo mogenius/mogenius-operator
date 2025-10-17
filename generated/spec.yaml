@@ -2469,6 +2469,58 @@ audit-log/list:
         typeInfo:
             structRef: mogenius-k8s-manager/src/core.Response
             type: struct
+cluster/argo-cd-application-refresh:
+    requestSchema:
+        structs:
+            mogenius-k8s-manager/src/argo-cd.ArgoCdApplicationRefreshRequest:
+                name: mogenius-k8s-manager/src/argo-cd.ArgoCdApplicationRefreshRequest
+                properties:
+                    applicationName:
+                        type: string
+                    username:
+                        type: string
+        typeInfo:
+            structRef: mogenius-k8s-manager/src/argo-cd.ArgoCdApplicationRefreshRequest
+            type: struct
+    responseSchema:
+        structs:
+            mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/argo-cd.ArgoCdApplicationRefreshRequest,bool]:
+                name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/argo-cd.ArgoCdApplicationRefreshRequest,bool]
+                properties:
+                    data:
+                        type: bool
+                    message:
+                        type: string
+                    status:
+                        type: string
+        typeInfo:
+            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/argo-cd.ArgoCdApplicationRefreshRequest,bool]
+            type: struct
+cluster/argo-cd-create-api-token:
+    requestSchema:
+        structs:
+            mogenius-k8s-manager/src/argo-cd.ArgoCdCreateApiTokenRequest:
+                name: mogenius-k8s-manager/src/argo-cd.ArgoCdCreateApiTokenRequest
+                properties:
+                    username:
+                        type: string
+        typeInfo:
+            structRef: mogenius-k8s-manager/src/argo-cd.ArgoCdCreateApiTokenRequest
+            type: struct
+    responseSchema:
+        structs:
+            mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/argo-cd.ArgoCdCreateApiTokenRequest,bool]:
+                name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/argo-cd.ArgoCdCreateApiTokenRequest,bool]
+                properties:
+                    data:
+                        type: bool
+                    message:
+                        type: string
+                    status:
+                        type: string
+        typeInfo:
+            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/argo-cd.ArgoCdCreateApiTokenRequest,bool]
+            type: struct
 cluster/backup:
     legacyResponseLayout: true
     requestSchema:

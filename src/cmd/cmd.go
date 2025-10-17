@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"log/slog"
+	argocd "mogenius-k8s-manager/src/argo-cd"
 	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/containerenumerator"
@@ -497,6 +498,7 @@ func InitializeSystems(
 
 	// golang package setups are deprecated and will be removed in the future by migrating all state to services
 	helm.Setup(logManagerModule, configModule, valkeyClient)
+	argocd.Setup(logManagerModule, configModule, clientProvider, valkeyClient)
 	err := kubernetes.Setup(logManagerModule, configModule, clientProvider, valkeyClient)
 	assert.Assert(err == nil, err)
 	controllers.Setup(logManagerModule, configModule)

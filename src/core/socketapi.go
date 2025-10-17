@@ -3,6 +3,7 @@ package core
 import (
 	"fmt"
 	"log/slog"
+	argocd "mogenius-k8s-manager/src/argo-cd"
 	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/controllers"
@@ -1194,6 +1195,22 @@ func (self *socketApi) registerPatterns() {
 		PatternConfig{},
 		func(datagram structs.Datagram, request helm.HelmReleaseGetWorkloadsRequest) ([]unstructured.Unstructured, error) {
 			return helm.HelmReleaseGetWorkloads(self.valkeyClient, request)
+		},
+	)
+
+	RegisterPatternHandler(
+		PatternHandle{self, "cluster/argo-cd-create-api-token"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request argocd.ArgoCdCreateApiTokenRequest) (bool, error) {
+			return argocd.ArgoCdCreateApiToken(self.valkeyClient, request)
+		},
+	)
+
+	RegisterPatternHandler(
+		PatternHandle{self, "cluster/argo-cd-application-refresh"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request argocd.ArgoCdApplicationRefreshRequest) (bool, error) {
+			return argocd.ArgoCdApplicationRefresh(self.valkeyClient, request)
 		},
 	)
 
