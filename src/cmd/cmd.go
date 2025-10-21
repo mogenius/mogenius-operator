@@ -19,7 +19,6 @@ import (
 	"mogenius-k8s-manager/src/rammonitor"
 	"mogenius-k8s-manager/src/secrets"
 	"mogenius-k8s-manager/src/services"
-	"mogenius-k8s-manager/src/servicesexternal"
 	"mogenius-k8s-manager/src/shutdown"
 	"mogenius-k8s-manager/src/store"
 	"mogenius-k8s-manager/src/structs"
@@ -503,7 +502,6 @@ func InitializeSystems(
 	controllers.Setup(logManagerModule, configModule)
 	dtos.Setup(logManagerModule)
 	services.Setup(logManagerModule, configModule, clientProvider)
-	servicesexternal.Setup(logManagerModule, configModule)
 	structs.Setup(logManagerModule)
 	xterm.Setup(logManagerModule, clientProvider, valkeyClient)
 	utils.Setup(logManagerModule, configModule)

@@ -186,6 +186,7 @@ func getGVR(obj *unstructured.Unstructured) schema.GroupVersionResource {
 	}
 
 	// Pluralize the kind
+	// Todo: this is horrible but works for most cases
 	resource := strings.ToLower(kind) + "s"
 
 	// Special case handling (if needed) can be added here

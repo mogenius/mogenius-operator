@@ -186,18 +186,6 @@ func InitDeployment() v1.Deployment {
 	return app
 }
 
-func InitExternalSecretsStoreYaml() string {
-	return readYaml("yaml-templates/external-secrets-store-vault.yaml")
-}
-
-func InitExternalSecretListYaml() string {
-	return readYaml("yaml-templates/external-secret-list-available-kvs.yaml")
-}
-
-func InitExternalSecretYaml() string {
-	return readYaml("yaml-templates/external-secret.yaml")
-}
-
 func InitNetworkPolicyDefaultsYaml() string {
 	return readYaml("yaml-templates/networkpolicies-default-ports.yaml")
 }

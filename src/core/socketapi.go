@@ -297,18 +297,7 @@ func RegisterPatternHandlerRaw[RequestType any, ResponseType any](
 ) {
 	assert.Assert(
 		slices.Contains([]string{
-			//"cluster/resource-info", // "ClusterResourceInfo" -> "cluster/resource-info"
 			"UpgradeK8sManager",
-			//"cluster/force-reconnect",  // "ClusterForceReconnect" -> cluster/force-reconnect
-			//"cluster/force-disconnect", // "ClusterForceDisconnect" -> "cluster/force-disconnect"
-			//"system/check", // "SYSTEM_CHECK -> "system/check"
-			//"stats/podstat/all-for-controller", // "stats/podstat/all-for-controller" -> "stats/pod/all-for-controller"
-			//"stats/traffic/all-for-controller",
-			//"stats/podstat/last-for-controller", // DEPRECATED
-			//"stats/traffic/sum-for-controller",
-			//"stats/traffic/for-controller-socket-connections",
-			//"stats/traffic/sum-for-namespace",
-			//"metrics/deployment/average-utilization",
 			"files/list",
 			"files/create-folder",
 			"files/rename",
@@ -317,34 +306,13 @@ func RegisterPatternHandlerRaw[RequestType any, ResponseType any](
 			"files/delete",
 			"files/download",
 			"files/info",
-			"cluster/backup",
-			"namespace/create",
-			"namespace/delete",
-			"namespace/backup",
-			"service/create",
-			"service/delete",
-			"SERVICE_PODS",
-			"service/resource-status",
-			"service/restart",
-			"service/stop",
-			"service/start",
-			"service/update-service",
-			"service/trigger-job",
-			"service/status",
 			"storage/create-volume",
 			"storage/delete-volume",
 			"storage/stats",
-			"storage/namespace/stats",
 			"storage/status",
-			"external-secret-store/create",
-			"external-secret-store/list",
-			"external-secret/list-available-secrets",
-			"external-secret-store/delete",
-			"list/cronjob-jobs",
 			"live-stream/workspace-cpu",
 			"live-stream/workspace-memory",
 			"live-stream/workspace-traffic",
-			"audit-log/list",
 		}, handle.Pattern),
 		"DEPRECATED: new patterns should always be implemented using `RegisterPatternHandler`",
 		"this assertion is here to prevent new routes from accidentally (e.g. AI slop) using the legacy register system",
@@ -440,15 +408,6 @@ func (self *socketApi) registerPatterns() {
 				return resp, nil
 			})
 	}
-
-	RegisterPatternHandler(
-		PatternHandle{self, "K8sNotification"},
-		PatternConfig{},
-		func(datagram structs.Datagram, request Void) (Void, error) {
-			self.logger.Info("Received pattern", "pattern", "K8sNotification")
-			return nil, nil
-		},
-	)
 
 	{
 		type ClusterResourceInfo struct {
@@ -716,46 +675,6 @@ func (self *socketApi) registerPatterns() {
 		)
 	}
 
-	// DEPRECATED
-	//RegisterPatternHandlerRaw(
-	//	PatternHandle{self, "stats/podstat/last-for-controller"},
-	//	PatternConfig{},
-	//	func(datagram structs.Datagram, request dtos.K8sController) *structs.PodStats {
-	//		return self.dbstats.GetLastPodStatsEntryForController(request)
-	//	},
-	//)
-
-	RegisterPatternHandler(
-		PatternHandle{self, "stats/traffic/sum-for-controller"},
-		PatternConfig{},
-		func(datagram structs.Datagram, request dtos.K8sController) (*networkmonitor.PodNetworkStats, error) {
-			return self.dbstats.GetTrafficStatsEntrySumForController(request, false), nil
-		},
-	)
-
-	// DEPRECATED
-	//RegisterPatternHandlerRaw(
-	//	PatternHandle{self, "stats/traffic/for-controller-socket-connections"},
-	//	PatternConfig{},
-	//	func(datagram structs.Datagram, request dtos.K8sController) *structs.SocketConnections {
-	//		return self.dbstats.GetSocketConnectionsForController(request)
-	//	},
-	//)
-
-	{
-		type Request struct {
-			Namespace string `json:"namespace" validate:"required"`
-		}
-
-		RegisterPatternHandler(
-			PatternHandle{self, "stats/traffic/sum-for-namespace"},
-			PatternConfig{},
-			func(datagram structs.Datagram, request Request) ([]networkmonitor.PodNetworkStats, error) {
-				return self.dbstats.GetTrafficStatsEntriesSumForNamespace(request.Namespace), nil
-			},
-		)
-	}
-
 	{
 
 		type Request struct {
@@ -799,15 +718,6 @@ func (self *socketApi) registerPatterns() {
 			},
 		)
 	}
-
-	RegisterPatternHandler(
-		PatternHandle{self, "metrics/deployment/average-utilization"},
-		PatternConfig{},
-		func(datagram structs.Datagram, request dtos.K8sController) (*kubernetes.Metrics, error) {
-			request.Kind = "Deployment"
-			return kubernetes.GetAverageUtilizationForDeployment(request), nil
-		},
-	)
 
 	{
 		type Request struct {
@@ -978,52 +888,11 @@ func (self *socketApi) registerPatterns() {
 		},
 	)
 
-	RegisterPatternHandlerRaw(
-		PatternHandle{self, "cluster/backup"},
-		PatternConfig{},
-		func(datagram structs.Datagram, request Void) any {
-			result, err := kubernetes.BackupNamespace("")
-			if err != nil {
-				return err.Error()
-			}
-			return result
-		},
-	)
-
 	RegisterPatternHandler(
 		PatternHandle{self, "cluster/list-persistent-volume-claims"},
 		PatternConfig{},
 		func(datagram structs.Datagram, request services.ClusterListWorkloads) ([]v1.PersistentVolumeClaim, error) {
 			return kubernetes.ListPersistentVolumeClaimsWithFieldSelector(request.Namespace, request.LabelSelector, request.Prefix)
-		},
-	)
-
-	RegisterPatternHandlerRaw(
-		PatternHandle{self, "namespace/create"},
-		PatternConfig{},
-		func(datagram structs.Datagram, request services.NamespaceCreateRequest) *structs.Job {
-			request.Project.AddSecretsToRedaction()
-			return services.CreateNamespace(self.eventsClient, request)
-		},
-	)
-
-	RegisterPatternHandlerRaw(
-		PatternHandle{self, "namespace/delete"},
-		PatternConfig{},
-		func(datagram structs.Datagram, request services.NamespaceDeleteRequest) *structs.Job {
-			return services.DeleteNamespace(self.eventsClient, request)
-		},
-	)
-
-	RegisterPatternHandlerRaw(
-		PatternHandle{self, "namespace/backup"},
-		PatternConfig{},
-		func(datagram structs.Datagram, request services.NamespaceBackupRequest) any {
-			result, err := kubernetes.BackupNamespace(request.NamespaceName)
-			if err != nil {
-				return err.Error()
-			}
-			return result
 		},
 	)
 
@@ -1214,107 +1083,6 @@ func (self *socketApi) registerPatterns() {
 		PatternConfig{},
 		func(datagram structs.Datagram, request argocd.ArgoCdApplicationRefreshRequest) (bool, error) {
 			return self.argocd.ArgoCdApplicationRefresh(request)
-		},
-	)
-
-	RegisterPatternHandlerRaw(
-		PatternHandle{self, "service/create"},
-		PatternConfig{},
-		func(datagram structs.Datagram, request services.ServiceUpdateRequest) *structs.Job {
-			request.Service.AddSecretsToRedaction()
-			request.Project.AddSecretsToRedaction()
-			return services.UpdateService(self.eventsClient, request, self.config)
-		},
-	)
-
-	RegisterPatternHandlerRaw(
-		PatternHandle{self, "service/delete"},
-		PatternConfig{},
-		func(datagram structs.Datagram, request services.ServiceDeleteRequest) *structs.Job {
-			request.Service.AddSecretsToRedaction()
-			request.Project.AddSecretsToRedaction()
-			return services.DeleteService(self.eventsClient, request)
-		},
-	)
-
-	RegisterPatternHandlerRaw(
-		PatternHandle{self, "SERVICE_PODS"},
-		PatternConfig{},
-		func(datagram structs.Datagram, request services.ServicePodsRequest) []v1.Pod {
-			return services.ServicePodStatus(self.eventsClient, request)
-		},
-	)
-
-	RegisterPatternHandlerRaw(
-		PatternHandle{self, "service/resource-status"},
-		PatternConfig{},
-		func(datagram structs.Datagram, request services.ServiceResourceStatusRequest) *v1.Pod {
-			return kubernetes.PodStatus(request.Namespace, request.Name, request.StatusOnly)
-		},
-	)
-
-	RegisterPatternHandlerRaw(
-		PatternHandle{self, "service/restart"},
-		PatternConfig{},
-		func(datagram structs.Datagram, request services.ServiceRestartRequest) *structs.Job {
-			request.Service.AddSecretsToRedaction()
-			_, err := store.AddToAuditLog(datagram, self.logger, any(nil), nil, nil, nil)
-			if err != nil {
-				self.logger.Warn("failed to add event to audit log", "request", request, "error", err)
-			}
-			return services.Restart(self.eventsClient, request, self.config)
-		},
-	)
-
-	RegisterPatternHandlerRaw(
-		PatternHandle{self, "service/stop"},
-		PatternConfig{},
-		func(datagram structs.Datagram, request services.ServiceStopRequest) *structs.Job {
-			request.Service.AddSecretsToRedaction()
-			_, err := store.AddToAuditLog(datagram, self.logger, any(nil), nil, nil, nil)
-			if err != nil {
-				self.logger.Warn("failed to add event to audit log", "request", request, "error", err)
-			}
-			return services.StopService(self.eventsClient, request, self.config)
-		},
-	)
-
-	RegisterPatternHandlerRaw(
-		PatternHandle{self, "service/start"},
-		PatternConfig{},
-		func(datagram structs.Datagram, request services.ServiceStartRequest) *structs.Job {
-			request.Service.AddSecretsToRedaction()
-			_, err := store.AddToAuditLog(datagram, self.logger, any(nil), nil, nil, nil)
-			if err != nil {
-				self.logger.Warn("failed to add event to audit log", "request", request, "error", err)
-			}
-			return services.StartService(self.eventsClient, request, self.config)
-		},
-	)
-
-	RegisterPatternHandlerRaw(
-		PatternHandle{self, "service/update-service"},
-		PatternConfig{},
-		func(datagram structs.Datagram, request services.ServiceUpdateRequest) any {
-			request.Project.AddSecretsToRedaction()
-			request.Service.AddSecretsToRedaction()
-			return services.UpdateService(self.eventsClient, request, self.config)
-		},
-	)
-
-	RegisterPatternHandlerRaw(
-		PatternHandle{self, "service/trigger-job"},
-		PatternConfig{},
-		func(datagram structs.Datagram, request services.ServiceTriggerJobRequest) *structs.Job {
-			return services.TriggerJobService(self.eventsClient, request)
-		},
-	)
-
-	RegisterPatternHandlerRaw(
-		PatternHandle{self, "service/status"},
-		PatternConfig{},
-		func(datagram structs.Datagram, request services.ServiceStatusRequest) services.ServiceStatusResponse {
-			return services.StatusServiceDebounced(self.valkeyClient, request)
 		},
 	)
 
@@ -1854,14 +1622,6 @@ func (self *socketApi) registerPatterns() {
 	)
 
 	RegisterPatternHandlerRaw(
-		PatternHandle{self, "storage/namespace/stats"},
-		PatternConfig{},
-		func(datagram structs.Datagram, request services.NfsNamespaceStatsRequest) []services.NfsVolumeStatsResponse {
-			return services.StatsMogeniusNfsNamespace(request)
-		},
-	)
-
-	RegisterPatternHandlerRaw(
 		PatternHandle{self, "storage/status"},
 		PatternConfig{},
 		func(datagram structs.Datagram, request services.NfsStatusRequest) services.NfsStatusResponse {
@@ -1882,10 +1642,10 @@ func (self *socketApi) registerPatterns() {
 			Data    store.AuditLogResponse `json:"data"`
 		}
 
-		RegisterPatternHandlerRaw(
+		RegisterPatternHandler(
 			PatternHandle{self, "audit-log/list"},
 			PatternConfig{},
-			func(datagram structs.Datagram, request Request) Response {
+			func(datagram structs.Datagram, request Request) (Response, error) {
 				namespaces := []string{}
 				var err error
 				clusterwide := true
@@ -1900,7 +1660,7 @@ func (self *socketApi) registerPatterns() {
 								Data:       []store.AuditLogEntry{},
 								TotalCount: 0,
 							},
-						}
+						}, err
 					}
 				}
 				data, size, err := store.ListAuditLog(request.Limit, request.Offset, namespaces, clusterwide)
@@ -1912,7 +1672,7 @@ func (self *socketApi) registerPatterns() {
 							Data:       []store.AuditLogEntry{},
 							TotalCount: 0,
 						},
-					}
+					}, err
 				}
 				return Response{
 					Status:  "success",
@@ -1921,46 +1681,10 @@ func (self *socketApi) registerPatterns() {
 						TotalCount: size,
 						Data:       data,
 					},
-				}
+				}, nil
 			},
 		)
 	}
-
-	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-	// External Secrets
-	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-	RegisterPatternHandlerRaw(
-		PatternHandle{self, "external-secret-store/create"},
-		PatternConfig{},
-		func(datagram structs.Datagram, request controllers.CreateSecretsStoreRequest) controllers.CreateSecretsStoreResponse {
-			return controllers.CreateExternalSecretStore(request)
-		},
-	)
-
-	RegisterPatternHandlerRaw(
-		PatternHandle{self, "external-secret-store/list"},
-		PatternConfig{},
-		func(datagram structs.Datagram, request controllers.ListSecretStoresRequest) []kubernetes.SecretStore {
-			return controllers.ListExternalSecretsStores(request)
-		},
-	)
-
-	RegisterPatternHandlerRaw(
-		PatternHandle{self, "external-secret/list-available-secrets"},
-		PatternConfig{},
-		func(datagram structs.Datagram, request controllers.ListSecretsRequest) []string {
-			return controllers.ListAvailableExternalSecrets(request)
-		},
-	)
-
-	RegisterPatternHandlerRaw(
-		PatternHandle{self, "external-secret-store/delete"},
-		PatternConfig{},
-		func(datagram structs.Datagram, request controllers.DeleteSecretsStoreRequest) controllers.DeleteSecretsStoreResponse {
-			return controllers.DeleteExternalSecretsStore(request)
-		},
-	)
 
 	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 	// Labeled Network Policies
@@ -2071,25 +1795,6 @@ func (self *socketApi) registerPatterns() {
 			return controllers.ListManagedAndUnmanagedNamespaceNetworkPolicies(self.valkeyClient, request)
 		},
 	)
-
-	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-	// Cronjobs
-	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-	{
-		type Request struct {
-			ProjectId      string `json:"projectId" validate:"required"`
-			NamespaceName  string `json:"namespaceName" validate:"required"`
-			ControllerName string `json:"controllerName" validate:"required"`
-		}
-
-		RegisterPatternHandlerRaw(
-			PatternHandle{self, "list/cronjob-jobs"},
-			PatternConfig{},
-			func(datagram structs.Datagram, request Request) kubernetes.ListJobInfoResponse {
-				return kubernetes.ListCronjobJobs(request.ControllerName, request.NamespaceName, request.ProjectId)
-			},
-		)
-	}
 
 	RegisterPatternHandler(
 		PatternHandle{self, "live-stream/nodes-traffic"},

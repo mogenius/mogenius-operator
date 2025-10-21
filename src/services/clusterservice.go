@@ -138,57 +138,6 @@ func diskUsage(mountPath string) (uint64, uint64, uint64, error) {
 	}
 }
 
-func StatsMogeniusNfsNamespace(r NfsNamespaceStatsRequest) []NfsVolumeStatsResponse {
-	result := []NfsVolumeStatsResponse{}
-
-	if r.NamespaceName == "null" || r.NamespaceName == "" {
-		serviceLogger.Error("StatsMogeniusNfsNamespace", "error", "namespaceName cannot be null or empty")
-		return result
-	}
-
-	// get all pvc for single namespace
-	pvcs := kubernetes.AllPersistentVolumeClaims(r.NamespaceName)
-
-	for _, pvc := range pvcs {
-		// skip pvcs which are not mogenius-nfs
-		if !strings.HasPrefix(pvc.Name, fmt.Sprintf("%s-", utils.NFS_POD_PREFIX)) {
-			continue
-		}
-		// remove podname "nfs-server-pod-"
-		pvc.Name = strings.Replace(pvc.Name, fmt.Sprintf("%s-", utils.NFS_POD_PREFIX), "", 1)
-
-		entry := NfsVolumeStatsResponse{
-			VolumeName: pvc.Name,
-			FreeBytes:  0,
-			UsedBytes:  0,
-			TotalBytes: 0,
-		}
-
-		mountPath := utils.MountPath(r.NamespaceName, pvc.Name, "/", clientProvider.RunsInCluster())
-
-		if utils.ClusterProviderCached == utils.DOCKER_DESKTOP || utils.ClusterProviderCached == utils.K3S {
-			var usedBytes uint64 = sumAllBytesOfFolder(mountPath)
-			entry.FreeBytes = uint64(pvc.Spec.Resources.Requests.Storage().Value()) - usedBytes
-			entry.UsedBytes = usedBytes
-			entry.TotalBytes = uint64(pvc.Spec.Resources.Requests.Storage().Value())
-		} else {
-			free, used, total, err := diskUsage(mountPath)
-			if err != nil {
-				continue
-			} else {
-				entry.FreeBytes = free
-				entry.UsedBytes = used
-				entry.TotalBytes = total
-			}
-		}
-
-		message := fmt.Sprintf("💾: '%s' -> %s / %s (Free: %s)\n", mountPath, utils.BytesToHumanReadable(int64(entry.UsedBytes)), utils.BytesToHumanReadable(int64(entry.TotalBytes)), utils.BytesToHumanReadable(int64(entry.FreeBytes)))
-		serviceLogger.Info(message)
-		result = append(result, entry)
-	}
-	return result
-}
-
 func sumAllBytesOfFolder(root string) uint64 {
 	var total uint64
 	var wg sync.WaitGroup
@@ -259,10 +208,6 @@ type NfsVolumeRequest struct {
 type NfsVolumeStatsRequest struct {
 	NamespaceName string `json:"namespaceName" validate:"required"`
 	VolumeName    string `json:"volumeName" validate:"required"`
-}
-
-type NfsNamespaceStatsRequest struct {
-	NamespaceName string `json:"namespaceName" validate:"required"`
 }
 
 type NfsVolumeStatsResponse struct {
