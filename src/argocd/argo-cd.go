@@ -61,12 +61,10 @@ type ArgoCdApplicationRefreshRequest struct {
 	ApplicationName string `json:"applicationName" validate:"required"`
 }
 
-// ArgoSessionResponse represents the token returned by /api/v1/session
 type ArgoSessionResponse struct {
 	Token string `json:"token"`
 }
 
-// ArgoCreateTokenResponse represents the token returned by /api/v1/account/{account}/token
 type ArgoCreateTokenResponse struct {
 	Token string `json:"token"`
 }
@@ -99,7 +97,6 @@ func (self *argocd) getArgoCdSecret() (*corev1.Secret, error) {
 }
 
 func (self *argocd) ArgoCdCreateApiToken(data ArgoCdCreateApiTokenRequest) (bool, error) {
-	// Check if argo-cd-config ConfigMap exists in the MO_OWN_NAMESPACE
 	argoCdConfig, err := self.getArgoCdConfig()
 	if err != nil {
 		return false, err
@@ -118,20 +115,16 @@ func (self *argocd) ArgoCdCreateApiToken(data ArgoCdCreateApiTokenRequest) (bool
 	if argoCdSecret.Data == nil {
 		return false, fmt.Errorf("argo-cd-user-secret Secret data is nil")
 	}
-	// accounts.mogenius.password
 	if pw, ok := argoCdSecret.Data[fmt.Sprintf("accounts.%s.password", data.Username)]; !ok || pw == nil {
 		return false, fmt.Errorf("accounts.%s.password key not found in argo-cd-user-secret Secret", data.Username)
 	}
-	// base64 decode password
 	password := string(argoCdSecret.Data[fmt.Sprintf("accounts.%s.password", data.Username)])
-	argoURL := fmt.Sprintf("https://argo-cd-argocd-server.%s.svc.cluster.local:443", argoCdConfig.Data["namespaceName"])
-	// argoURL := "http://localhost:8080"
+	argoURL := fmt.Sprintf(ARGO_CD_SERVER_URL, argoCdConfig.Data["namespaceName"])
 	token, err := self.createArgoToken(argoURL, data.Username, password, data.Username)
 	if err != nil {
 		return false, err
 	}
 
-	// add token to argoCdSecret.Data
 	argoCdSecret.Data[fmt.Sprintf("accounts.%s.token", data.Username)] = []byte(token)
 	dynamicClient := self.clientProvider.DynamicClient()
 
@@ -148,7 +141,6 @@ func (self *argocd) ArgoCdCreateApiToken(data ArgoCdCreateApiTokenRequest) (bool
 }
 
 func (self *argocd) ArgoCdApplicationRefresh(data ArgoCdApplicationRefreshRequest) (bool, error) {
-	// Check if argo-cd-config ConfigMap exists in the MO_OWN_NAMESPACE
 	argoCdConfig, err := self.getArgoCdConfig()
 	if err != nil {
 		return false, err
@@ -164,14 +156,11 @@ func (self *argocd) ArgoCdApplicationRefresh(data ArgoCdApplicationRefreshReques
 	if err != nil {
 		return false, fmt.Errorf("argo-cd-user-secret Secret data is nil")
 	}
-	// accounts.mogenius.token
 	if pw, ok := argoCdSecret.Data[fmt.Sprintf("accounts.%s.token", data.Username)]; !ok || pw == nil {
 		return false, fmt.Errorf("accounts.%s.token key not found in argo-cd-user-secret Secret", data.Username)
 	}
-	// base64 decode password
 	token := string(argoCdSecret.Data[fmt.Sprintf("accounts.%s.token", data.Username)])
-	argoURL := fmt.Sprintf("https://argo-cd-argocd-server.%s.svc.cluster.local:443", argoCdConfig.Data["namespaceName"])
-	// argoURL := "http://localhost:8080"
+	argoURL := fmt.Sprintf(ARGO_CD_SERVER_URL, argoCdConfig.Data["namespaceName"])
 	_, err = self.refreshApplication(argoURL, data.ApplicationName, token)
 	if err != nil {
 		return false, err
@@ -180,13 +169,12 @@ func (self *argocd) ArgoCdApplicationRefresh(data ArgoCdApplicationRefreshReques
 }
 
 func (self *argocd) createArgoToken(argoURL, username, password, account string) (string, error) {
-	// Login to get session token
 	loginBody := map[string]string{"username": username, "password": password}
 	loginJSON, _ := json.Marshal(loginBody)
 
 	httpClient := &http.Client{
 		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // ⚠️ skip TLS verification for self-signed certs
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // skip TLS verification for self-signed certs
 		},
 	}
 
@@ -206,7 +194,6 @@ func (self *argocd) createArgoToken(argoURL, username, password, account string)
 		return "", fmt.Errorf("cannot decode login response: %w", err)
 	}
 
-	// Create a long‑lived token (API key)
 	tokenBody := map[string]string{} // empty = no expiration
 	tokenJSON, _ := json.Marshal(tokenBody)
 
@@ -223,7 +210,7 @@ func (self *argocd) createArgoToken(argoURL, username, password, account string)
 
 	client := &http.Client{
 		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // ⚠️ skip TLS verification for self-signed certs
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // skip TLS verification for self-signed certs
 		},
 	}
 	resp2, err := client.Do(req)
@@ -247,8 +234,6 @@ func (self *argocd) createArgoToken(argoURL, username, password, account string)
 
 func (self *argocd) refreshApplication(argoURL, applicationName, token string) (bool, error) {
 	url := fmt.Sprintf("%s/api/v1/applications/%s?refresh=normal", argoURL, applicationName)
-
-	// Insecure http client (skip TLS verification) — only for internal/self-signed setups
 	client := &http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
