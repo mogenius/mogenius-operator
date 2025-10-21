@@ -122,12 +122,6 @@ jobs:
   #     - name: Prepare CRDs
   #       run: |
   #         kubectl create namespace mogenius
-  #         helm repo add external-secrets https://charts.external-secrets.io
-  #         helm install external-secrets external-secrets/external-secrets
-
-  #         kubectl rollout status deployment external-secrets
-  #         kubectl rollout status deployment external-secrets-cert-controller
-  #         kubectl rollout status deployment external-secrets-webhook
   #     - name: Run tests
   #       run: |
   #         go mod download
@@ -137,7 +131,6 @@ jobs:
   #       if: always()
   #       run: |
   #         kubectl delete namespace mogenius
-  #         helm uninstall external-secrets
 
   build-amd64:
     needs: prepare

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"mogenius-k8s-manager/src/assert"
 	cfg "mogenius-k8s-manager/src/config"
-	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/shutdown"
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/version"
@@ -148,28 +147,6 @@ func MoUpdateOptions(config cfg.ConfigModule) metav1.UpdateOptions {
 
 func GetOwnDeploymentName(config cfg.ConfigModule) string {
 	return config.Get("OWN_DEPLOYMENT_NAME")
-}
-
-func MoUpdateLabels(labels *map[string]string, projectId *string, namespace *dtos.K8sNamespaceDto, service *dtos.K8sServiceDto, config cfg.ConfigModule) map[string]string {
-	resultingLabels := map[string]string{}
-
-	// transfer existing values
-	if labels != nil {
-		for k, v := range *labels {
-			resultingLabels[k] = v
-		}
-	}
-
-	// populate with mo labels
-	resultingLabels[MO_LABEL_CREATED_BY] = GetOwnDeploymentName(config)
-	if service != nil {
-		resultingLabels[MO_LABEL_APP_NAME] = service.ControllerName
-	}
-	if projectId != nil {
-		resultingLabels[MO_LABEL_PROJECT_ID] = *projectId
-	}
-
-	return resultingLabels
 }
 
 func MoAddLabels(existingLabels *map[string]string, newLabels map[string]string) map[string]string {
