@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 	"log/slog"
-	argocd "mogenius-k8s-manager/src/argo-cd"
+	argocd "mogenius-k8s-manager/src/argocd"
 	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/containerenumerator"
@@ -498,7 +498,6 @@ func InitializeSystems(
 
 	// golang package setups are deprecated and will be removed in the future by migrating all state to services
 	helm.Setup(logManagerModule, configModule, valkeyClient)
-	argocd.Setup(logManagerModule, configModule, clientProvider, valkeyClient)
 	err := kubernetes.Setup(logManagerModule, configModule, clientProvider, valkeyClient)
 	assert.Assert(err == nil, err)
 	controllers.Setup(logManagerModule, configModule)
@@ -512,10 +511,11 @@ func InitializeSystems(
 	assert.Assert(err == nil, err)
 
 	// initialization step 1 for services
+	argocd := argocd.NewArgoCd(logManagerModule, configModule, clientProvider, valkeyClient)
 	workspaceManager := core.NewWorkspaceManager(configModule, clientProvider)
 	apiModule := core.NewApi(logManagerModule.CreateLogger("api"), valkeyClient, configModule)
 	httpApi := core.NewHttpApi(logManagerModule, configModule)
-	socketApi := core.NewSocketApi(logManagerModule.CreateLogger("socketapi"), configModule, jobConnectionClient, eventConnectionClient, valkeyClient)
+	socketApi := core.NewSocketApi(logManagerModule.CreateLogger("socketapi"), configModule, jobConnectionClient, eventConnectionClient, valkeyClient, argocd)
 	xtermService := core.NewXtermService(logManagerModule.CreateLogger("xterm-service"))
 	valkeyLoggerService := core.NewValkeyLogger(valkeyClient, valkeyLogChannel)
 	ownerCacheService := core.NewOwnerCacheService(logManagerModule.CreateLogger("owner-cache"), configModule)
@@ -567,6 +567,7 @@ func InitializeSystems(
 		leaderElector,
 		reconciler,
 		sealedSecret,
+		argocd,
 	}
 }
 
@@ -592,4 +593,5 @@ type systems struct {
 	leaderElector         core.LeaderElector
 	reconciler            core.Reconciler
 	sealedSecret          core.SealedSecretManager
+	argocd                argocd.Argocd
 }
