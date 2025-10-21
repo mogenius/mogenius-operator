@@ -3,7 +3,7 @@ package core
 import (
 	"fmt"
 	"log/slog"
-	argocd "mogenius-k8s-manager/src/argo-cd"
+	argocd "mogenius-k8s-manager/src/argocd"
 	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/controllers"
@@ -103,6 +103,7 @@ type socketApi struct {
 	apiService         Api
 	moKubernetes       MoKubernetes
 	sealedSecret       SealedSecretManager
+	argocd             argocd.Argocd
 }
 
 type PatternHandler struct {
@@ -130,6 +131,7 @@ func NewSocketApi(
 	jobClient websocket.WebsocketClient,
 	eventsClient websocket.WebsocketClient,
 	valkeyClient valkeyclient.ValkeyClient,
+	argocd argocd.Argocd,
 ) SocketApi {
 	self := &socketApi{}
 	self.config = configModule
@@ -140,6 +142,7 @@ func NewSocketApi(
 	self.valkeyClient = valkeyClient
 	self.status = NewSocketApiStatus()
 	self.statusLock = sync.RWMutex{}
+	self.argocd = argocd
 
 	self.loadpatternlogger()
 	self.registerPatterns()
@@ -1202,7 +1205,7 @@ func (self *socketApi) registerPatterns() {
 		PatternHandle{self, "cluster/argo-cd-create-api-token"},
 		PatternConfig{},
 		func(datagram structs.Datagram, request argocd.ArgoCdCreateApiTokenRequest) (bool, error) {
-			return argocd.ArgoCdCreateApiToken(self.valkeyClient, request)
+			return self.argocd.ArgoCdCreateApiToken(request)
 		},
 	)
 
@@ -1210,7 +1213,7 @@ func (self *socketApi) registerPatterns() {
 		PatternHandle{self, "cluster/argo-cd-application-refresh"},
 		PatternConfig{},
 		func(datagram structs.Datagram, request argocd.ArgoCdApplicationRefreshRequest) (bool, error) {
-			return argocd.ArgoCdApplicationRefresh(self.valkeyClient, request)
+			return self.argocd.ArgoCdApplicationRefresh(request)
 		},
 	)
 

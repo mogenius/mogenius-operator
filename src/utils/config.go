@@ -120,6 +120,12 @@ var WorkspaceResource = ResourceEntry{
 	Group: "mogenius.com/v1alpha1",
 }
 
+var ConfigMapResource = ResourceEntry{
+	Kind:  "ConfigMap",
+	Name:  "configmaps",
+	Group: "v1",
+}
+
 const STAGE_DEV = "dev"
 const STAGE_PROD = "prod"
 

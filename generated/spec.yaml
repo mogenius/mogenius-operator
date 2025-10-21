@@ -2472,20 +2472,20 @@ audit-log/list:
 cluster/argo-cd-application-refresh:
     requestSchema:
         structs:
-            mogenius-k8s-manager/src/argo-cd.ArgoCdApplicationRefreshRequest:
-                name: mogenius-k8s-manager/src/argo-cd.ArgoCdApplicationRefreshRequest
+            mogenius-k8s-manager/src/argocd.ArgoCdApplicationRefreshRequest:
+                name: mogenius-k8s-manager/src/argocd.ArgoCdApplicationRefreshRequest
                 properties:
                     applicationName:
                         type: string
                     username:
                         type: string
         typeInfo:
-            structRef: mogenius-k8s-manager/src/argo-cd.ArgoCdApplicationRefreshRequest
+            structRef: mogenius-k8s-manager/src/argocd.ArgoCdApplicationRefreshRequest
             type: struct
     responseSchema:
         structs:
-            mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/argo-cd.ArgoCdApplicationRefreshRequest,bool]:
-                name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/argo-cd.ArgoCdApplicationRefreshRequest,bool]
+            mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/argocd.ArgoCdApplicationRefreshRequest,bool]:
+                name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/argocd.ArgoCdApplicationRefreshRequest,bool]
                 properties:
                     data:
                         type: bool
@@ -2494,23 +2494,23 @@ cluster/argo-cd-application-refresh:
                     status:
                         type: string
         typeInfo:
-            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/argo-cd.ArgoCdApplicationRefreshRequest,bool]
+            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/argocd.ArgoCdApplicationRefreshRequest,bool]
             type: struct
 cluster/argo-cd-create-api-token:
     requestSchema:
         structs:
-            mogenius-k8s-manager/src/argo-cd.ArgoCdCreateApiTokenRequest:
-                name: mogenius-k8s-manager/src/argo-cd.ArgoCdCreateApiTokenRequest
+            mogenius-k8s-manager/src/argocd.ArgoCdCreateApiTokenRequest:
+                name: mogenius-k8s-manager/src/argocd.ArgoCdCreateApiTokenRequest
                 properties:
                     username:
                         type: string
         typeInfo:
-            structRef: mogenius-k8s-manager/src/argo-cd.ArgoCdCreateApiTokenRequest
+            structRef: mogenius-k8s-manager/src/argocd.ArgoCdCreateApiTokenRequest
             type: struct
     responseSchema:
         structs:
-            mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/argo-cd.ArgoCdCreateApiTokenRequest,bool]:
-                name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/argo-cd.ArgoCdCreateApiTokenRequest,bool]
+            mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/argocd.ArgoCdCreateApiTokenRequest,bool]:
+                name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/argocd.ArgoCdCreateApiTokenRequest,bool]
                 properties:
                     data:
                         type: bool
@@ -2519,7 +2519,7 @@ cluster/argo-cd-create-api-token:
                     status:
                         type: string
         typeInfo:
-            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/argo-cd.ArgoCdCreateApiTokenRequest,bool]
+            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/argocd.ArgoCdCreateApiTokenRequest,bool]
             type: struct
 cluster/backup:
     legacyResponseLayout: true

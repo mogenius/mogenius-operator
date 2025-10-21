@@ -14,6 +14,7 @@ import (
 	"mogenius-k8s-manager/src/kubernetes"
 	"mogenius-k8s-manager/src/logging"
 	"mogenius-k8s-manager/src/store"
+	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/valkeyclient"
 	"net/http"
 
@@ -29,17 +30,26 @@ const (
 	ARGO_CD_SERVER_URL       = "https://argo-cd-argocd-server.%s.svc.cluster.local:443"
 )
 
-var argoCdLogger *slog.Logger
-var config cfg.ConfigModule
-var valkeyClient valkeyclient.ValkeyClient
-var clientProvider k8sclient.K8sClientProvider
+type Argocd interface {
+	ArgoCdCreateApiToken(data ArgoCdCreateApiTokenRequest) (bool, error)
+	ArgoCdApplicationRefresh(data ArgoCdApplicationRefreshRequest) (bool, error)
+}
 
-func Setup(logManager logging.SlogManager, configModule cfg.ConfigModule, clientProviderModule k8sclient.K8sClientProvider, valkey valkeyclient.ValkeyClient) {
-	argoCdLogger = logManager.CreateLogger("argo-cd")
-	config = configModule
-	clientProvider = clientProviderModule
-	valkeyClient = valkey
+type argocd struct {
+	logger         *slog.Logger
+	config         cfg.ConfigModule
+	valkeyClient   valkeyclient.ValkeyClient
+	clientProvider k8sclient.K8sClientProvider
+}
 
+func NewArgoCd(logManager logging.SlogManager, configModule cfg.ConfigModule, clientProviderModule k8sclient.K8sClientProvider, valkey valkeyclient.ValkeyClient) Argocd {
+	argocd := argocd{
+		logger:         logManager.CreateLogger("argocd"),
+		config:         configModule,
+		clientProvider: clientProviderModule,
+		valkeyClient:   valkey,
+	}
+	return &argocd
 }
 
 type ArgoCdCreateApiTokenRequest struct {
@@ -61,9 +71,9 @@ type ArgoCreateTokenResponse struct {
 	Token string `json:"token"`
 }
 
-func getArgoCdConfig(valkeyClient valkeyclient.ValkeyClient) (*corev1.ConfigMap, error) {
+func (self *argocd) getArgoCdConfig() (*corev1.ConfigMap, error) {
 	// Check if argo-cd-config ConfigMap exists in the MO_OWN_NAMESPACE
-	argoCdConfigUnstructured, err := store.GetResource(valkeyClient, "v1", "ConfigMap", config.Get("MO_OWN_NAMESPACE"), ARGO_CD_CONFIGMAP_NAME, argoCdLogger)
+	argoCdConfigUnstructured, err := store.GetResource(self.valkeyClient, utils.ConfigMapResource.Group, utils.ConfigMapResource.Kind, self.config.Get("MO_OWN_NAMESPACE"), ARGO_CD_CONFIGMAP_NAME, self.logger)
 	if err != nil {
 		return nil, err
 	}
@@ -75,8 +85,8 @@ func getArgoCdConfig(valkeyClient valkeyclient.ValkeyClient) (*corev1.ConfigMap,
 	return &argoCdConfig, nil
 }
 
-func getArgoCdSecret(valkeyClient valkeyclient.ValkeyClient) (*corev1.Secret, error) {
-	argoCdSecretUnstructured, err := store.GetResource(valkeyClient, "v1", "Secret", config.Get("MO_OWN_NAMESPACE"), ARGO_CD_USER_SECRET_NAME, argoCdLogger)
+func (self *argocd) getArgoCdSecret() (*corev1.Secret, error) {
+	argoCdSecretUnstructured, err := store.GetResource(self.valkeyClient, utils.SecretResource.Group, utils.SecretResource.Kind, self.config.Get("MO_OWN_NAMESPACE"), ARGO_CD_USER_SECRET_NAME, self.logger)
 	if err != nil {
 		return nil, err
 	}
@@ -88,9 +98,9 @@ func getArgoCdSecret(valkeyClient valkeyclient.ValkeyClient) (*corev1.Secret, er
 	return &argoCdSecret, nil
 }
 
-func ArgoCdCreateApiToken(valkeyClient valkeyclient.ValkeyClient, data ArgoCdCreateApiTokenRequest) (bool, error) {
+func (self *argocd) ArgoCdCreateApiToken(data ArgoCdCreateApiTokenRequest) (bool, error) {
 	// Check if argo-cd-config ConfigMap exists in the MO_OWN_NAMESPACE
-	argoCdConfig, err := getArgoCdConfig(valkeyClient)
+	argoCdConfig, err := self.getArgoCdConfig()
 	if err != nil {
 		return false, err
 	}
@@ -101,7 +111,10 @@ func ArgoCdCreateApiToken(valkeyClient valkeyclient.ValkeyClient, data ArgoCdCre
 		return false, fmt.Errorf("namespaceName key not found in argo-cd-config ConfigMap")
 	}
 
-	argoCdSecret, err := getArgoCdSecret(valkeyClient)
+	argoCdSecret, err := self.getArgoCdSecret()
+	if err != nil {
+		return false, fmt.Errorf("failed to get argo-cd-user-secret Secret: %w", err)
+	}
 	if argoCdSecret.Data == nil {
 		return false, fmt.Errorf("argo-cd-user-secret Secret data is nil")
 	}
@@ -113,20 +126,20 @@ func ArgoCdCreateApiToken(valkeyClient valkeyclient.ValkeyClient, data ArgoCdCre
 	password := string(argoCdSecret.Data[fmt.Sprintf("accounts.%s.password", data.Username)])
 	argoURL := fmt.Sprintf("https://argo-cd-argocd-server.%s.svc.cluster.local:443", argoCdConfig.Data["namespaceName"])
 	// argoURL := "http://localhost:8080"
-	token, err := createArgoToken(argoURL, data.Username, password, data.Username)
+	token, err := self.createArgoToken(argoURL, data.Username, password, data.Username)
 	if err != nil {
 		return false, err
 	}
 
 	// add token to argoCdSecret.Data
 	argoCdSecret.Data[fmt.Sprintf("accounts.%s.token", data.Username)] = []byte(token)
-	dynamicClient := clientProvider.DynamicClient()
+	dynamicClient := self.clientProvider.DynamicClient()
 
 	argoCdSecretObjMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&argoCdSecret)
 	if err != nil {
 		log.Fatalf("Failed to convert Secret to unstructured: %v", err)
 	}
-	_, err = dynamicClient.Resource(kubernetes.CreateGroupVersionResource("v1", "", "secrets")).Namespace(config.Get("MO_OWN_NAMESPACE")).Update(context.Background(), &unstructured.Unstructured{Object: argoCdSecretObjMap}, metav1.UpdateOptions{})
+	_, err = dynamicClient.Resource(kubernetes.CreateGroupVersionResource("v1", "", "secrets")).Namespace(self.config.Get("MO_OWN_NAMESPACE")).Update(context.Background(), &unstructured.Unstructured{Object: argoCdSecretObjMap}, metav1.UpdateOptions{})
 	if err != nil {
 		return false, err
 	}
@@ -134,9 +147,9 @@ func ArgoCdCreateApiToken(valkeyClient valkeyclient.ValkeyClient, data ArgoCdCre
 	return true, nil
 }
 
-func ArgoCdApplicationRefresh(valkeyClient valkeyclient.ValkeyClient, data ArgoCdApplicationRefreshRequest) (bool, error) {
+func (self *argocd) ArgoCdApplicationRefresh(data ArgoCdApplicationRefreshRequest) (bool, error) {
 	// Check if argo-cd-config ConfigMap exists in the MO_OWN_NAMESPACE
-	argoCdConfig, err := getArgoCdConfig(valkeyClient)
+	argoCdConfig, err := self.getArgoCdConfig()
 	if err != nil {
 		return false, err
 	}
@@ -147,7 +160,7 @@ func ArgoCdApplicationRefresh(valkeyClient valkeyclient.ValkeyClient, data ArgoC
 		return false, fmt.Errorf("namespaceName key not found in argo-cd-config ConfigMap")
 	}
 
-	argoCdSecret, err := getArgoCdSecret(valkeyClient)
+	argoCdSecret, err := self.getArgoCdSecret()
 	if err != nil {
 		return false, fmt.Errorf("argo-cd-user-secret Secret data is nil")
 	}
@@ -159,14 +172,14 @@ func ArgoCdApplicationRefresh(valkeyClient valkeyclient.ValkeyClient, data ArgoC
 	token := string(argoCdSecret.Data[fmt.Sprintf("accounts.%s.token", data.Username)])
 	argoURL := fmt.Sprintf("https://argo-cd-argocd-server.%s.svc.cluster.local:443", argoCdConfig.Data["namespaceName"])
 	// argoURL := "http://localhost:8080"
-	_, err = refreshApplication(argoURL, data.ApplicationName, token)
+	_, err = self.refreshApplication(argoURL, data.ApplicationName, token)
 	if err != nil {
 		return false, err
 	}
 	return true, nil
 }
 
-func createArgoToken(argoURL, username, password, account string) (string, error) {
+func (self *argocd) createArgoToken(argoURL, username, password, account string) (string, error) {
 	// Login to get session token
 	loginBody := map[string]string{"username": username, "password": password}
 	loginJSON, _ := json.Marshal(loginBody)
@@ -232,7 +245,7 @@ func createArgoToken(argoURL, username, password, account string) (string, error
 	return tokenRes.Token, nil
 }
 
-func refreshApplication(argoURL, applicationName, token string) (bool, error) {
+func (self *argocd) refreshApplication(argoURL, applicationName, token string) (bool, error) {
 	url := fmt.Sprintf("%s/api/v1/applications/%s?refresh=normal", argoURL, applicationName)
 
 	// Insecure http client (skip TLS verification) — only for internal/self-signed setups
