@@ -3,7 +3,6 @@
 //===============================================================
 
 export enum Pattern {
-  ATTACH_LABELED_NETWORK_POLICY = "attach/labeled_network_policy",
   AUDIT_LOG_LIST = "audit-log/list",
   CLUSTER_ARGO_CD_APPLICATION_REFRESH = "cluster/argo-cd-application-refresh",
   CLUSTER_ARGO_CD_CREATE_API_TOKEN = "cluster/argo-cd-create-api-token",
@@ -43,9 +42,6 @@ export enum Pattern {
   DELETE_WORKSPACE = "delete/workspace",
   DESCRIBE = "describe",
   DESCRIBE_WORKLOAD = "describe/workload",
-  DETACH_LABELED_NETWORK_POLICY = "detach/labeled_network_policy",
-  DISABLE_NETWORK_POLICY_MANAGER = "disable/network_policy_manager",
-  ENFORCE_NETWORK_POLICY_MANAGER = "enforce/network_policy_manager",
   FILES_CHMOD = "files/chmod",
   FILES_CHOWN = "files/chown",
   FILES_CREATE_FOLDER = "files/create-folder",
@@ -73,13 +69,7 @@ export enum Pattern {
   INSTALL_KEPLER = "install-kepler",
   INSTALL_METALLB = "install-metallb",
   INSTALL_METRICS_SERVER = "install-metrics-server",
-  LIST_ALL_NETWORK_POLICIES = "list/all_network_policies",
   LIST_ALL_WORKLOADS = "list/all-workloads",
-  LIST_CONFLICTING_NETWORK_POLICIES = "list/conflicting_network_policies",
-  LIST_CONTROLLER_NETWORK_POLICIES = "list/controller_network_policies",
-  LIST_LABELED_NETWORK_POLICY_PORTS = "list/labeled_network_policy_ports",
-  LIST_NAMESPACE_NETWORK_POLICIES = "list/namespace_network_policies",
-  LIST_ONLY_NAMESPACE_NETWORK_POLICIES = "list/only_namespace_network_policies",
   LIVE_STREAM_NODES_CPU = "live-stream/nodes-cpu",
   LIVE_STREAM_NODES_MEMORY = "live-stream/nodes-memory",
   LIVE_STREAM_NODES_TRAFFIC = "live-stream/nodes-traffic",
@@ -96,8 +86,6 @@ export enum Pattern {
   PROMETHEUS_IS_REACHABLE = "prometheus/is-reachable",
   PROMETHEUS_QUERY = "prometheus/query",
   PROMETHEUS_VALUES = "prometheus/values",
-  REMOVE_CONFLICTING_NETWORK_POLICIES = "remove/conflicting_network_policies",
-  REMOVE_UNMANAGED_NETWORK_POLICIES = "remove/unmanaged_network_policies",
   SEALED_SECRET_CREATE_FROM_EXISTING = "sealed-secret/create-from-existing",
   SEALED_SECRET_GET_CERTIFICATE = "sealed-secret/get-certificate",
   SERVICE_EXEC_SH_CONNECTION_REQUEST = "service/exec-sh-connection-request",
@@ -121,7 +109,6 @@ export enum Pattern {
   UNINSTALL_METALLB = "uninstall-metallb",
   UNINSTALL_METRICS_SERVER = "uninstall-metrics-server",
   UPDATE_GRANT = "update/grant",
-  UPDATE_NETWORK_POLICIES_TEMPLATE = "update/network_policies_template",
   UPDATE_USER = "update/user",
   UPDATE_WORKLOAD = "update/workload",
   UPDATE_WORKSPACE = "update/workspace",
@@ -139,7 +126,6 @@ export enum Pattern {
 //===============================================================
 
 export const StringToPattern = {
-  "attach/labeled_network_policy": Pattern.ATTACH_LABELED_NETWORK_POLICY,
   "audit-log/list": Pattern.AUDIT_LOG_LIST,
   "cluster/argo-cd-application-refresh": Pattern.CLUSTER_ARGO_CD_APPLICATION_REFRESH,
   "cluster/argo-cd-create-api-token": Pattern.CLUSTER_ARGO_CD_CREATE_API_TOKEN,
@@ -179,9 +165,6 @@ export const StringToPattern = {
   "delete/workspace": Pattern.DELETE_WORKSPACE,
   "describe": Pattern.DESCRIBE,
   "describe/workload": Pattern.DESCRIBE_WORKLOAD,
-  "detach/labeled_network_policy": Pattern.DETACH_LABELED_NETWORK_POLICY,
-  "disable/network_policy_manager": Pattern.DISABLE_NETWORK_POLICY_MANAGER,
-  "enforce/network_policy_manager": Pattern.ENFORCE_NETWORK_POLICY_MANAGER,
   "files/chmod": Pattern.FILES_CHMOD,
   "files/chown": Pattern.FILES_CHOWN,
   "files/create-folder": Pattern.FILES_CREATE_FOLDER,
@@ -209,13 +192,7 @@ export const StringToPattern = {
   "install-kepler": Pattern.INSTALL_KEPLER,
   "install-metallb": Pattern.INSTALL_METALLB,
   "install-metrics-server": Pattern.INSTALL_METRICS_SERVER,
-  "list/all_network_policies": Pattern.LIST_ALL_NETWORK_POLICIES,
   "list/all-workloads": Pattern.LIST_ALL_WORKLOADS,
-  "list/conflicting_network_policies": Pattern.LIST_CONFLICTING_NETWORK_POLICIES,
-  "list/controller_network_policies": Pattern.LIST_CONTROLLER_NETWORK_POLICIES,
-  "list/labeled_network_policy_ports": Pattern.LIST_LABELED_NETWORK_POLICY_PORTS,
-  "list/namespace_network_policies": Pattern.LIST_NAMESPACE_NETWORK_POLICIES,
-  "list/only_namespace_network_policies": Pattern.LIST_ONLY_NAMESPACE_NETWORK_POLICIES,
   "live-stream/nodes-cpu": Pattern.LIVE_STREAM_NODES_CPU,
   "live-stream/nodes-memory": Pattern.LIVE_STREAM_NODES_MEMORY,
   "live-stream/nodes-traffic": Pattern.LIVE_STREAM_NODES_TRAFFIC,
@@ -232,8 +209,6 @@ export const StringToPattern = {
   "prometheus/is-reachable": Pattern.PROMETHEUS_IS_REACHABLE,
   "prometheus/query": Pattern.PROMETHEUS_QUERY,
   "prometheus/values": Pattern.PROMETHEUS_VALUES,
-  "remove/conflicting_network_policies": Pattern.REMOVE_CONFLICTING_NETWORK_POLICIES,
-  "remove/unmanaged_network_policies": Pattern.REMOVE_UNMANAGED_NETWORK_POLICIES,
   "sealed-secret/create-from-existing": Pattern.SEALED_SECRET_CREATE_FROM_EXISTING,
   "sealed-secret/get-certificate": Pattern.SEALED_SECRET_GET_CERTIFICATE,
   "service/exec-sh-connection-request": Pattern.SERVICE_EXEC_SH_CONNECTION_REQUEST,
@@ -257,7 +232,6 @@ export const StringToPattern = {
   "uninstall-metallb": Pattern.UNINSTALL_METALLB,
   "uninstall-metrics-server": Pattern.UNINSTALL_METRICS_SERVER,
   "update/grant": Pattern.UPDATE_GRANT,
-  "update/network_policies_template": Pattern.UPDATE_NETWORK_POLICIES_TEMPLATE,
   "update/user": Pattern.UPDATE_USER,
   "update/workload": Pattern.UPDATE_WORKLOAD,
   "update/workspace": Pattern.UPDATE_WORKSPACE,
@@ -271,7 +245,6 @@ export const StringToPattern = {
 };
 
 export const PatternToString = {
-  [Pattern.ATTACH_LABELED_NETWORK_POLICY]: "attach/labeled_network_policy",
   [Pattern.AUDIT_LOG_LIST]: "audit-log/list",
   [Pattern.CLUSTER_ARGO_CD_APPLICATION_REFRESH]: "cluster/argo-cd-application-refresh",
   [Pattern.CLUSTER_ARGO_CD_CREATE_API_TOKEN]: "cluster/argo-cd-create-api-token",
@@ -311,9 +284,6 @@ export const PatternToString = {
   [Pattern.DELETE_WORKSPACE]: "delete/workspace",
   [Pattern.DESCRIBE]: "describe",
   [Pattern.DESCRIBE_WORKLOAD]: "describe/workload",
-  [Pattern.DETACH_LABELED_NETWORK_POLICY]: "detach/labeled_network_policy",
-  [Pattern.DISABLE_NETWORK_POLICY_MANAGER]: "disable/network_policy_manager",
-  [Pattern.ENFORCE_NETWORK_POLICY_MANAGER]: "enforce/network_policy_manager",
   [Pattern.FILES_CHMOD]: "files/chmod",
   [Pattern.FILES_CHOWN]: "files/chown",
   [Pattern.FILES_CREATE_FOLDER]: "files/create-folder",
@@ -341,13 +311,7 @@ export const PatternToString = {
   [Pattern.INSTALL_KEPLER]: "install-kepler",
   [Pattern.INSTALL_METALLB]: "install-metallb",
   [Pattern.INSTALL_METRICS_SERVER]: "install-metrics-server",
-  [Pattern.LIST_ALL_NETWORK_POLICIES]: "list/all_network_policies",
   [Pattern.LIST_ALL_WORKLOADS]: "list/all-workloads",
-  [Pattern.LIST_CONFLICTING_NETWORK_POLICIES]: "list/conflicting_network_policies",
-  [Pattern.LIST_CONTROLLER_NETWORK_POLICIES]: "list/controller_network_policies",
-  [Pattern.LIST_LABELED_NETWORK_POLICY_PORTS]: "list/labeled_network_policy_ports",
-  [Pattern.LIST_NAMESPACE_NETWORK_POLICIES]: "list/namespace_network_policies",
-  [Pattern.LIST_ONLY_NAMESPACE_NETWORK_POLICIES]: "list/only_namespace_network_policies",
   [Pattern.LIVE_STREAM_NODES_CPU]: "live-stream/nodes-cpu",
   [Pattern.LIVE_STREAM_NODES_MEMORY]: "live-stream/nodes-memory",
   [Pattern.LIVE_STREAM_NODES_TRAFFIC]: "live-stream/nodes-traffic",
@@ -364,8 +328,6 @@ export const PatternToString = {
   [Pattern.PROMETHEUS_IS_REACHABLE]: "prometheus/is-reachable",
   [Pattern.PROMETHEUS_QUERY]: "prometheus/query",
   [Pattern.PROMETHEUS_VALUES]: "prometheus/values",
-  [Pattern.REMOVE_CONFLICTING_NETWORK_POLICIES]: "remove/conflicting_network_policies",
-  [Pattern.REMOVE_UNMANAGED_NETWORK_POLICIES]: "remove/unmanaged_network_policies",
   [Pattern.SEALED_SECRET_CREATE_FROM_EXISTING]: "sealed-secret/create-from-existing",
   [Pattern.SEALED_SECRET_GET_CERTIFICATE]: "sealed-secret/get-certificate",
   [Pattern.SERVICE_EXEC_SH_CONNECTION_REQUEST]: "service/exec-sh-connection-request",
@@ -389,7 +351,6 @@ export const PatternToString = {
   [Pattern.UNINSTALL_METALLB]: "uninstall-metallb",
   [Pattern.UNINSTALL_METRICS_SERVER]: "uninstall-metrics-server",
   [Pattern.UPDATE_GRANT]: "update/grant",
-  [Pattern.UPDATE_NETWORK_POLICIES_TEMPLATE]: "update/network_policies_template",
   [Pattern.UPDATE_USER]: "update/user",
   [Pattern.UPDATE_WORKLOAD]: "update/workload",
   [Pattern.UPDATE_WORKSPACE]: "update/workspace",
@@ -405,66 +366,6 @@ export const PatternToString = {
 //===============================================================
 //================= Request and Response Types ==================
 //===============================================================
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     mogenius-k8s-manager/src/controllers.AttachLabeledNetworkPolicyRequest:
- *         name: mogenius-k8s-manager/src/controllers.AttachLabeledNetworkPolicyRequest
- *         properties:
- *             controllerName:
- *                 type: string
- *             controllerType:
- *                 type: string
- *             labeledNetworkPolicies:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/dtos.K8sLabeledNetworkPolicyDto
- *                     type: struct
- *                 type: array
- *             namespaceName:
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sLabeledNetworkPolicyDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sLabeledNetworkPolicyDto
- *         properties:
- *             name:
- *                 type: string
- *             port:
- *                 type: uint
- *             portType:
- *                 type: string
- *             type:
- *                 type: string
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/controllers.AttachLabeledNetworkPolicyRequest
- *     type: struct
- * ```
- *
- */
-export type ATTACH_LABELED_NETWORK_POLICY_REQUEST = ATTACH_LABELED_NETWORK_POLICY_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_ATTACHLABELEDNETWORKPOLICYREQUEST;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/controllers.AttachLabeledNetworkPolicyRequest,string]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/controllers.AttachLabeledNetworkPolicyRequest,string]
- *         properties:
- *             data:
- *                 type: string
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/controllers.AttachLabeledNetworkPolicyRequest,string]
- *     type: struct
- * ```
- *
- */
-export type ATTACH_LABELED_NETWORK_POLICY_RESPONSE = ATTACH_LABELED_NETWORK_POLICY_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_ATTACHLABELEDNETWORKPOLICYREQUEST_STRING;
 
 /**
  * #### Source
@@ -3520,154 +3421,6 @@ export type DESCRIBE_WORKLOAD_RESPONSE = DESCRIBE_WORKLOAD_RESPONSE__MOGENIUS_K8
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/controllers.DetachLabeledNetworkPolicyRequest:
- *         name: mogenius-k8s-manager/src/controllers.DetachLabeledNetworkPolicyRequest
- *         properties:
- *             controllerName:
- *                 type: string
- *             controllerType:
- *                 type: string
- *             labeledNetworkPolicies:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/dtos.K8sLabeledNetworkPolicyDto
- *                     type: struct
- *                 type: array
- *             namespaceName:
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sLabeledNetworkPolicyDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sLabeledNetworkPolicyDto
- *         properties:
- *             name:
- *                 type: string
- *             port:
- *                 type: uint
- *             portType:
- *                 type: string
- *             type:
- *                 type: string
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/controllers.DetachLabeledNetworkPolicyRequest
- *     type: struct
- * ```
- *
- */
-export type DETACH_LABELED_NETWORK_POLICY_REQUEST = DETACH_LABELED_NETWORK_POLICY_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_DETACHLABELEDNETWORKPOLICYREQUEST;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/controllers.DetachLabeledNetworkPolicyRequest,string]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/controllers.DetachLabeledNetworkPolicyRequest,string]
- *         properties:
- *             data:
- *                 type: string
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/controllers.DetachLabeledNetworkPolicyRequest,string]
- *     type: struct
- * ```
- *
- */
-export type DETACH_LABELED_NETWORK_POLICY_RESPONSE = DETACH_LABELED_NETWORK_POLICY_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_DETACHLABELEDNETWORKPOLICYREQUEST_STRING;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     mogenius-k8s-manager/src/controllers.DisableNetworkPolicyManagerRequest:
- *         name: mogenius-k8s-manager/src/controllers.DisableNetworkPolicyManagerRequest
- *         properties:
- *             namespaceName:
- *                 type: string
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/controllers.DisableNetworkPolicyManagerRequest
- *     type: struct
- * ```
- *
- */
-export type DISABLE_NETWORK_POLICY_MANAGER_REQUEST = DISABLE_NETWORK_POLICY_MANAGER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_DISABLENETWORKPOLICYMANAGERREQUEST;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     ANON_STRUCT_1:
- *         properties: {}
- *     ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/controllers.DisableNetworkPolicyManagerRequest,mogenius-k8s-manager/src/core.Void]
- *     :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/controllers.DisableNetworkPolicyManagerRequest,mogenius-k8s-manager/src/core.Void]
- *         properties:
- *             data:
- *                 pointer: true
- *                 structRef: ANON_STRUCT_1
- *                 type: struct
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/controllers.DisableNetworkPolicyManagerRequest,mogenius-k8s-manager/src/core.Void]
- *     type: struct
- * ```
- *
- */
-export type DISABLE_NETWORK_POLICY_MANAGER_RESPONSE = DISABLE_NETWORK_POLICY_MANAGER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_DISABLENETWORKPOLICYMANAGERREQUEST_MOGENIUS_K8S_MANAGER_SRC_CORE_VOID;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     mogenius-k8s-manager/src/controllers.EnforceNetworkPolicyManagerRequest:
- *         name: mogenius-k8s-manager/src/controllers.EnforceNetworkPolicyManagerRequest
- *         properties:
- *             namespaceName:
- *                 type: string
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/controllers.EnforceNetworkPolicyManagerRequest
- *     type: struct
- * ```
- *
- */
-export type ENFORCE_NETWORK_POLICY_MANAGER_REQUEST = ENFORCE_NETWORK_POLICY_MANAGER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_ENFORCENETWORKPOLICYMANAGERREQUEST;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     ANON_STRUCT_1:
- *         properties: {}
- *     ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/controllers.EnforceNetworkPolicyManagerRequest,mogenius-k8s-manager/src/core.Void]
- *     :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/controllers.EnforceNetworkPolicyManagerRequest,mogenius-k8s-manager/src/core.Void]
- *         properties:
- *             data:
- *                 pointer: true
- *                 structRef: ANON_STRUCT_1
- *                 type: struct
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/controllers.EnforceNetworkPolicyManagerRequest,mogenius-k8s-manager/src/core.Void]
- *     type: struct
- * ```
- *
- */
-export type ENFORCE_NETWORK_POLICY_MANAGER_RESPONSE = ENFORCE_NETWORK_POLICY_MANAGER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_ENFORCENETWORKPOLICYMANAGERREQUEST_MOGENIUS_K8S_MANAGER_SRC_CORE_VOID;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
  *     mogenius-k8s-manager/src/core.Request:
  *         name: mogenius-k8s-manager/src/core.Request
  *         properties:
@@ -5973,226 +5726,6 @@ export type INSTALL_METRICS_SERVER_RESPONSE = INSTALL_METRICS_SERVER_RESPONSE__M
  * ```
  *
  */
-export type LIST_ALL_NETWORK_POLICIES_REQUEST = LIST_ALL_NETWORK_POLICIES_REQUEST__ANON_STRUCT_0|undefined;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     k8s.io/api/networking/v1.IPBlock:
- *         name: k8s.io/api/networking/v1.IPBlock
- *         properties:
- *             cidr:
- *                 type: string
- *             except:
- *                 elementType:
- *                     type: string
- *                 type: array
- *     k8s.io/api/networking/v1.NetworkPolicyEgressRule:
- *         name: k8s.io/api/networking/v1.NetworkPolicyEgressRule
- *         properties:
- *             ports:
- *                 elementType:
- *                     structRef: k8s.io/api/networking/v1.NetworkPolicyPort
- *                     type: struct
- *                 type: array
- *             to:
- *                 elementType:
- *                     structRef: k8s.io/api/networking/v1.NetworkPolicyPeer
- *                     type: struct
- *                 type: array
- *     k8s.io/api/networking/v1.NetworkPolicyIngressRule:
- *         name: k8s.io/api/networking/v1.NetworkPolicyIngressRule
- *         properties:
- *             from:
- *                 elementType:
- *                     structRef: k8s.io/api/networking/v1.NetworkPolicyPeer
- *                     type: struct
- *                 type: array
- *             ports:
- *                 elementType:
- *                     structRef: k8s.io/api/networking/v1.NetworkPolicyPort
- *                     type: struct
- *                 type: array
- *     k8s.io/api/networking/v1.NetworkPolicyPeer:
- *         name: k8s.io/api/networking/v1.NetworkPolicyPeer
- *         properties:
- *             ipBlock:
- *                 pointer: true
- *                 structRef: k8s.io/api/networking/v1.IPBlock
- *                 type: struct
- *             namespaceSelector:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
- *                 type: struct
- *             podSelector:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
- *                 type: struct
- *     k8s.io/api/networking/v1.NetworkPolicyPort:
- *         name: k8s.io/api/networking/v1.NetworkPolicyPort
- *         properties:
- *             endPort:
- *                 pointer: true
- *                 type: int
- *             port:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/util/intstr.IntOrString
- *                 type: struct
- *             protocol:
- *                 pointer: true
- *                 type: string
- *     k8s.io/api/networking/v1.NetworkPolicySpec:
- *         name: k8s.io/api/networking/v1.NetworkPolicySpec
- *         properties:
- *             egress:
- *                 elementType:
- *                     structRef: k8s.io/api/networking/v1.NetworkPolicyEgressRule
- *                     type: struct
- *                 type: array
- *             ingress:
- *                 elementType:
- *                     structRef: k8s.io/api/networking/v1.NetworkPolicyIngressRule
- *                     type: struct
- *                 type: array
- *             podSelector:
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
- *                 type: struct
- *             policyTypes:
- *                 elementType:
- *                     type: string
- *                 type: array
- *     k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
- *         properties:
- *             matchExpressions:
- *                 elementType:
- *                     structRef: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelectorRequirement
- *                     type: struct
- *                 type: array
- *             matchLabels:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     type: string
- *     k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelectorRequirement:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelectorRequirement
- *         properties:
- *             key:
- *                 type: string
- *             operator:
- *                 type: string
- *             values:
- *                 elementType:
- *                     type: string
- *                 type: array
- *     k8s.io/apimachinery/pkg/util/intstr.IntOrString:
- *         name: k8s.io/apimachinery/pkg/util/intstr.IntOrString
- *         properties:
- *             IntVal:
- *                 type: int
- *             StrVal:
- *                 type: string
- *             Type:
- *                 type: int
- *     mogenius-k8s-manager/src/controllers.K8sNetworkPolicyDto:
- *         name: mogenius-k8s-manager/src/controllers.K8sNetworkPolicyDto
- *         properties:
- *             name:
- *                 pointer: true
- *                 type: string
- *             namespaceName:
- *                 type: string
- *             spec:
- *                 structRef: k8s.io/api/networking/v1.NetworkPolicySpec
- *                 type: struct
- *     mogenius-k8s-manager/src/controllers.ListNetworkPolicyController:
- *         name: mogenius-k8s-manager/src/controllers.ListNetworkPolicyController
- *         properties:
- *             controllerName:
- *                 type: string
- *             controllerType:
- *                 type: string
- *             networkPolicies:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/dtos.K8sLabeledNetworkPolicyDto
- *                     type: struct
- *                 type: array
- *             serviceId:
- *                 type: string
- *     mogenius-k8s-manager/src/controllers.ListNetworkPolicyNamespace:
- *         name: mogenius-k8s-manager/src/controllers.ListNetworkPolicyNamespace
- *         properties:
- *             controllers:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/controllers.ListNetworkPolicyController
- *                     type: struct
- *                 type: array
- *             displayName:
- *                 type: string
- *             id:
- *                 type: string
- *             managedPolicies:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/controllers.K8sNetworkPolicyDto
- *                     type: struct
- *                 type: array
- *             name:
- *                 type: string
- *             projectId:
- *                 type: string
- *             unmanagedPolicies:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/controllers.K8sNetworkPolicyDto
- *                     type: struct
- *                 type: array
- *     ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,[]mogenius-k8s-manager/src/controllers.ListNetworkPolicyNamespace]
- *     :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,[]mogenius-k8s-manager/src/controllers.ListNetworkPolicyNamespace]
- *         properties:
- *             data:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/controllers.ListNetworkPolicyNamespace
- *                     type: struct
- *                 type: array
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sLabeledNetworkPolicyDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sLabeledNetworkPolicyDto
- *         properties:
- *             name:
- *                 type: string
- *             port:
- *                 type: uint
- *             portType:
- *                 type: string
- *             type:
- *                 type: string
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,[]mogenius-k8s-manager/src/controllers.ListNetworkPolicyNamespace]
- *     type: struct
- * ```
- *
- */
-export type LIST_ALL_NETWORK_POLICIES_RESPONSE = LIST_ALL_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTNETWORKPOLICYNAMESPACE;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     ANON_STRUCT_0:
- *         properties: {}
- * typeInfo:
- *     pointer: true
- *     structRef: ANON_STRUCT_0
- *     type: struct
- * ```
- *
- */
 export type LIST_ALL_WORKLOADS_REQUEST = LIST_ALL_WORKLOADS_REQUEST__ANON_STRUCT_0|undefined;
 
 /**
@@ -6233,713 +5766,6 @@ export type LIST_ALL_WORKLOADS_REQUEST = LIST_ALL_WORKLOADS_REQUEST__ANON_STRUCT
  *
  */
 export type LIST_ALL_WORKLOADS_RESPONSE = LIST_ALL_WORKLOADS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEENTRY;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     mogenius-k8s-manager/src/controllers.ListConflictingNetworkPoliciesRequest:
- *         name: mogenius-k8s-manager/src/controllers.ListConflictingNetworkPoliciesRequest
- *         properties:
- *             namespaceName:
- *                 type: string
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/controllers.ListConflictingNetworkPoliciesRequest
- *     type: struct
- * ```
- *
- */
-export type LIST_CONFLICTING_NETWORK_POLICIES_REQUEST = LIST_CONFLICTING_NETWORK_POLICIES_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTCONFLICTINGNETWORKPOLICIESREQUEST;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     k8s.io/api/networking/v1.IPBlock:
- *         name: k8s.io/api/networking/v1.IPBlock
- *         properties:
- *             cidr:
- *                 type: string
- *             except:
- *                 elementType:
- *                     type: string
- *                 type: array
- *     k8s.io/api/networking/v1.NetworkPolicyEgressRule:
- *         name: k8s.io/api/networking/v1.NetworkPolicyEgressRule
- *         properties:
- *             ports:
- *                 elementType:
- *                     structRef: k8s.io/api/networking/v1.NetworkPolicyPort
- *                     type: struct
- *                 type: array
- *             to:
- *                 elementType:
- *                     structRef: k8s.io/api/networking/v1.NetworkPolicyPeer
- *                     type: struct
- *                 type: array
- *     k8s.io/api/networking/v1.NetworkPolicyIngressRule:
- *         name: k8s.io/api/networking/v1.NetworkPolicyIngressRule
- *         properties:
- *             from:
- *                 elementType:
- *                     structRef: k8s.io/api/networking/v1.NetworkPolicyPeer
- *                     type: struct
- *                 type: array
- *             ports:
- *                 elementType:
- *                     structRef: k8s.io/api/networking/v1.NetworkPolicyPort
- *                     type: struct
- *                 type: array
- *     k8s.io/api/networking/v1.NetworkPolicyPeer:
- *         name: k8s.io/api/networking/v1.NetworkPolicyPeer
- *         properties:
- *             ipBlock:
- *                 pointer: true
- *                 structRef: k8s.io/api/networking/v1.IPBlock
- *                 type: struct
- *             namespaceSelector:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
- *                 type: struct
- *             podSelector:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
- *                 type: struct
- *     k8s.io/api/networking/v1.NetworkPolicyPort:
- *         name: k8s.io/api/networking/v1.NetworkPolicyPort
- *         properties:
- *             endPort:
- *                 pointer: true
- *                 type: int
- *             port:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/util/intstr.IntOrString
- *                 type: struct
- *             protocol:
- *                 pointer: true
- *                 type: string
- *     k8s.io/api/networking/v1.NetworkPolicySpec:
- *         name: k8s.io/api/networking/v1.NetworkPolicySpec
- *         properties:
- *             egress:
- *                 elementType:
- *                     structRef: k8s.io/api/networking/v1.NetworkPolicyEgressRule
- *                     type: struct
- *                 type: array
- *             ingress:
- *                 elementType:
- *                     structRef: k8s.io/api/networking/v1.NetworkPolicyIngressRule
- *                     type: struct
- *                 type: array
- *             podSelector:
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
- *                 type: struct
- *             policyTypes:
- *                 elementType:
- *                     type: string
- *                 type: array
- *     k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
- *         properties:
- *             matchExpressions:
- *                 elementType:
- *                     structRef: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelectorRequirement
- *                     type: struct
- *                 type: array
- *             matchLabels:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     type: string
- *     k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelectorRequirement:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelectorRequirement
- *         properties:
- *             key:
- *                 type: string
- *             operator:
- *                 type: string
- *             values:
- *                 elementType:
- *                     type: string
- *                 type: array
- *     k8s.io/apimachinery/pkg/util/intstr.IntOrString:
- *         name: k8s.io/apimachinery/pkg/util/intstr.IntOrString
- *         properties:
- *             IntVal:
- *                 type: int
- *             StrVal:
- *                 type: string
- *             Type:
- *                 type: int
- *     mogenius-k8s-manager/src/controllers.K8sNetworkPolicyDto:
- *         name: mogenius-k8s-manager/src/controllers.K8sNetworkPolicyDto
- *         properties:
- *             name:
- *                 pointer: true
- *                 type: string
- *             namespaceName:
- *                 type: string
- *             spec:
- *                 structRef: k8s.io/api/networking/v1.NetworkPolicySpec
- *                 type: struct
- *     ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/controllers.ListConflictingNetworkPoliciesRequest,[]mogenius-k8s-manager/src/controllers.K8sNetworkPolicyDto]
- *     :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/controllers.ListConflictingNetworkPoliciesRequest,[]mogenius-k8s-manager/src/controllers.K8sNetworkPolicyDto]
- *         properties:
- *             data:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/controllers.K8sNetworkPolicyDto
- *                     type: struct
- *                 type: array
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/controllers.ListConflictingNetworkPoliciesRequest,[]mogenius-k8s-manager/src/controllers.K8sNetworkPolicyDto]
- *     type: struct
- * ```
- *
- */
-export type LIST_CONFLICTING_NETWORK_POLICIES_RESPONSE = LIST_CONFLICTING_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTCONFLICTINGNETWORKPOLICIESREQUEST_MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_K8SNETWORKPOLICYDTO;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     mogenius-k8s-manager/src/controllers.ListControllerLabeledNetworkPoliciesRequest:
- *         name: mogenius-k8s-manager/src/controllers.ListControllerLabeledNetworkPoliciesRequest
- *         properties:
- *             controllerName:
- *                 type: string
- *             controllerType:
- *                 type: string
- *             namespaceName:
- *                 type: string
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/controllers.ListControllerLabeledNetworkPoliciesRequest
- *     type: struct
- * ```
- *
- */
-export type LIST_CONTROLLER_NETWORK_POLICIES_REQUEST = LIST_CONTROLLER_NETWORK_POLICIES_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTCONTROLLERLABELEDNETWORKPOLICIESREQUEST;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     mogenius-k8s-manager/src/controllers.ListControllerLabeledNetworkPoliciesResponse:
- *         name: mogenius-k8s-manager/src/controllers.ListControllerLabeledNetworkPoliciesResponse
- *         properties:
- *             controllerName:
- *                 type: string
- *             controllerType:
- *                 type: string
- *             labeledNetworkPolicies:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/dtos.K8sLabeledNetworkPolicyDto
- *                     type: struct
- *                 type: array
- *             namespaceName:
- *                 type: string
- *     ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/controllers.ListControllerLabeledNetworkPoliciesRequest,mogenius-k8s-manager/src/controllers.ListControllerLabeledNetworkPoliciesResponse]
- *     :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/controllers.ListControllerLabeledNetworkPoliciesRequest,mogenius-k8s-manager/src/controllers.ListControllerLabeledNetworkPoliciesResponse]
- *         properties:
- *             data:
- *                 structRef: mogenius-k8s-manager/src/controllers.ListControllerLabeledNetworkPoliciesResponse
- *                 type: struct
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sLabeledNetworkPolicyDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sLabeledNetworkPolicyDto
- *         properties:
- *             name:
- *                 type: string
- *             port:
- *                 type: uint
- *             portType:
- *                 type: string
- *             type:
- *                 type: string
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/controllers.ListControllerLabeledNetworkPoliciesRequest,mogenius-k8s-manager/src/controllers.ListControllerLabeledNetworkPoliciesResponse]
- *     type: struct
- * ```
- *
- */
-export type LIST_CONTROLLER_NETWORK_POLICIES_RESPONSE = LIST_CONTROLLER_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTCONTROLLERLABELEDNETWORKPOLICIESREQUEST_MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTCONTROLLERLABELEDNETWORKPOLICIESRESPONSE;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     ANON_STRUCT_0:
- *         properties: {}
- * typeInfo:
- *     pointer: true
- *     structRef: ANON_STRUCT_0
- *     type: struct
- * ```
- *
- */
-export type LIST_LABELED_NETWORK_POLICY_PORTS_REQUEST = LIST_LABELED_NETWORK_POLICY_PORTS_REQUEST__ANON_STRUCT_0|undefined;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,[]mogenius-k8s-manager/src/dtos.K8sLabeledNetworkPolicyDto]
- *     :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,[]mogenius-k8s-manager/src/dtos.K8sLabeledNetworkPolicyDto]
- *         properties:
- *             data:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/dtos.K8sLabeledNetworkPolicyDto
- *                     type: struct
- *                 type: array
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sLabeledNetworkPolicyDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sLabeledNetworkPolicyDto
- *         properties:
- *             name:
- *                 type: string
- *             port:
- *                 type: uint
- *             portType:
- *                 type: string
- *             type:
- *                 type: string
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,[]mogenius-k8s-manager/src/dtos.K8sLabeledNetworkPolicyDto]
- *     type: struct
- * ```
- *
- */
-export type LIST_LABELED_NETWORK_POLICY_PORTS_RESPONSE = LIST_LABELED_NETWORK_POLICY_PORTS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SLABELEDNETWORKPOLICYDTO;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     mogenius-k8s-manager/src/controllers.ListNamespaceLabeledNetworkPoliciesRequest:
- *         name: mogenius-k8s-manager/src/controllers.ListNamespaceLabeledNetworkPoliciesRequest
- *         properties:
- *             namespaceName:
- *                 type: string
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/controllers.ListNamespaceLabeledNetworkPoliciesRequest
- *     type: struct
- * ```
- *
- */
-export type LIST_NAMESPACE_NETWORK_POLICIES_REQUEST = LIST_NAMESPACE_NETWORK_POLICIES_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTNAMESPACELABELEDNETWORKPOLICIESREQUEST;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     k8s.io/api/networking/v1.IPBlock:
- *         name: k8s.io/api/networking/v1.IPBlock
- *         properties:
- *             cidr:
- *                 type: string
- *             except:
- *                 elementType:
- *                     type: string
- *                 type: array
- *     k8s.io/api/networking/v1.NetworkPolicyEgressRule:
- *         name: k8s.io/api/networking/v1.NetworkPolicyEgressRule
- *         properties:
- *             ports:
- *                 elementType:
- *                     structRef: k8s.io/api/networking/v1.NetworkPolicyPort
- *                     type: struct
- *                 type: array
- *             to:
- *                 elementType:
- *                     structRef: k8s.io/api/networking/v1.NetworkPolicyPeer
- *                     type: struct
- *                 type: array
- *     k8s.io/api/networking/v1.NetworkPolicyIngressRule:
- *         name: k8s.io/api/networking/v1.NetworkPolicyIngressRule
- *         properties:
- *             from:
- *                 elementType:
- *                     structRef: k8s.io/api/networking/v1.NetworkPolicyPeer
- *                     type: struct
- *                 type: array
- *             ports:
- *                 elementType:
- *                     structRef: k8s.io/api/networking/v1.NetworkPolicyPort
- *                     type: struct
- *                 type: array
- *     k8s.io/api/networking/v1.NetworkPolicyPeer:
- *         name: k8s.io/api/networking/v1.NetworkPolicyPeer
- *         properties:
- *             ipBlock:
- *                 pointer: true
- *                 structRef: k8s.io/api/networking/v1.IPBlock
- *                 type: struct
- *             namespaceSelector:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
- *                 type: struct
- *             podSelector:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
- *                 type: struct
- *     k8s.io/api/networking/v1.NetworkPolicyPort:
- *         name: k8s.io/api/networking/v1.NetworkPolicyPort
- *         properties:
- *             endPort:
- *                 pointer: true
- *                 type: int
- *             port:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/util/intstr.IntOrString
- *                 type: struct
- *             protocol:
- *                 pointer: true
- *                 type: string
- *     k8s.io/api/networking/v1.NetworkPolicySpec:
- *         name: k8s.io/api/networking/v1.NetworkPolicySpec
- *         properties:
- *             egress:
- *                 elementType:
- *                     structRef: k8s.io/api/networking/v1.NetworkPolicyEgressRule
- *                     type: struct
- *                 type: array
- *             ingress:
- *                 elementType:
- *                     structRef: k8s.io/api/networking/v1.NetworkPolicyIngressRule
- *                     type: struct
- *                 type: array
- *             podSelector:
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
- *                 type: struct
- *             policyTypes:
- *                 elementType:
- *                     type: string
- *                 type: array
- *     k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
- *         properties:
- *             matchExpressions:
- *                 elementType:
- *                     structRef: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelectorRequirement
- *                     type: struct
- *                 type: array
- *             matchLabels:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     type: string
- *     k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelectorRequirement:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelectorRequirement
- *         properties:
- *             key:
- *                 type: string
- *             operator:
- *                 type: string
- *             values:
- *                 elementType:
- *                     type: string
- *                 type: array
- *     k8s.io/apimachinery/pkg/util/intstr.IntOrString:
- *         name: k8s.io/apimachinery/pkg/util/intstr.IntOrString
- *         properties:
- *             IntVal:
- *                 type: int
- *             StrVal:
- *                 type: string
- *             Type:
- *                 type: int
- *     mogenius-k8s-manager/src/controllers.K8sNetworkPolicyDto:
- *         name: mogenius-k8s-manager/src/controllers.K8sNetworkPolicyDto
- *         properties:
- *             name:
- *                 pointer: true
- *                 type: string
- *             namespaceName:
- *                 type: string
- *             spec:
- *                 structRef: k8s.io/api/networking/v1.NetworkPolicySpec
- *                 type: struct
- *     mogenius-k8s-manager/src/controllers.ListNetworkPolicyController:
- *         name: mogenius-k8s-manager/src/controllers.ListNetworkPolicyController
- *         properties:
- *             controllerName:
- *                 type: string
- *             controllerType:
- *                 type: string
- *             networkPolicies:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/dtos.K8sLabeledNetworkPolicyDto
- *                     type: struct
- *                 type: array
- *             serviceId:
- *                 type: string
- *     mogenius-k8s-manager/src/controllers.ListNetworkPolicyNamespace:
- *         name: mogenius-k8s-manager/src/controllers.ListNetworkPolicyNamespace
- *         properties:
- *             controllers:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/controllers.ListNetworkPolicyController
- *                     type: struct
- *                 type: array
- *             displayName:
- *                 type: string
- *             id:
- *                 type: string
- *             managedPolicies:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/controllers.K8sNetworkPolicyDto
- *                     type: struct
- *                 type: array
- *             name:
- *                 type: string
- *             projectId:
- *                 type: string
- *             unmanagedPolicies:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/controllers.K8sNetworkPolicyDto
- *                     type: struct
- *                 type: array
- *     ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/controllers.ListNamespaceLabeledNetworkPoliciesRequest,[]mogenius-k8s-manager/src/controllers.ListNetworkPolicyNamespace]
- *     :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/controllers.ListNamespaceLabeledNetworkPoliciesRequest,[]mogenius-k8s-manager/src/controllers.ListNetworkPolicyNamespace]
- *         properties:
- *             data:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/controllers.ListNetworkPolicyNamespace
- *                     type: struct
- *                 type: array
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sLabeledNetworkPolicyDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sLabeledNetworkPolicyDto
- *         properties:
- *             name:
- *                 type: string
- *             port:
- *                 type: uint
- *             portType:
- *                 type: string
- *             type:
- *                 type: string
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/controllers.ListNamespaceLabeledNetworkPoliciesRequest,[]mogenius-k8s-manager/src/controllers.ListNetworkPolicyNamespace]
- *     type: struct
- * ```
- *
- */
-export type LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE = LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTNAMESPACELABELEDNETWORKPOLICIESREQUEST_MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTNETWORKPOLICYNAMESPACE;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     mogenius-k8s-manager/src/controllers.ListNamespaceLabeledNetworkPoliciesRequest:
- *         name: mogenius-k8s-manager/src/controllers.ListNamespaceLabeledNetworkPoliciesRequest
- *         properties:
- *             namespaceName:
- *                 type: string
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/controllers.ListNamespaceLabeledNetworkPoliciesRequest
- *     type: struct
- * ```
- *
- */
-export type LIST_ONLY_NAMESPACE_NETWORK_POLICIES_REQUEST = LIST_ONLY_NAMESPACE_NETWORK_POLICIES_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTNAMESPACELABELEDNETWORKPOLICIESREQUEST;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     k8s.io/api/networking/v1.IPBlock:
- *         name: k8s.io/api/networking/v1.IPBlock
- *         properties:
- *             cidr:
- *                 type: string
- *             except:
- *                 elementType:
- *                     type: string
- *                 type: array
- *     k8s.io/api/networking/v1.NetworkPolicyEgressRule:
- *         name: k8s.io/api/networking/v1.NetworkPolicyEgressRule
- *         properties:
- *             ports:
- *                 elementType:
- *                     structRef: k8s.io/api/networking/v1.NetworkPolicyPort
- *                     type: struct
- *                 type: array
- *             to:
- *                 elementType:
- *                     structRef: k8s.io/api/networking/v1.NetworkPolicyPeer
- *                     type: struct
- *                 type: array
- *     k8s.io/api/networking/v1.NetworkPolicyIngressRule:
- *         name: k8s.io/api/networking/v1.NetworkPolicyIngressRule
- *         properties:
- *             from:
- *                 elementType:
- *                     structRef: k8s.io/api/networking/v1.NetworkPolicyPeer
- *                     type: struct
- *                 type: array
- *             ports:
- *                 elementType:
- *                     structRef: k8s.io/api/networking/v1.NetworkPolicyPort
- *                     type: struct
- *                 type: array
- *     k8s.io/api/networking/v1.NetworkPolicyPeer:
- *         name: k8s.io/api/networking/v1.NetworkPolicyPeer
- *         properties:
- *             ipBlock:
- *                 pointer: true
- *                 structRef: k8s.io/api/networking/v1.IPBlock
- *                 type: struct
- *             namespaceSelector:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
- *                 type: struct
- *             podSelector:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
- *                 type: struct
- *     k8s.io/api/networking/v1.NetworkPolicyPort:
- *         name: k8s.io/api/networking/v1.NetworkPolicyPort
- *         properties:
- *             endPort:
- *                 pointer: true
- *                 type: int
- *             port:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/util/intstr.IntOrString
- *                 type: struct
- *             protocol:
- *                 pointer: true
- *                 type: string
- *     k8s.io/api/networking/v1.NetworkPolicySpec:
- *         name: k8s.io/api/networking/v1.NetworkPolicySpec
- *         properties:
- *             egress:
- *                 elementType:
- *                     structRef: k8s.io/api/networking/v1.NetworkPolicyEgressRule
- *                     type: struct
- *                 type: array
- *             ingress:
- *                 elementType:
- *                     structRef: k8s.io/api/networking/v1.NetworkPolicyIngressRule
- *                     type: struct
- *                 type: array
- *             podSelector:
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
- *                 type: struct
- *             policyTypes:
- *                 elementType:
- *                     type: string
- *                 type: array
- *     k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
- *         properties:
- *             matchExpressions:
- *                 elementType:
- *                     structRef: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelectorRequirement
- *                     type: struct
- *                 type: array
- *             matchLabels:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     type: string
- *     k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelectorRequirement:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelectorRequirement
- *         properties:
- *             key:
- *                 type: string
- *             operator:
- *                 type: string
- *             values:
- *                 elementType:
- *                     type: string
- *                 type: array
- *     k8s.io/apimachinery/pkg/util/intstr.IntOrString:
- *         name: k8s.io/apimachinery/pkg/util/intstr.IntOrString
- *         properties:
- *             IntVal:
- *                 type: int
- *             StrVal:
- *                 type: string
- *             Type:
- *                 type: int
- *     mogenius-k8s-manager/src/controllers.K8sNetworkPolicyDto:
- *         name: mogenius-k8s-manager/src/controllers.K8sNetworkPolicyDto
- *         properties:
- *             name:
- *                 pointer: true
- *                 type: string
- *             namespaceName:
- *                 type: string
- *             spec:
- *                 structRef: k8s.io/api/networking/v1.NetworkPolicySpec
- *                 type: struct
- *     mogenius-k8s-manager/src/controllers.ListManagedAndUnmanagedNetworkPolicyNamespace:
- *         name: mogenius-k8s-manager/src/controllers.ListManagedAndUnmanagedNetworkPolicyNamespace
- *         properties:
- *             displayName:
- *                 type: string
- *             id:
- *                 type: string
- *             managedPolicies:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/controllers.K8sNetworkPolicyDto
- *                     type: struct
- *                 type: array
- *             name:
- *                 type: string
- *             projectId:
- *                 type: string
- *             unmanagedPolicies:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/controllers.K8sNetworkPolicyDto
- *                     type: struct
- *                 type: array
- *     ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/controllers.ListNamespaceLabeledNetworkPoliciesRequest,[]mogenius-k8s-manager/src/controllers.ListManagedAndUnmanagedNetworkPolicyNamespace]
- *     :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/controllers.ListNamespaceLabeledNetworkPoliciesRequest,[]mogenius-k8s-manager/src/controllers.ListManagedAndUnmanagedNetworkPolicyNamespace]
- *         properties:
- *             data:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/controllers.ListManagedAndUnmanagedNetworkPolicyNamespace
- *                     type: struct
- *                 type: array
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/controllers.ListNamespaceLabeledNetworkPoliciesRequest,[]mogenius-k8s-manager/src/controllers.ListManagedAndUnmanagedNetworkPolicyNamespace]
- *     type: struct
- * ```
- *
- */
-export type LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE = LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTNAMESPACELABELEDNETWORKPOLICIESREQUEST_MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTMANAGEDANDUNMANAGEDNETWORKPOLICYNAMESPACE;
 
 /**
  * #### Source
@@ -7804,94 +6630,6 @@ export type PROMETHEUS_VALUES_REQUEST = PROMETHEUS_VALUES_REQUEST__MOGENIUS_K8S_
  *
  */
 export type PROMETHEUS_VALUES_RESPONSE = PROMETHEUS_VALUES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSREQUEST_STRING;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     mogenius-k8s-manager/src/controllers.RemoveConflictingNetworkPoliciesRequest:
- *         name: mogenius-k8s-manager/src/controllers.RemoveConflictingNetworkPoliciesRequest
- *         properties:
- *             namespaceName:
- *                 type: string
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/controllers.RemoveConflictingNetworkPoliciesRequest
- *     type: struct
- * ```
- *
- */
-export type REMOVE_CONFLICTING_NETWORK_POLICIES_REQUEST = REMOVE_CONFLICTING_NETWORK_POLICIES_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_REMOVECONFLICTINGNETWORKPOLICIESREQUEST;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/controllers.RemoveConflictingNetworkPoliciesRequest,string]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/controllers.RemoveConflictingNetworkPoliciesRequest,string]
- *         properties:
- *             data:
- *                 type: string
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/controllers.RemoveConflictingNetworkPoliciesRequest,string]
- *     type: struct
- * ```
- *
- */
-export type REMOVE_CONFLICTING_NETWORK_POLICIES_RESPONSE = REMOVE_CONFLICTING_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_REMOVECONFLICTINGNETWORKPOLICIESREQUEST_STRING;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     mogenius-k8s-manager/src/controllers.RemoveUnmanagedNetworkPoliciesRequest:
- *         name: mogenius-k8s-manager/src/controllers.RemoveUnmanagedNetworkPoliciesRequest
- *         properties:
- *             namespaceName:
- *                 type: string
- *             policies:
- *                 elementType:
- *                     type: string
- *                 type: array
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/controllers.RemoveUnmanagedNetworkPoliciesRequest
- *     type: struct
- * ```
- *
- */
-export type REMOVE_UNMANAGED_NETWORK_POLICIES_REQUEST = REMOVE_UNMANAGED_NETWORK_POLICIES_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_REMOVEUNMANAGEDNETWORKPOLICIESREQUEST;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     ANON_STRUCT_1:
- *         properties: {}
- *     ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/controllers.RemoveUnmanagedNetworkPoliciesRequest,mogenius-k8s-manager/src/core.Void]
- *     :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/controllers.RemoveUnmanagedNetworkPoliciesRequest,mogenius-k8s-manager/src/core.Void]
- *         properties:
- *             data:
- *                 pointer: true
- *                 structRef: ANON_STRUCT_1
- *                 type: struct
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/controllers.RemoveUnmanagedNetworkPoliciesRequest,mogenius-k8s-manager/src/core.Void]
- *     type: struct
- * ```
- *
- */
-export type REMOVE_UNMANAGED_NETWORK_POLICIES_RESPONSE = REMOVE_UNMANAGED_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_REMOVEUNMANAGEDNETWORKPOLICIESREQUEST_MOGENIUS_K8S_MANAGER_SRC_CORE_VOID;
 
 /**
  * #### Source
@@ -9296,58 +8034,6 @@ export type UPDATE_GRANT_RESPONSE = UPDATE_GRANT_RESPONSE__MOGENIUS_K8S_MANAGER_
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/kubernetes.NetworkPolicy:
- *         name: mogenius-k8s-manager/src/kubernetes.NetworkPolicy
- *         properties:
- *             Name:
- *                 type: string
- *             Port:
- *                 type: uint
- *             Protocol:
- *                 type: string
- *             Type:
- *                 type: string
- * typeInfo:
- *     elementType:
- *         structRef: mogenius-k8s-manager/src/kubernetes.NetworkPolicy
- *         type: struct
- *     type: array
- * ```
- *
- */
-export type UPDATE_NETWORK_POLICIES_TEMPLATE_REQUEST = UPDATE_NETWORK_POLICIES_TEMPLATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_NETWORKPOLICY[];
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     ANON_STRUCT_1:
- *         properties: {}
- *     mogenius-k8s-manager/src/core.Result[[]mogenius-k8s-manager/src/kubernetes.NetworkPolicy,mogenius-k8s-manager/src/core.Void]:
- *         name: mogenius-k8s-manager/src/core.Result[[]mogenius-k8s-manager/src/kubernetes.NetworkPolicy,mogenius-k8s-manager/src/core.Void]
- *         properties:
- *             data:
- *                 pointer: true
- *                 structRef: ANON_STRUCT_1
- *                 type: struct
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[[]mogenius-k8s-manager/src/kubernetes.NetworkPolicy,mogenius-k8s-manager/src/core.Void]
- *     type: struct
- * ```
- *
- */
-export type UPDATE_NETWORK_POLICIES_TEMPLATE_RESPONSE = UPDATE_NETWORK_POLICIES_TEMPLATE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_KUBERNETES_NETWORKPOLICY_MOGENIUS_K8S_MANAGER_SRC_CORE_VOID;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
  *     k8s.io/api/rbac/v1.Subject:
  *         name: k8s.io/api/rbac/v1.Subject
  *         properties:
@@ -9907,9 +8593,6 @@ export type WORKSPACE_CLEAN_UP_RESPONSE = WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_
 //===================== Struct Definitions ======================
 //===============================================================
 
-export type ATTACH_LABELED_NETWORK_POLICY_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_ATTACHLABELEDNETWORKPOLICYREQUEST = {"controllerName": string,"controllerType": string,"labeledNetworkPolicies": ATTACH_LABELED_NETWORK_POLICY_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SLABELEDNETWORKPOLICYDTO[],"namespaceName": string};
-export type ATTACH_LABELED_NETWORK_POLICY_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SLABELEDNETWORKPOLICYDTO = {"name": string,"port": number,"portType": string,"type": string};
-export type ATTACH_LABELED_NETWORK_POLICY_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_ATTACHLABELEDNETWORKPOLICYREQUEST_STRING = {"data": string,"message": string,"status": string};
 export type AUDIT_LOG_LIST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"limit": number,"offset": number,"workspaceName": string};
 export type AUDIT_LOG_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESPONSE = {"data": AUDIT_LOG_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STORE_AUDITLOGRESPONSE,"message": string,"status": string};
 export type AUDIT_LOG_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST34_MOGENIUS_K8S_MANAGER_SRC_CORE_RESPONSE35 = {"data": AUDIT_LOG_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESPONSE,"message": string,"status": string};
@@ -10068,15 +8751,6 @@ export type DESCRIBE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_SCHEMA_TYPEINFO = {"elem
 export type DESCRIBE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_VERSION_VERSION = {"arch": string,"branch": string,"buildTimestamp": string,"gitCommitHash": string,"os": string,"version": string};
 export type DESCRIBE_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEITEM = {"group": string,"kind": string,"name": string,"namespace": string,"resourceName": string,"version": string};
 export type DESCRIBE_WORKLOAD_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEITEM_STRING = {"data": string,"message": string,"status": string};
-export type DETACH_LABELED_NETWORK_POLICY_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_DETACHLABELEDNETWORKPOLICYREQUEST = {"controllerName": string,"controllerType": string,"labeledNetworkPolicies": DETACH_LABELED_NETWORK_POLICY_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SLABELEDNETWORKPOLICYDTO[],"namespaceName": string};
-export type DETACH_LABELED_NETWORK_POLICY_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SLABELEDNETWORKPOLICYDTO = {"name": string,"port": number,"portType": string,"type": string};
-export type DETACH_LABELED_NETWORK_POLICY_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_DETACHLABELEDNETWORKPOLICYREQUEST_STRING = {"data": string,"message": string,"status": string};
-export type DISABLE_NETWORK_POLICY_MANAGER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_DISABLENETWORKPOLICYMANAGERREQUEST = {"namespaceName": string};
-export type DISABLE_NETWORK_POLICY_MANAGER_RESPONSE__ANON_STRUCT_1 = {};
-export type DISABLE_NETWORK_POLICY_MANAGER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_DISABLENETWORKPOLICYMANAGERREQUEST_MOGENIUS_K8S_MANAGER_SRC_CORE_VOID = {"data": DISABLE_NETWORK_POLICY_MANAGER_RESPONSE__ANON_STRUCT_1|undefined,"message": string,"status": string};
-export type ENFORCE_NETWORK_POLICY_MANAGER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_ENFORCENETWORKPOLICYMANAGERREQUEST = {"namespaceName": string};
-export type ENFORCE_NETWORK_POLICY_MANAGER_RESPONSE__ANON_STRUCT_1 = {};
-export type ENFORCE_NETWORK_POLICY_MANAGER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_ENFORCENETWORKPOLICYMANAGERREQUEST_MOGENIUS_K8S_MANAGER_SRC_CORE_VOID = {"data": ENFORCE_NETWORK_POLICY_MANAGER_RESPONSE__ANON_STRUCT_1|undefined,"message": string,"status": string};
 export type FILES_CHMOD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"file": FILES_CHMOD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_PERSISTENTFILEREQUESTDTO,"mode": string};
 export type FILES_CHMOD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_PERSISTENTFILEREQUESTDTO = {"path": string,"volumeName": string,"volumeNamespace": string};
 export type FILES_CHOWN_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"file": FILES_CHOWN_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_PERSISTENTFILEREQUESTDTO,"gid": string,"uid": string};
@@ -10209,71 +8883,9 @@ export type INSTALL_METALLB_REQUEST__ANON_STRUCT_0 = {};
 export type INSTALL_METALLB_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
 export type INSTALL_METRICS_SERVER_REQUEST__ANON_STRUCT_0 = {};
 export type INSTALL_METRICS_SERVER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
-export type LIST_ALL_NETWORK_POLICIES_REQUEST__ANON_STRUCT_0 = {};
-export type LIST_ALL_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_IPBLOCK = {"cidr": string,"except": string[]};
-export type LIST_ALL_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYEGRESSRULE = {"ports": LIST_ALL_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYPORT[],"to": LIST_ALL_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYPEER[]};
-export type LIST_ALL_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYINGRESSRULE = {"from": LIST_ALL_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYPEER[],"ports": LIST_ALL_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYPORT[]};
-export type LIST_ALL_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYPEER = {"ipBlock": LIST_ALL_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_IPBLOCK|undefined,"namespaceSelector": LIST_ALL_NETWORK_POLICIES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR|undefined,"podSelector": LIST_ALL_NETWORK_POLICIES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR|undefined};
-export type LIST_ALL_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYPORT = {"endPort": number|undefined,"port": LIST_ALL_NETWORK_POLICIES_RESPONSE__K8S_IO_APIMACHINERY_PKG_UTIL_INTSTR_INTORSTRING|undefined,"protocol": string|undefined};
-export type LIST_ALL_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYSPEC = {"egress": LIST_ALL_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYEGRESSRULE[],"ingress": LIST_ALL_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYINGRESSRULE[],"podSelector": LIST_ALL_NETWORK_POLICIES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR,"policyTypes": string[]};
-export type LIST_ALL_NETWORK_POLICIES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR = {"matchExpressions": LIST_ALL_NETWORK_POLICIES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTORREQUIREMENT[],"matchLabels": Record<string, string>};
-export type LIST_ALL_NETWORK_POLICIES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTORREQUIREMENT = {"key": string,"operator": string,"values": string[]};
-export type LIST_ALL_NETWORK_POLICIES_RESPONSE__K8S_IO_APIMACHINERY_PKG_UTIL_INTSTR_INTORSTRING = {"IntVal": number,"StrVal": string,"Type": number};
-export type LIST_ALL_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_K8SNETWORKPOLICYDTO = {"name": string|undefined,"namespaceName": string,"spec": LIST_ALL_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYSPEC};
-export type LIST_ALL_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTNETWORKPOLICYCONTROLLER = {"controllerName": string,"controllerType": string,"networkPolicies": LIST_ALL_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SLABELEDNETWORKPOLICYDTO[],"serviceId": string};
-export type LIST_ALL_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTNETWORKPOLICYNAMESPACE = {"controllers": LIST_ALL_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTNETWORKPOLICYCONTROLLER[],"displayName": string,"id": string,"managedPolicies": LIST_ALL_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_K8SNETWORKPOLICYDTO[],"name": string,"projectId": string,"unmanagedPolicies": LIST_ALL_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_K8SNETWORKPOLICYDTO[]};
-export type LIST_ALL_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTNETWORKPOLICYNAMESPACE = {"data": LIST_ALL_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTNETWORKPOLICYNAMESPACE[],"message": string,"status": string};
-export type LIST_ALL_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SLABELEDNETWORKPOLICYDTO = {"name": string,"port": number,"portType": string,"type": string};
 export type LIST_ALL_WORKLOADS_REQUEST__ANON_STRUCT_0 = {};
 export type LIST_ALL_WORKLOADS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEENTRY = {"data": LIST_ALL_WORKLOADS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEENTRY[],"message": string,"status": string};
 export type LIST_ALL_WORKLOADS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEENTRY = {"group": string,"kind": string,"name": string,"namespace": string|undefined,"version": string};
-export type LIST_CONFLICTING_NETWORK_POLICIES_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTCONFLICTINGNETWORKPOLICIESREQUEST = {"namespaceName": string};
-export type LIST_CONFLICTING_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_IPBLOCK = {"cidr": string,"except": string[]};
-export type LIST_CONFLICTING_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYEGRESSRULE = {"ports": LIST_CONFLICTING_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYPORT[],"to": LIST_CONFLICTING_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYPEER[]};
-export type LIST_CONFLICTING_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYINGRESSRULE = {"from": LIST_CONFLICTING_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYPEER[],"ports": LIST_CONFLICTING_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYPORT[]};
-export type LIST_CONFLICTING_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYPEER = {"ipBlock": LIST_CONFLICTING_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_IPBLOCK|undefined,"namespaceSelector": LIST_CONFLICTING_NETWORK_POLICIES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR|undefined,"podSelector": LIST_CONFLICTING_NETWORK_POLICIES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR|undefined};
-export type LIST_CONFLICTING_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYPORT = {"endPort": number|undefined,"port": LIST_CONFLICTING_NETWORK_POLICIES_RESPONSE__K8S_IO_APIMACHINERY_PKG_UTIL_INTSTR_INTORSTRING|undefined,"protocol": string|undefined};
-export type LIST_CONFLICTING_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYSPEC = {"egress": LIST_CONFLICTING_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYEGRESSRULE[],"ingress": LIST_CONFLICTING_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYINGRESSRULE[],"podSelector": LIST_CONFLICTING_NETWORK_POLICIES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR,"policyTypes": string[]};
-export type LIST_CONFLICTING_NETWORK_POLICIES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR = {"matchExpressions": LIST_CONFLICTING_NETWORK_POLICIES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTORREQUIREMENT[],"matchLabels": Record<string, string>};
-export type LIST_CONFLICTING_NETWORK_POLICIES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTORREQUIREMENT = {"key": string,"operator": string,"values": string[]};
-export type LIST_CONFLICTING_NETWORK_POLICIES_RESPONSE__K8S_IO_APIMACHINERY_PKG_UTIL_INTSTR_INTORSTRING = {"IntVal": number,"StrVal": string,"Type": number};
-export type LIST_CONFLICTING_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_K8SNETWORKPOLICYDTO = {"name": string|undefined,"namespaceName": string,"spec": LIST_CONFLICTING_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYSPEC};
-export type LIST_CONFLICTING_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTCONFLICTINGNETWORKPOLICIESREQUEST_MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_K8SNETWORKPOLICYDTO = {"data": LIST_CONFLICTING_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_K8SNETWORKPOLICYDTO[],"message": string,"status": string};
-export type LIST_CONTROLLER_NETWORK_POLICIES_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTCONTROLLERLABELEDNETWORKPOLICIESREQUEST = {"controllerName": string,"controllerType": string,"namespaceName": string};
-export type LIST_CONTROLLER_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTCONTROLLERLABELEDNETWORKPOLICIESRESPONSE = {"controllerName": string,"controllerType": string,"labeledNetworkPolicies": LIST_CONTROLLER_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SLABELEDNETWORKPOLICYDTO[],"namespaceName": string};
-export type LIST_CONTROLLER_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTCONTROLLERLABELEDNETWORKPOLICIESREQUEST_MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTCONTROLLERLABELEDNETWORKPOLICIESRESPONSE = {"data": LIST_CONTROLLER_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTCONTROLLERLABELEDNETWORKPOLICIESRESPONSE,"message": string,"status": string};
-export type LIST_CONTROLLER_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SLABELEDNETWORKPOLICYDTO = {"name": string,"port": number,"portType": string,"type": string};
-export type LIST_LABELED_NETWORK_POLICY_PORTS_REQUEST__ANON_STRUCT_0 = {};
-export type LIST_LABELED_NETWORK_POLICY_PORTS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SLABELEDNETWORKPOLICYDTO = {"data": LIST_LABELED_NETWORK_POLICY_PORTS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SLABELEDNETWORKPOLICYDTO[],"message": string,"status": string};
-export type LIST_LABELED_NETWORK_POLICY_PORTS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SLABELEDNETWORKPOLICYDTO = {"name": string,"port": number,"portType": string,"type": string};
-export type LIST_NAMESPACE_NETWORK_POLICIES_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTNAMESPACELABELEDNETWORKPOLICIESREQUEST = {"namespaceName": string};
-export type LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_IPBLOCK = {"cidr": string,"except": string[]};
-export type LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYEGRESSRULE = {"ports": LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYPORT[],"to": LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYPEER[]};
-export type LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYINGRESSRULE = {"from": LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYPEER[],"ports": LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYPORT[]};
-export type LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYPEER = {"ipBlock": LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_IPBLOCK|undefined,"namespaceSelector": LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR|undefined,"podSelector": LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR|undefined};
-export type LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYPORT = {"endPort": number|undefined,"port": LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_APIMACHINERY_PKG_UTIL_INTSTR_INTORSTRING|undefined,"protocol": string|undefined};
-export type LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYSPEC = {"egress": LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYEGRESSRULE[],"ingress": LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYINGRESSRULE[],"podSelector": LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR,"policyTypes": string[]};
-export type LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR = {"matchExpressions": LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTORREQUIREMENT[],"matchLabels": Record<string, string>};
-export type LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTORREQUIREMENT = {"key": string,"operator": string,"values": string[]};
-export type LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_APIMACHINERY_PKG_UTIL_INTSTR_INTORSTRING = {"IntVal": number,"StrVal": string,"Type": number};
-export type LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_K8SNETWORKPOLICYDTO = {"name": string|undefined,"namespaceName": string,"spec": LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYSPEC};
-export type LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTNETWORKPOLICYCONTROLLER = {"controllerName": string,"controllerType": string,"networkPolicies": LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SLABELEDNETWORKPOLICYDTO[],"serviceId": string};
-export type LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTNETWORKPOLICYNAMESPACE = {"controllers": LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTNETWORKPOLICYCONTROLLER[],"displayName": string,"id": string,"managedPolicies": LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_K8SNETWORKPOLICYDTO[],"name": string,"projectId": string,"unmanagedPolicies": LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_K8SNETWORKPOLICYDTO[]};
-export type LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTNAMESPACELABELEDNETWORKPOLICIESREQUEST_MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTNETWORKPOLICYNAMESPACE = {"data": LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTNETWORKPOLICYNAMESPACE[],"message": string,"status": string};
-export type LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SLABELEDNETWORKPOLICYDTO = {"name": string,"port": number,"portType": string,"type": string};
-export type LIST_ONLY_NAMESPACE_NETWORK_POLICIES_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTNAMESPACELABELEDNETWORKPOLICIESREQUEST = {"namespaceName": string};
-export type LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_IPBLOCK = {"cidr": string,"except": string[]};
-export type LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYEGRESSRULE = {"ports": LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYPORT[],"to": LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYPEER[]};
-export type LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYINGRESSRULE = {"from": LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYPEER[],"ports": LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYPORT[]};
-export type LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYPEER = {"ipBlock": LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_IPBLOCK|undefined,"namespaceSelector": LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR|undefined,"podSelector": LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR|undefined};
-export type LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYPORT = {"endPort": number|undefined,"port": LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_APIMACHINERY_PKG_UTIL_INTSTR_INTORSTRING|undefined,"protocol": string|undefined};
-export type LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYSPEC = {"egress": LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYEGRESSRULE[],"ingress": LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYINGRESSRULE[],"podSelector": LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR,"policyTypes": string[]};
-export type LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR = {"matchExpressions": LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTORREQUIREMENT[],"matchLabels": Record<string, string>};
-export type LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTORREQUIREMENT = {"key": string,"operator": string,"values": string[]};
-export type LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_APIMACHINERY_PKG_UTIL_INTSTR_INTORSTRING = {"IntVal": number,"StrVal": string,"Type": number};
-export type LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_K8SNETWORKPOLICYDTO = {"name": string|undefined,"namespaceName": string,"spec": LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYSPEC};
-export type LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTMANAGEDANDUNMANAGEDNETWORKPOLICYNAMESPACE = {"displayName": string,"id": string,"managedPolicies": LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_K8SNETWORKPOLICYDTO[],"name": string,"projectId": string,"unmanagedPolicies": LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_K8SNETWORKPOLICYDTO[]};
-export type LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTNAMESPACELABELEDNETWORKPOLICIESREQUEST_MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTMANAGEDANDUNMANAGEDNETWORKPOLICYNAMESPACE = {"data": LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTMANAGEDANDUNMANAGEDNETWORKPOLICYNAMESPACE[],"message": string,"status": string};
 export type LIVE_STREAM_NODES_CPU_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"nodeName": string,"podName": string,"websocketHost": string,"websocketScheme": string,"workspace": string};
 export type LIVE_STREAM_NODES_CPU_RESPONSE__ANON_STRUCT_1 = {};
 export type LIVE_STREAM_NODES_CPU_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST_MOGENIUS_K8S_MANAGER_SRC_CORE_VOID = {"data": LIVE_STREAM_NODES_CPU_RESPONSE__ANON_STRUCT_1|undefined,"message": string,"status": string};
@@ -10315,11 +8927,6 @@ export type PROMETHEUS_QUERY_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSQ
 export type PROMETHEUS_QUERY_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSREQUEST_MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSQUERYRESPONSE = {"data": PROMETHEUS_QUERY_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSQUERYRESPONSE|undefined,"message": string,"status": string};
 export type PROMETHEUS_VALUES_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSREQUEST = {"prometheusPass": string,"prometheusToken": string,"prometheusUrl": string,"prometheusUser": string,"query": string,"step": number,"timeOffsetSeconds": number};
 export type PROMETHEUS_VALUES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSREQUEST_STRING = {"data": string[],"message": string,"status": string};
-export type REMOVE_CONFLICTING_NETWORK_POLICIES_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_REMOVECONFLICTINGNETWORKPOLICIESREQUEST = {"namespaceName": string};
-export type REMOVE_CONFLICTING_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_REMOVECONFLICTINGNETWORKPOLICIESREQUEST_STRING = {"data": string,"message": string,"status": string};
-export type REMOVE_UNMANAGED_NETWORK_POLICIES_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_REMOVEUNMANAGEDNETWORKPOLICIESREQUEST = {"namespaceName": string,"policies": string[]};
-export type REMOVE_UNMANAGED_NETWORK_POLICIES_RESPONSE__ANON_STRUCT_1 = {};
-export type REMOVE_UNMANAGED_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_REMOVEUNMANAGEDNETWORKPOLICIESREQUEST_MOGENIUS_K8S_MANAGER_SRC_CORE_VOID = {"data": REMOVE_UNMANAGED_NETWORK_POLICIES_RESPONSE__ANON_STRUCT_1|undefined,"message": string,"status": string};
 export type SEALED_SECRET_CREATE_FROM_EXISTING_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"name": string,"namespace": string};
 export type SEALED_SECRET_CREATE_FROM_EXISTING_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"Object": Record<string, any>};
 export type SEALED_SECRET_CREATE_FROM_EXISTING_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST36_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"data": SEALED_SECRET_CREATE_FROM_EXISTING_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED|undefined,"message": string,"status": string};
@@ -10395,9 +9002,6 @@ export type UNINSTALL_METRICS_SERVER_REQUEST__ANON_STRUCT_0 = {};
 export type UNINSTALL_METRICS_SERVER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
 export type UPDATE_GRANT_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"grantee": string,"name": string,"role": string,"targetName": string,"targetType": string};
 export type UPDATE_GRANT_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST31_STRING = {"data": string,"message": string,"status": string};
-export type UPDATE_NETWORK_POLICIES_TEMPLATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_NETWORKPOLICY = {"Name": string,"Port": number,"Protocol": string,"Type": string};
-export type UPDATE_NETWORK_POLICIES_TEMPLATE_RESPONSE__ANON_STRUCT_1 = {};
-export type UPDATE_NETWORK_POLICIES_TEMPLATE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_KUBERNETES_NETWORKPOLICY_MOGENIUS_K8S_MANAGER_SRC_CORE_VOID = {"data": UPDATE_NETWORK_POLICIES_TEMPLATE_RESPONSE__ANON_STRUCT_1|undefined,"message": string,"status": string};
 export type UPDATE_USER_REQUEST__K8S_IO_API_RBAC_V1_SUBJECT = {"apiGroup": string,"kind": string,"name": string,"namespace": string};
 export type UPDATE_USER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"email": string,"firstName": string,"lastName": string,"name": string,"subject": UPDATE_USER_REQUEST__K8S_IO_API_RBAC_V1_SUBJECT|undefined};
 export type UPDATE_USER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST26_STRING = {"data": string,"message": string,"status": string};
@@ -10431,10 +9035,6 @@ export type WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOG
 //===============================================================
 
 export interface IPatternConfig {
-  [Pattern.ATTACH_LABELED_NETWORK_POLICY]: {
-    Request: ATTACH_LABELED_NETWORK_POLICY_REQUEST;
-    Response: ATTACH_LABELED_NETWORK_POLICY_RESPONSE;
-  };
   [Pattern.AUDIT_LOG_LIST]: {
     Request: AUDIT_LOG_LIST_REQUEST;
     Response: AUDIT_LOG_LIST_RESPONSE;
@@ -10591,18 +9191,6 @@ export interface IPatternConfig {
     Request: DESCRIBE_WORKLOAD_REQUEST;
     Response: DESCRIBE_WORKLOAD_RESPONSE;
   };
-  [Pattern.DETACH_LABELED_NETWORK_POLICY]: {
-    Request: DETACH_LABELED_NETWORK_POLICY_REQUEST;
-    Response: DETACH_LABELED_NETWORK_POLICY_RESPONSE;
-  };
-  [Pattern.DISABLE_NETWORK_POLICY_MANAGER]: {
-    Request: DISABLE_NETWORK_POLICY_MANAGER_REQUEST;
-    Response: DISABLE_NETWORK_POLICY_MANAGER_RESPONSE;
-  };
-  [Pattern.ENFORCE_NETWORK_POLICY_MANAGER]: {
-    Request: ENFORCE_NETWORK_POLICY_MANAGER_REQUEST;
-    Response: ENFORCE_NETWORK_POLICY_MANAGER_RESPONSE;
-  };
   [Pattern.FILES_CHMOD]: {
     Request: FILES_CHMOD_REQUEST;
     Response: FILES_CHMOD_RESPONSE;
@@ -10711,33 +9299,9 @@ export interface IPatternConfig {
     Request: INSTALL_METRICS_SERVER_REQUEST;
     Response: INSTALL_METRICS_SERVER_RESPONSE;
   };
-  [Pattern.LIST_ALL_NETWORK_POLICIES]: {
-    Request: LIST_ALL_NETWORK_POLICIES_REQUEST;
-    Response: LIST_ALL_NETWORK_POLICIES_RESPONSE;
-  };
   [Pattern.LIST_ALL_WORKLOADS]: {
     Request: LIST_ALL_WORKLOADS_REQUEST;
     Response: LIST_ALL_WORKLOADS_RESPONSE;
-  };
-  [Pattern.LIST_CONFLICTING_NETWORK_POLICIES]: {
-    Request: LIST_CONFLICTING_NETWORK_POLICIES_REQUEST;
-    Response: LIST_CONFLICTING_NETWORK_POLICIES_RESPONSE;
-  };
-  [Pattern.LIST_CONTROLLER_NETWORK_POLICIES]: {
-    Request: LIST_CONTROLLER_NETWORK_POLICIES_REQUEST;
-    Response: LIST_CONTROLLER_NETWORK_POLICIES_RESPONSE;
-  };
-  [Pattern.LIST_LABELED_NETWORK_POLICY_PORTS]: {
-    Request: LIST_LABELED_NETWORK_POLICY_PORTS_REQUEST;
-    Response: LIST_LABELED_NETWORK_POLICY_PORTS_RESPONSE;
-  };
-  [Pattern.LIST_NAMESPACE_NETWORK_POLICIES]: {
-    Request: LIST_NAMESPACE_NETWORK_POLICIES_REQUEST;
-    Response: LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE;
-  };
-  [Pattern.LIST_ONLY_NAMESPACE_NETWORK_POLICIES]: {
-    Request: LIST_ONLY_NAMESPACE_NETWORK_POLICIES_REQUEST;
-    Response: LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE;
   };
   [Pattern.LIVE_STREAM_NODES_CPU]: {
     Request: LIVE_STREAM_NODES_CPU_REQUEST;
@@ -10802,14 +9366,6 @@ export interface IPatternConfig {
   [Pattern.PROMETHEUS_VALUES]: {
     Request: PROMETHEUS_VALUES_REQUEST;
     Response: PROMETHEUS_VALUES_RESPONSE;
-  };
-  [Pattern.REMOVE_CONFLICTING_NETWORK_POLICIES]: {
-    Request: REMOVE_CONFLICTING_NETWORK_POLICIES_REQUEST;
-    Response: REMOVE_CONFLICTING_NETWORK_POLICIES_RESPONSE;
-  };
-  [Pattern.REMOVE_UNMANAGED_NETWORK_POLICIES]: {
-    Request: REMOVE_UNMANAGED_NETWORK_POLICIES_REQUEST;
-    Response: REMOVE_UNMANAGED_NETWORK_POLICIES_RESPONSE;
   };
   [Pattern.SEALED_SECRET_CREATE_FROM_EXISTING]: {
     Request: SEALED_SECRET_CREATE_FROM_EXISTING_REQUEST;
@@ -10902,10 +9458,6 @@ export interface IPatternConfig {
   [Pattern.UPDATE_GRANT]: {
     Request: UPDATE_GRANT_REQUEST;
     Response: UPDATE_GRANT_RESPONSE;
-  };
-  [Pattern.UPDATE_NETWORK_POLICIES_TEMPLATE]: {
-    Request: UPDATE_NETWORK_POLICIES_TEMPLATE_REQUEST;
-    Response: UPDATE_NETWORK_POLICIES_TEMPLATE_RESPONSE;
   };
   [Pattern.UPDATE_USER]: {
     Request: UPDATE_USER_REQUEST;

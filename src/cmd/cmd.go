@@ -7,7 +7,6 @@ import (
 	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/containerenumerator"
-	"mogenius-k8s-manager/src/controllers"
 	"mogenius-k8s-manager/src/core"
 	"mogenius-k8s-manager/src/cpumonitor"
 	"mogenius-k8s-manager/src/dtos"
@@ -499,7 +498,6 @@ func InitializeSystems(
 	helm.Setup(logManagerModule, configModule, valkeyClient)
 	err := kubernetes.Setup(logManagerModule, configModule, clientProvider, valkeyClient)
 	assert.Assert(err == nil, err)
-	controllers.Setup(logManagerModule, configModule)
 	dtos.Setup(logManagerModule)
 	services.Setup(logManagerModule, configModule, clientProvider)
 	structs.Setup(logManagerModule)

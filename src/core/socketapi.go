@@ -6,7 +6,6 @@ import (
 	argocd "mogenius-k8s-manager/src/argocd"
 	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/config"
-	"mogenius-k8s-manager/src/controllers"
 	"mogenius-k8s-manager/src/crds/v1alpha1"
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/helm"
@@ -1685,116 +1684,6 @@ func (self *socketApi) registerPatterns() {
 			},
 		)
 	}
-
-	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-	// Labeled Network Policies
-	// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-	RegisterPatternHandler(
-		PatternHandle{self, "attach/labeled_network_policy"},
-		PatternConfig{},
-		func(datagram structs.Datagram, request controllers.AttachLabeledNetworkPolicyRequest) (string, error) {
-			return controllers.AttachLabeledNetworkPolicy(request)
-		},
-	)
-
-	RegisterPatternHandler(
-		PatternHandle{self, "detach/labeled_network_policy"},
-		PatternConfig{},
-		func(datagram structs.Datagram, request controllers.DetachLabeledNetworkPolicyRequest) (string, error) {
-			return controllers.DetachLabeledNetworkPolicy(request)
-		},
-	)
-
-	RegisterPatternHandler(
-		PatternHandle{self, "list/labeled_network_policy_ports"},
-		PatternConfig{},
-		func(datagram structs.Datagram, request Void) ([]dtos.K8sLabeledNetworkPolicyDto, error) {
-			return controllers.ListLabeledNetworkPolicyPorts()
-		},
-	)
-
-	RegisterPatternHandler(
-		PatternHandle{self, "list/conflicting_network_policies"},
-		PatternConfig{},
-		func(datagram structs.Datagram, request controllers.ListConflictingNetworkPoliciesRequest) ([]controllers.K8sConflictingNetworkPolicyDto, error) {
-			return controllers.ListAllConflictingNetworkPolicies(request)
-		},
-	)
-
-	RegisterPatternHandler(
-		PatternHandle{self, "remove/conflicting_network_policies"},
-		PatternConfig{},
-		func(datagram structs.Datagram, request controllers.RemoveConflictingNetworkPoliciesRequest) (string, error) {
-			return controllers.RemoveConflictingNetworkPolicies(request)
-		},
-	)
-
-	RegisterPatternHandler(
-		PatternHandle{self, "list/controller_network_policies"},
-		PatternConfig{},
-		func(datagram structs.Datagram, request controllers.ListControllerLabeledNetworkPoliciesRequest) (controllers.ListControllerLabeledNetworkPoliciesResponse, error) {
-			return controllers.ListControllerLabeledNetwork(request)
-		},
-	)
-
-	RegisterPatternHandler(
-		PatternHandle{self, "update/network_policies_template"},
-		PatternConfig{},
-		func(datagram structs.Datagram, request []kubernetes.NetworkPolicy) (Void, error) {
-			return nil, controllers.UpdateNetworkPolicyTemplate(request)
-		},
-	)
-
-	RegisterPatternHandler(
-		PatternHandle{self, "list/all_network_policies"},
-		PatternConfig{},
-		func(datagram structs.Datagram, request Void) ([]controllers.ListNetworkPolicyNamespace, error) {
-			return controllers.ListAllNetworkPolicies(self.valkeyClient)
-		},
-	)
-
-	RegisterPatternHandler(
-		PatternHandle{self, "list/namespace_network_policies"},
-		PatternConfig{},
-		func(datagram structs.Datagram, request controllers.ListNamespaceLabeledNetworkPoliciesRequest) ([]controllers.ListNetworkPolicyNamespace, error) {
-			return controllers.ListNamespaceNetworkPolicies(self.valkeyClient, request)
-		},
-	)
-
-	RegisterPatternHandler(
-		PatternHandle{self, "enforce/network_policy_manager"},
-		PatternConfig{},
-		func(datagram structs.Datagram, request controllers.EnforceNetworkPolicyManagerRequest) (Void, error) {
-			return nil, controllers.EnforceNetworkPolicyManager(request.NamespaceName)
-		},
-	)
-
-	RegisterPatternHandler(
-		PatternHandle{self, "disable/network_policy_manager"},
-		PatternConfig{},
-		func(datagram structs.Datagram, request controllers.DisableNetworkPolicyManagerRequest) (Void, error) {
-			return nil, controllers.DisableNetworkPolicyManager(request.NamespaceName)
-		},
-	)
-
-	RegisterPatternHandler(
-		PatternHandle{self, "remove/unmanaged_network_policies"},
-		PatternConfig{},
-		func(datagram structs.Datagram, request controllers.RemoveUnmanagedNetworkPoliciesRequest) (Void, error) {
-			return nil, controllers.RemoveUnmanagedNetworkPolicies(request)
-		},
-	)
-
-	RegisterPatternHandler(
-		PatternHandle{self, "list/only_namespace_network_policies"},
-		PatternConfig{},
-		func(
-			datagram structs.Datagram,
-			request controllers.ListNamespaceLabeledNetworkPoliciesRequest,
-		) ([]controllers.ListManagedAndUnmanagedNetworkPolicyNamespace, error) {
-			return controllers.ListManagedAndUnmanagedNamespaceNetworkPolicies(self.valkeyClient, request)
-		},
-	)
 
 	RegisterPatternHandler(
 		PatternHandle{self, "live-stream/nodes-traffic"},

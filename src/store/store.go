@@ -22,7 +22,6 @@ import (
 	v1 "k8s.io/api/apps/v1"
 	v1batch "k8s.io/api/batch/v1"
 	coreV1 "k8s.io/api/core/v1"
-	networkingV1 "k8s.io/api/networking/v1"
 )
 
 const (
@@ -161,25 +160,6 @@ func CreateKeyPattern(groupVersion, kind, namespace, name *string) string {
 
 	pattern := strings.Join(parts, ":")
 	return pattern
-}
-
-func ListNetworkPolicies(valkeyClient valkeyclient.ValkeyClient, namespace string) ([]networkingV1.NetworkPolicy, error) {
-	result := []networkingV1.NetworkPolicy{}
-	pattern := CreateKeyPattern(&utils.NetworkPolicyResource.Group, &utils.NetworkPolicyResource.Kind, &namespace, nil)
-	policies, err := valkeyclient.GetObjectsByPrefix[networkingV1.NetworkPolicy](valkeyClient, valkeyclient.ORDER_NONE, pattern)
-	if err != nil {
-		return result, err
-	}
-
-	for _, ref := range policies {
-		if namespace != "" && ref.Namespace != namespace {
-			continue
-		}
-
-		result = append(result, ref)
-	}
-
-	return result, nil
 }
 
 func ListEvents(valkeyClient valkeyclient.ValkeyClient, namespace string) ([]coreV1.Event, error) {

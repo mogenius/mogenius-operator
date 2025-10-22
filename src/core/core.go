@@ -270,15 +270,6 @@ func (self *core) Initialize() error {
 		self.logger.Info("Helm config initialized")
 	})
 
-	// Init Network Policy Configmap
-	wg.Go(func() {
-		if err := mokubernetes.InitNetworkPolicyConfigMap(); err != nil {
-			self.logger.Error("Error initializing Network Policy Configmap", "error", err)
-			return
-		}
-		self.logger.Info("Network Policy Configmap initialized")
-	})
-
 	wg.Wait()
 
 	return nil

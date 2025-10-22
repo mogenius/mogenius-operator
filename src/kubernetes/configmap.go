@@ -5,40 +5,8 @@ import (
 
 	v1Core "k8s.io/api/core/v1"
 
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
-
-// only create the configmap if it does not exist
-func EnsureConfigMapExists(namespace string, configMap v1Core.ConfigMap) error {
-	client := clientProvider.K8sClientSet().CoreV1().ConfigMaps(namespace)
-
-	// check if the configmap already exists
-	_, err := client.Get(context.Background(), configMap.Name, metav1.GetOptions{})
-	if err != nil {
-		if apierrors.IsNotFound(err) {
-			_, err = client.Create(context.Background(), &configMap, MoCreateOptions(config))
-			if err != nil {
-				k8sLogger.Error("InitNetworkPolicyConfigMap", "error", err)
-				return err
-			}
-		} else {
-			k8sLogger.Error("InitNetworkPolicyConfigMap", "error", err)
-			return err
-		}
-	}
-	return nil
-}
-
-func GetConfigMap(namespace string, name string) v1Core.ConfigMap {
-	client := clientProvider.K8sClientSet().CoreV1().ConfigMaps(namespace)
-
-	cfgMap, err := client.Get(context.Background(), name, metav1.GetOptions{})
-	if err != nil {
-		return v1Core.ConfigMap{}
-	}
-	return *cfgMap
-}
 
 func ConfigMapFor(namespace string, configMapName string, showError bool) (*v1Core.ConfigMap, error) {
 	clientset := clientProvider.K8sClientSet()
