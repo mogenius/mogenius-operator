@@ -146,7 +146,6 @@ func CreateYamlString(yamlContent string) error {
 	return nil
 }
 
-// todo remove this function and move to new ApplyResource function
 func CreateOrUpdateYamlString(yamlContent string) error {
 	dynamicClient := clientProvider.DynamicClient()
 	decUnstructured := yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme)
@@ -160,7 +159,7 @@ func CreateOrUpdateYamlString(yamlContent string) error {
 	groupVersionResource := schema.GroupVersionResource{
 		Group:    groupVersionKind.Group,
 		Version:  groupVersionKind.Version,
-		Resource: strings.ToLower(groupVersionKind.Kind) + "s",
+		Resource: strings.ToLower(groupVersionKind.Kind) + "s", // todo: pluralization is more complex than this must be improved, currently only used for mogenius CRDs
 	}
 
 	dynamicResource := dynamicClient.Resource(groupVersionResource).Namespace(resource.GetNamespace())

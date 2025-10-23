@@ -5,7 +5,6 @@ import (
 	"log/slog"
 	"maps"
 	cfg "mogenius-k8s-manager/src/config"
-	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/networkmonitor"
 	"mogenius-k8s-manager/src/store"
 	"mogenius-k8s-manager/src/structs"
@@ -114,7 +113,7 @@ func (self *valkeyStatsDb) AddInterfaceStatsToDb(currentStats []networkmonitor.P
 		controller := self.ownerCacheService.ControllerForPod(currentStat.Namespace, currentStat.Pod)
 		if controller == nil {
 			// in case we cannot determine a controller
-			controller = &dtos.K8sController{
+			controller = &K8sController{
 				Kind:      "Pod",
 				Name:      currentStat.Pod,
 				Namespace: currentStat.Namespace,

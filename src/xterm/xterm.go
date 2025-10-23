@@ -4,8 +4,8 @@ import (
 	"context"
 	"io"
 	"log/slog"
-	"mogenius-k8s-manager/src/k8sclient"
 	"mogenius-k8s-manager/src/logging"
+	mirrorStore "mogenius-k8s-manager/src/store"
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/valkeyclient"
 	"net/url"
@@ -18,8 +18,6 @@ import (
 
 	json "github.com/json-iterator/go"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"github.com/creack/pty"
 
 	v1 "k8s.io/api/core/v1"
@@ -28,12 +26,10 @@ import (
 )
 
 var xtermLogger *slog.Logger
-var clientProvider k8sclient.K8sClientProvider
 var store valkeyclient.ValkeyClient
 
-func Setup(logManagerModule logging.SlogManager, clientProviderModule k8sclient.K8sClientProvider, storeModule valkeyclient.ValkeyClient) {
+func Setup(logManagerModule logging.SlogManager, storeModule valkeyclient.ValkeyClient) {
 	xtermLogger = logManagerModule.CreateLogger("xterm")
-	clientProvider = clientProviderModule
 	store = storeModule
 }
 
@@ -93,7 +89,7 @@ func isPodAvailable(pod *v1.Pod, container string) bool {
 			if cs.Name != container {
 				continue
 			}
-			if *cs.Started == true {
+			if *cs.Started {
 				return true
 			}
 		}
@@ -104,7 +100,7 @@ func isPodAvailable(pod *v1.Pod, container string) bool {
 			if cs.Name != container {
 				continue
 			}
-			if *cs.Started == true {
+			if *cs.Started {
 				return true
 			}
 		}
@@ -130,11 +126,10 @@ func checkPodIsReady(ctx context.Context, namespace string, podName string, cont
 			xtermLogger.Error("Context done.")
 			return
 		default:
-			clientset := clientProvider.K8sClientSet()
-			// TODO: Bene refactor with store to avoid multiple calls to k8s
-			pod, err := clientset.CoreV1().Pods(namespace).Get(context.Background(), podName, metav1.GetOptions{})
-			if err != nil {
-				xtermLogger.Error("Unable to get pod", "error", err)
+			// refresh cache
+			pod := mirrorStore.GetPod(namespace, podName)
+			if pod == nil {
+				xtermLogger.Error("Unable to find pod", "error", "pod not found", "namespace", namespace, "podName", podName)
 				if conn != nil {
 					// clear screen
 					clearScreen(conn, connWriteLock)

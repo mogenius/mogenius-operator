@@ -501,7 +501,7 @@ func InitializeSystems(
 	dtos.Setup(logManagerModule)
 	services.Setup(logManagerModule, configModule, clientProvider)
 	structs.Setup(logManagerModule)
-	xterm.Setup(logManagerModule, clientProvider, valkeyClient)
+	xterm.Setup(logManagerModule, valkeyClient)
 	utils.Setup(logManagerModule, configModule)
 	err = store.Setup(logManagerModule, valkeyClient, configModule.Get("MO_AUDIT_LOG_LIMIT"))
 	assert.Assert(err == nil, err)

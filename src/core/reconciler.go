@@ -336,7 +336,6 @@ func (self *reconciler) updateStatus(
 					resourceErr.Error = fmt.Sprintf("Workspace contains a resource of type 'helm' pointing to a namespace which does not exist: %#v", namespace)
 					status.ResourceErrors = append(status.ResourceErrors, resourceErr)
 				}
-				// TODO: find an efficient way to check if the referenced helm chart exists as specified
 			default:
 				resourceErr := ReconcilerResourceError{}
 				resourceErr.ResourceGroup = workspace.GetObjectKind().GroupVersionKind().Group
