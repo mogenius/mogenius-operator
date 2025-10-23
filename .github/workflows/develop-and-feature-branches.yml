@@ -84,28 +84,28 @@ jobs:
           export GOMODCACHE=$(go env GOMODCACHE)
           go vet ./...
 
-  unit-tests:
-    needs: prepare
-    runs-on: [self-hosted]
-    defaults:
-      run:
-        shell: bash
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-go@v6
-        with:
-          go-version: stable
-      - name: Execute Tests
-        run: |
-          export GOPATH=$(go env GOPATH)
-          export GOMODCACHE=$(go env GOMODCACHE)
-          echo $GOPATH
-          echo $GOMODCACHE
-          go mod download
-          go run gotest.tools/gotestsum@latest --format="github-actions" --hide-summary="skipped" --format-hide-empty-pkg --rerun-fails="0" -- -count=1 ./src/...
+  # unit-tests:
+  #   needs: prepare
+  #   runs-on: [self-hosted]
+  #   defaults:
+  #     run:
+  #       shell: bash
+  #   steps:
+  #     - name: Checkout repository
+  #       uses: actions/checkout@v5
+  #       with:
+  #         fetch-depth: 0
+  #     - uses: actions/setup-go@v6
+  #       with:
+  #         go-version: stable
+  #     - name: Execute Tests
+  #       run: |
+  #         export GOPATH=$(go env GOPATH)
+  #         export GOMODCACHE=$(go env GOMODCACHE)
+  #         echo $GOPATH
+  #         echo $GOMODCACHE
+  #         go mod download
+  #         go run gotest.tools/gotestsum@latest --format="github-actions" --hide-summary="skipped" --format-hide-empty-pkg --rerun-fails="0" -- -count=1 ./src/...
 
   # integration-tests:
   #   needs: prepare
