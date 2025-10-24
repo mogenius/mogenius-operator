@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	cfg "mogenius-k8s-manager/src/config"
+	"mogenius-k8s-manager/src/store"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -12,16 +13,11 @@ import (
 func AllServices(namespaceName string) []v1.Service {
 	result := []v1.Service{}
 
-	clientset := clientProvider.K8sClientSet()
-	serviceList, err := clientset.CoreV1().Services(namespaceName).List(context.Background(), metav1.ListOptions{FieldSelector: "metadata.namespace!=kube-system"})
-	if err != nil {
-		k8sLogger.Error("AllServices", "error", err.Error())
-		return result
-	}
-
-	for _, service := range serviceList.Items {
-		service.Kind = "Service"
-		service.APIVersion = "v1"
+	services := store.GetServices(namespaceName, "*")
+	for _, service := range services {
+		if service.Namespace == "kube-system" {
+			continue
+		}
 		result = append(result, service)
 	}
 	return result

@@ -576,8 +576,8 @@ func GetObjectsByPattern[T any](store ValkeyClient, pattern string, keywords []s
 
 func GetObjectsByPrefix[T any](store ValkeyClient, order SortOrder, keys ...string) ([]T, error) {
 	var result []T
-	key := createKey(keys...)
-	pattern := key + "*"
+	pattern := createKey(keys...)
+
 	client := store.GetValkeyClient()
 
 	// Get the keys
@@ -685,7 +685,14 @@ func GetObjectForKey[T any](store ValkeyClient, keys ...string) (*T, error) {
 }
 
 func createKey(parts ...string) string {
-	return strings.Join(parts, ":")
+	key := strings.Join(parts, ":")
+
+	// Remove trailing ":*:*" patterns
+	for strings.HasSuffix(key, ":*:*") {
+		key = strings.TrimSuffix(key, ":*")
+	}
+
+	return key
 }
 
 func sortStringsByTimestamp(stringsToSort []string, order SortOrder) {

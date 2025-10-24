@@ -133,7 +133,6 @@ func UpgradeMyself(eventClient websocket.WebsocketClient, job *structs.Job, comm
 }
 
 func GetOwnDeploymentOwnerReference(clientset *kubernetes.Clientset, config cfg.ConfigModule) ([]metav1.OwnerReference, error) {
-
 	ownDeploymentName := config.Get("OWN_DEPLOYMENT_NAME")
 	assert.Assert(ownDeploymentName != "")
 

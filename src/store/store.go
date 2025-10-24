@@ -186,6 +186,14 @@ func GetPod(namespace string, name string) *coreV1.Pod {
 	return pod
 }
 
+func GetPods(namespace string) []coreV1.Pod {
+	pods, err := valkeyclient.GetObjectsByPrefix[coreV1.Pod](valkeyClient, valkeyclient.ORDER_ASC, VALKEY_RESOURCE_PREFIX, utils.PodResource.Group, utils.PodResource.Kind, namespace)
+	if err != nil || pods == nil {
+		return nil
+	}
+	return pods
+}
+
 func GetReplicaset(namespace string, name string) *v1.ReplicaSet {
 	replicaSet, err := valkeyclient.GetObjectForKey[v1.ReplicaSet](valkeyClient, VALKEY_RESOURCE_PREFIX, utils.ReplicaSetResource.Group, utils.ReplicaSetResource.Kind, namespace, name)
 	if err != nil || replicaSet == nil {
@@ -206,6 +214,31 @@ func GetDeployment(namespace string, name string) *v1.Deployment {
 	deployment.APIVersion = utils.DeploymentResource.Group
 
 	return deployment
+}
+
+func GetDeployments(namespace string, name string) []v1.Deployment {
+	deployments, err := valkeyclient.GetObjectsByPrefix[v1.Deployment](valkeyClient, valkeyclient.ORDER_ASC, VALKEY_RESOURCE_PREFIX, utils.DeploymentResource.Group, utils.DeploymentResource.Kind, namespace, name)
+	if err != nil || deployments == nil {
+		return nil
+	}
+	return deployments
+}
+
+func GetService(namespace string, name string) *coreV1.Service {
+	service, err := valkeyclient.GetObjectForKey[coreV1.Service](valkeyClient, VALKEY_RESOURCE_PREFIX, utils.ServiceResource.Group, utils.ServiceResource.Kind, namespace, name)
+	if err != nil || service == nil {
+		return nil
+	}
+
+	return service
+}
+
+func GetServices(namespace string, name string) []coreV1.Service {
+	services, err := valkeyclient.GetObjectsByPrefix[coreV1.Service](valkeyClient, valkeyclient.ORDER_ASC, VALKEY_RESOURCE_PREFIX, utils.ServiceResource.Group, utils.ServiceResource.Kind, namespace, name)
+	if err != nil || services == nil {
+		return nil
+	}
+	return services
 }
 
 func GetStatefulSet(namespace string, name string) *v1.StatefulSet {
@@ -261,6 +294,15 @@ func GetNode(name string) *coreV1.Node {
 	node.APIVersion = utils.NodeResource.Group
 
 	return node
+}
+
+func GetNodes() []coreV1.Node {
+	nodes, err := valkeyclient.GetObjectsByPrefix[coreV1.Node](valkeyClient, valkeyclient.ORDER_ASC, VALKEY_RESOURCE_PREFIX, utils.NodeResource.Group, utils.NodeResource.Kind, "", "*")
+	if err != nil {
+		return nil
+	}
+
+	return nodes
 }
 
 func GetAllWorkspaces(namespace string) ([]v1alpha1.Workspace, error) {

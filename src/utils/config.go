@@ -126,6 +126,12 @@ var ConfigMapResource = ResourceEntry{
 	Group: "v1",
 }
 
+var ServiceResource = ResourceEntry{
+	Kind:  "Service",
+	Name:  "services",
+	Group: "v1",
+}
+
 const STAGE_DEV = "dev"
 const STAGE_PROD = "prod"
 

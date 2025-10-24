@@ -9,6 +9,7 @@ import (
 	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/k8sclient"
 	"mogenius-k8s-manager/src/kubernetes"
+	"mogenius-k8s-manager/src/store"
 	"mogenius-k8s-manager/src/utils"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -234,7 +235,7 @@ func (self *moKubernetes) removeManagedFields(obj *unstructured.Unstructured) *u
 
 func (self *moKubernetes) GetNodeStats() ([]dtos.NodeStat, error) {
 	result := []dtos.NodeStat{}
-	nodes := kubernetes.ListNodes()
+	nodes := store.GetNodes()
 	nodeMetrics := kubernetes.ListNodeMetricss()
 
 	if len(nodeMetrics) == 0 {

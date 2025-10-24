@@ -5,9 +5,8 @@ import (
 	"fmt"
 	"mogenius-k8s-manager/src/assert"
 	cfg "mogenius-k8s-manager/src/config"
-	"mogenius-k8s-manager/src/shutdown"
+	"mogenius-k8s-manager/src/store"
 	"mogenius-k8s-manager/src/utils"
-	"mogenius-k8s-manager/src/version"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -22,24 +21,6 @@ import (
 
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
-)
-
-var (
-	DEPLOYMENTIMAGE = "ghcr.io/mogenius/mogenius-k8s-manager:" + version.Ver
-
-	SERVICEACCOUNTNAME     = "mogenius-k8s-manager-service-account-app"
-	CLUSTERROLENAME        = "mogenius-k8s-manager-cluster-role-app"
-	CLUSTERROLEBINDINGNAME = "mogenius-k8s-manager-cluster-role-binding-app"
-	RBACRESOURCES          = []string{"pods", "services", "endpoints", "secrets"}
-)
-
-const (
-	MO_LABEL_CREATED_BY            = "mo-created-by"
-	MO_LABEL_APP_NAME              = "mo-app"
-	MO_LABEL_NAMESPACE             = "mo-ns"
-	MO_LABEL_PROJECT_ID            = "mo-project-id"
-	MO_LABEL_NAMESPACE_DISPLAYNAME = "mo-namespace-display-name"
-	MO_LABEL_APP_DISPLAYNAME       = "mo-app-display-name"
 )
 
 type IngressType int
@@ -78,18 +59,6 @@ func CurrentContextName() string {
 	}
 
 	return config.CurrentContext
-}
-
-func ListNodes() []core.Node {
-	clientset := clientProvider.K8sClientSet()
-
-	nodeMetricsList, err := clientset.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
-	if err != nil {
-		k8sLogger.Error("failed to list nodes", "error", err)
-		shutdown.SendShutdownSignal(true)
-		select {}
-	}
-	return nodeMetricsList.Items
 }
 
 func KubernetesVersion() *version2.Info {
@@ -405,7 +374,7 @@ func ApiVersions() ([]string, error) {
 
 func IsMetricsServerAvailable() (bool, string, error) {
 	// kube-system would be the right namespace but if somebody installed it in another namespace we want to find it
-	deployments := AllDeploymentsIncludeIgnored("")
+	deployments := store.GetDeployments("*", "*")
 
 	for _, deployment := range deployments {
 		for _, label := range deployment.Labels {

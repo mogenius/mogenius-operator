@@ -177,11 +177,6 @@ type ClusterHelmRequest struct {
 	HelmValues       string `json:"helmValues" validate:"required"`
 }
 
-type ClusterHelmUninstallRequest struct {
-	NamespaceId     string `json:"namespaceId" validate:"required"`
-	HelmReleaseName string `json:"helmReleaseName" validate:"required"`
-}
-
 type ClusterListWorkloads struct {
 	Namespace     string `json:"namespace"`
 	LabelSelector string `json:"labelSelector"`

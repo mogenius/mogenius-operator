@@ -28,7 +28,7 @@ type PersistentFileDto struct {
 func PersistentFileDtoFrom(rootDir string, path string) PersistentFileDto {
 	info, err := os.Stat(path)
 	if err != nil {
-		dtosLogger.Warn("FileStat Err:", "error", err.Error())
+		fmt.Println("Windows FileStatErr", err.Error())
 		return PersistentFileDto{}
 	}
 
