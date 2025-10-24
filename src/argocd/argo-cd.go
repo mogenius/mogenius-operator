@@ -292,12 +292,13 @@ func (self *argocd) initArgoServerUrl() error {
 		{
 			Kind:      "Deployment",
 			Name:      "deployments",
-			Group:     "apps",
-			Version:   "v1",
+			Group:     "apps/v1",
+			Version:   "",
 			Namespace: utils.Pointer(""),
 		},
 	}
-	deploymentWorkloads, err := store.SearchByNamespace(self.valkeyClient, self.argoCdConfig.Data["namespaceName"], whitelist)
+	blacklist := []*utils.ResourceEntry{}
+	deploymentWorkloads, err := kubernetes.GetUnstructuredNamespaceResourceList(self.argoCdConfig.Data["namespaceName"], whitelist, blacklist)
 	if err != nil {
 		return err
 	}
