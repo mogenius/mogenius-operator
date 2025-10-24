@@ -450,64 +450,6 @@ func TriggerUnstructuredResource(group string, version string, name string, name
 	return nil, fmt.Errorf("%s is a invalid resource for trigger. Only jobs or cronjobs can be triggert", name)
 }
 
-func GetK8sObjectFor(file string, namespaced bool) (any, error) {
-	dynamicClient := clientProvider.DynamicClient()
-	obj, err := GetObjectFromFile(file)
-	if err != nil {
-		return nil, err
-	}
-
-	resourceName, err := GetResourceNameForUnstructured(obj)
-	if err != nil {
-		return nil, err
-	}
-
-	if namespaced {
-		res, err := dynamicClient.Resource(
-			CreateGroupVersionResource(obj.GroupVersionKind().Group, obj.GroupVersionKind().Version, resourceName)).Namespace(obj.GetNamespace()).Get(context.Background(), obj.GetName(), metav1.GetOptions{})
-		if err != nil {
-			k8sLogger.Error("Error querying resource", "error", err)
-			return nil, err
-		}
-		return res.Object, nil
-	} else {
-		res, err := dynamicClient.Resource(CreateGroupVersionResource(obj.GroupVersionKind().Group, obj.GroupVersionKind().Version, resourceName)).List(context.Background(), metav1.ListOptions{})
-		if err != nil {
-			k8sLogger.Error("Error listing resource", "error", err)
-			return nil, err
-		}
-		return res.Object, nil
-	}
-}
-
-func GetResourceNameForUnstructured(obj *unstructured.Unstructured) (string, error) {
-	resources, err := GetAvailableResources()
-	if err != nil {
-		return "", err
-	}
-
-	for _, v := range resources {
-		if v.Kind == obj.GetKind() && v.Group == obj.GroupVersionKind().Group && v.Version == obj.GroupVersionKind().Version {
-			return v.Name, nil
-		}
-	}
-	return "", fmt.Errorf("resource not found for %s %s %s", obj.GetKind(), obj.GroupVersionKind().Group, obj.GroupVersionKind().Version)
-}
-
-func GetObjectFromFile(file string) (*unstructured.Unstructured, error) {
-	data, err := os.ReadFile(file)
-	if err != nil {
-		return nil, err
-	}
-
-	var obj unstructured.Unstructured
-	err = yaml.Unmarshal(data, &obj)
-	if err != nil {
-		return nil, err
-	}
-	return &obj, nil
-}
-
 type availableResourceCacheEntry struct {
 	timestamp          time.Time
 	availableResources []utils.ResourceEntry

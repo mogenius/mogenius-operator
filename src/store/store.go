@@ -48,17 +48,6 @@ func Setup(
 	return nil
 }
 
-func GetByKeyParts[T any](valkeyClient valkeyclient.ValkeyClient, keys ...string) (*T, error) {
-	value, err := valkeyclient.GetObjectForKey[T](valkeyClient, keys...)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get value for key %s: %w", strings.Join(keys, ":"), err)
-	}
-	if value == nil {
-		return nil, fmt.Errorf("got nil value from GetObjectForKey %s", strings.Join(keys, ":"))
-	}
-	return value, nil
-}
-
 func SearchByKeyParts(valkeyClient valkeyclient.ValkeyClient, parts ...string) ([]unstructured.Unstructured, error) {
 	key := CreateKey(parts...)
 
@@ -160,49 +149,6 @@ func CreateKeyPattern(groupVersion, kind, namespace, name *string) string {
 
 	pattern := strings.Join(parts, ":")
 	return pattern
-}
-
-func ListEvents(valkeyClient valkeyclient.ValkeyClient, namespace string) ([]coreV1.Event, error) {
-	result := []coreV1.Event{}
-
-	pattern := CreateKeyPattern(&utils.EventResource.Group, &utils.EventResource.Kind, &namespace, nil)
-	events, err := valkeyclient.GetObjectsByPrefix[coreV1.Event](valkeyClient, valkeyclient.ORDER_DESC, pattern)
-	if err != nil {
-		return result, err
-	}
-
-	for _, ref := range events {
-		if namespace != "" && ref.Namespace != namespace {
-			continue
-		}
-
-		result = append(result, ref)
-	}
-
-	return result, nil
-}
-
-func ListPods(valkeyClient valkeyclient.ValkeyClient, parts ...string) ([]coreV1.Pod, error) {
-	result := []coreV1.Pod{}
-
-	args := append([]string{VALKEY_RESOURCE_PREFIX, utils.PodResource.Group, utils.PodResource.Kind}, parts...)
-	pods, err := valkeyclient.GetObjectsByPrefix[coreV1.Pod](valkeyClient, valkeyclient.ORDER_NONE, args...)
-	if err != nil {
-		return result, err
-	}
-
-	return pods, nil
-}
-
-func ListAllNamespaces(valkeyClient valkeyclient.ValkeyClient) ([]coreV1.Namespace, error) {
-	result := []coreV1.Namespace{}
-
-	namespaces, err := valkeyclient.GetObjectsByPrefix[coreV1.Namespace](valkeyClient, valkeyclient.ORDER_NONE, VALKEY_RESOURCE_PREFIX, utils.NamespaceResource.Group, "Namespace")
-	if err != nil {
-		return result, err
-	}
-
-	return namespaces, nil
 }
 
 func GetNamespace(valkeyClient valkeyclient.ValkeyClient, name string, logger *slog.Logger) *coreV1.Namespace {

@@ -2,7 +2,6 @@ package kubernetes
 
 import (
 	"context"
-	json1 "encoding/json"
 	"fmt"
 	"mogenius-k8s-manager/src/assert"
 	cfg "mogenius-k8s-manager/src/config"
@@ -10,7 +9,6 @@ import (
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/version"
 	"path/filepath"
-	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -59,32 +57,6 @@ const (
 
 func (i IngressType) String() string {
 	return [...]string{"NGINX", "TRAEFIK", "MULTIPLE", "NONE", "UNKNOWN"}[i]
-}
-
-// Define the expected JSON structure
-type AuthConfig struct {
-	Auths map[string]Credentials `json:"auths"`
-}
-
-type Credentials struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-	Auth     string `json:"auth"`
-}
-
-func ValidateContainerRegistryAuthString(input string) error {
-	var config AuthConfig
-	// Try to unmarshal the input string into the struct
-	err := json1.Unmarshal([]byte(input), &config)
-	if err != nil {
-		return fmt.Errorf("invalid JSON structure: %v", err)
-	}
-
-	if config.Auths == nil {
-		return fmt.Errorf("missing 'auths' field in JSON")
-	}
-
-	return nil
 }
 
 func CurrentContextName() string {
@@ -216,15 +188,6 @@ func Umount(volumeNamespace string, volumeName string) {
 			utils.DeleteDirIfExist(mountDir)
 		}
 	}()
-}
-
-func IsLocalClusterSetup() bool {
-	ips := GetClusterExternalIps()
-	if slices.Contains(ips, "192.168.66.1") || slices.Contains(ips, "localhost") {
-		return true
-	} else {
-		return false
-	}
 }
 
 func GetCustomDeploymentTemplate() *v1.Deployment {

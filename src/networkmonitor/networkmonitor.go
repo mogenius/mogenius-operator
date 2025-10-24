@@ -293,15 +293,6 @@ type PodNetworkStats struct {
 	CreatedAt time.Time `json:"createdAt"` // when the entry was written into the storage <- timestamp of write to redis
 }
 
-func (self *PodNetworkStats) Sum(other *PodNetworkStats) {
-	self.ReceivedPackets += other.ReceivedPackets
-	self.ReceivedBytes += other.ReceivedBytes
-	self.ReceivedStartBytes += other.ReceivedStartBytes
-	self.TransmitPackets += other.TransmitPackets
-	self.TransmitBytes += other.TransmitBytes
-	self.TransmitStartBytes += other.TransmitStartBytes
-}
-
 type KernelNetworkInterfaceInfo struct {
 	Interface          string
 	ReceiveBytes       uint64
