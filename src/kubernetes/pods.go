@@ -3,8 +3,6 @@ package kubernetes
 import (
 	"bytes"
 	"context"
-	"fmt"
-	"strings"
 	"text/template"
 
 	v1 "k8s.io/api/core/v1"
@@ -145,49 +143,4 @@ func LastTerminatedStateToString(terminatedState *v1.ContainerStateTerminated) s
 	}
 
 	return buf.String()
-}
-
-func ServicePodStatus(namespace string, serviceName string) []v1.Pod {
-	result := []v1.Pod{}
-
-	clientset := clientProvider.K8sClientSet()
-	podClient := clientset.CoreV1().Pods(namespace)
-
-	pods, err := podClient.List(context.Background(), metav1.ListOptions{})
-	if err != nil {
-		k8sLogger.Error("ServicePodStatus", "error", err.Error())
-		return result
-	}
-
-	for _, pod := range pods.Items {
-		if strings.Contains(pod.Name, serviceName) {
-			pod.ManagedFields = nil
-			pod.Spec = v1.PodSpec{}
-			pod.Kind = "Pod"
-			pod.APIVersion = "v1"
-			result = append(result, pod)
-		}
-	}
-
-	return result
-}
-
-func DeleteAllPodsInNamespace(namespace string) error {
-	clientset := clientProvider.K8sClientSet()
-	podClient := clientset.CoreV1().Pods(namespace)
-
-	pods, err := podClient.List(context.Background(), metav1.ListOptions{})
-	if err != nil {
-		k8sLogger.Error("DeleteAllPodsInNamespace", "error", err.Error())
-		return fmt.Errorf("failed to list pods in namespace %s: %s", namespace, err.Error())
-	}
-
-	for _, pod := range pods.Items {
-		err := podClient.Delete(context.Background(), pod.Name, metav1.DeleteOptions{})
-		if err != nil {
-			k8sLogger.Error("DeleteAllPodsInNamespace", "error", err.Error())
-			return fmt.Errorf("failed to delete pod %s in namespace %s: %s", pod.Name, namespace, err.Error())
-		}
-	}
-	return nil
 }

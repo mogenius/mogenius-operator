@@ -17,14 +17,11 @@ import (
 	version2 "k8s.io/apimachinery/pkg/version"
 	metricsv1beta1 "k8s.io/metrics/pkg/apis/metrics/v1beta1"
 
-	v1 "k8s.io/api/apps/v1"
 	core "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"k8s.io/apimachinery/pkg/runtime/serializer/json"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
-	"k8s.io/kubectl/pkg/scheme"
 )
 
 var (
@@ -111,12 +108,6 @@ func MoCreateOptions(config cfg.ConfigModule) metav1.CreateOptions {
 	}
 }
 
-func MoUpdateOptions(config cfg.ConfigModule) metav1.UpdateOptions {
-	return metav1.UpdateOptions{
-		FieldManager: GetOwnDeploymentName(config),
-	}
-}
-
 func GetOwnDeploymentName(config cfg.ConfigModule) string {
 	return config.Get("OWN_DEPLOYMENT_NAME")
 }
@@ -188,25 +179,6 @@ func Umount(volumeNamespace string, volumeName string) {
 			utils.DeleteDirIfExist(mountDir)
 		}
 	}()
-}
-
-func GetCustomDeploymentTemplate() *v1.Deployment {
-	clientset := clientProvider.K8sClientSet()
-	client := clientset.CoreV1().ConfigMaps(config.Get("MO_OWN_NAMESPACE"))
-	configmap, err := client.Get(context.Background(), utils.MOGENIUS_CONFIGMAP_DEFAULT_DEPLOYMENT_NAME, metav1.GetOptions{})
-	if err != nil {
-		return nil
-	} else {
-		deployment := v1.Deployment{}
-		yamlBytes := []byte(configmap.Data["deployment"])
-		s := json.NewYAMLSerializer(json.DefaultMetaFactory, scheme.Scheme, scheme.Scheme)
-		_, _, err = s.Decode(yamlBytes, nil, &deployment)
-		if err != nil {
-			k8sLogger.Error("GetCustomDeploymentTemplate (unmarshal)", "error", err)
-			return nil
-		}
-		return &deployment
-	}
 }
 
 func ListNodeMetricss() []metricsv1beta1.NodeMetrics {

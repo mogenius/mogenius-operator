@@ -151,15 +151,6 @@ func CreateKeyPattern(groupVersion, kind, namespace, name *string) string {
 	return pattern
 }
 
-func GetNamespace(valkeyClient valkeyclient.ValkeyClient, name string, logger *slog.Logger) *coreV1.Namespace {
-	namespace, err := valkeyclient.GetObjectForKey[coreV1.Namespace](valkeyClient, VALKEY_RESOURCE_PREFIX, utils.NamespaceResource.Group, utils.NamespaceResource.Kind, "", name)
-	if err != nil {
-		logger.Error("failed to get namespace", "name", name, "error", err)
-		return nil
-	}
-	return namespace
-}
-
 func GetResource(valkeyClient valkeyclient.ValkeyClient, groupVersion string, kind string, namespace string, name string, logger *slog.Logger) (*unstructured.Unstructured, error) {
 	return valkeyclient.GetObjectForKey[unstructured.Unstructured](valkeyClient, VALKEY_RESOURCE_PREFIX, groupVersion, kind, namespace, name)
 }

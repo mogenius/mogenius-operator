@@ -15,7 +15,6 @@ import (
 	"strings"
 
 	sealedsecretv1alpha1 "github.com/bitnami-labs/sealed-secrets/pkg/apis/sealedsecrets/v1alpha1"
-	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -127,7 +126,7 @@ func (s *sealedSecretManager) CreateSealedSecretFromExisting(secretName, namespa
 	s.logger.Debug("Found secret", "name", secretName, "namespace", namespace)
 
 	// Create SealedSecret directly as unstructured object
-	secret := &corev1.Secret{}
+	secret := &v1.Secret{}
 	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(secretUnstr.Object, secret); err != nil {
 		return nil, fmt.Errorf("failed to convert unstructured secret to typed secret: %w", err)
 	}
@@ -184,9 +183,9 @@ func (s *sealedSecretManager) GetMainSecret() (*v1.Secret, error) {
 	return nil, fmt.Errorf("sealed-secrets secret not found in any namespace")
 }
 
-func (s *sealedSecretManager) createUnstructuredSealedSecretFromSecret(secret *corev1.Secret, publicKey *rsa.PublicKey) (*unstructured.Unstructured, error) {
+func (s *sealedSecretManager) createUnstructuredSealedSecretFromSecret(secret *v1.Secret, publicKey *rsa.PublicKey) (*unstructured.Unstructured, error) {
 	scheme := runtime.NewScheme()
-	if err := corev1.AddToScheme(scheme); err != nil {
+	if err := v1.AddToScheme(scheme); err != nil {
 		return nil, fmt.Errorf("failed to add core v1 to scheme: %w", err)
 	}
 	codecFactory := serializer.NewCodecFactory(scheme)

@@ -55,8 +55,8 @@ var (
 	repositoryCache  string
 )
 
-var RepoAlreadyExistsError = fmt.Errorf("repository name already exists")
-var RepoFileDoesNotExist = fmt.Errorf("repository.yaml does not exist")
+var ErrorRepoAlreadyExists = fmt.Errorf("repository name already exists")
+var ErrorRepoFileDoesNotExist = fmt.Errorf("repository.yaml does not exist")
 
 var helmLogger *slog.Logger
 var config cfg.ConfigModule
@@ -380,7 +380,7 @@ func InitHelmConfig() error {
 		Url:  "https://helm.mogenius.com/public",
 	}
 	if _, err := HelmRepoAdd(data); err != nil {
-		if err != RepoAlreadyExistsError {
+		if err != ErrorRepoAlreadyExists {
 			helmLogger.Error("failed to add default helm repository", "repoName", data.Name, "repoUrl", data.Url, "error", err.Error())
 		}
 	}
@@ -422,7 +422,7 @@ func HelmRepoAdd(data HelmRepoAddRequest) (string, error) {
 
 	// Check if the repository already exists
 	if repoFile.Has(data.Name) {
-		return "", RepoAlreadyExistsError
+		return "", ErrorRepoAlreadyExists
 	}
 
 	// Add the new repository entry
@@ -1501,7 +1501,7 @@ func restoreRepositoryFileFromValkey() error {
 	}
 	// key does not exist in valkey (this is ok)
 	if data == "" {
-		return RepoFileDoesNotExist
+		return ErrorRepoFileDoesNotExist
 	}
 
 	err = os.WriteFile(repositoryConfig, []byte(data), 0644)

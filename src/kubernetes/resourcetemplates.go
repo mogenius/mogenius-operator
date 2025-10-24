@@ -2,9 +2,7 @@ package kubernetes
 
 import (
 	"fmt"
-	utils "mogenius-k8s-manager/src/utils"
 
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	"sigs.k8s.io/yaml"
@@ -13,41 +11,6 @@ import (
 const (
 	RESOURCE_TEMPLATE_CONFIGMAP = "mogenius-resource-templates"
 )
-
-func CreateOrUpdateResourceTemplateConfigmap() error {
-	yamlData := utils.InitResourceTemplatesYaml()
-
-	// Decode YAML data into a generic map
-	var decodedData map[string]any
-	err := yaml.Unmarshal([]byte(yamlData), &decodedData)
-	if err != nil {
-		return err
-	}
-
-	cfgMap := unstructured.Unstructured{Object: decodedData}
-	cfgMap.SetNamespace(config.Get("MO_OWN_NAMESPACE"))
-	cfgMap.SetName(RESOURCE_TEMPLATE_CONFIGMAP)
-
-	// Marshal cfgMap back to YAML
-	updatedYaml, err := yaml.Marshal(cfgMap.Object)
-	if err != nil {
-		return err
-	}
-
-	// check if configmap exists
-	_, err = CreateUnstructuredResource("", "v1", "configmaps", utils.Pointer(""), string(updatedYaml))
-	if apierrors.IsAlreadyExists(err) {
-		_, err = UpdateUnstructuredResource("", "v1", "configmaps", utils.Pointer(""), string(updatedYaml))
-		if err != nil {
-			k8sLogger.Error("Resource template configmap failed to update", "error", err)
-			return err
-		}
-		k8sLogger.Info("Resource template configmap updated")
-		return nil
-	}
-
-	return err
-}
 
 func GetResourceTemplateYaml(group, version, name, kind, namespace, resourcename string) string {
 	// check if example data exists

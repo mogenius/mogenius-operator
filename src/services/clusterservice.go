@@ -38,17 +38,6 @@ const (
 	MogeniusHelmIndex                 = "https://helm.mogenius.com/public"
 )
 
-func DeleteHelmChart(eventClient websocket.WebsocketClient, r ClusterHelmUninstallRequest) *structs.Job {
-	job := structs.CreateJob(eventClient, "Delete Helm Chart "+r.HelmReleaseName, r.NamespaceId, "", "", serviceLogger)
-	job.Start(eventClient)
-	result, err := helm.DeleteHelmChart(r.HelmReleaseName, r.NamespaceId)
-	if err != nil {
-		job.Fail(fmt.Sprintf("Failed to delete helm chart %s: %s\n%s", r.HelmReleaseName, result, err.Error()))
-	}
-	job.Finish(eventClient)
-	return job
-}
-
 func CreateMogeniusNfsVolume(eventClient websocket.WebsocketClient, r NfsVolumeRequest) structs.DefaultResponse {
 	var wg sync.WaitGroup
 	job := structs.CreateJob(eventClient, "Create mogenius nfs-volume.", r.NamespaceName, "", "", serviceLogger)
