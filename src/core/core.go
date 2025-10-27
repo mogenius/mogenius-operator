@@ -22,6 +22,8 @@ import (
 type Core interface {
 	Initialize() error
 	InitializeClusterSecret()
+	InitializeWebsocketEventServer()
+	InitializeWebsocketApiServer()
 	InitializeValkey()
 	Link(
 		moKubernetes MoKubernetes,
@@ -228,9 +230,6 @@ func (self *core) Initialize() error {
 	if err != nil {
 		return fmt.Errorf("failed to create resource template configmap: %s", err)
 	}
-
-	self.InitializeWebsocketEventServer()
-	self.InitializeWebsocketApiServer()
 
 	// INIT MOUNTS
 	autoMountNfs, err := strconv.ParseBool(self.config.Get("MO_AUTO_MOUNT_NFS"))
