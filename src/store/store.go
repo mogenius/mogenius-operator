@@ -22,6 +22,7 @@ import (
 	v1 "k8s.io/api/apps/v1"
 	v1batch "k8s.io/api/batch/v1"
 	coreV1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 )
 
 const (
@@ -175,6 +176,15 @@ func GetResourceByKindAndNamespace(valkeyClient valkeyclient.ValkeyClient, group
 	return results
 }
 
+func GetIngressClasses() []networkingv1.IngressClass {
+	ingressClasses, err := valkeyclient.GetObjectsByPrefix[networkingv1.IngressClass](valkeyClient, valkeyclient.ORDER_NONE, VALKEY_RESOURCE_PREFIX, utils.IngressClassResource.Group, utils.IngressClassResource.Kind, "*")
+	if err != nil {
+		return ingressClasses
+	}
+
+	return ingressClasses
+}
+
 func GetPod(namespace string, name string) *coreV1.Pod {
 	pod, err := valkeyclient.GetObjectForKey[coreV1.Pod](valkeyClient, VALKEY_RESOURCE_PREFIX, utils.PodResource.Group, utils.PodResource.Kind, namespace, name)
 	if err != nil || pod == nil {
@@ -222,6 +232,23 @@ func GetDeployments(namespace string, name string) []v1.Deployment {
 		return nil
 	}
 	return deployments
+}
+
+func GetSecret(namespace string, name string) *coreV1.Secret {
+	secret, err := valkeyclient.GetObjectForKey[coreV1.Secret](valkeyClient, VALKEY_RESOURCE_PREFIX, utils.SecretResource.Group, utils.SecretResource.Kind, namespace, name)
+	if err != nil || secret == nil {
+		return nil
+	}
+
+	return secret
+}
+
+func GetSecrets(namespace string, name string) []coreV1.Secret {
+	secrets, err := valkeyclient.GetObjectsByPrefix[coreV1.Secret](valkeyClient, valkeyclient.ORDER_ASC, VALKEY_RESOURCE_PREFIX, utils.SecretResource.Group, utils.SecretResource.Kind, namespace, name)
+	if err != nil || secrets == nil {
+		return nil
+	}
+	return secrets
 }
 
 func GetService(namespace string, name string) *coreV1.Service {
@@ -272,6 +299,15 @@ func GetJob(namespace string, name string) *v1batch.Job {
 	job.APIVersion = utils.JobResource.Group
 
 	return job
+}
+
+func GetConfigMap(namespace string, name string) *coreV1.ConfigMap {
+	configMap, err := valkeyclient.GetObjectForKey[coreV1.ConfigMap](valkeyClient, VALKEY_RESOURCE_PREFIX, utils.ConfigMapResource.Group, utils.ConfigMapResource.Kind, namespace, name)
+	if err != nil || configMap == nil {
+		return nil
+	}
+
+	return configMap
 }
 
 func GetCronJob(namespace string, name string) *v1batch.CronJob {

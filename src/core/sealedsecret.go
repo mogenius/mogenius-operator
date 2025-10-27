@@ -11,6 +11,7 @@ import (
 	"mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/k8sclient"
 	"mogenius-k8s-manager/src/kubernetes"
+	"mogenius-k8s-manager/src/store"
 	"net/http"
 	"strings"
 
@@ -169,13 +170,8 @@ func (s *sealedSecretManager) CreateSealedSecretFromExisting(secretName, namespa
 }
 
 func (s *sealedSecretManager) GetMainSecret() (*v1.Secret, error) {
-	clientset := s.clientProvider.K8sClientSet()
-	client := clientset.CoreV1().Secrets("")
-	secretsList, err := client.List(context.Background(), metav1.ListOptions{})
-	if err != nil {
-		return nil, fmt.Errorf("failed to list secrets: %v", err)
-	}
-	for _, secret := range secretsList.Items {
+	secrets := store.GetSecrets("*", "*")
+	for _, secret := range secrets {
 		if strings.HasPrefix(secret.Name, "sealed-secrets-key") {
 			return &secret, nil
 		}

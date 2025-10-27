@@ -6,6 +6,7 @@ import (
 	"mogenius-k8s-manager/src/helm"
 	"mogenius-k8s-manager/src/kubernetes"
 	mokubernetes "mogenius-k8s-manager/src/kubernetes"
+	"mogenius-k8s-manager/src/store"
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/websocket"
@@ -504,12 +505,12 @@ else
 	echo "trivy is installed. 🚀"
 fi
 `
-	defaultAppsConfigmap, err := kubernetes.ConfigMapFor(
+
+	defaultAppsConfigmap := store.GetConfigMap(
 		config.Get("MO_OWN_NAMESPACE"),
 		utils.MOGENIUS_CONFIGMAP_DEFAULT_APPS_NAME,
-		false,
 	)
-	if err != nil {
+	if defaultAppsConfigmap == nil {
 		return basicApps, userApps
 	}
 	assert.Assert(defaultAppsConfigmap != nil)

@@ -397,7 +397,7 @@ func IsMetricsServerAvailable() (bool, string, error) {
 }
 
 func DetermineIngressControllerType() (IngressType, error) {
-	ingressClasses := AllIngressClasses()
+	ingressClasses := store.GetIngressClasses()
 
 	if len(ingressClasses) > 1 {
 		return MULTIPLE, fmt.Errorf("multiple ingress controllers found")

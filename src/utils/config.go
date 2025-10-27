@@ -90,6 +90,12 @@ var PodResource = ResourceEntry{
 	Group: "v1",
 }
 
+var IngressClassResource = ResourceEntry{
+	Kind:  "IngressClass",
+	Name:  "ingressclasses",
+	Group: "networking.k8s.io/v1",
+}
+
 var SecretResource = ResourceEntry{
 	Kind:  "Secret",
 	Name:  "secrets",
