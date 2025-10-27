@@ -312,7 +312,8 @@ jobs:
 
   helm-chart:
     if: github.ref == 'refs/heads/develop'
-    needs: [prepare, build-amd64, build-arm64, build-arm64-linux, build-armv7, merge-images]
+    # needs: [prepare, build-amd64, build-arm64, build-arm64-linux, build-armv7, merge-images]
+    needs: [prepare, build-amd64, build-arm64, build-arm64-linux, merge-images]
     runs-on: self-hosted
     permissions:
       contents: read
