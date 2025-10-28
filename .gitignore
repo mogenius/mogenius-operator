@@ -8,7 +8,6 @@ mo-data
 backup.yaml
 mogenius*.db
 mogenius-stats*.db
-CHANGELOG.md
 .idea/
 .envrc
 kube-config
