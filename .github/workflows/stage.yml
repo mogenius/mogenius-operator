@@ -52,12 +52,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
 
-      - name: Download built site
-        uses: actions/download-artifact@v5
-        with:
-          name: hugo-public-site
-          path: public/
-
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
@@ -85,8 +79,8 @@ jobs:
           platforms: linux/amd64,linux/arm64,linux/arm/v7,linux/amd64,linux/arm/v6
           push: true
           tags: |
-            ghcr.io/9it-full-service/ink-blog.kuepper.nrw:${{ steps.git_version.outputs.version }}
-            ghcr.io/9it-full-service/ink-blog.kuepper.nrw:latest
+            ${{ env.IMAGE_NAME }}:${{ steps.git_version.outputs.version }}
+            ${{ env.IMAGE_NAME }}:latest
           labels: |
             org.opencontainers.image.version=${{ steps.git_version.outputs.version }}
             org.opencontainers.image.created=${{ github.event.head_commit.timestamp }}
