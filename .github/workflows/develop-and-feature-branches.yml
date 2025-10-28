@@ -5,6 +5,7 @@ on:
     branches:
       - "**"
       - "!main"
+      - "!stage"
 
 env:
   IMAGE_NAME: ghcr.io/mogenius/mogenius-k8s-manager-dev
