@@ -1,4 +1,4 @@
-name: Build, Package, Release (Dev & Feature Branches)
+name: Stage Build, Package, Release 
 
 on:
   push:
@@ -9,6 +9,7 @@ on:
 
 env:
   IMAGE_NAME: ghcr.io/mogenius/mogenius-k8s-manager-stage
+  REGISTRY: ghcr.io 
   DOCKERFILE: Dockerfile
   DOCKER_CONFIG: ./.docker
   HELMNAME: "mogenius-k8s-manager-stage"
