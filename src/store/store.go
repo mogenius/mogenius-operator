@@ -429,7 +429,7 @@ func ListAuditLog(limit int, offset int, namespaces []string, clusterWide bool) 
 
 	entries, size, err := valkeyclient.GetObjectsByPrefixWithSizeAndNs[AuditLogEntry](valkeyClient, limit, offset, namespaces, clusterWide, "audit-log")
 	if err != nil {
-		return nil, size, err
+		return []AuditLogEntry{}, size, err
 	}
 
 	return entries, size, nil

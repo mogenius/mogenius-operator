@@ -2123,7 +2123,7 @@ func (self *socketApi) logStreamConnection(podCmdConnectionRequest xterm.PodCmdC
 		podCmdConnectionRequest.Pod,
 		podCmdConnectionRequest.Container,
 		cmd,
-		services.GetPreviousLogContent(podCmdConnectionRequest),
+		xterm.GetPreviousLogContent(podCmdConnectionRequest),
 	)
 }
 
