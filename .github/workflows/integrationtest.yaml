@@ -3,7 +3,7 @@ name: Integration Test and Linting
 on:
   push:
     branches:
-      - "**"
+      - "!**"
       - "!main"
       - "!develop"
 
