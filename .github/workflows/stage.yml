@@ -97,7 +97,7 @@ jobs:
           provenance: false
 
   helm-chart:
-    if: github.ref == 'refs/heads/develop'
+    if: github.ref == 'refs/heads/stage'
     # needs: [prepare, build-amd64, build-arm64, build-arm64-linux, build-armv7, merge-images]
     needs: [prepare, build-and-push-docker]
     runs-on: [self-hosted, macbook]
