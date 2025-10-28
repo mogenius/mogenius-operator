@@ -96,6 +96,50 @@ jobs:
           # cache-to: type=gha,mode=max
           provenance: false
 
+  helm-chart:
+    if: github.ref == 'refs/heads/develop'
+    # needs: [prepare, build-amd64, build-arm64, build-arm64-linux, build-armv7, merge-images]
+    needs: [prepare, build-and-push-docker]
+    runs-on: [self-hosted, macbook]
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: set version env
+        run: echo "SEMVERSION=$(git describe --tags $(git rev-list --tags --max-count=1))" >> $GITHUB_ENV
+
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          ref: develop
+          token: ${{ secrets.MO_K8s_TOKEN }}
+          repository: ${{ env.HELMREPO }}
+          path: "helm"
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4.3.1
+        id: install
+
+      - name: Run helm-docs
+        uses: losisin/helm-docs-github-action@v1.6.2
+        with:
+          chart-search-root: helm
+
+      - name: package and push
+        run: |
+          cd ./helm
+          sed -i -e "s/v1.0.72/${{ env.SEMVERSION }}/" values.yaml
+          sed -i -e "s/repository: mogenius\/mogenius-k8s-manager/repository: mogenius\/mogenius-k8s-manager-stage/" values.yaml
+          sed -i -e "s/name: mogenius-k8s-manager/name: mogenius-k8s-manager-stage/" Chart.yaml    
+          helm package -d /tmp/ --version ${{ env.SEMVERSION }} --app-version ${{ env.SEMVERSION }} .
+          curl -XPOST -L -k --data-binary "@/tmp/${{ env.HELMNAME }}-${{ env.SEMVERSION }}.tgz" https://${{ secrets.MO_HELMUSER }}:${{ secrets.MO_HELMPASS }}@helm.mogenius.com/api/public/charts
+
+
   # golangci:
   #   needs: prepare
   #   runs-on: [self-hosted]
