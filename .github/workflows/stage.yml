@@ -6,6 +6,7 @@ on:
       - "**"
       - "!main"
       - "!develop"
+      - "!stage"
 
 env:
   IMAGE_NAME: ghcr.io/mogenius/mogenius-k8s-manager-stage
