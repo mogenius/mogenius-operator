@@ -26,7 +26,7 @@ func TestEmptyCgroup(t *testing.T) {
 	clientProvider := k8sclient.NewK8sClientProvider(logger, configModule)
 	cne := containerenumerator.NewContainerEnumerator(slog.New(slog.NewJSONHandler(os.Stdout, nil)), configModule, clientProvider)
 	_, err := cne.GetContainerIdFromCgroupWithPid(cgroup)
-	assert.AssertT(t, err == containerenumerator.NoMatchFound)
+	assert.AssertT(t, err == containerenumerator.ErrorNoMatchFound)
 }
 
 func TestBaseCgroup(t *testing.T) {
@@ -44,7 +44,7 @@ func TestBaseCgroup(t *testing.T) {
 	clientProvider := k8sclient.NewK8sClientProvider(logger, configModule)
 	cne := containerenumerator.NewContainerEnumerator(slog.New(slog.NewJSONHandler(os.Stdout, nil)), configModule, clientProvider)
 	_, err := cne.GetContainerIdFromCgroupWithPid(cgroup)
-	assert.AssertT(t, err == containerenumerator.NoMatchFound)
+	assert.AssertT(t, err == containerenumerator.ErrorNoMatchFound)
 }
 
 func TestBasicCgroup(t *testing.T) {
