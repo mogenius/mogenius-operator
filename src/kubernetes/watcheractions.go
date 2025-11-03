@@ -63,6 +63,7 @@ func WatchStoreResources(wm watcher.WatcherModule, eventClient websocket.Websock
 			Plural:     v.Plural,
 			Kind:       v.Kind,
 			ApiVersion: v.ApiVersion,
+			Namespaced: v.Namespaced,
 		}, func(resource watcher.WatcherResourceIdentifier, obj *unstructured.Unstructured) {
 			setStoreIfNeeded(resource.ApiVersion, obj.GetName(), resource.Kind, obj.GetNamespace(), obj)
 			handleCRDAddition(wm, eventClient, resource)
@@ -87,11 +88,11 @@ func WatchStoreResources(wm watcher.WatcherModule, eventClient websocket.Websock
 		})
 		if err != nil {
 			if !strings.Contains(err.Error(), "resource is already being watched") {
-				k8sLogger.Error("failed to initialize watchhandler for resource", "groupVersion", v.ApiVersion, "kind", v.Kind, "error", err)
+				k8sLogger.Error("failed to initialize watchhandler for resource", "ApiVersion", v.ApiVersion, "kind", v.Kind, "error", err)
 				return err
 			}
 		} else {
-			k8sLogger.Info("🚀 Watching resource", "kind", v.Kind, "name", v.Plural)
+			k8sLogger.Info("🚀 Watching resource", "kind", v.Kind, "plural", v.Plural)
 		}
 	}
 	return nil
@@ -138,27 +139,22 @@ func handleCRDDeletion(wm watcher.WatcherModule, resource watcher.WatcherResourc
 	if resource.Kind == "CustomResourceDefinition" {
 		name, _, _ := unstructured.NestedString(obj.Object, "spec", "names", "plural")
 		kind, _, _ := unstructured.NestedString(obj.Object, "spec", "names", "kind")
-		group, _, _ := unstructured.NestedString(obj.Object, "spec", "group")
-		versions, _, _ := unstructured.NestedSlice(obj.Object, "spec", "versions")
 
-		if name == "" || kind == "" || group == "" || len(versions) == 0 {
-			k8sLogger.Error("Error parsing CRD for unwatching", "name", name, "kind", kind, "group", group, "versions", versions)
+		if name == "" || kind == "" {
+			k8sLogger.Error("Error parsing CRD for unwatching", "name", name, "kind", kind)
 			return
 		}
-		if firstVersion, ok := versions[0].(map[string]interface{}); ok {
-			if versionName, ok := firstVersion["name"].(string); ok {
-				resourceToDelete := watcher.WatcherResourceIdentifier{
-					Plural:     name,
-					Kind:       kind,
-					ApiVersion: group + "/" + versionName,
-				}
-				err := wm.Unwatch(resourceToDelete)
-				if err != nil {
-					k8sLogger.Error("Error unwatching resource", "name", obj.GetName(), "error", err)
-				} else {
-					k8sLogger.Info("STOP Watching resource", "kind", obj.GetKind(), "name", obj.GetName())
-				}
-			}
+		resourceToDelete := watcher.WatcherResourceIdentifier{
+			Plural:     resource.Plural,
+			Kind:       resource.Kind,
+			ApiVersion: resource.ApiVersion,
+			Namespaced: resource.Namespaced,
+		}
+		err := wm.Unwatch(resourceToDelete)
+		if err != nil {
+			k8sLogger.Error("Error unwatching resource", "name", obj.GetName(), "error", err)
+		} else {
+			k8sLogger.Info("STOP Watching resource", "kind", obj.GetKind(), "name", obj.GetName())
 		}
 	}
 }
