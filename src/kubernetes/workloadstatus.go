@@ -69,7 +69,7 @@ func getOrFetchJobs(cache map[string][]unstructured.Unstructured, namespace stri
 	if cachedSets, found := cache[namespace]; found {
 		return cachedSets
 	}
-	jobResults, err := store.SearchByKeyParts(valkeyClient, VALKEY_RESOURCE_PREFIX, utils.CronJobResource.ApiVersion, utils.CronJobResource.Kind, namespace, "*")
+	jobResults, err := store.SearchByKeyParts(valkeyClient, VALKEY_RESOURCE_PREFIX, utils.JobResource.ApiVersion, utils.JobResource.Kind, namespace, "*")
 	if err != nil {
 		k8sLogger.Warn("Error getting jobs", "namespace", namespace, "error", err)
 		return nil

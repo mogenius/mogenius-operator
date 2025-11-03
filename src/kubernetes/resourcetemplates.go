@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"fmt"
+	"mogenius-k8s-manager/src/utils"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
@@ -43,7 +44,7 @@ func GetResourceTemplateYaml(apiVersion, kind, namespace, resourcename string) s
 
 func loadResourceTemplateData(kind, namespace, resourcename string) (string, error) {
 	// load example data from file
-	configmap, err := GetUnstructuredResource("v1", "configmaps", config.Get("MO_OWN_NAMESPACE"), RESOURCE_TEMPLATE_CONFIGMAP)
+	configmap, err := GetUnstructuredResource(utils.ConfigMapResource.ApiVersion, utils.ConfigMapResource.Plural, config.Get("MO_OWN_NAMESPACE"), RESOURCE_TEMPLATE_CONFIGMAP)
 	if err != nil {
 		return "", err
 	}
