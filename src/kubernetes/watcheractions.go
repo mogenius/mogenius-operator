@@ -206,7 +206,7 @@ func deleteFromStoreIfNeeded(apiVersion string, resourceName string, kind string
 
 func GetUnstructuredResourceList(plural string, apiVersion string, namespace *string) (*unstructured.UnstructuredList, error) {
 	dynamicClient := clientProvider.DynamicClient()
-	resource := CreateGroupVersionResource(plural, apiVersion)
+	resource := CreateGroupVersionResource(apiVersion, plural)
 
 	var result *unstructured.UnstructuredList
 	var err error
@@ -307,7 +307,7 @@ func GetUnstructuredLabeledResourceList(label string, whitelist []*utils.Resourc
 				continue
 			}
 
-			result, err := dynamicClient.Resource(CreateGroupVersionResource(v.Plural, v.ApiVersion)).List(context.Background(), metav1.ListOptions{LabelSelector: label})
+			result, err := dynamicClient.Resource(CreateGroupVersionResource(v.ApiVersion, v.Plural)).List(context.Background(), metav1.ListOptions{LabelSelector: label})
 
 			if err != nil {
 				if !os.IsNotExist(err) {
@@ -327,10 +327,10 @@ func GetUnstructuredLabeledResourceList(label string, whitelist []*utils.Resourc
 func GetUnstructuredResource(apiVersion string, plural string, namespace, resourceName string) (*unstructured.Unstructured, error) {
 	dynamicClient := clientProvider.DynamicClient()
 	if namespace != "" {
-		result, err := dynamicClient.Resource(CreateGroupVersionResource(plural, apiVersion)).Namespace(namespace).Get(context.Background(), resourceName, metav1.GetOptions{})
+		result, err := dynamicClient.Resource(CreateGroupVersionResource(apiVersion, plural)).Namespace(namespace).Get(context.Background(), resourceName, metav1.GetOptions{})
 		return removeManagedFields(result), err
 	} else {
-		result, err := dynamicClient.Resource(CreateGroupVersionResource(plural, apiVersion)).Get(context.Background(), resourceName, metav1.GetOptions{})
+		result, err := dynamicClient.Resource(CreateGroupVersionResource(apiVersion, plural)).Get(context.Background(), resourceName, metav1.GetOptions{})
 		return removeManagedFields(result), err
 	}
 }
@@ -348,10 +348,10 @@ func CreateUnstructuredResource(apiVersion string, plural string, namespace stri
 	}
 
 	if namespace != "" {
-		result, err := dynamicClient.Resource(CreateGroupVersionResource(plural, apiVersion)).Namespace(obj.GetNamespace()).Create(context.Background(), obj, metav1.CreateOptions{})
+		result, err := dynamicClient.Resource(CreateGroupVersionResource(apiVersion, plural)).Namespace(obj.GetNamespace()).Create(context.Background(), obj, metav1.CreateOptions{})
 		return removeManagedFields(result), err
 	} else {
-		result, err := dynamicClient.Resource(CreateGroupVersionResource(plural, apiVersion)).Create(context.Background(), obj, metav1.CreateOptions{})
+		result, err := dynamicClient.Resource(CreateGroupVersionResource(apiVersion, plural)).Create(context.Background(), obj, metav1.CreateOptions{})
 		return removeManagedFields(result), err
 	}
 }
@@ -365,10 +365,10 @@ func UpdateUnstructuredResource(apiVersion string, plural string, namespace stri
 	}
 
 	if namespace != "" {
-		result, err := dynamicClient.Resource(CreateGroupVersionResource(plural, apiVersion)).Namespace(obj.GetNamespace()).Update(context.Background(), obj, metav1.UpdateOptions{})
+		result, err := dynamicClient.Resource(CreateGroupVersionResource(apiVersion, plural)).Namespace(obj.GetNamespace()).Update(context.Background(), obj, metav1.UpdateOptions{})
 		return removeManagedFields(result), err
 	} else {
-		result, err := dynamicClient.Resource(CreateGroupVersionResource(plural, apiVersion)).Update(context.Background(), obj, metav1.UpdateOptions{})
+		result, err := dynamicClient.Resource(CreateGroupVersionResource(apiVersion, plural)).Update(context.Background(), obj, metav1.UpdateOptions{})
 		return removeManagedFields(result), err
 	}
 }
@@ -376,9 +376,9 @@ func UpdateUnstructuredResource(apiVersion string, plural string, namespace stri
 func DeleteUnstructuredResource(apiVersion string, plural string, namespace string, resourceName string) error {
 	dynamicClient := clientProvider.DynamicClient()
 	if namespace != "" {
-		return dynamicClient.Resource(CreateGroupVersionResource(plural, apiVersion)).Namespace(namespace).Delete(context.Background(), resourceName, metav1.DeleteOptions{})
+		return dynamicClient.Resource(CreateGroupVersionResource(apiVersion, plural)).Namespace(namespace).Delete(context.Background(), resourceName, metav1.DeleteOptions{})
 	} else {
-		return dynamicClient.Resource(CreateGroupVersionResource(plural, apiVersion)).Delete(context.Background(), resourceName, metav1.DeleteOptions{})
+		return dynamicClient.Resource(CreateGroupVersionResource(apiVersion, plural)).Delete(context.Background(), resourceName, metav1.DeleteOptions{})
 	}
 }
 
@@ -386,7 +386,7 @@ func DescribeUnstructuredResource(apiVersion string, plural string, namespace, r
 	config := clientProvider.ClientConfig()
 
 	restMapping := &meta.RESTMapping{
-		Resource: CreateGroupVersionResource(plural, apiVersion),
+		Resource: CreateGroupVersionResource(apiVersion, plural),
 	}
 
 	describer, ok := describe.GenericDescriberFor(restMapping, config)
@@ -440,7 +440,7 @@ func TriggerUnstructuredResource(apiVersion string, plural string, namespace str
 			plural = "jobs"
 		}
 
-		return dynamicClient.Resource(CreateGroupVersionResource(plural, apiVersion)).Namespace(namespace).Create(context.Background(), job, metav1.CreateOptions{})
+		return dynamicClient.Resource(CreateGroupVersionResource(apiVersion, plural)).Namespace(namespace).Create(context.Background(), job, metav1.CreateOptions{})
 	}
 	return nil, fmt.Errorf("%s is a invalid resource for trigger. Only jobs or cronjobs can be triggert", plural)
 }
@@ -517,7 +517,7 @@ func GetResourcesNameForKind(kind string) (name string, err error) {
 	return "", fmt.Errorf("resource not found for name %s", name)
 }
 
-func CreateGroupVersionResource(plural, apiVersion string) schema.GroupVersionResource {
+func CreateGroupVersionResource(apiVersion, plural string) schema.GroupVersionResource {
 	gv, err := schema.ParseGroupVersion(apiVersion) // e.g., "apps/v1" or just "v1"
 	if err != nil {
 		k8sLogger.Error("invalid apiVersion", "apiVersion", apiVersion, "resourceName", plural, "error", err)

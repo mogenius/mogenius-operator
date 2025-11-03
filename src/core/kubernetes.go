@@ -211,10 +211,10 @@ func (self *moKubernetes) CreateUnstructuredResource(apiVersion string, plural s
 	}
 
 	if namespace != nil {
-		result, err := dynamicClient.Resource(kubernetes.CreateGroupVersionResource(plural, apiVersion)).Namespace(obj.GetNamespace()).Create(context.Background(), obj, metav1.CreateOptions{})
+		result, err := dynamicClient.Resource(kubernetes.CreateGroupVersionResource(apiVersion, plural)).Namespace(obj.GetNamespace()).Create(context.Background(), obj, metav1.CreateOptions{})
 		return self.removeManagedFields(result), err
 	} else {
-		result, err := dynamicClient.Resource(kubernetes.CreateGroupVersionResource(plural, apiVersion)).Create(context.Background(), obj, metav1.CreateOptions{})
+		result, err := dynamicClient.Resource(kubernetes.CreateGroupVersionResource(apiVersion, plural)).Create(context.Background(), obj, metav1.CreateOptions{})
 		return self.removeManagedFields(result), err
 	}
 }
