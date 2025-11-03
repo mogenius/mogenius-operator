@@ -205,7 +205,7 @@ type HelmReleaseGetWorkloadsRequest struct {
 	Namespace string `json:"namespace" validate:"required"`
 	Release   string `json:"release" validate:"required"`
 
-	Whitelist []*utils.ResourceEntry `json:"whitelist"`
+	Whitelist []*utils.ResourceDescriptor `json:"whitelist"`
 }
 
 type HelmEntryWithoutPassword struct {
@@ -1404,7 +1404,7 @@ func HelmReleaseGetWorkloads(valkeyClient valkeyclient.ValkeyClient, data HelmRe
 
 		if workload.GetKind() == "Pod" {
 			if !replicaSetsFetched {
-				replicaSets, err = store.SearchByKeyParts(valkeyClient, utils.ReplicaSetResource.Group, utils.ReplicaSetResource.Kind, data.Namespace)
+				replicaSets, err = store.SearchByKeyParts(valkeyClient, utils.ReplicaSetResource.ApiVersion, utils.ReplicaSetResource.Kind, data.Namespace)
 				if errors.Is(err, store.ErrNotFound) {
 					replicaSets = nil
 				}

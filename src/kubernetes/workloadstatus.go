@@ -44,10 +44,10 @@ type GetWorkloadStatusHelmReleaseNameRequest struct {
 	Namespace string `json:"namespace" validate:"required"`
 }
 type GetWorkloadStatusRequest struct {
-	ResourceEntity *utils.ResourceEntry                       `json:"resourceEntity,omitempty"`
-	Namespaces     *[]string                                  `json:"namespaces,omitempty"`
-	HelmReleases   *[]GetWorkloadStatusHelmReleaseNameRequest `json:"helmReleases,omitempty"`
-	ResourceNames  *[]string                                  `json:"resourceNames,omitempty"`
+	ResourceDescriptor *utils.ResourceDescriptor                  `json:"resourceDescriptor,omitempty"`
+	Namespaces         *[]string                                  `json:"namespaces,omitempty"`
+	HelmReleases       *[]GetWorkloadStatusHelmReleaseNameRequest `json:"helmReleases,omitempty"`
+	ResourceNames      *[]string                                  `json:"resourceNames,omitempty"`
 
 	IgnoreDependentResources *bool `json:"ignoreDependentResources,omitempty"`
 }
@@ -258,7 +258,7 @@ func GetWorkloadStatus(requestData GetWorkloadStatusRequest) ([]WorkloadStatusDt
 	workloadListChan := make(chan []unstructured.Unstructured)
 
 	// Check if ResourceEntity is empty (considered empty if all fields are empty strings or nil)
-	isResourceEntityEmpty := requestData.ResourceEntity == nil || (requestData.ResourceEntity.Kind == "" && requestData.ResourceEntity.Group == "" && requestData.ResourceEntity.Version == "")
+	isResourceDescriptorEmpty := requestData.ResourceDescriptor == nil || (requestData.ResourceDescriptor.Kind == "" && requestData.ResourceDescriptor.ApiVersion == "")
 
 	// if namespace an empty list, set it to nil
 	if requestData.Namespaces != nil && len(*requestData.Namespaces) == 0 {
@@ -277,9 +277,9 @@ func GetWorkloadStatus(requestData GetWorkloadStatusRequest) ([]WorkloadStatusDt
 
 	// filter by HelmReleaseNames
 	if requestData.HelmReleases != nil && len(*requestData.HelmReleases) > 0 {
-		var whitelist []*utils.ResourceEntry
-		if requestData.ResourceEntity != nil {
-			whitelist = append(whitelist, requestData.ResourceEntity)
+		var whitelist []*utils.ResourceDescriptor
+		if requestData.ResourceDescriptor != nil {
+			whitelist = append(whitelist, requestData.ResourceDescriptor)
 		}
 
 		for _, helmRelease := range *requestData.HelmReleases {
@@ -298,16 +298,16 @@ func GetWorkloadStatus(requestData GetWorkloadStatusRequest) ([]WorkloadStatusDt
 		}
 	}
 	// only filter by ResourceEntity
-	if !isResourceEntityEmpty && requestData.Namespaces == nil && requestData.ResourceNames == nil {
+	if !isResourceDescriptorEmpty && requestData.Namespaces == nil && requestData.ResourceNames == nil {
 		wg.Go(func() {
-			unstructuredResourceList := GetUnstructuredResourceListFromStore(requestData.ResourceEntity.Group, requestData.ResourceEntity.Kind, requestData.ResourceEntity.Version, requestData.ResourceEntity.Name, nil, nil)
+			unstructuredResourceList := GetUnstructuredResourceListFromStore(requestData.ResourceDescriptor.ApiVersion, requestData.ResourceDescriptor.Kind, nil, nil)
 			if len(unstructuredResourceList.Items) > 0 {
 				workloadListChan <- unstructuredResourceList.Items
 			}
 		})
 	} else
 	// only filter by namespaces
-	if isResourceEntityEmpty && requestData.Namespaces != nil && requestData.ResourceNames == nil {
+	if isResourceDescriptorEmpty && requestData.Namespaces != nil && requestData.ResourceNames == nil {
 		for _, namespace := range *requestData.Namespaces {
 			wg.Go(func() {
 				unstructuredResourceList, err := GetUnstructuredNamespaceResourceList(namespace, nil, nil)
@@ -321,10 +321,10 @@ func GetWorkloadStatus(requestData GetWorkloadStatusRequest) ([]WorkloadStatusDt
 
 	} else
 	// filter by ResourceEntity and namespaces
-	if !isResourceEntityEmpty && requestData.Namespaces != nil && requestData.ResourceNames == nil {
-		if requestData.ResourceEntity.Kind == "Namespace" && requestData.ResourceEntity.Group == "v1" {
+	if !isResourceDescriptorEmpty && requestData.Namespaces != nil && requestData.ResourceNames == nil {
+		if requestData.ResourceDescriptor.Kind == "Namespace" && requestData.ResourceDescriptor.ApiVersion == "v1" {
 			wg.Go(func() {
-				unstructuredResourceNamespaceList := GetUnstructuredResourceListFromStore(requestData.ResourceEntity.Group, requestData.ResourceEntity.Kind, requestData.ResourceEntity.Version, requestData.ResourceEntity.Name, nil, nil)
+				unstructuredResourceNamespaceList := GetUnstructuredResourceListFromStore(requestData.ResourceDescriptor.ApiVersion, requestData.ResourceDescriptor.Kind, nil, nil)
 				for _, namespace := range *requestData.Namespaces {
 					if namespace == "" {
 						continue
@@ -339,7 +339,7 @@ func GetWorkloadStatus(requestData GetWorkloadStatusRequest) ([]WorkloadStatusDt
 		} else {
 			for _, namespace := range *requestData.Namespaces {
 				wg.Go(func() {
-					unstructuredResourceList := GetUnstructuredResourceListFromStore(requestData.ResourceEntity.Group, requestData.ResourceEntity.Kind, requestData.ResourceEntity.Version, requestData.ResourceEntity.Name, &namespace, nil)
+					unstructuredResourceList := GetUnstructuredResourceListFromStore(requestData.ResourceDescriptor.ApiVersion, requestData.ResourceDescriptor.Kind, &namespace, nil)
 					if len(unstructuredResourceList.Items) > 0 {
 						workloadListChan <- unstructuredResourceList.Items
 					}
@@ -349,11 +349,11 @@ func GetWorkloadStatus(requestData GetWorkloadStatusRequest) ([]WorkloadStatusDt
 
 	} else
 	// filter by ResourceEntity, namespaces and resourceNames
-	if !isResourceEntityEmpty && requestData.Namespaces != nil && requestData.ResourceNames != nil {
+	if !isResourceDescriptorEmpty && requestData.Namespaces != nil && requestData.ResourceNames != nil {
 		for _, resourceName := range *requestData.ResourceNames {
 			for _, namespace := range *requestData.Namespaces {
 				wg.Go(func() {
-					workloads, err := store.SearchByGroupKindNameNamespace(valkeyClient, requestData.ResourceEntity.Group, requestData.ResourceEntity.Kind, resourceName, &namespace)
+					workloads, err := store.SearchByGroupKindNameNamespace(valkeyClient, requestData.ResourceDescriptor.ApiVersion, requestData.ResourceDescriptor.Kind, resourceName, &namespace)
 					if err != nil {
 						k8sLogger.Warn("Error getting workload", "error", err)
 					} else {
@@ -364,10 +364,10 @@ func GetWorkloadStatus(requestData GetWorkloadStatusRequest) ([]WorkloadStatusDt
 		}
 	} else
 	// filter by ResourceEntity and resourceNames
-	if !isResourceEntityEmpty && requestData.Namespaces == nil && requestData.ResourceNames != nil {
+	if !isResourceDescriptorEmpty && requestData.Namespaces == nil && requestData.ResourceNames != nil {
 		for _, resourceName := range *requestData.ResourceNames {
 			wg.Go(func() {
-				workloads, err := store.SearchByGroupKindNameNamespace(valkeyClient, requestData.ResourceEntity.Group, requestData.ResourceEntity.Kind, resourceName, nil)
+				workloads, err := store.SearchByGroupKindNameNamespace(valkeyClient, requestData.ResourceDescriptor.ApiVersion, requestData.ResourceDescriptor.Kind, resourceName, nil)
 				if err != nil {
 					k8sLogger.Warn("Error getting workload", "error", err)
 				} else {
@@ -377,7 +377,7 @@ func GetWorkloadStatus(requestData GetWorkloadStatusRequest) ([]WorkloadStatusDt
 		}
 	} else
 	// filter by namespaces and resourceNames
-	if isResourceEntityEmpty && requestData.Namespaces != nil && requestData.ResourceNames != nil {
+	if isResourceDescriptorEmpty && requestData.Namespaces != nil && requestData.ResourceNames != nil {
 		for _, resourceName := range *requestData.ResourceNames {
 			for _, namespace := range *requestData.Namespaces {
 				wg.Go(func() {
@@ -409,7 +409,7 @@ func GetWorkloadStatus(requestData GetWorkloadStatusRequest) ([]WorkloadStatusDt
 	}
 
 	// get all events from the store
-	eventUnstructuredList := GetUnstructuredResourceListFromStore(utils.EventResource.Group, utils.EventResource.Kind, utils.EventResource.Version, utils.EventResource.Name, utils.Pointer(""), nil)
+	eventUnstructuredList := GetUnstructuredResourceListFromStore(requestData.ResourceDescriptor.ApiVersion, requestData.ResourceDescriptor.Kind, utils.Pointer(""), nil)
 	var eventList []v1.Event
 	for _, item := range eventUnstructuredList.Items {
 		var event v1.Event

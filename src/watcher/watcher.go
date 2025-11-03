@@ -39,11 +39,10 @@ type WatcherOnUpdate func(resource WatcherResourceIdentifier, oldObj *unstructur
 type WatcherOnDelete func(resource WatcherResourceIdentifier, obj *unstructured.Unstructured)
 
 type WatcherResourceIdentifier struct {
-	Name         string
-	Kind         string
-	Version      string
-	GroupVersion string
-	Namespaced   bool
+	Plural     string
+	Kind       string
+	ApiVersion string
+	Namespaced bool
 }
 
 type WatcherResourceState string
@@ -170,13 +169,13 @@ func (self *watcher) watchWithRetry(ctx context.Context, resource WatcherResourc
 
 func (self *watcher) startSingleWatcher(ctx context.Context, resource WatcherResourceIdentifier, onAdd WatcherOnAdd, onUpdate WatcherOnUpdate, onDelete WatcherOnDelete) error {
 	dynamicClient := self.clientProvider.DynamicClient()
-	gv, err := schema.ParseGroupVersion(resource.GroupVersion)
+	gv, err := schema.ParseGroupVersion(resource.ApiVersion)
 	if err != nil {
 		return fmt.Errorf("invalid groupVersion: %s", err)
 	}
 
 	informerFactory := dynamicinformer.NewFilteredDynamicSharedInformerFactory(dynamicClient, utils.ResourceResyncTime, v1.NamespaceAll, nil)
-	resourceInformer := informerFactory.ForResource(self.createGroupVersionResource(gv.Group, gv.Version, resource.Name)).Informer()
+	resourceInformer := informerFactory.ForResource(self.createGroupVersionResource(gv.Group, gv.Version, resource.Plural)).Informer()
 
 	// Enhanced error handler that can detect fatal errors
 	err = resourceInformer.SetWatchErrorHandler(func(r *cache.Reflector, err error) {
@@ -188,9 +187,9 @@ func (self *watcher) startSingleWatcher(ctx context.Context, resource WatcherRes
 			return // Resource might have been deleted, no need to retry
 		}
 		self.logger.Error("Encountered error while watching resource",
-			"resourceName", resource.Name,
+			"resourceName", resource.Plural,
 			"resourceKind", resource.Kind,
-			"resourceGroupVersion", resource.GroupVersion,
+			"resourceGroupVersion", resource.ApiVersion,
 			"error", err)
 	})
 	if err != nil {
