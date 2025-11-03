@@ -112,7 +112,7 @@ func (self *argocd) ArgoCdCreateApiToken(data ArgoCdCreateApiTokenRequest) (bool
 	if err != nil {
 		log.Fatalf("Failed to convert Secret to unstructured: %v", err)
 	}
-	_, err = dynamicClient.Resource(kubernetes.CreateGroupVersionResource("secrets", "v1")).Namespace(self.config.Get("MO_OWN_NAMESPACE")).Update(context.Background(), &unstructured.Unstructured{Object: argoCdSecretObjMap}, metav1.UpdateOptions{})
+	_, err = dynamicClient.Resource(kubernetes.CreateGroupVersionResource(utils.SecretResource.ApiVersion, utils.SecretResource.Plural)).Namespace(self.config.Get("MO_OWN_NAMESPACE")).Update(context.Background(), &unstructured.Unstructured{Object: argoCdSecretObjMap}, metav1.UpdateOptions{})
 	if err != nil {
 		return false, err
 	}
