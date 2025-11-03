@@ -56,7 +56,7 @@ func getOrFetchReplicaSets(valkeyClient valkeyclient.ValkeyClient, cache map[str
 	if cachedSets, found := cache[namespace]; found {
 		return cachedSets
 	}
-	replicaSetsResults, err := store.SearchByKeyParts(valkeyClient, "apps/v1", "ReplicaSet", namespace, "*")
+	replicaSetsResults, err := store.SearchByKeyParts(valkeyClient, VALKEY_RESOURCE_PREFIX, utils.ReplicaSetResource.ApiVersion, utils.ReplicaSetResource.Kind, namespace, "*")
 	if err != nil {
 		k8sLogger.Warn("Error getting replicasets", "namespace", namespace, "error", err)
 		return nil
@@ -69,7 +69,7 @@ func getOrFetchJobs(cache map[string][]unstructured.Unstructured, namespace stri
 	if cachedSets, found := cache[namespace]; found {
 		return cachedSets
 	}
-	jobResults, err := store.SearchByKeyParts(valkeyClient, "batch/v1", "Job", namespace, "*")
+	jobResults, err := store.SearchByKeyParts(valkeyClient, VALKEY_RESOURCE_PREFIX, utils.CronJobResource.ApiVersion, utils.CronJobResource.Kind, namespace, "*")
 	if err != nil {
 		k8sLogger.Warn("Error getting jobs", "namespace", namespace, "error", err)
 		return nil
@@ -82,7 +82,7 @@ func getOrFetchPods(cache map[string][]unstructured.Unstructured, namespace stri
 	if cachedPods, found := cache[namespace]; found {
 		return cachedPods
 	}
-	podsResults, err := store.SearchByKeyParts(valkeyClient, "v1", "Pod", namespace, "*")
+	podsResults, err := store.SearchByKeyParts(valkeyClient, VALKEY_RESOURCE_PREFIX, utils.PodResource.ApiVersion, utils.PodResource.Kind, namespace, "*")
 	if err != nil {
 		k8sLogger.Warn("Error getting pods", "namespace", namespace, "error", err)
 		return nil
