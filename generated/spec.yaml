@@ -96,8 +96,8 @@ audit-log/list:
                         type: string
                     status:
                         type: string
-            mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·35,mogenius-k8s-manager/src/core.Response·36]:
-                name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·35,mogenius-k8s-manager/src/core.Response·36]
+            mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·34,mogenius-k8s-manager/src/core.Response·35]:
+                name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·34,mogenius-k8s-manager/src/core.Response·35]
                 properties:
                     data:
                         structRef: mogenius-k8s-manager/src/core.Response
@@ -154,7 +154,7 @@ audit-log/list:
                 name: time.Time
                 properties: {}
         typeInfo:
-            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·35,mogenius-k8s-manager/src/core.Response·36]
+            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·34,mogenius-k8s-manager/src/core.Response·35]
             type: struct
 cluster/argo-cd-application-refresh:
     requestSchema:
@@ -2103,8 +2103,8 @@ create/grant:
             type: struct
     responseSchema:
         structs:
-            mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·30,string]:
-                name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·30,string]
+            mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·29,string]:
+                name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·29,string]
                 properties:
                     data:
                         type: string
@@ -2113,28 +2113,34 @@ create/grant:
                     status:
                         type: string
         typeInfo:
-            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·30,string]
+            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·29,string]
             type: struct
 create/new-workload:
     requestSchema:
         structs:
-            mogenius-k8s-manager/src/core.Request:
-                name: mogenius-k8s-manager/src/core.Request
+            mogenius-k8s-manager/src/utils.ResourceDescriptor:
+                name: mogenius-k8s-manager/src/utils.ResourceDescriptor
                 properties:
                     apiVersion:
                         type: string
                     kind:
                         type: string
-                    namespace:
-                        type: string
+                    namespaced:
+                        type: bool
                     plural:
                         type: string
-                    resourceName:
+            mogenius-k8s-manager/src/utils.WorkloadChangeRequest:
+                name: mogenius-k8s-manager/src/utils.WorkloadChangeRequest
+                properties:
+                    ResourceDescriptor:
+                        structRef: mogenius-k8s-manager/src/utils.ResourceDescriptor
+                        type: struct
+                    namespace:
                         type: string
                     yamlData:
                         type: string
         typeInfo:
-            structRef: mogenius-k8s-manager/src/core.Request
+            structRef: mogenius-k8s-manager/src/utils.WorkloadChangeRequest
             type: struct
     responseSchema:
         structs:
@@ -2148,8 +2154,8 @@ create/new-workload:
                         valueType:
                             pointer: true
                             type: any
-            ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·18,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
-            :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·18,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+            ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadChangeRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+            :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadChangeRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
                 properties:
                     data:
                         pointer: true
@@ -2160,7 +2166,7 @@ create/new-workload:
                     status:
                         type: string
         typeInfo:
-            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·18,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadChangeRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
             type: struct
 create/user:
     requestSchema:
@@ -2196,8 +2202,8 @@ create/user:
             type: struct
     responseSchema:
         structs:
-            mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·25,string]:
-                name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·25,string]
+            mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·24,string]:
+                name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·24,string]
                 properties:
                     data:
                         type: string
@@ -2206,7 +2212,7 @@ create/user:
                     status:
                         type: string
         typeInfo:
-            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·25,string]
+            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·24,string]
             type: struct
 create/workspace:
     requestSchema:
@@ -2237,8 +2243,8 @@ create/workspace:
             type: struct
     responseSchema:
         structs:
-            mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·19,string]:
-                name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·19,string]
+            mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·18,string]:
+                name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·18,string]
                 properties:
                     data:
                         type: string
@@ -2247,7 +2253,7 @@ create/workspace:
                     status:
                         type: string
         typeInfo:
-            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·19,string]
+            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·18,string]
             type: struct
 delete/grant:
     requestSchema:
@@ -2262,8 +2268,8 @@ delete/grant:
             type: struct
     responseSchema:
         structs:
-            mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·33,string]:
-                name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·33,string]
+            mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·32,string]:
+                name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·32,string]
                 properties:
                     data:
                         type: string
@@ -2272,7 +2278,7 @@ delete/grant:
                     status:
                         type: string
         typeInfo:
-            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·33,string]
+            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·32,string]
             type: struct
 delete/user:
     requestSchema:
@@ -2287,8 +2293,8 @@ delete/user:
             type: struct
     responseSchema:
         structs:
-            mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·28,string]:
-                name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·28,string]
+            mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·27,string]:
+                name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·27,string]
                 properties:
                     data:
                         type: string
@@ -2297,35 +2303,41 @@ delete/user:
                     status:
                         type: string
         typeInfo:
-            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·28,string]
+            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·27,string]
             type: struct
 delete/workload:
     requestSchema:
         structs:
-            mogenius-k8s-manager/src/core.Request:
-                name: mogenius-k8s-manager/src/core.Request
+            mogenius-k8s-manager/src/utils.ResourceDescriptor:
+                name: mogenius-k8s-manager/src/utils.ResourceDescriptor
                 properties:
                     apiVersion:
                         type: string
                     kind:
                         type: string
-                    namespace:
-                        type: string
+                    namespaced:
+                        type: bool
                     plural:
+                        type: string
+            mogenius-k8s-manager/src/utils.WorkloadSingleRequest:
+                name: mogenius-k8s-manager/src/utils.WorkloadSingleRequest
+                properties:
+                    ResourceDescriptor:
+                        structRef: mogenius-k8s-manager/src/utils.ResourceDescriptor
+                        type: struct
+                    namespace:
                         type: string
                     resourceName:
                         type: string
-                    yamlData:
-                        type: string
         typeInfo:
-            structRef: mogenius-k8s-manager/src/core.Request
+            structRef: mogenius-k8s-manager/src/utils.WorkloadSingleRequest
             type: struct
     responseSchema:
         structs:
             ANON_STRUCT_1:
                 properties: {}
-            mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·18,mogenius-k8s-manager/src/core.Void]:
-                name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·18,mogenius-k8s-manager/src/core.Void]
+            mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadSingleRequest,mogenius-k8s-manager/src/core.Void]:
+                name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadSingleRequest,mogenius-k8s-manager/src/core.Void]
                 properties:
                     data:
                         pointer: true
@@ -2336,7 +2348,7 @@ delete/workload:
                     status:
                         type: string
         typeInfo:
-            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·18,mogenius-k8s-manager/src/core.Void]
+            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadSingleRequest,mogenius-k8s-manager/src/core.Void]
             type: struct
 delete/workspace:
     requestSchema:
@@ -2351,8 +2363,8 @@ delete/workspace:
             type: struct
     responseSchema:
         structs:
-            mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·23,string]:
-                name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·23,string]
+            mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·22,string]:
+                name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·22,string]
                 properties:
                     data:
                         type: string
@@ -2361,7 +2373,7 @@ delete/workspace:
                     status:
                         type: string
         typeInfo:
-            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·23,string]
+            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·22,string]
             type: struct
 describe:
     requestSchema:
@@ -2497,28 +2509,34 @@ describe:
 describe/workload:
     requestSchema:
         structs:
-            mogenius-k8s-manager/src/core.Request:
-                name: mogenius-k8s-manager/src/core.Request
+            mogenius-k8s-manager/src/utils.ResourceDescriptor:
+                name: mogenius-k8s-manager/src/utils.ResourceDescriptor
                 properties:
                     apiVersion:
                         type: string
                     kind:
                         type: string
-                    namespace:
-                        type: string
+                    namespaced:
+                        type: bool
                     plural:
+                        type: string
+            mogenius-k8s-manager/src/utils.WorkloadSingleRequest:
+                name: mogenius-k8s-manager/src/utils.WorkloadSingleRequest
+                properties:
+                    ResourceDescriptor:
+                        structRef: mogenius-k8s-manager/src/utils.ResourceDescriptor
+                        type: struct
+                    namespace:
                         type: string
                     resourceName:
                         type: string
-                    yamlData:
-                        type: string
         typeInfo:
-            structRef: mogenius-k8s-manager/src/core.Request
+            structRef: mogenius-k8s-manager/src/utils.WorkloadSingleRequest
             type: struct
     responseSchema:
         structs:
-            mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·18,string]:
-                name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·18,string]
+            mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadSingleRequest,string]:
+                name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadSingleRequest,string]
                 properties:
                     data:
                         type: string
@@ -2527,7 +2545,7 @@ describe/workload:
                     status:
                         type: string
         typeInfo:
-            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·18,string]
+            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadSingleRequest,string]
             type: struct
 files/chmod:
     legacyResponseLayout: true
@@ -2931,8 +2949,8 @@ get/grant:
                         type: string
                     kind:
                         type: string
-            mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·31,*mogenius-k8s-manager/src/crds/v1alpha1.Grant]:
-                name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·31,*mogenius-k8s-manager/src/crds/v1alpha1.Grant]
+            mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·30,*mogenius-k8s-manager/src/crds/v1alpha1.Grant]:
+                name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·30,*mogenius-k8s-manager/src/crds/v1alpha1.Grant]
                 properties:
                     data:
                         pointer: true
@@ -2975,7 +2993,7 @@ get/grant:
                 name: time.Time
                 properties: {}
         typeInfo:
-            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·31,*mogenius-k8s-manager/src/crds/v1alpha1.Grant]
+            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·30,*mogenius-k8s-manager/src/crds/v1alpha1.Grant]
             type: struct
 get/grants:
     requestSchema:
@@ -3101,8 +3119,8 @@ get/grants:
                         type: string
                     kind:
                         type: string
-            mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·29,[]mogenius-k8s-manager/src/crds/v1alpha1.Grant]:
-                name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·29,[]mogenius-k8s-manager/src/crds/v1alpha1.Grant]
+            mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·28,[]mogenius-k8s-manager/src/crds/v1alpha1.Grant]:
+                name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·28,[]mogenius-k8s-manager/src/crds/v1alpha1.Grant]
                 properties:
                     data:
                         elementType:
@@ -3146,7 +3164,7 @@ get/grants:
                 name: time.Time
                 properties: {}
         typeInfo:
-            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·29,[]mogenius-k8s-manager/src/crds/v1alpha1.Grant]
+            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·28,[]mogenius-k8s-manager/src/crds/v1alpha1.Grant]
             type: struct
 get/labeled-workload-list:
     requestSchema:
@@ -3414,8 +3432,8 @@ get/user:
                         type: string
                     kind:
                         type: string
-            mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·26,*mogenius-k8s-manager/src/crds/v1alpha1.User]:
-                name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·26,*mogenius-k8s-manager/src/crds/v1alpha1.User]
+            mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·25,*mogenius-k8s-manager/src/crds/v1alpha1.User]:
+                name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·25,*mogenius-k8s-manager/src/crds/v1alpha1.User]
                 properties:
                     data:
                         pointer: true
@@ -3460,7 +3478,7 @@ get/user:
                 name: time.Time
                 properties: {}
         typeInfo:
-            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·26,*mogenius-k8s-manager/src/crds/v1alpha1.User]
+            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·25,*mogenius-k8s-manager/src/crds/v1alpha1.User]
             type: struct
 get/users:
     requestSchema:
@@ -3594,8 +3612,8 @@ get/users:
                         type: string
                     kind:
                         type: string
-            mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·24,[]mogenius-k8s-manager/src/crds/v1alpha1.User]:
-                name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·24,[]mogenius-k8s-manager/src/crds/v1alpha1.User]
+            mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·23,[]mogenius-k8s-manager/src/crds/v1alpha1.User]:
+                name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·23,[]mogenius-k8s-manager/src/crds/v1alpha1.User]
                 properties:
                     data:
                         elementType:
@@ -3641,28 +3659,34 @@ get/users:
                 name: time.Time
                 properties: {}
         typeInfo:
-            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·24,[]mogenius-k8s-manager/src/crds/v1alpha1.User]
+            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·23,[]mogenius-k8s-manager/src/crds/v1alpha1.User]
             type: struct
 get/workload:
     requestSchema:
         structs:
-            mogenius-k8s-manager/src/core.Request:
-                name: mogenius-k8s-manager/src/core.Request
+            mogenius-k8s-manager/src/utils.ResourceDescriptor:
+                name: mogenius-k8s-manager/src/utils.ResourceDescriptor
                 properties:
                     apiVersion:
                         type: string
                     kind:
                         type: string
-                    namespace:
-                        type: string
+                    namespaced:
+                        type: bool
                     plural:
+                        type: string
+            mogenius-k8s-manager/src/utils.WorkloadSingleRequest:
+                name: mogenius-k8s-manager/src/utils.WorkloadSingleRequest
+                properties:
+                    ResourceDescriptor:
+                        structRef: mogenius-k8s-manager/src/utils.ResourceDescriptor
+                        type: struct
+                    namespace:
                         type: string
                     resourceName:
                         type: string
-                    yamlData:
-                        type: string
         typeInfo:
-            structRef: mogenius-k8s-manager/src/core.Request
+            structRef: mogenius-k8s-manager/src/utils.WorkloadSingleRequest
             type: struct
     responseSchema:
         structs:
@@ -3676,8 +3700,8 @@ get/workload:
                         valueType:
                             pointer: true
                             type: any
-            ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·18,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
-            :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·18,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+            ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadSingleRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+            :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadSingleRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
                 properties:
                     data:
                         pointer: true
@@ -3688,33 +3712,39 @@ get/workload:
                     status:
                         type: string
         typeInfo:
-            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·18,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadSingleRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
             type: struct
 get/workload-example:
     requestSchema:
         structs:
-            mogenius-k8s-manager/src/core.Request:
-                name: mogenius-k8s-manager/src/core.Request
+            mogenius-k8s-manager/src/utils.ResourceDescriptor:
+                name: mogenius-k8s-manager/src/utils.ResourceDescriptor
                 properties:
                     apiVersion:
                         type: string
                     kind:
                         type: string
-                    namespace:
-                        type: string
+                    namespaced:
+                        type: bool
                     plural:
+                        type: string
+            mogenius-k8s-manager/src/utils.WorkloadSingleRequest:
+                name: mogenius-k8s-manager/src/utils.WorkloadSingleRequest
+                properties:
+                    ResourceDescriptor:
+                        structRef: mogenius-k8s-manager/src/utils.ResourceDescriptor
+                        type: struct
+                    namespace:
                         type: string
                     resourceName:
                         type: string
-                    yamlData:
-                        type: string
         typeInfo:
-            structRef: mogenius-k8s-manager/src/core.Request
+            structRef: mogenius-k8s-manager/src/utils.WorkloadSingleRequest
             type: struct
     responseSchema:
         structs:
-            mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·18,string]:
-                name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·18,string]
+            mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadSingleRequest,string]:
+                name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadSingleRequest,string]
                 properties:
                     data:
                         type: string
@@ -3723,7 +3753,7 @@ get/workload-example:
                     status:
                         type: string
         typeInfo:
-            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·18,string]
+            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadSingleRequest,string]
             type: struct
 get/workload-list:
     requestSchema:
@@ -4126,8 +4156,8 @@ get/workspace:
                             structRef: mogenius-k8s-manager/src/crds/v1alpha1.WorkspaceResourceIdentifier
                             type: struct
                         type: array
-            ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·20,*mogenius-k8s-manager/src/core.GetWorkspaceResult]
-            :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·20,*mogenius-k8s-manager/src/core.GetWorkspaceResult]
+            ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·19,*mogenius-k8s-manager/src/core.GetWorkspaceResult]
+            :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·19,*mogenius-k8s-manager/src/core.GetWorkspaceResult]
                 properties:
                     data:
                         pointer: true
@@ -4150,7 +4180,7 @@ get/workspace:
                 name: time.Time
                 properties: {}
         typeInfo:
-            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·20,*mogenius-k8s-manager/src/core.GetWorkspaceResult]
+            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·19,*mogenius-k8s-manager/src/core.GetWorkspaceResult]
             type: struct
 get/workspace-workloads:
     requestSchema:
@@ -4202,8 +4232,8 @@ get/workspace-workloads:
                         valueType:
                             pointer: true
                             type: any
-            ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·34,[]k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
-            :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·34,[]k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+            ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·33,[]k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+            :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·33,[]k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
                 properties:
                     data:
                         elementType:
@@ -4215,7 +4245,7 @@ get/workspace-workloads:
                     status:
                         type: string
         typeInfo:
-            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·34,[]k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·33,[]k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
             type: struct
 get/workspaces:
     requestSchema:
@@ -5103,8 +5133,8 @@ sealed-secret/create-from-existing:
                         valueType:
                             pointer: true
                             type: any
-            ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·37,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
-            :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·37,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+            ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·36,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+            :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·36,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
                 properties:
                     data:
                         pointer: true
@@ -5115,7 +5145,7 @@ sealed-secret/create-from-existing:
                     status:
                         type: string
         typeInfo:
-            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·37,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·36,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
             type: struct
 sealed-secret/get-certificate:
     requestSchema:
@@ -5920,23 +5950,29 @@ system/check:
 trigger/workload:
     requestSchema:
         structs:
-            mogenius-k8s-manager/src/core.Request:
-                name: mogenius-k8s-manager/src/core.Request
+            mogenius-k8s-manager/src/utils.ResourceDescriptor:
+                name: mogenius-k8s-manager/src/utils.ResourceDescriptor
                 properties:
                     apiVersion:
                         type: string
                     kind:
                         type: string
-                    namespace:
-                        type: string
+                    namespaced:
+                        type: bool
                     plural:
+                        type: string
+            mogenius-k8s-manager/src/utils.WorkloadSingleRequest:
+                name: mogenius-k8s-manager/src/utils.WorkloadSingleRequest
+                properties:
+                    ResourceDescriptor:
+                        structRef: mogenius-k8s-manager/src/utils.ResourceDescriptor
+                        type: struct
+                    namespace:
                         type: string
                     resourceName:
                         type: string
-                    yamlData:
-                        type: string
         typeInfo:
-            structRef: mogenius-k8s-manager/src/core.Request
+            structRef: mogenius-k8s-manager/src/utils.WorkloadSingleRequest
             type: struct
     responseSchema:
         structs:
@@ -5950,8 +5986,8 @@ trigger/workload:
                         valueType:
                             pointer: true
                             type: any
-            ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·18,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
-            :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·18,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+            ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadSingleRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+            :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadSingleRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
                 properties:
                     data:
                         pointer: true
@@ -5962,7 +5998,7 @@ trigger/workload:
                     status:
                         type: string
         typeInfo:
-            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·18,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadSingleRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
             type: struct
 uninstall-cert-manager:
     requestSchema:
@@ -6123,8 +6159,8 @@ update/grant:
             type: struct
     responseSchema:
         structs:
-            mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·32,string]:
-                name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·32,string]
+            mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·31,string]:
+                name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·31,string]
                 properties:
                     data:
                         type: string
@@ -6133,7 +6169,7 @@ update/grant:
                     status:
                         type: string
         typeInfo:
-            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·32,string]
+            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·31,string]
             type: struct
 update/user:
     requestSchema:
@@ -6169,8 +6205,8 @@ update/user:
             type: struct
     responseSchema:
         structs:
-            mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·27,string]:
-                name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·27,string]
+            mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·26,string]:
+                name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·26,string]
                 properties:
                     data:
                         type: string
@@ -6179,28 +6215,34 @@ update/user:
                     status:
                         type: string
         typeInfo:
-            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·27,string]
+            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·26,string]
             type: struct
 update/workload:
     requestSchema:
         structs:
-            mogenius-k8s-manager/src/core.Request:
-                name: mogenius-k8s-manager/src/core.Request
+            mogenius-k8s-manager/src/utils.ResourceDescriptor:
+                name: mogenius-k8s-manager/src/utils.ResourceDescriptor
                 properties:
                     apiVersion:
                         type: string
                     kind:
                         type: string
-                    namespace:
-                        type: string
+                    namespaced:
+                        type: bool
                     plural:
                         type: string
-                    resourceName:
+            mogenius-k8s-manager/src/utils.WorkloadChangeRequest:
+                name: mogenius-k8s-manager/src/utils.WorkloadChangeRequest
+                properties:
+                    ResourceDescriptor:
+                        structRef: mogenius-k8s-manager/src/utils.ResourceDescriptor
+                        type: struct
+                    namespace:
                         type: string
                     yamlData:
                         type: string
         typeInfo:
-            structRef: mogenius-k8s-manager/src/core.Request
+            structRef: mogenius-k8s-manager/src/utils.WorkloadChangeRequest
             type: struct
     responseSchema:
         structs:
@@ -6214,8 +6256,8 @@ update/workload:
                         valueType:
                             pointer: true
                             type: any
-            ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·18,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
-            :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·18,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+            ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadChangeRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+            :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadChangeRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
                 properties:
                     data:
                         pointer: true
@@ -6226,7 +6268,7 @@ update/workload:
                     status:
                         type: string
         typeInfo:
-            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·18,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadChangeRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
             type: struct
 update/workspace:
     requestSchema:
@@ -6257,8 +6299,8 @@ update/workspace:
             type: struct
     responseSchema:
         structs:
-            mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·22,string]:
-                name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·22,string]
+            mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·21,string]:
+                name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·21,string]
                 properties:
                     data:
                         type: string
@@ -6267,7 +6309,7 @@ update/workspace:
                     status:
                         type: string
         typeInfo:
-            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·22,string]
+            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·21,string]
             type: struct
 upgrade-cert-manager:
     requestSchema:
@@ -6460,8 +6502,8 @@ workspace/clean-up:
                         type: string
                     reason:
                         type: string
-            mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·21,mogenius-k8s-manager/src/core.CleanUpResult]:
-                name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·21,mogenius-k8s-manager/src/core.CleanUpResult]
+            mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·20,mogenius-k8s-manager/src/core.CleanUpResult]:
+                name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·20,mogenius-k8s-manager/src/core.CleanUpResult]
                 properties:
                     data:
                         structRef: mogenius-k8s-manager/src/core.CleanUpResult
@@ -6471,5 +6513,5 @@ workspace/clean-up:
                     status:
                         type: string
         typeInfo:
-            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·21,mogenius-k8s-manager/src/core.CleanUpResult]
+            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·20,mogenius-k8s-manager/src/core.CleanUpResult]
             type: struct
