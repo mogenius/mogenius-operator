@@ -1167,89 +1167,78 @@ func (self *socketApi) registerPatterns() {
 		},
 	)
 
-	{
-		type Request struct {
-			Kind         string `json:"kind"`
-			Plural       string `json:"plural"`
-			ApiVersion   string `json:"apiVersion"`
-			Namespace    string `json:"namespace,omitempty"`
-			ResourceName string `json:"resourceName,omitempty"`
-			YamlData     string `json:"yamlData,omitempty"`
-		}
+	RegisterPatternHandler(
+		PatternHandle{self, "describe/workload"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request utils.WorkloadSingleRequest) (string, error) {
+			result, err := kubernetes.DescribeUnstructuredResource(request.ApiVersion, request.Plural, request.Namespace, request.ResourceName)
+			return store.AddToAuditLog(datagram, self.logger, result, err, nil, nil)
+		},
+	)
 
-		RegisterPatternHandler(
-			PatternHandle{self, "describe/workload"},
-			PatternConfig{},
-			func(datagram structs.Datagram, request Request) (string, error) {
-				result, err := kubernetes.DescribeUnstructuredResource(request.ApiVersion, request.Plural, request.Namespace, request.ResourceName)
-				return store.AddToAuditLog(datagram, self.logger, result, err, nil, nil)
-			},
-		)
+	RegisterPatternHandler(
+		PatternHandle{self, "create/new-workload"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request utils.WorkloadChangeRequest) (*unstructured.Unstructured, error) {
+			createdRes, err := kubernetes.CreateUnstructuredResource(request.ApiVersion, request.Plural, request.Namespace, request.YamlData)
+			return store.AddToAuditLog(datagram, self.logger, createdRes, err, nil, createdRes)
+		},
+	)
 
-		RegisterPatternHandler(
-			PatternHandle{self, "create/new-workload"},
-			PatternConfig{},
-			func(datagram structs.Datagram, request Request) (*unstructured.Unstructured, error) {
-				createdRes, err := kubernetes.CreateUnstructuredResource(request.ApiVersion, request.Plural, request.Namespace, request.YamlData)
-				return store.AddToAuditLog(datagram, self.logger, createdRes, err, nil, createdRes)
-			},
-		)
+	RegisterPatternHandler(
+		PatternHandle{self, "get/workload"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request utils.WorkloadSingleRequest) (*unstructured.Unstructured, error) {
+			// we skip the audit log here because this is a read operation and it would spam the logs
+			return kubernetes.GetUnstructuredResourceFromStore(request.ApiVersion, request.Kind, request.Namespace, request.ResourceName)
+		},
+	)
 
-		RegisterPatternHandler(
-			PatternHandle{self, "get/workload"},
-			PatternConfig{},
-			func(datagram structs.Datagram, request Request) (*unstructured.Unstructured, error) {
-				// we skip the audit log here because this is a read operation and it would spam the logs
-				return kubernetes.GetUnstructuredResourceFromStore(request.ApiVersion, request.Kind, request.Namespace, request.ResourceName)
-			},
-		)
+	RegisterPatternHandler(
+		PatternHandle{self, "get/workload-example"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request utils.WorkloadSingleRequest) (string, error) {
+			return kubernetes.GetResourceTemplateYaml(request.ApiVersion, request.Kind, request.Namespace, request.ResourceName), nil
+		},
+	)
 
-		RegisterPatternHandler(
-			PatternHandle{self, "get/workload-example"},
-			PatternConfig{},
-			func(datagram structs.Datagram, request Request) (string, error) {
-				return kubernetes.GetResourceTemplateYaml(request.ApiVersion, request.Kind, request.Namespace, request.ResourceName), nil
-			},
-		)
+	RegisterPatternHandler(
+		PatternHandle{self, "update/workload"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request utils.WorkloadChangeRequest) (*unstructured.Unstructured, error) {
+			var updatedObj *unstructured.Unstructured
+			err := yaml.Unmarshal([]byte(request.YamlData), &updatedObj)
+			if err != nil {
+				return nil, fmt.Errorf("failed to unmarshal YAML data: %w", err)
+			}
+			oldObj, _ := kubernetes.GetUnstructuredResourceFromStore(request.ApiVersion, request.Kind, request.Namespace, updatedObj.GetName())
+			updatedRes, err := kubernetes.UpdateUnstructuredResource(request.ApiVersion, request.Plural, request.Namespace, request.YamlData)
+			return store.AddToAuditLog(datagram, self.logger, updatedRes, err, oldObj, updatedRes)
+		},
+	)
 
-		RegisterPatternHandler(
-			PatternHandle{self, "update/workload"},
-			PatternConfig{},
-			func(datagram structs.Datagram, request Request) (*unstructured.Unstructured, error) {
-				var updatedObj *unstructured.Unstructured
-				err := yaml.Unmarshal([]byte(request.YamlData), &updatedObj)
-				if err != nil {
-					return nil, fmt.Errorf("failed to unmarshal YAML data: %w", err)
-				}
-				oldObj, _ := kubernetes.GetUnstructuredResourceFromStore(request.ApiVersion, request.Kind, request.Namespace, updatedObj.GetName())
-				updatedRes, err := kubernetes.UpdateUnstructuredResource(request.ApiVersion, request.Plural, request.Namespace, request.YamlData)
-				return store.AddToAuditLog(datagram, self.logger, updatedRes, err, oldObj, updatedRes)
-			},
-		)
+	RegisterPatternHandler(
+		PatternHandle{self, "delete/workload"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request utils.WorkloadSingleRequest) (Void, error) {
+			objToDel, _ := kubernetes.GetUnstructuredResourceFromStore(request.ApiVersion, request.Kind, request.Namespace, request.ResourceName)
+			err := kubernetes.DeleteUnstructuredResource(request.ApiVersion, request.Plural, request.Namespace, request.ResourceName)
+			_, auditErr := store.AddToAuditLog(datagram, self.logger, any(nil), err, objToDel, nil)
+			if auditErr != nil {
+				self.logger.Warn("failed to add event to audit log", "request", request, "error", err)
+			}
+			return nil, err
+		},
+	)
 
-		RegisterPatternHandler(
-			PatternHandle{self, "delete/workload"},
-			PatternConfig{},
-			func(datagram structs.Datagram, request Request) (Void, error) {
-				objToDel, _ := kubernetes.GetUnstructuredResourceFromStore(request.ApiVersion, request.Kind, request.Namespace, request.ResourceName)
-				err := kubernetes.DeleteUnstructuredResource(request.ApiVersion, request.Plural, request.Namespace, request.ResourceName)
-				_, auditErr := store.AddToAuditLog(datagram, self.logger, any(nil), err, objToDel, nil)
-				if auditErr != nil {
-					self.logger.Warn("failed to add event to audit log", "request", request, "error", err)
-				}
-				return nil, err
-			},
-		)
-
-		RegisterPatternHandler(
-			PatternHandle{self, "trigger/workload"},
-			PatternConfig{},
-			func(datagram structs.Datagram, request Request) (*unstructured.Unstructured, error) {
-				res, err := kubernetes.TriggerUnstructuredResource(request.ApiVersion, request.Plural, request.Namespace, request.ResourceName)
-				return store.AddToAuditLog(datagram, self.logger, res, err, nil, nil)
-			},
-		)
-	}
+	RegisterPatternHandler(
+		PatternHandle{self, "trigger/workload"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request utils.WorkloadSingleRequest) (*unstructured.Unstructured, error) {
+			res, err := kubernetes.TriggerUnstructuredResource(request.ApiVersion, request.Plural, request.Namespace, request.ResourceName)
+			return store.AddToAuditLog(datagram, self.logger, res, err, nil, nil)
+		},
+	)
 
 	RegisterPatternHandler(
 		PatternHandle{self, "get/workload-status"},

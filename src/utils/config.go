@@ -25,6 +25,18 @@ type ResourceDescriptor struct {
 	Namespaced bool   `json:"namespaced"`
 }
 
+type WorkloadSingleRequest struct {
+	ResourceDescriptor
+	Namespace    string `json:"namespace"`
+	ResourceName string `json:"resourceName"`
+}
+
+type WorkloadChangeRequest struct {
+	ResourceDescriptor
+	Namespace string `json:"namespace"`
+	YamlData  string `json:"yamlData"`
+}
+
 var DeploymentResource = ResourceDescriptor{
 	Kind:       "Deployment",
 	Plural:     "deployments",
