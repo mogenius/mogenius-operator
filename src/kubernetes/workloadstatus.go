@@ -17,9 +17,10 @@ import (
 )
 
 type WorkloadStatusItemDto struct {
-	UID               string      `json:"uid" validate:"required"`
-	Kind              string      `json:"kind" validate:"required"`
-	Group             string      `json:"group" validate:"required"`
+	UID        string `json:"uid" validate:"required"`
+	Kind       string `json:"kind" validate:"required"`
+	ApiVersion string `json:"apiVersion" validate:"required"`
+
 	Name              string      `json:"name" validate:"required"`
 	Namespace         string      `json:"namespace" validate:"required"`
 	CreationTimestamp metav1.Time `json:"creationTimestamp"`
@@ -156,7 +157,7 @@ func GetWorkloadStatusItems(
 	items = append(items, WorkloadStatusItemDto{
 		UID:               string(workload.GetUID()),
 		Kind:              workload.GetKind(),
-		Group:             workload.GetAPIVersion(),
+		ApiVersion:        workload.GetAPIVersion(),
 		Name:              workload.GetName(),
 		Namespace:         workload.GetNamespace(),
 		CreationTimestamp: workload.GetCreationTimestamp(),

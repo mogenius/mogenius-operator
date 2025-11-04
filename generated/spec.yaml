@@ -4072,6 +4072,8 @@ get/workload-status:
             mogenius-k8s-manager/src/kubernetes.WorkloadStatusItemDto:
                 name: mogenius-k8s-manager/src/kubernetes.WorkloadStatusItemDto
                 properties:
+                    apiVersion:
+                        type: string
                     creationTimestamp:
                         structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
                         type: struct
@@ -4083,8 +4085,6 @@ get/workload-status:
                             structRef: k8s.io/api/core/v1.Event
                             type: struct
                         type: array
-                    group:
-                        type: string
                     kind:
                         type: string
                     name:
