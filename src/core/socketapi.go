@@ -1197,8 +1197,8 @@ func (self *socketApi) registerPatterns() {
 	RegisterPatternHandler(
 		PatternHandle{self, "get/workload-example"},
 		PatternConfig{},
-		func(datagram structs.Datagram, request utils.WorkloadSingleRequest) (string, error) {
-			return kubernetes.GetResourceTemplateYaml(request.ApiVersion, request.Kind, request.Namespace, request.ResourceName), nil
+		func(datagram structs.Datagram, request utils.ResourceDescriptor) (string, error) {
+			return kubernetes.GetResourceTemplateYaml(request.ApiVersion, request.Kind), nil
 		},
 	)
 

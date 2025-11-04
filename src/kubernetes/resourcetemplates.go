@@ -13,9 +13,9 @@ const (
 	RESOURCE_TEMPLATE_CONFIGMAP = "mogenius-resource-templates"
 )
 
-func GetResourceTemplateYaml(apiVersion, kind, namespace, resourcename string) string {
+func GetResourceTemplateYaml(apiVersion, kind string) string {
 	// check if example data exists
-	yamlStr, err := loadResourceTemplateData(kind, namespace, resourcename)
+	yamlStr, err := loadResourceTemplateData(kind)
 	if err == nil {
 		return yamlStr
 	}
@@ -25,12 +25,6 @@ func GetResourceTemplateYaml(apiVersion, kind, namespace, resourcename string) s
 	obj.SetKind(kind)
 	obj.SetAPIVersion(apiVersion)
 
-	if namespace != "" {
-		obj.SetNamespace(namespace)
-	}
-	if resourcename != "" {
-		obj.SetName(resourcename)
-	}
 	obj.SetLabels(map[string]string{
 		"example": "label",
 	})
@@ -42,7 +36,7 @@ func GetResourceTemplateYaml(apiVersion, kind, namespace, resourcename string) s
 	return string(data)
 }
 
-func loadResourceTemplateData(kind, namespace, resourcename string) (string, error) {
+func loadResourceTemplateData(kind string) (string, error) {
 	// load example data from file
 	configmap, err := GetUnstructuredResource(utils.ConfigMapResource.ApiVersion, utils.ConfigMapResource.Plural, config.Get("MO_OWN_NAMESPACE"), RESOURCE_TEMPLATE_CONFIGMAP)
 	if err != nil {
@@ -60,12 +54,6 @@ func loadResourceTemplateData(kind, namespace, resourcename string) (string, err
 				err := yaml.Unmarshal([]byte(dataStr), &obj)
 				if err != nil {
 					continue
-				}
-				if namespace != "" {
-					obj.SetNamespace(namespace)
-				}
-				if resourcename != "" {
-					obj.SetName(resourcename)
 				}
 
 				data, err := yaml.Marshal(obj.Object)

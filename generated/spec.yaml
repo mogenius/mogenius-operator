@@ -3728,23 +3728,13 @@ get/workload-example:
                         type: bool
                     plural:
                         type: string
-            mogenius-k8s-manager/src/utils.WorkloadSingleRequest:
-                name: mogenius-k8s-manager/src/utils.WorkloadSingleRequest
-                properties:
-                    ResourceDescriptor:
-                        structRef: mogenius-k8s-manager/src/utils.ResourceDescriptor
-                        type: struct
-                    namespace:
-                        type: string
-                    resourceName:
-                        type: string
         typeInfo:
-            structRef: mogenius-k8s-manager/src/utils.WorkloadSingleRequest
+            structRef: mogenius-k8s-manager/src/utils.ResourceDescriptor
             type: struct
     responseSchema:
         structs:
-            mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadSingleRequest,string]:
-                name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadSingleRequest,string]
+            mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.ResourceDescriptor,string]:
+                name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.ResourceDescriptor,string]
                 properties:
                     data:
                         type: string
@@ -3753,7 +3743,7 @@ get/workload-example:
                     status:
                         type: string
         typeInfo:
-            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadSingleRequest,string]
+            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.ResourceDescriptor,string]
             type: struct
 get/workload-list:
     requestSchema:
