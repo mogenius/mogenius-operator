@@ -591,22 +591,19 @@ cluster/helm-release-get-workloads:
                     whitelist:
                         elementType:
                             pointer: true
-                            structRef: mogenius-k8s-manager/src/utils.ResourceEntry
+                            structRef: mogenius-k8s-manager/src/utils.ResourceDescriptor
                             type: struct
                         type: array
-            mogenius-k8s-manager/src/utils.ResourceEntry:
-                name: mogenius-k8s-manager/src/utils.ResourceEntry
+            mogenius-k8s-manager/src/utils.ResourceDescriptor:
+                name: mogenius-k8s-manager/src/utils.ResourceDescriptor
                 properties:
-                    group:
+                    apiVersion:
                         type: string
                     kind:
                         type: string
-                    name:
-                        type: string
-                    namespace:
-                        pointer: true
-                        type: string
-                    version:
+                    namespaced:
+                        type: bool
+                    plural:
                         type: string
         typeInfo:
             structRef: mogenius-k8s-manager/src/helm.HelmReleaseGetWorkloadsRequest
@@ -2121,24 +2118,29 @@ create/grant:
 create/new-workload:
     requestSchema:
         structs:
-            mogenius-k8s-manager/src/utils.ResourceData:
-                name: mogenius-k8s-manager/src/utils.ResourceData
+            mogenius-k8s-manager/src/utils.ResourceDescriptor:
+                name: mogenius-k8s-manager/src/utils.ResourceDescriptor
                 properties:
-                    group:
+                    apiVersion:
                         type: string
                     kind:
                         type: string
-                    name:
+                    namespaced:
+                        type: bool
+                    plural:
                         type: string
+            mogenius-k8s-manager/src/utils.WorkloadChangeRequest:
+                name: mogenius-k8s-manager/src/utils.WorkloadChangeRequest
+                properties:
+                    ResourceDescriptor:
+                        structRef: mogenius-k8s-manager/src/utils.ResourceDescriptor
+                        type: struct
                     namespace:
-                        pointer: true
-                        type: string
-                    version:
                         type: string
                     yamlData:
                         type: string
         typeInfo:
-            structRef: mogenius-k8s-manager/src/utils.ResourceData
+            structRef: mogenius-k8s-manager/src/utils.WorkloadChangeRequest
             type: struct
     responseSchema:
         structs:
@@ -2152,8 +2154,8 @@ create/new-workload:
                         valueType:
                             pointer: true
                             type: any
-            ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.ResourceData,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
-            :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.ResourceData,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+            ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadChangeRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+            :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadChangeRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
                 properties:
                     data:
                         pointer: true
@@ -2164,7 +2166,7 @@ create/new-workload:
                     status:
                         type: string
         typeInfo:
-            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.ResourceData,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadChangeRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
             type: struct
 create/user:
     requestSchema:
@@ -2306,30 +2308,36 @@ delete/user:
 delete/workload:
     requestSchema:
         structs:
-            mogenius-k8s-manager/src/utils.ResourceItem:
-                name: mogenius-k8s-manager/src/utils.ResourceItem
+            mogenius-k8s-manager/src/utils.ResourceDescriptor:
+                name: mogenius-k8s-manager/src/utils.ResourceDescriptor
                 properties:
-                    group:
+                    apiVersion:
                         type: string
                     kind:
                         type: string
-                    name:
+                    namespaced:
+                        type: bool
+                    plural:
                         type: string
+            mogenius-k8s-manager/src/utils.WorkloadSingleRequest:
+                name: mogenius-k8s-manager/src/utils.WorkloadSingleRequest
+                properties:
+                    ResourceDescriptor:
+                        structRef: mogenius-k8s-manager/src/utils.ResourceDescriptor
+                        type: struct
                     namespace:
                         type: string
                     resourceName:
                         type: string
-                    version:
-                        type: string
         typeInfo:
-            structRef: mogenius-k8s-manager/src/utils.ResourceItem
+            structRef: mogenius-k8s-manager/src/utils.WorkloadSingleRequest
             type: struct
     responseSchema:
         structs:
             ANON_STRUCT_1:
                 properties: {}
-            mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.ResourceItem,mogenius-k8s-manager/src/core.Void]:
-                name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.ResourceItem,mogenius-k8s-manager/src/core.Void]
+            mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadSingleRequest,mogenius-k8s-manager/src/core.Void]:
+                name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadSingleRequest,mogenius-k8s-manager/src/core.Void]
                 properties:
                     data:
                         pointer: true
@@ -2340,7 +2348,7 @@ delete/workload:
                     status:
                         type: string
         typeInfo:
-            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.ResourceItem,mogenius-k8s-manager/src/core.Void]
+            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadSingleRequest,mogenius-k8s-manager/src/core.Void]
             type: struct
 delete/workspace:
     requestSchema:
@@ -2501,28 +2509,34 @@ describe:
 describe/workload:
     requestSchema:
         structs:
-            mogenius-k8s-manager/src/utils.ResourceItem:
-                name: mogenius-k8s-manager/src/utils.ResourceItem
+            mogenius-k8s-manager/src/utils.ResourceDescriptor:
+                name: mogenius-k8s-manager/src/utils.ResourceDescriptor
                 properties:
-                    group:
+                    apiVersion:
                         type: string
                     kind:
                         type: string
-                    name:
+                    namespaced:
+                        type: bool
+                    plural:
                         type: string
+            mogenius-k8s-manager/src/utils.WorkloadSingleRequest:
+                name: mogenius-k8s-manager/src/utils.WorkloadSingleRequest
+                properties:
+                    ResourceDescriptor:
+                        structRef: mogenius-k8s-manager/src/utils.ResourceDescriptor
+                        type: struct
                     namespace:
                         type: string
                     resourceName:
                         type: string
-                    version:
-                        type: string
         typeInfo:
-            structRef: mogenius-k8s-manager/src/utils.ResourceItem
+            structRef: mogenius-k8s-manager/src/utils.WorkloadSingleRequest
             type: struct
     responseSchema:
         structs:
-            mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.ResourceItem,string]:
-                name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.ResourceItem,string]
+            mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadSingleRequest,string]:
+                name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadSingleRequest,string]
                 properties:
                     data:
                         type: string
@@ -2531,7 +2545,7 @@ describe/workload:
                     status:
                         type: string
         typeInfo:
-            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.ResourceItem,string]
+            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadSingleRequest,string]
             type: struct
 files/chmod:
     legacyResponseLayout: true
@@ -3161,7 +3175,7 @@ get/labeled-workload-list:
                     blacklist:
                         elementType:
                             pointer: true
-                            structRef: mogenius-k8s-manager/src/utils.ResourceEntry
+                            structRef: mogenius-k8s-manager/src/utils.ResourceDescriptor
                             type: struct
                         type: array
                     label:
@@ -3169,22 +3183,19 @@ get/labeled-workload-list:
                     whitelist:
                         elementType:
                             pointer: true
-                            structRef: mogenius-k8s-manager/src/utils.ResourceEntry
+                            structRef: mogenius-k8s-manager/src/utils.ResourceDescriptor
                             type: struct
                         type: array
-            mogenius-k8s-manager/src/utils.ResourceEntry:
-                name: mogenius-k8s-manager/src/utils.ResourceEntry
+            mogenius-k8s-manager/src/utils.ResourceDescriptor:
+                name: mogenius-k8s-manager/src/utils.ResourceDescriptor
                 properties:
-                    group:
+                    apiVersion:
                         type: string
                     kind:
                         type: string
-                    name:
-                        type: string
-                    namespace:
-                        pointer: true
-                        type: string
-                    version:
+                    namespaced:
+                        type: bool
+                    plural:
                         type: string
         typeInfo:
             structRef: mogenius-k8s-manager/src/kubernetes.GetUnstructuredLabeledResourceListRequest
@@ -3238,7 +3249,7 @@ get/namespace-workload-list:
                     blacklist:
                         elementType:
                             pointer: true
-                            structRef: mogenius-k8s-manager/src/utils.ResourceEntry
+                            structRef: mogenius-k8s-manager/src/utils.ResourceDescriptor
                             type: struct
                         type: array
                     namespace:
@@ -3246,22 +3257,19 @@ get/namespace-workload-list:
                     whitelist:
                         elementType:
                             pointer: true
-                            structRef: mogenius-k8s-manager/src/utils.ResourceEntry
+                            structRef: mogenius-k8s-manager/src/utils.ResourceDescriptor
                             type: struct
                         type: array
-            mogenius-k8s-manager/src/utils.ResourceEntry:
-                name: mogenius-k8s-manager/src/utils.ResourceEntry
+            mogenius-k8s-manager/src/utils.ResourceDescriptor:
+                name: mogenius-k8s-manager/src/utils.ResourceDescriptor
                 properties:
-                    group:
+                    apiVersion:
                         type: string
                     kind:
                         type: string
-                    name:
-                        type: string
-                    namespace:
-                        pointer: true
-                        type: string
-                    version:
+                    namespaced:
+                        type: bool
+                    plural:
                         type: string
         typeInfo:
             structRef: mogenius-k8s-manager/src/kubernetes.GetUnstructuredNamespaceResourceListRequest
@@ -3656,23 +3664,29 @@ get/users:
 get/workload:
     requestSchema:
         structs:
-            mogenius-k8s-manager/src/utils.ResourceItem:
-                name: mogenius-k8s-manager/src/utils.ResourceItem
+            mogenius-k8s-manager/src/utils.ResourceDescriptor:
+                name: mogenius-k8s-manager/src/utils.ResourceDescriptor
                 properties:
-                    group:
+                    apiVersion:
                         type: string
                     kind:
                         type: string
-                    name:
+                    namespaced:
+                        type: bool
+                    plural:
                         type: string
+            mogenius-k8s-manager/src/utils.WorkloadSingleRequest:
+                name: mogenius-k8s-manager/src/utils.WorkloadSingleRequest
+                properties:
+                    ResourceDescriptor:
+                        structRef: mogenius-k8s-manager/src/utils.ResourceDescriptor
+                        type: struct
                     namespace:
                         type: string
                     resourceName:
                         type: string
-                    version:
-                        type: string
         typeInfo:
-            structRef: mogenius-k8s-manager/src/utils.ResourceItem
+            structRef: mogenius-k8s-manager/src/utils.WorkloadSingleRequest
             type: struct
     responseSchema:
         structs:
@@ -3686,8 +3700,8 @@ get/workload:
                         valueType:
                             pointer: true
                             type: any
-            ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.ResourceItem,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
-            :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.ResourceItem,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+            ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadSingleRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+            :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadSingleRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
                 properties:
                     data:
                         pointer: true
@@ -3698,33 +3712,29 @@ get/workload:
                     status:
                         type: string
         typeInfo:
-            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.ResourceItem,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadSingleRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
             type: struct
 get/workload-example:
     requestSchema:
         structs:
-            mogenius-k8s-manager/src/utils.ResourceItem:
-                name: mogenius-k8s-manager/src/utils.ResourceItem
+            mogenius-k8s-manager/src/utils.ResourceDescriptor:
+                name: mogenius-k8s-manager/src/utils.ResourceDescriptor
                 properties:
-                    group:
+                    apiVersion:
                         type: string
                     kind:
                         type: string
-                    name:
-                        type: string
-                    namespace:
-                        type: string
-                    resourceName:
-                        type: string
-                    version:
+                    namespaced:
+                        type: bool
+                    plural:
                         type: string
         typeInfo:
-            structRef: mogenius-k8s-manager/src/utils.ResourceItem
+            structRef: mogenius-k8s-manager/src/utils.ResourceDescriptor
             type: struct
     responseSchema:
         structs:
-            mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.ResourceItem,string]:
-                name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.ResourceItem,string]
+            mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.ResourceDescriptor,string]:
+                name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.ResourceDescriptor,string]
                 properties:
                     data:
                         type: string
@@ -3733,7 +3743,7 @@ get/workload-example:
                     status:
                         type: string
         typeInfo:
-            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.ResourceItem,string]
+            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.ResourceDescriptor,string]
             type: struct
 get/workload-list:
     requestSchema:
@@ -3741,16 +3751,14 @@ get/workload-list:
             mogenius-k8s-manager/src/core.Request:
                 name: mogenius-k8s-manager/src/core.Request
                 properties:
-                    group:
+                    apiVersion:
                         type: string
                     kind:
-                        type: string
-                    name:
                         type: string
                     namespace:
                         pointer: true
                         type: string
-                    version:
+                    plural:
                         type: string
                     withData:
                         pointer: true
@@ -3825,28 +3833,25 @@ get/workload-status:
                             type: string
                         pointer: true
                         type: array
-                    resourceEntity:
+                    resourceDescriptor:
                         pointer: true
-                        structRef: mogenius-k8s-manager/src/utils.ResourceEntry
+                        structRef: mogenius-k8s-manager/src/utils.ResourceDescriptor
                         type: struct
                     resourceNames:
                         elementType:
                             type: string
                         pointer: true
                         type: array
-            mogenius-k8s-manager/src/utils.ResourceEntry:
-                name: mogenius-k8s-manager/src/utils.ResourceEntry
+            mogenius-k8s-manager/src/utils.ResourceDescriptor:
+                name: mogenius-k8s-manager/src/utils.ResourceDescriptor
                 properties:
-                    group:
+                    apiVersion:
                         type: string
                     kind:
                         type: string
-                    name:
-                        type: string
-                    namespace:
-                        pointer: true
-                        type: string
-                    version:
+                    namespaced:
+                        type: bool
+                    plural:
                         type: string
         typeInfo:
             structRef: mogenius-k8s-manager/src/kubernetes.GetWorkloadStatusRequest
@@ -4067,6 +4072,8 @@ get/workload-status:
             mogenius-k8s-manager/src/kubernetes.WorkloadStatusItemDto:
                 name: mogenius-k8s-manager/src/kubernetes.WorkloadStatusItemDto
                 properties:
+                    apiVersion:
+                        type: string
                     creationTimestamp:
                         structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
                         type: struct
@@ -4078,8 +4085,6 @@ get/workload-status:
                             structRef: k8s.io/api/core/v1.Event
                             type: struct
                         type: array
-                    group:
-                        type: string
                     kind:
                         type: string
                     name:
@@ -4176,7 +4181,7 @@ get/workspace-workloads:
                     blacklist:
                         elementType:
                             pointer: true
-                            structRef: mogenius-k8s-manager/src/utils.ResourceEntry
+                            structRef: mogenius-k8s-manager/src/utils.ResourceDescriptor
                             type: struct
                         type: array
                     namespaceWhitelist:
@@ -4186,24 +4191,21 @@ get/workspace-workloads:
                     whitelist:
                         elementType:
                             pointer: true
-                            structRef: mogenius-k8s-manager/src/utils.ResourceEntry
+                            structRef: mogenius-k8s-manager/src/utils.ResourceDescriptor
                             type: struct
                         type: array
                     workspaceName:
                         type: string
-            mogenius-k8s-manager/src/utils.ResourceEntry:
-                name: mogenius-k8s-manager/src/utils.ResourceEntry
+            mogenius-k8s-manager/src/utils.ResourceDescriptor:
+                name: mogenius-k8s-manager/src/utils.ResourceDescriptor
                 properties:
-                    group:
+                    apiVersion:
                         type: string
                     kind:
                         type: string
-                    name:
-                        type: string
-                    namespace:
-                        pointer: true
-                        type: string
-                    version:
+                    namespaced:
+                        type: bool
+                    plural:
                         type: string
         typeInfo:
             structRef: mogenius-k8s-manager/src/core.Request
@@ -4432,7 +4434,7 @@ install-metrics-server:
         typeInfo:
             structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,string]
             type: struct
-list/all-workloads:
+list/all-resource-descriptors:
     requestSchema:
         structs:
             ANON_STRUCT_0:
@@ -4443,34 +4445,31 @@ list/all-workloads:
             type: struct
     responseSchema:
         structs:
-            mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,[]mogenius-k8s-manager/src/utils.ResourceEntry]:
-                name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,[]mogenius-k8s-manager/src/utils.ResourceEntry]
+            mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,[]mogenius-k8s-manager/src/utils.ResourceDescriptor]:
+                name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,[]mogenius-k8s-manager/src/utils.ResourceDescriptor]
                 properties:
                     data:
                         elementType:
-                            structRef: mogenius-k8s-manager/src/utils.ResourceEntry
+                            structRef: mogenius-k8s-manager/src/utils.ResourceDescriptor
                             type: struct
                         type: array
                     message:
                         type: string
                     status:
                         type: string
-            mogenius-k8s-manager/src/utils.ResourceEntry:
-                name: mogenius-k8s-manager/src/utils.ResourceEntry
+            mogenius-k8s-manager/src/utils.ResourceDescriptor:
+                name: mogenius-k8s-manager/src/utils.ResourceDescriptor
                 properties:
-                    group:
+                    apiVersion:
                         type: string
                     kind:
                         type: string
-                    name:
-                        type: string
-                    namespace:
-                        pointer: true
-                        type: string
-                    version:
+                    namespaced:
+                        type: bool
+                    plural:
                         type: string
         typeInfo:
-            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,[]mogenius-k8s-manager/src/utils.ResourceEntry]
+            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,[]mogenius-k8s-manager/src/utils.ResourceDescriptor]
             type: struct
 live-stream/nodes-cpu:
     requestSchema:
@@ -5941,23 +5940,29 @@ system/check:
 trigger/workload:
     requestSchema:
         structs:
-            mogenius-k8s-manager/src/utils.ResourceItem:
-                name: mogenius-k8s-manager/src/utils.ResourceItem
+            mogenius-k8s-manager/src/utils.ResourceDescriptor:
+                name: mogenius-k8s-manager/src/utils.ResourceDescriptor
                 properties:
-                    group:
+                    apiVersion:
                         type: string
                     kind:
                         type: string
-                    name:
+                    namespaced:
+                        type: bool
+                    plural:
                         type: string
+            mogenius-k8s-manager/src/utils.WorkloadSingleRequest:
+                name: mogenius-k8s-manager/src/utils.WorkloadSingleRequest
+                properties:
+                    ResourceDescriptor:
+                        structRef: mogenius-k8s-manager/src/utils.ResourceDescriptor
+                        type: struct
                     namespace:
                         type: string
                     resourceName:
                         type: string
-                    version:
-                        type: string
         typeInfo:
-            structRef: mogenius-k8s-manager/src/utils.ResourceItem
+            structRef: mogenius-k8s-manager/src/utils.WorkloadSingleRequest
             type: struct
     responseSchema:
         structs:
@@ -5971,8 +5976,8 @@ trigger/workload:
                         valueType:
                             pointer: true
                             type: any
-            ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.ResourceItem,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
-            :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.ResourceItem,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+            ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadSingleRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+            :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadSingleRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
                 properties:
                     data:
                         pointer: true
@@ -5983,7 +5988,7 @@ trigger/workload:
                     status:
                         type: string
         typeInfo:
-            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.ResourceItem,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadSingleRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
             type: struct
 uninstall-cert-manager:
     requestSchema:
@@ -6205,24 +6210,29 @@ update/user:
 update/workload:
     requestSchema:
         structs:
-            mogenius-k8s-manager/src/utils.ResourceData:
-                name: mogenius-k8s-manager/src/utils.ResourceData
+            mogenius-k8s-manager/src/utils.ResourceDescriptor:
+                name: mogenius-k8s-manager/src/utils.ResourceDescriptor
                 properties:
-                    group:
+                    apiVersion:
                         type: string
                     kind:
                         type: string
-                    name:
+                    namespaced:
+                        type: bool
+                    plural:
                         type: string
+            mogenius-k8s-manager/src/utils.WorkloadChangeRequest:
+                name: mogenius-k8s-manager/src/utils.WorkloadChangeRequest
+                properties:
+                    ResourceDescriptor:
+                        structRef: mogenius-k8s-manager/src/utils.ResourceDescriptor
+                        type: struct
                     namespace:
-                        pointer: true
-                        type: string
-                    version:
                         type: string
                     yamlData:
                         type: string
         typeInfo:
-            structRef: mogenius-k8s-manager/src/utils.ResourceData
+            structRef: mogenius-k8s-manager/src/utils.WorkloadChangeRequest
             type: struct
     responseSchema:
         structs:
@@ -6236,8 +6246,8 @@ update/workload:
                         valueType:
                             pointer: true
                             type: any
-            ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.ResourceData,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
-            :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.ResourceData,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+            ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadChangeRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+            :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadChangeRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
                 properties:
                     data:
                         pointer: true
@@ -6248,7 +6258,7 @@ update/workload:
                     status:
                         type: string
         typeInfo:
-            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.ResourceData,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadChangeRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
             type: struct
 update/workspace:
     requestSchema:

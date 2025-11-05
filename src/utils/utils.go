@@ -356,9 +356,9 @@ func DeleteDirIfExist(dir string) {
 	}
 }
 
-func ContainsResourceEntry(resources []*ResourceEntry, target ResourceEntry) bool {
+func ContainsResourceDescriptor(resources []*ResourceDescriptor, target ResourceDescriptor) bool {
 	for _, r := range resources {
-		if r.Kind == target.Kind && r.Group == target.Group {
+		if r.Kind == target.Kind && r.ApiVersion == target.ApiVersion {
 			return true
 		}
 	}

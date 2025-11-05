@@ -76,37 +76,37 @@ func TestWatcher(t *testing.T) {
 	assert.AssertT(t, err == nil, err)
 
 	// LIST ITEMS IN WORKLOAD
-	_, err = kubernetes.GetUnstructuredResourceList("apps/v1", "", "deployments", utils.Pointer(""))
+	_, err = kubernetes.GetUnstructuredResourceList("deployments", "apps/v1", utils.Pointer(""))
 	assert.AssertT(t, err == nil, err)
 
-	_, err = kubernetes.GetUnstructuredResourceList("", "v1", "pods", utils.Pointer(""))
+	_, err = kubernetes.GetUnstructuredResourceList("pods", "v1", utils.Pointer(""))
 	assert.AssertT(t, err == nil, err)
 
-	_, err = kubernetes.GetUnstructuredResourceList("", "v1", "secrets", utils.Pointer(""))
+	_, err = kubernetes.GetUnstructuredResourceList("secrets", "v1", utils.Pointer(""))
 	assert.AssertT(t, err == nil, err)
 
-	_, err = kubernetes.GetUnstructuredResourceList("", "v1", "persistentvolumes", utils.Pointer(""))
+	_, err = kubernetes.GetUnstructuredResourceList("persistentvolumes", "v1", utils.Pointer(""))
 	assert.AssertT(t, err == nil, err)
 
-	_, err = kubernetes.GetUnstructuredResourceList("", "v1", "namespaces", nil)
+	_, err = kubernetes.GetUnstructuredResourceList("namespaces", "v1", nil)
 	assert.AssertT(t, err == nil, err)
 
-	_, err = kubernetes.GetUnstructuredResourceList("k3s.cattle.io/v1", "v1", "addons", utils.Pointer(""))
+	_, err = kubernetes.GetUnstructuredResourceList("addons", "k3s.cattle.io/v1", utils.Pointer(""))
 	assert.AssertT(t, err == nil, err)
 
 	// GET WORKLOAD
-	_, err = kubernetes.GetUnstructuredResource("apps/v1", "", "deployments", "kube-system", "coredns")
+	_, err = kubernetes.GetUnstructuredResource("apps/v1", "deployments", "kube-system", "coredns")
 	assert.AssertT(t, err == nil, err)
 
 	// DESCRIBE
-	_, err = kubernetes.DescribeUnstructuredResource("apps/v1", "", "deployments", "kube-system", "coredns")
+	_, err = kubernetes.DescribeUnstructuredResource("apps/v1", "deployments", "kube-system", "coredns")
 	assert.AssertT(t, err == nil, err)
 
 	// NEW WORKLOAD
-	_, err = kubernetes.CreateUnstructuredResource("apps/v1", "", "deployments", utils.Pointer(""), createNewDeplString)
+	_, err = kubernetes.CreateUnstructuredResource("apps/v1", "deployments", "", createNewDeplString)
 	assert.AssertT(t, err == nil || apierrors.IsAlreadyExists(err), err, createNewDeplString)
 
 	// UPDATE WORKLOAD
-	_, err = kubernetes.UpdateUnstructuredResource("apps/v1", "", "deployments", utils.Pointer(""), updatedDeplString)
+	_, err = kubernetes.UpdateUnstructuredResource("apps/v1", "deployments", "", updatedDeplString)
 	assert.AssertT(t, err == nil, err)
 }

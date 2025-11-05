@@ -1126,29 +1126,27 @@ func (self *socketApi) registerPatterns() {
 	)
 
 	RegisterPatternHandler(
-		PatternHandle{self, "list/all-workloads"},
+		PatternHandle{self, "list/all-resource-descriptors"},
 		PatternConfig{},
-		func(datagram structs.Datagram, request Void) ([]utils.ResourceEntry, error) {
+		func(datagram structs.Datagram, request Void) ([]utils.ResourceDescriptor, error) {
 			return kubernetes.GetAvailableResources()
 		},
 	)
 
 	{
 		type Request struct {
-			Kind      string  `json:"kind"`
-			Name      string  `json:"name"`
-			Group     string  `json:"group"`
-			Version   string  `json:"version"`
-			Namespace *string `json:"namespace"`
-
-			WithData *bool `json:"withData"`
+			Kind       string  `json:"kind"`
+			Plural     string  `json:"plural"`
+			ApiVersion string  `json:"apiVersion"`
+			Namespace  *string `json:"namespace"`
+			WithData   *bool   `json:"withData"`
 		}
 
 		RegisterPatternHandler(
 			PatternHandle{self, "get/workload-list"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (unstructured.UnstructuredList, error) {
-				return kubernetes.GetUnstructuredResourceListFromStore(request.Group, request.Kind, request.Version, request.Name, request.Namespace, request.WithData), nil
+				return kubernetes.GetUnstructuredResourceListFromStore(request.ApiVersion, request.Kind, request.Namespace, request.WithData), nil
 			},
 		)
 	}
@@ -1172,8 +1170,8 @@ func (self *socketApi) registerPatterns() {
 	RegisterPatternHandler(
 		PatternHandle{self, "describe/workload"},
 		PatternConfig{},
-		func(datagram structs.Datagram, request utils.ResourceItem) (string, error) {
-			result, err := kubernetes.DescribeUnstructuredResource(request.Group, request.Version, request.Name, request.Namespace, request.ResourceName)
+		func(datagram structs.Datagram, request utils.WorkloadSingleRequest) (string, error) {
+			result, err := kubernetes.DescribeUnstructuredResource(request.ApiVersion, request.Plural, request.Namespace, request.ResourceName)
 			return store.AddToAuditLog(datagram, self.logger, result, err, nil, nil)
 		},
 	)
@@ -1181,8 +1179,8 @@ func (self *socketApi) registerPatterns() {
 	RegisterPatternHandler(
 		PatternHandle{self, "create/new-workload"},
 		PatternConfig{},
-		func(datagram structs.Datagram, request utils.ResourceData) (*unstructured.Unstructured, error) {
-			createdRes, err := kubernetes.CreateUnstructuredResource(request.Group, request.Version, request.Name, request.Namespace, request.YamlData)
+		func(datagram structs.Datagram, request utils.WorkloadChangeRequest) (*unstructured.Unstructured, error) {
+			createdRes, err := kubernetes.CreateUnstructuredResource(request.ApiVersion, request.Plural, request.Namespace, request.YamlData)
 			return store.AddToAuditLog(datagram, self.logger, createdRes, err, nil, createdRes)
 		},
 	)
@@ -1190,43 +1188,31 @@ func (self *socketApi) registerPatterns() {
 	RegisterPatternHandler(
 		PatternHandle{self, "get/workload"},
 		PatternConfig{},
-		func(datagram structs.Datagram, request utils.ResourceItem) (*unstructured.Unstructured, error) {
+		func(datagram structs.Datagram, request utils.WorkloadSingleRequest) (*unstructured.Unstructured, error) {
 			// we skip the audit log here because this is a read operation and it would spam the logs
-			return kubernetes.GetUnstructuredResourceFromStore(request.Group, request.Kind, request.Namespace, request.ResourceName)
-		},
-	)
-
-	RegisterPatternHandler(
-		PatternHandle{self, "get/workload-status"},
-		PatternConfig{},
-		func(datagram structs.Datagram, request kubernetes.GetWorkloadStatusRequest) ([]kubernetes.WorkloadStatusDto, error) {
-			return kubernetes.GetWorkloadStatus(request)
+			return kubernetes.GetUnstructuredResourceFromStore(request.ApiVersion, request.Kind, request.Namespace, request.ResourceName)
 		},
 	)
 
 	RegisterPatternHandler(
 		PatternHandle{self, "get/workload-example"},
 		PatternConfig{},
-		func(datagram structs.Datagram, request utils.ResourceItem) (string, error) {
-			return kubernetes.GetResourceTemplateYaml(request.Group, request.Version, request.Name, request.Kind, request.Namespace, request.ResourceName), nil
+		func(datagram structs.Datagram, request utils.ResourceDescriptor) (string, error) {
+			return kubernetes.GetResourceTemplateYaml(request.ApiVersion, request.Kind), nil
 		},
 	)
 
 	RegisterPatternHandler(
 		PatternHandle{self, "update/workload"},
 		PatternConfig{},
-		func(datagram structs.Datagram, request utils.ResourceData) (*unstructured.Unstructured, error) {
-			ns := ""
-			if request.Namespace != nil {
-				ns = *request.Namespace
-			}
+		func(datagram structs.Datagram, request utils.WorkloadChangeRequest) (*unstructured.Unstructured, error) {
 			var updatedObj *unstructured.Unstructured
 			err := yaml.Unmarshal([]byte(request.YamlData), &updatedObj)
 			if err != nil {
 				return nil, fmt.Errorf("failed to unmarshal YAML data: %w", err)
 			}
-			oldObj, _ := kubernetes.GetUnstructuredResourceFromStore(request.Group, request.Kind, ns, updatedObj.GetName())
-			updatedRes, err := kubernetes.UpdateUnstructuredResource(request.Group, request.Version, request.Name, request.Namespace, request.YamlData)
+			oldObj, _ := kubernetes.GetUnstructuredResourceFromStore(request.ApiVersion, request.Kind, request.Namespace, updatedObj.GetName())
+			updatedRes, err := kubernetes.UpdateUnstructuredResource(request.ApiVersion, request.Plural, request.Namespace, request.YamlData)
 			return store.AddToAuditLog(datagram, self.logger, updatedRes, err, oldObj, updatedRes)
 		},
 	)
@@ -1234,9 +1220,9 @@ func (self *socketApi) registerPatterns() {
 	RegisterPatternHandler(
 		PatternHandle{self, "delete/workload"},
 		PatternConfig{},
-		func(datagram structs.Datagram, request utils.ResourceItem) (Void, error) {
-			objToDel, _ := kubernetes.GetUnstructuredResourceFromStore(request.Group, request.Kind, request.Namespace, request.ResourceName)
-			err := kubernetes.DeleteUnstructuredResource(request.Group, request.Version, request.Name, request.Namespace, request.ResourceName)
+		func(datagram structs.Datagram, request utils.WorkloadSingleRequest) (Void, error) {
+			objToDel, _ := kubernetes.GetUnstructuredResourceFromStore(request.ApiVersion, request.Kind, request.Namespace, request.ResourceName)
+			err := kubernetes.DeleteUnstructuredResource(request.ApiVersion, request.Plural, request.Namespace, request.ResourceName)
 			_, auditErr := store.AddToAuditLog(datagram, self.logger, any(nil), err, objToDel, nil)
 			if auditErr != nil {
 				self.logger.Warn("failed to add event to audit log", "request", request, "error", err)
@@ -1248,9 +1234,17 @@ func (self *socketApi) registerPatterns() {
 	RegisterPatternHandler(
 		PatternHandle{self, "trigger/workload"},
 		PatternConfig{},
-		func(datagram structs.Datagram, request utils.ResourceItem) (*unstructured.Unstructured, error) {
-			res, err := kubernetes.TriggerUnstructuredResource(request.Group, request.Version, request.Name, request.Namespace, request.ResourceName)
+		func(datagram structs.Datagram, request utils.WorkloadSingleRequest) (*unstructured.Unstructured, error) {
+			res, err := kubernetes.TriggerUnstructuredResource(request.ApiVersion, request.Plural, request.Namespace, request.ResourceName)
 			return store.AddToAuditLog(datagram, self.logger, res, err, nil, nil)
+		},
+	)
+
+	RegisterPatternHandler(
+		PatternHandle{self, "get/workload-status"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request kubernetes.GetWorkloadStatusRequest) ([]kubernetes.WorkloadStatusDto, error) {
+			return kubernetes.GetWorkloadStatus(request)
 		},
 	)
 
@@ -1571,10 +1565,10 @@ func (self *socketApi) registerPatterns() {
 
 	{
 		type Request struct {
-			WorkspaceName      string                 `json:"workspaceName"`
-			Whitelist          []*utils.ResourceEntry `json:"whitelist"`
-			Blacklist          []*utils.ResourceEntry `json:"blacklist"`
-			NamespaceWhitelist []string               `json:"namespaceWhitelist"`
+			WorkspaceName      string                      `json:"workspaceName"`
+			Whitelist          []*utils.ResourceDescriptor `json:"whitelist"`
+			Blacklist          []*utils.ResourceDescriptor `json:"blacklist"`
+			NamespaceWhitelist []string                    `json:"namespaceWhitelist"`
 		}
 
 		RegisterPatternHandler(
