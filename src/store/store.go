@@ -49,8 +49,8 @@ func Setup(
 	return nil
 }
 
-func SearchByKeyParts(valkeyClient valkeyclient.ValkeyClient, parts ...string) ([]unstructured.Unstructured, error) {
-	key := CreateKey(parts...)
+func SearchResourceByKeyParts(valkeyClient valkeyclient.ValkeyClient, parts ...string) ([]unstructured.Unstructured, error) {
+	key := CreateResourceKey(parts...)
 
 	items, err := valkeyclient.GetObjectsByPrefix[unstructured.Unstructured](valkeyClient, valkeyclient.ORDER_NONE, key)
 
@@ -78,13 +78,13 @@ func SearchByGroupKindNameNamespace(valkeyClient valkeyclient.ValkeyClient, apiV
 	return items, err
 }
 
-func SearchByNamespace(valkeyClient valkeyclient.ValkeyClient, namespace string, whitelist []*utils.ResourceDescriptor) ([]unstructured.Unstructured, error) {
+func SearchResourceByNamespace(valkeyClient valkeyclient.ValkeyClient, namespace string, whitelist []*utils.ResourceDescriptor) ([]unstructured.Unstructured, error) {
 	pattern := CreateKeyPattern(nil, nil, &namespace, nil)
 
 	var searchKeys []string
 	if len(whitelist) > 0 {
 		for _, item := range whitelist {
-			searchKey := CreateKey(item.ApiVersion, item.Kind, namespace)
+			searchKey := CreateResourceKey(item.ApiVersion, item.Kind, namespace)
 			searchKeys = append(searchKeys, searchKey)
 		}
 	}
@@ -114,7 +114,7 @@ func DropKey(valkeyClient valkeyclient.ValkeyClient, logger *slog.Logger, key st
 	return err
 }
 
-func CreateKey(parts ...string) string {
+func CreateResourceKey(parts ...string) string {
 	parts = append([]string{VALKEY_RESOURCE_PREFIX}, parts...)
 	return strings.Join(parts, ":")
 }
