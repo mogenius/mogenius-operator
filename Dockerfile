@@ -5,10 +5,6 @@
 FROM --platform=$BUILDPLATFORM golang:1.25.3 AS golang
 
 FROM --platform=$BUILDPLATFORM ubuntu:noble AS build-env
-ARG TARGETPLATFORM
-ARG BUILDPLATFORM
-ENV TARGETPLATFORM=${TARGETPLATFORM}
-ENV BUILDPLATFORM=${BUILDPLATFORM}
 
 ENV SNOOPY_VERSION=v0.3.5
 
@@ -19,13 +15,10 @@ ENV GOPATH=/go
 ENV PATH=${GOPATH}/bin:/usr/local/go/bin:${PATH}
 
 # Build-time argument for GitHub Token
-# ARG GITHUB_TOKEN
+ARG GITHUB_TOKEN
 ARG TARGETPLATFORM
 ARG BUILDPLATFORM
-# Private GitHub-Repos für Go-Module freischalten (anpassen!)
-ENV GOPRIVATE=github.com/mogenius/* \
-    GONOSUMDB=github.com/mogenius/* \
-    GOPROXY=direct
+
 
 # Setup system
 RUN set -x && \
@@ -34,45 +27,24 @@ RUN set -x && \
 
 # Fetch the latest release download URL for the specific architecture
 # WICHTIG: Wir müssen die TARGETPLATFORM auswerten, nicht uname -m
-# RUN case "$TARGETPLATFORM" in \
-#         "linux/amd64") ARCH="x86_64";; \
-#         "linux/arm64") ARCH="aarch64";; \
-#         "linux/arm/v7") ARCH="armv7";; \
-#         "linux/ppc64le") ARCH="powerpc64le";; \
-#         "linux/riscv64") ARCH="riscv64";; \
-#         *) echo "Unsupported platform: $TARGETPLATFORM"; exit 1;; \
-#     esac && \
-#     echo "Target platform: $TARGETPLATFORM, Architecture: $ARCH" && \
-#     DOWNLOAD_URL=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
-#     -H "Accept: application/vnd.github+json" \
-#     -H "X-GitHub-Api-Version: 2022-11-28" \
-#     "https://api.github.com/repos/mogenius/snoopy/releases/tags/$SNOOPY_VERSION" | \
-#     jq -r ".assets[] | select(.name | contains(\"snoopy_$ARCH\")) | .url") && \
-#     echo "Download URL: $DOWNLOAD_URL" && \
-#     curl -L -H "Authorization: Bearer $GITHUB_TOKEN" -H "Accept: application/octet-stream" $DOWNLOAD_URL -o snoopy && \
-#     chmod +x snoopy && \
-#     mv snoopy /usr/local/bin/snoopy
-
-# Fetch Snoopy Release (Token als Secret mounten – NICHT im Image speichern)
-RUN --mount=type=secret,id=GITHUB_TOKEN bash -euxo pipefail -c '\
-  case "$TARGETPLATFORM" in \
-      "linux/amd64")  ARCH="x86_64" ;; \
-      "linux/arm64")  ARCH="aarch64" ;; \
-      "linux/arm/v7") ARCH="armv7" ;; \
-      "linux/ppc64le") ARCH="powerpc64le" ;; \
-      "linux/riscv64") ARCH="riscv64" ;; \
-      *) echo "Unsupported platform: $TARGETPLATFORM" >&2; exit 1 ;; \
-  esac; \
-  echo "Target platform: $TARGETPLATFORM, Architecture: $ARCH"; \
-  TOKEN="$(cat /run/secrets/GITHUB_TOKEN)"; \
-  API_URL="https://api.github.com/repos/mogenius/snoopy/releases/tags/$SNOOPY_VERSION"; \
-  DOWNLOAD_URL="$(curl -s -H "Authorization: Bearer ${TOKEN}" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" "$API_URL" \
-    | jq -r ".assets[] | select(.name | contains(\"snoopy_${ARCH}\")) | .url")"; \
-  test -n "$DOWNLOAD_URL"; \
-  echo "Download URL: $DOWNLOAD_URL"; \
-  curl -L -H "Authorization: Bearer ${TOKEN}" -H "Accept: application/octet-stream" "$DOWNLOAD_URL" -o /usr/local/bin/snoopy; \
-  chmod +x /usr/local/bin/snoopy \
-'
+RUN case "$TARGETPLATFORM" in \
+        "linux/amd64") ARCH="x86_64";; \
+        "linux/arm64") ARCH="aarch64";; \
+        "linux/arm/v7") ARCH="armv7";; \
+        "linux/ppc64le") ARCH="powerpc64le";; \
+        "linux/riscv64") ARCH="riscv64";; \
+        *) echo "Unsupported platform: $TARGETPLATFORM"; exit 1;; \
+    esac && \
+    echo "Target platform: $TARGETPLATFORM, Architecture: $ARCH" && \
+    DOWNLOAD_URL=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
+    -H "Accept: application/vnd.github+json" \
+    -H "X-GitHub-Api-Version: 2022-11-28" \
+    "https://api.github.com/repos/mogenius/snoopy/releases/tags/$SNOOPY_VERSION" | \
+    jq -r ".assets[] | select(.name | contains(\"snoopy_$ARCH\")) | .url") && \
+    echo "Download URL: $DOWNLOAD_URL" && \
+    curl -L -H "Authorization: Bearer $GITHUB_TOKEN" -H "Accept: application/octet-stream" $DOWNLOAD_URL -o snoopy && \
+    chmod +x snoopy && \
+    mv snoopy /usr/local/bin/snoopy
 
 # Install bpftool
 RUN set -x && \
@@ -130,7 +102,7 @@ RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} GOARM=${TARGETVARIANT#v} \
     ./src/main.go
 
 # Final Image sollte die Target-Platform verwenden
-FROM ubuntu:noble AS release-image
+FROM --platform=$TARGETPLATFORM ubuntu:noble AS release-image
 
 ARG TARGETOS
 ARG TARGETARCH
