@@ -4434,7 +4434,7 @@ install-metrics-server:
         typeInfo:
             structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,string]
             type: struct
-list/all-workloads:
+list/all-resource-descriptors:
     requestSchema:
         structs:
             ANON_STRUCT_0:

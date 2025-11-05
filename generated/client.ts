@@ -69,7 +69,7 @@ export enum Pattern {
   INSTALL_KEPLER = "install-kepler",
   INSTALL_METALLB = "install-metallb",
   INSTALL_METRICS_SERVER = "install-metrics-server",
-  LIST_ALL_WORKLOADS = "list/all-workloads",
+  LIST_ALL_RESOURCE_DESCRIPTORS = "list/all-resource-descriptors",
   LIVE_STREAM_NODES_CPU = "live-stream/nodes-cpu",
   LIVE_STREAM_NODES_MEMORY = "live-stream/nodes-memory",
   LIVE_STREAM_NODES_TRAFFIC = "live-stream/nodes-traffic",
@@ -192,7 +192,7 @@ export const StringToPattern = {
   "install-kepler": Pattern.INSTALL_KEPLER,
   "install-metallb": Pattern.INSTALL_METALLB,
   "install-metrics-server": Pattern.INSTALL_METRICS_SERVER,
-  "list/all-workloads": Pattern.LIST_ALL_WORKLOADS,
+  "list/all-resource-descriptors": Pattern.LIST_ALL_RESOURCE_DESCRIPTORS,
   "live-stream/nodes-cpu": Pattern.LIVE_STREAM_NODES_CPU,
   "live-stream/nodes-memory": Pattern.LIVE_STREAM_NODES_MEMORY,
   "live-stream/nodes-traffic": Pattern.LIVE_STREAM_NODES_TRAFFIC,
@@ -311,7 +311,7 @@ export const PatternToString = {
   [Pattern.INSTALL_KEPLER]: "install-kepler",
   [Pattern.INSTALL_METALLB]: "install-metallb",
   [Pattern.INSTALL_METRICS_SERVER]: "install-metrics-server",
-  [Pattern.LIST_ALL_WORKLOADS]: "list/all-workloads",
+  [Pattern.LIST_ALL_RESOURCE_DESCRIPTORS]: "list/all-resource-descriptors",
   [Pattern.LIVE_STREAM_NODES_CPU]: "live-stream/nodes-cpu",
   [Pattern.LIVE_STREAM_NODES_MEMORY]: "live-stream/nodes-memory",
   [Pattern.LIVE_STREAM_NODES_TRAFFIC]: "live-stream/nodes-traffic",
@@ -5728,7 +5728,7 @@ export type INSTALL_METRICS_SERVER_RESPONSE = INSTALL_METRICS_SERVER_RESPONSE__M
  * ```
  *
  */
-export type LIST_ALL_WORKLOADS_REQUEST = LIST_ALL_WORKLOADS_REQUEST__ANON_STRUCT_0|undefined;
+export type LIST_ALL_RESOURCE_DESCRIPTORS_REQUEST = LIST_ALL_RESOURCE_DESCRIPTORS_REQUEST__ANON_STRUCT_0|undefined;
 
 /**
  * #### Source
@@ -5764,7 +5764,7 @@ export type LIST_ALL_WORKLOADS_REQUEST = LIST_ALL_WORKLOADS_REQUEST__ANON_STRUCT
  * ```
  *
  */
-export type LIST_ALL_WORKLOADS_RESPONSE = LIST_ALL_WORKLOADS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR;
+export type LIST_ALL_RESOURCE_DESCRIPTORS_RESPONSE = LIST_ALL_RESOURCE_DESCRIPTORS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR;
 
 /**
  * #### Source
@@ -8897,9 +8897,9 @@ export type INSTALL_METALLB_REQUEST__ANON_STRUCT_0 = {};
 export type INSTALL_METALLB_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
 export type INSTALL_METRICS_SERVER_REQUEST__ANON_STRUCT_0 = {};
 export type INSTALL_METRICS_SERVER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
-export type LIST_ALL_WORKLOADS_REQUEST__ANON_STRUCT_0 = {};
-export type LIST_ALL_WORKLOADS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR = {"data": LIST_ALL_WORKLOADS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR[],"message": string,"status": string};
-export type LIST_ALL_WORKLOADS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR = {"apiVersion": string,"kind": string,"namespaced": boolean,"plural": string};
+export type LIST_ALL_RESOURCE_DESCRIPTORS_REQUEST__ANON_STRUCT_0 = {};
+export type LIST_ALL_RESOURCE_DESCRIPTORS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR = {"data": LIST_ALL_RESOURCE_DESCRIPTORS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR[],"message": string,"status": string};
+export type LIST_ALL_RESOURCE_DESCRIPTORS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR = {"apiVersion": string,"kind": string,"namespaced": boolean,"plural": string};
 export type LIVE_STREAM_NODES_CPU_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"nodeName": string,"podName": string,"websocketHost": string,"websocketScheme": string,"workspace": string};
 export type LIVE_STREAM_NODES_CPU_RESPONSE__ANON_STRUCT_1 = {};
 export type LIVE_STREAM_NODES_CPU_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST_MOGENIUS_K8S_MANAGER_SRC_CORE_VOID = {"data": LIVE_STREAM_NODES_CPU_RESPONSE__ANON_STRUCT_1|undefined,"message": string,"status": string};
@@ -9315,9 +9315,9 @@ export interface IPatternConfig {
     Request: INSTALL_METRICS_SERVER_REQUEST;
     Response: INSTALL_METRICS_SERVER_RESPONSE;
   };
-  [Pattern.LIST_ALL_WORKLOADS]: {
-    Request: LIST_ALL_WORKLOADS_REQUEST;
-    Response: LIST_ALL_WORKLOADS_RESPONSE;
+  [Pattern.LIST_ALL_RESOURCE_DESCRIPTORS]: {
+    Request: LIST_ALL_RESOURCE_DESCRIPTORS_REQUEST;
+    Response: LIST_ALL_RESOURCE_DESCRIPTORS_RESPONSE;
   };
   [Pattern.LIVE_STREAM_NODES_CPU]: {
     Request: LIVE_STREAM_NODES_CPU_REQUEST;
