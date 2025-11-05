@@ -116,15 +116,15 @@ jobs:
       - name: set version env
         run: echo "SEMVERSION=$(git describe --tags $(git rev-list --tags --max-count=1))" >> $GITHUB_ENV
 
-      - name: Checkout
+      - name: Checkout target Helm repo
         uses: actions/checkout@v5
         with:
+          repository: mogenius/helm-k8s-manager
           ref: develop
-          # username: ${{ github.actor }}
-          token: ${{ secrets.GITHUB_TOKEN }}
-          # token: ${{ secrets.MO_K8s_TOKEN }}
-          repository: ${{ env.HELMREPO }}
-          path: "helm"
+          token: ${{ secrets.MO_K8S_TOKEN }}   # <-- PAT mit read auf Ziel-Repo
+          path: helm
+          fetch-depth: 1
+          persist-credentials: false
 
       - name: Install Helm
         uses: azure/setup-helm@v4.3.1
