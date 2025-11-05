@@ -118,7 +118,7 @@ RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} GOARM=${TARGETVARIANT#v} \
     ./src/main.go
 
 # -------------------- Release-Image --------------------
-FROM --platform=$TARGETPLATFORM ubuntu:noble AS release-image
+FROM ubuntu:noble AS release-image
 
 ARG TARGETOS
 ARG TARGETARCH
