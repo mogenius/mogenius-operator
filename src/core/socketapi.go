@@ -1930,6 +1930,26 @@ func (self *socketApi) startMessageHandler() {
 					sendTime := time.Since(sendStart)
 					self.logPattern(executionTime, sendTime, datagram, size)
 				}()
+			} else {
+				go func() {
+					self.logger.Warn("no handler for pattern found", "pattern", datagram.Pattern)
+
+					result := structs.Datagram{
+						Id:      datagram.Id,
+						Pattern: datagram.Pattern,
+						Payload: struct {
+							Status  string `json:"status"`
+							Message string `json:"message"`
+						}{
+							Status:  "error",
+							Message: fmt.Sprintf("No handler for pattern '%s' found", datagram.Pattern),
+						},
+						CreatedAt: datagram.CreatedAt,
+						Zlib:      false,
+					}
+
+					self.JobServerSendData(self.jobClient, result)
+				}()
 			}
 		}
 		self.logger.Debug("api messagehandler finished as the websocket client was terminated")
