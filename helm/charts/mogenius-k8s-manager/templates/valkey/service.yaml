@@ -1,0 +1,14 @@
+{{-  if .Values.valkey.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.fullnameOverride }}-valkey
+  namespace: {{ .Release.Namespace }}
+spec:
+  ports:
+  - name: valkey
+    port: {{ .Values.valkey.port }}
+  selector:
+    app: {{ .Values.fullnameOverride }}-valkey
+{{ end }}

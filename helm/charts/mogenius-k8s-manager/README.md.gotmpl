@@ -1,0 +1,84 @@
+# Helm Chart: {{ .Name }}
+
+{{ template "chart.badgesSection" . }}
+
+{{ template "chart.homepageLine" . }}
+
+{{ template "chart.maintainersSection" . }}
+
+{{ template "chart.sourcesSection" . }}
+
+{{ template "chart.requirementsSection" . }}
+
+{{ template "chart.valuesSection" . }}
+
+## Add Mogenius Helm Repository, Update, and Deploy the Helm Chart
+
+### Add the Helm Repository:
+
+To add the Mogenius Helm repository and update it, run the following commands:
+
+```
+{{- if gt (len .Sources) 0 }}
+helm repo add mogenius {{ index .Sources 0 }}
+{{- else }}
+# ⚠️ No Helm repository defined in .Sources.
+# Please add sources: to the Chart.yaml.
+{{- end }}
+helm repo update mogenius
+```
+
+### Select the Correct Kubernetes Cluster Context
+
+Ensure that the correct Kubernetes cluster context is selected before proceeding:
+
+```
+kubectl config current-context
+# If the correct context is not selected:
+kubectl config use-context <yourCluster>
+```
+
+### Install the Helm Chart
+
+To install the `{{ .Name }}` Helm chart, use the following command:
+
+```
+helm upgrade -i {{ .Name }} mogenius/{{ .Name }} -n mogenius --create-namespace --wait 
+```
+
+Once installed, the following deployments will be created:
+- `mogenius-k8s-manager`
+- `mogenius-k8s-manager-valkey`
+
+### Override Default Values
+
+If you need to override default values, create a `values.yaml` file and use the following command:
+
+```
+helm upgrade -i {{ .Name }} mogenius/{{ .Name }} -n mogenius --create-namespace --wait -f values.yaml
+```
+
+#### Example `values.yaml`:
+
+```yaml
+global:
+  cluster_name: your-cluster
+  api_key: your-api-key
+```
+
+### Upgrade the Helm Chart
+
+To upgrade the `{{ .Name }}` Helm chart from the repository, run:
+
+```
+helm repo update mogenius
+helm install -i {{ .Name }} mogenius/{{ .Name }} -n mogenius --create-namespace --wait
+```
+
+#### Upgrade with Custom Values:
+
+If you have custom values in a `values.yaml` file, use the following command:
+
+```
+helm upgrade -i {{ .Name }} mogenius/{{ .Name }} -n mogenius --create-namespace --wait -f values.yaml
+```

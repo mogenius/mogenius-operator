@@ -1,0 +1,55 @@
+{{-  if .Values.cluster.readonly.enabled }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ .Values.fullnameOverride }}
+rules:
+# Cluster-weite Leseberechtigungen für alle Ressourcen
+- apiGroups: ["*"]
+  resources: ["*"]
+  verbs: ["get", "list", "watch"]
+
+---
+# Separate Role für vollständige Berechtigungen im mogenius Namespace
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ .Values.fullnameOverride }}-mogenius-full
+  namespace: mogenius
+rules:
+# Vollständige Berechtigungen für alle Ressourcen im mogenius Namespace
+- apiGroups: ["*"]
+  resources: ["*"]
+  verbs: ["*"]
+
+---
+# ClusterRoleBinding für die Leseberechtigungen
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ .Values.fullnameOverride }}-readonly
+subjects:
+- kind: ServiceAccount
+  name: {{ .Values.serviceAccount.name | default (include "chart.serviceAccountName" .) }}
+  namespace: {{ .Release.Namespace }}
+roleRef:
+  kind: ClusterRole
+  name: {{ .Values.fullnameOverride }}
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# RoleBinding für vollständige Berechtigungen im mogenius Namespace
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ .Values.fullnameOverride }}-mogenius-full
+  namespace: mogenius
+subjects:
+- kind: ServiceAccount
+  name: {{ .Values.serviceAccount.name | default (include "chart.serviceAccountName" .) }}
+  namespace: {{ .Release.Namespace }}
+roleRef:
+  kind: Role
+  name: {{ .Values.fullnameOverride }}-mogenius-full
+  apiGroup: rbac.authorization.k8s.io
+{{- end }}

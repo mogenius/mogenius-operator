@@ -1,0 +1,87 @@
+name: Helm template
+
+on:
+  push:
+    paths:
+      - 'helm/**'
+
+jobs:
+  helm-template:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+        
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+
+      - name: Template Helm Chart
+        run: helm template -n mogenius --set global.cluster_name="prod" --set global.api_key="mo_customer-api-key" --set global.namespace="mogenius" ./helm/charts/mogenius-k8s-manager
+
+      - name: Template Helm Chart Advanced
+        run: |
+
+          cat <<EOF > test-values.yaml
+          global:
+            cluster_name: prod
+
+          resources:
+            limits:
+              cpu: 500m
+              ephemeral-storage: 1000Mi
+              memory: 1Gi
+            requests:
+              cpu: 250m
+              ephemeral-storage: 500Mi
+              memory: 128Mi
+          nodeSelector:
+            kubernetes.io/os: linux
+
+          image:
+            registry: self-hosted-registry.example
+
+          podSecurityContext:
+            runAsUser: 0
+          podLabels:
+            foo: bar
+          valkey:
+            enabled: true
+            nodeSelector:
+              kubernetes.io/os: linux
+            tolerations:
+              - key: "example-key"
+                operator: "Equal"
+                value: "example-value"
+                effect: "NoSchedule"
+            affinity:
+                nodeAffinity:
+                    requiredDuringSchedulingIgnoredDuringExecution:
+                        nodeSelectorTerms:
+                            - matchExpressions:
+                                - key: "example-key"
+                                  operator: In
+                                  values:
+                                    - "example-value"
+                podAffinity:
+                    requiredDuringSchedulingIgnoredDuringExecution:
+                        labelSelector:
+                            matchExpressions:
+                                - key: "example-key"
+                                  operator: In
+                                  values:
+                                    - "example-value"
+                        topologyKey: "kubernetes.io/hostname"
+                podAntiAffinity:
+                    requiredDuringSchedulingIgnoredDuringExecution:
+                        labelSelector:
+                            matchExpressions:
+                                - key: "example-key"
+                                  operator: In
+                                  values:
+                                    - "example-value"
+                        topologyKey: "kubernetes.io/hostname"
+          EOF
+
+          helm template -n mogenius -f test-values.yaml ./helm/charts/mogenius-k8s-manager
