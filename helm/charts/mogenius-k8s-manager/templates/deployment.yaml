@@ -1,0 +1,121 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.fullnameOverride }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  revisionHistoryLimit: {{ .Values.revisionHistoryLimit }}
+  progressDeadlineSeconds: 600
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Values.fullnameOverride }}
+  strategy:
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.fullnameOverride }}
+        {{- if .Values.podLabels }}
+        {{- toYaml .Values.podLabels | nindent 8 }}
+        {{- end }}
+      annotations:
+        valkey-password-checksum: {{ include "getPasswordHash" (include "lookupSecret" .) | quote }}
+    spec:
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ .Values.fullnameOverride }}
+          image: {{ .Values.image.registry }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}        
+          env:
+            {{- if .Values.envVars.MO_API_SERVER }}
+            - name: MO_API_SERVER
+              value: {{ .Values.envVars.MO_API_SERVER | quote }}
+            {{- end }}
+            {{- if .Values.envVars.MO_EVENT_SERVER }}
+            - name: MO_EVENT_SERVER
+              value: {{ .Values.envVars.MO_EVENT_SERVER | quote }}
+            {{- end }}
+
+            {{- include "common.env" . | nindent 12 }}
+          volumeMounts:
+            - mountPath: /app/helm-data
+              name: helm-data
+            - mountPath: /tmp
+              name: tmp
+            - mountPath: /app/mo-data
+              name: mo-data
+          ports:
+            - containerPort: 1337
+              protocol: TCP
+          {{- if and .Values.probes.enabled .Values.probes.startupProbe.enabled }}
+          startupProbe:
+            failureThreshold: 3
+            httpGet:
+              path: {{ .Values.probes.startupProbe.path }}
+              port: 1337
+              scheme: HTTP
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 5
+          {{- end }}
+          {{- if and .Values.probes.enabled .Values.probes.readinessProbe.enabled }}
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: {{ .Values.probes.readinessProbe.path }}
+              port: 1337
+              scheme: HTTP
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 5
+          {{- end }}
+          {{- if and .Values.probes.enabled .Values.probes.livenessProbe.enabled }}
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: {{ .Values.probes.livenessProbe.path }}
+              port: 1337
+              scheme: HTTP
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 5
+          {{- end }}
+          {{- if .Values.resources }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          {{- end }}
+          {{- if .Values.containerSecurityContext }}
+          securityContext:
+            {{- toYaml .Values.containerSecurityContext | nindent 12 }}
+          {{- end }}
+      restartPolicy: Always
+      {{- if .Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- end }}
+      serviceAccountName: mogenius-operator-service-account-app
+      volumes:
+      - name: helm-data
+        emptyDir: {}
+      - name: tmp
+        emptyDir: {}
+      - name: mo-data
+        emptyDir: {}

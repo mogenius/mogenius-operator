@@ -1,0 +1,75 @@
+{{-  if .Values.valkey.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app:  {{ .Values.fullnameOverride }}-valkey
+  name:  {{ .Values.fullnameOverride }}-valkey
+  namespace: {{ .Release.Namespace }}
+spec:
+  revisionHistoryLimit: {{ .Values.revisionHistoryLimit }}
+  progressDeadlineSeconds: 600
+  replicas: 1
+  selector:
+    matchLabels:
+      app:  {{ .Values.fullnameOverride }}-valkey
+  strategy:
+    type: {{ .Values.valkey.updateStrategy.type }}
+  template:
+    metadata:
+      labels:
+        app:  {{ .Values.fullnameOverride }}-valkey
+        {{- if .Values.valkey.podLabels }}
+        {{- toYaml .Values.valkey.podLabels | nindent 8 }}
+        {{- end }}
+      annotations:
+        valkey-password-checksum: {{ include "getPasswordHash" (include "lookupSecret" .) | quote }}
+    spec:
+      volumes:
+      - name: storage
+        persistentVolumeClaim:
+          claimName:  {{ .Values.fullnameOverride }}-valkey
+      {{- with .Values.valkey.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.valkey.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.valkey.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.valkey.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+      - name: valkey
+        image: {{ .Values.valkey.image.registry }}/{{ .Values.valkey.image.repository }}:{{ .Values.valkey.image.tag }}
+        args: [ "--requirepass", "$(VALKEY_PASSWORD)" ]
+        imagePullPolicy: {{ .Values.valkey.imagePullPolicy }}
+        env:
+        - name: VALKEY_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.fullnameOverride }}-valkey
+              key: valkey-password
+        volumeMounts:
+          - mountPath: /data
+            readOnly: false
+            name: storage
+        ports:
+        - containerPort: {{ .Values.valkey.port }}
+          protocol: TCP
+        {{- with .Values.valkey.containerSecurityContext }}
+        securityContext:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- with .Values.valkey.resources }}
+        resources:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+{{ end }}

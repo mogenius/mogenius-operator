@@ -1,0 +1,19 @@
+{{-  if .Values.valkey.enabled }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Values.fullnameOverride }}-valkey
+  namespace: {{ .Release.Namespace }}
+spec:
+  {{- if .Values.valkey.persistence.storageClass }}
+  storageClassName: {{ .Values.valkey.persistence.storageClass }}
+  {{- end }}
+  accessModes:
+    {{- range .Values.valkey.persistence.accessModes }}
+    - {{ . }}
+    {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.valkey.persistence.size }}
+{{ end }}
