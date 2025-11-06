@@ -1180,7 +1180,7 @@ func (self *socketApi) registerPatterns() {
 		PatternHandle{self, "create/new-workload"},
 		PatternConfig{},
 		func(datagram structs.Datagram, request utils.WorkloadChangeRequest) (*unstructured.Unstructured, error) {
-			createdRes, err := kubernetes.CreateUnstructuredResource(request.ApiVersion, request.Plural, request.Namespace, request.YamlData)
+			createdRes, err := kubernetes.CreateUnstructuredResource(request.ApiVersion, request.Plural, request.Namespaced, request.YamlData)
 			return store.AddToAuditLog(datagram, self.logger, createdRes, err, nil, createdRes)
 		},
 	)
@@ -1211,8 +1211,8 @@ func (self *socketApi) registerPatterns() {
 			if err != nil {
 				return nil, fmt.Errorf("failed to unmarshal YAML data: %w", err)
 			}
-			oldObj, _ := kubernetes.GetUnstructuredResourceFromStore(request.ApiVersion, request.Kind, request.Namespace, updatedObj.GetName())
-			updatedRes, err := kubernetes.UpdateUnstructuredResource(request.ApiVersion, request.Plural, request.Namespace, request.YamlData)
+			oldObj, _ := kubernetes.GetUnstructuredResourceFromStore(request.ApiVersion, request.Kind, updatedObj.GetNamespace(), updatedObj.GetName())
+			updatedRes, err := kubernetes.UpdateUnstructuredResource(request.ApiVersion, request.Plural, request.Namespaced, request.YamlData)
 			return store.AddToAuditLog(datagram, self.logger, updatedRes, err, oldObj, updatedRes)
 		},
 	)

@@ -335,7 +335,7 @@ func GetUnstructuredResourceFromStore(apiVersion string, kind string, namespace,
 	return store.GetResource(valkeyClient, apiVersion, kind, namespace, resourceName, k8sLogger)
 }
 
-func CreateUnstructuredResource(apiVersion string, plural string, namespace string, yamlData string) (*unstructured.Unstructured, error) {
+func CreateUnstructuredResource(apiVersion string, plural string, namespaced bool, yamlData string) (*unstructured.Unstructured, error) {
 	dynamicClient := clientProvider.DynamicClient()
 	obj := &unstructured.Unstructured{}
 	err := yaml.Unmarshal([]byte(yamlData), obj)
@@ -343,7 +343,7 @@ func CreateUnstructuredResource(apiVersion string, plural string, namespace stri
 		return nil, err
 	}
 
-	if namespace != "" {
+	if namespaced {
 		result, err := dynamicClient.Resource(CreateGroupVersionResource(apiVersion, plural)).Namespace(obj.GetNamespace()).Create(context.Background(), obj, metav1.CreateOptions{})
 		return removeManagedFields(result), err
 	} else {
@@ -352,7 +352,7 @@ func CreateUnstructuredResource(apiVersion string, plural string, namespace stri
 	}
 }
 
-func UpdateUnstructuredResource(apiVersion string, plural string, namespace string, yamlData string) (*unstructured.Unstructured, error) {
+func UpdateUnstructuredResource(apiVersion string, plural string, namespaced bool, yamlData string) (*unstructured.Unstructured, error) {
 	dynamicClient := clientProvider.DynamicClient()
 	obj := &unstructured.Unstructured{}
 	err := yaml.Unmarshal([]byte(yamlData), obj)
@@ -360,7 +360,7 @@ func UpdateUnstructuredResource(apiVersion string, plural string, namespace stri
 		return nil, err
 	}
 
-	if namespace != "" {
+	if namespaced {
 		result, err := dynamicClient.Resource(CreateGroupVersionResource(apiVersion, plural)).Namespace(obj.GetNamespace()).Update(context.Background(), obj, metav1.UpdateOptions{})
 		return removeManagedFields(result), err
 	} else {
