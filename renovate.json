@@ -8,5 +8,16 @@
   "patch": {
     "automerge": true
   },
-  "prCreation": "not-pending"
+  "prCreation": "not-pending",
+  "packageRules": [
+    {
+      "matchPackageNames": [
+        "ghcr.io/mogenius/mogenius-k8s-manager"
+      ],
+      "matchFileNames": [
+        "helm/**"
+      ],
+      "enabled": false
+    }
+  ]
 }
