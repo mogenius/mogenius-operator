@@ -2,7 +2,7 @@
 # syntax=docker/dockerfile:1
 
 # Build-Stage sollte native Platform verwenden für schnelleres Kompilieren
-FROM --platform=$BUILDPLATFORM golang:1.25.3 AS golang
+FROM --platform=$BUILDPLATFORM golang:1.25.4 AS golang
 
 FROM --platform=$BUILDPLATFORM ubuntu:noble AS build-env
 
