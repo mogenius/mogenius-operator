@@ -188,9 +188,10 @@ func (self *moKubernetes) CreateOrUpdateResourceTemplateConfigmap() error {
 	}
 
 	// check if configmap exists
-	_, err = self.CreateUnstructuredResource(utils.ConfigMapResource.ApiVersion, utils.ConfigMapResource.Plural, utils.Pointer(self.config.Get("MO_OWN_NAMESPACE")), string(updatedYaml))
+	ownNamespace := self.config.Get("MO_OWN_NAMESPACE")
+	_, err = self.CreateUnstructuredResource(utils.ConfigMapResource.ApiVersion, utils.ConfigMapResource.Plural, utils.Pointer(ownNamespace), string(updatedYaml))
 	if apierrors.IsAlreadyExists(err) {
-		_, err = kubernetes.UpdateUnstructuredResource(utils.ConfigMapResource.ApiVersion, utils.ConfigMapResource.Plural, self.config.Get("MO_OWN_NAMESPACE"), string(updatedYaml))
+		_, err = kubernetes.UpdateUnstructuredResource(utils.ConfigMapResource.ApiVersion, utils.ConfigMapResource.Plural, utils.ConfigMapResource.Namespaced, string(updatedYaml))
 		if err != nil {
 			self.logger.Error("Resource template configmap failed to update", "error", err)
 			return err
