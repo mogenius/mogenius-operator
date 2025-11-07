@@ -12,6 +12,7 @@ import (
 func (self *httpService) addApiRoutes(mux *http.ServeMux) {
 	mux.Handle("/socketapi", self.withRequestLogging(http.HandlerFunc(self.httpSocketApi)))
 	mux.HandleFunc("/api-doc", self.serveApiDocHtml)
+	mux.HandleFunc("/stats", self.serveNodeStatsHtml)
 	mux.HandleFunc("/spec.yaml", self.serveSpecYaml)
 }
 
@@ -52,6 +53,15 @@ func (self *httpService) httpSocketApi(w http.ResponseWriter, r *http.Request) {
 func (self *httpService) serveApiDocHtml(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
 	html := utils.IndexHtml()
+	_, err := w.Write([]byte(html))
+	if err != nil {
+		self.logger.Error("failed to write index.html response", "error", err)
+	}
+}
+
+func (self *httpService) serveNodeStatsHtml(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html")
+	html := utils.NodeStatsHtml()
 	_, err := w.Write([]byte(html))
 	if err != nil {
 		self.logger.Error("failed to write index.html response", "error", err)

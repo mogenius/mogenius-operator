@@ -159,3 +159,11 @@ func IndexHtml() string {
 	}
 	return string(html)
 }
+
+func NodeStatsHtml() string {
+	html, err := HtmlFolder.ReadFile("html/node-stats.html")
+	if err != nil {
+		utilsLogger.Error("failed to read embedded file from HtmlFolder", "error", err)
+	}
+	return string(html)
+}
