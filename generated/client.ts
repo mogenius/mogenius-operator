@@ -54,6 +54,7 @@ export enum Pattern {
   GET_GRANTS = "get/grants",
   GET_LABELED_WORKLOAD_LIST = "get/labeled-workload-list",
   GET_NAMESPACE_WORKLOAD_LIST = "get/namespace-workload-list",
+  GET_NODES_METRICS = "get/nodes-metrics",
   GET_USER = "get/user",
   GET_USERS = "get/users",
   GET_WORKLOAD = "get/workload",
@@ -177,6 +178,7 @@ export const StringToPattern = {
   "get/grants": Pattern.GET_GRANTS,
   "get/labeled-workload-list": Pattern.GET_LABELED_WORKLOAD_LIST,
   "get/namespace-workload-list": Pattern.GET_NAMESPACE_WORKLOAD_LIST,
+  "get/nodes-metrics": Pattern.GET_NODES_METRICS,
   "get/user": Pattern.GET_USER,
   "get/users": Pattern.GET_USERS,
   "get/workload": Pattern.GET_WORKLOAD,
@@ -296,6 +298,7 @@ export const PatternToString = {
   [Pattern.GET_GRANTS]: "get/grants",
   [Pattern.GET_LABELED_WORKLOAD_LIST]: "get/labeled-workload-list",
   [Pattern.GET_NAMESPACE_WORKLOAD_LIST]: "get/namespace-workload-list",
+  [Pattern.GET_NODES_METRICS]: "get/nodes-metrics",
   [Pattern.GET_USER]: "get/user",
   [Pattern.GET_USERS]: "get/users",
   [Pattern.GET_WORKLOAD]: "get/workload",
@@ -4355,6 +4358,79 @@ export type GET_NAMESPACE_WORKLOAD_LIST_REQUEST = GET_NAMESPACE_WORKLOAD_LIST_RE
  *
  */
 export type GET_NAMESPACE_WORKLOAD_LIST_RESPONSE = GET_NAMESPACE_WORKLOAD_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_KUBERNETES_GETUNSTRUCTUREDNAMESPACERESOURCELISTREQUEST_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     ANON_STRUCT_0:
+ *         properties: {}
+ * typeInfo:
+ *     pointer: true
+ *     structRef: ANON_STRUCT_0
+ *     type: struct
+ * ```
+ *
+ */
+export type GET_NODES_METRICS_REQUEST = GET_NODES_METRICS_REQUEST__ANON_STRUCT_0|undefined;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     mogenius-k8s-manager/src/core.NodeMetrics:
+ *         name: mogenius-k8s-manager/src/core.NodeMetrics
+ *         properties:
+ *             cpu:
+ *                 keyType:
+ *                     type: string
+ *                 type: map
+ *                 valueType:
+ *                     pointer: true
+ *                     type: any
+ *             memory:
+ *                 keyType:
+ *                     type: string
+ *                 type: map
+ *                 valueType:
+ *                     pointer: true
+ *                     type: any
+ *             nodeName:
+ *                 type: string
+ *             traffic:
+ *                 keyType:
+ *                     type: string
+ *                 type: map
+ *                 valueType:
+ *                     pointer: true
+ *                     type: any
+ *     mogenius-k8s-manager/src/core.Response:
+ *         name: mogenius-k8s-manager/src/core.Response
+ *         properties:
+ *             nodes:
+ *                 elementType:
+ *                     structRef: mogenius-k8s-manager/src/core.NodeMetrics
+ *                     type: struct
+ *                 type: array
+ *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,mogenius-k8s-manager/src/core.Response·38]:
+ *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,mogenius-k8s-manager/src/core.Response·38]
+ *         properties:
+ *             data:
+ *                 structRef: mogenius-k8s-manager/src/core.Response
+ *                 type: struct
+ *             message:
+ *                 type: string
+ *             status:
+ *                 type: string
+ * typeInfo:
+ *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,mogenius-k8s-manager/src/core.Response·38]
+ *     type: struct
+ * ```
+ *
+ */
+export type GET_NODES_METRICS_RESPONSE = GET_NODES_METRICS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_MOGENIUS_K8S_MANAGER_SRC_CORE_RESPONSE38;
 
 /**
  * #### Source
@@ -8815,6 +8891,10 @@ export type GET_NAMESPACE_WORKLOAD_LIST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_KUBERN
 export type GET_NAMESPACE_WORKLOAD_LIST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR = {"apiVersion": string,"kind": string,"namespaced": boolean,"plural": string};
 export type GET_NAMESPACE_WORKLOAD_LIST_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"Object": Record<string, any>};
 export type GET_NAMESPACE_WORKLOAD_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_KUBERNETES_GETUNSTRUCTUREDNAMESPACERESOURCELISTREQUEST_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"data": GET_NAMESPACE_WORKLOAD_LIST_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED[],"message": string,"status": string};
+export type GET_NODES_METRICS_REQUEST__ANON_STRUCT_0 = {};
+export type GET_NODES_METRICS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_NODEMETRICS = {"cpu": Record<string, any>,"memory": Record<string, any>,"nodeName": string,"traffic": Record<string, any>};
+export type GET_NODES_METRICS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESPONSE = {"nodes": GET_NODES_METRICS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_NODEMETRICS[]};
+export type GET_NODES_METRICS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_MOGENIUS_K8S_MANAGER_SRC_CORE_RESPONSE38 = {"data": GET_NODES_METRICS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESPONSE,"message": string,"status": string};
 export type GET_USER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"name": string};
 export type GET_USER_RESPONSE__K8S_IO_API_RBAC_V1_SUBJECT = {"apiGroup": string,"kind": string,"name": string,"namespace": string};
 export type GET_USER_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_FIELDSV1 = {};
@@ -9254,6 +9334,10 @@ export interface IPatternConfig {
   [Pattern.GET_NAMESPACE_WORKLOAD_LIST]: {
     Request: GET_NAMESPACE_WORKLOAD_LIST_REQUEST;
     Response: GET_NAMESPACE_WORKLOAD_LIST_RESPONSE;
+  };
+  [Pattern.GET_NODES_METRICS]: {
+    Request: GET_NODES_METRICS_REQUEST;
+    Response: GET_NODES_METRICS_RESPONSE;
   };
   [Pattern.GET_USER]: {
     Request: GET_USER_REQUEST;

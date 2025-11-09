@@ -1,1 +1,597 @@
-test
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mogenius K8s Manager - Live Node Monitoring</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              primary: "#009bc5",
+              "primary-hover": "#00556c",
+              success: "#00c567",
+              error: "#c22828",
+              warning: "#ff8c1a",
+            },
+          },
+        },
+      };
+    </script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+      }
+
+      .chart-container {
+        position: relative;
+        height: 250px;
+        will-change: transform;
+      }
+
+      .bg-white {
+        transition: all 0.2s ease-in-out;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 9999px;
+        padding: 0.25rem 0.75rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+      }
+
+      .badge-success {
+        background-color: rgba(0, 197, 103, 0.1);
+        color: #00c567;
+      }
+
+      .badge-warning {
+        background-color: rgba(255, 140, 26, 0.1);
+        color: #ff8c1a;
+      }
+
+      .badge-error {
+        background-color: rgba(194, 40, 40, 0.1);
+        color: #c22828;
+      }
+
+      .badge-default {
+        background-color: rgba(0, 155, 197, 0.1);
+        color: #009bc5;
+      }
+    </style>
+  </head>
+  <body class="bg-gray-50">
+    <div id="app" x-data="nodeMonitor()" x-init="init()">
+      <div class="min-h-screen bg-gray-50 p-6">
+        <div class="max-w-7xl mx-auto">
+          <!-- Header -->
+          <div class="mb-8">
+            <div class="flex items-center space-x-3 mb-2">
+              <h1 class="text-3xl font-bold text-gray-900">
+                Mogenius Kubernetes Manager
+              </h1>
+              <span
+                x-show="loading"
+                class="inline-block w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin"
+              ></span>
+            </div>
+            <p class="text-gray-600">
+              Live Node Monitoring - Click any node to see real-time metrics
+            </p>
+            <p class="text-sm text-gray-500 mt-1" x-show="lastUpdate">
+              Last update: <span x-text="lastUpdate"></span>
+            </p>
+          </div>
+
+          <!-- Error Message -->
+          <div
+            x-show="error"
+            class="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg mb-6"
+          >
+            <p class="font-semibold">Error loading metrics:</p>
+            <p class="text-sm" x-text="error"></p>
+          </div>
+
+          <!-- Stats Cards -->
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div class="bg-white rounded-lg border border-gray-200 p-6">
+              <div class="text-sm text-gray-500 mb-1">Total Nodes</div>
+              <div
+                class="text-3xl font-bold text-gray-900"
+                x-text="nodes.length"
+              ></div>
+            </div>
+            <div class="bg-white rounded-lg border border-gray-200 p-6">
+              <div class="text-sm text-gray-500 mb-1">Ready</div>
+              <div
+                class="text-3xl font-bold text-green-600"
+                x-text="nodes.filter(n => n.status === 'Ready').length"
+              ></div>
+            </div>
+            <div class="bg-white rounded-lg border border-gray-200 p-6">
+              <div class="text-sm text-gray-500 mb-1">Not Ready</div>
+              <div
+                class="text-3xl font-bold text-red-600"
+                x-text="nodes.filter(n => n.status !== 'Ready').length"
+              ></div>
+            </div>
+            <div class="bg-white rounded-lg border border-gray-200 p-6">
+              <div class="text-sm text-gray-500 mb-1">Total Pods</div>
+              <div
+                class="text-3xl font-bold text-blue-600"
+                x-text="nodes.reduce((sum, n) => sum + (n.podCount || 0), 0)"
+              ></div>
+            </div>
+          </div>
+
+          <!-- Nodes Table -->
+          <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th
+                      class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12"
+                    ></th>
+                    <th
+                      class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    >
+                      Node Name
+                    </th>
+                    <th
+                      class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    >
+                      Status
+                    </th>
+                    <th
+                      class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    >
+                      CPU
+                    </th>
+                    <th
+                      class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    >
+                      Memory
+                    </th>
+                    <th
+                      class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    >
+                      Network
+                    </th>
+                  </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                  <template x-for="node in nodes" :key="node.name">
+                    <tr>
+                      <td
+                        class="px-4 py-3 cursor-pointer"
+                        @click="toggleNode(node.name)"
+                      >
+                        <svg
+                          class="w-5 h-5 transition-transform"
+                          :class="{ 'rotate-90': expandedNode === node.name }"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M9 5l7 7-7 7"
+                          />
+                        </svg>
+                      </td>
+                      <td
+                        class="px-4 py-3 font-medium text-gray-900 cursor-pointer"
+                        @click="toggleNode(node.name)"
+                        x-text="node.name"
+                      ></td>
+                      <td class="px-4 py-3">
+                        <span
+                          class="badge"
+                          :class="{
+                            'badge-success': node.status === 'Ready',
+                            'badge-error': node.status !== 'Ready'
+                          }"
+                          x-text="node.status"
+                        ></span>
+                      </td>
+                      <td class="px-4 py-3">
+                        <span
+                          class="badge"
+                          :class="getBadgeClass(node.cpuPercent, 70, 85)"
+                          x-text="formatPercent(node.cpuPercent)"
+                        ></span>
+                      </td>
+                      <td class="px-4 py-3">
+                        <span
+                          class="badge"
+                          :class="getBadgeClass(node.memoryPercent, 80, 90)"
+                          x-text="formatPercent(node.memoryPercent)"
+                        ></span>
+                      </td>
+                      <td class="px-4 py-3 text-sm text-gray-600">
+                        <div x-show="node.networkRx">
+                          ↓ <span x-text="formatBytes(node.networkRx)"></span>/s
+                        </div>
+                        <div x-show="node.networkTx">
+                          ↑ <span x-text="formatBytes(node.networkTx)"></span>/s
+                        </div>
+                      </td>
+                    </tr>
+                    <!-- Expanded row with charts -->
+                    <template x-if="expandedNode === node.name">
+                      <tr>
+                        <td colspan="6" class="bg-gray-50 px-4 py-6">
+                          <div class="max-w-7xl mx-auto">
+                            <h3
+                              class="text-lg font-semibold mb-4 text-gray-800"
+                            >
+                              Live Metrics:
+                              <span x-text="node.name"></span>
+                            </h3>
+                            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                              <!-- CPU Chart -->
+                              <div
+                                class="bg-white rounded-lg border border-gray-200 p-4 shadow-sm"
+                              >
+                                <h4 class="font-semibold text-gray-800 mb-2">
+                                  CPU Usage
+                                </h4>
+                                <div class="chart-container">
+                                  <canvas
+                                    :id="'cpu-chart-' + node.name"
+                                  ></canvas>
+                                </div>
+                              </div>
+
+                              <!-- Memory Chart -->
+                              <div
+                                class="bg-white rounded-lg border border-gray-200 p-4 shadow-sm"
+                              >
+                                <h4 class="font-semibold text-gray-800 mb-2">
+                                  Memory Usage
+                                </h4>
+                                <div class="chart-container">
+                                  <canvas
+                                    :id="'memory-chart-' + node.name"
+                                  ></canvas>
+                                </div>
+                              </div>
+
+                              <!-- Network Chart -->
+                              <div
+                                class="bg-white rounded-lg border border-gray-200 p-4 shadow-sm"
+                              >
+                                <h4 class="font-semibold text-gray-800 mb-2">
+                                  Network Traffic
+                                </h4>
+                                <div class="chart-container">
+                                  <canvas
+                                    :id="'network-chart-' + node.name"
+                                  ></canvas>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    </template>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Footer -->
+          <div class="mt-8 text-center text-sm text-gray-500">
+            <p>Real-time metrics via HTTP Polling • Powered by Mogenius</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      function nodeMonitor() {
+        return {
+          nodes: [],
+          expandedNode: null,
+          loading: false,
+          error: null,
+          lastUpdate: null,
+          pollInterval: null,
+          charts: {},
+
+          init() {
+            this.fetchMetrics();
+            // Poll every 2 seconds
+            this.pollInterval = setInterval(() => {
+              this.fetchMetrics();
+            }, 2000);
+          },
+
+          async fetchMetrics() {
+            try {
+              this.loading = true;
+              this.error = null;
+
+              const response = await fetch("/socketapi", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  pattern: "get/nodes-metrics",
+                  payload: {},
+                }),
+              });
+
+              if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+              }
+
+              const data = await response.json();
+
+              if (!data.payload) {
+                throw new Error("Invalid response format");
+              }
+
+              // Handle both formats: payload.data and payload.result
+              const metricsData = data.payload.data || data.payload.result || data.payload;
+              this.updateNodes(metricsData.nodes || []);
+              this.lastUpdate = new Date().toLocaleTimeString();
+            } catch (err) {
+              console.error("Failed to fetch metrics:", err);
+              this.error = err.message;
+            } finally {
+              this.loading = false;
+            }
+          },
+
+          updateNodes(metricsNodes) {
+            metricsNodes.forEach((metricNode) => {
+              let node = this.nodes.find((n) => n.name === metricNode.nodeName);
+
+              if (!node) {
+                node = {
+                  name: metricNode.nodeName,
+                  status: "Ready",
+                  cpuPercent: 0,
+                  memoryPercent: 0,
+                  networkRx: 0,
+                  networkTx: 0,
+                  podCount: 0,
+                };
+                this.nodes.push(node);
+              }
+
+              // Update CPU
+              if (metricNode.cpu && typeof metricNode.cpu === "object") {
+                const cpuTotal = metricNode.cpu.cpuTotal || metricNode.cpu.total || 0;
+                node.cpuPercent = cpuTotal;
+              }
+
+              // Update Memory
+              if (metricNode.memory && typeof metricNode.memory === "object") {
+                const memPercent = metricNode.memory.usedPercent || metricNode.memory.percentage || 0;
+                node.memoryPercent = memPercent;
+              }
+
+              // Update Network
+              if (metricNode.traffic && typeof metricNode.traffic === "object") {
+                node.networkRx = metricNode.traffic.rxRate || 0;
+                node.networkTx = metricNode.traffic.txRate || 0;
+              }
+
+              // Update charts if node is expanded
+              if (this.expandedNode === node.name) {
+                this.updateCharts(node.name, metricNode);
+              }
+            });
+          },
+
+          toggleNode(nodeName) {
+            if (this.expandedNode === nodeName) {
+              this.destroyCharts(nodeName);
+              this.expandedNode = null;
+            } else {
+              if (this.expandedNode) {
+                this.destroyCharts(this.expandedNode);
+              }
+              this.expandedNode = nodeName;
+              // Wait for DOM to render
+              setTimeout(() => {
+                this.initCharts(nodeName);
+              }, 100);
+            }
+          },
+
+          initCharts(nodeName) {
+            const cpuCanvas = document.getElementById(`cpu-chart-${nodeName}`);
+            const memoryCanvas = document.getElementById(`memory-chart-${nodeName}`);
+            const networkCanvas = document.getElementById(`network-chart-${nodeName}`);
+
+            if (!cpuCanvas || !memoryCanvas || !networkCanvas) return;
+
+            const chartOptions = {
+              responsive: true,
+              maintainAspectRatio: false,
+              animation: { duration: 750, easing: "easeInOutQuart" },
+              plugins: {
+                legend: { position: "top", labels: { usePointStyle: true, padding: 10, font: { size: 11 } } },
+              },
+              scales: {
+                x: {
+                  type: "time",
+                  time: { unit: "second", displayFormats: { second: "HH:mm:ss" } },
+                  grid: { display: false },
+                  ticks: { maxRotation: 0, autoSkipPadding: 20, font: { size: 10 } },
+                },
+                y: {
+                  beginAtZero: true,
+                  grid: { color: "rgba(0, 0, 0, 0.05)" },
+                  ticks: { font: { size: 10 } },
+                },
+              },
+            };
+
+            this.charts[nodeName] = {
+              cpu: new Chart(cpuCanvas, {
+                type: "line",
+                data: {
+                  datasets: [
+                    {
+                      label: "CPU %",
+                      data: [],
+                      borderColor: "#009bc5",
+                      backgroundColor: "#009bc520",
+                      fill: true,
+                      tension: 0.4,
+                      borderWidth: 2,
+                      pointRadius: 0,
+                    },
+                  ],
+                },
+                options: chartOptions,
+              }),
+              memory: new Chart(memoryCanvas, {
+                type: "line",
+                data: {
+                  datasets: [
+                    {
+                      label: "Memory %",
+                      data: [],
+                      borderColor: "#00c567",
+                      backgroundColor: "#00c56720",
+                      fill: true,
+                      tension: 0.4,
+                      borderWidth: 2,
+                      pointRadius: 0,
+                    },
+                  ],
+                },
+                options: chartOptions,
+              }),
+              network: new Chart(networkCanvas, {
+                type: "line",
+                data: {
+                  datasets: [
+                    {
+                      label: "RX (bytes/s)",
+                      data: [],
+                      borderColor: "#009bc5",
+                      backgroundColor: "#009bc520",
+                      fill: false,
+                      tension: 0.4,
+                      borderWidth: 2,
+                      pointRadius: 0,
+                    },
+                    {
+                      label: "TX (bytes/s)",
+                      data: [],
+                      borderColor: "#ff8c1a",
+                      backgroundColor: "#ff8c1a20",
+                      fill: false,
+                      tension: 0.4,
+                      borderWidth: 2,
+                      pointRadius: 0,
+                    },
+                  ],
+                },
+                options: chartOptions,
+              }),
+            };
+          },
+
+          updateCharts(nodeName, metricNode) {
+            const nodeCharts = this.charts[nodeName];
+            if (!nodeCharts) return;
+
+            const timestamp = Date.now();
+            const maxPoints = 60;
+
+            // Update CPU chart
+            if (metricNode.cpu && nodeCharts.cpu) {
+              const cpuTotal = metricNode.cpu.cpuTotal || metricNode.cpu.total || 0;
+              nodeCharts.cpu.data.datasets[0].data.push({ x: timestamp, y: cpuTotal });
+              if (nodeCharts.cpu.data.datasets[0].data.length > maxPoints) {
+                nodeCharts.cpu.data.datasets[0].data.shift();
+              }
+              nodeCharts.cpu.update("active");
+            }
+
+            // Update Memory chart
+            if (metricNode.memory && nodeCharts.memory) {
+              const memPercent = metricNode.memory.usedPercent || metricNode.memory.percentage || 0;
+              nodeCharts.memory.data.datasets[0].data.push({ x: timestamp, y: memPercent });
+              if (nodeCharts.memory.data.datasets[0].data.length > maxPoints) {
+                nodeCharts.memory.data.datasets[0].data.shift();
+              }
+              nodeCharts.memory.update("active");
+            }
+
+            // Update Network chart
+            if (metricNode.traffic && nodeCharts.network) {
+              const rxRate = metricNode.traffic.rxRate || 0;
+              const txRate = metricNode.traffic.txRate || 0;
+              nodeCharts.network.data.datasets[0].data.push({ x: timestamp, y: rxRate });
+              nodeCharts.network.data.datasets[1].data.push({ x: timestamp, y: txRate });
+              if (nodeCharts.network.data.datasets[0].data.length > maxPoints) {
+                nodeCharts.network.data.datasets[0].data.shift();
+                nodeCharts.network.data.datasets[1].data.shift();
+              }
+              nodeCharts.network.update("active");
+            }
+          },
+
+          destroyCharts(nodeName) {
+            const nodeCharts = this.charts[nodeName];
+            if (nodeCharts) {
+              nodeCharts.cpu?.destroy();
+              nodeCharts.memory?.destroy();
+              nodeCharts.network?.destroy();
+              delete this.charts[nodeName];
+            }
+          },
+
+          formatPercent(value) {
+            if (value === undefined || value === null) return "N/A";
+            return `${value.toFixed(1)}%`;
+          },
+
+          formatBytes(bytes) {
+            if (!bytes) return "0 B";
+            const k = 1024;
+            const sizes = ["B", "KB", "MB", "GB"];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
+          },
+
+          getBadgeClass(value, warning = 70, danger = 85) {
+            if (value === undefined || value === null) return "badge-default";
+            if (value >= danger) return "badge-error";
+            if (value >= warning) return "badge-warning";
+            return "badge-success";
+          },
+        };
+      }
+    </script>
+  </body>
+</html>

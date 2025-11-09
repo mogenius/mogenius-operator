@@ -3301,6 +3301,64 @@ get/namespace-workload-list:
         typeInfo:
             structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/kubernetes.GetUnstructuredNamespaceResourceListRequest,[]k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
             type: struct
+get/nodes-metrics:
+    requestSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
+    responseSchema:
+        structs:
+            mogenius-k8s-manager/src/core.NodeMetrics:
+                name: mogenius-k8s-manager/src/core.NodeMetrics
+                properties:
+                    cpu:
+                        keyType:
+                            type: string
+                        type: map
+                        valueType:
+                            pointer: true
+                            type: any
+                    memory:
+                        keyType:
+                            type: string
+                        type: map
+                        valueType:
+                            pointer: true
+                            type: any
+                    nodeName:
+                        type: string
+                    traffic:
+                        keyType:
+                            type: string
+                        type: map
+                        valueType:
+                            pointer: true
+                            type: any
+            mogenius-k8s-manager/src/core.Response:
+                name: mogenius-k8s-manager/src/core.Response
+                properties:
+                    nodes:
+                        elementType:
+                            structRef: mogenius-k8s-manager/src/core.NodeMetrics
+                            type: struct
+                        type: array
+            mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,mogenius-k8s-manager/src/core.Response·38]:
+                name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,mogenius-k8s-manager/src/core.Response·38]
+                properties:
+                    data:
+                        structRef: mogenius-k8s-manager/src/core.Response
+                        type: struct
+                    message:
+                        type: string
+                    status:
+                        type: string
+        typeInfo:
+            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,mogenius-k8s-manager/src/core.Response·38]
+            type: struct
 get/user:
     requestSchema:
         structs:

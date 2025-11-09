@@ -1794,6 +1794,84 @@ func (self *socketApi) registerPatterns() {
 			return self.sealedSecret.GetMainSecret()
 		},
 	)
+
+	// Get live metrics for all nodes from Valkey
+	{
+		type NodeMetrics struct {
+			NodeName string         `json:"nodeName"`
+			Cpu      map[string]any `json:"cpu"`
+			Memory   map[string]any `json:"memory"`
+			Traffic  map[string]any `json:"traffic"`
+		}
+
+		type Response struct {
+			Nodes []NodeMetrics `json:"nodes"`
+		}
+
+		RegisterPatternHandler(
+			PatternHandle{self, "get/nodes-metrics"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Void) (Response, error) {
+				// Get all nodes from Kubernetes
+				nodes, err := self.moKubernetes.GetNodeStats()
+				if err != nil {
+					return Response{}, fmt.Errorf("failed to get nodes: %w", err)
+				}
+
+				result := Response{
+					Nodes: make([]NodeMetrics, 0, len(nodes)),
+				}
+
+				// For each node, fetch metrics from Valkey
+				for _, node := range nodes {
+					nodeName := node.Name
+					nodeMetrics := NodeMetrics{
+						NodeName: nodeName,
+						Cpu:      make(map[string]any),
+						Memory:   make(map[string]any),
+						Traffic:  make(map[string]any),
+					}
+
+					// Get CPU metrics from Valkey: live-stats:cpu:{nodeName}
+					cpuData, err := valkeyclient.GetObjectForKey[map[string]any](
+						self.valkeyClient,
+						DB_STATS_LIVE_BUCKET_NAME,
+						DB_STATS_CPU_NAME,
+						nodeName,
+					)
+					if err == nil && cpuData != nil {
+						nodeMetrics.Cpu = *cpuData
+					}
+
+					// Get Memory metrics from Valkey: live-stats:memory:{nodeName}
+					memData, err := valkeyclient.GetObjectForKey[map[string]any](
+						self.valkeyClient,
+						DB_STATS_LIVE_BUCKET_NAME,
+						DB_STATS_MEMORY_NAME,
+						nodeName,
+					)
+					if err == nil && memData != nil {
+						nodeMetrics.Memory = *memData
+					}
+
+					// Get Traffic metrics from Valkey: live-stats:traffic:{nodeName}
+					trafficData, err := valkeyclient.GetObjectForKey[map[string]any](
+						self.valkeyClient,
+						DB_STATS_LIVE_BUCKET_NAME,
+						DB_STATS_TRAFFIC_NAME,
+						nodeName,
+					)
+					if err == nil && trafficData != nil {
+						nodeMetrics.Traffic = *trafficData
+					}
+
+					result.Nodes = append(result.Nodes, nodeMetrics)
+				}
+
+				return result, nil
+			},
+		)
+	}
 }
 
 func (self *socketApi) LoadRequest(datagram *structs.Datagram, data any) error {
