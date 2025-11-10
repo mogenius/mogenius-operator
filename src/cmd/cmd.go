@@ -4,13 +4,12 @@ import (
 	"fmt"
 	"log/slog"
 	"mogenius-k8s-manager/src/ai"
+	argocd "mogenius-k8s-manager/src/argocd"
 	"mogenius-k8s-manager/src/assert"
 	"mogenius-k8s-manager/src/config"
 	"mogenius-k8s-manager/src/containerenumerator"
-	"mogenius-k8s-manager/src/controllers"
 	"mogenius-k8s-manager/src/core"
 	"mogenius-k8s-manager/src/cpumonitor"
-	"mogenius-k8s-manager/src/dtos"
 	"mogenius-k8s-manager/src/helm"
 	"mogenius-k8s-manager/src/k8sclient"
 	"mogenius-k8s-manager/src/kubernetes"
@@ -19,7 +18,6 @@ import (
 	"mogenius-k8s-manager/src/rammonitor"
 	"mogenius-k8s-manager/src/secrets"
 	"mogenius-k8s-manager/src/services"
-	"mogenius-k8s-manager/src/servicesexternal"
 	"mogenius-k8s-manager/src/shutdown"
 	"mogenius-k8s-manager/src/store"
 	"mogenius-k8s-manager/src/structs"
@@ -71,6 +69,10 @@ func Run() error {
 	//====================== Initialize Logger ======================
 	//===============================================================
 	logLevel, err := logging.ParseLogLevel(configModule.Get("MO_LOG_LEVEL"))
+	if configModule.Get("MO_LOG_LEVEL") == "mo" {
+		logLevel = slog.LevelInfo
+		err = nil
+	}
 	assert.Assert(err == nil, "failed to parse log level", err)
 	logFilter := []string{}
 	moLogFilter := strings.SplitSeq(configModule.Get("MO_LOG_FILTER"), ",")
@@ -409,9 +411,9 @@ func LoadConfigDeclarations(configModule *config.Config) {
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_LOG_LEVEL",
 		DefaultValue: utils.Pointer("info"),
-		Description:  utils.Pointer(`a log level: "debug", "info", "warn" or "error"`),
+		Description:  utils.Pointer(`a log level: "mo","debug", "info", "warn" or "error"`),
 		Validate: func(val string) error {
-			allowedLogLevels := []string{"debug", "info", "warn", "error"}
+			allowedLogLevels := []string{"mo", "debug", "info", "warn", "error"}
 			if !slices.Contains(allowedLogLevels, val) {
 				return fmt.Errorf("'MO_LOG_LEVEL' needs to be one of '%v' but is '%s'", allowedLogLevels, val)
 			}
@@ -497,21 +499,19 @@ func InitializeSystems(
 	helm.Setup(logManagerModule, configModule, valkeyClient)
 	err := kubernetes.Setup(logManagerModule, configModule, clientProvider, valkeyClient)
 	assert.Assert(err == nil, err)
-	controllers.Setup(logManagerModule, configModule)
-	dtos.Setup(logManagerModule)
 	services.Setup(logManagerModule, configModule, clientProvider)
-	servicesexternal.Setup(logManagerModule, configModule)
 	structs.Setup(logManagerModule)
-	xterm.Setup(logManagerModule, clientProvider, valkeyClient)
+	xterm.Setup(logManagerModule, valkeyClient)
 	utils.Setup(logManagerModule, configModule)
 	err = store.Setup(logManagerModule, valkeyClient, configModule.Get("MO_AUDIT_LOG_LIMIT"))
 	assert.Assert(err == nil, err)
 
 	// initialization step 1 for services
+	argocd := argocd.NewArgoCd(logManagerModule, configModule, clientProvider, valkeyClient)
 	workspaceManager := core.NewWorkspaceManager(configModule, clientProvider)
-	apiModule := core.NewApi(logManagerModule.CreateLogger("api"), valkeyClient)
+	apiModule := core.NewApi(logManagerModule.CreateLogger("api"), valkeyClient, configModule)
 	httpApi := core.NewHttpApi(logManagerModule, configModule)
-	socketApi := core.NewSocketApi(logManagerModule.CreateLogger("socketapi"), configModule, jobConnectionClient, eventConnectionClient, valkeyClient)
+	socketApi := core.NewSocketApi(logManagerModule.CreateLogger("socketapi"), configModule, jobConnectionClient, eventConnectionClient, valkeyClient, argocd)
 	xtermService := core.NewXtermService(logManagerModule.CreateLogger("xterm-service"))
 	valkeyLoggerService := core.NewValkeyLogger(valkeyClient, valkeyLogChannel)
 	ownerCacheService := core.NewOwnerCacheService(logManagerModule.CreateLogger("owner-cache"), configModule)
@@ -564,6 +564,7 @@ func InitializeSystems(
 		reconciler,
 		sealedSecret,
 		aiManager,
+		argocd,
 	}
 }
 
@@ -590,4 +591,5 @@ type systems struct {
 	reconciler            core.Reconciler
 	sealedSecret          core.SealedSecretManager
 	aiManager             ai.AiManager
+	argocd                argocd.Argocd
 }

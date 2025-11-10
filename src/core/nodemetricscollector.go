@@ -2,7 +2,6 @@ package core
 
 import (
 	"bufio"
-	"context"
 	"fmt"
 	"log/slog"
 	"mogenius-k8s-manager/src/assert"
@@ -18,8 +17,6 @@ import (
 	"runtime"
 	"strconv"
 	"time"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type NodeMetricsCollector interface {
@@ -77,13 +74,6 @@ func (self *nodeMetricsCollector) Orchestrate() {
 
 	ownDeploymentName := self.config.Get("OWN_DEPLOYMENT_NAME")
 	assert.Assert(ownDeploymentName != "")
-
-	namespace := self.config.Get("MO_OWN_NAMESPACE")
-	assert.Assert("MO_OWN_NAMESPACE" != "")
-
-	daemonSetName := fmt.Sprintf("%s-nodemetrics", ownDeploymentName)
-	// TODO: this can be removed once it was deployed once
-	self.deleteDaemonSet(namespace, daemonSetName)
 
 	trafficCollectorEnabled, err := strconv.ParseBool(self.config.Get("MO_ENABLE_TRAFFIC_COLLECTOR"))
 	assert.Assert(err == nil, err)
@@ -146,21 +136,6 @@ func (self *nodeMetricsCollector) Orchestrate() {
 				select {}
 			}
 		}()
-	}
-}
-
-func (self *nodeMetricsCollector) deleteDaemonSet(namespace string, daemonSetName string) {
-	clientset := self.clientProvider.K8sClientSet()
-	assert.Assert(clientset != nil, "failed to get Kubernetes clientset")
-
-	_, err := clientset.AppsV1().DaemonSets(namespace).Get(context.Background(), daemonSetName, metav1.GetOptions{})
-	if err == nil {
-		err := clientset.AppsV1().DaemonSets(namespace).Delete(context.Background(), daemonSetName, metav1.DeleteOptions{})
-		if err != nil {
-			self.logger.Error("failed to delete node-metrics daemonset", "error", err)
-		} else {
-			self.logger.Info("node-metrics daemonset deleted successfully")
-		}
 	}
 }
 

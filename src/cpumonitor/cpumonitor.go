@@ -113,11 +113,6 @@ func (self *cpuMonitor) startCollector() {
 	}()
 }
 
-type ProcStat struct {
-	Cpu  ProcStatCpu
-	Cpus []ProcStatCpu
-}
-
 type ProcStatCpu struct {
 	// user   (1) Time spent in user mode.
 	User uint64 `json:"user"`

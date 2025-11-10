@@ -8,13 +8,12 @@ mo-data
 backup.yaml
 mogenius*.db
 mogenius-stats*.db
-CHANGELOG.md
 .idea/
 .envrc
 kube-config
 kubeconfig.tmpl
 kubeconfig.yaml
-mogenius-k8s-manager
+./mogenius-k8s-manager
 logs
 helm-data
 bin

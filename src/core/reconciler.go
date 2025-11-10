@@ -79,9 +79,9 @@ func NewReconciler(
 	self.statusLock = sync.RWMutex{}
 
 	self.crdResources = []watcher.WatcherResourceIdentifier{
-		{Name: "workspaces", Kind: "Workspace", Version: "", GroupVersion: "mogenius.com/v1alpha1", Namespaced: false},
-		{Name: "users", Kind: "User", Version: "", GroupVersion: "mogenius.com/v1alpha1", Namespaced: false},
-		{Name: "grants", Kind: "Grant", Version: "", GroupVersion: "mogenius.com/v1alpha1", Namespaced: false},
+		{Plural: "workspaces", Kind: "Workspace", ApiVersion: "mogenius.com/v1alpha1", Namespaced: false},
+		{Plural: "users", Kind: "User", ApiVersion: "mogenius.com/v1alpha1", Namespaced: false},
+		{Plural: "grants", Kind: "Grant", ApiVersion: "mogenius.com/v1alpha1", Namespaced: false},
 	}
 	self.workspaces = []v1alpha1.Workspace{}
 	self.workspacesLock = sync.RWMutex{}
@@ -91,10 +91,10 @@ func NewReconciler(
 	self.usersLock = sync.RWMutex{}
 
 	self.managedResources = []watcher.WatcherResourceIdentifier{
-		{Name: "namespaces", Kind: "Namespace", Version: "", GroupVersion: "v1", Namespaced: false},
-		{Name: "clusterroles", Kind: "ClusterRole", Version: "", GroupVersion: "rbac.authorization.k8s.io/v1", Namespaced: false},
-		{Name: "clusterrolebindings", Kind: "ClusterRoleBinding", Version: "", GroupVersion: "rbac.authorization.k8s.io/v1", Namespaced: false},
-		{Name: "rolebindings", Kind: "RoleBinding", Version: "", GroupVersion: "rbac.authorization.k8s.io/v1", Namespaced: false},
+		{Plural: "namespaces", Kind: "Namespace", ApiVersion: "v1", Namespaced: false},
+		{Plural: "clusterroles", Kind: "ClusterRole", ApiVersion: "rbac.authorization.k8s.io/v1", Namespaced: false},
+		{Plural: "clusterrolebindings", Kind: "ClusterRoleBinding", ApiVersion: "rbac.authorization.k8s.io/v1", Namespaced: false},
+		{Plural: "rolebindings", Kind: "RoleBinding", ApiVersion: "rbac.authorization.k8s.io/v1", Namespaced: false},
 	}
 	self.namespaces = []v1.Namespace{}
 	self.namespacesLock = sync.RWMutex{}
@@ -336,7 +336,6 @@ func (self *reconciler) updateStatus(
 					resourceErr.Error = fmt.Sprintf("Workspace contains a resource of type 'helm' pointing to a namespace which does not exist: %#v", namespace)
 					status.ResourceErrors = append(status.ResourceErrors, resourceErr)
 				}
-				// TODO: find an efficient way to check if the referenced helm chart exists as specified
 			default:
 				resourceErr := ReconcilerResourceError{}
 				resourceErr.ResourceGroup = workspace.GetObjectKind().GroupVersionKind().Group

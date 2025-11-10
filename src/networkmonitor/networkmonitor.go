@@ -293,35 +293,6 @@ type PodNetworkStats struct {
 	CreatedAt time.Time `json:"createdAt"` // when the entry was written into the storage <- timestamp of write to redis
 }
 
-func (self *PodNetworkStats) Sum(other *PodNetworkStats) {
-	self.ReceivedPackets += other.ReceivedPackets
-	self.ReceivedBytes += other.ReceivedBytes
-	self.ReceivedStartBytes += other.ReceivedStartBytes
-	self.TransmitPackets += other.TransmitPackets
-	self.TransmitBytes += other.TransmitBytes
-	self.TransmitStartBytes += other.TransmitStartBytes
-}
-
-func (self *PodNetworkStats) SumOrReplace(other *PodNetworkStats) {
-	if other.TransmitStartBytes > self.TransmitStartBytes || other.ReceivedStartBytes > self.ReceivedStartBytes {
-		// new startRX+startTX means an reset of the counters
-		self.TransmitStartBytes = other.TransmitStartBytes
-		self.ReceivedStartBytes = other.ReceivedStartBytes
-		self.ReceivedPackets = other.ReceivedPackets
-		self.ReceivedBytes = other.ReceivedBytes
-		self.ReceivedStartBytes = other.ReceivedStartBytes
-		self.TransmitPackets = other.TransmitPackets
-		self.TransmitBytes = other.TransmitBytes
-		self.TransmitStartBytes = other.TransmitStartBytes
-	} else {
-		// just sum the values if startRX+startTX is the same (it changes if the traffic collector restarts)
-		self.ReceivedPackets += other.ReceivedPackets
-		self.ReceivedBytes += other.ReceivedBytes
-		self.TransmitPackets += other.TransmitPackets
-		self.TransmitBytes += other.TransmitBytes
-	}
-}
-
 type KernelNetworkInterfaceInfo struct {
 	Interface          string
 	ReceiveBytes       uint64

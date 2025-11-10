@@ -1,0 +1,30 @@
+{{- if not .Values.cluster.readonly.enabled }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: mogenius-operator-service-account-app
+  namespace: {{ .Release.Namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ .Values.fullnameOverride }}
+rules:
+#"" , "apiregistration.k8s.io", "storage.k8s.io", "acme.cert-manager.io", "cert-manager.io", "apps", "batch", "networking.k8s.io", "extensions", "authorization.k8s.io", "rbac.authorization.k8s.io", "apiextensions.k8s.io", "admissionregistration.k8s.io"
+- apiGroups: ["", "*"]
+  resources: ["*"]
+  verbs: ["*"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ .Values.fullnameOverride }}
+subjects:
+- kind: ServiceAccount
+  name: mogenius-operator-service-account-app
+  namespace: {{ .Release.Namespace }}
+roleRef:
+  kind: ClusterRole
+  name: {{ .Values.fullnameOverride }}
+  apiGroup: rbac.authorization.k8s.io
+{{- end }}

@@ -22,6 +22,8 @@ import (
 type Core interface {
 	Initialize() error
 	InitializeClusterSecret()
+	InitializeWebsocketEventServer()
+	InitializeWebsocketApiServer()
 	InitializeValkey()
 	Link(
 		moKubernetes MoKubernetes,
@@ -229,9 +231,6 @@ func (self *core) Initialize() error {
 		return fmt.Errorf("failed to create resource template configmap: %s", err)
 	}
 
-	self.InitializeWebsocketEventServer()
-	self.InitializeWebsocketApiServer()
-
 	// INIT MOUNTS
 	autoMountNfs, err := strconv.ParseBool(self.config.Get("MO_AUTO_MOUNT_NFS"))
 	assert.Assert(err == nil, err)
@@ -268,15 +267,6 @@ func (self *core) Initialize() error {
 			return
 		}
 		self.logger.Info("Helm config initialized")
-	})
-
-	// Init Network Policy Configmap
-	wg.Go(func() {
-		if err := mokubernetes.InitNetworkPolicyConfigMap(); err != nil {
-			self.logger.Error("Error initializing Network Policy Configmap", "error", err)
-			return
-		}
-		self.logger.Info("Network Policy Configmap initialized")
 	})
 
 	wg.Wait()

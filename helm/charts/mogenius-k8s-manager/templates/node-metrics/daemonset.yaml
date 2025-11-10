@@ -1,0 +1,83 @@
+{{- if .Values.nodeMetrics.enabled }}
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ .Values.fullnameOverride }}-node-metrics
+  namespace: {{ .Release.Namespace }}
+spec:
+  revisionHistoryLimit: {{ .Values.revisionHistoryLimit }}
+  selector:
+    matchLabels:
+      app: {{ .Values.fullnameOverride }}-node-metrics
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.fullnameOverride }}-node-metrics
+      annotations:
+        valkey-password-checksum: {{ include "getPasswordHash" (include "lookupSecret" .) | quote }}
+    spec:
+      dnsPolicy: ClusterFirstWithHostNet
+      hostNetwork: true
+      serviceAccountName: mogenius-operator-service-account-app # todo
+      volumes:
+        - name: proc
+          hostPath: 
+            path: /proc
+        - name: sys
+          hostPath:
+            path: /sys
+        - name: cni
+          hostPath:
+            path: /etc/cni/net.d
+      {{- with .Values.nodeMetrics.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nodeMetrics.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nodeMetrics.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nodeMetrics.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ .Values.fullnameOverride }}-node-metrics
+          image: {{ .Values.image.registry }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - "dumb-init"
+            - "--"
+            - "mogenius-k8s-manager"
+            - "nodemetrics"
+            - "--metrics-rate"
+            - "2000"
+            - "--network-device-poll-rate"
+            - "1000"
+          {{- with .Values.nodeMetrics.containerSecurityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.nodeMetrics.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: proc
+              mountPath: /hostproc
+              readOnly: true
+            - name: sys
+              mountPath: /sys
+              readOnly: true
+            - name: cni
+              mountPath: /hostcni
+          env:
+            {{- include "common.env" . | nindent 12 }}
+            - name: MO_HOST_PROC_PATH
+              value: "/hostproc"
+{{- end }}
+ 

@@ -30,19 +30,15 @@ func TestResourceTemplates(t *testing.T) {
 	err := kubernetes.Setup(logManager, config, clientProvider, valkeyClient)
 	assert.AssertT(t, err == nil, err)
 
-	// CREATE
-	err = kubernetes.CreateOrUpdateResourceTemplateConfigmap()
-	assert.AssertT(t, err == nil, err)
-
 	// unknown resource
-	yaml := kubernetes.GetResourceTemplateYaml("", "v1", "mypod", "Pod", "default", "mypod")
+	yaml := kubernetes.GetResourceTemplateYaml("v1", "Pod", "default", "mypod")
 	assert.AssertT(t, yaml != "", "Error getting resource template")
 
 	// known resource Deployment
-	knownResourceYaml := kubernetes.GetResourceTemplateYaml("v1", "Deployment", "testtemplate", "Pod", "default", "mypod")
+	knownResourceYaml := kubernetes.GetResourceTemplateYaml("v1", "Pod", "default", "mypod")
 	assert.AssertT(t, knownResourceYaml != "", "Error getting resource template")
 
 	// known resource Certificate
-	knownResourceYamlCert := kubernetes.GetResourceTemplateYaml("cert-manager.io/v1", "v1", "certificates", "Certificate", "default", "mypod")
+	knownResourceYamlCert := kubernetes.GetResourceTemplateYaml("cert-manager.io/v1", "Certificate", "default", "mypod")
 	assert.AssertT(t, knownResourceYamlCert != "", "Error getting resource template")
 }

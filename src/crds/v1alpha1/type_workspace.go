@@ -39,7 +39,7 @@ type WorkspaceSpec struct {
 
 func NewWorkspaceSpec(displayName string, resources []WorkspaceResourceIdentifier) WorkspaceSpec {
 	return WorkspaceSpec{
-		Name:      displayName, // TODO: rename the field to displayName as the Name should be used for Workspace.meta.name and repetition is unnecessary
+		Name:      displayName,
 		Resources: resources,
 	}
 }
@@ -48,11 +48,12 @@ type WorkspaceResourceIdentifier struct {
 	// target entity identifier (name)
 	Id string `json:"id,omitempty"`
 
-	// allowed values: "namespace", "helm"
+	// allowed values: "namespace", "helm", "argocd"
 	Type string `json:"type,omitempty"`
 
 	// Type=="namespace": unused
 	// Type=="helm": namespace in which the chart was installed
+	// Type=="argocd": namespace in which the application was installed
 	Namespace string `json:"namespace,omitempty"`
 }
 

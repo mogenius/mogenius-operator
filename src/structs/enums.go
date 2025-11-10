@@ -39,10 +39,4 @@ const (
 	PAT_UNINSTALL_EXTERNAL_SECRETS           string = "uninstall-external-secrets"
 	PAT_INSTALL_METALLB                      string = "install-metallb"
 	PAT_UNINSTALL_METALLB                    string = "uninstall-metallb"
-
-	PAT_FILES_UPLOAD string = "files/upload"
 )
-
-var BINARY_REQUEST_UPLOAD = []string{
-	PAT_FILES_UPLOAD,
-}

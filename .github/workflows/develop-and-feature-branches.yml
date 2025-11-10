@@ -5,9 +5,11 @@ on:
     branches:
       - "**"
       - "!main"
+      - "develop"
 
 env:
   IMAGE_NAME: ghcr.io/mogenius/mogenius-k8s-manager-dev
+  REGISTRY: ghcr.io 
   DOCKERFILE: Dockerfile
   DOCKER_CONFIG: ./.docker
   HELMNAME: "mogenius-k8s-manager-dev"
@@ -15,307 +17,93 @@ env:
 
 jobs:
   prepare:
-    runs-on: [self-hosted-ansible]
+    runs-on: [self-hosted, macbook]
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
         with:
+          ref: develop
           fetch-depth: 0
 
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+      # - name: Login to GitHub Container Registry
+      #   uses: docker/login-action@v3
+      #   with:
+      #     registry: ghcr.io
+      #     username: ${{ github.repository_owner }}
+      #     password: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version: 24
 
       - name: Semantic Release
         uses: cycjimmy/semantic-release-action@v4
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-#
-# TODO: enable again
-#
+  build-and-push-docker:
+    name: Build Multi-arch Docker
+    needs: [prepare]
+    runs-on: [self-hosted, macbook]
 
-  # golangci:
-  #   needs: prepare
-  #   runs-on: [self-hosted-ansible]
-  #   permissions:
-  #     # Required: allow read access to the content for analysis.
-  #     contents: read
-  #     # Optional: allow read access to pull request. Use with `only-new-issues` option.
-  #     pull-requests: read
-  #     # Optional: allow write access to checks to allow the action to annotate code in the PR.
-  #     checks: write
-  #   steps:
-  #     - name: Checkout repository
-  #       uses: actions/checkout@v4
-  #     - uses: actions/setup-go@v5
-  #       with:
-  #         go-version: stable
-  #     - name: golangci-lint
-  #       uses: golangci/golangci-lint-action@v6
-  #       with:
-  #         version: latest
-  #         only-new-issues: true
-  #         args: --timeout=30m
-
-  # govet:
-  #   needs: prepare
-  #   runs-on: [self-hosted-ansible]
-  #   steps:
-  #     - name: Checkout repository
-  #       uses: actions/checkout@v4
-  #       with:
-  #         fetch-depth: 0
-  #     - uses: actions/setup-go@v5
-  #       with:
-  #         go-version: stable
-  #     - name: go vet
-  #       run: |
-  #         export GOPATH=$(go env GOPATH)
-  #         export GOMODCACHE=$(go env GOMODCACHE)
-  #         go vet ./...
-
-  # unit-tests:
-  #   needs: prepare
-  #   runs-on: [self-hosted-ansible]
-  #   steps:
-  #     - name: Checkout repository
-  #       uses: actions/checkout@v4
-  #       with:
-  #         fetch-depth: 0
-  #     - uses: actions/setup-go@v5
-  #       with:
-  #         go-version: stable
-  #     - name: Execute Tests
-  #       run: |
-  #         export GOPATH=$(go env GOPATH)
-  #         export GOMODCACHE=$(go env GOMODCACHE)
-  #         echo $GOPATH
-  #         echo $GOMODCACHE
-  #         go mod download
-  #         go run gotest.tools/gotestsum@latest --format="github-actions" --hide-summary="skipped" --format-hide-empty-pkg --rerun-fails="0" -- -count=1 ./src/...
-
-  # integration-tests:
-  #   needs: prepare
-  #   runs-on: [self-hosted-ansible, ARM64, k3s-installed]
-  #   if: github.ref == 'refs/heads/develop'
-  #   continue-on-error: true # tests are not stable yet
-  #   concurrency:
-  #     group: passing-tests-LOCK
-  #     cancel-in-progress: false
-  #   steps:
-  #     - name: Checkout repository
-  #       uses: actions/checkout@v4
-  #       with:
-  #         fetch-depth: 0
-  #     - uses: actions/setup-go@v5
-  #       with:
-  #         go-version: stable
-  #     # TODO: this should be part of the build / local test logic in some way
-  #     - name: Prepare CRDs
-  #       run: |
-  #         kubectl create namespace mogenius
-  #         helm repo add external-secrets https://charts.external-secrets.io
-  #         helm install external-secrets external-secrets/external-secrets
-
-  #         kubectl rollout status deployment external-secrets
-  #         kubectl rollout status deployment external-secrets-cert-controller
-  #         kubectl rollout status deployment external-secrets-webhook
-  #     - name: Run tests
-  #       run: |
-  #         go mod download
-  #         go clean -testcache
-  #         go run gotest.tools/gotestsum@latest --format="github-actions" -- -count=1 ./test/...
-  #     - name: Clean up k3s
-  #       if: always()
-  #       run: |
-  #         kubectl delete namespace mogenius
-  #         helm uninstall external-secrets
-
-  build-amd64:
-    needs: prepare
-    runs-on: [self-hosted, X64]
-    permissions:
-      contents: read
-      packages: write
-
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build AMD64 image
-        run: |
-          GIT_BRANCH=$(git branch | grep \* | cut -d ' ' -f2 | tr '[:upper:]' '[:lower:]')
-          COMMIT_HASH=$(git rev-parse --short HEAD)
-          GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
-          BUILD_TIMESTAMP=$(date -Iseconds)
-          VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
-          docker build -f ${{ env.DOCKERFILE }} --build-arg GITHUB_TOKEN=${{ secrets.SNOOPY_DOWNLOAD_TOKEN }} --build-arg GOOS=linux --build-arg GOARCH=amd64 --build-arg VERSION="$VERSION" --build-arg BUILD_TIMESTAMP="$BUILD_TIMESTAMP" --build-arg GIT_BRANCH="$GIT_BRANCH" --build-arg COMMIT_HASH="$COMMIT_HASH" -t ${{ env.IMAGE_NAME }}:$VERSION-amd64 -t ${{ env.IMAGE_NAME }}:latest-amd64 .
-
-      - name: Push AMD64-linux image
-        if: github.ref == 'refs/heads/develop'
-        run: |
-          VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
-          docker push ${{ env.IMAGE_NAME }}:$VERSION-amd64
-
-  build-arm64-linux:
-    needs: prepare
-    runs-on: [self-hosted, ARM64]
     permissions:
       contents: read
       packages: write
     steps:
-      - name: Check out code
+      - name: Checkout repository
         uses: actions/checkout@v5
         with:
+          ref: develop
           fetch-depth: 0
 
-      - name: Login to GitHub Container Registry
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
         uses: docker/login-action@v3
         with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push ARM64-linux image
-        run: |
-          GIT_BRANCH=$(git branch | grep \* | cut -d ' ' -f2 | tr '[:upper:]' '[:lower:]')
-          COMMIT_HASH=$(git rev-parse --short HEAD)
-          GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
-          BUILD_TIMESTAMP=$(date -Iseconds)
-          VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
-          docker build --platform=linux/arm64 -f ${{ env.DOCKERFILE }} --build-arg GITHUB_TOKEN=${{ secrets.SNOOPY_DOWNLOAD_TOKEN }} --build-arg GOOS=linux --build-arg GOARCH=arm64 --build-arg VERSION="$VERSION" --build-arg BUILD_TIMESTAMP="$BUILD_TIMESTAMP" --build-arg GIT_BRANCH="$GIT_BRANCH" --build-arg COMMIT_HASH="$COMMIT_HASH" -t ${{ env.IMAGE_NAME }}:$VERSION-arm64-linux -t ${{ env.IMAGE_NAME }}:latest-arm64-linux .
-
-      - name: Push AMD64-linux image
-        if: github.ref == 'refs/heads/develop'
+      - name: Calculate version from git
+        id: git_version
         run: |
           VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
-          docker push ${{ env.IMAGE_NAME }}:$VERSION-arm64-linux
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "📦 Calculated version: $VERSION"
 
-  build-arm64:
-    needs: prepare
-    runs-on: [self-hosted, ARM64]
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v5
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
         with:
-          fetch-depth: 0
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build ARM64 image
-        run: |
-          GIT_BRANCH=$(git branch | grep \* | cut -d ' ' -f2 | tr '[:upper:]' '[:lower:]')
-          COMMIT_HASH=$(git rev-parse --short HEAD)
-          GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
-          BUILD_TIMESTAMP=$(date -Iseconds)
-          VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
-          docker build -f ${{ env.DOCKERFILE }} --build-arg GITHUB_TOKEN=${{ secrets.SNOOPY_DOWNLOAD_TOKEN }} --build-arg GOOS=linux --build-arg GOARCH=arm64 --build-arg VERSION="$VERSION" --build-arg BUILD_TIMESTAMP="$BUILD_TIMESTAMP" --build-arg GIT_BRANCH="$GIT_BRANCH" --build-arg COMMIT_HASH="$COMMIT_HASH" -t ${{ env.IMAGE_NAME }}:$VERSION-arm64 -t ${{ env.IMAGE_NAME }}:latest-arm64 .
-
-      - name: Push ARM64 image
-        if: github.ref == 'refs/heads/develop'
-        run: |
-          VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
-          docker push ${{ env.IMAGE_NAME }}:$VERSION-arm64
-
-  build-armv7:
-    needs: prepare
-    runs-on: [self-hosted, ARM64]
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and push ARMv7 image
-        run: |
-          GIT_BRANCH=$(git branch | grep \* | cut -d ' ' -f2 | tr '[:upper:]' '[:lower:]')
-          COMMIT_HASH=$(git rev-parse --short HEAD)
-          GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
-          BUILD_TIMESTAMP=$(date -Iseconds)
-          VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
-          docker build -f ${{ env.DOCKERFILE }} --build-arg GITHUB_TOKEN=${{ secrets.SNOOPY_DOWNLOAD_TOKEN }} --platform=linux/arm/v7 --build-arg GOOS=linux --build-arg GOARCH=arm --build-arg GOARM=7 --build-arg VERSION="$VERSION" --build-arg BUILD_TIMESTAMP="$BUILD_TIMESTAMP" --build-arg GIT_BRANCH="$GIT_BRANCH" --build-arg COMMIT_HASH="$COMMIT_HASH" -t ${{ env.IMAGE_NAME }}:$VERSION-arm7 -t ${{ env.IMAGE_NAME }}:latest-arm7 .
-
-      - name: Push ARMv7 image
-        if: github.ref == 'refs/heads/develop'
-        run: |
-          VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
-          docker push ${{ env.IMAGE_NAME }}:$VERSION-arm7
-
-  merge-images:
-    if: github.ref == 'refs/heads/develop'
-    needs: [build-amd64, build-arm64, build-arm64-linux, build-armv7, prepare]
-    runs-on: self-hosted-ansible
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Merge images into a multi-arch manifest
-        run: |
-          VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
-          docker manifest create ${{ env.IMAGE_NAME }}:$VERSION \
-              --amend ${{ env.IMAGE_NAME }}:$VERSION-amd64 \
-              --amend ${{ env.IMAGE_NAME }}:$VERSION-arm64-linux \
-              --amend ${{ env.IMAGE_NAME }}:$VERSION-arm7 \
-              --amend ${{ env.IMAGE_NAME }}:$VERSION-arm64
-          docker manifest push ${{ env.IMAGE_NAME }}:$VERSION
-          docker manifest create ${{ env.IMAGE_NAME }}:latest \
-              --amend ${{ env.IMAGE_NAME }}:$VERSION-amd64 \
-              --amend ${{ env.IMAGE_NAME }}:$VERSION-arm64-linux \
-              --amend ${{ env.IMAGE_NAME }}:$VERSION-arm7 \
-              --amend ${{ env.IMAGE_NAME }}:$VERSION-arm64
-          docker manifest push ${{ env.IMAGE_NAME }}:latest
+          context: .
+          platforms: linux/amd64,linux/arm64,linux/arm/v7
+          push: true
+          build-args: |
+            GITHUB_TOKEN=${{ secrets.SNOOPY_DOWNLOAD_TOKEN }}
+            VERSION=${{ steps.git_version.outputs.version }}
+            COMMIT_HASH=${{ github.sha }}
+            GIT_BRANCH=${{ github.ref_name }}
+            BUILD_TIMESTAMP=${{ github.event.repository.updated_at }}
+          tags: |
+            ${{ env.IMAGE_NAME }}:${{ steps.git_version.outputs.version }}
+            ${{ env.IMAGE_NAME }}:latest
+          labels: |
+            org.opencontainers.image.version=${{ steps.git_version.outputs.version }}
+            org.opencontainers.image.created=${{ github.event.head_commit.timestamp }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          # cache-from: type=gha
+          # cache-to: type=gha,mode=max
+          provenance: false
 
   helm-chart:
     if: github.ref == 'refs/heads/develop'
-    needs: [prepare, build-amd64, build-arm64, build-arm64-linux, build-armv7, merge-images]
-    runs-on: self-hosted-ansible
+    needs: [prepare, build-and-push-docker]
+    runs-on: [self-hosted, macbook]
     permissions:
       contents: read
       packages: write
@@ -327,15 +115,6 @@ jobs:
 
       - name: set version env
         run: echo "SEMVERSION=$(git describe --tags $(git rev-list --tags --max-count=1))" >> $GITHUB_ENV
-
-      - name: Checkout
-        uses: actions/checkout@v5
-        with:
-          ref: develop
-          token: ${{ secrets.MO_K8s_TOKEN }}
-          repository: ${{ env.HELMREPO }}
-          path: "helm"
-
       - name: Install Helm
         uses: azure/setup-helm@v4.3.1
         id: install
@@ -347,7 +126,7 @@ jobs:
 
       - name: package and push
         run: |
-          cd ./helm
+          cd ./helm/charts/mogenius-k8s-manager
           sed -i -e "s/v1.0.72/${{ env.SEMVERSION }}/" values.yaml
           sed -i -e "s/repository: mogenius\/mogenius-k8s-manager/repository: mogenius\/mogenius-k8s-manager-dev/" values.yaml
           sed -i -e "s/name: mogenius-k8s-manager/name: mogenius-k8s-manager-dev/" Chart.yaml    

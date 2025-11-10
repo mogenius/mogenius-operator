@@ -254,7 +254,6 @@ func (self *valkeyClient) GetObject(keys ...string) (any, error) {
 
 func (self *valkeyClient) List(limit int, keys ...string) ([]string, error) {
 	key := createKey(keys...)
-	key = key + ":*"
 
 	selectedKeys, err := self.Keys(key)
 	if err != nil {
@@ -577,8 +576,8 @@ func GetObjectsByPattern[T any](store ValkeyClient, pattern string, keywords []s
 
 func GetObjectsByPrefix[T any](store ValkeyClient, order SortOrder, keys ...string) ([]T, error) {
 	var result []T
-	key := createKey(keys...)
-	pattern := key + "*"
+	pattern := createKey(keys...)
+
 	client := store.GetValkeyClient()
 
 	// Get the keys
@@ -686,7 +685,14 @@ func GetObjectForKey[T any](store ValkeyClient, keys ...string) (*T, error) {
 }
 
 func createKey(parts ...string) string {
-	return strings.Join(parts, ":")
+	key := strings.Join(parts, ":")
+
+	// Remove trailing ":*:*" patterns
+	for strings.HasSuffix(key, ":*:*") {
+		key = strings.TrimSuffix(key, ":*")
+	}
+
+	return key
 }
 
 func sortStringsByTimestamp(stringsToSort []string, order SortOrder) {
@@ -792,12 +798,31 @@ func (self *valkeyClient) StoreSortedListEntry(data any, timestamp int64, keys .
 
 	result := self.valkeyClient.Do(self.ctx, cmd)
 	if err := result.Error(); err != nil {
-		if strings.Contains(err.Error(), "The ID specified in XADD is equal or smaller than the target stream top item") {
+		errString := err.Error()
+
+		if strings.Contains(errString, "The ID specified in XADD is equal or smaller than the target stream top item") {
 			// This means we're trying to insert a duplicate entry
 			// we dont care about duplicates
 			return nil
+		} else if errString == "WRONGTYPE Operation against a key holding the wrong kind of value" {
+			// This means the key exists but is not a stream, delete it and try again
+			self.logger.Warn("Wrong type for key, deleting it...", "key", streamKey)
+			_, err := self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Del().Key(streamKey).Build()).AsInt64()
+			if err != nil {
+				return fmt.Errorf("failed to delete key: %w, key:%s", err, streamKey)
+			}
+			self.logger.Warn("Key deleted successfully", "key", streamKey)
+			// Try adding the entry again
+			cmd := self.valkeyClient.B().Xadd().Key(streamKey).Id(id).FieldValue().
+				FieldValue("data", string(jsonData)).
+				Build()
+			result = self.valkeyClient.Do(self.ctx, cmd)
+			if err := result.Error(); err != nil {
+				return fmt.Errorf("failed to add to stream after deleting wrong type key: %w, key:%s", err, streamKey)
+			}
+		} else {
+			return fmt.Errorf("failed to add to stream: %w, key:%s", err, streamKey)
 		}
-		return fmt.Errorf("failed to add to stream: %w, key:%s", err, streamKey)
 	}
 
 	// Trim stream to maintain retention policy

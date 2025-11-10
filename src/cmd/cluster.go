@@ -47,6 +47,11 @@ func RunCluster(logManagerModule logging.SlogManager, configModule *config.Confi
 		}
 
 		cmdLogger.Info("SYSTEM STARTUP COMPLETE")
+
+		// connect socket after everything is ready
+		systems.core.InitializeWebsocketEventServer()
+		systems.core.InitializeWebsocketApiServer()
+
 		select {}
 	}()
 

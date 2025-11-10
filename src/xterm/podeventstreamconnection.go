@@ -57,7 +57,7 @@ func PodEventStreamConnection(wsConnectionRequest WsConnectionRequest, namespace
 		return
 	}
 
-	data, err := store.List(50, kubernetes.VALKEY_RESOURCE_PREFIX, "v1", "Event", namespace)
+	data, err := store.List(50, kubernetes.VALKEY_RESOURCE_PREFIX, "v1", "Event", namespace, controller+"*")
 	if err != nil {
 		xtermLogger.Error("Error getting events from pod-events", "error", err.Error())
 		return

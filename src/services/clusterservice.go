@@ -6,6 +6,7 @@ import (
 	"mogenius-k8s-manager/src/helm"
 	"mogenius-k8s-manager/src/kubernetes"
 	mokubernetes "mogenius-k8s-manager/src/kubernetes"
+	"mogenius-k8s-manager/src/store"
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/websocket"
@@ -37,17 +38,6 @@ const (
 	MetalLBHelmIndex                  = "https://metallb.github.io/metallb"
 	MogeniusHelmIndex                 = "https://helm.mogenius.com/public"
 )
-
-func DeleteHelmChart(eventClient websocket.WebsocketClient, r ClusterHelmUninstallRequest) *structs.Job {
-	job := structs.CreateJob(eventClient, "Delete Helm Chart "+r.HelmReleaseName, r.NamespaceId, "", "", serviceLogger)
-	job.Start(eventClient)
-	result, err := helm.DeleteHelmChart(r.HelmReleaseName, r.NamespaceId)
-	if err != nil {
-		job.Fail(fmt.Sprintf("Failed to delete helm chart %s: %s\n%s", r.HelmReleaseName, result, err.Error()))
-	}
-	job.Finish(eventClient)
-	return job
-}
 
 func CreateMogeniusNfsVolume(eventClient websocket.WebsocketClient, r NfsVolumeRequest) structs.DefaultResponse {
 	var wg sync.WaitGroup
@@ -138,57 +128,6 @@ func diskUsage(mountPath string) (uint64, uint64, uint64, error) {
 	}
 }
 
-func StatsMogeniusNfsNamespace(r NfsNamespaceStatsRequest) []NfsVolumeStatsResponse {
-	result := []NfsVolumeStatsResponse{}
-
-	if r.NamespaceName == "null" || r.NamespaceName == "" {
-		serviceLogger.Error("StatsMogeniusNfsNamespace", "error", "namespaceName cannot be null or empty")
-		return result
-	}
-
-	// get all pvc for single namespace
-	pvcs := kubernetes.AllPersistentVolumeClaims(r.NamespaceName)
-
-	for _, pvc := range pvcs {
-		// skip pvcs which are not mogenius-nfs
-		if !strings.HasPrefix(pvc.Name, fmt.Sprintf("%s-", utils.NFS_POD_PREFIX)) {
-			continue
-		}
-		// remove podname "nfs-server-pod-"
-		pvc.Name = strings.Replace(pvc.Name, fmt.Sprintf("%s-", utils.NFS_POD_PREFIX), "", 1)
-
-		entry := NfsVolumeStatsResponse{
-			VolumeName: pvc.Name,
-			FreeBytes:  0,
-			UsedBytes:  0,
-			TotalBytes: 0,
-		}
-
-		mountPath := utils.MountPath(r.NamespaceName, pvc.Name, "/", clientProvider.RunsInCluster())
-
-		if utils.ClusterProviderCached == utils.DOCKER_DESKTOP || utils.ClusterProviderCached == utils.K3S {
-			var usedBytes uint64 = sumAllBytesOfFolder(mountPath)
-			entry.FreeBytes = uint64(pvc.Spec.Resources.Requests.Storage().Value()) - usedBytes
-			entry.UsedBytes = usedBytes
-			entry.TotalBytes = uint64(pvc.Spec.Resources.Requests.Storage().Value())
-		} else {
-			free, used, total, err := diskUsage(mountPath)
-			if err != nil {
-				continue
-			} else {
-				entry.FreeBytes = free
-				entry.UsedBytes = used
-				entry.TotalBytes = total
-			}
-		}
-
-		message := fmt.Sprintf("💾: '%s' -> %s / %s (Free: %s)\n", mountPath, utils.BytesToHumanReadable(int64(entry.UsedBytes)), utils.BytesToHumanReadable(int64(entry.TotalBytes)), utils.BytesToHumanReadable(int64(entry.FreeBytes)))
-		serviceLogger.Info(message)
-		result = append(result, entry)
-	}
-	return result
-}
-
 func sumAllBytesOfFolder(root string) uint64 {
 	var total uint64
 	var wg sync.WaitGroup
@@ -239,11 +178,6 @@ type ClusterHelmRequest struct {
 	HelmValues       string `json:"helmValues" validate:"required"`
 }
 
-type ClusterHelmUninstallRequest struct {
-	NamespaceId     string `json:"namespaceId" validate:"required"`
-	HelmReleaseName string `json:"helmReleaseName" validate:"required"`
-}
-
 type ClusterListWorkloads struct {
 	Namespace     string `json:"namespace"`
 	LabelSelector string `json:"labelSelector"`
@@ -259,10 +193,6 @@ type NfsVolumeRequest struct {
 type NfsVolumeStatsRequest struct {
 	NamespaceName string `json:"namespaceName" validate:"required"`
 	VolumeName    string `json:"volumeName" validate:"required"`
-}
-
-type NfsNamespaceStatsRequest struct {
-	NamespaceName string `json:"namespaceName" validate:"required"`
 }
 
 type NfsVolumeStatsResponse struct {
@@ -575,12 +505,12 @@ else
 	echo "trivy is installed. 🚀"
 fi
 `
-	defaultAppsConfigmap, err := kubernetes.ConfigMapFor(
+
+	defaultAppsConfigmap := store.GetConfigMap(
 		config.Get("MO_OWN_NAMESPACE"),
 		utils.MOGENIUS_CONFIGMAP_DEFAULT_APPS_NAME,
-		false,
 	)
-	if err != nil {
+	if defaultAppsConfigmap == nil {
 		return basicApps, userApps
 	}
 	assert.Assert(defaultAppsConfigmap != nil)

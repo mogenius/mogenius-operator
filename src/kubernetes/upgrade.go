@@ -3,11 +3,16 @@ package kubernetes
 import (
 	"context"
 	"fmt"
+	"mogenius-k8s-manager/src/assert"
+	cfg "mogenius-k8s-manager/src/config"
+	"mogenius-k8s-manager/src/store"
 	"mogenius-k8s-manager/src/structs"
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/websocket"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/utils/ptr"
 )
 
 func ClusterForceReconnect() bool {
@@ -74,7 +79,7 @@ func UpgradeMyself(eventClient websocket.WebsocketClient, job *structs.Job, comm
 	jobClient := clientset.BatchV1().Jobs(config.Get("MO_OWN_NAMESPACE"))
 	configmapClient := clientset.CoreV1().ConfigMaps(config.Get("MO_OWN_NAMESPACE"))
 
-	ownerReference, err := utils.GetOwnDeploymentOwnerReference(clientset, config)
+	ownerReference, err := GetOwnDeploymentOwnerReference(clientset, config)
 	if err != nil {
 		k8sLogger.Error("Error getting owner reference for upgrade job", "error", err)
 	}
@@ -125,4 +130,28 @@ func UpgradeMyself(eventClient websocket.WebsocketClient, job *structs.Job, comm
 		}
 	}
 	cmd.Success(eventClient, job, "Upgraded platform successfully.")
+}
+
+func GetOwnDeploymentOwnerReference(clientset *kubernetes.Clientset, config cfg.ConfigModule) ([]metav1.OwnerReference, error) {
+	ownDeploymentName := config.Get("OWN_DEPLOYMENT_NAME")
+	assert.Assert(ownDeploymentName != "")
+
+	namespace := config.Get("MO_OWN_NAMESPACE")
+	assert.Assert("MO_OWN_NAMESPACE" != "")
+
+	ownDeployment := store.GetDeployment(namespace, ownDeploymentName) // to cache it
+	if ownDeployment == nil {
+		return nil, fmt.Errorf("failed to find own deployment %s in namespace %s", ownDeploymentName, namespace)
+	}
+	reference := []metav1.OwnerReference{
+		{
+			APIVersion: "apps/v1",
+			Kind:       "Deployment",
+			Name:       ownDeployment.GetName(),
+			UID:        ownDeployment.GetUID(),
+			Controller: ptr.To(true),
+		},
+	}
+
+	return reference, nil
 }

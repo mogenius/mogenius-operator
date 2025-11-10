@@ -3,16 +3,19 @@ package xterm
 import (
 	"context"
 	"encoding/base64"
+	"fmt"
 	"io"
 	"mogenius-k8s-manager/src/kubernetes"
 	"net/url"
 	"os"
 	"os/exec"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/creack/pty"
 	"github.com/gorilla/websocket"
+	"k8s.io/client-go/rest"
 )
 
 func injectContent(content io.Reader, conn *websocket.Conn, connWriteLock *sync.Mutex) {
@@ -118,7 +121,7 @@ func XTermCommandStreamConnection(
 	}
 
 	// check if pod is ready
-	checkPodIsReady(ctx, namespace, podName, conn, connWriteLock)
+	checkPodIsReady(ctx, namespace, podName, container, conn, connWriteLock)
 
 	// send ping
 	err = wsPing(conn)
@@ -153,4 +156,50 @@ func XTermCommandStreamConnection(
 
 	// websocket to cmd input
 	websocketToCmdInput(*readMessages, ctx, tty, &cmdType)
+}
+
+func GetPreviousLogContent(podCmdConnectionRequest PodCmdConnectionRequest) io.Reader {
+	ctx := context.Background()
+	cancelCtx, endGofunc := context.WithCancel(ctx)
+	defer endGofunc()
+
+	pod := kubernetes.PodStatus(podCmdConnectionRequest.Namespace, podCmdConnectionRequest.Pod, false)
+	terminatedState := kubernetes.LastTerminatedStateIfAny(pod)
+
+	var previousRestReq *rest.Request
+	if terminatedState != nil {
+		tmpPreviousResReq, err := kubernetes.StreamPreviousLog(podCmdConnectionRequest.Namespace, podCmdConnectionRequest.Pod)
+		if err != nil {
+			xtermLogger.Error(err.Error())
+		} else {
+			previousRestReq = tmpPreviousResReq
+		}
+	}
+
+	if previousRestReq == nil {
+		return nil
+	}
+
+	var previousStream io.ReadCloser
+	tmpPreviousStream, err := previousRestReq.Stream(cancelCtx)
+	if err != nil {
+		xtermLogger.Error(err.Error())
+		previousStream = io.NopCloser(strings.NewReader(fmt.Sprintln(err.Error())))
+	} else {
+		previousStream = tmpPreviousStream
+	}
+
+	data, err := io.ReadAll(previousStream)
+	if err != nil {
+		xtermLogger.Error("failed to read data", "error", err)
+	}
+
+	lastState := kubernetes.LastTerminatedStateToString(terminatedState)
+
+	nl := strings.NewReader("\r\n")
+	previousState := strings.NewReader(lastState)
+	headlineLastLog := strings.NewReader("Last Log:\r\n")
+	headlineCurrentLog := strings.NewReader("\r\nCurrent Log:\r\n")
+
+	return io.MultiReader(previousState, nl, headlineLastLog, strings.NewReader(string(data)), nl, headlineCurrentLog)
 }

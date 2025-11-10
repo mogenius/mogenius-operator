@@ -186,7 +186,7 @@ func (self *containerEnumerator) readCgroupFile(pid ProcessId) (string, error) {
 	return filestring, nil
 }
 
-var NoMatchFound error = fmt.Errorf("failed to find valid container id")
+var ErrorNoMatchFound error = fmt.Errorf("failed to find valid container id")
 
 func (self *containerEnumerator) GetContainerIdFromCgroupWithPid(cgroupFileData string) (ContainerId, error) {
 	type PatternMatch struct {
@@ -212,7 +212,7 @@ func (self *containerEnumerator) GetContainerIdFromCgroupWithPid(cgroupFileData 
 		}
 	}
 	if len(allMatches) == 0 {
-		return "", NoMatchFound
+		return "", ErrorNoMatchFound
 	}
 
 	result := &allMatches[0]

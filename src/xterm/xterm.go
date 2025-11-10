@@ -4,8 +4,8 @@ import (
 	"context"
 	"io"
 	"log/slog"
-	"mogenius-k8s-manager/src/k8sclient"
 	"mogenius-k8s-manager/src/logging"
+	mirrorStore "mogenius-k8s-manager/src/store"
 	"mogenius-k8s-manager/src/utils"
 	"mogenius-k8s-manager/src/valkeyclient"
 	"net/url"
@@ -18,8 +18,6 @@ import (
 
 	json "github.com/json-iterator/go"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"github.com/creack/pty"
 
 	v1 "k8s.io/api/core/v1"
@@ -28,12 +26,10 @@ import (
 )
 
 var xtermLogger *slog.Logger
-var clientProvider k8sclient.K8sClientProvider
 var store valkeyclient.ValkeyClient
 
-func Setup(logManagerModule logging.SlogManager, clientProviderModule k8sclient.K8sClientProvider, storeModule valkeyclient.ValkeyClient) {
+func Setup(logManagerModule logging.SlogManager, storeModule valkeyclient.ValkeyClient) {
 	xtermLogger = logManagerModule.CreateLogger("xterm")
-	clientProvider = clientProviderModule
 	store = storeModule
 }
 
@@ -87,7 +83,29 @@ type XtermReadMessages struct {
 
 var LogChannels = make(map[string]chan string)
 
-func isPodAvailable(pod *v1.Pod) bool {
+func isPodAvailable(pod *v1.Pod, container string) bool {
+	if pod.Status.InitContainerStatuses != nil {
+		for _, cs := range pod.Status.InitContainerStatuses {
+			if cs.Name != container {
+				continue
+			}
+			if *cs.Started {
+				return true
+			}
+		}
+	}
+
+	if pod.Status.ContainerStatuses != nil {
+		for _, cs := range pod.Status.ContainerStatuses {
+			if cs.Name != container {
+				continue
+			}
+			if *cs.Started {
+				return true
+			}
+		}
+	}
+
 	switch pod.Status.Phase {
 	case v1.PodRunning, v1.PodSucceeded, v1.PodFailed:
 		return true
@@ -100,7 +118,7 @@ func isPodAvailable(pod *v1.Pod) bool {
 	return false
 }
 
-func checkPodIsReady(ctx context.Context, namespace string, podName string, conn *websocket.Conn, connWriteLock *sync.Mutex) {
+func checkPodIsReady(ctx context.Context, namespace string, podName string, container string, conn *websocket.Conn, connWriteLock *sync.Mutex) {
 	firstCount := false
 	for {
 		select {
@@ -108,11 +126,10 @@ func checkPodIsReady(ctx context.Context, namespace string, podName string, conn
 			xtermLogger.Error("Context done.")
 			return
 		default:
-			clientset := clientProvider.K8sClientSet()
-			// TODO: Bene refactor with store to avoid multiple calls to k8s
-			pod, err := clientset.CoreV1().Pods(namespace).Get(context.Background(), podName, metav1.GetOptions{})
-			if err != nil {
-				xtermLogger.Error("Unable to get pod", "error", err)
+			// refresh cache
+			pod := mirrorStore.GetPod(namespace, podName)
+			if pod == nil {
+				xtermLogger.Error("Unable to find pod", "error", "pod not found", "namespace", namespace, "podName", podName)
 				if conn != nil {
 					// clear screen
 					clearScreen(conn, connWriteLock)
@@ -127,7 +144,7 @@ func checkPodIsReady(ctx context.Context, namespace string, podName string, conn
 				return
 			}
 
-			if isPodAvailable(pod) {
+			if isPodAvailable(pod, container) {
 				xtermLogger.Debug("Pod is ready", "podName", pod.Name)
 				// clear screen
 				clearScreen(conn, connWriteLock)

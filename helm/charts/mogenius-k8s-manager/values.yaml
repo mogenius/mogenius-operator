@@ -1,0 +1,134 @@
+fullnameOverride: mogenius-k8s-manager
+revisionHistoryLimit: 10
+
+
+# -- settings for the internal cluster communication
+cluster:
+  # -- the cluster domain, default for kubernetes is "cluster.local"
+  domain: cluster.local
+  readonly:
+    # true:
+    # * Full permissions for all resources in the mogenius namespace
+    # * Cluster-wide read permissions for all resources
+    # false: (default)
+    # * Full read/write on all resources, APIs, ... Full Admin Access.
+    # -- readonly operator permissions true/false (default: false)
+    enabled: false
+
+image:
+  registry: ghcr.io
+  repository: mogenius/mogenius-k8s-manager
+  tag: v1.0.72
+  pullPolicy: IfNotPresent
+
+podSecurityContext: {}
+containerSecurityContext: 
+  privileged: true # needed for nfs-access. if nfs-support is not needed, this can be set to false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+# -- extra labels to be added to the pod
+podLabels: {}
+
+probes:
+  enabled: true
+  livenessProbe:
+    enabled: true
+    path: /healthz
+  readinessProbe:
+    enabled: true
+    path: /healthz
+  startupProbe:
+    enabled: true
+    path: /healthz
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+resources: {}
+#   limits:
+#     cpu: 500m
+#     ephemeral-storage: 1000Mi
+#     memory: 1Gi
+#   requests:
+#     cpu: 250m
+#     ephemeral-storage: 500Mi
+#     memory: 128Mi
+
+global:
+  stage: prod
+  # -- the name you gave your cluster on the mogenius platform
+  cluster_name: ~
+  # -- the api key provided for your cluster by the mogenius platform (alternativly you can leave this empty and use global.apiKeySecret)
+  api_key: ~
+  # -- secret reference for the api-key (will be used if global.api_key is not set)
+  apiKeySecret:
+    secretName: mogenius-operator-api-secret
+    secretKey: API_KEY
+
+envVars:
+  # uncomment the following lines to set the global values
+  MO_API_SERVER: "" #wss://k8s-ws.mogenius.com/ws
+  MO_EVENT_SERVER: "" #wss://k8s-dispatcher.mogenius.com/ws
+
+valkey:
+  enabled: true
+  imagePullPolicy: IfNotPresent
+  image:
+    registry: docker.io
+    repository: valkey/valkey
+    tag: 8.1
+  podLabels: {}
+  containerSecurityContext:
+    readOnlyRootFilesystem: true
+    runAsGroup: 999
+    runAsUser: 999
+    runAsNonRoot: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+      - ALL
+  podSecurityContext:
+    fsGroup: 999
+    runAsGroup: 999
+    runAsUser: 999
+    seccompProfile:
+      type: RuntimeDefault
+  resources: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  port: 6379
+  auth:
+    password: ""
+  updateStrategy:
+    type: RollingUpdate
+  persistence:
+    # -- storage class to be used, default is empty which will use the class defined as standard
+    storageClass: ""
+    accessModes:
+      - ReadWriteOnce
+    size: 5Gi
+
+nodeMetrics:
+  # -- enable the node metrics daemonset
+  enabled: true
+  podLabels: {}
+  resources: {}
+  nodeSelector: {}
+  tolerations:
+    - effect: NoSchedule
+      key: node-role.kubernetes.io/control-plane
+      operator: Exists
+  affinity: {}
+  containerSecurityContext:
+    readOnlyRootFilesystem: true
+    privileged: true
+    capabilities:
+      add:
+        - NET_ADMIN
+        - SYS_ADMIN
+  podSecurityContext: {}

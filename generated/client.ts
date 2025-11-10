@@ -3,9 +3,9 @@
 //===============================================================
 
 export enum Pattern {
-  ATTACH_LABELED_NETWORK_POLICY = "attach/labeled_network_policy",
   AUDIT_LOG_LIST = "audit-log/list",
-  CLUSTER_BACKUP = "cluster/backup",
+  CLUSTER_ARGO_CD_APPLICATION_REFRESH = "cluster/argo-cd-application-refresh",
+  CLUSTER_ARGO_CD_CREATE_API_TOKEN = "cluster/argo-cd-create-api-token",
   CLUSTER_CLEAR_VALKEY_CACHE = "cluster/clear-valkey-cache",
   CLUSTER_COMPONENT_LOG_STREAM_CONNECTION_REQUEST = "cluster/component-log-stream-connection-request",
   CLUSTER_FORCE_DISCONNECT = "cluster/force-disconnect",
@@ -42,13 +42,6 @@ export enum Pattern {
   DELETE_WORKSPACE = "delete/workspace",
   DESCRIBE = "describe",
   DESCRIBE_WORKLOAD = "describe/workload",
-  DETACH_LABELED_NETWORK_POLICY = "detach/labeled_network_policy",
-  DISABLE_NETWORK_POLICY_MANAGER = "disable/network_policy_manager",
-  ENFORCE_NETWORK_POLICY_MANAGER = "enforce/network_policy_manager",
-  EXTERNAL_SECRET_LIST_AVAILABLE_SECRETS = "external-secret/list-available-secrets",
-  EXTERNAL_SECRET_STORE_CREATE = "external-secret-store/create",
-  EXTERNAL_SECRET_STORE_DELETE = "external-secret-store/delete",
-  EXTERNAL_SECRET_STORE_LIST = "external-secret-store/list",
   FILES_CHMOD = "files/chmod",
   FILES_CHOWN = "files/chown",
   FILES_CREATE_FOLDER = "files/create-folder",
@@ -76,15 +69,7 @@ export enum Pattern {
   INSTALL_KEPLER = "install-kepler",
   INSTALL_METALLB = "install-metallb",
   INSTALL_METRICS_SERVER = "install-metrics-server",
-  K8SNOTIFICATION = "K8sNotification",
-  LIST_ALL_NETWORK_POLICIES = "list/all_network_policies",
-  LIST_ALL_WORKLOADS = "list/all-workloads",
-  LIST_CONFLICTING_NETWORK_POLICIES = "list/conflicting_network_policies",
-  LIST_CONTROLLER_NETWORK_POLICIES = "list/controller_network_policies",
-  LIST_CRONJOB_JOBS = "list/cronjob-jobs",
-  LIST_LABELED_NETWORK_POLICY_PORTS = "list/labeled_network_policy_ports",
-  LIST_NAMESPACE_NETWORK_POLICIES = "list/namespace_network_policies",
-  LIST_ONLY_NAMESPACE_NETWORK_POLICIES = "list/only_namespace_network_policies",
+  LIST_ALL_RESOURCE_DESCRIPTORS = "list/all-resource-descriptors",
   LIVE_STREAM_NODES_CPU = "live-stream/nodes-cpu",
   LIVE_STREAM_NODES_MEMORY = "live-stream/nodes-memory",
   LIVE_STREAM_NODES_TRAFFIC = "live-stream/nodes-traffic",
@@ -94,10 +79,6 @@ export enum Pattern {
   LIVE_STREAM_WORKSPACE_CPU = "live-stream/workspace-cpu",
   LIVE_STREAM_WORKSPACE_MEMORY = "live-stream/workspace-memory",
   LIVE_STREAM_WORKSPACE_TRAFFIC = "live-stream/workspace-traffic",
-  METRICS_DEPLOYMENT_AVERAGE_UTILIZATION = "metrics/deployment/average-utilization",
-  NAMESPACE_BACKUP = "namespace/backup",
-  NAMESPACE_CREATE = "namespace/create",
-  NAMESPACE_DELETE = "namespace/delete",
   PROMETHEUS_CHARTS_ADD = "prometheus/charts/add",
   PROMETHEUS_CHARTS_GET = "prometheus/charts/get",
   PROMETHEUS_CHARTS_LIST = "prometheus/charts/list",
@@ -105,33 +86,18 @@ export enum Pattern {
   PROMETHEUS_IS_REACHABLE = "prometheus/is-reachable",
   PROMETHEUS_QUERY = "prometheus/query",
   PROMETHEUS_VALUES = "prometheus/values",
-  REMOVE_CONFLICTING_NETWORK_POLICIES = "remove/conflicting_network_policies",
-  REMOVE_UNMANAGED_NETWORK_POLICIES = "remove/unmanaged_network_policies",
   SEALED_SECRET_CREATE_FROM_EXISTING = "sealed-secret/create-from-existing",
   SEALED_SECRET_GET_CERTIFICATE = "sealed-secret/get-certificate",
-  SERVICE_CREATE = "service/create",
-  SERVICE_DELETE = "service/delete",
   SERVICE_EXEC_SH_CONNECTION_REQUEST = "service/exec-sh-connection-request",
   SERVICE_LOG_STREAM_CONNECTION_REQUEST = "service/log-stream-connection-request",
-  SERVICE_PODS = "SERVICE_PODS",
   SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST = "service/pod-event-stream-connection-request",
-  SERVICE_RESOURCE_STATUS = "service/resource-status",
-  SERVICE_RESTART = "service/restart",
-  SERVICE_START = "service/start",
-  SERVICE_STATUS = "service/status",
-  SERVICE_STOP = "service/stop",
-  SERVICE_TRIGGER_JOB = "service/trigger-job",
-  SERVICE_UPDATE_SERVICE = "service/update-service",
   STATS_POD_ALL_FOR_CONTROLLER = "stats/pod/all-for-controller",
   STATS_TRAFFIC_ALL_FOR_CONTROLLER = "stats/traffic/all-for-controller",
-  STATS_TRAFFIC_SUM_FOR_CONTROLLER = "stats/traffic/sum-for-controller",
-  STATS_TRAFFIC_SUM_FOR_NAMESPACE = "stats/traffic/sum-for-namespace",
   STATS_WORKSPACE_CPU_UTILIZATION = "stats/workspace-cpu-utilization",
   STATS_WORKSPACE_MEMORY_UTILIZATION = "stats/workspace-memory-utilization",
   STATS_WORKSPACE_TRAFFIC_UTILIZATION = "stats/workspace-traffic-utilization",
   STORAGE_CREATE_VOLUME = "storage/create-volume",
   STORAGE_DELETE_VOLUME = "storage/delete-volume",
-  STORAGE_NAMESPACE_STATS = "storage/namespace/stats",
   STORAGE_STATS = "storage/stats",
   STORAGE_STATUS = "storage/status",
   SYSTEM_CHECK = "system/check",
@@ -143,7 +109,6 @@ export enum Pattern {
   UNINSTALL_METALLB = "uninstall-metallb",
   UNINSTALL_METRICS_SERVER = "uninstall-metrics-server",
   UPDATE_GRANT = "update/grant",
-  UPDATE_NETWORK_POLICIES_TEMPLATE = "update/network_policies_template",
   UPDATE_USER = "update/user",
   UPDATE_WORKLOAD = "update/workload",
   UPDATE_WORKSPACE = "update/workspace",
@@ -161,9 +126,9 @@ export enum Pattern {
 //===============================================================
 
 export const StringToPattern = {
-  "attach/labeled_network_policy": Pattern.ATTACH_LABELED_NETWORK_POLICY,
   "audit-log/list": Pattern.AUDIT_LOG_LIST,
-  "cluster/backup": Pattern.CLUSTER_BACKUP,
+  "cluster/argo-cd-application-refresh": Pattern.CLUSTER_ARGO_CD_APPLICATION_REFRESH,
+  "cluster/argo-cd-create-api-token": Pattern.CLUSTER_ARGO_CD_CREATE_API_TOKEN,
   "cluster/clear-valkey-cache": Pattern.CLUSTER_CLEAR_VALKEY_CACHE,
   "cluster/component-log-stream-connection-request": Pattern.CLUSTER_COMPONENT_LOG_STREAM_CONNECTION_REQUEST,
   "cluster/force-disconnect": Pattern.CLUSTER_FORCE_DISCONNECT,
@@ -200,13 +165,6 @@ export const StringToPattern = {
   "delete/workspace": Pattern.DELETE_WORKSPACE,
   "describe": Pattern.DESCRIBE,
   "describe/workload": Pattern.DESCRIBE_WORKLOAD,
-  "detach/labeled_network_policy": Pattern.DETACH_LABELED_NETWORK_POLICY,
-  "disable/network_policy_manager": Pattern.DISABLE_NETWORK_POLICY_MANAGER,
-  "enforce/network_policy_manager": Pattern.ENFORCE_NETWORK_POLICY_MANAGER,
-  "external-secret/list-available-secrets": Pattern.EXTERNAL_SECRET_LIST_AVAILABLE_SECRETS,
-  "external-secret-store/create": Pattern.EXTERNAL_SECRET_STORE_CREATE,
-  "external-secret-store/delete": Pattern.EXTERNAL_SECRET_STORE_DELETE,
-  "external-secret-store/list": Pattern.EXTERNAL_SECRET_STORE_LIST,
   "files/chmod": Pattern.FILES_CHMOD,
   "files/chown": Pattern.FILES_CHOWN,
   "files/create-folder": Pattern.FILES_CREATE_FOLDER,
@@ -234,15 +192,7 @@ export const StringToPattern = {
   "install-kepler": Pattern.INSTALL_KEPLER,
   "install-metallb": Pattern.INSTALL_METALLB,
   "install-metrics-server": Pattern.INSTALL_METRICS_SERVER,
-  "K8sNotification": Pattern.K8SNOTIFICATION,
-  "list/all_network_policies": Pattern.LIST_ALL_NETWORK_POLICIES,
-  "list/all-workloads": Pattern.LIST_ALL_WORKLOADS,
-  "list/conflicting_network_policies": Pattern.LIST_CONFLICTING_NETWORK_POLICIES,
-  "list/controller_network_policies": Pattern.LIST_CONTROLLER_NETWORK_POLICIES,
-  "list/cronjob-jobs": Pattern.LIST_CRONJOB_JOBS,
-  "list/labeled_network_policy_ports": Pattern.LIST_LABELED_NETWORK_POLICY_PORTS,
-  "list/namespace_network_policies": Pattern.LIST_NAMESPACE_NETWORK_POLICIES,
-  "list/only_namespace_network_policies": Pattern.LIST_ONLY_NAMESPACE_NETWORK_POLICIES,
+  "list/all-resource-descriptors": Pattern.LIST_ALL_RESOURCE_DESCRIPTORS,
   "live-stream/nodes-cpu": Pattern.LIVE_STREAM_NODES_CPU,
   "live-stream/nodes-memory": Pattern.LIVE_STREAM_NODES_MEMORY,
   "live-stream/nodes-traffic": Pattern.LIVE_STREAM_NODES_TRAFFIC,
@@ -252,10 +202,6 @@ export const StringToPattern = {
   "live-stream/workspace-cpu": Pattern.LIVE_STREAM_WORKSPACE_CPU,
   "live-stream/workspace-memory": Pattern.LIVE_STREAM_WORKSPACE_MEMORY,
   "live-stream/workspace-traffic": Pattern.LIVE_STREAM_WORKSPACE_TRAFFIC,
-  "metrics/deployment/average-utilization": Pattern.METRICS_DEPLOYMENT_AVERAGE_UTILIZATION,
-  "namespace/backup": Pattern.NAMESPACE_BACKUP,
-  "namespace/create": Pattern.NAMESPACE_CREATE,
-  "namespace/delete": Pattern.NAMESPACE_DELETE,
   "prometheus/charts/add": Pattern.PROMETHEUS_CHARTS_ADD,
   "prometheus/charts/get": Pattern.PROMETHEUS_CHARTS_GET,
   "prometheus/charts/list": Pattern.PROMETHEUS_CHARTS_LIST,
@@ -263,33 +209,18 @@ export const StringToPattern = {
   "prometheus/is-reachable": Pattern.PROMETHEUS_IS_REACHABLE,
   "prometheus/query": Pattern.PROMETHEUS_QUERY,
   "prometheus/values": Pattern.PROMETHEUS_VALUES,
-  "remove/conflicting_network_policies": Pattern.REMOVE_CONFLICTING_NETWORK_POLICIES,
-  "remove/unmanaged_network_policies": Pattern.REMOVE_UNMANAGED_NETWORK_POLICIES,
   "sealed-secret/create-from-existing": Pattern.SEALED_SECRET_CREATE_FROM_EXISTING,
   "sealed-secret/get-certificate": Pattern.SEALED_SECRET_GET_CERTIFICATE,
-  "service/create": Pattern.SERVICE_CREATE,
-  "service/delete": Pattern.SERVICE_DELETE,
   "service/exec-sh-connection-request": Pattern.SERVICE_EXEC_SH_CONNECTION_REQUEST,
   "service/log-stream-connection-request": Pattern.SERVICE_LOG_STREAM_CONNECTION_REQUEST,
-  "SERVICE_PODS": Pattern.SERVICE_PODS,
   "service/pod-event-stream-connection-request": Pattern.SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST,
-  "service/resource-status": Pattern.SERVICE_RESOURCE_STATUS,
-  "service/restart": Pattern.SERVICE_RESTART,
-  "service/start": Pattern.SERVICE_START,
-  "service/status": Pattern.SERVICE_STATUS,
-  "service/stop": Pattern.SERVICE_STOP,
-  "service/trigger-job": Pattern.SERVICE_TRIGGER_JOB,
-  "service/update-service": Pattern.SERVICE_UPDATE_SERVICE,
   "stats/pod/all-for-controller": Pattern.STATS_POD_ALL_FOR_CONTROLLER,
   "stats/traffic/all-for-controller": Pattern.STATS_TRAFFIC_ALL_FOR_CONTROLLER,
-  "stats/traffic/sum-for-controller": Pattern.STATS_TRAFFIC_SUM_FOR_CONTROLLER,
-  "stats/traffic/sum-for-namespace": Pattern.STATS_TRAFFIC_SUM_FOR_NAMESPACE,
   "stats/workspace-cpu-utilization": Pattern.STATS_WORKSPACE_CPU_UTILIZATION,
   "stats/workspace-memory-utilization": Pattern.STATS_WORKSPACE_MEMORY_UTILIZATION,
   "stats/workspace-traffic-utilization": Pattern.STATS_WORKSPACE_TRAFFIC_UTILIZATION,
   "storage/create-volume": Pattern.STORAGE_CREATE_VOLUME,
   "storage/delete-volume": Pattern.STORAGE_DELETE_VOLUME,
-  "storage/namespace/stats": Pattern.STORAGE_NAMESPACE_STATS,
   "storage/stats": Pattern.STORAGE_STATS,
   "storage/status": Pattern.STORAGE_STATUS,
   "system/check": Pattern.SYSTEM_CHECK,
@@ -301,7 +232,6 @@ export const StringToPattern = {
   "uninstall-metallb": Pattern.UNINSTALL_METALLB,
   "uninstall-metrics-server": Pattern.UNINSTALL_METRICS_SERVER,
   "update/grant": Pattern.UPDATE_GRANT,
-  "update/network_policies_template": Pattern.UPDATE_NETWORK_POLICIES_TEMPLATE,
   "update/user": Pattern.UPDATE_USER,
   "update/workload": Pattern.UPDATE_WORKLOAD,
   "update/workspace": Pattern.UPDATE_WORKSPACE,
@@ -315,9 +245,9 @@ export const StringToPattern = {
 };
 
 export const PatternToString = {
-  [Pattern.ATTACH_LABELED_NETWORK_POLICY]: "attach/labeled_network_policy",
   [Pattern.AUDIT_LOG_LIST]: "audit-log/list",
-  [Pattern.CLUSTER_BACKUP]: "cluster/backup",
+  [Pattern.CLUSTER_ARGO_CD_APPLICATION_REFRESH]: "cluster/argo-cd-application-refresh",
+  [Pattern.CLUSTER_ARGO_CD_CREATE_API_TOKEN]: "cluster/argo-cd-create-api-token",
   [Pattern.CLUSTER_CLEAR_VALKEY_CACHE]: "cluster/clear-valkey-cache",
   [Pattern.CLUSTER_COMPONENT_LOG_STREAM_CONNECTION_REQUEST]: "cluster/component-log-stream-connection-request",
   [Pattern.CLUSTER_FORCE_DISCONNECT]: "cluster/force-disconnect",
@@ -354,13 +284,6 @@ export const PatternToString = {
   [Pattern.DELETE_WORKSPACE]: "delete/workspace",
   [Pattern.DESCRIBE]: "describe",
   [Pattern.DESCRIBE_WORKLOAD]: "describe/workload",
-  [Pattern.DETACH_LABELED_NETWORK_POLICY]: "detach/labeled_network_policy",
-  [Pattern.DISABLE_NETWORK_POLICY_MANAGER]: "disable/network_policy_manager",
-  [Pattern.ENFORCE_NETWORK_POLICY_MANAGER]: "enforce/network_policy_manager",
-  [Pattern.EXTERNAL_SECRET_LIST_AVAILABLE_SECRETS]: "external-secret/list-available-secrets",
-  [Pattern.EXTERNAL_SECRET_STORE_CREATE]: "external-secret-store/create",
-  [Pattern.EXTERNAL_SECRET_STORE_DELETE]: "external-secret-store/delete",
-  [Pattern.EXTERNAL_SECRET_STORE_LIST]: "external-secret-store/list",
   [Pattern.FILES_CHMOD]: "files/chmod",
   [Pattern.FILES_CHOWN]: "files/chown",
   [Pattern.FILES_CREATE_FOLDER]: "files/create-folder",
@@ -388,15 +311,7 @@ export const PatternToString = {
   [Pattern.INSTALL_KEPLER]: "install-kepler",
   [Pattern.INSTALL_METALLB]: "install-metallb",
   [Pattern.INSTALL_METRICS_SERVER]: "install-metrics-server",
-  [Pattern.K8SNOTIFICATION]: "K8sNotification",
-  [Pattern.LIST_ALL_NETWORK_POLICIES]: "list/all_network_policies",
-  [Pattern.LIST_ALL_WORKLOADS]: "list/all-workloads",
-  [Pattern.LIST_CONFLICTING_NETWORK_POLICIES]: "list/conflicting_network_policies",
-  [Pattern.LIST_CONTROLLER_NETWORK_POLICIES]: "list/controller_network_policies",
-  [Pattern.LIST_CRONJOB_JOBS]: "list/cronjob-jobs",
-  [Pattern.LIST_LABELED_NETWORK_POLICY_PORTS]: "list/labeled_network_policy_ports",
-  [Pattern.LIST_NAMESPACE_NETWORK_POLICIES]: "list/namespace_network_policies",
-  [Pattern.LIST_ONLY_NAMESPACE_NETWORK_POLICIES]: "list/only_namespace_network_policies",
+  [Pattern.LIST_ALL_RESOURCE_DESCRIPTORS]: "list/all-resource-descriptors",
   [Pattern.LIVE_STREAM_NODES_CPU]: "live-stream/nodes-cpu",
   [Pattern.LIVE_STREAM_NODES_MEMORY]: "live-stream/nodes-memory",
   [Pattern.LIVE_STREAM_NODES_TRAFFIC]: "live-stream/nodes-traffic",
@@ -406,10 +321,6 @@ export const PatternToString = {
   [Pattern.LIVE_STREAM_WORKSPACE_CPU]: "live-stream/workspace-cpu",
   [Pattern.LIVE_STREAM_WORKSPACE_MEMORY]: "live-stream/workspace-memory",
   [Pattern.LIVE_STREAM_WORKSPACE_TRAFFIC]: "live-stream/workspace-traffic",
-  [Pattern.METRICS_DEPLOYMENT_AVERAGE_UTILIZATION]: "metrics/deployment/average-utilization",
-  [Pattern.NAMESPACE_BACKUP]: "namespace/backup",
-  [Pattern.NAMESPACE_CREATE]: "namespace/create",
-  [Pattern.NAMESPACE_DELETE]: "namespace/delete",
   [Pattern.PROMETHEUS_CHARTS_ADD]: "prometheus/charts/add",
   [Pattern.PROMETHEUS_CHARTS_GET]: "prometheus/charts/get",
   [Pattern.PROMETHEUS_CHARTS_LIST]: "prometheus/charts/list",
@@ -417,33 +328,18 @@ export const PatternToString = {
   [Pattern.PROMETHEUS_IS_REACHABLE]: "prometheus/is-reachable",
   [Pattern.PROMETHEUS_QUERY]: "prometheus/query",
   [Pattern.PROMETHEUS_VALUES]: "prometheus/values",
-  [Pattern.REMOVE_CONFLICTING_NETWORK_POLICIES]: "remove/conflicting_network_policies",
-  [Pattern.REMOVE_UNMANAGED_NETWORK_POLICIES]: "remove/unmanaged_network_policies",
   [Pattern.SEALED_SECRET_CREATE_FROM_EXISTING]: "sealed-secret/create-from-existing",
   [Pattern.SEALED_SECRET_GET_CERTIFICATE]: "sealed-secret/get-certificate",
-  [Pattern.SERVICE_CREATE]: "service/create",
-  [Pattern.SERVICE_DELETE]: "service/delete",
   [Pattern.SERVICE_EXEC_SH_CONNECTION_REQUEST]: "service/exec-sh-connection-request",
   [Pattern.SERVICE_LOG_STREAM_CONNECTION_REQUEST]: "service/log-stream-connection-request",
-  [Pattern.SERVICE_PODS]: "SERVICE_PODS",
   [Pattern.SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST]: "service/pod-event-stream-connection-request",
-  [Pattern.SERVICE_RESOURCE_STATUS]: "service/resource-status",
-  [Pattern.SERVICE_RESTART]: "service/restart",
-  [Pattern.SERVICE_START]: "service/start",
-  [Pattern.SERVICE_STATUS]: "service/status",
-  [Pattern.SERVICE_STOP]: "service/stop",
-  [Pattern.SERVICE_TRIGGER_JOB]: "service/trigger-job",
-  [Pattern.SERVICE_UPDATE_SERVICE]: "service/update-service",
   [Pattern.STATS_POD_ALL_FOR_CONTROLLER]: "stats/pod/all-for-controller",
   [Pattern.STATS_TRAFFIC_ALL_FOR_CONTROLLER]: "stats/traffic/all-for-controller",
-  [Pattern.STATS_TRAFFIC_SUM_FOR_CONTROLLER]: "stats/traffic/sum-for-controller",
-  [Pattern.STATS_TRAFFIC_SUM_FOR_NAMESPACE]: "stats/traffic/sum-for-namespace",
   [Pattern.STATS_WORKSPACE_CPU_UTILIZATION]: "stats/workspace-cpu-utilization",
   [Pattern.STATS_WORKSPACE_MEMORY_UTILIZATION]: "stats/workspace-memory-utilization",
   [Pattern.STATS_WORKSPACE_TRAFFIC_UTILIZATION]: "stats/workspace-traffic-utilization",
   [Pattern.STORAGE_CREATE_VOLUME]: "storage/create-volume",
   [Pattern.STORAGE_DELETE_VOLUME]: "storage/delete-volume",
-  [Pattern.STORAGE_NAMESPACE_STATS]: "storage/namespace/stats",
   [Pattern.STORAGE_STATS]: "storage/stats",
   [Pattern.STORAGE_STATUS]: "storage/status",
   [Pattern.SYSTEM_CHECK]: "system/check",
@@ -455,7 +351,6 @@ export const PatternToString = {
   [Pattern.UNINSTALL_METALLB]: "uninstall-metallb",
   [Pattern.UNINSTALL_METRICS_SERVER]: "uninstall-metrics-server",
   [Pattern.UPDATE_GRANT]: "update/grant",
-  [Pattern.UPDATE_NETWORK_POLICIES_TEMPLATE]: "update/network_policies_template",
   [Pattern.UPDATE_USER]: "update/user",
   [Pattern.UPDATE_WORKLOAD]: "update/workload",
   [Pattern.UPDATE_WORKSPACE]: "update/workspace",
@@ -471,66 +366,6 @@ export const PatternToString = {
 //===============================================================
 //================= Request and Response Types ==================
 //===============================================================
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     mogenius-k8s-manager/src/controllers.AttachLabeledNetworkPolicyRequest:
- *         name: mogenius-k8s-manager/src/controllers.AttachLabeledNetworkPolicyRequest
- *         properties:
- *             controllerName:
- *                 type: string
- *             controllerType:
- *                 type: string
- *             labeledNetworkPolicies:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/dtos.K8sLabeledNetworkPolicyDto
- *                     type: struct
- *                 type: array
- *             namespaceName:
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sLabeledNetworkPolicyDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sLabeledNetworkPolicyDto
- *         properties:
- *             name:
- *                 type: string
- *             port:
- *                 type: uint
- *             portType:
- *                 type: string
- *             type:
- *                 type: string
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/controllers.AttachLabeledNetworkPolicyRequest
- *     type: struct
- * ```
- *
- */
-export type ATTACH_LABELED_NETWORK_POLICY_REQUEST = ATTACH_LABELED_NETWORK_POLICY_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_ATTACHLABELEDNETWORKPOLICYREQUEST;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/controllers.AttachLabeledNetworkPolicyRequest,string]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/controllers.AttachLabeledNetworkPolicyRequest,string]
- *         properties:
- *             data:
- *                 type: string
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/controllers.AttachLabeledNetworkPolicyRequest,string]
- *     type: struct
- * ```
- *
- */
-export type ATTACH_LABELED_NETWORK_POLICY_RESPONSE = ATTACH_LABELED_NETWORK_POLICY_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_ATTACHLABELEDNETWORKPOLICYREQUEST_STRING;
 
 /**
  * #### Source
@@ -564,6 +399,16 @@ export type AUDIT_LOG_LIST_REQUEST = AUDIT_LOG_LIST_REQUEST__MOGENIUS_K8S_MANAGE
  *         properties:
  *             data:
  *                 structRef: mogenius-k8s-manager/src/store.AuditLogResponse
+ *                 type: struct
+ *             message:
+ *                 type: string
+ *             status:
+ *                 type: string
+ *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·34,mogenius-k8s-manager/src/core.Response·35]:
+ *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·34,mogenius-k8s-manager/src/core.Response·35]
+ *         properties:
+ *             data:
+ *                 structRef: mogenius-k8s-manager/src/core.Response
  *                 type: struct
  *             message:
  *                 type: string
@@ -617,40 +462,94 @@ export type AUDIT_LOG_LIST_REQUEST = AUDIT_LOG_LIST_REQUEST__MOGENIUS_K8S_MANAGE
  *         name: time.Time
  *         properties: {}
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Response
+ *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·34,mogenius-k8s-manager/src/core.Response·35]
  *     type: struct
  * ```
  *
  */
-export type AUDIT_LOG_LIST_RESPONSE = AUDIT_LOG_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESPONSE;
+export type AUDIT_LOG_LIST_RESPONSE = AUDIT_LOG_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST34_MOGENIUS_K8S_MANAGER_SRC_CORE_RESPONSE35;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     ANON_STRUCT_0:
- *         properties: {}
+ *     mogenius-k8s-manager/src/argocd.ArgoCdApplicationRefreshRequest:
+ *         name: mogenius-k8s-manager/src/argocd.ArgoCdApplicationRefreshRequest
+ *         properties:
+ *             applicationName:
+ *                 type: string
+ *             username:
+ *                 type: string
  * typeInfo:
- *     pointer: true
- *     structRef: ANON_STRUCT_0
+ *     structRef: mogenius-k8s-manager/src/argocd.ArgoCdApplicationRefreshRequest
  *     type: struct
  * ```
  *
  */
-export type CLUSTER_BACKUP_REQUEST = CLUSTER_BACKUP_REQUEST__ANON_STRUCT_0|undefined;
+export type CLUSTER_ARGO_CD_APPLICATION_REFRESH_REQUEST = CLUSTER_ARGO_CD_APPLICATION_REFRESH_REQUEST__MOGENIUS_K8S_MANAGER_SRC_ARGOCD_ARGOCDAPPLICATIONREFRESHREQUEST;
 
 /**
  * #### Source
  *
  * ```yaml
+ * structs:
+ *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/argocd.ArgoCdApplicationRefreshRequest,bool]:
+ *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/argocd.ArgoCdApplicationRefreshRequest,bool]
+ *         properties:
+ *             data:
+ *                 type: bool
+ *             message:
+ *                 type: string
+ *             status:
+ *                 type: string
  * typeInfo:
- *     pointer: true
- *     type: any
+ *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/argocd.ArgoCdApplicationRefreshRequest,bool]
+ *     type: struct
  * ```
  *
  */
-export type CLUSTER_BACKUP_RESPONSE = any;
+export type CLUSTER_ARGO_CD_APPLICATION_REFRESH_RESPONSE = CLUSTER_ARGO_CD_APPLICATION_REFRESH_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_ARGOCD_ARGOCDAPPLICATIONREFRESHREQUEST_BOOL;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     mogenius-k8s-manager/src/argocd.ArgoCdCreateApiTokenRequest:
+ *         name: mogenius-k8s-manager/src/argocd.ArgoCdCreateApiTokenRequest
+ *         properties:
+ *             username:
+ *                 type: string
+ * typeInfo:
+ *     structRef: mogenius-k8s-manager/src/argocd.ArgoCdCreateApiTokenRequest
+ *     type: struct
+ * ```
+ *
+ */
+export type CLUSTER_ARGO_CD_CREATE_API_TOKEN_REQUEST = CLUSTER_ARGO_CD_CREATE_API_TOKEN_REQUEST__MOGENIUS_K8S_MANAGER_SRC_ARGOCD_ARGOCDCREATEAPITOKENREQUEST;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/argocd.ArgoCdCreateApiTokenRequest,bool]:
+ *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/argocd.ArgoCdCreateApiTokenRequest,bool]
+ *         properties:
+ *             data:
+ *                 type: bool
+ *             message:
+ *                 type: string
+ *             status:
+ *                 type: string
+ * typeInfo:
+ *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/argocd.ArgoCdCreateApiTokenRequest,bool]
+ *     type: struct
+ * ```
+ *
+ */
+export type CLUSTER_ARGO_CD_CREATE_API_TOKEN_RESPONSE = CLUSTER_ARGO_CD_CREATE_API_TOKEN_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_ARGOCD_ARGOCDCREATEAPITOKENREQUEST_BOOL;
 
 /**
  * #### Source
@@ -1202,22 +1101,19 @@ export type CLUSTER_HELM_RELEASE_GET_RESPONSE = CLUSTER_HELM_RELEASE_GET_RESPONS
  *             whitelist:
  *                 elementType:
  *                     pointer: true
- *                     structRef: mogenius-k8s-manager/src/utils.ResourceEntry
+ *                     structRef: mogenius-k8s-manager/src/utils.ResourceDescriptor
  *                     type: struct
  *                 type: array
- *     mogenius-k8s-manager/src/utils.ResourceEntry:
- *         name: mogenius-k8s-manager/src/utils.ResourceEntry
+ *     mogenius-k8s-manager/src/utils.ResourceDescriptor:
+ *         name: mogenius-k8s-manager/src/utils.ResourceDescriptor
  *         properties:
- *             group:
+ *             apiVersion:
  *                 type: string
  *             kind:
  *                 type: string
- *             name:
- *                 type: string
- *             namespace:
- *                 pointer: true
- *                 type: string
- *             version:
+ *             namespaced:
+ *                 type: bool
+ *             plural:
  *                 type: string
  * typeInfo:
  *     structRef: mogenius-k8s-manager/src/helm.HelmReleaseGetWorkloadsRequest
@@ -2682,8 +2578,8 @@ export type CLUSTER_MACHINE_STATS_REQUEST = CLUSTER_MACHINE_STATS_REQUEST__MOGEN
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·17,[]mogenius-k8s-manager/src/structs.MachineStats]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·17,[]mogenius-k8s-manager/src/structs.MachineStats]
+ *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·16,[]mogenius-k8s-manager/src/structs.MachineStats]:
+ *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·16,[]mogenius-k8s-manager/src/structs.MachineStats]
  *         properties:
  *             data:
  *                 elementType:
@@ -2700,12 +2596,12 @@ export type CLUSTER_MACHINE_STATS_REQUEST = CLUSTER_MACHINE_STATS_REQUEST__MOGEN
  *             btfSupport:
  *                 type: bool
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·17,[]mogenius-k8s-manager/src/structs.MachineStats]
+ *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·16,[]mogenius-k8s-manager/src/structs.MachineStats]
  *     type: struct
  * ```
  *
  */
-export type CLUSTER_MACHINE_STATS_RESPONSE = CLUSTER_MACHINE_STATS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST17_MOGENIUS_K8S_MANAGER_SRC_STRUCTS_MACHINESTATS;
+export type CLUSTER_MACHINE_STATS_RESPONSE = CLUSTER_MACHINE_STATS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST16_MOGENIUS_K8S_MANAGER_SRC_STRUCTS_MACHINESTATS;
 
 /**
  * #### Source
@@ -2950,8 +2846,8 @@ export type CREATE_GRANT_REQUEST = CREATE_GRANT_REQUEST__MOGENIUS_K8S_MANAGER_SR
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·30,string]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·30,string]
+ *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·29,string]:
+ *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·29,string]
  *         properties:
  *             data:
  *                 type: string
@@ -2960,41 +2856,46 @@ export type CREATE_GRANT_REQUEST = CREATE_GRANT_REQUEST__MOGENIUS_K8S_MANAGER_SR
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·30,string]
+ *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·29,string]
  *     type: struct
  * ```
  *
  */
-export type CREATE_GRANT_RESPONSE = CREATE_GRANT_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST30_STRING;
+export type CREATE_GRANT_RESPONSE = CREATE_GRANT_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST29_STRING;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/utils.ResourceData:
- *         name: mogenius-k8s-manager/src/utils.ResourceData
+ *     mogenius-k8s-manager/src/utils.ResourceDescriptor:
+ *         name: mogenius-k8s-manager/src/utils.ResourceDescriptor
  *         properties:
- *             group:
+ *             apiVersion:
  *                 type: string
  *             kind:
  *                 type: string
- *             name:
+ *             namespaced:
+ *                 type: bool
+ *             plural:
  *                 type: string
+ *     mogenius-k8s-manager/src/utils.WorkloadChangeRequest:
+ *         name: mogenius-k8s-manager/src/utils.WorkloadChangeRequest
+ *         properties:
+ *             ResourceDescriptor:
+ *                 structRef: mogenius-k8s-manager/src/utils.ResourceDescriptor
+ *                 type: struct
  *             namespace:
- *                 pointer: true
- *                 type: string
- *             version:
  *                 type: string
  *             yamlData:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/utils.ResourceData
+ *     structRef: mogenius-k8s-manager/src/utils.WorkloadChangeRequest
  *     type: struct
  * ```
  *
  */
-export type CREATE_NEW_WORKLOAD_REQUEST = CREATE_NEW_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDATA;
+export type CREATE_NEW_WORKLOAD_REQUEST = CREATE_NEW_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_WORKLOADCHANGEREQUEST;
 
 /**
  * #### Source
@@ -3011,8 +2912,8 @@ export type CREATE_NEW_WORKLOAD_REQUEST = CREATE_NEW_WORKLOAD_REQUEST__MOGENIUS_
  *                 valueType:
  *                     pointer: true
  *                     type: any
- *     ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.ResourceData,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
- *     :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.ResourceData,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *     ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadChangeRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *     :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadChangeRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
  *         properties:
  *             data:
  *                 pointer: true
@@ -3023,12 +2924,12 @@ export type CREATE_NEW_WORKLOAD_REQUEST = CREATE_NEW_WORKLOAD_REQUEST__MOGENIUS_
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.ResourceData,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadChangeRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
  *     type: struct
  * ```
  *
  */
-export type CREATE_NEW_WORKLOAD_RESPONSE = CREATE_NEW_WORKLOAD_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDATA_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED;
+export type CREATE_NEW_WORKLOAD_RESPONSE = CREATE_NEW_WORKLOAD_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_UTILS_WORKLOADCHANGEREQUEST_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED;
 
 /**
  * #### Source
@@ -3074,8 +2975,8 @@ export type CREATE_USER_REQUEST = CREATE_USER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·25,string]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·25,string]
+ *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·24,string]:
+ *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·24,string]
  *         properties:
  *             data:
  *                 type: string
@@ -3084,12 +2985,12 @@ export type CREATE_USER_REQUEST = CREATE_USER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·25,string]
+ *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·24,string]
  *     type: struct
  * ```
  *
  */
-export type CREATE_USER_RESPONSE = CREATE_USER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST25_STRING;
+export type CREATE_USER_RESPONSE = CREATE_USER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST24_STRING;
 
 /**
  * #### Source
@@ -3130,8 +3031,8 @@ export type CREATE_WORKSPACE_REQUEST = CREATE_WORKSPACE_REQUEST__MOGENIUS_K8S_MA
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·19,string]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·19,string]
+ *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·18,string]:
+ *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·18,string]
  *         properties:
  *             data:
  *                 type: string
@@ -3140,12 +3041,12 @@ export type CREATE_WORKSPACE_REQUEST = CREATE_WORKSPACE_REQUEST__MOGENIUS_K8S_MA
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·19,string]
+ *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·18,string]
  *     type: struct
  * ```
  *
  */
-export type CREATE_WORKSPACE_RESPONSE = CREATE_WORKSPACE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST19_STRING;
+export type CREATE_WORKSPACE_RESPONSE = CREATE_WORKSPACE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST18_STRING;
 
 /**
  * #### Source
@@ -3170,8 +3071,8 @@ export type DELETE_GRANT_REQUEST = DELETE_GRANT_REQUEST__MOGENIUS_K8S_MANAGER_SR
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·33,string]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·33,string]
+ *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·32,string]:
+ *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·32,string]
  *         properties:
  *             data:
  *                 type: string
@@ -3180,12 +3081,12 @@ export type DELETE_GRANT_REQUEST = DELETE_GRANT_REQUEST__MOGENIUS_K8S_MANAGER_SR
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·33,string]
+ *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·32,string]
  *     type: struct
  * ```
  *
  */
-export type DELETE_GRANT_RESPONSE = DELETE_GRANT_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST33_STRING;
+export type DELETE_GRANT_RESPONSE = DELETE_GRANT_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST32_STRING;
 
 /**
  * #### Source
@@ -3210,8 +3111,8 @@ export type DELETE_USER_REQUEST = DELETE_USER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·28,string]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·28,string]
+ *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·27,string]:
+ *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·27,string]
  *         properties:
  *             data:
  *                 type: string
@@ -3220,40 +3121,46 @@ export type DELETE_USER_REQUEST = DELETE_USER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·28,string]
+ *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·27,string]
  *     type: struct
  * ```
  *
  */
-export type DELETE_USER_RESPONSE = DELETE_USER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST28_STRING;
+export type DELETE_USER_RESPONSE = DELETE_USER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST27_STRING;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/utils.ResourceItem:
- *         name: mogenius-k8s-manager/src/utils.ResourceItem
+ *     mogenius-k8s-manager/src/utils.ResourceDescriptor:
+ *         name: mogenius-k8s-manager/src/utils.ResourceDescriptor
  *         properties:
- *             group:
+ *             apiVersion:
  *                 type: string
  *             kind:
  *                 type: string
- *             name:
+ *             namespaced:
+ *                 type: bool
+ *             plural:
  *                 type: string
+ *     mogenius-k8s-manager/src/utils.WorkloadSingleRequest:
+ *         name: mogenius-k8s-manager/src/utils.WorkloadSingleRequest
+ *         properties:
+ *             ResourceDescriptor:
+ *                 structRef: mogenius-k8s-manager/src/utils.ResourceDescriptor
+ *                 type: struct
  *             namespace:
  *                 type: string
  *             resourceName:
  *                 type: string
- *             version:
- *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/utils.ResourceItem
+ *     structRef: mogenius-k8s-manager/src/utils.WorkloadSingleRequest
  *     type: struct
  * ```
  *
  */
-export type DELETE_WORKLOAD_REQUEST = DELETE_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEITEM;
+export type DELETE_WORKLOAD_REQUEST = DELETE_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_WORKLOADSINGLEREQUEST;
 
 /**
  * #### Source
@@ -3262,8 +3169,8 @@ export type DELETE_WORKLOAD_REQUEST = DELETE_WORKLOAD_REQUEST__MOGENIUS_K8S_MANA
  * structs:
  *     ANON_STRUCT_1:
  *         properties: {}
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.ResourceItem,mogenius-k8s-manager/src/core.Void]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.ResourceItem,mogenius-k8s-manager/src/core.Void]
+ *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadSingleRequest,mogenius-k8s-manager/src/core.Void]:
+ *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadSingleRequest,mogenius-k8s-manager/src/core.Void]
  *         properties:
  *             data:
  *                 pointer: true
@@ -3274,12 +3181,12 @@ export type DELETE_WORKLOAD_REQUEST = DELETE_WORKLOAD_REQUEST__MOGENIUS_K8S_MANA
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.ResourceItem,mogenius-k8s-manager/src/core.Void]
+ *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadSingleRequest,mogenius-k8s-manager/src/core.Void]
  *     type: struct
  * ```
  *
  */
-export type DELETE_WORKLOAD_RESPONSE = DELETE_WORKLOAD_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEITEM_MOGENIUS_K8S_MANAGER_SRC_CORE_VOID;
+export type DELETE_WORKLOAD_RESPONSE = DELETE_WORKLOAD_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_UTILS_WORKLOADSINGLEREQUEST_MOGENIUS_K8S_MANAGER_SRC_CORE_VOID;
 
 /**
  * #### Source
@@ -3304,8 +3211,8 @@ export type DELETE_WORKSPACE_REQUEST = DELETE_WORKSPACE_REQUEST__MOGENIUS_K8S_MA
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·23,string]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·23,string]
+ *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·22,string]:
+ *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·22,string]
  *         properties:
  *             data:
  *                 type: string
@@ -3314,12 +3221,12 @@ export type DELETE_WORKSPACE_REQUEST = DELETE_WORKSPACE_REQUEST__MOGENIUS_K8S_MA
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·23,string]
+ *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·22,string]
  *     type: struct
  * ```
  *
  */
-export type DELETE_WORKSPACE_RESPONSE = DELETE_WORKSPACE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST23_STRING;
+export type DELETE_WORKSPACE_RESPONSE = DELETE_WORKSPACE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST22_STRING;
 
 /**
  * #### Source
@@ -3472,36 +3379,42 @@ export type DESCRIBE_RESPONSE = DESCRIBE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/utils.ResourceItem:
- *         name: mogenius-k8s-manager/src/utils.ResourceItem
+ *     mogenius-k8s-manager/src/utils.ResourceDescriptor:
+ *         name: mogenius-k8s-manager/src/utils.ResourceDescriptor
  *         properties:
- *             group:
+ *             apiVersion:
  *                 type: string
  *             kind:
  *                 type: string
- *             name:
+ *             namespaced:
+ *                 type: bool
+ *             plural:
  *                 type: string
+ *     mogenius-k8s-manager/src/utils.WorkloadSingleRequest:
+ *         name: mogenius-k8s-manager/src/utils.WorkloadSingleRequest
+ *         properties:
+ *             ResourceDescriptor:
+ *                 structRef: mogenius-k8s-manager/src/utils.ResourceDescriptor
+ *                 type: struct
  *             namespace:
  *                 type: string
  *             resourceName:
  *                 type: string
- *             version:
- *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/utils.ResourceItem
+ *     structRef: mogenius-k8s-manager/src/utils.WorkloadSingleRequest
  *     type: struct
  * ```
  *
  */
-export type DESCRIBE_WORKLOAD_REQUEST = DESCRIBE_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEITEM;
+export type DESCRIBE_WORKLOAD_REQUEST = DESCRIBE_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_WORKLOADSINGLEREQUEST;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.ResourceItem,string]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.ResourceItem,string]
+ *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadSingleRequest,string]:
+ *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadSingleRequest,string]
  *         properties:
  *             data:
  *                 type: string
@@ -3510,335 +3423,12 @@ export type DESCRIBE_WORKLOAD_REQUEST = DESCRIBE_WORKLOAD_REQUEST__MOGENIUS_K8S_
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.ResourceItem,string]
+ *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadSingleRequest,string]
  *     type: struct
  * ```
  *
  */
-export type DESCRIBE_WORKLOAD_RESPONSE = DESCRIBE_WORKLOAD_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEITEM_STRING;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     mogenius-k8s-manager/src/controllers.DetachLabeledNetworkPolicyRequest:
- *         name: mogenius-k8s-manager/src/controllers.DetachLabeledNetworkPolicyRequest
- *         properties:
- *             controllerName:
- *                 type: string
- *             controllerType:
- *                 type: string
- *             labeledNetworkPolicies:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/dtos.K8sLabeledNetworkPolicyDto
- *                     type: struct
- *                 type: array
- *             namespaceName:
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sLabeledNetworkPolicyDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sLabeledNetworkPolicyDto
- *         properties:
- *             name:
- *                 type: string
- *             port:
- *                 type: uint
- *             portType:
- *                 type: string
- *             type:
- *                 type: string
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/controllers.DetachLabeledNetworkPolicyRequest
- *     type: struct
- * ```
- *
- */
-export type DETACH_LABELED_NETWORK_POLICY_REQUEST = DETACH_LABELED_NETWORK_POLICY_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_DETACHLABELEDNETWORKPOLICYREQUEST;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/controllers.DetachLabeledNetworkPolicyRequest,string]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/controllers.DetachLabeledNetworkPolicyRequest,string]
- *         properties:
- *             data:
- *                 type: string
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/controllers.DetachLabeledNetworkPolicyRequest,string]
- *     type: struct
- * ```
- *
- */
-export type DETACH_LABELED_NETWORK_POLICY_RESPONSE = DETACH_LABELED_NETWORK_POLICY_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_DETACHLABELEDNETWORKPOLICYREQUEST_STRING;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     mogenius-k8s-manager/src/controllers.DisableNetworkPolicyManagerRequest:
- *         name: mogenius-k8s-manager/src/controllers.DisableNetworkPolicyManagerRequest
- *         properties:
- *             namespaceName:
- *                 type: string
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/controllers.DisableNetworkPolicyManagerRequest
- *     type: struct
- * ```
- *
- */
-export type DISABLE_NETWORK_POLICY_MANAGER_REQUEST = DISABLE_NETWORK_POLICY_MANAGER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_DISABLENETWORKPOLICYMANAGERREQUEST;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     ANON_STRUCT_1:
- *         properties: {}
- *     ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/controllers.DisableNetworkPolicyManagerRequest,mogenius-k8s-manager/src/core.Void]
- *     :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/controllers.DisableNetworkPolicyManagerRequest,mogenius-k8s-manager/src/core.Void]
- *         properties:
- *             data:
- *                 pointer: true
- *                 structRef: ANON_STRUCT_1
- *                 type: struct
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/controllers.DisableNetworkPolicyManagerRequest,mogenius-k8s-manager/src/core.Void]
- *     type: struct
- * ```
- *
- */
-export type DISABLE_NETWORK_POLICY_MANAGER_RESPONSE = DISABLE_NETWORK_POLICY_MANAGER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_DISABLENETWORKPOLICYMANAGERREQUEST_MOGENIUS_K8S_MANAGER_SRC_CORE_VOID;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     mogenius-k8s-manager/src/controllers.EnforceNetworkPolicyManagerRequest:
- *         name: mogenius-k8s-manager/src/controllers.EnforceNetworkPolicyManagerRequest
- *         properties:
- *             namespaceName:
- *                 type: string
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/controllers.EnforceNetworkPolicyManagerRequest
- *     type: struct
- * ```
- *
- */
-export type ENFORCE_NETWORK_POLICY_MANAGER_REQUEST = ENFORCE_NETWORK_POLICY_MANAGER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_ENFORCENETWORKPOLICYMANAGERREQUEST;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     ANON_STRUCT_1:
- *         properties: {}
- *     ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/controllers.EnforceNetworkPolicyManagerRequest,mogenius-k8s-manager/src/core.Void]
- *     :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/controllers.EnforceNetworkPolicyManagerRequest,mogenius-k8s-manager/src/core.Void]
- *         properties:
- *             data:
- *                 pointer: true
- *                 structRef: ANON_STRUCT_1
- *                 type: struct
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/controllers.EnforceNetworkPolicyManagerRequest,mogenius-k8s-manager/src/core.Void]
- *     type: struct
- * ```
- *
- */
-export type ENFORCE_NETWORK_POLICY_MANAGER_RESPONSE = ENFORCE_NETWORK_POLICY_MANAGER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_ENFORCENETWORKPOLICYMANAGERREQUEST_MOGENIUS_K8S_MANAGER_SRC_CORE_VOID;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     mogenius-k8s-manager/src/controllers.ListSecretsRequest:
- *         name: mogenius-k8s-manager/src/controllers.ListSecretsRequest
- *         properties:
- *             namePrefix:
- *                 type: string
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/controllers.ListSecretsRequest
- *     type: struct
- * ```
- *
- */
-export type EXTERNAL_SECRET_LIST_AVAILABLE_SECRETS_REQUEST = EXTERNAL_SECRET_LIST_AVAILABLE_SECRETS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTSECRETSREQUEST;
-
-/**
- * #### Source
- *
- * ```yaml
- * typeInfo:
- *     elementType:
- *         type: string
- *     type: array
- * ```
- *
- */
-export type EXTERNAL_SECRET_LIST_AVAILABLE_SECRETS_RESPONSE = string[];
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     mogenius-k8s-manager/src/controllers.CreateSecretsStoreRequest:
- *         name: mogenius-k8s-manager/src/controllers.CreateSecretsStoreRequest
- *         properties:
- *             displayName:
- *                 type: string
- *             projectId:
- *                 type: string
- *             role:
- *                 type: string
- *             secretPath:
- *                 type: string
- *             vaultServerUrl:
- *                 type: string
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/controllers.CreateSecretsStoreRequest
- *     type: struct
- * ```
- *
- */
-export type EXTERNAL_SECRET_STORE_CREATE_REQUEST = EXTERNAL_SECRET_STORE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_CREATESECRETSSTOREREQUEST;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     mogenius-k8s-manager/src/controllers.CreateSecretsStoreResponse:
- *         name: mogenius-k8s-manager/src/controllers.CreateSecretsStoreResponse
- *         properties:
- *             errorMessage:
- *                 type: string
- *             status:
- *                 type: string
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/controllers.CreateSecretsStoreResponse
- *     type: struct
- * ```
- *
- */
-export type EXTERNAL_SECRET_STORE_CREATE_RESPONSE = EXTERNAL_SECRET_STORE_CREATE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_CREATESECRETSSTORERESPONSE;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     mogenius-k8s-manager/src/controllers.DeleteSecretsStoreRequest:
- *         name: mogenius-k8s-manager/src/controllers.DeleteSecretsStoreRequest
- *         properties:
- *             name:
- *                 type: string
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/controllers.DeleteSecretsStoreRequest
- *     type: struct
- * ```
- *
- */
-export type EXTERNAL_SECRET_STORE_DELETE_REQUEST = EXTERNAL_SECRET_STORE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_DELETESECRETSSTOREREQUEST;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     mogenius-k8s-manager/src/controllers.DeleteSecretsStoreResponse:
- *         name: mogenius-k8s-manager/src/controllers.DeleteSecretsStoreResponse
- *         properties:
- *             errorMessage:
- *                 type: string
- *             status:
- *                 type: string
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/controllers.DeleteSecretsStoreResponse
- *     type: struct
- * ```
- *
- */
-export type EXTERNAL_SECRET_STORE_DELETE_RESPONSE = EXTERNAL_SECRET_STORE_DELETE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_DELETESECRETSSTORERESPONSE;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     mogenius-k8s-manager/src/controllers.ListSecretStoresRequest:
- *         name: mogenius-k8s-manager/src/controllers.ListSecretStoresRequest
- *         properties:
- *             projectId:
- *                 type: string
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/controllers.ListSecretStoresRequest
- *     type: struct
- * ```
- *
- */
-export type EXTERNAL_SECRET_STORE_LIST_REQUEST = EXTERNAL_SECRET_STORE_LIST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTSECRETSTORESREQUEST;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     mogenius-k8s-manager/src/kubernetes.SecretStore:
- *         name: mogenius-k8s-manager/src/kubernetes.SecretStore
- *         properties:
- *             createdAt:
- *                 type: string
- *             displayName:
- *                 type: string
- *             message:
- *                 type: string
- *             name:
- *                 type: string
- *             prefix:
- *                 type: string
- *             project-id:
- *                 type: string
- *             reason:
- *                 type: string
- *             role:
- *                 type: string
- *             shared-path:
- *                 type: string
- *             status:
- *                 type: string
- *             type:
- *                 type: string
- *             vault-url:
- *                 type: string
- * typeInfo:
- *     elementType:
- *         structRef: mogenius-k8s-manager/src/kubernetes.SecretStore
- *         type: struct
- *     type: array
- * ```
- *
- */
-export type EXTERNAL_SECRET_STORE_LIST_RESPONSE = EXTERNAL_SECRET_STORE_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_SECRETSTORE[];
+export type DESCRIBE_WORKLOAD_RESPONSE = DESCRIBE_WORKLOAD_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_UTILS_WORKLOADSINGLEREQUEST_STRING;
 
 /**
  * #### Source
@@ -4364,8 +3954,8 @@ export type GET_GRANT_REQUEST = GET_GRANT_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE
  *                 type: string
  *             kind:
  *                 type: string
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·31,*mogenius-k8s-manager/src/crds/v1alpha1.Grant]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·31,*mogenius-k8s-manager/src/crds/v1alpha1.Grant]
+ *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·30,*mogenius-k8s-manager/src/crds/v1alpha1.Grant]:
+ *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·30,*mogenius-k8s-manager/src/crds/v1alpha1.Grant]
  *         properties:
  *             data:
  *                 pointer: true
@@ -4408,12 +3998,12 @@ export type GET_GRANT_REQUEST = GET_GRANT_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE
  *         name: time.Time
  *         properties: {}
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·31,*mogenius-k8s-manager/src/crds/v1alpha1.Grant]
+ *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·30,*mogenius-k8s-manager/src/crds/v1alpha1.Grant]
  *     type: struct
  * ```
  *
  */
-export type GET_GRANT_RESPONSE = GET_GRANT_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST31_MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_GRANT;
+export type GET_GRANT_RESPONSE = GET_GRANT_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST30_MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_GRANT;
 
 /**
  * #### Source
@@ -4549,8 +4139,8 @@ export type GET_GRANTS_REQUEST = GET_GRANTS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CO
  *                 type: string
  *             kind:
  *                 type: string
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·29,[]mogenius-k8s-manager/src/crds/v1alpha1.Grant]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·29,[]mogenius-k8s-manager/src/crds/v1alpha1.Grant]
+ *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·28,[]mogenius-k8s-manager/src/crds/v1alpha1.Grant]:
+ *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·28,[]mogenius-k8s-manager/src/crds/v1alpha1.Grant]
  *         properties:
  *             data:
  *                 elementType:
@@ -4594,12 +4184,12 @@ export type GET_GRANTS_REQUEST = GET_GRANTS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CO
  *         name: time.Time
  *         properties: {}
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·29,[]mogenius-k8s-manager/src/crds/v1alpha1.Grant]
+ *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·28,[]mogenius-k8s-manager/src/crds/v1alpha1.Grant]
  *     type: struct
  * ```
  *
  */
-export type GET_GRANTS_RESPONSE = GET_GRANTS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST29_MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_GRANT;
+export type GET_GRANTS_RESPONSE = GET_GRANTS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST28_MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_GRANT;
 
 /**
  * #### Source
@@ -4612,7 +4202,7 @@ export type GET_GRANTS_RESPONSE = GET_GRANTS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_
  *             blacklist:
  *                 elementType:
  *                     pointer: true
- *                     structRef: mogenius-k8s-manager/src/utils.ResourceEntry
+ *                     structRef: mogenius-k8s-manager/src/utils.ResourceDescriptor
  *                     type: struct
  *                 type: array
  *             label:
@@ -4620,22 +4210,19 @@ export type GET_GRANTS_RESPONSE = GET_GRANTS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_
  *             whitelist:
  *                 elementType:
  *                     pointer: true
- *                     structRef: mogenius-k8s-manager/src/utils.ResourceEntry
+ *                     structRef: mogenius-k8s-manager/src/utils.ResourceDescriptor
  *                     type: struct
  *                 type: array
- *     mogenius-k8s-manager/src/utils.ResourceEntry:
- *         name: mogenius-k8s-manager/src/utils.ResourceEntry
+ *     mogenius-k8s-manager/src/utils.ResourceDescriptor:
+ *         name: mogenius-k8s-manager/src/utils.ResourceDescriptor
  *         properties:
- *             group:
+ *             apiVersion:
  *                 type: string
  *             kind:
  *                 type: string
- *             name:
- *                 type: string
- *             namespace:
- *                 pointer: true
- *                 type: string
- *             version:
+ *             namespaced:
+ *                 type: bool
+ *             plural:
  *                 type: string
  * typeInfo:
  *     structRef: mogenius-k8s-manager/src/kubernetes.GetUnstructuredLabeledResourceListRequest
@@ -4704,7 +4291,7 @@ export type GET_LABELED_WORKLOAD_LIST_RESPONSE = GET_LABELED_WORKLOAD_LIST_RESPO
  *             blacklist:
  *                 elementType:
  *                     pointer: true
- *                     structRef: mogenius-k8s-manager/src/utils.ResourceEntry
+ *                     structRef: mogenius-k8s-manager/src/utils.ResourceDescriptor
  *                     type: struct
  *                 type: array
  *             namespace:
@@ -4712,22 +4299,19 @@ export type GET_LABELED_WORKLOAD_LIST_RESPONSE = GET_LABELED_WORKLOAD_LIST_RESPO
  *             whitelist:
  *                 elementType:
  *                     pointer: true
- *                     structRef: mogenius-k8s-manager/src/utils.ResourceEntry
+ *                     structRef: mogenius-k8s-manager/src/utils.ResourceDescriptor
  *                     type: struct
  *                 type: array
- *     mogenius-k8s-manager/src/utils.ResourceEntry:
- *         name: mogenius-k8s-manager/src/utils.ResourceEntry
+ *     mogenius-k8s-manager/src/utils.ResourceDescriptor:
+ *         name: mogenius-k8s-manager/src/utils.ResourceDescriptor
  *         properties:
- *             group:
+ *             apiVersion:
  *                 type: string
  *             kind:
  *                 type: string
- *             name:
- *                 type: string
- *             namespace:
- *                 pointer: true
- *                 type: string
- *             version:
+ *             namespaced:
+ *                 type: bool
+ *             plural:
  *                 type: string
  * typeInfo:
  *     structRef: mogenius-k8s-manager/src/kubernetes.GetUnstructuredNamespaceResourceListRequest
@@ -4913,8 +4497,8 @@ export type GET_USER_REQUEST = GET_USER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_R
  *                 type: string
  *             kind:
  *                 type: string
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·26,*mogenius-k8s-manager/src/crds/v1alpha1.User]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·26,*mogenius-k8s-manager/src/crds/v1alpha1.User]
+ *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·25,*mogenius-k8s-manager/src/crds/v1alpha1.User]:
+ *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·25,*mogenius-k8s-manager/src/crds/v1alpha1.User]
  *         properties:
  *             data:
  *                 pointer: true
@@ -4959,12 +4543,12 @@ export type GET_USER_REQUEST = GET_USER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_R
  *         name: time.Time
  *         properties: {}
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·26,*mogenius-k8s-manager/src/crds/v1alpha1.User]
+ *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·25,*mogenius-k8s-manager/src/crds/v1alpha1.User]
  *     type: struct
  * ```
  *
  */
-export type GET_USER_RESPONSE = GET_USER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST26_MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_USER;
+export type GET_USER_RESPONSE = GET_USER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST25_MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_USER;
 
 /**
  * #### Source
@@ -5108,8 +4692,8 @@ export type GET_USERS_REQUEST = GET_USERS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE
  *                 type: string
  *             kind:
  *                 type: string
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·24,[]mogenius-k8s-manager/src/crds/v1alpha1.User]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·24,[]mogenius-k8s-manager/src/crds/v1alpha1.User]
+ *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·23,[]mogenius-k8s-manager/src/crds/v1alpha1.User]:
+ *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·23,[]mogenius-k8s-manager/src/crds/v1alpha1.User]
  *         properties:
  *             data:
  *                 elementType:
@@ -5155,40 +4739,46 @@ export type GET_USERS_REQUEST = GET_USERS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE
  *         name: time.Time
  *         properties: {}
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·24,[]mogenius-k8s-manager/src/crds/v1alpha1.User]
+ *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·23,[]mogenius-k8s-manager/src/crds/v1alpha1.User]
  *     type: struct
  * ```
  *
  */
-export type GET_USERS_RESPONSE = GET_USERS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST24_MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_USER;
+export type GET_USERS_RESPONSE = GET_USERS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST23_MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_USER;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/utils.ResourceItem:
- *         name: mogenius-k8s-manager/src/utils.ResourceItem
+ *     mogenius-k8s-manager/src/utils.ResourceDescriptor:
+ *         name: mogenius-k8s-manager/src/utils.ResourceDescriptor
  *         properties:
- *             group:
+ *             apiVersion:
  *                 type: string
  *             kind:
  *                 type: string
- *             name:
+ *             namespaced:
+ *                 type: bool
+ *             plural:
  *                 type: string
+ *     mogenius-k8s-manager/src/utils.WorkloadSingleRequest:
+ *         name: mogenius-k8s-manager/src/utils.WorkloadSingleRequest
+ *         properties:
+ *             ResourceDescriptor:
+ *                 structRef: mogenius-k8s-manager/src/utils.ResourceDescriptor
+ *                 type: struct
  *             namespace:
  *                 type: string
  *             resourceName:
  *                 type: string
- *             version:
- *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/utils.ResourceItem
+ *     structRef: mogenius-k8s-manager/src/utils.WorkloadSingleRequest
  *     type: struct
  * ```
  *
  */
-export type GET_WORKLOAD_REQUEST = GET_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEITEM;
+export type GET_WORKLOAD_REQUEST = GET_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_WORKLOADSINGLEREQUEST;
 
 /**
  * #### Source
@@ -5205,8 +4795,8 @@ export type GET_WORKLOAD_REQUEST = GET_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SR
  *                 valueType:
  *                     pointer: true
  *                     type: any
- *     ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.ResourceItem,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
- *     :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.ResourceItem,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *     ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadSingleRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *     :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadSingleRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
  *         properties:
  *             data:
  *                 pointer: true
@@ -5217,48 +4807,44 @@ export type GET_WORKLOAD_REQUEST = GET_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SR
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.ResourceItem,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadSingleRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
  *     type: struct
  * ```
  *
  */
-export type GET_WORKLOAD_RESPONSE = GET_WORKLOAD_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEITEM_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED;
+export type GET_WORKLOAD_RESPONSE = GET_WORKLOAD_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_UTILS_WORKLOADSINGLEREQUEST_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/utils.ResourceItem:
- *         name: mogenius-k8s-manager/src/utils.ResourceItem
+ *     mogenius-k8s-manager/src/utils.ResourceDescriptor:
+ *         name: mogenius-k8s-manager/src/utils.ResourceDescriptor
  *         properties:
- *             group:
+ *             apiVersion:
  *                 type: string
  *             kind:
  *                 type: string
- *             name:
- *                 type: string
- *             namespace:
- *                 type: string
- *             resourceName:
- *                 type: string
- *             version:
+ *             namespaced:
+ *                 type: bool
+ *             plural:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/utils.ResourceItem
+ *     structRef: mogenius-k8s-manager/src/utils.ResourceDescriptor
  *     type: struct
  * ```
  *
  */
-export type GET_WORKLOAD_EXAMPLE_REQUEST = GET_WORKLOAD_EXAMPLE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEITEM;
+export type GET_WORKLOAD_EXAMPLE_REQUEST = GET_WORKLOAD_EXAMPLE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.ResourceItem,string]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.ResourceItem,string]
+ *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.ResourceDescriptor,string]:
+ *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.ResourceDescriptor,string]
  *         properties:
  *             data:
  *                 type: string
@@ -5267,12 +4853,12 @@ export type GET_WORKLOAD_EXAMPLE_REQUEST = GET_WORKLOAD_EXAMPLE_REQUEST__MOGENIU
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.ResourceItem,string]
+ *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.ResourceDescriptor,string]
  *     type: struct
  * ```
  *
  */
-export type GET_WORKLOAD_EXAMPLE_RESPONSE = GET_WORKLOAD_EXAMPLE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEITEM_STRING;
+export type GET_WORKLOAD_EXAMPLE_RESPONSE = GET_WORKLOAD_EXAMPLE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR_STRING;
 
 /**
  * #### Source
@@ -5282,16 +4868,14 @@ export type GET_WORKLOAD_EXAMPLE_RESPONSE = GET_WORKLOAD_EXAMPLE_RESPONSE__MOGEN
  *     mogenius-k8s-manager/src/core.Request:
  *         name: mogenius-k8s-manager/src/core.Request
  *         properties:
- *             group:
+ *             apiVersion:
  *                 type: string
  *             kind:
- *                 type: string
- *             name:
  *                 type: string
  *             namespace:
  *                 pointer: true
  *                 type: string
- *             version:
+ *             plural:
  *                 type: string
  *             withData:
  *                 pointer: true
@@ -5334,8 +4918,8 @@ export type GET_WORKLOAD_LIST_REQUEST = GET_WORKLOAD_LIST_REQUEST__MOGENIUS_K8S_
  *                     structRef: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured
  *                     type: struct
  *                 type: array
- *     ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·18,k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.UnstructuredList]
- *     :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·18,k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.UnstructuredList]
+ *     ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·17,k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.UnstructuredList]
+ *     :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·17,k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.UnstructuredList]
  *         properties:
  *             data:
  *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.UnstructuredList
@@ -5345,12 +4929,12 @@ export type GET_WORKLOAD_LIST_REQUEST = GET_WORKLOAD_LIST_REQUEST__MOGENIUS_K8S_
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·18,k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.UnstructuredList]
+ *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·17,k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.UnstructuredList]
  *     type: struct
  * ```
  *
  */
-export type GET_WORKLOAD_LIST_RESPONSE = GET_WORKLOAD_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST18_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTUREDLIST;
+export type GET_WORKLOAD_LIST_RESPONSE = GET_WORKLOAD_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST17_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTUREDLIST;
 
 /**
  * #### Source
@@ -5381,28 +4965,25 @@ export type GET_WORKLOAD_LIST_RESPONSE = GET_WORKLOAD_LIST_RESPONSE__MOGENIUS_K8
  *                     type: string
  *                 pointer: true
  *                 type: array
- *             resourceEntity:
+ *             resourceDescriptor:
  *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/utils.ResourceEntry
+ *                 structRef: mogenius-k8s-manager/src/utils.ResourceDescriptor
  *                 type: struct
  *             resourceNames:
  *                 elementType:
  *                     type: string
  *                 pointer: true
  *                 type: array
- *     mogenius-k8s-manager/src/utils.ResourceEntry:
- *         name: mogenius-k8s-manager/src/utils.ResourceEntry
+ *     mogenius-k8s-manager/src/utils.ResourceDescriptor:
+ *         name: mogenius-k8s-manager/src/utils.ResourceDescriptor
  *         properties:
- *             group:
+ *             apiVersion:
  *                 type: string
  *             kind:
  *                 type: string
- *             name:
- *                 type: string
- *             namespace:
- *                 pointer: true
- *                 type: string
- *             version:
+ *             namespaced:
+ *                 type: bool
+ *             plural:
  *                 type: string
  * typeInfo:
  *     structRef: mogenius-k8s-manager/src/kubernetes.GetWorkloadStatusRequest
@@ -5631,6 +5212,8 @@ export type GET_WORKLOAD_STATUS_REQUEST = GET_WORKLOAD_STATUS_REQUEST__MOGENIUS_
  *     mogenius-k8s-manager/src/kubernetes.WorkloadStatusItemDto:
  *         name: mogenius-k8s-manager/src/kubernetes.WorkloadStatusItemDto
  *         properties:
+ *             apiVersion:
+ *                 type: string
  *             creationTimestamp:
  *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
  *                 type: struct
@@ -5642,8 +5225,6 @@ export type GET_WORKLOAD_STATUS_REQUEST = GET_WORKLOAD_STATUS_REQUEST__MOGENIUS_
  *                     structRef: k8s.io/api/core/v1.Event
  *                     type: struct
  *                 type: array
- *             group:
- *                 type: string
  *             kind:
  *                 type: string
  *             name:
@@ -5686,6 +5267,8 @@ export type GET_WORKLOAD_STATUS_RESPONSE = GET_WORKLOAD_STATUS_RESPONSE__MOGENIU
  *         properties:
  *             name:
  *                 type: string
+ *             namespace:
+ *                 type: string
  * typeInfo:
  *     structRef: mogenius-k8s-manager/src/core.Request
  *     type: struct
@@ -5718,8 +5301,8 @@ export type GET_WORKSPACE_REQUEST = GET_WORKSPACE_REQUEST__MOGENIUS_K8S_MANAGER_
  *                     structRef: mogenius-k8s-manager/src/crds/v1alpha1.WorkspaceResourceIdentifier
  *                     type: struct
  *                 type: array
- *     ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·20,*mogenius-k8s-manager/src/core.GetWorkspaceResult]
- *     :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·20,*mogenius-k8s-manager/src/core.GetWorkspaceResult]
+ *     ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·19,*mogenius-k8s-manager/src/core.GetWorkspaceResult]
+ *     :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·19,*mogenius-k8s-manager/src/core.GetWorkspaceResult]
  *         properties:
  *             data:
  *                 pointer: true
@@ -5742,12 +5325,12 @@ export type GET_WORKSPACE_REQUEST = GET_WORKSPACE_REQUEST__MOGENIUS_K8S_MANAGER_
  *         name: time.Time
  *         properties: {}
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·20,*mogenius-k8s-manager/src/core.GetWorkspaceResult]
+ *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·19,*mogenius-k8s-manager/src/core.GetWorkspaceResult]
  *     type: struct
  * ```
  *
  */
-export type GET_WORKSPACE_RESPONSE = GET_WORKSPACE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST20_MOGENIUS_K8S_MANAGER_SRC_CORE_GETWORKSPACERESULT;
+export type GET_WORKSPACE_RESPONSE = GET_WORKSPACE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST19_MOGENIUS_K8S_MANAGER_SRC_CORE_GETWORKSPACERESULT;
 
 /**
  * #### Source
@@ -5832,7 +5415,7 @@ export type GET_WORKSPACES_RESPONSE = GET_WORKSPACES_RESPONSE__MOGENIUS_K8S_MANA
  *             blacklist:
  *                 elementType:
  *                     pointer: true
- *                     structRef: mogenius-k8s-manager/src/utils.ResourceEntry
+ *                     structRef: mogenius-k8s-manager/src/utils.ResourceDescriptor
  *                     type: struct
  *                 type: array
  *             namespaceWhitelist:
@@ -5842,24 +5425,21 @@ export type GET_WORKSPACES_RESPONSE = GET_WORKSPACES_RESPONSE__MOGENIUS_K8S_MANA
  *             whitelist:
  *                 elementType:
  *                     pointer: true
- *                     structRef: mogenius-k8s-manager/src/utils.ResourceEntry
+ *                     structRef: mogenius-k8s-manager/src/utils.ResourceDescriptor
  *                     type: struct
  *                 type: array
  *             workspaceName:
  *                 type: string
- *     mogenius-k8s-manager/src/utils.ResourceEntry:
- *         name: mogenius-k8s-manager/src/utils.ResourceEntry
+ *     mogenius-k8s-manager/src/utils.ResourceDescriptor:
+ *         name: mogenius-k8s-manager/src/utils.ResourceDescriptor
  *         properties:
- *             group:
+ *             apiVersion:
  *                 type: string
  *             kind:
  *                 type: string
- *             name:
- *                 type: string
- *             namespace:
- *                 pointer: true
- *                 type: string
- *             version:
+ *             namespaced:
+ *                 type: bool
+ *             plural:
  *                 type: string
  * typeInfo:
  *     structRef: mogenius-k8s-manager/src/core.Request
@@ -5884,8 +5464,8 @@ export type GET_WORKSPACE_WORKLOADS_REQUEST = GET_WORKSPACE_WORKLOADS_REQUEST__M
  *                 valueType:
  *                     pointer: true
  *                     type: any
- *     ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·34,[]k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
- *     :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·34,[]k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *     ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·33,[]k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *     :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·33,[]k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
  *         properties:
  *             data:
  *                 elementType:
@@ -5897,12 +5477,12 @@ export type GET_WORKSPACE_WORKLOADS_REQUEST = GET_WORKSPACE_WORKLOADS_REQUEST__M
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·34,[]k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·33,[]k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
  *     type: struct
  * ```
  *
  */
-export type GET_WORKSPACE_WORKLOADS_RESPONSE = GET_WORKSPACE_WORKLOADS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST34_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED;
+export type GET_WORKSPACE_WORKLOADS_RESPONSE = GET_WORKSPACE_WORKLOADS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST33_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED;
 
 /**
  * #### Source
@@ -6148,1096 +5728,43 @@ export type INSTALL_METRICS_SERVER_RESPONSE = INSTALL_METRICS_SERVER_RESPONSE__M
  * ```
  *
  */
-export type K8SNOTIFICATION_REQUEST = K8SNOTIFICATION_REQUEST__ANON_STRUCT_0|undefined;
+export type LIST_ALL_RESOURCE_DESCRIPTORS_REQUEST = LIST_ALL_RESOURCE_DESCRIPTORS_REQUEST__ANON_STRUCT_0|undefined;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     ANON_STRUCT_1:
- *         properties: {}
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,mogenius-k8s-manager/src/core.Void]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,mogenius-k8s-manager/src/core.Void]
- *         properties:
- *             data:
- *                 pointer: true
- *                 structRef: ANON_STRUCT_1
- *                 type: struct
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,mogenius-k8s-manager/src/core.Void]
- *     type: struct
- * ```
- *
- */
-export type K8SNOTIFICATION_RESPONSE = K8SNOTIFICATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_MOGENIUS_K8S_MANAGER_SRC_CORE_VOID;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     ANON_STRUCT_0:
- *         properties: {}
- * typeInfo:
- *     pointer: true
- *     structRef: ANON_STRUCT_0
- *     type: struct
- * ```
- *
- */
-export type LIST_ALL_NETWORK_POLICIES_REQUEST = LIST_ALL_NETWORK_POLICIES_REQUEST__ANON_STRUCT_0|undefined;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     k8s.io/api/networking/v1.IPBlock:
- *         name: k8s.io/api/networking/v1.IPBlock
- *         properties:
- *             cidr:
- *                 type: string
- *             except:
- *                 elementType:
- *                     type: string
- *                 type: array
- *     k8s.io/api/networking/v1.NetworkPolicyEgressRule:
- *         name: k8s.io/api/networking/v1.NetworkPolicyEgressRule
- *         properties:
- *             ports:
- *                 elementType:
- *                     structRef: k8s.io/api/networking/v1.NetworkPolicyPort
- *                     type: struct
- *                 type: array
- *             to:
- *                 elementType:
- *                     structRef: k8s.io/api/networking/v1.NetworkPolicyPeer
- *                     type: struct
- *                 type: array
- *     k8s.io/api/networking/v1.NetworkPolicyIngressRule:
- *         name: k8s.io/api/networking/v1.NetworkPolicyIngressRule
- *         properties:
- *             from:
- *                 elementType:
- *                     structRef: k8s.io/api/networking/v1.NetworkPolicyPeer
- *                     type: struct
- *                 type: array
- *             ports:
- *                 elementType:
- *                     structRef: k8s.io/api/networking/v1.NetworkPolicyPort
- *                     type: struct
- *                 type: array
- *     k8s.io/api/networking/v1.NetworkPolicyPeer:
- *         name: k8s.io/api/networking/v1.NetworkPolicyPeer
- *         properties:
- *             ipBlock:
- *                 pointer: true
- *                 structRef: k8s.io/api/networking/v1.IPBlock
- *                 type: struct
- *             namespaceSelector:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
- *                 type: struct
- *             podSelector:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
- *                 type: struct
- *     k8s.io/api/networking/v1.NetworkPolicyPort:
- *         name: k8s.io/api/networking/v1.NetworkPolicyPort
- *         properties:
- *             endPort:
- *                 pointer: true
- *                 type: int
- *             port:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/util/intstr.IntOrString
- *                 type: struct
- *             protocol:
- *                 pointer: true
- *                 type: string
- *     k8s.io/api/networking/v1.NetworkPolicySpec:
- *         name: k8s.io/api/networking/v1.NetworkPolicySpec
- *         properties:
- *             egress:
- *                 elementType:
- *                     structRef: k8s.io/api/networking/v1.NetworkPolicyEgressRule
- *                     type: struct
- *                 type: array
- *             ingress:
- *                 elementType:
- *                     structRef: k8s.io/api/networking/v1.NetworkPolicyIngressRule
- *                     type: struct
- *                 type: array
- *             podSelector:
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
- *                 type: struct
- *             policyTypes:
- *                 elementType:
- *                     type: string
- *                 type: array
- *     k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
- *         properties:
- *             matchExpressions:
- *                 elementType:
- *                     structRef: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelectorRequirement
- *                     type: struct
- *                 type: array
- *             matchLabels:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     type: string
- *     k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelectorRequirement:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelectorRequirement
- *         properties:
- *             key:
- *                 type: string
- *             operator:
- *                 type: string
- *             values:
- *                 elementType:
- *                     type: string
- *                 type: array
- *     k8s.io/apimachinery/pkg/util/intstr.IntOrString:
- *         name: k8s.io/apimachinery/pkg/util/intstr.IntOrString
- *         properties:
- *             IntVal:
- *                 type: int
- *             StrVal:
- *                 type: string
- *             Type:
- *                 type: int
- *     mogenius-k8s-manager/src/controllers.K8sNetworkPolicyDto:
- *         name: mogenius-k8s-manager/src/controllers.K8sNetworkPolicyDto
- *         properties:
- *             name:
- *                 pointer: true
- *                 type: string
- *             namespaceName:
- *                 type: string
- *             spec:
- *                 structRef: k8s.io/api/networking/v1.NetworkPolicySpec
- *                 type: struct
- *     mogenius-k8s-manager/src/controllers.ListNetworkPolicyController:
- *         name: mogenius-k8s-manager/src/controllers.ListNetworkPolicyController
- *         properties:
- *             controllerName:
- *                 type: string
- *             controllerType:
- *                 type: string
- *             networkPolicies:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/dtos.K8sLabeledNetworkPolicyDto
- *                     type: struct
- *                 type: array
- *             serviceId:
- *                 type: string
- *     mogenius-k8s-manager/src/controllers.ListNetworkPolicyNamespace:
- *         name: mogenius-k8s-manager/src/controllers.ListNetworkPolicyNamespace
- *         properties:
- *             controllers:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/controllers.ListNetworkPolicyController
- *                     type: struct
- *                 type: array
- *             displayName:
- *                 type: string
- *             id:
- *                 type: string
- *             managedPolicies:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/controllers.K8sNetworkPolicyDto
- *                     type: struct
- *                 type: array
- *             name:
- *                 type: string
- *             projectId:
- *                 type: string
- *             unmanagedPolicies:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/controllers.K8sNetworkPolicyDto
- *                     type: struct
- *                 type: array
- *     ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,[]mogenius-k8s-manager/src/controllers.ListNetworkPolicyNamespace]
- *     :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,[]mogenius-k8s-manager/src/controllers.ListNetworkPolicyNamespace]
+ *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,[]mogenius-k8s-manager/src/utils.ResourceDescriptor]:
+ *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,[]mogenius-k8s-manager/src/utils.ResourceDescriptor]
  *         properties:
  *             data:
  *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/controllers.ListNetworkPolicyNamespace
+ *                     structRef: mogenius-k8s-manager/src/utils.ResourceDescriptor
  *                     type: struct
  *                 type: array
  *             message:
  *                 type: string
  *             status:
  *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sLabeledNetworkPolicyDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sLabeledNetworkPolicyDto
+ *     mogenius-k8s-manager/src/utils.ResourceDescriptor:
+ *         name: mogenius-k8s-manager/src/utils.ResourceDescriptor
  *         properties:
- *             name:
- *                 type: string
- *             port:
- *                 type: uint
- *             portType:
- *                 type: string
- *             type:
- *                 type: string
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,[]mogenius-k8s-manager/src/controllers.ListNetworkPolicyNamespace]
- *     type: struct
- * ```
- *
- */
-export type LIST_ALL_NETWORK_POLICIES_RESPONSE = LIST_ALL_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTNETWORKPOLICYNAMESPACE;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     ANON_STRUCT_0:
- *         properties: {}
- * typeInfo:
- *     pointer: true
- *     structRef: ANON_STRUCT_0
- *     type: struct
- * ```
- *
- */
-export type LIST_ALL_WORKLOADS_REQUEST = LIST_ALL_WORKLOADS_REQUEST__ANON_STRUCT_0|undefined;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,[]mogenius-k8s-manager/src/utils.ResourceEntry]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,[]mogenius-k8s-manager/src/utils.ResourceEntry]
- *         properties:
- *             data:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/utils.ResourceEntry
- *                     type: struct
- *                 type: array
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- *     mogenius-k8s-manager/src/utils.ResourceEntry:
- *         name: mogenius-k8s-manager/src/utils.ResourceEntry
- *         properties:
- *             group:
+ *             apiVersion:
  *                 type: string
  *             kind:
  *                 type: string
- *             name:
- *                 type: string
- *             namespace:
- *                 pointer: true
- *                 type: string
- *             version:
+ *             namespaced:
+ *                 type: bool
+ *             plural:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,[]mogenius-k8s-manager/src/utils.ResourceEntry]
+ *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,[]mogenius-k8s-manager/src/utils.ResourceDescriptor]
  *     type: struct
  * ```
  *
  */
-export type LIST_ALL_WORKLOADS_RESPONSE = LIST_ALL_WORKLOADS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEENTRY;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     mogenius-k8s-manager/src/controllers.ListConflictingNetworkPoliciesRequest:
- *         name: mogenius-k8s-manager/src/controllers.ListConflictingNetworkPoliciesRequest
- *         properties:
- *             namespaceName:
- *                 type: string
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/controllers.ListConflictingNetworkPoliciesRequest
- *     type: struct
- * ```
- *
- */
-export type LIST_CONFLICTING_NETWORK_POLICIES_REQUEST = LIST_CONFLICTING_NETWORK_POLICIES_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTCONFLICTINGNETWORKPOLICIESREQUEST;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     k8s.io/api/networking/v1.IPBlock:
- *         name: k8s.io/api/networking/v1.IPBlock
- *         properties:
- *             cidr:
- *                 type: string
- *             except:
- *                 elementType:
- *                     type: string
- *                 type: array
- *     k8s.io/api/networking/v1.NetworkPolicyEgressRule:
- *         name: k8s.io/api/networking/v1.NetworkPolicyEgressRule
- *         properties:
- *             ports:
- *                 elementType:
- *                     structRef: k8s.io/api/networking/v1.NetworkPolicyPort
- *                     type: struct
- *                 type: array
- *             to:
- *                 elementType:
- *                     structRef: k8s.io/api/networking/v1.NetworkPolicyPeer
- *                     type: struct
- *                 type: array
- *     k8s.io/api/networking/v1.NetworkPolicyIngressRule:
- *         name: k8s.io/api/networking/v1.NetworkPolicyIngressRule
- *         properties:
- *             from:
- *                 elementType:
- *                     structRef: k8s.io/api/networking/v1.NetworkPolicyPeer
- *                     type: struct
- *                 type: array
- *             ports:
- *                 elementType:
- *                     structRef: k8s.io/api/networking/v1.NetworkPolicyPort
- *                     type: struct
- *                 type: array
- *     k8s.io/api/networking/v1.NetworkPolicyPeer:
- *         name: k8s.io/api/networking/v1.NetworkPolicyPeer
- *         properties:
- *             ipBlock:
- *                 pointer: true
- *                 structRef: k8s.io/api/networking/v1.IPBlock
- *                 type: struct
- *             namespaceSelector:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
- *                 type: struct
- *             podSelector:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
- *                 type: struct
- *     k8s.io/api/networking/v1.NetworkPolicyPort:
- *         name: k8s.io/api/networking/v1.NetworkPolicyPort
- *         properties:
- *             endPort:
- *                 pointer: true
- *                 type: int
- *             port:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/util/intstr.IntOrString
- *                 type: struct
- *             protocol:
- *                 pointer: true
- *                 type: string
- *     k8s.io/api/networking/v1.NetworkPolicySpec:
- *         name: k8s.io/api/networking/v1.NetworkPolicySpec
- *         properties:
- *             egress:
- *                 elementType:
- *                     structRef: k8s.io/api/networking/v1.NetworkPolicyEgressRule
- *                     type: struct
- *                 type: array
- *             ingress:
- *                 elementType:
- *                     structRef: k8s.io/api/networking/v1.NetworkPolicyIngressRule
- *                     type: struct
- *                 type: array
- *             podSelector:
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
- *                 type: struct
- *             policyTypes:
- *                 elementType:
- *                     type: string
- *                 type: array
- *     k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
- *         properties:
- *             matchExpressions:
- *                 elementType:
- *                     structRef: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelectorRequirement
- *                     type: struct
- *                 type: array
- *             matchLabels:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     type: string
- *     k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelectorRequirement:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelectorRequirement
- *         properties:
- *             key:
- *                 type: string
- *             operator:
- *                 type: string
- *             values:
- *                 elementType:
- *                     type: string
- *                 type: array
- *     k8s.io/apimachinery/pkg/util/intstr.IntOrString:
- *         name: k8s.io/apimachinery/pkg/util/intstr.IntOrString
- *         properties:
- *             IntVal:
- *                 type: int
- *             StrVal:
- *                 type: string
- *             Type:
- *                 type: int
- *     mogenius-k8s-manager/src/controllers.K8sNetworkPolicyDto:
- *         name: mogenius-k8s-manager/src/controllers.K8sNetworkPolicyDto
- *         properties:
- *             name:
- *                 pointer: true
- *                 type: string
- *             namespaceName:
- *                 type: string
- *             spec:
- *                 structRef: k8s.io/api/networking/v1.NetworkPolicySpec
- *                 type: struct
- *     ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/controllers.ListConflictingNetworkPoliciesRequest,[]mogenius-k8s-manager/src/controllers.K8sNetworkPolicyDto]
- *     :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/controllers.ListConflictingNetworkPoliciesRequest,[]mogenius-k8s-manager/src/controllers.K8sNetworkPolicyDto]
- *         properties:
- *             data:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/controllers.K8sNetworkPolicyDto
- *                     type: struct
- *                 type: array
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/controllers.ListConflictingNetworkPoliciesRequest,[]mogenius-k8s-manager/src/controllers.K8sNetworkPolicyDto]
- *     type: struct
- * ```
- *
- */
-export type LIST_CONFLICTING_NETWORK_POLICIES_RESPONSE = LIST_CONFLICTING_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTCONFLICTINGNETWORKPOLICIESREQUEST_MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_K8SNETWORKPOLICYDTO;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     mogenius-k8s-manager/src/controllers.ListControllerLabeledNetworkPoliciesRequest:
- *         name: mogenius-k8s-manager/src/controllers.ListControllerLabeledNetworkPoliciesRequest
- *         properties:
- *             controllerName:
- *                 type: string
- *             controllerType:
- *                 type: string
- *             namespaceName:
- *                 type: string
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/controllers.ListControllerLabeledNetworkPoliciesRequest
- *     type: struct
- * ```
- *
- */
-export type LIST_CONTROLLER_NETWORK_POLICIES_REQUEST = LIST_CONTROLLER_NETWORK_POLICIES_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTCONTROLLERLABELEDNETWORKPOLICIESREQUEST;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     mogenius-k8s-manager/src/controllers.ListControllerLabeledNetworkPoliciesResponse:
- *         name: mogenius-k8s-manager/src/controllers.ListControllerLabeledNetworkPoliciesResponse
- *         properties:
- *             controllerName:
- *                 type: string
- *             controllerType:
- *                 type: string
- *             labeledNetworkPolicies:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/dtos.K8sLabeledNetworkPolicyDto
- *                     type: struct
- *                 type: array
- *             namespaceName:
- *                 type: string
- *     ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/controllers.ListControllerLabeledNetworkPoliciesRequest,mogenius-k8s-manager/src/controllers.ListControllerLabeledNetworkPoliciesResponse]
- *     :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/controllers.ListControllerLabeledNetworkPoliciesRequest,mogenius-k8s-manager/src/controllers.ListControllerLabeledNetworkPoliciesResponse]
- *         properties:
- *             data:
- *                 structRef: mogenius-k8s-manager/src/controllers.ListControllerLabeledNetworkPoliciesResponse
- *                 type: struct
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sLabeledNetworkPolicyDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sLabeledNetworkPolicyDto
- *         properties:
- *             name:
- *                 type: string
- *             port:
- *                 type: uint
- *             portType:
- *                 type: string
- *             type:
- *                 type: string
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/controllers.ListControllerLabeledNetworkPoliciesRequest,mogenius-k8s-manager/src/controllers.ListControllerLabeledNetworkPoliciesResponse]
- *     type: struct
- * ```
- *
- */
-export type LIST_CONTROLLER_NETWORK_POLICIES_RESPONSE = LIST_CONTROLLER_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTCONTROLLERLABELEDNETWORKPOLICIESREQUEST_MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTCONTROLLERLABELEDNETWORKPOLICIESRESPONSE;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     mogenius-k8s-manager/src/core.Request:
- *         name: mogenius-k8s-manager/src/core.Request
- *         properties:
- *             controllerName:
- *                 type: string
- *             namespaceName:
- *                 type: string
- *             projectId:
- *                 type: string
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Request
- *     type: struct
- * ```
- *
- */
-export type LIST_CRONJOB_JOBS_REQUEST = LIST_CRONJOB_JOBS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     mogenius-k8s-manager/src/kubernetes.JobInfo:
- *         name: mogenius-k8s-manager/src/kubernetes.JobInfo
- *         properties:
- *             durationInMs:
- *                 type: int
- *             jobId:
- *                 type: string
- *             jobName:
- *                 type: string
- *             message:
- *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/kubernetes.StatusMessage
- *                 type: struct
- *             podName:
- *                 type: string
- *             schedule:
- *                 structRef: time.Time
- *                 type: struct
- *             status:
- *                 type: string
- *             tileType:
- *                 type: string
- *     mogenius-k8s-manager/src/kubernetes.ListJobInfoResponse:
- *         name: mogenius-k8s-manager/src/kubernetes.ListJobInfoResponse
- *         properties:
- *             controllerName:
- *                 type: string
- *             jobsInfo:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/kubernetes.JobInfo
- *                     type: struct
- *                 type: array
- *             namespaceName:
- *                 type: string
- *             projectId:
- *                 type: string
- *     mogenius-k8s-manager/src/kubernetes.StatusMessage:
- *         name: mogenius-k8s-manager/src/kubernetes.StatusMessage
- *         properties:
- *             message:
- *                 type: string
- *             reason:
- *                 type: string
- *     time.Time:
- *         name: time.Time
- *         properties: {}
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/kubernetes.ListJobInfoResponse
- *     type: struct
- * ```
- *
- */
-export type LIST_CRONJOB_JOBS_RESPONSE = LIST_CRONJOB_JOBS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_LISTJOBINFORESPONSE;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     ANON_STRUCT_0:
- *         properties: {}
- * typeInfo:
- *     pointer: true
- *     structRef: ANON_STRUCT_0
- *     type: struct
- * ```
- *
- */
-export type LIST_LABELED_NETWORK_POLICY_PORTS_REQUEST = LIST_LABELED_NETWORK_POLICY_PORTS_REQUEST__ANON_STRUCT_0|undefined;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,[]mogenius-k8s-manager/src/dtos.K8sLabeledNetworkPolicyDto]
- *     :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,[]mogenius-k8s-manager/src/dtos.K8sLabeledNetworkPolicyDto]
- *         properties:
- *             data:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/dtos.K8sLabeledNetworkPolicyDto
- *                     type: struct
- *                 type: array
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sLabeledNetworkPolicyDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sLabeledNetworkPolicyDto
- *         properties:
- *             name:
- *                 type: string
- *             port:
- *                 type: uint
- *             portType:
- *                 type: string
- *             type:
- *                 type: string
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,[]mogenius-k8s-manager/src/dtos.K8sLabeledNetworkPolicyDto]
- *     type: struct
- * ```
- *
- */
-export type LIST_LABELED_NETWORK_POLICY_PORTS_RESPONSE = LIST_LABELED_NETWORK_POLICY_PORTS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SLABELEDNETWORKPOLICYDTO;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     mogenius-k8s-manager/src/controllers.ListNamespaceLabeledNetworkPoliciesRequest:
- *         name: mogenius-k8s-manager/src/controllers.ListNamespaceLabeledNetworkPoliciesRequest
- *         properties:
- *             namespaceName:
- *                 type: string
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/controllers.ListNamespaceLabeledNetworkPoliciesRequest
- *     type: struct
- * ```
- *
- */
-export type LIST_NAMESPACE_NETWORK_POLICIES_REQUEST = LIST_NAMESPACE_NETWORK_POLICIES_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTNAMESPACELABELEDNETWORKPOLICIESREQUEST;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     k8s.io/api/networking/v1.IPBlock:
- *         name: k8s.io/api/networking/v1.IPBlock
- *         properties:
- *             cidr:
- *                 type: string
- *             except:
- *                 elementType:
- *                     type: string
- *                 type: array
- *     k8s.io/api/networking/v1.NetworkPolicyEgressRule:
- *         name: k8s.io/api/networking/v1.NetworkPolicyEgressRule
- *         properties:
- *             ports:
- *                 elementType:
- *                     structRef: k8s.io/api/networking/v1.NetworkPolicyPort
- *                     type: struct
- *                 type: array
- *             to:
- *                 elementType:
- *                     structRef: k8s.io/api/networking/v1.NetworkPolicyPeer
- *                     type: struct
- *                 type: array
- *     k8s.io/api/networking/v1.NetworkPolicyIngressRule:
- *         name: k8s.io/api/networking/v1.NetworkPolicyIngressRule
- *         properties:
- *             from:
- *                 elementType:
- *                     structRef: k8s.io/api/networking/v1.NetworkPolicyPeer
- *                     type: struct
- *                 type: array
- *             ports:
- *                 elementType:
- *                     structRef: k8s.io/api/networking/v1.NetworkPolicyPort
- *                     type: struct
- *                 type: array
- *     k8s.io/api/networking/v1.NetworkPolicyPeer:
- *         name: k8s.io/api/networking/v1.NetworkPolicyPeer
- *         properties:
- *             ipBlock:
- *                 pointer: true
- *                 structRef: k8s.io/api/networking/v1.IPBlock
- *                 type: struct
- *             namespaceSelector:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
- *                 type: struct
- *             podSelector:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
- *                 type: struct
- *     k8s.io/api/networking/v1.NetworkPolicyPort:
- *         name: k8s.io/api/networking/v1.NetworkPolicyPort
- *         properties:
- *             endPort:
- *                 pointer: true
- *                 type: int
- *             port:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/util/intstr.IntOrString
- *                 type: struct
- *             protocol:
- *                 pointer: true
- *                 type: string
- *     k8s.io/api/networking/v1.NetworkPolicySpec:
- *         name: k8s.io/api/networking/v1.NetworkPolicySpec
- *         properties:
- *             egress:
- *                 elementType:
- *                     structRef: k8s.io/api/networking/v1.NetworkPolicyEgressRule
- *                     type: struct
- *                 type: array
- *             ingress:
- *                 elementType:
- *                     structRef: k8s.io/api/networking/v1.NetworkPolicyIngressRule
- *                     type: struct
- *                 type: array
- *             podSelector:
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
- *                 type: struct
- *             policyTypes:
- *                 elementType:
- *                     type: string
- *                 type: array
- *     k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
- *         properties:
- *             matchExpressions:
- *                 elementType:
- *                     structRef: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelectorRequirement
- *                     type: struct
- *                 type: array
- *             matchLabels:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     type: string
- *     k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelectorRequirement:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelectorRequirement
- *         properties:
- *             key:
- *                 type: string
- *             operator:
- *                 type: string
- *             values:
- *                 elementType:
- *                     type: string
- *                 type: array
- *     k8s.io/apimachinery/pkg/util/intstr.IntOrString:
- *         name: k8s.io/apimachinery/pkg/util/intstr.IntOrString
- *         properties:
- *             IntVal:
- *                 type: int
- *             StrVal:
- *                 type: string
- *             Type:
- *                 type: int
- *     mogenius-k8s-manager/src/controllers.K8sNetworkPolicyDto:
- *         name: mogenius-k8s-manager/src/controllers.K8sNetworkPolicyDto
- *         properties:
- *             name:
- *                 pointer: true
- *                 type: string
- *             namespaceName:
- *                 type: string
- *             spec:
- *                 structRef: k8s.io/api/networking/v1.NetworkPolicySpec
- *                 type: struct
- *     mogenius-k8s-manager/src/controllers.ListNetworkPolicyController:
- *         name: mogenius-k8s-manager/src/controllers.ListNetworkPolicyController
- *         properties:
- *             controllerName:
- *                 type: string
- *             controllerType:
- *                 type: string
- *             networkPolicies:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/dtos.K8sLabeledNetworkPolicyDto
- *                     type: struct
- *                 type: array
- *             serviceId:
- *                 type: string
- *     mogenius-k8s-manager/src/controllers.ListNetworkPolicyNamespace:
- *         name: mogenius-k8s-manager/src/controllers.ListNetworkPolicyNamespace
- *         properties:
- *             controllers:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/controllers.ListNetworkPolicyController
- *                     type: struct
- *                 type: array
- *             displayName:
- *                 type: string
- *             id:
- *                 type: string
- *             managedPolicies:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/controllers.K8sNetworkPolicyDto
- *                     type: struct
- *                 type: array
- *             name:
- *                 type: string
- *             projectId:
- *                 type: string
- *             unmanagedPolicies:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/controllers.K8sNetworkPolicyDto
- *                     type: struct
- *                 type: array
- *     ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/controllers.ListNamespaceLabeledNetworkPoliciesRequest,[]mogenius-k8s-manager/src/controllers.ListNetworkPolicyNamespace]
- *     :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/controllers.ListNamespaceLabeledNetworkPoliciesRequest,[]mogenius-k8s-manager/src/controllers.ListNetworkPolicyNamespace]
- *         properties:
- *             data:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/controllers.ListNetworkPolicyNamespace
- *                     type: struct
- *                 type: array
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sLabeledNetworkPolicyDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sLabeledNetworkPolicyDto
- *         properties:
- *             name:
- *                 type: string
- *             port:
- *                 type: uint
- *             portType:
- *                 type: string
- *             type:
- *                 type: string
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/controllers.ListNamespaceLabeledNetworkPoliciesRequest,[]mogenius-k8s-manager/src/controllers.ListNetworkPolicyNamespace]
- *     type: struct
- * ```
- *
- */
-export type LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE = LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTNAMESPACELABELEDNETWORKPOLICIESREQUEST_MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTNETWORKPOLICYNAMESPACE;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     mogenius-k8s-manager/src/controllers.ListNamespaceLabeledNetworkPoliciesRequest:
- *         name: mogenius-k8s-manager/src/controllers.ListNamespaceLabeledNetworkPoliciesRequest
- *         properties:
- *             namespaceName:
- *                 type: string
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/controllers.ListNamespaceLabeledNetworkPoliciesRequest
- *     type: struct
- * ```
- *
- */
-export type LIST_ONLY_NAMESPACE_NETWORK_POLICIES_REQUEST = LIST_ONLY_NAMESPACE_NETWORK_POLICIES_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTNAMESPACELABELEDNETWORKPOLICIESREQUEST;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     k8s.io/api/networking/v1.IPBlock:
- *         name: k8s.io/api/networking/v1.IPBlock
- *         properties:
- *             cidr:
- *                 type: string
- *             except:
- *                 elementType:
- *                     type: string
- *                 type: array
- *     k8s.io/api/networking/v1.NetworkPolicyEgressRule:
- *         name: k8s.io/api/networking/v1.NetworkPolicyEgressRule
- *         properties:
- *             ports:
- *                 elementType:
- *                     structRef: k8s.io/api/networking/v1.NetworkPolicyPort
- *                     type: struct
- *                 type: array
- *             to:
- *                 elementType:
- *                     structRef: k8s.io/api/networking/v1.NetworkPolicyPeer
- *                     type: struct
- *                 type: array
- *     k8s.io/api/networking/v1.NetworkPolicyIngressRule:
- *         name: k8s.io/api/networking/v1.NetworkPolicyIngressRule
- *         properties:
- *             from:
- *                 elementType:
- *                     structRef: k8s.io/api/networking/v1.NetworkPolicyPeer
- *                     type: struct
- *                 type: array
- *             ports:
- *                 elementType:
- *                     structRef: k8s.io/api/networking/v1.NetworkPolicyPort
- *                     type: struct
- *                 type: array
- *     k8s.io/api/networking/v1.NetworkPolicyPeer:
- *         name: k8s.io/api/networking/v1.NetworkPolicyPeer
- *         properties:
- *             ipBlock:
- *                 pointer: true
- *                 structRef: k8s.io/api/networking/v1.IPBlock
- *                 type: struct
- *             namespaceSelector:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
- *                 type: struct
- *             podSelector:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
- *                 type: struct
- *     k8s.io/api/networking/v1.NetworkPolicyPort:
- *         name: k8s.io/api/networking/v1.NetworkPolicyPort
- *         properties:
- *             endPort:
- *                 pointer: true
- *                 type: int
- *             port:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/util/intstr.IntOrString
- *                 type: struct
- *             protocol:
- *                 pointer: true
- *                 type: string
- *     k8s.io/api/networking/v1.NetworkPolicySpec:
- *         name: k8s.io/api/networking/v1.NetworkPolicySpec
- *         properties:
- *             egress:
- *                 elementType:
- *                     structRef: k8s.io/api/networking/v1.NetworkPolicyEgressRule
- *                     type: struct
- *                 type: array
- *             ingress:
- *                 elementType:
- *                     structRef: k8s.io/api/networking/v1.NetworkPolicyIngressRule
- *                     type: struct
- *                 type: array
- *             podSelector:
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
- *                 type: struct
- *             policyTypes:
- *                 elementType:
- *                     type: string
- *                 type: array
- *     k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
- *         properties:
- *             matchExpressions:
- *                 elementType:
- *                     structRef: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelectorRequirement
- *                     type: struct
- *                 type: array
- *             matchLabels:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     type: string
- *     k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelectorRequirement:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelectorRequirement
- *         properties:
- *             key:
- *                 type: string
- *             operator:
- *                 type: string
- *             values:
- *                 elementType:
- *                     type: string
- *                 type: array
- *     k8s.io/apimachinery/pkg/util/intstr.IntOrString:
- *         name: k8s.io/apimachinery/pkg/util/intstr.IntOrString
- *         properties:
- *             IntVal:
- *                 type: int
- *             StrVal:
- *                 type: string
- *             Type:
- *                 type: int
- *     mogenius-k8s-manager/src/controllers.K8sNetworkPolicyDto:
- *         name: mogenius-k8s-manager/src/controllers.K8sNetworkPolicyDto
- *         properties:
- *             name:
- *                 pointer: true
- *                 type: string
- *             namespaceName:
- *                 type: string
- *             spec:
- *                 structRef: k8s.io/api/networking/v1.NetworkPolicySpec
- *                 type: struct
- *     mogenius-k8s-manager/src/controllers.ListManagedAndUnmanagedNetworkPolicyNamespace:
- *         name: mogenius-k8s-manager/src/controllers.ListManagedAndUnmanagedNetworkPolicyNamespace
- *         properties:
- *             displayName:
- *                 type: string
- *             id:
- *                 type: string
- *             managedPolicies:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/controllers.K8sNetworkPolicyDto
- *                     type: struct
- *                 type: array
- *             name:
- *                 type: string
- *             projectId:
- *                 type: string
- *             unmanagedPolicies:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/controllers.K8sNetworkPolicyDto
- *                     type: struct
- *                 type: array
- *     ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/controllers.ListNamespaceLabeledNetworkPoliciesRequest,[]mogenius-k8s-manager/src/controllers.ListManagedAndUnmanagedNetworkPolicyNamespace]
- *     :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/controllers.ListNamespaceLabeledNetworkPoliciesRequest,[]mogenius-k8s-manager/src/controllers.ListManagedAndUnmanagedNetworkPolicyNamespace]
- *         properties:
- *             data:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/controllers.ListManagedAndUnmanagedNetworkPolicyNamespace
- *                     type: struct
- *                 type: array
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/controllers.ListNamespaceLabeledNetworkPoliciesRequest,[]mogenius-k8s-manager/src/controllers.ListManagedAndUnmanagedNetworkPolicyNamespace]
- *     type: struct
- * ```
- *
- */
-export type LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE = LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTNAMESPACELABELEDNETWORKPOLICIESREQUEST_MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTMANAGEDANDUNMANAGEDNETWORKPOLICYNAMESPACE;
+export type LIST_ALL_RESOURCE_DESCRIPTORS_RESPONSE = LIST_ALL_RESOURCE_DESCRIPTORS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR;
 
 /**
  * #### Source
@@ -7706,405 +6233,6 @@ export type LIVE_STREAM_WORKSPACE_TRAFFIC_RESPONSE = any;
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/dtos.K8sController:
- *         name: mogenius-k8s-manager/src/dtos.K8sController
- *         properties:
- *             kind:
- *                 type: string
- *             name:
- *                 type: string
- *             namespace:
- *                 type: string
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/dtos.K8sController
- *     type: struct
- * ```
- *
- */
-export type METRICS_DEPLOYMENT_AVERAGE_UTILIZATION_REQUEST = METRICS_DEPLOYMENT_AVERAGE_UTILIZATION_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCONTROLLER;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     k8s.io/apimachinery/pkg/apis/meta/v1.Time:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *         properties:
- *             Time:
- *                 structRef: time.Time
- *                 type: struct
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/dtos.K8sController,*mogenius-k8s-manager/src/kubernetes.Metrics]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/dtos.K8sController,*mogenius-k8s-manager/src/kubernetes.Metrics]
- *         properties:
- *             data:
- *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/kubernetes.Metrics
- *                 type: struct
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- *     mogenius-k8s-manager/src/kubernetes.ContainerMetrics:
- *         name: mogenius-k8s-manager/src/kubernetes.ContainerMetrics
- *         properties:
- *             cpuRequest:
- *                 type: int
- *             cpuUsage:
- *                 type: int
- *             memRequest:
- *                 type: int
- *             memUsage:
- *                 type: int
- *             name:
- *                 type: string
- *     mogenius-k8s-manager/src/kubernetes.Metrics:
- *         name: mogenius-k8s-manager/src/kubernetes.Metrics
- *         properties:
- *             cpuAverageUtilization:
- *                 type: int
- *             createdAt:
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *                 type: struct
- *             kind:
- *                 type: string
- *             memoryAverageUtilization:
- *                 type: int
- *             name:
- *                 type: string
- *             namespace:
- *                 type: string
- *             podsMetrics:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/kubernetes.PodMetrics
- *                     type: struct
- *                 type: array
- *             windowInMs:
- *                 type: int
- *     mogenius-k8s-manager/src/kubernetes.PodMetrics:
- *         name: mogenius-k8s-manager/src/kubernetes.PodMetrics
- *         properties:
- *             containers:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/kubernetes.ContainerMetrics
- *                     type: struct
- *                 type: array
- *             name:
- *                 type: string
- *     time.Time:
- *         name: time.Time
- *         properties: {}
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/dtos.K8sController,*mogenius-k8s-manager/src/kubernetes.Metrics]
- *     type: struct
- * ```
- *
- */
-export type METRICS_DEPLOYMENT_AVERAGE_UTILIZATION_RESPONSE = METRICS_DEPLOYMENT_AVERAGE_UTILIZATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCONTROLLER_MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_METRICS;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     mogenius-k8s-manager/src/services.NamespaceBackupRequest:
- *         name: mogenius-k8s-manager/src/services.NamespaceBackupRequest
- *         properties:
- *             namespaceName:
- *                 type: string
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/services.NamespaceBackupRequest
- *     type: struct
- * ```
- *
- */
-export type NAMESPACE_BACKUP_REQUEST = NAMESPACE_BACKUP_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_NAMESPACEBACKUPREQUEST;
-
-/**
- * #### Source
- *
- * ```yaml
- * typeInfo:
- *     pointer: true
- *     type: any
- * ```
- *
- */
-export type NAMESPACE_BACKUP_RESPONSE = any;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     mogenius-k8s-manager/src/dtos.K8sNamespaceDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sNamespaceDto
- *         properties:
- *             Name:
- *                 type: string
- *             displayName:
- *                 type: string
- *             id:
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sProjectDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sProjectDto
- *         properties:
- *             clusterDisplayName:
- *                 type: string
- *             clusterId:
- *                 type: string
- *             clusterMfaId:
- *                 type: string
- *             containerRegistryPat:
- *                 pointer: true
- *                 type: string
- *             containerRegistryPath:
- *                 pointer: true
- *                 type: string
- *             containerRegistryUrl:
- *                 pointer: true
- *                 type: string
- *             containerRegistryUser:
- *                 pointer: true
- *                 type: string
- *             displayName:
- *                 type: string
- *             gitAccessToken:
- *                 pointer: true
- *                 type: string
- *             gitConnectionType:
- *                 pointer: true
- *                 type: string
- *             gitUserId:
- *                 pointer: true
- *                 type: string
- *             id:
- *                 type: string
- *             name:
- *                 type: string
- *     mogenius-k8s-manager/src/services.NamespaceCreateRequest:
- *         name: mogenius-k8s-manager/src/services.NamespaceCreateRequest
- *         properties:
- *             namespace:
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sNamespaceDto
- *                 type: struct
- *             project:
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sProjectDto
- *                 type: struct
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/services.NamespaceCreateRequest
- *     type: struct
- * ```
- *
- */
-export type NAMESPACE_CREATE_REQUEST = NAMESPACE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_NAMESPACECREATEREQUEST;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     mogenius-k8s-manager/src/structs.Command:
- *         name: mogenius-k8s-manager/src/structs.Command
- *         properties:
- *             command:
- *                 type: string
- *             finished:
- *                 structRef: time.Time
- *                 type: struct
- *             id:
- *                 type: string
- *             message:
- *                 type: string
- *             started:
- *                 structRef: time.Time
- *                 type: struct
- *             state:
- *                 type: string
- *             title:
- *                 type: string
- *     mogenius-k8s-manager/src/structs.Job:
- *         name: mogenius-k8s-manager/src/structs.Job
- *         properties:
- *             commands:
- *                 elementType:
- *                     pointer: true
- *                     structRef: mogenius-k8s-manager/src/structs.Command
- *                     type: struct
- *                 type: array
- *             containerName:
- *                 type: string
- *             controllerName:
- *                 type: string
- *             finished:
- *                 structRef: time.Time
- *                 type: struct
- *             id:
- *                 type: string
- *             message:
- *                 type: string
- *             namespaceName:
- *                 type: string
- *             projectId:
- *                 type: string
- *             started:
- *                 structRef: time.Time
- *                 type: struct
- *             state:
- *                 type: string
- *             title:
- *                 type: string
- *     time.Time:
- *         name: time.Time
- *         properties: {}
- * typeInfo:
- *     pointer: true
- *     structRef: mogenius-k8s-manager/src/structs.Job
- *     type: struct
- * ```
- *
- */
-export type NAMESPACE_CREATE_RESPONSE = NAMESPACE_CREATE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_JOB|undefined;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     mogenius-k8s-manager/src/dtos.K8sNamespaceDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sNamespaceDto
- *         properties:
- *             Name:
- *                 type: string
- *             displayName:
- *                 type: string
- *             id:
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sProjectDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sProjectDto
- *         properties:
- *             clusterDisplayName:
- *                 type: string
- *             clusterId:
- *                 type: string
- *             clusterMfaId:
- *                 type: string
- *             containerRegistryPat:
- *                 pointer: true
- *                 type: string
- *             containerRegistryPath:
- *                 pointer: true
- *                 type: string
- *             containerRegistryUrl:
- *                 pointer: true
- *                 type: string
- *             containerRegistryUser:
- *                 pointer: true
- *                 type: string
- *             displayName:
- *                 type: string
- *             gitAccessToken:
- *                 pointer: true
- *                 type: string
- *             gitConnectionType:
- *                 pointer: true
- *                 type: string
- *             gitUserId:
- *                 pointer: true
- *                 type: string
- *             id:
- *                 type: string
- *             name:
- *                 type: string
- *     mogenius-k8s-manager/src/services.NamespaceDeleteRequest:
- *         name: mogenius-k8s-manager/src/services.NamespaceDeleteRequest
- *         properties:
- *             namespace:
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sNamespaceDto
- *                 type: struct
- *             project:
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sProjectDto
- *                 type: struct
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/services.NamespaceDeleteRequest
- *     type: struct
- * ```
- *
- */
-export type NAMESPACE_DELETE_REQUEST = NAMESPACE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_NAMESPACEDELETEREQUEST;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     mogenius-k8s-manager/src/structs.Command:
- *         name: mogenius-k8s-manager/src/structs.Command
- *         properties:
- *             command:
- *                 type: string
- *             finished:
- *                 structRef: time.Time
- *                 type: struct
- *             id:
- *                 type: string
- *             message:
- *                 type: string
- *             started:
- *                 structRef: time.Time
- *                 type: struct
- *             state:
- *                 type: string
- *             title:
- *                 type: string
- *     mogenius-k8s-manager/src/structs.Job:
- *         name: mogenius-k8s-manager/src/structs.Job
- *         properties:
- *             commands:
- *                 elementType:
- *                     pointer: true
- *                     structRef: mogenius-k8s-manager/src/structs.Command
- *                     type: struct
- *                 type: array
- *             containerName:
- *                 type: string
- *             controllerName:
- *                 type: string
- *             finished:
- *                 structRef: time.Time
- *                 type: struct
- *             id:
- *                 type: string
- *             message:
- *                 type: string
- *             namespaceName:
- *                 type: string
- *             projectId:
- *                 type: string
- *             started:
- *                 structRef: time.Time
- *                 type: struct
- *             state:
- *                 type: string
- *             title:
- *                 type: string
- *     time.Time:
- *         name: time.Time
- *         properties: {}
- * typeInfo:
- *     pointer: true
- *     structRef: mogenius-k8s-manager/src/structs.Job
- *     type: struct
- * ```
- *
- */
-export type NAMESPACE_DELETE_RESPONSE = NAMESPACE_DELETE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_JOB|undefined;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
  *     mogenius-k8s-manager/src/core.PrometheusRequestRedis:
  *         name: mogenius-k8s-manager/src/core.PrometheusRequestRedis
  *         properties:
@@ -8507,94 +6635,6 @@ export type PROMETHEUS_VALUES_RESPONSE = PROMETHEUS_VALUES_RESPONSE__MOGENIUS_K8
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/controllers.RemoveConflictingNetworkPoliciesRequest:
- *         name: mogenius-k8s-manager/src/controllers.RemoveConflictingNetworkPoliciesRequest
- *         properties:
- *             namespaceName:
- *                 type: string
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/controllers.RemoveConflictingNetworkPoliciesRequest
- *     type: struct
- * ```
- *
- */
-export type REMOVE_CONFLICTING_NETWORK_POLICIES_REQUEST = REMOVE_CONFLICTING_NETWORK_POLICIES_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_REMOVECONFLICTINGNETWORKPOLICIESREQUEST;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/controllers.RemoveConflictingNetworkPoliciesRequest,string]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/controllers.RemoveConflictingNetworkPoliciesRequest,string]
- *         properties:
- *             data:
- *                 type: string
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/controllers.RemoveConflictingNetworkPoliciesRequest,string]
- *     type: struct
- * ```
- *
- */
-export type REMOVE_CONFLICTING_NETWORK_POLICIES_RESPONSE = REMOVE_CONFLICTING_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_REMOVECONFLICTINGNETWORKPOLICIESREQUEST_STRING;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     mogenius-k8s-manager/src/controllers.RemoveUnmanagedNetworkPoliciesRequest:
- *         name: mogenius-k8s-manager/src/controllers.RemoveUnmanagedNetworkPoliciesRequest
- *         properties:
- *             namespaceName:
- *                 type: string
- *             policies:
- *                 elementType:
- *                     type: string
- *                 type: array
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/controllers.RemoveUnmanagedNetworkPoliciesRequest
- *     type: struct
- * ```
- *
- */
-export type REMOVE_UNMANAGED_NETWORK_POLICIES_REQUEST = REMOVE_UNMANAGED_NETWORK_POLICIES_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_REMOVEUNMANAGEDNETWORKPOLICIESREQUEST;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     ANON_STRUCT_1:
- *         properties: {}
- *     ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/controllers.RemoveUnmanagedNetworkPoliciesRequest,mogenius-k8s-manager/src/core.Void]
- *     :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/controllers.RemoveUnmanagedNetworkPoliciesRequest,mogenius-k8s-manager/src/core.Void]
- *         properties:
- *             data:
- *                 pointer: true
- *                 structRef: ANON_STRUCT_1
- *                 type: struct
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/controllers.RemoveUnmanagedNetworkPoliciesRequest,mogenius-k8s-manager/src/core.Void]
- *     type: struct
- * ```
- *
- */
-export type REMOVE_UNMANAGED_NETWORK_POLICIES_RESPONSE = REMOVE_UNMANAGED_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_REMOVEUNMANAGEDNETWORKPOLICIESREQUEST_MOGENIUS_K8S_MANAGER_SRC_CORE_VOID;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
  *     mogenius-k8s-manager/src/core.Request:
  *         name: mogenius-k8s-manager/src/core.Request
  *         properties:
@@ -8625,8 +6665,8 @@ export type SEALED_SECRET_CREATE_FROM_EXISTING_REQUEST = SEALED_SECRET_CREATE_FR
  *                 valueType:
  *                     pointer: true
  *                     type: any
- *     ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·38,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
- *     :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·38,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *     ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·36,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *     :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·36,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
  *         properties:
  *             data:
  *                 pointer: true
@@ -8637,12 +6677,12 @@ export type SEALED_SECRET_CREATE_FROM_EXISTING_REQUEST = SEALED_SECRET_CREATE_FR
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·38,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·36,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
  *     type: struct
  * ```
  *
  */
-export type SEALED_SECRET_CREATE_FROM_EXISTING_RESPONSE = SEALED_SECRET_CREATE_FROM_EXISTING_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST38_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED;
+export type SEALED_SECRET_CREATE_FROM_EXISTING_RESPONSE = SEALED_SECRET_CREATE_FROM_EXISTING_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST36_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED;
 
 /**
  * #### Source
@@ -8827,1234 +6867,6 @@ export type SEALED_SECRET_GET_CERTIFICATE_RESPONSE = SEALED_SECRET_GET_CERTIFICA
  *
  * ```yaml
  * structs:
- *     k8s.io/api/autoscaling/v2.ContainerResourceMetricSource:
- *         name: k8s.io/api/autoscaling/v2.ContainerResourceMetricSource
- *         properties:
- *             container:
- *                 type: string
- *             name:
- *                 type: string
- *             target:
- *                 structRef: k8s.io/api/autoscaling/v2.MetricTarget
- *                 type: struct
- *     k8s.io/api/autoscaling/v2.CrossVersionObjectReference:
- *         name: k8s.io/api/autoscaling/v2.CrossVersionObjectReference
- *         properties:
- *             apiVersion:
- *                 type: string
- *             kind:
- *                 type: string
- *             name:
- *                 type: string
- *     k8s.io/api/autoscaling/v2.ExternalMetricSource:
- *         name: k8s.io/api/autoscaling/v2.ExternalMetricSource
- *         properties:
- *             metric:
- *                 structRef: k8s.io/api/autoscaling/v2.MetricIdentifier
- *                 type: struct
- *             target:
- *                 structRef: k8s.io/api/autoscaling/v2.MetricTarget
- *                 type: struct
- *     k8s.io/api/autoscaling/v2.HPAScalingPolicy:
- *         name: k8s.io/api/autoscaling/v2.HPAScalingPolicy
- *         properties:
- *             periodSeconds:
- *                 type: int
- *             type:
- *                 type: string
- *             value:
- *                 type: int
- *     k8s.io/api/autoscaling/v2.HPAScalingRules:
- *         name: k8s.io/api/autoscaling/v2.HPAScalingRules
- *         properties:
- *             policies:
- *                 elementType:
- *                     structRef: k8s.io/api/autoscaling/v2.HPAScalingPolicy
- *                     type: struct
- *                 type: array
- *             selectPolicy:
- *                 pointer: true
- *                 type: string
- *             stabilizationWindowSeconds:
- *                 pointer: true
- *                 type: int
- *             tolerance:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/api/resource.Quantity
- *                 type: struct
- *     k8s.io/api/autoscaling/v2.HorizontalPodAutoscalerBehavior:
- *         name: k8s.io/api/autoscaling/v2.HorizontalPodAutoscalerBehavior
- *         properties:
- *             scaleDown:
- *                 pointer: true
- *                 structRef: k8s.io/api/autoscaling/v2.HPAScalingRules
- *                 type: struct
- *             scaleUp:
- *                 pointer: true
- *                 structRef: k8s.io/api/autoscaling/v2.HPAScalingRules
- *                 type: struct
- *     k8s.io/api/autoscaling/v2.HorizontalPodAutoscalerSpec:
- *         name: k8s.io/api/autoscaling/v2.HorizontalPodAutoscalerSpec
- *         properties:
- *             behavior:
- *                 pointer: true
- *                 structRef: k8s.io/api/autoscaling/v2.HorizontalPodAutoscalerBehavior
- *                 type: struct
- *             maxReplicas:
- *                 type: int
- *             metrics:
- *                 elementType:
- *                     structRef: k8s.io/api/autoscaling/v2.MetricSpec
- *                     type: struct
- *                 type: array
- *             minReplicas:
- *                 pointer: true
- *                 type: int
- *             scaleTargetRef:
- *                 structRef: k8s.io/api/autoscaling/v2.CrossVersionObjectReference
- *                 type: struct
- *     k8s.io/api/autoscaling/v2.MetricIdentifier:
- *         name: k8s.io/api/autoscaling/v2.MetricIdentifier
- *         properties:
- *             name:
- *                 type: string
- *             selector:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
- *                 type: struct
- *     k8s.io/api/autoscaling/v2.MetricSpec:
- *         name: k8s.io/api/autoscaling/v2.MetricSpec
- *         properties:
- *             containerResource:
- *                 pointer: true
- *                 structRef: k8s.io/api/autoscaling/v2.ContainerResourceMetricSource
- *                 type: struct
- *             external:
- *                 pointer: true
- *                 structRef: k8s.io/api/autoscaling/v2.ExternalMetricSource
- *                 type: struct
- *             object:
- *                 pointer: true
- *                 structRef: k8s.io/api/autoscaling/v2.ObjectMetricSource
- *                 type: struct
- *             pods:
- *                 pointer: true
- *                 structRef: k8s.io/api/autoscaling/v2.PodsMetricSource
- *                 type: struct
- *             resource:
- *                 pointer: true
- *                 structRef: k8s.io/api/autoscaling/v2.ResourceMetricSource
- *                 type: struct
- *             type:
- *                 type: string
- *     k8s.io/api/autoscaling/v2.MetricTarget:
- *         name: k8s.io/api/autoscaling/v2.MetricTarget
- *         properties:
- *             averageUtilization:
- *                 pointer: true
- *                 type: int
- *             averageValue:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/api/resource.Quantity
- *                 type: struct
- *             type:
- *                 type: string
- *             value:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/api/resource.Quantity
- *                 type: struct
- *     k8s.io/api/autoscaling/v2.ObjectMetricSource:
- *         name: k8s.io/api/autoscaling/v2.ObjectMetricSource
- *         properties:
- *             describedObject:
- *                 structRef: k8s.io/api/autoscaling/v2.CrossVersionObjectReference
- *                 type: struct
- *             metric:
- *                 structRef: k8s.io/api/autoscaling/v2.MetricIdentifier
- *                 type: struct
- *             target:
- *                 structRef: k8s.io/api/autoscaling/v2.MetricTarget
- *                 type: struct
- *     k8s.io/api/autoscaling/v2.PodsMetricSource:
- *         name: k8s.io/api/autoscaling/v2.PodsMetricSource
- *         properties:
- *             metric:
- *                 structRef: k8s.io/api/autoscaling/v2.MetricIdentifier
- *                 type: struct
- *             target:
- *                 structRef: k8s.io/api/autoscaling/v2.MetricTarget
- *                 type: struct
- *     k8s.io/api/autoscaling/v2.ResourceMetricSource:
- *         name: k8s.io/api/autoscaling/v2.ResourceMetricSource
- *         properties:
- *             name:
- *                 type: string
- *             target:
- *                 structRef: k8s.io/api/autoscaling/v2.MetricTarget
- *                 type: struct
- *     k8s.io/apimachinery/pkg/api/resource.Quantity:
- *         name: k8s.io/apimachinery/pkg/api/resource.Quantity
- *         properties:
- *             Format:
- *                 type: string
- *     k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
- *         properties:
- *             matchExpressions:
- *                 elementType:
- *                     structRef: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelectorRequirement
- *                     type: struct
- *                 type: array
- *             matchLabels:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     type: string
- *     k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelectorRequirement:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelectorRequirement
- *         properties:
- *             key:
- *                 type: string
- *             operator:
- *                 type: string
- *             values:
- *                 elementType:
- *                     type: string
- *                 type: array
- *     mogenius-k8s-manager/src/dtos.K8sCnameDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sCnameDto
- *         properties:
- *             addToTlsHosts:
- *                 type: bool
- *             cName:
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sContainerDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sContainerDto
- *         properties:
- *             KubernetesLimits:
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sServiceSettingsDto
- *                 type: struct
- *             appGitRepositoryCloneUrl:
- *                 pointer: true
- *                 type: string
- *             appSetupCommands:
- *                 pointer: true
- *                 type: string
- *             containerImage:
- *                 pointer: true
- *                 type: string
- *             containerImageCommand:
- *                 pointer: true
- *                 type: string
- *             containerImageCommandArgs:
- *                 pointer: true
- *                 type: string
- *             containerImageRepoSecretDecryptValue:
- *                 pointer: true
- *                 type: string
- *             containerImageRepoSecretId:
- *                 pointer: true
- *                 type: string
- *             displayName:
- *                 type: string
- *             dockerContext:
- *                 pointer: true
- *                 type: string
- *             dockerfileName:
- *                 pointer: true
- *                 type: string
- *             envVars:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/dtos.K8sEnvVarDto
- *                     type: struct
- *                 type: array
- *             gitBranch:
- *                 pointer: true
- *                 type: string
- *             gitCommitAuthor:
- *                 pointer: true
- *                 type: string
- *             gitCommitHash:
- *                 pointer: true
- *                 type: string
- *             gitCommitMessage:
- *                 pointer: true
- *                 type: string
- *             gitRepository:
- *                 pointer: true
- *                 type: string
- *             id:
- *                 type: string
- *             name:
- *                 type: string
- *             probes:
- *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sProbes
- *                 type: struct
- *             settingsYaml:
- *                 pointer: true
- *                 type: string
- *             type:
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sCronJobSettingsDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sCronJobSettingsDto
- *         properties:
- *             activeDeadlineSeconds:
- *                 type: int
- *             backoffLimit:
- *                 type: int
- *             failedJobsHistoryLimit:
- *                 type: int
- *             schedule:
- *                 type: string
- *             successfulJobsHistoryLimit:
- *                 type: int
- *     mogenius-k8s-manager/src/dtos.K8sEnvVarDataDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sEnvVarDataDto
- *         properties:
- *             type:
- *                 type: string
- *             value:
- *                 type: string
- *             vaultKey:
- *                 type: string
- *             vaultStore:
- *                 type: string
- *             vaultType:
- *                 type: string
- *             volumeDestination:
- *                 type: string
- *             volumeName:
- *                 type: string
- *             volumeSource:
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sEnvVarDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sEnvVarDto
- *         properties:
- *             data:
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sEnvVarDataDto
- *                 type: struct
- *             id:
- *                 type: string
- *             name:
- *                 type: string
- *             type:
- *                 type: string
- *             value:
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sHpaSettingsDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sHpaSettingsDto
- *         properties:
- *             HorizontalPodAutoscalerSpec:
- *                 pointer: true
- *                 structRef: k8s.io/api/autoscaling/v2.HorizontalPodAutoscalerSpec
- *                 type: struct
- *     mogenius-k8s-manager/src/dtos.K8sNamespaceDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sNamespaceDto
- *         properties:
- *             Name:
- *                 type: string
- *             displayName:
- *                 type: string
- *             id:
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sPortsDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sPortsDto
- *         properties:
- *             cNames:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/dtos.K8sCnameDto
- *                     type: struct
- *                 type: array
- *             expose:
- *                 type: bool
- *             externalPort:
- *                 type: string
- *             internalPort:
- *                 type: string
- *             portType:
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sProbe:
- *         name: mogenius-k8s-manager/src/dtos.K8sProbe
- *         properties:
- *             exec:
- *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sProbeExec
- *                 type: struct
- *             failureThreshold:
- *                 type: int
- *             grpc:
- *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sProbeGRPC
- *                 type: struct
- *             httpGet:
- *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sProbeHTTPGet
- *                 type: struct
- *             initialDelaySeconds:
- *                 type: int
- *             isActive:
- *                 type: bool
- *             periodSeconds:
- *                 type: int
- *             successThreshold:
- *                 type: int
- *             tcpSocket:
- *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sProbeTCPSocket
- *                 type: struct
- *             timeoutSeconds:
- *                 type: int
- *     mogenius-k8s-manager/src/dtos.K8sProbeExec:
- *         name: mogenius-k8s-manager/src/dtos.K8sProbeExec
- *         properties:
- *             command:
- *                 elementType:
- *                     type: string
- *                 type: array
- *     mogenius-k8s-manager/src/dtos.K8sProbeGRPC:
- *         name: mogenius-k8s-manager/src/dtos.K8sProbeGRPC
- *         properties:
- *             port:
- *                 type: int
- *             service:
- *                 pointer: true
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sProbeHTTPGet:
- *         name: mogenius-k8s-manager/src/dtos.K8sProbeHTTPGet
- *         properties:
- *             host:
- *                 pointer: true
- *                 type: string
- *             httpHeaders:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/dtos.K8sProbeHTTPHeader
- *                     type: struct
- *                 pointer: true
- *                 type: array
- *             path:
- *                 type: string
- *             port:
- *                 type: string
- *             scheme:
- *                 pointer: true
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sProbeHTTPHeader:
- *         name: mogenius-k8s-manager/src/dtos.K8sProbeHTTPHeader
- *         properties:
- *             name:
- *                 type: string
- *             value:
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sProbeTCPSocket:
- *         name: mogenius-k8s-manager/src/dtos.K8sProbeTCPSocket
- *         properties:
- *             port:
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sProbes:
- *         name: mogenius-k8s-manager/src/dtos.K8sProbes
- *         properties:
- *             isActive:
- *                 type: bool
- *             livenessProbe:
- *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sProbe
- *                 type: struct
- *             readinessProbe:
- *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sProbe
- *                 type: struct
- *             startupProbe:
- *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sProbe
- *                 type: struct
- *     mogenius-k8s-manager/src/dtos.K8sProjectDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sProjectDto
- *         properties:
- *             clusterDisplayName:
- *                 type: string
- *             clusterId:
- *                 type: string
- *             clusterMfaId:
- *                 type: string
- *             containerRegistryPat:
- *                 pointer: true
- *                 type: string
- *             containerRegistryPath:
- *                 pointer: true
- *                 type: string
- *             containerRegistryUrl:
- *                 pointer: true
- *                 type: string
- *             containerRegistryUser:
- *                 pointer: true
- *                 type: string
- *             displayName:
- *                 type: string
- *             gitAccessToken:
- *                 pointer: true
- *                 type: string
- *             gitConnectionType:
- *                 pointer: true
- *                 type: string
- *             gitUserId:
- *                 pointer: true
- *                 type: string
- *             id:
- *                 type: string
- *             name:
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sServiceDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sServiceDto
- *         properties:
- *             containers:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/dtos.K8sContainerDto
- *                     type: struct
- *                 type: array
- *             controller:
- *                 type: string
- *             controllerName:
- *                 type: string
- *             cronJobSettings:
- *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sCronJobSettingsDto
- *                 type: struct
- *             deploymentStrategy:
- *                 type: string
- *             displayName:
- *                 type: string
- *             hpaSettings:
- *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sHpaSettingsDto
- *                 type: struct
- *             id:
- *                 type: string
- *             ports:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/dtos.K8sPortsDto
- *                     type: struct
- *                 type: array
- *             replicaCount:
- *                 type: int
- *     mogenius-k8s-manager/src/dtos.K8sServiceSettingsDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sServiceSettingsDto
- *         properties:
- *             ephemeralStorageMB:
- *                 type: int
- *             imagePullPolicy:
- *                 type: string
- *             limitCpuCores:
- *                 type: float
- *             limitMemoryMB:
- *                 type: int
- *     mogenius-k8s-manager/src/services.ServiceUpdateRequest:
- *         name: mogenius-k8s-manager/src/services.ServiceUpdateRequest
- *         properties:
- *             namespace:
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sNamespaceDto
- *                 type: struct
- *             project:
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sProjectDto
- *                 type: struct
- *             service:
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sServiceDto
- *                 type: struct
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/services.ServiceUpdateRequest
- *     type: struct
- * ```
- *
- */
-export type SERVICE_CREATE_REQUEST = SERVICE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_SERVICEUPDATEREQUEST;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     mogenius-k8s-manager/src/structs.Command:
- *         name: mogenius-k8s-manager/src/structs.Command
- *         properties:
- *             command:
- *                 type: string
- *             finished:
- *                 structRef: time.Time
- *                 type: struct
- *             id:
- *                 type: string
- *             message:
- *                 type: string
- *             started:
- *                 structRef: time.Time
- *                 type: struct
- *             state:
- *                 type: string
- *             title:
- *                 type: string
- *     mogenius-k8s-manager/src/structs.Job:
- *         name: mogenius-k8s-manager/src/structs.Job
- *         properties:
- *             commands:
- *                 elementType:
- *                     pointer: true
- *                     structRef: mogenius-k8s-manager/src/structs.Command
- *                     type: struct
- *                 type: array
- *             containerName:
- *                 type: string
- *             controllerName:
- *                 type: string
- *             finished:
- *                 structRef: time.Time
- *                 type: struct
- *             id:
- *                 type: string
- *             message:
- *                 type: string
- *             namespaceName:
- *                 type: string
- *             projectId:
- *                 type: string
- *             started:
- *                 structRef: time.Time
- *                 type: struct
- *             state:
- *                 type: string
- *             title:
- *                 type: string
- *     time.Time:
- *         name: time.Time
- *         properties: {}
- * typeInfo:
- *     pointer: true
- *     structRef: mogenius-k8s-manager/src/structs.Job
- *     type: struct
- * ```
- *
- */
-export type SERVICE_CREATE_RESPONSE = SERVICE_CREATE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_JOB|undefined;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     k8s.io/api/autoscaling/v2.ContainerResourceMetricSource:
- *         name: k8s.io/api/autoscaling/v2.ContainerResourceMetricSource
- *         properties:
- *             container:
- *                 type: string
- *             name:
- *                 type: string
- *             target:
- *                 structRef: k8s.io/api/autoscaling/v2.MetricTarget
- *                 type: struct
- *     k8s.io/api/autoscaling/v2.CrossVersionObjectReference:
- *         name: k8s.io/api/autoscaling/v2.CrossVersionObjectReference
- *         properties:
- *             apiVersion:
- *                 type: string
- *             kind:
- *                 type: string
- *             name:
- *                 type: string
- *     k8s.io/api/autoscaling/v2.ExternalMetricSource:
- *         name: k8s.io/api/autoscaling/v2.ExternalMetricSource
- *         properties:
- *             metric:
- *                 structRef: k8s.io/api/autoscaling/v2.MetricIdentifier
- *                 type: struct
- *             target:
- *                 structRef: k8s.io/api/autoscaling/v2.MetricTarget
- *                 type: struct
- *     k8s.io/api/autoscaling/v2.HPAScalingPolicy:
- *         name: k8s.io/api/autoscaling/v2.HPAScalingPolicy
- *         properties:
- *             periodSeconds:
- *                 type: int
- *             type:
- *                 type: string
- *             value:
- *                 type: int
- *     k8s.io/api/autoscaling/v2.HPAScalingRules:
- *         name: k8s.io/api/autoscaling/v2.HPAScalingRules
- *         properties:
- *             policies:
- *                 elementType:
- *                     structRef: k8s.io/api/autoscaling/v2.HPAScalingPolicy
- *                     type: struct
- *                 type: array
- *             selectPolicy:
- *                 pointer: true
- *                 type: string
- *             stabilizationWindowSeconds:
- *                 pointer: true
- *                 type: int
- *             tolerance:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/api/resource.Quantity
- *                 type: struct
- *     k8s.io/api/autoscaling/v2.HorizontalPodAutoscalerBehavior:
- *         name: k8s.io/api/autoscaling/v2.HorizontalPodAutoscalerBehavior
- *         properties:
- *             scaleDown:
- *                 pointer: true
- *                 structRef: k8s.io/api/autoscaling/v2.HPAScalingRules
- *                 type: struct
- *             scaleUp:
- *                 pointer: true
- *                 structRef: k8s.io/api/autoscaling/v2.HPAScalingRules
- *                 type: struct
- *     k8s.io/api/autoscaling/v2.HorizontalPodAutoscalerSpec:
- *         name: k8s.io/api/autoscaling/v2.HorizontalPodAutoscalerSpec
- *         properties:
- *             behavior:
- *                 pointer: true
- *                 structRef: k8s.io/api/autoscaling/v2.HorizontalPodAutoscalerBehavior
- *                 type: struct
- *             maxReplicas:
- *                 type: int
- *             metrics:
- *                 elementType:
- *                     structRef: k8s.io/api/autoscaling/v2.MetricSpec
- *                     type: struct
- *                 type: array
- *             minReplicas:
- *                 pointer: true
- *                 type: int
- *             scaleTargetRef:
- *                 structRef: k8s.io/api/autoscaling/v2.CrossVersionObjectReference
- *                 type: struct
- *     k8s.io/api/autoscaling/v2.MetricIdentifier:
- *         name: k8s.io/api/autoscaling/v2.MetricIdentifier
- *         properties:
- *             name:
- *                 type: string
- *             selector:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
- *                 type: struct
- *     k8s.io/api/autoscaling/v2.MetricSpec:
- *         name: k8s.io/api/autoscaling/v2.MetricSpec
- *         properties:
- *             containerResource:
- *                 pointer: true
- *                 structRef: k8s.io/api/autoscaling/v2.ContainerResourceMetricSource
- *                 type: struct
- *             external:
- *                 pointer: true
- *                 structRef: k8s.io/api/autoscaling/v2.ExternalMetricSource
- *                 type: struct
- *             object:
- *                 pointer: true
- *                 structRef: k8s.io/api/autoscaling/v2.ObjectMetricSource
- *                 type: struct
- *             pods:
- *                 pointer: true
- *                 structRef: k8s.io/api/autoscaling/v2.PodsMetricSource
- *                 type: struct
- *             resource:
- *                 pointer: true
- *                 structRef: k8s.io/api/autoscaling/v2.ResourceMetricSource
- *                 type: struct
- *             type:
- *                 type: string
- *     k8s.io/api/autoscaling/v2.MetricTarget:
- *         name: k8s.io/api/autoscaling/v2.MetricTarget
- *         properties:
- *             averageUtilization:
- *                 pointer: true
- *                 type: int
- *             averageValue:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/api/resource.Quantity
- *                 type: struct
- *             type:
- *                 type: string
- *             value:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/api/resource.Quantity
- *                 type: struct
- *     k8s.io/api/autoscaling/v2.ObjectMetricSource:
- *         name: k8s.io/api/autoscaling/v2.ObjectMetricSource
- *         properties:
- *             describedObject:
- *                 structRef: k8s.io/api/autoscaling/v2.CrossVersionObjectReference
- *                 type: struct
- *             metric:
- *                 structRef: k8s.io/api/autoscaling/v2.MetricIdentifier
- *                 type: struct
- *             target:
- *                 structRef: k8s.io/api/autoscaling/v2.MetricTarget
- *                 type: struct
- *     k8s.io/api/autoscaling/v2.PodsMetricSource:
- *         name: k8s.io/api/autoscaling/v2.PodsMetricSource
- *         properties:
- *             metric:
- *                 structRef: k8s.io/api/autoscaling/v2.MetricIdentifier
- *                 type: struct
- *             target:
- *                 structRef: k8s.io/api/autoscaling/v2.MetricTarget
- *                 type: struct
- *     k8s.io/api/autoscaling/v2.ResourceMetricSource:
- *         name: k8s.io/api/autoscaling/v2.ResourceMetricSource
- *         properties:
- *             name:
- *                 type: string
- *             target:
- *                 structRef: k8s.io/api/autoscaling/v2.MetricTarget
- *                 type: struct
- *     k8s.io/apimachinery/pkg/api/resource.Quantity:
- *         name: k8s.io/apimachinery/pkg/api/resource.Quantity
- *         properties:
- *             Format:
- *                 type: string
- *     k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
- *         properties:
- *             matchExpressions:
- *                 elementType:
- *                     structRef: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelectorRequirement
- *                     type: struct
- *                 type: array
- *             matchLabels:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     type: string
- *     k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelectorRequirement:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelectorRequirement
- *         properties:
- *             key:
- *                 type: string
- *             operator:
- *                 type: string
- *             values:
- *                 elementType:
- *                     type: string
- *                 type: array
- *     mogenius-k8s-manager/src/dtos.K8sCnameDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sCnameDto
- *         properties:
- *             addToTlsHosts:
- *                 type: bool
- *             cName:
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sContainerDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sContainerDto
- *         properties:
- *             KubernetesLimits:
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sServiceSettingsDto
- *                 type: struct
- *             appGitRepositoryCloneUrl:
- *                 pointer: true
- *                 type: string
- *             appSetupCommands:
- *                 pointer: true
- *                 type: string
- *             containerImage:
- *                 pointer: true
- *                 type: string
- *             containerImageCommand:
- *                 pointer: true
- *                 type: string
- *             containerImageCommandArgs:
- *                 pointer: true
- *                 type: string
- *             containerImageRepoSecretDecryptValue:
- *                 pointer: true
- *                 type: string
- *             containerImageRepoSecretId:
- *                 pointer: true
- *                 type: string
- *             displayName:
- *                 type: string
- *             dockerContext:
- *                 pointer: true
- *                 type: string
- *             dockerfileName:
- *                 pointer: true
- *                 type: string
- *             envVars:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/dtos.K8sEnvVarDto
- *                     type: struct
- *                 type: array
- *             gitBranch:
- *                 pointer: true
- *                 type: string
- *             gitCommitAuthor:
- *                 pointer: true
- *                 type: string
- *             gitCommitHash:
- *                 pointer: true
- *                 type: string
- *             gitCommitMessage:
- *                 pointer: true
- *                 type: string
- *             gitRepository:
- *                 pointer: true
- *                 type: string
- *             id:
- *                 type: string
- *             name:
- *                 type: string
- *             probes:
- *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sProbes
- *                 type: struct
- *             settingsYaml:
- *                 pointer: true
- *                 type: string
- *             type:
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sCronJobSettingsDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sCronJobSettingsDto
- *         properties:
- *             activeDeadlineSeconds:
- *                 type: int
- *             backoffLimit:
- *                 type: int
- *             failedJobsHistoryLimit:
- *                 type: int
- *             schedule:
- *                 type: string
- *             successfulJobsHistoryLimit:
- *                 type: int
- *     mogenius-k8s-manager/src/dtos.K8sEnvVarDataDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sEnvVarDataDto
- *         properties:
- *             type:
- *                 type: string
- *             value:
- *                 type: string
- *             vaultKey:
- *                 type: string
- *             vaultStore:
- *                 type: string
- *             vaultType:
- *                 type: string
- *             volumeDestination:
- *                 type: string
- *             volumeName:
- *                 type: string
- *             volumeSource:
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sEnvVarDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sEnvVarDto
- *         properties:
- *             data:
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sEnvVarDataDto
- *                 type: struct
- *             id:
- *                 type: string
- *             name:
- *                 type: string
- *             type:
- *                 type: string
- *             value:
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sHpaSettingsDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sHpaSettingsDto
- *         properties:
- *             HorizontalPodAutoscalerSpec:
- *                 pointer: true
- *                 structRef: k8s.io/api/autoscaling/v2.HorizontalPodAutoscalerSpec
- *                 type: struct
- *     mogenius-k8s-manager/src/dtos.K8sNamespaceDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sNamespaceDto
- *         properties:
- *             Name:
- *                 type: string
- *             displayName:
- *                 type: string
- *             id:
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sPortsDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sPortsDto
- *         properties:
- *             cNames:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/dtos.K8sCnameDto
- *                     type: struct
- *                 type: array
- *             expose:
- *                 type: bool
- *             externalPort:
- *                 type: string
- *             internalPort:
- *                 type: string
- *             portType:
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sProbe:
- *         name: mogenius-k8s-manager/src/dtos.K8sProbe
- *         properties:
- *             exec:
- *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sProbeExec
- *                 type: struct
- *             failureThreshold:
- *                 type: int
- *             grpc:
- *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sProbeGRPC
- *                 type: struct
- *             httpGet:
- *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sProbeHTTPGet
- *                 type: struct
- *             initialDelaySeconds:
- *                 type: int
- *             isActive:
- *                 type: bool
- *             periodSeconds:
- *                 type: int
- *             successThreshold:
- *                 type: int
- *             tcpSocket:
- *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sProbeTCPSocket
- *                 type: struct
- *             timeoutSeconds:
- *                 type: int
- *     mogenius-k8s-manager/src/dtos.K8sProbeExec:
- *         name: mogenius-k8s-manager/src/dtos.K8sProbeExec
- *         properties:
- *             command:
- *                 elementType:
- *                     type: string
- *                 type: array
- *     mogenius-k8s-manager/src/dtos.K8sProbeGRPC:
- *         name: mogenius-k8s-manager/src/dtos.K8sProbeGRPC
- *         properties:
- *             port:
- *                 type: int
- *             service:
- *                 pointer: true
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sProbeHTTPGet:
- *         name: mogenius-k8s-manager/src/dtos.K8sProbeHTTPGet
- *         properties:
- *             host:
- *                 pointer: true
- *                 type: string
- *             httpHeaders:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/dtos.K8sProbeHTTPHeader
- *                     type: struct
- *                 pointer: true
- *                 type: array
- *             path:
- *                 type: string
- *             port:
- *                 type: string
- *             scheme:
- *                 pointer: true
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sProbeHTTPHeader:
- *         name: mogenius-k8s-manager/src/dtos.K8sProbeHTTPHeader
- *         properties:
- *             name:
- *                 type: string
- *             value:
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sProbeTCPSocket:
- *         name: mogenius-k8s-manager/src/dtos.K8sProbeTCPSocket
- *         properties:
- *             port:
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sProbes:
- *         name: mogenius-k8s-manager/src/dtos.K8sProbes
- *         properties:
- *             isActive:
- *                 type: bool
- *             livenessProbe:
- *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sProbe
- *                 type: struct
- *             readinessProbe:
- *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sProbe
- *                 type: struct
- *             startupProbe:
- *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sProbe
- *                 type: struct
- *     mogenius-k8s-manager/src/dtos.K8sProjectDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sProjectDto
- *         properties:
- *             clusterDisplayName:
- *                 type: string
- *             clusterId:
- *                 type: string
- *             clusterMfaId:
- *                 type: string
- *             containerRegistryPat:
- *                 pointer: true
- *                 type: string
- *             containerRegistryPath:
- *                 pointer: true
- *                 type: string
- *             containerRegistryUrl:
- *                 pointer: true
- *                 type: string
- *             containerRegistryUser:
- *                 pointer: true
- *                 type: string
- *             displayName:
- *                 type: string
- *             gitAccessToken:
- *                 pointer: true
- *                 type: string
- *             gitConnectionType:
- *                 pointer: true
- *                 type: string
- *             gitUserId:
- *                 pointer: true
- *                 type: string
- *             id:
- *                 type: string
- *             name:
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sServiceDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sServiceDto
- *         properties:
- *             containers:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/dtos.K8sContainerDto
- *                     type: struct
- *                 type: array
- *             controller:
- *                 type: string
- *             controllerName:
- *                 type: string
- *             cronJobSettings:
- *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sCronJobSettingsDto
- *                 type: struct
- *             deploymentStrategy:
- *                 type: string
- *             displayName:
- *                 type: string
- *             hpaSettings:
- *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sHpaSettingsDto
- *                 type: struct
- *             id:
- *                 type: string
- *             ports:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/dtos.K8sPortsDto
- *                     type: struct
- *                 type: array
- *             replicaCount:
- *                 type: int
- *     mogenius-k8s-manager/src/dtos.K8sServiceSettingsDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sServiceSettingsDto
- *         properties:
- *             ephemeralStorageMB:
- *                 type: int
- *             imagePullPolicy:
- *                 type: string
- *             limitCpuCores:
- *                 type: float
- *             limitMemoryMB:
- *                 type: int
- *     mogenius-k8s-manager/src/services.ServiceDeleteRequest:
- *         name: mogenius-k8s-manager/src/services.ServiceDeleteRequest
- *         properties:
- *             namespace:
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sNamespaceDto
- *                 type: struct
- *             project:
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sProjectDto
- *                 type: struct
- *             service:
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sServiceDto
- *                 type: struct
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/services.ServiceDeleteRequest
- *     type: struct
- * ```
- *
- */
-export type SERVICE_DELETE_REQUEST = SERVICE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_SERVICEDELETEREQUEST;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     mogenius-k8s-manager/src/structs.Command:
- *         name: mogenius-k8s-manager/src/structs.Command
- *         properties:
- *             command:
- *                 type: string
- *             finished:
- *                 structRef: time.Time
- *                 type: struct
- *             id:
- *                 type: string
- *             message:
- *                 type: string
- *             started:
- *                 structRef: time.Time
- *                 type: struct
- *             state:
- *                 type: string
- *             title:
- *                 type: string
- *     mogenius-k8s-manager/src/structs.Job:
- *         name: mogenius-k8s-manager/src/structs.Job
- *         properties:
- *             commands:
- *                 elementType:
- *                     pointer: true
- *                     structRef: mogenius-k8s-manager/src/structs.Command
- *                     type: struct
- *                 type: array
- *             containerName:
- *                 type: string
- *             controllerName:
- *                 type: string
- *             finished:
- *                 structRef: time.Time
- *                 type: struct
- *             id:
- *                 type: string
- *             message:
- *                 type: string
- *             namespaceName:
- *                 type: string
- *             projectId:
- *                 type: string
- *             started:
- *                 structRef: time.Time
- *                 type: struct
- *             state:
- *                 type: string
- *             title:
- *                 type: string
- *     time.Time:
- *         name: time.Time
- *         properties: {}
- * typeInfo:
- *     pointer: true
- *     structRef: mogenius-k8s-manager/src/structs.Job
- *     type: struct
- * ```
- *
- */
-export type SERVICE_DELETE_RESPONSE = SERVICE_DELETE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_JOB|undefined;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
  *     mogenius-k8s-manager/src/xterm.PodCmdConnectionRequest:
  *         name: mogenius-k8s-manager/src/xterm.PodCmdConnectionRequest
  *         properties:
@@ -10199,2270 +7011,6 @@ export type SERVICE_LOG_STREAM_CONNECTION_REQUEST_RESPONSE = SERVICE_LOG_STREAM_
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/services.ServicePodsRequest:
- *         name: mogenius-k8s-manager/src/services.ServicePodsRequest
- *         properties:
- *             controllerName:
- *                 type: string
- *             namespace:
- *                 type: string
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/services.ServicePodsRequest
- *     type: struct
- * ```
- *
- */
-export type SERVICE_PODS_REQUEST = SERVICE_PODS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_SERVICEPODSREQUEST;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     k8s.io/api/core/v1.AWSElasticBlockStoreVolumeSource:
- *         name: k8s.io/api/core/v1.AWSElasticBlockStoreVolumeSource
- *         properties:
- *             fsType:
- *                 type: string
- *             partition:
- *                 type: int
- *             readOnly:
- *                 type: bool
- *             volumeID:
- *                 type: string
- *     k8s.io/api/core/v1.Affinity:
- *         name: k8s.io/api/core/v1.Affinity
- *         properties:
- *             nodeAffinity:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.NodeAffinity
- *                 type: struct
- *             podAffinity:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.PodAffinity
- *                 type: struct
- *             podAntiAffinity:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.PodAntiAffinity
- *                 type: struct
- *     k8s.io/api/core/v1.AppArmorProfile:
- *         name: k8s.io/api/core/v1.AppArmorProfile
- *         properties:
- *             localhostProfile:
- *                 pointer: true
- *                 type: string
- *             type:
- *                 type: string
- *     k8s.io/api/core/v1.AzureDiskVolumeSource:
- *         name: k8s.io/api/core/v1.AzureDiskVolumeSource
- *         properties:
- *             cachingMode:
- *                 pointer: true
- *                 type: string
- *             diskName:
- *                 type: string
- *             diskURI:
- *                 type: string
- *             fsType:
- *                 pointer: true
- *                 type: string
- *             kind:
- *                 pointer: true
- *                 type: string
- *             readOnly:
- *                 pointer: true
- *                 type: bool
- *     k8s.io/api/core/v1.AzureFileVolumeSource:
- *         name: k8s.io/api/core/v1.AzureFileVolumeSource
- *         properties:
- *             readOnly:
- *                 type: bool
- *             secretName:
- *                 type: string
- *             shareName:
- *                 type: string
- *     k8s.io/api/core/v1.CSIVolumeSource:
- *         name: k8s.io/api/core/v1.CSIVolumeSource
- *         properties:
- *             driver:
- *                 type: string
- *             fsType:
- *                 pointer: true
- *                 type: string
- *             nodePublishSecretRef:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.LocalObjectReference
- *                 type: struct
- *             readOnly:
- *                 pointer: true
- *                 type: bool
- *             volumeAttributes:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     type: string
- *     k8s.io/api/core/v1.Capabilities:
- *         name: k8s.io/api/core/v1.Capabilities
- *         properties:
- *             add:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             drop:
- *                 elementType:
- *                     type: string
- *                 type: array
- *     k8s.io/api/core/v1.CephFSVolumeSource:
- *         name: k8s.io/api/core/v1.CephFSVolumeSource
- *         properties:
- *             monitors:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             path:
- *                 type: string
- *             readOnly:
- *                 type: bool
- *             secretFile:
- *                 type: string
- *             secretRef:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.LocalObjectReference
- *                 type: struct
- *             user:
- *                 type: string
- *     k8s.io/api/core/v1.CinderVolumeSource:
- *         name: k8s.io/api/core/v1.CinderVolumeSource
- *         properties:
- *             fsType:
- *                 type: string
- *             readOnly:
- *                 type: bool
- *             secretRef:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.LocalObjectReference
- *                 type: struct
- *             volumeID:
- *                 type: string
- *     k8s.io/api/core/v1.ClusterTrustBundleProjection:
- *         name: k8s.io/api/core/v1.ClusterTrustBundleProjection
- *         properties:
- *             labelSelector:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
- *                 type: struct
- *             name:
- *                 pointer: true
- *                 type: string
- *             optional:
- *                 pointer: true
- *                 type: bool
- *             path:
- *                 type: string
- *             signerName:
- *                 pointer: true
- *                 type: string
- *     k8s.io/api/core/v1.ConfigMapEnvSource:
- *         name: k8s.io/api/core/v1.ConfigMapEnvSource
- *         properties:
- *             LocalObjectReference:
- *                 structRef: k8s.io/api/core/v1.LocalObjectReference
- *                 type: struct
- *             optional:
- *                 pointer: true
- *                 type: bool
- *     k8s.io/api/core/v1.ConfigMapKeySelector:
- *         name: k8s.io/api/core/v1.ConfigMapKeySelector
- *         properties:
- *             LocalObjectReference:
- *                 structRef: k8s.io/api/core/v1.LocalObjectReference
- *                 type: struct
- *             key:
- *                 type: string
- *             optional:
- *                 pointer: true
- *                 type: bool
- *     k8s.io/api/core/v1.ConfigMapProjection:
- *         name: k8s.io/api/core/v1.ConfigMapProjection
- *         properties:
- *             LocalObjectReference:
- *                 structRef: k8s.io/api/core/v1.LocalObjectReference
- *                 type: struct
- *             items:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.KeyToPath
- *                     type: struct
- *                 type: array
- *             optional:
- *                 pointer: true
- *                 type: bool
- *     k8s.io/api/core/v1.ConfigMapVolumeSource:
- *         name: k8s.io/api/core/v1.ConfigMapVolumeSource
- *         properties:
- *             LocalObjectReference:
- *                 structRef: k8s.io/api/core/v1.LocalObjectReference
- *                 type: struct
- *             defaultMode:
- *                 pointer: true
- *                 type: int
- *             items:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.KeyToPath
- *                     type: struct
- *                 type: array
- *             optional:
- *                 pointer: true
- *                 type: bool
- *     k8s.io/api/core/v1.Container:
- *         name: k8s.io/api/core/v1.Container
- *         properties:
- *             args:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             command:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             env:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.EnvVar
- *                     type: struct
- *                 type: array
- *             envFrom:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.EnvFromSource
- *                     type: struct
- *                 type: array
- *             image:
- *                 type: string
- *             imagePullPolicy:
- *                 type: string
- *             lifecycle:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.Lifecycle
- *                 type: struct
- *             livenessProbe:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.Probe
- *                 type: struct
- *             name:
- *                 type: string
- *             ports:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.ContainerPort
- *                     type: struct
- *                 type: array
- *             readinessProbe:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.Probe
- *                 type: struct
- *             resizePolicy:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.ContainerResizePolicy
- *                     type: struct
- *                 type: array
- *             resources:
- *                 structRef: k8s.io/api/core/v1.ResourceRequirements
- *                 type: struct
- *             restartPolicy:
- *                 pointer: true
- *                 type: string
- *             restartPolicyRules:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.ContainerRestartRule
- *                     type: struct
- *                 type: array
- *             securityContext:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.SecurityContext
- *                 type: struct
- *             startupProbe:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.Probe
- *                 type: struct
- *             stdin:
- *                 type: bool
- *             stdinOnce:
- *                 type: bool
- *             terminationMessagePath:
- *                 type: string
- *             terminationMessagePolicy:
- *                 type: string
- *             tty:
- *                 type: bool
- *             volumeDevices:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.VolumeDevice
- *                     type: struct
- *                 type: array
- *             volumeMounts:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.VolumeMount
- *                     type: struct
- *                 type: array
- *             workingDir:
- *                 type: string
- *     k8s.io/api/core/v1.ContainerExtendedResourceRequest:
- *         name: k8s.io/api/core/v1.ContainerExtendedResourceRequest
- *         properties:
- *             containerName:
- *                 type: string
- *             requestName:
- *                 type: string
- *             resourceName:
- *                 type: string
- *     k8s.io/api/core/v1.ContainerPort:
- *         name: k8s.io/api/core/v1.ContainerPort
- *         properties:
- *             containerPort:
- *                 type: int
- *             hostIP:
- *                 type: string
- *             hostPort:
- *                 type: int
- *             name:
- *                 type: string
- *             protocol:
- *                 type: string
- *     k8s.io/api/core/v1.ContainerResizePolicy:
- *         name: k8s.io/api/core/v1.ContainerResizePolicy
- *         properties:
- *             resourceName:
- *                 type: string
- *             restartPolicy:
- *                 type: string
- *     k8s.io/api/core/v1.ContainerRestartRule:
- *         name: k8s.io/api/core/v1.ContainerRestartRule
- *         properties:
- *             action:
- *                 type: string
- *             exitCodes:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.ContainerRestartRuleOnExitCodes
- *                 type: struct
- *     k8s.io/api/core/v1.ContainerRestartRuleOnExitCodes:
- *         name: k8s.io/api/core/v1.ContainerRestartRuleOnExitCodes
- *         properties:
- *             operator:
- *                 type: string
- *             values:
- *                 elementType:
- *                     type: int
- *                 type: array
- *     k8s.io/api/core/v1.ContainerState:
- *         name: k8s.io/api/core/v1.ContainerState
- *         properties:
- *             running:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.ContainerStateRunning
- *                 type: struct
- *             terminated:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.ContainerStateTerminated
- *                 type: struct
- *             waiting:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.ContainerStateWaiting
- *                 type: struct
- *     k8s.io/api/core/v1.ContainerStateRunning:
- *         name: k8s.io/api/core/v1.ContainerStateRunning
- *         properties:
- *             startedAt:
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *                 type: struct
- *     k8s.io/api/core/v1.ContainerStateTerminated:
- *         name: k8s.io/api/core/v1.ContainerStateTerminated
- *         properties:
- *             containerID:
- *                 type: string
- *             exitCode:
- *                 type: int
- *             finishedAt:
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *                 type: struct
- *             message:
- *                 type: string
- *             reason:
- *                 type: string
- *             signal:
- *                 type: int
- *             startedAt:
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *                 type: struct
- *     k8s.io/api/core/v1.ContainerStateWaiting:
- *         name: k8s.io/api/core/v1.ContainerStateWaiting
- *         properties:
- *             message:
- *                 type: string
- *             reason:
- *                 type: string
- *     k8s.io/api/core/v1.ContainerStatus:
- *         name: k8s.io/api/core/v1.ContainerStatus
- *         properties:
- *             allocatedResources:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     structRef: k8s.io/apimachinery/pkg/api/resource.Quantity
- *                     type: struct
- *             allocatedResourcesStatus:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.ResourceStatus
- *                     type: struct
- *                 type: array
- *             containerID:
- *                 type: string
- *             image:
- *                 type: string
- *             imageID:
- *                 type: string
- *             lastState:
- *                 structRef: k8s.io/api/core/v1.ContainerState
- *                 type: struct
- *             name:
- *                 type: string
- *             ready:
- *                 type: bool
- *             resources:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.ResourceRequirements
- *                 type: struct
- *             restartCount:
- *                 type: int
- *             started:
- *                 pointer: true
- *                 type: bool
- *             state:
- *                 structRef: k8s.io/api/core/v1.ContainerState
- *                 type: struct
- *             stopSignal:
- *                 pointer: true
- *                 type: string
- *             user:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.ContainerUser
- *                 type: struct
- *             volumeMounts:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.VolumeMountStatus
- *                     type: struct
- *                 type: array
- *     k8s.io/api/core/v1.ContainerUser:
- *         name: k8s.io/api/core/v1.ContainerUser
- *         properties:
- *             linux:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.LinuxContainerUser
- *                 type: struct
- *     k8s.io/api/core/v1.DownwardAPIProjection:
- *         name: k8s.io/api/core/v1.DownwardAPIProjection
- *         properties:
- *             items:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.DownwardAPIVolumeFile
- *                     type: struct
- *                 type: array
- *     k8s.io/api/core/v1.DownwardAPIVolumeFile:
- *         name: k8s.io/api/core/v1.DownwardAPIVolumeFile
- *         properties:
- *             fieldRef:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.ObjectFieldSelector
- *                 type: struct
- *             mode:
- *                 pointer: true
- *                 type: int
- *             path:
- *                 type: string
- *             resourceFieldRef:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.ResourceFieldSelector
- *                 type: struct
- *     k8s.io/api/core/v1.DownwardAPIVolumeSource:
- *         name: k8s.io/api/core/v1.DownwardAPIVolumeSource
- *         properties:
- *             defaultMode:
- *                 pointer: true
- *                 type: int
- *             items:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.DownwardAPIVolumeFile
- *                     type: struct
- *                 type: array
- *     k8s.io/api/core/v1.EmptyDirVolumeSource:
- *         name: k8s.io/api/core/v1.EmptyDirVolumeSource
- *         properties:
- *             medium:
- *                 type: string
- *             sizeLimit:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/api/resource.Quantity
- *                 type: struct
- *     k8s.io/api/core/v1.EnvFromSource:
- *         name: k8s.io/api/core/v1.EnvFromSource
- *         properties:
- *             configMapRef:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.ConfigMapEnvSource
- *                 type: struct
- *             prefix:
- *                 type: string
- *             secretRef:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.SecretEnvSource
- *                 type: struct
- *     k8s.io/api/core/v1.EnvVar:
- *         name: k8s.io/api/core/v1.EnvVar
- *         properties:
- *             name:
- *                 type: string
- *             value:
- *                 type: string
- *             valueFrom:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.EnvVarSource
- *                 type: struct
- *     k8s.io/api/core/v1.EnvVarSource:
- *         name: k8s.io/api/core/v1.EnvVarSource
- *         properties:
- *             configMapKeyRef:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.ConfigMapKeySelector
- *                 type: struct
- *             fieldRef:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.ObjectFieldSelector
- *                 type: struct
- *             fileKeyRef:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.FileKeySelector
- *                 type: struct
- *             resourceFieldRef:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.ResourceFieldSelector
- *                 type: struct
- *             secretKeyRef:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.SecretKeySelector
- *                 type: struct
- *     k8s.io/api/core/v1.EphemeralContainer:
- *         name: k8s.io/api/core/v1.EphemeralContainer
- *         properties:
- *             EphemeralContainerCommon:
- *                 structRef: k8s.io/api/core/v1.EphemeralContainerCommon
- *                 type: struct
- *             targetContainerName:
- *                 type: string
- *     k8s.io/api/core/v1.EphemeralContainerCommon:
- *         name: k8s.io/api/core/v1.EphemeralContainerCommon
- *         properties:
- *             args:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             command:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             env:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.EnvVar
- *                     type: struct
- *                 type: array
- *             envFrom:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.EnvFromSource
- *                     type: struct
- *                 type: array
- *             image:
- *                 type: string
- *             imagePullPolicy:
- *                 type: string
- *             lifecycle:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.Lifecycle
- *                 type: struct
- *             livenessProbe:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.Probe
- *                 type: struct
- *             name:
- *                 type: string
- *             ports:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.ContainerPort
- *                     type: struct
- *                 type: array
- *             readinessProbe:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.Probe
- *                 type: struct
- *             resizePolicy:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.ContainerResizePolicy
- *                     type: struct
- *                 type: array
- *             resources:
- *                 structRef: k8s.io/api/core/v1.ResourceRequirements
- *                 type: struct
- *             restartPolicy:
- *                 pointer: true
- *                 type: string
- *             restartPolicyRules:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.ContainerRestartRule
- *                     type: struct
- *                 type: array
- *             securityContext:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.SecurityContext
- *                 type: struct
- *             startupProbe:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.Probe
- *                 type: struct
- *             stdin:
- *                 type: bool
- *             stdinOnce:
- *                 type: bool
- *             terminationMessagePath:
- *                 type: string
- *             terminationMessagePolicy:
- *                 type: string
- *             tty:
- *                 type: bool
- *             volumeDevices:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.VolumeDevice
- *                     type: struct
- *                 type: array
- *             volumeMounts:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.VolumeMount
- *                     type: struct
- *                 type: array
- *             workingDir:
- *                 type: string
- *     k8s.io/api/core/v1.EphemeralVolumeSource:
- *         name: k8s.io/api/core/v1.EphemeralVolumeSource
- *         properties:
- *             volumeClaimTemplate:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.PersistentVolumeClaimTemplate
- *                 type: struct
- *     k8s.io/api/core/v1.ExecAction:
- *         name: k8s.io/api/core/v1.ExecAction
- *         properties:
- *             command:
- *                 elementType:
- *                     type: string
- *                 type: array
- *     k8s.io/api/core/v1.FCVolumeSource:
- *         name: k8s.io/api/core/v1.FCVolumeSource
- *         properties:
- *             fsType:
- *                 type: string
- *             lun:
- *                 pointer: true
- *                 type: int
- *             readOnly:
- *                 type: bool
- *             targetWWNs:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             wwids:
- *                 elementType:
- *                     type: string
- *                 type: array
- *     k8s.io/api/core/v1.FileKeySelector:
- *         name: k8s.io/api/core/v1.FileKeySelector
- *         properties:
- *             key:
- *                 type: string
- *             optional:
- *                 pointer: true
- *                 type: bool
- *             path:
- *                 type: string
- *             volumeName:
- *                 type: string
- *     k8s.io/api/core/v1.FlexVolumeSource:
- *         name: k8s.io/api/core/v1.FlexVolumeSource
- *         properties:
- *             driver:
- *                 type: string
- *             fsType:
- *                 type: string
- *             options:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     type: string
- *             readOnly:
- *                 type: bool
- *             secretRef:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.LocalObjectReference
- *                 type: struct
- *     k8s.io/api/core/v1.FlockerVolumeSource:
- *         name: k8s.io/api/core/v1.FlockerVolumeSource
- *         properties:
- *             datasetName:
- *                 type: string
- *             datasetUUID:
- *                 type: string
- *     k8s.io/api/core/v1.GCEPersistentDiskVolumeSource:
- *         name: k8s.io/api/core/v1.GCEPersistentDiskVolumeSource
- *         properties:
- *             fsType:
- *                 type: string
- *             partition:
- *                 type: int
- *             pdName:
- *                 type: string
- *             readOnly:
- *                 type: bool
- *     k8s.io/api/core/v1.GRPCAction:
- *         name: k8s.io/api/core/v1.GRPCAction
- *         properties:
- *             port:
- *                 type: int
- *             service:
- *                 pointer: true
- *                 type: string
- *     k8s.io/api/core/v1.GitRepoVolumeSource:
- *         name: k8s.io/api/core/v1.GitRepoVolumeSource
- *         properties:
- *             directory:
- *                 type: string
- *             repository:
- *                 type: string
- *             revision:
- *                 type: string
- *     k8s.io/api/core/v1.GlusterfsVolumeSource:
- *         name: k8s.io/api/core/v1.GlusterfsVolumeSource
- *         properties:
- *             endpoints:
- *                 type: string
- *             path:
- *                 type: string
- *             readOnly:
- *                 type: bool
- *     k8s.io/api/core/v1.HTTPGetAction:
- *         name: k8s.io/api/core/v1.HTTPGetAction
- *         properties:
- *             host:
- *                 type: string
- *             httpHeaders:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.HTTPHeader
- *                     type: struct
- *                 type: array
- *             path:
- *                 type: string
- *             port:
- *                 structRef: k8s.io/apimachinery/pkg/util/intstr.IntOrString
- *                 type: struct
- *             scheme:
- *                 type: string
- *     k8s.io/api/core/v1.HTTPHeader:
- *         name: k8s.io/api/core/v1.HTTPHeader
- *         properties:
- *             name:
- *                 type: string
- *             value:
- *                 type: string
- *     k8s.io/api/core/v1.HostAlias:
- *         name: k8s.io/api/core/v1.HostAlias
- *         properties:
- *             hostnames:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             ip:
- *                 type: string
- *     k8s.io/api/core/v1.HostIP:
- *         name: k8s.io/api/core/v1.HostIP
- *         properties:
- *             ip:
- *                 type: string
- *     k8s.io/api/core/v1.HostPathVolumeSource:
- *         name: k8s.io/api/core/v1.HostPathVolumeSource
- *         properties:
- *             path:
- *                 type: string
- *             type:
- *                 pointer: true
- *                 type: string
- *     k8s.io/api/core/v1.ISCSIVolumeSource:
- *         name: k8s.io/api/core/v1.ISCSIVolumeSource
- *         properties:
- *             chapAuthDiscovery:
- *                 type: bool
- *             chapAuthSession:
- *                 type: bool
- *             fsType:
- *                 type: string
- *             initiatorName:
- *                 pointer: true
- *                 type: string
- *             iqn:
- *                 type: string
- *             iscsiInterface:
- *                 type: string
- *             lun:
- *                 type: int
- *             portals:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             readOnly:
- *                 type: bool
- *             secretRef:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.LocalObjectReference
- *                 type: struct
- *             targetPortal:
- *                 type: string
- *     k8s.io/api/core/v1.ImageVolumeSource:
- *         name: k8s.io/api/core/v1.ImageVolumeSource
- *         properties:
- *             pullPolicy:
- *                 type: string
- *             reference:
- *                 type: string
- *     k8s.io/api/core/v1.KeyToPath:
- *         name: k8s.io/api/core/v1.KeyToPath
- *         properties:
- *             key:
- *                 type: string
- *             mode:
- *                 pointer: true
- *                 type: int
- *             path:
- *                 type: string
- *     k8s.io/api/core/v1.Lifecycle:
- *         name: k8s.io/api/core/v1.Lifecycle
- *         properties:
- *             postStart:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.LifecycleHandler
- *                 type: struct
- *             preStop:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.LifecycleHandler
- *                 type: struct
- *             stopSignal:
- *                 pointer: true
- *                 type: string
- *     k8s.io/api/core/v1.LifecycleHandler:
- *         name: k8s.io/api/core/v1.LifecycleHandler
- *         properties:
- *             exec:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.ExecAction
- *                 type: struct
- *             httpGet:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.HTTPGetAction
- *                 type: struct
- *             sleep:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.SleepAction
- *                 type: struct
- *             tcpSocket:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.TCPSocketAction
- *                 type: struct
- *     k8s.io/api/core/v1.LinuxContainerUser:
- *         name: k8s.io/api/core/v1.LinuxContainerUser
- *         properties:
- *             gid:
- *                 type: int
- *             supplementalGroups:
- *                 elementType:
- *                     type: int
- *                 type: array
- *             uid:
- *                 type: int
- *     k8s.io/api/core/v1.LocalObjectReference:
- *         name: k8s.io/api/core/v1.LocalObjectReference
- *         properties:
- *             name:
- *                 type: string
- *     k8s.io/api/core/v1.NFSVolumeSource:
- *         name: k8s.io/api/core/v1.NFSVolumeSource
- *         properties:
- *             path:
- *                 type: string
- *             readOnly:
- *                 type: bool
- *             server:
- *                 type: string
- *     k8s.io/api/core/v1.NodeAffinity:
- *         name: k8s.io/api/core/v1.NodeAffinity
- *         properties:
- *             preferredDuringSchedulingIgnoredDuringExecution:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.PreferredSchedulingTerm
- *                     type: struct
- *                 type: array
- *             requiredDuringSchedulingIgnoredDuringExecution:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.NodeSelector
- *                 type: struct
- *     k8s.io/api/core/v1.NodeSelector:
- *         name: k8s.io/api/core/v1.NodeSelector
- *         properties:
- *             nodeSelectorTerms:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.NodeSelectorTerm
- *                     type: struct
- *                 type: array
- *     k8s.io/api/core/v1.NodeSelectorRequirement:
- *         name: k8s.io/api/core/v1.NodeSelectorRequirement
- *         properties:
- *             key:
- *                 type: string
- *             operator:
- *                 type: string
- *             values:
- *                 elementType:
- *                     type: string
- *                 type: array
- *     k8s.io/api/core/v1.NodeSelectorTerm:
- *         name: k8s.io/api/core/v1.NodeSelectorTerm
- *         properties:
- *             matchExpressions:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.NodeSelectorRequirement
- *                     type: struct
- *                 type: array
- *             matchFields:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.NodeSelectorRequirement
- *                     type: struct
- *                 type: array
- *     k8s.io/api/core/v1.ObjectFieldSelector:
- *         name: k8s.io/api/core/v1.ObjectFieldSelector
- *         properties:
- *             apiVersion:
- *                 type: string
- *             fieldPath:
- *                 type: string
- *     k8s.io/api/core/v1.PersistentVolumeClaimSpec:
- *         name: k8s.io/api/core/v1.PersistentVolumeClaimSpec
- *         properties:
- *             accessModes:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             dataSource:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.TypedLocalObjectReference
- *                 type: struct
- *             dataSourceRef:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.TypedObjectReference
- *                 type: struct
- *             resources:
- *                 structRef: k8s.io/api/core/v1.VolumeResourceRequirements
- *                 type: struct
- *             selector:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
- *                 type: struct
- *             storageClassName:
- *                 pointer: true
- *                 type: string
- *             volumeAttributesClassName:
- *                 pointer: true
- *                 type: string
- *             volumeMode:
- *                 pointer: true
- *                 type: string
- *             volumeName:
- *                 type: string
- *     k8s.io/api/core/v1.PersistentVolumeClaimTemplate:
- *         name: k8s.io/api/core/v1.PersistentVolumeClaimTemplate
- *         properties:
- *             metadata:
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta
- *                 type: struct
- *             spec:
- *                 structRef: k8s.io/api/core/v1.PersistentVolumeClaimSpec
- *                 type: struct
- *     k8s.io/api/core/v1.PersistentVolumeClaimVolumeSource:
- *         name: k8s.io/api/core/v1.PersistentVolumeClaimVolumeSource
- *         properties:
- *             claimName:
- *                 type: string
- *             readOnly:
- *                 type: bool
- *     k8s.io/api/core/v1.PhotonPersistentDiskVolumeSource:
- *         name: k8s.io/api/core/v1.PhotonPersistentDiskVolumeSource
- *         properties:
- *             fsType:
- *                 type: string
- *             pdID:
- *                 type: string
- *     k8s.io/api/core/v1.Pod:
- *         name: k8s.io/api/core/v1.Pod
- *         properties:
- *             TypeMeta:
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta
- *                 type: struct
- *             metadata:
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta
- *                 type: struct
- *             spec:
- *                 structRef: k8s.io/api/core/v1.PodSpec
- *                 type: struct
- *             status:
- *                 structRef: k8s.io/api/core/v1.PodStatus
- *                 type: struct
- *     k8s.io/api/core/v1.PodAffinity:
- *         name: k8s.io/api/core/v1.PodAffinity
- *         properties:
- *             preferredDuringSchedulingIgnoredDuringExecution:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.WeightedPodAffinityTerm
- *                     type: struct
- *                 type: array
- *             requiredDuringSchedulingIgnoredDuringExecution:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.PodAffinityTerm
- *                     type: struct
- *                 type: array
- *     k8s.io/api/core/v1.PodAffinityTerm:
- *         name: k8s.io/api/core/v1.PodAffinityTerm
- *         properties:
- *             labelSelector:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
- *                 type: struct
- *             matchLabelKeys:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             mismatchLabelKeys:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             namespaceSelector:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
- *                 type: struct
- *             namespaces:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             topologyKey:
- *                 type: string
- *     k8s.io/api/core/v1.PodAntiAffinity:
- *         name: k8s.io/api/core/v1.PodAntiAffinity
- *         properties:
- *             preferredDuringSchedulingIgnoredDuringExecution:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.WeightedPodAffinityTerm
- *                     type: struct
- *                 type: array
- *             requiredDuringSchedulingIgnoredDuringExecution:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.PodAffinityTerm
- *                     type: struct
- *                 type: array
- *     k8s.io/api/core/v1.PodCertificateProjection:
- *         name: k8s.io/api/core/v1.PodCertificateProjection
- *         properties:
- *             certificateChainPath:
- *                 type: string
- *             credentialBundlePath:
- *                 type: string
- *             keyPath:
- *                 type: string
- *             keyType:
- *                 type: string
- *             maxExpirationSeconds:
- *                 pointer: true
- *                 type: int
- *             signerName:
- *                 type: string
- *     k8s.io/api/core/v1.PodCondition:
- *         name: k8s.io/api/core/v1.PodCondition
- *         properties:
- *             lastProbeTime:
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *                 type: struct
- *             lastTransitionTime:
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *                 type: struct
- *             message:
- *                 type: string
- *             observedGeneration:
- *                 type: int
- *             reason:
- *                 type: string
- *             status:
- *                 type: string
- *             type:
- *                 type: string
- *     k8s.io/api/core/v1.PodDNSConfig:
- *         name: k8s.io/api/core/v1.PodDNSConfig
- *         properties:
- *             nameservers:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             options:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.PodDNSConfigOption
- *                     type: struct
- *                 type: array
- *             searches:
- *                 elementType:
- *                     type: string
- *                 type: array
- *     k8s.io/api/core/v1.PodDNSConfigOption:
- *         name: k8s.io/api/core/v1.PodDNSConfigOption
- *         properties:
- *             name:
- *                 type: string
- *             value:
- *                 pointer: true
- *                 type: string
- *     k8s.io/api/core/v1.PodExtendedResourceClaimStatus:
- *         name: k8s.io/api/core/v1.PodExtendedResourceClaimStatus
- *         properties:
- *             requestMappings:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.ContainerExtendedResourceRequest
- *                     type: struct
- *                 type: array
- *             resourceClaimName:
- *                 type: string
- *     k8s.io/api/core/v1.PodIP:
- *         name: k8s.io/api/core/v1.PodIP
- *         properties:
- *             ip:
- *                 type: string
- *     k8s.io/api/core/v1.PodOS:
- *         name: k8s.io/api/core/v1.PodOS
- *         properties:
- *             name:
- *                 type: string
- *     k8s.io/api/core/v1.PodReadinessGate:
- *         name: k8s.io/api/core/v1.PodReadinessGate
- *         properties:
- *             conditionType:
- *                 type: string
- *     k8s.io/api/core/v1.PodResourceClaim:
- *         name: k8s.io/api/core/v1.PodResourceClaim
- *         properties:
- *             name:
- *                 type: string
- *             resourceClaimName:
- *                 pointer: true
- *                 type: string
- *             resourceClaimTemplateName:
- *                 pointer: true
- *                 type: string
- *     k8s.io/api/core/v1.PodResourceClaimStatus:
- *         name: k8s.io/api/core/v1.PodResourceClaimStatus
- *         properties:
- *             name:
- *                 type: string
- *             resourceClaimName:
- *                 pointer: true
- *                 type: string
- *     k8s.io/api/core/v1.PodSchedulingGate:
- *         name: k8s.io/api/core/v1.PodSchedulingGate
- *         properties:
- *             name:
- *                 type: string
- *     k8s.io/api/core/v1.PodSecurityContext:
- *         name: k8s.io/api/core/v1.PodSecurityContext
- *         properties:
- *             appArmorProfile:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.AppArmorProfile
- *                 type: struct
- *             fsGroup:
- *                 pointer: true
- *                 type: int
- *             fsGroupChangePolicy:
- *                 pointer: true
- *                 type: string
- *             runAsGroup:
- *                 pointer: true
- *                 type: int
- *             runAsNonRoot:
- *                 pointer: true
- *                 type: bool
- *             runAsUser:
- *                 pointer: true
- *                 type: int
- *             seLinuxChangePolicy:
- *                 pointer: true
- *                 type: string
- *             seLinuxOptions:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.SELinuxOptions
- *                 type: struct
- *             seccompProfile:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.SeccompProfile
- *                 type: struct
- *             supplementalGroups:
- *                 elementType:
- *                     type: int
- *                 type: array
- *             supplementalGroupsPolicy:
- *                 pointer: true
- *                 type: string
- *             sysctls:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.Sysctl
- *                     type: struct
- *                 type: array
- *             windowsOptions:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.WindowsSecurityContextOptions
- *                 type: struct
- *     k8s.io/api/core/v1.PodSpec:
- *         name: k8s.io/api/core/v1.PodSpec
- *         properties:
- *             activeDeadlineSeconds:
- *                 pointer: true
- *                 type: int
- *             affinity:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.Affinity
- *                 type: struct
- *             automountServiceAccountToken:
- *                 pointer: true
- *                 type: bool
- *             containers:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.Container
- *                     type: struct
- *                 type: array
- *             dnsConfig:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.PodDNSConfig
- *                 type: struct
- *             dnsPolicy:
- *                 type: string
- *             enableServiceLinks:
- *                 pointer: true
- *                 type: bool
- *             ephemeralContainers:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.EphemeralContainer
- *                     type: struct
- *                 type: array
- *             hostAliases:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.HostAlias
- *                     type: struct
- *                 type: array
- *             hostIPC:
- *                 type: bool
- *             hostNetwork:
- *                 type: bool
- *             hostPID:
- *                 type: bool
- *             hostUsers:
- *                 pointer: true
- *                 type: bool
- *             hostname:
- *                 type: string
- *             hostnameOverride:
- *                 pointer: true
- *                 type: string
- *             imagePullSecrets:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.LocalObjectReference
- *                     type: struct
- *                 type: array
- *             initContainers:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.Container
- *                     type: struct
- *                 type: array
- *             nodeName:
- *                 type: string
- *             nodeSelector:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     type: string
- *             os:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.PodOS
- *                 type: struct
- *             overhead:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     structRef: k8s.io/apimachinery/pkg/api/resource.Quantity
- *                     type: struct
- *             preemptionPolicy:
- *                 pointer: true
- *                 type: string
- *             priority:
- *                 pointer: true
- *                 type: int
- *             priorityClassName:
- *                 type: string
- *             readinessGates:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.PodReadinessGate
- *                     type: struct
- *                 type: array
- *             resourceClaims:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.PodResourceClaim
- *                     type: struct
- *                 type: array
- *             resources:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.ResourceRequirements
- *                 type: struct
- *             restartPolicy:
- *                 type: string
- *             runtimeClassName:
- *                 pointer: true
- *                 type: string
- *             schedulerName:
- *                 type: string
- *             schedulingGates:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.PodSchedulingGate
- *                     type: struct
- *                 type: array
- *             securityContext:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.PodSecurityContext
- *                 type: struct
- *             serviceAccount:
- *                 type: string
- *             serviceAccountName:
- *                 type: string
- *             setHostnameAsFQDN:
- *                 pointer: true
- *                 type: bool
- *             shareProcessNamespace:
- *                 pointer: true
- *                 type: bool
- *             subdomain:
- *                 type: string
- *             terminationGracePeriodSeconds:
- *                 pointer: true
- *                 type: int
- *             tolerations:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.Toleration
- *                     type: struct
- *                 type: array
- *             topologySpreadConstraints:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.TopologySpreadConstraint
- *                     type: struct
- *                 type: array
- *             volumes:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.Volume
- *                     type: struct
- *                 type: array
- *     k8s.io/api/core/v1.PodStatus:
- *         name: k8s.io/api/core/v1.PodStatus
- *         properties:
- *             conditions:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.PodCondition
- *                     type: struct
- *                 type: array
- *             containerStatuses:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.ContainerStatus
- *                     type: struct
- *                 type: array
- *             ephemeralContainerStatuses:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.ContainerStatus
- *                     type: struct
- *                 type: array
- *             extendedResourceClaimStatus:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.PodExtendedResourceClaimStatus
- *                 type: struct
- *             hostIP:
- *                 type: string
- *             hostIPs:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.HostIP
- *                     type: struct
- *                 type: array
- *             initContainerStatuses:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.ContainerStatus
- *                     type: struct
- *                 type: array
- *             message:
- *                 type: string
- *             nominatedNodeName:
- *                 type: string
- *             observedGeneration:
- *                 type: int
- *             phase:
- *                 type: string
- *             podIP:
- *                 type: string
- *             podIPs:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.PodIP
- *                     type: struct
- *                 type: array
- *             qosClass:
- *                 type: string
- *             reason:
- *                 type: string
- *             resize:
- *                 type: string
- *             resourceClaimStatuses:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.PodResourceClaimStatus
- *                     type: struct
- *                 type: array
- *             startTime:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *                 type: struct
- *     k8s.io/api/core/v1.PortworxVolumeSource:
- *         name: k8s.io/api/core/v1.PortworxVolumeSource
- *         properties:
- *             fsType:
- *                 type: string
- *             readOnly:
- *                 type: bool
- *             volumeID:
- *                 type: string
- *     k8s.io/api/core/v1.PreferredSchedulingTerm:
- *         name: k8s.io/api/core/v1.PreferredSchedulingTerm
- *         properties:
- *             preference:
- *                 structRef: k8s.io/api/core/v1.NodeSelectorTerm
- *                 type: struct
- *             weight:
- *                 type: int
- *     k8s.io/api/core/v1.Probe:
- *         name: k8s.io/api/core/v1.Probe
- *         properties:
- *             ProbeHandler:
- *                 structRef: k8s.io/api/core/v1.ProbeHandler
- *                 type: struct
- *             failureThreshold:
- *                 type: int
- *             initialDelaySeconds:
- *                 type: int
- *             periodSeconds:
- *                 type: int
- *             successThreshold:
- *                 type: int
- *             terminationGracePeriodSeconds:
- *                 pointer: true
- *                 type: int
- *             timeoutSeconds:
- *                 type: int
- *     k8s.io/api/core/v1.ProbeHandler:
- *         name: k8s.io/api/core/v1.ProbeHandler
- *         properties:
- *             exec:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.ExecAction
- *                 type: struct
- *             grpc:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.GRPCAction
- *                 type: struct
- *             httpGet:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.HTTPGetAction
- *                 type: struct
- *             tcpSocket:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.TCPSocketAction
- *                 type: struct
- *     k8s.io/api/core/v1.ProjectedVolumeSource:
- *         name: k8s.io/api/core/v1.ProjectedVolumeSource
- *         properties:
- *             defaultMode:
- *                 pointer: true
- *                 type: int
- *             sources:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.VolumeProjection
- *                     type: struct
- *                 type: array
- *     k8s.io/api/core/v1.QuobyteVolumeSource:
- *         name: k8s.io/api/core/v1.QuobyteVolumeSource
- *         properties:
- *             group:
- *                 type: string
- *             readOnly:
- *                 type: bool
- *             registry:
- *                 type: string
- *             tenant:
- *                 type: string
- *             user:
- *                 type: string
- *             volume:
- *                 type: string
- *     k8s.io/api/core/v1.RBDVolumeSource:
- *         name: k8s.io/api/core/v1.RBDVolumeSource
- *         properties:
- *             fsType:
- *                 type: string
- *             image:
- *                 type: string
- *             keyring:
- *                 type: string
- *             monitors:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             pool:
- *                 type: string
- *             readOnly:
- *                 type: bool
- *             secretRef:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.LocalObjectReference
- *                 type: struct
- *             user:
- *                 type: string
- *     k8s.io/api/core/v1.ResourceClaim:
- *         name: k8s.io/api/core/v1.ResourceClaim
- *         properties:
- *             name:
- *                 type: string
- *             request:
- *                 type: string
- *     k8s.io/api/core/v1.ResourceFieldSelector:
- *         name: k8s.io/api/core/v1.ResourceFieldSelector
- *         properties:
- *             containerName:
- *                 type: string
- *             divisor:
- *                 structRef: k8s.io/apimachinery/pkg/api/resource.Quantity
- *                 type: struct
- *             resource:
- *                 type: string
- *     k8s.io/api/core/v1.ResourceHealth:
- *         name: k8s.io/api/core/v1.ResourceHealth
- *         properties:
- *             health:
- *                 type: string
- *             resourceID:
- *                 type: string
- *     k8s.io/api/core/v1.ResourceRequirements:
- *         name: k8s.io/api/core/v1.ResourceRequirements
- *         properties:
- *             claims:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.ResourceClaim
- *                     type: struct
- *                 type: array
- *             limits:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     structRef: k8s.io/apimachinery/pkg/api/resource.Quantity
- *                     type: struct
- *             requests:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     structRef: k8s.io/apimachinery/pkg/api/resource.Quantity
- *                     type: struct
- *     k8s.io/api/core/v1.ResourceStatus:
- *         name: k8s.io/api/core/v1.ResourceStatus
- *         properties:
- *             name:
- *                 type: string
- *             resources:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.ResourceHealth
- *                     type: struct
- *                 type: array
- *     k8s.io/api/core/v1.SELinuxOptions:
- *         name: k8s.io/api/core/v1.SELinuxOptions
- *         properties:
- *             level:
- *                 type: string
- *             role:
- *                 type: string
- *             type:
- *                 type: string
- *             user:
- *                 type: string
- *     k8s.io/api/core/v1.ScaleIOVolumeSource:
- *         name: k8s.io/api/core/v1.ScaleIOVolumeSource
- *         properties:
- *             fsType:
- *                 type: string
- *             gateway:
- *                 type: string
- *             protectionDomain:
- *                 type: string
- *             readOnly:
- *                 type: bool
- *             secretRef:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.LocalObjectReference
- *                 type: struct
- *             sslEnabled:
- *                 type: bool
- *             storageMode:
- *                 type: string
- *             storagePool:
- *                 type: string
- *             system:
- *                 type: string
- *             volumeName:
- *                 type: string
- *     k8s.io/api/core/v1.SeccompProfile:
- *         name: k8s.io/api/core/v1.SeccompProfile
- *         properties:
- *             localhostProfile:
- *                 pointer: true
- *                 type: string
- *             type:
- *                 type: string
- *     k8s.io/api/core/v1.SecretEnvSource:
- *         name: k8s.io/api/core/v1.SecretEnvSource
- *         properties:
- *             LocalObjectReference:
- *                 structRef: k8s.io/api/core/v1.LocalObjectReference
- *                 type: struct
- *             optional:
- *                 pointer: true
- *                 type: bool
- *     k8s.io/api/core/v1.SecretKeySelector:
- *         name: k8s.io/api/core/v1.SecretKeySelector
- *         properties:
- *             LocalObjectReference:
- *                 structRef: k8s.io/api/core/v1.LocalObjectReference
- *                 type: struct
- *             key:
- *                 type: string
- *             optional:
- *                 pointer: true
- *                 type: bool
- *     k8s.io/api/core/v1.SecretProjection:
- *         name: k8s.io/api/core/v1.SecretProjection
- *         properties:
- *             LocalObjectReference:
- *                 structRef: k8s.io/api/core/v1.LocalObjectReference
- *                 type: struct
- *             items:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.KeyToPath
- *                     type: struct
- *                 type: array
- *             optional:
- *                 pointer: true
- *                 type: bool
- *     k8s.io/api/core/v1.SecretVolumeSource:
- *         name: k8s.io/api/core/v1.SecretVolumeSource
- *         properties:
- *             defaultMode:
- *                 pointer: true
- *                 type: int
- *             items:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.KeyToPath
- *                     type: struct
- *                 type: array
- *             optional:
- *                 pointer: true
- *                 type: bool
- *             secretName:
- *                 type: string
- *     k8s.io/api/core/v1.SecurityContext:
- *         name: k8s.io/api/core/v1.SecurityContext
- *         properties:
- *             allowPrivilegeEscalation:
- *                 pointer: true
- *                 type: bool
- *             appArmorProfile:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.AppArmorProfile
- *                 type: struct
- *             capabilities:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.Capabilities
- *                 type: struct
- *             privileged:
- *                 pointer: true
- *                 type: bool
- *             procMount:
- *                 pointer: true
- *                 type: string
- *             readOnlyRootFilesystem:
- *                 pointer: true
- *                 type: bool
- *             runAsGroup:
- *                 pointer: true
- *                 type: int
- *             runAsNonRoot:
- *                 pointer: true
- *                 type: bool
- *             runAsUser:
- *                 pointer: true
- *                 type: int
- *             seLinuxOptions:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.SELinuxOptions
- *                 type: struct
- *             seccompProfile:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.SeccompProfile
- *                 type: struct
- *             windowsOptions:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.WindowsSecurityContextOptions
- *                 type: struct
- *     k8s.io/api/core/v1.ServiceAccountTokenProjection:
- *         name: k8s.io/api/core/v1.ServiceAccountTokenProjection
- *         properties:
- *             audience:
- *                 type: string
- *             expirationSeconds:
- *                 pointer: true
- *                 type: int
- *             path:
- *                 type: string
- *     k8s.io/api/core/v1.SleepAction:
- *         name: k8s.io/api/core/v1.SleepAction
- *         properties:
- *             seconds:
- *                 type: int
- *     k8s.io/api/core/v1.StorageOSVolumeSource:
- *         name: k8s.io/api/core/v1.StorageOSVolumeSource
- *         properties:
- *             fsType:
- *                 type: string
- *             readOnly:
- *                 type: bool
- *             secretRef:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.LocalObjectReference
- *                 type: struct
- *             volumeName:
- *                 type: string
- *             volumeNamespace:
- *                 type: string
- *     k8s.io/api/core/v1.Sysctl:
- *         name: k8s.io/api/core/v1.Sysctl
- *         properties:
- *             name:
- *                 type: string
- *             value:
- *                 type: string
- *     k8s.io/api/core/v1.TCPSocketAction:
- *         name: k8s.io/api/core/v1.TCPSocketAction
- *         properties:
- *             host:
- *                 type: string
- *             port:
- *                 structRef: k8s.io/apimachinery/pkg/util/intstr.IntOrString
- *                 type: struct
- *     k8s.io/api/core/v1.Toleration:
- *         name: k8s.io/api/core/v1.Toleration
- *         properties:
- *             effect:
- *                 type: string
- *             key:
- *                 type: string
- *             operator:
- *                 type: string
- *             tolerationSeconds:
- *                 pointer: true
- *                 type: int
- *             value:
- *                 type: string
- *     k8s.io/api/core/v1.TopologySpreadConstraint:
- *         name: k8s.io/api/core/v1.TopologySpreadConstraint
- *         properties:
- *             labelSelector:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
- *                 type: struct
- *             matchLabelKeys:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             maxSkew:
- *                 type: int
- *             minDomains:
- *                 pointer: true
- *                 type: int
- *             nodeAffinityPolicy:
- *                 pointer: true
- *                 type: string
- *             nodeTaintsPolicy:
- *                 pointer: true
- *                 type: string
- *             topologyKey:
- *                 type: string
- *             whenUnsatisfiable:
- *                 type: string
- *     k8s.io/api/core/v1.TypedLocalObjectReference:
- *         name: k8s.io/api/core/v1.TypedLocalObjectReference
- *         properties:
- *             apiGroup:
- *                 pointer: true
- *                 type: string
- *             kind:
- *                 type: string
- *             name:
- *                 type: string
- *     k8s.io/api/core/v1.TypedObjectReference:
- *         name: k8s.io/api/core/v1.TypedObjectReference
- *         properties:
- *             apiGroup:
- *                 pointer: true
- *                 type: string
- *             kind:
- *                 type: string
- *             name:
- *                 type: string
- *             namespace:
- *                 pointer: true
- *                 type: string
- *     k8s.io/api/core/v1.Volume:
- *         name: k8s.io/api/core/v1.Volume
- *         properties:
- *             VolumeSource:
- *                 structRef: k8s.io/api/core/v1.VolumeSource
- *                 type: struct
- *             name:
- *                 type: string
- *     k8s.io/api/core/v1.VolumeDevice:
- *         name: k8s.io/api/core/v1.VolumeDevice
- *         properties:
- *             devicePath:
- *                 type: string
- *             name:
- *                 type: string
- *     k8s.io/api/core/v1.VolumeMount:
- *         name: k8s.io/api/core/v1.VolumeMount
- *         properties:
- *             mountPath:
- *                 type: string
- *             mountPropagation:
- *                 pointer: true
- *                 type: string
- *             name:
- *                 type: string
- *             readOnly:
- *                 type: bool
- *             recursiveReadOnly:
- *                 pointer: true
- *                 type: string
- *             subPath:
- *                 type: string
- *             subPathExpr:
- *                 type: string
- *     k8s.io/api/core/v1.VolumeMountStatus:
- *         name: k8s.io/api/core/v1.VolumeMountStatus
- *         properties:
- *             mountPath:
- *                 type: string
- *             name:
- *                 type: string
- *             readOnly:
- *                 type: bool
- *             recursiveReadOnly:
- *                 pointer: true
- *                 type: string
- *     k8s.io/api/core/v1.VolumeProjection:
- *         name: k8s.io/api/core/v1.VolumeProjection
- *         properties:
- *             clusterTrustBundle:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.ClusterTrustBundleProjection
- *                 type: struct
- *             configMap:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.ConfigMapProjection
- *                 type: struct
- *             downwardAPI:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.DownwardAPIProjection
- *                 type: struct
- *             podCertificate:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.PodCertificateProjection
- *                 type: struct
- *             secret:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.SecretProjection
- *                 type: struct
- *             serviceAccountToken:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.ServiceAccountTokenProjection
- *                 type: struct
- *     k8s.io/api/core/v1.VolumeResourceRequirements:
- *         name: k8s.io/api/core/v1.VolumeResourceRequirements
- *         properties:
- *             limits:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     structRef: k8s.io/apimachinery/pkg/api/resource.Quantity
- *                     type: struct
- *             requests:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     structRef: k8s.io/apimachinery/pkg/api/resource.Quantity
- *                     type: struct
- *     k8s.io/api/core/v1.VolumeSource:
- *         name: k8s.io/api/core/v1.VolumeSource
- *         properties:
- *             awsElasticBlockStore:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.AWSElasticBlockStoreVolumeSource
- *                 type: struct
- *             azureDisk:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.AzureDiskVolumeSource
- *                 type: struct
- *             azureFile:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.AzureFileVolumeSource
- *                 type: struct
- *             cephfs:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.CephFSVolumeSource
- *                 type: struct
- *             cinder:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.CinderVolumeSource
- *                 type: struct
- *             configMap:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.ConfigMapVolumeSource
- *                 type: struct
- *             csi:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.CSIVolumeSource
- *                 type: struct
- *             downwardAPI:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.DownwardAPIVolumeSource
- *                 type: struct
- *             emptyDir:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.EmptyDirVolumeSource
- *                 type: struct
- *             ephemeral:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.EphemeralVolumeSource
- *                 type: struct
- *             fc:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.FCVolumeSource
- *                 type: struct
- *             flexVolume:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.FlexVolumeSource
- *                 type: struct
- *             flocker:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.FlockerVolumeSource
- *                 type: struct
- *             gcePersistentDisk:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.GCEPersistentDiskVolumeSource
- *                 type: struct
- *             gitRepo:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.GitRepoVolumeSource
- *                 type: struct
- *             glusterfs:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.GlusterfsVolumeSource
- *                 type: struct
- *             hostPath:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.HostPathVolumeSource
- *                 type: struct
- *             image:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.ImageVolumeSource
- *                 type: struct
- *             iscsi:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.ISCSIVolumeSource
- *                 type: struct
- *             nfs:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.NFSVolumeSource
- *                 type: struct
- *             persistentVolumeClaim:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.PersistentVolumeClaimVolumeSource
- *                 type: struct
- *             photonPersistentDisk:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.PhotonPersistentDiskVolumeSource
- *                 type: struct
- *             portworxVolume:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.PortworxVolumeSource
- *                 type: struct
- *             projected:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.ProjectedVolumeSource
- *                 type: struct
- *             quobyte:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.QuobyteVolumeSource
- *                 type: struct
- *             rbd:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.RBDVolumeSource
- *                 type: struct
- *             scaleIO:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.ScaleIOVolumeSource
- *                 type: struct
- *             secret:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.SecretVolumeSource
- *                 type: struct
- *             storageos:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.StorageOSVolumeSource
- *                 type: struct
- *             vsphereVolume:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.VsphereVirtualDiskVolumeSource
- *                 type: struct
- *     k8s.io/api/core/v1.VsphereVirtualDiskVolumeSource:
- *         name: k8s.io/api/core/v1.VsphereVirtualDiskVolumeSource
- *         properties:
- *             fsType:
- *                 type: string
- *             storagePolicyID:
- *                 type: string
- *             storagePolicyName:
- *                 type: string
- *             volumePath:
- *                 type: string
- *     k8s.io/api/core/v1.WeightedPodAffinityTerm:
- *         name: k8s.io/api/core/v1.WeightedPodAffinityTerm
- *         properties:
- *             podAffinityTerm:
- *                 structRef: k8s.io/api/core/v1.PodAffinityTerm
- *                 type: struct
- *             weight:
- *                 type: int
- *     k8s.io/api/core/v1.WindowsSecurityContextOptions:
- *         name: k8s.io/api/core/v1.WindowsSecurityContextOptions
- *         properties:
- *             gmsaCredentialSpec:
- *                 pointer: true
- *                 type: string
- *             gmsaCredentialSpecName:
- *                 pointer: true
- *                 type: string
- *             hostProcess:
- *                 pointer: true
- *                 type: bool
- *             runAsUserName:
- *                 pointer: true
- *                 type: string
- *     k8s.io/apimachinery/pkg/api/resource.Quantity:
- *         name: k8s.io/apimachinery/pkg/api/resource.Quantity
- *         properties:
- *             Format:
- *                 type: string
- *     k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1
- *         properties: {}
- *     k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
- *         properties:
- *             matchExpressions:
- *                 elementType:
- *                     structRef: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelectorRequirement
- *                     type: struct
- *                 type: array
- *             matchLabels:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     type: string
- *     k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelectorRequirement:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelectorRequirement
- *         properties:
- *             key:
- *                 type: string
- *             operator:
- *                 type: string
- *             values:
- *                 elementType:
- *                     type: string
- *                 type: array
- *     k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry
- *         properties:
- *             apiVersion:
- *                 type: string
- *             fieldsType:
- *                 type: string
- *             fieldsV1:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1
- *                 type: struct
- *             manager:
- *                 type: string
- *             operation:
- *                 type: string
- *             subresource:
- *                 type: string
- *             time:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *                 type: struct
- *     k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta
- *         properties:
- *             annotations:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     type: string
- *             creationTimestamp:
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *                 type: struct
- *             deletionGracePeriodSeconds:
- *                 pointer: true
- *                 type: int
- *             deletionTimestamp:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *                 type: struct
- *             finalizers:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             generateName:
- *                 type: string
- *             generation:
- *                 type: int
- *             labels:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     type: string
- *             managedFields:
- *                 elementType:
- *                     structRef: k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry
- *                     type: struct
- *                 type: array
- *             name:
- *                 type: string
- *             namespace:
- *                 type: string
- *             ownerReferences:
- *                 elementType:
- *                     structRef: k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference
- *                     type: struct
- *                 type: array
- *             resourceVersion:
- *                 type: string
- *             selfLink:
- *                 type: string
- *             uid:
- *                 type: string
- *     k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference
- *         properties:
- *             apiVersion:
- *                 type: string
- *             blockOwnerDeletion:
- *                 pointer: true
- *                 type: bool
- *             controller:
- *                 pointer: true
- *                 type: bool
- *             kind:
- *                 type: string
- *             name:
- *                 type: string
- *             uid:
- *                 type: string
- *     k8s.io/apimachinery/pkg/apis/meta/v1.Time:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *         properties:
- *             Time:
- *                 structRef: time.Time
- *                 type: struct
- *     k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta
- *         properties:
- *             apiVersion:
- *                 type: string
- *             kind:
- *                 type: string
- *     k8s.io/apimachinery/pkg/util/intstr.IntOrString:
- *         name: k8s.io/apimachinery/pkg/util/intstr.IntOrString
- *         properties:
- *             IntVal:
- *                 type: int
- *             StrVal:
- *                 type: string
- *             Type:
- *                 type: int
- *     time.Time:
- *         name: time.Time
- *         properties: {}
- * typeInfo:
- *     elementType:
- *         structRef: k8s.io/api/core/v1.Pod
- *         type: struct
- *     type: array
- * ```
- *
- */
-export type SERVICE_PODS_RESPONSE = SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_POD[];
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
  *     mogenius-k8s-manager/src/xterm.PodEventConnectionRequest:
  *         name: mogenius-k8s-manager/src/xterm.PodEventConnectionRequest
  *         properties:
@@ -12523,4847 +7071,6 @@ export type SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST_REQUEST = SERVICE_POD_EV
  *
  */
 export type SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST_RESPONSE = SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_XTERM_PODEVENTCONNECTIONREQUEST_MOGENIUS_K8S_MANAGER_SRC_CORE_VOID;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     mogenius-k8s-manager/src/services.ServiceResourceStatusRequest:
- *         name: mogenius-k8s-manager/src/services.ServiceResourceStatusRequest
- *         properties:
- *             name:
- *                 type: string
- *             namespace:
- *                 type: string
- *             resource:
- *                 type: string
- *             statusOnly:
- *                 type: bool
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/services.ServiceResourceStatusRequest
- *     type: struct
- * ```
- *
- */
-export type SERVICE_RESOURCE_STATUS_REQUEST = SERVICE_RESOURCE_STATUS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_SERVICERESOURCESTATUSREQUEST;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     k8s.io/api/core/v1.AWSElasticBlockStoreVolumeSource:
- *         name: k8s.io/api/core/v1.AWSElasticBlockStoreVolumeSource
- *         properties:
- *             fsType:
- *                 type: string
- *             partition:
- *                 type: int
- *             readOnly:
- *                 type: bool
- *             volumeID:
- *                 type: string
- *     k8s.io/api/core/v1.Affinity:
- *         name: k8s.io/api/core/v1.Affinity
- *         properties:
- *             nodeAffinity:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.NodeAffinity
- *                 type: struct
- *             podAffinity:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.PodAffinity
- *                 type: struct
- *             podAntiAffinity:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.PodAntiAffinity
- *                 type: struct
- *     k8s.io/api/core/v1.AppArmorProfile:
- *         name: k8s.io/api/core/v1.AppArmorProfile
- *         properties:
- *             localhostProfile:
- *                 pointer: true
- *                 type: string
- *             type:
- *                 type: string
- *     k8s.io/api/core/v1.AzureDiskVolumeSource:
- *         name: k8s.io/api/core/v1.AzureDiskVolumeSource
- *         properties:
- *             cachingMode:
- *                 pointer: true
- *                 type: string
- *             diskName:
- *                 type: string
- *             diskURI:
- *                 type: string
- *             fsType:
- *                 pointer: true
- *                 type: string
- *             kind:
- *                 pointer: true
- *                 type: string
- *             readOnly:
- *                 pointer: true
- *                 type: bool
- *     k8s.io/api/core/v1.AzureFileVolumeSource:
- *         name: k8s.io/api/core/v1.AzureFileVolumeSource
- *         properties:
- *             readOnly:
- *                 type: bool
- *             secretName:
- *                 type: string
- *             shareName:
- *                 type: string
- *     k8s.io/api/core/v1.CSIVolumeSource:
- *         name: k8s.io/api/core/v1.CSIVolumeSource
- *         properties:
- *             driver:
- *                 type: string
- *             fsType:
- *                 pointer: true
- *                 type: string
- *             nodePublishSecretRef:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.LocalObjectReference
- *                 type: struct
- *             readOnly:
- *                 pointer: true
- *                 type: bool
- *             volumeAttributes:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     type: string
- *     k8s.io/api/core/v1.Capabilities:
- *         name: k8s.io/api/core/v1.Capabilities
- *         properties:
- *             add:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             drop:
- *                 elementType:
- *                     type: string
- *                 type: array
- *     k8s.io/api/core/v1.CephFSVolumeSource:
- *         name: k8s.io/api/core/v1.CephFSVolumeSource
- *         properties:
- *             monitors:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             path:
- *                 type: string
- *             readOnly:
- *                 type: bool
- *             secretFile:
- *                 type: string
- *             secretRef:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.LocalObjectReference
- *                 type: struct
- *             user:
- *                 type: string
- *     k8s.io/api/core/v1.CinderVolumeSource:
- *         name: k8s.io/api/core/v1.CinderVolumeSource
- *         properties:
- *             fsType:
- *                 type: string
- *             readOnly:
- *                 type: bool
- *             secretRef:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.LocalObjectReference
- *                 type: struct
- *             volumeID:
- *                 type: string
- *     k8s.io/api/core/v1.ClusterTrustBundleProjection:
- *         name: k8s.io/api/core/v1.ClusterTrustBundleProjection
- *         properties:
- *             labelSelector:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
- *                 type: struct
- *             name:
- *                 pointer: true
- *                 type: string
- *             optional:
- *                 pointer: true
- *                 type: bool
- *             path:
- *                 type: string
- *             signerName:
- *                 pointer: true
- *                 type: string
- *     k8s.io/api/core/v1.ConfigMapEnvSource:
- *         name: k8s.io/api/core/v1.ConfigMapEnvSource
- *         properties:
- *             LocalObjectReference:
- *                 structRef: k8s.io/api/core/v1.LocalObjectReference
- *                 type: struct
- *             optional:
- *                 pointer: true
- *                 type: bool
- *     k8s.io/api/core/v1.ConfigMapKeySelector:
- *         name: k8s.io/api/core/v1.ConfigMapKeySelector
- *         properties:
- *             LocalObjectReference:
- *                 structRef: k8s.io/api/core/v1.LocalObjectReference
- *                 type: struct
- *             key:
- *                 type: string
- *             optional:
- *                 pointer: true
- *                 type: bool
- *     k8s.io/api/core/v1.ConfigMapProjection:
- *         name: k8s.io/api/core/v1.ConfigMapProjection
- *         properties:
- *             LocalObjectReference:
- *                 structRef: k8s.io/api/core/v1.LocalObjectReference
- *                 type: struct
- *             items:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.KeyToPath
- *                     type: struct
- *                 type: array
- *             optional:
- *                 pointer: true
- *                 type: bool
- *     k8s.io/api/core/v1.ConfigMapVolumeSource:
- *         name: k8s.io/api/core/v1.ConfigMapVolumeSource
- *         properties:
- *             LocalObjectReference:
- *                 structRef: k8s.io/api/core/v1.LocalObjectReference
- *                 type: struct
- *             defaultMode:
- *                 pointer: true
- *                 type: int
- *             items:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.KeyToPath
- *                     type: struct
- *                 type: array
- *             optional:
- *                 pointer: true
- *                 type: bool
- *     k8s.io/api/core/v1.Container:
- *         name: k8s.io/api/core/v1.Container
- *         properties:
- *             args:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             command:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             env:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.EnvVar
- *                     type: struct
- *                 type: array
- *             envFrom:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.EnvFromSource
- *                     type: struct
- *                 type: array
- *             image:
- *                 type: string
- *             imagePullPolicy:
- *                 type: string
- *             lifecycle:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.Lifecycle
- *                 type: struct
- *             livenessProbe:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.Probe
- *                 type: struct
- *             name:
- *                 type: string
- *             ports:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.ContainerPort
- *                     type: struct
- *                 type: array
- *             readinessProbe:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.Probe
- *                 type: struct
- *             resizePolicy:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.ContainerResizePolicy
- *                     type: struct
- *                 type: array
- *             resources:
- *                 structRef: k8s.io/api/core/v1.ResourceRequirements
- *                 type: struct
- *             restartPolicy:
- *                 pointer: true
- *                 type: string
- *             restartPolicyRules:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.ContainerRestartRule
- *                     type: struct
- *                 type: array
- *             securityContext:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.SecurityContext
- *                 type: struct
- *             startupProbe:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.Probe
- *                 type: struct
- *             stdin:
- *                 type: bool
- *             stdinOnce:
- *                 type: bool
- *             terminationMessagePath:
- *                 type: string
- *             terminationMessagePolicy:
- *                 type: string
- *             tty:
- *                 type: bool
- *             volumeDevices:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.VolumeDevice
- *                     type: struct
- *                 type: array
- *             volumeMounts:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.VolumeMount
- *                     type: struct
- *                 type: array
- *             workingDir:
- *                 type: string
- *     k8s.io/api/core/v1.ContainerExtendedResourceRequest:
- *         name: k8s.io/api/core/v1.ContainerExtendedResourceRequest
- *         properties:
- *             containerName:
- *                 type: string
- *             requestName:
- *                 type: string
- *             resourceName:
- *                 type: string
- *     k8s.io/api/core/v1.ContainerPort:
- *         name: k8s.io/api/core/v1.ContainerPort
- *         properties:
- *             containerPort:
- *                 type: int
- *             hostIP:
- *                 type: string
- *             hostPort:
- *                 type: int
- *             name:
- *                 type: string
- *             protocol:
- *                 type: string
- *     k8s.io/api/core/v1.ContainerResizePolicy:
- *         name: k8s.io/api/core/v1.ContainerResizePolicy
- *         properties:
- *             resourceName:
- *                 type: string
- *             restartPolicy:
- *                 type: string
- *     k8s.io/api/core/v1.ContainerRestartRule:
- *         name: k8s.io/api/core/v1.ContainerRestartRule
- *         properties:
- *             action:
- *                 type: string
- *             exitCodes:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.ContainerRestartRuleOnExitCodes
- *                 type: struct
- *     k8s.io/api/core/v1.ContainerRestartRuleOnExitCodes:
- *         name: k8s.io/api/core/v1.ContainerRestartRuleOnExitCodes
- *         properties:
- *             operator:
- *                 type: string
- *             values:
- *                 elementType:
- *                     type: int
- *                 type: array
- *     k8s.io/api/core/v1.ContainerState:
- *         name: k8s.io/api/core/v1.ContainerState
- *         properties:
- *             running:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.ContainerStateRunning
- *                 type: struct
- *             terminated:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.ContainerStateTerminated
- *                 type: struct
- *             waiting:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.ContainerStateWaiting
- *                 type: struct
- *     k8s.io/api/core/v1.ContainerStateRunning:
- *         name: k8s.io/api/core/v1.ContainerStateRunning
- *         properties:
- *             startedAt:
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *                 type: struct
- *     k8s.io/api/core/v1.ContainerStateTerminated:
- *         name: k8s.io/api/core/v1.ContainerStateTerminated
- *         properties:
- *             containerID:
- *                 type: string
- *             exitCode:
- *                 type: int
- *             finishedAt:
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *                 type: struct
- *             message:
- *                 type: string
- *             reason:
- *                 type: string
- *             signal:
- *                 type: int
- *             startedAt:
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *                 type: struct
- *     k8s.io/api/core/v1.ContainerStateWaiting:
- *         name: k8s.io/api/core/v1.ContainerStateWaiting
- *         properties:
- *             message:
- *                 type: string
- *             reason:
- *                 type: string
- *     k8s.io/api/core/v1.ContainerStatus:
- *         name: k8s.io/api/core/v1.ContainerStatus
- *         properties:
- *             allocatedResources:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     structRef: k8s.io/apimachinery/pkg/api/resource.Quantity
- *                     type: struct
- *             allocatedResourcesStatus:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.ResourceStatus
- *                     type: struct
- *                 type: array
- *             containerID:
- *                 type: string
- *             image:
- *                 type: string
- *             imageID:
- *                 type: string
- *             lastState:
- *                 structRef: k8s.io/api/core/v1.ContainerState
- *                 type: struct
- *             name:
- *                 type: string
- *             ready:
- *                 type: bool
- *             resources:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.ResourceRequirements
- *                 type: struct
- *             restartCount:
- *                 type: int
- *             started:
- *                 pointer: true
- *                 type: bool
- *             state:
- *                 structRef: k8s.io/api/core/v1.ContainerState
- *                 type: struct
- *             stopSignal:
- *                 pointer: true
- *                 type: string
- *             user:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.ContainerUser
- *                 type: struct
- *             volumeMounts:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.VolumeMountStatus
- *                     type: struct
- *                 type: array
- *     k8s.io/api/core/v1.ContainerUser:
- *         name: k8s.io/api/core/v1.ContainerUser
- *         properties:
- *             linux:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.LinuxContainerUser
- *                 type: struct
- *     k8s.io/api/core/v1.DownwardAPIProjection:
- *         name: k8s.io/api/core/v1.DownwardAPIProjection
- *         properties:
- *             items:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.DownwardAPIVolumeFile
- *                     type: struct
- *                 type: array
- *     k8s.io/api/core/v1.DownwardAPIVolumeFile:
- *         name: k8s.io/api/core/v1.DownwardAPIVolumeFile
- *         properties:
- *             fieldRef:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.ObjectFieldSelector
- *                 type: struct
- *             mode:
- *                 pointer: true
- *                 type: int
- *             path:
- *                 type: string
- *             resourceFieldRef:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.ResourceFieldSelector
- *                 type: struct
- *     k8s.io/api/core/v1.DownwardAPIVolumeSource:
- *         name: k8s.io/api/core/v1.DownwardAPIVolumeSource
- *         properties:
- *             defaultMode:
- *                 pointer: true
- *                 type: int
- *             items:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.DownwardAPIVolumeFile
- *                     type: struct
- *                 type: array
- *     k8s.io/api/core/v1.EmptyDirVolumeSource:
- *         name: k8s.io/api/core/v1.EmptyDirVolumeSource
- *         properties:
- *             medium:
- *                 type: string
- *             sizeLimit:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/api/resource.Quantity
- *                 type: struct
- *     k8s.io/api/core/v1.EnvFromSource:
- *         name: k8s.io/api/core/v1.EnvFromSource
- *         properties:
- *             configMapRef:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.ConfigMapEnvSource
- *                 type: struct
- *             prefix:
- *                 type: string
- *             secretRef:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.SecretEnvSource
- *                 type: struct
- *     k8s.io/api/core/v1.EnvVar:
- *         name: k8s.io/api/core/v1.EnvVar
- *         properties:
- *             name:
- *                 type: string
- *             value:
- *                 type: string
- *             valueFrom:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.EnvVarSource
- *                 type: struct
- *     k8s.io/api/core/v1.EnvVarSource:
- *         name: k8s.io/api/core/v1.EnvVarSource
- *         properties:
- *             configMapKeyRef:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.ConfigMapKeySelector
- *                 type: struct
- *             fieldRef:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.ObjectFieldSelector
- *                 type: struct
- *             fileKeyRef:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.FileKeySelector
- *                 type: struct
- *             resourceFieldRef:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.ResourceFieldSelector
- *                 type: struct
- *             secretKeyRef:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.SecretKeySelector
- *                 type: struct
- *     k8s.io/api/core/v1.EphemeralContainer:
- *         name: k8s.io/api/core/v1.EphemeralContainer
- *         properties:
- *             EphemeralContainerCommon:
- *                 structRef: k8s.io/api/core/v1.EphemeralContainerCommon
- *                 type: struct
- *             targetContainerName:
- *                 type: string
- *     k8s.io/api/core/v1.EphemeralContainerCommon:
- *         name: k8s.io/api/core/v1.EphemeralContainerCommon
- *         properties:
- *             args:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             command:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             env:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.EnvVar
- *                     type: struct
- *                 type: array
- *             envFrom:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.EnvFromSource
- *                     type: struct
- *                 type: array
- *             image:
- *                 type: string
- *             imagePullPolicy:
- *                 type: string
- *             lifecycle:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.Lifecycle
- *                 type: struct
- *             livenessProbe:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.Probe
- *                 type: struct
- *             name:
- *                 type: string
- *             ports:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.ContainerPort
- *                     type: struct
- *                 type: array
- *             readinessProbe:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.Probe
- *                 type: struct
- *             resizePolicy:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.ContainerResizePolicy
- *                     type: struct
- *                 type: array
- *             resources:
- *                 structRef: k8s.io/api/core/v1.ResourceRequirements
- *                 type: struct
- *             restartPolicy:
- *                 pointer: true
- *                 type: string
- *             restartPolicyRules:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.ContainerRestartRule
- *                     type: struct
- *                 type: array
- *             securityContext:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.SecurityContext
- *                 type: struct
- *             startupProbe:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.Probe
- *                 type: struct
- *             stdin:
- *                 type: bool
- *             stdinOnce:
- *                 type: bool
- *             terminationMessagePath:
- *                 type: string
- *             terminationMessagePolicy:
- *                 type: string
- *             tty:
- *                 type: bool
- *             volumeDevices:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.VolumeDevice
- *                     type: struct
- *                 type: array
- *             volumeMounts:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.VolumeMount
- *                     type: struct
- *                 type: array
- *             workingDir:
- *                 type: string
- *     k8s.io/api/core/v1.EphemeralVolumeSource:
- *         name: k8s.io/api/core/v1.EphemeralVolumeSource
- *         properties:
- *             volumeClaimTemplate:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.PersistentVolumeClaimTemplate
- *                 type: struct
- *     k8s.io/api/core/v1.ExecAction:
- *         name: k8s.io/api/core/v1.ExecAction
- *         properties:
- *             command:
- *                 elementType:
- *                     type: string
- *                 type: array
- *     k8s.io/api/core/v1.FCVolumeSource:
- *         name: k8s.io/api/core/v1.FCVolumeSource
- *         properties:
- *             fsType:
- *                 type: string
- *             lun:
- *                 pointer: true
- *                 type: int
- *             readOnly:
- *                 type: bool
- *             targetWWNs:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             wwids:
- *                 elementType:
- *                     type: string
- *                 type: array
- *     k8s.io/api/core/v1.FileKeySelector:
- *         name: k8s.io/api/core/v1.FileKeySelector
- *         properties:
- *             key:
- *                 type: string
- *             optional:
- *                 pointer: true
- *                 type: bool
- *             path:
- *                 type: string
- *             volumeName:
- *                 type: string
- *     k8s.io/api/core/v1.FlexVolumeSource:
- *         name: k8s.io/api/core/v1.FlexVolumeSource
- *         properties:
- *             driver:
- *                 type: string
- *             fsType:
- *                 type: string
- *             options:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     type: string
- *             readOnly:
- *                 type: bool
- *             secretRef:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.LocalObjectReference
- *                 type: struct
- *     k8s.io/api/core/v1.FlockerVolumeSource:
- *         name: k8s.io/api/core/v1.FlockerVolumeSource
- *         properties:
- *             datasetName:
- *                 type: string
- *             datasetUUID:
- *                 type: string
- *     k8s.io/api/core/v1.GCEPersistentDiskVolumeSource:
- *         name: k8s.io/api/core/v1.GCEPersistentDiskVolumeSource
- *         properties:
- *             fsType:
- *                 type: string
- *             partition:
- *                 type: int
- *             pdName:
- *                 type: string
- *             readOnly:
- *                 type: bool
- *     k8s.io/api/core/v1.GRPCAction:
- *         name: k8s.io/api/core/v1.GRPCAction
- *         properties:
- *             port:
- *                 type: int
- *             service:
- *                 pointer: true
- *                 type: string
- *     k8s.io/api/core/v1.GitRepoVolumeSource:
- *         name: k8s.io/api/core/v1.GitRepoVolumeSource
- *         properties:
- *             directory:
- *                 type: string
- *             repository:
- *                 type: string
- *             revision:
- *                 type: string
- *     k8s.io/api/core/v1.GlusterfsVolumeSource:
- *         name: k8s.io/api/core/v1.GlusterfsVolumeSource
- *         properties:
- *             endpoints:
- *                 type: string
- *             path:
- *                 type: string
- *             readOnly:
- *                 type: bool
- *     k8s.io/api/core/v1.HTTPGetAction:
- *         name: k8s.io/api/core/v1.HTTPGetAction
- *         properties:
- *             host:
- *                 type: string
- *             httpHeaders:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.HTTPHeader
- *                     type: struct
- *                 type: array
- *             path:
- *                 type: string
- *             port:
- *                 structRef: k8s.io/apimachinery/pkg/util/intstr.IntOrString
- *                 type: struct
- *             scheme:
- *                 type: string
- *     k8s.io/api/core/v1.HTTPHeader:
- *         name: k8s.io/api/core/v1.HTTPHeader
- *         properties:
- *             name:
- *                 type: string
- *             value:
- *                 type: string
- *     k8s.io/api/core/v1.HostAlias:
- *         name: k8s.io/api/core/v1.HostAlias
- *         properties:
- *             hostnames:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             ip:
- *                 type: string
- *     k8s.io/api/core/v1.HostIP:
- *         name: k8s.io/api/core/v1.HostIP
- *         properties:
- *             ip:
- *                 type: string
- *     k8s.io/api/core/v1.HostPathVolumeSource:
- *         name: k8s.io/api/core/v1.HostPathVolumeSource
- *         properties:
- *             path:
- *                 type: string
- *             type:
- *                 pointer: true
- *                 type: string
- *     k8s.io/api/core/v1.ISCSIVolumeSource:
- *         name: k8s.io/api/core/v1.ISCSIVolumeSource
- *         properties:
- *             chapAuthDiscovery:
- *                 type: bool
- *             chapAuthSession:
- *                 type: bool
- *             fsType:
- *                 type: string
- *             initiatorName:
- *                 pointer: true
- *                 type: string
- *             iqn:
- *                 type: string
- *             iscsiInterface:
- *                 type: string
- *             lun:
- *                 type: int
- *             portals:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             readOnly:
- *                 type: bool
- *             secretRef:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.LocalObjectReference
- *                 type: struct
- *             targetPortal:
- *                 type: string
- *     k8s.io/api/core/v1.ImageVolumeSource:
- *         name: k8s.io/api/core/v1.ImageVolumeSource
- *         properties:
- *             pullPolicy:
- *                 type: string
- *             reference:
- *                 type: string
- *     k8s.io/api/core/v1.KeyToPath:
- *         name: k8s.io/api/core/v1.KeyToPath
- *         properties:
- *             key:
- *                 type: string
- *             mode:
- *                 pointer: true
- *                 type: int
- *             path:
- *                 type: string
- *     k8s.io/api/core/v1.Lifecycle:
- *         name: k8s.io/api/core/v1.Lifecycle
- *         properties:
- *             postStart:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.LifecycleHandler
- *                 type: struct
- *             preStop:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.LifecycleHandler
- *                 type: struct
- *             stopSignal:
- *                 pointer: true
- *                 type: string
- *     k8s.io/api/core/v1.LifecycleHandler:
- *         name: k8s.io/api/core/v1.LifecycleHandler
- *         properties:
- *             exec:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.ExecAction
- *                 type: struct
- *             httpGet:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.HTTPGetAction
- *                 type: struct
- *             sleep:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.SleepAction
- *                 type: struct
- *             tcpSocket:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.TCPSocketAction
- *                 type: struct
- *     k8s.io/api/core/v1.LinuxContainerUser:
- *         name: k8s.io/api/core/v1.LinuxContainerUser
- *         properties:
- *             gid:
- *                 type: int
- *             supplementalGroups:
- *                 elementType:
- *                     type: int
- *                 type: array
- *             uid:
- *                 type: int
- *     k8s.io/api/core/v1.LocalObjectReference:
- *         name: k8s.io/api/core/v1.LocalObjectReference
- *         properties:
- *             name:
- *                 type: string
- *     k8s.io/api/core/v1.NFSVolumeSource:
- *         name: k8s.io/api/core/v1.NFSVolumeSource
- *         properties:
- *             path:
- *                 type: string
- *             readOnly:
- *                 type: bool
- *             server:
- *                 type: string
- *     k8s.io/api/core/v1.NodeAffinity:
- *         name: k8s.io/api/core/v1.NodeAffinity
- *         properties:
- *             preferredDuringSchedulingIgnoredDuringExecution:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.PreferredSchedulingTerm
- *                     type: struct
- *                 type: array
- *             requiredDuringSchedulingIgnoredDuringExecution:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.NodeSelector
- *                 type: struct
- *     k8s.io/api/core/v1.NodeSelector:
- *         name: k8s.io/api/core/v1.NodeSelector
- *         properties:
- *             nodeSelectorTerms:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.NodeSelectorTerm
- *                     type: struct
- *                 type: array
- *     k8s.io/api/core/v1.NodeSelectorRequirement:
- *         name: k8s.io/api/core/v1.NodeSelectorRequirement
- *         properties:
- *             key:
- *                 type: string
- *             operator:
- *                 type: string
- *             values:
- *                 elementType:
- *                     type: string
- *                 type: array
- *     k8s.io/api/core/v1.NodeSelectorTerm:
- *         name: k8s.io/api/core/v1.NodeSelectorTerm
- *         properties:
- *             matchExpressions:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.NodeSelectorRequirement
- *                     type: struct
- *                 type: array
- *             matchFields:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.NodeSelectorRequirement
- *                     type: struct
- *                 type: array
- *     k8s.io/api/core/v1.ObjectFieldSelector:
- *         name: k8s.io/api/core/v1.ObjectFieldSelector
- *         properties:
- *             apiVersion:
- *                 type: string
- *             fieldPath:
- *                 type: string
- *     k8s.io/api/core/v1.PersistentVolumeClaimSpec:
- *         name: k8s.io/api/core/v1.PersistentVolumeClaimSpec
- *         properties:
- *             accessModes:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             dataSource:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.TypedLocalObjectReference
- *                 type: struct
- *             dataSourceRef:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.TypedObjectReference
- *                 type: struct
- *             resources:
- *                 structRef: k8s.io/api/core/v1.VolumeResourceRequirements
- *                 type: struct
- *             selector:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
- *                 type: struct
- *             storageClassName:
- *                 pointer: true
- *                 type: string
- *             volumeAttributesClassName:
- *                 pointer: true
- *                 type: string
- *             volumeMode:
- *                 pointer: true
- *                 type: string
- *             volumeName:
- *                 type: string
- *     k8s.io/api/core/v1.PersistentVolumeClaimTemplate:
- *         name: k8s.io/api/core/v1.PersistentVolumeClaimTemplate
- *         properties:
- *             metadata:
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta
- *                 type: struct
- *             spec:
- *                 structRef: k8s.io/api/core/v1.PersistentVolumeClaimSpec
- *                 type: struct
- *     k8s.io/api/core/v1.PersistentVolumeClaimVolumeSource:
- *         name: k8s.io/api/core/v1.PersistentVolumeClaimVolumeSource
- *         properties:
- *             claimName:
- *                 type: string
- *             readOnly:
- *                 type: bool
- *     k8s.io/api/core/v1.PhotonPersistentDiskVolumeSource:
- *         name: k8s.io/api/core/v1.PhotonPersistentDiskVolumeSource
- *         properties:
- *             fsType:
- *                 type: string
- *             pdID:
- *                 type: string
- *     k8s.io/api/core/v1.Pod:
- *         name: k8s.io/api/core/v1.Pod
- *         properties:
- *             TypeMeta:
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta
- *                 type: struct
- *             metadata:
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta
- *                 type: struct
- *             spec:
- *                 structRef: k8s.io/api/core/v1.PodSpec
- *                 type: struct
- *             status:
- *                 structRef: k8s.io/api/core/v1.PodStatus
- *                 type: struct
- *     k8s.io/api/core/v1.PodAffinity:
- *         name: k8s.io/api/core/v1.PodAffinity
- *         properties:
- *             preferredDuringSchedulingIgnoredDuringExecution:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.WeightedPodAffinityTerm
- *                     type: struct
- *                 type: array
- *             requiredDuringSchedulingIgnoredDuringExecution:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.PodAffinityTerm
- *                     type: struct
- *                 type: array
- *     k8s.io/api/core/v1.PodAffinityTerm:
- *         name: k8s.io/api/core/v1.PodAffinityTerm
- *         properties:
- *             labelSelector:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
- *                 type: struct
- *             matchLabelKeys:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             mismatchLabelKeys:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             namespaceSelector:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
- *                 type: struct
- *             namespaces:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             topologyKey:
- *                 type: string
- *     k8s.io/api/core/v1.PodAntiAffinity:
- *         name: k8s.io/api/core/v1.PodAntiAffinity
- *         properties:
- *             preferredDuringSchedulingIgnoredDuringExecution:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.WeightedPodAffinityTerm
- *                     type: struct
- *                 type: array
- *             requiredDuringSchedulingIgnoredDuringExecution:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.PodAffinityTerm
- *                     type: struct
- *                 type: array
- *     k8s.io/api/core/v1.PodCertificateProjection:
- *         name: k8s.io/api/core/v1.PodCertificateProjection
- *         properties:
- *             certificateChainPath:
- *                 type: string
- *             credentialBundlePath:
- *                 type: string
- *             keyPath:
- *                 type: string
- *             keyType:
- *                 type: string
- *             maxExpirationSeconds:
- *                 pointer: true
- *                 type: int
- *             signerName:
- *                 type: string
- *     k8s.io/api/core/v1.PodCondition:
- *         name: k8s.io/api/core/v1.PodCondition
- *         properties:
- *             lastProbeTime:
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *                 type: struct
- *             lastTransitionTime:
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *                 type: struct
- *             message:
- *                 type: string
- *             observedGeneration:
- *                 type: int
- *             reason:
- *                 type: string
- *             status:
- *                 type: string
- *             type:
- *                 type: string
- *     k8s.io/api/core/v1.PodDNSConfig:
- *         name: k8s.io/api/core/v1.PodDNSConfig
- *         properties:
- *             nameservers:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             options:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.PodDNSConfigOption
- *                     type: struct
- *                 type: array
- *             searches:
- *                 elementType:
- *                     type: string
- *                 type: array
- *     k8s.io/api/core/v1.PodDNSConfigOption:
- *         name: k8s.io/api/core/v1.PodDNSConfigOption
- *         properties:
- *             name:
- *                 type: string
- *             value:
- *                 pointer: true
- *                 type: string
- *     k8s.io/api/core/v1.PodExtendedResourceClaimStatus:
- *         name: k8s.io/api/core/v1.PodExtendedResourceClaimStatus
- *         properties:
- *             requestMappings:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.ContainerExtendedResourceRequest
- *                     type: struct
- *                 type: array
- *             resourceClaimName:
- *                 type: string
- *     k8s.io/api/core/v1.PodIP:
- *         name: k8s.io/api/core/v1.PodIP
- *         properties:
- *             ip:
- *                 type: string
- *     k8s.io/api/core/v1.PodOS:
- *         name: k8s.io/api/core/v1.PodOS
- *         properties:
- *             name:
- *                 type: string
- *     k8s.io/api/core/v1.PodReadinessGate:
- *         name: k8s.io/api/core/v1.PodReadinessGate
- *         properties:
- *             conditionType:
- *                 type: string
- *     k8s.io/api/core/v1.PodResourceClaim:
- *         name: k8s.io/api/core/v1.PodResourceClaim
- *         properties:
- *             name:
- *                 type: string
- *             resourceClaimName:
- *                 pointer: true
- *                 type: string
- *             resourceClaimTemplateName:
- *                 pointer: true
- *                 type: string
- *     k8s.io/api/core/v1.PodResourceClaimStatus:
- *         name: k8s.io/api/core/v1.PodResourceClaimStatus
- *         properties:
- *             name:
- *                 type: string
- *             resourceClaimName:
- *                 pointer: true
- *                 type: string
- *     k8s.io/api/core/v1.PodSchedulingGate:
- *         name: k8s.io/api/core/v1.PodSchedulingGate
- *         properties:
- *             name:
- *                 type: string
- *     k8s.io/api/core/v1.PodSecurityContext:
- *         name: k8s.io/api/core/v1.PodSecurityContext
- *         properties:
- *             appArmorProfile:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.AppArmorProfile
- *                 type: struct
- *             fsGroup:
- *                 pointer: true
- *                 type: int
- *             fsGroupChangePolicy:
- *                 pointer: true
- *                 type: string
- *             runAsGroup:
- *                 pointer: true
- *                 type: int
- *             runAsNonRoot:
- *                 pointer: true
- *                 type: bool
- *             runAsUser:
- *                 pointer: true
- *                 type: int
- *             seLinuxChangePolicy:
- *                 pointer: true
- *                 type: string
- *             seLinuxOptions:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.SELinuxOptions
- *                 type: struct
- *             seccompProfile:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.SeccompProfile
- *                 type: struct
- *             supplementalGroups:
- *                 elementType:
- *                     type: int
- *                 type: array
- *             supplementalGroupsPolicy:
- *                 pointer: true
- *                 type: string
- *             sysctls:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.Sysctl
- *                     type: struct
- *                 type: array
- *             windowsOptions:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.WindowsSecurityContextOptions
- *                 type: struct
- *     k8s.io/api/core/v1.PodSpec:
- *         name: k8s.io/api/core/v1.PodSpec
- *         properties:
- *             activeDeadlineSeconds:
- *                 pointer: true
- *                 type: int
- *             affinity:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.Affinity
- *                 type: struct
- *             automountServiceAccountToken:
- *                 pointer: true
- *                 type: bool
- *             containers:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.Container
- *                     type: struct
- *                 type: array
- *             dnsConfig:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.PodDNSConfig
- *                 type: struct
- *             dnsPolicy:
- *                 type: string
- *             enableServiceLinks:
- *                 pointer: true
- *                 type: bool
- *             ephemeralContainers:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.EphemeralContainer
- *                     type: struct
- *                 type: array
- *             hostAliases:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.HostAlias
- *                     type: struct
- *                 type: array
- *             hostIPC:
- *                 type: bool
- *             hostNetwork:
- *                 type: bool
- *             hostPID:
- *                 type: bool
- *             hostUsers:
- *                 pointer: true
- *                 type: bool
- *             hostname:
- *                 type: string
- *             hostnameOverride:
- *                 pointer: true
- *                 type: string
- *             imagePullSecrets:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.LocalObjectReference
- *                     type: struct
- *                 type: array
- *             initContainers:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.Container
- *                     type: struct
- *                 type: array
- *             nodeName:
- *                 type: string
- *             nodeSelector:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     type: string
- *             os:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.PodOS
- *                 type: struct
- *             overhead:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     structRef: k8s.io/apimachinery/pkg/api/resource.Quantity
- *                     type: struct
- *             preemptionPolicy:
- *                 pointer: true
- *                 type: string
- *             priority:
- *                 pointer: true
- *                 type: int
- *             priorityClassName:
- *                 type: string
- *             readinessGates:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.PodReadinessGate
- *                     type: struct
- *                 type: array
- *             resourceClaims:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.PodResourceClaim
- *                     type: struct
- *                 type: array
- *             resources:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.ResourceRequirements
- *                 type: struct
- *             restartPolicy:
- *                 type: string
- *             runtimeClassName:
- *                 pointer: true
- *                 type: string
- *             schedulerName:
- *                 type: string
- *             schedulingGates:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.PodSchedulingGate
- *                     type: struct
- *                 type: array
- *             securityContext:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.PodSecurityContext
- *                 type: struct
- *             serviceAccount:
- *                 type: string
- *             serviceAccountName:
- *                 type: string
- *             setHostnameAsFQDN:
- *                 pointer: true
- *                 type: bool
- *             shareProcessNamespace:
- *                 pointer: true
- *                 type: bool
- *             subdomain:
- *                 type: string
- *             terminationGracePeriodSeconds:
- *                 pointer: true
- *                 type: int
- *             tolerations:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.Toleration
- *                     type: struct
- *                 type: array
- *             topologySpreadConstraints:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.TopologySpreadConstraint
- *                     type: struct
- *                 type: array
- *             volumes:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.Volume
- *                     type: struct
- *                 type: array
- *     k8s.io/api/core/v1.PodStatus:
- *         name: k8s.io/api/core/v1.PodStatus
- *         properties:
- *             conditions:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.PodCondition
- *                     type: struct
- *                 type: array
- *             containerStatuses:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.ContainerStatus
- *                     type: struct
- *                 type: array
- *             ephemeralContainerStatuses:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.ContainerStatus
- *                     type: struct
- *                 type: array
- *             extendedResourceClaimStatus:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.PodExtendedResourceClaimStatus
- *                 type: struct
- *             hostIP:
- *                 type: string
- *             hostIPs:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.HostIP
- *                     type: struct
- *                 type: array
- *             initContainerStatuses:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.ContainerStatus
- *                     type: struct
- *                 type: array
- *             message:
- *                 type: string
- *             nominatedNodeName:
- *                 type: string
- *             observedGeneration:
- *                 type: int
- *             phase:
- *                 type: string
- *             podIP:
- *                 type: string
- *             podIPs:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.PodIP
- *                     type: struct
- *                 type: array
- *             qosClass:
- *                 type: string
- *             reason:
- *                 type: string
- *             resize:
- *                 type: string
- *             resourceClaimStatuses:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.PodResourceClaimStatus
- *                     type: struct
- *                 type: array
- *             startTime:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *                 type: struct
- *     k8s.io/api/core/v1.PortworxVolumeSource:
- *         name: k8s.io/api/core/v1.PortworxVolumeSource
- *         properties:
- *             fsType:
- *                 type: string
- *             readOnly:
- *                 type: bool
- *             volumeID:
- *                 type: string
- *     k8s.io/api/core/v1.PreferredSchedulingTerm:
- *         name: k8s.io/api/core/v1.PreferredSchedulingTerm
- *         properties:
- *             preference:
- *                 structRef: k8s.io/api/core/v1.NodeSelectorTerm
- *                 type: struct
- *             weight:
- *                 type: int
- *     k8s.io/api/core/v1.Probe:
- *         name: k8s.io/api/core/v1.Probe
- *         properties:
- *             ProbeHandler:
- *                 structRef: k8s.io/api/core/v1.ProbeHandler
- *                 type: struct
- *             failureThreshold:
- *                 type: int
- *             initialDelaySeconds:
- *                 type: int
- *             periodSeconds:
- *                 type: int
- *             successThreshold:
- *                 type: int
- *             terminationGracePeriodSeconds:
- *                 pointer: true
- *                 type: int
- *             timeoutSeconds:
- *                 type: int
- *     k8s.io/api/core/v1.ProbeHandler:
- *         name: k8s.io/api/core/v1.ProbeHandler
- *         properties:
- *             exec:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.ExecAction
- *                 type: struct
- *             grpc:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.GRPCAction
- *                 type: struct
- *             httpGet:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.HTTPGetAction
- *                 type: struct
- *             tcpSocket:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.TCPSocketAction
- *                 type: struct
- *     k8s.io/api/core/v1.ProjectedVolumeSource:
- *         name: k8s.io/api/core/v1.ProjectedVolumeSource
- *         properties:
- *             defaultMode:
- *                 pointer: true
- *                 type: int
- *             sources:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.VolumeProjection
- *                     type: struct
- *                 type: array
- *     k8s.io/api/core/v1.QuobyteVolumeSource:
- *         name: k8s.io/api/core/v1.QuobyteVolumeSource
- *         properties:
- *             group:
- *                 type: string
- *             readOnly:
- *                 type: bool
- *             registry:
- *                 type: string
- *             tenant:
- *                 type: string
- *             user:
- *                 type: string
- *             volume:
- *                 type: string
- *     k8s.io/api/core/v1.RBDVolumeSource:
- *         name: k8s.io/api/core/v1.RBDVolumeSource
- *         properties:
- *             fsType:
- *                 type: string
- *             image:
- *                 type: string
- *             keyring:
- *                 type: string
- *             monitors:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             pool:
- *                 type: string
- *             readOnly:
- *                 type: bool
- *             secretRef:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.LocalObjectReference
- *                 type: struct
- *             user:
- *                 type: string
- *     k8s.io/api/core/v1.ResourceClaim:
- *         name: k8s.io/api/core/v1.ResourceClaim
- *         properties:
- *             name:
- *                 type: string
- *             request:
- *                 type: string
- *     k8s.io/api/core/v1.ResourceFieldSelector:
- *         name: k8s.io/api/core/v1.ResourceFieldSelector
- *         properties:
- *             containerName:
- *                 type: string
- *             divisor:
- *                 structRef: k8s.io/apimachinery/pkg/api/resource.Quantity
- *                 type: struct
- *             resource:
- *                 type: string
- *     k8s.io/api/core/v1.ResourceHealth:
- *         name: k8s.io/api/core/v1.ResourceHealth
- *         properties:
- *             health:
- *                 type: string
- *             resourceID:
- *                 type: string
- *     k8s.io/api/core/v1.ResourceRequirements:
- *         name: k8s.io/api/core/v1.ResourceRequirements
- *         properties:
- *             claims:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.ResourceClaim
- *                     type: struct
- *                 type: array
- *             limits:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     structRef: k8s.io/apimachinery/pkg/api/resource.Quantity
- *                     type: struct
- *             requests:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     structRef: k8s.io/apimachinery/pkg/api/resource.Quantity
- *                     type: struct
- *     k8s.io/api/core/v1.ResourceStatus:
- *         name: k8s.io/api/core/v1.ResourceStatus
- *         properties:
- *             name:
- *                 type: string
- *             resources:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.ResourceHealth
- *                     type: struct
- *                 type: array
- *     k8s.io/api/core/v1.SELinuxOptions:
- *         name: k8s.io/api/core/v1.SELinuxOptions
- *         properties:
- *             level:
- *                 type: string
- *             role:
- *                 type: string
- *             type:
- *                 type: string
- *             user:
- *                 type: string
- *     k8s.io/api/core/v1.ScaleIOVolumeSource:
- *         name: k8s.io/api/core/v1.ScaleIOVolumeSource
- *         properties:
- *             fsType:
- *                 type: string
- *             gateway:
- *                 type: string
- *             protectionDomain:
- *                 type: string
- *             readOnly:
- *                 type: bool
- *             secretRef:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.LocalObjectReference
- *                 type: struct
- *             sslEnabled:
- *                 type: bool
- *             storageMode:
- *                 type: string
- *             storagePool:
- *                 type: string
- *             system:
- *                 type: string
- *             volumeName:
- *                 type: string
- *     k8s.io/api/core/v1.SeccompProfile:
- *         name: k8s.io/api/core/v1.SeccompProfile
- *         properties:
- *             localhostProfile:
- *                 pointer: true
- *                 type: string
- *             type:
- *                 type: string
- *     k8s.io/api/core/v1.SecretEnvSource:
- *         name: k8s.io/api/core/v1.SecretEnvSource
- *         properties:
- *             LocalObjectReference:
- *                 structRef: k8s.io/api/core/v1.LocalObjectReference
- *                 type: struct
- *             optional:
- *                 pointer: true
- *                 type: bool
- *     k8s.io/api/core/v1.SecretKeySelector:
- *         name: k8s.io/api/core/v1.SecretKeySelector
- *         properties:
- *             LocalObjectReference:
- *                 structRef: k8s.io/api/core/v1.LocalObjectReference
- *                 type: struct
- *             key:
- *                 type: string
- *             optional:
- *                 pointer: true
- *                 type: bool
- *     k8s.io/api/core/v1.SecretProjection:
- *         name: k8s.io/api/core/v1.SecretProjection
- *         properties:
- *             LocalObjectReference:
- *                 structRef: k8s.io/api/core/v1.LocalObjectReference
- *                 type: struct
- *             items:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.KeyToPath
- *                     type: struct
- *                 type: array
- *             optional:
- *                 pointer: true
- *                 type: bool
- *     k8s.io/api/core/v1.SecretVolumeSource:
- *         name: k8s.io/api/core/v1.SecretVolumeSource
- *         properties:
- *             defaultMode:
- *                 pointer: true
- *                 type: int
- *             items:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.KeyToPath
- *                     type: struct
- *                 type: array
- *             optional:
- *                 pointer: true
- *                 type: bool
- *             secretName:
- *                 type: string
- *     k8s.io/api/core/v1.SecurityContext:
- *         name: k8s.io/api/core/v1.SecurityContext
- *         properties:
- *             allowPrivilegeEscalation:
- *                 pointer: true
- *                 type: bool
- *             appArmorProfile:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.AppArmorProfile
- *                 type: struct
- *             capabilities:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.Capabilities
- *                 type: struct
- *             privileged:
- *                 pointer: true
- *                 type: bool
- *             procMount:
- *                 pointer: true
- *                 type: string
- *             readOnlyRootFilesystem:
- *                 pointer: true
- *                 type: bool
- *             runAsGroup:
- *                 pointer: true
- *                 type: int
- *             runAsNonRoot:
- *                 pointer: true
- *                 type: bool
- *             runAsUser:
- *                 pointer: true
- *                 type: int
- *             seLinuxOptions:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.SELinuxOptions
- *                 type: struct
- *             seccompProfile:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.SeccompProfile
- *                 type: struct
- *             windowsOptions:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.WindowsSecurityContextOptions
- *                 type: struct
- *     k8s.io/api/core/v1.ServiceAccountTokenProjection:
- *         name: k8s.io/api/core/v1.ServiceAccountTokenProjection
- *         properties:
- *             audience:
- *                 type: string
- *             expirationSeconds:
- *                 pointer: true
- *                 type: int
- *             path:
- *                 type: string
- *     k8s.io/api/core/v1.SleepAction:
- *         name: k8s.io/api/core/v1.SleepAction
- *         properties:
- *             seconds:
- *                 type: int
- *     k8s.io/api/core/v1.StorageOSVolumeSource:
- *         name: k8s.io/api/core/v1.StorageOSVolumeSource
- *         properties:
- *             fsType:
- *                 type: string
- *             readOnly:
- *                 type: bool
- *             secretRef:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.LocalObjectReference
- *                 type: struct
- *             volumeName:
- *                 type: string
- *             volumeNamespace:
- *                 type: string
- *     k8s.io/api/core/v1.Sysctl:
- *         name: k8s.io/api/core/v1.Sysctl
- *         properties:
- *             name:
- *                 type: string
- *             value:
- *                 type: string
- *     k8s.io/api/core/v1.TCPSocketAction:
- *         name: k8s.io/api/core/v1.TCPSocketAction
- *         properties:
- *             host:
- *                 type: string
- *             port:
- *                 structRef: k8s.io/apimachinery/pkg/util/intstr.IntOrString
- *                 type: struct
- *     k8s.io/api/core/v1.Toleration:
- *         name: k8s.io/api/core/v1.Toleration
- *         properties:
- *             effect:
- *                 type: string
- *             key:
- *                 type: string
- *             operator:
- *                 type: string
- *             tolerationSeconds:
- *                 pointer: true
- *                 type: int
- *             value:
- *                 type: string
- *     k8s.io/api/core/v1.TopologySpreadConstraint:
- *         name: k8s.io/api/core/v1.TopologySpreadConstraint
- *         properties:
- *             labelSelector:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
- *                 type: struct
- *             matchLabelKeys:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             maxSkew:
- *                 type: int
- *             minDomains:
- *                 pointer: true
- *                 type: int
- *             nodeAffinityPolicy:
- *                 pointer: true
- *                 type: string
- *             nodeTaintsPolicy:
- *                 pointer: true
- *                 type: string
- *             topologyKey:
- *                 type: string
- *             whenUnsatisfiable:
- *                 type: string
- *     k8s.io/api/core/v1.TypedLocalObjectReference:
- *         name: k8s.io/api/core/v1.TypedLocalObjectReference
- *         properties:
- *             apiGroup:
- *                 pointer: true
- *                 type: string
- *             kind:
- *                 type: string
- *             name:
- *                 type: string
- *     k8s.io/api/core/v1.TypedObjectReference:
- *         name: k8s.io/api/core/v1.TypedObjectReference
- *         properties:
- *             apiGroup:
- *                 pointer: true
- *                 type: string
- *             kind:
- *                 type: string
- *             name:
- *                 type: string
- *             namespace:
- *                 pointer: true
- *                 type: string
- *     k8s.io/api/core/v1.Volume:
- *         name: k8s.io/api/core/v1.Volume
- *         properties:
- *             VolumeSource:
- *                 structRef: k8s.io/api/core/v1.VolumeSource
- *                 type: struct
- *             name:
- *                 type: string
- *     k8s.io/api/core/v1.VolumeDevice:
- *         name: k8s.io/api/core/v1.VolumeDevice
- *         properties:
- *             devicePath:
- *                 type: string
- *             name:
- *                 type: string
- *     k8s.io/api/core/v1.VolumeMount:
- *         name: k8s.io/api/core/v1.VolumeMount
- *         properties:
- *             mountPath:
- *                 type: string
- *             mountPropagation:
- *                 pointer: true
- *                 type: string
- *             name:
- *                 type: string
- *             readOnly:
- *                 type: bool
- *             recursiveReadOnly:
- *                 pointer: true
- *                 type: string
- *             subPath:
- *                 type: string
- *             subPathExpr:
- *                 type: string
- *     k8s.io/api/core/v1.VolumeMountStatus:
- *         name: k8s.io/api/core/v1.VolumeMountStatus
- *         properties:
- *             mountPath:
- *                 type: string
- *             name:
- *                 type: string
- *             readOnly:
- *                 type: bool
- *             recursiveReadOnly:
- *                 pointer: true
- *                 type: string
- *     k8s.io/api/core/v1.VolumeProjection:
- *         name: k8s.io/api/core/v1.VolumeProjection
- *         properties:
- *             clusterTrustBundle:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.ClusterTrustBundleProjection
- *                 type: struct
- *             configMap:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.ConfigMapProjection
- *                 type: struct
- *             downwardAPI:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.DownwardAPIProjection
- *                 type: struct
- *             podCertificate:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.PodCertificateProjection
- *                 type: struct
- *             secret:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.SecretProjection
- *                 type: struct
- *             serviceAccountToken:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.ServiceAccountTokenProjection
- *                 type: struct
- *     k8s.io/api/core/v1.VolumeResourceRequirements:
- *         name: k8s.io/api/core/v1.VolumeResourceRequirements
- *         properties:
- *             limits:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     structRef: k8s.io/apimachinery/pkg/api/resource.Quantity
- *                     type: struct
- *             requests:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     structRef: k8s.io/apimachinery/pkg/api/resource.Quantity
- *                     type: struct
- *     k8s.io/api/core/v1.VolumeSource:
- *         name: k8s.io/api/core/v1.VolumeSource
- *         properties:
- *             awsElasticBlockStore:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.AWSElasticBlockStoreVolumeSource
- *                 type: struct
- *             azureDisk:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.AzureDiskVolumeSource
- *                 type: struct
- *             azureFile:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.AzureFileVolumeSource
- *                 type: struct
- *             cephfs:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.CephFSVolumeSource
- *                 type: struct
- *             cinder:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.CinderVolumeSource
- *                 type: struct
- *             configMap:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.ConfigMapVolumeSource
- *                 type: struct
- *             csi:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.CSIVolumeSource
- *                 type: struct
- *             downwardAPI:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.DownwardAPIVolumeSource
- *                 type: struct
- *             emptyDir:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.EmptyDirVolumeSource
- *                 type: struct
- *             ephemeral:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.EphemeralVolumeSource
- *                 type: struct
- *             fc:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.FCVolumeSource
- *                 type: struct
- *             flexVolume:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.FlexVolumeSource
- *                 type: struct
- *             flocker:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.FlockerVolumeSource
- *                 type: struct
- *             gcePersistentDisk:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.GCEPersistentDiskVolumeSource
- *                 type: struct
- *             gitRepo:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.GitRepoVolumeSource
- *                 type: struct
- *             glusterfs:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.GlusterfsVolumeSource
- *                 type: struct
- *             hostPath:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.HostPathVolumeSource
- *                 type: struct
- *             image:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.ImageVolumeSource
- *                 type: struct
- *             iscsi:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.ISCSIVolumeSource
- *                 type: struct
- *             nfs:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.NFSVolumeSource
- *                 type: struct
- *             persistentVolumeClaim:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.PersistentVolumeClaimVolumeSource
- *                 type: struct
- *             photonPersistentDisk:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.PhotonPersistentDiskVolumeSource
- *                 type: struct
- *             portworxVolume:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.PortworxVolumeSource
- *                 type: struct
- *             projected:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.ProjectedVolumeSource
- *                 type: struct
- *             quobyte:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.QuobyteVolumeSource
- *                 type: struct
- *             rbd:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.RBDVolumeSource
- *                 type: struct
- *             scaleIO:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.ScaleIOVolumeSource
- *                 type: struct
- *             secret:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.SecretVolumeSource
- *                 type: struct
- *             storageos:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.StorageOSVolumeSource
- *                 type: struct
- *             vsphereVolume:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.VsphereVirtualDiskVolumeSource
- *                 type: struct
- *     k8s.io/api/core/v1.VsphereVirtualDiskVolumeSource:
- *         name: k8s.io/api/core/v1.VsphereVirtualDiskVolumeSource
- *         properties:
- *             fsType:
- *                 type: string
- *             storagePolicyID:
- *                 type: string
- *             storagePolicyName:
- *                 type: string
- *             volumePath:
- *                 type: string
- *     k8s.io/api/core/v1.WeightedPodAffinityTerm:
- *         name: k8s.io/api/core/v1.WeightedPodAffinityTerm
- *         properties:
- *             podAffinityTerm:
- *                 structRef: k8s.io/api/core/v1.PodAffinityTerm
- *                 type: struct
- *             weight:
- *                 type: int
- *     k8s.io/api/core/v1.WindowsSecurityContextOptions:
- *         name: k8s.io/api/core/v1.WindowsSecurityContextOptions
- *         properties:
- *             gmsaCredentialSpec:
- *                 pointer: true
- *                 type: string
- *             gmsaCredentialSpecName:
- *                 pointer: true
- *                 type: string
- *             hostProcess:
- *                 pointer: true
- *                 type: bool
- *             runAsUserName:
- *                 pointer: true
- *                 type: string
- *     k8s.io/apimachinery/pkg/api/resource.Quantity:
- *         name: k8s.io/apimachinery/pkg/api/resource.Quantity
- *         properties:
- *             Format:
- *                 type: string
- *     k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1
- *         properties: {}
- *     k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
- *         properties:
- *             matchExpressions:
- *                 elementType:
- *                     structRef: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelectorRequirement
- *                     type: struct
- *                 type: array
- *             matchLabels:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     type: string
- *     k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelectorRequirement:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelectorRequirement
- *         properties:
- *             key:
- *                 type: string
- *             operator:
- *                 type: string
- *             values:
- *                 elementType:
- *                     type: string
- *                 type: array
- *     k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry
- *         properties:
- *             apiVersion:
- *                 type: string
- *             fieldsType:
- *                 type: string
- *             fieldsV1:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1
- *                 type: struct
- *             manager:
- *                 type: string
- *             operation:
- *                 type: string
- *             subresource:
- *                 type: string
- *             time:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *                 type: struct
- *     k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta
- *         properties:
- *             annotations:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     type: string
- *             creationTimestamp:
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *                 type: struct
- *             deletionGracePeriodSeconds:
- *                 pointer: true
- *                 type: int
- *             deletionTimestamp:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *                 type: struct
- *             finalizers:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             generateName:
- *                 type: string
- *             generation:
- *                 type: int
- *             labels:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     type: string
- *             managedFields:
- *                 elementType:
- *                     structRef: k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry
- *                     type: struct
- *                 type: array
- *             name:
- *                 type: string
- *             namespace:
- *                 type: string
- *             ownerReferences:
- *                 elementType:
- *                     structRef: k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference
- *                     type: struct
- *                 type: array
- *             resourceVersion:
- *                 type: string
- *             selfLink:
- *                 type: string
- *             uid:
- *                 type: string
- *     k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference
- *         properties:
- *             apiVersion:
- *                 type: string
- *             blockOwnerDeletion:
- *                 pointer: true
- *                 type: bool
- *             controller:
- *                 pointer: true
- *                 type: bool
- *             kind:
- *                 type: string
- *             name:
- *                 type: string
- *             uid:
- *                 type: string
- *     k8s.io/apimachinery/pkg/apis/meta/v1.Time:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *         properties:
- *             Time:
- *                 structRef: time.Time
- *                 type: struct
- *     k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta
- *         properties:
- *             apiVersion:
- *                 type: string
- *             kind:
- *                 type: string
- *     k8s.io/apimachinery/pkg/util/intstr.IntOrString:
- *         name: k8s.io/apimachinery/pkg/util/intstr.IntOrString
- *         properties:
- *             IntVal:
- *                 type: int
- *             StrVal:
- *                 type: string
- *             Type:
- *                 type: int
- *     time.Time:
- *         name: time.Time
- *         properties: {}
- * typeInfo:
- *     pointer: true
- *     structRef: k8s.io/api/core/v1.Pod
- *     type: struct
- * ```
- *
- */
-export type SERVICE_RESOURCE_STATUS_RESPONSE = SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_POD|undefined;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     k8s.io/api/autoscaling/v2.ContainerResourceMetricSource:
- *         name: k8s.io/api/autoscaling/v2.ContainerResourceMetricSource
- *         properties:
- *             container:
- *                 type: string
- *             name:
- *                 type: string
- *             target:
- *                 structRef: k8s.io/api/autoscaling/v2.MetricTarget
- *                 type: struct
- *     k8s.io/api/autoscaling/v2.CrossVersionObjectReference:
- *         name: k8s.io/api/autoscaling/v2.CrossVersionObjectReference
- *         properties:
- *             apiVersion:
- *                 type: string
- *             kind:
- *                 type: string
- *             name:
- *                 type: string
- *     k8s.io/api/autoscaling/v2.ExternalMetricSource:
- *         name: k8s.io/api/autoscaling/v2.ExternalMetricSource
- *         properties:
- *             metric:
- *                 structRef: k8s.io/api/autoscaling/v2.MetricIdentifier
- *                 type: struct
- *             target:
- *                 structRef: k8s.io/api/autoscaling/v2.MetricTarget
- *                 type: struct
- *     k8s.io/api/autoscaling/v2.HPAScalingPolicy:
- *         name: k8s.io/api/autoscaling/v2.HPAScalingPolicy
- *         properties:
- *             periodSeconds:
- *                 type: int
- *             type:
- *                 type: string
- *             value:
- *                 type: int
- *     k8s.io/api/autoscaling/v2.HPAScalingRules:
- *         name: k8s.io/api/autoscaling/v2.HPAScalingRules
- *         properties:
- *             policies:
- *                 elementType:
- *                     structRef: k8s.io/api/autoscaling/v2.HPAScalingPolicy
- *                     type: struct
- *                 type: array
- *             selectPolicy:
- *                 pointer: true
- *                 type: string
- *             stabilizationWindowSeconds:
- *                 pointer: true
- *                 type: int
- *             tolerance:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/api/resource.Quantity
- *                 type: struct
- *     k8s.io/api/autoscaling/v2.HorizontalPodAutoscalerBehavior:
- *         name: k8s.io/api/autoscaling/v2.HorizontalPodAutoscalerBehavior
- *         properties:
- *             scaleDown:
- *                 pointer: true
- *                 structRef: k8s.io/api/autoscaling/v2.HPAScalingRules
- *                 type: struct
- *             scaleUp:
- *                 pointer: true
- *                 structRef: k8s.io/api/autoscaling/v2.HPAScalingRules
- *                 type: struct
- *     k8s.io/api/autoscaling/v2.HorizontalPodAutoscalerSpec:
- *         name: k8s.io/api/autoscaling/v2.HorizontalPodAutoscalerSpec
- *         properties:
- *             behavior:
- *                 pointer: true
- *                 structRef: k8s.io/api/autoscaling/v2.HorizontalPodAutoscalerBehavior
- *                 type: struct
- *             maxReplicas:
- *                 type: int
- *             metrics:
- *                 elementType:
- *                     structRef: k8s.io/api/autoscaling/v2.MetricSpec
- *                     type: struct
- *                 type: array
- *             minReplicas:
- *                 pointer: true
- *                 type: int
- *             scaleTargetRef:
- *                 structRef: k8s.io/api/autoscaling/v2.CrossVersionObjectReference
- *                 type: struct
- *     k8s.io/api/autoscaling/v2.MetricIdentifier:
- *         name: k8s.io/api/autoscaling/v2.MetricIdentifier
- *         properties:
- *             name:
- *                 type: string
- *             selector:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
- *                 type: struct
- *     k8s.io/api/autoscaling/v2.MetricSpec:
- *         name: k8s.io/api/autoscaling/v2.MetricSpec
- *         properties:
- *             containerResource:
- *                 pointer: true
- *                 structRef: k8s.io/api/autoscaling/v2.ContainerResourceMetricSource
- *                 type: struct
- *             external:
- *                 pointer: true
- *                 structRef: k8s.io/api/autoscaling/v2.ExternalMetricSource
- *                 type: struct
- *             object:
- *                 pointer: true
- *                 structRef: k8s.io/api/autoscaling/v2.ObjectMetricSource
- *                 type: struct
- *             pods:
- *                 pointer: true
- *                 structRef: k8s.io/api/autoscaling/v2.PodsMetricSource
- *                 type: struct
- *             resource:
- *                 pointer: true
- *                 structRef: k8s.io/api/autoscaling/v2.ResourceMetricSource
- *                 type: struct
- *             type:
- *                 type: string
- *     k8s.io/api/autoscaling/v2.MetricTarget:
- *         name: k8s.io/api/autoscaling/v2.MetricTarget
- *         properties:
- *             averageUtilization:
- *                 pointer: true
- *                 type: int
- *             averageValue:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/api/resource.Quantity
- *                 type: struct
- *             type:
- *                 type: string
- *             value:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/api/resource.Quantity
- *                 type: struct
- *     k8s.io/api/autoscaling/v2.ObjectMetricSource:
- *         name: k8s.io/api/autoscaling/v2.ObjectMetricSource
- *         properties:
- *             describedObject:
- *                 structRef: k8s.io/api/autoscaling/v2.CrossVersionObjectReference
- *                 type: struct
- *             metric:
- *                 structRef: k8s.io/api/autoscaling/v2.MetricIdentifier
- *                 type: struct
- *             target:
- *                 structRef: k8s.io/api/autoscaling/v2.MetricTarget
- *                 type: struct
- *     k8s.io/api/autoscaling/v2.PodsMetricSource:
- *         name: k8s.io/api/autoscaling/v2.PodsMetricSource
- *         properties:
- *             metric:
- *                 structRef: k8s.io/api/autoscaling/v2.MetricIdentifier
- *                 type: struct
- *             target:
- *                 structRef: k8s.io/api/autoscaling/v2.MetricTarget
- *                 type: struct
- *     k8s.io/api/autoscaling/v2.ResourceMetricSource:
- *         name: k8s.io/api/autoscaling/v2.ResourceMetricSource
- *         properties:
- *             name:
- *                 type: string
- *             target:
- *                 structRef: k8s.io/api/autoscaling/v2.MetricTarget
- *                 type: struct
- *     k8s.io/apimachinery/pkg/api/resource.Quantity:
- *         name: k8s.io/apimachinery/pkg/api/resource.Quantity
- *         properties:
- *             Format:
- *                 type: string
- *     k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
- *         properties:
- *             matchExpressions:
- *                 elementType:
- *                     structRef: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelectorRequirement
- *                     type: struct
- *                 type: array
- *             matchLabels:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     type: string
- *     k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelectorRequirement:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelectorRequirement
- *         properties:
- *             key:
- *                 type: string
- *             operator:
- *                 type: string
- *             values:
- *                 elementType:
- *                     type: string
- *                 type: array
- *     mogenius-k8s-manager/src/dtos.K8sCnameDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sCnameDto
- *         properties:
- *             addToTlsHosts:
- *                 type: bool
- *             cName:
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sContainerDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sContainerDto
- *         properties:
- *             KubernetesLimits:
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sServiceSettingsDto
- *                 type: struct
- *             appGitRepositoryCloneUrl:
- *                 pointer: true
- *                 type: string
- *             appSetupCommands:
- *                 pointer: true
- *                 type: string
- *             containerImage:
- *                 pointer: true
- *                 type: string
- *             containerImageCommand:
- *                 pointer: true
- *                 type: string
- *             containerImageCommandArgs:
- *                 pointer: true
- *                 type: string
- *             containerImageRepoSecretDecryptValue:
- *                 pointer: true
- *                 type: string
- *             containerImageRepoSecretId:
- *                 pointer: true
- *                 type: string
- *             displayName:
- *                 type: string
- *             dockerContext:
- *                 pointer: true
- *                 type: string
- *             dockerfileName:
- *                 pointer: true
- *                 type: string
- *             envVars:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/dtos.K8sEnvVarDto
- *                     type: struct
- *                 type: array
- *             gitBranch:
- *                 pointer: true
- *                 type: string
- *             gitCommitAuthor:
- *                 pointer: true
- *                 type: string
- *             gitCommitHash:
- *                 pointer: true
- *                 type: string
- *             gitCommitMessage:
- *                 pointer: true
- *                 type: string
- *             gitRepository:
- *                 pointer: true
- *                 type: string
- *             id:
- *                 type: string
- *             name:
- *                 type: string
- *             probes:
- *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sProbes
- *                 type: struct
- *             settingsYaml:
- *                 pointer: true
- *                 type: string
- *             type:
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sCronJobSettingsDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sCronJobSettingsDto
- *         properties:
- *             activeDeadlineSeconds:
- *                 type: int
- *             backoffLimit:
- *                 type: int
- *             failedJobsHistoryLimit:
- *                 type: int
- *             schedule:
- *                 type: string
- *             successfulJobsHistoryLimit:
- *                 type: int
- *     mogenius-k8s-manager/src/dtos.K8sEnvVarDataDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sEnvVarDataDto
- *         properties:
- *             type:
- *                 type: string
- *             value:
- *                 type: string
- *             vaultKey:
- *                 type: string
- *             vaultStore:
- *                 type: string
- *             vaultType:
- *                 type: string
- *             volumeDestination:
- *                 type: string
- *             volumeName:
- *                 type: string
- *             volumeSource:
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sEnvVarDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sEnvVarDto
- *         properties:
- *             data:
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sEnvVarDataDto
- *                 type: struct
- *             id:
- *                 type: string
- *             name:
- *                 type: string
- *             type:
- *                 type: string
- *             value:
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sHpaSettingsDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sHpaSettingsDto
- *         properties:
- *             HorizontalPodAutoscalerSpec:
- *                 pointer: true
- *                 structRef: k8s.io/api/autoscaling/v2.HorizontalPodAutoscalerSpec
- *                 type: struct
- *     mogenius-k8s-manager/src/dtos.K8sNamespaceDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sNamespaceDto
- *         properties:
- *             Name:
- *                 type: string
- *             displayName:
- *                 type: string
- *             id:
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sPortsDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sPortsDto
- *         properties:
- *             cNames:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/dtos.K8sCnameDto
- *                     type: struct
- *                 type: array
- *             expose:
- *                 type: bool
- *             externalPort:
- *                 type: string
- *             internalPort:
- *                 type: string
- *             portType:
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sProbe:
- *         name: mogenius-k8s-manager/src/dtos.K8sProbe
- *         properties:
- *             exec:
- *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sProbeExec
- *                 type: struct
- *             failureThreshold:
- *                 type: int
- *             grpc:
- *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sProbeGRPC
- *                 type: struct
- *             httpGet:
- *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sProbeHTTPGet
- *                 type: struct
- *             initialDelaySeconds:
- *                 type: int
- *             isActive:
- *                 type: bool
- *             periodSeconds:
- *                 type: int
- *             successThreshold:
- *                 type: int
- *             tcpSocket:
- *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sProbeTCPSocket
- *                 type: struct
- *             timeoutSeconds:
- *                 type: int
- *     mogenius-k8s-manager/src/dtos.K8sProbeExec:
- *         name: mogenius-k8s-manager/src/dtos.K8sProbeExec
- *         properties:
- *             command:
- *                 elementType:
- *                     type: string
- *                 type: array
- *     mogenius-k8s-manager/src/dtos.K8sProbeGRPC:
- *         name: mogenius-k8s-manager/src/dtos.K8sProbeGRPC
- *         properties:
- *             port:
- *                 type: int
- *             service:
- *                 pointer: true
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sProbeHTTPGet:
- *         name: mogenius-k8s-manager/src/dtos.K8sProbeHTTPGet
- *         properties:
- *             host:
- *                 pointer: true
- *                 type: string
- *             httpHeaders:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/dtos.K8sProbeHTTPHeader
- *                     type: struct
- *                 pointer: true
- *                 type: array
- *             path:
- *                 type: string
- *             port:
- *                 type: string
- *             scheme:
- *                 pointer: true
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sProbeHTTPHeader:
- *         name: mogenius-k8s-manager/src/dtos.K8sProbeHTTPHeader
- *         properties:
- *             name:
- *                 type: string
- *             value:
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sProbeTCPSocket:
- *         name: mogenius-k8s-manager/src/dtos.K8sProbeTCPSocket
- *         properties:
- *             port:
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sProbes:
- *         name: mogenius-k8s-manager/src/dtos.K8sProbes
- *         properties:
- *             isActive:
- *                 type: bool
- *             livenessProbe:
- *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sProbe
- *                 type: struct
- *             readinessProbe:
- *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sProbe
- *                 type: struct
- *             startupProbe:
- *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sProbe
- *                 type: struct
- *     mogenius-k8s-manager/src/dtos.K8sProjectDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sProjectDto
- *         properties:
- *             clusterDisplayName:
- *                 type: string
- *             clusterId:
- *                 type: string
- *             clusterMfaId:
- *                 type: string
- *             containerRegistryPat:
- *                 pointer: true
- *                 type: string
- *             containerRegistryPath:
- *                 pointer: true
- *                 type: string
- *             containerRegistryUrl:
- *                 pointer: true
- *                 type: string
- *             containerRegistryUser:
- *                 pointer: true
- *                 type: string
- *             displayName:
- *                 type: string
- *             gitAccessToken:
- *                 pointer: true
- *                 type: string
- *             gitConnectionType:
- *                 pointer: true
- *                 type: string
- *             gitUserId:
- *                 pointer: true
- *                 type: string
- *             id:
- *                 type: string
- *             name:
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sServiceDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sServiceDto
- *         properties:
- *             containers:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/dtos.K8sContainerDto
- *                     type: struct
- *                 type: array
- *             controller:
- *                 type: string
- *             controllerName:
- *                 type: string
- *             cronJobSettings:
- *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sCronJobSettingsDto
- *                 type: struct
- *             deploymentStrategy:
- *                 type: string
- *             displayName:
- *                 type: string
- *             hpaSettings:
- *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sHpaSettingsDto
- *                 type: struct
- *             id:
- *                 type: string
- *             ports:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/dtos.K8sPortsDto
- *                     type: struct
- *                 type: array
- *             replicaCount:
- *                 type: int
- *     mogenius-k8s-manager/src/dtos.K8sServiceSettingsDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sServiceSettingsDto
- *         properties:
- *             ephemeralStorageMB:
- *                 type: int
- *             imagePullPolicy:
- *                 type: string
- *             limitCpuCores:
- *                 type: float
- *             limitMemoryMB:
- *                 type: int
- *     mogenius-k8s-manager/src/services.ServiceRestartRequest:
- *         name: mogenius-k8s-manager/src/services.ServiceRestartRequest
- *         properties:
- *             namespace:
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sNamespaceDto
- *                 type: struct
- *             project:
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sProjectDto
- *                 type: struct
- *             service:
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sServiceDto
- *                 type: struct
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/services.ServiceRestartRequest
- *     type: struct
- * ```
- *
- */
-export type SERVICE_RESTART_REQUEST = SERVICE_RESTART_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_SERVICERESTARTREQUEST;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     mogenius-k8s-manager/src/structs.Command:
- *         name: mogenius-k8s-manager/src/structs.Command
- *         properties:
- *             command:
- *                 type: string
- *             finished:
- *                 structRef: time.Time
- *                 type: struct
- *             id:
- *                 type: string
- *             message:
- *                 type: string
- *             started:
- *                 structRef: time.Time
- *                 type: struct
- *             state:
- *                 type: string
- *             title:
- *                 type: string
- *     mogenius-k8s-manager/src/structs.Job:
- *         name: mogenius-k8s-manager/src/structs.Job
- *         properties:
- *             commands:
- *                 elementType:
- *                     pointer: true
- *                     structRef: mogenius-k8s-manager/src/structs.Command
- *                     type: struct
- *                 type: array
- *             containerName:
- *                 type: string
- *             controllerName:
- *                 type: string
- *             finished:
- *                 structRef: time.Time
- *                 type: struct
- *             id:
- *                 type: string
- *             message:
- *                 type: string
- *             namespaceName:
- *                 type: string
- *             projectId:
- *                 type: string
- *             started:
- *                 structRef: time.Time
- *                 type: struct
- *             state:
- *                 type: string
- *             title:
- *                 type: string
- *     time.Time:
- *         name: time.Time
- *         properties: {}
- * typeInfo:
- *     pointer: true
- *     structRef: mogenius-k8s-manager/src/structs.Job
- *     type: struct
- * ```
- *
- */
-export type SERVICE_RESTART_RESPONSE = SERVICE_RESTART_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_JOB|undefined;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     k8s.io/api/autoscaling/v2.ContainerResourceMetricSource:
- *         name: k8s.io/api/autoscaling/v2.ContainerResourceMetricSource
- *         properties:
- *             container:
- *                 type: string
- *             name:
- *                 type: string
- *             target:
- *                 structRef: k8s.io/api/autoscaling/v2.MetricTarget
- *                 type: struct
- *     k8s.io/api/autoscaling/v2.CrossVersionObjectReference:
- *         name: k8s.io/api/autoscaling/v2.CrossVersionObjectReference
- *         properties:
- *             apiVersion:
- *                 type: string
- *             kind:
- *                 type: string
- *             name:
- *                 type: string
- *     k8s.io/api/autoscaling/v2.ExternalMetricSource:
- *         name: k8s.io/api/autoscaling/v2.ExternalMetricSource
- *         properties:
- *             metric:
- *                 structRef: k8s.io/api/autoscaling/v2.MetricIdentifier
- *                 type: struct
- *             target:
- *                 structRef: k8s.io/api/autoscaling/v2.MetricTarget
- *                 type: struct
- *     k8s.io/api/autoscaling/v2.HPAScalingPolicy:
- *         name: k8s.io/api/autoscaling/v2.HPAScalingPolicy
- *         properties:
- *             periodSeconds:
- *                 type: int
- *             type:
- *                 type: string
- *             value:
- *                 type: int
- *     k8s.io/api/autoscaling/v2.HPAScalingRules:
- *         name: k8s.io/api/autoscaling/v2.HPAScalingRules
- *         properties:
- *             policies:
- *                 elementType:
- *                     structRef: k8s.io/api/autoscaling/v2.HPAScalingPolicy
- *                     type: struct
- *                 type: array
- *             selectPolicy:
- *                 pointer: true
- *                 type: string
- *             stabilizationWindowSeconds:
- *                 pointer: true
- *                 type: int
- *             tolerance:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/api/resource.Quantity
- *                 type: struct
- *     k8s.io/api/autoscaling/v2.HorizontalPodAutoscalerBehavior:
- *         name: k8s.io/api/autoscaling/v2.HorizontalPodAutoscalerBehavior
- *         properties:
- *             scaleDown:
- *                 pointer: true
- *                 structRef: k8s.io/api/autoscaling/v2.HPAScalingRules
- *                 type: struct
- *             scaleUp:
- *                 pointer: true
- *                 structRef: k8s.io/api/autoscaling/v2.HPAScalingRules
- *                 type: struct
- *     k8s.io/api/autoscaling/v2.HorizontalPodAutoscalerSpec:
- *         name: k8s.io/api/autoscaling/v2.HorizontalPodAutoscalerSpec
- *         properties:
- *             behavior:
- *                 pointer: true
- *                 structRef: k8s.io/api/autoscaling/v2.HorizontalPodAutoscalerBehavior
- *                 type: struct
- *             maxReplicas:
- *                 type: int
- *             metrics:
- *                 elementType:
- *                     structRef: k8s.io/api/autoscaling/v2.MetricSpec
- *                     type: struct
- *                 type: array
- *             minReplicas:
- *                 pointer: true
- *                 type: int
- *             scaleTargetRef:
- *                 structRef: k8s.io/api/autoscaling/v2.CrossVersionObjectReference
- *                 type: struct
- *     k8s.io/api/autoscaling/v2.MetricIdentifier:
- *         name: k8s.io/api/autoscaling/v2.MetricIdentifier
- *         properties:
- *             name:
- *                 type: string
- *             selector:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
- *                 type: struct
- *     k8s.io/api/autoscaling/v2.MetricSpec:
- *         name: k8s.io/api/autoscaling/v2.MetricSpec
- *         properties:
- *             containerResource:
- *                 pointer: true
- *                 structRef: k8s.io/api/autoscaling/v2.ContainerResourceMetricSource
- *                 type: struct
- *             external:
- *                 pointer: true
- *                 structRef: k8s.io/api/autoscaling/v2.ExternalMetricSource
- *                 type: struct
- *             object:
- *                 pointer: true
- *                 structRef: k8s.io/api/autoscaling/v2.ObjectMetricSource
- *                 type: struct
- *             pods:
- *                 pointer: true
- *                 structRef: k8s.io/api/autoscaling/v2.PodsMetricSource
- *                 type: struct
- *             resource:
- *                 pointer: true
- *                 structRef: k8s.io/api/autoscaling/v2.ResourceMetricSource
- *                 type: struct
- *             type:
- *                 type: string
- *     k8s.io/api/autoscaling/v2.MetricTarget:
- *         name: k8s.io/api/autoscaling/v2.MetricTarget
- *         properties:
- *             averageUtilization:
- *                 pointer: true
- *                 type: int
- *             averageValue:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/api/resource.Quantity
- *                 type: struct
- *             type:
- *                 type: string
- *             value:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/api/resource.Quantity
- *                 type: struct
- *     k8s.io/api/autoscaling/v2.ObjectMetricSource:
- *         name: k8s.io/api/autoscaling/v2.ObjectMetricSource
- *         properties:
- *             describedObject:
- *                 structRef: k8s.io/api/autoscaling/v2.CrossVersionObjectReference
- *                 type: struct
- *             metric:
- *                 structRef: k8s.io/api/autoscaling/v2.MetricIdentifier
- *                 type: struct
- *             target:
- *                 structRef: k8s.io/api/autoscaling/v2.MetricTarget
- *                 type: struct
- *     k8s.io/api/autoscaling/v2.PodsMetricSource:
- *         name: k8s.io/api/autoscaling/v2.PodsMetricSource
- *         properties:
- *             metric:
- *                 structRef: k8s.io/api/autoscaling/v2.MetricIdentifier
- *                 type: struct
- *             target:
- *                 structRef: k8s.io/api/autoscaling/v2.MetricTarget
- *                 type: struct
- *     k8s.io/api/autoscaling/v2.ResourceMetricSource:
- *         name: k8s.io/api/autoscaling/v2.ResourceMetricSource
- *         properties:
- *             name:
- *                 type: string
- *             target:
- *                 structRef: k8s.io/api/autoscaling/v2.MetricTarget
- *                 type: struct
- *     k8s.io/apimachinery/pkg/api/resource.Quantity:
- *         name: k8s.io/apimachinery/pkg/api/resource.Quantity
- *         properties:
- *             Format:
- *                 type: string
- *     k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
- *         properties:
- *             matchExpressions:
- *                 elementType:
- *                     structRef: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelectorRequirement
- *                     type: struct
- *                 type: array
- *             matchLabels:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     type: string
- *     k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelectorRequirement:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelectorRequirement
- *         properties:
- *             key:
- *                 type: string
- *             operator:
- *                 type: string
- *             values:
- *                 elementType:
- *                     type: string
- *                 type: array
- *     mogenius-k8s-manager/src/dtos.K8sCnameDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sCnameDto
- *         properties:
- *             addToTlsHosts:
- *                 type: bool
- *             cName:
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sContainerDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sContainerDto
- *         properties:
- *             KubernetesLimits:
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sServiceSettingsDto
- *                 type: struct
- *             appGitRepositoryCloneUrl:
- *                 pointer: true
- *                 type: string
- *             appSetupCommands:
- *                 pointer: true
- *                 type: string
- *             containerImage:
- *                 pointer: true
- *                 type: string
- *             containerImageCommand:
- *                 pointer: true
- *                 type: string
- *             containerImageCommandArgs:
- *                 pointer: true
- *                 type: string
- *             containerImageRepoSecretDecryptValue:
- *                 pointer: true
- *                 type: string
- *             containerImageRepoSecretId:
- *                 pointer: true
- *                 type: string
- *             displayName:
- *                 type: string
- *             dockerContext:
- *                 pointer: true
- *                 type: string
- *             dockerfileName:
- *                 pointer: true
- *                 type: string
- *             envVars:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/dtos.K8sEnvVarDto
- *                     type: struct
- *                 type: array
- *             gitBranch:
- *                 pointer: true
- *                 type: string
- *             gitCommitAuthor:
- *                 pointer: true
- *                 type: string
- *             gitCommitHash:
- *                 pointer: true
- *                 type: string
- *             gitCommitMessage:
- *                 pointer: true
- *                 type: string
- *             gitRepository:
- *                 pointer: true
- *                 type: string
- *             id:
- *                 type: string
- *             name:
- *                 type: string
- *             probes:
- *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sProbes
- *                 type: struct
- *             settingsYaml:
- *                 pointer: true
- *                 type: string
- *             type:
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sCronJobSettingsDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sCronJobSettingsDto
- *         properties:
- *             activeDeadlineSeconds:
- *                 type: int
- *             backoffLimit:
- *                 type: int
- *             failedJobsHistoryLimit:
- *                 type: int
- *             schedule:
- *                 type: string
- *             successfulJobsHistoryLimit:
- *                 type: int
- *     mogenius-k8s-manager/src/dtos.K8sEnvVarDataDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sEnvVarDataDto
- *         properties:
- *             type:
- *                 type: string
- *             value:
- *                 type: string
- *             vaultKey:
- *                 type: string
- *             vaultStore:
- *                 type: string
- *             vaultType:
- *                 type: string
- *             volumeDestination:
- *                 type: string
- *             volumeName:
- *                 type: string
- *             volumeSource:
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sEnvVarDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sEnvVarDto
- *         properties:
- *             data:
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sEnvVarDataDto
- *                 type: struct
- *             id:
- *                 type: string
- *             name:
- *                 type: string
- *             type:
- *                 type: string
- *             value:
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sHpaSettingsDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sHpaSettingsDto
- *         properties:
- *             HorizontalPodAutoscalerSpec:
- *                 pointer: true
- *                 structRef: k8s.io/api/autoscaling/v2.HorizontalPodAutoscalerSpec
- *                 type: struct
- *     mogenius-k8s-manager/src/dtos.K8sNamespaceDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sNamespaceDto
- *         properties:
- *             Name:
- *                 type: string
- *             displayName:
- *                 type: string
- *             id:
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sPortsDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sPortsDto
- *         properties:
- *             cNames:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/dtos.K8sCnameDto
- *                     type: struct
- *                 type: array
- *             expose:
- *                 type: bool
- *             externalPort:
- *                 type: string
- *             internalPort:
- *                 type: string
- *             portType:
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sProbe:
- *         name: mogenius-k8s-manager/src/dtos.K8sProbe
- *         properties:
- *             exec:
- *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sProbeExec
- *                 type: struct
- *             failureThreshold:
- *                 type: int
- *             grpc:
- *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sProbeGRPC
- *                 type: struct
- *             httpGet:
- *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sProbeHTTPGet
- *                 type: struct
- *             initialDelaySeconds:
- *                 type: int
- *             isActive:
- *                 type: bool
- *             periodSeconds:
- *                 type: int
- *             successThreshold:
- *                 type: int
- *             tcpSocket:
- *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sProbeTCPSocket
- *                 type: struct
- *             timeoutSeconds:
- *                 type: int
- *     mogenius-k8s-manager/src/dtos.K8sProbeExec:
- *         name: mogenius-k8s-manager/src/dtos.K8sProbeExec
- *         properties:
- *             command:
- *                 elementType:
- *                     type: string
- *                 type: array
- *     mogenius-k8s-manager/src/dtos.K8sProbeGRPC:
- *         name: mogenius-k8s-manager/src/dtos.K8sProbeGRPC
- *         properties:
- *             port:
- *                 type: int
- *             service:
- *                 pointer: true
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sProbeHTTPGet:
- *         name: mogenius-k8s-manager/src/dtos.K8sProbeHTTPGet
- *         properties:
- *             host:
- *                 pointer: true
- *                 type: string
- *             httpHeaders:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/dtos.K8sProbeHTTPHeader
- *                     type: struct
- *                 pointer: true
- *                 type: array
- *             path:
- *                 type: string
- *             port:
- *                 type: string
- *             scheme:
- *                 pointer: true
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sProbeHTTPHeader:
- *         name: mogenius-k8s-manager/src/dtos.K8sProbeHTTPHeader
- *         properties:
- *             name:
- *                 type: string
- *             value:
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sProbeTCPSocket:
- *         name: mogenius-k8s-manager/src/dtos.K8sProbeTCPSocket
- *         properties:
- *             port:
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sProbes:
- *         name: mogenius-k8s-manager/src/dtos.K8sProbes
- *         properties:
- *             isActive:
- *                 type: bool
- *             livenessProbe:
- *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sProbe
- *                 type: struct
- *             readinessProbe:
- *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sProbe
- *                 type: struct
- *             startupProbe:
- *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sProbe
- *                 type: struct
- *     mogenius-k8s-manager/src/dtos.K8sProjectDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sProjectDto
- *         properties:
- *             clusterDisplayName:
- *                 type: string
- *             clusterId:
- *                 type: string
- *             clusterMfaId:
- *                 type: string
- *             containerRegistryPat:
- *                 pointer: true
- *                 type: string
- *             containerRegistryPath:
- *                 pointer: true
- *                 type: string
- *             containerRegistryUrl:
- *                 pointer: true
- *                 type: string
- *             containerRegistryUser:
- *                 pointer: true
- *                 type: string
- *             displayName:
- *                 type: string
- *             gitAccessToken:
- *                 pointer: true
- *                 type: string
- *             gitConnectionType:
- *                 pointer: true
- *                 type: string
- *             gitUserId:
- *                 pointer: true
- *                 type: string
- *             id:
- *                 type: string
- *             name:
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sServiceDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sServiceDto
- *         properties:
- *             containers:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/dtos.K8sContainerDto
- *                     type: struct
- *                 type: array
- *             controller:
- *                 type: string
- *             controllerName:
- *                 type: string
- *             cronJobSettings:
- *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sCronJobSettingsDto
- *                 type: struct
- *             deploymentStrategy:
- *                 type: string
- *             displayName:
- *                 type: string
- *             hpaSettings:
- *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sHpaSettingsDto
- *                 type: struct
- *             id:
- *                 type: string
- *             ports:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/dtos.K8sPortsDto
- *                     type: struct
- *                 type: array
- *             replicaCount:
- *                 type: int
- *     mogenius-k8s-manager/src/dtos.K8sServiceSettingsDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sServiceSettingsDto
- *         properties:
- *             ephemeralStorageMB:
- *                 type: int
- *             imagePullPolicy:
- *                 type: string
- *             limitCpuCores:
- *                 type: float
- *             limitMemoryMB:
- *                 type: int
- *     mogenius-k8s-manager/src/services.ServiceStartRequest:
- *         name: mogenius-k8s-manager/src/services.ServiceStartRequest
- *         properties:
- *             namespace:
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sNamespaceDto
- *                 type: struct
- *             project:
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sProjectDto
- *                 type: struct
- *             service:
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sServiceDto
- *                 type: struct
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/services.ServiceStartRequest
- *     type: struct
- * ```
- *
- */
-export type SERVICE_START_REQUEST = SERVICE_START_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_SERVICESTARTREQUEST;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     mogenius-k8s-manager/src/structs.Command:
- *         name: mogenius-k8s-manager/src/structs.Command
- *         properties:
- *             command:
- *                 type: string
- *             finished:
- *                 structRef: time.Time
- *                 type: struct
- *             id:
- *                 type: string
- *             message:
- *                 type: string
- *             started:
- *                 structRef: time.Time
- *                 type: struct
- *             state:
- *                 type: string
- *             title:
- *                 type: string
- *     mogenius-k8s-manager/src/structs.Job:
- *         name: mogenius-k8s-manager/src/structs.Job
- *         properties:
- *             commands:
- *                 elementType:
- *                     pointer: true
- *                     structRef: mogenius-k8s-manager/src/structs.Command
- *                     type: struct
- *                 type: array
- *             containerName:
- *                 type: string
- *             controllerName:
- *                 type: string
- *             finished:
- *                 structRef: time.Time
- *                 type: struct
- *             id:
- *                 type: string
- *             message:
- *                 type: string
- *             namespaceName:
- *                 type: string
- *             projectId:
- *                 type: string
- *             started:
- *                 structRef: time.Time
- *                 type: struct
- *             state:
- *                 type: string
- *             title:
- *                 type: string
- *     time.Time:
- *         name: time.Time
- *         properties: {}
- * typeInfo:
- *     pointer: true
- *     structRef: mogenius-k8s-manager/src/structs.Job
- *     type: struct
- * ```
- *
- */
-export type SERVICE_START_RESPONSE = SERVICE_START_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_JOB|undefined;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     mogenius-k8s-manager/src/services.ServiceStatusRequest:
- *         name: mogenius-k8s-manager/src/services.ServiceStatusRequest
- *         properties:
- *             controller:
- *                 type: string
- *             controllerName:
- *                 type: string
- *             gitRepository:
- *                 type: bool
- *             namespace:
- *                 type: string
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/services.ServiceStatusRequest
- *     type: struct
- * ```
- *
- */
-export type SERVICE_STATUS_REQUEST = SERVICE_STATUS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_SERVICESTATUSREQUEST;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     k8s.io/apimachinery/pkg/apis/meta/v1.Time:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *         properties:
- *             Time:
- *                 structRef: time.Time
- *                 type: struct
- *     mogenius-k8s-manager/src/services.ServiceStatusItem:
- *         name: mogenius-k8s-manager/src/services.ServiceStatusItem
- *         properties:
- *             containerStatus:
- *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/services.XContainerStatus
- *                 type: struct
- *             createdAt:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *                 type: struct
- *             kind:
- *                 type: string
- *             messages:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/services.ServiceStatusMessage
- *                     type: struct
- *                 type: array
- *             name:
- *                 type: string
- *             namespace:
- *                 type: string
- *             ownerKind:
- *                 type: string
- *             ownerName:
- *                 type: string
- *             status:
- *                 type: string
- *     mogenius-k8s-manager/src/services.ServiceStatusMessage:
- *         name: mogenius-k8s-manager/src/services.ServiceStatusMessage
- *         properties:
- *             message:
- *                 type: string
- *             type:
- *                 type: string
- *     mogenius-k8s-manager/src/services.ServiceStatusResponse:
- *         name: mogenius-k8s-manager/src/services.ServiceStatusResponse
- *         properties:
- *             hasContainers:
- *                 type: bool
- *             hasCronJob:
- *                 type: bool
- *             hasDeployment:
- *                 type: bool
- *             hasJob:
- *                 type: bool
- *             hasPods:
- *                 type: bool
- *             items:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/services.ServiceStatusItem
- *                     type: struct
- *                 type: array
- *             switchedOn:
- *                 type: bool
- *             warnings:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/services.ServiceStatusMessage
- *                     type: struct
- *                 type: array
- *     mogenius-k8s-manager/src/services.XContainerStatus:
- *         name: mogenius-k8s-manager/src/services.XContainerStatus
- *         properties:
- *             createdAt:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *                 type: struct
- *             restartCount:
- *                 type: int
- *     time.Time:
- *         name: time.Time
- *         properties: {}
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/services.ServiceStatusResponse
- *     type: struct
- * ```
- *
- */
-export type SERVICE_STATUS_RESPONSE = SERVICE_STATUS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_SERVICES_SERVICESTATUSRESPONSE;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     k8s.io/api/autoscaling/v2.ContainerResourceMetricSource:
- *         name: k8s.io/api/autoscaling/v2.ContainerResourceMetricSource
- *         properties:
- *             container:
- *                 type: string
- *             name:
- *                 type: string
- *             target:
- *                 structRef: k8s.io/api/autoscaling/v2.MetricTarget
- *                 type: struct
- *     k8s.io/api/autoscaling/v2.CrossVersionObjectReference:
- *         name: k8s.io/api/autoscaling/v2.CrossVersionObjectReference
- *         properties:
- *             apiVersion:
- *                 type: string
- *             kind:
- *                 type: string
- *             name:
- *                 type: string
- *     k8s.io/api/autoscaling/v2.ExternalMetricSource:
- *         name: k8s.io/api/autoscaling/v2.ExternalMetricSource
- *         properties:
- *             metric:
- *                 structRef: k8s.io/api/autoscaling/v2.MetricIdentifier
- *                 type: struct
- *             target:
- *                 structRef: k8s.io/api/autoscaling/v2.MetricTarget
- *                 type: struct
- *     k8s.io/api/autoscaling/v2.HPAScalingPolicy:
- *         name: k8s.io/api/autoscaling/v2.HPAScalingPolicy
- *         properties:
- *             periodSeconds:
- *                 type: int
- *             type:
- *                 type: string
- *             value:
- *                 type: int
- *     k8s.io/api/autoscaling/v2.HPAScalingRules:
- *         name: k8s.io/api/autoscaling/v2.HPAScalingRules
- *         properties:
- *             policies:
- *                 elementType:
- *                     structRef: k8s.io/api/autoscaling/v2.HPAScalingPolicy
- *                     type: struct
- *                 type: array
- *             selectPolicy:
- *                 pointer: true
- *                 type: string
- *             stabilizationWindowSeconds:
- *                 pointer: true
- *                 type: int
- *             tolerance:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/api/resource.Quantity
- *                 type: struct
- *     k8s.io/api/autoscaling/v2.HorizontalPodAutoscalerBehavior:
- *         name: k8s.io/api/autoscaling/v2.HorizontalPodAutoscalerBehavior
- *         properties:
- *             scaleDown:
- *                 pointer: true
- *                 structRef: k8s.io/api/autoscaling/v2.HPAScalingRules
- *                 type: struct
- *             scaleUp:
- *                 pointer: true
- *                 structRef: k8s.io/api/autoscaling/v2.HPAScalingRules
- *                 type: struct
- *     k8s.io/api/autoscaling/v2.HorizontalPodAutoscalerSpec:
- *         name: k8s.io/api/autoscaling/v2.HorizontalPodAutoscalerSpec
- *         properties:
- *             behavior:
- *                 pointer: true
- *                 structRef: k8s.io/api/autoscaling/v2.HorizontalPodAutoscalerBehavior
- *                 type: struct
- *             maxReplicas:
- *                 type: int
- *             metrics:
- *                 elementType:
- *                     structRef: k8s.io/api/autoscaling/v2.MetricSpec
- *                     type: struct
- *                 type: array
- *             minReplicas:
- *                 pointer: true
- *                 type: int
- *             scaleTargetRef:
- *                 structRef: k8s.io/api/autoscaling/v2.CrossVersionObjectReference
- *                 type: struct
- *     k8s.io/api/autoscaling/v2.MetricIdentifier:
- *         name: k8s.io/api/autoscaling/v2.MetricIdentifier
- *         properties:
- *             name:
- *                 type: string
- *             selector:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
- *                 type: struct
- *     k8s.io/api/autoscaling/v2.MetricSpec:
- *         name: k8s.io/api/autoscaling/v2.MetricSpec
- *         properties:
- *             containerResource:
- *                 pointer: true
- *                 structRef: k8s.io/api/autoscaling/v2.ContainerResourceMetricSource
- *                 type: struct
- *             external:
- *                 pointer: true
- *                 structRef: k8s.io/api/autoscaling/v2.ExternalMetricSource
- *                 type: struct
- *             object:
- *                 pointer: true
- *                 structRef: k8s.io/api/autoscaling/v2.ObjectMetricSource
- *                 type: struct
- *             pods:
- *                 pointer: true
- *                 structRef: k8s.io/api/autoscaling/v2.PodsMetricSource
- *                 type: struct
- *             resource:
- *                 pointer: true
- *                 structRef: k8s.io/api/autoscaling/v2.ResourceMetricSource
- *                 type: struct
- *             type:
- *                 type: string
- *     k8s.io/api/autoscaling/v2.MetricTarget:
- *         name: k8s.io/api/autoscaling/v2.MetricTarget
- *         properties:
- *             averageUtilization:
- *                 pointer: true
- *                 type: int
- *             averageValue:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/api/resource.Quantity
- *                 type: struct
- *             type:
- *                 type: string
- *             value:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/api/resource.Quantity
- *                 type: struct
- *     k8s.io/api/autoscaling/v2.ObjectMetricSource:
- *         name: k8s.io/api/autoscaling/v2.ObjectMetricSource
- *         properties:
- *             describedObject:
- *                 structRef: k8s.io/api/autoscaling/v2.CrossVersionObjectReference
- *                 type: struct
- *             metric:
- *                 structRef: k8s.io/api/autoscaling/v2.MetricIdentifier
- *                 type: struct
- *             target:
- *                 structRef: k8s.io/api/autoscaling/v2.MetricTarget
- *                 type: struct
- *     k8s.io/api/autoscaling/v2.PodsMetricSource:
- *         name: k8s.io/api/autoscaling/v2.PodsMetricSource
- *         properties:
- *             metric:
- *                 structRef: k8s.io/api/autoscaling/v2.MetricIdentifier
- *                 type: struct
- *             target:
- *                 structRef: k8s.io/api/autoscaling/v2.MetricTarget
- *                 type: struct
- *     k8s.io/api/autoscaling/v2.ResourceMetricSource:
- *         name: k8s.io/api/autoscaling/v2.ResourceMetricSource
- *         properties:
- *             name:
- *                 type: string
- *             target:
- *                 structRef: k8s.io/api/autoscaling/v2.MetricTarget
- *                 type: struct
- *     k8s.io/apimachinery/pkg/api/resource.Quantity:
- *         name: k8s.io/apimachinery/pkg/api/resource.Quantity
- *         properties:
- *             Format:
- *                 type: string
- *     k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
- *         properties:
- *             matchExpressions:
- *                 elementType:
- *                     structRef: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelectorRequirement
- *                     type: struct
- *                 type: array
- *             matchLabels:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     type: string
- *     k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelectorRequirement:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelectorRequirement
- *         properties:
- *             key:
- *                 type: string
- *             operator:
- *                 type: string
- *             values:
- *                 elementType:
- *                     type: string
- *                 type: array
- *     mogenius-k8s-manager/src/dtos.K8sCnameDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sCnameDto
- *         properties:
- *             addToTlsHosts:
- *                 type: bool
- *             cName:
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sContainerDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sContainerDto
- *         properties:
- *             KubernetesLimits:
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sServiceSettingsDto
- *                 type: struct
- *             appGitRepositoryCloneUrl:
- *                 pointer: true
- *                 type: string
- *             appSetupCommands:
- *                 pointer: true
- *                 type: string
- *             containerImage:
- *                 pointer: true
- *                 type: string
- *             containerImageCommand:
- *                 pointer: true
- *                 type: string
- *             containerImageCommandArgs:
- *                 pointer: true
- *                 type: string
- *             containerImageRepoSecretDecryptValue:
- *                 pointer: true
- *                 type: string
- *             containerImageRepoSecretId:
- *                 pointer: true
- *                 type: string
- *             displayName:
- *                 type: string
- *             dockerContext:
- *                 pointer: true
- *                 type: string
- *             dockerfileName:
- *                 pointer: true
- *                 type: string
- *             envVars:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/dtos.K8sEnvVarDto
- *                     type: struct
- *                 type: array
- *             gitBranch:
- *                 pointer: true
- *                 type: string
- *             gitCommitAuthor:
- *                 pointer: true
- *                 type: string
- *             gitCommitHash:
- *                 pointer: true
- *                 type: string
- *             gitCommitMessage:
- *                 pointer: true
- *                 type: string
- *             gitRepository:
- *                 pointer: true
- *                 type: string
- *             id:
- *                 type: string
- *             name:
- *                 type: string
- *             probes:
- *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sProbes
- *                 type: struct
- *             settingsYaml:
- *                 pointer: true
- *                 type: string
- *             type:
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sCronJobSettingsDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sCronJobSettingsDto
- *         properties:
- *             activeDeadlineSeconds:
- *                 type: int
- *             backoffLimit:
- *                 type: int
- *             failedJobsHistoryLimit:
- *                 type: int
- *             schedule:
- *                 type: string
- *             successfulJobsHistoryLimit:
- *                 type: int
- *     mogenius-k8s-manager/src/dtos.K8sEnvVarDataDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sEnvVarDataDto
- *         properties:
- *             type:
- *                 type: string
- *             value:
- *                 type: string
- *             vaultKey:
- *                 type: string
- *             vaultStore:
- *                 type: string
- *             vaultType:
- *                 type: string
- *             volumeDestination:
- *                 type: string
- *             volumeName:
- *                 type: string
- *             volumeSource:
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sEnvVarDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sEnvVarDto
- *         properties:
- *             data:
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sEnvVarDataDto
- *                 type: struct
- *             id:
- *                 type: string
- *             name:
- *                 type: string
- *             type:
- *                 type: string
- *             value:
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sHpaSettingsDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sHpaSettingsDto
- *         properties:
- *             HorizontalPodAutoscalerSpec:
- *                 pointer: true
- *                 structRef: k8s.io/api/autoscaling/v2.HorizontalPodAutoscalerSpec
- *                 type: struct
- *     mogenius-k8s-manager/src/dtos.K8sNamespaceDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sNamespaceDto
- *         properties:
- *             Name:
- *                 type: string
- *             displayName:
- *                 type: string
- *             id:
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sPortsDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sPortsDto
- *         properties:
- *             cNames:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/dtos.K8sCnameDto
- *                     type: struct
- *                 type: array
- *             expose:
- *                 type: bool
- *             externalPort:
- *                 type: string
- *             internalPort:
- *                 type: string
- *             portType:
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sProbe:
- *         name: mogenius-k8s-manager/src/dtos.K8sProbe
- *         properties:
- *             exec:
- *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sProbeExec
- *                 type: struct
- *             failureThreshold:
- *                 type: int
- *             grpc:
- *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sProbeGRPC
- *                 type: struct
- *             httpGet:
- *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sProbeHTTPGet
- *                 type: struct
- *             initialDelaySeconds:
- *                 type: int
- *             isActive:
- *                 type: bool
- *             periodSeconds:
- *                 type: int
- *             successThreshold:
- *                 type: int
- *             tcpSocket:
- *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sProbeTCPSocket
- *                 type: struct
- *             timeoutSeconds:
- *                 type: int
- *     mogenius-k8s-manager/src/dtos.K8sProbeExec:
- *         name: mogenius-k8s-manager/src/dtos.K8sProbeExec
- *         properties:
- *             command:
- *                 elementType:
- *                     type: string
- *                 type: array
- *     mogenius-k8s-manager/src/dtos.K8sProbeGRPC:
- *         name: mogenius-k8s-manager/src/dtos.K8sProbeGRPC
- *         properties:
- *             port:
- *                 type: int
- *             service:
- *                 pointer: true
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sProbeHTTPGet:
- *         name: mogenius-k8s-manager/src/dtos.K8sProbeHTTPGet
- *         properties:
- *             host:
- *                 pointer: true
- *                 type: string
- *             httpHeaders:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/dtos.K8sProbeHTTPHeader
- *                     type: struct
- *                 pointer: true
- *                 type: array
- *             path:
- *                 type: string
- *             port:
- *                 type: string
- *             scheme:
- *                 pointer: true
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sProbeHTTPHeader:
- *         name: mogenius-k8s-manager/src/dtos.K8sProbeHTTPHeader
- *         properties:
- *             name:
- *                 type: string
- *             value:
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sProbeTCPSocket:
- *         name: mogenius-k8s-manager/src/dtos.K8sProbeTCPSocket
- *         properties:
- *             port:
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sProbes:
- *         name: mogenius-k8s-manager/src/dtos.K8sProbes
- *         properties:
- *             isActive:
- *                 type: bool
- *             livenessProbe:
- *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sProbe
- *                 type: struct
- *             readinessProbe:
- *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sProbe
- *                 type: struct
- *             startupProbe:
- *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sProbe
- *                 type: struct
- *     mogenius-k8s-manager/src/dtos.K8sServiceDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sServiceDto
- *         properties:
- *             containers:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/dtos.K8sContainerDto
- *                     type: struct
- *                 type: array
- *             controller:
- *                 type: string
- *             controllerName:
- *                 type: string
- *             cronJobSettings:
- *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sCronJobSettingsDto
- *                 type: struct
- *             deploymentStrategy:
- *                 type: string
- *             displayName:
- *                 type: string
- *             hpaSettings:
- *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sHpaSettingsDto
- *                 type: struct
- *             id:
- *                 type: string
- *             ports:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/dtos.K8sPortsDto
- *                     type: struct
- *                 type: array
- *             replicaCount:
- *                 type: int
- *     mogenius-k8s-manager/src/dtos.K8sServiceSettingsDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sServiceSettingsDto
- *         properties:
- *             ephemeralStorageMB:
- *                 type: int
- *             imagePullPolicy:
- *                 type: string
- *             limitCpuCores:
- *                 type: float
- *             limitMemoryMB:
- *                 type: int
- *     mogenius-k8s-manager/src/services.ServiceStopRequest:
- *         name: mogenius-k8s-manager/src/services.ServiceStopRequest
- *         properties:
- *             namespace:
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sNamespaceDto
- *                 type: struct
- *             projectId:
- *                 type: string
- *             service:
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sServiceDto
- *                 type: struct
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/services.ServiceStopRequest
- *     type: struct
- * ```
- *
- */
-export type SERVICE_STOP_REQUEST = SERVICE_STOP_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_SERVICESTOPREQUEST;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     mogenius-k8s-manager/src/structs.Command:
- *         name: mogenius-k8s-manager/src/structs.Command
- *         properties:
- *             command:
- *                 type: string
- *             finished:
- *                 structRef: time.Time
- *                 type: struct
- *             id:
- *                 type: string
- *             message:
- *                 type: string
- *             started:
- *                 structRef: time.Time
- *                 type: struct
- *             state:
- *                 type: string
- *             title:
- *                 type: string
- *     mogenius-k8s-manager/src/structs.Job:
- *         name: mogenius-k8s-manager/src/structs.Job
- *         properties:
- *             commands:
- *                 elementType:
- *                     pointer: true
- *                     structRef: mogenius-k8s-manager/src/structs.Command
- *                     type: struct
- *                 type: array
- *             containerName:
- *                 type: string
- *             controllerName:
- *                 type: string
- *             finished:
- *                 structRef: time.Time
- *                 type: struct
- *             id:
- *                 type: string
- *             message:
- *                 type: string
- *             namespaceName:
- *                 type: string
- *             projectId:
- *                 type: string
- *             started:
- *                 structRef: time.Time
- *                 type: struct
- *             state:
- *                 type: string
- *             title:
- *                 type: string
- *     time.Time:
- *         name: time.Time
- *         properties: {}
- * typeInfo:
- *     pointer: true
- *     structRef: mogenius-k8s-manager/src/structs.Job
- *     type: struct
- * ```
- *
- */
-export type SERVICE_STOP_RESPONSE = SERVICE_STOP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_JOB|undefined;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     mogenius-k8s-manager/src/services.ServiceTriggerJobRequest:
- *         name: mogenius-k8s-manager/src/services.ServiceTriggerJobRequest
- *         properties:
- *             controllerName:
- *                 type: string
- *             namespaceDisplayName:
- *                 type: string
- *             namespaceId:
- *                 type: string
- *             namespaceName:
- *                 type: string
- *             projectId:
- *                 type: string
- *             serviceId:
- *                 type: string
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/services.ServiceTriggerJobRequest
- *     type: struct
- * ```
- *
- */
-export type SERVICE_TRIGGER_JOB_REQUEST = SERVICE_TRIGGER_JOB_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_SERVICETRIGGERJOBREQUEST;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     mogenius-k8s-manager/src/structs.Command:
- *         name: mogenius-k8s-manager/src/structs.Command
- *         properties:
- *             command:
- *                 type: string
- *             finished:
- *                 structRef: time.Time
- *                 type: struct
- *             id:
- *                 type: string
- *             message:
- *                 type: string
- *             started:
- *                 structRef: time.Time
- *                 type: struct
- *             state:
- *                 type: string
- *             title:
- *                 type: string
- *     mogenius-k8s-manager/src/structs.Job:
- *         name: mogenius-k8s-manager/src/structs.Job
- *         properties:
- *             commands:
- *                 elementType:
- *                     pointer: true
- *                     structRef: mogenius-k8s-manager/src/structs.Command
- *                     type: struct
- *                 type: array
- *             containerName:
- *                 type: string
- *             controllerName:
- *                 type: string
- *             finished:
- *                 structRef: time.Time
- *                 type: struct
- *             id:
- *                 type: string
- *             message:
- *                 type: string
- *             namespaceName:
- *                 type: string
- *             projectId:
- *                 type: string
- *             started:
- *                 structRef: time.Time
- *                 type: struct
- *             state:
- *                 type: string
- *             title:
- *                 type: string
- *     time.Time:
- *         name: time.Time
- *         properties: {}
- * typeInfo:
- *     pointer: true
- *     structRef: mogenius-k8s-manager/src/structs.Job
- *     type: struct
- * ```
- *
- */
-export type SERVICE_TRIGGER_JOB_RESPONSE = SERVICE_TRIGGER_JOB_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_JOB|undefined;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     k8s.io/api/autoscaling/v2.ContainerResourceMetricSource:
- *         name: k8s.io/api/autoscaling/v2.ContainerResourceMetricSource
- *         properties:
- *             container:
- *                 type: string
- *             name:
- *                 type: string
- *             target:
- *                 structRef: k8s.io/api/autoscaling/v2.MetricTarget
- *                 type: struct
- *     k8s.io/api/autoscaling/v2.CrossVersionObjectReference:
- *         name: k8s.io/api/autoscaling/v2.CrossVersionObjectReference
- *         properties:
- *             apiVersion:
- *                 type: string
- *             kind:
- *                 type: string
- *             name:
- *                 type: string
- *     k8s.io/api/autoscaling/v2.ExternalMetricSource:
- *         name: k8s.io/api/autoscaling/v2.ExternalMetricSource
- *         properties:
- *             metric:
- *                 structRef: k8s.io/api/autoscaling/v2.MetricIdentifier
- *                 type: struct
- *             target:
- *                 structRef: k8s.io/api/autoscaling/v2.MetricTarget
- *                 type: struct
- *     k8s.io/api/autoscaling/v2.HPAScalingPolicy:
- *         name: k8s.io/api/autoscaling/v2.HPAScalingPolicy
- *         properties:
- *             periodSeconds:
- *                 type: int
- *             type:
- *                 type: string
- *             value:
- *                 type: int
- *     k8s.io/api/autoscaling/v2.HPAScalingRules:
- *         name: k8s.io/api/autoscaling/v2.HPAScalingRules
- *         properties:
- *             policies:
- *                 elementType:
- *                     structRef: k8s.io/api/autoscaling/v2.HPAScalingPolicy
- *                     type: struct
- *                 type: array
- *             selectPolicy:
- *                 pointer: true
- *                 type: string
- *             stabilizationWindowSeconds:
- *                 pointer: true
- *                 type: int
- *             tolerance:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/api/resource.Quantity
- *                 type: struct
- *     k8s.io/api/autoscaling/v2.HorizontalPodAutoscalerBehavior:
- *         name: k8s.io/api/autoscaling/v2.HorizontalPodAutoscalerBehavior
- *         properties:
- *             scaleDown:
- *                 pointer: true
- *                 structRef: k8s.io/api/autoscaling/v2.HPAScalingRules
- *                 type: struct
- *             scaleUp:
- *                 pointer: true
- *                 structRef: k8s.io/api/autoscaling/v2.HPAScalingRules
- *                 type: struct
- *     k8s.io/api/autoscaling/v2.HorizontalPodAutoscalerSpec:
- *         name: k8s.io/api/autoscaling/v2.HorizontalPodAutoscalerSpec
- *         properties:
- *             behavior:
- *                 pointer: true
- *                 structRef: k8s.io/api/autoscaling/v2.HorizontalPodAutoscalerBehavior
- *                 type: struct
- *             maxReplicas:
- *                 type: int
- *             metrics:
- *                 elementType:
- *                     structRef: k8s.io/api/autoscaling/v2.MetricSpec
- *                     type: struct
- *                 type: array
- *             minReplicas:
- *                 pointer: true
- *                 type: int
- *             scaleTargetRef:
- *                 structRef: k8s.io/api/autoscaling/v2.CrossVersionObjectReference
- *                 type: struct
- *     k8s.io/api/autoscaling/v2.MetricIdentifier:
- *         name: k8s.io/api/autoscaling/v2.MetricIdentifier
- *         properties:
- *             name:
- *                 type: string
- *             selector:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
- *                 type: struct
- *     k8s.io/api/autoscaling/v2.MetricSpec:
- *         name: k8s.io/api/autoscaling/v2.MetricSpec
- *         properties:
- *             containerResource:
- *                 pointer: true
- *                 structRef: k8s.io/api/autoscaling/v2.ContainerResourceMetricSource
- *                 type: struct
- *             external:
- *                 pointer: true
- *                 structRef: k8s.io/api/autoscaling/v2.ExternalMetricSource
- *                 type: struct
- *             object:
- *                 pointer: true
- *                 structRef: k8s.io/api/autoscaling/v2.ObjectMetricSource
- *                 type: struct
- *             pods:
- *                 pointer: true
- *                 structRef: k8s.io/api/autoscaling/v2.PodsMetricSource
- *                 type: struct
- *             resource:
- *                 pointer: true
- *                 structRef: k8s.io/api/autoscaling/v2.ResourceMetricSource
- *                 type: struct
- *             type:
- *                 type: string
- *     k8s.io/api/autoscaling/v2.MetricTarget:
- *         name: k8s.io/api/autoscaling/v2.MetricTarget
- *         properties:
- *             averageUtilization:
- *                 pointer: true
- *                 type: int
- *             averageValue:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/api/resource.Quantity
- *                 type: struct
- *             type:
- *                 type: string
- *             value:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/api/resource.Quantity
- *                 type: struct
- *     k8s.io/api/autoscaling/v2.ObjectMetricSource:
- *         name: k8s.io/api/autoscaling/v2.ObjectMetricSource
- *         properties:
- *             describedObject:
- *                 structRef: k8s.io/api/autoscaling/v2.CrossVersionObjectReference
- *                 type: struct
- *             metric:
- *                 structRef: k8s.io/api/autoscaling/v2.MetricIdentifier
- *                 type: struct
- *             target:
- *                 structRef: k8s.io/api/autoscaling/v2.MetricTarget
- *                 type: struct
- *     k8s.io/api/autoscaling/v2.PodsMetricSource:
- *         name: k8s.io/api/autoscaling/v2.PodsMetricSource
- *         properties:
- *             metric:
- *                 structRef: k8s.io/api/autoscaling/v2.MetricIdentifier
- *                 type: struct
- *             target:
- *                 structRef: k8s.io/api/autoscaling/v2.MetricTarget
- *                 type: struct
- *     k8s.io/api/autoscaling/v2.ResourceMetricSource:
- *         name: k8s.io/api/autoscaling/v2.ResourceMetricSource
- *         properties:
- *             name:
- *                 type: string
- *             target:
- *                 structRef: k8s.io/api/autoscaling/v2.MetricTarget
- *                 type: struct
- *     k8s.io/apimachinery/pkg/api/resource.Quantity:
- *         name: k8s.io/apimachinery/pkg/api/resource.Quantity
- *         properties:
- *             Format:
- *                 type: string
- *     k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
- *         properties:
- *             matchExpressions:
- *                 elementType:
- *                     structRef: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelectorRequirement
- *                     type: struct
- *                 type: array
- *             matchLabels:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     type: string
- *     k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelectorRequirement:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelectorRequirement
- *         properties:
- *             key:
- *                 type: string
- *             operator:
- *                 type: string
- *             values:
- *                 elementType:
- *                     type: string
- *                 type: array
- *     mogenius-k8s-manager/src/dtos.K8sCnameDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sCnameDto
- *         properties:
- *             addToTlsHosts:
- *                 type: bool
- *             cName:
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sContainerDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sContainerDto
- *         properties:
- *             KubernetesLimits:
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sServiceSettingsDto
- *                 type: struct
- *             appGitRepositoryCloneUrl:
- *                 pointer: true
- *                 type: string
- *             appSetupCommands:
- *                 pointer: true
- *                 type: string
- *             containerImage:
- *                 pointer: true
- *                 type: string
- *             containerImageCommand:
- *                 pointer: true
- *                 type: string
- *             containerImageCommandArgs:
- *                 pointer: true
- *                 type: string
- *             containerImageRepoSecretDecryptValue:
- *                 pointer: true
- *                 type: string
- *             containerImageRepoSecretId:
- *                 pointer: true
- *                 type: string
- *             displayName:
- *                 type: string
- *             dockerContext:
- *                 pointer: true
- *                 type: string
- *             dockerfileName:
- *                 pointer: true
- *                 type: string
- *             envVars:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/dtos.K8sEnvVarDto
- *                     type: struct
- *                 type: array
- *             gitBranch:
- *                 pointer: true
- *                 type: string
- *             gitCommitAuthor:
- *                 pointer: true
- *                 type: string
- *             gitCommitHash:
- *                 pointer: true
- *                 type: string
- *             gitCommitMessage:
- *                 pointer: true
- *                 type: string
- *             gitRepository:
- *                 pointer: true
- *                 type: string
- *             id:
- *                 type: string
- *             name:
- *                 type: string
- *             probes:
- *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sProbes
- *                 type: struct
- *             settingsYaml:
- *                 pointer: true
- *                 type: string
- *             type:
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sCronJobSettingsDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sCronJobSettingsDto
- *         properties:
- *             activeDeadlineSeconds:
- *                 type: int
- *             backoffLimit:
- *                 type: int
- *             failedJobsHistoryLimit:
- *                 type: int
- *             schedule:
- *                 type: string
- *             successfulJobsHistoryLimit:
- *                 type: int
- *     mogenius-k8s-manager/src/dtos.K8sEnvVarDataDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sEnvVarDataDto
- *         properties:
- *             type:
- *                 type: string
- *             value:
- *                 type: string
- *             vaultKey:
- *                 type: string
- *             vaultStore:
- *                 type: string
- *             vaultType:
- *                 type: string
- *             volumeDestination:
- *                 type: string
- *             volumeName:
- *                 type: string
- *             volumeSource:
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sEnvVarDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sEnvVarDto
- *         properties:
- *             data:
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sEnvVarDataDto
- *                 type: struct
- *             id:
- *                 type: string
- *             name:
- *                 type: string
- *             type:
- *                 type: string
- *             value:
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sHpaSettingsDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sHpaSettingsDto
- *         properties:
- *             HorizontalPodAutoscalerSpec:
- *                 pointer: true
- *                 structRef: k8s.io/api/autoscaling/v2.HorizontalPodAutoscalerSpec
- *                 type: struct
- *     mogenius-k8s-manager/src/dtos.K8sNamespaceDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sNamespaceDto
- *         properties:
- *             Name:
- *                 type: string
- *             displayName:
- *                 type: string
- *             id:
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sPortsDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sPortsDto
- *         properties:
- *             cNames:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/dtos.K8sCnameDto
- *                     type: struct
- *                 type: array
- *             expose:
- *                 type: bool
- *             externalPort:
- *                 type: string
- *             internalPort:
- *                 type: string
- *             portType:
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sProbe:
- *         name: mogenius-k8s-manager/src/dtos.K8sProbe
- *         properties:
- *             exec:
- *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sProbeExec
- *                 type: struct
- *             failureThreshold:
- *                 type: int
- *             grpc:
- *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sProbeGRPC
- *                 type: struct
- *             httpGet:
- *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sProbeHTTPGet
- *                 type: struct
- *             initialDelaySeconds:
- *                 type: int
- *             isActive:
- *                 type: bool
- *             periodSeconds:
- *                 type: int
- *             successThreshold:
- *                 type: int
- *             tcpSocket:
- *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sProbeTCPSocket
- *                 type: struct
- *             timeoutSeconds:
- *                 type: int
- *     mogenius-k8s-manager/src/dtos.K8sProbeExec:
- *         name: mogenius-k8s-manager/src/dtos.K8sProbeExec
- *         properties:
- *             command:
- *                 elementType:
- *                     type: string
- *                 type: array
- *     mogenius-k8s-manager/src/dtos.K8sProbeGRPC:
- *         name: mogenius-k8s-manager/src/dtos.K8sProbeGRPC
- *         properties:
- *             port:
- *                 type: int
- *             service:
- *                 pointer: true
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sProbeHTTPGet:
- *         name: mogenius-k8s-manager/src/dtos.K8sProbeHTTPGet
- *         properties:
- *             host:
- *                 pointer: true
- *                 type: string
- *             httpHeaders:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/dtos.K8sProbeHTTPHeader
- *                     type: struct
- *                 pointer: true
- *                 type: array
- *             path:
- *                 type: string
- *             port:
- *                 type: string
- *             scheme:
- *                 pointer: true
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sProbeHTTPHeader:
- *         name: mogenius-k8s-manager/src/dtos.K8sProbeHTTPHeader
- *         properties:
- *             name:
- *                 type: string
- *             value:
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sProbeTCPSocket:
- *         name: mogenius-k8s-manager/src/dtos.K8sProbeTCPSocket
- *         properties:
- *             port:
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sProbes:
- *         name: mogenius-k8s-manager/src/dtos.K8sProbes
- *         properties:
- *             isActive:
- *                 type: bool
- *             livenessProbe:
- *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sProbe
- *                 type: struct
- *             readinessProbe:
- *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sProbe
- *                 type: struct
- *             startupProbe:
- *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sProbe
- *                 type: struct
- *     mogenius-k8s-manager/src/dtos.K8sProjectDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sProjectDto
- *         properties:
- *             clusterDisplayName:
- *                 type: string
- *             clusterId:
- *                 type: string
- *             clusterMfaId:
- *                 type: string
- *             containerRegistryPat:
- *                 pointer: true
- *                 type: string
- *             containerRegistryPath:
- *                 pointer: true
- *                 type: string
- *             containerRegistryUrl:
- *                 pointer: true
- *                 type: string
- *             containerRegistryUser:
- *                 pointer: true
- *                 type: string
- *             displayName:
- *                 type: string
- *             gitAccessToken:
- *                 pointer: true
- *                 type: string
- *             gitConnectionType:
- *                 pointer: true
- *                 type: string
- *             gitUserId:
- *                 pointer: true
- *                 type: string
- *             id:
- *                 type: string
- *             name:
- *                 type: string
- *     mogenius-k8s-manager/src/dtos.K8sServiceDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sServiceDto
- *         properties:
- *             containers:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/dtos.K8sContainerDto
- *                     type: struct
- *                 type: array
- *             controller:
- *                 type: string
- *             controllerName:
- *                 type: string
- *             cronJobSettings:
- *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sCronJobSettingsDto
- *                 type: struct
- *             deploymentStrategy:
- *                 type: string
- *             displayName:
- *                 type: string
- *             hpaSettings:
- *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sHpaSettingsDto
- *                 type: struct
- *             id:
- *                 type: string
- *             ports:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/dtos.K8sPortsDto
- *                     type: struct
- *                 type: array
- *             replicaCount:
- *                 type: int
- *     mogenius-k8s-manager/src/dtos.K8sServiceSettingsDto:
- *         name: mogenius-k8s-manager/src/dtos.K8sServiceSettingsDto
- *         properties:
- *             ephemeralStorageMB:
- *                 type: int
- *             imagePullPolicy:
- *                 type: string
- *             limitCpuCores:
- *                 type: float
- *             limitMemoryMB:
- *                 type: int
- *     mogenius-k8s-manager/src/services.ServiceUpdateRequest:
- *         name: mogenius-k8s-manager/src/services.ServiceUpdateRequest
- *         properties:
- *             namespace:
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sNamespaceDto
- *                 type: struct
- *             project:
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sProjectDto
- *                 type: struct
- *             service:
- *                 structRef: mogenius-k8s-manager/src/dtos.K8sServiceDto
- *                 type: struct
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/services.ServiceUpdateRequest
- *     type: struct
- * ```
- *
- */
-export type SERVICE_UPDATE_SERVICE_REQUEST = SERVICE_UPDATE_SERVICE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_SERVICEUPDATEREQUEST;
-
-/**
- * #### Source
- *
- * ```yaml
- * typeInfo:
- *     pointer: true
- *     type: any
- * ```
- *
- */
-export type SERVICE_UPDATE_SERVICE_RESPONSE = any;
 
 /**
  * #### Source
@@ -17525,145 +7232,6 @@ export type STATS_TRAFFIC_ALL_FOR_CONTROLLER_RESPONSE = STATS_TRAFFIC_ALL_FOR_CO
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/dtos.K8sController:
- *         name: mogenius-k8s-manager/src/dtos.K8sController
- *         properties:
- *             kind:
- *                 type: string
- *             name:
- *                 type: string
- *             namespace:
- *                 type: string
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/dtos.K8sController
- *     type: struct
- * ```
- *
- */
-export type STATS_TRAFFIC_SUM_FOR_CONTROLLER_REQUEST = STATS_TRAFFIC_SUM_FOR_CONTROLLER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCONTROLLER;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/dtos.K8sController,*mogenius-k8s-manager/src/networkmonitor.PodNetworkStats]
- *     :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/dtos.K8sController,*mogenius-k8s-manager/src/networkmonitor.PodNetworkStats]
- *         properties:
- *             data:
- *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/networkmonitor.PodNetworkStats
- *                 type: struct
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- *     mogenius-k8s-manager/src/networkmonitor.PodNetworkStats:
- *         name: mogenius-k8s-manager/src/networkmonitor.PodNetworkStats
- *         properties:
- *             createdAt:
- *                 structRef: time.Time
- *                 type: struct
- *             namespace:
- *                 type: string
- *             pod:
- *                 type: string
- *             receivedBytes:
- *                 type: uint
- *             receivedPackets:
- *                 type: uint
- *             receivedStartBytes:
- *                 type: uint
- *             transmitBytes:
- *                 type: uint
- *             transmitPackets:
- *                 type: uint
- *             transmitStartBytes:
- *                 type: uint
- *     time.Time:
- *         name: time.Time
- *         properties: {}
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/dtos.K8sController,*mogenius-k8s-manager/src/networkmonitor.PodNetworkStats]
- *     type: struct
- * ```
- *
- */
-export type STATS_TRAFFIC_SUM_FOR_CONTROLLER_RESPONSE = STATS_TRAFFIC_SUM_FOR_CONTROLLER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCONTROLLER_MOGENIUS_K8S_MANAGER_SRC_NETWORKMONITOR_PODNETWORKSTATS;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     mogenius-k8s-manager/src/core.Request:
- *         name: mogenius-k8s-manager/src/core.Request
- *         properties:
- *             namespace:
- *                 type: string
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Request
- *     type: struct
- * ```
- *
- */
-export type STATS_TRAFFIC_SUM_FOR_NAMESPACE_REQUEST = STATS_TRAFFIC_SUM_FOR_NAMESPACE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·8,[]mogenius-k8s-manager/src/networkmonitor.PodNetworkStats]
- *     :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·8,[]mogenius-k8s-manager/src/networkmonitor.PodNetworkStats]
- *         properties:
- *             data:
- *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/networkmonitor.PodNetworkStats
- *                     type: struct
- *                 type: array
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- *     mogenius-k8s-manager/src/networkmonitor.PodNetworkStats:
- *         name: mogenius-k8s-manager/src/networkmonitor.PodNetworkStats
- *         properties:
- *             createdAt:
- *                 structRef: time.Time
- *                 type: struct
- *             namespace:
- *                 type: string
- *             pod:
- *                 type: string
- *             receivedBytes:
- *                 type: uint
- *             receivedPackets:
- *                 type: uint
- *             receivedStartBytes:
- *                 type: uint
- *             transmitBytes:
- *                 type: uint
- *             transmitPackets:
- *                 type: uint
- *             transmitStartBytes:
- *                 type: uint
- *     time.Time:
- *         name: time.Time
- *         properties: {}
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·8,[]mogenius-k8s-manager/src/networkmonitor.PodNetworkStats]
- *     type: struct
- * ```
- *
- */
-export type STATS_TRAFFIC_SUM_FOR_NAMESPACE_RESPONSE = STATS_TRAFFIC_SUM_FOR_NAMESPACE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST8_MOGENIUS_K8S_MANAGER_SRC_NETWORKMONITOR_PODNETWORKSTATS;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
  *     mogenius-k8s-manager/src/core.Request:
  *         name: mogenius-k8s-manager/src/core.Request
  *         properties:
@@ -17698,8 +7266,8 @@ export type STATS_WORKSPACE_CPU_UTILIZATION_REQUEST = STATS_WORKSPACE_CPU_UTILIZ
  *                 type: struct
  *             value:
  *                 type: float
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·9,[]mogenius-k8s-manager/src/core.GenericChartEntry]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·9,[]mogenius-k8s-manager/src/core.GenericChartEntry]
+ *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·8,[]mogenius-k8s-manager/src/core.GenericChartEntry]:
+ *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·8,[]mogenius-k8s-manager/src/core.GenericChartEntry]
  *         properties:
  *             data:
  *                 elementType:
@@ -17714,12 +7282,12 @@ export type STATS_WORKSPACE_CPU_UTILIZATION_REQUEST = STATS_WORKSPACE_CPU_UTILIZ
  *         name: time.Time
  *         properties: {}
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·9,[]mogenius-k8s-manager/src/core.GenericChartEntry]
+ *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·8,[]mogenius-k8s-manager/src/core.GenericChartEntry]
  *     type: struct
  * ```
  *
  */
-export type STATS_WORKSPACE_CPU_UTILIZATION_RESPONSE = STATS_WORKSPACE_CPU_UTILIZATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST9_MOGENIUS_K8S_MANAGER_SRC_CORE_GENERICCHARTENTRY;
+export type STATS_WORKSPACE_CPU_UTILIZATION_RESPONSE = STATS_WORKSPACE_CPU_UTILIZATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST8_MOGENIUS_K8S_MANAGER_SRC_CORE_GENERICCHARTENTRY;
 
 /**
  * #### Source
@@ -17760,8 +7328,8 @@ export type STATS_WORKSPACE_MEMORY_UTILIZATION_REQUEST = STATS_WORKSPACE_MEMORY_
  *                 type: struct
  *             value:
  *                 type: float
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·9,[]mogenius-k8s-manager/src/core.GenericChartEntry]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·9,[]mogenius-k8s-manager/src/core.GenericChartEntry]
+ *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·8,[]mogenius-k8s-manager/src/core.GenericChartEntry]:
+ *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·8,[]mogenius-k8s-manager/src/core.GenericChartEntry]
  *         properties:
  *             data:
  *                 elementType:
@@ -17776,12 +7344,12 @@ export type STATS_WORKSPACE_MEMORY_UTILIZATION_REQUEST = STATS_WORKSPACE_MEMORY_
  *         name: time.Time
  *         properties: {}
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·9,[]mogenius-k8s-manager/src/core.GenericChartEntry]
+ *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·8,[]mogenius-k8s-manager/src/core.GenericChartEntry]
  *     type: struct
  * ```
  *
  */
-export type STATS_WORKSPACE_MEMORY_UTILIZATION_RESPONSE = STATS_WORKSPACE_MEMORY_UTILIZATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST9_MOGENIUS_K8S_MANAGER_SRC_CORE_GENERICCHARTENTRY;
+export type STATS_WORKSPACE_MEMORY_UTILIZATION_RESPONSE = STATS_WORKSPACE_MEMORY_UTILIZATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST8_MOGENIUS_K8S_MANAGER_SRC_CORE_GENERICCHARTENTRY;
 
 /**
  * #### Source
@@ -17822,8 +7390,8 @@ export type STATS_WORKSPACE_TRAFFIC_UTILIZATION_REQUEST = STATS_WORKSPACE_TRAFFI
  *                 type: struct
  *             value:
  *                 type: float
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·9,[]mogenius-k8s-manager/src/core.GenericChartEntry]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·9,[]mogenius-k8s-manager/src/core.GenericChartEntry]
+ *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·8,[]mogenius-k8s-manager/src/core.GenericChartEntry]:
+ *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·8,[]mogenius-k8s-manager/src/core.GenericChartEntry]
  *         properties:
  *             data:
  *                 elementType:
@@ -17838,12 +7406,12 @@ export type STATS_WORKSPACE_TRAFFIC_UTILIZATION_REQUEST = STATS_WORKSPACE_TRAFFI
  *         name: time.Time
  *         properties: {}
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·9,[]mogenius-k8s-manager/src/core.GenericChartEntry]
+ *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·8,[]mogenius-k8s-manager/src/core.GenericChartEntry]
  *     type: struct
  * ```
  *
  */
-export type STATS_WORKSPACE_TRAFFIC_UTILIZATION_RESPONSE = STATS_WORKSPACE_TRAFFIC_UTILIZATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST9_MOGENIUS_K8S_MANAGER_SRC_CORE_GENERICCHARTENTRY;
+export type STATS_WORKSPACE_TRAFFIC_UTILIZATION_RESPONSE = STATS_WORKSPACE_TRAFFIC_UTILIZATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST8_MOGENIUS_K8S_MANAGER_SRC_CORE_GENERICCHARTENTRY;
 
 /**
  * #### Source
@@ -17928,50 +7496,6 @@ export type STORAGE_DELETE_VOLUME_REQUEST = STORAGE_DELETE_VOLUME_REQUEST__MOGEN
  *
  */
 export type STORAGE_DELETE_VOLUME_RESPONSE = STORAGE_DELETE_VOLUME_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_DEFAULTRESPONSE;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     mogenius-k8s-manager/src/services.NfsNamespaceStatsRequest:
- *         name: mogenius-k8s-manager/src/services.NfsNamespaceStatsRequest
- *         properties:
- *             namespaceName:
- *                 type: string
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/services.NfsNamespaceStatsRequest
- *     type: struct
- * ```
- *
- */
-export type STORAGE_NAMESPACE_STATS_REQUEST = STORAGE_NAMESPACE_STATS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_NFSNAMESPACESTATSREQUEST;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     mogenius-k8s-manager/src/services.NfsVolumeStatsResponse:
- *         name: mogenius-k8s-manager/src/services.NfsVolumeStatsResponse
- *         properties:
- *             freeBytes:
- *                 type: uint
- *             totalBytes:
- *                 type: uint
- *             usedBytes:
- *                 type: uint
- *             volumeName:
- *                 type: string
- * typeInfo:
- *     elementType:
- *         structRef: mogenius-k8s-manager/src/services.NfsVolumeStatsResponse
- *         type: struct
- *     type: array
- * ```
- *
- */
-export type STORAGE_NAMESPACE_STATS_RESPONSE = STORAGE_NAMESPACE_STATS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_SERVICES_NFSVOLUMESTATSRESPONSE[];
 
 /**
  * #### Source
@@ -18171,28 +7695,34 @@ export type SYSTEM_CHECK_RESPONSE = SYSTEM_CHECK_RESPONSE__MOGENIUS_K8S_MANAGER_
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/utils.ResourceItem:
- *         name: mogenius-k8s-manager/src/utils.ResourceItem
+ *     mogenius-k8s-manager/src/utils.ResourceDescriptor:
+ *         name: mogenius-k8s-manager/src/utils.ResourceDescriptor
  *         properties:
- *             group:
+ *             apiVersion:
  *                 type: string
  *             kind:
  *                 type: string
- *             name:
+ *             namespaced:
+ *                 type: bool
+ *             plural:
  *                 type: string
+ *     mogenius-k8s-manager/src/utils.WorkloadSingleRequest:
+ *         name: mogenius-k8s-manager/src/utils.WorkloadSingleRequest
+ *         properties:
+ *             ResourceDescriptor:
+ *                 structRef: mogenius-k8s-manager/src/utils.ResourceDescriptor
+ *                 type: struct
  *             namespace:
  *                 type: string
  *             resourceName:
  *                 type: string
- *             version:
- *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/utils.ResourceItem
+ *     structRef: mogenius-k8s-manager/src/utils.WorkloadSingleRequest
  *     type: struct
  * ```
  *
  */
-export type TRIGGER_WORKLOAD_REQUEST = TRIGGER_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEITEM;
+export type TRIGGER_WORKLOAD_REQUEST = TRIGGER_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_WORKLOADSINGLEREQUEST;
 
 /**
  * #### Source
@@ -18209,8 +7739,8 @@ export type TRIGGER_WORKLOAD_REQUEST = TRIGGER_WORKLOAD_REQUEST__MOGENIUS_K8S_MA
  *                 valueType:
  *                     pointer: true
  *                     type: any
- *     ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.ResourceItem,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
- *     :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.ResourceItem,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *     ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadSingleRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *     :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadSingleRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
  *         properties:
  *             data:
  *                 pointer: true
@@ -18221,12 +7751,12 @@ export type TRIGGER_WORKLOAD_REQUEST = TRIGGER_WORKLOAD_REQUEST__MOGENIUS_K8S_MA
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.ResourceItem,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadSingleRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
  *     type: struct
  * ```
  *
  */
-export type TRIGGER_WORKLOAD_RESPONSE = TRIGGER_WORKLOAD_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEITEM_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED;
+export type TRIGGER_WORKLOAD_RESPONSE = TRIGGER_WORKLOAD_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_UTILS_WORKLOADSINGLEREQUEST_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED;
 
 /**
  * #### Source
@@ -18487,8 +8017,8 @@ export type UPDATE_GRANT_REQUEST = UPDATE_GRANT_REQUEST__MOGENIUS_K8S_MANAGER_SR
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·32,string]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·32,string]
+ *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·31,string]:
+ *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·31,string]
  *         properties:
  *             data:
  *                 type: string
@@ -18497,64 +8027,12 @@ export type UPDATE_GRANT_REQUEST = UPDATE_GRANT_REQUEST__MOGENIUS_K8S_MANAGER_SR
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·32,string]
+ *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·31,string]
  *     type: struct
  * ```
  *
  */
-export type UPDATE_GRANT_RESPONSE = UPDATE_GRANT_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST32_STRING;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     mogenius-k8s-manager/src/kubernetes.NetworkPolicy:
- *         name: mogenius-k8s-manager/src/kubernetes.NetworkPolicy
- *         properties:
- *             Name:
- *                 type: string
- *             Port:
- *                 type: uint
- *             Protocol:
- *                 type: string
- *             Type:
- *                 type: string
- * typeInfo:
- *     elementType:
- *         structRef: mogenius-k8s-manager/src/kubernetes.NetworkPolicy
- *         type: struct
- *     type: array
- * ```
- *
- */
-export type UPDATE_NETWORK_POLICIES_TEMPLATE_REQUEST = UPDATE_NETWORK_POLICIES_TEMPLATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_NETWORKPOLICY[];
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *     ANON_STRUCT_1:
- *         properties: {}
- *     mogenius-k8s-manager/src/core.Result[[]mogenius-k8s-manager/src/kubernetes.NetworkPolicy,mogenius-k8s-manager/src/core.Void]:
- *         name: mogenius-k8s-manager/src/core.Result[[]mogenius-k8s-manager/src/kubernetes.NetworkPolicy,mogenius-k8s-manager/src/core.Void]
- *         properties:
- *             data:
- *                 pointer: true
- *                 structRef: ANON_STRUCT_1
- *                 type: struct
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[[]mogenius-k8s-manager/src/kubernetes.NetworkPolicy,mogenius-k8s-manager/src/core.Void]
- *     type: struct
- * ```
- *
- */
-export type UPDATE_NETWORK_POLICIES_TEMPLATE_RESPONSE = UPDATE_NETWORK_POLICIES_TEMPLATE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_KUBERNETES_NETWORKPOLICY_MOGENIUS_K8S_MANAGER_SRC_CORE_VOID;
+export type UPDATE_GRANT_RESPONSE = UPDATE_GRANT_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST31_STRING;
 
 /**
  * #### Source
@@ -18600,8 +8078,8 @@ export type UPDATE_USER_REQUEST = UPDATE_USER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·27,string]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·27,string]
+ *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·26,string]:
+ *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·26,string]
  *         properties:
  *             data:
  *                 type: string
@@ -18610,41 +8088,46 @@ export type UPDATE_USER_REQUEST = UPDATE_USER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·27,string]
+ *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·26,string]
  *     type: struct
  * ```
  *
  */
-export type UPDATE_USER_RESPONSE = UPDATE_USER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST27_STRING;
+export type UPDATE_USER_RESPONSE = UPDATE_USER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST26_STRING;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/utils.ResourceData:
- *         name: mogenius-k8s-manager/src/utils.ResourceData
+ *     mogenius-k8s-manager/src/utils.ResourceDescriptor:
+ *         name: mogenius-k8s-manager/src/utils.ResourceDescriptor
  *         properties:
- *             group:
+ *             apiVersion:
  *                 type: string
  *             kind:
  *                 type: string
- *             name:
+ *             namespaced:
+ *                 type: bool
+ *             plural:
  *                 type: string
+ *     mogenius-k8s-manager/src/utils.WorkloadChangeRequest:
+ *         name: mogenius-k8s-manager/src/utils.WorkloadChangeRequest
+ *         properties:
+ *             ResourceDescriptor:
+ *                 structRef: mogenius-k8s-manager/src/utils.ResourceDescriptor
+ *                 type: struct
  *             namespace:
- *                 pointer: true
- *                 type: string
- *             version:
  *                 type: string
  *             yamlData:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/utils.ResourceData
+ *     structRef: mogenius-k8s-manager/src/utils.WorkloadChangeRequest
  *     type: struct
  * ```
  *
  */
-export type UPDATE_WORKLOAD_REQUEST = UPDATE_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDATA;
+export type UPDATE_WORKLOAD_REQUEST = UPDATE_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_WORKLOADCHANGEREQUEST;
 
 /**
  * #### Source
@@ -18661,8 +8144,8 @@ export type UPDATE_WORKLOAD_REQUEST = UPDATE_WORKLOAD_REQUEST__MOGENIUS_K8S_MANA
  *                 valueType:
  *                     pointer: true
  *                     type: any
- *     ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.ResourceData,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
- *     :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.ResourceData,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *     ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadChangeRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *     :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadChangeRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
  *         properties:
  *             data:
  *                 pointer: true
@@ -18673,12 +8156,12 @@ export type UPDATE_WORKLOAD_REQUEST = UPDATE_WORKLOAD_REQUEST__MOGENIUS_K8S_MANA
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.ResourceData,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadChangeRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
  *     type: struct
  * ```
  *
  */
-export type UPDATE_WORKLOAD_RESPONSE = UPDATE_WORKLOAD_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDATA_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED;
+export type UPDATE_WORKLOAD_RESPONSE = UPDATE_WORKLOAD_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_UTILS_WORKLOADCHANGEREQUEST_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED;
 
 /**
  * #### Source
@@ -18719,8 +8202,8 @@ export type UPDATE_WORKSPACE_REQUEST = UPDATE_WORKSPACE_REQUEST__MOGENIUS_K8S_MA
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·22,string]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·22,string]
+ *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·21,string]:
+ *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·21,string]
  *         properties:
  *             data:
  *                 type: string
@@ -18729,12 +8212,12 @@ export type UPDATE_WORKSPACE_REQUEST = UPDATE_WORKSPACE_REQUEST__MOGENIUS_K8S_MA
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·22,string]
+ *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·21,string]
  *     type: struct
  * ```
  *
  */
-export type UPDATE_WORKSPACE_RESPONSE = UPDATE_WORKSPACE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST22_STRING;
+export type UPDATE_WORKSPACE_RESPONSE = UPDATE_WORKSPACE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST21_STRING;
 
 /**
  * #### Source
@@ -19097,8 +8580,8 @@ export type WORKSPACE_CLEAN_UP_REQUEST = WORKSPACE_CLEAN_UP_REQUEST__MOGENIUS_K8
  *                 type: string
  *             reason:
  *                 type: string
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·21,mogenius-k8s-manager/src/core.CleanUpResult]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·21,mogenius-k8s-manager/src/core.CleanUpResult]
+ *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·20,mogenius-k8s-manager/src/core.CleanUpResult]:
+ *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·20,mogenius-k8s-manager/src/core.CleanUpResult]
  *         properties:
  *             data:
  *                 structRef: mogenius-k8s-manager/src/core.CleanUpResult
@@ -19108,28 +8591,29 @@ export type WORKSPACE_CLEAN_UP_REQUEST = WORKSPACE_CLEAN_UP_REQUEST__MOGENIUS_K8
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·21,mogenius-k8s-manager/src/core.CleanUpResult]
+ *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·20,mogenius-k8s-manager/src/core.CleanUpResult]
  *     type: struct
  * ```
  *
  */
-export type WORKSPACE_CLEAN_UP_RESPONSE = WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST21_MOGENIUS_K8S_MANAGER_SRC_CORE_CLEANUPRESULT;
+export type WORKSPACE_CLEAN_UP_RESPONSE = WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST20_MOGENIUS_K8S_MANAGER_SRC_CORE_CLEANUPRESULT;
 
 
 //===============================================================
 //===================== Struct Definitions ======================
 //===============================================================
 
-export type ATTACH_LABELED_NETWORK_POLICY_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_ATTACHLABELEDNETWORKPOLICYREQUEST = {"controllerName": string,"controllerType": string,"labeledNetworkPolicies": ATTACH_LABELED_NETWORK_POLICY_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SLABELEDNETWORKPOLICYDTO[],"namespaceName": string};
-export type ATTACH_LABELED_NETWORK_POLICY_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SLABELEDNETWORKPOLICYDTO = {"name": string,"port": number,"portType": string,"type": string};
-export type ATTACH_LABELED_NETWORK_POLICY_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_ATTACHLABELEDNETWORKPOLICYREQUEST_STRING = {"data": string,"message": string,"status": string};
 export type AUDIT_LOG_LIST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"limit": number,"offset": number,"workspaceName": string};
 export type AUDIT_LOG_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESPONSE = {"data": AUDIT_LOG_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STORE_AUDITLOGRESPONSE,"message": string,"status": string};
+export type AUDIT_LOG_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST34_MOGENIUS_K8S_MANAGER_SRC_CORE_RESPONSE35 = {"data": AUDIT_LOG_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESPONSE,"message": string,"status": string};
 export type AUDIT_LOG_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STORE_AUDITLOGENTRY = {"createdAt": AUDIT_LOG_LIST_RESPONSE__TIME_TIME,"diff": string,"error": string,"pattern": string,"payload": any,"result": any,"user": AUDIT_LOG_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_USER,"workspace": string};
 export type AUDIT_LOG_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STORE_AUDITLOGRESPONSE = {"data": AUDIT_LOG_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STORE_AUDITLOGENTRY[],"totalCount": number};
 export type AUDIT_LOG_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_USER = {"email": string,"firstName": string,"lastName": string,"source": string};
 export type AUDIT_LOG_LIST_RESPONSE__TIME_TIME = {};
-export type CLUSTER_BACKUP_REQUEST__ANON_STRUCT_0 = {};
+export type CLUSTER_ARGO_CD_APPLICATION_REFRESH_REQUEST__MOGENIUS_K8S_MANAGER_SRC_ARGOCD_ARGOCDAPPLICATIONREFRESHREQUEST = {"applicationName": string,"username": string};
+export type CLUSTER_ARGO_CD_APPLICATION_REFRESH_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_ARGOCD_ARGOCDAPPLICATIONREFRESHREQUEST_BOOL = {"data": boolean,"message": string,"status": string};
+export type CLUSTER_ARGO_CD_CREATE_API_TOKEN_REQUEST__MOGENIUS_K8S_MANAGER_SRC_ARGOCD_ARGOCDCREATEAPITOKENREQUEST = {"username": string};
+export type CLUSTER_ARGO_CD_CREATE_API_TOKEN_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_ARGOCD_ARGOCDCREATEAPITOKENREQUEST_BOOL = {"data": boolean,"message": string,"status": string};
 export type CLUSTER_CLEAR_VALKEY_CACHE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"includeNodeStats": boolean,"includePodStats": boolean,"includeTraffic": boolean};
 export type CLUSTER_CLEAR_VALKEY_CACHE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST5_STRING = {"data": string,"message": string,"status": string};
 export type CLUSTER_COMPONENT_LOG_STREAM_CONNECTION_REQUEST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_COMPONENTLOGCONNECTIONREQUEST = {"component": string,"controller": string|undefined,"namespace": string|undefined,"release": string|undefined,"wsConnectionRequest": CLUSTER_COMPONENT_LOG_STREAM_CONNECTION_REQUEST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST};
@@ -19156,8 +8640,8 @@ export type CLUSTER_HELM_CHART_VERSIONS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_
 export type CLUSTER_HELM_CHART_VERSIONS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMCHARTINFO = {"app_version": string,"description": string,"name": string,"version": string};
 export type CLUSTER_HELM_RELEASE_GET_REQUEST__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMRELEASEGETREQUEST = {"getFormat": string,"namespace": string,"release": string};
 export type CLUSTER_HELM_RELEASE_GET_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_HELM_HELMRELEASEGETREQUEST_STRING = {"data": string,"message": string,"status": string};
-export type CLUSTER_HELM_RELEASE_GET_WORKLOADS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMRELEASEGETWORKLOADSREQUEST = {"namespace": string,"release": string,"whitelist": CLUSTER_HELM_RELEASE_GET_WORKLOADS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEENTRY|undefined[]};
-export type CLUSTER_HELM_RELEASE_GET_WORKLOADS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEENTRY = {"group": string,"kind": string,"name": string,"namespace": string|undefined,"version": string};
+export type CLUSTER_HELM_RELEASE_GET_WORKLOADS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMRELEASEGETWORKLOADSREQUEST = {"namespace": string,"release": string,"whitelist": CLUSTER_HELM_RELEASE_GET_WORKLOADS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR|undefined[]};
+export type CLUSTER_HELM_RELEASE_GET_WORKLOADS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR = {"apiVersion": string,"kind": string,"namespaced": boolean,"plural": string};
 export type CLUSTER_HELM_RELEASE_GET_WORKLOADS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"Object": Record<string, any>};
 export type CLUSTER_HELM_RELEASE_GET_WORKLOADS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_HELM_HELMRELEASEGETWORKLOADSREQUEST_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"data": CLUSTER_HELM_RELEASE_GET_WORKLOADS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED[],"message": string,"status": string};
 export type CLUSTER_HELM_RELEASE_HISTORY_REQUEST__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMRELEASEHISTORYREQUEST = {"namespace": string,"release": string};
@@ -19232,7 +8716,7 @@ export type CLUSTER_LIST_PERSISTENT_VOLUME_CLAIMS_RESPONSE__K8S_IO_APIMACHINERY_
 export type CLUSTER_LIST_PERSISTENT_VOLUME_CLAIMS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_SERVICES_CLUSTERLISTWORKLOADS_K8S_IO_API_CORE_V1_PERSISTENTVOLUMECLAIM = {"data": CLUSTER_LIST_PERSISTENT_VOLUME_CLAIMS_RESPONSE__K8S_IO_API_CORE_V1_PERSISTENTVOLUMECLAIM[],"message": string,"status": string};
 export type CLUSTER_LIST_PERSISTENT_VOLUME_CLAIMS_RESPONSE__TIME_TIME = {};
 export type CLUSTER_MACHINE_STATS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"nodes": string[]};
-export type CLUSTER_MACHINE_STATS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST17_MOGENIUS_K8S_MANAGER_SRC_STRUCTS_MACHINESTATS = {"data": CLUSTER_MACHINE_STATS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_MACHINESTATS[],"message": string,"status": string};
+export type CLUSTER_MACHINE_STATS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST16_MOGENIUS_K8S_MANAGER_SRC_STRUCTS_MACHINESTATS = {"data": CLUSTER_MACHINE_STATS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_MACHINESTATS[],"message": string,"status": string};
 export type CLUSTER_MACHINE_STATS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_MACHINESTATS = {"btfSupport": boolean};
 export type CLUSTER_RESOURCE_INFO_REQUEST__ANON_STRUCT_0 = {};
 export type CLUSTER_RESOURCE_INFO_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_CLUSTERRESOURCEINFO = {"cniConfig": CLUSTER_RESOURCE_INFO_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_CNIDATA[],"country": CLUSTER_RESOURCE_INFO_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_UTILS_COUNTRYDETAILS|undefined,"error": string[],"loadBalancerExternalIps": string[],"nodeStats": CLUSTER_RESOURCE_INFO_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_DTOS_NODESTAT[],"provider": string};
@@ -19246,25 +8730,27 @@ export type CLUSTER_RESOURCE_INFO_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_MAC
 export type CLUSTER_RESOURCE_INFO_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_PLUGIN = {"capabilities": CLUSTER_RESOURCE_INFO_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_CNICAPABILITIES|undefined,"datastore_type": string,"ipam": CLUSTER_RESOURCE_INFO_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_CNIIPAM|undefined,"log_file_path": string,"log_level": string,"mtu": number,"nodename": string,"policy": CLUSTER_RESOURCE_INFO_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_CNIPOLICY|undefined,"snat": boolean|undefined,"type": string};
 export type CLUSTER_RESOURCE_INFO_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_UTILS_COUNTRYDETAILS = {"capitalCity": string,"capitalCityLat": number,"capitalCityLng": number,"code": string,"code3": string,"continent": string,"currency": string,"currencyName": string,"domainTld": string,"isActive": boolean,"isEuMember": boolean,"isoId": number,"languages": string[],"name": string,"phoneNumberPrefix": string,"taxPercent": number};
 export type CREATE_GRANT_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"grantee": string,"name": string,"role": string,"targetName": string,"targetType": string};
-export type CREATE_GRANT_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST30_STRING = {"data": string,"message": string,"status": string};
-export type CREATE_NEW_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDATA = {"group": string,"kind": string,"name": string,"namespace": string|undefined,"version": string,"yamlData": string};
+export type CREATE_GRANT_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST29_STRING = {"data": string,"message": string,"status": string};
+export type CREATE_NEW_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR = {"apiVersion": string,"kind": string,"namespaced": boolean,"plural": string};
+export type CREATE_NEW_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_WORKLOADCHANGEREQUEST = {"ResourceDescriptor": CREATE_NEW_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR,"namespace": string,"yamlData": string};
 export type CREATE_NEW_WORKLOAD_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"Object": Record<string, any>};
-export type CREATE_NEW_WORKLOAD_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDATA_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"data": CREATE_NEW_WORKLOAD_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED|undefined,"message": string,"status": string};
+export type CREATE_NEW_WORKLOAD_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_UTILS_WORKLOADCHANGEREQUEST_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"data": CREATE_NEW_WORKLOAD_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED|undefined,"message": string,"status": string};
 export type CREATE_USER_REQUEST__K8S_IO_API_RBAC_V1_SUBJECT = {"apiGroup": string,"kind": string,"name": string,"namespace": string};
 export type CREATE_USER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"email": string,"firstName": string,"lastName": string,"name": string,"subject": CREATE_USER_REQUEST__K8S_IO_API_RBAC_V1_SUBJECT|undefined};
-export type CREATE_USER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST25_STRING = {"data": string,"message": string,"status": string};
+export type CREATE_USER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST24_STRING = {"data": string,"message": string,"status": string};
 export type CREATE_WORKSPACE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"displayName": string,"name": string,"resources": CREATE_WORKSPACE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_WORKSPACERESOURCEIDENTIFIER[]};
 export type CREATE_WORKSPACE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_WORKSPACERESOURCEIDENTIFIER = {"id": string,"namespace": string,"type": string};
-export type CREATE_WORKSPACE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST19_STRING = {"data": string,"message": string,"status": string};
+export type CREATE_WORKSPACE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST18_STRING = {"data": string,"message": string,"status": string};
 export type DELETE_GRANT_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"name": string};
-export type DELETE_GRANT_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST33_STRING = {"data": string,"message": string,"status": string};
+export type DELETE_GRANT_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST32_STRING = {"data": string,"message": string,"status": string};
 export type DELETE_USER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"name": string};
-export type DELETE_USER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST28_STRING = {"data": string,"message": string,"status": string};
-export type DELETE_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEITEM = {"group": string,"kind": string,"name": string,"namespace": string,"resourceName": string,"version": string};
+export type DELETE_USER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST27_STRING = {"data": string,"message": string,"status": string};
+export type DELETE_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR = {"apiVersion": string,"kind": string,"namespaced": boolean,"plural": string};
+export type DELETE_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_WORKLOADSINGLEREQUEST = {"ResourceDescriptor": DELETE_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR,"namespace": string,"resourceName": string};
 export type DELETE_WORKLOAD_RESPONSE__ANON_STRUCT_1 = {};
-export type DELETE_WORKLOAD_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEITEM_MOGENIUS_K8S_MANAGER_SRC_CORE_VOID = {"data": DELETE_WORKLOAD_RESPONSE__ANON_STRUCT_1|undefined,"message": string,"status": string};
+export type DELETE_WORKLOAD_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_UTILS_WORKLOADSINGLEREQUEST_MOGENIUS_K8S_MANAGER_SRC_CORE_VOID = {"data": DELETE_WORKLOAD_RESPONSE__ANON_STRUCT_1|undefined,"message": string,"status": string};
 export type DELETE_WORKSPACE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"name": string};
-export type DELETE_WORKSPACE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST23_STRING = {"data": string,"message": string,"status": string};
+export type DELETE_WORKSPACE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST22_STRING = {"data": string,"message": string,"status": string};
 export type DESCRIBE_REQUEST__ANON_STRUCT_0 = {};
 export type DESCRIBE_RESPONSE__ANON_STRUCT_2 = {"buildType": string,"version": DESCRIBE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_VERSION_VERSION};
 export type DESCRIBE_RESPONSE__ANON_STRUCT_4 = {};
@@ -19275,24 +8761,9 @@ export type DESCRIBE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_SCHEMA_SCHEMA = {"struct
 export type DESCRIBE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_SCHEMA_STRUCTLAYOUT = {"name": string,"properties": Record<string, DESCRIBE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_SCHEMA_TYPEINFO|undefined>};
 export type DESCRIBE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_SCHEMA_TYPEINFO = {"elementType": DESCRIBE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_SCHEMA_TYPEINFO|undefined,"keyType": DESCRIBE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_SCHEMA_TYPEINFO|undefined,"pointer": boolean,"structRef": string,"type": string,"valueType": DESCRIBE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_SCHEMA_TYPEINFO|undefined};
 export type DESCRIBE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_VERSION_VERSION = {"arch": string,"branch": string,"buildTimestamp": string,"gitCommitHash": string,"os": string,"version": string};
-export type DESCRIBE_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEITEM = {"group": string,"kind": string,"name": string,"namespace": string,"resourceName": string,"version": string};
-export type DESCRIBE_WORKLOAD_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEITEM_STRING = {"data": string,"message": string,"status": string};
-export type DETACH_LABELED_NETWORK_POLICY_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_DETACHLABELEDNETWORKPOLICYREQUEST = {"controllerName": string,"controllerType": string,"labeledNetworkPolicies": DETACH_LABELED_NETWORK_POLICY_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SLABELEDNETWORKPOLICYDTO[],"namespaceName": string};
-export type DETACH_LABELED_NETWORK_POLICY_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SLABELEDNETWORKPOLICYDTO = {"name": string,"port": number,"portType": string,"type": string};
-export type DETACH_LABELED_NETWORK_POLICY_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_DETACHLABELEDNETWORKPOLICYREQUEST_STRING = {"data": string,"message": string,"status": string};
-export type DISABLE_NETWORK_POLICY_MANAGER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_DISABLENETWORKPOLICYMANAGERREQUEST = {"namespaceName": string};
-export type DISABLE_NETWORK_POLICY_MANAGER_RESPONSE__ANON_STRUCT_1 = {};
-export type DISABLE_NETWORK_POLICY_MANAGER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_DISABLENETWORKPOLICYMANAGERREQUEST_MOGENIUS_K8S_MANAGER_SRC_CORE_VOID = {"data": DISABLE_NETWORK_POLICY_MANAGER_RESPONSE__ANON_STRUCT_1|undefined,"message": string,"status": string};
-export type ENFORCE_NETWORK_POLICY_MANAGER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_ENFORCENETWORKPOLICYMANAGERREQUEST = {"namespaceName": string};
-export type ENFORCE_NETWORK_POLICY_MANAGER_RESPONSE__ANON_STRUCT_1 = {};
-export type ENFORCE_NETWORK_POLICY_MANAGER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_ENFORCENETWORKPOLICYMANAGERREQUEST_MOGENIUS_K8S_MANAGER_SRC_CORE_VOID = {"data": ENFORCE_NETWORK_POLICY_MANAGER_RESPONSE__ANON_STRUCT_1|undefined,"message": string,"status": string};
-export type EXTERNAL_SECRET_LIST_AVAILABLE_SECRETS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTSECRETSREQUEST = {"namePrefix": string};
-export type EXTERNAL_SECRET_STORE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_CREATESECRETSSTOREREQUEST = {"displayName": string,"projectId": string,"role": string,"secretPath": string,"vaultServerUrl": string};
-export type EXTERNAL_SECRET_STORE_CREATE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_CREATESECRETSSTORERESPONSE = {"errorMessage": string,"status": string};
-export type EXTERNAL_SECRET_STORE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_DELETESECRETSSTOREREQUEST = {"name": string};
-export type EXTERNAL_SECRET_STORE_DELETE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_DELETESECRETSSTORERESPONSE = {"errorMessage": string,"status": string};
-export type EXTERNAL_SECRET_STORE_LIST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTSECRETSTORESREQUEST = {"projectId": string};
-export type EXTERNAL_SECRET_STORE_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_SECRETSTORE = {"createdAt": string,"displayName": string,"message": string,"name": string,"prefix": string,"project-id": string,"reason": string,"role": string,"shared-path": string,"status": string,"type": string,"vault-url": string};
+export type DESCRIBE_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR = {"apiVersion": string,"kind": string,"namespaced": boolean,"plural": string};
+export type DESCRIBE_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_WORKLOADSINGLEREQUEST = {"ResourceDescriptor": DESCRIBE_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR,"namespace": string,"resourceName": string};
+export type DESCRIBE_WORKLOAD_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_UTILS_WORKLOADSINGLEREQUEST_STRING = {"data": string,"message": string,"status": string};
 export type FILES_CHMOD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"file": FILES_CHMOD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_PERSISTENTFILEREQUESTDTO,"mode": string};
 export type FILES_CHMOD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_PERSISTENTFILEREQUESTDTO = {"path": string,"volumeName": string,"volumeNamespace": string};
 export type FILES_CHOWN_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"file": FILES_CHOWN_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_PERSISTENTFILEREQUESTDTO,"gid": string,"uid": string};
@@ -19318,7 +8789,7 @@ export type GET_GRANT_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OBJECTMETA 
 export type GET_GRANT_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OWNERREFERENCE = {"apiVersion": string,"blockOwnerDeletion": boolean|undefined,"controller": boolean|undefined,"kind": string,"name": string,"uid": string};
 export type GET_GRANT_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME = {"Time": GET_GRANT_RESPONSE__TIME_TIME};
 export type GET_GRANT_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA = {"apiVersion": string,"kind": string};
-export type GET_GRANT_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST31_MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_GRANT = {"data": GET_GRANT_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_GRANT|undefined,"message": string,"status": string};
+export type GET_GRANT_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST30_MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_GRANT = {"data": GET_GRANT_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_GRANT|undefined,"message": string,"status": string};
 export type GET_GRANT_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_GRANT = {"TypeMeta": GET_GRANT_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA,"metadata": GET_GRANT_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OBJECTMETA,"spec": GET_GRANT_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_GRANTSPEC,"status": GET_GRANT_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_GRANTSTATUS};
 export type GET_GRANT_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_GRANTSPEC = {"grantee": string,"role": string,"targetName": string,"targetType": string};
 export type GET_GRANT_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_GRANTSTATUS = {};
@@ -19330,18 +8801,18 @@ export type GET_GRANTS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OBJECTMETA
 export type GET_GRANTS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OWNERREFERENCE = {"apiVersion": string,"blockOwnerDeletion": boolean|undefined,"controller": boolean|undefined,"kind": string,"name": string,"uid": string};
 export type GET_GRANTS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME = {"Time": GET_GRANTS_RESPONSE__TIME_TIME};
 export type GET_GRANTS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA = {"apiVersion": string,"kind": string};
-export type GET_GRANTS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST29_MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_GRANT = {"data": GET_GRANTS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_GRANT[],"message": string,"status": string};
+export type GET_GRANTS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST28_MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_GRANT = {"data": GET_GRANTS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_GRANT[],"message": string,"status": string};
 export type GET_GRANTS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_GRANT = {"TypeMeta": GET_GRANTS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA,"metadata": GET_GRANTS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OBJECTMETA,"spec": GET_GRANTS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_GRANTSPEC,"status": GET_GRANTS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_GRANTSTATUS};
 export type GET_GRANTS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_GRANTSPEC = {"grantee": string,"role": string,"targetName": string,"targetType": string};
 export type GET_GRANTS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_GRANTSTATUS = {};
 export type GET_GRANTS_RESPONSE__TIME_TIME = {};
-export type GET_LABELED_WORKLOAD_LIST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_GETUNSTRUCTUREDLABELEDRESOURCELISTREQUEST = {"blacklist": GET_LABELED_WORKLOAD_LIST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEENTRY|undefined[],"label": string,"whitelist": GET_LABELED_WORKLOAD_LIST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEENTRY|undefined[]};
-export type GET_LABELED_WORKLOAD_LIST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEENTRY = {"group": string,"kind": string,"name": string,"namespace": string|undefined,"version": string};
+export type GET_LABELED_WORKLOAD_LIST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_GETUNSTRUCTUREDLABELEDRESOURCELISTREQUEST = {"blacklist": GET_LABELED_WORKLOAD_LIST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR|undefined[],"label": string,"whitelist": GET_LABELED_WORKLOAD_LIST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR|undefined[]};
+export type GET_LABELED_WORKLOAD_LIST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR = {"apiVersion": string,"kind": string,"namespaced": boolean,"plural": string};
 export type GET_LABELED_WORKLOAD_LIST_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"Object": Record<string, any>};
 export type GET_LABELED_WORKLOAD_LIST_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTUREDLIST = {"Object": Record<string, any>,"items": GET_LABELED_WORKLOAD_LIST_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED[]};
 export type GET_LABELED_WORKLOAD_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_KUBERNETES_GETUNSTRUCTUREDLABELEDRESOURCELISTREQUEST_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTUREDLIST = {"data": GET_LABELED_WORKLOAD_LIST_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTUREDLIST,"message": string,"status": string};
-export type GET_NAMESPACE_WORKLOAD_LIST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_GETUNSTRUCTUREDNAMESPACERESOURCELISTREQUEST = {"blacklist": GET_NAMESPACE_WORKLOAD_LIST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEENTRY|undefined[],"namespace": string,"whitelist": GET_NAMESPACE_WORKLOAD_LIST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEENTRY|undefined[]};
-export type GET_NAMESPACE_WORKLOAD_LIST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEENTRY = {"group": string,"kind": string,"name": string,"namespace": string|undefined,"version": string};
+export type GET_NAMESPACE_WORKLOAD_LIST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_GETUNSTRUCTUREDNAMESPACERESOURCELISTREQUEST = {"blacklist": GET_NAMESPACE_WORKLOAD_LIST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR|undefined[],"namespace": string,"whitelist": GET_NAMESPACE_WORKLOAD_LIST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR|undefined[]};
+export type GET_NAMESPACE_WORKLOAD_LIST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR = {"apiVersion": string,"kind": string,"namespaced": boolean,"plural": string};
 export type GET_NAMESPACE_WORKLOAD_LIST_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"Object": Record<string, any>};
 export type GET_NAMESPACE_WORKLOAD_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_KUBERNETES_GETUNSTRUCTUREDNAMESPACERESOURCELISTREQUEST_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"data": GET_NAMESPACE_WORKLOAD_LIST_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED[],"message": string,"status": string};
 export type GET_USER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"name": string};
@@ -19352,7 +8823,7 @@ export type GET_USER_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OBJECTMETA =
 export type GET_USER_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OWNERREFERENCE = {"apiVersion": string,"blockOwnerDeletion": boolean|undefined,"controller": boolean|undefined,"kind": string,"name": string,"uid": string};
 export type GET_USER_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME = {"Time": GET_USER_RESPONSE__TIME_TIME};
 export type GET_USER_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA = {"apiVersion": string,"kind": string};
-export type GET_USER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST26_MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_USER = {"data": GET_USER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_USER|undefined,"message": string,"status": string};
+export type GET_USER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST25_MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_USER = {"data": GET_USER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_USER|undefined,"message": string,"status": string};
 export type GET_USER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_USER = {"TypeMeta": GET_USER_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA,"metadata": GET_USER_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OBJECTMETA,"spec": GET_USER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_USERSPEC,"status": GET_USER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_USERSTATUS};
 export type GET_USER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_USERSPEC = {"email": string,"firstName": string,"lastName": string,"subject": GET_USER_RESPONSE__K8S_IO_API_RBAC_V1_SUBJECT|undefined};
 export type GET_USER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_USERSTATUS = {};
@@ -19365,23 +8836,24 @@ export type GET_USERS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OBJECTMETA 
 export type GET_USERS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OWNERREFERENCE = {"apiVersion": string,"blockOwnerDeletion": boolean|undefined,"controller": boolean|undefined,"kind": string,"name": string,"uid": string};
 export type GET_USERS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME = {"Time": GET_USERS_RESPONSE__TIME_TIME};
 export type GET_USERS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA = {"apiVersion": string,"kind": string};
-export type GET_USERS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST24_MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_USER = {"data": GET_USERS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_USER[],"message": string,"status": string};
+export type GET_USERS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST23_MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_USER = {"data": GET_USERS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_USER[],"message": string,"status": string};
 export type GET_USERS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_USER = {"TypeMeta": GET_USERS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA,"metadata": GET_USERS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OBJECTMETA,"spec": GET_USERS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_USERSPEC,"status": GET_USERS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_USERSTATUS};
 export type GET_USERS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_USERSPEC = {"email": string,"firstName": string,"lastName": string,"subject": GET_USERS_RESPONSE__K8S_IO_API_RBAC_V1_SUBJECT|undefined};
 export type GET_USERS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_USERSTATUS = {};
 export type GET_USERS_RESPONSE__TIME_TIME = {};
-export type GET_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEITEM = {"group": string,"kind": string,"name": string,"namespace": string,"resourceName": string,"version": string};
+export type GET_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR = {"apiVersion": string,"kind": string,"namespaced": boolean,"plural": string};
+export type GET_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_WORKLOADSINGLEREQUEST = {"ResourceDescriptor": GET_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR,"namespace": string,"resourceName": string};
 export type GET_WORKLOAD_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"Object": Record<string, any>};
-export type GET_WORKLOAD_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEITEM_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"data": GET_WORKLOAD_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED|undefined,"message": string,"status": string};
-export type GET_WORKLOAD_EXAMPLE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEITEM = {"group": string,"kind": string,"name": string,"namespace": string,"resourceName": string,"version": string};
-export type GET_WORKLOAD_EXAMPLE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEITEM_STRING = {"data": string,"message": string,"status": string};
-export type GET_WORKLOAD_LIST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"group": string,"kind": string,"name": string,"namespace": string|undefined,"version": string,"withData": boolean|undefined};
+export type GET_WORKLOAD_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_UTILS_WORKLOADSINGLEREQUEST_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"data": GET_WORKLOAD_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED|undefined,"message": string,"status": string};
+export type GET_WORKLOAD_EXAMPLE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR = {"apiVersion": string,"kind": string,"namespaced": boolean,"plural": string};
+export type GET_WORKLOAD_EXAMPLE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR_STRING = {"data": string,"message": string,"status": string};
+export type GET_WORKLOAD_LIST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"apiVersion": string,"kind": string,"namespace": string|undefined,"plural": string,"withData": boolean|undefined};
 export type GET_WORKLOAD_LIST_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"Object": Record<string, any>};
 export type GET_WORKLOAD_LIST_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTUREDLIST = {"Object": Record<string, any>,"items": GET_WORKLOAD_LIST_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED[]};
-export type GET_WORKLOAD_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST18_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTUREDLIST = {"data": GET_WORKLOAD_LIST_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTUREDLIST,"message": string,"status": string};
+export type GET_WORKLOAD_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST17_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTUREDLIST = {"data": GET_WORKLOAD_LIST_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTUREDLIST,"message": string,"status": string};
 export type GET_WORKLOAD_STATUS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_GETWORKLOADSTATUSHELMRELEASENAMEREQUEST = {"namespace": string,"release": string};
-export type GET_WORKLOAD_STATUS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_GETWORKLOADSTATUSREQUEST = {"helmReleases": GET_WORKLOAD_STATUS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_GETWORKLOADSTATUSHELMRELEASENAMEREQUEST[]|undefined,"ignoreDependentResources": boolean|undefined,"namespaces": string[]|undefined,"resourceEntity": GET_WORKLOAD_STATUS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEENTRY|undefined,"resourceNames": string[]|undefined};
-export type GET_WORKLOAD_STATUS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEENTRY = {"group": string,"kind": string,"name": string,"namespace": string|undefined,"version": string};
+export type GET_WORKLOAD_STATUS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_GETWORKLOADSTATUSREQUEST = {"helmReleases": GET_WORKLOAD_STATUS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_GETWORKLOADSTATUSHELMRELEASENAMEREQUEST[]|undefined,"ignoreDependentResources": boolean|undefined,"namespaces": string[]|undefined,"resourceDescriptor": GET_WORKLOAD_STATUS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR|undefined,"resourceNames": string[]|undefined};
+export type GET_WORKLOAD_STATUS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR = {"apiVersion": string,"kind": string,"namespaced": boolean,"plural": string};
 export type GET_WORKLOAD_STATUS_RESPONSE__K8S_IO_API_CORE_V1_EVENT = {"TypeMeta": GET_WORKLOAD_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA,"action": string,"count": number,"eventTime": GET_WORKLOAD_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_MICROTIME,"firstTimestamp": GET_WORKLOAD_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME,"involvedObject": GET_WORKLOAD_STATUS_RESPONSE__K8S_IO_API_CORE_V1_OBJECTREFERENCE,"lastTimestamp": GET_WORKLOAD_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME,"message": string,"metadata": GET_WORKLOAD_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OBJECTMETA,"reason": string,"related": GET_WORKLOAD_STATUS_RESPONSE__K8S_IO_API_CORE_V1_OBJECTREFERENCE|undefined,"reportingComponent": string,"reportingInstance": string,"series": GET_WORKLOAD_STATUS_RESPONSE__K8S_IO_API_CORE_V1_EVENTSERIES|undefined,"source": GET_WORKLOAD_STATUS_RESPONSE__K8S_IO_API_CORE_V1_EVENTSOURCE,"type": string};
 export type GET_WORKLOAD_STATUS_RESPONSE__K8S_IO_API_CORE_V1_EVENTSERIES = {"count": number,"lastObservedTime": GET_WORKLOAD_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_MICROTIME};
 export type GET_WORKLOAD_STATUS_RESPONSE__K8S_IO_API_CORE_V1_EVENTSOURCE = {"component": string,"host": string};
@@ -19395,12 +8867,12 @@ export type GET_WORKLOAD_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_T
 export type GET_WORKLOAD_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA = {"apiVersion": string,"kind": string};
 export type GET_WORKLOAD_STATUS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_KUBERNETES_GETWORKLOADSTATUSREQUEST_MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_WORKLOADSTATUSDTO = {"data": GET_WORKLOAD_STATUS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_WORKLOADSTATUSDTO[],"message": string,"status": string};
 export type GET_WORKLOAD_STATUS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_WORKLOADSTATUSDTO = {"items": GET_WORKLOAD_STATUS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_WORKLOADSTATUSITEMDTO[]};
-export type GET_WORKLOAD_STATUS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_WORKLOADSTATUSITEMDTO = {"creationTimestamp": GET_WORKLOAD_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME,"endpoints": any,"events": GET_WORKLOAD_STATUS_RESPONSE__K8S_IO_API_CORE_V1_EVENT[],"group": string,"kind": string,"name": string,"namespace": string,"ownerReferences": any,"replicas": number|undefined,"specClusterIP": string,"specType": string,"status": any,"uid": string};
+export type GET_WORKLOAD_STATUS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_WORKLOADSTATUSITEMDTO = {"apiVersion": string,"creationTimestamp": GET_WORKLOAD_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME,"endpoints": any,"events": GET_WORKLOAD_STATUS_RESPONSE__K8S_IO_API_CORE_V1_EVENT[],"kind": string,"name": string,"namespace": string,"ownerReferences": any,"replicas": number|undefined,"specClusterIP": string,"specType": string,"status": any,"uid": string};
 export type GET_WORKLOAD_STATUS_RESPONSE__TIME_TIME = {};
-export type GET_WORKSPACE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"name": string};
+export type GET_WORKSPACE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"name": string,"namespace": string};
 export type GET_WORKSPACE_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME = {"Time": GET_WORKSPACE_RESPONSE__TIME_TIME};
 export type GET_WORKSPACE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_GETWORKSPACERESULT = {"creationTimestamp": GET_WORKSPACE_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME,"name": string,"resources": GET_WORKSPACE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_WORKSPACERESOURCEIDENTIFIER[]};
-export type GET_WORKSPACE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST20_MOGENIUS_K8S_MANAGER_SRC_CORE_GETWORKSPACERESULT = {"data": GET_WORKSPACE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_GETWORKSPACERESULT|undefined,"message": string,"status": string};
+export type GET_WORKSPACE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST19_MOGENIUS_K8S_MANAGER_SRC_CORE_GETWORKSPACERESULT = {"data": GET_WORKSPACE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_GETWORKSPACERESULT|undefined,"message": string,"status": string};
 export type GET_WORKSPACE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_WORKSPACERESOURCEIDENTIFIER = {"id": string,"namespace": string,"type": string};
 export type GET_WORKSPACE_RESPONSE__TIME_TIME = {};
 export type GET_WORKSPACES_REQUEST__ANON_STRUCT_0 = {};
@@ -19409,10 +8881,10 @@ export type GET_WORKSPACES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_GETWORKSPACER
 export type GET_WORKSPACES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_MOGENIUS_K8S_MANAGER_SRC_CORE_GETWORKSPACERESULT = {"data": GET_WORKSPACES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_GETWORKSPACERESULT[],"message": string,"status": string};
 export type GET_WORKSPACES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_WORKSPACERESOURCEIDENTIFIER = {"id": string,"namespace": string,"type": string};
 export type GET_WORKSPACES_RESPONSE__TIME_TIME = {};
-export type GET_WORKSPACE_WORKLOADS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"blacklist": GET_WORKSPACE_WORKLOADS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEENTRY|undefined[],"namespaceWhitelist": string[],"whitelist": GET_WORKSPACE_WORKLOADS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEENTRY|undefined[],"workspaceName": string};
-export type GET_WORKSPACE_WORKLOADS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEENTRY = {"group": string,"kind": string,"name": string,"namespace": string|undefined,"version": string};
+export type GET_WORKSPACE_WORKLOADS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"blacklist": GET_WORKSPACE_WORKLOADS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR|undefined[],"namespaceWhitelist": string[],"whitelist": GET_WORKSPACE_WORKLOADS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR|undefined[],"workspaceName": string};
+export type GET_WORKSPACE_WORKLOADS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR = {"apiVersion": string,"kind": string,"namespaced": boolean,"plural": string};
 export type GET_WORKSPACE_WORKLOADS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"Object": Record<string, any>};
-export type GET_WORKSPACE_WORKLOADS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST34_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"data": GET_WORKSPACE_WORKLOADS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED[],"message": string,"status": string};
+export type GET_WORKSPACE_WORKLOADS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST33_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"data": GET_WORKSPACE_WORKLOADS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED[],"message": string,"status": string};
 export type INSTALL_CERT_MANAGER_REQUEST__ANON_STRUCT_0 = {};
 export type INSTALL_CERT_MANAGER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
 export type INSTALL_CLUSTER_ISSUER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"email": string};
@@ -19425,79 +8897,9 @@ export type INSTALL_METALLB_REQUEST__ANON_STRUCT_0 = {};
 export type INSTALL_METALLB_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
 export type INSTALL_METRICS_SERVER_REQUEST__ANON_STRUCT_0 = {};
 export type INSTALL_METRICS_SERVER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
-export type K8SNOTIFICATION_REQUEST__ANON_STRUCT_0 = {};
-export type K8SNOTIFICATION_RESPONSE__ANON_STRUCT_1 = {};
-export type K8SNOTIFICATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_MOGENIUS_K8S_MANAGER_SRC_CORE_VOID = {"data": K8SNOTIFICATION_RESPONSE__ANON_STRUCT_1|undefined,"message": string,"status": string};
-export type LIST_ALL_NETWORK_POLICIES_REQUEST__ANON_STRUCT_0 = {};
-export type LIST_ALL_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_IPBLOCK = {"cidr": string,"except": string[]};
-export type LIST_ALL_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYEGRESSRULE = {"ports": LIST_ALL_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYPORT[],"to": LIST_ALL_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYPEER[]};
-export type LIST_ALL_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYINGRESSRULE = {"from": LIST_ALL_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYPEER[],"ports": LIST_ALL_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYPORT[]};
-export type LIST_ALL_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYPEER = {"ipBlock": LIST_ALL_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_IPBLOCK|undefined,"namespaceSelector": LIST_ALL_NETWORK_POLICIES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR|undefined,"podSelector": LIST_ALL_NETWORK_POLICIES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR|undefined};
-export type LIST_ALL_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYPORT = {"endPort": number|undefined,"port": LIST_ALL_NETWORK_POLICIES_RESPONSE__K8S_IO_APIMACHINERY_PKG_UTIL_INTSTR_INTORSTRING|undefined,"protocol": string|undefined};
-export type LIST_ALL_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYSPEC = {"egress": LIST_ALL_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYEGRESSRULE[],"ingress": LIST_ALL_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYINGRESSRULE[],"podSelector": LIST_ALL_NETWORK_POLICIES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR,"policyTypes": string[]};
-export type LIST_ALL_NETWORK_POLICIES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR = {"matchExpressions": LIST_ALL_NETWORK_POLICIES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTORREQUIREMENT[],"matchLabels": Record<string, string>};
-export type LIST_ALL_NETWORK_POLICIES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTORREQUIREMENT = {"key": string,"operator": string,"values": string[]};
-export type LIST_ALL_NETWORK_POLICIES_RESPONSE__K8S_IO_APIMACHINERY_PKG_UTIL_INTSTR_INTORSTRING = {"IntVal": number,"StrVal": string,"Type": number};
-export type LIST_ALL_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_K8SNETWORKPOLICYDTO = {"name": string|undefined,"namespaceName": string,"spec": LIST_ALL_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYSPEC};
-export type LIST_ALL_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTNETWORKPOLICYCONTROLLER = {"controllerName": string,"controllerType": string,"networkPolicies": LIST_ALL_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SLABELEDNETWORKPOLICYDTO[],"serviceId": string};
-export type LIST_ALL_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTNETWORKPOLICYNAMESPACE = {"controllers": LIST_ALL_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTNETWORKPOLICYCONTROLLER[],"displayName": string,"id": string,"managedPolicies": LIST_ALL_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_K8SNETWORKPOLICYDTO[],"name": string,"projectId": string,"unmanagedPolicies": LIST_ALL_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_K8SNETWORKPOLICYDTO[]};
-export type LIST_ALL_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTNETWORKPOLICYNAMESPACE = {"data": LIST_ALL_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTNETWORKPOLICYNAMESPACE[],"message": string,"status": string};
-export type LIST_ALL_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SLABELEDNETWORKPOLICYDTO = {"name": string,"port": number,"portType": string,"type": string};
-export type LIST_ALL_WORKLOADS_REQUEST__ANON_STRUCT_0 = {};
-export type LIST_ALL_WORKLOADS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEENTRY = {"data": LIST_ALL_WORKLOADS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEENTRY[],"message": string,"status": string};
-export type LIST_ALL_WORKLOADS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEENTRY = {"group": string,"kind": string,"name": string,"namespace": string|undefined,"version": string};
-export type LIST_CONFLICTING_NETWORK_POLICIES_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTCONFLICTINGNETWORKPOLICIESREQUEST = {"namespaceName": string};
-export type LIST_CONFLICTING_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_IPBLOCK = {"cidr": string,"except": string[]};
-export type LIST_CONFLICTING_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYEGRESSRULE = {"ports": LIST_CONFLICTING_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYPORT[],"to": LIST_CONFLICTING_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYPEER[]};
-export type LIST_CONFLICTING_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYINGRESSRULE = {"from": LIST_CONFLICTING_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYPEER[],"ports": LIST_CONFLICTING_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYPORT[]};
-export type LIST_CONFLICTING_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYPEER = {"ipBlock": LIST_CONFLICTING_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_IPBLOCK|undefined,"namespaceSelector": LIST_CONFLICTING_NETWORK_POLICIES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR|undefined,"podSelector": LIST_CONFLICTING_NETWORK_POLICIES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR|undefined};
-export type LIST_CONFLICTING_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYPORT = {"endPort": number|undefined,"port": LIST_CONFLICTING_NETWORK_POLICIES_RESPONSE__K8S_IO_APIMACHINERY_PKG_UTIL_INTSTR_INTORSTRING|undefined,"protocol": string|undefined};
-export type LIST_CONFLICTING_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYSPEC = {"egress": LIST_CONFLICTING_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYEGRESSRULE[],"ingress": LIST_CONFLICTING_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYINGRESSRULE[],"podSelector": LIST_CONFLICTING_NETWORK_POLICIES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR,"policyTypes": string[]};
-export type LIST_CONFLICTING_NETWORK_POLICIES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR = {"matchExpressions": LIST_CONFLICTING_NETWORK_POLICIES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTORREQUIREMENT[],"matchLabels": Record<string, string>};
-export type LIST_CONFLICTING_NETWORK_POLICIES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTORREQUIREMENT = {"key": string,"operator": string,"values": string[]};
-export type LIST_CONFLICTING_NETWORK_POLICIES_RESPONSE__K8S_IO_APIMACHINERY_PKG_UTIL_INTSTR_INTORSTRING = {"IntVal": number,"StrVal": string,"Type": number};
-export type LIST_CONFLICTING_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_K8SNETWORKPOLICYDTO = {"name": string|undefined,"namespaceName": string,"spec": LIST_CONFLICTING_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYSPEC};
-export type LIST_CONFLICTING_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTCONFLICTINGNETWORKPOLICIESREQUEST_MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_K8SNETWORKPOLICYDTO = {"data": LIST_CONFLICTING_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_K8SNETWORKPOLICYDTO[],"message": string,"status": string};
-export type LIST_CONTROLLER_NETWORK_POLICIES_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTCONTROLLERLABELEDNETWORKPOLICIESREQUEST = {"controllerName": string,"controllerType": string,"namespaceName": string};
-export type LIST_CONTROLLER_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTCONTROLLERLABELEDNETWORKPOLICIESRESPONSE = {"controllerName": string,"controllerType": string,"labeledNetworkPolicies": LIST_CONTROLLER_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SLABELEDNETWORKPOLICYDTO[],"namespaceName": string};
-export type LIST_CONTROLLER_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTCONTROLLERLABELEDNETWORKPOLICIESREQUEST_MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTCONTROLLERLABELEDNETWORKPOLICIESRESPONSE = {"data": LIST_CONTROLLER_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTCONTROLLERLABELEDNETWORKPOLICIESRESPONSE,"message": string,"status": string};
-export type LIST_CONTROLLER_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SLABELEDNETWORKPOLICYDTO = {"name": string,"port": number,"portType": string,"type": string};
-export type LIST_CRONJOB_JOBS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"controllerName": string,"namespaceName": string,"projectId": string};
-export type LIST_CRONJOB_JOBS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_JOBINFO = {"durationInMs": number,"jobId": string,"jobName": string,"message": LIST_CRONJOB_JOBS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_STATUSMESSAGE|undefined,"podName": string,"schedule": LIST_CRONJOB_JOBS_RESPONSE__TIME_TIME,"status": string,"tileType": string};
-export type LIST_CRONJOB_JOBS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_LISTJOBINFORESPONSE = {"controllerName": string,"jobsInfo": LIST_CRONJOB_JOBS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_JOBINFO[],"namespaceName": string,"projectId": string};
-export type LIST_CRONJOB_JOBS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_STATUSMESSAGE = {"message": string,"reason": string};
-export type LIST_CRONJOB_JOBS_RESPONSE__TIME_TIME = {};
-export type LIST_LABELED_NETWORK_POLICY_PORTS_REQUEST__ANON_STRUCT_0 = {};
-export type LIST_LABELED_NETWORK_POLICY_PORTS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SLABELEDNETWORKPOLICYDTO = {"data": LIST_LABELED_NETWORK_POLICY_PORTS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SLABELEDNETWORKPOLICYDTO[],"message": string,"status": string};
-export type LIST_LABELED_NETWORK_POLICY_PORTS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SLABELEDNETWORKPOLICYDTO = {"name": string,"port": number,"portType": string,"type": string};
-export type LIST_NAMESPACE_NETWORK_POLICIES_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTNAMESPACELABELEDNETWORKPOLICIESREQUEST = {"namespaceName": string};
-export type LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_IPBLOCK = {"cidr": string,"except": string[]};
-export type LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYEGRESSRULE = {"ports": LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYPORT[],"to": LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYPEER[]};
-export type LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYINGRESSRULE = {"from": LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYPEER[],"ports": LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYPORT[]};
-export type LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYPEER = {"ipBlock": LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_IPBLOCK|undefined,"namespaceSelector": LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR|undefined,"podSelector": LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR|undefined};
-export type LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYPORT = {"endPort": number|undefined,"port": LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_APIMACHINERY_PKG_UTIL_INTSTR_INTORSTRING|undefined,"protocol": string|undefined};
-export type LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYSPEC = {"egress": LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYEGRESSRULE[],"ingress": LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYINGRESSRULE[],"podSelector": LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR,"policyTypes": string[]};
-export type LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR = {"matchExpressions": LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTORREQUIREMENT[],"matchLabels": Record<string, string>};
-export type LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTORREQUIREMENT = {"key": string,"operator": string,"values": string[]};
-export type LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_APIMACHINERY_PKG_UTIL_INTSTR_INTORSTRING = {"IntVal": number,"StrVal": string,"Type": number};
-export type LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_K8SNETWORKPOLICYDTO = {"name": string|undefined,"namespaceName": string,"spec": LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYSPEC};
-export type LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTNETWORKPOLICYCONTROLLER = {"controllerName": string,"controllerType": string,"networkPolicies": LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SLABELEDNETWORKPOLICYDTO[],"serviceId": string};
-export type LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTNETWORKPOLICYNAMESPACE = {"controllers": LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTNETWORKPOLICYCONTROLLER[],"displayName": string,"id": string,"managedPolicies": LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_K8SNETWORKPOLICYDTO[],"name": string,"projectId": string,"unmanagedPolicies": LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_K8SNETWORKPOLICYDTO[]};
-export type LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTNAMESPACELABELEDNETWORKPOLICIESREQUEST_MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTNETWORKPOLICYNAMESPACE = {"data": LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTNETWORKPOLICYNAMESPACE[],"message": string,"status": string};
-export type LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SLABELEDNETWORKPOLICYDTO = {"name": string,"port": number,"portType": string,"type": string};
-export type LIST_ONLY_NAMESPACE_NETWORK_POLICIES_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTNAMESPACELABELEDNETWORKPOLICIESREQUEST = {"namespaceName": string};
-export type LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_IPBLOCK = {"cidr": string,"except": string[]};
-export type LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYEGRESSRULE = {"ports": LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYPORT[],"to": LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYPEER[]};
-export type LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYINGRESSRULE = {"from": LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYPEER[],"ports": LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYPORT[]};
-export type LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYPEER = {"ipBlock": LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_IPBLOCK|undefined,"namespaceSelector": LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR|undefined,"podSelector": LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR|undefined};
-export type LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYPORT = {"endPort": number|undefined,"port": LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_APIMACHINERY_PKG_UTIL_INTSTR_INTORSTRING|undefined,"protocol": string|undefined};
-export type LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYSPEC = {"egress": LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYEGRESSRULE[],"ingress": LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYINGRESSRULE[],"podSelector": LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR,"policyTypes": string[]};
-export type LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR = {"matchExpressions": LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTORREQUIREMENT[],"matchLabels": Record<string, string>};
-export type LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTORREQUIREMENT = {"key": string,"operator": string,"values": string[]};
-export type LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_APIMACHINERY_PKG_UTIL_INTSTR_INTORSTRING = {"IntVal": number,"StrVal": string,"Type": number};
-export type LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_K8SNETWORKPOLICYDTO = {"name": string|undefined,"namespaceName": string,"spec": LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE__K8S_IO_API_NETWORKING_V1_NETWORKPOLICYSPEC};
-export type LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTMANAGEDANDUNMANAGEDNETWORKPOLICYNAMESPACE = {"displayName": string,"id": string,"managedPolicies": LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_K8SNETWORKPOLICYDTO[],"name": string,"projectId": string,"unmanagedPolicies": LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_K8SNETWORKPOLICYDTO[]};
-export type LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTNAMESPACELABELEDNETWORKPOLICIESREQUEST_MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTMANAGEDANDUNMANAGEDNETWORKPOLICYNAMESPACE = {"data": LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_LISTMANAGEDANDUNMANAGEDNETWORKPOLICYNAMESPACE[],"message": string,"status": string};
+export type LIST_ALL_RESOURCE_DESCRIPTORS_REQUEST__ANON_STRUCT_0 = {};
+export type LIST_ALL_RESOURCE_DESCRIPTORS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR = {"data": LIST_ALL_RESOURCE_DESCRIPTORS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR[],"message": string,"status": string};
+export type LIST_ALL_RESOURCE_DESCRIPTORS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR = {"apiVersion": string,"kind": string,"namespaced": boolean,"plural": string};
 export type LIVE_STREAM_NODES_CPU_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"nodeName": string,"podName": string,"websocketHost": string,"websocketScheme": string,"workspace": string};
 export type LIVE_STREAM_NODES_CPU_RESPONSE__ANON_STRUCT_1 = {};
 export type LIVE_STREAM_NODES_CPU_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST_MOGENIUS_K8S_MANAGER_SRC_CORE_VOID = {"data": LIVE_STREAM_NODES_CPU_RESPONSE__ANON_STRUCT_1|undefined,"message": string,"status": string};
@@ -19519,26 +8921,6 @@ export type LIVE_STREAM_POD_TRAFFIC_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESU
 export type LIVE_STREAM_WORKSPACE_CPU_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"nodeName": string,"podName": string,"websocketHost": string,"websocketScheme": string,"workspace": string};
 export type LIVE_STREAM_WORKSPACE_MEMORY_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"nodeName": string,"podName": string,"websocketHost": string,"websocketScheme": string,"workspace": string};
 export type LIVE_STREAM_WORKSPACE_TRAFFIC_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"nodeName": string,"podName": string,"websocketHost": string,"websocketScheme": string,"workspace": string};
-export type METRICS_DEPLOYMENT_AVERAGE_UTILIZATION_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCONTROLLER = {"kind": string,"name": string,"namespace": string};
-export type METRICS_DEPLOYMENT_AVERAGE_UTILIZATION_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME = {"Time": METRICS_DEPLOYMENT_AVERAGE_UTILIZATION_RESPONSE__TIME_TIME};
-export type METRICS_DEPLOYMENT_AVERAGE_UTILIZATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCONTROLLER_MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_METRICS = {"data": METRICS_DEPLOYMENT_AVERAGE_UTILIZATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_METRICS|undefined,"message": string,"status": string};
-export type METRICS_DEPLOYMENT_AVERAGE_UTILIZATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_CONTAINERMETRICS = {"cpuRequest": number,"cpuUsage": number,"memRequest": number,"memUsage": number,"name": string};
-export type METRICS_DEPLOYMENT_AVERAGE_UTILIZATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_METRICS = {"cpuAverageUtilization": number,"createdAt": METRICS_DEPLOYMENT_AVERAGE_UTILIZATION_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME,"kind": string,"memoryAverageUtilization": number,"name": string,"namespace": string,"podsMetrics": METRICS_DEPLOYMENT_AVERAGE_UTILIZATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_PODMETRICS[],"windowInMs": number};
-export type METRICS_DEPLOYMENT_AVERAGE_UTILIZATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_PODMETRICS = {"containers": METRICS_DEPLOYMENT_AVERAGE_UTILIZATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_CONTAINERMETRICS[],"name": string};
-export type METRICS_DEPLOYMENT_AVERAGE_UTILIZATION_RESPONSE__TIME_TIME = {};
-export type NAMESPACE_BACKUP_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_NAMESPACEBACKUPREQUEST = {"namespaceName": string};
-export type NAMESPACE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SNAMESPACEDTO = {"Name": string,"displayName": string,"id": string};
-export type NAMESPACE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROJECTDTO = {"clusterDisplayName": string,"clusterId": string,"clusterMfaId": string,"containerRegistryPat": string|undefined,"containerRegistryPath": string|undefined,"containerRegistryUrl": string|undefined,"containerRegistryUser": string|undefined,"displayName": string,"gitAccessToken": string|undefined,"gitConnectionType": string|undefined,"gitUserId": string|undefined,"id": string,"name": string};
-export type NAMESPACE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_NAMESPACECREATEREQUEST = {"namespace": NAMESPACE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SNAMESPACEDTO,"project": NAMESPACE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROJECTDTO};
-export type NAMESPACE_CREATE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_COMMAND = {"command": string,"finished": NAMESPACE_CREATE_RESPONSE__TIME_TIME,"id": string,"message": string,"started": NAMESPACE_CREATE_RESPONSE__TIME_TIME,"state": string,"title": string};
-export type NAMESPACE_CREATE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_JOB = {"commands": NAMESPACE_CREATE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_COMMAND|undefined[],"containerName": string,"controllerName": string,"finished": NAMESPACE_CREATE_RESPONSE__TIME_TIME,"id": string,"message": string,"namespaceName": string,"projectId": string,"started": NAMESPACE_CREATE_RESPONSE__TIME_TIME,"state": string,"title": string};
-export type NAMESPACE_CREATE_RESPONSE__TIME_TIME = {};
-export type NAMESPACE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SNAMESPACEDTO = {"Name": string,"displayName": string,"id": string};
-export type NAMESPACE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROJECTDTO = {"clusterDisplayName": string,"clusterId": string,"clusterMfaId": string,"containerRegistryPat": string|undefined,"containerRegistryPath": string|undefined,"containerRegistryUrl": string|undefined,"containerRegistryUser": string|undefined,"displayName": string,"gitAccessToken": string|undefined,"gitConnectionType": string|undefined,"gitUserId": string|undefined,"id": string,"name": string};
-export type NAMESPACE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_NAMESPACEDELETEREQUEST = {"namespace": NAMESPACE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SNAMESPACEDTO,"project": NAMESPACE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROJECTDTO};
-export type NAMESPACE_DELETE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_COMMAND = {"command": string,"finished": NAMESPACE_DELETE_RESPONSE__TIME_TIME,"id": string,"message": string,"started": NAMESPACE_DELETE_RESPONSE__TIME_TIME,"state": string,"title": string};
-export type NAMESPACE_DELETE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_JOB = {"commands": NAMESPACE_DELETE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_COMMAND|undefined[],"containerName": string,"controllerName": string,"finished": NAMESPACE_DELETE_RESPONSE__TIME_TIME,"id": string,"message": string,"namespaceName": string,"projectId": string,"started": NAMESPACE_DELETE_RESPONSE__TIME_TIME,"state": string,"title": string};
-export type NAMESPACE_DELETE_RESPONSE__TIME_TIME = {};
 export type PROMETHEUS_CHARTS_ADD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSREQUESTREDIS = {"controller": string,"namespace": string,"query": string,"queryName": string,"step": number};
 export type PROMETHEUS_CHARTS_ADD_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSREQUESTREDIS_STRING = {"data": string|undefined,"message": string,"status": string};
 export type PROMETHEUS_CHARTS_GET_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSREQUESTREDIS = {"controller": string,"namespace": string,"query": string,"queryName": string,"step": number};
@@ -19559,14 +8941,9 @@ export type PROMETHEUS_QUERY_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSQ
 export type PROMETHEUS_QUERY_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSREQUEST_MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSQUERYRESPONSE = {"data": PROMETHEUS_QUERY_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSQUERYRESPONSE|undefined,"message": string,"status": string};
 export type PROMETHEUS_VALUES_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSREQUEST = {"prometheusPass": string,"prometheusToken": string,"prometheusUrl": string,"prometheusUser": string,"query": string,"step": number,"timeOffsetSeconds": number};
 export type PROMETHEUS_VALUES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSREQUEST_STRING = {"data": string[],"message": string,"status": string};
-export type REMOVE_CONFLICTING_NETWORK_POLICIES_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_REMOVECONFLICTINGNETWORKPOLICIESREQUEST = {"namespaceName": string};
-export type REMOVE_CONFLICTING_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_REMOVECONFLICTINGNETWORKPOLICIESREQUEST_STRING = {"data": string,"message": string,"status": string};
-export type REMOVE_UNMANAGED_NETWORK_POLICIES_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_REMOVEUNMANAGEDNETWORKPOLICIESREQUEST = {"namespaceName": string,"policies": string[]};
-export type REMOVE_UNMANAGED_NETWORK_POLICIES_RESPONSE__ANON_STRUCT_1 = {};
-export type REMOVE_UNMANAGED_NETWORK_POLICIES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CONTROLLERS_REMOVEUNMANAGEDNETWORKPOLICIESREQUEST_MOGENIUS_K8S_MANAGER_SRC_CORE_VOID = {"data": REMOVE_UNMANAGED_NETWORK_POLICIES_RESPONSE__ANON_STRUCT_1|undefined,"message": string,"status": string};
 export type SEALED_SECRET_CREATE_FROM_EXISTING_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"name": string,"namespace": string};
 export type SEALED_SECRET_CREATE_FROM_EXISTING_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"Object": Record<string, any>};
-export type SEALED_SECRET_CREATE_FROM_EXISTING_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST38_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"data": SEALED_SECRET_CREATE_FROM_EXISTING_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED|undefined,"message": string,"status": string};
+export type SEALED_SECRET_CREATE_FROM_EXISTING_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST36_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"data": SEALED_SECRET_CREATE_FROM_EXISTING_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED|undefined,"message": string,"status": string};
 export type SEALED_SECRET_GET_CERTIFICATE_REQUEST__ANON_STRUCT_0 = {};
 export type SEALED_SECRET_GET_CERTIFICATE_RESPONSE__K8S_IO_API_CORE_V1_SECRET = {"TypeMeta": SEALED_SECRET_GET_CERTIFICATE_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA,"data": Record<string, number[]>,"immutable": boolean|undefined,"metadata": SEALED_SECRET_GET_CERTIFICATE_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OBJECTMETA,"stringData": Record<string, string>,"type": string};
 export type SEALED_SECRET_GET_CERTIFICATE_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_FIELDSV1 = {};
@@ -19577,82 +8954,6 @@ export type SEALED_SECRET_GET_CERTIFICATE_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS
 export type SEALED_SECRET_GET_CERTIFICATE_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA = {"apiVersion": string,"kind": string};
 export type SEALED_SECRET_GET_CERTIFICATE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_K8S_IO_API_CORE_V1_SECRET = {"data": SEALED_SECRET_GET_CERTIFICATE_RESPONSE__K8S_IO_API_CORE_V1_SECRET|undefined,"message": string,"status": string};
 export type SEALED_SECRET_GET_CERTIFICATE_RESPONSE__TIME_TIME = {};
-export type SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_CONTAINERRESOURCEMETRICSOURCE = {"container": string,"name": string,"target": SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
-export type SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_CROSSVERSIONOBJECTREFERENCE = {"apiVersion": string,"kind": string,"name": string};
-export type SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_EXTERNALMETRICSOURCE = {"metric": SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICIDENTIFIER,"target": SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
-export type SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGPOLICY = {"periodSeconds": number,"type": string,"value": number};
-export type SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGRULES = {"policies": SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGPOLICY[],"selectPolicy": string|undefined,"stabilizationWindowSeconds": number|undefined,"tolerance": SERVICE_CREATE_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY|undefined};
-export type SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_HORIZONTALPODAUTOSCALERBEHAVIOR = {"scaleDown": SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGRULES|undefined,"scaleUp": SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGRULES|undefined};
-export type SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_HORIZONTALPODAUTOSCALERSPEC = {"behavior": SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_HORIZONTALPODAUTOSCALERBEHAVIOR|undefined,"maxReplicas": number,"metrics": SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICSPEC[],"minReplicas": number|undefined,"scaleTargetRef": SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_CROSSVERSIONOBJECTREFERENCE};
-export type SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICIDENTIFIER = {"name": string,"selector": SERVICE_CREATE_REQUEST__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR|undefined};
-export type SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICSPEC = {"containerResource": SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_CONTAINERRESOURCEMETRICSOURCE|undefined,"external": SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_EXTERNALMETRICSOURCE|undefined,"object": SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_OBJECTMETRICSOURCE|undefined,"pods": SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_PODSMETRICSOURCE|undefined,"resource": SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_RESOURCEMETRICSOURCE|undefined,"type": string};
-export type SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET = {"averageUtilization": number|undefined,"averageValue": SERVICE_CREATE_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY|undefined,"type": string,"value": SERVICE_CREATE_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY|undefined};
-export type SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_OBJECTMETRICSOURCE = {"describedObject": SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_CROSSVERSIONOBJECTREFERENCE,"metric": SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICIDENTIFIER,"target": SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
-export type SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_PODSMETRICSOURCE = {"metric": SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICIDENTIFIER,"target": SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
-export type SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_RESOURCEMETRICSOURCE = {"name": string,"target": SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
-export type SERVICE_CREATE_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY = {"Format": string};
-export type SERVICE_CREATE_REQUEST__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR = {"matchExpressions": SERVICE_CREATE_REQUEST__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTORREQUIREMENT[],"matchLabels": Record<string, string>};
-export type SERVICE_CREATE_REQUEST__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTORREQUIREMENT = {"key": string,"operator": string,"values": string[]};
-export type SERVICE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCNAMEDTO = {"addToTlsHosts": boolean,"cName": string};
-export type SERVICE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCONTAINERDTO = {"KubernetesLimits": SERVICE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SSERVICESETTINGSDTO,"appGitRepositoryCloneUrl": string|undefined,"appSetupCommands": string|undefined,"containerImage": string|undefined,"containerImageCommand": string|undefined,"containerImageCommandArgs": string|undefined,"containerImageRepoSecretDecryptValue": string|undefined,"containerImageRepoSecretId": string|undefined,"displayName": string,"dockerContext": string|undefined,"dockerfileName": string|undefined,"envVars": SERVICE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SENVVARDTO[],"gitBranch": string|undefined,"gitCommitAuthor": string|undefined,"gitCommitHash": string|undefined,"gitCommitMessage": string|undefined,"gitRepository": string|undefined,"id": string,"name": string,"probes": SERVICE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBES|undefined,"settingsYaml": string|undefined,"type": string};
-export type SERVICE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCRONJOBSETTINGSDTO = {"activeDeadlineSeconds": number,"backoffLimit": number,"failedJobsHistoryLimit": number,"schedule": string,"successfulJobsHistoryLimit": number};
-export type SERVICE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SENVVARDATADTO = {"type": string,"value": string,"vaultKey": string,"vaultStore": string,"vaultType": string,"volumeDestination": string,"volumeName": string,"volumeSource": string};
-export type SERVICE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SENVVARDTO = {"data": SERVICE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SENVVARDATADTO,"id": string,"name": string,"type": string,"value": string};
-export type SERVICE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SHPASETTINGSDTO = {"HorizontalPodAutoscalerSpec": SERVICE_CREATE_REQUEST__K8S_IO_API_AUTOSCALING_V2_HORIZONTALPODAUTOSCALERSPEC|undefined};
-export type SERVICE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SNAMESPACEDTO = {"Name": string,"displayName": string,"id": string};
-export type SERVICE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPORTSDTO = {"cNames": SERVICE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCNAMEDTO[],"expose": boolean,"externalPort": string,"internalPort": string,"portType": string};
-export type SERVICE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBE = {"exec": SERVICE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBEEXEC|undefined,"failureThreshold": number,"grpc": SERVICE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBEGRPC|undefined,"httpGet": SERVICE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBEHTTPGET|undefined,"initialDelaySeconds": number,"isActive": boolean,"periodSeconds": number,"successThreshold": number,"tcpSocket": SERVICE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBETCPSOCKET|undefined,"timeoutSeconds": number};
-export type SERVICE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBEEXEC = {"command": string[]};
-export type SERVICE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBEGRPC = {"port": number,"service": string|undefined};
-export type SERVICE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBEHTTPGET = {"host": string|undefined,"httpHeaders": SERVICE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBEHTTPHEADER[]|undefined,"path": string,"port": string,"scheme": string|undefined};
-export type SERVICE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBEHTTPHEADER = {"name": string,"value": string};
-export type SERVICE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBETCPSOCKET = {"port": string};
-export type SERVICE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBES = {"isActive": boolean,"livenessProbe": SERVICE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBE|undefined,"readinessProbe": SERVICE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBE|undefined,"startupProbe": SERVICE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBE|undefined};
-export type SERVICE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROJECTDTO = {"clusterDisplayName": string,"clusterId": string,"clusterMfaId": string,"containerRegistryPat": string|undefined,"containerRegistryPath": string|undefined,"containerRegistryUrl": string|undefined,"containerRegistryUser": string|undefined,"displayName": string,"gitAccessToken": string|undefined,"gitConnectionType": string|undefined,"gitUserId": string|undefined,"id": string,"name": string};
-export type SERVICE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SSERVICEDTO = {"containers": SERVICE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCONTAINERDTO[],"controller": string,"controllerName": string,"cronJobSettings": SERVICE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCRONJOBSETTINGSDTO|undefined,"deploymentStrategy": string,"displayName": string,"hpaSettings": SERVICE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SHPASETTINGSDTO|undefined,"id": string,"ports": SERVICE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPORTSDTO[],"replicaCount": number};
-export type SERVICE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SSERVICESETTINGSDTO = {"ephemeralStorageMB": number,"imagePullPolicy": string,"limitCpuCores": number,"limitMemoryMB": number};
-export type SERVICE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_SERVICEUPDATEREQUEST = {"namespace": SERVICE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SNAMESPACEDTO,"project": SERVICE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROJECTDTO,"service": SERVICE_CREATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SSERVICEDTO};
-export type SERVICE_CREATE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_COMMAND = {"command": string,"finished": SERVICE_CREATE_RESPONSE__TIME_TIME,"id": string,"message": string,"started": SERVICE_CREATE_RESPONSE__TIME_TIME,"state": string,"title": string};
-export type SERVICE_CREATE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_JOB = {"commands": SERVICE_CREATE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_COMMAND|undefined[],"containerName": string,"controllerName": string,"finished": SERVICE_CREATE_RESPONSE__TIME_TIME,"id": string,"message": string,"namespaceName": string,"projectId": string,"started": SERVICE_CREATE_RESPONSE__TIME_TIME,"state": string,"title": string};
-export type SERVICE_CREATE_RESPONSE__TIME_TIME = {};
-export type SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_CONTAINERRESOURCEMETRICSOURCE = {"container": string,"name": string,"target": SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
-export type SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_CROSSVERSIONOBJECTREFERENCE = {"apiVersion": string,"kind": string,"name": string};
-export type SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_EXTERNALMETRICSOURCE = {"metric": SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICIDENTIFIER,"target": SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
-export type SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGPOLICY = {"periodSeconds": number,"type": string,"value": number};
-export type SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGRULES = {"policies": SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGPOLICY[],"selectPolicy": string|undefined,"stabilizationWindowSeconds": number|undefined,"tolerance": SERVICE_DELETE_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY|undefined};
-export type SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_HORIZONTALPODAUTOSCALERBEHAVIOR = {"scaleDown": SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGRULES|undefined,"scaleUp": SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGRULES|undefined};
-export type SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_HORIZONTALPODAUTOSCALERSPEC = {"behavior": SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_HORIZONTALPODAUTOSCALERBEHAVIOR|undefined,"maxReplicas": number,"metrics": SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICSPEC[],"minReplicas": number|undefined,"scaleTargetRef": SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_CROSSVERSIONOBJECTREFERENCE};
-export type SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICIDENTIFIER = {"name": string,"selector": SERVICE_DELETE_REQUEST__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR|undefined};
-export type SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICSPEC = {"containerResource": SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_CONTAINERRESOURCEMETRICSOURCE|undefined,"external": SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_EXTERNALMETRICSOURCE|undefined,"object": SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_OBJECTMETRICSOURCE|undefined,"pods": SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_PODSMETRICSOURCE|undefined,"resource": SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_RESOURCEMETRICSOURCE|undefined,"type": string};
-export type SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET = {"averageUtilization": number|undefined,"averageValue": SERVICE_DELETE_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY|undefined,"type": string,"value": SERVICE_DELETE_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY|undefined};
-export type SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_OBJECTMETRICSOURCE = {"describedObject": SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_CROSSVERSIONOBJECTREFERENCE,"metric": SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICIDENTIFIER,"target": SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
-export type SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_PODSMETRICSOURCE = {"metric": SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICIDENTIFIER,"target": SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
-export type SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_RESOURCEMETRICSOURCE = {"name": string,"target": SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
-export type SERVICE_DELETE_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY = {"Format": string};
-export type SERVICE_DELETE_REQUEST__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR = {"matchExpressions": SERVICE_DELETE_REQUEST__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTORREQUIREMENT[],"matchLabels": Record<string, string>};
-export type SERVICE_DELETE_REQUEST__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTORREQUIREMENT = {"key": string,"operator": string,"values": string[]};
-export type SERVICE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCNAMEDTO = {"addToTlsHosts": boolean,"cName": string};
-export type SERVICE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCONTAINERDTO = {"KubernetesLimits": SERVICE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SSERVICESETTINGSDTO,"appGitRepositoryCloneUrl": string|undefined,"appSetupCommands": string|undefined,"containerImage": string|undefined,"containerImageCommand": string|undefined,"containerImageCommandArgs": string|undefined,"containerImageRepoSecretDecryptValue": string|undefined,"containerImageRepoSecretId": string|undefined,"displayName": string,"dockerContext": string|undefined,"dockerfileName": string|undefined,"envVars": SERVICE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SENVVARDTO[],"gitBranch": string|undefined,"gitCommitAuthor": string|undefined,"gitCommitHash": string|undefined,"gitCommitMessage": string|undefined,"gitRepository": string|undefined,"id": string,"name": string,"probes": SERVICE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBES|undefined,"settingsYaml": string|undefined,"type": string};
-export type SERVICE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCRONJOBSETTINGSDTO = {"activeDeadlineSeconds": number,"backoffLimit": number,"failedJobsHistoryLimit": number,"schedule": string,"successfulJobsHistoryLimit": number};
-export type SERVICE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SENVVARDATADTO = {"type": string,"value": string,"vaultKey": string,"vaultStore": string,"vaultType": string,"volumeDestination": string,"volumeName": string,"volumeSource": string};
-export type SERVICE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SENVVARDTO = {"data": SERVICE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SENVVARDATADTO,"id": string,"name": string,"type": string,"value": string};
-export type SERVICE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SHPASETTINGSDTO = {"HorizontalPodAutoscalerSpec": SERVICE_DELETE_REQUEST__K8S_IO_API_AUTOSCALING_V2_HORIZONTALPODAUTOSCALERSPEC|undefined};
-export type SERVICE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SNAMESPACEDTO = {"Name": string,"displayName": string,"id": string};
-export type SERVICE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPORTSDTO = {"cNames": SERVICE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCNAMEDTO[],"expose": boolean,"externalPort": string,"internalPort": string,"portType": string};
-export type SERVICE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBE = {"exec": SERVICE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBEEXEC|undefined,"failureThreshold": number,"grpc": SERVICE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBEGRPC|undefined,"httpGet": SERVICE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBEHTTPGET|undefined,"initialDelaySeconds": number,"isActive": boolean,"periodSeconds": number,"successThreshold": number,"tcpSocket": SERVICE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBETCPSOCKET|undefined,"timeoutSeconds": number};
-export type SERVICE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBEEXEC = {"command": string[]};
-export type SERVICE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBEGRPC = {"port": number,"service": string|undefined};
-export type SERVICE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBEHTTPGET = {"host": string|undefined,"httpHeaders": SERVICE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBEHTTPHEADER[]|undefined,"path": string,"port": string,"scheme": string|undefined};
-export type SERVICE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBEHTTPHEADER = {"name": string,"value": string};
-export type SERVICE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBETCPSOCKET = {"port": string};
-export type SERVICE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBES = {"isActive": boolean,"livenessProbe": SERVICE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBE|undefined,"readinessProbe": SERVICE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBE|undefined,"startupProbe": SERVICE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBE|undefined};
-export type SERVICE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROJECTDTO = {"clusterDisplayName": string,"clusterId": string,"clusterMfaId": string,"containerRegistryPat": string|undefined,"containerRegistryPath": string|undefined,"containerRegistryUrl": string|undefined,"containerRegistryUser": string|undefined,"displayName": string,"gitAccessToken": string|undefined,"gitConnectionType": string|undefined,"gitUserId": string|undefined,"id": string,"name": string};
-export type SERVICE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SSERVICEDTO = {"containers": SERVICE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCONTAINERDTO[],"controller": string,"controllerName": string,"cronJobSettings": SERVICE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCRONJOBSETTINGSDTO|undefined,"deploymentStrategy": string,"displayName": string,"hpaSettings": SERVICE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SHPASETTINGSDTO|undefined,"id": string,"ports": SERVICE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPORTSDTO[],"replicaCount": number};
-export type SERVICE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SSERVICESETTINGSDTO = {"ephemeralStorageMB": number,"imagePullPolicy": string,"limitCpuCores": number,"limitMemoryMB": number};
-export type SERVICE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_SERVICEDELETEREQUEST = {"namespace": SERVICE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SNAMESPACEDTO,"project": SERVICE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROJECTDTO,"service": SERVICE_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SSERVICEDTO};
-export type SERVICE_DELETE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_COMMAND = {"command": string,"finished": SERVICE_DELETE_RESPONSE__TIME_TIME,"id": string,"message": string,"started": SERVICE_DELETE_RESPONSE__TIME_TIME,"state": string,"title": string};
-export type SERVICE_DELETE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_JOB = {"commands": SERVICE_DELETE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_COMMAND|undefined[],"containerName": string,"controllerName": string,"finished": SERVICE_DELETE_RESPONSE__TIME_TIME,"id": string,"message": string,"namespaceName": string,"projectId": string,"started": SERVICE_DELETE_RESPONSE__TIME_TIME,"state": string,"title": string};
-export type SERVICE_DELETE_RESPONSE__TIME_TIME = {};
 export type SERVICE_EXEC_SH_CONNECTION_REQUEST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_PODCMDCONNECTIONREQUEST = {"container": string,"controller": string,"logTail": string,"namespace": string,"pod": string,"wsConnectionRequest": SERVICE_EXEC_SH_CONNECTION_REQUEST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST};
 export type SERVICE_EXEC_SH_CONNECTION_REQUEST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"nodeName": string,"podName": string,"websocketHost": string,"websocketScheme": string,"workspace": string};
 export type SERVICE_EXEC_SH_CONNECTION_REQUEST_RESPONSE__ANON_STRUCT_1 = {};
@@ -19661,441 +8962,10 @@ export type SERVICE_LOG_STREAM_CONNECTION_REQUEST_REQUEST__MOGENIUS_K8S_MANAGER_
 export type SERVICE_LOG_STREAM_CONNECTION_REQUEST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"nodeName": string,"podName": string,"websocketHost": string,"websocketScheme": string,"workspace": string};
 export type SERVICE_LOG_STREAM_CONNECTION_REQUEST_RESPONSE__ANON_STRUCT_1 = {};
 export type SERVICE_LOG_STREAM_CONNECTION_REQUEST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_XTERM_PODCMDCONNECTIONREQUEST_MOGENIUS_K8S_MANAGER_SRC_CORE_VOID = {"data": SERVICE_LOG_STREAM_CONNECTION_REQUEST_RESPONSE__ANON_STRUCT_1|undefined,"message": string,"status": string};
-export type SERVICE_PODS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_SERVICEPODSREQUEST = {"controllerName": string,"namespace": string};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_AWSELASTICBLOCKSTOREVOLUMESOURCE = {"fsType": string,"partition": number,"readOnly": boolean,"volumeID": string};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_AFFINITY = {"nodeAffinity": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_NODEAFFINITY|undefined,"podAffinity": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODAFFINITY|undefined,"podAntiAffinity": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODANTIAFFINITY|undefined};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_APPARMORPROFILE = {"localhostProfile": string|undefined,"type": string};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_AZUREDISKVOLUMESOURCE = {"cachingMode": string|undefined,"diskName": string,"diskURI": string,"fsType": string|undefined,"kind": string|undefined,"readOnly": boolean|undefined};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_AZUREFILEVOLUMESOURCE = {"readOnly": boolean,"secretName": string,"shareName": string};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CSIVOLUMESOURCE = {"driver": string,"fsType": string|undefined,"nodePublishSecretRef": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_LOCALOBJECTREFERENCE|undefined,"readOnly": boolean|undefined,"volumeAttributes": Record<string, string>};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CAPABILITIES = {"add": string[],"drop": string[]};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CEPHFSVOLUMESOURCE = {"monitors": string[],"path": string,"readOnly": boolean,"secretFile": string,"secretRef": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_LOCALOBJECTREFERENCE|undefined,"user": string};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CINDERVOLUMESOURCE = {"fsType": string,"readOnly": boolean,"secretRef": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_LOCALOBJECTREFERENCE|undefined,"volumeID": string};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CLUSTERTRUSTBUNDLEPROJECTION = {"labelSelector": SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR|undefined,"name": string|undefined,"optional": boolean|undefined,"path": string,"signerName": string|undefined};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONFIGMAPENVSOURCE = {"LocalObjectReference": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_LOCALOBJECTREFERENCE,"optional": boolean|undefined};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONFIGMAPKEYSELECTOR = {"LocalObjectReference": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_LOCALOBJECTREFERENCE,"key": string,"optional": boolean|undefined};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONFIGMAPPROJECTION = {"LocalObjectReference": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_LOCALOBJECTREFERENCE,"items": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_KEYTOPATH[],"optional": boolean|undefined};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONFIGMAPVOLUMESOURCE = {"LocalObjectReference": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_LOCALOBJECTREFERENCE,"defaultMode": number|undefined,"items": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_KEYTOPATH[],"optional": boolean|undefined};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINER = {"args": string[],"command": string[],"env": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_ENVVAR[],"envFrom": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_ENVFROMSOURCE[],"image": string,"imagePullPolicy": string,"lifecycle": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_LIFECYCLE|undefined,"livenessProbe": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PROBE|undefined,"name": string,"ports": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERPORT[],"readinessProbe": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PROBE|undefined,"resizePolicy": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERRESIZEPOLICY[],"resources": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_RESOURCEREQUIREMENTS,"restartPolicy": string|undefined,"restartPolicyRules": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERRESTARTRULE[],"securityContext": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_SECURITYCONTEXT|undefined,"startupProbe": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PROBE|undefined,"stdin": boolean,"stdinOnce": boolean,"terminationMessagePath": string,"terminationMessagePolicy": string,"tty": boolean,"volumeDevices": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_VOLUMEDEVICE[],"volumeMounts": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_VOLUMEMOUNT[],"workingDir": string};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINEREXTENDEDRESOURCEREQUEST = {"containerName": string,"requestName": string,"resourceName": string};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERPORT = {"containerPort": number,"hostIP": string,"hostPort": number,"name": string,"protocol": string};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERRESIZEPOLICY = {"resourceName": string,"restartPolicy": string};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERRESTARTRULE = {"action": string,"exitCodes": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERRESTARTRULEONEXITCODES|undefined};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERRESTARTRULEONEXITCODES = {"operator": string,"values": number[]};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATE = {"running": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATERUNNING|undefined,"terminated": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATETERMINATED|undefined,"waiting": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATEWAITING|undefined};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATERUNNING = {"startedAt": SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATETERMINATED = {"containerID": string,"exitCode": number,"finishedAt": SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME,"message": string,"reason": string,"signal": number,"startedAt": SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATEWAITING = {"message": string,"reason": string};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATUS = {"allocatedResources": Record<string, SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY>,"allocatedResourcesStatus": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_RESOURCESTATUS[],"containerID": string,"image": string,"imageID": string,"lastState": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATE,"name": string,"ready": boolean,"resources": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_RESOURCEREQUIREMENTS|undefined,"restartCount": number,"started": boolean|undefined,"state": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATE,"stopSignal": string|undefined,"user": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERUSER|undefined,"volumeMounts": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_VOLUMEMOUNTSTATUS[]};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERUSER = {"linux": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_LINUXCONTAINERUSER|undefined};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_DOWNWARDAPIPROJECTION = {"items": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_DOWNWARDAPIVOLUMEFILE[]};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_DOWNWARDAPIVOLUMEFILE = {"fieldRef": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_OBJECTFIELDSELECTOR|undefined,"mode": number|undefined,"path": string,"resourceFieldRef": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_RESOURCEFIELDSELECTOR|undefined};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_DOWNWARDAPIVOLUMESOURCE = {"defaultMode": number|undefined,"items": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_DOWNWARDAPIVOLUMEFILE[]};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_EMPTYDIRVOLUMESOURCE = {"medium": string,"sizeLimit": SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY|undefined};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_ENVFROMSOURCE = {"configMapRef": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONFIGMAPENVSOURCE|undefined,"prefix": string,"secretRef": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_SECRETENVSOURCE|undefined};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_ENVVAR = {"name": string,"value": string,"valueFrom": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_ENVVARSOURCE|undefined};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_ENVVARSOURCE = {"configMapKeyRef": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONFIGMAPKEYSELECTOR|undefined,"fieldRef": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_OBJECTFIELDSELECTOR|undefined,"fileKeyRef": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_FILEKEYSELECTOR|undefined,"resourceFieldRef": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_RESOURCEFIELDSELECTOR|undefined,"secretKeyRef": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_SECRETKEYSELECTOR|undefined};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_EPHEMERALCONTAINER = {"EphemeralContainerCommon": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_EPHEMERALCONTAINERCOMMON,"targetContainerName": string};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_EPHEMERALCONTAINERCOMMON = {"args": string[],"command": string[],"env": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_ENVVAR[],"envFrom": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_ENVFROMSOURCE[],"image": string,"imagePullPolicy": string,"lifecycle": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_LIFECYCLE|undefined,"livenessProbe": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PROBE|undefined,"name": string,"ports": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERPORT[],"readinessProbe": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PROBE|undefined,"resizePolicy": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERRESIZEPOLICY[],"resources": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_RESOURCEREQUIREMENTS,"restartPolicy": string|undefined,"restartPolicyRules": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERRESTARTRULE[],"securityContext": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_SECURITYCONTEXT|undefined,"startupProbe": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PROBE|undefined,"stdin": boolean,"stdinOnce": boolean,"terminationMessagePath": string,"terminationMessagePolicy": string,"tty": boolean,"volumeDevices": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_VOLUMEDEVICE[],"volumeMounts": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_VOLUMEMOUNT[],"workingDir": string};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_EPHEMERALVOLUMESOURCE = {"volumeClaimTemplate": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PERSISTENTVOLUMECLAIMTEMPLATE|undefined};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_EXECACTION = {"command": string[]};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_FCVOLUMESOURCE = {"fsType": string,"lun": number|undefined,"readOnly": boolean,"targetWWNs": string[],"wwids": string[]};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_FILEKEYSELECTOR = {"key": string,"optional": boolean|undefined,"path": string,"volumeName": string};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_FLEXVOLUMESOURCE = {"driver": string,"fsType": string,"options": Record<string, string>,"readOnly": boolean,"secretRef": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_LOCALOBJECTREFERENCE|undefined};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_FLOCKERVOLUMESOURCE = {"datasetName": string,"datasetUUID": string};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_GCEPERSISTENTDISKVOLUMESOURCE = {"fsType": string,"partition": number,"pdName": string,"readOnly": boolean};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_GRPCACTION = {"port": number,"service": string|undefined};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_GITREPOVOLUMESOURCE = {"directory": string,"repository": string,"revision": string};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_GLUSTERFSVOLUMESOURCE = {"endpoints": string,"path": string,"readOnly": boolean};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_HTTPGETACTION = {"host": string,"httpHeaders": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_HTTPHEADER[],"path": string,"port": SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_UTIL_INTSTR_INTORSTRING,"scheme": string};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_HTTPHEADER = {"name": string,"value": string};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_HOSTALIAS = {"hostnames": string[],"ip": string};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_HOSTIP = {"ip": string};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_HOSTPATHVOLUMESOURCE = {"path": string,"type": string|undefined};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_ISCSIVOLUMESOURCE = {"chapAuthDiscovery": boolean,"chapAuthSession": boolean,"fsType": string,"initiatorName": string|undefined,"iqn": string,"iscsiInterface": string,"lun": number,"portals": string[],"readOnly": boolean,"secretRef": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_LOCALOBJECTREFERENCE|undefined,"targetPortal": string};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_IMAGEVOLUMESOURCE = {"pullPolicy": string,"reference": string};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_KEYTOPATH = {"key": string,"mode": number|undefined,"path": string};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_LIFECYCLE = {"postStart": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_LIFECYCLEHANDLER|undefined,"preStop": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_LIFECYCLEHANDLER|undefined,"stopSignal": string|undefined};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_LIFECYCLEHANDLER = {"exec": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_EXECACTION|undefined,"httpGet": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_HTTPGETACTION|undefined,"sleep": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_SLEEPACTION|undefined,"tcpSocket": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_TCPSOCKETACTION|undefined};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_LINUXCONTAINERUSER = {"gid": number,"supplementalGroups": number[],"uid": number};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_LOCALOBJECTREFERENCE = {"name": string};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_NFSVOLUMESOURCE = {"path": string,"readOnly": boolean,"server": string};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_NODEAFFINITY = {"preferredDuringSchedulingIgnoredDuringExecution": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PREFERREDSCHEDULINGTERM[],"requiredDuringSchedulingIgnoredDuringExecution": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_NODESELECTOR|undefined};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_NODESELECTOR = {"nodeSelectorTerms": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_NODESELECTORTERM[]};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_NODESELECTORREQUIREMENT = {"key": string,"operator": string,"values": string[]};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_NODESELECTORTERM = {"matchExpressions": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_NODESELECTORREQUIREMENT[],"matchFields": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_NODESELECTORREQUIREMENT[]};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_OBJECTFIELDSELECTOR = {"apiVersion": string,"fieldPath": string};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PERSISTENTVOLUMECLAIMSPEC = {"accessModes": string[],"dataSource": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_TYPEDLOCALOBJECTREFERENCE|undefined,"dataSourceRef": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_TYPEDOBJECTREFERENCE|undefined,"resources": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_VOLUMERESOURCEREQUIREMENTS,"selector": SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR|undefined,"storageClassName": string|undefined,"volumeAttributesClassName": string|undefined,"volumeMode": string|undefined,"volumeName": string};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PERSISTENTVOLUMECLAIMTEMPLATE = {"metadata": SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OBJECTMETA,"spec": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PERSISTENTVOLUMECLAIMSPEC};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PERSISTENTVOLUMECLAIMVOLUMESOURCE = {"claimName": string,"readOnly": boolean};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PHOTONPERSISTENTDISKVOLUMESOURCE = {"fsType": string,"pdID": string};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_POD = {"TypeMeta": SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA,"metadata": SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OBJECTMETA,"spec": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODSPEC,"status": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODSTATUS};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODAFFINITY = {"preferredDuringSchedulingIgnoredDuringExecution": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_WEIGHTEDPODAFFINITYTERM[],"requiredDuringSchedulingIgnoredDuringExecution": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODAFFINITYTERM[]};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODAFFINITYTERM = {"labelSelector": SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR|undefined,"matchLabelKeys": string[],"mismatchLabelKeys": string[],"namespaceSelector": SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR|undefined,"namespaces": string[],"topologyKey": string};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODANTIAFFINITY = {"preferredDuringSchedulingIgnoredDuringExecution": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_WEIGHTEDPODAFFINITYTERM[],"requiredDuringSchedulingIgnoredDuringExecution": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODAFFINITYTERM[]};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODCERTIFICATEPROJECTION = {"certificateChainPath": string,"credentialBundlePath": string,"keyPath": string,"keyType": string,"maxExpirationSeconds": number|undefined,"signerName": string};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODCONDITION = {"lastProbeTime": SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME,"lastTransitionTime": SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME,"message": string,"observedGeneration": number,"reason": string,"status": string,"type": string};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODDNSCONFIG = {"nameservers": string[],"options": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODDNSCONFIGOPTION[],"searches": string[]};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODDNSCONFIGOPTION = {"name": string,"value": string|undefined};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODEXTENDEDRESOURCECLAIMSTATUS = {"requestMappings": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINEREXTENDEDRESOURCEREQUEST[],"resourceClaimName": string};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODIP = {"ip": string};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODOS = {"name": string};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODREADINESSGATE = {"conditionType": string};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODRESOURCECLAIM = {"name": string,"resourceClaimName": string|undefined,"resourceClaimTemplateName": string|undefined};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODRESOURCECLAIMSTATUS = {"name": string,"resourceClaimName": string|undefined};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODSCHEDULINGGATE = {"name": string};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODSECURITYCONTEXT = {"appArmorProfile": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_APPARMORPROFILE|undefined,"fsGroup": number|undefined,"fsGroupChangePolicy": string|undefined,"runAsGroup": number|undefined,"runAsNonRoot": boolean|undefined,"runAsUser": number|undefined,"seLinuxChangePolicy": string|undefined,"seLinuxOptions": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_SELINUXOPTIONS|undefined,"seccompProfile": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_SECCOMPPROFILE|undefined,"supplementalGroups": number[],"supplementalGroupsPolicy": string|undefined,"sysctls": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_SYSCTL[],"windowsOptions": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_WINDOWSSECURITYCONTEXTOPTIONS|undefined};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODSPEC = {"activeDeadlineSeconds": number|undefined,"affinity": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_AFFINITY|undefined,"automountServiceAccountToken": boolean|undefined,"containers": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINER[],"dnsConfig": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODDNSCONFIG|undefined,"dnsPolicy": string,"enableServiceLinks": boolean|undefined,"ephemeralContainers": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_EPHEMERALCONTAINER[],"hostAliases": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_HOSTALIAS[],"hostIPC": boolean,"hostNetwork": boolean,"hostPID": boolean,"hostUsers": boolean|undefined,"hostname": string,"hostnameOverride": string|undefined,"imagePullSecrets": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_LOCALOBJECTREFERENCE[],"initContainers": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINER[],"nodeName": string,"nodeSelector": Record<string, string>,"os": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODOS|undefined,"overhead": Record<string, SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY>,"preemptionPolicy": string|undefined,"priority": number|undefined,"priorityClassName": string,"readinessGates": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODREADINESSGATE[],"resourceClaims": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODRESOURCECLAIM[],"resources": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_RESOURCEREQUIREMENTS|undefined,"restartPolicy": string,"runtimeClassName": string|undefined,"schedulerName": string,"schedulingGates": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODSCHEDULINGGATE[],"securityContext": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODSECURITYCONTEXT|undefined,"serviceAccount": string,"serviceAccountName": string,"setHostnameAsFQDN": boolean|undefined,"shareProcessNamespace": boolean|undefined,"subdomain": string,"terminationGracePeriodSeconds": number|undefined,"tolerations": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_TOLERATION[],"topologySpreadConstraints": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_TOPOLOGYSPREADCONSTRAINT[],"volumes": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_VOLUME[]};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODSTATUS = {"conditions": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODCONDITION[],"containerStatuses": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATUS[],"ephemeralContainerStatuses": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATUS[],"extendedResourceClaimStatus": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODEXTENDEDRESOURCECLAIMSTATUS|undefined,"hostIP": string,"hostIPs": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_HOSTIP[],"initContainerStatuses": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATUS[],"message": string,"nominatedNodeName": string,"observedGeneration": number,"phase": string,"podIP": string,"podIPs": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODIP[],"qosClass": string,"reason": string,"resize": string,"resourceClaimStatuses": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODRESOURCECLAIMSTATUS[],"startTime": SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME|undefined};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PORTWORXVOLUMESOURCE = {"fsType": string,"readOnly": boolean,"volumeID": string};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PREFERREDSCHEDULINGTERM = {"preference": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_NODESELECTORTERM,"weight": number};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PROBE = {"ProbeHandler": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PROBEHANDLER,"failureThreshold": number,"initialDelaySeconds": number,"periodSeconds": number,"successThreshold": number,"terminationGracePeriodSeconds": number|undefined,"timeoutSeconds": number};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PROBEHANDLER = {"exec": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_EXECACTION|undefined,"grpc": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_GRPCACTION|undefined,"httpGet": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_HTTPGETACTION|undefined,"tcpSocket": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_TCPSOCKETACTION|undefined};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PROJECTEDVOLUMESOURCE = {"defaultMode": number|undefined,"sources": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_VOLUMEPROJECTION[]};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_QUOBYTEVOLUMESOURCE = {"group": string,"readOnly": boolean,"registry": string,"tenant": string,"user": string,"volume": string};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_RBDVOLUMESOURCE = {"fsType": string,"image": string,"keyring": string,"monitors": string[],"pool": string,"readOnly": boolean,"secretRef": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_LOCALOBJECTREFERENCE|undefined,"user": string};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_RESOURCECLAIM = {"name": string,"request": string};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_RESOURCEFIELDSELECTOR = {"containerName": string,"divisor": SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY,"resource": string};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_RESOURCEHEALTH = {"health": string,"resourceID": string};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_RESOURCEREQUIREMENTS = {"claims": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_RESOURCECLAIM[],"limits": Record<string, SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY>,"requests": Record<string, SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY>};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_RESOURCESTATUS = {"name": string,"resources": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_RESOURCEHEALTH[]};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_SELINUXOPTIONS = {"level": string,"role": string,"type": string,"user": string};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_SCALEIOVOLUMESOURCE = {"fsType": string,"gateway": string,"protectionDomain": string,"readOnly": boolean,"secretRef": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_LOCALOBJECTREFERENCE|undefined,"sslEnabled": boolean,"storageMode": string,"storagePool": string,"system": string,"volumeName": string};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_SECCOMPPROFILE = {"localhostProfile": string|undefined,"type": string};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_SECRETENVSOURCE = {"LocalObjectReference": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_LOCALOBJECTREFERENCE,"optional": boolean|undefined};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_SECRETKEYSELECTOR = {"LocalObjectReference": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_LOCALOBJECTREFERENCE,"key": string,"optional": boolean|undefined};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_SECRETPROJECTION = {"LocalObjectReference": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_LOCALOBJECTREFERENCE,"items": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_KEYTOPATH[],"optional": boolean|undefined};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_SECRETVOLUMESOURCE = {"defaultMode": number|undefined,"items": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_KEYTOPATH[],"optional": boolean|undefined,"secretName": string};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_SECURITYCONTEXT = {"allowPrivilegeEscalation": boolean|undefined,"appArmorProfile": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_APPARMORPROFILE|undefined,"capabilities": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CAPABILITIES|undefined,"privileged": boolean|undefined,"procMount": string|undefined,"readOnlyRootFilesystem": boolean|undefined,"runAsGroup": number|undefined,"runAsNonRoot": boolean|undefined,"runAsUser": number|undefined,"seLinuxOptions": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_SELINUXOPTIONS|undefined,"seccompProfile": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_SECCOMPPROFILE|undefined,"windowsOptions": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_WINDOWSSECURITYCONTEXTOPTIONS|undefined};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_SERVICEACCOUNTTOKENPROJECTION = {"audience": string,"expirationSeconds": number|undefined,"path": string};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_SLEEPACTION = {"seconds": number};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_STORAGEOSVOLUMESOURCE = {"fsType": string,"readOnly": boolean,"secretRef": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_LOCALOBJECTREFERENCE|undefined,"volumeName": string,"volumeNamespace": string};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_SYSCTL = {"name": string,"value": string};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_TCPSOCKETACTION = {"host": string,"port": SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_UTIL_INTSTR_INTORSTRING};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_TOLERATION = {"effect": string,"key": string,"operator": string,"tolerationSeconds": number|undefined,"value": string};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_TOPOLOGYSPREADCONSTRAINT = {"labelSelector": SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR|undefined,"matchLabelKeys": string[],"maxSkew": number,"minDomains": number|undefined,"nodeAffinityPolicy": string|undefined,"nodeTaintsPolicy": string|undefined,"topologyKey": string,"whenUnsatisfiable": string};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_TYPEDLOCALOBJECTREFERENCE = {"apiGroup": string|undefined,"kind": string,"name": string};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_TYPEDOBJECTREFERENCE = {"apiGroup": string|undefined,"kind": string,"name": string,"namespace": string|undefined};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_VOLUME = {"VolumeSource": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_VOLUMESOURCE,"name": string};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_VOLUMEDEVICE = {"devicePath": string,"name": string};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_VOLUMEMOUNT = {"mountPath": string,"mountPropagation": string|undefined,"name": string,"readOnly": boolean,"recursiveReadOnly": string|undefined,"subPath": string,"subPathExpr": string};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_VOLUMEMOUNTSTATUS = {"mountPath": string,"name": string,"readOnly": boolean,"recursiveReadOnly": string|undefined};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_VOLUMEPROJECTION = {"clusterTrustBundle": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CLUSTERTRUSTBUNDLEPROJECTION|undefined,"configMap": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONFIGMAPPROJECTION|undefined,"downwardAPI": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_DOWNWARDAPIPROJECTION|undefined,"podCertificate": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODCERTIFICATEPROJECTION|undefined,"secret": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_SECRETPROJECTION|undefined,"serviceAccountToken": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_SERVICEACCOUNTTOKENPROJECTION|undefined};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_VOLUMERESOURCEREQUIREMENTS = {"limits": Record<string, SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY>,"requests": Record<string, SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY>};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_VOLUMESOURCE = {"awsElasticBlockStore": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_AWSELASTICBLOCKSTOREVOLUMESOURCE|undefined,"azureDisk": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_AZUREDISKVOLUMESOURCE|undefined,"azureFile": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_AZUREFILEVOLUMESOURCE|undefined,"cephfs": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CEPHFSVOLUMESOURCE|undefined,"cinder": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CINDERVOLUMESOURCE|undefined,"configMap": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CONFIGMAPVOLUMESOURCE|undefined,"csi": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_CSIVOLUMESOURCE|undefined,"downwardAPI": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_DOWNWARDAPIVOLUMESOURCE|undefined,"emptyDir": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_EMPTYDIRVOLUMESOURCE|undefined,"ephemeral": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_EPHEMERALVOLUMESOURCE|undefined,"fc": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_FCVOLUMESOURCE|undefined,"flexVolume": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_FLEXVOLUMESOURCE|undefined,"flocker": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_FLOCKERVOLUMESOURCE|undefined,"gcePersistentDisk": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_GCEPERSISTENTDISKVOLUMESOURCE|undefined,"gitRepo": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_GITREPOVOLUMESOURCE|undefined,"glusterfs": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_GLUSTERFSVOLUMESOURCE|undefined,"hostPath": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_HOSTPATHVOLUMESOURCE|undefined,"image": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_IMAGEVOLUMESOURCE|undefined,"iscsi": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_ISCSIVOLUMESOURCE|undefined,"nfs": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_NFSVOLUMESOURCE|undefined,"persistentVolumeClaim": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PERSISTENTVOLUMECLAIMVOLUMESOURCE|undefined,"photonPersistentDisk": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PHOTONPERSISTENTDISKVOLUMESOURCE|undefined,"portworxVolume": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PORTWORXVOLUMESOURCE|undefined,"projected": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PROJECTEDVOLUMESOURCE|undefined,"quobyte": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_QUOBYTEVOLUMESOURCE|undefined,"rbd": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_RBDVOLUMESOURCE|undefined,"scaleIO": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_SCALEIOVOLUMESOURCE|undefined,"secret": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_SECRETVOLUMESOURCE|undefined,"storageos": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_STORAGEOSVOLUMESOURCE|undefined,"vsphereVolume": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_VSPHEREVIRTUALDISKVOLUMESOURCE|undefined};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_VSPHEREVIRTUALDISKVOLUMESOURCE = {"fsType": string,"storagePolicyID": string,"storagePolicyName": string,"volumePath": string};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_WEIGHTEDPODAFFINITYTERM = {"podAffinityTerm": SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_PODAFFINITYTERM,"weight": number};
-export type SERVICE_PODS_RESPONSE__K8S_IO_API_CORE_V1_WINDOWSSECURITYCONTEXTOPTIONS = {"gmsaCredentialSpec": string|undefined,"gmsaCredentialSpecName": string|undefined,"hostProcess": boolean|undefined,"runAsUserName": string|undefined};
-export type SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY = {"Format": string};
-export type SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_FIELDSV1 = {};
-export type SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR = {"matchExpressions": SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTORREQUIREMENT[],"matchLabels": Record<string, string>};
-export type SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTORREQUIREMENT = {"key": string,"operator": string,"values": string[]};
-export type SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_MANAGEDFIELDSENTRY = {"apiVersion": string,"fieldsType": string,"fieldsV1": SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_FIELDSV1|undefined,"manager": string,"operation": string,"subresource": string,"time": SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME|undefined};
-export type SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OBJECTMETA = {"annotations": Record<string, string>,"creationTimestamp": SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME,"deletionGracePeriodSeconds": number|undefined,"deletionTimestamp": SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME|undefined,"finalizers": string[],"generateName": string,"generation": number,"labels": Record<string, string>,"managedFields": SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_MANAGEDFIELDSENTRY[],"name": string,"namespace": string,"ownerReferences": SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OWNERREFERENCE[],"resourceVersion": string,"selfLink": string,"uid": string};
-export type SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OWNERREFERENCE = {"apiVersion": string,"blockOwnerDeletion": boolean|undefined,"controller": boolean|undefined,"kind": string,"name": string,"uid": string};
-export type SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME = {"Time": SERVICE_PODS_RESPONSE__TIME_TIME};
-export type SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA = {"apiVersion": string,"kind": string};
-export type SERVICE_PODS_RESPONSE__K8S_IO_APIMACHINERY_PKG_UTIL_INTSTR_INTORSTRING = {"IntVal": number,"StrVal": string,"Type": number};
-export type SERVICE_PODS_RESPONSE__TIME_TIME = {};
 export type SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_PODEVENTCONNECTIONREQUEST = {"controller": string,"namespace": string,"wsConnectionRequest": SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST};
 export type SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"nodeName": string,"podName": string,"websocketHost": string,"websocketScheme": string,"workspace": string};
 export type SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST_RESPONSE__ANON_STRUCT_1 = {};
 export type SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_XTERM_PODEVENTCONNECTIONREQUEST_MOGENIUS_K8S_MANAGER_SRC_CORE_VOID = {"data": SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST_RESPONSE__ANON_STRUCT_1|undefined,"message": string,"status": string};
-export type SERVICE_RESOURCE_STATUS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_SERVICERESOURCESTATUSREQUEST = {"name": string,"namespace": string,"resource": string,"statusOnly": boolean};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_AWSELASTICBLOCKSTOREVOLUMESOURCE = {"fsType": string,"partition": number,"readOnly": boolean,"volumeID": string};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_AFFINITY = {"nodeAffinity": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_NODEAFFINITY|undefined,"podAffinity": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODAFFINITY|undefined,"podAntiAffinity": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODANTIAFFINITY|undefined};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_APPARMORPROFILE = {"localhostProfile": string|undefined,"type": string};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_AZUREDISKVOLUMESOURCE = {"cachingMode": string|undefined,"diskName": string,"diskURI": string,"fsType": string|undefined,"kind": string|undefined,"readOnly": boolean|undefined};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_AZUREFILEVOLUMESOURCE = {"readOnly": boolean,"secretName": string,"shareName": string};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CSIVOLUMESOURCE = {"driver": string,"fsType": string|undefined,"nodePublishSecretRef": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_LOCALOBJECTREFERENCE|undefined,"readOnly": boolean|undefined,"volumeAttributes": Record<string, string>};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CAPABILITIES = {"add": string[],"drop": string[]};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CEPHFSVOLUMESOURCE = {"monitors": string[],"path": string,"readOnly": boolean,"secretFile": string,"secretRef": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_LOCALOBJECTREFERENCE|undefined,"user": string};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CINDERVOLUMESOURCE = {"fsType": string,"readOnly": boolean,"secretRef": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_LOCALOBJECTREFERENCE|undefined,"volumeID": string};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CLUSTERTRUSTBUNDLEPROJECTION = {"labelSelector": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR|undefined,"name": string|undefined,"optional": boolean|undefined,"path": string,"signerName": string|undefined};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONFIGMAPENVSOURCE = {"LocalObjectReference": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_LOCALOBJECTREFERENCE,"optional": boolean|undefined};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONFIGMAPKEYSELECTOR = {"LocalObjectReference": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_LOCALOBJECTREFERENCE,"key": string,"optional": boolean|undefined};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONFIGMAPPROJECTION = {"LocalObjectReference": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_LOCALOBJECTREFERENCE,"items": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_KEYTOPATH[],"optional": boolean|undefined};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONFIGMAPVOLUMESOURCE = {"LocalObjectReference": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_LOCALOBJECTREFERENCE,"defaultMode": number|undefined,"items": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_KEYTOPATH[],"optional": boolean|undefined};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINER = {"args": string[],"command": string[],"env": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_ENVVAR[],"envFrom": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_ENVFROMSOURCE[],"image": string,"imagePullPolicy": string,"lifecycle": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_LIFECYCLE|undefined,"livenessProbe": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PROBE|undefined,"name": string,"ports": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERPORT[],"readinessProbe": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PROBE|undefined,"resizePolicy": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERRESIZEPOLICY[],"resources": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_RESOURCEREQUIREMENTS,"restartPolicy": string|undefined,"restartPolicyRules": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERRESTARTRULE[],"securityContext": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_SECURITYCONTEXT|undefined,"startupProbe": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PROBE|undefined,"stdin": boolean,"stdinOnce": boolean,"terminationMessagePath": string,"terminationMessagePolicy": string,"tty": boolean,"volumeDevices": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_VOLUMEDEVICE[],"volumeMounts": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_VOLUMEMOUNT[],"workingDir": string};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINEREXTENDEDRESOURCEREQUEST = {"containerName": string,"requestName": string,"resourceName": string};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERPORT = {"containerPort": number,"hostIP": string,"hostPort": number,"name": string,"protocol": string};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERRESIZEPOLICY = {"resourceName": string,"restartPolicy": string};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERRESTARTRULE = {"action": string,"exitCodes": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERRESTARTRULEONEXITCODES|undefined};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERRESTARTRULEONEXITCODES = {"operator": string,"values": number[]};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATE = {"running": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATERUNNING|undefined,"terminated": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATETERMINATED|undefined,"waiting": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATEWAITING|undefined};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATERUNNING = {"startedAt": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATETERMINATED = {"containerID": string,"exitCode": number,"finishedAt": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME,"message": string,"reason": string,"signal": number,"startedAt": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATEWAITING = {"message": string,"reason": string};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATUS = {"allocatedResources": Record<string, SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY>,"allocatedResourcesStatus": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_RESOURCESTATUS[],"containerID": string,"image": string,"imageID": string,"lastState": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATE,"name": string,"ready": boolean,"resources": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_RESOURCEREQUIREMENTS|undefined,"restartCount": number,"started": boolean|undefined,"state": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATE,"stopSignal": string|undefined,"user": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERUSER|undefined,"volumeMounts": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_VOLUMEMOUNTSTATUS[]};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERUSER = {"linux": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_LINUXCONTAINERUSER|undefined};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_DOWNWARDAPIPROJECTION = {"items": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_DOWNWARDAPIVOLUMEFILE[]};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_DOWNWARDAPIVOLUMEFILE = {"fieldRef": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_OBJECTFIELDSELECTOR|undefined,"mode": number|undefined,"path": string,"resourceFieldRef": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_RESOURCEFIELDSELECTOR|undefined};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_DOWNWARDAPIVOLUMESOURCE = {"defaultMode": number|undefined,"items": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_DOWNWARDAPIVOLUMEFILE[]};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_EMPTYDIRVOLUMESOURCE = {"medium": string,"sizeLimit": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY|undefined};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_ENVFROMSOURCE = {"configMapRef": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONFIGMAPENVSOURCE|undefined,"prefix": string,"secretRef": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_SECRETENVSOURCE|undefined};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_ENVVAR = {"name": string,"value": string,"valueFrom": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_ENVVARSOURCE|undefined};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_ENVVARSOURCE = {"configMapKeyRef": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONFIGMAPKEYSELECTOR|undefined,"fieldRef": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_OBJECTFIELDSELECTOR|undefined,"fileKeyRef": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_FILEKEYSELECTOR|undefined,"resourceFieldRef": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_RESOURCEFIELDSELECTOR|undefined,"secretKeyRef": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_SECRETKEYSELECTOR|undefined};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_EPHEMERALCONTAINER = {"EphemeralContainerCommon": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_EPHEMERALCONTAINERCOMMON,"targetContainerName": string};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_EPHEMERALCONTAINERCOMMON = {"args": string[],"command": string[],"env": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_ENVVAR[],"envFrom": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_ENVFROMSOURCE[],"image": string,"imagePullPolicy": string,"lifecycle": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_LIFECYCLE|undefined,"livenessProbe": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PROBE|undefined,"name": string,"ports": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERPORT[],"readinessProbe": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PROBE|undefined,"resizePolicy": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERRESIZEPOLICY[],"resources": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_RESOURCEREQUIREMENTS,"restartPolicy": string|undefined,"restartPolicyRules": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERRESTARTRULE[],"securityContext": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_SECURITYCONTEXT|undefined,"startupProbe": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PROBE|undefined,"stdin": boolean,"stdinOnce": boolean,"terminationMessagePath": string,"terminationMessagePolicy": string,"tty": boolean,"volumeDevices": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_VOLUMEDEVICE[],"volumeMounts": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_VOLUMEMOUNT[],"workingDir": string};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_EPHEMERALVOLUMESOURCE = {"volumeClaimTemplate": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PERSISTENTVOLUMECLAIMTEMPLATE|undefined};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_EXECACTION = {"command": string[]};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_FCVOLUMESOURCE = {"fsType": string,"lun": number|undefined,"readOnly": boolean,"targetWWNs": string[],"wwids": string[]};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_FILEKEYSELECTOR = {"key": string,"optional": boolean|undefined,"path": string,"volumeName": string};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_FLEXVOLUMESOURCE = {"driver": string,"fsType": string,"options": Record<string, string>,"readOnly": boolean,"secretRef": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_LOCALOBJECTREFERENCE|undefined};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_FLOCKERVOLUMESOURCE = {"datasetName": string,"datasetUUID": string};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_GCEPERSISTENTDISKVOLUMESOURCE = {"fsType": string,"partition": number,"pdName": string,"readOnly": boolean};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_GRPCACTION = {"port": number,"service": string|undefined};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_GITREPOVOLUMESOURCE = {"directory": string,"repository": string,"revision": string};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_GLUSTERFSVOLUMESOURCE = {"endpoints": string,"path": string,"readOnly": boolean};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_HTTPGETACTION = {"host": string,"httpHeaders": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_HTTPHEADER[],"path": string,"port": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_UTIL_INTSTR_INTORSTRING,"scheme": string};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_HTTPHEADER = {"name": string,"value": string};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_HOSTALIAS = {"hostnames": string[],"ip": string};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_HOSTIP = {"ip": string};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_HOSTPATHVOLUMESOURCE = {"path": string,"type": string|undefined};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_ISCSIVOLUMESOURCE = {"chapAuthDiscovery": boolean,"chapAuthSession": boolean,"fsType": string,"initiatorName": string|undefined,"iqn": string,"iscsiInterface": string,"lun": number,"portals": string[],"readOnly": boolean,"secretRef": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_LOCALOBJECTREFERENCE|undefined,"targetPortal": string};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_IMAGEVOLUMESOURCE = {"pullPolicy": string,"reference": string};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_KEYTOPATH = {"key": string,"mode": number|undefined,"path": string};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_LIFECYCLE = {"postStart": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_LIFECYCLEHANDLER|undefined,"preStop": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_LIFECYCLEHANDLER|undefined,"stopSignal": string|undefined};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_LIFECYCLEHANDLER = {"exec": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_EXECACTION|undefined,"httpGet": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_HTTPGETACTION|undefined,"sleep": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_SLEEPACTION|undefined,"tcpSocket": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_TCPSOCKETACTION|undefined};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_LINUXCONTAINERUSER = {"gid": number,"supplementalGroups": number[],"uid": number};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_LOCALOBJECTREFERENCE = {"name": string};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_NFSVOLUMESOURCE = {"path": string,"readOnly": boolean,"server": string};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_NODEAFFINITY = {"preferredDuringSchedulingIgnoredDuringExecution": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PREFERREDSCHEDULINGTERM[],"requiredDuringSchedulingIgnoredDuringExecution": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_NODESELECTOR|undefined};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_NODESELECTOR = {"nodeSelectorTerms": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_NODESELECTORTERM[]};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_NODESELECTORREQUIREMENT = {"key": string,"operator": string,"values": string[]};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_NODESELECTORTERM = {"matchExpressions": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_NODESELECTORREQUIREMENT[],"matchFields": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_NODESELECTORREQUIREMENT[]};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_OBJECTFIELDSELECTOR = {"apiVersion": string,"fieldPath": string};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PERSISTENTVOLUMECLAIMSPEC = {"accessModes": string[],"dataSource": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_TYPEDLOCALOBJECTREFERENCE|undefined,"dataSourceRef": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_TYPEDOBJECTREFERENCE|undefined,"resources": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_VOLUMERESOURCEREQUIREMENTS,"selector": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR|undefined,"storageClassName": string|undefined,"volumeAttributesClassName": string|undefined,"volumeMode": string|undefined,"volumeName": string};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PERSISTENTVOLUMECLAIMTEMPLATE = {"metadata": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OBJECTMETA,"spec": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PERSISTENTVOLUMECLAIMSPEC};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PERSISTENTVOLUMECLAIMVOLUMESOURCE = {"claimName": string,"readOnly": boolean};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PHOTONPERSISTENTDISKVOLUMESOURCE = {"fsType": string,"pdID": string};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_POD = {"TypeMeta": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA,"metadata": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OBJECTMETA,"spec": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODSPEC,"status": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODSTATUS};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODAFFINITY = {"preferredDuringSchedulingIgnoredDuringExecution": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_WEIGHTEDPODAFFINITYTERM[],"requiredDuringSchedulingIgnoredDuringExecution": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODAFFINITYTERM[]};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODAFFINITYTERM = {"labelSelector": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR|undefined,"matchLabelKeys": string[],"mismatchLabelKeys": string[],"namespaceSelector": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR|undefined,"namespaces": string[],"topologyKey": string};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODANTIAFFINITY = {"preferredDuringSchedulingIgnoredDuringExecution": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_WEIGHTEDPODAFFINITYTERM[],"requiredDuringSchedulingIgnoredDuringExecution": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODAFFINITYTERM[]};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODCERTIFICATEPROJECTION = {"certificateChainPath": string,"credentialBundlePath": string,"keyPath": string,"keyType": string,"maxExpirationSeconds": number|undefined,"signerName": string};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODCONDITION = {"lastProbeTime": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME,"lastTransitionTime": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME,"message": string,"observedGeneration": number,"reason": string,"status": string,"type": string};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODDNSCONFIG = {"nameservers": string[],"options": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODDNSCONFIGOPTION[],"searches": string[]};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODDNSCONFIGOPTION = {"name": string,"value": string|undefined};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODEXTENDEDRESOURCECLAIMSTATUS = {"requestMappings": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINEREXTENDEDRESOURCEREQUEST[],"resourceClaimName": string};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODIP = {"ip": string};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODOS = {"name": string};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODREADINESSGATE = {"conditionType": string};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODRESOURCECLAIM = {"name": string,"resourceClaimName": string|undefined,"resourceClaimTemplateName": string|undefined};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODRESOURCECLAIMSTATUS = {"name": string,"resourceClaimName": string|undefined};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODSCHEDULINGGATE = {"name": string};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODSECURITYCONTEXT = {"appArmorProfile": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_APPARMORPROFILE|undefined,"fsGroup": number|undefined,"fsGroupChangePolicy": string|undefined,"runAsGroup": number|undefined,"runAsNonRoot": boolean|undefined,"runAsUser": number|undefined,"seLinuxChangePolicy": string|undefined,"seLinuxOptions": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_SELINUXOPTIONS|undefined,"seccompProfile": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_SECCOMPPROFILE|undefined,"supplementalGroups": number[],"supplementalGroupsPolicy": string|undefined,"sysctls": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_SYSCTL[],"windowsOptions": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_WINDOWSSECURITYCONTEXTOPTIONS|undefined};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODSPEC = {"activeDeadlineSeconds": number|undefined,"affinity": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_AFFINITY|undefined,"automountServiceAccountToken": boolean|undefined,"containers": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINER[],"dnsConfig": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODDNSCONFIG|undefined,"dnsPolicy": string,"enableServiceLinks": boolean|undefined,"ephemeralContainers": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_EPHEMERALCONTAINER[],"hostAliases": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_HOSTALIAS[],"hostIPC": boolean,"hostNetwork": boolean,"hostPID": boolean,"hostUsers": boolean|undefined,"hostname": string,"hostnameOverride": string|undefined,"imagePullSecrets": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_LOCALOBJECTREFERENCE[],"initContainers": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINER[],"nodeName": string,"nodeSelector": Record<string, string>,"os": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODOS|undefined,"overhead": Record<string, SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY>,"preemptionPolicy": string|undefined,"priority": number|undefined,"priorityClassName": string,"readinessGates": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODREADINESSGATE[],"resourceClaims": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODRESOURCECLAIM[],"resources": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_RESOURCEREQUIREMENTS|undefined,"restartPolicy": string,"runtimeClassName": string|undefined,"schedulerName": string,"schedulingGates": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODSCHEDULINGGATE[],"securityContext": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODSECURITYCONTEXT|undefined,"serviceAccount": string,"serviceAccountName": string,"setHostnameAsFQDN": boolean|undefined,"shareProcessNamespace": boolean|undefined,"subdomain": string,"terminationGracePeriodSeconds": number|undefined,"tolerations": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_TOLERATION[],"topologySpreadConstraints": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_TOPOLOGYSPREADCONSTRAINT[],"volumes": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_VOLUME[]};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODSTATUS = {"conditions": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODCONDITION[],"containerStatuses": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATUS[],"ephemeralContainerStatuses": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATUS[],"extendedResourceClaimStatus": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODEXTENDEDRESOURCECLAIMSTATUS|undefined,"hostIP": string,"hostIPs": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_HOSTIP[],"initContainerStatuses": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONTAINERSTATUS[],"message": string,"nominatedNodeName": string,"observedGeneration": number,"phase": string,"podIP": string,"podIPs": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODIP[],"qosClass": string,"reason": string,"resize": string,"resourceClaimStatuses": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODRESOURCECLAIMSTATUS[],"startTime": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME|undefined};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PORTWORXVOLUMESOURCE = {"fsType": string,"readOnly": boolean,"volumeID": string};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PREFERREDSCHEDULINGTERM = {"preference": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_NODESELECTORTERM,"weight": number};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PROBE = {"ProbeHandler": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PROBEHANDLER,"failureThreshold": number,"initialDelaySeconds": number,"periodSeconds": number,"successThreshold": number,"terminationGracePeriodSeconds": number|undefined,"timeoutSeconds": number};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PROBEHANDLER = {"exec": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_EXECACTION|undefined,"grpc": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_GRPCACTION|undefined,"httpGet": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_HTTPGETACTION|undefined,"tcpSocket": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_TCPSOCKETACTION|undefined};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PROJECTEDVOLUMESOURCE = {"defaultMode": number|undefined,"sources": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_VOLUMEPROJECTION[]};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_QUOBYTEVOLUMESOURCE = {"group": string,"readOnly": boolean,"registry": string,"tenant": string,"user": string,"volume": string};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_RBDVOLUMESOURCE = {"fsType": string,"image": string,"keyring": string,"monitors": string[],"pool": string,"readOnly": boolean,"secretRef": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_LOCALOBJECTREFERENCE|undefined,"user": string};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_RESOURCECLAIM = {"name": string,"request": string};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_RESOURCEFIELDSELECTOR = {"containerName": string,"divisor": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY,"resource": string};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_RESOURCEHEALTH = {"health": string,"resourceID": string};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_RESOURCEREQUIREMENTS = {"claims": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_RESOURCECLAIM[],"limits": Record<string, SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY>,"requests": Record<string, SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY>};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_RESOURCESTATUS = {"name": string,"resources": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_RESOURCEHEALTH[]};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_SELINUXOPTIONS = {"level": string,"role": string,"type": string,"user": string};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_SCALEIOVOLUMESOURCE = {"fsType": string,"gateway": string,"protectionDomain": string,"readOnly": boolean,"secretRef": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_LOCALOBJECTREFERENCE|undefined,"sslEnabled": boolean,"storageMode": string,"storagePool": string,"system": string,"volumeName": string};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_SECCOMPPROFILE = {"localhostProfile": string|undefined,"type": string};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_SECRETENVSOURCE = {"LocalObjectReference": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_LOCALOBJECTREFERENCE,"optional": boolean|undefined};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_SECRETKEYSELECTOR = {"LocalObjectReference": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_LOCALOBJECTREFERENCE,"key": string,"optional": boolean|undefined};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_SECRETPROJECTION = {"LocalObjectReference": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_LOCALOBJECTREFERENCE,"items": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_KEYTOPATH[],"optional": boolean|undefined};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_SECRETVOLUMESOURCE = {"defaultMode": number|undefined,"items": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_KEYTOPATH[],"optional": boolean|undefined,"secretName": string};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_SECURITYCONTEXT = {"allowPrivilegeEscalation": boolean|undefined,"appArmorProfile": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_APPARMORPROFILE|undefined,"capabilities": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CAPABILITIES|undefined,"privileged": boolean|undefined,"procMount": string|undefined,"readOnlyRootFilesystem": boolean|undefined,"runAsGroup": number|undefined,"runAsNonRoot": boolean|undefined,"runAsUser": number|undefined,"seLinuxOptions": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_SELINUXOPTIONS|undefined,"seccompProfile": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_SECCOMPPROFILE|undefined,"windowsOptions": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_WINDOWSSECURITYCONTEXTOPTIONS|undefined};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_SERVICEACCOUNTTOKENPROJECTION = {"audience": string,"expirationSeconds": number|undefined,"path": string};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_SLEEPACTION = {"seconds": number};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_STORAGEOSVOLUMESOURCE = {"fsType": string,"readOnly": boolean,"secretRef": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_LOCALOBJECTREFERENCE|undefined,"volumeName": string,"volumeNamespace": string};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_SYSCTL = {"name": string,"value": string};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_TCPSOCKETACTION = {"host": string,"port": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_UTIL_INTSTR_INTORSTRING};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_TOLERATION = {"effect": string,"key": string,"operator": string,"tolerationSeconds": number|undefined,"value": string};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_TOPOLOGYSPREADCONSTRAINT = {"labelSelector": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR|undefined,"matchLabelKeys": string[],"maxSkew": number,"minDomains": number|undefined,"nodeAffinityPolicy": string|undefined,"nodeTaintsPolicy": string|undefined,"topologyKey": string,"whenUnsatisfiable": string};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_TYPEDLOCALOBJECTREFERENCE = {"apiGroup": string|undefined,"kind": string,"name": string};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_TYPEDOBJECTREFERENCE = {"apiGroup": string|undefined,"kind": string,"name": string,"namespace": string|undefined};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_VOLUME = {"VolumeSource": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_VOLUMESOURCE,"name": string};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_VOLUMEDEVICE = {"devicePath": string,"name": string};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_VOLUMEMOUNT = {"mountPath": string,"mountPropagation": string|undefined,"name": string,"readOnly": boolean,"recursiveReadOnly": string|undefined,"subPath": string,"subPathExpr": string};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_VOLUMEMOUNTSTATUS = {"mountPath": string,"name": string,"readOnly": boolean,"recursiveReadOnly": string|undefined};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_VOLUMEPROJECTION = {"clusterTrustBundle": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CLUSTERTRUSTBUNDLEPROJECTION|undefined,"configMap": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONFIGMAPPROJECTION|undefined,"downwardAPI": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_DOWNWARDAPIPROJECTION|undefined,"podCertificate": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODCERTIFICATEPROJECTION|undefined,"secret": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_SECRETPROJECTION|undefined,"serviceAccountToken": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_SERVICEACCOUNTTOKENPROJECTION|undefined};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_VOLUMERESOURCEREQUIREMENTS = {"limits": Record<string, SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY>,"requests": Record<string, SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY>};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_VOLUMESOURCE = {"awsElasticBlockStore": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_AWSELASTICBLOCKSTOREVOLUMESOURCE|undefined,"azureDisk": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_AZUREDISKVOLUMESOURCE|undefined,"azureFile": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_AZUREFILEVOLUMESOURCE|undefined,"cephfs": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CEPHFSVOLUMESOURCE|undefined,"cinder": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CINDERVOLUMESOURCE|undefined,"configMap": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CONFIGMAPVOLUMESOURCE|undefined,"csi": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_CSIVOLUMESOURCE|undefined,"downwardAPI": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_DOWNWARDAPIVOLUMESOURCE|undefined,"emptyDir": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_EMPTYDIRVOLUMESOURCE|undefined,"ephemeral": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_EPHEMERALVOLUMESOURCE|undefined,"fc": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_FCVOLUMESOURCE|undefined,"flexVolume": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_FLEXVOLUMESOURCE|undefined,"flocker": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_FLOCKERVOLUMESOURCE|undefined,"gcePersistentDisk": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_GCEPERSISTENTDISKVOLUMESOURCE|undefined,"gitRepo": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_GITREPOVOLUMESOURCE|undefined,"glusterfs": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_GLUSTERFSVOLUMESOURCE|undefined,"hostPath": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_HOSTPATHVOLUMESOURCE|undefined,"image": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_IMAGEVOLUMESOURCE|undefined,"iscsi": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_ISCSIVOLUMESOURCE|undefined,"nfs": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_NFSVOLUMESOURCE|undefined,"persistentVolumeClaim": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PERSISTENTVOLUMECLAIMVOLUMESOURCE|undefined,"photonPersistentDisk": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PHOTONPERSISTENTDISKVOLUMESOURCE|undefined,"portworxVolume": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PORTWORXVOLUMESOURCE|undefined,"projected": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PROJECTEDVOLUMESOURCE|undefined,"quobyte": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_QUOBYTEVOLUMESOURCE|undefined,"rbd": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_RBDVOLUMESOURCE|undefined,"scaleIO": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_SCALEIOVOLUMESOURCE|undefined,"secret": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_SECRETVOLUMESOURCE|undefined,"storageos": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_STORAGEOSVOLUMESOURCE|undefined,"vsphereVolume": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_VSPHEREVIRTUALDISKVOLUMESOURCE|undefined};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_VSPHEREVIRTUALDISKVOLUMESOURCE = {"fsType": string,"storagePolicyID": string,"storagePolicyName": string,"volumePath": string};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_WEIGHTEDPODAFFINITYTERM = {"podAffinityTerm": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_PODAFFINITYTERM,"weight": number};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_API_CORE_V1_WINDOWSSECURITYCONTEXTOPTIONS = {"gmsaCredentialSpec": string|undefined,"gmsaCredentialSpecName": string|undefined,"hostProcess": boolean|undefined,"runAsUserName": string|undefined};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY = {"Format": string};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_FIELDSV1 = {};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR = {"matchExpressions": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTORREQUIREMENT[],"matchLabels": Record<string, string>};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTORREQUIREMENT = {"key": string,"operator": string,"values": string[]};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_MANAGEDFIELDSENTRY = {"apiVersion": string,"fieldsType": string,"fieldsV1": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_FIELDSV1|undefined,"manager": string,"operation": string,"subresource": string,"time": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME|undefined};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OBJECTMETA = {"annotations": Record<string, string>,"creationTimestamp": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME,"deletionGracePeriodSeconds": number|undefined,"deletionTimestamp": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME|undefined,"finalizers": string[],"generateName": string,"generation": number,"labels": Record<string, string>,"managedFields": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_MANAGEDFIELDSENTRY[],"name": string,"namespace": string,"ownerReferences": SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OWNERREFERENCE[],"resourceVersion": string,"selfLink": string,"uid": string};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OWNERREFERENCE = {"apiVersion": string,"blockOwnerDeletion": boolean|undefined,"controller": boolean|undefined,"kind": string,"name": string,"uid": string};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME = {"Time": SERVICE_RESOURCE_STATUS_RESPONSE__TIME_TIME};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA = {"apiVersion": string,"kind": string};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_UTIL_INTSTR_INTORSTRING = {"IntVal": number,"StrVal": string,"Type": number};
-export type SERVICE_RESOURCE_STATUS_RESPONSE__TIME_TIME = {};
-export type SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_CONTAINERRESOURCEMETRICSOURCE = {"container": string,"name": string,"target": SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
-export type SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_CROSSVERSIONOBJECTREFERENCE = {"apiVersion": string,"kind": string,"name": string};
-export type SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_EXTERNALMETRICSOURCE = {"metric": SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICIDENTIFIER,"target": SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
-export type SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGPOLICY = {"periodSeconds": number,"type": string,"value": number};
-export type SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGRULES = {"policies": SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGPOLICY[],"selectPolicy": string|undefined,"stabilizationWindowSeconds": number|undefined,"tolerance": SERVICE_RESTART_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY|undefined};
-export type SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_HORIZONTALPODAUTOSCALERBEHAVIOR = {"scaleDown": SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGRULES|undefined,"scaleUp": SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGRULES|undefined};
-export type SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_HORIZONTALPODAUTOSCALERSPEC = {"behavior": SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_HORIZONTALPODAUTOSCALERBEHAVIOR|undefined,"maxReplicas": number,"metrics": SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICSPEC[],"minReplicas": number|undefined,"scaleTargetRef": SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_CROSSVERSIONOBJECTREFERENCE};
-export type SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICIDENTIFIER = {"name": string,"selector": SERVICE_RESTART_REQUEST__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR|undefined};
-export type SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICSPEC = {"containerResource": SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_CONTAINERRESOURCEMETRICSOURCE|undefined,"external": SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_EXTERNALMETRICSOURCE|undefined,"object": SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_OBJECTMETRICSOURCE|undefined,"pods": SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_PODSMETRICSOURCE|undefined,"resource": SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_RESOURCEMETRICSOURCE|undefined,"type": string};
-export type SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET = {"averageUtilization": number|undefined,"averageValue": SERVICE_RESTART_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY|undefined,"type": string,"value": SERVICE_RESTART_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY|undefined};
-export type SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_OBJECTMETRICSOURCE = {"describedObject": SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_CROSSVERSIONOBJECTREFERENCE,"metric": SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICIDENTIFIER,"target": SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
-export type SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_PODSMETRICSOURCE = {"metric": SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICIDENTIFIER,"target": SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
-export type SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_RESOURCEMETRICSOURCE = {"name": string,"target": SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
-export type SERVICE_RESTART_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY = {"Format": string};
-export type SERVICE_RESTART_REQUEST__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR = {"matchExpressions": SERVICE_RESTART_REQUEST__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTORREQUIREMENT[],"matchLabels": Record<string, string>};
-export type SERVICE_RESTART_REQUEST__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTORREQUIREMENT = {"key": string,"operator": string,"values": string[]};
-export type SERVICE_RESTART_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCNAMEDTO = {"addToTlsHosts": boolean,"cName": string};
-export type SERVICE_RESTART_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCONTAINERDTO = {"KubernetesLimits": SERVICE_RESTART_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SSERVICESETTINGSDTO,"appGitRepositoryCloneUrl": string|undefined,"appSetupCommands": string|undefined,"containerImage": string|undefined,"containerImageCommand": string|undefined,"containerImageCommandArgs": string|undefined,"containerImageRepoSecretDecryptValue": string|undefined,"containerImageRepoSecretId": string|undefined,"displayName": string,"dockerContext": string|undefined,"dockerfileName": string|undefined,"envVars": SERVICE_RESTART_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SENVVARDTO[],"gitBranch": string|undefined,"gitCommitAuthor": string|undefined,"gitCommitHash": string|undefined,"gitCommitMessage": string|undefined,"gitRepository": string|undefined,"id": string,"name": string,"probes": SERVICE_RESTART_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBES|undefined,"settingsYaml": string|undefined,"type": string};
-export type SERVICE_RESTART_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCRONJOBSETTINGSDTO = {"activeDeadlineSeconds": number,"backoffLimit": number,"failedJobsHistoryLimit": number,"schedule": string,"successfulJobsHistoryLimit": number};
-export type SERVICE_RESTART_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SENVVARDATADTO = {"type": string,"value": string,"vaultKey": string,"vaultStore": string,"vaultType": string,"volumeDestination": string,"volumeName": string,"volumeSource": string};
-export type SERVICE_RESTART_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SENVVARDTO = {"data": SERVICE_RESTART_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SENVVARDATADTO,"id": string,"name": string,"type": string,"value": string};
-export type SERVICE_RESTART_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SHPASETTINGSDTO = {"HorizontalPodAutoscalerSpec": SERVICE_RESTART_REQUEST__K8S_IO_API_AUTOSCALING_V2_HORIZONTALPODAUTOSCALERSPEC|undefined};
-export type SERVICE_RESTART_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SNAMESPACEDTO = {"Name": string,"displayName": string,"id": string};
-export type SERVICE_RESTART_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPORTSDTO = {"cNames": SERVICE_RESTART_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCNAMEDTO[],"expose": boolean,"externalPort": string,"internalPort": string,"portType": string};
-export type SERVICE_RESTART_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBE = {"exec": SERVICE_RESTART_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBEEXEC|undefined,"failureThreshold": number,"grpc": SERVICE_RESTART_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBEGRPC|undefined,"httpGet": SERVICE_RESTART_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBEHTTPGET|undefined,"initialDelaySeconds": number,"isActive": boolean,"periodSeconds": number,"successThreshold": number,"tcpSocket": SERVICE_RESTART_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBETCPSOCKET|undefined,"timeoutSeconds": number};
-export type SERVICE_RESTART_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBEEXEC = {"command": string[]};
-export type SERVICE_RESTART_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBEGRPC = {"port": number,"service": string|undefined};
-export type SERVICE_RESTART_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBEHTTPGET = {"host": string|undefined,"httpHeaders": SERVICE_RESTART_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBEHTTPHEADER[]|undefined,"path": string,"port": string,"scheme": string|undefined};
-export type SERVICE_RESTART_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBEHTTPHEADER = {"name": string,"value": string};
-export type SERVICE_RESTART_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBETCPSOCKET = {"port": string};
-export type SERVICE_RESTART_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBES = {"isActive": boolean,"livenessProbe": SERVICE_RESTART_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBE|undefined,"readinessProbe": SERVICE_RESTART_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBE|undefined,"startupProbe": SERVICE_RESTART_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBE|undefined};
-export type SERVICE_RESTART_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROJECTDTO = {"clusterDisplayName": string,"clusterId": string,"clusterMfaId": string,"containerRegistryPat": string|undefined,"containerRegistryPath": string|undefined,"containerRegistryUrl": string|undefined,"containerRegistryUser": string|undefined,"displayName": string,"gitAccessToken": string|undefined,"gitConnectionType": string|undefined,"gitUserId": string|undefined,"id": string,"name": string};
-export type SERVICE_RESTART_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SSERVICEDTO = {"containers": SERVICE_RESTART_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCONTAINERDTO[],"controller": string,"controllerName": string,"cronJobSettings": SERVICE_RESTART_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCRONJOBSETTINGSDTO|undefined,"deploymentStrategy": string,"displayName": string,"hpaSettings": SERVICE_RESTART_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SHPASETTINGSDTO|undefined,"id": string,"ports": SERVICE_RESTART_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPORTSDTO[],"replicaCount": number};
-export type SERVICE_RESTART_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SSERVICESETTINGSDTO = {"ephemeralStorageMB": number,"imagePullPolicy": string,"limitCpuCores": number,"limitMemoryMB": number};
-export type SERVICE_RESTART_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_SERVICERESTARTREQUEST = {"namespace": SERVICE_RESTART_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SNAMESPACEDTO,"project": SERVICE_RESTART_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROJECTDTO,"service": SERVICE_RESTART_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SSERVICEDTO};
-export type SERVICE_RESTART_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_COMMAND = {"command": string,"finished": SERVICE_RESTART_RESPONSE__TIME_TIME,"id": string,"message": string,"started": SERVICE_RESTART_RESPONSE__TIME_TIME,"state": string,"title": string};
-export type SERVICE_RESTART_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_JOB = {"commands": SERVICE_RESTART_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_COMMAND|undefined[],"containerName": string,"controllerName": string,"finished": SERVICE_RESTART_RESPONSE__TIME_TIME,"id": string,"message": string,"namespaceName": string,"projectId": string,"started": SERVICE_RESTART_RESPONSE__TIME_TIME,"state": string,"title": string};
-export type SERVICE_RESTART_RESPONSE__TIME_TIME = {};
-export type SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_CONTAINERRESOURCEMETRICSOURCE = {"container": string,"name": string,"target": SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
-export type SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_CROSSVERSIONOBJECTREFERENCE = {"apiVersion": string,"kind": string,"name": string};
-export type SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_EXTERNALMETRICSOURCE = {"metric": SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICIDENTIFIER,"target": SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
-export type SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGPOLICY = {"periodSeconds": number,"type": string,"value": number};
-export type SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGRULES = {"policies": SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGPOLICY[],"selectPolicy": string|undefined,"stabilizationWindowSeconds": number|undefined,"tolerance": SERVICE_START_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY|undefined};
-export type SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_HORIZONTALPODAUTOSCALERBEHAVIOR = {"scaleDown": SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGRULES|undefined,"scaleUp": SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGRULES|undefined};
-export type SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_HORIZONTALPODAUTOSCALERSPEC = {"behavior": SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_HORIZONTALPODAUTOSCALERBEHAVIOR|undefined,"maxReplicas": number,"metrics": SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICSPEC[],"minReplicas": number|undefined,"scaleTargetRef": SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_CROSSVERSIONOBJECTREFERENCE};
-export type SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICIDENTIFIER = {"name": string,"selector": SERVICE_START_REQUEST__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR|undefined};
-export type SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICSPEC = {"containerResource": SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_CONTAINERRESOURCEMETRICSOURCE|undefined,"external": SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_EXTERNALMETRICSOURCE|undefined,"object": SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_OBJECTMETRICSOURCE|undefined,"pods": SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_PODSMETRICSOURCE|undefined,"resource": SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_RESOURCEMETRICSOURCE|undefined,"type": string};
-export type SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET = {"averageUtilization": number|undefined,"averageValue": SERVICE_START_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY|undefined,"type": string,"value": SERVICE_START_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY|undefined};
-export type SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_OBJECTMETRICSOURCE = {"describedObject": SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_CROSSVERSIONOBJECTREFERENCE,"metric": SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICIDENTIFIER,"target": SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
-export type SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_PODSMETRICSOURCE = {"metric": SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICIDENTIFIER,"target": SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
-export type SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_RESOURCEMETRICSOURCE = {"name": string,"target": SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
-export type SERVICE_START_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY = {"Format": string};
-export type SERVICE_START_REQUEST__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR = {"matchExpressions": SERVICE_START_REQUEST__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTORREQUIREMENT[],"matchLabels": Record<string, string>};
-export type SERVICE_START_REQUEST__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTORREQUIREMENT = {"key": string,"operator": string,"values": string[]};
-export type SERVICE_START_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCNAMEDTO = {"addToTlsHosts": boolean,"cName": string};
-export type SERVICE_START_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCONTAINERDTO = {"KubernetesLimits": SERVICE_START_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SSERVICESETTINGSDTO,"appGitRepositoryCloneUrl": string|undefined,"appSetupCommands": string|undefined,"containerImage": string|undefined,"containerImageCommand": string|undefined,"containerImageCommandArgs": string|undefined,"containerImageRepoSecretDecryptValue": string|undefined,"containerImageRepoSecretId": string|undefined,"displayName": string,"dockerContext": string|undefined,"dockerfileName": string|undefined,"envVars": SERVICE_START_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SENVVARDTO[],"gitBranch": string|undefined,"gitCommitAuthor": string|undefined,"gitCommitHash": string|undefined,"gitCommitMessage": string|undefined,"gitRepository": string|undefined,"id": string,"name": string,"probes": SERVICE_START_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBES|undefined,"settingsYaml": string|undefined,"type": string};
-export type SERVICE_START_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCRONJOBSETTINGSDTO = {"activeDeadlineSeconds": number,"backoffLimit": number,"failedJobsHistoryLimit": number,"schedule": string,"successfulJobsHistoryLimit": number};
-export type SERVICE_START_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SENVVARDATADTO = {"type": string,"value": string,"vaultKey": string,"vaultStore": string,"vaultType": string,"volumeDestination": string,"volumeName": string,"volumeSource": string};
-export type SERVICE_START_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SENVVARDTO = {"data": SERVICE_START_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SENVVARDATADTO,"id": string,"name": string,"type": string,"value": string};
-export type SERVICE_START_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SHPASETTINGSDTO = {"HorizontalPodAutoscalerSpec": SERVICE_START_REQUEST__K8S_IO_API_AUTOSCALING_V2_HORIZONTALPODAUTOSCALERSPEC|undefined};
-export type SERVICE_START_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SNAMESPACEDTO = {"Name": string,"displayName": string,"id": string};
-export type SERVICE_START_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPORTSDTO = {"cNames": SERVICE_START_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCNAMEDTO[],"expose": boolean,"externalPort": string,"internalPort": string,"portType": string};
-export type SERVICE_START_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBE = {"exec": SERVICE_START_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBEEXEC|undefined,"failureThreshold": number,"grpc": SERVICE_START_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBEGRPC|undefined,"httpGet": SERVICE_START_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBEHTTPGET|undefined,"initialDelaySeconds": number,"isActive": boolean,"periodSeconds": number,"successThreshold": number,"tcpSocket": SERVICE_START_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBETCPSOCKET|undefined,"timeoutSeconds": number};
-export type SERVICE_START_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBEEXEC = {"command": string[]};
-export type SERVICE_START_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBEGRPC = {"port": number,"service": string|undefined};
-export type SERVICE_START_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBEHTTPGET = {"host": string|undefined,"httpHeaders": SERVICE_START_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBEHTTPHEADER[]|undefined,"path": string,"port": string,"scheme": string|undefined};
-export type SERVICE_START_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBEHTTPHEADER = {"name": string,"value": string};
-export type SERVICE_START_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBETCPSOCKET = {"port": string};
-export type SERVICE_START_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBES = {"isActive": boolean,"livenessProbe": SERVICE_START_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBE|undefined,"readinessProbe": SERVICE_START_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBE|undefined,"startupProbe": SERVICE_START_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBE|undefined};
-export type SERVICE_START_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROJECTDTO = {"clusterDisplayName": string,"clusterId": string,"clusterMfaId": string,"containerRegistryPat": string|undefined,"containerRegistryPath": string|undefined,"containerRegistryUrl": string|undefined,"containerRegistryUser": string|undefined,"displayName": string,"gitAccessToken": string|undefined,"gitConnectionType": string|undefined,"gitUserId": string|undefined,"id": string,"name": string};
-export type SERVICE_START_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SSERVICEDTO = {"containers": SERVICE_START_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCONTAINERDTO[],"controller": string,"controllerName": string,"cronJobSettings": SERVICE_START_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCRONJOBSETTINGSDTO|undefined,"deploymentStrategy": string,"displayName": string,"hpaSettings": SERVICE_START_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SHPASETTINGSDTO|undefined,"id": string,"ports": SERVICE_START_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPORTSDTO[],"replicaCount": number};
-export type SERVICE_START_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SSERVICESETTINGSDTO = {"ephemeralStorageMB": number,"imagePullPolicy": string,"limitCpuCores": number,"limitMemoryMB": number};
-export type SERVICE_START_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_SERVICESTARTREQUEST = {"namespace": SERVICE_START_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SNAMESPACEDTO,"project": SERVICE_START_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROJECTDTO,"service": SERVICE_START_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SSERVICEDTO};
-export type SERVICE_START_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_COMMAND = {"command": string,"finished": SERVICE_START_RESPONSE__TIME_TIME,"id": string,"message": string,"started": SERVICE_START_RESPONSE__TIME_TIME,"state": string,"title": string};
-export type SERVICE_START_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_JOB = {"commands": SERVICE_START_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_COMMAND|undefined[],"containerName": string,"controllerName": string,"finished": SERVICE_START_RESPONSE__TIME_TIME,"id": string,"message": string,"namespaceName": string,"projectId": string,"started": SERVICE_START_RESPONSE__TIME_TIME,"state": string,"title": string};
-export type SERVICE_START_RESPONSE__TIME_TIME = {};
-export type SERVICE_STATUS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_SERVICESTATUSREQUEST = {"controller": string,"controllerName": string,"gitRepository": boolean,"namespace": string};
-export type SERVICE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME = {"Time": SERVICE_STATUS_RESPONSE__TIME_TIME};
-export type SERVICE_STATUS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_SERVICES_SERVICESTATUSITEM = {"containerStatus": SERVICE_STATUS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_SERVICES_XCONTAINERSTATUS|undefined,"createdAt": SERVICE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME|undefined,"kind": string,"messages": SERVICE_STATUS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_SERVICES_SERVICESTATUSMESSAGE[],"name": string,"namespace": string,"ownerKind": string,"ownerName": string,"status": string};
-export type SERVICE_STATUS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_SERVICES_SERVICESTATUSMESSAGE = {"message": string,"type": string};
-export type SERVICE_STATUS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_SERVICES_SERVICESTATUSRESPONSE = {"hasContainers": boolean,"hasCronJob": boolean,"hasDeployment": boolean,"hasJob": boolean,"hasPods": boolean,"items": SERVICE_STATUS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_SERVICES_SERVICESTATUSITEM[],"switchedOn": boolean,"warnings": SERVICE_STATUS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_SERVICES_SERVICESTATUSMESSAGE[]};
-export type SERVICE_STATUS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_SERVICES_XCONTAINERSTATUS = {"createdAt": SERVICE_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME|undefined,"restartCount": number};
-export type SERVICE_STATUS_RESPONSE__TIME_TIME = {};
-export type SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_CONTAINERRESOURCEMETRICSOURCE = {"container": string,"name": string,"target": SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
-export type SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_CROSSVERSIONOBJECTREFERENCE = {"apiVersion": string,"kind": string,"name": string};
-export type SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_EXTERNALMETRICSOURCE = {"metric": SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICIDENTIFIER,"target": SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
-export type SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGPOLICY = {"periodSeconds": number,"type": string,"value": number};
-export type SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGRULES = {"policies": SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGPOLICY[],"selectPolicy": string|undefined,"stabilizationWindowSeconds": number|undefined,"tolerance": SERVICE_STOP_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY|undefined};
-export type SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_HORIZONTALPODAUTOSCALERBEHAVIOR = {"scaleDown": SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGRULES|undefined,"scaleUp": SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGRULES|undefined};
-export type SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_HORIZONTALPODAUTOSCALERSPEC = {"behavior": SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_HORIZONTALPODAUTOSCALERBEHAVIOR|undefined,"maxReplicas": number,"metrics": SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICSPEC[],"minReplicas": number|undefined,"scaleTargetRef": SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_CROSSVERSIONOBJECTREFERENCE};
-export type SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICIDENTIFIER = {"name": string,"selector": SERVICE_STOP_REQUEST__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR|undefined};
-export type SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICSPEC = {"containerResource": SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_CONTAINERRESOURCEMETRICSOURCE|undefined,"external": SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_EXTERNALMETRICSOURCE|undefined,"object": SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_OBJECTMETRICSOURCE|undefined,"pods": SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_PODSMETRICSOURCE|undefined,"resource": SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_RESOURCEMETRICSOURCE|undefined,"type": string};
-export type SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET = {"averageUtilization": number|undefined,"averageValue": SERVICE_STOP_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY|undefined,"type": string,"value": SERVICE_STOP_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY|undefined};
-export type SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_OBJECTMETRICSOURCE = {"describedObject": SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_CROSSVERSIONOBJECTREFERENCE,"metric": SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICIDENTIFIER,"target": SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
-export type SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_PODSMETRICSOURCE = {"metric": SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICIDENTIFIER,"target": SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
-export type SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_RESOURCEMETRICSOURCE = {"name": string,"target": SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
-export type SERVICE_STOP_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY = {"Format": string};
-export type SERVICE_STOP_REQUEST__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR = {"matchExpressions": SERVICE_STOP_REQUEST__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTORREQUIREMENT[],"matchLabels": Record<string, string>};
-export type SERVICE_STOP_REQUEST__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTORREQUIREMENT = {"key": string,"operator": string,"values": string[]};
-export type SERVICE_STOP_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCNAMEDTO = {"addToTlsHosts": boolean,"cName": string};
-export type SERVICE_STOP_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCONTAINERDTO = {"KubernetesLimits": SERVICE_STOP_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SSERVICESETTINGSDTO,"appGitRepositoryCloneUrl": string|undefined,"appSetupCommands": string|undefined,"containerImage": string|undefined,"containerImageCommand": string|undefined,"containerImageCommandArgs": string|undefined,"containerImageRepoSecretDecryptValue": string|undefined,"containerImageRepoSecretId": string|undefined,"displayName": string,"dockerContext": string|undefined,"dockerfileName": string|undefined,"envVars": SERVICE_STOP_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SENVVARDTO[],"gitBranch": string|undefined,"gitCommitAuthor": string|undefined,"gitCommitHash": string|undefined,"gitCommitMessage": string|undefined,"gitRepository": string|undefined,"id": string,"name": string,"probes": SERVICE_STOP_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBES|undefined,"settingsYaml": string|undefined,"type": string};
-export type SERVICE_STOP_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCRONJOBSETTINGSDTO = {"activeDeadlineSeconds": number,"backoffLimit": number,"failedJobsHistoryLimit": number,"schedule": string,"successfulJobsHistoryLimit": number};
-export type SERVICE_STOP_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SENVVARDATADTO = {"type": string,"value": string,"vaultKey": string,"vaultStore": string,"vaultType": string,"volumeDestination": string,"volumeName": string,"volumeSource": string};
-export type SERVICE_STOP_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SENVVARDTO = {"data": SERVICE_STOP_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SENVVARDATADTO,"id": string,"name": string,"type": string,"value": string};
-export type SERVICE_STOP_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SHPASETTINGSDTO = {"HorizontalPodAutoscalerSpec": SERVICE_STOP_REQUEST__K8S_IO_API_AUTOSCALING_V2_HORIZONTALPODAUTOSCALERSPEC|undefined};
-export type SERVICE_STOP_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SNAMESPACEDTO = {"Name": string,"displayName": string,"id": string};
-export type SERVICE_STOP_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPORTSDTO = {"cNames": SERVICE_STOP_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCNAMEDTO[],"expose": boolean,"externalPort": string,"internalPort": string,"portType": string};
-export type SERVICE_STOP_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBE = {"exec": SERVICE_STOP_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBEEXEC|undefined,"failureThreshold": number,"grpc": SERVICE_STOP_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBEGRPC|undefined,"httpGet": SERVICE_STOP_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBEHTTPGET|undefined,"initialDelaySeconds": number,"isActive": boolean,"periodSeconds": number,"successThreshold": number,"tcpSocket": SERVICE_STOP_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBETCPSOCKET|undefined,"timeoutSeconds": number};
-export type SERVICE_STOP_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBEEXEC = {"command": string[]};
-export type SERVICE_STOP_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBEGRPC = {"port": number,"service": string|undefined};
-export type SERVICE_STOP_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBEHTTPGET = {"host": string|undefined,"httpHeaders": SERVICE_STOP_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBEHTTPHEADER[]|undefined,"path": string,"port": string,"scheme": string|undefined};
-export type SERVICE_STOP_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBEHTTPHEADER = {"name": string,"value": string};
-export type SERVICE_STOP_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBETCPSOCKET = {"port": string};
-export type SERVICE_STOP_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBES = {"isActive": boolean,"livenessProbe": SERVICE_STOP_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBE|undefined,"readinessProbe": SERVICE_STOP_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBE|undefined,"startupProbe": SERVICE_STOP_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBE|undefined};
-export type SERVICE_STOP_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SSERVICEDTO = {"containers": SERVICE_STOP_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCONTAINERDTO[],"controller": string,"controllerName": string,"cronJobSettings": SERVICE_STOP_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCRONJOBSETTINGSDTO|undefined,"deploymentStrategy": string,"displayName": string,"hpaSettings": SERVICE_STOP_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SHPASETTINGSDTO|undefined,"id": string,"ports": SERVICE_STOP_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPORTSDTO[],"replicaCount": number};
-export type SERVICE_STOP_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SSERVICESETTINGSDTO = {"ephemeralStorageMB": number,"imagePullPolicy": string,"limitCpuCores": number,"limitMemoryMB": number};
-export type SERVICE_STOP_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_SERVICESTOPREQUEST = {"namespace": SERVICE_STOP_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SNAMESPACEDTO,"projectId": string,"service": SERVICE_STOP_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SSERVICEDTO};
-export type SERVICE_STOP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_COMMAND = {"command": string,"finished": SERVICE_STOP_RESPONSE__TIME_TIME,"id": string,"message": string,"started": SERVICE_STOP_RESPONSE__TIME_TIME,"state": string,"title": string};
-export type SERVICE_STOP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_JOB = {"commands": SERVICE_STOP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_COMMAND|undefined[],"containerName": string,"controllerName": string,"finished": SERVICE_STOP_RESPONSE__TIME_TIME,"id": string,"message": string,"namespaceName": string,"projectId": string,"started": SERVICE_STOP_RESPONSE__TIME_TIME,"state": string,"title": string};
-export type SERVICE_STOP_RESPONSE__TIME_TIME = {};
-export type SERVICE_TRIGGER_JOB_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_SERVICETRIGGERJOBREQUEST = {"controllerName": string,"namespaceDisplayName": string,"namespaceId": string,"namespaceName": string,"projectId": string,"serviceId": string};
-export type SERVICE_TRIGGER_JOB_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_COMMAND = {"command": string,"finished": SERVICE_TRIGGER_JOB_RESPONSE__TIME_TIME,"id": string,"message": string,"started": SERVICE_TRIGGER_JOB_RESPONSE__TIME_TIME,"state": string,"title": string};
-export type SERVICE_TRIGGER_JOB_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_JOB = {"commands": SERVICE_TRIGGER_JOB_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_COMMAND|undefined[],"containerName": string,"controllerName": string,"finished": SERVICE_TRIGGER_JOB_RESPONSE__TIME_TIME,"id": string,"message": string,"namespaceName": string,"projectId": string,"started": SERVICE_TRIGGER_JOB_RESPONSE__TIME_TIME,"state": string,"title": string};
-export type SERVICE_TRIGGER_JOB_RESPONSE__TIME_TIME = {};
-export type SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_CONTAINERRESOURCEMETRICSOURCE = {"container": string,"name": string,"target": SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
-export type SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_CROSSVERSIONOBJECTREFERENCE = {"apiVersion": string,"kind": string,"name": string};
-export type SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_EXTERNALMETRICSOURCE = {"metric": SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICIDENTIFIER,"target": SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
-export type SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGPOLICY = {"periodSeconds": number,"type": string,"value": number};
-export type SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGRULES = {"policies": SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGPOLICY[],"selectPolicy": string|undefined,"stabilizationWindowSeconds": number|undefined,"tolerance": SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY|undefined};
-export type SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_HORIZONTALPODAUTOSCALERBEHAVIOR = {"scaleDown": SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGRULES|undefined,"scaleUp": SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_HPASCALINGRULES|undefined};
-export type SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_HORIZONTALPODAUTOSCALERSPEC = {"behavior": SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_HORIZONTALPODAUTOSCALERBEHAVIOR|undefined,"maxReplicas": number,"metrics": SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICSPEC[],"minReplicas": number|undefined,"scaleTargetRef": SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_CROSSVERSIONOBJECTREFERENCE};
-export type SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICIDENTIFIER = {"name": string,"selector": SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR|undefined};
-export type SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICSPEC = {"containerResource": SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_CONTAINERRESOURCEMETRICSOURCE|undefined,"external": SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_EXTERNALMETRICSOURCE|undefined,"object": SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_OBJECTMETRICSOURCE|undefined,"pods": SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_PODSMETRICSOURCE|undefined,"resource": SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_RESOURCEMETRICSOURCE|undefined,"type": string};
-export type SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET = {"averageUtilization": number|undefined,"averageValue": SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY|undefined,"type": string,"value": SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY|undefined};
-export type SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_OBJECTMETRICSOURCE = {"describedObject": SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_CROSSVERSIONOBJECTREFERENCE,"metric": SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICIDENTIFIER,"target": SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
-export type SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_PODSMETRICSOURCE = {"metric": SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICIDENTIFIER,"target": SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
-export type SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_RESOURCEMETRICSOURCE = {"name": string,"target": SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_METRICTARGET};
-export type SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_APIMACHINERY_PKG_API_RESOURCE_QUANTITY = {"Format": string};
-export type SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTOR = {"matchExpressions": SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTORREQUIREMENT[],"matchLabels": Record<string, string>};
-export type SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_LABELSELECTORREQUIREMENT = {"key": string,"operator": string,"values": string[]};
-export type SERVICE_UPDATE_SERVICE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCNAMEDTO = {"addToTlsHosts": boolean,"cName": string};
-export type SERVICE_UPDATE_SERVICE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCONTAINERDTO = {"KubernetesLimits": SERVICE_UPDATE_SERVICE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SSERVICESETTINGSDTO,"appGitRepositoryCloneUrl": string|undefined,"appSetupCommands": string|undefined,"containerImage": string|undefined,"containerImageCommand": string|undefined,"containerImageCommandArgs": string|undefined,"containerImageRepoSecretDecryptValue": string|undefined,"containerImageRepoSecretId": string|undefined,"displayName": string,"dockerContext": string|undefined,"dockerfileName": string|undefined,"envVars": SERVICE_UPDATE_SERVICE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SENVVARDTO[],"gitBranch": string|undefined,"gitCommitAuthor": string|undefined,"gitCommitHash": string|undefined,"gitCommitMessage": string|undefined,"gitRepository": string|undefined,"id": string,"name": string,"probes": SERVICE_UPDATE_SERVICE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBES|undefined,"settingsYaml": string|undefined,"type": string};
-export type SERVICE_UPDATE_SERVICE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCRONJOBSETTINGSDTO = {"activeDeadlineSeconds": number,"backoffLimit": number,"failedJobsHistoryLimit": number,"schedule": string,"successfulJobsHistoryLimit": number};
-export type SERVICE_UPDATE_SERVICE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SENVVARDATADTO = {"type": string,"value": string,"vaultKey": string,"vaultStore": string,"vaultType": string,"volumeDestination": string,"volumeName": string,"volumeSource": string};
-export type SERVICE_UPDATE_SERVICE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SENVVARDTO = {"data": SERVICE_UPDATE_SERVICE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SENVVARDATADTO,"id": string,"name": string,"type": string,"value": string};
-export type SERVICE_UPDATE_SERVICE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SHPASETTINGSDTO = {"HorizontalPodAutoscalerSpec": SERVICE_UPDATE_SERVICE_REQUEST__K8S_IO_API_AUTOSCALING_V2_HORIZONTALPODAUTOSCALERSPEC|undefined};
-export type SERVICE_UPDATE_SERVICE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SNAMESPACEDTO = {"Name": string,"displayName": string,"id": string};
-export type SERVICE_UPDATE_SERVICE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPORTSDTO = {"cNames": SERVICE_UPDATE_SERVICE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCNAMEDTO[],"expose": boolean,"externalPort": string,"internalPort": string,"portType": string};
-export type SERVICE_UPDATE_SERVICE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBE = {"exec": SERVICE_UPDATE_SERVICE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBEEXEC|undefined,"failureThreshold": number,"grpc": SERVICE_UPDATE_SERVICE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBEGRPC|undefined,"httpGet": SERVICE_UPDATE_SERVICE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBEHTTPGET|undefined,"initialDelaySeconds": number,"isActive": boolean,"periodSeconds": number,"successThreshold": number,"tcpSocket": SERVICE_UPDATE_SERVICE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBETCPSOCKET|undefined,"timeoutSeconds": number};
-export type SERVICE_UPDATE_SERVICE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBEEXEC = {"command": string[]};
-export type SERVICE_UPDATE_SERVICE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBEGRPC = {"port": number,"service": string|undefined};
-export type SERVICE_UPDATE_SERVICE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBEHTTPGET = {"host": string|undefined,"httpHeaders": SERVICE_UPDATE_SERVICE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBEHTTPHEADER[]|undefined,"path": string,"port": string,"scheme": string|undefined};
-export type SERVICE_UPDATE_SERVICE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBEHTTPHEADER = {"name": string,"value": string};
-export type SERVICE_UPDATE_SERVICE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBETCPSOCKET = {"port": string};
-export type SERVICE_UPDATE_SERVICE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBES = {"isActive": boolean,"livenessProbe": SERVICE_UPDATE_SERVICE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBE|undefined,"readinessProbe": SERVICE_UPDATE_SERVICE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBE|undefined,"startupProbe": SERVICE_UPDATE_SERVICE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROBE|undefined};
-export type SERVICE_UPDATE_SERVICE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROJECTDTO = {"clusterDisplayName": string,"clusterId": string,"clusterMfaId": string,"containerRegistryPat": string|undefined,"containerRegistryPath": string|undefined,"containerRegistryUrl": string|undefined,"containerRegistryUser": string|undefined,"displayName": string,"gitAccessToken": string|undefined,"gitConnectionType": string|undefined,"gitUserId": string|undefined,"id": string,"name": string};
-export type SERVICE_UPDATE_SERVICE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SSERVICEDTO = {"containers": SERVICE_UPDATE_SERVICE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCONTAINERDTO[],"controller": string,"controllerName": string,"cronJobSettings": SERVICE_UPDATE_SERVICE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCRONJOBSETTINGSDTO|undefined,"deploymentStrategy": string,"displayName": string,"hpaSettings": SERVICE_UPDATE_SERVICE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SHPASETTINGSDTO|undefined,"id": string,"ports": SERVICE_UPDATE_SERVICE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPORTSDTO[],"replicaCount": number};
-export type SERVICE_UPDATE_SERVICE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SSERVICESETTINGSDTO = {"ephemeralStorageMB": number,"imagePullPolicy": string,"limitCpuCores": number,"limitMemoryMB": number};
-export type SERVICE_UPDATE_SERVICE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_SERVICEUPDATEREQUEST = {"namespace": SERVICE_UPDATE_SERVICE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SNAMESPACEDTO,"project": SERVICE_UPDATE_SERVICE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SPROJECTDTO,"service": SERVICE_UPDATE_SERVICE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SSERVICEDTO};
 export type STATS_POD_ALL_FOR_CONTROLLER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"kind": string,"name": string,"namespace": string,"timeOffsetMinutes": number};
 export type STATS_POD_ALL_FOR_CONTROLLER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST7_MOGENIUS_K8S_MANAGER_SRC_STRUCTS_PODSTATS = {"data": STATS_POD_ALL_FOR_CONTROLLER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_PODSTATS[]|undefined,"message": string,"status": string};
 export type STATS_POD_ALL_FOR_CONTROLLER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_PODSTATS = {"containerName": string,"cpu": number,"cpuLimit": number,"createdAt": STATS_POD_ALL_FOR_CONTROLLER_RESPONSE__TIME_TIME,"ephemeralStorage": number,"ephemeralStorageLimit": number,"memory": number,"memoryLimit": number,"namespace": string,"podName": string,"startTime": STATS_POD_ALL_FOR_CONTROLLER_RESPONSE__TIME_TIME};
@@ -20104,32 +8974,22 @@ export type STATS_TRAFFIC_ALL_FOR_CONTROLLER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_C
 export type STATS_TRAFFIC_ALL_FOR_CONTROLLER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST7_MOGENIUS_K8S_MANAGER_SRC_NETWORKMONITOR_PODNETWORKSTATS = {"data": STATS_TRAFFIC_ALL_FOR_CONTROLLER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_NETWORKMONITOR_PODNETWORKSTATS[]|undefined,"message": string,"status": string};
 export type STATS_TRAFFIC_ALL_FOR_CONTROLLER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_NETWORKMONITOR_PODNETWORKSTATS = {"createdAt": STATS_TRAFFIC_ALL_FOR_CONTROLLER_RESPONSE__TIME_TIME,"namespace": string,"pod": string,"receivedBytes": number,"receivedPackets": number,"receivedStartBytes": number,"transmitBytes": number,"transmitPackets": number,"transmitStartBytes": number};
 export type STATS_TRAFFIC_ALL_FOR_CONTROLLER_RESPONSE__TIME_TIME = {};
-export type STATS_TRAFFIC_SUM_FOR_CONTROLLER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCONTROLLER = {"kind": string,"name": string,"namespace": string};
-export type STATS_TRAFFIC_SUM_FOR_CONTROLLER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_DTOS_K8SCONTROLLER_MOGENIUS_K8S_MANAGER_SRC_NETWORKMONITOR_PODNETWORKSTATS = {"data": STATS_TRAFFIC_SUM_FOR_CONTROLLER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_NETWORKMONITOR_PODNETWORKSTATS|undefined,"message": string,"status": string};
-export type STATS_TRAFFIC_SUM_FOR_CONTROLLER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_NETWORKMONITOR_PODNETWORKSTATS = {"createdAt": STATS_TRAFFIC_SUM_FOR_CONTROLLER_RESPONSE__TIME_TIME,"namespace": string,"pod": string,"receivedBytes": number,"receivedPackets": number,"receivedStartBytes": number,"transmitBytes": number,"transmitPackets": number,"transmitStartBytes": number};
-export type STATS_TRAFFIC_SUM_FOR_CONTROLLER_RESPONSE__TIME_TIME = {};
-export type STATS_TRAFFIC_SUM_FOR_NAMESPACE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"namespace": string};
-export type STATS_TRAFFIC_SUM_FOR_NAMESPACE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST8_MOGENIUS_K8S_MANAGER_SRC_NETWORKMONITOR_PODNETWORKSTATS = {"data": STATS_TRAFFIC_SUM_FOR_NAMESPACE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_NETWORKMONITOR_PODNETWORKSTATS[],"message": string,"status": string};
-export type STATS_TRAFFIC_SUM_FOR_NAMESPACE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_NETWORKMONITOR_PODNETWORKSTATS = {"createdAt": STATS_TRAFFIC_SUM_FOR_NAMESPACE_RESPONSE__TIME_TIME,"namespace": string,"pod": string,"receivedBytes": number,"receivedPackets": number,"receivedStartBytes": number,"transmitBytes": number,"transmitPackets": number,"transmitStartBytes": number};
-export type STATS_TRAFFIC_SUM_FOR_NAMESPACE_RESPONSE__TIME_TIME = {};
 export type STATS_WORKSPACE_CPU_UTILIZATION_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"timeOffsetMinutes": number,"workspaceName": string};
 export type STATS_WORKSPACE_CPU_UTILIZATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_GENERICCHARTENTRY = {"pods": Record<string, number>,"time": STATS_WORKSPACE_CPU_UTILIZATION_RESPONSE__TIME_TIME,"value": number};
-export type STATS_WORKSPACE_CPU_UTILIZATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST9_MOGENIUS_K8S_MANAGER_SRC_CORE_GENERICCHARTENTRY = {"data": STATS_WORKSPACE_CPU_UTILIZATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_GENERICCHARTENTRY[],"message": string,"status": string};
+export type STATS_WORKSPACE_CPU_UTILIZATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST8_MOGENIUS_K8S_MANAGER_SRC_CORE_GENERICCHARTENTRY = {"data": STATS_WORKSPACE_CPU_UTILIZATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_GENERICCHARTENTRY[],"message": string,"status": string};
 export type STATS_WORKSPACE_CPU_UTILIZATION_RESPONSE__TIME_TIME = {};
 export type STATS_WORKSPACE_MEMORY_UTILIZATION_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"timeOffsetMinutes": number,"workspaceName": string};
 export type STATS_WORKSPACE_MEMORY_UTILIZATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_GENERICCHARTENTRY = {"pods": Record<string, number>,"time": STATS_WORKSPACE_MEMORY_UTILIZATION_RESPONSE__TIME_TIME,"value": number};
-export type STATS_WORKSPACE_MEMORY_UTILIZATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST9_MOGENIUS_K8S_MANAGER_SRC_CORE_GENERICCHARTENTRY = {"data": STATS_WORKSPACE_MEMORY_UTILIZATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_GENERICCHARTENTRY[],"message": string,"status": string};
+export type STATS_WORKSPACE_MEMORY_UTILIZATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST8_MOGENIUS_K8S_MANAGER_SRC_CORE_GENERICCHARTENTRY = {"data": STATS_WORKSPACE_MEMORY_UTILIZATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_GENERICCHARTENTRY[],"message": string,"status": string};
 export type STATS_WORKSPACE_MEMORY_UTILIZATION_RESPONSE__TIME_TIME = {};
 export type STATS_WORKSPACE_TRAFFIC_UTILIZATION_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"timeOffsetMinutes": number,"workspaceName": string};
 export type STATS_WORKSPACE_TRAFFIC_UTILIZATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_GENERICCHARTENTRY = {"pods": Record<string, number>,"time": STATS_WORKSPACE_TRAFFIC_UTILIZATION_RESPONSE__TIME_TIME,"value": number};
-export type STATS_WORKSPACE_TRAFFIC_UTILIZATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST9_MOGENIUS_K8S_MANAGER_SRC_CORE_GENERICCHARTENTRY = {"data": STATS_WORKSPACE_TRAFFIC_UTILIZATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_GENERICCHARTENTRY[],"message": string,"status": string};
+export type STATS_WORKSPACE_TRAFFIC_UTILIZATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST8_MOGENIUS_K8S_MANAGER_SRC_CORE_GENERICCHARTENTRY = {"data": STATS_WORKSPACE_TRAFFIC_UTILIZATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_GENERICCHARTENTRY[],"message": string,"status": string};
 export type STATS_WORKSPACE_TRAFFIC_UTILIZATION_RESPONSE__TIME_TIME = {};
 export type STORAGE_CREATE_VOLUME_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_NFSVOLUMEREQUEST = {"namespaceName": string,"sizeInGb": number,"volumeName": string};
 export type STORAGE_CREATE_VOLUME_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_DEFAULTRESPONSE = {"error": string,"success": boolean};
 export type STORAGE_DELETE_VOLUME_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_NFSVOLUMEREQUEST = {"namespaceName": string,"sizeInGb": number,"volumeName": string};
 export type STORAGE_DELETE_VOLUME_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_DEFAULTRESPONSE = {"error": string,"success": boolean};
-export type STORAGE_NAMESPACE_STATS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_NFSNAMESPACESTATSREQUEST = {"namespaceName": string};
-export type STORAGE_NAMESPACE_STATS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_SERVICES_NFSVOLUMESTATSRESPONSE = {"freeBytes": number,"totalBytes": number,"usedBytes": number,"volumeName": string};
 export type STORAGE_STATS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_NFSVOLUMESTATSREQUEST = {"namespaceName": string,"volumeName": string};
 export type STORAGE_STATS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_SERVICES_NFSVOLUMESTATSRESPONSE = {"freeBytes": number,"totalBytes": number,"usedBytes": number,"volumeName": string};
 export type STORAGE_STATUS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_NFSSTATUSREQUEST = {"name": string,"namespace": string,"type": string};
@@ -20139,9 +8999,10 @@ export type SYSTEM_CHECK_REQUEST__ANON_STRUCT_0 = {};
 export type SYSTEM_CHECK_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_MOGENIUS_K8S_MANAGER_SRC_SERVICES_SYSTEMCHECKRESPONSE = {"data": SYSTEM_CHECK_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_SERVICES_SYSTEMCHECKRESPONSE,"message": string,"status": string};
 export type SYSTEM_CHECK_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_SERVICES_SYSTEMCHECKENTRY = {"checkName": string,"description": string,"errorMessage": string|undefined,"helmStatus": string,"installPattern": string,"isRequired": boolean,"isRunning": boolean,"processTimeInMs": number,"solutionMessage": string,"successMessage": string,"uninstallPattern": string,"upgradePattern": string,"versionAvailable": string,"versionInstalled": string,"wantsToBeInstalled": boolean};
 export type SYSTEM_CHECK_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_SERVICES_SYSTEMCHECKRESPONSE = {"entries": SYSTEM_CHECK_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_SERVICES_SYSTEMCHECKENTRY[],"terminalString": string};
-export type TRIGGER_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEITEM = {"group": string,"kind": string,"name": string,"namespace": string,"resourceName": string,"version": string};
+export type TRIGGER_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR = {"apiVersion": string,"kind": string,"namespaced": boolean,"plural": string};
+export type TRIGGER_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_WORKLOADSINGLEREQUEST = {"ResourceDescriptor": TRIGGER_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR,"namespace": string,"resourceName": string};
 export type TRIGGER_WORKLOAD_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"Object": Record<string, any>};
-export type TRIGGER_WORKLOAD_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEITEM_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"data": TRIGGER_WORKLOAD_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED|undefined,"message": string,"status": string};
+export type TRIGGER_WORKLOAD_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_UTILS_WORKLOADSINGLEREQUEST_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"data": TRIGGER_WORKLOAD_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED|undefined,"message": string,"status": string};
 export type UNINSTALL_CERT_MANAGER_REQUEST__ANON_STRUCT_0 = {};
 export type UNINSTALL_CERT_MANAGER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
 export type UNINSTALL_CLUSTER_ISSUER_REQUEST__ANON_STRUCT_0 = {};
@@ -20155,19 +9016,17 @@ export type UNINSTALL_METALLB_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGE
 export type UNINSTALL_METRICS_SERVER_REQUEST__ANON_STRUCT_0 = {};
 export type UNINSTALL_METRICS_SERVER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
 export type UPDATE_GRANT_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"grantee": string,"name": string,"role": string,"targetName": string,"targetType": string};
-export type UPDATE_GRANT_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST32_STRING = {"data": string,"message": string,"status": string};
-export type UPDATE_NETWORK_POLICIES_TEMPLATE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_NETWORKPOLICY = {"Name": string,"Port": number,"Protocol": string,"Type": string};
-export type UPDATE_NETWORK_POLICIES_TEMPLATE_RESPONSE__ANON_STRUCT_1 = {};
-export type UPDATE_NETWORK_POLICIES_TEMPLATE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_KUBERNETES_NETWORKPOLICY_MOGENIUS_K8S_MANAGER_SRC_CORE_VOID = {"data": UPDATE_NETWORK_POLICIES_TEMPLATE_RESPONSE__ANON_STRUCT_1|undefined,"message": string,"status": string};
+export type UPDATE_GRANT_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST31_STRING = {"data": string,"message": string,"status": string};
 export type UPDATE_USER_REQUEST__K8S_IO_API_RBAC_V1_SUBJECT = {"apiGroup": string,"kind": string,"name": string,"namespace": string};
 export type UPDATE_USER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"email": string,"firstName": string,"lastName": string,"name": string,"subject": UPDATE_USER_REQUEST__K8S_IO_API_RBAC_V1_SUBJECT|undefined};
-export type UPDATE_USER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST27_STRING = {"data": string,"message": string,"status": string};
-export type UPDATE_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDATA = {"group": string,"kind": string,"name": string,"namespace": string|undefined,"version": string,"yamlData": string};
+export type UPDATE_USER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST26_STRING = {"data": string,"message": string,"status": string};
+export type UPDATE_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR = {"apiVersion": string,"kind": string,"namespaced": boolean,"plural": string};
+export type UPDATE_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_WORKLOADCHANGEREQUEST = {"ResourceDescriptor": UPDATE_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR,"namespace": string,"yamlData": string};
 export type UPDATE_WORKLOAD_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"Object": Record<string, any>};
-export type UPDATE_WORKLOAD_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDATA_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"data": UPDATE_WORKLOAD_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED|undefined,"message": string,"status": string};
+export type UPDATE_WORKLOAD_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_UTILS_WORKLOADCHANGEREQUEST_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"data": UPDATE_WORKLOAD_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED|undefined,"message": string,"status": string};
 export type UPDATE_WORKSPACE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"displayName": string,"name": string,"resources": UPDATE_WORKSPACE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_WORKSPACERESOURCEIDENTIFIER[]};
 export type UPDATE_WORKSPACE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_WORKSPACERESOURCEIDENTIFIER = {"id": string,"namespace": string,"type": string};
-export type UPDATE_WORKSPACE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST22_STRING = {"data": string,"message": string,"status": string};
+export type UPDATE_WORKSPACE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST21_STRING = {"data": string,"message": string,"status": string};
 export type UPGRADEK8SMANAGER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"command": string};
 export type UPGRADEK8SMANAGER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_COMMAND = {"command": string,"finished": UPGRADEK8SMANAGER_RESPONSE__TIME_TIME,"id": string,"message": string,"started": UPGRADEK8SMANAGER_RESPONSE__TIME_TIME,"state": string,"title": string};
 export type UPGRADEK8SMANAGER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_JOB = {"commands": UPGRADEK8SMANAGER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_COMMAND|undefined[],"containerName": string,"controllerName": string,"finished": UPGRADEK8SMANAGER_RESPONSE__TIME_TIME,"id": string,"message": string,"namespaceName": string,"projectId": string,"started": UPGRADEK8SMANAGER_RESPONSE__TIME_TIME,"state": string,"title": string};
@@ -20185,24 +9044,24 @@ export type UPGRADE_METRICS_SERVER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESUL
 export type WORKSPACE_CLEAN_UP_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"configMaps": boolean,"dryRun": boolean,"ingresses": boolean,"jobs": boolean,"name": string,"pods": boolean,"replicaSets": boolean,"secrets": boolean,"services": boolean};
 export type WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_CLEANUPRESULT = {"configMaps": WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_CLEANUPRESULTENTRY[],"ingresses": WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_CLEANUPRESULTENTRY[],"jobs": WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_CLEANUPRESULTENTRY[],"pods": WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_CLEANUPRESULTENTRY[],"replicaSets": WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_CLEANUPRESULTENTRY[],"secrets": WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_CLEANUPRESULTENTRY[],"services": WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_CLEANUPRESULTENTRY[]};
 export type WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_CLEANUPRESULTENTRY = {"name": string,"namespace": string,"reason": string};
-export type WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST21_MOGENIUS_K8S_MANAGER_SRC_CORE_CLEANUPRESULT = {"data": WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_CLEANUPRESULT,"message": string,"status": string};
+export type WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST20_MOGENIUS_K8S_MANAGER_SRC_CORE_CLEANUPRESULT = {"data": WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_CLEANUPRESULT,"message": string,"status": string};
 
 //===============================================================
 //==================== Pattern Type Mapping =====================
 //===============================================================
 
 export interface IPatternConfig {
-  [Pattern.ATTACH_LABELED_NETWORK_POLICY]: {
-    Request: ATTACH_LABELED_NETWORK_POLICY_REQUEST;
-    Response: ATTACH_LABELED_NETWORK_POLICY_RESPONSE;
-  };
   [Pattern.AUDIT_LOG_LIST]: {
     Request: AUDIT_LOG_LIST_REQUEST;
     Response: AUDIT_LOG_LIST_RESPONSE;
   };
-  [Pattern.CLUSTER_BACKUP]: {
-    Request: CLUSTER_BACKUP_REQUEST;
-    Response: CLUSTER_BACKUP_RESPONSE;
+  [Pattern.CLUSTER_ARGO_CD_APPLICATION_REFRESH]: {
+    Request: CLUSTER_ARGO_CD_APPLICATION_REFRESH_REQUEST;
+    Response: CLUSTER_ARGO_CD_APPLICATION_REFRESH_RESPONSE;
+  };
+  [Pattern.CLUSTER_ARGO_CD_CREATE_API_TOKEN]: {
+    Request: CLUSTER_ARGO_CD_CREATE_API_TOKEN_REQUEST;
+    Response: CLUSTER_ARGO_CD_CREATE_API_TOKEN_RESPONSE;
   };
   [Pattern.CLUSTER_CLEAR_VALKEY_CACHE]: {
     Request: CLUSTER_CLEAR_VALKEY_CACHE_REQUEST;
@@ -20348,34 +9207,6 @@ export interface IPatternConfig {
     Request: DESCRIBE_WORKLOAD_REQUEST;
     Response: DESCRIBE_WORKLOAD_RESPONSE;
   };
-  [Pattern.DETACH_LABELED_NETWORK_POLICY]: {
-    Request: DETACH_LABELED_NETWORK_POLICY_REQUEST;
-    Response: DETACH_LABELED_NETWORK_POLICY_RESPONSE;
-  };
-  [Pattern.DISABLE_NETWORK_POLICY_MANAGER]: {
-    Request: DISABLE_NETWORK_POLICY_MANAGER_REQUEST;
-    Response: DISABLE_NETWORK_POLICY_MANAGER_RESPONSE;
-  };
-  [Pattern.ENFORCE_NETWORK_POLICY_MANAGER]: {
-    Request: ENFORCE_NETWORK_POLICY_MANAGER_REQUEST;
-    Response: ENFORCE_NETWORK_POLICY_MANAGER_RESPONSE;
-  };
-  [Pattern.EXTERNAL_SECRET_LIST_AVAILABLE_SECRETS]: {
-    Request: EXTERNAL_SECRET_LIST_AVAILABLE_SECRETS_REQUEST;
-    Response: EXTERNAL_SECRET_LIST_AVAILABLE_SECRETS_RESPONSE;
-  };
-  [Pattern.EXTERNAL_SECRET_STORE_CREATE]: {
-    Request: EXTERNAL_SECRET_STORE_CREATE_REQUEST;
-    Response: EXTERNAL_SECRET_STORE_CREATE_RESPONSE;
-  };
-  [Pattern.EXTERNAL_SECRET_STORE_DELETE]: {
-    Request: EXTERNAL_SECRET_STORE_DELETE_REQUEST;
-    Response: EXTERNAL_SECRET_STORE_DELETE_RESPONSE;
-  };
-  [Pattern.EXTERNAL_SECRET_STORE_LIST]: {
-    Request: EXTERNAL_SECRET_STORE_LIST_REQUEST;
-    Response: EXTERNAL_SECRET_STORE_LIST_RESPONSE;
-  };
   [Pattern.FILES_CHMOD]: {
     Request: FILES_CHMOD_REQUEST;
     Response: FILES_CHMOD_RESPONSE;
@@ -20484,41 +9315,9 @@ export interface IPatternConfig {
     Request: INSTALL_METRICS_SERVER_REQUEST;
     Response: INSTALL_METRICS_SERVER_RESPONSE;
   };
-  [Pattern.K8SNOTIFICATION]: {
-    Request: K8SNOTIFICATION_REQUEST;
-    Response: K8SNOTIFICATION_RESPONSE;
-  };
-  [Pattern.LIST_ALL_NETWORK_POLICIES]: {
-    Request: LIST_ALL_NETWORK_POLICIES_REQUEST;
-    Response: LIST_ALL_NETWORK_POLICIES_RESPONSE;
-  };
-  [Pattern.LIST_ALL_WORKLOADS]: {
-    Request: LIST_ALL_WORKLOADS_REQUEST;
-    Response: LIST_ALL_WORKLOADS_RESPONSE;
-  };
-  [Pattern.LIST_CONFLICTING_NETWORK_POLICIES]: {
-    Request: LIST_CONFLICTING_NETWORK_POLICIES_REQUEST;
-    Response: LIST_CONFLICTING_NETWORK_POLICIES_RESPONSE;
-  };
-  [Pattern.LIST_CONTROLLER_NETWORK_POLICIES]: {
-    Request: LIST_CONTROLLER_NETWORK_POLICIES_REQUEST;
-    Response: LIST_CONTROLLER_NETWORK_POLICIES_RESPONSE;
-  };
-  [Pattern.LIST_CRONJOB_JOBS]: {
-    Request: LIST_CRONJOB_JOBS_REQUEST;
-    Response: LIST_CRONJOB_JOBS_RESPONSE;
-  };
-  [Pattern.LIST_LABELED_NETWORK_POLICY_PORTS]: {
-    Request: LIST_LABELED_NETWORK_POLICY_PORTS_REQUEST;
-    Response: LIST_LABELED_NETWORK_POLICY_PORTS_RESPONSE;
-  };
-  [Pattern.LIST_NAMESPACE_NETWORK_POLICIES]: {
-    Request: LIST_NAMESPACE_NETWORK_POLICIES_REQUEST;
-    Response: LIST_NAMESPACE_NETWORK_POLICIES_RESPONSE;
-  };
-  [Pattern.LIST_ONLY_NAMESPACE_NETWORK_POLICIES]: {
-    Request: LIST_ONLY_NAMESPACE_NETWORK_POLICIES_REQUEST;
-    Response: LIST_ONLY_NAMESPACE_NETWORK_POLICIES_RESPONSE;
+  [Pattern.LIST_ALL_RESOURCE_DESCRIPTORS]: {
+    Request: LIST_ALL_RESOURCE_DESCRIPTORS_REQUEST;
+    Response: LIST_ALL_RESOURCE_DESCRIPTORS_RESPONSE;
   };
   [Pattern.LIVE_STREAM_NODES_CPU]: {
     Request: LIVE_STREAM_NODES_CPU_REQUEST;
@@ -20556,22 +9355,6 @@ export interface IPatternConfig {
     Request: LIVE_STREAM_WORKSPACE_TRAFFIC_REQUEST;
     Response: LIVE_STREAM_WORKSPACE_TRAFFIC_RESPONSE;
   };
-  [Pattern.METRICS_DEPLOYMENT_AVERAGE_UTILIZATION]: {
-    Request: METRICS_DEPLOYMENT_AVERAGE_UTILIZATION_REQUEST;
-    Response: METRICS_DEPLOYMENT_AVERAGE_UTILIZATION_RESPONSE;
-  };
-  [Pattern.NAMESPACE_BACKUP]: {
-    Request: NAMESPACE_BACKUP_REQUEST;
-    Response: NAMESPACE_BACKUP_RESPONSE;
-  };
-  [Pattern.NAMESPACE_CREATE]: {
-    Request: NAMESPACE_CREATE_REQUEST;
-    Response: NAMESPACE_CREATE_RESPONSE;
-  };
-  [Pattern.NAMESPACE_DELETE]: {
-    Request: NAMESPACE_DELETE_REQUEST;
-    Response: NAMESPACE_DELETE_RESPONSE;
-  };
   [Pattern.PROMETHEUS_CHARTS_ADD]: {
     Request: PROMETHEUS_CHARTS_ADD_REQUEST;
     Response: PROMETHEUS_CHARTS_ADD_RESPONSE;
@@ -20600,14 +9383,6 @@ export interface IPatternConfig {
     Request: PROMETHEUS_VALUES_REQUEST;
     Response: PROMETHEUS_VALUES_RESPONSE;
   };
-  [Pattern.REMOVE_CONFLICTING_NETWORK_POLICIES]: {
-    Request: REMOVE_CONFLICTING_NETWORK_POLICIES_REQUEST;
-    Response: REMOVE_CONFLICTING_NETWORK_POLICIES_RESPONSE;
-  };
-  [Pattern.REMOVE_UNMANAGED_NETWORK_POLICIES]: {
-    Request: REMOVE_UNMANAGED_NETWORK_POLICIES_REQUEST;
-    Response: REMOVE_UNMANAGED_NETWORK_POLICIES_RESPONSE;
-  };
   [Pattern.SEALED_SECRET_CREATE_FROM_EXISTING]: {
     Request: SEALED_SECRET_CREATE_FROM_EXISTING_REQUEST;
     Response: SEALED_SECRET_CREATE_FROM_EXISTING_RESPONSE;
@@ -20615,14 +9390,6 @@ export interface IPatternConfig {
   [Pattern.SEALED_SECRET_GET_CERTIFICATE]: {
     Request: SEALED_SECRET_GET_CERTIFICATE_REQUEST;
     Response: SEALED_SECRET_GET_CERTIFICATE_RESPONSE;
-  };
-  [Pattern.SERVICE_CREATE]: {
-    Request: SERVICE_CREATE_REQUEST;
-    Response: SERVICE_CREATE_RESPONSE;
-  };
-  [Pattern.SERVICE_DELETE]: {
-    Request: SERVICE_DELETE_REQUEST;
-    Response: SERVICE_DELETE_RESPONSE;
   };
   [Pattern.SERVICE_EXEC_SH_CONNECTION_REQUEST]: {
     Request: SERVICE_EXEC_SH_CONNECTION_REQUEST_REQUEST;
@@ -20632,41 +9399,9 @@ export interface IPatternConfig {
     Request: SERVICE_LOG_STREAM_CONNECTION_REQUEST_REQUEST;
     Response: SERVICE_LOG_STREAM_CONNECTION_REQUEST_RESPONSE;
   };
-  [Pattern.SERVICE_PODS]: {
-    Request: SERVICE_PODS_REQUEST;
-    Response: SERVICE_PODS_RESPONSE;
-  };
   [Pattern.SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST]: {
     Request: SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST_REQUEST;
     Response: SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST_RESPONSE;
-  };
-  [Pattern.SERVICE_RESOURCE_STATUS]: {
-    Request: SERVICE_RESOURCE_STATUS_REQUEST;
-    Response: SERVICE_RESOURCE_STATUS_RESPONSE;
-  };
-  [Pattern.SERVICE_RESTART]: {
-    Request: SERVICE_RESTART_REQUEST;
-    Response: SERVICE_RESTART_RESPONSE;
-  };
-  [Pattern.SERVICE_START]: {
-    Request: SERVICE_START_REQUEST;
-    Response: SERVICE_START_RESPONSE;
-  };
-  [Pattern.SERVICE_STATUS]: {
-    Request: SERVICE_STATUS_REQUEST;
-    Response: SERVICE_STATUS_RESPONSE;
-  };
-  [Pattern.SERVICE_STOP]: {
-    Request: SERVICE_STOP_REQUEST;
-    Response: SERVICE_STOP_RESPONSE;
-  };
-  [Pattern.SERVICE_TRIGGER_JOB]: {
-    Request: SERVICE_TRIGGER_JOB_REQUEST;
-    Response: SERVICE_TRIGGER_JOB_RESPONSE;
-  };
-  [Pattern.SERVICE_UPDATE_SERVICE]: {
-    Request: SERVICE_UPDATE_SERVICE_REQUEST;
-    Response: SERVICE_UPDATE_SERVICE_RESPONSE;
   };
   [Pattern.STATS_POD_ALL_FOR_CONTROLLER]: {
     Request: STATS_POD_ALL_FOR_CONTROLLER_REQUEST;
@@ -20675,14 +9410,6 @@ export interface IPatternConfig {
   [Pattern.STATS_TRAFFIC_ALL_FOR_CONTROLLER]: {
     Request: STATS_TRAFFIC_ALL_FOR_CONTROLLER_REQUEST;
     Response: STATS_TRAFFIC_ALL_FOR_CONTROLLER_RESPONSE;
-  };
-  [Pattern.STATS_TRAFFIC_SUM_FOR_CONTROLLER]: {
-    Request: STATS_TRAFFIC_SUM_FOR_CONTROLLER_REQUEST;
-    Response: STATS_TRAFFIC_SUM_FOR_CONTROLLER_RESPONSE;
-  };
-  [Pattern.STATS_TRAFFIC_SUM_FOR_NAMESPACE]: {
-    Request: STATS_TRAFFIC_SUM_FOR_NAMESPACE_REQUEST;
-    Response: STATS_TRAFFIC_SUM_FOR_NAMESPACE_RESPONSE;
   };
   [Pattern.STATS_WORKSPACE_CPU_UTILIZATION]: {
     Request: STATS_WORKSPACE_CPU_UTILIZATION_REQUEST;
@@ -20703,10 +9430,6 @@ export interface IPatternConfig {
   [Pattern.STORAGE_DELETE_VOLUME]: {
     Request: STORAGE_DELETE_VOLUME_REQUEST;
     Response: STORAGE_DELETE_VOLUME_RESPONSE;
-  };
-  [Pattern.STORAGE_NAMESPACE_STATS]: {
-    Request: STORAGE_NAMESPACE_STATS_REQUEST;
-    Response: STORAGE_NAMESPACE_STATS_RESPONSE;
   };
   [Pattern.STORAGE_STATS]: {
     Request: STORAGE_STATS_REQUEST;
@@ -20751,10 +9474,6 @@ export interface IPatternConfig {
   [Pattern.UPDATE_GRANT]: {
     Request: UPDATE_GRANT_REQUEST;
     Response: UPDATE_GRANT_RESPONSE;
-  };
-  [Pattern.UPDATE_NETWORK_POLICIES_TEMPLATE]: {
-    Request: UPDATE_NETWORK_POLICIES_TEMPLATE_REQUEST;
-    Response: UPDATE_NETWORK_POLICIES_TEMPLATE_RESPONSE;
   };
   [Pattern.UPDATE_USER]: {
     Request: UPDATE_USER_REQUEST;

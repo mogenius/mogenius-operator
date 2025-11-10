@@ -136,7 +136,11 @@ def find_unused_functions(directory: str):
         for func_name in funcs:
             def_lines = func_lines_per_file[file][func_name]
             if not is_func_used(func_name, go_files, file, def_lines):
-                unused_funcs.append(func_name)
+                # if the function is not used there should only be one line here
+                # so we can just convert the set to a string directly and remove {} to get line number
+                line_nums = str(def_lines).strip('{}')
+                # we report file name along with line number for easier locating
+                unused_funcs.append(f"{file}#{line_nums} - {func_name}")
 
     if unused_funcs:
         print("Unused functions detected:")

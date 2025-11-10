@@ -1,0 +1,22 @@
+apiVersion: v1
+appVersion: "1.0"
+name: mogenius-k8s-manager
+version: 1.7.9
+description: "mogenius-k8s-manager"
+home: https://mogenius.com
+icon: https://app.mogenius.com/assets/logos/logo-mogenius-signet-neg.svg
+sources: 
+  - https://helm.mogenius.com/public
+maintainers:
+  - email: ruediger@mogenius.com
+    name: Rüdiger Küpper @mogenius
+    url: https://mogenius.com
+  - email: lukas@mogenius.com
+    name: Lukas Hankeln @mogenius
+    url: https://mogenius.com
+  - email: bene@mogenius.com
+    name: Benedikt Iltisberger @mogenius
+    url: https://mogenius.com
+  - email: behrang@mogenius.com
+    name: Behrang Alavi @mogenius
+    url: https://mogenius.com

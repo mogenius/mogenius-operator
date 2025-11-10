@@ -338,22 +338,3 @@ func ListPersistentVolumeClaimsWithFieldSelector(namespace string, labelSelector
 
 	return persistentVolumeClaims.Items, err
 }
-
-func AllPersistentVolumeClaims(namespaceName string) []v1.PersistentVolumeClaim {
-	result := []v1.PersistentVolumeClaim{}
-
-	clientset := clientProvider.K8sClientSet()
-	pvList, err := clientset.CoreV1().PersistentVolumeClaims(namespaceName).List(context.Background(), metav1.ListOptions{})
-	if err != nil {
-		k8sLogger.Error("AllPersistentVolumeClaims", "error", err.Error())
-		return result
-	}
-
-	for _, v := range pvList.Items {
-		v.Kind = "PersistentVolumeClaim"
-		v.APIVersion = "v1"
-		result = append(result, v)
-	}
-
-	return result
-}

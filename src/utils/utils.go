@@ -17,7 +17,6 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
-	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -188,42 +187,6 @@ const (
 	StoreAnnotationPrefix = "used-by-mogenius/"
 )
 
-func GetServiceAccountName(role string) string {
-	return fmt.Sprintf("%s-%s",
-		strings.ToLower(ExternalSecretsSA),
-		strings.ToLower(role),
-	)
-}
-
-func GetSecretStoreName(namePrefix string) string {
-	return fmt.Sprintf("%s-%s",
-		strings.ToLower(namePrefix),
-		strings.ToLower(SecretStoreSuffix),
-	)
-}
-
-func GetSecretName(namePrefix, service, propertyName string) string {
-	return fmt.Sprintf("%s-%s-%s",
-		strings.ToLower(namePrefix),
-		strings.ToLower(service),
-		strings.ToLower(propertyName),
-	)
-}
-
-func GetSecretListName(namePrefix string) string {
-	return fmt.Sprintf("%s-%s",
-		strings.ToLower(namePrefix),
-		strings.ToLower(SecretListSuffix),
-	)
-}
-
-func ParseK8sName(name string) string {
-	if len(name) > MAX_NAME_LENGTH {
-		name = name[:MAX_NAME_LENGTH]
-	}
-	return strings.ToLower(name)
-}
-
 func PrettyPrintInterface(i any) string {
 	str := PrettyPrintString(i)
 	return RedactString(str)
@@ -337,11 +300,6 @@ func GuessClusterCountry() (*CountryDetails, error) {
 	return nil, nil
 }
 
-func IsProduction() bool {
-	stage := config.Get("MO_STAGE")
-	return slices.Contains([]string{STAGE_PROD, "production"}, strings.ToLower(stage))
-}
-
 func Remove[T any](slice []T, s int) []T {
 	return append(slice[:s], slice[s+1:]...)
 }
@@ -398,17 +356,9 @@ func DeleteDirIfExist(dir string) {
 	}
 }
 
-func ParseJsonStringArray(input string) []string {
-	val := []string{}
-	if err := json.Unmarshal([]byte(input), &val); err != nil {
-		utilsLogger.Error("jsonStringArrayToStringArray: Failed to parse into []string.", "input", input)
-	}
-	return val
-}
-
-func ContainsResourceEntry(resources []*ResourceEntry, target ResourceEntry) bool {
+func ContainsResourceDescriptor(resources []*ResourceDescriptor, target ResourceDescriptor) bool {
 	for _, r := range resources {
-		if r.Kind == target.Kind && r.Group == target.Group {
+		if r.Kind == target.Kind && r.ApiVersion == target.ApiVersion {
 			return true
 		}
 	}
