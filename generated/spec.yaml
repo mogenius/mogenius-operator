@@ -3332,12 +3332,10 @@ get/nodes-metrics:
                     nodeName:
                         type: string
                     traffic:
-                        keyType:
-                            type: string
-                        type: map
-                        valueType:
-                            pointer: true
-                            type: any
+                        elementType:
+                            structRef: mogenius-k8s-manager/src/networkmonitor.PodNetworkStats
+                            type: struct
+                        type: array
             mogenius-k8s-manager/src/core.Response:
                 name: mogenius-k8s-manager/src/core.Response
                 properties:
@@ -3356,6 +3354,31 @@ get/nodes-metrics:
                         type: string
                     status:
                         type: string
+            mogenius-k8s-manager/src/networkmonitor.PodNetworkStats:
+                name: mogenius-k8s-manager/src/networkmonitor.PodNetworkStats
+                properties:
+                    createdAt:
+                        structRef: time.Time
+                        type: struct
+                    namespace:
+                        type: string
+                    pod:
+                        type: string
+                    receivedBytes:
+                        type: uint
+                    receivedPackets:
+                        type: uint
+                    receivedStartBytes:
+                        type: uint
+                    transmitBytes:
+                        type: uint
+                    transmitPackets:
+                        type: uint
+                    transmitStartBytes:
+                        type: uint
+            time.Time:
+                name: time.Time
+                properties: {}
         typeInfo:
             structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,mogenius-k8s-manager/src/core.Response·38]
             type: struct

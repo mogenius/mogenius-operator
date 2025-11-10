@@ -4400,12 +4400,10 @@ export type GET_NODES_METRICS_REQUEST = GET_NODES_METRICS_REQUEST__ANON_STRUCT_0
  *             nodeName:
  *                 type: string
  *             traffic:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     pointer: true
- *                     type: any
+ *                 elementType:
+ *                     structRef: mogenius-k8s-manager/src/networkmonitor.PodNetworkStats
+ *                     type: struct
+ *                 type: array
  *     mogenius-k8s-manager/src/core.Response:
  *         name: mogenius-k8s-manager/src/core.Response
  *         properties:
@@ -4424,6 +4422,31 @@ export type GET_NODES_METRICS_REQUEST = GET_NODES_METRICS_REQUEST__ANON_STRUCT_0
  *                 type: string
  *             status:
  *                 type: string
+ *     mogenius-k8s-manager/src/networkmonitor.PodNetworkStats:
+ *         name: mogenius-k8s-manager/src/networkmonitor.PodNetworkStats
+ *         properties:
+ *             createdAt:
+ *                 structRef: time.Time
+ *                 type: struct
+ *             namespace:
+ *                 type: string
+ *             pod:
+ *                 type: string
+ *             receivedBytes:
+ *                 type: uint
+ *             receivedPackets:
+ *                 type: uint
+ *             receivedStartBytes:
+ *                 type: uint
+ *             transmitBytes:
+ *                 type: uint
+ *             transmitPackets:
+ *                 type: uint
+ *             transmitStartBytes:
+ *                 type: uint
+ *     time.Time:
+ *         name: time.Time
+ *         properties: {}
  * typeInfo:
  *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,mogenius-k8s-manager/src/core.Response·38]
  *     type: struct
@@ -8892,9 +8915,11 @@ export type GET_NAMESPACE_WORKLOAD_LIST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_
 export type GET_NAMESPACE_WORKLOAD_LIST_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"Object": Record<string, any>};
 export type GET_NAMESPACE_WORKLOAD_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_KUBERNETES_GETUNSTRUCTUREDNAMESPACERESOURCELISTREQUEST_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"data": GET_NAMESPACE_WORKLOAD_LIST_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED[],"message": string,"status": string};
 export type GET_NODES_METRICS_REQUEST__ANON_STRUCT_0 = {};
-export type GET_NODES_METRICS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_NODEMETRICS = {"cpu": Record<string, any>,"memory": Record<string, any>,"nodeName": string,"traffic": Record<string, any>};
+export type GET_NODES_METRICS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_NODEMETRICS = {"cpu": Record<string, any>,"memory": Record<string, any>,"nodeName": string,"traffic": GET_NODES_METRICS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_NETWORKMONITOR_PODNETWORKSTATS[]};
 export type GET_NODES_METRICS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESPONSE = {"nodes": GET_NODES_METRICS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_NODEMETRICS[]};
 export type GET_NODES_METRICS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_MOGENIUS_K8S_MANAGER_SRC_CORE_RESPONSE38 = {"data": GET_NODES_METRICS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESPONSE,"message": string,"status": string};
+export type GET_NODES_METRICS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_NETWORKMONITOR_PODNETWORKSTATS = {"createdAt": GET_NODES_METRICS_RESPONSE__TIME_TIME,"namespace": string,"pod": string,"receivedBytes": number,"receivedPackets": number,"receivedStartBytes": number,"transmitBytes": number,"transmitPackets": number,"transmitStartBytes": number};
+export type GET_NODES_METRICS_RESPONSE__TIME_TIME = {};
 export type GET_USER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"name": string};
 export type GET_USER_RESPONSE__K8S_IO_API_RBAC_V1_SUBJECT = {"apiGroup": string,"kind": string,"name": string,"namespace": string};
 export type GET_USER_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_FIELDSV1 = {};
