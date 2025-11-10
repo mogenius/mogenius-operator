@@ -24,7 +24,7 @@
       "console": "integratedTerminal",
       "buildFlags": [
         "-ldflags",
-        "-X mogenius-k8s-manager/src/utils.DevBuild=yes"
+        "-X mogenius-operator/src/utils.DevBuild=yes"
       ]
     },
     {
@@ -39,7 +39,7 @@
       "console": "integratedTerminal",
       "buildFlags": [
         "-ldflags",
-        "-X mogenius-k8s-manager/src/utils.DevBuild=yes"
+        "-X mogenius-operator/src/utils.DevBuild=yes"
       ]
     },
     {

@@ -1,4 +1,4 @@
-fullnameOverride: mogenius-k8s-manager
+fullnameOverride: mogenius-operator
 revisionHistoryLimit: 10
 
 
@@ -17,7 +17,7 @@ cluster:
 
 image:
   registry: ghcr.io
-  repository: mogenius/mogenius-k8s-manager
+  repository: mogenius/mogenius-operator
   tag: v1.0.72
   pullPolicy: IfNotPresent
 

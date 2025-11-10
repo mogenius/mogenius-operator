@@ -1,7 +1,7 @@
 package utils
 
 import (
-	"mogenius-k8s-manager/src/shutdown"
+	"mogenius-operator/src/shutdown"
 
 	v1 "k8s.io/api/apps/v1"
 	v1job "k8s.io/api/batch/v1"

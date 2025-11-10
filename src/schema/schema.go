@@ -2,7 +2,7 @@ package schema
 
 import (
 	"fmt"
-	"mogenius-k8s-manager/src/assert"
+	"mogenius-operator/src/assert"
 	"reflect"
 	"strings"
 	"unicode"

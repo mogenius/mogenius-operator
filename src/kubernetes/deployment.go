@@ -3,7 +3,7 @@ package kubernetes
 import (
 	"context"
 	"fmt"
-	"mogenius-k8s-manager/src/store"
+	"mogenius-operator/src/store"
 	"strings"
 
 	v1 "k8s.io/api/apps/v1"

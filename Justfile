@@ -8,34 +8,34 @@ default:
 
 # Run the application with flags similar to the production build
 run: build
-    dist/native/mogenius-k8s-manager cluster
+    dist/native/mogenius-operator cluster
 
 run-node-metrics: build
-    dist/native/mogenius-k8s-manager nodemetrics
+    dist/native/mogenius-operator nodemetrics
 
 run-privileged: build
-    sudo -E dist/native/mogenius-k8s-manager cluster
+    sudo -E dist/native/mogenius-operator cluster
 
-# disable mogenius-k8s-manager instances running in the cluster which interfere with local development
+# disable mogenius-operator instances running in the cluster which interfere with local development
 scale-down:
-    kubectl -n mogenius scale deployment mogenius-k8s-manager --replicas=0
-    kubectl -n mogenius patch daemonset mogenius-k8s-manager-node-metrics -p '{"spec": {"template": {"spec": {"nodeSelector": {"non-existing": "true"}}}}}'
+    kubectl -n mogenius scale deployment mogenius-operator --replicas=0
+    kubectl -n mogenius patch daemonset mogenius-operator-node-metrics -p '{"spec": {"template": {"spec": {"nodeSelector": {"non-existing": "true"}}}}}'
 
-# re-enable mogenius-k8s-manager instances running in the cluster which interfere with local development
+# re-enable mogenius-operator instances running in the cluster which interfere with local development
 scale-up:
-    kubectl -n mogenius scale deployment mogenius-k8s-manager --replicas=1
-    kubectl -n mogenius patch daemonset mogenius-k8s-manager-node-metrics --type json -p='[{"op": "remove", "path": "/spec/template/spec/nodeSelector/non-existing"}]'
+    kubectl -n mogenius scale deployment mogenius-operator --replicas=1
+    kubectl -n mogenius patch daemonset mogenius-operator-node-metrics --type json -p='[{"op": "remove", "path": "/spec/template/spec/nodeSelector/non-existing"}]'
 
 # Build a native binary with flags similar to the production build
 build: generate
     go build -trimpath -gcflags="all=-l" -ldflags="-s -w \
-        -X 'mogenius-k8s-manager/src/utils.DevBuild=yes' \
-        -X 'mogenius-k8s-manager/src/version.GitCommitHash=$(git rev-parse --short HEAD)' \
-        -X 'mogenius-k8s-manager/src/version.Branch=$(git branch | grep \* | cut -d ' ' -f2 | tr '[:upper:]' '[:lower:]')' \
-        -X 'mogenius-k8s-manager/src/version.BuildTimestamp=$(date -Iseconds)' \
-        -X 'mogenius-k8s-manager/src/version.Ver=$(git describe --tags $(git rev-list --tags --max-count=1))+dev'" -o dist/native/mogenius-k8s-manager ./src/main.go
-    dist/native/mogenius-k8s-manager patterns --output=yaml > generated/spec.yaml
-    dist/native/mogenius-k8s-manager patterns --output=typescript > generated/client.ts
+        -X 'mogenius-operator/src/utils.DevBuild=yes' \
+        -X 'mogenius-operator/src/version.GitCommitHash=$(git rev-parse --short HEAD)' \
+        -X 'mogenius-operator/src/version.Branch=$(git branch | grep \* | cut -d ' ' -f2 | tr '[:upper:]' '[:lower:]')' \
+        -X 'mogenius-operator/src/version.BuildTimestamp=$(date -Iseconds)' \
+        -X 'mogenius-operator/src/version.Ver=$(git describe --tags $(git rev-list --tags --max-count=1))+dev'" -o dist/native/mogenius-operator ./src/main.go
+    dist/native/mogenius-operator patterns --output=yaml > generated/spec.yaml
+    dist/native/mogenius-operator patterns --output=typescript > generated/client.ts
 
 # Build binaries for all targets
 build-all: build-linux-amd64 build-linux-arm64 build-linux-armv7
@@ -43,11 +43,11 @@ build-all: build-linux-amd64 build-linux-arm64 build-linux-armv7
 # Build binary for target linux-amd64
 build-linux-amd64:
     GOOS=linux GOARCH=amd64 go build -trimpath -gcflags="all=-l" -ldflags="-s -w \
-        -X 'mogenius-k8s-manager/src/utils.DevBuild=yes' \
-        -X 'mogenius-k8s-manager/src/version.GitCommitHash=$(git rev-parse --short HEAD)' \
-        -X 'mogenius-k8s-manager/src/version.Branch=$(git branch | grep \* | cut -d ' ' -f2 | tr '[:upper:]' '[:lower:]')' \
-        -X 'mogenius-k8s-manager/src/version.BuildTimestamp=$(date -Iseconds)' \
-        -X 'mogenius-k8s-manager/src/version.Ver=$(git describe --tags $(git rev-list --tags --max-count=1))+dev'" -o dist/amd64/mogenius-k8s-manager ./src/main.go
+        -X 'mogenius-operator/src/utils.DevBuild=yes' \
+        -X 'mogenius-operator/src/version.GitCommitHash=$(git rev-parse --short HEAD)' \
+        -X 'mogenius-operator/src/version.Branch=$(git branch | grep \* | cut -d ' ' -f2 | tr '[:upper:]' '[:lower:]')' \
+        -X 'mogenius-operator/src/version.BuildTimestamp=$(date -Iseconds)' \
+        -X 'mogenius-operator/src/version.Ver=$(git describe --tags $(git rev-list --tags --max-count=1))+dev'" -o dist/amd64/mogenius-operator ./src/main.go
 
 # Build docker image for target linux-amd64
 build-docker-linux-amd64:
@@ -65,18 +65,18 @@ build-docker-linux-amd64:
         --build-arg BUILD_TIMESTAMP="$BUILD_TIMESTAMP" \
         --build-arg GIT_BRANCH="$GIT_BRANCH" \
         --build-arg COMMIT_HASH="$COMMIT_HASH" \
-        -t ghcr.io/mogenius/mogenius-k8s-manager-dev:$VERSION-amd64 \
-        -t ghcr.io/mogenius/mogenius-k8s-manager-dev:latest-amd64 \
+        -t ghcr.io/mogenius/mogenius-operator-dev:$VERSION-amd64 \
+        -t ghcr.io/mogenius/mogenius-operator-dev:latest-amd64 \
         .
 
 # Build binary for target linux-arm64
 build-linux-arm64:
     GOOS=linux GOARCH=amd64 go build -trimpath -gcflags="all=-l" -ldflags="-s -w \
-        -X 'mogenius-k8s-manager/src/utils.DevBuild=yes' \
-        -X 'mogenius-k8s-manager/src/version.GitCommitHash=$(git rev-parse --short HEAD)' \
-        -X 'mogenius-k8s-manager/src/version.Branch=$(git branch | grep \* | cut -d ' ' -f2 | tr '[:upper:]' '[:lower:]')' \
-        -X 'mogenius-k8s-manager/src/version.BuildTimestamp=$(date -Iseconds)' \
-        -X 'mogenius-k8s-manager/src/version.Ver=$(git describe --tags $(git rev-list --tags --max-count=1))+dev'" -o dist/arm64/mogenius-k8s-manager ./src/main.go
+        -X 'mogenius-operator/src/utils.DevBuild=yes' \
+        -X 'mogenius-operator/src/version.GitCommitHash=$(git rev-parse --short HEAD)' \
+        -X 'mogenius-operator/src/version.Branch=$(git branch | grep \* | cut -d ' ' -f2 | tr '[:upper:]' '[:lower:]')' \
+        -X 'mogenius-operator/src/version.BuildTimestamp=$(date -Iseconds)' \
+        -X 'mogenius-operator/src/version.Ver=$(git describe --tags $(git rev-list --tags --max-count=1))+dev'" -o dist/arm64/mogenius-operator ./src/main.go
 
 # Build docker image for target linux-arm64
 build-docker-linux-arm64:
@@ -94,18 +94,18 @@ build-docker-linux-arm64:
         --build-arg BUILD_TIMESTAMP="$BUILD_TIMESTAMP" \
         --build-arg GIT_BRANCH="$GIT_BRANCH" \
         --build-arg COMMIT_HASH="$COMMIT_HASH" \
-        -t ghcr.io/mogenius/mogenius-k8s-manager-dev:$VERSION-amd64 \
-        -t ghcr.io/mogenius/mogenius-k8s-manager-dev:latest-amd64 \
+        -t ghcr.io/mogenius/mogenius-operator-dev:$VERSION-amd64 \
+        -t ghcr.io/mogenius/mogenius-operator-dev:latest-amd64 \
         .
 
 # Build binary for target linux-armv7
 build-linux-armv7:
     GOOS=linux GOARCH=arm go build -trimpath -gcflags="all=-l" -ldflags="-s -w \
-        -X 'mogenius-k8s-manager/src/utils.DevBuild=yes' \
-        -X 'mogenius-k8s-manager/src/version.GitCommitHash=$(git rev-parse --short HEAD)' \
-        -X 'mogenius-k8s-manager/src/version.Branch=$(git branch | grep \* | cut -d ' ' -f2 | tr '[:upper:]' '[:lower:]')' \
-        -X 'mogenius-k8s-manager/src/version.BuildTimestamp=$(date -Iseconds)' \
-        -X 'mogenius-k8s-manager/src/version.Ver=$(git describe --tags $(git rev-list --tags --max-count=1))+dev'" -o dist/armv7/mogenius-k8s-manager ./src/main.go
+        -X 'mogenius-operator/src/utils.DevBuild=yes' \
+        -X 'mogenius-operator/src/version.GitCommitHash=$(git rev-parse --short HEAD)' \
+        -X 'mogenius-operator/src/version.Branch=$(git branch | grep \* | cut -d ' ' -f2 | tr '[:upper:]' '[:lower:]')' \
+        -X 'mogenius-operator/src/version.BuildTimestamp=$(date -Iseconds)' \
+        -X 'mogenius-operator/src/version.Ver=$(git describe --tags $(git rev-list --tags --max-count=1))+dev'" -o dist/armv7/mogenius-operator ./src/main.go
 
 # Build docker image for target linux-armv7
 build-docker-linux-armv7:
@@ -123,8 +123,8 @@ build-docker-linux-armv7:
         --build-arg BUILD_TIMESTAMP="$BUILD_TIMESTAMP" \
         --build-arg GIT_BRANCH="$GIT_BRANCH" \
         --build-arg COMMIT_HASH="$COMMIT_HASH" \
-        -t ghcr.io/mogenius/mogenius-k8s-manager-dev:$VERSION-amd64 \
-        -t ghcr.io/mogenius/mogenius-k8s-manager-dev:latest-amd64 \
+        -t ghcr.io/mogenius/mogenius-operator-dev:$VERSION-amd64 \
+        -t ghcr.io/mogenius/mogenius-operator-dev:latest-amd64 \
         .
 
 # Install tools used by go generate

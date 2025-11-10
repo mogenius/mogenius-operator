@@ -3,7 +3,7 @@ package dtos
 import (
 	"fmt"
 	"io/fs"
-	"mogenius-k8s-manager/src/utils"
+	"mogenius-operator/src/utils"
 	"os"
 	"path/filepath"
 	"time"

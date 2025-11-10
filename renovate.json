@@ -12,7 +12,7 @@
   "packageRules": [
     {
       "matchPackageNames": [
-        "ghcr.io/mogenius/mogenius-k8s-manager"
+        "ghcr.io/mogenius/mogenius-operator"
       ],
       "matchFileNames": [
         "helm/**"

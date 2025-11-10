@@ -2,7 +2,7 @@ package kubernetes
 
 import (
 	"bytes"
-	"mogenius-k8s-manager/src/store"
+	"mogenius-operator/src/store"
 	"text/template"
 
 	v1 "k8s.io/api/core/v1"

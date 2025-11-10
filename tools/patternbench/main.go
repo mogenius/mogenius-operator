@@ -5,7 +5,7 @@ import (
 	_ "embed"
 	"fmt"
 	"math"
-	"mogenius-k8s-manager/src/structs"
+	"mogenius-operator/src/structs"
 	"os"
 	"os/exec"
 	"path"

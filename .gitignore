@@ -13,7 +13,7 @@ mogenius-stats*.db
 kube-config
 kubeconfig.tmpl
 kubeconfig.yaml
-./mogenius-k8s-manager
+./mogenius-operator
 logs
 helm-data
 bin

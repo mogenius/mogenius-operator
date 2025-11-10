@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"mogenius-k8s-manager/src/utils"
+	"mogenius-operator/src/utils"
 	"sort"
 	"strings"
 	"sync"

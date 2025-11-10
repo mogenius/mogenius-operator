@@ -1,8 +1,8 @@
 package config_test
 
 import (
-	"mogenius-k8s-manager/src/config"
-	"mogenius-k8s-manager/src/utils"
+	"mogenius-operator/src/config"
+	"mogenius-operator/src/utils"
 	"slices"
 	"testing"
 

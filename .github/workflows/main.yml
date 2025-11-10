@@ -6,10 +6,10 @@ on:
       - main
 
 env:
-  IMAGE_NAME: ghcr.io/mogenius/mogenius-k8s-manager
+  IMAGE_NAME: ghcr.io/mogenius/mogenius-operator
   DOCKERFILE: Dockerfile
   DOCKER_CONFIG: ./.docker
-  HELMNAME: "mogenius-k8s-manager"
+  HELMNAME: "mogenius-operator"
   HELMREPO: "mogenius/helm-k8s-manager"
 
 jobs:
@@ -237,7 +237,7 @@ jobs:
 
       - name: package and push
         run: |
-          cd ./helm/charts/mogenius-k8s-manager
+          cd ./helm/charts/mogenius-operator
           sed -i -e "s/v1.0.72/${{ env.SEMVERSION }}/" values.yaml
           helm package -d /tmp/ --version ${{ env.SEMVERSION }} --app-version ${{ env.SEMVERSION }} .
           curl -XPOST -L -k --data-binary "@/tmp/${{ env.HELMNAME }}-${{ env.SEMVERSION }}.tgz" https://${{ secrets.MO_HELMUSER }}:${{ secrets.MO_HELMPASS }}@helm.mogenius.com/api/public/charts

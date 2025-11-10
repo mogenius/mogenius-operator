@@ -18,7 +18,7 @@ jobs:
         uses: azure/setup-helm@v4
 
       - name: Template Helm Chart
-        run: helm template -n mogenius --set global.cluster_name="prod" --set global.api_key="mo_customer-api-key" --set global.namespace="mogenius" ./helm/charts/mogenius-k8s-manager
+        run: helm template -n mogenius --set global.cluster_name="prod" --set global.api_key="mo_customer-api-key" --set global.namespace="mogenius" ./helm/charts/mogenius-operator
 
       - name: Template Helm Chart Advanced
         run: |
@@ -84,4 +84,4 @@ jobs:
                         topologyKey: "kubernetes.io/hostname"
           EOF
 
-          helm template -n mogenius -f test-values.yaml ./helm/charts/mogenius-k8s-manager
+          helm template -n mogenius -f test-values.yaml ./helm/charts/mogenius-operator

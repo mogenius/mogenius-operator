@@ -2,10 +2,10 @@ package cmd
 
 import (
 	"log/slog"
-	"mogenius-k8s-manager/src/config"
-	"mogenius-k8s-manager/src/logging"
-	"mogenius-k8s-manager/src/networkmonitor"
-	"mogenius-k8s-manager/src/shutdown"
+	"mogenius-operator/src/config"
+	"mogenius-operator/src/logging"
+	"mogenius-operator/src/networkmonitor"
+	"mogenius-operator/src/shutdown"
 )
 
 type nodeMetricsArgs struct {

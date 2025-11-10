@@ -7,7 +7,7 @@ import (
 	"syscall"
 	"time"
 
-	"mogenius-k8s-manager/src/utils"
+	"mogenius-operator/src/utils"
 )
 
 type PersistentFileDto struct {

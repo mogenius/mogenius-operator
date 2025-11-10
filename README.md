@@ -1,11 +1,11 @@
 <p align="center">
   <img src="https://imagedelivery.net/T7YEW5IAgZJ0dY4-LDTpyQ/3ae4fcf0-289c-48d2-3323-d2c5bc932300/detail" alt="mogenius" width="140"/>
 </p>
-<h1 align="center">mogenius-k8s-manager</h1>
+<h1 align="center">mogenius-operator</h1>
 <p align="center">Kubernetes cluster manager & runtime control-plane components for the <a href="https://mogenius.com" target="_blank">mogenius</a> platform.</p>
 
 ---
-[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/mogenius)](https://artifacthub.io/packages/helm/mogenius/mogenius-k8s-manager)
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/mogenius)](https://artifacthub.io/packages/helm/mogenius/mogenius-operator)
 
 ## Table of Contents
 1. Overview
@@ -26,7 +26,7 @@
 ---
 
 ## 1. Overview
-`mogenius-k8s-manager` is a Go (>=1.25) service that coordinates cluster resources, patterns, secrets, metrics collection, and auxiliary runtime capabilities (websockets, git/helm/iac integration, valkey caching, etc.) for the mogenius platform.
+`mogenius-operator` is a Go (>=1.25) service that coordinates cluster resources, patterns, secrets, metrics collection, and auxiliary runtime capabilities (websockets, git/helm/iac integration, valkey caching, etc.) for the mogenius platform.
 
 Major subsystems include:
 - Kubernetes controllers & reconcilers
@@ -124,7 +124,7 @@ The build step embeds version metadata (commit, branch, timestamp) and regenerat
 just build
 ```
 Artifacts:
-- `dist/native/mogenius-k8s-manager`
+- `dist/native/mogenius-operator`
 - `generated/spec.yaml`
 - `generated/client.ts`
 
@@ -184,7 +184,7 @@ docker build -t localk8smanager \
 Swap image in deployment:
 ```yaml
 # from
-image: ghcr.io/mogenius/mogenius-k8s-manager:latest
+image: ghcr.io/mogenius/mogenius-operator:latest
 imagePullPolicy: Always
 # to
 image: localk8smanager:latest
@@ -200,7 +200,7 @@ Add & install:
 helm repo add mo-public helm.mogenius.com/public
 helm repo update
 helm search repo mo-public
-helm upgrade --install mogenius-platform mo-public/mogenius-k8s-manager \
+helm upgrade --install mogenius-platform mo-public/mogenius-operator \
   --namespace mogenius --create-namespace \
   --set global.cluster_name="<cluster>" \
   --set global.api_key="<api-key>"
@@ -208,7 +208,7 @@ helm upgrade --install mogenius-platform mo-public/mogenius-k8s-manager \
 Upgrade:
 ```sh
 helm repo update
-helm upgrade mogenius-platform mo-public/mogenius-k8s-manager
+helm upgrade mogenius-platform mo-public/mogenius-operator
 ```
 Uninstall:
 ```sh
@@ -254,7 +254,7 @@ docker build -t my-go-ebpf-app -f Dockerfile-Dev-Environment . \
 ```
 Access valkey from container:
 ```sh
-kubectl -n mogenius port-forward svc/mogenius-k8s-manager-valkey 6379:6379 &
+kubectl -n mogenius port-forward svc/mogenius-operator-valkey 6379:6379 &
 ```
 
 ---
@@ -287,5 +287,5 @@ Built with ❤️ by the <a href="https://mogenius.com" target="_blank">mogenius
 
 References:
 - Task runner: https://github.com/casey/just
-- Go module: `mogenius-k8s-manager`
+- Go module: `mogenius-operator`
 

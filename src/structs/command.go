@@ -1,8 +1,8 @@
 package structs
 
 import (
-	"mogenius-k8s-manager/src/utils"
-	"mogenius-k8s-manager/src/websocket"
+	"mogenius-operator/src/utils"
+	"mogenius-operator/src/websocket"
 	"time"
 )
 

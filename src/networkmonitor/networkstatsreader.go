@@ -3,8 +3,8 @@ package networkmonitor
 import (
 	"fmt"
 	"log/slog"
-	"mogenius-k8s-manager/src/assert"
-	"mogenius-k8s-manager/src/containerenumerator"
+	"mogenius-operator/src/assert"
+	"mogenius-operator/src/containerenumerator"
 	"os"
 	"slices"
 	"strconv"

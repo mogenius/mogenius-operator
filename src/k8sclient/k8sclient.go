@@ -3,10 +3,10 @@ package k8sclient
 import (
 	"fmt"
 	"log/slog"
-	"mogenius-k8s-manager/src/assert"
-	"mogenius-k8s-manager/src/config"
-	mocrds "mogenius-k8s-manager/src/crds"
-	"mogenius-k8s-manager/src/shutdown"
+	"mogenius-operator/src/assert"
+	"mogenius-operator/src/config"
+	mocrds "mogenius-operator/src/crds"
+	"mogenius-operator/src/shutdown"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -183,7 +183,7 @@ func (l *loggingRoundTripper) RoundTrip(req *http.Request) (*http.Response, erro
 func (self *k8sClientProvider) detectAndGetKubeConfig(logger *slog.Logger) (*rest.Config, error) {
 	config, err := rest.InClusterConfig()
 	if err == nil {
-		config.UserAgent = "mogenius-k8s-manager"
+		config.UserAgent = "mogenius-operator"
 		if self.config.Get("KUBERNETES_DEBUG") == "true" {
 			config.WrapTransport = func(rt http.RoundTripper) http.RoundTripper {
 				return &loggingRoundTripper{rt: rt, logger: logger}
@@ -196,7 +196,7 @@ func (self *k8sClientProvider) detectAndGetKubeConfig(logger *slog.Logger) (*res
 
 	config, err = self.contextConfigLoader(logger)
 	if err == nil {
-		config.UserAgent = "mogenius-k8s-manager"
+		config.UserAgent = "mogenius-operator"
 		if self.config.Get("KUBERNETES_DEBUG") == "true" {
 			config.WrapTransport = func(rt http.RoundTripper) http.RoundTripper {
 				return &loggingRoundTripper{rt: rt, logger: logger}
