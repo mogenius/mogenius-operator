@@ -375,8 +375,8 @@ export const PatternToString = {
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Request:
- *         name: mogenius-k8s-manager/src/core.Request
+ *     mogenius-operator/src/core.Request:
+ *         name: mogenius-operator/src/core.Request
  *         properties:
  *             limit:
  *                 type: int
@@ -385,40 +385,40 @@ export const PatternToString = {
  *             workspaceName:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Request
+ *     structRef: mogenius-operator/src/core.Request
  *     type: struct
  * ```
  *
  */
-export type AUDIT_LOG_LIST_REQUEST = AUDIT_LOG_LIST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST;
+export type AUDIT_LOG_LIST_REQUEST = AUDIT_LOG_LIST_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Response:
- *         name: mogenius-k8s-manager/src/core.Response
+ *     mogenius-operator/src/core.Response:
+ *         name: mogenius-operator/src/core.Response
  *         properties:
  *             data:
- *                 structRef: mogenius-k8s-manager/src/store.AuditLogResponse
+ *                 structRef: mogenius-operator/src/store.AuditLogResponse
  *                 type: struct
  *             message:
  *                 type: string
  *             status:
  *                 type: string
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·34,mogenius-k8s-manager/src/core.Response·35]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·34,mogenius-k8s-manager/src/core.Response·35]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·34,mogenius-operator/src/core.Response·35]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·34,mogenius-operator/src/core.Response·35]
  *         properties:
  *             data:
- *                 structRef: mogenius-k8s-manager/src/core.Response
+ *                 structRef: mogenius-operator/src/core.Response
  *                 type: struct
  *             message:
  *                 type: string
  *             status:
  *                 type: string
- *     mogenius-k8s-manager/src/store.AuditLogEntry:
- *         name: mogenius-k8s-manager/src/store.AuditLogEntry
+ *     mogenius-operator/src/store.AuditLogEntry:
+ *         name: mogenius-operator/src/store.AuditLogEntry
  *         properties:
  *             createdAt:
  *                 structRef: time.Time
@@ -436,22 +436,22 @@ export type AUDIT_LOG_LIST_REQUEST = AUDIT_LOG_LIST_REQUEST__MOGENIUS_K8S_MANAGE
  *                 pointer: true
  *                 type: any
  *             user:
- *                 structRef: mogenius-k8s-manager/src/structs.User
+ *                 structRef: mogenius-operator/src/structs.User
  *                 type: struct
  *             workspace:
  *                 type: string
- *     mogenius-k8s-manager/src/store.AuditLogResponse:
- *         name: mogenius-k8s-manager/src/store.AuditLogResponse
+ *     mogenius-operator/src/store.AuditLogResponse:
+ *         name: mogenius-operator/src/store.AuditLogResponse
  *         properties:
  *             data:
  *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/store.AuditLogEntry
+ *                     structRef: mogenius-operator/src/store.AuditLogEntry
  *                     type: struct
  *                 type: array
  *             totalCount:
  *                 type: int
- *     mogenius-k8s-manager/src/structs.User:
- *         name: mogenius-k8s-manager/src/structs.User
+ *     mogenius-operator/src/structs.User:
+ *         name: mogenius-operator/src/structs.User
  *         properties:
  *             email:
  *                 type: string
@@ -465,40 +465,40 @@ export type AUDIT_LOG_LIST_REQUEST = AUDIT_LOG_LIST_REQUEST__MOGENIUS_K8S_MANAGE
  *         name: time.Time
  *         properties: {}
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·34,mogenius-k8s-manager/src/core.Response·35]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·34,mogenius-operator/src/core.Response·35]
  *     type: struct
  * ```
  *
  */
-export type AUDIT_LOG_LIST_RESPONSE = AUDIT_LOG_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST34_MOGENIUS_K8S_MANAGER_SRC_CORE_RESPONSE35;
+export type AUDIT_LOG_LIST_RESPONSE = AUDIT_LOG_LIST_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST34_MOGENIUS_OPERATOR_SRC_CORE_RESPONSE35;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/argocd.ArgoCdApplicationRefreshRequest:
- *         name: mogenius-k8s-manager/src/argocd.ArgoCdApplicationRefreshRequest
+ *     mogenius-operator/src/argocd.ArgoCdApplicationRefreshRequest:
+ *         name: mogenius-operator/src/argocd.ArgoCdApplicationRefreshRequest
  *         properties:
  *             applicationName:
  *                 type: string
  *             username:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/argocd.ArgoCdApplicationRefreshRequest
+ *     structRef: mogenius-operator/src/argocd.ArgoCdApplicationRefreshRequest
  *     type: struct
  * ```
  *
  */
-export type CLUSTER_ARGO_CD_APPLICATION_REFRESH_REQUEST = CLUSTER_ARGO_CD_APPLICATION_REFRESH_REQUEST__MOGENIUS_K8S_MANAGER_SRC_ARGOCD_ARGOCDAPPLICATIONREFRESHREQUEST;
+export type CLUSTER_ARGO_CD_APPLICATION_REFRESH_REQUEST = CLUSTER_ARGO_CD_APPLICATION_REFRESH_REQUEST__MOGENIUS_OPERATOR_SRC_ARGOCD_ARGOCDAPPLICATIONREFRESHREQUEST;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/argocd.ArgoCdApplicationRefreshRequest,bool]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/argocd.ArgoCdApplicationRefreshRequest,bool]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/argocd.ArgoCdApplicationRefreshRequest,bool]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/argocd.ArgoCdApplicationRefreshRequest,bool]
  *         properties:
  *             data:
  *                 type: bool
@@ -507,38 +507,38 @@ export type CLUSTER_ARGO_CD_APPLICATION_REFRESH_REQUEST = CLUSTER_ARGO_CD_APPLIC
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/argocd.ArgoCdApplicationRefreshRequest,bool]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/argocd.ArgoCdApplicationRefreshRequest,bool]
  *     type: struct
  * ```
  *
  */
-export type CLUSTER_ARGO_CD_APPLICATION_REFRESH_RESPONSE = CLUSTER_ARGO_CD_APPLICATION_REFRESH_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_ARGOCD_ARGOCDAPPLICATIONREFRESHREQUEST_BOOL;
+export type CLUSTER_ARGO_CD_APPLICATION_REFRESH_RESPONSE = CLUSTER_ARGO_CD_APPLICATION_REFRESH_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_ARGOCD_ARGOCDAPPLICATIONREFRESHREQUEST_BOOL;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/argocd.ArgoCdCreateApiTokenRequest:
- *         name: mogenius-k8s-manager/src/argocd.ArgoCdCreateApiTokenRequest
+ *     mogenius-operator/src/argocd.ArgoCdCreateApiTokenRequest:
+ *         name: mogenius-operator/src/argocd.ArgoCdCreateApiTokenRequest
  *         properties:
  *             username:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/argocd.ArgoCdCreateApiTokenRequest
+ *     structRef: mogenius-operator/src/argocd.ArgoCdCreateApiTokenRequest
  *     type: struct
  * ```
  *
  */
-export type CLUSTER_ARGO_CD_CREATE_API_TOKEN_REQUEST = CLUSTER_ARGO_CD_CREATE_API_TOKEN_REQUEST__MOGENIUS_K8S_MANAGER_SRC_ARGOCD_ARGOCDCREATEAPITOKENREQUEST;
+export type CLUSTER_ARGO_CD_CREATE_API_TOKEN_REQUEST = CLUSTER_ARGO_CD_CREATE_API_TOKEN_REQUEST__MOGENIUS_OPERATOR_SRC_ARGOCD_ARGOCDCREATEAPITOKENREQUEST;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/argocd.ArgoCdCreateApiTokenRequest,bool]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/argocd.ArgoCdCreateApiTokenRequest,bool]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/argocd.ArgoCdCreateApiTokenRequest,bool]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/argocd.ArgoCdCreateApiTokenRequest,bool]
  *         properties:
  *             data:
  *                 type: bool
@@ -547,20 +547,20 @@ export type CLUSTER_ARGO_CD_CREATE_API_TOKEN_REQUEST = CLUSTER_ARGO_CD_CREATE_AP
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/argocd.ArgoCdCreateApiTokenRequest,bool]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/argocd.ArgoCdCreateApiTokenRequest,bool]
  *     type: struct
  * ```
  *
  */
-export type CLUSTER_ARGO_CD_CREATE_API_TOKEN_RESPONSE = CLUSTER_ARGO_CD_CREATE_API_TOKEN_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_ARGOCD_ARGOCDCREATEAPITOKENREQUEST_BOOL;
+export type CLUSTER_ARGO_CD_CREATE_API_TOKEN_RESPONSE = CLUSTER_ARGO_CD_CREATE_API_TOKEN_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_ARGOCD_ARGOCDCREATEAPITOKENREQUEST_BOOL;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Request:
- *         name: mogenius-k8s-manager/src/core.Request
+ *     mogenius-operator/src/core.Request:
+ *         name: mogenius-operator/src/core.Request
  *         properties:
  *             includeNodeStats:
  *                 type: bool
@@ -569,20 +569,20 @@ export type CLUSTER_ARGO_CD_CREATE_API_TOKEN_RESPONSE = CLUSTER_ARGO_CD_CREATE_A
  *             includeTraffic:
  *                 type: bool
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Request
+ *     structRef: mogenius-operator/src/core.Request
  *     type: struct
  * ```
  *
  */
-export type CLUSTER_CLEAR_VALKEY_CACHE_REQUEST = CLUSTER_CLEAR_VALKEY_CACHE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST;
+export type CLUSTER_CLEAR_VALKEY_CACHE_REQUEST = CLUSTER_CLEAR_VALKEY_CACHE_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·5,string]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·5,string]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·5,string]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·5,string]
  *         properties:
  *             data:
  *                 type: string
@@ -591,20 +591,20 @@ export type CLUSTER_CLEAR_VALKEY_CACHE_REQUEST = CLUSTER_CLEAR_VALKEY_CACHE_REQU
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·5,string]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·5,string]
  *     type: struct
  * ```
  *
  */
-export type CLUSTER_CLEAR_VALKEY_CACHE_RESPONSE = CLUSTER_CLEAR_VALKEY_CACHE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST5_STRING;
+export type CLUSTER_CLEAR_VALKEY_CACHE_RESPONSE = CLUSTER_CLEAR_VALKEY_CACHE_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST5_STRING;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/xterm.ComponentLogConnectionRequest:
- *         name: mogenius-k8s-manager/src/xterm.ComponentLogConnectionRequest
+ *     mogenius-operator/src/xterm.ComponentLogConnectionRequest:
+ *         name: mogenius-operator/src/xterm.ComponentLogConnectionRequest
  *         properties:
  *             component:
  *                 type: string
@@ -618,10 +618,10 @@ export type CLUSTER_CLEAR_VALKEY_CACHE_RESPONSE = CLUSTER_CLEAR_VALKEY_CACHE_RES
  *                 pointer: true
  *                 type: string
  *             wsConnectionRequest:
- *                 structRef: mogenius-k8s-manager/src/xterm.WsConnectionRequest
+ *                 structRef: mogenius-operator/src/xterm.WsConnectionRequest
  *                 type: struct
- *     mogenius-k8s-manager/src/xterm.WsConnectionRequest:
- *         name: mogenius-k8s-manager/src/xterm.WsConnectionRequest
+ *     mogenius-operator/src/xterm.WsConnectionRequest:
+ *         name: mogenius-operator/src/xterm.WsConnectionRequest
  *         properties:
  *             channelId:
  *                 type: string
@@ -638,12 +638,12 @@ export type CLUSTER_CLEAR_VALKEY_CACHE_RESPONSE = CLUSTER_CLEAR_VALKEY_CACHE_RES
  *             workspace:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/xterm.ComponentLogConnectionRequest
+ *     structRef: mogenius-operator/src/xterm.ComponentLogConnectionRequest
  *     type: struct
  * ```
  *
  */
-export type CLUSTER_COMPONENT_LOG_STREAM_CONNECTION_REQUEST_REQUEST = CLUSTER_COMPONENT_LOG_STREAM_CONNECTION_REQUEST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_COMPONENTLOGCONNECTIONREQUEST;
+export type CLUSTER_COMPONENT_LOG_STREAM_CONNECTION_REQUEST_REQUEST = CLUSTER_COMPONENT_LOG_STREAM_CONNECTION_REQUEST_REQUEST__MOGENIUS_OPERATOR_SRC_XTERM_COMPONENTLOGCONNECTIONREQUEST;
 
 /**
  * #### Source
@@ -652,8 +652,8 @@ export type CLUSTER_COMPONENT_LOG_STREAM_CONNECTION_REQUEST_REQUEST = CLUSTER_CO
  * structs:
  *     ANON_STRUCT_1:
  *         properties: {}
- *     ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/xterm.ComponentLogConnectionRequest,mogenius-k8s-manager/src/core.Void]
- *     :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/xterm.ComponentLogConnectionRequest,mogenius-k8s-manager/src/core.Void]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/xterm.ComponentLogConnectionRequest,mogenius-operator/src/core.Void]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.ComponentLogConnectionRequest,mogenius-operator/src/core.Void]
  *         properties:
  *             data:
  *                 pointer: true
@@ -664,12 +664,12 @@ export type CLUSTER_COMPONENT_LOG_STREAM_CONNECTION_REQUEST_REQUEST = CLUSTER_CO
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/xterm.ComponentLogConnectionRequest,mogenius-k8s-manager/src/core.Void]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.ComponentLogConnectionRequest,mogenius-operator/src/core.Void]
  *     type: struct
  * ```
  *
  */
-export type CLUSTER_COMPONENT_LOG_STREAM_CONNECTION_REQUEST_RESPONSE = CLUSTER_COMPONENT_LOG_STREAM_CONNECTION_REQUEST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_XTERM_COMPONENTLOGCONNECTIONREQUEST_MOGENIUS_K8S_MANAGER_SRC_CORE_VOID;
+export type CLUSTER_COMPONENT_LOG_STREAM_CONNECTION_REQUEST_RESPONSE = CLUSTER_COMPONENT_LOG_STREAM_CONNECTION_REQUEST_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_XTERM_COMPONENTLOGCONNECTIONREQUEST_MOGENIUS_OPERATOR_SRC_CORE_VOID;
 
 /**
  * #### Source
@@ -692,8 +692,8 @@ export type CLUSTER_FORCE_DISCONNECT_REQUEST = CLUSTER_FORCE_DISCONNECT_REQUEST_
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,bool]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,bool]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,bool]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,bool]
  *         properties:
  *             data:
  *                 type: bool
@@ -702,12 +702,12 @@ export type CLUSTER_FORCE_DISCONNECT_REQUEST = CLUSTER_FORCE_DISCONNECT_REQUEST_
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,bool]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,bool]
  *     type: struct
  * ```
  *
  */
-export type CLUSTER_FORCE_DISCONNECT_RESPONSE = CLUSTER_FORCE_DISCONNECT_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_BOOL;
+export type CLUSTER_FORCE_DISCONNECT_RESPONSE = CLUSTER_FORCE_DISCONNECT_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_BOOL;
 
 /**
  * #### Source
@@ -730,8 +730,8 @@ export type CLUSTER_FORCE_RECONNECT_REQUEST = CLUSTER_FORCE_RECONNECT_REQUEST__A
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,bool]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,bool]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,bool]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,bool]
  *         properties:
  *             data:
  *                 type: bool
@@ -740,20 +740,20 @@ export type CLUSTER_FORCE_RECONNECT_REQUEST = CLUSTER_FORCE_RECONNECT_REQUEST__A
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,bool]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,bool]
  *     type: struct
  * ```
  *
  */
-export type CLUSTER_FORCE_RECONNECT_RESPONSE = CLUSTER_FORCE_RECONNECT_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_BOOL;
+export type CLUSTER_FORCE_RECONNECT_RESPONSE = CLUSTER_FORCE_RECONNECT_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_BOOL;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/helm.HelmChartInstallUpgradeRequest:
- *         name: mogenius-k8s-manager/src/helm.HelmChartInstallUpgradeRequest
+ *     mogenius-operator/src/helm.HelmChartInstallUpgradeRequest:
+ *         name: mogenius-operator/src/helm.HelmChartInstallUpgradeRequest
  *         properties:
  *             chart:
  *                 type: string
@@ -768,20 +768,20 @@ export type CLUSTER_FORCE_RECONNECT_RESPONSE = CLUSTER_FORCE_RECONNECT_RESPONSE_
  *             version:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/helm.HelmChartInstallUpgradeRequest
+ *     structRef: mogenius-operator/src/helm.HelmChartInstallUpgradeRequest
  *     type: struct
  * ```
  *
  */
-export type CLUSTER_HELM_CHART_INSTALL_REQUEST = CLUSTER_HELM_CHART_INSTALL_REQUEST__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMCHARTINSTALLUPGRADEREQUEST;
+export type CLUSTER_HELM_CHART_INSTALL_REQUEST = CLUSTER_HELM_CHART_INSTALL_REQUEST__MOGENIUS_OPERATOR_SRC_HELM_HELMCHARTINSTALLUPGRADEREQUEST;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/helm.HelmChartInstallUpgradeRequest,string]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/helm.HelmChartInstallUpgradeRequest,string]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmChartInstallUpgradeRequest,string]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmChartInstallUpgradeRequest,string]
  *         properties:
  *             data:
  *                 type: string
@@ -790,20 +790,20 @@ export type CLUSTER_HELM_CHART_INSTALL_REQUEST = CLUSTER_HELM_CHART_INSTALL_REQU
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/helm.HelmChartInstallUpgradeRequest,string]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmChartInstallUpgradeRequest,string]
  *     type: struct
  * ```
  *
  */
-export type CLUSTER_HELM_CHART_INSTALL_RESPONSE = CLUSTER_HELM_CHART_INSTALL_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_HELM_HELMCHARTINSTALLUPGRADEREQUEST_STRING;
+export type CLUSTER_HELM_CHART_INSTALL_RESPONSE = CLUSTER_HELM_CHART_INSTALL_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_HELM_HELMCHARTINSTALLUPGRADEREQUEST_STRING;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/helm.HelmChartOciInstallUpgradeRequest:
- *         name: mogenius-k8s-manager/src/helm.HelmChartOciInstallUpgradeRequest
+ *     mogenius-operator/src/helm.HelmChartOciInstallUpgradeRequest:
+ *         name: mogenius-operator/src/helm.HelmChartOciInstallUpgradeRequest
  *         properties:
  *             chart:
  *                 type: string
@@ -824,20 +824,20 @@ export type CLUSTER_HELM_CHART_INSTALL_RESPONSE = CLUSTER_HELM_CHART_INSTALL_RES
  *             version:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/helm.HelmChartOciInstallUpgradeRequest
+ *     structRef: mogenius-operator/src/helm.HelmChartOciInstallUpgradeRequest
  *     type: struct
  * ```
  *
  */
-export type CLUSTER_HELM_CHART_INSTALL_OCI_REQUEST = CLUSTER_HELM_CHART_INSTALL_OCI_REQUEST__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMCHARTOCIINSTALLUPGRADEREQUEST;
+export type CLUSTER_HELM_CHART_INSTALL_OCI_REQUEST = CLUSTER_HELM_CHART_INSTALL_OCI_REQUEST__MOGENIUS_OPERATOR_SRC_HELM_HELMCHARTOCIINSTALLUPGRADEREQUEST;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/helm.HelmChartOciInstallUpgradeRequest,string]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/helm.HelmChartOciInstallUpgradeRequest,string]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmChartOciInstallUpgradeRequest,string]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmChartOciInstallUpgradeRequest,string]
  *         properties:
  *             data:
  *                 type: string
@@ -846,38 +846,38 @@ export type CLUSTER_HELM_CHART_INSTALL_OCI_REQUEST = CLUSTER_HELM_CHART_INSTALL_
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/helm.HelmChartOciInstallUpgradeRequest,string]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmChartOciInstallUpgradeRequest,string]
  *     type: struct
  * ```
  *
  */
-export type CLUSTER_HELM_CHART_INSTALL_OCI_RESPONSE = CLUSTER_HELM_CHART_INSTALL_OCI_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_HELM_HELMCHARTOCIINSTALLUPGRADEREQUEST_STRING;
+export type CLUSTER_HELM_CHART_INSTALL_OCI_RESPONSE = CLUSTER_HELM_CHART_INSTALL_OCI_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_HELM_HELMCHARTOCIINSTALLUPGRADEREQUEST_STRING;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/helm.HelmRepoRemoveRequest:
- *         name: mogenius-k8s-manager/src/helm.HelmRepoRemoveRequest
+ *     mogenius-operator/src/helm.HelmRepoRemoveRequest:
+ *         name: mogenius-operator/src/helm.HelmRepoRemoveRequest
  *         properties:
  *             name:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/helm.HelmRepoRemoveRequest
+ *     structRef: mogenius-operator/src/helm.HelmRepoRemoveRequest
  *     type: struct
  * ```
  *
  */
-export type CLUSTER_HELM_CHART_REMOVE_REQUEST = CLUSTER_HELM_CHART_REMOVE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMREPOREMOVEREQUEST;
+export type CLUSTER_HELM_CHART_REMOVE_REQUEST = CLUSTER_HELM_CHART_REMOVE_REQUEST__MOGENIUS_OPERATOR_SRC_HELM_HELMREPOREMOVEREQUEST;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/helm.HelmRepoRemoveRequest,string]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/helm.HelmRepoRemoveRequest,string]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmRepoRemoveRequest,string]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmRepoRemoveRequest,string]
  *         properties:
  *             data:
  *                 type: string
@@ -886,50 +886,50 @@ export type CLUSTER_HELM_CHART_REMOVE_REQUEST = CLUSTER_HELM_CHART_REMOVE_REQUES
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/helm.HelmRepoRemoveRequest,string]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmRepoRemoveRequest,string]
  *     type: struct
  * ```
  *
  */
-export type CLUSTER_HELM_CHART_REMOVE_RESPONSE = CLUSTER_HELM_CHART_REMOVE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_HELM_HELMREPOREMOVEREQUEST_STRING;
+export type CLUSTER_HELM_CHART_REMOVE_RESPONSE = CLUSTER_HELM_CHART_REMOVE_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_HELM_HELMREPOREMOVEREQUEST_STRING;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/helm.HelmChartSearchRequest:
- *         name: mogenius-k8s-manager/src/helm.HelmChartSearchRequest
+ *     mogenius-operator/src/helm.HelmChartSearchRequest:
+ *         name: mogenius-operator/src/helm.HelmChartSearchRequest
  *         properties:
  *             name:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/helm.HelmChartSearchRequest
+ *     structRef: mogenius-operator/src/helm.HelmChartSearchRequest
  *     type: struct
  * ```
  *
  */
-export type CLUSTER_HELM_CHART_SEARCH_REQUEST = CLUSTER_HELM_CHART_SEARCH_REQUEST__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMCHARTSEARCHREQUEST;
+export type CLUSTER_HELM_CHART_SEARCH_REQUEST = CLUSTER_HELM_CHART_SEARCH_REQUEST__MOGENIUS_OPERATOR_SRC_HELM_HELMCHARTSEARCHREQUEST;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/helm.HelmChartSearchRequest,[]mogenius-k8s-manager/src/helm.HelmChartInfo]
- *     :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/helm.HelmChartSearchRequest,[]mogenius-k8s-manager/src/helm.HelmChartInfo]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmChartSearchRequest,[]mogenius-operator/src/helm.HelmChartInfo]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmChartSearchRequest,[]mogenius-operator/src/helm.HelmChartInfo]
  *         properties:
  *             data:
  *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/helm.HelmChartInfo
+ *                     structRef: mogenius-operator/src/helm.HelmChartInfo
  *                     type: struct
  *                 type: array
  *             message:
  *                 type: string
  *             status:
  *                 type: string
- *     mogenius-k8s-manager/src/helm.HelmChartInfo:
- *         name: mogenius-k8s-manager/src/helm.HelmChartInfo
+ *     mogenius-operator/src/helm.HelmChartInfo:
+ *         name: mogenius-operator/src/helm.HelmChartInfo
  *         properties:
  *             app_version:
  *                 type: string
@@ -940,20 +940,20 @@ export type CLUSTER_HELM_CHART_SEARCH_REQUEST = CLUSTER_HELM_CHART_SEARCH_REQUES
  *             version:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/helm.HelmChartSearchRequest,[]mogenius-k8s-manager/src/helm.HelmChartInfo]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmChartSearchRequest,[]mogenius-operator/src/helm.HelmChartInfo]
  *     type: struct
  * ```
  *
  */
-export type CLUSTER_HELM_CHART_SEARCH_RESPONSE = CLUSTER_HELM_CHART_SEARCH_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_HELM_HELMCHARTSEARCHREQUEST_MOGENIUS_K8S_MANAGER_SRC_HELM_HELMCHARTINFO;
+export type CLUSTER_HELM_CHART_SEARCH_RESPONSE = CLUSTER_HELM_CHART_SEARCH_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_HELM_HELMCHARTSEARCHREQUEST_MOGENIUS_OPERATOR_SRC_HELM_HELMCHARTINFO;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/helm.HelmChartShowRequest:
- *         name: mogenius-k8s-manager/src/helm.HelmChartShowRequest
+ *     mogenius-operator/src/helm.HelmChartShowRequest:
+ *         name: mogenius-operator/src/helm.HelmChartShowRequest
  *         properties:
  *             chart:
  *                 type: string
@@ -962,20 +962,20 @@ export type CLUSTER_HELM_CHART_SEARCH_RESPONSE = CLUSTER_HELM_CHART_SEARCH_RESPO
  *             version:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/helm.HelmChartShowRequest
+ *     structRef: mogenius-operator/src/helm.HelmChartShowRequest
  *     type: struct
  * ```
  *
  */
-export type CLUSTER_HELM_CHART_SHOW_REQUEST = CLUSTER_HELM_CHART_SHOW_REQUEST__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMCHARTSHOWREQUEST;
+export type CLUSTER_HELM_CHART_SHOW_REQUEST = CLUSTER_HELM_CHART_SHOW_REQUEST__MOGENIUS_OPERATOR_SRC_HELM_HELMCHARTSHOWREQUEST;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/helm.HelmChartShowRequest,string]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/helm.HelmChartShowRequest,string]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmChartShowRequest,string]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmChartShowRequest,string]
  *         properties:
  *             data:
  *                 type: string
@@ -984,50 +984,50 @@ export type CLUSTER_HELM_CHART_SHOW_REQUEST = CLUSTER_HELM_CHART_SHOW_REQUEST__M
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/helm.HelmChartShowRequest,string]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmChartShowRequest,string]
  *     type: struct
  * ```
  *
  */
-export type CLUSTER_HELM_CHART_SHOW_RESPONSE = CLUSTER_HELM_CHART_SHOW_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_HELM_HELMCHARTSHOWREQUEST_STRING;
+export type CLUSTER_HELM_CHART_SHOW_RESPONSE = CLUSTER_HELM_CHART_SHOW_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_HELM_HELMCHARTSHOWREQUEST_STRING;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/helm.HelmChartVersionRequest:
- *         name: mogenius-k8s-manager/src/helm.HelmChartVersionRequest
+ *     mogenius-operator/src/helm.HelmChartVersionRequest:
+ *         name: mogenius-operator/src/helm.HelmChartVersionRequest
  *         properties:
  *             chart:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/helm.HelmChartVersionRequest
+ *     structRef: mogenius-operator/src/helm.HelmChartVersionRequest
  *     type: struct
  * ```
  *
  */
-export type CLUSTER_HELM_CHART_VERSIONS_REQUEST = CLUSTER_HELM_CHART_VERSIONS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMCHARTVERSIONREQUEST;
+export type CLUSTER_HELM_CHART_VERSIONS_REQUEST = CLUSTER_HELM_CHART_VERSIONS_REQUEST__MOGENIUS_OPERATOR_SRC_HELM_HELMCHARTVERSIONREQUEST;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/helm.HelmChartVersionRequest,[]mogenius-k8s-manager/src/helm.HelmChartInfo]
- *     :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/helm.HelmChartVersionRequest,[]mogenius-k8s-manager/src/helm.HelmChartInfo]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmChartVersionRequest,[]mogenius-operator/src/helm.HelmChartInfo]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmChartVersionRequest,[]mogenius-operator/src/helm.HelmChartInfo]
  *         properties:
  *             data:
  *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/helm.HelmChartInfo
+ *                     structRef: mogenius-operator/src/helm.HelmChartInfo
  *                     type: struct
  *                 type: array
  *             message:
  *                 type: string
  *             status:
  *                 type: string
- *     mogenius-k8s-manager/src/helm.HelmChartInfo:
- *         name: mogenius-k8s-manager/src/helm.HelmChartInfo
+ *     mogenius-operator/src/helm.HelmChartInfo:
+ *         name: mogenius-operator/src/helm.HelmChartInfo
  *         properties:
  *             app_version:
  *                 type: string
@@ -1038,20 +1038,20 @@ export type CLUSTER_HELM_CHART_VERSIONS_REQUEST = CLUSTER_HELM_CHART_VERSIONS_RE
  *             version:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/helm.HelmChartVersionRequest,[]mogenius-k8s-manager/src/helm.HelmChartInfo]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmChartVersionRequest,[]mogenius-operator/src/helm.HelmChartInfo]
  *     type: struct
  * ```
  *
  */
-export type CLUSTER_HELM_CHART_VERSIONS_RESPONSE = CLUSTER_HELM_CHART_VERSIONS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_HELM_HELMCHARTVERSIONREQUEST_MOGENIUS_K8S_MANAGER_SRC_HELM_HELMCHARTINFO;
+export type CLUSTER_HELM_CHART_VERSIONS_RESPONSE = CLUSTER_HELM_CHART_VERSIONS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_HELM_HELMCHARTVERSIONREQUEST_MOGENIUS_OPERATOR_SRC_HELM_HELMCHARTINFO;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/helm.HelmReleaseGetRequest:
- *         name: mogenius-k8s-manager/src/helm.HelmReleaseGetRequest
+ *     mogenius-operator/src/helm.HelmReleaseGetRequest:
+ *         name: mogenius-operator/src/helm.HelmReleaseGetRequest
  *         properties:
  *             getFormat:
  *                 type: string
@@ -1060,20 +1060,20 @@ export type CLUSTER_HELM_CHART_VERSIONS_RESPONSE = CLUSTER_HELM_CHART_VERSIONS_R
  *             release:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/helm.HelmReleaseGetRequest
+ *     structRef: mogenius-operator/src/helm.HelmReleaseGetRequest
  *     type: struct
  * ```
  *
  */
-export type CLUSTER_HELM_RELEASE_GET_REQUEST = CLUSTER_HELM_RELEASE_GET_REQUEST__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMRELEASEGETREQUEST;
+export type CLUSTER_HELM_RELEASE_GET_REQUEST = CLUSTER_HELM_RELEASE_GET_REQUEST__MOGENIUS_OPERATOR_SRC_HELM_HELMRELEASEGETREQUEST;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/helm.HelmReleaseGetRequest,string]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/helm.HelmReleaseGetRequest,string]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseGetRequest,string]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseGetRequest,string]
  *         properties:
  *             data:
  *                 type: string
@@ -1082,20 +1082,20 @@ export type CLUSTER_HELM_RELEASE_GET_REQUEST = CLUSTER_HELM_RELEASE_GET_REQUEST_
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/helm.HelmReleaseGetRequest,string]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseGetRequest,string]
  *     type: struct
  * ```
  *
  */
-export type CLUSTER_HELM_RELEASE_GET_RESPONSE = CLUSTER_HELM_RELEASE_GET_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_HELM_HELMRELEASEGETREQUEST_STRING;
+export type CLUSTER_HELM_RELEASE_GET_RESPONSE = CLUSTER_HELM_RELEASE_GET_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_HELM_HELMRELEASEGETREQUEST_STRING;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/helm.HelmReleaseGetWorkloadsRequest:
- *         name: mogenius-k8s-manager/src/helm.HelmReleaseGetWorkloadsRequest
+ *     mogenius-operator/src/helm.HelmReleaseGetWorkloadsRequest:
+ *         name: mogenius-operator/src/helm.HelmReleaseGetWorkloadsRequest
  *         properties:
  *             namespace:
  *                 type: string
@@ -1104,11 +1104,11 @@ export type CLUSTER_HELM_RELEASE_GET_RESPONSE = CLUSTER_HELM_RELEASE_GET_RESPONS
  *             whitelist:
  *                 elementType:
  *                     pointer: true
- *                     structRef: mogenius-k8s-manager/src/utils.ResourceDescriptor
+ *                     structRef: mogenius-operator/src/utils.ResourceDescriptor
  *                     type: struct
  *                 type: array
- *     mogenius-k8s-manager/src/utils.ResourceDescriptor:
- *         name: mogenius-k8s-manager/src/utils.ResourceDescriptor
+ *     mogenius-operator/src/utils.ResourceDescriptor:
+ *         name: mogenius-operator/src/utils.ResourceDescriptor
  *         properties:
  *             apiVersion:
  *                 type: string
@@ -1119,12 +1119,12 @@ export type CLUSTER_HELM_RELEASE_GET_RESPONSE = CLUSTER_HELM_RELEASE_GET_RESPONS
  *             plural:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/helm.HelmReleaseGetWorkloadsRequest
+ *     structRef: mogenius-operator/src/helm.HelmReleaseGetWorkloadsRequest
  *     type: struct
  * ```
  *
  */
-export type CLUSTER_HELM_RELEASE_GET_WORKLOADS_REQUEST = CLUSTER_HELM_RELEASE_GET_WORKLOADS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMRELEASEGETWORKLOADSREQUEST;
+export type CLUSTER_HELM_RELEASE_GET_WORKLOADS_REQUEST = CLUSTER_HELM_RELEASE_GET_WORKLOADS_REQUEST__MOGENIUS_OPERATOR_SRC_HELM_HELMRELEASEGETWORKLOADSREQUEST;
 
 /**
  * #### Source
@@ -1141,8 +1141,8 @@ export type CLUSTER_HELM_RELEASE_GET_WORKLOADS_REQUEST = CLUSTER_HELM_RELEASE_GE
  *                 valueType:
  *                     pointer: true
  *                     type: any
- *     ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/helm.HelmReleaseGetWorkloadsRequest,[]k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
- *     :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/helm.HelmReleaseGetWorkloadsRequest,[]k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *     ? mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseGetWorkloadsRequest,[]k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *     :   name: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseGetWorkloadsRequest,[]k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
  *         properties:
  *             data:
  *                 elementType:
@@ -1154,32 +1154,32 @@ export type CLUSTER_HELM_RELEASE_GET_WORKLOADS_REQUEST = CLUSTER_HELM_RELEASE_GE
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/helm.HelmReleaseGetWorkloadsRequest,[]k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseGetWorkloadsRequest,[]k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
  *     type: struct
  * ```
  *
  */
-export type CLUSTER_HELM_RELEASE_GET_WORKLOADS_RESPONSE = CLUSTER_HELM_RELEASE_GET_WORKLOADS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_HELM_HELMRELEASEGETWORKLOADSREQUEST_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED;
+export type CLUSTER_HELM_RELEASE_GET_WORKLOADS_RESPONSE = CLUSTER_HELM_RELEASE_GET_WORKLOADS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_HELM_HELMRELEASEGETWORKLOADSREQUEST_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/helm.HelmReleaseHistoryRequest:
- *         name: mogenius-k8s-manager/src/helm.HelmReleaseHistoryRequest
+ *     mogenius-operator/src/helm.HelmReleaseHistoryRequest:
+ *         name: mogenius-operator/src/helm.HelmReleaseHistoryRequest
  *         properties:
  *             namespace:
  *                 type: string
  *             release:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/helm.HelmReleaseHistoryRequest
+ *     structRef: mogenius-operator/src/helm.HelmReleaseHistoryRequest
  *     type: struct
  * ```
  *
  */
-export type CLUSTER_HELM_RELEASE_HISTORY_REQUEST = CLUSTER_HELM_RELEASE_HISTORY_REQUEST__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMRELEASEHISTORYREQUEST;
+export type CLUSTER_HELM_RELEASE_HISTORY_REQUEST = CLUSTER_HELM_RELEASE_HISTORY_REQUEST__MOGENIUS_OPERATOR_SRC_HELM_HELMRELEASEHISTORYREQUEST;
 
 /**
  * #### Source
@@ -1433,8 +1433,8 @@ export type CLUSTER_HELM_RELEASE_HISTORY_REQUEST = CLUSTER_HELM_RELEASE_HISTORY_
  *             Time:
  *                 structRef: time.Time
  *                 type: struct
- *     ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/helm.HelmReleaseHistoryRequest,[]*helm.sh/helm/v3/pkg/release.Release]
- *     :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/helm.HelmReleaseHistoryRequest,[]*helm.sh/helm/v3/pkg/release.Release]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseHistoryRequest,[]*helm.sh/helm/v3/pkg/release.Release]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseHistoryRequest,[]*helm.sh/helm/v3/pkg/release.Release]
  *         properties:
  *             data:
  *                 elementType:
@@ -1450,20 +1450,20 @@ export type CLUSTER_HELM_RELEASE_HISTORY_REQUEST = CLUSTER_HELM_RELEASE_HISTORY_
  *         name: time.Time
  *         properties: {}
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/helm.HelmReleaseHistoryRequest,[]*helm.sh/helm/v3/pkg/release.Release]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseHistoryRequest,[]*helm.sh/helm/v3/pkg/release.Release]
  *     type: struct
  * ```
  *
  */
-export type CLUSTER_HELM_RELEASE_HISTORY_RESPONSE = CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_HELM_HELMRELEASEHISTORYREQUEST_HELM_SH_HELM_V3_PKG_RELEASE_RELEASE;
+export type CLUSTER_HELM_RELEASE_HISTORY_RESPONSE = CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_HELM_HELMRELEASEHISTORYREQUEST_HELM_SH_HELM_V3_PKG_RELEASE_RELEASE;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/helm.HelmReleaseLinkRequest:
- *         name: mogenius-k8s-manager/src/helm.HelmReleaseLinkRequest
+ *     mogenius-operator/src/helm.HelmReleaseLinkRequest:
+ *         name: mogenius-operator/src/helm.HelmReleaseLinkRequest
  *         properties:
  *             namespace:
  *                 type: string
@@ -1472,20 +1472,20 @@ export type CLUSTER_HELM_RELEASE_HISTORY_RESPONSE = CLUSTER_HELM_RELEASE_HISTORY
  *             repoName:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/helm.HelmReleaseLinkRequest
+ *     structRef: mogenius-operator/src/helm.HelmReleaseLinkRequest
  *     type: struct
  * ```
  *
  */
-export type CLUSTER_HELM_RELEASE_LINK_REQUEST = CLUSTER_HELM_RELEASE_LINK_REQUEST__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMRELEASELINKREQUEST;
+export type CLUSTER_HELM_RELEASE_LINK_REQUEST = CLUSTER_HELM_RELEASE_LINK_REQUEST__MOGENIUS_OPERATOR_SRC_HELM_HELMRELEASELINKREQUEST;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/helm.HelmReleaseLinkRequest,string]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/helm.HelmReleaseLinkRequest,string]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseLinkRequest,string]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseLinkRequest,string]
  *         properties:
  *             data:
  *                 type: string
@@ -1494,30 +1494,30 @@ export type CLUSTER_HELM_RELEASE_LINK_REQUEST = CLUSTER_HELM_RELEASE_LINK_REQUES
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/helm.HelmReleaseLinkRequest,string]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseLinkRequest,string]
  *     type: struct
  * ```
  *
  */
-export type CLUSTER_HELM_RELEASE_LINK_RESPONSE = CLUSTER_HELM_RELEASE_LINK_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_HELM_HELMRELEASELINKREQUEST_STRING;
+export type CLUSTER_HELM_RELEASE_LINK_RESPONSE = CLUSTER_HELM_RELEASE_LINK_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_HELM_HELMRELEASELINKREQUEST_STRING;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/helm.HelmReleaseListRequest:
- *         name: mogenius-k8s-manager/src/helm.HelmReleaseListRequest
+ *     mogenius-operator/src/helm.HelmReleaseListRequest:
+ *         name: mogenius-operator/src/helm.HelmReleaseListRequest
  *         properties:
  *             namespace:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/helm.HelmReleaseListRequest
+ *     structRef: mogenius-operator/src/helm.HelmReleaseListRequest
  *     type: struct
  * ```
  *
  */
-export type CLUSTER_HELM_RELEASE_LIST_REQUEST = CLUSTER_HELM_RELEASE_LIST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMRELEASELISTREQUEST;
+export type CLUSTER_HELM_RELEASE_LIST_REQUEST = CLUSTER_HELM_RELEASE_LIST_REQUEST__MOGENIUS_OPERATOR_SRC_HELM_HELMRELEASELISTREQUEST;
 
 /**
  * #### Source
@@ -1739,21 +1739,21 @@ export type CLUSTER_HELM_RELEASE_LIST_REQUEST = CLUSTER_HELM_RELEASE_LIST_REQUES
  *             Time:
  *                 structRef: time.Time
  *                 type: struct
- *     ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/helm.HelmReleaseListRequest,[]*mogenius-k8s-manager/src/helm.HelmRelease]
- *     :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/helm.HelmReleaseListRequest,[]*mogenius-k8s-manager/src/helm.HelmRelease]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseListRequest,[]*mogenius-operator/src/helm.HelmRelease]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseListRequest,[]*mogenius-operator/src/helm.HelmRelease]
  *         properties:
  *             data:
  *                 elementType:
  *                     pointer: true
- *                     structRef: mogenius-k8s-manager/src/helm.HelmRelease
+ *                     structRef: mogenius-operator/src/helm.HelmRelease
  *                     type: struct
  *                 type: array
  *             message:
  *                 type: string
  *             status:
  *                 type: string
- *     mogenius-k8s-manager/src/helm.HelmRelease:
- *         name: mogenius-k8s-manager/src/helm.HelmRelease
+ *     mogenius-operator/src/helm.HelmRelease:
+ *         name: mogenius-operator/src/helm.HelmRelease
  *         properties:
  *             chart:
  *                 pointer: true
@@ -1790,20 +1790,20 @@ export type CLUSTER_HELM_RELEASE_LIST_REQUEST = CLUSTER_HELM_RELEASE_LIST_REQUES
  *         name: time.Time
  *         properties: {}
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/helm.HelmReleaseListRequest,[]*mogenius-k8s-manager/src/helm.HelmRelease]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseListRequest,[]*mogenius-operator/src/helm.HelmRelease]
  *     type: struct
  * ```
  *
  */
-export type CLUSTER_HELM_RELEASE_LIST_RESPONSE = CLUSTER_HELM_RELEASE_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_HELM_HELMRELEASELISTREQUEST_MOGENIUS_K8S_MANAGER_SRC_HELM_HELMRELEASE;
+export type CLUSTER_HELM_RELEASE_LIST_RESPONSE = CLUSTER_HELM_RELEASE_LIST_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_HELM_HELMRELEASELISTREQUEST_MOGENIUS_OPERATOR_SRC_HELM_HELMRELEASE;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/helm.HelmReleaseRollbackRequest:
- *         name: mogenius-k8s-manager/src/helm.HelmReleaseRollbackRequest
+ *     mogenius-operator/src/helm.HelmReleaseRollbackRequest:
+ *         name: mogenius-operator/src/helm.HelmReleaseRollbackRequest
  *         properties:
  *             namespace:
  *                 type: string
@@ -1812,20 +1812,20 @@ export type CLUSTER_HELM_RELEASE_LIST_RESPONSE = CLUSTER_HELM_RELEASE_LIST_RESPO
  *             revision:
  *                 type: int
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/helm.HelmReleaseRollbackRequest
+ *     structRef: mogenius-operator/src/helm.HelmReleaseRollbackRequest
  *     type: struct
  * ```
  *
  */
-export type CLUSTER_HELM_RELEASE_ROLLBACK_REQUEST = CLUSTER_HELM_RELEASE_ROLLBACK_REQUEST__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMRELEASEROLLBACKREQUEST;
+export type CLUSTER_HELM_RELEASE_ROLLBACK_REQUEST = CLUSTER_HELM_RELEASE_ROLLBACK_REQUEST__MOGENIUS_OPERATOR_SRC_HELM_HELMRELEASEROLLBACKREQUEST;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/helm.HelmReleaseRollbackRequest,string]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/helm.HelmReleaseRollbackRequest,string]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseRollbackRequest,string]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseRollbackRequest,string]
  *         properties:
  *             data:
  *                 type: string
@@ -1834,51 +1834,51 @@ export type CLUSTER_HELM_RELEASE_ROLLBACK_REQUEST = CLUSTER_HELM_RELEASE_ROLLBAC
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/helm.HelmReleaseRollbackRequest,string]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseRollbackRequest,string]
  *     type: struct
  * ```
  *
  */
-export type CLUSTER_HELM_RELEASE_ROLLBACK_RESPONSE = CLUSTER_HELM_RELEASE_ROLLBACK_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_HELM_HELMRELEASEROLLBACKREQUEST_STRING;
+export type CLUSTER_HELM_RELEASE_ROLLBACK_RESPONSE = CLUSTER_HELM_RELEASE_ROLLBACK_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_HELM_HELMRELEASEROLLBACKREQUEST_STRING;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/helm.HelmReleaseStatusRequest:
- *         name: mogenius-k8s-manager/src/helm.HelmReleaseStatusRequest
+ *     mogenius-operator/src/helm.HelmReleaseStatusRequest:
+ *         name: mogenius-operator/src/helm.HelmReleaseStatusRequest
  *         properties:
  *             namespace:
  *                 type: string
  *             release:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/helm.HelmReleaseStatusRequest
+ *     structRef: mogenius-operator/src/helm.HelmReleaseStatusRequest
  *     type: struct
  * ```
  *
  */
-export type CLUSTER_HELM_RELEASE_STATUS_REQUEST = CLUSTER_HELM_RELEASE_STATUS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMRELEASESTATUSREQUEST;
+export type CLUSTER_HELM_RELEASE_STATUS_REQUEST = CLUSTER_HELM_RELEASE_STATUS_REQUEST__MOGENIUS_OPERATOR_SRC_HELM_HELMRELEASESTATUSREQUEST;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/helm.HelmReleaseStatusRequest,*mogenius-k8s-manager/src/helm.HelmReleaseStatusInfo]
- *     :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/helm.HelmReleaseStatusRequest,*mogenius-k8s-manager/src/helm.HelmReleaseStatusInfo]
+ *     ? mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseStatusRequest,*mogenius-operator/src/helm.HelmReleaseStatusInfo]
+ *     :   name: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseStatusRequest,*mogenius-operator/src/helm.HelmReleaseStatusInfo]
  *         properties:
  *             data:
  *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/helm.HelmReleaseStatusInfo
+ *                 structRef: mogenius-operator/src/helm.HelmReleaseStatusInfo
  *                 type: struct
  *             message:
  *                 type: string
  *             status:
  *                 type: string
- *     mogenius-k8s-manager/src/helm.HelmReleaseStatusInfo:
- *         name: mogenius-k8s-manager/src/helm.HelmReleaseStatusInfo
+ *     mogenius-operator/src/helm.HelmReleaseStatusInfo:
+ *         name: mogenius-operator/src/helm.HelmReleaseStatusInfo
  *         properties:
  *             chart:
  *                 type: string
@@ -1897,20 +1897,20 @@ export type CLUSTER_HELM_RELEASE_STATUS_REQUEST = CLUSTER_HELM_RELEASE_STATUS_RE
  *         name: time.Time
  *         properties: {}
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/helm.HelmReleaseStatusRequest,*mogenius-k8s-manager/src/helm.HelmReleaseStatusInfo]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseStatusRequest,*mogenius-operator/src/helm.HelmReleaseStatusInfo]
  *     type: struct
  * ```
  *
  */
-export type CLUSTER_HELM_RELEASE_STATUS_RESPONSE = CLUSTER_HELM_RELEASE_STATUS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_HELM_HELMRELEASESTATUSREQUEST_MOGENIUS_K8S_MANAGER_SRC_HELM_HELMRELEASESTATUSINFO;
+export type CLUSTER_HELM_RELEASE_STATUS_RESPONSE = CLUSTER_HELM_RELEASE_STATUS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_HELM_HELMRELEASESTATUSREQUEST_MOGENIUS_OPERATOR_SRC_HELM_HELMRELEASESTATUSINFO;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/helm.HelmReleaseUninstallRequest:
- *         name: mogenius-k8s-manager/src/helm.HelmReleaseUninstallRequest
+ *     mogenius-operator/src/helm.HelmReleaseUninstallRequest:
+ *         name: mogenius-operator/src/helm.HelmReleaseUninstallRequest
  *         properties:
  *             dryRun:
  *                 type: bool
@@ -1919,20 +1919,20 @@ export type CLUSTER_HELM_RELEASE_STATUS_RESPONSE = CLUSTER_HELM_RELEASE_STATUS_R
  *             release:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/helm.HelmReleaseUninstallRequest
+ *     structRef: mogenius-operator/src/helm.HelmReleaseUninstallRequest
  *     type: struct
  * ```
  *
  */
-export type CLUSTER_HELM_RELEASE_UNINSTALL_REQUEST = CLUSTER_HELM_RELEASE_UNINSTALL_REQUEST__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMRELEASEUNINSTALLREQUEST;
+export type CLUSTER_HELM_RELEASE_UNINSTALL_REQUEST = CLUSTER_HELM_RELEASE_UNINSTALL_REQUEST__MOGENIUS_OPERATOR_SRC_HELM_HELMRELEASEUNINSTALLREQUEST;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/helm.HelmReleaseUninstallRequest,string]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/helm.HelmReleaseUninstallRequest,string]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseUninstallRequest,string]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseUninstallRequest,string]
  *         properties:
  *             data:
  *                 type: string
@@ -1941,20 +1941,20 @@ export type CLUSTER_HELM_RELEASE_UNINSTALL_REQUEST = CLUSTER_HELM_RELEASE_UNINST
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/helm.HelmReleaseUninstallRequest,string]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseUninstallRequest,string]
  *     type: struct
  * ```
  *
  */
-export type CLUSTER_HELM_RELEASE_UNINSTALL_RESPONSE = CLUSTER_HELM_RELEASE_UNINSTALL_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_HELM_HELMRELEASEUNINSTALLREQUEST_STRING;
+export type CLUSTER_HELM_RELEASE_UNINSTALL_RESPONSE = CLUSTER_HELM_RELEASE_UNINSTALL_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_HELM_HELMRELEASEUNINSTALLREQUEST_STRING;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/helm.HelmChartInstallUpgradeRequest:
- *         name: mogenius-k8s-manager/src/helm.HelmChartInstallUpgradeRequest
+ *     mogenius-operator/src/helm.HelmChartInstallUpgradeRequest:
+ *         name: mogenius-operator/src/helm.HelmChartInstallUpgradeRequest
  *         properties:
  *             chart:
  *                 type: string
@@ -1969,20 +1969,20 @@ export type CLUSTER_HELM_RELEASE_UNINSTALL_RESPONSE = CLUSTER_HELM_RELEASE_UNINS
  *             version:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/helm.HelmChartInstallUpgradeRequest
+ *     structRef: mogenius-operator/src/helm.HelmChartInstallUpgradeRequest
  *     type: struct
  * ```
  *
  */
-export type CLUSTER_HELM_RELEASE_UPGRADE_REQUEST = CLUSTER_HELM_RELEASE_UPGRADE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMCHARTINSTALLUPGRADEREQUEST;
+export type CLUSTER_HELM_RELEASE_UPGRADE_REQUEST = CLUSTER_HELM_RELEASE_UPGRADE_REQUEST__MOGENIUS_OPERATOR_SRC_HELM_HELMCHARTINSTALLUPGRADEREQUEST;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/helm.HelmChartInstallUpgradeRequest,string]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/helm.HelmChartInstallUpgradeRequest,string]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmChartInstallUpgradeRequest,string]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmChartInstallUpgradeRequest,string]
  *         properties:
  *             data:
  *                 type: string
@@ -1991,20 +1991,20 @@ export type CLUSTER_HELM_RELEASE_UPGRADE_REQUEST = CLUSTER_HELM_RELEASE_UPGRADE_
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/helm.HelmChartInstallUpgradeRequest,string]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmChartInstallUpgradeRequest,string]
  *     type: struct
  * ```
  *
  */
-export type CLUSTER_HELM_RELEASE_UPGRADE_RESPONSE = CLUSTER_HELM_RELEASE_UPGRADE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_HELM_HELMCHARTINSTALLUPGRADEREQUEST_STRING;
+export type CLUSTER_HELM_RELEASE_UPGRADE_RESPONSE = CLUSTER_HELM_RELEASE_UPGRADE_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_HELM_HELMCHARTINSTALLUPGRADEREQUEST_STRING;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/helm.HelmRepoAddRequest:
- *         name: mogenius-k8s-manager/src/helm.HelmRepoAddRequest
+ *     mogenius-operator/src/helm.HelmRepoAddRequest:
+ *         name: mogenius-operator/src/helm.HelmRepoAddRequest
  *         properties:
  *             insecureSkipTLSverify:
  *                 type: bool
@@ -2019,20 +2019,20 @@ export type CLUSTER_HELM_RELEASE_UPGRADE_RESPONSE = CLUSTER_HELM_RELEASE_UPGRADE
  *             username:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/helm.HelmRepoAddRequest
+ *     structRef: mogenius-operator/src/helm.HelmRepoAddRequest
  *     type: struct
  * ```
  *
  */
-export type CLUSTER_HELM_REPO_ADD_REQUEST = CLUSTER_HELM_REPO_ADD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMREPOADDREQUEST;
+export type CLUSTER_HELM_REPO_ADD_REQUEST = CLUSTER_HELM_REPO_ADD_REQUEST__MOGENIUS_OPERATOR_SRC_HELM_HELMREPOADDREQUEST;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/helm.HelmRepoAddRequest,string]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/helm.HelmRepoAddRequest,string]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmRepoAddRequest,string]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmRepoAddRequest,string]
  *         properties:
  *             data:
  *                 type: string
@@ -2041,12 +2041,12 @@ export type CLUSTER_HELM_REPO_ADD_REQUEST = CLUSTER_HELM_REPO_ADD_REQUEST__MOGEN
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/helm.HelmRepoAddRequest,string]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmRepoAddRequest,string]
  *     type: struct
  * ```
  *
  */
-export type CLUSTER_HELM_REPO_ADD_RESPONSE = CLUSTER_HELM_REPO_ADD_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_HELM_HELMREPOADDREQUEST_STRING;
+export type CLUSTER_HELM_REPO_ADD_RESPONSE = CLUSTER_HELM_REPO_ADD_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_HELM_HELMREPOADDREQUEST_STRING;
 
 /**
  * #### Source
@@ -2069,21 +2069,21 @@ export type CLUSTER_HELM_REPO_LIST_REQUEST = CLUSTER_HELM_REPO_LIST_REQUEST__ANO
  *
  * ```yaml
  * structs:
- *     ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,[]*mogenius-k8s-manager/src/helm.HelmEntryWithoutPassword]
- *     :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,[]*mogenius-k8s-manager/src/helm.HelmEntryWithoutPassword]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,[]*mogenius-operator/src/helm.HelmEntryWithoutPassword]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,[]*mogenius-operator/src/helm.HelmEntryWithoutPassword]
  *         properties:
  *             data:
  *                 elementType:
  *                     pointer: true
- *                     structRef: mogenius-k8s-manager/src/helm.HelmEntryWithoutPassword
+ *                     structRef: mogenius-operator/src/helm.HelmEntryWithoutPassword
  *                     type: struct
  *                 type: array
  *             message:
  *                 type: string
  *             status:
  *                 type: string
- *     mogenius-k8s-manager/src/helm.HelmEntryWithoutPassword:
- *         name: mogenius-k8s-manager/src/helm.HelmEntryWithoutPassword
+ *     mogenius-operator/src/helm.HelmEntryWithoutPassword:
+ *         name: mogenius-operator/src/helm.HelmEntryWithoutPassword
  *         properties:
  *             insecure_skip_tls_verify:
  *                 type: bool
@@ -2094,20 +2094,20 @@ export type CLUSTER_HELM_REPO_LIST_REQUEST = CLUSTER_HELM_REPO_LIST_REQUEST__ANO
  *             url:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,[]*mogenius-k8s-manager/src/helm.HelmEntryWithoutPassword]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,[]*mogenius-operator/src/helm.HelmEntryWithoutPassword]
  *     type: struct
  * ```
  *
  */
-export type CLUSTER_HELM_REPO_LIST_RESPONSE = CLUSTER_HELM_REPO_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_MOGENIUS_K8S_MANAGER_SRC_HELM_HELMENTRYWITHOUTPASSWORD;
+export type CLUSTER_HELM_REPO_LIST_RESPONSE = CLUSTER_HELM_REPO_LIST_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_MOGENIUS_OPERATOR_SRC_HELM_HELMENTRYWITHOUTPASSWORD;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/helm.HelmRepoPatchRequest:
- *         name: mogenius-k8s-manager/src/helm.HelmRepoPatchRequest
+ *     mogenius-operator/src/helm.HelmRepoPatchRequest:
+ *         name: mogenius-operator/src/helm.HelmRepoPatchRequest
  *         properties:
  *             insecureSkipTLSverify:
  *                 type: bool
@@ -2124,20 +2124,20 @@ export type CLUSTER_HELM_REPO_LIST_RESPONSE = CLUSTER_HELM_REPO_LIST_RESPONSE__M
  *             username:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/helm.HelmRepoPatchRequest
+ *     structRef: mogenius-operator/src/helm.HelmRepoPatchRequest
  *     type: struct
  * ```
  *
  */
-export type CLUSTER_HELM_REPO_PATCH_REQUEST = CLUSTER_HELM_REPO_PATCH_REQUEST__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMREPOPATCHREQUEST;
+export type CLUSTER_HELM_REPO_PATCH_REQUEST = CLUSTER_HELM_REPO_PATCH_REQUEST__MOGENIUS_OPERATOR_SRC_HELM_HELMREPOPATCHREQUEST;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/helm.HelmRepoPatchRequest,string]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/helm.HelmRepoPatchRequest,string]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmRepoPatchRequest,string]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmRepoPatchRequest,string]
  *         properties:
  *             data:
  *                 type: string
@@ -2146,12 +2146,12 @@ export type CLUSTER_HELM_REPO_PATCH_REQUEST = CLUSTER_HELM_REPO_PATCH_REQUEST__M
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/helm.HelmRepoPatchRequest,string]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmRepoPatchRequest,string]
  *     type: struct
  * ```
  *
  */
-export type CLUSTER_HELM_REPO_PATCH_RESPONSE = CLUSTER_HELM_REPO_PATCH_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_HELM_HELMREPOPATCHREQUEST_STRING;
+export type CLUSTER_HELM_REPO_PATCH_RESPONSE = CLUSTER_HELM_REPO_PATCH_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_HELM_HELMREPOPATCHREQUEST_STRING;
 
 /**
  * #### Source
@@ -2174,31 +2174,31 @@ export type CLUSTER_HELM_REPO_UPDATE_REQUEST = CLUSTER_HELM_REPO_UPDATE_REQUEST_
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,[]mogenius-k8s-manager/src/helm.HelmEntryStatus]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,[]mogenius-k8s-manager/src/helm.HelmEntryStatus]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,[]mogenius-operator/src/helm.HelmEntryStatus]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,[]mogenius-operator/src/helm.HelmEntryStatus]
  *         properties:
  *             data:
  *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/helm.HelmEntryStatus
+ *                     structRef: mogenius-operator/src/helm.HelmEntryStatus
  *                     type: struct
  *                 type: array
  *             message:
  *                 type: string
  *             status:
  *                 type: string
- *     mogenius-k8s-manager/src/helm.HelmEntryStatus:
- *         name: mogenius-k8s-manager/src/helm.HelmEntryStatus
+ *     mogenius-operator/src/helm.HelmEntryStatus:
+ *         name: mogenius-operator/src/helm.HelmEntryStatus
  *         properties:
  *             entry:
  *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/helm.HelmEntryWithoutPassword
+ *                 structRef: mogenius-operator/src/helm.HelmEntryWithoutPassword
  *                 type: struct
  *             message:
  *                 type: string
  *             status:
  *                 type: string
- *     mogenius-k8s-manager/src/helm.HelmEntryWithoutPassword:
- *         name: mogenius-k8s-manager/src/helm.HelmEntryWithoutPassword
+ *     mogenius-operator/src/helm.HelmEntryWithoutPassword:
+ *         name: mogenius-operator/src/helm.HelmEntryWithoutPassword
  *         properties:
  *             insecure_skip_tls_verify:
  *                 type: bool
@@ -2209,20 +2209,20 @@ export type CLUSTER_HELM_REPO_UPDATE_REQUEST = CLUSTER_HELM_REPO_UPDATE_REQUEST_
  *             url:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,[]mogenius-k8s-manager/src/helm.HelmEntryStatus]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,[]mogenius-operator/src/helm.HelmEntryStatus]
  *     type: struct
  * ```
  *
  */
-export type CLUSTER_HELM_REPO_UPDATE_RESPONSE = CLUSTER_HELM_REPO_UPDATE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_MOGENIUS_K8S_MANAGER_SRC_HELM_HELMENTRYSTATUS;
+export type CLUSTER_HELM_REPO_UPDATE_RESPONSE = CLUSTER_HELM_REPO_UPDATE_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_MOGENIUS_OPERATOR_SRC_HELM_HELMENTRYSTATUS;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/services.ClusterListWorkloads:
- *         name: mogenius-k8s-manager/src/services.ClusterListWorkloads
+ *     mogenius-operator/src/services.ClusterListWorkloads:
+ *         name: mogenius-operator/src/services.ClusterListWorkloads
  *         properties:
  *             labelSelector:
  *                 type: string
@@ -2231,12 +2231,12 @@ export type CLUSTER_HELM_REPO_UPDATE_RESPONSE = CLUSTER_HELM_REPO_UPDATE_RESPONS
  *             prefix:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/services.ClusterListWorkloads
+ *     structRef: mogenius-operator/src/services.ClusterListWorkloads
  *     type: struct
  * ```
  *
  */
-export type CLUSTER_LIST_PERSISTENT_VOLUME_CLAIMS_REQUEST = CLUSTER_LIST_PERSISTENT_VOLUME_CLAIMS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_CLUSTERLISTWORKLOADS;
+export type CLUSTER_LIST_PERSISTENT_VOLUME_CLAIMS_REQUEST = CLUSTER_LIST_PERSISTENT_VOLUME_CLAIMS_REQUEST__MOGENIUS_OPERATOR_SRC_SERVICES_CLUSTERLISTWORKLOADS;
 
 /**
  * #### Source
@@ -2533,8 +2533,8 @@ export type CLUSTER_LIST_PERSISTENT_VOLUME_CLAIMS_REQUEST = CLUSTER_LIST_PERSIST
  *                 type: string
  *             kind:
  *                 type: string
- *     ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/services.ClusterListWorkloads,[]k8s.io/api/core/v1.PersistentVolumeClaim]
- *     :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/services.ClusterListWorkloads,[]k8s.io/api/core/v1.PersistentVolumeClaim]
+ *     ? mogenius-operator/src/core.Result[mogenius-operator/src/services.ClusterListWorkloads,[]k8s.io/api/core/v1.PersistentVolumeClaim]
+ *     :   name: mogenius-operator/src/core.Result[mogenius-operator/src/services.ClusterListWorkloads,[]k8s.io/api/core/v1.PersistentVolumeClaim]
  *         properties:
  *             data:
  *                 elementType:
@@ -2549,62 +2549,62 @@ export type CLUSTER_LIST_PERSISTENT_VOLUME_CLAIMS_REQUEST = CLUSTER_LIST_PERSIST
  *         name: time.Time
  *         properties: {}
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/services.ClusterListWorkloads,[]k8s.io/api/core/v1.PersistentVolumeClaim]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/services.ClusterListWorkloads,[]k8s.io/api/core/v1.PersistentVolumeClaim]
  *     type: struct
  * ```
  *
  */
-export type CLUSTER_LIST_PERSISTENT_VOLUME_CLAIMS_RESPONSE = CLUSTER_LIST_PERSISTENT_VOLUME_CLAIMS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_SERVICES_CLUSTERLISTWORKLOADS_K8S_IO_API_CORE_V1_PERSISTENTVOLUMECLAIM;
+export type CLUSTER_LIST_PERSISTENT_VOLUME_CLAIMS_RESPONSE = CLUSTER_LIST_PERSISTENT_VOLUME_CLAIMS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_SERVICES_CLUSTERLISTWORKLOADS_K8S_IO_API_CORE_V1_PERSISTENTVOLUMECLAIM;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Request:
- *         name: mogenius-k8s-manager/src/core.Request
+ *     mogenius-operator/src/core.Request:
+ *         name: mogenius-operator/src/core.Request
  *         properties:
  *             nodes:
  *                 elementType:
  *                     type: string
  *                 type: array
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Request
+ *     structRef: mogenius-operator/src/core.Request
  *     type: struct
  * ```
  *
  */
-export type CLUSTER_MACHINE_STATS_REQUEST = CLUSTER_MACHINE_STATS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST;
+export type CLUSTER_MACHINE_STATS_REQUEST = CLUSTER_MACHINE_STATS_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·16,[]mogenius-k8s-manager/src/structs.MachineStats]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·16,[]mogenius-k8s-manager/src/structs.MachineStats]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·16,[]mogenius-operator/src/structs.MachineStats]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·16,[]mogenius-operator/src/structs.MachineStats]
  *         properties:
  *             data:
  *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/structs.MachineStats
+ *                     structRef: mogenius-operator/src/structs.MachineStats
  *                     type: struct
  *                 type: array
  *             message:
  *                 type: string
  *             status:
  *                 type: string
- *     mogenius-k8s-manager/src/structs.MachineStats:
- *         name: mogenius-k8s-manager/src/structs.MachineStats
+ *     mogenius-operator/src/structs.MachineStats:
+ *         name: mogenius-operator/src/structs.MachineStats
  *         properties:
  *             btfSupport:
  *                 type: bool
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·16,[]mogenius-k8s-manager/src/structs.MachineStats]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·16,[]mogenius-operator/src/structs.MachineStats]
  *     type: struct
  * ```
  *
  */
-export type CLUSTER_MACHINE_STATS_RESPONSE = CLUSTER_MACHINE_STATS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST16_MOGENIUS_K8S_MANAGER_SRC_STRUCTS_MACHINESTATS;
+export type CLUSTER_MACHINE_STATS_RESPONSE = CLUSTER_MACHINE_STATS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST16_MOGENIUS_OPERATOR_SRC_STRUCTS_MACHINESTATS;
 
 /**
  * #### Source
@@ -2627,17 +2627,17 @@ export type CLUSTER_RESOURCE_INFO_REQUEST = CLUSTER_RESOURCE_INFO_REQUEST__ANON_
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.ClusterResourceInfo:
- *         name: mogenius-k8s-manager/src/core.ClusterResourceInfo
+ *     mogenius-operator/src/core.ClusterResourceInfo:
+ *         name: mogenius-operator/src/core.ClusterResourceInfo
  *         properties:
  *             cniConfig:
  *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/structs.CniData
+ *                     structRef: mogenius-operator/src/structs.CniData
  *                     type: struct
  *                 type: array
  *             country:
  *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/utils.CountryDetails
+ *                 structRef: mogenius-operator/src/utils.CountryDetails
  *                 type: struct
  *             error:
  *                 elementType:
@@ -2649,23 +2649,23 @@ export type CLUSTER_RESOURCE_INFO_REQUEST = CLUSTER_RESOURCE_INFO_REQUEST__ANON_
  *                 type: array
  *             nodeStats:
  *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/dtos.NodeStat
+ *                     structRef: mogenius-operator/src/dtos.NodeStat
  *                     type: struct
  *                 type: array
  *             provider:
  *                 type: string
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,mogenius-k8s-manager/src/core.ClusterResourceInfo·3]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,mogenius-k8s-manager/src/core.ClusterResourceInfo·3]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.ClusterResourceInfo·3]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.ClusterResourceInfo·3]
  *         properties:
  *             data:
- *                 structRef: mogenius-k8s-manager/src/core.ClusterResourceInfo
+ *                 structRef: mogenius-operator/src/core.ClusterResourceInfo
  *                 type: struct
  *             message:
  *                 type: string
  *             status:
  *                 type: string
- *     mogenius-k8s-manager/src/dtos.NodeStat:
- *         name: mogenius-k8s-manager/src/dtos.NodeStat
+ *     mogenius-operator/src/dtos.NodeStat:
+ *         name: mogenius-operator/src/dtos.NodeStat
  *         properties:
  *             architecture:
  *                 type: string
@@ -2683,7 +2683,7 @@ export type CLUSTER_RESOURCE_INFO_REQUEST = CLUSTER_RESOURCE_INFO_REQUEST__ANON_
  *                 type: string
  *             machineStats:
  *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/structs.MachineStats
+ *                 structRef: mogenius-operator/src/structs.MachineStats
  *                 type: struct
  *             maschineId:
  *                 type: string
@@ -2707,15 +2707,15 @@ export type CLUSTER_RESOURCE_INFO_REQUEST = CLUSTER_RESOURCE_INFO_REQUEST__ANON_
  *                 type: string
  *             totalPods:
  *                 type: int
- *     mogenius-k8s-manager/src/structs.CniCapabilities:
- *         name: mogenius-k8s-manager/src/structs.CniCapabilities
+ *     mogenius-operator/src/structs.CniCapabilities:
+ *         name: mogenius-operator/src/structs.CniCapabilities
  *         properties:
  *             bandwidth:
  *                 type: bool
  *             portMappings:
  *                 type: bool
- *     mogenius-k8s-manager/src/structs.CniData:
- *         name: mogenius-k8s-manager/src/structs.CniData
+ *     mogenius-operator/src/structs.CniData:
+ *         name: mogenius-operator/src/structs.CniData
  *         properties:
  *             cniVersion:
  *                 type: string
@@ -2725,36 +2725,36 @@ export type CLUSTER_RESOURCE_INFO_REQUEST = CLUSTER_RESOURCE_INFO_REQUEST__ANON_
  *                 type: string
  *             plugins:
  *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/structs.Plugin
+ *                     structRef: mogenius-operator/src/structs.Plugin
  *                     type: struct
  *                 type: array
- *     mogenius-k8s-manager/src/structs.CniIPAM:
- *         name: mogenius-k8s-manager/src/structs.CniIPAM
+ *     mogenius-operator/src/structs.CniIPAM:
+ *         name: mogenius-operator/src/structs.CniIPAM
  *         properties:
  *             type:
  *                 type: string
- *     mogenius-k8s-manager/src/structs.CniPolicy:
- *         name: mogenius-k8s-manager/src/structs.CniPolicy
+ *     mogenius-operator/src/structs.CniPolicy:
+ *         name: mogenius-operator/src/structs.CniPolicy
  *         properties:
  *             type:
  *                 type: string
- *     mogenius-k8s-manager/src/structs.MachineStats:
- *         name: mogenius-k8s-manager/src/structs.MachineStats
+ *     mogenius-operator/src/structs.MachineStats:
+ *         name: mogenius-operator/src/structs.MachineStats
  *         properties:
  *             btfSupport:
  *                 type: bool
- *     mogenius-k8s-manager/src/structs.Plugin:
- *         name: mogenius-k8s-manager/src/structs.Plugin
+ *     mogenius-operator/src/structs.Plugin:
+ *         name: mogenius-operator/src/structs.Plugin
  *         properties:
  *             capabilities:
  *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/structs.CniCapabilities
+ *                 structRef: mogenius-operator/src/structs.CniCapabilities
  *                 type: struct
  *             datastore_type:
  *                 type: string
  *             ipam:
  *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/structs.CniIPAM
+ *                 structRef: mogenius-operator/src/structs.CniIPAM
  *                 type: struct
  *             log_file_path:
  *                 type: string
@@ -2766,15 +2766,15 @@ export type CLUSTER_RESOURCE_INFO_REQUEST = CLUSTER_RESOURCE_INFO_REQUEST__ANON_
  *                 type: string
  *             policy:
  *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/structs.CniPolicy
+ *                 structRef: mogenius-operator/src/structs.CniPolicy
  *                 type: struct
  *             snat:
  *                 pointer: true
  *                 type: bool
  *             type:
  *                 type: string
- *     mogenius-k8s-manager/src/utils.CountryDetails:
- *         name: mogenius-k8s-manager/src/utils.CountryDetails
+ *     mogenius-operator/src/utils.CountryDetails:
+ *         name: mogenius-operator/src/utils.CountryDetails
  *         properties:
  *             capitalCity:
  *                 type: string
@@ -2811,20 +2811,20 @@ export type CLUSTER_RESOURCE_INFO_REQUEST = CLUSTER_RESOURCE_INFO_REQUEST__ANON_
  *             taxPercent:
  *                 type: float
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,mogenius-k8s-manager/src/core.ClusterResourceInfo·3]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.ClusterResourceInfo·3]
  *     type: struct
  * ```
  *
  */
-export type CLUSTER_RESOURCE_INFO_RESPONSE = CLUSTER_RESOURCE_INFO_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_MOGENIUS_K8S_MANAGER_SRC_CORE_CLUSTERRESOURCEINFO3;
+export type CLUSTER_RESOURCE_INFO_RESPONSE = CLUSTER_RESOURCE_INFO_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_MOGENIUS_OPERATOR_SRC_CORE_CLUSTERRESOURCEINFO3;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Request:
- *         name: mogenius-k8s-manager/src/core.Request
+ *     mogenius-operator/src/core.Request:
+ *         name: mogenius-operator/src/core.Request
  *         properties:
  *             grantee:
  *                 type: string
@@ -2837,20 +2837,20 @@ export type CLUSTER_RESOURCE_INFO_RESPONSE = CLUSTER_RESOURCE_INFO_RESPONSE__MOG
  *             targetType:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Request
+ *     structRef: mogenius-operator/src/core.Request
  *     type: struct
  * ```
  *
  */
-export type CREATE_GRANT_REQUEST = CREATE_GRANT_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST;
+export type CREATE_GRANT_REQUEST = CREATE_GRANT_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·29,string]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·29,string]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·29,string]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·29,string]
  *         properties:
  *             data:
  *                 type: string
@@ -2859,20 +2859,20 @@ export type CREATE_GRANT_REQUEST = CREATE_GRANT_REQUEST__MOGENIUS_K8S_MANAGER_SR
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·29,string]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·29,string]
  *     type: struct
  * ```
  *
  */
-export type CREATE_GRANT_RESPONSE = CREATE_GRANT_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST29_STRING;
+export type CREATE_GRANT_RESPONSE = CREATE_GRANT_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST29_STRING;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/utils.ResourceDescriptor:
- *         name: mogenius-k8s-manager/src/utils.ResourceDescriptor
+ *     mogenius-operator/src/utils.ResourceDescriptor:
+ *         name: mogenius-operator/src/utils.ResourceDescriptor
  *         properties:
  *             apiVersion:
  *                 type: string
@@ -2882,23 +2882,23 @@ export type CREATE_GRANT_RESPONSE = CREATE_GRANT_RESPONSE__MOGENIUS_K8S_MANAGER_
  *                 type: bool
  *             plural:
  *                 type: string
- *     mogenius-k8s-manager/src/utils.WorkloadChangeRequest:
- *         name: mogenius-k8s-manager/src/utils.WorkloadChangeRequest
+ *     mogenius-operator/src/utils.WorkloadChangeRequest:
+ *         name: mogenius-operator/src/utils.WorkloadChangeRequest
  *         properties:
  *             ResourceDescriptor:
- *                 structRef: mogenius-k8s-manager/src/utils.ResourceDescriptor
+ *                 structRef: mogenius-operator/src/utils.ResourceDescriptor
  *                 type: struct
  *             namespace:
  *                 type: string
  *             yamlData:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/utils.WorkloadChangeRequest
+ *     structRef: mogenius-operator/src/utils.WorkloadChangeRequest
  *     type: struct
  * ```
  *
  */
-export type CREATE_NEW_WORKLOAD_REQUEST = CREATE_NEW_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_WORKLOADCHANGEREQUEST;
+export type CREATE_NEW_WORKLOAD_REQUEST = CREATE_NEW_WORKLOAD_REQUEST__MOGENIUS_OPERATOR_SRC_UTILS_WORKLOADCHANGEREQUEST;
 
 /**
  * #### Source
@@ -2915,8 +2915,8 @@ export type CREATE_NEW_WORKLOAD_REQUEST = CREATE_NEW_WORKLOAD_REQUEST__MOGENIUS_
  *                 valueType:
  *                     pointer: true
  *                     type: any
- *     ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadChangeRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
- *     :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadChangeRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *     ? mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadChangeRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *     :   name: mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadChangeRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
  *         properties:
  *             data:
  *                 pointer: true
@@ -2927,12 +2927,12 @@ export type CREATE_NEW_WORKLOAD_REQUEST = CREATE_NEW_WORKLOAD_REQUEST__MOGENIUS_
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadChangeRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadChangeRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
  *     type: struct
  * ```
  *
  */
-export type CREATE_NEW_WORKLOAD_RESPONSE = CREATE_NEW_WORKLOAD_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_UTILS_WORKLOADCHANGEREQUEST_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED;
+export type CREATE_NEW_WORKLOAD_RESPONSE = CREATE_NEW_WORKLOAD_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_UTILS_WORKLOADCHANGEREQUEST_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED;
 
 /**
  * #### Source
@@ -2950,8 +2950,8 @@ export type CREATE_NEW_WORKLOAD_RESPONSE = CREATE_NEW_WORKLOAD_RESPONSE__MOGENIU
  *                 type: string
  *             namespace:
  *                 type: string
- *     mogenius-k8s-manager/src/core.Request:
- *         name: mogenius-k8s-manager/src/core.Request
+ *     mogenius-operator/src/core.Request:
+ *         name: mogenius-operator/src/core.Request
  *         properties:
  *             email:
  *                 type: string
@@ -2966,20 +2966,20 @@ export type CREATE_NEW_WORKLOAD_RESPONSE = CREATE_NEW_WORKLOAD_RESPONSE__MOGENIU
  *                 structRef: k8s.io/api/rbac/v1.Subject
  *                 type: struct
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Request
+ *     structRef: mogenius-operator/src/core.Request
  *     type: struct
  * ```
  *
  */
-export type CREATE_USER_REQUEST = CREATE_USER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST;
+export type CREATE_USER_REQUEST = CREATE_USER_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·24,string]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·24,string]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·24,string]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·24,string]
  *         properties:
  *             data:
  *                 type: string
@@ -2988,20 +2988,20 @@ export type CREATE_USER_REQUEST = CREATE_USER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·24,string]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·24,string]
  *     type: struct
  * ```
  *
  */
-export type CREATE_USER_RESPONSE = CREATE_USER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST24_STRING;
+export type CREATE_USER_RESPONSE = CREATE_USER_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST24_STRING;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Request:
- *         name: mogenius-k8s-manager/src/core.Request
+ *     mogenius-operator/src/core.Request:
+ *         name: mogenius-operator/src/core.Request
  *         properties:
  *             displayName:
  *                 type: string
@@ -3009,11 +3009,11 @@ export type CREATE_USER_RESPONSE = CREATE_USER_RESPONSE__MOGENIUS_K8S_MANAGER_SR
  *                 type: string
  *             resources:
  *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/crds/v1alpha1.WorkspaceResourceIdentifier
+ *                     structRef: mogenius-operator/src/crds/v1alpha1.WorkspaceResourceIdentifier
  *                     type: struct
  *                 type: array
- *     mogenius-k8s-manager/src/crds/v1alpha1.WorkspaceResourceIdentifier:
- *         name: mogenius-k8s-manager/src/crds/v1alpha1.WorkspaceResourceIdentifier
+ *     mogenius-operator/src/crds/v1alpha1.WorkspaceResourceIdentifier:
+ *         name: mogenius-operator/src/crds/v1alpha1.WorkspaceResourceIdentifier
  *         properties:
  *             id:
  *                 type: string
@@ -3022,20 +3022,20 @@ export type CREATE_USER_RESPONSE = CREATE_USER_RESPONSE__MOGENIUS_K8S_MANAGER_SR
  *             type:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Request
+ *     structRef: mogenius-operator/src/core.Request
  *     type: struct
  * ```
  *
  */
-export type CREATE_WORKSPACE_REQUEST = CREATE_WORKSPACE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST;
+export type CREATE_WORKSPACE_REQUEST = CREATE_WORKSPACE_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·18,string]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·18,string]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·18,string]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·18,string]
  *         properties:
  *             data:
  *                 type: string
@@ -3044,38 +3044,38 @@ export type CREATE_WORKSPACE_REQUEST = CREATE_WORKSPACE_REQUEST__MOGENIUS_K8S_MA
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·18,string]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·18,string]
  *     type: struct
  * ```
  *
  */
-export type CREATE_WORKSPACE_RESPONSE = CREATE_WORKSPACE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST18_STRING;
+export type CREATE_WORKSPACE_RESPONSE = CREATE_WORKSPACE_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST18_STRING;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Request:
- *         name: mogenius-k8s-manager/src/core.Request
+ *     mogenius-operator/src/core.Request:
+ *         name: mogenius-operator/src/core.Request
  *         properties:
  *             name:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Request
+ *     structRef: mogenius-operator/src/core.Request
  *     type: struct
  * ```
  *
  */
-export type DELETE_GRANT_REQUEST = DELETE_GRANT_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST;
+export type DELETE_GRANT_REQUEST = DELETE_GRANT_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·32,string]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·32,string]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·32,string]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·32,string]
  *         properties:
  *             data:
  *                 type: string
@@ -3084,38 +3084,38 @@ export type DELETE_GRANT_REQUEST = DELETE_GRANT_REQUEST__MOGENIUS_K8S_MANAGER_SR
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·32,string]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·32,string]
  *     type: struct
  * ```
  *
  */
-export type DELETE_GRANT_RESPONSE = DELETE_GRANT_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST32_STRING;
+export type DELETE_GRANT_RESPONSE = DELETE_GRANT_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST32_STRING;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Request:
- *         name: mogenius-k8s-manager/src/core.Request
+ *     mogenius-operator/src/core.Request:
+ *         name: mogenius-operator/src/core.Request
  *         properties:
  *             name:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Request
+ *     structRef: mogenius-operator/src/core.Request
  *     type: struct
  * ```
  *
  */
-export type DELETE_USER_REQUEST = DELETE_USER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST;
+export type DELETE_USER_REQUEST = DELETE_USER_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·27,string]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·27,string]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·27,string]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·27,string]
  *         properties:
  *             data:
  *                 type: string
@@ -3124,20 +3124,20 @@ export type DELETE_USER_REQUEST = DELETE_USER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·27,string]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·27,string]
  *     type: struct
  * ```
  *
  */
-export type DELETE_USER_RESPONSE = DELETE_USER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST27_STRING;
+export type DELETE_USER_RESPONSE = DELETE_USER_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST27_STRING;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/utils.ResourceDescriptor:
- *         name: mogenius-k8s-manager/src/utils.ResourceDescriptor
+ *     mogenius-operator/src/utils.ResourceDescriptor:
+ *         name: mogenius-operator/src/utils.ResourceDescriptor
  *         properties:
  *             apiVersion:
  *                 type: string
@@ -3147,23 +3147,23 @@ export type DELETE_USER_RESPONSE = DELETE_USER_RESPONSE__MOGENIUS_K8S_MANAGER_SR
  *                 type: bool
  *             plural:
  *                 type: string
- *     mogenius-k8s-manager/src/utils.WorkloadSingleRequest:
- *         name: mogenius-k8s-manager/src/utils.WorkloadSingleRequest
+ *     mogenius-operator/src/utils.WorkloadSingleRequest:
+ *         name: mogenius-operator/src/utils.WorkloadSingleRequest
  *         properties:
  *             ResourceDescriptor:
- *                 structRef: mogenius-k8s-manager/src/utils.ResourceDescriptor
+ *                 structRef: mogenius-operator/src/utils.ResourceDescriptor
  *                 type: struct
  *             namespace:
  *                 type: string
  *             resourceName:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/utils.WorkloadSingleRequest
+ *     structRef: mogenius-operator/src/utils.WorkloadSingleRequest
  *     type: struct
  * ```
  *
  */
-export type DELETE_WORKLOAD_REQUEST = DELETE_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_WORKLOADSINGLEREQUEST;
+export type DELETE_WORKLOAD_REQUEST = DELETE_WORKLOAD_REQUEST__MOGENIUS_OPERATOR_SRC_UTILS_WORKLOADSINGLEREQUEST;
 
 /**
  * #### Source
@@ -3172,8 +3172,8 @@ export type DELETE_WORKLOAD_REQUEST = DELETE_WORKLOAD_REQUEST__MOGENIUS_K8S_MANA
  * structs:
  *     ANON_STRUCT_1:
  *         properties: {}
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadSingleRequest,mogenius-k8s-manager/src/core.Void]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadSingleRequest,mogenius-k8s-manager/src/core.Void]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadSingleRequest,mogenius-operator/src/core.Void]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadSingleRequest,mogenius-operator/src/core.Void]
  *         properties:
  *             data:
  *                 pointer: true
@@ -3184,38 +3184,38 @@ export type DELETE_WORKLOAD_REQUEST = DELETE_WORKLOAD_REQUEST__MOGENIUS_K8S_MANA
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadSingleRequest,mogenius-k8s-manager/src/core.Void]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadSingleRequest,mogenius-operator/src/core.Void]
  *     type: struct
  * ```
  *
  */
-export type DELETE_WORKLOAD_RESPONSE = DELETE_WORKLOAD_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_UTILS_WORKLOADSINGLEREQUEST_MOGENIUS_K8S_MANAGER_SRC_CORE_VOID;
+export type DELETE_WORKLOAD_RESPONSE = DELETE_WORKLOAD_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_UTILS_WORKLOADSINGLEREQUEST_MOGENIUS_OPERATOR_SRC_CORE_VOID;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Request:
- *         name: mogenius-k8s-manager/src/core.Request
+ *     mogenius-operator/src/core.Request:
+ *         name: mogenius-operator/src/core.Request
  *         properties:
  *             name:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Request
+ *     structRef: mogenius-operator/src/core.Request
  *     type: struct
  * ```
  *
  */
-export type DELETE_WORKSPACE_REQUEST = DELETE_WORKSPACE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST;
+export type DELETE_WORKSPACE_REQUEST = DELETE_WORKSPACE_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·22,string]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·22,string]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·22,string]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·22,string]
  *         properties:
  *             data:
  *                 type: string
@@ -3224,12 +3224,12 @@ export type DELETE_WORKSPACE_REQUEST = DELETE_WORKSPACE_REQUEST__MOGENIUS_K8S_MA
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·22,string]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·22,string]
  *     type: struct
  * ```
  *
  */
-export type DELETE_WORKSPACE_RESPONSE = DELETE_WORKSPACE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST22_STRING;
+export type DELETE_WORKSPACE_RESPONSE = DELETE_WORKSPACE_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST22_STRING;
 
 /**
  * #### Source
@@ -3257,12 +3257,12 @@ export type DESCRIBE_REQUEST = DESCRIBE_REQUEST__ANON_STRUCT_0|undefined;
  *             buildType:
  *                 type: string
  *             version:
- *                 structRef: mogenius-k8s-manager/src/version.Version
+ *                 structRef: mogenius-operator/src/version.Version
  *                 type: struct
  *     ANON_STRUCT_4:
  *         properties: {}
- *     mogenius-k8s-manager/src/core.PatternConfig:
- *         name: mogenius-k8s-manager/src/core.PatternConfig
+ *     mogenius-operator/src/core.PatternConfig:
+ *         name: mogenius-operator/src/core.PatternConfig
  *         properties:
  *             deprecated:
  *                 type: bool
@@ -3274,14 +3274,14 @@ export type DESCRIBE_REQUEST = DESCRIBE_REQUEST__ANON_STRUCT_0|undefined;
  *                 type: bool
  *             requestSchema:
  *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/schema.Schema
+ *                 structRef: mogenius-operator/src/schema.Schema
  *                 type: struct
  *             responseSchema:
  *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/schema.Schema
+ *                 structRef: mogenius-operator/src/schema.Schema
  *                 type: struct
- *     mogenius-k8s-manager/src/core.Response:
- *         name: mogenius-k8s-manager/src/core.Response
+ *     mogenius-operator/src/core.Response:
+ *         name: mogenius-operator/src/core.Response
  *         properties:
  *             buildInfo:
  *                 structRef: ANON_STRUCT_2
@@ -3294,34 +3294,34 @@ export type DESCRIBE_REQUEST = DESCRIBE_REQUEST__ANON_STRUCT_0|undefined;
  *                     type: string
  *                 type: map
  *                 valueType:
- *                     structRef: mogenius-k8s-manager/src/core.PatternConfig
+ *                     structRef: mogenius-operator/src/core.PatternConfig
  *                     type: struct
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,mogenius-k8s-manager/src/core.Response·2]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,mogenius-k8s-manager/src/core.Response·2]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Response·2]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Response·2]
  *         properties:
  *             data:
- *                 structRef: mogenius-k8s-manager/src/core.Response
+ *                 structRef: mogenius-operator/src/core.Response
  *                 type: struct
  *             message:
  *                 type: string
  *             status:
  *                 type: string
- *     mogenius-k8s-manager/src/schema.Schema:
- *         name: mogenius-k8s-manager/src/schema.Schema
+ *     mogenius-operator/src/schema.Schema:
+ *         name: mogenius-operator/src/schema.Schema
  *         properties:
  *             structs:
  *                 keyType:
  *                     type: string
  *                 type: map
  *                 valueType:
- *                     structRef: mogenius-k8s-manager/src/schema.StructLayout
+ *                     structRef: mogenius-operator/src/schema.StructLayout
  *                     type: struct
  *             typeInfo:
  *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/schema.TypeInfo
+ *                 structRef: mogenius-operator/src/schema.TypeInfo
  *                 type: struct
- *     mogenius-k8s-manager/src/schema.StructLayout:
- *         name: mogenius-k8s-manager/src/schema.StructLayout
+ *     mogenius-operator/src/schema.StructLayout:
+ *         name: mogenius-operator/src/schema.StructLayout
  *         properties:
  *             name:
  *                 type: string
@@ -3331,18 +3331,18 @@ export type DESCRIBE_REQUEST = DESCRIBE_REQUEST__ANON_STRUCT_0|undefined;
  *                 type: map
  *                 valueType:
  *                     pointer: true
- *                     structRef: mogenius-k8s-manager/src/schema.TypeInfo
+ *                     structRef: mogenius-operator/src/schema.TypeInfo
  *                     type: struct
- *     mogenius-k8s-manager/src/schema.TypeInfo:
- *         name: mogenius-k8s-manager/src/schema.TypeInfo
+ *     mogenius-operator/src/schema.TypeInfo:
+ *         name: mogenius-operator/src/schema.TypeInfo
  *         properties:
  *             elementType:
  *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/schema.TypeInfo
+ *                 structRef: mogenius-operator/src/schema.TypeInfo
  *                 type: struct
  *             keyType:
  *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/schema.TypeInfo
+ *                 structRef: mogenius-operator/src/schema.TypeInfo
  *                 type: struct
  *             pointer:
  *                 type: bool
@@ -3352,10 +3352,10 @@ export type DESCRIBE_REQUEST = DESCRIBE_REQUEST__ANON_STRUCT_0|undefined;
  *                 type: string
  *             valueType:
  *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/schema.TypeInfo
+ *                 structRef: mogenius-operator/src/schema.TypeInfo
  *                 type: struct
- *     mogenius-k8s-manager/src/version.Version:
- *         name: mogenius-k8s-manager/src/version.Version
+ *     mogenius-operator/src/version.Version:
+ *         name: mogenius-operator/src/version.Version
  *         properties:
  *             arch:
  *                 type: string
@@ -3370,20 +3370,20 @@ export type DESCRIBE_REQUEST = DESCRIBE_REQUEST__ANON_STRUCT_0|undefined;
  *             version:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,mogenius-k8s-manager/src/core.Response·2]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Response·2]
  *     type: struct
  * ```
  *
  */
-export type DESCRIBE_RESPONSE = DESCRIBE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_MOGENIUS_K8S_MANAGER_SRC_CORE_RESPONSE2;
+export type DESCRIBE_RESPONSE = DESCRIBE_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_MOGENIUS_OPERATOR_SRC_CORE_RESPONSE2;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/utils.ResourceDescriptor:
- *         name: mogenius-k8s-manager/src/utils.ResourceDescriptor
+ *     mogenius-operator/src/utils.ResourceDescriptor:
+ *         name: mogenius-operator/src/utils.ResourceDescriptor
  *         properties:
  *             apiVersion:
  *                 type: string
@@ -3393,31 +3393,31 @@ export type DESCRIBE_RESPONSE = DESCRIBE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE
  *                 type: bool
  *             plural:
  *                 type: string
- *     mogenius-k8s-manager/src/utils.WorkloadSingleRequest:
- *         name: mogenius-k8s-manager/src/utils.WorkloadSingleRequest
+ *     mogenius-operator/src/utils.WorkloadSingleRequest:
+ *         name: mogenius-operator/src/utils.WorkloadSingleRequest
  *         properties:
  *             ResourceDescriptor:
- *                 structRef: mogenius-k8s-manager/src/utils.ResourceDescriptor
+ *                 structRef: mogenius-operator/src/utils.ResourceDescriptor
  *                 type: struct
  *             namespace:
  *                 type: string
  *             resourceName:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/utils.WorkloadSingleRequest
+ *     structRef: mogenius-operator/src/utils.WorkloadSingleRequest
  *     type: struct
  * ```
  *
  */
-export type DESCRIBE_WORKLOAD_REQUEST = DESCRIBE_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_WORKLOADSINGLEREQUEST;
+export type DESCRIBE_WORKLOAD_REQUEST = DESCRIBE_WORKLOAD_REQUEST__MOGENIUS_OPERATOR_SRC_UTILS_WORKLOADSINGLEREQUEST;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadSingleRequest,string]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadSingleRequest,string]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadSingleRequest,string]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadSingleRequest,string]
  *         properties:
  *             data:
  *                 type: string
@@ -3426,28 +3426,28 @@ export type DESCRIBE_WORKLOAD_REQUEST = DESCRIBE_WORKLOAD_REQUEST__MOGENIUS_K8S_
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadSingleRequest,string]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadSingleRequest,string]
  *     type: struct
  * ```
  *
  */
-export type DESCRIBE_WORKLOAD_RESPONSE = DESCRIBE_WORKLOAD_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_UTILS_WORKLOADSINGLEREQUEST_STRING;
+export type DESCRIBE_WORKLOAD_RESPONSE = DESCRIBE_WORKLOAD_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_UTILS_WORKLOADSINGLEREQUEST_STRING;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Request:
- *         name: mogenius-k8s-manager/src/core.Request
+ *     mogenius-operator/src/core.Request:
+ *         name: mogenius-operator/src/core.Request
  *         properties:
  *             file:
- *                 structRef: mogenius-k8s-manager/src/dtos.PersistentFileRequestDto
+ *                 structRef: mogenius-operator/src/dtos.PersistentFileRequestDto
  *                 type: struct
  *             mode:
  *                 type: string
- *     mogenius-k8s-manager/src/dtos.PersistentFileRequestDto:
- *         name: mogenius-k8s-manager/src/dtos.PersistentFileRequestDto
+ *     mogenius-operator/src/dtos.PersistentFileRequestDto:
+ *         name: mogenius-operator/src/dtos.PersistentFileRequestDto
  *         properties:
  *             path:
  *                 type: string
@@ -3456,12 +3456,12 @@ export type DESCRIBE_WORKLOAD_RESPONSE = DESCRIBE_WORKLOAD_RESPONSE__MOGENIUS_K8
  *             volumeNamespace:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Request
+ *     structRef: mogenius-operator/src/core.Request
  *     type: struct
  * ```
  *
  */
-export type FILES_CHMOD_REQUEST = FILES_CHMOD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST;
+export type FILES_CHMOD_REQUEST = FILES_CHMOD_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST;
 
 /**
  * #### Source
@@ -3480,18 +3480,18 @@ export type FILES_CHMOD_RESPONSE = any;
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Request:
- *         name: mogenius-k8s-manager/src/core.Request
+ *     mogenius-operator/src/core.Request:
+ *         name: mogenius-operator/src/core.Request
  *         properties:
  *             file:
- *                 structRef: mogenius-k8s-manager/src/dtos.PersistentFileRequestDto
+ *                 structRef: mogenius-operator/src/dtos.PersistentFileRequestDto
  *                 type: struct
  *             gid:
  *                 type: string
  *             uid:
  *                 type: string
- *     mogenius-k8s-manager/src/dtos.PersistentFileRequestDto:
- *         name: mogenius-k8s-manager/src/dtos.PersistentFileRequestDto
+ *     mogenius-operator/src/dtos.PersistentFileRequestDto:
+ *         name: mogenius-operator/src/dtos.PersistentFileRequestDto
  *         properties:
  *             path:
  *                 type: string
@@ -3500,12 +3500,12 @@ export type FILES_CHMOD_RESPONSE = any;
  *             volumeNamespace:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Request
+ *     structRef: mogenius-operator/src/core.Request
  *     type: struct
  * ```
  *
  */
-export type FILES_CHOWN_REQUEST = FILES_CHOWN_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST;
+export type FILES_CHOWN_REQUEST = FILES_CHOWN_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST;
 
 /**
  * #### Source
@@ -3524,14 +3524,14 @@ export type FILES_CHOWN_RESPONSE = any;
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Request:
- *         name: mogenius-k8s-manager/src/core.Request
+ *     mogenius-operator/src/core.Request:
+ *         name: mogenius-operator/src/core.Request
  *         properties:
  *             folder:
- *                 structRef: mogenius-k8s-manager/src/dtos.PersistentFileRequestDto
+ *                 structRef: mogenius-operator/src/dtos.PersistentFileRequestDto
  *                 type: struct
- *     mogenius-k8s-manager/src/dtos.PersistentFileRequestDto:
- *         name: mogenius-k8s-manager/src/dtos.PersistentFileRequestDto
+ *     mogenius-operator/src/dtos.PersistentFileRequestDto:
+ *         name: mogenius-operator/src/dtos.PersistentFileRequestDto
  *         properties:
  *             path:
  *                 type: string
@@ -3540,12 +3540,12 @@ export type FILES_CHOWN_RESPONSE = any;
  *             volumeNamespace:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Request
+ *     structRef: mogenius-operator/src/core.Request
  *     type: struct
  * ```
  *
  */
-export type FILES_CREATE_FOLDER_REQUEST = FILES_CREATE_FOLDER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST;
+export type FILES_CREATE_FOLDER_REQUEST = FILES_CREATE_FOLDER_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST;
 
 /**
  * #### Source
@@ -3564,14 +3564,14 @@ export type FILES_CREATE_FOLDER_RESPONSE = any;
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Request:
- *         name: mogenius-k8s-manager/src/core.Request
+ *     mogenius-operator/src/core.Request:
+ *         name: mogenius-operator/src/core.Request
  *         properties:
  *             file:
- *                 structRef: mogenius-k8s-manager/src/dtos.PersistentFileRequestDto
+ *                 structRef: mogenius-operator/src/dtos.PersistentFileRequestDto
  *                 type: struct
- *     mogenius-k8s-manager/src/dtos.PersistentFileRequestDto:
- *         name: mogenius-k8s-manager/src/dtos.PersistentFileRequestDto
+ *     mogenius-operator/src/dtos.PersistentFileRequestDto:
+ *         name: mogenius-operator/src/dtos.PersistentFileRequestDto
  *         properties:
  *             path:
  *                 type: string
@@ -3580,12 +3580,12 @@ export type FILES_CREATE_FOLDER_RESPONSE = any;
  *             volumeNamespace:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Request
+ *     structRef: mogenius-operator/src/core.Request
  *     type: struct
  * ```
  *
  */
-export type FILES_DELETE_REQUEST = FILES_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST;
+export type FILES_DELETE_REQUEST = FILES_DELETE_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST;
 
 /**
  * #### Source
@@ -3604,16 +3604,16 @@ export type FILES_DELETE_RESPONSE = any;
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Request:
- *         name: mogenius-k8s-manager/src/core.Request
+ *     mogenius-operator/src/core.Request:
+ *         name: mogenius-operator/src/core.Request
  *         properties:
  *             file:
- *                 structRef: mogenius-k8s-manager/src/dtos.PersistentFileRequestDto
+ *                 structRef: mogenius-operator/src/dtos.PersistentFileRequestDto
  *                 type: struct
  *             postTo:
  *                 type: string
- *     mogenius-k8s-manager/src/dtos.PersistentFileRequestDto:
- *         name: mogenius-k8s-manager/src/dtos.PersistentFileRequestDto
+ *     mogenius-operator/src/dtos.PersistentFileRequestDto:
+ *         name: mogenius-operator/src/dtos.PersistentFileRequestDto
  *         properties:
  *             path:
  *                 type: string
@@ -3622,40 +3622,40 @@ export type FILES_DELETE_RESPONSE = any;
  *             volumeNamespace:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Request
+ *     structRef: mogenius-operator/src/core.Request
  *     type: struct
  * ```
  *
  */
-export type FILES_DOWNLOAD_REQUEST = FILES_DOWNLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST;
+export type FILES_DOWNLOAD_REQUEST = FILES_DOWNLOAD_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/services.FilesDownloadResponse:
- *         name: mogenius-k8s-manager/src/services.FilesDownloadResponse
+ *     mogenius-operator/src/services.FilesDownloadResponse:
+ *         name: mogenius-operator/src/services.FilesDownloadResponse
  *         properties:
  *             error:
  *                 type: string
  *             sizeInBytes:
  *                 type: int
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/services.FilesDownloadResponse
+ *     structRef: mogenius-operator/src/services.FilesDownloadResponse
  *     type: struct
  * ```
  *
  */
-export type FILES_DOWNLOAD_RESPONSE = FILES_DOWNLOAD_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_SERVICES_FILESDOWNLOADRESPONSE;
+export type FILES_DOWNLOAD_RESPONSE = FILES_DOWNLOAD_RESPONSE__MOGENIUS_OPERATOR_SRC_SERVICES_FILESDOWNLOADRESPONSE;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/dtos.PersistentFileRequestDto:
- *         name: mogenius-k8s-manager/src/dtos.PersistentFileRequestDto
+ *     mogenius-operator/src/dtos.PersistentFileRequestDto:
+ *         name: mogenius-operator/src/dtos.PersistentFileRequestDto
  *         properties:
  *             path:
  *                 type: string
@@ -3664,20 +3664,20 @@ export type FILES_DOWNLOAD_RESPONSE = FILES_DOWNLOAD_RESPONSE__MOGENIUS_K8S_MANA
  *             volumeNamespace:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/dtos.PersistentFileRequestDto
+ *     structRef: mogenius-operator/src/dtos.PersistentFileRequestDto
  *     type: struct
  * ```
  *
  */
-export type FILES_INFO_REQUEST = FILES_INFO_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_PERSISTENTFILEREQUESTDTO;
+export type FILES_INFO_REQUEST = FILES_INFO_REQUEST__MOGENIUS_OPERATOR_SRC_DTOS_PERSISTENTFILEREQUESTDTO;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/dtos.PersistentFileDto:
- *         name: mogenius-k8s-manager/src/dtos.PersistentFileDto
+ *     mogenius-operator/src/dtos.PersistentFileDto:
+ *         name: mogenius-operator/src/dtos.PersistentFileDto
  *         properties:
  *             contentType:
  *                 type: string
@@ -3706,26 +3706,26 @@ export type FILES_INFO_REQUEST = FILES_INFO_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DT
  *             uid_gid:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/dtos.PersistentFileDto
+ *     structRef: mogenius-operator/src/dtos.PersistentFileDto
  *     type: struct
  * ```
  *
  */
-export type FILES_INFO_RESPONSE = FILES_INFO_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_DTOS_PERSISTENTFILEDTO;
+export type FILES_INFO_RESPONSE = FILES_INFO_RESPONSE__MOGENIUS_OPERATOR_SRC_DTOS_PERSISTENTFILEDTO;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Request:
- *         name: mogenius-k8s-manager/src/core.Request
+ *     mogenius-operator/src/core.Request:
+ *         name: mogenius-operator/src/core.Request
  *         properties:
  *             folder:
- *                 structRef: mogenius-k8s-manager/src/dtos.PersistentFileRequestDto
+ *                 structRef: mogenius-operator/src/dtos.PersistentFileRequestDto
  *                 type: struct
- *     mogenius-k8s-manager/src/dtos.PersistentFileRequestDto:
- *         name: mogenius-k8s-manager/src/dtos.PersistentFileRequestDto
+ *     mogenius-operator/src/dtos.PersistentFileRequestDto:
+ *         name: mogenius-operator/src/dtos.PersistentFileRequestDto
  *         properties:
  *             path:
  *                 type: string
@@ -3734,20 +3734,20 @@ export type FILES_INFO_RESPONSE = FILES_INFO_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_
  *             volumeNamespace:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Request
+ *     structRef: mogenius-operator/src/core.Request
  *     type: struct
  * ```
  *
  */
-export type FILES_LIST_REQUEST = FILES_LIST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST;
+export type FILES_LIST_REQUEST = FILES_LIST_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/dtos.PersistentFileDto:
- *         name: mogenius-k8s-manager/src/dtos.PersistentFileDto
+ *     mogenius-operator/src/dtos.PersistentFileDto:
+ *         name: mogenius-operator/src/dtos.PersistentFileDto
  *         properties:
  *             contentType:
  *                 type: string
@@ -3777,29 +3777,29 @@ export type FILES_LIST_REQUEST = FILES_LIST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CO
  *                 type: string
  * typeInfo:
  *     elementType:
- *         structRef: mogenius-k8s-manager/src/dtos.PersistentFileDto
+ *         structRef: mogenius-operator/src/dtos.PersistentFileDto
  *         type: struct
  *     type: array
  * ```
  *
  */
-export type FILES_LIST_RESPONSE = FILES_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_DTOS_PERSISTENTFILEDTO[];
+export type FILES_LIST_RESPONSE = FILES_LIST_RESPONSE__MOGENIUS_OPERATOR_SRC_DTOS_PERSISTENTFILEDTO[];
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Request:
- *         name: mogenius-k8s-manager/src/core.Request
+ *     mogenius-operator/src/core.Request:
+ *         name: mogenius-operator/src/core.Request
  *         properties:
  *             file:
- *                 structRef: mogenius-k8s-manager/src/dtos.PersistentFileRequestDto
+ *                 structRef: mogenius-operator/src/dtos.PersistentFileRequestDto
  *                 type: struct
  *             newName:
  *                 type: string
- *     mogenius-k8s-manager/src/dtos.PersistentFileRequestDto:
- *         name: mogenius-k8s-manager/src/dtos.PersistentFileRequestDto
+ *     mogenius-operator/src/dtos.PersistentFileRequestDto:
+ *         name: mogenius-operator/src/dtos.PersistentFileRequestDto
  *         properties:
  *             path:
  *                 type: string
@@ -3808,12 +3808,12 @@ export type FILES_LIST_RESPONSE = FILES_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_
  *             volumeNamespace:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Request
+ *     structRef: mogenius-operator/src/core.Request
  *     type: struct
  * ```
  *
  */
-export type FILES_RENAME_REQUEST = FILES_RENAME_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST;
+export type FILES_RENAME_REQUEST = FILES_RENAME_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST;
 
 /**
  * #### Source
@@ -3832,18 +3832,18 @@ export type FILES_RENAME_RESPONSE = any;
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Request:
- *         name: mogenius-k8s-manager/src/core.Request
+ *     mogenius-operator/src/core.Request:
+ *         name: mogenius-operator/src/core.Request
  *         properties:
  *             name:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Request
+ *     structRef: mogenius-operator/src/core.Request
  *     type: struct
  * ```
  *
  */
-export type GET_GRANT_REQUEST = GET_GRANT_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST;
+export type GET_GRANT_REQUEST = GET_GRANT_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST;
 
 /**
  * #### Source
@@ -3957,19 +3957,19 @@ export type GET_GRANT_REQUEST = GET_GRANT_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE
  *                 type: string
  *             kind:
  *                 type: string
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·30,*mogenius-k8s-manager/src/crds/v1alpha1.Grant]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·30,*mogenius-k8s-manager/src/crds/v1alpha1.Grant]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·30,*mogenius-operator/src/crds/v1alpha1.Grant]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·30,*mogenius-operator/src/crds/v1alpha1.Grant]
  *         properties:
  *             data:
  *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/crds/v1alpha1.Grant
+ *                 structRef: mogenius-operator/src/crds/v1alpha1.Grant
  *                 type: struct
  *             message:
  *                 type: string
  *             status:
  *                 type: string
- *     mogenius-k8s-manager/src/crds/v1alpha1.Grant:
- *         name: mogenius-k8s-manager/src/crds/v1alpha1.Grant
+ *     mogenius-operator/src/crds/v1alpha1.Grant:
+ *         name: mogenius-operator/src/crds/v1alpha1.Grant
  *         properties:
  *             TypeMeta:
  *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta
@@ -3978,13 +3978,13 @@ export type GET_GRANT_REQUEST = GET_GRANT_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE
  *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta
  *                 type: struct
  *             spec:
- *                 structRef: mogenius-k8s-manager/src/crds/v1alpha1.GrantSpec
+ *                 structRef: mogenius-operator/src/crds/v1alpha1.GrantSpec
  *                 type: struct
  *             status:
- *                 structRef: mogenius-k8s-manager/src/crds/v1alpha1.GrantStatus
+ *                 structRef: mogenius-operator/src/crds/v1alpha1.GrantStatus
  *                 type: struct
- *     mogenius-k8s-manager/src/crds/v1alpha1.GrantSpec:
- *         name: mogenius-k8s-manager/src/crds/v1alpha1.GrantSpec
+ *     mogenius-operator/src/crds/v1alpha1.GrantSpec:
+ *         name: mogenius-operator/src/crds/v1alpha1.GrantSpec
  *         properties:
  *             grantee:
  *                 type: string
@@ -3994,27 +3994,27 @@ export type GET_GRANT_REQUEST = GET_GRANT_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE
  *                 type: string
  *             targetType:
  *                 type: string
- *     mogenius-k8s-manager/src/crds/v1alpha1.GrantStatus:
- *         name: mogenius-k8s-manager/src/crds/v1alpha1.GrantStatus
+ *     mogenius-operator/src/crds/v1alpha1.GrantStatus:
+ *         name: mogenius-operator/src/crds/v1alpha1.GrantStatus
  *         properties: {}
  *     time.Time:
  *         name: time.Time
  *         properties: {}
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·30,*mogenius-k8s-manager/src/crds/v1alpha1.Grant]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·30,*mogenius-operator/src/crds/v1alpha1.Grant]
  *     type: struct
  * ```
  *
  */
-export type GET_GRANT_RESPONSE = GET_GRANT_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST30_MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_GRANT;
+export type GET_GRANT_RESPONSE = GET_GRANT_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST30_MOGENIUS_OPERATOR_SRC_CRDS_V1ALPHA1_GRANT;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Request:
- *         name: mogenius-k8s-manager/src/core.Request
+ *     mogenius-operator/src/core.Request:
+ *         name: mogenius-operator/src/core.Request
  *         properties:
  *             targetName:
  *                 pointer: true
@@ -4023,12 +4023,12 @@ export type GET_GRANT_RESPONSE = GET_GRANT_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CO
  *                 pointer: true
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Request
+ *     structRef: mogenius-operator/src/core.Request
  *     type: struct
  * ```
  *
  */
-export type GET_GRANTS_REQUEST = GET_GRANTS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST;
+export type GET_GRANTS_REQUEST = GET_GRANTS_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST;
 
 /**
  * #### Source
@@ -4142,20 +4142,20 @@ export type GET_GRANTS_REQUEST = GET_GRANTS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CO
  *                 type: string
  *             kind:
  *                 type: string
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·28,[]mogenius-k8s-manager/src/crds/v1alpha1.Grant]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·28,[]mogenius-k8s-manager/src/crds/v1alpha1.Grant]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·28,[]mogenius-operator/src/crds/v1alpha1.Grant]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·28,[]mogenius-operator/src/crds/v1alpha1.Grant]
  *         properties:
  *             data:
  *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/crds/v1alpha1.Grant
+ *                     structRef: mogenius-operator/src/crds/v1alpha1.Grant
  *                     type: struct
  *                 type: array
  *             message:
  *                 type: string
  *             status:
  *                 type: string
- *     mogenius-k8s-manager/src/crds/v1alpha1.Grant:
- *         name: mogenius-k8s-manager/src/crds/v1alpha1.Grant
+ *     mogenius-operator/src/crds/v1alpha1.Grant:
+ *         name: mogenius-operator/src/crds/v1alpha1.Grant
  *         properties:
  *             TypeMeta:
  *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta
@@ -4164,13 +4164,13 @@ export type GET_GRANTS_REQUEST = GET_GRANTS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CO
  *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta
  *                 type: struct
  *             spec:
- *                 structRef: mogenius-k8s-manager/src/crds/v1alpha1.GrantSpec
+ *                 structRef: mogenius-operator/src/crds/v1alpha1.GrantSpec
  *                 type: struct
  *             status:
- *                 structRef: mogenius-k8s-manager/src/crds/v1alpha1.GrantStatus
+ *                 structRef: mogenius-operator/src/crds/v1alpha1.GrantStatus
  *                 type: struct
- *     mogenius-k8s-manager/src/crds/v1alpha1.GrantSpec:
- *         name: mogenius-k8s-manager/src/crds/v1alpha1.GrantSpec
+ *     mogenius-operator/src/crds/v1alpha1.GrantSpec:
+ *         name: mogenius-operator/src/crds/v1alpha1.GrantSpec
  *         properties:
  *             grantee:
  *                 type: string
@@ -4180,32 +4180,32 @@ export type GET_GRANTS_REQUEST = GET_GRANTS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CO
  *                 type: string
  *             targetType:
  *                 type: string
- *     mogenius-k8s-manager/src/crds/v1alpha1.GrantStatus:
- *         name: mogenius-k8s-manager/src/crds/v1alpha1.GrantStatus
+ *     mogenius-operator/src/crds/v1alpha1.GrantStatus:
+ *         name: mogenius-operator/src/crds/v1alpha1.GrantStatus
  *         properties: {}
  *     time.Time:
  *         name: time.Time
  *         properties: {}
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·28,[]mogenius-k8s-manager/src/crds/v1alpha1.Grant]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·28,[]mogenius-operator/src/crds/v1alpha1.Grant]
  *     type: struct
  * ```
  *
  */
-export type GET_GRANTS_RESPONSE = GET_GRANTS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST28_MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_GRANT;
+export type GET_GRANTS_RESPONSE = GET_GRANTS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST28_MOGENIUS_OPERATOR_SRC_CRDS_V1ALPHA1_GRANT;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/kubernetes.GetUnstructuredLabeledResourceListRequest:
- *         name: mogenius-k8s-manager/src/kubernetes.GetUnstructuredLabeledResourceListRequest
+ *     mogenius-operator/src/kubernetes.GetUnstructuredLabeledResourceListRequest:
+ *         name: mogenius-operator/src/kubernetes.GetUnstructuredLabeledResourceListRequest
  *         properties:
  *             blacklist:
  *                 elementType:
  *                     pointer: true
- *                     structRef: mogenius-k8s-manager/src/utils.ResourceDescriptor
+ *                     structRef: mogenius-operator/src/utils.ResourceDescriptor
  *                     type: struct
  *                 type: array
  *             label:
@@ -4213,11 +4213,11 @@ export type GET_GRANTS_RESPONSE = GET_GRANTS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_
  *             whitelist:
  *                 elementType:
  *                     pointer: true
- *                     structRef: mogenius-k8s-manager/src/utils.ResourceDescriptor
+ *                     structRef: mogenius-operator/src/utils.ResourceDescriptor
  *                     type: struct
  *                 type: array
- *     mogenius-k8s-manager/src/utils.ResourceDescriptor:
- *         name: mogenius-k8s-manager/src/utils.ResourceDescriptor
+ *     mogenius-operator/src/utils.ResourceDescriptor:
+ *         name: mogenius-operator/src/utils.ResourceDescriptor
  *         properties:
  *             apiVersion:
  *                 type: string
@@ -4228,12 +4228,12 @@ export type GET_GRANTS_RESPONSE = GET_GRANTS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_
  *             plural:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/kubernetes.GetUnstructuredLabeledResourceListRequest
+ *     structRef: mogenius-operator/src/kubernetes.GetUnstructuredLabeledResourceListRequest
  *     type: struct
  * ```
  *
  */
-export type GET_LABELED_WORKLOAD_LIST_REQUEST = GET_LABELED_WORKLOAD_LIST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_GETUNSTRUCTUREDLABELEDRESOURCELISTREQUEST;
+export type GET_LABELED_WORKLOAD_LIST_REQUEST = GET_LABELED_WORKLOAD_LIST_REQUEST__MOGENIUS_OPERATOR_SRC_KUBERNETES_GETUNSTRUCTUREDLABELEDRESOURCELISTREQUEST;
 
 /**
  * #### Source
@@ -4265,8 +4265,8 @@ export type GET_LABELED_WORKLOAD_LIST_REQUEST = GET_LABELED_WORKLOAD_LIST_REQUES
  *                     structRef: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured
  *                     type: struct
  *                 type: array
- *     ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/kubernetes.GetUnstructuredLabeledResourceListRequest,k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.UnstructuredList]
- *     :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/kubernetes.GetUnstructuredLabeledResourceListRequest,k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.UnstructuredList]
+ *     ? mogenius-operator/src/core.Result[mogenius-operator/src/kubernetes.GetUnstructuredLabeledResourceListRequest,k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.UnstructuredList]
+ *     :   name: mogenius-operator/src/core.Result[mogenius-operator/src/kubernetes.GetUnstructuredLabeledResourceListRequest,k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.UnstructuredList]
  *         properties:
  *             data:
  *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.UnstructuredList
@@ -4276,25 +4276,25 @@ export type GET_LABELED_WORKLOAD_LIST_REQUEST = GET_LABELED_WORKLOAD_LIST_REQUES
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/kubernetes.GetUnstructuredLabeledResourceListRequest,k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.UnstructuredList]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/kubernetes.GetUnstructuredLabeledResourceListRequest,k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.UnstructuredList]
  *     type: struct
  * ```
  *
  */
-export type GET_LABELED_WORKLOAD_LIST_RESPONSE = GET_LABELED_WORKLOAD_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_KUBERNETES_GETUNSTRUCTUREDLABELEDRESOURCELISTREQUEST_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTUREDLIST;
+export type GET_LABELED_WORKLOAD_LIST_RESPONSE = GET_LABELED_WORKLOAD_LIST_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_KUBERNETES_GETUNSTRUCTUREDLABELEDRESOURCELISTREQUEST_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTUREDLIST;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/kubernetes.GetUnstructuredNamespaceResourceListRequest:
- *         name: mogenius-k8s-manager/src/kubernetes.GetUnstructuredNamespaceResourceListRequest
+ *     mogenius-operator/src/kubernetes.GetUnstructuredNamespaceResourceListRequest:
+ *         name: mogenius-operator/src/kubernetes.GetUnstructuredNamespaceResourceListRequest
  *         properties:
  *             blacklist:
  *                 elementType:
  *                     pointer: true
- *                     structRef: mogenius-k8s-manager/src/utils.ResourceDescriptor
+ *                     structRef: mogenius-operator/src/utils.ResourceDescriptor
  *                     type: struct
  *                 type: array
  *             namespace:
@@ -4302,11 +4302,11 @@ export type GET_LABELED_WORKLOAD_LIST_RESPONSE = GET_LABELED_WORKLOAD_LIST_RESPO
  *             whitelist:
  *                 elementType:
  *                     pointer: true
- *                     structRef: mogenius-k8s-manager/src/utils.ResourceDescriptor
+ *                     structRef: mogenius-operator/src/utils.ResourceDescriptor
  *                     type: struct
  *                 type: array
- *     mogenius-k8s-manager/src/utils.ResourceDescriptor:
- *         name: mogenius-k8s-manager/src/utils.ResourceDescriptor
+ *     mogenius-operator/src/utils.ResourceDescriptor:
+ *         name: mogenius-operator/src/utils.ResourceDescriptor
  *         properties:
  *             apiVersion:
  *                 type: string
@@ -4317,12 +4317,12 @@ export type GET_LABELED_WORKLOAD_LIST_RESPONSE = GET_LABELED_WORKLOAD_LIST_RESPO
  *             plural:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/kubernetes.GetUnstructuredNamespaceResourceListRequest
+ *     structRef: mogenius-operator/src/kubernetes.GetUnstructuredNamespaceResourceListRequest
  *     type: struct
  * ```
  *
  */
-export type GET_NAMESPACE_WORKLOAD_LIST_REQUEST = GET_NAMESPACE_WORKLOAD_LIST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_GETUNSTRUCTUREDNAMESPACERESOURCELISTREQUEST;
+export type GET_NAMESPACE_WORKLOAD_LIST_REQUEST = GET_NAMESPACE_WORKLOAD_LIST_REQUEST__MOGENIUS_OPERATOR_SRC_KUBERNETES_GETUNSTRUCTUREDNAMESPACERESOURCELISTREQUEST;
 
 /**
  * #### Source
@@ -4339,8 +4339,8 @@ export type GET_NAMESPACE_WORKLOAD_LIST_REQUEST = GET_NAMESPACE_WORKLOAD_LIST_RE
  *                 valueType:
  *                     pointer: true
  *                     type: any
- *     ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/kubernetes.GetUnstructuredNamespaceResourceListRequest,[]k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
- *     :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/kubernetes.GetUnstructuredNamespaceResourceListRequest,[]k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *     ? mogenius-operator/src/core.Result[mogenius-operator/src/kubernetes.GetUnstructuredNamespaceResourceListRequest,[]k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *     :   name: mogenius-operator/src/core.Result[mogenius-operator/src/kubernetes.GetUnstructuredNamespaceResourceListRequest,[]k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
  *         properties:
  *             data:
  *                 elementType:
@@ -4352,12 +4352,12 @@ export type GET_NAMESPACE_WORKLOAD_LIST_REQUEST = GET_NAMESPACE_WORKLOAD_LIST_RE
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/kubernetes.GetUnstructuredNamespaceResourceListRequest,[]k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/kubernetes.GetUnstructuredNamespaceResourceListRequest,[]k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
  *     type: struct
  * ```
  *
  */
-export type GET_NAMESPACE_WORKLOAD_LIST_RESPONSE = GET_NAMESPACE_WORKLOAD_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_KUBERNETES_GETUNSTRUCTUREDNAMESPACERESOURCELISTREQUEST_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED;
+export type GET_NAMESPACE_WORKLOAD_LIST_RESPONSE = GET_NAMESPACE_WORKLOAD_LIST_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_KUBERNETES_GETUNSTRUCTUREDNAMESPACERESOURCELISTREQUEST_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED;
 
 /**
  * #### Source
@@ -4380,8 +4380,8 @@ export type GET_NODES_METRICS_REQUEST = GET_NODES_METRICS_REQUEST__ANON_STRUCT_0
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.NodeMetrics:
- *         name: mogenius-k8s-manager/src/core.NodeMetrics
+ *     mogenius-operator/src/core.NodeMetrics:
+ *         name: mogenius-operator/src/core.NodeMetrics
  *         properties:
  *             cpu:
  *                 keyType:
@@ -4401,29 +4401,29 @@ export type GET_NODES_METRICS_REQUEST = GET_NODES_METRICS_REQUEST__ANON_STRUCT_0
  *                 type: string
  *             traffic:
  *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/networkmonitor.PodNetworkStats
+ *                     structRef: mogenius-operator/src/networkmonitor.PodNetworkStats
  *                     type: struct
  *                 type: array
- *     mogenius-k8s-manager/src/core.Response:
- *         name: mogenius-k8s-manager/src/core.Response
+ *     mogenius-operator/src/core.Response:
+ *         name: mogenius-operator/src/core.Response
  *         properties:
  *             nodes:
  *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/core.NodeMetrics
+ *                     structRef: mogenius-operator/src/core.NodeMetrics
  *                     type: struct
  *                 type: array
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,mogenius-k8s-manager/src/core.Response·38]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,mogenius-k8s-manager/src/core.Response·38]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Response·38]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Response·38]
  *         properties:
  *             data:
- *                 structRef: mogenius-k8s-manager/src/core.Response
+ *                 structRef: mogenius-operator/src/core.Response
  *                 type: struct
  *             message:
  *                 type: string
  *             status:
  *                 type: string
- *     mogenius-k8s-manager/src/networkmonitor.PodNetworkStats:
- *         name: mogenius-k8s-manager/src/networkmonitor.PodNetworkStats
+ *     mogenius-operator/src/networkmonitor.PodNetworkStats:
+ *         name: mogenius-operator/src/networkmonitor.PodNetworkStats
  *         properties:
  *             createdAt:
  *                 structRef: time.Time
@@ -4448,30 +4448,30 @@ export type GET_NODES_METRICS_REQUEST = GET_NODES_METRICS_REQUEST__ANON_STRUCT_0
  *         name: time.Time
  *         properties: {}
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,mogenius-k8s-manager/src/core.Response·38]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Response·38]
  *     type: struct
  * ```
  *
  */
-export type GET_NODES_METRICS_RESPONSE = GET_NODES_METRICS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_MOGENIUS_K8S_MANAGER_SRC_CORE_RESPONSE38;
+export type GET_NODES_METRICS_RESPONSE = GET_NODES_METRICS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_MOGENIUS_OPERATOR_SRC_CORE_RESPONSE38;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Request:
- *         name: mogenius-k8s-manager/src/core.Request
+ *     mogenius-operator/src/core.Request:
+ *         name: mogenius-operator/src/core.Request
  *         properties:
  *             name:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Request
+ *     structRef: mogenius-operator/src/core.Request
  *     type: struct
  * ```
  *
  */
-export type GET_USER_REQUEST = GET_USER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST;
+export type GET_USER_REQUEST = GET_USER_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST;
 
 /**
  * #### Source
@@ -4596,19 +4596,19 @@ export type GET_USER_REQUEST = GET_USER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_R
  *                 type: string
  *             kind:
  *                 type: string
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·25,*mogenius-k8s-manager/src/crds/v1alpha1.User]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·25,*mogenius-k8s-manager/src/crds/v1alpha1.User]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·25,*mogenius-operator/src/crds/v1alpha1.User]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·25,*mogenius-operator/src/crds/v1alpha1.User]
  *         properties:
  *             data:
  *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/crds/v1alpha1.User
+ *                 structRef: mogenius-operator/src/crds/v1alpha1.User
  *                 type: struct
  *             message:
  *                 type: string
  *             status:
  *                 type: string
- *     mogenius-k8s-manager/src/crds/v1alpha1.User:
- *         name: mogenius-k8s-manager/src/crds/v1alpha1.User
+ *     mogenius-operator/src/crds/v1alpha1.User:
+ *         name: mogenius-operator/src/crds/v1alpha1.User
  *         properties:
  *             TypeMeta:
  *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta
@@ -4617,13 +4617,13 @@ export type GET_USER_REQUEST = GET_USER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_R
  *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta
  *                 type: struct
  *             spec:
- *                 structRef: mogenius-k8s-manager/src/crds/v1alpha1.UserSpec
+ *                 structRef: mogenius-operator/src/crds/v1alpha1.UserSpec
  *                 type: struct
  *             status:
- *                 structRef: mogenius-k8s-manager/src/crds/v1alpha1.UserStatus
+ *                 structRef: mogenius-operator/src/crds/v1alpha1.UserStatus
  *                 type: struct
- *     mogenius-k8s-manager/src/crds/v1alpha1.UserSpec:
- *         name: mogenius-k8s-manager/src/crds/v1alpha1.UserSpec
+ *     mogenius-operator/src/crds/v1alpha1.UserSpec:
+ *         name: mogenius-operator/src/crds/v1alpha1.UserSpec
  *         properties:
  *             email:
  *                 type: string
@@ -4635,38 +4635,38 @@ export type GET_USER_REQUEST = GET_USER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_R
  *                 pointer: true
  *                 structRef: k8s.io/api/rbac/v1.Subject
  *                 type: struct
- *     mogenius-k8s-manager/src/crds/v1alpha1.UserStatus:
- *         name: mogenius-k8s-manager/src/crds/v1alpha1.UserStatus
+ *     mogenius-operator/src/crds/v1alpha1.UserStatus:
+ *         name: mogenius-operator/src/crds/v1alpha1.UserStatus
  *         properties: {}
  *     time.Time:
  *         name: time.Time
  *         properties: {}
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·25,*mogenius-k8s-manager/src/crds/v1alpha1.User]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·25,*mogenius-operator/src/crds/v1alpha1.User]
  *     type: struct
  * ```
  *
  */
-export type GET_USER_RESPONSE = GET_USER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST25_MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_USER;
+export type GET_USER_RESPONSE = GET_USER_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST25_MOGENIUS_OPERATOR_SRC_CRDS_V1ALPHA1_USER;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Request:
- *         name: mogenius-k8s-manager/src/core.Request
+ *     mogenius-operator/src/core.Request:
+ *         name: mogenius-operator/src/core.Request
  *         properties:
  *             email:
  *                 pointer: true
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Request
+ *     structRef: mogenius-operator/src/core.Request
  *     type: struct
  * ```
  *
  */
-export type GET_USERS_REQUEST = GET_USERS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST;
+export type GET_USERS_REQUEST = GET_USERS_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST;
 
 /**
  * #### Source
@@ -4791,20 +4791,20 @@ export type GET_USERS_REQUEST = GET_USERS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE
  *                 type: string
  *             kind:
  *                 type: string
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·23,[]mogenius-k8s-manager/src/crds/v1alpha1.User]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·23,[]mogenius-k8s-manager/src/crds/v1alpha1.User]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·23,[]mogenius-operator/src/crds/v1alpha1.User]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·23,[]mogenius-operator/src/crds/v1alpha1.User]
  *         properties:
  *             data:
  *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/crds/v1alpha1.User
+ *                     structRef: mogenius-operator/src/crds/v1alpha1.User
  *                     type: struct
  *                 type: array
  *             message:
  *                 type: string
  *             status:
  *                 type: string
- *     mogenius-k8s-manager/src/crds/v1alpha1.User:
- *         name: mogenius-k8s-manager/src/crds/v1alpha1.User
+ *     mogenius-operator/src/crds/v1alpha1.User:
+ *         name: mogenius-operator/src/crds/v1alpha1.User
  *         properties:
  *             TypeMeta:
  *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta
@@ -4813,13 +4813,13 @@ export type GET_USERS_REQUEST = GET_USERS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE
  *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta
  *                 type: struct
  *             spec:
- *                 structRef: mogenius-k8s-manager/src/crds/v1alpha1.UserSpec
+ *                 structRef: mogenius-operator/src/crds/v1alpha1.UserSpec
  *                 type: struct
  *             status:
- *                 structRef: mogenius-k8s-manager/src/crds/v1alpha1.UserStatus
+ *                 structRef: mogenius-operator/src/crds/v1alpha1.UserStatus
  *                 type: struct
- *     mogenius-k8s-manager/src/crds/v1alpha1.UserSpec:
- *         name: mogenius-k8s-manager/src/crds/v1alpha1.UserSpec
+ *     mogenius-operator/src/crds/v1alpha1.UserSpec:
+ *         name: mogenius-operator/src/crds/v1alpha1.UserSpec
  *         properties:
  *             email:
  *                 type: string
@@ -4831,27 +4831,27 @@ export type GET_USERS_REQUEST = GET_USERS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE
  *                 pointer: true
  *                 structRef: k8s.io/api/rbac/v1.Subject
  *                 type: struct
- *     mogenius-k8s-manager/src/crds/v1alpha1.UserStatus:
- *         name: mogenius-k8s-manager/src/crds/v1alpha1.UserStatus
+ *     mogenius-operator/src/crds/v1alpha1.UserStatus:
+ *         name: mogenius-operator/src/crds/v1alpha1.UserStatus
  *         properties: {}
  *     time.Time:
  *         name: time.Time
  *         properties: {}
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·23,[]mogenius-k8s-manager/src/crds/v1alpha1.User]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·23,[]mogenius-operator/src/crds/v1alpha1.User]
  *     type: struct
  * ```
  *
  */
-export type GET_USERS_RESPONSE = GET_USERS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST23_MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_USER;
+export type GET_USERS_RESPONSE = GET_USERS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST23_MOGENIUS_OPERATOR_SRC_CRDS_V1ALPHA1_USER;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/utils.ResourceDescriptor:
- *         name: mogenius-k8s-manager/src/utils.ResourceDescriptor
+ *     mogenius-operator/src/utils.ResourceDescriptor:
+ *         name: mogenius-operator/src/utils.ResourceDescriptor
  *         properties:
  *             apiVersion:
  *                 type: string
@@ -4861,23 +4861,23 @@ export type GET_USERS_RESPONSE = GET_USERS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CO
  *                 type: bool
  *             plural:
  *                 type: string
- *     mogenius-k8s-manager/src/utils.WorkloadSingleRequest:
- *         name: mogenius-k8s-manager/src/utils.WorkloadSingleRequest
+ *     mogenius-operator/src/utils.WorkloadSingleRequest:
+ *         name: mogenius-operator/src/utils.WorkloadSingleRequest
  *         properties:
  *             ResourceDescriptor:
- *                 structRef: mogenius-k8s-manager/src/utils.ResourceDescriptor
+ *                 structRef: mogenius-operator/src/utils.ResourceDescriptor
  *                 type: struct
  *             namespace:
  *                 type: string
  *             resourceName:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/utils.WorkloadSingleRequest
+ *     structRef: mogenius-operator/src/utils.WorkloadSingleRequest
  *     type: struct
  * ```
  *
  */
-export type GET_WORKLOAD_REQUEST = GET_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_WORKLOADSINGLEREQUEST;
+export type GET_WORKLOAD_REQUEST = GET_WORKLOAD_REQUEST__MOGENIUS_OPERATOR_SRC_UTILS_WORKLOADSINGLEREQUEST;
 
 /**
  * #### Source
@@ -4894,8 +4894,8 @@ export type GET_WORKLOAD_REQUEST = GET_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SR
  *                 valueType:
  *                     pointer: true
  *                     type: any
- *     ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadSingleRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
- *     :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadSingleRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *     ? mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadSingleRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *     :   name: mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadSingleRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
  *         properties:
  *             data:
  *                 pointer: true
@@ -4906,20 +4906,20 @@ export type GET_WORKLOAD_REQUEST = GET_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SR
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadSingleRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadSingleRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
  *     type: struct
  * ```
  *
  */
-export type GET_WORKLOAD_RESPONSE = GET_WORKLOAD_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_UTILS_WORKLOADSINGLEREQUEST_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED;
+export type GET_WORKLOAD_RESPONSE = GET_WORKLOAD_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_UTILS_WORKLOADSINGLEREQUEST_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/utils.ResourceDescriptor:
- *         name: mogenius-k8s-manager/src/utils.ResourceDescriptor
+ *     mogenius-operator/src/utils.ResourceDescriptor:
+ *         name: mogenius-operator/src/utils.ResourceDescriptor
  *         properties:
  *             apiVersion:
  *                 type: string
@@ -4930,20 +4930,20 @@ export type GET_WORKLOAD_RESPONSE = GET_WORKLOAD_RESPONSE__MOGENIUS_K8S_MANAGER_
  *             plural:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/utils.ResourceDescriptor
+ *     structRef: mogenius-operator/src/utils.ResourceDescriptor
  *     type: struct
  * ```
  *
  */
-export type GET_WORKLOAD_EXAMPLE_REQUEST = GET_WORKLOAD_EXAMPLE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR;
+export type GET_WORKLOAD_EXAMPLE_REQUEST = GET_WORKLOAD_EXAMPLE_REQUEST__MOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRIPTOR;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.ResourceDescriptor,string]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.ResourceDescriptor,string]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/utils.ResourceDescriptor,string]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/utils.ResourceDescriptor,string]
  *         properties:
  *             data:
  *                 type: string
@@ -4952,20 +4952,20 @@ export type GET_WORKLOAD_EXAMPLE_REQUEST = GET_WORKLOAD_EXAMPLE_REQUEST__MOGENIU
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.ResourceDescriptor,string]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/utils.ResourceDescriptor,string]
  *     type: struct
  * ```
  *
  */
-export type GET_WORKLOAD_EXAMPLE_RESPONSE = GET_WORKLOAD_EXAMPLE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR_STRING;
+export type GET_WORKLOAD_EXAMPLE_RESPONSE = GET_WORKLOAD_EXAMPLE_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRIPTOR_STRING;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Request:
- *         name: mogenius-k8s-manager/src/core.Request
+ *     mogenius-operator/src/core.Request:
+ *         name: mogenius-operator/src/core.Request
  *         properties:
  *             apiVersion:
  *                 type: string
@@ -4980,12 +4980,12 @@ export type GET_WORKLOAD_EXAMPLE_RESPONSE = GET_WORKLOAD_EXAMPLE_RESPONSE__MOGEN
  *                 pointer: true
  *                 type: bool
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Request
+ *     structRef: mogenius-operator/src/core.Request
  *     type: struct
  * ```
  *
  */
-export type GET_WORKLOAD_LIST_REQUEST = GET_WORKLOAD_LIST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST;
+export type GET_WORKLOAD_LIST_REQUEST = GET_WORKLOAD_LIST_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST;
 
 /**
  * #### Source
@@ -5017,8 +5017,8 @@ export type GET_WORKLOAD_LIST_REQUEST = GET_WORKLOAD_LIST_REQUEST__MOGENIUS_K8S_
  *                     structRef: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured
  *                     type: struct
  *                 type: array
- *     ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·17,k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.UnstructuredList]
- *     :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·17,k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.UnstructuredList]
+ *     ? mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·17,k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.UnstructuredList]
+ *     :   name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·17,k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.UnstructuredList]
  *         properties:
  *             data:
  *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.UnstructuredList
@@ -5028,31 +5028,31 @@ export type GET_WORKLOAD_LIST_REQUEST = GET_WORKLOAD_LIST_REQUEST__MOGENIUS_K8S_
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·17,k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.UnstructuredList]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·17,k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.UnstructuredList]
  *     type: struct
  * ```
  *
  */
-export type GET_WORKLOAD_LIST_RESPONSE = GET_WORKLOAD_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST17_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTUREDLIST;
+export type GET_WORKLOAD_LIST_RESPONSE = GET_WORKLOAD_LIST_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST17_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTUREDLIST;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/kubernetes.GetWorkloadStatusHelmReleaseNameRequest:
- *         name: mogenius-k8s-manager/src/kubernetes.GetWorkloadStatusHelmReleaseNameRequest
+ *     mogenius-operator/src/kubernetes.GetWorkloadStatusHelmReleaseNameRequest:
+ *         name: mogenius-operator/src/kubernetes.GetWorkloadStatusHelmReleaseNameRequest
  *         properties:
  *             namespace:
  *                 type: string
  *             release:
  *                 type: string
- *     mogenius-k8s-manager/src/kubernetes.GetWorkloadStatusRequest:
- *         name: mogenius-k8s-manager/src/kubernetes.GetWorkloadStatusRequest
+ *     mogenius-operator/src/kubernetes.GetWorkloadStatusRequest:
+ *         name: mogenius-operator/src/kubernetes.GetWorkloadStatusRequest
  *         properties:
  *             helmReleases:
  *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/kubernetes.GetWorkloadStatusHelmReleaseNameRequest
+ *                     structRef: mogenius-operator/src/kubernetes.GetWorkloadStatusHelmReleaseNameRequest
  *                     type: struct
  *                 pointer: true
  *                 type: array
@@ -5066,15 +5066,15 @@ export type GET_WORKLOAD_LIST_RESPONSE = GET_WORKLOAD_LIST_RESPONSE__MOGENIUS_K8
  *                 type: array
  *             resourceDescriptor:
  *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/utils.ResourceDescriptor
+ *                 structRef: mogenius-operator/src/utils.ResourceDescriptor
  *                 type: struct
  *             resourceNames:
  *                 elementType:
  *                     type: string
  *                 pointer: true
  *                 type: array
- *     mogenius-k8s-manager/src/utils.ResourceDescriptor:
- *         name: mogenius-k8s-manager/src/utils.ResourceDescriptor
+ *     mogenius-operator/src/utils.ResourceDescriptor:
+ *         name: mogenius-operator/src/utils.ResourceDescriptor
  *         properties:
  *             apiVersion:
  *                 type: string
@@ -5085,12 +5085,12 @@ export type GET_WORKLOAD_LIST_RESPONSE = GET_WORKLOAD_LIST_RESPONSE__MOGENIUS_K8
  *             plural:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/kubernetes.GetWorkloadStatusRequest
+ *     structRef: mogenius-operator/src/kubernetes.GetWorkloadStatusRequest
  *     type: struct
  * ```
  *
  */
-export type GET_WORKLOAD_STATUS_REQUEST = GET_WORKLOAD_STATUS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_GETWORKLOADSTATUSREQUEST;
+export type GET_WORKLOAD_STATUS_REQUEST = GET_WORKLOAD_STATUS_REQUEST__MOGENIUS_OPERATOR_SRC_KUBERNETES_GETWORKLOADSTATUSREQUEST;
 
 /**
  * #### Source
@@ -5288,28 +5288,28 @@ export type GET_WORKLOAD_STATUS_REQUEST = GET_WORKLOAD_STATUS_REQUEST__MOGENIUS_
  *                 type: string
  *             kind:
  *                 type: string
- *     ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/kubernetes.GetWorkloadStatusRequest,[]mogenius-k8s-manager/src/kubernetes.WorkloadStatusDto]
- *     :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/kubernetes.GetWorkloadStatusRequest,[]mogenius-k8s-manager/src/kubernetes.WorkloadStatusDto]
+ *     ? mogenius-operator/src/core.Result[mogenius-operator/src/kubernetes.GetWorkloadStatusRequest,[]mogenius-operator/src/kubernetes.WorkloadStatusDto]
+ *     :   name: mogenius-operator/src/core.Result[mogenius-operator/src/kubernetes.GetWorkloadStatusRequest,[]mogenius-operator/src/kubernetes.WorkloadStatusDto]
  *         properties:
  *             data:
  *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/kubernetes.WorkloadStatusDto
+ *                     structRef: mogenius-operator/src/kubernetes.WorkloadStatusDto
  *                     type: struct
  *                 type: array
  *             message:
  *                 type: string
  *             status:
  *                 type: string
- *     mogenius-k8s-manager/src/kubernetes.WorkloadStatusDto:
- *         name: mogenius-k8s-manager/src/kubernetes.WorkloadStatusDto
+ *     mogenius-operator/src/kubernetes.WorkloadStatusDto:
+ *         name: mogenius-operator/src/kubernetes.WorkloadStatusDto
  *         properties:
  *             items:
  *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/kubernetes.WorkloadStatusItemDto
+ *                     structRef: mogenius-operator/src/kubernetes.WorkloadStatusItemDto
  *                     type: struct
  *                 type: array
- *     mogenius-k8s-manager/src/kubernetes.WorkloadStatusItemDto:
- *         name: mogenius-k8s-manager/src/kubernetes.WorkloadStatusItemDto
+ *     mogenius-operator/src/kubernetes.WorkloadStatusItemDto:
+ *         name: mogenius-operator/src/kubernetes.WorkloadStatusItemDto
  *         properties:
  *             apiVersion:
  *                 type: string
@@ -5349,32 +5349,32 @@ export type GET_WORKLOAD_STATUS_REQUEST = GET_WORKLOAD_STATUS_REQUEST__MOGENIUS_
  *         name: time.Time
  *         properties: {}
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/kubernetes.GetWorkloadStatusRequest,[]mogenius-k8s-manager/src/kubernetes.WorkloadStatusDto]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/kubernetes.GetWorkloadStatusRequest,[]mogenius-operator/src/kubernetes.WorkloadStatusDto]
  *     type: struct
  * ```
  *
  */
-export type GET_WORKLOAD_STATUS_RESPONSE = GET_WORKLOAD_STATUS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_KUBERNETES_GETWORKLOADSTATUSREQUEST_MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_WORKLOADSTATUSDTO;
+export type GET_WORKLOAD_STATUS_RESPONSE = GET_WORKLOAD_STATUS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_KUBERNETES_GETWORKLOADSTATUSREQUEST_MOGENIUS_OPERATOR_SRC_KUBERNETES_WORKLOADSTATUSDTO;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Request:
- *         name: mogenius-k8s-manager/src/core.Request
+ *     mogenius-operator/src/core.Request:
+ *         name: mogenius-operator/src/core.Request
  *         properties:
  *             name:
  *                 type: string
  *             namespace:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Request
+ *     structRef: mogenius-operator/src/core.Request
  *     type: struct
  * ```
  *
  */
-export type GET_WORKSPACE_REQUEST = GET_WORKSPACE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST;
+export type GET_WORKSPACE_REQUEST = GET_WORKSPACE_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST;
 
 /**
  * #### Source
@@ -5387,8 +5387,8 @@ export type GET_WORKSPACE_REQUEST = GET_WORKSPACE_REQUEST__MOGENIUS_K8S_MANAGER_
  *             Time:
  *                 structRef: time.Time
  *                 type: struct
- *     mogenius-k8s-manager/src/core.GetWorkspaceResult:
- *         name: mogenius-k8s-manager/src/core.GetWorkspaceResult
+ *     mogenius-operator/src/core.GetWorkspaceResult:
+ *         name: mogenius-operator/src/core.GetWorkspaceResult
  *         properties:
  *             creationTimestamp:
  *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
@@ -5397,22 +5397,22 @@ export type GET_WORKSPACE_REQUEST = GET_WORKSPACE_REQUEST__MOGENIUS_K8S_MANAGER_
  *                 type: string
  *             resources:
  *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/crds/v1alpha1.WorkspaceResourceIdentifier
+ *                     structRef: mogenius-operator/src/crds/v1alpha1.WorkspaceResourceIdentifier
  *                     type: struct
  *                 type: array
- *     ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·19,*mogenius-k8s-manager/src/core.GetWorkspaceResult]
- *     :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·19,*mogenius-k8s-manager/src/core.GetWorkspaceResult]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·19,*mogenius-operator/src/core.GetWorkspaceResult]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·19,*mogenius-operator/src/core.GetWorkspaceResult]
  *         properties:
  *             data:
  *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/core.GetWorkspaceResult
+ *                 structRef: mogenius-operator/src/core.GetWorkspaceResult
  *                 type: struct
  *             message:
  *                 type: string
  *             status:
  *                 type: string
- *     mogenius-k8s-manager/src/crds/v1alpha1.WorkspaceResourceIdentifier:
- *         name: mogenius-k8s-manager/src/crds/v1alpha1.WorkspaceResourceIdentifier
+ *     mogenius-operator/src/crds/v1alpha1.WorkspaceResourceIdentifier:
+ *         name: mogenius-operator/src/crds/v1alpha1.WorkspaceResourceIdentifier
  *         properties:
  *             id:
  *                 type: string
@@ -5424,12 +5424,12 @@ export type GET_WORKSPACE_REQUEST = GET_WORKSPACE_REQUEST__MOGENIUS_K8S_MANAGER_
  *         name: time.Time
  *         properties: {}
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·19,*mogenius-k8s-manager/src/core.GetWorkspaceResult]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·19,*mogenius-operator/src/core.GetWorkspaceResult]
  *     type: struct
  * ```
  *
  */
-export type GET_WORKSPACE_RESPONSE = GET_WORKSPACE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST19_MOGENIUS_K8S_MANAGER_SRC_CORE_GETWORKSPACERESULT;
+export type GET_WORKSPACE_RESPONSE = GET_WORKSPACE_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST19_MOGENIUS_OPERATOR_SRC_CORE_GETWORKSPACERESULT;
 
 /**
  * #### Source
@@ -5458,8 +5458,8 @@ export type GET_WORKSPACES_REQUEST = GET_WORKSPACES_REQUEST__ANON_STRUCT_0|undef
  *             Time:
  *                 structRef: time.Time
  *                 type: struct
- *     mogenius-k8s-manager/src/core.GetWorkspaceResult:
- *         name: mogenius-k8s-manager/src/core.GetWorkspaceResult
+ *     mogenius-operator/src/core.GetWorkspaceResult:
+ *         name: mogenius-operator/src/core.GetWorkspaceResult
  *         properties:
  *             creationTimestamp:
  *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
@@ -5468,23 +5468,23 @@ export type GET_WORKSPACES_REQUEST = GET_WORKSPACES_REQUEST__ANON_STRUCT_0|undef
  *                 type: string
  *             resources:
  *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/crds/v1alpha1.WorkspaceResourceIdentifier
+ *                     structRef: mogenius-operator/src/crds/v1alpha1.WorkspaceResourceIdentifier
  *                     type: struct
  *                 type: array
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,[]mogenius-k8s-manager/src/core.GetWorkspaceResult]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,[]mogenius-k8s-manager/src/core.GetWorkspaceResult]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,[]mogenius-operator/src/core.GetWorkspaceResult]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,[]mogenius-operator/src/core.GetWorkspaceResult]
  *         properties:
  *             data:
  *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/core.GetWorkspaceResult
+ *                     structRef: mogenius-operator/src/core.GetWorkspaceResult
  *                     type: struct
  *                 type: array
  *             message:
  *                 type: string
  *             status:
  *                 type: string
- *     mogenius-k8s-manager/src/crds/v1alpha1.WorkspaceResourceIdentifier:
- *         name: mogenius-k8s-manager/src/crds/v1alpha1.WorkspaceResourceIdentifier
+ *     mogenius-operator/src/crds/v1alpha1.WorkspaceResourceIdentifier:
+ *         name: mogenius-operator/src/crds/v1alpha1.WorkspaceResourceIdentifier
  *         properties:
  *             id:
  *                 type: string
@@ -5496,25 +5496,25 @@ export type GET_WORKSPACES_REQUEST = GET_WORKSPACES_REQUEST__ANON_STRUCT_0|undef
  *         name: time.Time
  *         properties: {}
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,[]mogenius-k8s-manager/src/core.GetWorkspaceResult]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,[]mogenius-operator/src/core.GetWorkspaceResult]
  *     type: struct
  * ```
  *
  */
-export type GET_WORKSPACES_RESPONSE = GET_WORKSPACES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_MOGENIUS_K8S_MANAGER_SRC_CORE_GETWORKSPACERESULT;
+export type GET_WORKSPACES_RESPONSE = GET_WORKSPACES_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_MOGENIUS_OPERATOR_SRC_CORE_GETWORKSPACERESULT;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Request:
- *         name: mogenius-k8s-manager/src/core.Request
+ *     mogenius-operator/src/core.Request:
+ *         name: mogenius-operator/src/core.Request
  *         properties:
  *             blacklist:
  *                 elementType:
  *                     pointer: true
- *                     structRef: mogenius-k8s-manager/src/utils.ResourceDescriptor
+ *                     structRef: mogenius-operator/src/utils.ResourceDescriptor
  *                     type: struct
  *                 type: array
  *             namespaceWhitelist:
@@ -5524,13 +5524,13 @@ export type GET_WORKSPACES_RESPONSE = GET_WORKSPACES_RESPONSE__MOGENIUS_K8S_MANA
  *             whitelist:
  *                 elementType:
  *                     pointer: true
- *                     structRef: mogenius-k8s-manager/src/utils.ResourceDescriptor
+ *                     structRef: mogenius-operator/src/utils.ResourceDescriptor
  *                     type: struct
  *                 type: array
  *             workspaceName:
  *                 type: string
- *     mogenius-k8s-manager/src/utils.ResourceDescriptor:
- *         name: mogenius-k8s-manager/src/utils.ResourceDescriptor
+ *     mogenius-operator/src/utils.ResourceDescriptor:
+ *         name: mogenius-operator/src/utils.ResourceDescriptor
  *         properties:
  *             apiVersion:
  *                 type: string
@@ -5541,12 +5541,12 @@ export type GET_WORKSPACES_RESPONSE = GET_WORKSPACES_RESPONSE__MOGENIUS_K8S_MANA
  *             plural:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Request
+ *     structRef: mogenius-operator/src/core.Request
  *     type: struct
  * ```
  *
  */
-export type GET_WORKSPACE_WORKLOADS_REQUEST = GET_WORKSPACE_WORKLOADS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST;
+export type GET_WORKSPACE_WORKLOADS_REQUEST = GET_WORKSPACE_WORKLOADS_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST;
 
 /**
  * #### Source
@@ -5563,8 +5563,8 @@ export type GET_WORKSPACE_WORKLOADS_REQUEST = GET_WORKSPACE_WORKLOADS_REQUEST__M
  *                 valueType:
  *                     pointer: true
  *                     type: any
- *     ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·33,[]k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
- *     :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·33,[]k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *     ? mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·33,[]k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *     :   name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·33,[]k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
  *         properties:
  *             data:
  *                 elementType:
@@ -5576,12 +5576,12 @@ export type GET_WORKSPACE_WORKLOADS_REQUEST = GET_WORKSPACE_WORKLOADS_REQUEST__M
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·33,[]k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·33,[]k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
  *     type: struct
  * ```
  *
  */
-export type GET_WORKSPACE_WORKLOADS_RESPONSE = GET_WORKSPACE_WORKLOADS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST33_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED;
+export type GET_WORKSPACE_WORKLOADS_RESPONSE = GET_WORKSPACE_WORKLOADS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST33_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED;
 
 /**
  * #### Source
@@ -5604,8 +5604,8 @@ export type INSTALL_CERT_MANAGER_REQUEST = INSTALL_CERT_MANAGER_REQUEST__ANON_ST
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,string]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,string]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
  *         properties:
  *             data:
  *                 type: string
@@ -5614,38 +5614,38 @@ export type INSTALL_CERT_MANAGER_REQUEST = INSTALL_CERT_MANAGER_REQUEST__ANON_ST
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,string]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
  *     type: struct
  * ```
  *
  */
-export type INSTALL_CERT_MANAGER_RESPONSE = INSTALL_CERT_MANAGER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_STRING;
+export type INSTALL_CERT_MANAGER_RESPONSE = INSTALL_CERT_MANAGER_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Request:
- *         name: mogenius-k8s-manager/src/core.Request
+ *     mogenius-operator/src/core.Request:
+ *         name: mogenius-operator/src/core.Request
  *         properties:
  *             email:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Request
+ *     structRef: mogenius-operator/src/core.Request
  *     type: struct
  * ```
  *
  */
-export type INSTALL_CLUSTER_ISSUER_REQUEST = INSTALL_CLUSTER_ISSUER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST;
+export type INSTALL_CLUSTER_ISSUER_REQUEST = INSTALL_CLUSTER_ISSUER_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·6,string]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·6,string]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·6,string]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·6,string]
  *         properties:
  *             data:
  *                 type: string
@@ -5654,12 +5654,12 @@ export type INSTALL_CLUSTER_ISSUER_REQUEST = INSTALL_CLUSTER_ISSUER_REQUEST__MOG
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·6,string]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·6,string]
  *     type: struct
  * ```
  *
  */
-export type INSTALL_CLUSTER_ISSUER_RESPONSE = INSTALL_CLUSTER_ISSUER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST6_STRING;
+export type INSTALL_CLUSTER_ISSUER_RESPONSE = INSTALL_CLUSTER_ISSUER_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST6_STRING;
 
 /**
  * #### Source
@@ -5682,8 +5682,8 @@ export type INSTALL_INGRESS_CONTROLLER_TRAEFIK_REQUEST = INSTALL_INGRESS_CONTROL
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,string]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,string]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
  *         properties:
  *             data:
  *                 type: string
@@ -5692,12 +5692,12 @@ export type INSTALL_INGRESS_CONTROLLER_TRAEFIK_REQUEST = INSTALL_INGRESS_CONTROL
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,string]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
  *     type: struct
  * ```
  *
  */
-export type INSTALL_INGRESS_CONTROLLER_TRAEFIK_RESPONSE = INSTALL_INGRESS_CONTROLLER_TRAEFIK_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_STRING;
+export type INSTALL_INGRESS_CONTROLLER_TRAEFIK_RESPONSE = INSTALL_INGRESS_CONTROLLER_TRAEFIK_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING;
 
 /**
  * #### Source
@@ -5720,8 +5720,8 @@ export type INSTALL_KEPLER_REQUEST = INSTALL_KEPLER_REQUEST__ANON_STRUCT_0|undef
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,string]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,string]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
  *         properties:
  *             data:
  *                 type: string
@@ -5730,12 +5730,12 @@ export type INSTALL_KEPLER_REQUEST = INSTALL_KEPLER_REQUEST__ANON_STRUCT_0|undef
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,string]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
  *     type: struct
  * ```
  *
  */
-export type INSTALL_KEPLER_RESPONSE = INSTALL_KEPLER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_STRING;
+export type INSTALL_KEPLER_RESPONSE = INSTALL_KEPLER_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING;
 
 /**
  * #### Source
@@ -5758,8 +5758,8 @@ export type INSTALL_METALLB_REQUEST = INSTALL_METALLB_REQUEST__ANON_STRUCT_0|und
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,string]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,string]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
  *         properties:
  *             data:
  *                 type: string
@@ -5768,12 +5768,12 @@ export type INSTALL_METALLB_REQUEST = INSTALL_METALLB_REQUEST__ANON_STRUCT_0|und
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,string]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
  *     type: struct
  * ```
  *
  */
-export type INSTALL_METALLB_RESPONSE = INSTALL_METALLB_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_STRING;
+export type INSTALL_METALLB_RESPONSE = INSTALL_METALLB_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING;
 
 /**
  * #### Source
@@ -5796,8 +5796,8 @@ export type INSTALL_METRICS_SERVER_REQUEST = INSTALL_METRICS_SERVER_REQUEST__ANO
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,string]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,string]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
  *         properties:
  *             data:
  *                 type: string
@@ -5806,12 +5806,12 @@ export type INSTALL_METRICS_SERVER_REQUEST = INSTALL_METRICS_SERVER_REQUEST__ANO
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,string]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
  *     type: struct
  * ```
  *
  */
-export type INSTALL_METRICS_SERVER_RESPONSE = INSTALL_METRICS_SERVER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_STRING;
+export type INSTALL_METRICS_SERVER_RESPONSE = INSTALL_METRICS_SERVER_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING;
 
 /**
  * #### Source
@@ -5834,20 +5834,20 @@ export type LIST_ALL_RESOURCE_DESCRIPTORS_REQUEST = LIST_ALL_RESOURCE_DESCRIPTOR
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,[]mogenius-k8s-manager/src/utils.ResourceDescriptor]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,[]mogenius-k8s-manager/src/utils.ResourceDescriptor]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,[]mogenius-operator/src/utils.ResourceDescriptor]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,[]mogenius-operator/src/utils.ResourceDescriptor]
  *         properties:
  *             data:
  *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/utils.ResourceDescriptor
+ *                     structRef: mogenius-operator/src/utils.ResourceDescriptor
  *                     type: struct
  *                 type: array
  *             message:
  *                 type: string
  *             status:
  *                 type: string
- *     mogenius-k8s-manager/src/utils.ResourceDescriptor:
- *         name: mogenius-k8s-manager/src/utils.ResourceDescriptor
+ *     mogenius-operator/src/utils.ResourceDescriptor:
+ *         name: mogenius-operator/src/utils.ResourceDescriptor
  *         properties:
  *             apiVersion:
  *                 type: string
@@ -5858,20 +5858,20 @@ export type LIST_ALL_RESOURCE_DESCRIPTORS_REQUEST = LIST_ALL_RESOURCE_DESCRIPTOR
  *             plural:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,[]mogenius-k8s-manager/src/utils.ResourceDescriptor]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,[]mogenius-operator/src/utils.ResourceDescriptor]
  *     type: struct
  * ```
  *
  */
-export type LIST_ALL_RESOURCE_DESCRIPTORS_RESPONSE = LIST_ALL_RESOURCE_DESCRIPTORS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR;
+export type LIST_ALL_RESOURCE_DESCRIPTORS_RESPONSE = LIST_ALL_RESOURCE_DESCRIPTORS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_MOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRIPTOR;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/xterm.WsConnectionRequest:
- *         name: mogenius-k8s-manager/src/xterm.WsConnectionRequest
+ *     mogenius-operator/src/xterm.WsConnectionRequest:
+ *         name: mogenius-operator/src/xterm.WsConnectionRequest
  *         properties:
  *             channelId:
  *                 type: string
@@ -5888,12 +5888,12 @@ export type LIST_ALL_RESOURCE_DESCRIPTORS_RESPONSE = LIST_ALL_RESOURCE_DESCRIPTO
  *             workspace:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/xterm.WsConnectionRequest
+ *     structRef: mogenius-operator/src/xterm.WsConnectionRequest
  *     type: struct
  * ```
  *
  */
-export type LIVE_STREAM_NODES_CPU_REQUEST = LIVE_STREAM_NODES_CPU_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST;
+export type LIVE_STREAM_NODES_CPU_REQUEST = LIVE_STREAM_NODES_CPU_REQUEST__MOGENIUS_OPERATOR_SRC_XTERM_WSCONNECTIONREQUEST;
 
 /**
  * #### Source
@@ -5902,8 +5902,8 @@ export type LIVE_STREAM_NODES_CPU_REQUEST = LIVE_STREAM_NODES_CPU_REQUEST__MOGEN
  * structs:
  *     ANON_STRUCT_1:
  *         properties: {}
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/xterm.WsConnectionRequest,mogenius-k8s-manager/src/core.Void]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/xterm.WsConnectionRequest,mogenius-k8s-manager/src/core.Void]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,mogenius-operator/src/core.Void]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,mogenius-operator/src/core.Void]
  *         properties:
  *             data:
  *                 pointer: true
@@ -5914,20 +5914,20 @@ export type LIVE_STREAM_NODES_CPU_REQUEST = LIVE_STREAM_NODES_CPU_REQUEST__MOGEN
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/xterm.WsConnectionRequest,mogenius-k8s-manager/src/core.Void]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,mogenius-operator/src/core.Void]
  *     type: struct
  * ```
  *
  */
-export type LIVE_STREAM_NODES_CPU_RESPONSE = LIVE_STREAM_NODES_CPU_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST_MOGENIUS_K8S_MANAGER_SRC_CORE_VOID;
+export type LIVE_STREAM_NODES_CPU_RESPONSE = LIVE_STREAM_NODES_CPU_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_XTERM_WSCONNECTIONREQUEST_MOGENIUS_OPERATOR_SRC_CORE_VOID;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/xterm.WsConnectionRequest:
- *         name: mogenius-k8s-manager/src/xterm.WsConnectionRequest
+ *     mogenius-operator/src/xterm.WsConnectionRequest:
+ *         name: mogenius-operator/src/xterm.WsConnectionRequest
  *         properties:
  *             channelId:
  *                 type: string
@@ -5944,12 +5944,12 @@ export type LIVE_STREAM_NODES_CPU_RESPONSE = LIVE_STREAM_NODES_CPU_RESPONSE__MOG
  *             workspace:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/xterm.WsConnectionRequest
+ *     structRef: mogenius-operator/src/xterm.WsConnectionRequest
  *     type: struct
  * ```
  *
  */
-export type LIVE_STREAM_NODES_MEMORY_REQUEST = LIVE_STREAM_NODES_MEMORY_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST;
+export type LIVE_STREAM_NODES_MEMORY_REQUEST = LIVE_STREAM_NODES_MEMORY_REQUEST__MOGENIUS_OPERATOR_SRC_XTERM_WSCONNECTIONREQUEST;
 
 /**
  * #### Source
@@ -5958,8 +5958,8 @@ export type LIVE_STREAM_NODES_MEMORY_REQUEST = LIVE_STREAM_NODES_MEMORY_REQUEST_
  * structs:
  *     ANON_STRUCT_1:
  *         properties: {}
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/xterm.WsConnectionRequest,mogenius-k8s-manager/src/core.Void]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/xterm.WsConnectionRequest,mogenius-k8s-manager/src/core.Void]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,mogenius-operator/src/core.Void]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,mogenius-operator/src/core.Void]
  *         properties:
  *             data:
  *                 pointer: true
@@ -5970,20 +5970,20 @@ export type LIVE_STREAM_NODES_MEMORY_REQUEST = LIVE_STREAM_NODES_MEMORY_REQUEST_
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/xterm.WsConnectionRequest,mogenius-k8s-manager/src/core.Void]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,mogenius-operator/src/core.Void]
  *     type: struct
  * ```
  *
  */
-export type LIVE_STREAM_NODES_MEMORY_RESPONSE = LIVE_STREAM_NODES_MEMORY_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST_MOGENIUS_K8S_MANAGER_SRC_CORE_VOID;
+export type LIVE_STREAM_NODES_MEMORY_RESPONSE = LIVE_STREAM_NODES_MEMORY_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_XTERM_WSCONNECTIONREQUEST_MOGENIUS_OPERATOR_SRC_CORE_VOID;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/xterm.WsConnectionRequest:
- *         name: mogenius-k8s-manager/src/xterm.WsConnectionRequest
+ *     mogenius-operator/src/xterm.WsConnectionRequest:
+ *         name: mogenius-operator/src/xterm.WsConnectionRequest
  *         properties:
  *             channelId:
  *                 type: string
@@ -6000,12 +6000,12 @@ export type LIVE_STREAM_NODES_MEMORY_RESPONSE = LIVE_STREAM_NODES_MEMORY_RESPONS
  *             workspace:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/xterm.WsConnectionRequest
+ *     structRef: mogenius-operator/src/xterm.WsConnectionRequest
  *     type: struct
  * ```
  *
  */
-export type LIVE_STREAM_NODES_TRAFFIC_REQUEST = LIVE_STREAM_NODES_TRAFFIC_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST;
+export type LIVE_STREAM_NODES_TRAFFIC_REQUEST = LIVE_STREAM_NODES_TRAFFIC_REQUEST__MOGENIUS_OPERATOR_SRC_XTERM_WSCONNECTIONREQUEST;
 
 /**
  * #### Source
@@ -6014,8 +6014,8 @@ export type LIVE_STREAM_NODES_TRAFFIC_REQUEST = LIVE_STREAM_NODES_TRAFFIC_REQUES
  * structs:
  *     ANON_STRUCT_1:
  *         properties: {}
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/xterm.WsConnectionRequest,mogenius-k8s-manager/src/core.Void]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/xterm.WsConnectionRequest,mogenius-k8s-manager/src/core.Void]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,mogenius-operator/src/core.Void]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,mogenius-operator/src/core.Void]
  *         properties:
  *             data:
  *                 pointer: true
@@ -6026,20 +6026,20 @@ export type LIVE_STREAM_NODES_TRAFFIC_REQUEST = LIVE_STREAM_NODES_TRAFFIC_REQUES
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/xterm.WsConnectionRequest,mogenius-k8s-manager/src/core.Void]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,mogenius-operator/src/core.Void]
  *     type: struct
  * ```
  *
  */
-export type LIVE_STREAM_NODES_TRAFFIC_RESPONSE = LIVE_STREAM_NODES_TRAFFIC_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST_MOGENIUS_K8S_MANAGER_SRC_CORE_VOID;
+export type LIVE_STREAM_NODES_TRAFFIC_RESPONSE = LIVE_STREAM_NODES_TRAFFIC_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_XTERM_WSCONNECTIONREQUEST_MOGENIUS_OPERATOR_SRC_CORE_VOID;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/xterm.WsConnectionRequest:
- *         name: mogenius-k8s-manager/src/xterm.WsConnectionRequest
+ *     mogenius-operator/src/xterm.WsConnectionRequest:
+ *         name: mogenius-operator/src/xterm.WsConnectionRequest
  *         properties:
  *             channelId:
  *                 type: string
@@ -6056,12 +6056,12 @@ export type LIVE_STREAM_NODES_TRAFFIC_RESPONSE = LIVE_STREAM_NODES_TRAFFIC_RESPO
  *             workspace:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/xterm.WsConnectionRequest
+ *     structRef: mogenius-operator/src/xterm.WsConnectionRequest
  *     type: struct
  * ```
  *
  */
-export type LIVE_STREAM_POD_CPU_REQUEST = LIVE_STREAM_POD_CPU_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST;
+export type LIVE_STREAM_POD_CPU_REQUEST = LIVE_STREAM_POD_CPU_REQUEST__MOGENIUS_OPERATOR_SRC_XTERM_WSCONNECTIONREQUEST;
 
 /**
  * #### Source
@@ -6070,8 +6070,8 @@ export type LIVE_STREAM_POD_CPU_REQUEST = LIVE_STREAM_POD_CPU_REQUEST__MOGENIUS_
  * structs:
  *     ANON_STRUCT_1:
  *         properties: {}
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/xterm.WsConnectionRequest,mogenius-k8s-manager/src/core.Void]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/xterm.WsConnectionRequest,mogenius-k8s-manager/src/core.Void]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,mogenius-operator/src/core.Void]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,mogenius-operator/src/core.Void]
  *         properties:
  *             data:
  *                 pointer: true
@@ -6082,20 +6082,20 @@ export type LIVE_STREAM_POD_CPU_REQUEST = LIVE_STREAM_POD_CPU_REQUEST__MOGENIUS_
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/xterm.WsConnectionRequest,mogenius-k8s-manager/src/core.Void]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,mogenius-operator/src/core.Void]
  *     type: struct
  * ```
  *
  */
-export type LIVE_STREAM_POD_CPU_RESPONSE = LIVE_STREAM_POD_CPU_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST_MOGENIUS_K8S_MANAGER_SRC_CORE_VOID;
+export type LIVE_STREAM_POD_CPU_RESPONSE = LIVE_STREAM_POD_CPU_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_XTERM_WSCONNECTIONREQUEST_MOGENIUS_OPERATOR_SRC_CORE_VOID;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/xterm.WsConnectionRequest:
- *         name: mogenius-k8s-manager/src/xterm.WsConnectionRequest
+ *     mogenius-operator/src/xterm.WsConnectionRequest:
+ *         name: mogenius-operator/src/xterm.WsConnectionRequest
  *         properties:
  *             channelId:
  *                 type: string
@@ -6112,12 +6112,12 @@ export type LIVE_STREAM_POD_CPU_RESPONSE = LIVE_STREAM_POD_CPU_RESPONSE__MOGENIU
  *             workspace:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/xterm.WsConnectionRequest
+ *     structRef: mogenius-operator/src/xterm.WsConnectionRequest
  *     type: struct
  * ```
  *
  */
-export type LIVE_STREAM_POD_MEMORY_REQUEST = LIVE_STREAM_POD_MEMORY_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST;
+export type LIVE_STREAM_POD_MEMORY_REQUEST = LIVE_STREAM_POD_MEMORY_REQUEST__MOGENIUS_OPERATOR_SRC_XTERM_WSCONNECTIONREQUEST;
 
 /**
  * #### Source
@@ -6126,8 +6126,8 @@ export type LIVE_STREAM_POD_MEMORY_REQUEST = LIVE_STREAM_POD_MEMORY_REQUEST__MOG
  * structs:
  *     ANON_STRUCT_1:
  *         properties: {}
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/xterm.WsConnectionRequest,mogenius-k8s-manager/src/core.Void]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/xterm.WsConnectionRequest,mogenius-k8s-manager/src/core.Void]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,mogenius-operator/src/core.Void]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,mogenius-operator/src/core.Void]
  *         properties:
  *             data:
  *                 pointer: true
@@ -6138,20 +6138,20 @@ export type LIVE_STREAM_POD_MEMORY_REQUEST = LIVE_STREAM_POD_MEMORY_REQUEST__MOG
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/xterm.WsConnectionRequest,mogenius-k8s-manager/src/core.Void]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,mogenius-operator/src/core.Void]
  *     type: struct
  * ```
  *
  */
-export type LIVE_STREAM_POD_MEMORY_RESPONSE = LIVE_STREAM_POD_MEMORY_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST_MOGENIUS_K8S_MANAGER_SRC_CORE_VOID;
+export type LIVE_STREAM_POD_MEMORY_RESPONSE = LIVE_STREAM_POD_MEMORY_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_XTERM_WSCONNECTIONREQUEST_MOGENIUS_OPERATOR_SRC_CORE_VOID;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/xterm.WsConnectionRequest:
- *         name: mogenius-k8s-manager/src/xterm.WsConnectionRequest
+ *     mogenius-operator/src/xterm.WsConnectionRequest:
+ *         name: mogenius-operator/src/xterm.WsConnectionRequest
  *         properties:
  *             channelId:
  *                 type: string
@@ -6168,12 +6168,12 @@ export type LIVE_STREAM_POD_MEMORY_RESPONSE = LIVE_STREAM_POD_MEMORY_RESPONSE__M
  *             workspace:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/xterm.WsConnectionRequest
+ *     structRef: mogenius-operator/src/xterm.WsConnectionRequest
  *     type: struct
  * ```
  *
  */
-export type LIVE_STREAM_POD_TRAFFIC_REQUEST = LIVE_STREAM_POD_TRAFFIC_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST;
+export type LIVE_STREAM_POD_TRAFFIC_REQUEST = LIVE_STREAM_POD_TRAFFIC_REQUEST__MOGENIUS_OPERATOR_SRC_XTERM_WSCONNECTIONREQUEST;
 
 /**
  * #### Source
@@ -6182,8 +6182,8 @@ export type LIVE_STREAM_POD_TRAFFIC_REQUEST = LIVE_STREAM_POD_TRAFFIC_REQUEST__M
  * structs:
  *     ANON_STRUCT_1:
  *         properties: {}
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/xterm.WsConnectionRequest,mogenius-k8s-manager/src/core.Void]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/xterm.WsConnectionRequest,mogenius-k8s-manager/src/core.Void]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,mogenius-operator/src/core.Void]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,mogenius-operator/src/core.Void]
  *         properties:
  *             data:
  *                 pointer: true
@@ -6194,20 +6194,20 @@ export type LIVE_STREAM_POD_TRAFFIC_REQUEST = LIVE_STREAM_POD_TRAFFIC_REQUEST__M
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/xterm.WsConnectionRequest,mogenius-k8s-manager/src/core.Void]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,mogenius-operator/src/core.Void]
  *     type: struct
  * ```
  *
  */
-export type LIVE_STREAM_POD_TRAFFIC_RESPONSE = LIVE_STREAM_POD_TRAFFIC_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST_MOGENIUS_K8S_MANAGER_SRC_CORE_VOID;
+export type LIVE_STREAM_POD_TRAFFIC_RESPONSE = LIVE_STREAM_POD_TRAFFIC_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_XTERM_WSCONNECTIONREQUEST_MOGENIUS_OPERATOR_SRC_CORE_VOID;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/xterm.WsConnectionRequest:
- *         name: mogenius-k8s-manager/src/xterm.WsConnectionRequest
+ *     mogenius-operator/src/xterm.WsConnectionRequest:
+ *         name: mogenius-operator/src/xterm.WsConnectionRequest
  *         properties:
  *             channelId:
  *                 type: string
@@ -6224,12 +6224,12 @@ export type LIVE_STREAM_POD_TRAFFIC_RESPONSE = LIVE_STREAM_POD_TRAFFIC_RESPONSE_
  *             workspace:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/xterm.WsConnectionRequest
+ *     structRef: mogenius-operator/src/xterm.WsConnectionRequest
  *     type: struct
  * ```
  *
  */
-export type LIVE_STREAM_WORKSPACE_CPU_REQUEST = LIVE_STREAM_WORKSPACE_CPU_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST;
+export type LIVE_STREAM_WORKSPACE_CPU_REQUEST = LIVE_STREAM_WORKSPACE_CPU_REQUEST__MOGENIUS_OPERATOR_SRC_XTERM_WSCONNECTIONREQUEST;
 
 /**
  * #### Source
@@ -6248,8 +6248,8 @@ export type LIVE_STREAM_WORKSPACE_CPU_RESPONSE = any;
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/xterm.WsConnectionRequest:
- *         name: mogenius-k8s-manager/src/xterm.WsConnectionRequest
+ *     mogenius-operator/src/xterm.WsConnectionRequest:
+ *         name: mogenius-operator/src/xterm.WsConnectionRequest
  *         properties:
  *             channelId:
  *                 type: string
@@ -6266,12 +6266,12 @@ export type LIVE_STREAM_WORKSPACE_CPU_RESPONSE = any;
  *             workspace:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/xterm.WsConnectionRequest
+ *     structRef: mogenius-operator/src/xterm.WsConnectionRequest
  *     type: struct
  * ```
  *
  */
-export type LIVE_STREAM_WORKSPACE_MEMORY_REQUEST = LIVE_STREAM_WORKSPACE_MEMORY_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST;
+export type LIVE_STREAM_WORKSPACE_MEMORY_REQUEST = LIVE_STREAM_WORKSPACE_MEMORY_REQUEST__MOGENIUS_OPERATOR_SRC_XTERM_WSCONNECTIONREQUEST;
 
 /**
  * #### Source
@@ -6290,8 +6290,8 @@ export type LIVE_STREAM_WORKSPACE_MEMORY_RESPONSE = any;
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/xterm.WsConnectionRequest:
- *         name: mogenius-k8s-manager/src/xterm.WsConnectionRequest
+ *     mogenius-operator/src/xterm.WsConnectionRequest:
+ *         name: mogenius-operator/src/xterm.WsConnectionRequest
  *         properties:
  *             channelId:
  *                 type: string
@@ -6308,12 +6308,12 @@ export type LIVE_STREAM_WORKSPACE_MEMORY_RESPONSE = any;
  *             workspace:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/xterm.WsConnectionRequest
+ *     structRef: mogenius-operator/src/xterm.WsConnectionRequest
  *     type: struct
  * ```
  *
  */
-export type LIVE_STREAM_WORKSPACE_TRAFFIC_REQUEST = LIVE_STREAM_WORKSPACE_TRAFFIC_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST;
+export type LIVE_STREAM_WORKSPACE_TRAFFIC_REQUEST = LIVE_STREAM_WORKSPACE_TRAFFIC_REQUEST__MOGENIUS_OPERATOR_SRC_XTERM_WSCONNECTIONREQUEST;
 
 /**
  * #### Source
@@ -6332,8 +6332,8 @@ export type LIVE_STREAM_WORKSPACE_TRAFFIC_RESPONSE = any;
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.PrometheusRequestRedis:
- *         name: mogenius-k8s-manager/src/core.PrometheusRequestRedis
+ *     mogenius-operator/src/core.PrometheusRequestRedis:
+ *         name: mogenius-operator/src/core.PrometheusRequestRedis
  *         properties:
  *             controller:
  *                 type: string
@@ -6346,20 +6346,20 @@ export type LIVE_STREAM_WORKSPACE_TRAFFIC_RESPONSE = any;
  *             step:
  *                 type: int
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.PrometheusRequestRedis
+ *     structRef: mogenius-operator/src/core.PrometheusRequestRedis
  *     type: struct
  * ```
  *
  */
-export type PROMETHEUS_CHARTS_ADD_REQUEST = PROMETHEUS_CHARTS_ADD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSREQUESTREDIS;
+export type PROMETHEUS_CHARTS_ADD_REQUEST = PROMETHEUS_CHARTS_ADD_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_PROMETHEUSREQUESTREDIS;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.PrometheusRequestRedis,*string]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.PrometheusRequestRedis,*string]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.PrometheusRequestRedis,*string]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.PrometheusRequestRedis,*string]
  *         properties:
  *             data:
  *                 pointer: true
@@ -6369,20 +6369,20 @@ export type PROMETHEUS_CHARTS_ADD_REQUEST = PROMETHEUS_CHARTS_ADD_REQUEST__MOGEN
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.PrometheusRequestRedis,*string]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.PrometheusRequestRedis,*string]
  *     type: struct
  * ```
  *
  */
-export type PROMETHEUS_CHARTS_ADD_RESPONSE = PROMETHEUS_CHARTS_ADD_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSREQUESTREDIS_STRING;
+export type PROMETHEUS_CHARTS_ADD_RESPONSE = PROMETHEUS_CHARTS_ADD_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_PROMETHEUSREQUESTREDIS_STRING;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.PrometheusRequestRedis:
- *         name: mogenius-k8s-manager/src/core.PrometheusRequestRedis
+ *     mogenius-operator/src/core.PrometheusRequestRedis:
+ *         name: mogenius-operator/src/core.PrometheusRequestRedis
  *         properties:
  *             controller:
  *                 type: string
@@ -6395,20 +6395,20 @@ export type PROMETHEUS_CHARTS_ADD_RESPONSE = PROMETHEUS_CHARTS_ADD_RESPONSE__MOG
  *             step:
  *                 type: int
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.PrometheusRequestRedis
+ *     structRef: mogenius-operator/src/core.PrometheusRequestRedis
  *     type: struct
  * ```
  *
  */
-export type PROMETHEUS_CHARTS_GET_REQUEST = PROMETHEUS_CHARTS_GET_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSREQUESTREDIS;
+export type PROMETHEUS_CHARTS_GET_REQUEST = PROMETHEUS_CHARTS_GET_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_PROMETHEUSREQUESTREDIS;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.PrometheusStoreObject:
- *         name: mogenius-k8s-manager/src/core.PrometheusStoreObject
+ *     mogenius-operator/src/core.PrometheusStoreObject:
+ *         name: mogenius-operator/src/core.PrometheusStoreObject
  *         properties:
  *             createdAt:
  *                 structRef: time.Time
@@ -6417,12 +6417,12 @@ export type PROMETHEUS_CHARTS_GET_REQUEST = PROMETHEUS_CHARTS_GET_REQUEST__MOGEN
  *                 type: string
  *             step:
  *                 type: int
- *     ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.PrometheusRequestRedis,*mogenius-k8s-manager/src/core.PrometheusStoreObject]
- *     :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.PrometheusRequestRedis,*mogenius-k8s-manager/src/core.PrometheusStoreObject]
+ *     ? mogenius-operator/src/core.Result[mogenius-operator/src/core.PrometheusRequestRedis,*mogenius-operator/src/core.PrometheusStoreObject]
+ *     :   name: mogenius-operator/src/core.Result[mogenius-operator/src/core.PrometheusRequestRedis,*mogenius-operator/src/core.PrometheusStoreObject]
  *         properties:
  *             data:
  *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/core.PrometheusStoreObject
+ *                 structRef: mogenius-operator/src/core.PrometheusStoreObject
  *                 type: struct
  *             message:
  *                 type: string
@@ -6432,40 +6432,40 @@ export type PROMETHEUS_CHARTS_GET_REQUEST = PROMETHEUS_CHARTS_GET_REQUEST__MOGEN
  *         name: time.Time
  *         properties: {}
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.PrometheusRequestRedis,*mogenius-k8s-manager/src/core.PrometheusStoreObject]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.PrometheusRequestRedis,*mogenius-operator/src/core.PrometheusStoreObject]
  *     type: struct
  * ```
  *
  */
-export type PROMETHEUS_CHARTS_GET_RESPONSE = PROMETHEUS_CHARTS_GET_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSREQUESTREDIS_MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSSTOREOBJECT;
+export type PROMETHEUS_CHARTS_GET_RESPONSE = PROMETHEUS_CHARTS_GET_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_PROMETHEUSREQUESTREDIS_MOGENIUS_OPERATOR_SRC_CORE_PROMETHEUSSTOREOBJECT;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.PrometheusRequestRedisList:
- *         name: mogenius-k8s-manager/src/core.PrometheusRequestRedisList
+ *     mogenius-operator/src/core.PrometheusRequestRedisList:
+ *         name: mogenius-operator/src/core.PrometheusRequestRedisList
  *         properties:
  *             controller:
  *                 type: string
  *             namespace:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.PrometheusRequestRedisList
+ *     structRef: mogenius-operator/src/core.PrometheusRequestRedisList
  *     type: struct
  * ```
  *
  */
-export type PROMETHEUS_CHARTS_LIST_REQUEST = PROMETHEUS_CHARTS_LIST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSREQUESTREDISLIST;
+export type PROMETHEUS_CHARTS_LIST_REQUEST = PROMETHEUS_CHARTS_LIST_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_PROMETHEUSREQUESTREDISLIST;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.PrometheusStoreObject:
- *         name: mogenius-k8s-manager/src/core.PrometheusStoreObject
+ *     mogenius-operator/src/core.PrometheusStoreObject:
+ *         name: mogenius-operator/src/core.PrometheusStoreObject
  *         properties:
  *             createdAt:
  *                 structRef: time.Time
@@ -6474,15 +6474,15 @@ export type PROMETHEUS_CHARTS_LIST_REQUEST = PROMETHEUS_CHARTS_LIST_REQUEST__MOG
  *                 type: string
  *             step:
  *                 type: int
- *     ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.PrometheusRequestRedisList,map[string]mogenius-k8s-manager/src/core.PrometheusStoreObject]
- *     :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.PrometheusRequestRedisList,map[string]mogenius-k8s-manager/src/core.PrometheusStoreObject]
+ *     ? mogenius-operator/src/core.Result[mogenius-operator/src/core.PrometheusRequestRedisList,map[string]mogenius-operator/src/core.PrometheusStoreObject]
+ *     :   name: mogenius-operator/src/core.Result[mogenius-operator/src/core.PrometheusRequestRedisList,map[string]mogenius-operator/src/core.PrometheusStoreObject]
  *         properties:
  *             data:
  *                 keyType:
  *                     type: string
  *                 type: map
  *                 valueType:
- *                     structRef: mogenius-k8s-manager/src/core.PrometheusStoreObject
+ *                     structRef: mogenius-operator/src/core.PrometheusStoreObject
  *                     type: struct
  *             message:
  *                 type: string
@@ -6492,20 +6492,20 @@ export type PROMETHEUS_CHARTS_LIST_REQUEST = PROMETHEUS_CHARTS_LIST_REQUEST__MOG
  *         name: time.Time
  *         properties: {}
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.PrometheusRequestRedisList,map[string]mogenius-k8s-manager/src/core.PrometheusStoreObject]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.PrometheusRequestRedisList,map[string]mogenius-operator/src/core.PrometheusStoreObject]
  *     type: struct
  * ```
  *
  */
-export type PROMETHEUS_CHARTS_LIST_RESPONSE = PROMETHEUS_CHARTS_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSREQUESTREDISLIST_MAPSTRINGMOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSSTOREOBJECT;
+export type PROMETHEUS_CHARTS_LIST_RESPONSE = PROMETHEUS_CHARTS_LIST_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_PROMETHEUSREQUESTREDISLIST_MAPSTRINGMOGENIUS_OPERATOR_SRC_CORE_PROMETHEUSSTOREOBJECT;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.PrometheusRequestRedis:
- *         name: mogenius-k8s-manager/src/core.PrometheusRequestRedis
+ *     mogenius-operator/src/core.PrometheusRequestRedis:
+ *         name: mogenius-operator/src/core.PrometheusRequestRedis
  *         properties:
  *             controller:
  *                 type: string
@@ -6518,20 +6518,20 @@ export type PROMETHEUS_CHARTS_LIST_RESPONSE = PROMETHEUS_CHARTS_LIST_RESPONSE__M
  *             step:
  *                 type: int
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.PrometheusRequestRedis
+ *     structRef: mogenius-operator/src/core.PrometheusRequestRedis
  *     type: struct
  * ```
  *
  */
-export type PROMETHEUS_CHARTS_REMOVE_REQUEST = PROMETHEUS_CHARTS_REMOVE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSREQUESTREDIS;
+export type PROMETHEUS_CHARTS_REMOVE_REQUEST = PROMETHEUS_CHARTS_REMOVE_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_PROMETHEUSREQUESTREDIS;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.PrometheusRequestRedis,*string]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.PrometheusRequestRedis,*string]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.PrometheusRequestRedis,*string]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.PrometheusRequestRedis,*string]
  *         properties:
  *             data:
  *                 pointer: true
@@ -6541,20 +6541,20 @@ export type PROMETHEUS_CHARTS_REMOVE_REQUEST = PROMETHEUS_CHARTS_REMOVE_REQUEST_
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.PrometheusRequestRedis,*string]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.PrometheusRequestRedis,*string]
  *     type: struct
  * ```
  *
  */
-export type PROMETHEUS_CHARTS_REMOVE_RESPONSE = PROMETHEUS_CHARTS_REMOVE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSREQUESTREDIS_STRING;
+export type PROMETHEUS_CHARTS_REMOVE_RESPONSE = PROMETHEUS_CHARTS_REMOVE_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_PROMETHEUSREQUESTREDIS_STRING;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.PrometheusRequest:
- *         name: mogenius-k8s-manager/src/core.PrometheusRequest
+ *     mogenius-operator/src/core.PrometheusRequest:
+ *         name: mogenius-operator/src/core.PrometheusRequest
  *         properties:
  *             prometheusPass:
  *                 type: string
@@ -6571,20 +6571,20 @@ export type PROMETHEUS_CHARTS_REMOVE_RESPONSE = PROMETHEUS_CHARTS_REMOVE_RESPONS
  *             timeOffsetSeconds:
  *                 type: int
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.PrometheusRequest
+ *     structRef: mogenius-operator/src/core.PrometheusRequest
  *     type: struct
  * ```
  *
  */
-export type PROMETHEUS_IS_REACHABLE_REQUEST = PROMETHEUS_IS_REACHABLE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSREQUEST;
+export type PROMETHEUS_IS_REACHABLE_REQUEST = PROMETHEUS_IS_REACHABLE_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_PROMETHEUSREQUEST;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.PrometheusRequest,bool]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.PrometheusRequest,bool]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.PrometheusRequest,bool]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.PrometheusRequest,bool]
  *         properties:
  *             data:
  *                 type: bool
@@ -6593,20 +6593,20 @@ export type PROMETHEUS_IS_REACHABLE_REQUEST = PROMETHEUS_IS_REACHABLE_REQUEST__M
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.PrometheusRequest,bool]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.PrometheusRequest,bool]
  *     type: struct
  * ```
  *
  */
-export type PROMETHEUS_IS_REACHABLE_RESPONSE = PROMETHEUS_IS_REACHABLE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSREQUEST_BOOL;
+export type PROMETHEUS_IS_REACHABLE_RESPONSE = PROMETHEUS_IS_REACHABLE_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_PROMETHEUSREQUEST_BOOL;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.PrometheusRequest:
- *         name: mogenius-k8s-manager/src/core.PrometheusRequest
+ *     mogenius-operator/src/core.PrometheusRequest:
+ *         name: mogenius-operator/src/core.PrometheusRequest
  *         properties:
  *             prometheusPass:
  *                 type: string
@@ -6623,12 +6623,12 @@ export type PROMETHEUS_IS_REACHABLE_RESPONSE = PROMETHEUS_IS_REACHABLE_RESPONSE_
  *             timeOffsetSeconds:
  *                 type: int
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.PrometheusRequest
+ *     structRef: mogenius-operator/src/core.PrometheusRequest
  *     type: struct
  * ```
  *
  */
-export type PROMETHEUS_QUERY_REQUEST = PROMETHEUS_QUERY_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSREQUEST;
+export type PROMETHEUS_QUERY_REQUEST = PROMETHEUS_QUERY_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_PROMETHEUSREQUEST;
 
 /**
  * #### Source
@@ -6644,8 +6644,8 @@ export type PROMETHEUS_QUERY_REQUEST = PROMETHEUS_QUERY_REQUEST__MOGENIUS_K8S_MA
  *                 type: array
  *             resultType:
  *                 type: string
- *     mogenius-k8s-manager/src/core.PrometheusQueryResponse:
- *         name: mogenius-k8s-manager/src/core.PrometheusQueryResponse
+ *     mogenius-operator/src/core.PrometheusQueryResponse:
+ *         name: mogenius-operator/src/core.PrometheusQueryResponse
  *         properties:
  *             data:
  *                 structRef: ANON_STRUCT_2
@@ -6656,32 +6656,32 @@ export type PROMETHEUS_QUERY_REQUEST = PROMETHEUS_QUERY_REQUEST__MOGENIUS_K8S_MA
  *                 type: string
  *             status:
  *                 type: string
- *     ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.PrometheusRequest,*mogenius-k8s-manager/src/core.PrometheusQueryResponse]
- *     :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.PrometheusRequest,*mogenius-k8s-manager/src/core.PrometheusQueryResponse]
+ *     ? mogenius-operator/src/core.Result[mogenius-operator/src/core.PrometheusRequest,*mogenius-operator/src/core.PrometheusQueryResponse]
+ *     :   name: mogenius-operator/src/core.Result[mogenius-operator/src/core.PrometheusRequest,*mogenius-operator/src/core.PrometheusQueryResponse]
  *         properties:
  *             data:
  *                 pointer: true
- *                 structRef: mogenius-k8s-manager/src/core.PrometheusQueryResponse
+ *                 structRef: mogenius-operator/src/core.PrometheusQueryResponse
  *                 type: struct
  *             message:
  *                 type: string
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.PrometheusRequest,*mogenius-k8s-manager/src/core.PrometheusQueryResponse]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.PrometheusRequest,*mogenius-operator/src/core.PrometheusQueryResponse]
  *     type: struct
  * ```
  *
  */
-export type PROMETHEUS_QUERY_RESPONSE = PROMETHEUS_QUERY_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSREQUEST_MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSQUERYRESPONSE;
+export type PROMETHEUS_QUERY_RESPONSE = PROMETHEUS_QUERY_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_PROMETHEUSREQUEST_MOGENIUS_OPERATOR_SRC_CORE_PROMETHEUSQUERYRESPONSE;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.PrometheusRequest:
- *         name: mogenius-k8s-manager/src/core.PrometheusRequest
+ *     mogenius-operator/src/core.PrometheusRequest:
+ *         name: mogenius-operator/src/core.PrometheusRequest
  *         properties:
  *             prometheusPass:
  *                 type: string
@@ -6698,20 +6698,20 @@ export type PROMETHEUS_QUERY_RESPONSE = PROMETHEUS_QUERY_RESPONSE__MOGENIUS_K8S_
  *             timeOffsetSeconds:
  *                 type: int
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.PrometheusRequest
+ *     structRef: mogenius-operator/src/core.PrometheusRequest
  *     type: struct
  * ```
  *
  */
-export type PROMETHEUS_VALUES_REQUEST = PROMETHEUS_VALUES_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSREQUEST;
+export type PROMETHEUS_VALUES_REQUEST = PROMETHEUS_VALUES_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_PROMETHEUSREQUEST;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.PrometheusRequest,[]string]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.PrometheusRequest,[]string]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.PrometheusRequest,[]string]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.PrometheusRequest,[]string]
  *         properties:
  *             data:
  *                 elementType:
@@ -6722,32 +6722,32 @@ export type PROMETHEUS_VALUES_REQUEST = PROMETHEUS_VALUES_REQUEST__MOGENIUS_K8S_
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.PrometheusRequest,[]string]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.PrometheusRequest,[]string]
  *     type: struct
  * ```
  *
  */
-export type PROMETHEUS_VALUES_RESPONSE = PROMETHEUS_VALUES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSREQUEST_STRING;
+export type PROMETHEUS_VALUES_RESPONSE = PROMETHEUS_VALUES_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_PROMETHEUSREQUEST_STRING;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Request:
- *         name: mogenius-k8s-manager/src/core.Request
+ *     mogenius-operator/src/core.Request:
+ *         name: mogenius-operator/src/core.Request
  *         properties:
  *             name:
  *                 type: string
  *             namespace:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Request
+ *     structRef: mogenius-operator/src/core.Request
  *     type: struct
  * ```
  *
  */
-export type SEALED_SECRET_CREATE_FROM_EXISTING_REQUEST = SEALED_SECRET_CREATE_FROM_EXISTING_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST;
+export type SEALED_SECRET_CREATE_FROM_EXISTING_REQUEST = SEALED_SECRET_CREATE_FROM_EXISTING_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST;
 
 /**
  * #### Source
@@ -6764,8 +6764,8 @@ export type SEALED_SECRET_CREATE_FROM_EXISTING_REQUEST = SEALED_SECRET_CREATE_FR
  *                 valueType:
  *                     pointer: true
  *                     type: any
- *     ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·36,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
- *     :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·36,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *     ? mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·36,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *     :   name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·36,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
  *         properties:
  *             data:
  *                 pointer: true
@@ -6776,12 +6776,12 @@ export type SEALED_SECRET_CREATE_FROM_EXISTING_REQUEST = SEALED_SECRET_CREATE_FR
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·36,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·36,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
  *     type: struct
  * ```
  *
  */
-export type SEALED_SECRET_CREATE_FROM_EXISTING_RESPONSE = SEALED_SECRET_CREATE_FROM_EXISTING_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST36_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED;
+export type SEALED_SECRET_CREATE_FROM_EXISTING_RESPONSE = SEALED_SECRET_CREATE_FROM_EXISTING_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST36_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED;
 
 /**
  * #### Source
@@ -6939,8 +6939,8 @@ export type SEALED_SECRET_GET_CERTIFICATE_REQUEST = SEALED_SECRET_GET_CERTIFICAT
  *                 type: string
  *             kind:
  *                 type: string
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,*k8s.io/api/core/v1.Secret]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,*k8s.io/api/core/v1.Secret]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,*k8s.io/api/core/v1.Secret]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,*k8s.io/api/core/v1.Secret]
  *         properties:
  *             data:
  *                 pointer: true
@@ -6954,20 +6954,20 @@ export type SEALED_SECRET_GET_CERTIFICATE_REQUEST = SEALED_SECRET_GET_CERTIFICAT
  *         name: time.Time
  *         properties: {}
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,*k8s.io/api/core/v1.Secret]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,*k8s.io/api/core/v1.Secret]
  *     type: struct
  * ```
  *
  */
-export type SEALED_SECRET_GET_CERTIFICATE_RESPONSE = SEALED_SECRET_GET_CERTIFICATE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_K8S_IO_API_CORE_V1_SECRET;
+export type SEALED_SECRET_GET_CERTIFICATE_RESPONSE = SEALED_SECRET_GET_CERTIFICATE_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_K8S_IO_API_CORE_V1_SECRET;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/xterm.PodCmdConnectionRequest:
- *         name: mogenius-k8s-manager/src/xterm.PodCmdConnectionRequest
+ *     mogenius-operator/src/xterm.PodCmdConnectionRequest:
+ *         name: mogenius-operator/src/xterm.PodCmdConnectionRequest
  *         properties:
  *             container:
  *                 type: string
@@ -6980,10 +6980,10 @@ export type SEALED_SECRET_GET_CERTIFICATE_RESPONSE = SEALED_SECRET_GET_CERTIFICA
  *             pod:
  *                 type: string
  *             wsConnectionRequest:
- *                 structRef: mogenius-k8s-manager/src/xterm.WsConnectionRequest
+ *                 structRef: mogenius-operator/src/xterm.WsConnectionRequest
  *                 type: struct
- *     mogenius-k8s-manager/src/xterm.WsConnectionRequest:
- *         name: mogenius-k8s-manager/src/xterm.WsConnectionRequest
+ *     mogenius-operator/src/xterm.WsConnectionRequest:
+ *         name: mogenius-operator/src/xterm.WsConnectionRequest
  *         properties:
  *             channelId:
  *                 type: string
@@ -7000,12 +7000,12 @@ export type SEALED_SECRET_GET_CERTIFICATE_RESPONSE = SEALED_SECRET_GET_CERTIFICA
  *             workspace:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/xterm.PodCmdConnectionRequest
+ *     structRef: mogenius-operator/src/xterm.PodCmdConnectionRequest
  *     type: struct
  * ```
  *
  */
-export type SERVICE_EXEC_SH_CONNECTION_REQUEST_REQUEST = SERVICE_EXEC_SH_CONNECTION_REQUEST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_PODCMDCONNECTIONREQUEST;
+export type SERVICE_EXEC_SH_CONNECTION_REQUEST_REQUEST = SERVICE_EXEC_SH_CONNECTION_REQUEST_REQUEST__MOGENIUS_OPERATOR_SRC_XTERM_PODCMDCONNECTIONREQUEST;
 
 /**
  * #### Source
@@ -7014,8 +7014,8 @@ export type SERVICE_EXEC_SH_CONNECTION_REQUEST_REQUEST = SERVICE_EXEC_SH_CONNECT
  * structs:
  *     ANON_STRUCT_1:
  *         properties: {}
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/xterm.PodCmdConnectionRequest,mogenius-k8s-manager/src/core.Void]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/xterm.PodCmdConnectionRequest,mogenius-k8s-manager/src/core.Void]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/xterm.PodCmdConnectionRequest,mogenius-operator/src/core.Void]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.PodCmdConnectionRequest,mogenius-operator/src/core.Void]
  *         properties:
  *             data:
  *                 pointer: true
@@ -7026,20 +7026,20 @@ export type SERVICE_EXEC_SH_CONNECTION_REQUEST_REQUEST = SERVICE_EXEC_SH_CONNECT
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/xterm.PodCmdConnectionRequest,mogenius-k8s-manager/src/core.Void]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.PodCmdConnectionRequest,mogenius-operator/src/core.Void]
  *     type: struct
  * ```
  *
  */
-export type SERVICE_EXEC_SH_CONNECTION_REQUEST_RESPONSE = SERVICE_EXEC_SH_CONNECTION_REQUEST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_XTERM_PODCMDCONNECTIONREQUEST_MOGENIUS_K8S_MANAGER_SRC_CORE_VOID;
+export type SERVICE_EXEC_SH_CONNECTION_REQUEST_RESPONSE = SERVICE_EXEC_SH_CONNECTION_REQUEST_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_XTERM_PODCMDCONNECTIONREQUEST_MOGENIUS_OPERATOR_SRC_CORE_VOID;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/xterm.PodCmdConnectionRequest:
- *         name: mogenius-k8s-manager/src/xterm.PodCmdConnectionRequest
+ *     mogenius-operator/src/xterm.PodCmdConnectionRequest:
+ *         name: mogenius-operator/src/xterm.PodCmdConnectionRequest
  *         properties:
  *             container:
  *                 type: string
@@ -7052,10 +7052,10 @@ export type SERVICE_EXEC_SH_CONNECTION_REQUEST_RESPONSE = SERVICE_EXEC_SH_CONNEC
  *             pod:
  *                 type: string
  *             wsConnectionRequest:
- *                 structRef: mogenius-k8s-manager/src/xterm.WsConnectionRequest
+ *                 structRef: mogenius-operator/src/xterm.WsConnectionRequest
  *                 type: struct
- *     mogenius-k8s-manager/src/xterm.WsConnectionRequest:
- *         name: mogenius-k8s-manager/src/xterm.WsConnectionRequest
+ *     mogenius-operator/src/xterm.WsConnectionRequest:
+ *         name: mogenius-operator/src/xterm.WsConnectionRequest
  *         properties:
  *             channelId:
  *                 type: string
@@ -7072,12 +7072,12 @@ export type SERVICE_EXEC_SH_CONNECTION_REQUEST_RESPONSE = SERVICE_EXEC_SH_CONNEC
  *             workspace:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/xterm.PodCmdConnectionRequest
+ *     structRef: mogenius-operator/src/xterm.PodCmdConnectionRequest
  *     type: struct
  * ```
  *
  */
-export type SERVICE_LOG_STREAM_CONNECTION_REQUEST_REQUEST = SERVICE_LOG_STREAM_CONNECTION_REQUEST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_PODCMDCONNECTIONREQUEST;
+export type SERVICE_LOG_STREAM_CONNECTION_REQUEST_REQUEST = SERVICE_LOG_STREAM_CONNECTION_REQUEST_REQUEST__MOGENIUS_OPERATOR_SRC_XTERM_PODCMDCONNECTIONREQUEST;
 
 /**
  * #### Source
@@ -7086,8 +7086,8 @@ export type SERVICE_LOG_STREAM_CONNECTION_REQUEST_REQUEST = SERVICE_LOG_STREAM_C
  * structs:
  *     ANON_STRUCT_1:
  *         properties: {}
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/xterm.PodCmdConnectionRequest,mogenius-k8s-manager/src/core.Void]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/xterm.PodCmdConnectionRequest,mogenius-k8s-manager/src/core.Void]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/xterm.PodCmdConnectionRequest,mogenius-operator/src/core.Void]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.PodCmdConnectionRequest,mogenius-operator/src/core.Void]
  *         properties:
  *             data:
  *                 pointer: true
@@ -7098,30 +7098,30 @@ export type SERVICE_LOG_STREAM_CONNECTION_REQUEST_REQUEST = SERVICE_LOG_STREAM_C
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/xterm.PodCmdConnectionRequest,mogenius-k8s-manager/src/core.Void]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.PodCmdConnectionRequest,mogenius-operator/src/core.Void]
  *     type: struct
  * ```
  *
  */
-export type SERVICE_LOG_STREAM_CONNECTION_REQUEST_RESPONSE = SERVICE_LOG_STREAM_CONNECTION_REQUEST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_XTERM_PODCMDCONNECTIONREQUEST_MOGENIUS_K8S_MANAGER_SRC_CORE_VOID;
+export type SERVICE_LOG_STREAM_CONNECTION_REQUEST_RESPONSE = SERVICE_LOG_STREAM_CONNECTION_REQUEST_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_XTERM_PODCMDCONNECTIONREQUEST_MOGENIUS_OPERATOR_SRC_CORE_VOID;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/xterm.PodEventConnectionRequest:
- *         name: mogenius-k8s-manager/src/xterm.PodEventConnectionRequest
+ *     mogenius-operator/src/xterm.PodEventConnectionRequest:
+ *         name: mogenius-operator/src/xterm.PodEventConnectionRequest
  *         properties:
  *             controller:
  *                 type: string
  *             namespace:
  *                 type: string
  *             wsConnectionRequest:
- *                 structRef: mogenius-k8s-manager/src/xterm.WsConnectionRequest
+ *                 structRef: mogenius-operator/src/xterm.WsConnectionRequest
  *                 type: struct
- *     mogenius-k8s-manager/src/xterm.WsConnectionRequest:
- *         name: mogenius-k8s-manager/src/xterm.WsConnectionRequest
+ *     mogenius-operator/src/xterm.WsConnectionRequest:
+ *         name: mogenius-operator/src/xterm.WsConnectionRequest
  *         properties:
  *             channelId:
  *                 type: string
@@ -7138,12 +7138,12 @@ export type SERVICE_LOG_STREAM_CONNECTION_REQUEST_RESPONSE = SERVICE_LOG_STREAM_
  *             workspace:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/xterm.PodEventConnectionRequest
+ *     structRef: mogenius-operator/src/xterm.PodEventConnectionRequest
  *     type: struct
  * ```
  *
  */
-export type SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST_REQUEST = SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_PODEVENTCONNECTIONREQUEST;
+export type SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST_REQUEST = SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST_REQUEST__MOGENIUS_OPERATOR_SRC_XTERM_PODEVENTCONNECTIONREQUEST;
 
 /**
  * #### Source
@@ -7152,8 +7152,8 @@ export type SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST_REQUEST = SERVICE_POD_EV
  * structs:
  *     ANON_STRUCT_1:
  *         properties: {}
- *     ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/xterm.PodEventConnectionRequest,mogenius-k8s-manager/src/core.Void]
- *     :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/xterm.PodEventConnectionRequest,mogenius-k8s-manager/src/core.Void]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/xterm.PodEventConnectionRequest,mogenius-operator/src/core.Void]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.PodEventConnectionRequest,mogenius-operator/src/core.Void]
  *         properties:
  *             data:
  *                 pointer: true
@@ -7164,20 +7164,20 @@ export type SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST_REQUEST = SERVICE_POD_EV
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/xterm.PodEventConnectionRequest,mogenius-k8s-manager/src/core.Void]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.PodEventConnectionRequest,mogenius-operator/src/core.Void]
  *     type: struct
  * ```
  *
  */
-export type SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST_RESPONSE = SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_XTERM_PODEVENTCONNECTIONREQUEST_MOGENIUS_K8S_MANAGER_SRC_CORE_VOID;
+export type SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST_RESPONSE = SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_XTERM_PODEVENTCONNECTIONREQUEST_MOGENIUS_OPERATOR_SRC_CORE_VOID;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Request:
- *         name: mogenius-k8s-manager/src/core.Request
+ *     mogenius-operator/src/core.Request:
+ *         name: mogenius-operator/src/core.Request
  *         properties:
  *             kind:
  *                 type: string
@@ -7188,24 +7188,24 @@ export type SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST_RESPONSE = SERVICE_POD_E
  *             timeOffsetMinutes:
  *                 type: int
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Request
+ *     structRef: mogenius-operator/src/core.Request
  *     type: struct
  * ```
  *
  */
-export type STATS_POD_ALL_FOR_CONTROLLER_REQUEST = STATS_POD_ALL_FOR_CONTROLLER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST;
+export type STATS_POD_ALL_FOR_CONTROLLER_REQUEST = STATS_POD_ALL_FOR_CONTROLLER_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·7,*[]mogenius-k8s-manager/src/structs.PodStats]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·7,*[]mogenius-k8s-manager/src/structs.PodStats]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·7,*[]mogenius-operator/src/structs.PodStats]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·7,*[]mogenius-operator/src/structs.PodStats]
  *         properties:
  *             data:
  *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/structs.PodStats
+ *                     structRef: mogenius-operator/src/structs.PodStats
  *                     type: struct
  *                 pointer: true
  *                 type: array
@@ -7213,8 +7213,8 @@ export type STATS_POD_ALL_FOR_CONTROLLER_REQUEST = STATS_POD_ALL_FOR_CONTROLLER_
  *                 type: string
  *             status:
  *                 type: string
- *     mogenius-k8s-manager/src/structs.PodStats:
- *         name: mogenius-k8s-manager/src/structs.PodStats
+ *     mogenius-operator/src/structs.PodStats:
+ *         name: mogenius-operator/src/structs.PodStats
  *         properties:
  *             containerName:
  *                 type: string
@@ -7244,20 +7244,20 @@ export type STATS_POD_ALL_FOR_CONTROLLER_REQUEST = STATS_POD_ALL_FOR_CONTROLLER_
  *         name: time.Time
  *         properties: {}
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·7,*[]mogenius-k8s-manager/src/structs.PodStats]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·7,*[]mogenius-operator/src/structs.PodStats]
  *     type: struct
  * ```
  *
  */
-export type STATS_POD_ALL_FOR_CONTROLLER_RESPONSE = STATS_POD_ALL_FOR_CONTROLLER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST7_MOGENIUS_K8S_MANAGER_SRC_STRUCTS_PODSTATS;
+export type STATS_POD_ALL_FOR_CONTROLLER_RESPONSE = STATS_POD_ALL_FOR_CONTROLLER_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST7_MOGENIUS_OPERATOR_SRC_STRUCTS_PODSTATS;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Request:
- *         name: mogenius-k8s-manager/src/core.Request
+ *     mogenius-operator/src/core.Request:
+ *         name: mogenius-operator/src/core.Request
  *         properties:
  *             kind:
  *                 type: string
@@ -7268,24 +7268,24 @@ export type STATS_POD_ALL_FOR_CONTROLLER_RESPONSE = STATS_POD_ALL_FOR_CONTROLLER
  *             timeOffsetMinutes:
  *                 type: int
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Request
+ *     structRef: mogenius-operator/src/core.Request
  *     type: struct
  * ```
  *
  */
-export type STATS_TRAFFIC_ALL_FOR_CONTROLLER_REQUEST = STATS_TRAFFIC_ALL_FOR_CONTROLLER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST;
+export type STATS_TRAFFIC_ALL_FOR_CONTROLLER_REQUEST = STATS_TRAFFIC_ALL_FOR_CONTROLLER_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·7,*[]mogenius-k8s-manager/src/networkmonitor.PodNetworkStats]
- *     :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·7,*[]mogenius-k8s-manager/src/networkmonitor.PodNetworkStats]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·7,*[]mogenius-operator/src/networkmonitor.PodNetworkStats]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·7,*[]mogenius-operator/src/networkmonitor.PodNetworkStats]
  *         properties:
  *             data:
  *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/networkmonitor.PodNetworkStats
+ *                     structRef: mogenius-operator/src/networkmonitor.PodNetworkStats
  *                     type: struct
  *                 pointer: true
  *                 type: array
@@ -7293,8 +7293,8 @@ export type STATS_TRAFFIC_ALL_FOR_CONTROLLER_REQUEST = STATS_TRAFFIC_ALL_FOR_CON
  *                 type: string
  *             status:
  *                 type: string
- *     mogenius-k8s-manager/src/networkmonitor.PodNetworkStats:
- *         name: mogenius-k8s-manager/src/networkmonitor.PodNetworkStats
+ *     mogenius-operator/src/networkmonitor.PodNetworkStats:
+ *         name: mogenius-operator/src/networkmonitor.PodNetworkStats
  *         properties:
  *             createdAt:
  *                 structRef: time.Time
@@ -7319,40 +7319,40 @@ export type STATS_TRAFFIC_ALL_FOR_CONTROLLER_REQUEST = STATS_TRAFFIC_ALL_FOR_CON
  *         name: time.Time
  *         properties: {}
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·7,*[]mogenius-k8s-manager/src/networkmonitor.PodNetworkStats]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·7,*[]mogenius-operator/src/networkmonitor.PodNetworkStats]
  *     type: struct
  * ```
  *
  */
-export type STATS_TRAFFIC_ALL_FOR_CONTROLLER_RESPONSE = STATS_TRAFFIC_ALL_FOR_CONTROLLER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST7_MOGENIUS_K8S_MANAGER_SRC_NETWORKMONITOR_PODNETWORKSTATS;
+export type STATS_TRAFFIC_ALL_FOR_CONTROLLER_RESPONSE = STATS_TRAFFIC_ALL_FOR_CONTROLLER_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST7_MOGENIUS_OPERATOR_SRC_NETWORKMONITOR_PODNETWORKSTATS;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Request:
- *         name: mogenius-k8s-manager/src/core.Request
+ *     mogenius-operator/src/core.Request:
+ *         name: mogenius-operator/src/core.Request
  *         properties:
  *             timeOffsetMinutes:
  *                 type: int
  *             workspaceName:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Request
+ *     structRef: mogenius-operator/src/core.Request
  *     type: struct
  * ```
  *
  */
-export type STATS_WORKSPACE_CPU_UTILIZATION_REQUEST = STATS_WORKSPACE_CPU_UTILIZATION_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST;
+export type STATS_WORKSPACE_CPU_UTILIZATION_REQUEST = STATS_WORKSPACE_CPU_UTILIZATION_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.GenericChartEntry:
- *         name: mogenius-k8s-manager/src/core.GenericChartEntry
+ *     mogenius-operator/src/core.GenericChartEntry:
+ *         name: mogenius-operator/src/core.GenericChartEntry
  *         properties:
  *             pods:
  *                 keyType:
@@ -7365,12 +7365,12 @@ export type STATS_WORKSPACE_CPU_UTILIZATION_REQUEST = STATS_WORKSPACE_CPU_UTILIZ
  *                 type: struct
  *             value:
  *                 type: float
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·8,[]mogenius-k8s-manager/src/core.GenericChartEntry]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·8,[]mogenius-k8s-manager/src/core.GenericChartEntry]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·8,[]mogenius-operator/src/core.GenericChartEntry]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·8,[]mogenius-operator/src/core.GenericChartEntry]
  *         properties:
  *             data:
  *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/core.GenericChartEntry
+ *                     structRef: mogenius-operator/src/core.GenericChartEntry
  *                     type: struct
  *                 type: array
  *             message:
@@ -7381,40 +7381,40 @@ export type STATS_WORKSPACE_CPU_UTILIZATION_REQUEST = STATS_WORKSPACE_CPU_UTILIZ
  *         name: time.Time
  *         properties: {}
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·8,[]mogenius-k8s-manager/src/core.GenericChartEntry]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·8,[]mogenius-operator/src/core.GenericChartEntry]
  *     type: struct
  * ```
  *
  */
-export type STATS_WORKSPACE_CPU_UTILIZATION_RESPONSE = STATS_WORKSPACE_CPU_UTILIZATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST8_MOGENIUS_K8S_MANAGER_SRC_CORE_GENERICCHARTENTRY;
+export type STATS_WORKSPACE_CPU_UTILIZATION_RESPONSE = STATS_WORKSPACE_CPU_UTILIZATION_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST8_MOGENIUS_OPERATOR_SRC_CORE_GENERICCHARTENTRY;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Request:
- *         name: mogenius-k8s-manager/src/core.Request
+ *     mogenius-operator/src/core.Request:
+ *         name: mogenius-operator/src/core.Request
  *         properties:
  *             timeOffsetMinutes:
  *                 type: int
  *             workspaceName:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Request
+ *     structRef: mogenius-operator/src/core.Request
  *     type: struct
  * ```
  *
  */
-export type STATS_WORKSPACE_MEMORY_UTILIZATION_REQUEST = STATS_WORKSPACE_MEMORY_UTILIZATION_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST;
+export type STATS_WORKSPACE_MEMORY_UTILIZATION_REQUEST = STATS_WORKSPACE_MEMORY_UTILIZATION_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.GenericChartEntry:
- *         name: mogenius-k8s-manager/src/core.GenericChartEntry
+ *     mogenius-operator/src/core.GenericChartEntry:
+ *         name: mogenius-operator/src/core.GenericChartEntry
  *         properties:
  *             pods:
  *                 keyType:
@@ -7427,12 +7427,12 @@ export type STATS_WORKSPACE_MEMORY_UTILIZATION_REQUEST = STATS_WORKSPACE_MEMORY_
  *                 type: struct
  *             value:
  *                 type: float
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·8,[]mogenius-k8s-manager/src/core.GenericChartEntry]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·8,[]mogenius-k8s-manager/src/core.GenericChartEntry]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·8,[]mogenius-operator/src/core.GenericChartEntry]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·8,[]mogenius-operator/src/core.GenericChartEntry]
  *         properties:
  *             data:
  *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/core.GenericChartEntry
+ *                     structRef: mogenius-operator/src/core.GenericChartEntry
  *                     type: struct
  *                 type: array
  *             message:
@@ -7443,40 +7443,40 @@ export type STATS_WORKSPACE_MEMORY_UTILIZATION_REQUEST = STATS_WORKSPACE_MEMORY_
  *         name: time.Time
  *         properties: {}
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·8,[]mogenius-k8s-manager/src/core.GenericChartEntry]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·8,[]mogenius-operator/src/core.GenericChartEntry]
  *     type: struct
  * ```
  *
  */
-export type STATS_WORKSPACE_MEMORY_UTILIZATION_RESPONSE = STATS_WORKSPACE_MEMORY_UTILIZATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST8_MOGENIUS_K8S_MANAGER_SRC_CORE_GENERICCHARTENTRY;
+export type STATS_WORKSPACE_MEMORY_UTILIZATION_RESPONSE = STATS_WORKSPACE_MEMORY_UTILIZATION_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST8_MOGENIUS_OPERATOR_SRC_CORE_GENERICCHARTENTRY;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Request:
- *         name: mogenius-k8s-manager/src/core.Request
+ *     mogenius-operator/src/core.Request:
+ *         name: mogenius-operator/src/core.Request
  *         properties:
  *             timeOffsetMinutes:
  *                 type: int
  *             workspaceName:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Request
+ *     structRef: mogenius-operator/src/core.Request
  *     type: struct
  * ```
  *
  */
-export type STATS_WORKSPACE_TRAFFIC_UTILIZATION_REQUEST = STATS_WORKSPACE_TRAFFIC_UTILIZATION_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST;
+export type STATS_WORKSPACE_TRAFFIC_UTILIZATION_REQUEST = STATS_WORKSPACE_TRAFFIC_UTILIZATION_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.GenericChartEntry:
- *         name: mogenius-k8s-manager/src/core.GenericChartEntry
+ *     mogenius-operator/src/core.GenericChartEntry:
+ *         name: mogenius-operator/src/core.GenericChartEntry
  *         properties:
  *             pods:
  *                 keyType:
@@ -7489,12 +7489,12 @@ export type STATS_WORKSPACE_TRAFFIC_UTILIZATION_REQUEST = STATS_WORKSPACE_TRAFFI
  *                 type: struct
  *             value:
  *                 type: float
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·8,[]mogenius-k8s-manager/src/core.GenericChartEntry]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·8,[]mogenius-k8s-manager/src/core.GenericChartEntry]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·8,[]mogenius-operator/src/core.GenericChartEntry]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·8,[]mogenius-operator/src/core.GenericChartEntry]
  *         properties:
  *             data:
  *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/core.GenericChartEntry
+ *                     structRef: mogenius-operator/src/core.GenericChartEntry
  *                     type: struct
  *                 type: array
  *             message:
@@ -7505,20 +7505,20 @@ export type STATS_WORKSPACE_TRAFFIC_UTILIZATION_REQUEST = STATS_WORKSPACE_TRAFFI
  *         name: time.Time
  *         properties: {}
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·8,[]mogenius-k8s-manager/src/core.GenericChartEntry]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·8,[]mogenius-operator/src/core.GenericChartEntry]
  *     type: struct
  * ```
  *
  */
-export type STATS_WORKSPACE_TRAFFIC_UTILIZATION_RESPONSE = STATS_WORKSPACE_TRAFFIC_UTILIZATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST8_MOGENIUS_K8S_MANAGER_SRC_CORE_GENERICCHARTENTRY;
+export type STATS_WORKSPACE_TRAFFIC_UTILIZATION_RESPONSE = STATS_WORKSPACE_TRAFFIC_UTILIZATION_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST8_MOGENIUS_OPERATOR_SRC_CORE_GENERICCHARTENTRY;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/services.NfsVolumeRequest:
- *         name: mogenius-k8s-manager/src/services.NfsVolumeRequest
+ *     mogenius-operator/src/services.NfsVolumeRequest:
+ *         name: mogenius-operator/src/services.NfsVolumeRequest
  *         properties:
  *             namespaceName:
  *                 type: string
@@ -7527,40 +7527,40 @@ export type STATS_WORKSPACE_TRAFFIC_UTILIZATION_RESPONSE = STATS_WORKSPACE_TRAFF
  *             volumeName:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/services.NfsVolumeRequest
+ *     structRef: mogenius-operator/src/services.NfsVolumeRequest
  *     type: struct
  * ```
  *
  */
-export type STORAGE_CREATE_VOLUME_REQUEST = STORAGE_CREATE_VOLUME_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_NFSVOLUMEREQUEST;
+export type STORAGE_CREATE_VOLUME_REQUEST = STORAGE_CREATE_VOLUME_REQUEST__MOGENIUS_OPERATOR_SRC_SERVICES_NFSVOLUMEREQUEST;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/structs.DefaultResponse:
- *         name: mogenius-k8s-manager/src/structs.DefaultResponse
+ *     mogenius-operator/src/structs.DefaultResponse:
+ *         name: mogenius-operator/src/structs.DefaultResponse
  *         properties:
  *             error:
  *                 type: string
  *             success:
  *                 type: bool
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/structs.DefaultResponse
+ *     structRef: mogenius-operator/src/structs.DefaultResponse
  *     type: struct
  * ```
  *
  */
-export type STORAGE_CREATE_VOLUME_RESPONSE = STORAGE_CREATE_VOLUME_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_DEFAULTRESPONSE;
+export type STORAGE_CREATE_VOLUME_RESPONSE = STORAGE_CREATE_VOLUME_RESPONSE__MOGENIUS_OPERATOR_SRC_STRUCTS_DEFAULTRESPONSE;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/services.NfsVolumeRequest:
- *         name: mogenius-k8s-manager/src/services.NfsVolumeRequest
+ *     mogenius-operator/src/services.NfsVolumeRequest:
+ *         name: mogenius-operator/src/services.NfsVolumeRequest
  *         properties:
  *             namespaceName:
  *                 type: string
@@ -7569,60 +7569,60 @@ export type STORAGE_CREATE_VOLUME_RESPONSE = STORAGE_CREATE_VOLUME_RESPONSE__MOG
  *             volumeName:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/services.NfsVolumeRequest
+ *     structRef: mogenius-operator/src/services.NfsVolumeRequest
  *     type: struct
  * ```
  *
  */
-export type STORAGE_DELETE_VOLUME_REQUEST = STORAGE_DELETE_VOLUME_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_NFSVOLUMEREQUEST;
+export type STORAGE_DELETE_VOLUME_REQUEST = STORAGE_DELETE_VOLUME_REQUEST__MOGENIUS_OPERATOR_SRC_SERVICES_NFSVOLUMEREQUEST;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/structs.DefaultResponse:
- *         name: mogenius-k8s-manager/src/structs.DefaultResponse
+ *     mogenius-operator/src/structs.DefaultResponse:
+ *         name: mogenius-operator/src/structs.DefaultResponse
  *         properties:
  *             error:
  *                 type: string
  *             success:
  *                 type: bool
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/structs.DefaultResponse
+ *     structRef: mogenius-operator/src/structs.DefaultResponse
  *     type: struct
  * ```
  *
  */
-export type STORAGE_DELETE_VOLUME_RESPONSE = STORAGE_DELETE_VOLUME_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_DEFAULTRESPONSE;
+export type STORAGE_DELETE_VOLUME_RESPONSE = STORAGE_DELETE_VOLUME_RESPONSE__MOGENIUS_OPERATOR_SRC_STRUCTS_DEFAULTRESPONSE;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/services.NfsVolumeStatsRequest:
- *         name: mogenius-k8s-manager/src/services.NfsVolumeStatsRequest
+ *     mogenius-operator/src/services.NfsVolumeStatsRequest:
+ *         name: mogenius-operator/src/services.NfsVolumeStatsRequest
  *         properties:
  *             namespaceName:
  *                 type: string
  *             volumeName:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/services.NfsVolumeStatsRequest
+ *     structRef: mogenius-operator/src/services.NfsVolumeStatsRequest
  *     type: struct
  * ```
  *
  */
-export type STORAGE_STATS_REQUEST = STORAGE_STATS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_NFSVOLUMESTATSREQUEST;
+export type STORAGE_STATS_REQUEST = STORAGE_STATS_REQUEST__MOGENIUS_OPERATOR_SRC_SERVICES_NFSVOLUMESTATSREQUEST;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/services.NfsVolumeStatsResponse:
- *         name: mogenius-k8s-manager/src/services.NfsVolumeStatsResponse
+ *     mogenius-operator/src/services.NfsVolumeStatsResponse:
+ *         name: mogenius-operator/src/services.NfsVolumeStatsResponse
  *         properties:
  *             freeBytes:
  *                 type: uint
@@ -7633,20 +7633,20 @@ export type STORAGE_STATS_REQUEST = STORAGE_STATS_REQUEST__MOGENIUS_K8S_MANAGER_
  *             volumeName:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/services.NfsVolumeStatsResponse
+ *     structRef: mogenius-operator/src/services.NfsVolumeStatsResponse
  *     type: struct
  * ```
  *
  */
-export type STORAGE_STATS_RESPONSE = STORAGE_STATS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_SERVICES_NFSVOLUMESTATSRESPONSE;
+export type STORAGE_STATS_RESPONSE = STORAGE_STATS_RESPONSE__MOGENIUS_OPERATOR_SRC_SERVICES_NFSVOLUMESTATSRESPONSE;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/services.NfsStatusRequest:
- *         name: mogenius-k8s-manager/src/services.NfsStatusRequest
+ *     mogenius-operator/src/services.NfsStatusRequest:
+ *         name: mogenius-operator/src/services.NfsStatusRequest
  *         properties:
  *             name:
  *                 type: string
@@ -7655,26 +7655,26 @@ export type STORAGE_STATS_RESPONSE = STORAGE_STATS_RESPONSE__MOGENIUS_K8S_MANAGE
  *             type:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/services.NfsStatusRequest
+ *     structRef: mogenius-operator/src/services.NfsStatusRequest
  *     type: struct
  * ```
  *
  */
-export type STORAGE_STATUS_REQUEST = STORAGE_STATUS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_NFSSTATUSREQUEST;
+export type STORAGE_STATUS_REQUEST = STORAGE_STATUS_REQUEST__MOGENIUS_OPERATOR_SRC_SERVICES_NFSSTATUSREQUEST;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/services.NfsStatusResponse:
- *         name: mogenius-k8s-manager/src/services.NfsStatusResponse
+ *     mogenius-operator/src/services.NfsStatusResponse:
+ *         name: mogenius-operator/src/services.NfsStatusResponse
  *         properties:
  *             freeBytes:
  *                 type: uint
  *             messages:
  *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/services.VolumeStatusMessage
+ *                     structRef: mogenius-operator/src/services.VolumeStatusMessage
  *                     type: struct
  *                 type: array
  *             namespaceName:
@@ -7691,20 +7691,20 @@ export type STORAGE_STATUS_REQUEST = STORAGE_STATUS_REQUEST__MOGENIUS_K8S_MANAGE
  *                 type: uint
  *             volumeName:
  *                 type: string
- *     mogenius-k8s-manager/src/services.VolumeStatusMessage:
- *         name: mogenius-k8s-manager/src/services.VolumeStatusMessage
+ *     mogenius-operator/src/services.VolumeStatusMessage:
+ *         name: mogenius-operator/src/services.VolumeStatusMessage
  *         properties:
  *             message:
  *                 type: string
  *             type:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/services.NfsStatusResponse
+ *     structRef: mogenius-operator/src/services.NfsStatusResponse
  *     type: struct
  * ```
  *
  */
-export type STORAGE_STATUS_RESPONSE = STORAGE_STATUS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_SERVICES_NFSSTATUSRESPONSE;
+export type STORAGE_STATUS_RESPONSE = STORAGE_STATUS_RESPONSE__MOGENIUS_OPERATOR_SRC_SERVICES_NFSSTATUSRESPONSE;
 
 /**
  * #### Source
@@ -7727,18 +7727,18 @@ export type SYSTEM_CHECK_REQUEST = SYSTEM_CHECK_REQUEST__ANON_STRUCT_0|undefined
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,mogenius-k8s-manager/src/services.SystemCheckResponse]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,mogenius-k8s-manager/src/services.SystemCheckResponse]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/services.SystemCheckResponse]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/services.SystemCheckResponse]
  *         properties:
  *             data:
- *                 structRef: mogenius-k8s-manager/src/services.SystemCheckResponse
+ *                 structRef: mogenius-operator/src/services.SystemCheckResponse
  *                 type: struct
  *             message:
  *                 type: string
  *             status:
  *                 type: string
- *     mogenius-k8s-manager/src/services.SystemCheckEntry:
- *         name: mogenius-k8s-manager/src/services.SystemCheckEntry
+ *     mogenius-operator/src/services.SystemCheckEntry:
+ *         name: mogenius-operator/src/services.SystemCheckEntry
  *         properties:
  *             checkName:
  *                 type: string
@@ -7771,31 +7771,31 @@ export type SYSTEM_CHECK_REQUEST = SYSTEM_CHECK_REQUEST__ANON_STRUCT_0|undefined
  *                 type: string
  *             wantsToBeInstalled:
  *                 type: bool
- *     mogenius-k8s-manager/src/services.SystemCheckResponse:
- *         name: mogenius-k8s-manager/src/services.SystemCheckResponse
+ *     mogenius-operator/src/services.SystemCheckResponse:
+ *         name: mogenius-operator/src/services.SystemCheckResponse
  *         properties:
  *             entries:
  *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/services.SystemCheckEntry
+ *                     structRef: mogenius-operator/src/services.SystemCheckEntry
  *                     type: struct
  *                 type: array
  *             terminalString:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,mogenius-k8s-manager/src/services.SystemCheckResponse]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/services.SystemCheckResponse]
  *     type: struct
  * ```
  *
  */
-export type SYSTEM_CHECK_RESPONSE = SYSTEM_CHECK_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_MOGENIUS_K8S_MANAGER_SRC_SERVICES_SYSTEMCHECKRESPONSE;
+export type SYSTEM_CHECK_RESPONSE = SYSTEM_CHECK_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_MOGENIUS_OPERATOR_SRC_SERVICES_SYSTEMCHECKRESPONSE;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/utils.ResourceDescriptor:
- *         name: mogenius-k8s-manager/src/utils.ResourceDescriptor
+ *     mogenius-operator/src/utils.ResourceDescriptor:
+ *         name: mogenius-operator/src/utils.ResourceDescriptor
  *         properties:
  *             apiVersion:
  *                 type: string
@@ -7805,23 +7805,23 @@ export type SYSTEM_CHECK_RESPONSE = SYSTEM_CHECK_RESPONSE__MOGENIUS_K8S_MANAGER_
  *                 type: bool
  *             plural:
  *                 type: string
- *     mogenius-k8s-manager/src/utils.WorkloadSingleRequest:
- *         name: mogenius-k8s-manager/src/utils.WorkloadSingleRequest
+ *     mogenius-operator/src/utils.WorkloadSingleRequest:
+ *         name: mogenius-operator/src/utils.WorkloadSingleRequest
  *         properties:
  *             ResourceDescriptor:
- *                 structRef: mogenius-k8s-manager/src/utils.ResourceDescriptor
+ *                 structRef: mogenius-operator/src/utils.ResourceDescriptor
  *                 type: struct
  *             namespace:
  *                 type: string
  *             resourceName:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/utils.WorkloadSingleRequest
+ *     structRef: mogenius-operator/src/utils.WorkloadSingleRequest
  *     type: struct
  * ```
  *
  */
-export type TRIGGER_WORKLOAD_REQUEST = TRIGGER_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_WORKLOADSINGLEREQUEST;
+export type TRIGGER_WORKLOAD_REQUEST = TRIGGER_WORKLOAD_REQUEST__MOGENIUS_OPERATOR_SRC_UTILS_WORKLOADSINGLEREQUEST;
 
 /**
  * #### Source
@@ -7838,8 +7838,8 @@ export type TRIGGER_WORKLOAD_REQUEST = TRIGGER_WORKLOAD_REQUEST__MOGENIUS_K8S_MA
  *                 valueType:
  *                     pointer: true
  *                     type: any
- *     ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadSingleRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
- *     :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadSingleRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *     ? mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadSingleRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *     :   name: mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadSingleRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
  *         properties:
  *             data:
  *                 pointer: true
@@ -7850,12 +7850,12 @@ export type TRIGGER_WORKLOAD_REQUEST = TRIGGER_WORKLOAD_REQUEST__MOGENIUS_K8S_MA
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadSingleRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadSingleRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
  *     type: struct
  * ```
  *
  */
-export type TRIGGER_WORKLOAD_RESPONSE = TRIGGER_WORKLOAD_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_UTILS_WORKLOADSINGLEREQUEST_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED;
+export type TRIGGER_WORKLOAD_RESPONSE = TRIGGER_WORKLOAD_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_UTILS_WORKLOADSINGLEREQUEST_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED;
 
 /**
  * #### Source
@@ -7878,8 +7878,8 @@ export type UNINSTALL_CERT_MANAGER_REQUEST = UNINSTALL_CERT_MANAGER_REQUEST__ANO
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,string]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,string]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
  *         properties:
  *             data:
  *                 type: string
@@ -7888,12 +7888,12 @@ export type UNINSTALL_CERT_MANAGER_REQUEST = UNINSTALL_CERT_MANAGER_REQUEST__ANO
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,string]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
  *     type: struct
  * ```
  *
  */
-export type UNINSTALL_CERT_MANAGER_RESPONSE = UNINSTALL_CERT_MANAGER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_STRING;
+export type UNINSTALL_CERT_MANAGER_RESPONSE = UNINSTALL_CERT_MANAGER_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING;
 
 /**
  * #### Source
@@ -7916,8 +7916,8 @@ export type UNINSTALL_CLUSTER_ISSUER_REQUEST = UNINSTALL_CLUSTER_ISSUER_REQUEST_
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,string]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,string]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
  *         properties:
  *             data:
  *                 type: string
@@ -7926,12 +7926,12 @@ export type UNINSTALL_CLUSTER_ISSUER_REQUEST = UNINSTALL_CLUSTER_ISSUER_REQUEST_
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,string]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
  *     type: struct
  * ```
  *
  */
-export type UNINSTALL_CLUSTER_ISSUER_RESPONSE = UNINSTALL_CLUSTER_ISSUER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_STRING;
+export type UNINSTALL_CLUSTER_ISSUER_RESPONSE = UNINSTALL_CLUSTER_ISSUER_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING;
 
 /**
  * #### Source
@@ -7954,8 +7954,8 @@ export type UNINSTALL_INGRESS_CONTROLLER_TRAEFIK_REQUEST = UNINSTALL_INGRESS_CON
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,string]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,string]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
  *         properties:
  *             data:
  *                 type: string
@@ -7964,12 +7964,12 @@ export type UNINSTALL_INGRESS_CONTROLLER_TRAEFIK_REQUEST = UNINSTALL_INGRESS_CON
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,string]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
  *     type: struct
  * ```
  *
  */
-export type UNINSTALL_INGRESS_CONTROLLER_TRAEFIK_RESPONSE = UNINSTALL_INGRESS_CONTROLLER_TRAEFIK_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_STRING;
+export type UNINSTALL_INGRESS_CONTROLLER_TRAEFIK_RESPONSE = UNINSTALL_INGRESS_CONTROLLER_TRAEFIK_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING;
 
 /**
  * #### Source
@@ -7992,8 +7992,8 @@ export type UNINSTALL_KEPLER_REQUEST = UNINSTALL_KEPLER_REQUEST__ANON_STRUCT_0|u
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,string]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,string]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
  *         properties:
  *             data:
  *                 type: string
@@ -8002,12 +8002,12 @@ export type UNINSTALL_KEPLER_REQUEST = UNINSTALL_KEPLER_REQUEST__ANON_STRUCT_0|u
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,string]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
  *     type: struct
  * ```
  *
  */
-export type UNINSTALL_KEPLER_RESPONSE = UNINSTALL_KEPLER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_STRING;
+export type UNINSTALL_KEPLER_RESPONSE = UNINSTALL_KEPLER_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING;
 
 /**
  * #### Source
@@ -8030,8 +8030,8 @@ export type UNINSTALL_METALLB_REQUEST = UNINSTALL_METALLB_REQUEST__ANON_STRUCT_0
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,string]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,string]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
  *         properties:
  *             data:
  *                 type: string
@@ -8040,12 +8040,12 @@ export type UNINSTALL_METALLB_REQUEST = UNINSTALL_METALLB_REQUEST__ANON_STRUCT_0
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,string]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
  *     type: struct
  * ```
  *
  */
-export type UNINSTALL_METALLB_RESPONSE = UNINSTALL_METALLB_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_STRING;
+export type UNINSTALL_METALLB_RESPONSE = UNINSTALL_METALLB_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING;
 
 /**
  * #### Source
@@ -8068,8 +8068,8 @@ export type UNINSTALL_METRICS_SERVER_REQUEST = UNINSTALL_METRICS_SERVER_REQUEST_
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,string]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,string]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
  *         properties:
  *             data:
  *                 type: string
@@ -8078,20 +8078,20 @@ export type UNINSTALL_METRICS_SERVER_REQUEST = UNINSTALL_METRICS_SERVER_REQUEST_
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,string]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
  *     type: struct
  * ```
  *
  */
-export type UNINSTALL_METRICS_SERVER_RESPONSE = UNINSTALL_METRICS_SERVER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_STRING;
+export type UNINSTALL_METRICS_SERVER_RESPONSE = UNINSTALL_METRICS_SERVER_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Request:
- *         name: mogenius-k8s-manager/src/core.Request
+ *     mogenius-operator/src/core.Request:
+ *         name: mogenius-operator/src/core.Request
  *         properties:
  *             grantee:
  *                 type: string
@@ -8104,20 +8104,20 @@ export type UNINSTALL_METRICS_SERVER_RESPONSE = UNINSTALL_METRICS_SERVER_RESPONS
  *             targetType:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Request
+ *     structRef: mogenius-operator/src/core.Request
  *     type: struct
  * ```
  *
  */
-export type UPDATE_GRANT_REQUEST = UPDATE_GRANT_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST;
+export type UPDATE_GRANT_REQUEST = UPDATE_GRANT_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·31,string]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·31,string]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·31,string]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·31,string]
  *         properties:
  *             data:
  *                 type: string
@@ -8126,12 +8126,12 @@ export type UPDATE_GRANT_REQUEST = UPDATE_GRANT_REQUEST__MOGENIUS_K8S_MANAGER_SR
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·31,string]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·31,string]
  *     type: struct
  * ```
  *
  */
-export type UPDATE_GRANT_RESPONSE = UPDATE_GRANT_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST31_STRING;
+export type UPDATE_GRANT_RESPONSE = UPDATE_GRANT_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST31_STRING;
 
 /**
  * #### Source
@@ -8149,8 +8149,8 @@ export type UPDATE_GRANT_RESPONSE = UPDATE_GRANT_RESPONSE__MOGENIUS_K8S_MANAGER_
  *                 type: string
  *             namespace:
  *                 type: string
- *     mogenius-k8s-manager/src/core.Request:
- *         name: mogenius-k8s-manager/src/core.Request
+ *     mogenius-operator/src/core.Request:
+ *         name: mogenius-operator/src/core.Request
  *         properties:
  *             email:
  *                 type: string
@@ -8165,20 +8165,20 @@ export type UPDATE_GRANT_RESPONSE = UPDATE_GRANT_RESPONSE__MOGENIUS_K8S_MANAGER_
  *                 structRef: k8s.io/api/rbac/v1.Subject
  *                 type: struct
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Request
+ *     structRef: mogenius-operator/src/core.Request
  *     type: struct
  * ```
  *
  */
-export type UPDATE_USER_REQUEST = UPDATE_USER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST;
+export type UPDATE_USER_REQUEST = UPDATE_USER_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·26,string]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·26,string]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·26,string]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·26,string]
  *         properties:
  *             data:
  *                 type: string
@@ -8187,20 +8187,20 @@ export type UPDATE_USER_REQUEST = UPDATE_USER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·26,string]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·26,string]
  *     type: struct
  * ```
  *
  */
-export type UPDATE_USER_RESPONSE = UPDATE_USER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST26_STRING;
+export type UPDATE_USER_RESPONSE = UPDATE_USER_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST26_STRING;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/utils.ResourceDescriptor:
- *         name: mogenius-k8s-manager/src/utils.ResourceDescriptor
+ *     mogenius-operator/src/utils.ResourceDescriptor:
+ *         name: mogenius-operator/src/utils.ResourceDescriptor
  *         properties:
  *             apiVersion:
  *                 type: string
@@ -8210,23 +8210,23 @@ export type UPDATE_USER_RESPONSE = UPDATE_USER_RESPONSE__MOGENIUS_K8S_MANAGER_SR
  *                 type: bool
  *             plural:
  *                 type: string
- *     mogenius-k8s-manager/src/utils.WorkloadChangeRequest:
- *         name: mogenius-k8s-manager/src/utils.WorkloadChangeRequest
+ *     mogenius-operator/src/utils.WorkloadChangeRequest:
+ *         name: mogenius-operator/src/utils.WorkloadChangeRequest
  *         properties:
  *             ResourceDescriptor:
- *                 structRef: mogenius-k8s-manager/src/utils.ResourceDescriptor
+ *                 structRef: mogenius-operator/src/utils.ResourceDescriptor
  *                 type: struct
  *             namespace:
  *                 type: string
  *             yamlData:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/utils.WorkloadChangeRequest
+ *     structRef: mogenius-operator/src/utils.WorkloadChangeRequest
  *     type: struct
  * ```
  *
  */
-export type UPDATE_WORKLOAD_REQUEST = UPDATE_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_WORKLOADCHANGEREQUEST;
+export type UPDATE_WORKLOAD_REQUEST = UPDATE_WORKLOAD_REQUEST__MOGENIUS_OPERATOR_SRC_UTILS_WORKLOADCHANGEREQUEST;
 
 /**
  * #### Source
@@ -8243,8 +8243,8 @@ export type UPDATE_WORKLOAD_REQUEST = UPDATE_WORKLOAD_REQUEST__MOGENIUS_K8S_MANA
  *                 valueType:
  *                     pointer: true
  *                     type: any
- *     ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadChangeRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
- *     :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadChangeRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *     ? mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadChangeRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *     :   name: mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadChangeRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
  *         properties:
  *             data:
  *                 pointer: true
@@ -8255,20 +8255,20 @@ export type UPDATE_WORKLOAD_REQUEST = UPDATE_WORKLOAD_REQUEST__MOGENIUS_K8S_MANA
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/utils.WorkloadChangeRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadChangeRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
  *     type: struct
  * ```
  *
  */
-export type UPDATE_WORKLOAD_RESPONSE = UPDATE_WORKLOAD_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_UTILS_WORKLOADCHANGEREQUEST_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED;
+export type UPDATE_WORKLOAD_RESPONSE = UPDATE_WORKLOAD_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_UTILS_WORKLOADCHANGEREQUEST_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Request:
- *         name: mogenius-k8s-manager/src/core.Request
+ *     mogenius-operator/src/core.Request:
+ *         name: mogenius-operator/src/core.Request
  *         properties:
  *             displayName:
  *                 type: string
@@ -8276,11 +8276,11 @@ export type UPDATE_WORKLOAD_RESPONSE = UPDATE_WORKLOAD_RESPONSE__MOGENIUS_K8S_MA
  *                 type: string
  *             resources:
  *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/crds/v1alpha1.WorkspaceResourceIdentifier
+ *                     structRef: mogenius-operator/src/crds/v1alpha1.WorkspaceResourceIdentifier
  *                     type: struct
  *                 type: array
- *     mogenius-k8s-manager/src/crds/v1alpha1.WorkspaceResourceIdentifier:
- *         name: mogenius-k8s-manager/src/crds/v1alpha1.WorkspaceResourceIdentifier
+ *     mogenius-operator/src/crds/v1alpha1.WorkspaceResourceIdentifier:
+ *         name: mogenius-operator/src/crds/v1alpha1.WorkspaceResourceIdentifier
  *         properties:
  *             id:
  *                 type: string
@@ -8289,20 +8289,20 @@ export type UPDATE_WORKLOAD_RESPONSE = UPDATE_WORKLOAD_RESPONSE__MOGENIUS_K8S_MA
  *             type:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Request
+ *     structRef: mogenius-operator/src/core.Request
  *     type: struct
  * ```
  *
  */
-export type UPDATE_WORKSPACE_REQUEST = UPDATE_WORKSPACE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST;
+export type UPDATE_WORKSPACE_REQUEST = UPDATE_WORKSPACE_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·21,string]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·21,string]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·21,string]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·21,string]
  *         properties:
  *             data:
  *                 type: string
@@ -8311,38 +8311,38 @@ export type UPDATE_WORKSPACE_REQUEST = UPDATE_WORKSPACE_REQUEST__MOGENIUS_K8S_MA
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·21,string]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·21,string]
  *     type: struct
  * ```
  *
  */
-export type UPDATE_WORKSPACE_RESPONSE = UPDATE_WORKSPACE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST21_STRING;
+export type UPDATE_WORKSPACE_RESPONSE = UPDATE_WORKSPACE_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST21_STRING;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Request:
- *         name: mogenius-k8s-manager/src/core.Request
+ *     mogenius-operator/src/core.Request:
+ *         name: mogenius-operator/src/core.Request
  *         properties:
  *             command:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Request
+ *     structRef: mogenius-operator/src/core.Request
  *     type: struct
  * ```
  *
  */
-export type UPGRADEK8SMANAGER_REQUEST = UPGRADEK8SMANAGER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST;
+export type UPGRADEK8SMANAGER_REQUEST = UPGRADEK8SMANAGER_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/structs.Command:
- *         name: mogenius-k8s-manager/src/structs.Command
+ *     mogenius-operator/src/structs.Command:
+ *         name: mogenius-operator/src/structs.Command
  *         properties:
  *             command:
  *                 type: string
@@ -8360,13 +8360,13 @@ export type UPGRADEK8SMANAGER_REQUEST = UPGRADEK8SMANAGER_REQUEST__MOGENIUS_K8S_
  *                 type: string
  *             title:
  *                 type: string
- *     mogenius-k8s-manager/src/structs.Job:
- *         name: mogenius-k8s-manager/src/structs.Job
+ *     mogenius-operator/src/structs.Job:
+ *         name: mogenius-operator/src/structs.Job
  *         properties:
  *             commands:
  *                 elementType:
  *                     pointer: true
- *                     structRef: mogenius-k8s-manager/src/structs.Command
+ *                     structRef: mogenius-operator/src/structs.Command
  *                     type: struct
  *                 type: array
  *             containerName:
@@ -8396,12 +8396,12 @@ export type UPGRADEK8SMANAGER_REQUEST = UPGRADEK8SMANAGER_REQUEST__MOGENIUS_K8S_
  *         properties: {}
  * typeInfo:
  *     pointer: true
- *     structRef: mogenius-k8s-manager/src/structs.Job
+ *     structRef: mogenius-operator/src/structs.Job
  *     type: struct
  * ```
  *
  */
-export type UPGRADEK8SMANAGER_RESPONSE = UPGRADEK8SMANAGER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_JOB|undefined;
+export type UPGRADEK8SMANAGER_RESPONSE = UPGRADEK8SMANAGER_RESPONSE__MOGENIUS_OPERATOR_SRC_STRUCTS_JOB|undefined;
 
 /**
  * #### Source
@@ -8424,8 +8424,8 @@ export type UPGRADE_CERT_MANAGER_REQUEST = UPGRADE_CERT_MANAGER_REQUEST__ANON_ST
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,string]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,string]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
  *         properties:
  *             data:
  *                 type: string
@@ -8434,12 +8434,12 @@ export type UPGRADE_CERT_MANAGER_REQUEST = UPGRADE_CERT_MANAGER_REQUEST__ANON_ST
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,string]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
  *     type: struct
  * ```
  *
  */
-export type UPGRADE_CERT_MANAGER_RESPONSE = UPGRADE_CERT_MANAGER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_STRING;
+export type UPGRADE_CERT_MANAGER_RESPONSE = UPGRADE_CERT_MANAGER_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING;
 
 /**
  * #### Source
@@ -8462,8 +8462,8 @@ export type UPGRADE_INGRESS_CONTROLLER_TRAEFIK_REQUEST = UPGRADE_INGRESS_CONTROL
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,string]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,string]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
  *         properties:
  *             data:
  *                 type: string
@@ -8472,12 +8472,12 @@ export type UPGRADE_INGRESS_CONTROLLER_TRAEFIK_REQUEST = UPGRADE_INGRESS_CONTROL
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,string]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
  *     type: struct
  * ```
  *
  */
-export type UPGRADE_INGRESS_CONTROLLER_TRAEFIK_RESPONSE = UPGRADE_INGRESS_CONTROLLER_TRAEFIK_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_STRING;
+export type UPGRADE_INGRESS_CONTROLLER_TRAEFIK_RESPONSE = UPGRADE_INGRESS_CONTROLLER_TRAEFIK_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING;
 
 /**
  * #### Source
@@ -8500,8 +8500,8 @@ export type UPGRADE_KEPLER_REQUEST = UPGRADE_KEPLER_REQUEST__ANON_STRUCT_0|undef
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,string]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,string]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
  *         properties:
  *             data:
  *                 type: string
@@ -8510,12 +8510,12 @@ export type UPGRADE_KEPLER_REQUEST = UPGRADE_KEPLER_REQUEST__ANON_STRUCT_0|undef
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,string]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
  *     type: struct
  * ```
  *
  */
-export type UPGRADE_KEPLER_RESPONSE = UPGRADE_KEPLER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_STRING;
+export type UPGRADE_KEPLER_RESPONSE = UPGRADE_KEPLER_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING;
 
 /**
  * #### Source
@@ -8538,8 +8538,8 @@ export type UPGRADE_METALLB_REQUEST = UPGRADE_METALLB_REQUEST__ANON_STRUCT_0|und
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,string]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,string]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
  *         properties:
  *             data:
  *                 type: string
@@ -8548,12 +8548,12 @@ export type UPGRADE_METALLB_REQUEST = UPGRADE_METALLB_REQUEST__ANON_STRUCT_0|und
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,string]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
  *     type: struct
  * ```
  *
  */
-export type UPGRADE_METALLB_RESPONSE = UPGRADE_METALLB_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_STRING;
+export type UPGRADE_METALLB_RESPONSE = UPGRADE_METALLB_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING;
 
 /**
  * #### Source
@@ -8576,8 +8576,8 @@ export type UPGRADE_METRICS_SERVER_REQUEST = UPGRADE_METRICS_SERVER_REQUEST__ANO
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,string]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,string]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
  *         properties:
  *             data:
  *                 type: string
@@ -8586,20 +8586,20 @@ export type UPGRADE_METRICS_SERVER_REQUEST = UPGRADE_METRICS_SERVER_REQUEST__ANO
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Void,string]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
  *     type: struct
  * ```
  *
  */
-export type UPGRADE_METRICS_SERVER_RESPONSE = UPGRADE_METRICS_SERVER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_STRING;
+export type UPGRADE_METRICS_SERVER_RESPONSE = UPGRADE_METRICS_SERVER_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.Request:
- *         name: mogenius-k8s-manager/src/core.Request
+ *     mogenius-operator/src/core.Request:
+ *         name: mogenius-operator/src/core.Request
  *         properties:
  *             configMaps:
  *                 type: bool
@@ -8620,58 +8620,58 @@ export type UPGRADE_METRICS_SERVER_RESPONSE = UPGRADE_METRICS_SERVER_RESPONSE__M
  *             services:
  *                 type: bool
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Request
+ *     structRef: mogenius-operator/src/core.Request
  *     type: struct
  * ```
  *
  */
-export type WORKSPACE_CLEAN_UP_REQUEST = WORKSPACE_CLEAN_UP_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST;
+export type WORKSPACE_CLEAN_UP_REQUEST = WORKSPACE_CLEAN_UP_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-k8s-manager/src/core.CleanUpResult:
- *         name: mogenius-k8s-manager/src/core.CleanUpResult
+ *     mogenius-operator/src/core.CleanUpResult:
+ *         name: mogenius-operator/src/core.CleanUpResult
  *         properties:
  *             configMaps:
  *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
+ *                     structRef: mogenius-operator/src/core.CleanUpResultEntry
  *                     type: struct
  *                 type: array
  *             ingresses:
  *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
+ *                     structRef: mogenius-operator/src/core.CleanUpResultEntry
  *                     type: struct
  *                 type: array
  *             jobs:
  *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
+ *                     structRef: mogenius-operator/src/core.CleanUpResultEntry
  *                     type: struct
  *                 type: array
  *             pods:
  *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
+ *                     structRef: mogenius-operator/src/core.CleanUpResultEntry
  *                     type: struct
  *                 type: array
  *             replicaSets:
  *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
+ *                     structRef: mogenius-operator/src/core.CleanUpResultEntry
  *                     type: struct
  *                 type: array
  *             secrets:
  *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
+ *                     structRef: mogenius-operator/src/core.CleanUpResultEntry
  *                     type: struct
  *                 type: array
  *             services:
  *                 elementType:
- *                     structRef: mogenius-k8s-manager/src/core.CleanUpResultEntry
+ *                     structRef: mogenius-operator/src/core.CleanUpResultEntry
  *                     type: struct
  *                 type: array
- *     mogenius-k8s-manager/src/core.CleanUpResultEntry:
- *         name: mogenius-k8s-manager/src/core.CleanUpResultEntry
+ *     mogenius-operator/src/core.CleanUpResultEntry:
+ *         name: mogenius-operator/src/core.CleanUpResultEntry
  *         properties:
  *             name:
  *                 type: string
@@ -8679,71 +8679,71 @@ export type WORKSPACE_CLEAN_UP_REQUEST = WORKSPACE_CLEAN_UP_REQUEST__MOGENIUS_K8
  *                 type: string
  *             reason:
  *                 type: string
- *     mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·20,mogenius-k8s-manager/src/core.CleanUpResult]:
- *         name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·20,mogenius-k8s-manager/src/core.CleanUpResult]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·20,mogenius-operator/src/core.CleanUpResult]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·20,mogenius-operator/src/core.CleanUpResult]
  *         properties:
  *             data:
- *                 structRef: mogenius-k8s-manager/src/core.CleanUpResult
+ *                 structRef: mogenius-operator/src/core.CleanUpResult
  *                 type: struct
  *             message:
  *                 type: string
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·20,mogenius-k8s-manager/src/core.CleanUpResult]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·20,mogenius-operator/src/core.CleanUpResult]
  *     type: struct
  * ```
  *
  */
-export type WORKSPACE_CLEAN_UP_RESPONSE = WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST20_MOGENIUS_K8S_MANAGER_SRC_CORE_CLEANUPRESULT;
+export type WORKSPACE_CLEAN_UP_RESPONSE = WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST20_MOGENIUS_OPERATOR_SRC_CORE_CLEANUPRESULT;
 
 
 //===============================================================
 //===================== Struct Definitions ======================
 //===============================================================
 
-export type AUDIT_LOG_LIST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"limit": number,"offset": number,"workspaceName": string};
-export type AUDIT_LOG_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESPONSE = {"data": AUDIT_LOG_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STORE_AUDITLOGRESPONSE,"message": string,"status": string};
-export type AUDIT_LOG_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST34_MOGENIUS_K8S_MANAGER_SRC_CORE_RESPONSE35 = {"data": AUDIT_LOG_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESPONSE,"message": string,"status": string};
-export type AUDIT_LOG_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STORE_AUDITLOGENTRY = {"createdAt": AUDIT_LOG_LIST_RESPONSE__TIME_TIME,"diff": string,"error": string,"pattern": string,"payload": any,"result": any,"user": AUDIT_LOG_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_USER,"workspace": string};
-export type AUDIT_LOG_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STORE_AUDITLOGRESPONSE = {"data": AUDIT_LOG_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STORE_AUDITLOGENTRY[],"totalCount": number};
-export type AUDIT_LOG_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_USER = {"email": string,"firstName": string,"lastName": string,"source": string};
+export type AUDIT_LOG_LIST_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"limit": number,"offset": number,"workspaceName": string};
+export type AUDIT_LOG_LIST_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESPONSE = {"data": AUDIT_LOG_LIST_RESPONSE__MOGENIUS_OPERATOR_SRC_STORE_AUDITLOGRESPONSE,"message": string,"status": string};
+export type AUDIT_LOG_LIST_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST34_MOGENIUS_OPERATOR_SRC_CORE_RESPONSE35 = {"data": AUDIT_LOG_LIST_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESPONSE,"message": string,"status": string};
+export type AUDIT_LOG_LIST_RESPONSE__MOGENIUS_OPERATOR_SRC_STORE_AUDITLOGENTRY = {"createdAt": AUDIT_LOG_LIST_RESPONSE__TIME_TIME,"diff": string,"error": string,"pattern": string,"payload": any,"result": any,"user": AUDIT_LOG_LIST_RESPONSE__MOGENIUS_OPERATOR_SRC_STRUCTS_USER,"workspace": string};
+export type AUDIT_LOG_LIST_RESPONSE__MOGENIUS_OPERATOR_SRC_STORE_AUDITLOGRESPONSE = {"data": AUDIT_LOG_LIST_RESPONSE__MOGENIUS_OPERATOR_SRC_STORE_AUDITLOGENTRY[],"totalCount": number};
+export type AUDIT_LOG_LIST_RESPONSE__MOGENIUS_OPERATOR_SRC_STRUCTS_USER = {"email": string,"firstName": string,"lastName": string,"source": string};
 export type AUDIT_LOG_LIST_RESPONSE__TIME_TIME = {};
-export type CLUSTER_ARGO_CD_APPLICATION_REFRESH_REQUEST__MOGENIUS_K8S_MANAGER_SRC_ARGOCD_ARGOCDAPPLICATIONREFRESHREQUEST = {"applicationName": string,"username": string};
-export type CLUSTER_ARGO_CD_APPLICATION_REFRESH_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_ARGOCD_ARGOCDAPPLICATIONREFRESHREQUEST_BOOL = {"data": boolean,"message": string,"status": string};
-export type CLUSTER_ARGO_CD_CREATE_API_TOKEN_REQUEST__MOGENIUS_K8S_MANAGER_SRC_ARGOCD_ARGOCDCREATEAPITOKENREQUEST = {"username": string};
-export type CLUSTER_ARGO_CD_CREATE_API_TOKEN_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_ARGOCD_ARGOCDCREATEAPITOKENREQUEST_BOOL = {"data": boolean,"message": string,"status": string};
-export type CLUSTER_CLEAR_VALKEY_CACHE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"includeNodeStats": boolean,"includePodStats": boolean,"includeTraffic": boolean};
-export type CLUSTER_CLEAR_VALKEY_CACHE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST5_STRING = {"data": string,"message": string,"status": string};
-export type CLUSTER_COMPONENT_LOG_STREAM_CONNECTION_REQUEST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_COMPONENTLOGCONNECTIONREQUEST = {"component": string,"controller": string|undefined,"namespace": string|undefined,"release": string|undefined,"wsConnectionRequest": CLUSTER_COMPONENT_LOG_STREAM_CONNECTION_REQUEST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST};
-export type CLUSTER_COMPONENT_LOG_STREAM_CONNECTION_REQUEST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"nodeName": string,"podName": string,"websocketHost": string,"websocketScheme": string,"workspace": string};
+export type CLUSTER_ARGO_CD_APPLICATION_REFRESH_REQUEST__MOGENIUS_OPERATOR_SRC_ARGOCD_ARGOCDAPPLICATIONREFRESHREQUEST = {"applicationName": string,"username": string};
+export type CLUSTER_ARGO_CD_APPLICATION_REFRESH_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_ARGOCD_ARGOCDAPPLICATIONREFRESHREQUEST_BOOL = {"data": boolean,"message": string,"status": string};
+export type CLUSTER_ARGO_CD_CREATE_API_TOKEN_REQUEST__MOGENIUS_OPERATOR_SRC_ARGOCD_ARGOCDCREATEAPITOKENREQUEST = {"username": string};
+export type CLUSTER_ARGO_CD_CREATE_API_TOKEN_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_ARGOCD_ARGOCDCREATEAPITOKENREQUEST_BOOL = {"data": boolean,"message": string,"status": string};
+export type CLUSTER_CLEAR_VALKEY_CACHE_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"includeNodeStats": boolean,"includePodStats": boolean,"includeTraffic": boolean};
+export type CLUSTER_CLEAR_VALKEY_CACHE_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST5_STRING = {"data": string,"message": string,"status": string};
+export type CLUSTER_COMPONENT_LOG_STREAM_CONNECTION_REQUEST_REQUEST__MOGENIUS_OPERATOR_SRC_XTERM_COMPONENTLOGCONNECTIONREQUEST = {"component": string,"controller": string|undefined,"namespace": string|undefined,"release": string|undefined,"wsConnectionRequest": CLUSTER_COMPONENT_LOG_STREAM_CONNECTION_REQUEST_REQUEST__MOGENIUS_OPERATOR_SRC_XTERM_WSCONNECTIONREQUEST};
+export type CLUSTER_COMPONENT_LOG_STREAM_CONNECTION_REQUEST_REQUEST__MOGENIUS_OPERATOR_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"nodeName": string,"podName": string,"websocketHost": string,"websocketScheme": string,"workspace": string};
 export type CLUSTER_COMPONENT_LOG_STREAM_CONNECTION_REQUEST_RESPONSE__ANON_STRUCT_1 = {};
-export type CLUSTER_COMPONENT_LOG_STREAM_CONNECTION_REQUEST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_XTERM_COMPONENTLOGCONNECTIONREQUEST_MOGENIUS_K8S_MANAGER_SRC_CORE_VOID = {"data": CLUSTER_COMPONENT_LOG_STREAM_CONNECTION_REQUEST_RESPONSE__ANON_STRUCT_1|undefined,"message": string,"status": string};
+export type CLUSTER_COMPONENT_LOG_STREAM_CONNECTION_REQUEST_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_XTERM_COMPONENTLOGCONNECTIONREQUEST_MOGENIUS_OPERATOR_SRC_CORE_VOID = {"data": CLUSTER_COMPONENT_LOG_STREAM_CONNECTION_REQUEST_RESPONSE__ANON_STRUCT_1|undefined,"message": string,"status": string};
 export type CLUSTER_FORCE_DISCONNECT_REQUEST__ANON_STRUCT_0 = {};
-export type CLUSTER_FORCE_DISCONNECT_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_BOOL = {"data": boolean,"message": string,"status": string};
+export type CLUSTER_FORCE_DISCONNECT_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_BOOL = {"data": boolean,"message": string,"status": string};
 export type CLUSTER_FORCE_RECONNECT_REQUEST__ANON_STRUCT_0 = {};
-export type CLUSTER_FORCE_RECONNECT_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_BOOL = {"data": boolean,"message": string,"status": string};
-export type CLUSTER_HELM_CHART_INSTALL_REQUEST__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMCHARTINSTALLUPGRADEREQUEST = {"chart": string,"dryRun": boolean,"namespace": string,"release": string,"values": string,"version": string};
-export type CLUSTER_HELM_CHART_INSTALL_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_HELM_HELMCHARTINSTALLUPGRADEREQUEST_STRING = {"data": string,"message": string,"status": string};
-export type CLUSTER_HELM_CHART_INSTALL_OCI_REQUEST__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMCHARTOCIINSTALLUPGRADEREQUEST = {"chart": string,"dryRun": boolean,"namespace": string,"password": string,"registryUrl": string,"release": string,"username": string,"values": string,"version": string};
-export type CLUSTER_HELM_CHART_INSTALL_OCI_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_HELM_HELMCHARTOCIINSTALLUPGRADEREQUEST_STRING = {"data": string,"message": string,"status": string};
-export type CLUSTER_HELM_CHART_REMOVE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMREPOREMOVEREQUEST = {"name": string};
-export type CLUSTER_HELM_CHART_REMOVE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_HELM_HELMREPOREMOVEREQUEST_STRING = {"data": string,"message": string,"status": string};
-export type CLUSTER_HELM_CHART_SEARCH_REQUEST__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMCHARTSEARCHREQUEST = {"name": string};
-export type CLUSTER_HELM_CHART_SEARCH_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_HELM_HELMCHARTSEARCHREQUEST_MOGENIUS_K8S_MANAGER_SRC_HELM_HELMCHARTINFO = {"data": CLUSTER_HELM_CHART_SEARCH_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMCHARTINFO[],"message": string,"status": string};
-export type CLUSTER_HELM_CHART_SEARCH_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMCHARTINFO = {"app_version": string,"description": string,"name": string,"version": string};
-export type CLUSTER_HELM_CHART_SHOW_REQUEST__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMCHARTSHOWREQUEST = {"chart": string,"format": string,"version": string};
-export type CLUSTER_HELM_CHART_SHOW_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_HELM_HELMCHARTSHOWREQUEST_STRING = {"data": string,"message": string,"status": string};
-export type CLUSTER_HELM_CHART_VERSIONS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMCHARTVERSIONREQUEST = {"chart": string};
-export type CLUSTER_HELM_CHART_VERSIONS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_HELM_HELMCHARTVERSIONREQUEST_MOGENIUS_K8S_MANAGER_SRC_HELM_HELMCHARTINFO = {"data": CLUSTER_HELM_CHART_VERSIONS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMCHARTINFO[],"message": string,"status": string};
-export type CLUSTER_HELM_CHART_VERSIONS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMCHARTINFO = {"app_version": string,"description": string,"name": string,"version": string};
-export type CLUSTER_HELM_RELEASE_GET_REQUEST__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMRELEASEGETREQUEST = {"getFormat": string,"namespace": string,"release": string};
-export type CLUSTER_HELM_RELEASE_GET_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_HELM_HELMRELEASEGETREQUEST_STRING = {"data": string,"message": string,"status": string};
-export type CLUSTER_HELM_RELEASE_GET_WORKLOADS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMRELEASEGETWORKLOADSREQUEST = {"namespace": string,"release": string,"whitelist": CLUSTER_HELM_RELEASE_GET_WORKLOADS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR|undefined[]};
-export type CLUSTER_HELM_RELEASE_GET_WORKLOADS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR = {"apiVersion": string,"kind": string,"namespaced": boolean,"plural": string};
+export type CLUSTER_FORCE_RECONNECT_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_BOOL = {"data": boolean,"message": string,"status": string};
+export type CLUSTER_HELM_CHART_INSTALL_REQUEST__MOGENIUS_OPERATOR_SRC_HELM_HELMCHARTINSTALLUPGRADEREQUEST = {"chart": string,"dryRun": boolean,"namespace": string,"release": string,"values": string,"version": string};
+export type CLUSTER_HELM_CHART_INSTALL_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_HELM_HELMCHARTINSTALLUPGRADEREQUEST_STRING = {"data": string,"message": string,"status": string};
+export type CLUSTER_HELM_CHART_INSTALL_OCI_REQUEST__MOGENIUS_OPERATOR_SRC_HELM_HELMCHARTOCIINSTALLUPGRADEREQUEST = {"chart": string,"dryRun": boolean,"namespace": string,"password": string,"registryUrl": string,"release": string,"username": string,"values": string,"version": string};
+export type CLUSTER_HELM_CHART_INSTALL_OCI_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_HELM_HELMCHARTOCIINSTALLUPGRADEREQUEST_STRING = {"data": string,"message": string,"status": string};
+export type CLUSTER_HELM_CHART_REMOVE_REQUEST__MOGENIUS_OPERATOR_SRC_HELM_HELMREPOREMOVEREQUEST = {"name": string};
+export type CLUSTER_HELM_CHART_REMOVE_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_HELM_HELMREPOREMOVEREQUEST_STRING = {"data": string,"message": string,"status": string};
+export type CLUSTER_HELM_CHART_SEARCH_REQUEST__MOGENIUS_OPERATOR_SRC_HELM_HELMCHARTSEARCHREQUEST = {"name": string};
+export type CLUSTER_HELM_CHART_SEARCH_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_HELM_HELMCHARTSEARCHREQUEST_MOGENIUS_OPERATOR_SRC_HELM_HELMCHARTINFO = {"data": CLUSTER_HELM_CHART_SEARCH_RESPONSE__MOGENIUS_OPERATOR_SRC_HELM_HELMCHARTINFO[],"message": string,"status": string};
+export type CLUSTER_HELM_CHART_SEARCH_RESPONSE__MOGENIUS_OPERATOR_SRC_HELM_HELMCHARTINFO = {"app_version": string,"description": string,"name": string,"version": string};
+export type CLUSTER_HELM_CHART_SHOW_REQUEST__MOGENIUS_OPERATOR_SRC_HELM_HELMCHARTSHOWREQUEST = {"chart": string,"format": string,"version": string};
+export type CLUSTER_HELM_CHART_SHOW_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_HELM_HELMCHARTSHOWREQUEST_STRING = {"data": string,"message": string,"status": string};
+export type CLUSTER_HELM_CHART_VERSIONS_REQUEST__MOGENIUS_OPERATOR_SRC_HELM_HELMCHARTVERSIONREQUEST = {"chart": string};
+export type CLUSTER_HELM_CHART_VERSIONS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_HELM_HELMCHARTVERSIONREQUEST_MOGENIUS_OPERATOR_SRC_HELM_HELMCHARTINFO = {"data": CLUSTER_HELM_CHART_VERSIONS_RESPONSE__MOGENIUS_OPERATOR_SRC_HELM_HELMCHARTINFO[],"message": string,"status": string};
+export type CLUSTER_HELM_CHART_VERSIONS_RESPONSE__MOGENIUS_OPERATOR_SRC_HELM_HELMCHARTINFO = {"app_version": string,"description": string,"name": string,"version": string};
+export type CLUSTER_HELM_RELEASE_GET_REQUEST__MOGENIUS_OPERATOR_SRC_HELM_HELMRELEASEGETREQUEST = {"getFormat": string,"namespace": string,"release": string};
+export type CLUSTER_HELM_RELEASE_GET_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_HELM_HELMRELEASEGETREQUEST_STRING = {"data": string,"message": string,"status": string};
+export type CLUSTER_HELM_RELEASE_GET_WORKLOADS_REQUEST__MOGENIUS_OPERATOR_SRC_HELM_HELMRELEASEGETWORKLOADSREQUEST = {"namespace": string,"release": string,"whitelist": CLUSTER_HELM_RELEASE_GET_WORKLOADS_REQUEST__MOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRIPTOR|undefined[]};
+export type CLUSTER_HELM_RELEASE_GET_WORKLOADS_REQUEST__MOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRIPTOR = {"apiVersion": string,"kind": string,"namespaced": boolean,"plural": string};
 export type CLUSTER_HELM_RELEASE_GET_WORKLOADS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"Object": Record<string, any>};
-export type CLUSTER_HELM_RELEASE_GET_WORKLOADS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_HELM_HELMRELEASEGETWORKLOADSREQUEST_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"data": CLUSTER_HELM_RELEASE_GET_WORKLOADS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED[],"message": string,"status": string};
-export type CLUSTER_HELM_RELEASE_HISTORY_REQUEST__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMRELEASEHISTORYREQUEST = {"namespace": string,"release": string};
+export type CLUSTER_HELM_RELEASE_GET_WORKLOADS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_HELM_HELMRELEASEGETWORKLOADSREQUEST_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"data": CLUSTER_HELM_RELEASE_GET_WORKLOADS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED[],"message": string,"status": string};
+export type CLUSTER_HELM_RELEASE_HISTORY_REQUEST__MOGENIUS_OPERATOR_SRC_HELM_HELMRELEASEHISTORYREQUEST = {"namespace": string,"release": string};
 export type CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_CHART = {"files": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_FILE|undefined[],"lock": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_LOCK|undefined,"metadata": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_METADATA|undefined,"schema": number[],"templates": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_FILE|undefined[],"values": Record<string, any>};
 export type CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_DEPENDENCY = {"alias": string,"condition": string,"enabled": boolean,"import-values": any[],"name": string,"repository": string,"tags": string[],"version": string};
 export type CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_FILE = {"data": number[],"name": string};
@@ -8755,11 +8755,11 @@ export type CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_RELEASE_H
 export type CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_RELEASE_INFO = {"deleted": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_TIME_TIME,"description": string,"first_deployed": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_TIME_TIME,"last_deployed": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_TIME_TIME,"notes": string,"resources": Record<string, any[]>,"status": string};
 export type CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_RELEASE_RELEASE = {"chart": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_CHART|undefined,"config": Record<string, any>,"hooks": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_RELEASE_HOOK|undefined[],"info": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_RELEASE_INFO|undefined,"manifest": string,"name": string,"namespace": string,"version": number};
 export type CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_TIME_TIME = {"Time": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__TIME_TIME};
-export type CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_HELM_HELMRELEASEHISTORYREQUEST_HELM_SH_HELM_V3_PKG_RELEASE_RELEASE = {"data": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_RELEASE_RELEASE|undefined[],"message": string,"status": string};
+export type CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_HELM_HELMRELEASEHISTORYREQUEST_HELM_SH_HELM_V3_PKG_RELEASE_RELEASE = {"data": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_RELEASE_RELEASE|undefined[],"message": string,"status": string};
 export type CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__TIME_TIME = {};
-export type CLUSTER_HELM_RELEASE_LINK_REQUEST__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMRELEASELINKREQUEST = {"namespace": string,"releaseName": string,"repoName": string};
-export type CLUSTER_HELM_RELEASE_LINK_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_HELM_HELMRELEASELINKREQUEST_STRING = {"data": string,"message": string,"status": string};
-export type CLUSTER_HELM_RELEASE_LIST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMRELEASELISTREQUEST = {"namespace": string};
+export type CLUSTER_HELM_RELEASE_LINK_REQUEST__MOGENIUS_OPERATOR_SRC_HELM_HELMRELEASELINKREQUEST = {"namespace": string,"releaseName": string,"repoName": string};
+export type CLUSTER_HELM_RELEASE_LINK_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_HELM_HELMRELEASELINKREQUEST_STRING = {"data": string,"message": string,"status": string};
+export type CLUSTER_HELM_RELEASE_LIST_REQUEST__MOGENIUS_OPERATOR_SRC_HELM_HELMRELEASELISTREQUEST = {"namespace": string};
 export type CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_CHART = {"files": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_FILE|undefined[],"lock": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_LOCK|undefined,"metadata": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_METADATA|undefined,"schema": number[],"templates": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_FILE|undefined[],"values": Record<string, any>};
 export type CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_DEPENDENCY = {"alias": string,"condition": string,"enabled": boolean,"import-values": any[],"name": string,"repository": string,"tags": string[],"version": string};
 export type CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_FILE = {"data": number[],"name": string};
@@ -8770,31 +8770,31 @@ export type CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_RELEASE_HOOK
 export type CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_RELEASE_HOOKEXECUTION = {"completed_at": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_TIME_TIME,"phase": string,"started_at": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_TIME_TIME};
 export type CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_RELEASE_INFO = {"deleted": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_TIME_TIME,"description": string,"first_deployed": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_TIME_TIME,"last_deployed": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_TIME_TIME,"notes": string,"resources": Record<string, any[]>,"status": string};
 export type CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_TIME_TIME = {"Time": CLUSTER_HELM_RELEASE_LIST_RESPONSE__TIME_TIME};
-export type CLUSTER_HELM_RELEASE_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_HELM_HELMRELEASELISTREQUEST_MOGENIUS_K8S_MANAGER_SRC_HELM_HELMRELEASE = {"data": CLUSTER_HELM_RELEASE_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMRELEASE|undefined[],"message": string,"status": string};
-export type CLUSTER_HELM_RELEASE_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMRELEASE = {"chart": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_CHART|undefined,"config": Record<string, any>,"hooks": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_RELEASE_HOOK|undefined[],"info": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_RELEASE_INFO|undefined,"manifest": string,"name": string,"namespace": string,"repoName": string,"version": number};
+export type CLUSTER_HELM_RELEASE_LIST_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_HELM_HELMRELEASELISTREQUEST_MOGENIUS_OPERATOR_SRC_HELM_HELMRELEASE = {"data": CLUSTER_HELM_RELEASE_LIST_RESPONSE__MOGENIUS_OPERATOR_SRC_HELM_HELMRELEASE|undefined[],"message": string,"status": string};
+export type CLUSTER_HELM_RELEASE_LIST_RESPONSE__MOGENIUS_OPERATOR_SRC_HELM_HELMRELEASE = {"chart": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_CHART|undefined,"config": Record<string, any>,"hooks": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_RELEASE_HOOK|undefined[],"info": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_RELEASE_INFO|undefined,"manifest": string,"name": string,"namespace": string,"repoName": string,"version": number};
 export type CLUSTER_HELM_RELEASE_LIST_RESPONSE__TIME_TIME = {};
-export type CLUSTER_HELM_RELEASE_ROLLBACK_REQUEST__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMRELEASEROLLBACKREQUEST = {"namespace": string,"release": string,"revision": number};
-export type CLUSTER_HELM_RELEASE_ROLLBACK_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_HELM_HELMRELEASEROLLBACKREQUEST_STRING = {"data": string,"message": string,"status": string};
-export type CLUSTER_HELM_RELEASE_STATUS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMRELEASESTATUSREQUEST = {"namespace": string,"release": string};
-export type CLUSTER_HELM_RELEASE_STATUS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_HELM_HELMRELEASESTATUSREQUEST_MOGENIUS_K8S_MANAGER_SRC_HELM_HELMRELEASESTATUSINFO = {"data": CLUSTER_HELM_RELEASE_STATUS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMRELEASESTATUSINFO|undefined,"message": string,"status": string};
-export type CLUSTER_HELM_RELEASE_STATUS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMRELEASESTATUSINFO = {"chart": string,"lastDeployed": CLUSTER_HELM_RELEASE_STATUS_RESPONSE__TIME_TIME,"name": string,"namespace": string,"status": string,"version": number};
+export type CLUSTER_HELM_RELEASE_ROLLBACK_REQUEST__MOGENIUS_OPERATOR_SRC_HELM_HELMRELEASEROLLBACKREQUEST = {"namespace": string,"release": string,"revision": number};
+export type CLUSTER_HELM_RELEASE_ROLLBACK_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_HELM_HELMRELEASEROLLBACKREQUEST_STRING = {"data": string,"message": string,"status": string};
+export type CLUSTER_HELM_RELEASE_STATUS_REQUEST__MOGENIUS_OPERATOR_SRC_HELM_HELMRELEASESTATUSREQUEST = {"namespace": string,"release": string};
+export type CLUSTER_HELM_RELEASE_STATUS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_HELM_HELMRELEASESTATUSREQUEST_MOGENIUS_OPERATOR_SRC_HELM_HELMRELEASESTATUSINFO = {"data": CLUSTER_HELM_RELEASE_STATUS_RESPONSE__MOGENIUS_OPERATOR_SRC_HELM_HELMRELEASESTATUSINFO|undefined,"message": string,"status": string};
+export type CLUSTER_HELM_RELEASE_STATUS_RESPONSE__MOGENIUS_OPERATOR_SRC_HELM_HELMRELEASESTATUSINFO = {"chart": string,"lastDeployed": CLUSTER_HELM_RELEASE_STATUS_RESPONSE__TIME_TIME,"name": string,"namespace": string,"status": string,"version": number};
 export type CLUSTER_HELM_RELEASE_STATUS_RESPONSE__TIME_TIME = {};
-export type CLUSTER_HELM_RELEASE_UNINSTALL_REQUEST__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMRELEASEUNINSTALLREQUEST = {"dryRun": boolean,"namespace": string,"release": string};
-export type CLUSTER_HELM_RELEASE_UNINSTALL_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_HELM_HELMRELEASEUNINSTALLREQUEST_STRING = {"data": string,"message": string,"status": string};
-export type CLUSTER_HELM_RELEASE_UPGRADE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMCHARTINSTALLUPGRADEREQUEST = {"chart": string,"dryRun": boolean,"namespace": string,"release": string,"values": string,"version": string};
-export type CLUSTER_HELM_RELEASE_UPGRADE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_HELM_HELMCHARTINSTALLUPGRADEREQUEST_STRING = {"data": string,"message": string,"status": string};
-export type CLUSTER_HELM_REPO_ADD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMREPOADDREQUEST = {"insecureSkipTLSverify": boolean,"name": string,"passCredentialsAll": boolean,"password": string,"url": string,"username": string};
-export type CLUSTER_HELM_REPO_ADD_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_HELM_HELMREPOADDREQUEST_STRING = {"data": string,"message": string,"status": string};
+export type CLUSTER_HELM_RELEASE_UNINSTALL_REQUEST__MOGENIUS_OPERATOR_SRC_HELM_HELMRELEASEUNINSTALLREQUEST = {"dryRun": boolean,"namespace": string,"release": string};
+export type CLUSTER_HELM_RELEASE_UNINSTALL_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_HELM_HELMRELEASEUNINSTALLREQUEST_STRING = {"data": string,"message": string,"status": string};
+export type CLUSTER_HELM_RELEASE_UPGRADE_REQUEST__MOGENIUS_OPERATOR_SRC_HELM_HELMCHARTINSTALLUPGRADEREQUEST = {"chart": string,"dryRun": boolean,"namespace": string,"release": string,"values": string,"version": string};
+export type CLUSTER_HELM_RELEASE_UPGRADE_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_HELM_HELMCHARTINSTALLUPGRADEREQUEST_STRING = {"data": string,"message": string,"status": string};
+export type CLUSTER_HELM_REPO_ADD_REQUEST__MOGENIUS_OPERATOR_SRC_HELM_HELMREPOADDREQUEST = {"insecureSkipTLSverify": boolean,"name": string,"passCredentialsAll": boolean,"password": string,"url": string,"username": string};
+export type CLUSTER_HELM_REPO_ADD_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_HELM_HELMREPOADDREQUEST_STRING = {"data": string,"message": string,"status": string};
 export type CLUSTER_HELM_REPO_LIST_REQUEST__ANON_STRUCT_0 = {};
-export type CLUSTER_HELM_REPO_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_MOGENIUS_K8S_MANAGER_SRC_HELM_HELMENTRYWITHOUTPASSWORD = {"data": CLUSTER_HELM_REPO_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMENTRYWITHOUTPASSWORD|undefined[],"message": string,"status": string};
-export type CLUSTER_HELM_REPO_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMENTRYWITHOUTPASSWORD = {"insecure_skip_tls_verify": boolean,"name": string,"pass_credentials_all": boolean,"url": string};
-export type CLUSTER_HELM_REPO_PATCH_REQUEST__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMREPOPATCHREQUEST = {"insecureSkipTLSverify": boolean,"name": string,"newName": string,"passCredentialsAll": boolean,"password": string,"url": string,"username": string};
-export type CLUSTER_HELM_REPO_PATCH_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_HELM_HELMREPOPATCHREQUEST_STRING = {"data": string,"message": string,"status": string};
+export type CLUSTER_HELM_REPO_LIST_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_MOGENIUS_OPERATOR_SRC_HELM_HELMENTRYWITHOUTPASSWORD = {"data": CLUSTER_HELM_REPO_LIST_RESPONSE__MOGENIUS_OPERATOR_SRC_HELM_HELMENTRYWITHOUTPASSWORD|undefined[],"message": string,"status": string};
+export type CLUSTER_HELM_REPO_LIST_RESPONSE__MOGENIUS_OPERATOR_SRC_HELM_HELMENTRYWITHOUTPASSWORD = {"insecure_skip_tls_verify": boolean,"name": string,"pass_credentials_all": boolean,"url": string};
+export type CLUSTER_HELM_REPO_PATCH_REQUEST__MOGENIUS_OPERATOR_SRC_HELM_HELMREPOPATCHREQUEST = {"insecureSkipTLSverify": boolean,"name": string,"newName": string,"passCredentialsAll": boolean,"password": string,"url": string,"username": string};
+export type CLUSTER_HELM_REPO_PATCH_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_HELM_HELMREPOPATCHREQUEST_STRING = {"data": string,"message": string,"status": string};
 export type CLUSTER_HELM_REPO_UPDATE_REQUEST__ANON_STRUCT_0 = {};
-export type CLUSTER_HELM_REPO_UPDATE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_MOGENIUS_K8S_MANAGER_SRC_HELM_HELMENTRYSTATUS = {"data": CLUSTER_HELM_REPO_UPDATE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMENTRYSTATUS[],"message": string,"status": string};
-export type CLUSTER_HELM_REPO_UPDATE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMENTRYSTATUS = {"entry": CLUSTER_HELM_REPO_UPDATE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMENTRYWITHOUTPASSWORD|undefined,"message": string,"status": string};
-export type CLUSTER_HELM_REPO_UPDATE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_HELM_HELMENTRYWITHOUTPASSWORD = {"insecure_skip_tls_verify": boolean,"name": string,"pass_credentials_all": boolean,"url": string};
-export type CLUSTER_LIST_PERSISTENT_VOLUME_CLAIMS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_CLUSTERLISTWORKLOADS = {"labelSelector": string,"namespace": string,"prefix": string};
+export type CLUSTER_HELM_REPO_UPDATE_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_MOGENIUS_OPERATOR_SRC_HELM_HELMENTRYSTATUS = {"data": CLUSTER_HELM_REPO_UPDATE_RESPONSE__MOGENIUS_OPERATOR_SRC_HELM_HELMENTRYSTATUS[],"message": string,"status": string};
+export type CLUSTER_HELM_REPO_UPDATE_RESPONSE__MOGENIUS_OPERATOR_SRC_HELM_HELMENTRYSTATUS = {"entry": CLUSTER_HELM_REPO_UPDATE_RESPONSE__MOGENIUS_OPERATOR_SRC_HELM_HELMENTRYWITHOUTPASSWORD|undefined,"message": string,"status": string};
+export type CLUSTER_HELM_REPO_UPDATE_RESPONSE__MOGENIUS_OPERATOR_SRC_HELM_HELMENTRYWITHOUTPASSWORD = {"insecure_skip_tls_verify": boolean,"name": string,"pass_credentials_all": boolean,"url": string};
+export type CLUSTER_LIST_PERSISTENT_VOLUME_CLAIMS_REQUEST__MOGENIUS_OPERATOR_SRC_SERVICES_CLUSTERLISTWORKLOADS = {"labelSelector": string,"namespace": string,"prefix": string};
 export type CLUSTER_LIST_PERSISTENT_VOLUME_CLAIMS_RESPONSE__K8S_IO_API_CORE_V1_MODIFYVOLUMESTATUS = {"status": string,"targetVolumeAttributesClassName": string};
 export type CLUSTER_LIST_PERSISTENT_VOLUME_CLAIMS_RESPONSE__K8S_IO_API_CORE_V1_PERSISTENTVOLUMECLAIM = {"TypeMeta": CLUSTER_LIST_PERSISTENT_VOLUME_CLAIMS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA,"metadata": CLUSTER_LIST_PERSISTENT_VOLUME_CLAIMS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OBJECTMETA,"spec": CLUSTER_LIST_PERSISTENT_VOLUME_CLAIMS_RESPONSE__K8S_IO_API_CORE_V1_PERSISTENTVOLUMECLAIMSPEC,"status": CLUSTER_LIST_PERSISTENT_VOLUME_CLAIMS_RESPONSE__K8S_IO_API_CORE_V1_PERSISTENTVOLUMECLAIMSTATUS};
 export type CLUSTER_LIST_PERSISTENT_VOLUME_CLAIMS_RESPONSE__K8S_IO_API_CORE_V1_PERSISTENTVOLUMECLAIMCONDITION = {"lastProbeTime": CLUSTER_LIST_PERSISTENT_VOLUME_CLAIMS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME,"lastTransitionTime": CLUSTER_LIST_PERSISTENT_VOLUME_CLAIMS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME,"message": string,"reason": string,"status": string,"type": string};
@@ -8812,115 +8812,115 @@ export type CLUSTER_LIST_PERSISTENT_VOLUME_CLAIMS_RESPONSE__K8S_IO_APIMACHINERY_
 export type CLUSTER_LIST_PERSISTENT_VOLUME_CLAIMS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OWNERREFERENCE = {"apiVersion": string,"blockOwnerDeletion": boolean|undefined,"controller": boolean|undefined,"kind": string,"name": string,"uid": string};
 export type CLUSTER_LIST_PERSISTENT_VOLUME_CLAIMS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME = {"Time": CLUSTER_LIST_PERSISTENT_VOLUME_CLAIMS_RESPONSE__TIME_TIME};
 export type CLUSTER_LIST_PERSISTENT_VOLUME_CLAIMS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA = {"apiVersion": string,"kind": string};
-export type CLUSTER_LIST_PERSISTENT_VOLUME_CLAIMS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_SERVICES_CLUSTERLISTWORKLOADS_K8S_IO_API_CORE_V1_PERSISTENTVOLUMECLAIM = {"data": CLUSTER_LIST_PERSISTENT_VOLUME_CLAIMS_RESPONSE__K8S_IO_API_CORE_V1_PERSISTENTVOLUMECLAIM[],"message": string,"status": string};
+export type CLUSTER_LIST_PERSISTENT_VOLUME_CLAIMS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_SERVICES_CLUSTERLISTWORKLOADS_K8S_IO_API_CORE_V1_PERSISTENTVOLUMECLAIM = {"data": CLUSTER_LIST_PERSISTENT_VOLUME_CLAIMS_RESPONSE__K8S_IO_API_CORE_V1_PERSISTENTVOLUMECLAIM[],"message": string,"status": string};
 export type CLUSTER_LIST_PERSISTENT_VOLUME_CLAIMS_RESPONSE__TIME_TIME = {};
-export type CLUSTER_MACHINE_STATS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"nodes": string[]};
-export type CLUSTER_MACHINE_STATS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST16_MOGENIUS_K8S_MANAGER_SRC_STRUCTS_MACHINESTATS = {"data": CLUSTER_MACHINE_STATS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_MACHINESTATS[],"message": string,"status": string};
-export type CLUSTER_MACHINE_STATS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_MACHINESTATS = {"btfSupport": boolean};
+export type CLUSTER_MACHINE_STATS_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"nodes": string[]};
+export type CLUSTER_MACHINE_STATS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST16_MOGENIUS_OPERATOR_SRC_STRUCTS_MACHINESTATS = {"data": CLUSTER_MACHINE_STATS_RESPONSE__MOGENIUS_OPERATOR_SRC_STRUCTS_MACHINESTATS[],"message": string,"status": string};
+export type CLUSTER_MACHINE_STATS_RESPONSE__MOGENIUS_OPERATOR_SRC_STRUCTS_MACHINESTATS = {"btfSupport": boolean};
 export type CLUSTER_RESOURCE_INFO_REQUEST__ANON_STRUCT_0 = {};
-export type CLUSTER_RESOURCE_INFO_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_CLUSTERRESOURCEINFO = {"cniConfig": CLUSTER_RESOURCE_INFO_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_CNIDATA[],"country": CLUSTER_RESOURCE_INFO_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_UTILS_COUNTRYDETAILS|undefined,"error": string[],"loadBalancerExternalIps": string[],"nodeStats": CLUSTER_RESOURCE_INFO_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_DTOS_NODESTAT[],"provider": string};
-export type CLUSTER_RESOURCE_INFO_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_MOGENIUS_K8S_MANAGER_SRC_CORE_CLUSTERRESOURCEINFO3 = {"data": CLUSTER_RESOURCE_INFO_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_CLUSTERRESOURCEINFO,"message": string,"status": string};
-export type CLUSTER_RESOURCE_INFO_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_DTOS_NODESTAT = {"architecture": string,"cpuInCores": number,"cpuInCoresLimited": number,"cpuInCoresRequested": number,"cpuInCoresUtilized": number,"ephemeralInBytes": number,"kubletVersion": string,"machineStats": CLUSTER_RESOURCE_INFO_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_MACHINESTATS|undefined,"maschineId": string,"maxPods": number,"memoryInBytes": number,"memoryInBytesLimited": number,"memoryInBytesRequested": number,"memoryInBytesUtilized": number,"name": string,"osImage": string,"osKernelVersion": string,"osType": string,"totalPods": number};
-export type CLUSTER_RESOURCE_INFO_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_CNICAPABILITIES = {"bandwidth": boolean,"portMappings": boolean};
-export type CLUSTER_RESOURCE_INFO_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_CNIDATA = {"cniVersion": string,"name": string,"node": string,"plugins": CLUSTER_RESOURCE_INFO_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_PLUGIN[]};
-export type CLUSTER_RESOURCE_INFO_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_CNIIPAM = {"type": string};
-export type CLUSTER_RESOURCE_INFO_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_CNIPOLICY = {"type": string};
-export type CLUSTER_RESOURCE_INFO_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_MACHINESTATS = {"btfSupport": boolean};
-export type CLUSTER_RESOURCE_INFO_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_PLUGIN = {"capabilities": CLUSTER_RESOURCE_INFO_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_CNICAPABILITIES|undefined,"datastore_type": string,"ipam": CLUSTER_RESOURCE_INFO_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_CNIIPAM|undefined,"log_file_path": string,"log_level": string,"mtu": number,"nodename": string,"policy": CLUSTER_RESOURCE_INFO_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_CNIPOLICY|undefined,"snat": boolean|undefined,"type": string};
-export type CLUSTER_RESOURCE_INFO_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_UTILS_COUNTRYDETAILS = {"capitalCity": string,"capitalCityLat": number,"capitalCityLng": number,"code": string,"code3": string,"continent": string,"currency": string,"currencyName": string,"domainTld": string,"isActive": boolean,"isEuMember": boolean,"isoId": number,"languages": string[],"name": string,"phoneNumberPrefix": string,"taxPercent": number};
-export type CREATE_GRANT_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"grantee": string,"name": string,"role": string,"targetName": string,"targetType": string};
-export type CREATE_GRANT_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST29_STRING = {"data": string,"message": string,"status": string};
-export type CREATE_NEW_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR = {"apiVersion": string,"kind": string,"namespaced": boolean,"plural": string};
-export type CREATE_NEW_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_WORKLOADCHANGEREQUEST = {"ResourceDescriptor": CREATE_NEW_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR,"namespace": string,"yamlData": string};
+export type CLUSTER_RESOURCE_INFO_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_CLUSTERRESOURCEINFO = {"cniConfig": CLUSTER_RESOURCE_INFO_RESPONSE__MOGENIUS_OPERATOR_SRC_STRUCTS_CNIDATA[],"country": CLUSTER_RESOURCE_INFO_RESPONSE__MOGENIUS_OPERATOR_SRC_UTILS_COUNTRYDETAILS|undefined,"error": string[],"loadBalancerExternalIps": string[],"nodeStats": CLUSTER_RESOURCE_INFO_RESPONSE__MOGENIUS_OPERATOR_SRC_DTOS_NODESTAT[],"provider": string};
+export type CLUSTER_RESOURCE_INFO_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_MOGENIUS_OPERATOR_SRC_CORE_CLUSTERRESOURCEINFO3 = {"data": CLUSTER_RESOURCE_INFO_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_CLUSTERRESOURCEINFO,"message": string,"status": string};
+export type CLUSTER_RESOURCE_INFO_RESPONSE__MOGENIUS_OPERATOR_SRC_DTOS_NODESTAT = {"architecture": string,"cpuInCores": number,"cpuInCoresLimited": number,"cpuInCoresRequested": number,"cpuInCoresUtilized": number,"ephemeralInBytes": number,"kubletVersion": string,"machineStats": CLUSTER_RESOURCE_INFO_RESPONSE__MOGENIUS_OPERATOR_SRC_STRUCTS_MACHINESTATS|undefined,"maschineId": string,"maxPods": number,"memoryInBytes": number,"memoryInBytesLimited": number,"memoryInBytesRequested": number,"memoryInBytesUtilized": number,"name": string,"osImage": string,"osKernelVersion": string,"osType": string,"totalPods": number};
+export type CLUSTER_RESOURCE_INFO_RESPONSE__MOGENIUS_OPERATOR_SRC_STRUCTS_CNICAPABILITIES = {"bandwidth": boolean,"portMappings": boolean};
+export type CLUSTER_RESOURCE_INFO_RESPONSE__MOGENIUS_OPERATOR_SRC_STRUCTS_CNIDATA = {"cniVersion": string,"name": string,"node": string,"plugins": CLUSTER_RESOURCE_INFO_RESPONSE__MOGENIUS_OPERATOR_SRC_STRUCTS_PLUGIN[]};
+export type CLUSTER_RESOURCE_INFO_RESPONSE__MOGENIUS_OPERATOR_SRC_STRUCTS_CNIIPAM = {"type": string};
+export type CLUSTER_RESOURCE_INFO_RESPONSE__MOGENIUS_OPERATOR_SRC_STRUCTS_CNIPOLICY = {"type": string};
+export type CLUSTER_RESOURCE_INFO_RESPONSE__MOGENIUS_OPERATOR_SRC_STRUCTS_MACHINESTATS = {"btfSupport": boolean};
+export type CLUSTER_RESOURCE_INFO_RESPONSE__MOGENIUS_OPERATOR_SRC_STRUCTS_PLUGIN = {"capabilities": CLUSTER_RESOURCE_INFO_RESPONSE__MOGENIUS_OPERATOR_SRC_STRUCTS_CNICAPABILITIES|undefined,"datastore_type": string,"ipam": CLUSTER_RESOURCE_INFO_RESPONSE__MOGENIUS_OPERATOR_SRC_STRUCTS_CNIIPAM|undefined,"log_file_path": string,"log_level": string,"mtu": number,"nodename": string,"policy": CLUSTER_RESOURCE_INFO_RESPONSE__MOGENIUS_OPERATOR_SRC_STRUCTS_CNIPOLICY|undefined,"snat": boolean|undefined,"type": string};
+export type CLUSTER_RESOURCE_INFO_RESPONSE__MOGENIUS_OPERATOR_SRC_UTILS_COUNTRYDETAILS = {"capitalCity": string,"capitalCityLat": number,"capitalCityLng": number,"code": string,"code3": string,"continent": string,"currency": string,"currencyName": string,"domainTld": string,"isActive": boolean,"isEuMember": boolean,"isoId": number,"languages": string[],"name": string,"phoneNumberPrefix": string,"taxPercent": number};
+export type CREATE_GRANT_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"grantee": string,"name": string,"role": string,"targetName": string,"targetType": string};
+export type CREATE_GRANT_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST29_STRING = {"data": string,"message": string,"status": string};
+export type CREATE_NEW_WORKLOAD_REQUEST__MOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRIPTOR = {"apiVersion": string,"kind": string,"namespaced": boolean,"plural": string};
+export type CREATE_NEW_WORKLOAD_REQUEST__MOGENIUS_OPERATOR_SRC_UTILS_WORKLOADCHANGEREQUEST = {"ResourceDescriptor": CREATE_NEW_WORKLOAD_REQUEST__MOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRIPTOR,"namespace": string,"yamlData": string};
 export type CREATE_NEW_WORKLOAD_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"Object": Record<string, any>};
-export type CREATE_NEW_WORKLOAD_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_UTILS_WORKLOADCHANGEREQUEST_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"data": CREATE_NEW_WORKLOAD_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED|undefined,"message": string,"status": string};
+export type CREATE_NEW_WORKLOAD_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_UTILS_WORKLOADCHANGEREQUEST_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"data": CREATE_NEW_WORKLOAD_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED|undefined,"message": string,"status": string};
 export type CREATE_USER_REQUEST__K8S_IO_API_RBAC_V1_SUBJECT = {"apiGroup": string,"kind": string,"name": string,"namespace": string};
-export type CREATE_USER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"email": string,"firstName": string,"lastName": string,"name": string,"subject": CREATE_USER_REQUEST__K8S_IO_API_RBAC_V1_SUBJECT|undefined};
-export type CREATE_USER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST24_STRING = {"data": string,"message": string,"status": string};
-export type CREATE_WORKSPACE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"displayName": string,"name": string,"resources": CREATE_WORKSPACE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_WORKSPACERESOURCEIDENTIFIER[]};
-export type CREATE_WORKSPACE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_WORKSPACERESOURCEIDENTIFIER = {"id": string,"namespace": string,"type": string};
-export type CREATE_WORKSPACE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST18_STRING = {"data": string,"message": string,"status": string};
-export type DELETE_GRANT_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"name": string};
-export type DELETE_GRANT_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST32_STRING = {"data": string,"message": string,"status": string};
-export type DELETE_USER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"name": string};
-export type DELETE_USER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST27_STRING = {"data": string,"message": string,"status": string};
-export type DELETE_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR = {"apiVersion": string,"kind": string,"namespaced": boolean,"plural": string};
-export type DELETE_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_WORKLOADSINGLEREQUEST = {"ResourceDescriptor": DELETE_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR,"namespace": string,"resourceName": string};
+export type CREATE_USER_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"email": string,"firstName": string,"lastName": string,"name": string,"subject": CREATE_USER_REQUEST__K8S_IO_API_RBAC_V1_SUBJECT|undefined};
+export type CREATE_USER_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST24_STRING = {"data": string,"message": string,"status": string};
+export type CREATE_WORKSPACE_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"displayName": string,"name": string,"resources": CREATE_WORKSPACE_REQUEST__MOGENIUS_OPERATOR_SRC_CRDS_V1ALPHA1_WORKSPACERESOURCEIDENTIFIER[]};
+export type CREATE_WORKSPACE_REQUEST__MOGENIUS_OPERATOR_SRC_CRDS_V1ALPHA1_WORKSPACERESOURCEIDENTIFIER = {"id": string,"namespace": string,"type": string};
+export type CREATE_WORKSPACE_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST18_STRING = {"data": string,"message": string,"status": string};
+export type DELETE_GRANT_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"name": string};
+export type DELETE_GRANT_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST32_STRING = {"data": string,"message": string,"status": string};
+export type DELETE_USER_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"name": string};
+export type DELETE_USER_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST27_STRING = {"data": string,"message": string,"status": string};
+export type DELETE_WORKLOAD_REQUEST__MOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRIPTOR = {"apiVersion": string,"kind": string,"namespaced": boolean,"plural": string};
+export type DELETE_WORKLOAD_REQUEST__MOGENIUS_OPERATOR_SRC_UTILS_WORKLOADSINGLEREQUEST = {"ResourceDescriptor": DELETE_WORKLOAD_REQUEST__MOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRIPTOR,"namespace": string,"resourceName": string};
 export type DELETE_WORKLOAD_RESPONSE__ANON_STRUCT_1 = {};
-export type DELETE_WORKLOAD_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_UTILS_WORKLOADSINGLEREQUEST_MOGENIUS_K8S_MANAGER_SRC_CORE_VOID = {"data": DELETE_WORKLOAD_RESPONSE__ANON_STRUCT_1|undefined,"message": string,"status": string};
-export type DELETE_WORKSPACE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"name": string};
-export type DELETE_WORKSPACE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST22_STRING = {"data": string,"message": string,"status": string};
+export type DELETE_WORKLOAD_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_UTILS_WORKLOADSINGLEREQUEST_MOGENIUS_OPERATOR_SRC_CORE_VOID = {"data": DELETE_WORKLOAD_RESPONSE__ANON_STRUCT_1|undefined,"message": string,"status": string};
+export type DELETE_WORKSPACE_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"name": string};
+export type DELETE_WORKSPACE_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST22_STRING = {"data": string,"message": string,"status": string};
 export type DESCRIBE_REQUEST__ANON_STRUCT_0 = {};
-export type DESCRIBE_RESPONSE__ANON_STRUCT_2 = {"buildType": string,"version": DESCRIBE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_VERSION_VERSION};
+export type DESCRIBE_RESPONSE__ANON_STRUCT_2 = {"buildType": string,"version": DESCRIBE_RESPONSE__MOGENIUS_OPERATOR_SRC_VERSION_VERSION};
 export type DESCRIBE_RESPONSE__ANON_STRUCT_4 = {};
-export type DESCRIBE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_PATTERNCONFIG = {"deprecated": boolean,"deprecatedMessage": string,"legacyResponseLayout": boolean,"needsUser": boolean,"requestSchema": DESCRIBE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_SCHEMA_SCHEMA|undefined,"responseSchema": DESCRIBE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_SCHEMA_SCHEMA|undefined};
-export type DESCRIBE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESPONSE = {"buildInfo": DESCRIBE_RESPONSE__ANON_STRUCT_2,"features": DESCRIBE_RESPONSE__ANON_STRUCT_4,"patterns": Record<string, DESCRIBE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_PATTERNCONFIG>};
-export type DESCRIBE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_MOGENIUS_K8S_MANAGER_SRC_CORE_RESPONSE2 = {"data": DESCRIBE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESPONSE,"message": string,"status": string};
-export type DESCRIBE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_SCHEMA_SCHEMA = {"structs": Record<string, DESCRIBE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_SCHEMA_STRUCTLAYOUT>,"typeInfo": DESCRIBE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_SCHEMA_TYPEINFO|undefined};
-export type DESCRIBE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_SCHEMA_STRUCTLAYOUT = {"name": string,"properties": Record<string, DESCRIBE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_SCHEMA_TYPEINFO|undefined>};
-export type DESCRIBE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_SCHEMA_TYPEINFO = {"elementType": DESCRIBE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_SCHEMA_TYPEINFO|undefined,"keyType": DESCRIBE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_SCHEMA_TYPEINFO|undefined,"pointer": boolean,"structRef": string,"type": string,"valueType": DESCRIBE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_SCHEMA_TYPEINFO|undefined};
-export type DESCRIBE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_VERSION_VERSION = {"arch": string,"branch": string,"buildTimestamp": string,"gitCommitHash": string,"os": string,"version": string};
-export type DESCRIBE_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR = {"apiVersion": string,"kind": string,"namespaced": boolean,"plural": string};
-export type DESCRIBE_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_WORKLOADSINGLEREQUEST = {"ResourceDescriptor": DESCRIBE_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR,"namespace": string,"resourceName": string};
-export type DESCRIBE_WORKLOAD_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_UTILS_WORKLOADSINGLEREQUEST_STRING = {"data": string,"message": string,"status": string};
-export type FILES_CHMOD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"file": FILES_CHMOD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_PERSISTENTFILEREQUESTDTO,"mode": string};
-export type FILES_CHMOD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_PERSISTENTFILEREQUESTDTO = {"path": string,"volumeName": string,"volumeNamespace": string};
-export type FILES_CHOWN_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"file": FILES_CHOWN_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_PERSISTENTFILEREQUESTDTO,"gid": string,"uid": string};
-export type FILES_CHOWN_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_PERSISTENTFILEREQUESTDTO = {"path": string,"volumeName": string,"volumeNamespace": string};
-export type FILES_CREATE_FOLDER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"folder": FILES_CREATE_FOLDER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_PERSISTENTFILEREQUESTDTO};
-export type FILES_CREATE_FOLDER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_PERSISTENTFILEREQUESTDTO = {"path": string,"volumeName": string,"volumeNamespace": string};
-export type FILES_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"file": FILES_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_PERSISTENTFILEREQUESTDTO};
-export type FILES_DELETE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_PERSISTENTFILEREQUESTDTO = {"path": string,"volumeName": string,"volumeNamespace": string};
-export type FILES_DOWNLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"file": FILES_DOWNLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_PERSISTENTFILEREQUESTDTO,"postTo": string};
-export type FILES_DOWNLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_PERSISTENTFILEREQUESTDTO = {"path": string,"volumeName": string,"volumeNamespace": string};
-export type FILES_DOWNLOAD_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_SERVICES_FILESDOWNLOADRESPONSE = {"error": string,"sizeInBytes": number};
-export type FILES_INFO_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_PERSISTENTFILEREQUESTDTO = {"path": string,"volumeName": string,"volumeNamespace": string};
-export type FILES_INFO_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_DTOS_PERSISTENTFILEDTO = {"contentType": string,"createdAt": string,"extension": string,"hash": string,"mimeType": string,"mode": string,"modifiedAt": string,"name": string,"relativePath": string,"size": string,"sizeInBytes": number,"type": string,"uid_gid": string};
-export type FILES_LIST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"folder": FILES_LIST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_PERSISTENTFILEREQUESTDTO};
-export type FILES_LIST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_PERSISTENTFILEREQUESTDTO = {"path": string,"volumeName": string,"volumeNamespace": string};
-export type FILES_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_DTOS_PERSISTENTFILEDTO = {"contentType": string,"createdAt": string,"extension": string,"hash": string,"mimeType": string,"mode": string,"modifiedAt": string,"name": string,"relativePath": string,"size": string,"sizeInBytes": number,"type": string,"uid_gid": string};
-export type FILES_RENAME_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"file": FILES_RENAME_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_PERSISTENTFILEREQUESTDTO,"newName": string};
-export type FILES_RENAME_REQUEST__MOGENIUS_K8S_MANAGER_SRC_DTOS_PERSISTENTFILEREQUESTDTO = {"path": string,"volumeName": string,"volumeNamespace": string};
-export type GET_GRANT_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"name": string};
+export type DESCRIBE_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_PATTERNCONFIG = {"deprecated": boolean,"deprecatedMessage": string,"legacyResponseLayout": boolean,"needsUser": boolean,"requestSchema": DESCRIBE_RESPONSE__MOGENIUS_OPERATOR_SRC_SCHEMA_SCHEMA|undefined,"responseSchema": DESCRIBE_RESPONSE__MOGENIUS_OPERATOR_SRC_SCHEMA_SCHEMA|undefined};
+export type DESCRIBE_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESPONSE = {"buildInfo": DESCRIBE_RESPONSE__ANON_STRUCT_2,"features": DESCRIBE_RESPONSE__ANON_STRUCT_4,"patterns": Record<string, DESCRIBE_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_PATTERNCONFIG>};
+export type DESCRIBE_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_MOGENIUS_OPERATOR_SRC_CORE_RESPONSE2 = {"data": DESCRIBE_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESPONSE,"message": string,"status": string};
+export type DESCRIBE_RESPONSE__MOGENIUS_OPERATOR_SRC_SCHEMA_SCHEMA = {"structs": Record<string, DESCRIBE_RESPONSE__MOGENIUS_OPERATOR_SRC_SCHEMA_STRUCTLAYOUT>,"typeInfo": DESCRIBE_RESPONSE__MOGENIUS_OPERATOR_SRC_SCHEMA_TYPEINFO|undefined};
+export type DESCRIBE_RESPONSE__MOGENIUS_OPERATOR_SRC_SCHEMA_STRUCTLAYOUT = {"name": string,"properties": Record<string, DESCRIBE_RESPONSE__MOGENIUS_OPERATOR_SRC_SCHEMA_TYPEINFO|undefined>};
+export type DESCRIBE_RESPONSE__MOGENIUS_OPERATOR_SRC_SCHEMA_TYPEINFO = {"elementType": DESCRIBE_RESPONSE__MOGENIUS_OPERATOR_SRC_SCHEMA_TYPEINFO|undefined,"keyType": DESCRIBE_RESPONSE__MOGENIUS_OPERATOR_SRC_SCHEMA_TYPEINFO|undefined,"pointer": boolean,"structRef": string,"type": string,"valueType": DESCRIBE_RESPONSE__MOGENIUS_OPERATOR_SRC_SCHEMA_TYPEINFO|undefined};
+export type DESCRIBE_RESPONSE__MOGENIUS_OPERATOR_SRC_VERSION_VERSION = {"arch": string,"branch": string,"buildTimestamp": string,"gitCommitHash": string,"os": string,"version": string};
+export type DESCRIBE_WORKLOAD_REQUEST__MOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRIPTOR = {"apiVersion": string,"kind": string,"namespaced": boolean,"plural": string};
+export type DESCRIBE_WORKLOAD_REQUEST__MOGENIUS_OPERATOR_SRC_UTILS_WORKLOADSINGLEREQUEST = {"ResourceDescriptor": DESCRIBE_WORKLOAD_REQUEST__MOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRIPTOR,"namespace": string,"resourceName": string};
+export type DESCRIBE_WORKLOAD_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_UTILS_WORKLOADSINGLEREQUEST_STRING = {"data": string,"message": string,"status": string};
+export type FILES_CHMOD_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"file": FILES_CHMOD_REQUEST__MOGENIUS_OPERATOR_SRC_DTOS_PERSISTENTFILEREQUESTDTO,"mode": string};
+export type FILES_CHMOD_REQUEST__MOGENIUS_OPERATOR_SRC_DTOS_PERSISTENTFILEREQUESTDTO = {"path": string,"volumeName": string,"volumeNamespace": string};
+export type FILES_CHOWN_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"file": FILES_CHOWN_REQUEST__MOGENIUS_OPERATOR_SRC_DTOS_PERSISTENTFILEREQUESTDTO,"gid": string,"uid": string};
+export type FILES_CHOWN_REQUEST__MOGENIUS_OPERATOR_SRC_DTOS_PERSISTENTFILEREQUESTDTO = {"path": string,"volumeName": string,"volumeNamespace": string};
+export type FILES_CREATE_FOLDER_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"folder": FILES_CREATE_FOLDER_REQUEST__MOGENIUS_OPERATOR_SRC_DTOS_PERSISTENTFILEREQUESTDTO};
+export type FILES_CREATE_FOLDER_REQUEST__MOGENIUS_OPERATOR_SRC_DTOS_PERSISTENTFILEREQUESTDTO = {"path": string,"volumeName": string,"volumeNamespace": string};
+export type FILES_DELETE_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"file": FILES_DELETE_REQUEST__MOGENIUS_OPERATOR_SRC_DTOS_PERSISTENTFILEREQUESTDTO};
+export type FILES_DELETE_REQUEST__MOGENIUS_OPERATOR_SRC_DTOS_PERSISTENTFILEREQUESTDTO = {"path": string,"volumeName": string,"volumeNamespace": string};
+export type FILES_DOWNLOAD_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"file": FILES_DOWNLOAD_REQUEST__MOGENIUS_OPERATOR_SRC_DTOS_PERSISTENTFILEREQUESTDTO,"postTo": string};
+export type FILES_DOWNLOAD_REQUEST__MOGENIUS_OPERATOR_SRC_DTOS_PERSISTENTFILEREQUESTDTO = {"path": string,"volumeName": string,"volumeNamespace": string};
+export type FILES_DOWNLOAD_RESPONSE__MOGENIUS_OPERATOR_SRC_SERVICES_FILESDOWNLOADRESPONSE = {"error": string,"sizeInBytes": number};
+export type FILES_INFO_REQUEST__MOGENIUS_OPERATOR_SRC_DTOS_PERSISTENTFILEREQUESTDTO = {"path": string,"volumeName": string,"volumeNamespace": string};
+export type FILES_INFO_RESPONSE__MOGENIUS_OPERATOR_SRC_DTOS_PERSISTENTFILEDTO = {"contentType": string,"createdAt": string,"extension": string,"hash": string,"mimeType": string,"mode": string,"modifiedAt": string,"name": string,"relativePath": string,"size": string,"sizeInBytes": number,"type": string,"uid_gid": string};
+export type FILES_LIST_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"folder": FILES_LIST_REQUEST__MOGENIUS_OPERATOR_SRC_DTOS_PERSISTENTFILEREQUESTDTO};
+export type FILES_LIST_REQUEST__MOGENIUS_OPERATOR_SRC_DTOS_PERSISTENTFILEREQUESTDTO = {"path": string,"volumeName": string,"volumeNamespace": string};
+export type FILES_LIST_RESPONSE__MOGENIUS_OPERATOR_SRC_DTOS_PERSISTENTFILEDTO = {"contentType": string,"createdAt": string,"extension": string,"hash": string,"mimeType": string,"mode": string,"modifiedAt": string,"name": string,"relativePath": string,"size": string,"sizeInBytes": number,"type": string,"uid_gid": string};
+export type FILES_RENAME_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"file": FILES_RENAME_REQUEST__MOGENIUS_OPERATOR_SRC_DTOS_PERSISTENTFILEREQUESTDTO,"newName": string};
+export type FILES_RENAME_REQUEST__MOGENIUS_OPERATOR_SRC_DTOS_PERSISTENTFILEREQUESTDTO = {"path": string,"volumeName": string,"volumeNamespace": string};
+export type GET_GRANT_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"name": string};
 export type GET_GRANT_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_FIELDSV1 = {};
 export type GET_GRANT_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_MANAGEDFIELDSENTRY = {"apiVersion": string,"fieldsType": string,"fieldsV1": GET_GRANT_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_FIELDSV1|undefined,"manager": string,"operation": string,"subresource": string,"time": GET_GRANT_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME|undefined};
 export type GET_GRANT_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OBJECTMETA = {"annotations": Record<string, string>,"creationTimestamp": GET_GRANT_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME,"deletionGracePeriodSeconds": number|undefined,"deletionTimestamp": GET_GRANT_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME|undefined,"finalizers": string[],"generateName": string,"generation": number,"labels": Record<string, string>,"managedFields": GET_GRANT_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_MANAGEDFIELDSENTRY[],"name": string,"namespace": string,"ownerReferences": GET_GRANT_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OWNERREFERENCE[],"resourceVersion": string,"selfLink": string,"uid": string};
 export type GET_GRANT_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OWNERREFERENCE = {"apiVersion": string,"blockOwnerDeletion": boolean|undefined,"controller": boolean|undefined,"kind": string,"name": string,"uid": string};
 export type GET_GRANT_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME = {"Time": GET_GRANT_RESPONSE__TIME_TIME};
 export type GET_GRANT_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA = {"apiVersion": string,"kind": string};
-export type GET_GRANT_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST30_MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_GRANT = {"data": GET_GRANT_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_GRANT|undefined,"message": string,"status": string};
-export type GET_GRANT_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_GRANT = {"TypeMeta": GET_GRANT_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA,"metadata": GET_GRANT_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OBJECTMETA,"spec": GET_GRANT_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_GRANTSPEC,"status": GET_GRANT_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_GRANTSTATUS};
-export type GET_GRANT_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_GRANTSPEC = {"grantee": string,"role": string,"targetName": string,"targetType": string};
-export type GET_GRANT_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_GRANTSTATUS = {};
+export type GET_GRANT_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST30_MOGENIUS_OPERATOR_SRC_CRDS_V1ALPHA1_GRANT = {"data": GET_GRANT_RESPONSE__MOGENIUS_OPERATOR_SRC_CRDS_V1ALPHA1_GRANT|undefined,"message": string,"status": string};
+export type GET_GRANT_RESPONSE__MOGENIUS_OPERATOR_SRC_CRDS_V1ALPHA1_GRANT = {"TypeMeta": GET_GRANT_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA,"metadata": GET_GRANT_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OBJECTMETA,"spec": GET_GRANT_RESPONSE__MOGENIUS_OPERATOR_SRC_CRDS_V1ALPHA1_GRANTSPEC,"status": GET_GRANT_RESPONSE__MOGENIUS_OPERATOR_SRC_CRDS_V1ALPHA1_GRANTSTATUS};
+export type GET_GRANT_RESPONSE__MOGENIUS_OPERATOR_SRC_CRDS_V1ALPHA1_GRANTSPEC = {"grantee": string,"role": string,"targetName": string,"targetType": string};
+export type GET_GRANT_RESPONSE__MOGENIUS_OPERATOR_SRC_CRDS_V1ALPHA1_GRANTSTATUS = {};
 export type GET_GRANT_RESPONSE__TIME_TIME = {};
-export type GET_GRANTS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"targetName": string|undefined,"targetType": string|undefined};
+export type GET_GRANTS_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"targetName": string|undefined,"targetType": string|undefined};
 export type GET_GRANTS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_FIELDSV1 = {};
 export type GET_GRANTS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_MANAGEDFIELDSENTRY = {"apiVersion": string,"fieldsType": string,"fieldsV1": GET_GRANTS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_FIELDSV1|undefined,"manager": string,"operation": string,"subresource": string,"time": GET_GRANTS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME|undefined};
 export type GET_GRANTS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OBJECTMETA = {"annotations": Record<string, string>,"creationTimestamp": GET_GRANTS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME,"deletionGracePeriodSeconds": number|undefined,"deletionTimestamp": GET_GRANTS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME|undefined,"finalizers": string[],"generateName": string,"generation": number,"labels": Record<string, string>,"managedFields": GET_GRANTS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_MANAGEDFIELDSENTRY[],"name": string,"namespace": string,"ownerReferences": GET_GRANTS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OWNERREFERENCE[],"resourceVersion": string,"selfLink": string,"uid": string};
 export type GET_GRANTS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OWNERREFERENCE = {"apiVersion": string,"blockOwnerDeletion": boolean|undefined,"controller": boolean|undefined,"kind": string,"name": string,"uid": string};
 export type GET_GRANTS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME = {"Time": GET_GRANTS_RESPONSE__TIME_TIME};
 export type GET_GRANTS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA = {"apiVersion": string,"kind": string};
-export type GET_GRANTS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST28_MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_GRANT = {"data": GET_GRANTS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_GRANT[],"message": string,"status": string};
-export type GET_GRANTS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_GRANT = {"TypeMeta": GET_GRANTS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA,"metadata": GET_GRANTS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OBJECTMETA,"spec": GET_GRANTS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_GRANTSPEC,"status": GET_GRANTS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_GRANTSTATUS};
-export type GET_GRANTS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_GRANTSPEC = {"grantee": string,"role": string,"targetName": string,"targetType": string};
-export type GET_GRANTS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_GRANTSTATUS = {};
+export type GET_GRANTS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST28_MOGENIUS_OPERATOR_SRC_CRDS_V1ALPHA1_GRANT = {"data": GET_GRANTS_RESPONSE__MOGENIUS_OPERATOR_SRC_CRDS_V1ALPHA1_GRANT[],"message": string,"status": string};
+export type GET_GRANTS_RESPONSE__MOGENIUS_OPERATOR_SRC_CRDS_V1ALPHA1_GRANT = {"TypeMeta": GET_GRANTS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA,"metadata": GET_GRANTS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OBJECTMETA,"spec": GET_GRANTS_RESPONSE__MOGENIUS_OPERATOR_SRC_CRDS_V1ALPHA1_GRANTSPEC,"status": GET_GRANTS_RESPONSE__MOGENIUS_OPERATOR_SRC_CRDS_V1ALPHA1_GRANTSTATUS};
+export type GET_GRANTS_RESPONSE__MOGENIUS_OPERATOR_SRC_CRDS_V1ALPHA1_GRANTSPEC = {"grantee": string,"role": string,"targetName": string,"targetType": string};
+export type GET_GRANTS_RESPONSE__MOGENIUS_OPERATOR_SRC_CRDS_V1ALPHA1_GRANTSTATUS = {};
 export type GET_GRANTS_RESPONSE__TIME_TIME = {};
-export type GET_LABELED_WORKLOAD_LIST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_GETUNSTRUCTUREDLABELEDRESOURCELISTREQUEST = {"blacklist": GET_LABELED_WORKLOAD_LIST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR|undefined[],"label": string,"whitelist": GET_LABELED_WORKLOAD_LIST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR|undefined[]};
-export type GET_LABELED_WORKLOAD_LIST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR = {"apiVersion": string,"kind": string,"namespaced": boolean,"plural": string};
+export type GET_LABELED_WORKLOAD_LIST_REQUEST__MOGENIUS_OPERATOR_SRC_KUBERNETES_GETUNSTRUCTUREDLABELEDRESOURCELISTREQUEST = {"blacklist": GET_LABELED_WORKLOAD_LIST_REQUEST__MOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRIPTOR|undefined[],"label": string,"whitelist": GET_LABELED_WORKLOAD_LIST_REQUEST__MOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRIPTOR|undefined[]};
+export type GET_LABELED_WORKLOAD_LIST_REQUEST__MOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRIPTOR = {"apiVersion": string,"kind": string,"namespaced": boolean,"plural": string};
 export type GET_LABELED_WORKLOAD_LIST_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"Object": Record<string, any>};
 export type GET_LABELED_WORKLOAD_LIST_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTUREDLIST = {"Object": Record<string, any>,"items": GET_LABELED_WORKLOAD_LIST_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED[]};
-export type GET_LABELED_WORKLOAD_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_KUBERNETES_GETUNSTRUCTUREDLABELEDRESOURCELISTREQUEST_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTUREDLIST = {"data": GET_LABELED_WORKLOAD_LIST_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTUREDLIST,"message": string,"status": string};
-export type GET_NAMESPACE_WORKLOAD_LIST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_GETUNSTRUCTUREDNAMESPACERESOURCELISTREQUEST = {"blacklist": GET_NAMESPACE_WORKLOAD_LIST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR|undefined[],"namespace": string,"whitelist": GET_NAMESPACE_WORKLOAD_LIST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR|undefined[]};
-export type GET_NAMESPACE_WORKLOAD_LIST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR = {"apiVersion": string,"kind": string,"namespaced": boolean,"plural": string};
+export type GET_LABELED_WORKLOAD_LIST_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_KUBERNETES_GETUNSTRUCTUREDLABELEDRESOURCELISTREQUEST_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTUREDLIST = {"data": GET_LABELED_WORKLOAD_LIST_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTUREDLIST,"message": string,"status": string};
+export type GET_NAMESPACE_WORKLOAD_LIST_REQUEST__MOGENIUS_OPERATOR_SRC_KUBERNETES_GETUNSTRUCTUREDNAMESPACERESOURCELISTREQUEST = {"blacklist": GET_NAMESPACE_WORKLOAD_LIST_REQUEST__MOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRIPTOR|undefined[],"namespace": string,"whitelist": GET_NAMESPACE_WORKLOAD_LIST_REQUEST__MOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRIPTOR|undefined[]};
+export type GET_NAMESPACE_WORKLOAD_LIST_REQUEST__MOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRIPTOR = {"apiVersion": string,"kind": string,"namespaced": boolean,"plural": string};
 export type GET_NAMESPACE_WORKLOAD_LIST_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"Object": Record<string, any>};
-export type GET_NAMESPACE_WORKLOAD_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_KUBERNETES_GETUNSTRUCTUREDNAMESPACERESOURCELISTREQUEST_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"data": GET_NAMESPACE_WORKLOAD_LIST_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED[],"message": string,"status": string};
+export type GET_NAMESPACE_WORKLOAD_LIST_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_KUBERNETES_GETUNSTRUCTUREDNAMESPACERESOURCELISTREQUEST_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"data": GET_NAMESPACE_WORKLOAD_LIST_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED[],"message": string,"status": string};
 export type GET_NODES_METRICS_REQUEST__ANON_STRUCT_0 = {};
-export type GET_NODES_METRICS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_NODEMETRICS = {"cpu": Record<string, any>,"memory": Record<string, any>,"nodeName": string,"traffic": GET_NODES_METRICS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_NETWORKMONITOR_PODNETWORKSTATS[]};
-export type GET_NODES_METRICS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESPONSE = {"nodes": GET_NODES_METRICS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_NODEMETRICS[]};
-export type GET_NODES_METRICS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_MOGENIUS_K8S_MANAGER_SRC_CORE_RESPONSE38 = {"data": GET_NODES_METRICS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESPONSE,"message": string,"status": string};
-export type GET_NODES_METRICS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_NETWORKMONITOR_PODNETWORKSTATS = {"createdAt": GET_NODES_METRICS_RESPONSE__TIME_TIME,"namespace": string,"pod": string,"receivedBytes": number,"receivedPackets": number,"receivedStartBytes": number,"transmitBytes": number,"transmitPackets": number,"transmitStartBytes": number};
+export type GET_NODES_METRICS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_NODEMETRICS = {"cpu": Record<string, any>,"memory": Record<string, any>,"nodeName": string,"traffic": GET_NODES_METRICS_RESPONSE__MOGENIUS_OPERATOR_SRC_NETWORKMONITOR_PODNETWORKSTATS[]};
+export type GET_NODES_METRICS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESPONSE = {"nodes": GET_NODES_METRICS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_NODEMETRICS[]};
+export type GET_NODES_METRICS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_MOGENIUS_OPERATOR_SRC_CORE_RESPONSE38 = {"data": GET_NODES_METRICS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESPONSE,"message": string,"status": string};
+export type GET_NODES_METRICS_RESPONSE__MOGENIUS_OPERATOR_SRC_NETWORKMONITOR_PODNETWORKSTATS = {"createdAt": GET_NODES_METRICS_RESPONSE__TIME_TIME,"namespace": string,"pod": string,"receivedBytes": number,"receivedPackets": number,"receivedStartBytes": number,"transmitBytes": number,"transmitPackets": number,"transmitStartBytes": number};
 export type GET_NODES_METRICS_RESPONSE__TIME_TIME = {};
-export type GET_USER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"name": string};
+export type GET_USER_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"name": string};
 export type GET_USER_RESPONSE__K8S_IO_API_RBAC_V1_SUBJECT = {"apiGroup": string,"kind": string,"name": string,"namespace": string};
 export type GET_USER_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_FIELDSV1 = {};
 export type GET_USER_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_MANAGEDFIELDSENTRY = {"apiVersion": string,"fieldsType": string,"fieldsV1": GET_USER_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_FIELDSV1|undefined,"manager": string,"operation": string,"subresource": string,"time": GET_USER_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME|undefined};
@@ -8928,12 +8928,12 @@ export type GET_USER_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OBJECTMETA =
 export type GET_USER_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OWNERREFERENCE = {"apiVersion": string,"blockOwnerDeletion": boolean|undefined,"controller": boolean|undefined,"kind": string,"name": string,"uid": string};
 export type GET_USER_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME = {"Time": GET_USER_RESPONSE__TIME_TIME};
 export type GET_USER_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA = {"apiVersion": string,"kind": string};
-export type GET_USER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST25_MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_USER = {"data": GET_USER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_USER|undefined,"message": string,"status": string};
-export type GET_USER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_USER = {"TypeMeta": GET_USER_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA,"metadata": GET_USER_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OBJECTMETA,"spec": GET_USER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_USERSPEC,"status": GET_USER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_USERSTATUS};
-export type GET_USER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_USERSPEC = {"email": string,"firstName": string,"lastName": string,"subject": GET_USER_RESPONSE__K8S_IO_API_RBAC_V1_SUBJECT|undefined};
-export type GET_USER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_USERSTATUS = {};
+export type GET_USER_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST25_MOGENIUS_OPERATOR_SRC_CRDS_V1ALPHA1_USER = {"data": GET_USER_RESPONSE__MOGENIUS_OPERATOR_SRC_CRDS_V1ALPHA1_USER|undefined,"message": string,"status": string};
+export type GET_USER_RESPONSE__MOGENIUS_OPERATOR_SRC_CRDS_V1ALPHA1_USER = {"TypeMeta": GET_USER_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA,"metadata": GET_USER_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OBJECTMETA,"spec": GET_USER_RESPONSE__MOGENIUS_OPERATOR_SRC_CRDS_V1ALPHA1_USERSPEC,"status": GET_USER_RESPONSE__MOGENIUS_OPERATOR_SRC_CRDS_V1ALPHA1_USERSTATUS};
+export type GET_USER_RESPONSE__MOGENIUS_OPERATOR_SRC_CRDS_V1ALPHA1_USERSPEC = {"email": string,"firstName": string,"lastName": string,"subject": GET_USER_RESPONSE__K8S_IO_API_RBAC_V1_SUBJECT|undefined};
+export type GET_USER_RESPONSE__MOGENIUS_OPERATOR_SRC_CRDS_V1ALPHA1_USERSTATUS = {};
 export type GET_USER_RESPONSE__TIME_TIME = {};
-export type GET_USERS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"email": string|undefined};
+export type GET_USERS_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"email": string|undefined};
 export type GET_USERS_RESPONSE__K8S_IO_API_RBAC_V1_SUBJECT = {"apiGroup": string,"kind": string,"name": string,"namespace": string};
 export type GET_USERS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_FIELDSV1 = {};
 export type GET_USERS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_MANAGEDFIELDSENTRY = {"apiVersion": string,"fieldsType": string,"fieldsV1": GET_USERS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_FIELDSV1|undefined,"manager": string,"operation": string,"subresource": string,"time": GET_USERS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME|undefined};
@@ -8941,24 +8941,24 @@ export type GET_USERS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OBJECTMETA 
 export type GET_USERS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OWNERREFERENCE = {"apiVersion": string,"blockOwnerDeletion": boolean|undefined,"controller": boolean|undefined,"kind": string,"name": string,"uid": string};
 export type GET_USERS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME = {"Time": GET_USERS_RESPONSE__TIME_TIME};
 export type GET_USERS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA = {"apiVersion": string,"kind": string};
-export type GET_USERS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST23_MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_USER = {"data": GET_USERS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_USER[],"message": string,"status": string};
-export type GET_USERS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_USER = {"TypeMeta": GET_USERS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA,"metadata": GET_USERS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OBJECTMETA,"spec": GET_USERS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_USERSPEC,"status": GET_USERS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_USERSTATUS};
-export type GET_USERS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_USERSPEC = {"email": string,"firstName": string,"lastName": string,"subject": GET_USERS_RESPONSE__K8S_IO_API_RBAC_V1_SUBJECT|undefined};
-export type GET_USERS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_USERSTATUS = {};
+export type GET_USERS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST23_MOGENIUS_OPERATOR_SRC_CRDS_V1ALPHA1_USER = {"data": GET_USERS_RESPONSE__MOGENIUS_OPERATOR_SRC_CRDS_V1ALPHA1_USER[],"message": string,"status": string};
+export type GET_USERS_RESPONSE__MOGENIUS_OPERATOR_SRC_CRDS_V1ALPHA1_USER = {"TypeMeta": GET_USERS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA,"metadata": GET_USERS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OBJECTMETA,"spec": GET_USERS_RESPONSE__MOGENIUS_OPERATOR_SRC_CRDS_V1ALPHA1_USERSPEC,"status": GET_USERS_RESPONSE__MOGENIUS_OPERATOR_SRC_CRDS_V1ALPHA1_USERSTATUS};
+export type GET_USERS_RESPONSE__MOGENIUS_OPERATOR_SRC_CRDS_V1ALPHA1_USERSPEC = {"email": string,"firstName": string,"lastName": string,"subject": GET_USERS_RESPONSE__K8S_IO_API_RBAC_V1_SUBJECT|undefined};
+export type GET_USERS_RESPONSE__MOGENIUS_OPERATOR_SRC_CRDS_V1ALPHA1_USERSTATUS = {};
 export type GET_USERS_RESPONSE__TIME_TIME = {};
-export type GET_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR = {"apiVersion": string,"kind": string,"namespaced": boolean,"plural": string};
-export type GET_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_WORKLOADSINGLEREQUEST = {"ResourceDescriptor": GET_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR,"namespace": string,"resourceName": string};
+export type GET_WORKLOAD_REQUEST__MOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRIPTOR = {"apiVersion": string,"kind": string,"namespaced": boolean,"plural": string};
+export type GET_WORKLOAD_REQUEST__MOGENIUS_OPERATOR_SRC_UTILS_WORKLOADSINGLEREQUEST = {"ResourceDescriptor": GET_WORKLOAD_REQUEST__MOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRIPTOR,"namespace": string,"resourceName": string};
 export type GET_WORKLOAD_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"Object": Record<string, any>};
-export type GET_WORKLOAD_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_UTILS_WORKLOADSINGLEREQUEST_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"data": GET_WORKLOAD_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED|undefined,"message": string,"status": string};
-export type GET_WORKLOAD_EXAMPLE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR = {"apiVersion": string,"kind": string,"namespaced": boolean,"plural": string};
-export type GET_WORKLOAD_EXAMPLE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR_STRING = {"data": string,"message": string,"status": string};
-export type GET_WORKLOAD_LIST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"apiVersion": string,"kind": string,"namespace": string|undefined,"plural": string,"withData": boolean|undefined};
+export type GET_WORKLOAD_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_UTILS_WORKLOADSINGLEREQUEST_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"data": GET_WORKLOAD_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED|undefined,"message": string,"status": string};
+export type GET_WORKLOAD_EXAMPLE_REQUEST__MOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRIPTOR = {"apiVersion": string,"kind": string,"namespaced": boolean,"plural": string};
+export type GET_WORKLOAD_EXAMPLE_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRIPTOR_STRING = {"data": string,"message": string,"status": string};
+export type GET_WORKLOAD_LIST_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"apiVersion": string,"kind": string,"namespace": string|undefined,"plural": string,"withData": boolean|undefined};
 export type GET_WORKLOAD_LIST_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"Object": Record<string, any>};
 export type GET_WORKLOAD_LIST_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTUREDLIST = {"Object": Record<string, any>,"items": GET_WORKLOAD_LIST_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED[]};
-export type GET_WORKLOAD_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST17_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTUREDLIST = {"data": GET_WORKLOAD_LIST_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTUREDLIST,"message": string,"status": string};
-export type GET_WORKLOAD_STATUS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_GETWORKLOADSTATUSHELMRELEASENAMEREQUEST = {"namespace": string,"release": string};
-export type GET_WORKLOAD_STATUS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_GETWORKLOADSTATUSREQUEST = {"helmReleases": GET_WORKLOAD_STATUS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_GETWORKLOADSTATUSHELMRELEASENAMEREQUEST[]|undefined,"ignoreDependentResources": boolean|undefined,"namespaces": string[]|undefined,"resourceDescriptor": GET_WORKLOAD_STATUS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR|undefined,"resourceNames": string[]|undefined};
-export type GET_WORKLOAD_STATUS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR = {"apiVersion": string,"kind": string,"namespaced": boolean,"plural": string};
+export type GET_WORKLOAD_LIST_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST17_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTUREDLIST = {"data": GET_WORKLOAD_LIST_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTUREDLIST,"message": string,"status": string};
+export type GET_WORKLOAD_STATUS_REQUEST__MOGENIUS_OPERATOR_SRC_KUBERNETES_GETWORKLOADSTATUSHELMRELEASENAMEREQUEST = {"namespace": string,"release": string};
+export type GET_WORKLOAD_STATUS_REQUEST__MOGENIUS_OPERATOR_SRC_KUBERNETES_GETWORKLOADSTATUSREQUEST = {"helmReleases": GET_WORKLOAD_STATUS_REQUEST__MOGENIUS_OPERATOR_SRC_KUBERNETES_GETWORKLOADSTATUSHELMRELEASENAMEREQUEST[]|undefined,"ignoreDependentResources": boolean|undefined,"namespaces": string[]|undefined,"resourceDescriptor": GET_WORKLOAD_STATUS_REQUEST__MOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRIPTOR|undefined,"resourceNames": string[]|undefined};
+export type GET_WORKLOAD_STATUS_REQUEST__MOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRIPTOR = {"apiVersion": string,"kind": string,"namespaced": boolean,"plural": string};
 export type GET_WORKLOAD_STATUS_RESPONSE__K8S_IO_API_CORE_V1_EVENT = {"TypeMeta": GET_WORKLOAD_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA,"action": string,"count": number,"eventTime": GET_WORKLOAD_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_MICROTIME,"firstTimestamp": GET_WORKLOAD_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME,"involvedObject": GET_WORKLOAD_STATUS_RESPONSE__K8S_IO_API_CORE_V1_OBJECTREFERENCE,"lastTimestamp": GET_WORKLOAD_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME,"message": string,"metadata": GET_WORKLOAD_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OBJECTMETA,"reason": string,"related": GET_WORKLOAD_STATUS_RESPONSE__K8S_IO_API_CORE_V1_OBJECTREFERENCE|undefined,"reportingComponent": string,"reportingInstance": string,"series": GET_WORKLOAD_STATUS_RESPONSE__K8S_IO_API_CORE_V1_EVENTSERIES|undefined,"source": GET_WORKLOAD_STATUS_RESPONSE__K8S_IO_API_CORE_V1_EVENTSOURCE,"type": string};
 export type GET_WORKLOAD_STATUS_RESPONSE__K8S_IO_API_CORE_V1_EVENTSERIES = {"count": number,"lastObservedTime": GET_WORKLOAD_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_MICROTIME};
 export type GET_WORKLOAD_STATUS_RESPONSE__K8S_IO_API_CORE_V1_EVENTSOURCE = {"component": string,"host": string};
@@ -8970,85 +8970,85 @@ export type GET_WORKLOAD_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_O
 export type GET_WORKLOAD_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OWNERREFERENCE = {"apiVersion": string,"blockOwnerDeletion": boolean|undefined,"controller": boolean|undefined,"kind": string,"name": string,"uid": string};
 export type GET_WORKLOAD_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME = {"Time": GET_WORKLOAD_STATUS_RESPONSE__TIME_TIME};
 export type GET_WORKLOAD_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA = {"apiVersion": string,"kind": string};
-export type GET_WORKLOAD_STATUS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_KUBERNETES_GETWORKLOADSTATUSREQUEST_MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_WORKLOADSTATUSDTO = {"data": GET_WORKLOAD_STATUS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_WORKLOADSTATUSDTO[],"message": string,"status": string};
-export type GET_WORKLOAD_STATUS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_WORKLOADSTATUSDTO = {"items": GET_WORKLOAD_STATUS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_WORKLOADSTATUSITEMDTO[]};
-export type GET_WORKLOAD_STATUS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_KUBERNETES_WORKLOADSTATUSITEMDTO = {"apiVersion": string,"creationTimestamp": GET_WORKLOAD_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME,"endpoints": any,"events": GET_WORKLOAD_STATUS_RESPONSE__K8S_IO_API_CORE_V1_EVENT[],"kind": string,"name": string,"namespace": string,"ownerReferences": any,"replicas": number|undefined,"specClusterIP": string,"specType": string,"status": any,"uid": string};
+export type GET_WORKLOAD_STATUS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_KUBERNETES_GETWORKLOADSTATUSREQUEST_MOGENIUS_OPERATOR_SRC_KUBERNETES_WORKLOADSTATUSDTO = {"data": GET_WORKLOAD_STATUS_RESPONSE__MOGENIUS_OPERATOR_SRC_KUBERNETES_WORKLOADSTATUSDTO[],"message": string,"status": string};
+export type GET_WORKLOAD_STATUS_RESPONSE__MOGENIUS_OPERATOR_SRC_KUBERNETES_WORKLOADSTATUSDTO = {"items": GET_WORKLOAD_STATUS_RESPONSE__MOGENIUS_OPERATOR_SRC_KUBERNETES_WORKLOADSTATUSITEMDTO[]};
+export type GET_WORKLOAD_STATUS_RESPONSE__MOGENIUS_OPERATOR_SRC_KUBERNETES_WORKLOADSTATUSITEMDTO = {"apiVersion": string,"creationTimestamp": GET_WORKLOAD_STATUS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME,"endpoints": any,"events": GET_WORKLOAD_STATUS_RESPONSE__K8S_IO_API_CORE_V1_EVENT[],"kind": string,"name": string,"namespace": string,"ownerReferences": any,"replicas": number|undefined,"specClusterIP": string,"specType": string,"status": any,"uid": string};
 export type GET_WORKLOAD_STATUS_RESPONSE__TIME_TIME = {};
-export type GET_WORKSPACE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"name": string,"namespace": string};
+export type GET_WORKSPACE_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"name": string,"namespace": string};
 export type GET_WORKSPACE_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME = {"Time": GET_WORKSPACE_RESPONSE__TIME_TIME};
-export type GET_WORKSPACE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_GETWORKSPACERESULT = {"creationTimestamp": GET_WORKSPACE_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME,"name": string,"resources": GET_WORKSPACE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_WORKSPACERESOURCEIDENTIFIER[]};
-export type GET_WORKSPACE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST19_MOGENIUS_K8S_MANAGER_SRC_CORE_GETWORKSPACERESULT = {"data": GET_WORKSPACE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_GETWORKSPACERESULT|undefined,"message": string,"status": string};
-export type GET_WORKSPACE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_WORKSPACERESOURCEIDENTIFIER = {"id": string,"namespace": string,"type": string};
+export type GET_WORKSPACE_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_GETWORKSPACERESULT = {"creationTimestamp": GET_WORKSPACE_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME,"name": string,"resources": GET_WORKSPACE_RESPONSE__MOGENIUS_OPERATOR_SRC_CRDS_V1ALPHA1_WORKSPACERESOURCEIDENTIFIER[]};
+export type GET_WORKSPACE_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST19_MOGENIUS_OPERATOR_SRC_CORE_GETWORKSPACERESULT = {"data": GET_WORKSPACE_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_GETWORKSPACERESULT|undefined,"message": string,"status": string};
+export type GET_WORKSPACE_RESPONSE__MOGENIUS_OPERATOR_SRC_CRDS_V1ALPHA1_WORKSPACERESOURCEIDENTIFIER = {"id": string,"namespace": string,"type": string};
 export type GET_WORKSPACE_RESPONSE__TIME_TIME = {};
 export type GET_WORKSPACES_REQUEST__ANON_STRUCT_0 = {};
 export type GET_WORKSPACES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME = {"Time": GET_WORKSPACES_RESPONSE__TIME_TIME};
-export type GET_WORKSPACES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_GETWORKSPACERESULT = {"creationTimestamp": GET_WORKSPACES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME,"name": string,"resources": GET_WORKSPACES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_WORKSPACERESOURCEIDENTIFIER[]};
-export type GET_WORKSPACES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_MOGENIUS_K8S_MANAGER_SRC_CORE_GETWORKSPACERESULT = {"data": GET_WORKSPACES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_GETWORKSPACERESULT[],"message": string,"status": string};
-export type GET_WORKSPACES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_WORKSPACERESOURCEIDENTIFIER = {"id": string,"namespace": string,"type": string};
+export type GET_WORKSPACES_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_GETWORKSPACERESULT = {"creationTimestamp": GET_WORKSPACES_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME,"name": string,"resources": GET_WORKSPACES_RESPONSE__MOGENIUS_OPERATOR_SRC_CRDS_V1ALPHA1_WORKSPACERESOURCEIDENTIFIER[]};
+export type GET_WORKSPACES_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_MOGENIUS_OPERATOR_SRC_CORE_GETWORKSPACERESULT = {"data": GET_WORKSPACES_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_GETWORKSPACERESULT[],"message": string,"status": string};
+export type GET_WORKSPACES_RESPONSE__MOGENIUS_OPERATOR_SRC_CRDS_V1ALPHA1_WORKSPACERESOURCEIDENTIFIER = {"id": string,"namespace": string,"type": string};
 export type GET_WORKSPACES_RESPONSE__TIME_TIME = {};
-export type GET_WORKSPACE_WORKLOADS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"blacklist": GET_WORKSPACE_WORKLOADS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR|undefined[],"namespaceWhitelist": string[],"whitelist": GET_WORKSPACE_WORKLOADS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR|undefined[],"workspaceName": string};
-export type GET_WORKSPACE_WORKLOADS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR = {"apiVersion": string,"kind": string,"namespaced": boolean,"plural": string};
+export type GET_WORKSPACE_WORKLOADS_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"blacklist": GET_WORKSPACE_WORKLOADS_REQUEST__MOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRIPTOR|undefined[],"namespaceWhitelist": string[],"whitelist": GET_WORKSPACE_WORKLOADS_REQUEST__MOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRIPTOR|undefined[],"workspaceName": string};
+export type GET_WORKSPACE_WORKLOADS_REQUEST__MOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRIPTOR = {"apiVersion": string,"kind": string,"namespaced": boolean,"plural": string};
 export type GET_WORKSPACE_WORKLOADS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"Object": Record<string, any>};
-export type GET_WORKSPACE_WORKLOADS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST33_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"data": GET_WORKSPACE_WORKLOADS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED[],"message": string,"status": string};
+export type GET_WORKSPACE_WORKLOADS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST33_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"data": GET_WORKSPACE_WORKLOADS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED[],"message": string,"status": string};
 export type INSTALL_CERT_MANAGER_REQUEST__ANON_STRUCT_0 = {};
-export type INSTALL_CERT_MANAGER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
-export type INSTALL_CLUSTER_ISSUER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"email": string};
-export type INSTALL_CLUSTER_ISSUER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST6_STRING = {"data": string,"message": string,"status": string};
+export type INSTALL_CERT_MANAGER_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
+export type INSTALL_CLUSTER_ISSUER_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"email": string};
+export type INSTALL_CLUSTER_ISSUER_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST6_STRING = {"data": string,"message": string,"status": string};
 export type INSTALL_INGRESS_CONTROLLER_TRAEFIK_REQUEST__ANON_STRUCT_0 = {};
-export type INSTALL_INGRESS_CONTROLLER_TRAEFIK_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
+export type INSTALL_INGRESS_CONTROLLER_TRAEFIK_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
 export type INSTALL_KEPLER_REQUEST__ANON_STRUCT_0 = {};
-export type INSTALL_KEPLER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
+export type INSTALL_KEPLER_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
 export type INSTALL_METALLB_REQUEST__ANON_STRUCT_0 = {};
-export type INSTALL_METALLB_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
+export type INSTALL_METALLB_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
 export type INSTALL_METRICS_SERVER_REQUEST__ANON_STRUCT_0 = {};
-export type INSTALL_METRICS_SERVER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
+export type INSTALL_METRICS_SERVER_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
 export type LIST_ALL_RESOURCE_DESCRIPTORS_REQUEST__ANON_STRUCT_0 = {};
-export type LIST_ALL_RESOURCE_DESCRIPTORS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR = {"data": LIST_ALL_RESOURCE_DESCRIPTORS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR[],"message": string,"status": string};
-export type LIST_ALL_RESOURCE_DESCRIPTORS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR = {"apiVersion": string,"kind": string,"namespaced": boolean,"plural": string};
-export type LIVE_STREAM_NODES_CPU_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"nodeName": string,"podName": string,"websocketHost": string,"websocketScheme": string,"workspace": string};
+export type LIST_ALL_RESOURCE_DESCRIPTORS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_MOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRIPTOR = {"data": LIST_ALL_RESOURCE_DESCRIPTORS_RESPONSE__MOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRIPTOR[],"message": string,"status": string};
+export type LIST_ALL_RESOURCE_DESCRIPTORS_RESPONSE__MOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRIPTOR = {"apiVersion": string,"kind": string,"namespaced": boolean,"plural": string};
+export type LIVE_STREAM_NODES_CPU_REQUEST__MOGENIUS_OPERATOR_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"nodeName": string,"podName": string,"websocketHost": string,"websocketScheme": string,"workspace": string};
 export type LIVE_STREAM_NODES_CPU_RESPONSE__ANON_STRUCT_1 = {};
-export type LIVE_STREAM_NODES_CPU_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST_MOGENIUS_K8S_MANAGER_SRC_CORE_VOID = {"data": LIVE_STREAM_NODES_CPU_RESPONSE__ANON_STRUCT_1|undefined,"message": string,"status": string};
-export type LIVE_STREAM_NODES_MEMORY_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"nodeName": string,"podName": string,"websocketHost": string,"websocketScheme": string,"workspace": string};
+export type LIVE_STREAM_NODES_CPU_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_XTERM_WSCONNECTIONREQUEST_MOGENIUS_OPERATOR_SRC_CORE_VOID = {"data": LIVE_STREAM_NODES_CPU_RESPONSE__ANON_STRUCT_1|undefined,"message": string,"status": string};
+export type LIVE_STREAM_NODES_MEMORY_REQUEST__MOGENIUS_OPERATOR_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"nodeName": string,"podName": string,"websocketHost": string,"websocketScheme": string,"workspace": string};
 export type LIVE_STREAM_NODES_MEMORY_RESPONSE__ANON_STRUCT_1 = {};
-export type LIVE_STREAM_NODES_MEMORY_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST_MOGENIUS_K8S_MANAGER_SRC_CORE_VOID = {"data": LIVE_STREAM_NODES_MEMORY_RESPONSE__ANON_STRUCT_1|undefined,"message": string,"status": string};
-export type LIVE_STREAM_NODES_TRAFFIC_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"nodeName": string,"podName": string,"websocketHost": string,"websocketScheme": string,"workspace": string};
+export type LIVE_STREAM_NODES_MEMORY_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_XTERM_WSCONNECTIONREQUEST_MOGENIUS_OPERATOR_SRC_CORE_VOID = {"data": LIVE_STREAM_NODES_MEMORY_RESPONSE__ANON_STRUCT_1|undefined,"message": string,"status": string};
+export type LIVE_STREAM_NODES_TRAFFIC_REQUEST__MOGENIUS_OPERATOR_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"nodeName": string,"podName": string,"websocketHost": string,"websocketScheme": string,"workspace": string};
 export type LIVE_STREAM_NODES_TRAFFIC_RESPONSE__ANON_STRUCT_1 = {};
-export type LIVE_STREAM_NODES_TRAFFIC_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST_MOGENIUS_K8S_MANAGER_SRC_CORE_VOID = {"data": LIVE_STREAM_NODES_TRAFFIC_RESPONSE__ANON_STRUCT_1|undefined,"message": string,"status": string};
-export type LIVE_STREAM_POD_CPU_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"nodeName": string,"podName": string,"websocketHost": string,"websocketScheme": string,"workspace": string};
+export type LIVE_STREAM_NODES_TRAFFIC_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_XTERM_WSCONNECTIONREQUEST_MOGENIUS_OPERATOR_SRC_CORE_VOID = {"data": LIVE_STREAM_NODES_TRAFFIC_RESPONSE__ANON_STRUCT_1|undefined,"message": string,"status": string};
+export type LIVE_STREAM_POD_CPU_REQUEST__MOGENIUS_OPERATOR_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"nodeName": string,"podName": string,"websocketHost": string,"websocketScheme": string,"workspace": string};
 export type LIVE_STREAM_POD_CPU_RESPONSE__ANON_STRUCT_1 = {};
-export type LIVE_STREAM_POD_CPU_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST_MOGENIUS_K8S_MANAGER_SRC_CORE_VOID = {"data": LIVE_STREAM_POD_CPU_RESPONSE__ANON_STRUCT_1|undefined,"message": string,"status": string};
-export type LIVE_STREAM_POD_MEMORY_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"nodeName": string,"podName": string,"websocketHost": string,"websocketScheme": string,"workspace": string};
+export type LIVE_STREAM_POD_CPU_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_XTERM_WSCONNECTIONREQUEST_MOGENIUS_OPERATOR_SRC_CORE_VOID = {"data": LIVE_STREAM_POD_CPU_RESPONSE__ANON_STRUCT_1|undefined,"message": string,"status": string};
+export type LIVE_STREAM_POD_MEMORY_REQUEST__MOGENIUS_OPERATOR_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"nodeName": string,"podName": string,"websocketHost": string,"websocketScheme": string,"workspace": string};
 export type LIVE_STREAM_POD_MEMORY_RESPONSE__ANON_STRUCT_1 = {};
-export type LIVE_STREAM_POD_MEMORY_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST_MOGENIUS_K8S_MANAGER_SRC_CORE_VOID = {"data": LIVE_STREAM_POD_MEMORY_RESPONSE__ANON_STRUCT_1|undefined,"message": string,"status": string};
-export type LIVE_STREAM_POD_TRAFFIC_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"nodeName": string,"podName": string,"websocketHost": string,"websocketScheme": string,"workspace": string};
+export type LIVE_STREAM_POD_MEMORY_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_XTERM_WSCONNECTIONREQUEST_MOGENIUS_OPERATOR_SRC_CORE_VOID = {"data": LIVE_STREAM_POD_MEMORY_RESPONSE__ANON_STRUCT_1|undefined,"message": string,"status": string};
+export type LIVE_STREAM_POD_TRAFFIC_REQUEST__MOGENIUS_OPERATOR_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"nodeName": string,"podName": string,"websocketHost": string,"websocketScheme": string,"workspace": string};
 export type LIVE_STREAM_POD_TRAFFIC_RESPONSE__ANON_STRUCT_1 = {};
-export type LIVE_STREAM_POD_TRAFFIC_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST_MOGENIUS_K8S_MANAGER_SRC_CORE_VOID = {"data": LIVE_STREAM_POD_TRAFFIC_RESPONSE__ANON_STRUCT_1|undefined,"message": string,"status": string};
-export type LIVE_STREAM_WORKSPACE_CPU_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"nodeName": string,"podName": string,"websocketHost": string,"websocketScheme": string,"workspace": string};
-export type LIVE_STREAM_WORKSPACE_MEMORY_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"nodeName": string,"podName": string,"websocketHost": string,"websocketScheme": string,"workspace": string};
-export type LIVE_STREAM_WORKSPACE_TRAFFIC_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"nodeName": string,"podName": string,"websocketHost": string,"websocketScheme": string,"workspace": string};
-export type PROMETHEUS_CHARTS_ADD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSREQUESTREDIS = {"controller": string,"namespace": string,"query": string,"queryName": string,"step": number};
-export type PROMETHEUS_CHARTS_ADD_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSREQUESTREDIS_STRING = {"data": string|undefined,"message": string,"status": string};
-export type PROMETHEUS_CHARTS_GET_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSREQUESTREDIS = {"controller": string,"namespace": string,"query": string,"queryName": string,"step": number};
-export type PROMETHEUS_CHARTS_GET_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSSTOREOBJECT = {"createdAt": PROMETHEUS_CHARTS_GET_RESPONSE__TIME_TIME,"query": string,"step": number};
-export type PROMETHEUS_CHARTS_GET_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSREQUESTREDIS_MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSSTOREOBJECT = {"data": PROMETHEUS_CHARTS_GET_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSSTOREOBJECT|undefined,"message": string,"status": string};
+export type LIVE_STREAM_POD_TRAFFIC_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_XTERM_WSCONNECTIONREQUEST_MOGENIUS_OPERATOR_SRC_CORE_VOID = {"data": LIVE_STREAM_POD_TRAFFIC_RESPONSE__ANON_STRUCT_1|undefined,"message": string,"status": string};
+export type LIVE_STREAM_WORKSPACE_CPU_REQUEST__MOGENIUS_OPERATOR_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"nodeName": string,"podName": string,"websocketHost": string,"websocketScheme": string,"workspace": string};
+export type LIVE_STREAM_WORKSPACE_MEMORY_REQUEST__MOGENIUS_OPERATOR_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"nodeName": string,"podName": string,"websocketHost": string,"websocketScheme": string,"workspace": string};
+export type LIVE_STREAM_WORKSPACE_TRAFFIC_REQUEST__MOGENIUS_OPERATOR_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"nodeName": string,"podName": string,"websocketHost": string,"websocketScheme": string,"workspace": string};
+export type PROMETHEUS_CHARTS_ADD_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_PROMETHEUSREQUESTREDIS = {"controller": string,"namespace": string,"query": string,"queryName": string,"step": number};
+export type PROMETHEUS_CHARTS_ADD_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_PROMETHEUSREQUESTREDIS_STRING = {"data": string|undefined,"message": string,"status": string};
+export type PROMETHEUS_CHARTS_GET_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_PROMETHEUSREQUESTREDIS = {"controller": string,"namespace": string,"query": string,"queryName": string,"step": number};
+export type PROMETHEUS_CHARTS_GET_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_PROMETHEUSSTOREOBJECT = {"createdAt": PROMETHEUS_CHARTS_GET_RESPONSE__TIME_TIME,"query": string,"step": number};
+export type PROMETHEUS_CHARTS_GET_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_PROMETHEUSREQUESTREDIS_MOGENIUS_OPERATOR_SRC_CORE_PROMETHEUSSTOREOBJECT = {"data": PROMETHEUS_CHARTS_GET_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_PROMETHEUSSTOREOBJECT|undefined,"message": string,"status": string};
 export type PROMETHEUS_CHARTS_GET_RESPONSE__TIME_TIME = {};
-export type PROMETHEUS_CHARTS_LIST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSREQUESTREDISLIST = {"controller": string,"namespace": string};
-export type PROMETHEUS_CHARTS_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSSTOREOBJECT = {"createdAt": PROMETHEUS_CHARTS_LIST_RESPONSE__TIME_TIME,"query": string,"step": number};
-export type PROMETHEUS_CHARTS_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSREQUESTREDISLIST_MAPSTRINGMOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSSTOREOBJECT = {"data": Record<string, PROMETHEUS_CHARTS_LIST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSSTOREOBJECT>,"message": string,"status": string};
+export type PROMETHEUS_CHARTS_LIST_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_PROMETHEUSREQUESTREDISLIST = {"controller": string,"namespace": string};
+export type PROMETHEUS_CHARTS_LIST_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_PROMETHEUSSTOREOBJECT = {"createdAt": PROMETHEUS_CHARTS_LIST_RESPONSE__TIME_TIME,"query": string,"step": number};
+export type PROMETHEUS_CHARTS_LIST_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_PROMETHEUSREQUESTREDISLIST_MAPSTRINGMOGENIUS_OPERATOR_SRC_CORE_PROMETHEUSSTOREOBJECT = {"data": Record<string, PROMETHEUS_CHARTS_LIST_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_PROMETHEUSSTOREOBJECT>,"message": string,"status": string};
 export type PROMETHEUS_CHARTS_LIST_RESPONSE__TIME_TIME = {};
-export type PROMETHEUS_CHARTS_REMOVE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSREQUESTREDIS = {"controller": string,"namespace": string,"query": string,"queryName": string,"step": number};
-export type PROMETHEUS_CHARTS_REMOVE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSREQUESTREDIS_STRING = {"data": string|undefined,"message": string,"status": string};
-export type PROMETHEUS_IS_REACHABLE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSREQUEST = {"prometheusPass": string,"prometheusToken": string,"prometheusUrl": string,"prometheusUser": string,"query": string,"step": number,"timeOffsetSeconds": number};
-export type PROMETHEUS_IS_REACHABLE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSREQUEST_BOOL = {"data": boolean,"message": string,"status": string};
-export type PROMETHEUS_QUERY_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSREQUEST = {"prometheusPass": string,"prometheusToken": string,"prometheusUrl": string,"prometheusUser": string,"query": string,"step": number,"timeOffsetSeconds": number};
+export type PROMETHEUS_CHARTS_REMOVE_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_PROMETHEUSREQUESTREDIS = {"controller": string,"namespace": string,"query": string,"queryName": string,"step": number};
+export type PROMETHEUS_CHARTS_REMOVE_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_PROMETHEUSREQUESTREDIS_STRING = {"data": string|undefined,"message": string,"status": string};
+export type PROMETHEUS_IS_REACHABLE_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_PROMETHEUSREQUEST = {"prometheusPass": string,"prometheusToken": string,"prometheusUrl": string,"prometheusUser": string,"query": string,"step": number,"timeOffsetSeconds": number};
+export type PROMETHEUS_IS_REACHABLE_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_PROMETHEUSREQUEST_BOOL = {"data": boolean,"message": string,"status": string};
+export type PROMETHEUS_QUERY_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_PROMETHEUSREQUEST = {"prometheusPass": string,"prometheusToken": string,"prometheusUrl": string,"prometheusUser": string,"query": string,"step": number,"timeOffsetSeconds": number};
 export type PROMETHEUS_QUERY_RESPONSE__ANON_STRUCT_2 = {"result": any[],"resultType": string};
-export type PROMETHEUS_QUERY_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSQUERYRESPONSE = {"data": PROMETHEUS_QUERY_RESPONSE__ANON_STRUCT_2,"error": string,"errorType": string,"status": string};
-export type PROMETHEUS_QUERY_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSREQUEST_MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSQUERYRESPONSE = {"data": PROMETHEUS_QUERY_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSQUERYRESPONSE|undefined,"message": string,"status": string};
-export type PROMETHEUS_VALUES_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSREQUEST = {"prometheusPass": string,"prometheusToken": string,"prometheusUrl": string,"prometheusUser": string,"query": string,"step": number,"timeOffsetSeconds": number};
-export type PROMETHEUS_VALUES_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_PROMETHEUSREQUEST_STRING = {"data": string[],"message": string,"status": string};
-export type SEALED_SECRET_CREATE_FROM_EXISTING_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"name": string,"namespace": string};
+export type PROMETHEUS_QUERY_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_PROMETHEUSQUERYRESPONSE = {"data": PROMETHEUS_QUERY_RESPONSE__ANON_STRUCT_2,"error": string,"errorType": string,"status": string};
+export type PROMETHEUS_QUERY_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_PROMETHEUSREQUEST_MOGENIUS_OPERATOR_SRC_CORE_PROMETHEUSQUERYRESPONSE = {"data": PROMETHEUS_QUERY_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_PROMETHEUSQUERYRESPONSE|undefined,"message": string,"status": string};
+export type PROMETHEUS_VALUES_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_PROMETHEUSREQUEST = {"prometheusPass": string,"prometheusToken": string,"prometheusUrl": string,"prometheusUser": string,"query": string,"step": number,"timeOffsetSeconds": number};
+export type PROMETHEUS_VALUES_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_PROMETHEUSREQUEST_STRING = {"data": string[],"message": string,"status": string};
+export type SEALED_SECRET_CREATE_FROM_EXISTING_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"name": string,"namespace": string};
 export type SEALED_SECRET_CREATE_FROM_EXISTING_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"Object": Record<string, any>};
-export type SEALED_SECRET_CREATE_FROM_EXISTING_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST36_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"data": SEALED_SECRET_CREATE_FROM_EXISTING_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED|undefined,"message": string,"status": string};
+export type SEALED_SECRET_CREATE_FROM_EXISTING_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST36_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"data": SEALED_SECRET_CREATE_FROM_EXISTING_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED|undefined,"message": string,"status": string};
 export type SEALED_SECRET_GET_CERTIFICATE_REQUEST__ANON_STRUCT_0 = {};
 export type SEALED_SECRET_GET_CERTIFICATE_RESPONSE__K8S_IO_API_CORE_V1_SECRET = {"TypeMeta": SEALED_SECRET_GET_CERTIFICATE_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA,"data": Record<string, number[]>,"immutable": boolean|undefined,"metadata": SEALED_SECRET_GET_CERTIFICATE_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OBJECTMETA,"stringData": Record<string, string>,"type": string};
 export type SEALED_SECRET_GET_CERTIFICATE_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_FIELDSV1 = {};
@@ -9057,99 +9057,99 @@ export type SEALED_SECRET_GET_CERTIFICATE_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS
 export type SEALED_SECRET_GET_CERTIFICATE_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OWNERREFERENCE = {"apiVersion": string,"blockOwnerDeletion": boolean|undefined,"controller": boolean|undefined,"kind": string,"name": string,"uid": string};
 export type SEALED_SECRET_GET_CERTIFICATE_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME = {"Time": SEALED_SECRET_GET_CERTIFICATE_RESPONSE__TIME_TIME};
 export type SEALED_SECRET_GET_CERTIFICATE_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA = {"apiVersion": string,"kind": string};
-export type SEALED_SECRET_GET_CERTIFICATE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_K8S_IO_API_CORE_V1_SECRET = {"data": SEALED_SECRET_GET_CERTIFICATE_RESPONSE__K8S_IO_API_CORE_V1_SECRET|undefined,"message": string,"status": string};
+export type SEALED_SECRET_GET_CERTIFICATE_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_K8S_IO_API_CORE_V1_SECRET = {"data": SEALED_SECRET_GET_CERTIFICATE_RESPONSE__K8S_IO_API_CORE_V1_SECRET|undefined,"message": string,"status": string};
 export type SEALED_SECRET_GET_CERTIFICATE_RESPONSE__TIME_TIME = {};
-export type SERVICE_EXEC_SH_CONNECTION_REQUEST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_PODCMDCONNECTIONREQUEST = {"container": string,"controller": string,"logTail": string,"namespace": string,"pod": string,"wsConnectionRequest": SERVICE_EXEC_SH_CONNECTION_REQUEST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST};
-export type SERVICE_EXEC_SH_CONNECTION_REQUEST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"nodeName": string,"podName": string,"websocketHost": string,"websocketScheme": string,"workspace": string};
+export type SERVICE_EXEC_SH_CONNECTION_REQUEST_REQUEST__MOGENIUS_OPERATOR_SRC_XTERM_PODCMDCONNECTIONREQUEST = {"container": string,"controller": string,"logTail": string,"namespace": string,"pod": string,"wsConnectionRequest": SERVICE_EXEC_SH_CONNECTION_REQUEST_REQUEST__MOGENIUS_OPERATOR_SRC_XTERM_WSCONNECTIONREQUEST};
+export type SERVICE_EXEC_SH_CONNECTION_REQUEST_REQUEST__MOGENIUS_OPERATOR_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"nodeName": string,"podName": string,"websocketHost": string,"websocketScheme": string,"workspace": string};
 export type SERVICE_EXEC_SH_CONNECTION_REQUEST_RESPONSE__ANON_STRUCT_1 = {};
-export type SERVICE_EXEC_SH_CONNECTION_REQUEST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_XTERM_PODCMDCONNECTIONREQUEST_MOGENIUS_K8S_MANAGER_SRC_CORE_VOID = {"data": SERVICE_EXEC_SH_CONNECTION_REQUEST_RESPONSE__ANON_STRUCT_1|undefined,"message": string,"status": string};
-export type SERVICE_LOG_STREAM_CONNECTION_REQUEST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_PODCMDCONNECTIONREQUEST = {"container": string,"controller": string,"logTail": string,"namespace": string,"pod": string,"wsConnectionRequest": SERVICE_LOG_STREAM_CONNECTION_REQUEST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST};
-export type SERVICE_LOG_STREAM_CONNECTION_REQUEST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"nodeName": string,"podName": string,"websocketHost": string,"websocketScheme": string,"workspace": string};
+export type SERVICE_EXEC_SH_CONNECTION_REQUEST_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_XTERM_PODCMDCONNECTIONREQUEST_MOGENIUS_OPERATOR_SRC_CORE_VOID = {"data": SERVICE_EXEC_SH_CONNECTION_REQUEST_RESPONSE__ANON_STRUCT_1|undefined,"message": string,"status": string};
+export type SERVICE_LOG_STREAM_CONNECTION_REQUEST_REQUEST__MOGENIUS_OPERATOR_SRC_XTERM_PODCMDCONNECTIONREQUEST = {"container": string,"controller": string,"logTail": string,"namespace": string,"pod": string,"wsConnectionRequest": SERVICE_LOG_STREAM_CONNECTION_REQUEST_REQUEST__MOGENIUS_OPERATOR_SRC_XTERM_WSCONNECTIONREQUEST};
+export type SERVICE_LOG_STREAM_CONNECTION_REQUEST_REQUEST__MOGENIUS_OPERATOR_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"nodeName": string,"podName": string,"websocketHost": string,"websocketScheme": string,"workspace": string};
 export type SERVICE_LOG_STREAM_CONNECTION_REQUEST_RESPONSE__ANON_STRUCT_1 = {};
-export type SERVICE_LOG_STREAM_CONNECTION_REQUEST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_XTERM_PODCMDCONNECTIONREQUEST_MOGENIUS_K8S_MANAGER_SRC_CORE_VOID = {"data": SERVICE_LOG_STREAM_CONNECTION_REQUEST_RESPONSE__ANON_STRUCT_1|undefined,"message": string,"status": string};
-export type SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_PODEVENTCONNECTIONREQUEST = {"controller": string,"namespace": string,"wsConnectionRequest": SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST};
-export type SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST_REQUEST__MOGENIUS_K8S_MANAGER_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"nodeName": string,"podName": string,"websocketHost": string,"websocketScheme": string,"workspace": string};
+export type SERVICE_LOG_STREAM_CONNECTION_REQUEST_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_XTERM_PODCMDCONNECTIONREQUEST_MOGENIUS_OPERATOR_SRC_CORE_VOID = {"data": SERVICE_LOG_STREAM_CONNECTION_REQUEST_RESPONSE__ANON_STRUCT_1|undefined,"message": string,"status": string};
+export type SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST_REQUEST__MOGENIUS_OPERATOR_SRC_XTERM_PODEVENTCONNECTIONREQUEST = {"controller": string,"namespace": string,"wsConnectionRequest": SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST_REQUEST__MOGENIUS_OPERATOR_SRC_XTERM_WSCONNECTIONREQUEST};
+export type SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST_REQUEST__MOGENIUS_OPERATOR_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"nodeName": string,"podName": string,"websocketHost": string,"websocketScheme": string,"workspace": string};
 export type SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST_RESPONSE__ANON_STRUCT_1 = {};
-export type SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_XTERM_PODEVENTCONNECTIONREQUEST_MOGENIUS_K8S_MANAGER_SRC_CORE_VOID = {"data": SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST_RESPONSE__ANON_STRUCT_1|undefined,"message": string,"status": string};
-export type STATS_POD_ALL_FOR_CONTROLLER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"kind": string,"name": string,"namespace": string,"timeOffsetMinutes": number};
-export type STATS_POD_ALL_FOR_CONTROLLER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST7_MOGENIUS_K8S_MANAGER_SRC_STRUCTS_PODSTATS = {"data": STATS_POD_ALL_FOR_CONTROLLER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_PODSTATS[]|undefined,"message": string,"status": string};
-export type STATS_POD_ALL_FOR_CONTROLLER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_PODSTATS = {"containerName": string,"cpu": number,"cpuLimit": number,"createdAt": STATS_POD_ALL_FOR_CONTROLLER_RESPONSE__TIME_TIME,"ephemeralStorage": number,"ephemeralStorageLimit": number,"memory": number,"memoryLimit": number,"namespace": string,"podName": string,"startTime": STATS_POD_ALL_FOR_CONTROLLER_RESPONSE__TIME_TIME};
+export type SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_XTERM_PODEVENTCONNECTIONREQUEST_MOGENIUS_OPERATOR_SRC_CORE_VOID = {"data": SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST_RESPONSE__ANON_STRUCT_1|undefined,"message": string,"status": string};
+export type STATS_POD_ALL_FOR_CONTROLLER_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"kind": string,"name": string,"namespace": string,"timeOffsetMinutes": number};
+export type STATS_POD_ALL_FOR_CONTROLLER_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST7_MOGENIUS_OPERATOR_SRC_STRUCTS_PODSTATS = {"data": STATS_POD_ALL_FOR_CONTROLLER_RESPONSE__MOGENIUS_OPERATOR_SRC_STRUCTS_PODSTATS[]|undefined,"message": string,"status": string};
+export type STATS_POD_ALL_FOR_CONTROLLER_RESPONSE__MOGENIUS_OPERATOR_SRC_STRUCTS_PODSTATS = {"containerName": string,"cpu": number,"cpuLimit": number,"createdAt": STATS_POD_ALL_FOR_CONTROLLER_RESPONSE__TIME_TIME,"ephemeralStorage": number,"ephemeralStorageLimit": number,"memory": number,"memoryLimit": number,"namespace": string,"podName": string,"startTime": STATS_POD_ALL_FOR_CONTROLLER_RESPONSE__TIME_TIME};
 export type STATS_POD_ALL_FOR_CONTROLLER_RESPONSE__TIME_TIME = {};
-export type STATS_TRAFFIC_ALL_FOR_CONTROLLER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"kind": string,"name": string,"namespace": string,"timeOffsetMinutes": number};
-export type STATS_TRAFFIC_ALL_FOR_CONTROLLER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST7_MOGENIUS_K8S_MANAGER_SRC_NETWORKMONITOR_PODNETWORKSTATS = {"data": STATS_TRAFFIC_ALL_FOR_CONTROLLER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_NETWORKMONITOR_PODNETWORKSTATS[]|undefined,"message": string,"status": string};
-export type STATS_TRAFFIC_ALL_FOR_CONTROLLER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_NETWORKMONITOR_PODNETWORKSTATS = {"createdAt": STATS_TRAFFIC_ALL_FOR_CONTROLLER_RESPONSE__TIME_TIME,"namespace": string,"pod": string,"receivedBytes": number,"receivedPackets": number,"receivedStartBytes": number,"transmitBytes": number,"transmitPackets": number,"transmitStartBytes": number};
+export type STATS_TRAFFIC_ALL_FOR_CONTROLLER_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"kind": string,"name": string,"namespace": string,"timeOffsetMinutes": number};
+export type STATS_TRAFFIC_ALL_FOR_CONTROLLER_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST7_MOGENIUS_OPERATOR_SRC_NETWORKMONITOR_PODNETWORKSTATS = {"data": STATS_TRAFFIC_ALL_FOR_CONTROLLER_RESPONSE__MOGENIUS_OPERATOR_SRC_NETWORKMONITOR_PODNETWORKSTATS[]|undefined,"message": string,"status": string};
+export type STATS_TRAFFIC_ALL_FOR_CONTROLLER_RESPONSE__MOGENIUS_OPERATOR_SRC_NETWORKMONITOR_PODNETWORKSTATS = {"createdAt": STATS_TRAFFIC_ALL_FOR_CONTROLLER_RESPONSE__TIME_TIME,"namespace": string,"pod": string,"receivedBytes": number,"receivedPackets": number,"receivedStartBytes": number,"transmitBytes": number,"transmitPackets": number,"transmitStartBytes": number};
 export type STATS_TRAFFIC_ALL_FOR_CONTROLLER_RESPONSE__TIME_TIME = {};
-export type STATS_WORKSPACE_CPU_UTILIZATION_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"timeOffsetMinutes": number,"workspaceName": string};
-export type STATS_WORKSPACE_CPU_UTILIZATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_GENERICCHARTENTRY = {"pods": Record<string, number>,"time": STATS_WORKSPACE_CPU_UTILIZATION_RESPONSE__TIME_TIME,"value": number};
-export type STATS_WORKSPACE_CPU_UTILIZATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST8_MOGENIUS_K8S_MANAGER_SRC_CORE_GENERICCHARTENTRY = {"data": STATS_WORKSPACE_CPU_UTILIZATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_GENERICCHARTENTRY[],"message": string,"status": string};
+export type STATS_WORKSPACE_CPU_UTILIZATION_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"timeOffsetMinutes": number,"workspaceName": string};
+export type STATS_WORKSPACE_CPU_UTILIZATION_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_GENERICCHARTENTRY = {"pods": Record<string, number>,"time": STATS_WORKSPACE_CPU_UTILIZATION_RESPONSE__TIME_TIME,"value": number};
+export type STATS_WORKSPACE_CPU_UTILIZATION_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST8_MOGENIUS_OPERATOR_SRC_CORE_GENERICCHARTENTRY = {"data": STATS_WORKSPACE_CPU_UTILIZATION_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_GENERICCHARTENTRY[],"message": string,"status": string};
 export type STATS_WORKSPACE_CPU_UTILIZATION_RESPONSE__TIME_TIME = {};
-export type STATS_WORKSPACE_MEMORY_UTILIZATION_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"timeOffsetMinutes": number,"workspaceName": string};
-export type STATS_WORKSPACE_MEMORY_UTILIZATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_GENERICCHARTENTRY = {"pods": Record<string, number>,"time": STATS_WORKSPACE_MEMORY_UTILIZATION_RESPONSE__TIME_TIME,"value": number};
-export type STATS_WORKSPACE_MEMORY_UTILIZATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST8_MOGENIUS_K8S_MANAGER_SRC_CORE_GENERICCHARTENTRY = {"data": STATS_WORKSPACE_MEMORY_UTILIZATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_GENERICCHARTENTRY[],"message": string,"status": string};
+export type STATS_WORKSPACE_MEMORY_UTILIZATION_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"timeOffsetMinutes": number,"workspaceName": string};
+export type STATS_WORKSPACE_MEMORY_UTILIZATION_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_GENERICCHARTENTRY = {"pods": Record<string, number>,"time": STATS_WORKSPACE_MEMORY_UTILIZATION_RESPONSE__TIME_TIME,"value": number};
+export type STATS_WORKSPACE_MEMORY_UTILIZATION_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST8_MOGENIUS_OPERATOR_SRC_CORE_GENERICCHARTENTRY = {"data": STATS_WORKSPACE_MEMORY_UTILIZATION_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_GENERICCHARTENTRY[],"message": string,"status": string};
 export type STATS_WORKSPACE_MEMORY_UTILIZATION_RESPONSE__TIME_TIME = {};
-export type STATS_WORKSPACE_TRAFFIC_UTILIZATION_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"timeOffsetMinutes": number,"workspaceName": string};
-export type STATS_WORKSPACE_TRAFFIC_UTILIZATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_GENERICCHARTENTRY = {"pods": Record<string, number>,"time": STATS_WORKSPACE_TRAFFIC_UTILIZATION_RESPONSE__TIME_TIME,"value": number};
-export type STATS_WORKSPACE_TRAFFIC_UTILIZATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST8_MOGENIUS_K8S_MANAGER_SRC_CORE_GENERICCHARTENTRY = {"data": STATS_WORKSPACE_TRAFFIC_UTILIZATION_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_GENERICCHARTENTRY[],"message": string,"status": string};
+export type STATS_WORKSPACE_TRAFFIC_UTILIZATION_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"timeOffsetMinutes": number,"workspaceName": string};
+export type STATS_WORKSPACE_TRAFFIC_UTILIZATION_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_GENERICCHARTENTRY = {"pods": Record<string, number>,"time": STATS_WORKSPACE_TRAFFIC_UTILIZATION_RESPONSE__TIME_TIME,"value": number};
+export type STATS_WORKSPACE_TRAFFIC_UTILIZATION_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST8_MOGENIUS_OPERATOR_SRC_CORE_GENERICCHARTENTRY = {"data": STATS_WORKSPACE_TRAFFIC_UTILIZATION_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_GENERICCHARTENTRY[],"message": string,"status": string};
 export type STATS_WORKSPACE_TRAFFIC_UTILIZATION_RESPONSE__TIME_TIME = {};
-export type STORAGE_CREATE_VOLUME_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_NFSVOLUMEREQUEST = {"namespaceName": string,"sizeInGb": number,"volumeName": string};
-export type STORAGE_CREATE_VOLUME_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_DEFAULTRESPONSE = {"error": string,"success": boolean};
-export type STORAGE_DELETE_VOLUME_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_NFSVOLUMEREQUEST = {"namespaceName": string,"sizeInGb": number,"volumeName": string};
-export type STORAGE_DELETE_VOLUME_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_DEFAULTRESPONSE = {"error": string,"success": boolean};
-export type STORAGE_STATS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_NFSVOLUMESTATSREQUEST = {"namespaceName": string,"volumeName": string};
-export type STORAGE_STATS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_SERVICES_NFSVOLUMESTATSRESPONSE = {"freeBytes": number,"totalBytes": number,"usedBytes": number,"volumeName": string};
-export type STORAGE_STATUS_REQUEST__MOGENIUS_K8S_MANAGER_SRC_SERVICES_NFSSTATUSREQUEST = {"name": string,"namespace": string,"type": string};
-export type STORAGE_STATUS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_SERVICES_NFSSTATUSRESPONSE = {"freeBytes": number,"messages": STORAGE_STATUS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_SERVICES_VOLUMESTATUSMESSAGE[],"namespaceName": string,"status": string,"totalBytes": number,"usedByPods": string[],"usedBytes": number,"volumeName": string};
-export type STORAGE_STATUS_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_SERVICES_VOLUMESTATUSMESSAGE = {"message": string,"type": string};
+export type STORAGE_CREATE_VOLUME_REQUEST__MOGENIUS_OPERATOR_SRC_SERVICES_NFSVOLUMEREQUEST = {"namespaceName": string,"sizeInGb": number,"volumeName": string};
+export type STORAGE_CREATE_VOLUME_RESPONSE__MOGENIUS_OPERATOR_SRC_STRUCTS_DEFAULTRESPONSE = {"error": string,"success": boolean};
+export type STORAGE_DELETE_VOLUME_REQUEST__MOGENIUS_OPERATOR_SRC_SERVICES_NFSVOLUMEREQUEST = {"namespaceName": string,"sizeInGb": number,"volumeName": string};
+export type STORAGE_DELETE_VOLUME_RESPONSE__MOGENIUS_OPERATOR_SRC_STRUCTS_DEFAULTRESPONSE = {"error": string,"success": boolean};
+export type STORAGE_STATS_REQUEST__MOGENIUS_OPERATOR_SRC_SERVICES_NFSVOLUMESTATSREQUEST = {"namespaceName": string,"volumeName": string};
+export type STORAGE_STATS_RESPONSE__MOGENIUS_OPERATOR_SRC_SERVICES_NFSVOLUMESTATSRESPONSE = {"freeBytes": number,"totalBytes": number,"usedBytes": number,"volumeName": string};
+export type STORAGE_STATUS_REQUEST__MOGENIUS_OPERATOR_SRC_SERVICES_NFSSTATUSREQUEST = {"name": string,"namespace": string,"type": string};
+export type STORAGE_STATUS_RESPONSE__MOGENIUS_OPERATOR_SRC_SERVICES_NFSSTATUSRESPONSE = {"freeBytes": number,"messages": STORAGE_STATUS_RESPONSE__MOGENIUS_OPERATOR_SRC_SERVICES_VOLUMESTATUSMESSAGE[],"namespaceName": string,"status": string,"totalBytes": number,"usedByPods": string[],"usedBytes": number,"volumeName": string};
+export type STORAGE_STATUS_RESPONSE__MOGENIUS_OPERATOR_SRC_SERVICES_VOLUMESTATUSMESSAGE = {"message": string,"type": string};
 export type SYSTEM_CHECK_REQUEST__ANON_STRUCT_0 = {};
-export type SYSTEM_CHECK_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_MOGENIUS_K8S_MANAGER_SRC_SERVICES_SYSTEMCHECKRESPONSE = {"data": SYSTEM_CHECK_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_SERVICES_SYSTEMCHECKRESPONSE,"message": string,"status": string};
-export type SYSTEM_CHECK_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_SERVICES_SYSTEMCHECKENTRY = {"checkName": string,"description": string,"errorMessage": string|undefined,"helmStatus": string,"installPattern": string,"isRequired": boolean,"isRunning": boolean,"processTimeInMs": number,"solutionMessage": string,"successMessage": string,"uninstallPattern": string,"upgradePattern": string,"versionAvailable": string,"versionInstalled": string,"wantsToBeInstalled": boolean};
-export type SYSTEM_CHECK_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_SERVICES_SYSTEMCHECKRESPONSE = {"entries": SYSTEM_CHECK_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_SERVICES_SYSTEMCHECKENTRY[],"terminalString": string};
-export type TRIGGER_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR = {"apiVersion": string,"kind": string,"namespaced": boolean,"plural": string};
-export type TRIGGER_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_WORKLOADSINGLEREQUEST = {"ResourceDescriptor": TRIGGER_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR,"namespace": string,"resourceName": string};
+export type SYSTEM_CHECK_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_MOGENIUS_OPERATOR_SRC_SERVICES_SYSTEMCHECKRESPONSE = {"data": SYSTEM_CHECK_RESPONSE__MOGENIUS_OPERATOR_SRC_SERVICES_SYSTEMCHECKRESPONSE,"message": string,"status": string};
+export type SYSTEM_CHECK_RESPONSE__MOGENIUS_OPERATOR_SRC_SERVICES_SYSTEMCHECKENTRY = {"checkName": string,"description": string,"errorMessage": string|undefined,"helmStatus": string,"installPattern": string,"isRequired": boolean,"isRunning": boolean,"processTimeInMs": number,"solutionMessage": string,"successMessage": string,"uninstallPattern": string,"upgradePattern": string,"versionAvailable": string,"versionInstalled": string,"wantsToBeInstalled": boolean};
+export type SYSTEM_CHECK_RESPONSE__MOGENIUS_OPERATOR_SRC_SERVICES_SYSTEMCHECKRESPONSE = {"entries": SYSTEM_CHECK_RESPONSE__MOGENIUS_OPERATOR_SRC_SERVICES_SYSTEMCHECKENTRY[],"terminalString": string};
+export type TRIGGER_WORKLOAD_REQUEST__MOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRIPTOR = {"apiVersion": string,"kind": string,"namespaced": boolean,"plural": string};
+export type TRIGGER_WORKLOAD_REQUEST__MOGENIUS_OPERATOR_SRC_UTILS_WORKLOADSINGLEREQUEST = {"ResourceDescriptor": TRIGGER_WORKLOAD_REQUEST__MOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRIPTOR,"namespace": string,"resourceName": string};
 export type TRIGGER_WORKLOAD_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"Object": Record<string, any>};
-export type TRIGGER_WORKLOAD_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_UTILS_WORKLOADSINGLEREQUEST_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"data": TRIGGER_WORKLOAD_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED|undefined,"message": string,"status": string};
+export type TRIGGER_WORKLOAD_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_UTILS_WORKLOADSINGLEREQUEST_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"data": TRIGGER_WORKLOAD_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED|undefined,"message": string,"status": string};
 export type UNINSTALL_CERT_MANAGER_REQUEST__ANON_STRUCT_0 = {};
-export type UNINSTALL_CERT_MANAGER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
+export type UNINSTALL_CERT_MANAGER_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
 export type UNINSTALL_CLUSTER_ISSUER_REQUEST__ANON_STRUCT_0 = {};
-export type UNINSTALL_CLUSTER_ISSUER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
+export type UNINSTALL_CLUSTER_ISSUER_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
 export type UNINSTALL_INGRESS_CONTROLLER_TRAEFIK_REQUEST__ANON_STRUCT_0 = {};
-export type UNINSTALL_INGRESS_CONTROLLER_TRAEFIK_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
+export type UNINSTALL_INGRESS_CONTROLLER_TRAEFIK_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
 export type UNINSTALL_KEPLER_REQUEST__ANON_STRUCT_0 = {};
-export type UNINSTALL_KEPLER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
+export type UNINSTALL_KEPLER_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
 export type UNINSTALL_METALLB_REQUEST__ANON_STRUCT_0 = {};
-export type UNINSTALL_METALLB_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
+export type UNINSTALL_METALLB_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
 export type UNINSTALL_METRICS_SERVER_REQUEST__ANON_STRUCT_0 = {};
-export type UNINSTALL_METRICS_SERVER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
-export type UPDATE_GRANT_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"grantee": string,"name": string,"role": string,"targetName": string,"targetType": string};
-export type UPDATE_GRANT_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST31_STRING = {"data": string,"message": string,"status": string};
+export type UNINSTALL_METRICS_SERVER_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
+export type UPDATE_GRANT_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"grantee": string,"name": string,"role": string,"targetName": string,"targetType": string};
+export type UPDATE_GRANT_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST31_STRING = {"data": string,"message": string,"status": string};
 export type UPDATE_USER_REQUEST__K8S_IO_API_RBAC_V1_SUBJECT = {"apiGroup": string,"kind": string,"name": string,"namespace": string};
-export type UPDATE_USER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"email": string,"firstName": string,"lastName": string,"name": string,"subject": UPDATE_USER_REQUEST__K8S_IO_API_RBAC_V1_SUBJECT|undefined};
-export type UPDATE_USER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST26_STRING = {"data": string,"message": string,"status": string};
-export type UPDATE_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR = {"apiVersion": string,"kind": string,"namespaced": boolean,"plural": string};
-export type UPDATE_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_WORKLOADCHANGEREQUEST = {"ResourceDescriptor": UPDATE_WORKLOAD_REQUEST__MOGENIUS_K8S_MANAGER_SRC_UTILS_RESOURCEDESCRIPTOR,"namespace": string,"yamlData": string};
+export type UPDATE_USER_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"email": string,"firstName": string,"lastName": string,"name": string,"subject": UPDATE_USER_REQUEST__K8S_IO_API_RBAC_V1_SUBJECT|undefined};
+export type UPDATE_USER_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST26_STRING = {"data": string,"message": string,"status": string};
+export type UPDATE_WORKLOAD_REQUEST__MOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRIPTOR = {"apiVersion": string,"kind": string,"namespaced": boolean,"plural": string};
+export type UPDATE_WORKLOAD_REQUEST__MOGENIUS_OPERATOR_SRC_UTILS_WORKLOADCHANGEREQUEST = {"ResourceDescriptor": UPDATE_WORKLOAD_REQUEST__MOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRIPTOR,"namespace": string,"yamlData": string};
 export type UPDATE_WORKLOAD_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"Object": Record<string, any>};
-export type UPDATE_WORKLOAD_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_UTILS_WORKLOADCHANGEREQUEST_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"data": UPDATE_WORKLOAD_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED|undefined,"message": string,"status": string};
-export type UPDATE_WORKSPACE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"displayName": string,"name": string,"resources": UPDATE_WORKSPACE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_WORKSPACERESOURCEIDENTIFIER[]};
-export type UPDATE_WORKSPACE_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CRDS_V1ALPHA1_WORKSPACERESOURCEIDENTIFIER = {"id": string,"namespace": string,"type": string};
-export type UPDATE_WORKSPACE_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST21_STRING = {"data": string,"message": string,"status": string};
-export type UPGRADEK8SMANAGER_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"command": string};
-export type UPGRADEK8SMANAGER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_COMMAND = {"command": string,"finished": UPGRADEK8SMANAGER_RESPONSE__TIME_TIME,"id": string,"message": string,"started": UPGRADEK8SMANAGER_RESPONSE__TIME_TIME,"state": string,"title": string};
-export type UPGRADEK8SMANAGER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_JOB = {"commands": UPGRADEK8SMANAGER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_STRUCTS_COMMAND|undefined[],"containerName": string,"controllerName": string,"finished": UPGRADEK8SMANAGER_RESPONSE__TIME_TIME,"id": string,"message": string,"namespaceName": string,"projectId": string,"started": UPGRADEK8SMANAGER_RESPONSE__TIME_TIME,"state": string,"title": string};
+export type UPDATE_WORKLOAD_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_UTILS_WORKLOADCHANGEREQUEST_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"data": UPDATE_WORKLOAD_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED|undefined,"message": string,"status": string};
+export type UPDATE_WORKSPACE_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"displayName": string,"name": string,"resources": UPDATE_WORKSPACE_REQUEST__MOGENIUS_OPERATOR_SRC_CRDS_V1ALPHA1_WORKSPACERESOURCEIDENTIFIER[]};
+export type UPDATE_WORKSPACE_REQUEST__MOGENIUS_OPERATOR_SRC_CRDS_V1ALPHA1_WORKSPACERESOURCEIDENTIFIER = {"id": string,"namespace": string,"type": string};
+export type UPDATE_WORKSPACE_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST21_STRING = {"data": string,"message": string,"status": string};
+export type UPGRADEK8SMANAGER_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"command": string};
+export type UPGRADEK8SMANAGER_RESPONSE__MOGENIUS_OPERATOR_SRC_STRUCTS_COMMAND = {"command": string,"finished": UPGRADEK8SMANAGER_RESPONSE__TIME_TIME,"id": string,"message": string,"started": UPGRADEK8SMANAGER_RESPONSE__TIME_TIME,"state": string,"title": string};
+export type UPGRADEK8SMANAGER_RESPONSE__MOGENIUS_OPERATOR_SRC_STRUCTS_JOB = {"commands": UPGRADEK8SMANAGER_RESPONSE__MOGENIUS_OPERATOR_SRC_STRUCTS_COMMAND|undefined[],"containerName": string,"controllerName": string,"finished": UPGRADEK8SMANAGER_RESPONSE__TIME_TIME,"id": string,"message": string,"namespaceName": string,"projectId": string,"started": UPGRADEK8SMANAGER_RESPONSE__TIME_TIME,"state": string,"title": string};
 export type UPGRADEK8SMANAGER_RESPONSE__TIME_TIME = {};
 export type UPGRADE_CERT_MANAGER_REQUEST__ANON_STRUCT_0 = {};
-export type UPGRADE_CERT_MANAGER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
+export type UPGRADE_CERT_MANAGER_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
 export type UPGRADE_INGRESS_CONTROLLER_TRAEFIK_REQUEST__ANON_STRUCT_0 = {};
-export type UPGRADE_INGRESS_CONTROLLER_TRAEFIK_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
+export type UPGRADE_INGRESS_CONTROLLER_TRAEFIK_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
 export type UPGRADE_KEPLER_REQUEST__ANON_STRUCT_0 = {};
-export type UPGRADE_KEPLER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
+export type UPGRADE_KEPLER_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
 export type UPGRADE_METALLB_REQUEST__ANON_STRUCT_0 = {};
-export type UPGRADE_METALLB_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
+export type UPGRADE_METALLB_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
 export type UPGRADE_METRICS_SERVER_REQUEST__ANON_STRUCT_0 = {};
-export type UPGRADE_METRICS_SERVER_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
-export type WORKSPACE_CLEAN_UP_REQUEST__MOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST = {"configMaps": boolean,"dryRun": boolean,"ingresses": boolean,"jobs": boolean,"name": string,"pods": boolean,"replicaSets": boolean,"secrets": boolean,"services": boolean};
-export type WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_CLEANUPRESULT = {"configMaps": WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_CLEANUPRESULTENTRY[],"ingresses": WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_CLEANUPRESULTENTRY[],"jobs": WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_CLEANUPRESULTENTRY[],"pods": WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_CLEANUPRESULTENTRY[],"replicaSets": WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_CLEANUPRESULTENTRY[],"secrets": WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_CLEANUPRESULTENTRY[],"services": WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_CLEANUPRESULTENTRY[]};
-export type WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_CLEANUPRESULTENTRY = {"name": string,"namespace": string,"reason": string};
-export type WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_RESULTMOGENIUS_K8S_MANAGER_SRC_CORE_REQUEST20_MOGENIUS_K8S_MANAGER_SRC_CORE_CLEANUPRESULT = {"data": WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_K8S_MANAGER_SRC_CORE_CLEANUPRESULT,"message": string,"status": string};
+export type UPGRADE_METRICS_SERVER_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
+export type WORKSPACE_CLEAN_UP_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"configMaps": boolean,"dryRun": boolean,"ingresses": boolean,"jobs": boolean,"name": string,"pods": boolean,"replicaSets": boolean,"secrets": boolean,"services": boolean};
+export type WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_CLEANUPRESULT = {"configMaps": WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_CLEANUPRESULTENTRY[],"ingresses": WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_CLEANUPRESULTENTRY[],"jobs": WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_CLEANUPRESULTENTRY[],"pods": WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_CLEANUPRESULTENTRY[],"replicaSets": WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_CLEANUPRESULTENTRY[],"secrets": WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_CLEANUPRESULTENTRY[],"services": WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_CLEANUPRESULTENTRY[]};
+export type WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_CLEANUPRESULTENTRY = {"name": string,"namespace": string,"reason": string};
+export type WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST20_MOGENIUS_OPERATOR_SRC_CORE_CLEANUPRESULT = {"data": WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_CLEANUPRESULT,"message": string,"status": string};
 
 //===============================================================
 //==================== Pattern Type Mapping =====================

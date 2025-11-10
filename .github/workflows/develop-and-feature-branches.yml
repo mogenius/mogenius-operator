@@ -8,11 +8,11 @@ on:
       - "develop"
 
 env:
-  IMAGE_NAME: ghcr.io/mogenius/mogenius-k8s-manager-dev
+  IMAGE_NAME: ghcr.io/mogenius/mogenius-operator-dev
   REGISTRY: ghcr.io 
   DOCKERFILE: Dockerfile
   DOCKER_CONFIG: ./.docker
-  HELMNAME: "mogenius-k8s-manager-dev"
+  HELMNAME: "mogenius-operator-dev"
   HELMREPO: "mogenius/helm-k8s-manager"
 
 jobs:
@@ -126,9 +126,9 @@ jobs:
 
       - name: package and push
         run: |
-          cd ./helm/charts/mogenius-k8s-manager
+          cd ./helm/charts/mogenius-operator
           sed -i -e "s/v1.0.72/${{ env.SEMVERSION }}/" values.yaml
-          sed -i -e "s/repository: mogenius\/mogenius-k8s-manager/repository: mogenius\/mogenius-k8s-manager-dev/" values.yaml
-          sed -i -e "s/name: mogenius-k8s-manager/name: mogenius-k8s-manager-dev/" Chart.yaml    
+          sed -i -e "s/repository: mogenius\/mogenius-operator/repository: mogenius\/mogenius-operator-dev/" values.yaml
+          sed -i -e "s/name: mogenius-operator/name: mogenius-operator-dev/" Chart.yaml    
           helm package -d /tmp/ --version ${{ env.SEMVERSION }} --app-version ${{ env.SEMVERSION }} .
           curl -XPOST -L -k --data-binary "@/tmp/${{ env.HELMNAME }}-${{ env.SEMVERSION }}.tgz" https://${{ secrets.MO_HELMUSER }}:${{ secrets.MO_HELMPASS }}@helm.mogenius.com/api/public/charts

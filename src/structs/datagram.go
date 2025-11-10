@@ -2,7 +2,7 @@ package structs
 
 import (
 	"log/slog"
-	"mogenius-k8s-manager/src/utils"
+	"mogenius-operator/src/utils"
 	"time"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"

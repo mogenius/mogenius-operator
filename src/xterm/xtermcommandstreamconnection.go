@@ -5,7 +5,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
-	"mogenius-k8s-manager/src/kubernetes"
+	"mogenius-operator/src/kubernetes"
 	"net/url"
 	"os"
 	"os/exec"

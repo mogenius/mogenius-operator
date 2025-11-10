@@ -2,7 +2,7 @@ package version
 
 import (
 	"fmt"
-	"mogenius-k8s-manager/src/shell"
+	"mogenius-operator/src/shell"
 	"runtime"
 )
 

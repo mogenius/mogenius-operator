@@ -2,7 +2,7 @@ package main
 
 import (
 	"log"
-	"mogenius-k8s-manager/src/cmd"
+	"mogenius-operator/src/cmd"
 	"os"
 
 	"github.com/joho/godotenv"

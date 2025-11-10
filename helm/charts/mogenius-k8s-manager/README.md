@@ -1,4 +1,4 @@
-# Helm Chart: mogenius-k8s-manager
+# Helm Chart: mogenius-operator
 
 ![Version: 1.7.9](https://img.shields.io/badge/Version-1.7.9-informational?style=flat-square) ![AppVersion: 1.0](https://img.shields.io/badge/AppVersion-1.0-informational?style=flat-square)
 
@@ -30,14 +30,14 @@
 | containerSecurityContext.readOnlyRootFilesystem | bool | `true` |  |
 | envVars.MO_API_SERVER | string | `""` |  |
 | envVars.MO_EVENT_SERVER | string | `""` |  |
-| fullnameOverride | string | `"mogenius-k8s-manager"` |  |
+| fullnameOverride | string | `"mogenius-operator"` |  |
 | global.apiKeySecret | object | `{"secretKey":"API_KEY","secretName":"mogenius-operator-api-secret"}` | secret reference for the api-key (will be used if global.api_key is not set) |
 | global.api_key | string | `nil` | the api key provided for your cluster by the mogenius platform (alternativly you can leave this empty and use global.apiKeySecret) |
 | global.cluster_name | string | `nil` | the name you gave your cluster on the mogenius platform |
 | global.stage | string | `"prod"` |  |
 | image.pullPolicy | string | `"IfNotPresent"` |  |
 | image.registry | string | `"ghcr.io"` |  |
-| image.repository | string | `"mogenius/mogenius-k8s-manager"` |  |
+| image.repository | string | `"mogenius/mogenius-operator"` |  |
 | image.tag | string | `"v1.0.72"` |  |
 | nodeMetrics.affinity | object | `{}` |  |
 | nodeMetrics.containerSecurityContext.capabilities.add[0] | string | `"NET_ADMIN"` |  |
@@ -115,22 +115,22 @@ kubectl config use-context <yourCluster>
 
 ### Install the Helm Chart
 
-To install the `mogenius-k8s-manager` Helm chart, use the following command:
+To install the `mogenius-operator` Helm chart, use the following command:
 
 ```
-helm upgrade -i mogenius-k8s-manager mogenius/mogenius-k8s-manager -n mogenius --create-namespace --wait
+helm upgrade -i mogenius-operator mogenius/mogenius-operator -n mogenius --create-namespace --wait
 ```
 
 Once installed, the following deployments will be created:
-- `mogenius-k8s-manager`
-- `mogenius-k8s-manager-valkey`
+- `mogenius-operator`
+- `mogenius-operator-valkey`
 
 ### Override Default Values
 
 If you need to override default values, create a `values.yaml` file and use the following command:
 
 ```
-helm upgrade -i mogenius-k8s-manager mogenius/mogenius-k8s-manager -n mogenius --create-namespace --wait -f values.yaml
+helm upgrade -i mogenius-operator mogenius/mogenius-operator -n mogenius --create-namespace --wait -f values.yaml
 ```
 
 #### Example `values.yaml`:
@@ -143,11 +143,11 @@ global:
 
 ### Upgrade the Helm Chart
 
-To upgrade the `mogenius-k8s-manager` Helm chart from the repository, run:
+To upgrade the `mogenius-operator` Helm chart from the repository, run:
 
 ```
 helm repo update mogenius
-helm install -i mogenius-k8s-manager mogenius/mogenius-k8s-manager -n mogenius --create-namespace --wait
+helm install -i mogenius-operator mogenius/mogenius-operator -n mogenius --create-namespace --wait
 ```
 
 #### Upgrade with Custom Values:
@@ -155,5 +155,5 @@ helm install -i mogenius-k8s-manager mogenius/mogenius-k8s-manager -n mogenius -
 If you have custom values in a `values.yaml` file, use the following command:
 
 ```
-helm upgrade -i mogenius-k8s-manager mogenius/mogenius-k8s-manager -n mogenius --create-namespace --wait -f values.yaml
+helm upgrade -i mogenius-operator mogenius/mogenius-operator -n mogenius --create-namespace --wait -f values.yaml
 ```

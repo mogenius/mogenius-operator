@@ -3,9 +3,9 @@ package cmd
 import (
 	"fmt"
 	"log/slog"
-	"mogenius-k8s-manager/src/config"
-	"mogenius-k8s-manager/src/k8sclient"
-	"mogenius-k8s-manager/src/k8sexec"
+	"mogenius-operator/src/config"
+	"mogenius-operator/src/k8sclient"
+	"mogenius-operator/src/k8sexec"
 	"strconv"
 	"strings"
 )

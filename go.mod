@@ -1,4 +1,4 @@
-module mogenius-k8s-manager
+module mogenius-operator
 
 go 1.25.0
 

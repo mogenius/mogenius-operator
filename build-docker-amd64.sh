@@ -30,7 +30,7 @@ print_error() {
 }
 
 # Konfiguration
-IMAGE_NAME="mogenius-k8s-manager"
+IMAGE_NAME="mogenius-operator"
 IMAGE_TAG="latest"
 TARGET_ARCH="amd64"
 DOCKERFILE_PATH="."
@@ -96,8 +96,8 @@ docker buildx build \
     --load \
     "$DOCKERFILE_PATH"
 
-docker tag mogenius-k8s-manager:latest cr.iltis.io/library/mogenius-k8s-manager:latest
-docker push cr.iltis.io/library/mogenius-k8s-manager:latest
+docker tag mogenius-operator:latest cr.iltis.io/library/mogenius-operator:latest
+docker push cr.iltis.io/library/mogenius-operator:latest
 
 if [ $? -eq 0 ]; then
     print_success "Docker build completed successfully!"

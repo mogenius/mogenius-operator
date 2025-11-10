@@ -5,10 +5,10 @@ import (
 	"log/slog"
 	"time"
 
-	"mogenius-k8s-manager/src/assert"
-	"mogenius-k8s-manager/src/shell"
-	"mogenius-k8s-manager/src/utils"
-	"mogenius-k8s-manager/src/websocket"
+	"mogenius-operator/src/assert"
+	"mogenius-operator/src/shell"
+	"mogenius-operator/src/utils"
+	"mogenius-operator/src/websocket"
 )
 
 type DefaultResponse struct {

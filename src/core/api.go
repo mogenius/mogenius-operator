@@ -2,14 +2,14 @@ package core
 
 import (
 	"log/slog"
-	"mogenius-k8s-manager/src/assert"
-	cfg "mogenius-k8s-manager/src/config"
-	"mogenius-k8s-manager/src/crds/v1alpha1"
-	"mogenius-k8s-manager/src/helm"
-	"mogenius-k8s-manager/src/kubernetes"
-	"mogenius-k8s-manager/src/store"
-	"mogenius-k8s-manager/src/utils"
-	"mogenius-k8s-manager/src/valkeyclient"
+	"mogenius-operator/src/assert"
+	cfg "mogenius-operator/src/config"
+	"mogenius-operator/src/crds/v1alpha1"
+	"mogenius-operator/src/helm"
+	"mogenius-operator/src/kubernetes"
+	"mogenius-operator/src/store"
+	"mogenius-operator/src/utils"
+	"mogenius-operator/src/valkeyclient"
 	"slices"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"

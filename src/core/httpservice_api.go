@@ -2,8 +2,8 @@ package core
 
 import (
 	"io"
-	"mogenius-k8s-manager/src/assert"
-	"mogenius-k8s-manager/src/utils"
+	"mogenius-operator/src/assert"
+	"mogenius-operator/src/utils"
 	"net/http"
 
 	json "github.com/json-iterator/go"

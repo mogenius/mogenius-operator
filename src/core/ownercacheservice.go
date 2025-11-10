@@ -2,9 +2,9 @@ package core
 
 import (
 	"log/slog"
-	"mogenius-k8s-manager/src/config"
-	"mogenius-k8s-manager/src/store"
-	"mogenius-k8s-manager/src/utils"
+	"mogenius-operator/src/config"
+	"mogenius-operator/src/store"
+	"mogenius-operator/src/utils"
 	"sync"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

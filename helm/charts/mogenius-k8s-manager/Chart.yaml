@@ -1,8 +1,8 @@
 apiVersion: v1
 appVersion: "1.0"
-name: mogenius-k8s-manager
+name: mogenius-operator
 version: 1.7.9
-description: "mogenius-k8s-manager"
+description: "mogenius-operator"
 home: https://mogenius.com
 icon: https://app.mogenius.com/assets/logos/logo-mogenius-signet-neg.svg
 sources: 

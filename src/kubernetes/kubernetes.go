@@ -2,11 +2,11 @@ package kubernetes
 
 import (
 	"log/slog"
-	cfg "mogenius-k8s-manager/src/config"
-	"mogenius-k8s-manager/src/k8sclient"
-	"mogenius-k8s-manager/src/logging"
-	"mogenius-k8s-manager/src/utils"
-	"mogenius-k8s-manager/src/valkeyclient"
+	cfg "mogenius-operator/src/config"
+	"mogenius-operator/src/k8sclient"
+	"mogenius-operator/src/logging"
+	"mogenius-operator/src/utils"
+	"mogenius-operator/src/valkeyclient"
 )
 
 var config cfg.ConfigModule

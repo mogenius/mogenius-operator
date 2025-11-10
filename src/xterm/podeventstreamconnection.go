@@ -3,8 +3,8 @@ package xterm
 import (
 	"context"
 	"fmt"
-	"mogenius-k8s-manager/src/kubernetes"
-	"mogenius-k8s-manager/src/utils"
+	"mogenius-operator/src/kubernetes"
+	"mogenius-operator/src/utils"
 	"net/url"
 	"sort"
 	"strings"

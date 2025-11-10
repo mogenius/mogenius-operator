@@ -2,7 +2,7 @@ package crds
 
 import (
 	"embed"
-	"mogenius-k8s-manager/src/assert"
+	"mogenius-operator/src/assert"
 	"path"
 	"strings"
 )

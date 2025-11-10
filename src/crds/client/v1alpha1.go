@@ -3,7 +3,7 @@ package client
 import (
 	"context"
 	"fmt"
-	mov1alpha1 "mogenius-k8s-manager/src/crds/v1alpha1"
+	mov1alpha1 "mogenius-operator/src/crds/v1alpha1"
 
 	json "github.com/json-iterator/go"
 

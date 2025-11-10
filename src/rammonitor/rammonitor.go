@@ -2,10 +2,10 @@ package rammonitor
 
 import (
 	"log/slog"
-	"mogenius-k8s-manager/src/assert"
-	"mogenius-k8s-manager/src/config"
-	"mogenius-k8s-manager/src/containerenumerator"
-	"mogenius-k8s-manager/src/k8sclient"
+	"mogenius-operator/src/assert"
+	"mogenius-operator/src/config"
+	"mogenius-operator/src/containerenumerator"
+	"mogenius-operator/src/k8sclient"
 	"os"
 	"path/filepath"
 	"runtime"

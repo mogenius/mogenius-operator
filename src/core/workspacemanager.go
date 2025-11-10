@@ -1,10 +1,10 @@
 package core
 
 import (
-	cfg "mogenius-k8s-manager/src/config"
-	"mogenius-k8s-manager/src/crds"
-	"mogenius-k8s-manager/src/crds/v1alpha1"
-	"mogenius-k8s-manager/src/k8sclient"
+	cfg "mogenius-operator/src/config"
+	"mogenius-operator/src/crds"
+	"mogenius-operator/src/crds/v1alpha1"
+	"mogenius-operator/src/k8sclient"
 	"sync"
 )
 

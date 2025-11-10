@@ -3,8 +3,8 @@ package kubernetes
 import (
 	"context"
 	"fmt"
-	cfg "mogenius-k8s-manager/src/config"
-	"mogenius-k8s-manager/src/store"
+	cfg "mogenius-operator/src/config"
+	"mogenius-operator/src/store"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

@@ -71,7 +71,7 @@ RUN bpftool version
 
 FROM build-env AS builder
 
-LABEL org.opencontainers.image.description="mogenius-k8s-manager"
+LABEL org.opencontainers.image.description="mogenius-operator"
 
 ENV VERIFY_CHECKSUM=false
 ENV CGO_ENABLED=0
@@ -94,11 +94,11 @@ RUN go generate ./...
 # Cross-compile für die Target-Platform
 RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} GOARM=${TARGETVARIANT#v} \
     go build -trimpath -gcflags="all=-l" -ldflags="-s -w \
-    -X 'mogenius-k8s-manager/src/version.GitCommitHash=${COMMIT_HASH}' \
-    -X 'mogenius-k8s-manager/src/version.Branch=${GIT_BRANCH}' \
-    -X 'mogenius-k8s-manager/src/version.BuildTimestamp=${BUILD_TIMESTAMP}' \
-    -X 'mogenius-k8s-manager/src/version.Ver=${VERSION}'" \
-    -o "bin/mogenius-k8s-manager" \
+    -X 'mogenius-operator/src/version.GitCommitHash=${COMMIT_HASH}' \
+    -X 'mogenius-operator/src/version.Branch=${GIT_BRANCH}' \
+    -X 'mogenius-operator/src/version.BuildTimestamp=${BUILD_TIMESTAMP}' \
+    -X 'mogenius-operator/src/version.Ver=${VERSION}'" \
+    -o "bin/mogenius-operator" \
     ./src/main.go
 
 # Final Image sollte die Target-Platform verwenden
@@ -112,7 +112,7 @@ ENV GOOS=${TARGETOS}
 ENV GOARCH=${TARGETARCH}
 ENV GOARM=${TARGETVARIANT}
 
-COPY --from=builder "/app/bin/mogenius-k8s-manager" "/usr/local/bin/mogenius-k8s-manager"
+COPY --from=builder "/app/bin/mogenius-operator" "/usr/local/bin/mogenius-operator"
 COPY --from=builder "/usr/local/bin/snoopy" "/usr/local/bin/mogenius-snoopy"
 
 RUN set -x && \
@@ -123,8 +123,8 @@ RUN set -x && \
 
 WORKDIR /app
 
-# mogenius-k8s-manager release default settings
+# mogenius-operator release default settings
 ENV MO_LOG_LEVEL="warn"
 
 ENTRYPOINT ["dumb-init", "--"]
-CMD ["mogenius-k8s-manager", "cluster"]
+CMD ["mogenius-operator", "cluster"]

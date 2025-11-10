@@ -2,9 +2,9 @@ package services
 
 import (
 	"log/slog"
-	cfg "mogenius-k8s-manager/src/config"
-	"mogenius-k8s-manager/src/k8sclient"
-	"mogenius-k8s-manager/src/logging"
+	cfg "mogenius-operator/src/config"
+	"mogenius-operator/src/k8sclient"
+	"mogenius-operator/src/logging"
 )
 
 var serviceLogger *slog.Logger

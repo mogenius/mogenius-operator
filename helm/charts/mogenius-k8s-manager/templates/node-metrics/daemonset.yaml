@@ -52,7 +52,7 @@ spec:
           command:
             - "dumb-init"
             - "--"
-            - "mogenius-k8s-manager"
+            - "mogenius-operator"
             - "nodemetrics"
             - "--metrics-rate"
             - "2000"

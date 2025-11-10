@@ -2,7 +2,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: mogenius-k8s-manager-default-apps
+  name: mogenius-operator-default-apps
   namespace: {{ .Release.Namespace }}
 data:
   install-commands: ""
