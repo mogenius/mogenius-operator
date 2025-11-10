@@ -1798,10 +1798,10 @@ func (self *socketApi) registerPatterns() {
 	// Get live metrics for all nodes from Valkey
 	{
 		type NodeMetrics struct {
-			NodeName string         `json:"nodeName"`
-			Cpu      map[string]any `json:"cpu"`
-			Memory   map[string]any `json:"memory"`
-			Traffic  map[string]any `json:"traffic"`
+			NodeName string                           `json:"nodeName"`
+			Cpu      map[string]any                   `json:"cpu"`
+			Memory   map[string]any                   `json:"memory"`
+			Traffic  []networkmonitor.PodNetworkStats `json:"traffic"`
 		}
 
 		type Response struct {
@@ -1829,7 +1829,7 @@ func (self *socketApi) registerPatterns() {
 						NodeName: nodeName,
 						Cpu:      make(map[string]any),
 						Memory:   make(map[string]any),
-						Traffic:  make(map[string]any),
+						Traffic:  make([]networkmonitor.PodNetworkStats, 0),
 					}
 
 					// Get CPU metrics from Valkey: live-stats:cpu:{nodeName}
@@ -1855,7 +1855,7 @@ func (self *socketApi) registerPatterns() {
 					}
 
 					// Get Traffic metrics from Valkey: live-stats:traffic:{nodeName}
-					trafficData, err := valkeyclient.GetObjectForKey[map[string]any](
+					trafficData, err := valkeyclient.GetObjectForKey[[]networkmonitor.PodNetworkStats](
 						self.valkeyClient,
 						DB_STATS_LIVE_BUCKET_NAME,
 						DB_STATS_TRAFFIC_NAME,
