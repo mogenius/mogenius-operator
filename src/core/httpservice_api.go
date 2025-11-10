@@ -12,7 +12,6 @@ import (
 func (self *httpService) addApiRoutes(mux *http.ServeMux) {
 	mux.Handle("/socketapi", self.withRequestLogging(http.HandlerFunc(self.httpSocketApi)))
 	mux.HandleFunc("/api-doc", self.serveApiDocHtml)
-	mux.HandleFunc("/stats", self.serveNodeStatsHtml)
 	mux.HandleFunc("/spec.yaml", self.serveSpecYaml)
 }
 

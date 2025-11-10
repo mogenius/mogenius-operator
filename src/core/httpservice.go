@@ -121,6 +121,8 @@ func (self *httpService) Run() {
 
 	mux.Handle("GET /status", self.withRequestLogging(http.HandlerFunc(self.getAppStatus)))
 
+	mux.HandleFunc("/stats", self.serveNodeStatsHtml)
+
 	if utils.IsDevBuild() {
 		self.addApiRoutes(mux)
 	}
