@@ -1,5 +1,4 @@
 UpgradeK8sManager:
-    legacyResponseLayout: true
     requestSchema:
         structs:
             mogenius-operator/src/core.Request:
@@ -12,6 +11,17 @@ UpgradeK8sManager:
             type: struct
     responseSchema:
         structs:
+            mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·4,*mogenius-operator/src/structs.Job]:
+                name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·4,*mogenius-operator/src/structs.Job]
+                properties:
+                    data:
+                        pointer: true
+                        structRef: mogenius-operator/src/structs.Job
+                        type: struct
+                    message:
+                        type: string
+                    status:
+                        type: string
             mogenius-operator/src/structs.Command:
                 name: mogenius-operator/src/structs.Command
                 properties:
@@ -66,8 +76,7 @@ UpgradeK8sManager:
                 name: time.Time
                 properties: {}
         typeInfo:
-            pointer: true
-            structRef: mogenius-operator/src/structs.Job
+            structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·4,*mogenius-operator/src/structs.Job]
             type: struct
 audit-log/list:
     requestSchema:
@@ -2548,7 +2557,6 @@ describe/workload:
             structRef: mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadSingleRequest,string]
             type: struct
 files/chmod:
-    legacyResponseLayout: true
     requestSchema:
         structs:
             mogenius-operator/src/core.Request:
@@ -2572,11 +2580,24 @@ files/chmod:
             structRef: mogenius-operator/src/core.Request
             type: struct
     responseSchema:
+        structs:
+            ANON_STRUCT_1:
+                properties: {}
+            mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·13,mogenius-operator/src/core.Void]:
+                name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·13,mogenius-operator/src/core.Void]
+                properties:
+                    data:
+                        pointer: true
+                        structRef: ANON_STRUCT_1
+                        type: struct
+                    message:
+                        type: string
+                    status:
+                        type: string
         typeInfo:
-            pointer: true
-            type: any
+            structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·13,mogenius-operator/src/core.Void]
+            type: struct
 files/chown:
-    legacyResponseLayout: true
     requestSchema:
         structs:
             mogenius-operator/src/core.Request:
@@ -2602,11 +2623,24 @@ files/chown:
             structRef: mogenius-operator/src/core.Request
             type: struct
     responseSchema:
+        structs:
+            ANON_STRUCT_1:
+                properties: {}
+            mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·12,mogenius-operator/src/core.Void]:
+                name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·12,mogenius-operator/src/core.Void]
+                properties:
+                    data:
+                        pointer: true
+                        structRef: ANON_STRUCT_1
+                        type: struct
+                    message:
+                        type: string
+                    status:
+                        type: string
         typeInfo:
-            pointer: true
-            type: any
+            structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·12,mogenius-operator/src/core.Void]
+            type: struct
 files/create-folder:
-    legacyResponseLayout: true
     requestSchema:
         structs:
             mogenius-operator/src/core.Request:
@@ -2628,11 +2662,24 @@ files/create-folder:
             structRef: mogenius-operator/src/core.Request
             type: struct
     responseSchema:
+        structs:
+            ANON_STRUCT_1:
+                properties: {}
+            mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·10,mogenius-operator/src/core.Void]:
+                name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·10,mogenius-operator/src/core.Void]
+                properties:
+                    data:
+                        pointer: true
+                        structRef: ANON_STRUCT_1
+                        type: struct
+                    message:
+                        type: string
+                    status:
+                        type: string
         typeInfo:
-            pointer: true
-            type: any
+            structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·10,mogenius-operator/src/core.Void]
+            type: struct
 files/delete:
-    legacyResponseLayout: true
     requestSchema:
         structs:
             mogenius-operator/src/core.Request:
@@ -2654,11 +2701,24 @@ files/delete:
             structRef: mogenius-operator/src/core.Request
             type: struct
     responseSchema:
+        structs:
+            ANON_STRUCT_1:
+                properties: {}
+            mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·14,mogenius-operator/src/core.Void]:
+                name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·14,mogenius-operator/src/core.Void]
+                properties:
+                    data:
+                        pointer: true
+                        structRef: ANON_STRUCT_1
+                        type: struct
+                    message:
+                        type: string
+                    status:
+                        type: string
         typeInfo:
-            pointer: true
-            type: any
+            structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·14,mogenius-operator/src/core.Void]
+            type: struct
 files/download:
-    legacyResponseLayout: true
     requestSchema:
         structs:
             mogenius-operator/src/core.Request:
@@ -2683,6 +2743,16 @@ files/download:
             type: struct
     responseSchema:
         structs:
+            mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·15,mogenius-operator/src/services.FilesDownloadResponse]:
+                name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·15,mogenius-operator/src/services.FilesDownloadResponse]
+                properties:
+                    data:
+                        structRef: mogenius-operator/src/services.FilesDownloadResponse
+                        type: struct
+                    message:
+                        type: string
+                    status:
+                        type: string
             mogenius-operator/src/services.FilesDownloadResponse:
                 name: mogenius-operator/src/services.FilesDownloadResponse
                 properties:
@@ -2691,10 +2761,9 @@ files/download:
                     sizeInBytes:
                         type: int
         typeInfo:
-            structRef: mogenius-operator/src/services.FilesDownloadResponse
+            structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·15,mogenius-operator/src/services.FilesDownloadResponse]
             type: struct
 files/info:
-    legacyResponseLayout: true
     requestSchema:
         structs:
             mogenius-operator/src/dtos.PersistentFileRequestDto:
@@ -2711,6 +2780,16 @@ files/info:
             type: struct
     responseSchema:
         structs:
+            ? mogenius-operator/src/core.Result[mogenius-operator/src/dtos.PersistentFileRequestDto,mogenius-operator/src/dtos.PersistentFileDto]
+            :   name: mogenius-operator/src/core.Result[mogenius-operator/src/dtos.PersistentFileRequestDto,mogenius-operator/src/dtos.PersistentFileDto]
+                properties:
+                    data:
+                        structRef: mogenius-operator/src/dtos.PersistentFileDto
+                        type: struct
+                    message:
+                        type: string
+                    status:
+                        type: string
             mogenius-operator/src/dtos.PersistentFileDto:
                 name: mogenius-operator/src/dtos.PersistentFileDto
                 properties:
@@ -2741,10 +2820,9 @@ files/info:
                     uid_gid:
                         type: string
         typeInfo:
-            structRef: mogenius-operator/src/dtos.PersistentFileDto
+            structRef: mogenius-operator/src/core.Result[mogenius-operator/src/dtos.PersistentFileRequestDto,mogenius-operator/src/dtos.PersistentFileDto]
             type: struct
 files/list:
-    legacyResponseLayout: true
     requestSchema:
         structs:
             mogenius-operator/src/core.Request:
@@ -2767,6 +2845,18 @@ files/list:
             type: struct
     responseSchema:
         structs:
+            mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·9,[]mogenius-operator/src/dtos.PersistentFileDto]:
+                name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·9,[]mogenius-operator/src/dtos.PersistentFileDto]
+                properties:
+                    data:
+                        elementType:
+                            structRef: mogenius-operator/src/dtos.PersistentFileDto
+                            type: struct
+                        type: array
+                    message:
+                        type: string
+                    status:
+                        type: string
             mogenius-operator/src/dtos.PersistentFileDto:
                 name: mogenius-operator/src/dtos.PersistentFileDto
                 properties:
@@ -2797,12 +2887,9 @@ files/list:
                     uid_gid:
                         type: string
         typeInfo:
-            elementType:
-                structRef: mogenius-operator/src/dtos.PersistentFileDto
-                type: struct
-            type: array
+            structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·9,[]mogenius-operator/src/dtos.PersistentFileDto]
+            type: struct
 files/rename:
-    legacyResponseLayout: true
     requestSchema:
         structs:
             mogenius-operator/src/core.Request:
@@ -2826,9 +2913,23 @@ files/rename:
             structRef: mogenius-operator/src/core.Request
             type: struct
     responseSchema:
+        structs:
+            ANON_STRUCT_1:
+                properties: {}
+            mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·11,mogenius-operator/src/core.Void]:
+                name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·11,mogenius-operator/src/core.Void]
+                properties:
+                    data:
+                        pointer: true
+                        structRef: ANON_STRUCT_1
+                        type: struct
+                    message:
+                        type: string
+                    status:
+                        type: string
         typeInfo:
-            pointer: true
-            type: any
+            structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·11,mogenius-operator/src/core.Void]
+            type: struct
 get/grant:
     requestSchema:
         structs:
@@ -4799,7 +4900,6 @@ live-stream/pod-traffic:
             structRef: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,mogenius-operator/src/core.Void]
             type: struct
 live-stream/workspace-cpu:
-    legacyResponseLayout: true
     requestSchema:
         structs:
             mogenius-operator/src/xterm.WsConnectionRequest:
@@ -4823,11 +4923,21 @@ live-stream/workspace-cpu:
             structRef: mogenius-operator/src/xterm.WsConnectionRequest
             type: struct
     responseSchema:
+        structs:
+            mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,interface {}]:
+                name: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,interface {}]
+                properties:
+                    data:
+                        pointer: true
+                        type: any
+                    message:
+                        type: string
+                    status:
+                        type: string
         typeInfo:
-            pointer: true
-            type: any
+            structRef: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,interface {}]
+            type: struct
 live-stream/workspace-memory:
-    legacyResponseLayout: true
     requestSchema:
         structs:
             mogenius-operator/src/xterm.WsConnectionRequest:
@@ -4851,11 +4961,21 @@ live-stream/workspace-memory:
             structRef: mogenius-operator/src/xterm.WsConnectionRequest
             type: struct
     responseSchema:
+        structs:
+            mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,interface {}]:
+                name: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,interface {}]
+                properties:
+                    data:
+                        pointer: true
+                        type: any
+                    message:
+                        type: string
+                    status:
+                        type: string
         typeInfo:
-            pointer: true
-            type: any
+            structRef: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,interface {}]
+            type: struct
 live-stream/workspace-traffic:
-    legacyResponseLayout: true
     requestSchema:
         structs:
             mogenius-operator/src/xterm.WsConnectionRequest:
@@ -4879,9 +4999,20 @@ live-stream/workspace-traffic:
             structRef: mogenius-operator/src/xterm.WsConnectionRequest
             type: struct
     responseSchema:
+        structs:
+            mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,interface {}]:
+                name: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,interface {}]
+                properties:
+                    data:
+                        pointer: true
+                        type: any
+                    message:
+                        type: string
+                    status:
+                        type: string
         typeInfo:
-            pointer: true
-            type: any
+            structRef: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,interface {}]
+            type: struct
 prometheus/charts/add:
     requestSchema:
         structs:
@@ -5813,7 +5944,6 @@ stats/workspace-traffic-utilization:
             structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·8,[]mogenius-operator/src/core.GenericChartEntry]
             type: struct
 storage/create-volume:
-    legacyResponseLayout: true
     requestSchema:
         structs:
             mogenius-operator/src/services.NfsVolumeRequest:
@@ -5830,6 +5960,16 @@ storage/create-volume:
             type: struct
     responseSchema:
         structs:
+            mogenius-operator/src/core.Result[mogenius-operator/src/services.NfsVolumeRequest,mogenius-operator/src/structs.DefaultResponse]:
+                name: mogenius-operator/src/core.Result[mogenius-operator/src/services.NfsVolumeRequest,mogenius-operator/src/structs.DefaultResponse]
+                properties:
+                    data:
+                        structRef: mogenius-operator/src/structs.DefaultResponse
+                        type: struct
+                    message:
+                        type: string
+                    status:
+                        type: string
             mogenius-operator/src/structs.DefaultResponse:
                 name: mogenius-operator/src/structs.DefaultResponse
                 properties:
@@ -5838,10 +5978,9 @@ storage/create-volume:
                     success:
                         type: bool
         typeInfo:
-            structRef: mogenius-operator/src/structs.DefaultResponse
+            structRef: mogenius-operator/src/core.Result[mogenius-operator/src/services.NfsVolumeRequest,mogenius-operator/src/structs.DefaultResponse]
             type: struct
 storage/delete-volume:
-    legacyResponseLayout: true
     requestSchema:
         structs:
             mogenius-operator/src/services.NfsVolumeRequest:
@@ -5858,6 +5997,16 @@ storage/delete-volume:
             type: struct
     responseSchema:
         structs:
+            mogenius-operator/src/core.Result[mogenius-operator/src/services.NfsVolumeRequest,mogenius-operator/src/structs.DefaultResponse]:
+                name: mogenius-operator/src/core.Result[mogenius-operator/src/services.NfsVolumeRequest,mogenius-operator/src/structs.DefaultResponse]
+                properties:
+                    data:
+                        structRef: mogenius-operator/src/structs.DefaultResponse
+                        type: struct
+                    message:
+                        type: string
+                    status:
+                        type: string
             mogenius-operator/src/structs.DefaultResponse:
                 name: mogenius-operator/src/structs.DefaultResponse
                 properties:
@@ -5866,10 +6015,9 @@ storage/delete-volume:
                     success:
                         type: bool
         typeInfo:
-            structRef: mogenius-operator/src/structs.DefaultResponse
+            structRef: mogenius-operator/src/core.Result[mogenius-operator/src/services.NfsVolumeRequest,mogenius-operator/src/structs.DefaultResponse]
             type: struct
 storage/stats:
-    legacyResponseLayout: true
     requestSchema:
         structs:
             mogenius-operator/src/services.NfsVolumeStatsRequest:
@@ -5884,6 +6032,16 @@ storage/stats:
             type: struct
     responseSchema:
         structs:
+            ? mogenius-operator/src/core.Result[mogenius-operator/src/services.NfsVolumeStatsRequest,mogenius-operator/src/services.NfsVolumeStatsResponse]
+            :   name: mogenius-operator/src/core.Result[mogenius-operator/src/services.NfsVolumeStatsRequest,mogenius-operator/src/services.NfsVolumeStatsResponse]
+                properties:
+                    data:
+                        structRef: mogenius-operator/src/services.NfsVolumeStatsResponse
+                        type: struct
+                    message:
+                        type: string
+                    status:
+                        type: string
             mogenius-operator/src/services.NfsVolumeStatsResponse:
                 name: mogenius-operator/src/services.NfsVolumeStatsResponse
                 properties:
@@ -5896,10 +6054,9 @@ storage/stats:
                     volumeName:
                         type: string
         typeInfo:
-            structRef: mogenius-operator/src/services.NfsVolumeStatsResponse
+            structRef: mogenius-operator/src/core.Result[mogenius-operator/src/services.NfsVolumeStatsRequest,mogenius-operator/src/services.NfsVolumeStatsResponse]
             type: struct
 storage/status:
-    legacyResponseLayout: true
     requestSchema:
         structs:
             mogenius-operator/src/services.NfsStatusRequest:
@@ -5916,6 +6073,16 @@ storage/status:
             type: struct
     responseSchema:
         structs:
+            ? mogenius-operator/src/core.Result[mogenius-operator/src/services.NfsStatusRequest,mogenius-operator/src/services.NfsStatusResponse]
+            :   name: mogenius-operator/src/core.Result[mogenius-operator/src/services.NfsStatusRequest,mogenius-operator/src/services.NfsStatusResponse]
+                properties:
+                    data:
+                        structRef: mogenius-operator/src/services.NfsStatusResponse
+                        type: struct
+                    message:
+                        type: string
+                    status:
+                        type: string
             mogenius-operator/src/services.NfsStatusResponse:
                 name: mogenius-operator/src/services.NfsStatusResponse
                 properties:
@@ -5948,7 +6115,7 @@ storage/status:
                     type:
                         type: string
         typeInfo:
-            structRef: mogenius-operator/src/services.NfsStatusResponse
+            structRef: mogenius-operator/src/core.Result[mogenius-operator/src/services.NfsStatusRequest,mogenius-operator/src/services.NfsStatusResponse]
             type: struct
 system/check:
     requestSchema:

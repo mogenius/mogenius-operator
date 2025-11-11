@@ -71,7 +71,7 @@ func ClusterForceDisconnect() bool {
 	return true
 }
 
-func UpgradeMyself(eventClient websocket.WebsocketClient, job *structs.Job, command string) {
+func UpgradeMyself(eventClient websocket.WebsocketClient, job *structs.Job, command string) (*structs.Job, error) {
 	cmd := structs.CreateCommand(eventClient, "upgrade operator", "Upgrade mogenius platform ...", job)
 	cmd.Start(eventClient, job, "Upgrade mogenius platform ...")
 
@@ -82,6 +82,7 @@ func UpgradeMyself(eventClient websocket.WebsocketClient, job *structs.Job, comm
 	ownerReference, err := GetOwnDeploymentOwnerReference(clientset, config)
 	if err != nil {
 		k8sLogger.Error("Error getting owner reference for upgrade job", "error", err)
+		return nil, err
 	}
 
 	configmap := utils.InitUpgradeConfigMap()
@@ -101,14 +102,14 @@ func UpgradeMyself(eventClient websocket.WebsocketClient, job *structs.Job, comm
 		_, err = configmapClient.Create(context.Background(), &configmap, MoCreateOptions(config))
 		if err != nil {
 			cmd.Fail(eventClient, job, fmt.Sprintf("UpgradeMyself (configmap) ERROR: %s", err.Error()))
-			return
+			return nil, err
 		}
 	} else {
 		// UPDATE
 		_, err = configmapClient.Update(context.Background(), &configmap, metav1.UpdateOptions{})
 		if err != nil {
 			cmd.Fail(eventClient, job, fmt.Sprintf("UpgradeMyself (update_configmap) ERROR: %s", err.Error()))
-			return
+			return nil, err
 		}
 	}
 
@@ -119,17 +120,18 @@ func UpgradeMyself(eventClient websocket.WebsocketClient, job *structs.Job, comm
 		_, err = jobClient.Create(context.Background(), &k8sjob, MoCreateOptions(config))
 		if err != nil {
 			cmd.Fail(eventClient, job, fmt.Sprintf("UpgradeMyself (job) ERROR: %s", err.Error()))
-			return
+			return nil, err
 		}
 	} else {
 		// UPDATE
 		_, err = jobClient.Update(context.Background(), &k8sjob, metav1.UpdateOptions{})
 		if err != nil {
 			cmd.Fail(eventClient, job, fmt.Sprintf("UpgradeMyself (update_job) ERROR: %s", err.Error()))
-			return
+			return nil, err
 		}
 	}
 	cmd.Success(eventClient, job, "Upgraded platform successfully.")
+	return job, nil
 }
 
 func GetOwnDeploymentOwnerReference(clientset *kubernetes.Clientset, config cfg.ConfigModule) ([]metav1.OwnerReference, error) {
