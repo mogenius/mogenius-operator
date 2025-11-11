@@ -1524,7 +1524,7 @@ func (self *socketApi) registerPatterns() {
 			if err != nil {
 				self.logger.Warn("failed to add event to audit log", "request", request, "error", err)
 			}
-			return res, err
+			return res, nil
 		},
 	)
 
@@ -1538,7 +1538,7 @@ func (self *socketApi) registerPatterns() {
 			if err != nil {
 				self.logger.Warn("failed to add event to audit log", "request", request, "error", err)
 			}
-			return res, err
+			return res, nil
 		},
 	)
 
