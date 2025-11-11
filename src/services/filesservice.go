@@ -19,30 +19,30 @@ import (
 	"time"
 )
 
-func List(folder dtos.PersistentFileRequestDto) []dtos.PersistentFileDto {
+func List(folder dtos.PersistentFileRequestDto) ([]dtos.PersistentFileDto, error) {
 	result := []dtos.PersistentFileDto{}
 	pathToFile, err := verify(&folder)
 	if err != nil {
-		return result
+		return result, err
 	}
 	result, err = ListDirWithTimeout(pathToFile, 250*time.Millisecond)
 	if err != nil {
 		serviceLogger.Error("Files List Error", "error", err)
 	}
-	return result
+	return result, err
 }
 
-func Info(r dtos.PersistentFileRequestDto) dtos.PersistentFileDto {
+func Info(r dtos.PersistentFileRequestDto) (dtos.PersistentFileDto, error) {
 	result := dtos.PersistentFileDto{}
 	pathToFile, err := verify(&r)
 	if err != nil {
 		serviceLogger.Error("file info verify error", "error", err)
-		return result
+		return result, err
 	}
 	return dtos.PersistentFileDtoFrom(pathToFile, pathToFile)
 }
 
-func Download(pfile dtos.PersistentFileRequestDto, postTo string) FilesDownloadResponse {
+func Download(pfile dtos.PersistentFileRequestDto, postTo string) (FilesDownloadResponse, error) {
 	result := FilesDownloadResponse{
 		SizeInBytes: 0,
 	}
@@ -50,13 +50,13 @@ func Download(pfile dtos.PersistentFileRequestDto, postTo string) FilesDownloadR
 	if err != nil {
 		result.Error = err.Error()
 		serviceLogger.Debug("file download verify error", "error", err)
-		return result
+		return result, err
 	}
 	file, err := os.Open(pathToFile)
 	if err != nil {
 		result.Error = err.Error()
 		serviceLogger.Debug("file download open error", "error", err)
-		return result
+		return result, err
 	}
 	defer file.Close()
 
@@ -64,7 +64,7 @@ func Download(pfile dtos.PersistentFileRequestDto, postTo string) FilesDownloadR
 	if err != nil {
 		result.Error = err.Error()
 		serviceLogger.Debug("file download stat error", "error", err)
-		return result
+		return result, err
 	}
 
 	// Generate filename
@@ -80,7 +80,7 @@ func Download(pfile dtos.PersistentFileRequestDto, postTo string) FilesDownloadR
 	if err != nil {
 		serviceLogger.Error("Error creating form file", "error", err)
 		result.Error = err.Error()
-		return result
+		return result, err
 	}
 
 	if info.IsDir() {
@@ -119,7 +119,7 @@ func Download(pfile dtos.PersistentFileRequestDto, postTo string) FilesDownloadR
 		if err != nil {
 			serviceLogger.Error("directory zip walk files error", "error", err)
 			result.Error = err.Error()
-			return result
+			return result, err
 		}
 
 		// Close the zip archive
@@ -127,7 +127,7 @@ func Download(pfile dtos.PersistentFileRequestDto, postTo string) FilesDownloadR
 		if err != nil {
 			serviceLogger.Error("zip error", "error", err)
 			result.Error = err.Error()
-			return result
+			return result, err
 		}
 	} else {
 		// SEND FILE TO HTTP
@@ -135,7 +135,7 @@ func Download(pfile dtos.PersistentFileRequestDto, postTo string) FilesDownloadR
 		if err != nil {
 			serviceLogger.Error("Error copying file", "error", err)
 			result.Error = err.Error()
-			return result
+			return result, err
 		}
 	}
 
@@ -149,7 +149,7 @@ func Download(pfile dtos.PersistentFileRequestDto, postTo string) FilesDownloadR
 	if err != nil {
 		serviceLogger.Error("Error sending request", "error", err)
 		result.Error = err.Error()
-		return result
+		return result, err
 	}
 	req.Header = utils.HttpHeader("")
 	req.Header.Set("Content-Type", multiPartWriter.FormDataContentType())
@@ -159,7 +159,7 @@ func Download(pfile dtos.PersistentFileRequestDto, postTo string) FilesDownloadR
 	if err != nil {
 		serviceLogger.Error("Error sending request", "error", err)
 		result.Error = err.Error()
-		return result
+		return result, err
 	}
 	defer response.Body.Close()
 
@@ -168,7 +168,7 @@ func Download(pfile dtos.PersistentFileRequestDto, postTo string) FilesDownloadR
 		result.Error = fmt.Sprintf("%s - '%s'.", postTo, response.Status)
 	}
 
-	return result
+	return result, nil
 }
 
 func Uploaded(tempZipFileSrc string, fileReq FilesUploadRequest) error {
@@ -224,37 +224,37 @@ func Rename(file dtos.PersistentFileRequestDto, newName string) error {
 	return nil
 }
 
-func Chown(file dtos.PersistentFileRequestDto, uidString string, gidString string) any {
+func Chown(file dtos.PersistentFileRequestDto, uidString string, gidString string) error {
 	pathToDir, err := verify(&file)
 	if err != nil {
-		return utils.CreateError(err)
+		return err
 	}
 
 	gid, err := strconv.Atoi(gidString)
 	if err != nil {
-		return utils.CreateError(err)
+		return err
 	}
 	uid, err := strconv.Atoi(uidString)
 	if err != nil {
-		return utils.CreateError(err)
+		return err
 	}
 
 	maxInt := int(math.Pow(2, 32))
 	if gid > 0 && gid < maxInt && uid > 0 && uid < maxInt {
 		err = os.Chown(pathToDir, uid, gid)
 		if err != nil {
-			return utils.CreateError(err)
+			return err
 		}
 	} else {
-		return utils.CreateError(fmt.Errorf("gid/uid > 0 and < 2^32"))
+		return fmt.Errorf("gid/uid > 0 and < 2^32")
 	}
 	return nil
 }
 
-func Chmod(file dtos.PersistentFileRequestDto, mode string) any {
+func Chmod(file dtos.PersistentFileRequestDto, mode string) error {
 	pathToDir, err := verify(&file)
 	if err != nil {
-		return utils.CreateError(err)
+		return err
 	}
 
 	// padding left leading zero if missing
@@ -275,7 +275,7 @@ func Chmod(file dtos.PersistentFileRequestDto, mode string) any {
 	return nil
 }
 
-func Delete(file dtos.PersistentFileRequestDto) any {
+func Delete(file dtos.PersistentFileRequestDto) error {
 	pathToDir, err := verify(&file)
 	if err != nil {
 		return err
@@ -336,7 +336,10 @@ func ListDir(ctx context.Context, root string) ([]dtos.PersistentFileDto, error)
 
 	for _, entry := range entries {
 		path := filepath.Join(root, entry.Name())
-		item := dtos.PersistentFileDtoFrom(root, path)
+		item, err := dtos.PersistentFileDtoFrom(root, path)
+		if err != nil {
+			return nil, err
+		}
 
 		if entry.IsDir() {
 			wg.Go(func() {

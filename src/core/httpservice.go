@@ -115,8 +115,6 @@ func (self *httpService) Run() {
 	self.logger.Debug("initializing http.ServeMux", "addr", addr)
 	mux := http.NewServeMux()
 
-	// Deprecated: Typo in `GET /healtz`. Use `GET /healthz` instead.
-	mux.Handle("GET /healtz", self.withRequestLogging(http.HandlerFunc(self.getHealthz)))
 	mux.Handle("GET /healthz", self.withRequestLogging(http.HandlerFunc(self.getHealthz)))
 
 	mux.Handle("GET /status", self.withRequestLogging(http.HandlerFunc(self.getAppStatus)))

@@ -26,11 +26,11 @@ type PersistentFileDto struct {
 	Mode         string `json:"mode,omitempty"`
 }
 
-func PersistentFileDtoFrom(rootDir string, path string) PersistentFileDto {
+func PersistentFileDtoFrom(rootDir string, path string) (PersistentFileDto, error) {
 	info, err := os.Stat(path)
 	if err != nil {
 		fmt.Println("Darwin FileStatErr", err.Error())
-		return PersistentFileDto{}
+		return PersistentFileDto{}, err
 	}
 
 	fileType := "file"
@@ -65,5 +65,5 @@ func PersistentFileDtoFrom(rootDir string, path string) PersistentFileDto {
 		ModifiedAt:   modTime,
 		Uid_gid:      uidGid,
 		Mode:         fmt.Sprintf("%o", filemode),
-	}
+	}, nil
 }
