@@ -3468,26 +3468,22 @@ export type FILES_CHMOD_REQUEST = FILES_CHMOD_REQUEST__MOGENIUS_OPERATOR_SRC_COR
  *
  * ```yaml
  * structs:
- *     ANON_STRUCT_1:
- *         properties: {}
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·13,mogenius-operator/src/core.Void]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·13,mogenius-operator/src/core.Void]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·13,bool]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·13,bool]
  *         properties:
  *             data:
- *                 pointer: true
- *                 structRef: ANON_STRUCT_1
- *                 type: struct
+ *                 type: bool
  *             message:
  *                 type: string
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·13,mogenius-operator/src/core.Void]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·13,bool]
  *     type: struct
  * ```
  *
  */
-export type FILES_CHMOD_RESPONSE = FILES_CHMOD_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST13_MOGENIUS_OPERATOR_SRC_CORE_VOID;
+export type FILES_CHMOD_RESPONSE = FILES_CHMOD_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST13_BOOL;
 
 /**
  * #### Source
@@ -3526,26 +3522,22 @@ export type FILES_CHOWN_REQUEST = FILES_CHOWN_REQUEST__MOGENIUS_OPERATOR_SRC_COR
  *
  * ```yaml
  * structs:
- *     ANON_STRUCT_1:
- *         properties: {}
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·12,mogenius-operator/src/core.Void]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·12,mogenius-operator/src/core.Void]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·12,bool]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·12,bool]
  *         properties:
  *             data:
- *                 pointer: true
- *                 structRef: ANON_STRUCT_1
- *                 type: struct
+ *                 type: bool
  *             message:
  *                 type: string
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·12,mogenius-operator/src/core.Void]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·12,bool]
  *     type: struct
  * ```
  *
  */
-export type FILES_CHOWN_RESPONSE = FILES_CHOWN_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST12_MOGENIUS_OPERATOR_SRC_CORE_VOID;
+export type FILES_CHOWN_RESPONSE = FILES_CHOWN_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST12_BOOL;
 
 /**
  * #### Source
@@ -3580,26 +3572,22 @@ export type FILES_CREATE_FOLDER_REQUEST = FILES_CREATE_FOLDER_REQUEST__MOGENIUS_
  *
  * ```yaml
  * structs:
- *     ANON_STRUCT_1:
- *         properties: {}
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·10,mogenius-operator/src/core.Void]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·10,mogenius-operator/src/core.Void]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·10,bool]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·10,bool]
  *         properties:
  *             data:
- *                 pointer: true
- *                 structRef: ANON_STRUCT_1
- *                 type: struct
+ *                 type: bool
  *             message:
  *                 type: string
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·10,mogenius-operator/src/core.Void]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·10,bool]
  *     type: struct
  * ```
  *
  */
-export type FILES_CREATE_FOLDER_RESPONSE = FILES_CREATE_FOLDER_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST10_MOGENIUS_OPERATOR_SRC_CORE_VOID;
+export type FILES_CREATE_FOLDER_RESPONSE = FILES_CREATE_FOLDER_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST10_BOOL;
 
 /**
  * #### Source
@@ -3634,26 +3622,22 @@ export type FILES_DELETE_REQUEST = FILES_DELETE_REQUEST__MOGENIUS_OPERATOR_SRC_C
  *
  * ```yaml
  * structs:
- *     ANON_STRUCT_1:
- *         properties: {}
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·14,mogenius-operator/src/core.Void]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·14,mogenius-operator/src/core.Void]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·14,bool]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·14,bool]
  *         properties:
  *             data:
- *                 pointer: true
- *                 structRef: ANON_STRUCT_1
- *                 type: struct
+ *                 type: bool
  *             message:
  *                 type: string
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·14,mogenius-operator/src/core.Void]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·14,bool]
  *     type: struct
  * ```
  *
  */
-export type FILES_DELETE_RESPONSE = FILES_DELETE_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST14_MOGENIUS_OPERATOR_SRC_CORE_VOID;
+export type FILES_DELETE_RESPONSE = FILES_DELETE_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST14_BOOL;
 
 /**
  * #### Source
@@ -3906,26 +3890,22 @@ export type FILES_RENAME_REQUEST = FILES_RENAME_REQUEST__MOGENIUS_OPERATOR_SRC_C
  *
  * ```yaml
  * structs:
- *     ANON_STRUCT_1:
- *         properties: {}
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·11,mogenius-operator/src/core.Void]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·11,mogenius-operator/src/core.Void]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·11,bool]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·11,bool]
  *         properties:
  *             data:
- *                 pointer: true
- *                 structRef: ANON_STRUCT_1
- *                 type: struct
+ *                 type: bool
  *             message:
  *                 type: string
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·11,mogenius-operator/src/core.Void]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·11,bool]
  *     type: struct
  * ```
  *
  */
-export type FILES_RENAME_RESPONSE = FILES_RENAME_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST11_MOGENIUS_OPERATOR_SRC_CORE_VOID;
+export type FILES_RENAME_RESPONSE = FILES_RENAME_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST11_BOOL;
 
 /**
  * #### Source
@@ -7672,30 +7652,22 @@ export type STORAGE_CREATE_VOLUME_REQUEST = STORAGE_CREATE_VOLUME_REQUEST__MOGEN
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/services.NfsVolumeRequest,mogenius-operator/src/structs.DefaultResponse]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/services.NfsVolumeRequest,mogenius-operator/src/structs.DefaultResponse]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/services.NfsVolumeRequest,bool]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/services.NfsVolumeRequest,bool]
  *         properties:
  *             data:
- *                 structRef: mogenius-operator/src/structs.DefaultResponse
- *                 type: struct
+ *                 type: bool
  *             message:
  *                 type: string
  *             status:
  *                 type: string
- *     mogenius-operator/src/structs.DefaultResponse:
- *         name: mogenius-operator/src/structs.DefaultResponse
- *         properties:
- *             error:
- *                 type: string
- *             success:
- *                 type: bool
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/services.NfsVolumeRequest,mogenius-operator/src/structs.DefaultResponse]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/services.NfsVolumeRequest,bool]
  *     type: struct
  * ```
  *
  */
-export type STORAGE_CREATE_VOLUME_RESPONSE = STORAGE_CREATE_VOLUME_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_SERVICES_NFSVOLUMEREQUEST_MOGENIUS_OPERATOR_SRC_STRUCTS_DEFAULTRESPONSE;
+export type STORAGE_CREATE_VOLUME_RESPONSE = STORAGE_CREATE_VOLUME_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_SERVICES_NFSVOLUMEREQUEST_BOOL;
 
 /**
  * #### Source
@@ -7724,30 +7696,22 @@ export type STORAGE_DELETE_VOLUME_REQUEST = STORAGE_DELETE_VOLUME_REQUEST__MOGEN
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/services.NfsVolumeRequest,mogenius-operator/src/structs.DefaultResponse]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/services.NfsVolumeRequest,mogenius-operator/src/structs.DefaultResponse]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/services.NfsVolumeRequest,bool]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/services.NfsVolumeRequest,bool]
  *         properties:
  *             data:
- *                 structRef: mogenius-operator/src/structs.DefaultResponse
- *                 type: struct
+ *                 type: bool
  *             message:
  *                 type: string
  *             status:
  *                 type: string
- *     mogenius-operator/src/structs.DefaultResponse:
- *         name: mogenius-operator/src/structs.DefaultResponse
- *         properties:
- *             error:
- *                 type: string
- *             success:
- *                 type: bool
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/services.NfsVolumeRequest,mogenius-operator/src/structs.DefaultResponse]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/services.NfsVolumeRequest,bool]
  *     type: struct
  * ```
  *
  */
-export type STORAGE_DELETE_VOLUME_RESPONSE = STORAGE_DELETE_VOLUME_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_SERVICES_NFSVOLUMEREQUEST_MOGENIUS_OPERATOR_SRC_STRUCTS_DEFAULTRESPONSE;
+export type STORAGE_DELETE_VOLUME_RESPONSE = STORAGE_DELETE_VOLUME_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_SERVICES_NFSVOLUMEREQUEST_BOOL;
 
 /**
  * #### Source
@@ -9048,20 +9012,16 @@ export type DESCRIBE_WORKLOAD_REQUEST__MOGENIUS_OPERATOR_SRC_UTILS_WORKLOADSINGL
 export type DESCRIBE_WORKLOAD_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_UTILS_WORKLOADSINGLEREQUEST_STRING = {"data": string,"message": string,"status": string};
 export type FILES_CHMOD_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"file": FILES_CHMOD_REQUEST__MOGENIUS_OPERATOR_SRC_DTOS_PERSISTENTFILEREQUESTDTO,"mode": string};
 export type FILES_CHMOD_REQUEST__MOGENIUS_OPERATOR_SRC_DTOS_PERSISTENTFILEREQUESTDTO = {"path": string,"volumeName": string,"volumeNamespace": string};
-export type FILES_CHMOD_RESPONSE__ANON_STRUCT_1 = {};
-export type FILES_CHMOD_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST13_MOGENIUS_OPERATOR_SRC_CORE_VOID = {"data": FILES_CHMOD_RESPONSE__ANON_STRUCT_1|undefined,"message": string,"status": string};
+export type FILES_CHMOD_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST13_BOOL = {"data": boolean,"message": string,"status": string};
 export type FILES_CHOWN_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"file": FILES_CHOWN_REQUEST__MOGENIUS_OPERATOR_SRC_DTOS_PERSISTENTFILEREQUESTDTO,"gid": string,"uid": string};
 export type FILES_CHOWN_REQUEST__MOGENIUS_OPERATOR_SRC_DTOS_PERSISTENTFILEREQUESTDTO = {"path": string,"volumeName": string,"volumeNamespace": string};
-export type FILES_CHOWN_RESPONSE__ANON_STRUCT_1 = {};
-export type FILES_CHOWN_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST12_MOGENIUS_OPERATOR_SRC_CORE_VOID = {"data": FILES_CHOWN_RESPONSE__ANON_STRUCT_1|undefined,"message": string,"status": string};
+export type FILES_CHOWN_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST12_BOOL = {"data": boolean,"message": string,"status": string};
 export type FILES_CREATE_FOLDER_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"folder": FILES_CREATE_FOLDER_REQUEST__MOGENIUS_OPERATOR_SRC_DTOS_PERSISTENTFILEREQUESTDTO};
 export type FILES_CREATE_FOLDER_REQUEST__MOGENIUS_OPERATOR_SRC_DTOS_PERSISTENTFILEREQUESTDTO = {"path": string,"volumeName": string,"volumeNamespace": string};
-export type FILES_CREATE_FOLDER_RESPONSE__ANON_STRUCT_1 = {};
-export type FILES_CREATE_FOLDER_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST10_MOGENIUS_OPERATOR_SRC_CORE_VOID = {"data": FILES_CREATE_FOLDER_RESPONSE__ANON_STRUCT_1|undefined,"message": string,"status": string};
+export type FILES_CREATE_FOLDER_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST10_BOOL = {"data": boolean,"message": string,"status": string};
 export type FILES_DELETE_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"file": FILES_DELETE_REQUEST__MOGENIUS_OPERATOR_SRC_DTOS_PERSISTENTFILEREQUESTDTO};
 export type FILES_DELETE_REQUEST__MOGENIUS_OPERATOR_SRC_DTOS_PERSISTENTFILEREQUESTDTO = {"path": string,"volumeName": string,"volumeNamespace": string};
-export type FILES_DELETE_RESPONSE__ANON_STRUCT_1 = {};
-export type FILES_DELETE_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST14_MOGENIUS_OPERATOR_SRC_CORE_VOID = {"data": FILES_DELETE_RESPONSE__ANON_STRUCT_1|undefined,"message": string,"status": string};
+export type FILES_DELETE_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST14_BOOL = {"data": boolean,"message": string,"status": string};
 export type FILES_DOWNLOAD_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"file": FILES_DOWNLOAD_REQUEST__MOGENIUS_OPERATOR_SRC_DTOS_PERSISTENTFILEREQUESTDTO,"postTo": string};
 export type FILES_DOWNLOAD_REQUEST__MOGENIUS_OPERATOR_SRC_DTOS_PERSISTENTFILEREQUESTDTO = {"path": string,"volumeName": string,"volumeNamespace": string};
 export type FILES_DOWNLOAD_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST15_MOGENIUS_OPERATOR_SRC_SERVICES_FILESDOWNLOADRESPONSE = {"data": FILES_DOWNLOAD_RESPONSE__MOGENIUS_OPERATOR_SRC_SERVICES_FILESDOWNLOADRESPONSE,"message": string,"status": string};
@@ -9075,8 +9035,7 @@ export type FILES_LIST_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERA
 export type FILES_LIST_RESPONSE__MOGENIUS_OPERATOR_SRC_DTOS_PERSISTENTFILEDTO = {"contentType": string,"createdAt": string,"extension": string,"hash": string,"mimeType": string,"mode": string,"modifiedAt": string,"name": string,"relativePath": string,"size": string,"sizeInBytes": number,"type": string,"uid_gid": string};
 export type FILES_RENAME_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"file": FILES_RENAME_REQUEST__MOGENIUS_OPERATOR_SRC_DTOS_PERSISTENTFILEREQUESTDTO,"newName": string};
 export type FILES_RENAME_REQUEST__MOGENIUS_OPERATOR_SRC_DTOS_PERSISTENTFILEREQUESTDTO = {"path": string,"volumeName": string,"volumeNamespace": string};
-export type FILES_RENAME_RESPONSE__ANON_STRUCT_1 = {};
-export type FILES_RENAME_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST11_MOGENIUS_OPERATOR_SRC_CORE_VOID = {"data": FILES_RENAME_RESPONSE__ANON_STRUCT_1|undefined,"message": string,"status": string};
+export type FILES_RENAME_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST11_BOOL = {"data": boolean,"message": string,"status": string};
 export type GET_GRANT_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"name": string};
 export type GET_GRANT_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_FIELDSV1 = {};
 export type GET_GRANT_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_MANAGEDFIELDSENTRY = {"apiVersion": string,"fieldsType": string,"fieldsV1": GET_GRANT_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_FIELDSV1|undefined,"manager": string,"operation": string,"subresource": string,"time": GET_GRANT_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TIME|undefined};
@@ -9291,11 +9250,9 @@ export type STATS_WORKSPACE_TRAFFIC_UTILIZATION_RESPONSE__MOGENIUS_OPERATOR_SRC_
 export type STATS_WORKSPACE_TRAFFIC_UTILIZATION_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST8_MOGENIUS_OPERATOR_SRC_CORE_GENERICCHARTENTRY = {"data": STATS_WORKSPACE_TRAFFIC_UTILIZATION_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_GENERICCHARTENTRY[],"message": string,"status": string};
 export type STATS_WORKSPACE_TRAFFIC_UTILIZATION_RESPONSE__TIME_TIME = {};
 export type STORAGE_CREATE_VOLUME_REQUEST__MOGENIUS_OPERATOR_SRC_SERVICES_NFSVOLUMEREQUEST = {"namespaceName": string,"sizeInGb": number,"volumeName": string};
-export type STORAGE_CREATE_VOLUME_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_SERVICES_NFSVOLUMEREQUEST_MOGENIUS_OPERATOR_SRC_STRUCTS_DEFAULTRESPONSE = {"data": STORAGE_CREATE_VOLUME_RESPONSE__MOGENIUS_OPERATOR_SRC_STRUCTS_DEFAULTRESPONSE,"message": string,"status": string};
-export type STORAGE_CREATE_VOLUME_RESPONSE__MOGENIUS_OPERATOR_SRC_STRUCTS_DEFAULTRESPONSE = {"error": string,"success": boolean};
+export type STORAGE_CREATE_VOLUME_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_SERVICES_NFSVOLUMEREQUEST_BOOL = {"data": boolean,"message": string,"status": string};
 export type STORAGE_DELETE_VOLUME_REQUEST__MOGENIUS_OPERATOR_SRC_SERVICES_NFSVOLUMEREQUEST = {"namespaceName": string,"sizeInGb": number,"volumeName": string};
-export type STORAGE_DELETE_VOLUME_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_SERVICES_NFSVOLUMEREQUEST_MOGENIUS_OPERATOR_SRC_STRUCTS_DEFAULTRESPONSE = {"data": STORAGE_DELETE_VOLUME_RESPONSE__MOGENIUS_OPERATOR_SRC_STRUCTS_DEFAULTRESPONSE,"message": string,"status": string};
-export type STORAGE_DELETE_VOLUME_RESPONSE__MOGENIUS_OPERATOR_SRC_STRUCTS_DEFAULTRESPONSE = {"error": string,"success": boolean};
+export type STORAGE_DELETE_VOLUME_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_SERVICES_NFSVOLUMEREQUEST_BOOL = {"data": boolean,"message": string,"status": string};
 export type STORAGE_STATS_REQUEST__MOGENIUS_OPERATOR_SRC_SERVICES_NFSVOLUMESTATSREQUEST = {"namespaceName": string,"volumeName": string};
 export type STORAGE_STATS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_SERVICES_NFSVOLUMESTATSREQUEST_MOGENIUS_OPERATOR_SRC_SERVICES_NFSVOLUMESTATSRESPONSE = {"data": STORAGE_STATS_RESPONSE__MOGENIUS_OPERATOR_SRC_SERVICES_NFSVOLUMESTATSRESPONSE,"message": string,"status": string};
 export type STORAGE_STATS_RESPONSE__MOGENIUS_OPERATOR_SRC_SERVICES_NFSVOLUMESTATSRESPONSE = {"freeBytes": number,"totalBytes": number,"usedBytes": number,"volumeName": string};

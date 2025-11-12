@@ -668,8 +668,8 @@ func (self *socketApi) registerPatterns() {
 		RegisterPatternHandler(
 			PatternHandle{self, "files/create-folder"},
 			PatternConfig{},
-			func(datagram structs.Datagram, request Request) (Void, error) {
-				return nil, services.CreateFolder(request.Folder)
+			func(datagram structs.Datagram, request Request) (bool, error) {
+				return true, services.CreateFolder(request.Folder)
 			},
 		)
 	}
@@ -684,8 +684,8 @@ func (self *socketApi) registerPatterns() {
 		RegisterPatternHandler(
 			PatternHandle{self, "files/rename"},
 			PatternConfig{},
-			func(datagram structs.Datagram, request Request) (Void, error) {
-				return nil, services.Rename(request.File, request.NewName)
+			func(datagram structs.Datagram, request Request) (bool, error) {
+				return true, services.Rename(request.File, request.NewName)
 			},
 		)
 	}
@@ -701,8 +701,8 @@ func (self *socketApi) registerPatterns() {
 		RegisterPatternHandler(
 			PatternHandle{self, "files/chown"},
 			PatternConfig{},
-			func(datagram structs.Datagram, request Request) (Void, error) {
-				return nil, services.Chown(request.File, request.Uid, request.Gid)
+			func(datagram structs.Datagram, request Request) (bool, error) {
+				return true, services.Chown(request.File, request.Uid, request.Gid)
 			},
 		)
 	}
@@ -717,8 +717,8 @@ func (self *socketApi) registerPatterns() {
 		RegisterPatternHandler(
 			PatternHandle{self, "files/chmod"},
 			PatternConfig{},
-			func(datagram structs.Datagram, request Request) (Void, error) {
-				return nil, services.Chmod(request.File, request.Mode)
+			func(datagram structs.Datagram, request Request) (bool, error) {
+				return true, services.Chmod(request.File, request.Mode)
 			},
 		)
 	}
@@ -732,8 +732,8 @@ func (self *socketApi) registerPatterns() {
 		RegisterPatternHandler(
 			PatternHandle{self, "files/delete"},
 			PatternConfig{},
-			func(datagram structs.Datagram, request Request) (Void, error) {
-				return nil, services.Delete(request.File)
+			func(datagram structs.Datagram, request Request) (bool, error) {
+				return true, services.Delete(request.File)
 			},
 		)
 	}
@@ -1518,13 +1518,16 @@ func (self *socketApi) registerPatterns() {
 	RegisterPatternHandler(
 		PatternHandle{self, "storage/create-volume"},
 		PatternConfig{},
-		func(datagram structs.Datagram, request services.NfsVolumeRequest) (structs.DefaultResponse, error) {
+		func(datagram structs.Datagram, request services.NfsVolumeRequest) (bool, error) {
 			res := services.CreateMogeniusNfsVolume(self.eventsClient, request)
 			_, err := store.AddToAuditLog(datagram, self.logger, res, fmt.Errorf("%s", res.Error), nil, nil)
 			if err != nil {
 				self.logger.Warn("failed to add event to audit log", "request", request, "error", err)
 			}
-			return res, nil
+			if res.Success == false {
+				return false, fmt.Errorf("%s", res.Error)
+			}
+			return true, nil
 		},
 	)
 
@@ -1532,13 +1535,16 @@ func (self *socketApi) registerPatterns() {
 	RegisterPatternHandler(
 		PatternHandle{self, "storage/delete-volume"},
 		PatternConfig{},
-		func(datagram structs.Datagram, request services.NfsVolumeRequest) (structs.DefaultResponse, error) {
+		func(datagram structs.Datagram, request services.NfsVolumeRequest) (bool, error) {
 			res := services.DeleteMogeniusNfsVolume(self.eventsClient, request)
 			_, err := store.AddToAuditLog(datagram, self.logger, res, fmt.Errorf("%s", res.Error), nil, nil)
 			if err != nil {
 				self.logger.Warn("failed to add event to audit log", "request", request, "error", err)
 			}
-			return res, nil
+			if res.Success == false {
+				return false, fmt.Errorf("%s", res.Error)
+			}
+			return true, nil
 		},
 	)
 
