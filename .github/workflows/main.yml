@@ -77,7 +77,7 @@ jobs:
             VERSION=${{ steps.git_version.outputs.version }}
             COMMIT_HASH=${{ github.sha }}
             GIT_BRANCH=${{ github.ref_name }}
-            BUILD_TIMESTAMP=${{ github.event.repository.updated_at }}
+            BUILD_TIMESTAMP=${{ github.event.head_commit.timestamp }}
           tags: |
             ${{ env.IMAGE_NAME }}:${{ steps.git_version.outputs.version }}
             ${{ env.IMAGE_NAME }}:latest
