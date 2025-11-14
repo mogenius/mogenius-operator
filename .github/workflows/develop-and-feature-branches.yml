@@ -92,6 +92,16 @@ jobs:
           # cache-to: type=gha,mode=max
           provenance: false
 
+      - name: Clean up Docker images
+        if: always()  # Auch bei Fehlern ausführen
+        run: |
+          # Entferne dangling images
+          docker image prune -f
+          
+          # Optional: Entferne auch die spezifischen Build-Images
+          docker rmi ${{ env.IMAGE_NAME }}:${{ steps.git_version.outputs.version }} || true
+          docker rmi ${{ env.IMAGE_NAME }}:latest || true
+          
   helm-chart:
     if: github.ref == 'refs/heads/develop'
     needs: [prepare, build-and-push-docker]
