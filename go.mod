@@ -3,7 +3,7 @@ module mogenius-operator
 go 1.25.4
 
 require (
-	github.com/alecthomas/kong v1.12.1
+	github.com/alecthomas/kong v1.13.0
 	github.com/bitnami-labs/sealed-secrets v0.33.1
 	github.com/cert-manager/cert-manager v1.19.1
 	github.com/creack/pty v1.1.24
@@ -25,7 +25,8 @@ require (
 	github.com/valkey-io/valkey-go v1.0.68
 	golang.org/x/term v0.37.0
 	gopkg.in/yaml.v3 v3.0.1
-	helm.sh/helm/v3 v3.19.1
+	helm.sh/helm/v3 v3.19.2
+	helm.sh/helm/v4 v4.0.0
 	k8s.io/api v0.34.2
 	k8s.io/apimachinery v0.34.2
 	k8s.io/client-go v0.34.2
