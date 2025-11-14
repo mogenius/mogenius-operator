@@ -10,7 +10,6 @@ on:
 env:
   IMAGE_NAME: ghcr.io/mogenius/mogenius-operator-dev
   REGISTRY: ghcr.io 
-  DOCKERFILE: Dockerfile
   DOCKER_CONFIG: ./.docker
   HELMNAME: "mogenius-operator-dev"
   HELMREPO: "mogenius/helm-k8s-manager"
