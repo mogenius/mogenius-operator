@@ -75,13 +75,13 @@ jobs:
             VERSION=${{ steps.git_version.outputs.version }}
             COMMIT_HASH=${{ github.sha }}
             GIT_BRANCH=${{ github.ref_name }}
-            BUILD_TIMESTAMP=${{ github.event.head_commit.timestamp }}
+            BUILD_TIMESTAMP=${{ github.event.head_commit.timestamp || github.event.repository.updated_at }}
           tags: |
             ${{ env.IMAGE_NAME }}:${{ steps.git_version.outputs.version }}
             ${{ env.IMAGE_NAME }}:latest
           labels: |
             org.opencontainers.image.version=${{ steps.git_version.outputs.version }}
-            org.opencontainers.image.created=${{ github.event.head_commit.timestamp }}
+            org.opencontainers.image.created=${{ github.event.head_commit.timestamp || github.event.repository.updated_at }}
             org.opencontainers.image.revision=${{ github.sha }}
           # cache-from: type=gha
           # cache-to: type=gha,mode=max
