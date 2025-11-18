@@ -1,7 +1,7 @@
 # Syntax für BuildKit features
 # syntax=docker/dockerfile:1
 
-# Build-Stage sollte native Platform verwenden für schnelleres Kompilieren
+# Build stage should use native platform for faster compilation
 FROM --platform=$BUILDPLATFORM golang:1.25.4 AS golang
 
 FROM --platform=$BUILDPLATFORM ubuntu:noble AS build-env
@@ -33,7 +33,7 @@ RUN set -x && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Linux headers nur für amd64 (für eBPF development)
+# Linux headers only for amd64 (for eBPF development)
 RUN if [ "$TARGETARCH" = "amd64" ]; then \
         apt-get update && \
         apt-get install -y linux-headers-generic && \
@@ -41,14 +41,14 @@ RUN if [ "$TARGETARCH" = "amd64" ]; then \
         rm -rf /var/lib/apt/lists/*; \
     fi
 
-# Rust/Cargo installieren für Just
+# Install Rust/Cargo for Just
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable
 ENV PATH="/root/.cargo/bin:${PATH}"
 
 # Rust Target für Cross-Compilation hinzufügen (falls nötig)
 RUN rustup target add $(rustc -vV | grep host | cut -d' ' -f2)
 
-# Just via Cargo installieren (funktioniert für alle Architekturen)
+# Install Just via Cargo (works for all architectures)
 RUN cargo install just && \
     rm -rf /root/.cargo/registry /root/.cargo/git
 
@@ -81,7 +81,7 @@ RUN set -x && \
 
 RUN echo "Build platform: $BUILDPLATFORM, Target platform: $TARGETPLATFORM"
 
-# dlv installation - nur für Build-Platform, nicht für Target
+# dlv installation - only for build platform, not for target
 RUN case "$BUILDPLATFORM" in \
         linux/amd64|linux/arm64) go install -v github.com/go-delve/delve/cmd/dlv@latest; ;; \
         *) echo "dlv not supported for build platform $BUILDPLATFORM, skipping installation." ;; \
@@ -118,27 +118,44 @@ COPY . .
 
 RUN go generate ./...
 
-# Cross-compile für die Target-Platform
-# WICHTIG: GOARM nur für arm/v7 setzen, nicht für arm64!
+# Cross-compile for the target platform with better debugging
 RUN set -x && \
-    echo "Building for TARGETOS=${TARGETOS} TARGETARCH=${TARGETARCH} TARGETVARIANT=${TARGETVARIANT}" && \
+    echo "=== Build Configuration ===" && \
+    echo "TARGETOS: ${TARGETOS}" && \
+    echo "TARGETARCH: ${TARGETARCH}" && \
+    echo "TARGETVARIANT: ${TARGETVARIANT}" && \
+    echo "VERSION: ${VERSION}" && \
+    echo "COMMIT_HASH: ${COMMIT_HASH}" && \
+    echo "GIT_BRANCH: ${GIT_BRANCH}" && \
+    echo "BUILD_TIMESTAMP: ${BUILD_TIMESTAMP}" && \
+    echo "===========================" && \
+    ls -la ./src/ && \
+    echo "===========================" 
+
+# Separate GOARM Logic
+RUN if [ "${TARGETARCH}" = "arm" ] && [ -n "${TARGETVARIANT}" ]; then \
+        echo "Setting GOARM for arm/v7" && \
+        export GOARM=${TARGETVARIANT#v} && \
+        echo "GOARM=${GOARM}"; \
+    fi
+
+# Actual build command - simplified for better readability
+RUN set -e && \
     export GOOS=${TARGETOS} && \
     export GOARCH=${TARGETARCH} && \
     if [ "${TARGETARCH}" = "arm" ] && [ -n "${TARGETVARIANT}" ]; then \
         export GOARM=${TARGETVARIANT#v}; \
-        echo "Setting GOARM=${GOARM}"; \
     fi && \
     go build -v -trimpath \
-        -gcflags="all=-l" \
-        -ldflags="-s -w \
-            -X 'mogenius-operator/src/version.GitCommitHash=${COMMIT_HASH}' \
-            -X 'mogenius-operator/src/version.Branch=${GIT_BRANCH}' \
-            -X 'mogenius-operator/src/version.BuildTimestamp=${BUILD_TIMESTAMP}' \
-            -X 'mogenius-operator/src/version.Ver=${VERSION}'" \
+        -gcflags='all=-l' \
+        -ldflags="-s -w -X mogenius-operator/src/version.GitCommitHash=${COMMIT_HASH} -X mogenius-operator/src/version.Branch=${GIT_BRANCH} -X mogenius-operator/src/version.BuildTimestamp=${BUILD_TIMESTAMP} -X mogenius-operator/src/version.Ver=${VERSION}" \
         -o bin/mogenius-operator \
-        ./src/main.go
+        ./src/main.go || (echo "=== BUILD FAILED ===" && echo "Go version:" && go version && echo "Environment:" && env | grep GO && exit 1)
 
-# Final Image sollte die Target-Platform verwenden
+# Verify binary was created
+RUN ls -lh bin/mogenius-operator && file bin/mogenius-operator
+
+# Final image should use the target platform
 FROM ubuntu:noble AS release-image
 
 ARG TARGETOS
