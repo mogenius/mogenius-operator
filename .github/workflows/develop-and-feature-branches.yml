@@ -10,7 +10,6 @@ on:
 env:
   IMAGE_NAME: ghcr.io/mogenius/mogenius-operator-dev
   REGISTRY: ghcr.io 
-  DOCKERFILE: Dockerfile
   DOCKER_CONFIG: ./.docker
   HELMNAME: "mogenius-operator-dev"
   HELMREPO: "mogenius/helm-k8s-manager"
@@ -25,13 +24,6 @@ jobs:
         with:
           ref: develop
           fetch-depth: 0
-
-      # - name: Login to GitHub Container Registry
-      #   uses: docker/login-action@v3
-      #   with:
-      #     registry: ghcr.io
-      #     username: ${{ github.repository_owner }}
-      #     password: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: actions/setup-node@v6
         with:
