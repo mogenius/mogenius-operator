@@ -25,3 +25,4 @@ bin
 .kubeconfig
 /patternlogs_*
 /patternlogs.jsonl
+Dockerfile.bak

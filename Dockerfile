@@ -18,15 +18,40 @@ ENV PATH=${GOPATH}/bin:/usr/local/go/bin:${PATH}
 ARG GITHUB_TOKEN
 ARG TARGETPLATFORM
 ARG BUILDPLATFORM
+ARG TARGETOS
+ARG TARGETARCH
+ARG TARGETVARIANT
 
-
-# Setup system
+# Setup system - OHNE linux-headers-generic und just (installieren wir später)
 RUN set -x && \
     apt-get update && \
-    apt-get install -y "curl" "jq" "clang" "llvm" "libelf-dev" "libbpf-dev" "git" "linux-headers-generic" "gcc" "libc6-dev" "make" "cmake" "libpcap-dev" "binutils" "build-essential" "binutils-gold" "iproute2" "lsb-release" "sudo" "ca-certificates" "wget" "just" "libssl-dev"
+    apt-get install -y \
+        curl jq clang llvm libelf-dev libbpf-dev git \
+        gcc libc6-dev make cmake libpcap-dev binutils \
+        build-essential binutils-gold iproute2 lsb-release \
+        sudo ca-certificates wget libssl-dev && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Linux headers nur für amd64 (für eBPF development)
+RUN if [ "$TARGETARCH" = "amd64" ]; then \
+        apt-get update && \
+        apt-get install -y linux-headers-generic && \
+        apt-get clean && \
+        rm -rf /var/lib/apt/lists/*; \
+    fi
+
+# Just manuell für die richtige Architektur installieren
+RUN case ${TARGETARCH} in \
+        "amd64")  JUST_ARCH="x86_64-unknown-linux-musl"  ;; \
+        "arm64")  JUST_ARCH="aarch64-unknown-linux-musl" ;; \
+        "arm")    JUST_ARCH="arm-unknown-linux-musleabihf" ;; \
+        *) echo "Unsupported arch for just: $TARGETARCH"; exit 1;; \
+    esac && \
+    wget -qO- "https://github.com/casey/just/releases/latest/download/just-${JUST_ARCH}.tar.gz" | \
+    tar xz -C /usr/local/bin
 
 # Fetch the latest release download URL for the specific architecture
-# WICHTIG: Wir müssen die TARGETPLATFORM auswerten, nicht uname -m
 RUN case "$TARGETPLATFORM" in \
         "linux/amd64") ARCH="x86_64";; \
         "linux/arm64") ARCH="aarch64";; \
@@ -92,14 +117,24 @@ COPY . .
 RUN go generate ./...
 
 # Cross-compile für die Target-Platform
-RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} GOARM=${TARGETVARIANT#v} \
-    go build -trimpath -gcflags="all=-l" -ldflags="-s -w \
-    -X 'mogenius-operator/src/version.GitCommitHash=${COMMIT_HASH}' \
-    -X 'mogenius-operator/src/version.Branch=${GIT_BRANCH}' \
-    -X 'mogenius-operator/src/version.BuildTimestamp=${BUILD_TIMESTAMP}' \
-    -X 'mogenius-operator/src/version.Ver=${VERSION}'" \
-    -o "bin/mogenius-operator" \
-    ./src/main.go
+# WICHTIG: GOARM nur für arm/v7 setzen, nicht für arm64!
+RUN set -x && \
+    echo "Building for TARGETOS=${TARGETOS} TARGETARCH=${TARGETARCH} TARGETVARIANT=${TARGETVARIANT}" && \
+    export GOOS=${TARGETOS} && \
+    export GOARCH=${TARGETARCH} && \
+    if [ "${TARGETARCH}" = "arm" ] && [ -n "${TARGETVARIANT}" ]; then \
+        export GOARM=${TARGETVARIANT#v}; \
+        echo "Setting GOARM=${GOARM}"; \
+    fi && \
+    go build -v -trimpath \
+        -gcflags="all=-l" \
+        -ldflags="-s -w \
+            -X 'mogenius-operator/src/version.GitCommitHash=${COMMIT_HASH}' \
+            -X 'mogenius-operator/src/version.Branch=${GIT_BRANCH}' \
+            -X 'mogenius-operator/src/version.BuildTimestamp=${BUILD_TIMESTAMP}' \
+            -X 'mogenius-operator/src/version.Ver=${VERSION}'" \
+        -o bin/mogenius-operator \
+        ./src/main.go
 
 # Final Image sollte die Target-Platform verwenden
 FROM --platform=$TARGETPLATFORM ubuntu:noble AS release-image
