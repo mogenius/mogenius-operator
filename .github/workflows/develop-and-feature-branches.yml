@@ -78,7 +78,6 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64,linux/arm/v7
           push: true
-          outputs: type=docker
           build-args: |
             GITHUB_TOKEN=${{ secrets.SNOOPY_DOWNLOAD_TOKEN }}
             VERSION=${{ steps.git_version.outputs.version }}
