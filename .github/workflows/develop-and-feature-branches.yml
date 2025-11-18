@@ -71,11 +71,14 @@ jobs:
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
+        env:
+          BUILDKIT_PROGRESS: plain
+          ACTIONS_STEP_DEBUG: true
         with:
           context: .
           platforms: linux/amd64,linux/arm64,linux/arm/v7
           push: true
-          progress: plain
+          outputs: type=docker
           build-args: |
             GITHUB_TOKEN=${{ secrets.SNOOPY_DOWNLOAD_TOKEN }}
             VERSION=${{ steps.git_version.outputs.version }}
