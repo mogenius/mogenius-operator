@@ -118,7 +118,7 @@ COPY . .
 
 RUN go generate ./...
 
-# Actual build command - simplified
+## Actual build command - with better error output
 RUN set -e && \
     export GOOS=${TARGETOS} && \
     export GOARCH=${TARGETARCH} && \
@@ -131,6 +131,8 @@ RUN set -e && \
     echo "TARGETARCH: ${TARGETARCH}" && \
     echo "TARGETVARIANT: ${TARGETVARIANT}" && \
     echo "GOARM: ${GOARM:-not set}" && \
+    echo "GOOS: ${GOOS}" && \
+    echo "GOARCH: ${GOARCH}" && \
     echo "VERSION: ${VERSION}" && \
     echo "COMMIT_HASH: ${COMMIT_HASH}" && \
     echo "GIT_BRANCH: ${GIT_BRANCH}" && \
@@ -140,7 +142,16 @@ RUN set -e && \
         -gcflags='all=-l' \
         -ldflags="-s -w -X mogenius-operator/src/version.GitCommitHash=${COMMIT_HASH} -X mogenius-operator/src/version.Branch=${GIT_BRANCH} -X mogenius-operator/src/version.BuildTimestamp=${BUILD_TIMESTAMP} -X mogenius-operator/src/version.Ver=${VERSION}" \
         -o bin/mogenius-operator \
-        ./src/main.go || (echo "=== BUILD FAILED ===" && go version && env | grep -E 'GO|TARGET' && exit 1)
+        ./src/main.go 2>&1 || { \
+            echo "=== BUILD FAILED ===" >&2; \
+            echo "Go version:" >&2; \
+            go version >&2; \
+            echo "Environment:" >&2; \
+            env | grep -E 'GO|TARGET' >&2; \
+            echo "Files in src/:" >&2; \
+            ls -la ./src/ >&2; \
+            exit 1; \
+        }
 
 # Verify binary was created
 RUN ls -lh bin/mogenius-operator && file bin/mogenius-operator
