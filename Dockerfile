@@ -138,6 +138,7 @@ RUN set -e && \
     echo "GIT_BRANCH: ${GIT_BRANCH}" && \
     echo "BUILD_TIMESTAMP: ${BUILD_TIMESTAMP}" && \
     echo "===========================" && \
+    go mod tidy && \
     go build -v -trimpath \
         -gcflags='all=-l' \
         -ldflags="-s -w -X mogenius-operator/src/version.GitCommitHash=${COMMIT_HASH} -X mogenius-operator/src/version.Branch=${GIT_BRANCH} -X mogenius-operator/src/version.BuildTimestamp=${BUILD_TIMESTAMP} -X mogenius-operator/src/version.Ver=${VERSION}" \
