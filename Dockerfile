@@ -118,39 +118,29 @@ COPY . .
 
 RUN go generate ./...
 
-# Cross-compile for the target platform with better debugging
-RUN set -x && \
-    echo "=== Build Configuration ===" && \
-    echo "TARGETOS: ${TARGETOS}" && \
-    echo "TARGETARCH: ${TARGETARCH}" && \
-    echo "TARGETVARIANT: ${TARGETVARIANT}" && \
-    echo "VERSION: ${VERSION}" && \
-    echo "COMMIT_HASH: ${COMMIT_HASH}" && \
-    echo "GIT_BRANCH: ${GIT_BRANCH}" && \
-    echo "BUILD_TIMESTAMP: ${BUILD_TIMESTAMP}" && \
-    echo "===========================" && \
-    ls -la ./src/ && \
-    echo "===========================" 
-
-# Separate GOARM Logic
-RUN if [ "${TARGETARCH}" = "arm" ] && [ -n "${TARGETVARIANT}" ]; then \
-        echo "Setting GOARM for arm/v7" && \
-        export GOARM=${TARGETVARIANT#v} && \
-        echo "GOARM=${GOARM}"; \
-    fi
-
-# Actual build command - simplified for better readability
+# Actual build command - simplified
 RUN set -e && \
     export GOOS=${TARGETOS} && \
     export GOARCH=${TARGETARCH} && \
     if [ "${TARGETARCH}" = "arm" ] && [ -n "${TARGETVARIANT}" ]; then \
         export GOARM=${TARGETVARIANT#v}; \
+        echo "GOARM=${GOARM}"; \
     fi && \
+    echo "=== Build Configuration ===" && \
+    echo "TARGETOS: ${TARGETOS}" && \
+    echo "TARGETARCH: ${TARGETARCH}" && \
+    echo "TARGETVARIANT: ${TARGETVARIANT}" && \
+    echo "GOARM: ${GOARM:-not set}" && \
+    echo "VERSION: ${VERSION}" && \
+    echo "COMMIT_HASH: ${COMMIT_HASH}" && \
+    echo "GIT_BRANCH: ${GIT_BRANCH}" && \
+    echo "BUILD_TIMESTAMP: ${BUILD_TIMESTAMP}" && \
+    echo "===========================" && \
     go build -v -trimpath \
         -gcflags='all=-l' \
         -ldflags="-s -w -X mogenius-operator/src/version.GitCommitHash=${COMMIT_HASH} -X mogenius-operator/src/version.Branch=${GIT_BRANCH} -X mogenius-operator/src/version.BuildTimestamp=${BUILD_TIMESTAMP} -X mogenius-operator/src/version.Ver=${VERSION}" \
         -o bin/mogenius-operator \
-        ./src/main.go || (echo "=== BUILD FAILED ===" && echo "Go version:" && go version && echo "Environment:" && env | grep GO && exit 1)
+        ./src/main.go || (echo "=== BUILD FAILED ===" && go version && env | grep -E 'GO|TARGET' && exit 1)
 
 # Verify binary was created
 RUN ls -lh bin/mogenius-operator && file bin/mogenius-operator
