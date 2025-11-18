@@ -22,7 +22,7 @@ ARG TARGETOS
 ARG TARGETARCH
 ARG TARGETVARIANT
 
-# Setup system - OHNE linux-headers-generic und just (installieren wir später)
+# Setup system - Basis-Packages
 RUN set -x && \
     apt-get update && \
     apt-get install -y \
@@ -41,15 +41,16 @@ RUN if [ "$TARGETARCH" = "amd64" ]; then \
         rm -rf /var/lib/apt/lists/*; \
     fi
 
-# Just manuell für die richtige Architektur installieren
-RUN case ${TARGETARCH} in \
-        "amd64")  JUST_ARCH="x86_64-unknown-linux-musl"  ;; \
-        "arm64")  JUST_ARCH="aarch64-unknown-linux-musl" ;; \
-        "arm")    JUST_ARCH="arm-unknown-linux-musleabihf" ;; \
-        *) echo "Unsupported arch for just: $TARGETARCH"; exit 1;; \
-    esac && \
-    wget -qO- "https://github.com/casey/just/releases/latest/download/just-${JUST_ARCH}.tar.gz" | \
-    tar xz -C /usr/local/bin
+# Rust/Cargo installieren für Just
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable
+ENV PATH="/root/.cargo/bin:${PATH}"
+
+# Rust Target für Cross-Compilation hinzufügen (falls nötig)
+RUN rustup target add $(rustc -vV | grep host | cut -d' ' -f2)
+
+# Just via Cargo installieren (funktioniert für alle Architekturen)
+RUN cargo install just && \
+    rm -rf /root/.cargo/registry /root/.cargo/git
 
 # Fetch the latest release download URL for the specific architecture
 RUN case "$TARGETPLATFORM" in \
@@ -93,6 +94,7 @@ WORKDIR /app
 
 RUN go version
 RUN bpftool version
+RUN just --version
 
 FROM build-env AS builder
 
@@ -137,7 +139,7 @@ RUN set -x && \
         ./src/main.go
 
 # Final Image sollte die Target-Platform verwenden
-FROM --platform=$TARGETPLATFORM ubuntu:noble AS release-image
+FROM ubuntu:noble AS release-image
 
 ARG TARGETOS
 ARG TARGETARCH
