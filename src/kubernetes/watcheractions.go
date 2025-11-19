@@ -409,6 +409,24 @@ func TriggerUnstructuredResource(apiVersion string, plural string, namespace str
 			return nil, err
 		}
 
+		if plural == "cronjobs" {
+			// get owner references
+			ownerRefs, _, _ := unstructured.NestedSlice(job.Object, "metadata", "ownerReferences")
+			if len(ownerRefs) == 0 {
+				// if no owner references exists, create one
+				ownerRef := map[string]any{
+					"apiVersion":         job.GetAPIVersion(),
+					"kind":               job.GetKind(),
+					"name":               job.GetName(),
+					"uid":                string(job.GetUID()),
+					"controller":         true,
+					"blockOwnerDeletion": true,
+				}
+				ownerRefs = append(ownerRefs, ownerRef)
+				_ = unstructured.SetNestedSlice(job.Object, ownerRefs, "metadata", "ownerReferences")
+			}
+		}
+
 		// cleanup
 		unstructured.RemoveNestedField(job.Object, "metadata", "uid")
 		unstructured.RemoveNestedField(job.Object, "metadata", "resourceVersion")
