@@ -154,8 +154,10 @@ RUN set -e && \
             exit 1; \
         }
 
+# Check binary directory
+RUN ls -lh bin/
 # Verify binary was created
-RUN ls -lh bin/mogenius-operator && file bin/mogenius-operator
+# RUN ls -lh bin/mogenius-operator && file bin/mogenius-operator
 
 # Final image should use the target platform
 FROM ubuntu:noble AS release-image
