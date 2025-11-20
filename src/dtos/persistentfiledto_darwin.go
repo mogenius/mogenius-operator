@@ -3,7 +3,7 @@ package dtos
 import (
 	"fmt"
 	"io/fs"
-	"mogenius-k8s-manager/src/utils"
+	"mogenius-operator/src/utils"
 	"os"
 	"path/filepath"
 	"syscall"
@@ -26,11 +26,11 @@ type PersistentFileDto struct {
 	Mode         string `json:"mode,omitempty"`
 }
 
-func PersistentFileDtoFrom(rootDir string, path string) PersistentFileDto {
+func PersistentFileDtoFrom(rootDir string, path string) (PersistentFileDto, error) {
 	info, err := os.Stat(path)
 	if err != nil {
-		dtosLogger.Warn("FileStatErr", "error", err.Error())
-		return PersistentFileDto{}
+		fmt.Println("Darwin FileStatErr", err.Error())
+		return PersistentFileDto{}, err
 	}
 
 	fileType := "file"
@@ -65,5 +65,5 @@ func PersistentFileDtoFrom(rootDir string, path string) PersistentFileDto {
 		ModifiedAt:   modTime,
 		Uid_gid:      uidGid,
 		Mode:         fmt.Sprintf("%o", filemode),
-	}
+	}, nil
 }

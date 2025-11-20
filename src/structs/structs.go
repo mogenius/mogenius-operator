@@ -1,7 +1,7 @@
 package structs
 
 import (
-	"mogenius-k8s-manager/src/logging"
+	"mogenius-operator/src/logging"
 )
 
 var logManager logging.SlogManager

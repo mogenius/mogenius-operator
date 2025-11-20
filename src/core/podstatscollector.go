@@ -4,11 +4,12 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"mogenius-k8s-manager/src/assert"
-	"mogenius-k8s-manager/src/config"
-	"mogenius-k8s-manager/src/k8sclient"
-	"mogenius-k8s-manager/src/podstatscollector"
-	"mogenius-k8s-manager/src/structs"
+	"mogenius-operator/src/assert"
+	"mogenius-operator/src/config"
+	"mogenius-operator/src/k8sclient"
+	"mogenius-operator/src/podstatscollector"
+	"mogenius-operator/src/store"
+	"mogenius-operator/src/structs"
 	"strconv"
 	"time"
 
@@ -68,7 +69,7 @@ func (self *podStatsCollector) Run() {
 				nodemetrics := self.getRealNodeMetrics()
 
 				currentPods := map[string]v1.Pod{}
-				pods := self.listAllPods()
+				pods := store.GetPods("*")
 				for _, pod := range pods {
 					currentPods[pod.Name] = pod
 				}
@@ -99,18 +100,6 @@ func (self *podStatsCollector) Run() {
 	}
 }
 
-func (self *podStatsCollector) listAllPods() []v1.Pod {
-	result := []v1.Pod{}
-
-	pods, err := self.clientProvider.K8sClientSet().CoreV1().Pods("").List(context.Background(), metav1.ListOptions{})
-	if err != nil {
-		self.logger.Error("failed to listAllPods", "error", err)
-		return result
-	}
-
-	return pods.Items
-}
-
 func (self *podStatsCollector) nodeStats(nodemetrics []podstatscollector.NodeMetrics) []structs.NodeStats {
 	result := []structs.NodeStats{}
 
@@ -135,13 +124,8 @@ func (self *podStatsCollector) nodeStats(nodemetrics []podstatscollector.NodeMet
 }
 
 func (self *podStatsCollector) getRealNodeMetrics() []podstatscollector.NodeMetrics {
-	nodeList, err := self.clientProvider.K8sClientSet().CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
-	if err != nil {
-		self.logger.Error("failed to getRealNodeMetrics", "error", err)
-	}
-
 	result := []podstatscollector.NodeMetrics{}
-	for _, node := range nodeList.Items {
+	for _, node := range store.GetNodes() {
 		nodeStats, err := self.requestMetricsDataFromNode(node.Name)
 		if err != nil {
 			self.logger.Error("failed to request metrics from node", "error", err)

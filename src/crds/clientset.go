@@ -1,8 +1,9 @@
 package crds
 
 import (
+	mogeniusclient "mogenius-operator/src/crds/client"
+
 	"k8s.io/client-go/rest"
-	mogeniusclient "mogenius-k8s-manager/src/crds/client"
 )
 
 type MogeniusClientSet struct {

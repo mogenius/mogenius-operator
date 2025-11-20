@@ -39,7 +39,7 @@ type WorkspaceSpec struct {
 
 func NewWorkspaceSpec(displayName string, resources []WorkspaceResourceIdentifier) WorkspaceSpec {
 	return WorkspaceSpec{
-		Name:      displayName, // TODO: rename the field to displayName as the Name should be used for Workspace.meta.name and repetition is unnecessary
+		Name:      displayName,
 		Resources: resources,
 	}
 }

@@ -2,8 +2,8 @@ package core
 
 import (
 	"io"
-	"mogenius-k8s-manager/src/assert"
-	"mogenius-k8s-manager/src/utils"
+	"mogenius-operator/src/assert"
+	"mogenius-operator/src/utils"
 	"net/http"
 
 	json "github.com/json-iterator/go"
@@ -52,6 +52,15 @@ func (self *httpService) httpSocketApi(w http.ResponseWriter, r *http.Request) {
 func (self *httpService) serveApiDocHtml(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
 	html := utils.IndexHtml()
+	_, err := w.Write([]byte(html))
+	if err != nil {
+		self.logger.Error("failed to write index.html response", "error", err)
+	}
+}
+
+func (self *httpService) serveNodeStatsHtml(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html")
+	html := utils.NodeStatsHtml()
 	_, err := w.Write([]byte(html))
 	if err != nil {
 		self.logger.Error("failed to write index.html response", "error", err)

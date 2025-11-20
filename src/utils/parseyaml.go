@@ -1,7 +1,7 @@
 package utils
 
 import (
-	"mogenius-k8s-manager/src/shutdown"
+	"mogenius-operator/src/shutdown"
 
 	v1 "k8s.io/api/apps/v1"
 	v1job "k8s.io/api/batch/v1"
@@ -138,70 +138,6 @@ func InitSecret() corev1.Secret {
 	return app
 }
 
-func InitContainerSecret() corev1.Secret {
-	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/container-secret.yaml")
-	if err != nil {
-		panic(err.Error())
-	}
-
-	s := json.NewYAMLSerializer(json.DefaultMetaFactory, scheme.Scheme, scheme.Scheme)
-
-	var app corev1.Secret
-	_, _, err = s.Decode(yaml, nil, &app)
-	if err != nil {
-		panic(err)
-	}
-	return app
-}
-
-func InitCronJob() v1job.CronJob {
-	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/cronjob-example.yaml")
-	if err != nil {
-		panic(err.Error())
-	}
-
-	s := json.NewYAMLSerializer(json.DefaultMetaFactory, scheme.Scheme, scheme.Scheme)
-
-	var app v1job.CronJob
-	_, _, err = s.Decode(yaml, nil, &app)
-	if err != nil {
-		panic(err)
-	}
-	return app
-}
-
-func InitDeployment() v1.Deployment {
-	yaml, err := YamlTemplatesFolder.ReadFile("yaml-templates/deployment.yaml")
-	if err != nil {
-		panic(err.Error())
-	}
-
-	s := json.NewYAMLSerializer(json.DefaultMetaFactory, scheme.Scheme, scheme.Scheme)
-
-	var app v1.Deployment
-	_, _, err = s.Decode(yaml, nil, &app)
-	if err != nil {
-		panic(err)
-	}
-	return app
-}
-
-func InitExternalSecretsStoreYaml() string {
-	return readYaml("yaml-templates/external-secrets-store-vault.yaml")
-}
-
-func InitExternalSecretListYaml() string {
-	return readYaml("yaml-templates/external-secret-list-available-kvs.yaml")
-}
-
-func InitExternalSecretYaml() string {
-	return readYaml("yaml-templates/external-secret.yaml")
-}
-
-func InitNetworkPolicyDefaultsYaml() string {
-	return readYaml("yaml-templates/networkpolicies-default-ports.yaml")
-}
-
 func InitResourceTemplatesYaml() string {
 	return readYaml("yaml-templates/resource-templates-configmap.yaml")
 }
@@ -218,6 +154,14 @@ func readYaml(filePath string) string {
 
 func IndexHtml() string {
 	html, err := HtmlFolder.ReadFile("html/index.html")
+	if err != nil {
+		utilsLogger.Error("failed to read embedded file from HtmlFolder", "error", err)
+	}
+	return string(html)
+}
+
+func NodeStatsHtml() string {
+	html, err := HtmlFolder.ReadFile("html/node-stats.html")
 	if err != nil {
 		utilsLogger.Error("failed to read embedded file from HtmlFolder", "error", err)
 	}

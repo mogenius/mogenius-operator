@@ -3,11 +3,16 @@ package kubernetes
 import (
 	"context"
 	"fmt"
-	"mogenius-k8s-manager/src/structs"
-	"mogenius-k8s-manager/src/utils"
-	"mogenius-k8s-manager/src/websocket"
+	"mogenius-operator/src/assert"
+	cfg "mogenius-operator/src/config"
+	"mogenius-operator/src/store"
+	"mogenius-operator/src/structs"
+	"mogenius-operator/src/utils"
+	"mogenius-operator/src/websocket"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/utils/ptr"
 )
 
 func ClusterForceReconnect() bool {
@@ -66,7 +71,7 @@ func ClusterForceDisconnect() bool {
 	return true
 }
 
-func UpgradeMyself(eventClient websocket.WebsocketClient, job *structs.Job, command string) {
+func UpgradeMyself(eventClient websocket.WebsocketClient, job *structs.Job, command string) (*structs.Job, error) {
 	cmd := structs.CreateCommand(eventClient, "upgrade operator", "Upgrade mogenius platform ...", job)
 	cmd.Start(eventClient, job, "Upgrade mogenius platform ...")
 
@@ -74,9 +79,10 @@ func UpgradeMyself(eventClient websocket.WebsocketClient, job *structs.Job, comm
 	jobClient := clientset.BatchV1().Jobs(config.Get("MO_OWN_NAMESPACE"))
 	configmapClient := clientset.CoreV1().ConfigMaps(config.Get("MO_OWN_NAMESPACE"))
 
-	ownerReference, err := utils.GetOwnDeploymentOwnerReference(clientset, config)
+	ownerReference, err := GetOwnDeploymentOwnerReference(clientset, config)
 	if err != nil {
 		k8sLogger.Error("Error getting owner reference for upgrade job", "error", err)
+		return nil, err
 	}
 
 	configmap := utils.InitUpgradeConfigMap()
@@ -96,14 +102,14 @@ func UpgradeMyself(eventClient websocket.WebsocketClient, job *structs.Job, comm
 		_, err = configmapClient.Create(context.Background(), &configmap, MoCreateOptions(config))
 		if err != nil {
 			cmd.Fail(eventClient, job, fmt.Sprintf("UpgradeMyself (configmap) ERROR: %s", err.Error()))
-			return
+			return nil, err
 		}
 	} else {
 		// UPDATE
 		_, err = configmapClient.Update(context.Background(), &configmap, metav1.UpdateOptions{})
 		if err != nil {
 			cmd.Fail(eventClient, job, fmt.Sprintf("UpgradeMyself (update_configmap) ERROR: %s", err.Error()))
-			return
+			return nil, err
 		}
 	}
 
@@ -114,15 +120,40 @@ func UpgradeMyself(eventClient websocket.WebsocketClient, job *structs.Job, comm
 		_, err = jobClient.Create(context.Background(), &k8sjob, MoCreateOptions(config))
 		if err != nil {
 			cmd.Fail(eventClient, job, fmt.Sprintf("UpgradeMyself (job) ERROR: %s", err.Error()))
-			return
+			return nil, err
 		}
 	} else {
 		// UPDATE
 		_, err = jobClient.Update(context.Background(), &k8sjob, metav1.UpdateOptions{})
 		if err != nil {
 			cmd.Fail(eventClient, job, fmt.Sprintf("UpgradeMyself (update_job) ERROR: %s", err.Error()))
-			return
+			return nil, err
 		}
 	}
 	cmd.Success(eventClient, job, "Upgraded platform successfully.")
+	return job, nil
+}
+
+func GetOwnDeploymentOwnerReference(clientset *kubernetes.Clientset, config cfg.ConfigModule) ([]metav1.OwnerReference, error) {
+	ownDeploymentName := config.Get("OWN_DEPLOYMENT_NAME")
+	assert.Assert(ownDeploymentName != "")
+
+	namespace := config.Get("MO_OWN_NAMESPACE")
+	assert.Assert("MO_OWN_NAMESPACE" != "")
+
+	ownDeployment := store.GetDeployment(namespace, ownDeploymentName) // to cache it
+	if ownDeployment == nil {
+		return nil, fmt.Errorf("failed to find own deployment %s in namespace %s", ownDeploymentName, namespace)
+	}
+	reference := []metav1.OwnerReference{
+		{
+			APIVersion: "apps/v1",
+			Kind:       "Deployment",
+			Name:       ownDeployment.GetName(),
+			UID:        ownDeployment.GetUID(),
+			Controller: ptr.To(true),
+		},
+	}
+
+	return reference, nil
 }

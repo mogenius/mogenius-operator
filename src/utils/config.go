@@ -18,106 +18,133 @@ type ClusterSecret struct {
 	RedisDataModelVersion string
 }
 
-type ResourceEntry struct {
-	Kind      string  `json:"kind"`
-	Name      string  `json:"name"`
-	Group     string  `json:"group"`
-	Version   string  `json:"version"`
-	Namespace *string `json:"namespace"`
+type ResourceDescriptor struct {
+	Kind       string `json:"kind"`
+	Plural     string `json:"plural"`
+	ApiVersion string `json:"apiVersion"`
+	Namespaced bool   `json:"namespaced"`
 }
 
-type ResourceData struct {
-	Kind      string  `json:"kind"`
-	Name      string  `json:"name"`
-	Group     string  `json:"group"`
-	Version   string  `json:"version"`
-	Namespace *string `json:"namespace"`
-	YamlData  string  `json:"yamlData"`
-}
-
-type ResourceItem struct {
-	Kind         string `json:"kind"`
-	Name         string `json:"name"`
-	Group        string `json:"group"`
-	Version      string `json:"version"`
-	ResourceName string `json:"resourceName"`
+type WorkloadSingleRequest struct {
+	ResourceDescriptor
 	Namespace    string `json:"namespace"`
+	ResourceName string `json:"resourceName"`
 }
 
-var DeploymentResource = ResourceEntry{
-	Kind:  "Deployment",
-	Name:  "deployments",
-	Group: "apps/v1",
-}
-var StatefulSetResource = ResourceEntry{
-	Kind:  "StatefulSet",
-	Name:  "statefulsets",
-	Group: "apps/v1",
-}
-var DaemonSetResource = ResourceEntry{
-	Kind:  "DaemonSet",
-	Name:  "daemonsets",
-	Group: "apps/v1",
+type WorkloadChangeRequest struct {
+	ResourceDescriptor
+	Namespace string `json:"namespace"`
+	YamlData  string `json:"yamlData"`
 }
 
-var JobResource = ResourceEntry{
-	Kind:  "Job",
-	Name:  "jobs",
-	Group: "batch/v1",
+var DeploymentResource = ResourceDescriptor{
+	Kind:       "Deployment",
+	Plural:     "deployments",
+	ApiVersion: "apps/v1",
+	Namespaced: true,
+}
+var StatefulSetResource = ResourceDescriptor{
+	Kind:       "StatefulSet",
+	Plural:     "statefulsets",
+	ApiVersion: "apps/v1",
+	Namespaced: true,
+}
+var DaemonSetResource = ResourceDescriptor{
+	Kind:       "DaemonSet",
+	Plural:     "daemonsets",
+	ApiVersion: "apps/v1",
+	Namespaced: true,
 }
 
-var CronJobResource = ResourceEntry{
-	Kind:  "CronJob",
-	Name:  "cronjobs",
-	Group: "batch/v1",
+var JobResource = ResourceDescriptor{
+	Kind:       "Job",
+	Plural:     "jobs",
+	ApiVersion: "batch/v1",
+	Namespaced: true,
 }
 
-var ReplicaSetResource = ResourceEntry{
-	Kind:  "ReplicaSet",
-	Name:  "replicasets",
-	Group: "apps/v1",
+var CronJobResource = ResourceDescriptor{
+	Kind:       "CronJob",
+	Plural:     "cronjobs",
+	ApiVersion: "batch/v1",
+	Namespaced: true,
 }
 
-var NetworkPolicyResource = ResourceEntry{
-	Kind:  "NetworkPolicy",
-	Name:  "networkpolicies",
-	Group: "networking.k8s.io/v1",
+var ReplicaSetResource = ResourceDescriptor{
+	Kind:       "ReplicaSet",
+	Plural:     "replicasets",
+	ApiVersion: "apps/v1",
+	Namespaced: true,
 }
 
-var PodResource = ResourceEntry{
-	Kind:  "Pod",
-	Name:  "pods",
-	Group: "v1",
+var NetworkPolicyResource = ResourceDescriptor{
+	Kind:       "NetworkPolicy",
+	Plural:     "networkpolicies",
+	ApiVersion: "networking.k8s.io/v1",
+	Namespaced: true,
 }
 
-var SecretResource = ResourceEntry{
-	Kind:  "Secret",
-	Name:  "secrets",
-	Group: "v1",
+var PodResource = ResourceDescriptor{
+	Kind:       "Pod",
+	Plural:     "pods",
+	ApiVersion: "v1",
+	Namespaced: true,
 }
 
-var NamespaceResource = ResourceEntry{
-	Kind:  "Namespace",
-	Name:  "namespaces",
-	Group: "v1",
+var IngressClassResource = ResourceDescriptor{
+	Kind:       "IngressClass",
+	Plural:     "ingressclasses",
+	ApiVersion: "networking.k8s.io/v1",
+	Namespaced: false,
 }
 
-var EventResource = ResourceEntry{
-	Kind:  "Event",
-	Name:  "events",
-	Group: "v1",
+var SecretResource = ResourceDescriptor{
+	Kind:       "Secret",
+	Plural:     "secrets",
+	ApiVersion: "v1",
+	Namespaced: true,
 }
 
-var NodeResource = ResourceEntry{
-	Kind:  "Node",
-	Name:  "nodes",
-	Group: "v1",
+var NamespaceResource = ResourceDescriptor{
+	Kind:       "Namespace",
+	Plural:     "namespaces",
+	ApiVersion: "v1",
+	Namespaced: false,
 }
 
-var WorkspaceResource = ResourceEntry{
-	Kind:  "Workspace",
-	Name:  "workspaces",
-	Group: "mogenius.com/v1alpha1",
+var EventResource = ResourceDescriptor{
+	Kind:       "Event",
+	Plural:     "events",
+	ApiVersion: "v1",
+	Namespaced: true,
+}
+
+var NodeResource = ResourceDescriptor{
+	Kind:       "Node",
+	Plural:     "nodes",
+	ApiVersion: "v1",
+	Namespaced: false,
+}
+
+var WorkspaceResource = ResourceDescriptor{
+	Kind:       "Workspace",
+	Plural:     "workspaces",
+	ApiVersion: "mogenius.com/v1alpha1",
+	Namespaced: true,
+}
+
+var ConfigMapResource = ResourceDescriptor{
+	Kind:       "ConfigMap",
+	Plural:     "configmaps",
+	ApiVersion: "v1",
+	Namespaced: true,
+}
+
+var ServiceResource = ResourceDescriptor{
+	Kind:       "Service",
+	Plural:     "services",
+	ApiVersion: "v1",
+	Namespaced: true,
 }
 
 const STAGE_DEV = "dev"

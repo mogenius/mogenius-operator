@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mogenius K8s Manager - Live Node Monitoring</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              primary: "#009bc5",
+              "primary-hover": "#00556c",
+              success: "#00c567",
+              error: "#c22828",
+              warning: "#ff8c1a",
+            },
+          },
+        },
+      };
+    </script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+
+    <!-- Babel Standalone for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+      }
+
+      .chart-container {
+        position: relative;
+        height: 250px;
+        will-change: transform;
+      }
+
+      .bg-white {
+        transition: all 0.2s ease-in-out;
+      }
+
+      @keyframes slideDown {
+        from {
+          opacity: 0;
+          max-height: 0;
+        }
+        to {
+          opacity: 1;
+          max-height: 2000px;
+        }
+      }
+
+      .expand-enter {
+        animation: slideDown 0.3s ease-out;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        border-radius: 9999px;
+        padding: 0.25rem 0.75rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+      }
+
+      .badge-success {
+        background-color: rgba(0, 197, 103, 0.1);
+        color: #00c567;
+      }
+
+      .badge-warning {
+        background-color: rgba(255, 140, 26, 0.1);
+        color: #ff8c1a;
+      }
+
+      .badge-error {
+        background-color: rgba(194, 40, 40, 0.1);
+        color: #c22828;
+      }
+
+      .badge-default {
+        background-color: rgba(0, 155, 197, 0.1);
+        color: #009bc5;
+      }
+    </style>
+  </head>
+  <body class="bg-gray-50">
+    <div id="root"></div>
+
+    <script type="text/babel">
+      const { useState, useEffect, useRef } = React;
+
+      const formatBytes = (bytes, decimals = 2) => {
+        if (bytes === 0) return "0 Bytes";
+        const k = 1024;
+        const dm = decimals < 0 ? 0 : decimals;
+        const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+      };
+
+      const formatPercentage = (value, decimals = 1) => `${value.toFixed(decimals)}%`;
+
+      const getThresholdVariant = (value, warning = 70, danger = 85) => {
+        if (value >= danger) return "error";
+        if (value >= warning) return "warning";
+        return "success";
+      };
+
+      function StreamingChart({ nodeName, title, yLabel, getData, formatValue }) {
+        const chartRef = useRef(null);
+        const chartInstance = useRef(null);
+        const [currentValue, setCurrentValue] = useState(null);
+
+        useEffect(() => {
+          const ctx = chartRef.current?.getContext("2d");
+          if (!ctx) return;
+
+          const datasets = getData();
+
+          chartInstance.current = new Chart(ctx, {
+            type: "line",
+            data: {
+              datasets: datasets.map((ds) => ({
+                label: ds.label,
+                data: [],
+                borderColor: ds.color,
+                backgroundColor: ds.backgroundColor || ds.color + "20",
+                fill: ds.fill !== false,
+                tension: 0.4,
+                borderWidth: 2,
+                pointRadius: 0,
+                pointHoverRadius: 4,
+              })),
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              animation: { duration: 750, easing: "easeInOutQuart" },
+              plugins: {
+                legend: {
+                  position: "top",
+                  labels: { usePointStyle: true, padding: 10, font: { size: 11 } },
+                },
+                title: {
+                  display: true,
+                  text: title,
+                  font: { size: 13, weight: "bold" },
+                  padding: { bottom: 10 },
+                },
+              },
+              scales: {
+                x: {
+                  type: "time",
+                  time: { unit: "second", displayFormats: { second: "HH:mm:ss" } },
+                  grid: { display: false },
+                  ticks: { maxRotation: 0, autoSkipPadding: 20, font: { size: 10 } },
+                },
+                y: {
+                  beginAtZero: true,
+                  title: { display: true, text: yLabel, font: { size: 11 } },
+                  grid: { color: "rgba(0, 0, 0, 0.05)" },
+                  ticks: { font: { size: 10 } },
+                },
+              },
+            },
+          });
+
+          const interval = setInterval(() => {
+            const chart = chartInstance.current;
+            if (!chart) return;
+
+            const timestamp = Date.now();
+            datasets.forEach((ds, index) => {
+              const value = ds.getValue();
+              chart.data.datasets[index].data.push({ x: timestamp, y: value });
+              if (chart.data.datasets[index].data.length > 60) {
+                chart.data.datasets[index].data.shift();
+              }
+            });
+
+            chart.update("active");
+            setCurrentValue(datasets[0].getValue());
+          }, 2000);
+
+          return () => {
+            clearInterval(interval);
+            chartInstance.current?.destroy();
+          };
+        }, [nodeName]);
+
+        return (
+          <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
+            <div className="flex justify-between items-center mb-2">
+              <h4 className="font-semibold text-gray-800">{title}</h4>
+              {currentValue !== null && formatValue && (
+                <span className="text-sm font-medium text-gray-600">
+                  {formatValue(currentValue)}
+                </span>
+              )}
+            </div>
+            <div className="chart-container">
+              <canvas ref={chartRef}></canvas>
+            </div>
+          </div>
+        );
+      }
+
+      function NodeRow({ node, isExpanded, onToggle, metricsData }) {
+        const statusVariant = node.status === "Ready" ? "success" : "error";
+        const cpuVariant = getThresholdVariant(node.cpuPercent);
+        const memoryVariant = getThresholdVariant(node.memoryPercent, 80, 90);
+
+        return (
+          <>
+            <tr className="border-b hover:bg-gray-50 cursor-pointer" onClick={() => onToggle(node.name)}>
+              <td className="px-4 py-3">
+                <svg className={`w-5 h-5 transition-transform ${isExpanded ? "rotate-90" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </td>
+              <td className="px-4 py-3 font-medium text-gray-900">{node.name}</td>
+              <td className="px-4 py-3">
+                <span className={`badge badge-${statusVariant}`}>{node.status}</span>
+              </td>
+              <td className="px-4 py-3">
+                <span className={`badge badge-${cpuVariant}`}>{formatPercentage(node.cpuPercent)}</span>
+              </td>
+              <td className="px-4 py-3">
+                <span className={`badge badge-${memoryVariant}`}>{formatPercentage(node.memoryPercent)}</span>
+              </td>
+              <td className="px-4 py-3 text-sm text-gray-600">
+                {node.networkRx > 0 && <div>↓ {formatBytes(node.networkRx)}/s</div>}
+                {node.networkTx > 0 && <div>↑ {formatBytes(node.networkTx)}/s</div>}
+              </td>
+              <td className="px-4 py-3 text-gray-600">{node.podCount}</td>
+            </tr>
+            {isExpanded && (
+              <tr className="expand-enter">
+                <td colSpan="7" className="bg-gray-50 px-4 py-6">
+                  <div className="max-w-7xl mx-auto">
+                    <h3 className="text-lg font-semibold mb-4 text-gray-800">
+                      Live Metrics: {node.name}
+                    </h3>
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                      <StreamingChart
+                        nodeName={node.name}
+                        title="CPU Usage"
+                        yLabel="Usage (%)"
+                        getData={() => [{
+                          label: "CPU Total",
+                          color: "#009bc5",
+                          getValue: () => {
+                            const m = metricsData.find(n => n.nodeName === node.name);
+                            if (m?.cpu) return (m.cpu.user || 0) + (m.cpu.system || 0);
+                            return 0;
+                          }
+                        }]}
+                        formatValue={(v) => formatPercentage(v)}
+                      />
+                      <StreamingChart
+                        nodeName={node.name}
+                        title="Memory Usage"
+                        yLabel="Usage (%)"
+                        getData={() => [{
+                          label: "Memory",
+                          color: "#00c567",
+                          getValue: () => {
+                            const m = metricsData.find(n => n.nodeName === node.name);
+                            if (m?.memory) {
+                              return (m.memory.usedKb / m.memory.totalKb) * 100;
+                            }
+                            return 0;
+                          }
+                        }]}
+                        formatValue={(v) => formatPercentage(v)}
+                      />
+                      <StreamingChart
+                        nodeName={node.name}
+                        title="Network Traffic"
+                        yLabel="Rate (KB/s)"
+                        getData={() => [
+                          {
+                            label: "RX",
+                            color: "#009bc5",
+                            fill: false,
+                            getValue: () => node.networkRx / 1024
+                          },
+                          {
+                            label: "TX",
+                            color: "#ff8c1a",
+                            fill: false,
+                            getValue: () => node.networkTx / 1024
+                          }
+                        ]}
+                      />
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            )}
+          </>
+        );
+      }
+
+      function App() {
+        const [nodes, setNodes] = useState([]);
+        const [metricsData, setMetricsData] = useState([]);
+        const [expandedNode, setExpandedNode] = useState(null);
+        const [loading, setLoading] = useState(false);
+        const [error, setError] = useState(null);
+        const [lastUpdate, setLastUpdate] = useState(null);
+
+        const fetchMetrics = async () => {
+          try {
+            setLoading(true);
+            setError(null);
+
+            const response = await fetch("/socketapi", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ pattern: "get/nodes-metrics", payload: {} }),
+            });
+
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+            const data = await response.json();
+            const metrics = data.payload?.data || data.payload?.result || data.payload;
+
+            if (!metrics?.nodes) throw new Error("No nodes data");
+
+            setMetricsData(metrics.nodes);
+            updateNodesFromMetrics(metrics.nodes);
+            setLastUpdate(new Date().toLocaleTimeString());
+          } catch (err) {
+            console.error("Failed to fetch metrics:", err);
+            setError(err.message);
+          } finally {
+            setLoading(false);
+          }
+        };
+
+        const updateNodesFromMetrics = (metricsNodes) => {
+          setNodes(prev => {
+            const updated = [...prev];
+
+            metricsNodes.forEach((metricNode) => {
+              let node = updated.find((n) => n.name === metricNode.nodeName);
+
+              if (!node) {
+                node = {
+                  name: metricNode.nodeName,
+                  status: "Ready",
+                  cpuPercent: 0,
+                  memoryPercent: 0,
+                  networkRx: 0,
+                  networkTx: 0,
+                  podCount: 0,
+                };
+                updated.push(node);
+              }
+
+              // Update CPU
+              if (metricNode.cpu) {
+                node.cpuPercent = (metricNode.cpu.user || 0) + (metricNode.cpu.system || 0);
+              }
+
+              // Update Memory
+              if (metricNode.memory) {
+                const usedKb = metricNode.memory.usedKb || 0;
+                const totalKb = metricNode.memory.totalKb || 1;
+                node.memoryPercent = (usedKb / totalKb) * 100;
+              }
+
+              // Update Network
+              if (metricNode.traffic && Array.isArray(metricNode.traffic)) {
+                let totalRx = 0;
+                let totalTx = 0;
+                metricNode.traffic.forEach(pod => {
+                  totalRx += pod.receivedBytes || 0;
+                  totalTx += pod.transmitBytes || 0;
+                });
+
+                const now = Date.now();
+                if (node.lastUpdateTime) {
+                  const timeDiff = (now - node.lastUpdateTime) / 1000;
+                  if (timeDiff > 0) {
+                    node.networkRx = (totalRx - (node.lastTotalRx || 0)) / timeDiff;
+                    node.networkTx = (totalTx - (node.lastTotalTx || 0)) / timeDiff;
+                  }
+                }
+
+                node.lastTotalRx = totalRx;
+                node.lastTotalTx = totalTx;
+                node.lastUpdateTime = now;
+                node.podCount = metricNode.traffic.length;
+              }
+            });
+
+            return updated;
+          });
+        };
+
+        useEffect(() => {
+          fetchMetrics();
+          const interval = setInterval(fetchMetrics, 2000);
+          return () => clearInterval(interval);
+        }, []);
+
+        const totalNodes = nodes.length;
+        const readyNodes = nodes.filter((n) => n.status === "Ready").length;
+        const notReadyNodes = nodes.filter((n) => n.status !== "Ready").length;
+        const totalPods = nodes.reduce((sum, n) => sum + n.podCount, 0);
+
+        return (
+          <div className="min-h-screen bg-gray-50 p-6">
+            <div className="max-w-7xl mx-auto">
+              <div className="mb-8">
+                <div className="flex items-center space-x-3 mb-2">
+                  <h1 className="text-3xl font-bold text-gray-900">
+                    Mogenius Kubernetes Manager
+                  </h1>
+                  {loading && (
+                    <div className="inline-block w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                  )}
+                </div>
+                <p className="text-gray-600">Live Node Monitoring - Click any node to see real-time metrics</p>
+                {lastUpdate && <p className="text-sm text-gray-500 mt-1">Last update: {lastUpdate}</p>}
+              </div>
+
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg mb-6">
+                  <p className="font-semibold">Error loading metrics:</p>
+                  <p className="text-sm">{error}</p>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div className="bg-white rounded-lg border border-gray-200 p-6">
+                  <div className="text-sm text-gray-500 mb-1">Total Nodes</div>
+                  <div className="text-3xl font-bold text-gray-900">{totalNodes}</div>
+                </div>
+                <div className="bg-white rounded-lg border border-gray-200 p-6">
+                  <div className="text-sm text-gray-500 mb-1">Ready</div>
+                  <div className="text-3xl font-bold text-green-600">{readyNodes}</div>
+                </div>
+                <div className="bg-white rounded-lg border border-gray-200 p-6">
+                  <div className="text-sm text-gray-500 mb-1">Not Ready</div>
+                  <div className="text-3xl font-bold text-red-600">{notReadyNodes}</div>
+                </div>
+                <div className="bg-white rounded-lg border border-gray-200 p-6">
+                  <div className="text-sm text-gray-500 mb-1">Total Pods</div>
+                  <div className="text-3xl font-bold text-blue-600">{totalPods}</div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-12"></th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Node Name</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">CPU</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Memory</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Network</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Pods</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {nodes.map((node) => (
+                        <NodeRow
+                          key={node.name}
+                          node={node}
+                          isExpanded={expandedNode === node.name}
+                          onToggle={setExpandedNode}
+                          metricsData={metricsData}
+                        />
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div className="mt-8 text-center text-sm text-gray-500">
+                <p>Real-time metrics via HTTP Polling • Powered by Mogenius</p>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      const root = ReactDOM.createRoot(document.getElementById("root"));
+      root.render(<App />);
+    </script>
+  </body>
+</html>

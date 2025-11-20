@@ -1,6 +1,6 @@
 package dtos
 
-import "mogenius-k8s-manager/src/structs"
+import "mogenius-operator/src/structs"
 
 type NodeStat struct {
 	Name                   string                `json:"name" validate:"required"`

@@ -3,9 +3,9 @@ package kubernetes
 import (
 	"context"
 	"fmt"
-	"mogenius-k8s-manager/src/structs"
-	"mogenius-k8s-manager/src/utils"
-	"mogenius-k8s-manager/src/websocket"
+	"mogenius-operator/src/structs"
+	"mogenius-operator/src/utils"
+	"mogenius-operator/src/websocket"
 	"strings"
 	"time"
 
@@ -337,23 +337,4 @@ func ListPersistentVolumeClaimsWithFieldSelector(namespace string, labelSelector
 	}
 
 	return persistentVolumeClaims.Items, err
-}
-
-func AllPersistentVolumeClaims(namespaceName string) []v1.PersistentVolumeClaim {
-	result := []v1.PersistentVolumeClaim{}
-
-	clientset := clientProvider.K8sClientSet()
-	pvList, err := clientset.CoreV1().PersistentVolumeClaims(namespaceName).List(context.Background(), metav1.ListOptions{})
-	if err != nil {
-		k8sLogger.Error("AllPersistentVolumeClaims", "error", err.Error())
-		return result
-	}
-
-	for _, v := range pvList.Items {
-		v.Kind = "PersistentVolumeClaim"
-		v.APIVersion = "v1"
-		result = append(result, v)
-	}
-
-	return result
 }

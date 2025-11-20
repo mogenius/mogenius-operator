@@ -1,9 +1,9 @@
 package secrets
 
 import (
-	"mogenius-k8s-manager/src/assert"
-	"mogenius-k8s-manager/src/collections"
-	"mogenius-k8s-manager/src/config"
+	"mogenius-operator/src/assert"
+	"mogenius-operator/src/collections"
+	"mogenius-operator/src/config"
 	"strings"
 	"sync"
 )

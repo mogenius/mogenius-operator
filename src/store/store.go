@@ -4,11 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"mogenius-k8s-manager/src/crds/v1alpha1"
-	"mogenius-k8s-manager/src/logging"
-	"mogenius-k8s-manager/src/structs"
-	"mogenius-k8s-manager/src/utils"
-	"mogenius-k8s-manager/src/valkeyclient"
+	"mogenius-operator/src/crds/v1alpha1"
+	"mogenius-operator/src/logging"
+	"mogenius-operator/src/structs"
+	"mogenius-operator/src/utils"
+	"mogenius-operator/src/valkeyclient"
 	"os"
 	"os/exec"
 	"strconv"
@@ -22,7 +22,7 @@ import (
 	v1 "k8s.io/api/apps/v1"
 	v1batch "k8s.io/api/batch/v1"
 	coreV1 "k8s.io/api/core/v1"
-	networkingV1 "k8s.io/api/networking/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 )
 
 const (
@@ -49,19 +49,8 @@ func Setup(
 	return nil
 }
 
-func GetByKeyParts[T any](valkeyClient valkeyclient.ValkeyClient, keys ...string) (*T, error) {
-	value, err := valkeyclient.GetObjectForKey[T](valkeyClient, keys...)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get value for key %s: %w", strings.Join(keys, ":"), err)
-	}
-	if value == nil {
-		return nil, fmt.Errorf("got nil value from GetObjectForKey %s", strings.Join(keys, ":"))
-	}
-	return value, nil
-}
-
-func SearchByKeyParts(valkeyClient valkeyclient.ValkeyClient, parts ...string) ([]unstructured.Unstructured, error) {
-	key := CreateKey(parts...)
+func SearchResourceByKeyParts(valkeyClient valkeyclient.ValkeyClient, parts ...string) ([]unstructured.Unstructured, error) {
+	key := CreateResourceKey(parts...)
 
 	items, err := valkeyclient.GetObjectsByPrefix[unstructured.Unstructured](valkeyClient, valkeyclient.ORDER_NONE, key)
 
@@ -81,21 +70,21 @@ func SearchByNamespaceAndName(valkeyClient valkeyclient.ValkeyClient, namespace 
 	return items, err
 }
 
-func SearchByGroupKindNameNamespace(valkeyClient valkeyclient.ValkeyClient, group string, kind string, name string, namespace *string) ([]unstructured.Unstructured, error) {
-	pattern := CreateKeyPattern(&group, &kind, namespace, &name)
+func SearchByGroupKindNameNamespace(valkeyClient valkeyclient.ValkeyClient, apiVersion string, kind string, name string, namespace *string) ([]unstructured.Unstructured, error) {
+	pattern := CreateKeyPattern(&apiVersion, &kind, namespace, &name)
 
 	items, err := valkeyclient.GetObjectsByPattern[unstructured.Unstructured](valkeyClient, pattern, []string{})
 
 	return items, err
 }
 
-func SearchByNamespace(valkeyClient valkeyclient.ValkeyClient, namespace string, whitelist []*utils.ResourceEntry) ([]unstructured.Unstructured, error) {
+func SearchResourceByNamespace(valkeyClient valkeyclient.ValkeyClient, namespace string, whitelist []*utils.ResourceDescriptor) ([]unstructured.Unstructured, error) {
 	pattern := CreateKeyPattern(nil, nil, &namespace, nil)
 
 	var searchKeys []string
 	if len(whitelist) > 0 {
 		for _, item := range whitelist {
-			searchKey := CreateKey(item.Group, item.Kind, namespace)
+			searchKey := CreateResourceKey(item.ApiVersion, item.Kind, namespace)
 			searchKeys = append(searchKeys, searchKey)
 		}
 	}
@@ -125,18 +114,18 @@ func DropKey(valkeyClient valkeyclient.ValkeyClient, logger *slog.Logger, key st
 	return err
 }
 
-func CreateKey(parts ...string) string {
+func CreateResourceKey(parts ...string) string {
 	parts = append([]string{VALKEY_RESOURCE_PREFIX}, parts...)
 	return strings.Join(parts, ":")
 }
 
-func CreateKeyPattern(groupVersion, kind, namespace, name *string) string {
+func CreateKeyPattern(apiVersion, kind, namespace, name *string) string {
 	parts := make([]string, 5)
 
 	parts[0] = VALKEY_RESOURCE_PREFIX
 
-	if groupVersion != nil && *groupVersion != "" {
-		parts[1] = *groupVersion
+	if apiVersion != nil && *apiVersion != "" {
+		parts[1] = *apiVersion
 	} else {
 		parts[1] = "*"
 	}
@@ -163,86 +152,17 @@ func CreateKeyPattern(groupVersion, kind, namespace, name *string) string {
 	return pattern
 }
 
-func ListNetworkPolicies(valkeyClient valkeyclient.ValkeyClient, namespace string) ([]networkingV1.NetworkPolicy, error) {
-	result := []networkingV1.NetworkPolicy{}
-
-	policies, err := valkeyclient.GetObjectsByPrefix[networkingV1.NetworkPolicy](valkeyClient, valkeyclient.ORDER_NONE, VALKEY_RESOURCE_PREFIX, utils.NetworkPolicyResource.Group, "NetworkPolicy", namespace)
-	if err != nil {
-		return result, err
-	}
-
-	for _, ref := range policies {
-		if namespace != "" && ref.Namespace != namespace {
-			continue
-		}
-
-		result = append(result, ref)
-	}
-
-	return result, nil
+func GetResource(valkeyClient valkeyclient.ValkeyClient, apiVersion string, kind string, namespace string, name string, logger *slog.Logger) (*unstructured.Unstructured, error) {
+	return valkeyclient.GetObjectForKey[unstructured.Unstructured](valkeyClient, VALKEY_RESOURCE_PREFIX, apiVersion, kind, namespace, name)
 }
 
-func ListEvents(valkeyClient valkeyclient.ValkeyClient, namespace string) ([]coreV1.Event, error) {
-	result := []coreV1.Event{}
-
-	events, err := valkeyclient.GetObjectsByPrefix[coreV1.Event](valkeyClient, valkeyclient.ORDER_DESC, VALKEY_RESOURCE_PREFIX, "v1", "Event", namespace)
-	if err != nil {
-		return result, err
-	}
-
-	for _, ref := range events {
-		if namespace != "" && ref.Namespace != namespace {
-			continue
-		}
-
-		result = append(result, ref)
-	}
-
-	return result, nil
-}
-
-func ListPods(valkeyClient valkeyclient.ValkeyClient, parts ...string) ([]coreV1.Pod, error) {
-	result := []coreV1.Pod{}
-
-	args := append([]string{VALKEY_RESOURCE_PREFIX, utils.PodResource.Group, "Pod"}, parts...)
-	pods, err := valkeyclient.GetObjectsByPrefix[coreV1.Pod](valkeyClient, valkeyclient.ORDER_NONE, args...)
-	if err != nil {
-		return result, err
-	}
-
-	return pods, nil
-}
-
-func ListAllNamespaces(valkeyClient valkeyclient.ValkeyClient) ([]coreV1.Namespace, error) {
-	result := []coreV1.Namespace{}
-
-	namespaces, err := valkeyclient.GetObjectsByPrefix[coreV1.Namespace](valkeyClient, valkeyclient.ORDER_NONE, VALKEY_RESOURCE_PREFIX, utils.NamespaceResource.Group, "Namespace")
-	if err != nil {
-		return result, err
-	}
-
-	return namespaces, nil
-}
-
-func GetNamespace(valkeyClient valkeyclient.ValkeyClient, name string, logger *slog.Logger) *coreV1.Namespace {
-	namespace, err := valkeyclient.GetObjectForKey[coreV1.Namespace](valkeyClient, VALKEY_RESOURCE_PREFIX, utils.NamespaceResource.Group, utils.NamespaceResource.Kind, "", name)
-	if err != nil {
-		logger.Error("failed to get namespace", "name", name, "error", err)
-		return nil
-	}
-	return namespace
-}
-
-func GetResource(valkeyClient valkeyclient.ValkeyClient, groupVersion string, kind string, namespace string, name string, logger *slog.Logger) (*unstructured.Unstructured, error) {
-	return valkeyclient.GetObjectForKey[unstructured.Unstructured](valkeyClient, VALKEY_RESOURCE_PREFIX, groupVersion, kind, namespace, name)
-}
-
-func GetResourceByKindAndNamespace(valkeyClient valkeyclient.ValkeyClient, groupVersion string, kind string, namespace string, logger *slog.Logger) []unstructured.Unstructured {
+func GetResourceByKindAndNamespace(valkeyClient valkeyclient.ValkeyClient, apiVersion string, kind string, namespace string, logger *slog.Logger) []unstructured.Unstructured {
 	var results []unstructured.Unstructured
 
-	storeResults, err := valkeyclient.GetObjectsByPrefix[unstructured.Unstructured](valkeyClient, valkeyclient.ORDER_NONE, VALKEY_RESOURCE_PREFIX, groupVersion, kind, namespace)
+	pattern := CreateKeyPattern(&apiVersion, &kind, &namespace, nil)
+	storeResults, err := valkeyclient.GetObjectsByPrefix[unstructured.Unstructured](valkeyClient, valkeyclient.ORDER_NONE, pattern)
 	if err != nil {
-		logger.Error("failed to get resources by kind and namespace", "groupVersion", groupVersion, "kind", kind, "namespace", namespace, "error", err)
+		logger.Error("failed to get resources by kind and namespace", "apiVersion", apiVersion, "kind", kind, "namespace", namespace, "error", err)
 		return results
 	}
 
@@ -256,96 +176,148 @@ func GetResourceByKindAndNamespace(valkeyClient valkeyclient.ValkeyClient, group
 	return results
 }
 
+func GetIngressClasses() []networkingv1.IngressClass {
+	ingressClasses, err := valkeyclient.GetObjectsByPrefix[networkingv1.IngressClass](valkeyClient, valkeyclient.ORDER_NONE, VALKEY_RESOURCE_PREFIX, utils.IngressClassResource.ApiVersion, utils.IngressClassResource.Kind, "*")
+	if err != nil {
+		return ingressClasses
+	}
+	return ingressClasses
+}
+
 func GetPod(namespace string, name string) *coreV1.Pod {
-	pod, err := valkeyclient.GetObjectForKey[coreV1.Pod](valkeyClient, VALKEY_RESOURCE_PREFIX, utils.PodResource.Group, utils.PodResource.Kind, namespace, name)
+	pod, err := valkeyclient.GetObjectForKey[coreV1.Pod](valkeyClient, VALKEY_RESOURCE_PREFIX, utils.PodResource.ApiVersion, utils.PodResource.Kind, namespace, name)
 	if err != nil || pod == nil {
 		return nil
 	}
-	pod.Kind = utils.PodResource.Kind
-	pod.APIVersion = utils.PodResource.Group
-
 	return pod
 }
 
+func GetPods(namespace string) []coreV1.Pod {
+	pods, err := valkeyclient.GetObjectsByPrefix[coreV1.Pod](valkeyClient, valkeyclient.ORDER_ASC, VALKEY_RESOURCE_PREFIX, utils.PodResource.ApiVersion, utils.PodResource.Kind, namespace)
+	if err != nil || pods == nil {
+		return nil
+	}
+	return pods
+}
+
 func GetReplicaset(namespace string, name string) *v1.ReplicaSet {
-	replicaSet, err := valkeyclient.GetObjectForKey[v1.ReplicaSet](valkeyClient, VALKEY_RESOURCE_PREFIX, utils.ReplicaSetResource.Group, utils.ReplicaSetResource.Kind, namespace, name)
+	replicaSet, err := valkeyclient.GetObjectForKey[v1.ReplicaSet](valkeyClient, VALKEY_RESOURCE_PREFIX, utils.ReplicaSetResource.ApiVersion, utils.ReplicaSetResource.Kind, namespace, name)
 	if err != nil || replicaSet == nil {
 		return nil
 	}
-	replicaSet.Kind = utils.ReplicaSetResource.Kind
-	replicaSet.APIVersion = utils.ReplicaSetResource.Group
-
 	return replicaSet
 }
 
 func GetDeployment(namespace string, name string) *v1.Deployment {
-	deployment, err := valkeyclient.GetObjectForKey[v1.Deployment](valkeyClient, VALKEY_RESOURCE_PREFIX, utils.DeploymentResource.Group, utils.DeploymentResource.Kind, namespace, name)
+	deployment, err := valkeyclient.GetObjectForKey[v1.Deployment](valkeyClient, VALKEY_RESOURCE_PREFIX, utils.DeploymentResource.ApiVersion, utils.DeploymentResource.Kind, namespace, name)
 	if err != nil || deployment == nil {
 		return nil
 	}
-	deployment.Kind = utils.DeploymentResource.Kind
-	deployment.APIVersion = utils.DeploymentResource.Group
-
 	return deployment
 }
 
+func GetDeployments(namespace string, name string) []v1.Deployment {
+	deployments, err := valkeyclient.GetObjectsByPrefix[v1.Deployment](valkeyClient, valkeyclient.ORDER_ASC, VALKEY_RESOURCE_PREFIX, utils.DeploymentResource.ApiVersion, utils.DeploymentResource.Kind, namespace, name)
+	if err != nil || deployments == nil {
+		return nil
+	}
+	return deployments
+}
+
+func GetSecret(namespace string, name string) *coreV1.Secret {
+	secret, err := valkeyclient.GetObjectForKey[coreV1.Secret](valkeyClient, VALKEY_RESOURCE_PREFIX, utils.SecretResource.ApiVersion, utils.SecretResource.Kind, namespace, name)
+	if err != nil || secret == nil {
+		return nil
+	}
+
+	return secret
+}
+
+func GetSecrets(namespace string, name string) []coreV1.Secret {
+	secrets, err := valkeyclient.GetObjectsByPrefix[coreV1.Secret](valkeyClient, valkeyclient.ORDER_ASC, VALKEY_RESOURCE_PREFIX, utils.SecretResource.ApiVersion, utils.SecretResource.Kind, namespace, name)
+	if err != nil || secrets == nil {
+		return nil
+	}
+	return secrets
+}
+
+func GetService(namespace string, name string) *coreV1.Service {
+	service, err := valkeyclient.GetObjectForKey[coreV1.Service](valkeyClient, VALKEY_RESOURCE_PREFIX, utils.ServiceResource.ApiVersion, utils.ServiceResource.Kind, namespace, name)
+	if err != nil || service == nil {
+		return nil
+	}
+
+	return service
+}
+
+func GetServices(namespace string, name string) []coreV1.Service {
+	services, err := valkeyclient.GetObjectsByPrefix[coreV1.Service](valkeyClient, valkeyclient.ORDER_ASC, VALKEY_RESOURCE_PREFIX, utils.ServiceResource.ApiVersion, utils.ServiceResource.Kind, namespace, name)
+	if err != nil || services == nil {
+		return nil
+	}
+	return services
+}
+
 func GetStatefulSet(namespace string, name string) *v1.StatefulSet {
-	statefulSet, err := valkeyclient.GetObjectForKey[v1.StatefulSet](valkeyClient, VALKEY_RESOURCE_PREFIX, utils.StatefulSetResource.Group, utils.StatefulSetResource.Kind, namespace, name)
+	statefulSet, err := valkeyclient.GetObjectForKey[v1.StatefulSet](valkeyClient, VALKEY_RESOURCE_PREFIX, utils.StatefulSetResource.ApiVersion, utils.StatefulSetResource.Kind, namespace, name)
 	if err != nil || statefulSet == nil {
 		return nil
 	}
-	statefulSet.Kind = utils.StatefulSetResource.Kind
-	statefulSet.APIVersion = utils.StatefulSetResource.Group
-
 	return statefulSet
 }
 
 func GetDaemonSet(namespace string, name string) *v1.DaemonSet {
-	daemonSet, err := valkeyclient.GetObjectForKey[v1.DaemonSet](valkeyClient, VALKEY_RESOURCE_PREFIX, utils.DaemonSetResource.Group, utils.DaemonSetResource.Kind, namespace, name)
+	daemonSet, err := valkeyclient.GetObjectForKey[v1.DaemonSet](valkeyClient, VALKEY_RESOURCE_PREFIX, utils.DaemonSetResource.ApiVersion, utils.DaemonSetResource.Kind, namespace, name)
 	if err != nil || daemonSet == nil {
 		return nil
 	}
-	daemonSet.Kind = utils.DaemonSetResource.Kind
-	daemonSet.APIVersion = utils.DaemonSetResource.Group
-
 	return daemonSet
 }
 
 func GetJob(namespace string, name string) *v1batch.Job {
-	job, err := valkeyclient.GetObjectForKey[v1batch.Job](valkeyClient, VALKEY_RESOURCE_PREFIX, utils.JobResource.Group, utils.JobResource.Kind, namespace, name)
+	job, err := valkeyclient.GetObjectForKey[v1batch.Job](valkeyClient, VALKEY_RESOURCE_PREFIX, utils.JobResource.ApiVersion, utils.JobResource.Kind, namespace, name)
 	if err != nil || job == nil {
 		return nil
 	}
-	job.Kind = utils.JobResource.Kind
-	job.APIVersion = utils.JobResource.Group
-
 	return job
 }
 
+func GetConfigMap(namespace string, name string) *coreV1.ConfigMap {
+	configMap, err := valkeyclient.GetObjectForKey[coreV1.ConfigMap](valkeyClient, VALKEY_RESOURCE_PREFIX, utils.ConfigMapResource.ApiVersion, utils.ConfigMapResource.Kind, namespace, name)
+	if err != nil || configMap == nil {
+		return nil
+	}
+
+	return configMap
+}
+
 func GetCronJob(namespace string, name string) *v1batch.CronJob {
-	cronJob, err := valkeyclient.GetObjectForKey[v1batch.CronJob](valkeyClient, VALKEY_RESOURCE_PREFIX, utils.CronJobResource.Group, utils.CronJobResource.Kind, namespace, name)
+	cronJob, err := valkeyclient.GetObjectForKey[v1batch.CronJob](valkeyClient, VALKEY_RESOURCE_PREFIX, utils.CronJobResource.ApiVersion, utils.CronJobResource.Kind, namespace, name)
 	if err != nil || cronJob == nil {
 		return nil
 	}
-	cronJob.Kind = utils.CronJobResource.Kind
-	cronJob.APIVersion = utils.CronJobResource.Group
-
 	return cronJob
 }
 
 func GetNode(name string) *coreV1.Node {
-	node, err := valkeyclient.GetObjectForKey[coreV1.Node](valkeyClient, VALKEY_RESOURCE_PREFIX, utils.NodeResource.Group, utils.NodeResource.Kind, "", name)
+	node, err := valkeyclient.GetObjectForKey[coreV1.Node](valkeyClient, VALKEY_RESOURCE_PREFIX, utils.NodeResource.ApiVersion, utils.NodeResource.Kind, "", name)
 	if err != nil || node == nil {
 		return nil
 	}
-	node.Kind = utils.NodeResource.Kind
-	node.APIVersion = utils.NodeResource.Group
-
 	return node
 }
 
+func GetNodes() []coreV1.Node {
+	nodes, err := valkeyclient.GetObjectsByPrefix[coreV1.Node](valkeyClient, valkeyclient.ORDER_ASC, VALKEY_RESOURCE_PREFIX, utils.NodeResource.ApiVersion, utils.NodeResource.Kind, "", "*")
+	if err != nil {
+		return nil
+	}
+
+	return nodes
+}
+
 func GetAllWorkspaces(namespace string) ([]v1alpha1.Workspace, error) {
-	pattern := strings.Join([]string{VALKEY_RESOURCE_PREFIX, utils.WorkspaceResource.Group, utils.WorkspaceResource.Kind, namespace}, ":")
+	pattern := CreateKeyPattern(&utils.WorkspaceResource.ApiVersion, &utils.WorkspaceResource.Kind, &namespace, nil)
 	workspaces, err := valkeyclient.GetObjectsByPrefix[v1alpha1.Workspace](valkeyClient, valkeyclient.ORDER_ASC, pattern)
 	if err != nil || workspaces == nil {
 		return nil, err
@@ -354,7 +326,7 @@ func GetAllWorkspaces(namespace string) ([]v1alpha1.Workspace, error) {
 }
 
 func GetWorkspace(namespace string, name string) (*v1alpha1.Workspace, error) {
-	workspace, err := valkeyclient.GetObjectForKey[v1alpha1.Workspace](valkeyClient, VALKEY_RESOURCE_PREFIX, utils.WorkspaceResource.Group, utils.WorkspaceResource.Kind, namespace, name)
+	workspace, err := valkeyclient.GetObjectForKey[v1alpha1.Workspace](valkeyClient, VALKEY_RESOURCE_PREFIX, utils.WorkspaceResource.ApiVersion, utils.WorkspaceResource.Kind, namespace, name)
 	if err != nil || workspace == nil {
 		return nil, err
 	}
@@ -432,7 +404,7 @@ func ListAuditLog(limit int, offset int, namespaces []string, clusterWide bool) 
 
 	entries, size, err := valkeyclient.GetObjectsByPrefixWithSizeAndNs[AuditLogEntry](valkeyClient, limit, offset, namespaces, clusterWide, "audit-log")
 	if err != nil {
-		return nil, size, err
+		return []AuditLogEntry{}, size, err
 	}
 
 	return entries, size, nil

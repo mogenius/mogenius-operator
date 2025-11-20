@@ -4,7 +4,7 @@ import (
 	"archive/zip"
 	"fmt"
 	"io"
-	"mogenius-k8s-manager/src/shutdown"
+	"mogenius-operator/src/shutdown"
 	"os"
 	"path/filepath"
 	"strings"

@@ -1,8 +1,8 @@
 package schema_test
 
 import (
-	"mogenius-k8s-manager/src/assert"
-	"mogenius-k8s-manager/src/schema"
+	"mogenius-operator/src/assert"
+	"mogenius-operator/src/schema"
 	"testing"
 )
 

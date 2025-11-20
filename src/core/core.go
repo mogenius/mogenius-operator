@@ -3,17 +3,17 @@ package core
 import (
 	"fmt"
 	"log/slog"
-	"mogenius-k8s-manager/src/assert"
-	"mogenius-k8s-manager/src/config"
-	"mogenius-k8s-manager/src/helm"
-	"mogenius-k8s-manager/src/k8sclient"
-	mokubernetes "mogenius-k8s-manager/src/kubernetes"
-	"mogenius-k8s-manager/src/services"
-	"mogenius-k8s-manager/src/shutdown"
-	"mogenius-k8s-manager/src/store"
-	"mogenius-k8s-manager/src/utils"
-	"mogenius-k8s-manager/src/valkeyclient"
-	"mogenius-k8s-manager/src/websocket"
+	"mogenius-operator/src/assert"
+	"mogenius-operator/src/config"
+	"mogenius-operator/src/helm"
+	"mogenius-operator/src/k8sclient"
+	mokubernetes "mogenius-operator/src/kubernetes"
+	"mogenius-operator/src/services"
+	"mogenius-operator/src/shutdown"
+	"mogenius-operator/src/store"
+	"mogenius-operator/src/utils"
+	"mogenius-operator/src/valkeyclient"
+	"mogenius-operator/src/websocket"
 	"net/url"
 	"strconv"
 	"sync"
@@ -22,6 +22,8 @@ import (
 type Core interface {
 	Initialize() error
 	InitializeClusterSecret()
+	InitializeWebsocketEventServer()
+	InitializeWebsocketApiServer()
 	InitializeValkey()
 	Link(
 		moKubernetes MoKubernetes,
@@ -229,9 +231,6 @@ func (self *core) Initialize() error {
 		return fmt.Errorf("failed to create resource template configmap: %s", err)
 	}
 
-	self.InitializeWebsocketEventServer()
-	self.InitializeWebsocketApiServer()
-
 	// INIT MOUNTS
 	autoMountNfs, err := strconv.ParseBool(self.config.Get("MO_AUTO_MOUNT_NFS"))
 	assert.Assert(err == nil, err)
@@ -268,15 +267,6 @@ func (self *core) Initialize() error {
 			return
 		}
 		self.logger.Info("Helm config initialized")
-	})
-
-	// Init Network Policy Configmap
-	wg.Go(func() {
-		if err := mokubernetes.InitNetworkPolicyConfigMap(); err != nil {
-			self.logger.Error("Error initializing Network Policy Configmap", "error", err)
-			return
-		}
-		self.logger.Info("Network Policy Configmap initialized")
 	})
 
 	wg.Wait()

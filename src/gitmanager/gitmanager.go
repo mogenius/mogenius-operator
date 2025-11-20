@@ -3,7 +3,7 @@ package gitmanager
 import (
 	"errors"
 	"fmt"
-	"mogenius-k8s-manager/src/shell"
+	"mogenius-operator/src/shell"
 	"os"
 	"os/exec"
 	"strings"

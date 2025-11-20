@@ -4,14 +4,14 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"mogenius-k8s-manager/src/assert"
-	cfg "mogenius-k8s-manager/src/config"
-	"mogenius-k8s-manager/src/logging"
-	"mogenius-k8s-manager/src/shutdown"
-	"mogenius-k8s-manager/src/store"
-	"mogenius-k8s-manager/src/structs"
-	"mogenius-k8s-manager/src/utils"
-	"mogenius-k8s-manager/src/valkeyclient"
+	"mogenius-operator/src/assert"
+	cfg "mogenius-operator/src/config"
+	"mogenius-operator/src/logging"
+	"mogenius-operator/src/shutdown"
+	"mogenius-operator/src/store"
+	"mogenius-operator/src/structs"
+	"mogenius-operator/src/utils"
+	"mogenius-operator/src/valkeyclient"
 	"os"
 	"path/filepath"
 	"strings"
@@ -55,8 +55,8 @@ var (
 	repositoryCache  string
 )
 
-var RepoAlreadyExistsError = fmt.Errorf("repository name already exists")
-var RepoFileDoesNotExist = fmt.Errorf("repository.yaml does not exist")
+var ErrorRepoAlreadyExists = fmt.Errorf("repository name already exists")
+var ErrorRepoFileDoesNotExist = fmt.Errorf("repository.yaml does not exist")
 
 var helmLogger *slog.Logger
 var config cfg.ConfigModule
@@ -205,7 +205,7 @@ type HelmReleaseGetWorkloadsRequest struct {
 	Namespace string `json:"namespace" validate:"required"`
 	Release   string `json:"release" validate:"required"`
 
-	Whitelist []*utils.ResourceEntry `json:"whitelist"`
+	Whitelist []*utils.ResourceDescriptor `json:"whitelist"`
 }
 
 type HelmEntryWithoutPassword struct {
@@ -380,7 +380,7 @@ func InitHelmConfig() error {
 		Url:  "https://helm.mogenius.com/public",
 	}
 	if _, err := HelmRepoAdd(data); err != nil {
-		if err != RepoAlreadyExistsError {
+		if err != ErrorRepoAlreadyExists {
 			helmLogger.Error("failed to add default helm repository", "repoName", data.Name, "repoUrl", data.Url, "error", err.Error())
 		}
 	}
@@ -422,7 +422,7 @@ func HelmRepoAdd(data HelmRepoAddRequest) (string, error) {
 
 	// Check if the repository already exists
 	if repoFile.Has(data.Name) {
-		return "", RepoAlreadyExistsError
+		return "", ErrorRepoAlreadyExists
 	}
 
 	// Add the new repository entry
@@ -1387,7 +1387,7 @@ func IsManagedByHelmRelease(labels map[string]string, annotations map[string]str
 }
 
 func HelmReleaseGetWorkloads(valkeyClient valkeyclient.ValkeyClient, data HelmReleaseGetWorkloadsRequest) ([]unstructured.Unstructured, error) {
-	workloads, err := store.SearchByNamespace(valkeyClient, data.Namespace, data.Whitelist)
+	workloads, err := store.SearchResourceByNamespace(valkeyClient, data.Namespace, data.Whitelist)
 	if err != nil {
 		return nil, err
 	}
@@ -1404,7 +1404,7 @@ func HelmReleaseGetWorkloads(valkeyClient valkeyclient.ValkeyClient, data HelmRe
 
 		if workload.GetKind() == "Pod" {
 			if !replicaSetsFetched {
-				replicaSets, err = store.SearchByKeyParts(valkeyClient, utils.ReplicaSetResource.Group, utils.ReplicaSetResource.Kind, data.Namespace)
+				replicaSets, err = store.SearchResourceByKeyParts(valkeyClient, utils.ReplicaSetResource.ApiVersion, utils.ReplicaSetResource.Kind, data.Namespace)
 				if errors.Is(err, store.ErrNotFound) {
 					replicaSets = nil
 				}
@@ -1501,7 +1501,7 @@ func restoreRepositoryFileFromValkey() error {
 	}
 	// key does not exist in valkey (this is ok)
 	if data == "" {
-		return RepoFileDoesNotExist
+		return ErrorRepoFileDoesNotExist
 	}
 
 	err = os.WriteFile(repositoryConfig, []byte(data), 0644)

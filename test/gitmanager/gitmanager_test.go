@@ -2,8 +2,8 @@ package gitmanager_test
 
 import (
 	"fmt"
-	"mogenius-k8s-manager/src/assert"
-	"mogenius-k8s-manager/src/gitmanager"
+	"mogenius-operator/src/assert"
+	"mogenius-operator/src/gitmanager"
 	"os"
 	"testing"
 

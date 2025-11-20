@@ -2,10 +2,11 @@ package services
 
 import (
 	"fmt"
-	"mogenius-k8s-manager/src/helm"
-	"mogenius-k8s-manager/src/kubernetes"
-	"mogenius-k8s-manager/src/structs"
-	"mogenius-k8s-manager/src/utils"
+	"mogenius-operator/src/helm"
+	"mogenius-operator/src/kubernetes"
+	"mogenius-operator/src/store"
+	"mogenius-operator/src/structs"
+	"mogenius-operator/src/utils"
 	"net/netip"
 	"sort"
 	"strings"
@@ -444,7 +445,7 @@ func UpdateSystemCheckStatusForClusterVendor(entries []SystemCheckEntry) []Syste
 	}
 
 	// if public IP is available we skip metallLB
-	nodes := kubernetes.ListNodes()
+	nodes := store.GetNodes()
 	for _, node := range nodes {
 		for _, addr := range node.Status.Addresses {
 			ip, err := netip.ParseAddr(addr.Address)

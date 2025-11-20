@@ -8,13 +8,12 @@ mo-data
 backup.yaml
 mogenius*.db
 mogenius-stats*.db
-CHANGELOG.md
 .idea/
 .envrc
 kube-config
 kubeconfig.tmpl
 kubeconfig.yaml
-mogenius-k8s-manager
+./mogenius-operator
 logs
 helm-data
 bin
@@ -26,3 +25,4 @@ bin
 .kubeconfig
 /patternlogs_*
 /patternlogs.jsonl
+Dockerfile.bak

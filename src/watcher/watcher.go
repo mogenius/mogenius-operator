@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
-	"mogenius-k8s-manager/src/assert"
-	"mogenius-k8s-manager/src/k8sclient"
-	"mogenius-k8s-manager/src/utils"
+	"mogenius-operator/src/assert"
+	"mogenius-operator/src/k8sclient"
+	"mogenius-operator/src/utils"
 	"strings"
 	"sync"
 	"time"
@@ -39,11 +39,10 @@ type WatcherOnUpdate func(resource WatcherResourceIdentifier, oldObj *unstructur
 type WatcherOnDelete func(resource WatcherResourceIdentifier, obj *unstructured.Unstructured)
 
 type WatcherResourceIdentifier struct {
-	Name         string
-	Kind         string
-	Version      string
-	GroupVersion string
-	Namespaced   bool
+	Plural     string
+	Kind       string
+	ApiVersion string
+	Namespaced bool
 }
 
 type WatcherResourceState string
@@ -170,16 +169,12 @@ func (self *watcher) watchWithRetry(ctx context.Context, resource WatcherResourc
 
 func (self *watcher) startSingleWatcher(ctx context.Context, resource WatcherResourceIdentifier, onAdd WatcherOnAdd, onUpdate WatcherOnUpdate, onDelete WatcherOnDelete) error {
 	dynamicClient := self.clientProvider.DynamicClient()
-	gv, err := schema.ParseGroupVersion(resource.GroupVersion)
-	if err != nil {
-		return fmt.Errorf("invalid groupVersion: %s", err)
-	}
 
 	informerFactory := dynamicinformer.NewFilteredDynamicSharedInformerFactory(dynamicClient, utils.ResourceResyncTime, v1.NamespaceAll, nil)
-	resourceInformer := informerFactory.ForResource(self.createGroupVersionResource(gv.Group, gv.Version, resource.Name)).Informer()
+	resourceInformer := informerFactory.ForResource(self.createGroupVersionResource(resource.ApiVersion, resource.Plural)).Informer()
 
 	// Enhanced error handler that can detect fatal errors
-	err = resourceInformer.SetWatchErrorHandler(func(r *cache.Reflector, err error) {
+	err := resourceInformer.SetWatchErrorHandler(func(r *cache.Reflector, err error) {
 		if err == io.EOF {
 			self.logger.Debug("Watch connection closed normally", "resource", resource)
 			return // closed normally, its fine
@@ -188,9 +183,9 @@ func (self *watcher) startSingleWatcher(ctx context.Context, resource WatcherRes
 			return // Resource might have been deleted, no need to retry
 		}
 		self.logger.Error("Encountered error while watching resource",
-			"resourceName", resource.Name,
+			"resourceName", resource.Plural,
 			"resourceKind", resource.Kind,
-			"resourceGroupVersion", resource.GroupVersion,
+			"resourceGroupVersion", resource.ApiVersion,
 			"error", err)
 	})
 	if err != nil {
@@ -364,22 +359,11 @@ func (self *watcher) UnwatchAll() {
 	}
 }
 
-func (self *watcher) createGroupVersionResource(group string, version string, name string) schema.GroupVersionResource {
-	// for core apis we need change the group to empty string
-	if group == "v1" && version == "" {
-		return schema.GroupVersionResource{
-			Group:    "",
-			Version:  group,
-			Resource: name,
-		}
+func (self *watcher) createGroupVersionResource(apiVersion string, plural string) schema.GroupVersionResource {
+	gv, err := schema.ParseGroupVersion(apiVersion) // e.g., "apps/v1" or just "v1"
+	if err != nil {
+		self.logger.Error("invalid apiVersion", "apiVersion", apiVersion, "resourceName", plural, "error", err)
 	}
-	if strings.HasSuffix(group, version) {
-		version = ""
-	}
-
-	return schema.GroupVersionResource{
-		Group:    group,
-		Version:  version,
-		Resource: name,
-	}
+	gvr := gv.WithResource(plural)
+	return gvr
 }

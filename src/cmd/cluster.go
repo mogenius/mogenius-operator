@@ -2,10 +2,10 @@ package cmd
 
 import (
 	"log/slog"
-	"mogenius-k8s-manager/src/config"
-	mokubernetes "mogenius-k8s-manager/src/kubernetes"
-	"mogenius-k8s-manager/src/logging"
-	"mogenius-k8s-manager/src/shutdown"
+	"mogenius-operator/src/config"
+	mokubernetes "mogenius-operator/src/kubernetes"
+	"mogenius-operator/src/logging"
+	"mogenius-operator/src/shutdown"
 )
 
 func RunCluster(logManagerModule logging.SlogManager, configModule *config.Config, cmdLogger *slog.Logger, valkeyLogChannel chan logging.LogLine) {
@@ -47,6 +47,11 @@ func RunCluster(logManagerModule logging.SlogManager, configModule *config.Confi
 		}
 
 		cmdLogger.Info("SYSTEM STARTUP COMPLETE")
+
+		// connect socket after everything is ready
+		systems.core.InitializeWebsocketEventServer()
+		systems.core.InitializeWebsocketApiServer()
+
 		select {}
 	}()
 

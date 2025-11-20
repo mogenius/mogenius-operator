@@ -2,11 +2,11 @@ package containerenumerator_test
 
 import (
 	"log/slog"
-	"mogenius-k8s-manager/src/assert"
-	"mogenius-k8s-manager/src/config"
-	"mogenius-k8s-manager/src/containerenumerator"
-	"mogenius-k8s-manager/src/k8sclient"
-	"mogenius-k8s-manager/src/utils"
+	"mogenius-operator/src/assert"
+	"mogenius-operator/src/config"
+	"mogenius-operator/src/containerenumerator"
+	"mogenius-operator/src/k8sclient"
+	"mogenius-operator/src/utils"
 	"os"
 	"testing"
 )
@@ -26,7 +26,7 @@ func TestEmptyCgroup(t *testing.T) {
 	clientProvider := k8sclient.NewK8sClientProvider(logger, configModule)
 	cne := containerenumerator.NewContainerEnumerator(slog.New(slog.NewJSONHandler(os.Stdout, nil)), configModule, clientProvider)
 	_, err := cne.GetContainerIdFromCgroupWithPid(cgroup)
-	assert.AssertT(t, err == containerenumerator.NoMatchFound)
+	assert.AssertT(t, err == containerenumerator.ErrorNoMatchFound)
 }
 
 func TestBaseCgroup(t *testing.T) {
@@ -44,7 +44,7 @@ func TestBaseCgroup(t *testing.T) {
 	clientProvider := k8sclient.NewK8sClientProvider(logger, configModule)
 	cne := containerenumerator.NewContainerEnumerator(slog.New(slog.NewJSONHandler(os.Stdout, nil)), configModule, clientProvider)
 	_, err := cne.GetContainerIdFromCgroupWithPid(cgroup)
-	assert.AssertT(t, err == containerenumerator.NoMatchFound)
+	assert.AssertT(t, err == containerenumerator.ErrorNoMatchFound)
 }
 
 func TestBasicCgroup(t *testing.T) {

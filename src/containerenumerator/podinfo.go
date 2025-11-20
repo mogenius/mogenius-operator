@@ -2,7 +2,7 @@ package containerenumerator
 
 import (
 	"log/slog"
-	"mogenius-k8s-manager/src/assert"
+	"mogenius-operator/src/assert"
 	"net/url"
 	"slices"
 	"time"
