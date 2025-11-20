@@ -21,7 +21,6 @@
 11. eBPF Development Helpers
 12. Troubleshooting
 13. Contributing
-14. License & Attribution
 
 ---
 
@@ -275,17 +274,3 @@ kubectl -n mogenius port-forward svc/mogenius-operator-valkey 6379:6379 &
 4. Add/update tests where behavior changes.
 
 Issues & PRs welcome.
-
----
-
-## 14. License & Attribution
-Copyright (c) mogenius. All rights reserved.
-
-Built with ❤️ by the <a href="https://mogenius.com" target="_blank">mogenius</a> team.
-
----
-
-References:
-- Task runner: https://github.com/casey/just
-- Go module: `mogenius-operator`
-
