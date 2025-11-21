@@ -16,7 +16,7 @@ env:
 
 jobs:
   prepare:
-    runs-on: [self-hosted, macbook]
+    runs-on: [self-hosted]
 
     steps:
       - name: Checkout repository
@@ -37,7 +37,7 @@ jobs:
   build-and-push-docker:
     name: Build Multi-arch Docker
     needs: [prepare]
-    runs-on: [self-hosted, macbook]
+    runs-on: [self-hosted]
 
     permissions:
       contents: read
@@ -98,7 +98,7 @@ jobs:
   helm-chart:
     if: github.ref == 'refs/heads/develop'
     needs: [prepare, build-and-push-docker]
-    runs-on: [self-hosted, macbook]
+    runs-on: [self-hosted]
     permissions:
       contents: read
       packages: write
