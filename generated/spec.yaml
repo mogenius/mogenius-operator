@@ -69,6 +69,117 @@ UpgradeK8sManager:
             pointer: true
             structRef: mogenius-k8s-manager/src/structs.Job
             type: struct
+aiManager/get/tasks:
+    requestSchema:
+        structs:
+            mogenius-k8s-manager/src/core.Request:
+                name: mogenius-k8s-manager/src/core.Request
+                properties:
+                    workspace:
+                        type: string
+        typeInfo:
+            structRef: mogenius-k8s-manager/src/core.Request
+            type: struct
+    responseSchema:
+        structs:
+            mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·35,string]:
+                name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·35,string]
+                properties:
+                    data:
+                        type: string
+                    message:
+                        type: string
+                    status:
+                        type: string
+        typeInfo:
+            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·35,string]
+            type: struct
+aiManager/inject-prompt-config:
+    requestSchema:
+        structs:
+            mogenius-k8s-manager/src/ai.AiFilter:
+                name: mogenius-k8s-manager/src/ai.AiFilter
+                properties:
+                    contains:
+                        keyType:
+                            type: string
+                        type: map
+                        valueType:
+                            type: string
+                    excludes:
+                        keyType:
+                            type: string
+                        type: map
+                        valueType:
+                            type: string
+                    kind:
+                        type: string
+                    name:
+                        type: string
+                    prompt:
+                        type: string
+            mogenius-k8s-manager/src/ai.AiPromptConfig:
+                name: mogenius-k8s-manager/src/ai.AiPromptConfig
+                properties:
+                    filters:
+                        elementType:
+                            structRef: mogenius-k8s-manager/src/ai.AiFilter
+                            type: struct
+                        type: array
+                    name:
+                        type: string
+                    systemPrompt:
+                        type: string
+            mogenius-k8s-manager/src/core.Request:
+                name: mogenius-k8s-manager/src/core.Request
+                properties:
+                    aiPromptConfig:
+                        structRef: mogenius-k8s-manager/src/ai.AiPromptConfig
+                        type: struct
+        typeInfo:
+            structRef: mogenius-k8s-manager/src/core.Request
+            type: struct
+    responseSchema:
+        structs:
+            mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·34,string]:
+                name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·34,string]
+                properties:
+                    data:
+                        type: string
+                    message:
+                        type: string
+                    status:
+                        type: string
+        typeInfo:
+            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·34,string]
+            type: struct
+aiManager/update/task:
+    requestSchema:
+        structs:
+            mogenius-k8s-manager/src/core.Request:
+                name: mogenius-k8s-manager/src/core.Request
+                properties:
+                    state:
+                        type: string
+                    taskId:
+                        type: string
+        typeInfo:
+            structRef: mogenius-k8s-manager/src/core.Request
+            type: struct
+    responseSchema:
+        structs:
+            mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·36,string]:
+                name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·36,string]
+                properties:
+                    data:
+                        type: string
+                    message:
+                        type: string
+                    status:
+                        type: string
+        typeInfo:
+            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·36,string]
+            type: struct
 audit-log/list:
     requestSchema:
         structs:
@@ -96,8 +207,8 @@ audit-log/list:
                         type: string
                     status:
                         type: string
-            mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·34,mogenius-k8s-manager/src/core.Response·35]:
-                name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·34,mogenius-k8s-manager/src/core.Response·35]
+            mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·37,mogenius-k8s-manager/src/core.Response·38]:
+                name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·37,mogenius-k8s-manager/src/core.Response·38]
                 properties:
                     data:
                         structRef: mogenius-k8s-manager/src/core.Response
@@ -154,7 +265,7 @@ audit-log/list:
                 name: time.Time
                 properties: {}
         typeInfo:
-            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·34,mogenius-k8s-manager/src/core.Response·35]
+            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·37,mogenius-k8s-manager/src/core.Response·38]
             type: struct
 cluster/argo-cd-application-refresh:
     requestSchema:
@@ -5123,8 +5234,8 @@ sealed-secret/create-from-existing:
                         valueType:
                             pointer: true
                             type: any
-            ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·36,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
-            :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·36,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+            ? mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·39,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+            :   name: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·39,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
                 properties:
                     data:
                         pointer: true
@@ -5135,7 +5246,7 @@ sealed-secret/create-from-existing:
                     status:
                         type: string
         typeInfo:
-            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·36,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+            structRef: mogenius-k8s-manager/src/core.Result[mogenius-k8s-manager/src/core.Request·39,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
             type: struct
 sealed-secret/get-certificate:
     requestSchema:
