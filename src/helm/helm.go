@@ -142,15 +142,16 @@ type HelmChartInstallUpgradeRequest struct {
 }
 
 type HelmChartOciInstallUpgradeRequest struct {
-	RegistryUrl string `json:"registryUrl" validate:"required"`
+	// OCIChartUrl expects a full OCI chart reference, e.g., "oci://registry-1.docker.io/myrepo/mychart"
+	OCIChartUrl string `json:"ociChartUrl" validate:"required"`
 	Namespace   string `json:"namespace" validate:"required"`
-	Chart       string `json:"chart" validate:"required"`
 	Release     string `json:"release" validate:"required"`
 	// Optional fields
 	Version string `json:"version,omitempty"`
 	Values  string `json:"values,omitempty"`
 	DryRun  bool   `json:"dryRun,omitempty"`
 	// OCI specific fields
+	AuthHost string `json:"authHost,omitempty"` // e.g., "registry-1.docker.io"
 	Username string `json:"username,omitempty"`
 	Password string `json:"password,omitempty"`
 }
@@ -730,31 +731,8 @@ func HelmOciInstall(data HelmChartOciInstallUpgradeRequest) (result string, err 
 		return "", err
 	}
 
-	if !registry.IsOCI(data.RegistryUrl) {
+	if !registry.IsOCI(data.OCIChartUrl) {
 		return "", fmt.Errorf("non-OCI charts are not supported in OCI installation")
-	}
-
-	// Pull the OCI chart
-	chartPath, err := pullOCIChart(data, settings)
-	if err != nil {
-		helmLogger.Error("HelmOCIInstall Pull",
-			"releaseName", data.Release,
-			"namespace", data.Namespace,
-			"error", err.Error(),
-		)
-		return "", err
-	}
-
-	// Load the chart from the pulled location
-	helmLogger.Info("Loading pulled OCI chart ...", "releaseName", data.Release, "namespace", data.Namespace)
-	chartRequested, err := loader.Load(chartPath)
-	if err != nil {
-		helmLogger.Error("HelmOCIInstall Load",
-			"releaseName", data.Release,
-			"namespace", data.Namespace,
-			"error", err.Error(),
-		)
-		return "", err
 	}
 
 	// Parse the values string into a map
@@ -779,6 +757,45 @@ func HelmOciInstall(data HelmChartOciInstallUpgradeRequest) (result string, err 
 	install.Version = data.Version
 	install.WaitStrategy = kube.StatusWatcherStrategy
 	install.Timeout = 300 * time.Second
+	install.Labels = map[string]string{
+		"mogenius.com/installed-via": "mogenius-operator",
+		"mogenius.com/oci-chart":     "true",
+	}
+
+	// Create registry client for OCI
+	registryClient, err := newRegistryClient(settings, false)
+	if err != nil {
+		return "", fmt.Errorf("failed to create OCI registry client: %w", err)
+	}
+	if data.Username != "" || data.Password != "" && data.AuthHost != "" {
+		err = registryClient.Login(
+			data.AuthHost,
+			registry.LoginOptBasicAuth(data.Username, data.Password),
+		)
+		if err != nil {
+			return "", fmt.Errorf("failed to login to OCI registry: %w", err)
+		}
+	} else {
+		helmLogger.Info("No OCI registry credentials provided, attempting anonymous access", "releaseName", data.Release, "namespace", data.Namespace)
+	}
+	install.SetRegistryClient(registryClient)
+
+	chartPath, err := install.ChartPathOptions.LocateChart(data.OCIChartUrl, settings)
+	if err != nil {
+		return "", fmt.Errorf("failed to locate chart: %w", err)
+	}
+
+	// Load the chart from the pulled location
+	helmLogger.Info("Loading pulled OCI chart ...", "releaseName", data.Release, "namespace", data.Namespace)
+	chartRequested, err := loader.Load(chartPath)
+	if err != nil {
+		helmLogger.Error("HelmOCIInstall Load",
+			"releaseName", data.Release,
+			"namespace", data.Namespace,
+			"error", err.Error(),
+		)
+		return "", err
+	}
 
 	rel, err := install.Run(chartRequested, valuesMap)
 	if err != nil {
@@ -795,102 +812,37 @@ func HelmOciInstall(data HelmChartOciInstallUpgradeRequest) (result string, err 
 		return "", errors.New("HelmOCIInstall Error: Release type assertion failed")
 	}
 
+	err = SaveRepoNameToValkey(data.Namespace, data.Release, data.OCIChartUrl)
+	if err != nil {
+		helmLogger.Error("failed to SaveRepoNameToValkey",
+			"releaseName", data.Release,
+			"namespace", data.Namespace,
+			"error", err.Error(),
+		)
+		return "", err
+	}
+
 	helmLogger.Info(installStatus(*re), "releaseName", data.Release, "namespace", data.Namespace)
 	return installStatus(*re), nil
 }
 
-func pullOCIChart(data HelmChartOciInstallUpgradeRequest, settings *cli.EnvSettings) (downloadedTo string, err error) {
-	chartRef := data.RegistryUrl + "/" + data.Chart
-	if data.Version != "" {
-		chartRef = fmt.Sprintf("%s:%s", data.Chart, data.Version)
-	}
-
-	actionConfig, err := initActionConfigList(settings, true)
-	if err != nil {
-		return "", fmt.Errorf("failed to init action config: %w", err)
-	}
-
-	registryClient, err := newRegistryClient(settings, false)
-	if err != nil {
-		return "", fmt.Errorf("failed to created registry client: %w", err)
-	}
-	actionConfig.RegistryClient = registryClient
-
-	// check auth if needed
-	if data.Username != "" || data.Password != "" {
-		return "", fmt.Errorf("OCI AUTH currently not supported")
-		// TODO: Uncomment this when OCI auth is supported
-		// err = registryClient.Login(
-		// 	data.RegistryUrl,
-		// 	registry.LoginOptBasicAuth(data.Username, data.Password),
-		// )
-		// if err != nil {
-		// 	helmLogger.Error("OCI registry login failed",
-		// 		"releaseName", data.Release,
-		// 		"namespace", data.Namespace,
-		// 		"error", err.Error(),
-		// 	)
-		// 	return "", err
-		// }
-	}
-
-	tempDir, err := os.MkdirTemp("", "helm-pull")
-	if err != nil {
-		return "", fmt.Errorf("failed to create temp dir: %w", err)
-	}
-
-	pullClient := action.NewPull(action.WithConfig(actionConfig))
-	pullClient.DestDir = tempDir
-	pullClient.Settings = settings
-	pullClient.Version = data.Version
-	pullClient.Untar = true
-	pullClient.Devel = false
-
-	_, err = pullClient.Run(chartRef)
-	if err != nil {
-		return "", fmt.Errorf("failed to pull chart: %w", err)
-	}
-
-	return tempDir + "/" + data.Chart, nil
-}
-
-func initActionConfigList(settings *cli.EnvSettings, allNamespaces bool) (*action.Configuration, error) {
-
-	actionConfig := new(action.Configuration)
-
-	namespace := func() string {
-		// For list action, you can pass an empty string instead of settings.Namespace() to list
-		// all namespaces
-		if allNamespaces {
-			return ""
-		}
-		return settings.Namespace()
-	}()
-
-	if err := actionConfig.Init(
-		settings.RESTClientGetter(),
-		namespace,
-		""); err != nil {
-		return nil, err
-	}
-
-	return actionConfig, nil
-}
-
 func newRegistryClient(settings *cli.EnvSettings, plainHTTP bool) (*registry.Client, error) {
 	opts := []registry.ClientOption{
+		registry.ClientOptDebug(settings.Debug),
 		registry.ClientOptEnableCache(true),
+		registry.ClientOptWriter(os.Stderr),
 		registry.ClientOptCredentialsFile(settings.RegistryConfig),
 	}
+
 	if plainHTTP {
 		opts = append(opts, registry.ClientOptPlainHTTP())
 	}
 
-	// Create a new registry client
 	registryClient, err := registry.NewClient(opts...)
 	if err != nil {
 		return nil, err
 	}
+
 	return registryClient, nil
 }
 
@@ -921,7 +873,7 @@ func HelmChartInstall(data HelmChartInstallUpgradeRequest) (result string, err e
 	}
 
 	if registry.IsOCI(data.Chart) {
-		return "", fmt.Errorf("OCI charts are not supported")
+		return "", fmt.Errorf("OCI charts are not supported in the standard installation, please use the OCI installation endpoint")
 	}
 
 	install := action.NewInstall(actionConfig)
@@ -934,6 +886,10 @@ func HelmChartInstall(data HelmChartInstallUpgradeRequest) (result string, err e
 	install.WaitStrategy = kube.StatusWatcherStrategy
 	install.Timeout = 300 * time.Second
 	install.Devel = true
+	install.Labels = map[string]string{
+		"mogenius.com/installed-via": "mogenius-operator",
+		"mogenius.com/oci-chart":     "false",
+	}
 
 	helmLogger.Info("Locating chart ...", "releaseName", data.Release, "namespace", data.Namespace)
 	chartPath, err := install.LocateChart(data.Chart, settings)

@@ -391,15 +391,15 @@ cluster/helm-chart-install-oci:
             mogenius-operator/src/helm.HelmChartOciInstallUpgradeRequest:
                 name: mogenius-operator/src/helm.HelmChartOciInstallUpgradeRequest
                 properties:
-                    chart:
+                    authHost:
                         type: string
                     dryRun:
                         type: bool
                     namespace:
                         type: string
-                    password:
+                    ociChartUrl:
                         type: string
-                    registryUrl:
+                    password:
                         type: string
                     release:
                         type: string

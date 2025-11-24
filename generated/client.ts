@@ -805,15 +805,15 @@ export type CLUSTER_HELM_CHART_INSTALL_RESPONSE = CLUSTER_HELM_CHART_INSTALL_RES
  *     mogenius-operator/src/helm.HelmChartOciInstallUpgradeRequest:
  *         name: mogenius-operator/src/helm.HelmChartOciInstallUpgradeRequest
  *         properties:
- *             chart:
+ *             authHost:
  *                 type: string
  *             dryRun:
  *                 type: bool
  *             namespace:
  *                 type: string
- *             password:
+ *             ociChartUrl:
  *                 type: string
- *             registryUrl:
+ *             password:
  *                 type: string
  *             release:
  *                 type: string
@@ -8879,7 +8879,7 @@ export type CLUSTER_FORCE_RECONNECT_REQUEST__ANON_STRUCT_0 = {};
 export type CLUSTER_FORCE_RECONNECT_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_BOOL = {"data": boolean,"message": string,"status": string};
 export type CLUSTER_HELM_CHART_INSTALL_REQUEST__MOGENIUS_OPERATOR_SRC_HELM_HELMCHARTINSTALLUPGRADEREQUEST = {"chart": string,"dryRun": boolean,"namespace": string,"release": string,"values": string,"version": string};
 export type CLUSTER_HELM_CHART_INSTALL_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_HELM_HELMCHARTINSTALLUPGRADEREQUEST_STRING = {"data": string,"message": string,"status": string};
-export type CLUSTER_HELM_CHART_INSTALL_OCI_REQUEST__MOGENIUS_OPERATOR_SRC_HELM_HELMCHARTOCIINSTALLUPGRADEREQUEST = {"chart": string,"dryRun": boolean,"namespace": string,"password": string,"registryUrl": string,"release": string,"username": string,"values": string,"version": string};
+export type CLUSTER_HELM_CHART_INSTALL_OCI_REQUEST__MOGENIUS_OPERATOR_SRC_HELM_HELMCHARTOCIINSTALLUPGRADEREQUEST = {"authHost": string,"dryRun": boolean,"namespace": string,"ociChartUrl": string,"password": string,"release": string,"username": string,"values": string,"version": string};
 export type CLUSTER_HELM_CHART_INSTALL_OCI_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_HELM_HELMCHARTOCIINSTALLUPGRADEREQUEST_STRING = {"data": string,"message": string,"status": string};
 export type CLUSTER_HELM_CHART_REMOVE_REQUEST__MOGENIUS_OPERATOR_SRC_HELM_HELMREPOREMOVEREQUEST = {"name": string};
 export type CLUSTER_HELM_CHART_REMOVE_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_HELM_HELMREPOREMOVEREQUEST_STRING = {"data": string,"message": string,"status": string};
