@@ -659,31 +659,49 @@ cluster/helm-release-history:
             type: struct
     responseSchema:
         structs:
-            helm.sh/helm/v3/pkg/chart.Chart:
-                name: helm.sh/helm/v3/pkg/chart.Chart
+            helm.sh/helm/v4/pkg/chart/common.File:
+                name: helm.sh/helm/v4/pkg/chart/common.File
+                properties:
+                    data:
+                        elementType:
+                            type: uint
+                        type: array
+                    modtime:
+                        structRef: time.Time
+                        type: struct
+                    name:
+                        type: string
+            helm.sh/helm/v4/pkg/chart/v2.Chart:
+                name: helm.sh/helm/v4/pkg/chart/v2.Chart
                 properties:
                     files:
                         elementType:
                             pointer: true
-                            structRef: helm.sh/helm/v3/pkg/chart.File
+                            structRef: helm.sh/helm/v4/pkg/chart/common.File
                             type: struct
                         type: array
                     lock:
                         pointer: true
-                        structRef: helm.sh/helm/v3/pkg/chart.Lock
+                        structRef: helm.sh/helm/v4/pkg/chart/v2.Lock
                         type: struct
                     metadata:
                         pointer: true
-                        structRef: helm.sh/helm/v3/pkg/chart.Metadata
+                        structRef: helm.sh/helm/v4/pkg/chart/v2.Metadata
+                        type: struct
+                    modtime:
+                        structRef: time.Time
                         type: struct
                     schema:
                         elementType:
                             type: uint
                         type: array
+                    schemamodtime:
+                        structRef: time.Time
+                        type: struct
                     templates:
                         elementType:
                             pointer: true
-                            structRef: helm.sh/helm/v3/pkg/chart.File
+                            structRef: helm.sh/helm/v4/pkg/chart/common.File
                             type: struct
                         type: array
                     values:
@@ -693,8 +711,8 @@ cluster/helm-release-history:
                         valueType:
                             pointer: true
                             type: any
-            helm.sh/helm/v3/pkg/chart.Dependency:
-                name: helm.sh/helm/v3/pkg/chart.Dependency
+            helm.sh/helm/v4/pkg/chart/v2.Dependency:
+                name: helm.sh/helm/v4/pkg/chart/v2.Dependency
                 properties:
                     alias:
                         type: string
@@ -717,22 +735,13 @@ cluster/helm-release-history:
                         type: array
                     version:
                         type: string
-            helm.sh/helm/v3/pkg/chart.File:
-                name: helm.sh/helm/v3/pkg/chart.File
-                properties:
-                    data:
-                        elementType:
-                            type: uint
-                        type: array
-                    name:
-                        type: string
-            helm.sh/helm/v3/pkg/chart.Lock:
-                name: helm.sh/helm/v3/pkg/chart.Lock
+            helm.sh/helm/v4/pkg/chart/v2.Lock:
+                name: helm.sh/helm/v4/pkg/chart/v2.Lock
                 properties:
                     dependencies:
                         elementType:
                             pointer: true
-                            structRef: helm.sh/helm/v3/pkg/chart.Dependency
+                            structRef: helm.sh/helm/v4/pkg/chart/v2.Dependency
                             type: struct
                         type: array
                     digest:
@@ -740,8 +749,8 @@ cluster/helm-release-history:
                     generated:
                         structRef: time.Time
                         type: struct
-            helm.sh/helm/v3/pkg/chart.Maintainer:
-                name: helm.sh/helm/v3/pkg/chart.Maintainer
+            helm.sh/helm/v4/pkg/chart/v2.Maintainer:
+                name: helm.sh/helm/v4/pkg/chart/v2.Maintainer
                 properties:
                     email:
                         type: string
@@ -749,8 +758,8 @@ cluster/helm-release-history:
                         type: string
                     url:
                         type: string
-            helm.sh/helm/v3/pkg/chart.Metadata:
-                name: helm.sh/helm/v3/pkg/chart.Metadata
+            helm.sh/helm/v4/pkg/chart/v2.Metadata:
+                name: helm.sh/helm/v4/pkg/chart/v2.Metadata
                 properties:
                     annotations:
                         keyType:
@@ -767,7 +776,7 @@ cluster/helm-release-history:
                     dependencies:
                         elementType:
                             pointer: true
-                            structRef: helm.sh/helm/v3/pkg/chart.Dependency
+                            structRef: helm.sh/helm/v4/pkg/chart/v2.Dependency
                             type: struct
                         type: array
                     deprecated:
@@ -787,7 +796,7 @@ cluster/helm-release-history:
                     maintainers:
                         elementType:
                             pointer: true
-                            structRef: helm.sh/helm/v3/pkg/chart.Maintainer
+                            structRef: helm.sh/helm/v4/pkg/chart/v2.Maintainer
                             type: struct
                         type: array
                     name:
@@ -802,8 +811,8 @@ cluster/helm-release-history:
                         type: string
                     version:
                         type: string
-            helm.sh/helm/v3/pkg/release.Hook:
-                name: helm.sh/helm/v3/pkg/release.Hook
+            helm.sh/helm/v4/pkg/release/v1.Hook:
+                name: helm.sh/helm/v4/pkg/release/v1.Hook
                 properties:
                     delete_policies:
                         elementType:
@@ -816,7 +825,7 @@ cluster/helm-release-history:
                     kind:
                         type: string
                     last_run:
-                        structRef: helm.sh/helm/v3/pkg/release.HookExecution
+                        structRef: helm.sh/helm/v4/pkg/release/v1.HookExecution
                         type: struct
                     manifest:
                         type: string
@@ -830,30 +839,30 @@ cluster/helm-release-history:
                         type: string
                     weight:
                         type: int
-            helm.sh/helm/v3/pkg/release.HookExecution:
-                name: helm.sh/helm/v3/pkg/release.HookExecution
+            helm.sh/helm/v4/pkg/release/v1.HookExecution:
+                name: helm.sh/helm/v4/pkg/release/v1.HookExecution
                 properties:
                     completed_at:
-                        structRef: helm.sh/helm/v3/pkg/time.Time
+                        structRef: time.Time
                         type: struct
                     phase:
                         type: string
                     started_at:
-                        structRef: helm.sh/helm/v3/pkg/time.Time
+                        structRef: time.Time
                         type: struct
-            helm.sh/helm/v3/pkg/release.Info:
-                name: helm.sh/helm/v3/pkg/release.Info
+            helm.sh/helm/v4/pkg/release/v1.Info:
+                name: helm.sh/helm/v4/pkg/release/v1.Info
                 properties:
                     deleted:
-                        structRef: helm.sh/helm/v3/pkg/time.Time
+                        structRef: time.Time
                         type: struct
                     description:
                         type: string
                     first_deployed:
-                        structRef: helm.sh/helm/v3/pkg/time.Time
+                        structRef: time.Time
                         type: struct
                     last_deployed:
-                        structRef: helm.sh/helm/v3/pkg/time.Time
+                        structRef: time.Time
                         type: struct
                     notes:
                         type: string
@@ -868,12 +877,14 @@ cluster/helm-release-history:
                             type: array
                     status:
                         type: string
-            helm.sh/helm/v3/pkg/release.Release:
-                name: helm.sh/helm/v3/pkg/release.Release
+            helm.sh/helm/v4/pkg/release/v1.Release:
+                name: helm.sh/helm/v4/pkg/release/v1.Release
                 properties:
+                    apply_method:
+                        type: string
                     chart:
                         pointer: true
-                        structRef: helm.sh/helm/v3/pkg/chart.Chart
+                        structRef: helm.sh/helm/v4/pkg/chart/v2.Chart
                         type: struct
                     config:
                         keyType:
@@ -885,12 +896,12 @@ cluster/helm-release-history:
                     hooks:
                         elementType:
                             pointer: true
-                            structRef: helm.sh/helm/v3/pkg/release.Hook
+                            structRef: helm.sh/helm/v4/pkg/release/v1.Hook
                             type: struct
                         type: array
                     info:
                         pointer: true
-                        structRef: helm.sh/helm/v3/pkg/release.Info
+                        structRef: helm.sh/helm/v4/pkg/release/v1.Info
                         type: struct
                     manifest:
                         type: string
@@ -900,19 +911,12 @@ cluster/helm-release-history:
                         type: string
                     version:
                         type: int
-            helm.sh/helm/v3/pkg/time.Time:
-                name: helm.sh/helm/v3/pkg/time.Time
-                properties:
-                    Time:
-                        structRef: time.Time
-                        type: struct
-            mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseHistoryRequest,[]*helm.sh/helm/v3/pkg/release.Release]:
-                name: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseHistoryRequest,[]*helm.sh/helm/v3/pkg/release.Release]
+            mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseHistoryRequest,[]helm.sh/helm/v4/pkg/release/v1.Release]:
+                name: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseHistoryRequest,[]helm.sh/helm/v4/pkg/release/v1.Release]
                 properties:
                     data:
                         elementType:
-                            pointer: true
-                            structRef: helm.sh/helm/v3/pkg/release.Release
+                            structRef: helm.sh/helm/v4/pkg/release/v1.Release
                             type: struct
                         type: array
                     message:
@@ -923,7 +927,7 @@ cluster/helm-release-history:
                 name: time.Time
                 properties: {}
         typeInfo:
-            structRef: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseHistoryRequest,[]*helm.sh/helm/v3/pkg/release.Release]
+            structRef: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseHistoryRequest,[]helm.sh/helm/v4/pkg/release/v1.Release]
             type: struct
 cluster/helm-release-link:
     requestSchema:
@@ -967,31 +971,49 @@ cluster/helm-release-list:
             type: struct
     responseSchema:
         structs:
-            helm.sh/helm/v3/pkg/chart.Chart:
-                name: helm.sh/helm/v3/pkg/chart.Chart
+            helm.sh/helm/v4/pkg/chart/common.File:
+                name: helm.sh/helm/v4/pkg/chart/common.File
+                properties:
+                    data:
+                        elementType:
+                            type: uint
+                        type: array
+                    modtime:
+                        structRef: time.Time
+                        type: struct
+                    name:
+                        type: string
+            helm.sh/helm/v4/pkg/chart/v2.Chart:
+                name: helm.sh/helm/v4/pkg/chart/v2.Chart
                 properties:
                     files:
                         elementType:
                             pointer: true
-                            structRef: helm.sh/helm/v3/pkg/chart.File
+                            structRef: helm.sh/helm/v4/pkg/chart/common.File
                             type: struct
                         type: array
                     lock:
                         pointer: true
-                        structRef: helm.sh/helm/v3/pkg/chart.Lock
+                        structRef: helm.sh/helm/v4/pkg/chart/v2.Lock
                         type: struct
                     metadata:
                         pointer: true
-                        structRef: helm.sh/helm/v3/pkg/chart.Metadata
+                        structRef: helm.sh/helm/v4/pkg/chart/v2.Metadata
+                        type: struct
+                    modtime:
+                        structRef: time.Time
                         type: struct
                     schema:
                         elementType:
                             type: uint
                         type: array
+                    schemamodtime:
+                        structRef: time.Time
+                        type: struct
                     templates:
                         elementType:
                             pointer: true
-                            structRef: helm.sh/helm/v3/pkg/chart.File
+                            structRef: helm.sh/helm/v4/pkg/chart/common.File
                             type: struct
                         type: array
                     values:
@@ -1001,8 +1023,8 @@ cluster/helm-release-list:
                         valueType:
                             pointer: true
                             type: any
-            helm.sh/helm/v3/pkg/chart.Dependency:
-                name: helm.sh/helm/v3/pkg/chart.Dependency
+            helm.sh/helm/v4/pkg/chart/v2.Dependency:
+                name: helm.sh/helm/v4/pkg/chart/v2.Dependency
                 properties:
                     alias:
                         type: string
@@ -1025,22 +1047,13 @@ cluster/helm-release-list:
                         type: array
                     version:
                         type: string
-            helm.sh/helm/v3/pkg/chart.File:
-                name: helm.sh/helm/v3/pkg/chart.File
-                properties:
-                    data:
-                        elementType:
-                            type: uint
-                        type: array
-                    name:
-                        type: string
-            helm.sh/helm/v3/pkg/chart.Lock:
-                name: helm.sh/helm/v3/pkg/chart.Lock
+            helm.sh/helm/v4/pkg/chart/v2.Lock:
+                name: helm.sh/helm/v4/pkg/chart/v2.Lock
                 properties:
                     dependencies:
                         elementType:
                             pointer: true
-                            structRef: helm.sh/helm/v3/pkg/chart.Dependency
+                            structRef: helm.sh/helm/v4/pkg/chart/v2.Dependency
                             type: struct
                         type: array
                     digest:
@@ -1048,8 +1061,8 @@ cluster/helm-release-list:
                     generated:
                         structRef: time.Time
                         type: struct
-            helm.sh/helm/v3/pkg/chart.Maintainer:
-                name: helm.sh/helm/v3/pkg/chart.Maintainer
+            helm.sh/helm/v4/pkg/chart/v2.Maintainer:
+                name: helm.sh/helm/v4/pkg/chart/v2.Maintainer
                 properties:
                     email:
                         type: string
@@ -1057,8 +1070,8 @@ cluster/helm-release-list:
                         type: string
                     url:
                         type: string
-            helm.sh/helm/v3/pkg/chart.Metadata:
-                name: helm.sh/helm/v3/pkg/chart.Metadata
+            helm.sh/helm/v4/pkg/chart/v2.Metadata:
+                name: helm.sh/helm/v4/pkg/chart/v2.Metadata
                 properties:
                     annotations:
                         keyType:
@@ -1075,7 +1088,7 @@ cluster/helm-release-list:
                     dependencies:
                         elementType:
                             pointer: true
-                            structRef: helm.sh/helm/v3/pkg/chart.Dependency
+                            structRef: helm.sh/helm/v4/pkg/chart/v2.Dependency
                             type: struct
                         type: array
                     deprecated:
@@ -1095,7 +1108,7 @@ cluster/helm-release-list:
                     maintainers:
                         elementType:
                             pointer: true
-                            structRef: helm.sh/helm/v3/pkg/chart.Maintainer
+                            structRef: helm.sh/helm/v4/pkg/chart/v2.Maintainer
                             type: struct
                         type: array
                     name:
@@ -1110,8 +1123,8 @@ cluster/helm-release-list:
                         type: string
                     version:
                         type: string
-            helm.sh/helm/v3/pkg/release.Hook:
-                name: helm.sh/helm/v3/pkg/release.Hook
+            helm.sh/helm/v4/pkg/release/v1.Hook:
+                name: helm.sh/helm/v4/pkg/release/v1.Hook
                 properties:
                     delete_policies:
                         elementType:
@@ -1124,7 +1137,7 @@ cluster/helm-release-list:
                     kind:
                         type: string
                     last_run:
-                        structRef: helm.sh/helm/v3/pkg/release.HookExecution
+                        structRef: helm.sh/helm/v4/pkg/release/v1.HookExecution
                         type: struct
                     manifest:
                         type: string
@@ -1138,30 +1151,30 @@ cluster/helm-release-list:
                         type: string
                     weight:
                         type: int
-            helm.sh/helm/v3/pkg/release.HookExecution:
-                name: helm.sh/helm/v3/pkg/release.HookExecution
+            helm.sh/helm/v4/pkg/release/v1.HookExecution:
+                name: helm.sh/helm/v4/pkg/release/v1.HookExecution
                 properties:
                     completed_at:
-                        structRef: helm.sh/helm/v3/pkg/time.Time
+                        structRef: time.Time
                         type: struct
                     phase:
                         type: string
                     started_at:
-                        structRef: helm.sh/helm/v3/pkg/time.Time
+                        structRef: time.Time
                         type: struct
-            helm.sh/helm/v3/pkg/release.Info:
-                name: helm.sh/helm/v3/pkg/release.Info
+            helm.sh/helm/v4/pkg/release/v1.Info:
+                name: helm.sh/helm/v4/pkg/release/v1.Info
                 properties:
                     deleted:
-                        structRef: helm.sh/helm/v3/pkg/time.Time
+                        structRef: time.Time
                         type: struct
                     description:
                         type: string
                     first_deployed:
-                        structRef: helm.sh/helm/v3/pkg/time.Time
+                        structRef: time.Time
                         type: struct
                     last_deployed:
-                        structRef: helm.sh/helm/v3/pkg/time.Time
+                        structRef: time.Time
                         type: struct
                     notes:
                         type: string
@@ -1176,12 +1189,6 @@ cluster/helm-release-list:
                             type: array
                     status:
                         type: string
-            helm.sh/helm/v3/pkg/time.Time:
-                name: helm.sh/helm/v3/pkg/time.Time
-                properties:
-                    Time:
-                        structRef: time.Time
-                        type: struct
             mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseListRequest,[]*mogenius-operator/src/helm.HelmRelease]:
                 name: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseListRequest,[]*mogenius-operator/src/helm.HelmRelease]
                 properties:
@@ -1200,7 +1207,7 @@ cluster/helm-release-list:
                 properties:
                     chart:
                         pointer: true
-                        structRef: helm.sh/helm/v3/pkg/chart.Chart
+                        structRef: helm.sh/helm/v4/pkg/chart/v2.Chart
                         type: struct
                     config:
                         keyType:
@@ -1212,12 +1219,12 @@ cluster/helm-release-list:
                     hooks:
                         elementType:
                             pointer: true
-                            structRef: helm.sh/helm/v3/pkg/release.Hook
+                            structRef: helm.sh/helm/v4/pkg/release/v1.Hook
                             type: struct
                         type: array
                     info:
                         pointer: true
-                        structRef: helm.sh/helm/v3/pkg/release.Info
+                        structRef: helm.sh/helm/v4/pkg/release/v1.Info
                         type: struct
                     manifest:
                         type: string
