@@ -3,6 +3,7 @@
   "extends": [
     "config:recommended"
   ],
+  "postUpdateOptions": ["gomodTidy", "gomodUpdateImportPaths"],
   "automerge": true,
   "automergeType": "pr",
   "patch": {

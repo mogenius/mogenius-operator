@@ -31,7 +31,7 @@ import (
 	"time"
 
 	jsoniter "github.com/json-iterator/go"
-	"helm.sh/helm/v3/pkg/release"
+	release "helm.sh/helm/v4/pkg/release/v1"
 	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -964,7 +964,7 @@ func (self *socketApi) registerPatterns() {
 	RegisterPatternHandler(
 		PatternHandle{self, "cluster/helm-release-history"},
 		PatternConfig{},
-		func(datagram structs.Datagram, request helm.HelmReleaseHistoryRequest) ([]*release.Release, error) {
+		func(datagram structs.Datagram, request helm.HelmReleaseHistoryRequest) ([]release.Release, error) {
 			return helm.HelmReleaseHistory(request)
 		},
 	)

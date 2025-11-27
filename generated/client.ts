@@ -805,15 +805,15 @@ export type CLUSTER_HELM_CHART_INSTALL_RESPONSE = CLUSTER_HELM_CHART_INSTALL_RES
  *     mogenius-operator/src/helm.HelmChartOciInstallUpgradeRequest:
  *         name: mogenius-operator/src/helm.HelmChartOciInstallUpgradeRequest
  *         properties:
- *             chart:
+ *             authHost:
  *                 type: string
  *             dryRun:
  *                 type: bool
  *             namespace:
  *                 type: string
- *             password:
+ *             ociChartUrl:
  *                 type: string
- *             registryUrl:
+ *             password:
  *                 type: string
  *             release:
  *                 type: string
@@ -1186,31 +1186,49 @@ export type CLUSTER_HELM_RELEASE_HISTORY_REQUEST = CLUSTER_HELM_RELEASE_HISTORY_
  *
  * ```yaml
  * structs:
- *     helm.sh/helm/v3/pkg/chart.Chart:
- *         name: helm.sh/helm/v3/pkg/chart.Chart
+ *     helm.sh/helm/v4/pkg/chart/common.File:
+ *         name: helm.sh/helm/v4/pkg/chart/common.File
+ *         properties:
+ *             data:
+ *                 elementType:
+ *                     type: uint
+ *                 type: array
+ *             modtime:
+ *                 structRef: time.Time
+ *                 type: struct
+ *             name:
+ *                 type: string
+ *     helm.sh/helm/v4/pkg/chart/v2.Chart:
+ *         name: helm.sh/helm/v4/pkg/chart/v2.Chart
  *         properties:
  *             files:
  *                 elementType:
  *                     pointer: true
- *                     structRef: helm.sh/helm/v3/pkg/chart.File
+ *                     structRef: helm.sh/helm/v4/pkg/chart/common.File
  *                     type: struct
  *                 type: array
  *             lock:
  *                 pointer: true
- *                 structRef: helm.sh/helm/v3/pkg/chart.Lock
+ *                 structRef: helm.sh/helm/v4/pkg/chart/v2.Lock
  *                 type: struct
  *             metadata:
  *                 pointer: true
- *                 structRef: helm.sh/helm/v3/pkg/chart.Metadata
+ *                 structRef: helm.sh/helm/v4/pkg/chart/v2.Metadata
+ *                 type: struct
+ *             modtime:
+ *                 structRef: time.Time
  *                 type: struct
  *             schema:
  *                 elementType:
  *                     type: uint
  *                 type: array
+ *             schemamodtime:
+ *                 structRef: time.Time
+ *                 type: struct
  *             templates:
  *                 elementType:
  *                     pointer: true
- *                     structRef: helm.sh/helm/v3/pkg/chart.File
+ *                     structRef: helm.sh/helm/v4/pkg/chart/common.File
  *                     type: struct
  *                 type: array
  *             values:
@@ -1220,8 +1238,8 @@ export type CLUSTER_HELM_RELEASE_HISTORY_REQUEST = CLUSTER_HELM_RELEASE_HISTORY_
  *                 valueType:
  *                     pointer: true
  *                     type: any
- *     helm.sh/helm/v3/pkg/chart.Dependency:
- *         name: helm.sh/helm/v3/pkg/chart.Dependency
+ *     helm.sh/helm/v4/pkg/chart/v2.Dependency:
+ *         name: helm.sh/helm/v4/pkg/chart/v2.Dependency
  *         properties:
  *             alias:
  *                 type: string
@@ -1244,22 +1262,13 @@ export type CLUSTER_HELM_RELEASE_HISTORY_REQUEST = CLUSTER_HELM_RELEASE_HISTORY_
  *                 type: array
  *             version:
  *                 type: string
- *     helm.sh/helm/v3/pkg/chart.File:
- *         name: helm.sh/helm/v3/pkg/chart.File
- *         properties:
- *             data:
- *                 elementType:
- *                     type: uint
- *                 type: array
- *             name:
- *                 type: string
- *     helm.sh/helm/v3/pkg/chart.Lock:
- *         name: helm.sh/helm/v3/pkg/chart.Lock
+ *     helm.sh/helm/v4/pkg/chart/v2.Lock:
+ *         name: helm.sh/helm/v4/pkg/chart/v2.Lock
  *         properties:
  *             dependencies:
  *                 elementType:
  *                     pointer: true
- *                     structRef: helm.sh/helm/v3/pkg/chart.Dependency
+ *                     structRef: helm.sh/helm/v4/pkg/chart/v2.Dependency
  *                     type: struct
  *                 type: array
  *             digest:
@@ -1267,8 +1276,8 @@ export type CLUSTER_HELM_RELEASE_HISTORY_REQUEST = CLUSTER_HELM_RELEASE_HISTORY_
  *             generated:
  *                 structRef: time.Time
  *                 type: struct
- *     helm.sh/helm/v3/pkg/chart.Maintainer:
- *         name: helm.sh/helm/v3/pkg/chart.Maintainer
+ *     helm.sh/helm/v4/pkg/chart/v2.Maintainer:
+ *         name: helm.sh/helm/v4/pkg/chart/v2.Maintainer
  *         properties:
  *             email:
  *                 type: string
@@ -1276,8 +1285,8 @@ export type CLUSTER_HELM_RELEASE_HISTORY_REQUEST = CLUSTER_HELM_RELEASE_HISTORY_
  *                 type: string
  *             url:
  *                 type: string
- *     helm.sh/helm/v3/pkg/chart.Metadata:
- *         name: helm.sh/helm/v3/pkg/chart.Metadata
+ *     helm.sh/helm/v4/pkg/chart/v2.Metadata:
+ *         name: helm.sh/helm/v4/pkg/chart/v2.Metadata
  *         properties:
  *             annotations:
  *                 keyType:
@@ -1294,7 +1303,7 @@ export type CLUSTER_HELM_RELEASE_HISTORY_REQUEST = CLUSTER_HELM_RELEASE_HISTORY_
  *             dependencies:
  *                 elementType:
  *                     pointer: true
- *                     structRef: helm.sh/helm/v3/pkg/chart.Dependency
+ *                     structRef: helm.sh/helm/v4/pkg/chart/v2.Dependency
  *                     type: struct
  *                 type: array
  *             deprecated:
@@ -1314,7 +1323,7 @@ export type CLUSTER_HELM_RELEASE_HISTORY_REQUEST = CLUSTER_HELM_RELEASE_HISTORY_
  *             maintainers:
  *                 elementType:
  *                     pointer: true
- *                     structRef: helm.sh/helm/v3/pkg/chart.Maintainer
+ *                     structRef: helm.sh/helm/v4/pkg/chart/v2.Maintainer
  *                     type: struct
  *                 type: array
  *             name:
@@ -1329,8 +1338,8 @@ export type CLUSTER_HELM_RELEASE_HISTORY_REQUEST = CLUSTER_HELM_RELEASE_HISTORY_
  *                 type: string
  *             version:
  *                 type: string
- *     helm.sh/helm/v3/pkg/release.Hook:
- *         name: helm.sh/helm/v3/pkg/release.Hook
+ *     helm.sh/helm/v4/pkg/release/v1.Hook:
+ *         name: helm.sh/helm/v4/pkg/release/v1.Hook
  *         properties:
  *             delete_policies:
  *                 elementType:
@@ -1343,7 +1352,7 @@ export type CLUSTER_HELM_RELEASE_HISTORY_REQUEST = CLUSTER_HELM_RELEASE_HISTORY_
  *             kind:
  *                 type: string
  *             last_run:
- *                 structRef: helm.sh/helm/v3/pkg/release.HookExecution
+ *                 structRef: helm.sh/helm/v4/pkg/release/v1.HookExecution
  *                 type: struct
  *             manifest:
  *                 type: string
@@ -1357,30 +1366,30 @@ export type CLUSTER_HELM_RELEASE_HISTORY_REQUEST = CLUSTER_HELM_RELEASE_HISTORY_
  *                 type: string
  *             weight:
  *                 type: int
- *     helm.sh/helm/v3/pkg/release.HookExecution:
- *         name: helm.sh/helm/v3/pkg/release.HookExecution
+ *     helm.sh/helm/v4/pkg/release/v1.HookExecution:
+ *         name: helm.sh/helm/v4/pkg/release/v1.HookExecution
  *         properties:
  *             completed_at:
- *                 structRef: helm.sh/helm/v3/pkg/time.Time
+ *                 structRef: time.Time
  *                 type: struct
  *             phase:
  *                 type: string
  *             started_at:
- *                 structRef: helm.sh/helm/v3/pkg/time.Time
+ *                 structRef: time.Time
  *                 type: struct
- *     helm.sh/helm/v3/pkg/release.Info:
- *         name: helm.sh/helm/v3/pkg/release.Info
+ *     helm.sh/helm/v4/pkg/release/v1.Info:
+ *         name: helm.sh/helm/v4/pkg/release/v1.Info
  *         properties:
  *             deleted:
- *                 structRef: helm.sh/helm/v3/pkg/time.Time
+ *                 structRef: time.Time
  *                 type: struct
  *             description:
  *                 type: string
  *             first_deployed:
- *                 structRef: helm.sh/helm/v3/pkg/time.Time
+ *                 structRef: time.Time
  *                 type: struct
  *             last_deployed:
- *                 structRef: helm.sh/helm/v3/pkg/time.Time
+ *                 structRef: time.Time
  *                 type: struct
  *             notes:
  *                 type: string
@@ -1395,12 +1404,14 @@ export type CLUSTER_HELM_RELEASE_HISTORY_REQUEST = CLUSTER_HELM_RELEASE_HISTORY_
  *                     type: array
  *             status:
  *                 type: string
- *     helm.sh/helm/v3/pkg/release.Release:
- *         name: helm.sh/helm/v3/pkg/release.Release
+ *     helm.sh/helm/v4/pkg/release/v1.Release:
+ *         name: helm.sh/helm/v4/pkg/release/v1.Release
  *         properties:
+ *             apply_method:
+ *                 type: string
  *             chart:
  *                 pointer: true
- *                 structRef: helm.sh/helm/v3/pkg/chart.Chart
+ *                 structRef: helm.sh/helm/v4/pkg/chart/v2.Chart
  *                 type: struct
  *             config:
  *                 keyType:
@@ -1412,12 +1423,12 @@ export type CLUSTER_HELM_RELEASE_HISTORY_REQUEST = CLUSTER_HELM_RELEASE_HISTORY_
  *             hooks:
  *                 elementType:
  *                     pointer: true
- *                     structRef: helm.sh/helm/v3/pkg/release.Hook
+ *                     structRef: helm.sh/helm/v4/pkg/release/v1.Hook
  *                     type: struct
  *                 type: array
  *             info:
  *                 pointer: true
- *                 structRef: helm.sh/helm/v3/pkg/release.Info
+ *                 structRef: helm.sh/helm/v4/pkg/release/v1.Info
  *                 type: struct
  *             manifest:
  *                 type: string
@@ -1427,19 +1438,12 @@ export type CLUSTER_HELM_RELEASE_HISTORY_REQUEST = CLUSTER_HELM_RELEASE_HISTORY_
  *                 type: string
  *             version:
  *                 type: int
- *     helm.sh/helm/v3/pkg/time.Time:
- *         name: helm.sh/helm/v3/pkg/time.Time
- *         properties:
- *             Time:
- *                 structRef: time.Time
- *                 type: struct
- *     mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseHistoryRequest,[]*helm.sh/helm/v3/pkg/release.Release]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseHistoryRequest,[]*helm.sh/helm/v3/pkg/release.Release]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseHistoryRequest,[]helm.sh/helm/v4/pkg/release/v1.Release]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseHistoryRequest,[]helm.sh/helm/v4/pkg/release/v1.Release]
  *         properties:
  *             data:
  *                 elementType:
- *                     pointer: true
- *                     structRef: helm.sh/helm/v3/pkg/release.Release
+ *                     structRef: helm.sh/helm/v4/pkg/release/v1.Release
  *                     type: struct
  *                 type: array
  *             message:
@@ -1450,12 +1454,12 @@ export type CLUSTER_HELM_RELEASE_HISTORY_REQUEST = CLUSTER_HELM_RELEASE_HISTORY_
  *         name: time.Time
  *         properties: {}
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseHistoryRequest,[]*helm.sh/helm/v3/pkg/release.Release]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseHistoryRequest,[]helm.sh/helm/v4/pkg/release/v1.Release]
  *     type: struct
  * ```
  *
  */
-export type CLUSTER_HELM_RELEASE_HISTORY_RESPONSE = CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_HELM_HELMRELEASEHISTORYREQUEST_HELM_SH_HELM_V3_PKG_RELEASE_RELEASE;
+export type CLUSTER_HELM_RELEASE_HISTORY_RESPONSE = CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_HELM_HELMRELEASEHISTORYREQUEST_HELM_SH_HELM_V4_PKG_RELEASE_V1_RELEASE;
 
 /**
  * #### Source
@@ -1524,31 +1528,49 @@ export type CLUSTER_HELM_RELEASE_LIST_REQUEST = CLUSTER_HELM_RELEASE_LIST_REQUES
  *
  * ```yaml
  * structs:
- *     helm.sh/helm/v3/pkg/chart.Chart:
- *         name: helm.sh/helm/v3/pkg/chart.Chart
+ *     helm.sh/helm/v4/pkg/chart/common.File:
+ *         name: helm.sh/helm/v4/pkg/chart/common.File
+ *         properties:
+ *             data:
+ *                 elementType:
+ *                     type: uint
+ *                 type: array
+ *             modtime:
+ *                 structRef: time.Time
+ *                 type: struct
+ *             name:
+ *                 type: string
+ *     helm.sh/helm/v4/pkg/chart/v2.Chart:
+ *         name: helm.sh/helm/v4/pkg/chart/v2.Chart
  *         properties:
  *             files:
  *                 elementType:
  *                     pointer: true
- *                     structRef: helm.sh/helm/v3/pkg/chart.File
+ *                     structRef: helm.sh/helm/v4/pkg/chart/common.File
  *                     type: struct
  *                 type: array
  *             lock:
  *                 pointer: true
- *                 structRef: helm.sh/helm/v3/pkg/chart.Lock
+ *                 structRef: helm.sh/helm/v4/pkg/chart/v2.Lock
  *                 type: struct
  *             metadata:
  *                 pointer: true
- *                 structRef: helm.sh/helm/v3/pkg/chart.Metadata
+ *                 structRef: helm.sh/helm/v4/pkg/chart/v2.Metadata
+ *                 type: struct
+ *             modtime:
+ *                 structRef: time.Time
  *                 type: struct
  *             schema:
  *                 elementType:
  *                     type: uint
  *                 type: array
+ *             schemamodtime:
+ *                 structRef: time.Time
+ *                 type: struct
  *             templates:
  *                 elementType:
  *                     pointer: true
- *                     structRef: helm.sh/helm/v3/pkg/chart.File
+ *                     structRef: helm.sh/helm/v4/pkg/chart/common.File
  *                     type: struct
  *                 type: array
  *             values:
@@ -1558,8 +1580,8 @@ export type CLUSTER_HELM_RELEASE_LIST_REQUEST = CLUSTER_HELM_RELEASE_LIST_REQUES
  *                 valueType:
  *                     pointer: true
  *                     type: any
- *     helm.sh/helm/v3/pkg/chart.Dependency:
- *         name: helm.sh/helm/v3/pkg/chart.Dependency
+ *     helm.sh/helm/v4/pkg/chart/v2.Dependency:
+ *         name: helm.sh/helm/v4/pkg/chart/v2.Dependency
  *         properties:
  *             alias:
  *                 type: string
@@ -1582,22 +1604,13 @@ export type CLUSTER_HELM_RELEASE_LIST_REQUEST = CLUSTER_HELM_RELEASE_LIST_REQUES
  *                 type: array
  *             version:
  *                 type: string
- *     helm.sh/helm/v3/pkg/chart.File:
- *         name: helm.sh/helm/v3/pkg/chart.File
- *         properties:
- *             data:
- *                 elementType:
- *                     type: uint
- *                 type: array
- *             name:
- *                 type: string
- *     helm.sh/helm/v3/pkg/chart.Lock:
- *         name: helm.sh/helm/v3/pkg/chart.Lock
+ *     helm.sh/helm/v4/pkg/chart/v2.Lock:
+ *         name: helm.sh/helm/v4/pkg/chart/v2.Lock
  *         properties:
  *             dependencies:
  *                 elementType:
  *                     pointer: true
- *                     structRef: helm.sh/helm/v3/pkg/chart.Dependency
+ *                     structRef: helm.sh/helm/v4/pkg/chart/v2.Dependency
  *                     type: struct
  *                 type: array
  *             digest:
@@ -1605,8 +1618,8 @@ export type CLUSTER_HELM_RELEASE_LIST_REQUEST = CLUSTER_HELM_RELEASE_LIST_REQUES
  *             generated:
  *                 structRef: time.Time
  *                 type: struct
- *     helm.sh/helm/v3/pkg/chart.Maintainer:
- *         name: helm.sh/helm/v3/pkg/chart.Maintainer
+ *     helm.sh/helm/v4/pkg/chart/v2.Maintainer:
+ *         name: helm.sh/helm/v4/pkg/chart/v2.Maintainer
  *         properties:
  *             email:
  *                 type: string
@@ -1614,8 +1627,8 @@ export type CLUSTER_HELM_RELEASE_LIST_REQUEST = CLUSTER_HELM_RELEASE_LIST_REQUES
  *                 type: string
  *             url:
  *                 type: string
- *     helm.sh/helm/v3/pkg/chart.Metadata:
- *         name: helm.sh/helm/v3/pkg/chart.Metadata
+ *     helm.sh/helm/v4/pkg/chart/v2.Metadata:
+ *         name: helm.sh/helm/v4/pkg/chart/v2.Metadata
  *         properties:
  *             annotations:
  *                 keyType:
@@ -1632,7 +1645,7 @@ export type CLUSTER_HELM_RELEASE_LIST_REQUEST = CLUSTER_HELM_RELEASE_LIST_REQUES
  *             dependencies:
  *                 elementType:
  *                     pointer: true
- *                     structRef: helm.sh/helm/v3/pkg/chart.Dependency
+ *                     structRef: helm.sh/helm/v4/pkg/chart/v2.Dependency
  *                     type: struct
  *                 type: array
  *             deprecated:
@@ -1652,7 +1665,7 @@ export type CLUSTER_HELM_RELEASE_LIST_REQUEST = CLUSTER_HELM_RELEASE_LIST_REQUES
  *             maintainers:
  *                 elementType:
  *                     pointer: true
- *                     structRef: helm.sh/helm/v3/pkg/chart.Maintainer
+ *                     structRef: helm.sh/helm/v4/pkg/chart/v2.Maintainer
  *                     type: struct
  *                 type: array
  *             name:
@@ -1667,8 +1680,8 @@ export type CLUSTER_HELM_RELEASE_LIST_REQUEST = CLUSTER_HELM_RELEASE_LIST_REQUES
  *                 type: string
  *             version:
  *                 type: string
- *     helm.sh/helm/v3/pkg/release.Hook:
- *         name: helm.sh/helm/v3/pkg/release.Hook
+ *     helm.sh/helm/v4/pkg/release/v1.Hook:
+ *         name: helm.sh/helm/v4/pkg/release/v1.Hook
  *         properties:
  *             delete_policies:
  *                 elementType:
@@ -1681,7 +1694,7 @@ export type CLUSTER_HELM_RELEASE_LIST_REQUEST = CLUSTER_HELM_RELEASE_LIST_REQUES
  *             kind:
  *                 type: string
  *             last_run:
- *                 structRef: helm.sh/helm/v3/pkg/release.HookExecution
+ *                 structRef: helm.sh/helm/v4/pkg/release/v1.HookExecution
  *                 type: struct
  *             manifest:
  *                 type: string
@@ -1695,30 +1708,30 @@ export type CLUSTER_HELM_RELEASE_LIST_REQUEST = CLUSTER_HELM_RELEASE_LIST_REQUES
  *                 type: string
  *             weight:
  *                 type: int
- *     helm.sh/helm/v3/pkg/release.HookExecution:
- *         name: helm.sh/helm/v3/pkg/release.HookExecution
+ *     helm.sh/helm/v4/pkg/release/v1.HookExecution:
+ *         name: helm.sh/helm/v4/pkg/release/v1.HookExecution
  *         properties:
  *             completed_at:
- *                 structRef: helm.sh/helm/v3/pkg/time.Time
+ *                 structRef: time.Time
  *                 type: struct
  *             phase:
  *                 type: string
  *             started_at:
- *                 structRef: helm.sh/helm/v3/pkg/time.Time
+ *                 structRef: time.Time
  *                 type: struct
- *     helm.sh/helm/v3/pkg/release.Info:
- *         name: helm.sh/helm/v3/pkg/release.Info
+ *     helm.sh/helm/v4/pkg/release/v1.Info:
+ *         name: helm.sh/helm/v4/pkg/release/v1.Info
  *         properties:
  *             deleted:
- *                 structRef: helm.sh/helm/v3/pkg/time.Time
+ *                 structRef: time.Time
  *                 type: struct
  *             description:
  *                 type: string
  *             first_deployed:
- *                 structRef: helm.sh/helm/v3/pkg/time.Time
+ *                 structRef: time.Time
  *                 type: struct
  *             last_deployed:
- *                 structRef: helm.sh/helm/v3/pkg/time.Time
+ *                 structRef: time.Time
  *                 type: struct
  *             notes:
  *                 type: string
@@ -1733,12 +1746,6 @@ export type CLUSTER_HELM_RELEASE_LIST_REQUEST = CLUSTER_HELM_RELEASE_LIST_REQUES
  *                     type: array
  *             status:
  *                 type: string
- *     helm.sh/helm/v3/pkg/time.Time:
- *         name: helm.sh/helm/v3/pkg/time.Time
- *         properties:
- *             Time:
- *                 structRef: time.Time
- *                 type: struct
  *     mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseListRequest,[]*mogenius-operator/src/helm.HelmRelease]:
  *         name: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseListRequest,[]*mogenius-operator/src/helm.HelmRelease]
  *         properties:
@@ -1757,7 +1764,7 @@ export type CLUSTER_HELM_RELEASE_LIST_REQUEST = CLUSTER_HELM_RELEASE_LIST_REQUES
  *         properties:
  *             chart:
  *                 pointer: true
- *                 structRef: helm.sh/helm/v3/pkg/chart.Chart
+ *                 structRef: helm.sh/helm/v4/pkg/chart/v2.Chart
  *                 type: struct
  *             config:
  *                 keyType:
@@ -1769,12 +1776,12 @@ export type CLUSTER_HELM_RELEASE_LIST_REQUEST = CLUSTER_HELM_RELEASE_LIST_REQUES
  *             hooks:
  *                 elementType:
  *                     pointer: true
- *                     structRef: helm.sh/helm/v3/pkg/release.Hook
+ *                     structRef: helm.sh/helm/v4/pkg/release/v1.Hook
  *                     type: struct
  *                 type: array
  *             info:
  *                 pointer: true
- *                 structRef: helm.sh/helm/v3/pkg/release.Info
+ *                 structRef: helm.sh/helm/v4/pkg/release/v1.Info
  *                 type: struct
  *             manifest:
  *                 type: string
@@ -8872,7 +8879,7 @@ export type CLUSTER_FORCE_RECONNECT_REQUEST__ANON_STRUCT_0 = {};
 export type CLUSTER_FORCE_RECONNECT_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_BOOL = {"data": boolean,"message": string,"status": string};
 export type CLUSTER_HELM_CHART_INSTALL_REQUEST__MOGENIUS_OPERATOR_SRC_HELM_HELMCHARTINSTALLUPGRADEREQUEST = {"chart": string,"dryRun": boolean,"namespace": string,"release": string,"values": string,"version": string};
 export type CLUSTER_HELM_CHART_INSTALL_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_HELM_HELMCHARTINSTALLUPGRADEREQUEST_STRING = {"data": string,"message": string,"status": string};
-export type CLUSTER_HELM_CHART_INSTALL_OCI_REQUEST__MOGENIUS_OPERATOR_SRC_HELM_HELMCHARTOCIINSTALLUPGRADEREQUEST = {"chart": string,"dryRun": boolean,"namespace": string,"password": string,"registryUrl": string,"release": string,"username": string,"values": string,"version": string};
+export type CLUSTER_HELM_CHART_INSTALL_OCI_REQUEST__MOGENIUS_OPERATOR_SRC_HELM_HELMCHARTOCIINSTALLUPGRADEREQUEST = {"authHost": string,"dryRun": boolean,"namespace": string,"ociChartUrl": string,"password": string,"release": string,"username": string,"values": string,"version": string};
 export type CLUSTER_HELM_CHART_INSTALL_OCI_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_HELM_HELMCHARTOCIINSTALLUPGRADEREQUEST_STRING = {"data": string,"message": string,"status": string};
 export type CLUSTER_HELM_CHART_REMOVE_REQUEST__MOGENIUS_OPERATOR_SRC_HELM_HELMREPOREMOVEREQUEST = {"name": string};
 export type CLUSTER_HELM_CHART_REMOVE_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_HELM_HELMREPOREMOVEREQUEST_STRING = {"data": string,"message": string,"status": string};
@@ -8891,34 +8898,32 @@ export type CLUSTER_HELM_RELEASE_GET_WORKLOADS_REQUEST__MOGENIUS_OPERATOR_SRC_UT
 export type CLUSTER_HELM_RELEASE_GET_WORKLOADS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"Object": Record<string, any>};
 export type CLUSTER_HELM_RELEASE_GET_WORKLOADS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_HELM_HELMRELEASEGETWORKLOADSREQUEST_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"data": CLUSTER_HELM_RELEASE_GET_WORKLOADS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED[],"message": string,"status": string};
 export type CLUSTER_HELM_RELEASE_HISTORY_REQUEST__MOGENIUS_OPERATOR_SRC_HELM_HELMRELEASEHISTORYREQUEST = {"namespace": string,"release": string};
-export type CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_CHART = {"files": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_FILE|undefined[],"lock": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_LOCK|undefined,"metadata": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_METADATA|undefined,"schema": number[],"templates": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_FILE|undefined[],"values": Record<string, any>};
-export type CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_DEPENDENCY = {"alias": string,"condition": string,"enabled": boolean,"import-values": any[],"name": string,"repository": string,"tags": string[],"version": string};
-export type CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_FILE = {"data": number[],"name": string};
-export type CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_LOCK = {"dependencies": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_DEPENDENCY|undefined[],"digest": string,"generated": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__TIME_TIME};
-export type CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_MAINTAINER = {"email": string,"name": string,"url": string};
-export type CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_METADATA = {"annotations": Record<string, string>,"apiVersion": string,"appVersion": string,"condition": string,"dependencies": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_DEPENDENCY|undefined[],"deprecated": boolean,"description": string,"home": string,"icon": string,"keywords": string[],"kubeVersion": string,"maintainers": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_MAINTAINER|undefined[],"name": string,"sources": string[],"tags": string,"type": string,"version": string};
-export type CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_RELEASE_HOOK = {"delete_policies": string[],"events": string[],"kind": string,"last_run": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_RELEASE_HOOKEXECUTION,"manifest": string,"name": string,"output_log_policies": string[],"path": string,"weight": number};
-export type CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_RELEASE_HOOKEXECUTION = {"completed_at": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_TIME_TIME,"phase": string,"started_at": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_TIME_TIME};
-export type CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_RELEASE_INFO = {"deleted": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_TIME_TIME,"description": string,"first_deployed": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_TIME_TIME,"last_deployed": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_TIME_TIME,"notes": string,"resources": Record<string, any[]>,"status": string};
-export type CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_RELEASE_RELEASE = {"chart": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_CHART|undefined,"config": Record<string, any>,"hooks": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_RELEASE_HOOK|undefined[],"info": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_RELEASE_INFO|undefined,"manifest": string,"name": string,"namespace": string,"version": number};
-export type CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_TIME_TIME = {"Time": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__TIME_TIME};
-export type CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_HELM_HELMRELEASEHISTORYREQUEST_HELM_SH_HELM_V3_PKG_RELEASE_RELEASE = {"data": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V3_PKG_RELEASE_RELEASE|undefined[],"message": string,"status": string};
+export type CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V4_PKG_CHART_COMMON_FILE = {"data": number[],"modtime": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__TIME_TIME,"name": string};
+export type CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V4_PKG_CHART_V2_CHART = {"files": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V4_PKG_CHART_COMMON_FILE|undefined[],"lock": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V4_PKG_CHART_V2_LOCK|undefined,"metadata": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V4_PKG_CHART_V2_METADATA|undefined,"modtime": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__TIME_TIME,"schema": number[],"schemamodtime": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__TIME_TIME,"templates": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V4_PKG_CHART_COMMON_FILE|undefined[],"values": Record<string, any>};
+export type CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V4_PKG_CHART_V2_DEPENDENCY = {"alias": string,"condition": string,"enabled": boolean,"import-values": any[],"name": string,"repository": string,"tags": string[],"version": string};
+export type CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V4_PKG_CHART_V2_LOCK = {"dependencies": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V4_PKG_CHART_V2_DEPENDENCY|undefined[],"digest": string,"generated": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__TIME_TIME};
+export type CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V4_PKG_CHART_V2_MAINTAINER = {"email": string,"name": string,"url": string};
+export type CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V4_PKG_CHART_V2_METADATA = {"annotations": Record<string, string>,"apiVersion": string,"appVersion": string,"condition": string,"dependencies": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V4_PKG_CHART_V2_DEPENDENCY|undefined[],"deprecated": boolean,"description": string,"home": string,"icon": string,"keywords": string[],"kubeVersion": string,"maintainers": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V4_PKG_CHART_V2_MAINTAINER|undefined[],"name": string,"sources": string[],"tags": string,"type": string,"version": string};
+export type CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V4_PKG_RELEASE_V1_HOOK = {"delete_policies": string[],"events": string[],"kind": string,"last_run": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V4_PKG_RELEASE_V1_HOOKEXECUTION,"manifest": string,"name": string,"output_log_policies": string[],"path": string,"weight": number};
+export type CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V4_PKG_RELEASE_V1_HOOKEXECUTION = {"completed_at": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__TIME_TIME,"phase": string,"started_at": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__TIME_TIME};
+export type CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V4_PKG_RELEASE_V1_INFO = {"deleted": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__TIME_TIME,"description": string,"first_deployed": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__TIME_TIME,"last_deployed": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__TIME_TIME,"notes": string,"resources": Record<string, any[]>,"status": string};
+export type CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V4_PKG_RELEASE_V1_RELEASE = {"apply_method": string,"chart": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V4_PKG_CHART_V2_CHART|undefined,"config": Record<string, any>,"hooks": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V4_PKG_RELEASE_V1_HOOK|undefined[],"info": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V4_PKG_RELEASE_V1_INFO|undefined,"manifest": string,"name": string,"namespace": string,"version": number};
+export type CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_HELM_HELMRELEASEHISTORYREQUEST_HELM_SH_HELM_V4_PKG_RELEASE_V1_RELEASE = {"data": CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__HELM_SH_HELM_V4_PKG_RELEASE_V1_RELEASE[],"message": string,"status": string};
 export type CLUSTER_HELM_RELEASE_HISTORY_RESPONSE__TIME_TIME = {};
 export type CLUSTER_HELM_RELEASE_LINK_REQUEST__MOGENIUS_OPERATOR_SRC_HELM_HELMRELEASELINKREQUEST = {"namespace": string,"releaseName": string,"repoName": string};
 export type CLUSTER_HELM_RELEASE_LINK_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_HELM_HELMRELEASELINKREQUEST_STRING = {"data": string,"message": string,"status": string};
 export type CLUSTER_HELM_RELEASE_LIST_REQUEST__MOGENIUS_OPERATOR_SRC_HELM_HELMRELEASELISTREQUEST = {"namespace": string};
-export type CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_CHART = {"files": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_FILE|undefined[],"lock": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_LOCK|undefined,"metadata": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_METADATA|undefined,"schema": number[],"templates": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_FILE|undefined[],"values": Record<string, any>};
-export type CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_DEPENDENCY = {"alias": string,"condition": string,"enabled": boolean,"import-values": any[],"name": string,"repository": string,"tags": string[],"version": string};
-export type CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_FILE = {"data": number[],"name": string};
-export type CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_LOCK = {"dependencies": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_DEPENDENCY|undefined[],"digest": string,"generated": CLUSTER_HELM_RELEASE_LIST_RESPONSE__TIME_TIME};
-export type CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_MAINTAINER = {"email": string,"name": string,"url": string};
-export type CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_METADATA = {"annotations": Record<string, string>,"apiVersion": string,"appVersion": string,"condition": string,"dependencies": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_DEPENDENCY|undefined[],"deprecated": boolean,"description": string,"home": string,"icon": string,"keywords": string[],"kubeVersion": string,"maintainers": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_MAINTAINER|undefined[],"name": string,"sources": string[],"tags": string,"type": string,"version": string};
-export type CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_RELEASE_HOOK = {"delete_policies": string[],"events": string[],"kind": string,"last_run": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_RELEASE_HOOKEXECUTION,"manifest": string,"name": string,"output_log_policies": string[],"path": string,"weight": number};
-export type CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_RELEASE_HOOKEXECUTION = {"completed_at": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_TIME_TIME,"phase": string,"started_at": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_TIME_TIME};
-export type CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_RELEASE_INFO = {"deleted": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_TIME_TIME,"description": string,"first_deployed": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_TIME_TIME,"last_deployed": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_TIME_TIME,"notes": string,"resources": Record<string, any[]>,"status": string};
-export type CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_TIME_TIME = {"Time": CLUSTER_HELM_RELEASE_LIST_RESPONSE__TIME_TIME};
+export type CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V4_PKG_CHART_COMMON_FILE = {"data": number[],"modtime": CLUSTER_HELM_RELEASE_LIST_RESPONSE__TIME_TIME,"name": string};
+export type CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V4_PKG_CHART_V2_CHART = {"files": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V4_PKG_CHART_COMMON_FILE|undefined[],"lock": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V4_PKG_CHART_V2_LOCK|undefined,"metadata": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V4_PKG_CHART_V2_METADATA|undefined,"modtime": CLUSTER_HELM_RELEASE_LIST_RESPONSE__TIME_TIME,"schema": number[],"schemamodtime": CLUSTER_HELM_RELEASE_LIST_RESPONSE__TIME_TIME,"templates": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V4_PKG_CHART_COMMON_FILE|undefined[],"values": Record<string, any>};
+export type CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V4_PKG_CHART_V2_DEPENDENCY = {"alias": string,"condition": string,"enabled": boolean,"import-values": any[],"name": string,"repository": string,"tags": string[],"version": string};
+export type CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V4_PKG_CHART_V2_LOCK = {"dependencies": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V4_PKG_CHART_V2_DEPENDENCY|undefined[],"digest": string,"generated": CLUSTER_HELM_RELEASE_LIST_RESPONSE__TIME_TIME};
+export type CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V4_PKG_CHART_V2_MAINTAINER = {"email": string,"name": string,"url": string};
+export type CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V4_PKG_CHART_V2_METADATA = {"annotations": Record<string, string>,"apiVersion": string,"appVersion": string,"condition": string,"dependencies": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V4_PKG_CHART_V2_DEPENDENCY|undefined[],"deprecated": boolean,"description": string,"home": string,"icon": string,"keywords": string[],"kubeVersion": string,"maintainers": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V4_PKG_CHART_V2_MAINTAINER|undefined[],"name": string,"sources": string[],"tags": string,"type": string,"version": string};
+export type CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V4_PKG_RELEASE_V1_HOOK = {"delete_policies": string[],"events": string[],"kind": string,"last_run": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V4_PKG_RELEASE_V1_HOOKEXECUTION,"manifest": string,"name": string,"output_log_policies": string[],"path": string,"weight": number};
+export type CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V4_PKG_RELEASE_V1_HOOKEXECUTION = {"completed_at": CLUSTER_HELM_RELEASE_LIST_RESPONSE__TIME_TIME,"phase": string,"started_at": CLUSTER_HELM_RELEASE_LIST_RESPONSE__TIME_TIME};
+export type CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V4_PKG_RELEASE_V1_INFO = {"deleted": CLUSTER_HELM_RELEASE_LIST_RESPONSE__TIME_TIME,"description": string,"first_deployed": CLUSTER_HELM_RELEASE_LIST_RESPONSE__TIME_TIME,"last_deployed": CLUSTER_HELM_RELEASE_LIST_RESPONSE__TIME_TIME,"notes": string,"resources": Record<string, any[]>,"status": string};
 export type CLUSTER_HELM_RELEASE_LIST_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_HELM_HELMRELEASELISTREQUEST_MOGENIUS_OPERATOR_SRC_HELM_HELMRELEASE = {"data": CLUSTER_HELM_RELEASE_LIST_RESPONSE__MOGENIUS_OPERATOR_SRC_HELM_HELMRELEASE|undefined[],"message": string,"status": string};
-export type CLUSTER_HELM_RELEASE_LIST_RESPONSE__MOGENIUS_OPERATOR_SRC_HELM_HELMRELEASE = {"chart": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_CHART_CHART|undefined,"config": Record<string, any>,"hooks": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_RELEASE_HOOK|undefined[],"info": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V3_PKG_RELEASE_INFO|undefined,"manifest": string,"name": string,"namespace": string,"repoName": string,"version": number};
+export type CLUSTER_HELM_RELEASE_LIST_RESPONSE__MOGENIUS_OPERATOR_SRC_HELM_HELMRELEASE = {"chart": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V4_PKG_CHART_V2_CHART|undefined,"config": Record<string, any>,"hooks": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V4_PKG_RELEASE_V1_HOOK|undefined[],"info": CLUSTER_HELM_RELEASE_LIST_RESPONSE__HELM_SH_HELM_V4_PKG_RELEASE_V1_INFO|undefined,"manifest": string,"name": string,"namespace": string,"repoName": string,"version": number};
 export type CLUSTER_HELM_RELEASE_LIST_RESPONSE__TIME_TIME = {};
 export type CLUSTER_HELM_RELEASE_ROLLBACK_REQUEST__MOGENIUS_OPERATOR_SRC_HELM_HELMRELEASEROLLBACKREQUEST = {"namespace": string,"release": string,"revision": number};
 export type CLUSTER_HELM_RELEASE_ROLLBACK_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_HELM_HELMRELEASEROLLBACKREQUEST_STRING = {"data": string,"message": string,"status": string};
