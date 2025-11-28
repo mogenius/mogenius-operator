@@ -1538,6 +1538,26 @@ func (self *socketApi) registerPatterns() {
 	}
 
 	{
+		RegisterPatternHandler(
+			PatternHandle{self, "aiManager/status"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Void) (ai.AiManagerStatus, error) {
+				return self.aiApi.GetStatus(), nil
+			},
+		)
+	}
+
+	{
+		RegisterPatternHandler(
+			PatternHandle{self, "aiManager/reset-daily-tokenlimit"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Void) (Void, error) {
+				return nil, self.aiApi.ResetDailyTokenLimit()
+			},
+		)
+	}
+
+	{
 		type Request struct {
 			Workspace string `json:"workspace" validate:"required"`
 		}

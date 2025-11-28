@@ -9,6 +9,8 @@ type AiApi interface {
 	UpdateTaskState(taskID string, newState ai.AiTaskState) error
 	GetAiTasksForWorkspace(workspace string) ([]ai.AiTask, error)
 	InjectAiPromptConfig(prompt ai.AiPromptConfig)
+	GetStatus() ai.AiManagerStatus
+	ResetDailyTokenLimit() error
 }
 type aiApi struct {
 	logger    *slog.Logger
@@ -34,4 +36,12 @@ func (ai *aiApi) InjectAiPromptConfig(prompt ai.AiPromptConfig) {
 
 func (ai *aiApi) UpdateTaskState(taskID string, newState ai.AiTaskState) error {
 	return ai.aiManager.UpdateTaskState(taskID, newState)
+}
+
+func (ai *aiApi) GetStatus() ai.AiManagerStatus {
+	return ai.aiManager.GetStatus()
+}
+
+func (ai *aiApi) ResetDailyTokenLimit() error {
+	return ai.aiManager.ResetDailyTokenLimit()
 }
