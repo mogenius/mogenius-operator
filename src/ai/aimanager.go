@@ -25,13 +25,16 @@ const (
 
 type AiTaskState string
 type AiTask struct {
-	ID         string      `json:"id"`
-	Prompt     string      `json:"prompt"`
-	Response   string      `json:"response"`
-	State      AiTaskState `json:"state"` // pending, in-progress, completed, failed, ignored
-	TokensUsed int64       `json:"tokensUsed"`
-	CreatedAt  int64       `json:"createdAt"`
-	UpdatedAt  int64       `json:"updatedAt"`
+	ID                  string                      `json:"id"`
+	Prompt              string                      `json:"prompt"`
+	Response            string                      `json:"response"`
+	State               AiTaskState                 `json:"state"` // pending, in-progress, completed, failed, ignored
+	TokensUsed          int64                       `json:"tokensUsed"`
+	CreatedAt           int64                       `json:"createdAt"`
+	UpdatedAt           int64                       `json:"updatedAt"`
+	ReferencingResource utils.WorkloadSingleRequest `json:"referencingResource"` // the resource that triggered this task
+	TriggeredBy         AiFilter                    `json:"triggeredBy"`         // e.g., "Failed Pods" filter
+	Error               error                       `json:"error,omitempty"`
 }
 
 // state enums
@@ -55,6 +58,18 @@ type AiPromptConfig struct {
 	Name         string     `json:"name"`
 	SystemPrompt string     `json:"systemPrompt"`
 	Filters      []AiFilter `json:"filters"`
+}
+
+type AiManagerStatus struct {
+	TokenLimit                  int64  `json:"tokenLimit"`
+	TokensUsed                  int64  `json:"tokensUsed"`
+	Model                       string `json:"model"`
+	ApiUrl                      string `json:"apiUrl"`
+	IsAiPromptConfigInitialized bool   `json:"isAiPromptConfigInitialized"`
+	IsAiModelConfigInitialized  bool   `json:"isAiModelConfigInitialized"`
+	DbEntries                   int    `json:"dbEntries"`
+	Error                       string `json:"error,omitempty"`
+	Warning                     string `json:"warning,omitempty"`
 }
 
 var AiFilters = []AiFilter{
@@ -106,11 +121,13 @@ var AiFilters = []AiFilter{
 }
 
 type AiManager interface {
-	ProcessObject(obj *unstructured.Unstructured, eventType string) // eventType can be "add", "update", "delete"
+	ProcessObject(obj *unstructured.Unstructured, eventType string, resource utils.ResourceDescriptor) // eventType can be "add", "update", "delete"
 	Run()
 	UpdateTaskState(taskID string, newState AiTaskState) error
 	GetAiTasksForWorkspace(workspace string) ([]AiTask, error)
 	InjectAiPromptConfig(prompt AiPromptConfig)
+	GetStatus() AiManagerStatus
+	ResetDailyTokenLimit() error
 }
 
 type aiManager struct {
@@ -118,6 +135,8 @@ type aiManager struct {
 	valkeyClient   valkeyclient.ValkeyClient
 	config         cfg.ConfigModule
 	aiPromptConfig *AiPromptConfig
+	error          string
+	warning        string
 }
 
 func NewAiManager(logger *slog.Logger, valkeyClient valkeyclient.ValkeyClient, config cfg.ConfigModule) AiManager {
@@ -130,7 +149,7 @@ func NewAiManager(logger *slog.Logger, valkeyClient valkeyclient.ValkeyClient, c
 	return self
 }
 
-func (ai *aiManager) ProcessObject(obj *unstructured.Unstructured, eventType string) {
+func (ai *aiManager) ProcessObject(obj *unstructured.Unstructured, eventType string, resource utils.ResourceDescriptor) {
 	if obj == nil {
 		return
 	}
@@ -144,7 +163,7 @@ func (ai *aiManager) ProcessObject(obj *unstructured.Unstructured, eventType str
 
 	for _, filter := range filters {
 		if obj.GetKind() == filter.Kind {
-			matches := false
+			var matchedFilter *AiFilter = nil
 			// check contains conditions
 			for expectedValue, path := range filter.Contains {
 				value, found, err := getNestedStringWithArrays(obj, path, expectedValue)
@@ -153,7 +172,7 @@ func (ai *aiManager) ProcessObject(obj *unstructured.Unstructured, eventType str
 					continue
 				}
 				if found && value == expectedValue {
-					matches = true
+					matchedFilter = &filter
 					break
 				}
 			}
@@ -165,11 +184,11 @@ func (ai *aiManager) ProcessObject(obj *unstructured.Unstructured, eventType str
 					continue
 				}
 				if found && value == expectedValue {
-					matches = false
+					matchedFilter = nil
 					break
 				}
 			}
-			if matches {
+			if matchedFilter != nil {
 				timestamp := time.Now().Unix()
 				// create AI task
 				task := &AiTask{
@@ -178,6 +197,13 @@ func (ai *aiManager) ProcessObject(obj *unstructured.Unstructured, eventType str
 					State:     AI_TASK_STATE_PENDING,
 					CreatedAt: timestamp,
 					UpdatedAt: timestamp,
+					ReferencingResource: utils.WorkloadSingleRequest{
+						ResourceDescriptor: resource,
+						Namespace:          obj.GetNamespace(),
+						ResourceName:       obj.GetName(),
+					},
+					TriggeredBy: *matchedFilter,
+					Error:       nil,
 				}
 
 				key := getValkeyKey(obj.GetKind(), obj.GetNamespace(), obj.GetName(), filter.Name)
@@ -192,7 +218,7 @@ func (ai *aiManager) ProcessObject(obj *unstructured.Unstructured, eventType str
 					if err != nil {
 						ai.logger.Error("Error creating AI task", "error", err)
 					} else {
-						ai.logger.Info("AI task created", "taskID", task.ID, "objectKind", obj.GetKind(), "objectName", obj.GetName(), "objectNamespace", obj.GetNamespace())
+						ai.logger.Info("AI task created", "taskID", task.ID, "objectKind", obj.GetKind(), "objectName", obj.GetName(), "objectNamespace", obj.GetNamespace(), "filter", filter.Name)
 					}
 				}
 			}
@@ -220,49 +246,55 @@ func (ai *aiManager) Run() {
 			tokenLimit, err := ai.getDailyTokenLimit()
 			if err != nil {
 				ai.logger.Error("Error getting daily token limit", "error", err)
+				ai.error = err.Error()
 				continue
 			}
 
-			tokens, err := ai.getTodayTokenUsage()
+			tokensUsed, _, err := ai.getTodayTokenUsage()
 			if err != nil {
 				ai.logger.Error("Error getting today's token usage", "error", err)
+				ai.error = err.Error()
 				continue
 			}
 
-			if tokens >= tokenLimit {
-				ai.logger.Warn("Daily AI token limit reached, skipping AI task processing", "tokensUsed", tokens, "dailyLimit", tokenLimit)
+			if tokensUsed >= tokenLimit {
+				ai.logger.Warn("Daily AI token limit reached, skipping AI task processing", "tokensUsed", tokensUsed, "dailyLimit", tokenLimit)
+				ai.error = fmt.Errorf("daily AI token limit reached (%d tokens used of %d)", tokensUsed, tokenLimit).Error()
 				continue
-			} else if tokens >= int64(float64(tokenLimit)*0.8) {
+			} else if tokensUsed >= int64(float64(tokenLimit)*0.8) {
 				// warn at 80%
-				// TOD: i guess we should not log this
-				ai.logger.Warn("Approaching daily AI token limit", "tokensUsed", tokens, "dailyLimit", tokenLimit)
+				ai.logger.Warn("Approaching daily AI token limit", "tokensUsed", tokensUsed, "dailyLimit", tokenLimit)
+				ai.warning = fmt.Sprintf("approaching daily AI token limit (%d tokens used of %d)", tokensUsed, tokenLimit)
+			} else {
+				ai.warning = ""
 			}
 
+			ai.error = ""
 			ai.processAiTaskQueue(ctx)
 		}
 	}()
 }
 
-func (ai *aiManager) getTodayTokenUsage() (int64, error) {
+func (ai *aiManager) getTodayTokenUsage() (todaysTokens int64, aiTaskDbEntries int, err error) {
 	// Calculate the start of today in Unix timestamp
 	now := time.Now()
 	startOfDay := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location()).Unix()
 
-	keys, err := ai.valkeyClient.Keys(DB_AI_BUCKET_TASKS)
+	keys, err := ai.valkeyClient.Keys(DB_AI_BUCKET_TASKS + ":*")
 	if err != nil {
-		return 0, err
+		return 0, 0, err
 	}
 
 	var totalTokens int64 = 0
 	for _, key := range keys {
 		item, err := ai.valkeyClient.Get(key)
 		if err != nil {
-			return -1, err
+			return -1, -1, err
 		}
 		var task AiTask
 		err = json.Unmarshal([]byte(item), &task)
 		if err != nil {
-			return -1, err
+			return -1, -1, err
 		}
 
 		if task.UpdatedAt >= startOfDay {
@@ -270,7 +302,42 @@ func (ai *aiManager) getTodayTokenUsage() (int64, error) {
 		}
 	}
 
-	return totalTokens, nil
+	return totalTokens, len(keys), nil
+}
+
+func (ai *aiManager) resetTodayTokenUsage() error {
+	// Calculate the start of today in Unix timestamp
+	now := time.Now()
+	startOfDay := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location()).Unix()
+
+	keys, err := ai.valkeyClient.Keys(DB_AI_BUCKET_TASKS + ":*")
+	if err != nil {
+		return err
+	}
+
+	var resettedTokens int64 = 0
+	for _, key := range keys {
+		item, err := ai.valkeyClient.Get(key)
+		if err != nil {
+			return err
+		}
+		var task AiTask
+		err = json.Unmarshal([]byte(item), &task)
+		if err != nil {
+			return err
+		}
+		if task.UpdatedAt >= startOfDay {
+			resettedTokens += task.TokensUsed
+			task.TokensUsed = 0
+			err = ai.createOrUpdateAiTask(&task, key)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	ai.logger.Info("Reset today's AI token usage", "resettedTokens", resettedTokens)
+
+	return nil
 }
 
 func (ai *aiManager) processAiTaskQueue(ctx context.Context) {
@@ -307,8 +374,8 @@ func (ai *aiManager) processAiTaskQueue(ctx context.Context) {
 
 		response, tokensUsed, err := ai.processPrompt(ctx, task.Prompt)
 		if err != nil {
+			task.Error = err
 			task.State = AI_TASK_STATE_FAILED
-			task.Response = fmt.Sprintf("Error processing AI task: %v", err)
 			task.TokensUsed = tokensUsed
 			ai.logger.Error("Error processing AI task", "taskID", task.ID, "error", err)
 		} else {

@@ -92,3 +92,26 @@ func (ai *aiManager) getAiTasksForNamespace(namespace string) ([]AiTask, error) 
 
 	return tasks, nil
 }
+
+func (ai *aiManager) GetStatus() AiManagerStatus {
+	limit, _ := ai.getDailyTokenLimit()
+	model, _ := ai.getAiModel()
+	apiUrl, _ := ai.getBaseUrl()
+	tokensUsed, dbEntries, _ := ai.getTodayTokenUsage()
+
+	return AiManagerStatus{
+		TokenLimit:                  limit,
+		TokensUsed:                  tokensUsed,
+		ApiUrl:                      apiUrl,
+		Model:                       model,
+		IsAiPromptConfigInitialized: ai.isAiPromptConfigInitialized(),
+		IsAiModelConfigInitialized:  ai.isAiModelConfigInitialized(),
+		DbEntries:                   dbEntries,
+		Error:                       ai.error,
+		Warning:                     ai.warning,
+	}
+}
+
+func (ai *aiManager) ResetDailyTokenLimit() error {
+	return ai.resetTodayTokenUsage()
+}

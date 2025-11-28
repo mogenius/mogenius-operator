@@ -5,6 +5,8 @@
 export enum Pattern {
   AIMANAGER_GET_TASKS = "aiManager/get/tasks",
   AIMANAGER_INJECT_PROMPT_CONFIG = "aiManager/inject-prompt-config",
+  AIMANAGER_RESET_DAILY_TOKENLIMIT = "aiManager/reset-daily-tokenlimit",
+  AIMANAGER_STATUS = "aiManager/status",
   AIMANAGER_UPDATE_TASK = "aiManager/update/task",
   AUDIT_LOG_LIST = "audit-log/list",
   CLUSTER_ARGO_CD_APPLICATION_REFRESH = "cluster/argo-cd-application-refresh",
@@ -132,6 +134,8 @@ export enum Pattern {
 export const StringToPattern = {
   "aiManager/get/tasks": Pattern.AIMANAGER_GET_TASKS,
   "aiManager/inject-prompt-config": Pattern.AIMANAGER_INJECT_PROMPT_CONFIG,
+  "aiManager/reset-daily-tokenlimit": Pattern.AIMANAGER_RESET_DAILY_TOKENLIMIT,
+  "aiManager/status": Pattern.AIMANAGER_STATUS,
   "aiManager/update/task": Pattern.AIMANAGER_UPDATE_TASK,
   "audit-log/list": Pattern.AUDIT_LOG_LIST,
   "cluster/argo-cd-application-refresh": Pattern.CLUSTER_ARGO_CD_APPLICATION_REFRESH,
@@ -255,6 +259,8 @@ export const StringToPattern = {
 export const PatternToString = {
   [Pattern.AIMANAGER_GET_TASKS]: "aiManager/get/tasks",
   [Pattern.AIMANAGER_INJECT_PROMPT_CONFIG]: "aiManager/inject-prompt-config",
+  [Pattern.AIMANAGER_RESET_DAILY_TOKENLIMIT]: "aiManager/reset-daily-tokenlimit",
+  [Pattern.AIMANAGER_STATUS]: "aiManager/status",
   [Pattern.AIMANAGER_UPDATE_TASK]: "aiManager/update/task",
   [Pattern.AUDIT_LOG_LIST]: "audit-log/list",
   [Pattern.CLUSTER_ARGO_CD_APPLICATION_REFRESH]: "cluster/argo-cd-application-refresh",
@@ -492,6 +498,108 @@ export type AIMANAGER_INJECT_PROMPT_CONFIG_REQUEST = AIMANAGER_INJECT_PROMPT_CON
  *
  */
 export type AIMANAGER_INJECT_PROMPT_CONFIG_RESPONSE = AIMANAGER_INJECT_PROMPT_CONFIG_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST34_STRING;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     ANON_STRUCT_0:
+ *         properties: {}
+ * typeInfo:
+ *     pointer: true
+ *     structRef: ANON_STRUCT_0
+ *     type: struct
+ * ```
+ *
+ */
+export type AIMANAGER_RESET_DAILY_TOKENLIMIT_REQUEST = AIMANAGER_RESET_DAILY_TOKENLIMIT_REQUEST__ANON_STRUCT_0|undefined;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     ANON_STRUCT_1:
+ *         properties: {}
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Void]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Void]
+ *         properties:
+ *             data:
+ *                 pointer: true
+ *                 structRef: ANON_STRUCT_1
+ *                 type: struct
+ *             message:
+ *                 type: string
+ *             status:
+ *                 type: string
+ * typeInfo:
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Void]
+ *     type: struct
+ * ```
+ *
+ */
+export type AIMANAGER_RESET_DAILY_TOKENLIMIT_RESPONSE = AIMANAGER_RESET_DAILY_TOKENLIMIT_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_MOGENIUS_OPERATOR_SRC_CORE_VOID;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     ANON_STRUCT_0:
+ *         properties: {}
+ * typeInfo:
+ *     pointer: true
+ *     structRef: ANON_STRUCT_0
+ *     type: struct
+ * ```
+ *
+ */
+export type AIMANAGER_STATUS_REQUEST = AIMANAGER_STATUS_REQUEST__ANON_STRUCT_0|undefined;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     mogenius-operator/src/ai.AiManagerStatus:
+ *         name: mogenius-operator/src/ai.AiManagerStatus
+ *         properties:
+ *             apiUrl:
+ *                 type: string
+ *             dbEntries:
+ *                 type: int
+ *             error:
+ *                 type: string
+ *             isAiModelConfigInitialized:
+ *                 type: bool
+ *             isAiPromptConfigInitialized:
+ *                 type: bool
+ *             model:
+ *                 type: string
+ *             tokenLimit:
+ *                 type: int
+ *             tokensUsed:
+ *                 type: int
+ *             warning:
+ *                 type: string
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/ai.AiManagerStatus]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/ai.AiManagerStatus]
+ *         properties:
+ *             data:
+ *                 structRef: mogenius-operator/src/ai.AiManagerStatus
+ *                 type: struct
+ *             message:
+ *                 type: string
+ *             status:
+ *                 type: string
+ * typeInfo:
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/ai.AiManagerStatus]
+ *     type: struct
+ * ```
+ *
+ */
+export type AIMANAGER_STATUS_RESPONSE = AIMANAGER_STATUS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_MOGENIUS_OPERATOR_SRC_AI_AIMANAGERSTATUS;
 
 /**
  * #### Source
@@ -9027,6 +9135,12 @@ export type AIMANAGER_INJECT_PROMPT_CONFIG_REQUEST__MOGENIUS_OPERATOR_SRC_AI_AIF
 export type AIMANAGER_INJECT_PROMPT_CONFIG_REQUEST__MOGENIUS_OPERATOR_SRC_AI_AIPROMPTCONFIG = {"filters": AIMANAGER_INJECT_PROMPT_CONFIG_REQUEST__MOGENIUS_OPERATOR_SRC_AI_AIFILTER[],"name": string,"systemPrompt": string};
 export type AIMANAGER_INJECT_PROMPT_CONFIG_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"aiPromptConfig": AIMANAGER_INJECT_PROMPT_CONFIG_REQUEST__MOGENIUS_OPERATOR_SRC_AI_AIPROMPTCONFIG};
 export type AIMANAGER_INJECT_PROMPT_CONFIG_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST34_STRING = {"data": string,"message": string,"status": string};
+export type AIMANAGER_RESET_DAILY_TOKENLIMIT_REQUEST__ANON_STRUCT_0 = {};
+export type AIMANAGER_RESET_DAILY_TOKENLIMIT_RESPONSE__ANON_STRUCT_1 = {};
+export type AIMANAGER_RESET_DAILY_TOKENLIMIT_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_MOGENIUS_OPERATOR_SRC_CORE_VOID = {"data": AIMANAGER_RESET_DAILY_TOKENLIMIT_RESPONSE__ANON_STRUCT_1|undefined,"message": string,"status": string};
+export type AIMANAGER_STATUS_REQUEST__ANON_STRUCT_0 = {};
+export type AIMANAGER_STATUS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_AIMANAGERSTATUS = {"apiUrl": string,"dbEntries": number,"error": string,"isAiModelConfigInitialized": boolean,"isAiPromptConfigInitialized": boolean,"model": string,"tokenLimit": number,"tokensUsed": number,"warning": string};
+export type AIMANAGER_STATUS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_MOGENIUS_OPERATOR_SRC_AI_AIMANAGERSTATUS = {"data": AIMANAGER_STATUS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_AIMANAGERSTATUS,"message": string,"status": string};
 export type AIMANAGER_UPDATE_TASK_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"state": string,"taskId": string};
 export type AIMANAGER_UPDATE_TASK_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST36_STRING = {"data": string,"message": string,"status": string};
 export type AUDIT_LOG_LIST_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"limit": number,"offset": number,"workspaceName": string};
@@ -9502,6 +9616,14 @@ export interface IPatternConfig {
   [Pattern.AIMANAGER_INJECT_PROMPT_CONFIG]: {
     Request: AIMANAGER_INJECT_PROMPT_CONFIG_REQUEST;
     Response: AIMANAGER_INJECT_PROMPT_CONFIG_RESPONSE;
+  };
+  [Pattern.AIMANAGER_RESET_DAILY_TOKENLIMIT]: {
+    Request: AIMANAGER_RESET_DAILY_TOKENLIMIT_REQUEST;
+    Response: AIMANAGER_RESET_DAILY_TOKENLIMIT_RESPONSE;
+  };
+  [Pattern.AIMANAGER_STATUS]: {
+    Request: AIMANAGER_STATUS_REQUEST;
+    Response: AIMANAGER_STATUS_RESPONSE;
   };
   [Pattern.AIMANAGER_UPDATE_TASK]: {
     Request: AIMANAGER_UPDATE_TASK_REQUEST;

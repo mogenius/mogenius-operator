@@ -162,6 +162,78 @@ aiManager/inject-prompt-config:
         typeInfo:
             structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·34,string]
             type: struct
+aiManager/reset-daily-tokenlimit:
+    requestSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
+    responseSchema:
+        structs:
+            ANON_STRUCT_1:
+                properties: {}
+            mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Void]:
+                name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Void]
+                properties:
+                    data:
+                        pointer: true
+                        structRef: ANON_STRUCT_1
+                        type: struct
+                    message:
+                        type: string
+                    status:
+                        type: string
+        typeInfo:
+            structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Void]
+            type: struct
+aiManager/status:
+    requestSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
+    responseSchema:
+        structs:
+            mogenius-operator/src/ai.AiManagerStatus:
+                name: mogenius-operator/src/ai.AiManagerStatus
+                properties:
+                    apiUrl:
+                        type: string
+                    dbEntries:
+                        type: int
+                    error:
+                        type: string
+                    isAiModelConfigInitialized:
+                        type: bool
+                    isAiPromptConfigInitialized:
+                        type: bool
+                    model:
+                        type: string
+                    tokenLimit:
+                        type: int
+                    tokensUsed:
+                        type: int
+                    warning:
+                        type: string
+            mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/ai.AiManagerStatus]:
+                name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/ai.AiManagerStatus]
+                properties:
+                    data:
+                        structRef: mogenius-operator/src/ai.AiManagerStatus
+                        type: struct
+                    message:
+                        type: string
+                    status:
+                        type: string
+        typeInfo:
+            structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/ai.AiManagerStatus]
+            type: struct
 aiManager/update/task:
     requestSchema:
         structs:

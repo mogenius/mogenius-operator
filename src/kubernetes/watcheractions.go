@@ -59,13 +59,8 @@ func WatchStoreResources(wm watcher.WatcherModule, aiManager ai.AiManager, event
 	if err != nil {
 		return err
 	}
-	for _, v := range resources {
-		err := wm.Watch(watcher.WatcherResourceIdentifier{
-			Plural:     v.Plural,
-			Kind:       v.Kind,
-			ApiVersion: v.ApiVersion,
-			Namespaced: v.Namespaced,
-		}, func(resource watcher.WatcherResourceIdentifier, obj *unstructured.Unstructured) {
+	for _, res := range resources {
+		err := wm.Watch(res, func(resource utils.ResourceDescriptor, obj *unstructured.Unstructured) {
 			setStoreIfNeeded(resource.ApiVersion, obj.GetName(), resource.Kind, obj.GetNamespace(), obj)
 			handleCRDAddition(wm, aiManager, eventClient, resource)
 
@@ -73,30 +68,30 @@ func WatchStoreResources(wm watcher.WatcherModule, aiManager ai.AiManager, event
 			if time.Since(start) < 10*time.Second {
 				return
 			}
-			sendEventServerEvent(eventClient, v.ApiVersion, resource.Kind, obj.GetName(), "add", obj)
-			aiManager.ProcessObject(obj, "add")
-		}, func(resource watcher.WatcherResourceIdentifier, oldObj, newObj *unstructured.Unstructured) {
+			sendEventServerEvent(eventClient, res.ApiVersion, resource.Kind, obj.GetName(), "add", obj)
+			aiManager.ProcessObject(obj, "add", res)
+		}, func(resource utils.ResourceDescriptor, oldObj, newObj *unstructured.Unstructured) {
 			setStoreIfNeeded(resource.ApiVersion, newObj.GetName(), resource.Kind, newObj.GetNamespace(), newObj)
 
 			// Filter out resync updates - same resource version means no actual change
 			if oldObj.GetResourceVersion() == newObj.GetResourceVersion() {
 				return
 			}
-			sendEventServerEvent(eventClient, v.ApiVersion, resource.Kind, newObj.GetName(), "update", newObj)
-			aiManager.ProcessObject(newObj, "update")
-		}, func(resource watcher.WatcherResourceIdentifier, obj *unstructured.Unstructured) {
+			sendEventServerEvent(eventClient, resource.ApiVersion, resource.Kind, newObj.GetName(), "update", newObj)
+			aiManager.ProcessObject(newObj, "update", res)
+		}, func(resource utils.ResourceDescriptor, obj *unstructured.Unstructured) {
 			deleteFromStoreIfNeeded(resource.ApiVersion, obj.GetName(), resource.Kind, obj.GetNamespace(), obj)
-			sendEventServerEvent(eventClient, v.ApiVersion, resource.Kind, obj.GetName(), "delete", obj)
+			sendEventServerEvent(eventClient, resource.ApiVersion, resource.Kind, obj.GetName(), "delete", obj)
 			handleCRDDeletion(wm, resource, obj)
-			aiManager.ProcessObject(obj, "delete")
+			aiManager.ProcessObject(obj, "delete", res)
 		})
 		if err != nil {
 			if !strings.Contains(err.Error(), "resource is already being watched") {
-				k8sLogger.Error("failed to initialize watchhandler for resource", "ApiVersion", v.ApiVersion, "kind", v.Kind, "error", err)
+				k8sLogger.Error("failed to initialize watchhandler for resource", "ApiVersion", res.ApiVersion, "kind", res.Kind, "error", err)
 				return err
 			}
 		} else {
-			k8sLogger.Info("🚀 Watching resource", "kind", v.Kind, "plural", v.Plural)
+			k8sLogger.Info("🚀 Watching resource", "kind", res.Kind, "plural", res.Plural)
 		}
 	}
 	return nil
@@ -109,7 +104,7 @@ var (
 
 // no matter how many CRD addition events we get in a short time frame
 // this method will debounce them and only execute the logic once after 3 seconds
-func handleCRDAddition(wm watcher.WatcherModule, aiManager ai.AiManager, eventClient websocket.WebsocketClient, resource watcher.WatcherResourceIdentifier) {
+func handleCRDAddition(wm watcher.WatcherModule, aiManager ai.AiManager, eventClient websocket.WebsocketClient, resource utils.ResourceDescriptor) {
 	if resource.Kind == "CustomResourceDefinition" {
 		crdDebounceMutex.Lock()
 		defer crdDebounceMutex.Unlock()
@@ -139,7 +134,7 @@ func handleCRDAddition(wm watcher.WatcherModule, aiManager ai.AiManager, eventCl
 	}
 }
 
-func handleCRDDeletion(wm watcher.WatcherModule, resource watcher.WatcherResourceIdentifier, obj *unstructured.Unstructured) {
+func handleCRDDeletion(wm watcher.WatcherModule, resource utils.ResourceDescriptor, obj *unstructured.Unstructured) {
 	if resource.Kind == "CustomResourceDefinition" {
 		name, _, _ := unstructured.NestedString(obj.Object, "spec", "names", "plural")
 		kind, _, _ := unstructured.NestedString(obj.Object, "spec", "names", "kind")
@@ -148,7 +143,7 @@ func handleCRDDeletion(wm watcher.WatcherModule, resource watcher.WatcherResourc
 			k8sLogger.Error("Error parsing CRD for unwatching", "name", name, "kind", kind)
 			return
 		}
-		resourceToDelete := watcher.WatcherResourceIdentifier{
+		resourceToDelete := utils.ResourceDescriptor{
 			Plural:     resource.Plural,
 			Kind:       resource.Kind,
 			ApiVersion: resource.ApiVersion,
