@@ -103,10 +103,10 @@ func TestWatcher(t *testing.T) {
 	assert.AssertT(t, err == nil, err)
 
 	// NEW WORKLOAD
-	_, err = kubernetes.CreateUnstructuredResource("apps/v1", "deployments", "", createNewDeplString)
+	_, err = kubernetes.CreateUnstructuredResource("apps/v1", "deployments", true, createNewDeplString)
 	assert.AssertT(t, err == nil || apierrors.IsAlreadyExists(err), err, createNewDeplString)
 
 	// UPDATE WORKLOAD
-	_, err = kubernetes.UpdateUnstructuredResource("apps/v1", "deployments", "", updatedDeplString)
+	_, err = kubernetes.UpdateUnstructuredResource("apps/v1", "deployments", true, updatedDeplString)
 	assert.AssertT(t, err == nil, err)
 }
