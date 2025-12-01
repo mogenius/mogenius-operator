@@ -31,7 +31,6 @@ import (
 	"sync"
 	"time"
 
-	json "github.com/json-iterator/go"
 	jsoniter "github.com/json-iterator/go"
 	release "helm.sh/helm/v4/pkg/release/v1"
 	v1 "k8s.io/api/core/v1"
@@ -1529,10 +1528,9 @@ func (self *socketApi) registerPatterns() {
 		RegisterPatternHandler(
 			PatternHandle{self, "aiManager/inject-prompt-config"},
 			PatternConfig{},
-			func(datagram structs.Datagram, request Request) (string, error) {
-
+			func(datagram structs.Datagram, request Request) (Void, error) {
 				self.aiApi.InjectAiPromptConfig(request.AiPromptConfig)
-				return "ok", nil
+				return store.AddToAuditLog[Void](datagram, self.logger, nil, nil, nil, nil)
 			},
 		)
 	}
@@ -1542,7 +1540,8 @@ func (self *socketApi) registerPatterns() {
 			PatternHandle{self, "aiManager/status"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Void) (ai.AiManagerStatus, error) {
-				return self.aiApi.GetStatus(), nil
+				status := self.aiApi.GetStatus()
+				return store.AddToAuditLog(datagram, self.logger, status, nil, nil, nil)
 			},
 		)
 	}
@@ -1552,7 +1551,8 @@ func (self *socketApi) registerPatterns() {
 			PatternHandle{self, "aiManager/reset-daily-tokenlimit"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Void) (Void, error) {
-				return nil, self.aiApi.ResetDailyTokenLimit()
+				err := self.aiApi.ResetDailyTokenLimit()
+				return store.AddToAuditLog[Void](datagram, self.logger, nil, err, nil, nil)
 			},
 		)
 	}
@@ -1565,17 +1565,9 @@ func (self *socketApi) registerPatterns() {
 		RegisterPatternHandler(
 			PatternHandle{self, "aiManager/get/tasks"},
 			PatternConfig{},
-			func(datagram structs.Datagram, request Request) (string, error) {
-
+			func(datagram structs.Datagram, request Request) ([]ai.AiTask, error) {
 				tasks, err := self.aiApi.GetAiTasksForWorkspace(request.Workspace)
-				if err != nil {
-					return "", err
-				}
-				tasksJson, err := json.Marshal(tasks)
-				if err != nil {
-					return "", err
-				}
-				return string(tasksJson), nil
+				return store.AddToAuditLog(datagram, self.logger, tasks, err, nil, nil)
 			},
 		)
 	}
@@ -1589,13 +1581,9 @@ func (self *socketApi) registerPatterns() {
 		RegisterPatternHandler(
 			PatternHandle{self, "aiManager/update/task"},
 			PatternConfig{},
-			func(datagram structs.Datagram, request Request) (string, error) {
-
+			func(datagram structs.Datagram, request Request) (Void, error) {
 				err := self.aiApi.UpdateTaskState(request.TaskId, request.State)
-				if err != nil {
-					return "", err
-				}
-				return "ok", nil
+				return store.AddToAuditLog[Void](datagram, self.logger, nil, err, nil, nil)
 			},
 		)
 	}
