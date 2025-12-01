@@ -4,12 +4,14 @@ import (
 	"log/slog"
 	"mogenius-operator/src/ai"
 	"mogenius-operator/src/structs"
+	"mogenius-operator/src/utils"
 )
 
 type AiApi interface {
 	UpdateTaskState(taskID string, newState ai.AiTaskState) error
 	UpdateTaskReadState(taskID string, user *structs.User) error
 	GetAiTasksForWorkspace(workspace string) ([]ai.AiTask, error)
+	GetAiTasksForResource(resourceReq utils.WorkloadSingleRequest) ([]ai.AiTask, error)
 	GetLatestTask(workspace string) (*ai.AiTaskLatest, error)
 	InjectAiPromptConfig(prompt ai.AiPromptConfig)
 	GetStatus() ai.AiManagerStatus
@@ -31,6 +33,9 @@ func NewAiApi(logger *slog.Logger, aiManager ai.AiManager) AiApi {
 
 func (ai *aiApi) GetAiTasksForWorkspace(workspace string) ([]ai.AiTask, error) {
 	return ai.aiManager.GetAiTasksForWorkspace(workspace)
+}
+func (ai *aiApi) GetAiTasksForResource(resourceReq utils.WorkloadSingleRequest) ([]ai.AiTask, error) {
+	return ai.aiManager.GetAiTasksForResource(resourceReq)
 }
 
 func (ai *aiApi) GetLatestTask(workspace string) (*ai.AiTaskLatest, error) {

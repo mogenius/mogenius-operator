@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"mogenius-operator/src/store"
 	"mogenius-operator/src/structs"
+	"mogenius-operator/src/utils"
 	"time"
 )
 
@@ -73,6 +74,29 @@ func (ai *aiManager) UpdateTaskReadState(taskID string, user *structs.User) erro
 	}
 
 	return fmt.Errorf("no ai task with the specified id has been found: %s", taskID)
+}
+
+func (ai *aiManager) GetAiTasksForResource(resourceReq utils.WorkloadSingleRequest) ([]AiTask, error) {
+	tasks := []AiTask{}
+	valkeyPath := getValkeyKey(resourceReq.Kind, resourceReq.Namespace, resourceReq.ResourceName, "*")
+	keys, err := ai.valkeyClient.Keys(valkeyPath)
+	if err != nil {
+		return tasks, err
+	}
+
+	for _, key := range keys {
+		item, err := ai.valkeyClient.Get(key)
+		if err != nil {
+			return tasks, err
+		}
+		var task AiTask
+		err = json.Unmarshal([]byte(item), &task)
+		if err != nil {
+			return tasks, err
+		}
+		tasks = append(tasks, task)
+	}
+	return tasks, nil
 }
 
 func (ai *aiManager) GetAiTasksForWorkspace(workspace string) ([]AiTask, error) {

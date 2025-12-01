@@ -138,6 +138,7 @@ type AiManager interface {
 	UpdateTaskState(taskID string, newState AiTaskState) error
 	UpdateTaskReadState(taskID string, user *structs.User) error
 	GetAiTasksForWorkspace(workspace string) ([]AiTask, error)
+	GetAiTasksForResource(resourceReq utils.WorkloadSingleRequest) ([]AiTask, error)
 	GetLatestTask(workspace string) (*AiTaskLatest, error)
 	InjectAiPromptConfig(prompt AiPromptConfig)
 	GetStatus() AiManagerStatus

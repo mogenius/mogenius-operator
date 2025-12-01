@@ -1573,6 +1573,16 @@ func (self *socketApi) registerPatterns() {
 	}
 
 	{
+		RegisterPatternHandler(
+			PatternHandle{self, "aiManager/detail/tasks"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request utils.WorkloadSingleRequest) ([]ai.AiTask, error) {
+				return self.aiApi.GetAiTasksForResource(request)
+			},
+		)
+	}
+
+	{
 		type Request struct {
 			TaskId string `json:"taskId" validate:"required"`
 		}
