@@ -128,6 +128,14 @@ aiManager/detail/tasks:
                         type: string
                     prompt:
                         type: string
+            mogenius-operator/src/ai.AiResponse:
+                name: mogenius-operator/src/ai.AiResponse
+                properties:
+                    analysis:
+                        structRef: mogenius-operator/src/ai.Analysis
+                        type: struct
+                    errorMessage:
+                        type: string
             mogenius-operator/src/ai.AiTask:
                 name: mogenius-operator/src/ai.AiTask
                 properties:
@@ -148,7 +156,9 @@ aiManager/detail/tasks:
                         structRef: mogenius-operator/src/utils.WorkloadSingleRequest
                         type: struct
                     response:
-                        type: string
+                        pointer: true
+                        structRef: mogenius-operator/src/ai.AiResponse
+                        type: struct
                     state:
                         type: string
                     tokensUsed:
@@ -158,6 +168,48 @@ aiManager/detail/tasks:
                         type: struct
                     updatedAt:
                         type: int
+            mogenius-operator/src/ai.Analysis:
+                name: mogenius-operator/src/ai.Analysis
+                properties:
+                    additionalInformation:
+                        type: string
+                    diffYaml:
+                        type: string
+                    followUpResources:
+                        elementType:
+                            structRef: mogenius-operator/src/ai.FollowUpResource
+                            type: struct
+                        type: array
+                    kubectlApplyFixYaml:
+                        type: string
+                    needsFollowUp:
+                        type: bool
+                    possibleCauses:
+                        elementType:
+                            type: string
+                        type: array
+                    problemDescription:
+                        type: string
+                    proposedSolutions:
+                        elementType:
+                            structRef: mogenius-operator/src/ai.Solution
+                            type: struct
+                        type: array
+            mogenius-operator/src/ai.FollowUpResource:
+                name: mogenius-operator/src/ai.FollowUpResource
+                properties:
+                    apiVersion:
+                        type: string
+                    kind:
+                        type: string
+                    name:
+                        type: string
+                    namespace:
+                        type: string
+                    namespaced:
+                        type: bool
+                    plural:
+                        type: string
             mogenius-operator/src/ai.ReadBy:
                 name: mogenius-operator/src/ai.ReadBy
                 properties:
@@ -167,6 +219,15 @@ aiManager/detail/tasks:
                     user:
                         structRef: mogenius-operator/src/structs.User
                         type: struct
+            mogenius-operator/src/ai.Solution:
+                name: mogenius-operator/src/ai.Solution
+                properties:
+                    solutionDescription:
+                        type: string
+                    steps:
+                        elementType:
+                            type: string
+                        type: array
             mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadSingleRequest,[]mogenius-operator/src/ai.AiTask]:
                 name: mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadSingleRequest,[]mogenius-operator/src/ai.AiTask]
                 properties:
@@ -251,6 +312,14 @@ aiManager/get/tasks:
                         type: string
                     prompt:
                         type: string
+            mogenius-operator/src/ai.AiResponse:
+                name: mogenius-operator/src/ai.AiResponse
+                properties:
+                    analysis:
+                        structRef: mogenius-operator/src/ai.Analysis
+                        type: struct
+                    errorMessage:
+                        type: string
             mogenius-operator/src/ai.AiTask:
                 name: mogenius-operator/src/ai.AiTask
                 properties:
@@ -271,7 +340,9 @@ aiManager/get/tasks:
                         structRef: mogenius-operator/src/utils.WorkloadSingleRequest
                         type: struct
                     response:
-                        type: string
+                        pointer: true
+                        structRef: mogenius-operator/src/ai.AiResponse
+                        type: struct
                     state:
                         type: string
                     tokensUsed:
@@ -281,6 +352,48 @@ aiManager/get/tasks:
                         type: struct
                     updatedAt:
                         type: int
+            mogenius-operator/src/ai.Analysis:
+                name: mogenius-operator/src/ai.Analysis
+                properties:
+                    additionalInformation:
+                        type: string
+                    diffYaml:
+                        type: string
+                    followUpResources:
+                        elementType:
+                            structRef: mogenius-operator/src/ai.FollowUpResource
+                            type: struct
+                        type: array
+                    kubectlApplyFixYaml:
+                        type: string
+                    needsFollowUp:
+                        type: bool
+                    possibleCauses:
+                        elementType:
+                            type: string
+                        type: array
+                    problemDescription:
+                        type: string
+                    proposedSolutions:
+                        elementType:
+                            structRef: mogenius-operator/src/ai.Solution
+                            type: struct
+                        type: array
+            mogenius-operator/src/ai.FollowUpResource:
+                name: mogenius-operator/src/ai.FollowUpResource
+                properties:
+                    apiVersion:
+                        type: string
+                    kind:
+                        type: string
+                    name:
+                        type: string
+                    namespace:
+                        type: string
+                    namespaced:
+                        type: bool
+                    plural:
+                        type: string
             mogenius-operator/src/ai.ReadBy:
                 name: mogenius-operator/src/ai.ReadBy
                 properties:
@@ -290,6 +403,15 @@ aiManager/get/tasks:
                     user:
                         structRef: mogenius-operator/src/structs.User
                         type: struct
+            mogenius-operator/src/ai.Solution:
+                name: mogenius-operator/src/ai.Solution
+                properties:
+                    solutionDescription:
+                        type: string
+                    steps:
+                        elementType:
+                            type: string
+                        type: array
             mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·35,[]mogenius-operator/src/ai.AiTask]:
                 name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·35,[]mogenius-operator/src/ai.AiTask]
                 properties:
@@ -437,6 +559,14 @@ aiManager/latest/task:
                         type: string
                     prompt:
                         type: string
+            mogenius-operator/src/ai.AiResponse:
+                name: mogenius-operator/src/ai.AiResponse
+                properties:
+                    analysis:
+                        structRef: mogenius-operator/src/ai.Analysis
+                        type: struct
+                    errorMessage:
+                        type: string
             mogenius-operator/src/ai.AiTask:
                 name: mogenius-operator/src/ai.AiTask
                 properties:
@@ -457,7 +587,9 @@ aiManager/latest/task:
                         structRef: mogenius-operator/src/utils.WorkloadSingleRequest
                         type: struct
                     response:
-                        type: string
+                        pointer: true
+                        structRef: mogenius-operator/src/ai.AiResponse
+                        type: struct
                     state:
                         type: string
                     tokensUsed:
@@ -476,6 +608,48 @@ aiManager/latest/task:
                         pointer: true
                         structRef: mogenius-operator/src/ai.AiTask
                         type: struct
+            mogenius-operator/src/ai.Analysis:
+                name: mogenius-operator/src/ai.Analysis
+                properties:
+                    additionalInformation:
+                        type: string
+                    diffYaml:
+                        type: string
+                    followUpResources:
+                        elementType:
+                            structRef: mogenius-operator/src/ai.FollowUpResource
+                            type: struct
+                        type: array
+                    kubectlApplyFixYaml:
+                        type: string
+                    needsFollowUp:
+                        type: bool
+                    possibleCauses:
+                        elementType:
+                            type: string
+                        type: array
+                    problemDescription:
+                        type: string
+                    proposedSolutions:
+                        elementType:
+                            structRef: mogenius-operator/src/ai.Solution
+                            type: struct
+                        type: array
+            mogenius-operator/src/ai.FollowUpResource:
+                name: mogenius-operator/src/ai.FollowUpResource
+                properties:
+                    apiVersion:
+                        type: string
+                    kind:
+                        type: string
+                    name:
+                        type: string
+                    namespace:
+                        type: string
+                    namespaced:
+                        type: bool
+                    plural:
+                        type: string
             mogenius-operator/src/ai.ReadBy:
                 name: mogenius-operator/src/ai.ReadBy
                 properties:
@@ -485,6 +659,15 @@ aiManager/latest/task:
                     user:
                         structRef: mogenius-operator/src/structs.User
                         type: struct
+            mogenius-operator/src/ai.Solution:
+                name: mogenius-operator/src/ai.Solution
+                properties:
+                    solutionDescription:
+                        type: string
+                    steps:
+                        elementType:
+                            type: string
+                        type: array
             mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·38,*mogenius-operator/src/ai.AiTaskLatest]:
                 name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·38,*mogenius-operator/src/ai.AiTaskLatest]
                 properties:

@@ -28,7 +28,7 @@ type AiTaskState string
 type AiTask struct {
 	ID                  string                      `json:"id"`
 	Prompt              string                      `json:"prompt"`
-	Response            string                      `json:"response"`
+	Response            *AiResponse                 `json:"response"`
 	State               AiTaskState                 `json:"state"` // pending, in-progress, completed, failed, ignored
 	TokensUsed          int64                       `json:"tokensUsed"`
 	CreatedAt           int64                       `json:"createdAt"`
@@ -82,6 +82,36 @@ type AiManagerStatus struct {
 	DbEntries                   int    `json:"dbEntries"`
 	Error                       string `json:"error,omitempty"`
 	Warning                     string `json:"warning,omitempty"`
+}
+
+type AiResponse struct {
+	ErrorMessage string   `json:"errorMessage"`
+	Analysis     Analysis `json:"analysis"`
+}
+
+type Analysis struct {
+	ProblemDescription  string             `json:"problemDescription"`
+	PossibleCauses      []string           `json:"possibleCauses"`
+	ProposedSolutions   []Solution         `json:"proposedSolutions"`
+	AdditionalInfo      string             `json:"additionalInformation"`
+	NeedsFollowUp       bool               `json:"needsFollowUp"`
+	FollowUpResources   []FollowUpResource `json:"followUpResources"`
+	KubectlApplyFixYaml string             `json:"kubectlApplyFixYaml"`
+	DiffYaml            string             `json:"diffYaml"`
+}
+
+type Solution struct {
+	SolutionDescription string   `json:"solutionDescription"`
+	Steps               []string `json:"steps"`
+}
+
+type FollowUpResource struct {
+	Kind       string `json:"kind"`
+	Plural     string `json:"plural"`
+	APIVersion string `json:"apiVersion"`
+	Namespaced bool   `json:"namespaced"`
+	Name       string `json:"name"`
+	Namespace  string `json:"namespace"`
 }
 
 var AiFilters = []AiFilter{
@@ -169,6 +199,16 @@ func (ai *aiManager) ProcessObject(obj *unstructured.Unstructured, eventType str
 		return
 	}
 
+	if eventType == "delete" {
+		// On delete, we try to remove any existing AI tasks for this object
+		key := getValkeyKey(obj.GetKind(), obj.GetNamespace(), obj.GetName(), "*")
+		err := ai.valkeyClient.DeleteMultiple(key)
+		if err != nil {
+			ai.logger.Error("Error deleting AI tasks for deleted object", "objectKind", obj.GetKind(), "objectName", obj.GetName(), "objectNamespace", obj.GetNamespace(), "error", err)
+		}
+		return
+	}
+
 	initialized := ai.isAiPromptConfigInitialized()
 	if !initialized {
 		return
@@ -233,7 +273,7 @@ func (ai *aiManager) ProcessObject(obj *unstructured.Unstructured, eventType str
 					if err != nil {
 						ai.logger.Error("Error creating AI task", "error", err)
 					} else {
-						ai.logger.Info("AI task created", "taskID", task.ID, "objectKind", obj.GetKind(), "objectName", obj.GetName(), "objectNamespace", obj.GetNamespace(), "filter", filter.Name)
+						ai.logger.Info("AI task created", "taskID", task.ID, "event", eventType, "objectKind", obj.GetKind(), "objectName", obj.GetName(), "objectNamespace", obj.GetNamespace(), "filter", filter.Name)
 					}
 				}
 			}
@@ -517,15 +557,15 @@ func (ai *aiManager) shouldCreateNewTask(key string) (bool, error) {
 	return !exists, nil
 }
 
-func (ai *aiManager) processPrompt(ctx context.Context, prompt string) (string, int64, error) {
+func (ai *aiManager) processPrompt(ctx context.Context, prompt string) (*AiResponse, int64, error) {
 	client, err := ai.getOpenAIClient()
 	if err != nil {
-		return "", 0, err
+		return nil, 0, err
 	}
 
 	model, err := ai.getAiModel()
 	if err != nil {
-		return "", 0, err
+		return nil, 0, err
 	}
 	systemPrompt := ai.getSystemPrompt()
 
@@ -543,14 +583,20 @@ func (ai *aiManager) processPrompt(ctx context.Context, prompt string) (string, 
 	}
 
 	if err != nil {
-		return "", tokensUsed, err
+		return nil, tokensUsed, err
 	}
 	if len(chatCompletion.Choices) == 0 {
-		return "", tokensUsed, fmt.Errorf("no choices returned from AI model")
+		return nil, tokensUsed, fmt.Errorf("no choices returned from AI model")
+	}
+
+	var aiResponse AiResponse
+	err = json.Unmarshal([]byte(chatCompletion.Choices[0].Message.Content), &aiResponse)
+	if err != nil {
+		return nil, tokensUsed, fmt.Errorf("error unmarshaling AI response: %v", err)
 	}
 
 	// also return tokens used
-	return chatCompletion.Choices[0].Message.Content, tokensUsed, nil
+	return &aiResponse, tokensUsed, nil
 }
 
 func buildUserPrompt(prompt string, obj *unstructured.Unstructured) string {
