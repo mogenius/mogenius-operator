@@ -1548,7 +1548,7 @@ func (self *socketApi) registerPatterns() {
 
 	{
 		RegisterPatternHandler(
-			PatternHandle{self, "aiManager/reset-daily-tokenlimit"},
+			PatternHandle{self, "aiManager/reset-daily-token-limit"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Void) (Void, error) {
 				err := self.aiApi.ResetDailyTokenLimit()
@@ -1568,6 +1568,21 @@ func (self *socketApi) registerPatterns() {
 			func(datagram structs.Datagram, request Request) ([]ai.AiTask, error) {
 				tasks, err := self.aiApi.GetAiTasksForWorkspace(request.Workspace)
 				return store.AddToAuditLog(datagram, self.logger, tasks, err, nil, nil)
+			},
+		)
+	}
+
+	{
+		type Request struct {
+			TaskId string `json:"taskId" validate:"required"`
+		}
+
+		RegisterPatternHandler(
+			PatternHandle{self, "aiManager/read/task"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Request) (Void, error) {
+				err := self.aiApi.UpdateTaskReadState(request.TaskId, &datagram.User)
+				return store.AddToAuditLog[Void](datagram, self.logger, nil, err, nil, nil)
 			},
 		)
 	}

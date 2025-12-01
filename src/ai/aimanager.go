@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	cfg "mogenius-operator/src/config"
+	"mogenius-operator/src/structs"
 	"mogenius-operator/src/utils"
 	"mogenius-operator/src/valkeyclient"
 	"sort"
@@ -34,7 +35,13 @@ type AiTask struct {
 	UpdatedAt           int64                       `json:"updatedAt"`
 	ReferencingResource utils.WorkloadSingleRequest `json:"referencingResource"` // the resource that triggered this task
 	TriggeredBy         AiFilter                    `json:"triggeredBy"`         // e.g., "Failed Pods" filter
+	ReadByUser          *ReadBy                     `json:"readByUser,omitempty"`
 	Error               error                       `json:"error,omitempty"`
+}
+
+type ReadBy struct {
+	User   structs.User `json:"user"`
+	ReadAt time.Time    `json:"readAt"`
 }
 
 // state enums
@@ -124,6 +131,7 @@ type AiManager interface {
 	ProcessObject(obj *unstructured.Unstructured, eventType string, resource utils.ResourceDescriptor) // eventType can be "add", "update", "delete"
 	Run()
 	UpdateTaskState(taskID string, newState AiTaskState) error
+	UpdateTaskReadState(taskID string, user *structs.User) error
 	GetAiTasksForWorkspace(workspace string) ([]AiTask, error)
 	InjectAiPromptConfig(prompt AiPromptConfig)
 	GetStatus() AiManagerStatus

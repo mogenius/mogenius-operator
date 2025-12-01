@@ -3,10 +3,12 @@ package core
 import (
 	"log/slog"
 	"mogenius-operator/src/ai"
+	"mogenius-operator/src/structs"
 )
 
 type AiApi interface {
 	UpdateTaskState(taskID string, newState ai.AiTaskState) error
+	UpdateTaskReadState(taskID string, user *structs.User) error
 	GetAiTasksForWorkspace(workspace string) ([]ai.AiTask, error)
 	InjectAiPromptConfig(prompt ai.AiPromptConfig)
 	GetStatus() ai.AiManagerStatus
@@ -36,6 +38,10 @@ func (ai *aiApi) InjectAiPromptConfig(prompt ai.AiPromptConfig) {
 
 func (ai *aiApi) UpdateTaskState(taskID string, newState ai.AiTaskState) error {
 	return ai.aiManager.UpdateTaskState(taskID, newState)
+}
+
+func (ai *aiApi) UpdateTaskReadState(taskID string, user *structs.User) error {
+	return ai.aiManager.UpdateTaskReadState(taskID, user)
 }
 
 func (ai *aiApi) GetStatus() ai.AiManagerStatus {

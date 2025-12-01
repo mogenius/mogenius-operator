@@ -4,10 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"mogenius-operator/src/store"
+	"mogenius-operator/src/structs"
+	"time"
 )
 
 func (ai *aiManager) UpdateTaskState(taskID string, newState AiTaskState) error {
-	keys, err := ai.valkeyClient.Keys(DB_AI_BUCKET_TASKS)
+	keys, err := ai.valkeyClient.Keys(DB_AI_BUCKET_TASKS + ":*")
 	if err != nil {
 		return err
 	}
@@ -29,6 +31,44 @@ func (ai *aiManager) UpdateTaskState(taskID string, newState AiTaskState) error 
 				return err
 			}
 			return nil
+		}
+	}
+
+	return fmt.Errorf("no ai task with the specified id has been found: %s", taskID)
+}
+
+func (ai *aiManager) UpdateTaskReadState(taskID string, user *structs.User) error {
+	if user.Email == "" {
+		return fmt.Errorf("user cannot be nil")
+	}
+
+	keys, err := ai.valkeyClient.Keys(DB_AI_BUCKET_TASKS + ":*")
+	if err != nil {
+		return err
+	}
+
+	for _, key := range keys {
+		item, err := ai.valkeyClient.Get(key)
+		if err != nil {
+			return err
+		}
+		var task AiTask
+		err = json.Unmarshal([]byte(item), &task)
+		if err != nil {
+			return err
+		}
+		if task.ID == taskID {
+			// toggle
+			if task.ReadByUser == nil {
+				task.ReadByUser = &ReadBy{
+					User:   *user,
+					ReadAt: time.Now(),
+				}
+				return ai.createOrUpdateAiTask(&task, key)
+			} else {
+				task.ReadByUser = nil
+				return ai.createOrUpdateAiTask(&task, key)
+			}
 		}
 	}
 
