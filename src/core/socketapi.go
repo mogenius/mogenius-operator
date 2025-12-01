@@ -3,6 +3,7 @@ package core
 import (
 	"fmt"
 	"log/slog"
+	"mogenius-operator/src/ai"
 	argocd "mogenius-operator/src/argocd"
 	"mogenius-operator/src/assert"
 	"mogenius-operator/src/config"
@@ -46,6 +47,7 @@ type SocketApi interface {
 		apiService Api,
 		moKubernetes MoKubernetes,
 		sealedSecret SealedSecretManager,
+		aiApi AiApi,
 	)
 	Run()
 	Status() SocketApiStatus
@@ -103,6 +105,7 @@ type socketApi struct {
 	moKubernetes       MoKubernetes
 	sealedSecret       SealedSecretManager
 	argocd             argocd.Argocd
+	aiApi              AiApi
 }
 
 type PatternHandler struct {
@@ -156,12 +159,14 @@ func (self *socketApi) Link(
 	apiService Api,
 	moKubernetes MoKubernetes,
 	sealedSecret SealedSecretManager,
+	aiApi AiApi,
 ) {
 	assert.Assert(apiService != nil)
 	assert.Assert(httpService != nil)
 	assert.Assert(xtermService != nil)
 	assert.Assert(dbstatsModule != nil)
 	assert.Assert(moKubernetes != nil)
+	assert.Assert(aiApi != nil)
 
 	self.apiService = apiService
 	self.httpService = httpService
@@ -169,6 +174,7 @@ func (self *socketApi) Link(
 	self.dbstats = dbstatsModule
 	self.moKubernetes = moKubernetes
 	self.sealedSecret = sealedSecret
+	self.aiApi = aiApi
 }
 
 func (self *socketApi) Run() {
@@ -1510,6 +1516,89 @@ func (self *socketApi) registerPatterns() {
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) ([]unstructured.Unstructured, error) {
 				return self.apiService.GetWorkspaceResources(request.WorkspaceName, request.Whitelist, request.Blacklist, request.NamespaceWhitelist)
+			},
+		)
+	}
+
+	{
+		type Request struct {
+			AiPromptConfig ai.AiPromptConfig `json:"aiPromptConfig" validate:"required"`
+		}
+
+		RegisterPatternHandler(
+			PatternHandle{self, "aiManager/inject-prompt-config"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Request) (Void, error) {
+				self.aiApi.InjectAiPromptConfig(request.AiPromptConfig)
+				return store.AddToAuditLog[Void](datagram, self.logger, nil, nil, nil, nil)
+			},
+		)
+	}
+
+	{
+		RegisterPatternHandler(
+			PatternHandle{self, "aiManager/status"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Void) (ai.AiManagerStatus, error) {
+				status := self.aiApi.GetStatus()
+				return store.AddToAuditLog(datagram, self.logger, status, nil, nil, nil)
+			},
+		)
+	}
+
+	{
+		RegisterPatternHandler(
+			PatternHandle{self, "aiManager/reset-daily-token-limit"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Void) (Void, error) {
+				err := self.aiApi.ResetDailyTokenLimit()
+				return store.AddToAuditLog[Void](datagram, self.logger, nil, err, nil, nil)
+			},
+		)
+	}
+
+	{
+		type Request struct {
+			Workspace string `json:"workspace" validate:"required"`
+		}
+
+		RegisterPatternHandler(
+			PatternHandle{self, "aiManager/get/tasks"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Request) ([]ai.AiTask, error) {
+				tasks, err := self.aiApi.GetAiTasksForWorkspace(request.Workspace)
+				return store.AddToAuditLog(datagram, self.logger, tasks, err, nil, nil)
+			},
+		)
+	}
+
+	{
+		type Request struct {
+			TaskId string `json:"taskId" validate:"required"`
+		}
+
+		RegisterPatternHandler(
+			PatternHandle{self, "aiManager/read/task"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Request) (Void, error) {
+				err := self.aiApi.UpdateTaskReadState(request.TaskId, &datagram.User)
+				return store.AddToAuditLog[Void](datagram, self.logger, nil, err, nil, nil)
+			},
+		)
+	}
+
+	{
+		type Request struct {
+			TaskId string         `json:"taskId" validate:"required"`
+			State  ai.AiTaskState `json:"state" validate:"required"`
+		}
+
+		RegisterPatternHandler(
+			PatternHandle{self, "aiManager/update/task"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Request) (Void, error) {
+				err := self.aiApi.UpdateTaskState(request.TaskId, request.State)
+				return store.AddToAuditLog[Void](datagram, self.logger, nil, err, nil, nil)
 			},
 		)
 	}
