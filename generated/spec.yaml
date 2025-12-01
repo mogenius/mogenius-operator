@@ -91,17 +91,88 @@ aiManager/get/tasks:
             type: struct
     responseSchema:
         structs:
-            mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·35,string]:
-                name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·35,string]
+            mogenius-operator/src/ai.AiFilter:
+                name: mogenius-operator/src/ai.AiFilter
+                properties:
+                    contains:
+                        keyType:
+                            type: string
+                        type: map
+                        valueType:
+                            type: string
+                    excludes:
+                        keyType:
+                            type: string
+                        type: map
+                        valueType:
+                            type: string
+                    kind:
+                        type: string
+                    name:
+                        type: string
+                    prompt:
+                        type: string
+            mogenius-operator/src/ai.AiTask:
+                name: mogenius-operator/src/ai.AiTask
+                properties:
+                    createdAt:
+                        type: int
+                    error:
+                        pointer: true
+                        type: any
+                    id:
+                        type: string
+                    prompt:
+                        type: string
+                    referencingResource:
+                        structRef: mogenius-operator/src/utils.WorkloadSingleRequest
+                        type: struct
+                    response:
+                        type: string
+                    state:
+                        type: string
+                    tokensUsed:
+                        type: int
+                    triggeredBy:
+                        structRef: mogenius-operator/src/ai.AiFilter
+                        type: struct
+                    updatedAt:
+                        type: int
+            mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·35,[]mogenius-operator/src/ai.AiTask]:
+                name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·35,[]mogenius-operator/src/ai.AiTask]
                 properties:
                     data:
-                        type: string
+                        elementType:
+                            structRef: mogenius-operator/src/ai.AiTask
+                            type: struct
+                        type: array
                     message:
                         type: string
                     status:
                         type: string
+            mogenius-operator/src/utils.ResourceDescriptor:
+                name: mogenius-operator/src/utils.ResourceDescriptor
+                properties:
+                    apiVersion:
+                        type: string
+                    kind:
+                        type: string
+                    namespaced:
+                        type: bool
+                    plural:
+                        type: string
+            mogenius-operator/src/utils.WorkloadSingleRequest:
+                name: mogenius-operator/src/utils.WorkloadSingleRequest
+                properties:
+                    ResourceDescriptor:
+                        structRef: mogenius-operator/src/utils.ResourceDescriptor
+                        type: struct
+                    namespace:
+                        type: string
+                    resourceName:
+                        type: string
         typeInfo:
-            structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·35,string]
+            structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·35,[]mogenius-operator/src/ai.AiTask]
             type: struct
 aiManager/inject-prompt-config:
     requestSchema:
@@ -150,17 +221,21 @@ aiManager/inject-prompt-config:
             type: struct
     responseSchema:
         structs:
-            mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·34,string]:
-                name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·34,string]
+            ANON_STRUCT_1:
+                properties: {}
+            mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·34,mogenius-operator/src/core.Void]:
+                name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·34,mogenius-operator/src/core.Void]
                 properties:
                     data:
-                        type: string
+                        pointer: true
+                        structRef: ANON_STRUCT_1
+                        type: struct
                     message:
                         type: string
                     status:
                         type: string
         typeInfo:
-            structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·34,string]
+            structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·34,mogenius-operator/src/core.Void]
             type: struct
 aiManager/reset-daily-tokenlimit:
     requestSchema:
@@ -249,17 +324,21 @@ aiManager/update/task:
             type: struct
     responseSchema:
         structs:
-            mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·36,string]:
-                name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·36,string]
+            ANON_STRUCT_1:
+                properties: {}
+            mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·36,mogenius-operator/src/core.Void]:
+                name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·36,mogenius-operator/src/core.Void]
                 properties:
                     data:
-                        type: string
+                        pointer: true
+                        structRef: ANON_STRUCT_1
+                        type: struct
                     message:
                         type: string
                     status:
                         type: string
         typeInfo:
-            structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·36,string]
+            structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·36,mogenius-operator/src/core.Void]
             type: struct
 audit-log/list:
     requestSchema:
