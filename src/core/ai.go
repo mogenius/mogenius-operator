@@ -10,6 +10,7 @@ type AiApi interface {
 	UpdateTaskState(taskID string, newState ai.AiTaskState) error
 	UpdateTaskReadState(taskID string, user *structs.User) error
 	GetAiTasksForWorkspace(workspace string) ([]ai.AiTask, error)
+	GetLatestTask(workspace string) (*ai.AiTaskLatest, error)
 	InjectAiPromptConfig(prompt ai.AiPromptConfig)
 	GetStatus() ai.AiManagerStatus
 	ResetDailyTokenLimit() error
@@ -30,6 +31,10 @@ func NewAiApi(logger *slog.Logger, aiManager ai.AiManager) AiApi {
 
 func (ai *aiApi) GetAiTasksForWorkspace(workspace string) ([]ai.AiTask, error) {
 	return ai.aiManager.GetAiTasksForWorkspace(workspace)
+}
+
+func (ai *aiApi) GetLatestTask(workspace string) (*ai.AiTaskLatest, error) {
+	return ai.aiManager.GetLatestTask(workspace)
 }
 
 func (ai *aiApi) InjectAiPromptConfig(prompt ai.AiPromptConfig) {

@@ -111,6 +111,24 @@ func (ai *aiManager) GetAiTasksForWorkspace(workspace string) ([]AiTask, error) 
 	return tasks, nil
 }
 
+func (ai *aiManager) GetLatestTask(workspace string) (*AiTaskLatest, error) {
+	tasks, err := ai.GetAiTasksForWorkspace(workspace)
+	if err != nil {
+		return nil, err
+	}
+	latestTask := &AiTaskLatest{}
+
+	for _, task := range tasks {
+		if task.ReadByUser == nil {
+			latestTask.NumberOfUnreadTasks++
+			if latestTask.Task == nil || task.CreatedAt > latestTask.Task.CreatedAt {
+				latestTask.Task = &task
+			}
+		}
+	}
+	return latestTask, err
+}
+
 func (ai *aiManager) getAiTasksForNamespace(namespace string) ([]AiTask, error) {
 
 	key := getValkeyKey("*", namespace, "*", "*")

@@ -39,6 +39,11 @@ type AiTask struct {
 	Error               error                       `json:"error,omitempty"`
 }
 
+type AiTaskLatest struct {
+	Task                *AiTask `json:"task,omitempty"`
+	NumberOfUnreadTasks int     `json:"numberOfUnreadTasks"`
+}
+
 type ReadBy struct {
 	User   structs.User `json:"user"`
 	ReadAt time.Time    `json:"readAt"`
@@ -133,6 +138,7 @@ type AiManager interface {
 	UpdateTaskState(taskID string, newState AiTaskState) error
 	UpdateTaskReadState(taskID string, user *structs.User) error
 	GetAiTasksForWorkspace(workspace string) ([]AiTask, error)
+	GetLatestTask(workspace string) (*AiTaskLatest, error)
 	InjectAiPromptConfig(prompt AiPromptConfig)
 	GetStatus() AiManagerStatus
 	ResetDailyTokenLimit() error

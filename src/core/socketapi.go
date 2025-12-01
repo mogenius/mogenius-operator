@@ -1603,6 +1603,20 @@ func (self *socketApi) registerPatterns() {
 		)
 	}
 
+	{
+		type Request struct {
+			Workspace string `json:"workspace" validate:"required"`
+		}
+
+		RegisterPatternHandler(
+			PatternHandle{self, "aiManager/latest/task"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Request) (*ai.AiTaskLatest, error) {
+				return self.aiApi.GetLatestTask(request.Workspace)
+			},
+		)
+	}
+
 	// Deprecated: will be removed in future versions
 	RegisterPatternHandler(
 		PatternHandle{self, "storage/create-volume"},
