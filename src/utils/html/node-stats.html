@@ -122,6 +122,11 @@
       .indicator-user { color: rgba(79, 172, 254, 1); }
       .indicator-rx { color: rgba(79, 172, 254, 1); }
       .indicator-tx { color: rgba(0, 197, 103, 1); }
+
+      .badge-fixed { min-width: 60px; justify-content: center; }
+      .table-fixed { table-layout: fixed; }
+      .indicator-arrow { font-size: 14px; font-weight: bold; }
+      .network-value { display: inline-block; width: 90px; text-align: right; margin-left: 4px; }
     </style>
   </head>
   <body class="bg-gray-50">
@@ -909,42 +914,24 @@
                 </span>
               </td>
               <td className="px-4 py-3 col-cpu">
-                <span className={`badge badge-${cpuVariant}`} style={{ minWidth: "60px", justifyContent: "center" }}>
+                <span className={`badge badge-fixed badge-${cpuVariant}`}>
                   {formatPercentage(node.cpuPercent)}
                 </span>
               </td>
               <td className="px-4 py-3 col-memory">
-                <span className={`badge badge-${memoryVariant}`} style={{ minWidth: "60px", justifyContent: "center" }}>
+                <span className={`badge badge-fixed badge-${memoryVariant}`}>
                   {formatPercentage(node.memoryPercent)}
                 </span>
               </td>
               <td className="px-4 py-3 text-sm text-gray-600 col-network">
                 <div className="font-mono text-xs">
                   <div className="flex items-center">
-                    <span className="indicator-rx" style={{ fontSize: "14px", fontWeight: "bold" }}>↓</span>
-                    <span
-                      style={{
-                        display: "inline-block",
-                        width: "90px",
-                        textAlign: "right",
-                        marginLeft: "4px",
-                      }}
-                    >
-                      {formatBytesRate(node.networkRx)}
-                    </span>
+                    <span className="indicator-rx indicator-arrow">↓</span>
+                    <span className="network-value">{formatBytesRate(node.networkRx)}</span>
                   </div>
                   <div className="flex items-center">
-                    <span className="indicator-tx" style={{ fontSize: "14px", fontWeight: "bold" }}>↑</span>
-                    <span
-                      style={{
-                        display: "inline-block",
-                        width: "90px",
-                        textAlign: "right",
-                        marginLeft: "4px",
-                      }}
-                    >
-                      {formatBytesRate(node.networkTx)}
-                    </span>
+                    <span className="indicator-tx indicator-arrow">↑</span>
+                    <span className="network-value">{formatBytesRate(node.networkTx)}</span>
                   </div>
                 </div>
               </td>
@@ -1103,7 +1090,7 @@
                   <div className="flex flex-col items-start gap-3">
                     <img
                       src="https://imagedelivery.net/T7YEW5IAgZJ0dY4-LDTpyQ/3ae4fcf0-289c-48d2-3323-d2c5bc932300/detail"
-                      alt="mogenius"
+                      alt="Mogenius logo"
                       width="140"
                       height="48"
                       className="h-12 object-contain"
@@ -1179,7 +1166,7 @@
               ) : (
                 <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
                   <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200" style={{ tableLayout: "fixed" }}>
+                    <table className="min-w-full divide-y divide-gray-200 table-fixed">
                       <thead className="bg-gray-50">
                         <tr>
                           <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase col-expand"></th>
