@@ -63,13 +63,13 @@ func WatchStoreResources(wm watcher.WatcherModule, aiManager ai.AiManager, event
 		err := wm.Watch(res, func(resource utils.ResourceDescriptor, obj *unstructured.Unstructured) {
 			setStoreIfNeeded(resource.ApiVersion, obj.GetName(), resource.Kind, obj.GetNamespace(), obj)
 			handleCRDAddition(wm, aiManager, eventClient, resource)
+			aiManager.ProcessObject(obj, "add", res)
 
 			// suppress the add events for the first 10 seconds (because all resources are added initially)
 			if time.Since(start) < 10*time.Second {
 				return
 			}
 			sendEventServerEvent(eventClient, res.ApiVersion, resource.Kind, obj.GetName(), "add", obj)
-			aiManager.ProcessObject(obj, "add", res)
 		}, func(resource utils.ResourceDescriptor, oldObj, newObj *unstructured.Unstructured) {
 			setStoreIfNeeded(resource.ApiVersion, newObj.GetName(), resource.Kind, newObj.GetNamespace(), newObj)
 
