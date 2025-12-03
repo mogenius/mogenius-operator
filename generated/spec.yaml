@@ -116,6 +116,8 @@ aiManager/detail/tasks:
                         type: map
                         valueType:
                             type: string
+                    description:
+                        type: string
                     excludes:
                         keyType:
                             type: string
@@ -142,8 +144,7 @@ aiManager/detail/tasks:
                     createdAt:
                         type: int
                     error:
-                        pointer: true
-                        type: any
+                        type: string
                     id:
                         type: string
                     prompt:
@@ -300,6 +301,8 @@ aiManager/get/tasks:
                         type: map
                         valueType:
                             type: string
+                    description:
+                        type: string
                     excludes:
                         keyType:
                             type: string
@@ -326,8 +329,7 @@ aiManager/get/tasks:
                     createdAt:
                         type: int
                     error:
-                        pointer: true
-                        type: any
+                        type: string
                     id:
                         type: string
                     prompt:
@@ -474,6 +476,8 @@ aiManager/inject-prompt-config:
                         type: map
                         valueType:
                             type: string
+                    description:
+                        type: string
                     excludes:
                         keyType:
                             type: string
@@ -547,6 +551,8 @@ aiManager/latest/task:
                         type: map
                         valueType:
                             type: string
+                    description:
+                        type: string
                     excludes:
                         keyType:
                             type: string
@@ -573,8 +579,7 @@ aiManager/latest/task:
                     createdAt:
                         type: int
                     error:
-                        pointer: true
-                        type: any
+                        type: string
                     id:
                         type: string
                     prompt:

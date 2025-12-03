@@ -36,7 +36,7 @@ type AiTask struct {
 	ReferencingResource utils.WorkloadSingleRequest `json:"referencingResource"` // the resource that triggered this task
 	TriggeredBy         AiFilter                    `json:"triggeredBy"`         // e.g., "Failed Pods" filter
 	ReadByUser          *ReadBy                     `json:"readByUser,omitempty"`
-	Error               error                       `json:"error,omitempty"`
+	Error               string                      `json:"error"`
 }
 
 type AiTaskLatest struct {
@@ -59,11 +59,12 @@ const (
 )
 
 type AiFilter struct {
-	Name     string            `json:"name"`
-	Kind     string            `json:"kind"`
-	Contains map[string]string `json:"contains"` // {"Running": "status.phase"}, {"ImagePullBackOff": "status.phase.ContainerStatuses.state.waiting.reason"}
-	Excludes map[string]string `json:"excludes"` // {"Succeeded": "status.phase"}, {"Completed": "status.phase"}
-	Prompt   string            `json:"prompt"`
+	Name        string            `json:"name"`
+	Description string            `json:"description,omitempty"`
+	Kind        string            `json:"kind"`
+	Contains    map[string]string `json:"contains"` // {"Running": "status.phase"}, {"ImagePullBackOff": "status.phase.ContainerStatuses.state.waiting.reason"}
+	Excludes    map[string]string `json:"excludes"` // {"Succeeded": "status.phase"}, {"Completed": "status.phase"}
+	Prompt      string            `json:"prompt"`
 }
 
 type AiPromptConfig struct {
@@ -116,8 +117,9 @@ type FollowUpResource struct {
 
 var AiFilters = []AiFilter{
 	{
-		Name: "Failed Pods",
-		Kind: "Pod",
+		Name:        "Failed Pods",
+		Description: "The pod is in a Failed state due to various reasons such as CrashLoopBackOff, ImagePullBackOff, etc.",
+		Kind:        "Pod",
 		Contains: map[string]string{
 			"Failed": ".status.phase",
 		},
@@ -125,8 +127,9 @@ var AiFilters = []AiFilter{
 		Prompt:   "Provide a detailed analysis of why this Pod failed and suggest possible solutions.",
 	},
 	{
-		Name: "CrashLoopBackOff Pods",
-		Kind: "Pod",
+		Name:        "CrashLoopBackOff Pods",
+		Description: "The pod is in CrashLoopBackOff state due to container crashes.",
+		Kind:        "Pod",
 		Contains: map[string]string{
 			"CrashLoopBackOff": ".status.containerStatuses[*].state.waiting.reason",
 		},
@@ -134,8 +137,9 @@ var AiFilters = []AiFilter{
 		Prompt:   "Provide a detailed analysis of why this Pod is in CrashLoopBackOff and suggest possible solutions.",
 	},
 	{
-		Name: "ImagePullBackOff Pods",
-		Kind: "Pod",
+		Name:        "ImagePullBackOff Pods",
+		Description: "The pod is in ImagePullBackOff state due to image pull errors.",
+		Kind:        "Pod",
 		Contains: map[string]string{
 			"ImagePullBackOff": ".status.containerStatuses[*].state.waiting.reason",
 		},
@@ -143,8 +147,9 @@ var AiFilters = []AiFilter{
 		Prompt:   "Provide a detailed analysis of why this Pod is in ImagePullBackOff and suggest possible solutions.",
 	},
 	{
-		Name: "ErrImagePull Pods",
-		Kind: "Pod",
+		Name:        "ErrImagePull Pods",
+		Description: "The pod is in ErrImagePull state due to image pull errors.",
+		Kind:        "Pod",
 		Contains: map[string]string{
 			"ErrImagePull": ".status.containerStatuses[*].state.waiting.reason",
 		},
@@ -152,8 +157,9 @@ var AiFilters = []AiFilter{
 		Prompt:   "Provide a detailed analysis of why this Pod cannot pull its image and suggest possible solutions.",
 	},
 	{
-		Name: "CreateContainerConfigError Pods",
-		Kind: "Pod",
+		Name:        "CreateContainerConfigError Pods",
+		Description: "The pod is in CreateContainerConfigError state likely due to ConfigMap or Secret issues.",
+		Kind:        "Pod",
 		Contains: map[string]string{
 			"CreateContainerConfigError": ".status.containerStatuses[*].state.waiting.reason",
 		},
@@ -161,8 +167,9 @@ var AiFilters = []AiFilter{
 		Prompt:   "Provide a detailed analysis of why this Pod has a CreateContainerConfigError (likely ConfigMap or Secret issue) and suggest possible solutions.",
 	},
 	{
-		Name: "InvalidImageName Pods",
-		Kind: "Pod",
+		Name:        "InvalidImageName Pods",
+		Description: "The pod is in InvalidImageName state due to an invalid image name.",
+		Kind:        "Pod",
 		Contains: map[string]string{
 			"InvalidImageName": ".status.containerStatuses[*].state.waiting.reason",
 		},
@@ -170,8 +177,9 @@ var AiFilters = []AiFilter{
 		Prompt:   "Provide a detailed analysis of why this Pod has an invalid image name and suggest possible solutions.",
 	},
 	{
-		Name: "ReplicaSet with unavailable replicas",
-		Kind: "ReplicaSet",
+		Name:        "ReplicaSet with unavailable replicas",
+		Description: "The ReplicaSet has unavailable replicas, possibly due to pod failures or insufficient resources.",
+		Kind:        "ReplicaSet",
 		Contains: map[string]string{
 			"0": ".status.replicas",
 		},
@@ -179,8 +187,9 @@ var AiFilters = []AiFilter{
 		Prompt:   "Provide a detailed analysis of why this ReplicaSet has unavailable replicas and suggest possible solutions.",
 	},
 	{
-		Name: "PodNotReady",
-		Kind: "Pod",
+		Name:        "PodNotReady",
+		Description: "The pod is NotReady, indicating it is not yet ready to serve traffic.",
+		Kind:        "Pod",
 		Contains: map[string]string{
 			"False": ".status.conditions[?(@.type=='Ready')].status",
 		},
@@ -188,8 +197,9 @@ var AiFilters = []AiFilter{
 		Prompt:   "Provide a detailed analysis of why this Pod is NotReady and suggest possible solutions.",
 	},
 	{
-		Name: "Pending Pods",
-		Kind: "Pod",
+		Name:        "Pending Pods",
+		Description: "The pod is in Pending state, likely due to scheduling issues, resource constraints, or PVC problems.",
+		Kind:        "Pod",
 		Contains: map[string]string{
 			"Pending": ".status.phase",
 		},
@@ -197,8 +207,9 @@ var AiFilters = []AiFilter{
 		Prompt:   "Provide a detailed analysis of why this Pod is stuck in Pending state (likely scheduling issues, resource constraints, or PVC problems) and suggest possible solutions.",
 	},
 	{
-		Name: "OOMKilled Containers",
-		Kind: "Pod",
+		Name:        "OOMKilled Containers",
+		Description: "The pod's container was OOMKilled (Out of Memory), likely due to memory limits being exceeded.",
+		Kind:        "Pod",
 		Contains: map[string]string{
 			"OOMKilled": ".status.containerStatuses[*].lastState.terminated.reason",
 		},
@@ -206,8 +217,9 @@ var AiFilters = []AiFilter{
 		Prompt:   "Provide a detailed analysis of why this Pod's container was OOMKilled (Out of Memory) and suggest possible solutions including memory limit adjustments.",
 	},
 	{
-		Name: "Deployment with unavailable replicas",
-		Kind: "Deployment",
+		Name:        "Deployment with unavailable replicas",
+		Description: "The Deployment has unavailable replicas, possibly due to pod failures or insufficient resources.",
+		Kind:        "Deployment",
 		Contains: map[string]string{
 			"False": ".status.conditions[?(@.type=='Available')].status",
 		},
@@ -215,8 +227,9 @@ var AiFilters = []AiFilter{
 		Prompt:   "Provide a detailed analysis of why this Deployment has unavailable replicas and suggest possible solutions.",
 	},
 	{
-		Name: "StatefulSet with failed replicas",
-		Kind: "StatefulSet",
+		Name:        "StatefulSet with failed replicas",
+		Kind:        "StatefulSet",
+		Description: "The StatefulSet has failed replicas, possibly due to pod failures or insufficient resources.",
 		Contains: map[string]string{
 			"False": ".status.conditions[?(@.type=='Ready')].status",
 		},
@@ -224,8 +237,9 @@ var AiFilters = []AiFilter{
 		Prompt:   "Provide a detailed analysis of why this StatefulSet has failed replicas and suggest possible solutions.",
 	},
 	{
-		Name: "PVC Pending",
-		Kind: "PersistentVolumeClaim",
+		Name:        "PVC Pending",
+		Description: "The PersistentVolumeClaim is Pending, likely due to no matching PersistentVolume or StorageClass issues.",
+		Kind:        "PersistentVolumeClaim",
 		Contains: map[string]string{
 			"Pending": ".status.phase",
 		},
@@ -233,15 +247,17 @@ var AiFilters = []AiFilter{
 		Prompt:   "Provide a detailed analysis of why this PersistentVolumeClaim is Pending (likely no matching PV or StorageClass issues) and suggest possible solutions.",
 	},
 	{
-		Name:     "Service with no endpoints",
-		Kind:     "Service",
-		Contains: map[string]string{},
-		Excludes: map[string]string{},
-		Prompt:   "Check if this Service has endpoints. If not, provide a detailed analysis of why (likely selector mismatch or no ready Pods) and suggest possible solutions.",
+		Name:        "Service with no endpoints",
+		Description: "The Service has no endpoints, likely due to selector mismatch or no ready Pods.",
+		Kind:        "Service",
+		Contains:    map[string]string{},
+		Excludes:    map[string]string{},
+		Prompt:      "Check if this Service has endpoints. If not, provide a detailed analysis of why (likely selector mismatch or no ready Pods) and suggest possible solutions.",
 	},
 	{
-		Name: "Unschedulable Pods",
-		Kind: "Pod",
+		Name:        "Unschedulable Pods",
+		Description: "The pod is Unschedulable, likely due to resource constraints, node affinity, or taints.",
+		Kind:        "Pod",
 		Contains: map[string]string{
 			"Unschedulable": ".status.conditions[?(@.type=='PodScheduled')].reason",
 		},
@@ -249,8 +265,9 @@ var AiFilters = []AiFilter{
 		Prompt:   "Provide a detailed analysis of why this Pod is unschedulable (likely resource constraints, node affinity, or taints) and suggest possible solutions.",
 	},
 	{
-		Name: "Jobs that failed",
-		Kind: "Job",
+		Name:        "Jobs that failed",
+		Description: "The Job has failed to complete, possibly due to pod failures or misconfiguration.",
+		Kind:        "Job",
 		Contains: map[string]string{
 			"False": ".status.conditions[?(@.type=='Complete')].status",
 		},
@@ -258,8 +275,9 @@ var AiFilters = []AiFilter{
 		Prompt:   "Provide a detailed analysis of why this Job failed to complete and suggest possible solutions.",
 	},
 	{
-		Name: "HPA unable to scale",
-		Kind: "HorizontalPodAutoscaler",
+		Name:        "HPA unable to scale",
+		Description: "The HorizontalPodAutoscaler is unable to scale, likely due to metrics-server issues or invalid configuration.",
+		Kind:        "HorizontalPodAutoscaler",
 		Contains: map[string]string{
 			"False": ".status.conditions[?(@.type=='AbleToScale')].status",
 		},
@@ -364,7 +382,7 @@ func (ai *aiManager) ProcessObject(obj *unstructured.Unstructured, eventType str
 						ResourceName:       obj.GetName(),
 					},
 					TriggeredBy: *matchedFilter,
-					Error:       nil,
+					Error:       "",
 				}
 
 				key := getValkeyKey(obj.GetKind(), obj.GetNamespace(), obj.GetName(), filter.Name)
@@ -404,36 +422,43 @@ func (ai *aiManager) Run() {
 				continue
 			}
 
-			tokenLimit, err := ai.getDailyTokenLimit()
-			if err != nil {
-				ai.logger.Error("Error getting daily token limit", "error", err)
-				ai.error = err.Error()
+			if ai.isTokenLimitExceeded() {
 				continue
-			}
-
-			tokensUsed, _, err := ai.getTodayTokenUsage()
-			if err != nil {
-				ai.logger.Error("Error getting today's token usage", "error", err)
-				ai.error = err.Error()
-				continue
-			}
-
-			if tokensUsed >= tokenLimit {
-				ai.logger.Warn("Daily AI token limit reached, skipping AI task processing", "tokensUsed", tokensUsed, "dailyLimit", tokenLimit)
-				ai.error = fmt.Errorf("daily AI token limit reached (%d tokens used of %d)", tokensUsed, tokenLimit).Error()
-				continue
-			} else if tokensUsed >= int64(float64(tokenLimit)*0.8) {
-				// warn at 80%
-				ai.logger.Warn("Approaching daily AI token limit", "tokensUsed", tokensUsed, "dailyLimit", tokenLimit)
-				ai.warning = fmt.Sprintf("approaching daily AI token limit (%d tokens used of %d)", tokensUsed, tokenLimit)
-			} else {
-				ai.warning = ""
 			}
 
 			ai.error = ""
 			ai.processAiTaskQueue(ctx)
 		}
 	}()
+}
+
+func (ai *aiManager) isTokenLimitExceeded() bool {
+	tokenLimit, err := ai.getDailyTokenLimit()
+	if err != nil {
+		ai.logger.Error("Error getting daily token limit", "error", err)
+		ai.error = err.Error()
+		return true
+	}
+
+	tokensUsed, _, err := ai.getTodayTokenUsage()
+	if err != nil {
+		ai.logger.Error("Error getting today's token usage", "error", err)
+		ai.error = err.Error()
+		return true
+	}
+
+	if tokensUsed >= tokenLimit {
+		ai.logger.Warn("Daily AI token limit reached, skipping AI task processing", "tokensUsed", tokensUsed, "dailyLimit", tokenLimit)
+		ai.error = fmt.Errorf("Daily AI token limit reached (%d tokens used of %d). Increase limit or wait 24 hours.", tokensUsed, tokenLimit).Error()
+		return true
+	} else if tokensUsed >= int64(float64(tokenLimit)*0.8) {
+		// warn at 80%
+		ai.logger.Warn("Approaching daily AI token limit", "tokensUsed", tokensUsed, "dailyLimit", tokenLimit)
+		ai.warning = fmt.Sprintf("Approaching daily AI token limit (%d tokens used of %d).", tokensUsed, tokenLimit)
+	} else {
+		ai.warning = ""
+	}
+	return false
 }
 
 func (ai *aiManager) getTodayTokenUsage() (todaysTokens int64, aiTaskDbEntries int, err error) {
@@ -521,6 +546,19 @@ func (ai *aiManager) processAiTaskQueue(ctx context.Context) {
 			continue
 		}
 
+		if ai.isTokenLimitExceeded() {
+			task.State = AI_TASK_STATE_FAILED
+			task.Error = "Daily AI token limit exceeded, cannot process further tasks. Increase limit or wait 24 hours."
+			err := ai.createOrUpdateAiTask(&task, key)
+			if err != nil {
+				ai.logger.Error("Error updating AI task", "taskID", task.ID, "error", err)
+			}
+			continue
+		} else {
+			task.Error = ""
+			task.State = AI_TASK_STATE_PENDING
+		}
+
 		// Process only pending tasks
 		if task.State != AI_TASK_STATE_PENDING {
 			continue
@@ -535,7 +573,7 @@ func (ai *aiManager) processAiTaskQueue(ctx context.Context) {
 
 		response, tokensUsed, err := ai.processPrompt(ctx, task.Prompt)
 		if err != nil {
-			task.Error = err
+			task.Error = err.Error()
 			task.State = AI_TASK_STATE_FAILED
 			task.TokensUsed = tokensUsed
 			ai.logger.Error("Error processing AI task", "taskID", task.ID, "error", err)

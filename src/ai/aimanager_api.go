@@ -181,6 +181,10 @@ func (ai *aiManager) GetStatus() AiManagerStatus {
 	apiUrl, _ := ai.getBaseUrl()
 	tokensUsed, dbEntries, _ := ai.getTodayTokenUsage()
 
+	if tokensUsed > limit {
+		ai.error = fmt.Sprintf("Daily AI token limit exceeded (%d tokens used of %d).", tokensUsed, limit)
+	}
+
 	return AiManagerStatus{
 		TokenLimit:                  limit,
 		TokensUsed:                  tokensUsed,

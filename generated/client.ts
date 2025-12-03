@@ -442,6 +442,8 @@ export type AIMANAGER_DETAIL_TASKS_REQUEST = AIMANAGER_DETAIL_TASKS_REQUEST__MOG
  *                 type: map
  *                 valueType:
  *                     type: string
+ *             description:
+ *                 type: string
  *             excludes:
  *                 keyType:
  *                     type: string
@@ -468,8 +470,7 @@ export type AIMANAGER_DETAIL_TASKS_REQUEST = AIMANAGER_DETAIL_TASKS_REQUEST__MOG
  *             createdAt:
  *                 type: int
  *             error:
- *                 pointer: true
- *                 type: any
+ *                 type: string
  *             id:
  *                 type: string
  *             prompt:
@@ -641,6 +642,8 @@ export type AIMANAGER_GET_TASKS_REQUEST = AIMANAGER_GET_TASKS_REQUEST__MOGENIUS_
  *                 type: map
  *                 valueType:
  *                     type: string
+ *             description:
+ *                 type: string
  *             excludes:
  *                 keyType:
  *                     type: string
@@ -667,8 +670,7 @@ export type AIMANAGER_GET_TASKS_REQUEST = AIMANAGER_GET_TASKS_REQUEST__MOGENIUS_
  *             createdAt:
  *                 type: int
  *             error:
- *                 pointer: true
- *                 type: any
+ *                 type: string
  *             id:
  *                 type: string
  *             prompt:
@@ -822,6 +824,8 @@ export type AIMANAGER_GET_TASKS_RESPONSE = AIMANAGER_GET_TASKS_RESPONSE__MOGENIU
  *                 type: map
  *                 valueType:
  *                     type: string
+ *             description:
+ *                 type: string
  *             excludes:
  *                 keyType:
  *                     type: string
@@ -918,6 +922,8 @@ export type AIMANAGER_LATEST_TASK_REQUEST = AIMANAGER_LATEST_TASK_REQUEST__MOGEN
  *                 type: map
  *                 valueType:
  *                     type: string
+ *             description:
+ *                 type: string
  *             excludes:
  *                 keyType:
  *                     type: string
@@ -944,8 +950,7 @@ export type AIMANAGER_LATEST_TASK_REQUEST = AIMANAGER_LATEST_TASK_REQUEST__MOGEN
  *             createdAt:
  *                 type: int
  *             error:
- *                 pointer: true
- *                 type: any
+ *                 type: string
  *             id:
  *                 type: string
  *             prompt:
@@ -9773,9 +9778,9 @@ export type WORKSPACE_CLEAN_UP_RESPONSE = WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_
 
 export type AIMANAGER_DETAIL_TASKS_REQUEST__MOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRIPTOR = {"apiVersion": string,"kind": string,"namespaced": boolean,"plural": string};
 export type AIMANAGER_DETAIL_TASKS_REQUEST__MOGENIUS_OPERATOR_SRC_UTILS_WORKLOADSINGLEREQUEST = {"ResourceDescriptor": AIMANAGER_DETAIL_TASKS_REQUEST__MOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRIPTOR,"namespace": string,"resourceName": string};
-export type AIMANAGER_DETAIL_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_AIFILTER = {"contains": Record<string, string>,"excludes": Record<string, string>,"kind": string,"name": string,"prompt": string};
+export type AIMANAGER_DETAIL_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_AIFILTER = {"contains": Record<string, string>,"description": string,"excludes": Record<string, string>,"kind": string,"name": string,"prompt": string};
 export type AIMANAGER_DETAIL_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_AIRESPONSE = {"analysis": AIMANAGER_DETAIL_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_ANALYSIS,"errorMessage": string};
-export type AIMANAGER_DETAIL_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_AITASK = {"createdAt": number,"error": any,"id": string,"prompt": string,"readByUser": AIMANAGER_DETAIL_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_READBY|undefined,"referencingResource": AIMANAGER_DETAIL_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_UTILS_WORKLOADSINGLEREQUEST,"response": AIMANAGER_DETAIL_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_AIRESPONSE|undefined,"state": string,"tokensUsed": number,"triggeredBy": AIMANAGER_DETAIL_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_AIFILTER,"updatedAt": number};
+export type AIMANAGER_DETAIL_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_AITASK = {"createdAt": number,"error": string,"id": string,"prompt": string,"readByUser": AIMANAGER_DETAIL_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_READBY|undefined,"referencingResource": AIMANAGER_DETAIL_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_UTILS_WORKLOADSINGLEREQUEST,"response": AIMANAGER_DETAIL_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_AIRESPONSE|undefined,"state": string,"tokensUsed": number,"triggeredBy": AIMANAGER_DETAIL_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_AIFILTER,"updatedAt": number};
 export type AIMANAGER_DETAIL_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_ANALYSIS = {"additionalInformation": string,"diffYaml": string,"followUpResources": AIMANAGER_DETAIL_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_FOLLOWUPRESOURCE[],"kubectlApplyFixYaml": string,"needsFollowUp": boolean,"possibleCauses": string[],"problemDescription": string,"proposedSolutions": AIMANAGER_DETAIL_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_SOLUTION[]};
 export type AIMANAGER_DETAIL_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_FOLLOWUPRESOURCE = {"apiVersion": string,"kind": string,"name": string,"namespace": string,"namespaced": boolean,"plural": string};
 export type AIMANAGER_DETAIL_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_READBY = {"readAt": AIMANAGER_DETAIL_TASKS_RESPONSE__TIME_TIME,"user": AIMANAGER_DETAIL_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_STRUCTS_USER};
@@ -9786,9 +9791,9 @@ export type AIMANAGER_DETAIL_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_UTILS_RESOURC
 export type AIMANAGER_DETAIL_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_UTILS_WORKLOADSINGLEREQUEST = {"ResourceDescriptor": AIMANAGER_DETAIL_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRIPTOR,"namespace": string,"resourceName": string};
 export type AIMANAGER_DETAIL_TASKS_RESPONSE__TIME_TIME = {};
 export type AIMANAGER_GET_TASKS_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"workspace": string};
-export type AIMANAGER_GET_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_AIFILTER = {"contains": Record<string, string>,"excludes": Record<string, string>,"kind": string,"name": string,"prompt": string};
+export type AIMANAGER_GET_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_AIFILTER = {"contains": Record<string, string>,"description": string,"excludes": Record<string, string>,"kind": string,"name": string,"prompt": string};
 export type AIMANAGER_GET_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_AIRESPONSE = {"analysis": AIMANAGER_GET_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_ANALYSIS,"errorMessage": string};
-export type AIMANAGER_GET_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_AITASK = {"createdAt": number,"error": any,"id": string,"prompt": string,"readByUser": AIMANAGER_GET_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_READBY|undefined,"referencingResource": AIMANAGER_GET_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_UTILS_WORKLOADSINGLEREQUEST,"response": AIMANAGER_GET_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_AIRESPONSE|undefined,"state": string,"tokensUsed": number,"triggeredBy": AIMANAGER_GET_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_AIFILTER,"updatedAt": number};
+export type AIMANAGER_GET_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_AITASK = {"createdAt": number,"error": string,"id": string,"prompt": string,"readByUser": AIMANAGER_GET_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_READBY|undefined,"referencingResource": AIMANAGER_GET_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_UTILS_WORKLOADSINGLEREQUEST,"response": AIMANAGER_GET_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_AIRESPONSE|undefined,"state": string,"tokensUsed": number,"triggeredBy": AIMANAGER_GET_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_AIFILTER,"updatedAt": number};
 export type AIMANAGER_GET_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_ANALYSIS = {"additionalInformation": string,"diffYaml": string,"followUpResources": AIMANAGER_GET_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_FOLLOWUPRESOURCE[],"kubectlApplyFixYaml": string,"needsFollowUp": boolean,"possibleCauses": string[],"problemDescription": string,"proposedSolutions": AIMANAGER_GET_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_SOLUTION[]};
 export type AIMANAGER_GET_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_FOLLOWUPRESOURCE = {"apiVersion": string,"kind": string,"name": string,"namespace": string,"namespaced": boolean,"plural": string};
 export type AIMANAGER_GET_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_READBY = {"readAt": AIMANAGER_GET_TASKS_RESPONSE__TIME_TIME,"user": AIMANAGER_GET_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_STRUCTS_USER};
@@ -9798,15 +9803,15 @@ export type AIMANAGER_GET_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_STRUCTS_USER = {
 export type AIMANAGER_GET_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRIPTOR = {"apiVersion": string,"kind": string,"namespaced": boolean,"plural": string};
 export type AIMANAGER_GET_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_UTILS_WORKLOADSINGLEREQUEST = {"ResourceDescriptor": AIMANAGER_GET_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRIPTOR,"namespace": string,"resourceName": string};
 export type AIMANAGER_GET_TASKS_RESPONSE__TIME_TIME = {};
-export type AIMANAGER_INJECT_PROMPT_CONFIG_REQUEST__MOGENIUS_OPERATOR_SRC_AI_AIFILTER = {"contains": Record<string, string>,"excludes": Record<string, string>,"kind": string,"name": string,"prompt": string};
+export type AIMANAGER_INJECT_PROMPT_CONFIG_REQUEST__MOGENIUS_OPERATOR_SRC_AI_AIFILTER = {"contains": Record<string, string>,"description": string,"excludes": Record<string, string>,"kind": string,"name": string,"prompt": string};
 export type AIMANAGER_INJECT_PROMPT_CONFIG_REQUEST__MOGENIUS_OPERATOR_SRC_AI_AIPROMPTCONFIG = {"filters": AIMANAGER_INJECT_PROMPT_CONFIG_REQUEST__MOGENIUS_OPERATOR_SRC_AI_AIFILTER[],"name": string,"systemPrompt": string};
 export type AIMANAGER_INJECT_PROMPT_CONFIG_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"aiPromptConfig": AIMANAGER_INJECT_PROMPT_CONFIG_REQUEST__MOGENIUS_OPERATOR_SRC_AI_AIPROMPTCONFIG};
 export type AIMANAGER_INJECT_PROMPT_CONFIG_RESPONSE__ANON_STRUCT_1 = {};
 export type AIMANAGER_INJECT_PROMPT_CONFIG_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST34_MOGENIUS_OPERATOR_SRC_CORE_VOID = {"data": AIMANAGER_INJECT_PROMPT_CONFIG_RESPONSE__ANON_STRUCT_1|undefined,"message": string,"status": string};
 export type AIMANAGER_LATEST_TASK_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"workspace": string};
-export type AIMANAGER_LATEST_TASK_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_AIFILTER = {"contains": Record<string, string>,"excludes": Record<string, string>,"kind": string,"name": string,"prompt": string};
+export type AIMANAGER_LATEST_TASK_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_AIFILTER = {"contains": Record<string, string>,"description": string,"excludes": Record<string, string>,"kind": string,"name": string,"prompt": string};
 export type AIMANAGER_LATEST_TASK_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_AIRESPONSE = {"analysis": AIMANAGER_LATEST_TASK_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_ANALYSIS,"errorMessage": string};
-export type AIMANAGER_LATEST_TASK_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_AITASK = {"createdAt": number,"error": any,"id": string,"prompt": string,"readByUser": AIMANAGER_LATEST_TASK_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_READBY|undefined,"referencingResource": AIMANAGER_LATEST_TASK_RESPONSE__MOGENIUS_OPERATOR_SRC_UTILS_WORKLOADSINGLEREQUEST,"response": AIMANAGER_LATEST_TASK_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_AIRESPONSE|undefined,"state": string,"tokensUsed": number,"triggeredBy": AIMANAGER_LATEST_TASK_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_AIFILTER,"updatedAt": number};
+export type AIMANAGER_LATEST_TASK_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_AITASK = {"createdAt": number,"error": string,"id": string,"prompt": string,"readByUser": AIMANAGER_LATEST_TASK_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_READBY|undefined,"referencingResource": AIMANAGER_LATEST_TASK_RESPONSE__MOGENIUS_OPERATOR_SRC_UTILS_WORKLOADSINGLEREQUEST,"response": AIMANAGER_LATEST_TASK_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_AIRESPONSE|undefined,"state": string,"tokensUsed": number,"triggeredBy": AIMANAGER_LATEST_TASK_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_AIFILTER,"updatedAt": number};
 export type AIMANAGER_LATEST_TASK_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_AITASKLATEST = {"numberOfUnreadTasks": number,"task": AIMANAGER_LATEST_TASK_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_AITASK|undefined};
 export type AIMANAGER_LATEST_TASK_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_ANALYSIS = {"additionalInformation": string,"diffYaml": string,"followUpResources": AIMANAGER_LATEST_TASK_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_FOLLOWUPRESOURCE[],"kubectlApplyFixYaml": string,"needsFollowUp": boolean,"possibleCauses": string[],"problemDescription": string,"proposedSolutions": AIMANAGER_LATEST_TASK_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_SOLUTION[]};
 export type AIMANAGER_LATEST_TASK_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_FOLLOWUPRESOURCE = {"apiVersion": string,"kind": string,"name": string,"namespace": string,"namespaced": boolean,"plural": string};
