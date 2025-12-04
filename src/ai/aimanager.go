@@ -115,6 +115,13 @@ type FollowUpResource struct {
 	Namespace  string `json:"namespace"`
 }
 
+type UsedToken struct {
+	Timestamp  time.Time `json:"timestamp"`
+	TokensUsed int64     `json:"tokensUsed"`
+	IsIgnored  bool      `json:"isIgnored"`
+	Key        string    `json:"key"`
+}
+
 var AiFilters = []AiFilter{
 	{
 		Name:        "Failed Pods",
@@ -466,7 +473,7 @@ func (ai *aiManager) getTodayTokenUsage() (todaysTokens int64, aiTaskDbEntries i
 	now := time.Now()
 	startOfDay := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location()).Unix()
 
-	keys, err := ai.valkeyClient.Keys(DB_AI_BUCKET_TASKS + ":*")
+	keys, err := ai.valkeyClient.Keys(DB_AI_BUCKET_TASKS + ":tokens:*")
 	if err != nil {
 		return 0, 0, err
 	}
@@ -477,18 +484,37 @@ func (ai *aiManager) getTodayTokenUsage() (todaysTokens int64, aiTaskDbEntries i
 		if err != nil {
 			return -1, -1, err
 		}
-		var task AiTask
-		err = json.Unmarshal([]byte(item), &task)
+		var tokenEntry UsedToken
+		err = json.Unmarshal([]byte(item), &tokenEntry)
 		if err != nil {
 			return -1, -1, err
 		}
 
-		if task.UpdatedAt >= startOfDay {
-			totalTokens += task.TokensUsed
+		if tokenEntry.Timestamp.Unix() >= startOfDay && !tokenEntry.IsIgnored {
+			totalTokens += tokenEntry.TokensUsed
 		}
 	}
 
 	return totalTokens, len(keys), nil
+}
+
+func (ai *aiManager) addTokenUsage(tokensUsed int, entryKey string) error {
+	now := time.Now()
+	key := fmt.Sprintf("%s:tokens:%d", DB_AI_BUCKET_TASKS, now.Unix())
+
+	usedToken := UsedToken{
+		Key:        entryKey,
+		Timestamp:  now,
+		TokensUsed: int64(tokensUsed),
+		IsIgnored:  false,
+	}
+
+	err := ai.valkeyClient.SetObject(usedToken, time.Hour*24*7, key)
+	if err != nil {
+		return fmt.Errorf("error saving AI token usage: %v", err)
+	}
+
+	return nil
 }
 
 func (ai *aiManager) resetTodayTokenUsage() error {
@@ -496,7 +522,7 @@ func (ai *aiManager) resetTodayTokenUsage() error {
 	now := time.Now()
 	startOfDay := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location()).Unix()
 
-	keys, err := ai.valkeyClient.Keys(DB_AI_BUCKET_TASKS + ":*")
+	keys, err := ai.valkeyClient.Keys(fmt.Sprintf("%s:tokens:*", DB_AI_BUCKET_TASKS))
 	if err != nil {
 		return err
 	}
@@ -507,18 +533,19 @@ func (ai *aiManager) resetTodayTokenUsage() error {
 		if err != nil {
 			return err
 		}
-		var task AiTask
-		err = json.Unmarshal([]byte(item), &task)
+		var tokenEntry UsedToken
+		err = json.Unmarshal([]byte(item), &tokenEntry)
 		if err != nil {
 			return err
 		}
-		if task.UpdatedAt >= startOfDay {
-			resettedTokens += task.TokensUsed
-			task.TokensUsed = 0
-			err = ai.createOrUpdateAiTask(&task, key)
+		if tokenEntry.Timestamp.Unix() >= startOfDay {
+			resettedTokens += tokenEntry.TokensUsed
+			tokenEntry.TokensUsed = 0
+			err := ai.valkeyClient.SetObject(tokenEntry, time.Hour*24*7, key)
 			if err != nil {
-				return err
+				return fmt.Errorf("error saving AI token usage: %v", err)
 			}
+
 		}
 	}
 	ai.logger.Info("Reset today's AI token usage", "resettedTokens", resettedTokens)
@@ -581,6 +608,10 @@ func (ai *aiManager) processAiTaskQueue(ctx context.Context) {
 			task.State = AI_TASK_STATE_COMPLETED
 			task.Response = response
 			task.TokensUsed = tokensUsed
+		}
+		err = ai.addTokenUsage(int(tokensUsed), key)
+		if err != nil {
+			ai.logger.Error("Error recording AI token usage", "taskID", task.ID, "error", err)
 		}
 
 		// Save updated task
