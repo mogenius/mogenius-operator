@@ -6,6 +6,7 @@ import (
 	"mogenius-operator/src/store"
 	"mogenius-operator/src/structs"
 	"mogenius-operator/src/utils"
+	"strings"
 	"time"
 )
 
@@ -183,6 +184,10 @@ func (ai *aiManager) GetStatus() AiManagerStatus {
 
 	if tokensUsed > limit {
 		ai.error = fmt.Sprintf("Daily AI token limit exceeded (%d tokens used of %d).", tokensUsed, limit)
+	} else {
+		if strings.HasPrefix(ai.error, "Daily AI token limit") {
+			ai.error = ""
+		}
 	}
 
 	return AiManagerStatus{
