@@ -80,21 +80,26 @@ Prerequisites:
 
 - A running mogenius platform (see official docs) or at least the helm chart installed.
 - Go 1.25+
-- `just` task runner (https://github.com/casey/just)
+- `just` task runner (<https://github.com/casey/just>)
 - Access to a Kubernetes cluster with the operator namespace (`mogenius`).
 
 Steps:
 
 1. Create `.env` (see section 5).
 2. Optionally scale down in-cluster deployment to avoid conflicts:
+
    ```sh
    just scale-down
    ```
+
 3. Build & generate artifacts:
+
    ```sh
    just build
    ```
+
 4. Run locally:
+
    ```sh
    just run
    ```
@@ -241,11 +246,27 @@ helm upgrade --install mogenius-platform mo-public/mogenius-operator \
   --set global.api_key="<api-key>"
 ```
 
+Add & install with OCI:
+
+```sh
+helm -n mogenius upgrade --install mogenius-platform \
+  oci://ghcr.io/mogenius/helm-charts/mogenius-operator \
+  --create-namespace \
+  --set global.cluster_name="<cluster>" \
+  --set global.api_key="<api-key>"
+```
+
 Upgrade:
 
 ```sh
 helm repo update
 helm upgrade mogenius-platform mo-public/mogenius-operator
+```
+
+Upgrade with OCI:
+
+```sh
+helm upgrade mogenius-platform oci://ghcr.io/mogenius/helm-charts/mogenius-operator
 ```
 
 Uninstall:
