@@ -266,7 +266,7 @@ helm upgrade mogenius-platform mo-public/mogenius-operator
 Upgrade with OCI:
 
 ```sh
-helm upgrade mogenius-platform oci://ghcr.io/mogenius/helm-charts/mogenius-operator
+helm -n mogenius upgrade mogenius-platform oci://ghcr.io/mogenius/helm-charts/mogenius-operator
 ```
 
 Uninstall:

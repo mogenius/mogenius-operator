@@ -126,7 +126,10 @@ jobs:
           echo "Pushing to OCI registry"
           echo ${{ secrets.GITHUB_TOKEN }} | helm registry login ghcr.io --username ${{ github.actor }} --password-stdin
           CHART_DIGEST=$(helm push /tmp/${{ env.HELMNAME }}-${{ env.SEMVERSION }}.tgz oci://ghcr.io/${{ github.repository_owner }}/helm-charts 2>&1 | grep "Digest: sha256:" | awk '{print $2}')
-
+          if [ -z "$CHART_DIGEST" ]; then
+            echo "Failed to extract chart digest"
+            exit 1
+          fi
           echo "Chart digest: $CHART_DIGEST"
 
           echo "Signing Helm chart with cosign"
