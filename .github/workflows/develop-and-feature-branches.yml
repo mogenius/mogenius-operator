@@ -9,7 +9,7 @@ on:
 
 env:
   IMAGE_NAME: ghcr.io/mogenius/mogenius-operator-dev
-  REGISTRY: ghcr.io 
+  REGISTRY: ghcr.io
   DOCKER_CONFIG: ./.docker
   HELMNAME: "mogenius-operator-dev"
   HELMREPO: "mogenius/helm-k8s-manager"
@@ -102,6 +102,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+      id-token: write
     steps:
       - name: Check out code
         uses: actions/checkout@v5
@@ -119,6 +120,9 @@ jobs:
         with:
           chart-search-root: helm
 
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v4.0.0
+
       - name: package and push
         run: |
           cd ./helm/charts/mogenius-operator
@@ -127,3 +131,15 @@ jobs:
           sed -i -e "s/name: mogenius-operator/name: mogenius-operator-dev/" Chart.yaml    
           helm package -d /tmp/ --version ${{ env.SEMVERSION }} --app-version ${{ env.SEMVERSION }} .
           curl -XPOST -L -k --data-binary "@/tmp/${{ env.HELMNAME }}-${{ env.SEMVERSION }}.tgz" https://${{ secrets.MO_HELMUSER }}:${{ secrets.MO_HELMPASS }}@helm.mogenius.com/api/public/charts
+
+          echo "Pushing to OCI registry"
+          echo ${{ secrets.GITHUB_TOKEN }} | helm registry login ghcr.io --username ${{ github.actor }} --password-stdin
+          CHART_DIGEST=$(helm push /tmp/${{ env.HELMNAME }}-${{ env.SEMVERSION }}.tgz oci://ghcr.io/${{ github.repository_owner }}/helm-charts 2>&1 | grep "Digest: sha256:" | awk '{print $2}')
+          if [ -z "$CHART_DIGEST" ]; then
+            echo "Failed to extract chart digest"
+            exit 1
+          fi
+          echo "Chart digest: $CHART_DIGEST"
+
+          echo "Signing Helm chart with cosign"
+          cosign sign --yes ghcr.io/${{ github.repository_owner }}/helm-charts/${{ env.HELMNAME }}@${CHART_DIGEST}
