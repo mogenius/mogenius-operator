@@ -24,7 +24,7 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 24
-          
+
       - name: Semantic Release
         uses: cycjimmy/semantic-release-action@v4
         env:
@@ -94,6 +94,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+      id-token: write
     steps:
       - name: Check out code
         uses: actions/checkout@v5
@@ -101,11 +102,14 @@ jobs:
           fetch-depth: 0
 
       - name: set version env
-        run: echo "SEMVERSION=$(git describe --tags $(git rev-list --tags --max-count=1))" >> $GITHUB_ENV  
+        run: echo "SEMVERSION=$(git describe --tags $(git rev-list --tags --max-count=1))" >> $GITHUB_ENV
 
       - name: Install Helm
         uses: azure/setup-helm@v4.3.1
         id: install
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v4.0.0
 
       - name: Run helm-docs
         uses: losisin/helm-docs-github-action@v1.6.2
@@ -118,4 +122,15 @@ jobs:
           sed -i -e "s/v1.0.72/${{ env.SEMVERSION }}/" values.yaml
           helm package -d /tmp/ --version ${{ env.SEMVERSION }} --app-version ${{ env.SEMVERSION }} .
           curl -XPOST -L -k --data-binary "@/tmp/${{ env.HELMNAME }}-${{ env.SEMVERSION }}.tgz" https://${{ secrets.MO_HELMUSER }}:${{ secrets.MO_HELMPASS }}@helm.mogenius.com/api/public/charts
-   
+
+          echo "Pushing to OCI registry"
+          echo ${{ secrets.GITHUB_TOKEN }} | helm registry login ghcr.io --username ${{ github.actor }} --password-stdin
+          CHART_DIGEST=$(helm push /tmp/${{ env.HELMNAME }}-${{ env.SEMVERSION }}.tgz oci://ghcr.io/${{ github.repository_owner }}/helm-charts 2>&1 | grep "Digest: sha256:" | awk '{print $2}')
+          if [ -z "$CHART_DIGEST" ]; then
+            echo "Failed to extract chart digest"
+            exit 1
+          fi
+          echo "Chart digest: $CHART_DIGEST"
+
+          echo "Signing Helm chart with cosign"
+          cosign sign --yes ghcr.io/${{ github.repository_owner }}/helm-charts/${{ env.HELMNAME }}@${CHART_DIGEST}
