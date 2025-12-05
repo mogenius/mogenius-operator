@@ -3,6 +3,14 @@
 //===============================================================
 
 export enum Pattern {
+  AIMANAGER_DETAIL_TASKS = "aiManager/detail/tasks",
+  AIMANAGER_GET_TASKS = "aiManager/get/tasks",
+  AIMANAGER_INJECT_PROMPT_CONFIG = "aiManager/inject-prompt-config",
+  AIMANAGER_LATEST_TASK = "aiManager/latest/task",
+  AIMANAGER_READ_TASK = "aiManager/read/task",
+  AIMANAGER_RESET_DAILY_TOKEN_LIMIT = "aiManager/reset-daily-token-limit",
+  AIMANAGER_STATUS = "aiManager/status",
+  AIMANAGER_UPDATE_TASK = "aiManager/update/task",
   AUDIT_LOG_LIST = "audit-log/list",
   CLUSTER_ARGO_CD_APPLICATION_REFRESH = "cluster/argo-cd-application-refresh",
   CLUSTER_ARGO_CD_CREATE_API_TOKEN = "cluster/argo-cd-create-api-token",
@@ -127,6 +135,14 @@ export enum Pattern {
 //===============================================================
 
 export const StringToPattern = {
+  "aiManager/detail/tasks": Pattern.AIMANAGER_DETAIL_TASKS,
+  "aiManager/get/tasks": Pattern.AIMANAGER_GET_TASKS,
+  "aiManager/inject-prompt-config": Pattern.AIMANAGER_INJECT_PROMPT_CONFIG,
+  "aiManager/latest/task": Pattern.AIMANAGER_LATEST_TASK,
+  "aiManager/read/task": Pattern.AIMANAGER_READ_TASK,
+  "aiManager/reset-daily-token-limit": Pattern.AIMANAGER_RESET_DAILY_TOKEN_LIMIT,
+  "aiManager/status": Pattern.AIMANAGER_STATUS,
+  "aiManager/update/task": Pattern.AIMANAGER_UPDATE_TASK,
   "audit-log/list": Pattern.AUDIT_LOG_LIST,
   "cluster/argo-cd-application-refresh": Pattern.CLUSTER_ARGO_CD_APPLICATION_REFRESH,
   "cluster/argo-cd-create-api-token": Pattern.CLUSTER_ARGO_CD_CREATE_API_TOKEN,
@@ -247,6 +263,14 @@ export const StringToPattern = {
 };
 
 export const PatternToString = {
+  [Pattern.AIMANAGER_DETAIL_TASKS]: "aiManager/detail/tasks",
+  [Pattern.AIMANAGER_GET_TASKS]: "aiManager/get/tasks",
+  [Pattern.AIMANAGER_INJECT_PROMPT_CONFIG]: "aiManager/inject-prompt-config",
+  [Pattern.AIMANAGER_LATEST_TASK]: "aiManager/latest/task",
+  [Pattern.AIMANAGER_READ_TASK]: "aiManager/read/task",
+  [Pattern.AIMANAGER_RESET_DAILY_TOKEN_LIMIT]: "aiManager/reset-daily-token-limit",
+  [Pattern.AIMANAGER_STATUS]: "aiManager/status",
+  [Pattern.AIMANAGER_UPDATE_TASK]: "aiManager/update/task",
   [Pattern.AUDIT_LOG_LIST]: "audit-log/list",
   [Pattern.CLUSTER_ARGO_CD_APPLICATION_REFRESH]: "cluster/argo-cd-application-refresh",
   [Pattern.CLUSTER_ARGO_CD_CREATE_API_TOKEN]: "cluster/argo-cd-create-api-token",
@@ -375,6 +399,902 @@ export const PatternToString = {
  *
  * ```yaml
  * structs:
+ *     mogenius-operator/src/utils.ResourceDescriptor:
+ *         name: mogenius-operator/src/utils.ResourceDescriptor
+ *         properties:
+ *             apiVersion:
+ *                 type: string
+ *             kind:
+ *                 type: string
+ *             namespaced:
+ *                 type: bool
+ *             plural:
+ *                 type: string
+ *     mogenius-operator/src/utils.WorkloadSingleRequest:
+ *         name: mogenius-operator/src/utils.WorkloadSingleRequest
+ *         properties:
+ *             ResourceDescriptor:
+ *                 structRef: mogenius-operator/src/utils.ResourceDescriptor
+ *                 type: struct
+ *             namespace:
+ *                 type: string
+ *             resourceName:
+ *                 type: string
+ * typeInfo:
+ *     structRef: mogenius-operator/src/utils.WorkloadSingleRequest
+ *     type: struct
+ * ```
+ *
+ */
+export type AIMANAGER_DETAIL_TASKS_REQUEST = AIMANAGER_DETAIL_TASKS_REQUEST__MOGENIUS_OPERATOR_SRC_UTILS_WORKLOADSINGLEREQUEST;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     mogenius-operator/src/ai.AiFilter:
+ *         name: mogenius-operator/src/ai.AiFilter
+ *         properties:
+ *             contains:
+ *                 keyType:
+ *                     type: string
+ *                 type: map
+ *                 valueType:
+ *                     type: string
+ *             description:
+ *                 type: string
+ *             excludes:
+ *                 keyType:
+ *                     type: string
+ *                 type: map
+ *                 valueType:
+ *                     type: string
+ *             kind:
+ *                 type: string
+ *             name:
+ *                 type: string
+ *             prompt:
+ *                 type: string
+ *     mogenius-operator/src/ai.AiResponse:
+ *         name: mogenius-operator/src/ai.AiResponse
+ *         properties:
+ *             analysis:
+ *                 structRef: mogenius-operator/src/ai.Analysis
+ *                 type: struct
+ *             errorMessage:
+ *                 type: string
+ *     mogenius-operator/src/ai.AiTask:
+ *         name: mogenius-operator/src/ai.AiTask
+ *         properties:
+ *             createdAt:
+ *                 type: int
+ *             error:
+ *                 type: string
+ *             id:
+ *                 type: string
+ *             prompt:
+ *                 type: string
+ *             readByUser:
+ *                 pointer: true
+ *                 structRef: mogenius-operator/src/ai.ReadBy
+ *                 type: struct
+ *             referencingResource:
+ *                 structRef: mogenius-operator/src/utils.WorkloadSingleRequest
+ *                 type: struct
+ *             response:
+ *                 pointer: true
+ *                 structRef: mogenius-operator/src/ai.AiResponse
+ *                 type: struct
+ *             state:
+ *                 type: string
+ *             tokensUsed:
+ *                 type: int
+ *             triggeredBy:
+ *                 structRef: mogenius-operator/src/ai.AiFilter
+ *                 type: struct
+ *             updatedAt:
+ *                 type: int
+ *     mogenius-operator/src/ai.Analysis:
+ *         name: mogenius-operator/src/ai.Analysis
+ *         properties:
+ *             additionalInformation:
+ *                 type: string
+ *             diffYaml:
+ *                 type: string
+ *             followUpResources:
+ *                 elementType:
+ *                     structRef: mogenius-operator/src/ai.FollowUpResource
+ *                     type: struct
+ *                 type: array
+ *             kubectlApplyFixYaml:
+ *                 type: string
+ *             needsFollowUp:
+ *                 type: bool
+ *             possibleCauses:
+ *                 elementType:
+ *                     type: string
+ *                 type: array
+ *             problemDescription:
+ *                 type: string
+ *             proposedSolutions:
+ *                 elementType:
+ *                     structRef: mogenius-operator/src/ai.Solution
+ *                     type: struct
+ *                 type: array
+ *     mogenius-operator/src/ai.FollowUpResource:
+ *         name: mogenius-operator/src/ai.FollowUpResource
+ *         properties:
+ *             apiVersion:
+ *                 type: string
+ *             kind:
+ *                 type: string
+ *             name:
+ *                 type: string
+ *             namespace:
+ *                 type: string
+ *             namespaced:
+ *                 type: bool
+ *             plural:
+ *                 type: string
+ *     mogenius-operator/src/ai.ReadBy:
+ *         name: mogenius-operator/src/ai.ReadBy
+ *         properties:
+ *             readAt:
+ *                 structRef: time.Time
+ *                 type: struct
+ *             user:
+ *                 structRef: mogenius-operator/src/structs.User
+ *                 type: struct
+ *     mogenius-operator/src/ai.Solution:
+ *         name: mogenius-operator/src/ai.Solution
+ *         properties:
+ *             solutionDescription:
+ *                 type: string
+ *             steps:
+ *                 elementType:
+ *                     type: string
+ *                 type: array
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadSingleRequest,[]mogenius-operator/src/ai.AiTask]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadSingleRequest,[]mogenius-operator/src/ai.AiTask]
+ *         properties:
+ *             data:
+ *                 elementType:
+ *                     structRef: mogenius-operator/src/ai.AiTask
+ *                     type: struct
+ *                 type: array
+ *             message:
+ *                 type: string
+ *             status:
+ *                 type: string
+ *     mogenius-operator/src/structs.User:
+ *         name: mogenius-operator/src/structs.User
+ *         properties:
+ *             email:
+ *                 type: string
+ *             firstName:
+ *                 type: string
+ *             lastName:
+ *                 type: string
+ *             source:
+ *                 type: string
+ *     mogenius-operator/src/utils.ResourceDescriptor:
+ *         name: mogenius-operator/src/utils.ResourceDescriptor
+ *         properties:
+ *             apiVersion:
+ *                 type: string
+ *             kind:
+ *                 type: string
+ *             namespaced:
+ *                 type: bool
+ *             plural:
+ *                 type: string
+ *     mogenius-operator/src/utils.WorkloadSingleRequest:
+ *         name: mogenius-operator/src/utils.WorkloadSingleRequest
+ *         properties:
+ *             ResourceDescriptor:
+ *                 structRef: mogenius-operator/src/utils.ResourceDescriptor
+ *                 type: struct
+ *             namespace:
+ *                 type: string
+ *             resourceName:
+ *                 type: string
+ *     time.Time:
+ *         name: time.Time
+ *         properties: {}
+ * typeInfo:
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadSingleRequest,[]mogenius-operator/src/ai.AiTask]
+ *     type: struct
+ * ```
+ *
+ */
+export type AIMANAGER_DETAIL_TASKS_RESPONSE = AIMANAGER_DETAIL_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_UTILS_WORKLOADSINGLEREQUEST_MOGENIUS_OPERATOR_SRC_AI_AITASK;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     mogenius-operator/src/core.Request:
+ *         name: mogenius-operator/src/core.Request
+ *         properties:
+ *             workspace:
+ *                 type: string
+ * typeInfo:
+ *     structRef: mogenius-operator/src/core.Request
+ *     type: struct
+ * ```
+ *
+ */
+export type AIMANAGER_GET_TASKS_REQUEST = AIMANAGER_GET_TASKS_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     mogenius-operator/src/ai.AiFilter:
+ *         name: mogenius-operator/src/ai.AiFilter
+ *         properties:
+ *             contains:
+ *                 keyType:
+ *                     type: string
+ *                 type: map
+ *                 valueType:
+ *                     type: string
+ *             description:
+ *                 type: string
+ *             excludes:
+ *                 keyType:
+ *                     type: string
+ *                 type: map
+ *                 valueType:
+ *                     type: string
+ *             kind:
+ *                 type: string
+ *             name:
+ *                 type: string
+ *             prompt:
+ *                 type: string
+ *     mogenius-operator/src/ai.AiResponse:
+ *         name: mogenius-operator/src/ai.AiResponse
+ *         properties:
+ *             analysis:
+ *                 structRef: mogenius-operator/src/ai.Analysis
+ *                 type: struct
+ *             errorMessage:
+ *                 type: string
+ *     mogenius-operator/src/ai.AiTask:
+ *         name: mogenius-operator/src/ai.AiTask
+ *         properties:
+ *             createdAt:
+ *                 type: int
+ *             error:
+ *                 type: string
+ *             id:
+ *                 type: string
+ *             prompt:
+ *                 type: string
+ *             readByUser:
+ *                 pointer: true
+ *                 structRef: mogenius-operator/src/ai.ReadBy
+ *                 type: struct
+ *             referencingResource:
+ *                 structRef: mogenius-operator/src/utils.WorkloadSingleRequest
+ *                 type: struct
+ *             response:
+ *                 pointer: true
+ *                 structRef: mogenius-operator/src/ai.AiResponse
+ *                 type: struct
+ *             state:
+ *                 type: string
+ *             tokensUsed:
+ *                 type: int
+ *             triggeredBy:
+ *                 structRef: mogenius-operator/src/ai.AiFilter
+ *                 type: struct
+ *             updatedAt:
+ *                 type: int
+ *     mogenius-operator/src/ai.Analysis:
+ *         name: mogenius-operator/src/ai.Analysis
+ *         properties:
+ *             additionalInformation:
+ *                 type: string
+ *             diffYaml:
+ *                 type: string
+ *             followUpResources:
+ *                 elementType:
+ *                     structRef: mogenius-operator/src/ai.FollowUpResource
+ *                     type: struct
+ *                 type: array
+ *             kubectlApplyFixYaml:
+ *                 type: string
+ *             needsFollowUp:
+ *                 type: bool
+ *             possibleCauses:
+ *                 elementType:
+ *                     type: string
+ *                 type: array
+ *             problemDescription:
+ *                 type: string
+ *             proposedSolutions:
+ *                 elementType:
+ *                     structRef: mogenius-operator/src/ai.Solution
+ *                     type: struct
+ *                 type: array
+ *     mogenius-operator/src/ai.FollowUpResource:
+ *         name: mogenius-operator/src/ai.FollowUpResource
+ *         properties:
+ *             apiVersion:
+ *                 type: string
+ *             kind:
+ *                 type: string
+ *             name:
+ *                 type: string
+ *             namespace:
+ *                 type: string
+ *             namespaced:
+ *                 type: bool
+ *             plural:
+ *                 type: string
+ *     mogenius-operator/src/ai.ReadBy:
+ *         name: mogenius-operator/src/ai.ReadBy
+ *         properties:
+ *             readAt:
+ *                 structRef: time.Time
+ *                 type: struct
+ *             user:
+ *                 structRef: mogenius-operator/src/structs.User
+ *                 type: struct
+ *     mogenius-operator/src/ai.Solution:
+ *         name: mogenius-operator/src/ai.Solution
+ *         properties:
+ *             solutionDescription:
+ *                 type: string
+ *             steps:
+ *                 elementType:
+ *                     type: string
+ *                 type: array
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·35,[]mogenius-operator/src/ai.AiTask]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·35,[]mogenius-operator/src/ai.AiTask]
+ *         properties:
+ *             data:
+ *                 elementType:
+ *                     structRef: mogenius-operator/src/ai.AiTask
+ *                     type: struct
+ *                 type: array
+ *             message:
+ *                 type: string
+ *             status:
+ *                 type: string
+ *     mogenius-operator/src/structs.User:
+ *         name: mogenius-operator/src/structs.User
+ *         properties:
+ *             email:
+ *                 type: string
+ *             firstName:
+ *                 type: string
+ *             lastName:
+ *                 type: string
+ *             source:
+ *                 type: string
+ *     mogenius-operator/src/utils.ResourceDescriptor:
+ *         name: mogenius-operator/src/utils.ResourceDescriptor
+ *         properties:
+ *             apiVersion:
+ *                 type: string
+ *             kind:
+ *                 type: string
+ *             namespaced:
+ *                 type: bool
+ *             plural:
+ *                 type: string
+ *     mogenius-operator/src/utils.WorkloadSingleRequest:
+ *         name: mogenius-operator/src/utils.WorkloadSingleRequest
+ *         properties:
+ *             ResourceDescriptor:
+ *                 structRef: mogenius-operator/src/utils.ResourceDescriptor
+ *                 type: struct
+ *             namespace:
+ *                 type: string
+ *             resourceName:
+ *                 type: string
+ *     time.Time:
+ *         name: time.Time
+ *         properties: {}
+ * typeInfo:
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·35,[]mogenius-operator/src/ai.AiTask]
+ *     type: struct
+ * ```
+ *
+ */
+export type AIMANAGER_GET_TASKS_RESPONSE = AIMANAGER_GET_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST35_MOGENIUS_OPERATOR_SRC_AI_AITASK;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     mogenius-operator/src/ai.AiFilter:
+ *         name: mogenius-operator/src/ai.AiFilter
+ *         properties:
+ *             contains:
+ *                 keyType:
+ *                     type: string
+ *                 type: map
+ *                 valueType:
+ *                     type: string
+ *             description:
+ *                 type: string
+ *             excludes:
+ *                 keyType:
+ *                     type: string
+ *                 type: map
+ *                 valueType:
+ *                     type: string
+ *             kind:
+ *                 type: string
+ *             name:
+ *                 type: string
+ *             prompt:
+ *                 type: string
+ *     mogenius-operator/src/ai.AiPromptConfig:
+ *         name: mogenius-operator/src/ai.AiPromptConfig
+ *         properties:
+ *             filters:
+ *                 elementType:
+ *                     structRef: mogenius-operator/src/ai.AiFilter
+ *                     type: struct
+ *                 type: array
+ *             name:
+ *                 type: string
+ *             systemPrompt:
+ *                 type: string
+ *     mogenius-operator/src/core.Request:
+ *         name: mogenius-operator/src/core.Request
+ *         properties:
+ *             aiPromptConfig:
+ *                 structRef: mogenius-operator/src/ai.AiPromptConfig
+ *                 type: struct
+ * typeInfo:
+ *     structRef: mogenius-operator/src/core.Request
+ *     type: struct
+ * ```
+ *
+ */
+export type AIMANAGER_INJECT_PROMPT_CONFIG_REQUEST = AIMANAGER_INJECT_PROMPT_CONFIG_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     ANON_STRUCT_1:
+ *         properties: {}
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·34,mogenius-operator/src/core.Void]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·34,mogenius-operator/src/core.Void]
+ *         properties:
+ *             data:
+ *                 pointer: true
+ *                 structRef: ANON_STRUCT_1
+ *                 type: struct
+ *             message:
+ *                 type: string
+ *             status:
+ *                 type: string
+ * typeInfo:
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·34,mogenius-operator/src/core.Void]
+ *     type: struct
+ * ```
+ *
+ */
+export type AIMANAGER_INJECT_PROMPT_CONFIG_RESPONSE = AIMANAGER_INJECT_PROMPT_CONFIG_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST34_MOGENIUS_OPERATOR_SRC_CORE_VOID;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     mogenius-operator/src/core.Request:
+ *         name: mogenius-operator/src/core.Request
+ *         properties:
+ *             workspace:
+ *                 type: string
+ * typeInfo:
+ *     structRef: mogenius-operator/src/core.Request
+ *     type: struct
+ * ```
+ *
+ */
+export type AIMANAGER_LATEST_TASK_REQUEST = AIMANAGER_LATEST_TASK_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     mogenius-operator/src/ai.AiFilter:
+ *         name: mogenius-operator/src/ai.AiFilter
+ *         properties:
+ *             contains:
+ *                 keyType:
+ *                     type: string
+ *                 type: map
+ *                 valueType:
+ *                     type: string
+ *             description:
+ *                 type: string
+ *             excludes:
+ *                 keyType:
+ *                     type: string
+ *                 type: map
+ *                 valueType:
+ *                     type: string
+ *             kind:
+ *                 type: string
+ *             name:
+ *                 type: string
+ *             prompt:
+ *                 type: string
+ *     mogenius-operator/src/ai.AiResponse:
+ *         name: mogenius-operator/src/ai.AiResponse
+ *         properties:
+ *             analysis:
+ *                 structRef: mogenius-operator/src/ai.Analysis
+ *                 type: struct
+ *             errorMessage:
+ *                 type: string
+ *     mogenius-operator/src/ai.AiTask:
+ *         name: mogenius-operator/src/ai.AiTask
+ *         properties:
+ *             createdAt:
+ *                 type: int
+ *             error:
+ *                 type: string
+ *             id:
+ *                 type: string
+ *             prompt:
+ *                 type: string
+ *             readByUser:
+ *                 pointer: true
+ *                 structRef: mogenius-operator/src/ai.ReadBy
+ *                 type: struct
+ *             referencingResource:
+ *                 structRef: mogenius-operator/src/utils.WorkloadSingleRequest
+ *                 type: struct
+ *             response:
+ *                 pointer: true
+ *                 structRef: mogenius-operator/src/ai.AiResponse
+ *                 type: struct
+ *             state:
+ *                 type: string
+ *             tokensUsed:
+ *                 type: int
+ *             triggeredBy:
+ *                 structRef: mogenius-operator/src/ai.AiFilter
+ *                 type: struct
+ *             updatedAt:
+ *                 type: int
+ *     mogenius-operator/src/ai.AiTaskLatest:
+ *         name: mogenius-operator/src/ai.AiTaskLatest
+ *         properties:
+ *             numberOfUnreadTasks:
+ *                 type: int
+ *             task:
+ *                 pointer: true
+ *                 structRef: mogenius-operator/src/ai.AiTask
+ *                 type: struct
+ *     mogenius-operator/src/ai.Analysis:
+ *         name: mogenius-operator/src/ai.Analysis
+ *         properties:
+ *             additionalInformation:
+ *                 type: string
+ *             diffYaml:
+ *                 type: string
+ *             followUpResources:
+ *                 elementType:
+ *                     structRef: mogenius-operator/src/ai.FollowUpResource
+ *                     type: struct
+ *                 type: array
+ *             kubectlApplyFixYaml:
+ *                 type: string
+ *             needsFollowUp:
+ *                 type: bool
+ *             possibleCauses:
+ *                 elementType:
+ *                     type: string
+ *                 type: array
+ *             problemDescription:
+ *                 type: string
+ *             proposedSolutions:
+ *                 elementType:
+ *                     structRef: mogenius-operator/src/ai.Solution
+ *                     type: struct
+ *                 type: array
+ *     mogenius-operator/src/ai.FollowUpResource:
+ *         name: mogenius-operator/src/ai.FollowUpResource
+ *         properties:
+ *             apiVersion:
+ *                 type: string
+ *             kind:
+ *                 type: string
+ *             name:
+ *                 type: string
+ *             namespace:
+ *                 type: string
+ *             namespaced:
+ *                 type: bool
+ *             plural:
+ *                 type: string
+ *     mogenius-operator/src/ai.ReadBy:
+ *         name: mogenius-operator/src/ai.ReadBy
+ *         properties:
+ *             readAt:
+ *                 structRef: time.Time
+ *                 type: struct
+ *             user:
+ *                 structRef: mogenius-operator/src/structs.User
+ *                 type: struct
+ *     mogenius-operator/src/ai.Solution:
+ *         name: mogenius-operator/src/ai.Solution
+ *         properties:
+ *             solutionDescription:
+ *                 type: string
+ *             steps:
+ *                 elementType:
+ *                     type: string
+ *                 type: array
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·38,*mogenius-operator/src/ai.AiTaskLatest]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·38,*mogenius-operator/src/ai.AiTaskLatest]
+ *         properties:
+ *             data:
+ *                 pointer: true
+ *                 structRef: mogenius-operator/src/ai.AiTaskLatest
+ *                 type: struct
+ *             message:
+ *                 type: string
+ *             status:
+ *                 type: string
+ *     mogenius-operator/src/structs.User:
+ *         name: mogenius-operator/src/structs.User
+ *         properties:
+ *             email:
+ *                 type: string
+ *             firstName:
+ *                 type: string
+ *             lastName:
+ *                 type: string
+ *             source:
+ *                 type: string
+ *     mogenius-operator/src/utils.ResourceDescriptor:
+ *         name: mogenius-operator/src/utils.ResourceDescriptor
+ *         properties:
+ *             apiVersion:
+ *                 type: string
+ *             kind:
+ *                 type: string
+ *             namespaced:
+ *                 type: bool
+ *             plural:
+ *                 type: string
+ *     mogenius-operator/src/utils.WorkloadSingleRequest:
+ *         name: mogenius-operator/src/utils.WorkloadSingleRequest
+ *         properties:
+ *             ResourceDescriptor:
+ *                 structRef: mogenius-operator/src/utils.ResourceDescriptor
+ *                 type: struct
+ *             namespace:
+ *                 type: string
+ *             resourceName:
+ *                 type: string
+ *     time.Time:
+ *         name: time.Time
+ *         properties: {}
+ * typeInfo:
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·38,*mogenius-operator/src/ai.AiTaskLatest]
+ *     type: struct
+ * ```
+ *
+ */
+export type AIMANAGER_LATEST_TASK_RESPONSE = AIMANAGER_LATEST_TASK_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST38_MOGENIUS_OPERATOR_SRC_AI_AITASKLATEST;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     mogenius-operator/src/core.Request:
+ *         name: mogenius-operator/src/core.Request
+ *         properties:
+ *             taskId:
+ *                 type: string
+ * typeInfo:
+ *     structRef: mogenius-operator/src/core.Request
+ *     type: struct
+ * ```
+ *
+ */
+export type AIMANAGER_READ_TASK_REQUEST = AIMANAGER_READ_TASK_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     ANON_STRUCT_1:
+ *         properties: {}
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·36,mogenius-operator/src/core.Void]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·36,mogenius-operator/src/core.Void]
+ *         properties:
+ *             data:
+ *                 pointer: true
+ *                 structRef: ANON_STRUCT_1
+ *                 type: struct
+ *             message:
+ *                 type: string
+ *             status:
+ *                 type: string
+ * typeInfo:
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·36,mogenius-operator/src/core.Void]
+ *     type: struct
+ * ```
+ *
+ */
+export type AIMANAGER_READ_TASK_RESPONSE = AIMANAGER_READ_TASK_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST36_MOGENIUS_OPERATOR_SRC_CORE_VOID;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     ANON_STRUCT_0:
+ *         properties: {}
+ * typeInfo:
+ *     pointer: true
+ *     structRef: ANON_STRUCT_0
+ *     type: struct
+ * ```
+ *
+ */
+export type AIMANAGER_RESET_DAILY_TOKEN_LIMIT_REQUEST = AIMANAGER_RESET_DAILY_TOKEN_LIMIT_REQUEST__ANON_STRUCT_0|undefined;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     ANON_STRUCT_1:
+ *         properties: {}
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Void]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Void]
+ *         properties:
+ *             data:
+ *                 pointer: true
+ *                 structRef: ANON_STRUCT_1
+ *                 type: struct
+ *             message:
+ *                 type: string
+ *             status:
+ *                 type: string
+ * typeInfo:
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Void]
+ *     type: struct
+ * ```
+ *
+ */
+export type AIMANAGER_RESET_DAILY_TOKEN_LIMIT_RESPONSE = AIMANAGER_RESET_DAILY_TOKEN_LIMIT_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_MOGENIUS_OPERATOR_SRC_CORE_VOID;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     ANON_STRUCT_0:
+ *         properties: {}
+ * typeInfo:
+ *     pointer: true
+ *     structRef: ANON_STRUCT_0
+ *     type: struct
+ * ```
+ *
+ */
+export type AIMANAGER_STATUS_REQUEST = AIMANAGER_STATUS_REQUEST__ANON_STRUCT_0|undefined;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     mogenius-operator/src/ai.AiManagerStatus:
+ *         name: mogenius-operator/src/ai.AiManagerStatus
+ *         properties:
+ *             apiUrl:
+ *                 type: string
+ *             dbEntries:
+ *                 type: int
+ *             error:
+ *                 type: string
+ *             isAiModelConfigInitialized:
+ *                 type: bool
+ *             isAiPromptConfigInitialized:
+ *                 type: bool
+ *             model:
+ *                 type: string
+ *             tokenLimit:
+ *                 type: int
+ *             tokensUsed:
+ *                 type: int
+ *             warning:
+ *                 type: string
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/ai.AiManagerStatus]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/ai.AiManagerStatus]
+ *         properties:
+ *             data:
+ *                 structRef: mogenius-operator/src/ai.AiManagerStatus
+ *                 type: struct
+ *             message:
+ *                 type: string
+ *             status:
+ *                 type: string
+ * typeInfo:
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/ai.AiManagerStatus]
+ *     type: struct
+ * ```
+ *
+ */
+export type AIMANAGER_STATUS_RESPONSE = AIMANAGER_STATUS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_MOGENIUS_OPERATOR_SRC_AI_AIMANAGERSTATUS;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     mogenius-operator/src/core.Request:
+ *         name: mogenius-operator/src/core.Request
+ *         properties:
+ *             state:
+ *                 type: string
+ *             taskId:
+ *                 type: string
+ * typeInfo:
+ *     structRef: mogenius-operator/src/core.Request
+ *     type: struct
+ * ```
+ *
+ */
+export type AIMANAGER_UPDATE_TASK_REQUEST = AIMANAGER_UPDATE_TASK_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     ANON_STRUCT_1:
+ *         properties: {}
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·37,mogenius-operator/src/core.Void]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·37,mogenius-operator/src/core.Void]
+ *         properties:
+ *             data:
+ *                 pointer: true
+ *                 structRef: ANON_STRUCT_1
+ *                 type: struct
+ *             message:
+ *                 type: string
+ *             status:
+ *                 type: string
+ * typeInfo:
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·37,mogenius-operator/src/core.Void]
+ *     type: struct
+ * ```
+ *
+ */
+export type AIMANAGER_UPDATE_TASK_RESPONSE = AIMANAGER_UPDATE_TASK_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST37_MOGENIUS_OPERATOR_SRC_CORE_VOID;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
  *     mogenius-operator/src/core.Request:
  *         name: mogenius-operator/src/core.Request
  *         properties:
@@ -407,8 +1327,8 @@ export type AUDIT_LOG_LIST_REQUEST = AUDIT_LOG_LIST_REQUEST__MOGENIUS_OPERATOR_S
  *                 type: string
  *             status:
  *                 type: string
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·34,mogenius-operator/src/core.Response·35]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·34,mogenius-operator/src/core.Response·35]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·39,mogenius-operator/src/core.Response·40]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·39,mogenius-operator/src/core.Response·40]
  *         properties:
  *             data:
  *                 structRef: mogenius-operator/src/core.Response
@@ -465,12 +1385,12 @@ export type AUDIT_LOG_LIST_REQUEST = AUDIT_LOG_LIST_REQUEST__MOGENIUS_OPERATOR_S
  *         name: time.Time
  *         properties: {}
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·34,mogenius-operator/src/core.Response·35]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·39,mogenius-operator/src/core.Response·40]
  *     type: struct
  * ```
  *
  */
-export type AUDIT_LOG_LIST_RESPONSE = AUDIT_LOG_LIST_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST34_MOGENIUS_OPERATOR_SRC_CORE_RESPONSE35;
+export type AUDIT_LOG_LIST_RESPONSE = AUDIT_LOG_LIST_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST39_MOGENIUS_OPERATOR_SRC_CORE_RESPONSE40;
 
 /**
  * #### Source
@@ -4499,8 +5419,8 @@ export type GET_NODES_METRICS_REQUEST = GET_NODES_METRICS_REQUEST__ANON_STRUCT_0
  *                     structRef: mogenius-operator/src/core.NodeMetrics
  *                     type: struct
  *                 type: array
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Response·38]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Response·38]
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Response·43]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Response·43]
  *         properties:
  *             data:
  *                 structRef: mogenius-operator/src/core.Response
@@ -4535,12 +5455,12 @@ export type GET_NODES_METRICS_REQUEST = GET_NODES_METRICS_REQUEST__ANON_STRUCT_0
  *         name: time.Time
  *         properties: {}
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Response·38]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Response·43]
  *     type: struct
  * ```
  *
  */
-export type GET_NODES_METRICS_RESPONSE = GET_NODES_METRICS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_MOGENIUS_OPERATOR_SRC_CORE_RESPONSE38;
+export type GET_NODES_METRICS_RESPONSE = GET_NODES_METRICS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_MOGENIUS_OPERATOR_SRC_CORE_RESPONSE43;
 
 /**
  * #### Source
@@ -6884,8 +7804,8 @@ export type SEALED_SECRET_CREATE_FROM_EXISTING_REQUEST = SEALED_SECRET_CREATE_FR
  *                 valueType:
  *                     pointer: true
  *                     type: any
- *     ? mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·36,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
- *     :   name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·36,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *     ? mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·41,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *     :   name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·41,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
  *         properties:
  *             data:
  *                 pointer: true
@@ -6896,12 +7816,12 @@ export type SEALED_SECRET_CREATE_FROM_EXISTING_REQUEST = SEALED_SECRET_CREATE_FR
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·36,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·41,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
  *     type: struct
  * ```
  *
  */
-export type SEALED_SECRET_CREATE_FROM_EXISTING_RESPONSE = SEALED_SECRET_CREATE_FROM_EXISTING_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST36_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED;
+export type SEALED_SECRET_CREATE_FROM_EXISTING_RESPONSE = SEALED_SECRET_CREATE_FROM_EXISTING_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST41_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED;
 
 /**
  * #### Source
@@ -8856,9 +9776,67 @@ export type WORKSPACE_CLEAN_UP_RESPONSE = WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_
 //===================== Struct Definitions ======================
 //===============================================================
 
+export type AIMANAGER_DETAIL_TASKS_REQUEST__MOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRIPTOR = {"apiVersion": string,"kind": string,"namespaced": boolean,"plural": string};
+export type AIMANAGER_DETAIL_TASKS_REQUEST__MOGENIUS_OPERATOR_SRC_UTILS_WORKLOADSINGLEREQUEST = {"ResourceDescriptor": AIMANAGER_DETAIL_TASKS_REQUEST__MOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRIPTOR,"namespace": string,"resourceName": string};
+export type AIMANAGER_DETAIL_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_AIFILTER = {"contains": Record<string, string>,"description": string,"excludes": Record<string, string>,"kind": string,"name": string,"prompt": string};
+export type AIMANAGER_DETAIL_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_AIRESPONSE = {"analysis": AIMANAGER_DETAIL_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_ANALYSIS,"errorMessage": string};
+export type AIMANAGER_DETAIL_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_AITASK = {"createdAt": number,"error": string,"id": string,"prompt": string,"readByUser": AIMANAGER_DETAIL_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_READBY|undefined,"referencingResource": AIMANAGER_DETAIL_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_UTILS_WORKLOADSINGLEREQUEST,"response": AIMANAGER_DETAIL_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_AIRESPONSE|undefined,"state": string,"tokensUsed": number,"triggeredBy": AIMANAGER_DETAIL_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_AIFILTER,"updatedAt": number};
+export type AIMANAGER_DETAIL_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_ANALYSIS = {"additionalInformation": string,"diffYaml": string,"followUpResources": AIMANAGER_DETAIL_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_FOLLOWUPRESOURCE[],"kubectlApplyFixYaml": string,"needsFollowUp": boolean,"possibleCauses": string[],"problemDescription": string,"proposedSolutions": AIMANAGER_DETAIL_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_SOLUTION[]};
+export type AIMANAGER_DETAIL_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_FOLLOWUPRESOURCE = {"apiVersion": string,"kind": string,"name": string,"namespace": string,"namespaced": boolean,"plural": string};
+export type AIMANAGER_DETAIL_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_READBY = {"readAt": AIMANAGER_DETAIL_TASKS_RESPONSE__TIME_TIME,"user": AIMANAGER_DETAIL_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_STRUCTS_USER};
+export type AIMANAGER_DETAIL_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_SOLUTION = {"solutionDescription": string,"steps": string[]};
+export type AIMANAGER_DETAIL_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_UTILS_WORKLOADSINGLEREQUEST_MOGENIUS_OPERATOR_SRC_AI_AITASK = {"data": AIMANAGER_DETAIL_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_AITASK[],"message": string,"status": string};
+export type AIMANAGER_DETAIL_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_STRUCTS_USER = {"email": string,"firstName": string,"lastName": string,"source": string};
+export type AIMANAGER_DETAIL_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRIPTOR = {"apiVersion": string,"kind": string,"namespaced": boolean,"plural": string};
+export type AIMANAGER_DETAIL_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_UTILS_WORKLOADSINGLEREQUEST = {"ResourceDescriptor": AIMANAGER_DETAIL_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRIPTOR,"namespace": string,"resourceName": string};
+export type AIMANAGER_DETAIL_TASKS_RESPONSE__TIME_TIME = {};
+export type AIMANAGER_GET_TASKS_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"workspace": string};
+export type AIMANAGER_GET_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_AIFILTER = {"contains": Record<string, string>,"description": string,"excludes": Record<string, string>,"kind": string,"name": string,"prompt": string};
+export type AIMANAGER_GET_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_AIRESPONSE = {"analysis": AIMANAGER_GET_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_ANALYSIS,"errorMessage": string};
+export type AIMANAGER_GET_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_AITASK = {"createdAt": number,"error": string,"id": string,"prompt": string,"readByUser": AIMANAGER_GET_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_READBY|undefined,"referencingResource": AIMANAGER_GET_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_UTILS_WORKLOADSINGLEREQUEST,"response": AIMANAGER_GET_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_AIRESPONSE|undefined,"state": string,"tokensUsed": number,"triggeredBy": AIMANAGER_GET_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_AIFILTER,"updatedAt": number};
+export type AIMANAGER_GET_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_ANALYSIS = {"additionalInformation": string,"diffYaml": string,"followUpResources": AIMANAGER_GET_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_FOLLOWUPRESOURCE[],"kubectlApplyFixYaml": string,"needsFollowUp": boolean,"possibleCauses": string[],"problemDescription": string,"proposedSolutions": AIMANAGER_GET_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_SOLUTION[]};
+export type AIMANAGER_GET_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_FOLLOWUPRESOURCE = {"apiVersion": string,"kind": string,"name": string,"namespace": string,"namespaced": boolean,"plural": string};
+export type AIMANAGER_GET_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_READBY = {"readAt": AIMANAGER_GET_TASKS_RESPONSE__TIME_TIME,"user": AIMANAGER_GET_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_STRUCTS_USER};
+export type AIMANAGER_GET_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_SOLUTION = {"solutionDescription": string,"steps": string[]};
+export type AIMANAGER_GET_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST35_MOGENIUS_OPERATOR_SRC_AI_AITASK = {"data": AIMANAGER_GET_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_AITASK[],"message": string,"status": string};
+export type AIMANAGER_GET_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_STRUCTS_USER = {"email": string,"firstName": string,"lastName": string,"source": string};
+export type AIMANAGER_GET_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRIPTOR = {"apiVersion": string,"kind": string,"namespaced": boolean,"plural": string};
+export type AIMANAGER_GET_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_UTILS_WORKLOADSINGLEREQUEST = {"ResourceDescriptor": AIMANAGER_GET_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRIPTOR,"namespace": string,"resourceName": string};
+export type AIMANAGER_GET_TASKS_RESPONSE__TIME_TIME = {};
+export type AIMANAGER_INJECT_PROMPT_CONFIG_REQUEST__MOGENIUS_OPERATOR_SRC_AI_AIFILTER = {"contains": Record<string, string>,"description": string,"excludes": Record<string, string>,"kind": string,"name": string,"prompt": string};
+export type AIMANAGER_INJECT_PROMPT_CONFIG_REQUEST__MOGENIUS_OPERATOR_SRC_AI_AIPROMPTCONFIG = {"filters": AIMANAGER_INJECT_PROMPT_CONFIG_REQUEST__MOGENIUS_OPERATOR_SRC_AI_AIFILTER[],"name": string,"systemPrompt": string};
+export type AIMANAGER_INJECT_PROMPT_CONFIG_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"aiPromptConfig": AIMANAGER_INJECT_PROMPT_CONFIG_REQUEST__MOGENIUS_OPERATOR_SRC_AI_AIPROMPTCONFIG};
+export type AIMANAGER_INJECT_PROMPT_CONFIG_RESPONSE__ANON_STRUCT_1 = {};
+export type AIMANAGER_INJECT_PROMPT_CONFIG_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST34_MOGENIUS_OPERATOR_SRC_CORE_VOID = {"data": AIMANAGER_INJECT_PROMPT_CONFIG_RESPONSE__ANON_STRUCT_1|undefined,"message": string,"status": string};
+export type AIMANAGER_LATEST_TASK_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"workspace": string};
+export type AIMANAGER_LATEST_TASK_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_AIFILTER = {"contains": Record<string, string>,"description": string,"excludes": Record<string, string>,"kind": string,"name": string,"prompt": string};
+export type AIMANAGER_LATEST_TASK_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_AIRESPONSE = {"analysis": AIMANAGER_LATEST_TASK_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_ANALYSIS,"errorMessage": string};
+export type AIMANAGER_LATEST_TASK_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_AITASK = {"createdAt": number,"error": string,"id": string,"prompt": string,"readByUser": AIMANAGER_LATEST_TASK_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_READBY|undefined,"referencingResource": AIMANAGER_LATEST_TASK_RESPONSE__MOGENIUS_OPERATOR_SRC_UTILS_WORKLOADSINGLEREQUEST,"response": AIMANAGER_LATEST_TASK_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_AIRESPONSE|undefined,"state": string,"tokensUsed": number,"triggeredBy": AIMANAGER_LATEST_TASK_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_AIFILTER,"updatedAt": number};
+export type AIMANAGER_LATEST_TASK_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_AITASKLATEST = {"numberOfUnreadTasks": number,"task": AIMANAGER_LATEST_TASK_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_AITASK|undefined};
+export type AIMANAGER_LATEST_TASK_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_ANALYSIS = {"additionalInformation": string,"diffYaml": string,"followUpResources": AIMANAGER_LATEST_TASK_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_FOLLOWUPRESOURCE[],"kubectlApplyFixYaml": string,"needsFollowUp": boolean,"possibleCauses": string[],"problemDescription": string,"proposedSolutions": AIMANAGER_LATEST_TASK_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_SOLUTION[]};
+export type AIMANAGER_LATEST_TASK_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_FOLLOWUPRESOURCE = {"apiVersion": string,"kind": string,"name": string,"namespace": string,"namespaced": boolean,"plural": string};
+export type AIMANAGER_LATEST_TASK_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_READBY = {"readAt": AIMANAGER_LATEST_TASK_RESPONSE__TIME_TIME,"user": AIMANAGER_LATEST_TASK_RESPONSE__MOGENIUS_OPERATOR_SRC_STRUCTS_USER};
+export type AIMANAGER_LATEST_TASK_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_SOLUTION = {"solutionDescription": string,"steps": string[]};
+export type AIMANAGER_LATEST_TASK_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST38_MOGENIUS_OPERATOR_SRC_AI_AITASKLATEST = {"data": AIMANAGER_LATEST_TASK_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_AITASKLATEST|undefined,"message": string,"status": string};
+export type AIMANAGER_LATEST_TASK_RESPONSE__MOGENIUS_OPERATOR_SRC_STRUCTS_USER = {"email": string,"firstName": string,"lastName": string,"source": string};
+export type AIMANAGER_LATEST_TASK_RESPONSE__MOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRIPTOR = {"apiVersion": string,"kind": string,"namespaced": boolean,"plural": string};
+export type AIMANAGER_LATEST_TASK_RESPONSE__MOGENIUS_OPERATOR_SRC_UTILS_WORKLOADSINGLEREQUEST = {"ResourceDescriptor": AIMANAGER_LATEST_TASK_RESPONSE__MOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRIPTOR,"namespace": string,"resourceName": string};
+export type AIMANAGER_LATEST_TASK_RESPONSE__TIME_TIME = {};
+export type AIMANAGER_READ_TASK_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"taskId": string};
+export type AIMANAGER_READ_TASK_RESPONSE__ANON_STRUCT_1 = {};
+export type AIMANAGER_READ_TASK_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST36_MOGENIUS_OPERATOR_SRC_CORE_VOID = {"data": AIMANAGER_READ_TASK_RESPONSE__ANON_STRUCT_1|undefined,"message": string,"status": string};
+export type AIMANAGER_RESET_DAILY_TOKEN_LIMIT_REQUEST__ANON_STRUCT_0 = {};
+export type AIMANAGER_RESET_DAILY_TOKEN_LIMIT_RESPONSE__ANON_STRUCT_1 = {};
+export type AIMANAGER_RESET_DAILY_TOKEN_LIMIT_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_MOGENIUS_OPERATOR_SRC_CORE_VOID = {"data": AIMANAGER_RESET_DAILY_TOKEN_LIMIT_RESPONSE__ANON_STRUCT_1|undefined,"message": string,"status": string};
+export type AIMANAGER_STATUS_REQUEST__ANON_STRUCT_0 = {};
+export type AIMANAGER_STATUS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_AIMANAGERSTATUS = {"apiUrl": string,"dbEntries": number,"error": string,"isAiModelConfigInitialized": boolean,"isAiPromptConfigInitialized": boolean,"model": string,"tokenLimit": number,"tokensUsed": number,"warning": string};
+export type AIMANAGER_STATUS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_MOGENIUS_OPERATOR_SRC_AI_AIMANAGERSTATUS = {"data": AIMANAGER_STATUS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_AIMANAGERSTATUS,"message": string,"status": string};
+export type AIMANAGER_UPDATE_TASK_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"state": string,"taskId": string};
+export type AIMANAGER_UPDATE_TASK_RESPONSE__ANON_STRUCT_1 = {};
+export type AIMANAGER_UPDATE_TASK_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST37_MOGENIUS_OPERATOR_SRC_CORE_VOID = {"data": AIMANAGER_UPDATE_TASK_RESPONSE__ANON_STRUCT_1|undefined,"message": string,"status": string};
 export type AUDIT_LOG_LIST_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"limit": number,"offset": number,"workspaceName": string};
 export type AUDIT_LOG_LIST_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESPONSE = {"data": AUDIT_LOG_LIST_RESPONSE__MOGENIUS_OPERATOR_SRC_STORE_AUDITLOGRESPONSE,"message": string,"status": string};
-export type AUDIT_LOG_LIST_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST34_MOGENIUS_OPERATOR_SRC_CORE_RESPONSE35 = {"data": AUDIT_LOG_LIST_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESPONSE,"message": string,"status": string};
+export type AUDIT_LOG_LIST_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST39_MOGENIUS_OPERATOR_SRC_CORE_RESPONSE40 = {"data": AUDIT_LOG_LIST_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESPONSE,"message": string,"status": string};
 export type AUDIT_LOG_LIST_RESPONSE__MOGENIUS_OPERATOR_SRC_STORE_AUDITLOGENTRY = {"createdAt": AUDIT_LOG_LIST_RESPONSE__TIME_TIME,"diff": string,"error": string,"pattern": string,"payload": any,"result": any,"user": AUDIT_LOG_LIST_RESPONSE__MOGENIUS_OPERATOR_SRC_STRUCTS_USER,"workspace": string};
 export type AUDIT_LOG_LIST_RESPONSE__MOGENIUS_OPERATOR_SRC_STORE_AUDITLOGRESPONSE = {"data": AUDIT_LOG_LIST_RESPONSE__MOGENIUS_OPERATOR_SRC_STORE_AUDITLOGENTRY[],"totalCount": number};
 export type AUDIT_LOG_LIST_RESPONSE__MOGENIUS_OPERATOR_SRC_STRUCTS_USER = {"email": string,"firstName": string,"lastName": string,"source": string};
@@ -9077,7 +10055,7 @@ export type GET_NAMESPACE_WORKLOAD_LIST_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RES
 export type GET_NODES_METRICS_REQUEST__ANON_STRUCT_0 = {};
 export type GET_NODES_METRICS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_NODEMETRICS = {"cpu": Record<string, any>,"memory": Record<string, any>,"nodeName": string,"traffic": GET_NODES_METRICS_RESPONSE__MOGENIUS_OPERATOR_SRC_NETWORKMONITOR_PODNETWORKSTATS[]};
 export type GET_NODES_METRICS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESPONSE = {"nodes": GET_NODES_METRICS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_NODEMETRICS[]};
-export type GET_NODES_METRICS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_MOGENIUS_OPERATOR_SRC_CORE_RESPONSE38 = {"data": GET_NODES_METRICS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESPONSE,"message": string,"status": string};
+export type GET_NODES_METRICS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_MOGENIUS_OPERATOR_SRC_CORE_RESPONSE43 = {"data": GET_NODES_METRICS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESPONSE,"message": string,"status": string};
 export type GET_NODES_METRICS_RESPONSE__MOGENIUS_OPERATOR_SRC_NETWORKMONITOR_PODNETWORKSTATS = {"createdAt": GET_NODES_METRICS_RESPONSE__TIME_TIME,"namespace": string,"pod": string,"receivedBytes": number,"receivedPackets": number,"receivedStartBytes": number,"transmitBytes": number,"transmitPackets": number,"transmitStartBytes": number};
 export type GET_NODES_METRICS_RESPONSE__TIME_TIME = {};
 export type GET_USER_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"name": string};
@@ -9211,7 +10189,7 @@ export type PROMETHEUS_VALUES_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_PROMETHEUSREQU
 export type PROMETHEUS_VALUES_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_PROMETHEUSREQUEST_STRING = {"data": string[],"message": string,"status": string};
 export type SEALED_SECRET_CREATE_FROM_EXISTING_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"name": string,"namespace": string};
 export type SEALED_SECRET_CREATE_FROM_EXISTING_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"Object": Record<string, any>};
-export type SEALED_SECRET_CREATE_FROM_EXISTING_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST36_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"data": SEALED_SECRET_CREATE_FROM_EXISTING_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED|undefined,"message": string,"status": string};
+export type SEALED_SECRET_CREATE_FROM_EXISTING_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST41_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"data": SEALED_SECRET_CREATE_FROM_EXISTING_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED|undefined,"message": string,"status": string};
 export type SEALED_SECRET_GET_CERTIFICATE_REQUEST__ANON_STRUCT_0 = {};
 export type SEALED_SECRET_GET_CERTIFICATE_RESPONSE__K8S_IO_API_CORE_V1_SECRET = {"TypeMeta": SEALED_SECRET_GET_CERTIFICATE_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA,"data": Record<string, number[]>,"immutable": boolean|undefined,"metadata": SEALED_SECRET_GET_CERTIFICATE_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OBJECTMETA,"stringData": Record<string, string>,"type": string};
 export type SEALED_SECRET_GET_CERTIFICATE_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_FIELDSV1 = {};
@@ -9322,6 +10300,38 @@ export type WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENI
 //===============================================================
 
 export interface IPatternConfig {
+  [Pattern.AIMANAGER_DETAIL_TASKS]: {
+    Request: AIMANAGER_DETAIL_TASKS_REQUEST;
+    Response: AIMANAGER_DETAIL_TASKS_RESPONSE;
+  };
+  [Pattern.AIMANAGER_GET_TASKS]: {
+    Request: AIMANAGER_GET_TASKS_REQUEST;
+    Response: AIMANAGER_GET_TASKS_RESPONSE;
+  };
+  [Pattern.AIMANAGER_INJECT_PROMPT_CONFIG]: {
+    Request: AIMANAGER_INJECT_PROMPT_CONFIG_REQUEST;
+    Response: AIMANAGER_INJECT_PROMPT_CONFIG_RESPONSE;
+  };
+  [Pattern.AIMANAGER_LATEST_TASK]: {
+    Request: AIMANAGER_LATEST_TASK_REQUEST;
+    Response: AIMANAGER_LATEST_TASK_RESPONSE;
+  };
+  [Pattern.AIMANAGER_READ_TASK]: {
+    Request: AIMANAGER_READ_TASK_REQUEST;
+    Response: AIMANAGER_READ_TASK_RESPONSE;
+  };
+  [Pattern.AIMANAGER_RESET_DAILY_TOKEN_LIMIT]: {
+    Request: AIMANAGER_RESET_DAILY_TOKEN_LIMIT_REQUEST;
+    Response: AIMANAGER_RESET_DAILY_TOKEN_LIMIT_RESPONSE;
+  };
+  [Pattern.AIMANAGER_STATUS]: {
+    Request: AIMANAGER_STATUS_REQUEST;
+    Response: AIMANAGER_STATUS_RESPONSE;
+  };
+  [Pattern.AIMANAGER_UPDATE_TASK]: {
+    Request: AIMANAGER_UPDATE_TASK_REQUEST;
+    Response: AIMANAGER_UPDATE_TASK_RESPONSE;
+  };
   [Pattern.AUDIT_LOG_LIST]: {
     Request: AUDIT_LOG_LIST_REQUEST;
     Response: AUDIT_LOG_LIST_RESPONSE;
