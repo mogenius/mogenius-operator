@@ -139,4 +139,5 @@ jobs:
           echo "Chart digest: $CHART_DIGEST"
 
           echo "Signing Helm chart with cosign"
+          echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io --username ${{ github.actor }} --password-stdin
           cosign sign --yes ghcr.io/${{ github.repository_owner }}/helm-charts/${{ env.HELMNAME }}@${CHART_DIGEST}
