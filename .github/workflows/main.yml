@@ -118,9 +118,15 @@ jobs:
 
       - name: package and push
         run: |
+          set -x
+
           cd ./helm/charts/mogenius-operator
           sed -i -e "s/v1.0.72/${{ env.SEMVERSION }}/" values.yaml
+
+          echo "Packaging Helm chart"
           helm package -d /tmp/ --version ${{ env.SEMVERSION }} --app-version ${{ env.SEMVERSION }} .
+
+          echo "Pushing to Mogenius Helm repo"
           curl -XPOST -L -k --data-binary "@/tmp/${{ env.HELMNAME }}-${{ env.SEMVERSION }}.tgz" https://${{ secrets.MO_HELMUSER }}:${{ secrets.MO_HELMPASS }}@helm.mogenius.com/api/public/charts
 
           echo "Pushing to OCI registry"
