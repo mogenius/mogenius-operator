@@ -819,9 +819,11 @@ func (ai *aiManager) getValkeyKey(kind, namespace, name, filter string) string {
 
 func (ai *aiManager) sendAiEvent(task *AiTask) {
 	datagram := structs.Datagram{
-		Id:        utils.NanoId(),
-		Pattern:   "AiProcessEvent",
-		Payload:   task,
+		Id:      utils.NanoId(),
+		Pattern: "AiProcessEvent",
+		Payload: map[string]interface{}{
+			"task": task,
+		},
 		CreatedAt: time.Now(),
 	}
 	structs.ReportEventToServer(ai.eventClient, datagram)
