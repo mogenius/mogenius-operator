@@ -6,7 +6,6 @@ import (
 	cfg "mogenius-operator/src/config"
 	"mogenius-operator/src/logging"
 	"mogenius-operator/src/structs"
-	"mogenius-operator/src/utils"
 	"mogenius-operator/src/version"
 	"net/http"
 	"sync"
@@ -121,9 +120,7 @@ func (self *httpService) Run() {
 
 	mux.HandleFunc("/stats", self.serveNodeStatsHtml)
 
-	if utils.IsDevBuild() {
-		self.addApiRoutes(mux)
-	}
+	self.addApiRoutes(mux)
 
 	self.logger.Info("starting API server", "addr", addr)
 	go func() {
