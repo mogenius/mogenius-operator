@@ -7,6 +7,7 @@ home: https://mogenius.com
 icon: https://app.mogenius.com/assets/logos/logo-mogenius-signet-neg.svg
 sources: 
   - https://helm.mogenius.com/public
+  - oci://ghcr.io/mogenius/helm-charts/mogenius-operator
 maintainers:
   - email: ruediger@mogenius.com
     name: Rüdiger Küpper @mogenius
