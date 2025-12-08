@@ -139,7 +139,7 @@ jobs:
           sudo mv helm-docs /usr/local/bin/
 
           # generate helm documentation
-          helm-docs --chart-search-root charts/mogenius-operator
+          helm-docs --chart-search-root .
 
           echo "Packaging Helm chart"
           helm package -d /tmp/ --version ${{ env.SEMVERSION }} --app-version ${{ env.SEMVERSION }} .
