@@ -124,7 +124,7 @@ jobs:
           sed -i -e "s/repository: mogenius\/mogenius-operator/repository: mogenius\/mogenius-operator-dev/" values.yaml
           sed -i -e "s/name: mogenius-operator/name: mogenius-operator-dev/" Chart.yaml
           sed -i -E 's/appVersion: ".*"/appVersion: "${{ env.SEMVERSION }}"/' Chart.yaml
-
+          sed -i -E 's/^version: ".*"/version: "${{ env.SEMVERSION }}"/' Chart.yaml
       - name: Run helm-docs
         uses: losisin/helm-docs-github-action@v1.6.2
         with:
