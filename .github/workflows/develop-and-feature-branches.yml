@@ -137,6 +137,7 @@ jobs:
         run: |
           set -x
 
+          cd ./helm/charts/mogenius-operator
           echo "Packaging Helm chart"
           helm package -d /tmp/ --version ${{ env.SEMVERSION }} --app-version ${{ env.SEMVERSION }} .
 
