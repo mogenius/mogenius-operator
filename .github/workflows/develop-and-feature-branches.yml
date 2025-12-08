@@ -115,10 +115,20 @@ jobs:
         uses: azure/setup-helm@v4.3.1
         id: install
 
-      # - name: Run helm-docs
-      #   uses: losisin/helm-docs-github-action@v1.6.2
-      #   with:
-      #     chart-search-root: helm
+      - name: Update Helm chart and values yaml-Files
+        run: |
+          set -x
+
+          cd ./helm/charts/mogenius-operator
+          sed -i -E 's/version: ".*"/version: "${{ env.SEMVERSION }}"/' values.yaml
+          sed -i -e "s/repository: mogenius\/mogenius-operator/repository: mogenius\/mogenius-operator-dev/" values.yaml
+          sed -i -e "s/name: mogenius-operator/name: mogenius-operator-dev/" Chart.yaml
+          sed -i -E 's/appVersion: ".*"/appVersion: "${{ env.SEMVERSION }}"/' Chart.yaml
+
+      - name: Run helm-docs
+        uses: losisin/helm-docs-github-action@v1.6.2
+        with:
+          chart-search-root: helm
 
       - name: Install cosign
         uses: sigstore/cosign-installer@v4.0.0
@@ -126,20 +136,6 @@ jobs:
       - name: package and push
         run: |
           set -x
-
-          cd ./helm/charts/mogenius-operator
-          sed -i -e "s/v1.0.72/${{ env.SEMVERSION }}/" values.yaml
-          sed -i -e "s/repository: mogenius\/mogenius-operator/repository: mogenius\/mogenius-operator-dev/" values.yaml
-          sed -i -e "s/name: mogenius-operator/name: mogenius-operator-dev/" Chart.yaml
-          sed -i -E 's/appVersion: ".*"/appVersion: "${{ env.SEMVERSION }}"/' Chart.yaml
-
-          curl -Lo helm-docs.tar.gz https://github.com/norwoodj/helm-docs/releases/download/v1.14.2/helm-docs_1.14.2_Linux_x86_64.tar.gz
-          tar -xzf helm-docs.tar.gz
-          chmod +x helm-docs
-          sudo mv helm-docs /usr/local/bin/
-
-          # generate helm documentation
-          helm-docs --chart-search-root .
 
           echo "Packaging Helm chart"
           helm package -d /tmp/ --version ${{ env.SEMVERSION }} --app-version ${{ env.SEMVERSION }} .
