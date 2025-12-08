@@ -9,13 +9,13 @@ import (
 	"io"
 	"log"
 	"log/slog"
-	cfg "mogenius-k8s-manager/src/config"
-	"mogenius-k8s-manager/src/k8sclient"
-	"mogenius-k8s-manager/src/kubernetes"
-	"mogenius-k8s-manager/src/logging"
-	"mogenius-k8s-manager/src/store"
-	"mogenius-k8s-manager/src/utils"
-	"mogenius-k8s-manager/src/valkeyclient"
+	cfg "mogenius-operator/src/config"
+	"mogenius-operator/src/k8sclient"
+	"mogenius-operator/src/kubernetes"
+	"mogenius-operator/src/logging"
+	"mogenius-operator/src/store"
+	"mogenius-operator/src/utils"
+	"mogenius-operator/src/valkeyclient"
 	"net/http"
 
 	corev1 "k8s.io/api/core/v1"
@@ -112,7 +112,7 @@ func (self *argocd) ArgoCdCreateApiToken(data ArgoCdCreateApiTokenRequest) (bool
 	if err != nil {
 		log.Fatalf("Failed to convert Secret to unstructured: %v", err)
 	}
-	_, err = dynamicClient.Resource(kubernetes.CreateGroupVersionResource("v1", "", "secrets")).Namespace(self.config.Get("MO_OWN_NAMESPACE")).Update(context.Background(), &unstructured.Unstructured{Object: argoCdSecretObjMap}, metav1.UpdateOptions{})
+	_, err = dynamicClient.Resource(kubernetes.CreateGroupVersionResource(utils.SecretResource.ApiVersion, utils.SecretResource.Plural)).Namespace(self.config.Get("MO_OWN_NAMESPACE")).Update(context.Background(), &unstructured.Unstructured{Object: argoCdSecretObjMap}, metav1.UpdateOptions{})
 	if err != nil {
 		return false, err
 	}
@@ -260,7 +260,7 @@ func (self *argocd) refreshApplication(applicationName, token string) (bool, err
 
 func (self *argocd) initArgoCdConfig() error {
 	// Check if argo-cd-config ConfigMap exists in the MO_OWN_NAMESPACE
-	argoCdConfigUnstructured, err := store.GetResource(self.valkeyClient, utils.ConfigMapResource.Group, utils.ConfigMapResource.Kind, self.config.Get("MO_OWN_NAMESPACE"), ARGO_CD_CONFIGMAP_NAME, self.logger)
+	argoCdConfigUnstructured, err := store.GetResource(self.valkeyClient, utils.ConfigMapResource.ApiVersion, utils.ConfigMapResource.Kind, self.config.Get("MO_OWN_NAMESPACE"), ARGO_CD_CONFIGMAP_NAME, self.logger)
 	if err != nil {
 		return err
 	}
@@ -274,7 +274,7 @@ func (self *argocd) initArgoCdConfig() error {
 }
 
 func (self *argocd) getArgoCdSecret() (*corev1.Secret, error) {
-	argoCdSecretUnstructured, err := store.GetResource(self.valkeyClient, utils.SecretResource.Group, utils.SecretResource.Kind, self.config.Get("MO_OWN_NAMESPACE"), ARGO_CD_USER_SECRET_NAME, self.logger)
+	argoCdSecretUnstructured, err := store.GetResource(self.valkeyClient, utils.SecretResource.ApiVersion, utils.SecretResource.Kind, self.config.Get("MO_OWN_NAMESPACE"), ARGO_CD_USER_SECRET_NAME, self.logger)
 	if err != nil {
 		return nil, err
 	}
@@ -288,16 +288,8 @@ func (self *argocd) getArgoCdSecret() (*corev1.Secret, error) {
 
 func (self *argocd) initArgoServerUrl() error {
 	// get argo-cd server deployment
-	whitelist := []*utils.ResourceEntry{
-		{
-			Kind:      "Deployment",
-			Name:      "deployments",
-			Group:     "apps/v1",
-			Version:   "",
-			Namespace: utils.Pointer(""),
-		},
-	}
-	blacklist := []*utils.ResourceEntry{}
+	whitelist := []*utils.ResourceDescriptor{&utils.DeploymentResource}
+	blacklist := []*utils.ResourceDescriptor{}
 	deploymentWorkloads, err := kubernetes.GetUnstructuredNamespaceResourceList(self.argoCdConfig.Data["namespaceName"], whitelist, blacklist)
 	if err != nil {
 		return err

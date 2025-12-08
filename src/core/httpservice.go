@@ -2,12 +2,12 @@ package core
 
 import (
 	"log/slog"
-	"mogenius-k8s-manager/src/assert"
-	cfg "mogenius-k8s-manager/src/config"
-	"mogenius-k8s-manager/src/logging"
-	"mogenius-k8s-manager/src/structs"
-	"mogenius-k8s-manager/src/utils"
-	"mogenius-k8s-manager/src/version"
+	"mogenius-operator/src/assert"
+	cfg "mogenius-operator/src/config"
+	"mogenius-operator/src/logging"
+	"mogenius-operator/src/structs"
+	"mogenius-operator/src/utils"
+	"mogenius-operator/src/version"
 	"net/http"
 	"sync"
 
@@ -115,11 +115,11 @@ func (self *httpService) Run() {
 	self.logger.Debug("initializing http.ServeMux", "addr", addr)
 	mux := http.NewServeMux()
 
-	// Deprecated: Typo in `GET /healtz`. Use `GET /healthz` instead.
-	mux.Handle("GET /healtz", self.withRequestLogging(http.HandlerFunc(self.getHealthz)))
 	mux.Handle("GET /healthz", self.withRequestLogging(http.HandlerFunc(self.getHealthz)))
 
 	mux.Handle("GET /status", self.withRequestLogging(http.HandlerFunc(self.getAppStatus)))
+
+	mux.HandleFunc("/stats", self.serveNodeStatsHtml)
 
 	if utils.IsDevBuild() {
 		self.addApiRoutes(mux)

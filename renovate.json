@@ -3,10 +3,22 @@
   "extends": [
     "config:recommended"
   ],
+  "postUpdateOptions": ["gomodTidy", "gomodUpdateImportPaths"],
   "automerge": true,
   "automergeType": "pr",
   "patch": {
     "automerge": true
   },
-  "prCreation": "not-pending"
+  "prCreation": "not-pending",
+  "packageRules": [
+    {
+      "matchPackageNames": [
+        "ghcr.io/mogenius/mogenius-operator"
+      ],
+      "matchFileNames": [
+        "helm/**"
+      ],
+      "enabled": false
+    }
+  ]
 }

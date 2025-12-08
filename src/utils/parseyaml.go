@@ -1,7 +1,7 @@
 package utils
 
 import (
-	"mogenius-k8s-manager/src/shutdown"
+	"mogenius-operator/src/shutdown"
 
 	v1 "k8s.io/api/apps/v1"
 	v1job "k8s.io/api/batch/v1"
@@ -154,6 +154,14 @@ func readYaml(filePath string) string {
 
 func IndexHtml() string {
 	html, err := HtmlFolder.ReadFile("html/index.html")
+	if err != nil {
+		utilsLogger.Error("failed to read embedded file from HtmlFolder", "error", err)
+	}
+	return string(html)
+}
+
+func NodeStatsHtml() string {
+	html, err := HtmlFolder.ReadFile("html/node-stats.html")
 	if err != nil {
 		utilsLogger.Error("failed to read embedded file from HtmlFolder", "error", err)
 	}

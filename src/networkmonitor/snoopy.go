@@ -7,10 +7,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
-	"mogenius-k8s-manager/src/assert"
-	"mogenius-k8s-manager/src/config"
-	"mogenius-k8s-manager/src/containerenumerator"
-	"mogenius-k8s-manager/src/shutdown"
+	"mogenius-operator/src/assert"
+	"mogenius-operator/src/config"
+	"mogenius-operator/src/containerenumerator"
+	"mogenius-operator/src/shutdown"
 	"os/exec"
 	"slices"
 	"strconv"
@@ -71,15 +71,15 @@ type SnoopyStatusInterface struct {
 type SnoopyStatusEventType = string
 
 const (
-	// mogenius-k8s-manager attempts to start a snoopy instance
+	// mogenius-operator attempts to start a snoopy instance
 	SnoopyStatusEventTypeRegisterRequest SnoopyStatusEventType = "register_request"
-	// mogenius-k8s-manager successfully attached a snoopy instance to a linux network namespace
+	// mogenius-operator successfully attached a snoopy instance to a linux network namespace
 	SnoopyStatusEventTypeRegisterSuccess SnoopyStatusEventType = "register_failure"
-	// mogenius-k8s-manager failed to attach a snoopy instance to a linux network namespace
+	// mogenius-operator failed to attach a snoopy instance to a linux network namespace
 	SnoopyStatusEventTypeRegisterFailure SnoopyStatusEventType = "register_success"
-	// mogenius-k8s-manager stopped a snoopy instance it managed
+	// mogenius-operator stopped a snoopy instance it managed
 	SnoopyStatusEventTypeRemove SnoopyStatusEventType = "remove"
-	// mogenius-k8s-manager received an event message from a snoopy instance
+	// mogenius-operator received an event message from a snoopy instance
 	SnoopyStatusEventTypeSnoopyEvent SnoopyStatusEventType = "snoopy_event"
 )
 
@@ -889,7 +889,7 @@ func (self *snoopyManager) attachToPidNamespace(pid ProcessId) (*SnoopyHandle, e
 					false,
 					"Unreachable",
 					"all output types exposed by snoopy have to be explicitly handled",
-					"if this crashes snoopy got a new feature and mogenius-k8s-manager has not been updated for it",
+					"if this crashes snoopy got a new feature and mogenius-operator has not been updated for it",
 					parsedOutputType.Type,
 				)
 			}

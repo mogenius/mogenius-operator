@@ -2,7 +2,7 @@ package structs
 
 import (
 	"log/slog"
-	"mogenius-k8s-manager/src/utils"
+	"mogenius-operator/src/utils"
 	"time"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -68,7 +68,7 @@ func CreateDatagramNotificationFromJob(data *Job) Datagram {
 	return datagram
 }
 
-func CreateDatagramForClusterEvent(pattern, group, version, kind, name, eventType string, obj *unstructured.Unstructured) Datagram {
+func CreateDatagramForClusterEvent(pattern, apiVersion, kind, name, eventType string, obj *unstructured.Unstructured) Datagram {
 
 	var status any
 	if kind == "Application" {
@@ -81,8 +81,7 @@ func CreateDatagramForClusterEvent(pattern, group, version, kind, name, eventTyp
 		Payload: map[string]any{
 			"eventType": eventType,
 			"resource": map[string]any{
-				"group":           group,
-				"version":         version,
+				"apiVersion":      apiVersion,
 				"kind":            kind,
 				"namespace":       obj.GetNamespace(),
 				"name":            name,

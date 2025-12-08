@@ -4,14 +4,14 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"mogenius-k8s-manager/src/assert"
-	cfg "mogenius-k8s-manager/src/config"
-	"mogenius-k8s-manager/src/logging"
-	"mogenius-k8s-manager/src/shutdown"
-	"mogenius-k8s-manager/src/store"
-	"mogenius-k8s-manager/src/structs"
-	"mogenius-k8s-manager/src/utils"
-	"mogenius-k8s-manager/src/valkeyclient"
+	"mogenius-operator/src/assert"
+	cfg "mogenius-operator/src/config"
+	"mogenius-operator/src/logging"
+	"mogenius-operator/src/shutdown"
+	"mogenius-operator/src/store"
+	"mogenius-operator/src/structs"
+	"mogenius-operator/src/utils"
+	"mogenius-operator/src/valkeyclient"
 	"os"
 	"path/filepath"
 	"strings"
@@ -21,18 +21,21 @@ import (
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
-	"helm.sh/helm/v3/pkg/registry"
-	"helm.sh/helm/v3/pkg/repo"
+	"helm.sh/helm/v4/pkg/kube"
+	"helm.sh/helm/v4/pkg/registry"
+	"helm.sh/helm/v4/pkg/repo/v1"
 
 	"github.com/patrickmn/go-cache"
 	"sigs.k8s.io/yaml"
 
-	"helm.sh/helm/v3/pkg/action"
-	chart "helm.sh/helm/v3/pkg/chart"
-	"helm.sh/helm/v3/pkg/chart/loader"
-	"helm.sh/helm/v3/pkg/cli"
-	"helm.sh/helm/v3/pkg/getter"
-	release "helm.sh/helm/v3/pkg/release"
+	"helm.sh/helm/v4/pkg/action"
+	"helm.sh/helm/v4/pkg/chart/loader"
+	chart "helm.sh/helm/v4/pkg/chart/v2"
+	"helm.sh/helm/v4/pkg/cli"
+	"helm.sh/helm/v4/pkg/getter"
+	releaser "helm.sh/helm/v4/pkg/release"
+	releasecommon "helm.sh/helm/v4/pkg/release/common"
+	release "helm.sh/helm/v4/pkg/release/v1"
 )
 
 const (
@@ -139,15 +142,16 @@ type HelmChartInstallUpgradeRequest struct {
 }
 
 type HelmChartOciInstallUpgradeRequest struct {
-	RegistryUrl string `json:"registryUrl" validate:"required"`
+	// OCIChartUrl expects a full OCI chart reference, e.g., "oci://registry-1.docker.io/myrepo/mychart"
+	OCIChartUrl string `json:"ociChartUrl" validate:"required"`
 	Namespace   string `json:"namespace" validate:"required"`
-	Chart       string `json:"chart" validate:"required"`
 	Release     string `json:"release" validate:"required"`
 	// Optional fields
 	Version string `json:"version,omitempty"`
 	Values  string `json:"values,omitempty"`
 	DryRun  bool   `json:"dryRun,omitempty"`
 	// OCI specific fields
+	AuthHost string `json:"authHost,omitempty"` // e.g., "registry-1.docker.io"
 	Username string `json:"username,omitempty"`
 	Password string `json:"password,omitempty"`
 }
@@ -205,7 +209,7 @@ type HelmReleaseGetWorkloadsRequest struct {
 	Namespace string `json:"namespace" validate:"required"`
 	Release   string `json:"release" validate:"required"`
 
-	Whitelist []*utils.ResourceEntry `json:"whitelist"`
+	Whitelist []*utils.ResourceDescriptor `json:"whitelist"`
 }
 
 type HelmEntryWithoutPassword struct {
@@ -268,43 +272,42 @@ func DeleteHelmChart(helmReleaseName string, namespace string) (string, error) {
 	return HelmReleaseUninstall(data)
 }
 
-func HelmStatus(namespace string, chartname string) release.Status {
-	cacheKey := namespace + "/" + chartname
+func HelmStatus(namespace string, releaseName string) releasecommon.Status {
+	cacheKey := namespace + "/" + releaseName
 	cacheTime := 1 * time.Second
 
 	// Check if the data is already in the cache
 	if cachedData, found := helmCache.Get(cacheKey); found {
-		return cachedData.(release.Status)
+		return cachedData.(releasecommon.Status)
 	}
 
 	settings := NewCli()
 	settings.SetNamespace(namespace)
 
-	logFn := func(msg string, args ...any) {
-		helmLogger.Info(
-			fmt.Sprintf(msg, args...),
-		)
-	}
-
 	actionConfig := new(action.Configuration)
-	if err := actionConfig.Init(settings.RESTClientGetter(), namespace, "", logFn); err != nil {
+	if err := actionConfig.Init(settings.RESTClientGetter(), namespace, ""); err != nil {
 		helmLogger.Error("HelmStatus Init", "error", err.Error())
-		helmCache.Set(cacheKey, release.StatusUnknown, cacheTime)
-		return release.StatusUnknown
+		helmCache.Set(cacheKey, releasecommon.StatusUnknown, cacheTime)
+		return releasecommon.StatusUnknown
 	}
 
 	get := action.NewGet(actionConfig)
-	chart, err := get.Run(chartname)
+	rel, err := get.Run(releaseName)
 	if err != nil && err.Error() != "release: not found" {
 		helmLogger.Error("HelmStatus List", "error", err.Error())
-		helmCache.Set(cacheKey, release.StatusUnknown, cacheTime)
-		return release.StatusUnknown
+		helmCache.Set(cacheKey, releasecommon.StatusUnknown, cacheTime)
+		return releasecommon.StatusUnknown
 	}
 
-	if chart == nil {
-		return release.StatusUnknown
+	re, ok := rel.(*release.Release)
+	if !ok {
+		return releasecommon.StatusUnknown
+	}
+
+	if re == nil {
+		return releasecommon.StatusUnknown
 	} else {
-		return chart.Info.Status
+		return re.Info.Status
 	}
 }
 
@@ -630,13 +633,8 @@ func filterCharts(charts []HelmChartInfo, query string) []HelmChartInfo {
 func HelmChartShow(data HelmChartShowRequest) (string, error) {
 	settings := NewCli()
 
-	logFn := func(msg string, args ...any) {
-		helmLogger.Info(
-			fmt.Sprintf(msg, args...),
-		)
-	}
 	actionConfig := new(action.Configuration)
-	if err := actionConfig.Init(settings.RESTClientGetter(), "", "", logFn); err != nil {
+	if err := actionConfig.Init(settings.RESTClientGetter(), "", ""); err != nil {
 		helmLogger.Error("HelmChartShow Init", "error", err.Error())
 		return "", err
 	}
@@ -651,15 +649,12 @@ func HelmChartShow(data HelmChartShowRequest) (string, error) {
 	}
 
 	// Show the chart
-	show := action.NewShowWithConfig(data.ShowFormat, actionConfig)
+	show := action.NewShow(data.ShowFormat, actionConfig)
 	result, err := show.Run(chartPath)
 	if err != nil {
 		helmLogger.Error("HelmShow Run", "error", err.Error())
 		return "", err
 	}
-
-	// result = strings.ReplaceAll(result, `\"\"`, `""`)
-
 	return result, nil
 }
 
@@ -726,16 +721,8 @@ func HelmOciInstall(data HelmChartOciInstallUpgradeRequest) (result string, err 
 	settings.SetNamespace(data.Namespace)
 	helmLogger.Info("Setting up Helm OCI installation...", "releaseName", data.Release, "namespace", data.Namespace)
 
-	logFn := func(msg string, args ...any) {
-		helmLogger.Info(
-			fmt.Sprintf(msg, args...),
-			"releaseName", data.Release,
-			"namespace", data.Namespace,
-		)
-	}
-
 	actionConfig := new(action.Configuration)
-	if err := actionConfig.Init(settings.RESTClientGetter(), data.Namespace, "", logFn); err != nil {
+	if err := actionConfig.Init(settings.RESTClientGetter(), data.Namespace, ""); err != nil {
 		helmLogger.Error("HelmOCIInstall Init",
 			"releaseName", data.Release,
 			"namespace", data.Namespace,
@@ -744,31 +731,8 @@ func HelmOciInstall(data HelmChartOciInstallUpgradeRequest) (result string, err 
 		return "", err
 	}
 
-	if !registry.IsOCI(data.RegistryUrl) {
+	if !registry.IsOCI(data.OCIChartUrl) {
 		return "", fmt.Errorf("non-OCI charts are not supported in OCI installation")
-	}
-
-	// Pull the OCI chart
-	chartPath, err := pullOCIChart(data, settings)
-	if err != nil {
-		helmLogger.Error("HelmOCIInstall Pull",
-			"releaseName", data.Release,
-			"namespace", data.Namespace,
-			"error", err.Error(),
-		)
-		return "", err
-	}
-
-	// Load the chart from the pulled location
-	helmLogger.Info("Loading pulled OCI chart ...", "releaseName", data.Release, "namespace", data.Namespace)
-	chartRequested, err := loader.Load(chartPath)
-	if err != nil {
-		helmLogger.Error("HelmOCIInstall Load",
-			"releaseName", data.Release,
-			"namespace", data.Namespace,
-			"error", err.Error(),
-		)
-		return "", err
 	}
 
 	// Parse the values string into a map
@@ -785,14 +749,55 @@ func HelmOciInstall(data HelmChartOciInstallUpgradeRequest) (result string, err 
 	// Install the pulled chart
 	helmLogger.Info("Installing OCI chart ...", "releaseName", data.Release, "namespace", data.Namespace)
 	install := action.NewInstall(actionConfig)
-	install.DryRun = data.DryRun
+	if data.DryRun {
+		install.DryRunStrategy = action.DryRunServer
+	}
 	install.ReleaseName = data.Release
 	install.Namespace = data.Namespace
 	install.Version = data.Version
-	install.Wait = false
+	install.WaitStrategy = kube.StatusWatcherStrategy
 	install.Timeout = 300 * time.Second
+	install.Labels = map[string]string{
+		"mogenius.com/installed-via": "mogenius-operator",
+		"mogenius.com/oci-chart":     "true",
+	}
 
-	re, err := install.Run(chartRequested, valuesMap)
+	// Create registry client for OCI
+	registryClient, err := newRegistryClient(settings, false)
+	if err != nil {
+		return "", fmt.Errorf("failed to create OCI registry client: %w", err)
+	}
+	if data.Username != "" || data.Password != "" && data.AuthHost != "" {
+		err = registryClient.Login(
+			data.AuthHost,
+			registry.LoginOptBasicAuth(data.Username, data.Password),
+		)
+		if err != nil {
+			return "", fmt.Errorf("failed to login to OCI registry: %w", err)
+		}
+	} else {
+		helmLogger.Info("No OCI registry credentials provided, attempting anonymous access", "releaseName", data.Release, "namespace", data.Namespace)
+	}
+	install.SetRegistryClient(registryClient)
+
+	chartPath, err := install.ChartPathOptions.LocateChart(data.OCIChartUrl, settings)
+	if err != nil {
+		return "", fmt.Errorf("failed to locate chart: %w", err)
+	}
+
+	// Load the chart from the pulled location
+	helmLogger.Info("Loading pulled OCI chart ...", "releaseName", data.Release, "namespace", data.Namespace)
+	chartRequested, err := loader.Load(chartPath)
+	if err != nil {
+		helmLogger.Error("HelmOCIInstall Load",
+			"releaseName", data.Release,
+			"namespace", data.Namespace,
+			"error", err.Error(),
+		)
+		return "", err
+	}
+
+	rel, err := install.Run(chartRequested, valuesMap)
 	if err != nil {
 		helmLogger.Error("HelmOCIInstall Run",
 			"releaseName", data.Release,
@@ -801,114 +806,43 @@ func HelmOciInstall(data HelmChartOciInstallUpgradeRequest) (result string, err 
 		)
 		return "", err
 	}
-	if re == nil {
-		return "", fmt.Errorf("HelmOCIInstall Error: Release not found")
+
+	re, ok := rel.(*release.Release)
+	if !ok {
+		return "", errors.New("HelmOCIInstall Error: Release type assertion failed")
+	}
+
+	err = SaveRepoNameToValkey(data.Namespace, data.Release, data.OCIChartUrl)
+	if err != nil {
+		helmLogger.Error("failed to SaveRepoNameToValkey",
+			"releaseName", data.Release,
+			"namespace", data.Namespace,
+			"error", err.Error(),
+		)
+		return "", err
 	}
 
 	helmLogger.Info(installStatus(*re), "releaseName", data.Release, "namespace", data.Namespace)
 	return installStatus(*re), nil
 }
 
-func pullOCIChart(data HelmChartOciInstallUpgradeRequest, settings *cli.EnvSettings) (downloadedTo string, err error) {
-	chartRef := data.RegistryUrl + "/" + data.Chart
-	if data.Version != "" {
-		chartRef = fmt.Sprintf("%s:%s", data.Chart, data.Version)
-	}
-
-	actionConfig, err := initActionConfigList(settings, true)
-	if err != nil {
-		return "", fmt.Errorf("failed to init action config: %w", err)
-	}
-
-	registryClient, err := newRegistryClient(settings, false)
-	if err != nil {
-		return "", fmt.Errorf("failed to created registry client: %w", err)
-	}
-	actionConfig.RegistryClient = registryClient
-
-	// check auth if needed
-	if data.Username != "" || data.Password != "" {
-		return "", fmt.Errorf("OCI AUTH currently not supported")
-		// TODO: Uncomment this when OCI auth is supported
-		// err = registryClient.Login(
-		// 	data.RegistryUrl,
-		// 	registry.LoginOptBasicAuth(data.Username, data.Password),
-		// )
-		// if err != nil {
-		// 	helmLogger.Error("OCI registry login failed",
-		// 		"releaseName", data.Release,
-		// 		"namespace", data.Namespace,
-		// 		"error", err.Error(),
-		// 	)
-		// 	return "", err
-		// }
-	}
-
-	tempDir, err := os.MkdirTemp("", "helm-pull")
-	if err != nil {
-		return "", fmt.Errorf("failed to create temp dir: %w", err)
-	}
-
-	pullClient := action.NewPullWithOpts(
-		action.WithConfig(actionConfig))
-	pullClient.DestDir = tempDir
-	pullClient.Settings = settings
-	pullClient.Version = data.Version
-	pullClient.Untar = true
-	pullClient.Devel = false
-
-	_, err = pullClient.Run(chartRef)
-	if err != nil {
-		return "", fmt.Errorf("failed to pull chart: %w", err)
-	}
-
-	return tempDir + "/" + data.Chart, nil
-}
-
-func initActionConfigList(settings *cli.EnvSettings, allNamespaces bool) (*action.Configuration, error) {
-
-	actionConfig := new(action.Configuration)
-
-	namespace := func() string {
-		// For list action, you can pass an empty string instead of settings.Namespace() to list
-		// all namespaces
-		if allNamespaces {
-			return ""
-		}
-		return settings.Namespace()
-	}()
-
-	logFn := func(msg string, args ...any) {
-		helmLogger.Info(
-			fmt.Sprintf(msg, args...),
-		)
-	}
-
-	if err := actionConfig.Init(
-		settings.RESTClientGetter(),
-		namespace,
-		"",
-		logFn); err != nil {
-		return nil, err
-	}
-
-	return actionConfig, nil
-}
-
 func newRegistryClient(settings *cli.EnvSettings, plainHTTP bool) (*registry.Client, error) {
 	opts := []registry.ClientOption{
+		registry.ClientOptDebug(settings.Debug),
 		registry.ClientOptEnableCache(true),
+		registry.ClientOptWriter(os.Stderr),
 		registry.ClientOptCredentialsFile(settings.RegistryConfig),
 	}
+
 	if plainHTTP {
 		opts = append(opts, registry.ClientOptPlainHTTP())
 	}
 
-	// Create a new registry client
 	registryClient, err := registry.NewClient(opts...)
 	if err != nil {
 		return nil, err
 	}
+
 	return registryClient, nil
 }
 
@@ -928,16 +862,8 @@ func HelmChartInstall(data HelmChartInstallUpgradeRequest) (result string, err e
 		helmLogger.Error("failed to update helm repositories", "error", err.Error())
 	}
 
-	logFn := func(msg string, args ...any) {
-		helmLogger.Info(
-			fmt.Sprintf(msg, args...),
-			"releaseName", data.Release,
-			"namespace", data.Namespace,
-		)
-	}
-
 	actionConfig := new(action.Configuration)
-	if err := actionConfig.Init(settings.RESTClientGetter(), data.Namespace, "", logFn); err != nil {
+	if err := actionConfig.Init(settings.RESTClientGetter(), data.Namespace, ""); err != nil {
 		helmLogger.Error("HelmInstall Init",
 			"releaseName", data.Release,
 			"namespace", data.Namespace,
@@ -947,17 +873,23 @@ func HelmChartInstall(data HelmChartInstallUpgradeRequest) (result string, err e
 	}
 
 	if registry.IsOCI(data.Chart) {
-		return "", fmt.Errorf("OCI charts are not supported")
+		return "", fmt.Errorf("OCI charts are not supported in the standard installation, please use the OCI installation endpoint")
 	}
 
 	install := action.NewInstall(actionConfig)
-	install.DryRun = data.DryRun
+	if data.DryRun {
+		install.DryRunStrategy = action.DryRunServer
+	}
 	install.ReleaseName = data.Release
 	install.Namespace = data.Namespace
 	install.Version = data.Version
-	install.Wait = false
+	install.WaitStrategy = kube.StatusWatcherStrategy
 	install.Timeout = 300 * time.Second
 	install.Devel = true
+	install.Labels = map[string]string{
+		"mogenius.com/installed-via": "mogenius-operator",
+		"mogenius.com/oci-chart":     "false",
+	}
 
 	helmLogger.Info("Locating chart ...", "releaseName", data.Release, "namespace", data.Namespace)
 	chartPath, err := install.LocateChart(data.Chart, settings)
@@ -1006,7 +938,7 @@ func HelmChartInstall(data HelmChartInstallUpgradeRequest) (result string, err e
 		return "", fmt.Errorf("HelmInstall Error: Release not found")
 	}
 
-	helmLogger.Info(installStatus(*re), "releaseName", data.Release, "namespace", data.Namespace)
+	helmLogger.Info(installStatus(re), "releaseName", data.Release, "namespace", data.Namespace)
 
 	err = SaveRepoNameToValkey(data.Namespace, data.Release, data.Chart)
 	if err != nil {
@@ -1018,7 +950,7 @@ func HelmChartInstall(data HelmChartInstallUpgradeRequest) (result string, err e
 		return "", err
 	}
 
-	return installStatus(*re), nil
+	return installStatus(re), nil
 }
 
 func HelmReleaseUpgrade(data HelmChartInstallUpgradeRequest) (result string, err error) {
@@ -1036,23 +968,17 @@ func HelmReleaseUpgrade(data HelmChartInstallUpgradeRequest) (result string, err
 		helmLogger.Error("failed to update helm repositories", "error", err.Error())
 	}
 
-	logFn := func(msg string, args ...any) {
-		helmLogger.Info(
-			fmt.Sprintf(msg, args...),
-			"releaseName", data.Release,
-			"namespace", data.Namespace,
-		)
-	}
-
 	actionConfig := new(action.Configuration)
-	if err := actionConfig.Init(settings.RESTClientGetter(), data.Namespace, "", logFn); err != nil {
+	if err := actionConfig.Init(settings.RESTClientGetter(), data.Namespace, ""); err != nil {
 		helmLogger.Error("HelmUpgrade Init", "releaseName", data.Release, "namespace", data.Namespace, "error", err.Error())
 		return "", err
 	}
 
 	upgrade := action.NewUpgrade(actionConfig)
-	upgrade.DryRun = data.DryRun
-	upgrade.Wait = false
+	if data.DryRun {
+		upgrade.DryRunStrategy = action.DryRunServer
+	}
+	upgrade.WaitStrategy = kube.StatusWatcherStrategy
 	upgrade.Namespace = data.Namespace
 	upgrade.Version = data.Version
 	upgrade.Timeout = 300 * time.Second
@@ -1114,7 +1040,7 @@ func HelmReleaseUpgrade(data HelmChartInstallUpgradeRequest) (result string, err
 		return "", err
 	}
 
-	return installStatus(*re), nil
+	return installStatus(re), nil
 }
 
 func HelmReleaseUninstall(data HelmReleaseUninstallRequest) (result string, err error) {
@@ -1127,16 +1053,8 @@ func HelmReleaseUninstall(data HelmReleaseUninstallRequest) (result string, err 
 	settings := NewCli()
 	settings.SetNamespace(data.Namespace)
 
-	logFn := func(msg string, args ...any) {
-		helmLogger.Info(
-			fmt.Sprintf(msg, args...),
-			"releaseName", data.Release,
-			"namespace", data.Namespace,
-		)
-	}
-
 	actionConfig := new(action.Configuration)
-	if err := actionConfig.Init(settings.RESTClientGetter(), data.Namespace, "", logFn); err != nil {
+	if err := actionConfig.Init(settings.RESTClientGetter(), data.Namespace, ""); err != nil {
 		helmLogger.Error("HelmUninstall Init",
 			"releaseName", data.Release,
 			"namespace", data.Namespace,
@@ -1148,7 +1066,7 @@ func HelmReleaseUninstall(data HelmReleaseUninstallRequest) (result string, err 
 	helmLogger.Info("Uninstalling chart ...", "releaseName", data.Release, "namespace", data.Namespace)
 	uninstall := action.NewUninstall(actionConfig)
 	uninstall.DryRun = data.DryRun
-	uninstall.Wait = false
+	uninstall.WaitStrategy = kube.StatusWatcherStrategy
 	_, err = uninstall.Run(data.Release)
 	if err != nil {
 		helmLogger.Error("HelmUninstall Run",
@@ -1172,11 +1090,15 @@ func cleanReleaseLogs(namespace string, release string) {
 	}
 }
 
-func installStatus(rel release.Release) string {
+func installStatus(rel releaser.Releaser) string {
+	re, ok := rel.(*release.Release)
+	if !ok {
+		return "Error: unable to get release details"
+	}
 	result := "\n"
-	result += fmt.Sprintf("%s (%s)\n", rel.Name, rel.Info.Status)
-	result += fmt.Sprintf("%s\n", rel.Info.Description)
-	result += fmt.Sprintf("🗒️ Notes:\n%s\n", rel.Info.Notes)
+	result += fmt.Sprintf("%s (%s)\n", re.Name, re.Info.Status)
+	result += fmt.Sprintf("%s\n", re.Info.Description)
+	result += fmt.Sprintf("🗒️ Notes:\n%s\n", re.Info.Notes)
 	return result
 }
 
@@ -1184,16 +1106,8 @@ func HelmReleaseList(data HelmReleaseListRequest) ([]*HelmRelease, error) {
 	settings := NewCli()
 	settings.SetNamespace(data.Namespace)
 
-	logFn := func(msg string, args ...any) {
-		helmLogger.Info(
-			fmt.Sprintf(msg, args...),
-			"namespace",
-			data.Namespace,
-		)
-	}
-
 	actionConfig := new(action.Configuration)
-	if err := actionConfig.Init(settings.RESTClientGetter(), data.Namespace, "", logFn); err != nil {
+	if err := actionConfig.Init(settings.RESTClientGetter(), data.Namespace, ""); err != nil {
 		helmLogger.Error("HelmReleaseList Init", "namespace", data.Namespace, "error", err.Error())
 		return []*HelmRelease{}, err
 	}
@@ -1203,19 +1117,24 @@ func HelmReleaseList(data HelmReleaseListRequest) ([]*HelmRelease, error) {
 	releases, err := list.Run()
 	result := []*HelmRelease{}
 	// remove unnecessary fields
-	for _, release := range releases {
-		release.Chart.Files = nil
-		release.Chart.Templates = nil
-		release.Chart.Values = nil
-		release.Manifest = ""
-
-		rep, _ := GetRepoNameFromValkey(release.Name, release.Namespace)
-		repoName := ""
-		if rep != nil {
-			repoName = strings.Replace(rep.RepoName, "/"+release.Chart.Metadata.Name, "", 1)
+	for _, aRelease := range releases {
+		re, ok := aRelease.(*release.Release)
+		if !ok {
+			continue
 		}
 
-		result = append(result, helmReleaseFromRelease(release, repoName))
+		re.Chart.Files = nil
+		re.Chart.Templates = nil
+		re.Chart.Values = nil
+		re.Manifest = ""
+
+		rep, _ := GetRepoNameFromValkey(re.Name, re.Namespace)
+		repoName := ""
+		if rep != nil {
+			repoName = strings.Replace(rep.RepoName, "/"+re.Chart.Metadata.Name, "", 1)
+		}
+
+		result = append(result, helmReleaseFromRelease(re, repoName))
 	}
 	if err != nil {
 		helmLogger.Error("HelmReleaseList List", "namespace", data.Namespace, "error", err.Error())
@@ -1228,34 +1147,30 @@ func HelmReleaseStatus(data HelmReleaseStatusRequest) (*HelmReleaseStatusInfo, e
 	settings := NewCli()
 	settings.SetNamespace(data.Namespace)
 
-	logFn := func(msg string, args ...any) {
-		helmLogger.Info(
-			fmt.Sprintf(msg, args...),
-			"releaseName",
-			data.Release, "namespace",
-			data.Namespace,
-		)
-	}
-
 	actionConfig := new(action.Configuration)
-	if err := actionConfig.Init(settings.RESTClientGetter(), data.Namespace, "", logFn); err != nil {
+	if err := actionConfig.Init(settings.RESTClientGetter(), data.Namespace, ""); err != nil {
 		helmLogger.Error("HelmReleaseStatus Init", "releaseName", data.Release, "namespace", data.Namespace, "error", err.Error())
 		return nil, err
 	}
 
 	status := action.NewStatus(actionConfig)
-	re, err := status.Run(data.Release)
+	rel, err := status.Run(data.Release)
 	if err != nil {
 		helmLogger.Error("HelmReleaseStatus List", "releaseName", data.Release, "namespace", data.Namespace, "error", err.Error())
 		return nil, err
 	}
-	if re == nil {
+	if rel == nil {
 		return nil, fmt.Errorf("HelmReleaseStatus Error: Release not found")
+	}
+
+	re, ok := rel.(*release.Release)
+	if !ok {
+		return nil, fmt.Errorf("HelmReleaseStatus Error: unable to get release details")
 	}
 
 	helmReleaseStatusInfo := HelmReleaseStatusInfo{
 		Name:         re.Name,
-		LastDeployed: re.Info.LastDeployed.Time,
+		LastDeployed: re.Info.LastDeployed,
 		Namespace:    re.Namespace,
 		Status:       re.Info.Status.String(),
 		Version:      re.Version,
@@ -1265,40 +1180,41 @@ func HelmReleaseStatus(data HelmReleaseStatusRequest) (*HelmReleaseStatusInfo, e
 	return &helmReleaseStatusInfo, nil
 }
 
-func HelmReleaseHistory(data HelmReleaseHistoryRequest) ([]*release.Release, error) {
+func HelmReleaseHistory(data HelmReleaseHistoryRequest) ([]release.Release, error) {
 	settings := NewCli()
 	settings.SetNamespace(data.Namespace)
 
-	logFn := func(msg string, args ...any) {
-		helmLogger.Info(
-			fmt.Sprintf(msg, args...),
-			"releaseName", data.Release,
-			"namespace",
-			data.Namespace,
-		)
-	}
-
 	actionConfig := new(action.Configuration)
-	if err := actionConfig.Init(settings.RESTClientGetter(), data.Namespace, "", logFn); err != nil {
+	if err := actionConfig.Init(settings.RESTClientGetter(), data.Namespace, ""); err != nil {
 		helmLogger.Error("HelmHistory Init",
 			"releaseName", data.Release,
 			"namespace", data.Namespace,
 			"error", err.Error(),
 		)
-		return []*release.Release{}, err
+		return []release.Release{}, err
 	}
 
 	history := action.NewHistory(actionConfig)
 	history.Max = 10
-	releases, err := history.Run(data.Release)
+	releasers, err := history.Run(data.Release)
 	if err != nil {
 		helmLogger.Error("HelmHistory List",
 			"releaseName", data.Release,
 			"namespace", data.Namespace,
 			"error", err.Error(),
 		)
-		return releases, err
+		return []release.Release{}, err
 	}
+
+	releases := []release.Release{}
+	for _, rel := range releasers {
+		re, ok := rel.(*release.Release)
+		if !ok {
+			return []release.Release{}, fmt.Errorf("HelmReleaseHistory Error: unable to get release details")
+		}
+		releases = append(releases, *re)
+	}
+
 	return releases, nil
 }
 
@@ -1306,16 +1222,8 @@ func HelmReleaseRollback(data HelmReleaseRollbackRequest) (string, error) {
 	settings := NewCli()
 	settings.SetNamespace(data.Namespace)
 
-	logFn := func(msg string, args ...any) {
-		helmLogger.Info(
-			fmt.Sprintf(msg, args...),
-			"releaseName", data.Release,
-			"namespace", data.Namespace,
-		)
-	}
-
 	actionConfig := new(action.Configuration)
-	if err := actionConfig.Init(settings.RESTClientGetter(), data.Namespace, "", logFn); err != nil {
+	if err := actionConfig.Init(settings.RESTClientGetter(), data.Namespace, ""); err != nil {
 		helmLogger.Error("HelmRollback Init", "releaseName", data.Release, "namespace", data.Namespace, "error", err.Error())
 		return "", err
 	}
@@ -1335,31 +1243,27 @@ func HelmReleaseGet(data HelmReleaseGetRequest) (string, error) {
 	settings := NewCli()
 	settings.SetNamespace(data.Namespace)
 
-	logFn := func(msg string, args ...any) {
-		helmLogger.Info(
-			fmt.Sprintf(msg, args...),
-			"releaseName", data.Release,
-			"namespace", data.Namespace,
-		)
-	}
-
 	actionConfig := new(action.Configuration)
-	if err := actionConfig.Init(settings.RESTClientGetter(), data.Namespace, "", logFn); err != nil {
+	if err := actionConfig.Init(settings.RESTClientGetter(), data.Namespace, ""); err != nil {
 		helmLogger.Error("HelmGet Init", "releaseName", data.Release, "namespace", data.Namespace, "error", err.Error())
 		return "", err
 	}
 
 	get := action.NewGet(actionConfig)
-	re, err := get.Run(data.Release)
+	rel, err := get.Run(data.Release)
 	if err != nil && err.Error() != "release: not found" {
 		helmLogger.Error("HelmGet List", "releaseName", data.Release, "namespace", data.Namespace, "error", err.Error())
 		return "", err
 	}
 
+	re, ok := rel.(*release.Release)
+	if !ok {
+		return "", fmt.Errorf("HelmGet Error: unable to get release details")
+	}
+
 	if re == nil {
 		return "", err
 	} else {
-
 		switch data.GetFormat {
 		case structs.HelmGetAll:
 			return printAllGet(re), nil
@@ -1387,7 +1291,7 @@ func IsManagedByHelmRelease(labels map[string]string, annotations map[string]str
 }
 
 func HelmReleaseGetWorkloads(valkeyClient valkeyclient.ValkeyClient, data HelmReleaseGetWorkloadsRequest) ([]unstructured.Unstructured, error) {
-	workloads, err := store.SearchByNamespace(valkeyClient, data.Namespace, data.Whitelist)
+	workloads, err := store.SearchResourceByNamespace(valkeyClient, data.Namespace, data.Whitelist)
 	if err != nil {
 		return nil, err
 	}
@@ -1404,7 +1308,7 @@ func HelmReleaseGetWorkloads(valkeyClient valkeyclient.ValkeyClient, data HelmRe
 
 		if workload.GetKind() == "Pod" {
 			if !replicaSetsFetched {
-				replicaSets, err = store.SearchByKeyParts(valkeyClient, utils.ReplicaSetResource.Group, utils.ReplicaSetResource.Kind, data.Namespace)
+				replicaSets, err = store.SearchResourceByKeyParts(valkeyClient, utils.ReplicaSetResource.ApiVersion, utils.ReplicaSetResource.Kind, data.Namespace)
 				if errors.Is(err, store.ErrNotFound) {
 					replicaSets = nil
 				}

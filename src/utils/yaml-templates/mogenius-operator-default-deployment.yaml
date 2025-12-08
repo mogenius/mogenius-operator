@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: mogenius-k8s-manager-default-deployment
+  name: mogenius-operator-default-deployment
   namespace: mogenius
 data:
   deployment: |

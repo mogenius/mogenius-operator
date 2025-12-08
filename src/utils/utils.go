@@ -7,11 +7,11 @@ import (
 	"io"
 	"log/slog"
 	"maps"
-	"mogenius-k8s-manager/src/assert"
-	cfg "mogenius-k8s-manager/src/config"
-	"mogenius-k8s-manager/src/logging"
-	"mogenius-k8s-manager/src/secrets"
-	"mogenius-k8s-manager/src/version"
+	"mogenius-operator/src/assert"
+	cfg "mogenius-operator/src/config"
+	"mogenius-operator/src/logging"
+	"mogenius-operator/src/secrets"
+	"mogenius-operator/src/version"
 	"net"
 	"net/http"
 	"os"
@@ -43,8 +43,8 @@ func Setup(logManagerModule logging.SlogManager, configModule cfg.ConfigModule) 
 }
 
 const APP_NAME = "k8s"
-const MOGENIUS_CONFIGMAP_DEFAULT_APPS_NAME = "mogenius-k8s-manager-default-apps"
-const MOGENIUS_CONFIGMAP_DEFAULT_DEPLOYMENT_NAME = "mogenius-k8s-manager-default-deployment"
+const MOGENIUS_CONFIGMAP_DEFAULT_APPS_NAME = "mogenius-operator-default-apps"
+const MOGENIUS_CONFIGMAP_DEFAULT_DEPLOYMENT_NAME = "mogenius-operator-default-deployment"
 
 const MAX_NAME_LENGTH = 253
 
@@ -356,9 +356,9 @@ func DeleteDirIfExist(dir string) {
 	}
 }
 
-func ContainsResourceEntry(resources []*ResourceEntry, target ResourceEntry) bool {
+func ContainsResourceDescriptor(resources []*ResourceDescriptor, target ResourceDescriptor) bool {
 	for _, r := range resources {
-		if r.Kind == target.Kind && r.Group == target.Group {
+		if r.Kind == target.Kind && r.ApiVersion == target.ApiVersion {
 			return true
 		}
 	}

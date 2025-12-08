@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
-	"mogenius-k8s-manager/src/assert"
-	"mogenius-k8s-manager/src/k8sclient"
-	"mogenius-k8s-manager/src/utils"
+	"mogenius-operator/src/assert"
+	"mogenius-operator/src/k8sclient"
+	"mogenius-operator/src/utils"
 	"strings"
 	"sync"
 	"time"
@@ -24,27 +24,19 @@ import (
 // A generic kubernetes resource watcher
 type WatcherModule interface {
 	// Register a watcher for the given resource
-	Watch(resource WatcherResourceIdentifier, onAdd WatcherOnAdd, onUpdate WatcherOnUpdate, onDelete WatcherOnDelete) error
+	Watch(resource utils.ResourceDescriptor, onAdd WatcherOnAdd, onUpdate WatcherOnUpdate, onDelete WatcherOnDelete) error
 	// Stop the watcher for the given resource
-	Unwatch(resource WatcherResourceIdentifier) error
+	Unwatch(resource utils.ResourceDescriptor) error
 	// Query the status of the resource
-	State(resource WatcherResourceIdentifier) (WatcherResourceState, error)
+	State(resource utils.ResourceDescriptor) (WatcherResourceState, error)
 	// List all currently watched resources
-	ListWatchedResources() []WatcherResourceIdentifier
+	ListWatchedResources() []utils.ResourceDescriptor
 	UnwatchAll()
 }
 
-type WatcherOnAdd func(resource WatcherResourceIdentifier, obj *unstructured.Unstructured)
-type WatcherOnUpdate func(resource WatcherResourceIdentifier, oldObj *unstructured.Unstructured, newObj *unstructured.Unstructured)
-type WatcherOnDelete func(resource WatcherResourceIdentifier, obj *unstructured.Unstructured)
-
-type WatcherResourceIdentifier struct {
-	Name         string
-	Kind         string
-	Version      string
-	GroupVersion string
-	Namespaced   bool
-}
+type WatcherOnAdd func(resource utils.ResourceDescriptor, obj *unstructured.Unstructured)
+type WatcherOnUpdate func(resource utils.ResourceDescriptor, oldObj *unstructured.Unstructured, newObj *unstructured.Unstructured)
+type WatcherOnDelete func(resource utils.ResourceDescriptor, obj *unstructured.Unstructured)
 
 type WatcherResourceState string
 
@@ -57,7 +49,7 @@ const (
 
 type watcher struct {
 	handlerMapLock sync.RWMutex
-	activeHandlers map[WatcherResourceIdentifier]resourceContext
+	activeHandlers map[utils.ResourceDescriptor]resourceContext
 	clientProvider k8sclient.K8sClientProvider
 	logger         *slog.Logger
 }
@@ -65,7 +57,7 @@ type watcher struct {
 func NewWatcher(logger *slog.Logger, clientProvider k8sclient.K8sClientProvider) WatcherModule {
 	self := &watcher{}
 	self.handlerMapLock = sync.RWMutex{}
-	self.activeHandlers = make(map[WatcherResourceIdentifier]resourceContext, 0)
+	self.activeHandlers = make(map[utils.ResourceDescriptor]resourceContext, 0)
 	self.clientProvider = clientProvider
 	self.logger = logger
 
@@ -79,7 +71,7 @@ type resourceContext struct {
 	cancelCtx context.CancelFunc
 }
 
-func (self *watcher) Watch(resource WatcherResourceIdentifier, onAdd WatcherOnAdd, onUpdate WatcherOnUpdate, onDelete WatcherOnDelete) error {
+func (self *watcher) Watch(resource utils.ResourceDescriptor, onAdd WatcherOnAdd, onUpdate WatcherOnUpdate, onDelete WatcherOnDelete) error {
 	assert.Assert(self.logger != nil)
 	self.handlerMapLock.Lock()
 	defer self.handlerMapLock.Unlock()
@@ -106,7 +98,7 @@ func (self *watcher) Watch(resource WatcherResourceIdentifier, onAdd WatcherOnAd
 	return nil
 }
 
-func (self *watcher) watchWithRetry(ctx context.Context, resource WatcherResourceIdentifier, onAdd WatcherOnAdd, onUpdate WatcherOnUpdate, onDelete WatcherOnDelete) {
+func (self *watcher) watchWithRetry(ctx context.Context, resource utils.ResourceDescriptor, onAdd WatcherOnAdd, onUpdate WatcherOnUpdate, onDelete WatcherOnDelete) {
 	backoff := time.Second
 	maxBackoff := time.Minute * 2
 	maxRetries := 20
@@ -168,18 +160,14 @@ func (self *watcher) watchWithRetry(ctx context.Context, resource WatcherResourc
 	}
 }
 
-func (self *watcher) startSingleWatcher(ctx context.Context, resource WatcherResourceIdentifier, onAdd WatcherOnAdd, onUpdate WatcherOnUpdate, onDelete WatcherOnDelete) error {
+func (self *watcher) startSingleWatcher(ctx context.Context, resource utils.ResourceDescriptor, onAdd WatcherOnAdd, onUpdate WatcherOnUpdate, onDelete WatcherOnDelete) error {
 	dynamicClient := self.clientProvider.DynamicClient()
-	gv, err := schema.ParseGroupVersion(resource.GroupVersion)
-	if err != nil {
-		return fmt.Errorf("invalid groupVersion: %s", err)
-	}
 
 	informerFactory := dynamicinformer.NewFilteredDynamicSharedInformerFactory(dynamicClient, utils.ResourceResyncTime, v1.NamespaceAll, nil)
-	resourceInformer := informerFactory.ForResource(self.createGroupVersionResource(gv.Group, gv.Version, resource.Name)).Informer()
+	resourceInformer := informerFactory.ForResource(self.createGroupVersionResource(resource.ApiVersion, resource.Plural)).Informer()
 
 	// Enhanced error handler that can detect fatal errors
-	err = resourceInformer.SetWatchErrorHandler(func(r *cache.Reflector, err error) {
+	err := resourceInformer.SetWatchErrorHandler(func(r *cache.Reflector, err error) {
 		if err == io.EOF {
 			self.logger.Debug("Watch connection closed normally", "resource", resource)
 			return // closed normally, its fine
@@ -188,9 +176,9 @@ func (self *watcher) startSingleWatcher(ctx context.Context, resource WatcherRes
 			return // Resource might have been deleted, no need to retry
 		}
 		self.logger.Error("Encountered error while watching resource",
-			"resourceName", resource.Name,
+			"resourceName", resource.Plural,
 			"resourceKind", resource.Kind,
-			"resourceGroupVersion", resource.GroupVersion,
+			"resourceGroupVersion", resource.ApiVersion,
 			"error", err)
 	})
 	if err != nil {
@@ -292,7 +280,7 @@ func (self *watcher) startSingleWatcher(ctx context.Context, resource WatcherRes
 	return nil
 }
 
-func (self *watcher) setWatcherState(resource WatcherResourceIdentifier, state WatcherResourceState) {
+func (self *watcher) setWatcherState(resource utils.ResourceDescriptor, state WatcherResourceState) {
 	self.handlerMapLock.Lock()
 	defer self.handlerMapLock.Unlock()
 
@@ -302,7 +290,7 @@ func (self *watcher) setWatcherState(resource WatcherResourceIdentifier, state W
 	}
 }
 
-func (self *watcher) updateResourceContext(resource WatcherResourceIdentifier, informer cache.SharedIndexInformer, handler cache.ResourceEventHandlerRegistration) {
+func (self *watcher) updateResourceContext(resource utils.ResourceDescriptor, informer cache.SharedIndexInformer, handler cache.ResourceEventHandlerRegistration) {
 	self.handlerMapLock.Lock()
 	defer self.handlerMapLock.Unlock()
 
@@ -313,7 +301,7 @@ func (self *watcher) updateResourceContext(resource WatcherResourceIdentifier, i
 	}
 }
 
-func (m *watcher) Unwatch(resource WatcherResourceIdentifier) error {
+func (m *watcher) Unwatch(resource utils.ResourceDescriptor) error {
 	m.handlerMapLock.Lock()
 	defer m.handlerMapLock.Unlock()
 
@@ -331,11 +319,11 @@ func (m *watcher) Unwatch(resource WatcherResourceIdentifier) error {
 	return nil
 }
 
-func (m *watcher) ListWatchedResources() []WatcherResourceIdentifier {
+func (m *watcher) ListWatchedResources() []utils.ResourceDescriptor {
 	m.handlerMapLock.RLock()
 	defer m.handlerMapLock.RUnlock()
 
-	resources := []WatcherResourceIdentifier{}
+	resources := []utils.ResourceDescriptor{}
 	for r := range m.activeHandlers {
 		resources = append(resources, r)
 	}
@@ -343,7 +331,7 @@ func (m *watcher) ListWatchedResources() []WatcherResourceIdentifier {
 	return resources
 }
 
-func (m *watcher) State(resource WatcherResourceIdentifier) (WatcherResourceState, error) {
+func (m *watcher) State(resource utils.ResourceDescriptor) (WatcherResourceState, error) {
 	m.handlerMapLock.RLock()
 	defer m.handlerMapLock.RUnlock()
 
@@ -364,22 +352,11 @@ func (self *watcher) UnwatchAll() {
 	}
 }
 
-func (self *watcher) createGroupVersionResource(group string, version string, name string) schema.GroupVersionResource {
-	// for core apis we need change the group to empty string
-	if group == "v1" && version == "" {
-		return schema.GroupVersionResource{
-			Group:    "",
-			Version:  group,
-			Resource: name,
-		}
+func (self *watcher) createGroupVersionResource(apiVersion string, plural string) schema.GroupVersionResource {
+	gv, err := schema.ParseGroupVersion(apiVersion) // e.g., "apps/v1" or just "v1"
+	if err != nil {
+		self.logger.Error("invalid apiVersion", "apiVersion", apiVersion, "resourceName", plural, "error", err)
 	}
-	if strings.HasSuffix(group, version) {
-		version = ""
-	}
-
-	return schema.GroupVersionResource{
-		Group:    group,
-		Version:  version,
-		Resource: name,
-	}
+	gvr := gv.WithResource(plural)
+	return gvr
 }

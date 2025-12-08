@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"mogenius-k8s-manager/src/crds"
-	"mogenius-k8s-manager/src/shutdown"
+	"mogenius-operator/src/crds"
+	"mogenius-operator/src/shutdown"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -19,7 +19,7 @@ func GetValkeyPwd() (*string, error) {
 	clientset := clientProvider.K8sClientSet()
 	secretClient := clientset.CoreV1().Secrets(config.Get("MO_OWN_NAMESPACE"))
 
-	existingSecret, getErr := secretClient.Get(context.Background(), "mogenius-k8s-manager-valkey", metav1.GetOptions{})
+	existingSecret, getErr := secretClient.Get(context.Background(), "mogenius-operator-valkey", metav1.GetOptions{})
 	if getErr != nil {
 		return nil, getErr
 	}

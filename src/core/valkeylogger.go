@@ -2,8 +2,8 @@ package core
 
 import (
 	"fmt"
-	"mogenius-k8s-manager/src/logging"
-	"mogenius-k8s-manager/src/valkeyclient"
+	"mogenius-operator/src/logging"
+	"mogenius-operator/src/valkeyclient"
 	"time"
 )
 

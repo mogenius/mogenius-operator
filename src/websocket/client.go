@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"mogenius-k8s-manager/src/assert"
+	"mogenius-operator/src/assert"
 	"net/http"
 	"net/url"
 	"os"

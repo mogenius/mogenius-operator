@@ -2,13 +2,13 @@ package kubernetes_test
 
 import (
 	"log/slog"
-	"mogenius-k8s-manager/src/assert"
-	cfg "mogenius-k8s-manager/src/config"
-	"mogenius-k8s-manager/src/k8sclient"
-	"mogenius-k8s-manager/src/kubernetes"
-	"mogenius-k8s-manager/src/logging"
-	"mogenius-k8s-manager/src/utils"
-	"mogenius-k8s-manager/src/valkeyclient"
+	"mogenius-operator/src/assert"
+	cfg "mogenius-operator/src/config"
+	"mogenius-operator/src/k8sclient"
+	"mogenius-operator/src/kubernetes"
+	"mogenius-operator/src/logging"
+	"mogenius-operator/src/utils"
+	"mogenius-operator/src/valkeyclient"
 	"os"
 	"testing"
 )
@@ -31,14 +31,14 @@ func TestResourceTemplates(t *testing.T) {
 	assert.AssertT(t, err == nil, err)
 
 	// unknown resource
-	yaml := kubernetes.GetResourceTemplateYaml("", "v1", "mypod", "Pod", "default", "mypod")
+	yaml := kubernetes.GetResourceTemplateYaml("v1", "Pod")
 	assert.AssertT(t, yaml != "", "Error getting resource template")
 
 	// known resource Deployment
-	knownResourceYaml := kubernetes.GetResourceTemplateYaml("v1", "Deployment", "testtemplate", "Pod", "default", "mypod")
+	knownResourceYaml := kubernetes.GetResourceTemplateYaml("v1", "Pod")
 	assert.AssertT(t, knownResourceYaml != "", "Error getting resource template")
 
 	// known resource Certificate
-	knownResourceYamlCert := kubernetes.GetResourceTemplateYaml("cert-manager.io/v1", "v1", "certificates", "Certificate", "default", "mypod")
+	knownResourceYamlCert := kubernetes.GetResourceTemplateYaml("cert-manager.io/v1", "Certificate")
 	assert.AssertT(t, knownResourceYamlCert != "", "Error getting resource template")
 }

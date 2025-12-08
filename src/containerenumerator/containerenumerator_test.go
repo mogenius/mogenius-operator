@@ -3,11 +3,11 @@ package containerenumerator_test
 import (
 	"errors"
 	"log/slog"
-	"mogenius-k8s-manager/src/assert"
-	"mogenius-k8s-manager/src/config"
-	"mogenius-k8s-manager/src/containerenumerator"
-	"mogenius-k8s-manager/src/k8sclient"
-	"mogenius-k8s-manager/src/utils"
+	"mogenius-operator/src/assert"
+	"mogenius-operator/src/config"
+	"mogenius-operator/src/containerenumerator"
+	"mogenius-operator/src/k8sclient"
+	"mogenius-operator/src/utils"
 	"os"
 	"strings"
 	"testing"
@@ -29,21 +29,7 @@ func TestEmptyCgroup(t *testing.T) {
 	cne := containerenumerator.NewContainerEnumerator(slog.New(slog.NewJSONHandler(os.Stdout, nil)), configModule, clientProvider)
 
 	_, err := cne.GetContainerIdFromCgroupWithPid(cgroup)
-
-	// Option A: Mit errors.Is (Best Practice für Go 1.13+)
-	if !errors.Is(err, containerenumerator.ErrorNoMatchFound) {
-		t.Errorf("expected ErrNoMatchFound, got %v", err)
-	}
-
-	// Option B: Prüfen, dass irgendein Error zurückgegeben wird
-	if err == nil {
-		t.Error("expected error for empty cgroup, got nil")
-	}
-
-	// Option C: Error-Message prüfen (weniger robust)
-	if err == nil || !strings.Contains(err.Error(), "no match") {
-		t.Errorf("expected 'no match' error, got %v", err)
-	}
+	assert.AssertT(t, err == containerenumerator.ErrorNoMatchFound)
 }
 
 // func TestEmptyCgroup(t *testing.T) {
@@ -79,7 +65,7 @@ func TestBaseCgroup(t *testing.T) {
 	clientProvider := k8sclient.NewK8sClientProvider(logger, configModule)
 	cne := containerenumerator.NewContainerEnumerator(slog.New(slog.NewJSONHandler(os.Stdout, nil)), configModule, clientProvider)
 	_, err := cne.GetContainerIdFromCgroupWithPid(cgroup)
-	assert.AssertT(t, err == containerenumerator.NoMatchFound)
+	assert.AssertT(t, err == containerenumerator.ErrorNoMatchFound)
 }
 
 func TestBasicCgroup(t *testing.T) {

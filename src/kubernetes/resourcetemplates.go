@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"fmt"
+	"mogenius-operator/src/utils"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
@@ -12,9 +13,9 @@ const (
 	RESOURCE_TEMPLATE_CONFIGMAP = "mogenius-resource-templates"
 )
 
-func GetResourceTemplateYaml(group, version, name, kind, namespace, resourcename string) string {
+func GetResourceTemplateYaml(apiVersion, kind string) string {
 	// check if example data exists
-	yamlStr, err := loadResourceTemplateData(kind, namespace, resourcename)
+	yamlStr, err := loadResourceTemplateData(kind)
 	if err == nil {
 		return yamlStr
 	}
@@ -22,20 +23,8 @@ func GetResourceTemplateYaml(group, version, name, kind, namespace, resourcename
 	// default response
 	obj := unstructured.Unstructured{}
 	obj.SetKind(kind)
+	obj.SetAPIVersion(apiVersion)
 
-	if group != "" && version == "" {
-		obj.SetAPIVersion(group)
-	}
-	if group != "" && version != "" {
-		obj.SetAPIVersion(fmt.Sprintf("%s/%s", group, version))
-	}
-
-	if namespace != "" {
-		obj.SetNamespace(namespace)
-	}
-	if resourcename != "" {
-		obj.SetName(resourcename)
-	}
 	obj.SetLabels(map[string]string{
 		"example": "label",
 	})
@@ -47,9 +36,9 @@ func GetResourceTemplateYaml(group, version, name, kind, namespace, resourcename
 	return string(data)
 }
 
-func loadResourceTemplateData(kind, namespace, resourcename string) (string, error) {
+func loadResourceTemplateData(kind string) (string, error) {
 	// load example data from file
-	configmap, err := GetUnstructuredResource("", "v1", "configmaps", config.Get("MO_OWN_NAMESPACE"), RESOURCE_TEMPLATE_CONFIGMAP)
+	configmap, err := GetUnstructuredResource(utils.ConfigMapResource.ApiVersion, utils.ConfigMapResource.Plural, config.Get("MO_OWN_NAMESPACE"), RESOURCE_TEMPLATE_CONFIGMAP)
 	if err != nil {
 		return "", err
 	}
@@ -65,12 +54,6 @@ func loadResourceTemplateData(kind, namespace, resourcename string) (string, err
 				err := yaml.Unmarshal([]byte(dataStr), &obj)
 				if err != nil {
 					continue
-				}
-				if namespace != "" {
-					obj.SetNamespace(namespace)
-				}
-				if resourcename != "" {
-					obj.SetName(resourcename)
 				}
 
 				data, err := yaml.Marshal(obj.Object)

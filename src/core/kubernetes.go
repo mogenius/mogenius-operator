@@ -4,13 +4,13 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"mogenius-k8s-manager/src/assert"
-	"mogenius-k8s-manager/src/config"
-	"mogenius-k8s-manager/src/dtos"
-	"mogenius-k8s-manager/src/k8sclient"
-	"mogenius-k8s-manager/src/kubernetes"
-	"mogenius-k8s-manager/src/store"
-	"mogenius-k8s-manager/src/utils"
+	"mogenius-operator/src/assert"
+	"mogenius-operator/src/config"
+	"mogenius-operator/src/dtos"
+	"mogenius-operator/src/k8sclient"
+	"mogenius-operator/src/kubernetes"
+	"mogenius-operator/src/store"
+	"mogenius-operator/src/utils"
 
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
@@ -188,9 +188,10 @@ func (self *moKubernetes) CreateOrUpdateResourceTemplateConfigmap() error {
 	}
 
 	// check if configmap exists
-	_, err = self.CreateUnstructuredResource("", "v1", "configmaps", utils.Pointer(""), string(updatedYaml))
+	ownNamespace := self.config.Get("MO_OWN_NAMESPACE")
+	_, err = self.CreateUnstructuredResource(utils.ConfigMapResource.ApiVersion, utils.ConfigMapResource.Plural, utils.Pointer(ownNamespace), string(updatedYaml))
 	if apierrors.IsAlreadyExists(err) {
-		_, err = kubernetes.UpdateUnstructuredResource("", "v1", "configmaps", utils.Pointer(""), string(updatedYaml))
+		_, err = kubernetes.UpdateUnstructuredResource(utils.ConfigMapResource.ApiVersion, utils.ConfigMapResource.Plural, utils.ConfigMapResource.Namespaced, string(updatedYaml))
 		if err != nil {
 			self.logger.Error("Resource template configmap failed to update", "error", err)
 			return err
@@ -202,7 +203,7 @@ func (self *moKubernetes) CreateOrUpdateResourceTemplateConfigmap() error {
 	return err
 }
 
-func (self *moKubernetes) CreateUnstructuredResource(group string, version string, name string, namespace *string, yamlData string) (*unstructured.Unstructured, error) {
+func (self *moKubernetes) CreateUnstructuredResource(apiVersion string, plural string, namespace *string, yamlData string) (*unstructured.Unstructured, error) {
 	dynamicClient := self.clientProvider.DynamicClient()
 	obj := &unstructured.Unstructured{}
 	err := yaml.Unmarshal([]byte(yamlData), obj)
@@ -211,10 +212,10 @@ func (self *moKubernetes) CreateUnstructuredResource(group string, version strin
 	}
 
 	if namespace != nil {
-		result, err := dynamicClient.Resource(kubernetes.CreateGroupVersionResource(group, version, name)).Namespace(obj.GetNamespace()).Create(context.Background(), obj, metav1.CreateOptions{})
+		result, err := dynamicClient.Resource(kubernetes.CreateGroupVersionResource(apiVersion, plural)).Namespace(obj.GetNamespace()).Create(context.Background(), obj, metav1.CreateOptions{})
 		return self.removeManagedFields(result), err
 	} else {
-		result, err := dynamicClient.Resource(kubernetes.CreateGroupVersionResource(group, version, name)).Create(context.Background(), obj, metav1.CreateOptions{})
+		result, err := dynamicClient.Resource(kubernetes.CreateGroupVersionResource(apiVersion, plural)).Create(context.Background(), obj, metav1.CreateOptions{})
 		return self.removeManagedFields(result), err
 	}
 }

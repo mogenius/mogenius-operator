@@ -3,29 +3,30 @@ package cmd
 import (
 	"fmt"
 	"log/slog"
-	argocd "mogenius-k8s-manager/src/argocd"
-	"mogenius-k8s-manager/src/assert"
-	"mogenius-k8s-manager/src/config"
-	"mogenius-k8s-manager/src/containerenumerator"
-	"mogenius-k8s-manager/src/core"
-	"mogenius-k8s-manager/src/cpumonitor"
-	"mogenius-k8s-manager/src/helm"
-	"mogenius-k8s-manager/src/k8sclient"
-	"mogenius-k8s-manager/src/kubernetes"
-	"mogenius-k8s-manager/src/logging"
-	"mogenius-k8s-manager/src/networkmonitor"
-	"mogenius-k8s-manager/src/rammonitor"
-	"mogenius-k8s-manager/src/secrets"
-	"mogenius-k8s-manager/src/services"
-	"mogenius-k8s-manager/src/shutdown"
-	"mogenius-k8s-manager/src/store"
-	"mogenius-k8s-manager/src/structs"
-	"mogenius-k8s-manager/src/utils"
-	"mogenius-k8s-manager/src/valkeyclient"
-	"mogenius-k8s-manager/src/version"
-	"mogenius-k8s-manager/src/watcher"
-	"mogenius-k8s-manager/src/websocket"
-	"mogenius-k8s-manager/src/xterm"
+	"mogenius-operator/src/ai"
+	"mogenius-operator/src/argocd"
+	"mogenius-operator/src/assert"
+	"mogenius-operator/src/config"
+	"mogenius-operator/src/containerenumerator"
+	"mogenius-operator/src/core"
+	"mogenius-operator/src/cpumonitor"
+	"mogenius-operator/src/helm"
+	"mogenius-operator/src/k8sclient"
+	"mogenius-operator/src/kubernetes"
+	"mogenius-operator/src/logging"
+	"mogenius-operator/src/networkmonitor"
+	"mogenius-operator/src/rammonitor"
+	"mogenius-operator/src/secrets"
+	"mogenius-operator/src/services"
+	"mogenius-operator/src/shutdown"
+	"mogenius-operator/src/store"
+	"mogenius-operator/src/structs"
+	"mogenius-operator/src/utils"
+	"mogenius-operator/src/valkeyclient"
+	"mogenius-operator/src/version"
+	"mogenius-operator/src/watcher"
+	"mogenius-operator/src/websocket"
+	"mogenius-operator/src/xterm"
 	"net"
 	"net/url"
 	"os"
@@ -113,7 +114,7 @@ func Run() error {
 	//===============================================================
 	ctx := kong.Parse(
 		&CLI,
-		kong.Name("mogenius-k8s-manager"),
+		kong.Name("mogenius-operator"),
 		kong.Description("kubernetes operator for https://mogenius.com"),
 		kong.UsageOnError(),
 		kong.ConfigureHelp(kong.HelpOptions{
@@ -245,8 +246,8 @@ func LoadConfigDeclarations(configModule *config.Config) {
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "OWN_DEPLOYMENT_NAME",
-		DefaultValue: utils.Pointer("mogenius-k8s-manager"),
-		Description:  utils.Pointer("the name of the deployment this application is running in"),
+		DefaultValue: utils.Pointer("mogenius-operator"),
+		Description:  utils.Pointer("mogenius-operatoroyment this application is running in"),
 		Envs:         []string{"OWN_DEPLOYMENT_NAME"},
 	})
 	configModule.Declare(config.ConfigDeclaration{
@@ -458,7 +459,7 @@ func ApplyStageOverrides(configModule *config.Config) {
 	}
 }
 
-// Full initialization process for mogenius-k8s-manager clients services (and packages)
+// Full initialization process for mogenius-operator clients services (and packages)
 func InitializeSystems(
 	logManagerModule logging.SlogManager,
 	configModule *config.Config,
@@ -492,6 +493,7 @@ func InitializeSystems(
 	cpuMonitor := cpumonitor.NewCpuMonitor(logManagerModule.CreateLogger("cpu-monitor"), configModule, clientProvider, containerEnumerator)
 	ramMonitor := rammonitor.NewRamMonitor(logManagerModule.CreateLogger("ram-monitor"), configModule, clientProvider, containerEnumerator)
 	networkMonitor := networkmonitor.NewNetworkMonitor(logManagerModule.CreateLogger("network-monitor"), configModule, containerEnumerator, configModule.Get("MO_HOST_PROC_PATH"))
+	aiManager := ai.NewAiManager(logManagerModule.CreateLogger("ai-manager"), valkeyClient, configModule)
 
 	// golang package setups are deprecated and will be removed in the future by migrating all state to services
 	helm.Setup(logManagerModule, configModule, valkeyClient)
@@ -508,6 +510,7 @@ func InitializeSystems(
 	argocd := argocd.NewArgoCd(logManagerModule, configModule, clientProvider, valkeyClient)
 	workspaceManager := core.NewWorkspaceManager(configModule, clientProvider)
 	apiModule := core.NewApi(logManagerModule.CreateLogger("api"), valkeyClient, configModule)
+	aiApi := core.NewAiApi(logManagerModule.CreateLogger("apApi"), aiManager)
 	httpApi := core.NewHttpApi(logManagerModule, configModule)
 	socketApi := core.NewSocketApi(logManagerModule.CreateLogger("socketapi"), configModule, jobConnectionClient, eventConnectionClient, valkeyClient, argocd)
 	xtermService := core.NewXtermService(logManagerModule.CreateLogger("xterm-service"))
@@ -533,7 +536,7 @@ func InitializeSystems(
 	mocore.Link(moKubernetes)
 	podStatsCollector.Link(dbstatsService)
 	nodeMetricsCollector.Link(dbstatsService, leaderElector)
-	socketApi.Link(httpApi, xtermService, dbstatsService, apiModule, moKubernetes, sealedSecret)
+	socketApi.Link(httpApi, xtermService, dbstatsService, apiModule, moKubernetes, sealedSecret, aiApi)
 	moKubernetes.Link(dbstatsService)
 	httpApi.Link(socketApi, dbstatsService, apiModule, reconciler)
 	apiModule.Link(workspaceManager)
@@ -562,6 +565,7 @@ func InitializeSystems(
 		reconciler,
 		sealedSecret,
 		argocd,
+		aiManager,
 	}
 }
 
@@ -588,4 +592,5 @@ type systems struct {
 	reconciler            core.Reconciler
 	sealedSecret          core.SealedSecretManager
 	argocd                argocd.Argocd
+	aiManager             ai.AiManager
 }

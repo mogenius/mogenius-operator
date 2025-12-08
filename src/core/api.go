@@ -2,14 +2,14 @@ package core
 
 import (
 	"log/slog"
-	"mogenius-k8s-manager/src/assert"
-	cfg "mogenius-k8s-manager/src/config"
-	"mogenius-k8s-manager/src/crds/v1alpha1"
-	"mogenius-k8s-manager/src/helm"
-	"mogenius-k8s-manager/src/kubernetes"
-	"mogenius-k8s-manager/src/store"
-	"mogenius-k8s-manager/src/utils"
-	"mogenius-k8s-manager/src/valkeyclient"
+	"mogenius-operator/src/assert"
+	cfg "mogenius-operator/src/config"
+	"mogenius-operator/src/crds/v1alpha1"
+	"mogenius-operator/src/helm"
+	"mogenius-operator/src/kubernetes"
+	"mogenius-operator/src/store"
+	"mogenius-operator/src/utils"
+	"mogenius-operator/src/valkeyclient"
 	"slices"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -70,7 +70,7 @@ type Api interface {
 	UpdateGrant(name string, spec v1alpha1.GrantSpec) (string, error)
 	DeleteGrant(name string) (string, error)
 
-	GetWorkspaceResources(workspaceName string, whitelist []*utils.ResourceEntry, blacklist []*utils.ResourceEntry, namespaceWhitelist []string) ([]unstructured.Unstructured, error)
+	GetWorkspaceResources(workspaceName string, whitelist []*utils.ResourceDescriptor, blacklist []*utils.ResourceDescriptor, namespaceWhitelist []string) ([]unstructured.Unstructured, error)
 	GetWorkspaceControllers(workspaceName string) ([]unstructured.Unstructured, error)
 	GetWorkspacePods(workspaceName string) ([]unstructured.Unstructured, error)
 	GetWorkspacePodsNames(workspaceName string) ([]string, error)
@@ -269,7 +269,7 @@ func (self *api) DeleteGrant(name string) (string, error) {
 	return "Resource deleted successfully", nil
 }
 
-func (self *api) GetWorkspaceResources(workspaceName string, whitelist []*utils.ResourceEntry, blacklist []*utils.ResourceEntry, namespaceWhitelist []string) ([]unstructured.Unstructured, error) {
+func (self *api) GetWorkspaceResources(workspaceName string, whitelist []*utils.ResourceDescriptor, blacklist []*utils.ResourceDescriptor, namespaceWhitelist []string) ([]unstructured.Unstructured, error) {
 	result := []unstructured.Unstructured{}
 
 	// Get workspace
@@ -315,7 +315,7 @@ func (self *api) GetWorkspaceResources(workspaceName string, whitelist []*utils.
 }
 
 func (self *api) GetWorkspaceControllers(workspaceName string) ([]unstructured.Unstructured, error) {
-	whiteList := []*utils.ResourceEntry{
+	whiteList := []*utils.ResourceDescriptor{
 		&utils.DaemonSetResource,
 		&utils.StatefulSetResource,
 		&utils.DeploymentResource,
@@ -324,14 +324,14 @@ func (self *api) GetWorkspaceControllers(workspaceName string) ([]unstructured.U
 }
 
 func (self *api) GetWorkspacePods(workspaceName string) ([]unstructured.Unstructured, error) {
-	whiteList := []*utils.ResourceEntry{
+	whiteList := []*utils.ResourceDescriptor{
 		&utils.PodResource,
 	}
 	return self.GetWorkspaceResources(workspaceName, whiteList, nil, nil)
 }
 
 func (self *api) GetWorkspacePodsNames(workspaceName string) ([]string, error) {
-	whiteList := []*utils.ResourceEntry{
+	whiteList := []*utils.ResourceDescriptor{
 		&utils.PodResource,
 	}
 	pods, err := self.GetWorkspaceResources(workspaceName, whiteList, nil, nil)

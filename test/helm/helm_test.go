@@ -3,20 +3,20 @@ package helm_test
 import (
 	"fmt"
 	"log/slog"
-	"mogenius-k8s-manager/src/assert"
-	"mogenius-k8s-manager/src/config"
-	cfg "mogenius-k8s-manager/src/config"
-	"mogenius-k8s-manager/src/helm"
-	"mogenius-k8s-manager/src/k8sclient"
-	"mogenius-k8s-manager/src/kubernetes"
-	"mogenius-k8s-manager/src/logging"
-	"mogenius-k8s-manager/src/structs"
-	"mogenius-k8s-manager/src/utils"
-	"mogenius-k8s-manager/src/valkeyclient"
+	"mogenius-operator/src/assert"
+	"mogenius-operator/src/config"
+	cfg "mogenius-operator/src/config"
+	"mogenius-operator/src/helm"
+	"mogenius-operator/src/k8sclient"
+	"mogenius-operator/src/kubernetes"
+	"mogenius-operator/src/logging"
+	"mogenius-operator/src/structs"
+	"mogenius-operator/src/utils"
+	"mogenius-operator/src/valkeyclient"
 	"os"
 	"testing"
 
-	"helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v4/pkg/action"
 )
 
 const (

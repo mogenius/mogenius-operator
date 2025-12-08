@@ -2,11 +2,11 @@ package services
 
 import (
 	"fmt"
-	"mogenius-k8s-manager/src/helm"
-	"mogenius-k8s-manager/src/kubernetes"
-	"mogenius-k8s-manager/src/store"
-	"mogenius-k8s-manager/src/structs"
-	"mogenius-k8s-manager/src/utils"
+	"mogenius-operator/src/helm"
+	"mogenius-operator/src/kubernetes"
+	"mogenius-operator/src/store"
+	"mogenius-operator/src/structs"
+	"mogenius-operator/src/utils"
 	"net/netip"
 	"sort"
 	"strings"
@@ -15,25 +15,25 @@ import (
 
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/jedib0t/go-pretty/v6/text"
-	"helm.sh/helm/v3/pkg/release"
+	releasecommon "helm.sh/helm/v4/pkg/release/common"
 )
 
 type SystemCheckEntry struct {
-	CheckName          string         `json:"checkName"`
-	HelmStatus         release.Status `json:"helmStatus"`
-	IsRunning          bool           `json:"isRunning"`
-	SuccessMessage     string         `json:"successMessage"`
-	ErrorMessage       *string        `json:"errorMessage,omitempty"`
-	SolutionMessage    string         `json:"solutionMessage"`
-	Description        string         `json:"description"`
-	InstallPattern     string         `json:"installPattern"`
-	UpgradePattern     string         `json:"upgradePattern"`
-	UninstallPattern   string         `json:"uninstallPattern"`
-	IsRequired         bool           `json:"isRequired"`
-	WantsToBeInstalled bool           `json:"wantsToBeInstalled"`
-	VersionInstalled   string         `json:"versionInstalled"`
-	VersionAvailable   string         `json:"versionAvailable"`
-	ProcessTimeInMs    int64          `json:"processTimeInMs"`
+	CheckName          string               `json:"checkName"`
+	HelmStatus         releasecommon.Status `json:"helmStatus"`
+	IsRunning          bool                 `json:"isRunning"`
+	SuccessMessage     string               `json:"successMessage"`
+	ErrorMessage       *string              `json:"errorMessage,omitempty"`
+	SolutionMessage    string               `json:"solutionMessage"`
+	Description        string               `json:"description"`
+	InstallPattern     string               `json:"installPattern"`
+	UpgradePattern     string               `json:"upgradePattern"`
+	UninstallPattern   string               `json:"uninstallPattern"`
+	IsRequired         bool                 `json:"isRequired"`
+	WantsToBeInstalled bool                 `json:"wantsToBeInstalled"`
+	VersionInstalled   string               `json:"versionInstalled"`
+	VersionAvailable   string               `json:"versionAvailable"`
+	ProcessTimeInMs    int64                `json:"processTimeInMs"`
 }
 
 // sort.Interface for []SystemCheckEntry based on the CheckName field.
@@ -292,13 +292,13 @@ func SystemCheck() SystemCheckResponse {
 			_, clusterIssuerInstalledErr := kubernetes.GetClusterIssuer(NameClusterIssuerResource)
 			clusterIssuerMsg := fmt.Sprintf("%s is installed.", NameClusterIssuerResource)
 			helmstatus := helm.HelmStatus(config.Get("MO_OWN_NAMESPACE"), utils.HelmReleaseNameClusterIssuer)
-			if helmstatus == release.StatusUnknown {
+			if helmstatus == releasecommon.StatusUnknown {
 				clusterIssuerInstalledErr = nil
 				clusterIssuerMsg = "Cluster Issuer not installed."
 			}
 			clusterIssuerEntry := CreateSystemCheckEntry(
 				utils.HelmReleaseNameClusterIssuer,
-				clusterIssuerInstalledErr == nil && helmstatus != release.StatusUnknown,
+				clusterIssuerInstalledErr == nil && helmstatus != releasecommon.StatusUnknown,
 				clusterIssuerMsg,
 				fmt.Sprintf("%s is not installed.\nTo issue ssl certificates you need to install this component.", NameClusterIssuerResource),
 				clusterIssuerInstalledErr,
@@ -415,15 +415,15 @@ func SystemCheckTerminalString(entries []SystemCheckEntry) string {
 	return t.Render()
 }
 
-func StatusEmoji(state release.Status) string {
+func StatusEmoji(state releasecommon.Status) string {
 	switch state {
-	case release.StatusPendingInstall, release.StatusUninstalled, release.StatusPendingUpgrade, release.StatusPendingRollback:
+	case releasecommon.StatusPendingInstall, releasecommon.StatusUninstalled, releasecommon.StatusPendingUpgrade, releasecommon.StatusPendingRollback:
 		return "🔧"
-	case release.StatusFailed:
+	case releasecommon.StatusFailed:
 		return "❌"
-	case release.StatusDeployed:
+	case releasecommon.StatusDeployed:
 		return "✅"
-	case release.StatusSuperseded:
+	case releasecommon.StatusSuperseded:
 		return "🔄"
 	default:
 		return "❓"

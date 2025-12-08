@@ -1,0 +1,6 @@
+Thank you for installing mogenius. 
+Manage your Cluster using https://app.mogenius.com.
+
+{{- if .Values.cluster.readonly.enabled }}
+You have installed the mogenius-operator using readonly mode.
+{{- end }}

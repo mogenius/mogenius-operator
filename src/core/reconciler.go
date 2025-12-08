@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"hash/fnv"
 	"log/slog"
-	"mogenius-k8s-manager/src/assert"
-	"mogenius-k8s-manager/src/config"
-	"mogenius-k8s-manager/src/crds"
-	"mogenius-k8s-manager/src/crds/v1alpha1"
-	"mogenius-k8s-manager/src/k8sclient"
-	"mogenius-k8s-manager/src/utils"
-	"mogenius-k8s-manager/src/watcher"
+	"mogenius-operator/src/assert"
+	"mogenius-operator/src/config"
+	"mogenius-operator/src/crds"
+	"mogenius-operator/src/crds/v1alpha1"
+	"mogenius-operator/src/k8sclient"
+	"mogenius-operator/src/utils"
+	"mogenius-operator/src/watcher"
 	"slices"
 	"sync"
 	"sync/atomic"
@@ -44,7 +44,7 @@ type reconciler struct {
 	statusLock     sync.RWMutex
 
 	// crd resources
-	crdResources   []watcher.WatcherResourceIdentifier
+	crdResources   []utils.ResourceDescriptor
 	workspaces     []v1alpha1.Workspace
 	workspacesLock sync.RWMutex
 	grants         []v1alpha1.Grant
@@ -53,7 +53,7 @@ type reconciler struct {
 	usersLock      sync.RWMutex
 
 	// managed resources
-	managedResources        []watcher.WatcherResourceIdentifier
+	managedResources        []utils.ResourceDescriptor
 	namespaces              []v1.Namespace
 	namespacesLock          sync.RWMutex
 	clusterRoles            []rbacv1.ClusterRole
@@ -78,10 +78,10 @@ func NewReconciler(
 	self.status = NewReconcilerStatus()
 	self.statusLock = sync.RWMutex{}
 
-	self.crdResources = []watcher.WatcherResourceIdentifier{
-		{Name: "workspaces", Kind: "Workspace", Version: "", GroupVersion: "mogenius.com/v1alpha1", Namespaced: false},
-		{Name: "users", Kind: "User", Version: "", GroupVersion: "mogenius.com/v1alpha1", Namespaced: false},
-		{Name: "grants", Kind: "Grant", Version: "", GroupVersion: "mogenius.com/v1alpha1", Namespaced: false},
+	self.crdResources = []utils.ResourceDescriptor{
+		{Plural: "workspaces", Kind: "Workspace", ApiVersion: "mogenius.com/v1alpha1", Namespaced: false},
+		{Plural: "users", Kind: "User", ApiVersion: "mogenius.com/v1alpha1", Namespaced: false},
+		{Plural: "grants", Kind: "Grant", ApiVersion: "mogenius.com/v1alpha1", Namespaced: false},
 	}
 	self.workspaces = []v1alpha1.Workspace{}
 	self.workspacesLock = sync.RWMutex{}
@@ -90,11 +90,11 @@ func NewReconciler(
 	self.users = []v1alpha1.User{}
 	self.usersLock = sync.RWMutex{}
 
-	self.managedResources = []watcher.WatcherResourceIdentifier{
-		{Name: "namespaces", Kind: "Namespace", Version: "", GroupVersion: "v1", Namespaced: false},
-		{Name: "clusterroles", Kind: "ClusterRole", Version: "", GroupVersion: "rbac.authorization.k8s.io/v1", Namespaced: false},
-		{Name: "clusterrolebindings", Kind: "ClusterRoleBinding", Version: "", GroupVersion: "rbac.authorization.k8s.io/v1", Namespaced: false},
-		{Name: "rolebindings", Kind: "RoleBinding", Version: "", GroupVersion: "rbac.authorization.k8s.io/v1", Namespaced: false},
+	self.managedResources = []utils.ResourceDescriptor{
+		{Plural: "namespaces", Kind: "Namespace", ApiVersion: "v1", Namespaced: false},
+		{Plural: "clusterroles", Kind: "ClusterRole", ApiVersion: "rbac.authorization.k8s.io/v1", Namespaced: false},
+		{Plural: "clusterrolebindings", Kind: "ClusterRoleBinding", ApiVersion: "rbac.authorization.k8s.io/v1", Namespaced: false},
+		{Plural: "rolebindings", Kind: "RoleBinding", ApiVersion: "rbac.authorization.k8s.io/v1", Namespaced: false},
 	}
 	self.namespaces = []v1.Namespace{}
 	self.namespacesLock = sync.RWMutex{}
@@ -501,7 +501,7 @@ func (self *reconciler) enableWatcher() {
 	for _, resource := range resources {
 		err := self.watcher.Watch(
 			resource,
-			func(resource watcher.WatcherResourceIdentifier, obj *unstructured.Unstructured) {
+			func(resource utils.ResourceDescriptor, obj *unstructured.Unstructured) {
 				assert.Assert(obj != nil)
 				switch obj.GetKind() {
 				case "Workspace":
@@ -522,7 +522,7 @@ func (self *reconciler) enableWatcher() {
 					assert.Assert(false, "Unreachable", "All allowed kinds should be handled", obj.GetKind(), obj)
 				}
 			},
-			func(resource watcher.WatcherResourceIdentifier, oldObj *unstructured.Unstructured, newObj *unstructured.Unstructured) {
+			func(resource utils.ResourceDescriptor, oldObj *unstructured.Unstructured, newObj *unstructured.Unstructured) {
 				assert.Assert(oldObj != nil)
 				assert.Assert(newObj != nil)
 				assert.Assert(oldObj.GetKind() == newObj.GetKind(), "The object kind should not change", oldObj, newObj)
@@ -552,7 +552,7 @@ func (self *reconciler) enableWatcher() {
 					assert.Assert(false, "Unreachable", "All allowed kinds should be handled", newObj.GetKind(), newObj)
 				}
 			},
-			func(resource watcher.WatcherResourceIdentifier, obj *unstructured.Unstructured) {
+			func(resource utils.ResourceDescriptor, obj *unstructured.Unstructured) {
 				assert.Assert(obj != nil)
 				switch obj.GetKind() {
 				case "Workspace":

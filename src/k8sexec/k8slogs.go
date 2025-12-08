@@ -5,7 +5,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"mogenius-k8s-manager/src/utils"
+	"mogenius-operator/src/utils"
 	"os"
 	"os/signal"
 	"syscall"

@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"mogenius-k8s-manager/src/assert"
-	"mogenius-k8s-manager/src/config"
-	"mogenius-k8s-manager/src/utils"
+	"mogenius-operator/src/assert"
+	"mogenius-operator/src/config"
+	"mogenius-operator/src/utils"
 	"net"
 	"path/filepath"
 	"slices"
@@ -462,7 +462,7 @@ func (self *valkeyClient) DeleteMultiple(patterns ...string) error {
 		totalDeleted += len(batch)
 	}
 
-	self.logger.Info("Successfully deleted keys", "count", totalDeleted)
+	self.logger.Info("Successfully deleted keys", "count", totalDeleted, "patterns", patterns)
 	return nil
 }
 
