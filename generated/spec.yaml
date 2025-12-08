@@ -168,6 +168,10 @@ aiManager/detail/tasks:
             mogenius-operator/src/ai.AiTask:
                 name: mogenius-operator/src/ai.AiTask
                 properties:
+                    controller:
+                        pointer: true
+                        structRef: mogenius-operator/src/utils.WorkloadSingleRequest
+                        type: struct
                     createdAt:
                         type: int
                     error:
@@ -353,6 +357,10 @@ aiManager/get/tasks:
             mogenius-operator/src/ai.AiTask:
                 name: mogenius-operator/src/ai.AiTask
                 properties:
+                    controller:
+                        pointer: true
+                        structRef: mogenius-operator/src/utils.WorkloadSingleRequest
+                        type: struct
                     createdAt:
                         type: int
                     error:
@@ -603,6 +611,10 @@ aiManager/latest/task:
             mogenius-operator/src/ai.AiTask:
                 name: mogenius-operator/src/ai.AiTask
                 properties:
+                    controller:
+                        pointer: true
+                        structRef: mogenius-operator/src/utils.WorkloadSingleRequest
+                        type: struct
                     createdAt:
                         type: int
                     error:

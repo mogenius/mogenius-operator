@@ -113,10 +113,10 @@ func (self *valkeyStatsDb) AddInterfaceStatsToDb(currentStats []networkmonitor.P
 		controller := self.ownerCacheService.ControllerForPod(currentStat.Namespace, currentStat.Pod)
 		if controller == nil {
 			// in case we cannot determine a controller
-			controller = &store.K8sController{
-				Kind:      "Pod",
-				Name:      currentStat.Pod,
-				Namespace: currentStat.Namespace,
+			controller = &utils.WorkloadSingleRequest{
+				ResourceDescriptor: utils.PodResource,
+				ResourceName:       currentStat.Pod,
+				Namespace:          currentStat.Namespace,
 			}
 		}
 
@@ -140,7 +140,7 @@ func (self *valkeyStatsDb) AddInterfaceStatsToDb(currentStats []networkmonitor.P
 		err := self.valkey.StoreSortedListEntry(
 			deltaStat,
 			time.Now().Truncate(time.Minute).Unix(),
-			DB_STATS_TRAFFIC_BUCKET_NAME, currentStat.Namespace, controller.Name,
+			DB_STATS_TRAFFIC_BUCKET_NAME, currentStat.Namespace, controller.ResourceName,
 		)
 		if err != nil {
 			self.logger.Error("Error adding interface stats", "namespace", currentStat.Namespace, "podName", currentStat.Pod, "error", err)
@@ -503,7 +503,7 @@ func (self *valkeyStatsDb) AddPodStatsToDb(stats []structs.PodStats) error {
 		err := self.valkey.StoreSortedListEntry(
 			stat,
 			time.Now().Truncate(time.Minute).Unix(),
-			DB_STATS_POD_STATS_BUCKET_NAME, stat.Namespace, controller.Name,
+			DB_STATS_POD_STATS_BUCKET_NAME, stat.Namespace, controller.ResourceName,
 		)
 		if err != nil {
 			return fmt.Errorf("error adding pod stats: %s", err)

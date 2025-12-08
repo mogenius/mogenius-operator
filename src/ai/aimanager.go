@@ -29,17 +29,18 @@ const (
 
 type AiTaskState string
 type AiTask struct {
-	ID                  string                      `json:"id"`
-	Prompt              string                      `json:"prompt"`
-	Response            *AiResponse                 `json:"response"`
-	State               AiTaskState                 `json:"state"` // pending, in-progress, completed, failed, ignored
-	TokensUsed          int64                       `json:"tokensUsed"`
-	CreatedAt           int64                       `json:"createdAt"`
-	UpdatedAt           int64                       `json:"updatedAt"`
-	ReferencingResource utils.WorkloadSingleRequest `json:"referencingResource"` // the resource that triggered this task
-	TriggeredBy         AiFilter                    `json:"triggeredBy"`         // e.g., "Failed Pods" filter
-	ReadByUser          *ReadBy                     `json:"readByUser,omitempty"`
-	Error               string                      `json:"error"`
+	ID                  string                       `json:"id"`
+	Prompt              string                       `json:"prompt"`
+	Response            *AiResponse                  `json:"response"`
+	State               AiTaskState                  `json:"state"` // pending, in-progress, completed, failed, ignored
+	Controller          *utils.WorkloadSingleRequest `json:"controller,omitempty"`
+	TokensUsed          int64                        `json:"tokensUsed"`
+	CreatedAt           int64                        `json:"createdAt"`
+	UpdatedAt           int64                        `json:"updatedAt"`
+	ReferencingResource utils.WorkloadSingleRequest  `json:"referencingResource"` // the resource that triggered this task
+	TriggeredBy         AiFilter                     `json:"triggeredBy"`         // e.g., "Failed Pods" filter
+	ReadByUser          *ReadBy                      `json:"readByUser,omitempty"`
+	Error               string                       `json:"error"`
 }
 
 type AiTaskLatest struct {
@@ -412,6 +413,22 @@ func (ai *aiManager) ProcessObject(obj *unstructured.Unstructured, eventType str
 				}
 
 				if shouldCreate {
+					controller := ai.ownerCacheService.OwnerFromReference(obj.GetNamespace(), obj.GetOwnerReferences())
+					task.Controller = controller
+					if controller != nil {
+						ctrlOb, err := store.GetResource(ai.valkeyClient, controller.ResourceDescriptor.ApiVersion, controller.ResourceDescriptor.Kind, controller.Namespace, controller.ResourceName, ai.logger)
+						if err != nil {
+							ai.logger.Error("Error fetching controller object for AI task", "controllerKind", controller.ResourceDescriptor.Kind, "controllerName", controller.ResourceName, "controllerNamespace", controller.Namespace, "error", err)
+						} else {
+							if ctrlOb != nil {
+								controllerYaml, err := store.GetYamlFromUnstructuredResource(ctrlOb)
+								if err != nil {
+									ai.logger.Error("Error generating controller YAML for AI task prompt", "controllerKind", controller.ResourceDescriptor.Kind, "controllerName", controller.ResourceName, "controllerNamespace", controller.Namespace, "error", err)
+								}
+								task.Prompt += "\n\nThe controller resource YAML is as follows:\n" + controllerYaml
+							}
+						}
+					}
 					err = ai.createOrUpdateAiTask(task, key)
 					if err != nil {
 						ai.logger.Error("Error creating AI task", "error", err)
@@ -841,7 +858,7 @@ func (ai *aiManager) getValkeyKey(kind, namespace, name, filter string) string {
 		controller := ai.ownerCacheService.ControllerForPod(namespace, name)
 		if controller != nil {
 			kind = controller.Kind
-			name = controller.Name
+			name = controller.ResourceName
 		}
 	}
 	return fmt.Sprintf("%s:%s:%s:%s:%s", DB_AI_BUCKET_TASKS, kind, namespace, name, filter)
