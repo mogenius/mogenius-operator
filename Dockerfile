@@ -52,6 +52,7 @@ RUN cargo install just && \
     rm -rf /root/.cargo/registry /root/.cargo/git
 
 # Fetch the latest release download URL for the specific architecture
+# WICHTIG: Wir müssen die TARGETPLATFORM auswerten, nicht uname -m
 RUN case "$TARGETPLATFORM" in \
         "linux/amd64") ARCH="x86_64";; \
         "linux/arm64") ARCH="aarch64";; \

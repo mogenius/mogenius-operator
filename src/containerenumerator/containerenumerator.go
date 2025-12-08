@@ -2,6 +2,7 @@ package containerenumerator
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"mogenius-operator/src/assert"
@@ -186,7 +187,13 @@ func (self *containerEnumerator) readCgroupFile(pid ProcessId) (string, error) {
 	return filestring, nil
 }
 
-var ErrorNoMatchFound error = fmt.Errorf("failed to find valid container id")
+// var ErrorNoMatchFound error = fmt.Errorf("failed to find valid container id")
+
+var (
+	ErrorNoMatchFound = errors.New("no match found in cgroup")
+	// Alternativ, wenn Sie den alten Namen behalten wollen:
+	NoMatchFound = errors.New("no match found in cgroup")
+)
 
 func (self *containerEnumerator) GetContainerIdFromCgroupWithPid(cgroupFileData string) (ContainerId, error) {
 	type PatternMatch struct {
