@@ -79,7 +79,7 @@ func (ai *aiManager) UpdateTaskReadState(taskID string, user *structs.User) erro
 
 func (ai *aiManager) GetAiTasksForResource(resourceReq utils.WorkloadSingleRequest) ([]AiTask, error) {
 	tasks := []AiTask{}
-	valkeyPath := getValkeyKey(resourceReq.Kind, resourceReq.Namespace, resourceReq.ResourceName, "*")
+	valkeyPath := ai.getValkeyKey(resourceReq.Kind, resourceReq.Namespace, resourceReq.ResourceName, "*")
 	keys, err := ai.valkeyClient.Keys(valkeyPath)
 	if err != nil {
 		return tasks, err
@@ -156,7 +156,7 @@ func (ai *aiManager) GetLatestTask(workspace string) (*AiTaskLatest, error) {
 
 func (ai *aiManager) getAiTasksForNamespace(namespace string) ([]AiTask, error) {
 
-	key := getValkeyKey("*", namespace, "*", "*")
+	key := ai.getValkeyKey("*", namespace, "*", "*")
 
 	items, err := ai.valkeyClient.List(100, key)
 	if err != nil {

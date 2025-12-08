@@ -493,7 +493,8 @@ func InitializeSystems(
 	cpuMonitor := cpumonitor.NewCpuMonitor(logManagerModule.CreateLogger("cpu-monitor"), configModule, clientProvider, containerEnumerator)
 	ramMonitor := rammonitor.NewRamMonitor(logManagerModule.CreateLogger("ram-monitor"), configModule, clientProvider, containerEnumerator)
 	networkMonitor := networkmonitor.NewNetworkMonitor(logManagerModule.CreateLogger("network-monitor"), configModule, containerEnumerator, configModule.Get("MO_HOST_PROC_PATH"))
-	aiManager := ai.NewAiManager(logManagerModule.CreateLogger("ai-manager"), valkeyClient, configModule)
+	ownerCacheService := store.NewOwnerCacheService(logManagerModule.CreateLogger("owner-cache"), configModule)
+	aiManager := ai.NewAiManager(logManagerModule.CreateLogger("ai-manager"), valkeyClient, configModule, ownerCacheService, eventConnectionClient)
 
 	// golang package setups are deprecated and will be removed in the future by migrating all state to services
 	helm.Setup(logManagerModule, configModule, valkeyClient)
@@ -515,7 +516,6 @@ func InitializeSystems(
 	socketApi := core.NewSocketApi(logManagerModule.CreateLogger("socketapi"), configModule, jobConnectionClient, eventConnectionClient, valkeyClient, argocd)
 	xtermService := core.NewXtermService(logManagerModule.CreateLogger("xterm-service"))
 	valkeyLoggerService := core.NewValkeyLogger(valkeyClient, valkeyLogChannel)
-	ownerCacheService := core.NewOwnerCacheService(logManagerModule.CreateLogger("owner-cache"), configModule)
 	dbstatsService := core.NewValkeyStatsModule(logManagerModule.CreateLogger("db-stats"), configModule, valkeyClient, ownerCacheService)
 	podStatsCollector := core.NewPodStatsCollector(logManagerModule.CreateLogger("pod-stats-collector"), configModule, clientProvider)
 	nodeMetricsCollector := core.NewNodeMetricsCollector(
