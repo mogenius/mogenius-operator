@@ -23,7 +23,8 @@ import (
 )
 
 const (
-	DB_AI_BUCKET_TASKS = "ai_tasks"
+	DB_AI_BUCKET_TASKS  = "ai_tasks"
+	DB_AI_BUCKET_TOKENS = "ai_tokens"
 )
 
 type AiTaskState string
@@ -479,7 +480,7 @@ func (ai *aiManager) getTodayTokenUsage() (todaysTokens int64, aiTaskDbEntries i
 	now := time.Now()
 	startOfDay := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location()).Unix()
 
-	keys, err := ai.valkeyClient.Keys(DB_AI_BUCKET_TASKS + ":tokens:*")
+	keys, err := ai.valkeyClient.Keys(DB_AI_BUCKET_TOKENS + ":*")
 	if err != nil {
 		return 0, 0, err
 	}
@@ -506,7 +507,7 @@ func (ai *aiManager) getTodayTokenUsage() (todaysTokens int64, aiTaskDbEntries i
 
 func (ai *aiManager) addTokenUsage(tokensUsed int, entryKey string) error {
 	now := time.Now()
-	key := fmt.Sprintf("%s:tokens:%d", DB_AI_BUCKET_TASKS, now.Unix())
+	key := fmt.Sprintf("%s:%d", DB_AI_BUCKET_TOKENS, now.Unix())
 
 	usedToken := UsedToken{
 		Key:        entryKey,
@@ -528,7 +529,7 @@ func (ai *aiManager) resetTodayTokenUsage() error {
 	now := time.Now()
 	startOfDay := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location()).Unix()
 
-	keys, err := ai.valkeyClient.Keys(fmt.Sprintf("%s:tokens:*", DB_AI_BUCKET_TASKS))
+	keys, err := ai.valkeyClient.Keys(fmt.Sprintf("%s:*", DB_AI_BUCKET_TOKENS))
 	if err != nil {
 		return err
 	}
