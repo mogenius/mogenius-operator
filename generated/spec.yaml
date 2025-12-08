@@ -78,6 +78,33 @@ UpgradeK8sManager:
         typeInfo:
             structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·4,*mogenius-operator/src/structs.Job]
             type: struct
+aiManager/delete-all-data:
+    requestSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
+    responseSchema:
+        structs:
+            ANON_STRUCT_1:
+                properties: {}
+            mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Void]:
+                name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Void]
+                properties:
+                    data:
+                        pointer: true
+                        structRef: ANON_STRUCT_1
+                        type: struct
+                    message:
+                        type: string
+                    status:
+                        type: string
+        typeInfo:
+            structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Void]
+            type: struct
 aiManager/detail/tasks:
     requestSchema:
         structs:
@@ -794,19 +821,27 @@ aiManager/status:
                 properties:
                     apiUrl:
                         type: string
-                    dbEntries:
-                        type: int
                     error:
                         type: string
+                    ignoredDbEntries:
+                        type: int
                     isAiModelConfigInitialized:
                         type: bool
                     isAiPromptConfigInitialized:
                         type: bool
                     model:
                         type: string
+                    nextTokenResetTime:
+                        type: string
+                    todaysProcessedTasks:
+                        type: int
                     tokenLimit:
                         type: int
                     tokensUsed:
+                        type: int
+                    totalDbEntries:
+                        type: int
+                    unprocessedDbEntries:
                         type: int
                     warning:
                         type: string

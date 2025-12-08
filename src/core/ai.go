@@ -16,6 +16,7 @@ type AiApi interface {
 	InjectAiPromptConfig(prompt ai.AiPromptConfig)
 	GetStatus() ai.AiManagerStatus
 	ResetDailyTokenLimit() error
+	DeleteAllAiData() error
 }
 type aiApi struct {
 	logger    *slog.Logger
@@ -60,4 +61,8 @@ func (ai *aiApi) GetStatus() ai.AiManagerStatus {
 
 func (ai *aiApi) ResetDailyTokenLimit() error {
 	return ai.aiManager.ResetDailyTokenLimit()
+}
+
+func (ai *aiApi) DeleteAllAiData() error {
+	return ai.aiManager.DeleteAllAiData()
 }

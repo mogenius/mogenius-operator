@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"log/slog"
 	cfg "mogenius-operator/src/config"
+	"mogenius-operator/src/store"
 	"mogenius-operator/src/structs"
 	"mogenius-operator/src/utils"
 	"mogenius-operator/src/valkeyclient"
+	"mogenius-operator/src/websocket"
 	"sort"
 	"strings"
 	"time"
@@ -21,7 +23,8 @@ import (
 )
 
 const (
-	DB_AI_BUCKET_TASKS = "ai_tasks"
+	DB_AI_BUCKET_TASKS  = "ai_tasks"
+	DB_AI_BUCKET_TOKENS = "ai_tokens"
 )
 
 type AiTaskState string
@@ -80,9 +83,13 @@ type AiManagerStatus struct {
 	ApiUrl                      string `json:"apiUrl"`
 	IsAiPromptConfigInitialized bool   `json:"isAiPromptConfigInitialized"`
 	IsAiModelConfigInitialized  bool   `json:"isAiModelConfigInitialized"`
-	DbEntries                   int    `json:"dbEntries"`
+	TodaysProcessedTasks        int    `json:"todaysProcessedTasks"`
+	TotalDbEntries              int    `json:"totalDbEntries"`
+	UnprocessedDbEntries        int    `json:"unprocessedDbEntries"`
+	IgnoredDbEntries            int    `json:"ignoredDbEntries"`
 	Error                       string `json:"error,omitempty"`
 	Warning                     string `json:"warning,omitempty"`
+	NextTokenResetTime          string `json:"nextTokenResetTime,omitempty"`
 }
 
 type AiResponse struct {
@@ -304,23 +311,28 @@ type AiManager interface {
 	InjectAiPromptConfig(prompt AiPromptConfig)
 	GetStatus() AiManagerStatus
 	ResetDailyTokenLimit() error
+	DeleteAllAiData() error
 }
 
 type aiManager struct {
-	logger         *slog.Logger
-	valkeyClient   valkeyclient.ValkeyClient
-	config         cfg.ConfigModule
-	aiPromptConfig *AiPromptConfig
-	error          string
-	warning        string
+	logger            *slog.Logger
+	valkeyClient      valkeyclient.ValkeyClient
+	config            cfg.ConfigModule
+	aiPromptConfig    *AiPromptConfig
+	ownerCacheService store.OwnerCacheService
+	eventClient       websocket.WebsocketClient
+	error             string
+	warning           string
 }
 
-func NewAiManager(logger *slog.Logger, valkeyClient valkeyclient.ValkeyClient, config cfg.ConfigModule) AiManager {
+func NewAiManager(logger *slog.Logger, valkeyClient valkeyclient.ValkeyClient, config cfg.ConfigModule, ownerCacheService store.OwnerCacheService, eventClient websocket.WebsocketClient) AiManager {
 	self := &aiManager{}
 
 	self.logger = logger
 	self.valkeyClient = valkeyClient
 	self.config = config
+	self.ownerCacheService = ownerCacheService
+	self.eventClient = eventClient
 
 	return self
 }
@@ -332,7 +344,7 @@ func (ai *aiManager) ProcessObject(obj *unstructured.Unstructured, eventType str
 
 	if eventType == "delete" {
 		// On delete, we try to remove any existing AI tasks for this object
-		key := getValkeyKey(obj.GetKind(), obj.GetNamespace(), obj.GetName(), "*")
+		key := ai.getValkeyKey(obj.GetKind(), obj.GetNamespace(), obj.GetName(), "*")
 		err := ai.valkeyClient.DeleteMultiple(key)
 		if err != nil {
 			ai.logger.Error("Error deleting AI tasks for deleted object", "objectKind", obj.GetKind(), "objectName", obj.GetName(), "objectNamespace", obj.GetNamespace(), "error", err)
@@ -392,7 +404,7 @@ func (ai *aiManager) ProcessObject(obj *unstructured.Unstructured, eventType str
 					Error:       "",
 				}
 
-				key := getValkeyKey(obj.GetKind(), obj.GetNamespace(), obj.GetName(), filter.Name)
+				key := ai.getValkeyKey(obj.GetKind(), obj.GetNamespace(), obj.GetName(), filter.Name)
 				shouldCreate, err := ai.shouldCreateNewTask(key)
 				if err != nil {
 					ai.logger.Error("Error checking if should create new AI task", "error", err)
@@ -468,12 +480,12 @@ func (ai *aiManager) isTokenLimitExceeded() bool {
 	return false
 }
 
-func (ai *aiManager) getTodayTokenUsage() (todaysTokens int64, aiTaskDbEntries int, err error) {
+func (ai *aiManager) getTodayTokenUsage() (todaysTokens int64, todaysProcessedTasks int, err error) {
 	// Calculate the start of today in Unix timestamp
 	now := time.Now()
 	startOfDay := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location()).Unix()
 
-	keys, err := ai.valkeyClient.Keys(DB_AI_BUCKET_TASKS + ":tokens:*")
+	keys, err := ai.valkeyClient.Keys(DB_AI_BUCKET_TOKENS + ":*")
 	if err != nil {
 		return 0, 0, err
 	}
@@ -498,9 +510,34 @@ func (ai *aiManager) getTodayTokenUsage() (todaysTokens int64, aiTaskDbEntries i
 	return totalTokens, len(keys), nil
 }
 
+func (ai *aiManager) getDbStats() (totalDbEntries int, unprocessedDbEntries int, ignoredDbEntries int, err error) {
+	keys, err := ai.valkeyClient.Keys(DB_AI_BUCKET_TASKS + ":*")
+	if err != nil {
+		return 0, 0, 0, err
+	}
+
+	for _, key := range keys {
+		item, err := ai.valkeyClient.Get(key)
+		if err != nil {
+			return 0, 0, 0, err
+		}
+		var task AiTask
+		err = json.Unmarshal([]byte(item), &task)
+
+		if task.State == AI_TASK_STATE_PENDING || task.State == AI_TASK_STATE_FAILED {
+			unprocessedDbEntries++
+		}
+		if task.State == AI_TASK_STATE_IGNORED {
+			ignoredDbEntries++
+		}
+	}
+
+	return len(keys), unprocessedDbEntries, ignoredDbEntries, nil
+}
+
 func (ai *aiManager) addTokenUsage(tokensUsed int, entryKey string) error {
 	now := time.Now()
-	key := fmt.Sprintf("%s:tokens:%d", DB_AI_BUCKET_TASKS, now.Unix())
+	key := fmt.Sprintf("%s:%d", DB_AI_BUCKET_TOKENS, now.Unix())
 
 	usedToken := UsedToken{
 		Key:        entryKey,
@@ -522,7 +559,7 @@ func (ai *aiManager) resetTodayTokenUsage() error {
 	now := time.Now()
 	startOfDay := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location()).Unix()
 
-	keys, err := ai.valkeyClient.Keys(fmt.Sprintf("%s:tokens:*", DB_AI_BUCKET_TASKS))
+	keys, err := ai.valkeyClient.Keys(fmt.Sprintf("%s:*", DB_AI_BUCKET_TOKENS))
 	if err != nil {
 		return err
 	}
@@ -598,6 +635,9 @@ func (ai *aiManager) processAiTaskQueue(ctx context.Context) {
 			continue
 		}
 
+		// send event notification
+		ai.sendAiEvent(&task)
+
 		response, tokensUsed, err := ai.processPrompt(ctx, task.Prompt)
 		if err != nil {
 			task.Error = err.Error()
@@ -613,6 +653,9 @@ func (ai *aiManager) processAiTaskQueue(ctx context.Context) {
 		if err != nil {
 			ai.logger.Error("Error recording AI token usage", "taskID", task.ID, "error", err)
 		}
+
+		// send event notification
+		ai.sendAiEvent(&task)
 
 		// Save updated task
 		err = ai.createOrUpdateAiTask(&task, key)
@@ -792,6 +835,26 @@ func (ai *aiManager) getOpenAIClient() (*openai.Client, error) {
 	return &client, nil
 }
 
-func getValkeyKey(kind, namespace, name, filter string) string {
+func (ai *aiManager) getValkeyKey(kind, namespace, name, filter string) string {
+	// controller lookup for pods
+	if kind == "Pod" {
+		controller := ai.ownerCacheService.ControllerForPod(namespace, name)
+		if controller != nil {
+			kind = controller.Kind
+			name = controller.Name
+		}
+	}
 	return fmt.Sprintf("%s:%s:%s:%s:%s", DB_AI_BUCKET_TASKS, kind, namespace, name, filter)
+}
+
+func (ai *aiManager) sendAiEvent(task *AiTask) {
+	datagram := structs.Datagram{
+		Id:      utils.NanoId(),
+		Pattern: "AiProcessEvent",
+		Payload: map[string]interface{}{
+			"task": task,
+		},
+		CreatedAt: time.Now(),
+	}
+	structs.ReportEventToServer(ai.eventClient, datagram)
 }

@@ -119,6 +119,17 @@ func ReportJobStateToServer(eventClient websocket.WebsocketClient, job *Job) {
 	}()
 }
 
+func ReportEventToServer(eventClient websocket.WebsocketClient, datagram Datagram) {
+	// send the datagram to the event server
+	go func() {
+		err := eventClient.WriteJSON(datagram)
+		if err != nil {
+			serviceLogger, err := logManager.GetLogger("services")
+			serviceLogger.Error("Error sending datagram to EventServer", "error", err)
+		}
+	}()
+}
+
 func ReportCmdStateToServer(eventClient websocket.WebsocketClient, job *Job, cmd *Command) {
 	stateLogCmd(cmd, job.NamespaceName, job.ControllerName)
 	result := CreateDatagramNotificationFromJob(job)

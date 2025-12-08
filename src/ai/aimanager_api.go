@@ -79,7 +79,7 @@ func (ai *aiManager) UpdateTaskReadState(taskID string, user *structs.User) erro
 
 func (ai *aiManager) GetAiTasksForResource(resourceReq utils.WorkloadSingleRequest) ([]AiTask, error) {
 	tasks := []AiTask{}
-	valkeyPath := getValkeyKey(resourceReq.Kind, resourceReq.Namespace, resourceReq.ResourceName, "*")
+	valkeyPath := ai.getValkeyKey(resourceReq.Kind, resourceReq.Namespace, resourceReq.ResourceName, "*")
 	keys, err := ai.valkeyClient.Keys(valkeyPath)
 	if err != nil {
 		return tasks, err
@@ -156,7 +156,7 @@ func (ai *aiManager) GetLatestTask(workspace string) (*AiTaskLatest, error) {
 
 func (ai *aiManager) getAiTasksForNamespace(namespace string) ([]AiTask, error) {
 
-	key := getValkeyKey("*", namespace, "*", "*")
+	key := ai.getValkeyKey("*", namespace, "*", "*")
 
 	items, err := ai.valkeyClient.List(100, key)
 	if err != nil {
@@ -180,7 +180,7 @@ func (ai *aiManager) GetStatus() AiManagerStatus {
 	limit, _ := ai.getDailyTokenLimit()
 	model, _ := ai.getAiModel()
 	apiUrl, _ := ai.getBaseUrl()
-	tokensUsed, dbEntries, _ := ai.getTodayTokenUsage()
+	tokensUsed, todaysProcessedTasks, _ := ai.getTodayTokenUsage()
 
 	if tokensUsed > limit {
 		ai.error = fmt.Sprintf("Daily AI token limit exceeded (%d tokens used of %d).", tokensUsed, limit)
@@ -190,6 +190,15 @@ func (ai *aiManager) GetStatus() AiManagerStatus {
 		}
 	}
 
+	totalDbEntries, unprocessedDbEntries, ignoredDbEntries, err := ai.getDbStats()
+	if err != nil {
+		ai.error = fmt.Sprintf("Failed to get DB stats: %v", err)
+	}
+
+	// 0 oclock next day
+	nextReset := time.Now().Add(24 * time.Hour)
+	nextReset = time.Date(nextReset.Year(), nextReset.Month(), nextReset.Day(), 0, 0, 0, 0, nextReset.Location())
+
 	return AiManagerStatus{
 		TokenLimit:                  limit,
 		TokensUsed:                  tokensUsed,
@@ -197,12 +206,25 @@ func (ai *aiManager) GetStatus() AiManagerStatus {
 		Model:                       model,
 		IsAiPromptConfigInitialized: ai.isAiPromptConfigInitialized(),
 		IsAiModelConfigInitialized:  ai.isAiModelConfigInitialized(),
-		DbEntries:                   dbEntries,
+		TodaysProcessedTasks:        todaysProcessedTasks,
+		TotalDbEntries:              totalDbEntries,
+		UnprocessedDbEntries:        unprocessedDbEntries,
+		IgnoredDbEntries:            ignoredDbEntries,
 		Error:                       ai.error,
 		Warning:                     ai.warning,
+		NextTokenResetTime:          nextReset.Format(time.RFC3339),
 	}
 }
 
 func (ai *aiManager) ResetDailyTokenLimit() error {
 	return ai.resetTodayTokenUsage()
+}
+
+func (ai *aiManager) DeleteAllAiData() error {
+	prefixes := []string{
+		DB_AI_BUCKET_TASKS + ":*",
+		DB_AI_BUCKET_TOKENS + ":*",
+	}
+	err := ai.valkeyClient.DeleteMultiple(prefixes...)
+	return err
 }

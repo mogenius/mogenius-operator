@@ -63,12 +63,12 @@ type valkeyStatsDb struct {
 	config            cfg.ConfigModule
 	logger            *slog.Logger
 	valkey            valkeyclient.ValkeyClient
-	ownerCacheService OwnerCacheService
+	ownerCacheService store.OwnerCacheService
 
 	lastPodNetworkStats []networkmonitor.PodNetworkStats
 }
 
-func NewValkeyStatsModule(logger *slog.Logger, config cfg.ConfigModule, valkey valkeyclient.ValkeyClient, ownerCacheService OwnerCacheService) ValkeyStatsDb {
+func NewValkeyStatsModule(logger *slog.Logger, config cfg.ConfigModule, valkey valkeyclient.ValkeyClient, ownerCacheService store.OwnerCacheService) ValkeyStatsDb {
 	dbStatsModule := valkeyStatsDb{
 		config:              config,
 		logger:              logger,
@@ -113,7 +113,7 @@ func (self *valkeyStatsDb) AddInterfaceStatsToDb(currentStats []networkmonitor.P
 		controller := self.ownerCacheService.ControllerForPod(currentStat.Namespace, currentStat.Pod)
 		if controller == nil {
 			// in case we cannot determine a controller
-			controller = &K8sController{
+			controller = &store.K8sController{
 				Kind:      "Pod",
 				Name:      currentStat.Pod,
 				Namespace: currentStat.Namespace,

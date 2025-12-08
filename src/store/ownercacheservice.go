@@ -1,9 +1,8 @@
-package core
+package store
 
 import (
 	"log/slog"
 	"mogenius-operator/src/config"
-	"mogenius-operator/src/store"
 	"mogenius-operator/src/utils"
 	"sync"
 
@@ -57,7 +56,7 @@ func (self *ownerCacheService) ControllerForPod(namespace string, podName string
 		return utils.Pointer(foundOwner)
 	}
 
-	pod := store.GetPod(namespace, podName)
+	pod := GetPod(namespace, podName)
 	if pod == nil {
 		self.logger.Debug("Pod not found.", "namespace", namespace, "pod", podName)
 		return nil
@@ -86,7 +85,7 @@ func (self *ownerCacheService) OwnerFromReference(namespace string, ownerRefs []
 		owner := ownerRefs[0]
 		switch owner.Kind {
 		case "ReplicaSet":
-			data := store.GetReplicaset(namespace, owner.Name)
+			data := GetReplicaset(namespace, owner.Name)
 			if data != nil {
 				lastValidController = utils.Pointer(NewK8sController(utils.ReplicaSetResource.Kind, data.Name, namespace))
 				if data.OwnerReferences != nil {
@@ -97,7 +96,7 @@ func (self *ownerCacheService) OwnerFromReference(namespace string, ownerRefs []
 			}
 
 		case "Deployment":
-			data := store.GetDeployment(namespace, owner.Name)
+			data := GetDeployment(namespace, owner.Name)
 			if data != nil {
 				lastValidController = utils.Pointer(NewK8sController(utils.DeploymentResource.Kind, data.Name, namespace))
 				if data.OwnerReferences != nil {
@@ -107,7 +106,7 @@ func (self *ownerCacheService) OwnerFromReference(namespace string, ownerRefs []
 			}
 
 		case "StatefulSet":
-			data := store.GetStatefulSet(namespace, owner.Name)
+			data := GetStatefulSet(namespace, owner.Name)
 			if data != nil {
 				lastValidController = utils.Pointer(NewK8sController(utils.StatefulSetResource.Kind, data.Name, namespace))
 				if data.OwnerReferences != nil {
@@ -117,7 +116,7 @@ func (self *ownerCacheService) OwnerFromReference(namespace string, ownerRefs []
 			}
 
 		case "DaemonSet":
-			data := store.GetDaemonSet(namespace, owner.Name)
+			data := GetDaemonSet(namespace, owner.Name)
 			if data != nil {
 				lastValidController = utils.Pointer(NewK8sController(utils.DaemonSetResource.Kind, data.Name, namespace))
 				if data.OwnerReferences != nil {
@@ -127,7 +126,7 @@ func (self *ownerCacheService) OwnerFromReference(namespace string, ownerRefs []
 			}
 
 		case "Job":
-			data := store.GetJob(namespace, owner.Name)
+			data := GetJob(namespace, owner.Name)
 			if data != nil {
 				lastValidController = utils.Pointer(NewK8sController(utils.JobResource.Kind, data.Name, namespace))
 				if data.OwnerReferences != nil {
@@ -137,7 +136,7 @@ func (self *ownerCacheService) OwnerFromReference(namespace string, ownerRefs []
 			}
 
 		case "CronJob":
-			data := store.GetCronJob(namespace, owner.Name)
+			data := GetCronJob(namespace, owner.Name)
 			if data != nil {
 				lastValidController = utils.Pointer(NewK8sController(utils.CronJobResource.Kind, data.Name, namespace))
 				if data.OwnerReferences != nil {
@@ -147,7 +146,7 @@ func (self *ownerCacheService) OwnerFromReference(namespace string, ownerRefs []
 			}
 
 		case "Pod":
-			data := store.GetPod(namespace, owner.Name)
+			data := GetPod(namespace, owner.Name)
 			if data != nil {
 				lastValidController = utils.Pointer(NewK8sController(utils.PodResource.Kind, data.Name, namespace))
 				if data.OwnerReferences != nil {
@@ -157,7 +156,7 @@ func (self *ownerCacheService) OwnerFromReference(namespace string, ownerRefs []
 			}
 
 		case "Node":
-			data := store.GetNode(owner.Name)
+			data := GetNode(owner.Name)
 			if data != nil {
 				lastValidController = utils.Pointer(NewK8sController(utils.NodeResource.Kind, data.Name, ""))
 				if data.OwnerReferences != nil {
