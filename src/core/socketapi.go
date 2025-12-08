@@ -1558,6 +1558,17 @@ func (self *socketApi) registerPatterns() {
 	}
 
 	{
+		RegisterPatternHandler(
+			PatternHandle{self, "aiManager/delete-all-data"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Void) (Void, error) {
+				err := self.aiApi.DeleteAllAiData()
+				return store.AddToAuditLog[Void](datagram, self.logger, nil, err, nil, nil)
+			},
+		)
+	}
+
+	{
 		type Request struct {
 			Workspace string `json:"workspace" validate:"required"`
 		}

@@ -3,6 +3,7 @@
 //===============================================================
 
 export enum Pattern {
+  AIMANAGER_DELETE_ALL_DATA = "aiManager/delete-all-data",
   AIMANAGER_DETAIL_TASKS = "aiManager/detail/tasks",
   AIMANAGER_GET_TASKS = "aiManager/get/tasks",
   AIMANAGER_INJECT_PROMPT_CONFIG = "aiManager/inject-prompt-config",
@@ -135,6 +136,7 @@ export enum Pattern {
 //===============================================================
 
 export const StringToPattern = {
+  "aiManager/delete-all-data": Pattern.AIMANAGER_DELETE_ALL_DATA,
   "aiManager/detail/tasks": Pattern.AIMANAGER_DETAIL_TASKS,
   "aiManager/get/tasks": Pattern.AIMANAGER_GET_TASKS,
   "aiManager/inject-prompt-config": Pattern.AIMANAGER_INJECT_PROMPT_CONFIG,
@@ -263,6 +265,7 @@ export const StringToPattern = {
 };
 
 export const PatternToString = {
+  [Pattern.AIMANAGER_DELETE_ALL_DATA]: "aiManager/delete-all-data",
   [Pattern.AIMANAGER_DETAIL_TASKS]: "aiManager/detail/tasks",
   [Pattern.AIMANAGER_GET_TASKS]: "aiManager/get/tasks",
   [Pattern.AIMANAGER_INJECT_PROMPT_CONFIG]: "aiManager/inject-prompt-config",
@@ -393,6 +396,48 @@ export const PatternToString = {
 //===============================================================
 //================= Request and Response Types ==================
 //===============================================================
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     ANON_STRUCT_0:
+ *         properties: {}
+ * typeInfo:
+ *     pointer: true
+ *     structRef: ANON_STRUCT_0
+ *     type: struct
+ * ```
+ *
+ */
+export type AIMANAGER_DELETE_ALL_DATA_REQUEST = AIMANAGER_DELETE_ALL_DATA_REQUEST__ANON_STRUCT_0|undefined;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     ANON_STRUCT_1:
+ *         properties: {}
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Void]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Void]
+ *         properties:
+ *             data:
+ *                 pointer: true
+ *                 structRef: ANON_STRUCT_1
+ *                 type: struct
+ *             message:
+ *                 type: string
+ *             status:
+ *                 type: string
+ * typeInfo:
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Void]
+ *     type: struct
+ * ```
+ *
+ */
+export type AIMANAGER_DELETE_ALL_DATA_RESPONSE = AIMANAGER_DELETE_ALL_DATA_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_MOGENIUS_OPERATOR_SRC_CORE_VOID;
 
 /**
  * #### Source
@@ -1210,19 +1255,27 @@ export type AIMANAGER_STATUS_REQUEST = AIMANAGER_STATUS_REQUEST__ANON_STRUCT_0|u
  *         properties:
  *             apiUrl:
  *                 type: string
- *             dbEntries:
- *                 type: int
  *             error:
  *                 type: string
+ *             ignoredDbEntries:
+ *                 type: int
  *             isAiModelConfigInitialized:
  *                 type: bool
  *             isAiPromptConfigInitialized:
  *                 type: bool
  *             model:
  *                 type: string
+ *             nextTokenResetTime:
+ *                 type: string
+ *             todaysProcessedTasks:
+ *                 type: int
  *             tokenLimit:
  *                 type: int
  *             tokensUsed:
+ *                 type: int
+ *             totalDbEntries:
+ *                 type: int
+ *             unprocessedDbEntries:
  *                 type: int
  *             warning:
  *                 type: string
@@ -9776,6 +9829,9 @@ export type WORKSPACE_CLEAN_UP_RESPONSE = WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_
 //===================== Struct Definitions ======================
 //===============================================================
 
+export type AIMANAGER_DELETE_ALL_DATA_REQUEST__ANON_STRUCT_0 = {};
+export type AIMANAGER_DELETE_ALL_DATA_RESPONSE__ANON_STRUCT_1 = {};
+export type AIMANAGER_DELETE_ALL_DATA_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_MOGENIUS_OPERATOR_SRC_CORE_VOID = {"data": AIMANAGER_DELETE_ALL_DATA_RESPONSE__ANON_STRUCT_1|undefined,"message": string,"status": string};
 export type AIMANAGER_DETAIL_TASKS_REQUEST__MOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRIPTOR = {"apiVersion": string,"kind": string,"namespaced": boolean,"plural": string};
 export type AIMANAGER_DETAIL_TASKS_REQUEST__MOGENIUS_OPERATOR_SRC_UTILS_WORKLOADSINGLEREQUEST = {"ResourceDescriptor": AIMANAGER_DETAIL_TASKS_REQUEST__MOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRIPTOR,"namespace": string,"resourceName": string};
 export type AIMANAGER_DETAIL_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_AIFILTER = {"contains": Record<string, string>,"description": string,"excludes": Record<string, string>,"kind": string,"name": string,"prompt": string};
@@ -9829,7 +9885,7 @@ export type AIMANAGER_RESET_DAILY_TOKEN_LIMIT_REQUEST__ANON_STRUCT_0 = {};
 export type AIMANAGER_RESET_DAILY_TOKEN_LIMIT_RESPONSE__ANON_STRUCT_1 = {};
 export type AIMANAGER_RESET_DAILY_TOKEN_LIMIT_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_MOGENIUS_OPERATOR_SRC_CORE_VOID = {"data": AIMANAGER_RESET_DAILY_TOKEN_LIMIT_RESPONSE__ANON_STRUCT_1|undefined,"message": string,"status": string};
 export type AIMANAGER_STATUS_REQUEST__ANON_STRUCT_0 = {};
-export type AIMANAGER_STATUS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_AIMANAGERSTATUS = {"apiUrl": string,"dbEntries": number,"error": string,"isAiModelConfigInitialized": boolean,"isAiPromptConfigInitialized": boolean,"model": string,"tokenLimit": number,"tokensUsed": number,"warning": string};
+export type AIMANAGER_STATUS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_AIMANAGERSTATUS = {"apiUrl": string,"error": string,"ignoredDbEntries": number,"isAiModelConfigInitialized": boolean,"isAiPromptConfigInitialized": boolean,"model": string,"nextTokenResetTime": string,"todaysProcessedTasks": number,"tokenLimit": number,"tokensUsed": number,"totalDbEntries": number,"unprocessedDbEntries": number,"warning": string};
 export type AIMANAGER_STATUS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_MOGENIUS_OPERATOR_SRC_AI_AIMANAGERSTATUS = {"data": AIMANAGER_STATUS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_AIMANAGERSTATUS,"message": string,"status": string};
 export type AIMANAGER_UPDATE_TASK_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"state": string,"taskId": string};
 export type AIMANAGER_UPDATE_TASK_RESPONSE__ANON_STRUCT_1 = {};
@@ -10300,6 +10356,10 @@ export type WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENI
 //===============================================================
 
 export interface IPatternConfig {
+  [Pattern.AIMANAGER_DELETE_ALL_DATA]: {
+    Request: AIMANAGER_DELETE_ALL_DATA_REQUEST;
+    Response: AIMANAGER_DELETE_ALL_DATA_RESPONSE;
+  };
   [Pattern.AIMANAGER_DETAIL_TASKS]: {
     Request: AIMANAGER_DETAIL_TASKS_REQUEST;
     Response: AIMANAGER_DETAIL_TASKS_RESPONSE;

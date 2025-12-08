@@ -83,9 +83,13 @@ type AiManagerStatus struct {
 	ApiUrl                      string `json:"apiUrl"`
 	IsAiPromptConfigInitialized bool   `json:"isAiPromptConfigInitialized"`
 	IsAiModelConfigInitialized  bool   `json:"isAiModelConfigInitialized"`
-	DbEntries                   int    `json:"dbEntries"`
+	TodaysProcessedTasks        int    `json:"todaysProcessedTasks"`
+	TotalDbEntries              int    `json:"totalDbEntries"`
+	UnprocessedDbEntries        int    `json:"unprocessedDbEntries"`
+	IgnoredDbEntries            int    `json:"ignoredDbEntries"`
 	Error                       string `json:"error,omitempty"`
 	Warning                     string `json:"warning,omitempty"`
+	NextTokenResetTime          string `json:"nextTokenResetTime,omitempty"`
 }
 
 type AiResponse struct {
@@ -307,6 +311,7 @@ type AiManager interface {
 	InjectAiPromptConfig(prompt AiPromptConfig)
 	GetStatus() AiManagerStatus
 	ResetDailyTokenLimit() error
+	DeleteAllAiData() error
 }
 
 type aiManager struct {
@@ -475,7 +480,7 @@ func (ai *aiManager) isTokenLimitExceeded() bool {
 	return false
 }
 
-func (ai *aiManager) getTodayTokenUsage() (todaysTokens int64, aiTaskDbEntries int, err error) {
+func (ai *aiManager) getTodayTokenUsage() (todaysTokens int64, todaysProcessedTasks int, err error) {
 	// Calculate the start of today in Unix timestamp
 	now := time.Now()
 	startOfDay := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location()).Unix()
@@ -503,6 +508,31 @@ func (ai *aiManager) getTodayTokenUsage() (todaysTokens int64, aiTaskDbEntries i
 	}
 
 	return totalTokens, len(keys), nil
+}
+
+func (ai *aiManager) getDbStats() (totalDbEntries int, unprocessedDbEntries int, ignoredDbEntries int, err error) {
+	keys, err := ai.valkeyClient.Keys(DB_AI_BUCKET_TASKS + ":*")
+	if err != nil {
+		return 0, 0, 0, err
+	}
+
+	for _, key := range keys {
+		item, err := ai.valkeyClient.Get(key)
+		if err != nil {
+			return 0, 0, 0, err
+		}
+		var task AiTask
+		err = json.Unmarshal([]byte(item), &task)
+
+		if task.State == AI_TASK_STATE_PENDING || task.State == AI_TASK_STATE_FAILED {
+			unprocessedDbEntries++
+		}
+		if task.State == AI_TASK_STATE_IGNORED {
+			ignoredDbEntries++
+		}
+	}
+
+	return len(keys), unprocessedDbEntries, ignoredDbEntries, nil
 }
 
 func (ai *aiManager) addTokenUsage(tokensUsed int, entryKey string) error {
