@@ -11,6 +11,7 @@ import (
 	"mogenius-operator/src/utils"
 	"mogenius-operator/src/valkeyclient"
 	"mogenius-operator/src/websocket"
+	"net/url"
 	"sort"
 	"strings"
 	"time"
@@ -23,6 +24,9 @@ import (
 
 	"github.com/anthropics/anthropic-sdk-go"
 	anthropic_option "github.com/anthropics/anthropic-sdk-go/option"
+
+	"github.com/ollama/ollama/api"
+	ollama "github.com/ollama/ollama/api"
 )
 
 const (
@@ -884,7 +888,61 @@ func (ai *aiManager) processPrompt(ctx context.Context, prompt string) (*AiRespo
 
 		return &aiResponse, tokensUsed, nil
 	case AiSdkTypeOllama:
-		return nil, 0, fmt.Errorf("Ollama SDK not yet implemented XXX")
+		client, err := ai.getOllamaClient()
+		if err != nil {
+			return nil, 0, err
+		}
+
+		req := &api.ChatRequest{
+			Model: model,
+			Messages: []api.Message{
+				{
+					Role:    "system",
+					Content: systemPrompt,
+				},
+				{
+					Role:    "user",
+					Content: prompt,
+				},
+			},
+			Stream: new(bool), // false - we want a single response
+		}
+
+		var responseText string
+		var promptEvalCount int
+		var evalCount int
+
+		err = client.Chat(ctx, req, func(resp api.ChatResponse) error {
+			responseText += resp.Message.Content
+			if resp.Done {
+				promptEvalCount = resp.PromptEvalCount
+				evalCount = resp.EvalCount
+			}
+			return nil
+		})
+
+		var tokensUsed int64 = 0
+		if err == nil {
+			tokensUsed = int64(promptEvalCount + evalCount)
+		}
+
+		if err != nil {
+			return nil, tokensUsed, err
+		}
+
+		if responseText == "" {
+			return nil, tokensUsed, fmt.Errorf("no content returned from AI model")
+		}
+
+		responseText = cleanJSONResponse(responseText)
+
+		var aiResponse AiResponse
+		err = json.Unmarshal([]byte(responseText), &aiResponse)
+		if err != nil {
+			return nil, tokensUsed, fmt.Errorf("error unmarshaling AI response: %v\n%s", err, responseText)
+		}
+
+		return &aiResponse, tokensUsed, nil
 	default:
 		return nil, 0, fmt.Errorf("unsupported AI SDK type: %s", sdk)
 	}
@@ -915,7 +973,6 @@ func buildUserPrompt(prompt string, obj *unstructured.Unstructured) string {
 }
 
 func (ai *aiManager) getOpenAIClient() (*openai.Client, error) {
-
 	apiKey, err := ai.getApiKey()
 	if err != nil {
 		return nil, err
@@ -932,7 +989,6 @@ func (ai *aiManager) getOpenAIClient() (*openai.Client, error) {
 }
 
 func (ai *aiManager) getAnthropicClient() (*anthropic.Client, error) {
-
 	apiKey, err := ai.getApiKey()
 	if err != nil {
 		return nil, err
@@ -942,11 +998,26 @@ func (ai *aiManager) getAnthropicClient() (*anthropic.Client, error) {
 		return nil, err
 	}
 
-	options := anthropic_option.WithBaseURL(baseUrl)
-	options = anthropic_option.WithAPIKey(apiKey)
-
-	client := anthropic.NewClient(options)
+	client := anthropic.NewClient(
+		anthropic_option.WithBaseURL(baseUrl),
+		anthropic_option.WithAPIKey(apiKey),
+	)
 	return &client, nil
+}
+
+func (ai *aiManager) getOllamaClient() (*ollama.Client, error) {
+	baseUrl, err := ai.getBaseUrl()
+	if err != nil {
+		return nil, err
+	}
+	url, err := url.Parse(baseUrl)
+	if err != nil {
+		return nil, err
+	}
+
+	client := api.NewClient(url, nil)
+
+	return client, nil
 }
 
 func (ai *aiManager) GetAvailableModels() ([]string, error) {
@@ -994,7 +1065,24 @@ func (ai *aiManager) GetAvailableModels() ([]string, error) {
 		}
 		return modelNames, nil
 	case AiSdkTypeOllama:
-		return []string{}, fmt.Errorf("Ollama SDK not yet implemented XXX")
+		client, err := ai.getOllamaClient()
+		if err != nil {
+			ai.logger.Error("Error getting Ollama client for available models", "error", err)
+			return []string{}, err
+		}
+
+		ctx := context.Background()
+		listResponse, err := client.List(ctx)
+		if err != nil {
+			ai.logger.Error("Error listing available AI models", "error", err)
+			return []string{}, err
+		}
+
+		var modelNames []string
+		for _, model := range listResponse.Models {
+			modelNames = append(modelNames, model.Name)
+		}
+		return modelNames, nil
 	default:
 		return []string{}, fmt.Errorf("unsupported AI SDK type: %s", sdk)
 	}
