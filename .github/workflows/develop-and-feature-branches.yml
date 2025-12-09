@@ -115,6 +115,10 @@ jobs:
         uses: azure/setup-helm@v4.3.1
         id: install
 
+      - name: Import GPG Key
+        run: |
+          echo "${{ secrets.GPG_PRIVATE_KEY }}" | base64 -d | gpg --import --batch
+          
       - name: Install yq
         run: |
           sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
@@ -146,8 +150,23 @@ jobs:
           echo "Packaging Helm chart"
           helm package -d /tmp/ --version ${{ env.SEMVERSION }} --app-version ${{ env.SEMVERSION }} .
 
+          # Keyring für Helm erstellen (legacy secring format)
+          gpg --export-secret-keys > ~/.gnupg/secring.gpg
+          
+          # Sign the Helm chart
+          helm package . -d /tmp/ --version ${{ env.SEMVERSION }} --app-version ${{ env.SEMVERSION }} \
+            --sign \
+            --key "Helm Charts" \
+            --keyring ~/.gnupg/secring.gpg
+
           echo "Pushing to Mogenius Helm repo"
           curl -XPOST -L -k --data-binary "@/tmp/${{ env.HELMNAME }}-${{ env.SEMVERSION }}.tgz" https://${{ secrets.MO_HELMUSER }}:${{ secrets.MO_HELMPASS }}@helm.mogenius.com/api/public/charts
+          
+          # Upload provenance file
+          PROV_FILE="/tmp/${{ env.HELMNAME }}-${{ env.SEMVERSION }}.tgz.prov"
+          curl -u "${{ secrets.CHARTMUSEUM_USER }}:${{ secrets.CHARTMUSEUM_PASS }}" \
+            --data-binary "@${PROV_FILE}" \
+            https://${{ secrets.MO_HELMUSER }}:${{ secrets.MO_HELMPASS }}@helm.mogenius.com/api/public/charts
 
           echo "Pushing to OCI registry"
           echo ${{ secrets.GITHUB_TOKEN }} | helm registry login ghcr.io --username ${{ github.actor }} --password-stdin
