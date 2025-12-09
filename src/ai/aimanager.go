@@ -99,30 +99,21 @@ type AiResponse struct {
 }
 
 type Analysis struct {
-	ProblemDescription  string                `json:"problemDescription"`
-	PossibleCauses      []string              `json:"possibleCauses"`
-	ProposedSolutions   []Solution            `json:"proposedSolutions"`
-	AdditionalInfo      string                `json:"additionalInformation"`
-	NeedsFollowUp       bool                  `json:"needsFollowUp"`
-	FollowUpResources   []ReferencingResource `json:"followUpResources"`
-	CurrentResourceYaml string                `json:"currentResourceYaml"`
-	TargetResourceYaml  string                `json:"targetResourceYaml"`
-	TargetResource      ReferencingResource   `json:"targetResource,omitempty"`
-	ProposedOperation   string                `json:"proposedOperation,omitempty"`
+	ProblemDescription  string                        `json:"problemDescription"`
+	PossibleCauses      []string                      `json:"possibleCauses"`
+	ProposedSolutions   []Solution                    `json:"proposedSolutions"`
+	AdditionalInfo      string                        `json:"additionalInformation"`
+	NeedsFollowUp       bool                          `json:"needsFollowUp"`
+	FollowUpResources   []utils.WorkloadSingleRequest `json:"followUpResources"`
+	CurrentResourceYaml string                        `json:"currentResourceYaml"`
+	TargetResourceYaml  string                        `json:"targetResourceYaml"`
+	TargetResource      utils.WorkloadSingleRequest   `json:"targetResource,omitempty"`
+	ProposedOperation   string                        `json:"proposedOperation,omitempty"` // UpdateResource', 'DeleteResource', 'CreateResource', 'Other'
 }
 
 type Solution struct {
 	SolutionDescription string   `json:"solutionDescription"`
 	Steps               []string `json:"steps"`
-}
-
-type ReferencingResource struct {
-	Kind       string `json:"kind"`
-	Plural     string `json:"plural"`
-	APIVersion string `json:"apiVersion"`
-	Namespaced bool   `json:"namespaced"`
-	Name       string `json:"name"`
-	Namespace  string `json:"namespace"`
 }
 
 type UsedToken struct {
@@ -316,6 +307,7 @@ type AiManager interface {
 	GetStatus() AiManagerStatus
 	ResetDailyTokenLimit() error
 	DeleteAllAiData() error
+	GetAvailableModels() ([]string, error)
 }
 
 type aiManager struct {
@@ -543,6 +535,9 @@ func (ai *aiManager) getDbStats() (totalDbEntries int, unprocessedDbEntries int,
 		}
 		var task AiTask
 		err = json.Unmarshal([]byte(item), &task)
+		if err != nil {
+			return 0, 0, 0, err
+		}
 
 		if task.State == AI_TASK_STATE_PENDING || task.State == AI_TASK_STATE_FAILED {
 			unprocessedDbEntries++
@@ -853,6 +848,27 @@ func (ai *aiManager) getOpenAIClient() (*openai.Client, error) {
 		option.WithBaseURL(baseUrl),
 	)
 	return &client, nil
+}
+
+func (ai *aiManager) GetAvailableModels() ([]string, error) {
+	client, err := ai.getOpenAIClient()
+	if err != nil {
+		ai.logger.Error("Error getting OpenAI client for available models", "error", err)
+		return []string{}, err
+	}
+
+	ctx := context.Background()
+	models, err := client.Models.List(ctx)
+	if err != nil {
+		ai.logger.Error("Error listing available AI models", "error", err)
+		return []string{}, err
+	}
+
+	var modelNames []string
+	for _, model := range models.Data {
+		modelNames = append(modelNames, model.ID)
+	}
+	return modelNames, nil
 }
 
 func (ai *aiManager) getValkeyKey(kind, namespace, name, filter string) string {

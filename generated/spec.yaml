@@ -209,7 +209,7 @@ aiManager/detail/tasks:
                         type: string
                     followUpResources:
                         elementType:
-                            structRef: mogenius-operator/src/ai.ReferencingResource
+                            structRef: mogenius-operator/src/utils.WorkloadSingleRequest
                             type: struct
                         type: array
                     needsFollowUp:
@@ -228,7 +228,7 @@ aiManager/detail/tasks:
                             type: struct
                         type: array
                     targetResource:
-                        structRef: mogenius-operator/src/ai.ReferencingResource
+                        structRef: mogenius-operator/src/utils.WorkloadSingleRequest
                         type: struct
                     targetResourceYaml:
                         type: string
@@ -241,21 +241,6 @@ aiManager/detail/tasks:
                     user:
                         structRef: mogenius-operator/src/structs.User
                         type: struct
-            mogenius-operator/src/ai.ReferencingResource:
-                name: mogenius-operator/src/ai.ReferencingResource
-                properties:
-                    apiVersion:
-                        type: string
-                    kind:
-                        type: string
-                    name:
-                        type: string
-                    namespace:
-                        type: string
-                    namespaced:
-                        type: bool
-                    plural:
-                        type: string
             mogenius-operator/src/ai.Solution:
                 name: mogenius-operator/src/ai.Solution
                 properties:
@@ -314,6 +299,31 @@ aiManager/detail/tasks:
                 properties: {}
         typeInfo:
             structRef: mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadSingleRequest,[]mogenius-operator/src/ai.AiTask]
+            type: struct
+aiManager/get/models:
+    requestSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
+    responseSchema:
+        structs:
+            mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,[]string]:
+                name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,[]string]
+                properties:
+                    data:
+                        elementType:
+                            type: string
+                        type: array
+                    message:
+                        type: string
+                    status:
+                        type: string
+        typeInfo:
+            structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,[]string]
             type: struct
 aiManager/get/tasks:
     requestSchema:
@@ -403,7 +413,7 @@ aiManager/get/tasks:
                         type: string
                     followUpResources:
                         elementType:
-                            structRef: mogenius-operator/src/ai.ReferencingResource
+                            structRef: mogenius-operator/src/utils.WorkloadSingleRequest
                             type: struct
                         type: array
                     needsFollowUp:
@@ -422,7 +432,7 @@ aiManager/get/tasks:
                             type: struct
                         type: array
                     targetResource:
-                        structRef: mogenius-operator/src/ai.ReferencingResource
+                        structRef: mogenius-operator/src/utils.WorkloadSingleRequest
                         type: struct
                     targetResourceYaml:
                         type: string
@@ -435,21 +445,6 @@ aiManager/get/tasks:
                     user:
                         structRef: mogenius-operator/src/structs.User
                         type: struct
-            mogenius-operator/src/ai.ReferencingResource:
-                name: mogenius-operator/src/ai.ReferencingResource
-                properties:
-                    apiVersion:
-                        type: string
-                    kind:
-                        type: string
-                    name:
-                        type: string
-                    namespace:
-                        type: string
-                    namespaced:
-                        type: bool
-                    plural:
-                        type: string
             mogenius-operator/src/ai.Solution:
                 name: mogenius-operator/src/ai.Solution
                 properties:
@@ -671,7 +666,7 @@ aiManager/latest/task:
                         type: string
                     followUpResources:
                         elementType:
-                            structRef: mogenius-operator/src/ai.ReferencingResource
+                            structRef: mogenius-operator/src/utils.WorkloadSingleRequest
                             type: struct
                         type: array
                     needsFollowUp:
@@ -690,7 +685,7 @@ aiManager/latest/task:
                             type: struct
                         type: array
                     targetResource:
-                        structRef: mogenius-operator/src/ai.ReferencingResource
+                        structRef: mogenius-operator/src/utils.WorkloadSingleRequest
                         type: struct
                     targetResourceYaml:
                         type: string
@@ -703,21 +698,6 @@ aiManager/latest/task:
                     user:
                         structRef: mogenius-operator/src/structs.User
                         type: struct
-            mogenius-operator/src/ai.ReferencingResource:
-                name: mogenius-operator/src/ai.ReferencingResource
-                properties:
-                    apiVersion:
-                        type: string
-                    kind:
-                        type: string
-                    name:
-                        type: string
-                    namespace:
-                        type: string
-                    namespaced:
-                        type: bool
-                    plural:
-                        type: string
             mogenius-operator/src/ai.Solution:
                 name: mogenius-operator/src/ai.Solution
                 properties:

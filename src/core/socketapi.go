@@ -1548,6 +1548,16 @@ func (self *socketApi) registerPatterns() {
 
 	{
 		RegisterPatternHandler(
+			PatternHandle{self, "aiManager/get/models"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Void) ([]string, error) {
+				return self.aiApi.GetAvailableModels()
+			},
+		)
+	}
+
+	{
+		RegisterPatternHandler(
 			PatternHandle{self, "aiManager/reset-daily-token-limit"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Void) (Void, error) {
