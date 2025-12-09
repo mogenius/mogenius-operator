@@ -115,10 +115,10 @@ jobs:
         uses: azure/setup-helm@v4.3.1
         id: install
 
-      - name: install gpg
-        run: |
-          apt-get update
-          apt-get install -y gnupg
+      # - name: install gpg
+      #   run: |
+      #     sudo apt-get update
+      #     sudo apt-get install -y gnupg
 
       - name: Import GPG Key
         run: |
