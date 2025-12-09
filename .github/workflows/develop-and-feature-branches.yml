@@ -115,12 +115,17 @@ jobs:
         uses: azure/setup-helm@v4.3.1
         id: install
 
+      - name: Install yq
+        run: |
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+
       - name: Update Helm chart and values yaml-Files
         run: |
           set -x
 
           cd ./helm/charts/mogenius-operator
-          sed -i -E "s/tag: .*/tag: ${{ env.SEMVERSION }}/" values.yaml
+          yq -i ".image.tag = ${{ env.SEMVERSION }}" values.yaml
           sed -i -e "s/repository: mogenius\/mogenius-operator/repository: mogenius\/mogenius-operator-dev/" values.yaml
           sed -i -e "s/name: mogenius-operator/name: mogenius-operator-dev/" Chart.yaml
           sed -i -E 's/appVersion: ".*"/appVersion: "${{ env.SEMVERSION }}"/' Chart.yaml
