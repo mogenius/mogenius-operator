@@ -172,7 +172,7 @@ jobs:
           PROV_FILE="/tmp/${{ env.HELMNAME }}-${{ env.SEMVERSION }}.tgz.prov"
           curl -u "${{ secrets.MO_HELMUSER }}:${{ secrets.MO_HELMPASS }}" \
             --data-binary "@${PROV_FILE}" \
-            https://helm.mogenius.com/api/public/charts
+            https://helm.mogenius.com/api/public/prov
 
           echo "Pushing to OCI registry"
           echo ${{ secrets.GITHUB_TOKEN }} | helm registry login ghcr.io --username ${{ github.actor }} --password-stdin
