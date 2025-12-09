@@ -125,7 +125,6 @@ jobs:
           set -x
 
           cd ./helm/charts/mogenius-operator
-          sed -i -E "s/tag: .*/tag: ${{ env.SEMVERSION }}/" values.yaml
           yq -i ".image.tag = \"${{ env.SEMVERSION }}\"" values.yaml
           sed -i -e "s/repository: mogenius\/mogenius-operator/repository: mogenius\/mogenius-operator-dev/" values.yaml
           sed -i -e "s/name: mogenius-operator/name: mogenius-operator-dev/" Chart.yaml
