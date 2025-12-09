@@ -205,15 +205,13 @@ aiManager/detail/tasks:
                 properties:
                     additionalInformation:
                         type: string
-                    diffYaml:
+                    currentResourceYaml:
                         type: string
                     followUpResources:
                         elementType:
-                            structRef: mogenius-operator/src/ai.FollowUpResource
+                            structRef: mogenius-operator/src/ai.ReferencingResource
                             type: struct
                         type: array
-                    kubectlApplyFixYaml:
-                        type: string
                     needsFollowUp:
                         type: bool
                     possibleCauses:
@@ -222,13 +220,29 @@ aiManager/detail/tasks:
                         type: array
                     problemDescription:
                         type: string
+                    proposedOperation:
+                        type: string
                     proposedSolutions:
                         elementType:
                             structRef: mogenius-operator/src/ai.Solution
                             type: struct
                         type: array
-            mogenius-operator/src/ai.FollowUpResource:
-                name: mogenius-operator/src/ai.FollowUpResource
+                    targetResource:
+                        structRef: mogenius-operator/src/ai.ReferencingResource
+                        type: struct
+                    targetResourceYaml:
+                        type: string
+            mogenius-operator/src/ai.ReadBy:
+                name: mogenius-operator/src/ai.ReadBy
+                properties:
+                    readAt:
+                        structRef: time.Time
+                        type: struct
+                    user:
+                        structRef: mogenius-operator/src/structs.User
+                        type: struct
+            mogenius-operator/src/ai.ReferencingResource:
+                name: mogenius-operator/src/ai.ReferencingResource
                 properties:
                     apiVersion:
                         type: string
@@ -242,15 +256,6 @@ aiManager/detail/tasks:
                         type: bool
                     plural:
                         type: string
-            mogenius-operator/src/ai.ReadBy:
-                name: mogenius-operator/src/ai.ReadBy
-                properties:
-                    readAt:
-                        structRef: time.Time
-                        type: struct
-                    user:
-                        structRef: mogenius-operator/src/structs.User
-                        type: struct
             mogenius-operator/src/ai.Solution:
                 name: mogenius-operator/src/ai.Solution
                 properties:
@@ -394,15 +399,13 @@ aiManager/get/tasks:
                 properties:
                     additionalInformation:
                         type: string
-                    diffYaml:
+                    currentResourceYaml:
                         type: string
                     followUpResources:
                         elementType:
-                            structRef: mogenius-operator/src/ai.FollowUpResource
+                            structRef: mogenius-operator/src/ai.ReferencingResource
                             type: struct
                         type: array
-                    kubectlApplyFixYaml:
-                        type: string
                     needsFollowUp:
                         type: bool
                     possibleCauses:
@@ -411,13 +414,29 @@ aiManager/get/tasks:
                         type: array
                     problemDescription:
                         type: string
+                    proposedOperation:
+                        type: string
                     proposedSolutions:
                         elementType:
                             structRef: mogenius-operator/src/ai.Solution
                             type: struct
                         type: array
-            mogenius-operator/src/ai.FollowUpResource:
-                name: mogenius-operator/src/ai.FollowUpResource
+                    targetResource:
+                        structRef: mogenius-operator/src/ai.ReferencingResource
+                        type: struct
+                    targetResourceYaml:
+                        type: string
+            mogenius-operator/src/ai.ReadBy:
+                name: mogenius-operator/src/ai.ReadBy
+                properties:
+                    readAt:
+                        structRef: time.Time
+                        type: struct
+                    user:
+                        structRef: mogenius-operator/src/structs.User
+                        type: struct
+            mogenius-operator/src/ai.ReferencingResource:
+                name: mogenius-operator/src/ai.ReferencingResource
                 properties:
                     apiVersion:
                         type: string
@@ -431,15 +450,6 @@ aiManager/get/tasks:
                         type: bool
                     plural:
                         type: string
-            mogenius-operator/src/ai.ReadBy:
-                name: mogenius-operator/src/ai.ReadBy
-                properties:
-                    readAt:
-                        structRef: time.Time
-                        type: struct
-                    user:
-                        structRef: mogenius-operator/src/structs.User
-                        type: struct
             mogenius-operator/src/ai.Solution:
                 name: mogenius-operator/src/ai.Solution
                 properties:
@@ -657,15 +667,13 @@ aiManager/latest/task:
                 properties:
                     additionalInformation:
                         type: string
-                    diffYaml:
+                    currentResourceYaml:
                         type: string
                     followUpResources:
                         elementType:
-                            structRef: mogenius-operator/src/ai.FollowUpResource
+                            structRef: mogenius-operator/src/ai.ReferencingResource
                             type: struct
                         type: array
-                    kubectlApplyFixYaml:
-                        type: string
                     needsFollowUp:
                         type: bool
                     possibleCauses:
@@ -674,13 +682,29 @@ aiManager/latest/task:
                         type: array
                     problemDescription:
                         type: string
+                    proposedOperation:
+                        type: string
                     proposedSolutions:
                         elementType:
                             structRef: mogenius-operator/src/ai.Solution
                             type: struct
                         type: array
-            mogenius-operator/src/ai.FollowUpResource:
-                name: mogenius-operator/src/ai.FollowUpResource
+                    targetResource:
+                        structRef: mogenius-operator/src/ai.ReferencingResource
+                        type: struct
+                    targetResourceYaml:
+                        type: string
+            mogenius-operator/src/ai.ReadBy:
+                name: mogenius-operator/src/ai.ReadBy
+                properties:
+                    readAt:
+                        structRef: time.Time
+                        type: struct
+                    user:
+                        structRef: mogenius-operator/src/structs.User
+                        type: struct
+            mogenius-operator/src/ai.ReferencingResource:
+                name: mogenius-operator/src/ai.ReferencingResource
                 properties:
                     apiVersion:
                         type: string
@@ -694,15 +718,6 @@ aiManager/latest/task:
                         type: bool
                     plural:
                         type: string
-            mogenius-operator/src/ai.ReadBy:
-                name: mogenius-operator/src/ai.ReadBy
-                properties:
-                    readAt:
-                        structRef: time.Time
-                        type: struct
-                    user:
-                        structRef: mogenius-operator/src/structs.User
-                        type: struct
             mogenius-operator/src/ai.Solution:
                 name: mogenius-operator/src/ai.Solution
                 properties:
