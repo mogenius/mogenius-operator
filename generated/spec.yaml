@@ -840,6 +840,8 @@ aiManager/status:
                         type: string
                     nextTokenResetTime:
                         type: string
+                    sdkType:
+                        type: string
                     todaysProcessedTasks:
                         type: int
                     tokenLimit:

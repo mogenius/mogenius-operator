@@ -1292,6 +1292,8 @@ export type AIMANAGER_STATUS_REQUEST = AIMANAGER_STATUS_REQUEST__ANON_STRUCT_0|u
  *                 type: string
  *             nextTokenResetTime:
  *                 type: string
+ *             sdkType:
+ *                 type: string
  *             todaysProcessedTasks:
  *                 type: int
  *             tokenLimit:
@@ -9909,7 +9911,7 @@ export type AIMANAGER_RESET_DAILY_TOKEN_LIMIT_REQUEST__ANON_STRUCT_0 = {};
 export type AIMANAGER_RESET_DAILY_TOKEN_LIMIT_RESPONSE__ANON_STRUCT_1 = {};
 export type AIMANAGER_RESET_DAILY_TOKEN_LIMIT_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_MOGENIUS_OPERATOR_SRC_CORE_VOID = {"data": AIMANAGER_RESET_DAILY_TOKEN_LIMIT_RESPONSE__ANON_STRUCT_1|undefined,"message": string,"status": string};
 export type AIMANAGER_STATUS_REQUEST__ANON_STRUCT_0 = {};
-export type AIMANAGER_STATUS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_AIMANAGERSTATUS = {"apiUrl": string,"error": string,"ignoredDbEntries": number,"isAiModelConfigInitialized": boolean,"isAiPromptConfigInitialized": boolean,"model": string,"nextTokenResetTime": string,"todaysProcessedTasks": number,"tokenLimit": number,"tokensUsed": number,"totalDbEntries": number,"unprocessedDbEntries": number,"warning": string};
+export type AIMANAGER_STATUS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_AIMANAGERSTATUS = {"apiUrl": string,"error": string,"ignoredDbEntries": number,"isAiModelConfigInitialized": boolean,"isAiPromptConfigInitialized": boolean,"model": string,"nextTokenResetTime": string,"sdkType": string,"todaysProcessedTasks": number,"tokenLimit": number,"tokensUsed": number,"totalDbEntries": number,"unprocessedDbEntries": number,"warning": string};
 export type AIMANAGER_STATUS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_MOGENIUS_OPERATOR_SRC_AI_AIMANAGERSTATUS = {"data": AIMANAGER_STATUS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_AIMANAGERSTATUS,"message": string,"status": string};
 export type AIMANAGER_UPDATE_TASK_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"state": string,"taskId": string};
 export type AIMANAGER_UPDATE_TASK_RESPONSE__ANON_STRUCT_1 = {};

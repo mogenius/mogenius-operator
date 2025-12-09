@@ -20,6 +20,9 @@ import (
 
 	"github.com/openai/openai-go/v3"
 	"github.com/openai/openai-go/v3/option"
+
+	"github.com/anthropics/anthropic-sdk-go"
+	anthropic_option "github.com/anthropics/anthropic-sdk-go/option"
 )
 
 const (
@@ -78,19 +81,20 @@ type AiPromptConfig struct {
 }
 
 type AiManagerStatus struct {
-	TokenLimit                  int64  `json:"tokenLimit"`
-	TokensUsed                  int64  `json:"tokensUsed"`
-	Model                       string `json:"model"`
-	ApiUrl                      string `json:"apiUrl"`
-	IsAiPromptConfigInitialized bool   `json:"isAiPromptConfigInitialized"`
-	IsAiModelConfigInitialized  bool   `json:"isAiModelConfigInitialized"`
-	TodaysProcessedTasks        int    `json:"todaysProcessedTasks"`
-	TotalDbEntries              int    `json:"totalDbEntries"`
-	UnprocessedDbEntries        int    `json:"unprocessedDbEntries"`
-	IgnoredDbEntries            int    `json:"ignoredDbEntries"`
-	Error                       string `json:"error,omitempty"`
-	Warning                     string `json:"warning,omitempty"`
-	NextTokenResetTime          string `json:"nextTokenResetTime,omitempty"`
+	SdkType                     AiSdkType `json:"sdkType"`
+	TokenLimit                  int64     `json:"tokenLimit"`
+	TokensUsed                  int64     `json:"tokensUsed"`
+	Model                       string    `json:"model"`
+	ApiUrl                      string    `json:"apiUrl"`
+	IsAiPromptConfigInitialized bool      `json:"isAiPromptConfigInitialized"`
+	IsAiModelConfigInitialized  bool      `json:"isAiModelConfigInitialized"`
+	TodaysProcessedTasks        int       `json:"todaysProcessedTasks"`
+	TotalDbEntries              int       `json:"totalDbEntries"`
+	UnprocessedDbEntries        int       `json:"unprocessedDbEntries"`
+	IgnoredDbEntries            int       `json:"ignoredDbEntries"`
+	Error                       string    `json:"error,omitempty"`
+	Warning                     string    `json:"warning,omitempty"`
+	NextTokenResetTime          string    `json:"nextTokenResetTime,omitempty"`
 }
 
 type AiResponse struct {
@@ -782,45 +786,122 @@ func (ai *aiManager) shouldCreateNewTask(key string) (bool, error) {
 }
 
 func (ai *aiManager) processPrompt(ctx context.Context, prompt string) (*AiResponse, int64, error) {
-	client, err := ai.getOpenAIClient()
-	if err != nil {
-		return nil, 0, err
-	}
-
 	model, err := ai.getAiModel()
 	if err != nil {
 		return nil, 0, err
 	}
 	systemPrompt := ai.getSystemPrompt()
 
-	chatCompletion, err := client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
-		Messages: []openai.ChatCompletionMessageParamUnion{
-			openai.UserMessage(prompt),
-			openai.SystemMessage(systemPrompt),
-		},
-		Model: model,
-	})
-
-	var tokensUsed int64 = 0
-	if chatCompletion != nil {
-		tokensUsed = chatCompletion.Usage.TotalTokens
-	}
-
+	sdk, err := ai.getSdkType()
 	if err != nil {
-		return nil, tokensUsed, err
+		return nil, 0, err
 	}
-	if len(chatCompletion.Choices) == 0 {
-		return nil, tokensUsed, fmt.Errorf("no choices returned from AI model")
-	}
+	switch sdk {
+	case AiSdkTypeOpenAI:
+		client, err := ai.getOpenAIClient()
+		if err != nil {
+			return nil, 0, err
+		}
 
-	var aiResponse AiResponse
-	err = json.Unmarshal([]byte(chatCompletion.Choices[0].Message.Content), &aiResponse)
-	if err != nil {
-		return nil, tokensUsed, fmt.Errorf("error unmarshaling AI response: %v\n%s", err, chatCompletion.Choices[0].Message.Content)
-	}
+		chatCompletion, err := client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
+			Messages: []openai.ChatCompletionMessageParamUnion{
+				openai.UserMessage(prompt),
+				openai.SystemMessage(systemPrompt),
+			},
+			Model: model,
+		})
 
-	// also return tokens used
-	return &aiResponse, tokensUsed, nil
+		var tokensUsed int64 = 0
+		if chatCompletion != nil {
+			tokensUsed = chatCompletion.Usage.TotalTokens
+		}
+
+		if err != nil {
+			return nil, tokensUsed, err
+		}
+		if len(chatCompletion.Choices) == 0 {
+			return nil, tokensUsed, fmt.Errorf("no choices returned from AI model")
+		}
+
+		var aiResponse AiResponse
+		err = json.Unmarshal([]byte(chatCompletion.Choices[0].Message.Content), &aiResponse)
+		if err != nil {
+			return nil, tokensUsed, fmt.Errorf("error unmarshaling AI response: %v\n%s", err, chatCompletion.Choices[0].Message.Content)
+		}
+
+		// also return tokens used
+		return &aiResponse, tokensUsed, nil
+	case AiSdkTypeAnthropic:
+		client, err := ai.getAnthropicClient()
+		if err != nil {
+			return nil, 0, err
+		}
+
+		message, err := client.Messages.New(ctx, anthropic.MessageNewParams{
+			Model:     anthropic.Model(model),
+			MaxTokens: int64(10000),
+			System: []anthropic.TextBlockParam{
+				{
+					Type: "text",
+					Text: systemPrompt,
+				},
+			},
+			Messages: []anthropic.MessageParam{
+				{
+					Role: anthropic.MessageParamRoleUser,
+					Content: []anthropic.ContentBlockParamUnion{
+						anthropic.NewTextBlock(prompt),
+					},
+				},
+			},
+		})
+
+		var tokensUsed int64 = 0
+		if message != nil {
+			tokensUsed = message.Usage.InputTokens + message.Usage.OutputTokens
+		}
+
+		if err != nil {
+			return nil, tokensUsed, err
+		}
+
+		if len(message.Content) == 0 {
+			return nil, tokensUsed, fmt.Errorf("no content returned from AI model")
+		}
+
+		// Extract text from content blocks
+		var responseText string
+		for _, block := range message.Content {
+			responseText += block.Text
+		}
+		responseText = cleanJSONResponse(responseText)
+
+		var aiResponse AiResponse
+		err = json.Unmarshal([]byte(responseText), &aiResponse)
+		if err != nil {
+			return nil, tokensUsed, fmt.Errorf("error unmarshaling AI response: %v\n%s", err, responseText)
+		}
+
+		return &aiResponse, tokensUsed, nil
+	case AiSdkTypeOllama:
+		return nil, 0, fmt.Errorf("Ollama SDK not yet implemented XXX")
+	default:
+		return nil, 0, fmt.Errorf("unsupported AI SDK type: %s", sdk)
+	}
+}
+
+// for nasty AIs which return markdown code blocks or extra text around JSON
+func cleanJSONResponse(response string) string {
+	// Trim whitespace
+	response = strings.TrimSpace(response)
+
+	// Remove markdown code blocks (```json or ``` at start/end)
+	response = strings.TrimPrefix(response, "```json")
+	response = strings.TrimPrefix(response, "```")
+	response = strings.TrimSuffix(response, "```")
+
+	// Trim again after removing code blocks
+	return strings.TrimSpace(response)
 }
 
 func buildUserPrompt(prompt string, obj *unstructured.Unstructured) string {
@@ -850,25 +931,73 @@ func (ai *aiManager) getOpenAIClient() (*openai.Client, error) {
 	return &client, nil
 }
 
+func (ai *aiManager) getAnthropicClient() (*anthropic.Client, error) {
+
+	apiKey, err := ai.getApiKey()
+	if err != nil {
+		return nil, err
+	}
+	baseUrl, err := ai.getBaseUrl()
+	if err != nil {
+		return nil, err
+	}
+
+	options := anthropic_option.WithBaseURL(baseUrl)
+	options = anthropic_option.WithAPIKey(apiKey)
+
+	client := anthropic.NewClient(options)
+	return &client, nil
+}
+
 func (ai *aiManager) GetAvailableModels() ([]string, error) {
-	client, err := ai.getOpenAIClient()
+	sdk, err := ai.getSdkType()
 	if err != nil {
-		ai.logger.Error("Error getting OpenAI client for available models", "error", err)
 		return []string{}, err
 	}
+	switch sdk {
+	case AiSdkTypeOpenAI:
+		client, err := ai.getOpenAIClient()
+		if err != nil {
+			ai.logger.Error("Error getting OpenAI client for available models", "error", err)
+			return []string{}, err
+		}
 
-	ctx := context.Background()
-	models, err := client.Models.List(ctx)
-	if err != nil {
-		ai.logger.Error("Error listing available AI models", "error", err)
-		return []string{}, err
-	}
+		ctx := context.Background()
+		models, err := client.Models.List(ctx)
+		if err != nil {
+			ai.logger.Error("Error listing available AI models", "error", err)
+			return []string{}, err
+		}
 
-	var modelNames []string
-	for _, model := range models.Data {
-		modelNames = append(modelNames, model.ID)
+		var modelNames []string
+		for _, model := range models.Data {
+			modelNames = append(modelNames, model.ID)
+		}
+		return modelNames, nil
+	case AiSdkTypeAnthropic:
+		client, err := ai.getAnthropicClient()
+		if err != nil {
+			ai.logger.Error("Error getting Anthropic client for available models", "error", err)
+			return []string{}, err
+		}
+
+		ctx := context.Background()
+		models, err := client.Models.List(ctx, anthropic.ModelListParams{})
+		if err != nil {
+			ai.logger.Error("Error listing available AI models", "error", err)
+			return []string{}, err
+		}
+
+		var modelNames []string
+		for _, model := range models.Data {
+			modelNames = append(modelNames, model.ID)
+		}
+		return modelNames, nil
+	case AiSdkTypeOllama:
+		return []string{}, fmt.Errorf("Ollama SDK not yet implemented XXX")
+	default:
+		return []string{}, fmt.Errorf("unsupported AI SDK type: %s", sdk)
 	}
-	return modelNames, nil
 }
 
 func (ai *aiManager) getValkeyKey(kind, namespace, name, filter string) string {

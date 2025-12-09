@@ -177,6 +177,7 @@ func (ai *aiManager) getAiTasksForNamespace(namespace string) ([]AiTask, error) 
 }
 
 func (ai *aiManager) GetStatus() AiManagerStatus {
+	sdk, _ := ai.getSdkType()
 	limit, _ := ai.getDailyTokenLimit()
 	model, _ := ai.getAiModel()
 	apiUrl, _ := ai.getBaseUrl()
@@ -200,6 +201,7 @@ func (ai *aiManager) GetStatus() AiManagerStatus {
 	nextReset = time.Date(nextReset.Year(), nextReset.Month(), nextReset.Day(), 0, 0, 0, 0, nextReset.Location())
 
 	return AiManagerStatus{
+		SdkType:                     sdk,
 		TokenLimit:                  limit,
 		TokensUsed:                  tokensUsed,
 		ApiUrl:                      apiUrl,
