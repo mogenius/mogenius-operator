@@ -115,6 +115,11 @@ jobs:
         uses: azure/setup-helm@v4.3.1
         id: install
 
+      - name: install gpg
+        run: |
+          apt-get update
+          apt-get install -y gnupg
+
       - name: Import GPG Key
         run: |
           echo "${{ secrets.GPG_PRIVATE_KEY }}" | base64 -d | gpg --import --batch
@@ -139,10 +144,6 @@ jobs:
         with:
           chart-search-root: helm
 
-      - name: install gpg
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y gnupg
 
       - name: Install cosign
         uses: sigstore/cosign-installer@v4.0.0
