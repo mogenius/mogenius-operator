@@ -124,10 +124,10 @@ jobs:
         run: |
           echo "${{ secrets.GPG_PRIVATE_KEY }}" | base64 -d | gpg --import --batch
           
-      - name: Install yq
-        run: |
-          wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
-          chmod +x /usr/local/bin/yq
+      # - name: Install yq
+      #   run: |
+      #     wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+      #     chmod +x /usr/local/bin/yq
 
       - name: Update Helm chart and values yaml-Files
         run: |
