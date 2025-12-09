@@ -118,17 +118,22 @@ jobs:
       - name: Import GPG Key
         run: |
           echo "${{ secrets.GPG_PRIVATE_KEY }}" | base64 -d | gpg --import --batch
+          
+      - name: Install yq
+        run: |
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
 
       - name: Update Helm chart and values yaml-Files
         run: |
           set -x
 
           cd ./helm/charts/mogenius-operator
-          sed -i -E 's/version: ".*"/version: "${{ env.SEMVERSION }}"/' values.yaml
+          yq -i ".image.tag = ${{ env.SEMVERSION }}" values.yaml
           sed -i -e "s/repository: mogenius\/mogenius-operator/repository: mogenius\/mogenius-operator-dev/" values.yaml
           sed -i -e "s/name: mogenius-operator/name: mogenius-operator-dev/" Chart.yaml
           sed -i -E 's/appVersion: ".*"/appVersion: "${{ env.SEMVERSION }}"/' Chart.yaml
-
+          sed -i -E 's/^version: .*/version: ${{ env.SEMVERSION }}/' Chart.yaml
       - name: Run helm-docs
         uses: losisin/helm-docs-github-action@v1.6.2
         with:
@@ -141,6 +146,7 @@ jobs:
         run: |
           set -x
 
+          cd ./helm/charts/mogenius-operator
           echo "Packaging Helm chart"
           helm package -d /tmp/ --version ${{ env.SEMVERSION }} --app-version ${{ env.SEMVERSION }} .
 
