@@ -48,6 +48,7 @@ type SocketApi interface {
 		moKubernetes MoKubernetes,
 		sealedSecret SealedSecretManager,
 		aiApi AiApi,
+		mcpApi McpApi,
 	)
 	Run()
 	Status() SocketApiStatus
@@ -106,6 +107,7 @@ type socketApi struct {
 	sealedSecret       SealedSecretManager
 	argocd             argocd.Argocd
 	aiApi              AiApi
+	mcpApi             McpApi
 }
 
 type PatternHandler struct {
@@ -160,6 +162,7 @@ func (self *socketApi) Link(
 	moKubernetes MoKubernetes,
 	sealedSecret SealedSecretManager,
 	aiApi AiApi,
+	mcpAPi McpApi,
 ) {
 	assert.Assert(apiService != nil)
 	assert.Assert(httpService != nil)
@@ -175,6 +178,7 @@ func (self *socketApi) Link(
 	self.moKubernetes = moKubernetes
 	self.sealedSecret = sealedSecret
 	self.aiApi = aiApi
+	self.mcpApi = mcpAPi
 }
 
 func (self *socketApi) Run() {
@@ -1872,6 +1876,23 @@ func (self *socketApi) registerPatterns() {
 			return self.sealedSecret.GetMainSecret()
 		},
 	)
+
+	{
+		type Request struct {
+			Method  string            `json:"method" validate:"required"`
+			Url     string            `json:"url" validate:"required"`
+			Body    *string           `json:"body"`
+			Headers map[string]string `json:"headers"`
+		}
+
+		RegisterPatternHandler(
+			PatternHandle{self, "mcp/proxy"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Request) (string, error) {
+				return self.mcpApi.McpRequest(request.Method, request.Url, request.Body, request.Headers)
+			},
+		)
+	}
 
 	// Get live metrics for all nodes from Valkey
 	{
