@@ -27,12 +27,12 @@ require (
 	golang.org/x/term v0.38.0
 	gopkg.in/yaml.v3 v3.0.1
 	helm.sh/helm/v4 v4.0.1
-	k8s.io/api v0.34.2
-	k8s.io/apimachinery v0.34.2
-	k8s.io/client-go v0.34.2
+	k8s.io/api v0.34.3
+	k8s.io/apimachinery v0.34.3
+	k8s.io/client-go v0.34.3
 	k8s.io/klog/v2 v2.130.1
-	k8s.io/kubectl v0.34.2
-	k8s.io/metrics v0.34.2
+	k8s.io/kubectl v0.34.3
+	k8s.io/metrics v0.34.3
 	k8s.io/utils v0.0.0-20251002143259-bc988d571ff4
 	sigs.k8s.io/controller-runtime v0.22.4
 	sigs.k8s.io/yaml v1.6.0
@@ -49,7 +49,7 @@ require (
 	github.com/Masterminds/squirrel v1.5.4 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/ProtonMail/go-crypto v1.3.0 // indirect
-	github.com/anthropics/anthropic-sdk-go v1.19.0 // indirect
+	github.com/anthropics/anthropic-sdk-go v1.19.0
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/chai2010/gettext-go v1.0.3 // indirect
@@ -176,9 +176,9 @@ require (
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	k8s.io/apiextensions-apiserver v0.34.2 // indirect
 	k8s.io/apiserver v0.34.2 // indirect
-	k8s.io/cli-runtime v0.34.2 // indirect
-	k8s.io/component-base v0.34.2 // indirect
-	k8s.io/component-helpers v0.34.2 // indirect
+	k8s.io/cli-runtime v0.34.3 // indirect
+	k8s.io/component-base v0.34.3 // indirect
+	k8s.io/component-helpers v0.34.3 // indirect
 	k8s.io/kube-openapi v0.0.0-20251121143641-b6aabc6c6745 // indirect
 	oras.land/oras-go/v2 v2.6.0 // indirect
 	sigs.k8s.io/gateway-api v1.4.0 // indirect
