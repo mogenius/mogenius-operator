@@ -108,6 +108,10 @@ jobs:
         uses: azure/setup-helm@v4.3.1
         id: install
 
+      - name: Import GPG Key
+        run: |
+          echo "${{ secrets.GPG_PRIVATE_KEY }}" | base64 -d | gpg --import --batch
+
       - name: Install cosign
         uses: sigstore/cosign-installer@v4.0.0
 
@@ -116,10 +120,11 @@ jobs:
           set -x
 
           cd ./helm/charts/mogenius-operator
-          sed -i -E 's/version: ".*"/version: "${{ env.SEMVERSION }}"/' values.yaml
+          yq -i ".image.tag = \"${{ env.SEMVERSION }}\"" values.yaml
           sed -i -e "s/repository: mogenius\/mogenius-operator/repository: mogenius\/mogenius-operator-dev/" values.yaml
           sed -i -e "s/name: mogenius-operator/name: mogenius-operator-dev/" Chart.yaml
           sed -i -E 's/appVersion: ".*"/appVersion: "${{ env.SEMVERSION }}"/' Chart.yaml
+          sed -i -E 's/^version: .*/version: ${{ env.SEMVERSION }}/' Chart.yaml
 
       - name: Run helm-docs
         uses: losisin/helm-docs-github-action@v1.6.2
@@ -132,11 +137,24 @@ jobs:
 
           cd ./helm/charts/mogenius-operator
 
+          # Create keyring for Helm (legacy secring format)
+          gpg --export-secret-keys > ~/.gnupg/secring.gpg
+
+          # Sign the Helm chart
           echo "Packaging Helm chart"
-          helm package -d /tmp/ --version ${{ env.SEMVERSION }} --app-version ${{ env.SEMVERSION }} .
+          helm package . -d /tmp/ --version ${{ env.SEMVERSION }} --app-version ${{ env.SEMVERSION }} \
+            --sign \
+            --key "Helm Charts" \
+            --keyring ~/.gnupg/secring.gpg
 
           echo "Pushing to Mogenius Helm repo"
           curl -XPOST -L -k --data-binary "@/tmp/${{ env.HELMNAME }}-${{ env.SEMVERSION }}.tgz" https://${{ secrets.MO_HELMUSER }}:${{ secrets.MO_HELMPASS }}@helm.mogenius.com/api/public/charts
+
+          # Upload provenance file
+          PROV_FILE="/tmp/${{ env.HELMNAME }}-${{ env.SEMVERSION }}.tgz.prov"
+          curl -u "${{ secrets.MO_HELMUSER }}:${{ secrets.MO_HELMPASS }}" \
+            --data-binary "@${PROV_FILE}" \
+            https://helm.mogenius.com/api/public/prov
 
           echo "Pushing to OCI registry"
           echo ${{ secrets.GITHUB_TOKEN }} | helm registry login ghcr.io --username ${{ github.actor }} --password-stdin
