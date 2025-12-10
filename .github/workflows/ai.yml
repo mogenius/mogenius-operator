@@ -1,9 +1,9 @@
-name: Build, Package, Release (Dev & Feature Branches)
+name: AI Build, Package, Release
 
 on:
   push:
     branches:
-      - "**"
+      # - "**"
       - "!main"
       - "!develop"
       - "ai-endstufen-operator"
