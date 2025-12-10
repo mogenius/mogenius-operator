@@ -23,7 +23,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
         with:
-          ref: develop
+          ref: ai-endstufen-operator
           fetch-depth: 0
 
       - uses: actions/setup-node@v6
@@ -47,7 +47,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
         with:
-          ref: develop
+          ref: ai-endstufen-operator
           fetch-depth: 0
 
       - name: Set up QEMU
