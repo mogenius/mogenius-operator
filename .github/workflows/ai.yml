@@ -107,6 +107,12 @@ jobs:
       packages: write
       id-token: write
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          ref: ai-endstufen-operator
+          fetch-depth: 0
+          
       - name: Calculate version from git
         id: git_version
         run: |
