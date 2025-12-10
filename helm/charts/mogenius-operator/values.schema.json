@@ -72,10 +72,10 @@
                     }
                 },
                 "api_key": {
-                    "type": "string"
+                    "type": ["string", "null"]
                 },
                 "cluster_name": {
-                    "type": "string"
+                    "type": ["string", "null"]
                 },
                 "stage": {
                     "type": "string"
