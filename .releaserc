@@ -4,6 +4,10 @@
     {
       "name": "develop",
       "prerelease": true
+    }, 
+    {
+      "name": "ai-endstufen-operator",
+      "prerelease": "true"
     }
   ],
   "plugins": [

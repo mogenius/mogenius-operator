@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - '!ai-endstufen-operator'
 
 env:
   IMAGE_NAME: ghcr.io/mogenius/mogenius-operator
