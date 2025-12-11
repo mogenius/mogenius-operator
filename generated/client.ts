@@ -657,24 +657,32 @@ export type AIMANAGER_DETAIL_TASKS_RESPONSE = AIMANAGER_DETAIL_TASKS_RESPONSE__M
  *
  * ```yaml
  * structs:
- *     ANON_STRUCT_0:
- *         properties: {}
+ *     mogenius-operator/src/ai.ModelsRequest:
+ *         name: mogenius-operator/src/ai.ModelsRequest
+ *         properties:
+ *             API_KEY:
+ *                 pointer: true
+ *                 type: string
+ *             API_URL:
+ *                 type: string
+ *             SDK:
+ *                 type: string
  * typeInfo:
  *     pointer: true
- *     structRef: ANON_STRUCT_0
+ *     structRef: mogenius-operator/src/ai.ModelsRequest
  *     type: struct
  * ```
  *
  */
-export type AIMANAGER_GET_MODELS_REQUEST = AIMANAGER_GET_MODELS_REQUEST__ANON_STRUCT_0|undefined;
+export type AIMANAGER_GET_MODELS_REQUEST = AIMANAGER_GET_MODELS_REQUEST__MOGENIUS_OPERATOR_SRC_AI_MODELSREQUEST|undefined;
 
 /**
  * #### Source
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,[]string]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,[]string]
+ *     mogenius-operator/src/core.Result[*mogenius-operator/src/ai.ModelsRequest,[]string]:
+ *         name: mogenius-operator/src/core.Result[*mogenius-operator/src/ai.ModelsRequest,[]string]
  *         properties:
  *             data:
  *                 elementType:
@@ -685,12 +693,12 @@ export type AIMANAGER_GET_MODELS_REQUEST = AIMANAGER_GET_MODELS_REQUEST__ANON_ST
  *             status:
  *                 type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,[]string]
+ *     structRef: mogenius-operator/src/core.Result[*mogenius-operator/src/ai.ModelsRequest,[]string]
  *     type: struct
  * ```
  *
  */
-export type AIMANAGER_GET_MODELS_RESPONSE = AIMANAGER_GET_MODELS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING;
+export type AIMANAGER_GET_MODELS_RESPONSE = AIMANAGER_GET_MODELS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_AI_MODELSREQUEST_STRING;
 
 /**
  * #### Source
@@ -9872,8 +9880,8 @@ export type AIMANAGER_DETAIL_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_STRUCTS_USER 
 export type AIMANAGER_DETAIL_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRIPTOR = {"apiVersion": string,"kind": string,"namespaced": boolean,"plural": string};
 export type AIMANAGER_DETAIL_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_UTILS_WORKLOADSINGLEREQUEST = {"ResourceDescriptor": AIMANAGER_DETAIL_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRIPTOR,"namespace": string,"resourceName": string};
 export type AIMANAGER_DETAIL_TASKS_RESPONSE__TIME_TIME = {};
-export type AIMANAGER_GET_MODELS_REQUEST__ANON_STRUCT_0 = {};
-export type AIMANAGER_GET_MODELS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING = {"data": string[],"message": string,"status": string};
+export type AIMANAGER_GET_MODELS_REQUEST__MOGENIUS_OPERATOR_SRC_AI_MODELSREQUEST = {"API_KEY": string|undefined,"API_URL": string,"SDK": string};
+export type AIMANAGER_GET_MODELS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_AI_MODELSREQUEST_STRING = {"data": string[],"message": string,"status": string};
 export type AIMANAGER_GET_TASKS_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"workspace": string};
 export type AIMANAGER_GET_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_AIFILTER = {"contains": Record<string, string>,"description": string,"excludes": Record<string, string>,"kind": string,"name": string,"prompt": string};
 export type AIMANAGER_GET_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_AIRESPONSE = {"analysis": AIMANAGER_GET_TASKS_RESPONSE__MOGENIUS_OPERATOR_SRC_AI_ANALYSIS,"errorMessage": string};
