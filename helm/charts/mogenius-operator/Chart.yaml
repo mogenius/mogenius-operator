@@ -2,12 +2,12 @@ apiVersion: v1
 appVersion: "1.0"
 name: mogenius-operator-ai
 version: 1.7.9
-description: "mogenius-operator-ai"
+description: "mogenius-operator"
 home: https://mogenius.com
 icon: https://app.mogenius.com/assets/logos/logo-mogenius-signet-neg.svg
 sources: 
   - https://helm.mogenius.com/public
-  - oci://ghcr.io/mogenius/helm-charts/mogenius-operator-ai
+  - oci://ghcr.io/mogenius/helm-charts/mogenius-operator
 maintainers:
   - email: ruediger@mogenius.com
     name: Rüdiger Küpper @mogenius
