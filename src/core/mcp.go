@@ -40,7 +40,10 @@ func (mcp *mcpApi) McpRequest(method, url string, body *string, headers map[stri
 		req.Header.Set(key, value)
 	}
 
-	client := &http.Client{}
+	client := &http.Client{
+		Timeout: 0, // No timeout
+	}
+	mcp.logger.Info("Sending request", slog.String("method", method), slog.String("url", url))
 	resp, err := client.Do(req)
 	if err != nil {
 		mcp.logger.Error("Failed to send request", slog.Any("error", err))
