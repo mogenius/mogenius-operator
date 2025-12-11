@@ -139,7 +139,7 @@ jobs:
   #         set-public: 'true'
 
   helm-chart:
-    if: github.ref == 'refs/heads/develop'
+    if: github.ref == 'refs/heads/ai-endstufen-operator'
     needs: [prepare, build-and-push-docker]
     runs-on: [self-hosted]
     permissions:
