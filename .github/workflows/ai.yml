@@ -98,48 +98,8 @@ jobs:
           # cache-to: type=gha,mode=max
           provenance: false
 
-  helm-chart:
-    if: github.ref == 'refs/heads/ai-endstufen-operator'
-    needs: [prepare, build-and-push-docker]
-    runs-on: [self-hosted]
-    permissions:
-      contents: read
-      packages: write
-      id-token: write
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v5
-        with:
-          ref: ai-endstufen-operator
-          fetch-depth: 0
-          
-      - name: Calculate version from git
-        id: git_version
-        run: |
-          VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "📦 Calculated version: $VERSION"
-
-      - name: Package and Push Helm Chart
-        uses: mogenius/gha-helm-package-sign-push@v1.0.0
-        with:
-          chart-path: ./helm/charts/mogenius-operator
-          chart-name: mogenius-operator-ai
-          version: ${{ steps.git_version.outputs.version }}
-          gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
-          gpg-passphrase: ${{ secrets.GPG_PASSPHRASE }}
-          # chartmuseum-url: helm.mogenius.com
-          chartmuseum-url: ""
-          # chartmuseum-user: ${{ secrets.MO_HELMUSER }}
-          # chartmuseum-password: ${{ secrets.MO_HELMPASS }}
-          oci-registry: ghcr.io/${{ github.repository_owner }}/helm-charts
-          oci-username: ${{ github.actor }}
-          oci-password: ${{ secrets.GITHUB_TOKEN }}
-          github-org: ''
-          set-public: 'true'
-
   # helm-chart:
-  #   if: github.ref == 'refs/heads/develop'
+  #   if: github.ref == 'refs/heads/ai-endstufen-operator'
   #   needs: [prepare, build-and-push-docker]
   #   runs-on: [self-hosted]
   #   permissions:
@@ -147,75 +107,116 @@ jobs:
   #     packages: write
   #     id-token: write
   #   steps:
-  #     - name: Check out code
+  #     - name: Checkout repository
   #       uses: actions/checkout@v5
   #       with:
+  #         ref: ai-endstufen-operator
   #         fetch-depth: 0
 
-  #     - name: set version env
-  #       run: echo "SEMVERSION=$(git describe --tags $(git rev-list --tags --max-count=1))" >> $GITHUB_ENV
-
-  #     - name: Install Helm
-  #       uses: azure/setup-helm@v4.3.1
-  #       id: install
-
-  #     - name: Import GPG Key
+  #     - name: Calculate version from git
+  #       id: git_version
   #       run: |
-  #         echo "${{ secrets.GPG_PRIVATE_KEY }}" | base64 -d | gpg --import --batch
+  #         VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
+  #         echo "version=$VERSION" >> $GITHUB_OUTPUT
+  #         echo "📦 Calculated version: $VERSION"
 
-  #     - name: Install cosign
-  #       uses: sigstore/cosign-installer@v4.0.0
-
-  #     - name: Update Helm chart and values yaml-Files
-  #       run: |
-  #         set -x
-
-  #         cd ./helm/charts/mogenius-operator
-  #         yq -i ".image.tag = \"${{ env.SEMVERSION }}\"" values.yaml
-  #         sed -i -e "s/repository: mogenius\/mogenius-operator/repository: mogenius\/mogenius-operator-dev/" values.yaml
-  #         sed -i -e "s/name: mogenius-operator/name: mogenius-operator-dev/" Chart.yaml
-  #         sed -i -E 's/appVersion: ".*"/appVersion: "${{ env.SEMVERSION }}"/' Chart.yaml
-  #         sed -i -E 's/^version: .*/version: ${{ env.SEMVERSION }}/' Chart.yaml
-
-  #     - name: Run helm-docs
-  #       uses: losisin/helm-docs-github-action@v1.6.2
+  #     - name: Package and Push Helm Chart
+  #       uses: mogenius/gha-helm-package-sign-push@v1.0.0
   #       with:
-  #         chart-search-root: helm
+  #         chart-path: ./helm/charts/mogenius-operator
+  #         chart-name: mogenius-operator-ai
+  #         version: ${{ steps.git_version.outputs.version }}
+  #         gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
+  #         gpg-passphrase: ${{ secrets.GPG_PASSPHRASE }}
+  #         # chartmuseum-url: helm.mogenius.com
+  #         chartmuseum-url: ""
+  #         # chartmuseum-user: ${{ secrets.MO_HELMUSER }}
+  #         # chartmuseum-password: ${{ secrets.MO_HELMPASS }}
+  #         oci-registry: ghcr.io/${{ github.repository_owner }}/helm-charts
+  #         oci-username: ${{ github.actor }}
+  #         oci-password: ${{ secrets.GITHUB_TOKEN }}
+  #         github-org: ''
+  #         set-public: 'true'
 
-  #     - name: package and push
-  #       run: |
-  #         set -x
+  helm-chart:
+    if: github.ref == 'refs/heads/develop'
+    needs: [prepare, build-and-push-docker]
+    runs-on: [self-hosted]
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v5
+        with:
+          ref: ai-endstufen-operator
+          fetch-depth: 0
 
-  #         cd ./helm/charts/mogenius-operator
+      - name: set version env
+        run: echo "SEMVERSION=$(git describe --tags $(git rev-list --tags --max-count=1))" >> $GITHUB_ENV
 
-  #         # Create keyring for Helm (legacy secring format)
-  #         gpg --export-secret-keys > ~/.gnupg/secring.gpg
+      - name: Install Helm
+        uses: azure/setup-helm@v4.3.1
+        id: install
+
+      - name: Import GPG Key
+        run: |
+          echo "${{ secrets.GPG_PRIVATE_KEY }}" | base64 -d | gpg --import --batch
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v4.0.0
+
+      - name: Update Helm chart and values yaml-Files
+        run: |
+          set -x
+
+          cd ./helm/charts/mogenius-operator
+          yq -i ".image.tag = \"${{ env.SEMVERSION }}\"" values.yaml
+          sed -i -e "s/repository: mogenius\/mogenius-operator/repository: mogenius\/mogenius-operator-ai/" values.yaml
+          sed -i -e "s/name: mogenius-operator/name: mogenius-operator-ai/" Chart.yaml
+          sed -i -E 's/appVersion: ".*"/appVersion: "${{ env.SEMVERSION }}"/' Chart.yaml
+          sed -i -E 's/^version: .*/version: ${{ env.SEMVERSION }}/' Chart.yaml
+
+      - name: Run helm-docs
+        uses: losisin/helm-docs-github-action@v1.6.2
+        with:
+          chart-search-root: helm
+
+      - name: package and push
+        run: |
+          set -x
+
+          cd ./helm/charts/mogenius-operator
+
+          # Create keyring for Helm (legacy secring format)
+          gpg --export-secret-keys > ~/.gnupg/secring.gpg
           
-  #         # Sign the Helm chart
-  #         echo "Packaging Helm chart"
-  #         helm package . -d /tmp/ --version ${{ env.SEMVERSION }} --app-version ${{ env.SEMVERSION }} \
-  #           --sign \
-  #           --key "Helm Charts" \
-  #           --keyring ~/.gnupg/secring.gpg
+          # Sign the Helm chart
+          echo "Packaging Helm chart"
+          helm package . -d /tmp/ --version ${{ env.SEMVERSION }} --app-version ${{ env.SEMVERSION }} \
+            --sign \
+            --key "Helm Charts" \
+            --keyring ~/.gnupg/secring.gpg
 
-  #         echo "Pushing to Mogenius Helm repo"
-  #         curl -XPOST -L -k --data-binary "@/tmp/${{ env.HELMNAME }}-${{ env.SEMVERSION }}.tgz" https://${{ secrets.MO_HELMUSER }}:${{ secrets.MO_HELMPASS }}@helm.mogenius.com/api/public/charts
+          echo "Pushing to Mogenius Helm repo"
+          curl -XPOST -L -k --data-binary "@/tmp/${{ env.HELMNAME }}-${{ env.SEMVERSION }}.tgz" https://${{ secrets.MO_HELMUSER }}:${{ secrets.MO_HELMPASS }}@helm.mogenius.com/api/public/charts
           
-  #         # Upload provenance file
-  #         PROV_FILE="/tmp/${{ env.HELMNAME }}-${{ env.SEMVERSION }}.tgz.prov"
-  #         curl -u "${{ secrets.MO_HELMUSER }}:${{ secrets.MO_HELMPASS }}" \
-  #           --data-binary "@${PROV_FILE}" \
-  #           https://helm.mogenius.com/api/public/prov
+          # Upload provenance file
+          PROV_FILE="/tmp/${{ env.HELMNAME }}-${{ env.SEMVERSION }}.tgz.prov"
+          curl -u "${{ secrets.MO_HELMUSER }}:${{ secrets.MO_HELMPASS }}" \
+            --data-binary "@${PROV_FILE}" \
+            https://helm.mogenius.com/api/public/prov
 
-  #         echo "Pushing to OCI registry"
-  #         echo ${{ secrets.GITHUB_TOKEN }} | helm registry login ghcr.io --username ${{ github.actor }} --password-stdin
-  #         CHART_DIGEST=$(helm push /tmp/${{ env.HELMNAME }}-${{ env.SEMVERSION }}.tgz oci://ghcr.io/${{ github.repository_owner }}/helm-charts 2>&1 | grep "Digest: sha256:" | awk '{print $2}')
-  #         if [ -z "$CHART_DIGEST" ]; then
-  #           echo "Failed to extract chart digest"
-  #           exit 1
-  #         fi
-  #         echo "Chart digest: $CHART_DIGEST"
+          echo "Pushing to OCI registry"
+          echo ${{ secrets.GITHUB_TOKEN }} | helm registry login ghcr.io --username ${{ github.actor }} --password-stdin
+          CHART_DIGEST=$(helm push /tmp/${{ env.HELMNAME }}-${{ env.SEMVERSION }}.tgz oci://ghcr.io/${{ github.repository_owner }}/helm-charts 2>&1 | grep "Digest: sha256:" | awk '{print $2}')
+          if [ -z "$CHART_DIGEST" ]; then
+            echo "Failed to extract chart digest"
+            exit 1
+          fi
+          echo "Chart digest: $CHART_DIGEST"
 
-  #         echo "Signing Helm chart with cosign"
-  #         echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io --username ${{ github.actor }} --password-stdin
-  #         cosign sign --yes ghcr.io/${{ github.repository_owner }}/helm-charts/${{ env.HELMNAME }}@${CHART_DIGEST}
+          echo "Signing Helm chart with cosign"
+          echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io --username ${{ github.actor }} --password-stdin
+          cosign sign --yes ghcr.io/${{ github.repository_owner }}/helm-charts/${{ env.HELMNAME }}@${CHART_DIGEST}
