@@ -7,6 +7,7 @@ FROM --platform=$BUILDPLATFORM golang:1.25.5 AS golang
 FROM --platform=$BUILDPLATFORM ubuntu:noble AS build-env
 
 ENV SNOOPY_VERSION=v0.3.6
+ENV BUILD_TOOLS_VERSION=v1.0.0
 
 COPY --from=golang /usr/local/go /usr/local/go
 
@@ -20,8 +21,9 @@ ARG BUILDPLATFORM
 ARG TARGETOS
 ARG TARGETARCH
 ARG TARGETVARIANT
+ARG GITHUB_TOKEN
 
-# Setup system - Basis-Packages
+# Setup system - Basis-Packages (ohne Rust/Cargo build dependencies)
 RUN set -x && \
     apt-get update && \
     apt-get install -y \
@@ -40,19 +42,33 @@ RUN if [ "$TARGETARCH" = "amd64" ]; then \
         rm -rf /var/lib/apt/lists/*; \
     fi
 
-# Install Rust/Cargo for Just
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable
-ENV PATH="/root/.cargo/bin:${PATH}"
+# Download pre-built just binary
+RUN case "$TARGETPLATFORM" in \
+        "linux/amd64") ARCH="x86_64";; \
+        "linux/arm64") ARCH="aarch64";; \
+        *) echo "Unsupported platform: $TARGETPLATFORM"; exit 1;; \
+    esac && \
+    echo "Downloading just for $ARCH..." && \
+    DOWNLOAD_URL=$(curl -s "https://api.github.com/repos/mogenius/operator-build-tools/releases/tags/$BUILD_TOOLS_VERSION" | \
+        jq -r ".assets[] | select(.name == \"just_${ARCH}\") | .url") && \
+    echo "Download URL: $DOWNLOAD_URL" && \
+    curl -L -H "Accept: application/octet-stream" -H "Authorization: token ${GITHUB_TOKEN}" "$DOWNLOAD_URL" -o /usr/local/bin/just && \
+    chmod +x /usr/local/bin/just
 
-# Rust Target für Cross-Compilation hinzufügen (falls nötig)
-RUN rustup target add $(rustc -vV | grep host | cut -d' ' -f2)
+# Download pre-built bpftool binary
+RUN case "$TARGETPLATFORM" in \
+        "linux/amd64") ARCH="x86_64";; \
+        "linux/arm64") ARCH="aarch64";; \
+        *) echo "Unsupported platform: $TARGETPLATFORM"; exit 1;; \
+    esac && \
+    echo "Downloading bpftool for $ARCH..." && \
+    DOWNLOAD_URL=$(curl -s "https://api.github.com/repos/mogenius/operator-build-tools/releases/tags/$BUILD_TOOLS_VERSION" | \
+        jq -r ".assets[] | select(.name == \"bpftool_${ARCH}\") | .url") && \
+    echo "Download URL: $DOWNLOAD_URL" && \
+    curl -L -H "Accept: application/octet-stream" -H "Authorization: token ${GITHUB_TOKEN}" "$DOWNLOAD_URL" -o /usr/local/bin/bpftool && \
+    chmod +x /usr/local/bin/bpftool
 
-# Install Just via Cargo (works for all architectures)
-RUN cargo install just && \
-    rm -rf /root/.cargo/registry /root/.cargo/git
-
-# Fetch the latest release download URL for the specific architecture
-# WICHTIG: Wir müssen die TARGETPLATFORM auswerten, nicht uname -m
+# Download snoopy
 RUN case "$TARGETPLATFORM" in \
         "linux/amd64") ARCH="x86_64";; \
         "linux/arm64") ARCH="aarch64";; \
@@ -68,13 +84,6 @@ RUN case "$TARGETPLATFORM" in \
     curl -L -H "Accept: application/octet-stream" $DOWNLOAD_URL -o snoopy && \
     chmod +x snoopy && \
     mv snoopy /usr/local/bin/snoopy
-
-# Install bpftool
-RUN set -x && \
-    ln -sf /usr/include/asm-generic/ /usr/include/asm && \
-    git clone --recurse-submodules https://github.com/libbpf/bpftool.git /opt/bpftool && \
-    cd /opt/bpftool/src && \
-    make install
 
 RUN echo "Build platform: $BUILDPLATFORM, Target platform: $TARGETPLATFORM"
 
@@ -153,8 +162,6 @@ RUN set -e && \
 
 # Check binary directory
 RUN ls -lh bin/
-# Verify binary was created
-# RUN ls -lh bin/mogenius-operator && file bin/mogenius-operator
 
 # Final image should use the target platform
 FROM ubuntu:noble AS release-image
