@@ -1,0 +1,104 @@
+# Dockerfile.build-base
+# syntax=docker/dockerfile:1
+
+ARG GO_VERSION=1.25.5
+ARG TARGETPLATFORM
+ARG BUILDPLATFORM
+
+FROM --platform=$BUILDPLATFORM golang:${GO_VERSION} AS golang
+
+FROM --platform=$TARGETPLATFORM ubuntu:noble AS build-base
+
+ARG TARGETPLATFORM
+ARG BUILDPLATFORM
+ARG TARGETOS
+ARG TARGETARCH
+ARG TARGETVARIANT
+ARG GITHUB_TOKEN
+
+ARG SNOOPY_VERSION=v0.3.6
+ARG BUILD_TOOLS_VERSION=v1.0.1
+
+# Copy Go from official image
+COPY --from=golang /usr/local/go /usr/local/go
+
+RUN mkdir /go
+ENV GOPATH=/go
+ENV PATH=${GOPATH}/bin:/usr/local/go/bin:${PATH}
+
+# Setup system - all build dependencies
+RUN set -x && \
+    apt-get update && \
+    apt-get install -y \
+        curl jq clang llvm libelf-dev libbpf-dev git \
+        gcc libc6-dev make cmake libpcap-dev binutils \
+        build-essential binutils-gold iproute2 lsb-release \
+        sudo ca-certificates wget libssl-dev && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Linux headers only for amd64 (for eBPF development)
+RUN if [ "$TARGETARCH" = "amd64" ]; then \
+        apt-get update && \
+        apt-get install -y linux-headers-generic && \
+        apt-get clean && \
+        rm -rf /var/lib/apt/lists/*; \
+    fi
+
+# Download pre-built just binary
+RUN case "$TARGETPLATFORM" in \
+        "linux/amd64") ARCH="x86_64";; \
+        "linux/arm64") ARCH="aarch64";; \
+        *) echo "Unsupported platform: $TARGETPLATFORM"; exit 1;; \
+    esac && \
+    echo "Downloading just for $ARCH..." && \
+    DOWNLOAD_URL=$(curl -s -H "Authorization: token ${GITHUB_TOKEN}" \
+        "https://api.github.com/repos/mogenius/operator-build-tools/releases/tags/${BUILD_TOOLS_VERSION}" | \
+        jq -r ".assets[] | select(.name == \"just_${ARCH}\") | .url") && \
+    curl -L -H "Accept: application/octet-stream" -H "Authorization: token ${GITHUB_TOKEN}" \
+        "$DOWNLOAD_URL" -o /usr/local/bin/just && \
+    chmod +x /usr/local/bin/just
+
+# Download pre-built bpftool binary
+RUN case "$TARGETPLATFORM" in \
+        "linux/amd64") ARCH="x86_64";; \
+        "linux/arm64") ARCH="aarch64";; \
+        *) echo "Unsupported platform: $TARGETPLATFORM"; exit 1;; \
+    esac && \
+    echo "Downloading bpftool for $ARCH..." && \
+    DOWNLOAD_URL=$(curl -s -H "Authorization: token ${GITHUB_TOKEN}" \
+        "https://api.github.com/repos/mogenius/operator-build-tools/releases/tags/${BUILD_TOOLS_VERSION}" | \
+        jq -r ".assets[] | select(.name == \"bpftool_${ARCH}\") | .url") && \
+    curl -L -H "Accept: application/octet-stream" -H "Authorization: token ${GITHUB_TOKEN}" \
+        "$DOWNLOAD_URL" -o /usr/local/bin/bpftool && \
+    chmod +x /usr/local/bin/bpftool
+
+# Download snoopy
+RUN case "$TARGETPLATFORM" in \
+        "linux/amd64") ARCH="x86_64";; \
+        "linux/arm64") ARCH="aarch64";; \
+        *) echo "Unsupported platform: $TARGETPLATFORM"; exit 1;; \
+    esac && \
+    DOWNLOAD_URL=$(curl -s "https://api.github.com/repos/mogenius/snoopy/releases/tags/${SNOOPY_VERSION}" | \
+        jq -r ".assets[] | select(.name | contains(\"snoopy_$ARCH\")) | .url") && \
+    curl -L -H "Accept: application/octet-stream" "$DOWNLOAD_URL" -o /usr/local/bin/snoopy && \
+    chmod +x /usr/local/bin/snoopy
+
+# Install Go tools
+RUN go install sigs.k8s.io/controller-tools/cmd/controller-gen@latest && \
+    go install -v github.com/go-delve/delve/cmd/dlv@latest
+
+# Git safe directory
+RUN git config --global --add safe.directory "/app"
+
+WORKDIR /app
+
+# Verify installations
+RUN echo "=== Installed versions ===" && \
+    go version && \
+    just --version && \
+    bpftool version && \
+    snoopy --version || true && \
+    controller-gen --version || true && \
+    echo "==========================="
+    
