@@ -131,6 +131,12 @@ type UsedToken struct {
 	Key        string    `json:"key"`
 }
 
+type ModelsRequest struct {
+	Sdk    string  `json:"SDK,omitempty"`
+	ApiKey *string `json:"API_KEY,omitempty"`
+	ApiUrl string  `json:"API_URL,omitempty"`
+}
+
 var AiFilters = []AiFilter{
 	{
 		Name:        "Failed Pods",
@@ -315,7 +321,7 @@ type AiManager interface {
 	GetStatus() AiManagerStatus
 	ResetDailyTokenLimit() error
 	DeleteAllAiData() error
-	GetAvailableModels() ([]string, error)
+	GetAvailableModels(request *ModelsRequest) ([]string, error)
 }
 
 type aiManager struct {
@@ -802,7 +808,7 @@ func (ai *aiManager) processPrompt(ctx context.Context, prompt string) (*AiRespo
 	}
 	switch sdk {
 	case AiSdkTypeOpenAI:
-		client, err := ai.getOpenAIClient()
+		client, err := ai.getOpenAIClient(nil)
 		if err != nil {
 			return nil, 0, err
 		}
@@ -836,7 +842,7 @@ func (ai *aiManager) processPrompt(ctx context.Context, prompt string) (*AiRespo
 		// also return tokens used
 		return &aiResponse, tokensUsed, nil
 	case AiSdkTypeAnthropic:
-		client, err := ai.getAnthropicClient()
+		client, err := ai.getAnthropicClient(nil)
 		if err != nil {
 			return nil, 0, err
 		}
@@ -888,7 +894,7 @@ func (ai *aiManager) processPrompt(ctx context.Context, prompt string) (*AiRespo
 
 		return &aiResponse, tokensUsed, nil
 	case AiSdkTypeOllama:
-		client, err := ai.getOllamaClient()
+		client, err := ai.getOllamaClient(nil)
 		if err != nil {
 			return nil, 0, err
 		}
@@ -972,14 +978,26 @@ func buildUserPrompt(prompt string, obj *unstructured.Unstructured) string {
 	return fmt.Sprintf("%s\n\nHere is the Kubernetes object in JSON format:\n%s", prompt, objJson)
 }
 
-func (ai *aiManager) getOpenAIClient() (*openai.Client, error) {
-	apiKey, err := ai.getApiKey()
-	if err != nil {
-		return nil, err
+func (ai *aiManager) getOpenAIClient(request *ModelsRequest) (*openai.Client, error) {
+	var apiKey string
+	if request != nil && request.ApiKey != nil {
+		apiKey = *request.ApiKey
+	} else {
+		var err error
+		apiKey, err = ai.getApiKey()
+		if err != nil {
+			return nil, err
+		}
 	}
-	baseUrl, err := ai.getBaseUrl()
-	if err != nil {
-		return nil, err
+	var baseUrl string
+	if request != nil {
+		baseUrl = request.ApiUrl
+	} else {
+		var err error
+		baseUrl, err = ai.getBaseUrl()
+		if err != nil {
+			return nil, err
+		}
 	}
 	client := openai.NewClient(
 		option.WithAPIKey(apiKey),
@@ -988,14 +1006,26 @@ func (ai *aiManager) getOpenAIClient() (*openai.Client, error) {
 	return &client, nil
 }
 
-func (ai *aiManager) getAnthropicClient() (*anthropic.Client, error) {
-	apiKey, err := ai.getApiKey()
-	if err != nil {
-		return nil, err
+func (ai *aiManager) getAnthropicClient(request *ModelsRequest) (*anthropic.Client, error) {
+	var apiKey string
+	if request != nil && request.ApiKey != nil {
+		apiKey = *request.ApiKey
+	} else {
+		var err error
+		apiKey, err = ai.getApiKey()
+		if err != nil {
+			return nil, err
+		}
 	}
-	baseUrl, err := ai.getBaseUrl()
-	if err != nil {
-		return nil, err
+	var baseUrl string
+	if request != nil {
+		baseUrl = request.ApiUrl
+	} else {
+		var err error
+		baseUrl, err = ai.getBaseUrl()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	client := anthropic.NewClient(
@@ -1005,10 +1035,16 @@ func (ai *aiManager) getAnthropicClient() (*anthropic.Client, error) {
 	return &client, nil
 }
 
-func (ai *aiManager) getOllamaClient() (*ollama.Client, error) {
-	baseUrl, err := ai.getBaseUrl()
-	if err != nil {
-		return nil, err
+func (ai *aiManager) getOllamaClient(request *ModelsRequest) (*ollama.Client, error) {
+	var baseUrl string
+	if request != nil {
+		baseUrl = request.ApiUrl
+	} else {
+		var err error
+		baseUrl, err = ai.getBaseUrl()
+		if err != nil {
+			return nil, err
+		}
 	}
 	url, err := url.Parse(baseUrl)
 	if err != nil {
@@ -1020,14 +1056,20 @@ func (ai *aiManager) getOllamaClient() (*ollama.Client, error) {
 	return client, nil
 }
 
-func (ai *aiManager) GetAvailableModels() ([]string, error) {
-	sdk, err := ai.getSdkType()
-	if err != nil {
-		return []string{}, err
+func (ai *aiManager) GetAvailableModels(request *ModelsRequest) ([]string, error) {
+	var sdk AiSdkType
+	if request != nil {
+		sdk = AiSdkType(request.Sdk)
+	} else {
+		var err error
+		sdk, err = ai.getSdkType()
+		if err != nil {
+			return []string{}, err
+		}
 	}
 	switch sdk {
 	case AiSdkTypeOpenAI:
-		client, err := ai.getOpenAIClient()
+		client, err := ai.getOpenAIClient(request)
 		if err != nil {
 			ai.logger.Error("Error getting OpenAI client for available models", "error", err)
 			return []string{}, err
@@ -1046,7 +1088,7 @@ func (ai *aiManager) GetAvailableModels() ([]string, error) {
 		}
 		return modelNames, nil
 	case AiSdkTypeAnthropic:
-		client, err := ai.getAnthropicClient()
+		client, err := ai.getAnthropicClient(request)
 		if err != nil {
 			ai.logger.Error("Error getting Anthropic client for available models", "error", err)
 			return []string{}, err
@@ -1065,7 +1107,7 @@ func (ai *aiManager) GetAvailableModels() ([]string, error) {
 		}
 		return modelNames, nil
 	case AiSdkTypeOllama:
-		client, err := ai.getOllamaClient()
+		client, err := ai.getOllamaClient(request)
 		if err != nil {
 			ai.logger.Error("Error getting Ollama client for available models", "error", err)
 			return []string{}, err

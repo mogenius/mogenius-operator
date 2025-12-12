@@ -17,7 +17,7 @@ type AiApi interface {
 	GetStatus() ai.AiManagerStatus
 	ResetDailyTokenLimit() error
 	DeleteAllAiData() error
-	GetAvailableModels() ([]string, error)
+	GetAvailableModels(request *ai.ModelsRequest) ([]string, error)
 }
 type aiApi struct {
 	logger    *slog.Logger
@@ -68,6 +68,6 @@ func (ai *aiApi) DeleteAllAiData() error {
 	return ai.aiManager.DeleteAllAiData()
 }
 
-func (ai *aiApi) GetAvailableModels() ([]string, error) {
-	return ai.aiManager.GetAvailableModels()
+func (ai *aiApi) GetAvailableModels(request *ai.ModelsRequest) ([]string, error) {
+	return ai.aiManager.GetAvailableModels(request)
 }

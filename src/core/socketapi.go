@@ -1550,8 +1550,8 @@ func (self *socketApi) registerPatterns() {
 		RegisterPatternHandler(
 			PatternHandle{self, "aiManager/get/models"},
 			PatternConfig{},
-			func(datagram structs.Datagram, request Void) ([]string, error) {
-				return self.aiApi.GetAvailableModels()
+			func(datagram structs.Datagram, request *ai.ModelsRequest) ([]string, error) {
+				return self.aiApi.GetAvailableModels(request)
 			},
 		)
 	}

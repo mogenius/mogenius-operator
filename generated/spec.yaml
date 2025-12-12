@@ -303,16 +303,24 @@ aiManager/detail/tasks:
 aiManager/get/models:
     requestSchema:
         structs:
-            ANON_STRUCT_0:
-                properties: {}
+            mogenius-operator/src/ai.ModelsRequest:
+                name: mogenius-operator/src/ai.ModelsRequest
+                properties:
+                    API_KEY:
+                        pointer: true
+                        type: string
+                    API_URL:
+                        type: string
+                    SDK:
+                        type: string
         typeInfo:
             pointer: true
-            structRef: ANON_STRUCT_0
+            structRef: mogenius-operator/src/ai.ModelsRequest
             type: struct
     responseSchema:
         structs:
-            mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,[]string]:
-                name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,[]string]
+            mogenius-operator/src/core.Result[*mogenius-operator/src/ai.ModelsRequest,[]string]:
+                name: mogenius-operator/src/core.Result[*mogenius-operator/src/ai.ModelsRequest,[]string]
                 properties:
                     data:
                         elementType:
@@ -323,7 +331,7 @@ aiManager/get/models:
                     status:
                         type: string
         typeInfo:
-            structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,[]string]
+            structRef: mogenius-operator/src/core.Result[*mogenius-operator/src/ai.ModelsRequest,[]string]
             type: struct
 aiManager/get/tasks:
     requestSchema:
