@@ -49,10 +49,12 @@ RUN case "$TARGETPLATFORM" in \
         *) echo "Unsupported platform: $TARGETPLATFORM"; exit 1;; \
     esac && \
     echo "Downloading just for $ARCH..." && \
-    DOWNLOAD_URL=$(curl -s "https://api.github.com/repos/mogenius/operator-build-tools/releases/tags/$BUILD_TOOLS_VERSION" | \
+    DOWNLOAD_URL=$(curl -s -H "Authorization: token ${GITHUB_TOKEN}" \
+        "https://api.github.com/repos/mogenius/operator-build-tools/releases/tags/${BUILD_TOOLS_VERSION}" | \
         jq -r ".assets[] | select(.name == \"just_${ARCH}\") | .url") && \
     echo "Download URL: $DOWNLOAD_URL" && \
-    curl -L -H "Accept: application/octet-stream" -H "Authorization: token ${GITHUB_TOKEN}" "$DOWNLOAD_URL" -o /usr/local/bin/just && \
+    curl -L -H "Accept: application/octet-stream" -H "Authorization: token ${GITHUB_TOKEN}" \
+        "$DOWNLOAD_URL" -o /usr/local/bin/just && \
     chmod +x /usr/local/bin/just
 
 # Download pre-built bpftool binary
@@ -62,10 +64,12 @@ RUN case "$TARGETPLATFORM" in \
         *) echo "Unsupported platform: $TARGETPLATFORM"; exit 1;; \
     esac && \
     echo "Downloading bpftool for $ARCH..." && \
-    DOWNLOAD_URL=$(curl -s "https://api.github.com/repos/mogenius/operator-build-tools/releases/tags/$BUILD_TOOLS_VERSION" | \
+    DOWNLOAD_URL=$(curl -s -H "Authorization: token ${GITHUB_TOKEN}" \
+        "https://api.github.com/repos/mogenius/operator-build-tools/releases/tags/${BUILD_TOOLS_VERSION}" | \
         jq -r ".assets[] | select(.name == \"bpftool_${ARCH}\") | .url") && \
     echo "Download URL: $DOWNLOAD_URL" && \
-    curl -L -H "Accept: application/octet-stream" -H "Authorization: token ${GITHUB_TOKEN}" "$DOWNLOAD_URL" -o /usr/local/bin/bpftool && \
+    curl -L -H "Accept: application/octet-stream" -H "Authorization: token ${GITHUB_TOKEN}" \
+        "$DOWNLOAD_URL" -o /usr/local/bin/bpftool && \
     chmod +x /usr/local/bin/bpftool
 
 # Download snoopy
