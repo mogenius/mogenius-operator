@@ -8,6 +8,10 @@
     {
       "name": "stage", 
       "prerelease": true
+    },
+    {
+      "name": "*",
+      "prerelease": "pre"
     }
   ],
   "plugins": [
