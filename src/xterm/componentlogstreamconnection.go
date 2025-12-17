@@ -2,6 +2,7 @@ package xterm
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"mogenius-operator/src/logging"
 	"mogenius-operator/src/utils"
@@ -10,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	json "github.com/json-iterator/go"
 	"github.com/valkey-io/valkey-go"
 
 	"github.com/gorilla/websocket"

@@ -2,6 +2,7 @@ package xterm
 
 import (
 	"context"
+	"encoding/json"
 	"io"
 	"log/slog"
 	"mogenius-operator/src/logging"
@@ -15,8 +16,6 @@ import (
 	"sync"
 	"syscall"
 	"time"
-
-	json "github.com/json-iterator/go"
 
 	"github.com/creack/pty"
 

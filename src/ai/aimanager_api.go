@@ -1,6 +1,7 @@
 package ai
 
 import (
+	"encoding/json"
 	"fmt"
 	"mogenius-operator/src/store"
 	"mogenius-operator/src/structs"

@@ -14,7 +14,6 @@ require (
 	github.com/jaevor/go-nanoid v1.4.0
 	github.com/jedib0t/go-pretty/v6 v6.7.7
 	github.com/joho/godotenv v1.5.1
-	github.com/json-iterator/go v1.1.12
 	github.com/lithammer/dedent v1.1.0
 	github.com/mattn/go-isatty v0.0.20
 	github.com/nwidger/jsoncolor v0.3.2
@@ -37,6 +36,8 @@ require (
 	sigs.k8s.io/controller-runtime v0.22.4
 	sigs.k8s.io/yaml v1.6.0
 )
+
+require github.com/json-iterator/go v1.1.12 // indirect
 
 require (
 	dario.cat/mergo v1.0.2 // indirect

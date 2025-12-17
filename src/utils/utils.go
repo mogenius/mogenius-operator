@@ -3,6 +3,7 @@ package utils
 import (
 	"context"
 	"embed"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log/slog"
@@ -20,8 +21,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	json "github.com/json-iterator/go"
 
 	"sigs.k8s.io/yaml"
 
