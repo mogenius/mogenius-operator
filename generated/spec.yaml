@@ -613,6 +613,39 @@ aiManager/latest/task:
                         type: string
                     prompt:
                         type: string
+            mogenius-operator/src/ai.AiManagerStatus:
+                name: mogenius-operator/src/ai.AiManagerStatus
+                properties:
+                    apiUrl:
+                        type: string
+                    error:
+                        type: string
+                    ignoredDbEntries:
+                        type: int
+                    isAiModelConfigInitialized:
+                        type: bool
+                    isAiPromptConfigInitialized:
+                        type: bool
+                    model:
+                        type: string
+                    nextTokenResetTime:
+                        type: string
+                    numberOfUnreadTasks:
+                        type: int
+                    sdkType:
+                        type: string
+                    todaysProcessedTasks:
+                        type: int
+                    tokenLimit:
+                        type: int
+                    tokensUsed:
+                        type: int
+                    totalDbEntries:
+                        type: int
+                    unprocessedDbEntries:
+                        type: int
+                    warning:
+                        type: string
             mogenius-operator/src/ai.AiResponse:
                 name: mogenius-operator/src/ai.AiResponse
                 properties:
@@ -659,8 +692,9 @@ aiManager/latest/task:
             mogenius-operator/src/ai.AiTaskLatest:
                 name: mogenius-operator/src/ai.AiTaskLatest
                 properties:
-                    numberOfUnreadTasks:
-                        type: int
+                    status:
+                        structRef: mogenius-operator/src/ai.AiManagerStatus
+                        type: struct
                     task:
                         pointer: true
                         structRef: mogenius-operator/src/ai.AiTask
@@ -848,6 +882,8 @@ aiManager/status:
                         type: string
                     nextTokenResetTime:
                         type: string
+                    numberOfUnreadTasks:
+                        type: int
                     sdkType:
                         type: string
                     todaysProcessedTasks:

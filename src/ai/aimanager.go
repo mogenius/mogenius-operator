@@ -51,8 +51,8 @@ type AiTask struct {
 }
 
 type AiTaskLatest struct {
-	Task                *AiTask `json:"task,omitempty"`
-	NumberOfUnreadTasks int     `json:"numberOfUnreadTasks"`
+	Task   *AiTask         `json:"task,omitempty"`
+	Status AiManagerStatus `json:"status"`
 }
 
 type ReadBy struct {
@@ -96,6 +96,7 @@ type AiManagerStatus struct {
 	TotalDbEntries              int       `json:"totalDbEntries"`
 	UnprocessedDbEntries        int       `json:"unprocessedDbEntries"`
 	IgnoredDbEntries            int       `json:"ignoredDbEntries"`
+	NumberOfUnreadTasks         int       `json:"numberOfUnreadTasks,omitempty"`
 	Error                       string    `json:"error,omitempty"`
 	Warning                     string    `json:"warning,omitempty"`
 	NextTokenResetTime          string    `json:"nextTokenResetTime,omitempty"`
@@ -354,7 +355,7 @@ func (ai *aiManager) ProcessObject(obj *unstructured.Unstructured, eventType str
 
 	if eventType == "delete" {
 		// On delete, we try to remove any existing AI tasks for this object
-		key := ai.getValkeyKey(obj.GetKind(), obj.GetNamespace(), obj.GetName(), "*")
+		key := ai.getValkeyKey(obj.GetKind(), obj.GetNamespace(), obj.GetName())
 		err := ai.valkeyClient.DeleteMultiple(key)
 		if err != nil {
 			ai.logger.Error("Error deleting AI tasks for deleted object", "objectKind", obj.GetKind(), "objectName", obj.GetName(), "objectNamespace", obj.GetNamespace(), "error", err)
@@ -414,7 +415,7 @@ func (ai *aiManager) ProcessObject(obj *unstructured.Unstructured, eventType str
 					Error:       "",
 				}
 
-				key := ai.getValkeyKey(obj.GetKind(), obj.GetNamespace(), obj.GetName(), filter.Name)
+				key := ai.getValkeyKey(obj.GetKind(), obj.GetNamespace(), obj.GetName())
 				shouldCreate, err := ai.shouldCreateNewTask(key)
 				if err != nil {
 					ai.logger.Error("Error checking if should create new AI task", "error", err)
@@ -536,21 +537,21 @@ func (ai *aiManager) getTodayTokenUsage() (todaysTokens int64, todaysProcessedTa
 	return totalTokens, len(keys), nil
 }
 
-func (ai *aiManager) getDbStats() (totalDbEntries int, unprocessedDbEntries int, ignoredDbEntries int, err error) {
+func (ai *aiManager) getDbStats() (totalDbEntries int, unprocessedDbEntries int, ignoredDbEntries int, numberOfUnreadTasks int, err error) {
 	keys, err := ai.valkeyClient.Keys(DB_AI_BUCKET_TASKS + ":*")
 	if err != nil {
-		return 0, 0, 0, err
+		return 0, 0, 0, 0, err
 	}
 
 	for _, key := range keys {
 		item, err := ai.valkeyClient.Get(key)
 		if err != nil {
-			return 0, 0, 0, err
+			return 0, 0, 0, 0, err
 		}
 		var task AiTask
 		err = json.Unmarshal([]byte(item), &task)
 		if err != nil {
-			return 0, 0, 0, err
+			return 0, 0, 0, 0, err
 		}
 
 		if task.State == AI_TASK_STATE_PENDING || task.State == AI_TASK_STATE_FAILED {
@@ -559,9 +560,12 @@ func (ai *aiManager) getDbStats() (totalDbEntries int, unprocessedDbEntries int,
 		if task.State == AI_TASK_STATE_IGNORED {
 			ignoredDbEntries++
 		}
+		if task.ReadByUser == nil {
+			numberOfUnreadTasks++
+		}
 	}
 
-	return len(keys), unprocessedDbEntries, ignoredDbEntries, nil
+	return len(keys), unprocessedDbEntries, ignoredDbEntries, numberOfUnreadTasks, nil
 }
 
 func (ai *aiManager) addTokenUsage(tokensUsed int, entryKey string) error {
@@ -616,6 +620,8 @@ func (ai *aiManager) resetTodayTokenUsage() error {
 	}
 	ai.logger.Info("Reset today's AI token usage", "resettedTokens", resettedTokens)
 
+	ai.resetCache()
+
 	return nil
 }
 
@@ -664,8 +670,13 @@ func (ai *aiManager) processAiTaskQueue(ctx context.Context) {
 			continue
 		}
 
+		latestTask := &AiTaskLatest{
+			Task:   &task,
+			Status: ai.GetStatus(),
+		}
+
 		// send event notification
-		ai.sendAiEvent(&task)
+		ai.sendAiEvent(latestTask)
 
 		response, tokensUsed, err := ai.processPrompt(ctx, task.Prompt)
 		if err != nil {
@@ -683,8 +694,12 @@ func (ai *aiManager) processAiTaskQueue(ctx context.Context) {
 			ai.logger.Error("Error recording AI token usage", "taskID", task.ID, "error", err)
 		}
 
+		// update status for event
+		ai.resetCache()
+		latestTask.Status = ai.GetStatus()
+
 		// send event notification
-		ai.sendAiEvent(&task)
+		ai.sendAiEvent(latestTask)
 
 		// Save updated task
 		err = ai.createOrUpdateAiTask(&task, key)
@@ -1130,7 +1145,7 @@ func (ai *aiManager) GetAvailableModels(request *ModelsRequest) ([]string, error
 	}
 }
 
-func (ai *aiManager) getValkeyKey(kind, namespace, name, filter string) string {
+func (ai *aiManager) getValkeyKey(kind, namespace, name string) string {
 	// controller lookup for pods
 	if kind == "Pod" {
 		controller := ai.ownerCacheService.ControllerForPod(namespace, name)
@@ -1139,17 +1154,22 @@ func (ai *aiManager) getValkeyKey(kind, namespace, name, filter string) string {
 			name = controller.ResourceName
 		}
 	}
-	return fmt.Sprintf("%s:%s:%s:%s:%s", DB_AI_BUCKET_TASKS, kind, namespace, name, filter)
+	return fmt.Sprintf("%s:%s:%s:%s", DB_AI_BUCKET_TASKS, kind, namespace, name)
 }
 
-func (ai *aiManager) sendAiEvent(task *AiTask) {
+func (ai *aiManager) sendAiEvent(task *AiTaskLatest) {
 	datagram := structs.Datagram{
 		Id:      utils.NanoId(),
 		Pattern: "AiProcessEvent",
 		Payload: map[string]interface{}{
-			"task": task,
+			"task":   task.Task,
+			"status": task.Status,
 		},
 		CreatedAt: time.Now(),
 	}
 	structs.ReportEventToServer(ai.eventClient, datagram)
+}
+
+func (ai *aiManager) resetCache() {
+	cachedStatusTime = time.Time{}
 }

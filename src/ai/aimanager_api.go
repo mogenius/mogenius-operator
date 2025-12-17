@@ -1,7 +1,6 @@
 package ai
 
 import (
-	"encoding/json"
 	"fmt"
 	"mogenius-operator/src/store"
 	"mogenius-operator/src/structs"
@@ -9,6 +8,10 @@ import (
 	"strings"
 	"time"
 )
+
+var cachedStatusTime time.Time
+var cachedStatus AiManagerStatus
+var AiCachedStatusLiveTime time.Duration = time.Minute * 1
 
 func (ai *aiManager) UpdateTaskState(taskID string, newState AiTaskState) error {
 	keys, err := ai.valkeyClient.Keys(DB_AI_BUCKET_TASKS + ":*")
@@ -79,7 +82,7 @@ func (ai *aiManager) UpdateTaskReadState(taskID string, user *structs.User) erro
 
 func (ai *aiManager) GetAiTasksForResource(resourceReq utils.WorkloadSingleRequest) ([]AiTask, error) {
 	tasks := []AiTask{}
-	valkeyPath := ai.getValkeyKey(resourceReq.Kind, resourceReq.Namespace, resourceReq.ResourceName, "*")
+	valkeyPath := ai.getValkeyKey(resourceReq.Kind, resourceReq.Namespace, resourceReq.ResourceName)
 	keys, err := ai.valkeyClient.Keys(valkeyPath)
 	if err != nil {
 		return tasks, err
@@ -142,10 +145,10 @@ func (ai *aiManager) GetLatestTask(workspace string) (*AiTaskLatest, error) {
 		return nil, err
 	}
 	latestTask := &AiTaskLatest{}
+	latestTask.Status = ai.GetStatus()
 
 	for _, task := range tasks {
 		if task.ReadByUser == nil {
-			latestTask.NumberOfUnreadTasks++
 			if latestTask.Task == nil || task.CreatedAt > latestTask.Task.CreatedAt {
 				latestTask.Task = &task
 			}
@@ -156,7 +159,7 @@ func (ai *aiManager) GetLatestTask(workspace string) (*AiTaskLatest, error) {
 
 func (ai *aiManager) getAiTasksForNamespace(namespace string) ([]AiTask, error) {
 
-	key := ai.getValkeyKey("*", namespace, "*", "*")
+	key := ai.getValkeyKey("*", namespace, "*")
 
 	items, err := ai.valkeyClient.List(100, key)
 	if err != nil {
@@ -177,6 +180,10 @@ func (ai *aiManager) getAiTasksForNamespace(namespace string) ([]AiTask, error) 
 }
 
 func (ai *aiManager) GetStatus() AiManagerStatus {
+	if cachedStatusTime.Add(AiCachedStatusLiveTime).After(time.Now()) {
+		return cachedStatus
+	}
+
 	sdk, _ := ai.getSdkType()
 	limit, _ := ai.getDailyTokenLimit()
 	model, _ := ai.getAiModel()
@@ -191,7 +198,7 @@ func (ai *aiManager) GetStatus() AiManagerStatus {
 		}
 	}
 
-	totalDbEntries, unprocessedDbEntries, ignoredDbEntries, err := ai.getDbStats()
+	totalDbEntries, unprocessedDbEntries, ignoredDbEntries, numberOfUnreadTasks, err := ai.getDbStats()
 	if err != nil {
 		ai.error = fmt.Sprintf("Failed to get DB stats: %v", err)
 	}
@@ -200,7 +207,8 @@ func (ai *aiManager) GetStatus() AiManagerStatus {
 	nextReset := time.Now().Add(24 * time.Hour)
 	nextReset = time.Date(nextReset.Year(), nextReset.Month(), nextReset.Day(), 0, 0, 0, 0, nextReset.Location())
 
-	return AiManagerStatus{
+	cachedStatusTime = time.Now()
+	cachedStatus = AiManagerStatus{
 		SdkType:                     sdk,
 		TokenLimit:                  limit,
 		TokensUsed:                  tokensUsed,
@@ -214,8 +222,10 @@ func (ai *aiManager) GetStatus() AiManagerStatus {
 		IgnoredDbEntries:            ignoredDbEntries,
 		Error:                       ai.error,
 		Warning:                     ai.warning,
+		NumberOfUnreadTasks:         numberOfUnreadTasks,
 		NextTokenResetTime:          nextReset.Format(time.RFC3339),
 	}
+	return cachedStatus
 }
 
 func (ai *aiManager) ResetDailyTokenLimit() error {
@@ -227,6 +237,7 @@ func (ai *aiManager) DeleteAllAiData() error {
 		DB_AI_BUCKET_TASKS + ":*",
 		DB_AI_BUCKET_TOKENS + ":*",
 	}
+	ai.resetCache()
 	err := ai.valkeyClient.DeleteMultiple(prefixes...)
 	return err
 }
