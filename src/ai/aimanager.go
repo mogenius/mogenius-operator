@@ -517,7 +517,6 @@ func (ai *aiManager) getTodayTokenUsage() (todaysTokens int64, todaysProcessedTa
 		return 0, 0, err
 	}
 
-	var totalTokens int64 = 0
 	for _, key := range keys {
 		item, err := ai.valkeyClient.Get(key)
 		if err != nil {
@@ -530,11 +529,12 @@ func (ai *aiManager) getTodayTokenUsage() (todaysTokens int64, todaysProcessedTa
 		}
 
 		if tokenEntry.Timestamp.Unix() >= startOfDay && !tokenEntry.IsIgnored {
-			totalTokens += tokenEntry.TokensUsed
+			todaysTokens += tokenEntry.TokensUsed
+			todaysProcessedTasks++
 		}
 	}
 
-	return totalTokens, len(keys), nil
+	return todaysTokens, todaysProcessedTasks, nil
 }
 
 func (ai *aiManager) getDbStats() (totalDbEntries int, unprocessedDbEntries int, ignoredDbEntries int, numberOfUnreadTasks int, err error) {
