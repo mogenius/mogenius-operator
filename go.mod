@@ -19,7 +19,7 @@ require (
 	github.com/nwidger/jsoncolor v0.3.2
 	github.com/openai/openai-go/v3 v3.15.0
 	github.com/patrickmn/go-cache v2.1.0+incompatible
-	github.com/shirou/gopsutil/v4 v4.25.11
+	github.com/shirou/gopsutil/v4 v4.25.12
 	github.com/stretchr/testify v1.11.1
 	github.com/tklauser/go-sysconf v0.3.16
 	github.com/valkey-io/valkey-go v1.0.70
