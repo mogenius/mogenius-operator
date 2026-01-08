@@ -95,7 +95,7 @@
                     "type": "string"
                 },
                 "tag": {
-                    "type": "string"
+                    "type": ["string", "null"]
                 }
             }
         },
