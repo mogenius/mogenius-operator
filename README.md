@@ -25,6 +25,9 @@
 13. Contributing
 
 ---
+#### Live Node Stats Example (Portforward the operator to 1337 and visit `http://localhost:1337/stats` to see live node stats like this):
+![live-node-stats](assets/live-node-stats.png)
+---
 
 ## 1. Overview
 

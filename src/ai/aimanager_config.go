@@ -11,10 +11,19 @@ const (
 	AI_CONFIG_SECRET_NAME = "mogenius-ai-config"
 
 	// secret keys for AI configuration
+	AI_CONFIG_SDK_KEY               = "SDK"
 	AI_CONFIG_MODEL_KEY             = "MODEL"
 	AI_CONFIG_API_KEY               = "API_KEY"
 	AI_CONFIG_API_URL_KEY           = "API_URL"
 	AI_CONFIG_DAILY_TOKEN_LIMIT_KEY = "DAILY_TOKEN_LIMIT"
+)
+
+type AiSdkType string
+
+const (
+	AiSdkTypeOpenAI    AiSdkType = "openai"
+	AiSdkTypeAnthropic AiSdkType = "anthropic"
+	AiSdkTypeOllama    AiSdkType = "ollama"
 )
 
 func (ai *aiManager) InjectAiPromptConfig(prompt AiPromptConfig) {
@@ -49,6 +58,23 @@ func (ai *aiManager) getDailyTokenLimit() (int64, error) {
 		return 0, fmt.Errorf("invalid daily token limit value: %v", err)
 	}
 	return limit, nil
+}
+
+func (ai *aiManager) getSdkType() (AiSdkType, error) {
+	data, err := ai.getAiSettingByKey(AI_CONFIG_SDK_KEY)
+	if err != nil {
+		return "", fmt.Errorf("failed to get API key: %v", err)
+	}
+	switch data {
+	case "openai":
+		return AiSdkTypeOpenAI, nil
+	case "anthropic":
+		return AiSdkTypeAnthropic, nil
+	// case "olama":
+	// 	return AiSdkTypeOlama, nil
+	default:
+		return "", fmt.Errorf("unsupported SDK type: %s", data)
+	}
 }
 
 func (ai *aiManager) getApiKey() (string, error) {

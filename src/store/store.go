@@ -333,6 +333,19 @@ func GetWorkspace(namespace string, name string) (*v1alpha1.Workspace, error) {
 	return workspace, nil
 }
 
+func GetYamlFromUnstructuredResource(obj *unstructured.Unstructured) (string, error) {
+	cleanedObj := removeUnusedFields(obj)
+	jsonData, err := cleanedObj.MarshalJSON()
+	if err != nil {
+		return "", err
+	}
+	yamlData, err := yaml.JSONToYAML(jsonData)
+	if err != nil {
+		return "", err
+	}
+	return string(yamlData), nil
+}
+
 // Audit Log
 type AuditLogEntry struct {
 	Pattern   string       `json:"pattern" validate:"required"`

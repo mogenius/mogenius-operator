@@ -3,6 +3,7 @@ package utils
 import (
 	"bytes"
 	"compress/zlib"
+	"encoding/json"
 	"io"
 )
 
@@ -38,7 +39,7 @@ func ZlibDecompress(compressedData []byte) ([]byte, error) {
 
 // the data variable will be modified in place (inOut-variable)
 func TryZlibCompress(data any) (any, int64, error) {
-	dataBytes, err := Marshal(data)
+	dataBytes, err := json.Marshal(data)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -51,7 +52,7 @@ func TryZlibCompress(data any) (any, int64, error) {
 
 // the data variable will be modified in place (inOut-variable)
 func TryZlibDecompress(data any) (any, error) {
-	dataBytes, err := Marshal(data)
+	dataBytes, err := json.Marshal(data)
 	if err != nil {
 		return nil, err
 	}
