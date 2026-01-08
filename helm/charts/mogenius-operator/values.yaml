@@ -18,7 +18,7 @@ cluster:
 image:
   registry: ghcr.io
   repository: mogenius/mogenius-operator
-  tag: ~
+  tag: ""
   pullPolicy: IfNotPresent
 
 podSecurityContext: {}
