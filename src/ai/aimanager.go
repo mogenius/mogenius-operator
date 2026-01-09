@@ -806,12 +806,19 @@ func (ai *aiManager) createOrUpdateAiTask(task *AiTask, key string) error {
 	if err != nil {
 		return fmt.Errorf("error saving AI task: %v", err)
 	}
+
 	// last updated task
-	_ = ai.valkeyClient.Set(string(jsonString), time.Hour*24*7, ai.getValkeyLatestTaskKey())
+	err = ai.valkeyClient.Set(string(jsonString), time.Hour*24*7, ai.getValkeyLatestTaskKey())
+	if err != nil {
+		ai.logger.Warn("Error saving latest AI task", "error", err)
+	}
 	parts := strings.Split(key, ":")
 	if len(parts) > 2 {
 		namespace := parts[2]
-		_ = ai.valkeyClient.Set(string(jsonString), time.Hour*24*7, ai.getValkeyLatestNamespaceTaskKey(namespace))
+		err = ai.valkeyClient.Set(string(jsonString), time.Hour*24*7, ai.getValkeyLatestNamespaceTaskKey(namespace))
+		if err != nil {
+			ai.logger.Warn("Error saving latest AI task for namespace", "namespace", namespace, "error", err)
+		}
 	}
 
 	return nil
