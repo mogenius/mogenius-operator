@@ -3,10 +3,12 @@ package ai
 import (
 	"encoding/json"
 	"fmt"
+	"mogenius-operator/src/crds/v1alpha1"
 	"mogenius-operator/src/store"
 	"mogenius-operator/src/structs"
 	"mogenius-operator/src/utils"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -161,7 +163,11 @@ func (ai *aiManager) GetAiLatestTasksForWorkspace(workspace string) ([]AiTask, e
 
 		switch workspaceResource.Type {
 		case "namespace":
-			latestNamespaceTask, _ := ai.getLatestNamespaceTask(workspaceResource.Id)
+			latestNamespaceTask, err := ai.getLatestNamespaceTask(workspaceResource.Id)
+			if err != nil {
+				ai.logger.Warn("No latest AI task found for namespace", "namespace", workspaceResource.Id)
+				continue
+			}
 			if latestNamespaceTask != nil {
 				tasks = append(tasks, *latestNamespaceTask)
 			}
@@ -261,6 +267,7 @@ func (ai *aiManager) getLatestNamespaceTask(namespace string) (*AiTask, error) {
 }
 
 func (ai *aiManager) GetStatus(workspace *string) AiManagerStatus {
+	mutex := sync.Mutex{}
 	if workspace == nil {
 		if cachedStatusTime.Add(AiCachedStatusLiveTime).After(time.Now()) {
 			return cachedStatus
@@ -292,31 +299,40 @@ func (ai *aiManager) GetStatus(workspace *string) AiManagerStatus {
 	var unprocessedDbEntries int = 0
 	var ignoredDbEntries int = 0
 	var numberOfUnreadTasks int = 0
-	var err error
+	var err error = nil
 	if workspace == nil {
 		totalDbEntries, unprocessedDbEntries, ignoredDbEntries, numberOfUnreadTasks, err = ai.getDbStats(nil)
 	} else {
-		ownNamespace, err := ai.config.TryGet("MO_OWN_NAMESPACE")
+		var ownNamespace string
+		ownNamespace, err = ai.config.TryGet("MO_OWN_NAMESPACE")
 		if err == nil {
-			workspaceObject, err := store.GetWorkspace(ownNamespace, *workspace)
+			var workspaceObject *v1alpha1.Workspace
+			workspaceObject, err = store.GetWorkspace(ownNamespace, *workspace)
 			if err == nil && workspaceObject != nil {
 				for _, workspaceResource := range workspaceObject.Spec.Resources {
 
 					switch workspaceResource.Type {
 					case "namespace":
-						totalDbEntriesForNs, unprocessedDbEntriesForNs, ignoredDbEntriesForNs, numberOfUnreadTasksForNs, err := ai.getDbStats(&workspaceResource.Id)
-						if err == nil {
-							totalDbEntries += totalDbEntriesForNs
-							unprocessedDbEntries += unprocessedDbEntriesForNs
-							ignoredDbEntries += ignoredDbEntriesForNs
-							numberOfUnreadTasks += numberOfUnreadTasksForNs
+						var totalDbEntriesForNs int = 0
+						var unprocessedDbEntriesForNs int = 0
+						var ignoredDbEntriesForNs int = 0
+						var numberOfUnreadTasksForNs int = 0
+						err = nil
+						totalDbEntriesForNs, unprocessedDbEntriesForNs, ignoredDbEntriesForNs, numberOfUnreadTasksForNs, err = ai.getDbStats(&workspaceResource.Id)
+						if err != nil {
+							ai.logger.Warn("Failed to get DB stats for workspace namespace", "workspace", workspace, "namespace", workspaceResource.Id, "error", err)
+							continue
 						}
+						totalDbEntries += totalDbEntriesForNs
+						unprocessedDbEntries += unprocessedDbEntriesForNs
+						ignoredDbEntries += ignoredDbEntriesForNs
+						numberOfUnreadTasks += numberOfUnreadTasksForNs
 					case "helm":
-						ai.logger.Error("Retrieving AI Tasks for this workspace is not possible", "workspace", workspace, "type", workspaceResource.Type)
+						ai.logger.Warn("Retrieving AI Tasks for this workspace is not possible", "workspace", workspace, "type", workspaceResource.Type)
 					case "argocd":
-						ai.logger.Error("Retrieving AI Tasks for this workspace is not possible", "workspace", workspace, "type", workspaceResource.Type)
+						ai.logger.Warn("Retrieving AI Tasks for this workspace is not possible", "workspace", workspace, "type", workspaceResource.Type)
 					default:
-						ai.logger.Error("Retrieving AI Tasks for this workspace is not possible", "workspace", workspace, "type", workspaceResource.Type)
+						ai.logger.Warn("Retrieving AI Tasks for this workspace is not possible", "workspace", workspace, "type", workspaceResource.Type)
 					}
 				}
 			}
@@ -348,6 +364,7 @@ func (ai *aiManager) GetStatus(workspace *string) AiManagerStatus {
 		NumberOfUnreadTasks:         numberOfUnreadTasks,
 		NextTokenResetTime:          nextReset.Format(time.RFC3339),
 	}
+	mutex.Lock()
 	if workspace != nil {
 		cachedWorkspaceStatusTime[*workspace] = time.Now()
 		cachedWorkspaceStatus[*workspace] = status
@@ -355,7 +372,8 @@ func (ai *aiManager) GetStatus(workspace *string) AiManagerStatus {
 		cachedStatusTime = time.Now()
 		cachedStatus = status
 	}
-	return cachedStatus
+	mutex.Unlock()
+	return status
 }
 
 func (ai *aiManager) ResetDailyTokenLimit() error {
