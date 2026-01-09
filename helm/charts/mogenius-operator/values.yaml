@@ -15,9 +15,11 @@ cluster:
     # -- readonly operator permissions true/false (default: false)
     enabled: false
 
+# -- image settings for the mogenius-operator and nodemetrics container
 image:
   registry: ghcr.io
   repository: mogenius/mogenius-operator
+  # -- tag of the image, if not set, the chart appVersion is used
   tag: ~
   pullPolicy: IfNotPresent
 
