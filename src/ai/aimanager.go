@@ -30,8 +30,10 @@ import (
 )
 
 const (
-	DB_AI_BUCKET_TASKS  = "ai_tasks"
-	DB_AI_BUCKET_TOKENS = "ai_tokens"
+	DB_AI_BUCKET_TASKS              = "ai_tasks"
+	DB_AI_BUCKET_TOKENS             = "ai_tokens"
+	DB_AI_LATEST_TASK_KEY           = "latest-task"
+	DB_AI_LATEST_NAMESPACE_TASK_KEY = "latest-namespace-task"
 )
 
 type AiTaskState string
@@ -317,9 +319,9 @@ type AiManager interface {
 	UpdateTaskReadState(taskID string, user *structs.User) error
 	GetAiTasksForWorkspace(workspace string) ([]AiTask, error)
 	GetAiTasksForResource(resourceReq utils.WorkloadSingleRequest) ([]AiTask, error)
-	GetLatestTask(workspace string) (*AiTaskLatest, error)
+	GetLatestTask(workspace *string) (*AiTaskLatest, error)
 	InjectAiPromptConfig(prompt AiPromptConfig)
-	GetStatus() AiManagerStatus
+	GetStatus(workspace *string) AiManagerStatus
 	ResetDailyTokenLimit() error
 	DeleteAllAiData() error
 	GetAvailableModels(request *ModelsRequest) ([]string, error)
@@ -537,8 +539,13 @@ func (ai *aiManager) getTodayTokenUsage() (todaysTokens int64, todaysProcessedTa
 	return todaysTokens, todaysProcessedTasks, nil
 }
 
-func (ai *aiManager) getDbStats() (totalDbEntries int, unprocessedDbEntries int, ignoredDbEntries int, numberOfUnreadTasks int, err error) {
-	keys, err := ai.valkeyClient.Keys(DB_AI_BUCKET_TASKS + ":*")
+func (ai *aiManager) getDbStats(namespace *string) (totalDbEntries int, unprocessedDbEntries int, ignoredDbEntries int, numberOfUnreadTasks int, err error) {
+	key := ai.getValkeyKey("*", "*", "*")
+	if namespace != nil {
+		key = ai.getValkeyKey("*", *namespace, "*")
+	}
+
+	keys, err := ai.valkeyClient.Keys(key)
 	if err != nil {
 		return 0, 0, 0, 0, err
 	}
@@ -672,7 +679,7 @@ func (ai *aiManager) processAiTaskQueue(ctx context.Context) {
 
 		latestTask := &AiTaskLatest{
 			Task:   &task,
-			Status: ai.GetStatus(),
+			Status: ai.GetStatus(nil),
 		}
 
 		// send event notification
@@ -696,7 +703,7 @@ func (ai *aiManager) processAiTaskQueue(ctx context.Context) {
 
 		// update status for event
 		ai.resetCache()
-		latestTask.Status = ai.GetStatus()
+		latestTask.Status = ai.GetStatus(nil)
 
 		// send event notification
 		ai.sendAiEvent(latestTask)
@@ -799,6 +806,21 @@ func (ai *aiManager) createOrUpdateAiTask(task *AiTask, key string) error {
 	if err != nil {
 		return fmt.Errorf("error saving AI task: %v", err)
 	}
+
+	// last updated task
+	err = ai.valkeyClient.Set(string(jsonString), time.Hour*24*7, ai.getValkeyLatestTaskKey())
+	if err != nil {
+		ai.logger.Warn("Error saving latest AI task", "error", err)
+	}
+	parts := strings.Split(key, ":")
+	if len(parts) > 2 {
+		namespace := parts[2]
+		err = ai.valkeyClient.Set(string(jsonString), time.Hour*24*7, ai.getValkeyLatestNamespaceTaskKey(namespace))
+		if err != nil {
+			ai.logger.Warn("Error saving latest AI task for namespace", "namespace", namespace, "error", err)
+		}
+	}
+
 	return nil
 }
 
@@ -1155,6 +1177,14 @@ func (ai *aiManager) getValkeyKey(kind, namespace, name string) string {
 		}
 	}
 	return fmt.Sprintf("%s:%s:%s:%s", DB_AI_BUCKET_TASKS, kind, namespace, name)
+}
+
+func (ai *aiManager) getValkeyLatestTaskKey() string {
+	return fmt.Sprintf("%s:%s", DB_AI_BUCKET_TASKS, DB_AI_LATEST_TASK_KEY)
+}
+
+func (ai *aiManager) getValkeyLatestNamespaceTaskKey(namespace string) string {
+	return fmt.Sprintf("%s:%s:%s", DB_AI_BUCKET_TASKS, DB_AI_LATEST_NAMESPACE_TASK_KEY, namespace)
 }
 
 func (ai *aiManager) sendAiEvent(task *AiTaskLatest) {

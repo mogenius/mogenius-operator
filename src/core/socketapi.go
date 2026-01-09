@@ -1537,11 +1537,16 @@ func (self *socketApi) registerPatterns() {
 	}
 
 	{
+
+		type Request struct {
+			Workspace *string `json:"workspace"`
+		}
+
 		RegisterPatternHandler(
 			PatternHandle{self, "aiManager/status"},
 			PatternConfig{},
-			func(datagram structs.Datagram, request Void) (ai.AiManagerStatus, error) {
-				status := self.aiApi.GetStatus()
+			func(datagram structs.Datagram, request Request) (ai.AiManagerStatus, error) {
+				status := self.aiApi.GetStatus(request.Workspace)
 				return store.AddToAuditLog(datagram, self.logger, status, nil, nil, nil)
 			},
 		)
@@ -1637,7 +1642,7 @@ func (self *socketApi) registerPatterns() {
 
 	{
 		type Request struct {
-			Workspace string `json:"workspace" validate:"required"`
+			Workspace *string `json:"workspace"`
 		}
 
 		RegisterPatternHandler(

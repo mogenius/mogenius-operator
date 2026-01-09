@@ -462,8 +462,8 @@ aiManager/get/tasks:
                         elementType:
                             type: string
                         type: array
-            mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·35,[]mogenius-operator/src/ai.AiTask]:
-                name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·35,[]mogenius-operator/src/ai.AiTask]
+            mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·36,[]mogenius-operator/src/ai.AiTask]:
+                name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·36,[]mogenius-operator/src/ai.AiTask]
                 properties:
                     data:
                         elementType:
@@ -510,7 +510,7 @@ aiManager/get/tasks:
                 name: time.Time
                 properties: {}
         typeInfo:
-            structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·35,[]mogenius-operator/src/ai.AiTask]
+            structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·36,[]mogenius-operator/src/ai.AiTask]
             type: struct
 aiManager/inject-prompt-config:
     requestSchema:
@@ -584,6 +584,7 @@ aiManager/latest/task:
                 name: mogenius-operator/src/core.Request
                 properties:
                     workspace:
+                        pointer: true
                         type: string
         typeInfo:
             structRef: mogenius-operator/src/core.Request
@@ -749,8 +750,8 @@ aiManager/latest/task:
                         elementType:
                             type: string
                         type: array
-            mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·38,*mogenius-operator/src/ai.AiTaskLatest]:
-                name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·38,*mogenius-operator/src/ai.AiTaskLatest]
+            mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·39,*mogenius-operator/src/ai.AiTaskLatest]:
+                name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·39,*mogenius-operator/src/ai.AiTaskLatest]
                 properties:
                     data:
                         pointer: true
@@ -796,7 +797,7 @@ aiManager/latest/task:
                 name: time.Time
                 properties: {}
         typeInfo:
-            structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·38,*mogenius-operator/src/ai.AiTaskLatest]
+            structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·39,*mogenius-operator/src/ai.AiTaskLatest]
             type: struct
 aiManager/read/task:
     requestSchema:
@@ -813,8 +814,8 @@ aiManager/read/task:
         structs:
             ANON_STRUCT_1:
                 properties: {}
-            mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·36,mogenius-operator/src/core.Void]:
-                name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·36,mogenius-operator/src/core.Void]
+            mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·37,mogenius-operator/src/core.Void]:
+                name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·37,mogenius-operator/src/core.Void]
                 properties:
                     data:
                         pointer: true
@@ -825,7 +826,7 @@ aiManager/read/task:
                     status:
                         type: string
         typeInfo:
-            structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·36,mogenius-operator/src/core.Void]
+            structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·37,mogenius-operator/src/core.Void]
             type: struct
 aiManager/reset-daily-token-limit:
     requestSchema:
@@ -857,11 +858,14 @@ aiManager/reset-daily-token-limit:
 aiManager/status:
     requestSchema:
         structs:
-            ANON_STRUCT_0:
-                properties: {}
+            mogenius-operator/src/core.Request:
+                name: mogenius-operator/src/core.Request
+                properties:
+                    workspace:
+                        pointer: true
+                        type: string
         typeInfo:
-            pointer: true
-            structRef: ANON_STRUCT_0
+            structRef: mogenius-operator/src/core.Request
             type: struct
     responseSchema:
         structs:
@@ -898,8 +902,8 @@ aiManager/status:
                         type: int
                     warning:
                         type: string
-            mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/ai.AiManagerStatus]:
-                name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/ai.AiManagerStatus]
+            mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·35,mogenius-operator/src/ai.AiManagerStatus]:
+                name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·35,mogenius-operator/src/ai.AiManagerStatus]
                 properties:
                     data:
                         structRef: mogenius-operator/src/ai.AiManagerStatus
@@ -909,7 +913,7 @@ aiManager/status:
                     status:
                         type: string
         typeInfo:
-            structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/ai.AiManagerStatus]
+            structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·35,mogenius-operator/src/ai.AiManagerStatus]
             type: struct
 aiManager/update/task:
     requestSchema:
@@ -928,8 +932,8 @@ aiManager/update/task:
         structs:
             ANON_STRUCT_1:
                 properties: {}
-            mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·37,mogenius-operator/src/core.Void]:
-                name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·37,mogenius-operator/src/core.Void]
+            mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·38,mogenius-operator/src/core.Void]:
+                name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·38,mogenius-operator/src/core.Void]
                 properties:
                     data:
                         pointer: true
@@ -940,7 +944,7 @@ aiManager/update/task:
                     status:
                         type: string
         typeInfo:
-            structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·37,mogenius-operator/src/core.Void]
+            structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·38,mogenius-operator/src/core.Void]
             type: struct
 audit-log/list:
     requestSchema:
@@ -969,8 +973,8 @@ audit-log/list:
                         type: string
                     status:
                         type: string
-            mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·39,mogenius-operator/src/core.Response·40]:
-                name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·39,mogenius-operator/src/core.Response·40]
+            mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·40,mogenius-operator/src/core.Response·41]:
+                name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·40,mogenius-operator/src/core.Response·41]
                 properties:
                     data:
                         structRef: mogenius-operator/src/core.Response
@@ -1027,7 +1031,7 @@ audit-log/list:
                 name: time.Time
                 properties: {}
         typeInfo:
-            structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·39,mogenius-operator/src/core.Response·40]
+            structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·40,mogenius-operator/src/core.Response·41]
             type: struct
 cluster/argo-cd-application-refresh:
     requestSchema:
@@ -4296,8 +4300,8 @@ get/nodes-metrics:
                             structRef: mogenius-operator/src/core.NodeMetrics
                             type: struct
                         type: array
-            mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Response·43]:
-                name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Response·43]
+            mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Response·44]:
+                name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Response·44]
                 properties:
                     data:
                         structRef: mogenius-operator/src/core.Response
@@ -4332,7 +4336,7 @@ get/nodes-metrics:
                 name: time.Time
                 properties: {}
         typeInfo:
-            structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Response·43]
+            structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Response·44]
             type: struct
 get/user:
     requestSchema:
@@ -6186,8 +6190,8 @@ sealed-secret/create-from-existing:
                         valueType:
                             pointer: true
                             type: any
-            ? mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·41,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
-            :   name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·41,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+            ? mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·42,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+            :   name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·42,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
                 properties:
                     data:
                         pointer: true
@@ -6198,7 +6202,7 @@ sealed-secret/create-from-existing:
                     status:
                         type: string
         typeInfo:
-            structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·41,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+            structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·42,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
             type: struct
 sealed-secret/get-certificate:
     requestSchema:
