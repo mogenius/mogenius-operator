@@ -12,6 +12,8 @@ import (
 
 var cachedStatusTime time.Time
 var cachedStatus AiManagerStatus
+var cachedWorkspaceStatusTime map[string]time.Time = make(map[string]time.Time)
+var cachedWorkspaceStatus map[string]AiManagerStatus = make(map[string]AiManagerStatus)
 var AiCachedStatusLiveTime time.Duration = time.Minute * 1
 
 func (ai *aiManager) UpdateTaskState(taskID string, newState AiTaskState) error {
@@ -140,13 +142,59 @@ func (ai *aiManager) GetAiTasksForWorkspace(workspace string) ([]AiTask, error) 
 	return tasks, nil
 }
 
-func (ai *aiManager) GetLatestTask(workspace string) (*AiTaskLatest, error) {
-	tasks, err := ai.GetAiTasksForWorkspace(workspace)
+func (ai *aiManager) GetAiLatestTasksForWorkspace(workspace string) ([]AiTask, error) {
+	ownNamespace, err := ai.config.TryGet("MO_OWN_NAMESPACE")
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve own namespace: %v", err)
+	}
+
+	workspaceObject, err := store.GetWorkspace(ownNamespace, workspace)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get workspace: %v", err)
+	}
+	if workspaceObject == nil {
+		return nil, fmt.Errorf("workspace not found: %s", workspace)
+	}
+
+	var tasks []AiTask
+	for _, workspaceResource := range workspaceObject.Spec.Resources {
+
+		switch workspaceResource.Type {
+		case "namespace":
+			latestNamespaceTask, _ := ai.getLatestNamespaceTask(workspaceResource.Id)
+			if latestNamespaceTask != nil {
+				tasks = append(tasks, *latestNamespaceTask)
+			}
+		case "helm":
+			ai.logger.Error("Retrieving AI Tasks for this workspace is not possible", "workspace", workspace, "type", workspaceResource.Type)
+		case "argocd":
+			ai.logger.Error("Retrieving AI Tasks for this workspace is not possible", "workspace", workspace, "type", workspaceResource.Type)
+		default:
+			ai.logger.Error("Retrieving AI Tasks for this workspace is not possible", "workspace", workspace, "type", workspaceResource.Type)
+		}
+	}
+
+	return tasks, nil
+}
+
+func (ai *aiManager) GetLatestTask(workspace *string) (*AiTaskLatest, error) {
+	latestTask := &AiTaskLatest{}
+	latestTask.Status = ai.GetStatus(workspace)
+
+	if workspace == nil {
+		task, err := ai.getLatestTask()
+		if err != nil {
+			return nil, err
+		}
+
+		latestTask.Task = task
+		return latestTask, err
+	}
+
+	tasks, err := ai.GetAiLatestTasksForWorkspace(*workspace)
 	if err != nil {
 		return nil, err
 	}
-	latestTask := &AiTaskLatest{}
-	latestTask.Status = ai.GetStatus()
 
 	for _, task := range tasks {
 		if task.ReadByUser == nil {
@@ -180,9 +228,51 @@ func (ai *aiManager) getAiTasksForNamespace(namespace string) ([]AiTask, error) 
 	return tasks, nil
 }
 
-func (ai *aiManager) GetStatus() AiManagerStatus {
-	if cachedStatusTime.Add(AiCachedStatusLiveTime).After(time.Now()) {
-		return cachedStatus
+func (ai *aiManager) getLatestTask() (*AiTask, error) {
+	key := ai.getValkeyLatestTaskKey()
+	item, err := ai.valkeyClient.Get(key)
+
+	if err != nil {
+		return nil, err
+	}
+	var task AiTask
+	err = json.Unmarshal([]byte(item), &task)
+	if err != nil {
+		return nil, err
+	}
+
+	return &task, nil
+}
+
+func (ai *aiManager) getLatestNamespaceTask(namespace string) (*AiTask, error) {
+	key := ai.getValkeyLatestNamespaceTaskKey(namespace)
+	item, err := ai.valkeyClient.Get(key)
+
+	if err != nil {
+		return nil, err
+	}
+	var task AiTask
+	err = json.Unmarshal([]byte(item), &task)
+	if err != nil {
+		return nil, err
+	}
+
+	return &task, nil
+}
+
+func (ai *aiManager) GetStatus(workspace *string) AiManagerStatus {
+	if workspace == nil {
+		if cachedStatusTime.Add(AiCachedStatusLiveTime).After(time.Now()) {
+			return cachedStatus
+		}
+	} else {
+		if lastCachedTime, exists := cachedWorkspaceStatusTime[*workspace]; exists {
+			if lastCachedTime.Add(AiCachedStatusLiveTime).After(time.Now()) {
+				if status, exists := cachedWorkspaceStatus[*workspace]; exists {
+					return status
+				}
+			}
+		}
 	}
 
 	sdk, _ := ai.getSdkType()
@@ -198,8 +288,41 @@ func (ai *aiManager) GetStatus() AiManagerStatus {
 			ai.error = ""
 		}
 	}
+	var totalDbEntries int = 0
+	var unprocessedDbEntries int = 0
+	var ignoredDbEntries int = 0
+	var numberOfUnreadTasks int = 0
+	var err error
+	if workspace == nil {
+		totalDbEntries, unprocessedDbEntries, ignoredDbEntries, numberOfUnreadTasks, err = ai.getDbStats(nil)
+	} else {
+		ownNamespace, err := ai.config.TryGet("MO_OWN_NAMESPACE")
+		if err == nil {
+			workspaceObject, err := store.GetWorkspace(ownNamespace, *workspace)
+			if err == nil && workspaceObject != nil {
+				for _, workspaceResource := range workspaceObject.Spec.Resources {
 
-	totalDbEntries, unprocessedDbEntries, ignoredDbEntries, numberOfUnreadTasks, err := ai.getDbStats()
+					switch workspaceResource.Type {
+					case "namespace":
+						totalDbEntriesForNs, unprocessedDbEntriesForNs, ignoredDbEntriesForNs, numberOfUnreadTasksForNs, err := ai.getDbStats(&workspaceResource.Id)
+						if err == nil {
+							totalDbEntries += totalDbEntriesForNs
+							unprocessedDbEntries += unprocessedDbEntriesForNs
+							ignoredDbEntries += ignoredDbEntriesForNs
+							numberOfUnreadTasks += numberOfUnreadTasksForNs
+						}
+					case "helm":
+						ai.logger.Error("Retrieving AI Tasks for this workspace is not possible", "workspace", workspace, "type", workspaceResource.Type)
+					case "argocd":
+						ai.logger.Error("Retrieving AI Tasks for this workspace is not possible", "workspace", workspace, "type", workspaceResource.Type)
+					default:
+						ai.logger.Error("Retrieving AI Tasks for this workspace is not possible", "workspace", workspace, "type", workspaceResource.Type)
+					}
+				}
+			}
+		}
+	}
+
 	if err != nil {
 		ai.error = fmt.Sprintf("Failed to get DB stats: %v", err)
 	}
@@ -208,8 +331,7 @@ func (ai *aiManager) GetStatus() AiManagerStatus {
 	nextReset := time.Now().Add(24 * time.Hour)
 	nextReset = time.Date(nextReset.Year(), nextReset.Month(), nextReset.Day(), 0, 0, 0, 0, nextReset.Location())
 
-	cachedStatusTime = time.Now()
-	cachedStatus = AiManagerStatus{
+	status := AiManagerStatus{
 		SdkType:                     sdk,
 		TokenLimit:                  limit,
 		TokensUsed:                  tokensUsed,
@@ -225,6 +347,13 @@ func (ai *aiManager) GetStatus() AiManagerStatus {
 		Warning:                     ai.warning,
 		NumberOfUnreadTasks:         numberOfUnreadTasks,
 		NextTokenResetTime:          nextReset.Format(time.RFC3339),
+	}
+	if workspace != nil {
+		cachedWorkspaceStatusTime[*workspace] = time.Now()
+		cachedWorkspaceStatus[*workspace] = status
+	} else {
+		cachedStatusTime = time.Now()
+		cachedStatus = status
 	}
 	return cachedStatus
 }
