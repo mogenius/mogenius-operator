@@ -36,6 +36,8 @@ const (
 	DB_AI_LATEST_NAMESPACE_TASK_KEY = "latest-namespace-task"
 )
 
+var ValkeyAiTTL = time.Hour * 24 * 7 // 7 days
+
 type AiTaskState string
 type AiTask struct {
 	ID                  string                       `json:"id"`
@@ -586,7 +588,7 @@ func (ai *aiManager) addTokenUsage(tokensUsed int, entryKey string) error {
 		IsIgnored:  false,
 	}
 
-	err := ai.valkeyClient.SetObject(usedToken, time.Hour*24*7, key)
+	err := ai.valkeyClient.SetObject(usedToken, ValkeyAiTTL, key)
 	if err != nil {
 		return fmt.Errorf("error saving AI token usage: %v", err)
 	}
@@ -618,7 +620,7 @@ func (ai *aiManager) resetTodayTokenUsage() error {
 		if tokenEntry.Timestamp.Unix() >= startOfDay {
 			resettedTokens += tokenEntry.TokensUsed
 			tokenEntry.TokensUsed = 0
-			err := ai.valkeyClient.SetObject(tokenEntry, time.Hour*24*7, key)
+			err := ai.valkeyClient.SetObject(tokenEntry, ValkeyAiTTL, key)
 			if err != nil {
 				return fmt.Errorf("error saving AI token usage: %v", err)
 			}
@@ -802,22 +804,22 @@ func (ai *aiManager) createOrUpdateAiTask(task *AiTask, key string) error {
 	if err != nil {
 		return fmt.Errorf("error marshaling AI task: %v", err)
 	}
-	err = ai.valkeyClient.Set(string(jsonString), time.Hour*24*7, key)
+	err = ai.valkeyClient.Set(string(jsonString), ValkeyAiTTL, key)
 	if err != nil {
 		return fmt.Errorf("error saving AI task: %v", err)
 	}
 
 	// last updated task
-	err = ai.valkeyClient.Set(string(jsonString), time.Hour*24*7, ai.getValkeyLatestTaskKey())
+	err = ai.valkeyClient.Set(string(jsonString), ValkeyAiTTL, ai.getValkeyLatestTaskKey())
 	if err != nil {
-		ai.logger.Warn("Error saving latest AI task", "error", err)
+		ai.logger.Warn("Error saving AI task", "error", err)
 	}
 	parts := strings.Split(key, ":")
 	if len(parts) > 2 {
 		namespace := parts[2]
-		err = ai.valkeyClient.Set(string(jsonString), time.Hour*24*7, ai.getValkeyLatestNamespaceTaskKey(namespace))
+		err = ai.valkeyClient.Set(string(jsonString), ValkeyAiTTL, ai.getValkeyLatestNamespaceTaskKey(namespace))
 		if err != nil {
-			ai.logger.Warn("Error saving latest AI task for namespace", "namespace", namespace, "error", err)
+			ai.logger.Warn("Error saving AI task for namespace", "namespace", namespace, "error", err)
 		}
 	}
 
