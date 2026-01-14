@@ -283,7 +283,8 @@ func InstallCertManager() (string, error) {
 		HelmValues: fmt.Sprintf(`namespace: %s
 startupapicheck:
   enabled: false
-installCRDs: true
+crds:
+  enabled: true
 `, config.Get("MO_OWN_NAMESPACE")),
 	}
 	return helm.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues, r.HelmChartVersion)
