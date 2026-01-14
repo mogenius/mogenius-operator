@@ -37,7 +37,13 @@ require (
 	sigs.k8s.io/yaml v1.6.0
 )
 
-require github.com/json-iterator/go v1.1.12 // indirect
+require (
+	github.com/bahlo/generic-list-go v0.2.0 // indirect
+	github.com/buger/jsonparser v1.1.1 // indirect
+	github.com/json-iterator/go v1.1.12 // indirect
+	github.com/mailru/easyjson v0.9.0 // indirect
+	github.com/wk8/go-ordered-map/v2 v2.1.8 // indirect
+)
 
 require (
 	dario.cat/mergo v1.0.2 // indirect
@@ -127,7 +133,7 @@ require (
 	github.com/monochromegane/go-gitignore v0.0.0-20200626010858-205db1a8cc00 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/mxk/go-flowrate v0.0.0-20140419014527-cca7078d478f // indirect
-	github.com/ollama/ollama v0.13.5
+	github.com/ollama/ollama v0.14.0
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.1 // indirect
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
