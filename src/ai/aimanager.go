@@ -642,6 +642,16 @@ func (ai *aiManager) processAiTaskQueue(ctx context.Context) {
 	}
 	// Process items here
 	for _, key := range keys {
+
+		// skip latest task keys, they also exist in their "normal" key form
+		keyParts := strings.Split(key, ":")
+		// length should always be >=2, but just in case
+		if len(keyParts) >= 2 {
+			if keyParts[1] == DB_AI_LATEST_TASK_KEY || keyParts[1] == DB_AI_LATEST_NAMESPACE_TASK_KEY {
+				continue
+			}
+		}
+
 		item, err := ai.valkeyClient.Get(key)
 		if err != nil {
 			ai.logger.Error("Error getting AI task", "key", key, "error", err)
@@ -651,6 +661,11 @@ func (ai *aiManager) processAiTaskQueue(ctx context.Context) {
 		err = json.Unmarshal([]byte(item), &task)
 		if err != nil {
 			ai.logger.Error("Error unmarshaling AI task", "key", key, "error", err)
+			continue
+		}
+
+		// Process only pending tasks
+		if task.State != AI_TASK_STATE_PENDING {
 			continue
 		}
 
@@ -665,11 +680,6 @@ func (ai *aiManager) processAiTaskQueue(ctx context.Context) {
 		} else {
 			task.Error = ""
 			task.State = AI_TASK_STATE_PENDING
-		}
-
-		// Process only pending tasks
-		if task.State != AI_TASK_STATE_PENDING {
-			continue
 		}
 
 		task.State = AI_TASK_STATE_IN_PROGRESS
