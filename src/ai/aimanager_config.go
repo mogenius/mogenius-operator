@@ -70,8 +70,8 @@ func (ai *aiManager) getSdkType() (AiSdkType, error) {
 		return AiSdkTypeOpenAI, nil
 	case "anthropic":
 		return AiSdkTypeAnthropic, nil
-	// case "olama":
-	// 	return AiSdkTypeOlama, nil
+	case "ollama":
+		return AiSdkTypeOllama, nil
 	default:
 		return "", fmt.Errorf("unsupported SDK type: %s", data)
 	}

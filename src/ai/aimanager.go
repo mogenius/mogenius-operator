@@ -11,6 +11,7 @@ import (
 	"mogenius-operator/src/utils"
 	"mogenius-operator/src/valkeyclient"
 	"mogenius-operator/src/websocket"
+	"net/http"
 	"net/url"
 	"sort"
 	"strings"
@@ -1100,7 +1101,7 @@ func (ai *aiManager) getOllamaClient(request *ModelsRequest) (*ollama.Client, er
 		return nil, err
 	}
 
-	client := api.NewClient(url, nil)
+	client := api.NewClient(url, http.DefaultClient)
 
 	return client, nil
 }

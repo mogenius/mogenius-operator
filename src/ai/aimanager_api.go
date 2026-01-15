@@ -299,7 +299,8 @@ func (ai *aiManager) GetStatus(workspace *string) AiManagerStatus {
 	var unprocessedDbEntries int = 0
 	var ignoredDbEntries int = 0
 	var numberOfUnreadTasks int = 0
-	var err error = nil
+	var err error
+
 	if workspace == nil {
 		totalDbEntries, unprocessedDbEntries, ignoredDbEntries, numberOfUnreadTasks, err = ai.getDbStats(nil)
 	} else {
@@ -313,11 +314,11 @@ func (ai *aiManager) GetStatus(workspace *string) AiManagerStatus {
 
 					switch workspaceResource.Type {
 					case "namespace":
-						var totalDbEntriesForNs int = 0
-						var unprocessedDbEntriesForNs int = 0
-						var ignoredDbEntriesForNs int = 0
-						var numberOfUnreadTasksForNs int = 0
-						err = nil
+						var totalDbEntriesForNs int
+						var unprocessedDbEntriesForNs int
+						var ignoredDbEntriesForNs int
+						var numberOfUnreadTasksForNs int
+						var err error
 						totalDbEntriesForNs, unprocessedDbEntriesForNs, ignoredDbEntriesForNs, numberOfUnreadTasksForNs, err = ai.getDbStats(&workspaceResource.Id)
 						if err != nil {
 							ai.logger.Warn("Failed to get DB stats for workspace namespace", "workspace", workspace, "namespace", workspaceResource.Id, "error", err)
