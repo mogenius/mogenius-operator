@@ -670,8 +670,8 @@ func (ai *aiManager) processAiTaskQueue(ctx context.Context) {
 			continue
 		}
 
-		// Process only pending tasks
-		if task.State != AI_TASK_STATE_PENDING {
+		// Process only pending tasks or retry failed tasks
+		if task.State != AI_TASK_STATE_PENDING && task.State != AI_TASK_STATE_FAILED {
 			continue
 		}
 
@@ -683,12 +683,10 @@ func (ai *aiManager) processAiTaskQueue(ctx context.Context) {
 				ai.logger.Error("Error updating AI task", "taskID", task.ID, "error", err)
 			}
 			continue
-		} else {
-			task.Error = ""
-			task.State = AI_TASK_STATE_PENDING
 		}
 
 		task.State = AI_TASK_STATE_IN_PROGRESS
+		task.Error = ""
 		err = ai.createOrUpdateAiTask(&task, key)
 		if err != nil {
 			ai.logger.Error("Failed to set AI task state to in progress", "taskID", task.ID, "error", err)
