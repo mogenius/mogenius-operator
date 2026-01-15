@@ -4,6 +4,14 @@
     {
       "name": "develop",
       "prerelease": true
+    },
+    {
+      "name": "stage", 
+      "prerelease": true
+    },
+    {
+      "name": "*",
+      "prerelease": "pre"
     }
   ],
   "plugins": [
