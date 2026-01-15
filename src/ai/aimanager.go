@@ -952,6 +952,8 @@ func (ai *aiManager) processPrompt(ctx context.Context, prompt string) (*AiRespo
 			return nil, 0, err
 		}
 
+		falsePtr := false
+		truePtr := true
 		req := &api.ChatRequest{
 			Model: model,
 			Messages: []api.Message{
@@ -964,7 +966,10 @@ func (ai *aiManager) processPrompt(ctx context.Context, prompt string) (*AiRespo
 					Content: prompt,
 				},
 			},
-			Stream: new(bool), // false - we want a single response
+			Stream:   &falsePtr,
+			Format:   json.RawMessage(`"json"`),
+			Truncate: &truePtr,
+			Shift:    &truePtr,
 		}
 
 		var responseText string
