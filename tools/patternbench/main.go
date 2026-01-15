@@ -12,8 +12,6 @@ import (
 	"slices"
 	"strings"
 	"time"
-
-	jsoniter "github.com/json-iterator/go"
 )
 
 const HYPERFINE_RUNS = "100"
@@ -41,8 +39,6 @@ var skipPatternBenchmark = []string{
 	"create/grant",
 	"create/workspace",
 }
-
-var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 type LogLine struct {
 	Time     time.Duration    `json:"time"`

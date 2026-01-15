@@ -1,12 +1,11 @@
 package core
 
 import (
+	"encoding/json"
 	"io"
 	"mogenius-operator/src/assert"
 	"mogenius-operator/src/utils"
 	"net/http"
-
-	json "github.com/json-iterator/go"
 )
 
 func (self *httpService) addApiRoutes(mux *http.ServeMux) {
@@ -79,8 +78,6 @@ func (self *httpService) serveSpecYaml(w http.ResponseWriter, r *http.Request) {
 func (self *httpService) generatePatterns() string {
 	self.socketapi.AssertPatternsUnique()
 	patternConfig := self.socketapi.PatternConfigs()
-
-	var json = json.ConfigCompatibleWithStandardLibrary
 
 	data, err := json.Marshal(patternConfig)
 	assert.Assert(err == nil, err)

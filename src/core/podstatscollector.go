@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"mogenius-operator/src/assert"
@@ -13,7 +14,6 @@ import (
 	"strconv"
 	"time"
 
-	jsoniter "github.com/json-iterator/go"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -200,7 +200,6 @@ func (self *podStatsCollector) requestMetricsDataFromNode(nodeName string) (*pod
 	}
 
 	result := &podstatscollector.NodeMetrics{}
-	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	err = json.Unmarshal(rawResponse, &result)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal metrics from Node(%s): %v", nodeName, err)

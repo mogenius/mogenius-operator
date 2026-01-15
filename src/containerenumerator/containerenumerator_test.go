@@ -1,7 +1,6 @@
 package containerenumerator_test
 
 import (
-	"errors"
 	"log/slog"
 	"mogenius-operator/src/assert"
 	"mogenius-operator/src/config"
@@ -9,7 +8,6 @@ import (
 	"mogenius-operator/src/k8sclient"
 	"mogenius-operator/src/utils"
 	"os"
-	"strings"
 	"testing"
 )
 

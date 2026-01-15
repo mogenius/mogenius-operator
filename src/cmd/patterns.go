@@ -3,6 +3,7 @@ package cmd
 import (
 	"bufio"
 	"cmp"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"mogenius-operator/src/assert"
@@ -14,7 +15,6 @@ import (
 	"slices"
 	"strings"
 
-	jsoniter "github.com/json-iterator/go"
 	"gopkg.in/yaml.v3"
 )
 
@@ -51,8 +51,6 @@ func RunPatterns(args *patternsArgs, logManagerModule logging.SlogManager, confi
 }
 
 func patternsToJson(patternConfig map[string]core.PatternConfig) string {
-	var json = jsoniter.ConfigCompatibleWithStandardLibrary
-
 	data, err := json.Marshal(patternConfig)
 	assert.Assert(err == nil, err)
 
@@ -64,7 +62,6 @@ func patternsToYaml(patternConfig map[string]core.PatternConfig) string {
 	jsonData := patternsToJson(patternConfig)
 
 	var data any
-	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	err := json.Unmarshal([]byte(jsonData), &data)
 	assert.Assert(err == nil, err)
 

@@ -2,6 +2,7 @@ package logging
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log/slog"
@@ -16,11 +17,8 @@ import (
 	"sync"
 	"time"
 
-	jsoniter "github.com/json-iterator/go"
 	"github.com/nwidger/jsoncolor"
 )
-
-var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 const combinedLogComponentName = "all"
 

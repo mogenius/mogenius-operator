@@ -1,13 +1,13 @@
 package schema
 
 import (
+	"encoding/json"
 	"fmt"
 	"mogenius-operator/src/assert"
 	"reflect"
 	"strings"
 	"unicode"
 
-	jsoniter "github.com/json-iterator/go"
 	"gopkg.in/yaml.v3"
 )
 
@@ -97,7 +97,6 @@ func (self *StructLayout) Equals(other *StructLayout) bool {
 }
 
 func (self *Schema) Json() string {
-	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	bytes, err := json.Marshal(self)
 	assert.Assert(err == nil, err)
 	return string(bytes)
@@ -108,7 +107,6 @@ func (self *Schema) Yaml() string {
 	jsonData := self.Json()
 
 	var data any
-	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	err := json.Unmarshal([]byte(jsonData), &data)
 	assert.Assert(err == nil, err)
 

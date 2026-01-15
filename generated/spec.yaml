@@ -168,6 +168,10 @@ aiManager/detail/tasks:
             mogenius-operator/src/ai.AiTask:
                 name: mogenius-operator/src/ai.AiTask
                 properties:
+                    controller:
+                        pointer: true
+                        structRef: mogenius-operator/src/utils.WorkloadSingleRequest
+                        type: struct
                     createdAt:
                         type: int
                     error:
@@ -201,15 +205,13 @@ aiManager/detail/tasks:
                 properties:
                     additionalInformation:
                         type: string
-                    diffYaml:
+                    currentResourceYaml:
                         type: string
                     followUpResources:
                         elementType:
-                            structRef: mogenius-operator/src/ai.FollowUpResource
+                            structRef: mogenius-operator/src/utils.WorkloadSingleRequest
                             type: struct
                         type: array
-                    kubectlApplyFixYaml:
-                        type: string
                     needsFollowUp:
                         type: bool
                     possibleCauses:
@@ -218,25 +220,17 @@ aiManager/detail/tasks:
                         type: array
                     problemDescription:
                         type: string
+                    proposedOperation:
+                        type: string
                     proposedSolutions:
                         elementType:
                             structRef: mogenius-operator/src/ai.Solution
                             type: struct
                         type: array
-            mogenius-operator/src/ai.FollowUpResource:
-                name: mogenius-operator/src/ai.FollowUpResource
-                properties:
-                    apiVersion:
-                        type: string
-                    kind:
-                        type: string
-                    name:
-                        type: string
-                    namespace:
-                        type: string
-                    namespaced:
-                        type: bool
-                    plural:
+                    targetResource:
+                        structRef: mogenius-operator/src/utils.WorkloadSingleRequest
+                        type: struct
+                    targetResourceYaml:
                         type: string
             mogenius-operator/src/ai.ReadBy:
                 name: mogenius-operator/src/ai.ReadBy
@@ -306,6 +300,39 @@ aiManager/detail/tasks:
         typeInfo:
             structRef: mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadSingleRequest,[]mogenius-operator/src/ai.AiTask]
             type: struct
+aiManager/get/models:
+    requestSchema:
+        structs:
+            mogenius-operator/src/ai.ModelsRequest:
+                name: mogenius-operator/src/ai.ModelsRequest
+                properties:
+                    API_KEY:
+                        pointer: true
+                        type: string
+                    API_URL:
+                        type: string
+                    SDK:
+                        type: string
+        typeInfo:
+            pointer: true
+            structRef: mogenius-operator/src/ai.ModelsRequest
+            type: struct
+    responseSchema:
+        structs:
+            mogenius-operator/src/core.Result[*mogenius-operator/src/ai.ModelsRequest,[]string]:
+                name: mogenius-operator/src/core.Result[*mogenius-operator/src/ai.ModelsRequest,[]string]
+                properties:
+                    data:
+                        elementType:
+                            type: string
+                        type: array
+                    message:
+                        type: string
+                    status:
+                        type: string
+        typeInfo:
+            structRef: mogenius-operator/src/core.Result[*mogenius-operator/src/ai.ModelsRequest,[]string]
+            type: struct
 aiManager/get/tasks:
     requestSchema:
         structs:
@@ -353,6 +380,10 @@ aiManager/get/tasks:
             mogenius-operator/src/ai.AiTask:
                 name: mogenius-operator/src/ai.AiTask
                 properties:
+                    controller:
+                        pointer: true
+                        structRef: mogenius-operator/src/utils.WorkloadSingleRequest
+                        type: struct
                     createdAt:
                         type: int
                     error:
@@ -386,15 +417,13 @@ aiManager/get/tasks:
                 properties:
                     additionalInformation:
                         type: string
-                    diffYaml:
+                    currentResourceYaml:
                         type: string
                     followUpResources:
                         elementType:
-                            structRef: mogenius-operator/src/ai.FollowUpResource
+                            structRef: mogenius-operator/src/utils.WorkloadSingleRequest
                             type: struct
                         type: array
-                    kubectlApplyFixYaml:
-                        type: string
                     needsFollowUp:
                         type: bool
                     possibleCauses:
@@ -403,25 +432,17 @@ aiManager/get/tasks:
                         type: array
                     problemDescription:
                         type: string
+                    proposedOperation:
+                        type: string
                     proposedSolutions:
                         elementType:
                             structRef: mogenius-operator/src/ai.Solution
                             type: struct
                         type: array
-            mogenius-operator/src/ai.FollowUpResource:
-                name: mogenius-operator/src/ai.FollowUpResource
-                properties:
-                    apiVersion:
-                        type: string
-                    kind:
-                        type: string
-                    name:
-                        type: string
-                    namespace:
-                        type: string
-                    namespaced:
-                        type: bool
-                    plural:
+                    targetResource:
+                        structRef: mogenius-operator/src/utils.WorkloadSingleRequest
+                        type: struct
+                    targetResourceYaml:
                         type: string
             mogenius-operator/src/ai.ReadBy:
                 name: mogenius-operator/src/ai.ReadBy
@@ -592,6 +613,39 @@ aiManager/latest/task:
                         type: string
                     prompt:
                         type: string
+            mogenius-operator/src/ai.AiManagerStatus:
+                name: mogenius-operator/src/ai.AiManagerStatus
+                properties:
+                    apiUrl:
+                        type: string
+                    error:
+                        type: string
+                    ignoredDbEntries:
+                        type: int
+                    isAiModelConfigInitialized:
+                        type: bool
+                    isAiPromptConfigInitialized:
+                        type: bool
+                    model:
+                        type: string
+                    nextTokenResetTime:
+                        type: string
+                    numberOfUnreadTasks:
+                        type: int
+                    sdkType:
+                        type: string
+                    todaysProcessedTasks:
+                        type: int
+                    tokenLimit:
+                        type: int
+                    tokensUsed:
+                        type: int
+                    totalDbEntries:
+                        type: int
+                    unprocessedDbEntries:
+                        type: int
+                    warning:
+                        type: string
             mogenius-operator/src/ai.AiResponse:
                 name: mogenius-operator/src/ai.AiResponse
                 properties:
@@ -603,6 +657,10 @@ aiManager/latest/task:
             mogenius-operator/src/ai.AiTask:
                 name: mogenius-operator/src/ai.AiTask
                 properties:
+                    controller:
+                        pointer: true
+                        structRef: mogenius-operator/src/utils.WorkloadSingleRequest
+                        type: struct
                     createdAt:
                         type: int
                     error:
@@ -634,8 +692,9 @@ aiManager/latest/task:
             mogenius-operator/src/ai.AiTaskLatest:
                 name: mogenius-operator/src/ai.AiTaskLatest
                 properties:
-                    numberOfUnreadTasks:
-                        type: int
+                    status:
+                        structRef: mogenius-operator/src/ai.AiManagerStatus
+                        type: struct
                     task:
                         pointer: true
                         structRef: mogenius-operator/src/ai.AiTask
@@ -645,15 +704,13 @@ aiManager/latest/task:
                 properties:
                     additionalInformation:
                         type: string
-                    diffYaml:
+                    currentResourceYaml:
                         type: string
                     followUpResources:
                         elementType:
-                            structRef: mogenius-operator/src/ai.FollowUpResource
+                            structRef: mogenius-operator/src/utils.WorkloadSingleRequest
                             type: struct
                         type: array
-                    kubectlApplyFixYaml:
-                        type: string
                     needsFollowUp:
                         type: bool
                     possibleCauses:
@@ -662,25 +719,17 @@ aiManager/latest/task:
                         type: array
                     problemDescription:
                         type: string
+                    proposedOperation:
+                        type: string
                     proposedSolutions:
                         elementType:
                             structRef: mogenius-operator/src/ai.Solution
                             type: struct
                         type: array
-            mogenius-operator/src/ai.FollowUpResource:
-                name: mogenius-operator/src/ai.FollowUpResource
-                properties:
-                    apiVersion:
-                        type: string
-                    kind:
-                        type: string
-                    name:
-                        type: string
-                    namespace:
-                        type: string
-                    namespaced:
-                        type: bool
-                    plural:
+                    targetResource:
+                        structRef: mogenius-operator/src/utils.WorkloadSingleRequest
+                        type: struct
+                    targetResourceYaml:
                         type: string
             mogenius-operator/src/ai.ReadBy:
                 name: mogenius-operator/src/ai.ReadBy
@@ -832,6 +881,10 @@ aiManager/status:
                     model:
                         type: string
                     nextTokenResetTime:
+                        type: string
+                    numberOfUnreadTasks:
+                        type: int
+                    sdkType:
                         type: string
                     todaysProcessedTasks:
                         type: int

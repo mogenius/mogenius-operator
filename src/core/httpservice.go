@@ -1,17 +1,15 @@
 package core
 
 import (
+	"encoding/json"
 	"log/slog"
 	"mogenius-operator/src/assert"
 	cfg "mogenius-operator/src/config"
 	"mogenius-operator/src/logging"
 	"mogenius-operator/src/structs"
-	"mogenius-operator/src/utils"
 	"mogenius-operator/src/version"
 	"net/http"
 	"sync"
-
-	json "github.com/json-iterator/go"
 )
 
 type HttpService interface {
@@ -121,9 +119,7 @@ func (self *httpService) Run() {
 
 	mux.HandleFunc("/stats", self.serveNodeStatsHtml)
 
-	if utils.IsDevBuild() {
-		self.addApiRoutes(mux)
-	}
+	self.addApiRoutes(mux)
 
 	self.logger.Info("starting API server", "addr", addr)
 	go func() {

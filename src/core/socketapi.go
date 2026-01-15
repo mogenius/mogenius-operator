@@ -31,7 +31,8 @@ import (
 	"sync"
 	"time"
 
-	jsoniter "github.com/json-iterator/go"
+	"encoding/json"
+
 	release "helm.sh/helm/v4/pkg/release/v1"
 	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -1548,6 +1549,16 @@ func (self *socketApi) registerPatterns() {
 
 	{
 		RegisterPatternHandler(
+			PatternHandle{self, "aiManager/get/models"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request *ai.ModelsRequest) ([]string, error) {
+				return self.aiApi.GetAvailableModels(request)
+			},
+		)
+	}
+
+	{
+		RegisterPatternHandler(
 			PatternHandle{self, "aiManager/reset-daily-token-limit"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Void) (Void, error) {
@@ -1943,8 +1954,6 @@ func (self *socketApi) registerPatterns() {
 }
 
 func (self *socketApi) LoadRequest(datagram *structs.Datagram, data any) error {
-	var json = jsoniter.ConfigCompatibleWithStandardLibrary
-
 	bytes, err := json.Marshal(datagram.Payload)
 	if err != nil {
 		datagram.Err = err.Error()
@@ -2137,7 +2146,6 @@ func (self *socketApi) logdatagram(executionTime time.Duration, datagram structs
 		return
 	}
 	go func() {
-		var json = jsoniter.ConfigCompatibleWithStandardLibrary
 		type LogLine struct {
 			Time     time.Duration    `json:"time"`
 			Datagram structs.Datagram `json:"datagram"`
@@ -2172,7 +2180,6 @@ func (self *socketApi) patternHandlerExists(pattern string) bool {
 func (self *socketApi) ParseDatagram(data []byte) (structs.Datagram, error) {
 	datagram := structs.CreateEmptyDatagram()
 
-	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	err := json.Unmarshal(data, &datagram)
 	if err != nil {
 		self.logger.Error("failed to unmarshal", "error", err)

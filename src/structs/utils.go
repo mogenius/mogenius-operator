@@ -1,14 +1,10 @@
 package structs
 
-import (
-	jsoniter "github.com/json-iterator/go"
-)
+import "encoding/json"
 
 const PingSeconds = 3
 
 func MarshalUnmarshal(datagram *Datagram, data any) {
-	var json = jsoniter.ConfigCompatibleWithStandardLibrary
-
 	bytes, err := json.Marshal(datagram.Payload)
 	if err != nil {
 		datagram.Err = err.Error()

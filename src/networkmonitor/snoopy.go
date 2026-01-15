@@ -16,8 +16,6 @@ import (
 	"strconv"
 	"sync"
 	"sync/atomic"
-
-	jsoniter "github.com/json-iterator/go"
 )
 
 type SnoopyManager interface {
@@ -773,8 +771,6 @@ func (self *snoopyManager) attachToPidNamespace(pid ProcessId) (*SnoopyHandle, e
 		"--network-device-poll-rate",
 		strconv.FormatUint(self.args.NetworkDevicePollRate, 10),
 	)
-
-	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 	stdoutPipe, err := cmd.StdoutPipe()
 	if err != nil {

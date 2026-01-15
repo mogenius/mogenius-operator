@@ -2,6 +2,7 @@ package valkeyclient
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"mogenius-operator/src/assert"
@@ -15,13 +16,9 @@ import (
 	"strings"
 	"time"
 
-	jsoniter "github.com/json-iterator/go"
-
 	"github.com/valkey-io/valkey-go"
 	valkeyclient "github.com/valkey-io/valkey-go"
 )
-
-var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 type ValkeyClient interface {
 	Connect() error

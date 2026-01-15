@@ -11,6 +11,7 @@ import (
 	"mogenius-operator/src/utils"
 	"mogenius-operator/src/valkeyclient"
 	"mogenius-operator/src/websocket"
+	"net/url"
 	"sort"
 	"strings"
 	"time"
@@ -20,6 +21,12 @@ import (
 
 	"github.com/openai/openai-go/v3"
 	"github.com/openai/openai-go/v3/option"
+
+	"github.com/anthropics/anthropic-sdk-go"
+	anthropic_option "github.com/anthropics/anthropic-sdk-go/option"
+
+	"github.com/ollama/ollama/api"
+	ollama "github.com/ollama/ollama/api"
 )
 
 const (
@@ -29,22 +36,23 @@ const (
 
 type AiTaskState string
 type AiTask struct {
-	ID                  string                      `json:"id"`
-	Prompt              string                      `json:"prompt"`
-	Response            *AiResponse                 `json:"response"`
-	State               AiTaskState                 `json:"state"` // pending, in-progress, completed, failed, ignored
-	TokensUsed          int64                       `json:"tokensUsed"`
-	CreatedAt           int64                       `json:"createdAt"`
-	UpdatedAt           int64                       `json:"updatedAt"`
-	ReferencingResource utils.WorkloadSingleRequest `json:"referencingResource"` // the resource that triggered this task
-	TriggeredBy         AiFilter                    `json:"triggeredBy"`         // e.g., "Failed Pods" filter
-	ReadByUser          *ReadBy                     `json:"readByUser,omitempty"`
-	Error               string                      `json:"error"`
+	ID                  string                       `json:"id"`
+	Prompt              string                       `json:"prompt"`
+	Response            *AiResponse                  `json:"response"`
+	State               AiTaskState                  `json:"state"` // pending, in-progress, completed, failed, ignored
+	Controller          *utils.WorkloadSingleRequest `json:"controller,omitempty"`
+	TokensUsed          int64                        `json:"tokensUsed"`
+	CreatedAt           int64                        `json:"createdAt"`
+	UpdatedAt           int64                        `json:"updatedAt"`
+	ReferencingResource utils.WorkloadSingleRequest  `json:"referencingResource"` // the resource that triggered this task
+	TriggeredBy         AiFilter                     `json:"triggeredBy"`         // e.g., "Failed Pods" filter
+	ReadByUser          *ReadBy                      `json:"readByUser,omitempty"`
+	Error               string                       `json:"error"`
 }
 
 type AiTaskLatest struct {
-	Task                *AiTask `json:"task,omitempty"`
-	NumberOfUnreadTasks int     `json:"numberOfUnreadTasks"`
+	Task   *AiTask         `json:"task,omitempty"`
+	Status AiManagerStatus `json:"status"`
 }
 
 type ReadBy struct {
@@ -77,19 +85,21 @@ type AiPromptConfig struct {
 }
 
 type AiManagerStatus struct {
-	TokenLimit                  int64  `json:"tokenLimit"`
-	TokensUsed                  int64  `json:"tokensUsed"`
-	Model                       string `json:"model"`
-	ApiUrl                      string `json:"apiUrl"`
-	IsAiPromptConfigInitialized bool   `json:"isAiPromptConfigInitialized"`
-	IsAiModelConfigInitialized  bool   `json:"isAiModelConfigInitialized"`
-	TodaysProcessedTasks        int    `json:"todaysProcessedTasks"`
-	TotalDbEntries              int    `json:"totalDbEntries"`
-	UnprocessedDbEntries        int    `json:"unprocessedDbEntries"`
-	IgnoredDbEntries            int    `json:"ignoredDbEntries"`
-	Error                       string `json:"error,omitempty"`
-	Warning                     string `json:"warning,omitempty"`
-	NextTokenResetTime          string `json:"nextTokenResetTime,omitempty"`
+	SdkType                     AiSdkType `json:"sdkType"`
+	TokenLimit                  int64     `json:"tokenLimit"`
+	TokensUsed                  int64     `json:"tokensUsed"`
+	Model                       string    `json:"model"`
+	ApiUrl                      string    `json:"apiUrl"`
+	IsAiPromptConfigInitialized bool      `json:"isAiPromptConfigInitialized"`
+	IsAiModelConfigInitialized  bool      `json:"isAiModelConfigInitialized"`
+	TodaysProcessedTasks        int       `json:"todaysProcessedTasks"`
+	TotalDbEntries              int       `json:"totalDbEntries"`
+	UnprocessedDbEntries        int       `json:"unprocessedDbEntries"`
+	IgnoredDbEntries            int       `json:"ignoredDbEntries"`
+	NumberOfUnreadTasks         int       `json:"numberOfUnreadTasks,omitempty"`
+	Error                       string    `json:"error,omitempty"`
+	Warning                     string    `json:"warning,omitempty"`
+	NextTokenResetTime          string    `json:"nextTokenResetTime,omitempty"`
 }
 
 type AiResponse struct {
@@ -98,28 +108,21 @@ type AiResponse struct {
 }
 
 type Analysis struct {
-	ProblemDescription  string             `json:"problemDescription"`
-	PossibleCauses      []string           `json:"possibleCauses"`
-	ProposedSolutions   []Solution         `json:"proposedSolutions"`
-	AdditionalInfo      string             `json:"additionalInformation"`
-	NeedsFollowUp       bool               `json:"needsFollowUp"`
-	FollowUpResources   []FollowUpResource `json:"followUpResources"`
-	KubectlApplyFixYaml string             `json:"kubectlApplyFixYaml"`
-	DiffYaml            string             `json:"diffYaml"`
+	ProblemDescription  string                        `json:"problemDescription"`
+	PossibleCauses      []string                      `json:"possibleCauses"`
+	ProposedSolutions   []Solution                    `json:"proposedSolutions"`
+	AdditionalInfo      string                        `json:"additionalInformation"`
+	NeedsFollowUp       bool                          `json:"needsFollowUp"`
+	FollowUpResources   []utils.WorkloadSingleRequest `json:"followUpResources"`
+	CurrentResourceYaml string                        `json:"currentResourceYaml"`
+	TargetResourceYaml  string                        `json:"targetResourceYaml"`
+	TargetResource      utils.WorkloadSingleRequest   `json:"targetResource,omitempty"`
+	ProposedOperation   string                        `json:"proposedOperation,omitempty"` // UpdateResource', 'DeleteResource', 'CreateResource', 'Other'
 }
 
 type Solution struct {
 	SolutionDescription string   `json:"solutionDescription"`
 	Steps               []string `json:"steps"`
-}
-
-type FollowUpResource struct {
-	Kind       string `json:"kind"`
-	Plural     string `json:"plural"`
-	APIVersion string `json:"apiVersion"`
-	Namespaced bool   `json:"namespaced"`
-	Name       string `json:"name"`
-	Namespace  string `json:"namespace"`
 }
 
 type UsedToken struct {
@@ -129,13 +132,19 @@ type UsedToken struct {
 	Key        string    `json:"key"`
 }
 
+type ModelsRequest struct {
+	Sdk    string  `json:"SDK,omitempty"`
+	ApiKey *string `json:"API_KEY,omitempty"`
+	ApiUrl string  `json:"API_URL,omitempty"`
+}
+
 var AiFilters = []AiFilter{
 	{
 		Name:        "Failed Pods",
 		Description: "The pod is in a Failed state due to various reasons such as CrashLoopBackOff, ImagePullBackOff, etc.",
 		Kind:        "Pod",
 		Contains: map[string]string{
-			"Failed": ".status.phase",
+			".status.phase": "Failed",
 		},
 		Excludes: map[string]string{},
 		Prompt:   "Provide a detailed analysis of why this Pod failed and suggest possible solutions.",
@@ -145,7 +154,7 @@ var AiFilters = []AiFilter{
 		Description: "The pod is in CrashLoopBackOff state due to container crashes.",
 		Kind:        "Pod",
 		Contains: map[string]string{
-			"CrashLoopBackOff": ".status.containerStatuses[*].state.waiting.reason",
+			".status.containerStatuses[*].state.waiting.reason": "CrashLoopBackOff",
 		},
 		Excludes: map[string]string{},
 		Prompt:   "Provide a detailed analysis of why this Pod is in CrashLoopBackOff and suggest possible solutions.",
@@ -155,7 +164,7 @@ var AiFilters = []AiFilter{
 		Description: "The pod is in ImagePullBackOff state due to image pull errors.",
 		Kind:        "Pod",
 		Contains: map[string]string{
-			"ImagePullBackOff": ".status.containerStatuses[*].state.waiting.reason",
+			".status.containerStatuses[*].state.waiting.reason": "ImagePullBackOff",
 		},
 		Excludes: map[string]string{},
 		Prompt:   "Provide a detailed analysis of why this Pod is in ImagePullBackOff and suggest possible solutions.",
@@ -165,7 +174,7 @@ var AiFilters = []AiFilter{
 		Description: "The pod is in ErrImagePull state due to image pull errors.",
 		Kind:        "Pod",
 		Contains: map[string]string{
-			"ErrImagePull": ".status.containerStatuses[*].state.waiting.reason",
+			".status.containerStatuses[*].state.waiting.reason": "ErrImagePull",
 		},
 		Excludes: map[string]string{},
 		Prompt:   "Provide a detailed analysis of why this Pod cannot pull its image and suggest possible solutions.",
@@ -175,7 +184,7 @@ var AiFilters = []AiFilter{
 		Description: "The pod is in CreateContainerConfigError state likely due to ConfigMap or Secret issues.",
 		Kind:        "Pod",
 		Contains: map[string]string{
-			"CreateContainerConfigError": ".status.containerStatuses[*].state.waiting.reason",
+			".status.containerStatuses[*].state.waiting.reason": "CreateContainerConfigError",
 		},
 		Excludes: map[string]string{},
 		Prompt:   "Provide a detailed analysis of why this Pod has a CreateContainerConfigError (likely ConfigMap or Secret issue) and suggest possible solutions.",
@@ -185,27 +194,28 @@ var AiFilters = []AiFilter{
 		Description: "The pod is in InvalidImageName state due to an invalid image name.",
 		Kind:        "Pod",
 		Contains: map[string]string{
-			"InvalidImageName": ".status.containerStatuses[*].state.waiting.reason",
+			".status.containerStatuses[*].state.waiting.reason": "InvalidImageName",
 		},
 		Excludes: map[string]string{},
 		Prompt:   "Provide a detailed analysis of why this Pod has an invalid image name and suggest possible solutions.",
 	},
 	{
-		Name:        "ReplicaSet with unavailable replicas",
-		Description: "The ReplicaSet has unavailable replicas, possibly due to pod failures or insufficient resources.",
+		Name:        "Unused ReplicaSet",
+		Description: "The ReplicaSet has zero replicas, indicating it is not currently in use.",
 		Kind:        "ReplicaSet",
 		Contains: map[string]string{
-			"0": ".status.replicas",
+			".spec.replicas":   "0",
+			".status.replicas": "0",
 		},
 		Excludes: map[string]string{},
-		Prompt:   "Provide a detailed analysis of why this ReplicaSet has unavailable replicas and suggest possible solutions.",
+		Prompt:   "Provide a detailed analysis of why this ReplicaSet has zero replicas and suggest possible solutions. It might be unused and can most potentially be deleted.",
 	},
 	{
 		Name:        "PodNotReady",
 		Description: "The pod is NotReady, indicating it is not yet ready to serve traffic.",
 		Kind:        "Pod",
 		Contains: map[string]string{
-			"False": ".status.conditions[?(@.type=='Ready')].status",
+			".status.conditions[?(@.type=='Ready')].status": "False",
 		},
 		Excludes: map[string]string{},
 		Prompt:   "Provide a detailed analysis of why this Pod is NotReady and suggest possible solutions.",
@@ -215,7 +225,7 @@ var AiFilters = []AiFilter{
 		Description: "The pod is in Pending state, likely due to scheduling issues, resource constraints, or PVC problems.",
 		Kind:        "Pod",
 		Contains: map[string]string{
-			"Pending": ".status.phase",
+			".status.phase": "Pending",
 		},
 		Excludes: map[string]string{},
 		Prompt:   "Provide a detailed analysis of why this Pod is stuck in Pending state (likely scheduling issues, resource constraints, or PVC problems) and suggest possible solutions.",
@@ -225,7 +235,7 @@ var AiFilters = []AiFilter{
 		Description: "The pod's container was OOMKilled (Out of Memory), likely due to memory limits being exceeded.",
 		Kind:        "Pod",
 		Contains: map[string]string{
-			"OOMKilled": ".status.containerStatuses[*].lastState.terminated.reason",
+			".status.containerStatuses[*].lastState.terminated.reason": "OOMKilled",
 		},
 		Excludes: map[string]string{},
 		Prompt:   "Provide a detailed analysis of why this Pod's container was OOMKilled (Out of Memory) and suggest possible solutions including memory limit adjustments.",
@@ -235,7 +245,7 @@ var AiFilters = []AiFilter{
 		Description: "The Deployment has unavailable replicas, possibly due to pod failures or insufficient resources.",
 		Kind:        "Deployment",
 		Contains: map[string]string{
-			"False": ".status.conditions[?(@.type=='Available')].status",
+			".status.conditions[?(@.type=='Available')].status": "False",
 		},
 		Excludes: map[string]string{},
 		Prompt:   "Provide a detailed analysis of why this Deployment has unavailable replicas and suggest possible solutions.",
@@ -245,7 +255,7 @@ var AiFilters = []AiFilter{
 		Kind:        "StatefulSet",
 		Description: "The StatefulSet has failed replicas, possibly due to pod failures or insufficient resources.",
 		Contains: map[string]string{
-			"False": ".status.conditions[?(@.type=='Ready')].status",
+			".status.conditions[?(@.type=='Ready')].status": "False",
 		},
 		Excludes: map[string]string{},
 		Prompt:   "Provide a detailed analysis of why this StatefulSet has failed replicas and suggest possible solutions.",
@@ -255,7 +265,7 @@ var AiFilters = []AiFilter{
 		Description: "The PersistentVolumeClaim is Pending, likely due to no matching PersistentVolume or StorageClass issues.",
 		Kind:        "PersistentVolumeClaim",
 		Contains: map[string]string{
-			"Pending": ".status.phase",
+			".status.phase": "Pending",
 		},
 		Excludes: map[string]string{},
 		Prompt:   "Provide a detailed analysis of why this PersistentVolumeClaim is Pending (likely no matching PV or StorageClass issues) and suggest possible solutions.",
@@ -273,7 +283,7 @@ var AiFilters = []AiFilter{
 		Description: "The pod is Unschedulable, likely due to resource constraints, node affinity, or taints.",
 		Kind:        "Pod",
 		Contains: map[string]string{
-			"Unschedulable": ".status.conditions[?(@.type=='PodScheduled')].reason",
+			".status.conditions[?(@.type=='PodScheduled')].reason": "Unschedulable",
 		},
 		Excludes: map[string]string{},
 		Prompt:   "Provide a detailed analysis of why this Pod is unschedulable (likely resource constraints, node affinity, or taints) and suggest possible solutions.",
@@ -283,7 +293,7 @@ var AiFilters = []AiFilter{
 		Description: "The Job has failed to complete, possibly due to pod failures or misconfiguration.",
 		Kind:        "Job",
 		Contains: map[string]string{
-			"False": ".status.conditions[?(@.type=='Complete')].status",
+			".status.conditions[?(@.type=='Complete')].status": "False",
 		},
 		Excludes: map[string]string{},
 		Prompt:   "Provide a detailed analysis of why this Job failed to complete and suggest possible solutions.",
@@ -293,7 +303,7 @@ var AiFilters = []AiFilter{
 		Description: "The HorizontalPodAutoscaler is unable to scale, likely due to metrics-server issues or invalid configuration.",
 		Kind:        "HorizontalPodAutoscaler",
 		Contains: map[string]string{
-			"False": ".status.conditions[?(@.type=='AbleToScale')].status",
+			".status.conditions[?(@.type=='AbleToScale')].status": "False",
 		},
 		Excludes: map[string]string{},
 		Prompt:   "Provide a detailed analysis of why this HorizontalPodAutoscaler cannot scale (likely metrics-server issues or invalid configuration) and suggest possible solutions.",
@@ -312,6 +322,7 @@ type AiManager interface {
 	GetStatus() AiManagerStatus
 	ResetDailyTokenLimit() error
 	DeleteAllAiData() error
+	GetAvailableModels(request *ModelsRequest) ([]string, error)
 }
 
 type aiManager struct {
@@ -344,7 +355,7 @@ func (ai *aiManager) ProcessObject(obj *unstructured.Unstructured, eventType str
 
 	if eventType == "delete" {
 		// On delete, we try to remove any existing AI tasks for this object
-		key := ai.getValkeyKey(obj.GetKind(), obj.GetNamespace(), obj.GetName(), "*")
+		key := ai.getValkeyKey(obj.GetKind(), obj.GetNamespace(), obj.GetName())
 		err := ai.valkeyClient.DeleteMultiple(key)
 		if err != nil {
 			ai.logger.Error("Error deleting AI tasks for deleted object", "objectKind", obj.GetKind(), "objectName", obj.GetName(), "objectNamespace", obj.GetNamespace(), "error", err)
@@ -363,7 +374,7 @@ func (ai *aiManager) ProcessObject(obj *unstructured.Unstructured, eventType str
 		if obj.GetKind() == filter.Kind {
 			var matchedFilter *AiFilter = nil
 			// check contains conditions
-			for expectedValue, path := range filter.Contains {
+			for path, expectedValue := range filter.Contains {
 				value, found, err := getNestedStringWithJSONPath(obj, path, expectedValue)
 				if err != nil {
 					ai.logger.Error("Error checking AI filter contains", "expectedValue", expectedValue, "error", err)
@@ -375,7 +386,7 @@ func (ai *aiManager) ProcessObject(obj *unstructured.Unstructured, eventType str
 				}
 			}
 			// check excludes conditions
-			for expectedValue, path := range filter.Excludes {
+			for path, expectedValue := range filter.Excludes {
 				value, found, err := getNestedStringWithJSONPath(obj, path, expectedValue)
 				if err != nil {
 					ai.logger.Error("Error checking AI filter excludes", "expectedValue", expectedValue, "error", err)
@@ -404,7 +415,7 @@ func (ai *aiManager) ProcessObject(obj *unstructured.Unstructured, eventType str
 					Error:       "",
 				}
 
-				key := ai.getValkeyKey(obj.GetKind(), obj.GetNamespace(), obj.GetName(), filter.Name)
+				key := ai.getValkeyKey(obj.GetKind(), obj.GetNamespace(), obj.GetName())
 				shouldCreate, err := ai.shouldCreateNewTask(key)
 				if err != nil {
 					ai.logger.Error("Error checking if should create new AI task", "error", err)
@@ -412,6 +423,22 @@ func (ai *aiManager) ProcessObject(obj *unstructured.Unstructured, eventType str
 				}
 
 				if shouldCreate {
+					controller := ai.ownerCacheService.OwnerFromReference(obj.GetNamespace(), obj.GetOwnerReferences())
+					task.Controller = controller
+					if controller != nil {
+						ctrlOb, err := store.GetResource(ai.valkeyClient, controller.ResourceDescriptor.ApiVersion, controller.ResourceDescriptor.Kind, controller.Namespace, controller.ResourceName, ai.logger)
+						if err != nil {
+							ai.logger.Error("Error fetching controller object for AI task", "controllerKind", controller.ResourceDescriptor.Kind, "controllerName", controller.ResourceName, "controllerNamespace", controller.Namespace, "error", err)
+						} else {
+							if ctrlOb != nil {
+								controllerYaml, err := store.GetYamlFromUnstructuredResource(ctrlOb)
+								if err != nil {
+									ai.logger.Error("Error generating controller YAML for AI task prompt", "controllerKind", controller.ResourceDescriptor.Kind, "controllerName", controller.ResourceName, "controllerNamespace", controller.Namespace, "error", err)
+								}
+								task.Prompt += "\n\nThe controller resource YAML is as follows:\n" + controllerYaml
+							}
+						}
+					}
 					err = ai.createOrUpdateAiTask(task, key)
 					if err != nil {
 						ai.logger.Error("Error creating AI task", "error", err)
@@ -490,7 +517,6 @@ func (ai *aiManager) getTodayTokenUsage() (todaysTokens int64, todaysProcessedTa
 		return 0, 0, err
 	}
 
-	var totalTokens int64 = 0
 	for _, key := range keys {
 		item, err := ai.valkeyClient.Get(key)
 		if err != nil {
@@ -503,26 +529,30 @@ func (ai *aiManager) getTodayTokenUsage() (todaysTokens int64, todaysProcessedTa
 		}
 
 		if tokenEntry.Timestamp.Unix() >= startOfDay && !tokenEntry.IsIgnored {
-			totalTokens += tokenEntry.TokensUsed
+			todaysTokens += tokenEntry.TokensUsed
+			todaysProcessedTasks++
 		}
 	}
 
-	return totalTokens, len(keys), nil
+	return todaysTokens, todaysProcessedTasks, nil
 }
 
-func (ai *aiManager) getDbStats() (totalDbEntries int, unprocessedDbEntries int, ignoredDbEntries int, err error) {
+func (ai *aiManager) getDbStats() (totalDbEntries int, unprocessedDbEntries int, ignoredDbEntries int, numberOfUnreadTasks int, err error) {
 	keys, err := ai.valkeyClient.Keys(DB_AI_BUCKET_TASKS + ":*")
 	if err != nil {
-		return 0, 0, 0, err
+		return 0, 0, 0, 0, err
 	}
 
 	for _, key := range keys {
 		item, err := ai.valkeyClient.Get(key)
 		if err != nil {
-			return 0, 0, 0, err
+			return 0, 0, 0, 0, err
 		}
 		var task AiTask
 		err = json.Unmarshal([]byte(item), &task)
+		if err != nil {
+			return 0, 0, 0, 0, err
+		}
 
 		if task.State == AI_TASK_STATE_PENDING || task.State == AI_TASK_STATE_FAILED {
 			unprocessedDbEntries++
@@ -530,9 +560,12 @@ func (ai *aiManager) getDbStats() (totalDbEntries int, unprocessedDbEntries int,
 		if task.State == AI_TASK_STATE_IGNORED {
 			ignoredDbEntries++
 		}
+		if task.ReadByUser == nil {
+			numberOfUnreadTasks++
+		}
 	}
 
-	return len(keys), unprocessedDbEntries, ignoredDbEntries, nil
+	return len(keys), unprocessedDbEntries, ignoredDbEntries, numberOfUnreadTasks, nil
 }
 
 func (ai *aiManager) addTokenUsage(tokensUsed int, entryKey string) error {
@@ -587,6 +620,8 @@ func (ai *aiManager) resetTodayTokenUsage() error {
 	}
 	ai.logger.Info("Reset today's AI token usage", "resettedTokens", resettedTokens)
 
+	ai.resetCache()
+
 	return nil
 }
 
@@ -635,8 +670,13 @@ func (ai *aiManager) processAiTaskQueue(ctx context.Context) {
 			continue
 		}
 
+		latestTask := &AiTaskLatest{
+			Task:   &task,
+			Status: ai.GetStatus(),
+		}
+
 		// send event notification
-		ai.sendAiEvent(&task)
+		ai.sendAiEvent(latestTask)
 
 		response, tokensUsed, err := ai.processPrompt(ctx, task.Prompt)
 		if err != nil {
@@ -654,8 +694,12 @@ func (ai *aiManager) processAiTaskQueue(ctx context.Context) {
 			ai.logger.Error("Error recording AI token usage", "taskID", task.ID, "error", err)
 		}
 
+		// update status for event
+		ai.resetCache()
+		latestTask.Status = ai.GetStatus()
+
 		// send event notification
-		ai.sendAiEvent(&task)
+		ai.sendAiEvent(latestTask)
 
 		// Save updated task
 		err = ai.createOrUpdateAiTask(&task, key)
@@ -663,7 +707,7 @@ func (ai *aiManager) processAiTaskQueue(ctx context.Context) {
 			ai.logger.Error("Error updating AI task", "taskID", task.ID, "error", err)
 			continue
 		}
-		ai.logger.Info("AI task processed", "taskID", task.ID, "tokensUsed", task.TokensUsed)
+		ai.logger.Info("AI task processed", "taskID", task.ID, "tokensUsed", task.TokensUsed, "state", task.State, "name", task.ReferencingResource.ResourceName, "namespace", task.ReferencingResource.Namespace)
 	}
 }
 
@@ -767,45 +811,176 @@ func (ai *aiManager) shouldCreateNewTask(key string) (bool, error) {
 }
 
 func (ai *aiManager) processPrompt(ctx context.Context, prompt string) (*AiResponse, int64, error) {
-	client, err := ai.getOpenAIClient()
-	if err != nil {
-		return nil, 0, err
-	}
-
 	model, err := ai.getAiModel()
 	if err != nil {
 		return nil, 0, err
 	}
 	systemPrompt := ai.getSystemPrompt()
 
-	chatCompletion, err := client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
-		Messages: []openai.ChatCompletionMessageParamUnion{
-			openai.UserMessage(prompt),
-			openai.SystemMessage(systemPrompt),
-		},
-		Model: model,
-	})
-
-	var tokensUsed int64 = 0
-	if chatCompletion != nil {
-		tokensUsed = chatCompletion.Usage.TotalTokens
-	}
-
+	sdk, err := ai.getSdkType()
 	if err != nil {
-		return nil, tokensUsed, err
+		return nil, 0, err
 	}
-	if len(chatCompletion.Choices) == 0 {
-		return nil, tokensUsed, fmt.Errorf("no choices returned from AI model")
-	}
+	switch sdk {
+	case AiSdkTypeOpenAI:
+		client, err := ai.getOpenAIClient(nil)
+		if err != nil {
+			return nil, 0, err
+		}
 
-	var aiResponse AiResponse
-	err = json.Unmarshal([]byte(chatCompletion.Choices[0].Message.Content), &aiResponse)
-	if err != nil {
-		return nil, tokensUsed, fmt.Errorf("error unmarshaling AI response: %v", err)
-	}
+		chatCompletion, err := client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
+			Messages: []openai.ChatCompletionMessageParamUnion{
+				openai.UserMessage(prompt),
+				openai.SystemMessage(systemPrompt),
+			},
+			Model: model,
+		})
 
-	// also return tokens used
-	return &aiResponse, tokensUsed, nil
+		var tokensUsed int64 = 0
+		if chatCompletion != nil {
+			tokensUsed = chatCompletion.Usage.TotalTokens
+		}
+
+		if err != nil {
+			return nil, tokensUsed, err
+		}
+		if len(chatCompletion.Choices) == 0 {
+			return nil, tokensUsed, fmt.Errorf("no choices returned from AI model")
+		}
+
+		var aiResponse AiResponse
+		err = json.Unmarshal([]byte(chatCompletion.Choices[0].Message.Content), &aiResponse)
+		if err != nil {
+			return nil, tokensUsed, fmt.Errorf("error unmarshaling AI response: %v\n%s", err, chatCompletion.Choices[0].Message.Content)
+		}
+
+		// also return tokens used
+		return &aiResponse, tokensUsed, nil
+	case AiSdkTypeAnthropic:
+		client, err := ai.getAnthropicClient(nil)
+		if err != nil {
+			return nil, 0, err
+		}
+
+		message, err := client.Messages.New(ctx, anthropic.MessageNewParams{
+			Model:     anthropic.Model(model),
+			MaxTokens: int64(10000),
+			System: []anthropic.TextBlockParam{
+				{
+					Type: "text",
+					Text: systemPrompt,
+				},
+			},
+			Messages: []anthropic.MessageParam{
+				{
+					Role: anthropic.MessageParamRoleUser,
+					Content: []anthropic.ContentBlockParamUnion{
+						anthropic.NewTextBlock(prompt),
+					},
+				},
+			},
+		})
+
+		var tokensUsed int64 = 0
+		if message != nil {
+			tokensUsed = message.Usage.InputTokens + message.Usage.OutputTokens
+		}
+
+		if err != nil {
+			return nil, tokensUsed, err
+		}
+
+		if len(message.Content) == 0 {
+			return nil, tokensUsed, fmt.Errorf("no content returned from AI model")
+		}
+
+		// Extract text from content blocks
+		var responseText string
+		for _, block := range message.Content {
+			responseText += block.Text
+		}
+		responseText = cleanJSONResponse(responseText)
+
+		var aiResponse AiResponse
+		err = json.Unmarshal([]byte(responseText), &aiResponse)
+		if err != nil {
+			return nil, tokensUsed, fmt.Errorf("error unmarshaling AI response: %v\n%s", err, responseText)
+		}
+
+		return &aiResponse, tokensUsed, nil
+	case AiSdkTypeOllama:
+		client, err := ai.getOllamaClient(nil)
+		if err != nil {
+			return nil, 0, err
+		}
+
+		req := &api.ChatRequest{
+			Model: model,
+			Messages: []api.Message{
+				{
+					Role:    "system",
+					Content: systemPrompt,
+				},
+				{
+					Role:    "user",
+					Content: prompt,
+				},
+			},
+			Stream: new(bool), // false - we want a single response
+		}
+
+		var responseText string
+		var promptEvalCount int
+		var evalCount int
+
+		err = client.Chat(ctx, req, func(resp api.ChatResponse) error {
+			responseText += resp.Message.Content
+			if resp.Done {
+				promptEvalCount = resp.PromptEvalCount
+				evalCount = resp.EvalCount
+			}
+			return nil
+		})
+
+		var tokensUsed int64 = 0
+		if err == nil {
+			tokensUsed = int64(promptEvalCount + evalCount)
+		}
+
+		if err != nil {
+			return nil, tokensUsed, err
+		}
+
+		if responseText == "" {
+			return nil, tokensUsed, fmt.Errorf("no content returned from AI model")
+		}
+
+		responseText = cleanJSONResponse(responseText)
+
+		var aiResponse AiResponse
+		err = json.Unmarshal([]byte(responseText), &aiResponse)
+		if err != nil {
+			return nil, tokensUsed, fmt.Errorf("error unmarshaling AI response: %v\n%s", err, responseText)
+		}
+
+		return &aiResponse, tokensUsed, nil
+	default:
+		return nil, 0, fmt.Errorf("unsupported AI SDK type: %s", sdk)
+	}
+}
+
+// for nasty AIs which return markdown code blocks or extra text around JSON
+func cleanJSONResponse(response string) string {
+	// Trim whitespace
+	response = strings.TrimSpace(response)
+
+	// Remove markdown code blocks (```json or ``` at start/end)
+	response = strings.TrimPrefix(response, "```json")
+	response = strings.TrimPrefix(response, "```")
+	response = strings.TrimSuffix(response, "```")
+
+	// Trim again after removing code blocks
+	return strings.TrimSpace(response)
 }
 
 func buildUserPrompt(prompt string, obj *unstructured.Unstructured) string {
@@ -818,15 +993,26 @@ func buildUserPrompt(prompt string, obj *unstructured.Unstructured) string {
 	return fmt.Sprintf("%s\n\nHere is the Kubernetes object in JSON format:\n%s", prompt, objJson)
 }
 
-func (ai *aiManager) getOpenAIClient() (*openai.Client, error) {
-
-	apiKey, err := ai.getApiKey()
-	if err != nil {
-		return nil, err
+func (ai *aiManager) getOpenAIClient(request *ModelsRequest) (*openai.Client, error) {
+	var apiKey string
+	if request != nil && request.ApiKey != nil {
+		apiKey = *request.ApiKey
+	} else {
+		var err error
+		apiKey, err = ai.getApiKey()
+		if err != nil {
+			return nil, err
+		}
 	}
-	baseUrl, err := ai.getBaseUrl()
-	if err != nil {
-		return nil, err
+	var baseUrl string
+	if request != nil {
+		baseUrl = request.ApiUrl
+	} else {
+		var err error
+		baseUrl, err = ai.getBaseUrl()
+		if err != nil {
+			return nil, err
+		}
 	}
 	client := openai.NewClient(
 		option.WithAPIKey(apiKey),
@@ -835,26 +1021,155 @@ func (ai *aiManager) getOpenAIClient() (*openai.Client, error) {
 	return &client, nil
 }
 
-func (ai *aiManager) getValkeyKey(kind, namespace, name, filter string) string {
+func (ai *aiManager) getAnthropicClient(request *ModelsRequest) (*anthropic.Client, error) {
+	var apiKey string
+	if request != nil && request.ApiKey != nil {
+		apiKey = *request.ApiKey
+	} else {
+		var err error
+		apiKey, err = ai.getApiKey()
+		if err != nil {
+			return nil, err
+		}
+	}
+	var baseUrl string
+	if request != nil {
+		baseUrl = request.ApiUrl
+	} else {
+		var err error
+		baseUrl, err = ai.getBaseUrl()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	client := anthropic.NewClient(
+		anthropic_option.WithBaseURL(baseUrl),
+		anthropic_option.WithAPIKey(apiKey),
+	)
+	return &client, nil
+}
+
+func (ai *aiManager) getOllamaClient(request *ModelsRequest) (*ollama.Client, error) {
+	var baseUrl string
+	if request != nil {
+		baseUrl = request.ApiUrl
+	} else {
+		var err error
+		baseUrl, err = ai.getBaseUrl()
+		if err != nil {
+			return nil, err
+		}
+	}
+	url, err := url.Parse(baseUrl)
+	if err != nil {
+		return nil, err
+	}
+
+	client := api.NewClient(url, nil)
+
+	return client, nil
+}
+
+func (ai *aiManager) GetAvailableModels(request *ModelsRequest) ([]string, error) {
+	var sdk AiSdkType
+	if request != nil {
+		sdk = AiSdkType(request.Sdk)
+	} else {
+		var err error
+		sdk, err = ai.getSdkType()
+		if err != nil {
+			return []string{}, err
+		}
+	}
+	switch sdk {
+	case AiSdkTypeOpenAI:
+		client, err := ai.getOpenAIClient(request)
+		if err != nil {
+			ai.logger.Error("Error getting OpenAI client for available models", "error", err)
+			return []string{}, err
+		}
+
+		ctx := context.Background()
+		models, err := client.Models.List(ctx)
+		if err != nil {
+			ai.logger.Error("Error listing available AI models", "error", err)
+			return []string{}, err
+		}
+
+		var modelNames []string
+		for _, model := range models.Data {
+			modelNames = append(modelNames, model.ID)
+		}
+		return modelNames, nil
+	case AiSdkTypeAnthropic:
+		client, err := ai.getAnthropicClient(request)
+		if err != nil {
+			ai.logger.Error("Error getting Anthropic client for available models", "error", err)
+			return []string{}, err
+		}
+
+		ctx := context.Background()
+		models, err := client.Models.List(ctx, anthropic.ModelListParams{})
+		if err != nil {
+			ai.logger.Error("Error listing available AI models", "error", err)
+			return []string{}, err
+		}
+
+		var modelNames []string
+		for _, model := range models.Data {
+			modelNames = append(modelNames, model.ID)
+		}
+		return modelNames, nil
+	case AiSdkTypeOllama:
+		client, err := ai.getOllamaClient(request)
+		if err != nil {
+			ai.logger.Error("Error getting Ollama client for available models", "error", err)
+			return []string{}, err
+		}
+
+		ctx := context.Background()
+		listResponse, err := client.List(ctx)
+		if err != nil {
+			ai.logger.Error("Error listing available AI models", "error", err)
+			return []string{}, err
+		}
+
+		var modelNames []string
+		for _, model := range listResponse.Models {
+			modelNames = append(modelNames, model.Name)
+		}
+		return modelNames, nil
+	default:
+		return []string{}, fmt.Errorf("unsupported AI SDK type: %s", sdk)
+	}
+}
+
+func (ai *aiManager) getValkeyKey(kind, namespace, name string) string {
 	// controller lookup for pods
 	if kind == "Pod" {
 		controller := ai.ownerCacheService.ControllerForPod(namespace, name)
 		if controller != nil {
 			kind = controller.Kind
-			name = controller.Name
+			name = controller.ResourceName
 		}
 	}
-	return fmt.Sprintf("%s:%s:%s:%s:%s", DB_AI_BUCKET_TASKS, kind, namespace, name, filter)
+	return fmt.Sprintf("%s:%s:%s:%s", DB_AI_BUCKET_TASKS, kind, namespace, name)
 }
 
-func (ai *aiManager) sendAiEvent(task *AiTask) {
+func (ai *aiManager) sendAiEvent(task *AiTaskLatest) {
 	datagram := structs.Datagram{
 		Id:      utils.NanoId(),
 		Pattern: "AiProcessEvent",
 		Payload: map[string]interface{}{
-			"task": task,
+			"task":   task.Task,
+			"status": task.Status,
 		},
 		CreatedAt: time.Now(),
 	}
 	structs.ReportEventToServer(ai.eventClient, datagram)
+}
+
+func (ai *aiManager) resetCache() {
+	cachedStatusTime = time.Time{}
 }

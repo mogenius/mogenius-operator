@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"encoding/json"
 	"log/slog"
 	"mogenius-operator/src/cpumonitor"
 	"mogenius-operator/src/networkmonitor"
@@ -14,7 +15,6 @@ import (
 	"strings"
 	"time"
 
-	json "github.com/json-iterator/go"
 	"github.com/valkey-io/valkey-go"
 )
 

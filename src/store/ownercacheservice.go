@@ -9,23 +9,17 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func NewK8sController(kind string, name string, namespace string) K8sController {
-	return K8sController{
-		Kind:      kind,
-		Name:      name,
-		Namespace: namespace,
+func NewK8sController(resource utils.ResourceDescriptor, name string, namespace string) utils.WorkloadSingleRequest {
+	return utils.WorkloadSingleRequest{
+		ResourceDescriptor: resource,
+		Namespace:          namespace,
+		ResourceName:       name,
 	}
 }
 
-type K8sController struct {
-	Kind      string `json:"kind"`
-	Name      string `json:"name"`
-	Namespace string `json:"namespace"`
-}
-
 type OwnerCacheService interface {
-	ControllerForPod(namespace string, podName string) *K8sController
-	OwnerFromReference(namespace string, ownerRefs []metav1.OwnerReference) *K8sController
+	ControllerForPod(namespace string, podName string) *utils.WorkloadSingleRequest
+	OwnerFromReference(namespace string, ownerRefs []metav1.OwnerReference) *utils.WorkloadSingleRequest
 }
 
 type ownerCacheService struct {
@@ -45,11 +39,11 @@ func NewOwnerCacheService(
 	return self
 }
 
-var ownerCache = make(map[string]K8sController)
+var ownerCache = make(map[string]utils.WorkloadSingleRequest)
 
 var dataLock sync.Mutex = sync.Mutex{}
 
-func (self *ownerCacheService) ControllerForPod(namespace string, podName string) *K8sController {
+func (self *ownerCacheService) ControllerForPod(namespace string, podName string) *utils.WorkloadSingleRequest {
 	// check if is in cache
 	foundOwner, isInCache := ownerCache[podName]
 	if isInCache {
@@ -71,15 +65,15 @@ func (self *ownerCacheService) ControllerForPod(namespace string, podName string
 
 	// Special case for pods with no owner (often used by system pods)
 	if pod.OwnerReferences == nil {
-		return utils.Pointer(NewK8sController("Pod", pod.Name, namespace))
+		return utils.Pointer(NewK8sController(utils.PodResource, pod.Name, namespace))
 	}
 
 	self.logger.Debug("Pod has no owner.", "namespace", namespace, "pod", podName)
 	return nil
 }
 
-func (self *ownerCacheService) OwnerFromReference(namespace string, ownerRefs []metav1.OwnerReference) *K8sController {
-	var lastValidController *K8sController
+func (self *ownerCacheService) OwnerFromReference(namespace string, ownerRefs []metav1.OwnerReference) *utils.WorkloadSingleRequest {
+	var lastValidController *utils.WorkloadSingleRequest
 
 	if len(ownerRefs) > 0 {
 		owner := ownerRefs[0]
@@ -87,7 +81,7 @@ func (self *ownerCacheService) OwnerFromReference(namespace string, ownerRefs []
 		case "ReplicaSet":
 			data := GetReplicaset(namespace, owner.Name)
 			if data != nil {
-				lastValidController = utils.Pointer(NewK8sController(utils.ReplicaSetResource.Kind, data.Name, namespace))
+				lastValidController = utils.Pointer(NewK8sController(utils.ReplicaSetResource, data.Name, namespace))
 				if data.OwnerReferences != nil {
 					// recurse and update lastValidController if successful
 					return returnOrUpdated(lastValidController,
@@ -98,7 +92,7 @@ func (self *ownerCacheService) OwnerFromReference(namespace string, ownerRefs []
 		case "Deployment":
 			data := GetDeployment(namespace, owner.Name)
 			if data != nil {
-				lastValidController = utils.Pointer(NewK8sController(utils.DeploymentResource.Kind, data.Name, namespace))
+				lastValidController = utils.Pointer(NewK8sController(utils.DeploymentResource, data.Name, namespace))
 				if data.OwnerReferences != nil {
 					return returnOrUpdated(lastValidController,
 						self.OwnerFromReference(namespace, data.OwnerReferences))
@@ -108,7 +102,7 @@ func (self *ownerCacheService) OwnerFromReference(namespace string, ownerRefs []
 		case "StatefulSet":
 			data := GetStatefulSet(namespace, owner.Name)
 			if data != nil {
-				lastValidController = utils.Pointer(NewK8sController(utils.StatefulSetResource.Kind, data.Name, namespace))
+				lastValidController = utils.Pointer(NewK8sController(utils.StatefulSetResource, data.Name, namespace))
 				if data.OwnerReferences != nil {
 					return returnOrUpdated(lastValidController,
 						self.OwnerFromReference(namespace, data.OwnerReferences))
@@ -118,7 +112,7 @@ func (self *ownerCacheService) OwnerFromReference(namespace string, ownerRefs []
 		case "DaemonSet":
 			data := GetDaemonSet(namespace, owner.Name)
 			if data != nil {
-				lastValidController = utils.Pointer(NewK8sController(utils.DaemonSetResource.Kind, data.Name, namespace))
+				lastValidController = utils.Pointer(NewK8sController(utils.DaemonSetResource, data.Name, namespace))
 				if data.OwnerReferences != nil {
 					return returnOrUpdated(lastValidController,
 						self.OwnerFromReference(namespace, data.OwnerReferences))
@@ -128,7 +122,7 @@ func (self *ownerCacheService) OwnerFromReference(namespace string, ownerRefs []
 		case "Job":
 			data := GetJob(namespace, owner.Name)
 			if data != nil {
-				lastValidController = utils.Pointer(NewK8sController(utils.JobResource.Kind, data.Name, namespace))
+				lastValidController = utils.Pointer(NewK8sController(utils.JobResource, data.Name, namespace))
 				if data.OwnerReferences != nil {
 					return returnOrUpdated(lastValidController,
 						self.OwnerFromReference(namespace, data.OwnerReferences))
@@ -138,7 +132,7 @@ func (self *ownerCacheService) OwnerFromReference(namespace string, ownerRefs []
 		case "CronJob":
 			data := GetCronJob(namespace, owner.Name)
 			if data != nil {
-				lastValidController = utils.Pointer(NewK8sController(utils.CronJobResource.Kind, data.Name, namespace))
+				lastValidController = utils.Pointer(NewK8sController(utils.CronJobResource, data.Name, namespace))
 				if data.OwnerReferences != nil {
 					return returnOrUpdated(lastValidController,
 						self.OwnerFromReference(namespace, data.OwnerReferences))
@@ -148,7 +142,7 @@ func (self *ownerCacheService) OwnerFromReference(namespace string, ownerRefs []
 		case "Pod":
 			data := GetPod(namespace, owner.Name)
 			if data != nil {
-				lastValidController = utils.Pointer(NewK8sController(utils.PodResource.Kind, data.Name, namespace))
+				lastValidController = utils.Pointer(NewK8sController(utils.PodResource, data.Name, namespace))
 				if data.OwnerReferences != nil {
 					return returnOrUpdated(lastValidController,
 						self.OwnerFromReference(namespace, data.OwnerReferences))
@@ -158,7 +152,7 @@ func (self *ownerCacheService) OwnerFromReference(namespace string, ownerRefs []
 		case "Node":
 			data := GetNode(owner.Name)
 			if data != nil {
-				lastValidController = utils.Pointer(NewK8sController(utils.NodeResource.Kind, data.Name, ""))
+				lastValidController = utils.Pointer(NewK8sController(utils.NodeResource, data.Name, ""))
 				if data.OwnerReferences != nil {
 					return returnOrUpdated(lastValidController,
 						self.OwnerFromReference(namespace, data.OwnerReferences))
@@ -173,7 +167,7 @@ func (self *ownerCacheService) OwnerFromReference(namespace string, ownerRefs []
 	return lastValidController
 }
 
-func returnOrUpdated(lastValid *K8sController, result *K8sController) *K8sController {
+func returnOrUpdated(lastValid *utils.WorkloadSingleRequest, result *utils.WorkloadSingleRequest) *utils.WorkloadSingleRequest {
 	if result != nil {
 		return result
 	}
