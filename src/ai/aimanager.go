@@ -17,6 +17,7 @@ import (
 	"strings"
 	"time"
 
+	coreV1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/util/jsonpath"
 
@@ -330,6 +331,8 @@ type AiManager interface {
 	GetAvailableModels(request *ModelsRequest) ([]string, error)
 }
 
+type SecretGetter func(namespace, name string) (*coreV1.Secret, error)
+
 type aiManager struct {
 	logger            *slog.Logger
 	valkeyClient      valkeyclient.ValkeyClient
@@ -337,11 +340,12 @@ type aiManager struct {
 	aiPromptConfig    *AiPromptConfig
 	ownerCacheService store.OwnerCacheService
 	eventClient       websocket.WebsocketClient
+	secretGetter      SecretGetter
 	error             string
 	warning           string
 }
 
-func NewAiManager(logger *slog.Logger, valkeyClient valkeyclient.ValkeyClient, config cfg.ConfigModule, ownerCacheService store.OwnerCacheService, eventClient websocket.WebsocketClient) AiManager {
+func NewAiManager(logger *slog.Logger, valkeyClient valkeyclient.ValkeyClient, config cfg.ConfigModule, ownerCacheService store.OwnerCacheService, eventClient websocket.WebsocketClient, secretGetter SecretGetter) AiManager {
 	self := &aiManager{}
 
 	self.logger = logger
@@ -349,6 +353,7 @@ func NewAiManager(logger *slog.Logger, valkeyClient valkeyclient.ValkeyClient, c
 	self.config = config
 	self.ownerCacheService = ownerCacheService
 	self.eventClient = eventClient
+	self.secretGetter = secretGetter
 
 	return self
 }

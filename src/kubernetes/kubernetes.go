@@ -1,12 +1,16 @@
 package kubernetes
 
 import (
+	"context"
 	"log/slog"
 	cfg "mogenius-operator/src/config"
 	"mogenius-operator/src/k8sclient"
 	"mogenius-operator/src/logging"
 	"mogenius-operator/src/utils"
 	"mogenius-operator/src/valkeyclient"
+
+	coreV1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var config cfg.ConfigModule
@@ -35,4 +39,10 @@ func Setup(
 	}
 
 	return nil
+}
+
+// GetSecret fetches a secret directly from the Kubernetes cluster
+func GetSecret(namespace, name string) (*coreV1.Secret, error) {
+	clientset := clientProvider.K8sClientSet()
+	return clientset.CoreV1().Secrets(namespace).Get(context.Background(), name, metav1.GetOptions{})
 }

@@ -494,7 +494,7 @@ func InitializeSystems(
 	ramMonitor := rammonitor.NewRamMonitor(logManagerModule.CreateLogger("ram-monitor"), configModule, clientProvider, containerEnumerator)
 	networkMonitor := networkmonitor.NewNetworkMonitor(logManagerModule.CreateLogger("network-monitor"), configModule, containerEnumerator, configModule.Get("MO_HOST_PROC_PATH"))
 	ownerCacheService := store.NewOwnerCacheService(logManagerModule.CreateLogger("owner-cache"), configModule)
-	aiManager := ai.NewAiManager(logManagerModule.CreateLogger("ai-manager"), valkeyClient, configModule, ownerCacheService, eventConnectionClient)
+	aiManager := ai.NewAiManager(logManagerModule.CreateLogger("ai-manager"), valkeyClient, configModule, ownerCacheService, eventConnectionClient, kubernetes.GetSecret)
 
 	// golang package setups are deprecated and will be removed in the future by migrating all state to services
 	helm.Setup(logManagerModule, configModule, valkeyClient)
