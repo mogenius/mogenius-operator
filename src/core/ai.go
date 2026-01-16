@@ -11,6 +11,7 @@ type AiApi interface {
 	UpdateTaskState(taskID string, newState ai.AiTaskState) error
 	UpdateTaskReadState(taskID string, user *structs.User) error
 	GetAiTasksForWorkspace(workspace string) ([]ai.AiTask, error)
+	GetAllAiTasks() ([]ai.AiTask, error)
 	GetAiTasksForResource(resourceReq utils.WorkloadSingleRequest) ([]ai.AiTask, error)
 	GetLatestTask(workspace *string) (*ai.AiTaskLatest, error)
 	InjectAiPromptConfig(prompt ai.AiPromptConfig)
@@ -31,6 +32,10 @@ func NewAiApi(logger *slog.Logger, aiManager ai.AiManager) AiApi {
 	self.aiManager = aiManager
 
 	return self
+}
+
+func (ai *aiApi) GetAllAiTasks() ([]ai.AiTask, error) {
+	return ai.aiManager.GetAllAiTasks()
 }
 
 func (ai *aiApi) GetAiTasksForWorkspace(workspace string) ([]ai.AiTask, error) {

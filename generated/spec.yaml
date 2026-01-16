@@ -178,6 +178,8 @@ aiManager/detail/tasks:
                         type: string
                     id:
                         type: string
+                    model:
+                        type: string
                     prompt:
                         type: string
                     readByUsers:
@@ -194,6 +196,8 @@ aiManager/detail/tasks:
                         type: struct
                     state:
                         type: string
+                    timeUsedInMs:
+                        type: int
                     tokensUsed:
                         type: int
                     triggeredBy:
@@ -391,6 +395,8 @@ aiManager/get/tasks:
                         type: string
                     id:
                         type: string
+                    model:
+                        type: string
                     prompt:
                         type: string
                     readByUsers:
@@ -407,6 +413,8 @@ aiManager/get/tasks:
                         type: struct
                     state:
                         type: string
+                    timeUsedInMs:
+                        type: int
                     tokensUsed:
                         type: int
                     triggeredBy:
@@ -670,6 +678,8 @@ aiManager/latest/task:
                         type: string
                     id:
                         type: string
+                    model:
+                        type: string
                     prompt:
                         type: string
                     readByUsers:
@@ -686,6 +696,8 @@ aiManager/latest/task:
                         type: struct
                     state:
                         type: string
+                    timeUsedInMs:
+                        type: int
                     tokensUsed:
                         type: int
                     triggeredBy:

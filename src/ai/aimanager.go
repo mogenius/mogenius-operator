@@ -20,6 +20,7 @@ import (
 	coreV1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/util/jsonpath"
+	"sigs.k8s.io/yaml"
 
 	"github.com/openai/openai-go/v3"
 	"github.com/openai/openai-go/v3/option"
@@ -48,6 +49,8 @@ type AiTask struct {
 	State               AiTaskState                  `json:"state"` // pending, in-progress, completed, failed, ignored
 	Controller          *utils.WorkloadSingleRequest `json:"controller,omitempty"`
 	TokensUsed          int64                        `json:"tokensUsed"`
+	Model               string                       `json:"model"`
+	TimeUsedInMs        int                          `json:"timeUsedInMs"`
 	CreatedAt           int64                        `json:"createdAt"`
 	UpdatedAt           int64                        `json:"updatedAt"`
 	ReferencingResource utils.WorkloadSingleRequest  `json:"referencingResource"` // the resource that triggered this task
@@ -132,10 +135,12 @@ type Solution struct {
 }
 
 type UsedToken struct {
-	Timestamp  time.Time `json:"timestamp"`
-	TokensUsed int64     `json:"tokensUsed"`
-	IsIgnored  bool      `json:"isIgnored"`
-	Key        string    `json:"key"`
+	Timestamp    time.Time `json:"timestamp"`
+	TokensUsed   int64     `json:"tokensUsed"`
+	IsIgnored    bool      `json:"isIgnored"`
+	Key          string    `json:"key"`
+	Model        string    `json:"model"`
+	TimeUsedInMs int       `json:"timeUsedInMs"`
 }
 
 type ModelsRequest struct {
@@ -321,6 +326,7 @@ type AiManager interface {
 	Run()
 	UpdateTaskState(taskID string, newState AiTaskState) error
 	UpdateTaskReadState(taskID string, user *structs.User) error
+	GetAllAiTasks() ([]AiTask, error)
 	GetAiTasksForWorkspace(workspace string) ([]AiTask, error)
 	GetAiTasksForResource(resourceReq utils.WorkloadSingleRequest) ([]AiTask, error)
 	GetLatestTask(workspace *string) (*AiTaskLatest, error)
@@ -583,15 +589,17 @@ func (ai *aiManager) getDbStats(namespace *string) (totalDbEntries int, unproces
 	return len(keys), unprocessedDbEntries, ignoredDbEntries, numberOfUnreadTasks, nil
 }
 
-func (ai *aiManager) addTokenUsage(tokensUsed int, entryKey string) error {
+func (ai *aiManager) addTokenUsage(tokensUsed int, model string, timeUsedInMs int, entryKey string) error {
 	now := time.Now()
 	key := fmt.Sprintf("%s:%d", DB_AI_BUCKET_TOKENS, now.Unix())
 
 	usedToken := UsedToken{
-		Key:        entryKey,
-		Timestamp:  now,
-		TokensUsed: int64(tokensUsed),
-		IsIgnored:  false,
+		Key:          entryKey,
+		Timestamp:    now,
+		TokensUsed:   int64(tokensUsed),
+		IsIgnored:    false,
+		Model:        model,
+		TimeUsedInMs: timeUsedInMs,
 	}
 
 	err := ai.valkeyClient.SetObject(usedToken, ValkeyAiTTL, key)
@@ -701,18 +709,20 @@ func (ai *aiManager) processAiTaskQueue(ctx context.Context) {
 		// send event notification
 		ai.sendAiEvent(latestTask)
 
-		response, tokensUsed, err := ai.processPrompt(ctx, task.Prompt)
+		response, tokensUsed, timeUsedInMs, modelUsed, err := ai.processPrompt(ctx, task.Prompt)
 		if err != nil {
 			task.Error = err.Error()
 			task.State = AI_TASK_STATE_FAILED
-			task.TokensUsed = tokensUsed
 			ai.logger.Error("Error processing AI task", "taskID", task.ID, "error", err)
 		} else {
 			task.State = AI_TASK_STATE_COMPLETED
 			task.Response = response
-			task.TokensUsed = tokensUsed
+
 		}
-		err = ai.addTokenUsage(int(tokensUsed), key)
+		task.Model = modelUsed
+		task.TimeUsedInMs = timeUsedInMs
+		task.TokensUsed = tokensUsed
+		err = ai.addTokenUsage(int(tokensUsed), modelUsed, timeUsedInMs, key)
 		if err != nil {
 			ai.logger.Error("Error recording AI token usage", "taskID", task.ID, "error", err)
 		}
@@ -848,22 +858,23 @@ func (ai *aiManager) shouldCreateNewTask(key string) (bool, error) {
 	return !exists, nil
 }
 
-func (ai *aiManager) processPrompt(ctx context.Context, prompt string) (*AiResponse, int64, error) {
+func (ai *aiManager) processPrompt(ctx context.Context, prompt string) (response *AiResponse, tokensUsed int64, timeUsedInMs int, modelUser string, err error) {
+	startTime := time.Now()
 	model, err := ai.getAiModel()
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, int(time.Since(startTime).Milliseconds()), model, err
 	}
 	systemPrompt := ai.getSystemPrompt()
 
 	sdk, err := ai.getSdkType()
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, int(time.Since(startTime).Milliseconds()), model, err
 	}
 	switch sdk {
 	case AiSdkTypeOpenAI:
 		client, err := ai.getOpenAIClient(nil)
 		if err != nil {
-			return nil, 0, err
+			return nil, 0, int(time.Since(startTime).Milliseconds()), model, err
 		}
 
 		chatCompletion, err := client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
@@ -880,24 +891,24 @@ func (ai *aiManager) processPrompt(ctx context.Context, prompt string) (*AiRespo
 		}
 
 		if err != nil {
-			return nil, tokensUsed, err
+			return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, err
 		}
 		if len(chatCompletion.Choices) == 0 {
-			return nil, tokensUsed, fmt.Errorf("no choices returned from AI model")
+			return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("no choices returned from AI model")
 		}
 
 		var aiResponse AiResponse
 		err = json.Unmarshal([]byte(chatCompletion.Choices[0].Message.Content), &aiResponse)
 		if err != nil {
-			return nil, tokensUsed, fmt.Errorf("error unmarshaling AI response: %v\n%s", err, chatCompletion.Choices[0].Message.Content)
+			return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("error unmarshaling AI response: %v\n%s", err, chatCompletion.Choices[0].Message.Content)
 		}
 
 		// also return tokens used
-		return &aiResponse, tokensUsed, nil
+		return &aiResponse, tokensUsed, int(time.Since(startTime).Milliseconds()), model, nil
 	case AiSdkTypeAnthropic:
 		client, err := ai.getAnthropicClient(nil)
 		if err != nil {
-			return nil, 0, err
+			return nil, 0, int(time.Since(startTime).Milliseconds()), model, err
 		}
 
 		message, err := client.Messages.New(ctx, anthropic.MessageNewParams{
@@ -925,11 +936,11 @@ func (ai *aiManager) processPrompt(ctx context.Context, prompt string) (*AiRespo
 		}
 
 		if err != nil {
-			return nil, tokensUsed, err
+			return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, err
 		}
 
 		if len(message.Content) == 0 {
-			return nil, tokensUsed, fmt.Errorf("no content returned from AI model")
+			return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("no content returned from AI model")
 		}
 
 		// Extract text from content blocks
@@ -942,14 +953,14 @@ func (ai *aiManager) processPrompt(ctx context.Context, prompt string) (*AiRespo
 		var aiResponse AiResponse
 		err = json.Unmarshal([]byte(responseText), &aiResponse)
 		if err != nil {
-			return nil, tokensUsed, fmt.Errorf("error unmarshaling AI response: %v\n%s", err, responseText)
+			return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("error unmarshaling AI response: %v\n%s", err, responseText)
 		}
 
-		return &aiResponse, tokensUsed, nil
+		return &aiResponse, tokensUsed, int(time.Since(startTime).Milliseconds()), model, nil
 	case AiSdkTypeOllama:
 		client, err := ai.getOllamaClient(nil)
 		if err != nil {
-			return nil, 0, err
+			return nil, 0, int(time.Since(startTime).Milliseconds()), model, err
 		}
 
 		falsePtr := false
@@ -991,11 +1002,11 @@ func (ai *aiManager) processPrompt(ctx context.Context, prompt string) (*AiRespo
 		}
 
 		if err != nil {
-			return nil, tokensUsed, err
+			return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, err
 		}
 
 		if responseText == "" {
-			return nil, tokensUsed, fmt.Errorf("no content returned from AI model")
+			return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("no content returned from AI model")
 		}
 
 		responseText = cleanJSONResponse(responseText)
@@ -1003,12 +1014,12 @@ func (ai *aiManager) processPrompt(ctx context.Context, prompt string) (*AiRespo
 		var aiResponse AiResponse
 		err = json.Unmarshal([]byte(responseText), &aiResponse)
 		if err != nil {
-			return nil, tokensUsed, fmt.Errorf("error unmarshaling AI response: %v\n%s", err, responseText)
+			return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("error unmarshaling AI response: %v\n%s", err, responseText)
 		}
 
-		return &aiResponse, tokensUsed, nil
+		return &aiResponse, tokensUsed, int(time.Since(startTime).Milliseconds()), model, nil
 	default:
-		return nil, 0, fmt.Errorf("unsupported AI SDK type: %s", sdk)
+		return nil, 0, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("unsupported AI SDK type: %s", sdk)
 	}
 }
 
@@ -1027,13 +1038,11 @@ func cleanJSONResponse(response string) string {
 }
 
 func buildUserPrompt(prompt string, obj *unstructured.Unstructured) string {
-	objJsonBytes, err := json.MarshalIndent(obj.Object, "", "  ")
+	objBytes, err := yaml.Marshal(obj.Object)
 	if err != nil {
 		return fmt.Sprintf("%s\n\nError serializing Kubernetes object: %v", prompt, err)
 	}
-	objJson := string(objJsonBytes)
-
-	return fmt.Sprintf("%s\n\nHere is the Kubernetes object in JSON format:\n%s", prompt, objJson)
+	return fmt.Sprintf("%s\n\nHere are the related Kubernetes resources in yaml format:\n%s", prompt, string(objBytes))
 }
 
 func (ai *aiManager) getOpenAIClient(request *ModelsRequest) (*openai.Client, error) {

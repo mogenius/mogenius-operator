@@ -140,6 +140,37 @@ func (ai *aiManager) GetAiTasksForWorkspace(workspace string) ([]AiTask, error) 
 	return tasks, nil
 }
 
+func (ai *aiManager) GetAllAiTasks() ([]AiTask, error) {
+	key := ai.getValkeyKey("*", "*", "*")
+
+	items, err := ai.valkeyClient.List(1000, key)
+	if err != nil {
+		return nil, err
+	}
+
+	var tasks []AiTask
+	for _, item := range items {
+		var task AiTask
+		err = json.Unmarshal([]byte(item), &task)
+		if err != nil {
+			return nil, err
+		}
+		skipDuplicate := false
+		for _, existingTask := range tasks {
+			if existingTask.ID == task.ID {
+				skipDuplicate = true
+				break
+			}
+		}
+		if skipDuplicate {
+			continue
+		}
+		tasks = append(tasks, task)
+	}
+
+	return tasks, nil
+}
+
 func (ai *aiManager) GetAiLatestTasksForWorkspace(workspace string) ([]AiTask, error) {
 	ownNamespace, err := ai.config.TryGet("MO_OWN_NAMESPACE")
 	if err != nil {

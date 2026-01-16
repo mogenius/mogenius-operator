@@ -1586,14 +1586,21 @@ func (self *socketApi) registerPatterns() {
 
 	{
 		type Request struct {
-			Workspace string `json:"workspace" validate:"required"`
+			Workspace string `json:"workspace"`
 		}
 
 		RegisterPatternHandler(
 			PatternHandle{self, "aiManager/get/tasks"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) ([]ai.AiTask, error) {
-				tasks, err := self.aiApi.GetAiTasksForWorkspace(request.Workspace)
+				var tasks []ai.AiTask
+				var err error
+				if request.Workspace == "" {
+					tasks, err = self.aiApi.GetAllAiTasks()
+				} else {
+					tasks, err = self.aiApi.GetAiTasksForWorkspace(request.Workspace)
+				}
+
 				return store.AddToAuditLog(datagram, self.logger, tasks, err, nil, nil)
 			},
 		)
