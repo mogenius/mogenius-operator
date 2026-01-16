@@ -68,15 +68,11 @@ func (ai *aiManager) UpdateTaskReadState(taskID string, user *structs.User) erro
 			return err
 		}
 		if task.ID == taskID {
-			// toggle
-			if task.ReadByUser == nil {
-				task.ReadByUser = &ReadBy{
+			if userSeesTaskForTheFirstTime(user, task.ReadByUsers) {
+				task.ReadByUsers = append(task.ReadByUsers, ReadBy{
 					User:   *user,
 					ReadAt: time.Now(),
-				}
-				return ai.createOrUpdateAiTask(&task, key)
-			} else {
-				task.ReadByUser = nil
+				})
 				return ai.createOrUpdateAiTask(&task, key)
 			}
 		}
@@ -203,10 +199,8 @@ func (ai *aiManager) GetLatestTask(workspace *string) (*AiTaskLatest, error) {
 	}
 
 	for _, task := range tasks {
-		if task.ReadByUser == nil {
-			if latestTask.Task == nil || task.CreatedAt > latestTask.Task.CreatedAt {
-				latestTask.Task = &task
-			}
+		if latestTask.Task == nil || task.CreatedAt > latestTask.Task.CreatedAt {
+			latestTask.Task = &task
 		}
 	}
 	return latestTask, err
@@ -389,4 +383,16 @@ func (ai *aiManager) DeleteAllAiData() error {
 	ai.resetCache()
 	err := ai.valkeyClient.DeleteMultiple(prefixes...)
 	return err
+}
+
+func userSeesTaskForTheFirstTime(readBy *structs.User, users []ReadBy) bool {
+	if readBy == nil {
+		return false
+	}
+	for _, u := range users {
+		if u.User.Email == readBy.Email {
+			return false
+		}
+	}
+	return true
 }

@@ -52,7 +52,7 @@ type AiTask struct {
 	UpdatedAt           int64                        `json:"updatedAt"`
 	ReferencingResource utils.WorkloadSingleRequest  `json:"referencingResource"` // the resource that triggered this task
 	TriggeredBy         AiFilter                     `json:"triggeredBy"`         // e.g., "Failed Pods" filter
-	ReadByUser          *ReadBy                      `json:"readByUser,omitempty"`
+	ReadByUsers         []ReadBy                     `json:"readByUsers"`
 	Error               string                       `json:"error"`
 }
 
@@ -575,7 +575,7 @@ func (ai *aiManager) getDbStats(namespace *string) (totalDbEntries int, unproces
 		if task.State == AI_TASK_STATE_IGNORED {
 			ignoredDbEntries++
 		}
-		if task.ReadByUser == nil {
+		if len(task.ReadByUsers) == 0 {
 			numberOfUnreadTasks++
 		}
 	}

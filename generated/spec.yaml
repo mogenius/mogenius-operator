@@ -180,10 +180,11 @@ aiManager/detail/tasks:
                         type: string
                     prompt:
                         type: string
-                    readByUser:
-                        pointer: true
-                        structRef: mogenius-operator/src/ai.ReadBy
-                        type: struct
+                    readByUsers:
+                        elementType:
+                            structRef: mogenius-operator/src/ai.ReadBy
+                            type: struct
+                        type: array
                     referencingResource:
                         structRef: mogenius-operator/src/utils.WorkloadSingleRequest
                         type: struct
@@ -392,10 +393,11 @@ aiManager/get/tasks:
                         type: string
                     prompt:
                         type: string
-                    readByUser:
-                        pointer: true
-                        structRef: mogenius-operator/src/ai.ReadBy
-                        type: struct
+                    readByUsers:
+                        elementType:
+                            structRef: mogenius-operator/src/ai.ReadBy
+                            type: struct
+                        type: array
                     referencingResource:
                         structRef: mogenius-operator/src/utils.WorkloadSingleRequest
                         type: struct
@@ -670,10 +672,11 @@ aiManager/latest/task:
                         type: string
                     prompt:
                         type: string
-                    readByUser:
-                        pointer: true
-                        structRef: mogenius-operator/src/ai.ReadBy
-                        type: struct
+                    readByUsers:
+                        elementType:
+                            structRef: mogenius-operator/src/ai.ReadBy
+                            type: struct
+                        type: array
                     referencingResource:
                         structRef: mogenius-operator/src/utils.WorkloadSingleRequest
                         type: struct
