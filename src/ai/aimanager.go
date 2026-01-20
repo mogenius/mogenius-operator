@@ -15,6 +15,7 @@ import (
 	"net/url"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	coreV1 "k8s.io/api/core/v1"
@@ -85,6 +86,7 @@ type AiFilter struct {
 	Contains    map[string]string `json:"contains"` // {"Running": "status.phase"}, {"ImagePullBackOff": "status.phase.ContainerStatuses.state.waiting.reason"}
 	Excludes    map[string]string `json:"excludes"` // {"Succeeded": "status.phase"}, {"Completed": "status.phase"}
 	Prompt      string            `json:"prompt"`
+	For         *time.Duration    `json:"for,omitempty"` // optional duration for which the condition should be met
 }
 
 type AiPromptConfig struct {
@@ -349,6 +351,8 @@ type aiManager struct {
 	secretGetter      SecretGetter
 	error             string
 	warning           string
+	pendingTasks      map[string]AiTask
+	pendingTasksLock  *sync.RWMutex
 }
 
 func NewAiManager(logger *slog.Logger, valkeyClient valkeyclient.ValkeyClient, config cfg.ConfigModule, ownerCacheService store.OwnerCacheService, eventClient websocket.WebsocketClient, secretGetter SecretGetter) AiManager {
@@ -360,6 +364,8 @@ func NewAiManager(logger *slog.Logger, valkeyClient valkeyclient.ValkeyClient, c
 	self.ownerCacheService = ownerCacheService
 	self.eventClient = eventClient
 	self.secretGetter = secretGetter
+	self.pendingTasks = make(map[string]AiTask)
+	self.pendingTasksLock = &sync.RWMutex{}
 
 	return self
 }
@@ -388,32 +394,14 @@ func (ai *aiManager) ProcessObject(obj *unstructured.Unstructured, eventType str
 
 	for _, filter := range filters {
 		if obj.GetKind() == filter.Kind {
-			var matchedFilter *AiFilter = nil
 			// check contains conditions
-			for path, expectedValue := range filter.Contains {
-				value, found, err := getNestedStringWithJSONPath(obj, path, expectedValue)
-				if err != nil {
-					ai.logger.Error("Error checking AI filter contains", "expectedValue", expectedValue, "error", err)
-					continue
-				}
-				if found && value == expectedValue {
-					matchedFilter = &filter
-					break
-				}
+			matches, err := filterMatchesForObject(filter, obj)
+			if err != nil {
+				ai.logger.Error("Error checking AI filter match for object", "filter", filter.Name, "objectKind", obj.GetKind(), "objectName", obj.GetName(), "objectNamespace", obj.GetNamespace(), "error", err)
+				continue
 			}
-			// check excludes conditions
-			for path, expectedValue := range filter.Excludes {
-				value, found, err := getNestedStringWithJSONPath(obj, path, expectedValue)
-				if err != nil {
-					ai.logger.Error("Error checking AI filter excludes", "expectedValue", expectedValue, "error", err)
-					continue
-				}
-				if found && value == expectedValue {
-					matchedFilter = nil
-					break
-				}
-			}
-			if matchedFilter != nil {
+
+			if matches {
 				timestamp := time.Now().Unix()
 				// create AI task
 				task := &AiTask{
@@ -427,7 +415,7 @@ func (ai *aiManager) ProcessObject(obj *unstructured.Unstructured, eventType str
 						Namespace:          obj.GetNamespace(),
 						ResourceName:       obj.GetName(),
 					},
-					TriggeredBy: *matchedFilter,
+					TriggeredBy: filter,
 					Error:       "",
 				}
 
@@ -439,32 +427,75 @@ func (ai *aiManager) ProcessObject(obj *unstructured.Unstructured, eventType str
 				}
 
 				if shouldCreate {
-					controller := ai.ownerCacheService.OwnerFromReference(obj.GetNamespace(), obj.GetOwnerReferences())
-					task.Controller = controller
-					if controller != nil {
-						ctrlOb, err := store.GetResource(ai.valkeyClient, controller.ResourceDescriptor.ApiVersion, controller.ResourceDescriptor.Kind, controller.Namespace, controller.ResourceName, ai.logger)
-						if err != nil {
-							ai.logger.Error("Error fetching controller object for AI task", "controllerKind", controller.ResourceDescriptor.Kind, "controllerName", controller.ResourceName, "controllerNamespace", controller.Namespace, "error", err)
-						} else {
-							if ctrlOb != nil {
-								controllerYaml, err := store.GetYamlFromUnstructuredResource(ctrlOb)
-								if err != nil {
-									ai.logger.Error("Error generating controller YAML for AI task prompt", "controllerKind", controller.ResourceDescriptor.Kind, "controllerName", controller.ResourceName, "controllerNamespace", controller.Namespace, "error", err)
-								}
-								task.Prompt += "\n\nThe controller resource YAML is as follows:\n" + controllerYaml
-							}
-						}
+
+					if task.TriggeredBy.For != nil {
+						ai.pendingTasksLock.Lock()
+						// store pending task to check later
+						ai.pendingTasks[key] = *task
+						ai.logger.Info("AI task pending due to 'For' duration not yet met", "key", key, "filter", filter.Name)
+						ai.pendingTasksLock.Unlock()
+						continue
 					}
-					err = ai.createOrUpdateAiTask(task, key)
-					if err != nil {
-						ai.logger.Error("Error creating AI task", "error", err)
-					} else {
-						ai.logger.Info("AI task created", "taskID", task.ID, "event", eventType, "objectKind", obj.GetKind(), "objectName", obj.GetName(), "objectNamespace", obj.GetNamespace(), "filter", filter.Name)
-					}
+					ai.insertNewAiTask(task, obj, eventType, key)
 				}
 			}
 		}
 	}
+}
+
+func (ai *aiManager) insertNewAiTask(task *AiTask, obj *unstructured.Unstructured, eventType string, key string) {
+	controller := ai.ownerCacheService.OwnerFromReference(obj.GetNamespace(), obj.GetOwnerReferences())
+	task.Controller = controller
+	if controller != nil {
+		ctrlOb, err := store.GetResource(ai.valkeyClient, controller.ResourceDescriptor.ApiVersion, controller.ResourceDescriptor.Kind, controller.Namespace, controller.ResourceName, ai.logger)
+		if err != nil {
+			ai.logger.Error("Error fetching controller object for AI task", "controllerKind", controller.ResourceDescriptor.Kind, "controllerName", controller.ResourceName, "controllerNamespace", controller.Namespace, "error", err)
+		} else {
+			if ctrlOb != nil {
+				controllerYaml, err := store.GetYamlFromUnstructuredResource(ctrlOb)
+				if err != nil {
+					ai.logger.Error("Error generating controller YAML for AI task prompt", "controllerKind", controller.ResourceDescriptor.Kind, "controllerName", controller.ResourceName, "controllerNamespace", controller.Namespace, "error", err)
+				}
+				task.Prompt += "\n\nThe controller resource YAML is as follows:\n" + controllerYaml
+			}
+		}
+	}
+	err := ai.createOrUpdateAiTask(task, key)
+	if err != nil {
+		ai.logger.Error("Error creating AI task", "error", err)
+	} else {
+		ai.logger.Info("AI task created", "taskID", task.ID, "event", eventType, "objectKind", obj.GetKind(), "objectName", obj.GetName(), "objectNamespace", obj.GetNamespace(), "filter", task.TriggeredBy.Name)
+	}
+}
+
+func filterMatchesForObject(filter AiFilter, obj *unstructured.Unstructured) (bool, error) {
+	matched := false
+	for path, expectedValue := range filter.Contains {
+		value, found, err := getNestedStringWithJSONPath(obj, path, expectedValue)
+		if err != nil {
+			return false, fmt.Errorf("Error checking AI filter contains: expectedValue=%s, error=%v", expectedValue, err)
+		}
+		if found && value == expectedValue {
+			matched = true
+			break
+		}
+	}
+	// no need to check excludes if not matched
+	if !matched {
+		return false, nil
+	}
+
+	// check excludes conditions
+	for path, expectedValue := range filter.Excludes {
+		value, found, err := getNestedStringWithJSONPath(obj, path, expectedValue)
+		if err != nil {
+			return false, fmt.Errorf("Error checking AI filter excludes: expectedValue=%s, error=%v", expectedValue, err)
+		}
+		if found && value == expectedValue {
+			return false, nil
+		}
+	}
+	return true, nil
 }
 
 // BACKGROUND PROCESSING
@@ -488,10 +519,67 @@ func (ai *aiManager) Run() {
 				continue
 			}
 
+			ai.processPendingTasks()
+
 			ai.error = ""
 			ai.processAiTaskQueue(ctx)
 		}
 	}()
+}
+
+func (ai *aiManager) processPendingTasks() {
+	ai.pendingTasksLock.Lock()
+	defer ai.pendingTasksLock.Unlock()
+
+	stillPending := make(map[string]AiTask)
+	for key, task := range ai.pendingTasks {
+		shouldCreate, err := ai.shouldCreateNewTask(key)
+		if err != nil {
+			ai.logger.Error("Error checking if should create new AI task", "error", err)
+			continue
+		}
+		if !shouldCreate {
+			continue
+		}
+
+		now := time.Now()
+		if task.TriggeredBy.For == nil {
+			// should never happen due to earlier checks, but just in case
+			ai.logger.Error("Pending AI task filter has nil 'For' duration", "key", key, "filter", task.TriggeredBy.Name)
+			continue
+		}
+
+		createdTime := time.Unix(task.CreatedAt, 0)
+		if createdTime.Add(*task.TriggeredBy.For).Before(now) {
+			// The duration has elapsed since CreatedAt
+			reloadedObject, err := store.GetResource(ai.valkeyClient,
+				task.ReferencingResource.ApiVersion,
+				task.ReferencingResource.Kind,
+				task.ReferencingResource.Namespace,
+				task.ReferencingResource.ResourceName,
+				ai.logger)
+			if err != nil {
+				ai.logger.Error("Error reloading object for pending AI task", "key", key, "filter", task.TriggeredBy.Name, "error", err)
+				continue
+			}
+			if reloadedObject == nil {
+				ai.logger.Info("Referenced object for pending AI task no longer exists, skipping task creation", "key", key, "filter", task.TriggeredBy.Name)
+				continue
+			}
+			matched, err := filterMatchesForObject(task.TriggeredBy, reloadedObject)
+			if err != nil {
+				ai.logger.Error("Error checking AI filter match for reloaded object", "filter", task.TriggeredBy.Name, "objectKind", reloadedObject.GetKind(), "objectName", reloadedObject.GetName(), "objectNamespace", reloadedObject.GetNamespace(), "error", err)
+				continue
+			}
+			if matched {
+				// create AI task
+				ai.insertNewAiTask(&task, reloadedObject, "delayed", key)
+			}
+		} else {
+			stillPending[key] = task
+		}
+	}
+	ai.pendingTasks = stillPending
 }
 
 func (ai *aiManager) isTokenLimitExceeded() bool {
