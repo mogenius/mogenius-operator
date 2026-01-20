@@ -2,7 +2,6 @@
   "branches": [
     "main",
     { "name": "develop", "prerelease": "develop" },
-    { "name": "stage", "prerelease": "stage" },
     { "name": "release/*", "prerelease": "rc" }
   ],
   "plugins": [

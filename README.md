@@ -123,7 +123,6 @@ Create a `.env` file in repo root. Minimal keys:
 MO_API_KEY=                       # From operator secret (mogenius/mogenius)
 MO_CLUSTER_NAME=                  # Cluster identifier
 MO_CLUSTER_MFA_ID=                # MFA/instance id
-MO_STAGE=dev                      # prod | pre-prod | dev | local | (empty for manual URLs)
 # Optional advanced overrides:
 # MO_API_SERVER=...
 # MO_EVENT_SERVER=...

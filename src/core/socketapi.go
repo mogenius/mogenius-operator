@@ -320,8 +320,7 @@ func (self *socketApi) registerPatterns() {
 	{
 		type Response struct {
 			BuildInfo struct {
-				BuildType string          `json:"buildType"`
-				Version   version.Version `json:"version,omitempty"`
+				Version version.Version `json:"version,omitempty"`
 			} `json:"buildInfo,omitempty"`
 			Features struct{}                 `json:"features,omitempty"`
 			Patterns map[string]PatternConfig `json:"patterns,omitempty"`
@@ -331,10 +330,6 @@ func (self *socketApi) registerPatterns() {
 			PatternConfig{},
 			func(datagram structs.Datagram, request Void) (Response, error) {
 				resp := Response{}
-				resp.BuildInfo.BuildType = utils.STAGE_PROD
-				if utils.IsDevBuild() {
-					resp.BuildInfo.BuildType = utils.STAGE_DEV
-				}
 				resp.BuildInfo.Version = *version.NewVersion()
 				resp.Patterns = self.PatternConfigs()
 				return resp, nil

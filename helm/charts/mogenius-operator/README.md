@@ -34,7 +34,6 @@
 | global.apiKeySecret | object | `{"secretKey":"API_KEY","secretName":"mogenius-operator-api-secret"}` | secret reference for the api-key (will be used if global.api_key is not set) |
 | global.api_key | string | `nil` | the api key provided for your cluster by the mogenius platform (alternativly you can leave this empty and use global.apiKeySecret) |
 | global.cluster_name | string | `nil` | the name you gave your cluster on the mogenius platform |
-| global.stage | string | `"prod"` |  |
 | image.pullPolicy | string | `"IfNotPresent"` |  |
 | image.registry | string | `"ghcr.io"` |  |
 | image.repository | string | `"mogenius/mogenius-operator"` |  |

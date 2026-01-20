@@ -34,8 +34,8 @@ build: generate
         -X 'mogenius-operator/src/version.Branch=$(git branch | grep \* | cut -d ' ' -f2 | tr '[:upper:]' '[:lower:]')' \
         -X 'mogenius-operator/src/version.BuildTimestamp=$(date -Iseconds)' \
         -X 'mogenius-operator/src/version.Ver=$(git describe --tags $(git rev-list --tags --max-count=1))+dev'" -o dist/native/mogenius-operator ./src/main.go
-    dist/native/mogenius-operator patterns --output=yaml > generated/spec.yaml
-    dist/native/mogenius-operator patterns --output=typescript > generated/client.ts
+    -dist/native/mogenius-operator patterns --output=yaml > generated/spec.yaml
+    -dist/native/mogenius-operator patterns --output=typescript > generated/client.ts
 
 # Build binaries for all targets
 build-all: build-linux-amd64 build-linux-arm64 build-linux-armv7

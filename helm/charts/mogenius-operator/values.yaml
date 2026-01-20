@@ -61,7 +61,6 @@ resources: {}
 #     memory: 128Mi
 
 global:
-  stage: prod
   # -- the name you gave your cluster on the mogenius platform
   cluster_name: ~
   # -- the api key provided for your cluster by the mogenius platform (alternativly you can leave this empty and use global.apiKeySecret)

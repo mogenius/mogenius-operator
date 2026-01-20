@@ -1,6 +1,4 @@
 {{- define "common.env" -}}
-- name: STAGE
-  value: {{ .Values.global.stage | quote }}
 - name: MO_CLUSTER_MFA_ID
   value: "" # the secret is loaded lazily as a kubernetes secret
 - name: api_key
