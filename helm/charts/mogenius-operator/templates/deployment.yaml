@@ -42,15 +42,6 @@ spec:
           image: {{ .Values.image.registry }}/{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}        
           env:
-            {{- if .Values.envVars.MO_API_SERVER }}
-            - name: MO_API_SERVER
-              value: {{ .Values.envVars.MO_API_SERVER | quote }}
-            {{- end }}
-            {{- if .Values.envVars.MO_EVENT_SERVER }}
-            - name: MO_EVENT_SERVER
-              value: {{ .Values.envVars.MO_EVENT_SERVER | quote }}
-            {{- end }}
-
             {{- include "common.env" . | nindent 12 }}
           volumeMounts:
             - mountPath: /app/helm-data
