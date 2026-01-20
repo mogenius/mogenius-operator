@@ -238,7 +238,6 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		Description: utils.Pointer("URL of API Server"),
 		Envs:        []string{"MO_API_SERVER"},
 		Validate: func(value string) error {
-			fmt.Println("XXX")
 			_, err := url.Parse(value)
 			if err != nil {
 				return fmt.Errorf("'MO_API_SERVER' needs to be a URL: %s", err.Error())
@@ -251,7 +250,6 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		Description: utils.Pointer("URL of Event Server"),
 		Envs:        []string{"MO_EVENT_SERVER"},
 		Validate: func(value string) error {
-			fmt.Println("YYY")
 			_, err := url.Parse(value)
 			if err != nil {
 				return fmt.Errorf("'MO_EVENT_SERVER' needs to be a URL: %s", err.Error())
