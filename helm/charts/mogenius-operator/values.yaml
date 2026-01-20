@@ -70,10 +70,10 @@ global:
     secretName: mogenius-operator-api-secret
     secretKey: API_KEY
 
+# -- environment variables to be set in the mogenius-operator deployment
 envVars:
-  # uncomment the following lines to set the global values
-  MO_API_SERVER: "" #wss://k8s-ws.mogenius.com/ws
-  MO_EVENT_SERVER: "" #wss://k8s-dispatcher.mogenius.com/ws
+  MO_API_SERVER: "wss://k8s-ws.mogenius.com/ws"
+  MO_EVENT_SERVER: "wss://k8s-dispatcher.mogenius.com/ws"
 
 valkey:
   enabled: true
