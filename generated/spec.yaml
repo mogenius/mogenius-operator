@@ -3299,8 +3299,6 @@ describe:
         structs:
             ANON_STRUCT_2:
                 properties:
-                    buildType:
-                        type: string
                     version:
                         structRef: mogenius-operator/src/version.Version
                         type: struct
@@ -5358,6 +5356,29 @@ get/workspaces:
         typeInfo:
             structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,[]mogenius-operator/src/core.GetWorkspaceResult]
             type: struct
+install-alertmanager:
+    requestSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
+    responseSchema:
+        structs:
+            mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
+                name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+                properties:
+                    data:
+                        type: string
+                    message:
+                        type: string
+                    status:
+                        type: string
+        typeInfo:
+            structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+            type: struct
 install-cert-manager:
     requestSchema:
         structs:
@@ -5476,6 +5497,52 @@ install-metallb:
             structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
             type: struct
 install-metrics-server:
+    requestSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
+    responseSchema:
+        structs:
+            mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
+                name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+                properties:
+                    data:
+                        type: string
+                    message:
+                        type: string
+                    status:
+                        type: string
+        typeInfo:
+            structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+            type: struct
+install-prometheus:
+    requestSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
+    responseSchema:
+        structs:
+            mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
+                name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+                properties:
+                    data:
+                        type: string
+                    message:
+                        type: string
+                    status:
+                        type: string
+        typeInfo:
+            structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+            type: struct
+install-renovate-operator:
     requestSchema:
         structs:
             ANON_STRUCT_0:
@@ -7104,6 +7171,29 @@ trigger/workload:
         typeInfo:
             structRef: mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadSingleRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
             type: struct
+uninstall-alertmanager:
+    requestSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
+    responseSchema:
+        structs:
+            mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
+                name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+                properties:
+                    data:
+                        type: string
+                    message:
+                        type: string
+                    status:
+                        type: string
+        typeInfo:
+            structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+            type: struct
 uninstall-cert-manager:
     requestSchema:
         structs:
@@ -7220,6 +7310,52 @@ uninstall-metallb:
             structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
             type: struct
 uninstall-metrics-server:
+    requestSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
+    responseSchema:
+        structs:
+            mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
+                name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+                properties:
+                    data:
+                        type: string
+                    message:
+                        type: string
+                    status:
+                        type: string
+        typeInfo:
+            structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+            type: struct
+uninstall-prometheus:
+    requestSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
+    responseSchema:
+        structs:
+            mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
+                name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+                properties:
+                    data:
+                        type: string
+                    message:
+                        type: string
+                    status:
+                        type: string
+        typeInfo:
+            structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+            type: struct
+uninstall-renovate-operator:
     requestSchema:
         structs:
             ANON_STRUCT_0:
@@ -7415,6 +7551,29 @@ update/workspace:
         typeInfo:
             structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·21,string]
             type: struct
+upgrade-alertmanager:
+    requestSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
+    responseSchema:
+        structs:
+            mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
+                name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+                properties:
+                    data:
+                        type: string
+                    message:
+                        type: string
+                    status:
+                        type: string
+        typeInfo:
+            structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+            type: struct
 upgrade-cert-manager:
     requestSchema:
         structs:
@@ -7508,6 +7667,52 @@ upgrade-metallb:
             structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
             type: struct
 upgrade-metrics-server:
+    requestSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
+    responseSchema:
+        structs:
+            mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
+                name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+                properties:
+                    data:
+                        type: string
+                    message:
+                        type: string
+                    status:
+                        type: string
+        typeInfo:
+            structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+            type: struct
+upgrade-prometheus:
+    requestSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
+    responseSchema:
+        structs:
+            mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
+                name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+                properties:
+                    data:
+                        type: string
+                    message:
+                        type: string
+                    status:
+                        type: string
+        typeInfo:
+            structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+            type: struct
+upgrade-renovate-operator:
     requestSchema:
         structs:
             ANON_STRUCT_0:

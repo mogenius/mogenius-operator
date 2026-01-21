@@ -363,6 +363,108 @@ func SystemCheck() SystemCheckResponse {
 		})
 	})
 
+	// check for alertmanager
+	wg.Go(func() {
+		sysCheckExec("CheckAlertManager", &entries, func() SystemCheckEntry {
+			statusInfo, err := helm.HelmReleaseStatus(helm.HelmReleaseStatusRequest{
+				Namespace: config.Get("MO_OWN_NAMESPACE"),
+				Release:   utils.HelmReleaseNameAlertManager,
+			})
+			versionName := ""
+			status := releasecommon.StatusUnknown
+			if statusInfo != nil {
+				versionName = statusInfo.Chart
+				status = releasecommon.Status(statusInfo.Status)
+			}
+			alertManagerMsg := fmt.Sprintf("%s (Version: %s) is installed.", NameAlertManager, versionName)
+			currentAlertManagerVersion := getMostCurrentHelmChartVersion(PrometheusCommunityHelmIndex, utils.HelmReleaseNameAlertManager)
+			alertManagerEntry := CreateSystemCheckEntry(
+				NameAlertManager,
+				err == nil,
+				alertManagerMsg,
+				fmt.Sprintf("%s is not installed.", NameAlertManager),
+				err,
+				"The Alertmanager handles alerts sent by client applications such as the Prometheus server.",
+				false,
+				false,
+				versionName,
+				currentAlertManagerVersion)
+			alertManagerEntry.InstallPattern = structs.PAT_INSTALL_ALERTMANAGER
+			alertManagerEntry.UninstallPattern = structs.PAT_UNINSTALL_ALERTMANAGER
+			alertManagerEntry.UpgradePattern = structs.PAT_UPGRADE_ALERTMANAGER
+			alertManagerEntry.HelmStatus = status
+			return alertManagerEntry
+		})
+	})
+
+	// Prometheus
+	wg.Go(func() {
+		sysCheckExec("CheckPrometheus", &entries, func() SystemCheckEntry {
+			statusInfo, err := helm.HelmReleaseStatus(helm.HelmReleaseStatusRequest{
+				Namespace: config.Get("MO_OWN_NAMESPACE"),
+				Release:   utils.HelmReleasePrometheus,
+			})
+			versionName := ""
+			status := releasecommon.StatusUnknown
+			if statusInfo != nil {
+				versionName = statusInfo.Chart
+				status = releasecommon.Status(statusInfo.Status)
+			}
+			currentPrometheusVersion := getMostCurrentHelmChartVersion(PrometheusCommunityHelmIndex, utils.HelmReleasePrometheus)
+			prometheusMsg := fmt.Sprintf("%s (Version: %s) is installed.", NamePrometheus, versionName)
+			prometheusEntry := CreateSystemCheckEntry(
+				NamePrometheus,
+				err == nil,
+				prometheusMsg,
+				fmt.Sprintf("%s is not installed.", NamePrometheus),
+				err,
+				"Monitor your applications, systems, and services with the leading open source monitoring solution.",
+				false,
+				false,
+				versionName,
+				currentPrometheusVersion)
+			prometheusEntry.InstallPattern = structs.PAT_INSTALL_PROMETHEUS
+			prometheusEntry.UninstallPattern = structs.PAT_UNINSTALL_PROMETHEUS
+			prometheusEntry.UpgradePattern = structs.PAT_UPGRADE_PROMETHEUS
+			prometheusEntry.HelmStatus = status
+			return prometheusEntry
+		})
+	})
+
+	// Renovate Operator
+	wg.Go(func() {
+		sysCheckExec("RenovateOperator", &entries, func() SystemCheckEntry {
+			statusInfo, err := helm.HelmReleaseStatus(helm.HelmReleaseStatusRequest{
+				Namespace: config.Get("MO_OWN_NAMESPACE"),
+				Release:   utils.HelmReleaseNameRenovateOperator,
+			})
+			versionName := ""
+			status := releasecommon.StatusUnknown
+			if statusInfo != nil {
+				versionName = statusInfo.Chart
+				status = releasecommon.Status(statusInfo.Status)
+			}
+			renovateOpMsg := fmt.Sprintf("%s (Version: %s) is installed.", NameRenovateOperator, versionName)
+			currentRenovateOpVersion := getMostCurrentHelmChartVersion(MogeniusHelmIndex, utils.HelmReleaseNameRenovateOperator)
+			renovateOpEntry := CreateSystemCheckEntry(
+				NameRenovateOperator,
+				err == nil,
+				renovateOpMsg,
+				fmt.Sprintf("%s is not installed.", NameRenovateOperator),
+				err,
+				"Automates dependency updates for your Helm charts and Kubernetes manifests.",
+				false,
+				false,
+				versionName,
+				currentRenovateOpVersion)
+			renovateOpEntry.InstallPattern = structs.PAT_INSTALL_RENOVATE_OPERATOR
+			renovateOpEntry.UninstallPattern = structs.PAT_UNINSTALL_RENOVATE_OPERATOR
+			renovateOpEntry.UpgradePattern = structs.PAT_UPGRADE_RENOVATE_OPERATOR
+			renovateOpEntry.HelmStatus = status
+			return renovateOpEntry
+		})
+	})
+
 	wg.Wait()
 
 	// update entries specificly for certain cluster vendors

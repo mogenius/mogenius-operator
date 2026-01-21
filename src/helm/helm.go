@@ -1156,7 +1156,7 @@ func HelmReleaseStatus(data HelmReleaseStatusRequest) (*HelmReleaseStatusInfo, e
 	status := action.NewStatus(actionConfig)
 	rel, err := status.Run(data.Release)
 	if err != nil {
-		helmLogger.Error("HelmReleaseStatus List", "releaseName", data.Release, "namespace", data.Namespace, "error", err.Error())
+		// helmLogger.Error("HelmReleaseStatus List", "releaseName", data.Release, "namespace", data.Namespace, "error", err.Error())
 		return nil, err
 	}
 	if rel == nil {

@@ -39,4 +39,13 @@ const (
 	PAT_UNINSTALL_EXTERNAL_SECRETS           string = "uninstall-external-secrets"
 	PAT_INSTALL_METALLB                      string = "install-metallb"
 	PAT_UNINSTALL_METALLB                    string = "uninstall-metallb"
+	PAT_INSTALL_RENOVATE_OPERATOR            string = "install-renovate-operator"
+	PAT_UNINSTALL_RENOVATE_OPERATOR          string = "uninstall-renovate-operator"
+	PAT_UPGRADE_RENOVATE_OPERATOR            string = "upgrade-renovate-operator"
+	PAT_INSTALL_PROMETHEUS                   string = "install-prometheus"
+	PAT_UNINSTALL_PROMETHEUS                 string = "uninstall-prometheus"
+	PAT_UPGRADE_PROMETHEUS                   string = "upgrade-prometheus"
+	PAT_INSTALL_ALERTMANAGER                 string = "install-alertmanager"
+	PAT_UNINSTALL_ALERTMANAGER               string = "uninstall-alertmanager"
+	PAT_UPGRADE_ALERTMANAGER                 string = "upgrade-alertmanager"
 )
