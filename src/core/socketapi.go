@@ -474,10 +474,58 @@ func (self *socketApi) registerPatterns() {
 	)
 
 	RegisterPatternHandler(
+		PatternHandle{self, "install-renovate-operator"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request Void) (string, error) {
+			return services.InstallRenovateOperator()
+		},
+	)
+
+	RegisterPatternHandler(
+		PatternHandle{self, "install-prometheus"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request Void) (string, error) {
+			return services.InstallKubePrometheus()
+		},
+	)
+
+	RegisterPatternHandler(
+		PatternHandle{self, "install-alertmanager"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request Void) (string, error) {
+			return services.InstallAlertManager()
+		},
+	)
+
+	RegisterPatternHandler(
 		PatternHandle{self, "install-kepler"},
 		PatternConfig{},
 		func(datagram structs.Datagram, request Void) (string, error) {
 			return services.InstallKepler()
+		},
+	)
+
+	RegisterPatternHandler(
+		PatternHandle{self, "uninstall-renovate-operator"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request Void) (string, error) {
+			return services.UninstallRenovateOperator()
+		},
+	)
+
+	RegisterPatternHandler(
+		PatternHandle{self, "uninstall-prometheus"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request Void) (string, error) {
+			return services.UninstallKubePrometheus()
+		},
+	)
+
+	RegisterPatternHandler(
+		PatternHandle{self, "uninstall-alertmanager"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request Void) (string, error) {
+			return services.UninstallAlertManager()
 		},
 	)
 
@@ -566,6 +614,30 @@ func (self *socketApi) registerPatterns() {
 		PatternConfig{},
 		func(datagram structs.Datagram, request Void) (string, error) {
 			return services.UpgradeKepler()
+		},
+	)
+
+	RegisterPatternHandler(
+		PatternHandle{self, "upgrade-renovate-operator"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request Void) (string, error) {
+			return services.UpgradeRenovateOperator()
+		},
+	)
+
+	RegisterPatternHandler(
+		PatternHandle{self, "upgrade-prometheus"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request Void) (string, error) {
+			return services.UpgradeKubePrometheus()
+		},
+	)
+
+	RegisterPatternHandler(
+		PatternHandle{self, "upgrade-alertmanager"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request Void) (string, error) {
+			return services.UpgradeAlertManager()
 		},
 	)
 

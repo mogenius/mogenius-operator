@@ -80,6 +80,9 @@ const (
 	HelmReleaseNameDistributionRegistry = "distribution-registry"
 	HelmReleaseNameExternalSecrets      = "external-secrets"
 	HelmReleaseNameMetalLb              = "metallb"
+	HelmReleaseNameRenovateOperator     = "renovate-operator"
+	HelmReleaseNameAlertManager         = "alertmanager"
+	HelmReleasePrometheus               = "prometheus"
 	HelmReleaseNameKepler               = "kepler"
 )
 

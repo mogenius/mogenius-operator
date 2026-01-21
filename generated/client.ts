@@ -1,3 +1,6 @@
+//===============================================================
+//===================== Pattern Enumeration =====================
+//===============================================================
 
 export enum Pattern {
   AIMANAGER_DELETE_ALL_DATA = "aiManager/delete-all-data",
@@ -71,12 +74,15 @@ export enum Pattern {
   GET_WORKSPACE = "get/workspace",
   GET_WORKSPACES = "get/workspaces",
   GET_WORKSPACE_WORKLOADS = "get/workspace-workloads",
+  INSTALL_ALERTMANAGER = "install-alertmanager",
   INSTALL_CERT_MANAGER = "install-cert-manager",
   INSTALL_CLUSTER_ISSUER = "install-cluster-issuer",
   INSTALL_INGRESS_CONTROLLER_TRAEFIK = "install-ingress-controller-traefik",
   INSTALL_KEPLER = "install-kepler",
   INSTALL_METALLB = "install-metallb",
   INSTALL_METRICS_SERVER = "install-metrics-server",
+  INSTALL_PROMETHEUS = "install-prometheus",
+  INSTALL_RENOVATE_OPERATOR = "install-renovate-operator",
   LIST_ALL_RESOURCE_DESCRIPTORS = "list/all-resource-descriptors",
   LIVE_STREAM_NODES_CPU = "live-stream/nodes-cpu",
   LIVE_STREAM_NODES_MEMORY = "live-stream/nodes-memory",
@@ -110,22 +116,28 @@ export enum Pattern {
   STORAGE_STATUS = "storage/status",
   SYSTEM_CHECK = "system/check",
   TRIGGER_WORKLOAD = "trigger/workload",
+  UNINSTALL_ALERTMANAGER = "uninstall-alertmanager",
   UNINSTALL_CERT_MANAGER = "uninstall-cert-manager",
   UNINSTALL_CLUSTER_ISSUER = "uninstall-cluster-issuer",
   UNINSTALL_INGRESS_CONTROLLER_TRAEFIK = "uninstall-ingress-controller-traefik",
   UNINSTALL_KEPLER = "uninstall-kepler",
   UNINSTALL_METALLB = "uninstall-metallb",
   UNINSTALL_METRICS_SERVER = "uninstall-metrics-server",
+  UNINSTALL_PROMETHEUS = "uninstall-prometheus",
+  UNINSTALL_RENOVATE_OPERATOR = "uninstall-renovate-operator",
   UPDATE_GRANT = "update/grant",
   UPDATE_USER = "update/user",
   UPDATE_WORKLOAD = "update/workload",
   UPDATE_WORKSPACE = "update/workspace",
   UPGRADEK8SMANAGER = "UpgradeK8sManager",
+  UPGRADE_ALERTMANAGER = "upgrade-alertmanager",
   UPGRADE_CERT_MANAGER = "upgrade-cert-manager",
   UPGRADE_INGRESS_CONTROLLER_TRAEFIK = "upgrade-ingress-controller-traefik",
   UPGRADE_KEPLER = "upgrade-kepler",
   UPGRADE_METALLB = "upgrade-metallb",
   UPGRADE_METRICS_SERVER = "upgrade-metrics-server",
+  UPGRADE_PROMETHEUS = "upgrade-prometheus",
+  UPGRADE_RENOVATE_OPERATOR = "upgrade-renovate-operator",
   WORKSPACE_CLEAN_UP = "workspace/clean-up",
 }
 
@@ -205,12 +217,15 @@ export const StringToPattern = {
   "get/workspace": Pattern.GET_WORKSPACE,
   "get/workspaces": Pattern.GET_WORKSPACES,
   "get/workspace-workloads": Pattern.GET_WORKSPACE_WORKLOADS,
+  "install-alertmanager": Pattern.INSTALL_ALERTMANAGER,
   "install-cert-manager": Pattern.INSTALL_CERT_MANAGER,
   "install-cluster-issuer": Pattern.INSTALL_CLUSTER_ISSUER,
   "install-ingress-controller-traefik": Pattern.INSTALL_INGRESS_CONTROLLER_TRAEFIK,
   "install-kepler": Pattern.INSTALL_KEPLER,
   "install-metallb": Pattern.INSTALL_METALLB,
   "install-metrics-server": Pattern.INSTALL_METRICS_SERVER,
+  "install-prometheus": Pattern.INSTALL_PROMETHEUS,
+  "install-renovate-operator": Pattern.INSTALL_RENOVATE_OPERATOR,
   "list/all-resource-descriptors": Pattern.LIST_ALL_RESOURCE_DESCRIPTORS,
   "live-stream/nodes-cpu": Pattern.LIVE_STREAM_NODES_CPU,
   "live-stream/nodes-memory": Pattern.LIVE_STREAM_NODES_MEMORY,
@@ -244,22 +259,28 @@ export const StringToPattern = {
   "storage/status": Pattern.STORAGE_STATUS,
   "system/check": Pattern.SYSTEM_CHECK,
   "trigger/workload": Pattern.TRIGGER_WORKLOAD,
+  "uninstall-alertmanager": Pattern.UNINSTALL_ALERTMANAGER,
   "uninstall-cert-manager": Pattern.UNINSTALL_CERT_MANAGER,
   "uninstall-cluster-issuer": Pattern.UNINSTALL_CLUSTER_ISSUER,
   "uninstall-ingress-controller-traefik": Pattern.UNINSTALL_INGRESS_CONTROLLER_TRAEFIK,
   "uninstall-kepler": Pattern.UNINSTALL_KEPLER,
   "uninstall-metallb": Pattern.UNINSTALL_METALLB,
   "uninstall-metrics-server": Pattern.UNINSTALL_METRICS_SERVER,
+  "uninstall-prometheus": Pattern.UNINSTALL_PROMETHEUS,
+  "uninstall-renovate-operator": Pattern.UNINSTALL_RENOVATE_OPERATOR,
   "update/grant": Pattern.UPDATE_GRANT,
   "update/user": Pattern.UPDATE_USER,
   "update/workload": Pattern.UPDATE_WORKLOAD,
   "update/workspace": Pattern.UPDATE_WORKSPACE,
   "UpgradeK8sManager": Pattern.UPGRADEK8SMANAGER,
+  "upgrade-alertmanager": Pattern.UPGRADE_ALERTMANAGER,
   "upgrade-cert-manager": Pattern.UPGRADE_CERT_MANAGER,
   "upgrade-ingress-controller-traefik": Pattern.UPGRADE_INGRESS_CONTROLLER_TRAEFIK,
   "upgrade-kepler": Pattern.UPGRADE_KEPLER,
   "upgrade-metallb": Pattern.UPGRADE_METALLB,
   "upgrade-metrics-server": Pattern.UPGRADE_METRICS_SERVER,
+  "upgrade-prometheus": Pattern.UPGRADE_PROMETHEUS,
+  "upgrade-renovate-operator": Pattern.UPGRADE_RENOVATE_OPERATOR,
   "workspace/clean-up": Pattern.WORKSPACE_CLEAN_UP,
 };
 
@@ -335,12 +356,15 @@ export const PatternToString = {
   [Pattern.GET_WORKSPACE]: "get/workspace",
   [Pattern.GET_WORKSPACES]: "get/workspaces",
   [Pattern.GET_WORKSPACE_WORKLOADS]: "get/workspace-workloads",
+  [Pattern.INSTALL_ALERTMANAGER]: "install-alertmanager",
   [Pattern.INSTALL_CERT_MANAGER]: "install-cert-manager",
   [Pattern.INSTALL_CLUSTER_ISSUER]: "install-cluster-issuer",
   [Pattern.INSTALL_INGRESS_CONTROLLER_TRAEFIK]: "install-ingress-controller-traefik",
   [Pattern.INSTALL_KEPLER]: "install-kepler",
   [Pattern.INSTALL_METALLB]: "install-metallb",
   [Pattern.INSTALL_METRICS_SERVER]: "install-metrics-server",
+  [Pattern.INSTALL_PROMETHEUS]: "install-prometheus",
+  [Pattern.INSTALL_RENOVATE_OPERATOR]: "install-renovate-operator",
   [Pattern.LIST_ALL_RESOURCE_DESCRIPTORS]: "list/all-resource-descriptors",
   [Pattern.LIVE_STREAM_NODES_CPU]: "live-stream/nodes-cpu",
   [Pattern.LIVE_STREAM_NODES_MEMORY]: "live-stream/nodes-memory",
@@ -374,22 +398,28 @@ export const PatternToString = {
   [Pattern.STORAGE_STATUS]: "storage/status",
   [Pattern.SYSTEM_CHECK]: "system/check",
   [Pattern.TRIGGER_WORKLOAD]: "trigger/workload",
+  [Pattern.UNINSTALL_ALERTMANAGER]: "uninstall-alertmanager",
   [Pattern.UNINSTALL_CERT_MANAGER]: "uninstall-cert-manager",
   [Pattern.UNINSTALL_CLUSTER_ISSUER]: "uninstall-cluster-issuer",
   [Pattern.UNINSTALL_INGRESS_CONTROLLER_TRAEFIK]: "uninstall-ingress-controller-traefik",
   [Pattern.UNINSTALL_KEPLER]: "uninstall-kepler",
   [Pattern.UNINSTALL_METALLB]: "uninstall-metallb",
   [Pattern.UNINSTALL_METRICS_SERVER]: "uninstall-metrics-server",
+  [Pattern.UNINSTALL_PROMETHEUS]: "uninstall-prometheus",
+  [Pattern.UNINSTALL_RENOVATE_OPERATOR]: "uninstall-renovate-operator",
   [Pattern.UPDATE_GRANT]: "update/grant",
   [Pattern.UPDATE_USER]: "update/user",
   [Pattern.UPDATE_WORKLOAD]: "update/workload",
   [Pattern.UPDATE_WORKSPACE]: "update/workspace",
   [Pattern.UPGRADEK8SMANAGER]: "UpgradeK8sManager",
+  [Pattern.UPGRADE_ALERTMANAGER]: "upgrade-alertmanager",
   [Pattern.UPGRADE_CERT_MANAGER]: "upgrade-cert-manager",
   [Pattern.UPGRADE_INGRESS_CONTROLLER_TRAEFIK]: "upgrade-ingress-controller-traefik",
   [Pattern.UPGRADE_KEPLER]: "upgrade-kepler",
   [Pattern.UPGRADE_METALLB]: "upgrade-metallb",
   [Pattern.UPGRADE_METRICS_SERVER]: "upgrade-metrics-server",
+  [Pattern.UPGRADE_PROMETHEUS]: "upgrade-prometheus",
+  [Pattern.UPGRADE_RENOVATE_OPERATOR]: "upgrade-renovate-operator",
   [Pattern.WORKSPACE_CLEAN_UP]: "workspace/clean-up",
 };
 
@@ -4333,8 +4363,6 @@ export type DESCRIBE_REQUEST = DESCRIBE_REQUEST__ANON_STRUCT_0|undefined;
  * structs:
  *     ANON_STRUCT_2:
  *         properties:
- *             buildType:
- *                 type: string
  *             version:
  *                 structRef: mogenius-operator/src/version.Version
  *                 type: struct
@@ -6756,6 +6784,44 @@ export type GET_WORKSPACE_WORKLOADS_RESPONSE = GET_WORKSPACE_WORKLOADS_RESPONSE_
  * ```
  *
  */
+export type INSTALL_ALERTMANAGER_REQUEST = INSTALL_ALERTMANAGER_REQUEST__ANON_STRUCT_0|undefined;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *         properties:
+ *             data:
+ *                 type: string
+ *             message:
+ *                 type: string
+ *             status:
+ *                 type: string
+ * typeInfo:
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *     type: struct
+ * ```
+ *
+ */
+export type INSTALL_ALERTMANAGER_RESPONSE = INSTALL_ALERTMANAGER_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     ANON_STRUCT_0:
+ *         properties: {}
+ * typeInfo:
+ *     pointer: true
+ *     structRef: ANON_STRUCT_0
+ *     type: struct
+ * ```
+ *
+ */
 export type INSTALL_CERT_MANAGER_REQUEST = INSTALL_CERT_MANAGER_REQUEST__ANON_STRUCT_0|undefined;
 
 /**
@@ -6971,6 +7037,82 @@ export type INSTALL_METRICS_SERVER_REQUEST = INSTALL_METRICS_SERVER_REQUEST__ANO
  *
  */
 export type INSTALL_METRICS_SERVER_RESPONSE = INSTALL_METRICS_SERVER_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     ANON_STRUCT_0:
+ *         properties: {}
+ * typeInfo:
+ *     pointer: true
+ *     structRef: ANON_STRUCT_0
+ *     type: struct
+ * ```
+ *
+ */
+export type INSTALL_PROMETHEUS_REQUEST = INSTALL_PROMETHEUS_REQUEST__ANON_STRUCT_0|undefined;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *         properties:
+ *             data:
+ *                 type: string
+ *             message:
+ *                 type: string
+ *             status:
+ *                 type: string
+ * typeInfo:
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *     type: struct
+ * ```
+ *
+ */
+export type INSTALL_PROMETHEUS_RESPONSE = INSTALL_PROMETHEUS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     ANON_STRUCT_0:
+ *         properties: {}
+ * typeInfo:
+ *     pointer: true
+ *     structRef: ANON_STRUCT_0
+ *     type: struct
+ * ```
+ *
+ */
+export type INSTALL_RENOVATE_OPERATOR_REQUEST = INSTALL_RENOVATE_OPERATOR_REQUEST__ANON_STRUCT_0|undefined;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *         properties:
+ *             data:
+ *                 type: string
+ *             message:
+ *                 type: string
+ *             status:
+ *                 type: string
+ * typeInfo:
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *     type: struct
+ * ```
+ *
+ */
+export type INSTALL_RENOVATE_OPERATOR_RESPONSE = INSTALL_RENOVATE_OPERATOR_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING;
 
 /**
  * #### Source
@@ -9087,6 +9229,44 @@ export type TRIGGER_WORKLOAD_RESPONSE = TRIGGER_WORKLOAD_RESPONSE__MOGENIUS_OPER
  * ```
  *
  */
+export type UNINSTALL_ALERTMANAGER_REQUEST = UNINSTALL_ALERTMANAGER_REQUEST__ANON_STRUCT_0|undefined;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *         properties:
+ *             data:
+ *                 type: string
+ *             message:
+ *                 type: string
+ *             status:
+ *                 type: string
+ * typeInfo:
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *     type: struct
+ * ```
+ *
+ */
+export type UNINSTALL_ALERTMANAGER_RESPONSE = UNINSTALL_ALERTMANAGER_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     ANON_STRUCT_0:
+ *         properties: {}
+ * typeInfo:
+ *     pointer: true
+ *     structRef: ANON_STRUCT_0
+ *     type: struct
+ * ```
+ *
+ */
 export type UNINSTALL_CERT_MANAGER_REQUEST = UNINSTALL_CERT_MANAGER_REQUEST__ANON_STRUCT_0|undefined;
 
 /**
@@ -9300,6 +9480,82 @@ export type UNINSTALL_METRICS_SERVER_REQUEST = UNINSTALL_METRICS_SERVER_REQUEST_
  *
  */
 export type UNINSTALL_METRICS_SERVER_RESPONSE = UNINSTALL_METRICS_SERVER_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     ANON_STRUCT_0:
+ *         properties: {}
+ * typeInfo:
+ *     pointer: true
+ *     structRef: ANON_STRUCT_0
+ *     type: struct
+ * ```
+ *
+ */
+export type UNINSTALL_PROMETHEUS_REQUEST = UNINSTALL_PROMETHEUS_REQUEST__ANON_STRUCT_0|undefined;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *         properties:
+ *             data:
+ *                 type: string
+ *             message:
+ *                 type: string
+ *             status:
+ *                 type: string
+ * typeInfo:
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *     type: struct
+ * ```
+ *
+ */
+export type UNINSTALL_PROMETHEUS_RESPONSE = UNINSTALL_PROMETHEUS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     ANON_STRUCT_0:
+ *         properties: {}
+ * typeInfo:
+ *     pointer: true
+ *     structRef: ANON_STRUCT_0
+ *     type: struct
+ * ```
+ *
+ */
+export type UNINSTALL_RENOVATE_OPERATOR_REQUEST = UNINSTALL_RENOVATE_OPERATOR_REQUEST__ANON_STRUCT_0|undefined;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *         properties:
+ *             data:
+ *                 type: string
+ *             message:
+ *                 type: string
+ *             status:
+ *                 type: string
+ * typeInfo:
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *     type: struct
+ * ```
+ *
+ */
+export type UNINSTALL_RENOVATE_OPERATOR_RESPONSE = UNINSTALL_RENOVATE_OPERATOR_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING;
 
 /**
  * #### Source
@@ -9643,6 +9899,44 @@ export type UPGRADEK8SMANAGER_RESPONSE = UPGRADEK8SMANAGER_RESPONSE__MOGENIUS_OP
  * ```
  *
  */
+export type UPGRADE_ALERTMANAGER_REQUEST = UPGRADE_ALERTMANAGER_REQUEST__ANON_STRUCT_0|undefined;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *         properties:
+ *             data:
+ *                 type: string
+ *             message:
+ *                 type: string
+ *             status:
+ *                 type: string
+ * typeInfo:
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *     type: struct
+ * ```
+ *
+ */
+export type UPGRADE_ALERTMANAGER_RESPONSE = UPGRADE_ALERTMANAGER_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     ANON_STRUCT_0:
+ *         properties: {}
+ * typeInfo:
+ *     pointer: true
+ *     structRef: ANON_STRUCT_0
+ *     type: struct
+ * ```
+ *
+ */
 export type UPGRADE_CERT_MANAGER_REQUEST = UPGRADE_CERT_MANAGER_REQUEST__ANON_STRUCT_0|undefined;
 
 /**
@@ -9818,6 +10112,82 @@ export type UPGRADE_METRICS_SERVER_REQUEST = UPGRADE_METRICS_SERVER_REQUEST__ANO
  *
  */
 export type UPGRADE_METRICS_SERVER_RESPONSE = UPGRADE_METRICS_SERVER_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     ANON_STRUCT_0:
+ *         properties: {}
+ * typeInfo:
+ *     pointer: true
+ *     structRef: ANON_STRUCT_0
+ *     type: struct
+ * ```
+ *
+ */
+export type UPGRADE_PROMETHEUS_REQUEST = UPGRADE_PROMETHEUS_REQUEST__ANON_STRUCT_0|undefined;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *         properties:
+ *             data:
+ *                 type: string
+ *             message:
+ *                 type: string
+ *             status:
+ *                 type: string
+ * typeInfo:
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *     type: struct
+ * ```
+ *
+ */
+export type UPGRADE_PROMETHEUS_RESPONSE = UPGRADE_PROMETHEUS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     ANON_STRUCT_0:
+ *         properties: {}
+ * typeInfo:
+ *     pointer: true
+ *     structRef: ANON_STRUCT_0
+ *     type: struct
+ * ```
+ *
+ */
+export type UPGRADE_RENOVATE_OPERATOR_REQUEST = UPGRADE_RENOVATE_OPERATOR_REQUEST__ANON_STRUCT_0|undefined;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
+ *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *         properties:
+ *             data:
+ *                 type: string
+ *             message:
+ *                 type: string
+ *             status:
+ *                 type: string
+ * typeInfo:
+ *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *     type: struct
+ * ```
+ *
+ */
+export type UPGRADE_RENOVATE_OPERATOR_RESPONSE = UPGRADE_RENOVATE_OPERATOR_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING;
 
 /**
  * #### Source
@@ -10136,7 +10506,7 @@ export type DELETE_WORKLOAD_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_
 export type DELETE_WORKSPACE_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"name": string};
 export type DELETE_WORKSPACE_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST22_STRING = {"data": string,"message": string,"status": string};
 export type DESCRIBE_REQUEST__ANON_STRUCT_0 = {};
-export type DESCRIBE_RESPONSE__ANON_STRUCT_2 = {"buildType": string,"version": DESCRIBE_RESPONSE__MOGENIUS_OPERATOR_SRC_VERSION_VERSION};
+export type DESCRIBE_RESPONSE__ANON_STRUCT_2 = {"version": DESCRIBE_RESPONSE__MOGENIUS_OPERATOR_SRC_VERSION_VERSION};
 export type DESCRIBE_RESPONSE__ANON_STRUCT_4 = {};
 export type DESCRIBE_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_PATTERNCONFIG = {"deprecated": boolean,"deprecatedMessage": string,"legacyResponseLayout": boolean,"needsUser": boolean,"requestSchema": DESCRIBE_RESPONSE__MOGENIUS_OPERATOR_SRC_SCHEMA_SCHEMA|undefined,"responseSchema": DESCRIBE_RESPONSE__MOGENIUS_OPERATOR_SRC_SCHEMA_SCHEMA|undefined};
 export type DESCRIBE_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESPONSE = {"buildInfo": DESCRIBE_RESPONSE__ANON_STRUCT_2,"features": DESCRIBE_RESPONSE__ANON_STRUCT_4,"patterns": Record<string, DESCRIBE_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_PATTERNCONFIG>};
@@ -10283,6 +10653,8 @@ export type GET_WORKSPACE_WORKLOADS_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST 
 export type GET_WORKSPACE_WORKLOADS_REQUEST__MOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRIPTOR = {"apiVersion": string,"kind": string,"namespaced": boolean,"plural": string};
 export type GET_WORKSPACE_WORKLOADS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"Object": Record<string, any>};
 export type GET_WORKSPACE_WORKLOADS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST33_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"data": GET_WORKSPACE_WORKLOADS_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED[],"message": string,"status": string};
+export type INSTALL_ALERTMANAGER_REQUEST__ANON_STRUCT_0 = {};
+export type INSTALL_ALERTMANAGER_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
 export type INSTALL_CERT_MANAGER_REQUEST__ANON_STRUCT_0 = {};
 export type INSTALL_CERT_MANAGER_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
 export type INSTALL_CLUSTER_ISSUER_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"email": string};
@@ -10295,6 +10667,10 @@ export type INSTALL_METALLB_REQUEST__ANON_STRUCT_0 = {};
 export type INSTALL_METALLB_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
 export type INSTALL_METRICS_SERVER_REQUEST__ANON_STRUCT_0 = {};
 export type INSTALL_METRICS_SERVER_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
+export type INSTALL_PROMETHEUS_REQUEST__ANON_STRUCT_0 = {};
+export type INSTALL_PROMETHEUS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
+export type INSTALL_RENOVATE_OPERATOR_REQUEST__ANON_STRUCT_0 = {};
+export type INSTALL_RENOVATE_OPERATOR_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
 export type LIST_ALL_RESOURCE_DESCRIPTORS_REQUEST__ANON_STRUCT_0 = {};
 export type LIST_ALL_RESOURCE_DESCRIPTORS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_MOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRIPTOR = {"data": LIST_ALL_RESOURCE_DESCRIPTORS_RESPONSE__MOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRIPTOR[],"message": string,"status": string};
 export type LIST_ALL_RESOURCE_DESCRIPTORS_RESPONSE__MOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRIPTOR = {"apiVersion": string,"kind": string,"namespaced": boolean,"plural": string};
@@ -10406,6 +10782,8 @@ export type TRIGGER_WORKLOAD_REQUEST__MOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRI
 export type TRIGGER_WORKLOAD_REQUEST__MOGENIUS_OPERATOR_SRC_UTILS_WORKLOADSINGLEREQUEST = {"ResourceDescriptor": TRIGGER_WORKLOAD_REQUEST__MOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRIPTOR,"namespace": string,"resourceName": string};
 export type TRIGGER_WORKLOAD_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"Object": Record<string, any>};
 export type TRIGGER_WORKLOAD_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_UTILS_WORKLOADSINGLEREQUEST_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"data": TRIGGER_WORKLOAD_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED|undefined,"message": string,"status": string};
+export type UNINSTALL_ALERTMANAGER_REQUEST__ANON_STRUCT_0 = {};
+export type UNINSTALL_ALERTMANAGER_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
 export type UNINSTALL_CERT_MANAGER_REQUEST__ANON_STRUCT_0 = {};
 export type UNINSTALL_CERT_MANAGER_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
 export type UNINSTALL_CLUSTER_ISSUER_REQUEST__ANON_STRUCT_0 = {};
@@ -10418,6 +10796,10 @@ export type UNINSTALL_METALLB_REQUEST__ANON_STRUCT_0 = {};
 export type UNINSTALL_METALLB_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
 export type UNINSTALL_METRICS_SERVER_REQUEST__ANON_STRUCT_0 = {};
 export type UNINSTALL_METRICS_SERVER_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
+export type UNINSTALL_PROMETHEUS_REQUEST__ANON_STRUCT_0 = {};
+export type UNINSTALL_PROMETHEUS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
+export type UNINSTALL_RENOVATE_OPERATOR_REQUEST__ANON_STRUCT_0 = {};
+export type UNINSTALL_RENOVATE_OPERATOR_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
 export type UPDATE_GRANT_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"grantee": string,"name": string,"role": string,"targetName": string,"targetType": string};
 export type UPDATE_GRANT_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST31_STRING = {"data": string,"message": string,"status": string};
 export type UPDATE_USER_REQUEST__K8S_IO_API_RBAC_V1_SUBJECT = {"apiGroup": string,"kind": string,"name": string,"namespace": string};
@@ -10435,6 +10817,8 @@ export type UPGRADEK8SMANAGER_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIU
 export type UPGRADEK8SMANAGER_RESPONSE__MOGENIUS_OPERATOR_SRC_STRUCTS_COMMAND = {"command": string,"finished": UPGRADEK8SMANAGER_RESPONSE__TIME_TIME,"id": string,"message": string,"started": UPGRADEK8SMANAGER_RESPONSE__TIME_TIME,"state": string,"title": string};
 export type UPGRADEK8SMANAGER_RESPONSE__MOGENIUS_OPERATOR_SRC_STRUCTS_JOB = {"commands": UPGRADEK8SMANAGER_RESPONSE__MOGENIUS_OPERATOR_SRC_STRUCTS_COMMAND|undefined[],"containerName": string,"controllerName": string,"finished": UPGRADEK8SMANAGER_RESPONSE__TIME_TIME,"id": string,"message": string,"namespaceName": string,"projectId": string,"started": UPGRADEK8SMANAGER_RESPONSE__TIME_TIME,"state": string,"title": string};
 export type UPGRADEK8SMANAGER_RESPONSE__TIME_TIME = {};
+export type UPGRADE_ALERTMANAGER_REQUEST__ANON_STRUCT_0 = {};
+export type UPGRADE_ALERTMANAGER_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
 export type UPGRADE_CERT_MANAGER_REQUEST__ANON_STRUCT_0 = {};
 export type UPGRADE_CERT_MANAGER_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
 export type UPGRADE_INGRESS_CONTROLLER_TRAEFIK_REQUEST__ANON_STRUCT_0 = {};
@@ -10445,6 +10829,10 @@ export type UPGRADE_METALLB_REQUEST__ANON_STRUCT_0 = {};
 export type UPGRADE_METALLB_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
 export type UPGRADE_METRICS_SERVER_REQUEST__ANON_STRUCT_0 = {};
 export type UPGRADE_METRICS_SERVER_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
+export type UPGRADE_PROMETHEUS_REQUEST__ANON_STRUCT_0 = {};
+export type UPGRADE_PROMETHEUS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
+export type UPGRADE_RENOVATE_OPERATOR_REQUEST__ANON_STRUCT_0 = {};
+export type UPGRADE_RENOVATE_OPERATOR_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
 export type WORKSPACE_CLEAN_UP_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"configMaps": boolean,"dryRun": boolean,"ingresses": boolean,"jobs": boolean,"name": string,"pods": boolean,"replicaSets": boolean,"secrets": boolean,"services": boolean};
 export type WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_CLEANUPRESULT = {"configMaps": WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_CLEANUPRESULTENTRY[],"ingresses": WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_CLEANUPRESULTENTRY[],"jobs": WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_CLEANUPRESULTENTRY[],"pods": WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_CLEANUPRESULTENTRY[],"replicaSets": WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_CLEANUPRESULTENTRY[],"secrets": WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_CLEANUPRESULTENTRY[],"services": WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_CLEANUPRESULTENTRY[]};
 export type WORKSPACE_CLEAN_UP_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_CLEANUPRESULTENTRY = {"name": string,"namespace": string,"reason": string};
@@ -10739,6 +11127,10 @@ export interface IPatternConfig {
     Request: GET_WORKSPACE_WORKLOADS_REQUEST;
     Response: GET_WORKSPACE_WORKLOADS_RESPONSE;
   };
+  [Pattern.INSTALL_ALERTMANAGER]: {
+    Request: INSTALL_ALERTMANAGER_REQUEST;
+    Response: INSTALL_ALERTMANAGER_RESPONSE;
+  };
   [Pattern.INSTALL_CERT_MANAGER]: {
     Request: INSTALL_CERT_MANAGER_REQUEST;
     Response: INSTALL_CERT_MANAGER_RESPONSE;
@@ -10762,6 +11154,14 @@ export interface IPatternConfig {
   [Pattern.INSTALL_METRICS_SERVER]: {
     Request: INSTALL_METRICS_SERVER_REQUEST;
     Response: INSTALL_METRICS_SERVER_RESPONSE;
+  };
+  [Pattern.INSTALL_PROMETHEUS]: {
+    Request: INSTALL_PROMETHEUS_REQUEST;
+    Response: INSTALL_PROMETHEUS_RESPONSE;
+  };
+  [Pattern.INSTALL_RENOVATE_OPERATOR]: {
+    Request: INSTALL_RENOVATE_OPERATOR_REQUEST;
+    Response: INSTALL_RENOVATE_OPERATOR_RESPONSE;
   };
   [Pattern.LIST_ALL_RESOURCE_DESCRIPTORS]: {
     Request: LIST_ALL_RESOURCE_DESCRIPTORS_REQUEST;
@@ -10895,6 +11295,10 @@ export interface IPatternConfig {
     Request: TRIGGER_WORKLOAD_REQUEST;
     Response: TRIGGER_WORKLOAD_RESPONSE;
   };
+  [Pattern.UNINSTALL_ALERTMANAGER]: {
+    Request: UNINSTALL_ALERTMANAGER_REQUEST;
+    Response: UNINSTALL_ALERTMANAGER_RESPONSE;
+  };
   [Pattern.UNINSTALL_CERT_MANAGER]: {
     Request: UNINSTALL_CERT_MANAGER_REQUEST;
     Response: UNINSTALL_CERT_MANAGER_RESPONSE;
@@ -10919,6 +11323,14 @@ export interface IPatternConfig {
     Request: UNINSTALL_METRICS_SERVER_REQUEST;
     Response: UNINSTALL_METRICS_SERVER_RESPONSE;
   };
+  [Pattern.UNINSTALL_PROMETHEUS]: {
+    Request: UNINSTALL_PROMETHEUS_REQUEST;
+    Response: UNINSTALL_PROMETHEUS_RESPONSE;
+  };
+  [Pattern.UNINSTALL_RENOVATE_OPERATOR]: {
+    Request: UNINSTALL_RENOVATE_OPERATOR_REQUEST;
+    Response: UNINSTALL_RENOVATE_OPERATOR_RESPONSE;
+  };
   [Pattern.UPDATE_GRANT]: {
     Request: UPDATE_GRANT_REQUEST;
     Response: UPDATE_GRANT_RESPONSE;
@@ -10939,6 +11351,10 @@ export interface IPatternConfig {
     Request: UPGRADEK8SMANAGER_REQUEST;
     Response: UPGRADEK8SMANAGER_RESPONSE;
   };
+  [Pattern.UPGRADE_ALERTMANAGER]: {
+    Request: UPGRADE_ALERTMANAGER_REQUEST;
+    Response: UPGRADE_ALERTMANAGER_RESPONSE;
+  };
   [Pattern.UPGRADE_CERT_MANAGER]: {
     Request: UPGRADE_CERT_MANAGER_REQUEST;
     Response: UPGRADE_CERT_MANAGER_RESPONSE;
@@ -10958,6 +11374,14 @@ export interface IPatternConfig {
   [Pattern.UPGRADE_METRICS_SERVER]: {
     Request: UPGRADE_METRICS_SERVER_REQUEST;
     Response: UPGRADE_METRICS_SERVER_RESPONSE;
+  };
+  [Pattern.UPGRADE_PROMETHEUS]: {
+    Request: UPGRADE_PROMETHEUS_REQUEST;
+    Response: UPGRADE_PROMETHEUS_RESPONSE;
+  };
+  [Pattern.UPGRADE_RENOVATE_OPERATOR]: {
+    Request: UPGRADE_RENOVATE_OPERATOR_REQUEST;
+    Response: UPGRADE_RENOVATE_OPERATOR_RESPONSE;
   };
   [Pattern.WORKSPACE_CLEAN_UP]: {
     Request: WORKSPACE_CLEAN_UP_REQUEST;
