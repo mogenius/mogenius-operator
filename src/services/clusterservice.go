@@ -352,11 +352,11 @@ func UpgradeRenovateOperator() (string, error) {
 
 func InstallRenovateOperator() (string, error) {
 	r := ClusterHelmRequest{
-		HelmRepoName:    utils.HelmReleaseNameRenovateOperator,
+		HelmRepoName:    "mogenius",
 		HelmRepoUrl:     MogeniusHelmIndex,
 		HelmReleaseName: utils.HelmReleaseNameRenovateOperator,
 		HelmChartName:   utils.HelmReleaseNameRenovateOperator + "/" + utils.HelmReleaseNameRenovateOperator,
-		HelmValues:      "",
+		HelmValues:      fmt.Sprintf(`fullnameOverride: %s`, utils.HelmReleaseNameRenovateOperator),
 	}
 	return helm.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues, r.HelmChartVersion)
 }
