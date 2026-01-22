@@ -1,6 +1,7 @@
 package core
 
 import (
+	"bytes"
 	"fmt"
 	"log/slog"
 	"mogenius-operator/src/ai"
@@ -39,6 +40,16 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/yaml"
 )
+
+// Compression threshold - only compress responses larger than 1KB
+const compressionThreshold = 1024
+
+// Pool for reusing buffers during compression
+var compressionBufferPool = sync.Pool{
+	New: func() interface{} {
+		return new(bytes.Buffer)
+	},
+}
 
 type SocketApi interface {
 	Link(
@@ -2075,11 +2086,10 @@ func (self *socketApi) startMessageHandler() {
 				time.Sleep(time.Second) // wait before next attempt to read
 				continue
 			}
-			rawDataStr := string(message)
-			if rawDataStr == "" {
+			if len(message) == 0 {
 				continue
 			}
-			if strings.HasPrefix(rawDataStr, "######START_UPLOAD######;") {
+			if bytes.HasPrefix(message, []byte("######START_UPLOAD######;")) {
 				preparedFileName = utils.Pointer(fmt.Sprintf("/tmp/%s.zip", utils.NanoId()))
 				openFile, err = os.OpenFile(*preparedFileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 				if err != nil {
@@ -2087,7 +2097,7 @@ func (self *socketApi) startMessageHandler() {
 				}
 				continue
 			}
-			if strings.HasPrefix(rawDataStr, "######END_UPLOAD######;") {
+			if bytes.HasPrefix(message, []byte("######END_UPLOAD######;")) {
 				openFile.Close()
 				if preparedFileName != nil && preparedFileRequest != nil {
 					err = services.Uploaded(*preparedFileName, *preparedFileRequest)
@@ -2106,14 +2116,14 @@ func (self *socketApi) startMessageHandler() {
 			}
 
 			if preparedFileName != nil {
-				_, err := openFile.Write([]byte(rawDataStr))
+				_, err := openFile.Write(message)
 				if err != nil {
 					self.logger.Error("Error writing to file", "error", err)
 				}
 				continue
 			}
 
-			datagram, err := self.ParseDatagram([]byte(rawDataStr))
+			datagram, err := self.ParseDatagram(message)
 			if err != nil {
 				self.logger.Error("failed to parse datagram", "error", err)
 				continue
@@ -2152,10 +2162,35 @@ func (self *socketApi) startMessageHandler() {
 					self.logdatagram(executionTime, datagram)
 
 					sendStart := time.Now()
-					compressedData, size, err := utils.TryZlibCompress(responsePayload)
-					if err != nil {
-						self.logger.Error("failed to compress response payload", "error", err)
-					} else {
+					// Smart compression: Only compress if payload is worth it
+					var compressedData any
+					var size int64
+					var err error
+					var shouldCompress bool
+
+					// Get pooled buffer for JSON marshaling check
+					buf := compressionBufferPool.Get().(*bytes.Buffer)
+					buf.Reset()
+					encoder := json.NewEncoder(buf)
+					if marshalErr := encoder.Encode(responsePayload); marshalErr == nil {
+						payloadSize := buf.Len()
+						shouldCompress = payloadSize > compressionThreshold
+						if shouldCompress {
+							// Reuse the already marshaled data
+							dataBytes := bytes.TrimSuffix(buf.Bytes(), []byte("\n"))
+							compressedPayload, compressErr := utils.ZlibCompress(dataBytes)
+							if compressErr == nil {
+								compressedData = compressedPayload
+								size = int64(len(compressedPayload))
+							} else {
+								err = compressErr
+								shouldCompress = false
+							}
+						}
+					}
+					compressionBufferPool.Put(buf)
+
+					if shouldCompress && err == nil {
 						responsePayload = compressedData
 					}
 
@@ -2164,7 +2199,7 @@ func (self *socketApi) startMessageHandler() {
 						Pattern:   datagram.Pattern,
 						Payload:   responsePayload,
 						CreatedAt: datagram.CreatedAt,
-						Zlib:      err == nil,
+						Zlib:      shouldCompress && err == nil,
 					}
 
 					self.JobServerSendData(self.jobClient, result)
