@@ -188,16 +188,29 @@ func (self *websocketClient) ReadMessage() (messageType int, p []byte, err error
 }
 
 func (self *websocketClient) WriteJSON(data any) error {
+	// Fast path: try non-blocking write to queue
 	select {
 	case <-self.ctx.Done():
 		return fmt.Errorf("WebsocketClient is terminated")
-	case self.apiWriteJsonTx <- data:
+	case self.writeQueue <- data:
+		// Successfully queued, return immediately without waiting
+		queueSize := len(self.writeQueue)
+		self.apiLogger.Debug("WriteJSON queued", "data", data, "queueSize", queueSize)
+		return nil
+	default:
+		// Queue is full, fall back to blocking write
+		self.apiLogger.Warn("WriteJSON queue full, using blocking write", "queueSize", self.writeQueueSize)
 		select {
 		case <-self.ctx.Done():
 			return fmt.Errorf("WebsocketClient is terminated")
-		case err := <-self.apiWriteJsonRx:
-			self.apiLogger.Debug("WriteJSON", "data", data, "error", err)
-			return err
+		case self.apiWriteJsonTx <- data:
+			select {
+			case <-self.ctx.Done():
+				return fmt.Errorf("WebsocketClient is terminated")
+			case err := <-self.apiWriteJsonRx:
+				self.apiLogger.Debug("WriteJSON", "data", data, "error", err)
+				return err
+			}
 		}
 	}
 }
@@ -309,6 +322,10 @@ type websocketClient struct {
 	// api: self.Terminate()
 	apiTerminateTx chan struct{}
 	apiTerminateRx chan struct{}
+
+	// async write queue for non-blocking writes
+	writeQueue     chan any
+	writeQueueSize int
 }
 
 type websocketWriteMessageInput struct {
@@ -372,6 +389,9 @@ func NewWebsocketClient(logger *slog.Logger) WebsocketClient {
 	self.apiReadJsonRx = make(chan error)
 	self.apiTerminateTx = make(chan struct{})
 	self.apiTerminateRx = make(chan struct{})
+
+	self.writeQueueSize = 100
+	self.writeQueue = make(chan any, self.writeQueueSize)
 
 	go self.startRuntime()
 
@@ -441,6 +461,7 @@ func (self *websocketClient) startRuntime() {
 				continue
 			}
 			var dialer *gorillaWebsocket.Dialer = gorillaWebsocket.DefaultDialer
+			dialer.EnableCompression = true
 			skipTlsVerification := strings.ToLower(os.Getenv("MO_SKIP_TLS_VERIFICATION"))
 			if skipTlsVerification == "true" {
 				dialer.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
@@ -524,6 +545,15 @@ func (self *websocketClient) startWriteThread() {
 			err := self.connection.WriteMessage(gorillaWebsocket.PingMessage, nil)
 			if err != nil {
 				self.writeLogger.Debug("failed to send ping", "error", err)
+			}
+			self.healthcheck(err)
+		case data := <-self.writeQueue:
+			// Process queued writes without blocking the caller
+			assert.Assert(self.connection != nil)
+			self.writeLogger.Debug("WriteJSON from queue", "data", data, "remainingInQueue", len(self.writeQueue))
+			err := self.connection.WriteJSON(data)
+			if err != nil {
+				self.writeLogger.Error("WriteJSON from queue failed", "error", err)
 			}
 			self.healthcheck(err)
 		case val := <-self.apiWriteMessageTx:
