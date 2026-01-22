@@ -11,9 +11,9 @@ import (
 )
 
 func AllServices(namespaceName string) []v1.Service {
-	result := []v1.Service{}
-
 	services := store.GetServices(namespaceName, "*")
+	result := make([]v1.Service, 0, len(services))
+
 	for _, service := range services {
 		if service.Namespace == "kube-system" {
 			continue

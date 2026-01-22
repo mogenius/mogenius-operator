@@ -63,14 +63,13 @@ func handlePVDeletion(pv *v1.PersistentVolume) {
 }
 
 func GetVolumeMountsForK8sManager() ([]structs.Volume, error) {
-	result := []structs.Volume{}
-
 	clientset := clientProvider.K8sClientSet()
 	pvcClient := clientset.CoreV1().PersistentVolumeClaims("")
 	pvcList, err := pvcClient.List(context.Background(), metav1.ListOptions{})
 	if err != nil {
-		return result, err
+		return []structs.Volume{}, err
 	}
+	result := make([]structs.Volume, 0, len(pvcList.Items))
 	for _, pvc := range pvcList.Items {
 		if strings.HasPrefix(pvc.Name, utils.NFS_POD_PREFIX) {
 			capacity := pvc.Spec.Resources.Requests[v1.ResourceStorage]

@@ -101,7 +101,7 @@ func (self *podStatsCollector) Run() {
 }
 
 func (self *podStatsCollector) nodeStats(nodemetrics []podstatscollector.NodeMetrics) []structs.NodeStats {
-	result := []structs.NodeStats{}
+	result := make([]structs.NodeStats, 0, len(nodemetrics))
 
 	for _, nodeMetric := range nodemetrics {
 		entry := structs.NodeStats{}

@@ -11,16 +11,15 @@ import (
 )
 
 func GetDeploymentsWithFieldSelector(namespace string, labelSelector string) ([]v1.Deployment, error) {
-	result := []v1.Deployment{}
 	clientset := clientProvider.K8sClientSet()
 	client := clientset.AppsV1().Deployments(namespace)
 
 	deployments, err := client.List(context.Background(), metav1.ListOptions{LabelSelector: labelSelector})
 	if err != nil {
-		return result, err
+		return []v1.Deployment{}, err
 	}
 
-	return deployments.Items, err
+	return deployments.Items, nil
 }
 
 func IsDeploymentInstalled(namespaceName string, name string) (string, error) {

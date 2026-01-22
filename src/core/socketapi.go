@@ -1278,7 +1278,10 @@ func (self *socketApi) registerPatterns() {
 		func(datagram structs.Datagram, request Void) ([]GetWorkspaceResult, error) {
 			namespace := self.config.Get("MO_OWN_NAMESPACE")
 			workspaces, err := store.GetAllWorkspaces(namespace)
-			result := []GetWorkspaceResult{}
+			if err != nil {
+				return []GetWorkspaceResult{}, err
+			}
+			result := make([]GetWorkspaceResult, 0, len(workspaces))
 			for _, v := range workspaces {
 				result = append(result, GetWorkspaceResult{
 					Name:              v.Name,

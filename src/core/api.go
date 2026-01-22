@@ -117,14 +117,13 @@ func NewGetWorkspaceResult(name string, creationTimestamp v1.Time, resources []v
 }
 
 func (self *api) GetAllWorkspaces() ([]GetWorkspaceResult, error) {
-	result := []GetWorkspaceResult{}
-
 	namespace := self.config.Get("MO_OWN_NAMESPACE")
 	resources, err := store.GetAllWorkspaces(namespace)
 	if err != nil {
-		return result, err
+		return []GetWorkspaceResult{}, err
 	}
 
+	result := make([]GetWorkspaceResult, 0, len(resources))
 	for _, resource := range resources {
 		result = append(result, NewGetWorkspaceResult(
 			resource.GetName(),
@@ -270,14 +269,14 @@ func (self *api) DeleteGrant(name string) (string, error) {
 }
 
 func (self *api) GetWorkspaceResources(workspaceName string, whitelist []*utils.ResourceDescriptor, blacklist []*utils.ResourceDescriptor, namespaceWhitelist []string) ([]unstructured.Unstructured, error) {
-	result := []unstructured.Unstructured{}
-
 	// Get workspace
 	namespace := self.config.Get("MO_OWN_NAMESPACE")
 	workspace, err := store.GetWorkspace(namespace, workspaceName)
 	if err != nil {
-		return result, err
+		return []unstructured.Unstructured{}, err
 	}
+
+	result := make([]unstructured.Unstructured, 0, len(workspace.Spec.Resources)*5)
 
 	for _, v := range workspace.Spec.Resources {
 		if v.Type == "namespace" {

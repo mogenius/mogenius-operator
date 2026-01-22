@@ -235,14 +235,15 @@ func (self *moKubernetes) removeManagedFields(obj *unstructured.Unstructured) *u
 }
 
 func (self *moKubernetes) GetNodeStats() ([]dtos.NodeStat, error) {
-	result := []dtos.NodeStat{}
 	nodes := store.GetNodes()
 	nodeMetrics := kubernetes.ListNodeMetricss()
 
 	if len(nodeMetrics) == 0 {
 		self.logger.Error("CRITICAL: No node metrics found. Make sure the metrics-server is installed and running.")
-		return result, fmt.Errorf("no metrics-server found")
+		return []dtos.NodeStat{}, fmt.Errorf("no metrics-server found")
 	}
+
+	result := make([]dtos.NodeStat, 0, len(nodes))
 
 	for _, node := range nodes {
 		for _, taint := range node.Spec.Taints {

@@ -597,7 +597,7 @@ func findSmallest(m map[string]float64) (string, float64, bool) {
 }
 
 func (self *valkeyStatsDb) GetMachineStatsForNodes(nodes []string) []structs.MachineStats {
-	result := []structs.MachineStats{}
+	result := make([]structs.MachineStats, 0, len(nodes))
 
 	for _, node := range nodes {
 		stat, err := self.GetMachineStatsForNode(node)
