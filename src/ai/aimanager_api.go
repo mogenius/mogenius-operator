@@ -19,34 +19,25 @@ var cachedWorkspaceStatus map[string]AiManagerStatus = make(map[string]AiManager
 var AiCachedStatusLiveTime time.Duration = time.Minute * 1
 
 func (ai *aiManager) UpdateTaskState(taskID string, newState AiTaskState) error {
-	keys, err := ai.valkeyClient.Keys(DB_AI_BUCKET_TASKS + ":*")
+
+	item, err := ai.valkeyClient.Get(taskID)
+	if err != nil {
+		return err
+	}
+	if item == "" {
+		return fmt.Errorf("no ai task with the specified id has been found: %s", taskID)
+	}
+	var task AiTask
+	err = json.Unmarshal([]byte(item), &task)
+	if err != nil {
+		return err
+	}
+	task.State = newState
+	err = ai.createOrUpdateAiTask(&task, taskID)
 	if err != nil {
 		return err
 	}
 
-	notFound := true
-	for _, key := range keys {
-		item, err := ai.valkeyClient.Get(key)
-		if err != nil {
-			return err
-		}
-		var task AiTask
-		err = json.Unmarshal([]byte(item), &task)
-		if err != nil {
-			return err
-		}
-		if task.ID == taskID {
-			task.State = newState
-			err = ai.createOrUpdateAiTask(&task, key)
-			if err != nil {
-				return err
-			}
-			notFound = false
-		}
-	}
-	if notFound {
-		return fmt.Errorf("no ai task with the specified id has been found: %s", taskID)
-	}
 	return nil
 }
 
@@ -55,31 +46,28 @@ func (ai *aiManager) UpdateTaskReadState(taskID string, user *structs.User) erro
 		return fmt.Errorf("user cannot be nil")
 	}
 
-	keys, err := ai.valkeyClient.Keys(DB_AI_BUCKET_TASKS + ":*")
+	item, err := ai.valkeyClient.Get(taskID)
 	if err != nil {
 		return err
 	}
-
-	for _, key := range keys {
-		item, err := ai.valkeyClient.Get(key)
-		if err != nil {
-			return err
-		}
-		var task AiTask
-		err = json.Unmarshal([]byte(item), &task)
-		if err != nil {
-			return err
-		}
-		if task.ID == taskID {
-			if userSeesTaskForTheFirstTime(user, task.ReadByUsers) {
-				task.ReadByUsers = append(task.ReadByUsers, ReadBy{
-					User:   *user,
-					ReadAt: time.Now(),
-				})
-				return ai.createOrUpdateAiTask(&task, key)
-			}
-		}
+	if item == "" {
+		return fmt.Errorf("no ai task with the specified id has been found: %s", taskID)
 	}
+
+	var task AiTask
+	err = json.Unmarshal([]byte(item), &task)
+	if err != nil {
+		return err
+	}
+	if userSeesTaskForTheFirstTime(user, task.ReadByUsers) {
+		task.ReadByUsers = append(task.ReadByUsers, ReadBy{
+			User:   *user,
+			ReadAt: time.Now(),
+		})
+		return ai.createOrUpdateAiTask(&task, taskID)
+
+	}
+
 	return nil
 }
 
