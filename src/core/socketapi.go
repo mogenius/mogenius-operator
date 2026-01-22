@@ -407,7 +407,6 @@ func (self *socketApi) registerPatterns() {
 		PatternHandle{self, "cluster/force-reconnect"},
 		PatternConfig{},
 		func(datagram structs.Datagram, request Void) (bool, error) {
-			time.Sleep(1 * time.Second)
 			return kubernetes.ClusterForceReconnect(), nil
 		},
 	)
@@ -416,7 +415,6 @@ func (self *socketApi) registerPatterns() {
 		PatternHandle{self, "cluster/force-disconnect"},
 		PatternConfig{},
 		func(datagram structs.Datagram, request Void) (bool, error) {
-			time.Sleep(1 * time.Second)
 			return kubernetes.ClusterForceDisconnect(), nil
 		},
 	)
