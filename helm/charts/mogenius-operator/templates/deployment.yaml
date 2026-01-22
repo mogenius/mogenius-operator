@@ -52,6 +52,7 @@ spec:
               name: mo-data
           ports:
             - containerPort: 1337
+              name: http
               protocol: TCP
           {{- if and .Values.probes.enabled .Values.probes.startupProbe.enabled }}
           startupProbe:

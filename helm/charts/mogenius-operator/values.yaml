@@ -15,6 +15,32 @@ cluster:
     # -- readonly operator permissions true/false (default: false)
     enabled: false
 
+# -- feature toggles for the mogenius-operator
+features:
+  # -- configure the integrated node metrics dashboard
+  nodeMetricsDashboard:
+    # -- enable the node metrics dashboard
+    enabled: false
+    # -- ingress settings for the node metrics dashboard
+    ingress:
+      enabled: false
+      ingressClassName: ~
+      host: ~
+      annotations: {}
+      labels: {}
+      tls: []
+    # -- HTTPRoute settings for the node metrics dashboard
+    httproute:
+      enabled: false
+      annotations: {}
+      # -- labels to place on the HTTPRoute
+      labels: {}
+      # -- hostnames to place on the HTTPRoute
+      hostnames: []
+      # -- parentRefs to place on the HTTPRoute
+      parentRefs: []
+
+
 # -- image settings for the mogenius-operator and nodemetrics container
 image:
   registry: ghcr.io
