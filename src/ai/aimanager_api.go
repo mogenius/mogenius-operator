@@ -24,6 +24,7 @@ func (ai *aiManager) UpdateTaskState(taskID string, newState AiTaskState) error 
 		return err
 	}
 
+	notFound := true
 	for _, key := range keys {
 		item, err := ai.valkeyClient.Get(key)
 		if err != nil {
@@ -40,10 +41,13 @@ func (ai *aiManager) UpdateTaskState(taskID string, newState AiTaskState) error 
 			if err != nil {
 				return err
 			}
-			return nil
+			notFound = false
 		}
 	}
-	return fmt.Errorf("no ai task with the specified id has been found: %s", taskID)
+	if notFound {
+		return fmt.Errorf("no ai task with the specified id has been found: %s", taskID)
+	}
+	return nil
 }
 
 func (ai *aiManager) UpdateTaskReadState(taskID string, user *structs.User) error {
