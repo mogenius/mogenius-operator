@@ -11,10 +11,11 @@ type AiApi interface {
 	UpdateTaskState(taskID string, newState ai.AiTaskState) error
 	UpdateTaskReadState(taskID string, user *structs.User) error
 	GetAiTasksForWorkspace(workspace string) ([]ai.AiTask, error)
+	GetAllAiTasks() ([]ai.AiTask, error)
 	GetAiTasksForResource(resourceReq utils.WorkloadSingleRequest) ([]ai.AiTask, error)
-	GetLatestTask(workspace string) (*ai.AiTaskLatest, error)
+	GetLatestTask(workspace *string) (*ai.AiTaskLatest, error)
 	InjectAiPromptConfig(prompt ai.AiPromptConfig)
-	GetStatus() ai.AiManagerStatus
+	GetStatus(workspace *string) ai.AiManagerStatus
 	ResetDailyTokenLimit() error
 	DeleteAllAiData() error
 	GetAvailableModels(request *ai.ModelsRequest) ([]string, error)
@@ -33,6 +34,10 @@ func NewAiApi(logger *slog.Logger, aiManager ai.AiManager) AiApi {
 	return self
 }
 
+func (ai *aiApi) GetAllAiTasks() ([]ai.AiTask, error) {
+	return ai.aiManager.GetAllAiTasks()
+}
+
 func (ai *aiApi) GetAiTasksForWorkspace(workspace string) ([]ai.AiTask, error) {
 	return ai.aiManager.GetAiTasksForWorkspace(workspace)
 }
@@ -40,7 +45,7 @@ func (ai *aiApi) GetAiTasksForResource(resourceReq utils.WorkloadSingleRequest) 
 	return ai.aiManager.GetAiTasksForResource(resourceReq)
 }
 
-func (ai *aiApi) GetLatestTask(workspace string) (*ai.AiTaskLatest, error) {
+func (ai *aiApi) GetLatestTask(workspace *string) (*ai.AiTaskLatest, error) {
 	return ai.aiManager.GetLatestTask(workspace)
 }
 
@@ -56,8 +61,8 @@ func (ai *aiApi) UpdateTaskReadState(taskID string, user *structs.User) error {
 	return ai.aiManager.UpdateTaskReadState(taskID, user)
 }
 
-func (ai *aiApi) GetStatus() ai.AiManagerStatus {
-	return ai.aiManager.GetStatus()
+func (ai *aiApi) GetStatus(workspace *string) ai.AiManagerStatus {
+	return ai.aiManager.GetStatus(workspace)
 }
 
 func (ai *aiApi) ResetDailyTokenLimit() error {

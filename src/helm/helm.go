@@ -316,7 +316,7 @@ func parseHelmEntry(entry *repo.Entry) *HelmEntryWithoutPassword {
 	return &HelmEntryWithoutPassword{
 		Name:                  entry.Name,
 		URL:                   entry.URL,
-		InsecureSkipTLSverify: entry.InsecureSkipTLSverify,
+		InsecureSkipTLSverify: entry.InsecureSkipTLSVerify,
 		PassCredentialsAll:    entry.PassCredentialsAll,
 	}
 }
@@ -413,7 +413,7 @@ func HelmRepoAdd(data HelmRepoAddRequest) (string, error) {
 		URL:                   data.Url,
 		Username:              data.Username,
 		Password:              data.Password,
-		InsecureSkipTLSverify: data.InsecureSkipTLSverify,
+		InsecureSkipTLSVerify: data.InsecureSkipTLSverify,
 		PassCredentialsAll:    data.PassCredentialsAll,
 	}
 
@@ -468,7 +468,7 @@ func HelmRepoPatch(data HelmRepoPatchRequest) (string, error) {
 			re.URL = data.Url
 			re.Username = data.Username
 			re.Password = data.Password
-			re.InsecureSkipTLSverify = data.InsecureSkipTLSverify
+			re.InsecureSkipTLSVerify = data.InsecureSkipTLSverify
 			re.PassCredentialsAll = data.PassCredentialsAll
 
 			chartRepo, err := repo.NewChartRepository(re, getter.All(settings))
@@ -1156,7 +1156,7 @@ func HelmReleaseStatus(data HelmReleaseStatusRequest) (*HelmReleaseStatusInfo, e
 	status := action.NewStatus(actionConfig)
 	rel, err := status.Run(data.Release)
 	if err != nil {
-		helmLogger.Error("HelmReleaseStatus List", "releaseName", data.Release, "namespace", data.Namespace, "error", err.Error())
+		// helmLogger.Error("HelmReleaseStatus List", "releaseName", data.Release, "namespace", data.Namespace, "error", err.Error())
 		return nil, err
 	}
 	if rel == nil {

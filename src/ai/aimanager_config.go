@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"mogenius-operator/src/store"
 	"strconv"
+
+	v1 "k8s.io/api/core/v1"
 )
 
 const (
@@ -37,8 +39,8 @@ func (ai *aiManager) isAiPromptConfigInitialized() bool {
 
 func (ai *aiManager) isAiModelConfigInitialized() bool {
 	ownNamespace := ai.config.Get("MO_OWN_NAMESPACE")
-	configSecret := store.GetSecret(ownNamespace, AI_CONFIG_SECRET_NAME)
-	return configSecret != nil
+	configSecret, err := ai.secretGetter(ownNamespace, AI_CONFIG_SECRET_NAME)
+	return err == nil && configSecret != nil
 }
 
 func (ai *aiManager) getSystemPrompt() string {
@@ -70,8 +72,8 @@ func (ai *aiManager) getSdkType() (AiSdkType, error) {
 		return AiSdkTypeOpenAI, nil
 	case "anthropic":
 		return AiSdkTypeAnthropic, nil
-	// case "olama":
-	// 	return AiSdkTypeOlama, nil
+	case "ollama":
+		return AiSdkTypeOllama, nil
 	default:
 		return "", fmt.Errorf("unsupported SDK type: %s", data)
 	}
@@ -106,9 +108,14 @@ func (ai *aiManager) getAiSettingByKey(key string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to retrieve own namespace: %v", err)
 	}
-	configSecret := store.GetSecret(ownNamespace, AI_CONFIG_SECRET_NAME)
+	var configSecret *v1.Secret
+	configSecret = store.GetSecret(ownNamespace, AI_CONFIG_SECRET_NAME)
+	// if the store is not populated, fetch the secret directly
 	if configSecret == nil {
-		return "", fmt.Errorf("AI config secret '%s' not found in namespace '%s'", AI_CONFIG_SECRET_NAME, ownNamespace)
+		configSecret, err = ai.secretGetter(ownNamespace, AI_CONFIG_SECRET_NAME)
+		if err != nil {
+			return "", fmt.Errorf("AI config secret '%s' not found in namespace '%s': %v", AI_CONFIG_SECRET_NAME, ownNamespace, err)
+		}
 	}
 
 	data, exists := configSecret.Data[key]

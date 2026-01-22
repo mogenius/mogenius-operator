@@ -9,6 +9,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
+        darkMode: "class",
         theme: {
           extend: {
             colors: {
@@ -44,6 +45,13 @@
       body {
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
           "Helvetica Neue", Arial, sans-serif;
+      }
+
+      /* View Transitions API for theme toggle */
+      ::view-transition-old(root),
+      ::view-transition-new(root) {
+        animation: none;
+        mix-blend-mode: normal;
       }
 
       .chart-container {
@@ -101,11 +109,28 @@
         color: #c22828;
       }
 
+      /* Dark mode badge adjustments */
+      .dark .badge-success {
+        background-color: rgba(0, 197, 103, 0.2);
+      }
+
+      .dark .badge-warning {
+        background-color: rgba(255, 140, 26, 0.2);
+      }
+
+      .dark .badge-error {
+        background-color: rgba(194, 40, 40, 0.2);
+      }
+
       .progress-bar {
         height: 4px;
         border-radius: 2px;
         background-color: #e5e7eb;
         overflow: hidden;
+      }
+
+      .dark .progress-bar {
+        background-color: #374151;
       }
 
       .progress-bar-fill {
@@ -114,29 +139,100 @@
         transition: width 0.3s ease;
       }
 
-      .col-expand { width: 48px; min-width: 48px; }
-      .col-cpu, .col-memory { width: 90px; min-width: 90px; }
-      .col-network { width: 140px; min-width: 140px; }
+      .col-expand {
+        width: 48px;
+        min-width: 48px;
+      }
+      .col-cpu,
+      .col-memory {
+        width: 90px;
+        min-width: 90px;
+      }
+      .col-network {
+        width: 140px;
+        min-width: 140px;
+      }
 
-      .indicator-system { color: rgba(255, 140, 26, 1); }
-      .indicator-user { color: rgba(79, 172, 254, 1); }
-      .indicator-rx { color: rgba(79, 172, 254, 1); }
-      .indicator-tx { color: rgba(0, 197, 103, 1); }
+      .indicator-system {
+        color: rgba(255, 140, 26, 1);
+      }
+      .indicator-user {
+        color: rgba(79, 172, 254, 1);
+      }
+      .indicator-rx {
+        color: rgba(79, 172, 254, 1);
+      }
+      .indicator-tx {
+        color: rgba(0, 197, 103, 1);
+      }
 
-      .badge-fixed { min-width: 60px; justify-content: center; }
-      .table-fixed { table-layout: fixed; }
-      .indicator-arrow { font-size: 14px; font-weight: bold; }
-      .network-value { display: inline-block; width: 90px; text-align: right; margin-left: 4px; }
+      .badge-fixed {
+        min-width: 60px;
+        justify-content: center;
+      }
+      .table-fixed {
+        table-layout: fixed;
+      }
+      .indicator-arrow {
+        font-size: 14px;
+        font-weight: bold;
+      }
+      .network-value {
+        display: inline-block;
+        width: 90px;
+        text-align: right;
+        margin-left: 4px;
+      }
+
+      /* Theme toggle button styles */
+      .theme-toggle {
+        position: relative;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        background-color: #f3f4f6;
+        border: 1px solid #e5e7eb;
+      }
+
+      .theme-toggle:hover {
+        background-color: #e5e7eb;
+        transform: scale(1.05);
+      }
+
+      .dark .theme-toggle {
+        background-color: #374151;
+        border-color: #4b5563;
+      }
+
+      .dark .theme-toggle:hover {
+        background-color: #4b5563;
+      }
+
+      .theme-toggle svg {
+        width: 20px;
+        height: 20px;
+        transition: transform 0.3s ease;
+      }
+
+      .theme-toggle:hover svg {
+        transform: rotate(15deg);
+      }
     </style>
   </head>
-  <body class="bg-gray-50">
+  <body class="bg-gray-50 dark:bg-gray-900 transition-colors">
     <div id="root"></div>
 
     <script type="text/babel">
       const { useState, useEffect, useRef } = React;
+      const { flushSync } = ReactDOM;
 
       // ==================== ICONS ====================
-      const MemoryIcon = () => (
+      const MemoryIcon = ({ isDarkMode }) => (
         <svg
           width="32"
           height="32"
@@ -148,12 +244,12 @@
         >
           <path
             d="M5.46834 17.6943C4.65116 17.6943 4.03547 17.49 3.62128 17.0814C3.20709 16.6672 3 16.0544 3 15.2428V8.9208C3 8.10921 3.20709 7.49912 3.62128 7.09053C4.03547 6.67634 4.65116 6.46925 5.46834 6.46925H18.2634C19.0862 6.46925 19.7047 6.67634 20.1189 7.09053C20.533 7.50472 20.7401 8.11481 20.7401 8.9208V15.2428C20.7401 16.0544 20.533 16.6672 20.1189 17.0814C19.7047 17.49 19.0862 17.6943 18.2634 17.6943H5.46834ZM5.49353 16.6616H18.2466C18.7112 16.6616 19.0694 16.5385 19.3213 16.2922C19.5787 16.046 19.7075 15.6793 19.7075 15.1924V8.97957C19.7075 8.49262 19.5787 8.126 19.3213 7.87973C19.0694 7.63345 18.7112 7.51032 18.2466 7.51032H5.49353C5.01777 7.51032 4.65396 7.63345 4.40208 7.87973C4.15581 8.126 4.03267 8.49262 4.03267 8.97957V15.1924C4.03267 15.6793 4.15581 16.046 4.40208 16.2922C4.65396 16.5385 5.01777 16.6616 5.49353 16.6616ZM5.95529 6.90583V5.51214C5.95529 5.35542 6.00287 5.23228 6.09802 5.14273C6.19317 5.04758 6.31631 5 6.46743 5C6.61855 5 6.74169 5.04758 6.83684 5.14273C6.93199 5.23228 6.97957 5.35542 6.97957 5.51214V6.90583H5.95529ZM8.65031 6.90583V5.51214C8.65031 5.35542 8.69789 5.23228 8.79304 5.14273C8.88819 5.04758 9.01133 5 9.16245 5C9.31917 5 9.44511 5.04758 9.54026 5.14273C9.63541 5.23228 9.68299 5.35542 9.68299 5.51214V6.90583H8.65031ZM11.3537 6.90583V5.51214C11.3537 5.35542 11.4013 5.23228 11.4965 5.14273C11.5916 5.04758 11.7147 5 11.8659 5C12.017 5 12.1401 5.04758 12.2353 5.14273C12.336 5.23228 12.3864 5.35542 12.3864 5.51214V6.90583H11.3537ZM14.0572 6.90583V5.51214C14.0572 5.35542 14.1047 5.23228 14.1999 5.14273C14.295 5.04758 14.4182 5 14.5693 5C14.7204 5 14.8436 5.04758 14.9387 5.14273C15.0339 5.23228 15.0814 5.35542 15.0814 5.51214V6.90583H14.0572ZM16.7522 6.90583V5.51214C16.7522 5.35542 16.7998 5.23228 16.8949 5.14273C16.9957 5.04758 17.1216 5 17.2727 5C17.4238 5 17.547 5.04758 17.6421 5.14273C17.7373 5.23228 17.7848 5.35542 17.7848 5.51214V6.90583H16.7522ZM5.95529 17.3081H6.97957V18.6514C6.97957 18.8081 6.93199 18.9341 6.83684 19.0292C6.74169 19.1244 6.61855 19.172 6.46743 19.172C6.31631 19.172 6.19317 19.1244 6.09802 19.0292C6.00287 18.9341 5.95529 18.8081 5.95529 18.6514V17.3081ZM8.65031 17.3081H9.68299V18.6514C9.68299 18.8081 9.63541 18.9341 9.54026 19.0292C9.44511 19.1244 9.31917 19.172 9.16245 19.172C9.01133 19.172 8.88819 19.1244 8.79304 19.0292C8.69789 18.9341 8.65031 18.8081 8.65031 18.6514V17.3081ZM11.3537 17.3081H12.3864V18.6514C12.3864 18.8081 12.336 18.9341 12.2353 19.0292C12.1401 19.1244 12.017 19.172 11.8659 19.172C11.7147 19.172 11.5916 19.1244 11.4965 19.0292C11.4013 18.9341 11.3537 18.8081 11.3537 18.6514V17.3081ZM14.0572 17.3081H15.0814V18.6514C15.0814 18.8081 15.0339 18.9341 14.9387 19.0292C14.8436 19.1244 14.7204 19.172 14.5693 19.172C14.4182 19.172 14.295 19.1244 14.1999 19.0292C14.1047 18.9341 14.0572 18.8081 14.0572 18.6514V17.3081ZM16.7522 17.3081H17.7848V18.6514C17.7848 18.8081 17.7373 18.9341 17.6421 19.0292C17.547 19.1244 17.4238 19.172 17.2727 19.172C17.1216 19.172 16.9957 19.1244 16.8949 19.0292C16.7998 18.9341 16.7522 18.8081 16.7522 18.6514V17.3081Z"
-            fill="#374151"
+            fill={isDarkMode ? "#9CA3AF" : "#374151"}
           />
         </svg>
       );
 
-      const CpuIcon = () => (
+      const CpuIcon = ({ isDarkMode }) => (
         <svg
           width="32"
           height="32"
@@ -165,12 +261,12 @@
         >
           <path
             d="M8.92828 15.9471C8.55887 15.9471 8.37417 15.7624 8.37417 15.393V8.71839C8.37417 8.35458 8.55887 8.17267 8.92828 8.17267H15.6113C15.9751 8.17267 16.157 8.35458 16.157 8.71839V15.393C16.157 15.7624 15.9751 15.9471 15.6113 15.9471H8.92828ZM9.43203 15.0739H15.0991C15.2279 15.0739 15.2922 15.0124 15.2922 14.8892V9.23053C15.2922 9.10179 15.2279 9.03743 15.0991 9.03743H9.43203C9.30889 9.03743 9.24732 9.10179 9.24732 9.23053V14.8892C9.24732 15.0124 9.30889 15.0739 9.43203 15.0739ZM6.14091 18.7429C5.97299 18.7429 5.83586 18.6925 5.72952 18.5917C5.62877 18.491 5.57839 18.3539 5.57839 18.1804V5.93101C5.57839 5.7575 5.62877 5.62037 5.72952 5.51962C5.83586 5.41328 5.97299 5.36011 6.14091 5.36011H18.3902C18.5638 5.36011 18.7009 5.41328 18.8016 5.51962C18.908 5.62037 18.9612 5.7575 18.9612 5.93101V18.1804C18.9612 18.3539 18.908 18.491 18.8016 18.5917C18.7009 18.6925 18.5638 18.7429 18.3902 18.7429H6.14091ZM6.82096 17.7186H17.7102C17.8557 17.7186 17.9285 17.6458 17.9285 17.5003V6.61946C17.9285 6.46834 17.8557 6.39278 17.7102 6.39278H6.82096C6.68103 6.39278 6.61107 6.46834 6.61107 6.61946V17.5003C6.61107 17.6458 6.68103 17.7186 6.82096 17.7186ZM9.92737 17.9285V19.5992C9.92737 19.7504 9.877 19.8735 9.77625 19.9686C9.6811 20.0694 9.55796 20.1198 9.40684 20.1198C9.25572 20.1198 9.13258 20.0694 9.03743 19.9686C8.94228 19.8735 8.8947 19.7504 8.8947 19.5992V17.9285H9.92737ZM12.7819 17.9285V19.5992C12.7819 19.7504 12.7343 19.8735 12.6392 19.9686C12.544 20.0694 12.4209 20.1198 12.2698 20.1198C12.1187 20.1198 11.9927 20.0694 11.892 19.9686C11.7968 19.8735 11.7492 19.7504 11.7492 19.5992V17.9285H12.7819ZM15.6952 17.9285V19.5992C15.6952 19.7504 15.6477 19.8735 15.5525 19.9686C15.4573 20.0694 15.3314 20.1198 15.1747 20.1198C15.0236 20.1198 14.9004 20.0694 14.8053 19.9686C14.7101 19.8735 14.6626 19.7504 14.6626 19.5992V17.9285H15.6952ZM18.1384 14.3855H19.8091C19.9602 14.3855 20.0834 14.4331 20.1785 14.5282C20.2793 14.6234 20.3297 14.7465 20.3297 14.8976C20.3297 15.0488 20.2793 15.1747 20.1785 15.2754C20.0834 15.3706 19.9602 15.4182 19.8091 15.4182H18.1384V14.3855ZM18.1384 11.5226H19.8091C19.9602 11.5226 20.0834 11.5729 20.1785 11.6737C20.2793 11.7688 20.3297 11.892 20.3297 12.0431C20.3297 12.1942 20.2793 12.3174 20.1785 12.4125C20.0834 12.5077 19.9602 12.5552 19.8091 12.5552H18.1384V11.5226ZM18.1384 8.66802H19.8091C19.9602 8.66802 20.0834 8.71559 20.1785 8.81074C20.2793 8.90589 20.3297 9.02903 20.3297 9.18015C20.3297 9.33128 20.2793 9.45721 20.1785 9.55796C20.0834 9.65311 19.9602 9.70069 19.8091 9.70069H18.1384V8.66802ZM14.6122 6.18289V4.51214C14.6122 4.36102 14.6598 4.23788 14.7549 4.14273C14.8501 4.04758 14.9732 4 15.1243 4C15.2754 4 15.3986 4.04758 15.4937 4.14273C15.5945 4.23788 15.6449 4.36102 15.6449 4.51214V6.18289H14.6122ZM11.7492 6.18289V4.51214C11.7492 4.36102 11.7968 4.23788 11.892 4.14273C11.9927 4.04758 12.1187 4 12.2698 4C12.4209 4 12.544 4.04758 12.6392 4.14273C12.7343 4.23788 12.7819 4.36102 12.7819 4.51214V6.18289H11.7492ZM8.8947 6.18289V4.51214C8.8947 4.36102 8.94228 4.23788 9.03743 4.14273C9.13258 4.04758 9.25572 4 9.40684 4C9.55796 4 9.6811 4.04758 9.77625 4.14273C9.877 4.23788 9.92737 4.36102 9.92737 4.51214V6.18289H8.8947ZM6.39278 9.70908H4.51214C4.36102 9.70908 4.23788 9.66151 4.14273 9.56636C4.04758 9.46561 4 9.33967 4 9.18855C4 9.03743 4.04758 8.91429 4.14273 8.81914C4.23788 8.72399 4.36102 8.67641 4.51214 8.67641H6.39278V9.70908ZM6.39278 12.5636H4.51214C4.36102 12.5636 4.23788 12.5161 4.14273 12.4209C4.04758 12.3257 4 12.2026 4 12.0515C4 11.9004 4.04758 11.7772 4.14273 11.6821C4.23788 11.5813 4.36102 11.531 4.51214 11.531H6.39278V12.5636ZM6.39278 15.4266H4.51214C4.36102 15.4266 4.23788 15.379 4.14273 15.2838C4.04758 15.1831 4 15.0572 4 14.906C4 14.7549 4.04758 14.6318 4.14273 14.5366C4.23788 14.4359 4.36102 14.3855 4.51214 14.3855H6.39278V15.4266Z"
-            fill="#374151"
+            fill={isDarkMode ? "#9CA3AF" : "#374151"}
           />
         </svg>
       );
 
-      const NetworkIcon = () => (
+      const NetworkIcon = ({ isDarkMode }) => (
         <svg
           width="32"
           height="32"
@@ -182,10 +278,117 @@
         >
           <path
             d="M17.8753 7.90428C17.5964 7.90997 17.3544 7.81034 17.1494 7.60539C16.9445 7.39474 16.842 7.14994 16.842 6.87097C16.842 6.58632 16.9445 6.34151 17.1494 6.13656C17.3544 5.92591 17.5964 5.82059 17.8753 5.82059C18.1543 5.82059 18.3962 5.92591 18.6012 6.13656C18.8061 6.34151 18.9086 6.58632 18.9086 6.87097C18.9086 7.14994 18.8061 7.3919 18.6012 7.59685C18.3962 7.79611 18.1543 7.89858 17.8753 7.90428ZM17.8753 12.6353C17.5964 12.641 17.3544 12.5413 17.1494 12.3364C16.9445 12.1257 16.842 11.8809 16.842 11.602C16.842 11.3173 16.9445 11.0725 17.1494 10.8676C17.3544 10.6569 17.5964 10.5516 17.8753 10.5516C18.1543 10.5516 18.3962 10.6569 18.6012 10.8676C18.8061 11.0725 18.9086 11.3173 18.9086 11.602C18.9086 11.8809 18.8061 12.1229 18.6012 12.3278C18.3962 12.5271 18.1543 12.6296 17.8753 12.6353ZM17.8753 17.3663C17.5964 17.372 17.3544 17.2723 17.1494 17.0674C16.9445 16.8567 16.842 16.6119 16.842 16.333C16.842 16.0483 16.9445 15.8035 17.1494 15.5986C17.3544 15.3879 17.5964 15.2826 17.8753 15.2826C18.1543 15.2826 18.3962 15.3879 18.6012 15.5986C18.8061 15.8035 18.9086 16.0483 18.9086 16.333C18.9086 16.6119 18.8061 16.8539 18.6012 17.0588C18.3962 17.2581 18.1543 17.3606 17.8753 17.3663ZM21.4449 9.72324H2.60632V8.73263H21.4449V9.72324ZM21.4449 14.5055H2.60632V13.5149H21.4449V14.5055ZM4.51067 19.3304C3.67948 19.3304 3.05323 19.1198 2.63194 18.6985C2.21065 18.2829 2 17.6652 2 16.8454V6.36713C2 5.54163 2.21065 4.92107 2.63194 4.50547C3.05323 4.08418 3.67948 3.87354 4.51067 3.87354H19.4808C20.3177 3.87354 20.9468 4.08703 21.3681 4.51401C21.7894 4.93531 22 5.55301 22 6.36713V16.8454C22 17.6652 21.7894 18.2829 21.3681 18.6985C20.9468 19.1198 20.3177 19.3304 19.4808 19.3304H4.51067ZM4.53629 18.28H19.4637C19.9362 18.28 20.3006 18.1548 20.5568 17.9043C20.813 17.6538 20.9411 17.2809 20.9411 16.7856V6.42691C20.9411 5.93161 20.813 5.5587 20.5568 5.30821C20.3006 5.05202 19.9362 4.92392 19.4637 4.92392H4.53629C4.05238 4.92392 3.68232 5.05202 3.42613 5.30821C3.17563 5.5587 3.05038 5.93161 3.05038 6.42691V16.7856C3.05038 17.2809 3.17563 17.6538 3.42613 17.9043C3.68232 18.1548 4.05238 18.28 4.53629 18.28Z"
-            fill="#374151"
+            fill={isDarkMode ? "#9CA3AF" : "#374151"}
           />
         </svg>
       );
+
+      // ==================== THEME ICONS ====================
+      const SunIcon = () => (
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <circle cx="12" cy="12" r="4" />
+          <path d="M12 2v2" />
+          <path d="M12 20v2" />
+          <path d="m4.93 4.93 1.41 1.41" />
+          <path d="m17.66 17.66 1.41 1.41" />
+          <path d="M2 12h2" />
+          <path d="M20 12h2" />
+          <path d="m6.34 17.66-1.41 1.41" />
+          <path d="m19.07 4.93-1.41 1.41" />
+        </svg>
+      );
+
+      const MoonIcon = () => (
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+        </svg>
+      );
+
+      // ==================== THEME TOGGLE COMPONENT ====================
+      function ThemeToggle({ isDarkMode, onToggle }) {
+        const buttonRef = useRef(null);
+
+        const handleToggle = async () => {
+          const newDarkMode = !isDarkMode;
+
+          // Fallback for browsers without View Transitions API or reduced motion preference
+          if (
+            !buttonRef.current ||
+            !document.startViewTransition ||
+            window.matchMedia("(prefers-reduced-motion: reduce)").matches
+          ) {
+            onToggle(newDarkMode);
+            return;
+          }
+
+          try {
+            const rect = buttonRef.current.getBoundingClientRect();
+            const x = rect.left + rect.width / 2;
+            const y = rect.top + rect.height / 2;
+
+            const maxRadius = Math.hypot(
+              Math.max(x, window.innerWidth - x),
+              Math.max(y, window.innerHeight - y)
+            );
+
+            const transition = document.startViewTransition(() => {
+              flushSync(() => {
+                onToggle(newDarkMode);
+              });
+            });
+
+            await transition.ready;
+
+            document.documentElement.animate(
+              {
+                clipPath: [
+                  `circle(0px at ${x}px ${y}px)`,
+                  `circle(${maxRadius}px at ${x}px ${y}px)`,
+                ],
+              },
+              {
+                duration: 500,
+                easing: "ease-in-out",
+                pseudoElement: "::view-transition-new(root)",
+              }
+            );
+          } catch {
+            // Fallback if View Transitions API fails
+            onToggle(newDarkMode);
+          }
+        };
+
+        return (
+          <button
+            ref={buttonRef}
+            onClick={handleToggle}
+            className="theme-toggle text-gray-600 dark:text-gray-300"
+            aria-label={
+              isDarkMode ? "Switch to light mode" : "Switch to dark mode"
+            }
+          >
+            {isDarkMode ? <SunIcon /> : <MoonIcon />}
+          </button>
+        );
+      }
 
       // ==================== COLORS ====================
       const COLORS = {
@@ -212,7 +415,8 @@
       };
 
       const formatBytesRate = (bytesPerSecond) => {
-        if (!bytesPerSecond || bytesPerSecond < 0 || !isFinite(bytesPerSecond)) return "0 B/s";
+        if (!bytesPerSecond || bytesPerSecond < 0 || !isFinite(bytesPerSecond))
+          return "0 B/s";
         if (bytesPerSecond < 1024) return `${Math.round(bytesPerSecond)} B/s`;
         if (bytesPerSecond < 1024 * 1024)
           return `${(bytesPerSecond / 1024).toFixed(1)} KB/s`;
@@ -264,7 +468,7 @@
       }
 
       // ==================== MEMORY CHART ====================
-      function MemoryChart({ nodeName, metricsData }) {
+      function MemoryChart({ nodeName, metricsData, isDarkMode }) {
         const chartRef = useRef(null);
         const chartInstance = useRef(null);
         const lastTimestampRef = useRef(0);
@@ -418,19 +622,19 @@
         const totalBytes = metrics.totalKb * 1024;
 
         return (
-          <div className="bg-white rounded-lg p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 transition-colors">
             <div className="flex items-start gap-3 mb-3">
-              <MemoryIcon />
+              <MemoryIcon isDarkMode={isDarkMode} />
               <div className="flex-1">
                 <div className="flex justify-between items-center">
-                  <span className="font-semibold text-gray-800">
+                  <span className="font-semibold text-gray-800 dark:text-gray-200">
                     Memory Usage
                   </span>
                   <span className={`badge badge-${variant}`}>
                     {formatPercentage(metrics.percent)}
                   </span>
                 </div>
-                <div className="flex justify-between text-sm text-gray-500 mt-1">
+                <div className="flex justify-between text-sm text-gray-500 dark:text-gray-400 mt-1">
                   <span>{formatBytes(usedBytes)} used</span>
                   <span>{formatBytes(totalBytes - usedBytes)} available</span>
                 </div>
@@ -445,7 +649,7 @@
       }
 
       // ==================== CPU CHART ====================
-      function CpuChart({ nodeName, metricsData }) {
+      function CpuChart({ nodeName, metricsData, isDarkMode }) {
         const chartRef = useRef(null);
         const chartInstance = useRef(null);
         const lastTimestampRef = useRef(0);
@@ -558,7 +762,9 @@
                   callbacks: {
                     label: (context) => {
                       const labels = ["Total", "System", "User"];
-                      return ` ${labels[context.datasetIndex]}: ${context.parsed.y.toFixed(1)}%`;
+                      return ` ${
+                        labels[context.datasetIndex]
+                      }: ${context.parsed.y.toFixed(1)}%`;
                     },
                   },
                 },
@@ -637,17 +843,19 @@
           metrics.total > 0 ? (metrics.user / metrics.total) * 100 : 0;
 
         return (
-          <div className="bg-white rounded-lg p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 transition-colors">
             <div className="flex items-start gap-3 mb-3">
-              <CpuIcon />
+              <CpuIcon isDarkMode={isDarkMode} />
               <div className="flex-1">
                 <div className="flex justify-between items-center">
-                  <span className="font-semibold text-gray-800">CPU Usage</span>
+                  <span className="font-semibold text-gray-800 dark:text-gray-200">
+                    CPU Usage
+                  </span>
                   <span className={`badge badge-${variant}`}>
                     {formatPercentage(metrics.total)}
                   </span>
                 </div>
-                <div className="flex justify-between text-sm text-gray-500 mt-1">
+                <div className="flex justify-between text-sm text-gray-500 dark:text-gray-400 mt-1">
                   <span>
                     <span className="indicator-system">●</span>{" "}
                     {formatPercentage(metrics.system)} System
@@ -684,7 +892,7 @@
       }
 
       // ==================== TRAFFIC CHART ====================
-      function TrafficChart({ nodeName, node, metricsData }) {
+      function TrafficChart({ nodeName, node, metricsData, isDarkMode }) {
         const chartRef = useRef(null);
         const chartInstance = useRef(null);
         const lastTimestampRef = useRef(0);
@@ -757,7 +965,9 @@
                   callbacks: {
                     label: (context) => {
                       const value = context.parsed.y * 1024;
-                      return ` ${context.dataset.label}: ${formatBytesRate(value)}`;
+                      return ` ${context.dataset.label}: ${formatBytesRate(
+                        value
+                      )}`;
                     },
                   },
                 },
@@ -841,19 +1051,19 @@
         const totalRate = metrics.rx + metrics.tx;
 
         return (
-          <div className="bg-white rounded-lg p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 transition-colors">
             <div className="flex items-start gap-3 mb-3">
-              <NetworkIcon />
+              <NetworkIcon isDarkMode={isDarkMode} />
               <div className="flex-1">
                 <div className="flex justify-between items-center">
-                  <span className="font-semibold text-gray-800">
+                  <span className="font-semibold text-gray-800 dark:text-gray-200">
                     Network Traffic
                   </span>
                   <span className="badge badge-success">
                     {formatBytesRate(totalRate)}
                   </span>
                 </div>
-                <div className="flex justify-between text-sm text-gray-500 mt-1">
+                <div className="flex justify-between text-sm text-gray-500 dark:text-gray-400 mt-1">
                   <span>
                     <span className="indicator-rx">↓</span>{" "}
                     {formatBytesRate(metrics.rx)} RX
@@ -863,7 +1073,7 @@
                     {formatBytesRate(metrics.tx)} TX
                   </span>
                 </div>
-                <div className="flex justify-between text-xs text-gray-400 mt-1">
+                <div className="flex justify-between text-xs text-gray-400 dark:text-gray-500 mt-1">
                   <span>Packets: {metrics.rxPackets.toLocaleString()} RX</span>
                   <span>{metrics.txPackets.toLocaleString()} TX</span>
                 </div>
@@ -877,7 +1087,13 @@
       }
 
       // ==================== NODE ROW ====================
-      function NodeRow({ node, isExpanded, onToggle, metricsData }) {
+      function NodeRow({
+        node,
+        isExpanded,
+        onToggle,
+        metricsData,
+        isDarkMode,
+      }) {
         const statusVariant = node.status === "Ready" ? "success" : "error";
         const cpuVariant = getCpuVariant(node.cpuPercent);
         const memoryVariant = getMemoryVariant(node.memoryPercent);
@@ -885,12 +1101,12 @@
         return (
           <>
             <tr
-              className="border-b hover:bg-gray-50 cursor-pointer"
+              className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors"
               onClick={() => onToggle(isExpanded ? null : node.name)}
             >
               <td className="px-4 py-3">
                 <svg
-                  className={`w-5 h-5 transition-transform ${
+                  className={`w-5 h-5 transition-transform text-gray-600 dark:text-gray-400 ${
                     isExpanded ? "rotate-90" : ""
                   }`}
                   fill="none"
@@ -905,7 +1121,7 @@
                   />
                 </svg>
               </td>
-              <td className="px-4 py-3 font-medium text-gray-900">
+              <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">
                 {node.name}
               </td>
               <td className="px-4 py-3">
@@ -923,37 +1139,49 @@
                   {formatPercentage(node.memoryPercent)}
                 </span>
               </td>
-              <td className="px-4 py-3 text-sm text-gray-600 col-network">
+              <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400 col-network">
                 <div className="font-mono text-xs">
                   <div className="flex items-center">
                     <span className="indicator-rx indicator-arrow">↓</span>
-                    <span className="network-value">{formatBytesRate(node.networkRx)}</span>
+                    <span className="network-value">
+                      {formatBytesRate(node.networkRx)}
+                    </span>
                   </div>
                   <div className="flex items-center">
                     <span className="indicator-tx indicator-arrow">↑</span>
-                    <span className="network-value">{formatBytesRate(node.networkTx)}</span>
+                    <span className="network-value">
+                      {formatBytesRate(node.networkTx)}
+                    </span>
                   </div>
                 </div>
               </td>
-              <td className="px-4 py-3 text-gray-600">{node.podCount}</td>
+              <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
+                {node.podCount}
+              </td>
             </tr>
             {isExpanded && (
               <tr className="expand-enter">
-                <td colSpan="7" className="bg-white px-4 py-4">
+                <td
+                  colSpan="7"
+                  className="bg-gray-50 dark:bg-gray-900 px-4 py-4 transition-colors"
+                >
                   <div className="max-w-7xl mx-auto">
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                       <CpuChart
                         nodeName={node.name}
                         metricsData={metricsData}
+                        isDarkMode={isDarkMode}
                       />
                       <MemoryChart
                         nodeName={node.name}
                         metricsData={metricsData}
+                        isDarkMode={isDarkMode}
                       />
                       <TrafficChart
                         nodeName={node.name}
                         node={node}
                         metricsData={metricsData}
+                        isDarkMode={isDarkMode}
                       />
                     </div>
                   </div>
@@ -970,6 +1198,22 @@
         const [metricsData, setMetricsData] = useState([]);
         const [expandedNode, setExpandedNode] = useState(null);
         const [error, setError] = useState(null);
+        const [isDarkMode, setIsDarkMode] = useState(() => {
+          // Check localStorage or system preference
+          const stored = localStorage.getItem("darkMode");
+          if (stored !== null) return stored === "true";
+          return window.matchMedia("(prefers-color-scheme: dark)").matches;
+        });
+
+        // Apply dark mode class to document
+        useEffect(() => {
+          if (isDarkMode) {
+            document.documentElement.classList.add("dark");
+          } else {
+            document.documentElement.classList.remove("dark");
+          }
+          localStorage.setItem("darkMode", isDarkMode);
+        }, [isDarkMode]);
 
         const fetchMetrics = async () => {
           try {
@@ -1054,8 +1298,10 @@
                       node.networkRx = 0;
                       node.networkTx = 0;
                     } else {
-                      node.networkRx = (totalRx - (node.lastTotalRx || 0)) / timeDiff;
-                      node.networkTx = (totalTx - (node.lastTotalTx || 0)) / timeDiff;
+                      node.networkRx =
+                        (totalRx - (node.lastTotalRx || 0)) / timeDiff;
+                      node.networkTx =
+                        (totalTx - (node.lastTotalTx || 0)) / timeDiff;
                     }
                   }
                 }
@@ -1083,8 +1329,8 @@
         const totalPods = nodes.reduce((sum, n) => sum + n.podCount, 0);
 
         return (
-          <div className="min-h-screen bg-gray-50">
-            <header className="bg-white border-b border-gray-200 mb-6">
+          <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
+            <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 mb-6 transition-colors">
               <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
                   <div className="flex flex-col items-start gap-3">
@@ -1093,11 +1339,13 @@
                       alt="Mogenius logo"
                       width="140"
                       height="48"
-                      className="h-12 object-contain"
+                      className={`h-12 object-contain ${
+                        isDarkMode ? "brightness-0 invert" : ""
+                      }`}
                     />
                     <div className="flex items-center gap-2">
                       <div className="w-1 h-6 bg-gradient-to-b from-primary to-primary-hover rounded-full"></div>
-                      <p className="text-gray-700 font-medium text-base tracking-wide">
+                      <p className="text-gray-700 dark:text-gray-300 font-medium text-base tracking-wide">
                         Kubernetes Manager:{" "}
                         <span className="text-primary font-semibold">
                           Live Node Monitoring
@@ -1106,39 +1354,45 @@
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <div className="bg-white rounded-lg border border-gray-200 px-4 py-3 shadow-sm hover:shadow-md transition-shadow">
-                      <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">
-                        Not Ready
+                  <div className="flex flex-wrap items-start gap-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 flex-1 min-w-0">
+                      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 px-4 py-3 shadow-sm hover:shadow-md transition-all">
+                        <div className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                          Not Ready
+                        </div>
+                        <div className="text-2xl sm:text-3xl font-bold text-error">
+                          {notReadyNodes}
+                        </div>
                       </div>
-                      <div className="text-2xl sm:text-3xl font-bold text-error">
-                        {notReadyNodes}
+                      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 px-4 py-3 shadow-sm hover:shadow-md transition-all">
+                        <div className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                          Ready
+                        </div>
+                        <div className="text-2xl sm:text-3xl font-bold text-success">
+                          {readyNodes}
+                        </div>
+                      </div>
+                      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 px-4 py-3 shadow-sm hover:shadow-md transition-all">
+                        <div className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                          Total Nodes
+                        </div>
+                        <div className="text-2xl sm:text-3xl font-bold text-primary">
+                          {totalNodes}
+                        </div>
+                      </div>
+                      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 px-4 py-3 shadow-sm hover:shadow-md transition-all">
+                        <div className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                          Total Pods
+                        </div>
+                        <div className="text-2xl sm:text-3xl font-bold text-primary">
+                          {totalPods}
+                        </div>
                       </div>
                     </div>
-                    <div className="bg-white rounded-lg border border-gray-200 px-4 py-3 shadow-sm hover:shadow-md transition-shadow">
-                      <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">
-                        Ready
-                      </div>
-                      <div className="text-2xl sm:text-3xl font-bold text-success">
-                        {readyNodes}
-                      </div>
-                    </div>
-                    <div className="bg-white rounded-lg border border-gray-200 px-4 py-3 shadow-sm hover:shadow-md transition-shadow">
-                      <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">
-                        Total Nodes
-                      </div>
-                      <div className="text-2xl sm:text-3xl font-bold text-primary">
-                        {totalNodes}
-                      </div>
-                    </div>
-                    <div className="bg-white rounded-lg border border-gray-200 px-4 py-3 shadow-sm hover:shadow-md transition-shadow">
-                      <div className="text-xs text-gray-500 uppercase tracking-wider mb-1">
-                        Total Pods
-                      </div>
-                      <div className="text-2xl sm:text-3xl font-bold text-primary">
-                        {totalPods}
-                      </div>
-                    </div>
+                    <ThemeToggle
+                      isDarkMode={isDarkMode}
+                      onToggle={setIsDarkMode}
+                    />
                   </div>
                 </div>
               </div>
@@ -1161,36 +1415,36 @@
                   <h3 className="text-lg font-semibold text-error mb-2">
                     Failed to load metrics
                   </h3>
-                  <p className="text-gray-600">{error}</p>
+                  <p className="text-gray-600 dark:text-gray-400">{error}</p>
                 </div>
               ) : (
-                <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden transition-colors">
                   <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200 table-fixed">
-                      <thead className="bg-gray-50">
+                    <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 table-fixed">
+                      <thead className="bg-gray-50 dark:bg-gray-900">
                         <tr>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase col-expand"></th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase col-expand"></th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
                             Node Name
                           </th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
                             Status
                           </th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase col-cpu">
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase col-cpu">
                             CPU
                           </th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase col-memory">
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase col-memory">
                             Memory
                           </th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase col-network">
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase col-network">
                             Network
                           </th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
                             Pods
                           </th>
                         </tr>
                       </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
+                      <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                         {nodes.map((node) => (
                           <NodeRow
                             key={node.name}
@@ -1198,6 +1452,7 @@
                             isExpanded={expandedNode === node.name}
                             onToggle={setExpandedNode}
                             metricsData={metricsData}
+                            isDarkMode={isDarkMode}
                           />
                         ))}
                       </tbody>
@@ -1206,7 +1461,7 @@
                 </div>
               )}
 
-              <div className="mt-8 text-center text-sm text-gray-500">
+              <div className="mt-8 text-center text-sm text-gray-500 dark:text-gray-400">
                 <p>Real-time metrics via HTTP Polling • Powered by Mogenius</p>
               </div>
             </main>

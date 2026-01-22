@@ -147,7 +147,4 @@ var ServiceResource = ResourceDescriptor{
 	Namespaced: true,
 }
 
-const STAGE_DEV = "dev"
-const STAGE_PROD = "prod"
-
 var ClusterProviderCached KubernetesProvider = UNKNOWN

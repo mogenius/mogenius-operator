@@ -33,6 +33,11 @@ var AuditLogLimit = int64(100) // Default limit for audit log entries IMPORTANT:
 
 var ErrNotFound = errors.New("not found")
 
+// KubernetesGetter is an interface for fetching secrets directly from Kubernetes cluster
+type KubernetesGetter interface {
+	GetSecret(namespace, name string) (*coreV1.Secret, error)
+}
+
 var valkeyClient valkeyclient.ValkeyClient
 
 func Setup(

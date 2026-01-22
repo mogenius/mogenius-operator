@@ -15,9 +15,11 @@ cluster:
     # -- readonly operator permissions true/false (default: false)
     enabled: false
 
+# -- image settings for the mogenius-operator and nodemetrics container
 image:
   registry: ghcr.io
   repository: mogenius/mogenius-operator
+  # -- tag of the image, if not set, the chart appVersion is used
   tag: ~
   pullPolicy: IfNotPresent
 
@@ -59,7 +61,6 @@ resources: {}
 #     memory: 128Mi
 
 global:
-  stage: prod
   # -- the name you gave your cluster on the mogenius platform
   cluster_name: ~
   # -- the api key provided for your cluster by the mogenius platform (alternativly you can leave this empty and use global.apiKeySecret)
@@ -69,10 +70,10 @@ global:
     secretName: mogenius-operator-api-secret
     secretKey: API_KEY
 
+# -- environment variables to be set in the mogenius-operator deployment
 envVars:
-  # uncomment the following lines to set the global values
-  MO_API_SERVER: "" #wss://k8s-ws.mogenius.com/ws
-  MO_EVENT_SERVER: "" #wss://k8s-dispatcher.mogenius.com/ws
+  MO_API_SERVER: "wss://k8s-ws.mogenius.com/ws"
+  MO_EVENT_SERVER: "wss://k8s-dispatcher.mogenius.com/ws"
 
 valkey:
   enabled: true

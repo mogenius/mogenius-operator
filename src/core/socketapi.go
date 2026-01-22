@@ -63,6 +63,7 @@ type SocketApi interface {
 	NormalizePatternName(pattern string) string
 	AssertPatternsUnique()
 	LoadRequest(datagram *structs.Datagram, data any) error
+	GetLogger() *slog.Logger
 }
 
 type SocketApiStatus struct {
@@ -269,6 +270,7 @@ func RegisterPatternHandler[RequestType any, ResponseType any](
 		if kind != reflect.Pointer {
 			err := handle.SocketApi.LoadRequest(&datagram, &data)
 			if err != nil {
+				handle.SocketApi.GetLogger().Error("Error while loading request", "datagram", datagram, "error", err)
 				return buildResponse(nil, err)
 			}
 		}
@@ -276,6 +278,7 @@ func RegisterPatternHandler[RequestType any, ResponseType any](
 		if kind == reflect.Pointer && datagram.Payload != nil {
 			err := handle.SocketApi.LoadRequest(&datagram, &data)
 			if err != nil {
+				handle.SocketApi.GetLogger().Error("Error while loading request", "datagram", datagram, "error", err)
 				return buildResponse(nil, err)
 			}
 		}
@@ -316,12 +319,15 @@ func (self *socketApi) PatternConfigs() map[string]PatternConfig {
 	return patterns
 }
 
+func (self *socketApi) GetLogger() *slog.Logger {
+	return self.logger
+}
+
 func (self *socketApi) registerPatterns() {
 	{
 		type Response struct {
 			BuildInfo struct {
-				BuildType string          `json:"buildType"`
-				Version   version.Version `json:"version,omitempty"`
+				Version version.Version `json:"version,omitempty"`
 			} `json:"buildInfo,omitempty"`
 			Features struct{}                 `json:"features,omitempty"`
 			Patterns map[string]PatternConfig `json:"patterns,omitempty"`
@@ -331,10 +337,6 @@ func (self *socketApi) registerPatterns() {
 			PatternConfig{},
 			func(datagram structs.Datagram, request Void) (Response, error) {
 				resp := Response{}
-				resp.BuildInfo.BuildType = utils.STAGE_PROD
-				if utils.IsDevBuild() {
-					resp.BuildInfo.BuildType = utils.STAGE_DEV
-				}
 				resp.BuildInfo.Version = *version.NewVersion()
 				resp.Patterns = self.PatternConfigs()
 				return resp, nil
@@ -479,10 +481,58 @@ func (self *socketApi) registerPatterns() {
 	)
 
 	RegisterPatternHandler(
+		PatternHandle{self, "install-renovate-operator"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request Void) (string, error) {
+			return services.InstallRenovateOperator()
+		},
+	)
+
+	RegisterPatternHandler(
+		PatternHandle{self, "install-prometheus"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request Void) (string, error) {
+			return services.InstallKubePrometheus()
+		},
+	)
+
+	RegisterPatternHandler(
+		PatternHandle{self, "install-alertmanager"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request Void) (string, error) {
+			return services.InstallAlertManager()
+		},
+	)
+
+	RegisterPatternHandler(
 		PatternHandle{self, "install-kepler"},
 		PatternConfig{},
 		func(datagram structs.Datagram, request Void) (string, error) {
 			return services.InstallKepler()
+		},
+	)
+
+	RegisterPatternHandler(
+		PatternHandle{self, "uninstall-renovate-operator"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request Void) (string, error) {
+			return services.UninstallRenovateOperator()
+		},
+	)
+
+	RegisterPatternHandler(
+		PatternHandle{self, "uninstall-prometheus"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request Void) (string, error) {
+			return services.UninstallKubePrometheus()
+		},
+	)
+
+	RegisterPatternHandler(
+		PatternHandle{self, "uninstall-alertmanager"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request Void) (string, error) {
+			return services.UninstallAlertManager()
 		},
 	)
 
@@ -571,6 +621,30 @@ func (self *socketApi) registerPatterns() {
 		PatternConfig{},
 		func(datagram structs.Datagram, request Void) (string, error) {
 			return services.UpgradeKepler()
+		},
+	)
+
+	RegisterPatternHandler(
+		PatternHandle{self, "upgrade-renovate-operator"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request Void) (string, error) {
+			return services.UpgradeRenovateOperator()
+		},
+	)
+
+	RegisterPatternHandler(
+		PatternHandle{self, "upgrade-prometheus"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request Void) (string, error) {
+			return services.UpgradeKubePrometheus()
+		},
+	)
+
+	RegisterPatternHandler(
+		PatternHandle{self, "upgrade-alertmanager"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request Void) (string, error) {
+			return services.UpgradeAlertManager()
 		},
 	)
 
@@ -1537,11 +1611,16 @@ func (self *socketApi) registerPatterns() {
 	}
 
 	{
+
+		type Request struct {
+			Workspace *string `json:"workspace"`
+		}
+
 		RegisterPatternHandler(
 			PatternHandle{self, "aiManager/status"},
 			PatternConfig{},
-			func(datagram structs.Datagram, request Void) (ai.AiManagerStatus, error) {
-				status := self.aiApi.GetStatus()
+			func(datagram structs.Datagram, request Request) (ai.AiManagerStatus, error) {
+				status := self.aiApi.GetStatus(request.Workspace)
 				return store.AddToAuditLog(datagram, self.logger, status, nil, nil, nil)
 			},
 		)
@@ -1581,14 +1660,21 @@ func (self *socketApi) registerPatterns() {
 
 	{
 		type Request struct {
-			Workspace string `json:"workspace" validate:"required"`
+			Workspace string `json:"workspace"`
 		}
 
 		RegisterPatternHandler(
 			PatternHandle{self, "aiManager/get/tasks"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) ([]ai.AiTask, error) {
-				tasks, err := self.aiApi.GetAiTasksForWorkspace(request.Workspace)
+				var tasks []ai.AiTask
+				var err error
+				if request.Workspace == "" {
+					tasks, err = self.aiApi.GetAllAiTasks()
+				} else {
+					tasks, err = self.aiApi.GetAiTasksForWorkspace(request.Workspace)
+				}
+
 				return store.AddToAuditLog(datagram, self.logger, tasks, err, nil, nil)
 			},
 		)
@@ -1637,7 +1723,7 @@ func (self *socketApi) registerPatterns() {
 
 	{
 		type Request struct {
-			Workspace string `json:"workspace" validate:"required"`
+			Workspace *string `json:"workspace"`
 		}
 
 		RegisterPatternHandler(

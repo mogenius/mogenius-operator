@@ -24,6 +24,9 @@ import (
 const (
 	NameMetricsServer         = "Metrics Server"
 	NameMetalLB               = "MetalLB (LoadBalancer)"
+	NameAlertManager          = "Alertmanager"
+	NamePrometheus            = "Prometheus"
+	NameRenovateOperator      = "Renovate Operator"
 	NameIngressController     = "Ingress Controller"
 	NameClusterIssuerResource = "letsencrypt-cluster-issuer"
 	NameKepler                = "Kepler"
@@ -37,6 +40,7 @@ const (
 	KeplerHelmIndex                   = "https://sustainable-computing-io.github.io/kepler-helm-chart"
 	MetalLBHelmIndex                  = "https://metallb.github.io/metallb"
 	MogeniusHelmIndex                 = "https://helm.mogenius.com/public"
+	PrometheusCommunityHelmIndex      = "https://prometheus-community.github.io/helm-charts"
 )
 
 func CreateMogeniusNfsVolume(eventClient websocket.WebsocketClient, r NfsVolumeRequest) structs.DefaultResponse {
@@ -283,7 +287,8 @@ func InstallCertManager() (string, error) {
 		HelmValues: fmt.Sprintf(`namespace: %s
 startupapicheck:
   enabled: false
-installCRDs: true
+crds:
+  enabled: true
 `, config.Get("MO_OWN_NAMESPACE")),
 	}
 	return helm.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues, r.HelmChartVersion)
@@ -334,6 +339,66 @@ func UpgradeMetalLb() (string, error) {
 		Chart:     utils.HelmReleaseNameMetalLb + "/" + utils.HelmReleaseNameMetalLb,
 	}
 	return helm.HelmReleaseUpgrade(r)
+}
+
+func UpgradeRenovateOperator() (string, error) {
+	r := helm.HelmChartInstallUpgradeRequest{
+		Namespace: config.Get("MO_OWN_NAMESPACE"),
+		Release:   utils.HelmReleaseNameRenovateOperator,
+		Chart:     utils.HelmReleaseNameRenovateOperator + "/" + utils.HelmReleaseNameRenovateOperator,
+	}
+	return helm.HelmReleaseUpgrade(r)
+}
+
+func InstallRenovateOperator() (string, error) {
+	r := ClusterHelmRequest{
+		HelmRepoName:    "mogenius",
+		HelmRepoUrl:     MogeniusHelmIndex,
+		HelmReleaseName: utils.HelmReleaseNameRenovateOperator,
+		HelmChartName:   utils.HelmReleaseNameRenovateOperator + "/" + utils.HelmReleaseNameRenovateOperator,
+		HelmValues:      fmt.Sprintf(`fullnameOverride: %s`, utils.HelmReleaseNameRenovateOperator),
+	}
+	return helm.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues, r.HelmChartVersion)
+}
+
+func UpgradeAlertManager() (string, error) {
+	r := helm.HelmChartInstallUpgradeRequest{
+		Namespace: config.Get("MO_OWN_NAMESPACE"),
+		Release:   utils.HelmReleaseNameAlertManager,
+		Chart:     utils.HelmReleaseNameAlertManager + "/" + utils.HelmReleaseNameAlertManager,
+	}
+	return helm.HelmReleaseUpgrade(r)
+}
+
+func InstallAlertManager() (string, error) {
+	r := ClusterHelmRequest{
+		HelmRepoName:    utils.HelmReleaseNameAlertManager,
+		HelmRepoUrl:     PrometheusCommunityHelmIndex,
+		HelmReleaseName: utils.HelmReleaseNameAlertManager,
+		HelmChartName:   utils.HelmReleaseNameAlertManager + "/" + utils.HelmReleaseNameAlertManager,
+		HelmValues:      "",
+	}
+	return helm.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues, r.HelmChartVersion)
+}
+
+func UpgradeKubePrometheus() (string, error) {
+	r := helm.HelmChartInstallUpgradeRequest{
+		Namespace: config.Get("MO_OWN_NAMESPACE"),
+		Release:   utils.HelmReleasePrometheus,
+		Chart:     utils.HelmReleasePrometheus + "/" + utils.HelmReleasePrometheus,
+	}
+	return helm.HelmReleaseUpgrade(r)
+}
+
+func InstallKubePrometheus() (string, error) {
+	r := ClusterHelmRequest{
+		HelmRepoName:    utils.HelmReleasePrometheus,
+		HelmRepoUrl:     PrometheusCommunityHelmIndex,
+		HelmReleaseName: utils.HelmReleasePrometheus,
+		HelmChartName:   utils.HelmReleasePrometheus + "/" + utils.HelmReleasePrometheus,
+		HelmValues:      "",
+	}
+	return helm.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues, r.HelmChartVersion)
 }
 
 func InstallKepler() (string, error) {
@@ -417,6 +482,30 @@ func InstallClusterIssuer(email string, currentRetries int) (string, error) {
 		currentRetries++
 		return InstallClusterIssuer(email, currentRetries)
 	}
+}
+
+func UninstallRenovateOperator() (string, error) {
+	r := ClusterHelmRequest{
+		Namespace:       config.Get("MO_OWN_NAMESPACE"),
+		HelmReleaseName: utils.HelmReleaseNameRenovateOperator,
+	}
+	return helm.DeleteHelmChart(r.HelmReleaseName, r.Namespace)
+}
+
+func UninstallAlertManager() (string, error) {
+	r := ClusterHelmRequest{
+		Namespace:       config.Get("MO_OWN_NAMESPACE"),
+		HelmReleaseName: utils.HelmReleaseNameAlertManager,
+	}
+	return helm.DeleteHelmChart(r.HelmReleaseName, r.Namespace)
+}
+
+func UninstallKubePrometheus() (string, error) {
+	r := ClusterHelmRequest{
+		Namespace:       config.Get("MO_OWN_NAMESPACE"),
+		HelmReleaseName: utils.HelmReleasePrometheus,
+	}
+	return helm.DeleteHelmChart(r.HelmReleaseName, r.Namespace)
 }
 
 func UninstallMetricsServer() (string, error) {
@@ -552,7 +641,7 @@ func getMostCurrentHelmChartVersion(url string, chartname string) string {
 		result = chartsArray[0].Version
 	}
 
-	return result
+	return chartname + "-" + result
 }
 
 func addIndexYAMLtoURL(url string) string {

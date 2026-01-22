@@ -11,16 +11,21 @@ import (
 	"mogenius-operator/src/utils"
 	"mogenius-operator/src/valkeyclient"
 	"mogenius-operator/src/websocket"
+	"net/http"
 	"net/url"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
+	coreV1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/util/jsonpath"
+	"sigs.k8s.io/yaml"
 
 	"github.com/openai/openai-go/v3"
 	"github.com/openai/openai-go/v3/option"
+	"github.com/valkey-io/valkey-go"
 
 	"github.com/anthropics/anthropic-sdk-go"
 	anthropic_option "github.com/anthropics/anthropic-sdk-go/option"
@@ -30,9 +35,13 @@ import (
 )
 
 const (
-	DB_AI_BUCKET_TASKS  = "ai_tasks"
-	DB_AI_BUCKET_TOKENS = "ai_tokens"
+	DB_AI_BUCKET_TASKS              = "ai_tasks"
+	DB_AI_BUCKET_TOKENS             = "ai_tokens"
+	DB_AI_LATEST_TASK_KEY           = "latest-task"
+	DB_AI_LATEST_NAMESPACE_TASK_KEY = "latest-namespace-task"
 )
+
+var ValkeyAiTTL = time.Hour * 24 * 7 // 7 days
 
 type AiTaskState string
 type AiTask struct {
@@ -42,11 +51,13 @@ type AiTask struct {
 	State               AiTaskState                  `json:"state"` // pending, in-progress, completed, failed, ignored
 	Controller          *utils.WorkloadSingleRequest `json:"controller,omitempty"`
 	TokensUsed          int64                        `json:"tokensUsed"`
+	Model               string                       `json:"model"`
+	TimeUsedInMs        int                          `json:"timeUsedInMs"`
 	CreatedAt           int64                        `json:"createdAt"`
 	UpdatedAt           int64                        `json:"updatedAt"`
 	ReferencingResource utils.WorkloadSingleRequest  `json:"referencingResource"` // the resource that triggered this task
 	TriggeredBy         AiFilter                     `json:"triggeredBy"`         // e.g., "Failed Pods" filter
-	ReadByUser          *ReadBy                      `json:"readByUser,omitempty"`
+	ReadByUsers         []ReadBy                     `json:"readByUsers"`
 	Error               string                       `json:"error"`
 }
 
@@ -67,18 +78,22 @@ const (
 	AI_TASK_STATE_COMPLETED   AiTaskState = "completed"
 	AI_TASK_STATE_FAILED      AiTaskState = "failed"
 	AI_TASK_STATE_IGNORED     AiTaskState = "ignored"
+	AI_TASK_STATE_SOLVED      AiTaskState = "solved"
 )
 
 type AiFilter struct {
+	Id          string            `json:"id"`
 	Name        string            `json:"name"`
 	Description string            `json:"description,omitempty"`
 	Kind        string            `json:"kind"`
 	Contains    map[string]string `json:"contains"` // {"Running": "status.phase"}, {"ImagePullBackOff": "status.phase.ContainerStatuses.state.waiting.reason"}
 	Excludes    map[string]string `json:"excludes"` // {"Succeeded": "status.phase"}, {"Completed": "status.phase"}
 	Prompt      string            `json:"prompt"`
+	For         *time.Duration    `json:"for,omitempty"` // optional duration for which the condition should be met
 }
 
 type AiPromptConfig struct {
+	Id           string     `json:"id"`
 	Name         string     `json:"name"`
 	SystemPrompt string     `json:"systemPrompt"`
 	Filters      []AiFilter `json:"filters"`
@@ -126,10 +141,12 @@ type Solution struct {
 }
 
 type UsedToken struct {
-	Timestamp  time.Time `json:"timestamp"`
-	TokensUsed int64     `json:"tokensUsed"`
-	IsIgnored  bool      `json:"isIgnored"`
-	Key        string    `json:"key"`
+	Timestamp    time.Time `json:"timestamp"`
+	TokensUsed   int64     `json:"tokensUsed"`
+	IsIgnored    bool      `json:"isIgnored"`
+	Key          string    `json:"key"`
+	Model        string    `json:"model"`
+	TimeUsedInMs int       `json:"timeUsedInMs"`
 }
 
 type ModelsRequest struct {
@@ -137,193 +154,23 @@ type ModelsRequest struct {
 	ApiKey *string `json:"API_KEY,omitempty"`
 	ApiUrl string  `json:"API_URL,omitempty"`
 }
-
-var AiFilters = []AiFilter{
-	{
-		Name:        "Failed Pods",
-		Description: "The pod is in a Failed state due to various reasons such as CrashLoopBackOff, ImagePullBackOff, etc.",
-		Kind:        "Pod",
-		Contains: map[string]string{
-			".status.phase": "Failed",
-		},
-		Excludes: map[string]string{},
-		Prompt:   "Provide a detailed analysis of why this Pod failed and suggest possible solutions.",
-	},
-	{
-		Name:        "CrashLoopBackOff Pods",
-		Description: "The pod is in CrashLoopBackOff state due to container crashes.",
-		Kind:        "Pod",
-		Contains: map[string]string{
-			".status.containerStatuses[*].state.waiting.reason": "CrashLoopBackOff",
-		},
-		Excludes: map[string]string{},
-		Prompt:   "Provide a detailed analysis of why this Pod is in CrashLoopBackOff and suggest possible solutions.",
-	},
-	{
-		Name:        "ImagePullBackOff Pods",
-		Description: "The pod is in ImagePullBackOff state due to image pull errors.",
-		Kind:        "Pod",
-		Contains: map[string]string{
-			".status.containerStatuses[*].state.waiting.reason": "ImagePullBackOff",
-		},
-		Excludes: map[string]string{},
-		Prompt:   "Provide a detailed analysis of why this Pod is in ImagePullBackOff and suggest possible solutions.",
-	},
-	{
-		Name:        "ErrImagePull Pods",
-		Description: "The pod is in ErrImagePull state due to image pull errors.",
-		Kind:        "Pod",
-		Contains: map[string]string{
-			".status.containerStatuses[*].state.waiting.reason": "ErrImagePull",
-		},
-		Excludes: map[string]string{},
-		Prompt:   "Provide a detailed analysis of why this Pod cannot pull its image and suggest possible solutions.",
-	},
-	{
-		Name:        "CreateContainerConfigError Pods",
-		Description: "The pod is in CreateContainerConfigError state likely due to ConfigMap or Secret issues.",
-		Kind:        "Pod",
-		Contains: map[string]string{
-			".status.containerStatuses[*].state.waiting.reason": "CreateContainerConfigError",
-		},
-		Excludes: map[string]string{},
-		Prompt:   "Provide a detailed analysis of why this Pod has a CreateContainerConfigError (likely ConfigMap or Secret issue) and suggest possible solutions.",
-	},
-	{
-		Name:        "InvalidImageName Pods",
-		Description: "The pod is in InvalidImageName state due to an invalid image name.",
-		Kind:        "Pod",
-		Contains: map[string]string{
-			".status.containerStatuses[*].state.waiting.reason": "InvalidImageName",
-		},
-		Excludes: map[string]string{},
-		Prompt:   "Provide a detailed analysis of why this Pod has an invalid image name and suggest possible solutions.",
-	},
-	{
-		Name:        "Unused ReplicaSet",
-		Description: "The ReplicaSet has zero replicas, indicating it is not currently in use.",
-		Kind:        "ReplicaSet",
-		Contains: map[string]string{
-			".spec.replicas":   "0",
-			".status.replicas": "0",
-		},
-		Excludes: map[string]string{},
-		Prompt:   "Provide a detailed analysis of why this ReplicaSet has zero replicas and suggest possible solutions. It might be unused and can most potentially be deleted.",
-	},
-	{
-		Name:        "PodNotReady",
-		Description: "The pod is NotReady, indicating it is not yet ready to serve traffic.",
-		Kind:        "Pod",
-		Contains: map[string]string{
-			".status.conditions[?(@.type=='Ready')].status": "False",
-		},
-		Excludes: map[string]string{},
-		Prompt:   "Provide a detailed analysis of why this Pod is NotReady and suggest possible solutions.",
-	},
-	{
-		Name:        "Pending Pods",
-		Description: "The pod is in Pending state, likely due to scheduling issues, resource constraints, or PVC problems.",
-		Kind:        "Pod",
-		Contains: map[string]string{
-			".status.phase": "Pending",
-		},
-		Excludes: map[string]string{},
-		Prompt:   "Provide a detailed analysis of why this Pod is stuck in Pending state (likely scheduling issues, resource constraints, or PVC problems) and suggest possible solutions.",
-	},
-	{
-		Name:        "OOMKilled Containers",
-		Description: "The pod's container was OOMKilled (Out of Memory), likely due to memory limits being exceeded.",
-		Kind:        "Pod",
-		Contains: map[string]string{
-			".status.containerStatuses[*].lastState.terminated.reason": "OOMKilled",
-		},
-		Excludes: map[string]string{},
-		Prompt:   "Provide a detailed analysis of why this Pod's container was OOMKilled (Out of Memory) and suggest possible solutions including memory limit adjustments.",
-	},
-	{
-		Name:        "Deployment with unavailable replicas",
-		Description: "The Deployment has unavailable replicas, possibly due to pod failures or insufficient resources.",
-		Kind:        "Deployment",
-		Contains: map[string]string{
-			".status.conditions[?(@.type=='Available')].status": "False",
-		},
-		Excludes: map[string]string{},
-		Prompt:   "Provide a detailed analysis of why this Deployment has unavailable replicas and suggest possible solutions.",
-	},
-	{
-		Name:        "StatefulSet with failed replicas",
-		Kind:        "StatefulSet",
-		Description: "The StatefulSet has failed replicas, possibly due to pod failures or insufficient resources.",
-		Contains: map[string]string{
-			".status.conditions[?(@.type=='Ready')].status": "False",
-		},
-		Excludes: map[string]string{},
-		Prompt:   "Provide a detailed analysis of why this StatefulSet has failed replicas and suggest possible solutions.",
-	},
-	{
-		Name:        "PVC Pending",
-		Description: "The PersistentVolumeClaim is Pending, likely due to no matching PersistentVolume or StorageClass issues.",
-		Kind:        "PersistentVolumeClaim",
-		Contains: map[string]string{
-			".status.phase": "Pending",
-		},
-		Excludes: map[string]string{},
-		Prompt:   "Provide a detailed analysis of why this PersistentVolumeClaim is Pending (likely no matching PV or StorageClass issues) and suggest possible solutions.",
-	},
-	{
-		Name:        "Service with no endpoints",
-		Description: "The Service has no endpoints, likely due to selector mismatch or no ready Pods.",
-		Kind:        "Service",
-		Contains:    map[string]string{},
-		Excludes:    map[string]string{},
-		Prompt:      "Check if this Service has endpoints. If not, provide a detailed analysis of why (likely selector mismatch or no ready Pods) and suggest possible solutions.",
-	},
-	{
-		Name:        "Unschedulable Pods",
-		Description: "The pod is Unschedulable, likely due to resource constraints, node affinity, or taints.",
-		Kind:        "Pod",
-		Contains: map[string]string{
-			".status.conditions[?(@.type=='PodScheduled')].reason": "Unschedulable",
-		},
-		Excludes: map[string]string{},
-		Prompt:   "Provide a detailed analysis of why this Pod is unschedulable (likely resource constraints, node affinity, or taints) and suggest possible solutions.",
-	},
-	{
-		Name:        "Jobs that failed",
-		Description: "The Job has failed to complete, possibly due to pod failures or misconfiguration.",
-		Kind:        "Job",
-		Contains: map[string]string{
-			".status.conditions[?(@.type=='Complete')].status": "False",
-		},
-		Excludes: map[string]string{},
-		Prompt:   "Provide a detailed analysis of why this Job failed to complete and suggest possible solutions.",
-	},
-	{
-		Name:        "HPA unable to scale",
-		Description: "The HorizontalPodAutoscaler is unable to scale, likely due to metrics-server issues or invalid configuration.",
-		Kind:        "HorizontalPodAutoscaler",
-		Contains: map[string]string{
-			".status.conditions[?(@.type=='AbleToScale')].status": "False",
-		},
-		Excludes: map[string]string{},
-		Prompt:   "Provide a detailed analysis of why this HorizontalPodAutoscaler cannot scale (likely metrics-server issues or invalid configuration) and suggest possible solutions.",
-	},
-}
-
 type AiManager interface {
 	ProcessObject(obj *unstructured.Unstructured, eventType string, resource utils.ResourceDescriptor) // eventType can be "add", "update", "delete"
 	Run()
 	UpdateTaskState(taskID string, newState AiTaskState) error
 	UpdateTaskReadState(taskID string, user *structs.User) error
+	GetAllAiTasks() ([]AiTask, error)
 	GetAiTasksForWorkspace(workspace string) ([]AiTask, error)
 	GetAiTasksForResource(resourceReq utils.WorkloadSingleRequest) ([]AiTask, error)
-	GetLatestTask(workspace string) (*AiTaskLatest, error)
+	GetLatestTask(workspace *string) (*AiTaskLatest, error)
 	InjectAiPromptConfig(prompt AiPromptConfig)
-	GetStatus() AiManagerStatus
+	GetStatus(workspace *string) AiManagerStatus
 	ResetDailyTokenLimit() error
 	DeleteAllAiData() error
 	GetAvailableModels(request *ModelsRequest) ([]string, error)
 }
+
+type SecretGetter func(namespace, name string) (*coreV1.Secret, error)
 
 type aiManager struct {
 	logger            *slog.Logger
@@ -332,11 +179,14 @@ type aiManager struct {
 	aiPromptConfig    *AiPromptConfig
 	ownerCacheService store.OwnerCacheService
 	eventClient       websocket.WebsocketClient
+	secretGetter      SecretGetter
 	error             string
 	warning           string
+	pendingTasks      map[string]AiTask
+	pendingTasksLock  *sync.RWMutex
 }
 
-func NewAiManager(logger *slog.Logger, valkeyClient valkeyclient.ValkeyClient, config cfg.ConfigModule, ownerCacheService store.OwnerCacheService, eventClient websocket.WebsocketClient) AiManager {
+func NewAiManager(logger *slog.Logger, valkeyClient valkeyclient.ValkeyClient, config cfg.ConfigModule, ownerCacheService store.OwnerCacheService, eventClient websocket.WebsocketClient, secretGetter SecretGetter) AiManager {
 	self := &aiManager{}
 
 	self.logger = logger
@@ -344,6 +194,9 @@ func NewAiManager(logger *slog.Logger, valkeyClient valkeyclient.ValkeyClient, c
 	self.config = config
 	self.ownerCacheService = ownerCacheService
 	self.eventClient = eventClient
+	self.secretGetter = secretGetter
+	self.pendingTasks = make(map[string]AiTask)
+	self.pendingTasksLock = &sync.RWMutex{}
 
 	return self
 }
@@ -372,36 +225,19 @@ func (ai *aiManager) ProcessObject(obj *unstructured.Unstructured, eventType str
 
 	for _, filter := range filters {
 		if obj.GetKind() == filter.Kind {
-			var matchedFilter *AiFilter = nil
 			// check contains conditions
-			for path, expectedValue := range filter.Contains {
-				value, found, err := getNestedStringWithJSONPath(obj, path, expectedValue)
-				if err != nil {
-					ai.logger.Error("Error checking AI filter contains", "expectedValue", expectedValue, "error", err)
-					continue
-				}
-				if found && value == expectedValue {
-					matchedFilter = &filter
-					break
-				}
+			matches, err := filterMatchesForObject(filter, obj)
+			if err != nil {
+				ai.logger.Error("Error checking AI filter match for object", "filter", filter.Name, "objectKind", obj.GetKind(), "objectName", obj.GetName(), "objectNamespace", obj.GetNamespace(), "error", err)
+				continue
 			}
-			// check excludes conditions
-			for path, expectedValue := range filter.Excludes {
-				value, found, err := getNestedStringWithJSONPath(obj, path, expectedValue)
-				if err != nil {
-					ai.logger.Error("Error checking AI filter excludes", "expectedValue", expectedValue, "error", err)
-					continue
-				}
-				if found && value == expectedValue {
-					matchedFilter = nil
-					break
-				}
-			}
-			if matchedFilter != nil {
+
+			if matches {
 				timestamp := time.Now().Unix()
+				key := ai.getValkeyKey(obj.GetKind(), obj.GetNamespace(), obj.GetName())
 				// create AI task
 				task := &AiTask{
-					ID:        utils.NanoIdSmallLowerCase(),
+					ID:        key,
 					Prompt:    buildUserPrompt(filter.Prompt, obj),
 					State:     AI_TASK_STATE_PENDING,
 					CreatedAt: timestamp,
@@ -411,11 +247,10 @@ func (ai *aiManager) ProcessObject(obj *unstructured.Unstructured, eventType str
 						Namespace:          obj.GetNamespace(),
 						ResourceName:       obj.GetName(),
 					},
-					TriggeredBy: *matchedFilter,
+					TriggeredBy: filter,
 					Error:       "",
 				}
 
-				key := ai.getValkeyKey(obj.GetKind(), obj.GetNamespace(), obj.GetName())
 				shouldCreate, err := ai.shouldCreateNewTask(key)
 				if err != nil {
 					ai.logger.Error("Error checking if should create new AI task", "error", err)
@@ -423,32 +258,75 @@ func (ai *aiManager) ProcessObject(obj *unstructured.Unstructured, eventType str
 				}
 
 				if shouldCreate {
-					controller := ai.ownerCacheService.OwnerFromReference(obj.GetNamespace(), obj.GetOwnerReferences())
-					task.Controller = controller
-					if controller != nil {
-						ctrlOb, err := store.GetResource(ai.valkeyClient, controller.ResourceDescriptor.ApiVersion, controller.ResourceDescriptor.Kind, controller.Namespace, controller.ResourceName, ai.logger)
-						if err != nil {
-							ai.logger.Error("Error fetching controller object for AI task", "controllerKind", controller.ResourceDescriptor.Kind, "controllerName", controller.ResourceName, "controllerNamespace", controller.Namespace, "error", err)
-						} else {
-							if ctrlOb != nil {
-								controllerYaml, err := store.GetYamlFromUnstructuredResource(ctrlOb)
-								if err != nil {
-									ai.logger.Error("Error generating controller YAML for AI task prompt", "controllerKind", controller.ResourceDescriptor.Kind, "controllerName", controller.ResourceName, "controllerNamespace", controller.Namespace, "error", err)
-								}
-								task.Prompt += "\n\nThe controller resource YAML is as follows:\n" + controllerYaml
-							}
-						}
+
+					if task.TriggeredBy.For != nil {
+						ai.pendingTasksLock.Lock()
+						// store pending task to check later
+						ai.pendingTasks[key] = *task
+						ai.logger.Info("AI task pending due to 'For' duration not yet met", "key", key, "filter", filter.Name)
+						ai.pendingTasksLock.Unlock()
+						continue
 					}
-					err = ai.createOrUpdateAiTask(task, key)
-					if err != nil {
-						ai.logger.Error("Error creating AI task", "error", err)
-					} else {
-						ai.logger.Info("AI task created", "taskID", task.ID, "event", eventType, "objectKind", obj.GetKind(), "objectName", obj.GetName(), "objectNamespace", obj.GetNamespace(), "filter", filter.Name)
-					}
+					ai.insertNewAiTask(task, obj, eventType, key)
 				}
 			}
 		}
 	}
+}
+
+func (ai *aiManager) insertNewAiTask(task *AiTask, obj *unstructured.Unstructured, eventType string, key string) {
+	controller := ai.ownerCacheService.OwnerFromReference(obj.GetNamespace(), obj.GetOwnerReferences())
+	task.Controller = controller
+	if controller != nil {
+		ctrlOb, err := store.GetResource(ai.valkeyClient, controller.ResourceDescriptor.ApiVersion, controller.ResourceDescriptor.Kind, controller.Namespace, controller.ResourceName, ai.logger)
+		if err != nil {
+			ai.logger.Error("Error fetching controller object for AI task", "controllerKind", controller.ResourceDescriptor.Kind, "controllerName", controller.ResourceName, "controllerNamespace", controller.Namespace, "error", err)
+		} else {
+			if ctrlOb != nil {
+				controllerYaml, err := store.GetYamlFromUnstructuredResource(ctrlOb)
+				if err != nil {
+					ai.logger.Error("Error generating controller YAML for AI task prompt", "controllerKind", controller.ResourceDescriptor.Kind, "controllerName", controller.ResourceName, "controllerNamespace", controller.Namespace, "error", err)
+				}
+				task.Prompt += "\n\nThe controller resource YAML is as follows:\n" + controllerYaml
+			}
+		}
+	}
+	err := ai.createOrUpdateAiTask(task, key)
+	if err != nil {
+		ai.logger.Error("Error creating AI task", "error", err)
+	} else {
+		ai.logger.Info("AI task created", "taskID", task.ID, "event", eventType, "objectKind", obj.GetKind(), "objectName", obj.GetName(), "objectNamespace", obj.GetNamespace(), "filter", task.TriggeredBy.Name)
+	}
+}
+
+func filterMatchesForObject(filter AiFilter, obj *unstructured.Unstructured) (bool, error) {
+	matched := false
+	for path, expectedValue := range filter.Contains {
+		value, found, err := getNestedStringWithJSONPath(obj, path, expectedValue)
+		if err != nil {
+			return false, fmt.Errorf("Error checking AI filter contains: expectedValue=%s, error=%v", expectedValue, err)
+		}
+		if found && value == expectedValue {
+			matched = true
+			break
+		}
+	}
+	// no need to check excludes if not matched
+	if !matched {
+		return false, nil
+	}
+
+	// check excludes conditions
+	for path, expectedValue := range filter.Excludes {
+		value, found, err := getNestedStringWithJSONPath(obj, path, expectedValue)
+		if err != nil {
+			return false, fmt.Errorf("Error checking AI filter excludes: expectedValue=%s, error=%v", expectedValue, err)
+		}
+		if found && value == expectedValue {
+			return false, nil
+		}
+	}
+	return true, nil
 }
 
 // BACKGROUND PROCESSING
@@ -472,10 +350,67 @@ func (ai *aiManager) Run() {
 				continue
 			}
 
+			ai.processPendingTasks()
+
 			ai.error = ""
 			ai.processAiTaskQueue(ctx)
 		}
 	}()
+}
+
+func (ai *aiManager) processPendingTasks() {
+	ai.pendingTasksLock.Lock()
+	defer ai.pendingTasksLock.Unlock()
+
+	stillPending := make(map[string]AiTask)
+	for key, task := range ai.pendingTasks {
+		shouldCreate, err := ai.shouldCreateNewTask(key)
+		if err != nil {
+			ai.logger.Error("Error checking if should create new AI task", "error", err)
+			continue
+		}
+		if !shouldCreate {
+			continue
+		}
+
+		now := time.Now()
+		if task.TriggeredBy.For == nil {
+			// should never happen due to earlier checks, but just in case
+			ai.logger.Error("Pending AI task filter has nil 'For' duration", "key", key, "filter", task.TriggeredBy.Name)
+			continue
+		}
+
+		createdTime := time.Unix(task.CreatedAt, 0)
+		if createdTime.Add(*task.TriggeredBy.For).Before(now) {
+			// The duration has elapsed since CreatedAt
+			reloadedObject, err := store.GetResource(ai.valkeyClient,
+				task.ReferencingResource.ApiVersion,
+				task.ReferencingResource.Kind,
+				task.ReferencingResource.Namespace,
+				task.ReferencingResource.ResourceName,
+				ai.logger)
+			if err != nil {
+				ai.logger.Error("Error reloading object for pending AI task", "key", key, "filter", task.TriggeredBy.Name, "error", err)
+				continue
+			}
+			if reloadedObject == nil {
+				ai.logger.Info("Referenced object for pending AI task no longer exists, skipping task creation", "key", key, "filter", task.TriggeredBy.Name)
+				continue
+			}
+			matched, err := filterMatchesForObject(task.TriggeredBy, reloadedObject)
+			if err != nil {
+				ai.logger.Error("Error checking AI filter match for reloaded object", "filter", task.TriggeredBy.Name, "objectKind", reloadedObject.GetKind(), "objectName", reloadedObject.GetName(), "objectNamespace", reloadedObject.GetNamespace(), "error", err)
+				continue
+			}
+			if matched {
+				// create AI task
+				ai.insertNewAiTask(&task, reloadedObject, "delayed", key)
+			}
+		} else {
+			stillPending[key] = task
+		}
+	}
+	ai.pendingTasks = stillPending
 }
 
 func (ai *aiManager) isTokenLimitExceeded() bool {
@@ -508,78 +443,139 @@ func (ai *aiManager) isTokenLimitExceeded() bool {
 }
 
 func (ai *aiManager) getTodayTokenUsage() (todaysTokens int64, todaysProcessedTasks int, err error) {
-	// Calculate the start of today in Unix timestamp
 	now := time.Now()
 	startOfDay := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location()).Unix()
 
-	keys, err := ai.valkeyClient.Keys(DB_AI_BUCKET_TOKENS + ":*")
-	if err != nil {
-		return 0, 0, err
-	}
+	cursor := uint64(0)
+	pattern := DB_AI_BUCKET_TOKENS + ":*"
+	ctx := context.Background()
 
-	for _, key := range keys {
-		item, err := ai.valkeyClient.Get(key)
+	for {
+		// Build and execute SCAN command
+		scanCmd := ai.valkeyClient.GetValkeyClient().B().Scan().Cursor(cursor).Match(pattern).Count(100).Build()
+		scanResult, err := ai.valkeyClient.GetValkeyClient().Do(ctx, scanCmd).AsScanEntry()
 		if err != nil {
-			return -1, -1, err
-		}
-		var tokenEntry UsedToken
-		err = json.Unmarshal([]byte(item), &tokenEntry)
-		if err != nil {
-			return -1, -1, err
+			return 0, 0, err
 		}
 
-		if tokenEntry.Timestamp.Unix() >= startOfDay && !tokenEntry.IsIgnored {
-			todaysTokens += tokenEntry.TokensUsed
-			todaysProcessedTasks++
+		if len(scanResult.Elements) > 0 {
+			// Build all GET commands for this batch
+			cmds := make([]valkey.Completed, len(scanResult.Elements))
+			for i, key := range scanResult.Elements {
+				cmds[i] = ai.valkeyClient.GetValkeyClient().B().Get().Key(key).Build()
+			}
+
+			// Execute all GETs in a single round trip
+			results := ai.valkeyClient.GetValkeyClient().DoMulti(ctx, cmds...)
+
+			// Process results
+			for _, result := range results {
+				item, err := result.ToString()
+				if err != nil {
+					// Key might have been deleted or expired, skip it
+					continue
+				}
+
+				var tokenEntry UsedToken
+				if err := json.Unmarshal([]byte(item), &tokenEntry); err != nil {
+					// Log error but continue processing
+					continue
+				}
+
+				if tokenEntry.Timestamp.Unix() >= startOfDay && !tokenEntry.IsIgnored {
+					todaysTokens += tokenEntry.TokensUsed
+					todaysProcessedTasks++
+				}
+			}
+		}
+
+		cursor = scanResult.Cursor
+		if cursor == 0 {
+			break // SCAN complete
 		}
 	}
 
 	return todaysTokens, todaysProcessedTasks, nil
 }
 
-func (ai *aiManager) getDbStats() (totalDbEntries int, unprocessedDbEntries int, ignoredDbEntries int, numberOfUnreadTasks int, err error) {
-	keys, err := ai.valkeyClient.Keys(DB_AI_BUCKET_TASKS + ":*")
-	if err != nil {
-		return 0, 0, 0, 0, err
+func (ai *aiManager) getDbStats(namespace *string) (totalDbEntries int, unprocessedDbEntries int, ignoredDbEntries int, numberOfUnreadTasks int, err error) {
+	key := ai.getValkeyKey("*", "*", "*")
+	if namespace != nil {
+		key = ai.getValkeyKey("*", *namespace, "*")
 	}
 
-	for _, key := range keys {
-		item, err := ai.valkeyClient.Get(key)
+	cursor := uint64(0)
+	ctx := context.Background()
+
+	for {
+		// Build and execute SCAN command
+		scanCmd := ai.valkeyClient.GetValkeyClient().B().Scan().Cursor(cursor).Match(key).Count(100).Build()
+		scanResult, err := ai.valkeyClient.GetValkeyClient().Do(ctx, scanCmd).AsScanEntry()
 		if err != nil {
 			return 0, 0, 0, 0, err
 		}
-		var task AiTask
-		err = json.Unmarshal([]byte(item), &task)
-		if err != nil {
-			return 0, 0, 0, 0, err
+
+		if len(scanResult.Elements) > 0 {
+			// Build all GET commands for this batch
+			cmds := make([]valkey.Completed, len(scanResult.Elements))
+			for i, k := range scanResult.Elements {
+				cmds[i] = ai.valkeyClient.GetValkeyClient().B().Get().Key(k).Build()
+			}
+
+			// Execute all GETs in a single round trip
+			results := ai.valkeyClient.GetValkeyClient().DoMulti(ctx, cmds...)
+
+			// Process results
+			for _, result := range results {
+				item, err := result.ToString()
+				if err != nil {
+					// Key might have been deleted or expired, skip it
+					continue
+				}
+
+				var task AiTask
+				if err := json.Unmarshal([]byte(item), &task); err != nil {
+					// Log error but continue processing
+					continue
+				}
+
+				totalDbEntries++
+
+				if task.State == AI_TASK_STATE_PENDING || task.State == AI_TASK_STATE_FAILED {
+					unprocessedDbEntries++
+				}
+				if task.State == AI_TASK_STATE_IGNORED {
+					ignoredDbEntries++
+				}
+				if len(task.ReadByUsers) == 0 {
+					numberOfUnreadTasks++
+				}
+			}
 		}
 
-		if task.State == AI_TASK_STATE_PENDING || task.State == AI_TASK_STATE_FAILED {
-			unprocessedDbEntries++
-		}
-		if task.State == AI_TASK_STATE_IGNORED {
-			ignoredDbEntries++
-		}
-		if task.ReadByUser == nil {
-			numberOfUnreadTasks++
+		cursor = scanResult.Cursor
+		if cursor == 0 {
+			break // SCAN complete
 		}
 	}
 
-	return len(keys), unprocessedDbEntries, ignoredDbEntries, numberOfUnreadTasks, nil
+	return totalDbEntries, unprocessedDbEntries, ignoredDbEntries, numberOfUnreadTasks, nil
 }
 
-func (ai *aiManager) addTokenUsage(tokensUsed int, entryKey string) error {
+func (ai *aiManager) addTokenUsage(tokensUsed int, model string, timeUsedInMs int, entryKey string) error {
 	now := time.Now()
 	key := fmt.Sprintf("%s:%d", DB_AI_BUCKET_TOKENS, now.Unix())
 
 	usedToken := UsedToken{
-		Key:        entryKey,
-		Timestamp:  now,
-		TokensUsed: int64(tokensUsed),
-		IsIgnored:  false,
+		Key:          entryKey,
+		Timestamp:    now,
+		TokensUsed:   int64(tokensUsed),
+		IsIgnored:    false,
+		Model:        model,
+		TimeUsedInMs: timeUsedInMs,
 	}
 
-	err := ai.valkeyClient.SetObject(usedToken, time.Hour*24*7, key)
+	err := ai.valkeyClient.SetObject(usedToken, ValkeyAiTTL, key)
 	if err != nil {
 		return fmt.Errorf("error saving AI token usage: %v", err)
 	}
@@ -611,7 +607,7 @@ func (ai *aiManager) resetTodayTokenUsage() error {
 		if tokenEntry.Timestamp.Unix() >= startOfDay {
 			resettedTokens += tokenEntry.TokensUsed
 			tokenEntry.TokensUsed = 0
-			err := ai.valkeyClient.SetObject(tokenEntry, time.Hour*24*7, key)
+			err := ai.valkeyClient.SetObject(tokenEntry, ValkeyAiTTL, key)
 			if err != nil {
 				return fmt.Errorf("error saving AI token usage: %v", err)
 			}
@@ -625,14 +621,48 @@ func (ai *aiManager) resetTodayTokenUsage() error {
 	return nil
 }
 
+func (ai *aiManager) getAllTaskKeys() ([]string, error) {
+	pattern := fmt.Sprintf("%s:*", DB_AI_BUCKET_TASKS)
+	cursor := uint64(0)
+	ctx := context.Background()
+	var allKeys []string
+
+	for {
+		scanCmd := ai.valkeyClient.GetValkeyClient().B().Scan().Cursor(cursor).Match(pattern).Count(100).Build()
+		scanResult, err := ai.valkeyClient.GetValkeyClient().Do(ctx, scanCmd).AsScanEntry()
+		if err != nil {
+			return nil, err
+		}
+
+		allKeys = append(allKeys, scanResult.Elements...)
+
+		cursor = scanResult.Cursor
+		if cursor == 0 {
+			break
+		}
+	}
+
+	return allKeys, nil
+}
+
 func (ai *aiManager) processAiTaskQueue(ctx context.Context) {
-	keys, err := ai.valkeyClient.Keys(fmt.Sprintf("%s:*", DB_AI_BUCKET_TASKS))
+	keys, err := ai.getAllTaskKeys()
 	if err != nil {
 		ai.logger.Error("Error listing AI tasks", "error", err)
 		return
 	}
 	// Process items here
 	for _, key := range keys {
+
+		// skip latest task keys, they also exist in their "normal" key form
+		keyParts := strings.Split(key, ":")
+		// length should always be >=2, but just in case
+		if len(keyParts) >= 2 {
+			if keyParts[1] == DB_AI_LATEST_TASK_KEY || keyParts[1] == DB_AI_LATEST_NAMESPACE_TASK_KEY {
+				continue
+			}
+		}
+
 		item, err := ai.valkeyClient.Get(key)
 		if err != nil {
 			ai.logger.Error("Error getting AI task", "key", key, "error", err)
@@ -645,6 +675,11 @@ func (ai *aiManager) processAiTaskQueue(ctx context.Context) {
 			continue
 		}
 
+		// Process only pending tasks or retry failed tasks
+		if task.State != AI_TASK_STATE_PENDING && task.State != AI_TASK_STATE_FAILED {
+			continue
+		}
+
 		if ai.isTokenLimitExceeded() {
 			task.State = AI_TASK_STATE_FAILED
 			task.Error = "Daily AI token limit exceeded, cannot process further tasks. Increase limit or wait 24 hours."
@@ -653,17 +688,10 @@ func (ai *aiManager) processAiTaskQueue(ctx context.Context) {
 				ai.logger.Error("Error updating AI task", "taskID", task.ID, "error", err)
 			}
 			continue
-		} else {
-			task.Error = ""
-			task.State = AI_TASK_STATE_PENDING
-		}
-
-		// Process only pending tasks
-		if task.State != AI_TASK_STATE_PENDING {
-			continue
 		}
 
 		task.State = AI_TASK_STATE_IN_PROGRESS
+		task.Error = ""
 		err = ai.createOrUpdateAiTask(&task, key)
 		if err != nil {
 			ai.logger.Error("Failed to set AI task state to in progress", "taskID", task.ID, "error", err)
@@ -672,31 +700,33 @@ func (ai *aiManager) processAiTaskQueue(ctx context.Context) {
 
 		latestTask := &AiTaskLatest{
 			Task:   &task,
-			Status: ai.GetStatus(),
+			Status: ai.GetStatus(nil),
 		}
 
 		// send event notification
 		ai.sendAiEvent(latestTask)
 
-		response, tokensUsed, err := ai.processPrompt(ctx, task.Prompt)
+		response, tokensUsed, timeUsedInMs, modelUsed, err := ai.processPrompt(ctx, task.Prompt)
 		if err != nil {
 			task.Error = err.Error()
 			task.State = AI_TASK_STATE_FAILED
-			task.TokensUsed = tokensUsed
 			ai.logger.Error("Error processing AI task", "taskID", task.ID, "error", err)
 		} else {
 			task.State = AI_TASK_STATE_COMPLETED
 			task.Response = response
-			task.TokensUsed = tokensUsed
+
 		}
-		err = ai.addTokenUsage(int(tokensUsed), key)
+		task.Model = modelUsed
+		task.TimeUsedInMs = timeUsedInMs
+		task.TokensUsed = tokensUsed
+		err = ai.addTokenUsage(int(tokensUsed), modelUsed, timeUsedInMs, key)
 		if err != nil {
 			ai.logger.Error("Error recording AI token usage", "taskID", task.ID, "error", err)
 		}
 
 		// update status for event
 		ai.resetCache()
-		latestTask.Status = ai.GetStatus()
+		latestTask.Status = ai.GetStatus(nil)
 
 		// send event notification
 		ai.sendAiEvent(latestTask)
@@ -795,10 +825,25 @@ func (ai *aiManager) createOrUpdateAiTask(task *AiTask, key string) error {
 	if err != nil {
 		return fmt.Errorf("error marshaling AI task: %v", err)
 	}
-	err = ai.valkeyClient.Set(string(jsonString), time.Hour*24*7, key)
+	err = ai.valkeyClient.Set(string(jsonString), ValkeyAiTTL, key)
 	if err != nil {
 		return fmt.Errorf("error saving AI task: %v", err)
 	}
+
+	// last updated task
+	err = ai.valkeyClient.Set(string(jsonString), ValkeyAiTTL, ai.getValkeyLatestTaskKey())
+	if err != nil {
+		ai.logger.Warn("Error saving AI task", "error", err)
+	}
+	parts := strings.Split(key, ":")
+	if len(parts) > 2 {
+		namespace := parts[2]
+		err = ai.valkeyClient.Set(string(jsonString), ValkeyAiTTL, ai.getValkeyLatestNamespaceTaskKey(namespace))
+		if err != nil {
+			ai.logger.Warn("Error saving AI task for namespace", "namespace", namespace, "error", err)
+		}
+	}
+
 	return nil
 }
 
@@ -810,22 +855,23 @@ func (ai *aiManager) shouldCreateNewTask(key string) (bool, error) {
 	return !exists, nil
 }
 
-func (ai *aiManager) processPrompt(ctx context.Context, prompt string) (*AiResponse, int64, error) {
+func (ai *aiManager) processPrompt(ctx context.Context, prompt string) (response *AiResponse, tokensUsed int64, timeUsedInMs int, modelUser string, err error) {
+	startTime := time.Now()
 	model, err := ai.getAiModel()
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, int(time.Since(startTime).Milliseconds()), model, err
 	}
 	systemPrompt := ai.getSystemPrompt()
 
 	sdk, err := ai.getSdkType()
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, int(time.Since(startTime).Milliseconds()), model, err
 	}
 	switch sdk {
 	case AiSdkTypeOpenAI:
 		client, err := ai.getOpenAIClient(nil)
 		if err != nil {
-			return nil, 0, err
+			return nil, 0, int(time.Since(startTime).Milliseconds()), model, err
 		}
 
 		chatCompletion, err := client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
@@ -842,24 +888,24 @@ func (ai *aiManager) processPrompt(ctx context.Context, prompt string) (*AiRespo
 		}
 
 		if err != nil {
-			return nil, tokensUsed, err
+			return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, err
 		}
 		if len(chatCompletion.Choices) == 0 {
-			return nil, tokensUsed, fmt.Errorf("no choices returned from AI model")
+			return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("no choices returned from AI model")
 		}
 
 		var aiResponse AiResponse
 		err = json.Unmarshal([]byte(chatCompletion.Choices[0].Message.Content), &aiResponse)
 		if err != nil {
-			return nil, tokensUsed, fmt.Errorf("error unmarshaling AI response: %v\n%s", err, chatCompletion.Choices[0].Message.Content)
+			return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("error unmarshaling AI response: %v\n%s", err, chatCompletion.Choices[0].Message.Content)
 		}
 
 		// also return tokens used
-		return &aiResponse, tokensUsed, nil
+		return &aiResponse, tokensUsed, int(time.Since(startTime).Milliseconds()), model, nil
 	case AiSdkTypeAnthropic:
 		client, err := ai.getAnthropicClient(nil)
 		if err != nil {
-			return nil, 0, err
+			return nil, 0, int(time.Since(startTime).Milliseconds()), model, err
 		}
 
 		message, err := client.Messages.New(ctx, anthropic.MessageNewParams{
@@ -887,11 +933,11 @@ func (ai *aiManager) processPrompt(ctx context.Context, prompt string) (*AiRespo
 		}
 
 		if err != nil {
-			return nil, tokensUsed, err
+			return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, err
 		}
 
 		if len(message.Content) == 0 {
-			return nil, tokensUsed, fmt.Errorf("no content returned from AI model")
+			return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("no content returned from AI model")
 		}
 
 		// Extract text from content blocks
@@ -904,16 +950,18 @@ func (ai *aiManager) processPrompt(ctx context.Context, prompt string) (*AiRespo
 		var aiResponse AiResponse
 		err = json.Unmarshal([]byte(responseText), &aiResponse)
 		if err != nil {
-			return nil, tokensUsed, fmt.Errorf("error unmarshaling AI response: %v\n%s", err, responseText)
+			return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("error unmarshaling AI response: %v\n%s", err, responseText)
 		}
 
-		return &aiResponse, tokensUsed, nil
+		return &aiResponse, tokensUsed, int(time.Since(startTime).Milliseconds()), model, nil
 	case AiSdkTypeOllama:
 		client, err := ai.getOllamaClient(nil)
 		if err != nil {
-			return nil, 0, err
+			return nil, 0, int(time.Since(startTime).Milliseconds()), model, err
 		}
 
+		falsePtr := false
+		truePtr := true
 		req := &api.ChatRequest{
 			Model: model,
 			Messages: []api.Message{
@@ -926,7 +974,10 @@ func (ai *aiManager) processPrompt(ctx context.Context, prompt string) (*AiRespo
 					Content: prompt,
 				},
 			},
-			Stream: new(bool), // false - we want a single response
+			Stream:   &falsePtr,
+			Format:   json.RawMessage(`"json"`),
+			Truncate: &truePtr,
+			Shift:    &truePtr,
 		}
 
 		var responseText string
@@ -948,11 +999,11 @@ func (ai *aiManager) processPrompt(ctx context.Context, prompt string) (*AiRespo
 		}
 
 		if err != nil {
-			return nil, tokensUsed, err
+			return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, err
 		}
 
 		if responseText == "" {
-			return nil, tokensUsed, fmt.Errorf("no content returned from AI model")
+			return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("no content returned from AI model")
 		}
 
 		responseText = cleanJSONResponse(responseText)
@@ -960,12 +1011,12 @@ func (ai *aiManager) processPrompt(ctx context.Context, prompt string) (*AiRespo
 		var aiResponse AiResponse
 		err = json.Unmarshal([]byte(responseText), &aiResponse)
 		if err != nil {
-			return nil, tokensUsed, fmt.Errorf("error unmarshaling AI response: %v\n%s", err, responseText)
+			return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("error unmarshaling AI response: %v\n%s", err, responseText)
 		}
 
-		return &aiResponse, tokensUsed, nil
+		return &aiResponse, tokensUsed, int(time.Since(startTime).Milliseconds()), model, nil
 	default:
-		return nil, 0, fmt.Errorf("unsupported AI SDK type: %s", sdk)
+		return nil, 0, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("unsupported AI SDK type: %s", sdk)
 	}
 }
 
@@ -984,13 +1035,11 @@ func cleanJSONResponse(response string) string {
 }
 
 func buildUserPrompt(prompt string, obj *unstructured.Unstructured) string {
-	objJsonBytes, err := json.MarshalIndent(obj.Object, "", "  ")
+	objBytes, err := yaml.Marshal(obj.Object)
 	if err != nil {
 		return fmt.Sprintf("%s\n\nError serializing Kubernetes object: %v", prompt, err)
 	}
-	objJson := string(objJsonBytes)
-
-	return fmt.Sprintf("%s\n\nHere is the Kubernetes object in JSON format:\n%s", prompt, objJson)
+	return fmt.Sprintf("%s\n\nHere are the related Kubernetes resources in yaml format:\n%s", prompt, string(objBytes))
 }
 
 func (ai *aiManager) getOpenAIClient(request *ModelsRequest) (*openai.Client, error) {
@@ -1066,7 +1115,7 @@ func (ai *aiManager) getOllamaClient(request *ModelsRequest) (*ollama.Client, er
 		return nil, err
 	}
 
-	client := api.NewClient(url, nil)
+	client := api.NewClient(url, http.DefaultClient)
 
 	return client, nil
 }
@@ -1155,6 +1204,14 @@ func (ai *aiManager) getValkeyKey(kind, namespace, name string) string {
 		}
 	}
 	return fmt.Sprintf("%s:%s:%s:%s", DB_AI_BUCKET_TASKS, kind, namespace, name)
+}
+
+func (ai *aiManager) getValkeyLatestTaskKey() string {
+	return fmt.Sprintf("%s:%s", DB_AI_BUCKET_TASKS, DB_AI_LATEST_TASK_KEY)
+}
+
+func (ai *aiManager) getValkeyLatestNamespaceTaskKey(namespace string) string {
+	return fmt.Sprintf("%s:%s:%s", DB_AI_BUCKET_TASKS, DB_AI_LATEST_NAMESPACE_TASK_KEY, namespace)
 }
 
 func (ai *aiManager) sendAiEvent(task *AiTaskLatest) {
