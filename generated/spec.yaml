@@ -154,6 +154,8 @@ aiManager/detail/tasks:
                     for:
                         pointer: true
                         type: int
+                    id:
+                        type: string
                     kind:
                         type: string
                     name:
@@ -374,6 +376,8 @@ aiManager/get/tasks:
                     for:
                         pointer: true
                         type: int
+                    id:
+                        type: string
                     kind:
                         type: string
                     name:
@@ -551,6 +555,8 @@ aiManager/inject-prompt-config:
                     for:
                         pointer: true
                         type: int
+                    id:
+                        type: string
                     kind:
                         type: string
                     name:
@@ -565,6 +571,8 @@ aiManager/inject-prompt-config:
                             structRef: mogenius-operator/src/ai.AiFilter
                             type: struct
                         type: array
+                    id:
+                        type: string
                     name:
                         type: string
                     systemPrompt:
@@ -630,6 +638,8 @@ aiManager/latest/task:
                     for:
                         pointer: true
                         type: int
+                    id:
+                        type: string
                     kind:
                         type: string
                     name:

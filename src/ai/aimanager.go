@@ -234,9 +234,10 @@ func (ai *aiManager) ProcessObject(obj *unstructured.Unstructured, eventType str
 
 			if matches {
 				timestamp := time.Now().Unix()
+				key := ai.getValkeyKey(obj.GetKind(), obj.GetNamespace(), obj.GetName())
 				// create AI task
 				task := &AiTask{
-					ID:        utils.NanoIdSmallLowerCase(),
+					ID:        key,
 					Prompt:    buildUserPrompt(filter.Prompt, obj),
 					State:     AI_TASK_STATE_PENDING,
 					CreatedAt: timestamp,
@@ -250,7 +251,6 @@ func (ai *aiManager) ProcessObject(obj *unstructured.Unstructured, eventType str
 					Error:       "",
 				}
 
-				key := ai.getValkeyKey(obj.GetKind(), obj.GetNamespace(), obj.GetName())
 				shouldCreate, err := ai.shouldCreateNewTask(key)
 				if err != nil {
 					ai.logger.Error("Error checking if should create new AI task", "error", err)
