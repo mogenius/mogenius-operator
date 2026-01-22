@@ -82,6 +82,7 @@ const (
 )
 
 type AiFilter struct {
+	Id          string            `json:"id"`
 	Name        string            `json:"name"`
 	Description string            `json:"description,omitempty"`
 	Kind        string            `json:"kind"`
@@ -92,6 +93,7 @@ type AiFilter struct {
 }
 
 type AiPromptConfig struct {
+	Id           string     `json:"id"`
 	Name         string     `json:"name"`
 	SystemPrompt string     `json:"systemPrompt"`
 	Filters      []AiFilter `json:"filters"`
@@ -152,179 +154,6 @@ type ModelsRequest struct {
 	ApiKey *string `json:"API_KEY,omitempty"`
 	ApiUrl string  `json:"API_URL,omitempty"`
 }
-
-var AiFilters = []AiFilter{
-	{
-		Name:        "Failed Pods",
-		Description: "The pod is in a Failed state due to various reasons such as CrashLoopBackOff, ImagePullBackOff, etc.",
-		Kind:        "Pod",
-		Contains: map[string]string{
-			".status.phase": "Failed",
-		},
-		Excludes: map[string]string{},
-		Prompt:   "Provide a detailed analysis of why this Pod failed and suggest possible solutions.",
-	},
-	{
-		Name:        "CrashLoopBackOff Pods",
-		Description: "The pod is in CrashLoopBackOff state due to container crashes.",
-		Kind:        "Pod",
-		Contains: map[string]string{
-			".status.containerStatuses[*].state.waiting.reason": "CrashLoopBackOff",
-		},
-		Excludes: map[string]string{},
-		Prompt:   "Provide a detailed analysis of why this Pod is in CrashLoopBackOff and suggest possible solutions.",
-	},
-	{
-		Name:        "ImagePullBackOff Pods",
-		Description: "The pod is in ImagePullBackOff state due to image pull errors.",
-		Kind:        "Pod",
-		Contains: map[string]string{
-			".status.containerStatuses[*].state.waiting.reason": "ImagePullBackOff",
-		},
-		Excludes: map[string]string{},
-		Prompt:   "Provide a detailed analysis of why this Pod is in ImagePullBackOff and suggest possible solutions.",
-	},
-	{
-		Name:        "ErrImagePull Pods",
-		Description: "The pod is in ErrImagePull state due to image pull errors.",
-		Kind:        "Pod",
-		Contains: map[string]string{
-			".status.containerStatuses[*].state.waiting.reason": "ErrImagePull",
-		},
-		Excludes: map[string]string{},
-		Prompt:   "Provide a detailed analysis of why this Pod cannot pull its image and suggest possible solutions.",
-	},
-	{
-		Name:        "CreateContainerConfigError Pods",
-		Description: "The pod is in CreateContainerConfigError state likely due to ConfigMap or Secret issues.",
-		Kind:        "Pod",
-		Contains: map[string]string{
-			".status.containerStatuses[*].state.waiting.reason": "CreateContainerConfigError",
-		},
-		Excludes: map[string]string{},
-		Prompt:   "Provide a detailed analysis of why this Pod has a CreateContainerConfigError (likely ConfigMap or Secret issue) and suggest possible solutions.",
-	},
-	{
-		Name:        "InvalidImageName Pods",
-		Description: "The pod is in InvalidImageName state due to an invalid image name.",
-		Kind:        "Pod",
-		Contains: map[string]string{
-			".status.containerStatuses[*].state.waiting.reason": "InvalidImageName",
-		},
-		Excludes: map[string]string{},
-		Prompt:   "Provide a detailed analysis of why this Pod has an invalid image name and suggest possible solutions.",
-	},
-	{
-		Name:        "Unused ReplicaSet",
-		Description: "The ReplicaSet has zero replicas, indicating it is not currently in use.",
-		Kind:        "ReplicaSet",
-		Contains: map[string]string{
-			".spec.replicas":   "0",
-			".status.replicas": "0",
-		},
-		Excludes: map[string]string{},
-		Prompt:   "Provide a detailed analysis of why this ReplicaSet has zero replicas and suggest possible solutions. It might be unused and can most potentially be deleted.",
-	},
-	{
-		Name:        "PodNotReady",
-		Description: "The pod is NotReady, indicating it is not yet ready to serve traffic.",
-		Kind:        "Pod",
-		Contains: map[string]string{
-			".status.conditions[?(@.type=='Ready')].status": "False",
-		},
-		Excludes: map[string]string{},
-		Prompt:   "Provide a detailed analysis of why this Pod is NotReady and suggest possible solutions.",
-	},
-	{
-		Name:        "Pending Pods",
-		Description: "The pod is in Pending state, likely due to scheduling issues, resource constraints, or PVC problems.",
-		Kind:        "Pod",
-		Contains: map[string]string{
-			".status.phase": "Pending",
-		},
-		Excludes: map[string]string{},
-		Prompt:   "Provide a detailed analysis of why this Pod is stuck in Pending state (likely scheduling issues, resource constraints, or PVC problems) and suggest possible solutions.",
-	},
-	{
-		Name:        "OOMKilled Containers",
-		Description: "The pod's container was OOMKilled (Out of Memory), likely due to memory limits being exceeded.",
-		Kind:        "Pod",
-		Contains: map[string]string{
-			".status.containerStatuses[*].lastState.terminated.reason": "OOMKilled",
-		},
-		Excludes: map[string]string{},
-		Prompt:   "Provide a detailed analysis of why this Pod's container was OOMKilled (Out of Memory) and suggest possible solutions including memory limit adjustments.",
-	},
-	{
-		Name:        "Deployment with unavailable replicas",
-		Description: "The Deployment has unavailable replicas, possibly due to pod failures or insufficient resources.",
-		Kind:        "Deployment",
-		Contains: map[string]string{
-			".status.conditions[?(@.type=='Available')].status": "False",
-		},
-		Excludes: map[string]string{},
-		Prompt:   "Provide a detailed analysis of why this Deployment has unavailable replicas and suggest possible solutions.",
-	},
-	{
-		Name:        "StatefulSet with failed replicas",
-		Kind:        "StatefulSet",
-		Description: "The StatefulSet has failed replicas, possibly due to pod failures or insufficient resources.",
-		Contains: map[string]string{
-			".status.conditions[?(@.type=='Ready')].status": "False",
-		},
-		Excludes: map[string]string{},
-		Prompt:   "Provide a detailed analysis of why this StatefulSet has failed replicas and suggest possible solutions.",
-	},
-	{
-		Name:        "PVC Pending",
-		Description: "The PersistentVolumeClaim is Pending, likely due to no matching PersistentVolume or StorageClass issues.",
-		Kind:        "PersistentVolumeClaim",
-		Contains: map[string]string{
-			".status.phase": "Pending",
-		},
-		Excludes: map[string]string{},
-		Prompt:   "Provide a detailed analysis of why this PersistentVolumeClaim is Pending (likely no matching PV or StorageClass issues) and suggest possible solutions.",
-	},
-	{
-		Name:        "Service with no endpoints",
-		Description: "The Service has no endpoints, likely due to selector mismatch or no ready Pods.",
-		Kind:        "Service",
-		Contains:    map[string]string{},
-		Excludes:    map[string]string{},
-		Prompt:      "Check if this Service has endpoints. If not, provide a detailed analysis of why (likely selector mismatch or no ready Pods) and suggest possible solutions.",
-	},
-	{
-		Name:        "Unschedulable Pods",
-		Description: "The pod is Unschedulable, likely due to resource constraints, node affinity, or taints.",
-		Kind:        "Pod",
-		Contains: map[string]string{
-			".status.conditions[?(@.type=='PodScheduled')].reason": "Unschedulable",
-		},
-		Excludes: map[string]string{},
-		Prompt:   "Provide a detailed analysis of why this Pod is unschedulable (likely resource constraints, node affinity, or taints) and suggest possible solutions.",
-	},
-	{
-		Name:        "Jobs that failed",
-		Description: "The Job has failed to complete, possibly due to pod failures or misconfiguration.",
-		Kind:        "Job",
-		Contains: map[string]string{
-			".status.conditions[?(@.type=='Complete')].status": "False",
-		},
-		Excludes: map[string]string{},
-		Prompt:   "Provide a detailed analysis of why this Job failed to complete and suggest possible solutions.",
-	},
-	{
-		Name:        "HPA unable to scale",
-		Description: "The HorizontalPodAutoscaler is unable to scale, likely due to metrics-server issues or invalid configuration.",
-		Kind:        "HorizontalPodAutoscaler",
-		Contains: map[string]string{
-			".status.conditions[?(@.type=='AbleToScale')].status": "False",
-		},
-		Excludes: map[string]string{},
-		Prompt:   "Provide a detailed analysis of why this HorizontalPodAutoscaler cannot scale (likely metrics-server issues or invalid configuration) and suggest possible solutions.",
-	},
-}
-
 type AiManager interface {
 	ProcessObject(obj *unstructured.Unstructured, eventType string, resource utils.ResourceDescriptor) // eventType can be "add", "update", "delete"
 	Run()

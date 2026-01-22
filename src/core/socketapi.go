@@ -63,6 +63,7 @@ type SocketApi interface {
 	NormalizePatternName(pattern string) string
 	AssertPatternsUnique()
 	LoadRequest(datagram *structs.Datagram, data any) error
+	GetLogger() *slog.Logger
 }
 
 type SocketApiStatus struct {
@@ -269,6 +270,7 @@ func RegisterPatternHandler[RequestType any, ResponseType any](
 		if kind != reflect.Pointer {
 			err := handle.SocketApi.LoadRequest(&datagram, &data)
 			if err != nil {
+				handle.SocketApi.GetLogger().Error("Error while loading request", "datagram", datagram, "error", err)
 				return buildResponse(nil, err)
 			}
 		}
@@ -276,6 +278,7 @@ func RegisterPatternHandler[RequestType any, ResponseType any](
 		if kind == reflect.Pointer && datagram.Payload != nil {
 			err := handle.SocketApi.LoadRequest(&datagram, &data)
 			if err != nil {
+				handle.SocketApi.GetLogger().Error("Error while loading request", "datagram", datagram, "error", err)
 				return buildResponse(nil, err)
 			}
 		}
@@ -314,6 +317,10 @@ func (self *socketApi) PatternConfigs() map[string]PatternConfig {
 	}
 
 	return patterns
+}
+
+func (self *socketApi) GetLogger() *slog.Logger {
+	return self.logger
 }
 
 func (self *socketApi) registerPatterns() {
