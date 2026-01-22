@@ -21,6 +21,18 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// Pre-compiled regular expressions for container ID extraction from cgroups
+var cgroupRegexes = []*regexp.Regexp{
+	regexp.MustCompile(`docker[/-]([a-f0-9]{64})`),
+	regexp.MustCompile(`containerd[/-]([a-f0-9]{64})`),
+	regexp.MustCompile(`crio-([a-f0-9]{64})`),
+	regexp.MustCompile(`cri-containerd-([a-f0-9]{64})`),
+	regexp.MustCompile(`kubepods.*pod([a-f0-9\-]{36})`),
+	regexp.MustCompile(`libpod-([a-f0-9]{64})`),
+	regexp.MustCompile(`garden-([a-f0-9\-]{36})`),
+	regexp.MustCompile(`lxc[/-]([a-zA-Z0-9\-_]+)`),
+}
+
 type ContainerEnumerator interface {
 	GetPodsWithContainerIds() []PodInfo
 	GetProcessesWithContainerIds() map[ContainerId][]ProcessId
@@ -60,16 +72,8 @@ func NewContainerEnumerator(
 	self.config = config
 	self.procPath = config.Get("MO_HOST_PROC_PATH")
 	self.clientProvider = clientProvider
-	self.cgroupRegexes = []*regexp.Regexp{
-		regexp.MustCompile(`cri-containerd-([0-9a-fA-F]+)\.scope`),
-		regexp.MustCompile(`crio-([0-9a-fA-F]+)\.scope`),
-		regexp.MustCompile(`/docker/([0-9a-fA-F]+)\.scope`),
-		regexp.MustCompile(`docker-([0-9a-fA-F]+)\.scope`),
-		regexp.MustCompile(`kubepods[^/]*/pod[^/]+/([0-9a-fA-F]+)`),
-		regexp.MustCompile(`containerd:([0-9a-fA-F]+)`),
-		regexp.MustCompile(`burstable/pod[^/]+/([0-9a-fA-F]+)`),
-		regexp.MustCompile(`/pod[^/]+/([0-9a-fA-F]+)`),
-	}
+	// Use pre-compiled regexes from package variable
+	self.cgroupRegexes = cgroupRegexes
 	self.running = atomic.Bool{}
 
 	self.getProcessesWithContainerIdsRx = make(chan struct{})

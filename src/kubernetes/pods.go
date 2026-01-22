@@ -54,9 +54,9 @@ func AllPodNamesForLabel(namespace string, labelKey string, labelValue string) [
 }
 
 func AllPods(namespaceName string) []v1.Pod {
-	result := []v1.Pod{}
-
 	pods := store.GetPods(namespaceName)
+	result := make([]v1.Pod, 0, len(pods))
+
 	for _, pod := range pods {
 		if pod.Namespace == "kube-system" {
 			continue

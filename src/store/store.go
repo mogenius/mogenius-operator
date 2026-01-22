@@ -162,20 +162,22 @@ func GetResource(valkeyClient valkeyclient.ValkeyClient, apiVersion string, kind
 }
 
 func GetResourceByKindAndNamespace(valkeyClient valkeyclient.ValkeyClient, apiVersion string, kind string, namespace string, logger *slog.Logger) []unstructured.Unstructured {
-	var results []unstructured.Unstructured
-
 	pattern := CreateKeyPattern(&apiVersion, &kind, &namespace, nil)
 	storeResults, err := valkeyclient.GetObjectsByPrefix[unstructured.Unstructured](valkeyClient, valkeyclient.ORDER_NONE, pattern)
 	if err != nil {
 		logger.Error("failed to get resources by kind and namespace", "apiVersion", apiVersion, "kind", kind, "namespace", namespace, "error", err)
-		return results
+		return []unstructured.Unstructured{}
 	}
 
+	results := make([]unstructured.Unstructured, 0, len(storeResults))
+	hasNamespaceFilter := namespace != ""
+	hasKindFilter := kind != ""
+
 	for _, ref := range storeResults {
-		if (namespace != "" && ref.GetNamespace() != namespace) || (kind != "" && ref.GetKind() != kind) {
+		// Skip only if filters are set AND don't match
+		if (hasNamespaceFilter && ref.GetNamespace() != namespace) || (hasKindFilter && ref.GetKind() != kind) {
 			continue
 		}
-
 		results = append(results, ref)
 	}
 	return results

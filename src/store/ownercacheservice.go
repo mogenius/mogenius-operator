@@ -39,15 +39,12 @@ func NewOwnerCacheService(
 	return self
 }
 
-var ownerCache = make(map[string]utils.WorkloadSingleRequest)
-
-var dataLock sync.Mutex = sync.Mutex{}
+var ownerCache sync.Map
 
 func (self *ownerCacheService) ControllerForPod(namespace string, podName string) *utils.WorkloadSingleRequest {
-	// check if is in cache
-	foundOwner, isInCache := ownerCache[podName]
-	if isInCache {
-		return utils.Pointer(foundOwner)
+	if cached, ok := ownerCache.Load(podName); ok {
+		ctlr := cached.(utils.WorkloadSingleRequest)
+		return &ctlr
 	}
 
 	pod := GetPod(namespace, podName)
@@ -57,9 +54,7 @@ func (self *ownerCacheService) ControllerForPod(namespace string, podName string
 	}
 	ctlr := self.OwnerFromReference(pod.Namespace, pod.OwnerReferences)
 	if ctlr != nil {
-		dataLock.Lock()
-		ownerCache[pod.Name] = *ctlr
-		dataLock.Unlock()
+		ownerCache.Store(pod.Name, *ctlr)
 		return ctlr
 	}
 
