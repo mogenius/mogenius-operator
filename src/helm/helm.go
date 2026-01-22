@@ -316,7 +316,7 @@ func parseHelmEntry(entry *repo.Entry) *HelmEntryWithoutPassword {
 	return &HelmEntryWithoutPassword{
 		Name:                  entry.Name,
 		URL:                   entry.URL,
-		InsecureSkipTLSverify: entry.InsecureSkipTLSverify,
+		InsecureSkipTLSverify: entry.InsecureSkipTLSVerify,
 		PassCredentialsAll:    entry.PassCredentialsAll,
 	}
 }
@@ -413,7 +413,7 @@ func HelmRepoAdd(data HelmRepoAddRequest) (string, error) {
 		URL:                   data.Url,
 		Username:              data.Username,
 		Password:              data.Password,
-		InsecureSkipTLSverify: data.InsecureSkipTLSverify,
+		InsecureSkipTLSVerify: data.InsecureSkipTLSverify,
 		PassCredentialsAll:    data.PassCredentialsAll,
 	}
 
@@ -468,7 +468,7 @@ func HelmRepoPatch(data HelmRepoPatchRequest) (string, error) {
 			re.URL = data.Url
 			re.Username = data.Username
 			re.Password = data.Password
-			re.InsecureSkipTLSverify = data.InsecureSkipTLSverify
+			re.InsecureSkipTLSVerify = data.InsecureSkipTLSverify
 			re.PassCredentialsAll = data.PassCredentialsAll
 
 			chartRepo, err := repo.NewChartRepository(re, getter.All(settings))
