@@ -1,0 +1,39 @@
+{{- if and .Values.features.nodeMetricsDashboard.enabled .Values.features.nodeMetricsDashboard.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ .Values.fullnameOverride }}-node-metrics
+  namespace: {{ .Release.Namespace }}
+  {{- if .Values.features.nodeMetricsDashboard.ingress.labels }}
+  labels:
+    {{- toYaml .Values.features.nodeMetricsDashboard.ingress.labels | nindent 4 }}
+  {{- end }}
+  {{- if or .Values.features.nodeMetricsDashboard.ingress.ingressClassName .Values.features.nodeMetricsDashboard.ingress.annotations }}
+  annotations:
+    {{- if .Values.features.nodeMetricsDashboard.ingress.ingressClassName }}
+    kubernetes.io/ingress.class: {{ .Values.features.nodeMetricsDashboard.ingress.ingressClassName }}
+    {{- end }}
+    {{- if .Values.features.nodeMetricsDashboard.ingress.annotations }}
+    {{- toYaml .Values.features.nodeMetricsDashboard.ingress.annotations | nindent 4 }}
+    {{- end }}
+  {{- end }}
+spec:
+  {{- if .Values.features.nodeMetricsDashboard.ingress.ingressClassName }}
+  ingressClassName: {{ .Values.features.nodeMetricsDashboard.ingress.ingressClassName }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.features.nodeMetricsDashboard.ingress.host }}
+      http:
+        paths:
+          - path: /stats
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ .Values.fullnameOverride }}
+                port:
+                  name: http
+  {{- if .Values.features.nodeMetricsDashboard.ingress.tls }}
+  tls:
+  {{- toYaml .Values.features.nodeMetricsDashboard.ingress.tls | nindent 4 }}
+  {{ end }}
+{{- end }}

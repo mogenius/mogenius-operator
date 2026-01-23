@@ -1,0 +1,17 @@
+{{- if .Values.features.nodeMetricsDashboard.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.fullnameOverride }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Values.fullnameOverride }}
+spec:
+  selector:
+    app: {{ .Values.fullnameOverride }}
+  ports:
+    - protocol: TCP
+      port: 1337
+      name: http
+      targetPort: http
+{{- end }}

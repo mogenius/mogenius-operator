@@ -1,0 +1,32 @@
+{{- if and .Values.features.nodeMetricsDashboard.enabled .Values.features.nodeMetricsDashboard.httproute.enabled }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ .Values.fullnameOverride }}-node-metrics
+  namespace: {{ .Release.Namespace }}
+  {{- if .Values.features.nodeMetricsDashboard.httproute.labels }}
+  labels:
+    {{- toYaml .Values.features.nodeMetricsDashboard.httproute.labels | nindent 4 }}
+  {{- end }}
+  {{- if .Values.features.nodeMetricsDashboard.httproute.annotations }}
+  annotations:
+    {{- toYaml .Values.features.nodeMetricsDashboard.httproute.annotations | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with .Values.features.nodeMetricsDashboard.httproute.parentRefs }}
+  parentRefs:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .Values.features.nodeMetricsDashboard.httproute.hostnames }}
+  hostnames:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /stats
+      backendRefs:
+        - name: {{ .Values.fullnameOverride }}
+          port: 1337
+{{- end }}
