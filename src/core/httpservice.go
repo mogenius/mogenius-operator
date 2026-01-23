@@ -1,7 +1,6 @@
 package core
 
 import (
-	"encoding/json"
 	"log/slog"
 	"mogenius-operator/src/assert"
 	cfg "mogenius-operator/src/config"
@@ -10,6 +9,8 @@ import (
 	"mogenius-operator/src/version"
 	"net/http"
 	"sync"
+
+	json "github.com/goccy/go-json"
 )
 
 type HttpService interface {

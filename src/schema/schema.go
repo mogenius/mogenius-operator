@@ -1,12 +1,13 @@
 package schema
 
 import (
-	"encoding/json"
 	"fmt"
 	"mogenius-operator/src/assert"
 	"reflect"
 	"strings"
 	"unicode"
+
+	json "github.com/goccy/go-json"
 
 	"gopkg.in/yaml.v3"
 )

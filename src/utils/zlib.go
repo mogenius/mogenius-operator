@@ -3,8 +3,9 @@ package utils
 import (
 	"bytes"
 	"compress/zlib"
-	"encoding/json"
 	"io"
+
+	json "github.com/goccy/go-json"
 )
 
 func ZlibCompress(data []byte) ([]byte, error) {

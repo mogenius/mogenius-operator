@@ -2,7 +2,6 @@ package xterm
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"mogenius-operator/src/logging"
 	"mogenius-operator/src/utils"
@@ -10,6 +9,8 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	json "github.com/goccy/go-json"
 
 	"github.com/valkey-io/valkey-go"
 

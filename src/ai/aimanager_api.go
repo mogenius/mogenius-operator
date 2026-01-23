@@ -1,7 +1,6 @@
 package ai
 
 import (
-	"encoding/json"
 	"fmt"
 	"mogenius-operator/src/crds/v1alpha1"
 	"mogenius-operator/src/store"
@@ -10,6 +9,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	json "github.com/goccy/go-json"
 )
 
 var cachedStatusTime time.Time

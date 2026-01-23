@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"mogenius-operator/src/assert"
@@ -16,6 +15,8 @@ import (
 	"strconv"
 	"sync"
 	"sync/atomic"
+
+	json "github.com/goccy/go-json"
 )
 
 type SnoopyManager interface {

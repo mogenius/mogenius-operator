@@ -2,7 +2,6 @@ package core
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"mogenius-operator/src/assert"
@@ -13,6 +12,8 @@ import (
 	"mogenius-operator/src/structs"
 	"strconv"
 	"time"
+
+	json "github.com/goccy/go-json"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

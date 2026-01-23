@@ -2,7 +2,6 @@ package valkeyclient
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"mogenius-operator/src/assert"
@@ -15,6 +14,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	json "github.com/goccy/go-json"
 
 	valkeyclient "github.com/valkey-io/valkey-go"
 )

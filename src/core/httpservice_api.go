@@ -1,11 +1,12 @@
 package core
 
 import (
-	"encoding/json"
 	"io"
 	"mogenius-operator/src/assert"
 	"mogenius-operator/src/utils"
 	"net/http"
+
+	json "github.com/goccy/go-json"
 )
 
 func (self *httpService) addApiRoutes(mux *http.ServeMux) {

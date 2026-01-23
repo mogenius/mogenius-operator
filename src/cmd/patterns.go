@@ -3,7 +3,6 @@ package cmd
 import (
 	"bufio"
 	"cmp"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"mogenius-operator/src/assert"
@@ -14,6 +13,8 @@ import (
 	"mogenius-operator/src/shutdown"
 	"slices"
 	"strings"
+
+	json "github.com/goccy/go-json"
 
 	"gopkg.in/yaml.v3"
 )

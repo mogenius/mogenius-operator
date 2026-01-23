@@ -2,9 +2,10 @@ package client
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	mov1alpha1 "mogenius-operator/src/crds/v1alpha1"
+
+	json "github.com/goccy/go-json"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"

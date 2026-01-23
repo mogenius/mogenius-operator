@@ -32,7 +32,7 @@ import (
 	"sync"
 	"time"
 
-	"encoding/json"
+	json "github.com/goccy/go-json"
 
 	release "helm.sh/helm/v4/pkg/release/v1"
 	v1 "k8s.io/api/core/v1"
