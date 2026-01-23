@@ -668,12 +668,17 @@ func GetObjectsByPrefixWithSizeAndNs[T any](store ValkeyClient, limit int, offse
 
 	// Filter by namespace in a single pass if needed
 	if !clusterWide && len(namespaces) > 0 {
+		// Build namespace set for O(1) lookup instead of O(n) slices.Contains
+		nsSet := make(map[string]struct{}, len(namespaces))
+		for _, ns := range namespaces {
+			nsSet[ns] = struct{}{}
+		}
+
 		filteredKeys := make([]string, 0, len(keyList))
 		for _, key := range keyList {
 			split := strings.Split(key, ":")
 			if len(split) >= 3 {
-				namespace := split[1]
-				if slices.Contains(namespaces, namespace) {
+				if _, ok := nsSet[split[1]]; ok {
 					filteredKeys = append(filteredKeys, key)
 				}
 			}
@@ -741,31 +746,40 @@ func createKey(parts ...string) string {
 }
 
 func sortStringsByTimestamp(stringsToSort []string, order SortOrder) {
-	if order == ORDER_NONE {
+	if order == ORDER_NONE || len(stringsToSort) == 0 {
 		return
 	}
 
-	extractTimestamp := func(s string) (int, error) {
-		parts := strings.Split(s, ":")
-		return strconv.Atoi(parts[len(parts)-1])
+	// Pre-extract timestamps once instead of O(n log n) times during sort comparisons
+	type indexedTimestamp struct {
+		index     int
+		timestamp int
 	}
 
-	sort.Slice(stringsToSort, func(i, j int) bool {
-		// Extract the timestamp parts from the strings
-		timestamp1, err1 := extractTimestamp(stringsToSort[i])
-		timestamp2, err2 := extractTimestamp(stringsToSort[j])
-
-		// Handle potential errors
-		if err1 != nil || err2 != nil {
-			// If parsing fails for either, assume i < j to avoid changing order unpredictably
-			return false
+	timestamps := make([]indexedTimestamp, len(stringsToSort))
+	for i, s := range stringsToSort {
+		parts := strings.Split(s, ":")
+		ts, err := strconv.Atoi(parts[len(parts)-1])
+		if err != nil {
+			ts = 0 // Default for unparseable timestamps
 		}
+		timestamps[i] = indexedTimestamp{index: i, timestamp: ts}
+	}
 
+	// Sort the indices by timestamp
+	sort.Slice(timestamps, func(i, j int) bool {
 		if order == ORDER_ASC {
-			return timestamp1 < timestamp2
+			return timestamps[i].timestamp < timestamps[j].timestamp
 		}
-		return timestamp1 > timestamp2
+		return timestamps[i].timestamp > timestamps[j].timestamp
 	})
+
+	// Reorder original slice based on sorted indices
+	result := make([]string, len(stringsToSort))
+	for i, t := range timestamps {
+		result[i] = stringsToSort[t.index]
+	}
+	copy(stringsToSort, result)
 }
 
 // trimStream removes old entries based on retention policy

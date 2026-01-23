@@ -193,13 +193,8 @@ func (self *websocketClient) WriteJSON(data any) error {
 	case <-self.ctx.Done():
 		return fmt.Errorf("WebsocketClient is terminated")
 	case self.writeQueue <- data:
-		// Successfully queued, return immediately without waiting
-		queueSize := len(self.writeQueue)
-		self.apiLogger.Debug("WriteJSON queued", "data", data, "queueSize", queueSize)
 		return nil
 	default:
-		// Queue is full, fall back to blocking write
-		self.apiLogger.Warn("WriteJSON queue full, using blocking write", "queueSize", self.writeQueueSize)
 		select {
 		case <-self.ctx.Done():
 			return fmt.Errorf("WebsocketClient is terminated")
