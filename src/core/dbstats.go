@@ -109,6 +109,12 @@ func (self *valkeyStatsDb) AddInterfaceStatsToDb(currentStats []networkmonitor.P
 	lastStats := self.lastPodNetworkStats
 	self.lastPodNetworkStats = currentStats
 
+	// Build a map for O(1) lookup instead of O(n) linear search
+	lastStatsMap := make(map[string]networkmonitor.PodNetworkStats, len(lastStats))
+	for _, e := range lastStats {
+		lastStatsMap[e.Pod] = e
+	}
+
 	for _, currentStat := range currentStats {
 		controller := self.ownerCacheService.ControllerForPod(currentStat.Namespace, currentStat.Pod)
 		if controller == nil {
@@ -122,19 +128,11 @@ func (self *valkeyStatsDb) AddInterfaceStatsToDb(currentStats []networkmonitor.P
 
 		deltaStat := currentStat
 
-		var lastEntry *networkmonitor.PodNetworkStats
-		for _, e := range lastStats {
-			if e.Pod == currentStat.Pod {
-				lastEntry = &e
-				break
-			}
-		}
-
-		if lastEntry != nil {
-			deltaStat.ReceivedBytes = deltaStat.ReceivedBytes - lastEntry.ReceivedBytes
-			deltaStat.ReceivedPackets = deltaStat.ReceivedPackets - lastEntry.ReceivedPackets
-			deltaStat.TransmitBytes = deltaStat.TransmitBytes - lastEntry.TransmitBytes
-			deltaStat.TransmitPackets = deltaStat.TransmitPackets - lastEntry.TransmitPackets
+		if lastEntry, ok := lastStatsMap[currentStat.Pod]; ok {
+			deltaStat.ReceivedBytes -= lastEntry.ReceivedBytes
+			deltaStat.ReceivedPackets -= lastEntry.ReceivedPackets
+			deltaStat.TransmitBytes -= lastEntry.TransmitBytes
+			deltaStat.TransmitPackets -= lastEntry.TransmitPackets
 		}
 
 		err := self.valkey.StoreSortedListEntry(
