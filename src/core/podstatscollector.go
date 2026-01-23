@@ -143,8 +143,19 @@ func (self *podStatsCollector) podStats(nodemetrics []podstatscollector.NodeMetr
 		return nil, err
 	}
 
-	result := []structs.PodStats{}
-	// bene: I HATE THIS BUT I DONT SEE ANY OTHER SOLUTION! SPEND HOURS (to find something better) ON THIS UGGLY SHIT!!!!
+	// Pre-build ephemeral storage map for O(1) lookup instead of O(n³) nested loops
+	// Key: "podName:containerName" -> ephemeralStorage in bytes
+	ephemeralStorageMap := make(map[string]int64)
+	for _, nodeMetric := range nodemetrics {
+		for _, pod := range nodeMetric.Pods {
+			for _, container := range pod.Containers {
+				key := pod.PodRef.Name + ":" + container.Name
+				ephemeralStorageMap[key] += int64(pod.EphemeralStorage.UsedBytes)
+			}
+		}
+	}
+
+	result := make([]structs.PodStats, 0, len(podMetricsList.Items))
 
 	for _, podMetrics := range podMetricsList.Items {
 		pod := pods[podMetrics.Name]
@@ -169,15 +180,11 @@ func (self *podStatsCollector) podStats(nodemetrics []podstatscollector.NodeMetr
 					entry.Memory += containerMetric.Usage.Memory().Value()
 				}
 			}
-			for _, nodeMetric := range nodemetrics {
-				for _, pod := range nodeMetric.Pods {
-					for _, metricContainer := range pod.Containers {
-						if metricContainer.Name == container.Name && pod.PodRef.Name == podMetrics.Name {
-							entry.EphemeralStorage += int64(pod.EphemeralStorage.UsedBytes)
-						}
-					}
-				}
-			}
+
+			// O(1) lookup instead of O(n³) nested loops
+			key := podMetrics.Name + ":" + container.Name
+			entry.EphemeralStorage = ephemeralStorageMap[key]
+
 			result = append(result, entry)
 		}
 	}
