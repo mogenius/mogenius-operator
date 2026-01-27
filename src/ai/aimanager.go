@@ -37,6 +37,7 @@ import (
 
 const (
 	DB_AI_BUCKET_TASKS              = "ai_tasks"
+	DB_AI_BUCKET_TASKS_LATEST       = "ai_tasks_latest"
 	DB_AI_BUCKET_TOKENS             = "ai_tokens"
 	DB_AI_LATEST_TASK_KEY           = "latest-task"
 	DB_AI_LATEST_NAMESPACE_TASK_KEY = "latest-namespace-task"
@@ -654,16 +655,6 @@ func (ai *aiManager) processAiTaskQueue(ctx context.Context) {
 	}
 	// Process items here
 	for _, key := range keys {
-
-		// skip latest task keys, they also exist in their "normal" key form
-		keyParts := strings.Split(key, ":")
-		// length should always be >=2, but just in case
-		if len(keyParts) >= 2 {
-			if keyParts[1] == DB_AI_LATEST_TASK_KEY || keyParts[1] == DB_AI_LATEST_NAMESPACE_TASK_KEY {
-				continue
-			}
-		}
-
 		item, err := ai.valkeyClient.Get(key)
 		if err != nil {
 			ai.logger.Error("Error getting AI task", "key", key, "error", err)
@@ -1208,11 +1199,11 @@ func (ai *aiManager) getValkeyKey(kind, namespace, name string) string {
 }
 
 func (ai *aiManager) getValkeyLatestTaskKey() string {
-	return fmt.Sprintf("%s:%s", DB_AI_BUCKET_TASKS, DB_AI_LATEST_TASK_KEY)
+	return fmt.Sprintf("%s:%s", DB_AI_BUCKET_TASKS_LATEST, DB_AI_LATEST_TASK_KEY)
 }
 
 func (ai *aiManager) getValkeyLatestNamespaceTaskKey(namespace string) string {
-	return fmt.Sprintf("%s:%s:%s", DB_AI_BUCKET_TASKS, DB_AI_LATEST_NAMESPACE_TASK_KEY, namespace)
+	return fmt.Sprintf("%s:%s:%s", DB_AI_BUCKET_TASKS_LATEST, DB_AI_LATEST_NAMESPACE_TASK_KEY, namespace)
 }
 
 func (ai *aiManager) sendAiEvent(task *AiTaskLatest) {

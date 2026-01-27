@@ -395,6 +395,7 @@ func (ai *aiManager) DeleteAllAiData() error {
 	prefixes := []string{
 		DB_AI_BUCKET_TASKS + ":*",
 		DB_AI_BUCKET_TOKENS + ":*",
+		DB_AI_BUCKET_TASKS_LATEST + ":*",
 	}
 	ai.resetCache()
 	err := ai.valkeyClient.DeleteMultiple(prefixes...)
