@@ -2182,7 +2182,6 @@ func (self *socketApi) startMessageHandler() {
 							compressedPayload, compressErr := utils.ZlibCompress(dataBytes)
 							if compressErr == nil {
 								compressedData = compressedPayload
-								size = int64(len(compressedPayload))
 							} else {
 								err = compressErr
 								shouldCompress = false
@@ -2194,6 +2193,7 @@ func (self *socketApi) startMessageHandler() {
 					if shouldCompress && err == nil {
 						responsePayload = compressedData
 					}
+					size = int64(buf.Len())
 
 					result := structs.Datagram{
 						Id:        datagram.Id,
