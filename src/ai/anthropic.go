@@ -174,9 +174,14 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, model, systemPr
 				}
 			}
 			responseText = cleanJSONResponse(responseText)
+			responseBytes, removedText, err := extractJSONRobust(responseText)
+			ai.logger.Info("Extracted JSON from AI response", "removed_text", removedText)
+			if err != nil {
+				return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("error extracting JSON from AI response: %v\n%s", err, responseText)
+			}
 
 			var aiResponse AiResponse
-			err = json.Unmarshal([]byte(responseText), &aiResponse)
+			err = json.Unmarshal(responseBytes, &aiResponse)
 			if err != nil {
 				return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("error unmarshaling AI response: %v\n%s", err, responseText)
 			}

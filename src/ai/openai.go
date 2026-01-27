@@ -119,8 +119,15 @@ func (ai *aiManager) processPromptOpenAi(ctx context.Context, model, systemPromp
 		// Continue the loop to get the next response with tool results
 	}
 
+	responseText := cleanJSONResponse(chatCompletion.Choices[0].Message.Content)
+	responseBytes, removedText, err := extractJSONRobust(responseText)
+	ai.logger.Info("Extracted JSON from AI response", "removed_text", removedText)
+	if err != nil {
+		return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("error extracting JSON from AI response: %v\n%s", err, responseText)
+	}
+
 	var aiResponse AiResponse
-	err = json.Unmarshal([]byte(chatCompletion.Choices[0].Message.Content), &aiResponse)
+	err = json.Unmarshal(responseBytes, &aiResponse)
 	if err != nil {
 		return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("error unmarshaling AI response: %v\n%s", err, chatCompletion.Choices[0].Message.Content)
 	}

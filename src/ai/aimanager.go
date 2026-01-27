@@ -308,11 +308,25 @@ func filterMatchesForObject(filter AiFilter, obj *unstructured.Unstructured) (bo
 		if err != nil {
 			return false, fmt.Errorf("Error checking AI filter contains: expectedValue=%s, error=%v", expectedValue, err)
 		}
-		if found && value == expectedValue {
-			matched = true
+
+		if !found {
+			continue
+		}
+
+		// For array results (comma-separated), check if expectedValue is in any of the values
+		values := strings.Split(value, ", ")
+		for _, v := range values {
+			if strings.TrimSpace(v) == expectedValue {
+				matched = true
+				break
+			}
+		}
+
+		if matched {
 			break
 		}
 	}
+
 	// no need to check excludes if not matched
 	if !matched {
 		return false, nil
@@ -324,10 +338,20 @@ func filterMatchesForObject(filter AiFilter, obj *unstructured.Unstructured) (bo
 		if err != nil {
 			return false, fmt.Errorf("Error checking AI filter excludes: expectedValue=%s, error=%v", expectedValue, err)
 		}
-		if found && value == expectedValue {
-			return false, nil
+
+		if !found {
+			continue
+		}
+
+		// For array results (comma-separated), check if expectedValue is in any of the values
+		values := strings.Split(value, ", ")
+		for _, v := range values {
+			if strings.TrimSpace(v) == expectedValue {
+				return false, nil
+			}
 		}
 	}
+
 	return true, nil
 }
 
@@ -883,6 +907,53 @@ func cleanJSONResponse(response string) string {
 
 	// Trim again after removing code blocks
 	return strings.TrimSpace(response)
+}
+
+func extractJSONRobust(text string) (jsonData []byte, removedText string, err error) {
+	start := strings.Index(text, "{")
+	if start == -1 {
+		return nil, "", fmt.Errorf("no JSON object found")
+	}
+
+	// Capture the text that was removed (the "bullshit")
+	removedText = text[:start]
+
+	braceCount := 0
+	inString := false
+	escapeNext := false
+
+	for i := start; i < len(text); i++ {
+		char := text[i]
+
+		if escapeNext {
+			escapeNext = false
+			continue
+		}
+
+		if char == '\\' {
+			escapeNext = true
+			continue
+		}
+
+		if char == '"' {
+			inString = !inString
+			continue
+		}
+
+		if !inString {
+			switch char {
+			case '{':
+				braceCount++
+			case '}':
+				braceCount--
+				if braceCount == 0 {
+					return []byte(text[start : i+1]), removedText, nil
+				}
+			}
+		}
+	}
+
+	return nil, removedText, fmt.Errorf("unbalanced braces in JSON")
 }
 
 func buildUserPrompt(prompt string, obj *unstructured.Unstructured) string {
