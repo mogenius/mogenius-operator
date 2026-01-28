@@ -107,7 +107,7 @@ func (ai *aiManager) getAiModel() (string, error) {
 func (ai *aiManager) getAiMaxToolCalls() (int, error) {
 	data, err := ai.getAiSettingByKey(AI_CONFIG_MAX_TOOL_CALLS_KEY)
 	if err != nil {
-		return 2, fmt.Errorf("failed to get AI model: %v", err)
+		return 2, fmt.Errorf("failed to get AI maxToolCalls: %v", err)
 	}
 
 	maxToolCalls, err := strconv.Atoi(data)
