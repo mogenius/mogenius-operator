@@ -297,6 +297,7 @@ func (ai *aiManager) GetStatus(workspace *string) AiManagerStatus {
 	sdk, _ := ai.getSdkType()
 	limit, _ := ai.getDailyTokenLimit()
 	model, _ := ai.getAiModel()
+	maxToolCalls, _ := ai.getAiMaxToolCalls()
 	apiUrl, _ := ai.getBaseUrl()
 	tokensUsed, todaysProcessedTasks, _ := ai.getTodayTokenUsage()
 
@@ -364,6 +365,7 @@ func (ai *aiManager) GetStatus(workspace *string) AiManagerStatus {
 		TokensUsed:                  tokensUsed,
 		ApiUrl:                      apiUrl,
 		Model:                       model,
+		MaxToolCalls:                maxToolCalls,
 		IsAiPromptConfigInitialized: ai.isAiPromptConfigInitialized(),
 		IsAiModelConfigInitialized:  ai.isAiModelConfigInitialized(),
 		TodaysProcessedTasks:        todaysProcessedTasks,

@@ -659,6 +659,8 @@ aiManager/latest/task:
                         type: bool
                     isAiPromptConfigInitialized:
                         type: bool
+                    maxToolCalls:
+                        type: int
                     model:
                         type: string
                     nextTokenResetTime:
@@ -919,6 +921,8 @@ aiManager/status:
                         type: bool
                     isAiPromptConfigInitialized:
                         type: bool
+                    maxToolCalls:
+                        type: int
                     model:
                         type: string
                     nextTokenResetTime:

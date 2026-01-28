@@ -106,6 +106,7 @@ type AiManagerStatus struct {
 	TokenLimit                  int64     `json:"tokenLimit"`
 	TokensUsed                  int64     `json:"tokensUsed"`
 	Model                       string    `json:"model"`
+	MaxToolCalls                int       `json:"maxToolCalls"`
 	ApiUrl                      string    `json:"apiUrl"`
 	IsAiPromptConfigInitialized bool      `json:"isAiPromptConfigInitialized"`
 	IsAiModelConfigInitialized  bool      `json:"isAiModelConfigInitialized"`
@@ -215,6 +216,8 @@ func (ai *aiManager) ProcessObject(obj *unstructured.Unstructured, eventType str
 		if err != nil {
 			ai.logger.Error("Error deleting AI tasks for deleted object", "objectKind", obj.GetKind(), "objectName", obj.GetName(), "objectNamespace", obj.GetNamespace(), "error", err)
 		}
+		// send event notification
+		ai.sendAiDeleteEvent(key)
 		return
 	}
 
@@ -308,11 +311,25 @@ func filterMatchesForObject(filter AiFilter, obj *unstructured.Unstructured) (bo
 		if err != nil {
 			return false, fmt.Errorf("Error checking AI filter contains: expectedValue=%s, error=%v", expectedValue, err)
 		}
-		if found && value == expectedValue {
-			matched = true
+
+		if !found {
+			continue
+		}
+
+		// For array results (comma-separated), check if expectedValue is in any of the values
+		values := strings.Split(value, ", ")
+		for _, v := range values {
+			if strings.TrimSpace(v) == expectedValue {
+				matched = true
+				break
+			}
+		}
+
+		if matched {
 			break
 		}
 	}
+
 	// no need to check excludes if not matched
 	if !matched {
 		return false, nil
@@ -324,15 +341,30 @@ func filterMatchesForObject(filter AiFilter, obj *unstructured.Unstructured) (bo
 		if err != nil {
 			return false, fmt.Errorf("Error checking AI filter excludes: expectedValue=%s, error=%v", expectedValue, err)
 		}
-		if found && value == expectedValue {
-			return false, nil
+
+		if !found {
+			continue
+		}
+
+		// For array results (comma-separated), check if expectedValue is in any of the values
+		values := strings.Split(value, ", ")
+		for _, v := range values {
+			if strings.TrimSpace(v) == expectedValue {
+				return false, nil
+			}
 		}
 	}
+
 	return true, nil
 }
 
 // BACKGROUND PROCESSING
 func (ai *aiManager) Run() {
+	// On startup, reset any potentially orphaned in-progress tasks back to pending
+	if err := ai.resetInProgressTasksOnStartup(); err != nil {
+		ai.logger.Error("Failed resetting in-progress AI tasks on startup", "error", err)
+	}
+
 	ticker := time.NewTicker(1 * time.Minute)
 	go func() {
 		for range ticker.C {
@@ -358,6 +390,43 @@ func (ai *aiManager) Run() {
 			ai.processAiTaskQueue(ctx)
 		}
 	}()
+}
+
+// resetInProgressTasksOnStartup scans existing AI tasks and resets those left in
+// "in-progress" state (e.g., due to an unclean shutdown) back to "pending" so
+// they can be retried by the background processor. This should be called once
+// on application startup.
+func (ai *aiManager) resetInProgressTasksOnStartup() error {
+	keys, err := ai.getAllTaskKeys()
+	if err != nil {
+		return err
+	}
+
+	for _, key := range keys {
+		item, err := ai.valkeyClient.Get(key)
+		if err != nil {
+			ai.logger.Warn("Error fetching AI task during startup reset, skipping", "key", key, "error", err)
+			continue
+		}
+
+		var task AiTask
+		if err := json.Unmarshal([]byte(item), &task); err != nil {
+			ai.logger.Warn("Error unmarshalling AI task during startup reset, skipping", "key", key, "error", err)
+			continue
+		}
+
+		if task.State == AI_TASK_STATE_IN_PROGRESS {
+			task.State = AI_TASK_STATE_PENDING
+			task.Error = ""
+			if err := ai.createOrUpdateAiTask(&task, key); err != nil {
+				ai.logger.Error("Error updating AI task during startup reset", "taskID", task.ID, "error", err)
+				continue
+			}
+			ai.logger.Info("Reset AI task from in-progress to pending on startup", "taskID", task.ID)
+		}
+	}
+
+	return nil
 }
 
 func (ai *aiManager) processPendingTasks() {
@@ -855,158 +924,22 @@ func (ai *aiManager) processPrompt(ctx context.Context, prompt string) (response
 	}
 	systemPrompt := ai.getSystemPrompt()
 
+	maxToolCalls, err := ai.getAiMaxToolCalls()
+	if err != nil {
+		ai.logger.Warn("Error getting AI max tool calls (using default value)", "error", err, "defaultMaxToolCalls", maxToolCalls)
+	}
+
 	sdk, err := ai.getSdkType()
 	if err != nil {
 		return nil, 0, int(time.Since(startTime).Milliseconds()), model, err
 	}
 	switch sdk {
 	case AiSdkTypeOpenAI:
-		client, err := ai.getOpenAIClient(nil)
-		if err != nil {
-			return nil, 0, int(time.Since(startTime).Milliseconds()), model, err
-		}
-
-		chatCompletion, err := client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
-			Messages: []openai.ChatCompletionMessageParamUnion{
-				openai.UserMessage(prompt),
-				openai.SystemMessage(systemPrompt),
-			},
-			Model: model,
-		})
-
-		var tokensUsed int64 = 0
-		if chatCompletion != nil {
-			tokensUsed = chatCompletion.Usage.TotalTokens
-		}
-
-		if err != nil {
-			return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, err
-		}
-		if len(chatCompletion.Choices) == 0 {
-			return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("no choices returned from AI model")
-		}
-
-		var aiResponse AiResponse
-		err = json.Unmarshal([]byte(chatCompletion.Choices[0].Message.Content), &aiResponse)
-		if err != nil {
-			return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("error unmarshaling AI response: %v\n%s", err, chatCompletion.Choices[0].Message.Content)
-		}
-
-		// also return tokens used
-		return &aiResponse, tokensUsed, int(time.Since(startTime).Milliseconds()), model, nil
+		return ai.processPromptOpenAi(ctx, model, systemPrompt, prompt, maxToolCalls)
 	case AiSdkTypeAnthropic:
-		client, err := ai.getAnthropicClient(nil)
-		if err != nil {
-			return nil, 0, int(time.Since(startTime).Milliseconds()), model, err
-		}
-
-		message, err := client.Messages.New(ctx, anthropic.MessageNewParams{
-			Model:     anthropic.Model(model),
-			MaxTokens: int64(10000),
-			System: []anthropic.TextBlockParam{
-				{
-					Type: "text",
-					Text: systemPrompt,
-				},
-			},
-			Messages: []anthropic.MessageParam{
-				{
-					Role: anthropic.MessageParamRoleUser,
-					Content: []anthropic.ContentBlockParamUnion{
-						anthropic.NewTextBlock(prompt),
-					},
-				},
-			},
-		})
-
-		var tokensUsed int64 = 0
-		if message != nil {
-			tokensUsed = message.Usage.InputTokens + message.Usage.OutputTokens
-		}
-
-		if err != nil {
-			return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, err
-		}
-
-		if len(message.Content) == 0 {
-			return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("no content returned from AI model")
-		}
-
-		// Extract text from content blocks
-		var responseText string
-		for _, block := range message.Content {
-			responseText += block.Text
-		}
-		responseText = cleanJSONResponse(responseText)
-
-		var aiResponse AiResponse
-		err = json.Unmarshal([]byte(responseText), &aiResponse)
-		if err != nil {
-			return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("error unmarshaling AI response: %v\n%s", err, responseText)
-		}
-
-		return &aiResponse, tokensUsed, int(time.Since(startTime).Milliseconds()), model, nil
+		return ai.processPromptAnthropic(ctx, model, systemPrompt, prompt, maxToolCalls)
 	case AiSdkTypeOllama:
-		client, err := ai.getOllamaClient(nil)
-		if err != nil {
-			return nil, 0, int(time.Since(startTime).Milliseconds()), model, err
-		}
-
-		falsePtr := false
-		truePtr := true
-		req := &api.ChatRequest{
-			Model: model,
-			Messages: []api.Message{
-				{
-					Role:    "system",
-					Content: systemPrompt,
-				},
-				{
-					Role:    "user",
-					Content: prompt,
-				},
-			},
-			Stream:   &falsePtr,
-			Format:   json.RawMessage(`"json"`),
-			Truncate: &truePtr,
-			Shift:    &truePtr,
-		}
-
-		var responseText string
-		var promptEvalCount int
-		var evalCount int
-
-		err = client.Chat(ctx, req, func(resp api.ChatResponse) error {
-			responseText += resp.Message.Content
-			if resp.Done {
-				promptEvalCount = resp.PromptEvalCount
-				evalCount = resp.EvalCount
-			}
-			return nil
-		})
-
-		var tokensUsed int64 = 0
-		if err == nil {
-			tokensUsed = int64(promptEvalCount + evalCount)
-		}
-
-		if err != nil {
-			return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, err
-		}
-
-		if responseText == "" {
-			return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("no content returned from AI model")
-		}
-
-		responseText = cleanJSONResponse(responseText)
-
-		var aiResponse AiResponse
-		err = json.Unmarshal([]byte(responseText), &aiResponse)
-		if err != nil {
-			return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("error unmarshaling AI response: %v\n%s", err, responseText)
-		}
-
-		return &aiResponse, tokensUsed, int(time.Since(startTime).Milliseconds()), model, nil
+		return ai.processPromptOllama(ctx, model, systemPrompt, prompt, maxToolCalls)
 	default:
 		return nil, 0, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("unsupported AI SDK type: %s", sdk)
 	}
@@ -1024,6 +957,53 @@ func cleanJSONResponse(response string) string {
 
 	// Trim again after removing code blocks
 	return strings.TrimSpace(response)
+}
+
+func extractJSONRobust(text string) (jsonData []byte, removedText string, err error) {
+	start := strings.Index(text, "{")
+	if start == -1 {
+		return nil, "", fmt.Errorf("no JSON object found")
+	}
+
+	// Capture the text that was removed (the "bullshit")
+	removedText = text[:start]
+
+	braceCount := 0
+	inString := false
+	escapeNext := false
+
+	for i := start; i < len(text); i++ {
+		char := text[i]
+
+		if escapeNext {
+			escapeNext = false
+			continue
+		}
+
+		if char == '\\' {
+			escapeNext = true
+			continue
+		}
+
+		if char == '"' {
+			inString = !inString
+			continue
+		}
+
+		if !inString {
+			switch char {
+			case '{':
+				braceCount++
+			case '}':
+				braceCount--
+				if braceCount == 0 {
+					return []byte(text[start : i+1]), removedText, nil
+				}
+			}
+		}
+	}
+
+	return nil, removedText, fmt.Errorf("unbalanced braces in JSON")
 }
 
 func buildUserPrompt(prompt string, obj *unstructured.Unstructured) string {
@@ -1213,6 +1193,18 @@ func (ai *aiManager) sendAiEvent(task *AiTaskLatest) {
 		Payload: map[string]interface{}{
 			"task":   task.Task,
 			"status": task.Status,
+		},
+		CreatedAt: time.Now(),
+	}
+	structs.ReportEventToServer(ai.eventClient, datagram)
+}
+
+func (ai *aiManager) sendAiDeleteEvent(taskId string) {
+	datagram := structs.Datagram{
+		Id:      utils.NanoId(),
+		Pattern: "AiDeleteEvent",
+		Payload: map[string]interface{}{
+			"taskId": taskId,
 		},
 		CreatedAt: time.Now(),
 	}

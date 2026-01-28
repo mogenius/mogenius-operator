@@ -15,6 +15,7 @@ const (
 	// secret keys for AI configuration
 	AI_CONFIG_SDK_KEY               = "SDK"
 	AI_CONFIG_MODEL_KEY             = "MODEL"
+	AI_CONFIG_MAX_TOOL_CALLS_KEY    = "MAX_TOOL_CALLS"
 	AI_CONFIG_API_KEY               = "API_KEY"
 	AI_CONFIG_API_URL_KEY           = "API_URL"
 	AI_CONFIG_DAILY_TOKEN_LIMIT_KEY = "DAILY_TOKEN_LIMIT"
@@ -101,6 +102,20 @@ func (ai *aiManager) getAiModel() (string, error) {
 		return "", fmt.Errorf("failed to get AI model: %v", err)
 	}
 	return data, nil
+}
+
+func (ai *aiManager) getAiMaxToolCalls() (int, error) {
+	data, err := ai.getAiSettingByKey(AI_CONFIG_MAX_TOOL_CALLS_KEY)
+	if err != nil {
+		return 2, fmt.Errorf("failed to get AI maxToolCalls: %v", err)
+	}
+
+	maxToolCalls, err := strconv.Atoi(data)
+	if err != nil {
+		return 2, fmt.Errorf("invalid max tool calls value: %v", err)
+	}
+
+	return maxToolCalls, nil
 }
 
 func (ai *aiManager) getAiSettingByKey(key string) (string, error) {
