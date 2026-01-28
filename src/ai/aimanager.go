@@ -357,6 +357,11 @@ func filterMatchesForObject(filter AiFilter, obj *unstructured.Unstructured) (bo
 
 // BACKGROUND PROCESSING
 func (ai *aiManager) Run() {
+	// On startup, reset any potentially orphaned in-progress tasks back to pending
+	if err := ai.resetInProgressTasksOnStartup(); err != nil {
+		ai.logger.Error("Failed resetting in-progress AI tasks on startup", "error", err)
+	}
+
 	ticker := time.NewTicker(1 * time.Minute)
 	go func() {
 		for range ticker.C {
@@ -382,6 +387,43 @@ func (ai *aiManager) Run() {
 			ai.processAiTaskQueue(ctx)
 		}
 	}()
+}
+
+// resetInProgressTasksOnStartup scans existing AI tasks and resets those left in
+// "in-progress" state (e.g., due to an unclean shutdown) back to "pending" so
+// they can be retried by the background processor. This should be called once
+// on application startup.
+func (ai *aiManager) resetInProgressTasksOnStartup() error {
+	keys, err := ai.getAllTaskKeys()
+	if err != nil {
+		return err
+	}
+
+	for _, key := range keys {
+		item, err := ai.valkeyClient.Get(key)
+		if err != nil {
+			ai.logger.Warn("Error fetching AI task during startup reset, skipping", "key", key, "error", err)
+			continue
+		}
+
+		var task AiTask
+		if err := json.Unmarshal([]byte(item), &task); err != nil {
+			ai.logger.Warn("Error unmarshalling AI task during startup reset, skipping", "key", key, "error", err)
+			continue
+		}
+
+		if task.State == AI_TASK_STATE_IN_PROGRESS {
+			task.State = AI_TASK_STATE_PENDING
+			task.Error = ""
+			if err := ai.createOrUpdateAiTask(&task, key); err != nil {
+				ai.logger.Error("Error updating AI task during startup reset", "taskID", task.ID, "error", err)
+				continue
+			}
+			ai.logger.Info("Reset AI task from in-progress to pending on startup", "taskID", task.ID)
+		}
+	}
+
+	return nil
 }
 
 func (ai *aiManager) processPendingTasks() {
