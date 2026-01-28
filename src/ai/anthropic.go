@@ -12,26 +12,48 @@ import (
 
 var anthropicTools = []anthropic.ToolParam{
 	{
-		Name:        "get_kubernetes_resources",
-		Description: anthropic.String("Get Kubernetes resources by kind, optionally filtered by name and namespace"),
+		Name:        "get_kubernetes_resource",
+		Description: anthropic.String("Get a specific Kubernetes resource by name. Use this when you know the exact name of the resource you want to retrieve."),
 		InputSchema: anthropic.ToolInputSchemaParam{
 			Type: "object",
 			Properties: map[string]interface{}{
 				"kind": map[string]interface{}{
 					"type":        "string",
-					"description": "The kind of the Kubernetes resource.",
+					"description": "The kind of the Kubernetes resource (e.g., Pod, Deployment, Service).",
 				},
 				"apiVersion": map[string]interface{}{
 					"type":        "string",
-					"description": "The API version of the resource.",
+					"description": "The API version of the resource (e.g., v1, apps/v1).",
 				},
 				"name": map[string]interface{}{
 					"type":        "string",
-					"description": "The name of the resource (optional).",
+					"description": "The name of the resource.",
 				},
 				"namespace": map[string]interface{}{
 					"type":        "string",
-					"description": "The namespace of the resource (optional).",
+					"description": "The namespace of the resource (optional for cluster-scoped resources).",
+				},
+			},
+			Required: []string{"kind", "apiVersion", "name"},
+		},
+	},
+	{
+		Name:        "list_kubernetes_resources",
+		Description: anthropic.String("List all Kubernetes resources of a given kind, optionally filtered by namespace. Use this when you want to see multiple resources or don't know the exact name."),
+		InputSchema: anthropic.ToolInputSchemaParam{
+			Type: "object",
+			Properties: map[string]interface{}{
+				"kind": map[string]interface{}{
+					"type":        "string",
+					"description": "The kind of the Kubernetes resource (e.g., Pod, Deployment, Service).",
+				},
+				"apiVersion": map[string]interface{}{
+					"type":        "string",
+					"description": "The API version of the resource (e.g., v1, apps/v1).",
+				},
+				"namespace": map[string]interface{}{
+					"type":        "string",
+					"description": "The namespace to list resources from (optional; omit to list from all namespaces or cluster-scoped resources).",
 				},
 			},
 			Required: []string{"kind", "apiVersion"},
@@ -74,7 +96,7 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, model, systemPr
 			System: []anthropic.TextBlockParam{
 				{
 					Type: "text",
-					Text: systemPrompt + "\n You have access to the following tool: get_kubernetes_resources. Use it to retrieve Kubernetes resources as needed to answer the user's question accurately.",
+					Text: systemPrompt + "\n IMPORTANT: You MUST use the provided tools to retrieve current Kubernetes resource information. Never make assumptions about what resources exist or their current state. Available tools: - get_kubernetes_resource: Fetch a specific resource when you know its exact name - list_kubernetes_resources: List all resources of a type, optionally filtered by namespace",
 				},
 			},
 			Messages:    messages,
@@ -132,7 +154,7 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, model, systemPr
 				iterationToolUses++
 				ai.logger.Info("Processing tool call", "tool", block.Name)
 
-				if block.Name == "get_kubernetes_resources" {
+				if block.Name == "get_kubernetes_resource" || block.Name == "list_kubernetes_resources" {
 					// Extract the arguments from the tool use
 					var args map[string]interface{}
 					inputBytes, err := json.Marshal(block.Input)
