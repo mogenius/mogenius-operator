@@ -215,6 +215,8 @@ func (ai *aiManager) ProcessObject(obj *unstructured.Unstructured, eventType str
 		if err != nil {
 			ai.logger.Error("Error deleting AI tasks for deleted object", "objectKind", obj.GetKind(), "objectName", obj.GetName(), "objectNamespace", obj.GetNamespace(), "error", err)
 		}
+		// send event notification
+		ai.sendAiDeleteEvent(key)
 		return
 	}
 
@@ -1185,6 +1187,18 @@ func (ai *aiManager) sendAiEvent(task *AiTaskLatest) {
 		Payload: map[string]interface{}{
 			"task":   task.Task,
 			"status": task.Status,
+		},
+		CreatedAt: time.Now(),
+	}
+	structs.ReportEventToServer(ai.eventClient, datagram)
+}
+
+func (ai *aiManager) sendAiDeleteEvent(taskId string) {
+	datagram := structs.Datagram{
+		Id:      utils.NanoId(),
+		Pattern: "AiDeleteEvent",
+		Payload: map[string]interface{}{
+			"taskId": taskId,
 		},
 		CreatedAt: time.Now(),
 	}
