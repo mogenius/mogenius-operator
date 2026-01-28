@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"mogenius-operator/src/store"
 	"time"
 
 	"github.com/ollama/ollama/api"
@@ -129,43 +128,30 @@ func (ai *aiManager) processPromptOllama(ctx context.Context, model, systemPromp
 		// Process each tool call
 		for _, toolCall := range toolCalls {
 			ai.logger.Info("Processing tool call", "tool", toolCall.Function.Name)
-			if toolCall.Function.Name == "get_kubernetes_resources" {
-				// Extract the arguments from the function call
-				var args map[string]interface{}
-				argsBytes, err := json.Marshal(toolCall.Function.Arguments)
-				if err != nil {
-					return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("error marshaling tool arguments: %v", err)
-				}
-				err = json.Unmarshal(argsBytes, &args)
-				if err != nil {
-					return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("error unmarshaling tool arguments: %v", err)
-				}
 
-				kind := args["kind"].(string)
-				apiVersion := args["apiVersion"].(string)
-				name, _ := args["name"].(string)
-				namespace, _ := args["namespace"].(string)
-
-				ai.logger.Info("Retrieving Kubernetes resources", "apiVersion", apiVersion, "kind", kind, "namespace", namespace, "name", name)
-				resources, err := store.GetResource(ai.valkeyClient, apiVersion, kind, namespace, name, ai.logger)
-				data := ""
-				if err != nil {
-					data = fmt.Sprintf("Error retrieving resources: %v", err)
-				} else {
-					resourceBytes, err := json.MarshalIndent(resources, "", "  ")
-					if err != nil {
-						data = fmt.Sprintf("Error marshaling resources: %v", err)
-					} else {
-						data = string(resourceBytes)
-					}
-				}
-
-				// Add tool result to messages
-				messages = append(messages, api.Message{
-					Role:    "tool",
-					Content: data,
-				})
+			// Extract the arguments from the function call
+			var args map[string]any
+			argsBytes, err := json.Marshal(toolCall.Function.Arguments)
+			if err != nil {
+				return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("error marshaling tool arguments: %v", err)
 			}
+			err = json.Unmarshal(argsBytes, &args)
+			if err != nil {
+				return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("error unmarshaling tool arguments: %v", err)
+			}
+
+			tool, ok := toolDefinitions[toolCall.Function.Name]
+			if !ok {
+				return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("unknown tool called: %s", toolCall.Function.Name)
+			}
+			data := tool(args, ai.valkeyClient, ai.logger)
+
+			// Add tool result to messages
+			messages = append(messages, api.Message{
+				Role:    "tool",
+				Content: data,
+			})
+
 		}
 
 		// Increase global tool call count and check limit
