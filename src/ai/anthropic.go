@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"mogenius-operator/src/store"
 	"time"
 
 	"github.com/anthropics/anthropic-sdk-go"
@@ -154,40 +153,26 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, model, systemPr
 				iterationToolUses++
 				ai.logger.Info("Processing tool call", "tool", block.Name)
 
-				if block.Name == "get_kubernetes_resource" || block.Name == "list_kubernetes_resources" {
-					// Extract the arguments from the tool use
-					var args map[string]interface{}
-					inputBytes, err := json.Marshal(block.Input)
-					if err != nil {
-						return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("error marshaling tool input: %v", err)
-					}
-					err = json.Unmarshal(inputBytes, &args)
-					if err != nil {
-						return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("error unmarshaling tool arguments: %v", err)
-					}
-
-					kind := args["kind"].(string)
-					apiVersion := args["apiVersion"].(string)
-					name, _ := args["name"].(string)
-					namespace, _ := args["namespace"].(string)
-
-					ai.logger.Info("Retrieving Kubernetes resources", "apiVersion", apiVersion, "kind", kind, "namespace", namespace, "name", name)
-					resources, err := store.GetResource(ai.valkeyClient, apiVersion, kind, namespace, name, ai.logger)
-					data := ""
-					if err != nil {
-						data = fmt.Sprintf("Error retrieving resources: %v", err)
-					} else {
-						resourceBytes, err := json.MarshalIndent(resources, "", "  ")
-						if err != nil {
-							data = fmt.Sprintf("Error marshaling resources: %v", err)
-						} else {
-							data = string(resourceBytes)
-						}
-					}
-
-					toolResults = append(toolResults, anthropic.NewToolResultBlock(block.ID, data, false))
+				// Extract the arguments from the tool use
+				var args map[string]any
+				inputBytes, err := json.Marshal(block.Input)
+				if err != nil {
+					return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("error marshaling tool input: %v", err)
 				}
+				err = json.Unmarshal(inputBytes, &args)
+				if err != nil {
+					return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("error unmarshaling tool arguments: %v", err)
+				}
+
+				tool, ok := toolDefinitions[block.Name]
+				if !ok {
+					return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("unknown tool called: %s", block.Name)
+				}
+				data := tool(args, ai.valkeyClient, ai.logger)
+
+				toolResults = append(toolResults, anthropic.NewToolResultBlock(block.ID, data, false))
 			}
+
 		}
 
 		if !hasToolUse {
