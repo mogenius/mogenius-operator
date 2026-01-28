@@ -13,6 +13,7 @@ metadata:
     {{- if .Values.features.nodeMetricsDashboard.ingress.ingressClassName }}
     kubernetes.io/ingress.class: {{ .Values.features.nodeMetricsDashboard.ingress.ingressClassName }}
     {{- end }}
+    nginx.ingress.kubernetes.io/rewrite-target: /stats
     {{- if .Values.features.nodeMetricsDashboard.ingress.annotations }}
     {{- toYaml .Values.features.nodeMetricsDashboard.ingress.annotations | nindent 4 }}
     {{- end }}
@@ -25,7 +26,14 @@ spec:
     - host: {{ .Values.features.nodeMetricsDashboard.ingress.host }}
       http:
         paths:
-          - path: /stats
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ .Values.fullnameOverride }}
+                port:
+                  name: http
+          - path: /socketapi
             pathType: Prefix
             backend:
               service:

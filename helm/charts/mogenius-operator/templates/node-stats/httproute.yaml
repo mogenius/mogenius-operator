@@ -25,7 +25,20 @@ spec:
     - matches:
         - path:
             type: PathPrefix
-            value: /stats
+            value: /
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /stats
+      backendRefs:
+        - name: {{ .Values.fullnameOverride }}
+          port: 1337
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /socketapi
       backendRefs:
         - name: {{ .Values.fullnameOverride }}
           port: 1337
