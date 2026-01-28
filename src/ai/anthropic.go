@@ -39,7 +39,7 @@ var anthropicTools = []anthropic.ToolParam{
 	},
 }
 
-func (ai *aiManager) processPromptAnthropic(ctx context.Context, model, systemPrompt, prompt string) (*AiResponse, int64, int, string, error) {
+func (ai *aiManager) processPromptAnthropic(ctx context.Context, model, systemPrompt, prompt string, maxToolCalls int) (*AiResponse, int64, int, string, error) {
 	startTime := time.Now()
 
 	tools := make([]anthropic.ToolUnionParam, len(anthropicTools))
@@ -63,7 +63,10 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, model, systemPr
 
 	var tokensUsed int64 = 0
 
-	// Loop until there are no more tool calls
+	// Track total number of tool calls across iterations
+	toolCallCount := 0
+
+	// Loop until there are no more tool calls or maxToolCalls reached
 	for {
 		message, err := client.Messages.New(ctx, anthropic.MessageNewParams{
 			Model:     anthropic.Model(model),
@@ -121,10 +124,12 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, model, systemPr
 		// Check if there are tool calls to process
 		hasToolUse := false
 		var toolResults []anthropic.ContentBlockParamUnion
+		iterationToolUses := 0
 
 		for _, block := range message.Content {
 			if block.Type == "tool_use" {
 				hasToolUse = true
+				iterationToolUses++
 				ai.logger.Info("Processing tool call", "tool", block.Name)
 
 				if block.Name == "get_kubernetes_resources" {
@@ -184,6 +189,33 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, model, systemPr
 			err = json.Unmarshal(responseBytes, &aiResponse)
 			if err != nil {
 				return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("error unmarshaling AI response: %v\n%s", err, responseText)
+			}
+
+			return &aiResponse, tokensUsed, int(time.Since(startTime).Milliseconds()), model, nil
+		}
+
+		// Increase global tool call count and check limit
+		toolCallCount += iterationToolUses
+		if maxToolCalls > 0 && toolCallCount >= maxToolCalls {
+			ai.logger.Info("Max tool call limit reached, exiting loop", "maxToolCalls", maxToolCalls, "toolCallCount", toolCallCount)
+
+			// Try to finalize using any text presently returned
+			var responseText string
+			for _, block := range message.Content {
+				if block.Type == "text" {
+					responseText += block.Text
+				}
+			}
+			responseText = cleanJSONResponse(responseText)
+			responseBytes, removedText, err := extractJSONRobust(responseText)
+			ai.logger.Info("Extracted JSON after max tool calls", "removed_text", removedText)
+			if err != nil {
+				return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("max tool calls reached (%d) without final text: %v", maxToolCalls, err)
+			}
+
+			var aiResponse AiResponse
+			if err := json.Unmarshal(responseBytes, &aiResponse); err != nil {
+				return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("error unmarshaling AI response after max tool calls: %v\n%s", err, responseText)
 			}
 
 			return &aiResponse, tokensUsed, int(time.Since(startTime).Milliseconds()), model, nil

@@ -39,7 +39,7 @@ var openAiTools = []openai.ChatCompletionToolUnionParam{
 	},
 }
 
-func (ai *aiManager) processPromptOpenAi(ctx context.Context, model, systemPrompt, prompt string) (*AiResponse, int64, int, string, error) {
+func (ai *aiManager) processPromptOpenAi(ctx context.Context, model, systemPrompt, prompt string, maxToolCalls int) (*AiResponse, int64, int, string, error) {
 	startTime := time.Now()
 
 	client, err := ai.getOpenAIClient(nil)
@@ -59,8 +59,7 @@ func (ai *aiManager) processPromptOpenAi(ctx context.Context, model, systemPromp
 
 	var tokensUsed int64 = 0
 	var chatCompletion *openai.ChatCompletion
-
-	// Loop until there are no more tool calls
+	toolCallCount := 0
 	for {
 		chatCompletion, err = client.Chat.Completions.New(ctx, params)
 		if err != nil {
@@ -115,6 +114,27 @@ func (ai *aiManager) processPromptOpenAi(ctx context.Context, model, systemPromp
 
 				params.Messages = append(params.Messages, openai.ToolMessage(data, toolCall.ID))
 			}
+		}
+
+		// Increase global tool call count and check limit
+		toolCallCount += len(chatCompletion.Choices[0].Message.ToolCalls)
+		if maxToolCalls > 0 && toolCallCount >= maxToolCalls {
+			ai.logger.Info("Max tool call limit reached, exiting loop", "maxToolCalls", maxToolCalls, "toolCallCount", toolCallCount)
+
+			// Try to finalize using any text presently returned
+			responseText := cleanJSONResponse(chatCompletion.Choices[0].Message.Content)
+			responseBytes, removedText, err := extractJSONRobust(responseText)
+			ai.logger.Info("Extracted JSON after max tool calls", "removed_text", removedText)
+			if err != nil {
+				return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("max tool calls reached (%d) without final text: %v", maxToolCalls, err)
+			}
+
+			var aiResponse AiResponse
+			if err := json.Unmarshal(responseBytes, &aiResponse); err != nil {
+				return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("error unmarshaling AI response after max tool calls: %v\n%s", err, chatCompletion.Choices[0].Message.Content)
+			}
+
+			return &aiResponse, tokensUsed, int(time.Since(startTime).Milliseconds()), model, nil
 		}
 		// Continue the loop to get the next response with tool results
 	}

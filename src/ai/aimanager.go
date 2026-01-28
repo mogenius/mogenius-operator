@@ -106,6 +106,7 @@ type AiManagerStatus struct {
 	TokenLimit                  int64     `json:"tokenLimit"`
 	TokensUsed                  int64     `json:"tokensUsed"`
 	Model                       string    `json:"model"`
+	MaxToolCalls                int       `json:"maxToolCalls"`
 	ApiUrl                      string    `json:"apiUrl"`
 	IsAiPromptConfigInitialized bool      `json:"isAiPromptConfigInitialized"`
 	IsAiModelConfigInitialized  bool      `json:"isAiModelConfigInitialized"`
@@ -923,17 +924,22 @@ func (ai *aiManager) processPrompt(ctx context.Context, prompt string) (response
 	}
 	systemPrompt := ai.getSystemPrompt()
 
+	maxToolCalls, err := ai.getAiMaxToolCalls()
+	if err != nil {
+		ai.logger.Warn("Error getting AI max tool calls (using default value)", "error", err, "defaultMaxToolCalls", maxToolCalls)
+	}
+
 	sdk, err := ai.getSdkType()
 	if err != nil {
 		return nil, 0, int(time.Since(startTime).Milliseconds()), model, err
 	}
 	switch sdk {
 	case AiSdkTypeOpenAI:
-		return ai.processPromptOpenAi(ctx, model, systemPrompt, prompt)
+		return ai.processPromptOpenAi(ctx, model, systemPrompt, prompt, maxToolCalls)
 	case AiSdkTypeAnthropic:
-		return ai.processPromptAnthropic(ctx, model, systemPrompt, prompt)
+		return ai.processPromptAnthropic(ctx, model, systemPrompt, prompt, maxToolCalls)
 	case AiSdkTypeOllama:
-		return ai.processPromptOllama(ctx, model, systemPrompt, prompt)
+		return ai.processPromptOllama(ctx, model, systemPrompt, prompt, maxToolCalls)
 	default:
 		return nil, 0, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("unsupported AI SDK type: %s", sdk)
 	}

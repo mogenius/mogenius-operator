@@ -39,7 +39,7 @@ func buildTools() {
 	}
 }
 
-func (ai *aiManager) processPromptOllama(ctx context.Context, model, systemPrompt, prompt string) (*AiResponse, int64, int, string, error) {
+func (ai *aiManager) processPromptOllama(ctx context.Context, model, systemPrompt, prompt string, maxToolCalls int) (*AiResponse, int64, int, string, error) {
 	buildTools()
 	startTime := time.Now()
 
@@ -62,8 +62,8 @@ func (ai *aiManager) processPromptOllama(ctx context.Context, model, systemPromp
 	falsePtr := false
 	truePtr := true
 	var tokensUsed int64 = 0
+	toolCallCount := 0
 
-	// Loop until there are no more tool calls
 	for {
 		req := &api.ChatRequest{
 			Model:    model,
@@ -166,6 +166,27 @@ func (ai *aiManager) processPromptOllama(ctx context.Context, model, systemPromp
 					Content: data,
 				})
 			}
+		}
+
+		// Increase global tool call count and check limit
+		toolCallCount += len(toolCalls)
+		if maxToolCalls > 0 && toolCallCount >= maxToolCalls {
+			ai.logger.Info("Max tool call limit reached, exiting loop", "maxToolCalls", maxToolCalls, "toolCallCount", toolCallCount)
+
+			// Try to finalize using any text presently returned
+			responseText = cleanJSONResponse(responseText)
+			responseBytes, removedText, err := extractJSONRobust(responseText)
+			ai.logger.Info("Extracted JSON after max tool calls", "removed_text", removedText)
+			if err != nil {
+				return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("max tool calls reached (%d) without final text: %v", maxToolCalls, err)
+			}
+
+			var aiResponse AiResponse
+			if err := json.Unmarshal(responseBytes, &aiResponse); err != nil {
+				return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("error unmarshaling AI response after max tool calls: %v\n%s", err, responseText)
+			}
+
+			return &aiResponse, tokensUsed, int(time.Since(startTime).Milliseconds()), model, nil
 		}
 
 		// Continue the loop to get the next response with tool results
