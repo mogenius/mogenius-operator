@@ -11,7 +11,7 @@ import (
 
 var anthropicTools = []anthropic.ToolParam{
 	{
-		Name:        "get_kubernetes_resource",
+		Name:        "get_kubernetes_resources",
 		Description: anthropic.String("Get a specific Kubernetes resource by name. Use this when you know the exact name of the resource you want to retrieve."),
 		InputSchema: anthropic.ToolInputSchemaParam{
 			Type: "object",

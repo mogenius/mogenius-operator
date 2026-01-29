@@ -9,7 +9,7 @@ import (
 )
 
 var toolDefinitions = map[string]func(map[string]any, valkeyclient.ValkeyClient, *slog.Logger) string{
-	"get_kubernetes_resource":   getKubernetesResourcesTool,
+	"get_kubernetes_resources":  getKubernetesResourcesTool,
 	"list_kubernetes_resources": getKubernetesResourcesTool,
 }
 
