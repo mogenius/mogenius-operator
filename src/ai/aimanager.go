@@ -92,6 +92,7 @@ type AiFilter struct {
 	Excludes    map[string]string `json:"excludes"` // {"Succeeded": "status.phase"}, {"Completed": "status.phase"}
 	Prompt      string            `json:"prompt"`
 	For         *time.Duration    `json:"for,omitempty"` // optional duration for which the condition should be met
+	IsActive    bool              `json:"isActive"`
 }
 
 type AiPromptConfig struct {
@@ -99,6 +100,7 @@ type AiPromptConfig struct {
 	Name         string     `json:"name"`
 	SystemPrompt string     `json:"systemPrompt"`
 	Filters      []AiFilter `json:"filters"`
+	UserFilters  []AiFilter `json:"userFilters"` // filters added by users via the UI
 }
 
 type AiManagerStatus struct {
@@ -171,6 +173,7 @@ type AiManager interface {
 	ResetDailyTokenLimit() error
 	DeleteAllAiData() error
 	GetAvailableModels(request *ModelsRequest) ([]string, error)
+	GetPromptConfig() (*AiPromptConfig, error)
 }
 
 type SecretGetter func(namespace, name string) (*coreV1.Secret, error)

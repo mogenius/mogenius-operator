@@ -51,6 +51,13 @@ func (ai *aiManager) getAiFilters() []AiFilter {
 	return ai.aiPromptConfig.Filters
 }
 
+func (ai *aiManager) GetPromptConfig() (*AiPromptConfig, error) {
+	if ai.aiPromptConfig == nil {
+		return nil, fmt.Errorf("AI prompt configuration is not initialized")
+	}
+	return ai.aiPromptConfig, nil
+}
+
 func (ai *aiManager) getDailyTokenLimit() (int64, error) {
 	data, err := ai.getAiSettingByKey(AI_CONFIG_DAILY_TOKEN_LIMIT_KEY)
 	if err != nil {

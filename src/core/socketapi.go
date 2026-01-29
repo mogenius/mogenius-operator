@@ -1616,8 +1616,17 @@ func (self *socketApi) registerPatterns() {
 			PatternHandle{self, "aiManager/inject-prompt-config"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (Void, error) {
-				self.aiApi.InjectAiPromptConfig(request.AiPromptConfig)
-				return store.AddToAuditLog[Void](datagram, self.logger, nil, nil, nil, nil)
+				mergedPromptCfg, err := kubernetes.CreateOrUpdateAndMergePromptConfig(request.AiPromptConfig)
+				self.aiApi.InjectAiPromptConfig(mergedPromptCfg)
+				return store.AddToAuditLog[Void](datagram, self.logger, nil, err, nil, nil)
+			},
+		)
+
+		RegisterPatternHandler(
+			PatternHandle{self, "aiManager/get/prompt-config"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Void) (*ai.AiPromptConfig, error) {
+				return self.aiApi.GetPromptConfig()
 			},
 		)
 	}

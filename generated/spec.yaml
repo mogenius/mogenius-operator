@@ -156,6 +156,8 @@ aiManager/detail/tasks:
                         type: int
                     id:
                         type: string
+                    isActive:
+                        type: bool
                     kind:
                         type: string
                     name:
@@ -343,6 +345,80 @@ aiManager/get/models:
         typeInfo:
             structRef: mogenius-operator/src/core.Result[*mogenius-operator/src/ai.ModelsRequest,[]string]
             type: struct
+aiManager/get/prompt-config:
+    requestSchema:
+        structs:
+            ANON_STRUCT_0:
+                properties: {}
+        typeInfo:
+            pointer: true
+            structRef: ANON_STRUCT_0
+            type: struct
+    responseSchema:
+        structs:
+            mogenius-operator/src/ai.AiFilter:
+                name: mogenius-operator/src/ai.AiFilter
+                properties:
+                    contains:
+                        keyType:
+                            type: string
+                        type: map
+                        valueType:
+                            type: string
+                    description:
+                        type: string
+                    excludes:
+                        keyType:
+                            type: string
+                        type: map
+                        valueType:
+                            type: string
+                    for:
+                        pointer: true
+                        type: int
+                    id:
+                        type: string
+                    isActive:
+                        type: bool
+                    kind:
+                        type: string
+                    name:
+                        type: string
+                    prompt:
+                        type: string
+            mogenius-operator/src/ai.AiPromptConfig:
+                name: mogenius-operator/src/ai.AiPromptConfig
+                properties:
+                    filters:
+                        elementType:
+                            structRef: mogenius-operator/src/ai.AiFilter
+                            type: struct
+                        type: array
+                    id:
+                        type: string
+                    name:
+                        type: string
+                    systemPrompt:
+                        type: string
+                    userFilters:
+                        elementType:
+                            structRef: mogenius-operator/src/ai.AiFilter
+                            type: struct
+                        type: array
+            mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,*mogenius-operator/src/ai.AiPromptConfig]:
+                name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,*mogenius-operator/src/ai.AiPromptConfig]
+                properties:
+                    data:
+                        pointer: true
+                        structRef: mogenius-operator/src/ai.AiPromptConfig
+                        type: struct
+                    message:
+                        type: string
+                    status:
+                        type: string
+        typeInfo:
+            structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,*mogenius-operator/src/ai.AiPromptConfig]
+            type: struct
 aiManager/get/tasks:
     requestSchema:
         structs:
@@ -378,6 +454,8 @@ aiManager/get/tasks:
                         type: int
                     id:
                         type: string
+                    isActive:
+                        type: bool
                     kind:
                         type: string
                     name:
@@ -557,6 +635,8 @@ aiManager/inject-prompt-config:
                         type: int
                     id:
                         type: string
+                    isActive:
+                        type: bool
                     kind:
                         type: string
                     name:
@@ -577,6 +657,11 @@ aiManager/inject-prompt-config:
                         type: string
                     systemPrompt:
                         type: string
+                    userFilters:
+                        elementType:
+                            structRef: mogenius-operator/src/ai.AiFilter
+                            type: struct
+                        type: array
             mogenius-operator/src/core.Request:
                 name: mogenius-operator/src/core.Request
                 properties:
@@ -640,6 +725,8 @@ aiManager/latest/task:
                         type: int
                     id:
                         type: string
+                    isActive:
+                        type: bool
                     kind:
                         type: string
                     name:
