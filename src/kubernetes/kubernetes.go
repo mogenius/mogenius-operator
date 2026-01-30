@@ -16,8 +16,6 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-const AI_FILTERS_CONFIGMAP_NAME = "mogenius-ai-filters-config"
-
 var config cfg.ConfigModule
 var k8sLogger *slog.Logger
 var clientProvider k8sclient.K8sClientProvider
@@ -69,7 +67,7 @@ func CreateOrUpdateAndMergePromptConfig(newPromptCfg ai.AiPromptConfig) (ai.AiPr
 			Kind:       utils.ConfigMapResource.Kind,
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      AI_FILTERS_CONFIGMAP_NAME,
+			Name:      utils.AI_FILTERS_CONFIGMAP_NAME,
 			Namespace: config.Get("MO_OWN_NAMESPACE"),
 		},
 		Data: map[string]string{
@@ -79,7 +77,7 @@ func CreateOrUpdateAndMergePromptConfig(newPromptCfg ai.AiPromptConfig) (ai.AiPr
 	}
 
 	// get existing configmap and merge if exists
-	existingCfgMapUnstructured, err := GetUnstructuredResource(utils.ConfigMapResource.ApiVersion, utils.ConfigMapResource.Plural, config.Get("MO_OWN_NAMESPACE"), AI_FILTERS_CONFIGMAP_NAME)
+	existingCfgMapUnstructured, err := GetUnstructuredResource(utils.ConfigMapResource.ApiVersion, utils.ConfigMapResource.Plural, config.Get("MO_OWN_NAMESPACE"), utils.AI_FILTERS_CONFIGMAP_NAME)
 	if apierrors.IsNotFound(err) {
 		// create if not exists
 		cfgMapYaml, err := yaml.Marshal(cfgMap)

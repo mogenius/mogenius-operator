@@ -29,6 +29,8 @@ import (
 	"github.com/patrickmn/go-cache"
 )
 
+const AI_FILTERS_CONFIGMAP_NAME = "mogenius-ai-filters-config"
+
 var CURRENT_COUNTRY *CountryDetails
 
 var config cfg.ConfigModule

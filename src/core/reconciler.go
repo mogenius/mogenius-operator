@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"hash/fnv"
 	"log/slog"
+	"mogenius-operator/src/ai"
 	"mogenius-operator/src/assert"
 	"mogenius-operator/src/config"
 	"mogenius-operator/src/crds"
@@ -17,12 +18,12 @@ import (
 	"sync/atomic"
 	"time"
 
-	"gopkg.in/yaml.v3"
 	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/yaml"
 )
 
 type Reconciler interface {
@@ -38,6 +39,7 @@ type reconciler struct {
 	config         config.ConfigModule
 	clientProvider k8sclient.K8sClientProvider
 	leaderElector  LeaderElector
+	aiApi          AiApi
 	active         atomic.Bool
 	watcher        watcher.WatcherModule
 	status         ReconcilerStatus
@@ -68,12 +70,14 @@ func NewReconciler(
 	logger *slog.Logger,
 	config config.ConfigModule,
 	clientProvider k8sclient.K8sClientProvider,
+	aiApi AiApi,
 ) Reconciler {
 	self := &reconciler{}
 	self.logger = logger
 	self.config = config
 	self.clientProvider = clientProvider
 	self.active = atomic.Bool{}
+	self.aiApi = aiApi
 	self.watcher = watcher.NewWatcher(self.logger.With("scope", "watcher"), self.clientProvider)
 	self.status = NewReconcilerStatus()
 	self.statusLock = sync.RWMutex{}
@@ -95,6 +99,7 @@ func NewReconciler(
 		{Plural: "clusterroles", Kind: "ClusterRole", ApiVersion: "rbac.authorization.k8s.io/v1", Namespaced: false},
 		{Plural: "clusterrolebindings", Kind: "ClusterRoleBinding", ApiVersion: "rbac.authorization.k8s.io/v1", Namespaced: false},
 		{Plural: "rolebindings", Kind: "RoleBinding", ApiVersion: "rbac.authorization.k8s.io/v1", Namespaced: false},
+		{Plural: "configmaps", Kind: "ConfigMap", ApiVersion: "v1", Namespaced: true},
 	}
 	self.namespaces = []v1.Namespace{}
 	self.namespacesLock = sync.RWMutex{}
@@ -518,6 +523,8 @@ func (self *reconciler) enableWatcher() {
 					self.addClusterRole(obj)
 				case "Namespace":
 					self.addNamespace(obj)
+				case "ConfigMap":
+					self.handleConfigMapChange(obj)
 				default:
 					assert.Assert(false, "Unreachable", "All allowed kinds should be handled", obj.GetKind(), obj)
 				}
@@ -548,6 +555,8 @@ func (self *reconciler) enableWatcher() {
 				case "Namespace":
 					self.removeNamespace(oldObj)
 					self.addNamespace(newObj)
+				case "ConfigMap":
+					self.handleConfigMapChange(newObj)
 				default:
 					assert.Assert(false, "Unreachable", "All allowed kinds should be handled", newObj.GetKind(), newObj)
 				}
@@ -569,6 +578,8 @@ func (self *reconciler) enableWatcher() {
 					self.removeClusterRole(obj)
 				case "Namespace":
 					self.removeNamespace(obj)
+				case "ConfigMap":
+					// ConfigMap deleted — nothing to do, prompt config stays in memory
 				default:
 					assert.Assert(false, "Unreachable", "All allowed kinds should be handled", obj.GetKind(), obj)
 				}
@@ -587,6 +598,51 @@ func (self *reconciler) disableWatcher() {
 			self.logger.Error("failed to unwatch resource", "resource", resource, "error", err)
 		}
 	}
+}
+
+func (self *reconciler) handleConfigMapChange(obj *unstructured.Unstructured) {
+	if obj.GetName() != utils.AI_FILTERS_CONFIGMAP_NAME || obj.GetNamespace() != self.config.Get("MO_OWN_NAMESPACE") {
+		return
+	}
+
+	self.logger.Info("AI filters ConfigMap changed, updating prompt config")
+
+	data, found, err := unstructured.NestedStringMap(obj.Object, "data")
+	if err != nil || !found {
+		self.logger.Error("failed to read ConfigMap data", "error", err)
+		return
+	}
+
+	var filters []ai.AiFilter
+	if filtersYaml, ok := data["filters"]; ok {
+		if err := yaml.Unmarshal([]byte(filtersYaml), &filters); err != nil {
+			self.logger.Error("failed to unmarshal filters from ConfigMap", "error", err)
+			return
+		}
+	}
+
+	var userFilters []ai.AiFilter
+	if userFiltersYaml, ok := data["userFilters"]; ok {
+		if err := yaml.Unmarshal([]byte(userFiltersYaml), &userFilters); err != nil {
+			self.logger.Error("failed to unmarshal userFilters from ConfigMap", "error", err)
+			return
+		}
+	}
+
+	existingConfig, err := self.aiApi.GetPromptConfig()
+	var updatedConfig ai.AiPromptConfig
+	if err == nil && existingConfig != nil {
+		updatedConfig = *existingConfig
+		updatedConfig.Filters = filters
+		updatedConfig.UserFilters = userFilters
+	} else {
+		updatedConfig = ai.AiPromptConfig{
+			Filters:     filters,
+			UserFilters: userFilters,
+		}
+	}
+
+	self.aiApi.InjectAiPromptConfig(updatedConfig)
 }
 
 func (self *reconciler) clearCaches() {

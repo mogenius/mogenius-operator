@@ -492,7 +492,7 @@ func InitializeSystems(
 	moKubernetes := core.NewMoKubernetes(logManagerModule.CreateLogger("mokubernetes"), configModule, clientProvider)
 	mocore := core.NewCore(logManagerModule.CreateLogger("core"), configModule, clientProvider, valkeyClient, eventConnectionClient, jobConnectionClient)
 	leaderElector := core.NewLeaderElector(logManagerModule.CreateLogger("leader-elector"), configModule, clientProvider)
-	reconciler := core.NewReconciler(logManagerModule.CreateLogger("reconciler"), configModule, clientProvider)
+	reconciler := core.NewReconciler(logManagerModule.CreateLogger("reconciler"), configModule, clientProvider, aiApi)
 	sealedSecret := core.NewSealedSecretManager(logManagerModule.CreateLogger("sealed-secret"), configModule, clientProvider)
 
 	// initialization step 2 for services
