@@ -99,7 +99,7 @@ func MoAddLabels(existingLabels *map[string]string, newLabels map[string]string)
 	return resultingLabels
 }
 
-// mount nfs server in k8s-manager
+// mount nfs server in operator pod
 func Mount(volumeNamespace string, volumeName string, nfsService *core.Service) {
 	go func() {
 		var service *core.Service = nfsService
@@ -113,7 +113,7 @@ func Mount(volumeNamespace string, volumeName string, nfsService *core.Service) 
 			autoMountNfs, err := strconv.ParseBool(config.Get("MO_AUTO_MOUNT_NFS"))
 			assert.Assert(err == nil, err)
 			if autoMountNfs && clientProvider.RunsInCluster() {
-				title := fmt.Sprintf("Mount [%s] into k8s-manager", volumeName)
+				title := fmt.Sprintf("Mount [%s] into operator pod", volumeName)
 				mountDir := fmt.Sprintf("%s/%s_%s", config.Get("MO_DEFAULT_MOUNT_PATH"), volumeNamespace, volumeName)
 				shellCmd := fmt.Sprintf("mount.nfs -o nolock %s:/exports %s", service.Spec.ClusterIP, mountDir)
 				utils.CreateDirIfNotExist(mountDir)
@@ -135,13 +135,13 @@ func ServiceForNfsVolume(volumeNamespace string, volumeName string) *core.Servic
 	return nil
 }
 
-// umount nfs server in k8s-manager
+// umount nfs server in operator pod
 func Umount(volumeNamespace string, volumeName string) {
 	go func() {
 		autoMountNfs, err := strconv.ParseBool(config.Get("MO_AUTO_MOUNT_NFS"))
 		assert.Assert(err == nil, err)
 		if autoMountNfs && clientProvider.RunsInCluster() {
-			title := fmt.Sprintf("Unmount [%s] from k8s-manager", volumeName)
+			title := fmt.Sprintf("Unmount [%s] from operator pod", volumeName)
 			mountDir := fmt.Sprintf("%s/%s_%s", config.Get("MO_DEFAULT_MOUNT_PATH"), volumeNamespace, volumeName)
 			shellCmd := fmt.Sprintf("umount %s", mountDir)
 			utils.ExecuteShellCommandWithResponse(title, shellCmd)

@@ -29,33 +29,6 @@ type User struct {
 
 type UserSource string
 
-const (
-	SourceUser              UserSource = "user"
-	SourceDemoController    UserSource = "demo-controller"
-	SourceTaskService       UserSource = "task-service"
-	SourceQueueService      UserSource = "queue-service"
-	SourceK8sManagerService UserSource = "k8s-manager-service"
-	SourceGitService        UserSource = "git-service"
-)
-
-var UserSourceToString = map[UserSource]string{
-	SourceUser:              "user",
-	SourceDemoController:    "demo-controller",
-	SourceTaskService:       "task-service",
-	SourceQueueService:      "queue-service",
-	SourceK8sManagerService: "k8s-manager-service",
-	SourceGitService:        "git-service",
-}
-
-var UserSourceFromString = map[string]UserSource{
-	"user":                SourceUser,
-	"demo-controller":     SourceDemoController,
-	"task-service":        SourceTaskService,
-	"queue-service":       SourceQueueService,
-	"k8s-manager-service": SourceK8sManagerService,
-	"git-service":         SourceGitService,
-}
-
 func CreateDatagramNotificationFromJob(data *Job) Datagram {
 	// delay for timing issue caused by events being triggered too closely together
 	time.Sleep(100 * time.Millisecond)

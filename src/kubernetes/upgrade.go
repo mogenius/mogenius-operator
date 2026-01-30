@@ -15,12 +15,8 @@ import (
 	"k8s.io/utils/ptr"
 )
 
+// restart deployments/daemonsets for operator
 func ClusterForceReconnect() bool {
-	// restart deployments/daemonsets for
-	// - traffic
-	// - podstats
-	// - k8s-manager
-
 	clientset := clientProvider.K8sClientSet()
 	podClient := clientset.CoreV1().Pods(config.Get("MO_OWN_NAMESPACE"))
 
@@ -38,16 +34,12 @@ func ClusterForceReconnect() bool {
 	return true
 }
 
+// restart deployments/daemonsets for operator
 func ClusterForceDisconnect() bool {
-	// restart deployments/daemonsets for
-	// - traffic
-	// - podstats
-	// - k8s-manager
-
 	clientset := clientProvider.K8sClientSet()
 	podClient := clientset.CoreV1().Pods(config.Get("MO_OWN_NAMESPACE"))
 
-	// stop k8s-manager
+	// stop operator
 	deploymentClient := clientset.AppsV1().Deployments(config.Get("MO_OWN_NAMESPACE"))
 	deployment, _ := deploymentClient.Get(context.Background(), GetOwnDeploymentName(config), metav1.GetOptions{})
 	deployment.Spec.Replicas = utils.Pointer[int32](0)
