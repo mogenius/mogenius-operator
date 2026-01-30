@@ -16,7 +16,7 @@ import (
 
 	json "github.com/goccy/go-json"
 
-	"gopkg.in/yaml.v3"
+	"sigs.k8s.io/yaml"
 )
 
 type patternsArgs struct {

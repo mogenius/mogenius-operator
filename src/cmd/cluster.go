@@ -38,7 +38,6 @@ func RunCluster(logManagerModule logging.SlogManager, configModule *config.Confi
 		systems.dbstatsService.Run()
 		systems.reconciler.Run()
 		systems.leaderElector.Run()
-		// TODO: @Bene right place for this?
 		systems.aiManager.Run()
 
 		// services have to be started before this otherwise watcher events will get missing
