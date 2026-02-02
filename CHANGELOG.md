@@ -1,3 +1,10 @@
+# [2.19.0-develop.24](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.23...v2.19.0-develop.24) (2026-02-02)
+
+
+### Bug Fixes
+
+* helm v4 rollback fixed. update/install default repos. ([84cadf0](https://github.com/mogenius/mogenius-operator/commit/84cadf0a53b9d80f6b80e409d5671bbe064b1cd1))
+
 # [2.19.0-develop.23](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.22...v2.19.0-develop.23) (2026-02-02)
 
 
