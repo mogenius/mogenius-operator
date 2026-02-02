@@ -41,6 +41,7 @@ const (
 	MetalLBHelmIndex                  = "https://metallb.github.io/metallb"
 	MogeniusHelmIndex                 = "https://helm.mogenius.com/public"
 	PrometheusCommunityHelmIndex      = "https://prometheus-community.github.io/helm-charts"
+	ArgocdHelmIndex                   = "https://argoproj.github.io/argo-helm"
 )
 
 func CreateMogeniusNfsVolume(eventClient websocket.WebsocketClient, r NfsVolumeRequest) structs.DefaultResponse {

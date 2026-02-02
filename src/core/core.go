@@ -261,15 +261,20 @@ func (self *core) Initialize() error {
 	})
 
 	// Init Helm Config
-	wg.Go(func() {
+	go func() {
 		if err := helm.InitHelmConfig(); err != nil {
 			self.logger.Error("failed to initialize Helm config", "error", err)
 			return
 		}
 		self.logger.Info("Helm config initialized")
-	})
 
-	wg.Wait()
+		basicRepos := services.BasicRepos()
+		err := helm.InitBasicRepos(basicRepos)
+		if err != nil {
+			self.logger.Error("failed to initialize helm basic repos", "error", err)
+		}
+		self.logger.Info("basicRepos initialized", "len", len(basicRepos))
+	}()
 
 	return nil
 }

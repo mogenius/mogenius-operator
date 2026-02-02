@@ -435,12 +435,12 @@ export const PatternToString = {
  *
  * ```yaml
  * structs:
- *     ANON_STRUCT_0:
- *         properties: {}
+ *   ANON_STRUCT_0:
+ *     properties: {}
  * typeInfo:
- *     pointer: true
- *     structRef: ANON_STRUCT_0
- *     type: struct
+ *   pointer: true
+ *   structRef: ANON_STRUCT_0
+ *   type: struct
  * ```
  *
  */
@@ -451,22 +451,22 @@ export type AIMANAGER_DELETE_ALL_DATA_REQUEST = AIMANAGER_DELETE_ALL_DATA_REQUES
  *
  * ```yaml
  * structs:
- *     ANON_STRUCT_1:
- *         properties: {}
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Void]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Void]
- *         properties:
- *             data:
- *                 pointer: true
- *                 structRef: ANON_STRUCT_1
- *                 type: struct
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   ANON_STRUCT_1:
+ *     properties: {}
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Void]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Void]
+ *     properties:
+ *       data:
+ *         pointer: true
+ *         structRef: ANON_STRUCT_1
+ *         type: struct
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Void]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Void]
+ *   type: struct
  * ```
  *
  */
@@ -477,30 +477,30 @@ export type AIMANAGER_DELETE_ALL_DATA_RESPONSE = AIMANAGER_DELETE_ALL_DATA_RESPO
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/utils.ResourceDescriptor:
- *         name: mogenius-operator/src/utils.ResourceDescriptor
- *         properties:
- *             apiVersion:
- *                 type: string
- *             kind:
- *                 type: string
- *             namespaced:
- *                 type: bool
- *             plural:
- *                 type: string
- *     mogenius-operator/src/utils.WorkloadSingleRequest:
- *         name: mogenius-operator/src/utils.WorkloadSingleRequest
- *         properties:
- *             ResourceDescriptor:
- *                 structRef: mogenius-operator/src/utils.ResourceDescriptor
- *                 type: struct
- *             namespace:
- *                 type: string
- *             resourceName:
- *                 type: string
+ *   mogenius-operator/src/utils.ResourceDescriptor:
+ *     name: mogenius-operator/src/utils.ResourceDescriptor
+ *     properties:
+ *       apiVersion:
+ *         type: string
+ *       kind:
+ *         type: string
+ *       namespaced:
+ *         type: bool
+ *       plural:
+ *         type: string
+ *   mogenius-operator/src/utils.WorkloadSingleRequest:
+ *     name: mogenius-operator/src/utils.WorkloadSingleRequest
+ *     properties:
+ *       ResourceDescriptor:
+ *         structRef: mogenius-operator/src/utils.ResourceDescriptor
+ *         type: struct
+ *       namespace:
+ *         type: string
+ *       resourceName:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/utils.WorkloadSingleRequest
- *     type: struct
+ *   structRef: mogenius-operator/src/utils.WorkloadSingleRequest
+ *   type: struct
  * ```
  *
  */
@@ -511,184 +511,184 @@ export type AIMANAGER_DETAIL_TASKS_REQUEST = AIMANAGER_DETAIL_TASKS_REQUEST__MOG
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/ai.AiFilter:
- *         name: mogenius-operator/src/ai.AiFilter
- *         properties:
- *             contains:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     type: string
- *             description:
- *                 type: string
- *             excludes:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     type: string
- *             for:
- *                 pointer: true
- *                 type: int
- *             id:
- *                 type: string
- *             isActive:
- *                 type: bool
- *             kind:
- *                 type: string
- *             name:
- *                 type: string
- *             prompt:
- *                 type: string
- *     mogenius-operator/src/ai.AiResponse:
- *         name: mogenius-operator/src/ai.AiResponse
- *         properties:
- *             analysis:
- *                 structRef: mogenius-operator/src/ai.Analysis
- *                 type: struct
- *             errorMessage:
- *                 type: string
- *     mogenius-operator/src/ai.AiTask:
- *         name: mogenius-operator/src/ai.AiTask
- *         properties:
- *             controller:
- *                 pointer: true
- *                 structRef: mogenius-operator/src/utils.WorkloadSingleRequest
- *                 type: struct
- *             createdAt:
- *                 type: int
- *             error:
- *                 type: string
- *             id:
- *                 type: string
- *             model:
- *                 type: string
- *             prompt:
- *                 type: string
- *             readByUsers:
- *                 elementType:
- *                     structRef: mogenius-operator/src/ai.ReadBy
- *                     type: struct
- *                 type: array
- *             referencingResource:
- *                 structRef: mogenius-operator/src/utils.WorkloadSingleRequest
- *                 type: struct
- *             response:
- *                 pointer: true
- *                 structRef: mogenius-operator/src/ai.AiResponse
- *                 type: struct
- *             state:
- *                 type: string
- *             timeUsedInMs:
- *                 type: int
- *             tokensUsed:
- *                 type: int
- *             triggeredBy:
- *                 structRef: mogenius-operator/src/ai.AiFilter
- *                 type: struct
- *             updatedAt:
- *                 type: int
- *     mogenius-operator/src/ai.Analysis:
- *         name: mogenius-operator/src/ai.Analysis
- *         properties:
- *             additionalInformation:
- *                 type: string
- *             currentResourceYaml:
- *                 type: string
- *             followUpResources:
- *                 elementType:
- *                     structRef: mogenius-operator/src/utils.WorkloadSingleRequest
- *                     type: struct
- *                 type: array
- *             needsFollowUp:
- *                 type: bool
- *             possibleCauses:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             problemDescription:
- *                 type: string
- *             proposedOperation:
- *                 type: string
- *             proposedSolutions:
- *                 elementType:
- *                     structRef: mogenius-operator/src/ai.Solution
- *                     type: struct
- *                 type: array
- *             targetResource:
- *                 structRef: mogenius-operator/src/utils.WorkloadSingleRequest
- *                 type: struct
- *             targetResourceYaml:
- *                 type: string
- *     mogenius-operator/src/ai.ReadBy:
- *         name: mogenius-operator/src/ai.ReadBy
- *         properties:
- *             readAt:
- *                 structRef: time.Time
- *                 type: struct
- *             user:
- *                 structRef: mogenius-operator/src/structs.User
- *                 type: struct
- *     mogenius-operator/src/ai.Solution:
- *         name: mogenius-operator/src/ai.Solution
- *         properties:
- *             solutionDescription:
- *                 type: string
- *             steps:
- *                 elementType:
- *                     type: string
- *                 type: array
- *     mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadSingleRequest,[]mogenius-operator/src/ai.AiTask]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadSingleRequest,[]mogenius-operator/src/ai.AiTask]
- *         properties:
- *             data:
- *                 elementType:
- *                     structRef: mogenius-operator/src/ai.AiTask
- *                     type: struct
- *                 type: array
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- *     mogenius-operator/src/structs.User:
- *         name: mogenius-operator/src/structs.User
- *         properties:
- *             email:
- *                 type: string
- *             firstName:
- *                 type: string
- *             lastName:
- *                 type: string
- *             source:
- *                 type: string
- *     mogenius-operator/src/utils.ResourceDescriptor:
- *         name: mogenius-operator/src/utils.ResourceDescriptor
- *         properties:
- *             apiVersion:
- *                 type: string
- *             kind:
- *                 type: string
- *             namespaced:
- *                 type: bool
- *             plural:
- *                 type: string
- *     mogenius-operator/src/utils.WorkloadSingleRequest:
- *         name: mogenius-operator/src/utils.WorkloadSingleRequest
- *         properties:
- *             ResourceDescriptor:
- *                 structRef: mogenius-operator/src/utils.ResourceDescriptor
- *                 type: struct
- *             namespace:
- *                 type: string
- *             resourceName:
- *                 type: string
- *     time.Time:
- *         name: time.Time
- *         properties: {}
+ *   mogenius-operator/src/ai.AiFilter:
+ *     name: mogenius-operator/src/ai.AiFilter
+ *     properties:
+ *       contains:
+ *         keyType:
+ *           type: string
+ *         type: map
+ *         valueType:
+ *           type: string
+ *       description:
+ *         type: string
+ *       excludes:
+ *         keyType:
+ *           type: string
+ *         type: map
+ *         valueType:
+ *           type: string
+ *       for:
+ *         pointer: true
+ *         type: int
+ *       id:
+ *         type: string
+ *       isActive:
+ *         type: bool
+ *       kind:
+ *         type: string
+ *       name:
+ *         type: string
+ *       prompt:
+ *         type: string
+ *   mogenius-operator/src/ai.AiResponse:
+ *     name: mogenius-operator/src/ai.AiResponse
+ *     properties:
+ *       analysis:
+ *         structRef: mogenius-operator/src/ai.Analysis
+ *         type: struct
+ *       errorMessage:
+ *         type: string
+ *   mogenius-operator/src/ai.AiTask:
+ *     name: mogenius-operator/src/ai.AiTask
+ *     properties:
+ *       controller:
+ *         pointer: true
+ *         structRef: mogenius-operator/src/utils.WorkloadSingleRequest
+ *         type: struct
+ *       createdAt:
+ *         type: int
+ *       error:
+ *         type: string
+ *       id:
+ *         type: string
+ *       model:
+ *         type: string
+ *       prompt:
+ *         type: string
+ *       readByUsers:
+ *         elementType:
+ *           structRef: mogenius-operator/src/ai.ReadBy
+ *           type: struct
+ *         type: array
+ *       referencingResource:
+ *         structRef: mogenius-operator/src/utils.WorkloadSingleRequest
+ *         type: struct
+ *       response:
+ *         pointer: true
+ *         structRef: mogenius-operator/src/ai.AiResponse
+ *         type: struct
+ *       state:
+ *         type: string
+ *       timeUsedInMs:
+ *         type: int
+ *       tokensUsed:
+ *         type: int
+ *       triggeredBy:
+ *         structRef: mogenius-operator/src/ai.AiFilter
+ *         type: struct
+ *       updatedAt:
+ *         type: int
+ *   mogenius-operator/src/ai.Analysis:
+ *     name: mogenius-operator/src/ai.Analysis
+ *     properties:
+ *       additionalInformation:
+ *         type: string
+ *       currentResourceYaml:
+ *         type: string
+ *       followUpResources:
+ *         elementType:
+ *           structRef: mogenius-operator/src/utils.WorkloadSingleRequest
+ *           type: struct
+ *         type: array
+ *       needsFollowUp:
+ *         type: bool
+ *       possibleCauses:
+ *         elementType:
+ *           type: string
+ *         type: array
+ *       problemDescription:
+ *         type: string
+ *       proposedOperation:
+ *         type: string
+ *       proposedSolutions:
+ *         elementType:
+ *           structRef: mogenius-operator/src/ai.Solution
+ *           type: struct
+ *         type: array
+ *       targetResource:
+ *         structRef: mogenius-operator/src/utils.WorkloadSingleRequest
+ *         type: struct
+ *       targetResourceYaml:
+ *         type: string
+ *   mogenius-operator/src/ai.ReadBy:
+ *     name: mogenius-operator/src/ai.ReadBy
+ *     properties:
+ *       readAt:
+ *         structRef: time.Time
+ *         type: struct
+ *       user:
+ *         structRef: mogenius-operator/src/structs.User
+ *         type: struct
+ *   mogenius-operator/src/ai.Solution:
+ *     name: mogenius-operator/src/ai.Solution
+ *     properties:
+ *       solutionDescription:
+ *         type: string
+ *       steps:
+ *         elementType:
+ *           type: string
+ *         type: array
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadSingleRequest,[]mogenius-operator/src/ai.AiTask]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadSingleRequest,[]mogenius-operator/src/ai.AiTask]
+ *     properties:
+ *       data:
+ *         elementType:
+ *           structRef: mogenius-operator/src/ai.AiTask
+ *           type: struct
+ *         type: array
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
+ *   mogenius-operator/src/structs.User:
+ *     name: mogenius-operator/src/structs.User
+ *     properties:
+ *       email:
+ *         type: string
+ *       firstName:
+ *         type: string
+ *       lastName:
+ *         type: string
+ *       source:
+ *         type: string
+ *   mogenius-operator/src/utils.ResourceDescriptor:
+ *     name: mogenius-operator/src/utils.ResourceDescriptor
+ *     properties:
+ *       apiVersion:
+ *         type: string
+ *       kind:
+ *         type: string
+ *       namespaced:
+ *         type: bool
+ *       plural:
+ *         type: string
+ *   mogenius-operator/src/utils.WorkloadSingleRequest:
+ *     name: mogenius-operator/src/utils.WorkloadSingleRequest
+ *     properties:
+ *       ResourceDescriptor:
+ *         structRef: mogenius-operator/src/utils.ResourceDescriptor
+ *         type: struct
+ *       namespace:
+ *         type: string
+ *       resourceName:
+ *         type: string
+ *   time.Time:
+ *     name: time.Time
+ *     properties: {}
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadSingleRequest,[]mogenius-operator/src/ai.AiTask]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadSingleRequest,[]mogenius-operator/src/ai.AiTask]
+ *   type: struct
  * ```
  *
  */
@@ -699,20 +699,20 @@ export type AIMANAGER_DETAIL_TASKS_RESPONSE = AIMANAGER_DETAIL_TASKS_RESPONSE__M
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/ai.ModelsRequest:
- *         name: mogenius-operator/src/ai.ModelsRequest
- *         properties:
- *             API_KEY:
- *                 pointer: true
- *                 type: string
- *             API_URL:
- *                 type: string
- *             SDK:
- *                 type: string
+ *   mogenius-operator/src/ai.ModelsRequest:
+ *     name: mogenius-operator/src/ai.ModelsRequest
+ *     properties:
+ *       API_KEY:
+ *         pointer: true
+ *         type: string
+ *       API_URL:
+ *         type: string
+ *       SDK:
+ *         type: string
  * typeInfo:
- *     pointer: true
- *     structRef: mogenius-operator/src/ai.ModelsRequest
- *     type: struct
+ *   pointer: true
+ *   structRef: mogenius-operator/src/ai.ModelsRequest
+ *   type: struct
  * ```
  *
  */
@@ -723,20 +723,20 @@ export type AIMANAGER_GET_MODELS_REQUEST = AIMANAGER_GET_MODELS_REQUEST__MOGENIU
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[*mogenius-operator/src/ai.ModelsRequest,[]string]:
- *         name: mogenius-operator/src/core.Result[*mogenius-operator/src/ai.ModelsRequest,[]string]
- *         properties:
- *             data:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[*mogenius-operator/src/ai.ModelsRequest,[]string]:
+ *     name: mogenius-operator/src/core.Result[*mogenius-operator/src/ai.ModelsRequest,[]string]
+ *     properties:
+ *       data:
+ *         elementType:
+ *           type: string
+ *         type: array
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[*mogenius-operator/src/ai.ModelsRequest,[]string]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[*mogenius-operator/src/ai.ModelsRequest,[]string]
+ *   type: struct
  * ```
  *
  */
@@ -747,12 +747,12 @@ export type AIMANAGER_GET_MODELS_RESPONSE = AIMANAGER_GET_MODELS_RESPONSE__MOGEN
  *
  * ```yaml
  * structs:
- *     ANON_STRUCT_0:
- *         properties: {}
+ *   ANON_STRUCT_0:
+ *     properties: {}
  * typeInfo:
- *     pointer: true
- *     structRef: ANON_STRUCT_0
- *     type: struct
+ *   pointer: true
+ *   structRef: ANON_STRUCT_0
+ *   type: struct
  * ```
  *
  */
@@ -763,69 +763,69 @@ export type AIMANAGER_GET_PROMPT_CONFIG_REQUEST = AIMANAGER_GET_PROMPT_CONFIG_RE
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/ai.AiFilter:
- *         name: mogenius-operator/src/ai.AiFilter
- *         properties:
- *             contains:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     type: string
- *             description:
- *                 type: string
- *             excludes:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     type: string
- *             for:
- *                 pointer: true
- *                 type: int
- *             id:
- *                 type: string
- *             isActive:
- *                 type: bool
- *             kind:
- *                 type: string
- *             name:
- *                 type: string
- *             prompt:
- *                 type: string
- *     mogenius-operator/src/ai.AiPromptConfig:
- *         name: mogenius-operator/src/ai.AiPromptConfig
- *         properties:
- *             filters:
- *                 elementType:
- *                     structRef: mogenius-operator/src/ai.AiFilter
- *                     type: struct
- *                 type: array
- *             id:
- *                 type: string
- *             name:
- *                 type: string
- *             systemPrompt:
- *                 type: string
- *             userFilters:
- *                 elementType:
- *                     structRef: mogenius-operator/src/ai.AiFilter
- *                     type: struct
- *                 type: array
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,*mogenius-operator/src/ai.AiPromptConfig]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,*mogenius-operator/src/ai.AiPromptConfig]
- *         properties:
- *             data:
- *                 pointer: true
- *                 structRef: mogenius-operator/src/ai.AiPromptConfig
- *                 type: struct
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/ai.AiFilter:
+ *     name: mogenius-operator/src/ai.AiFilter
+ *     properties:
+ *       contains:
+ *         keyType:
+ *           type: string
+ *         type: map
+ *         valueType:
+ *           type: string
+ *       description:
+ *         type: string
+ *       excludes:
+ *         keyType:
+ *           type: string
+ *         type: map
+ *         valueType:
+ *           type: string
+ *       for:
+ *         pointer: true
+ *         type: int
+ *       id:
+ *         type: string
+ *       isActive:
+ *         type: bool
+ *       kind:
+ *         type: string
+ *       name:
+ *         type: string
+ *       prompt:
+ *         type: string
+ *   mogenius-operator/src/ai.AiPromptConfig:
+ *     name: mogenius-operator/src/ai.AiPromptConfig
+ *     properties:
+ *       filters:
+ *         elementType:
+ *           structRef: mogenius-operator/src/ai.AiFilter
+ *           type: struct
+ *         type: array
+ *       id:
+ *         type: string
+ *       name:
+ *         type: string
+ *       systemPrompt:
+ *         type: string
+ *       userFilters:
+ *         elementType:
+ *           structRef: mogenius-operator/src/ai.AiFilter
+ *           type: struct
+ *         type: array
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,*mogenius-operator/src/ai.AiPromptConfig]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,*mogenius-operator/src/ai.AiPromptConfig]
+ *     properties:
+ *       data:
+ *         pointer: true
+ *         structRef: mogenius-operator/src/ai.AiPromptConfig
+ *         type: struct
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,*mogenius-operator/src/ai.AiPromptConfig]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,*mogenius-operator/src/ai.AiPromptConfig]
+ *   type: struct
  * ```
  *
  */
@@ -836,14 +836,14 @@ export type AIMANAGER_GET_PROMPT_CONFIG_RESPONSE = AIMANAGER_GET_PROMPT_CONFIG_R
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Request:
- *         name: mogenius-operator/src/core.Request
- *         properties:
- *             workspace:
- *                 type: string
+ *   mogenius-operator/src/core.Request:
+ *     name: mogenius-operator/src/core.Request
+ *     properties:
+ *       workspace:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Request
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Request
+ *   type: struct
  * ```
  *
  */
@@ -854,184 +854,184 @@ export type AIMANAGER_GET_TASKS_REQUEST = AIMANAGER_GET_TASKS_REQUEST__MOGENIUS_
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/ai.AiFilter:
- *         name: mogenius-operator/src/ai.AiFilter
- *         properties:
- *             contains:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     type: string
- *             description:
- *                 type: string
- *             excludes:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     type: string
- *             for:
- *                 pointer: true
- *                 type: int
- *             id:
- *                 type: string
- *             isActive:
- *                 type: bool
- *             kind:
- *                 type: string
- *             name:
- *                 type: string
- *             prompt:
- *                 type: string
- *     mogenius-operator/src/ai.AiResponse:
- *         name: mogenius-operator/src/ai.AiResponse
- *         properties:
- *             analysis:
- *                 structRef: mogenius-operator/src/ai.Analysis
- *                 type: struct
- *             errorMessage:
- *                 type: string
- *     mogenius-operator/src/ai.AiTask:
- *         name: mogenius-operator/src/ai.AiTask
- *         properties:
- *             controller:
- *                 pointer: true
- *                 structRef: mogenius-operator/src/utils.WorkloadSingleRequest
- *                 type: struct
- *             createdAt:
- *                 type: int
- *             error:
- *                 type: string
- *             id:
- *                 type: string
- *             model:
- *                 type: string
- *             prompt:
- *                 type: string
- *             readByUsers:
- *                 elementType:
- *                     structRef: mogenius-operator/src/ai.ReadBy
- *                     type: struct
- *                 type: array
- *             referencingResource:
- *                 structRef: mogenius-operator/src/utils.WorkloadSingleRequest
- *                 type: struct
- *             response:
- *                 pointer: true
- *                 structRef: mogenius-operator/src/ai.AiResponse
- *                 type: struct
- *             state:
- *                 type: string
- *             timeUsedInMs:
- *                 type: int
- *             tokensUsed:
- *                 type: int
- *             triggeredBy:
- *                 structRef: mogenius-operator/src/ai.AiFilter
- *                 type: struct
- *             updatedAt:
- *                 type: int
- *     mogenius-operator/src/ai.Analysis:
- *         name: mogenius-operator/src/ai.Analysis
- *         properties:
- *             additionalInformation:
- *                 type: string
- *             currentResourceYaml:
- *                 type: string
- *             followUpResources:
- *                 elementType:
- *                     structRef: mogenius-operator/src/utils.WorkloadSingleRequest
- *                     type: struct
- *                 type: array
- *             needsFollowUp:
- *                 type: bool
- *             possibleCauses:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             problemDescription:
- *                 type: string
- *             proposedOperation:
- *                 type: string
- *             proposedSolutions:
- *                 elementType:
- *                     structRef: mogenius-operator/src/ai.Solution
- *                     type: struct
- *                 type: array
- *             targetResource:
- *                 structRef: mogenius-operator/src/utils.WorkloadSingleRequest
- *                 type: struct
- *             targetResourceYaml:
- *                 type: string
- *     mogenius-operator/src/ai.ReadBy:
- *         name: mogenius-operator/src/ai.ReadBy
- *         properties:
- *             readAt:
- *                 structRef: time.Time
- *                 type: struct
- *             user:
- *                 structRef: mogenius-operator/src/structs.User
- *                 type: struct
- *     mogenius-operator/src/ai.Solution:
- *         name: mogenius-operator/src/ai.Solution
- *         properties:
- *             solutionDescription:
- *                 type: string
- *             steps:
- *                 elementType:
- *                     type: string
- *                 type: array
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·36,[]mogenius-operator/src/ai.AiTask]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·36,[]mogenius-operator/src/ai.AiTask]
- *         properties:
- *             data:
- *                 elementType:
- *                     structRef: mogenius-operator/src/ai.AiTask
- *                     type: struct
- *                 type: array
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- *     mogenius-operator/src/structs.User:
- *         name: mogenius-operator/src/structs.User
- *         properties:
- *             email:
- *                 type: string
- *             firstName:
- *                 type: string
- *             lastName:
- *                 type: string
- *             source:
- *                 type: string
- *     mogenius-operator/src/utils.ResourceDescriptor:
- *         name: mogenius-operator/src/utils.ResourceDescriptor
- *         properties:
- *             apiVersion:
- *                 type: string
- *             kind:
- *                 type: string
- *             namespaced:
- *                 type: bool
- *             plural:
- *                 type: string
- *     mogenius-operator/src/utils.WorkloadSingleRequest:
- *         name: mogenius-operator/src/utils.WorkloadSingleRequest
- *         properties:
- *             ResourceDescriptor:
- *                 structRef: mogenius-operator/src/utils.ResourceDescriptor
- *                 type: struct
- *             namespace:
- *                 type: string
- *             resourceName:
- *                 type: string
- *     time.Time:
- *         name: time.Time
- *         properties: {}
+ *   mogenius-operator/src/ai.AiFilter:
+ *     name: mogenius-operator/src/ai.AiFilter
+ *     properties:
+ *       contains:
+ *         keyType:
+ *           type: string
+ *         type: map
+ *         valueType:
+ *           type: string
+ *       description:
+ *         type: string
+ *       excludes:
+ *         keyType:
+ *           type: string
+ *         type: map
+ *         valueType:
+ *           type: string
+ *       for:
+ *         pointer: true
+ *         type: int
+ *       id:
+ *         type: string
+ *       isActive:
+ *         type: bool
+ *       kind:
+ *         type: string
+ *       name:
+ *         type: string
+ *       prompt:
+ *         type: string
+ *   mogenius-operator/src/ai.AiResponse:
+ *     name: mogenius-operator/src/ai.AiResponse
+ *     properties:
+ *       analysis:
+ *         structRef: mogenius-operator/src/ai.Analysis
+ *         type: struct
+ *       errorMessage:
+ *         type: string
+ *   mogenius-operator/src/ai.AiTask:
+ *     name: mogenius-operator/src/ai.AiTask
+ *     properties:
+ *       controller:
+ *         pointer: true
+ *         structRef: mogenius-operator/src/utils.WorkloadSingleRequest
+ *         type: struct
+ *       createdAt:
+ *         type: int
+ *       error:
+ *         type: string
+ *       id:
+ *         type: string
+ *       model:
+ *         type: string
+ *       prompt:
+ *         type: string
+ *       readByUsers:
+ *         elementType:
+ *           structRef: mogenius-operator/src/ai.ReadBy
+ *           type: struct
+ *         type: array
+ *       referencingResource:
+ *         structRef: mogenius-operator/src/utils.WorkloadSingleRequest
+ *         type: struct
+ *       response:
+ *         pointer: true
+ *         structRef: mogenius-operator/src/ai.AiResponse
+ *         type: struct
+ *       state:
+ *         type: string
+ *       timeUsedInMs:
+ *         type: int
+ *       tokensUsed:
+ *         type: int
+ *       triggeredBy:
+ *         structRef: mogenius-operator/src/ai.AiFilter
+ *         type: struct
+ *       updatedAt:
+ *         type: int
+ *   mogenius-operator/src/ai.Analysis:
+ *     name: mogenius-operator/src/ai.Analysis
+ *     properties:
+ *       additionalInformation:
+ *         type: string
+ *       currentResourceYaml:
+ *         type: string
+ *       followUpResources:
+ *         elementType:
+ *           structRef: mogenius-operator/src/utils.WorkloadSingleRequest
+ *           type: struct
+ *         type: array
+ *       needsFollowUp:
+ *         type: bool
+ *       possibleCauses:
+ *         elementType:
+ *           type: string
+ *         type: array
+ *       problemDescription:
+ *         type: string
+ *       proposedOperation:
+ *         type: string
+ *       proposedSolutions:
+ *         elementType:
+ *           structRef: mogenius-operator/src/ai.Solution
+ *           type: struct
+ *         type: array
+ *       targetResource:
+ *         structRef: mogenius-operator/src/utils.WorkloadSingleRequest
+ *         type: struct
+ *       targetResourceYaml:
+ *         type: string
+ *   mogenius-operator/src/ai.ReadBy:
+ *     name: mogenius-operator/src/ai.ReadBy
+ *     properties:
+ *       readAt:
+ *         structRef: time.Time
+ *         type: struct
+ *       user:
+ *         structRef: mogenius-operator/src/structs.User
+ *         type: struct
+ *   mogenius-operator/src/ai.Solution:
+ *     name: mogenius-operator/src/ai.Solution
+ *     properties:
+ *       solutionDescription:
+ *         type: string
+ *       steps:
+ *         elementType:
+ *           type: string
+ *         type: array
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·36,[]mogenius-operator/src/ai.AiTask]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·36,[]mogenius-operator/src/ai.AiTask]
+ *     properties:
+ *       data:
+ *         elementType:
+ *           structRef: mogenius-operator/src/ai.AiTask
+ *           type: struct
+ *         type: array
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
+ *   mogenius-operator/src/structs.User:
+ *     name: mogenius-operator/src/structs.User
+ *     properties:
+ *       email:
+ *         type: string
+ *       firstName:
+ *         type: string
+ *       lastName:
+ *         type: string
+ *       source:
+ *         type: string
+ *   mogenius-operator/src/utils.ResourceDescriptor:
+ *     name: mogenius-operator/src/utils.ResourceDescriptor
+ *     properties:
+ *       apiVersion:
+ *         type: string
+ *       kind:
+ *         type: string
+ *       namespaced:
+ *         type: bool
+ *       plural:
+ *         type: string
+ *   mogenius-operator/src/utils.WorkloadSingleRequest:
+ *     name: mogenius-operator/src/utils.WorkloadSingleRequest
+ *     properties:
+ *       ResourceDescriptor:
+ *         structRef: mogenius-operator/src/utils.ResourceDescriptor
+ *         type: struct
+ *       namespace:
+ *         type: string
+ *       resourceName:
+ *         type: string
+ *   time.Time:
+ *     name: time.Time
+ *     properties: {}
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·36,[]mogenius-operator/src/ai.AiTask]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·36,[]mogenius-operator/src/ai.AiTask]
+ *   type: struct
  * ```
  *
  */
@@ -1042,64 +1042,64 @@ export type AIMANAGER_GET_TASKS_RESPONSE = AIMANAGER_GET_TASKS_RESPONSE__MOGENIU
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/ai.AiFilter:
- *         name: mogenius-operator/src/ai.AiFilter
- *         properties:
- *             contains:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     type: string
- *             description:
- *                 type: string
- *             excludes:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     type: string
- *             for:
- *                 pointer: true
- *                 type: int
- *             id:
- *                 type: string
- *             isActive:
- *                 type: bool
- *             kind:
- *                 type: string
- *             name:
- *                 type: string
- *             prompt:
- *                 type: string
- *     mogenius-operator/src/ai.AiPromptConfig:
- *         name: mogenius-operator/src/ai.AiPromptConfig
- *         properties:
- *             filters:
- *                 elementType:
- *                     structRef: mogenius-operator/src/ai.AiFilter
- *                     type: struct
- *                 type: array
- *             id:
- *                 type: string
- *             name:
- *                 type: string
- *             systemPrompt:
- *                 type: string
- *             userFilters:
- *                 elementType:
- *                     structRef: mogenius-operator/src/ai.AiFilter
- *                     type: struct
- *                 type: array
- *     mogenius-operator/src/core.Request:
- *         name: mogenius-operator/src/core.Request
- *         properties:
- *             aiPromptConfig:
- *                 structRef: mogenius-operator/src/ai.AiPromptConfig
- *                 type: struct
+ *   mogenius-operator/src/ai.AiFilter:
+ *     name: mogenius-operator/src/ai.AiFilter
+ *     properties:
+ *       contains:
+ *         keyType:
+ *           type: string
+ *         type: map
+ *         valueType:
+ *           type: string
+ *       description:
+ *         type: string
+ *       excludes:
+ *         keyType:
+ *           type: string
+ *         type: map
+ *         valueType:
+ *           type: string
+ *       for:
+ *         pointer: true
+ *         type: int
+ *       id:
+ *         type: string
+ *       isActive:
+ *         type: bool
+ *       kind:
+ *         type: string
+ *       name:
+ *         type: string
+ *       prompt:
+ *         type: string
+ *   mogenius-operator/src/ai.AiPromptConfig:
+ *     name: mogenius-operator/src/ai.AiPromptConfig
+ *     properties:
+ *       filters:
+ *         elementType:
+ *           structRef: mogenius-operator/src/ai.AiFilter
+ *           type: struct
+ *         type: array
+ *       id:
+ *         type: string
+ *       name:
+ *         type: string
+ *       systemPrompt:
+ *         type: string
+ *       userFilters:
+ *         elementType:
+ *           structRef: mogenius-operator/src/ai.AiFilter
+ *           type: struct
+ *         type: array
+ *   mogenius-operator/src/core.Request:
+ *     name: mogenius-operator/src/core.Request
+ *     properties:
+ *       aiPromptConfig:
+ *         structRef: mogenius-operator/src/ai.AiPromptConfig
+ *         type: struct
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Request
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Request
+ *   type: struct
  * ```
  *
  */
@@ -1110,22 +1110,22 @@ export type AIMANAGER_INJECT_PROMPT_CONFIG_REQUEST = AIMANAGER_INJECT_PROMPT_CON
  *
  * ```yaml
  * structs:
- *     ANON_STRUCT_1:
- *         properties: {}
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·34,mogenius-operator/src/core.Void]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·34,mogenius-operator/src/core.Void]
- *         properties:
- *             data:
- *                 pointer: true
- *                 structRef: ANON_STRUCT_1
- *                 type: struct
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   ANON_STRUCT_1:
+ *     properties: {}
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·34,mogenius-operator/src/core.Void]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·34,mogenius-operator/src/core.Void]
+ *     properties:
+ *       data:
+ *         pointer: true
+ *         structRef: ANON_STRUCT_1
+ *         type: struct
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·34,mogenius-operator/src/core.Void]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·34,mogenius-operator/src/core.Void]
+ *   type: struct
  * ```
  *
  */
@@ -1136,15 +1136,15 @@ export type AIMANAGER_INJECT_PROMPT_CONFIG_RESPONSE = AIMANAGER_INJECT_PROMPT_CO
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Request:
- *         name: mogenius-operator/src/core.Request
- *         properties:
- *             workspace:
- *                 pointer: true
- *                 type: string
+ *   mogenius-operator/src/core.Request:
+ *     name: mogenius-operator/src/core.Request
+ *     properties:
+ *       workspace:
+ *         pointer: true
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Request
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Request
+ *   type: struct
  * ```
  *
  */
@@ -1155,228 +1155,228 @@ export type AIMANAGER_LATEST_TASK_REQUEST = AIMANAGER_LATEST_TASK_REQUEST__MOGEN
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/ai.AiFilter:
- *         name: mogenius-operator/src/ai.AiFilter
- *         properties:
- *             contains:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     type: string
- *             description:
- *                 type: string
- *             excludes:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     type: string
- *             for:
- *                 pointer: true
- *                 type: int
- *             id:
- *                 type: string
- *             isActive:
- *                 type: bool
- *             kind:
- *                 type: string
- *             name:
- *                 type: string
- *             prompt:
- *                 type: string
- *     mogenius-operator/src/ai.AiManagerStatus:
- *         name: mogenius-operator/src/ai.AiManagerStatus
- *         properties:
- *             apiUrl:
- *                 type: string
- *             error:
- *                 type: string
- *             ignoredDbEntries:
- *                 type: int
- *             isAiModelConfigInitialized:
- *                 type: bool
- *             isAiPromptConfigInitialized:
- *                 type: bool
- *             maxToolCalls:
- *                 type: int
- *             model:
- *                 type: string
- *             nextTokenResetTime:
- *                 type: string
- *             numberOfUnreadTasks:
- *                 type: int
- *             sdkType:
- *                 type: string
- *             todaysProcessedTasks:
- *                 type: int
- *             tokenLimit:
- *                 type: int
- *             tokensUsed:
- *                 type: int
- *             totalDbEntries:
- *                 type: int
- *             unprocessedDbEntries:
- *                 type: int
- *             warning:
- *                 type: string
- *     mogenius-operator/src/ai.AiResponse:
- *         name: mogenius-operator/src/ai.AiResponse
- *         properties:
- *             analysis:
- *                 structRef: mogenius-operator/src/ai.Analysis
- *                 type: struct
- *             errorMessage:
- *                 type: string
- *     mogenius-operator/src/ai.AiTask:
- *         name: mogenius-operator/src/ai.AiTask
- *         properties:
- *             controller:
- *                 pointer: true
- *                 structRef: mogenius-operator/src/utils.WorkloadSingleRequest
- *                 type: struct
- *             createdAt:
- *                 type: int
- *             error:
- *                 type: string
- *             id:
- *                 type: string
- *             model:
- *                 type: string
- *             prompt:
- *                 type: string
- *             readByUsers:
- *                 elementType:
- *                     structRef: mogenius-operator/src/ai.ReadBy
- *                     type: struct
- *                 type: array
- *             referencingResource:
- *                 structRef: mogenius-operator/src/utils.WorkloadSingleRequest
- *                 type: struct
- *             response:
- *                 pointer: true
- *                 structRef: mogenius-operator/src/ai.AiResponse
- *                 type: struct
- *             state:
- *                 type: string
- *             timeUsedInMs:
- *                 type: int
- *             tokensUsed:
- *                 type: int
- *             triggeredBy:
- *                 structRef: mogenius-operator/src/ai.AiFilter
- *                 type: struct
- *             updatedAt:
- *                 type: int
- *     mogenius-operator/src/ai.AiTaskLatest:
- *         name: mogenius-operator/src/ai.AiTaskLatest
- *         properties:
- *             status:
- *                 structRef: mogenius-operator/src/ai.AiManagerStatus
- *                 type: struct
- *             task:
- *                 pointer: true
- *                 structRef: mogenius-operator/src/ai.AiTask
- *                 type: struct
- *     mogenius-operator/src/ai.Analysis:
- *         name: mogenius-operator/src/ai.Analysis
- *         properties:
- *             additionalInformation:
- *                 type: string
- *             currentResourceYaml:
- *                 type: string
- *             followUpResources:
- *                 elementType:
- *                     structRef: mogenius-operator/src/utils.WorkloadSingleRequest
- *                     type: struct
- *                 type: array
- *             needsFollowUp:
- *                 type: bool
- *             possibleCauses:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             problemDescription:
- *                 type: string
- *             proposedOperation:
- *                 type: string
- *             proposedSolutions:
- *                 elementType:
- *                     structRef: mogenius-operator/src/ai.Solution
- *                     type: struct
- *                 type: array
- *             targetResource:
- *                 structRef: mogenius-operator/src/utils.WorkloadSingleRequest
- *                 type: struct
- *             targetResourceYaml:
- *                 type: string
- *     mogenius-operator/src/ai.ReadBy:
- *         name: mogenius-operator/src/ai.ReadBy
- *         properties:
- *             readAt:
- *                 structRef: time.Time
- *                 type: struct
- *             user:
- *                 structRef: mogenius-operator/src/structs.User
- *                 type: struct
- *     mogenius-operator/src/ai.Solution:
- *         name: mogenius-operator/src/ai.Solution
- *         properties:
- *             solutionDescription:
- *                 type: string
- *             steps:
- *                 elementType:
- *                     type: string
- *                 type: array
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·39,*mogenius-operator/src/ai.AiTaskLatest]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·39,*mogenius-operator/src/ai.AiTaskLatest]
- *         properties:
- *             data:
- *                 pointer: true
- *                 structRef: mogenius-operator/src/ai.AiTaskLatest
- *                 type: struct
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- *     mogenius-operator/src/structs.User:
- *         name: mogenius-operator/src/structs.User
- *         properties:
- *             email:
- *                 type: string
- *             firstName:
- *                 type: string
- *             lastName:
- *                 type: string
- *             source:
- *                 type: string
- *     mogenius-operator/src/utils.ResourceDescriptor:
- *         name: mogenius-operator/src/utils.ResourceDescriptor
- *         properties:
- *             apiVersion:
- *                 type: string
- *             kind:
- *                 type: string
- *             namespaced:
- *                 type: bool
- *             plural:
- *                 type: string
- *     mogenius-operator/src/utils.WorkloadSingleRequest:
- *         name: mogenius-operator/src/utils.WorkloadSingleRequest
- *         properties:
- *             ResourceDescriptor:
- *                 structRef: mogenius-operator/src/utils.ResourceDescriptor
- *                 type: struct
- *             namespace:
- *                 type: string
- *             resourceName:
- *                 type: string
- *     time.Time:
- *         name: time.Time
- *         properties: {}
+ *   mogenius-operator/src/ai.AiFilter:
+ *     name: mogenius-operator/src/ai.AiFilter
+ *     properties:
+ *       contains:
+ *         keyType:
+ *           type: string
+ *         type: map
+ *         valueType:
+ *           type: string
+ *       description:
+ *         type: string
+ *       excludes:
+ *         keyType:
+ *           type: string
+ *         type: map
+ *         valueType:
+ *           type: string
+ *       for:
+ *         pointer: true
+ *         type: int
+ *       id:
+ *         type: string
+ *       isActive:
+ *         type: bool
+ *       kind:
+ *         type: string
+ *       name:
+ *         type: string
+ *       prompt:
+ *         type: string
+ *   mogenius-operator/src/ai.AiManagerStatus:
+ *     name: mogenius-operator/src/ai.AiManagerStatus
+ *     properties:
+ *       apiUrl:
+ *         type: string
+ *       error:
+ *         type: string
+ *       ignoredDbEntries:
+ *         type: int
+ *       isAiModelConfigInitialized:
+ *         type: bool
+ *       isAiPromptConfigInitialized:
+ *         type: bool
+ *       maxToolCalls:
+ *         type: int
+ *       model:
+ *         type: string
+ *       nextTokenResetTime:
+ *         type: string
+ *       numberOfUnreadTasks:
+ *         type: int
+ *       sdkType:
+ *         type: string
+ *       todaysProcessedTasks:
+ *         type: int
+ *       tokenLimit:
+ *         type: int
+ *       tokensUsed:
+ *         type: int
+ *       totalDbEntries:
+ *         type: int
+ *       unprocessedDbEntries:
+ *         type: int
+ *       warning:
+ *         type: string
+ *   mogenius-operator/src/ai.AiResponse:
+ *     name: mogenius-operator/src/ai.AiResponse
+ *     properties:
+ *       analysis:
+ *         structRef: mogenius-operator/src/ai.Analysis
+ *         type: struct
+ *       errorMessage:
+ *         type: string
+ *   mogenius-operator/src/ai.AiTask:
+ *     name: mogenius-operator/src/ai.AiTask
+ *     properties:
+ *       controller:
+ *         pointer: true
+ *         structRef: mogenius-operator/src/utils.WorkloadSingleRequest
+ *         type: struct
+ *       createdAt:
+ *         type: int
+ *       error:
+ *         type: string
+ *       id:
+ *         type: string
+ *       model:
+ *         type: string
+ *       prompt:
+ *         type: string
+ *       readByUsers:
+ *         elementType:
+ *           structRef: mogenius-operator/src/ai.ReadBy
+ *           type: struct
+ *         type: array
+ *       referencingResource:
+ *         structRef: mogenius-operator/src/utils.WorkloadSingleRequest
+ *         type: struct
+ *       response:
+ *         pointer: true
+ *         structRef: mogenius-operator/src/ai.AiResponse
+ *         type: struct
+ *       state:
+ *         type: string
+ *       timeUsedInMs:
+ *         type: int
+ *       tokensUsed:
+ *         type: int
+ *       triggeredBy:
+ *         structRef: mogenius-operator/src/ai.AiFilter
+ *         type: struct
+ *       updatedAt:
+ *         type: int
+ *   mogenius-operator/src/ai.AiTaskLatest:
+ *     name: mogenius-operator/src/ai.AiTaskLatest
+ *     properties:
+ *       status:
+ *         structRef: mogenius-operator/src/ai.AiManagerStatus
+ *         type: struct
+ *       task:
+ *         pointer: true
+ *         structRef: mogenius-operator/src/ai.AiTask
+ *         type: struct
+ *   mogenius-operator/src/ai.Analysis:
+ *     name: mogenius-operator/src/ai.Analysis
+ *     properties:
+ *       additionalInformation:
+ *         type: string
+ *       currentResourceYaml:
+ *         type: string
+ *       followUpResources:
+ *         elementType:
+ *           structRef: mogenius-operator/src/utils.WorkloadSingleRequest
+ *           type: struct
+ *         type: array
+ *       needsFollowUp:
+ *         type: bool
+ *       possibleCauses:
+ *         elementType:
+ *           type: string
+ *         type: array
+ *       problemDescription:
+ *         type: string
+ *       proposedOperation:
+ *         type: string
+ *       proposedSolutions:
+ *         elementType:
+ *           structRef: mogenius-operator/src/ai.Solution
+ *           type: struct
+ *         type: array
+ *       targetResource:
+ *         structRef: mogenius-operator/src/utils.WorkloadSingleRequest
+ *         type: struct
+ *       targetResourceYaml:
+ *         type: string
+ *   mogenius-operator/src/ai.ReadBy:
+ *     name: mogenius-operator/src/ai.ReadBy
+ *     properties:
+ *       readAt:
+ *         structRef: time.Time
+ *         type: struct
+ *       user:
+ *         structRef: mogenius-operator/src/structs.User
+ *         type: struct
+ *   mogenius-operator/src/ai.Solution:
+ *     name: mogenius-operator/src/ai.Solution
+ *     properties:
+ *       solutionDescription:
+ *         type: string
+ *       steps:
+ *         elementType:
+ *           type: string
+ *         type: array
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·39,*mogenius-operator/src/ai.AiTaskLatest]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·39,*mogenius-operator/src/ai.AiTaskLatest]
+ *     properties:
+ *       data:
+ *         pointer: true
+ *         structRef: mogenius-operator/src/ai.AiTaskLatest
+ *         type: struct
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
+ *   mogenius-operator/src/structs.User:
+ *     name: mogenius-operator/src/structs.User
+ *     properties:
+ *       email:
+ *         type: string
+ *       firstName:
+ *         type: string
+ *       lastName:
+ *         type: string
+ *       source:
+ *         type: string
+ *   mogenius-operator/src/utils.ResourceDescriptor:
+ *     name: mogenius-operator/src/utils.ResourceDescriptor
+ *     properties:
+ *       apiVersion:
+ *         type: string
+ *       kind:
+ *         type: string
+ *       namespaced:
+ *         type: bool
+ *       plural:
+ *         type: string
+ *   mogenius-operator/src/utils.WorkloadSingleRequest:
+ *     name: mogenius-operator/src/utils.WorkloadSingleRequest
+ *     properties:
+ *       ResourceDescriptor:
+ *         structRef: mogenius-operator/src/utils.ResourceDescriptor
+ *         type: struct
+ *       namespace:
+ *         type: string
+ *       resourceName:
+ *         type: string
+ *   time.Time:
+ *     name: time.Time
+ *     properties: {}
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·39,*mogenius-operator/src/ai.AiTaskLatest]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·39,*mogenius-operator/src/ai.AiTaskLatest]
+ *   type: struct
  * ```
  *
  */
@@ -1387,14 +1387,14 @@ export type AIMANAGER_LATEST_TASK_RESPONSE = AIMANAGER_LATEST_TASK_RESPONSE__MOG
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Request:
- *         name: mogenius-operator/src/core.Request
- *         properties:
- *             taskId:
- *                 type: string
+ *   mogenius-operator/src/core.Request:
+ *     name: mogenius-operator/src/core.Request
+ *     properties:
+ *       taskId:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Request
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Request
+ *   type: struct
  * ```
  *
  */
@@ -1405,22 +1405,22 @@ export type AIMANAGER_READ_TASK_REQUEST = AIMANAGER_READ_TASK_REQUEST__MOGENIUS_
  *
  * ```yaml
  * structs:
- *     ANON_STRUCT_1:
- *         properties: {}
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·37,mogenius-operator/src/core.Void]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·37,mogenius-operator/src/core.Void]
- *         properties:
- *             data:
- *                 pointer: true
- *                 structRef: ANON_STRUCT_1
- *                 type: struct
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   ANON_STRUCT_1:
+ *     properties: {}
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·37,mogenius-operator/src/core.Void]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·37,mogenius-operator/src/core.Void]
+ *     properties:
+ *       data:
+ *         pointer: true
+ *         structRef: ANON_STRUCT_1
+ *         type: struct
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·37,mogenius-operator/src/core.Void]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·37,mogenius-operator/src/core.Void]
+ *   type: struct
  * ```
  *
  */
@@ -1431,12 +1431,12 @@ export type AIMANAGER_READ_TASK_RESPONSE = AIMANAGER_READ_TASK_RESPONSE__MOGENIU
  *
  * ```yaml
  * structs:
- *     ANON_STRUCT_0:
- *         properties: {}
+ *   ANON_STRUCT_0:
+ *     properties: {}
  * typeInfo:
- *     pointer: true
- *     structRef: ANON_STRUCT_0
- *     type: struct
+ *   pointer: true
+ *   structRef: ANON_STRUCT_0
+ *   type: struct
  * ```
  *
  */
@@ -1447,22 +1447,22 @@ export type AIMANAGER_RESET_DAILY_TOKEN_LIMIT_REQUEST = AIMANAGER_RESET_DAILY_TO
  *
  * ```yaml
  * structs:
- *     ANON_STRUCT_1:
- *         properties: {}
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Void]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Void]
- *         properties:
- *             data:
- *                 pointer: true
- *                 structRef: ANON_STRUCT_1
- *                 type: struct
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   ANON_STRUCT_1:
+ *     properties: {}
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Void]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Void]
+ *     properties:
+ *       data:
+ *         pointer: true
+ *         structRef: ANON_STRUCT_1
+ *         type: struct
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Void]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Void]
+ *   type: struct
  * ```
  *
  */
@@ -1473,15 +1473,15 @@ export type AIMANAGER_RESET_DAILY_TOKEN_LIMIT_RESPONSE = AIMANAGER_RESET_DAILY_T
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Request:
- *         name: mogenius-operator/src/core.Request
- *         properties:
- *             workspace:
- *                 pointer: true
- *                 type: string
+ *   mogenius-operator/src/core.Request:
+ *     name: mogenius-operator/src/core.Request
+ *     properties:
+ *       workspace:
+ *         pointer: true
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Request
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Request
+ *   type: struct
  * ```
  *
  */
@@ -1492,54 +1492,54 @@ export type AIMANAGER_STATUS_REQUEST = AIMANAGER_STATUS_REQUEST__MOGENIUS_OPERAT
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/ai.AiManagerStatus:
- *         name: mogenius-operator/src/ai.AiManagerStatus
- *         properties:
- *             apiUrl:
- *                 type: string
- *             error:
- *                 type: string
- *             ignoredDbEntries:
- *                 type: int
- *             isAiModelConfigInitialized:
- *                 type: bool
- *             isAiPromptConfigInitialized:
- *                 type: bool
- *             maxToolCalls:
- *                 type: int
- *             model:
- *                 type: string
- *             nextTokenResetTime:
- *                 type: string
- *             numberOfUnreadTasks:
- *                 type: int
- *             sdkType:
- *                 type: string
- *             todaysProcessedTasks:
- *                 type: int
- *             tokenLimit:
- *                 type: int
- *             tokensUsed:
- *                 type: int
- *             totalDbEntries:
- *                 type: int
- *             unprocessedDbEntries:
- *                 type: int
- *             warning:
- *                 type: string
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·35,mogenius-operator/src/ai.AiManagerStatus]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·35,mogenius-operator/src/ai.AiManagerStatus]
- *         properties:
- *             data:
- *                 structRef: mogenius-operator/src/ai.AiManagerStatus
- *                 type: struct
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/ai.AiManagerStatus:
+ *     name: mogenius-operator/src/ai.AiManagerStatus
+ *     properties:
+ *       apiUrl:
+ *         type: string
+ *       error:
+ *         type: string
+ *       ignoredDbEntries:
+ *         type: int
+ *       isAiModelConfigInitialized:
+ *         type: bool
+ *       isAiPromptConfigInitialized:
+ *         type: bool
+ *       maxToolCalls:
+ *         type: int
+ *       model:
+ *         type: string
+ *       nextTokenResetTime:
+ *         type: string
+ *       numberOfUnreadTasks:
+ *         type: int
+ *       sdkType:
+ *         type: string
+ *       todaysProcessedTasks:
+ *         type: int
+ *       tokenLimit:
+ *         type: int
+ *       tokensUsed:
+ *         type: int
+ *       totalDbEntries:
+ *         type: int
+ *       unprocessedDbEntries:
+ *         type: int
+ *       warning:
+ *         type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·35,mogenius-operator/src/ai.AiManagerStatus]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·35,mogenius-operator/src/ai.AiManagerStatus]
+ *     properties:
+ *       data:
+ *         structRef: mogenius-operator/src/ai.AiManagerStatus
+ *         type: struct
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·35,mogenius-operator/src/ai.AiManagerStatus]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·35,mogenius-operator/src/ai.AiManagerStatus]
+ *   type: struct
  * ```
  *
  */
@@ -1550,16 +1550,16 @@ export type AIMANAGER_STATUS_RESPONSE = AIMANAGER_STATUS_RESPONSE__MOGENIUS_OPER
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Request:
- *         name: mogenius-operator/src/core.Request
- *         properties:
- *             state:
- *                 type: string
- *             taskId:
- *                 type: string
+ *   mogenius-operator/src/core.Request:
+ *     name: mogenius-operator/src/core.Request
+ *     properties:
+ *       state:
+ *         type: string
+ *       taskId:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Request
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Request
+ *   type: struct
  * ```
  *
  */
@@ -1570,22 +1570,22 @@ export type AIMANAGER_UPDATE_TASK_REQUEST = AIMANAGER_UPDATE_TASK_REQUEST__MOGEN
  *
  * ```yaml
  * structs:
- *     ANON_STRUCT_1:
- *         properties: {}
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·38,mogenius-operator/src/core.Void]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·38,mogenius-operator/src/core.Void]
- *         properties:
- *             data:
- *                 pointer: true
- *                 structRef: ANON_STRUCT_1
- *                 type: struct
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   ANON_STRUCT_1:
+ *     properties: {}
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·38,mogenius-operator/src/core.Void]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·38,mogenius-operator/src/core.Void]
+ *     properties:
+ *       data:
+ *         pointer: true
+ *         structRef: ANON_STRUCT_1
+ *         type: struct
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·38,mogenius-operator/src/core.Void]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·38,mogenius-operator/src/core.Void]
+ *   type: struct
  * ```
  *
  */
@@ -1596,18 +1596,18 @@ export type AIMANAGER_UPDATE_TASK_RESPONSE = AIMANAGER_UPDATE_TASK_RESPONSE__MOG
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Request:
- *         name: mogenius-operator/src/core.Request
- *         properties:
- *             limit:
- *                 type: int
- *             offset:
- *                 type: int
- *             workspaceName:
- *                 type: string
+ *   mogenius-operator/src/core.Request:
+ *     name: mogenius-operator/src/core.Request
+ *     properties:
+ *       limit:
+ *         type: int
+ *       offset:
+ *         type: int
+ *       workspaceName:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Request
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Request
+ *   type: struct
  * ```
  *
  */
@@ -1618,76 +1618,76 @@ export type AUDIT_LOG_LIST_REQUEST = AUDIT_LOG_LIST_REQUEST__MOGENIUS_OPERATOR_S
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Response:
- *         name: mogenius-operator/src/core.Response
- *         properties:
- *             data:
- *                 structRef: mogenius-operator/src/store.AuditLogResponse
- *                 type: struct
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·40,mogenius-operator/src/core.Response·41]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·40,mogenius-operator/src/core.Response·41]
- *         properties:
- *             data:
- *                 structRef: mogenius-operator/src/core.Response
- *                 type: struct
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- *     mogenius-operator/src/store.AuditLogEntry:
- *         name: mogenius-operator/src/store.AuditLogEntry
- *         properties:
- *             createdAt:
- *                 structRef: time.Time
- *                 type: struct
- *             diff:
- *                 type: string
- *             error:
- *                 type: string
- *             pattern:
- *                 type: string
- *             payload:
- *                 pointer: true
- *                 type: any
- *             result:
- *                 pointer: true
- *                 type: any
- *             user:
- *                 structRef: mogenius-operator/src/structs.User
- *                 type: struct
- *             workspace:
- *                 type: string
- *     mogenius-operator/src/store.AuditLogResponse:
- *         name: mogenius-operator/src/store.AuditLogResponse
- *         properties:
- *             data:
- *                 elementType:
- *                     structRef: mogenius-operator/src/store.AuditLogEntry
- *                     type: struct
- *                 type: array
- *             totalCount:
- *                 type: int
- *     mogenius-operator/src/structs.User:
- *         name: mogenius-operator/src/structs.User
- *         properties:
- *             email:
- *                 type: string
- *             firstName:
- *                 type: string
- *             lastName:
- *                 type: string
- *             source:
- *                 type: string
- *     time.Time:
- *         name: time.Time
- *         properties: {}
+ *   mogenius-operator/src/core.Response:
+ *     name: mogenius-operator/src/core.Response
+ *     properties:
+ *       data:
+ *         structRef: mogenius-operator/src/store.AuditLogResponse
+ *         type: struct
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·40,mogenius-operator/src/core.Response·41]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·40,mogenius-operator/src/core.Response·41]
+ *     properties:
+ *       data:
+ *         structRef: mogenius-operator/src/core.Response
+ *         type: struct
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
+ *   mogenius-operator/src/store.AuditLogEntry:
+ *     name: mogenius-operator/src/store.AuditLogEntry
+ *     properties:
+ *       createdAt:
+ *         structRef: time.Time
+ *         type: struct
+ *       diff:
+ *         type: string
+ *       error:
+ *         type: string
+ *       pattern:
+ *         type: string
+ *       payload:
+ *         pointer: true
+ *         type: any
+ *       result:
+ *         pointer: true
+ *         type: any
+ *       user:
+ *         structRef: mogenius-operator/src/structs.User
+ *         type: struct
+ *       workspace:
+ *         type: string
+ *   mogenius-operator/src/store.AuditLogResponse:
+ *     name: mogenius-operator/src/store.AuditLogResponse
+ *     properties:
+ *       data:
+ *         elementType:
+ *           structRef: mogenius-operator/src/store.AuditLogEntry
+ *           type: struct
+ *         type: array
+ *       totalCount:
+ *         type: int
+ *   mogenius-operator/src/structs.User:
+ *     name: mogenius-operator/src/structs.User
+ *     properties:
+ *       email:
+ *         type: string
+ *       firstName:
+ *         type: string
+ *       lastName:
+ *         type: string
+ *       source:
+ *         type: string
+ *   time.Time:
+ *     name: time.Time
+ *     properties: {}
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·40,mogenius-operator/src/core.Response·41]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·40,mogenius-operator/src/core.Response·41]
+ *   type: struct
  * ```
  *
  */
@@ -1698,16 +1698,16 @@ export type AUDIT_LOG_LIST_RESPONSE = AUDIT_LOG_LIST_RESPONSE__MOGENIUS_OPERATOR
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/argocd.ArgoCdApplicationRefreshRequest:
- *         name: mogenius-operator/src/argocd.ArgoCdApplicationRefreshRequest
- *         properties:
- *             applicationName:
- *                 type: string
- *             username:
- *                 type: string
+ *   mogenius-operator/src/argocd.ArgoCdApplicationRefreshRequest:
+ *     name: mogenius-operator/src/argocd.ArgoCdApplicationRefreshRequest
+ *     properties:
+ *       applicationName:
+ *         type: string
+ *       username:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/argocd.ArgoCdApplicationRefreshRequest
- *     type: struct
+ *   structRef: mogenius-operator/src/argocd.ArgoCdApplicationRefreshRequest
+ *   type: struct
  * ```
  *
  */
@@ -1718,18 +1718,18 @@ export type CLUSTER_ARGO_CD_APPLICATION_REFRESH_REQUEST = CLUSTER_ARGO_CD_APPLIC
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/argocd.ArgoCdApplicationRefreshRequest,bool]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/argocd.ArgoCdApplicationRefreshRequest,bool]
- *         properties:
- *             data:
- *                 type: bool
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/argocd.ArgoCdApplicationRefreshRequest,bool]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/argocd.ArgoCdApplicationRefreshRequest,bool]
+ *     properties:
+ *       data:
+ *         type: bool
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/argocd.ArgoCdApplicationRefreshRequest,bool]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/argocd.ArgoCdApplicationRefreshRequest,bool]
+ *   type: struct
  * ```
  *
  */
@@ -1740,14 +1740,14 @@ export type CLUSTER_ARGO_CD_APPLICATION_REFRESH_RESPONSE = CLUSTER_ARGO_CD_APPLI
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/argocd.ArgoCdCreateApiTokenRequest:
- *         name: mogenius-operator/src/argocd.ArgoCdCreateApiTokenRequest
- *         properties:
- *             username:
- *                 type: string
+ *   mogenius-operator/src/argocd.ArgoCdCreateApiTokenRequest:
+ *     name: mogenius-operator/src/argocd.ArgoCdCreateApiTokenRequest
+ *     properties:
+ *       username:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/argocd.ArgoCdCreateApiTokenRequest
- *     type: struct
+ *   structRef: mogenius-operator/src/argocd.ArgoCdCreateApiTokenRequest
+ *   type: struct
  * ```
  *
  */
@@ -1758,18 +1758,18 @@ export type CLUSTER_ARGO_CD_CREATE_API_TOKEN_REQUEST = CLUSTER_ARGO_CD_CREATE_AP
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/argocd.ArgoCdCreateApiTokenRequest,bool]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/argocd.ArgoCdCreateApiTokenRequest,bool]
- *         properties:
- *             data:
- *                 type: bool
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/argocd.ArgoCdCreateApiTokenRequest,bool]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/argocd.ArgoCdCreateApiTokenRequest,bool]
+ *     properties:
+ *       data:
+ *         type: bool
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/argocd.ArgoCdCreateApiTokenRequest,bool]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/argocd.ArgoCdCreateApiTokenRequest,bool]
+ *   type: struct
  * ```
  *
  */
@@ -1780,18 +1780,18 @@ export type CLUSTER_ARGO_CD_CREATE_API_TOKEN_RESPONSE = CLUSTER_ARGO_CD_CREATE_A
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Request:
- *         name: mogenius-operator/src/core.Request
- *         properties:
- *             includeNodeStats:
- *                 type: bool
- *             includePodStats:
- *                 type: bool
- *             includeTraffic:
- *                 type: bool
+ *   mogenius-operator/src/core.Request:
+ *     name: mogenius-operator/src/core.Request
+ *     properties:
+ *       includeNodeStats:
+ *         type: bool
+ *       includePodStats:
+ *         type: bool
+ *       includeTraffic:
+ *         type: bool
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Request
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Request
+ *   type: struct
  * ```
  *
  */
@@ -1802,18 +1802,18 @@ export type CLUSTER_CLEAR_VALKEY_CACHE_REQUEST = CLUSTER_CLEAR_VALKEY_CACHE_REQU
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·5,string]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·5,string]
- *         properties:
- *             data:
- *                 type: string
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·5,string]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·5,string]
+ *     properties:
+ *       data:
+ *         type: string
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·5,string]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·5,string]
+ *   type: struct
  * ```
  *
  */
@@ -1824,43 +1824,43 @@ export type CLUSTER_CLEAR_VALKEY_CACHE_RESPONSE = CLUSTER_CLEAR_VALKEY_CACHE_RES
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/xterm.ComponentLogConnectionRequest:
- *         name: mogenius-operator/src/xterm.ComponentLogConnectionRequest
- *         properties:
- *             component:
- *                 type: string
- *             controller:
- *                 pointer: true
- *                 type: string
- *             namespace:
- *                 pointer: true
- *                 type: string
- *             release:
- *                 pointer: true
- *                 type: string
- *             wsConnectionRequest:
- *                 structRef: mogenius-operator/src/xterm.WsConnectionRequest
- *                 type: struct
- *     mogenius-operator/src/xterm.WsConnectionRequest:
- *         name: mogenius-operator/src/xterm.WsConnectionRequest
- *         properties:
- *             channelId:
- *                 type: string
- *             cmdType:
- *                 type: string
- *             nodeName:
- *                 type: string
- *             podName:
- *                 type: string
- *             websocketHost:
- *                 type: string
- *             websocketScheme:
- *                 type: string
- *             workspace:
- *                 type: string
+ *   mogenius-operator/src/xterm.ComponentLogConnectionRequest:
+ *     name: mogenius-operator/src/xterm.ComponentLogConnectionRequest
+ *     properties:
+ *       component:
+ *         type: string
+ *       controller:
+ *         pointer: true
+ *         type: string
+ *       namespace:
+ *         pointer: true
+ *         type: string
+ *       release:
+ *         pointer: true
+ *         type: string
+ *       wsConnectionRequest:
+ *         structRef: mogenius-operator/src/xterm.WsConnectionRequest
+ *         type: struct
+ *   mogenius-operator/src/xterm.WsConnectionRequest:
+ *     name: mogenius-operator/src/xterm.WsConnectionRequest
+ *     properties:
+ *       channelId:
+ *         type: string
+ *       cmdType:
+ *         type: string
+ *       nodeName:
+ *         type: string
+ *       podName:
+ *         type: string
+ *       websocketHost:
+ *         type: string
+ *       websocketScheme:
+ *         type: string
+ *       workspace:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/xterm.ComponentLogConnectionRequest
- *     type: struct
+ *   structRef: mogenius-operator/src/xterm.ComponentLogConnectionRequest
+ *   type: struct
  * ```
  *
  */
@@ -1871,22 +1871,22 @@ export type CLUSTER_COMPONENT_LOG_STREAM_CONNECTION_REQUEST_REQUEST = CLUSTER_CO
  *
  * ```yaml
  * structs:
- *     ANON_STRUCT_1:
- *         properties: {}
- *     mogenius-operator/src/core.Result[mogenius-operator/src/xterm.ComponentLogConnectionRequest,mogenius-operator/src/core.Void]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.ComponentLogConnectionRequest,mogenius-operator/src/core.Void]
- *         properties:
- *             data:
- *                 pointer: true
- *                 structRef: ANON_STRUCT_1
- *                 type: struct
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   ANON_STRUCT_1:
+ *     properties: {}
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/xterm.ComponentLogConnectionRequest,mogenius-operator/src/core.Void]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.ComponentLogConnectionRequest,mogenius-operator/src/core.Void]
+ *     properties:
+ *       data:
+ *         pointer: true
+ *         structRef: ANON_STRUCT_1
+ *         type: struct
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.ComponentLogConnectionRequest,mogenius-operator/src/core.Void]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.ComponentLogConnectionRequest,mogenius-operator/src/core.Void]
+ *   type: struct
  * ```
  *
  */
@@ -1897,12 +1897,12 @@ export type CLUSTER_COMPONENT_LOG_STREAM_CONNECTION_REQUEST_RESPONSE = CLUSTER_C
  *
  * ```yaml
  * structs:
- *     ANON_STRUCT_0:
- *         properties: {}
+ *   ANON_STRUCT_0:
+ *     properties: {}
  * typeInfo:
- *     pointer: true
- *     structRef: ANON_STRUCT_0
- *     type: struct
+ *   pointer: true
+ *   structRef: ANON_STRUCT_0
+ *   type: struct
  * ```
  *
  */
@@ -1913,18 +1913,18 @@ export type CLUSTER_FORCE_DISCONNECT_REQUEST = CLUSTER_FORCE_DISCONNECT_REQUEST_
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,bool]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,bool]
- *         properties:
- *             data:
- *                 type: bool
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,bool]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,bool]
+ *     properties:
+ *       data:
+ *         type: bool
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,bool]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,bool]
+ *   type: struct
  * ```
  *
  */
@@ -1935,12 +1935,12 @@ export type CLUSTER_FORCE_DISCONNECT_RESPONSE = CLUSTER_FORCE_DISCONNECT_RESPONS
  *
  * ```yaml
  * structs:
- *     ANON_STRUCT_0:
- *         properties: {}
+ *   ANON_STRUCT_0:
+ *     properties: {}
  * typeInfo:
- *     pointer: true
- *     structRef: ANON_STRUCT_0
- *     type: struct
+ *   pointer: true
+ *   structRef: ANON_STRUCT_0
+ *   type: struct
  * ```
  *
  */
@@ -1951,18 +1951,18 @@ export type CLUSTER_FORCE_RECONNECT_REQUEST = CLUSTER_FORCE_RECONNECT_REQUEST__A
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,bool]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,bool]
- *         properties:
- *             data:
- *                 type: bool
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,bool]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,bool]
+ *     properties:
+ *       data:
+ *         type: bool
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,bool]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,bool]
+ *   type: struct
  * ```
  *
  */
@@ -1973,24 +1973,24 @@ export type CLUSTER_FORCE_RECONNECT_RESPONSE = CLUSTER_FORCE_RECONNECT_RESPONSE_
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/helm.HelmChartInstallUpgradeRequest:
- *         name: mogenius-operator/src/helm.HelmChartInstallUpgradeRequest
- *         properties:
- *             chart:
- *                 type: string
- *             dryRun:
- *                 type: bool
- *             namespace:
- *                 type: string
- *             release:
- *                 type: string
- *             values:
- *                 type: string
- *             version:
- *                 type: string
+ *   mogenius-operator/src/helm.HelmChartInstallUpgradeRequest:
+ *     name: mogenius-operator/src/helm.HelmChartInstallUpgradeRequest
+ *     properties:
+ *       chart:
+ *         type: string
+ *       dryRun:
+ *         type: bool
+ *       namespace:
+ *         type: string
+ *       release:
+ *         type: string
+ *       values:
+ *         type: string
+ *       version:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/helm.HelmChartInstallUpgradeRequest
- *     type: struct
+ *   structRef: mogenius-operator/src/helm.HelmChartInstallUpgradeRequest
+ *   type: struct
  * ```
  *
  */
@@ -2001,18 +2001,18 @@ export type CLUSTER_HELM_CHART_INSTALL_REQUEST = CLUSTER_HELM_CHART_INSTALL_REQU
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmChartInstallUpgradeRequest,string]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmChartInstallUpgradeRequest,string]
- *         properties:
- *             data:
- *                 type: string
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmChartInstallUpgradeRequest,string]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmChartInstallUpgradeRequest,string]
+ *     properties:
+ *       data:
+ *         type: string
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmChartInstallUpgradeRequest,string]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmChartInstallUpgradeRequest,string]
+ *   type: struct
  * ```
  *
  */
@@ -2023,30 +2023,30 @@ export type CLUSTER_HELM_CHART_INSTALL_RESPONSE = CLUSTER_HELM_CHART_INSTALL_RES
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/helm.HelmChartOciInstallUpgradeRequest:
- *         name: mogenius-operator/src/helm.HelmChartOciInstallUpgradeRequest
- *         properties:
- *             authHost:
- *                 type: string
- *             dryRun:
- *                 type: bool
- *             namespace:
- *                 type: string
- *             ociChartUrl:
- *                 type: string
- *             password:
- *                 type: string
- *             release:
- *                 type: string
- *             username:
- *                 type: string
- *             values:
- *                 type: string
- *             version:
- *                 type: string
+ *   mogenius-operator/src/helm.HelmChartOciInstallUpgradeRequest:
+ *     name: mogenius-operator/src/helm.HelmChartOciInstallUpgradeRequest
+ *     properties:
+ *       authHost:
+ *         type: string
+ *       dryRun:
+ *         type: bool
+ *       namespace:
+ *         type: string
+ *       ociChartUrl:
+ *         type: string
+ *       password:
+ *         type: string
+ *       release:
+ *         type: string
+ *       username:
+ *         type: string
+ *       values:
+ *         type: string
+ *       version:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/helm.HelmChartOciInstallUpgradeRequest
- *     type: struct
+ *   structRef: mogenius-operator/src/helm.HelmChartOciInstallUpgradeRequest
+ *   type: struct
  * ```
  *
  */
@@ -2057,18 +2057,18 @@ export type CLUSTER_HELM_CHART_INSTALL_OCI_REQUEST = CLUSTER_HELM_CHART_INSTALL_
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmChartOciInstallUpgradeRequest,string]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmChartOciInstallUpgradeRequest,string]
- *         properties:
- *             data:
- *                 type: string
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmChartOciInstallUpgradeRequest,string]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmChartOciInstallUpgradeRequest,string]
+ *     properties:
+ *       data:
+ *         type: string
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmChartOciInstallUpgradeRequest,string]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmChartOciInstallUpgradeRequest,string]
+ *   type: struct
  * ```
  *
  */
@@ -2079,14 +2079,14 @@ export type CLUSTER_HELM_CHART_INSTALL_OCI_RESPONSE = CLUSTER_HELM_CHART_INSTALL
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/helm.HelmRepoRemoveRequest:
- *         name: mogenius-operator/src/helm.HelmRepoRemoveRequest
- *         properties:
- *             name:
- *                 type: string
+ *   mogenius-operator/src/helm.HelmRepoRemoveRequest:
+ *     name: mogenius-operator/src/helm.HelmRepoRemoveRequest
+ *     properties:
+ *       name:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/helm.HelmRepoRemoveRequest
- *     type: struct
+ *   structRef: mogenius-operator/src/helm.HelmRepoRemoveRequest
+ *   type: struct
  * ```
  *
  */
@@ -2097,18 +2097,18 @@ export type CLUSTER_HELM_CHART_REMOVE_REQUEST = CLUSTER_HELM_CHART_REMOVE_REQUES
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmRepoRemoveRequest,string]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmRepoRemoveRequest,string]
- *         properties:
- *             data:
- *                 type: string
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmRepoRemoveRequest,string]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmRepoRemoveRequest,string]
+ *     properties:
+ *       data:
+ *         type: string
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmRepoRemoveRequest,string]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmRepoRemoveRequest,string]
+ *   type: struct
  * ```
  *
  */
@@ -2119,14 +2119,14 @@ export type CLUSTER_HELM_CHART_REMOVE_RESPONSE = CLUSTER_HELM_CHART_REMOVE_RESPO
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/helm.HelmChartSearchRequest:
- *         name: mogenius-operator/src/helm.HelmChartSearchRequest
- *         properties:
- *             name:
- *                 type: string
+ *   mogenius-operator/src/helm.HelmChartSearchRequest:
+ *     name: mogenius-operator/src/helm.HelmChartSearchRequest
+ *     properties:
+ *       name:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/helm.HelmChartSearchRequest
- *     type: struct
+ *   structRef: mogenius-operator/src/helm.HelmChartSearchRequest
+ *   type: struct
  * ```
  *
  */
@@ -2137,32 +2137,32 @@ export type CLUSTER_HELM_CHART_SEARCH_REQUEST = CLUSTER_HELM_CHART_SEARCH_REQUES
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmChartSearchRequest,[]mogenius-operator/src/helm.HelmChartInfo]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmChartSearchRequest,[]mogenius-operator/src/helm.HelmChartInfo]
- *         properties:
- *             data:
- *                 elementType:
- *                     structRef: mogenius-operator/src/helm.HelmChartInfo
- *                     type: struct
- *                 type: array
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- *     mogenius-operator/src/helm.HelmChartInfo:
- *         name: mogenius-operator/src/helm.HelmChartInfo
- *         properties:
- *             app_version:
- *                 type: string
- *             description:
- *                 type: string
- *             name:
- *                 type: string
- *             version:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmChartSearchRequest,[]mogenius-operator/src/helm.HelmChartInfo]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmChartSearchRequest,[]mogenius-operator/src/helm.HelmChartInfo]
+ *     properties:
+ *       data:
+ *         elementType:
+ *           structRef: mogenius-operator/src/helm.HelmChartInfo
+ *           type: struct
+ *         type: array
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
+ *   mogenius-operator/src/helm.HelmChartInfo:
+ *     name: mogenius-operator/src/helm.HelmChartInfo
+ *     properties:
+ *       app_version:
+ *         type: string
+ *       description:
+ *         type: string
+ *       name:
+ *         type: string
+ *       version:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmChartSearchRequest,[]mogenius-operator/src/helm.HelmChartInfo]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmChartSearchRequest,[]mogenius-operator/src/helm.HelmChartInfo]
+ *   type: struct
  * ```
  *
  */
@@ -2173,18 +2173,18 @@ export type CLUSTER_HELM_CHART_SEARCH_RESPONSE = CLUSTER_HELM_CHART_SEARCH_RESPO
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/helm.HelmChartShowRequest:
- *         name: mogenius-operator/src/helm.HelmChartShowRequest
- *         properties:
- *             chart:
- *                 type: string
- *             format:
- *                 type: string
- *             version:
- *                 type: string
+ *   mogenius-operator/src/helm.HelmChartShowRequest:
+ *     name: mogenius-operator/src/helm.HelmChartShowRequest
+ *     properties:
+ *       chart:
+ *         type: string
+ *       format:
+ *         type: string
+ *       version:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/helm.HelmChartShowRequest
- *     type: struct
+ *   structRef: mogenius-operator/src/helm.HelmChartShowRequest
+ *   type: struct
  * ```
  *
  */
@@ -2195,18 +2195,18 @@ export type CLUSTER_HELM_CHART_SHOW_REQUEST = CLUSTER_HELM_CHART_SHOW_REQUEST__M
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmChartShowRequest,string]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmChartShowRequest,string]
- *         properties:
- *             data:
- *                 type: string
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmChartShowRequest,string]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmChartShowRequest,string]
+ *     properties:
+ *       data:
+ *         type: string
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmChartShowRequest,string]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmChartShowRequest,string]
+ *   type: struct
  * ```
  *
  */
@@ -2217,14 +2217,14 @@ export type CLUSTER_HELM_CHART_SHOW_RESPONSE = CLUSTER_HELM_CHART_SHOW_RESPONSE_
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/helm.HelmChartVersionRequest:
- *         name: mogenius-operator/src/helm.HelmChartVersionRequest
- *         properties:
- *             chart:
- *                 type: string
+ *   mogenius-operator/src/helm.HelmChartVersionRequest:
+ *     name: mogenius-operator/src/helm.HelmChartVersionRequest
+ *     properties:
+ *       chart:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/helm.HelmChartVersionRequest
- *     type: struct
+ *   structRef: mogenius-operator/src/helm.HelmChartVersionRequest
+ *   type: struct
  * ```
  *
  */
@@ -2235,32 +2235,32 @@ export type CLUSTER_HELM_CHART_VERSIONS_REQUEST = CLUSTER_HELM_CHART_VERSIONS_RE
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmChartVersionRequest,[]mogenius-operator/src/helm.HelmChartInfo]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmChartVersionRequest,[]mogenius-operator/src/helm.HelmChartInfo]
- *         properties:
- *             data:
- *                 elementType:
- *                     structRef: mogenius-operator/src/helm.HelmChartInfo
- *                     type: struct
- *                 type: array
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- *     mogenius-operator/src/helm.HelmChartInfo:
- *         name: mogenius-operator/src/helm.HelmChartInfo
- *         properties:
- *             app_version:
- *                 type: string
- *             description:
- *                 type: string
- *             name:
- *                 type: string
- *             version:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmChartVersionRequest,[]mogenius-operator/src/helm.HelmChartInfo]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmChartVersionRequest,[]mogenius-operator/src/helm.HelmChartInfo]
+ *     properties:
+ *       data:
+ *         elementType:
+ *           structRef: mogenius-operator/src/helm.HelmChartInfo
+ *           type: struct
+ *         type: array
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
+ *   mogenius-operator/src/helm.HelmChartInfo:
+ *     name: mogenius-operator/src/helm.HelmChartInfo
+ *     properties:
+ *       app_version:
+ *         type: string
+ *       description:
+ *         type: string
+ *       name:
+ *         type: string
+ *       version:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmChartVersionRequest,[]mogenius-operator/src/helm.HelmChartInfo]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmChartVersionRequest,[]mogenius-operator/src/helm.HelmChartInfo]
+ *   type: struct
  * ```
  *
  */
@@ -2271,18 +2271,18 @@ export type CLUSTER_HELM_CHART_VERSIONS_RESPONSE = CLUSTER_HELM_CHART_VERSIONS_R
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/helm.HelmReleaseGetRequest:
- *         name: mogenius-operator/src/helm.HelmReleaseGetRequest
- *         properties:
- *             getFormat:
- *                 type: string
- *             namespace:
- *                 type: string
- *             release:
- *                 type: string
+ *   mogenius-operator/src/helm.HelmReleaseGetRequest:
+ *     name: mogenius-operator/src/helm.HelmReleaseGetRequest
+ *     properties:
+ *       getFormat:
+ *         type: string
+ *       namespace:
+ *         type: string
+ *       release:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/helm.HelmReleaseGetRequest
- *     type: struct
+ *   structRef: mogenius-operator/src/helm.HelmReleaseGetRequest
+ *   type: struct
  * ```
  *
  */
@@ -2293,18 +2293,18 @@ export type CLUSTER_HELM_RELEASE_GET_REQUEST = CLUSTER_HELM_RELEASE_GET_REQUEST_
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseGetRequest,string]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseGetRequest,string]
- *         properties:
- *             data:
- *                 type: string
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseGetRequest,string]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseGetRequest,string]
+ *     properties:
+ *       data:
+ *         type: string
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseGetRequest,string]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseGetRequest,string]
+ *   type: struct
  * ```
  *
  */
@@ -2315,33 +2315,33 @@ export type CLUSTER_HELM_RELEASE_GET_RESPONSE = CLUSTER_HELM_RELEASE_GET_RESPONS
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/helm.HelmReleaseGetWorkloadsRequest:
- *         name: mogenius-operator/src/helm.HelmReleaseGetWorkloadsRequest
- *         properties:
- *             namespace:
- *                 type: string
- *             release:
- *                 type: string
- *             whitelist:
- *                 elementType:
- *                     pointer: true
- *                     structRef: mogenius-operator/src/utils.ResourceDescriptor
- *                     type: struct
- *                 type: array
- *     mogenius-operator/src/utils.ResourceDescriptor:
- *         name: mogenius-operator/src/utils.ResourceDescriptor
- *         properties:
- *             apiVersion:
- *                 type: string
- *             kind:
- *                 type: string
- *             namespaced:
- *                 type: bool
- *             plural:
- *                 type: string
+ *   mogenius-operator/src/helm.HelmReleaseGetWorkloadsRequest:
+ *     name: mogenius-operator/src/helm.HelmReleaseGetWorkloadsRequest
+ *     properties:
+ *       namespace:
+ *         type: string
+ *       release:
+ *         type: string
+ *       whitelist:
+ *         elementType:
+ *           pointer: true
+ *           structRef: mogenius-operator/src/utils.ResourceDescriptor
+ *           type: struct
+ *         type: array
+ *   mogenius-operator/src/utils.ResourceDescriptor:
+ *     name: mogenius-operator/src/utils.ResourceDescriptor
+ *     properties:
+ *       apiVersion:
+ *         type: string
+ *       kind:
+ *         type: string
+ *       namespaced:
+ *         type: bool
+ *       plural:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/helm.HelmReleaseGetWorkloadsRequest
- *     type: struct
+ *   structRef: mogenius-operator/src/helm.HelmReleaseGetWorkloadsRequest
+ *   type: struct
  * ```
  *
  */
@@ -2352,31 +2352,31 @@ export type CLUSTER_HELM_RELEASE_GET_WORKLOADS_REQUEST = CLUSTER_HELM_RELEASE_GE
  *
  * ```yaml
  * structs:
- *     k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured
- *         properties:
- *             Object:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     pointer: true
- *                     type: any
- *     ? mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseGetWorkloadsRequest,[]k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
- *     :   name: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseGetWorkloadsRequest,[]k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
- *         properties:
- *             data:
- *                 elementType:
- *                     structRef: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured
- *                     type: struct
- *                 type: array
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured:
+ *     name: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured
+ *     properties:
+ *       Object:
+ *         keyType:
+ *           type: string
+ *         type: map
+ *         valueType:
+ *           pointer: true
+ *           type: any
+ *   ? mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseGetWorkloadsRequest,[]k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *   : name: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseGetWorkloadsRequest,[]k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *     properties:
+ *       data:
+ *         elementType:
+ *           structRef: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured
+ *           type: struct
+ *         type: array
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseGetWorkloadsRequest,[]k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseGetWorkloadsRequest,[]k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *   type: struct
  * ```
  *
  */
@@ -2387,16 +2387,16 @@ export type CLUSTER_HELM_RELEASE_GET_WORKLOADS_RESPONSE = CLUSTER_HELM_RELEASE_G
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/helm.HelmReleaseHistoryRequest:
- *         name: mogenius-operator/src/helm.HelmReleaseHistoryRequest
- *         properties:
- *             namespace:
- *                 type: string
- *             release:
- *                 type: string
+ *   mogenius-operator/src/helm.HelmReleaseHistoryRequest:
+ *     name: mogenius-operator/src/helm.HelmReleaseHistoryRequest
+ *     properties:
+ *       namespace:
+ *         type: string
+ *       release:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/helm.HelmReleaseHistoryRequest
- *     type: struct
+ *   structRef: mogenius-operator/src/helm.HelmReleaseHistoryRequest
+ *   type: struct
  * ```
  *
  */
@@ -2407,276 +2407,276 @@ export type CLUSTER_HELM_RELEASE_HISTORY_REQUEST = CLUSTER_HELM_RELEASE_HISTORY_
  *
  * ```yaml
  * structs:
- *     helm.sh/helm/v4/pkg/chart/common.File:
- *         name: helm.sh/helm/v4/pkg/chart/common.File
- *         properties:
- *             data:
- *                 elementType:
- *                     type: uint
- *                 type: array
- *             modtime:
- *                 structRef: time.Time
- *                 type: struct
- *             name:
- *                 type: string
- *     helm.sh/helm/v4/pkg/chart/v2.Chart:
- *         name: helm.sh/helm/v4/pkg/chart/v2.Chart
- *         properties:
- *             files:
- *                 elementType:
- *                     pointer: true
- *                     structRef: helm.sh/helm/v4/pkg/chart/common.File
- *                     type: struct
- *                 type: array
- *             lock:
- *                 pointer: true
- *                 structRef: helm.sh/helm/v4/pkg/chart/v2.Lock
- *                 type: struct
- *             metadata:
- *                 pointer: true
- *                 structRef: helm.sh/helm/v4/pkg/chart/v2.Metadata
- *                 type: struct
- *             modtime:
- *                 structRef: time.Time
- *                 type: struct
- *             schema:
- *                 elementType:
- *                     type: uint
- *                 type: array
- *             schemamodtime:
- *                 structRef: time.Time
- *                 type: struct
- *             templates:
- *                 elementType:
- *                     pointer: true
- *                     structRef: helm.sh/helm/v4/pkg/chart/common.File
- *                     type: struct
- *                 type: array
- *             values:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     pointer: true
- *                     type: any
- *     helm.sh/helm/v4/pkg/chart/v2.Dependency:
- *         name: helm.sh/helm/v4/pkg/chart/v2.Dependency
- *         properties:
- *             alias:
- *                 type: string
- *             condition:
- *                 type: string
- *             enabled:
- *                 type: bool
- *             import-values:
- *                 elementType:
- *                     pointer: true
- *                     type: any
- *                 type: array
- *             name:
- *                 type: string
- *             repository:
- *                 type: string
- *             tags:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             version:
- *                 type: string
- *     helm.sh/helm/v4/pkg/chart/v2.Lock:
- *         name: helm.sh/helm/v4/pkg/chart/v2.Lock
- *         properties:
- *             dependencies:
- *                 elementType:
- *                     pointer: true
- *                     structRef: helm.sh/helm/v4/pkg/chart/v2.Dependency
- *                     type: struct
- *                 type: array
- *             digest:
- *                 type: string
- *             generated:
- *                 structRef: time.Time
- *                 type: struct
- *     helm.sh/helm/v4/pkg/chart/v2.Maintainer:
- *         name: helm.sh/helm/v4/pkg/chart/v2.Maintainer
- *         properties:
- *             email:
- *                 type: string
- *             name:
- *                 type: string
- *             url:
- *                 type: string
- *     helm.sh/helm/v4/pkg/chart/v2.Metadata:
- *         name: helm.sh/helm/v4/pkg/chart/v2.Metadata
- *         properties:
- *             annotations:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     type: string
- *             apiVersion:
- *                 type: string
- *             appVersion:
- *                 type: string
- *             condition:
- *                 type: string
- *             dependencies:
- *                 elementType:
- *                     pointer: true
- *                     structRef: helm.sh/helm/v4/pkg/chart/v2.Dependency
- *                     type: struct
- *                 type: array
- *             deprecated:
- *                 type: bool
- *             description:
- *                 type: string
- *             home:
- *                 type: string
- *             icon:
- *                 type: string
- *             keywords:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             kubeVersion:
- *                 type: string
- *             maintainers:
- *                 elementType:
- *                     pointer: true
- *                     structRef: helm.sh/helm/v4/pkg/chart/v2.Maintainer
- *                     type: struct
- *                 type: array
- *             name:
- *                 type: string
- *             sources:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             tags:
- *                 type: string
- *             type:
- *                 type: string
- *             version:
- *                 type: string
- *     helm.sh/helm/v4/pkg/release/v1.Hook:
- *         name: helm.sh/helm/v4/pkg/release/v1.Hook
- *         properties:
- *             delete_policies:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             events:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             kind:
- *                 type: string
- *             last_run:
- *                 structRef: helm.sh/helm/v4/pkg/release/v1.HookExecution
- *                 type: struct
- *             manifest:
- *                 type: string
- *             name:
- *                 type: string
- *             output_log_policies:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             path:
- *                 type: string
- *             weight:
- *                 type: int
- *     helm.sh/helm/v4/pkg/release/v1.HookExecution:
- *         name: helm.sh/helm/v4/pkg/release/v1.HookExecution
- *         properties:
- *             completed_at:
- *                 structRef: time.Time
- *                 type: struct
- *             phase:
- *                 type: string
- *             started_at:
- *                 structRef: time.Time
- *                 type: struct
- *     helm.sh/helm/v4/pkg/release/v1.Info:
- *         name: helm.sh/helm/v4/pkg/release/v1.Info
- *         properties:
- *             deleted:
- *                 structRef: time.Time
- *                 type: struct
- *             description:
- *                 type: string
- *             first_deployed:
- *                 structRef: time.Time
- *                 type: struct
- *             last_deployed:
- *                 structRef: time.Time
- *                 type: struct
- *             notes:
- *                 type: string
- *             resources:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     elementType:
- *                         pointer: true
- *                         type: any
- *                     type: array
- *             status:
- *                 type: string
- *     helm.sh/helm/v4/pkg/release/v1.Release:
- *         name: helm.sh/helm/v4/pkg/release/v1.Release
- *         properties:
- *             apply_method:
- *                 type: string
- *             chart:
- *                 pointer: true
- *                 structRef: helm.sh/helm/v4/pkg/chart/v2.Chart
- *                 type: struct
- *             config:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     pointer: true
- *                     type: any
- *             hooks:
- *                 elementType:
- *                     pointer: true
- *                     structRef: helm.sh/helm/v4/pkg/release/v1.Hook
- *                     type: struct
- *                 type: array
- *             info:
- *                 pointer: true
- *                 structRef: helm.sh/helm/v4/pkg/release/v1.Info
- *                 type: struct
- *             manifest:
- *                 type: string
- *             name:
- *                 type: string
- *             namespace:
- *                 type: string
- *             version:
- *                 type: int
- *     mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseHistoryRequest,[]helm.sh/helm/v4/pkg/release/v1.Release]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseHistoryRequest,[]helm.sh/helm/v4/pkg/release/v1.Release]
- *         properties:
- *             data:
- *                 elementType:
- *                     structRef: helm.sh/helm/v4/pkg/release/v1.Release
- *                     type: struct
- *                 type: array
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- *     time.Time:
- *         name: time.Time
- *         properties: {}
+ *   helm.sh/helm/v4/pkg/chart/common.File:
+ *     name: helm.sh/helm/v4/pkg/chart/common.File
+ *     properties:
+ *       data:
+ *         elementType:
+ *           type: uint
+ *         type: array
+ *       modtime:
+ *         structRef: time.Time
+ *         type: struct
+ *       name:
+ *         type: string
+ *   helm.sh/helm/v4/pkg/chart/v2.Chart:
+ *     name: helm.sh/helm/v4/pkg/chart/v2.Chart
+ *     properties:
+ *       files:
+ *         elementType:
+ *           pointer: true
+ *           structRef: helm.sh/helm/v4/pkg/chart/common.File
+ *           type: struct
+ *         type: array
+ *       lock:
+ *         pointer: true
+ *         structRef: helm.sh/helm/v4/pkg/chart/v2.Lock
+ *         type: struct
+ *       metadata:
+ *         pointer: true
+ *         structRef: helm.sh/helm/v4/pkg/chart/v2.Metadata
+ *         type: struct
+ *       modtime:
+ *         structRef: time.Time
+ *         type: struct
+ *       schema:
+ *         elementType:
+ *           type: uint
+ *         type: array
+ *       schemamodtime:
+ *         structRef: time.Time
+ *         type: struct
+ *       templates:
+ *         elementType:
+ *           pointer: true
+ *           structRef: helm.sh/helm/v4/pkg/chart/common.File
+ *           type: struct
+ *         type: array
+ *       values:
+ *         keyType:
+ *           type: string
+ *         type: map
+ *         valueType:
+ *           pointer: true
+ *           type: any
+ *   helm.sh/helm/v4/pkg/chart/v2.Dependency:
+ *     name: helm.sh/helm/v4/pkg/chart/v2.Dependency
+ *     properties:
+ *       alias:
+ *         type: string
+ *       condition:
+ *         type: string
+ *       enabled:
+ *         type: bool
+ *       import-values:
+ *         elementType:
+ *           pointer: true
+ *           type: any
+ *         type: array
+ *       name:
+ *         type: string
+ *       repository:
+ *         type: string
+ *       tags:
+ *         elementType:
+ *           type: string
+ *         type: array
+ *       version:
+ *         type: string
+ *   helm.sh/helm/v4/pkg/chart/v2.Lock:
+ *     name: helm.sh/helm/v4/pkg/chart/v2.Lock
+ *     properties:
+ *       dependencies:
+ *         elementType:
+ *           pointer: true
+ *           structRef: helm.sh/helm/v4/pkg/chart/v2.Dependency
+ *           type: struct
+ *         type: array
+ *       digest:
+ *         type: string
+ *       generated:
+ *         structRef: time.Time
+ *         type: struct
+ *   helm.sh/helm/v4/pkg/chart/v2.Maintainer:
+ *     name: helm.sh/helm/v4/pkg/chart/v2.Maintainer
+ *     properties:
+ *       email:
+ *         type: string
+ *       name:
+ *         type: string
+ *       url:
+ *         type: string
+ *   helm.sh/helm/v4/pkg/chart/v2.Metadata:
+ *     name: helm.sh/helm/v4/pkg/chart/v2.Metadata
+ *     properties:
+ *       annotations:
+ *         keyType:
+ *           type: string
+ *         type: map
+ *         valueType:
+ *           type: string
+ *       apiVersion:
+ *         type: string
+ *       appVersion:
+ *         type: string
+ *       condition:
+ *         type: string
+ *       dependencies:
+ *         elementType:
+ *           pointer: true
+ *           structRef: helm.sh/helm/v4/pkg/chart/v2.Dependency
+ *           type: struct
+ *         type: array
+ *       deprecated:
+ *         type: bool
+ *       description:
+ *         type: string
+ *       home:
+ *         type: string
+ *       icon:
+ *         type: string
+ *       keywords:
+ *         elementType:
+ *           type: string
+ *         type: array
+ *       kubeVersion:
+ *         type: string
+ *       maintainers:
+ *         elementType:
+ *           pointer: true
+ *           structRef: helm.sh/helm/v4/pkg/chart/v2.Maintainer
+ *           type: struct
+ *         type: array
+ *       name:
+ *         type: string
+ *       sources:
+ *         elementType:
+ *           type: string
+ *         type: array
+ *       tags:
+ *         type: string
+ *       type:
+ *         type: string
+ *       version:
+ *         type: string
+ *   helm.sh/helm/v4/pkg/release/v1.Hook:
+ *     name: helm.sh/helm/v4/pkg/release/v1.Hook
+ *     properties:
+ *       delete_policies:
+ *         elementType:
+ *           type: string
+ *         type: array
+ *       events:
+ *         elementType:
+ *           type: string
+ *         type: array
+ *       kind:
+ *         type: string
+ *       last_run:
+ *         structRef: helm.sh/helm/v4/pkg/release/v1.HookExecution
+ *         type: struct
+ *       manifest:
+ *         type: string
+ *       name:
+ *         type: string
+ *       output_log_policies:
+ *         elementType:
+ *           type: string
+ *         type: array
+ *       path:
+ *         type: string
+ *       weight:
+ *         type: int
+ *   helm.sh/helm/v4/pkg/release/v1.HookExecution:
+ *     name: helm.sh/helm/v4/pkg/release/v1.HookExecution
+ *     properties:
+ *       completed_at:
+ *         structRef: time.Time
+ *         type: struct
+ *       phase:
+ *         type: string
+ *       started_at:
+ *         structRef: time.Time
+ *         type: struct
+ *   helm.sh/helm/v4/pkg/release/v1.Info:
+ *     name: helm.sh/helm/v4/pkg/release/v1.Info
+ *     properties:
+ *       deleted:
+ *         structRef: time.Time
+ *         type: struct
+ *       description:
+ *         type: string
+ *       first_deployed:
+ *         structRef: time.Time
+ *         type: struct
+ *       last_deployed:
+ *         structRef: time.Time
+ *         type: struct
+ *       notes:
+ *         type: string
+ *       resources:
+ *         keyType:
+ *           type: string
+ *         type: map
+ *         valueType:
+ *           elementType:
+ *             pointer: true
+ *             type: any
+ *           type: array
+ *       status:
+ *         type: string
+ *   helm.sh/helm/v4/pkg/release/v1.Release:
+ *     name: helm.sh/helm/v4/pkg/release/v1.Release
+ *     properties:
+ *       apply_method:
+ *         type: string
+ *       chart:
+ *         pointer: true
+ *         structRef: helm.sh/helm/v4/pkg/chart/v2.Chart
+ *         type: struct
+ *       config:
+ *         keyType:
+ *           type: string
+ *         type: map
+ *         valueType:
+ *           pointer: true
+ *           type: any
+ *       hooks:
+ *         elementType:
+ *           pointer: true
+ *           structRef: helm.sh/helm/v4/pkg/release/v1.Hook
+ *           type: struct
+ *         type: array
+ *       info:
+ *         pointer: true
+ *         structRef: helm.sh/helm/v4/pkg/release/v1.Info
+ *         type: struct
+ *       manifest:
+ *         type: string
+ *       name:
+ *         type: string
+ *       namespace:
+ *         type: string
+ *       version:
+ *         type: int
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseHistoryRequest,[]helm.sh/helm/v4/pkg/release/v1.Release]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseHistoryRequest,[]helm.sh/helm/v4/pkg/release/v1.Release]
+ *     properties:
+ *       data:
+ *         elementType:
+ *           structRef: helm.sh/helm/v4/pkg/release/v1.Release
+ *           type: struct
+ *         type: array
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
+ *   time.Time:
+ *     name: time.Time
+ *     properties: {}
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseHistoryRequest,[]helm.sh/helm/v4/pkg/release/v1.Release]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseHistoryRequest,[]helm.sh/helm/v4/pkg/release/v1.Release]
+ *   type: struct
  * ```
  *
  */
@@ -2687,18 +2687,18 @@ export type CLUSTER_HELM_RELEASE_HISTORY_RESPONSE = CLUSTER_HELM_RELEASE_HISTORY
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/helm.HelmReleaseLinkRequest:
- *         name: mogenius-operator/src/helm.HelmReleaseLinkRequest
- *         properties:
- *             namespace:
- *                 type: string
- *             releaseName:
- *                 type: string
- *             repoName:
- *                 type: string
+ *   mogenius-operator/src/helm.HelmReleaseLinkRequest:
+ *     name: mogenius-operator/src/helm.HelmReleaseLinkRequest
+ *     properties:
+ *       namespace:
+ *         type: string
+ *       releaseName:
+ *         type: string
+ *       repoName:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/helm.HelmReleaseLinkRequest
- *     type: struct
+ *   structRef: mogenius-operator/src/helm.HelmReleaseLinkRequest
+ *   type: struct
  * ```
  *
  */
@@ -2709,18 +2709,18 @@ export type CLUSTER_HELM_RELEASE_LINK_REQUEST = CLUSTER_HELM_RELEASE_LINK_REQUES
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseLinkRequest,string]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseLinkRequest,string]
- *         properties:
- *             data:
- *                 type: string
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseLinkRequest,string]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseLinkRequest,string]
+ *     properties:
+ *       data:
+ *         type: string
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseLinkRequest,string]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseLinkRequest,string]
+ *   type: struct
  * ```
  *
  */
@@ -2731,14 +2731,14 @@ export type CLUSTER_HELM_RELEASE_LINK_RESPONSE = CLUSTER_HELM_RELEASE_LINK_RESPO
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/helm.HelmReleaseListRequest:
- *         name: mogenius-operator/src/helm.HelmReleaseListRequest
- *         properties:
- *             namespace:
- *                 type: string
+ *   mogenius-operator/src/helm.HelmReleaseListRequest:
+ *     name: mogenius-operator/src/helm.HelmReleaseListRequest
+ *     properties:
+ *       namespace:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/helm.HelmReleaseListRequest
- *     type: struct
+ *   structRef: mogenius-operator/src/helm.HelmReleaseListRequest
+ *   type: struct
  * ```
  *
  */
@@ -2749,277 +2749,277 @@ export type CLUSTER_HELM_RELEASE_LIST_REQUEST = CLUSTER_HELM_RELEASE_LIST_REQUES
  *
  * ```yaml
  * structs:
- *     helm.sh/helm/v4/pkg/chart/common.File:
- *         name: helm.sh/helm/v4/pkg/chart/common.File
- *         properties:
- *             data:
- *                 elementType:
- *                     type: uint
- *                 type: array
- *             modtime:
- *                 structRef: time.Time
- *                 type: struct
- *             name:
- *                 type: string
- *     helm.sh/helm/v4/pkg/chart/v2.Chart:
- *         name: helm.sh/helm/v4/pkg/chart/v2.Chart
- *         properties:
- *             files:
- *                 elementType:
- *                     pointer: true
- *                     structRef: helm.sh/helm/v4/pkg/chart/common.File
- *                     type: struct
- *                 type: array
- *             lock:
- *                 pointer: true
- *                 structRef: helm.sh/helm/v4/pkg/chart/v2.Lock
- *                 type: struct
- *             metadata:
- *                 pointer: true
- *                 structRef: helm.sh/helm/v4/pkg/chart/v2.Metadata
- *                 type: struct
- *             modtime:
- *                 structRef: time.Time
- *                 type: struct
- *             schema:
- *                 elementType:
- *                     type: uint
- *                 type: array
- *             schemamodtime:
- *                 structRef: time.Time
- *                 type: struct
- *             templates:
- *                 elementType:
- *                     pointer: true
- *                     structRef: helm.sh/helm/v4/pkg/chart/common.File
- *                     type: struct
- *                 type: array
- *             values:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     pointer: true
- *                     type: any
- *     helm.sh/helm/v4/pkg/chart/v2.Dependency:
- *         name: helm.sh/helm/v4/pkg/chart/v2.Dependency
- *         properties:
- *             alias:
- *                 type: string
- *             condition:
- *                 type: string
- *             enabled:
- *                 type: bool
- *             import-values:
- *                 elementType:
- *                     pointer: true
- *                     type: any
- *                 type: array
- *             name:
- *                 type: string
- *             repository:
- *                 type: string
- *             tags:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             version:
- *                 type: string
- *     helm.sh/helm/v4/pkg/chart/v2.Lock:
- *         name: helm.sh/helm/v4/pkg/chart/v2.Lock
- *         properties:
- *             dependencies:
- *                 elementType:
- *                     pointer: true
- *                     structRef: helm.sh/helm/v4/pkg/chart/v2.Dependency
- *                     type: struct
- *                 type: array
- *             digest:
- *                 type: string
- *             generated:
- *                 structRef: time.Time
- *                 type: struct
- *     helm.sh/helm/v4/pkg/chart/v2.Maintainer:
- *         name: helm.sh/helm/v4/pkg/chart/v2.Maintainer
- *         properties:
- *             email:
- *                 type: string
- *             name:
- *                 type: string
- *             url:
- *                 type: string
- *     helm.sh/helm/v4/pkg/chart/v2.Metadata:
- *         name: helm.sh/helm/v4/pkg/chart/v2.Metadata
- *         properties:
- *             annotations:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     type: string
- *             apiVersion:
- *                 type: string
- *             appVersion:
- *                 type: string
- *             condition:
- *                 type: string
- *             dependencies:
- *                 elementType:
- *                     pointer: true
- *                     structRef: helm.sh/helm/v4/pkg/chart/v2.Dependency
- *                     type: struct
- *                 type: array
- *             deprecated:
- *                 type: bool
- *             description:
- *                 type: string
- *             home:
- *                 type: string
- *             icon:
- *                 type: string
- *             keywords:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             kubeVersion:
- *                 type: string
- *             maintainers:
- *                 elementType:
- *                     pointer: true
- *                     structRef: helm.sh/helm/v4/pkg/chart/v2.Maintainer
- *                     type: struct
- *                 type: array
- *             name:
- *                 type: string
- *             sources:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             tags:
- *                 type: string
- *             type:
- *                 type: string
- *             version:
- *                 type: string
- *     helm.sh/helm/v4/pkg/release/v1.Hook:
- *         name: helm.sh/helm/v4/pkg/release/v1.Hook
- *         properties:
- *             delete_policies:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             events:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             kind:
- *                 type: string
- *             last_run:
- *                 structRef: helm.sh/helm/v4/pkg/release/v1.HookExecution
- *                 type: struct
- *             manifest:
- *                 type: string
- *             name:
- *                 type: string
- *             output_log_policies:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             path:
- *                 type: string
- *             weight:
- *                 type: int
- *     helm.sh/helm/v4/pkg/release/v1.HookExecution:
- *         name: helm.sh/helm/v4/pkg/release/v1.HookExecution
- *         properties:
- *             completed_at:
- *                 structRef: time.Time
- *                 type: struct
- *             phase:
- *                 type: string
- *             started_at:
- *                 structRef: time.Time
- *                 type: struct
- *     helm.sh/helm/v4/pkg/release/v1.Info:
- *         name: helm.sh/helm/v4/pkg/release/v1.Info
- *         properties:
- *             deleted:
- *                 structRef: time.Time
- *                 type: struct
- *             description:
- *                 type: string
- *             first_deployed:
- *                 structRef: time.Time
- *                 type: struct
- *             last_deployed:
- *                 structRef: time.Time
- *                 type: struct
- *             notes:
- *                 type: string
- *             resources:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     elementType:
- *                         pointer: true
- *                         type: any
- *                     type: array
- *             status:
- *                 type: string
- *     mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseListRequest,[]*mogenius-operator/src/helm.HelmRelease]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseListRequest,[]*mogenius-operator/src/helm.HelmRelease]
- *         properties:
- *             data:
- *                 elementType:
- *                     pointer: true
- *                     structRef: mogenius-operator/src/helm.HelmRelease
- *                     type: struct
- *                 type: array
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- *     mogenius-operator/src/helm.HelmRelease:
- *         name: mogenius-operator/src/helm.HelmRelease
- *         properties:
- *             chart:
- *                 pointer: true
- *                 structRef: helm.sh/helm/v4/pkg/chart/v2.Chart
- *                 type: struct
- *             config:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     pointer: true
- *                     type: any
- *             hooks:
- *                 elementType:
- *                     pointer: true
- *                     structRef: helm.sh/helm/v4/pkg/release/v1.Hook
- *                     type: struct
- *                 type: array
- *             info:
- *                 pointer: true
- *                 structRef: helm.sh/helm/v4/pkg/release/v1.Info
- *                 type: struct
- *             manifest:
- *                 type: string
- *             name:
- *                 type: string
- *             namespace:
- *                 type: string
- *             repoName:
- *                 type: string
- *             version:
- *                 type: int
- *     time.Time:
- *         name: time.Time
- *         properties: {}
+ *   helm.sh/helm/v4/pkg/chart/common.File:
+ *     name: helm.sh/helm/v4/pkg/chart/common.File
+ *     properties:
+ *       data:
+ *         elementType:
+ *           type: uint
+ *         type: array
+ *       modtime:
+ *         structRef: time.Time
+ *         type: struct
+ *       name:
+ *         type: string
+ *   helm.sh/helm/v4/pkg/chart/v2.Chart:
+ *     name: helm.sh/helm/v4/pkg/chart/v2.Chart
+ *     properties:
+ *       files:
+ *         elementType:
+ *           pointer: true
+ *           structRef: helm.sh/helm/v4/pkg/chart/common.File
+ *           type: struct
+ *         type: array
+ *       lock:
+ *         pointer: true
+ *         structRef: helm.sh/helm/v4/pkg/chart/v2.Lock
+ *         type: struct
+ *       metadata:
+ *         pointer: true
+ *         structRef: helm.sh/helm/v4/pkg/chart/v2.Metadata
+ *         type: struct
+ *       modtime:
+ *         structRef: time.Time
+ *         type: struct
+ *       schema:
+ *         elementType:
+ *           type: uint
+ *         type: array
+ *       schemamodtime:
+ *         structRef: time.Time
+ *         type: struct
+ *       templates:
+ *         elementType:
+ *           pointer: true
+ *           structRef: helm.sh/helm/v4/pkg/chart/common.File
+ *           type: struct
+ *         type: array
+ *       values:
+ *         keyType:
+ *           type: string
+ *         type: map
+ *         valueType:
+ *           pointer: true
+ *           type: any
+ *   helm.sh/helm/v4/pkg/chart/v2.Dependency:
+ *     name: helm.sh/helm/v4/pkg/chart/v2.Dependency
+ *     properties:
+ *       alias:
+ *         type: string
+ *       condition:
+ *         type: string
+ *       enabled:
+ *         type: bool
+ *       import-values:
+ *         elementType:
+ *           pointer: true
+ *           type: any
+ *         type: array
+ *       name:
+ *         type: string
+ *       repository:
+ *         type: string
+ *       tags:
+ *         elementType:
+ *           type: string
+ *         type: array
+ *       version:
+ *         type: string
+ *   helm.sh/helm/v4/pkg/chart/v2.Lock:
+ *     name: helm.sh/helm/v4/pkg/chart/v2.Lock
+ *     properties:
+ *       dependencies:
+ *         elementType:
+ *           pointer: true
+ *           structRef: helm.sh/helm/v4/pkg/chart/v2.Dependency
+ *           type: struct
+ *         type: array
+ *       digest:
+ *         type: string
+ *       generated:
+ *         structRef: time.Time
+ *         type: struct
+ *   helm.sh/helm/v4/pkg/chart/v2.Maintainer:
+ *     name: helm.sh/helm/v4/pkg/chart/v2.Maintainer
+ *     properties:
+ *       email:
+ *         type: string
+ *       name:
+ *         type: string
+ *       url:
+ *         type: string
+ *   helm.sh/helm/v4/pkg/chart/v2.Metadata:
+ *     name: helm.sh/helm/v4/pkg/chart/v2.Metadata
+ *     properties:
+ *       annotations:
+ *         keyType:
+ *           type: string
+ *         type: map
+ *         valueType:
+ *           type: string
+ *       apiVersion:
+ *         type: string
+ *       appVersion:
+ *         type: string
+ *       condition:
+ *         type: string
+ *       dependencies:
+ *         elementType:
+ *           pointer: true
+ *           structRef: helm.sh/helm/v4/pkg/chart/v2.Dependency
+ *           type: struct
+ *         type: array
+ *       deprecated:
+ *         type: bool
+ *       description:
+ *         type: string
+ *       home:
+ *         type: string
+ *       icon:
+ *         type: string
+ *       keywords:
+ *         elementType:
+ *           type: string
+ *         type: array
+ *       kubeVersion:
+ *         type: string
+ *       maintainers:
+ *         elementType:
+ *           pointer: true
+ *           structRef: helm.sh/helm/v4/pkg/chart/v2.Maintainer
+ *           type: struct
+ *         type: array
+ *       name:
+ *         type: string
+ *       sources:
+ *         elementType:
+ *           type: string
+ *         type: array
+ *       tags:
+ *         type: string
+ *       type:
+ *         type: string
+ *       version:
+ *         type: string
+ *   helm.sh/helm/v4/pkg/release/v1.Hook:
+ *     name: helm.sh/helm/v4/pkg/release/v1.Hook
+ *     properties:
+ *       delete_policies:
+ *         elementType:
+ *           type: string
+ *         type: array
+ *       events:
+ *         elementType:
+ *           type: string
+ *         type: array
+ *       kind:
+ *         type: string
+ *       last_run:
+ *         structRef: helm.sh/helm/v4/pkg/release/v1.HookExecution
+ *         type: struct
+ *       manifest:
+ *         type: string
+ *       name:
+ *         type: string
+ *       output_log_policies:
+ *         elementType:
+ *           type: string
+ *         type: array
+ *       path:
+ *         type: string
+ *       weight:
+ *         type: int
+ *   helm.sh/helm/v4/pkg/release/v1.HookExecution:
+ *     name: helm.sh/helm/v4/pkg/release/v1.HookExecution
+ *     properties:
+ *       completed_at:
+ *         structRef: time.Time
+ *         type: struct
+ *       phase:
+ *         type: string
+ *       started_at:
+ *         structRef: time.Time
+ *         type: struct
+ *   helm.sh/helm/v4/pkg/release/v1.Info:
+ *     name: helm.sh/helm/v4/pkg/release/v1.Info
+ *     properties:
+ *       deleted:
+ *         structRef: time.Time
+ *         type: struct
+ *       description:
+ *         type: string
+ *       first_deployed:
+ *         structRef: time.Time
+ *         type: struct
+ *       last_deployed:
+ *         structRef: time.Time
+ *         type: struct
+ *       notes:
+ *         type: string
+ *       resources:
+ *         keyType:
+ *           type: string
+ *         type: map
+ *         valueType:
+ *           elementType:
+ *             pointer: true
+ *             type: any
+ *           type: array
+ *       status:
+ *         type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseListRequest,[]*mogenius-operator/src/helm.HelmRelease]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseListRequest,[]*mogenius-operator/src/helm.HelmRelease]
+ *     properties:
+ *       data:
+ *         elementType:
+ *           pointer: true
+ *           structRef: mogenius-operator/src/helm.HelmRelease
+ *           type: struct
+ *         type: array
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
+ *   mogenius-operator/src/helm.HelmRelease:
+ *     name: mogenius-operator/src/helm.HelmRelease
+ *     properties:
+ *       chart:
+ *         pointer: true
+ *         structRef: helm.sh/helm/v4/pkg/chart/v2.Chart
+ *         type: struct
+ *       config:
+ *         keyType:
+ *           type: string
+ *         type: map
+ *         valueType:
+ *           pointer: true
+ *           type: any
+ *       hooks:
+ *         elementType:
+ *           pointer: true
+ *           structRef: helm.sh/helm/v4/pkg/release/v1.Hook
+ *           type: struct
+ *         type: array
+ *       info:
+ *         pointer: true
+ *         structRef: helm.sh/helm/v4/pkg/release/v1.Info
+ *         type: struct
+ *       manifest:
+ *         type: string
+ *       name:
+ *         type: string
+ *       namespace:
+ *         type: string
+ *       repoName:
+ *         type: string
+ *       version:
+ *         type: int
+ *   time.Time:
+ *     name: time.Time
+ *     properties: {}
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseListRequest,[]*mogenius-operator/src/helm.HelmRelease]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseListRequest,[]*mogenius-operator/src/helm.HelmRelease]
+ *   type: struct
  * ```
  *
  */
@@ -3030,18 +3030,18 @@ export type CLUSTER_HELM_RELEASE_LIST_RESPONSE = CLUSTER_HELM_RELEASE_LIST_RESPO
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/helm.HelmReleaseRollbackRequest:
- *         name: mogenius-operator/src/helm.HelmReleaseRollbackRequest
- *         properties:
- *             namespace:
- *                 type: string
- *             release:
- *                 type: string
- *             revision:
- *                 type: int
+ *   mogenius-operator/src/helm.HelmReleaseRollbackRequest:
+ *     name: mogenius-operator/src/helm.HelmReleaseRollbackRequest
+ *     properties:
+ *       namespace:
+ *         type: string
+ *       release:
+ *         type: string
+ *       revision:
+ *         type: int
  * typeInfo:
- *     structRef: mogenius-operator/src/helm.HelmReleaseRollbackRequest
- *     type: struct
+ *   structRef: mogenius-operator/src/helm.HelmReleaseRollbackRequest
+ *   type: struct
  * ```
  *
  */
@@ -3052,18 +3052,18 @@ export type CLUSTER_HELM_RELEASE_ROLLBACK_REQUEST = CLUSTER_HELM_RELEASE_ROLLBAC
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseRollbackRequest,string]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseRollbackRequest,string]
- *         properties:
- *             data:
- *                 type: string
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseRollbackRequest,string]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseRollbackRequest,string]
+ *     properties:
+ *       data:
+ *         type: string
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseRollbackRequest,string]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseRollbackRequest,string]
+ *   type: struct
  * ```
  *
  */
@@ -3074,16 +3074,16 @@ export type CLUSTER_HELM_RELEASE_ROLLBACK_RESPONSE = CLUSTER_HELM_RELEASE_ROLLBA
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/helm.HelmReleaseStatusRequest:
- *         name: mogenius-operator/src/helm.HelmReleaseStatusRequest
- *         properties:
- *             namespace:
- *                 type: string
- *             release:
- *                 type: string
+ *   mogenius-operator/src/helm.HelmReleaseStatusRequest:
+ *     name: mogenius-operator/src/helm.HelmReleaseStatusRequest
+ *     properties:
+ *       namespace:
+ *         type: string
+ *       release:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/helm.HelmReleaseStatusRequest
- *     type: struct
+ *   structRef: mogenius-operator/src/helm.HelmReleaseStatusRequest
+ *   type: struct
  * ```
  *
  */
@@ -3094,39 +3094,39 @@ export type CLUSTER_HELM_RELEASE_STATUS_REQUEST = CLUSTER_HELM_RELEASE_STATUS_RE
  *
  * ```yaml
  * structs:
- *     ? mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseStatusRequest,*mogenius-operator/src/helm.HelmReleaseStatusInfo]
- *     :   name: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseStatusRequest,*mogenius-operator/src/helm.HelmReleaseStatusInfo]
- *         properties:
- *             data:
- *                 pointer: true
- *                 structRef: mogenius-operator/src/helm.HelmReleaseStatusInfo
- *                 type: struct
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- *     mogenius-operator/src/helm.HelmReleaseStatusInfo:
- *         name: mogenius-operator/src/helm.HelmReleaseStatusInfo
- *         properties:
- *             chart:
- *                 type: string
- *             lastDeployed:
- *                 structRef: time.Time
- *                 type: struct
- *             name:
- *                 type: string
- *             namespace:
- *                 type: string
- *             status:
- *                 type: string
- *             version:
- *                 type: int
- *     time.Time:
- *         name: time.Time
- *         properties: {}
+ *   ? mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseStatusRequest,*mogenius-operator/src/helm.HelmReleaseStatusInfo]
+ *   : name: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseStatusRequest,*mogenius-operator/src/helm.HelmReleaseStatusInfo]
+ *     properties:
+ *       data:
+ *         pointer: true
+ *         structRef: mogenius-operator/src/helm.HelmReleaseStatusInfo
+ *         type: struct
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
+ *   mogenius-operator/src/helm.HelmReleaseStatusInfo:
+ *     name: mogenius-operator/src/helm.HelmReleaseStatusInfo
+ *     properties:
+ *       chart:
+ *         type: string
+ *       lastDeployed:
+ *         structRef: time.Time
+ *         type: struct
+ *       name:
+ *         type: string
+ *       namespace:
+ *         type: string
+ *       status:
+ *         type: string
+ *       version:
+ *         type: int
+ *   time.Time:
+ *     name: time.Time
+ *     properties: {}
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseStatusRequest,*mogenius-operator/src/helm.HelmReleaseStatusInfo]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseStatusRequest,*mogenius-operator/src/helm.HelmReleaseStatusInfo]
+ *   type: struct
  * ```
  *
  */
@@ -3137,18 +3137,18 @@ export type CLUSTER_HELM_RELEASE_STATUS_RESPONSE = CLUSTER_HELM_RELEASE_STATUS_R
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/helm.HelmReleaseUninstallRequest:
- *         name: mogenius-operator/src/helm.HelmReleaseUninstallRequest
- *         properties:
- *             dryRun:
- *                 type: bool
- *             namespace:
- *                 type: string
- *             release:
- *                 type: string
+ *   mogenius-operator/src/helm.HelmReleaseUninstallRequest:
+ *     name: mogenius-operator/src/helm.HelmReleaseUninstallRequest
+ *     properties:
+ *       dryRun:
+ *         type: bool
+ *       namespace:
+ *         type: string
+ *       release:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/helm.HelmReleaseUninstallRequest
- *     type: struct
+ *   structRef: mogenius-operator/src/helm.HelmReleaseUninstallRequest
+ *   type: struct
  * ```
  *
  */
@@ -3159,18 +3159,18 @@ export type CLUSTER_HELM_RELEASE_UNINSTALL_REQUEST = CLUSTER_HELM_RELEASE_UNINST
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseUninstallRequest,string]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseUninstallRequest,string]
- *         properties:
- *             data:
- *                 type: string
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseUninstallRequest,string]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseUninstallRequest,string]
+ *     properties:
+ *       data:
+ *         type: string
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseUninstallRequest,string]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmReleaseUninstallRequest,string]
+ *   type: struct
  * ```
  *
  */
@@ -3181,24 +3181,24 @@ export type CLUSTER_HELM_RELEASE_UNINSTALL_RESPONSE = CLUSTER_HELM_RELEASE_UNINS
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/helm.HelmChartInstallUpgradeRequest:
- *         name: mogenius-operator/src/helm.HelmChartInstallUpgradeRequest
- *         properties:
- *             chart:
- *                 type: string
- *             dryRun:
- *                 type: bool
- *             namespace:
- *                 type: string
- *             release:
- *                 type: string
- *             values:
- *                 type: string
- *             version:
- *                 type: string
+ *   mogenius-operator/src/helm.HelmChartInstallUpgradeRequest:
+ *     name: mogenius-operator/src/helm.HelmChartInstallUpgradeRequest
+ *     properties:
+ *       chart:
+ *         type: string
+ *       dryRun:
+ *         type: bool
+ *       namespace:
+ *         type: string
+ *       release:
+ *         type: string
+ *       values:
+ *         type: string
+ *       version:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/helm.HelmChartInstallUpgradeRequest
- *     type: struct
+ *   structRef: mogenius-operator/src/helm.HelmChartInstallUpgradeRequest
+ *   type: struct
  * ```
  *
  */
@@ -3209,18 +3209,18 @@ export type CLUSTER_HELM_RELEASE_UPGRADE_REQUEST = CLUSTER_HELM_RELEASE_UPGRADE_
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmChartInstallUpgradeRequest,string]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmChartInstallUpgradeRequest,string]
- *         properties:
- *             data:
- *                 type: string
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmChartInstallUpgradeRequest,string]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmChartInstallUpgradeRequest,string]
+ *     properties:
+ *       data:
+ *         type: string
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmChartInstallUpgradeRequest,string]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmChartInstallUpgradeRequest,string]
+ *   type: struct
  * ```
  *
  */
@@ -3231,24 +3231,24 @@ export type CLUSTER_HELM_RELEASE_UPGRADE_RESPONSE = CLUSTER_HELM_RELEASE_UPGRADE
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/helm.HelmRepoAddRequest:
- *         name: mogenius-operator/src/helm.HelmRepoAddRequest
- *         properties:
- *             insecureSkipTLSverify:
- *                 type: bool
- *             name:
- *                 type: string
- *             passCredentialsAll:
- *                 type: bool
- *             password:
- *                 type: string
- *             url:
- *                 type: string
- *             username:
- *                 type: string
+ *   mogenius-operator/src/helm.HelmRepoAddRequest:
+ *     name: mogenius-operator/src/helm.HelmRepoAddRequest
+ *     properties:
+ *       insecureSkipTLSverify:
+ *         type: bool
+ *       name:
+ *         type: string
+ *       passCredentialsAll:
+ *         type: bool
+ *       password:
+ *         type: string
+ *       url:
+ *         type: string
+ *       username:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/helm.HelmRepoAddRequest
- *     type: struct
+ *   structRef: mogenius-operator/src/helm.HelmRepoAddRequest
+ *   type: struct
  * ```
  *
  */
@@ -3259,18 +3259,18 @@ export type CLUSTER_HELM_REPO_ADD_REQUEST = CLUSTER_HELM_REPO_ADD_REQUEST__MOGEN
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmRepoAddRequest,string]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmRepoAddRequest,string]
- *         properties:
- *             data:
- *                 type: string
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmRepoAddRequest,string]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmRepoAddRequest,string]
+ *     properties:
+ *       data:
+ *         type: string
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmRepoAddRequest,string]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmRepoAddRequest,string]
+ *   type: struct
  * ```
  *
  */
@@ -3281,12 +3281,12 @@ export type CLUSTER_HELM_REPO_ADD_RESPONSE = CLUSTER_HELM_REPO_ADD_RESPONSE__MOG
  *
  * ```yaml
  * structs:
- *     ANON_STRUCT_0:
- *         properties: {}
+ *   ANON_STRUCT_0:
+ *     properties: {}
  * typeInfo:
- *     pointer: true
- *     structRef: ANON_STRUCT_0
- *     type: struct
+ *   pointer: true
+ *   structRef: ANON_STRUCT_0
+ *   type: struct
  * ```
  *
  */
@@ -3297,33 +3297,33 @@ export type CLUSTER_HELM_REPO_LIST_REQUEST = CLUSTER_HELM_REPO_LIST_REQUEST__ANO
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,[]*mogenius-operator/src/helm.HelmEntryWithoutPassword]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,[]*mogenius-operator/src/helm.HelmEntryWithoutPassword]
- *         properties:
- *             data:
- *                 elementType:
- *                     pointer: true
- *                     structRef: mogenius-operator/src/helm.HelmEntryWithoutPassword
- *                     type: struct
- *                 type: array
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- *     mogenius-operator/src/helm.HelmEntryWithoutPassword:
- *         name: mogenius-operator/src/helm.HelmEntryWithoutPassword
- *         properties:
- *             insecure_skip_tls_verify:
- *                 type: bool
- *             name:
- *                 type: string
- *             pass_credentials_all:
- *                 type: bool
- *             url:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,[]*mogenius-operator/src/helm.HelmEntryWithoutPassword]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,[]*mogenius-operator/src/helm.HelmEntryWithoutPassword]
+ *     properties:
+ *       data:
+ *         elementType:
+ *           pointer: true
+ *           structRef: mogenius-operator/src/helm.HelmEntryWithoutPassword
+ *           type: struct
+ *         type: array
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
+ *   mogenius-operator/src/helm.HelmEntryWithoutPassword:
+ *     name: mogenius-operator/src/helm.HelmEntryWithoutPassword
+ *     properties:
+ *       insecure_skip_tls_verify:
+ *         type: bool
+ *       name:
+ *         type: string
+ *       pass_credentials_all:
+ *         type: bool
+ *       url:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,[]*mogenius-operator/src/helm.HelmEntryWithoutPassword]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,[]*mogenius-operator/src/helm.HelmEntryWithoutPassword]
+ *   type: struct
  * ```
  *
  */
@@ -3334,26 +3334,26 @@ export type CLUSTER_HELM_REPO_LIST_RESPONSE = CLUSTER_HELM_REPO_LIST_RESPONSE__M
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/helm.HelmRepoPatchRequest:
- *         name: mogenius-operator/src/helm.HelmRepoPatchRequest
- *         properties:
- *             insecureSkipTLSverify:
- *                 type: bool
- *             name:
- *                 type: string
- *             newName:
- *                 type: string
- *             passCredentialsAll:
- *                 type: bool
- *             password:
- *                 type: string
- *             url:
- *                 type: string
- *             username:
- *                 type: string
+ *   mogenius-operator/src/helm.HelmRepoPatchRequest:
+ *     name: mogenius-operator/src/helm.HelmRepoPatchRequest
+ *     properties:
+ *       insecureSkipTLSverify:
+ *         type: bool
+ *       name:
+ *         type: string
+ *       newName:
+ *         type: string
+ *       passCredentialsAll:
+ *         type: bool
+ *       password:
+ *         type: string
+ *       url:
+ *         type: string
+ *       username:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/helm.HelmRepoPatchRequest
- *     type: struct
+ *   structRef: mogenius-operator/src/helm.HelmRepoPatchRequest
+ *   type: struct
  * ```
  *
  */
@@ -3364,18 +3364,18 @@ export type CLUSTER_HELM_REPO_PATCH_REQUEST = CLUSTER_HELM_REPO_PATCH_REQUEST__M
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmRepoPatchRequest,string]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmRepoPatchRequest,string]
- *         properties:
- *             data:
- *                 type: string
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmRepoPatchRequest,string]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmRepoPatchRequest,string]
+ *     properties:
+ *       data:
+ *         type: string
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmRepoPatchRequest,string]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/helm.HelmRepoPatchRequest,string]
+ *   type: struct
  * ```
  *
  */
@@ -3386,12 +3386,12 @@ export type CLUSTER_HELM_REPO_PATCH_RESPONSE = CLUSTER_HELM_REPO_PATCH_RESPONSE_
  *
  * ```yaml
  * structs:
- *     ANON_STRUCT_0:
- *         properties: {}
+ *   ANON_STRUCT_0:
+ *     properties: {}
  * typeInfo:
- *     pointer: true
- *     structRef: ANON_STRUCT_0
- *     type: struct
+ *   pointer: true
+ *   structRef: ANON_STRUCT_0
+ *   type: struct
  * ```
  *
  */
@@ -3402,43 +3402,43 @@ export type CLUSTER_HELM_REPO_UPDATE_REQUEST = CLUSTER_HELM_REPO_UPDATE_REQUEST_
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,[]mogenius-operator/src/helm.HelmEntryStatus]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,[]mogenius-operator/src/helm.HelmEntryStatus]
- *         properties:
- *             data:
- *                 elementType:
- *                     structRef: mogenius-operator/src/helm.HelmEntryStatus
- *                     type: struct
- *                 type: array
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- *     mogenius-operator/src/helm.HelmEntryStatus:
- *         name: mogenius-operator/src/helm.HelmEntryStatus
- *         properties:
- *             entry:
- *                 pointer: true
- *                 structRef: mogenius-operator/src/helm.HelmEntryWithoutPassword
- *                 type: struct
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- *     mogenius-operator/src/helm.HelmEntryWithoutPassword:
- *         name: mogenius-operator/src/helm.HelmEntryWithoutPassword
- *         properties:
- *             insecure_skip_tls_verify:
- *                 type: bool
- *             name:
- *                 type: string
- *             pass_credentials_all:
- *                 type: bool
- *             url:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,[]mogenius-operator/src/helm.HelmEntryStatus]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,[]mogenius-operator/src/helm.HelmEntryStatus]
+ *     properties:
+ *       data:
+ *         elementType:
+ *           structRef: mogenius-operator/src/helm.HelmEntryStatus
+ *           type: struct
+ *         type: array
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
+ *   mogenius-operator/src/helm.HelmEntryStatus:
+ *     name: mogenius-operator/src/helm.HelmEntryStatus
+ *     properties:
+ *       entry:
+ *         pointer: true
+ *         structRef: mogenius-operator/src/helm.HelmEntryWithoutPassword
+ *         type: struct
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
+ *   mogenius-operator/src/helm.HelmEntryWithoutPassword:
+ *     name: mogenius-operator/src/helm.HelmEntryWithoutPassword
+ *     properties:
+ *       insecure_skip_tls_verify:
+ *         type: bool
+ *       name:
+ *         type: string
+ *       pass_credentials_all:
+ *         type: bool
+ *       url:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,[]mogenius-operator/src/helm.HelmEntryStatus]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,[]mogenius-operator/src/helm.HelmEntryStatus]
+ *   type: struct
  * ```
  *
  */
@@ -3449,18 +3449,18 @@ export type CLUSTER_HELM_REPO_UPDATE_RESPONSE = CLUSTER_HELM_REPO_UPDATE_RESPONS
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/services.ClusterListWorkloads:
- *         name: mogenius-operator/src/services.ClusterListWorkloads
- *         properties:
- *             labelSelector:
- *                 type: string
- *             namespace:
- *                 type: string
- *             prefix:
- *                 type: string
+ *   mogenius-operator/src/services.ClusterListWorkloads:
+ *     name: mogenius-operator/src/services.ClusterListWorkloads
+ *     properties:
+ *       labelSelector:
+ *         type: string
+ *       namespace:
+ *         type: string
+ *       prefix:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/services.ClusterListWorkloads
- *     type: struct
+ *   structRef: mogenius-operator/src/services.ClusterListWorkloads
+ *   type: struct
  * ```
  *
  */
@@ -3471,314 +3471,314 @@ export type CLUSTER_LIST_PERSISTENT_VOLUME_CLAIMS_REQUEST = CLUSTER_LIST_PERSIST
  *
  * ```yaml
  * structs:
- *     k8s.io/api/core/v1.ModifyVolumeStatus:
- *         name: k8s.io/api/core/v1.ModifyVolumeStatus
- *         properties:
- *             status:
- *                 type: string
- *             targetVolumeAttributesClassName:
- *                 type: string
- *     k8s.io/api/core/v1.PersistentVolumeClaim:
- *         name: k8s.io/api/core/v1.PersistentVolumeClaim
- *         properties:
- *             TypeMeta:
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta
- *                 type: struct
- *             metadata:
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta
- *                 type: struct
- *             spec:
- *                 structRef: k8s.io/api/core/v1.PersistentVolumeClaimSpec
- *                 type: struct
- *             status:
- *                 structRef: k8s.io/api/core/v1.PersistentVolumeClaimStatus
- *                 type: struct
- *     k8s.io/api/core/v1.PersistentVolumeClaimCondition:
- *         name: k8s.io/api/core/v1.PersistentVolumeClaimCondition
- *         properties:
- *             lastProbeTime:
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *                 type: struct
- *             lastTransitionTime:
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *                 type: struct
- *             message:
- *                 type: string
- *             reason:
- *                 type: string
- *             status:
- *                 type: string
- *             type:
- *                 type: string
- *     k8s.io/api/core/v1.PersistentVolumeClaimSpec:
- *         name: k8s.io/api/core/v1.PersistentVolumeClaimSpec
- *         properties:
- *             accessModes:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             dataSource:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.TypedLocalObjectReference
- *                 type: struct
- *             dataSourceRef:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.TypedObjectReference
- *                 type: struct
- *             resources:
- *                 structRef: k8s.io/api/core/v1.VolumeResourceRequirements
- *                 type: struct
- *             selector:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
- *                 type: struct
- *             storageClassName:
- *                 pointer: true
- *                 type: string
- *             volumeAttributesClassName:
- *                 pointer: true
- *                 type: string
- *             volumeMode:
- *                 pointer: true
- *                 type: string
- *             volumeName:
- *                 type: string
- *     k8s.io/api/core/v1.PersistentVolumeClaimStatus:
- *         name: k8s.io/api/core/v1.PersistentVolumeClaimStatus
- *         properties:
- *             accessModes:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             allocatedResourceStatuses:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     type: string
- *             allocatedResources:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     structRef: k8s.io/apimachinery/pkg/api/resource.Quantity
- *                     type: struct
- *             capacity:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     structRef: k8s.io/apimachinery/pkg/api/resource.Quantity
- *                     type: struct
- *             conditions:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.PersistentVolumeClaimCondition
- *                     type: struct
- *                 type: array
- *             currentVolumeAttributesClassName:
- *                 pointer: true
- *                 type: string
- *             modifyVolumeStatus:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.ModifyVolumeStatus
- *                 type: struct
- *             phase:
- *                 type: string
- *     k8s.io/api/core/v1.TypedLocalObjectReference:
- *         name: k8s.io/api/core/v1.TypedLocalObjectReference
- *         properties:
- *             apiGroup:
- *                 pointer: true
- *                 type: string
- *             kind:
- *                 type: string
- *             name:
- *                 type: string
- *     k8s.io/api/core/v1.TypedObjectReference:
- *         name: k8s.io/api/core/v1.TypedObjectReference
- *         properties:
- *             apiGroup:
- *                 pointer: true
- *                 type: string
- *             kind:
- *                 type: string
- *             name:
- *                 type: string
- *             namespace:
- *                 pointer: true
- *                 type: string
- *     k8s.io/api/core/v1.VolumeResourceRequirements:
- *         name: k8s.io/api/core/v1.VolumeResourceRequirements
- *         properties:
- *             limits:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     structRef: k8s.io/apimachinery/pkg/api/resource.Quantity
- *                     type: struct
- *             requests:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     structRef: k8s.io/apimachinery/pkg/api/resource.Quantity
- *                     type: struct
- *     k8s.io/apimachinery/pkg/api/resource.Quantity:
- *         name: k8s.io/apimachinery/pkg/api/resource.Quantity
- *         properties:
- *             Format:
- *                 type: string
- *     k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1
- *         properties: {}
- *     k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
- *         properties:
- *             matchExpressions:
- *                 elementType:
- *                     structRef: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelectorRequirement
- *                     type: struct
- *                 type: array
- *             matchLabels:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     type: string
- *     k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelectorRequirement:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelectorRequirement
- *         properties:
- *             key:
- *                 type: string
- *             operator:
- *                 type: string
- *             values:
- *                 elementType:
- *                     type: string
- *                 type: array
- *     k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry
- *         properties:
- *             apiVersion:
- *                 type: string
- *             fieldsType:
- *                 type: string
- *             fieldsV1:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1
- *                 type: struct
- *             manager:
- *                 type: string
- *             operation:
- *                 type: string
- *             subresource:
- *                 type: string
- *             time:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *                 type: struct
- *     k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta
- *         properties:
- *             annotations:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     type: string
- *             creationTimestamp:
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *                 type: struct
- *             deletionGracePeriodSeconds:
- *                 pointer: true
- *                 type: int
- *             deletionTimestamp:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *                 type: struct
- *             finalizers:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             generateName:
- *                 type: string
- *             generation:
- *                 type: int
- *             labels:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     type: string
- *             managedFields:
- *                 elementType:
- *                     structRef: k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry
- *                     type: struct
- *                 type: array
- *             name:
- *                 type: string
- *             namespace:
- *                 type: string
- *             ownerReferences:
- *                 elementType:
- *                     structRef: k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference
- *                     type: struct
- *                 type: array
- *             resourceVersion:
- *                 type: string
- *             selfLink:
- *                 type: string
- *             uid:
- *                 type: string
- *     k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference
- *         properties:
- *             apiVersion:
- *                 type: string
- *             blockOwnerDeletion:
- *                 pointer: true
- *                 type: bool
- *             controller:
- *                 pointer: true
- *                 type: bool
- *             kind:
- *                 type: string
- *             name:
- *                 type: string
- *             uid:
- *                 type: string
- *     k8s.io/apimachinery/pkg/apis/meta/v1.Time:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *         properties:
- *             Time:
- *                 structRef: time.Time
- *                 type: struct
- *     k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta
- *         properties:
- *             apiVersion:
- *                 type: string
- *             kind:
- *                 type: string
- *     ? mogenius-operator/src/core.Result[mogenius-operator/src/services.ClusterListWorkloads,[]k8s.io/api/core/v1.PersistentVolumeClaim]
- *     :   name: mogenius-operator/src/core.Result[mogenius-operator/src/services.ClusterListWorkloads,[]k8s.io/api/core/v1.PersistentVolumeClaim]
- *         properties:
- *             data:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.PersistentVolumeClaim
- *                     type: struct
- *                 type: array
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- *     time.Time:
- *         name: time.Time
- *         properties: {}
+ *   k8s.io/api/core/v1.ModifyVolumeStatus:
+ *     name: k8s.io/api/core/v1.ModifyVolumeStatus
+ *     properties:
+ *       status:
+ *         type: string
+ *       targetVolumeAttributesClassName:
+ *         type: string
+ *   k8s.io/api/core/v1.PersistentVolumeClaim:
+ *     name: k8s.io/api/core/v1.PersistentVolumeClaim
+ *     properties:
+ *       TypeMeta:
+ *         structRef: k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta
+ *         type: struct
+ *       metadata:
+ *         structRef: k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta
+ *         type: struct
+ *       spec:
+ *         structRef: k8s.io/api/core/v1.PersistentVolumeClaimSpec
+ *         type: struct
+ *       status:
+ *         structRef: k8s.io/api/core/v1.PersistentVolumeClaimStatus
+ *         type: struct
+ *   k8s.io/api/core/v1.PersistentVolumeClaimCondition:
+ *     name: k8s.io/api/core/v1.PersistentVolumeClaimCondition
+ *     properties:
+ *       lastProbeTime:
+ *         structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
+ *         type: struct
+ *       lastTransitionTime:
+ *         structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
+ *         type: struct
+ *       message:
+ *         type: string
+ *       reason:
+ *         type: string
+ *       status:
+ *         type: string
+ *       type:
+ *         type: string
+ *   k8s.io/api/core/v1.PersistentVolumeClaimSpec:
+ *     name: k8s.io/api/core/v1.PersistentVolumeClaimSpec
+ *     properties:
+ *       accessModes:
+ *         elementType:
+ *           type: string
+ *         type: array
+ *       dataSource:
+ *         pointer: true
+ *         structRef: k8s.io/api/core/v1.TypedLocalObjectReference
+ *         type: struct
+ *       dataSourceRef:
+ *         pointer: true
+ *         structRef: k8s.io/api/core/v1.TypedObjectReference
+ *         type: struct
+ *       resources:
+ *         structRef: k8s.io/api/core/v1.VolumeResourceRequirements
+ *         type: struct
+ *       selector:
+ *         pointer: true
+ *         structRef: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
+ *         type: struct
+ *       storageClassName:
+ *         pointer: true
+ *         type: string
+ *       volumeAttributesClassName:
+ *         pointer: true
+ *         type: string
+ *       volumeMode:
+ *         pointer: true
+ *         type: string
+ *       volumeName:
+ *         type: string
+ *   k8s.io/api/core/v1.PersistentVolumeClaimStatus:
+ *     name: k8s.io/api/core/v1.PersistentVolumeClaimStatus
+ *     properties:
+ *       accessModes:
+ *         elementType:
+ *           type: string
+ *         type: array
+ *       allocatedResourceStatuses:
+ *         keyType:
+ *           type: string
+ *         type: map
+ *         valueType:
+ *           type: string
+ *       allocatedResources:
+ *         keyType:
+ *           type: string
+ *         type: map
+ *         valueType:
+ *           structRef: k8s.io/apimachinery/pkg/api/resource.Quantity
+ *           type: struct
+ *       capacity:
+ *         keyType:
+ *           type: string
+ *         type: map
+ *         valueType:
+ *           structRef: k8s.io/apimachinery/pkg/api/resource.Quantity
+ *           type: struct
+ *       conditions:
+ *         elementType:
+ *           structRef: k8s.io/api/core/v1.PersistentVolumeClaimCondition
+ *           type: struct
+ *         type: array
+ *       currentVolumeAttributesClassName:
+ *         pointer: true
+ *         type: string
+ *       modifyVolumeStatus:
+ *         pointer: true
+ *         structRef: k8s.io/api/core/v1.ModifyVolumeStatus
+ *         type: struct
+ *       phase:
+ *         type: string
+ *   k8s.io/api/core/v1.TypedLocalObjectReference:
+ *     name: k8s.io/api/core/v1.TypedLocalObjectReference
+ *     properties:
+ *       apiGroup:
+ *         pointer: true
+ *         type: string
+ *       kind:
+ *         type: string
+ *       name:
+ *         type: string
+ *   k8s.io/api/core/v1.TypedObjectReference:
+ *     name: k8s.io/api/core/v1.TypedObjectReference
+ *     properties:
+ *       apiGroup:
+ *         pointer: true
+ *         type: string
+ *       kind:
+ *         type: string
+ *       name:
+ *         type: string
+ *       namespace:
+ *         pointer: true
+ *         type: string
+ *   k8s.io/api/core/v1.VolumeResourceRequirements:
+ *     name: k8s.io/api/core/v1.VolumeResourceRequirements
+ *     properties:
+ *       limits:
+ *         keyType:
+ *           type: string
+ *         type: map
+ *         valueType:
+ *           structRef: k8s.io/apimachinery/pkg/api/resource.Quantity
+ *           type: struct
+ *       requests:
+ *         keyType:
+ *           type: string
+ *         type: map
+ *         valueType:
+ *           structRef: k8s.io/apimachinery/pkg/api/resource.Quantity
+ *           type: struct
+ *   k8s.io/apimachinery/pkg/api/resource.Quantity:
+ *     name: k8s.io/apimachinery/pkg/api/resource.Quantity
+ *     properties:
+ *       Format:
+ *         type: string
+ *   k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1:
+ *     name: k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1
+ *     properties: {}
+ *   k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector:
+ *     name: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector
+ *     properties:
+ *       matchExpressions:
+ *         elementType:
+ *           structRef: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelectorRequirement
+ *           type: struct
+ *         type: array
+ *       matchLabels:
+ *         keyType:
+ *           type: string
+ *         type: map
+ *         valueType:
+ *           type: string
+ *   k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelectorRequirement:
+ *     name: k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelectorRequirement
+ *     properties:
+ *       key:
+ *         type: string
+ *       operator:
+ *         type: string
+ *       values:
+ *         elementType:
+ *           type: string
+ *         type: array
+ *   k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry:
+ *     name: k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry
+ *     properties:
+ *       apiVersion:
+ *         type: string
+ *       fieldsType:
+ *         type: string
+ *       fieldsV1:
+ *         pointer: true
+ *         structRef: k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1
+ *         type: struct
+ *       manager:
+ *         type: string
+ *       operation:
+ *         type: string
+ *       subresource:
+ *         type: string
+ *       time:
+ *         pointer: true
+ *         structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
+ *         type: struct
+ *   k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta:
+ *     name: k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta
+ *     properties:
+ *       annotations:
+ *         keyType:
+ *           type: string
+ *         type: map
+ *         valueType:
+ *           type: string
+ *       creationTimestamp:
+ *         structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
+ *         type: struct
+ *       deletionGracePeriodSeconds:
+ *         pointer: true
+ *         type: int
+ *       deletionTimestamp:
+ *         pointer: true
+ *         structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
+ *         type: struct
+ *       finalizers:
+ *         elementType:
+ *           type: string
+ *         type: array
+ *       generateName:
+ *         type: string
+ *       generation:
+ *         type: int
+ *       labels:
+ *         keyType:
+ *           type: string
+ *         type: map
+ *         valueType:
+ *           type: string
+ *       managedFields:
+ *         elementType:
+ *           structRef: k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry
+ *           type: struct
+ *         type: array
+ *       name:
+ *         type: string
+ *       namespace:
+ *         type: string
+ *       ownerReferences:
+ *         elementType:
+ *           structRef: k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference
+ *           type: struct
+ *         type: array
+ *       resourceVersion:
+ *         type: string
+ *       selfLink:
+ *         type: string
+ *       uid:
+ *         type: string
+ *   k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference:
+ *     name: k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference
+ *     properties:
+ *       apiVersion:
+ *         type: string
+ *       blockOwnerDeletion:
+ *         pointer: true
+ *         type: bool
+ *       controller:
+ *         pointer: true
+ *         type: bool
+ *       kind:
+ *         type: string
+ *       name:
+ *         type: string
+ *       uid:
+ *         type: string
+ *   k8s.io/apimachinery/pkg/apis/meta/v1.Time:
+ *     name: k8s.io/apimachinery/pkg/apis/meta/v1.Time
+ *     properties:
+ *       Time:
+ *         structRef: time.Time
+ *         type: struct
+ *   k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta:
+ *     name: k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta
+ *     properties:
+ *       apiVersion:
+ *         type: string
+ *       kind:
+ *         type: string
+ *   ? mogenius-operator/src/core.Result[mogenius-operator/src/services.ClusterListWorkloads,[]k8s.io/api/core/v1.PersistentVolumeClaim]
+ *   : name: mogenius-operator/src/core.Result[mogenius-operator/src/services.ClusterListWorkloads,[]k8s.io/api/core/v1.PersistentVolumeClaim]
+ *     properties:
+ *       data:
+ *         elementType:
+ *           structRef: k8s.io/api/core/v1.PersistentVolumeClaim
+ *           type: struct
+ *         type: array
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
+ *   time.Time:
+ *     name: time.Time
+ *     properties: {}
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/services.ClusterListWorkloads,[]k8s.io/api/core/v1.PersistentVolumeClaim]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/services.ClusterListWorkloads,[]k8s.io/api/core/v1.PersistentVolumeClaim]
+ *   type: struct
  * ```
  *
  */
@@ -3789,16 +3789,16 @@ export type CLUSTER_LIST_PERSISTENT_VOLUME_CLAIMS_RESPONSE = CLUSTER_LIST_PERSIS
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Request:
- *         name: mogenius-operator/src/core.Request
- *         properties:
- *             nodes:
- *                 elementType:
- *                     type: string
- *                 type: array
+ *   mogenius-operator/src/core.Request:
+ *     name: mogenius-operator/src/core.Request
+ *     properties:
+ *       nodes:
+ *         elementType:
+ *           type: string
+ *         type: array
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Request
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Request
+ *   type: struct
  * ```
  *
  */
@@ -3809,26 +3809,26 @@ export type CLUSTER_MACHINE_STATS_REQUEST = CLUSTER_MACHINE_STATS_REQUEST__MOGEN
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·16,[]mogenius-operator/src/structs.MachineStats]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·16,[]mogenius-operator/src/structs.MachineStats]
- *         properties:
- *             data:
- *                 elementType:
- *                     structRef: mogenius-operator/src/structs.MachineStats
- *                     type: struct
- *                 type: array
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- *     mogenius-operator/src/structs.MachineStats:
- *         name: mogenius-operator/src/structs.MachineStats
- *         properties:
- *             btfSupport:
- *                 type: bool
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·16,[]mogenius-operator/src/structs.MachineStats]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·16,[]mogenius-operator/src/structs.MachineStats]
+ *     properties:
+ *       data:
+ *         elementType:
+ *           structRef: mogenius-operator/src/structs.MachineStats
+ *           type: struct
+ *         type: array
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
+ *   mogenius-operator/src/structs.MachineStats:
+ *     name: mogenius-operator/src/structs.MachineStats
+ *     properties:
+ *       btfSupport:
+ *         type: bool
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·16,[]mogenius-operator/src/structs.MachineStats]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·16,[]mogenius-operator/src/structs.MachineStats]
+ *   type: struct
  * ```
  *
  */
@@ -3839,12 +3839,12 @@ export type CLUSTER_MACHINE_STATS_RESPONSE = CLUSTER_MACHINE_STATS_RESPONSE__MOG
  *
  * ```yaml
  * structs:
- *     ANON_STRUCT_0:
- *         properties: {}
+ *   ANON_STRUCT_0:
+ *     properties: {}
  * typeInfo:
- *     pointer: true
- *     structRef: ANON_STRUCT_0
- *     type: struct
+ *   pointer: true
+ *   structRef: ANON_STRUCT_0
+ *   type: struct
  * ```
  *
  */
@@ -3855,192 +3855,192 @@ export type CLUSTER_RESOURCE_INFO_REQUEST = CLUSTER_RESOURCE_INFO_REQUEST__ANON_
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.ClusterResourceInfo:
- *         name: mogenius-operator/src/core.ClusterResourceInfo
- *         properties:
- *             cniConfig:
- *                 elementType:
- *                     structRef: mogenius-operator/src/structs.CniData
- *                     type: struct
- *                 type: array
- *             country:
- *                 pointer: true
- *                 structRef: mogenius-operator/src/utils.CountryDetails
- *                 type: struct
- *             error:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             loadBalancerExternalIps:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             nodeStats:
- *                 elementType:
- *                     structRef: mogenius-operator/src/dtos.NodeStat
- *                     type: struct
- *                 type: array
- *             provider:
- *                 type: string
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.ClusterResourceInfo·3]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.ClusterResourceInfo·3]
- *         properties:
- *             data:
- *                 structRef: mogenius-operator/src/core.ClusterResourceInfo
- *                 type: struct
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- *     mogenius-operator/src/dtos.NodeStat:
- *         name: mogenius-operator/src/dtos.NodeStat
- *         properties:
- *             architecture:
- *                 type: string
- *             cpuInCores:
- *                 type: int
- *             cpuInCoresLimited:
- *                 type: float
- *             cpuInCoresRequested:
- *                 type: float
- *             cpuInCoresUtilized:
- *                 type: float
- *             ephemeralInBytes:
- *                 type: int
- *             kubletVersion:
- *                 type: string
- *             machineStats:
- *                 pointer: true
- *                 structRef: mogenius-operator/src/structs.MachineStats
- *                 type: struct
- *             maschineId:
- *                 type: string
- *             maxPods:
- *                 type: int
- *             memoryInBytes:
- *                 type: int
- *             memoryInBytesLimited:
- *                 type: int
- *             memoryInBytesRequested:
- *                 type: int
- *             memoryInBytesUtilized:
- *                 type: int
- *             name:
- *                 type: string
- *             osImage:
- *                 type: string
- *             osKernelVersion:
- *                 type: string
- *             osType:
- *                 type: string
- *             totalPods:
- *                 type: int
- *     mogenius-operator/src/structs.CniCapabilities:
- *         name: mogenius-operator/src/structs.CniCapabilities
- *         properties:
- *             bandwidth:
- *                 type: bool
- *             portMappings:
- *                 type: bool
- *     mogenius-operator/src/structs.CniData:
- *         name: mogenius-operator/src/structs.CniData
- *         properties:
- *             cniVersion:
- *                 type: string
- *             name:
- *                 type: string
- *             node:
- *                 type: string
- *             plugins:
- *                 elementType:
- *                     structRef: mogenius-operator/src/structs.Plugin
- *                     type: struct
- *                 type: array
- *     mogenius-operator/src/structs.CniIPAM:
- *         name: mogenius-operator/src/structs.CniIPAM
- *         properties:
- *             type:
- *                 type: string
- *     mogenius-operator/src/structs.CniPolicy:
- *         name: mogenius-operator/src/structs.CniPolicy
- *         properties:
- *             type:
- *                 type: string
- *     mogenius-operator/src/structs.MachineStats:
- *         name: mogenius-operator/src/structs.MachineStats
- *         properties:
- *             btfSupport:
- *                 type: bool
- *     mogenius-operator/src/structs.Plugin:
- *         name: mogenius-operator/src/structs.Plugin
- *         properties:
- *             capabilities:
- *                 pointer: true
- *                 structRef: mogenius-operator/src/structs.CniCapabilities
- *                 type: struct
- *             datastore_type:
- *                 type: string
- *             ipam:
- *                 pointer: true
- *                 structRef: mogenius-operator/src/structs.CniIPAM
- *                 type: struct
- *             log_file_path:
- *                 type: string
- *             log_level:
- *                 type: string
- *             mtu:
- *                 type: int
- *             nodename:
- *                 type: string
- *             policy:
- *                 pointer: true
- *                 structRef: mogenius-operator/src/structs.CniPolicy
- *                 type: struct
- *             snat:
- *                 pointer: true
- *                 type: bool
- *             type:
- *                 type: string
- *     mogenius-operator/src/utils.CountryDetails:
- *         name: mogenius-operator/src/utils.CountryDetails
- *         properties:
- *             capitalCity:
- *                 type: string
- *             capitalCityLat:
- *                 type: float
- *             capitalCityLng:
- *                 type: float
- *             code:
- *                 type: string
- *             code3:
- *                 type: string
- *             continent:
- *                 type: string
- *             currency:
- *                 type: string
- *             currencyName:
- *                 type: string
- *             domainTld:
- *                 type: string
- *             isActive:
- *                 type: bool
- *             isEuMember:
- *                 type: bool
- *             isoId:
- *                 type: int
- *             languages:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             name:
- *                 type: string
- *             phoneNumberPrefix:
- *                 type: string
- *             taxPercent:
- *                 type: float
+ *   mogenius-operator/src/core.ClusterResourceInfo:
+ *     name: mogenius-operator/src/core.ClusterResourceInfo
+ *     properties:
+ *       cniConfig:
+ *         elementType:
+ *           structRef: mogenius-operator/src/structs.CniData
+ *           type: struct
+ *         type: array
+ *       country:
+ *         pointer: true
+ *         structRef: mogenius-operator/src/utils.CountryDetails
+ *         type: struct
+ *       error:
+ *         elementType:
+ *           type: string
+ *         type: array
+ *       loadBalancerExternalIps:
+ *         elementType:
+ *           type: string
+ *         type: array
+ *       nodeStats:
+ *         elementType:
+ *           structRef: mogenius-operator/src/dtos.NodeStat
+ *           type: struct
+ *         type: array
+ *       provider:
+ *         type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.ClusterResourceInfo·3]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.ClusterResourceInfo·3]
+ *     properties:
+ *       data:
+ *         structRef: mogenius-operator/src/core.ClusterResourceInfo
+ *         type: struct
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
+ *   mogenius-operator/src/dtos.NodeStat:
+ *     name: mogenius-operator/src/dtos.NodeStat
+ *     properties:
+ *       architecture:
+ *         type: string
+ *       cpuInCores:
+ *         type: int
+ *       cpuInCoresLimited:
+ *         type: float
+ *       cpuInCoresRequested:
+ *         type: float
+ *       cpuInCoresUtilized:
+ *         type: float
+ *       ephemeralInBytes:
+ *         type: int
+ *       kubletVersion:
+ *         type: string
+ *       machineStats:
+ *         pointer: true
+ *         structRef: mogenius-operator/src/structs.MachineStats
+ *         type: struct
+ *       maschineId:
+ *         type: string
+ *       maxPods:
+ *         type: int
+ *       memoryInBytes:
+ *         type: int
+ *       memoryInBytesLimited:
+ *         type: int
+ *       memoryInBytesRequested:
+ *         type: int
+ *       memoryInBytesUtilized:
+ *         type: int
+ *       name:
+ *         type: string
+ *       osImage:
+ *         type: string
+ *       osKernelVersion:
+ *         type: string
+ *       osType:
+ *         type: string
+ *       totalPods:
+ *         type: int
+ *   mogenius-operator/src/structs.CniCapabilities:
+ *     name: mogenius-operator/src/structs.CniCapabilities
+ *     properties:
+ *       bandwidth:
+ *         type: bool
+ *       portMappings:
+ *         type: bool
+ *   mogenius-operator/src/structs.CniData:
+ *     name: mogenius-operator/src/structs.CniData
+ *     properties:
+ *       cniVersion:
+ *         type: string
+ *       name:
+ *         type: string
+ *       node:
+ *         type: string
+ *       plugins:
+ *         elementType:
+ *           structRef: mogenius-operator/src/structs.Plugin
+ *           type: struct
+ *         type: array
+ *   mogenius-operator/src/structs.CniIPAM:
+ *     name: mogenius-operator/src/structs.CniIPAM
+ *     properties:
+ *       type:
+ *         type: string
+ *   mogenius-operator/src/structs.CniPolicy:
+ *     name: mogenius-operator/src/structs.CniPolicy
+ *     properties:
+ *       type:
+ *         type: string
+ *   mogenius-operator/src/structs.MachineStats:
+ *     name: mogenius-operator/src/structs.MachineStats
+ *     properties:
+ *       btfSupport:
+ *         type: bool
+ *   mogenius-operator/src/structs.Plugin:
+ *     name: mogenius-operator/src/structs.Plugin
+ *     properties:
+ *       capabilities:
+ *         pointer: true
+ *         structRef: mogenius-operator/src/structs.CniCapabilities
+ *         type: struct
+ *       datastore_type:
+ *         type: string
+ *       ipam:
+ *         pointer: true
+ *         structRef: mogenius-operator/src/structs.CniIPAM
+ *         type: struct
+ *       log_file_path:
+ *         type: string
+ *       log_level:
+ *         type: string
+ *       mtu:
+ *         type: int
+ *       nodename:
+ *         type: string
+ *       policy:
+ *         pointer: true
+ *         structRef: mogenius-operator/src/structs.CniPolicy
+ *         type: struct
+ *       snat:
+ *         pointer: true
+ *         type: bool
+ *       type:
+ *         type: string
+ *   mogenius-operator/src/utils.CountryDetails:
+ *     name: mogenius-operator/src/utils.CountryDetails
+ *     properties:
+ *       capitalCity:
+ *         type: string
+ *       capitalCityLat:
+ *         type: float
+ *       capitalCityLng:
+ *         type: float
+ *       code:
+ *         type: string
+ *       code3:
+ *         type: string
+ *       continent:
+ *         type: string
+ *       currency:
+ *         type: string
+ *       currencyName:
+ *         type: string
+ *       domainTld:
+ *         type: string
+ *       isActive:
+ *         type: bool
+ *       isEuMember:
+ *         type: bool
+ *       isoId:
+ *         type: int
+ *       languages:
+ *         elementType:
+ *           type: string
+ *         type: array
+ *       name:
+ *         type: string
+ *       phoneNumberPrefix:
+ *         type: string
+ *       taxPercent:
+ *         type: float
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.ClusterResourceInfo·3]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.ClusterResourceInfo·3]
+ *   type: struct
  * ```
  *
  */
@@ -4051,22 +4051,22 @@ export type CLUSTER_RESOURCE_INFO_RESPONSE = CLUSTER_RESOURCE_INFO_RESPONSE__MOG
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Request:
- *         name: mogenius-operator/src/core.Request
- *         properties:
- *             grantee:
- *                 type: string
- *             name:
- *                 type: string
- *             role:
- *                 type: string
- *             targetName:
- *                 type: string
- *             targetType:
- *                 type: string
+ *   mogenius-operator/src/core.Request:
+ *     name: mogenius-operator/src/core.Request
+ *     properties:
+ *       grantee:
+ *         type: string
+ *       name:
+ *         type: string
+ *       role:
+ *         type: string
+ *       targetName:
+ *         type: string
+ *       targetType:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Request
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Request
+ *   type: struct
  * ```
  *
  */
@@ -4077,18 +4077,18 @@ export type CREATE_GRANT_REQUEST = CREATE_GRANT_REQUEST__MOGENIUS_OPERATOR_SRC_C
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·29,string]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·29,string]
- *         properties:
- *             data:
- *                 type: string
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·29,string]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·29,string]
+ *     properties:
+ *       data:
+ *         type: string
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·29,string]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·29,string]
+ *   type: struct
  * ```
  *
  */
@@ -4099,30 +4099,30 @@ export type CREATE_GRANT_RESPONSE = CREATE_GRANT_RESPONSE__MOGENIUS_OPERATOR_SRC
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/utils.ResourceDescriptor:
- *         name: mogenius-operator/src/utils.ResourceDescriptor
- *         properties:
- *             apiVersion:
- *                 type: string
- *             kind:
- *                 type: string
- *             namespaced:
- *                 type: bool
- *             plural:
- *                 type: string
- *     mogenius-operator/src/utils.WorkloadChangeRequest:
- *         name: mogenius-operator/src/utils.WorkloadChangeRequest
- *         properties:
- *             ResourceDescriptor:
- *                 structRef: mogenius-operator/src/utils.ResourceDescriptor
- *                 type: struct
- *             namespace:
- *                 type: string
- *             yamlData:
- *                 type: string
+ *   mogenius-operator/src/utils.ResourceDescriptor:
+ *     name: mogenius-operator/src/utils.ResourceDescriptor
+ *     properties:
+ *       apiVersion:
+ *         type: string
+ *       kind:
+ *         type: string
+ *       namespaced:
+ *         type: bool
+ *       plural:
+ *         type: string
+ *   mogenius-operator/src/utils.WorkloadChangeRequest:
+ *     name: mogenius-operator/src/utils.WorkloadChangeRequest
+ *     properties:
+ *       ResourceDescriptor:
+ *         structRef: mogenius-operator/src/utils.ResourceDescriptor
+ *         type: struct
+ *       namespace:
+ *         type: string
+ *       yamlData:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/utils.WorkloadChangeRequest
- *     type: struct
+ *   structRef: mogenius-operator/src/utils.WorkloadChangeRequest
+ *   type: struct
  * ```
  *
  */
@@ -4133,30 +4133,30 @@ export type CREATE_NEW_WORKLOAD_REQUEST = CREATE_NEW_WORKLOAD_REQUEST__MOGENIUS_
  *
  * ```yaml
  * structs:
- *     k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured
- *         properties:
- *             Object:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     pointer: true
- *                     type: any
- *     ? mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadChangeRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
- *     :   name: mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadChangeRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
- *         properties:
- *             data:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured
- *                 type: struct
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured:
+ *     name: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured
+ *     properties:
+ *       Object:
+ *         keyType:
+ *           type: string
+ *         type: map
+ *         valueType:
+ *           pointer: true
+ *           type: any
+ *   ? mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadChangeRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *   : name: mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadChangeRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *     properties:
+ *       data:
+ *         pointer: true
+ *         structRef: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured
+ *         type: struct
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadChangeRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadChangeRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *   type: struct
  * ```
  *
  */
@@ -4167,35 +4167,35 @@ export type CREATE_NEW_WORKLOAD_RESPONSE = CREATE_NEW_WORKLOAD_RESPONSE__MOGENIU
  *
  * ```yaml
  * structs:
- *     k8s.io/api/rbac/v1.Subject:
- *         name: k8s.io/api/rbac/v1.Subject
- *         properties:
- *             apiGroup:
- *                 type: string
- *             kind:
- *                 type: string
- *             name:
- *                 type: string
- *             namespace:
- *                 type: string
- *     mogenius-operator/src/core.Request:
- *         name: mogenius-operator/src/core.Request
- *         properties:
- *             email:
- *                 type: string
- *             firstName:
- *                 type: string
- *             lastName:
- *                 type: string
- *             name:
- *                 type: string
- *             subject:
- *                 pointer: true
- *                 structRef: k8s.io/api/rbac/v1.Subject
- *                 type: struct
+ *   k8s.io/api/rbac/v1.Subject:
+ *     name: k8s.io/api/rbac/v1.Subject
+ *     properties:
+ *       apiGroup:
+ *         type: string
+ *       kind:
+ *         type: string
+ *       name:
+ *         type: string
+ *       namespace:
+ *         type: string
+ *   mogenius-operator/src/core.Request:
+ *     name: mogenius-operator/src/core.Request
+ *     properties:
+ *       email:
+ *         type: string
+ *       firstName:
+ *         type: string
+ *       lastName:
+ *         type: string
+ *       name:
+ *         type: string
+ *       subject:
+ *         pointer: true
+ *         structRef: k8s.io/api/rbac/v1.Subject
+ *         type: struct
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Request
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Request
+ *   type: struct
  * ```
  *
  */
@@ -4206,18 +4206,18 @@ export type CREATE_USER_REQUEST = CREATE_USER_REQUEST__MOGENIUS_OPERATOR_SRC_COR
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·24,string]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·24,string]
- *         properties:
- *             data:
- *                 type: string
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·24,string]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·24,string]
+ *     properties:
+ *       data:
+ *         type: string
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·24,string]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·24,string]
+ *   type: struct
  * ```
  *
  */
@@ -4228,30 +4228,30 @@ export type CREATE_USER_RESPONSE = CREATE_USER_RESPONSE__MOGENIUS_OPERATOR_SRC_C
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Request:
- *         name: mogenius-operator/src/core.Request
- *         properties:
- *             displayName:
- *                 type: string
- *             name:
- *                 type: string
- *             resources:
- *                 elementType:
- *                     structRef: mogenius-operator/src/crds/v1alpha1.WorkspaceResourceIdentifier
- *                     type: struct
- *                 type: array
- *     mogenius-operator/src/crds/v1alpha1.WorkspaceResourceIdentifier:
- *         name: mogenius-operator/src/crds/v1alpha1.WorkspaceResourceIdentifier
- *         properties:
- *             id:
- *                 type: string
- *             namespace:
- *                 type: string
- *             type:
- *                 type: string
+ *   mogenius-operator/src/core.Request:
+ *     name: mogenius-operator/src/core.Request
+ *     properties:
+ *       displayName:
+ *         type: string
+ *       name:
+ *         type: string
+ *       resources:
+ *         elementType:
+ *           structRef: mogenius-operator/src/crds/v1alpha1.WorkspaceResourceIdentifier
+ *           type: struct
+ *         type: array
+ *   mogenius-operator/src/crds/v1alpha1.WorkspaceResourceIdentifier:
+ *     name: mogenius-operator/src/crds/v1alpha1.WorkspaceResourceIdentifier
+ *     properties:
+ *       id:
+ *         type: string
+ *       namespace:
+ *         type: string
+ *       type:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Request
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Request
+ *   type: struct
  * ```
  *
  */
@@ -4262,18 +4262,18 @@ export type CREATE_WORKSPACE_REQUEST = CREATE_WORKSPACE_REQUEST__MOGENIUS_OPERAT
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·18,string]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·18,string]
- *         properties:
- *             data:
- *                 type: string
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·18,string]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·18,string]
+ *     properties:
+ *       data:
+ *         type: string
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·18,string]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·18,string]
+ *   type: struct
  * ```
  *
  */
@@ -4284,14 +4284,14 @@ export type CREATE_WORKSPACE_RESPONSE = CREATE_WORKSPACE_RESPONSE__MOGENIUS_OPER
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Request:
- *         name: mogenius-operator/src/core.Request
- *         properties:
- *             name:
- *                 type: string
+ *   mogenius-operator/src/core.Request:
+ *     name: mogenius-operator/src/core.Request
+ *     properties:
+ *       name:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Request
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Request
+ *   type: struct
  * ```
  *
  */
@@ -4302,18 +4302,18 @@ export type DELETE_GRANT_REQUEST = DELETE_GRANT_REQUEST__MOGENIUS_OPERATOR_SRC_C
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·32,string]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·32,string]
- *         properties:
- *             data:
- *                 type: string
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·32,string]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·32,string]
+ *     properties:
+ *       data:
+ *         type: string
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·32,string]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·32,string]
+ *   type: struct
  * ```
  *
  */
@@ -4324,14 +4324,14 @@ export type DELETE_GRANT_RESPONSE = DELETE_GRANT_RESPONSE__MOGENIUS_OPERATOR_SRC
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Request:
- *         name: mogenius-operator/src/core.Request
- *         properties:
- *             name:
- *                 type: string
+ *   mogenius-operator/src/core.Request:
+ *     name: mogenius-operator/src/core.Request
+ *     properties:
+ *       name:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Request
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Request
+ *   type: struct
  * ```
  *
  */
@@ -4342,18 +4342,18 @@ export type DELETE_USER_REQUEST = DELETE_USER_REQUEST__MOGENIUS_OPERATOR_SRC_COR
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·27,string]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·27,string]
- *         properties:
- *             data:
- *                 type: string
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·27,string]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·27,string]
+ *     properties:
+ *       data:
+ *         type: string
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·27,string]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·27,string]
+ *   type: struct
  * ```
  *
  */
@@ -4364,30 +4364,30 @@ export type DELETE_USER_RESPONSE = DELETE_USER_RESPONSE__MOGENIUS_OPERATOR_SRC_C
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/utils.ResourceDescriptor:
- *         name: mogenius-operator/src/utils.ResourceDescriptor
- *         properties:
- *             apiVersion:
- *                 type: string
- *             kind:
- *                 type: string
- *             namespaced:
- *                 type: bool
- *             plural:
- *                 type: string
- *     mogenius-operator/src/utils.WorkloadSingleRequest:
- *         name: mogenius-operator/src/utils.WorkloadSingleRequest
- *         properties:
- *             ResourceDescriptor:
- *                 structRef: mogenius-operator/src/utils.ResourceDescriptor
- *                 type: struct
- *             namespace:
- *                 type: string
- *             resourceName:
- *                 type: string
+ *   mogenius-operator/src/utils.ResourceDescriptor:
+ *     name: mogenius-operator/src/utils.ResourceDescriptor
+ *     properties:
+ *       apiVersion:
+ *         type: string
+ *       kind:
+ *         type: string
+ *       namespaced:
+ *         type: bool
+ *       plural:
+ *         type: string
+ *   mogenius-operator/src/utils.WorkloadSingleRequest:
+ *     name: mogenius-operator/src/utils.WorkloadSingleRequest
+ *     properties:
+ *       ResourceDescriptor:
+ *         structRef: mogenius-operator/src/utils.ResourceDescriptor
+ *         type: struct
+ *       namespace:
+ *         type: string
+ *       resourceName:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/utils.WorkloadSingleRequest
- *     type: struct
+ *   structRef: mogenius-operator/src/utils.WorkloadSingleRequest
+ *   type: struct
  * ```
  *
  */
@@ -4398,22 +4398,22 @@ export type DELETE_WORKLOAD_REQUEST = DELETE_WORKLOAD_REQUEST__MOGENIUS_OPERATOR
  *
  * ```yaml
  * structs:
- *     ANON_STRUCT_1:
- *         properties: {}
- *     mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadSingleRequest,mogenius-operator/src/core.Void]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadSingleRequest,mogenius-operator/src/core.Void]
- *         properties:
- *             data:
- *                 pointer: true
- *                 structRef: ANON_STRUCT_1
- *                 type: struct
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   ANON_STRUCT_1:
+ *     properties: {}
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadSingleRequest,mogenius-operator/src/core.Void]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadSingleRequest,mogenius-operator/src/core.Void]
+ *     properties:
+ *       data:
+ *         pointer: true
+ *         structRef: ANON_STRUCT_1
+ *         type: struct
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadSingleRequest,mogenius-operator/src/core.Void]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadSingleRequest,mogenius-operator/src/core.Void]
+ *   type: struct
  * ```
  *
  */
@@ -4424,14 +4424,14 @@ export type DELETE_WORKLOAD_RESPONSE = DELETE_WORKLOAD_RESPONSE__MOGENIUS_OPERAT
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Request:
- *         name: mogenius-operator/src/core.Request
- *         properties:
- *             name:
- *                 type: string
+ *   mogenius-operator/src/core.Request:
+ *     name: mogenius-operator/src/core.Request
+ *     properties:
+ *       name:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Request
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Request
+ *   type: struct
  * ```
  *
  */
@@ -4442,18 +4442,18 @@ export type DELETE_WORKSPACE_REQUEST = DELETE_WORKSPACE_REQUEST__MOGENIUS_OPERAT
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·22,string]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·22,string]
- *         properties:
- *             data:
- *                 type: string
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·22,string]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·22,string]
+ *     properties:
+ *       data:
+ *         type: string
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·22,string]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·22,string]
+ *   type: struct
  * ```
  *
  */
@@ -4464,12 +4464,12 @@ export type DELETE_WORKSPACE_RESPONSE = DELETE_WORKSPACE_RESPONSE__MOGENIUS_OPER
  *
  * ```yaml
  * structs:
- *     ANON_STRUCT_0:
- *         properties: {}
+ *   ANON_STRUCT_0:
+ *     properties: {}
  * typeInfo:
- *     pointer: true
- *     structRef: ANON_STRUCT_0
- *     type: struct
+ *   pointer: true
+ *   structRef: ANON_STRUCT_0
+ *   type: struct
  * ```
  *
  */
@@ -4480,124 +4480,124 @@ export type DESCRIBE_REQUEST = DESCRIBE_REQUEST__ANON_STRUCT_0|undefined;
  *
  * ```yaml
  * structs:
- *     ANON_STRUCT_2:
- *         properties:
- *             version:
- *                 structRef: mogenius-operator/src/version.Version
- *                 type: struct
- *     ANON_STRUCT_4:
- *         properties: {}
- *     mogenius-operator/src/core.PatternConfig:
- *         name: mogenius-operator/src/core.PatternConfig
- *         properties:
- *             deprecated:
- *                 type: bool
- *             deprecatedMessage:
- *                 type: string
- *             legacyResponseLayout:
- *                 type: bool
- *             needsUser:
- *                 type: bool
- *             requestSchema:
- *                 pointer: true
- *                 structRef: mogenius-operator/src/schema.Schema
- *                 type: struct
- *             responseSchema:
- *                 pointer: true
- *                 structRef: mogenius-operator/src/schema.Schema
- *                 type: struct
- *     mogenius-operator/src/core.Response:
- *         name: mogenius-operator/src/core.Response
- *         properties:
- *             buildInfo:
- *                 structRef: ANON_STRUCT_2
- *                 type: struct
- *             features:
- *                 structRef: ANON_STRUCT_4
- *                 type: struct
- *             patterns:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     structRef: mogenius-operator/src/core.PatternConfig
- *                     type: struct
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Response·2]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Response·2]
- *         properties:
- *             data:
- *                 structRef: mogenius-operator/src/core.Response
- *                 type: struct
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- *     mogenius-operator/src/schema.Schema:
- *         name: mogenius-operator/src/schema.Schema
- *         properties:
- *             structs:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     structRef: mogenius-operator/src/schema.StructLayout
- *                     type: struct
- *             typeInfo:
- *                 pointer: true
- *                 structRef: mogenius-operator/src/schema.TypeInfo
- *                 type: struct
- *     mogenius-operator/src/schema.StructLayout:
- *         name: mogenius-operator/src/schema.StructLayout
- *         properties:
- *             name:
- *                 type: string
- *             properties:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     pointer: true
- *                     structRef: mogenius-operator/src/schema.TypeInfo
- *                     type: struct
- *     mogenius-operator/src/schema.TypeInfo:
- *         name: mogenius-operator/src/schema.TypeInfo
- *         properties:
- *             elementType:
- *                 pointer: true
- *                 structRef: mogenius-operator/src/schema.TypeInfo
- *                 type: struct
- *             keyType:
- *                 pointer: true
- *                 structRef: mogenius-operator/src/schema.TypeInfo
- *                 type: struct
- *             pointer:
- *                 type: bool
- *             structRef:
- *                 type: string
- *             type:
- *                 type: string
- *             valueType:
- *                 pointer: true
- *                 structRef: mogenius-operator/src/schema.TypeInfo
- *                 type: struct
- *     mogenius-operator/src/version.Version:
- *         name: mogenius-operator/src/version.Version
- *         properties:
- *             arch:
- *                 type: string
- *             branch:
- *                 type: string
- *             buildTimestamp:
- *                 type: string
- *             gitCommitHash:
- *                 type: string
- *             os:
- *                 type: string
- *             version:
- *                 type: string
+ *   ANON_STRUCT_2:
+ *     properties:
+ *       version:
+ *         structRef: mogenius-operator/src/version.Version
+ *         type: struct
+ *   ANON_STRUCT_4:
+ *     properties: {}
+ *   mogenius-operator/src/core.PatternConfig:
+ *     name: mogenius-operator/src/core.PatternConfig
+ *     properties:
+ *       deprecated:
+ *         type: bool
+ *       deprecatedMessage:
+ *         type: string
+ *       legacyResponseLayout:
+ *         type: bool
+ *       needsUser:
+ *         type: bool
+ *       requestSchema:
+ *         pointer: true
+ *         structRef: mogenius-operator/src/schema.Schema
+ *         type: struct
+ *       responseSchema:
+ *         pointer: true
+ *         structRef: mogenius-operator/src/schema.Schema
+ *         type: struct
+ *   mogenius-operator/src/core.Response:
+ *     name: mogenius-operator/src/core.Response
+ *     properties:
+ *       buildInfo:
+ *         structRef: ANON_STRUCT_2
+ *         type: struct
+ *       features:
+ *         structRef: ANON_STRUCT_4
+ *         type: struct
+ *       patterns:
+ *         keyType:
+ *           type: string
+ *         type: map
+ *         valueType:
+ *           structRef: mogenius-operator/src/core.PatternConfig
+ *           type: struct
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Response·2]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Response·2]
+ *     properties:
+ *       data:
+ *         structRef: mogenius-operator/src/core.Response
+ *         type: struct
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
+ *   mogenius-operator/src/schema.Schema:
+ *     name: mogenius-operator/src/schema.Schema
+ *     properties:
+ *       structs:
+ *         keyType:
+ *           type: string
+ *         type: map
+ *         valueType:
+ *           structRef: mogenius-operator/src/schema.StructLayout
+ *           type: struct
+ *       typeInfo:
+ *         pointer: true
+ *         structRef: mogenius-operator/src/schema.TypeInfo
+ *         type: struct
+ *   mogenius-operator/src/schema.StructLayout:
+ *     name: mogenius-operator/src/schema.StructLayout
+ *     properties:
+ *       name:
+ *         type: string
+ *       properties:
+ *         keyType:
+ *           type: string
+ *         type: map
+ *         valueType:
+ *           pointer: true
+ *           structRef: mogenius-operator/src/schema.TypeInfo
+ *           type: struct
+ *   mogenius-operator/src/schema.TypeInfo:
+ *     name: mogenius-operator/src/schema.TypeInfo
+ *     properties:
+ *       elementType:
+ *         pointer: true
+ *         structRef: mogenius-operator/src/schema.TypeInfo
+ *         type: struct
+ *       keyType:
+ *         pointer: true
+ *         structRef: mogenius-operator/src/schema.TypeInfo
+ *         type: struct
+ *       pointer:
+ *         type: bool
+ *       structRef:
+ *         type: string
+ *       type:
+ *         type: string
+ *       valueType:
+ *         pointer: true
+ *         structRef: mogenius-operator/src/schema.TypeInfo
+ *         type: struct
+ *   mogenius-operator/src/version.Version:
+ *     name: mogenius-operator/src/version.Version
+ *     properties:
+ *       arch:
+ *         type: string
+ *       branch:
+ *         type: string
+ *       buildTimestamp:
+ *         type: string
+ *       gitCommitHash:
+ *         type: string
+ *       os:
+ *         type: string
+ *       version:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Response·2]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Response·2]
+ *   type: struct
  * ```
  *
  */
@@ -4608,30 +4608,30 @@ export type DESCRIBE_RESPONSE = DESCRIBE_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RE
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/utils.ResourceDescriptor:
- *         name: mogenius-operator/src/utils.ResourceDescriptor
- *         properties:
- *             apiVersion:
- *                 type: string
- *             kind:
- *                 type: string
- *             namespaced:
- *                 type: bool
- *             plural:
- *                 type: string
- *     mogenius-operator/src/utils.WorkloadSingleRequest:
- *         name: mogenius-operator/src/utils.WorkloadSingleRequest
- *         properties:
- *             ResourceDescriptor:
- *                 structRef: mogenius-operator/src/utils.ResourceDescriptor
- *                 type: struct
- *             namespace:
- *                 type: string
- *             resourceName:
- *                 type: string
+ *   mogenius-operator/src/utils.ResourceDescriptor:
+ *     name: mogenius-operator/src/utils.ResourceDescriptor
+ *     properties:
+ *       apiVersion:
+ *         type: string
+ *       kind:
+ *         type: string
+ *       namespaced:
+ *         type: bool
+ *       plural:
+ *         type: string
+ *   mogenius-operator/src/utils.WorkloadSingleRequest:
+ *     name: mogenius-operator/src/utils.WorkloadSingleRequest
+ *     properties:
+ *       ResourceDescriptor:
+ *         structRef: mogenius-operator/src/utils.ResourceDescriptor
+ *         type: struct
+ *       namespace:
+ *         type: string
+ *       resourceName:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/utils.WorkloadSingleRequest
- *     type: struct
+ *   structRef: mogenius-operator/src/utils.WorkloadSingleRequest
+ *   type: struct
  * ```
  *
  */
@@ -4642,18 +4642,18 @@ export type DESCRIBE_WORKLOAD_REQUEST = DESCRIBE_WORKLOAD_REQUEST__MOGENIUS_OPER
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadSingleRequest,string]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadSingleRequest,string]
- *         properties:
- *             data:
- *                 type: string
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadSingleRequest,string]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadSingleRequest,string]
+ *     properties:
+ *       data:
+ *         type: string
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadSingleRequest,string]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadSingleRequest,string]
+ *   type: struct
  * ```
  *
  */
@@ -4664,26 +4664,26 @@ export type DESCRIBE_WORKLOAD_RESPONSE = DESCRIBE_WORKLOAD_RESPONSE__MOGENIUS_OP
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Request:
- *         name: mogenius-operator/src/core.Request
- *         properties:
- *             file:
- *                 structRef: mogenius-operator/src/dtos.PersistentFileRequestDto
- *                 type: struct
- *             mode:
- *                 type: string
- *     mogenius-operator/src/dtos.PersistentFileRequestDto:
- *         name: mogenius-operator/src/dtos.PersistentFileRequestDto
- *         properties:
- *             path:
- *                 type: string
- *             volumeName:
- *                 type: string
- *             volumeNamespace:
- *                 type: string
+ *   mogenius-operator/src/core.Request:
+ *     name: mogenius-operator/src/core.Request
+ *     properties:
+ *       file:
+ *         structRef: mogenius-operator/src/dtos.PersistentFileRequestDto
+ *         type: struct
+ *       mode:
+ *         type: string
+ *   mogenius-operator/src/dtos.PersistentFileRequestDto:
+ *     name: mogenius-operator/src/dtos.PersistentFileRequestDto
+ *     properties:
+ *       path:
+ *         type: string
+ *       volumeName:
+ *         type: string
+ *       volumeNamespace:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Request
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Request
+ *   type: struct
  * ```
  *
  */
@@ -4694,18 +4694,18 @@ export type FILES_CHMOD_REQUEST = FILES_CHMOD_REQUEST__MOGENIUS_OPERATOR_SRC_COR
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·13,bool]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·13,bool]
- *         properties:
- *             data:
- *                 type: bool
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·13,bool]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·13,bool]
+ *     properties:
+ *       data:
+ *         type: bool
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·13,bool]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·13,bool]
+ *   type: struct
  * ```
  *
  */
@@ -4716,28 +4716,28 @@ export type FILES_CHMOD_RESPONSE = FILES_CHMOD_RESPONSE__MOGENIUS_OPERATOR_SRC_C
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Request:
- *         name: mogenius-operator/src/core.Request
- *         properties:
- *             file:
- *                 structRef: mogenius-operator/src/dtos.PersistentFileRequestDto
- *                 type: struct
- *             gid:
- *                 type: string
- *             uid:
- *                 type: string
- *     mogenius-operator/src/dtos.PersistentFileRequestDto:
- *         name: mogenius-operator/src/dtos.PersistentFileRequestDto
- *         properties:
- *             path:
- *                 type: string
- *             volumeName:
- *                 type: string
- *             volumeNamespace:
- *                 type: string
+ *   mogenius-operator/src/core.Request:
+ *     name: mogenius-operator/src/core.Request
+ *     properties:
+ *       file:
+ *         structRef: mogenius-operator/src/dtos.PersistentFileRequestDto
+ *         type: struct
+ *       gid:
+ *         type: string
+ *       uid:
+ *         type: string
+ *   mogenius-operator/src/dtos.PersistentFileRequestDto:
+ *     name: mogenius-operator/src/dtos.PersistentFileRequestDto
+ *     properties:
+ *       path:
+ *         type: string
+ *       volumeName:
+ *         type: string
+ *       volumeNamespace:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Request
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Request
+ *   type: struct
  * ```
  *
  */
@@ -4748,18 +4748,18 @@ export type FILES_CHOWN_REQUEST = FILES_CHOWN_REQUEST__MOGENIUS_OPERATOR_SRC_COR
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·12,bool]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·12,bool]
- *         properties:
- *             data:
- *                 type: bool
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·12,bool]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·12,bool]
+ *     properties:
+ *       data:
+ *         type: bool
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·12,bool]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·12,bool]
+ *   type: struct
  * ```
  *
  */
@@ -4770,24 +4770,24 @@ export type FILES_CHOWN_RESPONSE = FILES_CHOWN_RESPONSE__MOGENIUS_OPERATOR_SRC_C
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Request:
- *         name: mogenius-operator/src/core.Request
- *         properties:
- *             folder:
- *                 structRef: mogenius-operator/src/dtos.PersistentFileRequestDto
- *                 type: struct
- *     mogenius-operator/src/dtos.PersistentFileRequestDto:
- *         name: mogenius-operator/src/dtos.PersistentFileRequestDto
- *         properties:
- *             path:
- *                 type: string
- *             volumeName:
- *                 type: string
- *             volumeNamespace:
- *                 type: string
+ *   mogenius-operator/src/core.Request:
+ *     name: mogenius-operator/src/core.Request
+ *     properties:
+ *       folder:
+ *         structRef: mogenius-operator/src/dtos.PersistentFileRequestDto
+ *         type: struct
+ *   mogenius-operator/src/dtos.PersistentFileRequestDto:
+ *     name: mogenius-operator/src/dtos.PersistentFileRequestDto
+ *     properties:
+ *       path:
+ *         type: string
+ *       volumeName:
+ *         type: string
+ *       volumeNamespace:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Request
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Request
+ *   type: struct
  * ```
  *
  */
@@ -4798,18 +4798,18 @@ export type FILES_CREATE_FOLDER_REQUEST = FILES_CREATE_FOLDER_REQUEST__MOGENIUS_
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·10,bool]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·10,bool]
- *         properties:
- *             data:
- *                 type: bool
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·10,bool]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·10,bool]
+ *     properties:
+ *       data:
+ *         type: bool
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·10,bool]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·10,bool]
+ *   type: struct
  * ```
  *
  */
@@ -4820,24 +4820,24 @@ export type FILES_CREATE_FOLDER_RESPONSE = FILES_CREATE_FOLDER_RESPONSE__MOGENIU
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Request:
- *         name: mogenius-operator/src/core.Request
- *         properties:
- *             file:
- *                 structRef: mogenius-operator/src/dtos.PersistentFileRequestDto
- *                 type: struct
- *     mogenius-operator/src/dtos.PersistentFileRequestDto:
- *         name: mogenius-operator/src/dtos.PersistentFileRequestDto
- *         properties:
- *             path:
- *                 type: string
- *             volumeName:
- *                 type: string
- *             volumeNamespace:
- *                 type: string
+ *   mogenius-operator/src/core.Request:
+ *     name: mogenius-operator/src/core.Request
+ *     properties:
+ *       file:
+ *         structRef: mogenius-operator/src/dtos.PersistentFileRequestDto
+ *         type: struct
+ *   mogenius-operator/src/dtos.PersistentFileRequestDto:
+ *     name: mogenius-operator/src/dtos.PersistentFileRequestDto
+ *     properties:
+ *       path:
+ *         type: string
+ *       volumeName:
+ *         type: string
+ *       volumeNamespace:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Request
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Request
+ *   type: struct
  * ```
  *
  */
@@ -4848,18 +4848,18 @@ export type FILES_DELETE_REQUEST = FILES_DELETE_REQUEST__MOGENIUS_OPERATOR_SRC_C
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·14,bool]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·14,bool]
- *         properties:
- *             data:
- *                 type: bool
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·14,bool]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·14,bool]
+ *     properties:
+ *       data:
+ *         type: bool
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·14,bool]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·14,bool]
+ *   type: struct
  * ```
  *
  */
@@ -4870,26 +4870,26 @@ export type FILES_DELETE_RESPONSE = FILES_DELETE_RESPONSE__MOGENIUS_OPERATOR_SRC
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Request:
- *         name: mogenius-operator/src/core.Request
- *         properties:
- *             file:
- *                 structRef: mogenius-operator/src/dtos.PersistentFileRequestDto
- *                 type: struct
- *             postTo:
- *                 type: string
- *     mogenius-operator/src/dtos.PersistentFileRequestDto:
- *         name: mogenius-operator/src/dtos.PersistentFileRequestDto
- *         properties:
- *             path:
- *                 type: string
- *             volumeName:
- *                 type: string
- *             volumeNamespace:
- *                 type: string
+ *   mogenius-operator/src/core.Request:
+ *     name: mogenius-operator/src/core.Request
+ *     properties:
+ *       file:
+ *         structRef: mogenius-operator/src/dtos.PersistentFileRequestDto
+ *         type: struct
+ *       postTo:
+ *         type: string
+ *   mogenius-operator/src/dtos.PersistentFileRequestDto:
+ *     name: mogenius-operator/src/dtos.PersistentFileRequestDto
+ *     properties:
+ *       path:
+ *         type: string
+ *       volumeName:
+ *         type: string
+ *       volumeNamespace:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Request
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Request
+ *   type: struct
  * ```
  *
  */
@@ -4900,26 +4900,26 @@ export type FILES_DOWNLOAD_REQUEST = FILES_DOWNLOAD_REQUEST__MOGENIUS_OPERATOR_S
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·15,mogenius-operator/src/services.FilesDownloadResponse]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·15,mogenius-operator/src/services.FilesDownloadResponse]
- *         properties:
- *             data:
- *                 structRef: mogenius-operator/src/services.FilesDownloadResponse
- *                 type: struct
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- *     mogenius-operator/src/services.FilesDownloadResponse:
- *         name: mogenius-operator/src/services.FilesDownloadResponse
- *         properties:
- *             error:
- *                 type: string
- *             sizeInBytes:
- *                 type: int
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·15,mogenius-operator/src/services.FilesDownloadResponse]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·15,mogenius-operator/src/services.FilesDownloadResponse]
+ *     properties:
+ *       data:
+ *         structRef: mogenius-operator/src/services.FilesDownloadResponse
+ *         type: struct
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
+ *   mogenius-operator/src/services.FilesDownloadResponse:
+ *     name: mogenius-operator/src/services.FilesDownloadResponse
+ *     properties:
+ *       error:
+ *         type: string
+ *       sizeInBytes:
+ *         type: int
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·15,mogenius-operator/src/services.FilesDownloadResponse]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·15,mogenius-operator/src/services.FilesDownloadResponse]
+ *   type: struct
  * ```
  *
  */
@@ -4930,18 +4930,18 @@ export type FILES_DOWNLOAD_RESPONSE = FILES_DOWNLOAD_RESPONSE__MOGENIUS_OPERATOR
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/dtos.PersistentFileRequestDto:
- *         name: mogenius-operator/src/dtos.PersistentFileRequestDto
- *         properties:
- *             path:
- *                 type: string
- *             volumeName:
- *                 type: string
- *             volumeNamespace:
- *                 type: string
+ *   mogenius-operator/src/dtos.PersistentFileRequestDto:
+ *     name: mogenius-operator/src/dtos.PersistentFileRequestDto
+ *     properties:
+ *       path:
+ *         type: string
+ *       volumeName:
+ *         type: string
+ *       volumeNamespace:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/dtos.PersistentFileRequestDto
- *     type: struct
+ *   structRef: mogenius-operator/src/dtos.PersistentFileRequestDto
+ *   type: struct
  * ```
  *
  */
@@ -4952,48 +4952,48 @@ export type FILES_INFO_REQUEST = FILES_INFO_REQUEST__MOGENIUS_OPERATOR_SRC_DTOS_
  *
  * ```yaml
  * structs:
- *     ? mogenius-operator/src/core.Result[mogenius-operator/src/dtos.PersistentFileRequestDto,mogenius-operator/src/dtos.PersistentFileDto]
- *     :   name: mogenius-operator/src/core.Result[mogenius-operator/src/dtos.PersistentFileRequestDto,mogenius-operator/src/dtos.PersistentFileDto]
- *         properties:
- *             data:
- *                 structRef: mogenius-operator/src/dtos.PersistentFileDto
- *                 type: struct
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- *     mogenius-operator/src/dtos.PersistentFileDto:
- *         name: mogenius-operator/src/dtos.PersistentFileDto
- *         properties:
- *             contentType:
- *                 type: string
- *             createdAt:
- *                 type: string
- *             extension:
- *                 type: string
- *             hash:
- *                 type: string
- *             mimeType:
- *                 type: string
- *             mode:
- *                 type: string
- *             modifiedAt:
- *                 type: string
- *             name:
- *                 type: string
- *             relativePath:
- *                 type: string
- *             size:
- *                 type: string
- *             sizeInBytes:
- *                 type: int
- *             type:
- *                 type: string
- *             uid_gid:
- *                 type: string
+ *   ? mogenius-operator/src/core.Result[mogenius-operator/src/dtos.PersistentFileRequestDto,mogenius-operator/src/dtos.PersistentFileDto]
+ *   : name: mogenius-operator/src/core.Result[mogenius-operator/src/dtos.PersistentFileRequestDto,mogenius-operator/src/dtos.PersistentFileDto]
+ *     properties:
+ *       data:
+ *         structRef: mogenius-operator/src/dtos.PersistentFileDto
+ *         type: struct
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
+ *   mogenius-operator/src/dtos.PersistentFileDto:
+ *     name: mogenius-operator/src/dtos.PersistentFileDto
+ *     properties:
+ *       contentType:
+ *         type: string
+ *       createdAt:
+ *         type: string
+ *       extension:
+ *         type: string
+ *       hash:
+ *         type: string
+ *       mimeType:
+ *         type: string
+ *       mode:
+ *         type: string
+ *       modifiedAt:
+ *         type: string
+ *       name:
+ *         type: string
+ *       relativePath:
+ *         type: string
+ *       size:
+ *         type: string
+ *       sizeInBytes:
+ *         type: int
+ *       type:
+ *         type: string
+ *       uid_gid:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/dtos.PersistentFileRequestDto,mogenius-operator/src/dtos.PersistentFileDto]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/dtos.PersistentFileRequestDto,mogenius-operator/src/dtos.PersistentFileDto]
+ *   type: struct
  * ```
  *
  */
@@ -5004,24 +5004,24 @@ export type FILES_INFO_RESPONSE = FILES_INFO_RESPONSE__MOGENIUS_OPERATOR_SRC_COR
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Request:
- *         name: mogenius-operator/src/core.Request
- *         properties:
- *             folder:
- *                 structRef: mogenius-operator/src/dtos.PersistentFileRequestDto
- *                 type: struct
- *     mogenius-operator/src/dtos.PersistentFileRequestDto:
- *         name: mogenius-operator/src/dtos.PersistentFileRequestDto
- *         properties:
- *             path:
- *                 type: string
- *             volumeName:
- *                 type: string
- *             volumeNamespace:
- *                 type: string
+ *   mogenius-operator/src/core.Request:
+ *     name: mogenius-operator/src/core.Request
+ *     properties:
+ *       folder:
+ *         structRef: mogenius-operator/src/dtos.PersistentFileRequestDto
+ *         type: struct
+ *   mogenius-operator/src/dtos.PersistentFileRequestDto:
+ *     name: mogenius-operator/src/dtos.PersistentFileRequestDto
+ *     properties:
+ *       path:
+ *         type: string
+ *       volumeName:
+ *         type: string
+ *       volumeNamespace:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Request
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Request
+ *   type: struct
  * ```
  *
  */
@@ -5032,50 +5032,50 @@ export type FILES_LIST_REQUEST = FILES_LIST_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·9,[]mogenius-operator/src/dtos.PersistentFileDto]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·9,[]mogenius-operator/src/dtos.PersistentFileDto]
- *         properties:
- *             data:
- *                 elementType:
- *                     structRef: mogenius-operator/src/dtos.PersistentFileDto
- *                     type: struct
- *                 type: array
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- *     mogenius-operator/src/dtos.PersistentFileDto:
- *         name: mogenius-operator/src/dtos.PersistentFileDto
- *         properties:
- *             contentType:
- *                 type: string
- *             createdAt:
- *                 type: string
- *             extension:
- *                 type: string
- *             hash:
- *                 type: string
- *             mimeType:
- *                 type: string
- *             mode:
- *                 type: string
- *             modifiedAt:
- *                 type: string
- *             name:
- *                 type: string
- *             relativePath:
- *                 type: string
- *             size:
- *                 type: string
- *             sizeInBytes:
- *                 type: int
- *             type:
- *                 type: string
- *             uid_gid:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·9,[]mogenius-operator/src/dtos.PersistentFileDto]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·9,[]mogenius-operator/src/dtos.PersistentFileDto]
+ *     properties:
+ *       data:
+ *         elementType:
+ *           structRef: mogenius-operator/src/dtos.PersistentFileDto
+ *           type: struct
+ *         type: array
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
+ *   mogenius-operator/src/dtos.PersistentFileDto:
+ *     name: mogenius-operator/src/dtos.PersistentFileDto
+ *     properties:
+ *       contentType:
+ *         type: string
+ *       createdAt:
+ *         type: string
+ *       extension:
+ *         type: string
+ *       hash:
+ *         type: string
+ *       mimeType:
+ *         type: string
+ *       mode:
+ *         type: string
+ *       modifiedAt:
+ *         type: string
+ *       name:
+ *         type: string
+ *       relativePath:
+ *         type: string
+ *       size:
+ *         type: string
+ *       sizeInBytes:
+ *         type: int
+ *       type:
+ *         type: string
+ *       uid_gid:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·9,[]mogenius-operator/src/dtos.PersistentFileDto]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·9,[]mogenius-operator/src/dtos.PersistentFileDto]
+ *   type: struct
  * ```
  *
  */
@@ -5086,26 +5086,26 @@ export type FILES_LIST_RESPONSE = FILES_LIST_RESPONSE__MOGENIUS_OPERATOR_SRC_COR
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Request:
- *         name: mogenius-operator/src/core.Request
- *         properties:
- *             file:
- *                 structRef: mogenius-operator/src/dtos.PersistentFileRequestDto
- *                 type: struct
- *             newName:
- *                 type: string
- *     mogenius-operator/src/dtos.PersistentFileRequestDto:
- *         name: mogenius-operator/src/dtos.PersistentFileRequestDto
- *         properties:
- *             path:
- *                 type: string
- *             volumeName:
- *                 type: string
- *             volumeNamespace:
- *                 type: string
+ *   mogenius-operator/src/core.Request:
+ *     name: mogenius-operator/src/core.Request
+ *     properties:
+ *       file:
+ *         structRef: mogenius-operator/src/dtos.PersistentFileRequestDto
+ *         type: struct
+ *       newName:
+ *         type: string
+ *   mogenius-operator/src/dtos.PersistentFileRequestDto:
+ *     name: mogenius-operator/src/dtos.PersistentFileRequestDto
+ *     properties:
+ *       path:
+ *         type: string
+ *       volumeName:
+ *         type: string
+ *       volumeNamespace:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Request
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Request
+ *   type: struct
  * ```
  *
  */
@@ -5116,18 +5116,18 @@ export type FILES_RENAME_REQUEST = FILES_RENAME_REQUEST__MOGENIUS_OPERATOR_SRC_C
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·11,bool]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·11,bool]
- *         properties:
- *             data:
- *                 type: bool
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·11,bool]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·11,bool]
+ *     properties:
+ *       data:
+ *         type: bool
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·11,bool]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·11,bool]
+ *   type: struct
  * ```
  *
  */
@@ -5138,14 +5138,14 @@ export type FILES_RENAME_RESPONSE = FILES_RENAME_RESPONSE__MOGENIUS_OPERATOR_SRC
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Request:
- *         name: mogenius-operator/src/core.Request
- *         properties:
- *             name:
- *                 type: string
+ *   mogenius-operator/src/core.Request:
+ *     name: mogenius-operator/src/core.Request
+ *     properties:
+ *       name:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Request
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Request
+ *   type: struct
  * ```
  *
  */
@@ -5156,159 +5156,159 @@ export type GET_GRANT_REQUEST = GET_GRANT_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_RE
  *
  * ```yaml
  * structs:
- *     k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1
- *         properties: {}
- *     k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry
- *         properties:
- *             apiVersion:
- *                 type: string
- *             fieldsType:
- *                 type: string
- *             fieldsV1:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1
- *                 type: struct
- *             manager:
- *                 type: string
- *             operation:
- *                 type: string
- *             subresource:
- *                 type: string
- *             time:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *                 type: struct
- *     k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta
- *         properties:
- *             annotations:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     type: string
- *             creationTimestamp:
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *                 type: struct
- *             deletionGracePeriodSeconds:
- *                 pointer: true
- *                 type: int
- *             deletionTimestamp:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *                 type: struct
- *             finalizers:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             generateName:
- *                 type: string
- *             generation:
- *                 type: int
- *             labels:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     type: string
- *             managedFields:
- *                 elementType:
- *                     structRef: k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry
- *                     type: struct
- *                 type: array
- *             name:
- *                 type: string
- *             namespace:
- *                 type: string
- *             ownerReferences:
- *                 elementType:
- *                     structRef: k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference
- *                     type: struct
- *                 type: array
- *             resourceVersion:
- *                 type: string
- *             selfLink:
- *                 type: string
- *             uid:
- *                 type: string
- *     k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference
- *         properties:
- *             apiVersion:
- *                 type: string
- *             blockOwnerDeletion:
- *                 pointer: true
- *                 type: bool
- *             controller:
- *                 pointer: true
- *                 type: bool
- *             kind:
- *                 type: string
- *             name:
- *                 type: string
- *             uid:
- *                 type: string
- *     k8s.io/apimachinery/pkg/apis/meta/v1.Time:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *         properties:
- *             Time:
- *                 structRef: time.Time
- *                 type: struct
- *     k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta
- *         properties:
- *             apiVersion:
- *                 type: string
- *             kind:
- *                 type: string
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·30,*mogenius-operator/src/crds/v1alpha1.Grant]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·30,*mogenius-operator/src/crds/v1alpha1.Grant]
- *         properties:
- *             data:
- *                 pointer: true
- *                 structRef: mogenius-operator/src/crds/v1alpha1.Grant
- *                 type: struct
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- *     mogenius-operator/src/crds/v1alpha1.Grant:
- *         name: mogenius-operator/src/crds/v1alpha1.Grant
- *         properties:
- *             TypeMeta:
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta
- *                 type: struct
- *             metadata:
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta
- *                 type: struct
- *             spec:
- *                 structRef: mogenius-operator/src/crds/v1alpha1.GrantSpec
- *                 type: struct
- *             status:
- *                 structRef: mogenius-operator/src/crds/v1alpha1.GrantStatus
- *                 type: struct
- *     mogenius-operator/src/crds/v1alpha1.GrantSpec:
- *         name: mogenius-operator/src/crds/v1alpha1.GrantSpec
- *         properties:
- *             grantee:
- *                 type: string
- *             role:
- *                 type: string
- *             targetName:
- *                 type: string
- *             targetType:
- *                 type: string
- *     mogenius-operator/src/crds/v1alpha1.GrantStatus:
- *         name: mogenius-operator/src/crds/v1alpha1.GrantStatus
- *         properties: {}
- *     time.Time:
- *         name: time.Time
- *         properties: {}
+ *   k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1:
+ *     name: k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1
+ *     properties: {}
+ *   k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry:
+ *     name: k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry
+ *     properties:
+ *       apiVersion:
+ *         type: string
+ *       fieldsType:
+ *         type: string
+ *       fieldsV1:
+ *         pointer: true
+ *         structRef: k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1
+ *         type: struct
+ *       manager:
+ *         type: string
+ *       operation:
+ *         type: string
+ *       subresource:
+ *         type: string
+ *       time:
+ *         pointer: true
+ *         structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
+ *         type: struct
+ *   k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta:
+ *     name: k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta
+ *     properties:
+ *       annotations:
+ *         keyType:
+ *           type: string
+ *         type: map
+ *         valueType:
+ *           type: string
+ *       creationTimestamp:
+ *         structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
+ *         type: struct
+ *       deletionGracePeriodSeconds:
+ *         pointer: true
+ *         type: int
+ *       deletionTimestamp:
+ *         pointer: true
+ *         structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
+ *         type: struct
+ *       finalizers:
+ *         elementType:
+ *           type: string
+ *         type: array
+ *       generateName:
+ *         type: string
+ *       generation:
+ *         type: int
+ *       labels:
+ *         keyType:
+ *           type: string
+ *         type: map
+ *         valueType:
+ *           type: string
+ *       managedFields:
+ *         elementType:
+ *           structRef: k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry
+ *           type: struct
+ *         type: array
+ *       name:
+ *         type: string
+ *       namespace:
+ *         type: string
+ *       ownerReferences:
+ *         elementType:
+ *           structRef: k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference
+ *           type: struct
+ *         type: array
+ *       resourceVersion:
+ *         type: string
+ *       selfLink:
+ *         type: string
+ *       uid:
+ *         type: string
+ *   k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference:
+ *     name: k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference
+ *     properties:
+ *       apiVersion:
+ *         type: string
+ *       blockOwnerDeletion:
+ *         pointer: true
+ *         type: bool
+ *       controller:
+ *         pointer: true
+ *         type: bool
+ *       kind:
+ *         type: string
+ *       name:
+ *         type: string
+ *       uid:
+ *         type: string
+ *   k8s.io/apimachinery/pkg/apis/meta/v1.Time:
+ *     name: k8s.io/apimachinery/pkg/apis/meta/v1.Time
+ *     properties:
+ *       Time:
+ *         structRef: time.Time
+ *         type: struct
+ *   k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta:
+ *     name: k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta
+ *     properties:
+ *       apiVersion:
+ *         type: string
+ *       kind:
+ *         type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·30,*mogenius-operator/src/crds/v1alpha1.Grant]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·30,*mogenius-operator/src/crds/v1alpha1.Grant]
+ *     properties:
+ *       data:
+ *         pointer: true
+ *         structRef: mogenius-operator/src/crds/v1alpha1.Grant
+ *         type: struct
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
+ *   mogenius-operator/src/crds/v1alpha1.Grant:
+ *     name: mogenius-operator/src/crds/v1alpha1.Grant
+ *     properties:
+ *       TypeMeta:
+ *         structRef: k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta
+ *         type: struct
+ *       metadata:
+ *         structRef: k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta
+ *         type: struct
+ *       spec:
+ *         structRef: mogenius-operator/src/crds/v1alpha1.GrantSpec
+ *         type: struct
+ *       status:
+ *         structRef: mogenius-operator/src/crds/v1alpha1.GrantStatus
+ *         type: struct
+ *   mogenius-operator/src/crds/v1alpha1.GrantSpec:
+ *     name: mogenius-operator/src/crds/v1alpha1.GrantSpec
+ *     properties:
+ *       grantee:
+ *         type: string
+ *       role:
+ *         type: string
+ *       targetName:
+ *         type: string
+ *       targetType:
+ *         type: string
+ *   mogenius-operator/src/crds/v1alpha1.GrantStatus:
+ *     name: mogenius-operator/src/crds/v1alpha1.GrantStatus
+ *     properties: {}
+ *   time.Time:
+ *     name: time.Time
+ *     properties: {}
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·30,*mogenius-operator/src/crds/v1alpha1.Grant]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·30,*mogenius-operator/src/crds/v1alpha1.Grant]
+ *   type: struct
  * ```
  *
  */
@@ -5319,18 +5319,18 @@ export type GET_GRANT_RESPONSE = GET_GRANT_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Request:
- *         name: mogenius-operator/src/core.Request
- *         properties:
- *             targetName:
- *                 pointer: true
- *                 type: string
- *             targetType:
- *                 pointer: true
- *                 type: string
+ *   mogenius-operator/src/core.Request:
+ *     name: mogenius-operator/src/core.Request
+ *     properties:
+ *       targetName:
+ *         pointer: true
+ *         type: string
+ *       targetType:
+ *         pointer: true
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Request
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Request
+ *   type: struct
  * ```
  *
  */
@@ -5341,160 +5341,160 @@ export type GET_GRANTS_REQUEST = GET_GRANTS_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_
  *
  * ```yaml
  * structs:
- *     k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1
- *         properties: {}
- *     k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry
- *         properties:
- *             apiVersion:
- *                 type: string
- *             fieldsType:
- *                 type: string
- *             fieldsV1:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1
- *                 type: struct
- *             manager:
- *                 type: string
- *             operation:
- *                 type: string
- *             subresource:
- *                 type: string
- *             time:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *                 type: struct
- *     k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta
- *         properties:
- *             annotations:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     type: string
- *             creationTimestamp:
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *                 type: struct
- *             deletionGracePeriodSeconds:
- *                 pointer: true
- *                 type: int
- *             deletionTimestamp:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *                 type: struct
- *             finalizers:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             generateName:
- *                 type: string
- *             generation:
- *                 type: int
- *             labels:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     type: string
- *             managedFields:
- *                 elementType:
- *                     structRef: k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry
- *                     type: struct
- *                 type: array
- *             name:
- *                 type: string
- *             namespace:
- *                 type: string
- *             ownerReferences:
- *                 elementType:
- *                     structRef: k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference
- *                     type: struct
- *                 type: array
- *             resourceVersion:
- *                 type: string
- *             selfLink:
- *                 type: string
- *             uid:
- *                 type: string
- *     k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference
- *         properties:
- *             apiVersion:
- *                 type: string
- *             blockOwnerDeletion:
- *                 pointer: true
- *                 type: bool
- *             controller:
- *                 pointer: true
- *                 type: bool
- *             kind:
- *                 type: string
- *             name:
- *                 type: string
- *             uid:
- *                 type: string
- *     k8s.io/apimachinery/pkg/apis/meta/v1.Time:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *         properties:
- *             Time:
- *                 structRef: time.Time
- *                 type: struct
- *     k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta
- *         properties:
- *             apiVersion:
- *                 type: string
- *             kind:
- *                 type: string
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·28,[]mogenius-operator/src/crds/v1alpha1.Grant]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·28,[]mogenius-operator/src/crds/v1alpha1.Grant]
- *         properties:
- *             data:
- *                 elementType:
- *                     structRef: mogenius-operator/src/crds/v1alpha1.Grant
- *                     type: struct
- *                 type: array
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- *     mogenius-operator/src/crds/v1alpha1.Grant:
- *         name: mogenius-operator/src/crds/v1alpha1.Grant
- *         properties:
- *             TypeMeta:
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta
- *                 type: struct
- *             metadata:
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta
- *                 type: struct
- *             spec:
- *                 structRef: mogenius-operator/src/crds/v1alpha1.GrantSpec
- *                 type: struct
- *             status:
- *                 structRef: mogenius-operator/src/crds/v1alpha1.GrantStatus
- *                 type: struct
- *     mogenius-operator/src/crds/v1alpha1.GrantSpec:
- *         name: mogenius-operator/src/crds/v1alpha1.GrantSpec
- *         properties:
- *             grantee:
- *                 type: string
- *             role:
- *                 type: string
- *             targetName:
- *                 type: string
- *             targetType:
- *                 type: string
- *     mogenius-operator/src/crds/v1alpha1.GrantStatus:
- *         name: mogenius-operator/src/crds/v1alpha1.GrantStatus
- *         properties: {}
- *     time.Time:
- *         name: time.Time
- *         properties: {}
+ *   k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1:
+ *     name: k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1
+ *     properties: {}
+ *   k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry:
+ *     name: k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry
+ *     properties:
+ *       apiVersion:
+ *         type: string
+ *       fieldsType:
+ *         type: string
+ *       fieldsV1:
+ *         pointer: true
+ *         structRef: k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1
+ *         type: struct
+ *       manager:
+ *         type: string
+ *       operation:
+ *         type: string
+ *       subresource:
+ *         type: string
+ *       time:
+ *         pointer: true
+ *         structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
+ *         type: struct
+ *   k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta:
+ *     name: k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta
+ *     properties:
+ *       annotations:
+ *         keyType:
+ *           type: string
+ *         type: map
+ *         valueType:
+ *           type: string
+ *       creationTimestamp:
+ *         structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
+ *         type: struct
+ *       deletionGracePeriodSeconds:
+ *         pointer: true
+ *         type: int
+ *       deletionTimestamp:
+ *         pointer: true
+ *         structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
+ *         type: struct
+ *       finalizers:
+ *         elementType:
+ *           type: string
+ *         type: array
+ *       generateName:
+ *         type: string
+ *       generation:
+ *         type: int
+ *       labels:
+ *         keyType:
+ *           type: string
+ *         type: map
+ *         valueType:
+ *           type: string
+ *       managedFields:
+ *         elementType:
+ *           structRef: k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry
+ *           type: struct
+ *         type: array
+ *       name:
+ *         type: string
+ *       namespace:
+ *         type: string
+ *       ownerReferences:
+ *         elementType:
+ *           structRef: k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference
+ *           type: struct
+ *         type: array
+ *       resourceVersion:
+ *         type: string
+ *       selfLink:
+ *         type: string
+ *       uid:
+ *         type: string
+ *   k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference:
+ *     name: k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference
+ *     properties:
+ *       apiVersion:
+ *         type: string
+ *       blockOwnerDeletion:
+ *         pointer: true
+ *         type: bool
+ *       controller:
+ *         pointer: true
+ *         type: bool
+ *       kind:
+ *         type: string
+ *       name:
+ *         type: string
+ *       uid:
+ *         type: string
+ *   k8s.io/apimachinery/pkg/apis/meta/v1.Time:
+ *     name: k8s.io/apimachinery/pkg/apis/meta/v1.Time
+ *     properties:
+ *       Time:
+ *         structRef: time.Time
+ *         type: struct
+ *   k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta:
+ *     name: k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta
+ *     properties:
+ *       apiVersion:
+ *         type: string
+ *       kind:
+ *         type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·28,[]mogenius-operator/src/crds/v1alpha1.Grant]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·28,[]mogenius-operator/src/crds/v1alpha1.Grant]
+ *     properties:
+ *       data:
+ *         elementType:
+ *           structRef: mogenius-operator/src/crds/v1alpha1.Grant
+ *           type: struct
+ *         type: array
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
+ *   mogenius-operator/src/crds/v1alpha1.Grant:
+ *     name: mogenius-operator/src/crds/v1alpha1.Grant
+ *     properties:
+ *       TypeMeta:
+ *         structRef: k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta
+ *         type: struct
+ *       metadata:
+ *         structRef: k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta
+ *         type: struct
+ *       spec:
+ *         structRef: mogenius-operator/src/crds/v1alpha1.GrantSpec
+ *         type: struct
+ *       status:
+ *         structRef: mogenius-operator/src/crds/v1alpha1.GrantStatus
+ *         type: struct
+ *   mogenius-operator/src/crds/v1alpha1.GrantSpec:
+ *     name: mogenius-operator/src/crds/v1alpha1.GrantSpec
+ *     properties:
+ *       grantee:
+ *         type: string
+ *       role:
+ *         type: string
+ *       targetName:
+ *         type: string
+ *       targetType:
+ *         type: string
+ *   mogenius-operator/src/crds/v1alpha1.GrantStatus:
+ *     name: mogenius-operator/src/crds/v1alpha1.GrantStatus
+ *     properties: {}
+ *   time.Time:
+ *     name: time.Time
+ *     properties: {}
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·28,[]mogenius-operator/src/crds/v1alpha1.Grant]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·28,[]mogenius-operator/src/crds/v1alpha1.Grant]
+ *   type: struct
  * ```
  *
  */
@@ -5505,37 +5505,37 @@ export type GET_GRANTS_RESPONSE = GET_GRANTS_RESPONSE__MOGENIUS_OPERATOR_SRC_COR
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/kubernetes.GetUnstructuredLabeledResourceListRequest:
- *         name: mogenius-operator/src/kubernetes.GetUnstructuredLabeledResourceListRequest
- *         properties:
- *             blacklist:
- *                 elementType:
- *                     pointer: true
- *                     structRef: mogenius-operator/src/utils.ResourceDescriptor
- *                     type: struct
- *                 type: array
- *             label:
- *                 type: string
- *             whitelist:
- *                 elementType:
- *                     pointer: true
- *                     structRef: mogenius-operator/src/utils.ResourceDescriptor
- *                     type: struct
- *                 type: array
- *     mogenius-operator/src/utils.ResourceDescriptor:
- *         name: mogenius-operator/src/utils.ResourceDescriptor
- *         properties:
- *             apiVersion:
- *                 type: string
- *             kind:
- *                 type: string
- *             namespaced:
- *                 type: bool
- *             plural:
- *                 type: string
+ *   mogenius-operator/src/kubernetes.GetUnstructuredLabeledResourceListRequest:
+ *     name: mogenius-operator/src/kubernetes.GetUnstructuredLabeledResourceListRequest
+ *     properties:
+ *       blacklist:
+ *         elementType:
+ *           pointer: true
+ *           structRef: mogenius-operator/src/utils.ResourceDescriptor
+ *           type: struct
+ *         type: array
+ *       label:
+ *         type: string
+ *       whitelist:
+ *         elementType:
+ *           pointer: true
+ *           structRef: mogenius-operator/src/utils.ResourceDescriptor
+ *           type: struct
+ *         type: array
+ *   mogenius-operator/src/utils.ResourceDescriptor:
+ *     name: mogenius-operator/src/utils.ResourceDescriptor
+ *     properties:
+ *       apiVersion:
+ *         type: string
+ *       kind:
+ *         type: string
+ *       namespaced:
+ *         type: bool
+ *       plural:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/kubernetes.GetUnstructuredLabeledResourceListRequest
- *     type: struct
+ *   structRef: mogenius-operator/src/kubernetes.GetUnstructuredLabeledResourceListRequest
+ *   type: struct
  * ```
  *
  */
@@ -5546,44 +5546,44 @@ export type GET_LABELED_WORKLOAD_LIST_REQUEST = GET_LABELED_WORKLOAD_LIST_REQUES
  *
  * ```yaml
  * structs:
- *     k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured
- *         properties:
- *             Object:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     pointer: true
- *                     type: any
- *     k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.UnstructuredList:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.UnstructuredList
- *         properties:
- *             Object:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     pointer: true
- *                     type: any
- *             items:
- *                 elementType:
- *                     structRef: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured
- *                     type: struct
- *                 type: array
- *     ? mogenius-operator/src/core.Result[mogenius-operator/src/kubernetes.GetUnstructuredLabeledResourceListRequest,k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.UnstructuredList]
- *     :   name: mogenius-operator/src/core.Result[mogenius-operator/src/kubernetes.GetUnstructuredLabeledResourceListRequest,k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.UnstructuredList]
- *         properties:
- *             data:
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.UnstructuredList
- *                 type: struct
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured:
+ *     name: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured
+ *     properties:
+ *       Object:
+ *         keyType:
+ *           type: string
+ *         type: map
+ *         valueType:
+ *           pointer: true
+ *           type: any
+ *   k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.UnstructuredList:
+ *     name: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.UnstructuredList
+ *     properties:
+ *       Object:
+ *         keyType:
+ *           type: string
+ *         type: map
+ *         valueType:
+ *           pointer: true
+ *           type: any
+ *       items:
+ *         elementType:
+ *           structRef: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured
+ *           type: struct
+ *         type: array
+ *   ? mogenius-operator/src/core.Result[mogenius-operator/src/kubernetes.GetUnstructuredLabeledResourceListRequest,k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.UnstructuredList]
+ *   : name: mogenius-operator/src/core.Result[mogenius-operator/src/kubernetes.GetUnstructuredLabeledResourceListRequest,k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.UnstructuredList]
+ *     properties:
+ *       data:
+ *         structRef: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.UnstructuredList
+ *         type: struct
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/kubernetes.GetUnstructuredLabeledResourceListRequest,k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.UnstructuredList]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/kubernetes.GetUnstructuredLabeledResourceListRequest,k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.UnstructuredList]
+ *   type: struct
  * ```
  *
  */
@@ -5594,37 +5594,37 @@ export type GET_LABELED_WORKLOAD_LIST_RESPONSE = GET_LABELED_WORKLOAD_LIST_RESPO
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/kubernetes.GetUnstructuredNamespaceResourceListRequest:
- *         name: mogenius-operator/src/kubernetes.GetUnstructuredNamespaceResourceListRequest
- *         properties:
- *             blacklist:
- *                 elementType:
- *                     pointer: true
- *                     structRef: mogenius-operator/src/utils.ResourceDescriptor
- *                     type: struct
- *                 type: array
- *             namespace:
- *                 type: string
- *             whitelist:
- *                 elementType:
- *                     pointer: true
- *                     structRef: mogenius-operator/src/utils.ResourceDescriptor
- *                     type: struct
- *                 type: array
- *     mogenius-operator/src/utils.ResourceDescriptor:
- *         name: mogenius-operator/src/utils.ResourceDescriptor
- *         properties:
- *             apiVersion:
- *                 type: string
- *             kind:
- *                 type: string
- *             namespaced:
- *                 type: bool
- *             plural:
- *                 type: string
+ *   mogenius-operator/src/kubernetes.GetUnstructuredNamespaceResourceListRequest:
+ *     name: mogenius-operator/src/kubernetes.GetUnstructuredNamespaceResourceListRequest
+ *     properties:
+ *       blacklist:
+ *         elementType:
+ *           pointer: true
+ *           structRef: mogenius-operator/src/utils.ResourceDescriptor
+ *           type: struct
+ *         type: array
+ *       namespace:
+ *         type: string
+ *       whitelist:
+ *         elementType:
+ *           pointer: true
+ *           structRef: mogenius-operator/src/utils.ResourceDescriptor
+ *           type: struct
+ *         type: array
+ *   mogenius-operator/src/utils.ResourceDescriptor:
+ *     name: mogenius-operator/src/utils.ResourceDescriptor
+ *     properties:
+ *       apiVersion:
+ *         type: string
+ *       kind:
+ *         type: string
+ *       namespaced:
+ *         type: bool
+ *       plural:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/kubernetes.GetUnstructuredNamespaceResourceListRequest
- *     type: struct
+ *   structRef: mogenius-operator/src/kubernetes.GetUnstructuredNamespaceResourceListRequest
+ *   type: struct
  * ```
  *
  */
@@ -5635,31 +5635,31 @@ export type GET_NAMESPACE_WORKLOAD_LIST_REQUEST = GET_NAMESPACE_WORKLOAD_LIST_RE
  *
  * ```yaml
  * structs:
- *     k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured
- *         properties:
- *             Object:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     pointer: true
- *                     type: any
- *     ? mogenius-operator/src/core.Result[mogenius-operator/src/kubernetes.GetUnstructuredNamespaceResourceListRequest,[]k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
- *     :   name: mogenius-operator/src/core.Result[mogenius-operator/src/kubernetes.GetUnstructuredNamespaceResourceListRequest,[]k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
- *         properties:
- *             data:
- *                 elementType:
- *                     structRef: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured
- *                     type: struct
- *                 type: array
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured:
+ *     name: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured
+ *     properties:
+ *       Object:
+ *         keyType:
+ *           type: string
+ *         type: map
+ *         valueType:
+ *           pointer: true
+ *           type: any
+ *   ? mogenius-operator/src/core.Result[mogenius-operator/src/kubernetes.GetUnstructuredNamespaceResourceListRequest,[]k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *   : name: mogenius-operator/src/core.Result[mogenius-operator/src/kubernetes.GetUnstructuredNamespaceResourceListRequest,[]k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *     properties:
+ *       data:
+ *         elementType:
+ *           structRef: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured
+ *           type: struct
+ *         type: array
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/kubernetes.GetUnstructuredNamespaceResourceListRequest,[]k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/kubernetes.GetUnstructuredNamespaceResourceListRequest,[]k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *   type: struct
  * ```
  *
  */
@@ -5670,12 +5670,12 @@ export type GET_NAMESPACE_WORKLOAD_LIST_RESPONSE = GET_NAMESPACE_WORKLOAD_LIST_R
  *
  * ```yaml
  * structs:
- *     ANON_STRUCT_0:
- *         properties: {}
+ *   ANON_STRUCT_0:
+ *     properties: {}
  * typeInfo:
- *     pointer: true
- *     structRef: ANON_STRUCT_0
- *     type: struct
+ *   pointer: true
+ *   structRef: ANON_STRUCT_0
+ *   type: struct
  * ```
  *
  */
@@ -5686,76 +5686,76 @@ export type GET_NODES_METRICS_REQUEST = GET_NODES_METRICS_REQUEST__ANON_STRUCT_0
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.NodeMetrics:
- *         name: mogenius-operator/src/core.NodeMetrics
- *         properties:
- *             cpu:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     pointer: true
- *                     type: any
- *             memory:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     pointer: true
- *                     type: any
- *             nodeName:
- *                 type: string
- *             traffic:
- *                 elementType:
- *                     structRef: mogenius-operator/src/networkmonitor.PodNetworkStats
- *                     type: struct
- *                 type: array
- *     mogenius-operator/src/core.Response:
- *         name: mogenius-operator/src/core.Response
- *         properties:
- *             nodes:
- *                 elementType:
- *                     structRef: mogenius-operator/src/core.NodeMetrics
- *                     type: struct
- *                 type: array
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Response·44]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Response·44]
- *         properties:
- *             data:
- *                 structRef: mogenius-operator/src/core.Response
- *                 type: struct
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- *     mogenius-operator/src/networkmonitor.PodNetworkStats:
- *         name: mogenius-operator/src/networkmonitor.PodNetworkStats
- *         properties:
- *             createdAt:
- *                 structRef: time.Time
- *                 type: struct
- *             namespace:
- *                 type: string
- *             pod:
- *                 type: string
- *             receivedBytes:
- *                 type: uint
- *             receivedPackets:
- *                 type: uint
- *             receivedStartBytes:
- *                 type: uint
- *             transmitBytes:
- *                 type: uint
- *             transmitPackets:
- *                 type: uint
- *             transmitStartBytes:
- *                 type: uint
- *     time.Time:
- *         name: time.Time
- *         properties: {}
+ *   mogenius-operator/src/core.NodeMetrics:
+ *     name: mogenius-operator/src/core.NodeMetrics
+ *     properties:
+ *       cpu:
+ *         keyType:
+ *           type: string
+ *         type: map
+ *         valueType:
+ *           pointer: true
+ *           type: any
+ *       memory:
+ *         keyType:
+ *           type: string
+ *         type: map
+ *         valueType:
+ *           pointer: true
+ *           type: any
+ *       nodeName:
+ *         type: string
+ *       traffic:
+ *         elementType:
+ *           structRef: mogenius-operator/src/networkmonitor.PodNetworkStats
+ *           type: struct
+ *         type: array
+ *   mogenius-operator/src/core.Response:
+ *     name: mogenius-operator/src/core.Response
+ *     properties:
+ *       nodes:
+ *         elementType:
+ *           structRef: mogenius-operator/src/core.NodeMetrics
+ *           type: struct
+ *         type: array
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Response·44]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Response·44]
+ *     properties:
+ *       data:
+ *         structRef: mogenius-operator/src/core.Response
+ *         type: struct
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
+ *   mogenius-operator/src/networkmonitor.PodNetworkStats:
+ *     name: mogenius-operator/src/networkmonitor.PodNetworkStats
+ *     properties:
+ *       createdAt:
+ *         structRef: time.Time
+ *         type: struct
+ *       namespace:
+ *         type: string
+ *       pod:
+ *         type: string
+ *       receivedBytes:
+ *         type: uint
+ *       receivedPackets:
+ *         type: uint
+ *       receivedStartBytes:
+ *         type: uint
+ *       transmitBytes:
+ *         type: uint
+ *       transmitPackets:
+ *         type: uint
+ *       transmitStartBytes:
+ *         type: uint
+ *   time.Time:
+ *     name: time.Time
+ *     properties: {}
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Response·44]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Response·44]
+ *   type: struct
  * ```
  *
  */
@@ -5766,14 +5766,14 @@ export type GET_NODES_METRICS_RESPONSE = GET_NODES_METRICS_RESPONSE__MOGENIUS_OP
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Request:
- *         name: mogenius-operator/src/core.Request
- *         properties:
- *             name:
- *                 type: string
+ *   mogenius-operator/src/core.Request:
+ *     name: mogenius-operator/src/core.Request
+ *     properties:
+ *       name:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Request
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Request
+ *   type: struct
  * ```
  *
  */
@@ -5784,172 +5784,172 @@ export type GET_USER_REQUEST = GET_USER_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQU
  *
  * ```yaml
  * structs:
- *     k8s.io/api/rbac/v1.Subject:
- *         name: k8s.io/api/rbac/v1.Subject
- *         properties:
- *             apiGroup:
- *                 type: string
- *             kind:
- *                 type: string
- *             name:
- *                 type: string
- *             namespace:
- *                 type: string
- *     k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1
- *         properties: {}
- *     k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry
- *         properties:
- *             apiVersion:
- *                 type: string
- *             fieldsType:
- *                 type: string
- *             fieldsV1:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1
- *                 type: struct
- *             manager:
- *                 type: string
- *             operation:
- *                 type: string
- *             subresource:
- *                 type: string
- *             time:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *                 type: struct
- *     k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta
- *         properties:
- *             annotations:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     type: string
- *             creationTimestamp:
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *                 type: struct
- *             deletionGracePeriodSeconds:
- *                 pointer: true
- *                 type: int
- *             deletionTimestamp:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *                 type: struct
- *             finalizers:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             generateName:
- *                 type: string
- *             generation:
- *                 type: int
- *             labels:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     type: string
- *             managedFields:
- *                 elementType:
- *                     structRef: k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry
- *                     type: struct
- *                 type: array
- *             name:
- *                 type: string
- *             namespace:
- *                 type: string
- *             ownerReferences:
- *                 elementType:
- *                     structRef: k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference
- *                     type: struct
- *                 type: array
- *             resourceVersion:
- *                 type: string
- *             selfLink:
- *                 type: string
- *             uid:
- *                 type: string
- *     k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference
- *         properties:
- *             apiVersion:
- *                 type: string
- *             blockOwnerDeletion:
- *                 pointer: true
- *                 type: bool
- *             controller:
- *                 pointer: true
- *                 type: bool
- *             kind:
- *                 type: string
- *             name:
- *                 type: string
- *             uid:
- *                 type: string
- *     k8s.io/apimachinery/pkg/apis/meta/v1.Time:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *         properties:
- *             Time:
- *                 structRef: time.Time
- *                 type: struct
- *     k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta
- *         properties:
- *             apiVersion:
- *                 type: string
- *             kind:
- *                 type: string
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·25,*mogenius-operator/src/crds/v1alpha1.User]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·25,*mogenius-operator/src/crds/v1alpha1.User]
- *         properties:
- *             data:
- *                 pointer: true
- *                 structRef: mogenius-operator/src/crds/v1alpha1.User
- *                 type: struct
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- *     mogenius-operator/src/crds/v1alpha1.User:
- *         name: mogenius-operator/src/crds/v1alpha1.User
- *         properties:
- *             TypeMeta:
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta
- *                 type: struct
- *             metadata:
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta
- *                 type: struct
- *             spec:
- *                 structRef: mogenius-operator/src/crds/v1alpha1.UserSpec
- *                 type: struct
- *             status:
- *                 structRef: mogenius-operator/src/crds/v1alpha1.UserStatus
- *                 type: struct
- *     mogenius-operator/src/crds/v1alpha1.UserSpec:
- *         name: mogenius-operator/src/crds/v1alpha1.UserSpec
- *         properties:
- *             email:
- *                 type: string
- *             firstName:
- *                 type: string
- *             lastName:
- *                 type: string
- *             subject:
- *                 pointer: true
- *                 structRef: k8s.io/api/rbac/v1.Subject
- *                 type: struct
- *     mogenius-operator/src/crds/v1alpha1.UserStatus:
- *         name: mogenius-operator/src/crds/v1alpha1.UserStatus
- *         properties: {}
- *     time.Time:
- *         name: time.Time
- *         properties: {}
+ *   k8s.io/api/rbac/v1.Subject:
+ *     name: k8s.io/api/rbac/v1.Subject
+ *     properties:
+ *       apiGroup:
+ *         type: string
+ *       kind:
+ *         type: string
+ *       name:
+ *         type: string
+ *       namespace:
+ *         type: string
+ *   k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1:
+ *     name: k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1
+ *     properties: {}
+ *   k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry:
+ *     name: k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry
+ *     properties:
+ *       apiVersion:
+ *         type: string
+ *       fieldsType:
+ *         type: string
+ *       fieldsV1:
+ *         pointer: true
+ *         structRef: k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1
+ *         type: struct
+ *       manager:
+ *         type: string
+ *       operation:
+ *         type: string
+ *       subresource:
+ *         type: string
+ *       time:
+ *         pointer: true
+ *         structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
+ *         type: struct
+ *   k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta:
+ *     name: k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta
+ *     properties:
+ *       annotations:
+ *         keyType:
+ *           type: string
+ *         type: map
+ *         valueType:
+ *           type: string
+ *       creationTimestamp:
+ *         structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
+ *         type: struct
+ *       deletionGracePeriodSeconds:
+ *         pointer: true
+ *         type: int
+ *       deletionTimestamp:
+ *         pointer: true
+ *         structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
+ *         type: struct
+ *       finalizers:
+ *         elementType:
+ *           type: string
+ *         type: array
+ *       generateName:
+ *         type: string
+ *       generation:
+ *         type: int
+ *       labels:
+ *         keyType:
+ *           type: string
+ *         type: map
+ *         valueType:
+ *           type: string
+ *       managedFields:
+ *         elementType:
+ *           structRef: k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry
+ *           type: struct
+ *         type: array
+ *       name:
+ *         type: string
+ *       namespace:
+ *         type: string
+ *       ownerReferences:
+ *         elementType:
+ *           structRef: k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference
+ *           type: struct
+ *         type: array
+ *       resourceVersion:
+ *         type: string
+ *       selfLink:
+ *         type: string
+ *       uid:
+ *         type: string
+ *   k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference:
+ *     name: k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference
+ *     properties:
+ *       apiVersion:
+ *         type: string
+ *       blockOwnerDeletion:
+ *         pointer: true
+ *         type: bool
+ *       controller:
+ *         pointer: true
+ *         type: bool
+ *       kind:
+ *         type: string
+ *       name:
+ *         type: string
+ *       uid:
+ *         type: string
+ *   k8s.io/apimachinery/pkg/apis/meta/v1.Time:
+ *     name: k8s.io/apimachinery/pkg/apis/meta/v1.Time
+ *     properties:
+ *       Time:
+ *         structRef: time.Time
+ *         type: struct
+ *   k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta:
+ *     name: k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta
+ *     properties:
+ *       apiVersion:
+ *         type: string
+ *       kind:
+ *         type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·25,*mogenius-operator/src/crds/v1alpha1.User]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·25,*mogenius-operator/src/crds/v1alpha1.User]
+ *     properties:
+ *       data:
+ *         pointer: true
+ *         structRef: mogenius-operator/src/crds/v1alpha1.User
+ *         type: struct
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
+ *   mogenius-operator/src/crds/v1alpha1.User:
+ *     name: mogenius-operator/src/crds/v1alpha1.User
+ *     properties:
+ *       TypeMeta:
+ *         structRef: k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta
+ *         type: struct
+ *       metadata:
+ *         structRef: k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta
+ *         type: struct
+ *       spec:
+ *         structRef: mogenius-operator/src/crds/v1alpha1.UserSpec
+ *         type: struct
+ *       status:
+ *         structRef: mogenius-operator/src/crds/v1alpha1.UserStatus
+ *         type: struct
+ *   mogenius-operator/src/crds/v1alpha1.UserSpec:
+ *     name: mogenius-operator/src/crds/v1alpha1.UserSpec
+ *     properties:
+ *       email:
+ *         type: string
+ *       firstName:
+ *         type: string
+ *       lastName:
+ *         type: string
+ *       subject:
+ *         pointer: true
+ *         structRef: k8s.io/api/rbac/v1.Subject
+ *         type: struct
+ *   mogenius-operator/src/crds/v1alpha1.UserStatus:
+ *     name: mogenius-operator/src/crds/v1alpha1.UserStatus
+ *     properties: {}
+ *   time.Time:
+ *     name: time.Time
+ *     properties: {}
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·25,*mogenius-operator/src/crds/v1alpha1.User]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·25,*mogenius-operator/src/crds/v1alpha1.User]
+ *   type: struct
  * ```
  *
  */
@@ -5960,15 +5960,15 @@ export type GET_USER_RESPONSE = GET_USER_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RE
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Request:
- *         name: mogenius-operator/src/core.Request
- *         properties:
- *             email:
- *                 pointer: true
- *                 type: string
+ *   mogenius-operator/src/core.Request:
+ *     name: mogenius-operator/src/core.Request
+ *     properties:
+ *       email:
+ *         pointer: true
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Request
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Request
+ *   type: struct
  * ```
  *
  */
@@ -5979,173 +5979,173 @@ export type GET_USERS_REQUEST = GET_USERS_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_RE
  *
  * ```yaml
  * structs:
- *     k8s.io/api/rbac/v1.Subject:
- *         name: k8s.io/api/rbac/v1.Subject
- *         properties:
- *             apiGroup:
- *                 type: string
- *             kind:
- *                 type: string
- *             name:
- *                 type: string
- *             namespace:
- *                 type: string
- *     k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1
- *         properties: {}
- *     k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry
- *         properties:
- *             apiVersion:
- *                 type: string
- *             fieldsType:
- *                 type: string
- *             fieldsV1:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1
- *                 type: struct
- *             manager:
- *                 type: string
- *             operation:
- *                 type: string
- *             subresource:
- *                 type: string
- *             time:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *                 type: struct
- *     k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta
- *         properties:
- *             annotations:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     type: string
- *             creationTimestamp:
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *                 type: struct
- *             deletionGracePeriodSeconds:
- *                 pointer: true
- *                 type: int
- *             deletionTimestamp:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *                 type: struct
- *             finalizers:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             generateName:
- *                 type: string
- *             generation:
- *                 type: int
- *             labels:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     type: string
- *             managedFields:
- *                 elementType:
- *                     structRef: k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry
- *                     type: struct
- *                 type: array
- *             name:
- *                 type: string
- *             namespace:
- *                 type: string
- *             ownerReferences:
- *                 elementType:
- *                     structRef: k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference
- *                     type: struct
- *                 type: array
- *             resourceVersion:
- *                 type: string
- *             selfLink:
- *                 type: string
- *             uid:
- *                 type: string
- *     k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference
- *         properties:
- *             apiVersion:
- *                 type: string
- *             blockOwnerDeletion:
- *                 pointer: true
- *                 type: bool
- *             controller:
- *                 pointer: true
- *                 type: bool
- *             kind:
- *                 type: string
- *             name:
- *                 type: string
- *             uid:
- *                 type: string
- *     k8s.io/apimachinery/pkg/apis/meta/v1.Time:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *         properties:
- *             Time:
- *                 structRef: time.Time
- *                 type: struct
- *     k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta
- *         properties:
- *             apiVersion:
- *                 type: string
- *             kind:
- *                 type: string
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·23,[]mogenius-operator/src/crds/v1alpha1.User]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·23,[]mogenius-operator/src/crds/v1alpha1.User]
- *         properties:
- *             data:
- *                 elementType:
- *                     structRef: mogenius-operator/src/crds/v1alpha1.User
- *                     type: struct
- *                 type: array
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- *     mogenius-operator/src/crds/v1alpha1.User:
- *         name: mogenius-operator/src/crds/v1alpha1.User
- *         properties:
- *             TypeMeta:
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta
- *                 type: struct
- *             metadata:
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta
- *                 type: struct
- *             spec:
- *                 structRef: mogenius-operator/src/crds/v1alpha1.UserSpec
- *                 type: struct
- *             status:
- *                 structRef: mogenius-operator/src/crds/v1alpha1.UserStatus
- *                 type: struct
- *     mogenius-operator/src/crds/v1alpha1.UserSpec:
- *         name: mogenius-operator/src/crds/v1alpha1.UserSpec
- *         properties:
- *             email:
- *                 type: string
- *             firstName:
- *                 type: string
- *             lastName:
- *                 type: string
- *             subject:
- *                 pointer: true
- *                 structRef: k8s.io/api/rbac/v1.Subject
- *                 type: struct
- *     mogenius-operator/src/crds/v1alpha1.UserStatus:
- *         name: mogenius-operator/src/crds/v1alpha1.UserStatus
- *         properties: {}
- *     time.Time:
- *         name: time.Time
- *         properties: {}
+ *   k8s.io/api/rbac/v1.Subject:
+ *     name: k8s.io/api/rbac/v1.Subject
+ *     properties:
+ *       apiGroup:
+ *         type: string
+ *       kind:
+ *         type: string
+ *       name:
+ *         type: string
+ *       namespace:
+ *         type: string
+ *   k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1:
+ *     name: k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1
+ *     properties: {}
+ *   k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry:
+ *     name: k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry
+ *     properties:
+ *       apiVersion:
+ *         type: string
+ *       fieldsType:
+ *         type: string
+ *       fieldsV1:
+ *         pointer: true
+ *         structRef: k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1
+ *         type: struct
+ *       manager:
+ *         type: string
+ *       operation:
+ *         type: string
+ *       subresource:
+ *         type: string
+ *       time:
+ *         pointer: true
+ *         structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
+ *         type: struct
+ *   k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta:
+ *     name: k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta
+ *     properties:
+ *       annotations:
+ *         keyType:
+ *           type: string
+ *         type: map
+ *         valueType:
+ *           type: string
+ *       creationTimestamp:
+ *         structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
+ *         type: struct
+ *       deletionGracePeriodSeconds:
+ *         pointer: true
+ *         type: int
+ *       deletionTimestamp:
+ *         pointer: true
+ *         structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
+ *         type: struct
+ *       finalizers:
+ *         elementType:
+ *           type: string
+ *         type: array
+ *       generateName:
+ *         type: string
+ *       generation:
+ *         type: int
+ *       labels:
+ *         keyType:
+ *           type: string
+ *         type: map
+ *         valueType:
+ *           type: string
+ *       managedFields:
+ *         elementType:
+ *           structRef: k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry
+ *           type: struct
+ *         type: array
+ *       name:
+ *         type: string
+ *       namespace:
+ *         type: string
+ *       ownerReferences:
+ *         elementType:
+ *           structRef: k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference
+ *           type: struct
+ *         type: array
+ *       resourceVersion:
+ *         type: string
+ *       selfLink:
+ *         type: string
+ *       uid:
+ *         type: string
+ *   k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference:
+ *     name: k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference
+ *     properties:
+ *       apiVersion:
+ *         type: string
+ *       blockOwnerDeletion:
+ *         pointer: true
+ *         type: bool
+ *       controller:
+ *         pointer: true
+ *         type: bool
+ *       kind:
+ *         type: string
+ *       name:
+ *         type: string
+ *       uid:
+ *         type: string
+ *   k8s.io/apimachinery/pkg/apis/meta/v1.Time:
+ *     name: k8s.io/apimachinery/pkg/apis/meta/v1.Time
+ *     properties:
+ *       Time:
+ *         structRef: time.Time
+ *         type: struct
+ *   k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta:
+ *     name: k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta
+ *     properties:
+ *       apiVersion:
+ *         type: string
+ *       kind:
+ *         type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·23,[]mogenius-operator/src/crds/v1alpha1.User]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·23,[]mogenius-operator/src/crds/v1alpha1.User]
+ *     properties:
+ *       data:
+ *         elementType:
+ *           structRef: mogenius-operator/src/crds/v1alpha1.User
+ *           type: struct
+ *         type: array
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
+ *   mogenius-operator/src/crds/v1alpha1.User:
+ *     name: mogenius-operator/src/crds/v1alpha1.User
+ *     properties:
+ *       TypeMeta:
+ *         structRef: k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta
+ *         type: struct
+ *       metadata:
+ *         structRef: k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta
+ *         type: struct
+ *       spec:
+ *         structRef: mogenius-operator/src/crds/v1alpha1.UserSpec
+ *         type: struct
+ *       status:
+ *         structRef: mogenius-operator/src/crds/v1alpha1.UserStatus
+ *         type: struct
+ *   mogenius-operator/src/crds/v1alpha1.UserSpec:
+ *     name: mogenius-operator/src/crds/v1alpha1.UserSpec
+ *     properties:
+ *       email:
+ *         type: string
+ *       firstName:
+ *         type: string
+ *       lastName:
+ *         type: string
+ *       subject:
+ *         pointer: true
+ *         structRef: k8s.io/api/rbac/v1.Subject
+ *         type: struct
+ *   mogenius-operator/src/crds/v1alpha1.UserStatus:
+ *     name: mogenius-operator/src/crds/v1alpha1.UserStatus
+ *     properties: {}
+ *   time.Time:
+ *     name: time.Time
+ *     properties: {}
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·23,[]mogenius-operator/src/crds/v1alpha1.User]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·23,[]mogenius-operator/src/crds/v1alpha1.User]
+ *   type: struct
  * ```
  *
  */
@@ -6156,30 +6156,30 @@ export type GET_USERS_RESPONSE = GET_USERS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/utils.ResourceDescriptor:
- *         name: mogenius-operator/src/utils.ResourceDescriptor
- *         properties:
- *             apiVersion:
- *                 type: string
- *             kind:
- *                 type: string
- *             namespaced:
- *                 type: bool
- *             plural:
- *                 type: string
- *     mogenius-operator/src/utils.WorkloadSingleRequest:
- *         name: mogenius-operator/src/utils.WorkloadSingleRequest
- *         properties:
- *             ResourceDescriptor:
- *                 structRef: mogenius-operator/src/utils.ResourceDescriptor
- *                 type: struct
- *             namespace:
- *                 type: string
- *             resourceName:
- *                 type: string
+ *   mogenius-operator/src/utils.ResourceDescriptor:
+ *     name: mogenius-operator/src/utils.ResourceDescriptor
+ *     properties:
+ *       apiVersion:
+ *         type: string
+ *       kind:
+ *         type: string
+ *       namespaced:
+ *         type: bool
+ *       plural:
+ *         type: string
+ *   mogenius-operator/src/utils.WorkloadSingleRequest:
+ *     name: mogenius-operator/src/utils.WorkloadSingleRequest
+ *     properties:
+ *       ResourceDescriptor:
+ *         structRef: mogenius-operator/src/utils.ResourceDescriptor
+ *         type: struct
+ *       namespace:
+ *         type: string
+ *       resourceName:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/utils.WorkloadSingleRequest
- *     type: struct
+ *   structRef: mogenius-operator/src/utils.WorkloadSingleRequest
+ *   type: struct
  * ```
  *
  */
@@ -6190,30 +6190,30 @@ export type GET_WORKLOAD_REQUEST = GET_WORKLOAD_REQUEST__MOGENIUS_OPERATOR_SRC_U
  *
  * ```yaml
  * structs:
- *     k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured
- *         properties:
- *             Object:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     pointer: true
- *                     type: any
- *     ? mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadSingleRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
- *     :   name: mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadSingleRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
- *         properties:
- *             data:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured
- *                 type: struct
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured:
+ *     name: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured
+ *     properties:
+ *       Object:
+ *         keyType:
+ *           type: string
+ *         type: map
+ *         valueType:
+ *           pointer: true
+ *           type: any
+ *   ? mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadSingleRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *   : name: mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadSingleRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *     properties:
+ *       data:
+ *         pointer: true
+ *         structRef: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured
+ *         type: struct
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadSingleRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadSingleRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *   type: struct
  * ```
  *
  */
@@ -6224,20 +6224,20 @@ export type GET_WORKLOAD_RESPONSE = GET_WORKLOAD_RESPONSE__MOGENIUS_OPERATOR_SRC
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/utils.ResourceDescriptor:
- *         name: mogenius-operator/src/utils.ResourceDescriptor
- *         properties:
- *             apiVersion:
- *                 type: string
- *             kind:
- *                 type: string
- *             namespaced:
- *                 type: bool
- *             plural:
- *                 type: string
+ *   mogenius-operator/src/utils.ResourceDescriptor:
+ *     name: mogenius-operator/src/utils.ResourceDescriptor
+ *     properties:
+ *       apiVersion:
+ *         type: string
+ *       kind:
+ *         type: string
+ *       namespaced:
+ *         type: bool
+ *       plural:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/utils.ResourceDescriptor
- *     type: struct
+ *   structRef: mogenius-operator/src/utils.ResourceDescriptor
+ *   type: struct
  * ```
  *
  */
@@ -6248,18 +6248,18 @@ export type GET_WORKLOAD_EXAMPLE_REQUEST = GET_WORKLOAD_EXAMPLE_REQUEST__MOGENIU
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/utils.ResourceDescriptor,string]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/utils.ResourceDescriptor,string]
- *         properties:
- *             data:
- *                 type: string
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/utils.ResourceDescriptor,string]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/utils.ResourceDescriptor,string]
+ *     properties:
+ *       data:
+ *         type: string
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/utils.ResourceDescriptor,string]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/utils.ResourceDescriptor,string]
+ *   type: struct
  * ```
  *
  */
@@ -6270,24 +6270,24 @@ export type GET_WORKLOAD_EXAMPLE_RESPONSE = GET_WORKLOAD_EXAMPLE_RESPONSE__MOGEN
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Request:
- *         name: mogenius-operator/src/core.Request
- *         properties:
- *             apiVersion:
- *                 type: string
- *             kind:
- *                 type: string
- *             namespace:
- *                 pointer: true
- *                 type: string
- *             plural:
- *                 type: string
- *             withData:
- *                 pointer: true
- *                 type: bool
+ *   mogenius-operator/src/core.Request:
+ *     name: mogenius-operator/src/core.Request
+ *     properties:
+ *       apiVersion:
+ *         type: string
+ *       kind:
+ *         type: string
+ *       namespace:
+ *         pointer: true
+ *         type: string
+ *       plural:
+ *         type: string
+ *       withData:
+ *         pointer: true
+ *         type: bool
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Request
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Request
+ *   type: struct
  * ```
  *
  */
@@ -6298,44 +6298,44 @@ export type GET_WORKLOAD_LIST_REQUEST = GET_WORKLOAD_LIST_REQUEST__MOGENIUS_OPER
  *
  * ```yaml
  * structs:
- *     k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured
- *         properties:
- *             Object:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     pointer: true
- *                     type: any
- *     k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.UnstructuredList:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.UnstructuredList
- *         properties:
- *             Object:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     pointer: true
- *                     type: any
- *             items:
- *                 elementType:
- *                     structRef: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured
- *                     type: struct
- *                 type: array
- *     ? mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·17,k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.UnstructuredList]
- *     :   name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·17,k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.UnstructuredList]
- *         properties:
- *             data:
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.UnstructuredList
- *                 type: struct
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured:
+ *     name: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured
+ *     properties:
+ *       Object:
+ *         keyType:
+ *           type: string
+ *         type: map
+ *         valueType:
+ *           pointer: true
+ *           type: any
+ *   k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.UnstructuredList:
+ *     name: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.UnstructuredList
+ *     properties:
+ *       Object:
+ *         keyType:
+ *           type: string
+ *         type: map
+ *         valueType:
+ *           pointer: true
+ *           type: any
+ *       items:
+ *         elementType:
+ *           structRef: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured
+ *           type: struct
+ *         type: array
+ *   ? mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·17,k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.UnstructuredList]
+ *   : name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·17,k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.UnstructuredList]
+ *     properties:
+ *       data:
+ *         structRef: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.UnstructuredList
+ *         type: struct
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·17,k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.UnstructuredList]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·17,k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.UnstructuredList]
+ *   type: struct
  * ```
  *
  */
@@ -6346,53 +6346,53 @@ export type GET_WORKLOAD_LIST_RESPONSE = GET_WORKLOAD_LIST_RESPONSE__MOGENIUS_OP
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/kubernetes.GetWorkloadStatusHelmReleaseNameRequest:
- *         name: mogenius-operator/src/kubernetes.GetWorkloadStatusHelmReleaseNameRequest
- *         properties:
- *             namespace:
- *                 type: string
- *             release:
- *                 type: string
- *     mogenius-operator/src/kubernetes.GetWorkloadStatusRequest:
- *         name: mogenius-operator/src/kubernetes.GetWorkloadStatusRequest
- *         properties:
- *             helmReleases:
- *                 elementType:
- *                     structRef: mogenius-operator/src/kubernetes.GetWorkloadStatusHelmReleaseNameRequest
- *                     type: struct
- *                 pointer: true
- *                 type: array
- *             ignoreDependentResources:
- *                 pointer: true
- *                 type: bool
- *             namespaces:
- *                 elementType:
- *                     type: string
- *                 pointer: true
- *                 type: array
- *             resourceDescriptor:
- *                 pointer: true
- *                 structRef: mogenius-operator/src/utils.ResourceDescriptor
- *                 type: struct
- *             resourceNames:
- *                 elementType:
- *                     type: string
- *                 pointer: true
- *                 type: array
- *     mogenius-operator/src/utils.ResourceDescriptor:
- *         name: mogenius-operator/src/utils.ResourceDescriptor
- *         properties:
- *             apiVersion:
- *                 type: string
- *             kind:
- *                 type: string
- *             namespaced:
- *                 type: bool
- *             plural:
- *                 type: string
+ *   mogenius-operator/src/kubernetes.GetWorkloadStatusHelmReleaseNameRequest:
+ *     name: mogenius-operator/src/kubernetes.GetWorkloadStatusHelmReleaseNameRequest
+ *     properties:
+ *       namespace:
+ *         type: string
+ *       release:
+ *         type: string
+ *   mogenius-operator/src/kubernetes.GetWorkloadStatusRequest:
+ *     name: mogenius-operator/src/kubernetes.GetWorkloadStatusRequest
+ *     properties:
+ *       helmReleases:
+ *         elementType:
+ *           structRef: mogenius-operator/src/kubernetes.GetWorkloadStatusHelmReleaseNameRequest
+ *           type: struct
+ *         pointer: true
+ *         type: array
+ *       ignoreDependentResources:
+ *         pointer: true
+ *         type: bool
+ *       namespaces:
+ *         elementType:
+ *           type: string
+ *         pointer: true
+ *         type: array
+ *       resourceDescriptor:
+ *         pointer: true
+ *         structRef: mogenius-operator/src/utils.ResourceDescriptor
+ *         type: struct
+ *       resourceNames:
+ *         elementType:
+ *           type: string
+ *         pointer: true
+ *         type: array
+ *   mogenius-operator/src/utils.ResourceDescriptor:
+ *     name: mogenius-operator/src/utils.ResourceDescriptor
+ *     properties:
+ *       apiVersion:
+ *         type: string
+ *       kind:
+ *         type: string
+ *       namespaced:
+ *         type: bool
+ *       plural:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/kubernetes.GetWorkloadStatusRequest
- *     type: struct
+ *   structRef: mogenius-operator/src/kubernetes.GetWorkloadStatusRequest
+ *   type: struct
  * ```
  *
  */
@@ -6403,260 +6403,260 @@ export type GET_WORKLOAD_STATUS_REQUEST = GET_WORKLOAD_STATUS_REQUEST__MOGENIUS_
  *
  * ```yaml
  * structs:
- *     k8s.io/api/core/v1.Event:
- *         name: k8s.io/api/core/v1.Event
- *         properties:
- *             TypeMeta:
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta
- *                 type: struct
- *             action:
- *                 type: string
- *             count:
- *                 type: int
- *             eventTime:
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.MicroTime
- *                 type: struct
- *             firstTimestamp:
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *                 type: struct
- *             involvedObject:
- *                 structRef: k8s.io/api/core/v1.ObjectReference
- *                 type: struct
- *             lastTimestamp:
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *                 type: struct
- *             message:
- *                 type: string
- *             metadata:
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta
- *                 type: struct
- *             reason:
- *                 type: string
- *             related:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.ObjectReference
- *                 type: struct
- *             reportingComponent:
- *                 type: string
- *             reportingInstance:
- *                 type: string
- *             series:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.EventSeries
- *                 type: struct
- *             source:
- *                 structRef: k8s.io/api/core/v1.EventSource
- *                 type: struct
- *             type:
- *                 type: string
- *     k8s.io/api/core/v1.EventSeries:
- *         name: k8s.io/api/core/v1.EventSeries
- *         properties:
- *             count:
- *                 type: int
- *             lastObservedTime:
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.MicroTime
- *                 type: struct
- *     k8s.io/api/core/v1.EventSource:
- *         name: k8s.io/api/core/v1.EventSource
- *         properties:
- *             component:
- *                 type: string
- *             host:
- *                 type: string
- *     k8s.io/api/core/v1.ObjectReference:
- *         name: k8s.io/api/core/v1.ObjectReference
- *         properties:
- *             apiVersion:
- *                 type: string
- *             fieldPath:
- *                 type: string
- *             kind:
- *                 type: string
- *             name:
- *                 type: string
- *             namespace:
- *                 type: string
- *             resourceVersion:
- *                 type: string
- *             uid:
- *                 type: string
- *     k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1
- *         properties: {}
- *     k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry
- *         properties:
- *             apiVersion:
- *                 type: string
- *             fieldsType:
- *                 type: string
- *             fieldsV1:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1
- *                 type: struct
- *             manager:
- *                 type: string
- *             operation:
- *                 type: string
- *             subresource:
- *                 type: string
- *             time:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *                 type: struct
- *     k8s.io/apimachinery/pkg/apis/meta/v1.MicroTime:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.MicroTime
- *         properties:
- *             Time:
- *                 structRef: time.Time
- *                 type: struct
- *     k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta
- *         properties:
- *             annotations:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     type: string
- *             creationTimestamp:
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *                 type: struct
- *             deletionGracePeriodSeconds:
- *                 pointer: true
- *                 type: int
- *             deletionTimestamp:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *                 type: struct
- *             finalizers:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             generateName:
- *                 type: string
- *             generation:
- *                 type: int
- *             labels:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     type: string
- *             managedFields:
- *                 elementType:
- *                     structRef: k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry
- *                     type: struct
- *                 type: array
- *             name:
- *                 type: string
- *             namespace:
- *                 type: string
- *             ownerReferences:
- *                 elementType:
- *                     structRef: k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference
- *                     type: struct
- *                 type: array
- *             resourceVersion:
- *                 type: string
- *             selfLink:
- *                 type: string
- *             uid:
- *                 type: string
- *     k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference
- *         properties:
- *             apiVersion:
- *                 type: string
- *             blockOwnerDeletion:
- *                 pointer: true
- *                 type: bool
- *             controller:
- *                 pointer: true
- *                 type: bool
- *             kind:
- *                 type: string
- *             name:
- *                 type: string
- *             uid:
- *                 type: string
- *     k8s.io/apimachinery/pkg/apis/meta/v1.Time:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *         properties:
- *             Time:
- *                 structRef: time.Time
- *                 type: struct
- *     k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta
- *         properties:
- *             apiVersion:
- *                 type: string
- *             kind:
- *                 type: string
- *     ? mogenius-operator/src/core.Result[mogenius-operator/src/kubernetes.GetWorkloadStatusRequest,[]mogenius-operator/src/kubernetes.WorkloadStatusDto]
- *     :   name: mogenius-operator/src/core.Result[mogenius-operator/src/kubernetes.GetWorkloadStatusRequest,[]mogenius-operator/src/kubernetes.WorkloadStatusDto]
- *         properties:
- *             data:
- *                 elementType:
- *                     structRef: mogenius-operator/src/kubernetes.WorkloadStatusDto
- *                     type: struct
- *                 type: array
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- *     mogenius-operator/src/kubernetes.WorkloadStatusDto:
- *         name: mogenius-operator/src/kubernetes.WorkloadStatusDto
- *         properties:
- *             items:
- *                 elementType:
- *                     structRef: mogenius-operator/src/kubernetes.WorkloadStatusItemDto
- *                     type: struct
- *                 type: array
- *     mogenius-operator/src/kubernetes.WorkloadStatusItemDto:
- *         name: mogenius-operator/src/kubernetes.WorkloadStatusItemDto
- *         properties:
- *             apiVersion:
- *                 type: string
- *             creationTimestamp:
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *                 type: struct
- *             endpoints:
- *                 pointer: true
- *                 type: any
- *             events:
- *                 elementType:
- *                     structRef: k8s.io/api/core/v1.Event
- *                     type: struct
- *                 type: array
- *             kind:
- *                 type: string
- *             name:
- *                 type: string
- *             namespace:
- *                 type: string
- *             ownerReferences:
- *                 pointer: true
- *                 type: any
- *             replicas:
- *                 pointer: true
- *                 type: int
- *             specClusterIP:
- *                 type: string
- *             specType:
- *                 type: string
- *             status:
- *                 pointer: true
- *                 type: any
- *             uid:
- *                 type: string
- *     time.Time:
- *         name: time.Time
- *         properties: {}
+ *   k8s.io/api/core/v1.Event:
+ *     name: k8s.io/api/core/v1.Event
+ *     properties:
+ *       TypeMeta:
+ *         structRef: k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta
+ *         type: struct
+ *       action:
+ *         type: string
+ *       count:
+ *         type: int
+ *       eventTime:
+ *         structRef: k8s.io/apimachinery/pkg/apis/meta/v1.MicroTime
+ *         type: struct
+ *       firstTimestamp:
+ *         structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
+ *         type: struct
+ *       involvedObject:
+ *         structRef: k8s.io/api/core/v1.ObjectReference
+ *         type: struct
+ *       lastTimestamp:
+ *         structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
+ *         type: struct
+ *       message:
+ *         type: string
+ *       metadata:
+ *         structRef: k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta
+ *         type: struct
+ *       reason:
+ *         type: string
+ *       related:
+ *         pointer: true
+ *         structRef: k8s.io/api/core/v1.ObjectReference
+ *         type: struct
+ *       reportingComponent:
+ *         type: string
+ *       reportingInstance:
+ *         type: string
+ *       series:
+ *         pointer: true
+ *         structRef: k8s.io/api/core/v1.EventSeries
+ *         type: struct
+ *       source:
+ *         structRef: k8s.io/api/core/v1.EventSource
+ *         type: struct
+ *       type:
+ *         type: string
+ *   k8s.io/api/core/v1.EventSeries:
+ *     name: k8s.io/api/core/v1.EventSeries
+ *     properties:
+ *       count:
+ *         type: int
+ *       lastObservedTime:
+ *         structRef: k8s.io/apimachinery/pkg/apis/meta/v1.MicroTime
+ *         type: struct
+ *   k8s.io/api/core/v1.EventSource:
+ *     name: k8s.io/api/core/v1.EventSource
+ *     properties:
+ *       component:
+ *         type: string
+ *       host:
+ *         type: string
+ *   k8s.io/api/core/v1.ObjectReference:
+ *     name: k8s.io/api/core/v1.ObjectReference
+ *     properties:
+ *       apiVersion:
+ *         type: string
+ *       fieldPath:
+ *         type: string
+ *       kind:
+ *         type: string
+ *       name:
+ *         type: string
+ *       namespace:
+ *         type: string
+ *       resourceVersion:
+ *         type: string
+ *       uid:
+ *         type: string
+ *   k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1:
+ *     name: k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1
+ *     properties: {}
+ *   k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry:
+ *     name: k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry
+ *     properties:
+ *       apiVersion:
+ *         type: string
+ *       fieldsType:
+ *         type: string
+ *       fieldsV1:
+ *         pointer: true
+ *         structRef: k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1
+ *         type: struct
+ *       manager:
+ *         type: string
+ *       operation:
+ *         type: string
+ *       subresource:
+ *         type: string
+ *       time:
+ *         pointer: true
+ *         structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
+ *         type: struct
+ *   k8s.io/apimachinery/pkg/apis/meta/v1.MicroTime:
+ *     name: k8s.io/apimachinery/pkg/apis/meta/v1.MicroTime
+ *     properties:
+ *       Time:
+ *         structRef: time.Time
+ *         type: struct
+ *   k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta:
+ *     name: k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta
+ *     properties:
+ *       annotations:
+ *         keyType:
+ *           type: string
+ *         type: map
+ *         valueType:
+ *           type: string
+ *       creationTimestamp:
+ *         structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
+ *         type: struct
+ *       deletionGracePeriodSeconds:
+ *         pointer: true
+ *         type: int
+ *       deletionTimestamp:
+ *         pointer: true
+ *         structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
+ *         type: struct
+ *       finalizers:
+ *         elementType:
+ *           type: string
+ *         type: array
+ *       generateName:
+ *         type: string
+ *       generation:
+ *         type: int
+ *       labels:
+ *         keyType:
+ *           type: string
+ *         type: map
+ *         valueType:
+ *           type: string
+ *       managedFields:
+ *         elementType:
+ *           structRef: k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry
+ *           type: struct
+ *         type: array
+ *       name:
+ *         type: string
+ *       namespace:
+ *         type: string
+ *       ownerReferences:
+ *         elementType:
+ *           structRef: k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference
+ *           type: struct
+ *         type: array
+ *       resourceVersion:
+ *         type: string
+ *       selfLink:
+ *         type: string
+ *       uid:
+ *         type: string
+ *   k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference:
+ *     name: k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference
+ *     properties:
+ *       apiVersion:
+ *         type: string
+ *       blockOwnerDeletion:
+ *         pointer: true
+ *         type: bool
+ *       controller:
+ *         pointer: true
+ *         type: bool
+ *       kind:
+ *         type: string
+ *       name:
+ *         type: string
+ *       uid:
+ *         type: string
+ *   k8s.io/apimachinery/pkg/apis/meta/v1.Time:
+ *     name: k8s.io/apimachinery/pkg/apis/meta/v1.Time
+ *     properties:
+ *       Time:
+ *         structRef: time.Time
+ *         type: struct
+ *   k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta:
+ *     name: k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta
+ *     properties:
+ *       apiVersion:
+ *         type: string
+ *       kind:
+ *         type: string
+ *   ? mogenius-operator/src/core.Result[mogenius-operator/src/kubernetes.GetWorkloadStatusRequest,[]mogenius-operator/src/kubernetes.WorkloadStatusDto]
+ *   : name: mogenius-operator/src/core.Result[mogenius-operator/src/kubernetes.GetWorkloadStatusRequest,[]mogenius-operator/src/kubernetes.WorkloadStatusDto]
+ *     properties:
+ *       data:
+ *         elementType:
+ *           structRef: mogenius-operator/src/kubernetes.WorkloadStatusDto
+ *           type: struct
+ *         type: array
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
+ *   mogenius-operator/src/kubernetes.WorkloadStatusDto:
+ *     name: mogenius-operator/src/kubernetes.WorkloadStatusDto
+ *     properties:
+ *       items:
+ *         elementType:
+ *           structRef: mogenius-operator/src/kubernetes.WorkloadStatusItemDto
+ *           type: struct
+ *         type: array
+ *   mogenius-operator/src/kubernetes.WorkloadStatusItemDto:
+ *     name: mogenius-operator/src/kubernetes.WorkloadStatusItemDto
+ *     properties:
+ *       apiVersion:
+ *         type: string
+ *       creationTimestamp:
+ *         structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
+ *         type: struct
+ *       endpoints:
+ *         pointer: true
+ *         type: any
+ *       events:
+ *         elementType:
+ *           structRef: k8s.io/api/core/v1.Event
+ *           type: struct
+ *         type: array
+ *       kind:
+ *         type: string
+ *       name:
+ *         type: string
+ *       namespace:
+ *         type: string
+ *       ownerReferences:
+ *         pointer: true
+ *         type: any
+ *       replicas:
+ *         pointer: true
+ *         type: int
+ *       specClusterIP:
+ *         type: string
+ *       specType:
+ *         type: string
+ *       status:
+ *         pointer: true
+ *         type: any
+ *       uid:
+ *         type: string
+ *   time.Time:
+ *     name: time.Time
+ *     properties: {}
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/kubernetes.GetWorkloadStatusRequest,[]mogenius-operator/src/kubernetes.WorkloadStatusDto]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/kubernetes.GetWorkloadStatusRequest,[]mogenius-operator/src/kubernetes.WorkloadStatusDto]
+ *   type: struct
  * ```
  *
  */
@@ -6667,16 +6667,16 @@ export type GET_WORKLOAD_STATUS_RESPONSE = GET_WORKLOAD_STATUS_RESPONSE__MOGENIU
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Request:
- *         name: mogenius-operator/src/core.Request
- *         properties:
- *             name:
- *                 type: string
- *             namespace:
- *                 type: string
+ *   mogenius-operator/src/core.Request:
+ *     name: mogenius-operator/src/core.Request
+ *     properties:
+ *       name:
+ *         type: string
+ *       namespace:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Request
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Request
+ *   type: struct
  * ```
  *
  */
@@ -6687,51 +6687,51 @@ export type GET_WORKSPACE_REQUEST = GET_WORKSPACE_REQUEST__MOGENIUS_OPERATOR_SRC
  *
  * ```yaml
  * structs:
- *     k8s.io/apimachinery/pkg/apis/meta/v1.Time:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *         properties:
- *             Time:
- *                 structRef: time.Time
- *                 type: struct
- *     mogenius-operator/src/core.GetWorkspaceResult:
- *         name: mogenius-operator/src/core.GetWorkspaceResult
- *         properties:
- *             creationTimestamp:
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *                 type: struct
- *             name:
- *                 type: string
- *             resources:
- *                 elementType:
- *                     structRef: mogenius-operator/src/crds/v1alpha1.WorkspaceResourceIdentifier
- *                     type: struct
- *                 type: array
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·19,*mogenius-operator/src/core.GetWorkspaceResult]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·19,*mogenius-operator/src/core.GetWorkspaceResult]
- *         properties:
- *             data:
- *                 pointer: true
- *                 structRef: mogenius-operator/src/core.GetWorkspaceResult
- *                 type: struct
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- *     mogenius-operator/src/crds/v1alpha1.WorkspaceResourceIdentifier:
- *         name: mogenius-operator/src/crds/v1alpha1.WorkspaceResourceIdentifier
- *         properties:
- *             id:
- *                 type: string
- *             namespace:
- *                 type: string
- *             type:
- *                 type: string
- *     time.Time:
- *         name: time.Time
- *         properties: {}
+ *   k8s.io/apimachinery/pkg/apis/meta/v1.Time:
+ *     name: k8s.io/apimachinery/pkg/apis/meta/v1.Time
+ *     properties:
+ *       Time:
+ *         structRef: time.Time
+ *         type: struct
+ *   mogenius-operator/src/core.GetWorkspaceResult:
+ *     name: mogenius-operator/src/core.GetWorkspaceResult
+ *     properties:
+ *       creationTimestamp:
+ *         structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
+ *         type: struct
+ *       name:
+ *         type: string
+ *       resources:
+ *         elementType:
+ *           structRef: mogenius-operator/src/crds/v1alpha1.WorkspaceResourceIdentifier
+ *           type: struct
+ *         type: array
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·19,*mogenius-operator/src/core.GetWorkspaceResult]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·19,*mogenius-operator/src/core.GetWorkspaceResult]
+ *     properties:
+ *       data:
+ *         pointer: true
+ *         structRef: mogenius-operator/src/core.GetWorkspaceResult
+ *         type: struct
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
+ *   mogenius-operator/src/crds/v1alpha1.WorkspaceResourceIdentifier:
+ *     name: mogenius-operator/src/crds/v1alpha1.WorkspaceResourceIdentifier
+ *     properties:
+ *       id:
+ *         type: string
+ *       namespace:
+ *         type: string
+ *       type:
+ *         type: string
+ *   time.Time:
+ *     name: time.Time
+ *     properties: {}
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·19,*mogenius-operator/src/core.GetWorkspaceResult]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·19,*mogenius-operator/src/core.GetWorkspaceResult]
+ *   type: struct
  * ```
  *
  */
@@ -6742,12 +6742,12 @@ export type GET_WORKSPACE_RESPONSE = GET_WORKSPACE_RESPONSE__MOGENIUS_OPERATOR_S
  *
  * ```yaml
  * structs:
- *     ANON_STRUCT_0:
- *         properties: {}
+ *   ANON_STRUCT_0:
+ *     properties: {}
  * typeInfo:
- *     pointer: true
- *     structRef: ANON_STRUCT_0
- *     type: struct
+ *   pointer: true
+ *   structRef: ANON_STRUCT_0
+ *   type: struct
  * ```
  *
  */
@@ -6758,52 +6758,52 @@ export type GET_WORKSPACES_REQUEST = GET_WORKSPACES_REQUEST__ANON_STRUCT_0|undef
  *
  * ```yaml
  * structs:
- *     k8s.io/apimachinery/pkg/apis/meta/v1.Time:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *         properties:
- *             Time:
- *                 structRef: time.Time
- *                 type: struct
- *     mogenius-operator/src/core.GetWorkspaceResult:
- *         name: mogenius-operator/src/core.GetWorkspaceResult
- *         properties:
- *             creationTimestamp:
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *                 type: struct
- *             name:
- *                 type: string
- *             resources:
- *                 elementType:
- *                     structRef: mogenius-operator/src/crds/v1alpha1.WorkspaceResourceIdentifier
- *                     type: struct
- *                 type: array
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,[]mogenius-operator/src/core.GetWorkspaceResult]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,[]mogenius-operator/src/core.GetWorkspaceResult]
- *         properties:
- *             data:
- *                 elementType:
- *                     structRef: mogenius-operator/src/core.GetWorkspaceResult
- *                     type: struct
- *                 type: array
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- *     mogenius-operator/src/crds/v1alpha1.WorkspaceResourceIdentifier:
- *         name: mogenius-operator/src/crds/v1alpha1.WorkspaceResourceIdentifier
- *         properties:
- *             id:
- *                 type: string
- *             namespace:
- *                 type: string
- *             type:
- *                 type: string
- *     time.Time:
- *         name: time.Time
- *         properties: {}
+ *   k8s.io/apimachinery/pkg/apis/meta/v1.Time:
+ *     name: k8s.io/apimachinery/pkg/apis/meta/v1.Time
+ *     properties:
+ *       Time:
+ *         structRef: time.Time
+ *         type: struct
+ *   mogenius-operator/src/core.GetWorkspaceResult:
+ *     name: mogenius-operator/src/core.GetWorkspaceResult
+ *     properties:
+ *       creationTimestamp:
+ *         structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
+ *         type: struct
+ *       name:
+ *         type: string
+ *       resources:
+ *         elementType:
+ *           structRef: mogenius-operator/src/crds/v1alpha1.WorkspaceResourceIdentifier
+ *           type: struct
+ *         type: array
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,[]mogenius-operator/src/core.GetWorkspaceResult]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,[]mogenius-operator/src/core.GetWorkspaceResult]
+ *     properties:
+ *       data:
+ *         elementType:
+ *           structRef: mogenius-operator/src/core.GetWorkspaceResult
+ *           type: struct
+ *         type: array
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
+ *   mogenius-operator/src/crds/v1alpha1.WorkspaceResourceIdentifier:
+ *     name: mogenius-operator/src/crds/v1alpha1.WorkspaceResourceIdentifier
+ *     properties:
+ *       id:
+ *         type: string
+ *       namespace:
+ *         type: string
+ *       type:
+ *         type: string
+ *   time.Time:
+ *     name: time.Time
+ *     properties: {}
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,[]mogenius-operator/src/core.GetWorkspaceResult]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,[]mogenius-operator/src/core.GetWorkspaceResult]
+ *   type: struct
  * ```
  *
  */
@@ -6814,41 +6814,41 @@ export type GET_WORKSPACES_RESPONSE = GET_WORKSPACES_RESPONSE__MOGENIUS_OPERATOR
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Request:
- *         name: mogenius-operator/src/core.Request
- *         properties:
- *             blacklist:
- *                 elementType:
- *                     pointer: true
- *                     structRef: mogenius-operator/src/utils.ResourceDescriptor
- *                     type: struct
- *                 type: array
- *             namespaceWhitelist:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             whitelist:
- *                 elementType:
- *                     pointer: true
- *                     structRef: mogenius-operator/src/utils.ResourceDescriptor
- *                     type: struct
- *                 type: array
- *             workspaceName:
- *                 type: string
- *     mogenius-operator/src/utils.ResourceDescriptor:
- *         name: mogenius-operator/src/utils.ResourceDescriptor
- *         properties:
- *             apiVersion:
- *                 type: string
- *             kind:
- *                 type: string
- *             namespaced:
- *                 type: bool
- *             plural:
- *                 type: string
+ *   mogenius-operator/src/core.Request:
+ *     name: mogenius-operator/src/core.Request
+ *     properties:
+ *       blacklist:
+ *         elementType:
+ *           pointer: true
+ *           structRef: mogenius-operator/src/utils.ResourceDescriptor
+ *           type: struct
+ *         type: array
+ *       namespaceWhitelist:
+ *         elementType:
+ *           type: string
+ *         type: array
+ *       whitelist:
+ *         elementType:
+ *           pointer: true
+ *           structRef: mogenius-operator/src/utils.ResourceDescriptor
+ *           type: struct
+ *         type: array
+ *       workspaceName:
+ *         type: string
+ *   mogenius-operator/src/utils.ResourceDescriptor:
+ *     name: mogenius-operator/src/utils.ResourceDescriptor
+ *     properties:
+ *       apiVersion:
+ *         type: string
+ *       kind:
+ *         type: string
+ *       namespaced:
+ *         type: bool
+ *       plural:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Request
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Request
+ *   type: struct
  * ```
  *
  */
@@ -6859,31 +6859,31 @@ export type GET_WORKSPACE_WORKLOADS_REQUEST = GET_WORKSPACE_WORKLOADS_REQUEST__M
  *
  * ```yaml
  * structs:
- *     k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured
- *         properties:
- *             Object:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     pointer: true
- *                     type: any
- *     ? mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·33,[]k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
- *     :   name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·33,[]k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
- *         properties:
- *             data:
- *                 elementType:
- *                     structRef: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured
- *                     type: struct
- *                 type: array
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured:
+ *     name: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured
+ *     properties:
+ *       Object:
+ *         keyType:
+ *           type: string
+ *         type: map
+ *         valueType:
+ *           pointer: true
+ *           type: any
+ *   ? mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·33,[]k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *   : name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·33,[]k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *     properties:
+ *       data:
+ *         elementType:
+ *           structRef: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured
+ *           type: struct
+ *         type: array
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·33,[]k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·33,[]k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *   type: struct
  * ```
  *
  */
@@ -6894,12 +6894,12 @@ export type GET_WORKSPACE_WORKLOADS_RESPONSE = GET_WORKSPACE_WORKLOADS_RESPONSE_
  *
  * ```yaml
  * structs:
- *     ANON_STRUCT_0:
- *         properties: {}
+ *   ANON_STRUCT_0:
+ *     properties: {}
  * typeInfo:
- *     pointer: true
- *     structRef: ANON_STRUCT_0
- *     type: struct
+ *   pointer: true
+ *   structRef: ANON_STRUCT_0
+ *   type: struct
  * ```
  *
  */
@@ -6910,18 +6910,18 @@ export type INSTALL_ALERTMANAGER_REQUEST = INSTALL_ALERTMANAGER_REQUEST__ANON_ST
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
- *         properties:
- *             data:
- *                 type: string
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *     properties:
+ *       data:
+ *         type: string
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *   type: struct
  * ```
  *
  */
@@ -6932,12 +6932,12 @@ export type INSTALL_ALERTMANAGER_RESPONSE = INSTALL_ALERTMANAGER_RESPONSE__MOGEN
  *
  * ```yaml
  * structs:
- *     ANON_STRUCT_0:
- *         properties: {}
+ *   ANON_STRUCT_0:
+ *     properties: {}
  * typeInfo:
- *     pointer: true
- *     structRef: ANON_STRUCT_0
- *     type: struct
+ *   pointer: true
+ *   structRef: ANON_STRUCT_0
+ *   type: struct
  * ```
  *
  */
@@ -6948,18 +6948,18 @@ export type INSTALL_CERT_MANAGER_REQUEST = INSTALL_CERT_MANAGER_REQUEST__ANON_ST
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
- *         properties:
- *             data:
- *                 type: string
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *     properties:
+ *       data:
+ *         type: string
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *   type: struct
  * ```
  *
  */
@@ -6970,14 +6970,14 @@ export type INSTALL_CERT_MANAGER_RESPONSE = INSTALL_CERT_MANAGER_RESPONSE__MOGEN
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Request:
- *         name: mogenius-operator/src/core.Request
- *         properties:
- *             email:
- *                 type: string
+ *   mogenius-operator/src/core.Request:
+ *     name: mogenius-operator/src/core.Request
+ *     properties:
+ *       email:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Request
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Request
+ *   type: struct
  * ```
  *
  */
@@ -6988,18 +6988,18 @@ export type INSTALL_CLUSTER_ISSUER_REQUEST = INSTALL_CLUSTER_ISSUER_REQUEST__MOG
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·6,string]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·6,string]
- *         properties:
- *             data:
- *                 type: string
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·6,string]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·6,string]
+ *     properties:
+ *       data:
+ *         type: string
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·6,string]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·6,string]
+ *   type: struct
  * ```
  *
  */
@@ -7010,12 +7010,12 @@ export type INSTALL_CLUSTER_ISSUER_RESPONSE = INSTALL_CLUSTER_ISSUER_RESPONSE__M
  *
  * ```yaml
  * structs:
- *     ANON_STRUCT_0:
- *         properties: {}
+ *   ANON_STRUCT_0:
+ *     properties: {}
  * typeInfo:
- *     pointer: true
- *     structRef: ANON_STRUCT_0
- *     type: struct
+ *   pointer: true
+ *   structRef: ANON_STRUCT_0
+ *   type: struct
  * ```
  *
  */
@@ -7026,18 +7026,18 @@ export type INSTALL_INGRESS_CONTROLLER_TRAEFIK_REQUEST = INSTALL_INGRESS_CONTROL
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
- *         properties:
- *             data:
- *                 type: string
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *     properties:
+ *       data:
+ *         type: string
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *   type: struct
  * ```
  *
  */
@@ -7048,12 +7048,12 @@ export type INSTALL_INGRESS_CONTROLLER_TRAEFIK_RESPONSE = INSTALL_INGRESS_CONTRO
  *
  * ```yaml
  * structs:
- *     ANON_STRUCT_0:
- *         properties: {}
+ *   ANON_STRUCT_0:
+ *     properties: {}
  * typeInfo:
- *     pointer: true
- *     structRef: ANON_STRUCT_0
- *     type: struct
+ *   pointer: true
+ *   structRef: ANON_STRUCT_0
+ *   type: struct
  * ```
  *
  */
@@ -7064,18 +7064,18 @@ export type INSTALL_KEPLER_REQUEST = INSTALL_KEPLER_REQUEST__ANON_STRUCT_0|undef
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
- *         properties:
- *             data:
- *                 type: string
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *     properties:
+ *       data:
+ *         type: string
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *   type: struct
  * ```
  *
  */
@@ -7086,12 +7086,12 @@ export type INSTALL_KEPLER_RESPONSE = INSTALL_KEPLER_RESPONSE__MOGENIUS_OPERATOR
  *
  * ```yaml
  * structs:
- *     ANON_STRUCT_0:
- *         properties: {}
+ *   ANON_STRUCT_0:
+ *     properties: {}
  * typeInfo:
- *     pointer: true
- *     structRef: ANON_STRUCT_0
- *     type: struct
+ *   pointer: true
+ *   structRef: ANON_STRUCT_0
+ *   type: struct
  * ```
  *
  */
@@ -7102,18 +7102,18 @@ export type INSTALL_METALLB_REQUEST = INSTALL_METALLB_REQUEST__ANON_STRUCT_0|und
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
- *         properties:
- *             data:
- *                 type: string
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *     properties:
+ *       data:
+ *         type: string
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *   type: struct
  * ```
  *
  */
@@ -7124,12 +7124,12 @@ export type INSTALL_METALLB_RESPONSE = INSTALL_METALLB_RESPONSE__MOGENIUS_OPERAT
  *
  * ```yaml
  * structs:
- *     ANON_STRUCT_0:
- *         properties: {}
+ *   ANON_STRUCT_0:
+ *     properties: {}
  * typeInfo:
- *     pointer: true
- *     structRef: ANON_STRUCT_0
- *     type: struct
+ *   pointer: true
+ *   structRef: ANON_STRUCT_0
+ *   type: struct
  * ```
  *
  */
@@ -7140,18 +7140,18 @@ export type INSTALL_METRICS_SERVER_REQUEST = INSTALL_METRICS_SERVER_REQUEST__ANO
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
- *         properties:
- *             data:
- *                 type: string
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *     properties:
+ *       data:
+ *         type: string
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *   type: struct
  * ```
  *
  */
@@ -7162,12 +7162,12 @@ export type INSTALL_METRICS_SERVER_RESPONSE = INSTALL_METRICS_SERVER_RESPONSE__M
  *
  * ```yaml
  * structs:
- *     ANON_STRUCT_0:
- *         properties: {}
+ *   ANON_STRUCT_0:
+ *     properties: {}
  * typeInfo:
- *     pointer: true
- *     structRef: ANON_STRUCT_0
- *     type: struct
+ *   pointer: true
+ *   structRef: ANON_STRUCT_0
+ *   type: struct
  * ```
  *
  */
@@ -7178,18 +7178,18 @@ export type INSTALL_PROMETHEUS_REQUEST = INSTALL_PROMETHEUS_REQUEST__ANON_STRUCT
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
- *         properties:
- *             data:
- *                 type: string
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *     properties:
+ *       data:
+ *         type: string
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *   type: struct
  * ```
  *
  */
@@ -7200,12 +7200,12 @@ export type INSTALL_PROMETHEUS_RESPONSE = INSTALL_PROMETHEUS_RESPONSE__MOGENIUS_
  *
  * ```yaml
  * structs:
- *     ANON_STRUCT_0:
- *         properties: {}
+ *   ANON_STRUCT_0:
+ *     properties: {}
  * typeInfo:
- *     pointer: true
- *     structRef: ANON_STRUCT_0
- *     type: struct
+ *   pointer: true
+ *   structRef: ANON_STRUCT_0
+ *   type: struct
  * ```
  *
  */
@@ -7216,18 +7216,18 @@ export type INSTALL_RENOVATE_OPERATOR_REQUEST = INSTALL_RENOVATE_OPERATOR_REQUES
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
- *         properties:
- *             data:
- *                 type: string
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *     properties:
+ *       data:
+ *         type: string
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *   type: struct
  * ```
  *
  */
@@ -7238,12 +7238,12 @@ export type INSTALL_RENOVATE_OPERATOR_RESPONSE = INSTALL_RENOVATE_OPERATOR_RESPO
  *
  * ```yaml
  * structs:
- *     ANON_STRUCT_0:
- *         properties: {}
+ *   ANON_STRUCT_0:
+ *     properties: {}
  * typeInfo:
- *     pointer: true
- *     structRef: ANON_STRUCT_0
- *     type: struct
+ *   pointer: true
+ *   structRef: ANON_STRUCT_0
+ *   type: struct
  * ```
  *
  */
@@ -7254,32 +7254,32 @@ export type LIST_ALL_RESOURCE_DESCRIPTORS_REQUEST = LIST_ALL_RESOURCE_DESCRIPTOR
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,[]mogenius-operator/src/utils.ResourceDescriptor]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,[]mogenius-operator/src/utils.ResourceDescriptor]
- *         properties:
- *             data:
- *                 elementType:
- *                     structRef: mogenius-operator/src/utils.ResourceDescriptor
- *                     type: struct
- *                 type: array
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- *     mogenius-operator/src/utils.ResourceDescriptor:
- *         name: mogenius-operator/src/utils.ResourceDescriptor
- *         properties:
- *             apiVersion:
- *                 type: string
- *             kind:
- *                 type: string
- *             namespaced:
- *                 type: bool
- *             plural:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,[]mogenius-operator/src/utils.ResourceDescriptor]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,[]mogenius-operator/src/utils.ResourceDescriptor]
+ *     properties:
+ *       data:
+ *         elementType:
+ *           structRef: mogenius-operator/src/utils.ResourceDescriptor
+ *           type: struct
+ *         type: array
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
+ *   mogenius-operator/src/utils.ResourceDescriptor:
+ *     name: mogenius-operator/src/utils.ResourceDescriptor
+ *     properties:
+ *       apiVersion:
+ *         type: string
+ *       kind:
+ *         type: string
+ *       namespaced:
+ *         type: bool
+ *       plural:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,[]mogenius-operator/src/utils.ResourceDescriptor]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,[]mogenius-operator/src/utils.ResourceDescriptor]
+ *   type: struct
  * ```
  *
  */
@@ -7290,26 +7290,26 @@ export type LIST_ALL_RESOURCE_DESCRIPTORS_RESPONSE = LIST_ALL_RESOURCE_DESCRIPTO
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/xterm.WsConnectionRequest:
- *         name: mogenius-operator/src/xterm.WsConnectionRequest
- *         properties:
- *             channelId:
- *                 type: string
- *             cmdType:
- *                 type: string
- *             nodeName:
- *                 type: string
- *             podName:
- *                 type: string
- *             websocketHost:
- *                 type: string
- *             websocketScheme:
- *                 type: string
- *             workspace:
- *                 type: string
+ *   mogenius-operator/src/xterm.WsConnectionRequest:
+ *     name: mogenius-operator/src/xterm.WsConnectionRequest
+ *     properties:
+ *       channelId:
+ *         type: string
+ *       cmdType:
+ *         type: string
+ *       nodeName:
+ *         type: string
+ *       podName:
+ *         type: string
+ *       websocketHost:
+ *         type: string
+ *       websocketScheme:
+ *         type: string
+ *       workspace:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/xterm.WsConnectionRequest
- *     type: struct
+ *   structRef: mogenius-operator/src/xterm.WsConnectionRequest
+ *   type: struct
  * ```
  *
  */
@@ -7320,22 +7320,22 @@ export type LIVE_STREAM_NODES_CPU_REQUEST = LIVE_STREAM_NODES_CPU_REQUEST__MOGEN
  *
  * ```yaml
  * structs:
- *     ANON_STRUCT_1:
- *         properties: {}
- *     mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,mogenius-operator/src/core.Void]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,mogenius-operator/src/core.Void]
- *         properties:
- *             data:
- *                 pointer: true
- *                 structRef: ANON_STRUCT_1
- *                 type: struct
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   ANON_STRUCT_1:
+ *     properties: {}
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,mogenius-operator/src/core.Void]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,mogenius-operator/src/core.Void]
+ *     properties:
+ *       data:
+ *         pointer: true
+ *         structRef: ANON_STRUCT_1
+ *         type: struct
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,mogenius-operator/src/core.Void]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,mogenius-operator/src/core.Void]
+ *   type: struct
  * ```
  *
  */
@@ -7346,26 +7346,26 @@ export type LIVE_STREAM_NODES_CPU_RESPONSE = LIVE_STREAM_NODES_CPU_RESPONSE__MOG
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/xterm.WsConnectionRequest:
- *         name: mogenius-operator/src/xterm.WsConnectionRequest
- *         properties:
- *             channelId:
- *                 type: string
- *             cmdType:
- *                 type: string
- *             nodeName:
- *                 type: string
- *             podName:
- *                 type: string
- *             websocketHost:
- *                 type: string
- *             websocketScheme:
- *                 type: string
- *             workspace:
- *                 type: string
+ *   mogenius-operator/src/xterm.WsConnectionRequest:
+ *     name: mogenius-operator/src/xterm.WsConnectionRequest
+ *     properties:
+ *       channelId:
+ *         type: string
+ *       cmdType:
+ *         type: string
+ *       nodeName:
+ *         type: string
+ *       podName:
+ *         type: string
+ *       websocketHost:
+ *         type: string
+ *       websocketScheme:
+ *         type: string
+ *       workspace:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/xterm.WsConnectionRequest
- *     type: struct
+ *   structRef: mogenius-operator/src/xterm.WsConnectionRequest
+ *   type: struct
  * ```
  *
  */
@@ -7376,22 +7376,22 @@ export type LIVE_STREAM_NODES_MEMORY_REQUEST = LIVE_STREAM_NODES_MEMORY_REQUEST_
  *
  * ```yaml
  * structs:
- *     ANON_STRUCT_1:
- *         properties: {}
- *     mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,mogenius-operator/src/core.Void]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,mogenius-operator/src/core.Void]
- *         properties:
- *             data:
- *                 pointer: true
- *                 structRef: ANON_STRUCT_1
- *                 type: struct
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   ANON_STRUCT_1:
+ *     properties: {}
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,mogenius-operator/src/core.Void]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,mogenius-operator/src/core.Void]
+ *     properties:
+ *       data:
+ *         pointer: true
+ *         structRef: ANON_STRUCT_1
+ *         type: struct
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,mogenius-operator/src/core.Void]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,mogenius-operator/src/core.Void]
+ *   type: struct
  * ```
  *
  */
@@ -7402,26 +7402,26 @@ export type LIVE_STREAM_NODES_MEMORY_RESPONSE = LIVE_STREAM_NODES_MEMORY_RESPONS
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/xterm.WsConnectionRequest:
- *         name: mogenius-operator/src/xterm.WsConnectionRequest
- *         properties:
- *             channelId:
- *                 type: string
- *             cmdType:
- *                 type: string
- *             nodeName:
- *                 type: string
- *             podName:
- *                 type: string
- *             websocketHost:
- *                 type: string
- *             websocketScheme:
- *                 type: string
- *             workspace:
- *                 type: string
+ *   mogenius-operator/src/xterm.WsConnectionRequest:
+ *     name: mogenius-operator/src/xterm.WsConnectionRequest
+ *     properties:
+ *       channelId:
+ *         type: string
+ *       cmdType:
+ *         type: string
+ *       nodeName:
+ *         type: string
+ *       podName:
+ *         type: string
+ *       websocketHost:
+ *         type: string
+ *       websocketScheme:
+ *         type: string
+ *       workspace:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/xterm.WsConnectionRequest
- *     type: struct
+ *   structRef: mogenius-operator/src/xterm.WsConnectionRequest
+ *   type: struct
  * ```
  *
  */
@@ -7432,22 +7432,22 @@ export type LIVE_STREAM_NODES_TRAFFIC_REQUEST = LIVE_STREAM_NODES_TRAFFIC_REQUES
  *
  * ```yaml
  * structs:
- *     ANON_STRUCT_1:
- *         properties: {}
- *     mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,mogenius-operator/src/core.Void]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,mogenius-operator/src/core.Void]
- *         properties:
- *             data:
- *                 pointer: true
- *                 structRef: ANON_STRUCT_1
- *                 type: struct
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   ANON_STRUCT_1:
+ *     properties: {}
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,mogenius-operator/src/core.Void]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,mogenius-operator/src/core.Void]
+ *     properties:
+ *       data:
+ *         pointer: true
+ *         structRef: ANON_STRUCT_1
+ *         type: struct
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,mogenius-operator/src/core.Void]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,mogenius-operator/src/core.Void]
+ *   type: struct
  * ```
  *
  */
@@ -7458,26 +7458,26 @@ export type LIVE_STREAM_NODES_TRAFFIC_RESPONSE = LIVE_STREAM_NODES_TRAFFIC_RESPO
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/xterm.WsConnectionRequest:
- *         name: mogenius-operator/src/xterm.WsConnectionRequest
- *         properties:
- *             channelId:
- *                 type: string
- *             cmdType:
- *                 type: string
- *             nodeName:
- *                 type: string
- *             podName:
- *                 type: string
- *             websocketHost:
- *                 type: string
- *             websocketScheme:
- *                 type: string
- *             workspace:
- *                 type: string
+ *   mogenius-operator/src/xterm.WsConnectionRequest:
+ *     name: mogenius-operator/src/xterm.WsConnectionRequest
+ *     properties:
+ *       channelId:
+ *         type: string
+ *       cmdType:
+ *         type: string
+ *       nodeName:
+ *         type: string
+ *       podName:
+ *         type: string
+ *       websocketHost:
+ *         type: string
+ *       websocketScheme:
+ *         type: string
+ *       workspace:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/xterm.WsConnectionRequest
- *     type: struct
+ *   structRef: mogenius-operator/src/xterm.WsConnectionRequest
+ *   type: struct
  * ```
  *
  */
@@ -7488,22 +7488,22 @@ export type LIVE_STREAM_POD_CPU_REQUEST = LIVE_STREAM_POD_CPU_REQUEST__MOGENIUS_
  *
  * ```yaml
  * structs:
- *     ANON_STRUCT_1:
- *         properties: {}
- *     mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,mogenius-operator/src/core.Void]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,mogenius-operator/src/core.Void]
- *         properties:
- *             data:
- *                 pointer: true
- *                 structRef: ANON_STRUCT_1
- *                 type: struct
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   ANON_STRUCT_1:
+ *     properties: {}
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,mogenius-operator/src/core.Void]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,mogenius-operator/src/core.Void]
+ *     properties:
+ *       data:
+ *         pointer: true
+ *         structRef: ANON_STRUCT_1
+ *         type: struct
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,mogenius-operator/src/core.Void]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,mogenius-operator/src/core.Void]
+ *   type: struct
  * ```
  *
  */
@@ -7514,26 +7514,26 @@ export type LIVE_STREAM_POD_CPU_RESPONSE = LIVE_STREAM_POD_CPU_RESPONSE__MOGENIU
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/xterm.WsConnectionRequest:
- *         name: mogenius-operator/src/xterm.WsConnectionRequest
- *         properties:
- *             channelId:
- *                 type: string
- *             cmdType:
- *                 type: string
- *             nodeName:
- *                 type: string
- *             podName:
- *                 type: string
- *             websocketHost:
- *                 type: string
- *             websocketScheme:
- *                 type: string
- *             workspace:
- *                 type: string
+ *   mogenius-operator/src/xterm.WsConnectionRequest:
+ *     name: mogenius-operator/src/xterm.WsConnectionRequest
+ *     properties:
+ *       channelId:
+ *         type: string
+ *       cmdType:
+ *         type: string
+ *       nodeName:
+ *         type: string
+ *       podName:
+ *         type: string
+ *       websocketHost:
+ *         type: string
+ *       websocketScheme:
+ *         type: string
+ *       workspace:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/xterm.WsConnectionRequest
- *     type: struct
+ *   structRef: mogenius-operator/src/xterm.WsConnectionRequest
+ *   type: struct
  * ```
  *
  */
@@ -7544,22 +7544,22 @@ export type LIVE_STREAM_POD_MEMORY_REQUEST = LIVE_STREAM_POD_MEMORY_REQUEST__MOG
  *
  * ```yaml
  * structs:
- *     ANON_STRUCT_1:
- *         properties: {}
- *     mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,mogenius-operator/src/core.Void]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,mogenius-operator/src/core.Void]
- *         properties:
- *             data:
- *                 pointer: true
- *                 structRef: ANON_STRUCT_1
- *                 type: struct
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   ANON_STRUCT_1:
+ *     properties: {}
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,mogenius-operator/src/core.Void]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,mogenius-operator/src/core.Void]
+ *     properties:
+ *       data:
+ *         pointer: true
+ *         structRef: ANON_STRUCT_1
+ *         type: struct
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,mogenius-operator/src/core.Void]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,mogenius-operator/src/core.Void]
+ *   type: struct
  * ```
  *
  */
@@ -7570,26 +7570,26 @@ export type LIVE_STREAM_POD_MEMORY_RESPONSE = LIVE_STREAM_POD_MEMORY_RESPONSE__M
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/xterm.WsConnectionRequest:
- *         name: mogenius-operator/src/xterm.WsConnectionRequest
- *         properties:
- *             channelId:
- *                 type: string
- *             cmdType:
- *                 type: string
- *             nodeName:
- *                 type: string
- *             podName:
- *                 type: string
- *             websocketHost:
- *                 type: string
- *             websocketScheme:
- *                 type: string
- *             workspace:
- *                 type: string
+ *   mogenius-operator/src/xterm.WsConnectionRequest:
+ *     name: mogenius-operator/src/xterm.WsConnectionRequest
+ *     properties:
+ *       channelId:
+ *         type: string
+ *       cmdType:
+ *         type: string
+ *       nodeName:
+ *         type: string
+ *       podName:
+ *         type: string
+ *       websocketHost:
+ *         type: string
+ *       websocketScheme:
+ *         type: string
+ *       workspace:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/xterm.WsConnectionRequest
- *     type: struct
+ *   structRef: mogenius-operator/src/xterm.WsConnectionRequest
+ *   type: struct
  * ```
  *
  */
@@ -7600,22 +7600,22 @@ export type LIVE_STREAM_POD_TRAFFIC_REQUEST = LIVE_STREAM_POD_TRAFFIC_REQUEST__M
  *
  * ```yaml
  * structs:
- *     ANON_STRUCT_1:
- *         properties: {}
- *     mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,mogenius-operator/src/core.Void]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,mogenius-operator/src/core.Void]
- *         properties:
- *             data:
- *                 pointer: true
- *                 structRef: ANON_STRUCT_1
- *                 type: struct
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   ANON_STRUCT_1:
+ *     properties: {}
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,mogenius-operator/src/core.Void]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,mogenius-operator/src/core.Void]
+ *     properties:
+ *       data:
+ *         pointer: true
+ *         structRef: ANON_STRUCT_1
+ *         type: struct
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,mogenius-operator/src/core.Void]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,mogenius-operator/src/core.Void]
+ *   type: struct
  * ```
  *
  */
@@ -7626,26 +7626,26 @@ export type LIVE_STREAM_POD_TRAFFIC_RESPONSE = LIVE_STREAM_POD_TRAFFIC_RESPONSE_
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/xterm.WsConnectionRequest:
- *         name: mogenius-operator/src/xterm.WsConnectionRequest
- *         properties:
- *             channelId:
- *                 type: string
- *             cmdType:
- *                 type: string
- *             nodeName:
- *                 type: string
- *             podName:
- *                 type: string
- *             websocketHost:
- *                 type: string
- *             websocketScheme:
- *                 type: string
- *             workspace:
- *                 type: string
+ *   mogenius-operator/src/xterm.WsConnectionRequest:
+ *     name: mogenius-operator/src/xterm.WsConnectionRequest
+ *     properties:
+ *       channelId:
+ *         type: string
+ *       cmdType:
+ *         type: string
+ *       nodeName:
+ *         type: string
+ *       podName:
+ *         type: string
+ *       websocketHost:
+ *         type: string
+ *       websocketScheme:
+ *         type: string
+ *       workspace:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/xterm.WsConnectionRequest
- *     type: struct
+ *   structRef: mogenius-operator/src/xterm.WsConnectionRequest
+ *   type: struct
  * ```
  *
  */
@@ -7656,19 +7656,21 @@ export type LIVE_STREAM_WORKSPACE_CPU_REQUEST = LIVE_STREAM_WORKSPACE_CPU_REQUES
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,interface {}]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,interface {}]
- *         properties:
- *             data:
- *                 pointer: true
- *                 type: any
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,interface {}]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,interface
+ *       {}]
+ *     properties:
+ *       data:
+ *         pointer: true
+ *         type: any
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,interface {}]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,interface
+ *     {}]
+ *   type: struct
  * ```
  *
  */
@@ -7679,26 +7681,26 @@ export type LIVE_STREAM_WORKSPACE_CPU_RESPONSE = LIVE_STREAM_WORKSPACE_CPU_RESPO
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/xterm.WsConnectionRequest:
- *         name: mogenius-operator/src/xterm.WsConnectionRequest
- *         properties:
- *             channelId:
- *                 type: string
- *             cmdType:
- *                 type: string
- *             nodeName:
- *                 type: string
- *             podName:
- *                 type: string
- *             websocketHost:
- *                 type: string
- *             websocketScheme:
- *                 type: string
- *             workspace:
- *                 type: string
+ *   mogenius-operator/src/xterm.WsConnectionRequest:
+ *     name: mogenius-operator/src/xterm.WsConnectionRequest
+ *     properties:
+ *       channelId:
+ *         type: string
+ *       cmdType:
+ *         type: string
+ *       nodeName:
+ *         type: string
+ *       podName:
+ *         type: string
+ *       websocketHost:
+ *         type: string
+ *       websocketScheme:
+ *         type: string
+ *       workspace:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/xterm.WsConnectionRequest
- *     type: struct
+ *   structRef: mogenius-operator/src/xterm.WsConnectionRequest
+ *   type: struct
  * ```
  *
  */
@@ -7709,19 +7711,21 @@ export type LIVE_STREAM_WORKSPACE_MEMORY_REQUEST = LIVE_STREAM_WORKSPACE_MEMORY_
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,interface {}]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,interface {}]
- *         properties:
- *             data:
- *                 pointer: true
- *                 type: any
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,interface {}]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,interface
+ *       {}]
+ *     properties:
+ *       data:
+ *         pointer: true
+ *         type: any
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,interface {}]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,interface
+ *     {}]
+ *   type: struct
  * ```
  *
  */
@@ -7732,26 +7736,26 @@ export type LIVE_STREAM_WORKSPACE_MEMORY_RESPONSE = LIVE_STREAM_WORKSPACE_MEMORY
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/xterm.WsConnectionRequest:
- *         name: mogenius-operator/src/xterm.WsConnectionRequest
- *         properties:
- *             channelId:
- *                 type: string
- *             cmdType:
- *                 type: string
- *             nodeName:
- *                 type: string
- *             podName:
- *                 type: string
- *             websocketHost:
- *                 type: string
- *             websocketScheme:
- *                 type: string
- *             workspace:
- *                 type: string
+ *   mogenius-operator/src/xterm.WsConnectionRequest:
+ *     name: mogenius-operator/src/xterm.WsConnectionRequest
+ *     properties:
+ *       channelId:
+ *         type: string
+ *       cmdType:
+ *         type: string
+ *       nodeName:
+ *         type: string
+ *       podName:
+ *         type: string
+ *       websocketHost:
+ *         type: string
+ *       websocketScheme:
+ *         type: string
+ *       workspace:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/xterm.WsConnectionRequest
- *     type: struct
+ *   structRef: mogenius-operator/src/xterm.WsConnectionRequest
+ *   type: struct
  * ```
  *
  */
@@ -7762,19 +7766,21 @@ export type LIVE_STREAM_WORKSPACE_TRAFFIC_REQUEST = LIVE_STREAM_WORKSPACE_TRAFFI
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,interface {}]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,interface {}]
- *         properties:
- *             data:
- *                 pointer: true
- *                 type: any
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,interface {}]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,interface
+ *       {}]
+ *     properties:
+ *       data:
+ *         pointer: true
+ *         type: any
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,interface {}]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.WsConnectionRequest,interface
+ *     {}]
+ *   type: struct
  * ```
  *
  */
@@ -7785,22 +7791,22 @@ export type LIVE_STREAM_WORKSPACE_TRAFFIC_RESPONSE = LIVE_STREAM_WORKSPACE_TRAFF
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.PrometheusRequestRedis:
- *         name: mogenius-operator/src/core.PrometheusRequestRedis
- *         properties:
- *             controller:
- *                 type: string
- *             namespace:
- *                 type: string
- *             query:
- *                 type: string
- *             queryName:
- *                 type: string
- *             step:
- *                 type: int
+ *   mogenius-operator/src/core.PrometheusRequestRedis:
+ *     name: mogenius-operator/src/core.PrometheusRequestRedis
+ *     properties:
+ *       controller:
+ *         type: string
+ *       namespace:
+ *         type: string
+ *       query:
+ *         type: string
+ *       queryName:
+ *         type: string
+ *       step:
+ *         type: int
  * typeInfo:
- *     structRef: mogenius-operator/src/core.PrometheusRequestRedis
- *     type: struct
+ *   structRef: mogenius-operator/src/core.PrometheusRequestRedis
+ *   type: struct
  * ```
  *
  */
@@ -7811,19 +7817,19 @@ export type PROMETHEUS_CHARTS_ADD_REQUEST = PROMETHEUS_CHARTS_ADD_REQUEST__MOGEN
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.PrometheusRequestRedis,*string]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.PrometheusRequestRedis,*string]
- *         properties:
- *             data:
- *                 pointer: true
- *                 type: string
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.PrometheusRequestRedis,*string]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.PrometheusRequestRedis,*string]
+ *     properties:
+ *       data:
+ *         pointer: true
+ *         type: string
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.PrometheusRequestRedis,*string]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.PrometheusRequestRedis,*string]
+ *   type: struct
  * ```
  *
  */
@@ -7834,22 +7840,22 @@ export type PROMETHEUS_CHARTS_ADD_RESPONSE = PROMETHEUS_CHARTS_ADD_RESPONSE__MOG
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.PrometheusRequestRedis:
- *         name: mogenius-operator/src/core.PrometheusRequestRedis
- *         properties:
- *             controller:
- *                 type: string
- *             namespace:
- *                 type: string
- *             query:
- *                 type: string
- *             queryName:
- *                 type: string
- *             step:
- *                 type: int
+ *   mogenius-operator/src/core.PrometheusRequestRedis:
+ *     name: mogenius-operator/src/core.PrometheusRequestRedis
+ *     properties:
+ *       controller:
+ *         type: string
+ *       namespace:
+ *         type: string
+ *       query:
+ *         type: string
+ *       queryName:
+ *         type: string
+ *       step:
+ *         type: int
  * typeInfo:
- *     structRef: mogenius-operator/src/core.PrometheusRequestRedis
- *     type: struct
+ *   structRef: mogenius-operator/src/core.PrometheusRequestRedis
+ *   type: struct
  * ```
  *
  */
@@ -7860,33 +7866,33 @@ export type PROMETHEUS_CHARTS_GET_REQUEST = PROMETHEUS_CHARTS_GET_REQUEST__MOGEN
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.PrometheusStoreObject:
- *         name: mogenius-operator/src/core.PrometheusStoreObject
- *         properties:
- *             createdAt:
- *                 structRef: time.Time
- *                 type: struct
- *             query:
- *                 type: string
- *             step:
- *                 type: int
- *     ? mogenius-operator/src/core.Result[mogenius-operator/src/core.PrometheusRequestRedis,*mogenius-operator/src/core.PrometheusStoreObject]
- *     :   name: mogenius-operator/src/core.Result[mogenius-operator/src/core.PrometheusRequestRedis,*mogenius-operator/src/core.PrometheusStoreObject]
- *         properties:
- *             data:
- *                 pointer: true
- *                 structRef: mogenius-operator/src/core.PrometheusStoreObject
- *                 type: struct
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- *     time.Time:
- *         name: time.Time
- *         properties: {}
+ *   mogenius-operator/src/core.PrometheusStoreObject:
+ *     name: mogenius-operator/src/core.PrometheusStoreObject
+ *     properties:
+ *       createdAt:
+ *         structRef: time.Time
+ *         type: struct
+ *       query:
+ *         type: string
+ *       step:
+ *         type: int
+ *   ? mogenius-operator/src/core.Result[mogenius-operator/src/core.PrometheusRequestRedis,*mogenius-operator/src/core.PrometheusStoreObject]
+ *   : name: mogenius-operator/src/core.Result[mogenius-operator/src/core.PrometheusRequestRedis,*mogenius-operator/src/core.PrometheusStoreObject]
+ *     properties:
+ *       data:
+ *         pointer: true
+ *         structRef: mogenius-operator/src/core.PrometheusStoreObject
+ *         type: struct
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
+ *   time.Time:
+ *     name: time.Time
+ *     properties: {}
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.PrometheusRequestRedis,*mogenius-operator/src/core.PrometheusStoreObject]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.PrometheusRequestRedis,*mogenius-operator/src/core.PrometheusStoreObject]
+ *   type: struct
  * ```
  *
  */
@@ -7897,16 +7903,16 @@ export type PROMETHEUS_CHARTS_GET_RESPONSE = PROMETHEUS_CHARTS_GET_RESPONSE__MOG
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.PrometheusRequestRedisList:
- *         name: mogenius-operator/src/core.PrometheusRequestRedisList
- *         properties:
- *             controller:
- *                 type: string
- *             namespace:
- *                 type: string
+ *   mogenius-operator/src/core.PrometheusRequestRedisList:
+ *     name: mogenius-operator/src/core.PrometheusRequestRedisList
+ *     properties:
+ *       controller:
+ *         type: string
+ *       namespace:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.PrometheusRequestRedisList
- *     type: struct
+ *   structRef: mogenius-operator/src/core.PrometheusRequestRedisList
+ *   type: struct
  * ```
  *
  */
@@ -7917,36 +7923,36 @@ export type PROMETHEUS_CHARTS_LIST_REQUEST = PROMETHEUS_CHARTS_LIST_REQUEST__MOG
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.PrometheusStoreObject:
- *         name: mogenius-operator/src/core.PrometheusStoreObject
- *         properties:
- *             createdAt:
- *                 structRef: time.Time
- *                 type: struct
- *             query:
- *                 type: string
- *             step:
- *                 type: int
- *     ? mogenius-operator/src/core.Result[mogenius-operator/src/core.PrometheusRequestRedisList,map[string]mogenius-operator/src/core.PrometheusStoreObject]
- *     :   name: mogenius-operator/src/core.Result[mogenius-operator/src/core.PrometheusRequestRedisList,map[string]mogenius-operator/src/core.PrometheusStoreObject]
- *         properties:
- *             data:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     structRef: mogenius-operator/src/core.PrometheusStoreObject
- *                     type: struct
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- *     time.Time:
- *         name: time.Time
- *         properties: {}
+ *   mogenius-operator/src/core.PrometheusStoreObject:
+ *     name: mogenius-operator/src/core.PrometheusStoreObject
+ *     properties:
+ *       createdAt:
+ *         structRef: time.Time
+ *         type: struct
+ *       query:
+ *         type: string
+ *       step:
+ *         type: int
+ *   ? mogenius-operator/src/core.Result[mogenius-operator/src/core.PrometheusRequestRedisList,map[string]mogenius-operator/src/core.PrometheusStoreObject]
+ *   : name: mogenius-operator/src/core.Result[mogenius-operator/src/core.PrometheusRequestRedisList,map[string]mogenius-operator/src/core.PrometheusStoreObject]
+ *     properties:
+ *       data:
+ *         keyType:
+ *           type: string
+ *         type: map
+ *         valueType:
+ *           structRef: mogenius-operator/src/core.PrometheusStoreObject
+ *           type: struct
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
+ *   time.Time:
+ *     name: time.Time
+ *     properties: {}
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.PrometheusRequestRedisList,map[string]mogenius-operator/src/core.PrometheusStoreObject]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.PrometheusRequestRedisList,map[string]mogenius-operator/src/core.PrometheusStoreObject]
+ *   type: struct
  * ```
  *
  */
@@ -7957,22 +7963,22 @@ export type PROMETHEUS_CHARTS_LIST_RESPONSE = PROMETHEUS_CHARTS_LIST_RESPONSE__M
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.PrometheusRequestRedis:
- *         name: mogenius-operator/src/core.PrometheusRequestRedis
- *         properties:
- *             controller:
- *                 type: string
- *             namespace:
- *                 type: string
- *             query:
- *                 type: string
- *             queryName:
- *                 type: string
- *             step:
- *                 type: int
+ *   mogenius-operator/src/core.PrometheusRequestRedis:
+ *     name: mogenius-operator/src/core.PrometheusRequestRedis
+ *     properties:
+ *       controller:
+ *         type: string
+ *       namespace:
+ *         type: string
+ *       query:
+ *         type: string
+ *       queryName:
+ *         type: string
+ *       step:
+ *         type: int
  * typeInfo:
- *     structRef: mogenius-operator/src/core.PrometheusRequestRedis
- *     type: struct
+ *   structRef: mogenius-operator/src/core.PrometheusRequestRedis
+ *   type: struct
  * ```
  *
  */
@@ -7983,19 +7989,19 @@ export type PROMETHEUS_CHARTS_REMOVE_REQUEST = PROMETHEUS_CHARTS_REMOVE_REQUEST_
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.PrometheusRequestRedis,*string]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.PrometheusRequestRedis,*string]
- *         properties:
- *             data:
- *                 pointer: true
- *                 type: string
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.PrometheusRequestRedis,*string]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.PrometheusRequestRedis,*string]
+ *     properties:
+ *       data:
+ *         pointer: true
+ *         type: string
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.PrometheusRequestRedis,*string]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.PrometheusRequestRedis,*string]
+ *   type: struct
  * ```
  *
  */
@@ -8006,26 +8012,26 @@ export type PROMETHEUS_CHARTS_REMOVE_RESPONSE = PROMETHEUS_CHARTS_REMOVE_RESPONS
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.PrometheusRequest:
- *         name: mogenius-operator/src/core.PrometheusRequest
- *         properties:
- *             prometheusPass:
- *                 type: string
- *             prometheusToken:
- *                 type: string
- *             prometheusUrl:
- *                 type: string
- *             prometheusUser:
- *                 type: string
- *             query:
- *                 type: string
- *             step:
- *                 type: int
- *             timeOffsetSeconds:
- *                 type: int
+ *   mogenius-operator/src/core.PrometheusRequest:
+ *     name: mogenius-operator/src/core.PrometheusRequest
+ *     properties:
+ *       prometheusPass:
+ *         type: string
+ *       prometheusToken:
+ *         type: string
+ *       prometheusUrl:
+ *         type: string
+ *       prometheusUser:
+ *         type: string
+ *       query:
+ *         type: string
+ *       step:
+ *         type: int
+ *       timeOffsetSeconds:
+ *         type: int
  * typeInfo:
- *     structRef: mogenius-operator/src/core.PrometheusRequest
- *     type: struct
+ *   structRef: mogenius-operator/src/core.PrometheusRequest
+ *   type: struct
  * ```
  *
  */
@@ -8036,18 +8042,18 @@ export type PROMETHEUS_IS_REACHABLE_REQUEST = PROMETHEUS_IS_REACHABLE_REQUEST__M
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.PrometheusRequest,bool]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.PrometheusRequest,bool]
- *         properties:
- *             data:
- *                 type: bool
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.PrometheusRequest,bool]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.PrometheusRequest,bool]
+ *     properties:
+ *       data:
+ *         type: bool
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.PrometheusRequest,bool]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.PrometheusRequest,bool]
+ *   type: struct
  * ```
  *
  */
@@ -8058,26 +8064,26 @@ export type PROMETHEUS_IS_REACHABLE_RESPONSE = PROMETHEUS_IS_REACHABLE_RESPONSE_
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.PrometheusRequest:
- *         name: mogenius-operator/src/core.PrometheusRequest
- *         properties:
- *             prometheusPass:
- *                 type: string
- *             prometheusToken:
- *                 type: string
- *             prometheusUrl:
- *                 type: string
- *             prometheusUser:
- *                 type: string
- *             query:
- *                 type: string
- *             step:
- *                 type: int
- *             timeOffsetSeconds:
- *                 type: int
+ *   mogenius-operator/src/core.PrometheusRequest:
+ *     name: mogenius-operator/src/core.PrometheusRequest
+ *     properties:
+ *       prometheusPass:
+ *         type: string
+ *       prometheusToken:
+ *         type: string
+ *       prometheusUrl:
+ *         type: string
+ *       prometheusUser:
+ *         type: string
+ *       query:
+ *         type: string
+ *       step:
+ *         type: int
+ *       timeOffsetSeconds:
+ *         type: int
  * typeInfo:
- *     structRef: mogenius-operator/src/core.PrometheusRequest
- *     type: struct
+ *   structRef: mogenius-operator/src/core.PrometheusRequest
+ *   type: struct
  * ```
  *
  */
@@ -8088,41 +8094,41 @@ export type PROMETHEUS_QUERY_REQUEST = PROMETHEUS_QUERY_REQUEST__MOGENIUS_OPERAT
  *
  * ```yaml
  * structs:
- *     ANON_STRUCT_2:
- *         properties:
- *             result:
- *                 elementType:
- *                     pointer: true
- *                     type: any
- *                 type: array
- *             resultType:
- *                 type: string
- *     mogenius-operator/src/core.PrometheusQueryResponse:
- *         name: mogenius-operator/src/core.PrometheusQueryResponse
- *         properties:
- *             data:
- *                 structRef: ANON_STRUCT_2
- *                 type: struct
- *             error:
- *                 type: string
- *             errorType:
- *                 type: string
- *             status:
- *                 type: string
- *     ? mogenius-operator/src/core.Result[mogenius-operator/src/core.PrometheusRequest,*mogenius-operator/src/core.PrometheusQueryResponse]
- *     :   name: mogenius-operator/src/core.Result[mogenius-operator/src/core.PrometheusRequest,*mogenius-operator/src/core.PrometheusQueryResponse]
- *         properties:
- *             data:
- *                 pointer: true
- *                 structRef: mogenius-operator/src/core.PrometheusQueryResponse
- *                 type: struct
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   ANON_STRUCT_2:
+ *     properties:
+ *       result:
+ *         elementType:
+ *           pointer: true
+ *           type: any
+ *         type: array
+ *       resultType:
+ *         type: string
+ *   mogenius-operator/src/core.PrometheusQueryResponse:
+ *     name: mogenius-operator/src/core.PrometheusQueryResponse
+ *     properties:
+ *       data:
+ *         structRef: ANON_STRUCT_2
+ *         type: struct
+ *       error:
+ *         type: string
+ *       errorType:
+ *         type: string
+ *       status:
+ *         type: string
+ *   ? mogenius-operator/src/core.Result[mogenius-operator/src/core.PrometheusRequest,*mogenius-operator/src/core.PrometheusQueryResponse]
+ *   : name: mogenius-operator/src/core.Result[mogenius-operator/src/core.PrometheusRequest,*mogenius-operator/src/core.PrometheusQueryResponse]
+ *     properties:
+ *       data:
+ *         pointer: true
+ *         structRef: mogenius-operator/src/core.PrometheusQueryResponse
+ *         type: struct
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.PrometheusRequest,*mogenius-operator/src/core.PrometheusQueryResponse]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.PrometheusRequest,*mogenius-operator/src/core.PrometheusQueryResponse]
+ *   type: struct
  * ```
  *
  */
@@ -8133,26 +8139,26 @@ export type PROMETHEUS_QUERY_RESPONSE = PROMETHEUS_QUERY_RESPONSE__MOGENIUS_OPER
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.PrometheusRequest:
- *         name: mogenius-operator/src/core.PrometheusRequest
- *         properties:
- *             prometheusPass:
- *                 type: string
- *             prometheusToken:
- *                 type: string
- *             prometheusUrl:
- *                 type: string
- *             prometheusUser:
- *                 type: string
- *             query:
- *                 type: string
- *             step:
- *                 type: int
- *             timeOffsetSeconds:
- *                 type: int
+ *   mogenius-operator/src/core.PrometheusRequest:
+ *     name: mogenius-operator/src/core.PrometheusRequest
+ *     properties:
+ *       prometheusPass:
+ *         type: string
+ *       prometheusToken:
+ *         type: string
+ *       prometheusUrl:
+ *         type: string
+ *       prometheusUser:
+ *         type: string
+ *       query:
+ *         type: string
+ *       step:
+ *         type: int
+ *       timeOffsetSeconds:
+ *         type: int
  * typeInfo:
- *     structRef: mogenius-operator/src/core.PrometheusRequest
- *     type: struct
+ *   structRef: mogenius-operator/src/core.PrometheusRequest
+ *   type: struct
  * ```
  *
  */
@@ -8163,20 +8169,20 @@ export type PROMETHEUS_VALUES_REQUEST = PROMETHEUS_VALUES_REQUEST__MOGENIUS_OPER
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.PrometheusRequest,[]string]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.PrometheusRequest,[]string]
- *         properties:
- *             data:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.PrometheusRequest,[]string]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.PrometheusRequest,[]string]
+ *     properties:
+ *       data:
+ *         elementType:
+ *           type: string
+ *         type: array
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.PrometheusRequest,[]string]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.PrometheusRequest,[]string]
+ *   type: struct
  * ```
  *
  */
@@ -8187,16 +8193,16 @@ export type PROMETHEUS_VALUES_RESPONSE = PROMETHEUS_VALUES_RESPONSE__MOGENIUS_OP
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Request:
- *         name: mogenius-operator/src/core.Request
- *         properties:
- *             name:
- *                 type: string
- *             namespace:
- *                 type: string
+ *   mogenius-operator/src/core.Request:
+ *     name: mogenius-operator/src/core.Request
+ *     properties:
+ *       name:
+ *         type: string
+ *       namespace:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Request
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Request
+ *   type: struct
  * ```
  *
  */
@@ -8207,30 +8213,30 @@ export type SEALED_SECRET_CREATE_FROM_EXISTING_REQUEST = SEALED_SECRET_CREATE_FR
  *
  * ```yaml
  * structs:
- *     k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured
- *         properties:
- *             Object:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     pointer: true
- *                     type: any
- *     ? mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·42,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
- *     :   name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·42,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
- *         properties:
- *             data:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured
- *                 type: struct
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured:
+ *     name: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured
+ *     properties:
+ *       Object:
+ *         keyType:
+ *           type: string
+ *         type: map
+ *         valueType:
+ *           pointer: true
+ *           type: any
+ *   ? mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·42,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *   : name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·42,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *     properties:
+ *       data:
+ *         pointer: true
+ *         structRef: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured
+ *         type: struct
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·42,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·42,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *   type: struct
  * ```
  *
  */
@@ -8241,12 +8247,12 @@ export type SEALED_SECRET_CREATE_FROM_EXISTING_RESPONSE = SEALED_SECRET_CREATE_F
  *
  * ```yaml
  * structs:
- *     ANON_STRUCT_0:
- *         properties: {}
+ *   ANON_STRUCT_0:
+ *     properties: {}
  * typeInfo:
- *     pointer: true
- *     structRef: ANON_STRUCT_0
- *     type: struct
+ *   pointer: true
+ *   structRef: ANON_STRUCT_0
+ *   type: struct
  * ```
  *
  */
@@ -8257,158 +8263,158 @@ export type SEALED_SECRET_GET_CERTIFICATE_REQUEST = SEALED_SECRET_GET_CERTIFICAT
  *
  * ```yaml
  * structs:
- *     k8s.io/api/core/v1.Secret:
- *         name: k8s.io/api/core/v1.Secret
- *         properties:
- *             TypeMeta:
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta
- *                 type: struct
- *             data:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     elementType:
- *                         type: uint
- *                     type: array
- *             immutable:
- *                 pointer: true
- *                 type: bool
- *             metadata:
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta
- *                 type: struct
- *             stringData:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     type: string
- *             type:
- *                 type: string
- *     k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1
- *         properties: {}
- *     k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry
- *         properties:
- *             apiVersion:
- *                 type: string
- *             fieldsType:
- *                 type: string
- *             fieldsV1:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1
- *                 type: struct
- *             manager:
- *                 type: string
- *             operation:
- *                 type: string
- *             subresource:
- *                 type: string
- *             time:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *                 type: struct
- *     k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta
- *         properties:
- *             annotations:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     type: string
- *             creationTimestamp:
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *                 type: struct
- *             deletionGracePeriodSeconds:
- *                 pointer: true
- *                 type: int
- *             deletionTimestamp:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *                 type: struct
- *             finalizers:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             generateName:
- *                 type: string
- *             generation:
- *                 type: int
- *             labels:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     type: string
- *             managedFields:
- *                 elementType:
- *                     structRef: k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry
- *                     type: struct
- *                 type: array
- *             name:
- *                 type: string
- *             namespace:
- *                 type: string
- *             ownerReferences:
- *                 elementType:
- *                     structRef: k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference
- *                     type: struct
- *                 type: array
- *             resourceVersion:
- *                 type: string
- *             selfLink:
- *                 type: string
- *             uid:
- *                 type: string
- *     k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference
- *         properties:
- *             apiVersion:
- *                 type: string
- *             blockOwnerDeletion:
- *                 pointer: true
- *                 type: bool
- *             controller:
- *                 pointer: true
- *                 type: bool
- *             kind:
- *                 type: string
- *             name:
- *                 type: string
- *             uid:
- *                 type: string
- *     k8s.io/apimachinery/pkg/apis/meta/v1.Time:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.Time
- *         properties:
- *             Time:
- *                 structRef: time.Time
- *                 type: struct
- *     k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta
- *         properties:
- *             apiVersion:
- *                 type: string
- *             kind:
- *                 type: string
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,*k8s.io/api/core/v1.Secret]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,*k8s.io/api/core/v1.Secret]
- *         properties:
- *             data:
- *                 pointer: true
- *                 structRef: k8s.io/api/core/v1.Secret
- *                 type: struct
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- *     time.Time:
- *         name: time.Time
- *         properties: {}
+ *   k8s.io/api/core/v1.Secret:
+ *     name: k8s.io/api/core/v1.Secret
+ *     properties:
+ *       TypeMeta:
+ *         structRef: k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta
+ *         type: struct
+ *       data:
+ *         keyType:
+ *           type: string
+ *         type: map
+ *         valueType:
+ *           elementType:
+ *             type: uint
+ *           type: array
+ *       immutable:
+ *         pointer: true
+ *         type: bool
+ *       metadata:
+ *         structRef: k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta
+ *         type: struct
+ *       stringData:
+ *         keyType:
+ *           type: string
+ *         type: map
+ *         valueType:
+ *           type: string
+ *       type:
+ *         type: string
+ *   k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1:
+ *     name: k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1
+ *     properties: {}
+ *   k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry:
+ *     name: k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry
+ *     properties:
+ *       apiVersion:
+ *         type: string
+ *       fieldsType:
+ *         type: string
+ *       fieldsV1:
+ *         pointer: true
+ *         structRef: k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1
+ *         type: struct
+ *       manager:
+ *         type: string
+ *       operation:
+ *         type: string
+ *       subresource:
+ *         type: string
+ *       time:
+ *         pointer: true
+ *         structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
+ *         type: struct
+ *   k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta:
+ *     name: k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta
+ *     properties:
+ *       annotations:
+ *         keyType:
+ *           type: string
+ *         type: map
+ *         valueType:
+ *           type: string
+ *       creationTimestamp:
+ *         structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
+ *         type: struct
+ *       deletionGracePeriodSeconds:
+ *         pointer: true
+ *         type: int
+ *       deletionTimestamp:
+ *         pointer: true
+ *         structRef: k8s.io/apimachinery/pkg/apis/meta/v1.Time
+ *         type: struct
+ *       finalizers:
+ *         elementType:
+ *           type: string
+ *         type: array
+ *       generateName:
+ *         type: string
+ *       generation:
+ *         type: int
+ *       labels:
+ *         keyType:
+ *           type: string
+ *         type: map
+ *         valueType:
+ *           type: string
+ *       managedFields:
+ *         elementType:
+ *           structRef: k8s.io/apimachinery/pkg/apis/meta/v1.ManagedFieldsEntry
+ *           type: struct
+ *         type: array
+ *       name:
+ *         type: string
+ *       namespace:
+ *         type: string
+ *       ownerReferences:
+ *         elementType:
+ *           structRef: k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference
+ *           type: struct
+ *         type: array
+ *       resourceVersion:
+ *         type: string
+ *       selfLink:
+ *         type: string
+ *       uid:
+ *         type: string
+ *   k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference:
+ *     name: k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference
+ *     properties:
+ *       apiVersion:
+ *         type: string
+ *       blockOwnerDeletion:
+ *         pointer: true
+ *         type: bool
+ *       controller:
+ *         pointer: true
+ *         type: bool
+ *       kind:
+ *         type: string
+ *       name:
+ *         type: string
+ *       uid:
+ *         type: string
+ *   k8s.io/apimachinery/pkg/apis/meta/v1.Time:
+ *     name: k8s.io/apimachinery/pkg/apis/meta/v1.Time
+ *     properties:
+ *       Time:
+ *         structRef: time.Time
+ *         type: struct
+ *   k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta:
+ *     name: k8s.io/apimachinery/pkg/apis/meta/v1.TypeMeta
+ *     properties:
+ *       apiVersion:
+ *         type: string
+ *       kind:
+ *         type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,*k8s.io/api/core/v1.Secret]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,*k8s.io/api/core/v1.Secret]
+ *     properties:
+ *       data:
+ *         pointer: true
+ *         structRef: k8s.io/api/core/v1.Secret
+ *         type: struct
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
+ *   time.Time:
+ *     name: time.Time
+ *     properties: {}
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,*k8s.io/api/core/v1.Secret]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,*k8s.io/api/core/v1.Secret]
+ *   type: struct
  * ```
  *
  */
@@ -8419,42 +8425,42 @@ export type SEALED_SECRET_GET_CERTIFICATE_RESPONSE = SEALED_SECRET_GET_CERTIFICA
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/xterm.PodCmdConnectionRequest:
- *         name: mogenius-operator/src/xterm.PodCmdConnectionRequest
- *         properties:
- *             container:
- *                 type: string
- *             controller:
- *                 type: string
- *             logTail:
- *                 type: string
- *             namespace:
- *                 type: string
- *             pod:
- *                 type: string
- *             wsConnectionRequest:
- *                 structRef: mogenius-operator/src/xterm.WsConnectionRequest
- *                 type: struct
- *     mogenius-operator/src/xterm.WsConnectionRequest:
- *         name: mogenius-operator/src/xterm.WsConnectionRequest
- *         properties:
- *             channelId:
- *                 type: string
- *             cmdType:
- *                 type: string
- *             nodeName:
- *                 type: string
- *             podName:
- *                 type: string
- *             websocketHost:
- *                 type: string
- *             websocketScheme:
- *                 type: string
- *             workspace:
- *                 type: string
+ *   mogenius-operator/src/xterm.PodCmdConnectionRequest:
+ *     name: mogenius-operator/src/xterm.PodCmdConnectionRequest
+ *     properties:
+ *       container:
+ *         type: string
+ *       controller:
+ *         type: string
+ *       logTail:
+ *         type: string
+ *       namespace:
+ *         type: string
+ *       pod:
+ *         type: string
+ *       wsConnectionRequest:
+ *         structRef: mogenius-operator/src/xterm.WsConnectionRequest
+ *         type: struct
+ *   mogenius-operator/src/xterm.WsConnectionRequest:
+ *     name: mogenius-operator/src/xterm.WsConnectionRequest
+ *     properties:
+ *       channelId:
+ *         type: string
+ *       cmdType:
+ *         type: string
+ *       nodeName:
+ *         type: string
+ *       podName:
+ *         type: string
+ *       websocketHost:
+ *         type: string
+ *       websocketScheme:
+ *         type: string
+ *       workspace:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/xterm.PodCmdConnectionRequest
- *     type: struct
+ *   structRef: mogenius-operator/src/xterm.PodCmdConnectionRequest
+ *   type: struct
  * ```
  *
  */
@@ -8465,22 +8471,22 @@ export type SERVICE_EXEC_SH_CONNECTION_REQUEST_REQUEST = SERVICE_EXEC_SH_CONNECT
  *
  * ```yaml
  * structs:
- *     ANON_STRUCT_1:
- *         properties: {}
- *     mogenius-operator/src/core.Result[mogenius-operator/src/xterm.PodCmdConnectionRequest,mogenius-operator/src/core.Void]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.PodCmdConnectionRequest,mogenius-operator/src/core.Void]
- *         properties:
- *             data:
- *                 pointer: true
- *                 structRef: ANON_STRUCT_1
- *                 type: struct
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   ANON_STRUCT_1:
+ *     properties: {}
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/xterm.PodCmdConnectionRequest,mogenius-operator/src/core.Void]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.PodCmdConnectionRequest,mogenius-operator/src/core.Void]
+ *     properties:
+ *       data:
+ *         pointer: true
+ *         structRef: ANON_STRUCT_1
+ *         type: struct
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.PodCmdConnectionRequest,mogenius-operator/src/core.Void]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.PodCmdConnectionRequest,mogenius-operator/src/core.Void]
+ *   type: struct
  * ```
  *
  */
@@ -8491,42 +8497,42 @@ export type SERVICE_EXEC_SH_CONNECTION_REQUEST_RESPONSE = SERVICE_EXEC_SH_CONNEC
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/xterm.PodCmdConnectionRequest:
- *         name: mogenius-operator/src/xterm.PodCmdConnectionRequest
- *         properties:
- *             container:
- *                 type: string
- *             controller:
- *                 type: string
- *             logTail:
- *                 type: string
- *             namespace:
- *                 type: string
- *             pod:
- *                 type: string
- *             wsConnectionRequest:
- *                 structRef: mogenius-operator/src/xterm.WsConnectionRequest
- *                 type: struct
- *     mogenius-operator/src/xterm.WsConnectionRequest:
- *         name: mogenius-operator/src/xterm.WsConnectionRequest
- *         properties:
- *             channelId:
- *                 type: string
- *             cmdType:
- *                 type: string
- *             nodeName:
- *                 type: string
- *             podName:
- *                 type: string
- *             websocketHost:
- *                 type: string
- *             websocketScheme:
- *                 type: string
- *             workspace:
- *                 type: string
+ *   mogenius-operator/src/xterm.PodCmdConnectionRequest:
+ *     name: mogenius-operator/src/xterm.PodCmdConnectionRequest
+ *     properties:
+ *       container:
+ *         type: string
+ *       controller:
+ *         type: string
+ *       logTail:
+ *         type: string
+ *       namespace:
+ *         type: string
+ *       pod:
+ *         type: string
+ *       wsConnectionRequest:
+ *         structRef: mogenius-operator/src/xterm.WsConnectionRequest
+ *         type: struct
+ *   mogenius-operator/src/xterm.WsConnectionRequest:
+ *     name: mogenius-operator/src/xterm.WsConnectionRequest
+ *     properties:
+ *       channelId:
+ *         type: string
+ *       cmdType:
+ *         type: string
+ *       nodeName:
+ *         type: string
+ *       podName:
+ *         type: string
+ *       websocketHost:
+ *         type: string
+ *       websocketScheme:
+ *         type: string
+ *       workspace:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/xterm.PodCmdConnectionRequest
- *     type: struct
+ *   structRef: mogenius-operator/src/xterm.PodCmdConnectionRequest
+ *   type: struct
  * ```
  *
  */
@@ -8537,22 +8543,22 @@ export type SERVICE_LOG_STREAM_CONNECTION_REQUEST_REQUEST = SERVICE_LOG_STREAM_C
  *
  * ```yaml
  * structs:
- *     ANON_STRUCT_1:
- *         properties: {}
- *     mogenius-operator/src/core.Result[mogenius-operator/src/xterm.PodCmdConnectionRequest,mogenius-operator/src/core.Void]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.PodCmdConnectionRequest,mogenius-operator/src/core.Void]
- *         properties:
- *             data:
- *                 pointer: true
- *                 structRef: ANON_STRUCT_1
- *                 type: struct
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   ANON_STRUCT_1:
+ *     properties: {}
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/xterm.PodCmdConnectionRequest,mogenius-operator/src/core.Void]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.PodCmdConnectionRequest,mogenius-operator/src/core.Void]
+ *     properties:
+ *       data:
+ *         pointer: true
+ *         structRef: ANON_STRUCT_1
+ *         type: struct
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.PodCmdConnectionRequest,mogenius-operator/src/core.Void]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.PodCmdConnectionRequest,mogenius-operator/src/core.Void]
+ *   type: struct
  * ```
  *
  */
@@ -8563,36 +8569,36 @@ export type SERVICE_LOG_STREAM_CONNECTION_REQUEST_RESPONSE = SERVICE_LOG_STREAM_
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/xterm.PodEventConnectionRequest:
- *         name: mogenius-operator/src/xterm.PodEventConnectionRequest
- *         properties:
- *             controller:
- *                 type: string
- *             namespace:
- *                 type: string
- *             wsConnectionRequest:
- *                 structRef: mogenius-operator/src/xterm.WsConnectionRequest
- *                 type: struct
- *     mogenius-operator/src/xterm.WsConnectionRequest:
- *         name: mogenius-operator/src/xterm.WsConnectionRequest
- *         properties:
- *             channelId:
- *                 type: string
- *             cmdType:
- *                 type: string
- *             nodeName:
- *                 type: string
- *             podName:
- *                 type: string
- *             websocketHost:
- *                 type: string
- *             websocketScheme:
- *                 type: string
- *             workspace:
- *                 type: string
+ *   mogenius-operator/src/xterm.PodEventConnectionRequest:
+ *     name: mogenius-operator/src/xterm.PodEventConnectionRequest
+ *     properties:
+ *       controller:
+ *         type: string
+ *       namespace:
+ *         type: string
+ *       wsConnectionRequest:
+ *         structRef: mogenius-operator/src/xterm.WsConnectionRequest
+ *         type: struct
+ *   mogenius-operator/src/xterm.WsConnectionRequest:
+ *     name: mogenius-operator/src/xterm.WsConnectionRequest
+ *     properties:
+ *       channelId:
+ *         type: string
+ *       cmdType:
+ *         type: string
+ *       nodeName:
+ *         type: string
+ *       podName:
+ *         type: string
+ *       websocketHost:
+ *         type: string
+ *       websocketScheme:
+ *         type: string
+ *       workspace:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/xterm.PodEventConnectionRequest
- *     type: struct
+ *   structRef: mogenius-operator/src/xterm.PodEventConnectionRequest
+ *   type: struct
  * ```
  *
  */
@@ -8603,22 +8609,22 @@ export type SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST_REQUEST = SERVICE_POD_EV
  *
  * ```yaml
  * structs:
- *     ANON_STRUCT_1:
- *         properties: {}
- *     mogenius-operator/src/core.Result[mogenius-operator/src/xterm.PodEventConnectionRequest,mogenius-operator/src/core.Void]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.PodEventConnectionRequest,mogenius-operator/src/core.Void]
- *         properties:
- *             data:
- *                 pointer: true
- *                 structRef: ANON_STRUCT_1
- *                 type: struct
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   ANON_STRUCT_1:
+ *     properties: {}
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/xterm.PodEventConnectionRequest,mogenius-operator/src/core.Void]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.PodEventConnectionRequest,mogenius-operator/src/core.Void]
+ *     properties:
+ *       data:
+ *         pointer: true
+ *         structRef: ANON_STRUCT_1
+ *         type: struct
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.PodEventConnectionRequest,mogenius-operator/src/core.Void]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.PodEventConnectionRequest,mogenius-operator/src/core.Void]
+ *   type: struct
  * ```
  *
  */
@@ -8629,20 +8635,20 @@ export type SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST_RESPONSE = SERVICE_POD_E
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Request:
- *         name: mogenius-operator/src/core.Request
- *         properties:
- *             kind:
- *                 type: string
- *             name:
- *                 type: string
- *             namespace:
- *                 type: string
- *             timeOffsetMinutes:
- *                 type: int
+ *   mogenius-operator/src/core.Request:
+ *     name: mogenius-operator/src/core.Request
+ *     properties:
+ *       kind:
+ *         type: string
+ *       name:
+ *         type: string
+ *       namespace:
+ *         type: string
+ *       timeOffsetMinutes:
+ *         type: int
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Request
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Request
+ *   type: struct
  * ```
  *
  */
@@ -8653,52 +8659,52 @@ export type STATS_POD_ALL_FOR_CONTROLLER_REQUEST = STATS_POD_ALL_FOR_CONTROLLER_
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·7,*[]mogenius-operator/src/structs.PodStats]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·7,*[]mogenius-operator/src/structs.PodStats]
- *         properties:
- *             data:
- *                 elementType:
- *                     structRef: mogenius-operator/src/structs.PodStats
- *                     type: struct
- *                 pointer: true
- *                 type: array
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- *     mogenius-operator/src/structs.PodStats:
- *         name: mogenius-operator/src/structs.PodStats
- *         properties:
- *             containerName:
- *                 type: string
- *             cpu:
- *                 type: int
- *             cpuLimit:
- *                 type: int
- *             createdAt:
- *                 structRef: time.Time
- *                 type: struct
- *             ephemeralStorage:
- *                 type: int
- *             ephemeralStorageLimit:
- *                 type: int
- *             memory:
- *                 type: int
- *             memoryLimit:
- *                 type: int
- *             namespace:
- *                 type: string
- *             podName:
- *                 type: string
- *             startTime:
- *                 structRef: time.Time
- *                 type: struct
- *     time.Time:
- *         name: time.Time
- *         properties: {}
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·7,*[]mogenius-operator/src/structs.PodStats]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·7,*[]mogenius-operator/src/structs.PodStats]
+ *     properties:
+ *       data:
+ *         elementType:
+ *           structRef: mogenius-operator/src/structs.PodStats
+ *           type: struct
+ *         pointer: true
+ *         type: array
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
+ *   mogenius-operator/src/structs.PodStats:
+ *     name: mogenius-operator/src/structs.PodStats
+ *     properties:
+ *       containerName:
+ *         type: string
+ *       cpu:
+ *         type: int
+ *       cpuLimit:
+ *         type: int
+ *       createdAt:
+ *         structRef: time.Time
+ *         type: struct
+ *       ephemeralStorage:
+ *         type: int
+ *       ephemeralStorageLimit:
+ *         type: int
+ *       memory:
+ *         type: int
+ *       memoryLimit:
+ *         type: int
+ *       namespace:
+ *         type: string
+ *       podName:
+ *         type: string
+ *       startTime:
+ *         structRef: time.Time
+ *         type: struct
+ *   time.Time:
+ *     name: time.Time
+ *     properties: {}
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·7,*[]mogenius-operator/src/structs.PodStats]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·7,*[]mogenius-operator/src/structs.PodStats]
+ *   type: struct
  * ```
  *
  */
@@ -8709,20 +8715,20 @@ export type STATS_POD_ALL_FOR_CONTROLLER_RESPONSE = STATS_POD_ALL_FOR_CONTROLLER
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Request:
- *         name: mogenius-operator/src/core.Request
- *         properties:
- *             kind:
- *                 type: string
- *             name:
- *                 type: string
- *             namespace:
- *                 type: string
- *             timeOffsetMinutes:
- *                 type: int
+ *   mogenius-operator/src/core.Request:
+ *     name: mogenius-operator/src/core.Request
+ *     properties:
+ *       kind:
+ *         type: string
+ *       name:
+ *         type: string
+ *       namespace:
+ *         type: string
+ *       timeOffsetMinutes:
+ *         type: int
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Request
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Request
+ *   type: struct
  * ```
  *
  */
@@ -8733,47 +8739,47 @@ export type STATS_TRAFFIC_ALL_FOR_CONTROLLER_REQUEST = STATS_TRAFFIC_ALL_FOR_CON
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·7,*[]mogenius-operator/src/networkmonitor.PodNetworkStats]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·7,*[]mogenius-operator/src/networkmonitor.PodNetworkStats]
- *         properties:
- *             data:
- *                 elementType:
- *                     structRef: mogenius-operator/src/networkmonitor.PodNetworkStats
- *                     type: struct
- *                 pointer: true
- *                 type: array
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- *     mogenius-operator/src/networkmonitor.PodNetworkStats:
- *         name: mogenius-operator/src/networkmonitor.PodNetworkStats
- *         properties:
- *             createdAt:
- *                 structRef: time.Time
- *                 type: struct
- *             namespace:
- *                 type: string
- *             pod:
- *                 type: string
- *             receivedBytes:
- *                 type: uint
- *             receivedPackets:
- *                 type: uint
- *             receivedStartBytes:
- *                 type: uint
- *             transmitBytes:
- *                 type: uint
- *             transmitPackets:
- *                 type: uint
- *             transmitStartBytes:
- *                 type: uint
- *     time.Time:
- *         name: time.Time
- *         properties: {}
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·7,*[]mogenius-operator/src/networkmonitor.PodNetworkStats]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·7,*[]mogenius-operator/src/networkmonitor.PodNetworkStats]
+ *     properties:
+ *       data:
+ *         elementType:
+ *           structRef: mogenius-operator/src/networkmonitor.PodNetworkStats
+ *           type: struct
+ *         pointer: true
+ *         type: array
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
+ *   mogenius-operator/src/networkmonitor.PodNetworkStats:
+ *     name: mogenius-operator/src/networkmonitor.PodNetworkStats
+ *     properties:
+ *       createdAt:
+ *         structRef: time.Time
+ *         type: struct
+ *       namespace:
+ *         type: string
+ *       pod:
+ *         type: string
+ *       receivedBytes:
+ *         type: uint
+ *       receivedPackets:
+ *         type: uint
+ *       receivedStartBytes:
+ *         type: uint
+ *       transmitBytes:
+ *         type: uint
+ *       transmitPackets:
+ *         type: uint
+ *       transmitStartBytes:
+ *         type: uint
+ *   time.Time:
+ *     name: time.Time
+ *     properties: {}
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·7,*[]mogenius-operator/src/networkmonitor.PodNetworkStats]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·7,*[]mogenius-operator/src/networkmonitor.PodNetworkStats]
+ *   type: struct
  * ```
  *
  */
@@ -8784,16 +8790,16 @@ export type STATS_TRAFFIC_ALL_FOR_CONTROLLER_RESPONSE = STATS_TRAFFIC_ALL_FOR_CO
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Request:
- *         name: mogenius-operator/src/core.Request
- *         properties:
- *             timeOffsetMinutes:
- *                 type: int
- *             workspaceName:
- *                 type: string
+ *   mogenius-operator/src/core.Request:
+ *     name: mogenius-operator/src/core.Request
+ *     properties:
+ *       timeOffsetMinutes:
+ *         type: int
+ *       workspaceName:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Request
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Request
+ *   type: struct
  * ```
  *
  */
@@ -8804,38 +8810,38 @@ export type STATS_WORKSPACE_CPU_UTILIZATION_REQUEST = STATS_WORKSPACE_CPU_UTILIZ
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.GenericChartEntry:
- *         name: mogenius-operator/src/core.GenericChartEntry
- *         properties:
- *             pods:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     type: float
- *             time:
- *                 structRef: time.Time
- *                 type: struct
- *             value:
- *                 type: float
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·8,[]mogenius-operator/src/core.GenericChartEntry]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·8,[]mogenius-operator/src/core.GenericChartEntry]
- *         properties:
- *             data:
- *                 elementType:
- *                     structRef: mogenius-operator/src/core.GenericChartEntry
- *                     type: struct
- *                 type: array
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- *     time.Time:
- *         name: time.Time
- *         properties: {}
+ *   mogenius-operator/src/core.GenericChartEntry:
+ *     name: mogenius-operator/src/core.GenericChartEntry
+ *     properties:
+ *       pods:
+ *         keyType:
+ *           type: string
+ *         type: map
+ *         valueType:
+ *           type: float
+ *       time:
+ *         structRef: time.Time
+ *         type: struct
+ *       value:
+ *         type: float
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·8,[]mogenius-operator/src/core.GenericChartEntry]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·8,[]mogenius-operator/src/core.GenericChartEntry]
+ *     properties:
+ *       data:
+ *         elementType:
+ *           structRef: mogenius-operator/src/core.GenericChartEntry
+ *           type: struct
+ *         type: array
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
+ *   time.Time:
+ *     name: time.Time
+ *     properties: {}
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·8,[]mogenius-operator/src/core.GenericChartEntry]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·8,[]mogenius-operator/src/core.GenericChartEntry]
+ *   type: struct
  * ```
  *
  */
@@ -8846,16 +8852,16 @@ export type STATS_WORKSPACE_CPU_UTILIZATION_RESPONSE = STATS_WORKSPACE_CPU_UTILI
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Request:
- *         name: mogenius-operator/src/core.Request
- *         properties:
- *             timeOffsetMinutes:
- *                 type: int
- *             workspaceName:
- *                 type: string
+ *   mogenius-operator/src/core.Request:
+ *     name: mogenius-operator/src/core.Request
+ *     properties:
+ *       timeOffsetMinutes:
+ *         type: int
+ *       workspaceName:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Request
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Request
+ *   type: struct
  * ```
  *
  */
@@ -8866,38 +8872,38 @@ export type STATS_WORKSPACE_MEMORY_UTILIZATION_REQUEST = STATS_WORKSPACE_MEMORY_
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.GenericChartEntry:
- *         name: mogenius-operator/src/core.GenericChartEntry
- *         properties:
- *             pods:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     type: float
- *             time:
- *                 structRef: time.Time
- *                 type: struct
- *             value:
- *                 type: float
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·8,[]mogenius-operator/src/core.GenericChartEntry]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·8,[]mogenius-operator/src/core.GenericChartEntry]
- *         properties:
- *             data:
- *                 elementType:
- *                     structRef: mogenius-operator/src/core.GenericChartEntry
- *                     type: struct
- *                 type: array
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- *     time.Time:
- *         name: time.Time
- *         properties: {}
+ *   mogenius-operator/src/core.GenericChartEntry:
+ *     name: mogenius-operator/src/core.GenericChartEntry
+ *     properties:
+ *       pods:
+ *         keyType:
+ *           type: string
+ *         type: map
+ *         valueType:
+ *           type: float
+ *       time:
+ *         structRef: time.Time
+ *         type: struct
+ *       value:
+ *         type: float
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·8,[]mogenius-operator/src/core.GenericChartEntry]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·8,[]mogenius-operator/src/core.GenericChartEntry]
+ *     properties:
+ *       data:
+ *         elementType:
+ *           structRef: mogenius-operator/src/core.GenericChartEntry
+ *           type: struct
+ *         type: array
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
+ *   time.Time:
+ *     name: time.Time
+ *     properties: {}
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·8,[]mogenius-operator/src/core.GenericChartEntry]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·8,[]mogenius-operator/src/core.GenericChartEntry]
+ *   type: struct
  * ```
  *
  */
@@ -8908,16 +8914,16 @@ export type STATS_WORKSPACE_MEMORY_UTILIZATION_RESPONSE = STATS_WORKSPACE_MEMORY
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Request:
- *         name: mogenius-operator/src/core.Request
- *         properties:
- *             timeOffsetMinutes:
- *                 type: int
- *             workspaceName:
- *                 type: string
+ *   mogenius-operator/src/core.Request:
+ *     name: mogenius-operator/src/core.Request
+ *     properties:
+ *       timeOffsetMinutes:
+ *         type: int
+ *       workspaceName:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Request
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Request
+ *   type: struct
  * ```
  *
  */
@@ -8928,38 +8934,38 @@ export type STATS_WORKSPACE_TRAFFIC_UTILIZATION_REQUEST = STATS_WORKSPACE_TRAFFI
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.GenericChartEntry:
- *         name: mogenius-operator/src/core.GenericChartEntry
- *         properties:
- *             pods:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     type: float
- *             time:
- *                 structRef: time.Time
- *                 type: struct
- *             value:
- *                 type: float
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·8,[]mogenius-operator/src/core.GenericChartEntry]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·8,[]mogenius-operator/src/core.GenericChartEntry]
- *         properties:
- *             data:
- *                 elementType:
- *                     structRef: mogenius-operator/src/core.GenericChartEntry
- *                     type: struct
- *                 type: array
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- *     time.Time:
- *         name: time.Time
- *         properties: {}
+ *   mogenius-operator/src/core.GenericChartEntry:
+ *     name: mogenius-operator/src/core.GenericChartEntry
+ *     properties:
+ *       pods:
+ *         keyType:
+ *           type: string
+ *         type: map
+ *         valueType:
+ *           type: float
+ *       time:
+ *         structRef: time.Time
+ *         type: struct
+ *       value:
+ *         type: float
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·8,[]mogenius-operator/src/core.GenericChartEntry]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·8,[]mogenius-operator/src/core.GenericChartEntry]
+ *     properties:
+ *       data:
+ *         elementType:
+ *           structRef: mogenius-operator/src/core.GenericChartEntry
+ *           type: struct
+ *         type: array
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
+ *   time.Time:
+ *     name: time.Time
+ *     properties: {}
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·8,[]mogenius-operator/src/core.GenericChartEntry]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·8,[]mogenius-operator/src/core.GenericChartEntry]
+ *   type: struct
  * ```
  *
  */
@@ -8970,18 +8976,18 @@ export type STATS_WORKSPACE_TRAFFIC_UTILIZATION_RESPONSE = STATS_WORKSPACE_TRAFF
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/services.NfsVolumeRequest:
- *         name: mogenius-operator/src/services.NfsVolumeRequest
- *         properties:
- *             namespaceName:
- *                 type: string
- *             sizeInGb:
- *                 type: int
- *             volumeName:
- *                 type: string
+ *   mogenius-operator/src/services.NfsVolumeRequest:
+ *     name: mogenius-operator/src/services.NfsVolumeRequest
+ *     properties:
+ *       namespaceName:
+ *         type: string
+ *       sizeInGb:
+ *         type: int
+ *       volumeName:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/services.NfsVolumeRequest
- *     type: struct
+ *   structRef: mogenius-operator/src/services.NfsVolumeRequest
+ *   type: struct
  * ```
  *
  */
@@ -8992,18 +8998,18 @@ export type STORAGE_CREATE_VOLUME_REQUEST = STORAGE_CREATE_VOLUME_REQUEST__MOGEN
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/services.NfsVolumeRequest,bool]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/services.NfsVolumeRequest,bool]
- *         properties:
- *             data:
- *                 type: bool
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/services.NfsVolumeRequest,bool]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/services.NfsVolumeRequest,bool]
+ *     properties:
+ *       data:
+ *         type: bool
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/services.NfsVolumeRequest,bool]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/services.NfsVolumeRequest,bool]
+ *   type: struct
  * ```
  *
  */
@@ -9014,18 +9020,18 @@ export type STORAGE_CREATE_VOLUME_RESPONSE = STORAGE_CREATE_VOLUME_RESPONSE__MOG
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/services.NfsVolumeRequest:
- *         name: mogenius-operator/src/services.NfsVolumeRequest
- *         properties:
- *             namespaceName:
- *                 type: string
- *             sizeInGb:
- *                 type: int
- *             volumeName:
- *                 type: string
+ *   mogenius-operator/src/services.NfsVolumeRequest:
+ *     name: mogenius-operator/src/services.NfsVolumeRequest
+ *     properties:
+ *       namespaceName:
+ *         type: string
+ *       sizeInGb:
+ *         type: int
+ *       volumeName:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/services.NfsVolumeRequest
- *     type: struct
+ *   structRef: mogenius-operator/src/services.NfsVolumeRequest
+ *   type: struct
  * ```
  *
  */
@@ -9036,18 +9042,18 @@ export type STORAGE_DELETE_VOLUME_REQUEST = STORAGE_DELETE_VOLUME_REQUEST__MOGEN
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/services.NfsVolumeRequest,bool]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/services.NfsVolumeRequest,bool]
- *         properties:
- *             data:
- *                 type: bool
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/services.NfsVolumeRequest,bool]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/services.NfsVolumeRequest,bool]
+ *     properties:
+ *       data:
+ *         type: bool
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/services.NfsVolumeRequest,bool]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/services.NfsVolumeRequest,bool]
+ *   type: struct
  * ```
  *
  */
@@ -9058,16 +9064,16 @@ export type STORAGE_DELETE_VOLUME_RESPONSE = STORAGE_DELETE_VOLUME_RESPONSE__MOG
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/services.NfsVolumeStatsRequest:
- *         name: mogenius-operator/src/services.NfsVolumeStatsRequest
- *         properties:
- *             namespaceName:
- *                 type: string
- *             volumeName:
- *                 type: string
+ *   mogenius-operator/src/services.NfsVolumeStatsRequest:
+ *     name: mogenius-operator/src/services.NfsVolumeStatsRequest
+ *     properties:
+ *       namespaceName:
+ *         type: string
+ *       volumeName:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/services.NfsVolumeStatsRequest
- *     type: struct
+ *   structRef: mogenius-operator/src/services.NfsVolumeStatsRequest
+ *   type: struct
  * ```
  *
  */
@@ -9078,30 +9084,30 @@ export type STORAGE_STATS_REQUEST = STORAGE_STATS_REQUEST__MOGENIUS_OPERATOR_SRC
  *
  * ```yaml
  * structs:
- *     ? mogenius-operator/src/core.Result[mogenius-operator/src/services.NfsVolumeStatsRequest,mogenius-operator/src/services.NfsVolumeStatsResponse]
- *     :   name: mogenius-operator/src/core.Result[mogenius-operator/src/services.NfsVolumeStatsRequest,mogenius-operator/src/services.NfsVolumeStatsResponse]
- *         properties:
- *             data:
- *                 structRef: mogenius-operator/src/services.NfsVolumeStatsResponse
- *                 type: struct
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- *     mogenius-operator/src/services.NfsVolumeStatsResponse:
- *         name: mogenius-operator/src/services.NfsVolumeStatsResponse
- *         properties:
- *             freeBytes:
- *                 type: uint
- *             totalBytes:
- *                 type: uint
- *             usedBytes:
- *                 type: uint
- *             volumeName:
- *                 type: string
+ *   ? mogenius-operator/src/core.Result[mogenius-operator/src/services.NfsVolumeStatsRequest,mogenius-operator/src/services.NfsVolumeStatsResponse]
+ *   : name: mogenius-operator/src/core.Result[mogenius-operator/src/services.NfsVolumeStatsRequest,mogenius-operator/src/services.NfsVolumeStatsResponse]
+ *     properties:
+ *       data:
+ *         structRef: mogenius-operator/src/services.NfsVolumeStatsResponse
+ *         type: struct
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
+ *   mogenius-operator/src/services.NfsVolumeStatsResponse:
+ *     name: mogenius-operator/src/services.NfsVolumeStatsResponse
+ *     properties:
+ *       freeBytes:
+ *         type: uint
+ *       totalBytes:
+ *         type: uint
+ *       usedBytes:
+ *         type: uint
+ *       volumeName:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/services.NfsVolumeStatsRequest,mogenius-operator/src/services.NfsVolumeStatsResponse]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/services.NfsVolumeStatsRequest,mogenius-operator/src/services.NfsVolumeStatsResponse]
+ *   type: struct
  * ```
  *
  */
@@ -9112,18 +9118,18 @@ export type STORAGE_STATS_RESPONSE = STORAGE_STATS_RESPONSE__MOGENIUS_OPERATOR_S
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/services.NfsStatusRequest:
- *         name: mogenius-operator/src/services.NfsStatusRequest
- *         properties:
- *             name:
- *                 type: string
- *             namespace:
- *                 type: string
- *             type:
- *                 type: string
+ *   mogenius-operator/src/services.NfsStatusRequest:
+ *     name: mogenius-operator/src/services.NfsStatusRequest
+ *     properties:
+ *       name:
+ *         type: string
+ *       namespace:
+ *         type: string
+ *       type:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/services.NfsStatusRequest
- *     type: struct
+ *   structRef: mogenius-operator/src/services.NfsStatusRequest
+ *   type: struct
  * ```
  *
  */
@@ -9134,50 +9140,50 @@ export type STORAGE_STATUS_REQUEST = STORAGE_STATUS_REQUEST__MOGENIUS_OPERATOR_S
  *
  * ```yaml
  * structs:
- *     ? mogenius-operator/src/core.Result[mogenius-operator/src/services.NfsStatusRequest,mogenius-operator/src/services.NfsStatusResponse]
- *     :   name: mogenius-operator/src/core.Result[mogenius-operator/src/services.NfsStatusRequest,mogenius-operator/src/services.NfsStatusResponse]
- *         properties:
- *             data:
- *                 structRef: mogenius-operator/src/services.NfsStatusResponse
- *                 type: struct
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- *     mogenius-operator/src/services.NfsStatusResponse:
- *         name: mogenius-operator/src/services.NfsStatusResponse
- *         properties:
- *             freeBytes:
- *                 type: uint
- *             messages:
- *                 elementType:
- *                     structRef: mogenius-operator/src/services.VolumeStatusMessage
- *                     type: struct
- *                 type: array
- *             namespaceName:
- *                 type: string
- *             status:
- *                 type: string
- *             totalBytes:
- *                 type: uint
- *             usedByPods:
- *                 elementType:
- *                     type: string
- *                 type: array
- *             usedBytes:
- *                 type: uint
- *             volumeName:
- *                 type: string
- *     mogenius-operator/src/services.VolumeStatusMessage:
- *         name: mogenius-operator/src/services.VolumeStatusMessage
- *         properties:
- *             message:
- *                 type: string
- *             type:
- *                 type: string
+ *   ? mogenius-operator/src/core.Result[mogenius-operator/src/services.NfsStatusRequest,mogenius-operator/src/services.NfsStatusResponse]
+ *   : name: mogenius-operator/src/core.Result[mogenius-operator/src/services.NfsStatusRequest,mogenius-operator/src/services.NfsStatusResponse]
+ *     properties:
+ *       data:
+ *         structRef: mogenius-operator/src/services.NfsStatusResponse
+ *         type: struct
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
+ *   mogenius-operator/src/services.NfsStatusResponse:
+ *     name: mogenius-operator/src/services.NfsStatusResponse
+ *     properties:
+ *       freeBytes:
+ *         type: uint
+ *       messages:
+ *         elementType:
+ *           structRef: mogenius-operator/src/services.VolumeStatusMessage
+ *           type: struct
+ *         type: array
+ *       namespaceName:
+ *         type: string
+ *       status:
+ *         type: string
+ *       totalBytes:
+ *         type: uint
+ *       usedByPods:
+ *         elementType:
+ *           type: string
+ *         type: array
+ *       usedBytes:
+ *         type: uint
+ *       volumeName:
+ *         type: string
+ *   mogenius-operator/src/services.VolumeStatusMessage:
+ *     name: mogenius-operator/src/services.VolumeStatusMessage
+ *     properties:
+ *       message:
+ *         type: string
+ *       type:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/services.NfsStatusRequest,mogenius-operator/src/services.NfsStatusResponse]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/services.NfsStatusRequest,mogenius-operator/src/services.NfsStatusResponse]
+ *   type: struct
  * ```
  *
  */
@@ -9188,12 +9194,12 @@ export type STORAGE_STATUS_RESPONSE = STORAGE_STATUS_RESPONSE__MOGENIUS_OPERATOR
  *
  * ```yaml
  * structs:
- *     ANON_STRUCT_0:
- *         properties: {}
+ *   ANON_STRUCT_0:
+ *     properties: {}
  * typeInfo:
- *     pointer: true
- *     structRef: ANON_STRUCT_0
- *     type: struct
+ *   pointer: true
+ *   structRef: ANON_STRUCT_0
+ *   type: struct
  * ```
  *
  */
@@ -9204,63 +9210,63 @@ export type SYSTEM_CHECK_REQUEST = SYSTEM_CHECK_REQUEST__ANON_STRUCT_0|undefined
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/services.SystemCheckResponse]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/services.SystemCheckResponse]
- *         properties:
- *             data:
- *                 structRef: mogenius-operator/src/services.SystemCheckResponse
- *                 type: struct
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- *     mogenius-operator/src/services.SystemCheckEntry:
- *         name: mogenius-operator/src/services.SystemCheckEntry
- *         properties:
- *             checkName:
- *                 type: string
- *             description:
- *                 type: string
- *             errorMessage:
- *                 pointer: true
- *                 type: string
- *             helmStatus:
- *                 type: string
- *             installPattern:
- *                 type: string
- *             isRequired:
- *                 type: bool
- *             isRunning:
- *                 type: bool
- *             processTimeInMs:
- *                 type: int
- *             solutionMessage:
- *                 type: string
- *             successMessage:
- *                 type: string
- *             uninstallPattern:
- *                 type: string
- *             upgradePattern:
- *                 type: string
- *             versionAvailable:
- *                 type: string
- *             versionInstalled:
- *                 type: string
- *             wantsToBeInstalled:
- *                 type: bool
- *     mogenius-operator/src/services.SystemCheckResponse:
- *         name: mogenius-operator/src/services.SystemCheckResponse
- *         properties:
- *             entries:
- *                 elementType:
- *                     structRef: mogenius-operator/src/services.SystemCheckEntry
- *                     type: struct
- *                 type: array
- *             terminalString:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/services.SystemCheckResponse]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/services.SystemCheckResponse]
+ *     properties:
+ *       data:
+ *         structRef: mogenius-operator/src/services.SystemCheckResponse
+ *         type: struct
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
+ *   mogenius-operator/src/services.SystemCheckEntry:
+ *     name: mogenius-operator/src/services.SystemCheckEntry
+ *     properties:
+ *       checkName:
+ *         type: string
+ *       description:
+ *         type: string
+ *       errorMessage:
+ *         pointer: true
+ *         type: string
+ *       helmStatus:
+ *         type: string
+ *       installPattern:
+ *         type: string
+ *       isRequired:
+ *         type: bool
+ *       isRunning:
+ *         type: bool
+ *       processTimeInMs:
+ *         type: int
+ *       solutionMessage:
+ *         type: string
+ *       successMessage:
+ *         type: string
+ *       uninstallPattern:
+ *         type: string
+ *       upgradePattern:
+ *         type: string
+ *       versionAvailable:
+ *         type: string
+ *       versionInstalled:
+ *         type: string
+ *       wantsToBeInstalled:
+ *         type: bool
+ *   mogenius-operator/src/services.SystemCheckResponse:
+ *     name: mogenius-operator/src/services.SystemCheckResponse
+ *     properties:
+ *       entries:
+ *         elementType:
+ *           structRef: mogenius-operator/src/services.SystemCheckEntry
+ *           type: struct
+ *         type: array
+ *       terminalString:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/services.SystemCheckResponse]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/services.SystemCheckResponse]
+ *   type: struct
  * ```
  *
  */
@@ -9271,30 +9277,30 @@ export type SYSTEM_CHECK_RESPONSE = SYSTEM_CHECK_RESPONSE__MOGENIUS_OPERATOR_SRC
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/utils.ResourceDescriptor:
- *         name: mogenius-operator/src/utils.ResourceDescriptor
- *         properties:
- *             apiVersion:
- *                 type: string
- *             kind:
- *                 type: string
- *             namespaced:
- *                 type: bool
- *             plural:
- *                 type: string
- *     mogenius-operator/src/utils.WorkloadSingleRequest:
- *         name: mogenius-operator/src/utils.WorkloadSingleRequest
- *         properties:
- *             ResourceDescriptor:
- *                 structRef: mogenius-operator/src/utils.ResourceDescriptor
- *                 type: struct
- *             namespace:
- *                 type: string
- *             resourceName:
- *                 type: string
+ *   mogenius-operator/src/utils.ResourceDescriptor:
+ *     name: mogenius-operator/src/utils.ResourceDescriptor
+ *     properties:
+ *       apiVersion:
+ *         type: string
+ *       kind:
+ *         type: string
+ *       namespaced:
+ *         type: bool
+ *       plural:
+ *         type: string
+ *   mogenius-operator/src/utils.WorkloadSingleRequest:
+ *     name: mogenius-operator/src/utils.WorkloadSingleRequest
+ *     properties:
+ *       ResourceDescriptor:
+ *         structRef: mogenius-operator/src/utils.ResourceDescriptor
+ *         type: struct
+ *       namespace:
+ *         type: string
+ *       resourceName:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/utils.WorkloadSingleRequest
- *     type: struct
+ *   structRef: mogenius-operator/src/utils.WorkloadSingleRequest
+ *   type: struct
  * ```
  *
  */
@@ -9305,30 +9311,30 @@ export type TRIGGER_WORKLOAD_REQUEST = TRIGGER_WORKLOAD_REQUEST__MOGENIUS_OPERAT
  *
  * ```yaml
  * structs:
- *     k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured
- *         properties:
- *             Object:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     pointer: true
- *                     type: any
- *     ? mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadSingleRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
- *     :   name: mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadSingleRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
- *         properties:
- *             data:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured
- *                 type: struct
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured:
+ *     name: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured
+ *     properties:
+ *       Object:
+ *         keyType:
+ *           type: string
+ *         type: map
+ *         valueType:
+ *           pointer: true
+ *           type: any
+ *   ? mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadSingleRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *   : name: mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadSingleRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *     properties:
+ *       data:
+ *         pointer: true
+ *         structRef: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured
+ *         type: struct
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadSingleRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadSingleRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *   type: struct
  * ```
  *
  */
@@ -9339,12 +9345,12 @@ export type TRIGGER_WORKLOAD_RESPONSE = TRIGGER_WORKLOAD_RESPONSE__MOGENIUS_OPER
  *
  * ```yaml
  * structs:
- *     ANON_STRUCT_0:
- *         properties: {}
+ *   ANON_STRUCT_0:
+ *     properties: {}
  * typeInfo:
- *     pointer: true
- *     structRef: ANON_STRUCT_0
- *     type: struct
+ *   pointer: true
+ *   structRef: ANON_STRUCT_0
+ *   type: struct
  * ```
  *
  */
@@ -9355,18 +9361,18 @@ export type UNINSTALL_ALERTMANAGER_REQUEST = UNINSTALL_ALERTMANAGER_REQUEST__ANO
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
- *         properties:
- *             data:
- *                 type: string
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *     properties:
+ *       data:
+ *         type: string
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *   type: struct
  * ```
  *
  */
@@ -9377,12 +9383,12 @@ export type UNINSTALL_ALERTMANAGER_RESPONSE = UNINSTALL_ALERTMANAGER_RESPONSE__M
  *
  * ```yaml
  * structs:
- *     ANON_STRUCT_0:
- *         properties: {}
+ *   ANON_STRUCT_0:
+ *     properties: {}
  * typeInfo:
- *     pointer: true
- *     structRef: ANON_STRUCT_0
- *     type: struct
+ *   pointer: true
+ *   structRef: ANON_STRUCT_0
+ *   type: struct
  * ```
  *
  */
@@ -9393,18 +9399,18 @@ export type UNINSTALL_CERT_MANAGER_REQUEST = UNINSTALL_CERT_MANAGER_REQUEST__ANO
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
- *         properties:
- *             data:
- *                 type: string
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *     properties:
+ *       data:
+ *         type: string
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *   type: struct
  * ```
  *
  */
@@ -9415,12 +9421,12 @@ export type UNINSTALL_CERT_MANAGER_RESPONSE = UNINSTALL_CERT_MANAGER_RESPONSE__M
  *
  * ```yaml
  * structs:
- *     ANON_STRUCT_0:
- *         properties: {}
+ *   ANON_STRUCT_0:
+ *     properties: {}
  * typeInfo:
- *     pointer: true
- *     structRef: ANON_STRUCT_0
- *     type: struct
+ *   pointer: true
+ *   structRef: ANON_STRUCT_0
+ *   type: struct
  * ```
  *
  */
@@ -9431,18 +9437,18 @@ export type UNINSTALL_CLUSTER_ISSUER_REQUEST = UNINSTALL_CLUSTER_ISSUER_REQUEST_
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
- *         properties:
- *             data:
- *                 type: string
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *     properties:
+ *       data:
+ *         type: string
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *   type: struct
  * ```
  *
  */
@@ -9453,12 +9459,12 @@ export type UNINSTALL_CLUSTER_ISSUER_RESPONSE = UNINSTALL_CLUSTER_ISSUER_RESPONS
  *
  * ```yaml
  * structs:
- *     ANON_STRUCT_0:
- *         properties: {}
+ *   ANON_STRUCT_0:
+ *     properties: {}
  * typeInfo:
- *     pointer: true
- *     structRef: ANON_STRUCT_0
- *     type: struct
+ *   pointer: true
+ *   structRef: ANON_STRUCT_0
+ *   type: struct
  * ```
  *
  */
@@ -9469,18 +9475,18 @@ export type UNINSTALL_INGRESS_CONTROLLER_TRAEFIK_REQUEST = UNINSTALL_INGRESS_CON
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
- *         properties:
- *             data:
- *                 type: string
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *     properties:
+ *       data:
+ *         type: string
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *   type: struct
  * ```
  *
  */
@@ -9491,12 +9497,12 @@ export type UNINSTALL_INGRESS_CONTROLLER_TRAEFIK_RESPONSE = UNINSTALL_INGRESS_CO
  *
  * ```yaml
  * structs:
- *     ANON_STRUCT_0:
- *         properties: {}
+ *   ANON_STRUCT_0:
+ *     properties: {}
  * typeInfo:
- *     pointer: true
- *     structRef: ANON_STRUCT_0
- *     type: struct
+ *   pointer: true
+ *   structRef: ANON_STRUCT_0
+ *   type: struct
  * ```
  *
  */
@@ -9507,18 +9513,18 @@ export type UNINSTALL_KEPLER_REQUEST = UNINSTALL_KEPLER_REQUEST__ANON_STRUCT_0|u
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
- *         properties:
- *             data:
- *                 type: string
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *     properties:
+ *       data:
+ *         type: string
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *   type: struct
  * ```
  *
  */
@@ -9529,12 +9535,12 @@ export type UNINSTALL_KEPLER_RESPONSE = UNINSTALL_KEPLER_RESPONSE__MOGENIUS_OPER
  *
  * ```yaml
  * structs:
- *     ANON_STRUCT_0:
- *         properties: {}
+ *   ANON_STRUCT_0:
+ *     properties: {}
  * typeInfo:
- *     pointer: true
- *     structRef: ANON_STRUCT_0
- *     type: struct
+ *   pointer: true
+ *   structRef: ANON_STRUCT_0
+ *   type: struct
  * ```
  *
  */
@@ -9545,18 +9551,18 @@ export type UNINSTALL_METALLB_REQUEST = UNINSTALL_METALLB_REQUEST__ANON_STRUCT_0
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
- *         properties:
- *             data:
- *                 type: string
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *     properties:
+ *       data:
+ *         type: string
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *   type: struct
  * ```
  *
  */
@@ -9567,12 +9573,12 @@ export type UNINSTALL_METALLB_RESPONSE = UNINSTALL_METALLB_RESPONSE__MOGENIUS_OP
  *
  * ```yaml
  * structs:
- *     ANON_STRUCT_0:
- *         properties: {}
+ *   ANON_STRUCT_0:
+ *     properties: {}
  * typeInfo:
- *     pointer: true
- *     structRef: ANON_STRUCT_0
- *     type: struct
+ *   pointer: true
+ *   structRef: ANON_STRUCT_0
+ *   type: struct
  * ```
  *
  */
@@ -9583,18 +9589,18 @@ export type UNINSTALL_METRICS_SERVER_REQUEST = UNINSTALL_METRICS_SERVER_REQUEST_
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
- *         properties:
- *             data:
- *                 type: string
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *     properties:
+ *       data:
+ *         type: string
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *   type: struct
  * ```
  *
  */
@@ -9605,12 +9611,12 @@ export type UNINSTALL_METRICS_SERVER_RESPONSE = UNINSTALL_METRICS_SERVER_RESPONS
  *
  * ```yaml
  * structs:
- *     ANON_STRUCT_0:
- *         properties: {}
+ *   ANON_STRUCT_0:
+ *     properties: {}
  * typeInfo:
- *     pointer: true
- *     structRef: ANON_STRUCT_0
- *     type: struct
+ *   pointer: true
+ *   structRef: ANON_STRUCT_0
+ *   type: struct
  * ```
  *
  */
@@ -9621,18 +9627,18 @@ export type UNINSTALL_PROMETHEUS_REQUEST = UNINSTALL_PROMETHEUS_REQUEST__ANON_ST
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
- *         properties:
- *             data:
- *                 type: string
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *     properties:
+ *       data:
+ *         type: string
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *   type: struct
  * ```
  *
  */
@@ -9643,12 +9649,12 @@ export type UNINSTALL_PROMETHEUS_RESPONSE = UNINSTALL_PROMETHEUS_RESPONSE__MOGEN
  *
  * ```yaml
  * structs:
- *     ANON_STRUCT_0:
- *         properties: {}
+ *   ANON_STRUCT_0:
+ *     properties: {}
  * typeInfo:
- *     pointer: true
- *     structRef: ANON_STRUCT_0
- *     type: struct
+ *   pointer: true
+ *   structRef: ANON_STRUCT_0
+ *   type: struct
  * ```
  *
  */
@@ -9659,18 +9665,18 @@ export type UNINSTALL_RENOVATE_OPERATOR_REQUEST = UNINSTALL_RENOVATE_OPERATOR_RE
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
- *         properties:
- *             data:
- *                 type: string
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *     properties:
+ *       data:
+ *         type: string
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *   type: struct
  * ```
  *
  */
@@ -9681,22 +9687,22 @@ export type UNINSTALL_RENOVATE_OPERATOR_RESPONSE = UNINSTALL_RENOVATE_OPERATOR_R
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Request:
- *         name: mogenius-operator/src/core.Request
- *         properties:
- *             grantee:
- *                 type: string
- *             name:
- *                 type: string
- *             role:
- *                 type: string
- *             targetName:
- *                 type: string
- *             targetType:
- *                 type: string
+ *   mogenius-operator/src/core.Request:
+ *     name: mogenius-operator/src/core.Request
+ *     properties:
+ *       grantee:
+ *         type: string
+ *       name:
+ *         type: string
+ *       role:
+ *         type: string
+ *       targetName:
+ *         type: string
+ *       targetType:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Request
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Request
+ *   type: struct
  * ```
  *
  */
@@ -9707,18 +9713,18 @@ export type UPDATE_GRANT_REQUEST = UPDATE_GRANT_REQUEST__MOGENIUS_OPERATOR_SRC_C
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·31,string]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·31,string]
- *         properties:
- *             data:
- *                 type: string
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·31,string]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·31,string]
+ *     properties:
+ *       data:
+ *         type: string
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·31,string]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·31,string]
+ *   type: struct
  * ```
  *
  */
@@ -9729,35 +9735,35 @@ export type UPDATE_GRANT_RESPONSE = UPDATE_GRANT_RESPONSE__MOGENIUS_OPERATOR_SRC
  *
  * ```yaml
  * structs:
- *     k8s.io/api/rbac/v1.Subject:
- *         name: k8s.io/api/rbac/v1.Subject
- *         properties:
- *             apiGroup:
- *                 type: string
- *             kind:
- *                 type: string
- *             name:
- *                 type: string
- *             namespace:
- *                 type: string
- *     mogenius-operator/src/core.Request:
- *         name: mogenius-operator/src/core.Request
- *         properties:
- *             email:
- *                 type: string
- *             firstName:
- *                 type: string
- *             lastName:
- *                 type: string
- *             name:
- *                 type: string
- *             subject:
- *                 pointer: true
- *                 structRef: k8s.io/api/rbac/v1.Subject
- *                 type: struct
+ *   k8s.io/api/rbac/v1.Subject:
+ *     name: k8s.io/api/rbac/v1.Subject
+ *     properties:
+ *       apiGroup:
+ *         type: string
+ *       kind:
+ *         type: string
+ *       name:
+ *         type: string
+ *       namespace:
+ *         type: string
+ *   mogenius-operator/src/core.Request:
+ *     name: mogenius-operator/src/core.Request
+ *     properties:
+ *       email:
+ *         type: string
+ *       firstName:
+ *         type: string
+ *       lastName:
+ *         type: string
+ *       name:
+ *         type: string
+ *       subject:
+ *         pointer: true
+ *         structRef: k8s.io/api/rbac/v1.Subject
+ *         type: struct
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Request
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Request
+ *   type: struct
  * ```
  *
  */
@@ -9768,18 +9774,18 @@ export type UPDATE_USER_REQUEST = UPDATE_USER_REQUEST__MOGENIUS_OPERATOR_SRC_COR
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·26,string]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·26,string]
- *         properties:
- *             data:
- *                 type: string
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·26,string]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·26,string]
+ *     properties:
+ *       data:
+ *         type: string
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·26,string]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·26,string]
+ *   type: struct
  * ```
  *
  */
@@ -9790,30 +9796,30 @@ export type UPDATE_USER_RESPONSE = UPDATE_USER_RESPONSE__MOGENIUS_OPERATOR_SRC_C
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/utils.ResourceDescriptor:
- *         name: mogenius-operator/src/utils.ResourceDescriptor
- *         properties:
- *             apiVersion:
- *                 type: string
- *             kind:
- *                 type: string
- *             namespaced:
- *                 type: bool
- *             plural:
- *                 type: string
- *     mogenius-operator/src/utils.WorkloadChangeRequest:
- *         name: mogenius-operator/src/utils.WorkloadChangeRequest
- *         properties:
- *             ResourceDescriptor:
- *                 structRef: mogenius-operator/src/utils.ResourceDescriptor
- *                 type: struct
- *             namespace:
- *                 type: string
- *             yamlData:
- *                 type: string
+ *   mogenius-operator/src/utils.ResourceDescriptor:
+ *     name: mogenius-operator/src/utils.ResourceDescriptor
+ *     properties:
+ *       apiVersion:
+ *         type: string
+ *       kind:
+ *         type: string
+ *       namespaced:
+ *         type: bool
+ *       plural:
+ *         type: string
+ *   mogenius-operator/src/utils.WorkloadChangeRequest:
+ *     name: mogenius-operator/src/utils.WorkloadChangeRequest
+ *     properties:
+ *       ResourceDescriptor:
+ *         structRef: mogenius-operator/src/utils.ResourceDescriptor
+ *         type: struct
+ *       namespace:
+ *         type: string
+ *       yamlData:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/utils.WorkloadChangeRequest
- *     type: struct
+ *   structRef: mogenius-operator/src/utils.WorkloadChangeRequest
+ *   type: struct
  * ```
  *
  */
@@ -9824,30 +9830,30 @@ export type UPDATE_WORKLOAD_REQUEST = UPDATE_WORKLOAD_REQUEST__MOGENIUS_OPERATOR
  *
  * ```yaml
  * structs:
- *     k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured:
- *         name: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured
- *         properties:
- *             Object:
- *                 keyType:
- *                     type: string
- *                 type: map
- *                 valueType:
- *                     pointer: true
- *                     type: any
- *     ? mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadChangeRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
- *     :   name: mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadChangeRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
- *         properties:
- *             data:
- *                 pointer: true
- *                 structRef: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured
- *                 type: struct
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured:
+ *     name: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured
+ *     properties:
+ *       Object:
+ *         keyType:
+ *           type: string
+ *         type: map
+ *         valueType:
+ *           pointer: true
+ *           type: any
+ *   ? mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadChangeRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *   : name: mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadChangeRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *     properties:
+ *       data:
+ *         pointer: true
+ *         structRef: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured
+ *         type: struct
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadChangeRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/utils.WorkloadChangeRequest,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *   type: struct
  * ```
  *
  */
@@ -9858,30 +9864,30 @@ export type UPDATE_WORKLOAD_RESPONSE = UPDATE_WORKLOAD_RESPONSE__MOGENIUS_OPERAT
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Request:
- *         name: mogenius-operator/src/core.Request
- *         properties:
- *             displayName:
- *                 type: string
- *             name:
- *                 type: string
- *             resources:
- *                 elementType:
- *                     structRef: mogenius-operator/src/crds/v1alpha1.WorkspaceResourceIdentifier
- *                     type: struct
- *                 type: array
- *     mogenius-operator/src/crds/v1alpha1.WorkspaceResourceIdentifier:
- *         name: mogenius-operator/src/crds/v1alpha1.WorkspaceResourceIdentifier
- *         properties:
- *             id:
- *                 type: string
- *             namespace:
- *                 type: string
- *             type:
- *                 type: string
+ *   mogenius-operator/src/core.Request:
+ *     name: mogenius-operator/src/core.Request
+ *     properties:
+ *       displayName:
+ *         type: string
+ *       name:
+ *         type: string
+ *       resources:
+ *         elementType:
+ *           structRef: mogenius-operator/src/crds/v1alpha1.WorkspaceResourceIdentifier
+ *           type: struct
+ *         type: array
+ *   mogenius-operator/src/crds/v1alpha1.WorkspaceResourceIdentifier:
+ *     name: mogenius-operator/src/crds/v1alpha1.WorkspaceResourceIdentifier
+ *     properties:
+ *       id:
+ *         type: string
+ *       namespace:
+ *         type: string
+ *       type:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Request
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Request
+ *   type: struct
  * ```
  *
  */
@@ -9892,18 +9898,18 @@ export type UPDATE_WORKSPACE_REQUEST = UPDATE_WORKSPACE_REQUEST__MOGENIUS_OPERAT
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·21,string]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·21,string]
- *         properties:
- *             data:
- *                 type: string
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·21,string]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·21,string]
+ *     properties:
+ *       data:
+ *         type: string
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·21,string]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·21,string]
+ *   type: struct
  * ```
  *
  */
@@ -9914,14 +9920,14 @@ export type UPDATE_WORKSPACE_RESPONSE = UPDATE_WORKSPACE_RESPONSE__MOGENIUS_OPER
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Request:
- *         name: mogenius-operator/src/core.Request
- *         properties:
- *             command:
- *                 type: string
+ *   mogenius-operator/src/core.Request:
+ *     name: mogenius-operator/src/core.Request
+ *     properties:
+ *       command:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Request
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Request
+ *   type: struct
  * ```
  *
  */
@@ -9932,73 +9938,73 @@ export type UPGRADEK8SMANAGER_REQUEST = UPGRADEK8SMANAGER_REQUEST__MOGENIUS_OPER
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·4,*mogenius-operator/src/structs.Job]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·4,*mogenius-operator/src/structs.Job]
- *         properties:
- *             data:
- *                 pointer: true
- *                 structRef: mogenius-operator/src/structs.Job
- *                 type: struct
- *             message:
- *                 type: string
- *             status:
- *                 type: string
- *     mogenius-operator/src/structs.Command:
- *         name: mogenius-operator/src/structs.Command
- *         properties:
- *             command:
- *                 type: string
- *             finished:
- *                 structRef: time.Time
- *                 type: struct
- *             id:
- *                 type: string
- *             message:
- *                 type: string
- *             started:
- *                 structRef: time.Time
- *                 type: struct
- *             state:
- *                 type: string
- *             title:
- *                 type: string
- *     mogenius-operator/src/structs.Job:
- *         name: mogenius-operator/src/structs.Job
- *         properties:
- *             commands:
- *                 elementType:
- *                     pointer: true
- *                     structRef: mogenius-operator/src/structs.Command
- *                     type: struct
- *                 type: array
- *             containerName:
- *                 type: string
- *             controllerName:
- *                 type: string
- *             finished:
- *                 structRef: time.Time
- *                 type: struct
- *             id:
- *                 type: string
- *             message:
- *                 type: string
- *             namespaceName:
- *                 type: string
- *             projectId:
- *                 type: string
- *             started:
- *                 structRef: time.Time
- *                 type: struct
- *             state:
- *                 type: string
- *             title:
- *                 type: string
- *     time.Time:
- *         name: time.Time
- *         properties: {}
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·4,*mogenius-operator/src/structs.Job]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·4,*mogenius-operator/src/structs.Job]
+ *     properties:
+ *       data:
+ *         pointer: true
+ *         structRef: mogenius-operator/src/structs.Job
+ *         type: struct
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
+ *   mogenius-operator/src/structs.Command:
+ *     name: mogenius-operator/src/structs.Command
+ *     properties:
+ *       command:
+ *         type: string
+ *       finished:
+ *         structRef: time.Time
+ *         type: struct
+ *       id:
+ *         type: string
+ *       message:
+ *         type: string
+ *       started:
+ *         structRef: time.Time
+ *         type: struct
+ *       state:
+ *         type: string
+ *       title:
+ *         type: string
+ *   mogenius-operator/src/structs.Job:
+ *     name: mogenius-operator/src/structs.Job
+ *     properties:
+ *       commands:
+ *         elementType:
+ *           pointer: true
+ *           structRef: mogenius-operator/src/structs.Command
+ *           type: struct
+ *         type: array
+ *       containerName:
+ *         type: string
+ *       controllerName:
+ *         type: string
+ *       finished:
+ *         structRef: time.Time
+ *         type: struct
+ *       id:
+ *         type: string
+ *       message:
+ *         type: string
+ *       namespaceName:
+ *         type: string
+ *       projectId:
+ *         type: string
+ *       started:
+ *         structRef: time.Time
+ *         type: struct
+ *       state:
+ *         type: string
+ *       title:
+ *         type: string
+ *   time.Time:
+ *     name: time.Time
+ *     properties: {}
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·4,*mogenius-operator/src/structs.Job]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·4,*mogenius-operator/src/structs.Job]
+ *   type: struct
  * ```
  *
  */
@@ -10009,12 +10015,12 @@ export type UPGRADEK8SMANAGER_RESPONSE = UPGRADEK8SMANAGER_RESPONSE__MOGENIUS_OP
  *
  * ```yaml
  * structs:
- *     ANON_STRUCT_0:
- *         properties: {}
+ *   ANON_STRUCT_0:
+ *     properties: {}
  * typeInfo:
- *     pointer: true
- *     structRef: ANON_STRUCT_0
- *     type: struct
+ *   pointer: true
+ *   structRef: ANON_STRUCT_0
+ *   type: struct
  * ```
  *
  */
@@ -10025,18 +10031,18 @@ export type UPGRADE_ALERTMANAGER_REQUEST = UPGRADE_ALERTMANAGER_REQUEST__ANON_ST
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
- *         properties:
- *             data:
- *                 type: string
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *     properties:
+ *       data:
+ *         type: string
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *   type: struct
  * ```
  *
  */
@@ -10047,12 +10053,12 @@ export type UPGRADE_ALERTMANAGER_RESPONSE = UPGRADE_ALERTMANAGER_RESPONSE__MOGEN
  *
  * ```yaml
  * structs:
- *     ANON_STRUCT_0:
- *         properties: {}
+ *   ANON_STRUCT_0:
+ *     properties: {}
  * typeInfo:
- *     pointer: true
- *     structRef: ANON_STRUCT_0
- *     type: struct
+ *   pointer: true
+ *   structRef: ANON_STRUCT_0
+ *   type: struct
  * ```
  *
  */
@@ -10063,18 +10069,18 @@ export type UPGRADE_CERT_MANAGER_REQUEST = UPGRADE_CERT_MANAGER_REQUEST__ANON_ST
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
- *         properties:
- *             data:
- *                 type: string
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *     properties:
+ *       data:
+ *         type: string
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *   type: struct
  * ```
  *
  */
@@ -10085,12 +10091,12 @@ export type UPGRADE_CERT_MANAGER_RESPONSE = UPGRADE_CERT_MANAGER_RESPONSE__MOGEN
  *
  * ```yaml
  * structs:
- *     ANON_STRUCT_0:
- *         properties: {}
+ *   ANON_STRUCT_0:
+ *     properties: {}
  * typeInfo:
- *     pointer: true
- *     structRef: ANON_STRUCT_0
- *     type: struct
+ *   pointer: true
+ *   structRef: ANON_STRUCT_0
+ *   type: struct
  * ```
  *
  */
@@ -10101,18 +10107,18 @@ export type UPGRADE_INGRESS_CONTROLLER_TRAEFIK_REQUEST = UPGRADE_INGRESS_CONTROL
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
- *         properties:
- *             data:
- *                 type: string
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *     properties:
+ *       data:
+ *         type: string
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *   type: struct
  * ```
  *
  */
@@ -10123,12 +10129,12 @@ export type UPGRADE_INGRESS_CONTROLLER_TRAEFIK_RESPONSE = UPGRADE_INGRESS_CONTRO
  *
  * ```yaml
  * structs:
- *     ANON_STRUCT_0:
- *         properties: {}
+ *   ANON_STRUCT_0:
+ *     properties: {}
  * typeInfo:
- *     pointer: true
- *     structRef: ANON_STRUCT_0
- *     type: struct
+ *   pointer: true
+ *   structRef: ANON_STRUCT_0
+ *   type: struct
  * ```
  *
  */
@@ -10139,18 +10145,18 @@ export type UPGRADE_KEPLER_REQUEST = UPGRADE_KEPLER_REQUEST__ANON_STRUCT_0|undef
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
- *         properties:
- *             data:
- *                 type: string
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *     properties:
+ *       data:
+ *         type: string
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *   type: struct
  * ```
  *
  */
@@ -10161,12 +10167,12 @@ export type UPGRADE_KEPLER_RESPONSE = UPGRADE_KEPLER_RESPONSE__MOGENIUS_OPERATOR
  *
  * ```yaml
  * structs:
- *     ANON_STRUCT_0:
- *         properties: {}
+ *   ANON_STRUCT_0:
+ *     properties: {}
  * typeInfo:
- *     pointer: true
- *     structRef: ANON_STRUCT_0
- *     type: struct
+ *   pointer: true
+ *   structRef: ANON_STRUCT_0
+ *   type: struct
  * ```
  *
  */
@@ -10177,18 +10183,18 @@ export type UPGRADE_METALLB_REQUEST = UPGRADE_METALLB_REQUEST__ANON_STRUCT_0|und
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
- *         properties:
- *             data:
- *                 type: string
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *     properties:
+ *       data:
+ *         type: string
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *   type: struct
  * ```
  *
  */
@@ -10199,12 +10205,12 @@ export type UPGRADE_METALLB_RESPONSE = UPGRADE_METALLB_RESPONSE__MOGENIUS_OPERAT
  *
  * ```yaml
  * structs:
- *     ANON_STRUCT_0:
- *         properties: {}
+ *   ANON_STRUCT_0:
+ *     properties: {}
  * typeInfo:
- *     pointer: true
- *     structRef: ANON_STRUCT_0
- *     type: struct
+ *   pointer: true
+ *   structRef: ANON_STRUCT_0
+ *   type: struct
  * ```
  *
  */
@@ -10215,18 +10221,18 @@ export type UPGRADE_METRICS_SERVER_REQUEST = UPGRADE_METRICS_SERVER_REQUEST__ANO
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
- *         properties:
- *             data:
- *                 type: string
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *     properties:
+ *       data:
+ *         type: string
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *   type: struct
  * ```
  *
  */
@@ -10237,12 +10243,12 @@ export type UPGRADE_METRICS_SERVER_RESPONSE = UPGRADE_METRICS_SERVER_RESPONSE__M
  *
  * ```yaml
  * structs:
- *     ANON_STRUCT_0:
- *         properties: {}
+ *   ANON_STRUCT_0:
+ *     properties: {}
  * typeInfo:
- *     pointer: true
- *     structRef: ANON_STRUCT_0
- *     type: struct
+ *   pointer: true
+ *   structRef: ANON_STRUCT_0
+ *   type: struct
  * ```
  *
  */
@@ -10253,18 +10259,18 @@ export type UPGRADE_PROMETHEUS_REQUEST = UPGRADE_PROMETHEUS_REQUEST__ANON_STRUCT
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
- *         properties:
- *             data:
- *                 type: string
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *     properties:
+ *       data:
+ *         type: string
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *   type: struct
  * ```
  *
  */
@@ -10275,12 +10281,12 @@ export type UPGRADE_PROMETHEUS_RESPONSE = UPGRADE_PROMETHEUS_RESPONSE__MOGENIUS_
  *
  * ```yaml
  * structs:
- *     ANON_STRUCT_0:
- *         properties: {}
+ *   ANON_STRUCT_0:
+ *     properties: {}
  * typeInfo:
- *     pointer: true
- *     structRef: ANON_STRUCT_0
- *     type: struct
+ *   pointer: true
+ *   structRef: ANON_STRUCT_0
+ *   type: struct
  * ```
  *
  */
@@ -10291,18 +10297,18 @@ export type UPGRADE_RENOVATE_OPERATOR_REQUEST = UPGRADE_RENOVATE_OPERATOR_REQUES
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
- *         properties:
- *             data:
- *                 type: string
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *     properties:
+ *       data:
+ *         type: string
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
+ *   type: struct
  * ```
  *
  */
@@ -10313,30 +10319,30 @@ export type UPGRADE_RENOVATE_OPERATOR_RESPONSE = UPGRADE_RENOVATE_OPERATOR_RESPO
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.Request:
- *         name: mogenius-operator/src/core.Request
- *         properties:
- *             configMaps:
- *                 type: bool
- *             dryRun:
- *                 type: bool
- *             ingresses:
- *                 type: bool
- *             jobs:
- *                 type: bool
- *             name:
- *                 type: string
- *             pods:
- *                 type: bool
- *             replicaSets:
- *                 type: bool
- *             secrets:
- *                 type: bool
- *             services:
- *                 type: bool
+ *   mogenius-operator/src/core.Request:
+ *     name: mogenius-operator/src/core.Request
+ *     properties:
+ *       configMaps:
+ *         type: bool
+ *       dryRun:
+ *         type: bool
+ *       ingresses:
+ *         type: bool
+ *       jobs:
+ *         type: bool
+ *       name:
+ *         type: string
+ *       pods:
+ *         type: bool
+ *       replicaSets:
+ *         type: bool
+ *       secrets:
+ *         type: bool
+ *       services:
+ *         type: bool
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Request
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Request
+ *   type: struct
  * ```
  *
  */
@@ -10347,66 +10353,66 @@ export type WORKSPACE_CLEAN_UP_REQUEST = WORKSPACE_CLEAN_UP_REQUEST__MOGENIUS_OP
  *
  * ```yaml
  * structs:
- *     mogenius-operator/src/core.CleanUpResult:
- *         name: mogenius-operator/src/core.CleanUpResult
- *         properties:
- *             configMaps:
- *                 elementType:
- *                     structRef: mogenius-operator/src/core.CleanUpResultEntry
- *                     type: struct
- *                 type: array
- *             ingresses:
- *                 elementType:
- *                     structRef: mogenius-operator/src/core.CleanUpResultEntry
- *                     type: struct
- *                 type: array
- *             jobs:
- *                 elementType:
- *                     structRef: mogenius-operator/src/core.CleanUpResultEntry
- *                     type: struct
- *                 type: array
- *             pods:
- *                 elementType:
- *                     structRef: mogenius-operator/src/core.CleanUpResultEntry
- *                     type: struct
- *                 type: array
- *             replicaSets:
- *                 elementType:
- *                     structRef: mogenius-operator/src/core.CleanUpResultEntry
- *                     type: struct
- *                 type: array
- *             secrets:
- *                 elementType:
- *                     structRef: mogenius-operator/src/core.CleanUpResultEntry
- *                     type: struct
- *                 type: array
- *             services:
- *                 elementType:
- *                     structRef: mogenius-operator/src/core.CleanUpResultEntry
- *                     type: struct
- *                 type: array
- *     mogenius-operator/src/core.CleanUpResultEntry:
- *         name: mogenius-operator/src/core.CleanUpResultEntry
- *         properties:
- *             name:
- *                 type: string
- *             namespace:
- *                 type: string
- *             reason:
- *                 type: string
- *     mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·20,mogenius-operator/src/core.CleanUpResult]:
- *         name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·20,mogenius-operator/src/core.CleanUpResult]
- *         properties:
- *             data:
- *                 structRef: mogenius-operator/src/core.CleanUpResult
- *                 type: struct
- *             message:
- *                 type: string
- *             status:
- *                 type: string
+ *   mogenius-operator/src/core.CleanUpResult:
+ *     name: mogenius-operator/src/core.CleanUpResult
+ *     properties:
+ *       configMaps:
+ *         elementType:
+ *           structRef: mogenius-operator/src/core.CleanUpResultEntry
+ *           type: struct
+ *         type: array
+ *       ingresses:
+ *         elementType:
+ *           structRef: mogenius-operator/src/core.CleanUpResultEntry
+ *           type: struct
+ *         type: array
+ *       jobs:
+ *         elementType:
+ *           structRef: mogenius-operator/src/core.CleanUpResultEntry
+ *           type: struct
+ *         type: array
+ *       pods:
+ *         elementType:
+ *           structRef: mogenius-operator/src/core.CleanUpResultEntry
+ *           type: struct
+ *         type: array
+ *       replicaSets:
+ *         elementType:
+ *           structRef: mogenius-operator/src/core.CleanUpResultEntry
+ *           type: struct
+ *         type: array
+ *       secrets:
+ *         elementType:
+ *           structRef: mogenius-operator/src/core.CleanUpResultEntry
+ *           type: struct
+ *         type: array
+ *       services:
+ *         elementType:
+ *           structRef: mogenius-operator/src/core.CleanUpResultEntry
+ *           type: struct
+ *         type: array
+ *   mogenius-operator/src/core.CleanUpResultEntry:
+ *     name: mogenius-operator/src/core.CleanUpResultEntry
+ *     properties:
+ *       name:
+ *         type: string
+ *       namespace:
+ *         type: string
+ *       reason:
+ *         type: string
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·20,mogenius-operator/src/core.CleanUpResult]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·20,mogenius-operator/src/core.CleanUpResult]
+ *     properties:
+ *       data:
+ *         structRef: mogenius-operator/src/core.CleanUpResult
+ *         type: struct
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
  * typeInfo:
- *     structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·20,mogenius-operator/src/core.CleanUpResult]
- *     type: struct
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·20,mogenius-operator/src/core.CleanUpResult]
+ *   type: struct
  * ```
  *
  */

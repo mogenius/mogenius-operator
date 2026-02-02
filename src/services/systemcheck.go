@@ -50,6 +50,39 @@ type SystemCheckResponse struct {
 	Entries        []SystemCheckEntry `json:"entries"`
 }
 
+func BasicRepos() []helm.HelmRepoAddRequest {
+	return []helm.HelmRepoAddRequest{
+		{
+			Name: "mogenius",
+			Url:  MogeniusHelmIndex, // mogenius-operartor, renovate-operator
+		},
+		{
+			Name: utils.HelmReleaseNameMetricsServer,
+			Url:  MetricsHelmIndex,
+		},
+		{
+			Name: utils.HelmReleaseNameTraefik,
+			Url:  IngressControllerTraefikHelmIndex,
+		},
+		{
+			Name: utils.HelmReleaseNameCertManager,
+			Url:  CertManagerHelmIndex,
+		},
+		{
+			Name: utils.HelmReleaseNameMetalLb,
+			Url:  MetalLBHelmIndex,
+		},
+		{
+			Name: utils.HelmReleasePrometheus,
+			Url:  PrometheusCommunityHelmIndex,
+		},
+		{
+			Name: utils.HelmReleaseNameArgoCd,
+			Url:  ArgocdHelmIndex,
+		},
+	}
+}
+
 func CreateSystemCheckEntry(checkName string, isRunning bool, successMessage string, solutionMsg string, err error, description string, isRequired bool, wantsToBeInstalled bool, versionInstalled string, versionAvailable string) SystemCheckEntry {
 
 	var errMsg *string

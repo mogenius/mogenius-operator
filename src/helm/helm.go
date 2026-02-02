@@ -84,6 +84,28 @@ func InitEnvs(configModule cfg.ConfigModule) {
 	os.Setenv("HELM_LOG_LEVEL", "trace")
 }
 
+func InitBasicRepos(repos []HelmRepoAddRequest) error {
+	for _, repo := range repos {
+		data := HelmRepoAddRequest{
+			Name: repo.Name,
+			Url:  repo.Url,
+		}
+		if _, err := HelmRepoAdd(data); err != nil {
+			if err != ErrorRepoAlreadyExists {
+				helmLogger.Error("failed to add default helm repository", "repoName", data.Name, "repoUrl", data.Url, "error", err.Error())
+				return err
+			}
+		}
+	}
+
+	if _, err := HelmRepoUpdate(); err != nil {
+		helmLogger.Error("failed to update helm repositories", "error", err.Error())
+		return err
+	}
+
+	return nil
+}
+
 type HelmRepoAddRequest struct {
 	Name string `json:"name" validate:"required"`
 	Url  string `json:"url" validate:"required"`
@@ -376,21 +398,6 @@ func InitHelmConfig() error {
 	}
 
 	_ = restoreRepositoryFileFromValkey()
-
-	// add default repository
-	data := HelmRepoAddRequest{
-		Name: "mogenius",
-		Url:  "https://helm.mogenius.com/public",
-	}
-	if _, err := HelmRepoAdd(data); err != nil {
-		if err != ErrorRepoAlreadyExists {
-			helmLogger.Error("failed to add default helm repository", "repoName", data.Name, "repoUrl", data.Url, "error", err.Error())
-		}
-	}
-
-	if _, err := HelmRepoUpdate(); err != nil {
-		helmLogger.Error("failed to update helm repositories", "error", err.Error())
-	}
 
 	return nil
 }
@@ -1229,6 +1236,8 @@ func HelmReleaseRollback(data HelmReleaseRollbackRequest) (string, error) {
 	}
 
 	rollback := action.NewRollback(actionConfig)
+	rollback.ServerSideApply = "auto"
+	rollback.WaitStrategy = kube.StatusWatcherStrategy
 	rollback.Version = data.Revision
 	err := rollback.Run(data.Release)
 	if err != nil {

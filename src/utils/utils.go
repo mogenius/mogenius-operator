@@ -87,6 +87,7 @@ const (
 	HelmReleaseNameAlertManager         = "alertmanager"
 	HelmReleasePrometheus               = "prometheus"
 	HelmReleaseNameKepler               = "kepler"
+	HelmReleaseNameArgoCd               = "argo-cd"
 )
 
 // IacSecurity is an enum type for the different security treatments that can be applied to IaC data.
