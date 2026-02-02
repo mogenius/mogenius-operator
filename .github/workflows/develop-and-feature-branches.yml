@@ -16,8 +16,8 @@ env:
 
 jobs:
   prepare:
-    runs-on: [self-hosted]
-
+    # runs-on: [self-hosted]
+    runs-on: arc-runner-set-arm64
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
@@ -38,7 +38,8 @@ jobs:
   build-and-push-docker:
     name: Build Multi-arch Docker
     needs: [prepare]
-    runs-on: [self-hosted]
+    # runs-on: [self-hosted]
+    runs-on: arc-runner-set-arm64
 
     permissions:
       contents: read
@@ -99,7 +100,8 @@ jobs:
   helm-chart:
     if: github.ref == 'refs/heads/develop'
     needs: [prepare, build-and-push-docker]
-    runs-on: [self-hosted]
+    # runs-on: [self-hosted]
+    runs-on: arc-runner-set-arm64
     permissions:
       contents: read
       packages: write
