@@ -1,3 +1,10 @@
+# [2.19.0-develop.25](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.24...v2.19.0-develop.25) (2026-02-03)
+
+
+### Bug Fixes
+
+* update ai filter configmap ([105d0e2](https://github.com/mogenius/mogenius-operator/commit/105d0e218ad4522b80f9419fbd1edc517783ae7d))
+
 # [2.19.0-develop.24](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.23...v2.19.0-develop.24) (2026-02-02)
 
 
