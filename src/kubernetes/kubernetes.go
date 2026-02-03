@@ -127,7 +127,7 @@ func CreateOrUpdateAndMergePromptConfig(newPromptCfg ai.AiPromptConfig) (ai.AiPr
 				}
 			}
 
-			cfgMapYaml, err := yaml.Marshal(newPromptCfg)
+			cfgMapYaml, err := yaml.Marshal(cfgMap)
 			if err != nil {
 				return newPromptCfg, err
 			}
