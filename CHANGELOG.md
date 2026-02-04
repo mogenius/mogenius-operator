@@ -1,3 +1,10 @@
+# [2.19.0-develop.27](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.26...v2.19.0-develop.27) (2026-02-04)
+
+
+### Bug Fixes
+
+* ai tools bug fixed. ([baef5a7](https://github.com/mogenius/mogenius-operator/commit/baef5a7c8dbcb15fa64b81b91e0c97e5326d85f6))
+
 # [2.19.0-develop.26](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.25...v2.19.0-develop.26) (2026-02-04)
 
 
