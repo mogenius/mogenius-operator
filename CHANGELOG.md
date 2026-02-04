@@ -1,3 +1,10 @@
+# [2.19.0-develop.26](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.25...v2.19.0-develop.26) (2026-02-04)
+
+
+### Bug Fixes
+
+* switch back from arc runner to self-hosted ([9700342](https://github.com/mogenius/mogenius-operator/commit/970034241c2a23490c1b28239ccdd926243d77da))
+
 # [2.19.0-develop.25](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.24...v2.19.0-develop.25) (2026-02-03)
 
 
