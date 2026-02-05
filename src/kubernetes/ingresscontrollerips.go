@@ -8,35 +8,20 @@ package kubernetes
 import (
 	"context"
 
-	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func GetClusterExternalIps() []string {
 	var result []string = []string{}
-	var allServices []v1.Service = []v1.Service{}
 
 	clientset := clientProvider.K8sClientSet()
-	labelSelector := "app.kubernetes.io/component=controller,app.kubernetes.io/name=ingress-nginx"
-	services, err := clientset.CoreV1().Services("").List(context.Background(), metav1.ListOptions{LabelSelector: labelSelector})
+	services, err := clientset.CoreV1().Services("").List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		k8sLogger.Error(err.Error())
 		return result
 	}
-	allServices = append(allServices, services.Items...)
 
-	// check if traefik is used
-	if len(result) <= 0 {
-		traefikSelector := "app.kubernetes.io/name=traefik"
-		services, err := clientset.CoreV1().Services("").List(context.Background(), metav1.ListOptions{LabelSelector: traefikSelector})
-		if err != nil {
-			k8sLogger.Error(err.Error())
-			return result
-		}
-		allServices = append(allServices, services.Items...)
-	}
-
-	for _, service := range allServices {
+	for _, service := range services.Items {
 		for _, ingress := range service.Status.LoadBalancer.Ingress {
 			if ingress.IP != "" {
 				result = append(result, ingress.IP)
