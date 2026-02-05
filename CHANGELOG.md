@@ -1,3 +1,10 @@
+# [2.19.0-develop.30](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.29...v2.19.0-develop.30) (2026-02-05)
+
+
+### Bug Fixes
+
+* Dockerfile amd64 dynamic install for linux headers ([688da59](https://github.com/mogenius/mogenius-operator/commit/688da59c67b8ea4164d8f8aa63dc173e8b722203))
+
 # [2.19.0-develop.29](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.28...v2.19.0-develop.29) (2026-02-05)
 
 
