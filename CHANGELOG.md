@@ -1,3 +1,10 @@
+# [2.19.0-develop.29](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.28...v2.19.0-develop.29) (2026-02-05)
+
+
+### Bug Fixes
+
+* list all loadbalancer ips to support gateway api and all ingress-controller ([d7ba551](https://github.com/mogenius/mogenius-operator/commit/d7ba5513ce9e79d5c3677e089a4b8e5710a94164))
+
 # [2.19.0-develop.28](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.27...v2.19.0-develop.28) (2026-02-04)
 
 
