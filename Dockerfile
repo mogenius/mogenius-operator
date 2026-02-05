@@ -33,9 +33,17 @@ RUN set -x && \
     rm -rf /var/lib/apt/lists/*
 
 # Linux headers only for amd64 (for eBPF development)
+# RUN if [ "$TARGETARCH" = "amd64" ]; then \
+#         apt-get update && \
+#         apt-get install -y linux-headers-generic && \
+#         apt-get clean && \
+#         rm -rf /var/lib/apt/lists/*; \
+#     fi
+
+# Dynamic install available Linux headers only for amd64 (for eBPF development)
 RUN if [ "$TARGETARCH" = "amd64" ]; then \
         apt-get update && \
-        apt-get install -y linux-headers-generic && \
+        apt-get install -y $(apt-cache search linux-headers-6 | grep generic | tail -1 | awk '{print $1}') && \
         apt-get clean && \
         rm -rf /var/lib/apt/lists/*; \
     fi
