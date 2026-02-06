@@ -17,6 +17,7 @@ on:
       - 'src/**'
       - 'go.mod'
       - 'go.sum'
+      - 'Dockerfile-ng'
       - '.github/workflows/build-operator.yml'
 
 
