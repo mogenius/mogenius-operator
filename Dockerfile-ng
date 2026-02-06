@@ -72,17 +72,18 @@ RUN go generate ./...
 
 # Build the operator binary
 RUN set -e && \
-    export GOOS=${TARGETOS} && \
+    export GOOS=${TARGETOS:-linux} && \
     export GOARCH=${TARGETARCH} && \
     if [ "${TARGETARCH}" = "arm" ] && [ -n "${TARGETVARIANT}" ]; then \
         export GOARM=${TARGETVARIANT#v}; \
-        echo "GOARM=${GOARM}"; \
+        echo "Cross-compiling for ARM with GOARM=${GOARM}"; \
     fi && \
     echo "=== Build Configuration ===" && \
-    echo "TARGETOS: ${TARGETOS}" && \
-    echo "TARGETARCH: ${TARGETARCH}" && \
-    echo "TARGETVARIANT: ${TARGETVARIANT}" && \
+    echo "GOOS: ${GOOS}" && \
+    echo "GOARCH: ${GOARCH}" && \
+    echo "GOARM: ${GOARM:-n/a}" && \
     echo "VERSION: ${VERSION}" && \
+    echo "Host arch: $(uname -m)" && \
     echo "===========================" && \
     go mod tidy && \
     go build -v -trimpath \
@@ -96,7 +97,7 @@ RUN set -e && \
         ./src/main.go
 
 # Verify binary was created
-RUN ls -lh bin/
+RUN ls -lh bin/ && file bin/mogenius-operator
 
 # =============================================================================
 # Stage 4: Release Image
