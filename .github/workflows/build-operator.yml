@@ -86,7 +86,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./Dockerfile
+          file: ./Dockerfile-ng
           platforms: linux/amd64
           push: true
           tags: ${{ env.REGISTRY_PREFIX }}/mogenius-operator-ng:${{ needs.prepare.outputs.version }}-amd64
@@ -132,7 +132,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./Dockerfile
+          file: ./Dockerfile-ng
           platforms: linux/arm64
           push: true
           tags: ${{ env.REGISTRY_PREFIX }}/mogenius-operator-ng:${{ needs.prepare.outputs.version }}-arm64
@@ -183,7 +183,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./Dockerfile
+          file: ./Dockerfile-ng
           platforms: linux/arm/v7
           push: true
           tags: ${{ env.REGISTRY_PREFIX }}/mogenius-operator-ng:${{ needs.prepare.outputs.version }}-armv7
