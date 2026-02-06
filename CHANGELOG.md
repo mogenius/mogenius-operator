@@ -1,3 +1,10 @@
+# [2.19.0-develop.33](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.32...v2.19.0-develop.33) (2026-02-06)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/anthropics/anthropic-sdk-go to v1.21.0 ([#777](https://github.com/mogenius/mogenius-operator/issues/777)) ([70523ce](https://github.com/mogenius/mogenius-operator/commit/70523ce5e1dda22c36e527ade9d6092f8a31836c))
+
 # [2.19.0-develop.32](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.31...v2.19.0-develop.32) (2026-02-06)
 
 
