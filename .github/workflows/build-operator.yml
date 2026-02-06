@@ -1,0 +1,253 @@
+name: Build Operator
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag for the image'
+        required: false
+        default: 'dev'
+        type: string
+  push:
+    branches:
+      - Xmain
+      - new-actions-test
+    paths:
+      - 'operator/**'
+      - 'src/**'
+      - 'go.mod'
+      - 'go.sum'
+      - '.github/workflows/build-operator.yml'
+
+env:
+  REGISTRY: ghcr.io
+  REGISTRY_PREFIX: ghcr.io/mogenius
+
+jobs:
+  # ============================================================================
+  # Prepare - Get version info
+  # ============================================================================
+  prepare:
+    runs-on: arc-runner-set-amd64
+    outputs:
+      commit_hash: ${{ steps.version.outputs.commit_hash }}
+      git_branch: ${{ steps.version.outputs.git_branch }}
+      build_timestamp: ${{ steps.version.outputs.build_timestamp }}
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: new-actions-test
+          fetch-depth: 0
+
+      - name: Get version info
+        id: version
+        run: |
+          COMMIT_HASH=$(git rev-parse --short HEAD)
+          GIT_BRANCH=${GITHUB_REF_NAME}
+          BUILD_TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          VERSION=${{ github.event.inputs.version || 'dev' }}
+
+          echo "commit_hash=${COMMIT_HASH}" >> $GITHUB_OUTPUT
+          echo "git_branch=${GIT_BRANCH}" >> $GITHUB_OUTPUT
+          echo "build_timestamp=${BUILD_TIMESTAMP}" >> $GITHUB_OUTPUT
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+
+  # ============================================================================
+  # Build Operator - Native builds per architecture
+  # ============================================================================
+  operator-amd64:
+    needs: [prepare]
+    runs-on: arc-runner-set-amd64
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: new-actions-test
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ${{ env.REGISTRY_PREFIX }}/mogenius-operator-ng:${{ needs.prepare.outputs.version }}-amd64
+          build-args: |
+            GO_BUILDER_IMAGE=${{ env.REGISTRY_PREFIX }}/go-builder:latest-amd64
+            RUST_BUILDER_IMAGE=${{ env.REGISTRY_PREFIX }}/rust-builder:latest-amd64
+            BPFTOOL_IMAGE=${{ env.REGISTRY_PREFIX }}/bpftool:latest-amd64
+            SNOOPY_IMAGE=${{ env.REGISTRY_PREFIX }}/snoopy:latest-amd64
+            RUNTIME_IMAGE=${{ env.REGISTRY_PREFIX }}/runtime:latest-amd64
+            COMMIT_HASH=${{ needs.prepare.outputs.commit_hash }}
+            GIT_BRANCH=${{ needs.prepare.outputs.git_branch }}
+            BUILD_TIMESTAMP=${{ needs.prepare.outputs.build_timestamp }}
+            VERSION=${{ needs.prepare.outputs.version }}
+          cache-from: type=gha,scope=operator-amd64
+          cache-to: type=gha,mode=max,scope=operator-amd64
+
+  operator-arm64:
+    needs: [prepare]
+    runs-on: arc-runner-set-arm64
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: new-actions-test
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/arm64
+          push: true
+          tags: ${{ env.REGISTRY_PREFIX }}/mogenius-operator-ng:${{ needs.prepare.outputs.version }}-arm64
+          build-args: |
+            GO_BUILDER_IMAGE=${{ env.REGISTRY_PREFIX }}/go-builder:latest-arm64
+            RUST_BUILDER_IMAGE=${{ env.REGISTRY_PREFIX }}/rust-builder:latest-arm64
+            BPFTOOL_IMAGE=${{ env.REGISTRY_PREFIX }}/bpftool:latest-arm64
+            SNOOPY_IMAGE=${{ env.REGISTRY_PREFIX }}/snoopy:latest-arm64
+            RUNTIME_IMAGE=${{ env.REGISTRY_PREFIX }}/runtime:latest-arm64
+            COMMIT_HASH=${{ needs.prepare.outputs.commit_hash }}
+            GIT_BRANCH=${{ needs.prepare.outputs.git_branch }}
+            BUILD_TIMESTAMP=${{ needs.prepare.outputs.build_timestamp }}
+            VERSION=${{ needs.prepare.outputs.version }}
+          cache-from: type=gha,scope=operator-arm64
+          cache-to: type=gha,mode=max,scope=operator-arm64
+
+  operator-armv7:
+    needs: [prepare]
+    # armv7 QEMU on arm64 has futex bugs - use amd64 runner instead
+    runs-on: arc-runner-set-amd64
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: new-actions-test
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Note: armv7 uses arm64 bpftool image (bpftool doesn't support armv7)
+      - name: Build and push
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/arm/v7
+          push: true
+          tags: ${{ env.REGISTRY_PREFIX }}/mogenius-operator-ng:${{ needs.prepare.outputs.version }}-armv7
+          build-args: |
+            GO_BUILDER_IMAGE=${{ env.REGISTRY_PREFIX }}/go-builder:latest-armv7
+            RUST_BUILDER_IMAGE=${{ env.REGISTRY_PREFIX }}/rust-builder:latest-armv7
+            BPFTOOL_IMAGE=${{ env.REGISTRY_PREFIX }}/bpftool:latest-arm64
+            SNOOPY_IMAGE=${{ env.REGISTRY_PREFIX }}/snoopy:latest-armv7
+            RUNTIME_IMAGE=${{ env.REGISTRY_PREFIX }}/runtime:latest-armv7
+            COMMIT_HASH=${{ needs.prepare.outputs.commit_hash }}
+            GIT_BRANCH=${{ needs.prepare.outputs.git_branch }}
+            BUILD_TIMESTAMP=${{ needs.prepare.outputs.build_timestamp }}
+            VERSION=${{ needs.prepare.outputs.version }}
+          cache-from: type=gha,scope=operator-armv7
+          cache-to: type=gha,mode=max,scope=operator-armv7
+
+  # ============================================================================
+  # Create Multi-Arch Manifest
+  # ============================================================================
+  operator-manifest:
+    needs: [prepare, operator-amd64, operator-arm64, operator-armv7]
+    runs-on: arc-runner-set-amd64
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create and push manifest
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          # Create manifest for version tag
+          docker buildx imagetools create -t ${{ env.REGISTRY_PREFIX }}/mogenius-operator-ng:${VERSION} \
+            ${{ env.REGISTRY_PREFIX }}/mogenius-operator-ng:${VERSION}-amd64 \
+            ${{ env.REGISTRY_PREFIX }}/mogenius-operator-ng:${VERSION}-arm64 \
+            ${{ env.REGISTRY_PREFIX }}/mogenius-operator-ng:${VERSION}-armv7
+
+          # Create manifest for latest (only on main branch)
+          if [ "${{ github.ref_name }}" == "main" ]; then
+            docker buildx imagetools create -t ${{ env.REGISTRY_PREFIX }}/mogenius-operator-ng:latest \
+              ${{ env.REGISTRY_PREFIX }}/mogenius-operator-ng:${VERSION}-amd64 \
+              ${{ env.REGISTRY_PREFIX }}/mogenius-operator-ng:${VERSION}-arm64 \
+              ${{ env.REGISTRY_PREFIX }}/mogenius-operator-ng:${VERSION}-armv7
+          fi
+
+          # Create manifest with SHA tag
+          SHA_TAG=${GITHUB_SHA::7}
+          docker buildx imagetools create -t ${{ env.REGISTRY_PREFIX }}/mogenius-operator-ng:${SHA_TAG} \
+            ${{ env.REGISTRY_PREFIX }}/mogenius-operator-ng:${VERSION}-amd64 \
+            ${{ env.REGISTRY_PREFIX }}/mogenius-operator-ng:${VERSION}-arm64 \
+            ${{ env.REGISTRY_PREFIX }}/mogenius-operator-ng:${VERSION}-armv7
+
+          # Create manifest with branch tag
+          BRANCH_TAG=$(echo "${{ github.ref_name }}" | sed 's/[^a-zA-Z0-9]/-/g')
+          docker buildx imagetools create -t ${{ env.REGISTRY_PREFIX }}/mogenius-operator-ng:${BRANCH_TAG} \
+            ${{ env.REGISTRY_PREFIX }}/mogenius-operator-ng:${VERSION}-amd64 \
+            ${{ env.REGISTRY_PREFIX }}/mogenius-operator-ng:${VERSION}-arm64 \
+            ${{ env.REGISTRY_PREFIX }}/mogenius-operator-ng:${VERSION}-armv7

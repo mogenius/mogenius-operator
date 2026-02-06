@@ -1,0 +1,127 @@
+# syntax=docker/dockerfile:1
+# Mogenius Operator Build
+# Uses pre-built base images - no apt-get install or package downloads needed
+
+# =============================================================================
+# Stage 1: Import pre-built tools from dedicated images
+# =============================================================================
+
+ARG GO_BUILDER_IMAGE=ghcr.io/mogenius/go-builder:latest
+ARG RUST_BUILDER_IMAGE=ghcr.io/mogenius/rust-builder:latest
+ARG BPFTOOL_IMAGE=ghcr.io/mogenius/bpftool:latest
+ARG SNOOPY_IMAGE=ghcr.io/mogenius/snoopy:latest
+ARG RUNTIME_IMAGE=ghcr.io/mogenius/runtime:latest
+
+# Get bpftool binary
+FROM ${BPFTOOL_IMAGE} AS bpftool-source
+
+# Get snoopy binary
+FROM ${SNOOPY_IMAGE} AS snoopy-source
+
+# Get Just from rust-builder
+FROM ${RUST_BUILDER_IMAGE} AS rust-source
+
+# =============================================================================
+# Stage 2: Build Environment
+# =============================================================================
+
+FROM ${GO_BUILDER_IMAGE} AS build-env
+
+# Copy Just from rust-builder
+COPY --from=rust-source /root/.cargo/bin/just /usr/local/bin/just
+
+# Copy bpftool
+COPY --from=bpftool-source /usr/local/sbin/bpftool /usr/local/sbin/bpftool
+
+# Verify tools
+RUN go version && \
+    just --version && \
+    bpftool version
+
+WORKDIR /app
+
+# =============================================================================
+# Stage 3: Build the Operator
+# =============================================================================
+
+FROM build-env AS builder
+
+LABEL org.opencontainers.image.description="mogenius-operator"
+
+ENV VERIFY_CHECKSUM=false
+ENV CGO_ENABLED=0
+
+ARG TARGETOS
+ARG TARGETARCH
+ARG TARGETVARIANT
+
+ARG COMMIT_HASH=NOT_SET
+ARG GIT_BRANCH=NOT_SET
+ARG BUILD_TIMESTAMP=NOT_SET
+ARG VERSION=NOT_SET
+
+# Download dependencies first (better layer caching)
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Copy source code
+COPY . .
+
+# Generate code
+RUN go generate ./...
+
+# Build the operator binary
+RUN set -e && \
+    export GOOS=${TARGETOS} && \
+    export GOARCH=${TARGETARCH} && \
+    if [ "${TARGETARCH}" = "arm" ] && [ -n "${TARGETVARIANT}" ]; then \
+        export GOARM=${TARGETVARIANT#v}; \
+        echo "GOARM=${GOARM}"; \
+    fi && \
+    echo "=== Build Configuration ===" && \
+    echo "TARGETOS: ${TARGETOS}" && \
+    echo "TARGETARCH: ${TARGETARCH}" && \
+    echo "TARGETVARIANT: ${TARGETVARIANT}" && \
+    echo "VERSION: ${VERSION}" && \
+    echo "===========================" && \
+    go mod tidy && \
+    go build -v -trimpath \
+        -gcflags='all=-l' \
+        -ldflags="-s -w \
+            -X mogenius-operator/src/version.GitCommitHash=${COMMIT_HASH} \
+            -X mogenius-operator/src/version.Branch=${GIT_BRANCH} \
+            -X mogenius-operator/src/version.BuildTimestamp=${BUILD_TIMESTAMP} \
+            -X mogenius-operator/src/version.Ver=${VERSION}" \
+        -o bin/mogenius-operator \
+        ./src/main.go
+
+# Verify binary was created
+RUN ls -lh bin/
+
+# =============================================================================
+# Stage 4: Release Image
+# =============================================================================
+
+FROM ${RUNTIME_IMAGE} AS release-image
+
+ARG TARGETOS
+ARG TARGETARCH
+ARG TARGETVARIANT
+
+ENV GOOS=${TARGETOS}
+ENV GOARCH=${TARGETARCH}
+ENV GOARM=${TARGETVARIANT}
+
+# Copy operator binary
+COPY --from=builder /app/bin/mogenius-operator /usr/local/bin/mogenius-operator
+
+# Copy snoopy binary
+COPY --from=snoopy-source /usr/local/bin/snoopy /usr/local/bin/mogenius-snoopy
+
+WORKDIR /app
+
+# mogenius-operator release default settings
+ENV MO_LOG_LEVEL="warn"
+
+ENTRYPOINT ["dumb-init", "--"]
+CMD ["mogenius-operator", "cluster"]
