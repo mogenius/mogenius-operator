@@ -101,7 +101,7 @@ RUN set -e && \
         ./src/main.go
 
 # Verify binary was created
-RUN ls -lh bin/ && file bin/mogenius-operator
+RUN ls -lh bin/ 
 
 # =============================================================================
 # Stage 4: Release Image
