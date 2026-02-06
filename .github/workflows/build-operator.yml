@@ -190,7 +190,7 @@ jobs:
           build-args: |
             GO_BUILDER_IMAGE=${{ env.REGISTRY_PREFIX }}/go-builder:latest-armv7
             RUST_BUILDER_IMAGE=${{ env.REGISTRY_PREFIX }}/rust-builder:latest-armv7
-            BPFTOOL_IMAGE=${{ env.REGISTRY_PREFIX }}/bpftool:latest-arm64
+            BPFTOOL_IMAGE=${{ env.REGISTRY_PREFIX }}/bpftool:latest-armv7
             SNOOPY_IMAGE=${{ env.REGISTRY_PREFIX }}/snoopy:latest-armv7
             RUNTIME_IMAGE=${{ env.REGISTRY_PREFIX }}/runtime:latest-armv7
             COMMIT_HASH=${{ needs.prepare.outputs.commit_hash }}
