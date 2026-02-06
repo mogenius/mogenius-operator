@@ -28,7 +28,7 @@ FROM ${RUST_BUILDER_IMAGE} AS rust-source
 FROM ${GO_BUILDER_IMAGE} AS build-env
 
 # Copy Just from rust-builder
-COPY --from=rust-source /root/.cargo/bin/just /usr/local/bin/just
+COPY --from=rust-source /usr/local/bin/just /usr/local/bin/just
 
 # Copy bpftool
 COPY --from=bpftool-source /usr/local/sbin/bpftool /usr/local/sbin/bpftool
