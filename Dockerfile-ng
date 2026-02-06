@@ -1,6 +1,10 @@
 # syntax=docker/dockerfile:1
 # Mogenius Operator Build
 # Uses pre-built base images - no apt-get install or package downloads needed
+#
+# Cross-compilation support:
+# For armv7, we use amd64 builder images with --platform=$BUILDPLATFORM
+# Go cross-compiles natively, which is much faster than QEMU emulation
 
 # =============================================================================
 # Stage 1: Import pre-built tools from dedicated images
@@ -12,31 +16,31 @@ ARG BPFTOOL_IMAGE=ghcr.io/mogenius/bpftool:latest
 ARG SNOOPY_IMAGE=ghcr.io/mogenius/snoopy:latest
 ARG RUNTIME_IMAGE=ghcr.io/mogenius/runtime:latest
 
-# Get bpftool binary
+# Get bpftool binary (target platform - armv7 binary for armv7 build)
 FROM ${BPFTOOL_IMAGE} AS bpftool-source
 
-# Get snoopy binary
+# Get snoopy binary (target platform - armv7 binary for armv7 build)
 FROM ${SNOOPY_IMAGE} AS snoopy-source
 
-# Get Just from rust-builder
-FROM ${RUST_BUILDER_IMAGE} AS rust-source
+# Get Just from rust-builder (build platform - runs on host for cross-compilation)
+ARG BUILDPLATFORM
+FROM --platform=$BUILDPLATFORM ${RUST_BUILDER_IMAGE} AS rust-source
 
 # =============================================================================
-# Stage 2: Build Environment
+# Stage 2: Build Environment (runs on build platform for cross-compilation)
 # =============================================================================
 
-FROM ${GO_BUILDER_IMAGE} AS build-env
+FROM --platform=$BUILDPLATFORM ${GO_BUILDER_IMAGE} AS build-env
 
 # Copy Just from rust-builder
 COPY --from=rust-source /usr/local/bin/just /usr/local/bin/just
 
-# Copy bpftool
+# Copy bpftool (from target platform image - cannot run on build platform if cross-compiling)
 COPY --from=bpftool-source /usr/local/sbin/bpftool /usr/local/sbin/bpftool
 
-# Verify tools
+# Verify tools that run on build platform
 RUN go version && \
-    just --version && \
-    bpftool version
+    just --version
 
 WORKDIR /app
 
