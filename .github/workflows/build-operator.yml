@@ -19,6 +19,7 @@ on:
       - 'go.sum'
       - '.github/workflows/build-operator.yml'
 
+      
 env:
   REGISTRY: ghcr.io
   REGISTRY_PREFIX: ghcr.io/mogenius
