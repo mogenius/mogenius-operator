@@ -1,3 +1,10 @@
+# [2.19.0-develop.34](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.33...v2.19.0-develop.34) (2026-02-07)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/alecthomas/kong to v1.14.0 ([#780](https://github.com/mogenius/mogenius-operator/issues/780)) ([5688349](https://github.com/mogenius/mogenius-operator/commit/56883493344473e0b1e0439efa5f52f09d50197a))
+
 # [2.19.0-develop.33](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.32...v2.19.0-develop.33) (2026-02-06)
 
 
