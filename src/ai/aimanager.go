@@ -174,6 +174,7 @@ type AiManager interface {
 	DeleteAllAiData() error
 	GetAvailableModels(request *ModelsRequest) ([]string, error)
 	GetPromptConfig() (*AiPromptConfig, error)
+	Chat(ctx context.Context, ch IOChatChannel) error
 }
 
 type SecretGetter func(namespace, name string) (*coreV1.Secret, error)
@@ -192,6 +193,98 @@ type aiManager struct {
 	pendingTasksLock  *sync.RWMutex
 }
 
+const mogeniusCRDsPrompt = `## Mogenius Operator Custom Resource Definitions (CRDs)
+
+The mogenius-operator manages three core CRDs that work together to provide workspace management and access control:
+
+### 1. Workspace CRD
+
+**API Details:**
+- apiVersion: mogenius.com/v1alpha1
+- kind: Workspace
+- Scope: Namespaced
+
+**Purpose:**
+A Workspace is a logical organizational unit that groups and manages various Kubernetes resources as a cohesive entity. It serves as a meta-resource containing references to other resources.
+
+**Spec Structure:**
+- spec.name (string, optional): Human-readable name for the workspace
+- spec.resources (array): List of managed resources with the following properties:
+  - id (string): Name/identifier of the target resource
+  - type (string): Resource type - allowed values: "namespace", "helm", "argocd"
+  - namespace (string): 
+    - When type="namespace": unused
+    - When type="helm": Namespace in which the Helm chart was installed
+    - When type="argocd": Namespace in which the ArgoCD application was installed
+
+---
+
+### 2. User CRD
+
+**API Details:**
+- apiVersion: mogenius.com/v1alpha1
+- kind: User
+- Scope: Namespaced
+
+**Purpose:**
+A User resource contains information about a user on the mogenius platform and maps the mogenius user to Kubernetes RBAC subjects (User, Group, or ServiceAccount).
+
+**Spec Structure:**
+- spec.email (string, optional): User's email address
+- spec.firstName (string, optional): User's first name
+- spec.lastName (string, optional): User's last name
+- spec.subject (object, required): RBAC subject reference
+  - kind (string, required): Type of subject - "User", "Group", or "ServiceAccount"
+  - name (string, required): Name of the subject
+  - apiGroup (string, optional): API group (defaults to "" for ServiceAccount, "rbac.authorization.k8s.io" for User/Group)
+  - namespace (string, optional): Namespace for ServiceAccount subjects (must be empty for User/Group)
+
+**Subject Types:**
+- **User**: Human or system account authenticated by Kubernetes
+- **Group**: Collection of users (membership established by authentication provider)
+- **ServiceAccount**: Kubernetes resource acting as identity for processes in Pods
+
+---
+
+### 3. Grant CRD
+
+**API Details:**
+- apiVersion: mogenius.com/v1alpha1
+- kind: Grant
+- Scope: Namespaced
+
+**Purpose:**
+A Grant assigns permissions for mogenius User or Team resources to mogenius Workspace resources. It creates the link between users and the workspaces they can access.
+
+**Spec Structure:**
+- spec.grantee (string): Who is granted permission (user.metadata.name or team.metadata.name)
+- spec.role (string): Which permissions are granted - allowed values: "viewer", "editor", "admin"
+- spec.targetType (string): Type of target resource - currently only "workspace" is supported
+- spec.targetName (string): Name of the specific Workspace resource (workspace.metadata.name)
+
+**Role Definitions:**
+- **viewer**: Read-only access to workspace resources
+- **editor**: Can modify workspace resources
+- **admin**: Full administrative access to the workspace
+
+---
+
+## How They Work Together
+
+The three CRDs form a complete access control and resource management system:
+
+1. **Workspaces** define logical groupings of Kubernetes resources (namespaces, Helm charts, ArgoCD applications)
+2. **Users** represent platform users and map them to Kubernetes RBAC subjects
+3. **Grants** connect Users to Workspaces with specific permission levels (viewer/editor/admin)
+
+**Example Flow:**
+- A Workspace named "production" contains a namespace, several Helm charts, and ArgoCD applications
+- A User named "jane" is mapped to a Kubernetes User subject
+- A Grant gives "jane" the "editor" role on the "production" workspace
+- Result: Jane can modify resources within the production workspace according to her editor permissions
+
+This architecture enables multi-tenant scenarios where different users have different levels of access to different workspaces, while maintaining clean separation of concerns.`
+
 func NewAiManager(logger *slog.Logger, valkeyClient valkeyclient.ValkeyClient, config cfg.ConfigModule, ownerCacheService store.OwnerCacheService, eventClient websocket.WebsocketClient, secretGetter SecretGetter) AiManager {
 	self := &aiManager{}
 
@@ -205,6 +298,41 @@ func NewAiManager(logger *slog.Logger, valkeyClient valkeyclient.ValkeyClient, c
 	self.pendingTasksLock = &sync.RWMutex{}
 
 	return self
+}
+
+func (ai *aiManager) Chat(ctx context.Context, ioChannel IOChatChannel) error {
+	modelConfigInitialized := ai.isAiModelConfigInitialized()
+	if !modelConfigInitialized {
+		return fmt.Errorf("AI model configuration not initialized")
+	}
+
+	model, err := ai.getAiModel()
+	if err != nil {
+		return fmt.Errorf("failed to get AI model: %w", err)
+	}
+
+	maxToolCalls, err := ai.getAiMaxToolCalls()
+	if err != nil {
+		ai.logger.Warn("Error getting AI max tool calls (using default value)", "error", err, "defaultMaxToolCalls", maxToolCalls)
+	}
+
+	sdk, err := ai.getSdkType()
+	if err != nil {
+		return err
+	}
+
+	switch sdk {
+	case AiSdkTypeOpenAI:
+		// Maintain conversation history for OpenAI
+		messages := []openai.ChatCompletionMessageParamUnion{}
+		return ai.openaiChat(ctx, ioChannel, model, messages, maxToolCalls)
+	case AiSdkTypeAnthropic:
+		return ai.anthropicChat(ctx, ioChannel, model, maxToolCalls)
+	case AiSdkTypeOllama:
+		return fmt.Errorf("Ollama chat not yet implemented")
+	default:
+		return fmt.Errorf("unsupported AI SDK type: %s", sdk)
+	}
 }
 
 func (ai *aiManager) ProcessObject(obj *unstructured.Unstructured, eventType string, resource utils.ResourceDescriptor) {

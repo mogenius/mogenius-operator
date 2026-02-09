@@ -60,6 +60,7 @@ type SocketApi interface {
 		moKubernetes MoKubernetes,
 		sealedSecret SealedSecretManager,
 		aiApi AiApi,
+		aiWebsocketConnection ai.AiWebsocketConnection,
 	)
 	Run()
 	Status() SocketApiStatus
@@ -110,15 +111,16 @@ type socketApi struct {
 	logLevelMo bool
 
 	// the patternHandler should only be edited on startup
-	patternHandlerLock sync.RWMutex
-	patternHandler     map[string]PatternHandler
-	httpService        HttpService
-	xtermService       XtermService
-	apiService         Api
-	moKubernetes       MoKubernetes
-	sealedSecret       SealedSecretManager
-	argocd             argocd.Argocd
-	aiApi              AiApi
+	patternHandlerLock    sync.RWMutex
+	patternHandler        map[string]PatternHandler
+	httpService           HttpService
+	xtermService          XtermService
+	apiService            Api
+	moKubernetes          MoKubernetes
+	sealedSecret          SealedSecretManager
+	argocd                argocd.Argocd
+	aiApi                 AiApi
+	aiWebsocketConnection ai.AiWebsocketConnection
 }
 
 type PatternHandler struct {
@@ -173,6 +175,7 @@ func (self *socketApi) Link(
 	moKubernetes MoKubernetes,
 	sealedSecret SealedSecretManager,
 	aiApi AiApi,
+	aiWebsocketConnection ai.AiWebsocketConnection,
 ) {
 	assert.Assert(apiService != nil)
 	assert.Assert(httpService != nil)
@@ -188,6 +191,7 @@ func (self *socketApi) Link(
 	self.moKubernetes = moKubernetes
 	self.sealedSecret = sealedSecret
 	self.aiApi = aiApi
+	self.aiWebsocketConnection = aiWebsocketConnection
 }
 
 func (self *socketApi) Run() {
@@ -1957,6 +1961,24 @@ func (self *socketApi) registerPatterns() {
 			return nil, nil
 		},
 	)
+
+	{
+
+		type Request struct {
+			ChannelId       string `json:"channelId" validate:"required"`
+			WebsocketScheme string `json:"websocketScheme" validate:"required"`
+			WebsocketHost   string `json:"websocketHost" validate:"required"`
+		}
+
+		RegisterPatternHandler(
+			PatternHandle{self, "live-stream/ai-manager-chat-request"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Request) (Void, error) {
+				go self.aiWebsocketConnection.LiveStreamAiManagerChatRequest(request.ChannelId, request.WebsocketScheme, request.WebsocketHost, datagram)
+				return nil, nil
+			},
+		)
+	}
 
 	{
 		type Request struct {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/anthropics/anthropic-sdk-go"
@@ -58,6 +59,343 @@ var anthropicTools = []anthropic.ToolParam{
 			Required: []string{"kind", "apiVersion"},
 		},
 	},
+	{
+		Name:        "update_kubernetes_resource",
+		Description: anthropic.String("Update an existing Kubernetes resource with new YAML configuration. Use this to modify resources."),
+		InputSchema: anthropic.ToolInputSchemaParam{
+			Type: "object",
+			Properties: map[string]interface{}{
+				"apiVersion": map[string]interface{}{
+					"type":        "string",
+					"description": "The API version of the resource (e.g., v1, apps/v1).",
+				},
+				"plural": map[string]interface{}{
+					"type":        "string",
+					"description": "The plural name of the resource (e.g., pods, deployments, services).",
+				},
+				"namespaced": map[string]interface{}{
+					"type":        "boolean",
+					"description": "Whether the resource is namespaced (true) or cluster-scoped (false).",
+				},
+				"yamlData": map[string]interface{}{
+					"type":        "string",
+					"description": "Complete YAML definition of the resource to update.",
+				},
+			},
+			Required: []string{"apiVersion", "plural", "namespaced", "yamlData"},
+		},
+	},
+	{
+		Name:        "delete_kubernetes_resource",
+		Description: anthropic.String("Delete a Kubernetes resource by name and namespace."),
+		InputSchema: anthropic.ToolInputSchemaParam{
+			Type: "object",
+			Properties: map[string]interface{}{
+				"apiVersion": map[string]interface{}{
+					"type":        "string",
+					"description": "The API version of the resource (e.g., v1, apps/v1).",
+				},
+				"plural": map[string]interface{}{
+					"type":        "string",
+					"description": "The plural name of the resource (e.g., pods, deployments, services).",
+				},
+				"namespace": map[string]interface{}{
+					"type":        "string",
+					"description": "The namespace of the resource (empty for cluster-scoped resources).",
+				},
+				"name": map[string]interface{}{
+					"type":        "string",
+					"description": "The name of the resource to delete.",
+				},
+			},
+			Required: []string{"apiVersion", "plural", "name"},
+		},
+	},
+	{
+		Name:        "create_kubernetes_resource",
+		Description: anthropic.String("Create a new Kubernetes resource from YAML configuration."),
+		InputSchema: anthropic.ToolInputSchemaParam{
+			Type: "object",
+			Properties: map[string]interface{}{
+				"apiVersion": map[string]interface{}{
+					"type":        "string",
+					"description": "The API version of the resource (e.g., v1, apps/v1).",
+				},
+				"plural": map[string]interface{}{
+					"type":        "string",
+					"description": "The plural name of the resource (e.g., pods, deployments, services).",
+				},
+				"namespaced": map[string]interface{}{
+					"type":        "boolean",
+					"description": "Whether the resource is namespaced (true) or cluster-scoped (false).",
+				},
+				"yamlData": map[string]interface{}{
+					"type":        "string",
+					"description": "Complete YAML definition of the resource to create.",
+				},
+			},
+			Required: []string{"apiVersion", "plural", "namespaced", "yamlData"},
+		},
+	},
+}
+
+func (ai *aiManager) anthropicChat(
+	ctx context.Context,
+	ioChannel IOChatChannel,
+	model string,
+	maxToolCalls int,
+) error {
+	client, err := ai.getAnthropicClient(nil)
+	if err != nil {
+		return fmt.Errorf("failed to get Anthropic client: %w", err)
+	}
+
+	// Maintain conversation history
+	messages := []anthropic.MessageParam{}
+
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case userInput, ok := <-ioChannel.Input:
+			if !ok {
+				// Input channel closed
+				return nil
+			}
+
+			// Add user message to conversation history
+			messages = append(messages, anthropic.MessageParam{
+				Role: anthropic.MessageParamRoleUser,
+				Content: []anthropic.ContentBlockParamUnion{
+					anthropic.NewTextBlock(userInput),
+				},
+			})
+
+			// Process with tool call loop
+			fullResponse, updatedMessages, err := ai.anthropicChatWithTools(ctx, client, model, messages, ioChannel, maxToolCalls)
+			if err != nil {
+				ai.logger.Error("Error processing with tools", "error", err)
+				// Send error to output
+				select {
+				case ioChannel.Output <- fmt.Sprintf("\n[Error: %v]", err):
+				case <-ctx.Done():
+					return ctx.Err()
+				}
+				continue
+			}
+
+			// Update messages with full conversation including tool calls
+			messages = updatedMessages
+			// Add assistant response to conversation history
+			messages = append(messages, anthropic.MessageParam{
+				Role: anthropic.MessageParamRoleAssistant,
+				Content: []anthropic.ContentBlockParamUnion{
+					anthropic.NewTextBlock(fullResponse),
+				},
+			})
+		}
+	}
+}
+
+// anthropicChatWithTools handles the AI request with potential tool calls and streaming
+func (ai *aiManager) anthropicChatWithTools(
+	ctx context.Context,
+	client *anthropic.Client,
+	model string,
+	messages []anthropic.MessageParam,
+	ioChannel IOChatChannel,
+	maxToolCalls int,
+) (string, []anthropic.MessageParam, error) {
+	toolCallCount := 0
+
+	// Convert tools to the correct format
+	tools := make([]anthropic.ToolUnionParam, len(anthropicTools))
+	for i, toolParam := range anthropicTools {
+		tools[i] = anthropic.ToolUnionParam{OfTool: &toolParam}
+	}
+
+	// Build system prompt with user info
+	systemPrompt := "You are a helpful Kubernetes assistant. You can help users manage and understand their Kubernetes resources." + mogeniusCRDsPrompt
+	if ioChannel.User != nil {
+		userInfo := ""
+		if ioChannel.User.FirstName != "" {
+			userInfo = ioChannel.User.FirstName
+			if ioChannel.User.LastName != "" {
+				userInfo += " " + ioChannel.User.LastName
+			}
+		}
+		if userInfo != "" {
+			systemPrompt += fmt.Sprintf("\n\nYou are chatting with %s.", userInfo)
+		}
+		if ioChannel.User.Email != "" {
+			systemPrompt += fmt.Sprintf(" Their email is %s.", ioChannel.User.Email)
+		}
+	}
+
+	for {
+		// Notify user that AI is thinking
+		select {
+		case ioChannel.Output <- "[AI is thinking...]\n":
+		case <-ctx.Done():
+			return "", messages, ctx.Err()
+		}
+
+		stream := client.Messages.NewStreaming(ctx, anthropic.MessageNewParams{
+			Model:     anthropic.Model(model),
+			MaxTokens: int64(4096),
+			System: []anthropic.TextBlockParam{
+				{Type: "text", Text: systemPrompt},
+			},
+			Messages:    messages,
+			Tools:       tools,
+			Temperature: anthropic.Float(0.7),
+		})
+
+		// Accumulator for the full message
+		var accumulatedMessage anthropic.Message
+		var fullText strings.Builder
+		var toolUseBlocks []struct {
+			ID    string
+			Name  string
+			Input json.RawMessage
+		}
+
+		// Process streaming events
+		for stream.Next() {
+			event := stream.Current()
+
+			// Accumulate into the message
+			if err := accumulatedMessage.Accumulate(event); err != nil {
+				ai.logger.Error("Error accumulating event", "error", err)
+			}
+
+			// Handle different event types for real-time streaming
+			switch evt := event.AsAny().(type) {
+			case anthropic.ContentBlockStartEvent:
+				if evt.ContentBlock.Type == "tool_use" {
+					ai.logger.Info("Tool use starting", "tool", evt.ContentBlock.Name)
+					select {
+					case ioChannel.Output <- fmt.Sprintf("\n[Using tool: %s]\n", evt.ContentBlock.Name):
+					case <-ctx.Done():
+						return "", messages, ctx.Err()
+					}
+				}
+
+			case anthropic.ContentBlockDeltaEvent:
+				// Check if it's a text delta
+				if evt.Delta.Type == "text_delta" {
+					text := evt.Delta.Text
+					fullText.WriteString(text)
+					select {
+					case ioChannel.Output <- text:
+					case <-ctx.Done():
+						return "", messages, ctx.Err()
+					}
+				}
+
+			case anthropic.MessageStartEvent:
+				ai.logger.Info("Message started", "model", evt.Message.Model)
+
+			case anthropic.MessageDeltaEvent:
+				if evt.Delta.StopReason == "tool_use" {
+					ai.logger.Info("Message stopped for tool use")
+				}
+
+			case anthropic.MessageStopEvent:
+				ai.logger.Info("Message completed")
+			}
+		}
+
+		// Check for streaming errors
+		if err := stream.Err(); err != nil {
+			return "", messages, fmt.Errorf("streaming error: %w", err)
+		}
+
+		ioChannel.Output <- "\n\n"
+
+		// Use the accumulated message
+		finalMessage := accumulatedMessage
+
+		// Add assistant message to history
+		assistantContent := make([]anthropic.ContentBlockParamUnion, len(finalMessage.Content))
+		for i, block := range finalMessage.Content {
+			switch block.Type {
+			case "text":
+				assistantContent[i] = anthropic.NewTextBlock(block.Text)
+			case "tool_use":
+				var input map[string]interface{}
+				if err := json.Unmarshal(block.Input, &input); err != nil {
+					return "", messages, fmt.Errorf("error unmarshaling tool input: %w", err)
+				}
+				assistantContent[i] = anthropic.ContentBlockParamUnion{
+					OfToolUse: &anthropic.ToolUseBlockParam{
+						ID:    block.ID,
+						Name:  block.Name,
+						Input: input,
+					},
+				}
+				// Collect tool use for execution
+				toolUseBlocks = append(toolUseBlocks, struct {
+					ID    string
+					Name  string
+					Input json.RawMessage
+				}{
+					ID:    block.ID,
+					Name:  block.Name,
+					Input: block.Input,
+				})
+			}
+		}
+		messages = append(messages, anthropic.MessageParam{
+			Role:    anthropic.MessageParamRoleAssistant,
+			Content: assistantContent,
+		})
+
+		// If no tool calls, we're done
+		if len(toolUseBlocks) == 0 {
+			return fullText.String(), messages, nil
+		}
+
+		// Check tool call limit
+		toolCallCount += len(toolUseBlocks)
+		if maxToolCalls > 0 && toolCallCount >= maxToolCalls {
+			ai.logger.Warn("Max tool calls reached", "count", toolCallCount)
+			return fullText.String(), messages, nil
+		}
+
+		// Execute tool calls and collect results
+		var toolResults []anthropic.ContentBlockParamUnion
+		for _, toolUse := range toolUseBlocks {
+			ai.logger.Info("Executing tool", "tool", toolUse.Name)
+
+			// Parse arguments
+			var args map[string]any
+			if err := json.Unmarshal(toolUse.Input, &args); err != nil {
+				ai.logger.Error("Error parsing tool arguments", "error", err)
+				toolResults = append(toolResults, anthropic.NewToolResultBlock(toolUse.ID, fmt.Sprintf("Error parsing arguments: %v", err), true))
+				continue
+			}
+
+			// Execute tool
+			tool, ok := toolDefinitions[toolUse.Name]
+			if !ok {
+				ai.logger.Error("Unknown tool called", "tool", toolUse.Name)
+				toolResults = append(toolResults, anthropic.NewToolResultBlock(toolUse.ID, fmt.Sprintf("Unknown tool: %s", toolUse.Name), true))
+				continue
+			}
+
+			result := tool(args, ai.valkeyClient, ai.logger)
+			toolResults = append(toolResults, anthropic.NewToolResultBlock(toolUse.ID, result, false))
+		}
+
+		// Add tool results to messages for next iteration
+		messages = append(messages, anthropic.MessageParam{
+			Role:    anthropic.MessageParamRoleUser,
+			Content: toolResults,
+		})
+
+		// Continue loop to get response after tool calls
+	}
 }
 
 func (ai *aiManager) processPromptAnthropic(ctx context.Context, model, systemPrompt, prompt string, maxToolCalls int) (*AiResponse, int64, int, string, error) {
