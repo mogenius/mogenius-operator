@@ -1,3 +1,10 @@
+# [2.19.0-develop.36](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.35...v2.19.0-develop.36) (2026-02-09)
+
+
+### Bug Fixes
+
+* progress. ([3ea787a](https://github.com/mogenius/mogenius-operator/commit/3ea787a05865b57bf1fc44603544740734a6ab0f))
+
 # [2.19.0-develop.35](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.34...v2.19.0-develop.35) (2026-02-07)
 
 
