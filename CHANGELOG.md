@@ -1,3 +1,10 @@
+# [2.19.0-develop.37](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.36...v2.19.0-develop.37) (2026-02-09)
+
+
+### Bug Fixes
+
+* implement first ai chat via WebSocket connection ([d304681](https://github.com/mogenius/mogenius-operator/commit/d3046816b6985afba9c1fbd55128ad6ff693e4bc))
+
 # [2.19.0-develop.36](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.35...v2.19.0-develop.36) (2026-02-09)
 
 
