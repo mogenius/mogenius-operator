@@ -51,9 +51,8 @@ func (ai *aiManager) processPromptOpenAi(ctx context.Context, model, systemPromp
 			openai.UserMessage(prompt),
 			openai.SystemMessage(systemPrompt + "\n You have access to the following tool: get_kubernetes_resources. Use it to retrieve Kubernetes resources as needed to answer the user's question accurately."),
 		},
-		Model:       model,
-		Tools:       openAiTools,
-		Temperature: openai.Float(0.1),
+		Model: model,
+		Tools: openAiTools,
 	}
 
 	var tokensUsed int64 = 0
