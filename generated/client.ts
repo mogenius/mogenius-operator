@@ -85,6 +85,7 @@ export enum Pattern {
   INSTALL_PROMETHEUS = "install-prometheus",
   INSTALL_RENOVATE_OPERATOR = "install-renovate-operator",
   LIST_ALL_RESOURCE_DESCRIPTORS = "list/all-resource-descriptors",
+  LIVE_STREAM_AI_MANAGER_CHAT_REQUEST = "live-stream/ai-manager-chat-request",
   LIVE_STREAM_NODES_CPU = "live-stream/nodes-cpu",
   LIVE_STREAM_NODES_MEMORY = "live-stream/nodes-memory",
   LIVE_STREAM_NODES_TRAFFIC = "live-stream/nodes-traffic",
@@ -229,6 +230,7 @@ export const StringToPattern = {
   "install-prometheus": Pattern.INSTALL_PROMETHEUS,
   "install-renovate-operator": Pattern.INSTALL_RENOVATE_OPERATOR,
   "list/all-resource-descriptors": Pattern.LIST_ALL_RESOURCE_DESCRIPTORS,
+  "live-stream/ai-manager-chat-request": Pattern.LIVE_STREAM_AI_MANAGER_CHAT_REQUEST,
   "live-stream/nodes-cpu": Pattern.LIVE_STREAM_NODES_CPU,
   "live-stream/nodes-memory": Pattern.LIVE_STREAM_NODES_MEMORY,
   "live-stream/nodes-traffic": Pattern.LIVE_STREAM_NODES_TRAFFIC,
@@ -369,6 +371,7 @@ export const PatternToString = {
   [Pattern.INSTALL_PROMETHEUS]: "install-prometheus",
   [Pattern.INSTALL_RENOVATE_OPERATOR]: "install-renovate-operator",
   [Pattern.LIST_ALL_RESOURCE_DESCRIPTORS]: "list/all-resource-descriptors",
+  [Pattern.LIVE_STREAM_AI_MANAGER_CHAT_REQUEST]: "live-stream/ai-manager-chat-request",
   [Pattern.LIVE_STREAM_NODES_CPU]: "live-stream/nodes-cpu",
   [Pattern.LIVE_STREAM_NODES_MEMORY]: "live-stream/nodes-memory",
   [Pattern.LIVE_STREAM_NODES_TRAFFIC]: "live-stream/nodes-traffic",
@@ -5718,8 +5721,8 @@ export type GET_NODES_METRICS_REQUEST = GET_NODES_METRICS_REQUEST__ANON_STRUCT_0
  *           structRef: mogenius-operator/src/core.NodeMetrics
  *           type: struct
  *         type: array
- *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Response·44]:
- *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Response·44]
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Response·45]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Response·45]
  *     properties:
  *       data:
  *         structRef: mogenius-operator/src/core.Response
@@ -5754,12 +5757,12 @@ export type GET_NODES_METRICS_REQUEST = GET_NODES_METRICS_REQUEST__ANON_STRUCT_0
  *     name: time.Time
  *     properties: {}
  * typeInfo:
- *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Response·44]
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Response·45]
  *   type: struct
  * ```
  *
  */
-export type GET_NODES_METRICS_RESPONSE = GET_NODES_METRICS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_MOGENIUS_OPERATOR_SRC_CORE_RESPONSE44;
+export type GET_NODES_METRICS_RESPONSE = GET_NODES_METRICS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_MOGENIUS_OPERATOR_SRC_CORE_RESPONSE45;
 
 /**
  * #### Source
@@ -7290,6 +7293,54 @@ export type LIST_ALL_RESOURCE_DESCRIPTORS_RESPONSE = LIST_ALL_RESOURCE_DESCRIPTO
  *
  * ```yaml
  * structs:
+ *   mogenius-operator/src/core.Request:
+ *     name: mogenius-operator/src/core.Request
+ *     properties:
+ *       channelId:
+ *         type: string
+ *       websocketHost:
+ *         type: string
+ *       websocketScheme:
+ *         type: string
+ * typeInfo:
+ *   structRef: mogenius-operator/src/core.Request
+ *   type: struct
+ * ```
+ *
+ */
+export type LIVE_STREAM_AI_MANAGER_CHAT_REQUEST_REQUEST = LIVE_STREAM_AI_MANAGER_CHAT_REQUEST_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *   ANON_STRUCT_1:
+ *     properties: {}
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·42,mogenius-operator/src/core.Void]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·42,mogenius-operator/src/core.Void]
+ *     properties:
+ *       data:
+ *         pointer: true
+ *         structRef: ANON_STRUCT_1
+ *         type: struct
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
+ * typeInfo:
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·42,mogenius-operator/src/core.Void]
+ *   type: struct
+ * ```
+ *
+ */
+export type LIVE_STREAM_AI_MANAGER_CHAT_REQUEST_RESPONSE = LIVE_STREAM_AI_MANAGER_CHAT_REQUEST_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST42_MOGENIUS_OPERATOR_SRC_CORE_VOID;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
  *   mogenius-operator/src/xterm.WsConnectionRequest:
  *     name: mogenius-operator/src/xterm.WsConnectionRequest
  *     properties:
@@ -8223,8 +8274,8 @@ export type SEALED_SECRET_CREATE_FROM_EXISTING_REQUEST = SEALED_SECRET_CREATE_FR
  *         valueType:
  *           pointer: true
  *           type: any
- *   ? mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·42,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
- *   : name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·42,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *   ? mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·43,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *   : name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·43,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
  *     properties:
  *       data:
  *         pointer: true
@@ -8235,12 +8286,12 @@ export type SEALED_SECRET_CREATE_FROM_EXISTING_REQUEST = SEALED_SECRET_CREATE_FR
  *       status:
  *         type: string
  * typeInfo:
- *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·42,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·43,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
  *   type: struct
  * ```
  *
  */
-export type SEALED_SECRET_CREATE_FROM_EXISTING_RESPONSE = SEALED_SECRET_CREATE_FROM_EXISTING_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST42_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED;
+export type SEALED_SECRET_CREATE_FROM_EXISTING_RESPONSE = SEALED_SECRET_CREATE_FROM_EXISTING_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST43_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED;
 
 /**
  * #### Source
@@ -10709,7 +10760,7 @@ export type GET_NAMESPACE_WORKLOAD_LIST_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RES
 export type GET_NODES_METRICS_REQUEST__ANON_STRUCT_0 = {};
 export type GET_NODES_METRICS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_NODEMETRICS = {"cpu": Record<string, any>,"memory": Record<string, any>,"nodeName": string,"traffic": GET_NODES_METRICS_RESPONSE__MOGENIUS_OPERATOR_SRC_NETWORKMONITOR_PODNETWORKSTATS[]};
 export type GET_NODES_METRICS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESPONSE = {"nodes": GET_NODES_METRICS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_NODEMETRICS[]};
-export type GET_NODES_METRICS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_MOGENIUS_OPERATOR_SRC_CORE_RESPONSE44 = {"data": GET_NODES_METRICS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESPONSE,"message": string,"status": string};
+export type GET_NODES_METRICS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_MOGENIUS_OPERATOR_SRC_CORE_RESPONSE45 = {"data": GET_NODES_METRICS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESPONSE,"message": string,"status": string};
 export type GET_NODES_METRICS_RESPONSE__MOGENIUS_OPERATOR_SRC_NETWORKMONITOR_PODNETWORKSTATS = {"createdAt": GET_NODES_METRICS_RESPONSE__TIME_TIME,"namespace": string,"pod": string,"receivedBytes": number,"receivedPackets": number,"receivedStartBytes": number,"transmitBytes": number,"transmitPackets": number,"transmitStartBytes": number};
 export type GET_NODES_METRICS_RESPONSE__TIME_TIME = {};
 export type GET_USER_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"name": string};
@@ -10803,6 +10854,9 @@ export type INSTALL_RENOVATE_OPERATOR_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESUL
 export type LIST_ALL_RESOURCE_DESCRIPTORS_REQUEST__ANON_STRUCT_0 = {};
 export type LIST_ALL_RESOURCE_DESCRIPTORS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_MOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRIPTOR = {"data": LIST_ALL_RESOURCE_DESCRIPTORS_RESPONSE__MOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRIPTOR[],"message": string,"status": string};
 export type LIST_ALL_RESOURCE_DESCRIPTORS_RESPONSE__MOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRIPTOR = {"apiVersion": string,"kind": string,"namespaced": boolean,"plural": string};
+export type LIVE_STREAM_AI_MANAGER_CHAT_REQUEST_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"channelId": string,"websocketHost": string,"websocketScheme": string};
+export type LIVE_STREAM_AI_MANAGER_CHAT_REQUEST_RESPONSE__ANON_STRUCT_1 = {};
+export type LIVE_STREAM_AI_MANAGER_CHAT_REQUEST_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST42_MOGENIUS_OPERATOR_SRC_CORE_VOID = {"data": LIVE_STREAM_AI_MANAGER_CHAT_REQUEST_RESPONSE__ANON_STRUCT_1|undefined,"message": string,"status": string};
 export type LIVE_STREAM_NODES_CPU_REQUEST__MOGENIUS_OPERATOR_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"nodeName": string,"podName": string,"websocketHost": string,"websocketScheme": string,"workspace": string};
 export type LIVE_STREAM_NODES_CPU_RESPONSE__ANON_STRUCT_1 = {};
 export type LIVE_STREAM_NODES_CPU_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_XTERM_WSCONNECTIONREQUEST_MOGENIUS_OPERATOR_SRC_CORE_VOID = {"data": LIVE_STREAM_NODES_CPU_RESPONSE__ANON_STRUCT_1|undefined,"message": string,"status": string};
@@ -10849,7 +10903,7 @@ export type PROMETHEUS_VALUES_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_PROMETHEUSREQU
 export type PROMETHEUS_VALUES_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_PROMETHEUSREQUEST_STRING = {"data": string[],"message": string,"status": string};
 export type SEALED_SECRET_CREATE_FROM_EXISTING_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"name": string,"namespace": string};
 export type SEALED_SECRET_CREATE_FROM_EXISTING_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"Object": Record<string, any>};
-export type SEALED_SECRET_CREATE_FROM_EXISTING_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST42_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"data": SEALED_SECRET_CREATE_FROM_EXISTING_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED|undefined,"message": string,"status": string};
+export type SEALED_SECRET_CREATE_FROM_EXISTING_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST43_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"data": SEALED_SECRET_CREATE_FROM_EXISTING_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED|undefined,"message": string,"status": string};
 export type SEALED_SECRET_GET_CERTIFICATE_REQUEST__ANON_STRUCT_0 = {};
 export type SEALED_SECRET_GET_CERTIFICATE_RESPONSE__K8S_IO_API_CORE_V1_SECRET = {"TypeMeta": SEALED_SECRET_GET_CERTIFICATE_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA,"data": Record<string, number[]>,"immutable": boolean|undefined,"metadata": SEALED_SECRET_GET_CERTIFICATE_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OBJECTMETA,"stringData": Record<string, string>,"type": string};
 export type SEALED_SECRET_GET_CERTIFICATE_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_FIELDSV1 = {};
@@ -11299,6 +11353,10 @@ export interface IPatternConfig {
   [Pattern.LIST_ALL_RESOURCE_DESCRIPTORS]: {
     Request: LIST_ALL_RESOURCE_DESCRIPTORS_REQUEST;
     Response: LIST_ALL_RESOURCE_DESCRIPTORS_RESPONSE;
+  };
+  [Pattern.LIVE_STREAM_AI_MANAGER_CHAT_REQUEST]: {
+    Request: LIVE_STREAM_AI_MANAGER_CHAT_REQUEST_REQUEST;
+    Response: LIVE_STREAM_AI_MANAGER_CHAT_REQUEST_RESPONSE;
   };
   [Pattern.LIVE_STREAM_NODES_CPU]: {
     Request: LIVE_STREAM_NODES_CPU_REQUEST;

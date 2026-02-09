@@ -458,6 +458,11 @@ func InitializeSystems(
 	networkMonitor := networkmonitor.NewNetworkMonitor(logManagerModule.CreateLogger("network-monitor"), configModule, containerEnumerator, configModule.Get("MO_HOST_PROC_PATH"))
 	ownerCacheService := store.NewOwnerCacheService(logManagerModule.CreateLogger("owner-cache"), configModule)
 	aiManager := ai.NewAiManager(logManagerModule.CreateLogger("ai-manager"), valkeyClient, configModule, ownerCacheService, eventConnectionClient, kubernetes.GetSecret)
+	// Initialize AI tools with kubernetes functions
+	ai.K8sUpdateUnstructuredResource = kubernetes.UpdateUnstructuredResource
+	ai.K8sDeleteUnstructuredResource = kubernetes.DeleteUnstructuredResource
+	ai.K8sCreateUnstructuredResource = kubernetes.CreateUnstructuredResource
+	ai.K8sGetUnstructuredResourceFromStore = kubernetes.GetUnstructuredResourceFromStore
 
 	// golang package setups are deprecated and will be removed in the future by migrating all state to services
 	helm.Setup(logManagerModule, configModule, valkeyClient)
@@ -478,6 +483,7 @@ func InitializeSystems(
 	httpApi := core.NewHttpApi(logManagerModule, configModule)
 	socketApi := core.NewSocketApi(logManagerModule.CreateLogger("socketapi"), configModule, jobConnectionClient, eventConnectionClient, valkeyClient, argocd)
 	xtermService := core.NewXtermService(logManagerModule.CreateLogger("xterm-service"))
+	aiWebsocketConnection := ai.NewAiWebsocketConnection(logManagerModule.CreateLogger("ai-websocket-connection"), aiManager)
 	valkeyLoggerService := core.NewValkeyLogger(valkeyClient, valkeyLogChannel)
 	dbstatsService := core.NewValkeyStatsModule(logManagerModule.CreateLogger("db-stats"), configModule, valkeyClient, ownerCacheService)
 	podStatsCollector := core.NewPodStatsCollector(logManagerModule.CreateLogger("pod-stats-collector"), configModule, clientProvider)
@@ -499,7 +505,7 @@ func InitializeSystems(
 	mocore.Link(moKubernetes)
 	podStatsCollector.Link(dbstatsService)
 	nodeMetricsCollector.Link(dbstatsService, leaderElector)
-	socketApi.Link(httpApi, xtermService, dbstatsService, apiModule, moKubernetes, sealedSecret, aiApi)
+	socketApi.Link(httpApi, xtermService, dbstatsService, apiModule, moKubernetes, sealedSecret, aiApi, aiWebsocketConnection)
 	moKubernetes.Link(dbstatsService)
 	httpApi.Link(socketApi, dbstatsService, apiModule, reconciler)
 	apiModule.Link(workspaceManager)
@@ -520,6 +526,7 @@ func InitializeSystems(
 		socketApi,
 		httpApi,
 		xtermService,
+		aiWebsocketConnection,
 		valkeyLoggerService,
 		podStatsCollector,
 		nodeMetricsCollector,
@@ -547,6 +554,7 @@ type systems struct {
 	socketApi             core.SocketApi
 	httpApi               core.HttpService
 	xtermService          core.XtermService
+	aiWebsocketConnection ai.AiWebsocketConnection
 	valkeyLoggerService   core.ValkeyLogger
 	podStatsCollector     core.PodStatsCollector
 	nodeMetricsCollector  core.NodeMetricsCollector
