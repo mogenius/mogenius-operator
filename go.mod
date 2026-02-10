@@ -7,7 +7,7 @@ require (
 	github.com/bitnami-labs/sealed-secrets v0.34.0
 	github.com/cert-manager/cert-manager v1.19.3
 	github.com/creack/pty v1.1.24
-	github.com/go-git/go-git/v5 v5.16.4
+	github.com/go-git/go-git/v5 v5.16.5
 	github.com/go-playground/validator/v10 v10.30.1
 	github.com/goccy/go-json v0.10.5
 	github.com/google/uuid v1.6.0
