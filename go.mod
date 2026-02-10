@@ -25,7 +25,7 @@ require (
 	github.com/tklauser/go-sysconf v0.3.16
 	github.com/valkey-io/valkey-go v1.0.71
 	golang.org/x/term v0.39.0
-	helm.sh/helm/v4 v4.1.0
+	helm.sh/helm/v4 v4.1.1
 	k8s.io/api v0.35.0
 	k8s.io/apimachinery v0.35.0
 	k8s.io/client-go v0.35.0
