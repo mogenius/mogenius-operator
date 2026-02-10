@@ -142,6 +142,8 @@ var anthropicTools = []anthropic.ToolParam{
 func (ai *aiManager) anthropicChat(
 	ctx context.Context,
 	ioChannel IOChatChannel,
+
+	systemPrompt string,
 	model string,
 	maxToolCalls int,
 ) error {
@@ -172,7 +174,7 @@ func (ai *aiManager) anthropicChat(
 			})
 
 			// Process with tool call loop
-			fullResponse, updatedMessages, err := ai.anthropicChatWithTools(ctx, client, model, messages, ioChannel, maxToolCalls)
+			fullResponse, updatedMessages, err := ai.anthropicChatWithTools(ctx, client, systemPrompt, model, messages, ioChannel, maxToolCalls)
 			if err != nil {
 				ai.logger.Error("Error processing with tools", "error", err)
 				// Send error to output
@@ -201,6 +203,7 @@ func (ai *aiManager) anthropicChat(
 func (ai *aiManager) anthropicChatWithTools(
 	ctx context.Context,
 	client *anthropic.Client,
+	systemPrompt string,
 	model string,
 	messages []anthropic.MessageParam,
 	ioChannel IOChatChannel,
@@ -208,28 +211,14 @@ func (ai *aiManager) anthropicChatWithTools(
 ) (string, []anthropic.MessageParam, error) {
 	toolCallCount := 0
 
-	// Convert tools to the correct format
-	tools := make([]anthropic.ToolUnionParam, len(anthropicTools))
-	for i, toolParam := range anthropicTools {
-		tools[i] = anthropic.ToolUnionParam{OfTool: &toolParam}
+	// Convert tools to the correct format (static + MCP)
+	allAnthropicTools := anthropicTools
+	if ai.mcpManager != nil {
+		allAnthropicTools = append(allAnthropicTools, ai.mcpManager.GetAnthropicTools()...)
 	}
-
-	// Build system prompt with user info
-	systemPrompt := "You are a helpful Kubernetes assistant. You can help users manage and understand their Kubernetes resources." + mogeniusCRDsPrompt
-	if ioChannel.User != nil {
-		userInfo := ""
-		if ioChannel.User.FirstName != "" {
-			userInfo = ioChannel.User.FirstName
-			if ioChannel.User.LastName != "" {
-				userInfo += " " + ioChannel.User.LastName
-			}
-		}
-		if userInfo != "" {
-			systemPrompt += fmt.Sprintf("\n\nYou are chatting with %s.", userInfo)
-		}
-		if ioChannel.User.Email != "" {
-			systemPrompt += fmt.Sprintf(" Their email is %s.", ioChannel.User.Email)
-		}
+	tools := make([]anthropic.ToolUnionParam, len(allAnthropicTools))
+	for i, toolParam := range allAnthropicTools {
+		tools[i] = anthropic.ToolUnionParam{OfTool: &toolParam}
 	}
 
 	for {
@@ -264,9 +253,11 @@ func (ai *aiManager) anthropicChatWithTools(
 		for stream.Next() {
 			event := stream.Current()
 
-			// Accumulate into the message
+			// Accumulate into the message. Partial tool_use blocks may
+			// produce transient marshal errors until all deltas arrive,
+			// so we only log at debug level here.
 			if err := accumulatedMessage.Accumulate(event); err != nil {
-				ai.logger.Error("Error accumulating event", "error", err)
+				ai.logger.Debug("Transient accumulate error (expected during tool_use streaming)", "error", err)
 			}
 
 			// Handle different event types for real-time streaming
@@ -376,15 +367,23 @@ func (ai *aiManager) anthropicChatWithTools(
 				continue
 			}
 
-			// Execute tool
-			tool, ok := toolDefinitions[toolUse.Name]
-			if !ok {
+			// Execute tool - check MCP tools first, then static tools
+			var result string
+			if ai.mcpManager != nil && ai.mcpManager.IsMCPTool(toolUse.Name) {
+				mcpResult, err := ai.mcpManager.CallTool(ctx, toolUse.Name, args)
+				if err != nil {
+					ai.logger.Error("MCP tool call failed", "tool", toolUse.Name, "error", err)
+					toolResults = append(toolResults, anthropic.NewToolResultBlock(toolUse.ID, fmt.Sprintf("Error calling MCP tool: %v", err), true))
+					continue
+				}
+				result = mcpResult
+			} else if tool, ok := toolDefinitions[toolUse.Name]; ok {
+				result = tool(args, ai.valkeyClient, ai.logger)
+			} else {
 				ai.logger.Error("Unknown tool called", "tool", toolUse.Name)
 				toolResults = append(toolResults, anthropic.NewToolResultBlock(toolUse.ID, fmt.Sprintf("Unknown tool: %s", toolUse.Name), true))
 				continue
 			}
-
-			result := tool(args, ai.valkeyClient, ai.logger)
 			toolResults = append(toolResults, anthropic.NewToolResultBlock(toolUse.ID, result, false))
 		}
 
@@ -401,8 +400,12 @@ func (ai *aiManager) anthropicChatWithTools(
 func (ai *aiManager) processPromptAnthropic(ctx context.Context, model, systemPrompt, prompt string, maxToolCalls int) (*AiResponse, int64, int, string, error) {
 	startTime := time.Now()
 
-	tools := make([]anthropic.ToolUnionParam, len(anthropicTools))
-	for i, toolParam := range anthropicTools {
+	allTools := anthropicTools
+	if ai.mcpManager != nil {
+		allTools = append(allTools, ai.mcpManager.GetAnthropicTools()...)
+	}
+	tools := make([]anthropic.ToolUnionParam, len(allTools))
+	for i, toolParam := range allTools {
 		tools[i] = anthropic.ToolUnionParam{OfTool: &toolParam}
 	}
 
@@ -502,11 +505,18 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, model, systemPr
 					return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("error unmarshaling tool arguments: %v", err)
 				}
 
-				tool, ok := toolDefinitions[block.Name]
-				if !ok {
+				var data string
+				if ai.mcpManager != nil && ai.mcpManager.IsMCPTool(block.Name) {
+					mcpResult, err := ai.mcpManager.CallTool(ctx, block.Name, args)
+					if err != nil {
+						return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("MCP tool call %q failed: %v", block.Name, err)
+					}
+					data = mcpResult
+				} else if tool, ok := toolDefinitions[block.Name]; ok {
+					data = tool(args, ai.valkeyClient, ai.logger)
+				} else {
 					return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("unknown tool called: %s", block.Name)
 				}
-				data := tool(args, ai.valkeyClient, ai.logger)
 
 				toolResults = append(toolResults, anthropic.NewToolResultBlock(block.ID, data, false))
 			}
