@@ -159,7 +159,6 @@ func (ai *aiManager) ollamaChat(
 	maxToolCalls int,
 ) error {
 
-
 	client, err := ai.getOllamaClient(nil)
 	if err != nil {
 		return fmt.Errorf("failed to get Ollama client: %w", err)
@@ -203,6 +202,12 @@ func (ai *aiManager) ollamaChat(
 				Role:    "assistant",
 				Content: fullResponse,
 			})
+
+			select {
+			case ioChannel.Output <- "[COMPLETED]":
+			case <-ctx.Done():
+				return ctx.Err()
+			}
 		}
 	}
 }

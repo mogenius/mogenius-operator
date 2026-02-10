@@ -172,6 +172,12 @@ func (ai *aiManager) openaiChat(
 			messages = updatedMessages
 			// Add assistant response to conversation history
 			messages = append(messages, openai.AssistantMessage(fullResponse))
+
+			select {
+			case ioChannel.Output <- "[COMPLETED]":
+			case <-ctx.Done():
+				return ctx.Err()
+			}
 		}
 	}
 }

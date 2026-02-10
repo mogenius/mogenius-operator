@@ -66,6 +66,12 @@ func (ai *aiManager) anthropicChat(
 					anthropic.NewTextBlock(fullResponse),
 				},
 			})
+
+			select {
+			case ioChannel.Output <- "[COMPLETED]":
+			case <-ctx.Done():
+				return ctx.Err()
+			}
 		}
 	}
 }
