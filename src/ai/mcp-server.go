@@ -2,14 +2,14 @@ package ai
 
 import (
 	"context"
+	"fmt"
 	"time"
 )
 
-func (ai *aiManager) connectGitHubMCPServers() {
+func (ai *aiManager) connectGitHubMCPServers() error {
 	pat, err := ai.getGitHubPat()
 	if err != nil {
-		ai.logger.Info("GitHub MCP server not configured (no GITHUB_PAT in secret), skipping", "error", err)
-		return
+		return fmt.Errorf("GitHub MCP server not configured (no GITHUB_PAT in secret): %w", err)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -21,8 +21,9 @@ func (ai *aiManager) connectGitHubMCPServers() {
 		Pat:  pat,
 	})
 	if err != nil {
-		ai.logger.Error("Failed to connect to GitHub MCP server", "error", err)
-		return
+		return fmt.Errorf("failed to connect to GitHub MCP server: %w", err)
 	}
+
 	ai.logger.Info("GitHub MCP server connected successfully")
+	return nil
 }

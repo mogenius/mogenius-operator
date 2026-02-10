@@ -208,7 +208,7 @@ func (ai *aiManager) anthropicChatWithTools(
 	messages []anthropic.MessageParam,
 	ioChannel IOChatChannel,
 	maxToolCalls int,
-) (string, []anthropic.MessageParam, error) {
+) (fullResponse string, updatedMessages []anthropic.MessageParam, err error) {
 	toolCallCount := 0
 
 	// Convert tools to the correct format (static + MCP)

@@ -333,7 +333,7 @@ func (ai *aiManager) openaiChatWithTools(
 	messages []openai.ChatCompletionMessageParamUnion,
 	ioChannel IOChatChannel,
 	maxToolCalls int,
-) (string, []openai.ChatCompletionMessageParamUnion, error) {
+) (fullResponse string, updatedMessages []openai.ChatCompletionMessageParamUnion, err error) {
 	toolCallCount := 0
 
 	chatTools := openAiTools

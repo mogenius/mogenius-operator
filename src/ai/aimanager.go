@@ -375,27 +375,23 @@ func NewAiManager(logger *slog.Logger, valkeyClient valkeyclient.ValkeyClient, c
 // connectMCPServers attempts to connect to configured MCP servers (e.g., GitHub).
 // fetchGitHubAiContext tries to fetch .ai-context.md from the configured GitHub repo
 // via the MCP get_file_contents tool. Returns empty string if not available.
-func (ai *aiManager) fetchGitHubAiContext(ctx context.Context) string {
+func (ai *aiManager) fetchGitHubAiContext(ctx context.Context) (content string, err error) {
 	repo, err := ai.getGitHubRepo()
 	if err != nil || repo == "" {
-		ai.logger.Info("Skipping .ai-context.md pre-fetch: no GitHub repo configured", "error", err)
-		return ""
+		return "", fmt.Errorf("no GitHub repo configured: %w", err)
 	}
 
 	parts := strings.SplitN(repo, "/", 2)
 	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
-		ai.logger.Warn("Invalid GitHub repo format, expected owner/repo", "repo", repo)
-		return ""
+		return "", fmt.Errorf("invalid GitHub repo format, expected owner/repo: %s", repo)
 	}
 
 	if ai.mcpManager == nil {
-		ai.logger.Warn("Skipping .ai-context.md pre-fetch: mcpManager is nil")
-		return ""
+		return "", fmt.Errorf("mcpManager is nil")
 	}
 
 	if !ai.mcpManager.HasSession("github") {
-		ai.logger.Warn("Skipping .ai-context.md pre-fetch: no GitHub MCP session available")
-		return ""
+		return "", fmt.Errorf("no GitHub MCP session available")
 	}
 
 	ai.logger.Info("Pre-fetching .ai-context.md from GitHub", "owner", parts[0], "repo", parts[1])
@@ -405,12 +401,11 @@ func (ai *aiManager) fetchGitHubAiContext(ctx context.Context) string {
 		"path":  ".ai-context.md",
 	})
 	if err != nil {
-		ai.logger.Warn("Failed to pre-fetch .ai-context.md from GitHub", "repo", repo, "error", err)
-		return ""
+		return "", fmt.Errorf("failed to fetch .ai-context.md from %s: %w", repo, err)
 	}
 
 	ai.logger.Info("Successfully pre-loaded .ai-context.md from GitHub", "repo", repo, "contentLength", len(result))
-	return result
+	return result, nil
 }
 
 func (ai *aiManager) Chat(ctx context.Context, ioChannel IOChatChannel) error {
@@ -435,7 +430,9 @@ func (ai *aiManager) Chat(ctx context.Context, ioChannel IOChatChannel) error {
 	}
 
 	// Connect to configured MCP servers
-	ai.connectGitHubMCPServers()
+	if err := ai.connectGitHubMCPServers(); err != nil {
+		ai.logger.Info("GitHub MCP servers not available for chat", "error", err)
+	}
 
 	// Build system prompt with user info
 	crdsPrompt := mogeniusCRDsPrompt
@@ -445,7 +442,9 @@ func (ai *aiManager) Chat(ctx context.Context, ioChannel IOChatChannel) error {
 	systemPrompt := "You are a helpful Kubernetes assistant. You can help users manage and understand their Kubernetes resources.\n\n" + crdsPrompt
 
 	// Pre-fetch .ai-context.md from GitHub if PAT and repo are configured
-	if aiContext := ai.fetchGitHubAiContext(ctx); aiContext != "" {
+	if aiContext, err := ai.fetchGitHubAiContext(ctx); err != nil {
+		ai.logger.Warn("Could not pre-fetch .ai-context.md", "error", err)
+	} else if aiContext != "" {
 		systemPrompt += "\n\n## Pre-loaded .ai-context.md\n" + aiContext
 	}
 
@@ -639,7 +638,9 @@ func (ai *aiManager) Run() {
 	}
 
 	// Connect to configured MCP servers
-	ai.connectGitHubMCPServers()
+	if err := ai.connectGitHubMCPServers(); err != nil {
+		ai.logger.Info("GitHub MCP servers not available for background processing", "error", err)
+	}
 
 	ticker := time.NewTicker(1 * time.Minute)
 	go func() {
