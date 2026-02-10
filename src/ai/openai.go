@@ -10,155 +10,6 @@ import (
 	"github.com/openai/openai-go/v3"
 )
 
-var openAiTools = []openai.ChatCompletionToolUnionParam{
-	{
-		OfFunction: &openai.ChatCompletionFunctionToolParam{
-			Function: openai.FunctionDefinitionParam{
-				Name:        "get_kubernetes_resources",
-				Description: openai.String("Get a specific Kubernetes resource by kind, name and namespace"),
-				Parameters: openai.FunctionParameters{
-					"type": "object",
-					"properties": map[string]interface{}{
-						"apiVersion": map[string]string{
-							"type":        "string",
-							"description": "API version of the resource (e.g. 'v1', 'apps/v1')",
-						},
-						"kind": map[string]string{
-							"type":        "string",
-							"description": "Kind of the resource (e.g. 'Pod', 'Deployment', 'Service')",
-						},
-						"name": map[string]string{
-							"type":        "string",
-							"description": "Name of the specific resource",
-						},
-						"namespace": map[string]string{
-							"type":        "string",
-							"description": "Namespace of the resource (optional for cluster-scoped resources)",
-						},
-					},
-					"required": []string{"kind", "apiVersion", "name"},
-				},
-			},
-		},
-	},
-	{
-		OfFunction: &openai.ChatCompletionFunctionToolParam{
-			Function: openai.FunctionDefinitionParam{
-				Name:        "list_kubernetes_resources",
-				Description: openai.String("List all Kubernetes resources of a specific kind, optionally filtered by namespace"),
-				Parameters: openai.FunctionParameters{
-					"type": "object",
-					"properties": map[string]interface{}{
-						"apiVersion": map[string]string{
-							"type":        "string",
-							"description": "API version of the resource (e.g. 'v1', 'apps/v1')",
-						},
-						"kind": map[string]string{
-							"type":        "string",
-							"description": "Kind of the resource (e.g. 'Pod', 'Deployment', 'Service')",
-						},
-						"namespace": map[string]string{
-							"type":        "string",
-							"description": "Namespace to filter by (optional, leave empty for all namespaces)",
-						},
-					},
-					"required": []string{"kind", "apiVersion"},
-				},
-			},
-		},
-	},
-	{
-		OfFunction: &openai.ChatCompletionFunctionToolParam{
-			Function: openai.FunctionDefinitionParam{
-				Name:        "update_kubernetes_resource",
-				Description: openai.String("Update an existing Kubernetes resource with new YAML configuration"),
-				Parameters: openai.FunctionParameters{
-					"type": "object",
-					"properties": map[string]interface{}{
-						"apiVersion": map[string]string{
-							"type":        "string",
-							"description": "API version of the resource (e.g. 'v1', 'apps/v1')",
-						},
-						"plural": map[string]string{
-							"type":        "string",
-							"description": "Plural name of the resource (e.g. 'pods', 'deployments', 'services')",
-						},
-						"namespaced": map[string]string{
-							"type":        "boolean",
-							"description": "Whether the resource is namespaced (true) or cluster-scoped (false)",
-						},
-						"yamlData": map[string]string{
-							"type":        "string",
-							"description": "Complete YAML definition of the resource to update",
-						},
-					},
-					"required": []string{"apiVersion", "plural", "namespaced", "yamlData"},
-				},
-			},
-		},
-	},
-	{
-		OfFunction: &openai.ChatCompletionFunctionToolParam{
-			Function: openai.FunctionDefinitionParam{
-				Name:        "delete_kubernetes_resource",
-				Description: openai.String("Delete a Kubernetes resource by name and namespace"),
-				Parameters: openai.FunctionParameters{
-					"type": "object",
-					"properties": map[string]interface{}{
-						"apiVersion": map[string]string{
-							"type":        "string",
-							"description": "API version of the resource (e.g. 'v1', 'apps/v1')",
-						},
-						"plural": map[string]string{
-							"type":        "string",
-							"description": "Plural name of the resource (e.g. 'pods', 'deployments', 'services')",
-						},
-						"namespace": map[string]string{
-							"type":        "string",
-							"description": "Namespace of the resource (empty for cluster-scoped resources)",
-						},
-						"name": map[string]string{
-							"type":        "string",
-							"description": "Name of the resource to delete",
-						},
-					},
-					"required": []string{"apiVersion", "plural", "name"},
-				},
-			},
-		},
-	},
-	{
-		OfFunction: &openai.ChatCompletionFunctionToolParam{
-			Function: openai.FunctionDefinitionParam{
-				Name:        "create_kubernetes_resource",
-				Description: openai.String("Create a new Kubernetes resource from YAML configuration"),
-				Parameters: openai.FunctionParameters{
-					"type": "object",
-					"properties": map[string]interface{}{
-						"apiVersion": map[string]string{
-							"type":        "string",
-							"description": "API version of the resource (e.g. 'v1', 'apps/v1')",
-						},
-						"plural": map[string]string{
-							"type":        "string",
-							"description": "Plural name of the resource (e.g. 'pods', 'deployments', 'services')",
-						},
-						"namespaced": map[string]string{
-							"type":        "boolean",
-							"description": "Whether the resource is namespaced (true) or cluster-scoped (false)",
-						},
-						"yamlData": map[string]string{
-							"type":        "string",
-							"description": "Complete YAML definition of the resource to create",
-						},
-					},
-					"required": []string{"apiVersion", "plural", "namespaced", "yamlData"},
-				},
-			},
-		},
-	},
-}
-
 func (ai *aiManager) processPromptOpenAi(ctx context.Context, model, systemPrompt, prompt string, maxToolCalls int) (*AiResponse, int64, int, string, error) {
 	startTime := time.Now()
 
@@ -167,7 +18,7 @@ func (ai *aiManager) processPromptOpenAi(ctx context.Context, model, systemPromp
 		return nil, 0, int(time.Since(startTime).Milliseconds()), model, err
 	}
 
-	allTools := openAiTools
+	allTools := append(kubernetesOpenAiTools, helmOpenAiTools...)
 	if ai.mcpManager != nil {
 		allTools = append(allTools, ai.mcpManager.GetOpenAITools()...)
 	}
@@ -336,7 +187,7 @@ func (ai *aiManager) openaiChatWithTools(
 ) (fullResponse string, updatedMessages []openai.ChatCompletionMessageParamUnion, err error) {
 	toolCallCount := 0
 
-	chatTools := openAiTools
+	chatTools := append(kubernetesOpenAiTools, helmOpenAiTools...)
 	if ai.mcpManager != nil {
 		chatTools = append(chatTools, ai.mcpManager.GetOpenAITools()...)
 	}

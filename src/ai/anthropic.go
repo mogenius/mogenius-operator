@@ -10,135 +10,6 @@ import (
 	"github.com/anthropics/anthropic-sdk-go"
 )
 
-var anthropicTools = []anthropic.ToolParam{
-	{
-		Name:        "get_kubernetes_resources",
-		Description: anthropic.String("Get a specific Kubernetes resource by name. Use this when you know the exact name of the resource you want to retrieve."),
-		InputSchema: anthropic.ToolInputSchemaParam{
-			Type: "object",
-			Properties: map[string]interface{}{
-				"kind": map[string]interface{}{
-					"type":        "string",
-					"description": "The kind of the Kubernetes resource (e.g., Pod, Deployment, Service).",
-				},
-				"apiVersion": map[string]interface{}{
-					"type":        "string",
-					"description": "The API version of the resource (e.g., v1, apps/v1).",
-				},
-				"name": map[string]interface{}{
-					"type":        "string",
-					"description": "The name of the resource.",
-				},
-				"namespace": map[string]interface{}{
-					"type":        "string",
-					"description": "The namespace of the resource (optional for cluster-scoped resources).",
-				},
-			},
-			Required: []string{"kind", "apiVersion", "name"},
-		},
-	},
-	{
-		Name:        "list_kubernetes_resources",
-		Description: anthropic.String("List all Kubernetes resources of a given kind, optionally filtered by namespace. Use this when you want to see multiple resources or don't know the exact name."),
-		InputSchema: anthropic.ToolInputSchemaParam{
-			Type: "object",
-			Properties: map[string]interface{}{
-				"kind": map[string]interface{}{
-					"type":        "string",
-					"description": "The kind of the Kubernetes resource (e.g., Pod, Deployment, Service).",
-				},
-				"apiVersion": map[string]interface{}{
-					"type":        "string",
-					"description": "The API version of the resource (e.g., v1, apps/v1).",
-				},
-				"namespace": map[string]interface{}{
-					"type":        "string",
-					"description": "The namespace to list resources from (optional; omit to list from all namespaces or cluster-scoped resources).",
-				},
-			},
-			Required: []string{"kind", "apiVersion"},
-		},
-	},
-	{
-		Name:        "update_kubernetes_resource",
-		Description: anthropic.String("Update an existing Kubernetes resource with new YAML configuration. Use this to modify resources."),
-		InputSchema: anthropic.ToolInputSchemaParam{
-			Type: "object",
-			Properties: map[string]interface{}{
-				"apiVersion": map[string]interface{}{
-					"type":        "string",
-					"description": "The API version of the resource (e.g., v1, apps/v1).",
-				},
-				"plural": map[string]interface{}{
-					"type":        "string",
-					"description": "The plural name of the resource (e.g., pods, deployments, services).",
-				},
-				"namespaced": map[string]interface{}{
-					"type":        "boolean",
-					"description": "Whether the resource is namespaced (true) or cluster-scoped (false).",
-				},
-				"yamlData": map[string]interface{}{
-					"type":        "string",
-					"description": "Complete YAML definition of the resource to update.",
-				},
-			},
-			Required: []string{"apiVersion", "plural", "namespaced", "yamlData"},
-		},
-	},
-	{
-		Name:        "delete_kubernetes_resource",
-		Description: anthropic.String("Delete a Kubernetes resource by name and namespace."),
-		InputSchema: anthropic.ToolInputSchemaParam{
-			Type: "object",
-			Properties: map[string]interface{}{
-				"apiVersion": map[string]interface{}{
-					"type":        "string",
-					"description": "The API version of the resource (e.g., v1, apps/v1).",
-				},
-				"plural": map[string]interface{}{
-					"type":        "string",
-					"description": "The plural name of the resource (e.g., pods, deployments, services).",
-				},
-				"namespace": map[string]interface{}{
-					"type":        "string",
-					"description": "The namespace of the resource (empty for cluster-scoped resources).",
-				},
-				"name": map[string]interface{}{
-					"type":        "string",
-					"description": "The name of the resource to delete.",
-				},
-			},
-			Required: []string{"apiVersion", "plural", "name"},
-		},
-	},
-	{
-		Name:        "create_kubernetes_resource",
-		Description: anthropic.String("Create a new Kubernetes resource from YAML configuration."),
-		InputSchema: anthropic.ToolInputSchemaParam{
-			Type: "object",
-			Properties: map[string]interface{}{
-				"apiVersion": map[string]interface{}{
-					"type":        "string",
-					"description": "The API version of the resource (e.g., v1, apps/v1).",
-				},
-				"plural": map[string]interface{}{
-					"type":        "string",
-					"description": "The plural name of the resource (e.g., pods, deployments, services).",
-				},
-				"namespaced": map[string]interface{}{
-					"type":        "boolean",
-					"description": "Whether the resource is namespaced (true) or cluster-scoped (false).",
-				},
-				"yamlData": map[string]interface{}{
-					"type":        "string",
-					"description": "Complete YAML definition of the resource to create.",
-				},
-			},
-			Required: []string{"apiVersion", "plural", "namespaced", "yamlData"},
-		},
-	},
-}
-
 func (ai *aiManager) anthropicChat(
 	ctx context.Context,
 	ioChannel IOChatChannel,
@@ -212,7 +83,7 @@ func (ai *aiManager) anthropicChatWithTools(
 	toolCallCount := 0
 
 	// Convert tools to the correct format (static + MCP)
-	allAnthropicTools := anthropicTools
+	allAnthropicTools := append(kubernetesAnthropicTools, helmAnthropicTools...)
 	if ai.mcpManager != nil {
 		allAnthropicTools = append(allAnthropicTools, ai.mcpManager.GetAnthropicTools()...)
 	}
@@ -400,7 +271,7 @@ func (ai *aiManager) anthropicChatWithTools(
 func (ai *aiManager) processPromptAnthropic(ctx context.Context, model, systemPrompt, prompt string, maxToolCalls int) (*AiResponse, int64, int, string, error) {
 	startTime := time.Now()
 
-	allTools := anthropicTools
+	allTools := append(kubernetesAnthropicTools, helmAnthropicTools...)
 	if ai.mcpManager != nil {
 		allTools = append(allTools, ai.mcpManager.GetAnthropicTools()...)
 	}

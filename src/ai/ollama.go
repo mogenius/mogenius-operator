@@ -10,101 +10,6 @@ import (
 	"github.com/ollama/ollama/api"
 )
 
-func newOllamaToolProperties(props map[string]api.ToolProperty) *api.ToolPropertiesMap {
-	m := api.NewToolPropertiesMap()
-	for k, v := range props {
-		m.Set(k, v)
-	}
-	return m
-}
-
-var ollamaTools = []api.Tool{
-	{
-		Type: "function",
-		Function: api.ToolFunction{
-			Name:        "get_kubernetes_resources",
-			Description: "Get a specific Kubernetes resource by kind, name and namespace",
-			Parameters: api.ToolFunctionParameters{
-				Type: "object",
-				Properties: newOllamaToolProperties(map[string]api.ToolProperty{
-					"apiVersion":  {Type: []string{"string"}, Description: "API version of the resource (e.g. 'v1', 'apps/v1')"},
-					"kind":        {Type: []string{"string"}, Description: "Kind of the resource (e.g. 'Pod', 'Deployment', 'Service')"},
-					"name":        {Type: []string{"string"}, Description: "Name of the specific resource"},
-					"namespace":   {Type: []string{"string"}, Description: "Namespace of the resource (optional for cluster-scoped resources)"},
-				}),
-				Required: []string{"kind", "apiVersion", "name"},
-			},
-		},
-	},
-	{
-		Type: "function",
-		Function: api.ToolFunction{
-			Name:        "list_kubernetes_resources",
-			Description: "List all Kubernetes resources of a specific kind, optionally filtered by namespace",
-			Parameters: api.ToolFunctionParameters{
-				Type: "object",
-				Properties: newOllamaToolProperties(map[string]api.ToolProperty{
-					"apiVersion": {Type: []string{"string"}, Description: "API version of the resource (e.g. 'v1', 'apps/v1')"},
-					"kind":       {Type: []string{"string"}, Description: "Kind of the resource (e.g. 'Pod', 'Deployment', 'Service')"},
-					"namespace":  {Type: []string{"string"}, Description: "Namespace to filter by (optional, leave empty for all namespaces)"},
-				}),
-				Required: []string{"kind", "apiVersion"},
-			},
-		},
-	},
-	{
-		Type: "function",
-		Function: api.ToolFunction{
-			Name:        "update_kubernetes_resource",
-			Description: "Update an existing Kubernetes resource with new YAML configuration",
-			Parameters: api.ToolFunctionParameters{
-				Type: "object",
-				Properties: newOllamaToolProperties(map[string]api.ToolProperty{
-					"apiVersion": {Type: []string{"string"}, Description: "API version of the resource (e.g. 'v1', 'apps/v1')"},
-					"plural":     {Type: []string{"string"}, Description: "Plural name of the resource (e.g. 'pods', 'deployments', 'services')"},
-					"namespaced": {Type: []string{"boolean"}, Description: "Whether the resource is namespaced (true) or cluster-scoped (false)"},
-					"yamlData":   {Type: []string{"string"}, Description: "Complete YAML definition of the resource to update"},
-				}),
-				Required: []string{"apiVersion", "plural", "namespaced", "yamlData"},
-			},
-		},
-	},
-	{
-		Type: "function",
-		Function: api.ToolFunction{
-			Name:        "delete_kubernetes_resource",
-			Description: "Delete a Kubernetes resource by name and namespace",
-			Parameters: api.ToolFunctionParameters{
-				Type: "object",
-				Properties: newOllamaToolProperties(map[string]api.ToolProperty{
-					"apiVersion": {Type: []string{"string"}, Description: "API version of the resource (e.g. 'v1', 'apps/v1')"},
-					"plural":     {Type: []string{"string"}, Description: "Plural name of the resource (e.g. 'pods', 'deployments', 'services')"},
-					"namespace":  {Type: []string{"string"}, Description: "Namespace of the resource (empty for cluster-scoped resources)"},
-					"name":       {Type: []string{"string"}, Description: "Name of the resource to delete"},
-				}),
-				Required: []string{"apiVersion", "plural", "name"},
-			},
-		},
-	},
-	{
-		Type: "function",
-		Function: api.ToolFunction{
-			Name:        "create_kubernetes_resource",
-			Description: "Create a new Kubernetes resource from YAML configuration",
-			Parameters: api.ToolFunctionParameters{
-				Type: "object",
-				Properties: newOllamaToolProperties(map[string]api.ToolProperty{
-					"apiVersion": {Type: []string{"string"}, Description: "API version of the resource (e.g. 'v1', 'apps/v1')"},
-					"plural":     {Type: []string{"string"}, Description: "Plural name of the resource (e.g. 'pods', 'deployments', 'services')"},
-					"namespaced": {Type: []string{"boolean"}, Description: "Whether the resource is namespaced (true) or cluster-scoped (false)"},
-					"yamlData":   {Type: []string{"string"}, Description: "Complete YAML definition of the resource to create"},
-				}),
-				Required: []string{"apiVersion", "plural", "namespaced", "yamlData"},
-			},
-		},
-	},
-}
-
 func (ai *aiManager) processPromptOllama(ctx context.Context, model, systemPrompt, prompt string, maxToolCalls int) (*AiResponse, int64, int, string, error) {
 
 	startTime := time.Now()
@@ -138,7 +43,7 @@ func (ai *aiManager) processPromptOllama(ctx context.Context, model, systemPromp
 			Format:   json.RawMessage(`"json"`),
 			Truncate: &truePtr,
 			Shift:    &truePtr,
-			Tools:    ollamaTools,
+			Tools:    append(kubernetesOllamaTools, helmOllamaTools...),
 			Options: map[string]interface{}{
 				"temperature": 0.1,
 			},
@@ -328,7 +233,7 @@ func (ai *aiManager) ollamaChatWithTools(
 			Stream:   &truePtr,
 			Truncate: &truePtr,
 			Shift:    &truePtr,
-			Tools:    ollamaTools,
+			Tools:    append(kubernetesOllamaTools, helmOllamaTools...),
 			Options: map[string]interface{}{
 				"temperature": 0.7,
 			},
