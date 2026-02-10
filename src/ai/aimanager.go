@@ -192,6 +192,7 @@ type aiManager struct {
 	pendingTasks      map[string]AiTask
 	pendingTasksLock  *sync.RWMutex
 	mcpManager        *mcpClientManager
+	mcpConnectors     []MCPServerConnector
 }
 
 const mogeniusCRDsPrompt = `## Mogenius Operator Custom Resource Definitions (CRDs)
@@ -369,12 +370,18 @@ func NewAiManager(logger *slog.Logger, valkeyClient valkeyclient.ValkeyClient, c
 	self.pendingTasksLock = &sync.RWMutex{}
 	self.mcpManager = newMCPClientManager(logger)
 
+	// Register MCP server connectors
+	self.mcpConnectors = []MCPServerConnector{
+		newGitHubMCPConnector(self.getGitHubPat, self.getGitHubRepo),
+		// Add future MCP connectors here, e.g.:
+		// newGitLabMCPConnector(...),
+	}
+
 	return self
 }
 
-// connectMCPServers attempts to connect to configured MCP servers (e.g., GitHub).
 // fetchGitHubAiContext tries to fetch .ai-context.md from the configured GitHub repo
-// via the MCP get_file_contents tool. Returns empty string if not available.
+// via the MCP get_file_contents tool.
 func (ai *aiManager) fetchGitHubAiContext(ctx context.Context) (content string, err error) {
 	repo, err := ai.getGitHubRepo()
 	if err != nil || repo == "" {
@@ -430,9 +437,7 @@ func (ai *aiManager) Chat(ctx context.Context, ioChannel IOChatChannel) error {
 	}
 
 	// Connect to configured MCP servers
-	if err := ai.connectGitHubMCPServers(); err != nil {
-		ai.logger.Info("GitHub MCP servers not available for chat", "error", err)
-	}
+	ai.connectMCPServers()
 
 	// Build system prompt with user info
 	crdsPrompt := mogeniusCRDsPrompt
@@ -470,7 +475,7 @@ func (ai *aiManager) Chat(ctx context.Context, ioChannel IOChatChannel) error {
 	case AiSdkTypeAnthropic:
 		return ai.anthropicChat(ctx, ioChannel, systemPrompt, model, maxToolCalls)
 	case AiSdkTypeOllama:
-		return fmt.Errorf("Ollama chat not yet implemented")
+		return ai.ollamaChat(ctx, ioChannel, systemPrompt, model, maxToolCalls)
 	default:
 		return fmt.Errorf("unsupported AI SDK type: %s", sdk)
 	}
@@ -638,9 +643,7 @@ func (ai *aiManager) Run() {
 	}
 
 	// Connect to configured MCP servers
-	if err := ai.connectGitHubMCPServers(); err != nil {
-		ai.logger.Info("GitHub MCP servers not available for background processing", "error", err)
-	}
+	ai.connectMCPServers()
 
 	ticker := time.NewTicker(1 * time.Minute)
 	go func() {
