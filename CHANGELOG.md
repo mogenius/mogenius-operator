@@ -1,3 +1,10 @@
+# [2.19.0-develop.41](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.40...v2.19.0-develop.41) (2026-02-11)
+
+
+### Bug Fixes
+
+* **deps:** update k8s.io/utils digest to b8788ab ([#786](https://github.com/mogenius/mogenius-operator/issues/786)) ([2505584](https://github.com/mogenius/mogenius-operator/commit/250558415fc065dbaf1afa70f81a0857737d5d7f))
+
 # [2.19.0-develop.40](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.39...v2.19.0-develop.40) (2026-02-11)
 
 
