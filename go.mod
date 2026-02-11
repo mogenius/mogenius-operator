@@ -27,12 +27,12 @@ require (
 	github.com/valkey-io/valkey-go v1.0.71
 	golang.org/x/term v0.39.0
 	helm.sh/helm/v4 v4.1.1
-	k8s.io/api v0.35.0
-	k8s.io/apimachinery v0.35.0
-	k8s.io/client-go v0.35.0
+	k8s.io/api v0.35.1
+	k8s.io/apimachinery v0.35.1
+	k8s.io/client-go v0.35.1
 	k8s.io/klog/v2 v2.130.1
-	k8s.io/kubectl v0.35.0
-	k8s.io/metrics v0.35.0
+	k8s.io/kubectl v0.35.1
+	k8s.io/metrics v0.35.1
 	k8s.io/utils v0.0.0-20260210185600-b8788abfbbc2
 	sigs.k8s.io/controller-runtime v0.23.1
 	sigs.k8s.io/yaml v1.6.0
@@ -186,9 +186,9 @@ require (
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	k8s.io/apiextensions-apiserver v0.35.0 // indirect
 	k8s.io/apiserver v0.35.0 // indirect
-	k8s.io/cli-runtime v0.35.0 // indirect
-	k8s.io/component-base v0.35.0 // indirect
-	k8s.io/component-helpers v0.35.0 // indirect
+	k8s.io/cli-runtime v0.35.1 // indirect
+	k8s.io/component-base v0.35.1 // indirect
+	k8s.io/component-helpers v0.35.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20251125145642-4e65d59e963e // indirect
 	oras.land/oras-go/v2 v2.6.0 // indirect
 	sigs.k8s.io/gateway-api v1.4.1 // indirect
