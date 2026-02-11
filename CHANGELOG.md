@@ -1,3 +1,15 @@
+# [2.19.0-develop.40](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.39...v2.19.0-develop.40) (2026-02-11)
+
+
+### Bug Fixes
+
+* add mcp client; update ai chat system prompt ([24fbd5a](https://github.com/mogenius/mogenius-operator/commit/24fbd5ada5b4957913f345956c7b956c733f1617))
+* ai chat implemented ollama; refactoring mcp server connections ([0e263c7](https://github.com/mogenius/mogenius-operator/commit/0e263c77f307a699056bbe3f46a862c085c1b9c7))
+* ai chat return values ([c88da73](https://github.com/mogenius/mogenius-operator/commit/c88da7319d0a42d9305addd9504d8022f73e762c))
+* ai send input/output/session tokens ([b11a216](https://github.com/mogenius/mogenius-operator/commit/b11a216a78530f3f886107f2e008dc12224ac8ff))
+* refactoring ai tools, add helm tools ([daadc25](https://github.com/mogenius/mogenius-operator/commit/daadc2553d26b795b3e8fac848edc22211d900b1))
+* send COMPLETED message ([ad28c9d](https://github.com/mogenius/mogenius-operator/commit/ad28c9d9d94fa0d995fc0701932f9ee013d4f31e))
+
 # [2.19.0-develop.39](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.38...v2.19.0-develop.39) (2026-02-10)
 
 
