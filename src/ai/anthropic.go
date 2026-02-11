@@ -10,138 +10,11 @@ import (
 	"github.com/anthropics/anthropic-sdk-go"
 )
 
-var anthropicTools = []anthropic.ToolParam{
-	{
-		Name:        "get_kubernetes_resources",
-		Description: anthropic.String("Get a specific Kubernetes resource by name. Use this when you know the exact name of the resource you want to retrieve."),
-		InputSchema: anthropic.ToolInputSchemaParam{
-			Type: "object",
-			Properties: map[string]interface{}{
-				"kind": map[string]interface{}{
-					"type":        "string",
-					"description": "The kind of the Kubernetes resource (e.g., Pod, Deployment, Service).",
-				},
-				"apiVersion": map[string]interface{}{
-					"type":        "string",
-					"description": "The API version of the resource (e.g., v1, apps/v1).",
-				},
-				"name": map[string]interface{}{
-					"type":        "string",
-					"description": "The name of the resource.",
-				},
-				"namespace": map[string]interface{}{
-					"type":        "string",
-					"description": "The namespace of the resource (optional for cluster-scoped resources).",
-				},
-			},
-			Required: []string{"kind", "apiVersion", "name"},
-		},
-	},
-	{
-		Name:        "list_kubernetes_resources",
-		Description: anthropic.String("List all Kubernetes resources of a given kind, optionally filtered by namespace. Use this when you want to see multiple resources or don't know the exact name."),
-		InputSchema: anthropic.ToolInputSchemaParam{
-			Type: "object",
-			Properties: map[string]interface{}{
-				"kind": map[string]interface{}{
-					"type":        "string",
-					"description": "The kind of the Kubernetes resource (e.g., Pod, Deployment, Service).",
-				},
-				"apiVersion": map[string]interface{}{
-					"type":        "string",
-					"description": "The API version of the resource (e.g., v1, apps/v1).",
-				},
-				"namespace": map[string]interface{}{
-					"type":        "string",
-					"description": "The namespace to list resources from (optional; omit to list from all namespaces or cluster-scoped resources).",
-				},
-			},
-			Required: []string{"kind", "apiVersion"},
-		},
-	},
-	{
-		Name:        "update_kubernetes_resource",
-		Description: anthropic.String("Update an existing Kubernetes resource with new YAML configuration. Use this to modify resources."),
-		InputSchema: anthropic.ToolInputSchemaParam{
-			Type: "object",
-			Properties: map[string]interface{}{
-				"apiVersion": map[string]interface{}{
-					"type":        "string",
-					"description": "The API version of the resource (e.g., v1, apps/v1).",
-				},
-				"plural": map[string]interface{}{
-					"type":        "string",
-					"description": "The plural name of the resource (e.g., pods, deployments, services).",
-				},
-				"namespaced": map[string]interface{}{
-					"type":        "boolean",
-					"description": "Whether the resource is namespaced (true) or cluster-scoped (false).",
-				},
-				"yamlData": map[string]interface{}{
-					"type":        "string",
-					"description": "Complete YAML definition of the resource to update.",
-				},
-			},
-			Required: []string{"apiVersion", "plural", "namespaced", "yamlData"},
-		},
-	},
-	{
-		Name:        "delete_kubernetes_resource",
-		Description: anthropic.String("Delete a Kubernetes resource by name and namespace."),
-		InputSchema: anthropic.ToolInputSchemaParam{
-			Type: "object",
-			Properties: map[string]interface{}{
-				"apiVersion": map[string]interface{}{
-					"type":        "string",
-					"description": "The API version of the resource (e.g., v1, apps/v1).",
-				},
-				"plural": map[string]interface{}{
-					"type":        "string",
-					"description": "The plural name of the resource (e.g., pods, deployments, services).",
-				},
-				"namespace": map[string]interface{}{
-					"type":        "string",
-					"description": "The namespace of the resource (empty for cluster-scoped resources).",
-				},
-				"name": map[string]interface{}{
-					"type":        "string",
-					"description": "The name of the resource to delete.",
-				},
-			},
-			Required: []string{"apiVersion", "plural", "name"},
-		},
-	},
-	{
-		Name:        "create_kubernetes_resource",
-		Description: anthropic.String("Create a new Kubernetes resource from YAML configuration."),
-		InputSchema: anthropic.ToolInputSchemaParam{
-			Type: "object",
-			Properties: map[string]interface{}{
-				"apiVersion": map[string]interface{}{
-					"type":        "string",
-					"description": "The API version of the resource (e.g., v1, apps/v1).",
-				},
-				"plural": map[string]interface{}{
-					"type":        "string",
-					"description": "The plural name of the resource (e.g., pods, deployments, services).",
-				},
-				"namespaced": map[string]interface{}{
-					"type":        "boolean",
-					"description": "Whether the resource is namespaced (true) or cluster-scoped (false).",
-				},
-				"yamlData": map[string]interface{}{
-					"type":        "string",
-					"description": "Complete YAML definition of the resource to create.",
-				},
-			},
-			Required: []string{"apiVersion", "plural", "namespaced", "yamlData"},
-		},
-	},
-}
-
 func (ai *aiManager) anthropicChat(
 	ctx context.Context,
 	ioChannel IOChatChannel,
+
+	systemPrompt string,
 	model string,
 	maxToolCalls int,
 ) error {
@@ -152,6 +25,9 @@ func (ai *aiManager) anthropicChat(
 
 	// Maintain conversation history
 	messages := []anthropic.MessageParam{}
+
+	// Session-level accumulated token counters
+	var sessionInputTokens, sessionOutputTokens int64
 
 	for {
 		select {
@@ -172,7 +48,7 @@ func (ai *aiManager) anthropicChat(
 			})
 
 			// Process with tool call loop
-			fullResponse, updatedMessages, err := ai.anthropicChatWithTools(ctx, client, model, messages, ioChannel, maxToolCalls)
+			fullResponse, updatedMessages, err := ai.anthropicChatWithTools(ctx, client, systemPrompt, model, messages, ioChannel, maxToolCalls, &sessionInputTokens, &sessionOutputTokens)
 			if err != nil {
 				ai.logger.Error("Error processing with tools", "error", err)
 				// Send error to output
@@ -193,6 +69,12 @@ func (ai *aiManager) anthropicChat(
 					anthropic.NewTextBlock(fullResponse),
 				},
 			})
+
+			select {
+			case ioChannel.Output <- "[COMPLETED]":
+			case <-ctx.Done():
+				return ctx.Err()
+			}
 		}
 	}
 }
@@ -201,36 +83,28 @@ func (ai *aiManager) anthropicChat(
 func (ai *aiManager) anthropicChatWithTools(
 	ctx context.Context,
 	client *anthropic.Client,
+	systemPrompt string,
 	model string,
 	messages []anthropic.MessageParam,
 	ioChannel IOChatChannel,
 	maxToolCalls int,
-) (string, []anthropic.MessageParam, error) {
+	sessionInputTokens *int64,
+	sessionOutputTokens *int64,
+) (fullResponse string, updatedMessages []anthropic.MessageParam, err error) {
 	toolCallCount := 0
 
-	// Convert tools to the correct format
-	tools := make([]anthropic.ToolUnionParam, len(anthropicTools))
-	for i, toolParam := range anthropicTools {
+	// Convert tools to the correct format (static + MCP)
+	allAnthropicTools := append(kubernetesAnthropicTools, helmAnthropicTools...)
+	if ai.mcpManager != nil {
+		allAnthropicTools = append(allAnthropicTools, ai.mcpManager.GetAnthropicTools()...)
+	}
+	tools := make([]anthropic.ToolUnionParam, len(allAnthropicTools))
+	for i, toolParam := range allAnthropicTools {
 		tools[i] = anthropic.ToolUnionParam{OfTool: &toolParam}
 	}
 
-	// Build system prompt with user info
-	systemPrompt := "You are a helpful Kubernetes assistant. You can help users manage and understand their Kubernetes resources." + mogeniusCRDsPrompt
-	if ioChannel.User != nil {
-		userInfo := ""
-		if ioChannel.User.FirstName != "" {
-			userInfo = ioChannel.User.FirstName
-			if ioChannel.User.LastName != "" {
-				userInfo += " " + ioChannel.User.LastName
-			}
-		}
-		if userInfo != "" {
-			systemPrompt += fmt.Sprintf("\n\nYou are chatting with %s.", userInfo)
-		}
-		if ioChannel.User.Email != "" {
-			systemPrompt += fmt.Sprintf(" Their email is %s.", ioChannel.User.Email)
-		}
-	}
+	var inputTokens int64
+	var outputTokenCount int64
 
 	for {
 		// Notify user that AI is thinking
@@ -259,14 +133,18 @@ func (ai *aiManager) anthropicChatWithTools(
 			Name  string
 			Input json.RawMessage
 		}
+		inputTokens = 0
+		outputTokenCount = 0
 
 		// Process streaming events
 		for stream.Next() {
 			event := stream.Current()
 
-			// Accumulate into the message
+			// Accumulate into the message. Partial tool_use blocks may
+			// produce transient marshal errors until all deltas arrive,
+			// so we only log at debug level here.
 			if err := accumulatedMessage.Accumulate(event); err != nil {
-				ai.logger.Error("Error accumulating event", "error", err)
+				ai.logger.Debug("Transient accumulate error (expected during tool_use streaming)", "error", err)
 			}
 
 			// Handle different event types for real-time streaming
@@ -294,15 +172,17 @@ func (ai *aiManager) anthropicChatWithTools(
 				}
 
 			case anthropic.MessageStartEvent:
-				ai.logger.Info("Message started", "model", evt.Message.Model)
+				inputTokens = evt.Message.Usage.InputTokens
+				*sessionInputTokens += inputTokens
+				ai.sendTokens(inputTokens, outputTokenCount, sessionInputTokens, sessionOutputTokens, ctx, ioChannel)
 
 			case anthropic.MessageDeltaEvent:
-				if evt.Delta.StopReason == "tool_use" {
-					ai.logger.Info("Message stopped for tool use")
-				}
+				outputTokenCount = evt.Usage.OutputTokens
+				*sessionOutputTokens += outputTokenCount
+				ai.sendTokens(inputTokens, outputTokenCount, sessionInputTokens, sessionOutputTokens, ctx, ioChannel)
 
 			case anthropic.MessageStopEvent:
-				ai.logger.Info("Message completed")
+				ai.sendTokens(inputTokens, outputTokenCount, sessionInputTokens, sessionOutputTokens, ctx, ioChannel)
 			}
 		}
 
@@ -376,15 +256,23 @@ func (ai *aiManager) anthropicChatWithTools(
 				continue
 			}
 
-			// Execute tool
-			tool, ok := toolDefinitions[toolUse.Name]
-			if !ok {
+			// Execute tool - check MCP tools first, then static tools
+			var result string
+			if ai.mcpManager != nil && ai.mcpManager.IsMCPTool(toolUse.Name) {
+				mcpResult, err := ai.mcpManager.CallTool(ctx, toolUse.Name, args)
+				if err != nil {
+					ai.logger.Error("MCP tool call failed", "tool", toolUse.Name, "error", err)
+					toolResults = append(toolResults, anthropic.NewToolResultBlock(toolUse.ID, fmt.Sprintf("Error calling MCP tool: %v", err), true))
+					continue
+				}
+				result = mcpResult
+			} else if tool, ok := toolDefinitions[toolUse.Name]; ok {
+				result = tool(args, ai.valkeyClient, ai.logger)
+			} else {
 				ai.logger.Error("Unknown tool called", "tool", toolUse.Name)
 				toolResults = append(toolResults, anthropic.NewToolResultBlock(toolUse.ID, fmt.Sprintf("Unknown tool: %s", toolUse.Name), true))
 				continue
 			}
-
-			result := tool(args, ai.valkeyClient, ai.logger)
 			toolResults = append(toolResults, anthropic.NewToolResultBlock(toolUse.ID, result, false))
 		}
 
@@ -401,8 +289,12 @@ func (ai *aiManager) anthropicChatWithTools(
 func (ai *aiManager) processPromptAnthropic(ctx context.Context, model, systemPrompt, prompt string, maxToolCalls int) (*AiResponse, int64, int, string, error) {
 	startTime := time.Now()
 
-	tools := make([]anthropic.ToolUnionParam, len(anthropicTools))
-	for i, toolParam := range anthropicTools {
+	allTools := append(kubernetesAnthropicTools, helmAnthropicTools...)
+	if ai.mcpManager != nil {
+		allTools = append(allTools, ai.mcpManager.GetAnthropicTools()...)
+	}
+	tools := make([]anthropic.ToolUnionParam, len(allTools))
+	for i, toolParam := range allTools {
 		tools[i] = anthropic.ToolUnionParam{OfTool: &toolParam}
 	}
 
@@ -502,11 +394,18 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, model, systemPr
 					return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("error unmarshaling tool arguments: %v", err)
 				}
 
-				tool, ok := toolDefinitions[block.Name]
-				if !ok {
+				var data string
+				if ai.mcpManager != nil && ai.mcpManager.IsMCPTool(block.Name) {
+					mcpResult, err := ai.mcpManager.CallTool(ctx, block.Name, args)
+					if err != nil {
+						return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("MCP tool call %q failed: %v", block.Name, err)
+					}
+					data = mcpResult
+				} else if tool, ok := toolDefinitions[block.Name]; ok {
+					data = tool(args, ai.valkeyClient, ai.logger)
+				} else {
 					return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("unknown tool called: %s", block.Name)
 				}
-				data := tool(args, ai.valkeyClient, ai.logger)
 
 				toolResults = append(toolResults, anthropic.NewToolResultBlock(block.ID, data, false))
 			}

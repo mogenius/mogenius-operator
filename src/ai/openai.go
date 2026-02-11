@@ -4,159 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/openai/openai-go/v3"
 )
-
-var openAiTools = []openai.ChatCompletionToolUnionParam{
-	{
-		OfFunction: &openai.ChatCompletionFunctionToolParam{
-			Function: openai.FunctionDefinitionParam{
-				Name:        "get_kubernetes_resources",
-				Description: openai.String("Get a specific Kubernetes resource by kind, name and namespace"),
-				Parameters: openai.FunctionParameters{
-					"type": "object",
-					"properties": map[string]interface{}{
-						"apiVersion": map[string]string{
-							"type":        "string",
-							"description": "API version of the resource (e.g. 'v1', 'apps/v1')",
-						},
-						"kind": map[string]string{
-							"type":        "string",
-							"description": "Kind of the resource (e.g. 'Pod', 'Deployment', 'Service')",
-						},
-						"name": map[string]string{
-							"type":        "string",
-							"description": "Name of the specific resource",
-						},
-						"namespace": map[string]string{
-							"type":        "string",
-							"description": "Namespace of the resource (optional for cluster-scoped resources)",
-						},
-					},
-					"required": []string{"kind", "apiVersion", "name"},
-				},
-			},
-		},
-	},
-	{
-		OfFunction: &openai.ChatCompletionFunctionToolParam{
-			Function: openai.FunctionDefinitionParam{
-				Name:        "list_kubernetes_resources",
-				Description: openai.String("List all Kubernetes resources of a specific kind, optionally filtered by namespace"),
-				Parameters: openai.FunctionParameters{
-					"type": "object",
-					"properties": map[string]interface{}{
-						"apiVersion": map[string]string{
-							"type":        "string",
-							"description": "API version of the resource (e.g. 'v1', 'apps/v1')",
-						},
-						"kind": map[string]string{
-							"type":        "string",
-							"description": "Kind of the resource (e.g. 'Pod', 'Deployment', 'Service')",
-						},
-						"namespace": map[string]string{
-							"type":        "string",
-							"description": "Namespace to filter by (optional, leave empty for all namespaces)",
-						},
-					},
-					"required": []string{"kind", "apiVersion"},
-				},
-			},
-		},
-	},
-	{
-		OfFunction: &openai.ChatCompletionFunctionToolParam{
-			Function: openai.FunctionDefinitionParam{
-				Name:        "update_kubernetes_resource",
-				Description: openai.String("Update an existing Kubernetes resource with new YAML configuration"),
-				Parameters: openai.FunctionParameters{
-					"type": "object",
-					"properties": map[string]interface{}{
-						"apiVersion": map[string]string{
-							"type":        "string",
-							"description": "API version of the resource (e.g. 'v1', 'apps/v1')",
-						},
-						"plural": map[string]string{
-							"type":        "string",
-							"description": "Plural name of the resource (e.g. 'pods', 'deployments', 'services')",
-						},
-						"namespaced": map[string]string{
-							"type":        "boolean",
-							"description": "Whether the resource is namespaced (true) or cluster-scoped (false)",
-						},
-						"yamlData": map[string]string{
-							"type":        "string",
-							"description": "Complete YAML definition of the resource to update",
-						},
-					},
-					"required": []string{"apiVersion", "plural", "namespaced", "yamlData"},
-				},
-			},
-		},
-	},
-	{
-		OfFunction: &openai.ChatCompletionFunctionToolParam{
-			Function: openai.FunctionDefinitionParam{
-				Name:        "delete_kubernetes_resource",
-				Description: openai.String("Delete a Kubernetes resource by name and namespace"),
-				Parameters: openai.FunctionParameters{
-					"type": "object",
-					"properties": map[string]interface{}{
-						"apiVersion": map[string]string{
-							"type":        "string",
-							"description": "API version of the resource (e.g. 'v1', 'apps/v1')",
-						},
-						"plural": map[string]string{
-							"type":        "string",
-							"description": "Plural name of the resource (e.g. 'pods', 'deployments', 'services')",
-						},
-						"namespace": map[string]string{
-							"type":        "string",
-							"description": "Namespace of the resource (empty for cluster-scoped resources)",
-						},
-						"name": map[string]string{
-							"type":        "string",
-							"description": "Name of the resource to delete",
-						},
-					},
-					"required": []string{"apiVersion", "plural", "name"},
-				},
-			},
-		},
-	},
-	{
-		OfFunction: &openai.ChatCompletionFunctionToolParam{
-			Function: openai.FunctionDefinitionParam{
-				Name:        "create_kubernetes_resource",
-				Description: openai.String("Create a new Kubernetes resource from YAML configuration"),
-				Parameters: openai.FunctionParameters{
-					"type": "object",
-					"properties": map[string]interface{}{
-						"apiVersion": map[string]string{
-							"type":        "string",
-							"description": "API version of the resource (e.g. 'v1', 'apps/v1')",
-						},
-						"plural": map[string]string{
-							"type":        "string",
-							"description": "Plural name of the resource (e.g. 'pods', 'deployments', 'services')",
-						},
-						"namespaced": map[string]string{
-							"type":        "boolean",
-							"description": "Whether the resource is namespaced (true) or cluster-scoped (false)",
-						},
-						"yamlData": map[string]string{
-							"type":        "string",
-							"description": "Complete YAML definition of the resource to create",
-						},
-					},
-					"required": []string{"apiVersion", "plural", "namespaced", "yamlData"},
-				},
-			},
-		},
-	},
-}
 
 func (ai *aiManager) processPromptOpenAi(ctx context.Context, model, systemPrompt, prompt string, maxToolCalls int) (*AiResponse, int64, int, string, error) {
 	startTime := time.Now()
@@ -166,13 +18,18 @@ func (ai *aiManager) processPromptOpenAi(ctx context.Context, model, systemPromp
 		return nil, 0, int(time.Since(startTime).Milliseconds()), model, err
 	}
 
+	allTools := append(kubernetesOpenAiTools, helmOpenAiTools...)
+	if ai.mcpManager != nil {
+		allTools = append(allTools, ai.mcpManager.GetOpenAITools()...)
+	}
+
 	params := openai.ChatCompletionNewParams{
 		Messages: []openai.ChatCompletionMessageParamUnion{
 			openai.UserMessage(prompt),
 			openai.SystemMessage(systemPrompt + "\n You have access to the following tool: get_kubernetes_resources. Use it to retrieve Kubernetes resources as needed to answer the user's question accurately."),
 		},
 		Model: model,
-		Tools: openAiTools,
+		Tools: allTools,
 	}
 
 	var tokensUsed int64 = 0
@@ -211,12 +68,18 @@ func (ai *aiManager) processPromptOpenAi(ctx context.Context, model, systemPromp
 				return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("error unmarshaling tool arguments: %v", err)
 			}
 
-			tool, ok := toolDefinitions[toolCall.Function.Name]
-			if !ok {
+			var data string
+			if ai.mcpManager != nil && ai.mcpManager.IsMCPTool(toolCall.Function.Name) {
+				mcpResult, err := ai.mcpManager.CallTool(ctx, toolCall.Function.Name, args)
+				if err != nil {
+					return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("MCP tool call %q failed: %v", toolCall.Function.Name, err)
+				}
+				data = mcpResult
+			} else if tool, ok := toolDefinitions[toolCall.Function.Name]; ok {
+				data = tool(args, ai.valkeyClient, ai.logger)
+			} else {
 				return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("unknown tool called: %s", toolCall.Function.Name)
 			}
-
-			data := tool(args, ai.valkeyClient, ai.logger)
 
 			params.Messages = append(params.Messages, openai.ToolMessage(data, toolCall.ID))
 		}
@@ -265,8 +128,8 @@ func (ai *aiManager) openaiChat(
 	ctx context.Context,
 	ioChannel IOChatChannel,
 
+	systemPrompt string,
 	model string,
-	messages []openai.ChatCompletionMessageParamUnion,
 	maxToolCalls int,
 ) error {
 	client, err := ai.getOpenAIClient(nil)
@@ -274,26 +137,13 @@ func (ai *aiManager) openaiChat(
 		return fmt.Errorf("failed to get OpenAI client: %w", err)
 	}
 
-	// Build system prompt with user info
-	systemPrompt := "You are a helpful Kubernetes assistant. You can help users manage and understand their Kubernetes resources." + mogeniusCRDsPrompt
-	if ioChannel.User != nil {
-		userInfo := ""
-		if ioChannel.User.FirstName != "" {
-			userInfo = ioChannel.User.FirstName
-			if ioChannel.User.LastName != "" {
-				userInfo += " " + ioChannel.User.LastName
-			}
-		}
-		if userInfo != "" {
-			systemPrompt += fmt.Sprintf("\n\nYou are chatting with %s.", userInfo)
-		}
-		if ioChannel.User.Email != "" {
-			systemPrompt += fmt.Sprintf(" Their email is %s.", ioChannel.User.Email)
-		}
+	// Add system message at the beginning
+	messages := []openai.ChatCompletionMessageParamUnion{
+		openai.SystemMessage(systemPrompt),
 	}
 
-	// Add system message at the beginning
-	messages = append([]openai.ChatCompletionMessageParamUnion{openai.SystemMessage(systemPrompt)}, messages...)
+	// Session-level accumulated token counters
+	var sessionInputTokens, sessionOutputTokens int64
 
 	for {
 		select {
@@ -309,7 +159,7 @@ func (ai *aiManager) openaiChat(
 			messages = append(messages, openai.UserMessage(userInput))
 
 			// Process with tool call loop
-			fullResponse, updatedMessages, err := ai.openaiChatWithTools(ctx, client, model, messages, ioChannel, maxToolCalls)
+			fullResponse, updatedMessages, err := ai.openaiChatWithTools(ctx, client, model, messages, ioChannel, maxToolCalls, &sessionInputTokens, &sessionOutputTokens)
 			if err != nil {
 				ai.logger.Error("Error processing with tools", "error", err)
 				// Send error to output
@@ -325,93 +175,215 @@ func (ai *aiManager) openaiChat(
 			messages = updatedMessages
 			// Add assistant response to conversation history
 			messages = append(messages, openai.AssistantMessage(fullResponse))
+
+			select {
+			case ioChannel.Output <- "[COMPLETED]":
+			case <-ctx.Done():
+				return ctx.Err()
+			}
 		}
 	}
 }
 
-// processChatWithTools handles the AI request with potential tool calls (non-streaming for tool support)
+// openaiChatWithTools handles the AI request with streaming and tool call support.
 func (ai *aiManager) openaiChatWithTools(
 	ctx context.Context,
 	client *openai.Client,
 	model string,
-	messages []openai.ChatCompletionMessageParamUnion, ioChannel IOChatChannel,
+	messages []openai.ChatCompletionMessageParamUnion,
+	ioChannel IOChatChannel,
 	maxToolCalls int,
-) (string, []openai.ChatCompletionMessageParamUnion, error) {
+	sessionInputTokens *int64,
+	sessionOutputTokens *int64,
+) (fullResponse string, updatedMessages []openai.ChatCompletionMessageParamUnion, err error) {
 	toolCallCount := 0
 
+	chatTools := append(kubernetesOpenAiTools, helmOpenAiTools...)
+	if ai.mcpManager != nil {
+		chatTools = append(chatTools, ai.mcpManager.GetOpenAITools()...)
+	}
+
+	var inputTokens int64
+	var outputTokenCount int64
+
 	for {
+		// Notify user that AI is thinking
+		select {
+		case ioChannel.Output <- "[AI is thinking...]\n":
+		case <-ctx.Done():
+			return "", messages, ctx.Err()
+		}
+
 		params := openai.ChatCompletionNewParams{
 			Messages:    messages,
 			Model:       model,
-			Tools:       openAiTools,
+			Tools:       chatTools,
 			Temperature: openai.Float(0.7),
+			StreamOptions: openai.ChatCompletionStreamOptionsParam{
+				IncludeUsage: openai.Bool(true),
+			},
 		}
 
-		// Use non-streaming API for tool call support
-		chatCompletion, err := client.Chat.Completions.New(ctx, params)
-		if err != nil {
-			return "", messages, fmt.Errorf("chat completion error: %w", err)
-		}
+		stream := client.Chat.Completions.NewStreaming(ctx, params)
 
-		if len(chatCompletion.Choices) == 0 {
-			return "", messages, fmt.Errorf("no choices returned from AI model")
-		}
+		var fullText strings.Builder
+		// Track tool calls being assembled from deltas
+		toolCallMap := make(map[int64]*struct {
+			ID        string
+			Name      string
+			Arguments strings.Builder
+		})
 
-		choice := chatCompletion.Choices[0]
+		for stream.Next() {
+			chunk := stream.Current()
 
-		// Add assistant message to history
-		messages = append(messages, choice.Message.ToParam())
-
-		// If no tool calls, send response and we're done
-		if len(choice.Message.ToolCalls) == 0 {
-			// Send response to output channel
-			response := choice.Message.Content
-			select {
-			case ioChannel.Output <- response:
-			case <-ctx.Done():
-				return "", messages, ctx.Err()
+			// Capture usage from final chunk
+			if chunk.Usage.PromptTokens > 0 || chunk.Usage.CompletionTokens > 0 {
+				inputTokens = chunk.Usage.PromptTokens
+				outputTokenCount = chunk.Usage.CompletionTokens
+				*sessionInputTokens += inputTokens
+				*sessionOutputTokens += outputTokenCount
+				ai.sendTokens(inputTokens, outputTokenCount, sessionInputTokens, sessionOutputTokens, ctx, ioChannel)
 			}
+
+			if len(chunk.Choices) == 0 {
+				continue
+			}
+			delta := chunk.Choices[0].Delta
+
+			// Stream text content to the user
+			if delta.Content != "" {
+				fullText.WriteString(delta.Content)
+				select {
+				case ioChannel.Output <- delta.Content:
+				case <-ctx.Done():
+					return "", messages, ctx.Err()
+				}
+			}
+
+			// Accumulate tool call deltas
+			for _, tc := range delta.ToolCalls {
+				entry, ok := toolCallMap[tc.Index]
+				if !ok {
+					entry = &struct {
+						ID        string
+						Name      string
+						Arguments strings.Builder
+					}{}
+					toolCallMap[tc.Index] = entry
+				}
+				if tc.ID != "" {
+					entry.ID = tc.ID
+				}
+				if tc.Function.Name != "" {
+					entry.Name = tc.Function.Name
+					// Notify the user that a tool is being called
+					select {
+					case ioChannel.Output <- fmt.Sprintf("\n[Using tool: %s]\n", tc.Function.Name):
+					case <-ctx.Done():
+						return "", messages, ctx.Err()
+					}
+				}
+				if tc.Function.Arguments != "" {
+					entry.Arguments.WriteString(tc.Function.Arguments)
+				}
+			}
+		}
+
+		if err := stream.Err(); err != nil {
+			return "", messages, fmt.Errorf("streaming error: %w", err)
+		}
+
+		ioChannel.Output <- "\n\n"
+
+		// Build the assistant message for conversation history
+		if len(toolCallMap) == 0 {
+			// No tool calls — just a text response
+			response := fullText.String()
+			messages = append(messages, openai.AssistantMessage(response))
 			return response, messages, nil
 		}
 
-		// Check tool call limit
-		toolCallCount += len(choice.Message.ToolCalls)
-		if toolCallCount >= maxToolCalls {
-			ai.logger.Warn("Max tool calls reached", "count", toolCallCount)
-			return choice.Message.Content, messages, nil
+		// Build tool_calls slice for the assistant message
+		type collectedToolCall struct {
+			ID        string
+			Name      string
+			Arguments string
 		}
-
-		// Process each tool call
-		for _, toolCall := range choice.Message.ToolCalls {
-			ai.logger.Info("Processing tool call", "tool", toolCall.Function.Name)
-
-			// Notify user that tool is being used
-			select {
-			case ioChannel.Output <- fmt.Sprintf("[Using tool: %s]\n", toolCall.Function.Name):
-			case <-ctx.Done():
-				return "", messages, ctx.Err()
-			}
-
-			// Parse arguments
-			var args map[string]any
-			if err := json.Unmarshal([]byte(toolCall.Function.Arguments), &args); err != nil {
-				ai.logger.Error("Error parsing tool arguments", "error", err)
-				messages = append(messages, openai.ToolMessage(fmt.Sprintf("Error parsing arguments: %v", err), toolCall.ID))
-				continue
-			}
-
-			// Execute tool
-			tool, ok := toolDefinitions[toolCall.Function.Name]
+		var toolCalls []collectedToolCall
+		for i := int64(0); ; i++ {
+			entry, ok := toolCallMap[i]
 			if !ok {
-				ai.logger.Error("Unknown tool called", "tool", toolCall.Function.Name)
-				messages = append(messages, openai.ToolMessage(fmt.Sprintf("Unknown tool: %s", toolCall.Function.Name), toolCall.ID))
+				break
+			}
+			toolCalls = append(toolCalls, collectedToolCall{
+				ID:        entry.ID,
+				Name:      entry.Name,
+				Arguments: entry.Arguments.String(),
+			})
+		}
+
+		// Build param tool calls for conversation history
+		paramToolCalls := make([]openai.ChatCompletionMessageToolCallUnionParam, len(toolCalls))
+		for i, tc := range toolCalls {
+			paramToolCalls[i] = openai.ChatCompletionMessageToolCallUnionParam{
+				OfFunction: &openai.ChatCompletionMessageFunctionToolCallParam{
+					ID: tc.ID,
+					Function: openai.ChatCompletionMessageFunctionToolCallFunctionParam{
+						Name:      tc.Name,
+						Arguments: tc.Arguments,
+					},
+				},
+			}
+		}
+
+		// Add assistant message with tool calls to history
+		messages = append(messages, openai.ChatCompletionMessageParamUnion{
+			OfAssistant: &openai.ChatCompletionAssistantMessageParam{
+				Content: openai.ChatCompletionAssistantMessageParamContentUnion{
+					OfString: openai.String(fullText.String()),
+				},
+				ToolCalls: paramToolCalls,
+			},
+		})
+
+		// Check tool call limit
+		toolCallCount += len(toolCalls)
+		if maxToolCalls > 0 && toolCallCount >= maxToolCalls {
+			ai.logger.Warn("Max tool calls reached", "count", toolCallCount)
+			return fullText.String(), messages, nil
+		}
+
+		// Execute each tool call
+		for _, tc := range toolCalls {
+			ai.logger.Info("Executing tool", "tool", tc.Name)
+
+			var args map[string]any
+			if err := json.Unmarshal([]byte(tc.Arguments), &args); err != nil {
+				ai.logger.Error("Error parsing tool arguments", "error", err)
+				messages = append(messages, openai.ToolMessage(fmt.Sprintf("Error parsing arguments: %v", err), tc.ID))
 				continue
 			}
 
-			result := tool(args, ai.valkeyClient, ai.logger)
-			messages = append(messages, openai.ToolMessage(result, toolCall.ID))
+			var result string
+			if ai.mcpManager != nil && ai.mcpManager.IsMCPTool(tc.Name) {
+				mcpResult, err := ai.mcpManager.CallTool(ctx, tc.Name, args)
+				if err != nil {
+					ai.logger.Error("MCP tool call failed", "tool", tc.Name, "error", err)
+					messages = append(messages, openai.ToolMessage(fmt.Sprintf("Error calling MCP tool: %v", err), tc.ID))
+					continue
+				}
+				result = mcpResult
+			} else if tool, ok := toolDefinitions[tc.Name]; ok {
+				result = tool(args, ai.valkeyClient, ai.logger)
+			} else {
+				ai.logger.Error("Unknown tool called", "tool", tc.Name)
+				messages = append(messages, openai.ToolMessage(fmt.Sprintf("Unknown tool: %s", tc.Name), tc.ID))
+				continue
+			}
+			messages = append(messages, openai.ToolMessage(result, tc.ID))
 		}
 
-		// Continue loop to get response after tool calls
+		// Continue loop to get response after tool results
 	}
 }
