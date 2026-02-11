@@ -172,6 +172,9 @@ func (ai *aiManager) ollamaChat(
 		},
 	}
 
+	// Session-level accumulated token counters
+	var sessionInputTokens, sessionOutputTokens int64
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -186,7 +189,7 @@ func (ai *aiManager) ollamaChat(
 				Content: userInput,
 			})
 
-			fullResponse, updatedMessages, err := ai.ollamaChatWithTools(ctx, client, model, messages, ioChannel, maxToolCalls)
+			fullResponse, updatedMessages, err := ai.ollamaChatWithTools(ctx, client, model, messages, ioChannel, maxToolCalls, &sessionInputTokens, &sessionOutputTokens)
 			if err != nil {
 				ai.logger.Error("Error processing with tools", "error", err)
 				select {
@@ -220,9 +223,14 @@ func (ai *aiManager) ollamaChatWithTools(
 	messages []api.Message,
 	ioChannel IOChatChannel,
 	maxToolCalls int,
+	sessionInputTokens *int64,
+	sessionOutputTokens *int64,
 ) (fullResponse string, updatedMessages []api.Message, err error) {
 	toolCallCount := 0
 	truePtr := true
+
+	var inputTokens int64
+	var outputTokenCount int64
 
 	for {
 		// Notify user that AI is thinking
@@ -257,13 +265,22 @@ func (ai *aiManager) ollamaChatWithTools(
 				}
 			}
 
-			if resp.Done && len(resp.Message.ToolCalls) > 0 {
-				toolCalls = resp.Message.ToolCalls
-				for _, tc := range toolCalls {
-					select {
-					case ioChannel.Output <- fmt.Sprintf("\n[Using tool: %s]\n", tc.Function.Name):
-					case <-ctx.Done():
-						return ctx.Err()
+			if resp.Done {
+				inputTokens = int64(resp.PromptEvalCount)
+				outputTokenCount = int64(resp.EvalCount)
+				*sessionInputTokens += inputTokens
+				*sessionOutputTokens += outputTokenCount
+				ai.logger.Info("Stream usage", "input_tokens", inputTokens, "output_tokens", outputTokenCount,
+					"session_input_tokens", *sessionInputTokens, "session_output_tokens", *sessionOutputTokens)
+
+				if len(resp.Message.ToolCalls) > 0 {
+					toolCalls = resp.Message.ToolCalls
+					for _, tc := range toolCalls {
+						select {
+						case ioChannel.Output <- fmt.Sprintf("\n[Using tool: %s]\n", tc.Function.Name):
+						case <-ctx.Done():
+							return ctx.Err()
+						}
 					}
 				}
 			}
@@ -274,6 +291,8 @@ func (ai *aiManager) ollamaChatWithTools(
 		if err != nil {
 			return "", messages, fmt.Errorf("streaming error: %w", err)
 		}
+
+		ai.sendTokens(inputTokens, outputTokenCount, sessionInputTokens, sessionOutputTokens, ctx, ioChannel)
 
 		ioChannel.Output <- "\n\n"
 

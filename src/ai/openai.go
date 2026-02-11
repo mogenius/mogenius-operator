@@ -142,6 +142,9 @@ func (ai *aiManager) openaiChat(
 		openai.SystemMessage(systemPrompt),
 	}
 
+	// Session-level accumulated token counters
+	var sessionInputTokens, sessionOutputTokens int64
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -156,7 +159,7 @@ func (ai *aiManager) openaiChat(
 			messages = append(messages, openai.UserMessage(userInput))
 
 			// Process with tool call loop
-			fullResponse, updatedMessages, err := ai.openaiChatWithTools(ctx, client, model, messages, ioChannel, maxToolCalls)
+			fullResponse, updatedMessages, err := ai.openaiChatWithTools(ctx, client, model, messages, ioChannel, maxToolCalls, &sessionInputTokens, &sessionOutputTokens)
 			if err != nil {
 				ai.logger.Error("Error processing with tools", "error", err)
 				// Send error to output
@@ -190,6 +193,8 @@ func (ai *aiManager) openaiChatWithTools(
 	messages []openai.ChatCompletionMessageParamUnion,
 	ioChannel IOChatChannel,
 	maxToolCalls int,
+	sessionInputTokens *int64,
+	sessionOutputTokens *int64,
 ) (fullResponse string, updatedMessages []openai.ChatCompletionMessageParamUnion, err error) {
 	toolCallCount := 0
 
@@ -197,6 +202,9 @@ func (ai *aiManager) openaiChatWithTools(
 	if ai.mcpManager != nil {
 		chatTools = append(chatTools, ai.mcpManager.GetOpenAITools()...)
 	}
+
+	var inputTokens int64
+	var outputTokenCount int64
 
 	for {
 		// Notify user that AI is thinking
@@ -211,6 +219,9 @@ func (ai *aiManager) openaiChatWithTools(
 			Model:       model,
 			Tools:       chatTools,
 			Temperature: openai.Float(0.7),
+			StreamOptions: openai.ChatCompletionStreamOptionsParam{
+				IncludeUsage: openai.Bool(true),
+			},
 		}
 
 		stream := client.Chat.Completions.NewStreaming(ctx, params)
@@ -225,6 +236,15 @@ func (ai *aiManager) openaiChatWithTools(
 
 		for stream.Next() {
 			chunk := stream.Current()
+
+			// Capture usage from final chunk
+			if chunk.Usage.PromptTokens > 0 || chunk.Usage.CompletionTokens > 0 {
+				inputTokens = chunk.Usage.PromptTokens
+				outputTokenCount = chunk.Usage.CompletionTokens
+				*sessionInputTokens += inputTokens
+				*sessionOutputTokens += outputTokenCount
+				ai.sendTokens(inputTokens, outputTokenCount, sessionInputTokens, sessionOutputTokens, ctx, ioChannel)
+			}
 
 			if len(chunk.Choices) == 0 {
 				continue

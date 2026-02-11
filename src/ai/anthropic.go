@@ -26,6 +26,9 @@ func (ai *aiManager) anthropicChat(
 	// Maintain conversation history
 	messages := []anthropic.MessageParam{}
 
+	// Session-level accumulated token counters
+	var sessionInputTokens, sessionOutputTokens int64
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -45,7 +48,7 @@ func (ai *aiManager) anthropicChat(
 			})
 
 			// Process with tool call loop
-			fullResponse, updatedMessages, err := ai.anthropicChatWithTools(ctx, client, systemPrompt, model, messages, ioChannel, maxToolCalls)
+			fullResponse, updatedMessages, err := ai.anthropicChatWithTools(ctx, client, systemPrompt, model, messages, ioChannel, maxToolCalls, &sessionInputTokens, &sessionOutputTokens)
 			if err != nil {
 				ai.logger.Error("Error processing with tools", "error", err)
 				// Send error to output
@@ -85,6 +88,8 @@ func (ai *aiManager) anthropicChatWithTools(
 	messages []anthropic.MessageParam,
 	ioChannel IOChatChannel,
 	maxToolCalls int,
+	sessionInputTokens *int64,
+	sessionOutputTokens *int64,
 ) (fullResponse string, updatedMessages []anthropic.MessageParam, err error) {
 	toolCallCount := 0
 
@@ -97,6 +102,9 @@ func (ai *aiManager) anthropicChatWithTools(
 	for i, toolParam := range allAnthropicTools {
 		tools[i] = anthropic.ToolUnionParam{OfTool: &toolParam}
 	}
+
+	var inputTokens int64
+	var outputTokenCount int64
 
 	for {
 		// Notify user that AI is thinking
@@ -125,6 +133,8 @@ func (ai *aiManager) anthropicChatWithTools(
 			Name  string
 			Input json.RawMessage
 		}
+		inputTokens = 0
+		outputTokenCount = 0
 
 		// Process streaming events
 		for stream.Next() {
@@ -162,15 +172,17 @@ func (ai *aiManager) anthropicChatWithTools(
 				}
 
 			case anthropic.MessageStartEvent:
-				ai.logger.Info("Message started", "model", evt.Message.Model)
+				inputTokens = evt.Message.Usage.InputTokens
+				*sessionInputTokens += inputTokens
+				ai.sendTokens(inputTokens, outputTokenCount, sessionInputTokens, sessionOutputTokens, ctx, ioChannel)
 
 			case anthropic.MessageDeltaEvent:
-				if evt.Delta.StopReason == "tool_use" {
-					ai.logger.Info("Message stopped for tool use")
-				}
+				outputTokenCount = evt.Usage.OutputTokens
+				*sessionOutputTokens += outputTokenCount
+				ai.sendTokens(inputTokens, outputTokenCount, sessionInputTokens, sessionOutputTokens, ctx, ioChannel)
 
 			case anthropic.MessageStopEvent:
-				ai.logger.Info("Message completed")
+				ai.sendTokens(inputTokens, outputTokenCount, sessionInputTokens, sessionOutputTokens, ctx, ioChannel)
 			}
 		}
 
