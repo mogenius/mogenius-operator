@@ -142,6 +142,13 @@ func (ai *aiManager) openaiChat(
 		openai.SystemMessage(systemPrompt),
 	}
 
+	// Build tools once per session (static + MCP, filtered by role)
+	chatTools := append(kubernetesOpenAiTools, helmOpenAiTools...)
+	if ai.mcpManager != nil {
+		chatTools = append(chatTools, ai.mcpManager.GetOpenAITools()...)
+	}
+	chatTools = filterOpenAiTools(chatTools, ioChannel)
+
 	// Session-level accumulated token counters
 	var sessionInputTokens, sessionOutputTokens int64
 
@@ -159,7 +166,7 @@ func (ai *aiManager) openaiChat(
 			messages = append(messages, openai.UserMessage(userInput))
 
 			// Process with tool call loop
-			fullResponse, updatedMessages, err := ai.openaiChatWithTools(ctx, client, model, messages, ioChannel, maxToolCalls, &sessionInputTokens, &sessionOutputTokens)
+			fullResponse, updatedMessages, err := ai.openaiChatWithTools(ctx, client, model, messages, ioChannel, chatTools, maxToolCalls, &sessionInputTokens, &sessionOutputTokens)
 			if err != nil {
 				ai.logger.Error("Error processing with tools", "error", err)
 				// Send error to output
@@ -192,16 +199,12 @@ func (ai *aiManager) openaiChatWithTools(
 	model string,
 	messages []openai.ChatCompletionMessageParamUnion,
 	ioChannel IOChatChannel,
+	chatTools []openai.ChatCompletionToolUnionParam,
 	maxToolCalls int,
 	sessionInputTokens *int64,
 	sessionOutputTokens *int64,
 ) (fullResponse string, updatedMessages []openai.ChatCompletionMessageParamUnion, err error) {
 	toolCallCount := 0
-
-	chatTools := append(kubernetesOpenAiTools, helmOpenAiTools...)
-	if ai.mcpManager != nil {
-		chatTools = append(chatTools, ai.mcpManager.GetOpenAITools()...)
-	}
 
 	var inputTokens int64
 	var outputTokenCount int64

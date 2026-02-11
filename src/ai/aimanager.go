@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	cfg "mogenius-operator/src/config"
+	"mogenius-operator/src/crds/v1alpha1"
 	"mogenius-operator/src/store"
 	"mogenius-operator/src/structs"
 	"mogenius-operator/src/utils"
@@ -175,6 +176,8 @@ type AiManager interface {
 	GetAvailableModels(request *ModelsRequest) ([]string, error)
 	GetPromptConfig() (*AiPromptConfig, error)
 	Chat(ctx context.Context, ch IOChatChannel) error
+
+	ResolveWorkspaceContext(userEmail string, workspaceName string) (*v1alpha1.WorkspaceSpec, *v1alpha1.GrantSpec)
 }
 
 type SecretGetter func(namespace, name string) (*coreV1.Secret, error)

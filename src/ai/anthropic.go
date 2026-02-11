@@ -26,6 +26,17 @@ func (ai *aiManager) anthropicChat(
 	// Maintain conversation history
 	messages := []anthropic.MessageParam{}
 
+	// Build tools once per session (static + MCP, filtered by role)
+	allAnthropicTools := append(kubernetesAnthropicTools, helmAnthropicTools...)
+	if ai.mcpManager != nil {
+		allAnthropicTools = append(allAnthropicTools, ai.mcpManager.GetAnthropicTools()...)
+	}
+	allAnthropicTools = filterAnthropicTools(allAnthropicTools, ioChannel)
+	tools := make([]anthropic.ToolUnionParam, len(allAnthropicTools))
+	for i, toolParam := range allAnthropicTools {
+		tools[i] = anthropic.ToolUnionParam{OfTool: &toolParam}
+	}
+
 	// Session-level accumulated token counters
 	var sessionInputTokens, sessionOutputTokens int64
 
@@ -48,7 +59,7 @@ func (ai *aiManager) anthropicChat(
 			})
 
 			// Process with tool call loop
-			fullResponse, updatedMessages, err := ai.anthropicChatWithTools(ctx, client, systemPrompt, model, messages, ioChannel, maxToolCalls, &sessionInputTokens, &sessionOutputTokens)
+			fullResponse, updatedMessages, err := ai.anthropicChatWithTools(ctx, client, systemPrompt, model, messages, ioChannel, tools, maxToolCalls, &sessionInputTokens, &sessionOutputTokens)
 			if err != nil {
 				ai.logger.Error("Error processing with tools", "error", err)
 				// Send error to output
@@ -87,21 +98,12 @@ func (ai *aiManager) anthropicChatWithTools(
 	model string,
 	messages []anthropic.MessageParam,
 	ioChannel IOChatChannel,
+	tools []anthropic.ToolUnionParam,
 	maxToolCalls int,
 	sessionInputTokens *int64,
 	sessionOutputTokens *int64,
 ) (fullResponse string, updatedMessages []anthropic.MessageParam, err error) {
 	toolCallCount := 0
-
-	// Convert tools to the correct format (static + MCP)
-	allAnthropicTools := append(kubernetesAnthropicTools, helmAnthropicTools...)
-	if ai.mcpManager != nil {
-		allAnthropicTools = append(allAnthropicTools, ai.mcpManager.GetAnthropicTools()...)
-	}
-	tools := make([]anthropic.ToolUnionParam, len(allAnthropicTools))
-	for i, toolParam := range allAnthropicTools {
-		tools[i] = anthropic.ToolUnionParam{OfTool: &toolParam}
-	}
 
 	var inputTokens int64
 	var outputTokenCount int64
