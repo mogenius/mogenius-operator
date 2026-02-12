@@ -1,10 +1,10 @@
 module mogenius-operator
 
-go 1.25.5
+go 1.25.7
 
 require (
 	github.com/alecthomas/kong v1.14.0
-	github.com/bitnami-labs/sealed-secrets v0.34.0
+	github.com/bitnami-labs/sealed-secrets v0.35.0
 	github.com/cert-manager/cert-manager v1.19.3
 	github.com/creack/pty v1.1.24
 	github.com/go-git/go-git/v5 v5.16.5
@@ -25,7 +25,7 @@ require (
 	github.com/stretchr/testify v1.11.1
 	github.com/tklauser/go-sysconf v0.3.16
 	github.com/valkey-io/valkey-go v1.0.71
-	golang.org/x/term v0.39.0
+	golang.org/x/term v0.40.0
 	helm.sh/helm/v4 v4.1.1
 	k8s.io/api v0.35.1
 	k8s.io/apimachinery v0.35.1
@@ -171,12 +171,12 @@ require (
 	go.opentelemetry.io/proto/otlp v1.9.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.3 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
-	golang.org/x/crypto v0.47.0 // indirect
+	golang.org/x/crypto v0.48.0 // indirect
 	golang.org/x/net v0.49.0 // indirect
 	golang.org/x/oauth2 v0.34.0 // indirect
 	golang.org/x/sync v0.19.0 // indirect
-	golang.org/x/sys v0.40.0 // indirect
-	golang.org/x/text v0.33.0 // indirect
+	golang.org/x/sys v0.41.0 // indirect
+	golang.org/x/text v0.34.0 // indirect
 	golang.org/x/time v0.14.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20251124214823-79d6a2a48846 // indirect
 	google.golang.org/grpc v1.77.0 // indirect
