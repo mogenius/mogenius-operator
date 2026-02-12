@@ -1,3 +1,10 @@
+# [2.19.0-develop.42](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.41...v2.19.0-develop.42) (2026-02-12)
+
+
+### Bug Fixes
+
+* **deps:** update kubernetes packages to v0.35.1 ([#788](https://github.com/mogenius/mogenius-operator/issues/788)) ([e6d89a7](https://github.com/mogenius/mogenius-operator/commit/e6d89a77b821991a17d6e80d3c7672f5a7f6ad33))
+
 # [2.19.0-develop.41](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.40...v2.19.0-develop.41) (2026-02-11)
 
 
