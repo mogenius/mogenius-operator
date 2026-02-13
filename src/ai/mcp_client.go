@@ -89,10 +89,10 @@ func (m *mcpClientManager) Connect(ctx context.Context, cfg MCPServerConfig) err
 	}
 	m.mu.Unlock()
 
-	m.logger.Info("Connected to MCP server", "name", cfg.Name, "toolCount", len(toolsResult.Tools))
-	for _, tool := range toolsResult.Tools {
-		m.logger.Info("MCP tool discovered", "server", cfg.Name, "tool", tool.Name)
-	}
+	//m.logger.Info("Connected to MCP server", "name", cfg.Name, "toolCount", len(toolsResult.Tools))
+	//for _, tool := range toolsResult.Tools {
+	//	m.logger.Info("MCP tool discovered", "server", cfg.Name, "tool", tool.Name)
+	//}
 
 	return nil
 }

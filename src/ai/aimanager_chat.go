@@ -44,6 +44,10 @@ A Workspace is a logical organizational unit that groups and manages various Kub
 **Purpose:**
 A User resource contains information about a user on the mogenius platform and maps the mogenius user to Kubernetes RBAC subjects (User, Group, or ServiceAccount).
 
+**Naming Convention:**
+- metadata.name MUST follow the pattern: user-<UUID> (e.g. "user-3f2a1b4c-5d6e-7f8a-9b0c-1d2e3f4a5b6c")
+- Always generate a new UUID when creating a User resource
+
 **Spec Structure:**
 - spec.email (string, optional): User's email address
 - spec.firstName (string, optional): User's first name
@@ -70,6 +74,10 @@ A User resource contains information about a user on the mogenius platform and m
 
 **Purpose:**
 A Grant assigns permissions for mogenius User or Team resources to mogenius Workspace resources. It creates the link between users and the workspaces they can access.
+
+**Naming Convention:**
+- metadata.name MUST follow the pattern: grant-<UUID> (e.g. "grant-3f2a1b4c-5d6e-7f8a-9b0c-1d2e3f4a5b6c")
+- Always generate a new UUID when creating a Grant resource
 
 **Spec Structure:**
 - spec.grantee (string): Who is granted permission (user.metadata.name or team.metadata.name)

@@ -3,6 +3,7 @@ package ai
 import (
 	"context"
 	"log/slog"
+	"mogenius-operator/src/crds/v1alpha1"
 	"mogenius-operator/src/structs"
 	"mogenius-operator/src/utils"
 	"net/url"
@@ -31,9 +32,11 @@ func NewAiWebsocketConnection(logger *slog.Logger, aiManager AiManager) AiWebsoc
 
 // IOChatChannel represents a bidirectional channel for AI chat communication
 type IOChatChannel struct {
-	Input  <-chan string // Incoming messages (user questions)
-	Output chan<- string // Outgoing messages (AI responses)
-	User   *structs.User // Optional user information
+	Input          <-chan string           // Incoming messages (user questions)
+	Output         chan<- string           // Outgoing messages (AI responses)
+	User           *structs.User           // Optional user information
+	WorkspaceSpec  *v1alpha1.WorkspaceSpec // Optional workspace information
+	WorkspaceGrant *v1alpha1.GrantSpec     // Optional workspace grant information
 }
 
 func (self *aiWebsocketConnection) LiveStreamAiManagerChatRequest(channelId string, websocketScheme string, websocketHost string, datagram structs.Datagram) {
@@ -76,6 +79,13 @@ func (self *aiWebsocketConnection) LiveStreamAiManagerChatRequest(channelId stri
 		Input:  inputChan,
 		Output: outputChan,
 		User:   &datagram.User,
+	}
+
+	// Resolve workspace and grant context if user and workspace are provided
+	if datagram.User.Email != "" && datagram.Workspace != "" {
+		workspaceSpec, grantSpec := self.aiManager.ResolveWorkspaceContext(datagram.User.Email, datagram.Workspace)
+		chatChannel.WorkspaceSpec = workspaceSpec
+		chatChannel.WorkspaceGrant = grantSpec
 	}
 
 	defer func() {
@@ -136,7 +146,6 @@ func (self *aiWebsocketConnection) LiveStreamAiManagerChatRequest(channelId stri
 			// Only process text messages
 			if messageType == websocket.TextMessage {
 				userInput := string(p)
-				logger.Info("Received user input", "input", userInput)
 
 				// Send to input channel (non-blocking with timeout)
 				select {

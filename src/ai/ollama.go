@@ -172,6 +172,9 @@ func (ai *aiManager) ollamaChat(
 		},
 	}
 
+	// Build tools once per session (static, filtered by role)
+	ollamaTools := filterOllamaTools(append(kubernetesOllamaTools, helmOllamaTools...), ioChannel)
+
 	// Session-level accumulated token counters
 	var sessionInputTokens, sessionOutputTokens int64
 
@@ -189,7 +192,7 @@ func (ai *aiManager) ollamaChat(
 				Content: userInput,
 			})
 
-			fullResponse, updatedMessages, err := ai.ollamaChatWithTools(ctx, client, model, messages, ioChannel, maxToolCalls, &sessionInputTokens, &sessionOutputTokens)
+			fullResponse, updatedMessages, err := ai.ollamaChatWithTools(ctx, client, model, messages, ioChannel, ollamaTools, maxToolCalls, &sessionInputTokens, &sessionOutputTokens)
 			if err != nil {
 				ai.logger.Error("Error processing with tools", "error", err)
 				select {
@@ -222,6 +225,7 @@ func (ai *aiManager) ollamaChatWithTools(
 	model string,
 	messages []api.Message,
 	ioChannel IOChatChannel,
+	ollamaTools []api.Tool,
 	maxToolCalls int,
 	sessionInputTokens *int64,
 	sessionOutputTokens *int64,
@@ -246,7 +250,7 @@ func (ai *aiManager) ollamaChatWithTools(
 			Stream:   &truePtr,
 			Truncate: &truePtr,
 			Shift:    &truePtr,
-			Tools:    append(kubernetesOllamaTools, helmOllamaTools...),
+			Tools:    ollamaTools,
 			Options: map[string]interface{}{
 				"temperature": 0.7,
 			},

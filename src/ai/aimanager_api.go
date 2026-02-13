@@ -11,6 +11,7 @@ import (
 	"time"
 
 	json "github.com/goccy/go-json"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 var cachedStatusTime time.Time
@@ -414,4 +415,61 @@ func userSeesTaskForTheFirstTime(readBy *structs.User, users []ReadBy) bool {
 		}
 	}
 	return true
+}
+
+// ResolveWorkspaceContext looks up the WorkspaceSpec and the user's GrantSpec
+// for a given workspace name and user email. It returns nil for values that
+// could not be resolved (e.g. workspace not found, no grant for the user).
+func (ai *aiManager) ResolveWorkspaceContext(userEmail string, workspaceName string) (*v1alpha1.WorkspaceSpec, *v1alpha1.GrantSpec) {
+	ownNamespace, err := ai.config.TryGet("MO_OWN_NAMESPACE")
+	if err != nil {
+		ai.logger.Warn("ResolveWorkspaceContext: failed to get own namespace", "error", err)
+		return nil, nil
+	}
+
+	// Resolve workspace
+	var workspaceSpec *v1alpha1.WorkspaceSpec
+	workspace, err := store.GetWorkspace(ownNamespace, workspaceName)
+	if err != nil {
+		ai.logger.Warn("ResolveWorkspaceContext: failed to get workspace", "workspace", workspaceName, "error", err)
+	} else if workspace != nil {
+		workspaceSpec = &workspace.Spec
+	}
+
+	// Resolve user's grant for this workspace
+	var grantSpec *v1alpha1.GrantSpec
+	if userEmail != "" {
+		// Find user CRD by email to get the user's metadata.name (used as grantee)
+		userResources := store.GetResourceByKindAndNamespace(ai.valkeyClient, "mogenius.com/v1alpha1", "User", ownNamespace, ai.logger)
+		var userName string
+		for _, u := range userResources {
+			email, _, _ := unstructured.NestedString(u.Object, "spec", "email")
+			if email == userEmail {
+				userName = u.GetName()
+				break
+			}
+		}
+
+		if userName != "" {
+			// Find grant for this user and workspace
+			grantResources := store.GetResourceByKindAndNamespace(ai.valkeyClient, "mogenius.com/v1alpha1", "Grant", ownNamespace, ai.logger)
+			for _, g := range grantResources {
+				grantee, _, _ := unstructured.NestedString(g.Object, "spec", "grantee")
+				targetName, _, _ := unstructured.NestedString(g.Object, "spec", "targetName")
+				if grantee == userName && targetName == workspaceName {
+					role, _, _ := unstructured.NestedString(g.Object, "spec", "role")
+					targetType, _, _ := unstructured.NestedString(g.Object, "spec", "targetType")
+					grantSpec = &v1alpha1.GrantSpec{
+						Grantee:    grantee,
+						TargetType: targetType,
+						TargetName: targetName,
+						Role:       role,
+					}
+					break
+				}
+			}
+		}
+	}
+
+	return workspaceSpec, grantSpec
 }
