@@ -1,3 +1,10 @@
+# [2.19.0-develop.46](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.45...v2.19.0-develop.46) (2026-02-13)
+
+
+### Bug Fixes
+
+* filter ai tools for workspace viewer ([d1f4306](https://github.com/mogenius/mogenius-operator/commit/d1f430622d01b75cc9ca292597b64d1a64f70102))
+
 # [2.19.0-develop.45](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.44...v2.19.0-develop.45) (2026-02-13)
 
 
