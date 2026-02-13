@@ -170,6 +170,8 @@ type AiManager interface {
 	GetAiTasksForResource(resourceReq utils.WorkloadSingleRequest) ([]AiTask, error)
 	GetLatestTask(workspace *string) (*AiTaskLatest, error)
 	InjectAiPromptConfig(prompt AiPromptConfig)
+	InjectAiChatSystemPrompt(prompt string) bool
+	InjectAiChatGitHubAiContextSystemPrompt(prompt string) bool
 	GetStatus(workspace *string) AiManagerStatus
 	ResetDailyTokenLimit() error
 	DeleteAllAiData() error
@@ -183,19 +185,22 @@ type AiManager interface {
 type SecretGetter func(namespace, name string) (*coreV1.Secret, error)
 
 type aiManager struct {
-	logger            *slog.Logger
-	valkeyClient      valkeyclient.ValkeyClient
-	config            cfg.ConfigModule
-	aiPromptConfig    *AiPromptConfig
-	ownerCacheService store.OwnerCacheService
-	eventClient       websocket.WebsocketClient
-	secretGetter      SecretGetter
-	error             string
-	warning           string
-	pendingTasks      map[string]AiTask
-	pendingTasksLock  *sync.RWMutex
-	mcpManager        *mcpClientManager
-	mcpConnectors     []MCPServerConnector
+	logger                                *slog.Logger
+	valkeyClient                          valkeyclient.ValkeyClient
+	config                                cfg.ConfigModule
+	aiPromptConfig                        *AiPromptConfig
+	ownerCacheService                     store.OwnerCacheService
+	eventClient                           websocket.WebsocketClient
+	secretGetter                          SecretGetter
+	error                                 string
+	warning                               string
+	pendingTasks                          map[string]AiTask
+	pendingTasksLock                      *sync.RWMutex
+	mcpManager                            *mcpClientManager
+	mcpConnectors                         []MCPServerConnector
+	chatPromptMu                          sync.RWMutex
+	customChatSystemPrompt                string
+	customChatGitHubAiContextSystemPrompt string
 }
 
 func NewAiManager(logger *slog.Logger, valkeyClient valkeyclient.ValkeyClient, config cfg.ConfigModule, ownerCacheService store.OwnerCacheService, eventClient websocket.WebsocketClient, secretGetter SecretGetter) AiManager {

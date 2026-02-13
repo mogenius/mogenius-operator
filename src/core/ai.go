@@ -15,6 +15,8 @@ type AiApi interface {
 	GetAiTasksForResource(resourceReq utils.WorkloadSingleRequest) ([]ai.AiTask, error)
 	GetLatestTask(workspace *string) (*ai.AiTaskLatest, error)
 	InjectAiPromptConfig(prompt ai.AiPromptConfig)
+	InjectAiChatSystemPrompt(prompt string) bool
+	InjectAiChatGitHubAiContextSystemPrompt(prompt string) bool
 	GetStatus(workspace *string) ai.AiManagerStatus
 	ResetDailyTokenLimit() error
 	DeleteAllAiData() error
@@ -52,6 +54,14 @@ func (ai *aiApi) GetLatestTask(workspace *string) (*ai.AiTaskLatest, error) {
 
 func (ai *aiApi) InjectAiPromptConfig(prompt ai.AiPromptConfig) {
 	ai.aiManager.InjectAiPromptConfig(prompt)
+}
+
+func (ai *aiApi) InjectAiChatSystemPrompt(prompt string) bool {
+	return ai.aiManager.InjectAiChatSystemPrompt(prompt)
+}
+
+func (ai *aiApi) InjectAiChatGitHubAiContextSystemPrompt(prompt string) bool {
+	return ai.aiManager.InjectAiChatGitHubAiContextSystemPrompt(prompt)
 }
 
 func (ai *aiApi) UpdateTaskState(taskID string, newState ai.AiTaskState) error {
