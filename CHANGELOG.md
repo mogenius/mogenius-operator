@@ -1,3 +1,10 @@
+# [2.19.0-develop.47](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.46...v2.19.0-develop.47) (2026-02-13)
+
+
+### Bug Fixes
+
+* ai chat prompt config ([d9e6cb6](https://github.com/mogenius/mogenius-operator/commit/d9e6cb625c3b4194a5335a33e3f9710dcfc11aea))
+
 # [2.19.0-develop.46](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.45...v2.19.0-develop.46) (2026-02-13)
 
 
