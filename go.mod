@@ -24,7 +24,7 @@ require (
 	github.com/shirou/gopsutil/v4 v4.26.1
 	github.com/stretchr/testify v1.11.1
 	github.com/tklauser/go-sysconf v0.3.16
-	github.com/valkey-io/valkey-go v1.0.71
+	github.com/valkey-io/valkey-go v1.0.72
 	golang.org/x/term v0.40.0
 	helm.sh/helm/v4 v4.1.1
 	k8s.io/api v0.35.1
