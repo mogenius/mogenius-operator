@@ -192,22 +192,6 @@ func deleteFromStoreIfNeeded(apiVersion string, resourceName string, kind string
 	}
 }
 
-func GetUnstructuredResourceList(plural string, apiVersion string, namespace *string) (*unstructured.UnstructuredList, error) {
-	dynamicClient := clientProvider.DynamicClient()
-	resource := CreateGroupVersionResource(apiVersion, plural)
-
-	var result *unstructured.UnstructuredList
-	var err error
-	if namespace == nil {
-		result, err = dynamicClient.Resource(resource).List(context.Background(), metav1.ListOptions{})
-	} else {
-		result, err = dynamicClient.Resource(resource).Namespace(*namespace).List(context.Background(), metav1.ListOptions{})
-	}
-
-	result = removeManagedFieldsFromList(result)
-	return result, err
-}
-
 func GetUnstructuredResourceListFromStore(apiVersion string, kind string, namespace *string, withData *bool) unstructured.UnstructuredList {
 	selectedNamespace := ""
 	if namespace != nil {
@@ -415,19 +399,30 @@ type availableResourceCacheEntry struct {
 
 var (
 	resourceCache      availableResourceCacheEntry
-	resourceCacheMutex sync.Mutex        // Mutex to ensure concurrent safe access to cache
+	resourceCacheMutex sync.RWMutex      // RWMutex allows concurrent cache reads
 	resourceCacheTTL   = 1 * time.Minute // Cache duration
 )
 
 func GetAvailableResources() ([]utils.ResourceDescriptor, error) {
-	// Check if we have cached resources and if they are still valid
+	// Fast path: concurrent reads while cache is valid
+	resourceCacheMutex.RLock()
+	if time.Since(resourceCache.timestamp) < resourceCacheTTL {
+		result := resourceCache.availableResources
+		resourceCacheMutex.RUnlock()
+		return result, nil
+	}
+	resourceCacheMutex.RUnlock()
+
+	// Slow path: acquire write lock for cache refresh
 	resourceCacheMutex.Lock()
 	defer resourceCacheMutex.Unlock()
+
+	// Double-check: another goroutine may have refreshed the cache while we waited
 	if time.Since(resourceCache.timestamp) < resourceCacheTTL {
 		return resourceCache.availableResources, nil
 	}
 
-	// No valid cache, fetch resources from server
+	// Fetch resources from server
 	clientset := clientProvider.K8sClientSet()
 	resources, err := clientset.Discovery().ServerPreferredResources()
 	if err != nil {
@@ -453,7 +448,6 @@ func GetAvailableResources() ([]utils.ResourceDescriptor, error) {
 		}
 	}
 
-	// Update the cache with the new data
 	resourceCache.availableResources = availableResources
 	resourceCache.timestamp = time.Now()
 
