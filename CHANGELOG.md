@@ -1,3 +1,10 @@
+# [2.19.0-develop.61](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.60...v2.19.0-develop.61) (2026-02-19)
+
+
+### Bug Fixes
+
+* chat token used reset after recording ([27fcb23](https://github.com/mogenius/mogenius-operator/commit/27fcb2300fe96691fc1d6392e2c398272392205a))
+
 # [2.19.0-develop.60](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.59...v2.19.0-develop.60) (2026-02-19)
 
 
