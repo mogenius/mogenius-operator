@@ -1,3 +1,10 @@
+# [2.19.0-develop.56](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.55...v2.19.0-develop.56) (2026-02-19)
+
+
+### Bug Fixes
+
+* remove temperature setting from openai sdk because leading to problems ([6ad9a00](https://github.com/mogenius/mogenius-operator/commit/6ad9a0087627c5e8842ea0143f12a7ec9f9f6285))
+
 # [2.19.0-develop.55](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.54...v2.19.0-develop.55) (2026-02-19)
 
 
