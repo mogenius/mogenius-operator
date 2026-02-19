@@ -49,6 +49,20 @@ func (ai *aiManager) anthropicChat(
 				// Input channel closed
 				return nil
 			}
+			if ai.isTokenLimitExceeded() {
+				ai.logger.Warn("Daily token limit exceeded, rejecting input")
+				select {
+				case ioChannel.Output <- "\n[Error: Daily AI token limit exceeded, cannot process further tasks. Increase limit or wait 24 hours.]":
+				case <-ctx.Done():
+					return ctx.Err()
+				}
+				select {
+				case ioChannel.Output <- "[COMPLETED]":
+				case <-ctx.Done():
+					return ctx.Err()
+				}
+				continue
+			}
 
 			// Add user message to conversation history
 			messages = append(messages, anthropic.MessageParam{
@@ -107,6 +121,9 @@ func (ai *aiManager) anthropicChatWithTools(
 
 	var inputTokens int64
 	var outputTokenCount int64
+	var inputTokensUsed int64
+	var outputTokensUsed int64
+	startTime := time.Now()
 
 	for {
 		// Notify user that AI is thinking
@@ -176,14 +193,25 @@ func (ai *aiManager) anthropicChatWithTools(
 			case anthropic.MessageStartEvent:
 				inputTokens = evt.Message.Usage.InputTokens
 				*sessionInputTokens += inputTokens
+				inputTokensUsed += inputTokens
 				ai.sendTokens(inputTokens, outputTokenCount, sessionInputTokens, sessionOutputTokens, ctx, ioChannel)
 
 			case anthropic.MessageDeltaEvent:
 				outputTokenCount = evt.Usage.OutputTokens
 				*sessionOutputTokens += outputTokenCount
+				outputTokensUsed += outputTokenCount
 				ai.sendTokens(inputTokens, outputTokenCount, sessionInputTokens, sessionOutputTokens, ctx, ioChannel)
 
 			case anthropic.MessageStopEvent:
+				// Record token usage for this streaming iteration
+				chatKey := "chat"
+				if ioChannel.User != nil && ioChannel.User.Email != "" {
+					chatKey = fmt.Sprintf("chat:%s", ioChannel.User.Email)
+				}
+				timeUsedInMs := int(time.Since(startTime).Milliseconds())
+				if addErr := ai.addTokenUsage(int(inputTokensUsed+outputTokensUsed), model, timeUsedInMs, chatKey); addErr != nil {
+					ai.logger.Error("Error recording chat token usage", "error", addErr)
+				}
 				ai.sendTokens(inputTokens, outputTokenCount, sessionInputTokens, sessionOutputTokens, ctx, ioChannel)
 			}
 		}

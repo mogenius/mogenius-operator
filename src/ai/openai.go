@@ -162,6 +162,21 @@ func (ai *aiManager) openaiChat(
 				return nil
 			}
 
+			if ai.isTokenLimitExceeded() {
+				ai.logger.Warn("Daily token limit exceeded, rejecting input")
+				select {
+				case ioChannel.Output <- "\n[Error: Daily AI token limit exceeded, cannot process further tasks. Increase limit or wait 24 hours.]":
+				case <-ctx.Done():
+					return ctx.Err()
+				}
+				select {
+				case ioChannel.Output <- "[COMPLETED]":
+				case <-ctx.Done():
+					return ctx.Err()
+				}
+				continue
+			}
+
 			// Add user message to conversation history
 			messages = append(messages, openai.UserMessage(userInput))
 
@@ -208,6 +223,9 @@ func (ai *aiManager) openaiChatWithTools(
 
 	var inputTokens int64
 	var outputTokenCount int64
+	var inputTokensUsed int64
+	var outputTokensUsed int64
+	startTime := time.Now()
 
 	for {
 		// Notify user that AI is thinking
@@ -245,6 +263,8 @@ func (ai *aiManager) openaiChatWithTools(
 				outputTokenCount = chunk.Usage.CompletionTokens
 				*sessionInputTokens += inputTokens
 				*sessionOutputTokens += outputTokenCount
+				inputTokensUsed += inputTokens
+				outputTokensUsed += outputTokenCount
 				ai.sendTokens(inputTokens, outputTokenCount, sessionInputTokens, sessionOutputTokens, ctx, ioChannel)
 			}
 
@@ -294,6 +314,16 @@ func (ai *aiManager) openaiChatWithTools(
 
 		if err := stream.Err(); err != nil {
 			return "", messages, fmt.Errorf("streaming error: %w", err)
+		}
+
+		// Record token usage for this streaming iteration
+		chatKey := "chat"
+		if ioChannel.User != nil && ioChannel.User.Email != "" {
+			chatKey = fmt.Sprintf("chat:%s", ioChannel.User.Email)
+		}
+		timeUsedInMs := int(time.Since(startTime).Milliseconds())
+		if addErr := ai.addTokenUsage(int(inputTokensUsed+outputTokensUsed), model, timeUsedInMs, chatKey); addErr != nil {
+			ai.logger.Error("Error recording chat token usage", "error", addErr)
 		}
 
 		ioChannel.Output <- "\n\n"

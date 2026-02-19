@@ -187,6 +187,21 @@ func (ai *aiManager) ollamaChat(
 				return nil
 			}
 
+			if ai.isTokenLimitExceeded() {
+				ai.logger.Warn("Daily token limit exceeded, rejecting input")
+				select {
+				case ioChannel.Output <- "\n[Error: Daily AI token limit exceeded, cannot process further tasks. Increase limit or wait 24 hours.]":
+				case <-ctx.Done():
+					return ctx.Err()
+				}
+				select {
+				case ioChannel.Output <- "[COMPLETED]":
+				case <-ctx.Done():
+					return ctx.Err()
+				}
+				continue
+			}
+
 			messages = append(messages, api.Message{
 				Role:    "user",
 				Content: userInput,
@@ -235,6 +250,9 @@ func (ai *aiManager) ollamaChatWithTools(
 
 	var inputTokens int64
 	var outputTokenCount int64
+	var inputTokensUsed int64
+	var outputTokensUsed int64
+	startTime := time.Now()
 
 	for {
 		// Notify user that AI is thinking
@@ -274,6 +292,8 @@ func (ai *aiManager) ollamaChatWithTools(
 				outputTokenCount = int64(resp.EvalCount)
 				*sessionInputTokens += inputTokens
 				*sessionOutputTokens += outputTokenCount
+				inputTokensUsed += inputTokens
+				outputTokensUsed += outputTokenCount
 				ai.logger.Info("Stream usage", "input_tokens", inputTokens, "output_tokens", outputTokenCount,
 					"session_input_tokens", *sessionInputTokens, "session_output_tokens", *sessionOutputTokens)
 
@@ -297,6 +317,16 @@ func (ai *aiManager) ollamaChatWithTools(
 		}
 
 		ai.sendTokens(inputTokens, outputTokenCount, sessionInputTokens, sessionOutputTokens, ctx, ioChannel)
+
+		// Record token usage for this streaming iteration
+		chatKey := "chat"
+		if ioChannel.User != nil && ioChannel.User.Email != "" {
+			chatKey = fmt.Sprintf("chat:%s", ioChannel.User.Email)
+		}
+		timeUsedInMs := int(time.Since(startTime).Milliseconds())
+		if addErr := ai.addTokenUsage(int(inputTokensUsed+outputTokensUsed), model, timeUsedInMs, chatKey); addErr != nil {
+			ai.logger.Error("Error recording chat token usage", "error", addErr)
+		}
 
 		ioChannel.Output <- "\n\n"
 
