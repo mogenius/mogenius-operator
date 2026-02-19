@@ -1,3 +1,10 @@
+# [2.19.0-develop.58](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.57...v2.19.0-develop.58) (2026-02-19)
+
+
+### Bug Fixes
+
+* chat tokens used ([76fcb2b](https://github.com/mogenius/mogenius-operator/commit/76fcb2b6900b9b9f6c8993b5b50b574910ae5742))
+
 # [2.19.0-develop.57](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.56...v2.19.0-develop.57) (2026-02-19)
 
 
