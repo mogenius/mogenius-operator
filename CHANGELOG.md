@@ -1,3 +1,10 @@
+# [2.19.0-develop.60](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.59...v2.19.0-develop.60) (2026-02-19)
+
+
+### Bug Fixes
+
+* aI chat user role for workspace permission check ([7922566](https://github.com/mogenius/mogenius-operator/commit/79225662682f92adb49db51cd0f2ecd1f0c8abc0))
+
 # [2.19.0-develop.59](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.58...v2.19.0-develop.59) (2026-02-19)
 
 
