@@ -251,8 +251,8 @@ func (ai *aiManager) ollamaChatWithTools(
 
 	var inputTokens int64
 	var outputTokenCount int64
-	var inputTokensUsed int64
-	var outputTokensUsed int64
+	inputTokensUsed := int64(0)
+	outputTokensUsed := int64(0)
 	startTime := time.Now()
 
 	for {
@@ -328,6 +328,8 @@ func (ai *aiManager) ollamaChatWithTools(
 		if addErr := ai.addTokenUsage(int(inputTokensUsed+outputTokensUsed), model, timeUsedInMs, chatKey); addErr != nil {
 			ai.logger.Error("Error recording chat token usage", "error", addErr)
 		}
+		inputTokensUsed = 0
+		outputTokensUsed = 0
 
 		ioChannel.Output <- "\n\n"
 
