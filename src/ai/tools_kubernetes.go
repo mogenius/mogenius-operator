@@ -19,7 +19,7 @@ var (
 	K8sGetUnstructuredResourceFromStore func(apiVersion, kind, namespace, resourceName string) (*unstructured.Unstructured, error)
 )
 
-var kubernetesToolDefinitions = map[string]func(map[string]any, valkeyclient.ValkeyClient, *slog.Logger) string{
+var kubernetesToolDefinitions = map[string]func(map[string]any, *ToolContext, valkeyclient.ValkeyClient, *slog.Logger) string{
 	"get_kubernetes_resources":   getKubernetesResourcesTool,
 	"list_kubernetes_resources":  listKubernetesResourcesTool,
 	"update_kubernetes_resource": updateKubernetesResourceTool,
@@ -38,14 +38,29 @@ type ResourceSummary struct {
 	CreationTime string `json:"creationTime,omitempty"`
 }
 
-func listKubernetesResourcesTool(args map[string]any, valkeyClient valkeyclient.ValkeyClient, logger *slog.Logger) string {
+func listKubernetesResourcesTool(args map[string]any, tc *ToolContext, valkeyClient valkeyclient.ValkeyClient, logger *slog.Logger) string {
 
 	kind := args["kind"].(string)
 	apiVersion := args["apiVersion"].(string)
 	namespace, _ := args["namespace"].(string)
 
+	if namespace != "" && !tc.IsNamespaceAllowed(namespace) && tc.AllowedArgoCDApps == nil {
+		return fmt.Sprintf("Error: access to namespace %q is not allowed", namespace)
+	}
+
 	logger.Info("Listing Kubernetes resources", "apiVersion", apiVersion, "kind", kind, "namespace", namespace)
 	resources := store.GetResourceByKindAndNamespace(valkeyClient, apiVersion, kind, namespace, logger)
+
+	if tc.hasRestrictions() {
+		filtered := resources[:0]
+		for _, res := range resources {
+			meta := mergeAnnotationsAndLabels(res.GetAnnotations(), res.GetLabels())
+			if tc.IsResourceAllowed(res.GetNamespace(), meta) {
+				filtered = append(filtered, res)
+			}
+		}
+		resources = filtered
+	}
 
 	totalCount := len(resources)
 	if totalCount == 0 {
@@ -104,12 +119,17 @@ func listKubernetesResourcesTool(args map[string]any, valkeyClient valkeyclient.
 	return string(resourceBytes)
 }
 
-func getKubernetesResourcesTool(args map[string]any, valkeyClient valkeyclient.ValkeyClient, logger *slog.Logger) string {
+func getKubernetesResourcesTool(args map[string]any, tc *ToolContext, valkeyClient valkeyclient.ValkeyClient, logger *slog.Logger) string {
 
 	kind := args["kind"].(string)
 	apiVersion := args["apiVersion"].(string)
 	name, _ := args["name"].(string)
 	namespace, _ := args["namespace"].(string)
+
+	// Early reject if namespace is definitely not allowed (no ArgoCD fallback needed)
+	if !tc.IsNamespaceAllowed(namespace) && tc.AllowedArgoCDApps == nil {
+		return fmt.Sprintf("Error: access to namespace %q is not allowed", namespace)
+	}
 
 	logger.Info("Retrieving Kubernetes resources", "apiVersion", apiVersion, "kind", kind, "namespace", namespace, "name", name)
 	resources, err := store.GetResource(valkeyClient, apiVersion, kind, namespace, name, logger)
@@ -122,6 +142,13 @@ func getKubernetesResourcesTool(args map[string]any, valkeyClient valkeyclient.V
 		logger.Warn("No resources found", "apiVersion", apiVersion, "kind", kind, "namespace", namespace, "name", name)
 		return "No resources found matching the criteria"
 	}
+
+	// Check resource-level ownership (namespace + helm release + ArgoCD app)
+	meta := mergeAnnotationsAndLabels(resources.GetAnnotations(), resources.GetLabels())
+	if !tc.IsResourceAllowed(resources.GetNamespace(), meta) {
+		return fmt.Sprintf("Error: access to resource %q in namespace %q is not allowed", resources.GetName(), namespace)
+	}
+
 	resourceBytes, err := json.MarshalIndent(resources, "", "  ")
 	if err != nil {
 		return fmt.Sprintf("Error marshaling resources: %v", err)
@@ -130,7 +157,11 @@ func getKubernetesResourcesTool(args map[string]any, valkeyClient valkeyclient.V
 	return string(resourceBytes)
 }
 
-func updateKubernetesResourceTool(args map[string]any, valkeyClient valkeyclient.ValkeyClient, logger *slog.Logger) string {
+func updateKubernetesResourceTool(args map[string]any, tc *ToolContext, valkeyClient valkeyclient.ValkeyClient, logger *slog.Logger) string {
+	if !tc.IsEditor() && !tc.IsAdmin() {
+		return "Error: only users with editor or admin roles can update resources"
+	}
+
 	yamlData, ok := args["yamlData"].(string)
 	if !ok {
 		return "Error: yamlData is required"
@@ -145,6 +176,11 @@ func updateKubernetesResourceTool(args map[string]any, valkeyClient valkeyclient
 	if err != nil {
 		logger.Error("Failed to unmarshal YAML data", "error", err)
 		return fmt.Sprintf("Error: failed to unmarshal YAML data: %v", err)
+	}
+
+	meta := mergeAnnotationsAndLabels(updatedObj.GetAnnotations(), updatedObj.GetLabels())
+	if !tc.IsResourceAllowed(updatedObj.GetNamespace(), meta) {
+		return fmt.Sprintf("Error: access to resource %q in namespace %q is not allowed", updatedObj.GetName(), updatedObj.GetNamespace())
 	}
 
 	// Get old object for comparison
@@ -171,7 +207,11 @@ func updateKubernetesResourceTool(args map[string]any, valkeyClient valkeyclient
 	return fmt.Sprintf("Resource updated successfully:\n%s", string(resourceBytes))
 }
 
-func deleteKubernetesResourceTool(args map[string]any, valkeyClient valkeyclient.ValkeyClient, logger *slog.Logger) string {
+func deleteKubernetesResourceTool(args map[string]any, tc *ToolContext, valkeyClient valkeyclient.ValkeyClient, logger *slog.Logger) string {
+	if !tc.IsEditor() && !tc.IsAdmin() {
+		return "Error: only users with editor or admin roles can delete resources"
+	}
+
 	apiVersion, _ := args["apiVersion"].(string)
 	plural, _ := args["plural"].(string)
 	namespace, _ := args["namespace"].(string)
@@ -179,6 +219,10 @@ func deleteKubernetesResourceTool(args map[string]any, valkeyClient valkeyclient
 
 	if name == "" {
 		return "Error: name is required for delete operation"
+	}
+
+	if !tc.IsNamespaceAllowed(namespace) && tc.AllowedArgoCDApps == nil {
+		return fmt.Sprintf("Error: access to namespace %q is not allowed", namespace)
 	}
 
 	logger.Info("Deleting Kubernetes resource", "apiVersion", apiVersion, "plural", plural, "namespace", namespace, "name", name)
@@ -192,7 +236,11 @@ func deleteKubernetesResourceTool(args map[string]any, valkeyClient valkeyclient
 	return fmt.Sprintf("Resource '%s' deleted successfully", name)
 }
 
-func createKubernetesResourceTool(args map[string]any, valkeyClient valkeyclient.ValkeyClient, logger *slog.Logger) string {
+func createKubernetesResourceTool(args map[string]any, tc *ToolContext, valkeyClient valkeyclient.ValkeyClient, logger *slog.Logger) string {
+	if !tc.IsEditor() && !tc.IsAdmin() {
+		return "Error: only users with editor or admin roles can create resources"
+	}
+
 	yamlData, ok := args["yamlData"].(string)
 	if !ok {
 		return "Error: yamlData is required"
@@ -207,6 +255,10 @@ func createKubernetesResourceTool(args map[string]any, valkeyClient valkeyclient
 	if err != nil {
 		logger.Error("Failed to unmarshal YAML data", "error", err)
 		return fmt.Sprintf("Error: failed to unmarshal YAML data: %v", err)
+	}
+
+	if !tc.IsNamespaceAllowed(obj.GetNamespace()) && tc.AllowedArgoCDApps == nil {
+		return fmt.Sprintf("Error: access to namespace %q is not allowed", obj.GetNamespace())
 	}
 
 	logger.Info("Creating Kubernetes resource", "apiVersion", apiVersion, "kind", obj.GetKind(), "namespace", obj.GetNamespace(), "name", obj.GetName())

@@ -13,8 +13,15 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+type ChatRequest struct {
+	ChannelId       string `json:"channelId" validate:"required"`
+	WebsocketScheme string `json:"websocketScheme" validate:"required"`
+	WebsocketHost   string `json:"websocketHost" validate:"required"`
+	IsAdmin         bool   `json:"isAdmin" validate:"boolean"`
+}
+
 type AiWebsocketConnection interface {
-	LiveStreamAiManagerChatRequest(channelId string, websocketScheme string, websocketHost string, datagram structs.Datagram)
+	LiveStreamAiManagerChatRequest(request ChatRequest, datagram structs.Datagram)
 }
 
 type aiWebsocketConnection struct {
@@ -35,29 +42,30 @@ type IOChatChannel struct {
 	Input          <-chan string           // Incoming messages (user questions)
 	Output         chan<- string           // Outgoing messages (AI responses)
 	User           *structs.User           // Optional user information
+	IsAdmin        bool                    // Indicates if the user has admin privileges
 	WorkspaceSpec  *v1alpha1.WorkspaceSpec // Optional workspace information
 	WorkspaceGrant *v1alpha1.GrantSpec     // Optional workspace grant information
 }
 
-func (self *aiWebsocketConnection) LiveStreamAiManagerChatRequest(channelId string, websocketScheme string, websocketHost string, datagram structs.Datagram) {
+func (self *aiWebsocketConnection) LiveStreamAiManagerChatRequest(request ChatRequest, datagram structs.Datagram) {
 	logger := self.logger.With("scope", "LiveStreamAiManagerChatRequest")
 
-	if websocketScheme == "" {
+	if request.WebsocketScheme == "" {
 		logger.Error("WebsocketScheme is empty")
 		return
 	}
 
-	if websocketHost == "" {
+	if request.WebsocketHost == "" {
 		logger.Error("WebsocketHost is empty")
 		return
 	}
 
-	websocketUrl := url.URL{Scheme: websocketScheme, Host: websocketHost, Path: "/"}
+	websocketUrl := url.URL{Scheme: request.WebsocketScheme, Host: request.WebsocketHost, Path: "/"}
 	// context
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3600)
 	defer cancel()
 	// websocket connection
-	conn, connWriteLock, connReadLock, err := self.GenerateWsConnection(websocketUrl, channelId)
+	conn, connWriteLock, connReadLock, err := self.GenerateWsConnection(websocketUrl, request.ChannelId)
 	if err != nil {
 		logger.Error("Unable to connect to websocket", "error", err)
 		return
@@ -76,9 +84,10 @@ func (self *aiWebsocketConnection) LiveStreamAiManagerChatRequest(channelId stri
 	outputChan := make(chan string)
 
 	chatChannel := IOChatChannel{
-		Input:  inputChan,
-		Output: outputChan,
-		User:   &datagram.User,
+		Input:   inputChan,
+		Output:  outputChan,
+		User:    &datagram.User,
+		IsAdmin: request.IsAdmin,
 	}
 
 	// Resolve workspace and grant context if user and workspace are provided

@@ -11,7 +11,7 @@ import (
 	"helm.sh/helm/v4/pkg/action"
 )
 
-var helmToolDefinitions = map[string]func(map[string]any, valkeyclient.ValkeyClient, *slog.Logger) string{
+var helmToolDefinitions = map[string]func(map[string]any, *ToolContext, valkeyclient.ValkeyClient, *slog.Logger) string{
 	"helm_repo_add":              helmRepoAddTool,
 	"helm_repo_patch":            helmRepoPatchTool,
 	"helm_repo_update":           helmRepoUpdateTool,
@@ -43,7 +43,11 @@ func jsonResult(data any) string {
 
 // --- Repo Tools ---
 
-func helmRepoAddTool(args map[string]any, _ valkeyclient.ValkeyClient, logger *slog.Logger) string {
+func helmRepoAddTool(args map[string]any, tc *ToolContext, _ valkeyclient.ValkeyClient, logger *slog.Logger) string {
+	if !tc.IsEditor() && !tc.IsAdmin() {
+		return "Error: only users with editor or admin roles can add Helm repos"
+	}
+
 	name, _ := args["name"].(string)
 	url, _ := args["url"].(string)
 	username, _ := args["username"].(string)
@@ -62,7 +66,10 @@ func helmRepoAddTool(args map[string]any, _ valkeyclient.ValkeyClient, logger *s
 	return result
 }
 
-func helmRepoPatchTool(args map[string]any, _ valkeyclient.ValkeyClient, logger *slog.Logger) string {
+func helmRepoPatchTool(args map[string]any, tc *ToolContext, _ valkeyclient.ValkeyClient, logger *slog.Logger) string {
+	if !tc.IsEditor() && !tc.IsAdmin() {
+		return "Error: only users with editor or admin roles can patch Helm repos"
+	}
 	name, _ := args["name"].(string)
 	newName, _ := args["newName"].(string)
 	url, _ := args["url"].(string)
@@ -82,7 +89,10 @@ func helmRepoPatchTool(args map[string]any, _ valkeyclient.ValkeyClient, logger 
 	return result
 }
 
-func helmRepoUpdateTool(_ map[string]any, _ valkeyclient.ValkeyClient, logger *slog.Logger) string {
+func helmRepoUpdateTool(_ map[string]any, tc *ToolContext, _ valkeyclient.ValkeyClient, logger *slog.Logger) string {
+	if !tc.IsEditor() && !tc.IsAdmin() {
+		return "Error: only users with editor or admin roles can update Helm repos"
+	}
 	logger.Info("Updating all Helm repos")
 	result, err := helm.HelmRepoUpdate()
 	if err != nil {
@@ -91,7 +101,7 @@ func helmRepoUpdateTool(_ map[string]any, _ valkeyclient.ValkeyClient, logger *s
 	return jsonResult(result)
 }
 
-func helmRepoListTool(_ map[string]any, _ valkeyclient.ValkeyClient, logger *slog.Logger) string {
+func helmRepoListTool(_ map[string]any, _ *ToolContext, _ valkeyclient.ValkeyClient, logger *slog.Logger) string {
 	logger.Info("Listing Helm repos")
 	result, err := helm.HelmRepoList()
 	if err != nil {
@@ -100,7 +110,10 @@ func helmRepoListTool(_ map[string]any, _ valkeyclient.ValkeyClient, logger *slo
 	return jsonResult(result)
 }
 
-func helmRepoRemoveTool(args map[string]any, _ valkeyclient.ValkeyClient, logger *slog.Logger) string {
+func helmRepoRemoveTool(args map[string]any, tc *ToolContext, _ valkeyclient.ValkeyClient, logger *slog.Logger) string {
+	if !tc.IsEditor() && !tc.IsAdmin() {
+		return "Error: only users with editor or admin roles can remove Helm repos"
+	}
 	name, _ := args["name"].(string)
 
 	logger.Info("Removing Helm repo", "name", name)
@@ -113,7 +126,7 @@ func helmRepoRemoveTool(args map[string]any, _ valkeyclient.ValkeyClient, logger
 
 // --- Chart Tools ---
 
-func helmChartSearchTool(args map[string]any, _ valkeyclient.ValkeyClient, logger *slog.Logger) string {
+func helmChartSearchTool(args map[string]any, _ *ToolContext, _ valkeyclient.ValkeyClient, logger *slog.Logger) string {
 	name, _ := args["name"].(string)
 
 	logger.Info("Searching Helm charts", "name", name)
@@ -124,8 +137,16 @@ func helmChartSearchTool(args map[string]any, _ valkeyclient.ValkeyClient, logge
 	return jsonResult(result)
 }
 
-func helmChartInstallTool(args map[string]any, _ valkeyclient.ValkeyClient, logger *slog.Logger) string {
+func helmChartInstallTool(args map[string]any, tc *ToolContext, _ valkeyclient.ValkeyClient, logger *slog.Logger) string {
+	if !tc.IsEditor() && !tc.IsAdmin() {
+		return "Error: only users with editor or admin roles can install Helm charts"
+	}
 	namespace, _ := args["namespace"].(string)
+
+	if !tc.IsNamespaceAllowed(namespace) {
+		return fmt.Sprintf("Error: access to namespace %q is not allowed", namespace)
+	}
+
 	chart, _ := args["chart"].(string)
 	release, _ := args["release"].(string)
 	version, _ := args["version"].(string)
@@ -143,9 +164,18 @@ func helmChartInstallTool(args map[string]any, _ valkeyclient.ValkeyClient, logg
 	return result
 }
 
-func helmOciInstallTool(args map[string]any, _ valkeyclient.ValkeyClient, logger *slog.Logger) string {
+func helmOciInstallTool(args map[string]any, tc *ToolContext, _ valkeyclient.ValkeyClient, logger *slog.Logger) string {
+	if !tc.IsEditor() && !tc.IsAdmin() {
+		return "Error: only users with editor or admin roles can install Helm OCI charts"
+	}
+
 	ociChartUrl, _ := args["ociChartUrl"].(string)
 	namespace, _ := args["namespace"].(string)
+
+	if !tc.IsNamespaceAllowed(namespace) {
+		return fmt.Sprintf("Error: access to namespace %q is not allowed", namespace)
+	}
+
 	release, _ := args["release"].(string)
 	version, _ := args["version"].(string)
 	values, _ := args["values"].(string)
@@ -166,7 +196,7 @@ func helmOciInstallTool(args map[string]any, _ valkeyclient.ValkeyClient, logger
 	return result
 }
 
-func helmChartShowTool(args map[string]any, _ valkeyclient.ValkeyClient, logger *slog.Logger) string {
+func helmChartShowTool(args map[string]any, _ *ToolContext, _ valkeyclient.ValkeyClient, logger *slog.Logger) string {
 	chart, _ := args["chart"].(string)
 	showFormat, _ := args["showFormat"].(string)
 	version, _ := args["version"].(string)
@@ -181,7 +211,7 @@ func helmChartShowTool(args map[string]any, _ valkeyclient.ValkeyClient, logger 
 	return result
 }
 
-func helmChartVersionsTool(args map[string]any, _ valkeyclient.ValkeyClient, logger *slog.Logger) string {
+func helmChartVersionsTool(args map[string]any, _ *ToolContext, _ valkeyclient.ValkeyClient, logger *slog.Logger) string {
 	chart, _ := args["chart"].(string)
 
 	logger.Info("Getting Helm chart versions", "chart", chart)
@@ -194,10 +224,19 @@ func helmChartVersionsTool(args map[string]any, _ valkeyclient.ValkeyClient, log
 
 // --- Release Tools ---
 
-func helmReleaseUpgradeTool(args map[string]any, _ valkeyclient.ValkeyClient, logger *slog.Logger) string {
+func helmReleaseUpgradeTool(args map[string]any, tc *ToolContext, _ valkeyclient.ValkeyClient, logger *slog.Logger) string {
+	if !tc.IsEditor() && !tc.IsAdmin() {
+		return "Error: only users with editor or admin roles can upgrade Helm releases"
+	}
+
 	namespace, _ := args["namespace"].(string)
 	chart, _ := args["chart"].(string)
 	release, _ := args["release"].(string)
+
+	if !tc.IsHelmReleaseAllowed(namespace, release) {
+		return fmt.Sprintf("Error: access to release %q in namespace %q is not allowed", release, namespace)
+	}
+
 	version, _ := args["version"].(string)
 	values, _ := args["values"].(string)
 	dryRun, _ := args["dryRun"].(bool)
@@ -213,9 +252,18 @@ func helmReleaseUpgradeTool(args map[string]any, _ valkeyclient.ValkeyClient, lo
 	return result
 }
 
-func helmReleaseUninstallTool(args map[string]any, _ valkeyclient.ValkeyClient, logger *slog.Logger) string {
+func helmReleaseUninstallTool(args map[string]any, tc *ToolContext, _ valkeyclient.ValkeyClient, logger *slog.Logger) string {
+	if !tc.IsEditor() && !tc.IsAdmin() {
+		return "Error: only users with editor or admin roles can uninstall Helm releases"
+	}
+
 	namespace, _ := args["namespace"].(string)
 	release, _ := args["release"].(string)
+
+	if !tc.IsHelmReleaseAllowed(namespace, release) {
+		return fmt.Sprintf("Error: access to release %q in namespace %q is not allowed", release, namespace)
+	}
+
 	dryRun, _ := args["dryRun"].(bool)
 
 	logger.Info("Uninstalling Helm release", "release", release, "namespace", namespace)
@@ -228,8 +276,12 @@ func helmReleaseUninstallTool(args map[string]any, _ valkeyclient.ValkeyClient, 
 	return result
 }
 
-func helmReleaseListTool(args map[string]any, _ valkeyclient.ValkeyClient, logger *slog.Logger) string {
+func helmReleaseListTool(args map[string]any, tc *ToolContext, _ valkeyclient.ValkeyClient, logger *slog.Logger) string {
 	namespace, _ := args["namespace"].(string)
+
+	if !tc.IsNamespaceAllowed(namespace) {
+		return fmt.Sprintf("Error: access to namespace %q is not allowed", namespace)
+	}
 
 	logger.Info("Listing Helm releases", "namespace", namespace)
 	result, err := helm.HelmReleaseList(helm.HelmReleaseListRequest{Namespace: namespace})
@@ -239,9 +291,13 @@ func helmReleaseListTool(args map[string]any, _ valkeyclient.ValkeyClient, logge
 	return jsonResult(result)
 }
 
-func helmReleaseStatusTool(args map[string]any, _ valkeyclient.ValkeyClient, logger *slog.Logger) string {
+func helmReleaseStatusTool(args map[string]any, tc *ToolContext, _ valkeyclient.ValkeyClient, logger *slog.Logger) string {
 	namespace, _ := args["namespace"].(string)
 	release, _ := args["release"].(string)
+
+	if !tc.IsHelmReleaseAllowed(namespace, release) {
+		return fmt.Sprintf("Error: access to release %q in namespace %q is not allowed", release, namespace)
+	}
 
 	logger.Info("Getting Helm release status", "release", release, "namespace", namespace)
 	result, err := helm.HelmReleaseStatus(helm.HelmReleaseStatusRequest{
@@ -253,9 +309,13 @@ func helmReleaseStatusTool(args map[string]any, _ valkeyclient.ValkeyClient, log
 	return jsonResult(result)
 }
 
-func helmReleaseHistoryTool(args map[string]any, _ valkeyclient.ValkeyClient, logger *slog.Logger) string {
+func helmReleaseHistoryTool(args map[string]any, tc *ToolContext, _ valkeyclient.ValkeyClient, logger *slog.Logger) string {
 	namespace, _ := args["namespace"].(string)
 	release, _ := args["release"].(string)
+
+	if !tc.IsHelmReleaseAllowed(namespace, release) {
+		return fmt.Sprintf("Error: access to release %q in namespace %q is not allowed", release, namespace)
+	}
 
 	logger.Info("Getting Helm release history", "release", release, "namespace", namespace)
 	result, err := helm.HelmReleaseHistory(helm.HelmReleaseHistoryRequest{
@@ -267,9 +327,18 @@ func helmReleaseHistoryTool(args map[string]any, _ valkeyclient.ValkeyClient, lo
 	return jsonResult(result)
 }
 
-func helmReleaseRollbackTool(args map[string]any, _ valkeyclient.ValkeyClient, logger *slog.Logger) string {
+func helmReleaseRollbackTool(args map[string]any, tc *ToolContext, _ valkeyclient.ValkeyClient, logger *slog.Logger) string {
+	if !tc.IsEditor() && !tc.IsAdmin() {
+		return "Error: only users with editor or admin roles can rollback Helm releases"
+	}
+
 	namespace, _ := args["namespace"].(string)
 	release, _ := args["release"].(string)
+
+	if !tc.IsHelmReleaseAllowed(namespace, release) {
+		return fmt.Sprintf("Error: access to release %q in namespace %q is not allowed", release, namespace)
+	}
+
 	revisionFloat, _ := args["revision"].(float64)
 	revision := int(revisionFloat)
 
@@ -283,9 +352,14 @@ func helmReleaseRollbackTool(args map[string]any, _ valkeyclient.ValkeyClient, l
 	return result
 }
 
-func helmReleaseGetTool(args map[string]any, _ valkeyclient.ValkeyClient, logger *slog.Logger) string {
+func helmReleaseGetTool(args map[string]any, tc *ToolContext, _ valkeyclient.ValkeyClient, logger *slog.Logger) string {
 	namespace, _ := args["namespace"].(string)
 	release, _ := args["release"].(string)
+
+	if !tc.IsHelmReleaseAllowed(namespace, release) {
+		return fmt.Sprintf("Error: access to release %q in namespace %q is not allowed", release, namespace)
+	}
+
 	getFormat, _ := args["getFormat"].(string)
 
 	logger.Info("Getting Helm release details", "release", release, "namespace", namespace, "format", getFormat)
@@ -298,9 +372,18 @@ func helmReleaseGetTool(args map[string]any, _ valkeyclient.ValkeyClient, logger
 	return result
 }
 
-func helmReleaseLinkTool(args map[string]any, _ valkeyclient.ValkeyClient, logger *slog.Logger) string {
+func helmReleaseLinkTool(args map[string]any, tc *ToolContext, _ valkeyclient.ValkeyClient, logger *slog.Logger) string {
+	if !tc.IsEditor() && !tc.IsAdmin() {
+		return "Error: only users with editor or admin roles can link Helm releases to repos"
+	}
+
 	namespace, _ := args["namespace"].(string)
 	releaseName, _ := args["releaseName"].(string)
+
+	if !tc.IsHelmReleaseAllowed(namespace, releaseName) {
+		return fmt.Sprintf("Error: access to release %q in namespace %q is not allowed", releaseName, namespace)
+	}
+
 	repoName, _ := args["repoName"].(string)
 
 	logger.Info("Linking Helm release to repo", "release", releaseName, "repo", repoName, "namespace", namespace)
@@ -311,9 +394,13 @@ func helmReleaseLinkTool(args map[string]any, _ valkeyclient.ValkeyClient, logge
 	return fmt.Sprintf("Successfully linked release '%s' to repo '%s'", releaseName, repoName)
 }
 
-func helmReleaseGetWorkloadsTool(args map[string]any, valkeyClient valkeyclient.ValkeyClient, logger *slog.Logger) string {
+func helmReleaseGetWorkloadsTool(args map[string]any, tc *ToolContext, valkeyClient valkeyclient.ValkeyClient, logger *slog.Logger) string {
 	namespace, _ := args["namespace"].(string)
 	release, _ := args["release"].(string)
+
+	if !tc.IsHelmReleaseAllowed(namespace, release) {
+		return fmt.Sprintf("Error: access to release %q in namespace %q is not allowed", release, namespace)
+	}
 
 	logger.Info("Getting Helm release workloads", "release", release, "namespace", namespace)
 	result, err := helm.HelmReleaseGetWorkloads(valkeyClient, helm.HelmReleaseGetWorkloadsRequest{
