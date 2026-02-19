@@ -1,3 +1,14 @@
+# [2.19.0-develop.59](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.58...v2.19.0-develop.59) (2026-02-19)
+
+
+### Bug Fixes
+
+* cache-improvements ([e7f391e](https://github.com/mogenius/mogenius-operator/commit/e7f391ef4eb6914aa9240a929510e9332bf169d1))
+* locking improved ([45db9d4](https://github.com/mogenius/mogenius-operator/commit/45db9d455f619c34b04c8e6e753f5a11022e4ab4))
+* operator crd gets/lists will now be using mirror-store to speed up things ([fb3f425](https://github.com/mogenius/mogenius-operator/commit/fb3f4253467d8f37d85d3856da808d3db107c77a))
+* operator uses mirror-store in more locations to reduce k8s api calls ([06a1819](https://github.com/mogenius/mogenius-operator/commit/06a1819d41b8100ba96285c147efc50239452d71))
+* reconciler performance improved ([779cea8](https://github.com/mogenius/mogenius-operator/commit/779cea8590e4297fbdefa7de713e6ef3fc1cf76e))
+
 # [2.19.0-develop.58](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.57...v2.19.0-develop.58) (2026-02-19)
 
 
