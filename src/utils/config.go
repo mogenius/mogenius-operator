@@ -133,6 +133,20 @@ var WorkspaceResource = ResourceDescriptor{
 	Namespaced: true,
 }
 
+var GrantResource = ResourceDescriptor{
+	Kind:       "Grant",
+	Plural:     "grants",
+	ApiVersion: "mogenius.com/v1alpha1",
+	Namespaced: true,
+}
+
+var UserResource = ResourceDescriptor{
+	Kind:       "User",
+	Plural:     "users",
+	ApiVersion: "mogenius.com/v1alpha1",
+	Namespaced: true,
+}
+
 var ConfigMapResource = ResourceDescriptor{
 	Kind:       "ConfigMap",
 	Plural:     "configmaps",

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	mov1alpha1 "mogenius-operator/src/crds/v1alpha1"
+	"mogenius-operator/src/store"
 
 	json "github.com/goccy/go-json"
 
@@ -43,31 +44,28 @@ func NewMogeniusV1alpha1(config rest.Config) (*MogeniusV1alpha1, error) {
 // ╰────────────────╯
 
 func (self *MogeniusV1alpha1) ListGrants(namespace string) ([]mov1alpha1.Grant, error) {
-	req := self.restClient.Get().
-		Namespace(namespace).
-		Resource("grants").
-		VersionedParams(&metav1.ListOptions{}, metav1.ParameterCodec)
-
-	var permissionList mov1alpha1.GrantList
-	err := req.Do(context.Background()).Into(&permissionList)
+	grants, err := store.GetAllGrants(namespace)
 	if err != nil {
-		return nil, fmt.Errorf("RESTClient: %w", err)
+		return nil, fmt.Errorf("store: %w", err)
 	}
-
-	return permissionList.Items, nil
+	if grants == nil {
+		return []mov1alpha1.Grant{}, nil
+	}
+	return grants, nil
 }
 
 func (self *MogeniusV1alpha1) GetGrant(namespace string, name string) (*mov1alpha1.Grant, error) {
-	result := &mov1alpha1.Grant{}
-	err := self.restClient.Get().Namespace(namespace).Resource("grants").Name(name).Do(context.Background()).Into(result)
+	result, err := store.GetGrant(namespace, name)
 	if err != nil {
-		return nil, fmt.Errorf("RESTClient: %w", err)
+		return nil, fmt.Errorf("store: %w", err)
+	}
+	if result == nil {
+		return nil, fmt.Errorf("store: grant %s/%s not found", namespace, name)
 	}
 	result.TypeMeta = metav1.TypeMeta{
 		Kind:       "Grant",
 		APIVersion: "mogenius.com/v1alpha1",
 	}
-
 	return result, nil
 }
 
@@ -139,31 +137,28 @@ func (self *MogeniusV1alpha1) DeleteGrant(namespace string, name string) error {
 // ╰───────────────╯
 
 func (self *MogeniusV1alpha1) ListUsers(namespace string) ([]mov1alpha1.User, error) {
-	req := self.restClient.Get().
-		Namespace(namespace).
-		Resource("users").
-		VersionedParams(&metav1.ListOptions{}, metav1.ParameterCodec)
-
-	var userList mov1alpha1.UserList
-	err := req.Do(context.Background()).Into(&userList)
+	users, err := store.GetAllUsers(namespace)
 	if err != nil {
-		return nil, fmt.Errorf("RESTClient: %w", err)
+		return nil, fmt.Errorf("store: %w", err)
 	}
-
-	return userList.Items, nil
+	if users == nil {
+		return []mov1alpha1.User{}, nil
+	}
+	return users, nil
 }
 
 func (self *MogeniusV1alpha1) GetUser(namespace string, name string) (*mov1alpha1.User, error) {
-	result := &mov1alpha1.User{}
-	err := self.restClient.Get().Namespace(namespace).Resource("users").Name(name).Do(context.Background()).Into(result)
+	result, err := store.GetUser(namespace, name)
 	if err != nil {
-		return nil, fmt.Errorf("RESTClient: %w", err)
+		return nil, fmt.Errorf("store: %w", err)
+	}
+	if result == nil {
+		return nil, fmt.Errorf("store: user %s/%s not found", namespace, name)
 	}
 	result.TypeMeta = metav1.TypeMeta{
 		Kind:       "User",
 		APIVersion: "mogenius.com/v1alpha1",
 	}
-
 	return result, nil
 }
 
@@ -234,31 +229,28 @@ func (self *MogeniusV1alpha1) DeleteUser(namespace string, name string) error {
 // ╰────────────────────╯
 
 func (self *MogeniusV1alpha1) ListWorkspaces(namespace string) ([]mov1alpha1.Workspace, error) {
-	req := self.restClient.Get().
-		Namespace(namespace).
-		Resource("workspaces").
-		VersionedParams(&metav1.ListOptions{}, metav1.ParameterCodec)
-
-	var workspaceList mov1alpha1.WorkspaceList
-	err := req.Do(context.Background()).Into(&workspaceList)
+	workspaces, err := store.GetAllWorkspaces(namespace)
 	if err != nil {
-		return nil, fmt.Errorf("RESTClient: %w", err)
+		return nil, fmt.Errorf("store: %w", err)
 	}
-
-	return workspaceList.Items, nil
+	if workspaces == nil {
+		return []mov1alpha1.Workspace{}, nil
+	}
+	return workspaces, nil
 }
 
 func (self *MogeniusV1alpha1) GetWorkspace(namespace string, name string) (*mov1alpha1.Workspace, error) {
-	result := &mov1alpha1.Workspace{}
-	err := self.restClient.Get().Namespace(namespace).Resource("workspaces").Name(name).Do(context.Background()).Into(result)
+	result, err := store.GetWorkspace(namespace, name)
 	if err != nil {
-		return nil, fmt.Errorf("RESTClient: %w", err)
+		return nil, fmt.Errorf("store: %w", err)
+	}
+	if result == nil {
+		return nil, fmt.Errorf("store: workspace %s/%s not found", namespace, name)
 	}
 	result.TypeMeta = metav1.TypeMeta{
 		Kind:       "Workspace",
 		APIVersion: "mogenius.com/v1alpha1",
 	}
-
 	return result, nil
 }
 

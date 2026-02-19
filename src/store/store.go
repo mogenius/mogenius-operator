@@ -323,6 +323,40 @@ func GetNodes() []coreV1.Node {
 	return nodes
 }
 
+func GetAllGrants(namespace string) ([]v1alpha1.Grant, error) {
+	pattern := CreateKeyPattern(&utils.GrantResource.ApiVersion, &utils.GrantResource.Kind, &namespace, nil)
+	grants, err := valkeyclient.GetObjectsByPrefix[v1alpha1.Grant](valkeyClient, valkeyclient.ORDER_ASC, pattern)
+	if err != nil || grants == nil {
+		return nil, err
+	}
+	return grants, nil
+}
+
+func GetGrant(namespace string, name string) (*v1alpha1.Grant, error) {
+	grant, err := valkeyclient.GetObjectForKey[v1alpha1.Grant](valkeyClient, VALKEY_RESOURCE_PREFIX, utils.GrantResource.ApiVersion, utils.GrantResource.Kind, namespace, name)
+	if err != nil || grant == nil {
+		return nil, err
+	}
+	return grant, nil
+}
+
+func GetAllUsers(namespace string) ([]v1alpha1.User, error) {
+	pattern := CreateKeyPattern(&utils.UserResource.ApiVersion, &utils.UserResource.Kind, &namespace, nil)
+	users, err := valkeyclient.GetObjectsByPrefix[v1alpha1.User](valkeyClient, valkeyclient.ORDER_ASC, pattern)
+	if err != nil || users == nil {
+		return nil, err
+	}
+	return users, nil
+}
+
+func GetUser(namespace string, name string) (*v1alpha1.User, error) {
+	user, err := valkeyclient.GetObjectForKey[v1alpha1.User](valkeyClient, VALKEY_RESOURCE_PREFIX, utils.UserResource.ApiVersion, utils.UserResource.Kind, namespace, name)
+	if err != nil || user == nil {
+		return nil, err
+	}
+	return user, nil
+}
+
 func GetAllWorkspaces(namespace string) ([]v1alpha1.Workspace, error) {
 	pattern := CreateKeyPattern(&utils.WorkspaceResource.ApiVersion, &utils.WorkspaceResource.Kind, &namespace, nil)
 	workspaces, err := valkeyclient.GetObjectsByPrefix[v1alpha1.Workspace](valkeyClient, valkeyclient.ORDER_ASC, pattern)
