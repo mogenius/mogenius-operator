@@ -5715,8 +5715,8 @@ export type GET_NODES_METRICS_REQUEST = GET_NODES_METRICS_REQUEST__ANON_STRUCT_0
  *           structRef: mogenius-operator/src/core.NodeMetrics
  *           type: struct
  *         type: array
- *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Response·46]:
- *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Response·46]
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Response·45]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Response·45]
  *     properties:
  *       data:
  *         structRef: mogenius-operator/src/core.Response
@@ -5751,12 +5751,12 @@ export type GET_NODES_METRICS_REQUEST = GET_NODES_METRICS_REQUEST__ANON_STRUCT_0
  *     name: time.Time
  *     properties: {}
  * typeInfo:
- *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Response·46]
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,mogenius-operator/src/core.Response·45]
  *   type: struct
  * ```
  *
  */
-export type GET_NODES_METRICS_RESPONSE = GET_NODES_METRICS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_MOGENIUS_OPERATOR_SRC_CORE_RESPONSE46;
+export type GET_NODES_METRICS_RESPONSE = GET_NODES_METRICS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_MOGENIUS_OPERATOR_SRC_CORE_RESPONSE45;
 
 /**
  * #### Source
@@ -7287,22 +7287,24 @@ export type LIST_ALL_RESOURCE_DESCRIPTORS_RESPONSE = LIST_ALL_RESOURCE_DESCRIPTO
  *
  * ```yaml
  * structs:
- *   mogenius-operator/src/core.Request:
- *     name: mogenius-operator/src/core.Request
+ *   mogenius-operator/src/ai.ChatRequest:
+ *     name: mogenius-operator/src/ai.ChatRequest
  *     properties:
  *       channelId:
  *         type: string
+ *       isAdmin:
+ *         type: bool
  *       websocketHost:
  *         type: string
  *       websocketScheme:
  *         type: string
  * typeInfo:
- *   structRef: mogenius-operator/src/core.Request
+ *   structRef: mogenius-operator/src/ai.ChatRequest
  *   type: struct
  * ```
  *
  */
-export type LIVE_STREAM_AI_MANAGER_CHAT_REQUEST_REQUEST = LIVE_STREAM_AI_MANAGER_CHAT_REQUEST_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST;
+export type LIVE_STREAM_AI_MANAGER_CHAT_REQUEST_REQUEST = LIVE_STREAM_AI_MANAGER_CHAT_REQUEST_REQUEST__MOGENIUS_OPERATOR_SRC_AI_CHATREQUEST;
 
 /**
  * #### Source
@@ -7311,8 +7313,8 @@ export type LIVE_STREAM_AI_MANAGER_CHAT_REQUEST_REQUEST = LIVE_STREAM_AI_MANAGER
  * structs:
  *   ANON_STRUCT_1:
  *     properties: {}
- *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·43,mogenius-operator/src/core.Void]:
- *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·43,mogenius-operator/src/core.Void]
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/ai.ChatRequest,mogenius-operator/src/core.Void]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/ai.ChatRequest,mogenius-operator/src/core.Void]
  *     properties:
  *       data:
  *         pointer: true
@@ -7323,12 +7325,12 @@ export type LIVE_STREAM_AI_MANAGER_CHAT_REQUEST_REQUEST = LIVE_STREAM_AI_MANAGER
  *       status:
  *         type: string
  * typeInfo:
- *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·43,mogenius-operator/src/core.Void]
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/ai.ChatRequest,mogenius-operator/src/core.Void]
  *   type: struct
  * ```
  *
  */
-export type LIVE_STREAM_AI_MANAGER_CHAT_REQUEST_RESPONSE = LIVE_STREAM_AI_MANAGER_CHAT_REQUEST_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST43_MOGENIUS_OPERATOR_SRC_CORE_VOID;
+export type LIVE_STREAM_AI_MANAGER_CHAT_REQUEST_RESPONSE = LIVE_STREAM_AI_MANAGER_CHAT_REQUEST_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_AI_CHATREQUEST_MOGENIUS_OPERATOR_SRC_CORE_VOID;
 
 /**
  * #### Source
@@ -8268,8 +8270,8 @@ export type SEALED_SECRET_CREATE_FROM_EXISTING_REQUEST = SEALED_SECRET_CREATE_FR
  *         valueType:
  *           pointer: true
  *           type: any
- *   ? mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·44,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
- *   : name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·44,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *   ? mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·43,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *   : name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·43,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
  *     properties:
  *       data:
  *         pointer: true
@@ -8280,12 +8282,12 @@ export type SEALED_SECRET_CREATE_FROM_EXISTING_REQUEST = SEALED_SECRET_CREATE_FR
  *       status:
  *         type: string
  * typeInfo:
- *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·44,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·43,*k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured]
  *   type: struct
  * ```
  *
  */
-export type SEALED_SECRET_CREATE_FROM_EXISTING_RESPONSE = SEALED_SECRET_CREATE_FROM_EXISTING_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST44_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED;
+export type SEALED_SECRET_CREATE_FROM_EXISTING_RESPONSE = SEALED_SECRET_CREATE_FROM_EXISTING_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST43_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED;
 
 /**
  * #### Source
@@ -10753,7 +10755,7 @@ export type GET_NAMESPACE_WORKLOAD_LIST_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RES
 export type GET_NODES_METRICS_REQUEST__ANON_STRUCT_0 = {};
 export type GET_NODES_METRICS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_NODEMETRICS = {"cpu": Record<string, any>,"memory": Record<string, any>,"nodeName": string,"traffic": GET_NODES_METRICS_RESPONSE__MOGENIUS_OPERATOR_SRC_NETWORKMONITOR_PODNETWORKSTATS[]};
 export type GET_NODES_METRICS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESPONSE = {"nodes": GET_NODES_METRICS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_NODEMETRICS[]};
-export type GET_NODES_METRICS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_MOGENIUS_OPERATOR_SRC_CORE_RESPONSE46 = {"data": GET_NODES_METRICS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESPONSE,"message": string,"status": string};
+export type GET_NODES_METRICS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_MOGENIUS_OPERATOR_SRC_CORE_RESPONSE45 = {"data": GET_NODES_METRICS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESPONSE,"message": string,"status": string};
 export type GET_NODES_METRICS_RESPONSE__MOGENIUS_OPERATOR_SRC_NETWORKMONITOR_PODNETWORKSTATS = {"createdAt": GET_NODES_METRICS_RESPONSE__TIME_TIME,"namespace": string,"pod": string,"receivedBytes": number,"receivedPackets": number,"receivedStartBytes": number,"transmitBytes": number,"transmitPackets": number,"transmitStartBytes": number};
 export type GET_NODES_METRICS_RESPONSE__TIME_TIME = {};
 export type GET_USER_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"name": string};
@@ -10847,9 +10849,9 @@ export type INSTALL_RENOVATE_OPERATOR_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESUL
 export type LIST_ALL_RESOURCE_DESCRIPTORS_REQUEST__ANON_STRUCT_0 = {};
 export type LIST_ALL_RESOURCE_DESCRIPTORS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_MOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRIPTOR = {"data": LIST_ALL_RESOURCE_DESCRIPTORS_RESPONSE__MOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRIPTOR[],"message": string,"status": string};
 export type LIST_ALL_RESOURCE_DESCRIPTORS_RESPONSE__MOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRIPTOR = {"apiVersion": string,"kind": string,"namespaced": boolean,"plural": string};
-export type LIVE_STREAM_AI_MANAGER_CHAT_REQUEST_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"channelId": string,"websocketHost": string,"websocketScheme": string};
+export type LIVE_STREAM_AI_MANAGER_CHAT_REQUEST_REQUEST__MOGENIUS_OPERATOR_SRC_AI_CHATREQUEST = {"channelId": string,"isAdmin": boolean,"websocketHost": string,"websocketScheme": string};
 export type LIVE_STREAM_AI_MANAGER_CHAT_REQUEST_RESPONSE__ANON_STRUCT_1 = {};
-export type LIVE_STREAM_AI_MANAGER_CHAT_REQUEST_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST43_MOGENIUS_OPERATOR_SRC_CORE_VOID = {"data": LIVE_STREAM_AI_MANAGER_CHAT_REQUEST_RESPONSE__ANON_STRUCT_1|undefined,"message": string,"status": string};
+export type LIVE_STREAM_AI_MANAGER_CHAT_REQUEST_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_AI_CHATREQUEST_MOGENIUS_OPERATOR_SRC_CORE_VOID = {"data": LIVE_STREAM_AI_MANAGER_CHAT_REQUEST_RESPONSE__ANON_STRUCT_1|undefined,"message": string,"status": string};
 export type LIVE_STREAM_NODES_CPU_REQUEST__MOGENIUS_OPERATOR_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"nodeName": string,"podName": string,"websocketHost": string,"websocketScheme": string,"workspace": string};
 export type LIVE_STREAM_NODES_CPU_RESPONSE__ANON_STRUCT_1 = {};
 export type LIVE_STREAM_NODES_CPU_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_XTERM_WSCONNECTIONREQUEST_MOGENIUS_OPERATOR_SRC_CORE_VOID = {"data": LIVE_STREAM_NODES_CPU_RESPONSE__ANON_STRUCT_1|undefined,"message": string,"status": string};
@@ -10896,7 +10898,7 @@ export type PROMETHEUS_VALUES_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_PROMETHEUSREQU
 export type PROMETHEUS_VALUES_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_PROMETHEUSREQUEST_STRING = {"data": string[],"message": string,"status": string};
 export type SEALED_SECRET_CREATE_FROM_EXISTING_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"name": string,"namespace": string};
 export type SEALED_SECRET_CREATE_FROM_EXISTING_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"Object": Record<string, any>};
-export type SEALED_SECRET_CREATE_FROM_EXISTING_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST44_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"data": SEALED_SECRET_CREATE_FROM_EXISTING_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED|undefined,"message": string,"status": string};
+export type SEALED_SECRET_CREATE_FROM_EXISTING_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST43_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"data": SEALED_SECRET_CREATE_FROM_EXISTING_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED|undefined,"message": string,"status": string};
 export type SEALED_SECRET_GET_CERTIFICATE_REQUEST__ANON_STRUCT_0 = {};
 export type SEALED_SECRET_GET_CERTIFICATE_RESPONSE__K8S_IO_API_CORE_V1_SECRET = {"TypeMeta": SEALED_SECRET_GET_CERTIFICATE_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_TYPEMETA,"data": Record<string, number[]>,"immutable": boolean|undefined,"metadata": SEALED_SECRET_GET_CERTIFICATE_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_OBJECTMETA,"stringData": Record<string, string>,"type": string};
 export type SEALED_SECRET_GET_CERTIFICATE_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_FIELDSV1 = {};

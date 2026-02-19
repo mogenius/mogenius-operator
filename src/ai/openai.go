@@ -76,7 +76,7 @@ func (ai *aiManager) processPromptOpenAi(ctx context.Context, model, systemPromp
 				}
 				data = mcpResult
 			} else if tool, ok := toolDefinitions[toolCall.Function.Name]; ok {
-				data = tool(args, ai.valkeyClient, ai.logger)
+				data = tool(args, nil, ai.valkeyClient, ai.logger)
 			} else {
 				return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("unknown tool called: %s", toolCall.Function.Name)
 			}
@@ -220,6 +220,7 @@ func (ai *aiManager) openaiChatWithTools(
 	sessionOutputTokens *int64,
 ) (fullResponse string, updatedMessages []openai.ChatCompletionMessageParamUnion, err error) {
 	toolCallCount := 0
+	toolCtx := newToolContextFromIOChannel(ioChannel)
 
 	var inputTokens int64
 	var outputTokenCount int64
@@ -407,7 +408,7 @@ func (ai *aiManager) openaiChatWithTools(
 				}
 				result = mcpResult
 			} else if tool, ok := toolDefinitions[tc.Name]; ok {
-				result = tool(args, ai.valkeyClient, ai.logger)
+				result = tool(args, toolCtx, ai.valkeyClient, ai.logger)
 			} else {
 				ai.logger.Error("Unknown tool called", "tool", tc.Name)
 				messages = append(messages, openai.ToolMessage(fmt.Sprintf("Unknown tool: %s", tc.Name), tc.ID))

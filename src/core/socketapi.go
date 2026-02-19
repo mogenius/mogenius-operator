@@ -1978,17 +1978,11 @@ func (self *socketApi) registerPatterns() {
 
 	{
 
-		type Request struct {
-			ChannelId       string `json:"channelId" validate:"required"`
-			WebsocketScheme string `json:"websocketScheme" validate:"required"`
-			WebsocketHost   string `json:"websocketHost" validate:"required"`
-		}
-
 		RegisterPatternHandler(
 			PatternHandle{self, "live-stream/ai-manager-chat-request"},
 			PatternConfig{},
-			func(datagram structs.Datagram, request Request) (Void, error) {
-				go self.aiWebsocketConnection.LiveStreamAiManagerChatRequest(request.ChannelId, request.WebsocketScheme, request.WebsocketHost, datagram)
+			func(datagram structs.Datagram, request ai.ChatRequest) (Void, error) {
+				go self.aiWebsocketConnection.LiveStreamAiManagerChatRequest(request, datagram)
 				return nil, nil
 			},
 		)

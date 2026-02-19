@@ -116,7 +116,7 @@ func (ai *aiManager) processPromptOllama(ctx context.Context, model, systemPromp
 			if !ok {
 				return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("unknown tool called: %s", toolCall.Function.Name)
 			}
-			data := tool(args, ai.valkeyClient, ai.logger)
+			data := tool(args, nil, ai.valkeyClient, ai.logger)
 
 			// Add tool result to messages
 			messages = append(messages, api.Message{
@@ -247,6 +247,7 @@ func (ai *aiManager) ollamaChatWithTools(
 ) (fullResponse string, updatedMessages []api.Message, err error) {
 	toolCallCount := 0
 	truePtr := true
+	toolCtx := newToolContextFromIOChannel(ioChannel)
 
 	var inputTokens int64
 	var outputTokenCount int64
@@ -390,7 +391,7 @@ func (ai *aiManager) ollamaChatWithTools(
 				}
 				result = mcpResult
 			} else if tool, ok := toolDefinitions[tc.Function.Name]; ok {
-				result = tool(args, ai.valkeyClient, ai.logger)
+				result = tool(args, toolCtx, ai.valkeyClient, ai.logger)
 			} else {
 				ai.logger.Error("Unknown tool called", "tool", tc.Function.Name)
 				messages = append(messages, api.Message{

@@ -9,7 +9,153 @@ import (
 	"github.com/openai/openai-go/v3"
 )
 
-type toolHandler = func(map[string]any, valkeyclient.ValkeyClient, *slog.Logger) string
+type ToolContext struct {
+	AllowedNamespaces   map[string]bool            // namespaces with full access (from type="namespace"); nil = no restriction
+	AllowedHelmReleases map[string]map[string]bool // namespace → {releaseName: true} (from type="helm"); nil = no helm-level restriction
+	AllowedArgoCDApps   map[string]bool            // ArgoCD app names (from type="argocd"); nil = no argocd-level restriction
+	Role                string                     // "viewer", "editor", "admin", "" = no restriction
+}
+
+// hasRestrictions returns true when any scoping is configured.
+func (tc *ToolContext) hasRestrictions() bool {
+	if tc == nil {
+		return false
+	}
+	return tc.AllowedNamespaces != nil || tc.AllowedHelmReleases != nil || tc.AllowedArgoCDApps != nil
+}
+
+func (tc *ToolContext) IsNamespaceAllowed(namespace string) bool {
+	if tc == nil || !tc.hasRestrictions() {
+		return true
+	}
+	if tc.AllowedNamespaces != nil && tc.AllowedNamespaces[namespace] {
+		return true
+	}
+	if tc.AllowedHelmReleases != nil {
+		if _, ok := tc.AllowedHelmReleases[namespace]; ok {
+			return true
+		}
+	}
+	return false
+}
+
+func (tc *ToolContext) IsHelmReleaseAllowed(namespace, releaseName string) bool {
+	if tc == nil {
+		return true
+	}
+	// Full namespace access includes all releases
+	if tc.AllowedNamespaces != nil && tc.AllowedNamespaces[namespace] {
+		return true
+	}
+	// No helm-level restriction configured
+	if tc.AllowedHelmReleases == nil {
+		return true
+	}
+	releases, ok := tc.AllowedHelmReleases[namespace]
+	if !ok {
+		return false
+	}
+	return releases[releaseName]
+}
+
+func (tc *ToolContext) IsResourceAllowed(namespace string, annotations map[string]string) bool {
+	if tc == nil || !tc.hasRestrictions() {
+		return true
+	}
+	// Full namespace access
+	if tc.AllowedNamespaces != nil && tc.AllowedNamespaces[namespace] {
+		return true
+	}
+	// Check helm release ownership
+	if tc.AllowedHelmReleases != nil {
+		if releases, ok := tc.AllowedHelmReleases[namespace]; ok {
+			releaseName := annotations["meta.helm.sh/release-name"]
+			if releaseName != "" && releases[releaseName] {
+				return true
+			}
+		}
+	}
+	// Check ArgoCD app ownership
+	if tc.AllowedArgoCDApps != nil {
+		appName := annotations["argocd.argoproj.io/instance"]
+		if appName != "" && tc.AllowedArgoCDApps[appName] {
+			return true
+		}
+	}
+	return false
+}
+
+func (tc *ToolContext) IsEditor() bool {
+	if tc == nil || tc.Role == "" {
+		return true
+	}
+	return tc.Role == "editor"
+}
+
+func (tc *ToolContext) IsAdmin() bool {
+	if tc == nil || tc.Role == "" {
+		return true
+	}
+	return tc.Role == "admin"
+}
+
+func newToolContextFromIOChannel(ioChannel IOChatChannel) *ToolContext {
+	if ioChannel.IsAdmin || (ioChannel.WorkspaceSpec == nil && ioChannel.WorkspaceGrant == nil) {
+		return nil
+	}
+
+	tc := &ToolContext{}
+
+	if ioChannel.WorkspaceGrant != nil {
+		tc.Role = ioChannel.WorkspaceGrant.Role
+	}
+
+	if ioChannel.WorkspaceSpec != nil && len(ioChannel.WorkspaceSpec.Resources) > 0 {
+		for _, res := range ioChannel.WorkspaceSpec.Resources {
+			switch res.Type {
+			case "namespace":
+				if res.Id != "" {
+					if tc.AllowedNamespaces == nil {
+						tc.AllowedNamespaces = make(map[string]bool)
+					}
+					tc.AllowedNamespaces[res.Id] = true
+				}
+			case "helm":
+				if res.Namespace != "" && res.Id != "" {
+					if tc.AllowedHelmReleases == nil {
+						tc.AllowedHelmReleases = make(map[string]map[string]bool)
+					}
+					if tc.AllowedHelmReleases[res.Namespace] == nil {
+						tc.AllowedHelmReleases[res.Namespace] = make(map[string]bool)
+					}
+					tc.AllowedHelmReleases[res.Namespace][res.Id] = true
+				}
+			case "argocd":
+				if res.Id != "" {
+					if tc.AllowedArgoCDApps == nil {
+						tc.AllowedArgoCDApps = make(map[string]bool)
+					}
+					tc.AllowedArgoCDApps[res.Id] = true
+				}
+			}
+		}
+	}
+
+	return tc
+}
+
+func mergeAnnotationsAndLabels(annotations, labels map[string]string) map[string]string {
+	merged := make(map[string]string, len(annotations)+len(labels))
+	for k, v := range annotations {
+		merged[k] = v
+	}
+	for k, v := range labels {
+		merged[k] = v
+	}
+	return merged
+}
+
+type toolHandler = func(map[string]any, *ToolContext, valkeyclient.ValkeyClient, *slog.Logger) string
 
 // toolDefinitions is the combined registry of all AI tool handlers.
 var toolDefinitions = mergeToolMaps(

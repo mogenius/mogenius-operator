@@ -118,6 +118,7 @@ func (ai *aiManager) anthropicChatWithTools(
 	sessionOutputTokens *int64,
 ) (fullResponse string, updatedMessages []anthropic.MessageParam, err error) {
 	toolCallCount := 0
+	toolCtx := newToolContextFromIOChannel(ioChannel)
 
 	var inputTokens int64
 	var outputTokenCount int64
@@ -297,7 +298,7 @@ func (ai *aiManager) anthropicChatWithTools(
 				}
 				result = mcpResult
 			} else if tool, ok := toolDefinitions[toolUse.Name]; ok {
-				result = tool(args, ai.valkeyClient, ai.logger)
+				result = tool(args, toolCtx, ai.valkeyClient, ai.logger)
 			} else {
 				ai.logger.Error("Unknown tool called", "tool", toolUse.Name)
 				toolResults = append(toolResults, anthropic.NewToolResultBlock(toolUse.ID, fmt.Sprintf("Unknown tool: %s", toolUse.Name), true))
@@ -432,7 +433,7 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, model, systemPr
 					}
 					data = mcpResult
 				} else if tool, ok := toolDefinitions[block.Name]; ok {
-					data = tool(args, ai.valkeyClient, ai.logger)
+					data = tool(args, nil, ai.valkeyClient, ai.logger)
 				} else {
 					return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("unknown tool called: %s", block.Name)
 				}
