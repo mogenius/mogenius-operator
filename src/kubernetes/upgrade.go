@@ -37,11 +37,16 @@ func ClusterForceReconnect() bool {
 // restart deployments/daemonsets for operator
 func ClusterForceDisconnect() bool {
 	clientset := clientProvider.K8sClientSet()
-	podClient := clientset.CoreV1().Pods(config.Get("MO_OWN_NAMESPACE"))
+	namespace := config.Get("MO_OWN_NAMESPACE")
+	podClient := clientset.CoreV1().Pods(namespace)
 
 	// stop operator
-	deploymentClient := clientset.AppsV1().Deployments(config.Get("MO_OWN_NAMESPACE"))
-	deployment, _ := deploymentClient.Get(context.Background(), GetOwnDeploymentName(config), metav1.GetOptions{})
+	deployment := store.GetDeployment(namespace, GetOwnDeploymentName(config))
+	if deployment == nil {
+		k8sLogger.Error("ClusterForceDisconnect: own deployment not found in store")
+		return false
+	}
+	deploymentClient := clientset.AppsV1().Deployments(namespace)
 	deployment.Spec.Replicas = utils.Pointer[int32](0)
 	_, err := deploymentClient.Update(context.Background(), deployment, metav1.UpdateOptions{})
 	if err != nil {

@@ -1188,14 +1188,6 @@ func (self *socketApi) registerPatterns() {
 	)
 
 	RegisterPatternHandler(
-		PatternHandle{self, "get/labeled-workload-list"},
-		PatternConfig{},
-		func(datagram structs.Datagram, request kubernetes.GetUnstructuredLabeledResourceListRequest) (unstructured.UnstructuredList, error) {
-			return kubernetes.GetUnstructuredLabeledResourceList(request.Label, request.Whitelist, request.Blacklist)
-		},
-	)
-
-	RegisterPatternHandler(
 		PatternHandle{self, "describe/workload"},
 		PatternConfig{},
 		func(datagram structs.Datagram, request utils.WorkloadSingleRequest) (string, error) {

@@ -65,7 +65,6 @@ export enum Pattern {
   FILES_RENAME = "files/rename",
   GET_GRANT = "get/grant",
   GET_GRANTS = "get/grants",
-  GET_LABELED_WORKLOAD_LIST = "get/labeled-workload-list",
   GET_NAMESPACE_WORKLOAD_LIST = "get/namespace-workload-list",
   GET_NODES_METRICS = "get/nodes-metrics",
   GET_USER = "get/user",
@@ -212,7 +211,6 @@ export const StringToPattern = {
   "files/rename": Pattern.FILES_RENAME,
   "get/grant": Pattern.GET_GRANT,
   "get/grants": Pattern.GET_GRANTS,
-  "get/labeled-workload-list": Pattern.GET_LABELED_WORKLOAD_LIST,
   "get/namespace-workload-list": Pattern.GET_NAMESPACE_WORKLOAD_LIST,
   "get/nodes-metrics": Pattern.GET_NODES_METRICS,
   "get/user": Pattern.GET_USER,
@@ -355,7 +353,6 @@ export const PatternToString = {
   [Pattern.FILES_RENAME]: "files/rename",
   [Pattern.GET_GRANT]: "get/grant",
   [Pattern.GET_GRANTS]: "get/grants",
-  [Pattern.GET_LABELED_WORKLOAD_LIST]: "get/labeled-workload-list",
   [Pattern.GET_NAMESPACE_WORKLOAD_LIST]: "get/namespace-workload-list",
   [Pattern.GET_NODES_METRICS]: "get/nodes-metrics",
   [Pattern.GET_USER]: "get/user",
@@ -5594,95 +5591,6 @@ export type GET_GRANTS_RESPONSE = GET_GRANTS_RESPONSE__MOGENIUS_OPERATOR_SRC_COR
  *
  * ```yaml
  * structs:
- *   mogenius-operator/src/kubernetes.GetUnstructuredLabeledResourceListRequest:
- *     name: mogenius-operator/src/kubernetes.GetUnstructuredLabeledResourceListRequest
- *     properties:
- *       blacklist:
- *         elementType:
- *           pointer: true
- *           structRef: mogenius-operator/src/utils.ResourceDescriptor
- *           type: struct
- *         type: array
- *       label:
- *         type: string
- *       whitelist:
- *         elementType:
- *           pointer: true
- *           structRef: mogenius-operator/src/utils.ResourceDescriptor
- *           type: struct
- *         type: array
- *   mogenius-operator/src/utils.ResourceDescriptor:
- *     name: mogenius-operator/src/utils.ResourceDescriptor
- *     properties:
- *       apiVersion:
- *         type: string
- *       kind:
- *         type: string
- *       namespaced:
- *         type: bool
- *       plural:
- *         type: string
- * typeInfo:
- *   structRef: mogenius-operator/src/kubernetes.GetUnstructuredLabeledResourceListRequest
- *   type: struct
- * ```
- *
- */
-export type GET_LABELED_WORKLOAD_LIST_REQUEST = GET_LABELED_WORKLOAD_LIST_REQUEST__MOGENIUS_OPERATOR_SRC_KUBERNETES_GETUNSTRUCTUREDLABELEDRESOURCELISTREQUEST;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *   k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured:
- *     name: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured
- *     properties:
- *       Object:
- *         keyType:
- *           type: string
- *         type: map
- *         valueType:
- *           pointer: true
- *           type: any
- *   k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.UnstructuredList:
- *     name: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.UnstructuredList
- *     properties:
- *       Object:
- *         keyType:
- *           type: string
- *         type: map
- *         valueType:
- *           pointer: true
- *           type: any
- *       items:
- *         elementType:
- *           structRef: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured
- *           type: struct
- *         type: array
- *   ? mogenius-operator/src/core.Result[mogenius-operator/src/kubernetes.GetUnstructuredLabeledResourceListRequest,k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.UnstructuredList]
- *   : name: mogenius-operator/src/core.Result[mogenius-operator/src/kubernetes.GetUnstructuredLabeledResourceListRequest,k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.UnstructuredList]
- *     properties:
- *       data:
- *         structRef: k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.UnstructuredList
- *         type: struct
- *       message:
- *         type: string
- *       status:
- *         type: string
- * typeInfo:
- *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/kubernetes.GetUnstructuredLabeledResourceListRequest,k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.UnstructuredList]
- *   type: struct
- * ```
- *
- */
-export type GET_LABELED_WORKLOAD_LIST_RESPONSE = GET_LABELED_WORKLOAD_LIST_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_KUBERNETES_GETUNSTRUCTUREDLABELEDRESOURCELISTREQUEST_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTUREDLIST;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
  *   mogenius-operator/src/kubernetes.GetUnstructuredNamespaceResourceListRequest:
  *     name: mogenius-operator/src/kubernetes.GetUnstructuredNamespaceResourceListRequest
  *     properties:
@@ -10838,11 +10746,6 @@ export type GET_GRANTS_RESPONSE__MOGENIUS_OPERATOR_SRC_CRDS_V1ALPHA1_GRANT = {"T
 export type GET_GRANTS_RESPONSE__MOGENIUS_OPERATOR_SRC_CRDS_V1ALPHA1_GRANTSPEC = {"grantee": string,"role": string,"targetName": string,"targetType": string};
 export type GET_GRANTS_RESPONSE__MOGENIUS_OPERATOR_SRC_CRDS_V1ALPHA1_GRANTSTATUS = {};
 export type GET_GRANTS_RESPONSE__TIME_TIME = {};
-export type GET_LABELED_WORKLOAD_LIST_REQUEST__MOGENIUS_OPERATOR_SRC_KUBERNETES_GETUNSTRUCTUREDLABELEDRESOURCELISTREQUEST = {"blacklist": GET_LABELED_WORKLOAD_LIST_REQUEST__MOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRIPTOR|undefined[],"label": string,"whitelist": GET_LABELED_WORKLOAD_LIST_REQUEST__MOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRIPTOR|undefined[]};
-export type GET_LABELED_WORKLOAD_LIST_REQUEST__MOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRIPTOR = {"apiVersion": string,"kind": string,"namespaced": boolean,"plural": string};
-export type GET_LABELED_WORKLOAD_LIST_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"Object": Record<string, any>};
-export type GET_LABELED_WORKLOAD_LIST_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTUREDLIST = {"Object": Record<string, any>,"items": GET_LABELED_WORKLOAD_LIST_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED[]};
-export type GET_LABELED_WORKLOAD_LIST_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_KUBERNETES_GETUNSTRUCTUREDLABELEDRESOURCELISTREQUEST_K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTUREDLIST = {"data": GET_LABELED_WORKLOAD_LIST_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTUREDLIST,"message": string,"status": string};
 export type GET_NAMESPACE_WORKLOAD_LIST_REQUEST__MOGENIUS_OPERATOR_SRC_KUBERNETES_GETUNSTRUCTUREDNAMESPACERESOURCELISTREQUEST = {"blacklist": GET_NAMESPACE_WORKLOAD_LIST_REQUEST__MOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRIPTOR|undefined[],"namespace": string,"whitelist": GET_NAMESPACE_WORKLOAD_LIST_REQUEST__MOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRIPTOR|undefined[]};
 export type GET_NAMESPACE_WORKLOAD_LIST_REQUEST__MOGENIUS_OPERATOR_SRC_UTILS_RESOURCEDESCRIPTOR = {"apiVersion": string,"kind": string,"namespaced": boolean,"plural": string};
 export type GET_NAMESPACE_WORKLOAD_LIST_RESPONSE__K8S_IO_APIMACHINERY_PKG_APIS_META_V1_UNSTRUCTURED_UNSTRUCTURED = {"Object": Record<string, any>};
@@ -11363,10 +11266,6 @@ export interface IPatternConfig {
   [Pattern.GET_GRANTS]: {
     Request: GET_GRANTS_REQUEST;
     Response: GET_GRANTS_RESPONSE;
-  };
-  [Pattern.GET_LABELED_WORKLOAD_LIST]: {
-    Request: GET_LABELED_WORKLOAD_LIST_REQUEST;
-    Response: GET_LABELED_WORKLOAD_LIST_RESPONSE;
   };
   [Pattern.GET_NAMESPACE_WORKLOAD_LIST]: {
     Request: GET_NAMESPACE_WORKLOAD_LIST_REQUEST;

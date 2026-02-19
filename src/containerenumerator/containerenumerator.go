@@ -1,13 +1,13 @@
 package containerenumerator
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"log/slog"
 	"mogenius-operator/src/assert"
 	"mogenius-operator/src/config"
 	"mogenius-operator/src/k8sclient"
+	"mogenius-operator/src/store"
 	"os"
 	"path"
 	"regexp"
@@ -18,7 +18,6 @@ import (
 	"time"
 
 	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // Pre-compiled regular expressions for container ID extraction from cgroups
@@ -93,10 +92,8 @@ func (self *containerEnumerator) startWorker() {
 	go func() {
 		ownNodeName := self.config.Get("OWN_NODE_NAME")
 		assert.Assert(ownNodeName != "", "OWN_NODE_NAME has to be defined and non-empty", ownNodeName)
-		fieldSelector := fmt.Sprintf("metadata.namespace!=kube-system,spec.nodeName=%s", ownNodeName)
-
 		containers := self.collectContainers()
-		pods := self.generateCurrentPodList(fieldSelector, containers)
+		pods := self.generateCurrentPodList(ownNodeName, containers)
 
 		updateTicker := time.NewTicker(5 * time.Second)
 		defer updateTicker.Stop()
@@ -105,7 +102,7 @@ func (self *containerEnumerator) startWorker() {
 			select {
 			case <-updateTicker.C:
 				containers = self.collectContainers()
-				pods = self.generateCurrentPodList(fieldSelector, containers)
+				pods = self.generateCurrentPodList(ownNodeName, containers)
 			case <-self.getProcessesWithContainerIdsRx:
 				self.getProcessesWithContainerIdsTx <- containers
 			case <-self.getPodsWithContainerIdsRx:
@@ -237,22 +234,16 @@ func (self *containerEnumerator) GetContainerIdFromCgroupWithPid(cgroupFileData 
 }
 
 func (self *containerEnumerator) generateCurrentPodList(
-	fieldSelector string,
+	nodeName string,
 	containers map[ContainerId][]ProcessId,
 ) []PodInfo {
-	// query for all pods on current node
-	listOpts := metav1.ListOptions{FieldSelector: fieldSelector}
-	newPodList, err := self.clientProvider.K8sClientSet().CoreV1().Pods("").List(context.Background(), listOpts)
-	if err != nil {
-		self.logger.Error("failed to list pods", "listOpts", listOpts, "error", err)
-		return []PodInfo{}
-	}
+	// query for all pods on current node from store
+	allPods := store.GetPods("")
 
-	// important step: Remove all pods with HostNetwork=true
+	// important step: Remove all pods with HostNetwork=true, kube-system pods, and pods not on our node
 	filteredItems := []v1.Pod{}
-	for idx := range len(newPodList.Items) {
-		pod := newPodList.Items[idx]
-		if !pod.Spec.HostNetwork {
+	for _, pod := range allPods {
+		if !pod.Spec.HostNetwork && pod.Namespace != "kube-system" && pod.Spec.NodeName == nodeName {
 			filteredItems = append(filteredItems, pod)
 		}
 	}
