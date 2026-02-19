@@ -672,8 +672,8 @@ func (self *reconciler) clearCaches() {
 }
 
 func (self *reconciler) getWorkspaces() []v1alpha1.Workspace {
-	self.workspacesLock.Lock()
-	defer self.workspacesLock.Unlock()
+	self.workspacesLock.RLock()
+	defer self.workspacesLock.RUnlock()
 
 	workspaces := make([]v1alpha1.Workspace, len(self.workspaces))
 	for idx, workspace := range self.workspaces {
@@ -713,8 +713,8 @@ func (self *reconciler) removeWorkspace(obj *unstructured.Unstructured) {
 }
 
 func (self *reconciler) getUsers() []v1alpha1.User {
-	self.usersLock.Lock()
-	defer self.usersLock.Unlock()
+	self.usersLock.RLock()
+	defer self.usersLock.RUnlock()
 
 	users := make([]v1alpha1.User, len(self.users))
 	for idx, user := range self.users {
@@ -754,8 +754,8 @@ func (self *reconciler) removeUser(obj *unstructured.Unstructured) {
 }
 
 func (self *reconciler) getGrants() []v1alpha1.Grant {
-	self.grantsLock.Lock()
-	defer self.grantsLock.Unlock()
+	self.grantsLock.RLock()
+	defer self.grantsLock.RUnlock()
 
 	grants := make([]v1alpha1.Grant, len(self.grants))
 	for idx, grant := range self.grants {
@@ -795,8 +795,8 @@ func (self *reconciler) removeGrant(obj *unstructured.Unstructured) {
 }
 
 func (self *reconciler) getRoleBindings() []rbacv1.RoleBinding {
-	self.roleBindingsLock.Lock()
-	defer self.roleBindingsLock.Unlock()
+	self.roleBindingsLock.RLock()
+	defer self.roleBindingsLock.RUnlock()
 
 	roleBindings := make([]rbacv1.RoleBinding, len(self.roleBindings))
 	for idx, roleBinding := range self.roleBindings {
@@ -836,8 +836,8 @@ func (self *reconciler) removeRoleBinding(obj *unstructured.Unstructured) {
 }
 
 func (self *reconciler) getClusterRoleBindings() []rbacv1.ClusterRoleBinding {
-	self.clusterRoleBindingsLock.Lock()
-	defer self.clusterRoleBindingsLock.Unlock()
+	self.clusterRoleBindingsLock.RLock()
+	defer self.clusterRoleBindingsLock.RUnlock()
 
 	clusterRoleBindings := make([]rbacv1.ClusterRoleBinding, len(self.clusterRoleBindings))
 	for idx, clusterRoleBinding := range self.clusterRoleBindings {
@@ -877,8 +877,8 @@ func (self *reconciler) removeClusterRoleBinding(obj *unstructured.Unstructured)
 }
 
 func (self *reconciler) getClusterRoles() []rbacv1.ClusterRole {
-	self.clusterRolesLock.Lock()
-	defer self.clusterRolesLock.Unlock()
+	self.clusterRolesLock.RLock()
+	defer self.clusterRolesLock.RUnlock()
 
 	clusterRoles := make([]rbacv1.ClusterRole, len(self.clusterRoles))
 	for idx, clusterRole := range self.clusterRoles {
@@ -918,8 +918,8 @@ func (self *reconciler) removeClusterRole(obj *unstructured.Unstructured) {
 }
 
 func (self *reconciler) getNamespaces() []v1.Namespace {
-	self.namespacesLock.Lock()
-	defer self.namespacesLock.Unlock()
+	self.namespacesLock.RLock()
+	defer self.namespacesLock.RUnlock()
 
 	namespaces := make([]v1.Namespace, len(self.namespaces))
 	for idx, namespace := range self.namespaces {
@@ -1306,16 +1306,22 @@ func (self *reconciler) findMissingRoleBindings(
 	return filteredRoleBindings, filteredClusterRoleBindings
 }
 
+const (
+	labelOrg              = "app.mogenius.com"
+	labelManagedByMogenius = labelOrg + "/managed-by-mogenius"
+	labelRoleName          = labelOrg + "/role-name"
+)
+
 func (self *reconciler) getLabelOrg() string {
-	return "app.mogenius.com"
+	return labelOrg
 }
 
 func (self *reconciler) getLabelManagedByMogenius() string {
-	return self.getLabelOrg() + "/" + "managed-by-mogenius"
+	return labelManagedByMogenius
 }
 
 func (self *reconciler) getLabelRoleName() string {
-	return self.getLabelOrg() + "/" + "role-name"
+	return labelRoleName
 }
 
 func (self *reconciler) findWorkspaceByName(workspaces []v1alpha1.Workspace, name string) (v1alpha1.Workspace, error) {
