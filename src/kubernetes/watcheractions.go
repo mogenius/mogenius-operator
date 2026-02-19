@@ -9,7 +9,6 @@ import (
 	"mogenius-operator/src/utils"
 	"mogenius-operator/src/watcher"
 	"mogenius-operator/src/websocket"
-	"os"
 	"slices"
 	"strings"
 	"sync"
@@ -32,12 +31,6 @@ const (
 
 type GetUnstructuredNamespaceResourceListRequest struct {
 	Namespace string                      `json:"namespace" validate:"required"`
-	Whitelist []*utils.ResourceDescriptor `json:"whitelist"`
-	Blacklist []*utils.ResourceDescriptor `json:"blacklist"`
-}
-
-type GetUnstructuredLabeledResourceListRequest struct {
-	Label     string                      `json:"label" validate:"required"`
 	Whitelist []*utils.ResourceDescriptor `json:"whitelist"`
 	Blacklist []*utils.ResourceDescriptor `json:"blacklist"`
 }
@@ -273,49 +266,6 @@ func GetUnstructuredNamespaceResourceList(namespace string, whitelist []*utils.R
 	}
 	wg.Wait()
 
-	return results, nil
-}
-
-func GetUnstructuredLabeledResourceList(label string, whitelist []*utils.ResourceDescriptor, blacklist []*utils.ResourceDescriptor) (unstructured.UnstructuredList, error) {
-	results := unstructured.UnstructuredList{
-		Object: map[string]any{},
-		Items:  []unstructured.Unstructured{},
-	}
-
-	resources, err := GetAvailableResources()
-	if err != nil {
-		return results, err
-	}
-
-	if whitelist == nil {
-		whitelist = []*utils.ResourceDescriptor{}
-	}
-
-	if blacklist == nil {
-		blacklist = []*utils.ResourceDescriptor{}
-	}
-
-	dynamicClient := clientProvider.DynamicClient()
-	for _, v := range resources {
-		if v.Namespaced {
-			if (len(whitelist) > 0 && !utils.ContainsResourceDescriptor(whitelist, v)) || (blacklist != nil && utils.ContainsResourceDescriptor(blacklist, v)) {
-				continue
-			}
-
-			result, err := dynamicClient.Resource(CreateGroupVersionResource(v.ApiVersion, v.Plural)).List(context.Background(), metav1.ListOptions{LabelSelector: label})
-
-			if err != nil {
-				if !os.IsNotExist(err) {
-					k8sLogger.Error("Error querying resource", "error", err)
-				}
-				continue
-			}
-			// result := store.GetResourceByKindAndNamespace(v.Group, v.Kind, namespace)
-			if result != nil {
-				results.Items = append(results.Items, result.Items...)
-			}
-		}
-	}
 	return results, nil
 }
 

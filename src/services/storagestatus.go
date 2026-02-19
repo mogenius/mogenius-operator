@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"mogenius-operator/src/store"
 	"mogenius-operator/src/utils"
 	"sort"
 	"strings"
@@ -595,16 +596,12 @@ func (s *VolumeStatus) getUsedByPods(ctx context.Context, channel chan<- []strin
 		return
 	}
 
-	pods, err := s.client.CoreV1().Pods(s.Namespace).List(context.Background(), metav1.ListOptions{})
-	if err != nil {
-		errChannel <- err
-		return
-	}
+	pods := store.GetPods(s.Namespace)
 
 	prefix := fmt.Sprintf("%s-", utils.NFS_POD_PREFIX)
 
 	var usedBy []string
-	for _, pod := range pods.Items {
+	for _, pod := range pods {
 		for _, volume := range pod.Spec.Volumes {
 			if volume.PersistentVolumeClaim != nil {
 				// normalize name, convert no prefixed 'nfs-server-pod-' to prefixed and vice versa

@@ -1,25 +1,42 @@
 package kubernetes
 
 import (
-	"context"
 	"fmt"
 	"mogenius-operator/src/store"
 	"strings"
 
 	v1 "k8s.io/api/apps/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func GetDeploymentsWithFieldSelector(namespace string, labelSelector string) ([]v1.Deployment, error) {
-	clientset := clientProvider.K8sClientSet()
-	client := clientset.AppsV1().Deployments(namespace)
-
-	deployments, err := client.List(context.Background(), metav1.ListOptions{LabelSelector: labelSelector})
-	if err != nil {
-		return []v1.Deployment{}, err
+	all := store.GetDeployments(namespace, "*")
+	if labelSelector == "" {
+		return all, nil
 	}
+	var result []v1.Deployment
+	for _, d := range all {
+		if matchesLabelSelector(d.Labels, labelSelector) {
+			result = append(result, d)
+		}
+	}
+	return result, nil
+}
 
-	return deployments.Items, nil
+// matchesLabelSelector matches equality-based label selectors (key=value, key!=value).
+func matchesLabelSelector(labels map[string]string, selector string) bool {
+	for _, req := range strings.Split(selector, ",") {
+		req = strings.TrimSpace(req)
+		if idx := strings.Index(req, "!="); idx != -1 {
+			if labels[req[:idx]] == req[idx+2:] {
+				return false
+			}
+		} else if idx := strings.Index(req, "="); idx != -1 {
+			if labels[req[:idx]] != req[idx+1:] {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 func IsDeploymentInstalled(namespaceName string, name string) (string, error) {

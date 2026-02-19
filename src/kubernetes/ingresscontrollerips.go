@@ -6,22 +6,14 @@
 package kubernetes
 
 import (
-	"context"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"mogenius-operator/src/store"
 )
 
 func GetClusterExternalIps() []string {
 	var result []string = []string{}
 
-	clientset := clientProvider.K8sClientSet()
-	services, err := clientset.CoreV1().Services("").List(context.Background(), metav1.ListOptions{})
-	if err != nil {
-		k8sLogger.Error(err.Error())
-		return result
-	}
-
-	for _, service := range services.Items {
+	services := store.GetServices("", "*")
+	for _, service := range services {
 		for _, ingress := range service.Status.LoadBalancer.Ingress {
 			if ingress.IP != "" {
 				result = append(result, ingress.IP)
