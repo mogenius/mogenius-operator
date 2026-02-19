@@ -218,10 +218,9 @@ func (ai *aiManager) openaiChatWithTools(
 		}
 
 		params := openai.ChatCompletionNewParams{
-			Messages:    messages,
-			Model:       model,
-			Tools:       chatTools,
-			Temperature: openai.Float(0.7),
+			Messages: messages,
+			Model:    model,
+			Tools:    chatTools,
 			StreamOptions: openai.ChatCompletionStreamOptionsParam{
 				IncludeUsage: openai.Bool(true),
 			},
