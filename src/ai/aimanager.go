@@ -741,13 +741,20 @@ func (ai *aiManager) getAllTaskKeys() ([]string, error) {
 	return allKeys, nil
 }
 
+type aiTaskWithKey struct {
+	key  string
+	task AiTask
+}
+
 func (ai *aiManager) processAiTaskQueue(ctx context.Context) {
 	keys, err := ai.getAllTaskKeys()
 	if err != nil {
 		ai.logger.Error("Error listing AI tasks", "error", err)
 		return
 	}
-	// Process items here
+
+	// Load all pending/failed tasks and sort by CreatedAt ascending (oldest first)
+	var pendingTasks []aiTaskWithKey
 	for _, key := range keys {
 		item, err := ai.valkeyClient.Get(key)
 		if err != nil {
@@ -760,11 +767,17 @@ func (ai *aiManager) processAiTaskQueue(ctx context.Context) {
 			ai.logger.Error("Error unmarshaling AI task", "key", key, "error", err)
 			continue
 		}
-
-		// Process only pending tasks or retry failed tasks
-		if task.State != AI_TASK_STATE_PENDING && task.State != AI_TASK_STATE_FAILED {
-			continue
+		if task.State == AI_TASK_STATE_PENDING || task.State == AI_TASK_STATE_FAILED {
+			pendingTasks = append(pendingTasks, aiTaskWithKey{key: key, task: task})
 		}
+	}
+	sort.Slice(pendingTasks, func(i, j int) bool {
+		return pendingTasks[i].task.CreatedAt < pendingTasks[j].task.CreatedAt
+	})
+
+	for _, entry := range pendingTasks {
+		key := entry.key
+		task := entry.task
 
 		if ai.isTokenLimitExceeded() {
 			task.State = AI_TASK_STATE_FAILED
