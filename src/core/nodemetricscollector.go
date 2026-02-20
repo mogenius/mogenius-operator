@@ -176,6 +176,7 @@ func (self *nodeMetricsCollector) Run() {
 			}
 		}()
 		go func() {
+			// offset: 0ms
 			for {
 				metrics := self.networkMonitor.GetPodNetworkUsage()
 				err := self.statsDb.AddNodeTrafficMetricsToDb(nodeName, metrics)
@@ -186,6 +187,8 @@ func (self *nodeMetricsCollector) Run() {
 			}
 		}()
 		go func() {
+			// offset: 200ms
+			time.Sleep(200 * time.Millisecond)
 			for {
 				status := self.networkMonitor.Snoopy().Status()
 				err := self.statsDb.AddSnoopyStatusToDb(nodeName, status)
@@ -199,50 +202,53 @@ func (self *nodeMetricsCollector) Run() {
 
 	// cpu usage
 	go func() {
-		go func() {
-			for {
-				metrics := self.cpuMonitor.CpuUsageGlobal()
-				err := self.statsDb.AddNodeCpuMetricsToDb(nodeName, metrics)
-				if err != nil {
-					self.logger.Error("failed to add node cpu metrics", "error", err)
-				}
-				time.Sleep(1 * time.Second)
+		// offset: 400ms
+		time.Sleep(400 * time.Millisecond)
+		for {
+			metrics := self.cpuMonitor.CpuUsageGlobal()
+			err := self.statsDb.AddNodeCpuMetricsToDb(nodeName, metrics)
+			if err != nil {
+				self.logger.Error("failed to add node cpu metrics", "error", err)
 			}
-		}()
-		go func() {
-			for {
-				metrics := self.cpuMonitor.CpuUsageProcesses()
-				err := self.statsDb.AddNodeCpuProcessMetricsToDb(nodeName, metrics)
-				if err != nil {
-					self.logger.Error("failed to add node cpu proc metrics", "error", err)
-				}
-				time.Sleep(1 * time.Second)
+			time.Sleep(1 * time.Second)
+		}
+	}()
+	go func() {
+		// offset: 600ms
+		time.Sleep(600 * time.Millisecond)
+		for {
+			metrics := self.cpuMonitor.CpuUsageProcesses()
+			err := self.statsDb.AddNodeCpuProcessMetricsToDb(nodeName, metrics)
+			if err != nil {
+				self.logger.Error("failed to add node cpu proc metrics", "error", err)
 			}
-		}()
+			time.Sleep(1 * time.Second)
+		}
 	}()
 
 	// ram usage
 	go func() {
-		go func() {
-			for {
-				metrics := self.ramMonitor.RamUsageGlobal()
-				err := self.statsDb.AddNodeRamMetricsToDb(nodeName, metrics)
-				if err != nil {
-					self.logger.Error("failed to add node ram metrics", "error", err)
-				}
-				time.Sleep(1 * time.Second)
+		// offset: 800ms
+		time.Sleep(800 * time.Millisecond)
+		for {
+			metrics := self.ramMonitor.RamUsageGlobal()
+			err := self.statsDb.AddNodeRamMetricsToDb(nodeName, metrics)
+			if err != nil {
+				self.logger.Error("failed to add node ram metrics", "error", err)
 			}
-		}()
-
-		go func() {
-			for {
-				metrics := self.ramMonitor.RamUsageProcesses()
-				err := self.statsDb.AddNodeRamProcessMetricsToDb(nodeName, metrics)
-				if err != nil {
-					self.logger.Error("failed to add node ram proc metrics", "error", err)
-				}
-				time.Sleep(1 * time.Second)
+			time.Sleep(1 * time.Second)
+		}
+	}()
+	go func() {
+		// offset: 1000ms
+		time.Sleep(1000 * time.Millisecond)
+		for {
+			metrics := self.ramMonitor.RamUsageProcesses()
+			err := self.statsDb.AddNodeRamProcessMetricsToDb(nodeName, metrics)
+			if err != nil {
+				self.logger.Error("failed to add node ram proc metrics", "error", err)
 			}
-		}()
+			time.Sleep(1 * time.Second)
+		}
 	}()
 }
