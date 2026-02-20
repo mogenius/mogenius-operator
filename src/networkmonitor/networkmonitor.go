@@ -128,18 +128,19 @@ func (self *networkMonitor) Run() {
 				// get a new list of all pods and containers on the current node
 				nextPodInfoList := self.cne.GetPodsWithContainerIds()
 
+				// build lookup maps for O(n) comparisons instead of O(n²) nested loops
+				oldByID := make(map[containerenumerator.PodInfoIdentifier]containerenumerator.PodInfo, len(podInfoList))
+				for _, p := range podInfoList {
+					oldByID[p.NamespaceAndName()] = p
+				}
+				nextByID := make(map[containerenumerator.PodInfoIdentifier]containerenumerator.PodInfo, len(nextPodInfoList))
+				for _, p := range nextPodInfoList {
+					nextByID[p.NamespaceAndName()] = p
+				}
+
 				// unregister removed pods
-				for _, podInfo := range podInfoList {
-					id := podInfo.NamespaceAndName()
-					found := false
-					for _, nextPodInfo := range nextPodInfoList {
-						nextId := nextPodInfo.NamespaceAndName()
-						if id == nextId {
-							found = true
-							break
-						}
-					}
-					if !found {
+				for id, podInfo := range oldByID {
+					if _, exists := nextByID[id]; !exists {
 						self.logger.Info("Remove Pod", "podInfo", podInfo)
 						errs := self.snoopy.Remove(podInfo)
 						if len(errs) > 0 {
@@ -148,41 +149,23 @@ func (self *networkMonitor) Run() {
 					}
 				}
 
-				// register new pods
-				for _, nextPodInfo := range nextPodInfoList {
-					nextId := nextPodInfo.NamespaceAndName()
-					found := false
-					for _, podInfo := range podInfoList {
-						id := podInfo.NamespaceAndName()
-						if id == nextId {
-							found = true
-							break
-						}
-					}
-					if !found {
+				// register new pods and update changed pods
+				for id, nextPodInfo := range nextByID {
+					if podInfo, exists := oldByID[id]; !exists {
 						self.logger.Info("Register Pod", "nextPodInfo", nextPodInfo)
 						errs := self.snoopy.Register(nextPodInfo)
 						if len(errs) > 0 {
-							self.logger.Error("failed to register new pod", "id", nextId, "errors", errs)
+							self.logger.Error("failed to register new pod", "id", id, "errors", errs)
 						}
-					}
-				}
-
-				// update pods which changed by removing the old and adding the new version
-				for _, podInfo := range podInfoList {
-					id := podInfo.NamespaceAndName()
-					for _, nextPodInfo := range nextPodInfoList {
-						nextId := nextPodInfo.NamespaceAndName()
-						if id == nextId && !podInfo.Equals(&nextPodInfo) {
-							self.logger.Info("Update Pod", "podInfo", podInfo, "nextPodInfo", nextPodInfo)
-							errs := self.snoopy.Remove(podInfo)
-							if len(errs) > 0 {
-								self.logger.Error("failed to remove old pod", "id", id, "errors", errs)
-							}
-							errs = self.snoopy.Register(nextPodInfo)
-							if len(errs) > 0 {
-								self.logger.Error("failed to register new pod", "id", nextId, "errors", errs)
-							}
+					} else if !podInfo.Equals(&nextPodInfo) {
+						self.logger.Info("Update Pod", "podInfo", podInfo, "nextPodInfo", nextPodInfo)
+						errs := self.snoopy.Remove(podInfo)
+						if len(errs) > 0 {
+							self.logger.Error("failed to remove old pod", "id", id, "errors", errs)
+						}
+						errs = self.snoopy.Register(nextPodInfo)
+						if len(errs) > 0 {
+							self.logger.Error("failed to register new pod", "id", id, "errors", errs)
 						}
 					}
 				}

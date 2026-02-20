@@ -610,27 +610,32 @@ func getCpuUsageInfo(procPath string, pid string) (ProcPidStat, error) {
 
 	statcontent := string(data)
 
-	dataPieces := make([]string, 0, 52)
+	// only fields up to index 21 (Starttime) are used; stop parsing early
+	const lastNeededField = 21
+	dataPieces := make([]string, 0, lastNeededField+1)
 	elementIdx := 0
 	stringCapture := false
-	value := ""
+	var builder strings.Builder
 	for _, charRune := range statcontent {
-		char := string(charRune)
-		if char == " " && !stringCapture {
-			dataPieces = append(dataPieces, value)
-			value = ""
-			elementIdx += 1
+		if charRune == ' ' && !stringCapture {
+			dataPieces = append(dataPieces, builder.String())
+			builder.Reset()
+			elementIdx++
+			if elementIdx > lastNeededField {
+				break
+			}
 			continue
 		}
-		if char == "(" {
+		if charRune == '(' {
 			stringCapture = true
-		}
-		if char == ")" {
+		} else if charRune == ')' {
 			stringCapture = false
 		}
-		value += char
+		builder.WriteRune(charRune)
 	}
-	dataPieces = append(dataPieces, value)
+	if elementIdx <= lastNeededField {
+		dataPieces = append(dataPieces, builder.String())
+	}
 
 	asInt64 := func(val string) int64 {
 		intval, err := strconv.ParseInt(val, 10, 64)
