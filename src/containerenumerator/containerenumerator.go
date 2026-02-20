@@ -238,7 +238,7 @@ func (self *containerEnumerator) generateCurrentPodList(
 	containers map[ContainerId][]ProcessId,
 ) []PodInfo {
 	// query for all pods on current node from store
-	allPods := store.GetPods("")
+	allPods := store.GetPods("*")
 
 	// important step: Remove all pods with HostNetwork=true, kube-system pods, and pods not on our node
 	filteredItems := []v1.Pod{}
