@@ -1,3 +1,10 @@
+# [2.19.0-develop.64](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.63...v2.19.0-develop.64) (2026-02-20)
+
+
+### Bug Fixes
+
+* missing star added. stupid error. ([f64e76b](https://github.com/mogenius/mogenius-operator/commit/f64e76b83af66ececfd073b76019591410561818))
+
 # [2.19.0-develop.63](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.62...v2.19.0-develop.63) (2026-02-20)
 
 
