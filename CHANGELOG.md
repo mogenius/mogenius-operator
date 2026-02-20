@@ -1,3 +1,13 @@
+# [2.19.0-develop.65](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.64...v2.19.0-develop.65) (2026-02-20)
+
+
+### Bug Fixes
+
+* improved a loop ([444b88b](https://github.com/mogenius/mogenius-operator/commit/444b88b15d9413f33125491a0e57e1bf79c985ce))
+* more distributed cpu usage instead of peak-cpu every sec ([513caf2](https://github.com/mogenius/mogenius-operator/commit/513caf264578843bd2a187e7ef0910b042cd3572))
+* removed complexity to improve cpu usage ([72836de](https://github.com/mogenius/mogenius-operator/commit/72836de1abedeaa5207c372ef0cb0ddeddd776fa))
+* removed complexity to improve cpu usage ([c8f4fed](https://github.com/mogenius/mogenius-operator/commit/c8f4fedc47294fdbf30eb387369b846a8ed3f8d0))
+
 # [2.19.0-develop.64](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.63...v2.19.0-develop.64) (2026-02-20)
 
 
