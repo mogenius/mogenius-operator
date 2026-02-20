@@ -11,7 +11,6 @@ import (
 	"mogenius-operator/src/containerenumerator"
 	"mogenius-operator/src/shutdown"
 	"os/exec"
-	"slices"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -537,41 +536,25 @@ func (self *snoopyManager) Metrics() map[containerenumerator.PodInfoIdentifier]C
 	data := map[containerenumerator.PodInfoIdentifier]ContainerInfo{}
 
 	self.handlesLock.RLock()
-	podInfoIds := []containerenumerator.PodInfoIdentifier{}
-	for podInfoId := range self.handles {
-		podInfoIds = append(podInfoIds, podInfoId)
-	}
-	slices.Sort(podInfoIds)
-
-	for _, podInfoId := range podInfoIds {
-		handle := self.handles[podInfoId]
+	for podInfoId, handle := range self.handles {
 		containerInfo := ContainerInfo{}
 		containerInfo.PodInfo = handle.PodInfo
 		containerInfo.Metrics = map[InterfaceName]MetricSnapshot{}
 
-		interfaceNames := []InterfaceName{}
+		handle.StartBytesLock.RLock()
+		handle.LastMetricsLock.RLock()
 		for interfaceName := range handle.IngressStartBytes {
-			interfaceNames = append(interfaceNames, interfaceName)
-		}
-		slices.Sort(interfaceNames)
-
-		for _, interfaceName := range interfaceNames {
 			interfaceInfo := MetricSnapshot{}
-
-			handle.StartBytesLock.RLock()
 			interfaceInfo.Ingress.StartBytes = handle.IngressStartBytes[interfaceName]
 			interfaceInfo.Egress.StartBytes = handle.EgressStartBytes[interfaceName]
-			handle.StartBytesLock.RUnlock()
-
-			handle.LastMetricsLock.RLock()
 			interfaceInfo.Ingress.Bytes = handle.LastMetrics[interfaceName].Ingress.Bytes
 			interfaceInfo.Ingress.Packets = handle.LastMetrics[interfaceName].Ingress.Packets
 			interfaceInfo.Egress.Bytes = handle.LastMetrics[interfaceName].Egress.Bytes
 			interfaceInfo.Egress.Packets = handle.LastMetrics[interfaceName].Egress.Packets
-			handle.LastMetricsLock.RUnlock()
-
 			containerInfo.Metrics[interfaceName] = interfaceInfo
 		}
+		handle.LastMetricsLock.RUnlock()
+		handle.StartBytesLock.RUnlock()
 
 		data[podInfoId] = containerInfo
 	}

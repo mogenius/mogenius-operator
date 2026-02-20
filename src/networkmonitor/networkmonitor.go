@@ -363,22 +363,7 @@ func getNetworkInterfaceInfo(procPath string, pid string) ([]KernelNetworkInterf
 			continue
 		}
 
-		line := scanner.Text()
-		tokens := []string{}
-		token := ""
-		for _, symbol := range line {
-			if symbol != ' ' {
-				token = token + string(symbol)
-			}
-			if symbol == ' ' {
-				if token != "" {
-					tokens = append(tokens, token)
-					token = ""
-				}
-				continue
-			}
-		}
-		tokens = append(tokens, token)
+		tokens := strings.Fields(scanner.Text())
 
 		assert.Assert(len(tokens) == 17, "line should contain exactly 17 tokens", tokens)
 
