@@ -49,7 +49,7 @@ spec:
       containers:
       - name: valkey
         image: {{ .Values.valkey.image.registry }}/{{ .Values.valkey.image.repository }}:{{ .Values.valkey.image.tag }}
-        args: [ "--requirepass", "$(VALKEY_PASSWORD)" ]
+        args: [ "--requirepass", "$(VALKEY_PASSWORD)", "--rdb-version-check", "relaxed" ]
         imagePullPolicy: {{ .Values.valkey.imagePullPolicy }}
         env:
         - name: VALKEY_PASSWORD
