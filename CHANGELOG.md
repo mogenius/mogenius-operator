@@ -1,3 +1,10 @@
+# [2.19.0-develop.67](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.66...v2.19.0-develop.67) (2026-02-20)
+
+
+### Bug Fixes
+
+* rdb valkey problem ([673cbcf](https://github.com/mogenius/mogenius-operator/commit/673cbcfe5ac6461c61d6c0598600d5062b1ccc69))
+
 # [2.19.0-develop.66](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.65...v2.19.0-develop.66) (2026-02-20)
 
 
