@@ -178,8 +178,11 @@ func (self *cpuMonitor) readGlobalCpuMetrics(statPath string) (ProcStatCpu, erro
 		return ProcStatCpu{}, fmt.Errorf("failed to read cpu stats: %s", err.Error())
 	}
 
-	lines := strings.Split(string(fileData), "\n")
-	cpuLine := lines[0]
+	// only the first line (aggregate "cpu" entry) is needed; avoid splitting all lines
+	cpuLine := string(fileData)
+	if nl := strings.IndexByte(cpuLine, '\n'); nl >= 0 {
+		cpuLine = cpuLine[:nl]
+	}
 	assert.Assert(cpuLine != "")
 
 	fields := strings.Fields(cpuLine)

@@ -109,6 +109,7 @@ func (self *ramMonitor) collectGlobalMetrics(nodeName string) RamMetrics {
 
 	lines := strings.Split(string(fileData), "\n")
 	var memAvailable float64
+	foundTotal, foundAvailable := false, false
 
 	for _, line := range lines {
 		fields := strings.Fields(line)
@@ -125,8 +126,13 @@ func (self *ramMonitor) collectGlobalMetrics(nodeName string) RamMetrics {
 		switch fields[0] {
 		case "MemTotal:":
 			data.TotalKb = val
+			foundTotal = true
 		case "MemAvailable:":
 			memAvailable = val
+			foundAvailable = true
+		}
+		if foundTotal && foundAvailable {
+			break
 		}
 	}
 	data.UsedKb = data.TotalKb - memAvailable
