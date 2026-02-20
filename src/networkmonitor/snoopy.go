@@ -45,8 +45,7 @@ type snoopyManager struct {
 }
 
 type SnoopyArgs struct {
-	NetworkDevicePollRate uint64
-	MetricsRate           uint64
+	MetricsRate uint64
 }
 
 type SnoopyStatus struct {
@@ -289,8 +288,7 @@ func NewSnoopyManager(logger *slog.Logger, config config.ConfigModule) SnoopyMan
 	self.statusRx = make(chan SnoopyStatus)
 
 	self.args = SnoopyArgs{}
-	self.args.MetricsRate = 2000           // read network metrics from BPF every 2 seconds
-	self.args.NetworkDevicePollRate = 1000 // update network devices list once per second
+	self.args.MetricsRate = 2000 // read network metrics from BPF every 2 seconds
 
 	// there are multiple possible names for this binary due to how the project was created
 	// all possible binary names are lookup up and the first hit is used
@@ -752,8 +750,6 @@ func (self *snoopyManager) attachToPidNamespace(pid ProcessId) (*SnoopyHandle, e
 		*self.snoopyBinName,
 		"--metrics-rate",
 		strconv.FormatUint(self.args.MetricsRate, 10),
-		"--network-device-poll-rate",
-		strconv.FormatUint(self.args.NetworkDevicePollRate, 10),
 	)
 
 	stdoutPipe, err := cmd.StdoutPipe()

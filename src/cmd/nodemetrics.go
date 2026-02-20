@@ -9,8 +9,7 @@ import (
 )
 
 type nodeMetricsArgs struct {
-	NetworkDevicePollRate uint64 `help:"" default:"1000"`
-	MetricsRate           uint64 `help:"" default:"2000"`
+	MetricsRate uint64 `help:"" default:"2000"`
 }
 
 func RunNodeMetrics(args *nodeMetricsArgs, logManagerModule logging.SlogManager, configModule *config.Config, cmdLogger *slog.Logger, valkeyLogChannel chan logging.LogLine) {
@@ -34,8 +33,7 @@ func RunNodeMetrics(args *nodeMetricsArgs, logManagerModule logging.SlogManager,
 		systems.core.InitializeValkey()
 
 		systems.networkmonitor.Snoopy().SetArgs(networkmonitor.SnoopyArgs{
-			MetricsRate:           args.MetricsRate,
-			NetworkDevicePollRate: args.NetworkDevicePollRate,
+			MetricsRate: args.MetricsRate,
 		})
 		systems.nodeMetricsCollector.Run()
 

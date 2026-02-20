@@ -6,7 +6,7 @@ FROM --platform=$BUILDPLATFORM golang:1.26.0 AS golang
 
 FROM --platform=$BUILDPLATFORM ubuntu:noble AS build-env
 
-ENV SNOOPY_VERSION=v0.3.6
+ENV SNOOPY_VERSION=v0.3.10
 
 COPY --from=golang /usr/local/go /usr/local/go
 

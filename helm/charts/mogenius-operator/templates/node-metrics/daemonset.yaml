@@ -56,8 +56,6 @@ spec:
             - "nodemetrics"
             - "--metrics-rate"
             - "2000"
-            - "--network-device-poll-rate"
-            - "1000"
           {{- with .Values.nodeMetrics.containerSecurityContext }}
           securityContext:
             {{- toYaml . | nindent 12 }}
