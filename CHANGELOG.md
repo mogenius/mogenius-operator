@@ -1,3 +1,10 @@
+# [2.19.0-develop.66](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.65...v2.19.0-develop.66) (2026-02-20)
+
+
+### Bug Fixes
+
+* updated snoopy and removed network device polling rate ([4ae57b4](https://github.com/mogenius/mogenius-operator/commit/4ae57b42fcfd98348dcfc9afe5f6d3f49659e3db))
+
 # [2.19.0-develop.65](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.64...v2.19.0-develop.65) (2026-02-20)
 
 
