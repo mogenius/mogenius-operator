@@ -10,6 +10,7 @@ import (
 
 	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/ollama/ollama/api"
 	"github.com/openai/openai-go/v3"
 )
 
@@ -205,6 +206,77 @@ func (m *mcpClientManager) GetOpenAITools() []openai.ChatCompletionToolUnionPara
 		}
 	}
 	return tools
+}
+
+// GetOllamaTools returns all MCP tools in Ollama SDK format.
+func (m *mcpClientManager) GetOllamaTools() []api.Tool {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	var tools []api.Tool
+	for _, s := range m.sessions {
+		for _, tool := range s.tools {
+			props, required := mcpSchemaToOllamaProperties(tool.InputSchema)
+			tools = append(tools, api.Tool{
+				Type: "function",
+				Function: api.ToolFunction{
+					Name:        tool.Name,
+					Description: tool.Description,
+					Parameters: api.ToolFunctionParameters{
+						Type:       "object",
+						Properties: props,
+						Required:   required,
+					},
+				},
+			})
+		}
+	}
+	return tools
+}
+
+// mcpSchemaToOllamaProperties converts an MCP tool's InputSchema to the
+// properties map and required slice used by the Ollama SDK.
+func mcpSchemaToOllamaProperties(schema any) (*api.ToolPropertiesMap, []string) {
+	m, ok := schema.(map[string]any)
+	if !ok || m == nil {
+		return api.NewToolPropertiesMap(), nil
+	}
+
+	properties := api.NewToolPropertiesMap()
+	if props, ok := m["properties"].(map[string]any); ok {
+		for k, v := range props {
+			propMap, ok := v.(map[string]any)
+			if !ok {
+				continue
+			}
+			tp := api.ToolProperty{}
+			if t, ok := propMap["type"].(string); ok {
+				tp.Type = []string{t}
+			}
+			if d, ok := propMap["description"].(string); ok {
+				tp.Description = d
+			}
+			if enum, ok := propMap["enum"].([]any); ok {
+				for _, e := range enum {
+					if s, ok := e.(string); ok {
+						tp.Enum = append(tp.Enum, s)
+					}
+				}
+			}
+			properties.Set(k, tp)
+		}
+	}
+
+	var required []string
+	if req, ok := m["required"].([]any); ok {
+		for _, r := range req {
+			if s, ok := r.(string); ok {
+				required = append(required, s)
+			}
+		}
+	}
+
+	return properties, required
 }
 
 // extractMCPText extracts text from an MCP tool result.

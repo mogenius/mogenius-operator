@@ -22,6 +22,7 @@ var (
 var kubernetesToolDefinitions = map[string]func(map[string]any, *ToolContext, valkeyclient.ValkeyClient, *slog.Logger) string{
 	"get_kubernetes_resources":   getKubernetesResourcesTool,
 	"list_kubernetes_resources":  listKubernetesResourcesTool,
+	"check_kubernetes_resource":  checkKubernetesResourceTool,
 	"update_kubernetes_resource": updateKubernetesResourceTool,
 	"delete_kubernetes_resource": deleteKubernetesResourceTool,
 	"create_kubernetes_resource": createKubernetesResourceTool,
@@ -117,6 +118,61 @@ func listKubernetesResourcesTool(args map[string]any, tc *ToolContext, valkeyCli
 	}
 	logger.Info("Tool result", "resultCount", len(summaries), "totalCount", totalCount, "truncated", truncated)
 	return string(resourceBytes)
+}
+
+func checkKubernetesResourceTool(args map[string]any, tc *ToolContext, valkeyClient valkeyclient.ValkeyClient, logger *slog.Logger) string {
+
+	kind := args["kind"].(string)
+	apiVersion := args["apiVersion"].(string)
+	name, _ := args["name"].(string)
+	namespace, _ := args["namespace"].(string)
+
+	if !tc.IsNamespaceAllowed(namespace) && tc.AllowedArgoCDApps == nil {
+		return fmt.Sprintf("Error: access to namespace %q is not allowed", namespace)
+	}
+
+	logger.Info("Checking Kubernetes resource", "apiVersion", apiVersion, "kind", kind, "namespace", namespace, "name", name)
+	res, err := store.GetResource(valkeyClient, apiVersion, kind, namespace, name, logger)
+
+	if err != nil {
+		logger.Error("Error checking resource", "error", err)
+		return fmt.Sprintf("Error checking resource: %v", err)
+	}
+	if res == nil {
+		return fmt.Sprintf("Resource %s/%s %q not found in namespace %q", apiVersion, kind, name, namespace)
+	}
+
+	meta := mergeAnnotationsAndLabels(res.GetAnnotations(), res.GetLabels())
+	if !tc.IsResourceAllowed(res.GetNamespace(), meta) {
+		return fmt.Sprintf("Error: access to resource %q in namespace %q is not allowed", res.GetName(), namespace)
+	}
+
+	summary := ResourceSummary{
+		Name:         res.GetName(),
+		Namespace:    res.GetNamespace(),
+		Kind:         res.GetKind(),
+		CreationTime: res.GetCreationTimestamp().String(),
+		Status:       "Unknown",
+	}
+
+	if status, found, _ := unstructured.NestedString(res.Object, "status", "phase"); found {
+		summary.Status = status
+	} else if conditions, found, _ := unstructured.NestedSlice(res.Object, "status", "conditions"); found && len(conditions) > 0 {
+		if cond, ok := conditions[0].(map[string]interface{}); ok {
+			if condType, ok := cond["type"].(string); ok {
+				if condStatus, ok := cond["status"].(string); ok {
+					summary.Status = fmt.Sprintf("%s=%s", condType, condStatus)
+				}
+			}
+		}
+	}
+
+	summaryBytes, err := json.Marshal(summary)
+	if err != nil {
+		return fmt.Sprintf("Error marshaling summary: %v", err)
+	}
+	logger.Info("Tool result", "resultLength", len(summaryBytes))
+	return string(summaryBytes)
 }
 
 func getKubernetesResourcesTool(args map[string]any, tc *ToolContext, valkeyClient valkeyclient.ValkeyClient, logger *slog.Logger) string {

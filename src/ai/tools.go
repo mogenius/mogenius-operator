@@ -167,6 +167,7 @@ var toolDefinitions = mergeToolMaps(
 var viewerAllowedTools = map[string]bool{
 	"get_kubernetes_resources":  true,
 	"list_kubernetes_resources": true,
+	"check_kubernetes_resource": true,
 	// helm tools
 	"helm_chart_search":    true,
 	"helm_chart_show":      true,

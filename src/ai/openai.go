@@ -142,12 +142,18 @@ func (ai *aiManager) openaiChat(
 		openai.SystemMessage(systemPrompt),
 	}
 
-	// Build tools once per session (static + MCP, filtered by role)
-	chatTools := append(kubernetesOpenAiTools, helmOpenAiTools...)
-	if ai.mcpManager != nil {
-		chatTools = append(chatTools, ai.mcpManager.GetOpenAITools()...)
+	// Build full tool set once per session (static + MCP, filtered by role)
+	allChatTools := append(kubernetesOpenAiTools, helmOpenAiTools...)
+	if !isViewerRole(ioChannel) {
+		allChatTools = append(allChatTools, activateToolCategoriesOpenAi)
 	}
-	chatTools = filterOpenAiTools(chatTools, ioChannel)
+	if ai.mcpManager != nil {
+		allChatTools = append(allChatTools, ai.mcpManager.GetOpenAITools()...)
+	}
+	allChatTools = filterOpenAiTools(allChatTools, ioChannel)
+
+	// Session-level category filter (sticky, driven by LLM via meta-tool)
+	categories := NewActiveToolCategories()
 
 	// Session-level accumulated token counters
 	var sessionInputTokens, sessionOutputTokens int64
@@ -180,8 +186,9 @@ func (ai *aiManager) openaiChat(
 			// Add user message to conversation history
 			messages = append(messages, openai.UserMessage(userInput))
 
-			// Process with tool call loop
-			fullResponse, updatedMessages, err := ai.openaiChatWithTools(ctx, client, model, messages, ioChannel, chatTools, maxToolCalls, &sessionInputTokens, &sessionOutputTokens)
+			// Process with tool call loop (categories + allChatTools passed so
+			// the inner loop can recompute active tools after activation)
+			fullResponse, updatedMessages, err := ai.openaiChatWithTools(ctx, client, model, messages, ioChannel, allChatTools, categories, maxToolCalls, &sessionInputTokens, &sessionOutputTokens)
 			if err != nil {
 				ai.logger.Error("Error processing with tools", "error", err)
 				// Send error to output
@@ -214,7 +221,8 @@ func (ai *aiManager) openaiChatWithTools(
 	model string,
 	messages []openai.ChatCompletionMessageParamUnion,
 	ioChannel IOChatChannel,
-	chatTools []openai.ChatCompletionToolUnionParam,
+	allChatTools []openai.ChatCompletionToolUnionParam,
+	categories *ActiveToolCategories,
 	maxToolCalls int,
 	sessionInputTokens *int64,
 	sessionOutputTokens *int64,
@@ -229,6 +237,9 @@ func (ai *aiManager) openaiChatWithTools(
 	startTime := time.Now()
 
 	for {
+		// Recompute active tools each iteration (categories may have changed)
+		chatTools := filterOpenAiToolsByCategory(allChatTools, categories)
+
 		// Notify user that AI is thinking
 		select {
 		case ioChannel.Output <- "[AI is thinking...]\n":
@@ -401,7 +412,9 @@ func (ai *aiManager) openaiChatWithTools(
 			}
 
 			var result string
-			if ai.mcpManager != nil && ai.mcpManager.IsMCPTool(tc.Name) {
+			if tc.Name == activateToolCategoriesName {
+				result = categories.ActivateFromToolCall(args)
+			} else if ai.mcpManager != nil && ai.mcpManager.IsMCPTool(tc.Name) {
 				mcpResult, err := ai.mcpManager.CallTool(ctx, tc.Name, args)
 				if err != nil {
 					ai.logger.Error("MCP tool call failed", "tool", tc.Name, "error", err)

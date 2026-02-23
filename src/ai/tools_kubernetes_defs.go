@@ -11,149 +11,85 @@ import (
 var kubernetesOpenAiTools = []openai.ChatCompletionToolUnionParam{
 	openaiFunc(
 		"get_kubernetes_resources",
-		"Get a specific Kubernetes resource by kind, name and namespace",
+		"Get full details of a specific Kubernetes resource by kind, name and namespace.",
 		openai.FunctionParameters{
 			"type": "object",
 			"properties": map[string]interface{}{
-				"apiVersion": map[string]string{
-					"type":        "string",
-					"description": "API version of the resource (e.g. 'v1', 'apps/v1')",
-				},
-				"kind": map[string]string{
-					"type":        "string",
-					"description": "Kind of the resource (e.g. 'Pod', 'Deployment', 'Service')",
-				},
-				"name": map[string]string{
-					"type":        "string",
-					"description": "Name of the specific resource",
-				},
-				"namespace": map[string]string{
-					"type":        "string",
-					"description": "Namespace of the resource (optional for cluster-scoped resources)",
-				},
+				"apiVersion": map[string]string{"type": "string", "description": "API version (e.g. 'v1', 'apps/v1')"},
+				"kind":       map[string]string{"type": "string", "description": "Resource kind (e.g. 'Pod', 'Deployment')"},
+				"name":       map[string]string{"type": "string", "description": "Resource name"},
+				"namespace":  map[string]string{"type": "string", "description": "Namespace (optional for cluster-scoped)"},
 			},
-			"required": []string{
-				"kind",
-				"apiVersion",
-				"name",
-			},
+			"required": []string{"kind", "apiVersion", "name"},
 		},
 	),
 	openaiFunc(
 		"list_kubernetes_resources",
-		"List all Kubernetes resources of a specific kind, optionally filtered by namespace",
+		"List all Kubernetes resources of a specific kind, optionally filtered by namespace.",
 		openai.FunctionParameters{
 			"type": "object",
 			"properties": map[string]interface{}{
-				"apiVersion": map[string]string{
-					"type":        "string",
-					"description": "API version of the resource (e.g. 'v1', 'apps/v1')",
-				},
-				"kind": map[string]string{
-					"type":        "string",
-					"description": "Kind of the resource (e.g. 'Pod', 'Deployment', 'Service')",
-				},
-				"namespace": map[string]string{
-					"type":        "string",
-					"description": "Namespace to filter by (optional, leave empty for all namespaces)",
-				},
+				"apiVersion": map[string]string{"type": "string", "description": "API version (e.g. 'v1', 'apps/v1')"},
+				"kind":       map[string]string{"type": "string", "description": "Resource kind (e.g. 'Pod', 'Deployment')"},
+				"namespace":  map[string]string{"type": "string", "description": "Namespace filter (optional, empty for all)"},
 			},
-			"required": []string{
-				"kind",
-				"apiVersion",
+			"required": []string{"kind", "apiVersion"},
+		},
+	),
+	openaiFunc(
+		"check_kubernetes_resource",
+		"Check existence and status of a single resource. Returns a compact summary instead of full details. Use get_kubernetes_resources only when you need the complete resource object.",
+		openai.FunctionParameters{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"apiVersion": map[string]string{"type": "string", "description": "API version (e.g. 'v1', 'apps/v1')"},
+				"kind":       map[string]string{"type": "string", "description": "Resource kind (e.g. 'Pod', 'Deployment')"},
+				"name":       map[string]string{"type": "string", "description": "Resource name"},
+				"namespace":  map[string]string{"type": "string", "description": "Namespace (optional for cluster-scoped)"},
 			},
+			"required": []string{"kind", "apiVersion", "name"},
 		},
 	),
 	openaiFunc(
 		"update_kubernetes_resource",
-		"Update an existing Kubernetes resource with new YAML configuration",
+		"Update an existing Kubernetes resource with new YAML configuration.",
 		openai.FunctionParameters{
 			"type": "object",
 			"properties": map[string]interface{}{
-				"apiVersion": map[string]string{
-					"type":        "string",
-					"description": "API version of the resource (e.g. 'v1', 'apps/v1')",
-				},
-				"plural": map[string]string{
-					"type":        "string",
-					"description": "Plural name of the resource (e.g. 'pods', 'deployments', 'services')",
-				},
-				"namespaced": map[string]string{
-					"type":        "boolean",
-					"description": "Whether the resource is namespaced (true) or cluster-scoped (false)",
-				},
-				"yamlData": map[string]string{
-					"type":        "string",
-					"description": "Complete YAML definition of the resource to update",
-				},
+				"apiVersion": map[string]string{"type": "string", "description": "API version (e.g. 'v1', 'apps/v1')"},
+				"plural":     map[string]string{"type": "string", "description": "Plural name (e.g. 'pods', 'deployments')"},
+				"namespaced": map[string]string{"type": "boolean", "description": "Namespaced (true) or cluster-scoped (false)"},
+				"yamlData":   map[string]string{"type": "string", "description": "Complete YAML definition of the resource"},
 			},
-			"required": []string{
-				"apiVersion",
-				"plural",
-				"namespaced",
-				"yamlData",
-			},
+			"required": []string{"apiVersion", "plural", "namespaced", "yamlData"},
 		},
 	),
 	openaiFunc(
 		"delete_kubernetes_resource",
-		"Delete a Kubernetes resource by name and namespace",
+		"Delete a Kubernetes resource by name and namespace.",
 		openai.FunctionParameters{
 			"type": "object",
 			"properties": map[string]interface{}{
-				"apiVersion": map[string]string{
-					"type":        "string",
-					"description": "API version of the resource (e.g. 'v1', 'apps/v1')",
-				},
-				"plural": map[string]string{
-					"type":        "string",
-					"description": "Plural name of the resource (e.g. 'pods', 'deployments', 'services')",
-				},
-				"namespace": map[string]string{
-					"type":        "string",
-					"description": "Namespace of the resource (empty for cluster-scoped resources)",
-				},
-				"name": map[string]string{
-					"type":        "string",
-					"description": "Name of the resource to delete",
-				},
+				"apiVersion": map[string]string{"type": "string", "description": "API version (e.g. 'v1', 'apps/v1')"},
+				"plural":     map[string]string{"type": "string", "description": "Plural name (e.g. 'pods', 'deployments')"},
+				"namespace":  map[string]string{"type": "string", "description": "Namespace (empty for cluster-scoped)"},
+				"name":       map[string]string{"type": "string", "description": "Resource name to delete"},
 			},
-			"required": []string{
-				"apiVersion",
-				"plural",
-				"name",
-			},
+			"required": []string{"apiVersion", "plural", "name"},
 		},
 	),
 	openaiFunc(
 		"create_kubernetes_resource",
-		"Create a new Kubernetes resource from YAML configuration",
+		"Create a new Kubernetes resource from YAML configuration.",
 		openai.FunctionParameters{
 			"type": "object",
 			"properties": map[string]interface{}{
-				"apiVersion": map[string]string{
-					"type":        "string",
-					"description": "API version of the resource (e.g. 'v1', 'apps/v1')",
-				},
-				"plural": map[string]string{
-					"type":        "string",
-					"description": "Plural name of the resource (e.g. 'pods', 'deployments', 'services')",
-				},
-				"namespaced": map[string]string{
-					"type":        "boolean",
-					"description": "Whether the resource is namespaced (true) or cluster-scoped (false)",
-				},
-				"yamlData": map[string]string{
-					"type":        "string",
-					"description": "Complete YAML definition of the resource to create",
-				},
+				"apiVersion": map[string]string{"type": "string", "description": "API version (e.g. 'v1', 'apps/v1')"},
+				"plural":     map[string]string{"type": "string", "description": "Plural name (e.g. 'pods', 'deployments')"},
+				"namespaced": map[string]string{"type": "boolean", "description": "Namespaced (true) or cluster-scoped (false)"},
+				"yamlData":   map[string]string{"type": "string", "description": "Complete YAML definition of the resource"},
 			},
-			"required": []string{
-				"apiVersion",
-				"plural",
-				"namespaced",
-				"yamlData",
-			},
+			"required": []string{"apiVersion", "plural", "namespaced", "yamlData"},
 		},
 	),
 }
@@ -163,130 +99,62 @@ var kubernetesOpenAiTools = []openai.ChatCompletionToolUnionParam{
 var kubernetesAnthropicTools = []anthropic.ToolParam{
 	anthropicTool(
 		"get_kubernetes_resources",
-		"Get a specific Kubernetes resource by name. Use this when you know the exact name of the resource you want to retrieve.",
+		"Get full details of a specific Kubernetes resource by name.",
 		map[string]any{
-			"kind": map[string]any{
-				"type":        "string",
-				"description": "The kind of the Kubernetes resource (e.g., Pod, Deployment, Service).",
-			},
-			"apiVersion": map[string]any{
-				"type":        "string",
-				"description": "The API version of the resource (e.g., v1, apps/v1).",
-			},
-			"name": map[string]any{
-				"type":        "string",
-				"description": "The name of the resource.",
-			},
-			"namespace": map[string]any{
-				"type":        "string",
-				"description": "The namespace of the resource (optional for cluster-scoped resources).",
-			},
-		}, []string{
-			"kind",
-			"apiVersion",
-			"name",
-		},
+			"kind":       map[string]any{"type": "string", "description": "Resource kind (e.g., Pod, Deployment)."},
+			"apiVersion": map[string]any{"type": "string", "description": "API version (e.g., v1, apps/v1)."},
+			"name":       map[string]any{"type": "string", "description": "Resource name."},
+			"namespace":  map[string]any{"type": "string", "description": "Namespace (optional for cluster-scoped)."},
+		}, []string{"kind", "apiVersion", "name"},
 	),
 	anthropicTool(
 		"list_kubernetes_resources",
-		"List all Kubernetes resources of a given kind, optionally filtered by namespace. Use this when you want to see multiple resources or don't know the exact name.",
+		"List all Kubernetes resources of a given kind, optionally filtered by namespace.",
 		map[string]any{
-			"kind": map[string]any{
-				"type":        "string",
-				"description": "The kind of the Kubernetes resource (e.g., Pod, Deployment, Service).",
-			},
-			"apiVersion": map[string]any{
-				"type":        "string",
-				"description": "The API version of the resource (e.g., v1, apps/v1).",
-			},
-			"namespace": map[string]any{
-				"type":        "string",
-				"description": "The namespace to list resources from (optional; omit to list from all namespaces or cluster-scoped resources).",
-			},
-		}, []string{
-			"kind",
-			"apiVersion",
-		},
+			"kind":       map[string]any{"type": "string", "description": "Resource kind (e.g., Pod, Deployment)."},
+			"apiVersion": map[string]any{"type": "string", "description": "API version (e.g., v1, apps/v1)."},
+			"namespace":  map[string]any{"type": "string", "description": "Namespace filter (optional, omit for all)."},
+		}, []string{"kind", "apiVersion"},
+	),
+	anthropicTool(
+		"check_kubernetes_resource",
+		"Check existence and status of a single resource. Returns a compact summary instead of full details. Use get_kubernetes_resources only when you need the complete resource object.",
+		map[string]any{
+			"kind":       map[string]any{"type": "string", "description": "Resource kind (e.g., Pod, Deployment)."},
+			"apiVersion": map[string]any{"type": "string", "description": "API version (e.g., v1, apps/v1)."},
+			"name":       map[string]any{"type": "string", "description": "Resource name."},
+			"namespace":  map[string]any{"type": "string", "description": "Namespace (optional for cluster-scoped)."},
+		}, []string{"kind", "apiVersion", "name"},
 	),
 	anthropicTool(
 		"update_kubernetes_resource",
-		"Update an existing Kubernetes resource with new YAML configuration. Use this to modify resources.",
+		"Update an existing Kubernetes resource with new YAML configuration.",
 		map[string]any{
-			"apiVersion": map[string]any{
-				"type":        "string",
-				"description": "The API version of the resource (e.g., v1, apps/v1).",
-			},
-			"plural": map[string]any{
-				"type":        "string",
-				"description": "The plural name of the resource (e.g., pods, deployments, services).",
-			},
-			"namespaced": map[string]any{
-				"type":        "boolean",
-				"description": "Whether the resource is namespaced (true) or cluster-scoped (false).",
-			},
-			"yamlData": map[string]any{
-				"type":        "string",
-				"description": "Complete YAML definition of the resource to update.",
-			},
-		}, []string{
-			"apiVersion",
-			"plural",
-			"namespaced",
-			"yamlData",
-		},
+			"apiVersion": map[string]any{"type": "string", "description": "API version (e.g., v1, apps/v1)."},
+			"plural":     map[string]any{"type": "string", "description": "Plural name (e.g., pods, deployments)."},
+			"namespaced": map[string]any{"type": "boolean", "description": "Namespaced (true) or cluster-scoped (false)."},
+			"yamlData":   map[string]any{"type": "string", "description": "Complete YAML definition of the resource."},
+		}, []string{"apiVersion", "plural", "namespaced", "yamlData"},
 	),
 	anthropicTool(
 		"delete_kubernetes_resource",
 		"Delete a Kubernetes resource by name and namespace.",
 		map[string]any{
-			"apiVersion": map[string]any{
-				"type":        "string",
-				"description": "The API version of the resource (e.g., v1, apps/v1).",
-			},
-			"plural": map[string]any{
-				"type":        "string",
-				"description": "The plural name of the resource (e.g., pods, deployments, services).",
-			},
-			"namespace": map[string]any{
-				"type":        "string",
-				"description": "The namespace of the resource (empty for cluster-scoped resources).",
-			},
-			"name": map[string]any{
-				"type":        "string",
-				"description": "The name of the resource to delete.",
-			},
-		}, []string{
-			"apiVersion",
-			"plural",
-			"name",
-		},
+			"apiVersion": map[string]any{"type": "string", "description": "API version (e.g., v1, apps/v1)."},
+			"plural":     map[string]any{"type": "string", "description": "Plural name (e.g., pods, deployments)."},
+			"namespace":  map[string]any{"type": "string", "description": "Namespace (empty for cluster-scoped)."},
+			"name":       map[string]any{"type": "string", "description": "Resource name to delete."},
+		}, []string{"apiVersion", "plural", "name"},
 	),
 	anthropicTool(
 		"create_kubernetes_resource",
 		"Create a new Kubernetes resource from YAML configuration.",
 		map[string]any{
-			"apiVersion": map[string]any{
-				"type":        "string",
-				"description": "The API version of the resource (e.g., v1, apps/v1).",
-			},
-			"plural": map[string]any{
-				"type":        "string",
-				"description": "The plural name of the resource (e.g., pods, deployments, services).",
-			},
-			"namespaced": map[string]any{
-				"type":        "boolean",
-				"description": "Whether the resource is namespaced (true) or cluster-scoped (false).",
-			},
-			"yamlData": map[string]any{
-				"type":        "string",
-				"description": "Complete YAML definition of the resource to create.",
-			},
-		}, []string{
-			"apiVersion",
-			"plural",
-			"namespaced",
-			"yamlData",
-		},
+			"apiVersion": map[string]any{"type": "string", "description": "API version (e.g., v1, apps/v1)."},
+			"plural":     map[string]any{"type": "string", "description": "Plural name (e.g., pods, deployments)."},
+			"namespaced": map[string]any{"type": "boolean", "description": "Namespaced (true) or cluster-scoped (false)."},
+			"yamlData":   map[string]any{"type": "string", "description": "Complete YAML definition of the resource."},
+		}, []string{"apiVersion", "plural", "namespaced", "yamlData"},
 	),
 }
 
@@ -295,129 +163,61 @@ var kubernetesAnthropicTools = []anthropic.ToolParam{
 var kubernetesOllamaTools = []api.Tool{
 	ollamaTool(
 		"get_kubernetes_resources",
-		"Get a specific Kubernetes resource by kind, name and namespace",
+		"Get full details of a specific Kubernetes resource by kind, name and namespace.",
 		map[string]api.ToolProperty{
-			"apiVersion": {
-				Type:        []string{"string"},
-				Description: "API version of the resource (e.g. 'v1', 'apps/v1')",
-			},
-			"kind": {
-				Type:        []string{"string"},
-				Description: "Kind of the resource (e.g. 'Pod', 'Deployment', 'Service')",
-			},
-			"name": {
-				Type:        []string{"string"},
-				Description: "Name of the specific resource",
-			},
-			"namespace": {
-				Type:        []string{"string"},
-				Description: "Namespace of the resource (optional for cluster-scoped resources)",
-			},
-		}, []string{
-			"kind",
-			"apiVersion",
-			"name",
-		},
+			"apiVersion": {Type: []string{"string"}, Description: "API version (e.g. 'v1', 'apps/v1')"},
+			"kind":       {Type: []string{"string"}, Description: "Resource kind (e.g. 'Pod', 'Deployment')"},
+			"name":       {Type: []string{"string"}, Description: "Resource name"},
+			"namespace":  {Type: []string{"string"}, Description: "Namespace (optional for cluster-scoped)"},
+		}, []string{"kind", "apiVersion", "name"},
 	),
 	ollamaTool(
 		"list_kubernetes_resources",
-		"List all Kubernetes resources of a specific kind, optionally filtered by namespace",
+		"List all Kubernetes resources of a specific kind, optionally filtered by namespace.",
 		map[string]api.ToolProperty{
-			"apiVersion": {
-				Type:        []string{"string"},
-				Description: "API version of the resource (e.g. 'v1', 'apps/v1')",
-			},
-			"kind": {
-				Type:        []string{"string"},
-				Description: "Kind of the resource (e.g. 'Pod', 'Deployment', 'Service')",
-			},
-			"namespace": {
-				Type:        []string{"string"},
-				Description: "Namespace to filter by (optional, leave empty for all namespaces)",
-			},
-		}, []string{
-			"kind",
-			"apiVersion",
-		},
+			"apiVersion": {Type: []string{"string"}, Description: "API version (e.g. 'v1', 'apps/v1')"},
+			"kind":       {Type: []string{"string"}, Description: "Resource kind (e.g. 'Pod', 'Deployment')"},
+			"namespace":  {Type: []string{"string"}, Description: "Namespace filter (optional, empty for all)"},
+		}, []string{"kind", "apiVersion"},
+	),
+	ollamaTool(
+		"check_kubernetes_resource",
+		"Check existence and status of a single resource. Returns a compact summary instead of full details. Use get_kubernetes_resources only when you need the complete resource object.",
+		map[string]api.ToolProperty{
+			"apiVersion": {Type: []string{"string"}, Description: "API version (e.g. 'v1', 'apps/v1')"},
+			"kind":       {Type: []string{"string"}, Description: "Resource kind (e.g. 'Pod', 'Deployment')"},
+			"name":       {Type: []string{"string"}, Description: "Resource name"},
+			"namespace":  {Type: []string{"string"}, Description: "Namespace (optional for cluster-scoped)"},
+		}, []string{"kind", "apiVersion", "name"},
 	),
 	ollamaTool(
 		"update_kubernetes_resource",
-		"Update an existing Kubernetes resource with new YAML configuration",
+		"Update an existing Kubernetes resource with new YAML configuration.",
 		map[string]api.ToolProperty{
-			"apiVersion": {
-				Type:        []string{"string"},
-				Description: "API version of the resource (e.g. 'v1', 'apps/v1')",
-			},
-			"plural": {
-				Type:        []string{"string"},
-				Description: "Plural name of the resource (e.g. 'pods', 'deployments', 'services')",
-			},
-			"namespaced": {
-				Type:        []string{"boolean"},
-				Description: "Whether the resource is namespaced (true) or cluster-scoped (false)",
-			},
-			"yamlData": {
-				Type:        []string{"string"},
-				Description: "Complete YAML definition of the resource to update",
-			},
-		}, []string{
-			"apiVersion",
-			"plural",
-			"namespaced",
-			"yamlData",
-		},
+			"apiVersion": {Type: []string{"string"}, Description: "API version (e.g. 'v1', 'apps/v1')"},
+			"plural":     {Type: []string{"string"}, Description: "Plural name (e.g. 'pods', 'deployments')"},
+			"namespaced": {Type: []string{"boolean"}, Description: "Namespaced (true) or cluster-scoped (false)"},
+			"yamlData":   {Type: []string{"string"}, Description: "Complete YAML definition of the resource"},
+		}, []string{"apiVersion", "plural", "namespaced", "yamlData"},
 	),
 	ollamaTool(
 		"delete_kubernetes_resource",
-		"Delete a Kubernetes resource by name and namespace",
+		"Delete a Kubernetes resource by name and namespace.",
 		map[string]api.ToolProperty{
-			"apiVersion": {
-				Type:        []string{"string"},
-				Description: "API version of the resource (e.g. 'v1', 'apps/v1')",
-			},
-			"plural": {
-				Type:        []string{"string"},
-				Description: "Plural name of the resource (e.g. 'pods', 'deployments', 'services')",
-			},
-			"namespace": {
-				Type:        []string{"string"},
-				Description: "Namespace of the resource (empty for cluster-scoped resources)",
-			},
-			"name": {
-				Type:        []string{"string"},
-				Description: "Name of the resource to delete",
-			},
-		}, []string{
-			"apiVersion",
-			"plural",
-			"name",
-		},
+			"apiVersion": {Type: []string{"string"}, Description: "API version (e.g. 'v1', 'apps/v1')"},
+			"plural":     {Type: []string{"string"}, Description: "Plural name (e.g. 'pods', 'deployments')"},
+			"namespace":  {Type: []string{"string"}, Description: "Namespace (empty for cluster-scoped)"},
+			"name":       {Type: []string{"string"}, Description: "Resource name to delete"},
+		}, []string{"apiVersion", "plural", "name"},
 	),
 	ollamaTool(
 		"create_kubernetes_resource",
-		"Create a new Kubernetes resource from YAML configuration",
+		"Create a new Kubernetes resource from YAML configuration.",
 		map[string]api.ToolProperty{
-			"apiVersion": {
-				Type:        []string{"string"},
-				Description: "API version of the resource (e.g. 'v1', 'apps/v1')",
-			},
-			"plural": {
-				Type:        []string{"string"},
-				Description: "Plural name of the resource (e.g. 'pods', 'deployments', 'services')",
-			},
-			"namespaced": {
-				Type:        []string{"boolean"},
-				Description: "Whether the resource is namespaced (true) or cluster-scoped (false)",
-			},
-			"yamlData": {
-				Type:        []string{"string"},
-				Description: "Complete YAML definition of the resource to create",
-			},
-		}, []string{
-			"apiVersion",
-			"plural",
-			"namespaced",
-			"yamlData",
-		},
+			"apiVersion": {Type: []string{"string"}, Description: "API version (e.g. 'v1', 'apps/v1')"},
+			"plural":     {Type: []string{"string"}, Description: "Plural name (e.g. 'pods', 'deployments')"},
+			"namespaced": {Type: []string{"boolean"}, Description: "Namespaced (true) or cluster-scoped (false)"},
+			"yamlData":   {Type: []string{"string"}, Description: "Complete YAML definition of the resource"},
+		}, []string{"apiVersion", "plural", "namespaced", "yamlData"},
 	),
 }

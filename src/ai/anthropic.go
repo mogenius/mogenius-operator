@@ -26,16 +26,18 @@ func (ai *aiManager) anthropicChat(
 	// Maintain conversation history
 	messages := []anthropic.MessageParam{}
 
-	// Build tools once per session (static + MCP, filtered by role)
+	// Build full tool set once per session (static + MCP, filtered by role)
 	allAnthropicTools := append(kubernetesAnthropicTools, helmAnthropicTools...)
+	if !isViewerRole(ioChannel) {
+		allAnthropicTools = append(allAnthropicTools, activateToolCategoriesAnthropic)
+	}
 	if ai.mcpManager != nil {
 		allAnthropicTools = append(allAnthropicTools, ai.mcpManager.GetAnthropicTools()...)
 	}
 	allAnthropicTools = filterAnthropicTools(allAnthropicTools, ioChannel)
-	tools := make([]anthropic.ToolUnionParam, len(allAnthropicTools))
-	for i, toolParam := range allAnthropicTools {
-		tools[i] = anthropic.ToolUnionParam{OfTool: &toolParam}
-	}
+
+	// Session-level category filter (sticky, driven by LLM via meta-tool)
+	categories := NewActiveToolCategories()
 
 	// Session-level accumulated token counters
 	var sessionInputTokens, sessionOutputTokens int64
@@ -72,8 +74,9 @@ func (ai *aiManager) anthropicChat(
 				},
 			})
 
-			// Process with tool call loop
-			fullResponse, updatedMessages, err := ai.anthropicChatWithTools(ctx, client, systemPrompt, model, messages, ioChannel, tools, maxToolCalls, &sessionInputTokens, &sessionOutputTokens)
+			// Process with tool call loop (categories + allTools passed so
+			// the inner loop can recompute active tools after activation)
+			fullResponse, updatedMessages, err := ai.anthropicChatWithTools(ctx, client, systemPrompt, model, messages, ioChannel, allAnthropicTools, categories, maxToolCalls, &sessionInputTokens, &sessionOutputTokens)
 			if err != nil {
 				ai.logger.Error("Error processing with tools", "error", err)
 				// Send error to output
@@ -112,7 +115,8 @@ func (ai *aiManager) anthropicChatWithTools(
 	model string,
 	messages []anthropic.MessageParam,
 	ioChannel IOChatChannel,
-	tools []anthropic.ToolUnionParam,
+	allAnthropicTools []anthropic.ToolParam,
+	categories *ActiveToolCategories,
 	maxToolCalls int,
 	sessionInputTokens *int64,
 	sessionOutputTokens *int64,
@@ -127,6 +131,13 @@ func (ai *aiManager) anthropicChatWithTools(
 	startTime := time.Now()
 
 	for {
+		// Recompute active tools each iteration (categories may have changed)
+		activeTools := filterAnthropicToolsByCategory(allAnthropicTools, categories)
+		tools := make([]anthropic.ToolUnionParam, len(activeTools))
+		for i, toolParam := range activeTools {
+			tools[i] = anthropic.ToolUnionParam{OfTool: &toolParam}
+		}
+
 		// Notify user that AI is thinking
 		select {
 		case ioChannel.Output <- "[AI is thinking...]\n":
@@ -289,9 +300,11 @@ func (ai *aiManager) anthropicChatWithTools(
 				continue
 			}
 
-			// Execute tool - check MCP tools first, then static tools
+			// Execute tool
 			var result string
-			if ai.mcpManager != nil && ai.mcpManager.IsMCPTool(toolUse.Name) {
+			if toolUse.Name == activateToolCategoriesName {
+				result = categories.ActivateFromToolCall(args)
+			} else if ai.mcpManager != nil && ai.mcpManager.IsMCPTool(toolUse.Name) {
 				mcpResult, err := ai.mcpManager.CallTool(ctx, toolUse.Name, args)
 				if err != nil {
 					ai.logger.Error("MCP tool call failed", "tool", toolUse.Name, "error", err)
