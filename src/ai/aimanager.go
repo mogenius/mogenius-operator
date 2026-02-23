@@ -546,6 +546,13 @@ func (ai *aiManager) isTokenLimitExceeded() bool {
 	return false
 }
 
+func (ai *aiManager) tokenLimitErrorMessage() string {
+	now := time.Now()
+	nextReset := now.Add(24 * time.Hour)
+	nextReset = time.Date(nextReset.Year(), nextReset.Month(), nextReset.Day(), 0, 0, 0, 0, nextReset.Location())
+	return fmt.Sprintf("The daily token limit for your organization has been exceeded. It will reset on %s at 12:00 AM, or an admin can reset it manually.", nextReset.Format("Jan 2"))
+}
+
 func (ai *aiManager) getTodayTokenUsage() (todaysTokens int64, todaysProcessedTasks int, err error) {
 	now := time.Now()
 	startOfDay := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location()).Unix()

@@ -200,7 +200,7 @@ func (ai *aiManager) ollamaChat(
 			if ai.isTokenLimitExceeded() {
 				ai.logger.Warn("Daily token limit exceeded, rejecting input")
 				select {
-				case ioChannel.Output <- "\n[Error: Daily AI token limit exceeded, cannot process further tasks. Increase limit or wait 24 hours.]":
+				case ioChannel.Output <- fmt.Sprintf("\n[Error: %s]", ai.tokenLimitErrorMessage()):
 				case <-ctx.Done():
 					return ctx.Err()
 				}
