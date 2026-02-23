@@ -11,6 +11,7 @@ import (
 	"mogenius-operator/src/utils"
 	"mogenius-operator/src/valkeyclient"
 	"slices"
+	"sync"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -277,6 +278,9 @@ func (self *api) GetWorkspaceResources(workspaceName string, whitelist []*utils.
 	}
 
 	result := make([]unstructured.Unstructured, 0, len(workspace.Spec.Resources)*5)
+	var resultMutex sync.Mutex
+	var firstErr error
+	var wg sync.WaitGroup
 
 	for _, v := range workspace.Spec.Resources {
 		if v.Type == "namespace" {
@@ -285,11 +289,18 @@ func (self *api) GetWorkspaceResources(workspaceName string, whitelist []*utils.
 					continue
 				}
 			}
-			nsResources, err := kubernetes.GetUnstructuredNamespaceResourceList(v.Id, whitelist, blacklist)
-			if err != nil {
-				return result, err
-			}
-			result = appendIfNotExists(result, nsResources...)
+			wg.Go(func() {
+				nsResources, err := kubernetes.GetUnstructuredNamespaceResourceList(v.Id, whitelist, blacklist)
+				resultMutex.Lock()
+				defer resultMutex.Unlock()
+				if err != nil {
+					if firstErr == nil {
+						firstErr = err
+					}
+					return
+				}
+				result = appendIfNotExists(result, nsResources...)
+			})
 		}
 		if v.Type == "helm" {
 			if len(namespaceWhitelist) > 0 {
@@ -302,15 +313,23 @@ func (self *api) GetWorkspaceResources(workspaceName string, whitelist []*utils.
 				Release:   v.Id,
 				Whitelist: whitelist,
 			}
-			helmResources, err := helm.HelmReleaseGetWorkloads(self.valkeyClient, helmReq)
-			if err != nil {
-				return result, err
-			}
-			result = appendIfNotExists(result, helmResources...)
+			wg.Go(func() {
+				helmResources, err := helm.HelmReleaseGetWorkloads(self.valkeyClient, helmReq)
+				resultMutex.Lock()
+				defer resultMutex.Unlock()
+				if err != nil {
+					if firstErr == nil {
+						firstErr = err
+					}
+					return
+				}
+				result = appendIfNotExists(result, helmResources...)
+			})
 		}
 	}
+	wg.Wait()
 
-	return result, nil
+	return result, firstErr
 }
 
 func (self *api) GetWorkspaceControllers(workspaceName string) ([]unstructured.Unstructured, error) {
