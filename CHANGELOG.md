@@ -1,3 +1,10 @@
+# [2.19.0-develop.75](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.74...v2.19.0-develop.75) (2026-02-23)
+
+
+### Bug Fixes
+
+* renovate operator installation fixed ([5db8f7f](https://github.com/mogenius/mogenius-operator/commit/5db8f7fe2a355ef97b5959caabdd21fae7302e9e))
+
 # [2.19.0-develop.74](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.73...v2.19.0-develop.74) (2026-02-23)
 
 
