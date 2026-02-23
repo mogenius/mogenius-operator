@@ -181,23 +181,12 @@ func GetWorkloadStatusItems(
 		// Get or fetch ReplicaSets relevant to the namespace.
 		replicaSets := getOrFetchReplicaSets(valkeyClient, replicaSetsCache, workload.GetNamespace())
 
-		if replicaSets != nil {
-			var replicaSetsList []unstructured.Unstructured
+		// Reuse the already-extracted replicas value instead of calling NestedInt64 again.
+		if replicaSets != nil && replicas != nil && *replicas > 0 {
 			for _, replicaset := range replicaSets {
-
-				replicasInt64, found, err := unstructured.NestedInt64(workload.Object, "spec", "replicas")
-				if err != nil || !found {
-					continue
+				if hasOwnerReference(replicaset.GetOwnerReferences(), workload.GetUID()) {
+					items = append(items, GetWorkloadStatusItems(replicaset, eventsByUID, ignoreDependentResources, replicaSetsCache, jobsCache, podsCache)...)
 				}
-
-				if replicasInt64 > 0 && hasOwnerReference(replicaset.GetOwnerReferences(), workload.GetUID()) {
-					replicaSetsList = append(replicaSetsList, replicaset)
-				}
-			}
-
-			// Recursively process dependent ReplicaSets.
-			for _, replicaset := range replicaSetsList {
-				items = append(items, GetWorkloadStatusItems(replicaset, eventsByUID, ignoreDependentResources, replicaSetsCache, jobsCache, podsCache)...)
 			}
 		}
 
@@ -205,19 +194,12 @@ func GetWorkloadStatusItems(
 		// Get or fetch Jobs relevant to the namespace.
 		jobs := getOrFetchJobs(jobsCache, workload.GetNamespace())
 
-		if jobs != nil {
-			var jobsList []unstructured.Unstructured
-			for _, job := range jobs {
-				if hasOwnerReference(job.GetOwnerReferences(), workload.GetUID()) {
-					jobsList = append(jobsList, job)
-				}
-			}
-
-			// Recursively process dependent Jobs.
-			for _, job := range jobsList {
+		for _, job := range jobs {
+			if hasOwnerReference(job.GetOwnerReferences(), workload.GetUID()) {
 				items = append(items, GetWorkloadStatusItems(job, eventsByUID, ignoreDependentResources, replicaSetsCache, jobsCache, podsCache)...)
 			}
 		}
+
 	case "ReplicaSet":
 		fallthrough
 	case "StatefulSet":
@@ -229,16 +211,9 @@ func GetWorkloadStatusItems(
 	case "ReplicationController":
 		// Get or fetch Pods relevant to the namespace.
 		pods := getOrFetchPods(podsCache, workload.GetNamespace())
-		if pods != nil {
-			var podsList []unstructured.Unstructured
-			for _, pod := range pods {
-				if hasOwnerReference(pod.GetOwnerReferences(), workload.GetUID()) {
-					podsList = append(podsList, pod)
-				}
-			}
 
-			// Recursively process dependent Pods.
-			for _, pod := range podsList {
+		for _, pod := range pods {
+			if hasOwnerReference(pod.GetOwnerReferences(), workload.GetUID()) {
 				items = append(items, GetWorkloadStatusItems(pod, eventsByUID, ignoreDependentResources, replicaSetsCache, jobsCache, podsCache)...)
 			}
 		}
