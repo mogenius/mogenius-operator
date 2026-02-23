@@ -212,34 +212,33 @@ func (self *networkMonitor) metricsToPodstats(
 		}
 		slices.Sort(interfaceNames)
 
+		// Aggregate all interfaces for this container into a single entry.
+		// Creating one entry per interface caused cross-interface delta calculations
+		// in AddInterfaceStatsToDb because lastStatsMap is keyed by pod name only.
+		podNetworkStat := PodNetworkStats{
+			Pod:       containerInfo.PodInfo.Name,
+			Namespace: containerInfo.PodInfo.Namespace,
+			CreatedAt: time.Now(),
+		}
 		for _, interfaceName := range interfaceNames {
-			metrics := containerInfo.Metrics[interfaceName]
-			// filter empty metrics (if all observed values are 0)
-			if metrics.Ingress.Packets == 0 && metrics.Ingress.Bytes == 0 && metrics.Egress.Packets == 0 && metrics.Egress.Bytes == 0 {
-				continue
-			}
+			iMetrics := containerInfo.Metrics[interfaceName]
 			// filter blacklisted interface names e.g. loopback
 			if slices.Contains([]string{"lo"}, interfaceName) {
 				continue
 			}
-			podNetworkStat := PodNetworkStats{}
-			// podNetworkStat.Ip = containerInfo.PodInfo.PodIp
-			podNetworkStat.Pod = containerInfo.PodInfo.Name
-			podNetworkStat.Namespace = containerInfo.PodInfo.Namespace
-			// podNetworkStat.Interface = interfaceName
-			podNetworkStat.ReceivedPackets = metrics.Ingress.Packets
-			podNetworkStat.ReceivedBytes = metrics.Ingress.Bytes
-			podNetworkStat.ReceivedStartBytes = metrics.Ingress.StartBytes
-			podNetworkStat.TransmitPackets = metrics.Egress.Packets
-			podNetworkStat.TransmitBytes = metrics.Egress.Bytes
-			podNetworkStat.TransmitStartBytes = metrics.Egress.StartBytes
-			// startTime, err := time.Parse(time.RFC3339, containerInfo.PodInfo.StartTime)
-			// if err != nil {
-			// 	podNetworkStat.StartTime = startTime
-			// }
-			podNetworkStat.CreatedAt = time.Now()
-			data = append(data, podNetworkStat)
+			podNetworkStat.ReceivedPackets += iMetrics.Ingress.Packets
+			podNetworkStat.ReceivedBytes += iMetrics.Ingress.Bytes
+			podNetworkStat.ReceivedStartBytes += iMetrics.Ingress.StartBytes
+			podNetworkStat.TransmitPackets += iMetrics.Egress.Packets
+			podNetworkStat.TransmitBytes += iMetrics.Egress.Bytes
+			podNetworkStat.TransmitStartBytes += iMetrics.Egress.StartBytes
 		}
+		// filter empty metrics (if all observed values are 0)
+		if podNetworkStat.ReceivedPackets == 0 && podNetworkStat.ReceivedBytes == 0 &&
+			podNetworkStat.TransmitPackets == 0 && podNetworkStat.TransmitBytes == 0 {
+			continue
+		}
+		data = append(data, podNetworkStat)
 	}
 
 	return data

@@ -129,10 +129,30 @@ func (self *valkeyStatsDb) AddInterfaceStatsToDb(currentStats []networkmonitor.P
 		deltaStat := currentStat
 
 		if lastEntry, ok := lastStatsMap[currentStat.Pod]; ok {
-			deltaStat.ReceivedBytes -= lastEntry.ReceivedBytes
-			deltaStat.ReceivedPackets -= lastEntry.ReceivedPackets
-			deltaStat.TransmitBytes -= lastEntry.TransmitBytes
-			deltaStat.TransmitPackets -= lastEntry.TransmitPackets
+			// Guard against uint64 underflow: if the current counter is smaller than the
+			// last known value, the snoopy process or pod was restarted and the BPF counter
+			// reset to 0. In that case we skip this interval (delta = 0) rather than
+			// producing a huge underflowed value that would appear as a traffic spike.
+			if currentStat.ReceivedBytes >= lastEntry.ReceivedBytes {
+				deltaStat.ReceivedBytes = currentStat.ReceivedBytes - lastEntry.ReceivedBytes
+			} else {
+				deltaStat.ReceivedBytes = 0
+			}
+			if currentStat.ReceivedPackets >= lastEntry.ReceivedPackets {
+				deltaStat.ReceivedPackets = currentStat.ReceivedPackets - lastEntry.ReceivedPackets
+			} else {
+				deltaStat.ReceivedPackets = 0
+			}
+			if currentStat.TransmitBytes >= lastEntry.TransmitBytes {
+				deltaStat.TransmitBytes = currentStat.TransmitBytes - lastEntry.TransmitBytes
+			} else {
+				deltaStat.TransmitBytes = 0
+			}
+			if currentStat.TransmitPackets >= lastEntry.TransmitPackets {
+				deltaStat.TransmitPackets = currentStat.TransmitPackets - lastEntry.TransmitPackets
+			} else {
+				deltaStat.TransmitPackets = 0
+			}
 		}
 
 		err := self.valkey.StoreSortedListEntry(
@@ -285,22 +305,21 @@ func (self *valkeyStatsDb) GetWorkspaceStatsCpuUtilization(
 }
 
 func updateTop5Pods(pods map[string]float64, compareValue float64, podName string) map[string]float64 {
-	smallestKey, smallestValue, found := findSmallest(pods)
-	if !found {
+	if _, exists := pods[podName]; exists {
 		pods[podName] = compareValue
 		return pods
 	}
 
-	if len(pods) >= 5 {
-		pods[smallestKey] = compareValue
-		return pods
-	}
-
-	if smallestValue < compareValue {
+	if len(pods) < 5 {
 		pods[podName] = compareValue
 		return pods
 	}
 
+	smallestKey, smallestValue, _ := findSmallest(pods)
+	if compareValue > smallestValue {
+		delete(pods, smallestKey)
+		pods[podName] = compareValue
+	}
 	return pods
 }
 
@@ -432,24 +451,28 @@ func (self *valkeyStatsDb) GetWorkspaceStatsTrafficUtilization(timeOffsetInMinut
 			// Add traffic for each minute
 			for _, entry := range values {
 				minute := entry.CreatedAt.Round(time.Minute)
-				// normalize Values TODO: this needs to be removed as soon as we find the overflowing/underflowing value
+				// Clamp any leftover underflowed values that were stored before the
+			// delta-underflow fix in AddInterfaceStatsToDb. Underflowed uint64 values
+			// are astronomically large; zeroing them is safer than the previous
+			// "0xffffffffffffffff - value" approach which incorrectly restored the old
+			// counter value as a traffic spike.
 				if entry.ReceivedPackets > 184467440736991000 {
-					entry.ReceivedPackets = 0xffffffffffffffff - entry.ReceivedPackets
+					entry.ReceivedPackets = 0
 				}
 				if entry.TransmitPackets > 184467440736991000 {
-					entry.TransmitPackets = 0xffffffffffffffff - entry.TransmitPackets
+					entry.TransmitPackets = 0
 				}
 				if entry.ReceivedBytes > 184467440736991000 {
-					entry.ReceivedBytes = 0xffffffffffffffff - entry.ReceivedBytes
+					entry.ReceivedBytes = 0
 				}
 				if entry.TransmitBytes > 184467440736991000 {
-					entry.TransmitBytes = 0xffffffffffffffff - entry.TransmitBytes
+					entry.TransmitBytes = 0
 				}
 				if entry.ReceivedStartBytes > 184467440736991000 {
-					entry.ReceivedStartBytes = 0xffffffffffffffff - entry.ReceivedStartBytes
+					entry.ReceivedStartBytes = 0
 				}
 				if entry.TransmitStartBytes > 184467440736991000 {
-					entry.TransmitStartBytes = 0xffffffffffffffff - entry.TransmitStartBytes
+					entry.TransmitStartBytes = 0
 				}
 
 				resultMutex.Lock()
