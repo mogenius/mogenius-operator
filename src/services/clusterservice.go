@@ -346,7 +346,7 @@ func UpgradeRenovateOperator() (string, error) {
 	r := helm.HelmChartInstallUpgradeRequest{
 		Namespace: config.Get("MO_OWN_NAMESPACE"),
 		Release:   utils.HelmReleaseNameRenovateOperator,
-		Chart:     utils.HelmReleaseNameRenovateOperator + "/" + utils.HelmReleaseNameRenovateOperator,
+		Chart:     "mogenius/" + utils.HelmReleaseNameRenovateOperator,
 	}
 	return helm.HelmReleaseUpgrade(r)
 }
@@ -356,7 +356,7 @@ func InstallRenovateOperator() (string, error) {
 		HelmRepoName:    "mogenius",
 		HelmRepoUrl:     MogeniusHelmIndex,
 		HelmReleaseName: utils.HelmReleaseNameRenovateOperator,
-		HelmChartName:   utils.HelmReleaseNameRenovateOperator + "/" + utils.HelmReleaseNameRenovateOperator,
+		HelmChartName:   "mogenius/" + utils.HelmReleaseNameRenovateOperator,
 		HelmValues:      fmt.Sprintf(`fullnameOverride: %s`, utils.HelmReleaseNameRenovateOperator),
 	}
 	return helm.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues, r.HelmChartVersion)
