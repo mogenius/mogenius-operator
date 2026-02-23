@@ -1,3 +1,10 @@
+# [2.19.0-develop.68](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.67...v2.19.0-develop.68) (2026-02-23)
+
+
+### Bug Fixes
+
+* refactoring injection ai prompts ([98e9703](https://github.com/mogenius/mogenius-operator/commit/98e9703fc5e2851d90f9be69f8cd70301fe1d048))
+
 # [2.19.0-develop.67](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.66...v2.19.0-develop.67) (2026-02-20)
 
 
