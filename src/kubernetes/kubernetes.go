@@ -127,6 +127,18 @@ func CreateOrUpdateAndMergePromptConfig(newPromptCfg ai.AiPromptConfig) (ai.AiPr
 				}
 			}
 
+			// Re-marshal after merge to persist the updated IsActive states
+			mergedFilterYaml, err := yaml.Marshal(newPromptCfg.Filters)
+			if err != nil {
+				return newPromptCfg, err
+			}
+			mergedUserFiltersYaml, err := yaml.Marshal(newPromptCfg.UserFilters)
+			if err != nil {
+				return newPromptCfg, err
+			}
+			cfgMap.Data["filters"] = string(mergedFilterYaml)
+			cfgMap.Data["userFilters"] = string(mergedUserFiltersYaml)
+
 			cfgMapYaml, err := yaml.Marshal(cfgMap)
 			if err != nil {
 				return newPromptCfg, err
