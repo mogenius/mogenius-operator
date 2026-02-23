@@ -1,3 +1,10 @@
+# [2.19.0-develop.71](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.70...v2.19.0-develop.71) (2026-02-23)
+
+
+### Bug Fixes
+
+* ai chat tokens ([d9a651a](https://github.com/mogenius/mogenius-operator/commit/d9a651af339128ff1232719677e2b733eabf8cee))
+
 # [2.19.0-develop.70](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.69...v2.19.0-develop.70) (2026-02-23)
 
 
