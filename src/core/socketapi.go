@@ -1606,6 +1606,7 @@ func (self *socketApi) registerPatterns() {
 	{
 		type Request struct {
 			AiPromptConfig ai.AiPromptConfig `json:"aiPromptConfig" validate:"required"`
+			AiPrompts      ai.AiPrompts      `json:"aiPrompts" validate:"required"`
 		}
 
 		RegisterPatternHandler(
@@ -1613,7 +1614,7 @@ func (self *socketApi) registerPatterns() {
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (Void, error) {
 				mergedPromptCfg, err := kubernetes.CreateOrUpdateAndMergePromptConfig(request.AiPromptConfig)
-				self.aiApi.InjectAiPromptConfig(mergedPromptCfg)
+				self.aiApi.InjectAiPromptConfig(mergedPromptCfg, &request.AiPrompts)
 				return store.AddToAuditLog[Void](datagram, self.logger, nil, err, nil, nil)
 			},
 		)
@@ -1623,28 +1624,6 @@ func (self *socketApi) registerPatterns() {
 			PatternConfig{},
 			func(datagram structs.Datagram, request Void) (*ai.AiPromptConfig, error) {
 				return self.aiApi.GetPromptConfig()
-			},
-		)
-	}
-
-	{
-		type Request struct {
-			Prompt string `json:"prompt" validate:"required"`
-		}
-
-		RegisterPatternHandler(
-			PatternHandle{self, "aiManager/inject-chat-system-prompt"},
-			PatternConfig{},
-			func(datagram structs.Datagram, request Request) (bool, error) {
-				return self.aiApi.InjectAiChatSystemPrompt(request.Prompt), nil
-			},
-		)
-
-		RegisterPatternHandler(
-			PatternHandle{self, "aiManager/inject-chat-git-hub-ai-context-system-prompt"},
-			PatternConfig{},
-			func(datagram structs.Datagram, request Request) (bool, error) {
-				return self.aiApi.InjectAiChatGitHubAiContextSystemPrompt(request.Prompt), nil
 			},
 		)
 	}
