@@ -1,3 +1,14 @@
+# [2.19.0-develop.69](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.68...v2.19.0-develop.69) (2026-02-23)
+
+
+### Bug Fixes
+
+* performance improvements ([dce6888](https://github.com/mogenius/mogenius-operator/commit/dce68881d1e1f116641857255f9a463efdb5896a))
+* performance improvements ([f7c8ae0](https://github.com/mogenius/mogenius-operator/commit/f7c8ae0de424cfc9e99b64bb264f80bd8be585f9))
+* performance improvements ([e3bf5bf](https://github.com/mogenius/mogenius-operator/commit/e3bf5bf11d5cc14ac0a1b223bdedbb3dc91ab29e))
+* performance improvements ([b9221a8](https://github.com/mogenius/mogenius-operator/commit/b9221a80ac4093b4a31ab20878382de9ab5b16ee))
+* traffic measurement bug fixed ([5b40429](https://github.com/mogenius/mogenius-operator/commit/5b40429e31c74d5969c79d30839216fb714c8a8f))
+
 # [2.19.0-develop.68](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.67...v2.19.0-develop.68) (2026-02-23)
 
 
