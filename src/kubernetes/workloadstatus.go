@@ -1,6 +1,7 @@
 package kubernetes
 
 import (
+	"errors"
 	"sync"
 
 	v1 "k8s.io/api/core/v1"
@@ -419,6 +420,39 @@ func GetWorkloadStatus(requestData GetWorkloadStatusRequest) ([]WorkloadStatusDt
 
 	if requestData.IgnoreDependentResources != nil {
 		ignoreDependentResources = *requestData.IgnoreDependentResources
+	}
+
+	// Pre-fetch dependency caches in parallel for all relevant namespaces.
+	// Without this, the processing loop below would do 3 sequential Valkey queries
+	// per unique namespace (pods, replicasets, jobs) on first encounter.
+	if !ignoreDependentResources {
+		uniqueNS := make(map[string]struct{})
+		for _, w := range workloadList {
+			if ns := w.GetNamespace(); ns != "" {
+				uniqueNS[ns] = struct{}{}
+			}
+		}
+		var prefetchWg sync.WaitGroup
+		var cachesMu sync.Mutex
+		for ns := range uniqueNS {
+			prefetchWg.Go(func() {
+				rs, rsErr := store.SearchResourceByKeyParts(valkeyClient, utils.ReplicaSetResource.ApiVersion, utils.ReplicaSetResource.Kind, ns, "*")
+				pods, podsErr := store.SearchResourceByKeyParts(valkeyClient, utils.PodResource.ApiVersion, utils.PodResource.Kind, ns, "*")
+				jobs, jobsErr := store.SearchResourceByKeyParts(valkeyClient, utils.JobResource.ApiVersion, utils.JobResource.Kind, ns, "*")
+				cachesMu.Lock()
+				if rsErr == nil || errors.Is(rsErr, store.ErrNotFound) {
+					replicaSetsCache[ns] = rs
+				}
+				if podsErr == nil || errors.Is(podsErr, store.ErrNotFound) {
+					podsCache[ns] = pods
+				}
+				if jobsErr == nil || errors.Is(jobsErr, store.ErrNotFound) {
+					jobsCache[ns] = jobs
+				}
+				cachesMu.Unlock()
+			})
+		}
+		prefetchWg.Wait()
 	}
 
 	// Generate workload status items
