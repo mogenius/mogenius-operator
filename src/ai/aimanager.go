@@ -256,6 +256,9 @@ func (ai *aiManager) ProcessObject(obj *unstructured.Unstructured, eventType str
 	filters := ai.getAiFilters()
 
 	for _, filter := range filters {
+		if !filter.IsActive {
+			continue
+		}
 		if obj.GetKind() == filter.Kind {
 			// check contains conditions
 			matches, err := filterMatchesForObject(filter, obj)
@@ -758,6 +761,14 @@ func (ai *aiManager) processAiTaskQueue(ctx context.Context) {
 		return
 	}
 
+	// Build a set of currently active filter IDs to skip tasks from disabled filters
+	activeFilterIDs := make(map[string]bool)
+	for _, f := range ai.getAiFilters() {
+		if f.IsActive {
+			activeFilterIDs[f.Id] = true
+		}
+	}
+
 	// Load all pending/failed tasks and sort by CreatedAt ascending (oldest first)
 	var pendingTasks []aiTaskWithKey
 	for _, key := range keys {
@@ -783,6 +794,17 @@ func (ai *aiManager) processAiTaskQueue(ctx context.Context) {
 	for _, entry := range pendingTasks {
 		key := entry.key
 		task := entry.task
+
+		// Skip tasks whose triggering filter has been disabled; mark them as ignored
+		if !activeFilterIDs[task.TriggeredBy.Id] {
+			task.State = AI_TASK_STATE_IGNORED
+			task.Error = "Filter is disabled"
+			if err := ai.createOrUpdateAiTask(&task, key); err != nil {
+				ai.logger.Error("Error updating AI task to ignored state", "taskID", task.ID, "error", err)
+			}
+			ai.logger.Info("AI task ignored because filter is disabled", "taskID", task.ID, "filterID", task.TriggeredBy.Id)
+			continue
+		}
 
 		if ai.isTokenLimitExceeded() {
 			task.State = AI_TASK_STATE_FAILED
