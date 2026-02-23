@@ -13,7 +13,6 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 )
 
 type WorkloadStatusItemDto struct {
@@ -105,7 +104,7 @@ func hasOwnerReference(ownerReferences []metav1.OwnerReference, workloadUID type
 // The function filters events associated with the workload, extracts relevant details, and recursively processes dependent resources.
 func GetWorkloadStatusItems(
 	workload unstructured.Unstructured,
-	eventList []v1.Event,
+	eventsByUID map[types.UID][]v1.Event,
 	ignoreDependentResources bool,
 	replicaSetsCache map[string][]unstructured.Unstructured,
 	jobsCache map[string][]unstructured.Unstructured,
@@ -114,12 +113,10 @@ func GetWorkloadStatusItems(
 	// Initialize the output slice for workload status items.
 	var items []WorkloadStatusItemDto
 
-	// Filter events that are related to the current workload.
-	itemEvents := []v1.Event{}
-	for _, event := range eventList {
-		if event.InvolvedObject.UID == workload.GetUID() {
-			itemEvents = append(itemEvents, event)
-		}
+	// Look up events for this workload directly via the pre-built map (O(1) instead of O(N)).
+	itemEvents := eventsByUID[workload.GetUID()]
+	if itemEvents == nil {
+		itemEvents = []v1.Event{}
 	}
 
 	// Extract the number of replicas from the workload object.
@@ -199,7 +196,7 @@ func GetWorkloadStatusItems(
 
 			// Recursively process dependent ReplicaSets.
 			for _, replicaset := range replicaSetsList {
-				items = append(items, GetWorkloadStatusItems(replicaset, eventList, ignoreDependentResources, replicaSetsCache, jobsCache, podsCache)...)
+				items = append(items, GetWorkloadStatusItems(replicaset, eventsByUID, ignoreDependentResources, replicaSetsCache, jobsCache, podsCache)...)
 			}
 		}
 
@@ -217,7 +214,7 @@ func GetWorkloadStatusItems(
 
 			// Recursively process dependent Jobs.
 			for _, job := range jobsList {
-				items = append(items, GetWorkloadStatusItems(job, eventList, ignoreDependentResources, replicaSetsCache, jobsCache, podsCache)...)
+				items = append(items, GetWorkloadStatusItems(job, eventsByUID, ignoreDependentResources, replicaSetsCache, jobsCache, podsCache)...)
 			}
 		}
 	case "ReplicaSet":
@@ -241,7 +238,7 @@ func GetWorkloadStatusItems(
 
 			// Recursively process dependent Pods.
 			for _, pod := range podsList {
-				items = append(items, GetWorkloadStatusItems(pod, eventList, ignoreDependentResources, replicaSetsCache, jobsCache, podsCache)...)
+				items = append(items, GetWorkloadStatusItems(pod, eventsByUID, ignoreDependentResources, replicaSetsCache, jobsCache, podsCache)...)
 			}
 		}
 
@@ -409,17 +406,7 @@ func GetWorkloadStatus(requestData GetWorkloadStatusRequest) ([]WorkloadStatusDt
 		return []WorkloadStatusDto{}, nil
 	}
 
-	// get all events from the store
-	eventUnstructuredList := GetUnstructuredResourceListFromStore(requestData.ResourceDescriptor.ApiVersion, requestData.ResourceDescriptor.Kind, utils.Pointer(""), nil)
-	var eventList []v1.Event
-	for _, item := range eventUnstructuredList.Items {
-		var event v1.Event
-		err := runtime.DefaultUnstructuredConverter.FromUnstructured(item.Object, &event)
-		if err != nil {
-			continue
-		}
-		eventList = append(eventList, event)
-	}
+	eventsByUID := map[types.UID][]v1.Event{}
 
 	var results []WorkloadStatusDto
 
@@ -440,7 +427,7 @@ func GetWorkloadStatus(requestData GetWorkloadStatusRequest) ([]WorkloadStatusDt
 		if completedWorkloads[string(workload.GetUID())] {
 			continue
 		}
-		items := GetWorkloadStatusItems(workload, eventList, ignoreDependentResources, replicaSetsCache, jobsCache, podsCache)
+		items := GetWorkloadStatusItems(workload, eventsByUID, ignoreDependentResources, replicaSetsCache, jobsCache, podsCache)
 		completedWorkloads[string(workload.GetUID())] = true
 		results = append(results, WorkloadStatusDto{Items: items})
 	}
