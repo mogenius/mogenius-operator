@@ -1,3 +1,10 @@
+# [2.19.0-develop.73](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.72...v2.19.0-develop.73) (2026-02-23)
+
+
+### Bug Fixes
+
+* unwanted automatic filter reset ([84974d4](https://github.com/mogenius/mogenius-operator/commit/84974d405e3711475fdfe1bbdfc1b37884fa522b))
+
 # [2.19.0-develop.72](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.71...v2.19.0-develop.72) (2026-02-23)
 
 
