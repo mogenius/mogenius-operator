@@ -82,6 +82,18 @@ func (ai *aiManager) Chat(ctx context.Context, ioChannel IOChatChannel) error {
 		}
 	}
 
+	// Append workspace role to system prompt so the LLM knows the user's permissions
+	if ioChannel.WorkspaceGrant != nil && ioChannel.WorkspaceGrant.Role != "" {
+		roleDescs := map[string]string{
+			"viewer": "read-only access to Kubernetes and Helm resources",
+			"editor": "read/write access to Kubernetes and Helm resources within allowed namespaces",
+			"admin":  "full access to all Kubernetes and Helm resources",
+		}
+		if desc, ok := roleDescs[ioChannel.WorkspaceGrant.Role]; ok {
+			systemPrompt += fmt.Sprintf("\n\nUser role: %s (%s).", ioChannel.WorkspaceGrant.Role, desc)
+		}
+	}
+
 	switch sdk {
 	case AiSdkTypeOpenAI:
 		return ai.openaiChat(ctx, ioChannel, systemPrompt, model, maxToolCalls)

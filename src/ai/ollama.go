@@ -172,8 +172,18 @@ func (ai *aiManager) ollamaChat(
 		},
 	}
 
-	// Build tools once per session (static, filtered by role)
-	ollamaTools := filterOllamaTools(append(kubernetesOllamaTools, helmOllamaTools...), ioChannel)
+	// Build full tool set once per session (static + MCP, filtered by role)
+	allOllamaTools := append(kubernetesOllamaTools, helmOllamaTools...)
+	if !isViewerRole(ioChannel) {
+		allOllamaTools = append(allOllamaTools, activateToolCategoriesOllama)
+	}
+	if ai.mcpManager != nil {
+		allOllamaTools = append(allOllamaTools, ai.mcpManager.GetOllamaTools()...)
+	}
+	allOllamaTools = filterOllamaTools(allOllamaTools, ioChannel)
+
+	// Session-level category filter (sticky, driven by LLM via meta-tool)
+	categories := NewActiveToolCategories()
 
 	// Session-level accumulated token counters
 	var sessionInputTokens, sessionOutputTokens int64
@@ -207,7 +217,9 @@ func (ai *aiManager) ollamaChat(
 				Content: userInput,
 			})
 
-			fullResponse, updatedMessages, err := ai.ollamaChatWithTools(ctx, client, model, messages, ioChannel, ollamaTools, maxToolCalls, &sessionInputTokens, &sessionOutputTokens)
+			// Pass allTools + categories so the inner loop can recompute
+			// active tools after the LLM activates new categories
+			fullResponse, updatedMessages, err := ai.ollamaChatWithTools(ctx, client, model, messages, ioChannel, allOllamaTools, categories, maxToolCalls, &sessionInputTokens, &sessionOutputTokens)
 			if err != nil {
 				ai.logger.Error("Error processing with tools", "error", err)
 				select {
@@ -240,7 +252,8 @@ func (ai *aiManager) ollamaChatWithTools(
 	model string,
 	messages []api.Message,
 	ioChannel IOChatChannel,
-	ollamaTools []api.Tool,
+	allOllamaTools []api.Tool,
+	categories *ActiveToolCategories,
 	maxToolCalls int,
 	sessionInputTokens *int64,
 	sessionOutputTokens *int64,
@@ -256,6 +269,9 @@ func (ai *aiManager) ollamaChatWithTools(
 	startTime := time.Now()
 
 	for {
+		// Recompute active tools each iteration (categories may have changed)
+		ollamaTools := filterOllamaToolsByCategory(allOllamaTools, categories)
+
 		// Notify user that AI is thinking
 		select {
 		case ioChannel.Output <- "[AI is thinking...]\n":
@@ -381,7 +397,9 @@ func (ai *aiManager) ollamaChatWithTools(
 			}
 
 			var result string
-			if ai.mcpManager != nil && ai.mcpManager.IsMCPTool(tc.Function.Name) {
+			if tc.Function.Name == activateToolCategoriesName {
+				result = categories.ActivateFromToolCall(args)
+			} else if ai.mcpManager != nil && ai.mcpManager.IsMCPTool(tc.Function.Name) {
 				mcpResult, err := ai.mcpManager.CallTool(ctx, tc.Function.Name, args)
 				if err != nil {
 					ai.logger.Error("MCP tool call failed", "tool", tc.Function.Name, "error", err)
