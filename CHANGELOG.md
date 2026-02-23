@@ -1,3 +1,10 @@
+# [2.19.0-develop.72](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.71...v2.19.0-develop.72) (2026-02-23)
+
+
+### Bug Fixes
+
+* excessive token usage ([efadb8a](https://github.com/mogenius/mogenius-operator/commit/efadb8a92c4ad9bcf48aa49c0e8b9242507c2f54))
+
 # [2.19.0-develop.71](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.70...v2.19.0-develop.71) (2026-02-23)
 
 
