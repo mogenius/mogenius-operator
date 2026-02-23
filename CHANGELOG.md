@@ -1,3 +1,10 @@
+# [2.19.0-develop.74](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.73...v2.19.0-develop.74) (2026-02-23)
+
+
+### Bug Fixes
+
+* error msg for tokenlimit in ui improved ([43a0ead](https://github.com/mogenius/mogenius-operator/commit/43a0eadf01af1c358ad0fc3fafa0e5c4410624a0))
+
 # [2.19.0-develop.73](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.72...v2.19.0-develop.73) (2026-02-23)
 
 
