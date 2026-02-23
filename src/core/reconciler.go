@@ -642,7 +642,7 @@ func (self *reconciler) handleConfigMapChange(obj *unstructured.Unstructured) {
 		}
 	}
 
-	self.aiApi.InjectAiPromptConfig(updatedConfig)
+	self.aiApi.InjectAiPromptConfig(updatedConfig, nil)
 }
 
 func (self *reconciler) clearCaches() {
@@ -1270,7 +1270,7 @@ func (self *reconciler) findMissingRoleBindings(
 }
 
 const (
-	labelOrg              = "app.mogenius.com"
+	labelOrg               = "app.mogenius.com"
 	labelManagedByMogenius = labelOrg + "/managed-by-mogenius"
 	labelRoleName          = labelOrg + "/role-name"
 )

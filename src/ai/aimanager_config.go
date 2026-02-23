@@ -26,8 +26,8 @@ const (
 	//      Contents (read-write) — required for reading repo files and writing .ai-context.md
 	//      Metadata (read-only)
 	//      Pull requests (read-write)
-	AI_CONFIG_GITHUB_PAT  = "AI_CONFIG_GITHUB_PAT"
-	AI_CONFIG_GITHUB_REPO = "AI_CONFIG_GITHUB_REPO" // <owner>/<repo> format, e.g. "my-org/my-repo"
+	AI_CONFIG_GITHUB_PAT            = "AI_CONFIG_GITHUB_PAT"
+	AI_CONFIG_GIT_MEMORY_REPOSITORY = "AI_CONFIG_GIT_MEMORY_REPOSITORY" // <owner>/<repo> format, e.g. "my-org/my-repo"
 )
 
 type AiSdkType string
@@ -38,8 +38,15 @@ const (
 	AiSdkTypeOllama    AiSdkType = "ollama"
 )
 
-func (ai *aiManager) InjectAiPromptConfig(prompt AiPromptConfig) {
+func (ai *aiManager) InjectAiPromptConfig(prompt AiPromptConfig, aiPrompts *AiPrompts) {
 	ai.aiPromptConfig = &prompt
+
+	if aiPrompts != nil {
+		ai.chatPromptMu.Lock()
+		defer ai.chatPromptMu.Unlock()
+		ai.aiPrompts = *aiPrompts
+	}
+
 	ai.logger.Info("AI Prompt Config loaded successfully", "name", prompt.Name)
 }
 
@@ -142,8 +149,8 @@ func (ai *aiManager) getGitHubPat() (string, error) {
 	return data, nil
 }
 
-func (ai *aiManager) getGitHubRepo() (string, error) {
-	data, err := ai.getAiSettingByKey(AI_CONFIG_GITHUB_REPO)
+func (ai *aiManager) getGitMemoryRepository() (string, error) {
+	data, err := ai.getAiSettingByKey(AI_CONFIG_GIT_MEMORY_REPOSITORY)
 	if err != nil {
 		return "", fmt.Errorf("failed to get GitHub repo: %v", err)
 	}

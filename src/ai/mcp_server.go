@@ -31,14 +31,12 @@ func (ai *aiManager) connectMCPServers() {
 // --- GitHub MCP Server ---
 
 type gitHubMCPConnector struct {
-	patGetter  func() (string, error)
-	repoGetter func() (string, error)
+	patGetter func() (string, error)
 }
 
-func newGitHubMCPConnector(patGetter func() (string, error), repoGetter func() (string, error)) MCPServerConnector {
+func newGitHubMCPConnector(patGetter func() (string, error)) MCPServerConnector {
 	return &gitHubMCPConnector{
-		patGetter:  patGetter,
-		repoGetter: repoGetter,
+		patGetter: patGetter,
 	}
 }
 

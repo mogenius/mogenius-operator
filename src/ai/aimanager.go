@@ -104,6 +104,12 @@ type AiPromptConfig struct {
 	UserFilters  []AiFilter `json:"userFilters"` // filters added by users via the UI
 }
 
+type AiPrompts struct {
+	ChatSystemPrompt                string `json:"chatSystemPrompt"`
+	GithubSystemPrompt              string `json:"githubSystemPrompt"`
+	GitMemoryRepositorySystemPrompt string `json:"gitMemoryRepositorySystemPrompt"`
+}
+
 type AiManagerStatus struct {
 	SdkType                     AiSdkType `json:"sdkType"`
 	TokenLimit                  int64     `json:"tokenLimit"`
@@ -169,9 +175,7 @@ type AiManager interface {
 	GetAiTasksForWorkspace(workspace string) ([]AiTask, error)
 	GetAiTasksForResource(resourceReq utils.WorkloadSingleRequest) ([]AiTask, error)
 	GetLatestTask(workspace *string) (*AiTaskLatest, error)
-	InjectAiPromptConfig(prompt AiPromptConfig)
-	InjectAiChatSystemPrompt(prompt string) bool
-	InjectAiChatGitHubAiContextSystemPrompt(prompt string) bool
+	InjectAiPromptConfig(prompt AiPromptConfig, aiPrompts *AiPrompts)
 	GetStatus(workspace *string) AiManagerStatus
 	ResetDailyTokenLimit() error
 	DeleteAllAiData() error
@@ -185,22 +189,23 @@ type AiManager interface {
 type SecretGetter func(namespace, name string) (*coreV1.Secret, error)
 
 type aiManager struct {
-	logger                                *slog.Logger
-	valkeyClient                          valkeyclient.ValkeyClient
-	config                                cfg.ConfigModule
-	aiPromptConfig                        *AiPromptConfig
-	ownerCacheService                     store.OwnerCacheService
-	eventClient                           websocket.WebsocketClient
-	secretGetter                          SecretGetter
-	error                                 string
-	warning                               string
-	pendingTasks                          map[string]AiTask
-	pendingTasksLock                      *sync.RWMutex
-	mcpManager                            *mcpClientManager
-	mcpConnectors                         []MCPServerConnector
-	chatPromptMu                          sync.RWMutex
-	customChatSystemPrompt                string
-	customChatGitHubAiContextSystemPrompt string
+	logger            *slog.Logger
+	valkeyClient      valkeyclient.ValkeyClient
+	config            cfg.ConfigModule
+	aiPromptConfig    *AiPromptConfig
+	ownerCacheService store.OwnerCacheService
+	eventClient       websocket.WebsocketClient
+	secretGetter      SecretGetter
+	error             string
+	warning           string
+	pendingTasks      map[string]AiTask
+	pendingTasksLock  *sync.RWMutex
+	mcpManager        *mcpClientManager
+	mcpConnectors     []MCPServerConnector
+
+	// prompts
+	chatPromptMu sync.RWMutex
+	aiPrompts    AiPrompts
 }
 
 func NewAiManager(logger *slog.Logger, valkeyClient valkeyclient.ValkeyClient, config cfg.ConfigModule, ownerCacheService store.OwnerCacheService, eventClient websocket.WebsocketClient, secretGetter SecretGetter) AiManager {
@@ -218,7 +223,7 @@ func NewAiManager(logger *slog.Logger, valkeyClient valkeyclient.ValkeyClient, c
 
 	// Register MCP server connectors
 	self.mcpConnectors = []MCPServerConnector{
-		newGitHubMCPConnector(self.getGitHubPat, self.getGitHubRepo),
+		newGitHubMCPConnector(self.getGitHubPat),
 		// Add future MCP connectors here, e.g.:
 		// newGitLabMCPConnector(...),
 	}
