@@ -1,3 +1,10 @@
+# [2.19.0-develop.70](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.69...v2.19.0-develop.70) (2026-02-23)
+
+
+### Bug Fixes
+
+* finalized go 1.26 usage ([47f715b](https://github.com/mogenius/mogenius-operator/commit/47f715b3dddc0695614736ababf8d1e189796c48))
+
 # [2.19.0-develop.69](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.68...v2.19.0-develop.69) (2026-02-23)
 
 
