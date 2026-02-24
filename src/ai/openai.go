@@ -188,7 +188,7 @@ func (ai *aiManager) openaiChat(
 
 			// Process with tool call loop (categories + allChatTools passed so
 			// the inner loop can recompute active tools after activation)
-			fullResponse, updatedMessages, err := ai.openaiChatWithTools(ctx, client, model, messages, ioChannel, allChatTools, categories, maxToolCalls, &sessionInputTokens, &sessionOutputTokens)
+			_, updatedMessages, err := ai.openaiChatWithTools(ctx, client, model, messages, ioChannel, allChatTools, categories, maxToolCalls, &sessionInputTokens, &sessionOutputTokens)
 			if err != nil {
 				ai.logger.Error("Error processing with tools", "error", err)
 				// Send error to output
@@ -200,10 +200,12 @@ func (ai *aiManager) openaiChat(
 				continue
 			}
 
-			// Update messages with full conversation including tool calls
-			messages = updatedMessages
-			// Add assistant response to conversation history
-			messages = append(messages, openai.AssistantMessage(fullResponse))
+			// Discard intermediate tool_use/tool_result exchanges from history.
+			// updatedMessages = [..., user_input, tool_exchanges..., assistant_final]
+			// messages already contains user_input, so we only append the final
+			// assistant text response. This prevents tool results (often large
+			// JSON blobs) from accumulating in the context on every turn.
+			messages = append(messages, updatedMessages[len(updatedMessages)-1])
 
 			select {
 			case ioChannel.Output <- "[COMPLETED]":

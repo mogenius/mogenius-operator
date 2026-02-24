@@ -219,7 +219,7 @@ func (ai *aiManager) ollamaChat(
 
 			// Pass allTools + categories so the inner loop can recompute
 			// active tools after the LLM activates new categories
-			fullResponse, updatedMessages, err := ai.ollamaChatWithTools(ctx, client, model, messages, ioChannel, allOllamaTools, categories, maxToolCalls, &sessionInputTokens, &sessionOutputTokens)
+			_, updatedMessages, err := ai.ollamaChatWithTools(ctx, client, model, messages, ioChannel, allOllamaTools, categories, maxToolCalls, &sessionInputTokens, &sessionOutputTokens)
 			if err != nil {
 				ai.logger.Error("Error processing with tools", "error", err)
 				select {
@@ -230,11 +230,12 @@ func (ai *aiManager) ollamaChat(
 				continue
 			}
 
-			messages = updatedMessages
-			messages = append(messages, api.Message{
-				Role:    "assistant",
-				Content: fullResponse,
-			})
+			// Discard intermediate tool_use/tool_result exchanges from history.
+			// updatedMessages = [..., user_input, tool_exchanges..., assistant_final]
+			// messages already contains user_input, so we only append the final
+			// assistant text response. This prevents tool results (often large
+			// JSON blobs) from accumulating in the context on every turn.
+			messages = append(messages, updatedMessages[len(updatedMessages)-1])
 
 			select {
 			case ioChannel.Output <- "[COMPLETED]":
