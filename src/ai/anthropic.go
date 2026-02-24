@@ -286,7 +286,20 @@ func (ai *aiManager) anthropicChatWithTools(
 		toolCallCount += len(toolUseBlocks)
 		if maxToolCalls > 0 && toolCallCount >= maxToolCalls {
 			ai.logger.Warn("Max tool calls reached", "count", toolCallCount)
-			return fullText.String(), messages, nil
+			// Replace the just-appended assistant tool_use message with a
+			// text-only one. Without this, messages[-1] would contain
+			// tool_use blocks with no corresponding tool_result, causing a
+			// 400 on the next API request.
+			text := fullText.String()
+			if text == "" {
+				text = "[Tool call limit reached]"
+			}
+			messages = messages[:len(messages)-1]
+			messages = append(messages, anthropic.MessageParam{
+				Role:    anthropic.MessageParamRoleAssistant,
+				Content: []anthropic.ContentBlockParamUnion{anthropic.NewTextBlock(text)},
+			})
+			return text, messages, nil
 		}
 
 		// Execute tool calls and collect results

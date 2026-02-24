@@ -371,7 +371,19 @@ func (ai *aiManager) ollamaChatWithTools(
 		toolCallCount += len(toolCalls)
 		if maxToolCalls > 0 && toolCallCount >= maxToolCalls {
 			ai.logger.Warn("Max tool calls reached", "count", toolCallCount)
-			return fullText.String(), messages, nil
+			// Replace the just-appended assistant tool_calls message with a
+			// text-only one so messages[-1] is always a valid assistant text
+			// message and never an unmatched tool_calls entry.
+			text := fullText.String()
+			if text == "" {
+				text = "[Tool call limit reached]"
+			}
+			messages = messages[:len(messages)-1]
+			messages = append(messages, api.Message{
+				Role:    "assistant",
+				Content: text,
+			})
+			return text, messages, nil
 		}
 
 		// Execute each tool call
