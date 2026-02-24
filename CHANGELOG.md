@@ -1,3 +1,10 @@
+# [2.19.0-develop.80](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.79...v2.19.0-develop.80) (2026-02-24)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/cert-manager/cert-manager to v1.19.4 ([#811](https://github.com/mogenius/mogenius-operator/issues/811)) ([4d3c32d](https://github.com/mogenius/mogenius-operator/commit/4d3c32d026f6111a13c594fb7a588ea6165e6c05))
+
 # [2.19.0-develop.79](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.78...v2.19.0-develop.79) (2026-02-24)
 
 
