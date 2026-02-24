@@ -76,7 +76,7 @@ func (ai *aiManager) anthropicChat(
 
 			// Process with tool call loop (categories + allTools passed so
 			// the inner loop can recompute active tools after activation)
-			fullResponse, updatedMessages, err := ai.anthropicChatWithTools(ctx, client, systemPrompt, model, messages, ioChannel, allAnthropicTools, categories, maxToolCalls, &sessionInputTokens, &sessionOutputTokens)
+			_, updatedMessages, err := ai.anthropicChatWithTools(ctx, client, systemPrompt, model, messages, ioChannel, allAnthropicTools, categories, maxToolCalls, &sessionInputTokens, &sessionOutputTokens)
 			if err != nil {
 				ai.logger.Error("Error processing with tools", "error", err)
 				// Send error to output
@@ -88,15 +88,12 @@ func (ai *aiManager) anthropicChat(
 				continue
 			}
 
-			// Update messages with full conversation including tool calls
-			messages = updatedMessages
-			// Add assistant response to conversation history
-			messages = append(messages, anthropic.MessageParam{
-				Role: anthropic.MessageParamRoleAssistant,
-				Content: []anthropic.ContentBlockParamUnion{
-					anthropic.NewTextBlock(fullResponse),
-				},
-			})
+			// Discard intermediate tool_use/tool_result exchanges from history.
+			// updatedMessages = [..., user_input, tool_exchanges..., assistant_final]
+			// messages already contains user_input, so we only append the final
+			// assistant text response. This prevents tool results (often large
+			// JSON blobs) from accumulating in the context on every turn.
+			messages = append(messages, updatedMessages[len(updatedMessages)-1])
 
 			select {
 			case ioChannel.Output <- "[COMPLETED]":
@@ -135,6 +132,11 @@ func (ai *aiManager) anthropicChatWithTools(
 		activeTools := filterAnthropicToolsByCategory(allAnthropicTools, categories)
 		tools := make([]anthropic.ToolUnionParam, len(activeTools))
 		for i, toolParam := range activeTools {
+			// Mark the last tool with cache_control so Anthropic caches the
+			// entire tool block server-side (cached tokens cost ~10% of normal).
+			if i == len(activeTools)-1 {
+				toolParam.CacheControl = anthropic.NewCacheControlEphemeralParam()
+			}
 			tools[i] = anthropic.ToolUnionParam{OfTool: &toolParam}
 		}
 
@@ -149,7 +151,7 @@ func (ai *aiManager) anthropicChatWithTools(
 			Model:     anthropic.Model(model),
 			MaxTokens: int64(4096),
 			System: []anthropic.TextBlockParam{
-				{Type: "text", Text: systemPrompt},
+				{Type: "text", Text: systemPrompt, CacheControl: anthropic.NewCacheControlEphemeralParam()},
 			},
 			Messages:    messages,
 			Tools:       tools,
