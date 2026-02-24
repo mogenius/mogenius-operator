@@ -1,3 +1,11 @@
+# [2.19.0-develop.78](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.77...v2.19.0-develop.78) (2026-02-24)
+
+
+### Bug Fixes
+
+* token usage reduced for anthropic ([4965c2f](https://github.com/mogenius/mogenius-operator/commit/4965c2f00790ad115633a9d66e0ad5a94c946a7f))
+* token usage reduced for ollama and openai ([35b63fb](https://github.com/mogenius/mogenius-operator/commit/35b63fb160602b3fbf75e094fca1eac05a9873f0))
+
 # [2.19.0-develop.77](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.76...v2.19.0-develop.77) (2026-02-24)
 
 
