@@ -1,3 +1,10 @@
+# [2.19.0-develop.79](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.78...v2.19.0-develop.79) (2026-02-24)
+
+
+### Bug Fixes
+
+* toolcall-error fixed ([072b524](https://github.com/mogenius/mogenius-operator/commit/072b524e923567ec2032e9c74d8ea44213a9870c))
+
 # [2.19.0-develop.78](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.77...v2.19.0-develop.78) (2026-02-24)
 
 
