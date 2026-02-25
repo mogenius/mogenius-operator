@@ -3,6 +3,7 @@ package services
 import (
 	"log/slog"
 	cfg "mogenius-operator/src/config"
+	"mogenius-operator/src/helm"
 	"mogenius-operator/src/k8sclient"
 	"mogenius-operator/src/logging"
 )
@@ -19,4 +20,13 @@ func Setup(
 	serviceLogger = logManagerModule.CreateLogger("services")
 	config = configModule
 	clientProvider = clientProviderModule
+}
+
+func BasicRepos() []helm.HelmRepoAddRequest {
+	return []helm.HelmRepoAddRequest{
+		{
+			Name: "mogenius",
+			Url:  MogeniusHelmIndex,
+		},
+	}
 }
