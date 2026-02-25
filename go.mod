@@ -4,7 +4,7 @@ go 1.26.0
 
 require (
 	github.com/alecthomas/kong v1.14.0
-	github.com/bitnami-labs/sealed-secrets v0.35.0
+	github.com/bitnami-labs/sealed-secrets v0.36.0
 	github.com/cert-manager/cert-manager v1.19.4
 	github.com/creack/pty v1.1.24
 	github.com/go-git/go-git/v5 v5.16.5
@@ -13,7 +13,6 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.4-0.20250319132907-e064f32e3674
 	github.com/jaevor/go-nanoid v1.4.0
-	github.com/jedib0t/go-pretty/v6 v6.7.8
 	github.com/joho/godotenv v1.5.1
 	github.com/lithammer/dedent v1.1.0
 	github.com/mattn/go-isatty v0.0.20
