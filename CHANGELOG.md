@@ -1,3 +1,10 @@
+# [2.19.0-develop.82](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.81...v2.19.0-develop.82) (2026-02-25)
+
+
+### Bug Fixes
+
+* removed usage/dependency of metrics-server ([8e8cf0e](https://github.com/mogenius/mogenius-operator/commit/8e8cf0e1fce4e4e055cd60b2418fe674949a7a2a))
+
 # [2.19.0-develop.81](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.80...v2.19.0-develop.81) (2026-02-25)
 
 
