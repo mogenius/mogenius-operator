@@ -16,7 +16,6 @@ import (
 	json "github.com/goccy/go-json"
 
 	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type PodStatsCollector interface {
@@ -139,11 +138,6 @@ func (self *podStatsCollector) getRealNodeMetrics() []podstatscollector.NodeMetr
 }
 
 func (self *podStatsCollector) podStats(nodemetrics []podstatscollector.NodeMetrics, pods map[string]v1.Pod) ([]structs.PodStats, error) {
-	podMetricsList, err := self.clientProvider.MetricsClientSet().MetricsV1beta1().PodMetricses("").List(context.Background(), metav1.ListOptions{})
-	if err != nil {
-		return nil, err
-	}
-
 	// Pre-build ephemeral storage map for O(1) lookup instead of O(n³) nested loops
 	// Key: "podName:containerName" -> ephemeralStorage in bytes
 	ephemeralStorageMap := make(map[string]int64)
@@ -156,37 +150,43 @@ func (self *podStatsCollector) podStats(nodemetrics []podstatscollector.NodeMetr
 		}
 	}
 
-	result := make([]structs.PodStats, 0, len(podMetricsList.Items))
+	result := []structs.PodStats{}
 
-	for _, podMetrics := range podMetricsList.Items {
-		pod := pods[podMetrics.Name]
+	for _, nodeMetric := range nodemetrics {
+		for _, kubeletPod := range nodeMetric.Pods {
+			pod := pods[kubeletPod.PodRef.Name]
 
-		for _, container := range pod.Spec.Containers {
-			if pod.Status.StartTime == nil {
-				continue
-			}
-			entry := structs.PodStats{}
-			entry.Namespace = podMetrics.Namespace
-			entry.PodName = podMetrics.Name
-			entry.StartTime = pod.Status.StartTime.Time
-
-			entry.ContainerName = container.Name
-			entry.CpuLimit += container.Resources.Limits.Cpu().MilliValue()
-			entry.MemoryLimit += container.Resources.Limits.Memory().Value()
-			entry.EphemeralStorageLimit += container.Resources.Limits.StorageEphemeral().Value()
-
-			for _, containerMetric := range podMetrics.Containers {
-				if containerMetric.Name == container.Name {
-					entry.Cpu += containerMetric.Usage.Cpu().MilliValue()
-					entry.Memory += containerMetric.Usage.Memory().Value()
+			for _, container := range pod.Spec.Containers {
+				if pod.Status.StartTime == nil {
+					continue
 				}
+				entry := structs.PodStats{}
+				entry.Namespace = kubeletPod.PodRef.Namespace
+				entry.PodName = kubeletPod.PodRef.Name
+				entry.StartTime = pod.Status.StartTime.Time
+
+				entry.ContainerName = container.Name
+				entry.CpuLimit += container.Resources.Limits.Cpu().MilliValue()
+				entry.MemoryLimit += container.Resources.Limits.Memory().Value()
+				entry.EphemeralStorageLimit += container.Resources.Limits.StorageEphemeral().Value()
+
+				// Find matching container in kubelet stats and convert units
+				for _, kubeletContainer := range kubeletPod.Containers {
+					if kubeletContainer.Name == container.Name {
+						// Convert nanocores to millicores (1 millicore = 1,000,000 nanocores)
+						entry.Cpu += int64(kubeletContainer.CPU.UsageNanoCores) / 1_000_000
+						// WorkingSetBytes matches what metrics-server reported for memory
+						entry.Memory += int64(kubeletContainer.Memory.WorkingSetBytes)
+						break
+					}
+				}
+
+				// O(1) lookup instead of O(n³) nested loops
+				key := kubeletPod.PodRef.Name + ":" + container.Name
+				entry.EphemeralStorage = ephemeralStorageMap[key]
+
+				result = append(result, entry)
 			}
-
-			// O(1) lookup instead of O(n³) nested loops
-			key := podMetrics.Name + ":" + container.Name
-			entry.EphemeralStorage = ephemeralStorageMap[key]
-
-			result = append(result, entry)
 		}
 	}
 

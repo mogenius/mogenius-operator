@@ -22,8 +22,6 @@ const (
 )
 
 const (
-	PAT_INSTALL_METRICS_SERVER               string = "install-metrics-server"
-	PAT_UNINSTALL_METRICS_SERVER             string = "uninstall-metrics-server"
 	PAT_INSTALL_CERT_MANAGER                 string = "install-cert-manager"
 	PAT_UNINSTALL_CERT_MANAGER               string = "uninstall-cert-manager"
 	PAT_INSTALL_INGRESS_CONTROLLER_TREAFIK   string = "install-ingress-controller-traefik"

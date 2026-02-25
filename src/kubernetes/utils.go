@@ -14,7 +14,6 @@ import (
 	"time"
 
 	version2 "k8s.io/apimachinery/pkg/version"
-	metricsv1beta1 "k8s.io/metrics/pkg/apis/metrics/v1beta1"
 
 	core "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -150,19 +149,6 @@ func Umount(volumeNamespace string, volumeName string) {
 	}()
 }
 
-func ListNodeMetricss() []metricsv1beta1.NodeMetrics {
-	provider, err := NewKubeProviderMetrics()
-	if provider == nil || err != nil {
-		k8sLogger.Error("ListNodeMetricss", "error", err.Error())
-		return []metricsv1beta1.NodeMetrics{}
-	}
-
-	nodeMetricsList, err := provider.ClientSet.MetricsV1beta1().NodeMetricses().List(context.Background(), metav1.ListOptions{})
-	if err != nil {
-		return []metricsv1beta1.NodeMetrics{}
-	}
-	return nodeMetricsList.Items
-}
 
 func StorageClassForClusterProvider(clusterProvider utils.KubernetesProvider) string {
 	var nfsStorageClassStr string = ""
@@ -372,29 +358,6 @@ func ApiVersions() ([]string, error) {
 	return result, nil
 }
 
-func IsMetricsServerAvailable() (bool, string, error) {
-	// kube-system would be the right namespace but if somebody installed it in another namespace we want to find it
-	deployments := store.GetDeployments("*", "*")
-
-	for _, deployment := range deployments {
-		for _, label := range deployment.Labels {
-			if label == "metrics-server" {
-				if deployment.Status.UnavailableReplicas > 0 {
-					return false, "", fmt.Errorf("metrics-server installed but not running")
-				}
-				return true, deployment.Spec.Template.Spec.Containers[0].Image, nil
-			}
-		}
-		if deployment.Name == "metrics-server" {
-			if deployment.Status.UnavailableReplicas > 0 {
-				return false, "", fmt.Errorf("metrics-server installed but not running")
-			}
-			return true, deployment.Spec.Template.Spec.Containers[0].Image, nil
-		}
-	}
-
-	return false, "", fmt.Errorf("no metrics-server found")
-}
 
 func DetermineIngressControllerType() (IngressType, error) {
 	ingressClasses := store.GetIngressClasses()

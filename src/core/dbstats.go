@@ -20,17 +20,18 @@ import (
 )
 
 const (
-	DB_STATS_TRAFFIC_BUCKET_NAME       = "traffic-stats"
-	DB_STATS_POD_STATS_BUCKET_NAME     = "pod-stats"
-	DB_STATS_NODE_STATS_BUCKET_NAME    = "node-stats"
-	DB_STATS_MACHINE_STATS_BUCKET_NAME = "machine-stats"
-	DB_STATS_SOCKET_STATS_BUCKET       = "socket-stats"
-	DB_STATS_CNI_BUCKET_NAME           = "cluster-cni-configuration"
-	DB_STATS_LIVE_BUCKET_NAME          = "live-stats"
-	DB_STATS_TRAFFIC_NAME              = "traffic"
-	DB_STATS_CPU_NAME                  = "cpu"
-	DB_STATS_MEMORY_NAME               = "memory"
-	DB_STATS_PROCESSES_NAME            = "proc"
+	DB_STATS_TRAFFIC_BUCKET_NAME            = "traffic-stats"
+	DB_STATS_POD_STATS_BUCKET_NAME          = "pod-stats"
+	DB_STATS_NODE_STATS_BUCKET_NAME         = "node-stats"
+	DB_STATS_NODE_STATS_LATEST_BUCKET_NAME  = "node-stats-latest"
+	DB_STATS_MACHINE_STATS_BUCKET_NAME      = "machine-stats"
+	DB_STATS_SOCKET_STATS_BUCKET            = "socket-stats"
+	DB_STATS_CNI_BUCKET_NAME                = "cluster-cni-configuration"
+	DB_STATS_LIVE_BUCKET_NAME               = "live-stats"
+	DB_STATS_TRAFFIC_NAME                   = "traffic"
+	DB_STATS_CPU_NAME                       = "cpu"
+	DB_STATS_MEMORY_NAME                    = "memory"
+	DB_STATS_PROCESSES_NAME                 = "proc"
 )
 
 var DefaultMaxSizeSocketConnections int64 = 60
@@ -48,6 +49,7 @@ type ValkeyStatsDb interface {
 	AddNodeTrafficMetricsToDb(nodeName string, data any) error
 	AddSnoopyStatusToDb(nodeName string, data networkmonitor.SnoopyStatus) error
 	GetCniData() ([]structs.CniData, error)
+	GetLatestNodeStatsForNode(nodeName string) (*structs.NodeStats, error)
 	GetMachineStatsForNode(nodeName string) (*structs.MachineStats, error)
 	GetMachineStatsForNodes(nodeNames []string) []structs.MachineStats
 	GetPodStatsEntriesForController(kind string, name string, namespace string, timeOffsetMinutes int64) *[]structs.PodStats
@@ -91,6 +93,13 @@ func (self *valkeyStatsDb) Run() {
 
 func (self *valkeyStatsDb) AddMachineStatsToDb(nodeName string, stats structs.MachineStats) error {
 	return self.valkey.SetObject(stats, 0, DB_STATS_MACHINE_STATS_BUCKET_NAME, nodeName)
+}
+
+func (self *valkeyStatsDb) GetLatestNodeStatsForNode(nodeName string) (*structs.NodeStats, error) {
+	return valkeyclient.GetObjectForKey[structs.NodeStats](
+		self.valkey,
+		DB_STATS_NODE_STATS_LATEST_BUCKET_NAME, nodeName,
+	)
 }
 
 func (self *valkeyStatsDb) GetMachineStatsForNode(nodeName string) (*structs.MachineStats, error) {
@@ -574,6 +583,8 @@ func (self *valkeyStatsDb) AddNodeStatsToDb(stats []structs.NodeStats) error {
 		if err != nil {
 			return fmt.Errorf("error adding node stats: %s", err)
 		}
+		// Also store as latest snapshot for O(1) current-value lookups (used by GetNodeStats)
+		_ = self.valkey.SetObject(stat, 0, DB_STATS_NODE_STATS_LATEST_BUCKET_NAME, stat.Name)
 	}
 	return nil
 }

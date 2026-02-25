@@ -447,14 +447,6 @@ func (self *socketApi) registerPatterns() {
 	}
 
 	RegisterPatternHandler(
-		PatternHandle{self, "install-metrics-server"},
-		PatternConfig{},
-		func(datagram structs.Datagram, request Void) (string, error) {
-			return services.InstallMetricsServer()
-		},
-	)
-
-	RegisterPatternHandler(
 		PatternHandle{self, "install-ingress-controller-traefik"},
 		PatternConfig{},
 		func(datagram structs.Datagram, request Void) (string, error) {
@@ -550,14 +542,6 @@ func (self *socketApi) registerPatterns() {
 	)
 
 	RegisterPatternHandler(
-		PatternHandle{self, "uninstall-metrics-server"},
-		PatternConfig{},
-		func(datagram structs.Datagram, request Void) (string, error) {
-			return services.UninstallMetricsServer()
-		},
-	)
-
-	RegisterPatternHandler(
 		PatternHandle{self, "uninstall-ingress-controller-traefik"},
 		PatternConfig{},
 		func(datagram structs.Datagram, request Void) (string, error) {
@@ -594,14 +578,6 @@ func (self *socketApi) registerPatterns() {
 		PatternConfig{},
 		func(datagram structs.Datagram, request Void) (string, error) {
 			return services.UninstallKepler()
-		},
-	)
-
-	RegisterPatternHandler(
-		PatternHandle{self, "upgrade-metrics-server"},
-		PatternConfig{},
-		func(datagram structs.Datagram, request Void) (string, error) {
-			return services.UpgradeMetricsServer()
 		},
 	)
 

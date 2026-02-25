@@ -9,8 +9,11 @@ import (
 	"mogenius-operator/src/dtos"
 	"mogenius-operator/src/k8sclient"
 	"mogenius-operator/src/kubernetes"
+	"mogenius-operator/src/podstatscollector"
 	"mogenius-operator/src/store"
 	"mogenius-operator/src/utils"
+
+	json "github.com/goccy/go-json"
 
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
@@ -21,7 +24,6 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	v1metrics "k8s.io/metrics/pkg/apis/metrics/v1beta1"
 	"sigs.k8s.io/yaml"
 )
 
@@ -234,15 +236,30 @@ func (self *moKubernetes) removeManagedFields(obj *unstructured.Unstructured) *u
 	return obj
 }
 
-func (self *moKubernetes) GetNodeStats() ([]dtos.NodeStat, error) {
-	nodes := store.GetNodes()
-	nodeMetrics := kubernetes.ListNodeMetricss()
+func (self *moKubernetes) getKubeletNodeStats(nodeName string) (*podstatscollector.NodeMetrics, error) {
+	restClient := self.clientProvider.K8sClientSet().CoreV1().RESTClient()
+	path := fmt.Sprintf("/api/v1/nodes/%s/proxy/stats/summary", nodeName)
 
-	if len(nodeMetrics) == 0 {
-		self.logger.Error("CRITICAL: No node metrics found. Make sure the metrics-server is installed and running.")
-		return []dtos.NodeStat{}, fmt.Errorf("no metrics-server found")
+	resultData := restClient.Get().AbsPath(path).Do(context.Background())
+	if err := resultData.Error(); err != nil {
+		return nil, fmt.Errorf("failed to make request: %v", err)
 	}
 
+	rawResponse, err := resultData.Raw()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get raw response: %v", err)
+	}
+
+	result := &podstatscollector.NodeMetrics{}
+	if err := json.Unmarshal(rawResponse, result); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal kubelet stats for node %s: %v", nodeName, err)
+	}
+
+	return result, nil
+}
+
+func (self *moKubernetes) GetNodeStats() ([]dtos.NodeStat, error) {
+	nodes := store.GetNodes()
 	result := make([]dtos.NodeStat, 0, len(nodes))
 
 	for _, node := range nodes {
@@ -257,34 +274,22 @@ func (self *moKubernetes) GetNodeStats() ([]dtos.NodeStat, error) {
 
 		utilizedCores := float64(0)
 		utilizedMemory := int64(0)
-		if len(nodeMetrics) > 0 {
-			// Find the corresponding node metrics
-			var nodeMetric *v1metrics.NodeMetrics
-			for _, nm := range nodeMetrics {
-				if nm.Name == node.Name {
-					nodeMetric = &nm
-					break
-				}
-			}
-			if nodeMetric == nil {
-				self.logger.Error("Failed to find node metrics for node", "node.name", node.Name)
-				continue
-			}
 
-			// CPU
-			cpuUsage, works := nodeMetric.Usage.Cpu().AsDec().Unscaled()
-			if !works {
-				self.logger.Error("Failed to get CPU usage for node", "node.name", node.Name)
-			}
-			if cpuUsage == 0 {
-				cpuUsage = 1
-			}
-			utilizedCores = float64(cpuUsage) / 1000000000
-
-			// Memory
-			utilizedMemory, works = nodeMetric.Usage.Memory().AsInt64()
-			if !works {
-				self.logger.Error("Failed to get MEMORY usage for node", "node.name", node.Name)
+		// Prefer cached value from Valkey (written every 60s by podStatsCollector).
+		// Fall back to a direct kubelet call during cold start (first ~60s after boot).
+		cachedNodeStats, cacheErr := self.valkeyStatsDb.GetLatestNodeStatsForNode(node.Name)
+		if cacheErr == nil && cachedNodeStats != nil {
+			utilizedCores = float64(cachedNodeStats.CpuUsageNanoCores) / 1_000_000_000
+			utilizedMemory = cachedNodeStats.MemoryWorkingSetBytes
+		} else {
+			kubeletStats, err := self.getKubeletNodeStats(node.Name)
+			if err != nil {
+				self.logger.Error("Failed to get kubelet stats for node", "node.name", node.Name, "error", err)
+			} else {
+				// CPU: nanocores -> float64 cores (1 core = 1,000,000,000 nanocores)
+				utilizedCores = float64(kubeletStats.Node.CPU.UsageNanoCores) / 1_000_000_000
+				// Memory: WorkingSetBytes matches what metrics-server reported
+				utilizedMemory = int64(kubeletStats.Node.Memory.WorkingSetBytes)
 			}
 		}
 

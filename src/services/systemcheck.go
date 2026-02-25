@@ -57,10 +57,6 @@ func BasicRepos() []helm.HelmRepoAddRequest {
 			Url:  MogeniusHelmIndex, // mogenius-operartor, renovate-operator
 		},
 		{
-			Name: utils.HelmReleaseNameMetricsServer,
-			Url:  MetricsHelmIndex,
-		},
-		{
 			Name: utils.HelmReleaseNameTraefik,
 			Url:  IngressControllerTraefikHelmIndex,
 		},
@@ -176,30 +172,6 @@ func SystemCheck() SystemCheckResponse {
 			ingrEntry.VersionAvailable = getMostCurrentHelmChartVersion(IngressControllerTraefikHelmIndex, utils.HelmReleaseNameTraefik)
 			ingrEntry.HelmStatus = helm.HelmStatus(config.Get("MO_OWN_NAMESPACE"), utils.HelmReleaseNameTraefik)
 			return ingrEntry
-		})
-	})
-
-	// check for metrics server
-	wg.Go(func() {
-		sysCheckExec("CheckMetricsServer", &entries, func() SystemCheckEntry {
-			metricsResult, metricsVersion, metricsErr := kubernetes.IsMetricsServerAvailable()
-			metricsEntry := CreateSystemCheckEntry(
-				"Metrics Server",
-				metricsResult,
-				metricsVersion,
-				"kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml\nNote: Running docker-desktop? Please add '- --kubelet-insecure-tls' to the args sction in the deployment of metrics-server.",
-				metricsErr,
-				"Maintained by Kubernetes-SIGs, handles metrics for your cluster.",
-				true,
-				true,
-				metricsVersion,
-				"")
-			metricsEntry.InstallPattern = structs.PAT_INSTALL_METRICS_SERVER
-			metricsEntry.UninstallPattern = structs.PAT_UNINSTALL_METRICS_SERVER
-			metricsEntry.UpgradePattern = "" // structs.PAT_UPGRADE_METRICS_SERVER
-			metricsEntry.VersionAvailable = getMostCurrentHelmChartVersion(MetricsHelmIndex, utils.HelmReleaseNameMetricsServer)
-			metricsEntry.HelmStatus = helm.HelmStatus(config.Get("MO_OWN_NAMESPACE"), utils.HelmReleaseNameMetricsServer)
-			return metricsEntry
 		})
 	})
 

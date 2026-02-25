@@ -76,7 +76,6 @@ type CountryDetails struct {
 }
 
 const (
-	HelmReleaseNameMetricsServer        = "metrics-server"
 	HelmReleaseNameTraefik              = "traefik"
 	HelmReleaseNameCertManager          = "cert-manager"
 	HelmReleaseNameClusterIssuer        = "clusterissuer"

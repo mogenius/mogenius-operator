@@ -22,7 +22,6 @@ import (
 )
 
 const (
-	NameMetricsServer         = "Metrics Server"
 	NameMetalLB               = "MetalLB (LoadBalancer)"
 	NameAlertManager          = "Alertmanager"
 	NamePrometheus            = "Prometheus"
@@ -34,7 +33,6 @@ const (
 )
 
 const (
-	MetricsHelmIndex                  = "https://kubernetes-sigs.github.io/metrics-server"
 	IngressControllerTraefikHelmIndex = "https://traefik.github.io/charts"
 	CertManagerHelmIndex              = "https://charts.jetstack.io"
 	KeplerHelmIndex                   = "https://sustainable-computing-io.github.io/kepler-helm-chart"
@@ -222,41 +220,6 @@ type NfsStatusResponse struct {
 	Status        VolumeStatusType      `json:"status"`
 	Messages      []VolumeStatusMessage `json:"messages,omitempty"`
 	UsedByPods    []string              `json:"usedByPods,omitempty"`
-}
-
-func InstallMetricsServer() (string, error) {
-	r := ClusterHelmRequest{
-		HelmRepoName:    utils.HelmReleaseNameMetricsServer,
-		HelmRepoUrl:     MetricsHelmIndex,
-		HelmReleaseName: utils.HelmReleaseNameMetricsServer,
-		HelmChartName:   utils.HelmReleaseNameMetricsServer + "/" + utils.HelmReleaseNameMetricsServer,
-		HelmValues: `args:
-  - "--kubelet-insecure-tls"
-  - "--secure-port=10250"
-  - "--cert-dir=/tmp"
-  - "--kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname"
-  - "--kubelet-use-node-status-port"
-  - "--metric-resolution=15s"
-`,
-	}
-	return helm.CreateHelmChart(r.HelmReleaseName, r.HelmRepoName, r.HelmRepoUrl, r.HelmChartName, r.HelmValues, r.HelmChartVersion)
-}
-
-func UpgradeMetricsServer() (string, error) {
-	r := helm.HelmChartInstallUpgradeRequest{
-		Namespace: config.Get("MO_OWN_NAMESPACE"),
-		Release:   utils.HelmReleaseNameMetricsServer,
-		Chart:     utils.HelmReleaseNameMetricsServer + "/" + utils.HelmReleaseNameMetricsServer,
-		Values: `args:
-  - "--kubelet-insecure-tls"
-  - "--secure-port=10250"
-  - "--cert-dir=/tmp"
-  - "--kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname"
-  - "--kubelet-use-node-status-port"
-  - "--metric-resolution=15s"
-`,
-	}
-	return helm.HelmReleaseUpgrade(r)
 }
 
 func InstallIngressControllerTreafik() (string, error) {
@@ -505,14 +468,6 @@ func UninstallKubePrometheus() (string, error) {
 	r := ClusterHelmRequest{
 		Namespace:       config.Get("MO_OWN_NAMESPACE"),
 		HelmReleaseName: utils.HelmReleasePrometheus,
-	}
-	return helm.DeleteHelmChart(r.HelmReleaseName, r.Namespace)
-}
-
-func UninstallMetricsServer() (string, error) {
-	r := ClusterHelmRequest{
-		Namespace:       config.Get("MO_OWN_NAMESPACE"),
-		HelmReleaseName: utils.HelmReleaseNameMetricsServer,
 	}
 	return helm.DeleteHelmChart(r.HelmReleaseName, r.Namespace)
 }

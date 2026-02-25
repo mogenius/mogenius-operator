@@ -80,7 +80,6 @@ export enum Pattern {
   INSTALL_INGRESS_CONTROLLER_TRAEFIK = "install-ingress-controller-traefik",
   INSTALL_KEPLER = "install-kepler",
   INSTALL_METALLB = "install-metallb",
-  INSTALL_METRICS_SERVER = "install-metrics-server",
   INSTALL_PROMETHEUS = "install-prometheus",
   INSTALL_RENOVATE_OPERATOR = "install-renovate-operator",
   LIST_ALL_RESOURCE_DESCRIPTORS = "list/all-resource-descriptors",
@@ -123,7 +122,6 @@ export enum Pattern {
   UNINSTALL_INGRESS_CONTROLLER_TRAEFIK = "uninstall-ingress-controller-traefik",
   UNINSTALL_KEPLER = "uninstall-kepler",
   UNINSTALL_METALLB = "uninstall-metallb",
-  UNINSTALL_METRICS_SERVER = "uninstall-metrics-server",
   UNINSTALL_PROMETHEUS = "uninstall-prometheus",
   UNINSTALL_RENOVATE_OPERATOR = "uninstall-renovate-operator",
   UPDATE_GRANT = "update/grant",
@@ -136,7 +134,6 @@ export enum Pattern {
   UPGRADE_INGRESS_CONTROLLER_TRAEFIK = "upgrade-ingress-controller-traefik",
   UPGRADE_KEPLER = "upgrade-kepler",
   UPGRADE_METALLB = "upgrade-metallb",
-  UPGRADE_METRICS_SERVER = "upgrade-metrics-server",
   UPGRADE_PROMETHEUS = "upgrade-prometheus",
   UPGRADE_RENOVATE_OPERATOR = "upgrade-renovate-operator",
   WORKSPACE_CLEAN_UP = "workspace/clean-up",
@@ -224,7 +221,6 @@ export const StringToPattern = {
   "install-ingress-controller-traefik": Pattern.INSTALL_INGRESS_CONTROLLER_TRAEFIK,
   "install-kepler": Pattern.INSTALL_KEPLER,
   "install-metallb": Pattern.INSTALL_METALLB,
-  "install-metrics-server": Pattern.INSTALL_METRICS_SERVER,
   "install-prometheus": Pattern.INSTALL_PROMETHEUS,
   "install-renovate-operator": Pattern.INSTALL_RENOVATE_OPERATOR,
   "list/all-resource-descriptors": Pattern.LIST_ALL_RESOURCE_DESCRIPTORS,
@@ -267,7 +263,6 @@ export const StringToPattern = {
   "uninstall-ingress-controller-traefik": Pattern.UNINSTALL_INGRESS_CONTROLLER_TRAEFIK,
   "uninstall-kepler": Pattern.UNINSTALL_KEPLER,
   "uninstall-metallb": Pattern.UNINSTALL_METALLB,
-  "uninstall-metrics-server": Pattern.UNINSTALL_METRICS_SERVER,
   "uninstall-prometheus": Pattern.UNINSTALL_PROMETHEUS,
   "uninstall-renovate-operator": Pattern.UNINSTALL_RENOVATE_OPERATOR,
   "update/grant": Pattern.UPDATE_GRANT,
@@ -280,7 +275,6 @@ export const StringToPattern = {
   "upgrade-ingress-controller-traefik": Pattern.UPGRADE_INGRESS_CONTROLLER_TRAEFIK,
   "upgrade-kepler": Pattern.UPGRADE_KEPLER,
   "upgrade-metallb": Pattern.UPGRADE_METALLB,
-  "upgrade-metrics-server": Pattern.UPGRADE_METRICS_SERVER,
   "upgrade-prometheus": Pattern.UPGRADE_PROMETHEUS,
   "upgrade-renovate-operator": Pattern.UPGRADE_RENOVATE_OPERATOR,
   "workspace/clean-up": Pattern.WORKSPACE_CLEAN_UP,
@@ -364,7 +358,6 @@ export const PatternToString = {
   [Pattern.INSTALL_INGRESS_CONTROLLER_TRAEFIK]: "install-ingress-controller-traefik",
   [Pattern.INSTALL_KEPLER]: "install-kepler",
   [Pattern.INSTALL_METALLB]: "install-metallb",
-  [Pattern.INSTALL_METRICS_SERVER]: "install-metrics-server",
   [Pattern.INSTALL_PROMETHEUS]: "install-prometheus",
   [Pattern.INSTALL_RENOVATE_OPERATOR]: "install-renovate-operator",
   [Pattern.LIST_ALL_RESOURCE_DESCRIPTORS]: "list/all-resource-descriptors",
@@ -407,7 +400,6 @@ export const PatternToString = {
   [Pattern.UNINSTALL_INGRESS_CONTROLLER_TRAEFIK]: "uninstall-ingress-controller-traefik",
   [Pattern.UNINSTALL_KEPLER]: "uninstall-kepler",
   [Pattern.UNINSTALL_METALLB]: "uninstall-metallb",
-  [Pattern.UNINSTALL_METRICS_SERVER]: "uninstall-metrics-server",
   [Pattern.UNINSTALL_PROMETHEUS]: "uninstall-prometheus",
   [Pattern.UNINSTALL_RENOVATE_OPERATOR]: "uninstall-renovate-operator",
   [Pattern.UPDATE_GRANT]: "update/grant",
@@ -420,7 +412,6 @@ export const PatternToString = {
   [Pattern.UPGRADE_INGRESS_CONTROLLER_TRAEFIK]: "upgrade-ingress-controller-traefik",
   [Pattern.UPGRADE_KEPLER]: "upgrade-kepler",
   [Pattern.UPGRADE_METALLB]: "upgrade-metallb",
-  [Pattern.UPGRADE_METRICS_SERVER]: "upgrade-metrics-server",
   [Pattern.UPGRADE_PROMETHEUS]: "upgrade-prometheus",
   [Pattern.UPGRADE_RENOVATE_OPERATOR]: "upgrade-renovate-operator",
   [Pattern.WORKSPACE_CLEAN_UP]: "workspace/clean-up",
@@ -7056,44 +7047,6 @@ export type INSTALL_METALLB_RESPONSE = INSTALL_METALLB_RESPONSE__MOGENIUS_OPERAT
  * ```
  *
  */
-export type INSTALL_METRICS_SERVER_REQUEST = INSTALL_METRICS_SERVER_REQUEST__ANON_STRUCT_0|undefined;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
- *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
- *     properties:
- *       data:
- *         type: string
- *       message:
- *         type: string
- *       status:
- *         type: string
- * typeInfo:
- *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
- *   type: struct
- * ```
- *
- */
-export type INSTALL_METRICS_SERVER_RESPONSE = INSTALL_METRICS_SERVER_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *   ANON_STRUCT_0:
- *     properties: {}
- * typeInfo:
- *   pointer: true
- *   structRef: ANON_STRUCT_0
- *   type: struct
- * ```
- *
- */
 export type INSTALL_PROMETHEUS_REQUEST = INSTALL_PROMETHEUS_REQUEST__ANON_STRUCT_0|undefined;
 
 /**
@@ -9555,44 +9508,6 @@ export type UNINSTALL_METALLB_RESPONSE = UNINSTALL_METALLB_RESPONSE__MOGENIUS_OP
  * ```
  *
  */
-export type UNINSTALL_METRICS_SERVER_REQUEST = UNINSTALL_METRICS_SERVER_REQUEST__ANON_STRUCT_0|undefined;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
- *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
- *     properties:
- *       data:
- *         type: string
- *       message:
- *         type: string
- *       status:
- *         type: string
- * typeInfo:
- *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
- *   type: struct
- * ```
- *
- */
-export type UNINSTALL_METRICS_SERVER_RESPONSE = UNINSTALL_METRICS_SERVER_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *   ANON_STRUCT_0:
- *     properties: {}
- * typeInfo:
- *   pointer: true
- *   structRef: ANON_STRUCT_0
- *   type: struct
- * ```
- *
- */
 export type UNINSTALL_PROMETHEUS_REQUEST = UNINSTALL_PROMETHEUS_REQUEST__ANON_STRUCT_0|undefined;
 
 /**
@@ -10187,44 +10102,6 @@ export type UPGRADE_METALLB_RESPONSE = UPGRADE_METALLB_RESPONSE__MOGENIUS_OPERAT
  * ```
  *
  */
-export type UPGRADE_METRICS_SERVER_REQUEST = UPGRADE_METRICS_SERVER_REQUEST__ANON_STRUCT_0|undefined;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *   mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]:
- *     name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
- *     properties:
- *       data:
- *         type: string
- *       message:
- *         type: string
- *       status:
- *         type: string
- * typeInfo:
- *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Void,string]
- *   type: struct
- * ```
- *
- */
-export type UPGRADE_METRICS_SERVER_RESPONSE = UPGRADE_METRICS_SERVER_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING;
-
-/**
- * #### Source
- *
- * ```yaml
- * structs:
- *   ANON_STRUCT_0:
- *     properties: {}
- * typeInfo:
- *   pointer: true
- *   structRef: ANON_STRUCT_0
- *   type: struct
- * ```
- *
- */
 export type UPGRADE_PROMETHEUS_REQUEST = UPGRADE_PROMETHEUS_REQUEST__ANON_STRUCT_0|undefined;
 
 /**
@@ -10763,8 +10640,6 @@ export type INSTALL_KEPLER_REQUEST__ANON_STRUCT_0 = {};
 export type INSTALL_KEPLER_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
 export type INSTALL_METALLB_REQUEST__ANON_STRUCT_0 = {};
 export type INSTALL_METALLB_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
-export type INSTALL_METRICS_SERVER_REQUEST__ANON_STRUCT_0 = {};
-export type INSTALL_METRICS_SERVER_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
 export type INSTALL_PROMETHEUS_REQUEST__ANON_STRUCT_0 = {};
 export type INSTALL_PROMETHEUS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
 export type INSTALL_RENOVATE_OPERATOR_REQUEST__ANON_STRUCT_0 = {};
@@ -10895,8 +10770,6 @@ export type UNINSTALL_KEPLER_REQUEST__ANON_STRUCT_0 = {};
 export type UNINSTALL_KEPLER_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
 export type UNINSTALL_METALLB_REQUEST__ANON_STRUCT_0 = {};
 export type UNINSTALL_METALLB_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
-export type UNINSTALL_METRICS_SERVER_REQUEST__ANON_STRUCT_0 = {};
-export type UNINSTALL_METRICS_SERVER_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
 export type UNINSTALL_PROMETHEUS_REQUEST__ANON_STRUCT_0 = {};
 export type UNINSTALL_PROMETHEUS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
 export type UNINSTALL_RENOVATE_OPERATOR_REQUEST__ANON_STRUCT_0 = {};
@@ -10928,8 +10801,6 @@ export type UPGRADE_KEPLER_REQUEST__ANON_STRUCT_0 = {};
 export type UPGRADE_KEPLER_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
 export type UPGRADE_METALLB_REQUEST__ANON_STRUCT_0 = {};
 export type UPGRADE_METALLB_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
-export type UPGRADE_METRICS_SERVER_REQUEST__ANON_STRUCT_0 = {};
-export type UPGRADE_METRICS_SERVER_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
 export type UPGRADE_PROMETHEUS_REQUEST__ANON_STRUCT_0 = {};
 export type UPGRADE_PROMETHEUS_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_VOID_STRING = {"data": string,"message": string,"status": string};
 export type UPGRADE_RENOVATE_OPERATOR_REQUEST__ANON_STRUCT_0 = {};
@@ -11252,10 +11123,6 @@ export interface IPatternConfig {
     Request: INSTALL_METALLB_REQUEST;
     Response: INSTALL_METALLB_RESPONSE;
   };
-  [Pattern.INSTALL_METRICS_SERVER]: {
-    Request: INSTALL_METRICS_SERVER_REQUEST;
-    Response: INSTALL_METRICS_SERVER_RESPONSE;
-  };
   [Pattern.INSTALL_PROMETHEUS]: {
     Request: INSTALL_PROMETHEUS_REQUEST;
     Response: INSTALL_PROMETHEUS_RESPONSE;
@@ -11424,10 +11291,6 @@ export interface IPatternConfig {
     Request: UNINSTALL_METALLB_REQUEST;
     Response: UNINSTALL_METALLB_RESPONSE;
   };
-  [Pattern.UNINSTALL_METRICS_SERVER]: {
-    Request: UNINSTALL_METRICS_SERVER_REQUEST;
-    Response: UNINSTALL_METRICS_SERVER_RESPONSE;
-  };
   [Pattern.UNINSTALL_PROMETHEUS]: {
     Request: UNINSTALL_PROMETHEUS_REQUEST;
     Response: UNINSTALL_PROMETHEUS_RESPONSE;
@@ -11475,10 +11338,6 @@ export interface IPatternConfig {
   [Pattern.UPGRADE_METALLB]: {
     Request: UPGRADE_METALLB_REQUEST;
     Response: UPGRADE_METALLB_RESPONSE;
-  };
-  [Pattern.UPGRADE_METRICS_SERVER]: {
-    Request: UPGRADE_METRICS_SERVER_REQUEST;
-    Response: UPGRADE_METRICS_SERVER_RESPONSE;
   };
   [Pattern.UPGRADE_PROMETHEUS]: {
     Request: UPGRADE_PROMETHEUS_REQUEST;
