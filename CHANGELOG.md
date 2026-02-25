@@ -1,3 +1,10 @@
+# [2.19.0-develop.84](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.83...v2.19.0-develop.84) (2026-02-25)
+
+
+### Bug Fixes
+
+* add new ai tools pod/event logs ([1650421](https://github.com/mogenius/mogenius-operator/commit/1650421e9e2242f1134d74f723495b8798bdc00e))
+
 # [2.19.0-develop.83](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.82...v2.19.0-develop.83) (2026-02-25)
 
 
