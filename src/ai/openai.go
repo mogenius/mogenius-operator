@@ -342,7 +342,11 @@ func (ai *aiManager) openaiChatWithTools(
 		inputTokensUsed = 0
 		outputTokensUsed = 0
 
-		ioChannel.Output <- "\n\n"
+		select {
+		case ioChannel.Output <- "\n\n":
+		case <-ctx.Done():
+			return "", messages, ctx.Err()
+		}
 
 		// Build the assistant message for conversation history
 		if len(toolCallMap) == 0 {

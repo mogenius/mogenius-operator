@@ -137,6 +137,8 @@ var toolCategoryMap = map[string]toolCategory{
 	"get_kubernetes_resources":  categoryKubernetesRead,
 	"list_kubernetes_resources": categoryKubernetesRead,
 	"check_kubernetes_resource": categoryKubernetesRead,
+	"get_pod_logs":              categoryKubernetesRead,
+	"get_pod_events":            categoryKubernetesRead,
 	// Kubernetes Write
 	"update_kubernetes_resource": categoryKubernetesWrite,
 	"delete_kubernetes_resource": categoryKubernetesWrite,

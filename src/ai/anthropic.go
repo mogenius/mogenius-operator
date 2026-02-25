@@ -237,7 +237,11 @@ func (ai *aiManager) anthropicChatWithTools(
 			return "", messages, fmt.Errorf("streaming error: %w", err)
 		}
 
-		ioChannel.Output <- "\n\n"
+		select {
+		case ioChannel.Output <- "\n\n":
+		case <-ctx.Done():
+			return "", messages, ctx.Err()
+		}
 
 		// Use the accumulated message
 		finalMessage := accumulatedMessage

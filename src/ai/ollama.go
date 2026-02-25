@@ -348,7 +348,11 @@ func (ai *aiManager) ollamaChatWithTools(
 		inputTokensUsed = 0
 		outputTokensUsed = 0
 
-		ioChannel.Output <- "\n\n"
+		select {
+		case ioChannel.Output <- "\n\n":
+		case <-ctx.Done():
+			return "", messages, ctx.Err()
+		}
 
 		// No tool calls — just a text response
 		if len(toolCalls) == 0 {

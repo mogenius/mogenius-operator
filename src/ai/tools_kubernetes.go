@@ -6,7 +6,9 @@ import (
 	"log/slog"
 	"mogenius-operator/src/store"
 	"mogenius-operator/src/valkeyclient"
+	"sort"
 
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/yaml"
 )
@@ -17,6 +19,7 @@ var (
 	K8sDeleteUnstructuredResource       func(apiVersion, plural, namespace, resourceName string) error
 	K8sCreateUnstructuredResource       func(apiVersion, plural string, namespaced bool, yamlData string) (*unstructured.Unstructured, error)
 	K8sGetUnstructuredResourceFromStore func(apiVersion, kind, namespace, resourceName string) (*unstructured.Unstructured, error)
+	K8sGetPodLogs                       func(namespace, podName, container string, tailLines int64, previous bool) (string, error)
 )
 
 var kubernetesToolDefinitions = map[string]func(map[string]any, *ToolContext, valkeyclient.ValkeyClient, *slog.Logger) string{
@@ -26,6 +29,8 @@ var kubernetesToolDefinitions = map[string]func(map[string]any, *ToolContext, va
 	"update_kubernetes_resource": updateKubernetesResourceTool,
 	"delete_kubernetes_resource": deleteKubernetesResourceTool,
 	"create_kubernetes_resource": createKubernetesResourceTool,
+	"get_pod_logs":               getPodLogsTool,
+	"get_pod_events":             getPodEventsTool,
 }
 
 const maxListResults = 50 // Limit to prevent token overflow
@@ -331,4 +336,146 @@ func createKubernetesResourceTool(args map[string]any, tc *ToolContext, valkeyCl
 		return fmt.Sprintf("Resource created successfully but error marshaling result: %v", err)
 	}
 	return fmt.Sprintf("Resource created successfully:\n%s", string(resourceBytes))
+}
+
+const defaultMaxChars = 20000
+const hardMaxChars = 50000
+
+func getMaxChars(args map[string]any) int {
+	if mc, ok := args["maxChars"].(float64); ok && mc > 0 {
+		limit := int(mc)
+		if limit > hardMaxChars {
+			return hardMaxChars
+		}
+		return limit
+	}
+	return defaultMaxChars
+}
+
+func getPodLogsTool(args map[string]any, tc *ToolContext, valkeyClient valkeyclient.ValkeyClient, logger *slog.Logger) string {
+	namespace, _ := args["namespace"].(string)
+	podName, _ := args["podName"].(string)
+
+	if namespace == "" || podName == "" {
+		return "Error: namespace and podName are required"
+	}
+
+	if !tc.IsNamespaceAllowed(namespace) && tc.AllowedArgoCDApps == nil {
+		return fmt.Sprintf("Error: access to namespace %q is not allowed", namespace)
+	}
+
+	container, _ := args["container"].(string)
+	maxChars := getMaxChars(args)
+
+	tailLines := int64(100)
+	if tl, ok := args["tailLines"].(float64); ok && tl > 0 {
+		tailLines = int64(tl)
+	}
+
+	previous := false
+	if p, ok := args["previous"].(bool); ok {
+		previous = p
+	}
+
+	logger.Info("Getting pod logs", "namespace", namespace, "podName", podName, "container", container, "tailLines", tailLines, "previous", previous, "maxChars", maxChars)
+
+	// Adaptive fetch: reduce tailLines until output fits within char limit
+	var logs string
+	var err error
+	for attempt := 0; attempt < 3; attempt++ {
+		logs, err = K8sGetPodLogs(namespace, podName, container, tailLines, previous)
+		if err != nil {
+			logger.Error("Error getting pod logs", "error", err)
+			return fmt.Sprintf("Error getting pod logs: %v", err)
+		}
+		if len(logs) <= maxChars {
+			break
+		}
+		logger.Info("Log output too large, reducing tailLines", "chars", len(logs), "tailLines", tailLines, "attempt", attempt+1)
+		tailLines = tailLines / 2
+		if tailLines < 10 {
+			tailLines = 10
+		}
+	}
+
+	if len(logs) == 0 {
+		return "No logs found for the specified pod/container."
+	}
+
+	// Final safety truncation if still too large after retries
+	if len(logs) > maxChars {
+		logs = logs[len(logs)-maxChars:]
+		logs = fmt.Sprintf("[...truncated to last %d characters, use a smaller tailLines or maxChars value for full lines...]\n", maxChars) + logs
+	}
+
+	return logs
+}
+
+func getPodEventsTool(args map[string]any, tc *ToolContext, valkeyClient valkeyclient.ValkeyClient, logger *slog.Logger) string {
+	namespace, _ := args["namespace"].(string)
+	podName, _ := args["podName"].(string)
+
+	if namespace == "" || podName == "" {
+		return "Error: namespace and podName are required"
+	}
+
+	if !tc.IsNamespaceAllowed(namespace) && tc.AllowedArgoCDApps == nil {
+		return fmt.Sprintf("Error: access to namespace %q is not allowed", namespace)
+	}
+
+	maxChars := getMaxChars(args)
+
+	logger.Info("Getting pod events", "namespace", namespace, "podName", podName, "maxChars", maxChars)
+
+	data, err := valkeyClient.List(50, "resources", "v1", "Event", namespace, podName+"*")
+	if err != nil {
+		logger.Error("Error getting pod events", "error", err)
+		return fmt.Sprintf("Error getting pod events: %v", err)
+	}
+
+	if len(data) == 0 {
+		return "No events found for the specified pod."
+	}
+
+	var events []v1.Event
+	for _, item := range data {
+		event := v1.Event{}
+		if err := json.Unmarshal([]byte(item), &event); err != nil {
+			logger.Error("Unable to unmarshal event", "error", err)
+			continue
+		}
+		events = append(events, event)
+	}
+
+	// Sort ascending by timestamp (newest last)
+	sort.Slice(events, func(i, j int) bool {
+		return events[i].ObjectMeta.CreationTimestamp.Time.Before(events[j].ObjectMeta.CreationTimestamp.Time)
+	})
+
+	// Adaptive: build result from newest events backwards until char limit is reached
+	lines := make([]string, len(events))
+	for i, event := range events {
+		ts := event.ObjectMeta.CreationTimestamp.Time.Format("2006-01-02 15:04:05")
+		lines[i] = fmt.Sprintf("[%s] [%s] %s", ts, event.Reason, event.Message)
+	}
+
+	// Take events from the end (newest) until we exceed the limit
+	var result string
+	totalEvents := len(lines)
+	includedCount := 0
+	for i := len(lines) - 1; i >= 0; i-- {
+		candidate := lines[i] + "\n" + result
+		if len(candidate) > maxChars && includedCount > 0 {
+			break
+		}
+		result = candidate
+		includedCount++
+	}
+
+	if includedCount < totalEvents {
+		result = fmt.Sprintf("[...showing %d of %d events, oldest events omitted to fit maxChars=%d...]\n", includedCount, totalEvents, maxChars) + result
+	}
+
+	logger.Info("Pod events result", "eventCount", includedCount, "totalEvents", totalEvents)
+	return result
 }

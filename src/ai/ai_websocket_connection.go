@@ -99,6 +99,7 @@ func (self *aiWebsocketConnection) LiveStreamAiManagerChatRequest(request ChatRe
 
 	defer func() {
 		logger.Info("AI Chat WebSocket connection closed")
+		cancel() // cancel context first so Chat goroutine exits via ctx.Done() before channels close
 		close(inputChan)
 		close(outputChan)
 	}()

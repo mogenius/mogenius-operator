@@ -92,6 +92,35 @@ var kubernetesOpenAiTools = []openai.ChatCompletionToolUnionParam{
 			"required": []string{"apiVersion", "plural", "namespaced", "yamlData"},
 		},
 	),
+	openaiFunc(
+		"get_pod_logs",
+		"Get logs from a pod's container. Returns the last N lines of log output. The response is automatically trimmed to fit within maxChars. Start with a small maxChars and increase only if you need more context.",
+		openai.FunctionParameters{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"namespace": map[string]string{"type": "string", "description": "Namespace of the pod"},
+				"podName":   map[string]string{"type": "string", "description": "Name of the pod"},
+				"container": map[string]string{"type": "string", "description": "Container name (optional, defaults to first container)"},
+				"tailLines": map[string]string{"type": "integer", "description": "Number of lines to return from the end (default 100)"},
+				"previous":  map[string]string{"type": "boolean", "description": "Return logs from previous terminated container (default false)"},
+				"maxChars":  map[string]string{"type": "integer", "description": "Maximum characters in response (default 20000, max 50000). Use lower values to save tokens."},
+			},
+			"required": []string{"namespace", "podName"},
+		},
+	),
+	openaiFunc(
+		"get_pod_events",
+		"Get Kubernetes events for a specific pod. Shows warnings, errors, and lifecycle events. The response is automatically trimmed to fit within maxChars, keeping the most recent events.",
+		openai.FunctionParameters{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"namespace": map[string]string{"type": "string", "description": "Namespace of the pod"},
+				"podName":   map[string]string{"type": "string", "description": "Name of the pod"},
+				"maxChars":  map[string]string{"type": "integer", "description": "Maximum characters in response (default 20000, max 50000). Use lower values to save tokens."},
+			},
+			"required": []string{"namespace", "podName"},
+		},
+	),
 }
 
 // --- Anthropic Kubernetes Tool Definitions ---
@@ -156,6 +185,27 @@ var kubernetesAnthropicTools = []anthropic.ToolParam{
 			"yamlData":   map[string]any{"type": "string", "description": "Complete YAML definition of the resource."},
 		}, []string{"apiVersion", "plural", "namespaced", "yamlData"},
 	),
+	anthropicTool(
+		"get_pod_logs",
+		"Get logs from a pod's container. Returns the last N lines of log output. The response is automatically trimmed to fit within maxChars. Start with a small maxChars and increase only if you need more context.",
+		map[string]any{
+			"namespace": map[string]any{"type": "string", "description": "Namespace of the pod."},
+			"podName":   map[string]any{"type": "string", "description": "Name of the pod."},
+			"container": map[string]any{"type": "string", "description": "Container name (optional, defaults to first container)."},
+			"tailLines": map[string]any{"type": "integer", "description": "Number of lines to return from the end (default 100)."},
+			"previous":  map[string]any{"type": "boolean", "description": "Return logs from previous terminated container (default false)."},
+			"maxChars":  map[string]any{"type": "integer", "description": "Maximum characters in response (default 20000, max 50000). Use lower values to save tokens."},
+		}, []string{"namespace", "podName"},
+	),
+	anthropicTool(
+		"get_pod_events",
+		"Get Kubernetes events for a specific pod. Shows warnings, errors, and lifecycle events. The response is automatically trimmed to fit within maxChars, keeping the most recent events.",
+		map[string]any{
+			"namespace": map[string]any{"type": "string", "description": "Namespace of the pod."},
+			"podName":   map[string]any{"type": "string", "description": "Name of the pod."},
+			"maxChars":  map[string]any{"type": "integer", "description": "Maximum characters in response (default 20000, max 50000). Use lower values to save tokens."},
+		}, []string{"namespace", "podName"},
+	),
 }
 
 // --- Ollama Kubernetes Tool Definitions ---
@@ -219,5 +269,26 @@ var kubernetesOllamaTools = []api.Tool{
 			"namespaced": {Type: []string{"boolean"}, Description: "Namespaced (true) or cluster-scoped (false)"},
 			"yamlData":   {Type: []string{"string"}, Description: "Complete YAML definition of the resource"},
 		}, []string{"apiVersion", "plural", "namespaced", "yamlData"},
+	),
+	ollamaTool(
+		"get_pod_logs",
+		"Get logs from a pod's container. Returns the last N lines of log output. The response is automatically trimmed to fit within maxChars. Start with a small maxChars and increase only if you need more context.",
+		map[string]api.ToolProperty{
+			"namespace": {Type: []string{"string"}, Description: "Namespace of the pod"},
+			"podName":   {Type: []string{"string"}, Description: "Name of the pod"},
+			"container": {Type: []string{"string"}, Description: "Container name (optional, defaults to first container)"},
+			"tailLines": {Type: []string{"integer"}, Description: "Number of lines to return from the end (default 100)"},
+			"previous":  {Type: []string{"boolean"}, Description: "Return logs from previous terminated container (default false)"},
+			"maxChars":  {Type: []string{"integer"}, Description: "Maximum characters in response (default 20000, max 50000). Use lower values to save tokens."},
+		}, []string{"namespace", "podName"},
+	),
+	ollamaTool(
+		"get_pod_events",
+		"Get Kubernetes events for a specific pod. Shows warnings, errors, and lifecycle events. The response is automatically trimmed to fit within maxChars, keeping the most recent events.",
+		map[string]api.ToolProperty{
+			"namespace": {Type: []string{"string"}, Description: "Namespace of the pod"},
+			"podName":   {Type: []string{"string"}, Description: "Name of the pod"},
+			"maxChars":  {Type: []string{"integer"}, Description: "Maximum characters in response (default 20000, max 50000). Use lower values to save tokens."},
+		}, []string{"namespace", "podName"},
 	),
 }

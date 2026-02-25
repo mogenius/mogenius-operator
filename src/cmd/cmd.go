@@ -463,6 +463,7 @@ func InitializeSystems(
 	ai.K8sDeleteUnstructuredResource = kubernetes.DeleteUnstructuredResource
 	ai.K8sCreateUnstructuredResource = kubernetes.CreateUnstructuredResource
 	ai.K8sGetUnstructuredResourceFromStore = kubernetes.GetUnstructuredResourceFromStore
+	ai.K8sGetPodLogs = kubernetes.GetPodLogs
 
 	// golang package setups are deprecated and will be removed in the future by migrating all state to services
 	helm.Setup(logManagerModule, configModule, valkeyClient)
