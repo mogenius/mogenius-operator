@@ -1,3 +1,10 @@
+# [2.19.0-develop.94](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.93...v2.19.0-develop.94) (2026-02-26)
+
+
+### Bug Fixes
+
+* talos network traffic will now be discovered again ([5b7323f](https://github.com/mogenius/mogenius-operator/commit/5b7323f898c702ba9cc5c6b4b498661654a0f18d))
+
 # [2.19.0-develop.93](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.92...v2.19.0-develop.93) (2026-02-26)
 
 
