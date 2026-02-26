@@ -1,3 +1,10 @@
+# [2.19.0-develop.89](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.88...v2.19.0-develop.89) (2026-02-26)
+
+
+### Bug Fixes
+
+* removed nfs mount to get rid of priviledged: true ([83575dd](https://github.com/mogenius/mogenius-operator/commit/83575dd881a9e44da205e2c8277b8093ec8a3f02))
+
 # [2.19.0-develop.88](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.87...v2.19.0-develop.88) (2026-02-26)
 
 
