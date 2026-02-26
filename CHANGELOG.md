@@ -1,3 +1,10 @@
+# [2.19.0-develop.92](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.91...v2.19.0-develop.92) (2026-02-26)
+
+
+### Bug Fixes
+
+* activate helm release in dev ([cea4269](https://github.com/mogenius/mogenius-operator/commit/cea4269a1c3abe3c5f1634543f0a3e79355dbc0b))
+
 # [2.19.0-develop.91](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.90...v2.19.0-develop.91) (2026-02-26)
 
 
