@@ -1,3 +1,10 @@
+# [2.19.0-develop.100](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.99...v2.19.0-develop.100) (2026-02-26)
+
+
+### Bug Fixes
+
+* bump snoopy version ([ac92d47](https://github.com/mogenius/mogenius-operator/commit/ac92d478b11cbae39ce2a61b34ef90078a5fa2d6))
+
 # [2.19.0-develop.99](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.98...v2.19.0-develop.99) (2026-02-26)
 
 
