@@ -40,6 +40,7 @@ jobs:
   # ============================================================================
   prepare:
     uses: mogenius/github-actions/.github/workflows/prepare.yml@main
+    permissions: inherit
     with:
       version_override: ${{ github.event.inputs.version || '' }}
       default_version: 'dev'
@@ -59,7 +60,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: main
+          ref: develop
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
