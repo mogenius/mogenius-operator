@@ -1,105 +1,48 @@
-# Syntax für BuildKit features
 # syntax=docker/dockerfile:1
+# Mogenius Operator Build
+# Uses pre-built base images - no apt-get install or package downloads needed
+#
+# Cross-compilation support:
+# For armv7, we use amd64 builder images with --platform=$BUILDPLATFORM
+# Go cross-compiles natively, which is much faster than QEMU emulation
 
-# Build stage should use native platform for faster compilation
-FROM --platform=$BUILDPLATFORM golang:1.26.0 AS golang
+# =============================================================================
+# Stage 1: Import pre-built tools from dedicated images
+# =============================================================================
 
-FROM --platform=$BUILDPLATFORM ubuntu:noble AS build-env
+ARG GO_BUILDER_IMAGE=ghcr.io/mogenius/go-builder:latest
+ARG RUST_BUILDER_IMAGE=ghcr.io/mogenius/rust-builder:latest
+ARG BPFTOOL_IMAGE=ghcr.io/mogenius/bpftool:latest
+ARG SNOOPY_IMAGE=ghcr.io/mogenius/snoopy:latest
+ARG RUNTIME_IMAGE=ghcr.io/mogenius/runtime:latest
 
-ENV SNOOPY_VERSION=v0.3.10
+# Get bpftool binary (target platform - armv7 binary for armv7 build)
+FROM ${BPFTOOL_IMAGE} AS bpftool-source
 
-COPY --from=golang /usr/local/go /usr/local/go
+# Get snoopy binary (target platform - armv7 binary for armv7 build)
+FROM ${SNOOPY_IMAGE} AS snoopy-source
 
-RUN mkdir /go
-ENV GOPATH=/go
-ENV PATH=${GOPATH}/bin:/usr/local/go/bin:${PATH}
-
-# Build-time argument for GitHub Token
-ARG TARGETPLATFORM
+# Get Just from rust-builder (build platform - runs on host for cross-compilation)
 ARG BUILDPLATFORM
-ARG TARGETOS
-ARG TARGETARCH
-ARG TARGETVARIANT
+# FROM --platform=$BUILDPLATFORM ${RUST_BUILDER_IMAGE} AS rust-source
 
-# Setup system - Basis-Packages
-RUN set -x && \
-    apt-get update && \
-    apt-get install -y \
-        curl jq clang llvm libelf-dev libbpf-dev git \
-        gcc libc6-dev make cmake libpcap-dev binutils \
-        build-essential binutils-gold iproute2 lsb-release \
-        sudo ca-certificates wget libssl-dev && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+# =============================================================================
+# Stage 2: Build Environment (runs on build platform for cross-compilation)
+# =============================================================================
 
-# Linux headers only for amd64 (for eBPF development)
-# RUN if [ "$TARGETARCH" = "amd64" ]; then \
-#         apt-get update && \
-#         apt-get install -y linux-headers-generic && \
-#         apt-get clean && \
-#         rm -rf /var/lib/apt/lists/*; \
-#     fi
+FROM --platform=$BUILDPLATFORM ${GO_BUILDER_IMAGE} AS build-env
 
-# Dynamic install available Linux headers only for amd64 (for eBPF development)
-RUN if [ "$TARGETARCH" = "amd64" ]; then \
-        apt-get update && \
-        apt-get install -y $(apt-cache search linux-headers-6 | grep generic | tail -1 | awk '{print $1}') && \
-        apt-get clean && \
-        rm -rf /var/lib/apt/lists/*; \
-    fi
+# Copy bpftool (from target platform image - cannot run on build platform if cross-compiling)
+COPY --from=bpftool-source /usr/local/sbin/bpftool /usr/local/sbin/bpftool
 
-# Install Rust/Cargo for Just
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable
-ENV PATH="/root/.cargo/bin:${PATH}"
-
-# Rust Target für Cross-Compilation hinzufügen (falls nötig)
-RUN rustup target add $(rustc -vV | grep host | cut -d' ' -f2)
-
-# Install Just via Cargo (works for all architectures)
-RUN cargo install just && \
-    rm -rf /root/.cargo/registry /root/.cargo/git
-
-# Fetch the latest release download URL for the specific architecture
-# WICHTIG: Wir müssen die TARGETPLATFORM auswerten, nicht uname -m
-RUN case "$TARGETPLATFORM" in \
-        "linux/amd64") ARCH="x86_64";; \
-        "linux/arm64") ARCH="aarch64";; \
-        "linux/arm/v7") ARCH="armv7";; \
-        "linux/ppc64le") ARCH="powerpc64le";; \
-        "linux/riscv64") ARCH="riscv64";; \
-        *) echo "Unsupported platform: $TARGETPLATFORM"; exit 1;; \
-    esac && \
-    echo "Target platform: $TARGETPLATFORM, Architecture: $ARCH" && \
-    DOWNLOAD_URL=$(curl -s "https://api.github.com/repos/mogenius/snoopy/releases/tags/$SNOOPY_VERSION" | \
-    jq -r ".assets[] | select(.name | contains(\"snoopy_$ARCH\")) | .url") && \
-    echo "Download URL: $DOWNLOAD_URL" && \
-    curl -L -H "Accept: application/octet-stream" $DOWNLOAD_URL -o snoopy && \
-    chmod +x snoopy && \
-    mv snoopy /usr/local/bin/snoopy
-
-# Install bpftool
-RUN set -x && \
-    ln -sf /usr/include/asm-generic/ /usr/include/asm && \
-    git clone --recurse-submodules https://github.com/libbpf/bpftool.git /opt/bpftool && \
-    cd /opt/bpftool/src && \
-    make install
-
-RUN echo "Build platform: $BUILDPLATFORM, Target platform: $TARGETPLATFORM"
-
-# dlv installation - only for build platform, not for target
-RUN case "$BUILDPLATFORM" in \
-        linux/amd64|linux/arm64) go install -v github.com/go-delve/delve/cmd/dlv@latest; ;; \
-        *) echo "dlv not supported for build platform $BUILDPLATFORM, skipping installation." ;; \
-    esac
-
-RUN go install sigs.k8s.io/controller-tools/cmd/controller-gen@latest
-RUN git config --global --add safe.directory "/app"
+# Verify tools that run on build platform
+RUN go version 
 
 WORKDIR /app
 
-RUN go version
-RUN bpftool version
-RUN just --version
+# =============================================================================
+# Stage 3: Build the Operator
+# =============================================================================
 
 FROM build-env AS builder
 
@@ -117,55 +60,50 @@ ARG GIT_BRANCH=NOT_SET
 ARG BUILD_TIMESTAMP=NOT_SET
 ARG VERSION=NOT_SET
 
+# Download dependencies first (better layer caching)
 COPY go.mod go.sum ./
 RUN go mod download
+
+# Copy source code
 COPY . .
 
+# Generate code
 RUN go generate ./...
 
-## Actual build command - with better error output
+# Build the operator binary
 RUN set -e && \
-    export GOOS=${TARGETOS} && \
+    export GOOS=${TARGETOS:-linux} && \
     export GOARCH=${TARGETARCH} && \
     if [ "${TARGETARCH}" = "arm" ] && [ -n "${TARGETVARIANT}" ]; then \
         export GOARM=${TARGETVARIANT#v}; \
-        echo "GOARM=${GOARM}"; \
+        echo "Cross-compiling for ARM with GOARM=${GOARM}"; \
     fi && \
     echo "=== Build Configuration ===" && \
-    echo "TARGETOS: ${TARGETOS}" && \
-    echo "TARGETARCH: ${TARGETARCH}" && \
-    echo "TARGETVARIANT: ${TARGETVARIANT}" && \
-    echo "GOARM: ${GOARM:-not set}" && \
     echo "GOOS: ${GOOS}" && \
     echo "GOARCH: ${GOARCH}" && \
+    echo "GOARM: ${GOARM:-n/a}" && \
     echo "VERSION: ${VERSION}" && \
-    echo "COMMIT_HASH: ${COMMIT_HASH}" && \
-    echo "GIT_BRANCH: ${GIT_BRANCH}" && \
-    echo "BUILD_TIMESTAMP: ${BUILD_TIMESTAMP}" && \
+    echo "Host arch: $(uname -m)" && \
     echo "===========================" && \
     go mod tidy && \
     go build -v -trimpath \
         -gcflags='all=-l' \
-        -ldflags="-s -w -X mogenius-operator/src/version.GitCommitHash=${COMMIT_HASH} -X mogenius-operator/src/version.Branch=${GIT_BRANCH} -X mogenius-operator/src/version.BuildTimestamp=${BUILD_TIMESTAMP} -X mogenius-operator/src/version.Ver=${VERSION}" \
+        -ldflags="-s -w \
+            -X mogenius-operator/src/version.GitCommitHash=${COMMIT_HASH} \
+            -X mogenius-operator/src/version.Branch=${GIT_BRANCH} \
+            -X mogenius-operator/src/version.BuildTimestamp=${BUILD_TIMESTAMP} \
+            -X mogenius-operator/src/version.Ver=${VERSION}" \
         -o bin/mogenius-operator \
-        ./src/main.go 2>&1 || { \
-            echo "=== BUILD FAILED ===" >&2; \
-            echo "Go version:" >&2; \
-            go version >&2; \
-            echo "Environment:" >&2; \
-            env | grep -E 'GO|TARGET' >&2; \
-            echo "Files in src/:" >&2; \
-            ls -la ./src/ >&2; \
-            exit 1; \
-        }
+        ./src/main.go
 
-# Check binary directory
-RUN ls -lh bin/
 # Verify binary was created
-# RUN ls -lh bin/mogenius-operator && file bin/mogenius-operator
+RUN ls -lh bin/ 
 
-# Final image should use the target platform
-FROM ubuntu:noble AS release-image
+# =============================================================================
+# Stage 4: Release Image
+# =============================================================================
+
+FROM ${RUNTIME_IMAGE} AS release-image
 
 ARG TARGETOS
 ARG TARGETARCH
@@ -175,14 +113,11 @@ ENV GOOS=${TARGETOS}
 ENV GOARCH=${TARGETARCH}
 ENV GOARM=${TARGETVARIANT}
 
-COPY --from=builder "/app/bin/mogenius-operator" "/usr/local/bin/mogenius-operator"
-COPY --from=builder "/usr/local/bin/snoopy" "/usr/local/bin/mogenius-snoopy"
+# Copy operator binary
+COPY --from=builder /app/bin/mogenius-operator /usr/local/bin/mogenius-operator
 
-RUN set -x && \
-    apt-get update && \
-    apt-get install -y --no-install-recommends "dumb-init" "nfs-common" "ca-certificates" "iproute2" && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+# Copy snoopy binary
+COPY --from=snoopy-source /usr/local/bin/snoopy /usr/local/bin/mogenius-snoopy
 
 WORKDIR /app
 
