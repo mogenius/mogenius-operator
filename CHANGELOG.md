@@ -1,3 +1,10 @@
+# [2.19.0-develop.99](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.98...v2.19.0-develop.99) (2026-02-26)
+
+
+### Bug Fixes
+
+* trigger build for build with snoopy v0.3.11 ([4fcf867](https://github.com/mogenius/mogenius-operator/commit/4fcf8674162f22016cd5ee68e992795659846542))
+
 # [2.19.0-develop.98](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.97...v2.19.0-develop.98) (2026-02-26)
 
 
