@@ -1,3 +1,10 @@
+# [2.19.0-develop.97](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.96...v2.19.0-develop.97) (2026-02-26)
+
+
+### Bug Fixes
+
+* network traffic monitoring reactivated ([54c93b2](https://github.com/mogenius/mogenius-operator/commit/54c93b2f2954512bc6862b21e8df5891c1caa155))
+
 # [2.19.0-develop.96](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.95...v2.19.0-develop.96) (2026-02-26)
 
 
