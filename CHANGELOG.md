@@ -1,3 +1,16 @@
+# [2.19.0-develop.90](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.89...v2.19.0-develop.90) (2026-02-26)
+
+
+### Bug Fixes
+
+* add new Dockerfile ([49f1c45](https://github.com/mogenius/mogenius-operator/commit/49f1c45beda4d330c434dee7ea9e8cf374f1122b))
+* add new github workflow actions ([1896616](https://github.com/mogenius/mogenius-operator/commit/18966165bf6767b70db4fd702a0e4dfcb76dadc1))
+* add permissions: inherit to prepare ([e85f7ee](https://github.com/mogenius/mogenius-operator/commit/e85f7ee41cc98b88d57b669d8c98590587ff4a74))
+* add release Token ([984a645](https://github.com/mogenius/mogenius-operator/commit/984a645412c27c2697ca83d47ff36b39160565af))
+* add secrets inherit ([4a037c6](https://github.com/mogenius/mogenius-operator/commit/4a037c6e5e35dcead6c775afe05654c9aec918b7))
+* change ref: main for SemVer ([eee94b4](https://github.com/mogenius/mogenius-operator/commit/eee94b4abc4bf7b7294bbc943d6776ad1e2f7aae))
+* remove env comment ([6fd4489](https://github.com/mogenius/mogenius-operator/commit/6fd448993c02075044ed770ad70bd878d23a6eb9))
+
 # [2.19.0-develop.89](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.88...v2.19.0-develop.89) (2026-02-26)
 
 
