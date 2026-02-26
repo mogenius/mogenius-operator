@@ -157,4 +157,5 @@ nodeMetrics:
       add:
         - NET_ADMIN
         - SYS_ADMIN
+        - BPF # required for eBPF on modern kernels (Linux ≥5.8) without privileged:true
   podSecurityContext: {}
