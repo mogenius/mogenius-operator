@@ -1,3 +1,10 @@
+# [2.19.0-develop.91](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.90...v2.19.0-develop.91) (2026-02-26)
+
+
+### Bug Fixes
+
+* wrong dockfile name ([93914d1](https://github.com/mogenius/mogenius-operator/commit/93914d150b615c58f034a1986bc8e789982316bd))
+
 # [2.19.0-develop.90](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.89...v2.19.0-develop.90) (2026-02-26)
 
 
