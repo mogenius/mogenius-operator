@@ -15,7 +15,6 @@ import (
 	"mogenius-operator/src/valkeyclient"
 	"mogenius-operator/src/websocket"
 	"net/url"
-	"strconv"
 	"sync"
 )
 
@@ -231,18 +230,6 @@ func (self *core) Initialize() error {
 		return fmt.Errorf("failed to create resource template configmap: %s", err)
 	}
 
-	// INIT MOUNTS
-	autoMountNfs, err := strconv.ParseBool(self.config.Get("MO_AUTO_MOUNT_NFS"))
-	assert.Assert(err == nil, err)
-	if autoMountNfs {
-		volumesToMount, err := mokubernetes.GetVolumeMountsForK8sManager()
-		if err != nil {
-			self.logger.Error("GetVolumeMountsForK8sManager", "error", err)
-		}
-		for _, vol := range volumesToMount {
-			mokubernetes.Mount(vol.Namespace, vol.VolumeName, nil)
-		}
-	}
 	mokubernetes.InitOrUpdateCrds()
 
 	var wg sync.WaitGroup

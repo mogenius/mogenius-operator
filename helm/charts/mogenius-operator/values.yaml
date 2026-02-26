@@ -50,8 +50,8 @@ image:
   pullPolicy: IfNotPresent
 
 podSecurityContext: {}
-containerSecurityContext: 
-  privileged: true # needed for nfs-access. if nfs-support is not needed, this can be set to false
+containerSecurityContext:
+  privileged: false
   readOnlyRootFilesystem: true
   capabilities:
     drop:
@@ -153,7 +153,6 @@ nodeMetrics:
   affinity: {}
   containerSecurityContext:
     readOnlyRootFilesystem: true
-    privileged: true
     capabilities:
       add:
         - NET_ADMIN

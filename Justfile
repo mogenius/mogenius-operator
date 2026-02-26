@@ -13,9 +13,6 @@ run: build
 run-node-metrics: build
     dist/native/mogenius-operator nodemetrics
 
-run-privileged: build
-    sudo -E dist/native/mogenius-operator cluster
-
 # disable mogenius-operator instances running in the cluster which interfere with local development
 scale-down:
     kubectl -n mogenius scale deployment mogenius-operator --replicas=0

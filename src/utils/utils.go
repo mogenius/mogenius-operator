@@ -96,20 +96,6 @@ var HtmlFolder embed.FS
 
 var helmDataVersion = cache.New(2*time.Hour, 30*time.Minute)
 
-func MountPath(namespaceName string, volumeName string, defaultReturnValue string, runsInCluster bool) string {
-	if runsInCluster {
-		return fmt.Sprintf("%s/%s_%s", config.Get("MO_DEFAULT_MOUNT_PATH"), namespaceName, volumeName)
-	} else {
-		pwd, err := os.Getwd()
-		pwd += "/temp"
-		if err != nil {
-			utilsLogger.Error("StatsMogeniusNfsVolume PWD", "error", err)
-		} else {
-			return pwd
-		}
-	}
-	return defaultReturnValue
-}
 
 func HttpHeader(additionalName string) http.Header {
 	return http.Header{

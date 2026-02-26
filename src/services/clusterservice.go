@@ -7,12 +7,8 @@ import (
 	"mogenius-operator/src/structs"
 	"mogenius-operator/src/utils"
 	"mogenius-operator/src/websocket"
-	"os"
-	"path/filepath"
 	"strings"
 	"sync"
-
-	"github.com/shirou/gopsutil/v4/disk"
 )
 
 const (
@@ -41,9 +37,6 @@ func CreateMogeniusNfsVolume(eventClient websocket.WebsocketClient, r NfsVolumeR
 	wg.Wait()
 	job.Finish(eventClient)
 
-	nfsService := mokubernetes.ServiceForNfsVolume(r.NamespaceName, r.VolumeName)
-	mokubernetes.Mount(r.NamespaceName, r.VolumeName, nfsService)
-
 	return job.DefaultReponse()
 }
 
@@ -71,14 +64,14 @@ func DeleteMogeniusNfsVolume(eventClient websocket.WebsocketClient, r NfsVolumeR
 	wg.Wait()
 	job.Finish(eventClient)
 
-	mokubernetes.Umount(r.NamespaceName, r.VolumeName)
-
 	return job.DefaultReponse()
 }
 
 func StatsMogeniusNfsVolume(r NfsVolumeStatsRequest) NfsVolumeStatsResponse {
-	mountPath := utils.MountPath(r.NamespaceName, r.VolumeName, "/", clientProvider.RunsInCluster())
-	free, used, total, _ := diskUsage(mountPath)
+	free, used, total, err := mokubernetes.NfsDiskUsage(r.NamespaceName, r.VolumeName)
+	if err != nil {
+		serviceLogger.Error("StatsMogeniusNfsVolume", "namespace", r.NamespaceName, "volume", r.VolumeName, "error", err)
+	}
 	result := NfsVolumeStatsResponse{
 		VolumeName: r.VolumeName,
 		FreeBytes:  free,
@@ -87,7 +80,8 @@ func StatsMogeniusNfsVolume(r NfsVolumeStatsRequest) NfsVolumeStatsResponse {
 	}
 
 	serviceLogger.Info("💾: nfs volume stats",
-		"mountPath", mountPath,
+		"namespace", r.NamespaceName,
+		"volume", r.VolumeName,
 		"usedBytes", utils.BytesToHumanReadable(int64(result.UsedBytes)),
 		"totalBytes", utils.BytesToHumanReadable(int64(result.TotalBytes)),
 		"freeBytes", utils.BytesToHumanReadable(int64(result.FreeBytes)),
@@ -95,57 +89,6 @@ func StatsMogeniusNfsVolume(r NfsVolumeStatsRequest) NfsVolumeStatsResponse {
 	return result
 }
 
-func diskUsage(mountPath string) (uint64, uint64, uint64, error) {
-	usage, err := disk.Usage(mountPath)
-	if err != nil {
-		serviceLogger.Error("StatsMogeniusNfsVolume",
-			"mountPath", mountPath,
-			"error", err,
-		)
-		return 0, 0, 0, err
-	} else {
-		return usage.Free, usage.Used, usage.Total, nil
-	}
-}
-
-func sumAllBytesOfFolder(root string) uint64 {
-	var total uint64
-	var wg sync.WaitGroup
-	var sumWg sync.WaitGroup
-	fileSizes := make(chan uint64)
-
-	sumWg.Go(func() {
-		for size := range fileSizes {
-			total += size
-		}
-	})
-
-	// Walk the file tree concurrently.
-	err := filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if !d.IsDir() {
-			wg.Go(func() {
-				info, err := d.Info()
-				if err != nil {
-					return // handle error
-				}
-				fileSizes <- uint64(info.Size())
-			})
-		}
-		return nil
-	})
-	if err != nil {
-		serviceLogger.Error("Error while summing bytes in path", "error", err.Error())
-	}
-
-	wg.Wait()
-	close(fileSizes) // Close channel to finish summing
-	sumWg.Wait()     // Wait for summing to complete
-
-	return total
-}
 
 type ClusterHelmRequest struct {
 	Namespace        string `json:"namespace" validate:"required"`

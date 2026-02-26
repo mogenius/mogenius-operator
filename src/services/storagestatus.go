@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	mokubernetes "mogenius-operator/src/kubernetes"
 	"mogenius-operator/src/store"
 	"mogenius-operator/src/utils"
 	"sort"
@@ -253,15 +254,10 @@ func (v *NfsStatusResponse) ProcessNfsStatusResponse(s *VolumeStatus, err error)
 		// pv, pvc and nfs-pod are bounded and running
 		if bounded && boundedPodRunning {
 			if s.PersistentVolumeClaim != nil {
-				mountPath := utils.MountPath(s.Namespace, v.VolumeName, "/", clientProvider.RunsInCluster())
-
-				if utils.ClusterProviderCached == utils.DOCKER_DESKTOP || utils.ClusterProviderCached == utils.K3S {
-					var usedBytes uint64 = sumAllBytesOfFolder(mountPath)
-					v.FreeBytes = uint64(s.PersistentVolumeClaim.Spec.Resources.Requests.Storage().Value()) - usedBytes
-					v.UsedBytes = usedBytes
-					v.TotalBytes = uint64(s.PersistentVolumeClaim.Spec.Resources.Requests.Storage().Value())
+				free, used, total, err := mokubernetes.NfsDiskUsage(s.Namespace, v.VolumeName)
+				if err != nil {
+					serviceLogger.Warn("NfsDiskUsage failed", "namespace", s.Namespace, "volume", v.VolumeName, "error", err)
 				} else {
-					free, used, total, _ := diskUsage(mountPath)
 					v.FreeBytes = free
 					v.UsedBytes = used
 					v.TotalBytes = total

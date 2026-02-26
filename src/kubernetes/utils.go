@@ -1,9 +1,10 @@
 package kubernetes
 
 import (
+	"bytes"
 	"context"
 	"fmt"
-	"mogenius-operator/src/assert"
+	"io"
 	cfg "mogenius-operator/src/config"
 	"mogenius-operator/src/store"
 	"mogenius-operator/src/utils"
@@ -11,7 +12,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"time"
 
 	version2 "k8s.io/apimachinery/pkg/version"
 
@@ -19,6 +19,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/tools/remotecommand"
 	"k8s.io/client-go/util/homedir"
 )
 
@@ -98,32 +99,6 @@ func MoAddLabels(existingLabels *map[string]string, newLabels map[string]string)
 	return resultingLabels
 }
 
-// mount nfs server in operator pod
-func Mount(volumeNamespace string, volumeName string, nfsService *core.Service) {
-	go func() {
-		var service *core.Service = nfsService
-		if service == nil {
-			service = ServiceForNfsVolume(volumeNamespace, volumeName)
-		}
-		if service != nil {
-			if nfsService != nil {
-				time.Sleep(15 * time.Second)
-			}
-			autoMountNfs, err := strconv.ParseBool(config.Get("MO_AUTO_MOUNT_NFS"))
-			assert.Assert(err == nil, err)
-			if autoMountNfs && clientProvider.RunsInCluster() {
-				title := fmt.Sprintf("Mount [%s] into operator pod", volumeName)
-				mountDir := fmt.Sprintf("%s/%s_%s", config.Get("MO_DEFAULT_MOUNT_PATH"), volumeNamespace, volumeName)
-				shellCmd := fmt.Sprintf("mount.nfs -o nolock %s:/exports %s", service.Spec.ClusterIP, mountDir)
-				utils.CreateDirIfNotExist(mountDir)
-				utils.ExecuteShellCommandWithResponse(title, shellCmd)
-			}
-		} else {
-			k8sLogger.Warn("No ClusterIP found.", "volumeNamespace", volumeNamespace, "volumeName", volumeName, "resource", "nfs-server-pod-"+volumeName)
-		}
-	}()
-}
-
 func ServiceForNfsVolume(volumeNamespace string, volumeName string) *core.Service {
 	services := AllServices(volumeNamespace)
 	for _, srv := range services {
@@ -134,19 +109,103 @@ func ServiceForNfsVolume(volumeNamespace string, volumeName string) *core.Servic
 	return nil
 }
 
-// umount nfs server in operator pod
-func Umount(volumeNamespace string, volumeName string) {
-	go func() {
-		autoMountNfs, err := strconv.ParseBool(config.Get("MO_AUTO_MOUNT_NFS"))
-		assert.Assert(err == nil, err)
-		if autoMountNfs && clientProvider.RunsInCluster() {
-			title := fmt.Sprintf("Unmount [%s] from operator pod", volumeName)
-			mountDir := fmt.Sprintf("%s/%s_%s", config.Get("MO_DEFAULT_MOUNT_PATH"), volumeNamespace, volumeName)
-			shellCmd := fmt.Sprintf("umount %s", mountDir)
-			utils.ExecuteShellCommandWithResponse(title, shellCmd)
-			utils.DeleteDirIfExist(mountDir)
-		}
-	}()
+// NfsDiskUsage returns free/used/total bytes of the NFS export directory by
+// executing `df -B1 /exports` inside the NFS server pod – no local mount needed.
+func NfsDiskUsage(volumeNamespace string, volumeName string) (free, used, total uint64, err error) {
+	output, execErr := ExecInNfsPod(volumeNamespace, volumeName, []string{"df", "-B1", "/exports"}, nil)
+	if execErr != nil {
+		return 0, 0, 0, fmt.Errorf("df exec failed: %w", execErr)
+	}
+
+	// df -B1 output (header + data line):
+	// Filesystem     1-blocks      Used Available Use% Mounted on
+	// overlay        5368709120  102400  5266309120   2% /exports
+	lines := strings.Split(strings.TrimSpace(output), "\n")
+	if len(lines) < 2 {
+		return 0, 0, 0, fmt.Errorf("unexpected df output: %q", output)
+	}
+	fields := strings.Fields(lines[len(lines)-1])
+	if len(fields) < 4 {
+		return 0, 0, 0, fmt.Errorf("unexpected df output format: %q", lines[len(lines)-1])
+	}
+
+	total, err = strconv.ParseUint(fields[1], 10, 64)
+	if err != nil {
+		return 0, 0, 0, fmt.Errorf("parse total: %w", err)
+	}
+	used, err = strconv.ParseUint(fields[2], 10, 64)
+	if err != nil {
+		return 0, 0, 0, fmt.Errorf("parse used: %w", err)
+	}
+	free, err = strconv.ParseUint(fields[3], 10, 64)
+	if err != nil {
+		return 0, 0, 0, fmt.Errorf("parse free: %w", err)
+	}
+
+	return free, used, total, nil
+}
+
+// ExecInNfsPod executes a command inside the NFS server pod for the given volume and
+// returns the buffered stdout. stdin may be nil.
+func ExecInNfsPod(volumeNamespace, volumeName string, command []string, stdin io.Reader) (string, error) {
+	podNames := AllPodNamesForLabel(volumeNamespace, "app", fmt.Sprintf("%s-%s", utils.NFS_POD_PREFIX, volumeName))
+	if len(podNames) == 0 {
+		return "", fmt.Errorf("NFS server pod not found for %s/%s", volumeNamespace, volumeName)
+	}
+	var stdout bytes.Buffer
+	err := execInNfsPodStream(volumeNamespace, podNames[0], command, stdin, &stdout)
+	return stdout.String(), err
+}
+
+// ExecInNfsPodToWriter streams exec stdout directly into the provided writer. stdin may be nil.
+func ExecInNfsPodToWriter(volumeNamespace, volumeName string, command []string, stdin io.Reader, stdout io.Writer) error {
+	podNames := AllPodNamesForLabel(volumeNamespace, "app", fmt.Sprintf("%s-%s", utils.NFS_POD_PREFIX, volumeName))
+	if len(podNames) == 0 {
+		return fmt.Errorf("NFS server pod not found for %s/%s", volumeNamespace, volumeName)
+	}
+	return execInNfsPodStream(volumeNamespace, podNames[0], command, stdin, stdout)
+}
+
+func execInNfsPodStream(namespace, podName string, command []string, stdin io.Reader, stdout io.Writer) error {
+	clientset := clientProvider.K8sClientSet()
+	restConfig := clientProvider.ClientConfig()
+
+	req := clientset.CoreV1().RESTClient().Post().
+		Resource("pods").
+		Name(podName).
+		Namespace(namespace).
+		SubResource("exec").
+		Param("container", "nfs-server").
+		Param("stdout", "true").
+		Param("stderr", "true").
+		Param("tty", "false")
+
+	for _, arg := range command {
+		req.Param("command", arg)
+	}
+	if stdin != nil {
+		req.Param("stdin", "true")
+	}
+
+	executor, err := remotecommand.NewSPDYExecutor(restConfig, "POST", req.URL())
+	if err != nil {
+		return err
+	}
+
+	var stderr bytes.Buffer
+	opts := remotecommand.StreamOptions{
+		Stdout: stdout,
+		Stderr: &stderr,
+	}
+	if stdin != nil {
+		opts.Stdin = stdin
+	}
+
+	err = executor.StreamWithContext(context.Background(), opts)
+	if err != nil {
+		return fmt.Errorf("%w: %s", err, stderr.String())
+	}
+	return nil
 }
 
 

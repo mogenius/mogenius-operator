@@ -12,7 +12,6 @@ services:
     environment:
       - KUBECONFIG=/root/.kube/config
     working_dir: /app
-    privileged: true
     pid: host
     network_mode: host
     stdin_open: true

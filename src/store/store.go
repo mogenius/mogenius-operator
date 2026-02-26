@@ -200,7 +200,7 @@ func GetPod(namespace string, name string) *coreV1.Pod {
 }
 
 func GetPods(namespace string) []coreV1.Pod {
-	pods, err := valkeyclient.GetObjectsByPrefix[coreV1.Pod](valkeyClient, valkeyclient.ORDER_ASC, VALKEY_RESOURCE_PREFIX, utils.PodResource.ApiVersion, utils.PodResource.Kind, namespace)
+	pods, err := valkeyclient.GetObjectsByPrefix[coreV1.Pod](valkeyClient, valkeyclient.ORDER_ASC, VALKEY_RESOURCE_PREFIX, utils.PodResource.ApiVersion, utils.PodResource.Kind, namespace, "*")
 	if err != nil || pods == nil {
 		return nil
 	}

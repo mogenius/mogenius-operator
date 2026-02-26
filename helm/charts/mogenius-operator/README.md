@@ -26,7 +26,6 @@
 | cluster.domain | string | `"cluster.local"` | the cluster domain, default for kubernetes is "cluster.local" |
 | cluster.readonly.enabled | bool | `false` | readonly operator permissions true/false (default: false) |
 | containerSecurityContext.capabilities.drop[0] | string | `"ALL"` |  |
-| containerSecurityContext.privileged | bool | `true` |  |
 | containerSecurityContext.readOnlyRootFilesystem | bool | `true` |  |
 | envVars.MO_API_SERVER | string | `""` |  |
 | envVars.MO_EVENT_SERVER | string | `""` |  |
@@ -41,7 +40,6 @@
 | nodeMetrics.affinity | object | `{}` |  |
 | nodeMetrics.containerSecurityContext.capabilities.add[0] | string | `"NET_ADMIN"` |  |
 | nodeMetrics.containerSecurityContext.capabilities.add[1] | string | `"SYS_ADMIN"` |  |
-| nodeMetrics.containerSecurityContext.privileged | bool | `true` |  |
 | nodeMetrics.containerSecurityContext.readOnlyRootFilesystem | bool | `true` |  |
 | nodeMetrics.enabled | bool | `true` | enable the node metrics daemonset |
 | nodeMetrics.nodeSelector | object | `{}` |  |

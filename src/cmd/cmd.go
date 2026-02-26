@@ -303,12 +303,6 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		Envs:         []string{"git_user_email"},
 	})
 	configModule.Declare(config.ConfigDeclaration{
-		Key:          "MO_DEFAULT_MOUNT_PATH",
-		DefaultValue: utils.Pointer(filepath.Join(workDir, "mo-data")),
-		Description:  utils.Pointer("all containers have access to this mount point"),
-		Envs:         []string{"default_mount_path"},
-	})
-	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_AUDIT_LOG_LIMIT",
 		DefaultValue: utils.Pointer("1000"),
 		Description:  utils.Pointer("maximum number of audit log entries to persist"),
@@ -317,19 +311,6 @@ func LoadConfigDeclarations(configModule *config.Config) {
 			_, err := strconv.Atoi(value)
 			if err != nil {
 				return fmt.Errorf("'MO_AUDIT_LOG_LIMIT' needs to be an integer: %s", err.Error())
-			}
-			return nil
-		},
-	})
-	configModule.Declare(config.ConfigDeclaration{
-		Key:          "MO_AUTO_MOUNT_NFS",
-		DefaultValue: utils.Pointer("true"),
-		Description:  utils.Pointer("if set to true, nfs pvc will automatically be mounted"),
-		Envs:         []string{"auto_mount_nfs"},
-		Validate: func(value string) error {
-			_, err := strconv.ParseBool(value)
-			if err != nil {
-				return fmt.Errorf("'MO_AUTO_MOUNT_NFS' needs to be a boolean: %s", err.Error())
 			}
 			return nil
 		},
