@@ -1,3 +1,10 @@
+# [2.19.0-develop.96](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.95...v2.19.0-develop.96) (2026-02-26)
+
+
+### Bug Fixes
+
+* image tag name ([1f62e88](https://github.com/mogenius/mogenius-operator/commit/1f62e884a4653b1f639a2031df55a45abcad8b7d))
+
 # [2.19.0-develop.95](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.94...v2.19.0-develop.95) (2026-02-26)
 
 
