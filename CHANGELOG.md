@@ -1,3 +1,10 @@
+# [2.19.0-develop.87](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.86...v2.19.0-develop.87) (2026-02-26)
+
+
+### Bug Fixes
+
+* prometheus charts fix ([c3a4a3e](https://github.com/mogenius/mogenius-operator/commit/c3a4a3ed81bcd2e35a01501bbd9b0390efaaf09d))
+
 # [2.19.0-develop.86](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.85...v2.19.0-develop.86) (2026-02-26)
 
 
