@@ -40,7 +40,8 @@ jobs:
   # ============================================================================
   prepare:
     uses: mogenius/github-actions/.github/workflows/prepare.yml@main
-    secrets: inherit
+    secrets:
+      RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
     with:
       version_override: ${{ github.event.inputs.version || '' }}
       default_version: 'dev'
