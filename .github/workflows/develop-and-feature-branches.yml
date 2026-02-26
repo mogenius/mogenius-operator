@@ -233,7 +233,7 @@ jobs:
           fi
 
   helm-chart:
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/develop'
     needs: [prepare, operator-manifest]
     runs-on: [self-hosted]
     permissions:

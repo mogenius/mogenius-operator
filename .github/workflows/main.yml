@@ -25,7 +25,7 @@ on:
 env:
   REGISTRY: ghcr.io
   REGISTRY_PREFIX: ghcr.io/mogenius
-  HELMNAME: "mogenius-operator-ng"
+  HELMNAME: "mogenius-operator"
 
 jobs:
 
@@ -34,6 +34,8 @@ jobs:
   # ============================================================================
   prepare:
     uses: mogenius/github-actions/.github/workflows/prepare.yml@main
+    secrets:
+      RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
     with:
       version_override: ${{ github.event.inputs.version || '' }}
       default_version: 'dev'
@@ -70,10 +72,10 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./Dockerfile-ng
+          file: ./Dockerfile
           platforms: linux/amd64
           push: true
-          tags: ${{ env.REGISTRY_PREFIX }}/mogenius-operator-ng:${{ needs.prepare.outputs.version }}-amd64
+          tags: ${{ env.REGISTRY_PREFIX }}/mogenius-operator:${{ needs.prepare.outputs.version }}-amd64
           build-args: |
             GO_BUILDER_IMAGE=${{ env.REGISTRY_PREFIX }}/go-builder:latest-amd64
             RUST_BUILDER_IMAGE=${{ env.REGISTRY_PREFIX }}/rust-builder:latest-amd64
@@ -116,10 +118,10 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./Dockerfile-ng
+          file: ./Dockerfile
           platforms: linux/arm64
           push: true
-          tags: ${{ env.REGISTRY_PREFIX }}/mogenius-operator-ng:${{ needs.prepare.outputs.version }}-arm64
+          tags: ${{ env.REGISTRY_PREFIX }}/mogenius-operator:${{ needs.prepare.outputs.version }}-arm64
           build-args: |
             GO_BUILDER_IMAGE=${{ env.REGISTRY_PREFIX }}/go-builder:latest-arm64
             RUST_BUILDER_IMAGE=${{ env.REGISTRY_PREFIX }}/rust-builder:latest-arm64
@@ -167,10 +169,10 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./Dockerfile-ng
+          file: ./Dockerfile
           platforms: linux/arm/v7
           push: true
-          tags: ${{ env.REGISTRY_PREFIX }}/mogenius-operator-ng:${{ needs.prepare.outputs.version }}-armv7
+          tags: ${{ env.REGISTRY_PREFIX }}/mogenius-operator:${{ needs.prepare.outputs.version }}-armv7
           build-args: |
             GO_BUILDER_IMAGE=${{ env.REGISTRY_PREFIX }}/go-builder:latest-amd64
             RUST_BUILDER_IMAGE=${{ env.REGISTRY_PREFIX }}/rust-builder:latest-amd64
@@ -223,21 +225,6 @@ jobs:
               ${{ env.REGISTRY_PREFIX }}/mogenius-operator-ng:${VERSION}-arm64 \
               ${{ env.REGISTRY_PREFIX }}/mogenius-operator-ng:${VERSION}-armv7
           fi
-
-          # # Create manifest with SHA tag
-          # SHA_TAG=${GITHUB_SHA::7}
-          # docker buildx imagetools create -t ${{ env.REGISTRY_PREFIX }}/mogenius-operator-ng:${SHA_TAG} \
-          #   ${{ env.REGISTRY_PREFIX }}/mogenius-operator-ng:${VERSION}-amd64 \
-          #   ${{ env.REGISTRY_PREFIX }}/mogenius-operator-ng:${VERSION}-arm64 \
-          #   ${{ env.REGISTRY_PREFIX }}/mogenius-operator-ng:${VERSION}-armv7
-
-          # # Create manifest with branch tag
-          # BRANCH_TAG=$(echo "${{ github.ref_name }}" | sed 's/[^a-zA-Z0-9]/-/g')
-          # docker buildx imagetools create -t ${{ env.REGISTRY_PREFIX }}/mogenius-operator-ng:${BRANCH_TAG} \
-          #   ${{ env.REGISTRY_PREFIX }}/mogenius-operator-ng:${VERSION}-amd64 \
-          #   ${{ env.REGISTRY_PREFIX }}/mogenius-operator-ng:${VERSION}-arm64 \
-          #   ${{ env.REGISTRY_PREFIX }}/mogenius-operator-ng:${VERSION}-armv7
-
 
   helm-chart:
     if: github.ref == 'refs/heads/main'
