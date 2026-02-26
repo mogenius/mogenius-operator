@@ -432,7 +432,7 @@ func HelmRepoAdd(data HelmRepoAddRequest) (string, error) {
 
 	// Check if the repository already exists
 	if repoFile.Has(data.Name) {
-		return "", ErrorRepoAlreadyExists
+		return fmt.Sprintf("repository '%s' already exists", data.Name), nil
 	}
 
 	// Add the new repository entry
