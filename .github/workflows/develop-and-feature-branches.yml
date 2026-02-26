@@ -81,7 +81,7 @@ jobs:
           file: ./Dockerfile
           platforms: linux/amd64
           push: true
-          tags: ${{ env.REGISTRY_PREFIX }}/mogenius-operator:${{ needs.prepare.outputs.version }}-amd64
+          tags: ${{ env.REGISTRY_PREFIX }}/mogenius-operator-dev:${{ needs.prepare.outputs.version }}-amd64
           build-args: |
             GO_BUILDER_IMAGE=${{ env.REGISTRY_PREFIX }}/go-builder:latest-amd64
             RUST_BUILDER_IMAGE=${{ env.REGISTRY_PREFIX }}/rust-builder:latest-amd64
@@ -127,7 +127,7 @@ jobs:
           file: ./Dockerfile
           platforms: linux/arm64
           push: true
-          tags: ${{ env.REGISTRY_PREFIX }}/mogenius-operator:${{ needs.prepare.outputs.version }}-arm64
+          tags: ${{ env.REGISTRY_PREFIX }}/mogenius-operator-dev:${{ needs.prepare.outputs.version }}-arm64
           build-args: |
             GO_BUILDER_IMAGE=${{ env.REGISTRY_PREFIX }}/go-builder:latest-arm64
             RUST_BUILDER_IMAGE=${{ env.REGISTRY_PREFIX }}/rust-builder:latest-arm64
@@ -178,7 +178,7 @@ jobs:
           file: ./Dockerfile
           platforms: linux/arm/v7
           push: true
-          tags: ${{ env.REGISTRY_PREFIX }}/mogenius-operator:${{ needs.prepare.outputs.version }}-armv7
+          tags: ${{ env.REGISTRY_PREFIX }}/mogenius-operator-dev:${{ needs.prepare.outputs.version }}-armv7
           build-args: |
             GO_BUILDER_IMAGE=${{ env.REGISTRY_PREFIX }}/go-builder:latest-amd64
             RUST_BUILDER_IMAGE=${{ env.REGISTRY_PREFIX }}/rust-builder:latest-amd64
@@ -219,17 +219,17 @@ jobs:
           VERSION: ${{ needs.prepare.outputs.version }}
         run: |
           # Create manifest for version tag
-          docker buildx imagetools create -t ${{ env.REGISTRY_PREFIX }}/mogenius-operator:${VERSION} \
-            ${{ env.REGISTRY_PREFIX }}/mogenius-operator:${VERSION}-amd64 \
-            ${{ env.REGISTRY_PREFIX }}/mogenius-operator:${VERSION}-arm64 \
-            ${{ env.REGISTRY_PREFIX }}/mogenius-operator:${VERSION}-armv7
+          docker buildx imagetools create -t ${{ env.REGISTRY_PREFIX }}/mogenius-operator-dev:${VERSION} \
+            ${{ env.REGISTRY_PREFIX }}/mogenius-operator-dev:${VERSION}-amd64 \
+            ${{ env.REGISTRY_PREFIX }}/mogenius-operator-dev:${VERSION}-arm64 \
+            ${{ env.REGISTRY_PREFIX }}/mogenius-operator-dev:${VERSION}-armv7
 
           # Create manifest for latest (only on main branch)
           if [ "${{ github.ref_name }}" == "main" ]; then
-            docker buildx imagetools create -t ${{ env.REGISTRY_PREFIX }}/mogenius-operator:latest \
-              ${{ env.REGISTRY_PREFIX }}/mogenius-operator:${VERSION}-amd64 \
-              ${{ env.REGISTRY_PREFIX }}/mogenius-operator:${VERSION}-arm64 \
-              ${{ env.REGISTRY_PREFIX }}/mogenius-operator:${VERSION}-armv7
+            docker buildx imagetools create -t ${{ env.REGISTRY_PREFIX }}/mogenius-operator-dev:latest \
+              ${{ env.REGISTRY_PREFIX }}/mogenius-operator-dev:${VERSION}-amd64 \
+              ${{ env.REGISTRY_PREFIX }}/mogenius-operator-dev:${VERSION}-arm64 \
+              ${{ env.REGISTRY_PREFIX }}/mogenius-operator-dev:${VERSION}-armv7
           fi
 
   helm-chart:
