@@ -1,3 +1,10 @@
+# [2.19.0-develop.93](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.92...v2.19.0-develop.93) (2026-02-26)
+
+
+### Bug Fixes
+
+* helm chart name in dev ([55cf841](https://github.com/mogenius/mogenius-operator/commit/55cf841beaa97e1f0dc661bfe6648baba2f7d69d))
+
 # [2.19.0-develop.92](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.91...v2.19.0-develop.92) (2026-02-26)
 
 
