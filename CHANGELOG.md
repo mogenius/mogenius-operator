@@ -1,3 +1,10 @@
+# [2.19.0-develop.86](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.85...v2.19.0-develop.86) (2026-02-26)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/go-git/go-git/v5 to v5.17.0 ([#814](https://github.com/mogenius/mogenius-operator/issues/814)) ([ba2dbdd](https://github.com/mogenius/mogenius-operator/commit/ba2dbddd02ede76d6298d3d27ef37583671ef7e2))
+
 # [2.19.0-develop.85](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.84...v2.19.0-develop.85) (2026-02-25)
 
 
