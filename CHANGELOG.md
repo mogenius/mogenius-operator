@@ -1,3 +1,11 @@
+# [2.19.0-develop.88](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.87...v2.19.0-develop.88) (2026-02-26)
+
+
+### Bug Fixes
+
+* helm add fix ([bfd2ea6](https://github.com/mogenius/mogenius-operator/commit/bfd2ea66924efdaa2b32396d72540ee0b7653b33))
+* talos nodemetrics ([407e723](https://github.com/mogenius/mogenius-operator/commit/407e72302be1bec0759efefa2a37b7c9f3d02d4e))
+
 # [2.19.0-develop.87](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.86...v2.19.0-develop.87) (2026-02-26)
 
 
