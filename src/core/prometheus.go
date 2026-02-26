@@ -246,8 +246,13 @@ func prometheusUrlAndHeader(data PrometheusRequest, customEndpoint string, confi
 		if data.TimeOffsetSeconds == 0 {
 			result += fmt.Sprintf("/api/v1/query?query=%s", url.QueryEscape(data.Query))
 		} else {
-			if data.Step <= 0 {
-				data.Step = 1 // Default step if not provided
+			targetPoints := int64(60)
+			calculatedStep := data.TimeOffsetSeconds / targetPoints
+			if calculatedStep < 1 {
+				calculatedStep = 1
+			}
+			if data.Step <= 0 || int64(data.Step) > data.TimeOffsetSeconds/2 {
+				data.Step = int(calculatedStep)
 			}
 			if data.TimeOffsetSeconds < 60 {
 				data.TimeOffsetSeconds = 60 // Minimum offset to avoid too frequent queries
