@@ -25,7 +25,6 @@ on:
 
 
 env:
-  # env:
   IMAGE_NAME: ghcr.io/mogenius/mogenius-operator-dev
   REGISTRY: ghcr.io
   DOCKER_CONFIG: ./.docker
