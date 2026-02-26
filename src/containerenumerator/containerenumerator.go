@@ -26,6 +26,7 @@ var cgroupRegexes = []*regexp.Regexp{
 	regexp.MustCompile(`containerd[/-]([a-f0-9]{64})`),
 	regexp.MustCompile(`crio-([a-f0-9]{64})`),
 	regexp.MustCompile(`cri-containerd-([a-f0-9]{64})`),
+	regexp.MustCompile(`kubepods.*/([a-f0-9]{64})$`),
 	regexp.MustCompile(`kubepods.*pod([a-f0-9\-]{36})`),
 	regexp.MustCompile(`libpod-([a-f0-9]{64})`),
 	regexp.MustCompile(`garden-([a-f0-9\-]{36})`),
