@@ -819,6 +819,19 @@ func (self *snoopyManager) attachToPidNamespace(pid ProcessId) (*SnoopyHandle, e
 	snoopy.LastMetricsLock = &sync.RWMutex{}
 	snoopy.LastMetrics = map[InterfaceName]SnoopyInterfaceMetrics{}
 
+	// Seed interface baselines from procdev immediately.
+	// This mirrors what networkStatsReader.Register() does, and ensures
+	// Metrics() has something to iterate over even if snoopy crashes before
+	// emitting any InterfaceAdded events (e.g. when eBPF init fails fatally).
+	if infos, err := getNetworkInterfaceInfo(self.procPath, pidS); err == nil {
+		for _, info := range infos {
+			snoopy.IngressStartBytes[info.Interface] = info.ReceiveBytes
+			snoopy.EgressStartBytes[info.Interface] = info.TransmitBytes
+			snoopy.IngressStartPackets[info.Interface] = info.ReceivePackets
+			snoopy.EgressStartPackets[info.Interface] = info.TransmitPackets
+		}
+	}
+
 	go func() {
 		scanner := bufio.NewScanner(stdoutPipe)
 		for scanner.Scan() {
