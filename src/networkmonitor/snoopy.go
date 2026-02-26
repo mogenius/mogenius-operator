@@ -151,10 +151,12 @@ type SnoopyHandle struct {
 	SnoopyPid    ProcessId
 	ContainerPid ProcessId // PID of the monitored container process (for procdev fallback)
 
-	StartBytesLock      *sync.RWMutex
-	IngressStartBytes   map[InterfaceName]uint64
-	EgressStartBytes    map[InterfaceName]uint64
-	BpfFailedInterfaces map[InterfaceName]bool // interfaces where eBPF init failed; protected by StartBytesLock
+	StartBytesLock       *sync.RWMutex
+	IngressStartBytes    map[InterfaceName]uint64
+	EgressStartBytes     map[InterfaceName]uint64
+	IngressStartPackets  map[InterfaceName]uint64 // protected by StartBytesLock
+	EgressStartPackets   map[InterfaceName]uint64 // protected by StartBytesLock
+	BpfFailedInterfaces  map[InterfaceName]bool   // interfaces where eBPF init failed; protected by StartBytesLock
 
 	LastMetricsLock *sync.RWMutex
 	LastMetrics     map[InterfaceName]SnoopyInterfaceMetrics
@@ -547,9 +549,21 @@ func (self *snoopyManager) Metrics() map[containerenumerator.PodInfoIdentifier]C
 			interfaceInfo := MetricSnapshot{}
 			interfaceInfo.Ingress.StartBytes = handle.IngressStartBytes[interfaceName]
 			interfaceInfo.Egress.StartBytes = handle.EgressStartBytes[interfaceName]
-			if handle.BpfFailedInterfaces[interfaceName] {
-				// eBPF failed for this interface: fall back to /proc/net/dev so traffic is
-				// still captured on kernels where BPF loading is restricted (e.g. Talos).
+			// Use eBPF metrics if they have reported any data.
+			// If LastMetrics is all-zero the eBPF program either failed to initialize
+			// (explicitly or silently, e.g. after removing privileged:true) or snoopy
+			// just started and hasn't emitted its first tick yet.
+			// In that case fall back to /proc/net/dev so that traffic is always captured.
+			lastM := handle.LastMetrics[interfaceName]
+			if lastM.Ingress.Bytes > 0 || lastM.Egress.Bytes > 0 || lastM.Ingress.Packets > 0 || lastM.Egress.Packets > 0 {
+				// eBPF is delivering data — use it.
+				interfaceInfo.Ingress.Bytes = lastM.Ingress.Bytes
+				interfaceInfo.Ingress.Packets = lastM.Ingress.Packets
+				interfaceInfo.Egress.Bytes = lastM.Egress.Bytes
+				interfaceInfo.Egress.Packets = lastM.Egress.Packets
+			} else {
+				// No eBPF data: read /proc/net/dev and compute delta from the baseline
+				// that was captured when the interface was first registered.
 				pidStr := strconv.FormatUint(handle.ContainerPid, 10)
 				procInfos, err := getNetworkInterfaceInfo(self.procPath, pidStr)
 				if err == nil {
@@ -557,23 +571,24 @@ func (self *snoopyManager) Metrics() map[containerenumerator.PodInfoIdentifier]C
 						if procInfo.Interface == interfaceName {
 							startRx := handle.IngressStartBytes[interfaceName]
 							startTx := handle.EgressStartBytes[interfaceName]
+							startRxPkts := handle.IngressStartPackets[interfaceName]
+							startTxPkts := handle.EgressStartPackets[interfaceName]
 							if procInfo.ReceiveBytes >= startRx {
 								interfaceInfo.Ingress.Bytes = procInfo.ReceiveBytes - startRx
 							}
-							interfaceInfo.Ingress.Packets = procInfo.ReceivePackets
+							if procInfo.ReceivePackets >= startRxPkts {
+								interfaceInfo.Ingress.Packets = procInfo.ReceivePackets - startRxPkts
+							}
 							if procInfo.TransmitBytes >= startTx {
 								interfaceInfo.Egress.Bytes = procInfo.TransmitBytes - startTx
 							}
-							interfaceInfo.Egress.Packets = procInfo.TransmitPackets
+							if procInfo.TransmitPackets >= startTxPkts {
+								interfaceInfo.Egress.Packets = procInfo.TransmitPackets - startTxPkts
+							}
 							break
 						}
 					}
 				}
-			} else {
-				interfaceInfo.Ingress.Bytes = handle.LastMetrics[interfaceName].Ingress.Bytes
-				interfaceInfo.Ingress.Packets = handle.LastMetrics[interfaceName].Ingress.Packets
-				interfaceInfo.Egress.Bytes = handle.LastMetrics[interfaceName].Egress.Bytes
-				interfaceInfo.Egress.Packets = handle.LastMetrics[interfaceName].Egress.Packets
 			}
 			containerInfo.Metrics[interfaceName] = interfaceInfo
 		}
@@ -658,17 +673,21 @@ func (self *snoopyManager) Register(podInfo containerenumerator.PodInfo) []error
 					switch metrics.Type {
 					case SnoopyEventTypeInterfaceAdded:
 						iface := metrics.InterfaceAdded.Interface.Name
-						rxBytes := self.readRxBytesFromPidAndInterface(pid, iface)
-						txBytes := self.readTxBytesFromPidAndInterface(pid, iface)
+						rxBytes, txBytes, rxPkts, txPkts := self.readStartMetricsFromPidAndInterface(pid, iface)
 						handle.StartBytesLock.Lock()
 						handle.IngressStartBytes[iface] = rxBytes
 						handle.EgressStartBytes[iface] = txBytes
+						handle.IngressStartPackets[iface] = rxPkts
+						handle.EgressStartPackets[iface] = txPkts
 						handle.StartBytesLock.Unlock()
 					case SnoopyEventTypeInterfaceRemoved:
+						iface := metrics.InterfaceRemoved.Interface.Name
 						handle.StartBytesLock.Lock()
-						delete(handle.IngressStartBytes, metrics.InterfaceRemoved.Interface.Name)
-						delete(handle.EgressStartBytes, metrics.InterfaceRemoved.Interface.Name)
-						delete(handle.BpfFailedInterfaces, metrics.InterfaceRemoved.Interface.Name)
+						delete(handle.IngressStartBytes, iface)
+						delete(handle.EgressStartBytes, iface)
+						delete(handle.IngressStartPackets, iface)
+						delete(handle.EgressStartPackets, iface)
+						delete(handle.BpfFailedInterfaces, iface)
 						handle.StartBytesLock.Unlock()
 					case SnoopyEventTypeInterfaceChanged:
 						// ignore
@@ -737,36 +756,21 @@ func (self *snoopyManager) Remove(podInfo containerenumerator.PodInfo) []error {
 	return errors
 }
 
-func (self *snoopyManager) readRxBytesFromPidAndInterface(pid ProcessId, iface string) uint64 {
+// readStartMetricsFromPidAndInterface reads the current byte and packet counters from
+// /proc/$pid/net/dev for a given interface. These are used as the baseline when a
+// container is registered so that we can compute deltas later.
+func (self *snoopyManager) readStartMetricsFromPidAndInterface(pid ProcessId, iface string) (rxBytes, txBytes, rxPkts, txPkts uint64) {
 	pidS := strconv.FormatUint(pid, 10)
 	infos, err := getNetworkInterfaceInfo(self.procPath, pidS)
 	if err != nil {
-		return 0
+		return 0, 0, 0, 0
 	}
-
 	for _, info := range infos {
 		if info.Interface == iface {
-			return info.ReceiveBytes
+			return info.ReceiveBytes, info.TransmitBytes, info.ReceivePackets, info.TransmitPackets
 		}
 	}
-
-	return 0
-}
-
-func (self *snoopyManager) readTxBytesFromPidAndInterface(pid ProcessId, iface string) uint64 {
-	pidS := strconv.FormatUint(pid, 10)
-	infos, err := getNetworkInterfaceInfo(self.procPath, pidS)
-	if err != nil {
-		return 0
-	}
-
-	for _, info := range infos {
-		if info.Interface == iface {
-			return info.TransmitBytes
-		}
-	}
-
-	return 0
+	return 0, 0, 0, 0
 }
 
 func (self *snoopyManager) attachToPidNamespace(pid ProcessId) (*SnoopyHandle, error) {
@@ -809,6 +813,8 @@ func (self *snoopyManager) attachToPidNamespace(pid ProcessId) (*SnoopyHandle, e
 	snoopy.StartBytesLock = &sync.RWMutex{}
 	snoopy.IngressStartBytes = map[InterfaceName]uint64{}
 	snoopy.EgressStartBytes = map[InterfaceName]uint64{}
+	snoopy.IngressStartPackets = map[InterfaceName]uint64{}
+	snoopy.EgressStartPackets = map[InterfaceName]uint64{}
 	snoopy.BpfFailedInterfaces = map[InterfaceName]bool{}
 	snoopy.LastMetricsLock = &sync.RWMutex{}
 	snoopy.LastMetrics = map[InterfaceName]SnoopyInterfaceMetrics{}
