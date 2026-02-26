@@ -175,7 +175,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./Dockerfile-ng
+          file: ./Dockerfile
           platforms: linux/arm/v7
           push: true
           tags: ${{ env.REGISTRY_PREFIX }}/mogenius-operator:${{ needs.prepare.outputs.version }}-armv7
