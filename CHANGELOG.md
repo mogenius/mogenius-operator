@@ -1,3 +1,10 @@
+# [2.19.0-develop.103](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.102...v2.19.0-develop.103) (2026-02-27)
+
+
+### Bug Fixes
+
+* errors fixed ([0fd6307](https://github.com/mogenius/mogenius-operator/commit/0fd63076cd8e1cb09dd5e7f34aa94ca1729998c2))
+
 # [2.19.0-develop.102](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.101...v2.19.0-develop.102) (2026-02-27)
 
 
