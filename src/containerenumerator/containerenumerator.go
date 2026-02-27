@@ -31,6 +31,10 @@ var cgroupRegexes = []*regexp.Regexp{
 	regexp.MustCompile(`libpod-([a-f0-9]{64})`),
 	regexp.MustCompile(`garden-([a-f0-9\-]{36})`),
 	regexp.MustCompile(`lxc[/-]([a-zA-Z0-9\-_]+)`),
+	// Talos on VMs (linuxkit) uses cgroup v2 paths without the kubepods prefix.
+	// The path ends with pod<uid>/<container-id-64hex> where the pod UID is either
+	// a 32-char hex string (UUID without hyphens) or a 36-char UUID with hyphens.
+	regexp.MustCompile(`pod[a-f0-9\-]{32,36}/([a-f0-9]{64})$`),
 }
 
 type ContainerEnumerator interface {

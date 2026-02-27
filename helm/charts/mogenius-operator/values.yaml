@@ -158,4 +158,5 @@ nodeMetrics:
         - NET_ADMIN
         - SYS_ADMIN
         - BPF # required for eBPF on modern kernels (Linux ≥5.8) without privileged:true
+        - SYS_PTRACE # required for nsenter to open /proc/$pid/ns/net of other processes
   podSecurityContext: {}
