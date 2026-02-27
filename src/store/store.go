@@ -323,6 +323,10 @@ func GetNodes() []coreV1.Node {
 	return nodes
 }
 
+func DeleteNode(name string) error {
+	return valkeyClient.DeleteSingle(VALKEY_RESOURCE_PREFIX, utils.NodeResource.ApiVersion, utils.NodeResource.Kind, "", name)
+}
+
 func GetAllGrants(namespace string) ([]v1alpha1.Grant, error) {
 	pattern := CreateKeyPattern(&utils.GrantResource.ApiVersion, &utils.GrantResource.Kind, &namespace, nil)
 	grants, err := valkeyclient.GetObjectsByPrefix[v1alpha1.Grant](valkeyClient, valkeyclient.ORDER_ASC, pattern)

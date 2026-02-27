@@ -16,6 +16,7 @@ import (
 	json "github.com/goccy/go-json"
 
 	v1 "k8s.io/api/core/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
 type PodStatsCollector interface {
@@ -128,7 +129,12 @@ func (self *podStatsCollector) getRealNodeMetrics() []podstatscollector.NodeMetr
 	for _, node := range store.GetNodes() {
 		nodeStats, err := self.requestMetricsDataFromNode(node.Name)
 		if err != nil {
-			self.logger.Error("failed to request metrics from node", "error", err)
+			if k8serrors.IsNotFound(err) {
+				self.logger.Warn("node no longer exists, removing from store", "node", node.Name)
+				_ = store.DeleteNode(node.Name)
+			} else {
+				self.logger.Error("failed to request metrics from node", "error", err)
+			}
 			continue
 		}
 		result = append(result, *nodeStats)
@@ -199,7 +205,7 @@ func (self *podStatsCollector) requestMetricsDataFromNode(nodeName string) (*pod
 
 	resultData := restClient.Get().AbsPath(path).Do(context.Background())
 	if err := resultData.Error(); err != nil {
-		return nil, fmt.Errorf("failed to make request: %v", err)
+		return nil, fmt.Errorf("failed to make request: %w", err)
 	}
 
 	rawResponse, err := resultData.Raw()
