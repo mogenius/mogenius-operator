@@ -1,3 +1,10 @@
+# [2.19.0-develop.102](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.101...v2.19.0-develop.102) (2026-02-27)
+
+
+### Bug Fixes
+
+* network traffic snoopy ([68efa47](https://github.com/mogenius/mogenius-operator/commit/68efa47daa7a3141d71b538db9943408696a40f3))
+
 # [2.19.0-develop.101](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.100...v2.19.0-develop.101) (2026-02-27)
 
 
