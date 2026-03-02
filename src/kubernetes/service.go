@@ -22,7 +22,7 @@ func AllServices(namespaceName string) []v1.Service {
 }
 
 func FindPrometheusService() (namespace string, service string, port int32, err error) {
-	services := store.GetServices("", "*")
+	services := store.GetServices("*", "*")
 	for _, svc := range services {
 		if svc.Name == "prometheus-kube-prometheus-prometheus" ||
 			svc.Name == "kube-prometheus-stack-prometheus" ||
@@ -54,7 +54,7 @@ func FindSealedSecretsService(cfg cfg.ConfigModule) (namespace string, service s
 		}
 	}
 
-	for _, svc := range store.GetServices("", "*") {
+	for _, svc := range store.GetServices("*", "*") {
 		if svc.Name == "sealed-secrets" {
 			if len(svc.Spec.Ports) > 0 {
 				return svc.Namespace, svc.Name, svc.Spec.Ports[0].Port, nil
