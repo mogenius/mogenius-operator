@@ -1,3 +1,10 @@
+# [2.19.0-develop.107](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.106...v2.19.0-develop.107) (2026-03-02)
+
+
+### Bug Fixes
+
+* service discovery for prometheus ([a6316b6](https://github.com/mogenius/mogenius-operator/commit/a6316b6e135e6d34fdc87426e187657792bbf262))
+
 # [2.19.0-develop.106](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.105...v2.19.0-develop.106) (2026-03-01)
 
 
