@@ -1044,6 +1044,72 @@ func (self *socketApi) registerPatterns() {
 		},
 	)
 
+	{
+		type PodLogsRequest struct {
+			Namespace string `json:"namespace" validate:"required"`
+			PodName   string `json:"podName" validate:"required"`
+			Container string `json:"container"`
+			TailLines int64  `json:"tailLines"`
+			Previous  bool   `json:"previous"`
+		}
+
+		RegisterPatternHandler(
+			PatternHandle{self, "get/workload/pod-logs"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request PodLogsRequest) (string, error) {
+				tailLines := request.TailLines
+				if tailLines <= 0 {
+					tailLines = 100
+				}
+				return kubernetes.GetPodLogs(request.Namespace, request.PodName, request.Container, tailLines, request.Previous)
+			},
+		)
+	}
+
+	{
+		type PodEventsRequest struct {
+			Namespace string `json:"namespace" validate:"required"`
+			PodName   string `json:"podName" validate:"required"`
+		}
+
+		type PodEvent struct {
+			Timestamp string `json:"timestamp"`
+			Reason    string `json:"reason"`
+			Message   string `json:"message"`
+		}
+
+		RegisterPatternHandler(
+			PatternHandle{self, "get/workload/pod-events"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request PodEventsRequest) ([]PodEvent, error) {
+				data, err := self.valkeyClient.List(50, "resources", "v1", "Event", request.Namespace, request.PodName+"*")
+				if err != nil {
+					return nil, err
+				}
+
+				var events []PodEvent
+				for _, item := range data {
+					var event struct {
+						ObjectMeta struct {
+							CreationTimestamp string `json:"creationTimestamp"`
+						} `json:"metadata"`
+						Reason  string `json:"reason"`
+						Message string `json:"message"`
+					}
+					if err := json.Unmarshal([]byte(item), &event); err != nil {
+						continue
+					}
+					events = append(events, PodEvent{
+						Timestamp: event.ObjectMeta.CreationTimestamp,
+						Reason:    event.Reason,
+						Message:   event.Message,
+					})
+				}
+				return events, nil
+			},
+		)
+	}
+
 	RegisterPatternHandler(
 		PatternHandle{self, "get/workspaces"},
 		PatternConfig{},
