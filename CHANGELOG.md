@@ -1,3 +1,10 @@
+# [2.19.0-develop.109](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.108...v2.19.0-develop.109) (2026-03-04)
+
+
+### Bug Fixes
+
+* add new pattern get/workload/pod-logs and get/workload/pod-events ([e77c2f0](https://github.com/mogenius/mogenius-operator/commit/e77c2f04d824ccafc101d161d9c10f4745380620))
+
 # [2.19.0-develop.108](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.107...v2.19.0-develop.108) (2026-03-04)
 
 
