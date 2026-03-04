@@ -1,3 +1,10 @@
+# [2.19.0-develop.110](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.109...v2.19.0-develop.110) (2026-03-04)
+
+
+### Bug Fixes
+
+* toggle filter fix ([0ed7f20](https://github.com/mogenius/mogenius-operator/commit/0ed7f20febf2fa786a4f4eda3c3a0c82c12119cf))
+
 # [2.19.0-develop.109](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.108...v2.19.0-develop.109) (2026-03-04)
 
 
