@@ -76,10 +76,10 @@ func CreateOrUpdateAndMergePromptConfig(newPromptCfg ai.AiPromptConfig) (ai.AiPr
 		},
 	}
 
-	// get existing configmap and merge if exists
-	existingCfgMapUnstructured, err := GetUnstructuredResource(utils.ConfigMapResource.ApiVersion, utils.ConfigMapResource.Plural, config.Get("MO_OWN_NAMESPACE"), utils.AI_FILTERS_CONFIGMAP_NAME)
+	// create or update configmap with the incoming config as-is
+	// (the frontend sends the complete desired state including user filter toggles)
+	_, err = GetUnstructuredResource(utils.ConfigMapResource.ApiVersion, utils.ConfigMapResource.Plural, config.Get("MO_OWN_NAMESPACE"), utils.AI_FILTERS_CONFIGMAP_NAME)
 	if apierrors.IsNotFound(err) {
-		// create if not exists
 		cfgMapYaml, err := yaml.Marshal(cfgMap)
 		if err != nil {
 			return newPromptCfg, err
@@ -88,65 +88,14 @@ func CreateOrUpdateAndMergePromptConfig(newPromptCfg ai.AiPromptConfig) (ai.AiPr
 		if err != nil {
 			return newPromptCfg, err
 		}
-	} else {
-		if err == nil {
-			// update if exists
-			configmapData, ok := existingCfgMapUnstructured.Object["data"].(map[string]any)
-			if ok {
-				filtersData, filtersFound := configmapData["filters"].(string)
-				if filtersFound {
-					var existingFilters []ai.AiFilter
-					if unmarshalErr := yaml.Unmarshal([]byte(filtersData), &existingFilters); unmarshalErr != nil {
-						return newPromptCfg, unmarshalErr
-					}
-
-					// transfer IsActive state from existing filters to new filters
-					for _, eF := range existingFilters {
-						for nfInfex, nF := range newPromptCfg.Filters {
-							if eF.Id == nF.Id {
-								newPromptCfg.Filters[nfInfex].IsActive = eF.IsActive
-							}
-						}
-					}
-				}
-				userFiltersData, userFiltersFound := configmapData["userFilters"].(string)
-				if userFiltersFound {
-					var existingFilters []ai.AiFilter
-					if unmarshalErr := yaml.Unmarshal([]byte(userFiltersData), &existingFilters); unmarshalErr != nil {
-						return newPromptCfg, unmarshalErr
-					}
-
-					// transfer IsActive state from existing filters to new filters
-					for _, eF := range existingFilters {
-						for nfInfex, nF := range newPromptCfg.UserFilters {
-							if eF.Id == nF.Id {
-								newPromptCfg.UserFilters[nfInfex].IsActive = eF.IsActive
-							}
-						}
-					}
-				}
-			}
-
-			// Re-marshal after merge to persist the updated IsActive states
-			mergedFilterYaml, err := yaml.Marshal(newPromptCfg.Filters)
-			if err != nil {
-				return newPromptCfg, err
-			}
-			mergedUserFiltersYaml, err := yaml.Marshal(newPromptCfg.UserFilters)
-			if err != nil {
-				return newPromptCfg, err
-			}
-			cfgMap.Data["filters"] = string(mergedFilterYaml)
-			cfgMap.Data["userFilters"] = string(mergedUserFiltersYaml)
-
-			cfgMapYaml, err := yaml.Marshal(cfgMap)
-			if err != nil {
-				return newPromptCfg, err
-			}
-			_, err = UpdateUnstructuredResource(utils.ConfigMapResource.ApiVersion, utils.ConfigMapResource.Plural, true, string(cfgMapYaml))
-			if err != nil {
-				return newPromptCfg, err
-			}
+	} else if err == nil {
+		cfgMapYaml, err := yaml.Marshal(cfgMap)
+		if err != nil {
+			return newPromptCfg, err
+		}
+		_, err = UpdateUnstructuredResource(utils.ConfigMapResource.ApiVersion, utils.ConfigMapResource.Plural, true, string(cfgMapYaml))
+		if err != nil {
+			return newPromptCfg, err
 		}
 	}
 
