@@ -1,3 +1,10 @@
+# [2.19.0-develop.114](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.113...v2.19.0-develop.114) (2026-03-06)
+
+
+### Bug Fixes
+
+* removed fixed branch references ([e881d3c](https://github.com/mogenius/mogenius-operator/commit/e881d3c6c5348b1cf3489ef2971acf87d4079ff2))
+
 # [2.19.0-develop.113](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.112...v2.19.0-develop.113) (2026-03-06)
 
 
