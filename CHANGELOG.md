@@ -1,3 +1,10 @@
+## [2.19.1](https://github.com/mogenius/mogenius-operator/compare/v2.19.0...v2.19.1) (2026-03-06)
+
+
+### Bug Fixes
+
+* remove -ng suffix ([1d92245](https://github.com/mogenius/mogenius-operator/commit/1d92245c7931bc2a286fd2e165717906bbecb626))
+
 # [2.19.0](https://github.com/mogenius/mogenius-operator/compare/v2.18.0...v2.19.0) (2026-03-06)
 
 
