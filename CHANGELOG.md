@@ -1,3 +1,10 @@
+# [2.19.0-develop.111](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.110...v2.19.0-develop.111) (2026-03-06)
+
+
+### Bug Fixes
+
+* adds claude files ([1bed2dd](https://github.com/mogenius/mogenius-operator/commit/1bed2dd5e919279f10bf262a062f96165df44e29))
+
 # [2.19.0-develop.110](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.109...v2.19.0-develop.110) (2026-03-04)
 
 
