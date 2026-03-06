@@ -1,3 +1,12 @@
+# [2.19.0-develop.115](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.114...v2.19.0-develop.115) (2026-03-06)
+
+
+### Bug Fixes
+
+* minor improvements ([31ca17b](https://github.com/mogenius/mogenius-operator/commit/31ca17b39fa868497f1b2258ab4e5e7082b6f994))
+* multi job client connection ([a1913b4](https://github.com/mogenius/mogenius-operator/commit/a1913b4d3f5113ae9a16243bbaf26bb0b55c945c))
+* readme adjusted ([605939c](https://github.com/mogenius/mogenius-operator/commit/605939c9fe33bf54dfae453faa533ab94ab4f861))
+
 # [2.19.0-develop.114](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.113...v2.19.0-develop.114) (2026-03-06)
 
 
