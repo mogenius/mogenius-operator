@@ -51,7 +51,7 @@ func RunCluster(logManagerModule logging.SlogManager, configModule *config.Confi
 
 		// connect socket after everything is ready
 		systems.core.InitializeWebsocketEventServer()
-		systems.core.InitializeWebsocketApiServer()
+		systems.core.InitializeWebsocketApiServers()
 
 		select {}
 	}()

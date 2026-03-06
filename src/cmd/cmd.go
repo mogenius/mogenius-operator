@@ -246,6 +246,21 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		},
 	})
 	configModule.Declare(config.ConfigDeclaration{
+		Key:          "MO_API_SERVER_CLIENTS",
+		DefaultValue: utils.Pointer("1"),
+		Description:  utils.Pointer("Number of WebSocket connections to the API server"),
+		Validate: func(value string) error {
+			n, err := strconv.Atoi(value)
+			if err != nil {
+				return fmt.Errorf("'MO_API_SERVER_CLIENTS' needs to be an integer: %s", err.Error())
+			}
+			if n < 1 {
+				return fmt.Errorf("'MO_API_SERVER_CLIENTS' must be at least 1, got %d", n)
+			}
+			return nil
+		},
+	})
+	configModule.Declare(config.ConfigDeclaration{
 		Key:         "MO_EVENT_SERVER",
 		Description: utils.Pointer("URL of Event Server"),
 		Envs:        []string{"MO_EVENT_SERVER"},
@@ -429,8 +444,16 @@ func InitializeSystems(
 	versionModule := version.NewVersion()
 	watcherModule := watcher.NewWatcher(logManagerModule.CreateLogger("watcher"), clientProvider)
 	shutdown.Add(watcherModule.UnwatchAll)
-	jobConnectionClient := websocket.NewWebsocketClient(logManagerModule.CreateLogger("websocket-job-client"))
-	shutdown.Add(jobConnectionClient.Terminate)
+	numApiClients, err := strconv.Atoi(configModule.Get("MO_API_SERVER_CLIENTS"))
+	assert.Assert(err == nil, "MO_API_SERVER_CLIENTS must be a valid integer", err)
+	if numApiClients < 1 {
+		numApiClients = 1
+	}
+	jobClients := make([]websocket.WebsocketClient, numApiClients)
+	for i := range numApiClients {
+		jobClients[i] = websocket.NewWebsocketClient(logManagerModule.CreateLogger(fmt.Sprintf("websocket-job-client-%d", i)))
+		shutdown.Add(jobClients[i].Terminate)
+	}
 	eventConnectionClient := websocket.NewWebsocketClient(logManagerModule.CreateLogger("websocket-events-client"))
 	shutdown.Add(eventConnectionClient.Terminate)
 	containerEnumerator := containerenumerator.NewContainerEnumerator(logManagerModule.CreateLogger("container-enumerator"), configModule, clientProvider)
@@ -448,7 +471,7 @@ func InitializeSystems(
 
 	// golang package setups are deprecated and will be removed in the future by migrating all state to services
 	helm.Setup(logManagerModule, configModule, valkeyClient)
-	err := kubernetes.Setup(logManagerModule, configModule, clientProvider, valkeyClient)
+	err = kubernetes.Setup(logManagerModule, configModule, clientProvider, valkeyClient)
 	assert.Assert(err == nil, err)
 	services.Setup(logManagerModule, configModule, clientProvider)
 	structs.Setup(logManagerModule)
@@ -463,7 +486,7 @@ func InitializeSystems(
 	apiModule := core.NewApi(logManagerModule.CreateLogger("api"), valkeyClient, configModule)
 	aiApi := core.NewAiApi(logManagerModule.CreateLogger("apApi"), aiManager)
 	httpApi := core.NewHttpApi(logManagerModule, configModule)
-	socketApi := core.NewSocketApi(logManagerModule.CreateLogger("socketapi"), configModule, jobConnectionClient, eventConnectionClient, valkeyClient, argocd)
+	socketApi := core.NewSocketApi(logManagerModule.CreateLogger("socketapi"), configModule, jobClients, eventConnectionClient, valkeyClient, argocd)
 	xtermService := core.NewXtermService(logManagerModule.CreateLogger("xterm-service"))
 	aiWebsocketConnection := ai.NewAiWebsocketConnection(logManagerModule.CreateLogger("ai-websocket-connection"), aiManager)
 	valkeyLoggerService := core.NewValkeyLogger(valkeyClient, valkeyLogChannel)
@@ -478,7 +501,7 @@ func InitializeSystems(
 		networkMonitor,
 	)
 	moKubernetes := core.NewMoKubernetes(logManagerModule.CreateLogger("mokubernetes"), configModule, clientProvider)
-	mocore := core.NewCore(logManagerModule.CreateLogger("core"), configModule, clientProvider, valkeyClient, eventConnectionClient, jobConnectionClient)
+	mocore := core.NewCore(logManagerModule.CreateLogger("core"), configModule, clientProvider, valkeyClient, eventConnectionClient, jobClients)
 	leaderElector := core.NewLeaderElector(logManagerModule.CreateLogger("leader-elector"), configModule, clientProvider)
 	reconciler := core.NewReconciler(logManagerModule.CreateLogger("reconciler"), configModule, clientProvider, aiApi)
 	sealedSecret := core.NewSealedSecretManager(logManagerModule.CreateLogger("sealed-secret"), configModule, clientProvider)
@@ -497,7 +520,7 @@ func InitializeSystems(
 		clientProvider,
 		versionModule,
 		watcherModule,
-		jobConnectionClient,
+		jobClients,
 		eventConnectionClient,
 		valkeyClient,
 		networkMonitor,
@@ -525,7 +548,7 @@ type systems struct {
 	clientProvider        k8sclient.K8sClientProvider
 	versionModule         *version.Version
 	watcherModule         watcher.WatcherModule
-	jobConnectionClient   websocket.WebsocketClient
+	jobClients            []websocket.WebsocketClient
 	eventConnectionClient websocket.WebsocketClient
 	valkeyClient          valkeyclient.ValkeyClient
 	networkmonitor        networkmonitor.NetworkMonitor

@@ -22,7 +22,7 @@ type Core interface {
 	Initialize() error
 	InitializeClusterSecret()
 	InitializeWebsocketEventServer()
-	InitializeWebsocketApiServer()
+	InitializeWebsocketApiServers()
 	InitializeValkey()
 	Link(
 		moKubernetes MoKubernetes,
@@ -35,7 +35,7 @@ type core struct {
 	clientProvider        k8sclient.K8sClientProvider
 	valkeyClient          valkeyclient.ValkeyClient
 	eventConnectionClient websocket.WebsocketClient
-	jobConnectionClient   websocket.WebsocketClient
+	jobClients            []websocket.WebsocketClient
 
 	moKubernetes MoKubernetes
 }
@@ -46,7 +46,7 @@ func NewCore(
 	clientProviderModule k8sclient.K8sClientProvider,
 	valkeyClient valkeyclient.ValkeyClient,
 	eventConnectionClient websocket.WebsocketClient,
-	jobConnectionClient websocket.WebsocketClient,
+	jobClients []websocket.WebsocketClient,
 ) Core {
 	self := &core{}
 
@@ -55,7 +55,7 @@ func NewCore(
 	self.clientProvider = clientProviderModule
 	self.valkeyClient = valkeyClient
 	self.eventConnectionClient = eventConnectionClient
-	self.jobConnectionClient = jobConnectionClient
+	self.jobClients = jobClients
 
 	return self
 }
@@ -173,27 +173,34 @@ func (self *core) InitializeWebsocketEventServer() {
 	})
 }
 
-func (self *core) InitializeWebsocketApiServer() {
+func (self *core) InitializeWebsocketApiServers() {
+	for i, client := range self.jobClients {
+		self.initializeWebsocketApiServerClient(client, i)
+	}
+}
+
+func (self *core) initializeWebsocketApiServerClient(client websocket.WebsocketClient, index int) {
+	clientLabel := fmt.Sprintf("jobClient-%d", index)
+
 	url, err := url.Parse(self.config.Get("MO_API_SERVER"))
 	assert.Assert(err == nil, err)
-	err = self.jobConnectionClient.SetUrl(*url)
+	err = client.SetUrl(*url)
 	assert.Assert(err == nil, err)
-	err = self.jobConnectionClient.SetHeader(utils.HttpHeader(""))
+	err = client.SetHeader(utils.HttpHeader(""))
 	assert.Assert(err == nil, err)
-	err = self.jobConnectionClient.Connect()
+	err = client.Connect()
 	if err != nil {
-		self.logger.Error("Failed to connect to mogenius api server. Aborting.", "url", url.String(), "error", err.Error())
+		self.logger.Error("Failed to connect to mogenius api server. Aborting.", "client", clientLabel, "url", url.String(), "error", err.Error())
 		shutdown.SendShutdownSignal(true)
 		select {}
 	}
-	assert.Assert(err == nil, "cant connect to mogenius api server - aborting startup", url.String(), err)
 
 	self.config.OnChanged([]string{"MO_API_SERVER"}, func(key string, value string, isSecret bool) {
 		url, err := url.Parse(value)
 		assert.Assert(err == nil, err)
-		err = self.jobConnectionClient.SetUrl(*url)
+		err = client.SetUrl(*url)
 		if err != nil {
-			self.logger.Error("failed to update jobConnectionClient URL", "url", url.String(), "error", err)
+			self.logger.Error("failed to update URL", "client", clientLabel, "url", url.String(), "error", err)
 		}
 	})
 	self.config.OnChanged([]string{
@@ -201,7 +208,7 @@ func (self *core) InitializeWebsocketApiServer() {
 		"MO_CLUSTER_MFA_ID",
 		"MO_CLUSTER_NAME",
 	}, func(key string, value string, isSecret bool) {
-		header, err := self.jobConnectionClient.GetHeader()
+		header, err := client.GetHeader()
 		assert.Assert(err == nil, err)
 		if key == "MO_API_KEY" {
 			header["x-authorization"] = []string{value}
@@ -214,9 +221,9 @@ func (self *core) InitializeWebsocketApiServer() {
 		if key == "MO_CLUSTER_NAME" {
 			header["x-cluster-name"] = []string{value}
 		}
-		err = self.jobConnectionClient.SetHeader(header)
+		err = client.SetHeader(header)
 		if err != nil {
-			self.logger.Error("failed to update jobConnectionClient header", "header", header, "error", err)
+			self.logger.Error("failed to update header", "client", clientLabel, "header", header, "error", err)
 		}
 	})
 }
