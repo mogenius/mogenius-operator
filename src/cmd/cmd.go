@@ -444,7 +444,8 @@ func InitializeSystems(
 	versionModule := version.NewVersion()
 	watcherModule := watcher.NewWatcher(logManagerModule.CreateLogger("watcher"), clientProvider)
 	shutdown.Add(watcherModule.UnwatchAll)
-	numApiClients, _ := strconv.Atoi(configModule.Get("MO_API_SERVER_CLIENTS"))
+	numApiClients, err := strconv.Atoi(configModule.Get("MO_API_SERVER_CLIENTS"))
+	assert.Assert(err == nil, "MO_API_SERVER_CLIENTS must be a valid integer", err)
 	if numApiClients < 1 {
 		numApiClients = 1
 	}
@@ -470,7 +471,7 @@ func InitializeSystems(
 
 	// golang package setups are deprecated and will be removed in the future by migrating all state to services
 	helm.Setup(logManagerModule, configModule, valkeyClient)
-	err := kubernetes.Setup(logManagerModule, configModule, clientProvider, valkeyClient)
+	err = kubernetes.Setup(logManagerModule, configModule, clientProvider, valkeyClient)
 	assert.Assert(err == nil, err)
 	services.Setup(logManagerModule, configModule, clientProvider)
 	structs.Setup(logManagerModule)

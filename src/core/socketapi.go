@@ -81,7 +81,6 @@ type SocketApi interface {
 	AssertPatternsUnique()
 	LoadRequest(datagram *structs.Datagram, data any) error
 	GetLogger() *slog.Logger
-	GetJobClients() []websocket.WebsocketClient
 }
 
 type SocketApiStatus struct {
@@ -247,6 +246,26 @@ func RegisterPatternHandler[RequestType any, ResponseType any](
 	config PatternConfig,
 	callback func(datagram structs.Datagram, request RequestType) (ResponseType, error),
 ) {
+	registerPatternHandlerInternal(handle, config, nil, callback)
+}
+
+// RegisterPatternHandlerForClient registers a pattern handler on a specific WebSocket client connection.
+func RegisterPatternHandlerForClient[RequestType any, ResponseType any](
+	handle PatternHandle,
+	config PatternConfig,
+	client websocket.WebsocketClient,
+	callback func(datagram structs.Datagram, request RequestType) (ResponseType, error),
+) {
+	assert.Assert(client != nil, "Client has to be given")
+	registerPatternHandlerInternal(handle, config, client, callback)
+}
+
+func registerPatternHandlerInternal[RequestType any, ResponseType any](
+	handle PatternHandle,
+	config PatternConfig,
+	client websocket.WebsocketClient,
+	callback func(datagram structs.Datagram, request RequestType) (ResponseType, error),
+) {
 	assert.Assert(handle.SocketApi != nil, "SocketApi has to be given")
 	assert.Assert(handle.Pattern != "", "Pattern has to be defined")
 
@@ -282,78 +301,6 @@ func RegisterPatternHandler[RequestType any, ResponseType any](
 	config.RequestSchema = schema.Generate(requestType)
 
 	assert.Assert(config.ResponseSchema == nil, "config.ResponseSchema should be empty", "RegisterPatternHandler overrides this field.")
-	var responseType Result
-	config.ResponseSchema = schema.Generate(responseType)
-
-	handle.SocketApi.AddPatternHandler(handle.Pattern, config, func(datagram structs.Datagram) any {
-		var data RequestType
-		kind := reflect.TypeOf(data).Kind()
-
-		if kind != reflect.Pointer {
-			err := handle.SocketApi.LoadRequest(&datagram, &data)
-			if err != nil {
-				handle.SocketApi.GetLogger().Error("Error while loading request", "datagram", datagram, "error", err)
-				return buildResponse(nil, err)
-			}
-		}
-
-		if kind == reflect.Pointer && datagram.Payload != nil {
-			err := handle.SocketApi.LoadRequest(&datagram, &data)
-			if err != nil {
-				handle.SocketApi.GetLogger().Error("Error while loading request", "datagram", datagram, "error", err)
-				return buildResponse(nil, err)
-			}
-		}
-
-		result, err := callback(datagram, data)
-
-		return buildResponse(result, err)
-	})
-}
-
-// RegisterPatternHandlerForClient registers a pattern handler on a specific WebSocket client connection.
-func RegisterPatternHandlerForClient[RequestType any, ResponseType any](
-	handle PatternHandle,
-	config PatternConfig,
-	client websocket.WebsocketClient,
-	callback func(datagram structs.Datagram, request RequestType) (ResponseType, error),
-) {
-	assert.Assert(handle.SocketApi != nil, "SocketApi has to be given")
-	assert.Assert(handle.Pattern != "", "Pattern has to be defined")
-	assert.Assert(client != nil, "Client has to be given")
-
-	type Result struct {
-		Status  string       `json:"status"` // success, error
-		Message string       `json:"message,omitempty"`
-		Data    ResponseType `json:"data"`
-	}
-
-	buildResponse := func(result any, err error) Result {
-		if err != nil {
-			return Result{
-				Status:  "error",
-				Message: err.Error(),
-			}
-		}
-		if str, ok := result.(string); ok {
-			return Result{
-				Status:  "success",
-				Message: str,
-			}
-		}
-		return Result{
-			Status: "success",
-			Data:   result.(ResponseType),
-		}
-	}
-
-	config.LegacyResponseLayout = false
-
-	assert.Assert(config.RequestSchema == nil, "config.RequestSchema should be empty", "RegisterPatternHandlerForClient overrides this field.")
-	var requestType RequestType
-	config.RequestSchema = schema.Generate(requestType)
-
-	assert.Assert(config.ResponseSchema == nil, "config.ResponseSchema should be empty", "RegisterPatternHandlerForClient overrides this field.")
 	var responseType Result
 	config.ResponseSchema = schema.Generate(responseType)
 
@@ -411,10 +358,6 @@ func (self *socketApi) AddPatternHandlerForClient(
 		Callback: callback,
 		Client:   client,
 	}
-}
-
-func (self *socketApi) GetJobClients() []websocket.WebsocketClient {
-	return self.jobClients
 }
 
 func (self *socketApi) PatternConfigs() map[string]PatternConfig {
@@ -2061,7 +2004,11 @@ func (self *socketApi) startClientReadLoop(client websocket.WebsocketClient) {
 
 			datagram.DisplayReceiveSummary(self.logger)
 
-			if self.patternHandlerExists(datagram.Pattern) {
+			self.patternHandlerLock.RLock()
+			handler, exists := self.patternHandler[datagram.Pattern]
+			self.patternHandlerLock.RUnlock()
+
+			if exists && (handler.Client == nil || handler.Client == client) {
 				messageHandlerSemaphore <- struct{}{}
 				go func() {
 					defer func() {
@@ -2071,7 +2018,7 @@ func (self *socketApi) startClientReadLoop(client websocket.WebsocketClient) {
 				}()
 			} else {
 				go func() {
-					self.logger.Warn("no handler for pattern found", "pattern", datagram.Pattern)
+					self.logger.Warn("no handler for pattern found on client", "pattern", datagram.Pattern, "client", self.clientName(client))
 
 					result := structs.Datagram{
 						Id:      datagram.Id,
@@ -2198,7 +2145,7 @@ func (self *socketApi) startJobClientReadLoop() {
 	}()
 }
 
-// handlePatternRequest executes a pattern handler and sends the response back via the given client.
+// clientName returns a human-readable label for the given client, used in logs.
 func (self *socketApi) clientName(client websocket.WebsocketClient) string {
 	for i, c := range self.jobClients {
 		if c == client {

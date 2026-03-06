@@ -194,7 +194,6 @@ func (self *core) initializeWebsocketApiServerClient(client websocket.WebsocketC
 		shutdown.SendShutdownSignal(true)
 		select {}
 	}
-	assert.Assert(err == nil, "cant connect to mogenius api server - aborting startup", clientLabel, url.String(), err)
 
 	self.config.OnChanged([]string{"MO_API_SERVER"}, func(key string, value string, isSecret bool) {
 		url, err := url.Parse(value)
