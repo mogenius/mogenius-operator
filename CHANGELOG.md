@@ -1,3 +1,11 @@
+# [2.19.0-develop.112](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.111...v2.19.0-develop.112) (2026-03-06)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/openai/openai-go/v3 to v3.26.0 ([1c9071a](https://github.com/mogenius/mogenius-operator/commit/1c9071a4efcb9e8c5320bf78969756695a9fa901))
+* **deps:** update module sigs.k8s.io/controller-runtime to v0.23.3 ([dfc2cfe](https://github.com/mogenius/mogenius-operator/commit/dfc2cfe4320c3d24e9d45472faced5241c0afe5a))
+
 # [2.19.0-develop.111](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.110...v2.19.0-develop.111) (2026-03-06)
 
 
