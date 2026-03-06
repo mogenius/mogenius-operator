@@ -70,11 +70,18 @@ type SocketApi interface {
 		config PatternConfig,
 		callback func(datagram structs.Datagram) any,
 	)
+	AddPatternHandlerForClient(
+		pattern string,
+		config PatternConfig,
+		callback func(datagram structs.Datagram) any,
+		client websocket.WebsocketClient,
+	)
 	PatternConfigs() map[string]PatternConfig
 	NormalizePatternName(pattern string) string
 	AssertPatternsUnique()
 	LoadRequest(datagram *structs.Datagram, data any) error
 	GetLogger() *slog.Logger
+	GetJobClients() []websocket.WebsocketClient
 }
 
 type SocketApiStatus struct {
@@ -95,7 +102,7 @@ func (self *SocketApiStatus) Clone() SocketApiStatus {
 type socketApi struct {
 	logger *slog.Logger
 
-	jobClient    websocket.WebsocketClient
+	jobClients   []websocket.WebsocketClient
 	eventsClient websocket.WebsocketClient
 
 	config       config.ConfigModule
@@ -125,6 +132,7 @@ type socketApi struct {
 type PatternHandler struct {
 	Config   PatternConfig
 	Callback func(datagram structs.Datagram) any
+	Client   websocket.WebsocketClient
 }
 
 type PatternConfig struct {
@@ -144,14 +152,14 @@ type Void *struct{}
 func NewSocketApi(
 	logger *slog.Logger,
 	configModule config.ConfigModule,
-	jobClient websocket.WebsocketClient,
+	jobClients []websocket.WebsocketClient,
 	eventsClient websocket.WebsocketClient,
 	valkeyClient valkeyclient.ValkeyClient,
 	argocd argocd.Argocd,
 ) SocketApi {
 	self := &socketApi{}
 	self.config = configModule
-	self.jobClient = jobClient
+	self.jobClients = jobClients
 	self.eventsClient = eventsClient
 	self.logger = logger
 	self.patternHandler = map[string]PatternHandler{}
@@ -303,10 +311,91 @@ func RegisterPatternHandler[RequestType any, ResponseType any](
 	})
 }
 
+// RegisterPatternHandlerForClient registers a pattern handler on a specific WebSocket client connection.
+func RegisterPatternHandlerForClient[RequestType any, ResponseType any](
+	handle PatternHandle,
+	config PatternConfig,
+	client websocket.WebsocketClient,
+	callback func(datagram structs.Datagram, request RequestType) (ResponseType, error),
+) {
+	assert.Assert(handle.SocketApi != nil, "SocketApi has to be given")
+	assert.Assert(handle.Pattern != "", "Pattern has to be defined")
+	assert.Assert(client != nil, "Client has to be given")
+
+	type Result struct {
+		Status  string       `json:"status"` // success, error
+		Message string       `json:"message,omitempty"`
+		Data    ResponseType `json:"data"`
+	}
+
+	buildResponse := func(result any, err error) Result {
+		if err != nil {
+			return Result{
+				Status:  "error",
+				Message: err.Error(),
+			}
+		}
+		if str, ok := result.(string); ok {
+			return Result{
+				Status:  "success",
+				Message: str,
+			}
+		}
+		return Result{
+			Status: "success",
+			Data:   result.(ResponseType),
+		}
+	}
+
+	config.LegacyResponseLayout = false
+
+	assert.Assert(config.RequestSchema == nil, "config.RequestSchema should be empty", "RegisterPatternHandlerForClient overrides this field.")
+	var requestType RequestType
+	config.RequestSchema = schema.Generate(requestType)
+
+	assert.Assert(config.ResponseSchema == nil, "config.ResponseSchema should be empty", "RegisterPatternHandlerForClient overrides this field.")
+	var responseType Result
+	config.ResponseSchema = schema.Generate(responseType)
+
+	handle.SocketApi.AddPatternHandlerForClient(handle.Pattern, config, func(datagram structs.Datagram) any {
+		var data RequestType
+		kind := reflect.TypeOf(data).Kind()
+
+		if kind != reflect.Pointer {
+			err := handle.SocketApi.LoadRequest(&datagram, &data)
+			if err != nil {
+				handle.SocketApi.GetLogger().Error("Error while loading request", "datagram", datagram, "error", err)
+				return buildResponse(nil, err)
+			}
+		}
+
+		if kind == reflect.Pointer && datagram.Payload != nil {
+			err := handle.SocketApi.LoadRequest(&datagram, &data)
+			if err != nil {
+				handle.SocketApi.GetLogger().Error("Error while loading request", "datagram", datagram, "error", err)
+				return buildResponse(nil, err)
+			}
+		}
+
+		result, err := callback(datagram, data)
+
+		return buildResponse(result, err)
+	}, client)
+}
+
 func (self *socketApi) AddPatternHandler(
 	pattern string,
 	config PatternConfig,
 	callback func(datagram structs.Datagram) any,
+) {
+	self.AddPatternHandlerForClient(pattern, config, callback, nil)
+}
+
+func (self *socketApi) AddPatternHandlerForClient(
+	pattern string,
+	config PatternConfig,
+	callback func(datagram structs.Datagram) any,
+	client websocket.WebsocketClient,
 ) {
 	assert.Assert(config.RequestSchema != nil, "config.RequestSchema has to be set")
 	assert.Assert(config.ResponseSchema != nil, "config.ResponseSchema has to be set")
@@ -320,7 +409,12 @@ func (self *socketApi) AddPatternHandler(
 	self.patternHandler[pattern] = PatternHandler{
 		Config:   config,
 		Callback: callback,
+		Client:   client,
 	}
+}
+
+func (self *socketApi) GetJobClients() []websocket.WebsocketClient {
+	return self.jobClients
 }
 
 func (self *socketApi) PatternConfigs() map[string]PatternConfig {
@@ -1933,6 +2027,75 @@ func (self *socketApi) LoadRequest(datagram *structs.Datagram, data any) error {
 }
 
 func (self *socketApi) startMessageHandler() {
+	// Start the main read loop for the first jobClient (includes file upload support)
+	self.startJobClientReadLoop()
+
+	// Start a read loop for each additional jobClient
+	for i := 1; i < len(self.jobClients); i++ {
+		self.startClientReadLoop(self.jobClients[i])
+	}
+}
+
+// startClientReadLoop starts a message read loop for a non-default WebSocket client.
+// It only dispatches patterns that are explicitly registered for this client.
+func (self *socketApi) startClientReadLoop(client websocket.WebsocketClient) {
+	go func() {
+		messageHandlerSemaphore := make(chan struct{}, 100)
+
+		for !client.IsTerminated() {
+			_, message, err := client.ReadMessage()
+			if err != nil {
+				self.logger.Error("failed to read message from websocket connection", "error", err)
+				time.Sleep(time.Second)
+				continue
+			}
+			if len(message) == 0 {
+				continue
+			}
+
+			datagram, err := self.ParseDatagram(message)
+			if err != nil {
+				self.logger.Error("failed to parse datagram", "error", err)
+				continue
+			}
+
+			datagram.DisplayReceiveSummary(self.logger)
+
+			if self.patternHandlerExists(datagram.Pattern) {
+				messageHandlerSemaphore <- struct{}{}
+				go func() {
+					defer func() {
+						<-messageHandlerSemaphore
+					}()
+					self.handlePatternRequest(datagram, client)
+				}()
+			} else {
+				go func() {
+					self.logger.Warn("no handler for pattern found", "pattern", datagram.Pattern)
+
+					result := structs.Datagram{
+						Id:      datagram.Id,
+						Pattern: datagram.Pattern,
+						Payload: struct {
+							Status  string `json:"status"`
+							Message string `json:"message"`
+						}{
+							Status:  "error",
+							Message: fmt.Sprintf("No handler for pattern '%s' found", datagram.Pattern),
+						},
+						CreatedAt: datagram.CreatedAt,
+						Zlib:      false,
+					}
+
+					self.JobServerSendData(client, result)
+				}()
+			}
+		}
+		self.logger.Debug("client messagehandler finished as the websocket client was terminated")
+	}()
+}
+
+func (self *socketApi) startJobClientReadLoop() {
 	go func() {
 		var preparedFileName *string
 		var preparedFileRequest *services.FilesUploadRequest
@@ -1940,8 +2103,8 @@ func (self *socketApi) startMessageHandler() {
 
 		messageHandlerSemaphore := make(chan struct{}, 100)
 
-		for !self.jobClient.IsTerminated() {
-			_, message, err := self.jobClient.ReadMessage()
+		for !self.jobClients[0].IsTerminated() {
+			_, message, err := self.jobClients[0].ReadMessage()
 			if err != nil {
 				self.logger.Error("failed to read message from websocket connection", "error", err)
 				time.Sleep(time.Second) // wait before next attempt to read
@@ -1969,7 +2132,7 @@ func (self *socketApi) startMessageHandler() {
 				os.Remove(*preparedFileName)
 
 				var ack = structs.CreateDatagramAck("ack:files/upload:end", preparedFileRequest.Id)
-				go self.JobServerSendData(self.jobClient, ack)
+				go self.JobServerSendData(self.jobClients[0], ack)
 
 				preparedFileName = nil
 				preparedFileRequest = nil
@@ -1997,7 +2160,7 @@ func (self *socketApi) startMessageHandler() {
 				preparedFileRequest = self.executeBinaryRequestUpload(datagram)
 
 				var ack = structs.CreateDatagramAck("ack:files/upload:datagram", datagram.Id)
-				go self.JobServerSendData(self.jobClient, ack)
+				go self.JobServerSendData(self.jobClients[0], ack)
 				continue
 			}
 
@@ -2007,65 +2170,7 @@ func (self *socketApi) startMessageHandler() {
 					defer func() {
 						<-messageHandlerSemaphore
 					}()
-
-					if datagram.Zlib {
-						decompressedData, err := utils.TryZlibDecompress(datagram.Payload)
-						if err != nil {
-							self.logger.Error("failed to decompress payload", "error", err)
-							return
-						}
-						datagram.Payload = decompressedData
-					}
-
-					start := time.Now()
-					responsePayload := self.ExecuteCommandRequest(datagram)
-					executionTime := time.Since(start)
-					self.logdatagram(executionTime, datagram)
-
-					sendStart := time.Now()
-					// Smart compression: Only compress if payload is worth it
-					var compressedData any
-					var size int64
-					var err error
-					var shouldCompress bool
-
-					// Get pooled buffer for JSON marshaling check
-					buf := compressionBufferPool.Get().(*bytes.Buffer)
-					buf.Reset()
-					encoder := json.NewEncoder(buf)
-					if marshalErr := encoder.Encode(responsePayload); marshalErr == nil {
-						payloadSize := buf.Len()
-						shouldCompress = payloadSize > compressionThreshold
-						if shouldCompress {
-							// Reuse the already marshaled data
-							dataBytes := bytes.TrimSuffix(buf.Bytes(), []byte("\n"))
-							compressedPayload, compressErr := utils.ZlibCompress(dataBytes)
-							if compressErr == nil {
-								compressedData = compressedPayload
-							} else {
-								err = compressErr
-								shouldCompress = false
-							}
-						}
-					}
-					compressionBufferPool.Put(buf)
-
-					if shouldCompress && err == nil {
-						responsePayload = compressedData
-					}
-					size = int64(buf.Len())
-
-					result := structs.Datagram{
-						Id:        datagram.Id,
-						Pattern:   datagram.Pattern,
-						Payload:   responsePayload,
-						CreatedAt: datagram.CreatedAt,
-						Zlib:      shouldCompress && err == nil,
-					}
-
-					self.JobServerSendData(self.jobClient, result)
-					sendTime := time.Since(sendStart)
-					self.logPattern(executionTime, sendTime, datagram, size)
+					self.handlePatternRequest(datagram, self.jobClients[0])
 				}()
 			} else {
 				go func() {
@@ -2085,12 +2190,88 @@ func (self *socketApi) startMessageHandler() {
 						Zlib:      false,
 					}
 
-					self.JobServerSendData(self.jobClient, result)
+					self.JobServerSendData(self.jobClients[0], result)
 				}()
 			}
 		}
 		self.logger.Debug("api messagehandler finished as the websocket client was terminated")
 	}()
+}
+
+// handlePatternRequest executes a pattern handler and sends the response back via the given client.
+func (self *socketApi) clientName(client websocket.WebsocketClient) string {
+	for i, c := range self.jobClients {
+		if c == client {
+			return fmt.Sprintf("jobClient-%d", i)
+		}
+	}
+	if client == self.eventsClient {
+		return "eventsClient"
+	}
+	return "unknown"
+}
+
+func (self *socketApi) handlePatternRequest(datagram structs.Datagram, responseClient websocket.WebsocketClient) {
+	self.logger.Info("handling pattern request", "pattern", datagram.Pattern, "wsClient", self.clientName(responseClient))
+
+	if datagram.Zlib {
+		decompressedData, err := utils.TryZlibDecompress(datagram.Payload)
+		if err != nil {
+			self.logger.Error("failed to decompress payload", "error", err)
+			return
+		}
+		datagram.Payload = decompressedData
+	}
+
+	start := time.Now()
+	responsePayload := self.ExecuteCommandRequest(datagram)
+	executionTime := time.Since(start)
+	self.logdatagram(executionTime, datagram)
+
+	sendStart := time.Now()
+	// Smart compression: Only compress if payload is worth it
+	var compressedData any
+	var size int64
+	var err error
+	var shouldCompress bool
+
+	// Get pooled buffer for JSON marshaling check
+	buf := compressionBufferPool.Get().(*bytes.Buffer)
+	buf.Reset()
+	encoder := json.NewEncoder(buf)
+	if marshalErr := encoder.Encode(responsePayload); marshalErr == nil {
+		payloadSize := buf.Len()
+		shouldCompress = payloadSize > compressionThreshold
+		if shouldCompress {
+			// Reuse the already marshaled data
+			dataBytes := bytes.TrimSuffix(buf.Bytes(), []byte("\n"))
+			compressedPayload, compressErr := utils.ZlibCompress(dataBytes)
+			if compressErr == nil {
+				compressedData = compressedPayload
+			} else {
+				err = compressErr
+				shouldCompress = false
+			}
+		}
+	}
+	compressionBufferPool.Put(buf)
+
+	if shouldCompress && err == nil {
+		responsePayload = compressedData
+	}
+	size = int64(buf.Len())
+
+	result := structs.Datagram{
+		Id:        datagram.Id,
+		Pattern:   datagram.Pattern,
+		Payload:   responsePayload,
+		CreatedAt: datagram.CreatedAt,
+		Zlib:      shouldCompress && err == nil,
+	}
+
+	self.JobServerSendData(responseClient, result)
+	sendTime := time.Since(sendStart)
+	self.logPattern(executionTime, sendTime, datagram, size)
 }
 
 func (self *socketApi) loadpatternlogger() {
