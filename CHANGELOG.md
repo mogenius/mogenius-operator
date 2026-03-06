@@ -1,3 +1,10 @@
+# [2.19.0-develop.116](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.115...v2.19.0-develop.116) (2026-03-06)
+
+
+### Bug Fixes
+
+* **deps:** update module k8s.io/klog/v2 to v2.140.0 ([#835](https://github.com/mogenius/mogenius-operator/issues/835)) ([fe56a0f](https://github.com/mogenius/mogenius-operator/commit/fe56a0f7e5759a64b28ef28b1651dedd3ea71d39))
+
 # [2.19.0-develop.115](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.114...v2.19.0-develop.115) (2026-03-06)
 
 
