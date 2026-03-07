@@ -1,3 +1,10 @@
+# [2.19.0-develop.120](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.119...v2.19.0-develop.120) (2026-03-07)
+
+
+### Bug Fixes
+
+* adding default relabeling for instance for servicemonitor ([e0ae0b1](https://github.com/mogenius/mogenius-operator/commit/e0ae0b18754a31a4c2acec449bf2452347c008c4))
+
 # [2.19.0-develop.119](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.118...v2.19.0-develop.119) (2026-03-07)
 
 
