@@ -1,3 +1,10 @@
+# [2.19.0-develop.117](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.116...v2.19.0-develop.117) (2026-03-07)
+
+
+### Features
+
+* adding valkey exporter and servicemonitor options ([50d8ef8](https://github.com/mogenius/mogenius-operator/commit/50d8ef8994e168caa967bb1d9901d6126bb99683))
+
 # [2.19.0-develop.116](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.115...v2.19.0-develop.116) (2026-03-06)
 
 
