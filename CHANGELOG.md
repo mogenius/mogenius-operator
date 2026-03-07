@@ -1,3 +1,10 @@
+# [2.19.0-develop.119](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.118...v2.19.0-develop.119) (2026-03-07)
+
+
+### Bug Fixes
+
+* adding selector label to valkey svc for metrics ([cf8f4be](https://github.com/mogenius/mogenius-operator/commit/cf8f4beba3586a6d875e9fc4c5495da874e388e2))
+
 # [2.19.0-develop.118](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.117...v2.19.0-develop.118) (2026-03-07)
 
 
