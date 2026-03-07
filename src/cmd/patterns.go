@@ -23,10 +23,33 @@ type patternsArgs struct {
 	Output string `help:"" default:"json"`
 }
 
+// patternsSystems holds only what's needed to introspect registered socket API patterns.
+type patternsSystems struct {
+	socketApi core.SocketApi
+}
+
+// initializePatternsystems creates a socketApi for pattern introspection only.
+// Websocket clients, valkeyClient, and argocd are intentionally nil — the patterns
+// command only reads pattern metadata and never invokes any handler.
+func initializePatternsystems(base baseSystems, logManagerModule logging.SlogManager, configModule *config.Config) patternsSystems {
+	// .Link() is intentionally skipped: AssertPatternsUnique / PatternConfigs /
+	// NormalizePatternName do not access any linked service.
+	socketApi := core.NewSocketApi(
+		logManagerModule.CreateLogger("socketapi"),
+		configModule,
+		nil, // jobClients   — not used for pattern introspection
+		nil, // eventsClient — not used for pattern introspection
+		nil, // valkeyClient — not used for pattern introspection
+		nil, // argocd       — not used for pattern introspection
+	)
+	return patternsSystems{socketApi: socketApi}
+}
+
 func RunPatterns(args *patternsArgs, logManagerModule logging.SlogManager, configModule *config.Config, cmdLogger *slog.Logger, valkeyLogChannel chan logging.LogLine) error {
 	configModule.Validate()
 
-	systems := InitializeSystems(logManagerModule, configModule, cmdLogger, valkeyLogChannel)
+	base := initializeBaseSystems(logManagerModule, configModule, cmdLogger)
+	systems := initializePatternsystems(base, logManagerModule, configModule)
 	defer shutdown.ExecuteShutdownHandlers()
 
 	socketApi := systems.socketApi
