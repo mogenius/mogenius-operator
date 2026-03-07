@@ -374,7 +374,8 @@
                                 "enabled": { "type": "boolean" },
                                 "labels": { "type": "object" },
                                 "interval": { "type": "string" },
-                                "scrapeTimeout": { "type": "string" }
+                                "scrapeTimeout": { "type": "string" },
+                                "relabelings": { "type": "array" }
                             }
                         }
                     }

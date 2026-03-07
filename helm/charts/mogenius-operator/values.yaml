@@ -156,6 +156,8 @@ valkey:
       labels: {}
       interval: 30s
       scrapeTimeout: 10s
+      # -- additional relabelings appended after the default instance relabeling
+      relabelings: []
   persistence:
     # -- storage class to be used, default is empty which will use the class defined as standard
     storageClass: ""
