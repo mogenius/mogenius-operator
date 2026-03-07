@@ -1,3 +1,10 @@
+# [2.19.0-develop.118](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.117...v2.19.0-develop.118) (2026-03-07)
+
+
+### Bug Fixes
+
+* helm schema for valkey image tag ([005bdae](https://github.com/mogenius/mogenius-operator/commit/005bdaecedaea41af855292fee3bf9949bff395a))
+
 # [2.19.0-develop.117](https://github.com/mogenius/mogenius-operator/compare/v2.19.0-develop.116...v2.19.0-develop.117) (2026-03-07)
 
 
