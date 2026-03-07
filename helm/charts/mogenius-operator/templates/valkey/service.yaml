@@ -5,6 +5,8 @@ kind: Service
 metadata:
   name: {{ .Values.fullnameOverride }}-valkey
   namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Values.fullnameOverride }}-valkey
 spec:
   ports:
   - name: valkey
