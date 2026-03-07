@@ -278,7 +278,7 @@
                             "type": "string"
                         },
                         "tag": {
-                            "type": "number"
+                            "type": "string"
                         }
                     }
                 },
