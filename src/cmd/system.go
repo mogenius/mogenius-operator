@@ -11,10 +11,10 @@ import (
 func RunSystem(logManagerModule logging.SlogManager, configModule *config.Config, cmdLogger *slog.Logger, valkeyLogChannel chan logging.LogLine) error {
 	configModule.Validate()
 
-	systems := InitializeSystems(logManagerModule, configModule, cmdLogger, valkeyLogChannel)
+	base := initializeBaseSystems(logManagerModule, configModule, cmdLogger)
 	defer shutdown.ExecuteShutdownHandlers()
 
-	systems.versionModule.PrintVersionInfo()
+	base.versionModule.PrintVersionInfo()
 
 	cmdLogger.Info("🖥️  🖥️  🖥️  CURRENT CONTEXT", "foundContext", mokubernetes.CurrentContextName())
 
