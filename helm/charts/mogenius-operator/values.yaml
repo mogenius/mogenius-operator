@@ -107,7 +107,7 @@ valkey:
   image:
     registry: docker.io
     repository: valkey/valkey
-    tag: 8.1
+    tag: 8.1.6
   podLabels: {}
   containerSecurityContext:
     readOnlyRootFilesystem: true
@@ -133,6 +133,29 @@ valkey:
     password: ""
   updateStrategy:
     type: RollingUpdate
+  metrics:
+    # -- enable the Prometheus metrics exporter sidecar (oliver006/redis_exporter)
+    enabled: false
+    exporter:
+      image:
+        registry: docker.io
+        repository: oliver006/redis_exporter
+        tag: v1.67.0
+      resources: {}
+      containerSecurityContext:
+        readOnlyRootFilesystem: true
+        runAsNonRoot: true
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+            - ALL
+    # -- ServiceMonitor for prometheus-operator; requires metrics.enabled: true
+    serviceMonitor:
+      enabled: false
+      # -- labels added to the ServiceMonitor (use to match your Prometheus selector)
+      labels: {}
+      interval: 30s
+      scrapeTimeout: 10s
   persistence:
     # -- storage class to be used, default is empty which will use the class defined as standard
     storageClass: ""

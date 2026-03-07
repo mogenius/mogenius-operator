@@ -72,4 +72,29 @@ spec:
         resources:
           {{- toYaml . | nindent 10 }}
         {{- end }}
+      {{- if .Values.valkey.metrics.enabled }}
+      - name: metrics
+        image: {{ .Values.valkey.metrics.exporter.image.registry }}/{{ .Values.valkey.metrics.exporter.image.repository }}:{{ .Values.valkey.metrics.exporter.image.tag }}
+        imagePullPolicy: {{ .Values.valkey.imagePullPolicy }}
+        env:
+        - name: REDIS_ADDR
+          value: "redis://localhost:{{ .Values.valkey.port }}"
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.fullnameOverride }}-valkey
+              key: valkey-password
+        ports:
+        - containerPort: 9121
+          name: metrics
+          protocol: TCP
+        {{- with .Values.valkey.metrics.exporter.resources }}
+        resources:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- with .Values.valkey.metrics.exporter.containerSecurityContext }}
+        securityContext:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+      {{- end }}
 {{ end }}

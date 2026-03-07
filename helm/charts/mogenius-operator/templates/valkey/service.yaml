@@ -9,6 +9,10 @@ spec:
   ports:
   - name: valkey
     port: {{ .Values.valkey.port }}
+  {{- if .Values.valkey.metrics.enabled }}
+  - name: metrics
+    port: 9121
+  {{- end }}
   selector:
     app: {{ .Values.fullnameOverride }}-valkey
 {{ end }}
