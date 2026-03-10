@@ -103,8 +103,6 @@ func initializeClusterSystems(
 	services.Setup(logManagerModule, configModule, base.clientProvider)
 	structs.Setup(logManagerModule)
 	xterm.Setup(logManagerModule, base.valkeyClient)
-	err = store.Setup(logManagerModule, base.valkeyClient, configModule.Get("MO_AUDIT_LOG_LIMIT"))
-	assert.Assert(err == nil, err)
 
 	argocdModule := argocd.NewArgoCd(logManagerModule, configModule, base.clientProvider, base.valkeyClient)
 	workspaceManager := core.NewWorkspaceManager(configModule, base.clientProvider)

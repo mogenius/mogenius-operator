@@ -7,6 +7,7 @@ import (
 	"mogenius-operator/src/k8sclient"
 	mokubernetes "mogenius-operator/src/kubernetes"
 	"mogenius-operator/src/logging"
+	"mogenius-operator/src/store"
 	"mogenius-operator/src/utils"
 	"mogenius-operator/src/valkeyclient"
 	"mogenius-operator/src/version"
@@ -49,7 +50,10 @@ func initializeBaseSystems(
 
 	valkeyClient := valkeyclient.NewValkeyClient(logManagerModule.CreateLogger("valkey"), configModule)
 
-	err := mokubernetes.Setup(logManagerModule, configModule, clientProvider, valkeyClient)
+	err := store.Setup(logManagerModule, valkeyClient, configModule.Get("MO_AUDIT_LOG_LIMIT"))
+	assert.Assert(err == nil, err)
+
+	err = mokubernetes.Setup(logManagerModule, configModule, clientProvider, valkeyClient)
 	assert.Assert(err == nil, err)
 	utils.Setup(logManagerModule, configModule)
 
