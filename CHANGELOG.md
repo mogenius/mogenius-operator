@@ -1,3 +1,10 @@
+## [2.19.2](https://github.com/mogenius/mogenius-operator/compare/v2.19.1...v2.19.2) (2026-03-10)
+
+
+### Bug Fixes
+
+* helm upgrade bug fixed ([8669876](https://github.com/mogenius/mogenius-operator/commit/86698763f6325a8243d68636089b240dd2867674))
+
 ## [2.19.1](https://github.com/mogenius/mogenius-operator/compare/v2.19.0...v2.19.1) (2026-03-06)
 
 
