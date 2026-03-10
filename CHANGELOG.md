@@ -1,3 +1,10 @@
+# [2.20.0-develop.3](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.2...v2.20.0-develop.3) (2026-03-10)
+
+
+### Bug Fixes
+
+* move store setup to base system init ([896ad88](https://github.com/mogenius/mogenius-operator/commit/896ad8895baa34dbc9eef6ca6047e5f88eb097a8))
+
 # [2.20.0-develop.2](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.1...v2.20.0-develop.2) (2026-03-10)
 
 
