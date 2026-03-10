@@ -1,3 +1,10 @@
+# [2.20.0-develop.2](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.1...v2.20.0-develop.2) (2026-03-10)
+
+
+### Features
+
+* splitting system inits ([8dc0b5e](https://github.com/mogenius/mogenius-operator/commit/8dc0b5e77872dca328ee0a8cad0a2778e7f6ced7))
+
 # [2.20.0-develop.1](https://github.com/mogenius/mogenius-operator/compare/v2.19.1...v2.20.0-develop.1) (2026-03-10)
 
 
