@@ -1,3 +1,19 @@
+# [2.20.0-develop.1](https://github.com/mogenius/mogenius-operator/compare/v2.19.1...v2.20.0-develop.1) (2026-03-10)
+
+
+### Bug Fixes
+
+* adding default relabeling for instance for servicemonitor ([e0ae0b1](https://github.com/mogenius/mogenius-operator/commit/e0ae0b18754a31a4c2acec449bf2452347c008c4))
+* adding selector label to valkey svc for metrics ([cf8f4be](https://github.com/mogenius/mogenius-operator/commit/cf8f4beba3586a6d875e9fc4c5495da874e388e2))
+* **deps:** update module k8s.io/klog/v2 to v2.140.0 ([#835](https://github.com/mogenius/mogenius-operator/issues/835)) ([fe56a0f](https://github.com/mogenius/mogenius-operator/commit/fe56a0f7e5759a64b28ef28b1651dedd3ea71d39))
+* helm schema for valkey image tag ([005bdae](https://github.com/mogenius/mogenius-operator/commit/005bdaecedaea41af855292fee3bf9949bff395a))
+* helm upgrade bug fixed ([8669876](https://github.com/mogenius/mogenius-operator/commit/86698763f6325a8243d68636089b240dd2867674))
+
+
+### Features
+
+* adding valkey exporter and servicemonitor options ([50d8ef8](https://github.com/mogenius/mogenius-operator/commit/50d8ef8994e168caa967bb1d9901d6126bb99683))
+
 ## [2.19.1](https://github.com/mogenius/mogenius-operator/compare/v2.19.0...v2.19.1) (2026-03-06)
 
 
