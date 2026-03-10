@@ -1032,6 +1032,7 @@ func HelmReleaseUpgrade(data HelmChartInstallUpgradeRequest) (result string, err
 			"namespace", data.Namespace,
 			"error", err.Error(),
 		)
+		return "", err
 	}
 	if re == nil {
 		return "", fmt.Errorf("HelmUpgrade Error: Release not found")
