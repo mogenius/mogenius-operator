@@ -92,8 +92,8 @@ func (self *valkeyClient) Connect() error {
 		Password:            valkeyPwd,
 		SelectDB:            0,
 		DisableRetry:        true,
-		ReadBufferEachConn:  4 * (1 << 20), // 4 MiB - increased for better throughput
-		WriteBufferEachConn: 4 * (1 << 20), // 4 MiB - increased for better throughput
+		ReadBufferEachConn:  512 * (1 << 10), // 512 KiB
+		WriteBufferEachConn: 512 * (1 << 10), // 512 KiB
 		ConnWriteTimeout:    10 * time.Second,
 		MaxFlushDelay:       100 * time.Microsecond, // Reduce latency for pipelined commands
 	})
