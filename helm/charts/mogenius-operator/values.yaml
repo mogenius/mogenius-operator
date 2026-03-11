@@ -158,6 +158,8 @@ valkey:
       scrapeTimeout: 10s
       # -- additional relabelings appended after the default instance relabeling
       relabelings: []
+  # -- optional additional Valkey configuration appended verbatim (e.g. "maxmemory 256mb\nmaxmemory-policy allkeys-lru")
+  customValkeyConf: ""
   persistence:
     # -- storage class to be used, default is empty which will use the class defined as standard
     storageClass: ""

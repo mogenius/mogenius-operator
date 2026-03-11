@@ -30,6 +30,9 @@ spec:
       - name: storage
         persistentVolumeClaim:
           claimName:  {{ .Values.fullnameOverride }}-valkey
+      - name: valkey-conf
+        configMap:
+          name: {{ .Values.fullnameOverride }}-valkey-conf
       {{- with .Values.valkey.podSecurityContext }}
       securityContext:
         {{- toYaml . | nindent 8 }}
@@ -49,7 +52,10 @@ spec:
       containers:
       - name: valkey
         image: {{ .Values.valkey.image.registry }}/{{ .Values.valkey.image.repository }}:{{ .Values.valkey.image.tag }}
-        args: [ "--requirepass", "$(VALKEY_PASSWORD)", "--rdb-version-check", "relaxed" ]
+        args:
+          - "/etc/valkey/default.conf"
+          - "--requirepass"
+          - "$(VALKEY_PASSWORD)"
         imagePullPolicy: {{ .Values.valkey.imagePullPolicy }}
         env:
         - name: VALKEY_PASSWORD
@@ -61,6 +67,9 @@ spec:
           - mountPath: /data
             readOnly: false
             name: storage
+          - mountPath: /etc/valkey
+            name: valkey-conf
+            readOnly: true
         ports:
         - containerPort: {{ .Values.valkey.port }}
           protocol: TCP
