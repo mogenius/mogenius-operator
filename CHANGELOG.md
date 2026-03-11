@@ -1,3 +1,10 @@
+# [2.20.0-develop.12](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.11...v2.20.0-develop.12) (2026-03-11)
+
+
+### Bug Fixes
+
+* minor bugfix ([cb0ef08](https://github.com/mogenius/mogenius-operator/commit/cb0ef08a45b2a8f6131c33ec995c812e6079fdd1))
+
 # [2.20.0-develop.11](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.10...v2.20.0-develop.11) (2026-03-11)
 
 
