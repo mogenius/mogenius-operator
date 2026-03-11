@@ -1,3 +1,10 @@
+# [2.20.0-develop.7](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.6...v2.20.0-develop.7) (2026-03-11)
+
+
+### Bug Fixes
+
+* cap snoopy fialure list to 100 entries ([4610799](https://github.com/mogenius/mogenius-operator/commit/4610799b92804084c309be0e09abdbc0ac800842))
+
 # [2.20.0-develop.6](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.5...v2.20.0-develop.6) (2026-03-11)
 
 
