@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"regexp"
 	"sync"
 
 	"github.com/anthropics/anthropic-sdk-go"
@@ -13,6 +14,16 @@ import (
 	"github.com/ollama/ollama/api"
 	"github.com/openai/openai-go/v3"
 )
+
+// invalidToolNameChars matches any character not allowed in LLM tool names.
+// OpenAI requires ^[a-zA-Z0-9_-]+$; Anthropic and Ollama are similarly strict.
+var invalidToolNameChars = regexp.MustCompile(`[^a-zA-Z0-9_-]`)
+
+// sanitizeToolName replaces characters that are invalid in LLM function names
+// with underscores.
+func sanitizeToolName(name string) string {
+	return invalidToolNameChars.ReplaceAllString(name, "_")
+}
 
 // MCPServerConfig describes a remote MCP server to connect to.
 type MCPServerConfig struct {
@@ -29,9 +40,10 @@ type mcpClientManager struct {
 }
 
 type mcpSession struct {
-	name    string
-	session *mcp.ClientSession
-	tools   []*mcp.Tool
+	name                string
+	session             *mcp.ClientSession
+	tools               []*mcp.Tool
+	sanitizedToOriginal map[string]string // sanitized LLM name → original MCP name
 }
 
 type authTransport struct {
@@ -82,11 +94,18 @@ func (m *mcpClientManager) Connect(ctx context.Context, cfg MCPServerConfig) err
 		return fmt.Errorf("failed to list tools from MCP server %s: %w", cfg.Name, err)
 	}
 
+	// Build sanitized→original name mapping for LLM-safe tool names.
+	nameMap := make(map[string]string, len(toolsResult.Tools))
+	for _, tool := range toolsResult.Tools {
+		nameMap[sanitizeToolName(tool.Name)] = tool.Name
+	}
+
 	m.mu.Lock()
 	m.sessions[cfg.Name] = &mcpSession{
-		name:    cfg.Name,
-		session: session,
-		tools:   toolsResult.Tools,
+		name:                cfg.Name,
+		session:             session,
+		tools:               toolsResult.Tools,
+		sanitizedToOriginal: nameMap,
 	}
 	m.mu.Unlock()
 
@@ -112,19 +131,26 @@ func (m *mcpClientManager) Close() {
 }
 
 // CallTool calls a tool on the appropriate MCP server.
+// toolName can be the original MCP name or its sanitized LLM-safe form.
 func (m *mcpClientManager) CallTool(ctx context.Context, toolName string, args map[string]any) (string, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
 	for _, s := range m.sessions {
+		// Resolve sanitized name back to the original MCP name.
+		originalName := toolName
+		if orig, ok := s.sanitizedToOriginal[toolName]; ok {
+			originalName = orig
+		}
+
 		for _, tool := range s.tools {
-			if tool.Name == toolName {
+			if tool.Name == originalName {
 				result, err := s.session.CallTool(ctx, &mcp.CallToolParams{
-					Name:      toolName,
+					Name:      originalName,
 					Arguments: args,
 				})
 				if err != nil {
-					return "", fmt.Errorf("MCP tool call %q failed: %w", toolName, err)
+					return "", fmt.Errorf("MCP tool call %q failed: %w", originalName, err)
 				}
 
 				if result.IsError {
@@ -148,11 +174,17 @@ func (m *mcpClientManager) HasSession(name string) bool {
 }
 
 // IsMCPTool returns true if the tool name belongs to an MCP server.
+// toolName can be the original MCP name or its sanitized LLM-safe form.
 func (m *mcpClientManager) IsMCPTool(toolName string) bool {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
 	for _, s := range m.sessions {
+		// Check sanitized name mapping first (most common path from LLM responses).
+		if _, ok := s.sanitizedToOriginal[toolName]; ok {
+			return true
+		}
+		// Fallback: check original names directly.
 		for _, tool := range s.tools {
 			if tool.Name == toolName {
 				return true
@@ -172,7 +204,7 @@ func (m *mcpClientManager) GetAnthropicTools() []anthropic.ToolParam {
 		for _, tool := range s.tools {
 			properties, required := mcpSchemaToPropertiesAndRequired(tool.InputSchema)
 			tools = append(tools, anthropic.ToolParam{
-				Name:        tool.Name,
+				Name:        sanitizeToolName(tool.Name),
 				Description: anthropic.String(tool.Description),
 				InputSchema: anthropic.ToolInputSchemaParam{
 					Type:       "object",
@@ -197,7 +229,7 @@ func (m *mcpClientManager) GetOpenAITools() []openai.ChatCompletionToolUnionPara
 			tools = append(tools, openai.ChatCompletionToolUnionParam{
 				OfFunction: &openai.ChatCompletionFunctionToolParam{
 					Function: openai.FunctionDefinitionParam{
-						Name:        tool.Name,
+						Name:        sanitizeToolName(tool.Name),
 						Description: openai.String(tool.Description),
 						Parameters:  params,
 					},
@@ -220,7 +252,7 @@ func (m *mcpClientManager) GetOllamaTools() []api.Tool {
 			tools = append(tools, api.Tool{
 				Type: "function",
 				Function: api.ToolFunction{
-					Name:        tool.Name,
+					Name:        sanitizeToolName(tool.Name),
 					Description: tool.Description,
 					Parameters: api.ToolFunctionParameters{
 						Type:       "object",
