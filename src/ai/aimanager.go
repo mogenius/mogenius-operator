@@ -2,6 +2,7 @@ package ai
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	cfg "mogenius-operator/src/config"
@@ -842,7 +843,14 @@ func (ai *aiManager) processAiTaskQueue(ctx context.Context) {
 		response, tokensUsed, timeUsedInMs, modelUsed, err := ai.processPrompt(ctx, task.Prompt)
 		if err != nil {
 			task.Error = err.Error()
-			task.State = AI_TASK_STATE_FAILED
+			// Non-retryable API errors (billing, invalid request, auth) must not be retried.
+			// Mark as ignored so processPendingTasks skips them on the next run.
+			var apiErr *anthropic.Error
+			if errors.As(err, &apiErr) && (apiErr.StatusCode == 400 || apiErr.StatusCode == 401 || apiErr.StatusCode == 403) {
+				task.State = AI_TASK_STATE_IGNORED
+			} else {
+				task.State = AI_TASK_STATE_FAILED
+			}
 			ai.logger.Error("Error processing AI task", "taskID", task.ID, "error", err)
 		} else {
 			task.State = AI_TASK_STATE_COMPLETED
