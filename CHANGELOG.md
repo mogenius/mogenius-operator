@@ -1,3 +1,10 @@
+# [2.20.0-develop.5](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.4...v2.20.0-develop.5) (2026-03-11)
+
+
+### Bug Fixes
+
+* use a select to not block forwever if snoopy died ([6be29fd](https://github.com/mogenius/mogenius-operator/commit/6be29fdaa84df0cbff137813c60d17240f0d960f))
+
 # [2.20.0-develop.4](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.3...v2.20.0-develop.4) (2026-03-11)
 
 
