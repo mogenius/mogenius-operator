@@ -50,9 +50,7 @@ spec:
           image: {{ .Values.image.registry }}/{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion}}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           command:
-            - "dumb-init"
-            - "--"
-            - "mogenius-operator"
+            - "/usr/local/bin/mogenius-operator"
             - "nodemetrics"
             - "--metrics-rate"
             - "2000"
