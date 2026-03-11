@@ -166,6 +166,19 @@ func (self *watcher) startSingleWatcher(ctx context.Context, resource utils.Reso
 	informerFactory := dynamicinformer.NewFilteredDynamicSharedInformerFactory(dynamicClient, utils.ResourceResyncTime, v1.NamespaceAll, nil)
 	resourceInformer := informerFactory.ForResource(self.createGroupVersionResource(resource.ApiVersion, resource.Plural)).Informer()
 
+	// Strip large metadata fields before caching to reduce in-process memory usage.
+	// managedFields (server-side apply tracking) and last-applied-configuration
+	// are never used by event handlers and can be several KB per object.
+	resourceInformer.SetTransform(func(obj interface{}) (interface{}, error) {
+		if u, ok := obj.(*unstructured.Unstructured); ok {
+			u.SetManagedFields(nil)
+			annotations := u.GetAnnotations()
+			delete(annotations, "kubectl.kubernetes.io/last-applied-configuration")
+			u.SetAnnotations(annotations)
+		}
+		return obj, nil
+	})
+
 	// Enhanced error handler that can detect fatal errors
 	err := resourceInformer.SetWatchErrorHandler(func(r *cache.Reflector, err error) {
 		if err == io.EOF {
