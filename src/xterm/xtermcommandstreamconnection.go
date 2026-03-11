@@ -2,7 +2,6 @@ package xterm
 
 import (
 	"context"
-	"encoding/base64"
 	"fmt"
 	"io"
 	"mogenius-operator/src/kubernetes"
@@ -19,53 +18,19 @@ import (
 )
 
 func injectContent(content io.Reader, conn *websocket.Conn, connWriteLock *sync.Mutex) {
-	// Read full content for pre-injection
-	input, err := io.ReadAll(content)
+	data, err := io.ReadAll(content)
 	if err != nil {
-		xtermLogger.Error("failed to read data", "error", err)
-	}
-
-	// Encode for security reasons and send to pseudoterminal to be executed
-	// Use pty as a bridge for correct formatting
-	encodedData := base64.StdEncoding.EncodeToString(input)
-	sh := exec.Command("sh", "-c", "echo \""+encodedData+"\" | base64 -d")
-	ttytmp, err := pty.Start(sh)
-	if err != nil {
-		xtermLogger.Error("Unable to start tmp pty/cmd", "error", err)
-		if conn != nil {
-			connWriteLock.Lock()
-			err := conn.WriteMessage(websocket.TextMessage, []byte(err.Error()))
-			connWriteLock.Unlock()
-			if err != nil {
-				xtermLogger.Error("failed to write websocket message", "error", err)
-			}
-		}
+		xtermLogger.Error("failed to read inject content", "error", err)
 		return
 	}
-	defer func() { _ = ttytmp.Close() }()
-
-	// Read from pseudoterminal and send to websocket
-	buf := make([]byte, 1024)
-	for {
-		n, err := ttytmp.Read(buf)
-		if err != nil {
-			if err == io.EOF {
-				break
-			}
-			xtermLogger.Error("failed to read from pseudoterminal", "error", err)
-			break
-		}
-		if conn != nil {
-			connWriteLock.Lock()
-			err := conn.WriteMessage(websocket.BinaryMessage, buf[:n])
-			connWriteLock.Unlock()
-			if err != nil {
-				xtermLogger.Error("failed to write websocket message", "error", err)
-				break
-			}
-		} else {
-			break
-		}
+	if conn == nil {
+		return
+	}
+	connWriteLock.Lock()
+	err = conn.WriteMessage(websocket.BinaryMessage, data)
+	connWriteLock.Unlock()
+	if err != nil {
+		xtermLogger.Error("failed to write websocket message", "error", err)
 	}
 }
 

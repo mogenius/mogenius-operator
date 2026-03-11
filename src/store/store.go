@@ -10,8 +10,9 @@ import (
 	"mogenius-operator/src/utils"
 	"mogenius-operator/src/valkeyclient"
 	"os"
-	"os/exec"
 	"strconv"
+
+	"github.com/pmezard/go-difflib/difflib"
 	"strings"
 	"time"
 
@@ -542,23 +543,24 @@ func Diff(oldObj, newObj *unstructured.Unstructured) (string, error) {
 }
 
 func unifiedDiff(filePath1 string, filePath2 string, ns, resourceName string) (string, error) {
-	cmd := exec.Command("diff", "-u", "-N", "--label", ns+"/"+resourceName, "--label", ns+"/"+resourceName, filePath1, filePath2)
-	cmd.Dir = os.TempDir()
-	out, err := cmd.CombinedOutput()
-
-	if err != nil {
-		// diff returns exit code 1 if files differ
-		if exitError, ok := err.(*exec.ExitError); ok {
-			if exitError.ExitCode() == 1 {
-				return string(out), nil
-			} else {
-				return "", fmt.Errorf("Error running diff: %s\n%s\n", err.Error(), string(out))
-			}
-		} else {
-			return "", err
-		}
+	aBytes, err := os.ReadFile(filePath1)
+	if err != nil && !os.IsNotExist(err) {
+		return "", fmt.Errorf("failed to read file1: %w", err)
 	}
-	return "", nil
+	bBytes, err := os.ReadFile(filePath2)
+	if err != nil && !os.IsNotExist(err) {
+		return "", fmt.Errorf("failed to read file2: %w", err)
+	}
+
+	label := ns + "/" + resourceName
+	diff := difflib.UnifiedDiff{
+		A:        difflib.SplitLines(string(aBytes)),
+		B:        difflib.SplitLines(string(bBytes)),
+		FromFile: label,
+		ToFile:   label,
+		Context:  3,
+	}
+	return difflib.GetUnifiedDiffString(diff)
 }
 
 func removeUnusedFields(obj *unstructured.Unstructured) *unstructured.Unstructured {
