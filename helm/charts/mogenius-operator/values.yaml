@@ -101,6 +101,13 @@ envVars:
   MO_API_SERVER: "wss://k8s-ws.mogenius.com/ws"
   MO_EVENT_SERVER: "wss://k8s-dispatcher.mogenius.com/ws"
 
+# -- Go runtime memory tuning
+goRuntime:
+  # -- Soft memory limit for the Go runtime (GOMEMLIMIT)
+  memLimit: "180MiB"
+  # -- GC target percentage (GOGC). Lower = more frequent GC, less memory
+  gcPercent: "50"
+
 valkey:
   enabled: true
   imagePullPolicy: IfNotPresent
