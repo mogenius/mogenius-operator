@@ -41,6 +41,12 @@ func NewOwnerCacheService(
 
 var ownerCache sync.Map
 
+// ClearOwnerCachePodEntry removes a pod's cached owner entry.
+// Can be called from anywhere without holding an OwnerCacheService reference.
+func ClearOwnerCachePodEntry(podName string) {
+	ownerCache.Delete(podName)
+}
+
 func (self *ownerCacheService) ControllerForPod(namespace string, podName string) *utils.WorkloadSingleRequest {
 	if cached, ok := ownerCache.Load(podName); ok {
 		ctlr := cached.(utils.WorkloadSingleRequest)
