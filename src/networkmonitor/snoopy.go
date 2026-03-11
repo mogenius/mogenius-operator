@@ -938,7 +938,11 @@ func (self *snoopyManager) attachToPidNamespace(pid ProcessId) (*SnoopyHandle, e
 				self.logger.Error("failed to parse snoopy log message", "message", string(output), "error", err)
 				continue
 			}
-			snoopy.Stderr <- msg
+			select {
+			case snoopy.Stderr <- msg:
+			case <-ctx.Done():
+				return
+			}
 		}
 	}()
 
