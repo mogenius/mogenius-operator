@@ -1,3 +1,10 @@
+# [2.20.0-develop.9](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.8...v2.20.0-develop.9) (2026-03-11)
+
+
+### Features
+
+* adding alertmanager api ([8fe2766](https://github.com/mogenius/mogenius-operator/commit/8fe2766d5d816562e7d376da202b190b6bb7578b))
+
 # [2.20.0-develop.8](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.7...v2.20.0-develop.8) (2026-03-11)
 
 
