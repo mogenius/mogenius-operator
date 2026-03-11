@@ -1,3 +1,10 @@
+# [2.20.0-develop.17](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.16...v2.20.0-develop.17) (2026-03-11)
+
+
+### Bug Fixes
+
+* reduce memory usage ([16c805b](https://github.com/mogenius/mogenius-operator/commit/16c805b0c62748f4ae4709da18292f897d0b4ed5))
+
 # [2.20.0-develop.16](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.15...v2.20.0-develop.16) (2026-03-11)
 
 
