@@ -1,3 +1,10 @@
+# [2.20.0-develop.4](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.3...v2.20.0-develop.4) (2026-03-11)
+
+
+### Bug Fixes
+
+* sanitize MCP tool names for LLM API compatibility (MOG-4097) ([a46ac95](https://github.com/mogenius/mogenius-operator/commit/a46ac950262883ed47b31d4da54a707d1551f666))
+
 # [2.20.0-develop.3](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.2...v2.20.0-develop.3) (2026-03-10)
 
 
