@@ -41,6 +41,7 @@ func initializePatternsystems(base baseSystems, logManagerModule logging.SlogMan
 		nil, // eventsClient — not used for pattern introspection
 		nil, // valkeyClient — not used for pattern introspection
 		nil, // argocd       — not used for pattern introspection
+		nil, // alertmanager — not used for pattern introspection
 	)
 	return patternsSystems{socketApi: socketApi}
 }
