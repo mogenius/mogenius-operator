@@ -29,7 +29,6 @@ Modular packages under `src/`:
 - `websocket/` – WebSocket multiplexing with auto-reconnect.
 - `xterm/` – Terminal/shell access over WebSocket.
 - `helm/` – Helm SDK integration & chart management.
-- `gitmanager/` – Git operations orchestration.
 - `iacmanager/` – Infrastructure-as-Code orchestration.
 - `networkmonitor/` – Network traffic collection (eBPF via snoopy, or procdev).
 - `containerenumerator/` – Container PID discovery via cgroup inspection.
@@ -123,6 +122,7 @@ if [[ -f .env ]]; then export $(grep -v '^#' .env | xargs); fi
 | `MO_LOG_LEVEL` | `info` | Log level: `mo`, `debug`, `info`, `warn`, or `error` |
 | `MO_LOG_FILTER` | — | Comma-separated list of components to enable logs for (empty = all) |
 | `MO_ALLOW_COUNTRY_CHECK` | `true` | Allow the operator to determine its location country via IP lookup |
+| `MO_PPROF` | `false` | Expose Go pprof profiling endpoints at `/debug/pprof/` (set to `true` for debugging) |
 | `KUBERNETES_DEBUG` | `false` | Enable Kubernetes SDK debug output |
 
 List all config options at runtime: `go run -trimpath src/main.go config`
@@ -172,6 +172,38 @@ helm upgrade --install mogenius-platform mo-public/mogenius-operator \
 Upgrade: `helm repo update && helm upgrade mogenius-platform mo-public/mogenius-operator`
 
 Uninstall: `helm uninstall mogenius-platform`
+
+---
+
+## Runtime Image
+
+The operator uses a minimal `scratch`-based image containing only:
+
+- `mogenius-operator` binary (statically linked, `CGO_ENABLED=0`)
+- `mogenius-snoopy` binary (Rust + musl, statically linked)
+- `nsenter` from Alpine + musl dynamic linker (required for snoopy network namespace entry)
+- CA certificates (for TLS/WSS connections)
+
+There is no shell or OS tooling in the image. Use `kubectl debug` or `hostPID: true` pods for runtime inspection.
+
+---
+
+## Profiling
+
+To profile memory usage, enable pprof temporarily:
+
+```sh
+kubectl set env deployment/mogenius-operator -n mogenius MO_PPROF=true
+kubectl port-forward -n mogenius deployment/mogenius-operator 1337:1337
+
+# Heap profile:
+go tool pprof http://localhost:1337/debug/pprof/heap
+
+# Browser UI:
+open http://localhost:1337/debug/pprof/
+```
+
+Disable afterward: `kubectl set env deployment/mogenius-operator -n mogenius MO_PPROF-`
 
 ---
 
