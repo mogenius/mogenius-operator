@@ -1,3 +1,10 @@
+# [2.20.0-develop.6](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.5...v2.20.0-develop.6) (2026-03-11)
+
+
+### Bug Fixes
+
+* delete ownercache entries if a pod gets deleted ([f6f95e0](https://github.com/mogenius/mogenius-operator/commit/f6f95e0e1387679c18dfe6a7b542cc78ae3f3870))
+
 # [2.20.0-develop.5](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.4...v2.20.0-develop.5) (2026-03-11)
 
 
