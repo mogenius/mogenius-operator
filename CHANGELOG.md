@@ -1,3 +1,10 @@
+# [2.20.0-develop.14](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.13...v2.20.0-develop.14) (2026-03-11)
+
+
+### Bug Fixes
+
+* adding option of setting custom valkey config ([57d207f](https://github.com/mogenius/mogenius-operator/commit/57d207f1c03d151e26c62ca590fa3ad937f71c6a))
+
 # [2.20.0-develop.13](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.12...v2.20.0-develop.13) (2026-03-11)
 
 
