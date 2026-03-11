@@ -1,3 +1,10 @@
+# [2.20.0-develop.15](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.14...v2.20.0-develop.15) (2026-03-11)
+
+
+### Bug Fixes
+
+* pprof added ([df7eb35](https://github.com/mogenius/mogenius-operator/commit/df7eb35ed65997a36572b7a23f41389cee60b532))
+
 # [2.20.0-develop.14](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.13...v2.20.0-develop.14) (2026-03-11)
 
 
