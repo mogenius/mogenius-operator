@@ -22,19 +22,6 @@ FROM ${BPFTOOL_IMAGE} AS bpftool-source
 # Get snoopy binary (target platform - armv7 binary for armv7 build)
 FROM ${SNOOPY_IMAGE} AS snoopy-source
 
-# Build statically linked nsenter from util-linux (target platform, musl = fully static)
-FROM alpine:3.23 AS nsenter-build
-RUN apk add --no-cache build-base linux-headers
-ADD https://mirrors.edge.kernel.org/pub/linux/utils/util-linux/v2.40/util-linux-2.40.tar.gz /tmp/util-linux.tar.gz
-RUN tar -xzf /tmp/util-linux.tar.gz -C /tmp
-WORKDIR /tmp/util-linux-2.40
-RUN LDFLAGS="-static" ./configure \
-        --disable-all-programs \
-        --enable-nsenter \
-        --without-ncurses \
-        --without-readline && \
-    make -j$(nproc) nsenter
-
 # Get Just from rust-builder (build platform - runs on host for cross-compilation)
 ARG BUILDPLATFORM
 # FROM --platform=$BUILDPLATFORM ${RUST_BUILDER_IMAGE} AS rust-source
@@ -121,8 +108,10 @@ FROM scratch AS release-image
 # CA certificates for TLS/WSS connections to platform API
 COPY --from=alpine:3.23 /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 
-# Statically compiled nsenter (required for snoopy network namespace entry)
-COPY --from=nsenter-build /tmp/util-linux-2.40/nsenter /usr/local/bin/nsenter
+# nsenter from Alpine (links against musl) + musl dynamic linker
+# The musl linker filename is arch-specific (x86_64, aarch64, armhf, ...)
+COPY --from=alpine:3.23 /usr/bin/nsenter /usr/local/bin/nsenter
+COPY --from=alpine:3.23 /lib/ld-musl-*.so.1 /lib/
 
 # Operator binary (CGO_ENABLED=0, statically linked)
 COPY --from=builder /app/bin/mogenius-operator /usr/local/bin/mogenius-operator
