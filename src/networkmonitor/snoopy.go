@@ -396,8 +396,11 @@ func (self *snoopyManager) startStatusEventHandler() {
 				updatedInitializing = append(updatedInitializing, status.Initializing[initializingIdx+1:]...)
 				status.Initializing = updatedInitializing
 
-				// add the failure to the failure list
+				// add the failure to the failure list, capped at 100 entries
 				status.Failure = append(status.Failure, *event.RegisterFailure)
+				if len(status.Failure) > 100 {
+					status.Failure = status.Failure[len(status.Failure)-100:]
+				}
 			case SnoopyStatusEventTypeRemove:
 				assert.Assert(event.Remove != nil, "event.Remove should be set", event)
 				removeEvent := *event.Remove
