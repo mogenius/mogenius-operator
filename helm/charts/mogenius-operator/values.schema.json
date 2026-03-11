@@ -265,6 +265,9 @@
                         }
                     }
                 },
+                "customValkeyConf": {
+                    "type": "string"
+                },
                 "enabled": {
                     "type": "boolean"
                 },
