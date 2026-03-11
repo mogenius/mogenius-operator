@@ -1,3 +1,15 @@
+# [2.20.0-develop.10](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.9...v2.20.0-develop.10) (2026-03-11)
+
+
+### Bug Fixes
+
+* introduced scratch. ([572f5e8](https://github.com/mogenius/mogenius-operator/commit/572f5e8bcb6260da990c4f3eff7b4caff00ad5cb))
+* removed defaultapplications becasue not needed. ([b218a24](https://github.com/mogenius/mogenius-operator/commit/b218a249f0d03226b6c7cf4b95421afd11ab9272))
+* removed gitmanager becasue not needed. ([745028a](https://github.com/mogenius/mogenius-operator/commit/745028a8f3af70e07430a636877e5cda80b29520))
+* removed os.exec because scratch is comming. ([64ee1df](https://github.com/mogenius/mogenius-operator/commit/64ee1df7f29a6e502a607c63e5812dc7eae5074b))
+* removed unused parts of the k8s objects to save memory. ([2941ae7](https://github.com/mogenius/mogenius-operator/commit/2941ae7ba2675a42474845710fc28009e4899043))
+* valkey buffer reduced to save memory. ([21a85ab](https://github.com/mogenius/mogenius-operator/commit/21a85abf4241c6e58b99215f54c8da7910f18b58))
+
 # [2.20.0-develop.9](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.8...v2.20.0-develop.9) (2026-03-11)
 
 
