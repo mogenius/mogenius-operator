@@ -124,6 +124,7 @@ type socketApi struct {
 	moKubernetes          MoKubernetes
 	sealedSecret          SealedSecretManager
 	argocd                argocd.Argocd
+	alertmanager          AlertmanagerService
 	aiApi                 AiApi
 	aiWebsocketConnection ai.AiWebsocketConnection
 }
@@ -155,6 +156,7 @@ func NewSocketApi(
 	eventsClient websocket.WebsocketClient,
 	valkeyClient valkeyclient.ValkeyClient,
 	argocd argocd.Argocd,
+	alertmanager AlertmanagerService,
 ) SocketApi {
 	self := &socketApi{}
 	self.config = configModule
@@ -166,6 +168,7 @@ func NewSocketApi(
 	self.status = NewSocketApiStatus()
 	self.statusLock = sync.RWMutex{}
 	self.argocd = argocd
+	self.alertmanager = alertmanager
 
 	self.loadpatternlogger()
 	self.registerPatterns()
@@ -727,6 +730,62 @@ func (self *socketApi) registerPatterns() {
 			return result, err
 		},
 	)
+
+	RegisterPatternHandler(
+		PatternHandle{self, "alertmanager/alerts/list"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request Void) ([]Alert, error) {
+			result, err := self.alertmanager.GetAlerts()
+			return result, err
+		},
+	)
+
+	RegisterPatternHandler(
+		PatternHandle{self, "alertmanager/alerts/create"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request []SendAlertRequest) (string, error) {
+			err := self.alertmanager.SendAlert(request)
+			if err != nil {
+				return "", err
+			}
+			return "Alerts sent successfully", nil
+		},
+	)
+
+	RegisterPatternHandler(
+		PatternHandle{self, "alertmanager/silences/create"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request SilenceRequest) (string, error) {
+			result, err := self.alertmanager.SilenceAlert(request)
+			return result, err
+		},
+	)
+
+	RegisterPatternHandler(
+		PatternHandle{self, "alertmanager/silences/list"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request Void) ([]Silence, error) {
+			result, err := self.alertmanager.GetSilences()
+			return result, err
+		},
+	)
+
+	{
+		type Request struct {
+			SilenceID string `json:"silenceId" validate:"required"`
+		}
+		RegisterPatternHandler(
+			PatternHandle{self, "alertmanager/silences/delete"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Request) (string, error) {
+				err := self.alertmanager.DeleteSilence(request.SilenceID)
+				if err != nil {
+					return "", err
+				}
+				return "Silence deleted successfully", nil
+			},
+		)
+	}
 
 	RegisterPatternHandler(
 		PatternHandle{self, "cluster/list-persistent-volume-claims"},

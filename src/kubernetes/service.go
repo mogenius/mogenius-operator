@@ -38,6 +38,22 @@ func FindPrometheusService() (namespace string, service string, port int32, err 
 	return "", "", -1, fmt.Errorf("prometheus service not found in any namespace")
 }
 
+func FindAlertmanagerService() (namespace string, service string, port int32, err error) {
+	services := store.GetServices("*", "*")
+	for _, svc := range services {
+		if svc.Name == "alertmanager-kube-prometheus-alertmanager" ||
+			svc.Name == "kube-prometheus-stack-alertmanager" ||
+			svc.Name == "alertmanager-service" ||
+			svc.Name == "alertmanager" ||
+			svc.Name == "prometheus-alertmanager" {
+			if len(svc.Spec.Ports) > 0 {
+				return svc.Namespace, svc.Name, svc.Spec.Ports[0].Port, nil
+			}
+		}
+	}
+	return "", "", -1, fmt.Errorf("alertmanager service not found in any namespace")
+}
+
 func FindSealedSecretsService(cfg cfg.ConfigModule) (namespace string, service string, port int32, err error) {
 	ownNamespace := cfg.Get("MO_OWN_NAMESPACE")
 
