@@ -45,7 +45,6 @@ func Setup(logManagerModule logging.SlogManager, configModule cfg.ConfigModule) 
 }
 
 const APP_NAME = "k8s"
-const MOGENIUS_CONFIGMAP_DEFAULT_APPS_NAME = "mogenius-operator-default-apps"
 const MOGENIUS_CONFIGMAP_DEFAULT_DEPLOYMENT_NAME = "mogenius-operator-default-deployment"
 
 const MAX_NAME_LENGTH = 253

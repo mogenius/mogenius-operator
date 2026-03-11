@@ -15,7 +15,6 @@ import (
 	"mogenius-operator/src/valkeyclient"
 	"mogenius-operator/src/websocket"
 	"net/url"
-	"sync"
 )
 
 type Core interface {
@@ -238,21 +237,6 @@ func (self *core) Initialize() error {
 	}
 
 	mokubernetes.InitOrUpdateCrds()
-
-	var wg sync.WaitGroup
-
-	wg.Go(func() {
-		basicApps, userApps := services.InstallDefaultApplications()
-		if basicApps != "" || userApps != "" {
-			err := utils.ExecuteShellCommandSilent("Installing default applications ...", fmt.Sprintf("%s\n%s", basicApps, userApps))
-			self.logger.Info("Seeding Commands ( 🪴 🪴 🪴 )", "userApps", userApps)
-			if err != nil {
-				self.logger.Error("Error installing default applications", "error", err)
-				shutdown.SendShutdownSignal(true)
-				select {}
-			}
-		}
-	})
 
 	// Init Helm Config
 	go func() {
