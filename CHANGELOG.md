@@ -1,3 +1,10 @@
+# [2.20.0-develop.16](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.15...v2.20.0-develop.16) (2026-03-11)
+
+
+### Bug Fixes
+
+* adding helm values schema ([8cd061a](https://github.com/mogenius/mogenius-operator/commit/8cd061af2a3836fe1659008b50af0d7f8bc08440))
+
 # [2.20.0-develop.15](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.14...v2.20.0-develop.15) (2026-03-11)
 
 
