@@ -1,3 +1,10 @@
+# [2.20.0-develop.22](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.21...v2.20.0-develop.22) (2026-03-12)
+
+
+### Bug Fixes
+
+* use initCOntainer to copy scripts to emptyDir ([fb50e57](https://github.com/mogenius/mogenius-operator/commit/fb50e578fa689c11fc0d380b2548885cffcecf69))
+
 # [2.20.0-develop.21](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.20...v2.20.0-develop.21) (2026-03-12)
 
 
