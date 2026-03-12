@@ -1,10 +1,10 @@
 module mogenius-operator
 
-go 1.26.0
+go 1.26.1
 
 require (
 	github.com/alecthomas/kong v1.14.0
-	github.com/bitnami-labs/sealed-secrets v0.36.0
+	github.com/bitnami-labs/sealed-secrets v0.36.1
 	github.com/cert-manager/cert-manager v1.20.0
 	github.com/creack/pty v1.1.24
 	github.com/go-playground/validator/v10 v10.30.1
