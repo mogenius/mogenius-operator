@@ -17,6 +17,14 @@ cluster:
 
 # -- feature toggles for the mogenius-operator
 features:
+  debugTools:
+    # -- enable the debug tools container in the mogenius-operator pod
+    enabled: false
+    image:
+      registry: docker.io
+      repository: nicolaka/netshoot
+      tag: v0.15
+      pullPolicy: IfNotPresent
   # -- configure the integrated node metrics dashboard
   nodeMetricsDashboard:
     # -- enable the node metrics dashboard
