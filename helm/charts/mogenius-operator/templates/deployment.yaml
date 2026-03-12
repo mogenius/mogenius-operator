@@ -42,7 +42,22 @@ spec:
         - name: debug-tools-init
           image: {{ .Values.features.debugTools.image.registry }}/{{ .Values.features.debugTools.image.repository }}:{{ .Values.features.debugTools.image.tag }}
           imagePullPolicy: {{ .Values.features.debugTools.image.pullPolicy }}
-          command: ["/bin/sh", "-c", "cp -a /usr/bin /usr/sbin /bin /sbin /netshoot/"]
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              echo "/usr/bin"
+              cp -aL /usr/bin /netshoot/
+
+              echo "/usr/sbin"
+              cp -aL /usr/sbin /netshoot/
+
+              echo "/bin"
+              cp -aL /bin /netshoot/
+
+              echo "/sbin"
+              cp -aL /sbin /netshoot/
+
+              echo "done"
           volumeMounts:
             - mountPath: /netshoot
               name: debug-tools
