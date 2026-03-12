@@ -1,3 +1,10 @@
+# [2.20.0-develop.20](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.19...v2.20.0-develop.20) (2026-03-12)
+
+
+### Bug Fixes
+
+* cpu consumption peak ([070ddfb](https://github.com/mogenius/mogenius-operator/commit/070ddfb1a2b83d169fc7fd5697e011c320d26fe0))
+
 # [2.20.0-develop.19](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.18...v2.20.0-develop.19) (2026-03-12)
 
 
