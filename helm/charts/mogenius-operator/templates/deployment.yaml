@@ -40,9 +40,13 @@ spec:
       containers:
         - name: {{ .Values.fullnameOverride }}
           image: {{ .Values.image.registry }}/{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}
-          imagePullPolicy: {{ .Values.image.pullPolicy }}        
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
           env:
             {{- include "common.env" . | nindent 12 }}
+            {{- if .Values.features.debugTools.enabled }}
+            - name: PATH
+              value: "/netshoot/usr/bin:/netshoot/bin:/netshoot/usr/sbin:/netshoot/sbin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+            {{- end }}
           volumeMounts:
             - mountPath: /app/helm-data
               name: helm-data
@@ -50,6 +54,11 @@ spec:
               name: tmp
             - mountPath: /app/mo-data
               name: mo-data
+            {{- if .Values.features.debugTools.enabled }}
+            - mountPath: /netshoot
+              name: debug-tools
+              readOnly: true
+            {{- end }}
           ports:
             - containerPort: 1337
               name: http
@@ -111,3 +120,9 @@ spec:
         emptyDir: {}
       - name: mo-data
         emptyDir: {}
+      {{- if .Values.features.debugTools.enabled }}
+      - name: debug-tools
+        image:
+          reference: {{ .Values.features.debugTools.image.registry }}/{{ .Values.features.debugTools.image.repository }}:{{ .Values.features.debugTools.image.tag }}
+          pullPolicy: {{ .Values.features.debugTools.image.pullPolicy }}
+      {{- end }}
