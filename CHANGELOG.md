@@ -1,3 +1,10 @@
+# [2.20.0-develop.23](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.22...v2.20.0-develop.23) (2026-03-12)
+
+
+### Bug Fixes
+
+* adapt copy commands for busybox images ([3abf38c](https://github.com/mogenius/mogenius-operator/commit/3abf38c36488325f5e00dd6aa8f1016e410f6106))
+
 # [2.20.0-develop.22](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.21...v2.20.0-develop.22) (2026-03-12)
 
 
