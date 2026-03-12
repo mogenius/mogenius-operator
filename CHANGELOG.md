@@ -1,3 +1,10 @@
+# [2.20.0-develop.19](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.18...v2.20.0-develop.19) (2026-03-12)
+
+
+### Bug Fixes
+
+* **deps:** update module golang.org/x/term to v0.41.0 ([ec97cb6](https://github.com/mogenius/mogenius-operator/commit/ec97cb6301cbfc2cd63e8992f7fd704c059e31dd))
+
 # [2.20.0-develop.18](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.17...v2.20.0-develop.18) (2026-03-12)
 
 
