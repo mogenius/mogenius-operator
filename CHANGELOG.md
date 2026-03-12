@@ -1,3 +1,10 @@
+# [2.20.0-develop.21](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.20...v2.20.0-develop.21) (2026-03-12)
+
+
+### Bug Fixes
+
+* adding feature to mount netshoot as debug container ([73ab54c](https://github.com/mogenius/mogenius-operator/commit/73ab54cf7f6ac1e3f9dbeb36efcc5419b8949899))
+
 # [2.20.0-develop.20](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.19...v2.20.0-develop.20) (2026-03-12)
 
 
