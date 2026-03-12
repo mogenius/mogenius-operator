@@ -323,9 +323,14 @@ func (m *watcher) Unwatch(resource utils.ResourceDescriptor) error {
 		return fmt.Errorf("resource is not being watched")
 	}
 
-	err := resourceContext.informer.RemoveEventHandler(resourceContext.handler)
-	if err != nil {
-		return fmt.Errorf("failed to remove event handler: %s", err.Error())
+	// Cancel the context first to stop watchWithRetry and startSingleWatcher goroutines.
+	resourceContext.cancelCtx()
+
+	if resourceContext.informer != nil && resourceContext.handler != nil {
+		err := resourceContext.informer.RemoveEventHandler(resourceContext.handler)
+		if err != nil {
+			return fmt.Errorf("failed to remove event handler: %s", err.Error())
+		}
 	}
 	delete(m.activeHandlers, resource)
 

@@ -592,12 +592,7 @@ func (self *reconciler) enableWatcher() {
 }
 
 func (self *reconciler) disableWatcher() {
-	for _, resource := range self.crdResources {
-		err := self.watcher.Unwatch(resource)
-		if err != nil {
-			self.logger.Error("failed to unwatch resource", "resource", resource, "error", err)
-		}
-	}
+	self.watcher.UnwatchAll()
 }
 
 func (self *reconciler) handleConfigMapChange(obj *unstructured.Unstructured) {
