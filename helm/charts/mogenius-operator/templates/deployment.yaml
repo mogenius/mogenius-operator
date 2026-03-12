@@ -37,6 +37,16 @@ spec:
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      {{- if .Values.features.debugTools.enabled }}
+      initContainers:
+        - name: debug-tools-init
+          image: {{ .Values.features.debugTools.image.registry }}/{{ .Values.features.debugTools.image.repository }}:{{ .Values.features.debugTools.image.tag }}
+          imagePullPolicy: {{ .Values.features.debugTools.image.pullPolicy }}
+          command: ["/bin/sh", "-c", "cp -a /usr/bin /usr/sbin /bin /sbin /netshoot/"]
+          volumeMounts:
+            - mountPath: /netshoot
+              name: debug-tools
+      {{- end }}
       containers:
         - name: {{ .Values.fullnameOverride }}
           image: {{ .Values.image.registry }}/{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}
@@ -122,7 +132,5 @@ spec:
         emptyDir: {}
       {{- if .Values.features.debugTools.enabled }}
       - name: debug-tools
-        image:
-          reference: {{ .Values.features.debugTools.image.registry }}/{{ .Values.features.debugTools.image.repository }}:{{ .Values.features.debugTools.image.tag }}
-          pullPolicy: {{ .Values.features.debugTools.image.pullPolicy }}
+        emptyDir: {}
       {{- end }}
