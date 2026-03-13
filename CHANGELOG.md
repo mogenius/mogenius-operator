@@ -1,3 +1,10 @@
+# [2.20.0-develop.27](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.26...v2.20.0-develop.27) (2026-03-13)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/modelcontextprotocol/go-sdk to v1.4.1 ([#853](https://github.com/mogenius/mogenius-operator/issues/853)) ([8626389](https://github.com/mogenius/mogenius-operator/commit/8626389c452c4a676b0b77078994906dc687e6d1))
+
 # [2.20.0-develop.26](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.25...v2.20.0-develop.26) (2026-03-13)
 
 
