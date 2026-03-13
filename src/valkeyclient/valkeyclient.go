@@ -271,7 +271,7 @@ func (self *valkeyClient) List(limit int, keys ...string) ([]string, error) {
 	}
 
 	// Fetch the values in 100 chunks to avoid memory issues with large datasets
-	var chunks [][]string
+	chunks := make([][]string, 0, (len(selectedKeys)+MAX_CHUNK_GET_SIZE-1)/MAX_CHUNK_GET_SIZE)
 	for i := 0; i < len(selectedKeys); i += MAX_CHUNK_GET_SIZE {
 		end := min(i+MAX_CHUNK_GET_SIZE, len(selectedKeys))
 		chunks = append(chunks, selectedKeys[i:end])
@@ -585,7 +585,7 @@ func GetObjectsByPattern[T any](store ValkeyClient, pattern string, keywords []s
 	}
 
 	// Fetch the values in 100 chunks to avoid memory issues with large datasets
-	var chunks [][]string
+	chunks := make([][]string, 0, (len(keyList)+MAX_CHUNK_GET_SIZE-1)/MAX_CHUNK_GET_SIZE)
 	for i := 0; i < len(keyList); i += MAX_CHUNK_GET_SIZE {
 		end := min(i+MAX_CHUNK_GET_SIZE, len(keyList))
 		chunks = append(chunks, keyList[i:end])
@@ -628,13 +628,9 @@ func GetObjectsByPrefix[T any](store ValkeyClient, order SortOrder, keys ...stri
 	sortStringsByTimestamp(keyList, order)
 
 	// Fetch the values in 100 chunks to avoid memory issues with large datasets
-	var chunks [][]string
-	// Loop over the original array and divide it into chunks
+	chunks := make([][]string, 0, (len(keyList)+MAX_CHUNK_GET_SIZE-1)/MAX_CHUNK_GET_SIZE)
 	for i := 0; i < len(keyList); i += MAX_CHUNK_GET_SIZE {
-		end := i + MAX_CHUNK_GET_SIZE
-		if end > len(keyList) {
-			end = len(keyList)
-		}
+		end := min(i+MAX_CHUNK_GET_SIZE, len(keyList))
 		chunks = append(chunks, keyList[i:end])
 	}
 

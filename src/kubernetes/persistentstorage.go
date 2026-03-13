@@ -6,6 +6,7 @@ import (
 	"mogenius-operator/src/structs"
 	"mogenius-operator/src/utils"
 	"mogenius-operator/src/websocket"
+	"slices"
 	"strings"
 	"time"
 
@@ -328,11 +329,9 @@ func ListPersistentVolumeClaimsWithFieldSelector(namespace string, labelSelector
 
 	// delete all persistentVolumeClaims that do not start with prefix
 	if prefix != "" {
-		for i := len(persistentVolumeClaims.Items) - 1; i >= 0; i-- {
-			if !strings.HasPrefix(persistentVolumeClaims.Items[i].Name, prefix) {
-				persistentVolumeClaims.Items = append(persistentVolumeClaims.Items[:i], persistentVolumeClaims.Items[i+1:]...)
-			}
-		}
+		persistentVolumeClaims.Items = slices.DeleteFunc(persistentVolumeClaims.Items, func(pvc v1.PersistentVolumeClaim) bool {
+			return !strings.HasPrefix(pvc.Name, prefix)
+		})
 	}
 
 	return persistentVolumeClaims.Items, err

@@ -21,15 +21,27 @@ func AllServices(namespaceName string) []v1.Service {
 	return result
 }
 
+var prometheusNames = map[string]struct{}{
+	"prometheus-kube-prometheus-prometheus": {},
+	"kube-prometheus-stack-prometheus":      {},
+	"prometheus-server":                     {},
+	"prometheus-service":                    {},
+	"prometheus":                            {},
+	"prometheus-prometheus-server":          {},
+}
+
+var alertmanagerNames = map[string]struct{}{
+	"alertmanager-kube-prometheus-alertmanager": {},
+	"kube-prometheus-stack-alertmanager":        {},
+	"alertmanager-service":                      {},
+	"alertmanager":                              {},
+	"prometheus-alertmanager":                   {},
+}
+
 func FindPrometheusService() (namespace string, service string, port int32, err error) {
 	services := store.GetServices("*", "*")
 	for _, svc := range services {
-		if svc.Name == "prometheus-kube-prometheus-prometheus" ||
-			svc.Name == "kube-prometheus-stack-prometheus" ||
-			svc.Name == "prometheus-server" ||
-			svc.Name == "prometheus-service" ||
-			svc.Name == "prometheus" ||
-			svc.Name == "prometheus-prometheus-server" {
+		if _, ok := prometheusNames[svc.Name]; ok {
 			if len(svc.Spec.Ports) > 0 {
 				return svc.Namespace, svc.Name, svc.Spec.Ports[0].Port, nil
 			}
@@ -41,11 +53,7 @@ func FindPrometheusService() (namespace string, service string, port int32, err 
 func FindAlertmanagerService() (namespace string, service string, port int32, err error) {
 	services := store.GetServices("*", "*")
 	for _, svc := range services {
-		if svc.Name == "alertmanager-kube-prometheus-alertmanager" ||
-			svc.Name == "kube-prometheus-stack-alertmanager" ||
-			svc.Name == "alertmanager-service" ||
-			svc.Name == "alertmanager" ||
-			svc.Name == "prometheus-alertmanager" {
+		if _, ok := alertmanagerNames[svc.Name]; ok {
 			if len(svc.Spec.Ports) > 0 {
 				return svc.Namespace, svc.Name, svc.Spec.Ports[0].Port, nil
 			}

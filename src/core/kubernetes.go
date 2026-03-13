@@ -393,6 +393,56 @@ func (self *moKubernetes) CleanUp(apiService Api, workspaceName string, dryRun b
 		}
 	}
 
+	// Pre-build sets for O(1) lookups
+	serviceNameSet := make(map[string]struct{}, len(workSpaceServices))
+	for _, svc := range workSpaceServices {
+		serviceNameSet[svc.Name] = struct{}{}
+	}
+
+	// Pre-build sets of secret/configmap names referenced by pods and ingresses
+	usedSecretNames := make(map[string]struct{})
+	usedConfigMapNames := make(map[string]struct{})
+	for _, pod := range workspacePods {
+		for _, volume := range pod.Spec.Volumes {
+			if volume.Secret != nil {
+				usedSecretNames[volume.Secret.SecretName] = struct{}{}
+			}
+			if volume.ConfigMap != nil {
+				usedConfigMapNames[volume.ConfigMap.Name] = struct{}{}
+			}
+		}
+		for _, container := range pod.Spec.Containers {
+			for _, env := range container.Env {
+				if env.ValueFrom != nil {
+					if env.ValueFrom.SecretKeyRef != nil {
+						usedSecretNames[env.ValueFrom.SecretKeyRef.Name] = struct{}{}
+					}
+					if env.ValueFrom.ConfigMapKeyRef != nil {
+						usedConfigMapNames[env.ValueFrom.ConfigMapKeyRef.Name] = struct{}{}
+					}
+				}
+			}
+			for _, volumeMount := range container.VolumeMounts {
+				usedSecretNames[volumeMount.Name] = struct{}{}
+				usedConfigMapNames[volumeMount.Name] = struct{}{}
+			}
+		}
+		for _, initContainer := range pod.Spec.InitContainers {
+			for _, volumeMount := range initContainer.VolumeMounts {
+				usedSecretNames[volumeMount.Name] = struct{}{}
+				usedConfigMapNames[volumeMount.Name] = struct{}{}
+			}
+		}
+		for _, imagePullSecret := range pod.Spec.ImagePullSecrets {
+			usedSecretNames[imagePullSecret.Name] = struct{}{}
+		}
+	}
+	for _, ingress := range workspaceIngresses {
+		for _, tls := range ingress.Spec.TLS {
+			usedSecretNames[tls.SecretName] = struct{}{}
+		}
+	}
+
 	for _, entry := range entries {
 		// REPLICASETS
 		if entry.GetKind() == "ReplicaSet" && replicaSets {
@@ -482,64 +532,7 @@ func (self *moKubernetes) CleanUp(apiService Api, workspaceName string, dryRun b
 			if err != nil {
 				continue
 			}
-			isInUse := false
-			for _, pod := range workspacePods {
-				// check if configmap is used by any pod
-				if pod.Spec.Volumes != nil {
-					for _, volume := range pod.Spec.Volumes {
-						if volume.ConfigMap != nil && volume.ConfigMap.Name == secret.Name {
-							isInUse = true
-							break
-						}
-					}
-				}
-				if pod.Spec.Containers != nil {
-					for _, container := range pod.Spec.Containers {
-						if container.VolumeMounts != nil {
-							for _, volumeMount := range container.VolumeMounts {
-								if volumeMount.Name == secret.Name {
-									isInUse = true
-									break
-								}
-							}
-						}
-						for _, env := range container.Env {
-							if env.ValueFrom != nil && env.ValueFrom.SecretKeyRef != nil && env.ValueFrom.SecretKeyRef.Name == secret.Name {
-								isInUse = true
-								break
-							}
-						}
-					}
-				}
-				if pod.Spec.InitContainers != nil {
-					for _, initContainer := range pod.Spec.InitContainers {
-						if initContainer.VolumeMounts != nil {
-							for _, volumeMount := range initContainer.VolumeMounts {
-								if volumeMount.Name == secret.Name {
-									isInUse = true
-									break
-								}
-							}
-						}
-					}
-				}
-				if pod.Spec.ImagePullSecrets != nil {
-					for _, imagePullSecret := range pod.Spec.ImagePullSecrets {
-						if imagePullSecret.Name == secret.Name {
-							isInUse = true
-							break
-						}
-					}
-				}
-			}
-			for _, ingress := range workspaceIngresses {
-				for _, tls := range ingress.Spec.TLS {
-					if tls.SecretName == secret.Name {
-						isInUse = true
-						break
-					}
-				}
-			}
+			_, isInUse := usedSecretNames[secret.Name]
 			if !isInUse {
 				result.Secrets = append(result.Secrets, createCURE(secret.Name, secret.Namespace, "secret is not used by any pod or ingress"))
 				if !dryRun {
@@ -563,51 +556,9 @@ func (self *moKubernetes) CleanUp(apiService Api, workspaceName string, dryRun b
 			if err != nil {
 				continue
 			}
-			isInUse := false
+			_, isInUse := usedConfigMapNames[configMap.Name]
 			if configMap.Name == "kube-root-ca.crt" {
 				isInUse = true
-			} else {
-				for _, pod := range workspacePods {
-					// check if configmap is used by any pod
-					if pod.Spec.Volumes != nil {
-						for _, volume := range pod.Spec.Volumes {
-							if volume.ConfigMap != nil && volume.ConfigMap.Name == configMap.Name {
-								isInUse = true
-								break
-							}
-						}
-					}
-					if pod.Spec.Containers != nil {
-						for _, container := range pod.Spec.Containers {
-							if container.VolumeMounts != nil {
-								for _, volumeMount := range container.VolumeMounts {
-									if volumeMount.Name == configMap.Name {
-										isInUse = true
-										break
-									}
-								}
-							}
-							for _, env := range container.Env {
-								if env.ValueFrom != nil && env.ValueFrom.SecretKeyRef != nil && env.ValueFrom.SecretKeyRef.Name == configMap.Name {
-									isInUse = true
-									break
-								}
-							}
-						}
-					}
-					if pod.Spec.InitContainers != nil {
-						for _, initContainer := range pod.Spec.InitContainers {
-							if initContainer.VolumeMounts != nil {
-								for _, volumeMount := range initContainer.VolumeMounts {
-									if volumeMount.Name == configMap.Name {
-										isInUse = true
-										break
-									}
-								}
-							}
-						}
-					}
-				}
 			}
 			if !isInUse {
 				result.ConfigMaps = append(result.ConfigMaps, createCURE(configMap.Name, configMap.Namespace, "configmap not used by any pod"))
@@ -659,14 +610,11 @@ func (self *moKubernetes) CleanUp(apiService Api, workspaceName string, dryRun b
 			for _, v := range ingress.Spec.Rules {
 				if v.HTTP != nil {
 					for _, path := range v.HTTP.Paths {
-						for _, service := range workSpaceServices {
-							if path.Backend.Service.Name == service.Name {
+						if path.Backend.Service != nil {
+							if _, ok := serviceNameSet[path.Backend.Service.Name]; ok {
 								serviceExists = true
 								break
 							}
-						}
-						if serviceExists {
-							break
 						}
 					}
 				}

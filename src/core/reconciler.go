@@ -1030,9 +1030,19 @@ func (self *reconciler) generateMissingRoleBindings(
 	requiredRoleBindings := []rbacv1.RoleBinding{}
 	requiredClusterRoleBindings := []rbacv1.ClusterRoleBinding{}
 
+	// Pre-build maps for O(1) lookups instead of linear search per grant
+	userMap := make(map[string]v1alpha1.User, len(users))
+	for _, u := range users {
+		userMap[u.GetObjectMeta().GetName()] = u
+	}
+	workspaceMap := make(map[string]v1alpha1.Workspace, len(workspaces))
+	for _, w := range workspaces {
+		workspaceMap[w.GetName()] = w
+	}
+
 	for _, grant := range grants {
-		user, err := self.findUserByName(users, grant.Spec.Grantee)
-		if err != nil {
+		user, ok := userMap[grant.Spec.Grantee]
+		if !ok {
 			// the referenced user does not exist
 			continue
 		}
@@ -1047,8 +1057,8 @@ func (self *reconciler) generateMissingRoleBindings(
 		}
 		switch grant.Spec.TargetType {
 		case "workspace":
-			workspace, err := self.findWorkspaceByName(workspaces, grant.Spec.TargetName)
-			if err != nil {
+			workspace, ok := workspaceMap[grant.Spec.TargetName]
+			if !ok {
 				// the referenced workspace does not exist
 				continue
 			}
@@ -1313,16 +1323,12 @@ func (self *reconciler) findNamespaceByName(namespaces []v1.Namespace, name stri
 }
 
 func (self *reconciler) findClusterRoleByRolename(clusterRoles []rbacv1.ClusterRole, rolename string) (rbacv1.ClusterRole, error) {
-	// check for matches in labels
+	labelKey := self.getLabelRoleName()
+
+	// check for matches in labels (direct map access instead of iterating all labels)
 	for _, clusterRole := range clusterRoles {
-		labels := clusterRole.GetObjectMeta().GetLabels()
-		for key, val := range labels {
-			if key == self.getLabelRoleName() {
-				if val == rolename {
-					return clusterRole, nil
-				}
-				break
-			}
+		if val, ok := clusterRole.GetObjectMeta().GetLabels()[labelKey]; ok && val == rolename {
+			return clusterRole, nil
 		}
 	}
 

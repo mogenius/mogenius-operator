@@ -626,7 +626,7 @@ func HelmChartSearch(data HelmChartSearchRequest) ([]HelmChartInfo, error) {
 
 // filterCharts filters charts based on the query
 func filterCharts(charts []HelmChartInfo, query string) []HelmChartInfo {
-	var result []HelmChartInfo
+	result := make([]HelmChartInfo, 0, len(charts))
 	query = strings.ToLower(query)
 	for _, chart := range charts {
 		if strings.Contains(strings.ToLower(chart.Name), query) ||

@@ -26,7 +26,6 @@ import (
 	"os"
 	"os/exec"
 	"reflect"
-	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -224,12 +223,13 @@ func (self *socketApi) Status() SocketApiStatus {
 
 func (self *socketApi) AssertPatternsUnique() {
 	patternConfigs := self.PatternConfigs()
-	var patterns []string
+	seen := make(map[string]struct{}, len(patternConfigs))
 
 	for pattern := range patternConfigs {
 		normalizedPattern := self.NormalizePatternName(pattern)
-		assert.Assert(!slices.Contains(patterns, normalizedPattern), "duplicate normalized pattern", normalizedPattern)
-		patterns = append(patterns, normalizedPattern)
+		_, exists := seen[normalizedPattern]
+		assert.Assert(!exists, "duplicate normalized pattern", normalizedPattern)
+		seen[normalizedPattern] = struct{}{}
 	}
 }
 
