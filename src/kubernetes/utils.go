@@ -11,9 +11,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-
-	version2 "k8s.io/apimachinery/pkg/version"
-
 	core "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -60,15 +57,6 @@ func CurrentContextName() string {
 	return config.CurrentContext
 }
 
-func KubernetesVersion() *version2.Info {
-	clientset := clientProvider.K8sClientSet()
-	info, err := clientset.Discovery().ServerVersion()
-	if err != nil {
-		k8sLogger.Error("Error KubernetesVersion", "error", err)
-		return nil
-	}
-	return info
-}
 
 func MoCreateOptions(config cfg.ConfigModule) metav1.CreateOptions {
 	return metav1.CreateOptions{
