@@ -30,24 +30,6 @@ func TestEmptyCgroup(t *testing.T) {
 	assert.AssertT(t, err == containerenumerator.ErrorNoMatchFound)
 }
 
-// func TestEmptyCgroup(t *testing.T) {
-// 	cgroup := ""
-// 	logger := slog.New(slog.NewJSONHandler(os.Stderr, nil))
-// 	configModule := config.NewConfig()
-// 	configModule.Declare(config.ConfigDeclaration{
-// 		Key:          "KUBERNETES_DEBUG",
-// 		DefaultValue: utils.Pointer("false"),
-// 	})
-// 	configModule.Declare(config.ConfigDeclaration{
-// 		Key:          "MO_HOST_PROC_PATH",
-// 		DefaultValue: utils.Pointer("/proc"),
-// 	})
-// 	clientProvider := k8sclient.NewK8sClientProvider(logger, configModule)
-// 	cne := containerenumerator.NewContainerEnumerator(slog.New(slog.NewJSONHandler(os.Stdout, nil)), configModule, clientProvider)
-// 	_, err := cne.GetContainerIdFromCgroupWithPid(cgroup)
-// 	assert.AssertT(t, err == containerenumerator.NoMatchFound)
-// }
-
 func TestBaseCgroup(t *testing.T) {
 	cgroup := "0::/"
 	logger := slog.New(slog.NewJSONHandler(os.Stderr, nil))

@@ -88,17 +88,6 @@ func StatsMogeniusNfsVolume(r NfsVolumeStatsRequest) NfsVolumeStatsResponse {
 }
 
 
-type ClusterHelmRequest struct {
-	Namespace        string `json:"namespace" validate:"required"`
-	NamespaceId      string `json:"namespaceId" validate:"required"`
-	HelmRepoName     string `json:"helmRepoName" validate:"required"`
-	HelmRepoUrl      string `json:"helmRepoUrl" validate:"required"`
-	HelmReleaseName  string `json:"helmReleaseName" validate:"required"`
-	HelmChartName    string `json:"helmChartName" validate:"required"`
-	HelmChartVersion string `json:"helmChartVersion"`
-	HelmValues       string `json:"helmValues" validate:"required"`
-}
-
 type ClusterListWorkloads struct {
 	Namespace     string `json:"namespace"`
 	LabelSelector string `json:"labelSelector"`

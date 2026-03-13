@@ -9,7 +9,6 @@ import (
 	"mogenius-operator/src/store"
 	"mogenius-operator/src/utils"
 	"path/filepath"
-	"sort"
 	"strconv"
 	"strings"
 
@@ -395,26 +394,6 @@ func LabelsContain(labels map[string]string, str string) bool {
 		}
 	}
 	return false
-}
-
-func ApiVersions() ([]string, error) {
-	result := []string{}
-
-	clientset := clientProvider.K8sClientSet()
-	groupResources, err := clientset.DiscoveryClient.ServerPreferredResources()
-	if err != nil {
-		return result, err
-	}
-
-	for _, groupList := range groupResources {
-		result = append(result, groupList.GroupVersion)
-	}
-
-	sort.Slice(result, func(i, j int) bool {
-		return result[i] < result[j]
-	})
-
-	return result, nil
 }
 
 

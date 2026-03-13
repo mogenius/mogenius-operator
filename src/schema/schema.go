@@ -318,34 +318,10 @@ func UnsignedInteger() *Schema {
 	return schema
 }
 
-func UnsignedIntegerPointer() *Schema {
-	typeInfo := &TypeInfo{}
-	typeInfo.Type = SchemaTypeUnsignedInteger
-	typeInfo.Pointer = true
-
-	schema := &Schema{}
-	schema.TypeInfo = typeInfo
-	schema.StructLayouts = map[string]StructLayout{}
-
-	return schema
-}
-
 func Float() *Schema {
 	typeInfo := &TypeInfo{}
 	typeInfo.Type = SchemaTypeFloat
 	typeInfo.Pointer = false
-
-	schema := &Schema{}
-	schema.TypeInfo = typeInfo
-	schema.StructLayouts = map[string]StructLayout{}
-
-	return schema
-}
-
-func FloatPointer() *Schema {
-	typeInfo := &TypeInfo{}
-	typeInfo.Type = SchemaTypeFloat
-	typeInfo.Pointer = true
 
 	schema := &Schema{}
 	schema.TypeInfo = typeInfo
@@ -366,17 +342,6 @@ func Boolean() *Schema {
 	return schema
 }
 
-func BooleanPointer() *Schema {
-	typeInfo := &TypeInfo{}
-	typeInfo.Type = SchemaTypeBoolean
-	typeInfo.Pointer = true
-
-	schema := &Schema{}
-	schema.TypeInfo = typeInfo
-	schema.StructLayouts = map[string]StructLayout{}
-
-	return schema
-}
 
 func Interface() *Schema {
 	typeInfo := &TypeInfo{}

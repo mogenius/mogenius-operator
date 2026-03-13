@@ -39,19 +39,6 @@ func ZlibDecompress(compressedData []byte) ([]byte, error) {
 }
 
 // the data variable will be modified in place (inOut-variable)
-func TryZlibCompress(data any) (any, int64, error) {
-	dataBytes, err := json.Marshal(data)
-	if err != nil {
-		return nil, 0, err
-	}
-	compressedPayload, err := ZlibCompress([]byte(dataBytes))
-	if err != nil {
-		return nil, 0, err
-	}
-	return compressedPayload, int64(len(compressedPayload)), nil
-}
-
-// the data variable will be modified in place (inOut-variable)
 func TryZlibDecompress(data any) (any, error) {
 	dataBytes, err := json.Marshal(data)
 	if err != nil {
