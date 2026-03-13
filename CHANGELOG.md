@@ -1,3 +1,12 @@
+# [2.20.0-develop.26](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.25...v2.20.0-develop.26) (2026-03-13)
+
+
+### Bug Fixes
+
+* removed unused code ([933b50e](https://github.com/mogenius/mogenius-operator/commit/933b50ee44e557afddc76263c7f239f92891a96d))
+* removed unused structs ([f5ee8ea](https://github.com/mogenius/mogenius-operator/commit/f5ee8ea62f415d3e31d6520818ad9bafdc4a4654))
+* updated various loops ([f2aaf4a](https://github.com/mogenius/mogenius-operator/commit/f2aaf4ac9bf129ca3788039d26f7e0cf4064bb52))
+
 # [2.20.0-develop.25](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.24...v2.20.0-develop.25) (2026-03-13)
 
 
