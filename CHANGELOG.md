@@ -1,3 +1,10 @@
+# [2.20.0-develop.25](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.24...v2.20.0-develop.25) (2026-03-13)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/goccy/go-json to v0.10.6 ([#852](https://github.com/mogenius/mogenius-operator/issues/852)) ([ca9d152](https://github.com/mogenius/mogenius-operator/commit/ca9d152d2e2cbff7743a5a4096f609c775015a89))
+
 # [2.20.0-develop.24](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.23...v2.20.0-develop.24) (2026-03-12)
 
 
