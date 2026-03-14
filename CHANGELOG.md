@@ -1,3 +1,10 @@
+# [2.20.0-develop.30](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.29...v2.20.0-develop.30) (2026-03-14)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/openai/openai-go/v3 to v3.28.0 ([#856](https://github.com/mogenius/mogenius-operator/issues/856)) ([9aef092](https://github.com/mogenius/mogenius-operator/commit/9aef092ac3e19ea12b18a9e297234ec3676d0a7e))
+
 # [2.20.0-develop.29](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.28...v2.20.0-develop.29) (2026-03-14)
 
 
