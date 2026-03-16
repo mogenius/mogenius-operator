@@ -160,7 +160,10 @@ func (self *podStatsCollector) podStats(nodemetrics []podstatscollector.NodeMetr
 
 	for _, nodeMetric := range nodemetrics {
 		for _, kubeletPod := range nodeMetric.Pods {
-			pod := pods[kubeletPod.PodRef.Name]
+			pod, exists := pods[kubeletPod.PodRef.Name]
+			if !exists {
+				continue
+			}
 
 			for _, container := range pod.Spec.Containers {
 				if pod.Status.StartTime == nil {

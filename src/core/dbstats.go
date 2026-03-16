@@ -67,7 +67,8 @@ type valkeyStatsDb struct {
 	valkey            valkeyclient.ValkeyClient
 	ownerCacheService store.OwnerCacheService
 
-	lastPodNetworkStats []networkmonitor.PodNetworkStats
+	lastPodNetworkStats     []networkmonitor.PodNetworkStats
+	lastPodNetworkStatsLock sync.RWMutex
 }
 
 func NewValkeyStatsModule(logger *slog.Logger, config cfg.ConfigModule, valkey valkeyclient.ValkeyClient, ownerCacheService store.OwnerCacheService) ValkeyStatsDb {
@@ -115,8 +116,10 @@ func (self *valkeyStatsDb) GetMachineStatsForNode(nodeName string) (*structs.Mac
 }
 
 func (self *valkeyStatsDb) AddInterfaceStatsToDb(currentStats []networkmonitor.PodNetworkStats) {
+	self.lastPodNetworkStatsLock.Lock()
 	lastStats := self.lastPodNetworkStats
 	self.lastPodNetworkStats = currentStats
+	self.lastPodNetworkStatsLock.Unlock()
 
 	// Build a map for O(1) lookup instead of O(n) linear search
 	lastStatsMap := make(map[string]networkmonitor.PodNetworkStats, len(lastStats))

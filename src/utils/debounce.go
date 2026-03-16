@@ -7,10 +7,11 @@ import (
 )
 
 type DebounceEntry struct {
-	result any
-	err    *error
-	done   chan struct{}
-	timer  *time.Timer
+	result    any
+	err       *error
+	done      chan struct{}
+	closeOnce sync.Once
+	timer     *time.Timer
 }
 
 type Debounce struct {
@@ -54,12 +55,7 @@ func (d *Debounce) CallFn(key string, fn func() (any, error)) (any, *error) {
 		entry.result = result
 		entry.err = &err
 
-		d.mutex.Lock()
-		if entry.done != nil {
-			close(entry.done)
-			entry.done = nil
-		}
-		d.mutex.Unlock()
+		entry.closeOnce.Do(func() { close(entry.done) })
 	})
 
 	<-entry.done

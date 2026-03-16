@@ -190,6 +190,7 @@ func DeleteMogeniusNfsPersistentVolumeForService(eventClient websocket.Websocket
 		} else {
 			cmd.Fail(eventClient, job, fmt.Sprintf("DeleteMogeniusNfsPersistentVolumeForService ERROR: %s", err.Error()))
 		}
+		return
 	}
 	// FIND VOLUME WITH THE RIGHT CLAIM AND DELETE IT
 	for _, pv := range pvList.Items {

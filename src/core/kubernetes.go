@@ -583,7 +583,11 @@ func (self *moKubernetes) CleanUp(apiService Api, workspaceName string, dryRun b
 			if err != nil {
 				continue
 			}
-			if job.Status.Succeeded == *job.Spec.Completions && job.Status.Failed == 0 {
+			completions := int32(1)
+			if job.Spec.Completions != nil {
+				completions = *job.Spec.Completions
+			}
+			if job.Status.Succeeded == completions && job.Status.Failed == 0 {
 				result.Jobs = append(result.Jobs, createCURE(job.Name, job.Namespace, "job completed"))
 				if !dryRun {
 					resName, err := kubernetes.GetResourcesNameForKind(entry.GetKind())

@@ -71,9 +71,9 @@ const (
 	// mogenius-operator attempts to start a snoopy instance
 	SnoopyStatusEventTypeRegisterRequest SnoopyStatusEventType = "register_request"
 	// mogenius-operator successfully attached a snoopy instance to a linux network namespace
-	SnoopyStatusEventTypeRegisterSuccess SnoopyStatusEventType = "register_failure"
+	SnoopyStatusEventTypeRegisterSuccess SnoopyStatusEventType = "register_success"
 	// mogenius-operator failed to attach a snoopy instance to a linux network namespace
-	SnoopyStatusEventTypeRegisterFailure SnoopyStatusEventType = "register_success"
+	SnoopyStatusEventTypeRegisterFailure SnoopyStatusEventType = "register_failure"
 	// mogenius-operator stopped a snoopy instance it managed
 	SnoopyStatusEventTypeRemove SnoopyStatusEventType = "remove"
 	// mogenius-operator received an event message from a snoopy instance
