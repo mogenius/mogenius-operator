@@ -21,7 +21,7 @@ require (
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/stretchr/testify v1.11.1
 	github.com/tklauser/go-sysconf v0.3.16
-	github.com/valkey-io/valkey-go v1.0.72
+	github.com/valkey-io/valkey-go v1.0.73
 	golang.org/x/term v0.41.0
 	helm.sh/helm/v4 v4.1.3
 	k8s.io/api v0.35.2
