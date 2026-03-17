@@ -49,7 +49,10 @@ func ClearOwnerCachePodEntry(podName string) {
 
 func (self *ownerCacheService) ControllerForPod(namespace string, podName string) *utils.WorkloadSingleRequest {
 	if cached, ok := ownerCache.Load(podName); ok {
-		ctlr := cached.(utils.WorkloadSingleRequest)
+		ctlr, ok := cached.(utils.WorkloadSingleRequest)
+		if !ok {
+			return nil
+		}
 		return &ctlr
 	}
 

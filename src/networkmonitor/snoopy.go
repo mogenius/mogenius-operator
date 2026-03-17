@@ -541,66 +541,68 @@ func (self *snoopyManager) Metrics() map[containerenumerator.PodInfoIdentifier]C
 	data := map[containerenumerator.PodInfoIdentifier]ContainerInfo{}
 
 	self.handlesLock.RLock()
+	defer self.handlesLock.RUnlock()
 	for podInfoId, handle := range self.handles {
 		containerInfo := ContainerInfo{}
 		containerInfo.PodInfo = handle.PodInfo
 		containerInfo.Metrics = map[InterfaceName]MetricSnapshot{}
 
-		handle.StartBytesLock.RLock()
-		handle.LastMetricsLock.RLock()
-		for interfaceName := range handle.IngressStartBytes {
-			interfaceInfo := MetricSnapshot{}
-			interfaceInfo.Ingress.StartBytes = handle.IngressStartBytes[interfaceName]
-			interfaceInfo.Egress.StartBytes = handle.EgressStartBytes[interfaceName]
-			// Use eBPF metrics if they have reported any data.
-			// If LastMetrics is all-zero the eBPF program either failed to initialize
-			// (explicitly or silently, e.g. after removing privileged:true) or snoopy
-			// just started and hasn't emitted its first tick yet.
-			// In that case fall back to /proc/net/dev so that traffic is always captured.
-			lastM := handle.LastMetrics[interfaceName]
-			if lastM.Ingress.Bytes > 0 || lastM.Egress.Bytes > 0 || lastM.Ingress.Packets > 0 || lastM.Egress.Packets > 0 {
-				// eBPF is delivering data — use it.
-				interfaceInfo.Ingress.Bytes = lastM.Ingress.Bytes
-				interfaceInfo.Ingress.Packets = lastM.Ingress.Packets
-				interfaceInfo.Egress.Bytes = lastM.Egress.Bytes
-				interfaceInfo.Egress.Packets = lastM.Egress.Packets
-			} else {
-				// No eBPF data: read /proc/net/dev and compute delta from the baseline
-				// that was captured when the interface was first registered.
-				pidStr := strconv.FormatUint(handle.ContainerPid, 10)
-				procInfos, err := getNetworkInterfaceInfo(self.procPath, pidStr)
-				if err == nil {
-					for _, procInfo := range procInfos {
-						if procInfo.Interface == interfaceName {
-							startRx := handle.IngressStartBytes[interfaceName]
-							startTx := handle.EgressStartBytes[interfaceName]
-							startRxPkts := handle.IngressStartPackets[interfaceName]
-							startTxPkts := handle.EgressStartPackets[interfaceName]
-							if procInfo.ReceiveBytes >= startRx {
-								interfaceInfo.Ingress.Bytes = procInfo.ReceiveBytes - startRx
+		func() {
+			handle.StartBytesLock.RLock()
+			defer handle.StartBytesLock.RUnlock()
+			handle.LastMetricsLock.RLock()
+			defer handle.LastMetricsLock.RUnlock()
+			for interfaceName := range handle.IngressStartBytes {
+				interfaceInfo := MetricSnapshot{}
+				interfaceInfo.Ingress.StartBytes = handle.IngressStartBytes[interfaceName]
+				interfaceInfo.Egress.StartBytes = handle.EgressStartBytes[interfaceName]
+				// Use eBPF metrics if they have reported any data.
+				// If LastMetrics is all-zero the eBPF program either failed to initialize
+				// (explicitly or silently, e.g. after removing privileged:true) or snoopy
+				// just started and hasn't emitted its first tick yet.
+				// In that case fall back to /proc/net/dev so that traffic is always captured.
+				lastM := handle.LastMetrics[interfaceName]
+				if lastM.Ingress.Bytes > 0 || lastM.Egress.Bytes > 0 || lastM.Ingress.Packets > 0 || lastM.Egress.Packets > 0 {
+					// eBPF is delivering data — use it.
+					interfaceInfo.Ingress.Bytes = lastM.Ingress.Bytes
+					interfaceInfo.Ingress.Packets = lastM.Ingress.Packets
+					interfaceInfo.Egress.Bytes = lastM.Egress.Bytes
+					interfaceInfo.Egress.Packets = lastM.Egress.Packets
+				} else {
+					// No eBPF data: read /proc/net/dev and compute delta from the baseline
+					// that was captured when the interface was first registered.
+					pidStr := strconv.FormatUint(handle.ContainerPid, 10)
+					procInfos, err := getNetworkInterfaceInfo(self.procPath, pidStr)
+					if err == nil {
+						for _, procInfo := range procInfos {
+							if procInfo.Interface == interfaceName {
+								startRx := handle.IngressStartBytes[interfaceName]
+								startTx := handle.EgressStartBytes[interfaceName]
+								startRxPkts := handle.IngressStartPackets[interfaceName]
+								startTxPkts := handle.EgressStartPackets[interfaceName]
+								if procInfo.ReceiveBytes >= startRx {
+									interfaceInfo.Ingress.Bytes = procInfo.ReceiveBytes - startRx
+								}
+								if procInfo.ReceivePackets >= startRxPkts {
+									interfaceInfo.Ingress.Packets = procInfo.ReceivePackets - startRxPkts
+								}
+								if procInfo.TransmitBytes >= startTx {
+									interfaceInfo.Egress.Bytes = procInfo.TransmitBytes - startTx
+								}
+								if procInfo.TransmitPackets >= startTxPkts {
+									interfaceInfo.Egress.Packets = procInfo.TransmitPackets - startTxPkts
+								}
+								break
 							}
-							if procInfo.ReceivePackets >= startRxPkts {
-								interfaceInfo.Ingress.Packets = procInfo.ReceivePackets - startRxPkts
-							}
-							if procInfo.TransmitBytes >= startTx {
-								interfaceInfo.Egress.Bytes = procInfo.TransmitBytes - startTx
-							}
-							if procInfo.TransmitPackets >= startTxPkts {
-								interfaceInfo.Egress.Packets = procInfo.TransmitPackets - startTxPkts
-							}
-							break
 						}
 					}
 				}
+				containerInfo.Metrics[interfaceName] = interfaceInfo
 			}
-			containerInfo.Metrics[interfaceName] = interfaceInfo
-		}
-		handle.LastMetricsLock.RUnlock()
-		handle.StartBytesLock.RUnlock()
+		}()
 
 		data[podInfoId] = containerInfo
 	}
-	self.handlesLock.RUnlock()
 
 	return data
 }

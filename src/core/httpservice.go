@@ -68,10 +68,9 @@ func (self *Broadcaster) RemoveListener(callback MessageCallback) {
 	self.mu.Lock()
 	defer self.mu.Unlock()
 
-	for i, listener := range self.Listeners {
-		if listener.Equals(&callback) {
+	for i := len(self.Listeners) - 1; i >= 0; i-- {
+		if self.Listeners[i].Equals(&callback) {
 			self.Listeners = append(self.Listeners[:i], self.Listeners[i+1:]...)
-			continue
 		}
 	}
 }

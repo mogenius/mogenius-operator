@@ -492,8 +492,8 @@ func removeManagedFields(obj *unstructured.Unstructured) *unstructured.Unstructu
 	}
 	unstructuredContent := obj.Object
 	delete(unstructuredContent, "managedFields")
-	if unstructuredContent["metadata"] != nil {
-		delete(unstructuredContent["metadata"].(map[string]any), "managedFields")
+	if meta, ok := unstructuredContent["metadata"].(map[string]any); ok {
+		delete(meta, "managedFields")
 	}
 	return obj
 }

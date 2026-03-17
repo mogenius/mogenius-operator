@@ -1,7 +1,7 @@
 package core
 
 import (
-	"fmt"
+	"log/slog"
 	"mogenius-operator/src/logging"
 	"mogenius-operator/src/valkeyclient"
 	"time"
@@ -27,11 +27,10 @@ func NewValkeyLogger(valkey valkeyclient.ValkeyClient, logChannel chan logging.L
 
 func (self *valkeyLogger) Run() {
 	go func() {
-		for {
-			record := <-self.logChannel
+		for record := range self.logChannel {
 			err := self.valkey.StoreSortedListEntry(record, time.Now().UnixNano(), "logs", record.Component)
 			if err != nil {
-				fmt.Printf("Failed to log record: %v\n", err)
+				slog.Error("Failed to log record to valkey", "error", err)
 			}
 		}
 	}()

@@ -429,14 +429,14 @@ func AddToAuditLog[T any](datagram structs.Datagram, logger *slog.Logger, result
 		resourceNamespace = updatedObj.GetNamespace()
 		resourceName = updatedObj.GetName()
 	} else if payload, ok := datagram.Payload.(map[string]any); ok {
-		if payload["namespace"] != nil {
-			resourceNamespace = payload["namespace"].(string)
+		if ns, ok := payload["namespace"].(string); ok {
+			resourceNamespace = ns
 		}
-		if payload["name"] != nil {
-			resourceName = payload["name"].(string)
+		if name, ok := payload["name"].(string); ok {
+			resourceName = name
 		}
-		if payload["pod"] != nil {
-			resourceName = payload["pod"].(string)
+		if pod, ok := payload["pod"].(string); ok {
+			resourceName = pod
 		}
 	} else if yamlData, ok := payload["yamlData"].(string); ok {
 		var unstruct unstructured.Unstructured

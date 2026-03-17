@@ -128,7 +128,7 @@ func (self *moKubernetes) writeMogeniusSecret(secretClient v1.SecretInterface, e
 			self.logger.Error("Error creating mogenius secret.", "error", err)
 			return clusterSecret, err
 		}
-		self.logger.Info("🔑 Created new mogenius secret", result.GetObjectMeta().GetName(), ".")
+		self.logger.Info("🔑 Created new mogenius secret", "name", result.GetObjectMeta().GetName())
 	} else {
 		if string(existingSecret.Data["cluster-mfa-id"]) != clusterSecret.ClusterMfaId ||
 			string(existingSecret.Data["api-key"]) != clusterSecret.ApiKey ||
@@ -140,7 +140,7 @@ func (self *moKubernetes) writeMogeniusSecret(secretClient v1.SecretInterface, e
 				self.logger.Error("Error updating mogenius secret.", "error", err)
 				return clusterSecret, err
 			}
-			self.logger.Info("🔑 Updated mogenius secret", result.GetObjectMeta().GetName(), ".")
+			self.logger.Info("🔑 Updated mogenius secret", "name", result.GetObjectMeta().GetName())
 		} else {
 			self.logger.Info("🔑 Using existing mogenius secret.")
 		}
@@ -229,8 +229,8 @@ func (self *moKubernetes) removeManagedFields(obj *unstructured.Unstructured) *u
 
 	unstructuredContent := obj.Object
 	delete(unstructuredContent, "managedFields")
-	if unstructuredContent["metadata"] != nil {
-		delete(unstructuredContent["metadata"].(map[string]any), "managedFields")
+	if meta, ok := unstructuredContent["metadata"].(map[string]any); ok {
+		delete(meta, "managedFields")
 	}
 
 	return obj
@@ -263,10 +263,15 @@ func (self *moKubernetes) GetNodeStats() ([]dtos.NodeStat, error) {
 	result := make([]dtos.NodeStat, 0, len(nodes))
 
 	for _, node := range nodes {
+		skipNode := false
 		for _, taint := range node.Spec.Taints {
 			if taint.Effect == corev1.TaintEffectNoSchedule || taint.Key == "CriticalAddonsOnly" {
-				continue // Skip nodes with NoSchedule/CriticalAddonsOnly taints
+				skipNode = true
+				break
 			}
+		}
+		if skipNode {
+			continue
 		}
 		allPods := kubernetes.AllPodsOnNode(node.Name)
 		requestCpuCores, limitCpuCores := kubernetes.SumCpuResources(allPods)
@@ -422,15 +427,23 @@ func (self *moKubernetes) CleanUp(apiService Api, workspaceName string, dryRun b
 					}
 				}
 			}
-			for _, volumeMount := range container.VolumeMounts {
-				usedSecretNames[volumeMount.Name] = struct{}{}
-				usedConfigMapNames[volumeMount.Name] = struct{}{}
+			for _, envFrom := range container.EnvFrom {
+				if envFrom.SecretRef != nil {
+					usedSecretNames[envFrom.SecretRef.Name] = struct{}{}
+				}
+				if envFrom.ConfigMapRef != nil {
+					usedConfigMapNames[envFrom.ConfigMapRef.Name] = struct{}{}
+				}
 			}
 		}
 		for _, initContainer := range pod.Spec.InitContainers {
-			for _, volumeMount := range initContainer.VolumeMounts {
-				usedSecretNames[volumeMount.Name] = struct{}{}
-				usedConfigMapNames[volumeMount.Name] = struct{}{}
+			for _, envFrom := range initContainer.EnvFrom {
+				if envFrom.SecretRef != nil {
+					usedSecretNames[envFrom.SecretRef.Name] = struct{}{}
+				}
+				if envFrom.ConfigMapRef != nil {
+					usedConfigMapNames[envFrom.ConfigMapRef.Name] = struct{}{}
+				}
 			}
 		}
 		for _, imagePullSecret := range pod.Spec.ImagePullSecrets {

@@ -104,7 +104,7 @@ func (self *valkeyClient) Connect() error {
 	self.valkeyClient = client
 	err = self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Ping().Build()).Error()
 	if err != nil {
-		self.logger.Info("connection to Valkey failed", "addr", valkeyAddr, "password", valkeyPwd, "error", err)
+		self.logger.Info("connection to Valkey failed", "addr", valkeyAddr, "error", err)
 		return fmt.Errorf("could not connect to Valkey: %v", err)
 	}
 

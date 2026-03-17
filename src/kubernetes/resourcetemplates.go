@@ -48,7 +48,10 @@ func loadResourceTemplateData(kind string) (string, error) {
 	}
 	for key, v := range configmapData {
 		if key == kind {
-			dataStr := v.(string)
+			dataStr, ok := v.(string)
+			if !ok {
+				continue
+			}
 			if dataStr != "" {
 				obj := unstructured.Unstructured{}
 				err := yaml.Unmarshal([]byte(dataStr), &obj)
