@@ -1,3 +1,10 @@
+# [2.20.0-develop.34](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.33...v2.20.0-develop.34) (2026-03-17)
+
+
+### Bug Fixes
+
+* minor improvements, stability, bugfixes ([ab97faf](https://github.com/mogenius/mogenius-operator/commit/ab97faf530a6d0b000143e0769e91d47376870d6))
+
 # [2.20.0-develop.33](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.32...v2.20.0-develop.33) (2026-03-17)
 
 
