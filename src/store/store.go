@@ -103,7 +103,7 @@ func SearchResourceByNamespace(valkeyClient valkeyclient.ValkeyClient, namespace
 func DropAllResourcesFromValkey(valkeyClient valkeyclient.ValkeyClient, logger *slog.Logger) error {
 	keys, err := valkeyClient.Keys(VALKEY_RESOURCE_PREFIX + ":*")
 	if err != nil {
-		return fmt.Errorf("failed to get keys: %v", err)
+		return fmt.Errorf("failed to get keys: %w", err)
 	}
 	err = valkeyClient.DeleteMultiple(keys...)
 	if err != nil {

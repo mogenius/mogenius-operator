@@ -182,7 +182,7 @@ func (self *containerEnumerator) readCgroupFile(pid ProcessId) (string, error) {
 
 	file, err := os.ReadFile(filePath)
 	if err != nil {
-		return "", fmt.Errorf(`failed to read cgroup file Path("%s"): %v`, filePath, err)
+		return "", fmt.Errorf(`failed to read cgroup file Path("%s"): %w`, filePath, err)
 	}
 	filestring := string(file)
 

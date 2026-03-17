@@ -635,7 +635,7 @@ func (self *snoopyManager) Register(podInfo containerenumerator.PodInfo) []error
 					err,
 				},
 			}
-			errors = append(errors, fmt.Errorf("failed to attach snoopy to containerId(%s) pid(%d): %v", containerId, pid, err))
+			errors = append(errors, fmt.Errorf("failed to attach snoopy to containerId(%s) pid(%d): %w", containerId, pid, err))
 			continue
 		}
 		self.statusEventTx <- SnoopyStatusEvent{

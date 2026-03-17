@@ -105,7 +105,7 @@ func (self *valkeyClient) Connect() error {
 	err = self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Ping().Build()).Error()
 	if err != nil {
 		self.logger.Info("connection to Valkey failed", "addr", valkeyAddr, "error", err)
-		return fmt.Errorf("could not connect to Valkey: %v", err)
+		return fmt.Errorf("could not connect to Valkey: %w", err)
 	}
 
 	self.logger.Info("Connected to valkey", "addr", valkeyAddr)
@@ -312,7 +312,7 @@ func (self *valkeyClient) DeleteFromSortedListWithNsAndReleaseName(namespace str
 		var obj map[string]any
 		err := json.Unmarshal([]byte(v.FieldValues["data"]), &obj)
 		if err != nil {
-			return fmt.Errorf("error unmarshalling value from valkey, error: %v", err)
+			return fmt.Errorf("error unmarshalling value from valkey: %w", err)
 		}
 
 		// Check if the object contains a "Payload" field
@@ -392,7 +392,7 @@ func (self *valkeyClient) ClearNonEssentialKeys(includeTraffic bool, includePodS
 
 			scanResult, err := result.AsScanEntry()
 			if err != nil {
-				return "", fmt.Errorf("error parsing scan result for pattern %s: %v", pattern, err)
+				return "", fmt.Errorf("error parsing scan result for pattern %s: %w", pattern, err)
 			}
 
 			// Collect keys for deletion
@@ -402,7 +402,7 @@ func (self *valkeyClient) ClearNonEssentialKeys(includeTraffic bool, includePodS
 				// Delete in batches of 100
 				if len(batch) >= 100 {
 					if err := self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Del().Key(batch...).Build()).Error(); err != nil {
-						return "", fmt.Errorf("error deleting batch: %v", err)
+						return "", fmt.Errorf("error deleting batch: %w", err)
 					}
 					cacheDeleteCounter += len(batch)
 					batch = batch[:0]
@@ -418,7 +418,7 @@ func (self *valkeyClient) ClearNonEssentialKeys(includeTraffic bool, includePodS
 		// Delete remaining keys in batch
 		if len(batch) > 0 {
 			if err := self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Del().Key(batch...).Build()).Error(); err != nil {
-				return "", fmt.Errorf("error deleting final batch: %v", err)
+				return "", fmt.Errorf("error deleting final batch: %w", err)
 			}
 			cacheDeleteCounter += len(batch)
 		}
@@ -601,7 +601,7 @@ func GetObjectsByPattern[T any](store ValkeyClient, pattern string, keywords []s
 		for _, v := range values {
 			var obj T
 			if err := json.Unmarshal([]byte(v), &obj); err != nil {
-				return result, fmt.Errorf("error unmarshalling value from Valkey, error: %v", err)
+				return result, fmt.Errorf("error unmarshalling value from Valkey: %w", err)
 			}
 			result = append(result, obj)
 		}
@@ -644,7 +644,7 @@ func GetObjectsByPrefix[T any](store ValkeyClient, order SortOrder, keys ...stri
 		for _, v := range values {
 			var obj T
 			if err := json.Unmarshal([]byte(v), &obj); err != nil {
-				return result, fmt.Errorf("error unmarshalling value from Valkey, error: %v", err)
+				return result, fmt.Errorf("error unmarshalling value from Valkey: %w", err)
 			}
 			result = append(result, obj)
 		}
@@ -712,7 +712,7 @@ func GetObjectsByPrefixWithSizeAndNs[T any](store ValkeyClient, limit int, offse
 	for _, v := range values {
 		var obj T
 		if err := json.Unmarshal([]byte(v), &obj); err != nil {
-			return result, totalCount, fmt.Errorf("error unmarshalling value from Valkey, error: %v", err)
+			return result, totalCount, fmt.Errorf("error unmarshalling value from Valkey: %w", err)
 		}
 		result = append(result, obj)
 	}

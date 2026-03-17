@@ -242,17 +242,17 @@ func (self *moKubernetes) getKubeletNodeStats(nodeName string) (*podstatscollect
 
 	resultData := restClient.Get().AbsPath(path).Do(context.Background())
 	if err := resultData.Error(); err != nil {
-		return nil, fmt.Errorf("failed to make request: %v", err)
+		return nil, fmt.Errorf("failed to make request: %w", err)
 	}
 
 	rawResponse, err := resultData.Raw()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get raw response: %v", err)
+		return nil, fmt.Errorf("failed to get raw response: %w", err)
 	}
 
 	result := &podstatscollector.NodeMetrics{}
 	if err := json.Unmarshal(rawResponse, result); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal kubelet stats for node %s: %v", nodeName, err)
+		return nil, fmt.Errorf("failed to unmarshal kubelet stats for node %s: %w", nodeName, err)
 	}
 
 	return result, nil

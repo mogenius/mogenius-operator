@@ -213,13 +213,13 @@ func (self *podStatsCollector) requestMetricsDataFromNode(nodeName string) (*pod
 
 	rawResponse, err := resultData.Raw()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get raw response: %v", err)
+		return nil, fmt.Errorf("failed to get raw response: %w", err)
 	}
 
 	result := &podstatscollector.NodeMetrics{}
 	err = json.Unmarshal(rawResponse, &result)
 	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal metrics from Node(%s): %v", nodeName, err)
+		return nil, fmt.Errorf("failed to unmarshal metrics from Node(%s): %w", nodeName, err)
 	}
 
 	return result, nil
