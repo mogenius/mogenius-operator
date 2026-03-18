@@ -1,3 +1,10 @@
+# [2.20.0-develop.37](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.36...v2.20.0-develop.37) (2026-03-18)
+
+
+### Bug Fixes
+
+* improved startup logging ([b27a53d](https://github.com/mogenius/mogenius-operator/commit/b27a53d35982e6036faabd6f8e72139118e0e115))
+
 # [2.20.0-develop.36](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.35...v2.20.0-develop.36) (2026-03-18)
 
 
