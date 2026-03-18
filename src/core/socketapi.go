@@ -1697,12 +1697,16 @@ func (self *socketApi) registerPatterns() {
 		PatternConfig{},
 		func(datagram structs.Datagram, request services.NfsVolumeRequest) (bool, error) {
 			res := services.CreateMogeniusNfsVolume(self.eventsClient, request)
-			_, err := store.AddToAuditLog(datagram, self.logger, res, fmt.Errorf("%s", res.Error), nil, nil)
-			if err != nil {
-				self.logger.Warn("failed to add event to audit log", "request", request, "error", err)
-			}
+			var resErr error
 			if !res.Success {
-				return false, fmt.Errorf("%s", res.Error)
+				resErr = fmt.Errorf("%s", res.Error)
+			}
+			_, auditErr := store.AddToAuditLog(datagram, self.logger, res, resErr, nil, nil)
+			if auditErr != nil {
+				self.logger.Warn("failed to add event to audit log", "request", request, "error", auditErr)
+			}
+			if resErr != nil {
+				return false, resErr
 			}
 			return true, nil
 		},
@@ -1714,12 +1718,16 @@ func (self *socketApi) registerPatterns() {
 		PatternConfig{},
 		func(datagram structs.Datagram, request services.NfsVolumeRequest) (bool, error) {
 			res := services.DeleteMogeniusNfsVolume(self.eventsClient, request)
-			_, err := store.AddToAuditLog(datagram, self.logger, res, fmt.Errorf("%s", res.Error), nil, nil)
-			if err != nil {
-				self.logger.Warn("failed to add event to audit log", "request", request, "error", err)
-			}
+			var resErr error
 			if !res.Success {
-				return false, fmt.Errorf("%s", res.Error)
+				resErr = fmt.Errorf("%s", res.Error)
+			}
+			_, auditErr := store.AddToAuditLog(datagram, self.logger, res, resErr, nil, nil)
+			if auditErr != nil {
+				self.logger.Warn("failed to add event to audit log", "request", request, "error", auditErr)
+			}
+			if resErr != nil {
+				return false, resErr
 			}
 			return true, nil
 		},
@@ -2124,21 +2132,35 @@ func (self *socketApi) startJobClientReadLoop() {
 				openFile, err = os.OpenFile(*preparedFileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 				if err != nil {
 					self.logger.Error("Cannot open uploadfile", "filename", *preparedFileName, "error", err)
+					preparedFileName = nil
+					openFile = nil
 				}
 				continue
 			}
 			if bytes.HasPrefix(message, []byte("######END_UPLOAD######;")) {
-				openFile.Close()
-				if preparedFileName != nil && preparedFileRequest != nil {
-					err = services.Uploaded(*preparedFileName, *preparedFileRequest)
-					if err != nil {
-						self.logger.Error("Error uploading file", "error", err)
-					}
+				if openFile != nil {
+					openFile.Close()
 				}
-				os.Remove(*preparedFileName)
+				var uploadErr error
+				if preparedFileName != nil && preparedFileRequest != nil {
+					uploadErr = services.Uploaded(*preparedFileName, *preparedFileRequest)
+					if uploadErr != nil {
+						self.logger.Error("Error uploading file", "error", uploadErr)
+					}
+				} else if preparedFileName == nil {
+					uploadErr = fmt.Errorf("upload failed: could not open temporary file")
+				}
+				if preparedFileName != nil {
+					os.Remove(*preparedFileName)
+				}
 
-				var ack = structs.CreateDatagramAck("ack:files/upload:end", preparedFileRequest.Id)
-				go self.JobServerSendData(self.jobClients[0], ack)
+				if preparedFileRequest != nil {
+					ack := structs.CreateDatagramAck("ack:files/upload:end", preparedFileRequest.Id)
+					if uploadErr != nil {
+						ack.Err = uploadErr.Error()
+					}
+					go self.JobServerSendData(self.jobClients[0], ack)
+				}
 
 				preparedFileName = nil
 				preparedFileRequest = nil
@@ -2224,6 +2246,20 @@ func (self *socketApi) handlePatternRequest(datagram structs.Datagram, responseC
 		decompressedData, err := utils.TryZlibDecompress(datagram.Payload)
 		if err != nil {
 			self.logger.Error("failed to decompress payload", "error", err)
+			result := structs.Datagram{
+				Id:      datagram.Id,
+				Pattern: datagram.Pattern,
+				Payload: struct {
+					Status  string `json:"status"`
+					Message string `json:"message"`
+				}{
+					Status:  "error",
+					Message: fmt.Sprintf("failed to decompress payload: %s", err.Error()),
+				},
+				CreatedAt: datagram.CreatedAt,
+				Zlib:      false,
+			}
+			self.JobServerSendData(responseClient, result)
 			return
 		}
 		datagram.Payload = decompressedData
