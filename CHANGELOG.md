@@ -1,3 +1,10 @@
+# [2.20.0-develop.39](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.38...v2.20.0-develop.39) (2026-03-18)
+
+
+### Bug Fixes
+
+* removed some endpoints from auditlog ([831bfad](https://github.com/mogenius/mogenius-operator/commit/831bfad2c337221a8fabf646e2a6b532e3ae77b2))
+
 # [2.20.0-develop.38](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.37...v2.20.0-develop.38) (2026-03-18)
 
 
