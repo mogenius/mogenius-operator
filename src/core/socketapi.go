@@ -1577,7 +1577,8 @@ func (self *socketApi) registerPatterns() {
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (ai.AiManagerStatus, error) {
 				status := self.aiApi.GetStatus(request.Workspace)
-				return store.AddToAuditLog(datagram, self.logger, status, nil, nil, nil)
+				// return store.AddToAuditLog(datagram, self.logger, status, nil, nil, nil)
+				return status, nil
 			},
 		)
 	}
@@ -1631,7 +1632,8 @@ func (self *socketApi) registerPatterns() {
 					tasks, err = self.aiApi.GetAiTasksForWorkspace(request.Workspace)
 				}
 
-				return store.AddToAuditLog(datagram, self.logger, tasks, err, nil, nil)
+				// return store.AddToAuditLog(datagram, self.logger, tasks, err, nil, nil)
+				return tasks, err
 			},
 		)
 	}
