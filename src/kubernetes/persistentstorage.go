@@ -319,6 +319,59 @@ func DeleteMogeniusNfsDeployment(eventClient websocket.WebsocketClient, job *str
 	}
 }
 
+// CleanupNfsVolumesInNamespace removes all mogenius NFS volume resources
+// (Deployment, Service, PVC, PV, and service PVC) for the given namespace.
+// This should be called before deleting a workspace to prevent orphaned storage.
+func CleanupNfsVolumesInNamespace(namespaceName string) {
+	clientset := clientProvider.K8sClientSet()
+	pvcClient := clientset.CoreV1().PersistentVolumeClaims(namespaceName)
+	pvcList, err := pvcClient.List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		k8sLogger.Warn("failed to list PVCs for NFS cleanup", "namespace", namespaceName, "error", err)
+		return
+	}
+
+	prefix := fmt.Sprintf("%s-", utils.NFS_POD_PREFIX)
+	for _, pvc := range pvcList.Items {
+		if !strings.HasPrefix(pvc.Name, prefix) {
+			continue
+		}
+		volumeName := strings.TrimPrefix(pvc.Name, prefix)
+		k8sLogger.Info("cleaning up NFS volume before workspace deletion", "namespace", namespaceName, "volume", volumeName)
+
+		// Delete deployment
+		err := clientset.AppsV1().Deployments(namespaceName).Delete(context.Background(), fmt.Sprintf("%s-%s", utils.NFS_POD_PREFIX, volumeName), metav1.DeleteOptions{})
+		if err != nil && !apierrors.IsNotFound(err) {
+			k8sLogger.Warn("failed to delete NFS deployment during cleanup", "namespace", namespaceName, "volume", volumeName, "error", err)
+		}
+
+		// Delete service
+		err = clientset.CoreV1().Services(namespaceName).Delete(context.Background(), fmt.Sprintf("%s-%s", utils.NFS_POD_PREFIX, volumeName), metav1.DeleteOptions{})
+		if err != nil && !apierrors.IsNotFound(err) {
+			k8sLogger.Warn("failed to delete NFS service during cleanup", "namespace", namespaceName, "volume", volumeName, "error", err)
+		}
+
+		// Delete the NFS server PVC
+		err = pvcClient.Delete(context.Background(), pvc.Name, metav1.DeleteOptions{})
+		if err != nil && !apierrors.IsNotFound(err) {
+			k8sLogger.Warn("failed to delete NFS PVC during cleanup", "namespace", namespaceName, "volume", volumeName, "error", err)
+		}
+
+		// Delete the cluster-scoped PV (named {namespace}-{volumeName})
+		pvName := fmt.Sprintf("%s-%s", namespaceName, volumeName)
+		err = clientset.CoreV1().PersistentVolumes().Delete(context.Background(), pvName, metav1.DeleteOptions{})
+		if err != nil && !apierrors.IsNotFound(err) {
+			k8sLogger.Warn("failed to delete NFS PV during cleanup", "namespace", namespaceName, "volume", volumeName, "error", err)
+		}
+
+		// Delete the service PVC (named just {volumeName})
+		err = pvcClient.Delete(context.Background(), volumeName, metav1.DeleteOptions{})
+		if err != nil && !apierrors.IsNotFound(err) {
+			k8sLogger.Warn("failed to delete NFS service PVC during cleanup", "namespace", namespaceName, "volume", volumeName, "error", err)
+		}
+	}
+}
+
 func ListPersistentVolumeClaimsWithFieldSelector(namespace string, labelSelector string, prefix string) ([]v1.PersistentVolumeClaim, error) {
 	clientset := clientProvider.K8sClientSet()
 	client := clientset.CoreV1().PersistentVolumeClaims(namespace)
