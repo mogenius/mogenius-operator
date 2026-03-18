@@ -1,3 +1,10 @@
+# [2.20.0-develop.41](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.40...v2.20.0-develop.41) (2026-03-18)
+
+
+### Bug Fixes
+
+* helm chart improved (logo, maintainers list was too long) ([afc56de](https://github.com/mogenius/mogenius-operator/commit/afc56dec7317932be9cb98688a4a3b159ae5064d))
+
 # [2.20.0-develop.40](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.39...v2.20.0-develop.40) (2026-03-18)
 
 
