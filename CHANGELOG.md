@@ -1,3 +1,10 @@
+# [2.20.0-develop.40](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.39...v2.20.0-develop.40) (2026-03-18)
+
+
+### Bug Fixes
+
+* cleanup for storage improved ([519cb86](https://github.com/mogenius/mogenius-operator/commit/519cb8600064594ae3db4065d460cf81873ae90e))
+
 # [2.20.0-develop.39](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.38...v2.20.0-develop.39) (2026-03-18)
 
 
