@@ -1,3 +1,10 @@
+# [2.20.0-develop.38](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.37...v2.20.0-develop.38) (2026-03-18)
+
+
+### Bug Fixes
+
+* some former silent errors are now reported correctly to the client ([d33d6a2](https://github.com/mogenius/mogenius-operator/commit/d33d6a2fc207d134d1dac9b51030fb5924e28398))
+
 # [2.20.0-develop.37](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.36...v2.20.0-develop.37) (2026-03-18)
 
 
