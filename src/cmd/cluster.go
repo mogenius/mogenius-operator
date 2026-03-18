@@ -16,6 +16,7 @@ import (
 	"mogenius-operator/src/networkmonitor"
 	"mogenius-operator/src/rammonitor"
 	"mogenius-operator/src/services"
+	"mogenius-operator/src/shell"
 	"mogenius-operator/src/shutdown"
 	"mogenius-operator/src/store"
 	"mogenius-operator/src/structs"
@@ -23,7 +24,10 @@ import (
 	"mogenius-operator/src/watcher"
 	"mogenius-operator/src/websocket"
 	"mogenius-operator/src/xterm"
+	"os"
 	"strconv"
+	"strings"
+	"time"
 )
 
 // clusterSystems holds all services needed for the full operator cluster mode.
@@ -167,13 +171,38 @@ func initializeClusterSystems(
 	}
 }
 
+// logStep prints a startup progress line directly to stderr, bypassing slog
+// so it is always visible regardless of the configured log level.
+func logStep(name string) {
+	fmt.Fprintf(os.Stderr, "  %s %s\n", shell.Colorize("✓", shell.Green), name)
+}
+
+// printReady prints the final ready banner to stderr.
+func printReady(version string, addr string, startTime time.Time) {
+	elapsed := time.Since(startTime).Round(time.Millisecond)
+	separator := shell.Colorize(strings.Repeat("─", 48), shell.Faint)
+
+	fmt.Fprintf(os.Stderr, "\n%s\n", separator)
+	fmt.Fprintf(os.Stderr, "  %s\n", shell.Colorize("mogenius-operator ready", shell.Green, shell.Bold))
+	fmt.Fprintf(os.Stderr, "\n")
+	fmt.Fprintf(os.Stderr, "  %-12s %s\n", shell.Colorize("Version", shell.Faint), version)
+	fmt.Fprintf(os.Stderr, "  %-12s %s\n", shell.Colorize("HTTP", shell.Faint), addr)
+	fmt.Fprintf(os.Stderr, "  %-12s %s\n", shell.Colorize("Started in", shell.Faint), elapsed)
+	fmt.Fprintf(os.Stderr, "%s\n\n", separator)
+}
+
 func RunCluster(logManagerModule logging.SlogManager, configModule *config.Config, cmdLogger *slog.Logger, valkeyLogChannel chan logging.LogLine) {
 	go func() {
 		defer shutdown.SendShutdownSignal(true)
+		startTime := time.Now()
+
 		configModule.Validate()
 
 		base := initializeBaseSystems(logManagerModule, configModule, cmdLogger)
+		logStep("Base systems initialized (kubernetes client, valkey, store)")
+
 		systems := initializeClusterSystems(base, logManagerModule, configModule, valkeyLogChannel)
+		logStep("Cluster systems initialized (websocket, monitors, helm, ai)")
 
 		systems.versionModule.PrintVersionInfo()
 
@@ -182,18 +211,34 @@ func RunCluster(logManagerModule logging.SlogManager, configModule *config.Confi
 			cmdLogger.Error("failed to initialize kubernetes resources", "error", err)
 			return
 		}
-
-		cmdLogger.Info("🖥️  🖥️  🖥️  CURRENT CONTEXT", "foundContext", mokubernetes.CurrentContextName())
+		logStep("Core initialized (valkey, cluster secret, CRDs)")
 
 		systems.httpApi.Run()
+		logStep("HTTP API server started on " + configModule.Get("MO_HTTP_ADDR"))
+
 		systems.socketApi.Run()
+		logStep("Socket API started")
+
 		systems.podStatsCollector.Run()
+		logStep("Pod stats collector started")
+
 		systems.nodeMetricsCollector.Orchestrate()
+		logStep("Node metrics collector started")
+
 		systems.valkeyLoggerService.Run()
+		logStep("Valkey logger started")
+
 		systems.dbstatsService.Run()
+		logStep("DB stats service started")
+
 		systems.reconciler.Run()
+		logStep("Reconciler started")
+
 		systems.leaderElector.Run()
+		logStep("Leader elector started")
+
 		systems.aiManager.Run()
+		logStep("AI manager started")
 
 		// services have to be started before this otherwise watcher events will get missing
 		err = mokubernetes.WatchStoreResources(systems.watcherModule, systems.aiManager, systems.eventConnectionClient)
@@ -201,12 +246,20 @@ func RunCluster(logManagerModule logging.SlogManager, configModule *config.Confi
 			cmdLogger.Error("failed to start watcher", "error", err)
 			return
 		}
-
-		cmdLogger.Info("SYSTEM STARTUP COMPLETE")
+		logStep("Kubernetes resource watcher started")
 
 		// connect socket after everything is ready
 		systems.mocore.InitializeWebsocketEventServer()
+		logStep("WebSocket event server connected")
+
 		systems.mocore.InitializeWebsocketApiServers()
+		logStep("WebSocket API server(s) connected")
+
+		printReady(
+			systems.versionModule.Version,
+			configModule.Get("MO_HTTP_ADDR"),
+			startTime,
+		)
 
 		select {}
 	}()

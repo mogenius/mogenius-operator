@@ -8,15 +8,13 @@ import (
 	cfg "mogenius-operator/src/config"
 	"mogenius-operator/src/store"
 	"mogenius-operator/src/utils"
-	"path/filepath"
 	"strconv"
 	"strings"
+
 	core "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/remotecommand"
-	"k8s.io/client-go/util/homedir"
 )
 
 type IngressType int
@@ -32,31 +30,6 @@ const (
 func (i IngressType) String() string {
 	return [...]string{"NGINX", "TRAEFIK", "MULTIPLE", "NONE", "UNKNOWN"}[i]
 }
-
-func CurrentContextName() string {
-	context := config.Get("MO_CLUSTER_NAME")
-	if context != "" {
-		return context
-	}
-
-	var kubeconfig string = ""
-	if home := homedir.HomeDir(); home != "" {
-		kubeconfig = filepath.Join(home, ".kube", "config")
-	}
-
-	config, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
-		&clientcmd.ClientConfigLoadingRules{ExplicitPath: kubeconfig},
-		&clientcmd.ConfigOverrides{
-			CurrentContext: "",
-		}).RawConfig()
-
-	if err != nil {
-		return "No context found. Probably running in a cluster."
-	}
-
-	return config.CurrentContext
-}
-
 
 func MoCreateOptions(config cfg.ConfigModule) metav1.CreateOptions {
 	return metav1.CreateOptions{
@@ -194,7 +167,6 @@ func execInNfsPodStream(namespace, podName string, command []string, stdin io.Re
 	}
 	return nil
 }
-
 
 func StorageClassForClusterProvider(clusterProvider utils.KubernetesProvider) string {
 	var nfsStorageClassStr string = ""
@@ -383,7 +355,6 @@ func LabelsContain(labels map[string]string, str string) bool {
 	}
 	return false
 }
-
 
 func DetermineIngressControllerType() (IngressType, error) {
 	ingressClasses := store.GetIngressClasses()
