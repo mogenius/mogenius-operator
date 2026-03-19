@@ -1,3 +1,10 @@
+# [2.20.0-develop.44](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.43...v2.20.0-develop.44) (2026-03-19)
+
+
+### Bug Fixes
+
+* added auditlog for ai-chat, fixed stupid json dependency, fixed serialization error, set ttl for valkey for certain keys to reduce memory usage ([db7d592](https://github.com/mogenius/mogenius-operator/commit/db7d5923b494c31fee83e84f00826272757b82f9))
+
 # [2.20.0-develop.43](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.42...v2.20.0-develop.43) (2026-03-19)
 
 
