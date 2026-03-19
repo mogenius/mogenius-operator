@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	json "github.com/goccy/go-json"
+	"encoding/json"
 
 	"github.com/valkey-io/valkey-go"
 )

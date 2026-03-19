@@ -16,7 +16,7 @@ import (
 	"sync"
 	"time"
 
-	json "github.com/goccy/go-json"
+	"encoding/json"
 
 	"github.com/nwidger/jsoncolor"
 )

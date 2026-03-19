@@ -6,7 +6,7 @@ import (
 	"mogenius-operator/src/utils"
 	"net/http"
 
-	json "github.com/goccy/go-json"
+	"encoding/json"
 )
 
 func (self *httpService) addApiRoutes(mux *http.ServeMux) {

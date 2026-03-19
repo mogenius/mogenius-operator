@@ -8,7 +8,6 @@ require (
 	github.com/cert-manager/cert-manager v1.20.0
 	github.com/creack/pty v1.1.24
 	github.com/go-playground/validator/v10 v10.30.1
-	github.com/goccy/go-json v0.10.6
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.4-0.20250319132907-e064f32e3674
 	github.com/jaevor/go-nanoid v1.4.0

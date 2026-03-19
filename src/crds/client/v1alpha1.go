@@ -6,7 +6,7 @@ import (
 	mov1alpha1 "mogenius-operator/src/crds/v1alpha1"
 	"mogenius-operator/src/store"
 
-	json "github.com/goccy/go-json"
+	"encoding/json"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"

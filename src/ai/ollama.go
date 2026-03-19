@@ -219,9 +219,11 @@ func (ai *aiManager) ollamaChat(
 
 			// Pass allTools + categories so the inner loop can recompute
 			// active tools after the LLM activates new categories
-			_, updatedMessages, err := ai.ollamaChatWithTools(ctx, client, model, messages, ioChannel, allOllamaTools, categories, maxToolCalls, &sessionInputTokens, &sessionOutputTokens)
+			fullResponse, updatedMessages, turnStats, err := ai.ollamaChatWithTools(ctx, client, model, messages, ioChannel, allOllamaTools, categories, maxToolCalls, &sessionInputTokens, &sessionOutputTokens)
 			if err != nil {
 				ai.logger.Error("Error processing with tools", "error", err)
+				payload := map[string]any{"question": userInput, "stats": turnStats}
+				emitAuditEvent(ioChannel, "ai/chat", payload, nil, err.Error())
 				select {
 				case ioChannel.Output <- fmt.Sprintf("\n[Error: %v]", err):
 				case <-ctx.Done():
@@ -229,6 +231,9 @@ func (ai *aiManager) ollamaChat(
 				}
 				continue
 			}
+
+			payload := map[string]any{"question": userInput, "response": truncateToolResult(fullResponse), "stats": turnStats}
+			emitAuditEvent(ioChannel, "ai/chat", payload, nil, "")
 
 			// Discard intermediate tool_use/tool_result exchanges from history.
 			// updatedMessages = [..., user_input, tool_exchanges..., assistant_final]
@@ -258,16 +263,24 @@ func (ai *aiManager) ollamaChatWithTools(
 	maxToolCalls int,
 	sessionInputTokens *int64,
 	sessionOutputTokens *int64,
-) (fullResponse string, updatedMessages []api.Message, err error) {
+) (fullResponse string, updatedMessages []api.Message, stats ChatTurnStats, err error) {
 	toolCallCount := 0
 	truePtr := true
 	toolCtx := newToolContextFromIOChannel(ioChannel)
+	stats.Model = model
+	turnStartInput := *sessionInputTokens
+	turnStartOutput := *sessionOutputTokens
+	startTime := time.Now()
+	defer func() {
+		stats.InputTokens = *sessionInputTokens - turnStartInput
+		stats.OutputTokens = *sessionOutputTokens - turnStartOutput
+		stats.DurationMs = int(time.Since(startTime).Milliseconds())
+	}()
 
 	var inputTokens int64
 	var outputTokenCount int64
 	inputTokensUsed := int64(0)
 	outputTokensUsed := int64(0)
-	startTime := time.Now()
 
 	for {
 		// Recompute active tools each iteration (categories may have changed)
@@ -277,7 +290,7 @@ func (ai *aiManager) ollamaChatWithTools(
 		select {
 		case ioChannel.Output <- "[AI is thinking...]\n":
 		case <-ctx.Done():
-			return "", messages, ctx.Err()
+			return "", messages, stats, ctx.Err()
 		}
 
 		req := &api.ChatRequest{
@@ -331,7 +344,7 @@ func (ai *aiManager) ollamaChatWithTools(
 		})
 
 		if err != nil {
-			return "", messages, fmt.Errorf("streaming error: %w", err)
+			return "", messages, stats, fmt.Errorf("streaming error: %w", err)
 		}
 
 		ai.sendTokens(inputTokens, outputTokenCount, sessionInputTokens, sessionOutputTokens, ctx, ioChannel)
@@ -351,7 +364,7 @@ func (ai *aiManager) ollamaChatWithTools(
 		select {
 		case ioChannel.Output <- "\n\n":
 		case <-ctx.Done():
-			return "", messages, ctx.Err()
+			return "", messages, stats, ctx.Err()
 		}
 
 		// No tool calls — just a text response
@@ -361,7 +374,7 @@ func (ai *aiManager) ollamaChatWithTools(
 				Role:    "assistant",
 				Content: response,
 			})
-			return response, messages, nil
+			return response, messages, stats, nil
 		}
 
 		// Add assistant message with tool calls to history
@@ -387,7 +400,7 @@ func (ai *aiManager) ollamaChatWithTools(
 				Role:    "assistant",
 				Content: text,
 			})
-			return text, messages, nil
+			return text, messages, stats, nil
 		}
 
 		// Execute each tool call
@@ -414,16 +427,19 @@ func (ai *aiManager) ollamaChatWithTools(
 			}
 
 			var result string
+			var toolErr string
 			if tc.Function.Name == activateToolCategoriesName {
 				result = categories.ActivateFromToolCall(args)
 			} else if ai.mcpManager != nil && ai.mcpManager.IsMCPTool(tc.Function.Name) {
 				mcpResult, err := ai.mcpManager.CallTool(ctx, tc.Function.Name, args)
 				if err != nil {
 					ai.logger.Error("MCP tool call failed", "tool", tc.Function.Name, "error", err)
+					toolErr = fmt.Sprintf("Error calling MCP tool: %v", err)
 					messages = append(messages, api.Message{
 						Role:    "tool",
-						Content: fmt.Sprintf("Error calling MCP tool: %v", err),
+						Content: toolErr,
 					})
+					stats.ToolRecords = append(stats.ToolRecords, ToolUseRecord{Tool: tc.Function.Name, Args: args, Error: toolErr})
 					continue
 				}
 				result = mcpResult
@@ -437,6 +453,7 @@ func (ai *aiManager) ollamaChatWithTools(
 				})
 				continue
 			}
+			stats.ToolRecords = append(stats.ToolRecords, ToolUseRecord{Tool: tc.Function.Name, Args: args, Result: truncateToolResult(result)})
 			messages = append(messages, api.Message{
 				Role:    "tool",
 				Content: result,

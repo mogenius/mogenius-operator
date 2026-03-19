@@ -30,7 +30,7 @@ import (
 	"sync"
 	"time"
 
-	json "github.com/goccy/go-json"
+	"encoding/json"
 
 	release "helm.sh/helm/v4/pkg/release/v1"
 	v1 "k8s.io/api/core/v1"
@@ -1553,7 +1553,8 @@ func (self *socketApi) registerPatterns() {
 			func(datagram structs.Datagram, request Request) (Void, error) {
 				mergedPromptCfg, err := kubernetes.CreateOrUpdateAndMergePromptConfig(request.AiPromptConfig)
 				self.aiApi.InjectAiPromptConfig(mergedPromptCfg, &request.AiPrompts)
-				return store.AddToAuditLog[Void](datagram, self.logger, nil, err, nil, nil)
+				// return store.AddToAuditLog[Void](datagram, self.logger, nil, err, nil, nil)
+				return nil, err
 			},
 		)
 

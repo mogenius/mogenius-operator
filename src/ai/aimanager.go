@@ -19,7 +19,7 @@ import (
 	"sync"
 	"time"
 
-	json "github.com/goccy/go-json"
+	"encoding/json"
 
 	coreV1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
