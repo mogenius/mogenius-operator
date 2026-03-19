@@ -1,3 +1,15 @@
+# [2.20.0-develop.45](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.44...v2.20.0-develop.45) (2026-03-19)
+
+
+### Bug Fixes
+
+* added minor improvement ([d8f6fb9](https://github.com/mogenius/mogenius-operator/commit/d8f6fb94ace11ff0e84e53f5823d864b2a384f84))
+
+
+### Features
+
+* add cluster/dashboard-stats endpoint for aggregated workspace metrics ([879f2b6](https://github.com/mogenius/mogenius-operator/commit/879f2b606fa97616f87830e3d0959d0e3577e40c))
+
 # [2.20.0-develop.44](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.43...v2.20.0-develop.44) (2026-03-19)
 
 
