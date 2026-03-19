@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	json "github.com/goccy/go-json"
+	"encoding/json"
 
 	"github.com/gorilla/websocket"
 	v1 "k8s.io/api/core/v1"

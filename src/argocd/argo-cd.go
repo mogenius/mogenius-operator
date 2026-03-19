@@ -17,7 +17,7 @@ import (
 	"mogenius-operator/src/valkeyclient"
 	"net/http"
 
-	json "github.com/goccy/go-json"
+	"encoding/json"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

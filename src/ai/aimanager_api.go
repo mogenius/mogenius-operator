@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	json "github.com/goccy/go-json"
+	"encoding/json"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 

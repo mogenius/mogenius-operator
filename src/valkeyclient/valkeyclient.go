@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	json "github.com/goccy/go-json"
+	"encoding/json"
 
 	valkeyclient "github.com/valkey-io/valkey-go"
 )
@@ -24,7 +24,7 @@ type ValkeyClient interface {
 	Connect() error
 	Set(value string, expiration time.Duration, keys ...string) error
 	SetObject(value any, expiration time.Duration, keys ...string) error
-	SetObjectWithAutoincrementLimit(value any, limit int64, keys ...string) error
+	SetObjectWithAutoincrementLimit(value any, limit int64, ttl time.Duration, keys ...string) error
 	Get(keys ...string) (string, error)
 	GetObject(keys ...string) (any, error)
 	List(limit int, keys ...string) ([]string, error)
@@ -153,7 +153,7 @@ func (self *valkeyClient) SetObject(value any, expiration time.Duration, keys ..
 	return self.Set(string(objStr), expiration, key)
 }
 
-func (self *valkeyClient) SetObjectWithAutoincrementLimit(value any, limit int64, keys ...string) error {
+func (self *valkeyClient) SetObjectWithAutoincrementLimit(value any, limit int64, ttl time.Duration, keys ...string) error {
 	baseKey := strings.Join(keys, ":")
 	pattern := baseKey + ":*"
 
@@ -183,7 +183,11 @@ func (self *valkeyClient) SetObjectWithAutoincrementLimit(value any, limit int64
 	}
 
 	var cmds []valkeyclient.Completed
-	cmds = append(cmds, self.valkeyClient.B().Set().Key(newKey).Value(string(jsonValue)).Build())
+	if ttl > 0 {
+		cmds = append(cmds, self.valkeyClient.B().Set().Key(newKey).Value(string(jsonValue)).Ex(ttl).Build())
+	} else {
+		cmds = append(cmds, self.valkeyClient.B().Set().Key(newKey).Value(string(jsonValue)).Build())
+	}
 
 	if int64(len(existingKeys)) >= limit {
 		keysToDelete := int64(len(existingKeys)) - limit + 1
@@ -675,7 +679,10 @@ func GetObjectsByPrefixWithSizeAndNs[T any](store ValkeyClient, limit int, offse
 		for _, key := range keyList {
 			split := strings.Split(key, ":")
 			if len(split) >= 3 {
-				if _, ok := nsSet[split[1]]; ok {
+				// Always include ai-chat entries (they are not namespace-scoped)
+				if split[1] == "ai-chat" {
+					filteredKeys = append(filteredKeys, key)
+				} else if _, ok := nsSet[split[1]]; ok {
 					filteredKeys = append(filteredKeys, key)
 				}
 			}
@@ -884,6 +891,13 @@ func (self *valkeyClient) StoreSortedListEntry(data any, timestamp int64, keys .
 	// Trim stream to maintain retention policy
 	if err := trimStream(self, streamKey); err != nil {
 		self.logger.Error("failed to trim stream", "key", streamKey, "error", err.Error())
+	}
+
+	// Set TTL on the stream key so stale keys (e.g. for deleted pods) expire automatically.
+	// Active keys get their TTL refreshed on every write.
+	expireCmd := self.valkeyClient.B().Expire().Key(streamKey).Seconds(int64(MAX_RETENTION_TIME.Seconds())).Build()
+	if err := self.valkeyClient.Do(self.ctx, expireCmd).Error(); err != nil {
+		self.logger.Error("failed to set TTL on stream key", "key", streamKey, "error", err.Error())
 	}
 
 	// notify subscribers about the new entry

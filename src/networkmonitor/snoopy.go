@@ -15,7 +15,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	json "github.com/goccy/go-json"
+	"encoding/json"
 )
 
 type SnoopyManager interface {

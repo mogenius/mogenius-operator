@@ -13,7 +13,7 @@ import (
 	"mogenius-operator/src/store"
 	"mogenius-operator/src/utils"
 
-	json "github.com/goccy/go-json"
+	"encoding/json"
 
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"

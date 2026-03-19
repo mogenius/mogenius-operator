@@ -11,7 +11,7 @@ import (
 	"net/url"
 	"time"
 
-	json "github.com/goccy/go-json"
+	"encoding/json"
 )
 
 const (
@@ -163,7 +163,7 @@ func PrometheusSaveQueryToRedis(valkey valkeyclient.ValkeyClient, req Prometheus
 		Step:      req.Step,
 		CreatedAt: time.Now(),
 	}
-	err := valkey.SetObject(prometheusStoreObject, 0, DB_PROMETHEUS_QUERIES, req.Namespace, req.Controller, req.QueryName)
+	err := valkey.SetObject(prometheusStoreObject, 30*24*time.Hour, DB_PROMETHEUS_QUERIES, req.Namespace, req.Controller, req.QueryName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to save query to Redis: %w", err)
 	}

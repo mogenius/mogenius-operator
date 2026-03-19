@@ -12,8 +12,6 @@ import (
 	"sync"
 	"time"
 
-	json "github.com/goccy/go-json"
-
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -198,13 +196,23 @@ func (self *watcher) startSingleWatcher(ctx context.Context, resource utils.Reso
 		return fmt.Errorf("failed to set error watch handler: %s", err)
 	}
 
+	toUnstructured := func(obj any) (*unstructured.Unstructured, bool) {
+		if u, ok := obj.(*unstructured.Unstructured); ok {
+			return u, true
+		}
+		if d, ok := obj.(cache.DeletedFinalStateUnknown); ok {
+			if u, ok := d.Obj.(*unstructured.Unstructured); ok {
+				return u, true
+			}
+		}
+		return nil, false
+	}
+
 	handler, err := resourceInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj any) {
-			unstructuredObj, ok := obj.(*unstructured.Unstructured)
+			unstructuredObj, ok := toUnstructured(obj)
 			if !ok {
-				body, _ := json.Marshal(obj)
-				bodyString := string(body)
-				self.logger.Warn("failed to deserialize", "resourceJson", bodyString)
+				self.logger.Warn("failed to deserialize", "type", fmt.Sprintf("%T", obj))
 				return
 			}
 			if onAdd != nil {
@@ -212,18 +220,14 @@ func (self *watcher) startSingleWatcher(ctx context.Context, resource utils.Reso
 			}
 		},
 		UpdateFunc: func(oldObj, newObj any) {
-			oldUnstructuredObj, ok := oldObj.(*unstructured.Unstructured)
+			oldUnstructuredObj, ok := toUnstructured(oldObj)
 			if !ok {
-				body, _ := json.Marshal(oldObj)
-				bodyString := string(body)
-				self.logger.Warn("failed to deserialize old object", "resourceJson", bodyString)
+				self.logger.Warn("failed to deserialize old object", "type", fmt.Sprintf("%T", oldObj))
 				return
 			}
-			newUnstructuredObj, ok := newObj.(*unstructured.Unstructured)
+			newUnstructuredObj, ok := toUnstructured(newObj)
 			if !ok {
-				body, _ := json.Marshal(newObj)
-				bodyString := string(body)
-				self.logger.Warn("failed to deserialize new object", "resourceJson", bodyString)
+				self.logger.Warn("failed to deserialize new object", "type", fmt.Sprintf("%T", newObj))
 				return
 			}
 
@@ -232,11 +236,9 @@ func (self *watcher) startSingleWatcher(ctx context.Context, resource utils.Reso
 			}
 		},
 		DeleteFunc: func(obj any) {
-			unstructuredObj, ok := obj.(*unstructured.Unstructured)
+			unstructuredObj, ok := toUnstructured(obj)
 			if !ok {
-				body, _ := json.Marshal(obj)
-				bodyString := string(body)
-				self.logger.Warn("failed to deserialize", "resourceJson", bodyString)
+				self.logger.Warn("failed to deserialize", "type", fmt.Sprintf("%T", obj))
 				return
 			}
 			if onDelete != nil {

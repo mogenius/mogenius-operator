@@ -10,11 +10,13 @@ import (
 	"mogenius-operator/src/utils"
 	"mogenius-operator/src/valkeyclient"
 	"os"
+	"sort"
 	"strconv"
 
-	"github.com/pmezard/go-difflib/difflib"
 	"strings"
 	"time"
+
+	"github.com/pmezard/go-difflib/difflib"
 
 	"sigs.k8s.io/yaml"
 
@@ -30,7 +32,8 @@ const (
 	VALKEY_RESOURCE_PREFIX = "resources"
 )
 
-var AuditLogLimit = int64(100) // Default limit for audit log entries IMPORTANT: this is set per resource not globally
+var AuditLogLimit = int64(100)        // Default limit for audit log entries IMPORTANT: this is set per resource not globally
+var AuditLogTTL = time.Hour * 24 * 14 // Default TTL for audit log entries (14 days)
 
 var ErrNotFound = errors.New("not found")
 
@@ -449,7 +452,7 @@ func AddToAuditLog[T any](datagram structs.Datagram, logger *slog.Logger, result
 		}
 	}
 
-	auditLogAddErr := valkeyClient.SetObjectWithAutoincrementLimit(auditLogEntry, AuditLogLimit, "audit-log", resourceNamespace, resourceName)
+	auditLogAddErr := valkeyClient.SetObjectWithAutoincrementLimit(auditLogEntry, AuditLogLimit, AuditLogTTL, "audit-log", resourceNamespace, resourceName)
 	if auditLogAddErr != nil {
 		logger.Error("failed to add to audit log", "error", auditLogAddErr)
 	}
@@ -461,12 +464,32 @@ func ListAuditLog(limit int, offset int, namespaces []string, clusterWide bool) 
 		limit = 100
 	}
 
-	entries, size, err := valkeyclient.GetObjectsByPrefixWithSizeAndNs[AuditLogEntry](valkeyClient, limit, offset, namespaces, clusterWide, "audit-log")
+	// Load ALL entries (no pagination yet) so we can sort by CreatedAt before paginating.
+	// GetObjectsByPrefixWithSizeAndNs applies offset/limit on unsorted SCAN keys,
+	// which can cause newer entries to be missed.
+	const maxEntries = 10000
+	allEntries, totalCount, err := valkeyclient.GetObjectsByPrefixWithSizeAndNs[AuditLogEntry](valkeyClient, maxEntries, 0, namespaces, clusterWide, "audit-log")
 	if err != nil {
-		return []AuditLogEntry{}, size, err
+		return []AuditLogEntry{}, 0, err
 	}
 
-	return entries, size, nil
+	totalCount = len(allEntries)
+
+	// Sort by CreatedAt descending (newest first)
+	sort.Slice(allEntries, func(i, j int) bool {
+		return allEntries[i].CreatedAt.After(allEntries[j].CreatedAt)
+	})
+
+	// Apply pagination
+	if offset >= totalCount {
+		return []AuditLogEntry{}, totalCount, nil
+	}
+	end := offset + limit
+	if end > totalCount {
+		end = totalCount
+	}
+
+	return allEntries[offset:end], totalCount, nil
 }
 
 func auditLogFromDatagram(datagram structs.Datagram, result any, err error) AuditLogEntry {
@@ -482,6 +505,26 @@ func auditLogFromDatagram(datagram structs.Datagram, result any, err error) Audi
 		Workspace: datagram.Workspace,
 		Error:     errStr,
 		Result:    result,
+	}
+}
+
+// AddAiChatAuditLog writes an audit log entry for AI chat interactions (messages and tool uses).
+// Keys follow the pattern audit-log:ai-chat:<user-email>:<num>.
+// These entries are always included in ListAuditLog results regardless of namespace filter.
+func AddAiChatAuditLog(logger *slog.Logger, pattern string, payload any, result any, errStr string, user structs.User, workspace string) {
+	entry := AuditLogEntry{
+		Pattern:   pattern,
+		Payload:   payload,
+		Result:    result,
+		Error:     errStr,
+		CreatedAt: time.Now(),
+		User:      user,
+		Workspace: workspace,
+	}
+
+	storeErr := valkeyClient.SetObjectWithAutoincrementLimit(entry, AuditLogLimit, AuditLogTTL, "audit-log", "ai-chat", user.Email)
+	if storeErr != nil {
+		logger.Error("failed to add AI chat audit log", "error", storeErr)
 	}
 }
 

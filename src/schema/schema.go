@@ -7,7 +7,7 @@ import (
 	"strings"
 	"unicode"
 
-	json "github.com/goccy/go-json"
+	"encoding/json"
 
 	"sigs.k8s.io/yaml"
 )

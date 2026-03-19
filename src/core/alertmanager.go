@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"time"
 
-	json "github.com/goccy/go-json"
+	"encoding/json"
 )
 
 type AlertmanagerService interface {

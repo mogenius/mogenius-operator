@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"mogenius-operator/src/crds/v1alpha1"
+	"mogenius-operator/src/store"
 	"mogenius-operator/src/structs"
 	"mogenius-operator/src/utils"
 	"net/url"
@@ -37,6 +38,34 @@ func NewAiWebsocketConnection(logger *slog.Logger, aiManager AiManager) AiWebsoc
 	return self
 }
 
+// ToolUseRecord captures a single tool invocation for audit logging.
+type ToolUseRecord struct {
+	Tool   string         `json:"tool"`
+	Args   map[string]any `json:"args,omitempty"`
+	Result string         `json:"result,omitempty"`
+	Error  string         `json:"error,omitempty"`
+}
+
+// ChatTurnStats collects metadata about a single AI chat turn for audit logging.
+type ChatTurnStats struct {
+	ToolRecords  []ToolUseRecord `json:"tools,omitempty"`
+	Model        string          `json:"model"`
+	InputTokens  int64           `json:"inputTokens"`
+	OutputTokens int64           `json:"outputTokens"`
+	DurationMs   int             `json:"durationMs"`
+}
+
+// AuditEvent represents an auditable event from the AI chat session
+type AuditEvent struct {
+	Pattern string // e.g. "ai/chat"
+	Payload any    // user message or tool call info
+	Result  any    // AI response or tool result
+	Error   string // error message if any
+}
+
+// AuditCallback is called by chat implementations to record audit log entries
+type AuditCallback func(event AuditEvent)
+
 // IOChatChannel represents a bidirectional channel for AI chat communication
 type IOChatChannel struct {
 	Input          <-chan string           // Incoming messages (user questions)
@@ -45,6 +74,28 @@ type IOChatChannel struct {
 	IsAdmin        bool                    // Indicates if the user has admin privileges
 	WorkspaceSpec  *v1alpha1.WorkspaceSpec // Optional workspace information
 	WorkspaceGrant *v1alpha1.GrantSpec     // Optional workspace grant information
+	OnAudit        AuditCallback           // Optional callback for audit logging
+}
+
+// emitAuditEvent calls the OnAudit callback if configured on the channel.
+func emitAuditEvent(ch IOChatChannel, pattern string, payload any, result any, errStr string) {
+	if ch.OnAudit != nil {
+		ch.OnAudit(AuditEvent{
+			Pattern: pattern,
+			Payload: payload,
+			Result:  result,
+			Error:   errStr,
+		})
+	}
+}
+
+// truncateToolResult limits tool result strings to a reasonable size for audit logging.
+func truncateToolResult(s string) string {
+	const maxLen = 2000
+	if len(s) <= maxLen {
+		return s
+	}
+	return s[:maxLen] + "... (truncated)"
 }
 
 func (self *aiWebsocketConnection) LiveStreamAiManagerChatRequest(request ChatRequest, datagram structs.Datagram) {
@@ -88,6 +139,9 @@ func (self *aiWebsocketConnection) LiveStreamAiManagerChatRequest(request ChatRe
 		Output:  outputChan,
 		User:    &datagram.User,
 		IsAdmin: request.IsAdmin,
+		OnAudit: func(event AuditEvent) {
+			store.AddAiChatAuditLog(logger, event.Pattern, event.Payload, event.Result, event.Error, datagram.User, datagram.Workspace)
+		},
 	}
 
 	// Resolve workspace and grant context if user and workspace are provided

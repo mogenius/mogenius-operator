@@ -5,7 +5,7 @@ import (
 	"compress/zlib"
 	"io"
 
-	json "github.com/goccy/go-json"
+	"encoding/json"
 )
 
 func ZlibCompress(data []byte) ([]byte, error) {

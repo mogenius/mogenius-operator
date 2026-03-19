@@ -35,6 +35,7 @@ const (
 )
 
 var DefaultMaxSizeSocketConnections int64 = 60
+var liveStatsTTL = 10 * time.Minute // TTL for live-stats snapshot keys (refreshed on every write)
 
 type ValkeyStatsDb interface {
 	Run()
@@ -93,7 +94,7 @@ func (self *valkeyStatsDb) Run() {
 }
 
 func (self *valkeyStatsDb) AddMachineStatsToDb(nodeName string, stats structs.MachineStats) error {
-	return self.valkey.SetObject(stats, 0, DB_STATS_MACHINE_STATS_BUCKET_NAME, nodeName)
+	return self.valkey.SetObject(stats, liveStatsTTL, DB_STATS_MACHINE_STATS_BUCKET_NAME, nodeName)
 }
 
 func (self *valkeyStatsDb) GetLatestNodeStatsForNode(nodeName string) (*structs.NodeStats, error) {
@@ -180,7 +181,7 @@ func (self *valkeyStatsDb) AddInterfaceStatsToDb(currentStats []networkmonitor.P
 
 func (self *valkeyStatsDb) ReplaceCniData(data []structs.CniData) {
 	for _, v := range data {
-		err := self.valkey.SetObject(data, 0, DB_STATS_CNI_BUCKET_NAME, v.Node)
+		err := self.valkey.SetObject(data, liveStatsTTL, DB_STATS_CNI_BUCKET_NAME, v.Node)
 		if err != nil {
 			self.logger.Error("Error adding cni data", "node", v.Node, "error", err)
 		}
@@ -547,31 +548,31 @@ func (self *valkeyStatsDb) AddPodStatsToDb(stats []structs.PodStats) error {
 
 func (self *valkeyStatsDb) AddNodeRamMetricsToDb(nodeName string, data any) error {
 	self.Publish(data, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_MEMORY_NAME, nodeName)
-	return self.valkey.SetObject(data, 0, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_MEMORY_NAME, nodeName)
+	return self.valkey.SetObject(data, liveStatsTTL, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_MEMORY_NAME, nodeName)
 }
 
 func (self *valkeyStatsDb) AddNodeRamProcessMetricsToDb(nodeName string, data any) error {
 	self.Publish(data, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_MEMORY_NAME, DB_STATS_PROCESSES_NAME, nodeName)
-	return self.valkey.SetObject(data, 0, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_MEMORY_NAME, DB_STATS_PROCESSES_NAME, nodeName)
+	return self.valkey.SetObject(data, liveStatsTTL, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_MEMORY_NAME, DB_STATS_PROCESSES_NAME, nodeName)
 }
 
 func (self *valkeyStatsDb) AddNodeCpuMetricsToDb(nodeName string, data any) error {
 	self.Publish(data, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_CPU_NAME, nodeName)
-	return self.valkey.SetObject(data, 0, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_CPU_NAME, nodeName)
+	return self.valkey.SetObject(data, liveStatsTTL, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_CPU_NAME, nodeName)
 }
 
 func (self *valkeyStatsDb) AddNodeCpuProcessMetricsToDb(nodeName string, data any) error {
 	self.Publish(data, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_CPU_NAME, DB_STATS_PROCESSES_NAME, nodeName)
-	return self.valkey.SetObject(data, 0, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_CPU_NAME, DB_STATS_PROCESSES_NAME, nodeName)
+	return self.valkey.SetObject(data, liveStatsTTL, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_CPU_NAME, DB_STATS_PROCESSES_NAME, nodeName)
 }
 
 func (self *valkeyStatsDb) AddNodeTrafficMetricsToDb(nodeName string, data any) error {
 	self.Publish(data, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_TRAFFIC_NAME, nodeName)
-	return self.valkey.SetObject(data, 0, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_TRAFFIC_NAME, nodeName)
+	return self.valkey.SetObject(data, liveStatsTTL, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_TRAFFIC_NAME, nodeName)
 }
 
 func (self *valkeyStatsDb) AddSnoopyStatusToDb(nodeName string, data networkmonitor.SnoopyStatus) error {
-	return self.valkey.SetObject(data, 0, "status", nodeName, "snoopy")
+	return self.valkey.SetObject(data, liveStatsTTL, "status", nodeName, "snoopy")
 }
 
 func (self *valkeyStatsDb) AddNodeStatsToDb(stats []structs.NodeStats) error {
@@ -587,7 +588,7 @@ func (self *valkeyStatsDb) AddNodeStatsToDb(stats []structs.NodeStats) error {
 			return fmt.Errorf("error adding node stats: %s", err)
 		}
 		// Also store as latest snapshot for O(1) current-value lookups (used by GetNodeStats)
-		_ = self.valkey.SetObject(stat, 0, DB_STATS_NODE_STATS_LATEST_BUCKET_NAME, stat.Name)
+		_ = self.valkey.SetObject(stat, liveStatsTTL, DB_STATS_NODE_STATS_LATEST_BUCKET_NAME, stat.Name)
 	}
 	return nil
 }
