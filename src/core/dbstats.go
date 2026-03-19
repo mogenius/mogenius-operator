@@ -58,6 +58,7 @@ type ValkeyStatsDb interface {
 	GetWorkspaceStatsCpuUtilization(timeOffsetInMinutes int, resources []unstructured.Unstructured) ([]GenericChartEntry, error)
 	GetWorkspaceStatsMemoryUtilization(timeOffsetInMinutes int, resources []unstructured.Unstructured) ([]GenericChartEntry, error)
 	GetWorkspaceStatsTrafficUtilization(timeOffsetInMinutes int, resources []unstructured.Unstructured) ([]GenericChartEntry, error)
+	GetClusterDashboardStats(workspaceNames []string, getControllers func(string) ([]unstructured.Unstructured, error)) (ClusterDashboardStats, error)
 	ReplaceCniData(data []structs.CniData)
 	Publish(data any, keys ...string)
 }
@@ -610,6 +611,136 @@ type GenericChartEntry struct {
 	Time  time.Time          `json:"time"`
 	Value float64            `json:"value"`          // this is the total value of all counted pods per time entry
 	Pods  map[string]float64 `json:"pods,omitempty"` // this list is limited to 5 entries
+}
+
+type WorkspaceDashboardMetrics struct {
+	Name          string  `json:"name"`
+	CpuMillicores float64 `json:"cpuMillicores"`
+	MemoryMb      float64 `json:"memoryMb"`
+	PodCount      int     `json:"podCount"`
+}
+
+type ClusterDashboardStats struct {
+	CpuHistory       []GenericChartEntry        `json:"cpuHistory"`
+	WorkspaceMetrics []WorkspaceDashboardMetrics `json:"workspaceMetrics"`
+}
+
+const (
+	dashboardStatsConcurrencyLimit = 20
+	dashboardCpuHistoryPoints      = 12
+	dashboardBytesPerMB            = 1 << 20
+)
+
+func (self *valkeyStatsDb) GetClusterDashboardStats(
+	workspaceNames []string,
+	getControllers func(string) ([]unstructured.Unstructured, error),
+) (ClusterDashboardStats, error) {
+	type wsResult struct {
+		metrics    WorkspaceDashboardMetrics
+		cpuEntries []GenericChartEntry
+	}
+
+	results := make([]wsResult, len(workspaceNames))
+	var wg sync.WaitGroup
+	sem := make(chan struct{}, dashboardStatsConcurrencyLimit)
+
+	for i, name := range workspaceNames {
+		wg.Add(1)
+		sem <- struct{}{} // acquire before spawning to limit goroutine count
+		go func(idx int, wsName string) {
+			defer wg.Done()
+			defer func() { <-sem }()
+
+			controllers, err := getControllers(wsName)
+			if err != nil {
+				self.logger.Warn("dashboard-stats: failed to get controllers", "workspace", wsName, "error", err)
+				results[idx] = wsResult{metrics: WorkspaceDashboardMetrics{Name: wsName}}
+				return
+			}
+
+			type statsResult struct {
+				entries []GenericChartEntry
+				err     error
+			}
+
+			cpuCh := make(chan statsResult, 1)
+			memCh := make(chan statsResult, 1)
+			go func() {
+				entries, err := self.GetWorkspaceStatsCpuUtilization(60, controllers)
+				cpuCh <- statsResult{entries, err}
+			}()
+			go func() {
+				entries, err := self.GetWorkspaceStatsMemoryUtilization(5, controllers)
+				memCh <- statsResult{entries, err}
+			}()
+			cpu, mem := <-cpuCh, <-memCh
+
+			if cpu.err != nil {
+				self.logger.Warn("dashboard-stats: cpu stats failed", "workspace", wsName, "error", cpu.err)
+			}
+			if mem.err != nil {
+				self.logger.Warn("dashboard-stats: memory stats failed", "workspace", wsName, "error", mem.err)
+			}
+
+			m := WorkspaceDashboardMetrics{Name: wsName}
+			if len(cpu.entries) > 0 {
+				latest := cpu.entries[len(cpu.entries)-1]
+				m.CpuMillicores = latest.Value
+				m.PodCount = len(latest.Pods)
+			}
+			if len(mem.entries) > 0 {
+				m.MemoryMb = mem.entries[len(mem.entries)-1].Value / float64(dashboardBytesPerMB)
+			}
+
+			results[idx] = wsResult{metrics: m, cpuEntries: cpu.entries}
+		}(i, name)
+	}
+	wg.Wait()
+
+	// Merge all workspace CPU entries into cluster-wide history by timestamp
+	clusterCpuMap := make(map[time.Time]float64)
+	for _, r := range results {
+		for _, entry := range r.cpuEntries {
+			clusterCpuMap[entry.Time] += entry.Value
+		}
+	}
+
+	// Sort timestamps ascending and downsample to target points
+	timestamps := make([]time.Time, 0, len(clusterCpuMap))
+	for t := range clusterCpuMap {
+		timestamps = append(timestamps, t)
+	}
+	sort.Slice(timestamps, func(i, j int) bool {
+		return timestamps[i].Before(timestamps[j])
+	})
+
+	cpuHistory := make([]GenericChartEntry, 0, dashboardCpuHistoryPoints)
+	if len(timestamps) <= dashboardCpuHistoryPoints {
+		for _, t := range timestamps {
+			cpuHistory = append(cpuHistory, GenericChartEntry{Time: t, Value: clusterCpuMap[t]})
+		}
+	} else {
+		// Pick dashboardCpuHistoryPoints-1 evenly spaced points, then always include the latest
+		step := float64(len(timestamps)-1) / float64(dashboardCpuHistoryPoints-1)
+		for i := 0; i < dashboardCpuHistoryPoints; i++ {
+			idx := int(float64(i) * step)
+			if idx >= len(timestamps) {
+				idx = len(timestamps) - 1
+			}
+			t := timestamps[idx]
+			cpuHistory = append(cpuHistory, GenericChartEntry{Time: t, Value: clusterCpuMap[t]})
+		}
+	}
+
+	wsMetrics := make([]WorkspaceDashboardMetrics, len(results))
+	for i, r := range results {
+		wsMetrics[i] = r.metrics
+	}
+
+	return ClusterDashboardStats{
+		CpuHistory:       cpuHistory,
+		WorkspaceMetrics: wsMetrics,
+	}, nil
 }
 
 func findSmallest(m map[string]float64) (string, float64, bool) {

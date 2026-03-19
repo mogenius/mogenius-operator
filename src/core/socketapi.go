@@ -554,6 +554,27 @@ func (self *socketApi) registerPatterns() {
 		)
 	}
 
+	// cluster/dashboard-stats — aggregated metrics for the organization dashboard
+	{
+		RegisterPatternHandler(
+			PatternHandle{self, "cluster/dashboard-stats"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Void) (ClusterDashboardStats, error) {
+				workspaces, err := self.apiService.GetAllWorkspaces()
+				if err != nil {
+					return ClusterDashboardStats{}, fmt.Errorf("get workspaces: %w", err)
+				}
+
+				names := make([]string, len(workspaces))
+				for i, ws := range workspaces {
+					names[i] = ws.Name
+				}
+
+				return self.dbstats.GetClusterDashboardStats(names, self.apiService.GetWorkspaceControllers)
+			},
+		)
+	}
+
 	// Deprecated: will be removed in future versions
 	{
 		type Request struct {
