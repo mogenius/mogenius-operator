@@ -567,7 +567,62 @@ func (self *socketApi) registerPatterns() {
 
 				names := make([]string, len(workspaces))
 				for i, ws := range workspaces {
+<<<<<<< Updated upstream
 					names[i] = ws.Name
+=======
+					wg.Add(1)
+					sem <- struct{}{} // acquire before spawning to limit goroutine count
+					go func(idx int, wsName string) {
+						defer wg.Done()
+						defer func() { <-sem }()
+
+						controllers, err := self.apiService.GetWorkspaceControllers(wsName)
+						if err != nil {
+							self.logger.Warn("dashboard-stats: failed to get controllers", "workspace", wsName, "error", err)
+							results[idx] = wsResult{metrics: WorkspaceDashboardMetrics{Name: wsName}}
+							return
+						}
+
+						cpuCh := make(chan statsResult, 1)
+						memCh := make(chan statsResult, 1)
+						go func() {
+							entries, err := self.dbstats.GetWorkspaceStatsCpuUtilization(60, controllers)
+							cpuCh <- statsResult{entries, err}
+						}()
+						go func() {
+							entries, err := self.dbstats.GetWorkspaceStatsMemoryUtilization(5, controllers)
+							memCh <- statsResult{entries, err}
+						}()
+						cpu, mem := <-cpuCh, <-memCh
+
+						if cpu.err != nil {
+							self.logger.Warn("dashboard-stats: cpu stats failed", "workspace", wsName, "error", cpu.err)
+						}
+						if mem.err != nil {
+							self.logger.Warn("dashboard-stats: memory stats failed", "workspace", wsName, "error", mem.err)
+						}
+
+						m := WorkspaceDashboardMetrics{Name: wsName}
+						if len(cpu.entries) > 0 {
+							m.CpuMillicores = cpu.entries[len(cpu.entries)-1].Value
+						}
+						m.PodCount = len(store.GetPods(wsName))
+						if len(mem.entries) > 0 {
+							m.MemoryMb = mem.entries[len(mem.entries)-1].Value / float64(bytesPerMB)
+						}
+
+						results[idx] = wsResult{metrics: m, cpuEntries: cpu.entries}
+					}(i, ws.Name)
+				}
+				wg.Wait()
+
+				// Merge all workspace CPU entries into cluster-wide history by timestamp
+				clusterCpuMap := make(map[time.Time]float64)
+				for _, r := range results {
+					for _, entry := range r.cpuEntries {
+						clusterCpuMap[entry.Time] += entry.Value
+					}
+>>>>>>> Stashed changes
 				}
 
 				return self.dbstats.GetClusterDashboardStats(names, self.apiService.GetWorkspaceControllers)
