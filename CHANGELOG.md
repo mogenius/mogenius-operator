@@ -1,3 +1,10 @@
+# [2.20.0-develop.51](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.50...v2.20.0-develop.51) (2026-03-20)
+
+
+### Bug Fixes
+
+* **deps:** update k8s.io/utils digest to 28399d8 ([#866](https://github.com/mogenius/mogenius-operator/issues/866)) ([9e3b506](https://github.com/mogenius/mogenius-operator/commit/9e3b50667593a2b0391cb612fe5242fa7ca6aad5))
+
 # [2.20.0-develop.50](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.49...v2.20.0-develop.50) (2026-03-20)
 
 
