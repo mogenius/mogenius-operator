@@ -1,3 +1,10 @@
+# [2.20.0-develop.49](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.48...v2.20.0-develop.49) (2026-03-20)
+
+
+### Bug Fixes
+
+* resolve merge conflicts and use actual pod count from store ([1b65012](https://github.com/mogenius/mogenius-operator/commit/1b65012697f8bb7e274623c99e8040fc25f5e6d2))
+
 # [2.20.0-develop.48](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.47...v2.20.0-develop.48) (2026-03-20)
 
 
