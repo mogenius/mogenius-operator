@@ -1,3 +1,10 @@
+# [2.20.0-develop.48](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.47...v2.20.0-develop.48) (2026-03-20)
+
+
+### Bug Fixes
+
+* use actual pod count from store instead of truncated top-5 map ([850c2a9](https://github.com/mogenius/mogenius-operator/commit/850c2a9b3a8c1fed0660ab054562886ab6b3ece3))
+
 # [2.20.0-develop.47](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.46...v2.20.0-develop.47) (2026-03-20)
 
 
