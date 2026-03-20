@@ -1,3 +1,10 @@
+# [2.20.0-develop.50](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.49...v2.20.0-develop.50) (2026-03-20)
+
+
+### Bug Fixes
+
+* auditlog stream ([2862e0e](https://github.com/mogenius/mogenius-operator/commit/2862e0e6abd96575805496b9c5c5d4e6bc0258b5))
+
 # [2.20.0-develop.49](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.48...v2.20.0-develop.49) (2026-03-20)
 
 
