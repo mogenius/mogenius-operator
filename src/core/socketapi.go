@@ -1589,6 +1589,26 @@ func (self *socketApi) registerPatterns() {
 	}
 
 	{
+		type UpdateFiltersRequest struct {
+			Filters     []ai.AiFilter `json:"filters" validate:"required"`
+			UserFilters []ai.AiFilter `json:"userFilters"`
+		}
+
+		RegisterPatternHandler(
+			PatternHandle{self, "aiManager/update-filter-states"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request UpdateFiltersRequest) (Void, error) {
+				err := kubernetes.UpdateFilterActiveStates(request.Filters, request.UserFilters)
+				if err != nil {
+					return nil, err
+				}
+				// The ConfigMap watcher will pick up the change and call InjectAiPromptConfig
+				return nil, nil
+			},
+		)
+	}
+
+	{
 
 		type Request struct {
 			Workspace *string `json:"workspace"`
