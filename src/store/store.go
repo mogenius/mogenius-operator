@@ -35,6 +35,10 @@ const (
 var AuditLogLimit = int64(100)        // Default limit for audit log entries IMPORTANT: this is set per resource not globally
 var AuditLogTTL = time.Hour * 24 * 14 // Default TTL for audit log entries (14 days)
 
+// OnAuditLogCreated is called after an audit log entry is persisted.
+// Set this callback to emit real-time events (e.g. via WebSocket).
+var OnAuditLogCreated func(entry AuditLogEntry)
+
 var ErrNotFound = errors.New("not found")
 
 // KubernetesGetter is an interface for fetching secrets directly from Kubernetes cluster
@@ -455,6 +459,8 @@ func AddToAuditLog[T any](datagram structs.Datagram, logger *slog.Logger, result
 	auditLogAddErr := valkeyClient.SetObjectWithAutoincrementLimit(auditLogEntry, AuditLogLimit, AuditLogTTL, "audit-log", resourceNamespace, resourceName)
 	if auditLogAddErr != nil {
 		logger.Error("failed to add to audit log", "error", auditLogAddErr)
+	} else if OnAuditLogCreated != nil {
+		go OnAuditLogCreated(auditLogEntry)
 	}
 	return result, err
 }
@@ -525,6 +531,8 @@ func AddAiChatAuditLog(logger *slog.Logger, pattern string, payload any, result 
 	storeErr := valkeyClient.SetObjectWithAutoincrementLimit(entry, AuditLogLimit, AuditLogTTL, "audit-log", "ai-chat", user.Email)
 	if storeErr != nil {
 		logger.Error("failed to add AI chat audit log", "error", storeErr)
+	} else if OnAuditLogCreated != nil {
+		go OnAuditLogCreated(entry)
 	}
 }
 

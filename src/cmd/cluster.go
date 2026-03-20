@@ -20,6 +20,7 @@ import (
 	"mogenius-operator/src/shutdown"
 	"mogenius-operator/src/store"
 	"mogenius-operator/src/structs"
+	"mogenius-operator/src/utils"
 	"mogenius-operator/src/valkeyclient"
 	"mogenius-operator/src/watcher"
 	"mogenius-operator/src/websocket"
@@ -86,6 +87,19 @@ func initializeClusterSystems(
 	}
 	eventConnectionClient := websocket.NewWebsocketClient(logManagerModule.CreateLogger("websocket-events-client"))
 	shutdown.Add(eventConnectionClient.Terminate)
+
+	// Emit real-time audit log events to the frontend via WebSocket
+	store.OnAuditLogCreated = func(entry store.AuditLogEntry) {
+		datagram := structs.Datagram{
+			Id:        utils.NanoId(),
+			Pattern:   "AuditLogEvent",
+			Payload:   entry,
+			CreatedAt: entry.CreatedAt,
+			User:      entry.User,
+			Workspace: entry.Workspace,
+		}
+		structs.ReportEventToServer(eventConnectionClient, datagram)
+	}
 
 	containerEnumerator := containerenumerator.NewContainerEnumerator(logManagerModule.CreateLogger("container-enumerator"), configModule, base.clientProvider)
 	cpuMonitor := cpumonitor.NewCpuMonitor(logManagerModule.CreateLogger("cpu-monitor"), configModule, base.clientProvider, containerEnumerator)
