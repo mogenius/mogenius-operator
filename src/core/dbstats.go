@@ -684,10 +684,9 @@ func (self *valkeyStatsDb) GetClusterDashboardStats(
 
 			m := WorkspaceDashboardMetrics{Name: wsName}
 			if len(cpu.entries) > 0 {
-				latest := cpu.entries[len(cpu.entries)-1]
-				m.CpuMillicores = latest.Value
-				m.PodCount = len(latest.Pods)
+				m.CpuMillicores = cpu.entries[len(cpu.entries)-1].Value
 			}
+			m.PodCount = len(store.GetPods(wsName))
 			if len(mem.entries) > 0 {
 				m.MemoryMb = mem.entries[len(mem.entries)-1].Value / float64(dashboardBytesPerMB)
 			}
