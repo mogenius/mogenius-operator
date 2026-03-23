@@ -1,3 +1,10 @@
+# [2.20.0-develop.52](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.51...v2.20.0-develop.52) (2026-03-23)
+
+
+### Bug Fixes
+
+* ai-insights clean up ([fb453b6](https://github.com/mogenius/mogenius-operator/commit/fb453b604519c7f95e309e77945ed966afdaaebd))
+
 # [2.20.0-develop.51](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.50...v2.20.0-develop.51) (2026-03-20)
 
 
