@@ -1,3 +1,10 @@
+# [2.20.0-develop.57](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.56...v2.20.0-develop.57) (2026-03-31)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/go-playground/validator/v10 to v10.30.2 ([#871](https://github.com/mogenius/mogenius-operator/issues/871)) ([dfa8b0c](https://github.com/mogenius/mogenius-operator/commit/dfa8b0c0ac0f3d1b59957e0890a64b13b174bba8))
+
 # [2.20.0-develop.56](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.55...v2.20.0-develop.56) (2026-03-30)
 
 
