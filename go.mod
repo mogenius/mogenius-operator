@@ -7,7 +7,7 @@ require (
 	github.com/bitnami-labs/sealed-secrets v0.36.1
 	github.com/cert-manager/cert-manager v1.20.1
 	github.com/creack/pty v1.1.24
-	github.com/go-playground/validator/v10 v10.30.1
+	github.com/go-playground/validator/v10 v10.30.2
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.4-0.20250319132907-e064f32e3674
 	github.com/jaevor/go-nanoid v1.4.0
@@ -75,7 +75,7 @@ require (
 	github.com/fatih/color v1.18.0 // indirect
 	github.com/fluxcd/cli-utils v0.37.2-flux.1 // indirect
 	github.com/fxamacker/cbor/v2 v2.9.0 // indirect
-	github.com/gabriel-vasile/mimetype v1.4.12 // indirect
+	github.com/gabriel-vasile/mimetype v1.4.13 // indirect
 	github.com/go-errors/errors v1.5.1 // indirect
 	github.com/go-gorp/gorp/v3 v3.1.0 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
