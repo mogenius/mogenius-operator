@@ -3,7 +3,7 @@ module mogenius-operator
 go 1.26.1
 
 require (
-	github.com/alecthomas/kong v1.14.0
+	github.com/alecthomas/kong v1.15.0
 	github.com/bitnami-labs/sealed-secrets v0.36.1
 	github.com/cert-manager/cert-manager v1.20.1
 	github.com/creack/pty v1.1.24
