@@ -1,3 +1,10 @@
+# [2.20.0-develop.67](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.66...v2.20.0-develop.67) (2026-04-08)
+
+
+### Features
+
+* token will now be compacted ([7782b65](https://github.com/mogenius/mogenius-operator/commit/7782b65b90214d2d61d967160565f9fe81d973ba))
+
 # [2.20.0-develop.66](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.65...v2.20.0-develop.66) (2026-04-08)
 
 
