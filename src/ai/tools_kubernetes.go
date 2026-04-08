@@ -80,7 +80,7 @@ func listKubernetesResourcesTool(args map[string]any, tc *ToolContext, valkeyCli
 		truncated = true
 	}
 
-	// Create compact summaries instead of full YAML
+	// Create compact summaries
 	summaries := make([]ResourceSummary, len(resources))
 	for i, res := range resources {
 		summary := ResourceSummary{
@@ -91,7 +91,6 @@ func listKubernetesResourcesTool(args map[string]any, tc *ToolContext, valkeyCli
 			Status:       "Unknown",
 		}
 
-		// Try to extract status (common field)
 		if status, found, _ := unstructured.NestedString(res.Object, "status", "phase"); found {
 			summary.Status = status
 		} else if conditions, found, _ := unstructured.NestedSlice(res.Object, "status", "conditions"); found && len(conditions) > 0 {
@@ -117,7 +116,7 @@ func listKubernetesResourcesTool(args map[string]any, tc *ToolContext, valkeyCli
 		result["message"] = fmt.Sprintf("Showing %d of %d resources. Use get_kubernetes_resources with a specific name for full details.", maxListResults, totalCount)
 	}
 
-	resourceBytes, err := json.MarshalIndent(result, "", "  ")
+	resourceBytes, err := json.Marshal(result)
 	if err != nil {
 		return fmt.Sprintf("Error marshaling resources: %v", err)
 	}
@@ -152,32 +151,22 @@ func checkKubernetesResourceTool(args map[string]any, tc *ToolContext, valkeyCli
 		return fmt.Sprintf("Error: access to resource %q in namespace %q is not allowed", res.GetName(), namespace)
 	}
 
-	summary := ResourceSummary{
-		Name:         res.GetName(),
-		Namespace:    res.GetNamespace(),
-		Kind:         res.GetKind(),
-		CreationTime: res.GetCreationTimestamp().String(),
-		Status:       "Unknown",
-	}
-
-	if status, found, _ := unstructured.NestedString(res.Object, "status", "phase"); found {
-		summary.Status = status
+	status := "Unknown"
+	if s, found, _ := unstructured.NestedString(res.Object, "status", "phase"); found {
+		status = s
 	} else if conditions, found, _ := unstructured.NestedSlice(res.Object, "status", "conditions"); found && len(conditions) > 0 {
 		if cond, ok := conditions[0].(map[string]interface{}); ok {
 			if condType, ok := cond["type"].(string); ok {
 				if condStatus, ok := cond["status"].(string); ok {
-					summary.Status = fmt.Sprintf("%s=%s", condType, condStatus)
+					status = condType + "=" + condStatus
 				}
 			}
 		}
 	}
 
-	summaryBytes, err := json.Marshal(summary)
-	if err != nil {
-		return fmt.Sprintf("Error marshaling summary: %v", err)
-	}
-	logger.Info("Tool result", "resultLength", len(summaryBytes))
-	return string(summaryBytes)
+	result := fmt.Sprintf("%s/%s ns=%s status=%s created=%s", res.GetKind(), res.GetName(), res.GetNamespace(), status, res.GetCreationTimestamp().Format("2006-01-02T15:04:05Z"))
+	logger.Info("Tool result", "resultLength", len(result))
+	return result
 }
 
 func getKubernetesResourcesTool(args map[string]any, tc *ToolContext, valkeyClient valkeyclient.ValkeyClient, logger *slog.Logger) string {
@@ -210,12 +199,14 @@ func getKubernetesResourcesTool(args map[string]any, tc *ToolContext, valkeyClie
 		return fmt.Sprintf("Error: access to resource %q in namespace %q is not allowed", resources.GetName(), namespace)
 	}
 
-	resourceBytes, err := json.MarshalIndent(resources, "", "  ")
-	if err != nil {
-		return fmt.Sprintf("Error marshaling resources: %v", err)
+	fullJSON, _ := json.Marshal(resources.Object)
+	result := compactResourceText(resources)
+	savedPercent := "n/a"
+	if len(fullJSON) > 0 {
+		savedPercent = fmt.Sprintf("%.0f%%", (1-float64(len(result))/float64(len(fullJSON)))*100)
 	}
-	logger.Info("Tool result", "resultLength", len(resourceBytes))
-	return string(resourceBytes)
+	logger.Info("Tool result", "compactLength", len(result), "fullJSONLength", len(fullJSON), "savedPercent", savedPercent)
+	return result
 }
 
 func updateKubernetesResourceTool(args map[string]any, tc *ToolContext, valkeyClient valkeyclient.ValkeyClient, logger *slog.Logger) string {
@@ -261,11 +252,7 @@ func updateKubernetesResourceTool(args map[string]any, tc *ToolContext, valkeyCl
 		logger.Info("Resource updated", "old", oldObj.GetResourceVersion(), "new", updatedRes.GetResourceVersion())
 	}
 
-	resourceBytes, err := json.MarshalIndent(updatedRes, "", "  ")
-	if err != nil {
-		return fmt.Sprintf("Resource updated successfully but error marshaling result: %v", err)
-	}
-	return fmt.Sprintf("Resource updated successfully:\n%s", string(resourceBytes))
+	return fmt.Sprintf("Updated %s/%s in ns=%s (rv=%s)", updatedRes.GetKind(), updatedRes.GetName(), updatedRes.GetNamespace(), updatedRes.GetResourceVersion())
 }
 
 func deleteKubernetesResourceTool(args map[string]any, tc *ToolContext, valkeyClient valkeyclient.ValkeyClient, logger *slog.Logger) string {
@@ -331,15 +318,11 @@ func createKubernetesResourceTool(args map[string]any, tc *ToolContext, valkeyCl
 		return fmt.Sprintf("Error creating resource: %v", err)
 	}
 
-	resourceBytes, err := json.MarshalIndent(createdRes, "", "  ")
-	if err != nil {
-		return fmt.Sprintf("Resource created successfully but error marshaling result: %v", err)
-	}
-	return fmt.Sprintf("Resource created successfully:\n%s", string(resourceBytes))
+	return fmt.Sprintf("Created %s/%s in ns=%s (rv=%s)", createdRes.GetKind(), createdRes.GetName(), createdRes.GetNamespace(), createdRes.GetResourceVersion())
 }
 
-const defaultMaxChars = 20000
-const hardMaxChars = 50000
+const defaultMaxChars = 5000
+const hardMaxChars = 30000
 
 func getMaxChars(args map[string]any) int {
 	if mc, ok := args["maxChars"].(float64); ok && mc > 0 {

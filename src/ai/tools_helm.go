@@ -33,12 +33,14 @@ var helmToolDefinitions = map[string]func(map[string]any, *ToolContext, valkeycl
 	"helm_release_get_workloads": helmReleaseGetWorkloadsTool,
 }
 
+const helmMaxResultChars = 15000
+
 func jsonResult(data any) string {
-	b, err := json.MarshalIndent(data, "", "  ")
+	b, err := json.Marshal(data)
 	if err != nil {
 		return fmt.Sprintf("Error marshaling result: %v", err)
 	}
-	return string(b)
+	return truncateResult(string(b), helmMaxResultChars)
 }
 
 // --- Repo Tools ---
@@ -208,7 +210,7 @@ func helmChartShowTool(args map[string]any, _ *ToolContext, _ valkeyclient.Valke
 	if err != nil {
 		return fmt.Sprintf("Error showing Helm chart: %v", err)
 	}
-	return result
+	return truncateResult(result, helmMaxResultChars)
 }
 
 func helmChartVersionsTool(args map[string]any, _ *ToolContext, _ valkeyclient.ValkeyClient, logger *slog.Logger) string {
@@ -369,7 +371,7 @@ func helmReleaseGetTool(args map[string]any, tc *ToolContext, _ valkeyclient.Val
 	if err != nil {
 		return fmt.Sprintf("Error getting Helm release: %v", err)
 	}
-	return result
+	return truncateResult(result, helmMaxResultChars)
 }
 
 func helmReleaseLinkTool(args map[string]any, tc *ToolContext, _ valkeyclient.ValkeyClient, logger *slog.Logger) string {

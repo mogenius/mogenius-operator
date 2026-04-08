@@ -376,6 +376,9 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, model, systemPr
 	}
 	tools := make([]anthropic.ToolUnionParam, len(allTools))
 	for i, toolParam := range allTools {
+		if i == len(allTools)-1 {
+			toolParam.CacheControl = anthropic.NewCacheControlEphemeralParam()
+		}
 		tools[i] = anthropic.ToolUnionParam{OfTool: &toolParam}
 	}
 
@@ -400,14 +403,15 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, model, systemPr
 
 	// Loop until there are no more tool calls or maxToolCalls reached
 	for {
+		// Compact previous tool results so old (already processed) results
+		// don't burn tokens on subsequent API calls.
+		compactAnthropicToolResults(messages)
+
 		message, err := client.Messages.New(ctx, anthropic.MessageNewParams{
 			Model:     anthropic.Model(model),
 			MaxTokens: int64(10000),
 			System: []anthropic.TextBlockParam{
-				{
-					Type: "text",
-					Text: systemPrompt + "\n IMPORTANT: You MUST use the provided tools to retrieve current Kubernetes resource information. Never make assumptions about what resources exist or their current state. Available tools: - get_kubernetes_resource: Fetch a specific resource when you know its exact name - list_kubernetes_resources: List all resources of a type, optionally filtered by namespace",
-				},
+				{Type: "text", Text: systemPrompt, CacheControl: anthropic.NewCacheControlEphemeralParam()},
 			},
 			Messages:    messages,
 			Tools:       tools,

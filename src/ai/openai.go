@@ -25,8 +25,8 @@ func (ai *aiManager) processPromptOpenAi(ctx context.Context, model, systemPromp
 
 	params := openai.ChatCompletionNewParams{
 		Messages: []openai.ChatCompletionMessageParamUnion{
+			openai.SystemMessage(systemPrompt),
 			openai.UserMessage(prompt),
-			openai.SystemMessage(systemPrompt + "\n You have access to the following tool: get_kubernetes_resources. Use it to retrieve Kubernetes resources as needed to answer the user's question accurately."),
 		},
 		Model: model,
 		Tools: allTools,
@@ -36,6 +36,10 @@ func (ai *aiManager) processPromptOpenAi(ctx context.Context, model, systemPromp
 	var chatCompletion *openai.ChatCompletion
 	toolCallCount := 0
 	for {
+		// Compact previous tool results so old (already processed) results
+		// don't burn tokens on subsequent API calls.
+		compactOpenAiToolMessages(params.Messages)
+
 		chatCompletion, err = client.Chat.Completions.New(ctx, params)
 		if err != nil {
 			return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, err
