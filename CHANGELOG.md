@@ -1,3 +1,10 @@
+# [2.20.0-develop.68](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.67...v2.20.0-develop.68) (2026-04-08)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/mattn/go-isatty to v0.0.21 ([#895](https://github.com/mogenius/mogenius-operator/issues/895)) ([49a0d14](https://github.com/mogenius/mogenius-operator/commit/49a0d14965dff1ee16b1ad54f7685876eea041d3))
+
 # [2.20.0-develop.67](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.66...v2.20.0-develop.67) (2026-04-08)
 
 
