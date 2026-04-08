@@ -1,3 +1,10 @@
+# [2.20.0-develop.66](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.65...v2.20.0-develop.66) (2026-04-08)
+
+
+### Bug Fixes
+
+* revert back to cosign install v4.0.0 which does not use envsubst ([ab40c12](https://github.com/mogenius/mogenius-operator/commit/ab40c121513dac5ea082f983a56d8e71f66cf10d))
+
 # [2.20.0-develop.65](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.64...v2.20.0-develop.65) (2026-04-07)
 
 
