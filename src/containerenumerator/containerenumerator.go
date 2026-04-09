@@ -182,7 +182,7 @@ func (self *containerEnumerator) readCgroupFile(pid ProcessId) (string, error) {
 
 	file, err := os.ReadFile(filePath)
 	if err != nil {
-		return "", fmt.Errorf(`failed to read cgroup file Path("%s"): %v`, filePath, err)
+		return "", fmt.Errorf(`failed to read cgroup file Path("%s"): %w`, filePath, err)
 	}
 	filestring := string(file)
 
@@ -193,13 +193,7 @@ func (self *containerEnumerator) readCgroupFile(pid ProcessId) (string, error) {
 	return filestring, nil
 }
 
-// var ErrorNoMatchFound error = fmt.Errorf("failed to find valid container id")
-
-var (
-	ErrorNoMatchFound = errors.New("no match found in cgroup")
-	// Alternativ, wenn Sie den alten Namen behalten wollen:
-	NoMatchFound = errors.New("no match found in cgroup")
-)
+var ErrorNoMatchFound = errors.New("no match found in cgroup")
 
 func (self *containerEnumerator) GetContainerIdFromCgroupWithPid(cgroupFileData string) (ContainerId, error) {
 	type PatternMatch struct {

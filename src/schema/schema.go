@@ -7,7 +7,7 @@ import (
 	"strings"
 	"unicode"
 
-	json "github.com/goccy/go-json"
+	"encoding/json"
 
 	"sigs.k8s.io/yaml"
 )
@@ -270,113 +270,6 @@ func String() *Schema {
 	return schema
 }
 
-func StringPointer() *Schema {
-	typeInfo := &TypeInfo{}
-	typeInfo.Type = SchemaTypeString
-	typeInfo.Pointer = true
-
-	schema := &Schema{}
-	schema.TypeInfo = typeInfo
-	schema.StructLayouts = map[string]StructLayout{}
-
-	return schema
-}
-
-func Integer() *Schema {
-	typeInfo := &TypeInfo{}
-	typeInfo.Type = SchemaTypeInteger
-	typeInfo.Pointer = false
-
-	schema := &Schema{}
-	schema.TypeInfo = typeInfo
-	schema.StructLayouts = map[string]StructLayout{}
-
-	return schema
-}
-
-func IntegerPointer() *Schema {
-	typeInfo := &TypeInfo{}
-	typeInfo.Type = SchemaTypeInteger
-	typeInfo.Pointer = true
-
-	schema := &Schema{}
-	schema.TypeInfo = typeInfo
-	schema.StructLayouts = map[string]StructLayout{}
-
-	return schema
-}
-
-func UnsignedInteger() *Schema {
-	typeInfo := &TypeInfo{}
-	typeInfo.Type = SchemaTypeUnsignedInteger
-	typeInfo.Pointer = false
-
-	schema := &Schema{}
-	schema.TypeInfo = typeInfo
-	schema.StructLayouts = map[string]StructLayout{}
-
-	return schema
-}
-
-func UnsignedIntegerPointer() *Schema {
-	typeInfo := &TypeInfo{}
-	typeInfo.Type = SchemaTypeUnsignedInteger
-	typeInfo.Pointer = true
-
-	schema := &Schema{}
-	schema.TypeInfo = typeInfo
-	schema.StructLayouts = map[string]StructLayout{}
-
-	return schema
-}
-
-func Float() *Schema {
-	typeInfo := &TypeInfo{}
-	typeInfo.Type = SchemaTypeFloat
-	typeInfo.Pointer = false
-
-	schema := &Schema{}
-	schema.TypeInfo = typeInfo
-	schema.StructLayouts = map[string]StructLayout{}
-
-	return schema
-}
-
-func FloatPointer() *Schema {
-	typeInfo := &TypeInfo{}
-	typeInfo.Type = SchemaTypeFloat
-	typeInfo.Pointer = true
-
-	schema := &Schema{}
-	schema.TypeInfo = typeInfo
-	schema.StructLayouts = map[string]StructLayout{}
-
-	return schema
-}
-
-func Boolean() *Schema {
-	typeInfo := &TypeInfo{}
-	typeInfo.Type = SchemaTypeBoolean
-	typeInfo.Pointer = false
-
-	schema := &Schema{}
-	schema.TypeInfo = typeInfo
-	schema.StructLayouts = map[string]StructLayout{}
-
-	return schema
-}
-
-func BooleanPointer() *Schema {
-	typeInfo := &TypeInfo{}
-	typeInfo.Type = SchemaTypeBoolean
-	typeInfo.Pointer = true
-
-	schema := &Schema{}
-	schema.TypeInfo = typeInfo
-	schema.StructLayouts = map[string]StructLayout{}
-
-	return schema
-}
 
 func Interface() *Schema {
 	typeInfo := &TypeInfo{}

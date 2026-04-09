@@ -26,12 +26,11 @@ import (
 	"os"
 	"os/exec"
 	"reflect"
-	"slices"
 	"strings"
 	"sync"
 	"time"
 
-	json "github.com/goccy/go-json"
+	"encoding/json"
 
 	release "helm.sh/helm/v4/pkg/release/v1"
 	v1 "k8s.io/api/core/v1"
@@ -124,6 +123,7 @@ type socketApi struct {
 	moKubernetes          MoKubernetes
 	sealedSecret          SealedSecretManager
 	argocd                argocd.Argocd
+	alertmanager          AlertmanagerService
 	aiApi                 AiApi
 	aiWebsocketConnection ai.AiWebsocketConnection
 }
@@ -155,6 +155,7 @@ func NewSocketApi(
 	eventsClient websocket.WebsocketClient,
 	valkeyClient valkeyclient.ValkeyClient,
 	argocd argocd.Argocd,
+	alertmanager AlertmanagerService,
 ) SocketApi {
 	self := &socketApi{}
 	self.config = configModule
@@ -166,6 +167,7 @@ func NewSocketApi(
 	self.status = NewSocketApiStatus()
 	self.statusLock = sync.RWMutex{}
 	self.argocd = argocd
+	self.alertmanager = alertmanager
 
 	self.loadpatternlogger()
 	self.registerPatterns()
@@ -221,12 +223,13 @@ func (self *socketApi) Status() SocketApiStatus {
 
 func (self *socketApi) AssertPatternsUnique() {
 	patternConfigs := self.PatternConfigs()
-	var patterns []string
+	seen := make(map[string]struct{}, len(patternConfigs))
 
 	for pattern := range patternConfigs {
 		normalizedPattern := self.NormalizePatternName(pattern)
-		assert.Assert(!slices.Contains(patterns, normalizedPattern), "duplicate normalized pattern", normalizedPattern)
-		patterns = append(patterns, normalizedPattern)
+		_, exists := seen[normalizedPattern]
+		assert.Assert(!exists, "duplicate normalized pattern", normalizedPattern)
+		seen[normalizedPattern] = struct{}{}
 	}
 }
 
@@ -551,6 +554,27 @@ func (self *socketApi) registerPatterns() {
 		)
 	}
 
+	// cluster/dashboard-stats — aggregated metrics for the organization dashboard
+	{
+		RegisterPatternHandler(
+			PatternHandle{self, "cluster/dashboard-stats"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Void) (ClusterDashboardStats, error) {
+				workspaces, err := self.apiService.GetAllWorkspaces()
+				if err != nil {
+					return ClusterDashboardStats{}, fmt.Errorf("get workspaces: %w", err)
+				}
+
+				names := make([]string, len(workspaces))
+				for i, ws := range workspaces {
+					names[i] = ws.Name
+				}
+
+				return self.dbstats.GetClusterDashboardStats(names, self.apiService.GetWorkspaceControllers)
+			},
+		)
+	}
+
 	// Deprecated: will be removed in future versions
 	{
 		type Request struct {
@@ -727,6 +751,62 @@ func (self *socketApi) registerPatterns() {
 			return result, err
 		},
 	)
+
+	RegisterPatternHandler(
+		PatternHandle{self, "alertmanager/alerts/list"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request Void) ([]Alert, error) {
+			result, err := self.alertmanager.GetAlerts()
+			return result, err
+		},
+	)
+
+	RegisterPatternHandler(
+		PatternHandle{self, "alertmanager/alerts/create"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request []SendAlertRequest) (string, error) {
+			err := self.alertmanager.SendAlert(request)
+			if err != nil {
+				return "", err
+			}
+			return "Alerts sent successfully", nil
+		},
+	)
+
+	RegisterPatternHandler(
+		PatternHandle{self, "alertmanager/silences/create"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request SilenceRequest) (string, error) {
+			result, err := self.alertmanager.SilenceAlert(request)
+			return result, err
+		},
+	)
+
+	RegisterPatternHandler(
+		PatternHandle{self, "alertmanager/silences/list"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request Void) ([]Silence, error) {
+			result, err := self.alertmanager.GetSilences()
+			return result, err
+		},
+	)
+
+	{
+		type Request struct {
+			SilenceID string `json:"silenceId" validate:"required"`
+		}
+		RegisterPatternHandler(
+			PatternHandle{self, "alertmanager/silences/delete"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Request) (string, error) {
+				err := self.alertmanager.DeleteSilence(request.SilenceID)
+				if err != nil {
+					return "", err
+				}
+				return "Silence deleted successfully", nil
+			},
+		)
+	}
 
 	RegisterPatternHandler(
 		PatternHandle{self, "cluster/list-persistent-volume-claims"},
@@ -1494,7 +1574,8 @@ func (self *socketApi) registerPatterns() {
 			func(datagram structs.Datagram, request Request) (Void, error) {
 				mergedPromptCfg, err := kubernetes.CreateOrUpdateAndMergePromptConfig(request.AiPromptConfig)
 				self.aiApi.InjectAiPromptConfig(mergedPromptCfg, &request.AiPrompts)
-				return store.AddToAuditLog[Void](datagram, self.logger, nil, err, nil, nil)
+				// return store.AddToAuditLog[Void](datagram, self.logger, nil, err, nil, nil)
+				return nil, err
 			},
 		)
 
@@ -1503,6 +1584,26 @@ func (self *socketApi) registerPatterns() {
 			PatternConfig{},
 			func(datagram structs.Datagram, request Void) (*ai.AiPromptConfig, error) {
 				return self.aiApi.GetPromptConfig()
+			},
+		)
+	}
+
+	{
+		type UpdateFiltersRequest struct {
+			Filters     []ai.AiFilter `json:"filters" validate:"required"`
+			UserFilters []ai.AiFilter `json:"userFilters"`
+		}
+
+		RegisterPatternHandler(
+			PatternHandle{self, "aiManager/update-filter-states"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request UpdateFiltersRequest) (Void, error) {
+				err := kubernetes.UpdateFilterActiveStates(request.Filters, request.UserFilters)
+				if err != nil {
+					return nil, err
+				}
+				// The ConfigMap watcher will pick up the change and call InjectAiPromptConfig
+				return nil, nil
 			},
 		)
 	}
@@ -1518,7 +1619,8 @@ func (self *socketApi) registerPatterns() {
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (ai.AiManagerStatus, error) {
 				status := self.aiApi.GetStatus(request.Workspace)
-				return store.AddToAuditLog(datagram, self.logger, status, nil, nil, nil)
+				// return store.AddToAuditLog(datagram, self.logger, status, nil, nil, nil)
+				return status, nil
 			},
 		)
 	}
@@ -1572,7 +1674,8 @@ func (self *socketApi) registerPatterns() {
 					tasks, err = self.aiApi.GetAiTasksForWorkspace(request.Workspace)
 				}
 
-				return store.AddToAuditLog(datagram, self.logger, tasks, err, nil, nil)
+				// return store.AddToAuditLog(datagram, self.logger, tasks, err, nil, nil)
+				return tasks, err
 			},
 		)
 	}
@@ -1638,12 +1741,16 @@ func (self *socketApi) registerPatterns() {
 		PatternConfig{},
 		func(datagram structs.Datagram, request services.NfsVolumeRequest) (bool, error) {
 			res := services.CreateMogeniusNfsVolume(self.eventsClient, request)
-			_, err := store.AddToAuditLog(datagram, self.logger, res, fmt.Errorf("%s", res.Error), nil, nil)
-			if err != nil {
-				self.logger.Warn("failed to add event to audit log", "request", request, "error", err)
-			}
+			var resErr error
 			if !res.Success {
-				return false, fmt.Errorf("%s", res.Error)
+				resErr = fmt.Errorf("%s", res.Error)
+			}
+			_, auditErr := store.AddToAuditLog(datagram, self.logger, res, resErr, nil, nil)
+			if auditErr != nil {
+				self.logger.Warn("failed to add event to audit log", "request", request, "error", auditErr)
+			}
+			if resErr != nil {
+				return false, resErr
 			}
 			return true, nil
 		},
@@ -1655,12 +1762,16 @@ func (self *socketApi) registerPatterns() {
 		PatternConfig{},
 		func(datagram structs.Datagram, request services.NfsVolumeRequest) (bool, error) {
 			res := services.DeleteMogeniusNfsVolume(self.eventsClient, request)
-			_, err := store.AddToAuditLog(datagram, self.logger, res, fmt.Errorf("%s", res.Error), nil, nil)
-			if err != nil {
-				self.logger.Warn("failed to add event to audit log", "request", request, "error", err)
-			}
+			var resErr error
 			if !res.Success {
-				return false, fmt.Errorf("%s", res.Error)
+				resErr = fmt.Errorf("%s", res.Error)
+			}
+			_, auditErr := store.AddToAuditLog(datagram, self.logger, res, resErr, nil, nil)
+			if auditErr != nil {
+				self.logger.Warn("failed to add event to audit log", "request", request, "error", auditErr)
+			}
+			if resErr != nil {
+				return false, resErr
 			}
 			return true, nil
 		},
@@ -2065,21 +2176,35 @@ func (self *socketApi) startJobClientReadLoop() {
 				openFile, err = os.OpenFile(*preparedFileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 				if err != nil {
 					self.logger.Error("Cannot open uploadfile", "filename", *preparedFileName, "error", err)
+					preparedFileName = nil
+					openFile = nil
 				}
 				continue
 			}
 			if bytes.HasPrefix(message, []byte("######END_UPLOAD######;")) {
-				openFile.Close()
-				if preparedFileName != nil && preparedFileRequest != nil {
-					err = services.Uploaded(*preparedFileName, *preparedFileRequest)
-					if err != nil {
-						self.logger.Error("Error uploading file", "error", err)
-					}
+				if openFile != nil {
+					openFile.Close()
 				}
-				os.Remove(*preparedFileName)
+				var uploadErr error
+				if preparedFileName != nil && preparedFileRequest != nil {
+					uploadErr = services.Uploaded(*preparedFileName, *preparedFileRequest)
+					if uploadErr != nil {
+						self.logger.Error("Error uploading file", "error", uploadErr)
+					}
+				} else if preparedFileName == nil {
+					uploadErr = fmt.Errorf("upload failed: could not open temporary file")
+				}
+				if preparedFileName != nil {
+					os.Remove(*preparedFileName)
+				}
 
-				var ack = structs.CreateDatagramAck("ack:files/upload:end", preparedFileRequest.Id)
-				go self.JobServerSendData(self.jobClients[0], ack)
+				if preparedFileRequest != nil {
+					ack := structs.CreateDatagramAck("ack:files/upload:end", preparedFileRequest.Id)
+					if uploadErr != nil {
+						ack.Err = uploadErr.Error()
+					}
+					go self.JobServerSendData(self.jobClients[0], ack)
+				}
 
 				preparedFileName = nil
 				preparedFileRequest = nil
@@ -2165,6 +2290,20 @@ func (self *socketApi) handlePatternRequest(datagram structs.Datagram, responseC
 		decompressedData, err := utils.TryZlibDecompress(datagram.Payload)
 		if err != nil {
 			self.logger.Error("failed to decompress payload", "error", err)
+			result := structs.Datagram{
+				Id:      datagram.Id,
+				Pattern: datagram.Pattern,
+				Payload: struct {
+					Status  string `json:"status"`
+					Message string `json:"message"`
+				}{
+					Status:  "error",
+					Message: fmt.Sprintf("failed to decompress payload: %s", err.Error()),
+				},
+				CreatedAt: datagram.CreatedAt,
+				Zlib:      false,
+			}
+			self.JobServerSendData(responseClient, result)
 			return
 		}
 		datagram.Payload = decompressedData

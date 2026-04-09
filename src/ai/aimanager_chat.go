@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	json "github.com/goccy/go-json"
+	"encoding/json"
 )
 
 func (ai *aiManager) sendTokens(inputTokens, outputTokenCount int64, sessionInputTokens, sessionOutputTokens *int64, ctx context.Context, ioChannel IOChatChannel) {

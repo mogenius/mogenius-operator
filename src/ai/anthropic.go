@@ -76,10 +76,11 @@ func (ai *aiManager) anthropicChat(
 
 			// Process with tool call loop (categories + allTools passed so
 			// the inner loop can recompute active tools after activation)
-			_, updatedMessages, err := ai.anthropicChatWithTools(ctx, client, systemPrompt, model, messages, ioChannel, allAnthropicTools, categories, maxToolCalls, &sessionInputTokens, &sessionOutputTokens)
+			fullResponse, updatedMessages, turnStats, err := ai.anthropicChatWithTools(ctx, client, systemPrompt, model, messages, ioChannel, allAnthropicTools, categories, maxToolCalls, &sessionInputTokens, &sessionOutputTokens)
 			if err != nil {
 				ai.logger.Error("Error processing with tools", "error", err)
-				// Send error to output
+				payload := map[string]any{"question": userInput, "stats": turnStats}
+				emitAuditEvent(ioChannel, "ai/chat", payload, nil, err.Error())
 				select {
 				case ioChannel.Output <- fmt.Sprintf("\n[Error: %v]", err):
 				case <-ctx.Done():
@@ -87,6 +88,9 @@ func (ai *aiManager) anthropicChat(
 				}
 				continue
 			}
+
+			payload := map[string]any{"question": userInput, "response": truncateToolResult(fullResponse), "stats": turnStats}
+			emitAuditEvent(ioChannel, "ai/chat", payload, nil, "")
 
 			// Discard intermediate tool_use/tool_result exchanges from history.
 			// updatedMessages = [..., user_input, tool_exchanges..., assistant_final]
@@ -117,15 +121,23 @@ func (ai *aiManager) anthropicChatWithTools(
 	maxToolCalls int,
 	sessionInputTokens *int64,
 	sessionOutputTokens *int64,
-) (fullResponse string, updatedMessages []anthropic.MessageParam, err error) {
+) (fullResponse string, updatedMessages []anthropic.MessageParam, stats ChatTurnStats, err error) {
 	toolCallCount := 0
 	toolCtx := newToolContextFromIOChannel(ioChannel)
+	stats.Model = model
+	turnStartInput := *sessionInputTokens
+	turnStartOutput := *sessionOutputTokens
+	startTime := time.Now()
+	defer func() {
+		stats.InputTokens = *sessionInputTokens - turnStartInput
+		stats.OutputTokens = *sessionOutputTokens - turnStartOutput
+		stats.DurationMs = int(time.Since(startTime).Milliseconds())
+	}()
 
 	var inputTokens int64
 	var outputTokenCount int64
 	inputTokensUsed := int64(0)
 	outputTokensUsed := int64(0)
-	startTime := time.Now()
 
 	for {
 		// Recompute active tools each iteration (categories may have changed)
@@ -144,7 +156,7 @@ func (ai *aiManager) anthropicChatWithTools(
 		select {
 		case ioChannel.Output <- "[AI is thinking...]\n":
 		case <-ctx.Done():
-			return "", messages, ctx.Err()
+			return "", messages, stats, ctx.Err()
 		}
 
 		stream := client.Messages.NewStreaming(ctx, anthropic.MessageNewParams{
@@ -188,7 +200,7 @@ func (ai *aiManager) anthropicChatWithTools(
 					select {
 					case ioChannel.Output <- fmt.Sprintf("\n[Using tool: %s]\n", evt.ContentBlock.Name):
 					case <-ctx.Done():
-						return "", messages, ctx.Err()
+						return "", messages, stats, ctx.Err()
 					}
 				}
 
@@ -200,7 +212,7 @@ func (ai *aiManager) anthropicChatWithTools(
 					select {
 					case ioChannel.Output <- text:
 					case <-ctx.Done():
-						return "", messages, ctx.Err()
+						return "", messages, stats, ctx.Err()
 					}
 				}
 
@@ -234,13 +246,13 @@ func (ai *aiManager) anthropicChatWithTools(
 
 		// Check for streaming errors
 		if err := stream.Err(); err != nil {
-			return "", messages, fmt.Errorf("streaming error: %w", err)
+			return "", messages, stats, fmt.Errorf("streaming error: %w", err)
 		}
 
 		select {
 		case ioChannel.Output <- "\n\n":
 		case <-ctx.Done():
-			return "", messages, ctx.Err()
+			return "", messages, stats, ctx.Err()
 		}
 
 		// Use the accumulated message
@@ -255,7 +267,7 @@ func (ai *aiManager) anthropicChatWithTools(
 			case "tool_use":
 				var input map[string]interface{}
 				if err := json.Unmarshal(block.Input, &input); err != nil {
-					return "", messages, fmt.Errorf("error unmarshaling tool input: %w", err)
+					return "", messages, stats, fmt.Errorf("error unmarshaling tool input: %w", err)
 				}
 				assistantContent[i] = anthropic.ContentBlockParamUnion{
 					OfToolUse: &anthropic.ToolUseBlockParam{
@@ -283,7 +295,7 @@ func (ai *aiManager) anthropicChatWithTools(
 
 		// If no tool calls, we're done
 		if len(toolUseBlocks) == 0 {
-			return fullText.String(), messages, nil
+			return fullText.String(), messages, stats, nil
 		}
 
 		// Check tool call limit
@@ -303,7 +315,7 @@ func (ai *aiManager) anthropicChatWithTools(
 				Role:    anthropic.MessageParamRoleAssistant,
 				Content: []anthropic.ContentBlockParamUnion{anthropic.NewTextBlock(text)},
 			})
-			return text, messages, nil
+			return text, messages, stats, nil
 		}
 
 		// Execute tool calls and collect results
@@ -321,13 +333,16 @@ func (ai *aiManager) anthropicChatWithTools(
 
 			// Execute tool
 			var result string
+			var toolErr string
 			if toolUse.Name == activateToolCategoriesName {
 				result = categories.ActivateFromToolCall(args)
 			} else if ai.mcpManager != nil && ai.mcpManager.IsMCPTool(toolUse.Name) {
 				mcpResult, err := ai.mcpManager.CallTool(ctx, toolUse.Name, args)
 				if err != nil {
 					ai.logger.Error("MCP tool call failed", "tool", toolUse.Name, "error", err)
-					toolResults = append(toolResults, anthropic.NewToolResultBlock(toolUse.ID, fmt.Sprintf("Error calling MCP tool: %v", err), true))
+					toolErr = fmt.Sprintf("Error calling MCP tool: %v", err)
+					toolResults = append(toolResults, anthropic.NewToolResultBlock(toolUse.ID, toolErr, true))
+					stats.ToolRecords = append(stats.ToolRecords, ToolUseRecord{Tool: toolUse.Name, Args: args, Error: toolErr})
 					continue
 				}
 				result = mcpResult
@@ -338,6 +353,7 @@ func (ai *aiManager) anthropicChatWithTools(
 				toolResults = append(toolResults, anthropic.NewToolResultBlock(toolUse.ID, fmt.Sprintf("Unknown tool: %s", toolUse.Name), true))
 				continue
 			}
+			stats.ToolRecords = append(stats.ToolRecords, ToolUseRecord{Tool: toolUse.Name, Args: args, Result: truncateToolResult(result)})
 			toolResults = append(toolResults, anthropic.NewToolResultBlock(toolUse.ID, result, false))
 		}
 
@@ -360,6 +376,9 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, model, systemPr
 	}
 	tools := make([]anthropic.ToolUnionParam, len(allTools))
 	for i, toolParam := range allTools {
+		if i == len(allTools)-1 {
+			toolParam.CacheControl = anthropic.NewCacheControlEphemeralParam()
+		}
 		tools[i] = anthropic.ToolUnionParam{OfTool: &toolParam}
 	}
 
@@ -384,14 +403,15 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, model, systemPr
 
 	// Loop until there are no more tool calls or maxToolCalls reached
 	for {
+		// Compact previous tool results so old (already processed) results
+		// don't burn tokens on subsequent API calls.
+		compactAnthropicToolResults(messages)
+
 		message, err := client.Messages.New(ctx, anthropic.MessageNewParams{
 			Model:     anthropic.Model(model),
 			MaxTokens: int64(10000),
 			System: []anthropic.TextBlockParam{
-				{
-					Type: "text",
-					Text: systemPrompt + "\n IMPORTANT: You MUST use the provided tools to retrieve current Kubernetes resource information. Never make assumptions about what resources exist or their current state. Available tools: - get_kubernetes_resource: Fetch a specific resource when you know its exact name - list_kubernetes_resources: List all resources of a type, optionally filtered by namespace",
-				},
+				{Type: "text", Text: systemPrompt, CacheControl: anthropic.NewCacheControlEphemeralParam()},
 			},
 			Messages:    messages,
 			Tools:       tools,

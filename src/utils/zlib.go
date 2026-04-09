@@ -5,7 +5,7 @@ import (
 	"compress/zlib"
 	"io"
 
-	json "github.com/goccy/go-json"
+	"encoding/json"
 )
 
 func ZlibCompress(data []byte) ([]byte, error) {
@@ -36,19 +36,6 @@ func ZlibDecompress(compressedData []byte) ([]byte, error) {
 	}
 
 	return outBuf.Bytes(), nil
-}
-
-// the data variable will be modified in place (inOut-variable)
-func TryZlibCompress(data any) (any, int64, error) {
-	dataBytes, err := json.Marshal(data)
-	if err != nil {
-		return nil, 0, err
-	}
-	compressedPayload, err := ZlibCompress([]byte(dataBytes))
-	if err != nil {
-		return nil, 0, err
-	}
-	return compressedPayload, int64(len(compressedPayload)), nil
 }
 
 // the data variable will be modified in place (inOut-variable)

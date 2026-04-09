@@ -8,19 +8,13 @@ import (
 	cfg "mogenius-operator/src/config"
 	"mogenius-operator/src/store"
 	"mogenius-operator/src/utils"
-	"path/filepath"
-	"sort"
 	"strconv"
 	"strings"
-
-	version2 "k8s.io/apimachinery/pkg/version"
 
 	core "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/remotecommand"
-	"k8s.io/client-go/util/homedir"
 )
 
 type IngressType int
@@ -35,40 +29,6 @@ const (
 
 func (i IngressType) String() string {
 	return [...]string{"NGINX", "TRAEFIK", "MULTIPLE", "NONE", "UNKNOWN"}[i]
-}
-
-func CurrentContextName() string {
-	context := config.Get("MO_CLUSTER_NAME")
-	if context != "" {
-		return context
-	}
-
-	var kubeconfig string = ""
-	if home := homedir.HomeDir(); home != "" {
-		kubeconfig = filepath.Join(home, ".kube", "config")
-	}
-
-	config, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
-		&clientcmd.ClientConfigLoadingRules{ExplicitPath: kubeconfig},
-		&clientcmd.ConfigOverrides{
-			CurrentContext: "",
-		}).RawConfig()
-
-	if err != nil {
-		return "No context found. Probably running in a cluster."
-	}
-
-	return config.CurrentContext
-}
-
-func KubernetesVersion() *version2.Info {
-	clientset := clientProvider.K8sClientSet()
-	info, err := clientset.Discovery().ServerVersion()
-	if err != nil {
-		k8sLogger.Error("Error KubernetesVersion", "error", err)
-		return nil
-	}
-	return info
 }
 
 func MoCreateOptions(config cfg.ConfigModule) metav1.CreateOptions {
@@ -207,7 +167,6 @@ func execInNfsPodStream(namespace, podName string, command []string, stdin io.Re
 	}
 	return nil
 }
-
 
 func StorageClassForClusterProvider(clusterProvider utils.KubernetesProvider) string {
 	var nfsStorageClassStr string = ""
@@ -396,27 +355,6 @@ func LabelsContain(labels map[string]string, str string) bool {
 	}
 	return false
 }
-
-func ApiVersions() ([]string, error) {
-	result := []string{}
-
-	clientset := clientProvider.K8sClientSet()
-	groupResources, err := clientset.DiscoveryClient.ServerPreferredResources()
-	if err != nil {
-		return result, err
-	}
-
-	for _, groupList := range groupResources {
-		result = append(result, groupList.GroupVersion)
-	}
-
-	sort.Slice(result, func(i, j int) bool {
-		return result[i] < result[j]
-	})
-
-	return result, nil
-}
-
 
 func DetermineIngressControllerType() (IngressType, error) {
 	ingressClasses := store.GetIngressClasses()

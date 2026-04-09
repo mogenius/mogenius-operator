@@ -2,6 +2,7 @@ package xterm
 
 import (
 	"context"
+	"crypto/tls"
 	"io"
 	"log/slog"
 	"mogenius-operator/src/logging"
@@ -16,7 +17,7 @@ import (
 	"syscall"
 	"time"
 
-	json "github.com/goccy/go-json"
+	"encoding/json"
 
 	"github.com/creack/pty"
 
@@ -207,6 +208,9 @@ func GenerateWsConnection(
 		headers.Add("x-type", "k8s")
 
 		dialer := &websocket.Dialer{}
+		if strings.ToLower(os.Getenv("MO_SKIP_TLS_VERIFICATION")) == "true" {
+			dialer.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+		}
 		conn, _, err := dialer.Dial(u.String(), headers)
 		connWriteLock := &sync.Mutex{}
 		connReadLock := &sync.Mutex{}

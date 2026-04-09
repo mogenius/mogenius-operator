@@ -103,26 +103,26 @@ RUN ls -lh bin/
 # Stage 4: Release Image
 # =============================================================================
 
-FROM ${RUNTIME_IMAGE} AS release-image
+FROM scratch AS release-image
 
-ARG TARGETOS
-ARG TARGETARCH
-ARG TARGETVARIANT
+# CA certificates for TLS/WSS connections to platform API
+COPY --from=alpine:3.23 /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 
-ENV GOOS=${TARGETOS}
-ENV GOARCH=${TARGETARCH}
-ENV GOARM=${TARGETVARIANT}
+# nsenter from Alpine (links against musl) + musl dynamic linker
+# The musl linker filename is arch-specific (x86_64, aarch64, armhf, ...)
+COPY --from=alpine:3.23 /usr/bin/nsenter /usr/local/bin/nsenter
+COPY --from=alpine:3.23 /lib/ld-musl-*.so.1 /lib/
 
-# Copy operator binary
+# Operator binary (CGO_ENABLED=0, statically linked)
 COPY --from=builder /app/bin/mogenius-operator /usr/local/bin/mogenius-operator
 
-# Copy snoopy binary
+# Snoopy binary (Rust + musl target, statically linked)
 COPY --from=snoopy-source /usr/local/bin/snoopy /usr/local/bin/mogenius-snoopy
 
 WORKDIR /app
 
-# mogenius-operator release default settings
+ENV PATH=/usr/local/bin
 ENV MO_LOG_LEVEL="warn"
 
-ENTRYPOINT ["dumb-init", "--"]
-CMD ["mogenius-operator", "cluster"]
+ENTRYPOINT ["/usr/local/bin/mogenius-operator"]
+CMD ["cluster"]

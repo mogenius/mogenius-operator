@@ -2,6 +2,7 @@ package ai
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	cfg "mogenius-operator/src/config"
@@ -18,7 +19,7 @@ import (
 	"sync"
 	"time"
 
-	json "github.com/goccy/go-json"
+	"encoding/json"
 
 	coreV1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -399,30 +400,78 @@ func (ai *aiManager) Run() {
 	ai.connectMCPServers()
 
 	ticker := time.NewTicker(1 * time.Minute)
+	cleanupTicker := time.NewTicker(5 * time.Minute)
 	go func() {
-		for range ticker.C {
-			ctx := context.Background()
+		for {
+			select {
+			case <-ticker.C:
+				ctx := context.Background()
 
-			initialized := ai.isAiPromptConfigInitialized()
-			if !initialized {
-				continue
+				initialized := ai.isAiPromptConfigInitialized()
+				if !initialized {
+					continue
+				}
+
+				modelConfigInitialized := ai.isAiModelConfigInitialized()
+				if !modelConfigInitialized {
+					continue
+				}
+
+				if ai.isTokenLimitExceeded() {
+					continue
+				}
+
+				ai.processPendingTasks()
+
+				ai.error = ""
+				ai.processAiTaskQueue(ctx)
+			case <-cleanupTicker.C:
+				ai.cleanupOrphanedTasks()
 			}
-
-			modelConfigInitialized := ai.isAiModelConfigInitialized()
-			if !modelConfigInitialized {
-				continue
-			}
-
-			if ai.isTokenLimitExceeded() {
-				continue
-			}
-
-			ai.processPendingTasks()
-
-			ai.error = ""
-			ai.processAiTaskQueue(ctx)
 		}
 	}()
+}
+
+// cleanupOrphanedTasks removes AI tasks whose referenced resource no longer
+// exists in the resource store. This handles cases where the operator missed
+// a delete event (e.g., restart, connectivity issue) and the task would
+// otherwise linger until its 7-day TTL expires.
+func (ai *aiManager) cleanupOrphanedTasks() {
+	keys, err := ai.getAllTaskKeys()
+	if err != nil {
+		ai.logger.Error("Error fetching AI task keys for orphan cleanup", "error", err)
+		return
+	}
+
+	for _, key := range keys {
+		item, err := ai.valkeyClient.Get(key)
+		if err != nil {
+			continue
+		}
+
+		var task AiTask
+		if err := json.Unmarshal([]byte(item), &task); err != nil {
+			continue
+		}
+
+		// Only clean up completed/failed tasks — pending/in-progress tasks may reference
+		// resources that are about to be created or are being processed
+		if task.State != AI_TASK_STATE_COMPLETED && task.State != AI_TASK_STATE_FAILED {
+			continue
+		}
+
+		ref := task.ReferencingResource
+		_, err = store.GetResource(ai.valkeyClient, ref.ApiVersion, ref.Kind, ref.Namespace, ref.ResourceName, ai.logger)
+		if err != nil {
+			// Resource no longer in store — clean up the task
+			if delErr := ai.valkeyClient.DeleteSingle(key); delErr != nil {
+				ai.logger.Error("Error deleting orphaned AI task", "key", key, "error", delErr)
+				continue
+			}
+			ai.sendAiDeleteEvent(key)
+			ai.logger.Info("Cleaned up orphaned AI task (resource no longer exists)", "key", key, "kind", ref.Kind, "name", ref.ResourceName, "namespace", ref.Namespace)
+		}
+	}
 }
 
 // resetInProgressTasksOnStartup scans existing AI tasks and resets those left in
@@ -842,7 +891,14 @@ func (ai *aiManager) processAiTaskQueue(ctx context.Context) {
 		response, tokensUsed, timeUsedInMs, modelUsed, err := ai.processPrompt(ctx, task.Prompt)
 		if err != nil {
 			task.Error = err.Error()
-			task.State = AI_TASK_STATE_FAILED
+			// Non-retryable API errors (billing, invalid request, auth) must not be retried.
+			// Mark as ignored so processPendingTasks skips them on the next run.
+			var apiErr *anthropic.Error
+			if errors.As(err, &apiErr) && (apiErr.StatusCode == 400 || apiErr.StatusCode == 401 || apiErr.StatusCode == 403) {
+				task.State = AI_TASK_STATE_IGNORED
+			} else {
+				task.State = AI_TASK_STATE_FAILED
+			}
 			ai.logger.Error("Error processing AI task", "taskID", task.ID, "error", err)
 		} else {
 			task.State = AI_TASK_STATE_COMPLETED

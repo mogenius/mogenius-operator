@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	json "github.com/goccy/go-json"
+	"encoding/json"
 
 	"github.com/valkey-io/valkey-go"
 )
@@ -100,6 +100,12 @@ func (self *xtermService) LiveStreamConnection(conReq xterm.WsConnectionRequest,
 		}
 	}()
 
+	// Pre-build set for O(1) pod name lookups instead of linear search per entry
+	podNameSet := make(map[string]bool, len(podNames))
+	for _, name := range podNames {
+		podNameSet[name] = true
+	}
+
 	client := store.GetValkeyClient()
 	err = client.Receive(ctx, client.B().Subscribe().Channel(valkeyKey).Build(), func(msg valkey.PubSubMessage) {
 		var entry any
@@ -112,14 +118,9 @@ func (self *xtermService) LiveStreamConnection(conReq xterm.WsConnectionRequest,
 				logger.Error("Unmarshal", "error", err)
 				return
 			}
-			// remove entries which are not the requested pod
-			for i := 0; i < len(data); i++ {
-				if !slices.Contains(podNames, data[i].Name) {
-					data = append(data[:i], data[i+1:]...)
-					i--
-				}
-			}
-			entry = data
+			entry = slices.DeleteFunc(data, func(s rammonitor.PodRamStats) bool {
+				return !podNameSet[s.Name]
+			})
 		case "live-stream/pod-cpu", "live-stream/workspace-cpu":
 			data := []cpumonitor.PodCpuStats{}
 			err := json.Unmarshal([]byte(msg.Message), &data)
@@ -127,13 +128,9 @@ func (self *xtermService) LiveStreamConnection(conReq xterm.WsConnectionRequest,
 				logger.Error("Unmarshal", "error", err)
 				return
 			}
-			for i := 0; i < len(data); i++ {
-				if !slices.Contains(podNames, data[i].Name) {
-					data = append(data[:i], data[i+1:]...)
-					i--
-				}
-			}
-			entry = data
+			entry = slices.DeleteFunc(data, func(s cpumonitor.PodCpuStats) bool {
+				return !podNameSet[s.Name]
+			})
 		case "live-stream/pod-traffic", "live-stream/workspace-traffic":
 			data := []networkmonitor.PodNetworkStats{}
 			err := json.Unmarshal([]byte(msg.Message), &data)
@@ -141,13 +138,9 @@ func (self *xtermService) LiveStreamConnection(conReq xterm.WsConnectionRequest,
 				logger.Error("Unmarshal", "error", err)
 				return
 			}
-			for i := 0; i < len(data); i++ {
-				if !slices.Contains(podNames, data[i].Pod) {
-					data = append(data[:i], data[i+1:]...)
-					i--
-				}
-			}
-			entry = data
+			entry = slices.DeleteFunc(data, func(s networkmonitor.PodNetworkStats) bool {
+				return !podNameSet[s.Pod]
+			})
 		default:
 			// For other patterns, we can directly use the entry as it is already in the correct format
 			err := json.Unmarshal([]byte(msg.Message), &entry)

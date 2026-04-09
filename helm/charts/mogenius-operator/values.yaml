@@ -17,6 +17,14 @@ cluster:
 
 # -- feature toggles for the mogenius-operator
 features:
+  debugTools:
+    # -- enable the debug tools container in the mogenius-operator pod
+    enabled: false
+    image:
+      registry: docker.io
+      repository: nicolaka/netshoot
+      tag: v0.15
+      pullPolicy: IfNotPresent
   # -- configure the integrated node metrics dashboard
   nodeMetricsDashboard:
     # -- enable the node metrics dashboard
@@ -101,13 +109,20 @@ envVars:
   MO_API_SERVER: "wss://k8s-ws.mogenius.com/ws"
   MO_EVENT_SERVER: "wss://k8s-dispatcher.mogenius.com/ws"
 
+# -- Go runtime memory tuning
+goRuntime:
+  # -- Soft memory limit for the Go runtime (GOMEMLIMIT)
+  memLimit: "180MiB"
+  # -- GC target percentage (GOGC). Lower = more frequent GC, less memory
+  gcPercent: "50"
+
 valkey:
   enabled: true
   imagePullPolicy: IfNotPresent
   image:
     registry: docker.io
     repository: valkey/valkey
-    tag: 8.1
+    tag: 9.0.3
   podLabels: {}
   containerSecurityContext:
     readOnlyRootFilesystem: true
@@ -133,6 +148,33 @@ valkey:
     password: ""
   updateStrategy:
     type: RollingUpdate
+  metrics:
+    # -- enable the Prometheus metrics exporter sidecar (oliver006/redis_exporter)
+    enabled: false
+    exporter:
+      image:
+        registry: docker.io
+        repository: oliver006/redis_exporter
+        tag: v1.82.0
+      resources: {}
+      containerSecurityContext:
+        readOnlyRootFilesystem: true
+        runAsNonRoot: true
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+            - ALL
+    # -- ServiceMonitor for prometheus-operator; requires metrics.enabled: true
+    serviceMonitor:
+      enabled: false
+      # -- labels added to the ServiceMonitor (use to match your Prometheus selector)
+      labels: {}
+      interval: 30s
+      scrapeTimeout: 10s
+      # -- additional relabelings appended after the default instance relabeling
+      relabelings: []
+  # -- optional additional Valkey configuration appended verbatim (e.g. "maxmemory 256mb\nmaxmemory-policy allkeys-lru")
+  customValkeyConf: ""
   persistence:
     # -- storage class to be used, default is empty which will use the class defined as standard
     storageClass: ""

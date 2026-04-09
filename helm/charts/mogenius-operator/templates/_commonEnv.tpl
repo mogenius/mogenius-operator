@@ -44,4 +44,10 @@
 {{- end }}
 - name: CLUSTER_DOMAIN
   value: {{ .Values.cluster.domain | quote }}
+- name: GOMEMLIMIT
+  value: {{ .Values.goRuntime.memLimit | quote }}
+- name: GOGC
+  value: {{ .Values.goRuntime.gcPercent | quote }}
+- name: GODEBUG
+  value: "madvdontneed=1"
 {{- end }}

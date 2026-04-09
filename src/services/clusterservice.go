@@ -1,9 +1,7 @@
 package services
 
 import (
-	"mogenius-operator/src/assert"
 	mokubernetes "mogenius-operator/src/kubernetes"
-	"mogenius-operator/src/store"
 	"mogenius-operator/src/structs"
 	"mogenius-operator/src/utils"
 	"mogenius-operator/src/websocket"
@@ -90,17 +88,6 @@ func StatsMogeniusNfsVolume(r NfsVolumeStatsRequest) NfsVolumeStatsResponse {
 }
 
 
-type ClusterHelmRequest struct {
-	Namespace        string `json:"namespace" validate:"required"`
-	NamespaceId      string `json:"namespaceId" validate:"required"`
-	HelmRepoName     string `json:"helmRepoName" validate:"required"`
-	HelmRepoUrl      string `json:"helmRepoUrl" validate:"required"`
-	HelmReleaseName  string `json:"helmReleaseName" validate:"required"`
-	HelmChartName    string `json:"helmChartName" validate:"required"`
-	HelmChartVersion string `json:"helmChartVersion"`
-	HelmValues       string `json:"helmValues" validate:"required"`
-}
-
 type ClusterListWorkloads struct {
 	Namespace     string `json:"namespace"`
 	LabelSelector string `json:"labelSelector"`
@@ -142,61 +129,6 @@ type NfsStatusResponse struct {
 	UsedByPods    []string              `json:"usedByPods,omitempty"`
 }
 
-func InstallDefaultApplications() (string, string) {
-	userApps := ""
-	basicApps := `
-# install grype
-if type grype >/dev/null 2>&1; then
-    echo "grype is installed. Skipping installation."
-else
-	wget -O /dev/stdout "https://raw.githubusercontent.com/anchore/grype/main/install.sh" | sh -s -- -b /usr/local/bin
-	echo "grype is installed. 🚀"
-fi
-
-# install dive
-if type dive >/dev/null 2>&1; then
-    echo "dive is installed. Skipping installation."
-else
-	DIVE_VERSION=$(wget -O /dev/stdout "https://api.github.com/repos/wagoodman/dive/releases/latest" | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
-	if [ "${GOARCH}" = "amd64" ]; then
-		wget -O dive.tar.gz "https://github.com/wagoodman/dive/releases/download/v${DIVE_VERSION}/dive_${DIVE_VERSION}_linux_amd64.tar.gz"
-	elif [ "${GOARCH}" = "arm64" ]; then
-		wget -O dive.tar.gz "https://github.com/wagoodman/dive/releases/download/v${DIVE_VERSION}/dive_${DIVE_VERSION}_linux_arm64.tar.gz"
-	else
-		echo "Unsupported architecture";
-	fi
-	tar -xf dive.tar.gz dive
-	chmod +x dive
-	mv dive /usr/local/bin/dive
-	rm dive.tar.gz
-	echo "dive is installed. 🚀"
-fi
-
-# install trivy
-if type trivy >/dev/null 2>&1; then
-    echo "trivy is installed. Skipping installation."
-else
-	wget -O /dev/stdout "https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh" | sh -s -- -b /usr/local/bin latest
-	echo "trivy is installed. 🚀"
-fi
-`
-
-	defaultAppsConfigmap := store.GetConfigMap(
-		config.Get("MO_OWN_NAMESPACE"),
-		utils.MOGENIUS_CONFIGMAP_DEFAULT_APPS_NAME,
-	)
-	if defaultAppsConfigmap == nil {
-		return basicApps, userApps
-	}
-	assert.Assert(defaultAppsConfigmap != nil)
-	assert.Assert(defaultAppsConfigmap.Data != nil)
-
-	if installCommands, exists := defaultAppsConfigmap.Data["install-commands"]; exists {
-		userApps = installCommands
-	}
-
-	return basicApps, userApps
-}
 
 func getMostCurrentHelmChartVersion(url string, chartname string) string {
 	url = addIndexYAMLtoURL(url)

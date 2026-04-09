@@ -1,0 +1,27 @@
+{{- if and .Values.valkey.enabled .Values.valkey.metrics.enabled .Values.valkey.metrics.serviceMonitor.enabled }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ .Values.fullnameOverride }}-valkey
+  namespace: {{ .Release.Namespace }}
+  {{- with .Values.valkey.metrics.serviceMonitor.labels }}
+  labels:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ .Values.fullnameOverride }}-valkey
+  endpoints:
+    - port: metrics
+      interval: {{ .Values.valkey.metrics.serviceMonitor.interval }}
+      scrapeTimeout: {{ .Values.valkey.metrics.serviceMonitor.scrapeTimeout }}
+      relabelings:
+        {{- if .Values.valkey.metrics.serviceMonitor.relabelings }}
+        {{- toYaml .Values.valkey.metrics.serviceMonitor.relabelings | nindent 8 }}
+        {{- else }}
+        - targetLabel: instance
+          replacement: {{ .Values.fullnameOverride }}-valkey
+        {{- end }}
+{{- end }}

@@ -27,8 +27,6 @@ type User struct {
 	Source    string `json:"source,omitempty"`
 }
 
-type UserSource string
-
 func CreateDatagramNotificationFromJob(data *Job) Datagram {
 	// delay for timing issue caused by events being triggered too closely together
 	time.Sleep(100 * time.Millisecond)

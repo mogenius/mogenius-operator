@@ -13,7 +13,7 @@ import (
 	"mogenius-operator/src/store"
 	"mogenius-operator/src/utils"
 
-	json "github.com/goccy/go-json"
+	"encoding/json"
 
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
@@ -128,7 +128,7 @@ func (self *moKubernetes) writeMogeniusSecret(secretClient v1.SecretInterface, e
 			self.logger.Error("Error creating mogenius secret.", "error", err)
 			return clusterSecret, err
 		}
-		self.logger.Info("🔑 Created new mogenius secret", result.GetObjectMeta().GetName(), ".")
+		self.logger.Info("🔑 Created new mogenius secret", "name", result.GetObjectMeta().GetName())
 	} else {
 		if string(existingSecret.Data["cluster-mfa-id"]) != clusterSecret.ClusterMfaId ||
 			string(existingSecret.Data["api-key"]) != clusterSecret.ApiKey ||
@@ -140,7 +140,7 @@ func (self *moKubernetes) writeMogeniusSecret(secretClient v1.SecretInterface, e
 				self.logger.Error("Error updating mogenius secret.", "error", err)
 				return clusterSecret, err
 			}
-			self.logger.Info("🔑 Updated mogenius secret", result.GetObjectMeta().GetName(), ".")
+			self.logger.Info("🔑 Updated mogenius secret", "name", result.GetObjectMeta().GetName())
 		} else {
 			self.logger.Info("🔑 Using existing mogenius secret.")
 		}
@@ -229,8 +229,8 @@ func (self *moKubernetes) removeManagedFields(obj *unstructured.Unstructured) *u
 
 	unstructuredContent := obj.Object
 	delete(unstructuredContent, "managedFields")
-	if unstructuredContent["metadata"] != nil {
-		delete(unstructuredContent["metadata"].(map[string]any), "managedFields")
+	if meta, ok := unstructuredContent["metadata"].(map[string]any); ok {
+		delete(meta, "managedFields")
 	}
 
 	return obj
@@ -242,17 +242,17 @@ func (self *moKubernetes) getKubeletNodeStats(nodeName string) (*podstatscollect
 
 	resultData := restClient.Get().AbsPath(path).Do(context.Background())
 	if err := resultData.Error(); err != nil {
-		return nil, fmt.Errorf("failed to make request: %v", err)
+		return nil, fmt.Errorf("failed to make request: %w", err)
 	}
 
 	rawResponse, err := resultData.Raw()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get raw response: %v", err)
+		return nil, fmt.Errorf("failed to get raw response: %w", err)
 	}
 
 	result := &podstatscollector.NodeMetrics{}
 	if err := json.Unmarshal(rawResponse, result); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal kubelet stats for node %s: %v", nodeName, err)
+		return nil, fmt.Errorf("failed to unmarshal kubelet stats for node %s: %w", nodeName, err)
 	}
 
 	return result, nil
@@ -263,10 +263,15 @@ func (self *moKubernetes) GetNodeStats() ([]dtos.NodeStat, error) {
 	result := make([]dtos.NodeStat, 0, len(nodes))
 
 	for _, node := range nodes {
+		skipNode := false
 		for _, taint := range node.Spec.Taints {
 			if taint.Effect == corev1.TaintEffectNoSchedule || taint.Key == "CriticalAddonsOnly" {
-				continue // Skip nodes with NoSchedule/CriticalAddonsOnly taints
+				skipNode = true
+				break
 			}
+		}
+		if skipNode {
+			continue
 		}
 		allPods := kubernetes.AllPodsOnNode(node.Name)
 		requestCpuCores, limitCpuCores := kubernetes.SumCpuResources(allPods)
@@ -393,6 +398,64 @@ func (self *moKubernetes) CleanUp(apiService Api, workspaceName string, dryRun b
 		}
 	}
 
+	// Pre-build sets for O(1) lookups
+	serviceNameSet := make(map[string]struct{}, len(workSpaceServices))
+	for _, svc := range workSpaceServices {
+		serviceNameSet[svc.Name] = struct{}{}
+	}
+
+	// Pre-build sets of secret/configmap names referenced by pods and ingresses
+	usedSecretNames := make(map[string]struct{})
+	usedConfigMapNames := make(map[string]struct{})
+	for _, pod := range workspacePods {
+		for _, volume := range pod.Spec.Volumes {
+			if volume.Secret != nil {
+				usedSecretNames[volume.Secret.SecretName] = struct{}{}
+			}
+			if volume.ConfigMap != nil {
+				usedConfigMapNames[volume.ConfigMap.Name] = struct{}{}
+			}
+		}
+		for _, container := range pod.Spec.Containers {
+			for _, env := range container.Env {
+				if env.ValueFrom != nil {
+					if env.ValueFrom.SecretKeyRef != nil {
+						usedSecretNames[env.ValueFrom.SecretKeyRef.Name] = struct{}{}
+					}
+					if env.ValueFrom.ConfigMapKeyRef != nil {
+						usedConfigMapNames[env.ValueFrom.ConfigMapKeyRef.Name] = struct{}{}
+					}
+				}
+			}
+			for _, envFrom := range container.EnvFrom {
+				if envFrom.SecretRef != nil {
+					usedSecretNames[envFrom.SecretRef.Name] = struct{}{}
+				}
+				if envFrom.ConfigMapRef != nil {
+					usedConfigMapNames[envFrom.ConfigMapRef.Name] = struct{}{}
+				}
+			}
+		}
+		for _, initContainer := range pod.Spec.InitContainers {
+			for _, envFrom := range initContainer.EnvFrom {
+				if envFrom.SecretRef != nil {
+					usedSecretNames[envFrom.SecretRef.Name] = struct{}{}
+				}
+				if envFrom.ConfigMapRef != nil {
+					usedConfigMapNames[envFrom.ConfigMapRef.Name] = struct{}{}
+				}
+			}
+		}
+		for _, imagePullSecret := range pod.Spec.ImagePullSecrets {
+			usedSecretNames[imagePullSecret.Name] = struct{}{}
+		}
+	}
+	for _, ingress := range workspaceIngresses {
+		for _, tls := range ingress.Spec.TLS {
+			usedSecretNames[tls.SecretName] = struct{}{}
+		}
+	}
+
 	for _, entry := range entries {
 		// REPLICASETS
 		if entry.GetKind() == "ReplicaSet" && replicaSets {
@@ -482,64 +545,7 @@ func (self *moKubernetes) CleanUp(apiService Api, workspaceName string, dryRun b
 			if err != nil {
 				continue
 			}
-			isInUse := false
-			for _, pod := range workspacePods {
-				// check if configmap is used by any pod
-				if pod.Spec.Volumes != nil {
-					for _, volume := range pod.Spec.Volumes {
-						if volume.ConfigMap != nil && volume.ConfigMap.Name == secret.Name {
-							isInUse = true
-							break
-						}
-					}
-				}
-				if pod.Spec.Containers != nil {
-					for _, container := range pod.Spec.Containers {
-						if container.VolumeMounts != nil {
-							for _, volumeMount := range container.VolumeMounts {
-								if volumeMount.Name == secret.Name {
-									isInUse = true
-									break
-								}
-							}
-						}
-						for _, env := range container.Env {
-							if env.ValueFrom != nil && env.ValueFrom.SecretKeyRef != nil && env.ValueFrom.SecretKeyRef.Name == secret.Name {
-								isInUse = true
-								break
-							}
-						}
-					}
-				}
-				if pod.Spec.InitContainers != nil {
-					for _, initContainer := range pod.Spec.InitContainers {
-						if initContainer.VolumeMounts != nil {
-							for _, volumeMount := range initContainer.VolumeMounts {
-								if volumeMount.Name == secret.Name {
-									isInUse = true
-									break
-								}
-							}
-						}
-					}
-				}
-				if pod.Spec.ImagePullSecrets != nil {
-					for _, imagePullSecret := range pod.Spec.ImagePullSecrets {
-						if imagePullSecret.Name == secret.Name {
-							isInUse = true
-							break
-						}
-					}
-				}
-			}
-			for _, ingress := range workspaceIngresses {
-				for _, tls := range ingress.Spec.TLS {
-					if tls.SecretName == secret.Name {
-						isInUse = true
-						break
-					}
-				}
-			}
+			_, isInUse := usedSecretNames[secret.Name]
 			if !isInUse {
 				result.Secrets = append(result.Secrets, createCURE(secret.Name, secret.Namespace, "secret is not used by any pod or ingress"))
 				if !dryRun {
@@ -563,51 +569,9 @@ func (self *moKubernetes) CleanUp(apiService Api, workspaceName string, dryRun b
 			if err != nil {
 				continue
 			}
-			isInUse := false
+			_, isInUse := usedConfigMapNames[configMap.Name]
 			if configMap.Name == "kube-root-ca.crt" {
 				isInUse = true
-			} else {
-				for _, pod := range workspacePods {
-					// check if configmap is used by any pod
-					if pod.Spec.Volumes != nil {
-						for _, volume := range pod.Spec.Volumes {
-							if volume.ConfigMap != nil && volume.ConfigMap.Name == configMap.Name {
-								isInUse = true
-								break
-							}
-						}
-					}
-					if pod.Spec.Containers != nil {
-						for _, container := range pod.Spec.Containers {
-							if container.VolumeMounts != nil {
-								for _, volumeMount := range container.VolumeMounts {
-									if volumeMount.Name == configMap.Name {
-										isInUse = true
-										break
-									}
-								}
-							}
-							for _, env := range container.Env {
-								if env.ValueFrom != nil && env.ValueFrom.SecretKeyRef != nil && env.ValueFrom.SecretKeyRef.Name == configMap.Name {
-									isInUse = true
-									break
-								}
-							}
-						}
-					}
-					if pod.Spec.InitContainers != nil {
-						for _, initContainer := range pod.Spec.InitContainers {
-							if initContainer.VolumeMounts != nil {
-								for _, volumeMount := range initContainer.VolumeMounts {
-									if volumeMount.Name == configMap.Name {
-										isInUse = true
-										break
-									}
-								}
-							}
-						}
-					}
-				}
 			}
 			if !isInUse {
 				result.ConfigMaps = append(result.ConfigMaps, createCURE(configMap.Name, configMap.Namespace, "configmap not used by any pod"))
@@ -632,7 +596,11 @@ func (self *moKubernetes) CleanUp(apiService Api, workspaceName string, dryRun b
 			if err != nil {
 				continue
 			}
-			if job.Status.Succeeded == *job.Spec.Completions && job.Status.Failed == 0 {
+			completions := int32(1)
+			if job.Spec.Completions != nil {
+				completions = *job.Spec.Completions
+			}
+			if job.Status.Succeeded == completions && job.Status.Failed == 0 {
 				result.Jobs = append(result.Jobs, createCURE(job.Name, job.Namespace, "job completed"))
 				if !dryRun {
 					resName, err := kubernetes.GetResourcesNameForKind(entry.GetKind())
@@ -659,14 +627,11 @@ func (self *moKubernetes) CleanUp(apiService Api, workspaceName string, dryRun b
 			for _, v := range ingress.Spec.Rules {
 				if v.HTTP != nil {
 					for _, path := range v.HTTP.Paths {
-						for _, service := range workSpaceServices {
-							if path.Backend.Service.Name == service.Name {
+						if path.Backend.Service != nil {
+							if _, ok := serviceNameSet[path.Backend.Service.Name]; ok {
 								serviceExists = true
 								break
 							}
-						}
-						if serviceExists {
-							break
 						}
 					}
 				}

@@ -8,9 +8,11 @@ import (
 	"mogenius-operator/src/structs"
 	"mogenius-operator/src/version"
 	"net/http"
+	_ "net/http/pprof"
+	"os"
 	"sync"
 
-	json "github.com/goccy/go-json"
+	"encoding/json"
 )
 
 type HttpService interface {
@@ -66,10 +68,9 @@ func (self *Broadcaster) RemoveListener(callback MessageCallback) {
 	self.mu.Lock()
 	defer self.mu.Unlock()
 
-	for i, listener := range self.Listeners {
-		if listener.Equals(&callback) {
+	for i := len(self.Listeners) - 1; i >= 0; i-- {
+		if self.Listeners[i].Equals(&callback) {
 			self.Listeners = append(self.Listeners[:i], self.Listeners[i+1:]...)
-			continue
 		}
 	}
 }
@@ -115,6 +116,11 @@ func (self *httpService) Run() {
 	mux := http.NewServeMux()
 
 	mux.Handle("GET /healthz", self.withRequestLogging(http.HandlerFunc(self.getHealthz)))
+
+	if os.Getenv("MO_PPROF") == "true" {
+		mux.Handle("/debug/pprof/", http.DefaultServeMux)
+		self.logger.Info("pprof enabled", "path", "/debug/pprof/")
+	}
 
 	mux.Handle("GET /status", self.withRequestLogging(http.HandlerFunc(self.getAppStatus)))
 

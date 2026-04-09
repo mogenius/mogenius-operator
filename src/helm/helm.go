@@ -393,8 +393,9 @@ func InitHelmConfig() error {
 		destFile, err := os.Create(repositoryConfig)
 		if err != nil {
 			helmLogger.Error("failed to create repository config", "path", repositoryConfig, "error", err.Error())
+			return fmt.Errorf("failed to create repository config: %w", err)
 		}
-		defer destFile.Close()
+		destFile.Close()
 	}
 
 	_ = restoreRepositoryFileFromValkey()
@@ -626,7 +627,7 @@ func HelmChartSearch(data HelmChartSearchRequest) ([]HelmChartInfo, error) {
 
 // filterCharts filters charts based on the query
 func filterCharts(charts []HelmChartInfo, query string) []HelmChartInfo {
-	var result []HelmChartInfo
+	result := make([]HelmChartInfo, 0, len(charts))
 	query = strings.ToLower(query)
 	for _, chart := range charts {
 		if strings.Contains(strings.ToLower(chart.Name), query) ||
@@ -774,7 +775,7 @@ func HelmOciInstall(data HelmChartOciInstallUpgradeRequest) (result string, err 
 	if err != nil {
 		return "", fmt.Errorf("failed to create OCI registry client: %w", err)
 	}
-	if data.Username != "" || data.Password != "" && data.AuthHost != "" {
+	if (data.Username != "" || data.Password != "") && data.AuthHost != "" {
 		err = registryClient.Login(
 			data.AuthHost,
 			registry.LoginOptBasicAuth(data.Username, data.Password),

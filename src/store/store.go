@@ -10,10 +10,13 @@ import (
 	"mogenius-operator/src/utils"
 	"mogenius-operator/src/valkeyclient"
 	"os"
-	"os/exec"
+	"sort"
 	"strconv"
+
 	"strings"
 	"time"
+
+	"github.com/pmezard/go-difflib/difflib"
 
 	"sigs.k8s.io/yaml"
 
@@ -29,7 +32,12 @@ const (
 	VALKEY_RESOURCE_PREFIX = "resources"
 )
 
-var AuditLogLimit = int64(100) // Default limit for audit log entries IMPORTANT: this is set per resource not globally
+var AuditLogLimit = int64(100)        // Default limit for audit log entries IMPORTANT: this is set per resource not globally
+var AuditLogTTL = time.Hour * 24 * 14 // Default TTL for audit log entries (14 days)
+
+// OnAuditLogCreated is called after an audit log entry is persisted.
+// Set this callback to emit real-time events (e.g. via WebSocket).
+var OnAuditLogCreated func(entry AuditLogEntry)
 
 var ErrNotFound = errors.New("not found")
 
@@ -102,7 +110,7 @@ func SearchResourceByNamespace(valkeyClient valkeyclient.ValkeyClient, namespace
 func DropAllResourcesFromValkey(valkeyClient valkeyclient.ValkeyClient, logger *slog.Logger) error {
 	keys, err := valkeyClient.Keys(VALKEY_RESOURCE_PREFIX + ":*")
 	if err != nil {
-		return fmt.Errorf("failed to get keys: %v", err)
+		return fmt.Errorf("failed to get keys: %w", err)
 	}
 	err = valkeyClient.DeleteMultiple(keys...)
 	if err != nil {
@@ -428,14 +436,14 @@ func AddToAuditLog[T any](datagram structs.Datagram, logger *slog.Logger, result
 		resourceNamespace = updatedObj.GetNamespace()
 		resourceName = updatedObj.GetName()
 	} else if payload, ok := datagram.Payload.(map[string]any); ok {
-		if payload["namespace"] != nil {
-			resourceNamespace = payload["namespace"].(string)
+		if ns, ok := payload["namespace"].(string); ok {
+			resourceNamespace = ns
 		}
-		if payload["name"] != nil {
-			resourceName = payload["name"].(string)
+		if name, ok := payload["name"].(string); ok {
+			resourceName = name
 		}
-		if payload["pod"] != nil {
-			resourceName = payload["pod"].(string)
+		if pod, ok := payload["pod"].(string); ok {
+			resourceName = pod
 		}
 	} else if yamlData, ok := payload["yamlData"].(string); ok {
 		var unstruct unstructured.Unstructured
@@ -448,9 +456,11 @@ func AddToAuditLog[T any](datagram structs.Datagram, logger *slog.Logger, result
 		}
 	}
 
-	auditLogAddErr := valkeyClient.SetObjectWithAutoincrementLimit(auditLogEntry, AuditLogLimit, "audit-log", resourceNamespace, resourceName)
+	auditLogAddErr := valkeyClient.SetObjectWithAutoincrementLimit(auditLogEntry, AuditLogLimit, AuditLogTTL, "audit-log", resourceNamespace, resourceName)
 	if auditLogAddErr != nil {
 		logger.Error("failed to add to audit log", "error", auditLogAddErr)
+	} else if OnAuditLogCreated != nil {
+		go OnAuditLogCreated(auditLogEntry)
 	}
 	return result, err
 }
@@ -460,12 +470,32 @@ func ListAuditLog(limit int, offset int, namespaces []string, clusterWide bool) 
 		limit = 100
 	}
 
-	entries, size, err := valkeyclient.GetObjectsByPrefixWithSizeAndNs[AuditLogEntry](valkeyClient, limit, offset, namespaces, clusterWide, "audit-log")
+	// Load ALL entries (no pagination yet) so we can sort by CreatedAt before paginating.
+	// GetObjectsByPrefixWithSizeAndNs applies offset/limit on unsorted SCAN keys,
+	// which can cause newer entries to be missed.
+	const maxEntries = 10000
+	allEntries, totalCount, err := valkeyclient.GetObjectsByPrefixWithSizeAndNs[AuditLogEntry](valkeyClient, maxEntries, 0, namespaces, clusterWide, "audit-log")
 	if err != nil {
-		return []AuditLogEntry{}, size, err
+		return []AuditLogEntry{}, 0, err
 	}
 
-	return entries, size, nil
+	totalCount = len(allEntries)
+
+	// Sort by CreatedAt descending (newest first)
+	sort.Slice(allEntries, func(i, j int) bool {
+		return allEntries[i].CreatedAt.After(allEntries[j].CreatedAt)
+	})
+
+	// Apply pagination
+	if offset >= totalCount {
+		return []AuditLogEntry{}, totalCount, nil
+	}
+	end := offset + limit
+	if end > totalCount {
+		end = totalCount
+	}
+
+	return allEntries[offset:end], totalCount, nil
 }
 
 func auditLogFromDatagram(datagram structs.Datagram, result any, err error) AuditLogEntry {
@@ -481,6 +511,28 @@ func auditLogFromDatagram(datagram structs.Datagram, result any, err error) Audi
 		Workspace: datagram.Workspace,
 		Error:     errStr,
 		Result:    result,
+	}
+}
+
+// AddAiChatAuditLog writes an audit log entry for AI chat interactions (messages and tool uses).
+// Keys follow the pattern audit-log:ai-chat:<user-email>:<num>.
+// These entries are always included in ListAuditLog results regardless of namespace filter.
+func AddAiChatAuditLog(logger *slog.Logger, pattern string, payload any, result any, errStr string, user structs.User, workspace string) {
+	entry := AuditLogEntry{
+		Pattern:   pattern,
+		Payload:   payload,
+		Result:    result,
+		Error:     errStr,
+		CreatedAt: time.Now(),
+		User:      user,
+		Workspace: workspace,
+	}
+
+	storeErr := valkeyClient.SetObjectWithAutoincrementLimit(entry, AuditLogLimit, AuditLogTTL, "audit-log", "ai-chat", user.Email)
+	if storeErr != nil {
+		logger.Error("failed to add AI chat audit log", "error", storeErr)
+	} else if OnAuditLogCreated != nil {
+		go OnAuditLogCreated(entry)
 	}
 }
 
@@ -542,23 +594,24 @@ func Diff(oldObj, newObj *unstructured.Unstructured) (string, error) {
 }
 
 func unifiedDiff(filePath1 string, filePath2 string, ns, resourceName string) (string, error) {
-	cmd := exec.Command("diff", "-u", "-N", "--label", ns+"/"+resourceName, "--label", ns+"/"+resourceName, filePath1, filePath2)
-	cmd.Dir = os.TempDir()
-	out, err := cmd.CombinedOutput()
-
-	if err != nil {
-		// diff returns exit code 1 if files differ
-		if exitError, ok := err.(*exec.ExitError); ok {
-			if exitError.ExitCode() == 1 {
-				return string(out), nil
-			} else {
-				return "", fmt.Errorf("Error running diff: %s\n%s\n", err.Error(), string(out))
-			}
-		} else {
-			return "", err
-		}
+	aBytes, err := os.ReadFile(filePath1)
+	if err != nil && !os.IsNotExist(err) {
+		return "", fmt.Errorf("failed to read file1: %w", err)
 	}
-	return "", nil
+	bBytes, err := os.ReadFile(filePath2)
+	if err != nil && !os.IsNotExist(err) {
+		return "", fmt.Errorf("failed to read file2: %w", err)
+	}
+
+	label := ns + "/" + resourceName
+	diff := difflib.UnifiedDiff{
+		A:        difflib.SplitLines(string(aBytes)),
+		B:        difflib.SplitLines(string(bBytes)),
+		FromFile: label,
+		ToFile:   label,
+		Context:  3,
+	}
+	return difflib.GetUnifiedDiffString(diff)
 }
 
 func removeUnusedFields(obj *unstructured.Unstructured) *unstructured.Unstructured {

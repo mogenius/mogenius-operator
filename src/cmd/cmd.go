@@ -3,30 +3,13 @@ package cmd
 import (
 	"fmt"
 	"log/slog"
-	"mogenius-operator/src/ai"
-	"mogenius-operator/src/argocd"
 	"mogenius-operator/src/assert"
 	"mogenius-operator/src/config"
-	"mogenius-operator/src/containerenumerator"
-	"mogenius-operator/src/core"
-	"mogenius-operator/src/cpumonitor"
 	"mogenius-operator/src/helm"
-	"mogenius-operator/src/k8sclient"
-	"mogenius-operator/src/kubernetes"
 	"mogenius-operator/src/logging"
-	"mogenius-operator/src/networkmonitor"
-	"mogenius-operator/src/rammonitor"
 	"mogenius-operator/src/secrets"
-	"mogenius-operator/src/services"
-	"mogenius-operator/src/shutdown"
-	"mogenius-operator/src/store"
-	"mogenius-operator/src/structs"
 	"mogenius-operator/src/utils"
-	"mogenius-operator/src/valkeyclient"
 	"mogenius-operator/src/version"
-	"mogenius-operator/src/watcher"
-	"mogenius-operator/src/websocket"
-	"mogenius-operator/src/xterm"
 	"net"
 	"net/url"
 	"os"
@@ -37,7 +20,6 @@ import (
 
 	"github.com/alecthomas/kong"
 	"github.com/mattn/go-isatty"
-	v1 "k8s.io/api/rbac/v1"
 	"k8s.io/klog/v2"
 )
 
@@ -418,155 +400,3 @@ func LoadConfigDeclarations(configModule *config.Config) {
 	})
 }
 
-// Full initialization process for mogenius-operator clients services (and packages)
-func InitializeSystems(
-	logManagerModule logging.SlogManager,
-	configModule *config.Config,
-	cmdLogger *slog.Logger,
-	valkeyLogChannel chan logging.LogLine,
-) systems {
-	assert.Assert(logManagerModule != nil)
-	assert.Assert(configModule != nil)
-	assert.Assert(cmdLogger != nil)
-
-	// initialize client modules
-	valkeyClient := valkeyclient.NewValkeyClient(logManagerModule.CreateLogger("valkey"), configModule)
-	clientProvider := k8sclient.NewK8sClientProvider(logManagerModule.CreateLogger("client-provider"), configModule)
-	if !clientProvider.RunsInCluster() {
-		impersonatedClientProvider, err := clientProvider.WithImpersonate(v1.Subject{
-			Kind:      "ServiceAccount",
-			Name:      "mogenius-operator-service-account-app",
-			Namespace: configModule.Get("MO_OWN_NAMESPACE"),
-		})
-		assert.Assert(err == nil, err)
-		clientProvider = impersonatedClientProvider
-	}
-	versionModule := version.NewVersion()
-	watcherModule := watcher.NewWatcher(logManagerModule.CreateLogger("watcher"), clientProvider)
-	shutdown.Add(watcherModule.UnwatchAll)
-	numApiClients, err := strconv.Atoi(configModule.Get("MO_API_SERVER_CLIENTS"))
-	assert.Assert(err == nil, "MO_API_SERVER_CLIENTS must be a valid integer", err)
-	if numApiClients < 1 {
-		numApiClients = 1
-	}
-	jobClients := make([]websocket.WebsocketClient, numApiClients)
-	for i := range numApiClients {
-		jobClients[i] = websocket.NewWebsocketClient(logManagerModule.CreateLogger(fmt.Sprintf("websocket-job-client-%d", i)))
-		shutdown.Add(jobClients[i].Terminate)
-	}
-	eventConnectionClient := websocket.NewWebsocketClient(logManagerModule.CreateLogger("websocket-events-client"))
-	shutdown.Add(eventConnectionClient.Terminate)
-	containerEnumerator := containerenumerator.NewContainerEnumerator(logManagerModule.CreateLogger("container-enumerator"), configModule, clientProvider)
-	cpuMonitor := cpumonitor.NewCpuMonitor(logManagerModule.CreateLogger("cpu-monitor"), configModule, clientProvider, containerEnumerator)
-	ramMonitor := rammonitor.NewRamMonitor(logManagerModule.CreateLogger("ram-monitor"), configModule, clientProvider, containerEnumerator)
-	networkMonitor := networkmonitor.NewNetworkMonitor(logManagerModule.CreateLogger("network-monitor"), configModule, containerEnumerator, configModule.Get("MO_HOST_PROC_PATH"))
-	ownerCacheService := store.NewOwnerCacheService(logManagerModule.CreateLogger("owner-cache"), configModule)
-	aiManager := ai.NewAiManager(logManagerModule.CreateLogger("ai-manager"), valkeyClient, configModule, ownerCacheService, eventConnectionClient, kubernetes.GetSecret)
-	// Initialize AI tools with kubernetes functions
-	ai.K8sUpdateUnstructuredResource = kubernetes.UpdateUnstructuredResource
-	ai.K8sDeleteUnstructuredResource = kubernetes.DeleteUnstructuredResource
-	ai.K8sCreateUnstructuredResource = kubernetes.CreateUnstructuredResource
-	ai.K8sGetUnstructuredResourceFromStore = kubernetes.GetUnstructuredResourceFromStore
-	ai.K8sGetPodLogs = kubernetes.GetPodLogs
-
-	// golang package setups are deprecated and will be removed in the future by migrating all state to services
-	helm.Setup(logManagerModule, configModule, valkeyClient)
-	err = kubernetes.Setup(logManagerModule, configModule, clientProvider, valkeyClient)
-	assert.Assert(err == nil, err)
-	services.Setup(logManagerModule, configModule, clientProvider)
-	structs.Setup(logManagerModule)
-	xterm.Setup(logManagerModule, valkeyClient)
-	utils.Setup(logManagerModule, configModule)
-	err = store.Setup(logManagerModule, valkeyClient, configModule.Get("MO_AUDIT_LOG_LIMIT"))
-	assert.Assert(err == nil, err)
-
-	// initialization step 1 for services
-	argocd := argocd.NewArgoCd(logManagerModule, configModule, clientProvider, valkeyClient)
-	workspaceManager := core.NewWorkspaceManager(configModule, clientProvider)
-	apiModule := core.NewApi(logManagerModule.CreateLogger("api"), valkeyClient, configModule)
-	aiApi := core.NewAiApi(logManagerModule.CreateLogger("apApi"), aiManager)
-	httpApi := core.NewHttpApi(logManagerModule, configModule)
-	socketApi := core.NewSocketApi(logManagerModule.CreateLogger("socketapi"), configModule, jobClients, eventConnectionClient, valkeyClient, argocd)
-	xtermService := core.NewXtermService(logManagerModule.CreateLogger("xterm-service"))
-	aiWebsocketConnection := ai.NewAiWebsocketConnection(logManagerModule.CreateLogger("ai-websocket-connection"), aiManager)
-	valkeyLoggerService := core.NewValkeyLogger(valkeyClient, valkeyLogChannel)
-	dbstatsService := core.NewValkeyStatsModule(logManagerModule.CreateLogger("db-stats"), configModule, valkeyClient, ownerCacheService)
-	podStatsCollector := core.NewPodStatsCollector(logManagerModule.CreateLogger("pod-stats-collector"), configModule, clientProvider)
-	nodeMetricsCollector := core.NewNodeMetricsCollector(
-		logManagerModule.CreateLogger("traffic-collector"),
-		configModule,
-		clientProvider,
-		cpuMonitor,
-		ramMonitor,
-		networkMonitor,
-	)
-	moKubernetes := core.NewMoKubernetes(logManagerModule.CreateLogger("mokubernetes"), configModule, clientProvider)
-	mocore := core.NewCore(logManagerModule.CreateLogger("core"), configModule, clientProvider, valkeyClient, eventConnectionClient, jobClients)
-	leaderElector := core.NewLeaderElector(logManagerModule.CreateLogger("leader-elector"), configModule, clientProvider)
-	reconciler := core.NewReconciler(logManagerModule.CreateLogger("reconciler"), configModule, clientProvider, aiApi)
-	sealedSecret := core.NewSealedSecretManager(logManagerModule.CreateLogger("sealed-secret"), configModule, clientProvider)
-
-	// initialization step 2 for services
-	mocore.Link(moKubernetes)
-	podStatsCollector.Link(dbstatsService)
-	nodeMetricsCollector.Link(dbstatsService, leaderElector)
-	socketApi.Link(httpApi, xtermService, dbstatsService, apiModule, moKubernetes, sealedSecret, aiApi, aiWebsocketConnection)
-	moKubernetes.Link(dbstatsService)
-	httpApi.Link(socketApi, dbstatsService, apiModule, reconciler)
-	apiModule.Link(workspaceManager)
-	reconciler.Link(leaderElector)
-
-	return systems{
-		clientProvider,
-		versionModule,
-		watcherModule,
-		jobClients,
-		eventConnectionClient,
-		valkeyClient,
-		networkMonitor,
-		mocore,
-		moKubernetes,
-		workspaceManager,
-		apiModule,
-		socketApi,
-		httpApi,
-		xtermService,
-		aiWebsocketConnection,
-		valkeyLoggerService,
-		podStatsCollector,
-		nodeMetricsCollector,
-		dbstatsService,
-		leaderElector,
-		reconciler,
-		sealedSecret,
-		argocd,
-		aiManager,
-	}
-}
-
-type systems struct {
-	clientProvider        k8sclient.K8sClientProvider
-	versionModule         *version.Version
-	watcherModule         watcher.WatcherModule
-	jobClients            []websocket.WebsocketClient
-	eventConnectionClient websocket.WebsocketClient
-	valkeyClient          valkeyclient.ValkeyClient
-	networkmonitor        networkmonitor.NetworkMonitor
-	core                  core.Core
-	moKubernetes          core.MoKubernetes
-	workspaceManager      core.WorkspaceManager
-	apiModule             core.Api
-	socketApi             core.SocketApi
-	httpApi               core.HttpService
-	xtermService          core.XtermService
-	aiWebsocketConnection ai.AiWebsocketConnection
-	valkeyLoggerService   core.ValkeyLogger
-	podStatsCollector     core.PodStatsCollector
-	nodeMetricsCollector  core.NodeMetricsCollector
-	dbstatsService        core.ValkeyStatsDb
-	leaderElector         core.LeaderElector
-	reconciler            core.Reconciler
-	sealedSecret          core.SealedSecretManager
-	argocd                argocd.Argocd
-	aiManager             ai.AiManager
-}

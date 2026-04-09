@@ -74,6 +74,9 @@ func WatchStoreResources(wm watcher.WatcherModule, aiManager ai.AiManager, event
 			aiManager.ProcessObject(newObj, "update", res)
 		}, func(resource utils.ResourceDescriptor, obj *unstructured.Unstructured) {
 			deleteFromStoreIfNeeded(resource.ApiVersion, obj.GetName(), resource.Kind, obj.GetNamespace(), obj)
+			if resource.Kind == "Pod" {
+				store.ClearOwnerCachePodEntry(obj.GetName())
+			}
 			sendEventServerEvent(eventClient, resource.ApiVersion, resource.Kind, obj.GetName(), "delete", obj)
 			handleCRDDeletion(wm, resource, obj)
 			aiManager.ProcessObject(obj, "delete", res)
@@ -489,8 +492,8 @@ func removeManagedFields(obj *unstructured.Unstructured) *unstructured.Unstructu
 	}
 	unstructuredContent := obj.Object
 	delete(unstructuredContent, "managedFields")
-	if unstructuredContent["metadata"] != nil {
-		delete(unstructuredContent["metadata"].(map[string]any), "managedFields")
+	if meta, ok := unstructuredContent["metadata"].(map[string]any); ok {
+		delete(meta, "managedFields")
 	}
 	return obj
 }

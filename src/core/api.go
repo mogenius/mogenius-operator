@@ -171,12 +171,55 @@ func (self *api) UpdateWorkspace(name string, spec v1alpha1.WorkspaceSpec) (stri
 }
 
 func (self *api) DeleteWorkspace(name string) (string, error) {
-	err := self.workspaceManager.DeleteWorkspace(name)
+	// Clean up NFS volumes in workspace namespaces before deleting the workspace CRD,
+	// otherwise namespace deletion orphans cluster-scoped PVs and the platform retains stale entries.
+	// Only clean up namespaces that are not shared with other workspaces.
+	namespaces, err := self.GetWorkspaceNamespaces(name)
+	if err != nil {
+		self.logger.Warn("failed to get workspace namespaces for NFS cleanup, proceeding with deletion", "workspace", name, "error", err)
+	} else if len(namespaces) > 0 {
+		exclusiveNamespaces := self.findExclusiveNamespaces(name, namespaces)
+		for _, ns := range exclusiveNamespaces {
+			kubernetes.CleanupNfsVolumesInNamespace(ns)
+		}
+	}
+
+	err = self.workspaceManager.DeleteWorkspace(name)
 	if err != nil {
 		return "", err
 	}
 
 	return "Resource deleted successfully", nil
+}
+
+// findExclusiveNamespaces returns only namespaces that are not referenced by any other workspace.
+func (self *api) findExclusiveNamespaces(workspaceName string, namespaces []string) []string {
+	allWorkspaces, err := self.GetAllWorkspaces()
+	if err != nil {
+		self.logger.Warn("failed to list workspaces for shared namespace check, skipping NFS cleanup", "error", err)
+		return nil
+	}
+
+	// Collect all namespaces used by other workspaces
+	sharedNamespaces := map[string]struct{}{}
+	for _, ws := range allWorkspaces {
+		if ws.Name == workspaceName {
+			continue
+		}
+		for _, res := range ws.Resources {
+			if res.Type == "namespace" {
+				sharedNamespaces[res.Id] = struct{}{}
+			}
+		}
+	}
+
+	exclusive := make([]string, 0, len(namespaces))
+	for _, ns := range namespaces {
+		if _, shared := sharedNamespaces[ns]; !shared {
+			exclusive = append(exclusive, ns)
+		}
+	}
+	return exclusive
 }
 
 func (self *api) GetAllUsers(email *string) ([]v1alpha1.User, error) {

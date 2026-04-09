@@ -15,7 +15,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	json "github.com/goccy/go-json"
+	"encoding/json"
 )
 
 type SnoopyManager interface {
@@ -71,9 +71,9 @@ const (
 	// mogenius-operator attempts to start a snoopy instance
 	SnoopyStatusEventTypeRegisterRequest SnoopyStatusEventType = "register_request"
 	// mogenius-operator successfully attached a snoopy instance to a linux network namespace
-	SnoopyStatusEventTypeRegisterSuccess SnoopyStatusEventType = "register_failure"
+	SnoopyStatusEventTypeRegisterSuccess SnoopyStatusEventType = "register_success"
 	// mogenius-operator failed to attach a snoopy instance to a linux network namespace
-	SnoopyStatusEventTypeRegisterFailure SnoopyStatusEventType = "register_success"
+	SnoopyStatusEventTypeRegisterFailure SnoopyStatusEventType = "register_failure"
 	// mogenius-operator stopped a snoopy instance it managed
 	SnoopyStatusEventTypeRemove SnoopyStatusEventType = "remove"
 	// mogenius-operator received an event message from a snoopy instance
@@ -396,8 +396,11 @@ func (self *snoopyManager) startStatusEventHandler() {
 				updatedInitializing = append(updatedInitializing, status.Initializing[initializingIdx+1:]...)
 				status.Initializing = updatedInitializing
 
-				// add the failure to the failure list
+				// add the failure to the failure list, capped at 100 entries
 				status.Failure = append(status.Failure, *event.RegisterFailure)
+				if len(status.Failure) > 100 {
+					status.Failure = status.Failure[len(status.Failure)-100:]
+				}
 			case SnoopyStatusEventTypeRemove:
 				assert.Assert(event.Remove != nil, "event.Remove should be set", event)
 				removeEvent := *event.Remove
@@ -538,66 +541,68 @@ func (self *snoopyManager) Metrics() map[containerenumerator.PodInfoIdentifier]C
 	data := map[containerenumerator.PodInfoIdentifier]ContainerInfo{}
 
 	self.handlesLock.RLock()
+	defer self.handlesLock.RUnlock()
 	for podInfoId, handle := range self.handles {
 		containerInfo := ContainerInfo{}
 		containerInfo.PodInfo = handle.PodInfo
 		containerInfo.Metrics = map[InterfaceName]MetricSnapshot{}
 
-		handle.StartBytesLock.RLock()
-		handle.LastMetricsLock.RLock()
-		for interfaceName := range handle.IngressStartBytes {
-			interfaceInfo := MetricSnapshot{}
-			interfaceInfo.Ingress.StartBytes = handle.IngressStartBytes[interfaceName]
-			interfaceInfo.Egress.StartBytes = handle.EgressStartBytes[interfaceName]
-			// Use eBPF metrics if they have reported any data.
-			// If LastMetrics is all-zero the eBPF program either failed to initialize
-			// (explicitly or silently, e.g. after removing privileged:true) or snoopy
-			// just started and hasn't emitted its first tick yet.
-			// In that case fall back to /proc/net/dev so that traffic is always captured.
-			lastM := handle.LastMetrics[interfaceName]
-			if lastM.Ingress.Bytes > 0 || lastM.Egress.Bytes > 0 || lastM.Ingress.Packets > 0 || lastM.Egress.Packets > 0 {
-				// eBPF is delivering data — use it.
-				interfaceInfo.Ingress.Bytes = lastM.Ingress.Bytes
-				interfaceInfo.Ingress.Packets = lastM.Ingress.Packets
-				interfaceInfo.Egress.Bytes = lastM.Egress.Bytes
-				interfaceInfo.Egress.Packets = lastM.Egress.Packets
-			} else {
-				// No eBPF data: read /proc/net/dev and compute delta from the baseline
-				// that was captured when the interface was first registered.
-				pidStr := strconv.FormatUint(handle.ContainerPid, 10)
-				procInfos, err := getNetworkInterfaceInfo(self.procPath, pidStr)
-				if err == nil {
-					for _, procInfo := range procInfos {
-						if procInfo.Interface == interfaceName {
-							startRx := handle.IngressStartBytes[interfaceName]
-							startTx := handle.EgressStartBytes[interfaceName]
-							startRxPkts := handle.IngressStartPackets[interfaceName]
-							startTxPkts := handle.EgressStartPackets[interfaceName]
-							if procInfo.ReceiveBytes >= startRx {
-								interfaceInfo.Ingress.Bytes = procInfo.ReceiveBytes - startRx
+		func() {
+			handle.StartBytesLock.RLock()
+			defer handle.StartBytesLock.RUnlock()
+			handle.LastMetricsLock.RLock()
+			defer handle.LastMetricsLock.RUnlock()
+			for interfaceName := range handle.IngressStartBytes {
+				interfaceInfo := MetricSnapshot{}
+				interfaceInfo.Ingress.StartBytes = handle.IngressStartBytes[interfaceName]
+				interfaceInfo.Egress.StartBytes = handle.EgressStartBytes[interfaceName]
+				// Use eBPF metrics if they have reported any data.
+				// If LastMetrics is all-zero the eBPF program either failed to initialize
+				// (explicitly or silently, e.g. after removing privileged:true) or snoopy
+				// just started and hasn't emitted its first tick yet.
+				// In that case fall back to /proc/net/dev so that traffic is always captured.
+				lastM := handle.LastMetrics[interfaceName]
+				if lastM.Ingress.Bytes > 0 || lastM.Egress.Bytes > 0 || lastM.Ingress.Packets > 0 || lastM.Egress.Packets > 0 {
+					// eBPF is delivering data — use it.
+					interfaceInfo.Ingress.Bytes = lastM.Ingress.Bytes
+					interfaceInfo.Ingress.Packets = lastM.Ingress.Packets
+					interfaceInfo.Egress.Bytes = lastM.Egress.Bytes
+					interfaceInfo.Egress.Packets = lastM.Egress.Packets
+				} else {
+					// No eBPF data: read /proc/net/dev and compute delta from the baseline
+					// that was captured when the interface was first registered.
+					pidStr := strconv.FormatUint(handle.ContainerPid, 10)
+					procInfos, err := getNetworkInterfaceInfo(self.procPath, pidStr)
+					if err == nil {
+						for _, procInfo := range procInfos {
+							if procInfo.Interface == interfaceName {
+								startRx := handle.IngressStartBytes[interfaceName]
+								startTx := handle.EgressStartBytes[interfaceName]
+								startRxPkts := handle.IngressStartPackets[interfaceName]
+								startTxPkts := handle.EgressStartPackets[interfaceName]
+								if procInfo.ReceiveBytes >= startRx {
+									interfaceInfo.Ingress.Bytes = procInfo.ReceiveBytes - startRx
+								}
+								if procInfo.ReceivePackets >= startRxPkts {
+									interfaceInfo.Ingress.Packets = procInfo.ReceivePackets - startRxPkts
+								}
+								if procInfo.TransmitBytes >= startTx {
+									interfaceInfo.Egress.Bytes = procInfo.TransmitBytes - startTx
+								}
+								if procInfo.TransmitPackets >= startTxPkts {
+									interfaceInfo.Egress.Packets = procInfo.TransmitPackets - startTxPkts
+								}
+								break
 							}
-							if procInfo.ReceivePackets >= startRxPkts {
-								interfaceInfo.Ingress.Packets = procInfo.ReceivePackets - startRxPkts
-							}
-							if procInfo.TransmitBytes >= startTx {
-								interfaceInfo.Egress.Bytes = procInfo.TransmitBytes - startTx
-							}
-							if procInfo.TransmitPackets >= startTxPkts {
-								interfaceInfo.Egress.Packets = procInfo.TransmitPackets - startTxPkts
-							}
-							break
 						}
 					}
 				}
+				containerInfo.Metrics[interfaceName] = interfaceInfo
 			}
-			containerInfo.Metrics[interfaceName] = interfaceInfo
-		}
-		handle.LastMetricsLock.RUnlock()
-		handle.StartBytesLock.RUnlock()
+		}()
 
 		data[podInfoId] = containerInfo
 	}
-	self.handlesLock.RUnlock()
 
 	return data
 }
@@ -630,7 +635,7 @@ func (self *snoopyManager) Register(podInfo containerenumerator.PodInfo) []error
 					err,
 				},
 			}
-			errors = append(errors, fmt.Errorf("failed to attach snoopy to containerId(%s) pid(%d): %v", containerId, pid, err))
+			errors = append(errors, fmt.Errorf("failed to attach snoopy to containerId(%s) pid(%d): %w", containerId, pid, err))
 			continue
 		}
 		self.statusEventTx <- SnoopyStatusEvent{
@@ -938,7 +943,11 @@ func (self *snoopyManager) attachToPidNamespace(pid ProcessId) (*SnoopyHandle, e
 				self.logger.Error("failed to parse snoopy log message", "message", string(output), "error", err)
 				continue
 			}
-			snoopy.Stderr <- msg
+			select {
+			case snoopy.Stderr <- msg:
+			case <-ctx.Done():
+				return
+			}
 		}
 	}()
 

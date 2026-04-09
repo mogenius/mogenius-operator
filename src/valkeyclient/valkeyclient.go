@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	json "github.com/goccy/go-json"
+	"encoding/json"
 
 	valkeyclient "github.com/valkey-io/valkey-go"
 )
@@ -24,7 +24,7 @@ type ValkeyClient interface {
 	Connect() error
 	Set(value string, expiration time.Duration, keys ...string) error
 	SetObject(value any, expiration time.Duration, keys ...string) error
-	SetObjectWithAutoincrementLimit(value any, limit int64, keys ...string) error
+	SetObjectWithAutoincrementLimit(value any, limit int64, ttl time.Duration, keys ...string) error
 	Get(keys ...string) (string, error)
 	GetObject(keys ...string) (any, error)
 	List(limit int, keys ...string) ([]string, error)
@@ -92,8 +92,8 @@ func (self *valkeyClient) Connect() error {
 		Password:            valkeyPwd,
 		SelectDB:            0,
 		DisableRetry:        true,
-		ReadBufferEachConn:  4 * (1 << 20), // 4 MiB - increased for better throughput
-		WriteBufferEachConn: 4 * (1 << 20), // 4 MiB - increased for better throughput
+		ReadBufferEachConn:  512 * (1 << 10), // 512 KiB
+		WriteBufferEachConn: 512 * (1 << 10), // 512 KiB
 		ConnWriteTimeout:    10 * time.Second,
 		MaxFlushDelay:       100 * time.Microsecond, // Reduce latency for pipelined commands
 	})
@@ -104,8 +104,8 @@ func (self *valkeyClient) Connect() error {
 	self.valkeyClient = client
 	err = self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Ping().Build()).Error()
 	if err != nil {
-		self.logger.Info("connection to Valkey failed", "addr", valkeyAddr, "password", valkeyPwd, "error", err)
-		return fmt.Errorf("could not connect to Valkey: %v", err)
+		self.logger.Info("connection to Valkey failed", "addr", valkeyAddr, "error", err)
+		return fmt.Errorf("could not connect to Valkey: %w", err)
 	}
 
 	self.logger.Info("Connected to valkey", "addr", valkeyAddr)
@@ -153,7 +153,7 @@ func (self *valkeyClient) SetObject(value any, expiration time.Duration, keys ..
 	return self.Set(string(objStr), expiration, key)
 }
 
-func (self *valkeyClient) SetObjectWithAutoincrementLimit(value any, limit int64, keys ...string) error {
+func (self *valkeyClient) SetObjectWithAutoincrementLimit(value any, limit int64, ttl time.Duration, keys ...string) error {
 	baseKey := strings.Join(keys, ":")
 	pattern := baseKey + ":*"
 
@@ -183,7 +183,11 @@ func (self *valkeyClient) SetObjectWithAutoincrementLimit(value any, limit int64
 	}
 
 	var cmds []valkeyclient.Completed
-	cmds = append(cmds, self.valkeyClient.B().Set().Key(newKey).Value(string(jsonValue)).Build())
+	if ttl > 0 {
+		cmds = append(cmds, self.valkeyClient.B().Set().Key(newKey).Value(string(jsonValue)).Ex(ttl).Build())
+	} else {
+		cmds = append(cmds, self.valkeyClient.B().Set().Key(newKey).Value(string(jsonValue)).Build())
+	}
 
 	if int64(len(existingKeys)) >= limit {
 		keysToDelete := int64(len(existingKeys)) - limit + 1
@@ -271,7 +275,7 @@ func (self *valkeyClient) List(limit int, keys ...string) ([]string, error) {
 	}
 
 	// Fetch the values in 100 chunks to avoid memory issues with large datasets
-	var chunks [][]string
+	chunks := make([][]string, 0, (len(selectedKeys)+MAX_CHUNK_GET_SIZE-1)/MAX_CHUNK_GET_SIZE)
 	for i := 0; i < len(selectedKeys); i += MAX_CHUNK_GET_SIZE {
 		end := min(i+MAX_CHUNK_GET_SIZE, len(selectedKeys))
 		chunks = append(chunks, selectedKeys[i:end])
@@ -312,7 +316,7 @@ func (self *valkeyClient) DeleteFromSortedListWithNsAndReleaseName(namespace str
 		var obj map[string]any
 		err := json.Unmarshal([]byte(v.FieldValues["data"]), &obj)
 		if err != nil {
-			return fmt.Errorf("error unmarshalling value from valkey, error: %v", err)
+			return fmt.Errorf("error unmarshalling value from valkey: %w", err)
 		}
 
 		// Check if the object contains a "Payload" field
@@ -392,7 +396,7 @@ func (self *valkeyClient) ClearNonEssentialKeys(includeTraffic bool, includePodS
 
 			scanResult, err := result.AsScanEntry()
 			if err != nil {
-				return "", fmt.Errorf("error parsing scan result for pattern %s: %v", pattern, err)
+				return "", fmt.Errorf("error parsing scan result for pattern %s: %w", pattern, err)
 			}
 
 			// Collect keys for deletion
@@ -402,7 +406,7 @@ func (self *valkeyClient) ClearNonEssentialKeys(includeTraffic bool, includePodS
 				// Delete in batches of 100
 				if len(batch) >= 100 {
 					if err := self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Del().Key(batch...).Build()).Error(); err != nil {
-						return "", fmt.Errorf("error deleting batch: %v", err)
+						return "", fmt.Errorf("error deleting batch: %w", err)
 					}
 					cacheDeleteCounter += len(batch)
 					batch = batch[:0]
@@ -418,7 +422,7 @@ func (self *valkeyClient) ClearNonEssentialKeys(includeTraffic bool, includePodS
 		// Delete remaining keys in batch
 		if len(batch) > 0 {
 			if err := self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Del().Key(batch...).Build()).Error(); err != nil {
-				return "", fmt.Errorf("error deleting final batch: %v", err)
+				return "", fmt.Errorf("error deleting final batch: %w", err)
 			}
 			cacheDeleteCounter += len(batch)
 		}
@@ -585,7 +589,7 @@ func GetObjectsByPattern[T any](store ValkeyClient, pattern string, keywords []s
 	}
 
 	// Fetch the values in 100 chunks to avoid memory issues with large datasets
-	var chunks [][]string
+	chunks := make([][]string, 0, (len(keyList)+MAX_CHUNK_GET_SIZE-1)/MAX_CHUNK_GET_SIZE)
 	for i := 0; i < len(keyList); i += MAX_CHUNK_GET_SIZE {
 		end := min(i+MAX_CHUNK_GET_SIZE, len(keyList))
 		chunks = append(chunks, keyList[i:end])
@@ -601,7 +605,7 @@ func GetObjectsByPattern[T any](store ValkeyClient, pattern string, keywords []s
 		for _, v := range values {
 			var obj T
 			if err := json.Unmarshal([]byte(v), &obj); err != nil {
-				return result, fmt.Errorf("error unmarshalling value from Valkey, error: %v", err)
+				return result, fmt.Errorf("error unmarshalling value from Valkey: %w", err)
 			}
 			result = append(result, obj)
 		}
@@ -628,13 +632,9 @@ func GetObjectsByPrefix[T any](store ValkeyClient, order SortOrder, keys ...stri
 	sortStringsByTimestamp(keyList, order)
 
 	// Fetch the values in 100 chunks to avoid memory issues with large datasets
-	var chunks [][]string
-	// Loop over the original array and divide it into chunks
+	chunks := make([][]string, 0, (len(keyList)+MAX_CHUNK_GET_SIZE-1)/MAX_CHUNK_GET_SIZE)
 	for i := 0; i < len(keyList); i += MAX_CHUNK_GET_SIZE {
-		end := i + MAX_CHUNK_GET_SIZE
-		if end > len(keyList) {
-			end = len(keyList)
-		}
+		end := min(i+MAX_CHUNK_GET_SIZE, len(keyList))
 		chunks = append(chunks, keyList[i:end])
 	}
 
@@ -648,7 +648,7 @@ func GetObjectsByPrefix[T any](store ValkeyClient, order SortOrder, keys ...stri
 		for _, v := range values {
 			var obj T
 			if err := json.Unmarshal([]byte(v), &obj); err != nil {
-				return result, fmt.Errorf("error unmarshalling value from Valkey, error: %v", err)
+				return result, fmt.Errorf("error unmarshalling value from Valkey: %w", err)
 			}
 			result = append(result, obj)
 		}
@@ -679,7 +679,10 @@ func GetObjectsByPrefixWithSizeAndNs[T any](store ValkeyClient, limit int, offse
 		for _, key := range keyList {
 			split := strings.Split(key, ":")
 			if len(split) >= 3 {
-				if _, ok := nsSet[split[1]]; ok {
+				// Always include ai-chat entries (they are not namespace-scoped)
+				if split[1] == "ai-chat" {
+					filteredKeys = append(filteredKeys, key)
+				} else if _, ok := nsSet[split[1]]; ok {
 					filteredKeys = append(filteredKeys, key)
 				}
 			}
@@ -716,7 +719,7 @@ func GetObjectsByPrefixWithSizeAndNs[T any](store ValkeyClient, limit int, offse
 	for _, v := range values {
 		var obj T
 		if err := json.Unmarshal([]byte(v), &obj); err != nil {
-			return result, totalCount, fmt.Errorf("error unmarshalling value from Valkey, error: %v", err)
+			return result, totalCount, fmt.Errorf("error unmarshalling value from Valkey: %w", err)
 		}
 		result = append(result, obj)
 	}
@@ -888,6 +891,13 @@ func (self *valkeyClient) StoreSortedListEntry(data any, timestamp int64, keys .
 	// Trim stream to maintain retention policy
 	if err := trimStream(self, streamKey); err != nil {
 		self.logger.Error("failed to trim stream", "key", streamKey, "error", err.Error())
+	}
+
+	// Set TTL on the stream key so stale keys (e.g. for deleted pods) expire automatically.
+	// Active keys get their TTL refreshed on every write.
+	expireCmd := self.valkeyClient.B().Expire().Key(streamKey).Seconds(int64(MAX_RETENTION_TIME.Seconds())).Build()
+	if err := self.valkeyClient.Do(self.ctx, expireCmd).Error(); err != nil {
+		self.logger.Error("failed to set TTL on stream key", "key", streamKey, "error", err.Error())
 	}
 
 	// notify subscribers about the new entry

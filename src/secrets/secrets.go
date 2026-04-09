@@ -9,24 +9,11 @@ import (
 )
 
 var (
-	secrets           collections.HashSet[string] = collections.NewHashSet[string]()
-	secretsLock       sync.RWMutex                = sync.RWMutex{}
 	configSecrets     collections.HashSet[string] = collections.NewHashSet[string]()
 	configSecretsLock sync.RWMutex                = sync.RWMutex{}
 )
 
 const REDACTED = "***[REDACTED]***"
-
-func AddSecret(secret string) {
-	if secret == "" {
-		return
-	}
-
-	secretsLock.Lock()
-	defer secretsLock.Unlock()
-
-	secrets.Insert(secret)
-}
 
 func UpdateConfigSecrets(configVariables []config.ConfigVariable) {
 	newConfigSecrets := collections.NewHashSet[string]()
@@ -47,20 +34,11 @@ func UpdateConfigSecrets(configVariables []config.ConfigVariable) {
 }
 
 func SecretArray() []string {
-	secretsLock.RLock()
-	secretVals := secrets.Slice()
-	secretsLock.RUnlock()
-
 	configSecretsLock.RLock()
 	configVals := configSecrets.Slice()
 	configSecretsLock.RUnlock()
 
 	data := collections.NewHashSet[string]()
-
-	for _, secret := range secretVals {
-		assert.Assert(secret != "", "there should never be an empty string as a secret")
-		data.Insert(secret)
-	}
 
 	for _, secret := range configVals {
 		assert.Assert(secret != "", "there should never be an empty string as a config value")

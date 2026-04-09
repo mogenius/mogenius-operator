@@ -35,6 +35,7 @@ const (
 )
 
 var DefaultMaxSizeSocketConnections int64 = 60
+var liveStatsTTL = 10 * time.Minute // TTL for live-stats snapshot keys (refreshed on every write)
 
 type ValkeyStatsDb interface {
 	Run()
@@ -57,6 +58,7 @@ type ValkeyStatsDb interface {
 	GetWorkspaceStatsCpuUtilization(timeOffsetInMinutes int, resources []unstructured.Unstructured) ([]GenericChartEntry, error)
 	GetWorkspaceStatsMemoryUtilization(timeOffsetInMinutes int, resources []unstructured.Unstructured) ([]GenericChartEntry, error)
 	GetWorkspaceStatsTrafficUtilization(timeOffsetInMinutes int, resources []unstructured.Unstructured) ([]GenericChartEntry, error)
+	GetClusterDashboardStats(workspaceNames []string, getControllers func(string) ([]unstructured.Unstructured, error)) (ClusterDashboardStats, error)
 	ReplaceCniData(data []structs.CniData)
 	Publish(data any, keys ...string)
 }
@@ -67,7 +69,8 @@ type valkeyStatsDb struct {
 	valkey            valkeyclient.ValkeyClient
 	ownerCacheService store.OwnerCacheService
 
-	lastPodNetworkStats []networkmonitor.PodNetworkStats
+	lastPodNetworkStats     []networkmonitor.PodNetworkStats
+	lastPodNetworkStatsLock sync.RWMutex
 }
 
 func NewValkeyStatsModule(logger *slog.Logger, config cfg.ConfigModule, valkey valkeyclient.ValkeyClient, ownerCacheService store.OwnerCacheService) ValkeyStatsDb {
@@ -92,7 +95,7 @@ func (self *valkeyStatsDb) Run() {
 }
 
 func (self *valkeyStatsDb) AddMachineStatsToDb(nodeName string, stats structs.MachineStats) error {
-	return self.valkey.SetObject(stats, 0, DB_STATS_MACHINE_STATS_BUCKET_NAME, nodeName)
+	return self.valkey.SetObject(stats, liveStatsTTL, DB_STATS_MACHINE_STATS_BUCKET_NAME, nodeName)
 }
 
 func (self *valkeyStatsDb) GetLatestNodeStatsForNode(nodeName string) (*structs.NodeStats, error) {
@@ -115,8 +118,10 @@ func (self *valkeyStatsDb) GetMachineStatsForNode(nodeName string) (*structs.Mac
 }
 
 func (self *valkeyStatsDb) AddInterfaceStatsToDb(currentStats []networkmonitor.PodNetworkStats) {
+	self.lastPodNetworkStatsLock.Lock()
 	lastStats := self.lastPodNetworkStats
 	self.lastPodNetworkStats = currentStats
+	self.lastPodNetworkStatsLock.Unlock()
 
 	// Build a map for O(1) lookup instead of O(n) linear search
 	lastStatsMap := make(map[string]networkmonitor.PodNetworkStats, len(lastStats))
@@ -177,7 +182,7 @@ func (self *valkeyStatsDb) AddInterfaceStatsToDb(currentStats []networkmonitor.P
 
 func (self *valkeyStatsDb) ReplaceCniData(data []structs.CniData) {
 	for _, v := range data {
-		err := self.valkey.SetObject(data, 0, DB_STATS_CNI_BUCKET_NAME, v.Node)
+		err := self.valkey.SetObject(data, liveStatsTTL, DB_STATS_CNI_BUCKET_NAME, v.Node)
 		if err != nil {
 			self.logger.Error("Error adding cni data", "node", v.Node, "error", err)
 		}
@@ -544,31 +549,31 @@ func (self *valkeyStatsDb) AddPodStatsToDb(stats []structs.PodStats) error {
 
 func (self *valkeyStatsDb) AddNodeRamMetricsToDb(nodeName string, data any) error {
 	self.Publish(data, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_MEMORY_NAME, nodeName)
-	return self.valkey.SetObject(data, 0, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_MEMORY_NAME, nodeName)
+	return self.valkey.SetObject(data, liveStatsTTL, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_MEMORY_NAME, nodeName)
 }
 
 func (self *valkeyStatsDb) AddNodeRamProcessMetricsToDb(nodeName string, data any) error {
 	self.Publish(data, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_MEMORY_NAME, DB_STATS_PROCESSES_NAME, nodeName)
-	return self.valkey.SetObject(data, 0, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_MEMORY_NAME, DB_STATS_PROCESSES_NAME, nodeName)
+	return self.valkey.SetObject(data, liveStatsTTL, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_MEMORY_NAME, DB_STATS_PROCESSES_NAME, nodeName)
 }
 
 func (self *valkeyStatsDb) AddNodeCpuMetricsToDb(nodeName string, data any) error {
 	self.Publish(data, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_CPU_NAME, nodeName)
-	return self.valkey.SetObject(data, 0, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_CPU_NAME, nodeName)
+	return self.valkey.SetObject(data, liveStatsTTL, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_CPU_NAME, nodeName)
 }
 
 func (self *valkeyStatsDb) AddNodeCpuProcessMetricsToDb(nodeName string, data any) error {
 	self.Publish(data, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_CPU_NAME, DB_STATS_PROCESSES_NAME, nodeName)
-	return self.valkey.SetObject(data, 0, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_CPU_NAME, DB_STATS_PROCESSES_NAME, nodeName)
+	return self.valkey.SetObject(data, liveStatsTTL, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_CPU_NAME, DB_STATS_PROCESSES_NAME, nodeName)
 }
 
 func (self *valkeyStatsDb) AddNodeTrafficMetricsToDb(nodeName string, data any) error {
 	self.Publish(data, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_TRAFFIC_NAME, nodeName)
-	return self.valkey.SetObject(data, 0, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_TRAFFIC_NAME, nodeName)
+	return self.valkey.SetObject(data, liveStatsTTL, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_TRAFFIC_NAME, nodeName)
 }
 
 func (self *valkeyStatsDb) AddSnoopyStatusToDb(nodeName string, data networkmonitor.SnoopyStatus) error {
-	return self.valkey.SetObject(data, 0, "status", nodeName, "snoopy")
+	return self.valkey.SetObject(data, liveStatsTTL, "status", nodeName, "snoopy")
 }
 
 func (self *valkeyStatsDb) AddNodeStatsToDb(stats []structs.NodeStats) error {
@@ -584,7 +589,7 @@ func (self *valkeyStatsDb) AddNodeStatsToDb(stats []structs.NodeStats) error {
 			return fmt.Errorf("error adding node stats: %s", err)
 		}
 		// Also store as latest snapshot for O(1) current-value lookups (used by GetNodeStats)
-		_ = self.valkey.SetObject(stat, 0, DB_STATS_NODE_STATS_LATEST_BUCKET_NAME, stat.Name)
+		_ = self.valkey.SetObject(stat, liveStatsTTL, DB_STATS_NODE_STATS_LATEST_BUCKET_NAME, stat.Name)
 	}
 	return nil
 }
@@ -606,6 +611,135 @@ type GenericChartEntry struct {
 	Time  time.Time          `json:"time"`
 	Value float64            `json:"value"`          // this is the total value of all counted pods per time entry
 	Pods  map[string]float64 `json:"pods,omitempty"` // this list is limited to 5 entries
+}
+
+type WorkspaceDashboardMetrics struct {
+	Name          string  `json:"name"`
+	CpuMillicores float64 `json:"cpuMillicores"`
+	MemoryMb      float64 `json:"memoryMb"`
+	PodCount      int     `json:"podCount"`
+}
+
+type ClusterDashboardStats struct {
+	CpuHistory       []GenericChartEntry        `json:"cpuHistory"`
+	WorkspaceMetrics []WorkspaceDashboardMetrics `json:"workspaceMetrics"`
+}
+
+const (
+	dashboardStatsConcurrencyLimit = 20
+	dashboardCpuHistoryPoints      = 12
+	dashboardBytesPerMB            = 1 << 20
+)
+
+func (self *valkeyStatsDb) GetClusterDashboardStats(
+	workspaceNames []string,
+	getControllers func(string) ([]unstructured.Unstructured, error),
+) (ClusterDashboardStats, error) {
+	type wsResult struct {
+		metrics    WorkspaceDashboardMetrics
+		cpuEntries []GenericChartEntry
+	}
+
+	results := make([]wsResult, len(workspaceNames))
+	var wg sync.WaitGroup
+	sem := make(chan struct{}, dashboardStatsConcurrencyLimit)
+
+	for i, name := range workspaceNames {
+		wg.Add(1)
+		sem <- struct{}{} // acquire before spawning to limit goroutine count
+		go func(idx int, wsName string) {
+			defer wg.Done()
+			defer func() { <-sem }()
+
+			controllers, err := getControllers(wsName)
+			if err != nil {
+				self.logger.Warn("dashboard-stats: failed to get controllers", "workspace", wsName, "error", err)
+				results[idx] = wsResult{metrics: WorkspaceDashboardMetrics{Name: wsName}}
+				return
+			}
+
+			type statsResult struct {
+				entries []GenericChartEntry
+				err     error
+			}
+
+			cpuCh := make(chan statsResult, 1)
+			memCh := make(chan statsResult, 1)
+			go func() {
+				entries, err := self.GetWorkspaceStatsCpuUtilization(60, controllers)
+				cpuCh <- statsResult{entries, err}
+			}()
+			go func() {
+				entries, err := self.GetWorkspaceStatsMemoryUtilization(5, controllers)
+				memCh <- statsResult{entries, err}
+			}()
+			cpu, mem := <-cpuCh, <-memCh
+
+			if cpu.err != nil {
+				self.logger.Warn("dashboard-stats: cpu stats failed", "workspace", wsName, "error", cpu.err)
+			}
+			if mem.err != nil {
+				self.logger.Warn("dashboard-stats: memory stats failed", "workspace", wsName, "error", mem.err)
+			}
+
+			m := WorkspaceDashboardMetrics{Name: wsName}
+			if len(cpu.entries) > 0 {
+				m.CpuMillicores = cpu.entries[len(cpu.entries)-1].Value
+			}
+			m.PodCount = len(store.GetPods(wsName))
+			if len(mem.entries) > 0 {
+				m.MemoryMb = mem.entries[len(mem.entries)-1].Value / float64(dashboardBytesPerMB)
+			}
+
+			results[idx] = wsResult{metrics: m, cpuEntries: cpu.entries}
+		}(i, name)
+	}
+	wg.Wait()
+
+	// Merge all workspace CPU entries into cluster-wide history by timestamp
+	clusterCpuMap := make(map[time.Time]float64)
+	for _, r := range results {
+		for _, entry := range r.cpuEntries {
+			clusterCpuMap[entry.Time] += entry.Value
+		}
+	}
+
+	// Sort timestamps ascending and downsample to target points
+	timestamps := make([]time.Time, 0, len(clusterCpuMap))
+	for t := range clusterCpuMap {
+		timestamps = append(timestamps, t)
+	}
+	sort.Slice(timestamps, func(i, j int) bool {
+		return timestamps[i].Before(timestamps[j])
+	})
+
+	cpuHistory := make([]GenericChartEntry, 0, dashboardCpuHistoryPoints)
+	if len(timestamps) <= dashboardCpuHistoryPoints {
+		for _, t := range timestamps {
+			cpuHistory = append(cpuHistory, GenericChartEntry{Time: t, Value: clusterCpuMap[t]})
+		}
+	} else {
+		// Pick dashboardCpuHistoryPoints-1 evenly spaced points, then always include the latest
+		step := float64(len(timestamps)-1) / float64(dashboardCpuHistoryPoints-1)
+		for i := 0; i < dashboardCpuHistoryPoints; i++ {
+			idx := int(float64(i) * step)
+			if idx >= len(timestamps) {
+				idx = len(timestamps) - 1
+			}
+			t := timestamps[idx]
+			cpuHistory = append(cpuHistory, GenericChartEntry{Time: t, Value: clusterCpuMap[t]})
+		}
+	}
+
+	wsMetrics := make([]WorkspaceDashboardMetrics, len(results))
+	for i, r := range results {
+		wsMetrics[i] = r.metrics
+	}
+
+	return ClusterDashboardStats{
+		CpuHistory:       cpuHistory,
+		WorkspaceMetrics: wsMetrics,
+	}, nil
 }
 
 func findSmallest(m map[string]float64) (string, float64, bool) {

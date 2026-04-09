@@ -11,7 +11,7 @@ import (
 	"net/url"
 	"time"
 
-	json "github.com/goccy/go-json"
+	"encoding/json"
 )
 
 const (
@@ -71,12 +71,12 @@ func IsPrometheusReachable(data PrometheusRequest, config cfg.ConfigModule) (boo
 	req.Header = header
 
 	if err != nil {
-		return false, fmt.Errorf("Failed to create request: %v", err)
+		return false, fmt.Errorf("failed to create request: %w", err)
 	}
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return false, fmt.Errorf("Failed to execute request: %v", err)
+		return false, fmt.Errorf("failed to execute request: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -94,14 +94,14 @@ func PrometheusValues(data PrometheusRequest, config cfg.ConfigModule) ([]string
 	}
 	req, err := http.NewRequest("GET", urlString, nil)
 	if err != nil {
-		return []string{}, fmt.Errorf("Failed to create request: %v", err)
+		return []string{}, fmt.Errorf("failed to create request: %w", err)
 	}
 	req.Header = header
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return []string{}, fmt.Errorf("Failed to execute request: %v", err)
+		return []string{}, fmt.Errorf("failed to execute request: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -111,12 +111,12 @@ func PrometheusValues(data PrometheusRequest, config cfg.ConfigModule) ([]string
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to read response: %v", err)
+		return nil, fmt.Errorf("failed to read response: %w", err)
 	}
 
 	var promResp PrometheusValuesResponse
 	if err := json.Unmarshal(body, &promResp); err != nil {
-		return nil, fmt.Errorf("Failed to parse JSON: %v", err)
+		return nil, fmt.Errorf("failed to parse JSON: %w", err)
 	}
 
 	return promResp.Data, nil
@@ -129,25 +129,25 @@ func ExecutePrometheusQuery(data PrometheusRequest, config cfg.ConfigModule) (*P
 	}
 	req, err := http.NewRequest("GET", urlString, nil)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to create request: %v", err)
+		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 	req.Header = header
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to execute request: %v", err)
+		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to read response: %v", err)
+		return nil, fmt.Errorf("failed to read response: %w", err)
 	}
 
 	var promResp PrometheusQueryResponse
 	if err := json.Unmarshal(body, &promResp); err != nil {
-		return nil, fmt.Errorf("Failed to parse JSON: %v", err)
+		return nil, fmt.Errorf("failed to parse JSON: %w", err)
 	}
 
 	if promResp.Status != "success" {
@@ -163,9 +163,9 @@ func PrometheusSaveQueryToRedis(valkey valkeyclient.ValkeyClient, req Prometheus
 		Step:      req.Step,
 		CreatedAt: time.Now(),
 	}
-	err := valkey.SetObject(prometheusStoreObject, 0, DB_PROMETHEUS_QUERIES, req.Namespace, req.Controller, req.QueryName)
+	err := valkey.SetObject(prometheusStoreObject, 30*24*time.Hour, DB_PROMETHEUS_QUERIES, req.Namespace, req.Controller, req.QueryName)
 	if err != nil {
-		return nil, fmt.Errorf("failed to save query to Redis: %v", err)
+		return nil, fmt.Errorf("failed to save query to Redis: %w", err)
 	}
 	return &req.Query, nil
 }
@@ -173,7 +173,7 @@ func PrometheusSaveQueryToRedis(valkey valkeyclient.ValkeyClient, req Prometheus
 func PrometheusRemoveQueryFromRedis(valkey valkeyclient.ValkeyClient, req PrometheusRequestRedis) (*string, error) {
 	err := valkey.DeleteSingle(DB_PROMETHEUS_QUERIES, req.Namespace, req.Controller, req.QueryName)
 	if err != nil {
-		return nil, fmt.Errorf("failed to remove query from Redis: %v", err)
+		return nil, fmt.Errorf("failed to remove query from Redis: %w", err)
 	}
 
 	return &req.QueryName, nil
@@ -183,17 +183,17 @@ func PrometheusListQueriesFromRedis(valkey valkeyclient.ValkeyClient, req Promet
 	pattern := fmt.Sprintf("%s:%s:%s:*", DB_PROMETHEUS_QUERIES, req.Namespace, req.Controller)
 	keys, err := valkey.Keys(pattern)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list queries from Redis: %v", err)
+		return nil, fmt.Errorf("failed to list queries from Redis: %w", err)
 	}
 	queries := make(map[string]PrometheusStoreObject)
 	for _, key := range keys {
 		query, err := valkey.Get(key)
 		if err != nil {
-			return nil, fmt.Errorf("failed to get query from Redis: %v", err)
+			return nil, fmt.Errorf("failed to get query from Redis: %w", err)
 		}
 		var queryObj PrometheusStoreObject
 		if err := json.Unmarshal([]byte(query), &queryObj); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal query: %v", err)
+			return nil, fmt.Errorf("failed to unmarshal query: %w", err)
 		}
 		queries[key] = queryObj
 	}
@@ -204,11 +204,11 @@ func PrometheusListQueriesFromRedis(valkey valkeyclient.ValkeyClient, req Promet
 func PrometheusGetQueryFromRedis(valkey valkeyclient.ValkeyClient, req PrometheusRequestRedis) (*PrometheusStoreObject, error) {
 	query, err := valkey.Get(DB_PROMETHEUS_QUERIES, req.Namespace, req.Controller, req.QueryName)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get query from Redis: %v", err)
+		return nil, fmt.Errorf("failed to get query from Redis: %w", err)
 	}
 	var queryObj PrometheusStoreObject
 	if err := json.Unmarshal([]byte(query), &queryObj); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal query: %v", err)
+		return nil, fmt.Errorf("failed to unmarshal query: %w", err)
 	}
 
 	return &queryObj, nil

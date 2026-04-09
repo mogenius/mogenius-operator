@@ -265,6 +265,9 @@
                         }
                     }
                 },
+                "customValkeyConf": {
+                    "type": "string"
+                },
                 "enabled": {
                     "type": "boolean"
                 },
@@ -278,7 +281,7 @@
                             "type": "string"
                         },
                         "tag": {
-                            "type": "number"
+                            "type": "string"
                         }
                     }
                 },
@@ -344,6 +347,39 @@
                     "properties": {
                         "type": {
                             "type": "string"
+                        }
+                    }
+                },
+                "metrics": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        },
+                        "exporter": {
+                            "type": "object",
+                            "properties": {
+                                "image": {
+                                    "type": "object",
+                                    "properties": {
+                                        "registry": { "type": "string" },
+                                        "repository": { "type": "string" },
+                                        "tag": { "type": "string" }
+                                    }
+                                },
+                                "resources": { "type": "object" },
+                                "containerSecurityContext": { "type": "object" }
+                            }
+                        },
+                        "serviceMonitor": {
+                            "type": "object",
+                            "properties": {
+                                "enabled": { "type": "boolean" },
+                                "labels": { "type": "object" },
+                                "interval": { "type": "string" },
+                                "scrapeTimeout": { "type": "string" },
+                                "relabelings": { "type": "array" }
+                            }
                         }
                     }
                 }

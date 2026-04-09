@@ -1,0 +1,18 @@
+{{- if .Values.valkey.enabled }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.fullnameOverride }}-valkey-conf
+  namespace: {{ .Release.Namespace }}
+data:
+  default.conf: |
+    rdb-version-check relaxed
+    {{- if .Values.valkey.customValkeyConf }}
+    include /etc/valkey/custom.conf
+    {{- end }}
+  {{- if .Values.valkey.customValkeyConf }}
+  custom.conf: |
+{{ .Values.valkey.customValkeyConf | indent 4 }}
+  {{- end }}
+{{- end }}

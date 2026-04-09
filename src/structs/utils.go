@@ -1,6 +1,6 @@
 package structs
 
-import json "github.com/goccy/go-json"
+import "encoding/json"
 
 const PingSeconds = 3
 

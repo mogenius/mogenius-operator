@@ -25,8 +25,8 @@ func (ai *aiManager) processPromptOpenAi(ctx context.Context, model, systemPromp
 
 	params := openai.ChatCompletionNewParams{
 		Messages: []openai.ChatCompletionMessageParamUnion{
+			openai.SystemMessage(systemPrompt),
 			openai.UserMessage(prompt),
-			openai.SystemMessage(systemPrompt + "\n You have access to the following tool: get_kubernetes_resources. Use it to retrieve Kubernetes resources as needed to answer the user's question accurately."),
 		},
 		Model: model,
 		Tools: allTools,
@@ -36,6 +36,10 @@ func (ai *aiManager) processPromptOpenAi(ctx context.Context, model, systemPromp
 	var chatCompletion *openai.ChatCompletion
 	toolCallCount := 0
 	for {
+		// Compact previous tool results so old (already processed) results
+		// don't burn tokens on subsequent API calls.
+		compactOpenAiToolMessages(params.Messages)
+
 		chatCompletion, err = client.Chat.Completions.New(ctx, params)
 		if err != nil {
 			return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, err
@@ -188,10 +192,11 @@ func (ai *aiManager) openaiChat(
 
 			// Process with tool call loop (categories + allChatTools passed so
 			// the inner loop can recompute active tools after activation)
-			_, updatedMessages, err := ai.openaiChatWithTools(ctx, client, model, messages, ioChannel, allChatTools, categories, maxToolCalls, &sessionInputTokens, &sessionOutputTokens)
+			fullResponse, updatedMessages, turnStats, err := ai.openaiChatWithTools(ctx, client, model, messages, ioChannel, allChatTools, categories, maxToolCalls, &sessionInputTokens, &sessionOutputTokens)
 			if err != nil {
 				ai.logger.Error("Error processing with tools", "error", err)
-				// Send error to output
+				payload := map[string]any{"question": userInput, "stats": turnStats}
+				emitAuditEvent(ioChannel, "ai/chat", payload, nil, err.Error())
 				select {
 				case ioChannel.Output <- fmt.Sprintf("\n[Error: %v]", err):
 				case <-ctx.Done():
@@ -199,6 +204,9 @@ func (ai *aiManager) openaiChat(
 				}
 				continue
 			}
+
+			payload := map[string]any{"question": userInput, "response": truncateToolResult(fullResponse), "stats": turnStats}
+			emitAuditEvent(ioChannel, "ai/chat", payload, nil, "")
 
 			// Discard intermediate tool_use/tool_result exchanges from history.
 			// updatedMessages = [..., user_input, tool_exchanges..., assistant_final]
@@ -228,15 +236,23 @@ func (ai *aiManager) openaiChatWithTools(
 	maxToolCalls int,
 	sessionInputTokens *int64,
 	sessionOutputTokens *int64,
-) (fullResponse string, updatedMessages []openai.ChatCompletionMessageParamUnion, err error) {
+) (fullResponse string, updatedMessages []openai.ChatCompletionMessageParamUnion, stats ChatTurnStats, err error) {
 	toolCallCount := 0
 	toolCtx := newToolContextFromIOChannel(ioChannel)
+	stats.Model = model
+	turnStartInput := *sessionInputTokens
+	turnStartOutput := *sessionOutputTokens
+	startTime := time.Now()
+	defer func() {
+		stats.InputTokens = *sessionInputTokens - turnStartInput
+		stats.OutputTokens = *sessionOutputTokens - turnStartOutput
+		stats.DurationMs = int(time.Since(startTime).Milliseconds())
+	}()
 
 	var inputTokens int64
 	var outputTokenCount int64
 	inputTokensUsed := int64(0)
 	outputTokensUsed := int64(0)
-	startTime := time.Now()
 
 	for {
 		// Recompute active tools each iteration (categories may have changed)
@@ -246,7 +262,7 @@ func (ai *aiManager) openaiChatWithTools(
 		select {
 		case ioChannel.Output <- "[AI is thinking...]\n":
 		case <-ctx.Done():
-			return "", messages, ctx.Err()
+			return "", messages, stats, ctx.Err()
 		}
 
 		params := openai.ChatCompletionNewParams{
@@ -293,7 +309,7 @@ func (ai *aiManager) openaiChatWithTools(
 				select {
 				case ioChannel.Output <- delta.Content:
 				case <-ctx.Done():
-					return "", messages, ctx.Err()
+					return "", messages, stats, ctx.Err()
 				}
 			}
 
@@ -317,7 +333,7 @@ func (ai *aiManager) openaiChatWithTools(
 					select {
 					case ioChannel.Output <- fmt.Sprintf("\n[Using tool: %s]\n", tc.Function.Name):
 					case <-ctx.Done():
-						return "", messages, ctx.Err()
+						return "", messages, stats, ctx.Err()
 					}
 				}
 				if tc.Function.Arguments != "" {
@@ -327,7 +343,7 @@ func (ai *aiManager) openaiChatWithTools(
 		}
 
 		if err := stream.Err(); err != nil {
-			return "", messages, fmt.Errorf("streaming error: %w", err)
+			return "", messages, stats, fmt.Errorf("streaming error: %w", err)
 		}
 
 		// Record token usage for this streaming iteration
@@ -345,7 +361,7 @@ func (ai *aiManager) openaiChatWithTools(
 		select {
 		case ioChannel.Output <- "\n\n":
 		case <-ctx.Done():
-			return "", messages, ctx.Err()
+			return "", messages, stats, ctx.Err()
 		}
 
 		// Build the assistant message for conversation history
@@ -353,7 +369,7 @@ func (ai *aiManager) openaiChatWithTools(
 			// No tool calls — just a text response
 			response := fullText.String()
 			messages = append(messages, openai.AssistantMessage(response))
-			return response, messages, nil
+			return response, messages, stats, nil
 		}
 
 		// Build tool_calls slice for the assistant message
@@ -412,7 +428,7 @@ func (ai *aiManager) openaiChatWithTools(
 			}
 			messages = messages[:len(messages)-1]
 			messages = append(messages, openai.AssistantMessage(text))
-			return text, messages, nil
+			return text, messages, stats, nil
 		}
 
 		// Execute each tool call
@@ -427,13 +443,16 @@ func (ai *aiManager) openaiChatWithTools(
 			}
 
 			var result string
+			var toolErr string
 			if tc.Name == activateToolCategoriesName {
 				result = categories.ActivateFromToolCall(args)
 			} else if ai.mcpManager != nil && ai.mcpManager.IsMCPTool(tc.Name) {
 				mcpResult, err := ai.mcpManager.CallTool(ctx, tc.Name, args)
 				if err != nil {
 					ai.logger.Error("MCP tool call failed", "tool", tc.Name, "error", err)
-					messages = append(messages, openai.ToolMessage(fmt.Sprintf("Error calling MCP tool: %v", err), tc.ID))
+					toolErr = fmt.Sprintf("Error calling MCP tool: %v", err)
+					messages = append(messages, openai.ToolMessage(toolErr, tc.ID))
+					stats.ToolRecords = append(stats.ToolRecords, ToolUseRecord{Tool: tc.Name, Args: args, Error: toolErr})
 					continue
 				}
 				result = mcpResult
@@ -444,6 +463,7 @@ func (ai *aiManager) openaiChatWithTools(
 				messages = append(messages, openai.ToolMessage(fmt.Sprintf("Unknown tool: %s", tc.Name), tc.ID))
 				continue
 			}
+			stats.ToolRecords = append(stats.ToolRecords, ToolUseRecord{Tool: tc.Name, Args: args, Result: truncateToolResult(result)})
 			messages = append(messages, openai.ToolMessage(result, tc.ID))
 		}
 

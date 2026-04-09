@@ -530,6 +530,7 @@ func (self *websocketClient) startReadThread() {
 func (self *websocketClient) startWriteThread() {
 	pingInterval := 3 * time.Second
 	pingTicker := time.NewTicker(pingInterval)
+	defer pingTicker.Stop()
 	for {
 		select {
 		case <-self.writeThreadShutdownTx:

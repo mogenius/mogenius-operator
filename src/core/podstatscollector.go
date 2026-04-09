@@ -13,7 +13,7 @@ import (
 	"strconv"
 	"time"
 
-	json "github.com/goccy/go-json"
+	"encoding/json"
 
 	v1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -160,7 +160,10 @@ func (self *podStatsCollector) podStats(nodemetrics []podstatscollector.NodeMetr
 
 	for _, nodeMetric := range nodemetrics {
 		for _, kubeletPod := range nodeMetric.Pods {
-			pod := pods[kubeletPod.PodRef.Name]
+			pod, exists := pods[kubeletPod.PodRef.Name]
+			if !exists {
+				continue
+			}
 
 			for _, container := range pod.Spec.Containers {
 				if pod.Status.StartTime == nil {
@@ -210,13 +213,13 @@ func (self *podStatsCollector) requestMetricsDataFromNode(nodeName string) (*pod
 
 	rawResponse, err := resultData.Raw()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get raw response: %v", err)
+		return nil, fmt.Errorf("failed to get raw response: %w", err)
 	}
 
 	result := &podstatscollector.NodeMetrics{}
 	err = json.Unmarshal(rawResponse, &result)
 	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal metrics from Node(%s): %v", nodeName, err)
+		return nil, fmt.Errorf("failed to unmarshal metrics from Node(%s): %w", nodeName, err)
 	}
 
 	return result, nil

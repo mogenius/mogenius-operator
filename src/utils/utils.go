@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"context"
 	"embed"
 	"fmt"
 	"io"
@@ -12,16 +11,14 @@ import (
 	"mogenius-operator/src/logging"
 	"mogenius-operator/src/secrets"
 	"mogenius-operator/src/version"
-	"net"
 	"net/http"
-	"os"
 	"os/exec"
 	"runtime"
 	"strconv"
 	"strings"
 	"time"
 
-	json "github.com/goccy/go-json"
+	"encoding/json"
 
 	"sigs.k8s.io/yaml"
 
@@ -45,7 +42,6 @@ func Setup(logManagerModule logging.SlogManager, configModule cfg.ConfigModule) 
 }
 
 const APP_NAME = "k8s"
-const MOGENIUS_CONFIGMAP_DEFAULT_APPS_NAME = "mogenius-operator-default-apps"
 const MOGENIUS_CONFIGMAP_DEFAULT_DEPLOYMENT_NAME = "mogenius-operator-default-deployment"
 
 const MAX_NAME_LENGTH = 253
@@ -120,13 +116,6 @@ func ExecuteShellCommandSilent(title string, shellCmd string) error {
 	}
 }
 
-// // MeasureTime measures the execution time of a function and prints it in milliseconds.
-// func MeasureTime(name string, fn func()) {
-// 	start := time.Now()
-// 	fn()
-// 	elapsed := time.Since(start)
-// 	log.Infof("%s took %s", name, elapsed)
-// }
 
 func GetVersionData(url string) (*HelmData, error) {
 	// Check if the data is already in the cache
@@ -193,15 +182,6 @@ func PrintJson(i any) string {
 	return string(data)
 }
 
-type ResponseError struct {
-	Error string `json:"error,omitempty"`
-}
-
-func CreateError(err error) ResponseError {
-	return ResponseError{
-		Error: err.Error(),
-	}
-}
 
 func RunOnLocalShell(cmd string) *exec.Cmd {
 	switch runtime.GOOS {
@@ -278,61 +258,6 @@ func GuessClusterCountry() (*CountryDetails, error) {
 	return nil, nil
 }
 
-func Remove[T any](slice []T, s int) []T {
-	return append(slice[:s], slice[s+1:]...)
-}
-
-func CheckInternetAccess() (bool, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	// Create a custom resolver
-	r := &net.Resolver{
-		PreferGo: true,
-		Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
-			d := net.Dialer{}
-			return d.DialContext(ctx, "udp", "1.1.1.1:53")
-		},
-	}
-
-	// Attempt to resolve a known domain
-	// If it succeeds, it means we have internet access
-	_, err := r.LookupHost(ctx, "mogenius.com")
-	if err != nil {
-		if ctx.Err() == context.DeadlineExceeded {
-			return false, ctx.Err()
-		}
-		// Other errors
-		return false, err
-	}
-
-	// success
-	return true, nil
-}
-
-func CreateDirIfNotExist(dir string) {
-	_, err := os.Stat(dir)
-
-	// If directory does not exist create it
-	if os.IsNotExist(err) {
-		errDir := os.MkdirAll(dir, 0755)
-		if errDir != nil {
-			utilsLogger.Error(err.Error())
-		}
-	}
-}
-
-func DeleteDirIfExist(dir string) {
-	_, err := os.Stat(dir)
-
-	// If directory does not exist create it
-	if os.IsExist(err) {
-		errDir := os.RemoveAll(dir)
-		if errDir != nil {
-			utilsLogger.Error(err.Error())
-		}
-	}
-}
 
 func ContainsResourceDescriptor(resources []*ResourceDescriptor, target ResourceDescriptor) bool {
 	for _, r := range resources {
