@@ -1,3 +1,10 @@
+# [2.20.0-develop.70](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.69...v2.20.0-develop.70) (2026-04-09)
+
+
+### Bug Fixes
+
+* InsecureSkipVerify tls not set for every connection ([ecf8667](https://github.com/mogenius/mogenius-operator/commit/ecf8667c58872c18398dcdaf9c460d1792f924fb))
+
 # [2.20.0-develop.69](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.68...v2.20.0-develop.69) (2026-04-09)
 
 
