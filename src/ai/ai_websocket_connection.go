@@ -2,12 +2,15 @@ package ai
 
 import (
 	"context"
+	"crypto/tls"
 	"log/slog"
 	"mogenius-operator/src/crds/v1alpha1"
 	"mogenius-operator/src/store"
 	"mogenius-operator/src/structs"
 	"mogenius-operator/src/utils"
 	"net/url"
+	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -238,6 +241,9 @@ func (self *aiWebsocketConnection) GenerateWsConnection(
 		headers.Add("x-type", "k8s")
 
 		dialer := &websocket.Dialer{}
+		if strings.ToLower(os.Getenv("MO_SKIP_TLS_VERIFICATION")) == "true" {
+			dialer.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+		}
 		conn, _, err := dialer.Dial(u.String(), headers)
 		connWriteLock := &sync.Mutex{}
 		connReadLock := &sync.Mutex{}
