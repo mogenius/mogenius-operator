@@ -1,3 +1,10 @@
+# [2.20.0-develop.75](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.74...v2.20.0-develop.75) (2026-04-10)
+
+
+### Bug Fixes
+
+* multiplexed port-forward with binary WS frames ([5dfbb94](https://github.com/mogenius/mogenius-operator/commit/5dfbb9468fbf8e051d8b66465d8a593b714d2764))
+
 # [2.20.0-develop.74](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.73...v2.20.0-develop.74) (2026-04-10)
 
 
