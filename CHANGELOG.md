@@ -1,3 +1,10 @@
+# [2.20.0-develop.73](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.72...v2.20.0-develop.73) (2026-04-10)
+
+
+### Features
+
+* workloads port-forward ([65922d0](https://github.com/mogenius/mogenius-operator/commit/65922d0febe48ad12ccae8e99a73c792d5ec92d4))
+
 # [2.20.0-develop.72](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.71...v2.20.0-develop.72) (2026-04-10)
 
 
