@@ -2,7 +2,6 @@ package xterm
 
 import (
 	"context"
-	"encoding/base64"
 	"fmt"
 	"io"
 	"mogenius-operator/src/utils"
@@ -22,7 +21,11 @@ import (
 	"k8s.io/client-go/transport/spdy"
 )
 
-const pfDataPrefix = "PF:"
+// Control message prefixes (text WS frames)
+const (
+	pfmOpenPrefix  = "PFM:O:"
+	pfmClosePrefix = "PFM:C:"
+)
 
 var pfRestConfig *rest.Config
 var pfClientset k8s.Interface
@@ -42,7 +45,10 @@ type PortForwardConnectionRequest struct {
 }
 
 // PortForwardStreamConnection establishes a port-forward tunnel through the stream gateway.
-// Uses pfRestConfig and pfClientset set via SetupPortForward().
+//
+// Protocol:
+//   - Text frames for control: PFM:O:<connID>, PFM:C:<connID>, PEER_IS_READY, BROWSER_PING
+//   - Binary frames for data:  [1 byte connID length][connID as ASCII][raw TCP bytes]
 func PortForwardStreamConnection(request PortForwardConnectionRequest) {
 	logger := xtermLogger.With("scope", "PortForwardStreamConnection")
 
@@ -69,8 +75,7 @@ func PortForwardStreamConnection(request PortForwardConnectionRequest) {
 	}
 	logger.Info("Resolved target", "pod", podName, "namespace", request.Namespace, "port", request.RemotePort)
 
-	// Step 2: Connect to the stream gateway directly (not via GenerateWsConnection,
-	// because its internal read-loop conflicts with our own reads).
+	// Step 2: Connect to the stream gateway
 	wsReq := request.WsConnection
 	wsURL := url.URL{
 		Scheme: wsReq.WebsocketScheme,
@@ -86,30 +91,32 @@ func PortForwardStreamConnection(request PortForwardConnectionRequest) {
 	headers.Add("x-type", "k8s")
 
 	logger.Info("Connecting to stream gateway", "url", wsURL.String())
-	dialer := &websocket.Dialer{}
-	conn, _, err := dialer.Dial(wsURL.String(), headers)
+	dialer := &websocket.Dialer{
+		EnableCompression: true,
+	}
+	wsConn, _, err := dialer.Dial(wsURL.String(), headers)
 	if err != nil {
 		logger.Error("Failed to connect to stream gateway", "error", err)
 		return
 	}
-	connWriteLock := &sync.Mutex{}
+	wsMu := &sync.Mutex{}
 	defer func() {
-		connWriteLock.Lock()
-		conn.WriteMessage(websocket.CloseMessage,
+		wsMu.Lock()
+		wsConn.WriteMessage(websocket.CloseMessage,
 			websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
-		connWriteLock.Unlock()
-		conn.Close()
+		wsMu.Unlock()
+		wsConn.Close()
 	}()
 
 	// Wait for ack-ready from stream gateway
-	conn.SetReadDeadline(time.Now().Add(30 * time.Second))
-	_, ackMsg, err := conn.ReadMessage()
+	wsConn.SetReadDeadline(time.Now().Add(30 * time.Second))
+	_, ackMsg, err := wsConn.ReadMessage()
 	if err != nil {
 		logger.Error("Failed to receive ack from stream gateway", "error", err)
 		return
 	}
 	logger.Info("Stream gateway ack received", "msg", string(ackMsg))
-	conn.SetReadDeadline(time.Time{}) // Clear deadline
+	wsConn.SetReadDeadline(time.Time{})
 
 	// Step 3: Start k8s port-forward on a random local port
 	localListener, err := net.Listen("tcp", "127.0.0.1:0")
@@ -118,7 +125,7 @@ func PortForwardStreamConnection(request PortForwardConnectionRequest) {
 		return
 	}
 	localPort := localListener.Addr().(*net.TCPAddr).Port
-	localListener.Close() // Release the port for portforward to use
+	localListener.Close()
 
 	stopChan := make(chan struct{})
 	readyChan := make(chan struct{})
@@ -138,10 +145,10 @@ func PortForwardStreamConnection(request PortForwardConnectionRequest) {
 			return
 		}
 
-		dialer := spdy.NewDialer(upgrader, &http.Client{Transport: transport}, http.MethodPost, pfURL)
+		spdyDialer := spdy.NewDialer(upgrader, &http.Client{Transport: transport}, http.MethodPost, pfURL)
 		ports := []string{fmt.Sprintf("%d:%d", localPort, request.RemotePort)}
 
-		fw, err := portforward.New(dialer, ports, stopChan, readyChan, io.Discard, io.Discard)
+		fw, err := portforward.New(spdyDialer, ports, stopChan, readyChan, io.Discard, io.Discard)
 		if err != nil {
 			errChan <- fmt.Errorf("portforward create: %w", err)
 			return
@@ -158,11 +165,9 @@ func PortForwardStreamConnection(request PortForwardConnectionRequest) {
 		logger.Info("K8s port-forward established", "localPort", localPort, "remotePort", request.RemotePort)
 	case err := <-errChan:
 		logger.Error("K8s port-forward failed", "error", err)
-		if conn != nil {
-			connWriteLock.Lock()
-			conn.WriteMessage(websocket.TextMessage, []byte("ERROR: "+err.Error()))
-			connWriteLock.Unlock()
-		}
+		wsMu.Lock()
+		wsConn.WriteMessage(websocket.TextMessage, []byte("ERROR: "+err.Error()))
+		wsMu.Unlock()
 		return
 	case <-time.After(30 * time.Second):
 		logger.Error("K8s port-forward timeout")
@@ -170,88 +175,163 @@ func PortForwardStreamConnection(request PortForwardConnectionRequest) {
 		return
 	}
 
-	// Step 4: Connect to the local port-forward and tunnel data
-	logger.Info("Connecting to local port-forward", "addr", fmt.Sprintf("127.0.0.1:%d", localPort))
-	localConn, err := net.DialTimeout("tcp", fmt.Sprintf("127.0.0.1:%d", localPort), 5*time.Second)
-	if err != nil {
-		logger.Error("Failed to connect to local port-forward", "error", err)
-		close(stopChan)
-		return
-	}
-	logger.Info("Connected to local port-forward, tunnel is fully active")
-	defer localConn.Close()
+	localAddr := fmt.Sprintf("127.0.0.1:%d", localPort)
+	logger.Info("Tunnel ready, waiting for client data", "localAddr", localAddr)
 
 	done := make(chan struct{})
 	var once sync.Once
 	closeDone := func() { once.Do(func() { close(done) }) }
 
-	// WebSocket → Local TCP (CLI sends "PF:<base64>" text → k8s pod)
-	go func() {
-		defer closeDone()
-		msgCount := 0
+	// Connection map: connID → local TCP connection to k8s port-forward
+	conns := make(map[string]net.Conn)
+	connsMu := &sync.RWMutex{}
+
+	// wsSendText sends a text WS frame (control messages).
+	wsSendText := func(msg string) error {
+		wsMu.Lock()
+		defer wsMu.Unlock()
+		return wsConn.WriteMessage(websocket.TextMessage, []byte(msg))
+	}
+
+	// wsSendBinary sends a binary WS frame: [1 byte connID len][connID][raw data].
+	wsSendBinary := func(connID string, data []byte) error {
+		connIDBytes := []byte(connID)
+		frame := make([]byte, 1+len(connIDBytes)+len(data))
+		frame[0] = byte(len(connIDBytes))
+		copy(frame[1:], connIDBytes)
+		copy(frame[1+len(connIDBytes):], data)
+
+		wsMu.Lock()
+		defer wsMu.Unlock()
+		return wsConn.WriteMessage(websocket.BinaryMessage, frame)
+	}
+
+	// readLocalAndSend reads from a local TCP connection and sends binary WS frames.
+	readLocalAndSend := func(connID string, localConn net.Conn) {
+		defer func() {
+			connsMu.Lock()
+			delete(conns, connID)
+			connsMu.Unlock()
+			localConn.Close()
+			wsSendText(pfmClosePrefix + connID)
+			logger.Info("Sub-connection closed", "connID", connID)
+		}()
+
+		buf := make([]byte, 32*1024)
 		for {
-			_, msg, err := conn.ReadMessage()
-			if err != nil {
-				if !websocket.IsCloseError(err, websocket.CloseNormalClosure) {
-					logger.Debug("WebSocket read ended", "error", err)
+			n, err := localConn.Read(buf)
+			if n > 0 {
+				if writeErr := wsSendBinary(connID, buf[:n]); writeErr != nil {
+					logger.Info("WS write error", "connID", connID, "error", writeErr)
+					return
 				}
-				return
 			}
-
-			msgStr := string(msg)
-			if msgStr == "CLOSE_CONNECTION_FROM_PEER" {
-				return
-			}
-
-			if !strings.HasPrefix(msgStr, pfDataPrefix) {
-				continue
-			}
-
-			data, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(msgStr, pfDataPrefix))
 			if err != nil {
-				logger.Debug("Base64 decode error", "error", err)
-				continue
-			}
-
-			msgCount++
-			logger.Info("WS→TCP", "msg#", msgCount, "bytes", len(data))
-			if _, err := localConn.Write(data); err != nil {
-				logger.Debug("Local TCP write error", "error", err)
+				if err != io.EOF {
+					logger.Info("Local TCP read ended", "connID", connID, "error", err)
+				} else {
+					logger.Info("Local TCP EOF", "connID", connID)
+				}
 				return
 			}
 		}
-	}()
+	}
 
-	// Local TCP → WebSocket (k8s pod sends data → CLI as "PF:<base64>" text)
+	// WebSocket read loop — binary frames = data, text frames = control
 	go func() {
 		defer closeDone()
-		buf := make([]byte, 32*1024)
-		respCount := 0
 		for {
-			n, err := localConn.Read(buf)
+			msgType, msg, err := wsConn.ReadMessage()
 			if err != nil {
-				if err != io.EOF {
-					logger.Debug("Local TCP read ended", "error", err)
+				if !websocket.IsCloseError(err, websocket.CloseNormalClosure) {
+					logger.Info("WebSocket read ended", "error", err)
+				} else {
+					logger.Info("WebSocket closed normally by peer")
 				}
 				return
 			}
 
-			respCount++
-			encoded := pfDataPrefix + base64.StdEncoding.EncodeToString(buf[:n])
-			logger.Info("TCP→WS", "resp#", respCount, "bytes", n, "encoded_len", len(encoded))
+			// Binary frame: [1 byte connID len][connID][raw TCP data]
+			if msgType == websocket.BinaryMessage {
+				if len(msg) < 2 {
+					continue
+				}
+				connIDLen := int(msg[0])
+				if len(msg) < 1+connIDLen {
+					continue
+				}
+				connID := string(msg[1 : 1+connIDLen])
+				data := msg[1+connIDLen:]
 
-			connWriteLock.Lock()
-			err = conn.WriteMessage(websocket.TextMessage, []byte(encoded))
-			connWriteLock.Unlock()
+				connsMu.RLock()
+				localConn := conns[connID]
+				connsMu.RUnlock()
 
-			if err != nil {
-				logger.Debug("WebSocket write error", "error", err)
+				if localConn != nil {
+					if _, err := localConn.Write(data); err != nil {
+						logger.Info("Local TCP write error", "connID", connID, "error", err)
+					}
+				}
+				continue
+			}
+
+			// Text frame: control messages
+			msgStr := string(msg)
+
+			if msgStr == "CLOSE_CONNECTION_FROM_PEER" {
+				logger.Info("Received CLOSE_CONNECTION_FROM_PEER")
 				return
+			}
+
+			// Skip pings etc.
+			if !strings.HasPrefix(msgStr, "PFM:") {
+				continue
+			}
+
+			// PFM:O:<connID> — open a new sub-connection
+			if strings.HasPrefix(msgStr, pfmOpenPrefix) {
+				connID := strings.TrimPrefix(msgStr, pfmOpenPrefix)
+				logger.Info("Opening sub-connection", "connID", connID)
+
+				localConn, err := net.DialTimeout("tcp", localAddr, 5*time.Second)
+				if err != nil {
+					logger.Error("Failed to dial local port-forward", "connID", connID, "error", err)
+					wsSendText(pfmClosePrefix + connID)
+					continue
+				}
+
+				connsMu.Lock()
+				conns[connID] = localConn
+				connsMu.Unlock()
+
+				go readLocalAndSend(connID, localConn)
+				continue
+			}
+
+			// PFM:C:<connID> — CLI closed a sub-connection
+			if strings.HasPrefix(msgStr, pfmClosePrefix) {
+				connID := strings.TrimPrefix(msgStr, pfmClosePrefix)
+				logger.Info("Remote closed sub-connection", "connID", connID)
+				connsMu.Lock()
+				if c, ok := conns[connID]; ok {
+					c.Close()
+					delete(conns, connID)
+				}
+				connsMu.Unlock()
+				continue
 			}
 		}
 	}()
 
 	<-done
+
+	// Cleanup: close all sub-connections
+	connsMu.Lock()
+	for id, c := range conns {
+		c.Close()
+		delete(conns, id)
+	}
+	connsMu.Unlock()
 
 	close(stopChan)
 	logger.Info("Port-forward tunnel closed", "pod", podName, "port", request.RemotePort)
