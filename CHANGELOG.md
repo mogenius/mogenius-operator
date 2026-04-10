@@ -1,3 +1,10 @@
+# [2.20.0-develop.72](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.71...v2.20.0-develop.72) (2026-04-10)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/bitnami-labs/sealed-secrets to v0.36.6 ([#899](https://github.com/mogenius/mogenius-operator/issues/899)) ([6e1923c](https://github.com/mogenius/mogenius-operator/commit/6e1923cfd2f1b40e9a00f96dada82bb9a9310243))
+
 # [2.20.0-develop.71](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.70...v2.20.0-develop.71) (2026-04-09)
 
 
