@@ -6978,6 +6978,61 @@ service/pod-event-stream-connection-request:
     typeInfo:
       structRef: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.PodEventConnectionRequest,mogenius-operator/src/core.Void]
       type: struct
+service/port-forward-connection-request:
+  requestSchema:
+    structs:
+      mogenius-operator/src/xterm.PortForwardConnectionRequest:
+        name: mogenius-operator/src/xterm.PortForwardConnectionRequest
+        properties:
+          kind:
+            type: string
+          namespace:
+            type: string
+          remotePort:
+            type: int
+          workloadName:
+            type: string
+          wsConnectionRequest:
+            structRef: mogenius-operator/src/xterm.WsConnectionRequest
+            type: struct
+      mogenius-operator/src/xterm.WsConnectionRequest:
+        name: mogenius-operator/src/xterm.WsConnectionRequest
+        properties:
+          channelId:
+            type: string
+          cmdType:
+            type: string
+          nodeName:
+            type: string
+          podName:
+            type: string
+          websocketHost:
+            type: string
+          websocketScheme:
+            type: string
+          workspace:
+            type: string
+    typeInfo:
+      structRef: mogenius-operator/src/xterm.PortForwardConnectionRequest
+      type: struct
+  responseSchema:
+    structs:
+      ANON_STRUCT_1:
+        properties: {}
+      mogenius-operator/src/core.Result[mogenius-operator/src/xterm.PortForwardConnectionRequest,mogenius-operator/src/core.Void]:
+        name: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.PortForwardConnectionRequest,mogenius-operator/src/core.Void]
+        properties:
+          data:
+            pointer: true
+            structRef: ANON_STRUCT_1
+            type: struct
+          message:
+            type: string
+          status:
+            type: string
+    typeInfo:
+      structRef: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.PortForwardConnectionRequest,mogenius-operator/src/core.Void]
+      type: struct
 stats/pod/all-for-controller:
   requestSchema:
     structs:

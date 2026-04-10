@@ -121,6 +121,7 @@ func initializeClusterSystems(
 	services.Setup(logManagerModule, configModule, base.clientProvider)
 	structs.Setup(logManagerModule)
 	xterm.Setup(logManagerModule, base.valkeyClient)
+	xterm.SetupPortForward(base.clientProvider.ClientConfig(), base.clientProvider.K8sClientSet())
 
 	argocdModule := argocd.NewArgoCd(logManagerModule, configModule, base.clientProvider, base.valkeyClient)
 	workspaceManager := core.NewWorkspaceManager(configModule, base.clientProvider)
