@@ -106,6 +106,7 @@ export enum Pattern {
   SERVICE_EXEC_SH_CONNECTION_REQUEST = "service/exec-sh-connection-request",
   SERVICE_LOG_STREAM_CONNECTION_REQUEST = "service/log-stream-connection-request",
   SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST = "service/pod-event-stream-connection-request",
+  SERVICE_PORT_FORWARD_CONNECTION_REQUEST = "service/port-forward-connection-request",
   STATS_POD_ALL_FOR_CONTROLLER = "stats/pod/all-for-controller",
   STATS_TRAFFIC_ALL_FOR_CONTROLLER = "stats/traffic/all-for-controller",
   STATS_WORKSPACE_CPU_UTILIZATION = "stats/workspace-cpu-utilization",
@@ -232,6 +233,7 @@ export const StringToPattern = {
   "service/exec-sh-connection-request": Pattern.SERVICE_EXEC_SH_CONNECTION_REQUEST,
   "service/log-stream-connection-request": Pattern.SERVICE_LOG_STREAM_CONNECTION_REQUEST,
   "service/pod-event-stream-connection-request": Pattern.SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST,
+  "service/port-forward-connection-request": Pattern.SERVICE_PORT_FORWARD_CONNECTION_REQUEST,
   "stats/pod/all-for-controller": Pattern.STATS_POD_ALL_FOR_CONTROLLER,
   "stats/traffic/all-for-controller": Pattern.STATS_TRAFFIC_ALL_FOR_CONTROLLER,
   "stats/workspace-cpu-utilization": Pattern.STATS_WORKSPACE_CPU_UTILIZATION,
@@ -354,6 +356,7 @@ export const PatternToString = {
   [Pattern.SERVICE_EXEC_SH_CONNECTION_REQUEST]: "service/exec-sh-connection-request",
   [Pattern.SERVICE_LOG_STREAM_CONNECTION_REQUEST]: "service/log-stream-connection-request",
   [Pattern.SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST]: "service/pod-event-stream-connection-request",
+  [Pattern.SERVICE_PORT_FORWARD_CONNECTION_REQUEST]: "service/port-forward-connection-request",
   [Pattern.STATS_POD_ALL_FOR_CONTROLLER]: "stats/pod/all-for-controller",
   [Pattern.STATS_TRAFFIC_ALL_FOR_CONTROLLER]: "stats/traffic/all-for-controller",
   [Pattern.STATS_WORKSPACE_CPU_UTILIZATION]: "stats/workspace-cpu-utilization",
@@ -8826,6 +8829,76 @@ export type SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST_RESPONSE = SERVICE_POD_E
  *
  * ```yaml
  * structs:
+ *   mogenius-operator/src/xterm.PortForwardConnectionRequest:
+ *     name: mogenius-operator/src/xterm.PortForwardConnectionRequest
+ *     properties:
+ *       kind:
+ *         type: string
+ *       namespace:
+ *         type: string
+ *       remotePort:
+ *         type: int
+ *       workloadName:
+ *         type: string
+ *       wsConnectionRequest:
+ *         structRef: mogenius-operator/src/xterm.WsConnectionRequest
+ *         type: struct
+ *   mogenius-operator/src/xterm.WsConnectionRequest:
+ *     name: mogenius-operator/src/xterm.WsConnectionRequest
+ *     properties:
+ *       channelId:
+ *         type: string
+ *       cmdType:
+ *         type: string
+ *       nodeName:
+ *         type: string
+ *       podName:
+ *         type: string
+ *       websocketHost:
+ *         type: string
+ *       websocketScheme:
+ *         type: string
+ *       workspace:
+ *         type: string
+ * typeInfo:
+ *   structRef: mogenius-operator/src/xterm.PortForwardConnectionRequest
+ *   type: struct
+ * ```
+ *
+ */
+export type SERVICE_PORT_FORWARD_CONNECTION_REQUEST_REQUEST = SERVICE_PORT_FORWARD_CONNECTION_REQUEST_REQUEST__MOGENIUS_OPERATOR_SRC_XTERM_PORTFORWARDCONNECTIONREQUEST;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
+ *   ANON_STRUCT_1:
+ *     properties: {}
+ *   mogenius-operator/src/core.Result[mogenius-operator/src/xterm.PortForwardConnectionRequest,mogenius-operator/src/core.Void]:
+ *     name: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.PortForwardConnectionRequest,mogenius-operator/src/core.Void]
+ *     properties:
+ *       data:
+ *         pointer: true
+ *         structRef: ANON_STRUCT_1
+ *         type: struct
+ *       message:
+ *         type: string
+ *       status:
+ *         type: string
+ * typeInfo:
+ *   structRef: mogenius-operator/src/core.Result[mogenius-operator/src/xterm.PortForwardConnectionRequest,mogenius-operator/src/core.Void]
+ *   type: struct
+ * ```
+ *
+ */
+export type SERVICE_PORT_FORWARD_CONNECTION_REQUEST_RESPONSE = SERVICE_PORT_FORWARD_CONNECTION_REQUEST_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_XTERM_PORTFORWARDCONNECTIONREQUEST_MOGENIUS_OPERATOR_SRC_CORE_VOID;
+
+/**
+ * #### Source
+ *
+ * ```yaml
+ * structs:
  *   mogenius-operator/src/core.Request:
  *     name: mogenius-operator/src/core.Request
  *     properties:
@@ -10351,6 +10424,10 @@ export type SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST_REQUEST__MOGENIUS_OPERAT
 export type SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST_REQUEST__MOGENIUS_OPERATOR_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"nodeName": string,"podName": string,"websocketHost": string,"websocketScheme": string,"workspace": string};
 export type SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST_RESPONSE__ANON_STRUCT_1 = {};
 export type SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_XTERM_PODEVENTCONNECTIONREQUEST_MOGENIUS_OPERATOR_SRC_CORE_VOID = {"data": SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST_RESPONSE__ANON_STRUCT_1|undefined,"message": string,"status": string};
+export type SERVICE_PORT_FORWARD_CONNECTION_REQUEST_REQUEST__MOGENIUS_OPERATOR_SRC_XTERM_PORTFORWARDCONNECTIONREQUEST = {"kind": string,"namespace": string,"remotePort": number,"workloadName": string,"wsConnectionRequest": SERVICE_PORT_FORWARD_CONNECTION_REQUEST_REQUEST__MOGENIUS_OPERATOR_SRC_XTERM_WSCONNECTIONREQUEST};
+export type SERVICE_PORT_FORWARD_CONNECTION_REQUEST_REQUEST__MOGENIUS_OPERATOR_SRC_XTERM_WSCONNECTIONREQUEST = {"channelId": string,"cmdType": string,"nodeName": string,"podName": string,"websocketHost": string,"websocketScheme": string,"workspace": string};
+export type SERVICE_PORT_FORWARD_CONNECTION_REQUEST_RESPONSE__ANON_STRUCT_1 = {};
+export type SERVICE_PORT_FORWARD_CONNECTION_REQUEST_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_XTERM_PORTFORWARDCONNECTIONREQUEST_MOGENIUS_OPERATOR_SRC_CORE_VOID = {"data": SERVICE_PORT_FORWARD_CONNECTION_REQUEST_RESPONSE__ANON_STRUCT_1|undefined,"message": string,"status": string};
 export type STATS_POD_ALL_FOR_CONTROLLER_REQUEST__MOGENIUS_OPERATOR_SRC_CORE_REQUEST = {"kind": string,"name": string,"namespace": string,"timeOffsetMinutes": number};
 export type STATS_POD_ALL_FOR_CONTROLLER_RESPONSE__MOGENIUS_OPERATOR_SRC_CORE_RESULTMOGENIUS_OPERATOR_SRC_CORE_REQUEST8_MOGENIUS_OPERATOR_SRC_STRUCTS_PODSTATS = {"data": STATS_POD_ALL_FOR_CONTROLLER_RESPONSE__MOGENIUS_OPERATOR_SRC_STRUCTS_PODSTATS[]|undefined,"message": string,"status": string};
 export type STATS_POD_ALL_FOR_CONTROLLER_RESPONSE__MOGENIUS_OPERATOR_SRC_STRUCTS_PODSTATS = {"containerName": string,"cpu": number,"cpuLimit": number,"createdAt": STATS_POD_ALL_FOR_CONTROLLER_RESPONSE__TIME_TIME,"ephemeralStorage": number,"ephemeralStorageLimit": number,"memory": number,"memoryLimit": number,"namespace": string,"podName": string,"startTime": STATS_POD_ALL_FOR_CONTROLLER_RESPONSE__TIME_TIME};
@@ -10824,6 +10901,10 @@ export interface IPatternConfig {
   [Pattern.SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST]: {
     Request: SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST_REQUEST;
     Response: SERVICE_POD_EVENT_STREAM_CONNECTION_REQUEST_RESPONSE;
+  };
+  [Pattern.SERVICE_PORT_FORWARD_CONNECTION_REQUEST]: {
+    Request: SERVICE_PORT_FORWARD_CONNECTION_REQUEST_REQUEST;
+    Response: SERVICE_PORT_FORWARD_CONNECTION_REQUEST_RESPONSE;
   };
   [Pattern.STATS_POD_ALL_FOR_CONTROLLER]: {
     Request: STATS_POD_ALL_FOR_CONTROLLER_REQUEST;

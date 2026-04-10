@@ -1007,6 +1007,15 @@ func (self *socketApi) registerPatterns() {
 	)
 
 	RegisterPatternHandler(
+		PatternHandle{self, "service/port-forward-connection-request"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request xterm.PortForwardConnectionRequest) (Void, error) {
+			go xterm.PortForwardStreamConnection(request)
+			return nil, nil
+		},
+	)
+
+	RegisterPatternHandler(
 		PatternHandle{self, "service/exec-sh-connection-request"},
 		PatternConfig{},
 		func(datagram structs.Datagram, request xterm.PodCmdConnectionRequest) (Void, error) {
