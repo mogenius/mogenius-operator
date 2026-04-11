@@ -33,7 +33,7 @@ jobs:
   # Prepare - Get version info
   # ============================================================================
   prepare:
-    uses: mogenius/github-actions/.github/workflows/prepare.yml@e7bbc72b52b9de09d67ea692f39ab5063a175a5b # main
+    uses: mogenius/github-actions/.github/workflows/prepare.yml@b63893ef03ae97f51539224bbb0c2fc382b3a8e3 # main
     secrets:
       RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
     with:
