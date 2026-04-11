@@ -5,7 +5,7 @@ go 1.26.2
 require (
 	github.com/alecthomas/kong v1.15.0
 	github.com/bitnami-labs/sealed-secrets v0.36.6
-	github.com/cert-manager/cert-manager v1.20.1
+	github.com/cert-manager/cert-manager v1.20.2
 	github.com/creack/pty v1.1.24
 	github.com/go-playground/validator/v10 v10.30.2
 	github.com/google/uuid v1.6.0
