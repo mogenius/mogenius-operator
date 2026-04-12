@@ -1,3 +1,10 @@
+# [2.20.0-develop.80](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.79...v2.20.0-develop.80) (2026-04-12)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/valkey-io/valkey-go to v1.0.74 ([#909](https://github.com/mogenius/mogenius-operator/issues/909)) ([491acbc](https://github.com/mogenius/mogenius-operator/commit/491acbc0f0594d7f7918d68db2a7f7be1b1bfdbf))
+
 # [2.20.0-develop.79](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.78...v2.20.0-develop.79) (2026-04-12)
 
 
