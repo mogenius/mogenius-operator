@@ -465,7 +465,7 @@ func AddToAuditLog[T any](datagram structs.Datagram, logger *slog.Logger, result
 	return result, err
 }
 
-func ListAuditLog(limit int, offset int, namespaces []string, clusterWide bool) ([]AuditLogEntry, int, error) {
+func ListAuditLog(limit int, offset int, namespaces []string, clusterWide bool, search string) ([]AuditLogEntry, int, error) {
 	if limit <= 0 {
 		limit = 100
 	}
@@ -474,12 +474,24 @@ func ListAuditLog(limit int, offset int, namespaces []string, clusterWide bool) 
 	// GetObjectsByPrefixWithSizeAndNs applies offset/limit on unsorted SCAN keys,
 	// which can cause newer entries to be missed.
 	const maxEntries = 10000
-	allEntries, totalCount, err := valkeyclient.GetObjectsByPrefixWithSizeAndNs[AuditLogEntry](valkeyClient, maxEntries, 0, namespaces, clusterWide, "audit-log")
+	allEntries, _, err := valkeyclient.GetObjectsByPrefixWithSizeAndNs[AuditLogEntry](valkeyClient, maxEntries, 0, namespaces, clusterWide, "audit-log")
 	if err != nil {
 		return []AuditLogEntry{}, 0, err
 	}
 
-	totalCount = len(allEntries)
+	// Filter by search term (case-insensitive) across key fields
+	if search != "" {
+		searchLower := strings.ToLower(search)
+		filtered := make([]AuditLogEntry, 0, len(allEntries))
+		for _, entry := range allEntries {
+			if auditLogEntryMatchesSearch(entry, searchLower) {
+				filtered = append(filtered, entry)
+			}
+		}
+		allEntries = filtered
+	}
+
+	totalCount := len(allEntries)
 
 	// Sort by CreatedAt descending (newest first)
 	sort.Slice(allEntries, func(i, j int) bool {
@@ -496,6 +508,32 @@ func ListAuditLog(limit int, offset int, namespaces []string, clusterWide bool) 
 	}
 
 	return allEntries[offset:end], totalCount, nil
+}
+
+func auditLogEntryMatchesSearch(entry AuditLogEntry, searchLower string) bool {
+	if strings.Contains(strings.ToLower(entry.Pattern), searchLower) {
+		return true
+	}
+	if strings.Contains(strings.ToLower(entry.Workspace), searchLower) {
+		return true
+	}
+	if strings.Contains(strings.ToLower(entry.User.FirstName), searchLower) {
+		return true
+	}
+	if strings.Contains(strings.ToLower(entry.User.LastName), searchLower) {
+		return true
+	}
+	if strings.Contains(strings.ToLower(entry.User.Email), searchLower) {
+		return true
+	}
+	if payload, ok := entry.Payload.(map[string]any); ok {
+		for _, key := range []string{"name", "targetName", "kind", "namespace"} {
+			if val, ok := payload[key].(string); ok && strings.Contains(strings.ToLower(val), searchLower) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func auditLogFromDatagram(datagram structs.Datagram, result any, err error) AuditLogEntry {
