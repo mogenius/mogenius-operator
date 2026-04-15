@@ -1,3 +1,10 @@
+# [2.20.0-develop.86](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.85...v2.20.0-develop.86) (2026-04-15)
+
+
+### Bug Fixes
+
+* **helm:** wait for valkey readiness before operator starts ([06a7b75](https://github.com/mogenius/mogenius-operator/commit/06a7b75cd802974ca0b57fd550314977955b3e46))
+
 # [2.20.0-develop.85](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.84...v2.20.0-develop.85) (2026-04-15)
 
 
