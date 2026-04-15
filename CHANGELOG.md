@@ -1,3 +1,10 @@
+# [2.20.0-develop.85](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.84...v2.20.0-develop.85) (2026-04-15)
+
+
+### Features
+
+* add server-side search filtering for audit log list ([343cdcb](https://github.com/mogenius/mogenius-operator/commit/343cdcb03382a692c6f28dceeb4b92d4fbb719f3))
+
 # [2.20.0-develop.84](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.83...v2.20.0-develop.84) (2026-04-14)
 
 
