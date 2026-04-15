@@ -1809,6 +1809,7 @@ func (self *socketApi) registerPatterns() {
 			Limit         int    `json:"limit" validate:"required"`
 			Offset        int    `json:"offset"`
 			WorkspaceName string `json:"workspaceName"`
+			Search        string `json:"search"`
 		}
 
 		type Response struct {
@@ -1838,7 +1839,7 @@ func (self *socketApi) registerPatterns() {
 						}, err
 					}
 				}
-				data, size, err := store.ListAuditLog(request.Limit, request.Offset, namespaces, clusterwide)
+				data, size, err := store.ListAuditLog(request.Limit, request.Offset, namespaces, clusterwide, request.Search)
 				if err != nil {
 					return Response{
 						Status:  "error",
