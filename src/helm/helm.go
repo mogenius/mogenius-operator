@@ -932,6 +932,25 @@ func HelmChartInstall(data HelmChartInstallUpgradeRequest) (result string, err e
 		return "", err
 	}
 
+	// Ownership preflight: detect orphaned cluster-scoped resources left over
+	// from a previous incomplete uninstall. Adopt them via TakeOwnership when
+	// safe, abort when a foreign Helm release already owns them.
+	if !data.DryRun {
+		needsTakeOwnership, perr := CheckOwnershipAndLog(
+			actionConfig, chartRequested, valuesMap,
+			data.Release, data.Namespace, data.Version,
+		)
+		if perr != nil {
+			helmLogger.Error("HelmInstall ownership preflight failed",
+				"releaseName", data.Release,
+				"namespace", data.Namespace,
+				"error", perr.Error(),
+			)
+			return "", perr
+		}
+		install.TakeOwnership = needsTakeOwnership
+	}
+
 	helmLogger.Info("Installing chart ...", "releaseName", data.Release, "namespace", data.Namespace)
 	re, err := install.Run(chartRequested, valuesMap)
 	if err != nil {
@@ -1023,6 +1042,25 @@ func HelmReleaseUpgrade(data HelmChartInstallUpgradeRequest) (result string, err
 			"error", err.Error(),
 		)
 		return "", err
+	}
+
+	// Ownership preflight: detect orphaned cluster-scoped resources left over
+	// from a previous incomplete uninstall. Adopt them via TakeOwnership when
+	// safe, abort when a foreign Helm release already owns them.
+	if !data.DryRun {
+		needsTakeOwnership, perr := CheckOwnershipAndLog(
+			actionConfig, chartRequested, valuesMap,
+			data.Release, data.Namespace, data.Version,
+		)
+		if perr != nil {
+			helmLogger.Error("HelmUpgrade ownership preflight failed",
+				"releaseName", data.Release,
+				"namespace", data.Namespace,
+				"error", perr.Error(),
+			)
+			return "", perr
+		}
+		upgrade.TakeOwnership = needsTakeOwnership
 	}
 
 	helmLogger.Info("Upgrading chart ...", "releaseName", data.Release, "namespace", data.Namespace)
