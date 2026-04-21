@@ -2463,7 +2463,10 @@ func (self *socketApi) JobServerSendData(jobClient websocket.WebsocketClient, da
 
 func (self *socketApi) ExecuteCommandRequest(datagram structs.Datagram) any {
 	if patternHandler, ok := self.patternHandler[datagram.Pattern]; ok {
-		return patternHandler.Callback(datagram)
+		start := time.Now()
+		result := patternHandler.Callback(datagram)
+		patternDuration.WithLabelValues(datagram.Pattern).Observe(time.Since(start).Seconds())
+		return result
 	}
 
 	return struct {

@@ -116,6 +116,19 @@ goRuntime:
   # -- GC target percentage (GOGC). Lower = more frequent GC, less memory
   gcPercent: "50"
 
+metrics:
+  # -- enable the Prometheus /metrics endpoint scraping (creates a Service for the ServiceMonitor)
+  enabled: false
+  # -- ServiceMonitor for prometheus-operator; requires metrics.enabled: true
+  serviceMonitor:
+    enabled: false
+    # -- labels added to the ServiceMonitor (use to match your Prometheus selector)
+    labels: {}
+    interval: 30s
+    scrapeTimeout: 10s
+    # -- additional relabelings appended after the default instance relabeling
+    relabelings: []
+
 valkey:
   enabled: true
   imagePullPolicy: IfNotPresent
