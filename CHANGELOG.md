@@ -1,3 +1,10 @@
+# [2.20.0-develop.92](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.91...v2.20.0-develop.92) (2026-04-21)
+
+
+### Bug Fixes
+
+* prefetch all pods for node resources and prevent O(n2) iteration ([9ac07c9](https://github.com/mogenius/mogenius-operator/commit/9ac07c96f5fa92ea38905876dd5ff996a6c40036))
+
 # [2.20.0-develop.91](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.90...v2.20.0-develop.91) (2026-04-21)
 
 
