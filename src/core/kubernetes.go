@@ -262,6 +262,15 @@ func (self *moKubernetes) GetNodeStats() ([]dtos.NodeStat, error) {
 	nodes := store.GetNodes()
 	result := make([]dtos.NodeStat, 0, len(nodes))
 
+	// Build a per-node pod index once to avoid O(n²) store scans in the loop.
+	allPods := store.GetPods("*")
+	podsByNode := make(map[string][]corev1.Pod, len(nodes))
+	for _, pod := range allPods {
+		pod.Kind = "Pod"
+		pod.APIVersion = "v1"
+		podsByNode[pod.Spec.NodeName] = append(podsByNode[pod.Spec.NodeName], pod)
+	}
+
 	for _, node := range nodes {
 		skipNode := false
 		for _, taint := range node.Spec.Taints {
@@ -273,7 +282,7 @@ func (self *moKubernetes) GetNodeStats() ([]dtos.NodeStat, error) {
 		if skipNode {
 			continue
 		}
-		allPods := kubernetes.AllPodsOnNode(node.Name)
+		allPods := podsByNode[node.Name]
 		requestCpuCores, limitCpuCores := kubernetes.SumCpuResources(allPods)
 		requestMemoryBytes, limitMemoryBytes := kubernetes.SumMemoryResources(allPods)
 
