@@ -1,3 +1,10 @@
+# [2.20.0-develop.91](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.90...v2.20.0-develop.91) (2026-04-21)
+
+
+### Features
+
+* adding metrics to capture pattern duration ([bd8276f](https://github.com/mogenius/mogenius-operator/commit/bd8276f2aa171f319afd2e9346e9c61f231e0e3f))
+
 # [2.20.0-develop.90](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.89...v2.20.0-develop.90) (2026-04-17)
 
 
