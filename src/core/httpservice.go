@@ -13,6 +13,8 @@ import (
 	"sync"
 
 	"encoding/json"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 type HttpService interface {
@@ -115,6 +117,7 @@ func (self *httpService) Run() {
 	self.logger.Debug("initializing http.ServeMux", "addr", addr)
 	mux := http.NewServeMux()
 
+	mux.Handle("GET /metrics", promhttp.Handler())
 	mux.Handle("GET /healthz", self.withRequestLogging(http.HandlerFunc(self.getHealthz)))
 
 	if os.Getenv("MO_PPROF") == "true" {

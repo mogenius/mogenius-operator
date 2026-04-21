@@ -18,6 +18,7 @@ require (
 	github.com/nwidger/jsoncolor v0.3.2
 	github.com/openai/openai-go/v3 v3.32.0
 	github.com/patrickmn/go-cache v2.1.0+incompatible
+	github.com/prometheus/client_golang v1.23.2
 	github.com/stretchr/testify v1.11.1
 	github.com/tklauser/go-sysconf v0.3.16
 	github.com/valkey-io/valkey-go v1.0.74
@@ -35,11 +36,16 @@ require (
 
 require (
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
+	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/buger/jsonparser v1.1.2 // indirect
+	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/gofrs/flock v0.13.0 // indirect
 	github.com/google/jsonschema-go v0.4.2 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/mailru/easyjson v0.9.1 // indirect
+	github.com/prometheus/client_model v0.6.2 // indirect
+	github.com/prometheus/common v0.67.5 // indirect
+	github.com/prometheus/procfs v0.19.2 // indirect
 	github.com/segmentio/asm v1.1.3 // indirect
 	github.com/segmentio/encoding v0.5.4 // indirect
 	github.com/wk8/go-ordered-map/v2 v2.1.8 // indirect
