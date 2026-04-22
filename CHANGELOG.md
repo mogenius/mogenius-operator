@@ -1,3 +1,10 @@
+# [2.20.0-develop.95](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.94...v2.20.0-develop.95) (2026-04-22)
+
+
+### Bug Fixes
+
+* port-forward tls issue ([29e83a5](https://github.com/mogenius/mogenius-operator/commit/29e83a547fb7b55319faa2818fb8aa824582b997))
+
 # [2.20.0-develop.94](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.93...v2.20.0-develop.94) (2026-04-22)
 
 
