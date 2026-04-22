@@ -262,12 +262,18 @@ func (self *reconciler) updateStatus(
 	clusterRoleBindings []rbacv1.ClusterRoleBinding,
 ) {
 	self.statusLock.RLock()
-	status := self.status.Clone()
+	isActive := self.status.IsActive
 	self.statusLock.RUnlock()
-	status.LastUpdate = utils.Pointer(time.Now())
-	status.MogeniusUsersCount = len(users)
-	status.MogeniusWorkspacesCount = len(workspaces)
-	status.MogeniusGrantsCount = len(grants)
+
+	status := ReconcilerStatus{
+		IsActive:                isActive,
+		LastUpdate:              utils.Pointer(time.Now()),
+		ResourceWarnings:        []ReconcilerResourceError{},
+		ResourceErrors:          []ReconcilerResourceError{},
+		MogeniusUsersCount:      len(users),
+		MogeniusWorkspacesCount: len(workspaces),
+		MogeniusGrantsCount:     len(grants),
+	}
 
 	for _, user := range users {
 		if user.Spec.Email == "" {
@@ -288,7 +294,7 @@ func (self *reconciler) updateStatus(
 			resourceErr.ResourceName = user.GetName()
 			resourceErr.ResourceNamespace = user.GetNamespace()
 			resourceErr.Error = "User subject is not set - no permissions in the cluster can be granted"
-			status.ResourceWarnings = append(status.ResourceErrors, resourceErr)
+			status.ResourceWarnings = append(status.ResourceWarnings, resourceErr)
 		}
 	}
 
