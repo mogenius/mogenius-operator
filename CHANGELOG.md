@@ -1,3 +1,10 @@
+# [2.20.0-develop.93](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.92...v2.20.0-develop.93) (2026-04-22)
+
+
+### Bug Fixes
+
+* fix GC cpu bug caused by clone bug ([fe26041](https://github.com/mogenius/mogenius-operator/commit/fe260410b9267735d8cceec49301cebad37e8ead))
+
 # [2.20.0-develop.92](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.91...v2.20.0-develop.92) (2026-04-21)
 
 
