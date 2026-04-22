@@ -2,6 +2,7 @@ package xterm
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"io"
 	"mogenius-operator/src/utils"
@@ -37,11 +38,26 @@ func SetupPortForward(restConfig *rest.Config, clientset k8s.Interface) {
 }
 
 type PortForwardConnectionRequest struct {
-	Namespace    string              `json:"namespace" validate:"required"`
-	RemotePort   int                 `json:"remotePort" validate:"required"`
-	Kind         string              `json:"kind" validate:"required"`
-	WorkloadName string              `json:"workloadName" validate:"required"`
-	WsConnection WsConnectionRequest `json:"wsConnectionRequest" validate:"required"`
+	Namespace      string              `json:"namespace" validate:"required"`
+	RemotePort     int                 `json:"remotePort" validate:"required"`
+	Kind           string              `json:"kind" validate:"required"`
+	WorkloadName   string              `json:"workloadName" validate:"required"`
+	WsConnection   WsConnectionRequest `json:"wsConnectionRequest" validate:"required"`
+	TargetProtocol string              `json:"targetProtocol"` // "http", "https", or empty for auto-detect
+}
+
+// needsTLS determines if the connection to the target port should use TLS.
+// Auto-detects based on port if targetProtocol is empty.
+func needsTLS(remotePort int, targetProtocol string) bool {
+	switch strings.ToLower(targetProtocol) {
+	case "https":
+		return true
+	case "http":
+		return false
+	default:
+		// Auto-detect based on common HTTPS ports
+		return remotePort == 443 || remotePort == 8443 || remotePort == 6443
+	}
 }
 
 // PortForwardStreamConnection establishes a port-forward tunnel through the stream gateway.
@@ -300,11 +316,28 @@ func PortForwardStreamConnection(request PortForwardConnectionRequest) {
 					continue
 				}
 
+				// Wrap with TLS if target expects HTTPS
+				var finalConn net.Conn = localConn
+				if needsTLS(request.RemotePort, request.TargetProtocol) {
+					logger.Info("Wrapping connection with TLS", "connID", connID, "port", request.RemotePort)
+					tlsConn := tls.Client(localConn, &tls.Config{
+						InsecureSkipVerify: true, // Cluster-internal, self-signed certs OK
+					})
+					if err := tlsConn.Handshake(); err != nil {
+						logger.Error("TLS handshake failed", "connID", connID, "error", err)
+						localConn.Close()
+						wsSendText(pfmClosePrefix + connID)
+						continue
+					}
+					finalConn = tlsConn
+					logger.Info("TLS handshake successful", "connID", connID)
+				}
+
 				connsMu.Lock()
-				conns[connID] = localConn
+				conns[connID] = finalConn
 				connsMu.Unlock()
 
-				go readLocalAndSend(connID, localConn)
+				go readLocalAndSend(connID, finalConn)
 				continue
 			}
 

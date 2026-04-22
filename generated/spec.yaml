@@ -1440,6 +1440,8 @@ audit-log/list:
             type: int
           offset:
             type: int
+          search:
+            type: string
           workspaceName:
             type: string
     typeInfo:
@@ -6990,6 +6992,8 @@ service/port-forward-connection-request:
             type: string
           remotePort:
             type: int
+          targetProtocol:
+            type: string
           workloadName:
             type: string
           wsConnectionRequest:
