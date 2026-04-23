@@ -1,3 +1,10 @@
+# [2.20.0-develop.96](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.95...v2.20.0-develop.96) (2026-04-23)
+
+
+### Bug Fixes
+
+* **deps:** update kubernetes monorepo to v0.36.0 ([#924](https://github.com/mogenius/mogenius-operator/issues/924)) ([5dc3669](https://github.com/mogenius/mogenius-operator/commit/5dc366972688b5b2d1a1c91fcb3db1378dcbe1ae))
+
 # [2.20.0-develop.95](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.94...v2.20.0-develop.95) (2026-04-22)
 
 
