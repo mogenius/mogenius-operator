@@ -33,9 +33,10 @@ jobs:
   # Prepare - Get version info
   # ============================================================================
   prepare:
-    uses: mogenius/github-actions/.github/workflows/prepare.yml@b63893ef03ae97f51539224bbb0c2fc382b3a8e3 # main
+    uses: mogenius/github-actions/.github/workflows/prepare.yml@dd980fa240c0c00ce9c7fa3ac40dd565a500a6af # main
     secrets:
-      RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+      APP_ID: ${{ secrets.RELEASE_APP_ID }}
+      APP_PRIVATE_KEY: ${{ secrets.RELEASE_APP_SECRET }}
     with:
       version_override: ${{ github.event.inputs.version || '' }}
       default_version: 'dev'
