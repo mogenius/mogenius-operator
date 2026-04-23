@@ -1,3 +1,12 @@
+# [2.20.0-develop.97](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.96...v2.20.0-develop.97) (2026-04-23)
+
+
+### Bug Fixes
+
+* upgrade prepare version ([d9de245](https://github.com/mogenius/mogenius-operator/commit/d9de2451dac4ce1030177aa6456bb1c619daadb4))
+* upgrade prepare version ([aeb856e](https://github.com/mogenius/mogenius-operator/commit/aeb856efd4aff8131df346055fb9761e69eb7621))
+* use github app authentication for token ([69454d2](https://github.com/mogenius/mogenius-operator/commit/69454d2935604020bcef48b7625439656f3097ee))
+
 # [2.20.0-develop.96](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.95...v2.20.0-develop.96) (2026-04-23)
 
 
