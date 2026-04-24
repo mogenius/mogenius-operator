@@ -1007,6 +1007,30 @@ func (self *socketApi) registerPatterns() {
 	)
 
 	RegisterPatternHandler(
+		PatternHandle{self, "cluster/argo-cd-application-hard-refresh"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request argocd.ArgoCdApplicationRefreshRequest) (bool, error) {
+			return self.argocd.ArgoCdApplicationHardRefresh(request)
+		},
+	)
+
+	RegisterPatternHandler(
+		PatternHandle{self, "cluster/argo-cd-application-sync"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request argocd.ArgoCdApplicationSyncRequest) (bool, error) {
+			return self.argocd.ArgoCdApplicationSync(request)
+		},
+	)
+
+	RegisterPatternHandler(
+		PatternHandle{self, "cluster/argo-cd-application-terminate-operation"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request argocd.ArgoCdApplicationTerminateOperationRequest) (bool, error) {
+			return self.argocd.ArgoCdApplicationTerminateOperation(request)
+		},
+	)
+
+	RegisterPatternHandler(
 		PatternHandle{self, "service/port-forward-connection-request"},
 		PatternConfig{},
 		func(datagram structs.Datagram, request xterm.PortForwardConnectionRequest) (Void, error) {
