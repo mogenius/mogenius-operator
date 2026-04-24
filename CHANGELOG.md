@@ -1,3 +1,10 @@
+# [2.20.0-develop.100](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.99...v2.20.0-develop.100) (2026-04-24)
+
+
+### Bug Fixes
+
+* set valkey strategy to recreate ([03fb6fe](https://github.com/mogenius/mogenius-operator/commit/03fb6fee705e9616bd90db0419f7458ab4748fb0))
+
 # [2.20.0-develop.99](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.98...v2.20.0-develop.99) (2026-04-24)
 
 
