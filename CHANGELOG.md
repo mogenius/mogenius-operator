@@ -1,3 +1,10 @@
+# [2.20.0-develop.101](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.100...v2.20.0-develop.101) (2026-04-24)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/ollama/ollama to v0.21.2 ([#926](https://github.com/mogenius/mogenius-operator/issues/926)) ([47fafdc](https://github.com/mogenius/mogenius-operator/commit/47fafdc83b5209fe8cdbff69f5176c9200df1ddb))
+
 # [2.20.0-develop.100](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.99...v2.20.0-develop.100) (2026-04-24)
 
 
