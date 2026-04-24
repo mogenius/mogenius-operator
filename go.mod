@@ -128,7 +128,7 @@ require (
 	github.com/modern-go/reflect2 v1.0.3-0.20250322232337-35a7c28c31ee // indirect
 	github.com/monochromegane/go-gitignore v0.0.0-20200626010858-205db1a8cc00 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
-	github.com/ollama/ollama v0.21.1
+	github.com/ollama/ollama v0.21.2
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.1 // indirect
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
@@ -164,7 +164,7 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	k8s.io/apiextensions-apiserver v0.35.2 // indirect
 	k8s.io/apiserver v0.35.2 // indirect
-	k8s.io/cli-runtime v0.36.0 // indirect
+	k8s.io/cli-runtime v0.36.0
 	k8s.io/component-base v0.36.0 // indirect
 	k8s.io/component-helpers v0.36.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20260317180543-43fb72c5454a // indirect
