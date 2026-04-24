@@ -1,3 +1,10 @@
+# [2.20.0-develop.99](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.98...v2.20.0-develop.99) (2026-04-24)
+
+
+### Features
+
+* **helm:** add ownership preflight and adopt orphaned resources on install ([6e79a9e](https://github.com/mogenius/mogenius-operator/commit/6e79a9eb5bdbd844cdc3b4a5036fd042d573862c))
+
 # [2.20.0-develop.98](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.97...v2.20.0-develop.98) (2026-04-24)
 
 
