@@ -160,7 +160,7 @@ valkey:
   auth:
     password: ""
   updateStrategy:
-    type: RollingUpdate
+    type: Recreate
   metrics:
     # -- enable the Prometheus metrics exporter sidecar (oliver006/redis_exporter)
     enabled: false
