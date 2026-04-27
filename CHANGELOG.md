@@ -1,3 +1,10 @@
+# [2.20.0-develop.102](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.101...v2.20.0-develop.102) (2026-04-27)
+
+
+### Features
+
+* **argocd:** implement sync, hard-refresh and terminate operations ([3119beb](https://github.com/mogenius/mogenius-operator/commit/3119beb9140e6562af58ec2a8d8bd260254cc1b1))
+
 # [2.20.0-develop.101](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.100...v2.20.0-develop.101) (2026-04-24)
 
 
