@@ -34,6 +34,9 @@ const (
 type Argocd interface {
 	ArgoCdCreateApiToken(data ArgoCdCreateApiTokenRequest) (bool, error)
 	ArgoCdApplicationRefresh(data ArgoCdApplicationRefreshRequest) (bool, error)
+	ArgoCdApplicationSync(data ArgoCdApplicationSyncRequest) (bool, error)
+	ArgoCdApplicationTerminateOperation(data ArgoCdApplicationTerminateOperationRequest) (bool, error)
+	ArgoCdApplicationHardRefresh(data ArgoCdApplicationRefreshRequest) (bool, error)
 }
 
 type argocd struct {
@@ -60,6 +63,20 @@ type ArgoCdCreateApiTokenRequest struct {
 }
 
 type ArgoCdApplicationRefreshRequest struct {
+	Username        string `json:"username" validate:"required"`
+	ApplicationName string `json:"applicationName" validate:"required"`
+}
+
+type ArgoCdApplicationSyncRequest struct {
+	Username        string   `json:"username" validate:"required"`
+	ApplicationName string   `json:"applicationName" validate:"required"`
+	Revision        string   `json:"revision,omitempty"`
+	Prune           bool     `json:"prune,omitempty"`
+	DryRun          bool     `json:"dryRun,omitempty"`
+	SyncOptions     []string `json:"syncOptions,omitempty"`
+}
+
+type ArgoCdApplicationTerminateOperationRequest struct {
 	Username        string `json:"username" validate:"required"`
 	ApplicationName string `json:"applicationName" validate:"required"`
 }
@@ -147,10 +164,194 @@ func (self *argocd) ArgoCdApplicationRefresh(data ArgoCdApplicationRefreshReques
 		return false, err
 	}
 
-	_, err = self.refreshApplication(data.ApplicationName, token)
+	_, err = self.refreshApplication(data.ApplicationName, token, false)
 	if err != nil {
 		return false, err
 	}
+	return true, nil
+}
+
+func (self *argocd) ArgoCdApplicationHardRefresh(data ArgoCdApplicationRefreshRequest) (bool, error) {
+	err := self.initArgoCdConfig()
+	if err != nil {
+		return false, err
+	}
+	if self.argoCdConfig.Data == nil {
+		return false, fmt.Errorf("argo-cd-config ConfigMap data is nil")
+	}
+	if ns, ok := self.argoCdConfig.Data["namespaceName"]; !ok || ns == "" {
+		return false, fmt.Errorf("namespaceName key not found in argo-cd-config ConfigMap")
+	}
+
+	argoCdSecret, err := self.getArgoCdSecret()
+	if err != nil {
+		return false, fmt.Errorf("argo-cd-user-secret Secret data is nil")
+	}
+	if pw, ok := argoCdSecret.Data[fmt.Sprintf("accounts.%s.token", data.Username)]; !ok || pw == nil {
+		return false, fmt.Errorf("accounts.%s.token key not found in argo-cd-user-secret Secret", data.Username)
+	}
+	token := string(argoCdSecret.Data[fmt.Sprintf("accounts.%s.token", data.Username)])
+
+	err = self.initArgoServerUrl()
+	if err != nil {
+		return false, err
+	}
+
+	_, err = self.refreshApplication(data.ApplicationName, token, true)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func (self *argocd) ArgoCdApplicationSync(data ArgoCdApplicationSyncRequest) (bool, error) {
+	err := self.initArgoCdConfig()
+	if err != nil {
+		return false, err
+	}
+	if self.argoCdConfig.Data == nil {
+		return false, fmt.Errorf("argo-cd-config ConfigMap data is nil")
+	}
+
+	argoCdSecret, err := self.getArgoCdSecret()
+	if err != nil {
+		return false, fmt.Errorf("failed to get argo-cd-user-secret: %w", err)
+	}
+	if pw, ok := argoCdSecret.Data[fmt.Sprintf("accounts.%s.token", data.Username)]; !ok || pw == nil {
+		return false, fmt.Errorf("accounts.%s.token key not found in argo-cd-user-secret Secret", data.Username)
+	}
+	token := string(argoCdSecret.Data[fmt.Sprintf("accounts.%s.token", data.Username)])
+
+	err = self.initArgoServerUrl()
+	if err != nil {
+		return false, err
+	}
+
+	_, err = self.syncApplication(data, token)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func (self *argocd) ArgoCdApplicationTerminateOperation(data ArgoCdApplicationTerminateOperationRequest) (bool, error) {
+	err := self.initArgoCdConfig()
+	if err != nil {
+		return false, err
+	}
+	if self.argoCdConfig.Data == nil {
+		return false, fmt.Errorf("argo-cd-config ConfigMap data is nil")
+	}
+
+	argoCdSecret, err := self.getArgoCdSecret()
+	if err != nil {
+		return false, fmt.Errorf("failed to get argo-cd-user-secret: %w", err)
+	}
+	if pw, ok := argoCdSecret.Data[fmt.Sprintf("accounts.%s.token", data.Username)]; !ok || pw == nil {
+		return false, fmt.Errorf("accounts.%s.token key not found in argo-cd-user-secret Secret", data.Username)
+	}
+	token := string(argoCdSecret.Data[fmt.Sprintf("accounts.%s.token", data.Username)])
+
+	err = self.initArgoServerUrl()
+	if err != nil {
+		return false, err
+	}
+
+	_, err = self.terminateOperation(data.ApplicationName, token)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func (self *argocd) syncApplication(data ArgoCdApplicationSyncRequest, token string) (bool, error) {
+	url := fmt.Sprintf("%s/api/v1/applications/%s/sync", *self.argoURL, data.ApplicationName)
+
+	syncBody := map[string]interface{}{
+		"prune":  data.Prune,
+		"dryRun": data.DryRun,
+	}
+	if data.Revision != "" {
+		syncBody["revision"] = data.Revision
+	}
+	if len(data.SyncOptions) > 0 {
+		syncBody["syncOptions"] = map[string]interface{}{
+			"items": data.SyncOptions,
+		}
+	}
+
+	bodyJSON, err := json.Marshal(syncBody)
+	if err != nil {
+		return false, fmt.Errorf("failed to marshal sync body: %w", err)
+	}
+
+	client := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		},
+	}
+
+	req, err := http.NewRequest("POST", url, bytes.NewReader(bodyJSON))
+	if err != nil {
+		return false, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return false, fmt.Errorf("sync request failed: %w", err)
+	}
+	defer func() {
+		err := resp.Body.Close()
+		if err != nil {
+			self.logger.Warn("failed to close response body", slog.String("error", err.Error()))
+		}
+	}()
+
+	body, _ := io.ReadAll(resp.Body)
+
+	if resp.StatusCode != http.StatusOK {
+		return false, fmt.Errorf("sync failed: %s – %s", resp.Status, string(body))
+	}
+
+	return true, nil
+}
+
+func (self *argocd) terminateOperation(applicationName, token string) (bool, error) {
+	url := fmt.Sprintf("%s/api/v1/applications/%s/operation", *self.argoURL, applicationName)
+
+	client := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		},
+	}
+
+	req, err := http.NewRequest("DELETE", url, nil)
+	if err != nil {
+		return false, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return false, fmt.Errorf("terminate request failed: %w", err)
+	}
+	defer func() {
+		err := resp.Body.Close()
+		if err != nil {
+			self.logger.Warn("failed to close response body", slog.String("error", err.Error()))
+		}
+	}()
+
+	body, _ := io.ReadAll(resp.Body)
+
+	if resp.StatusCode != http.StatusOK {
+		return false, fmt.Errorf("terminate failed: %s – %s", resp.Status, string(body))
+	}
+
 	return true, nil
 }
 
@@ -223,8 +424,12 @@ func (self *argocd) createArgoToken(username, password, account string) (string,
 	return tokenRes.Token, nil
 }
 
-func (self *argocd) refreshApplication(applicationName, token string) (bool, error) {
-	url := fmt.Sprintf("%s/api/v1/applications/%s?refresh=normal", *self.argoURL, applicationName)
+func (self *argocd) refreshApplication(applicationName, token string, hard bool) (bool, error) {
+	refreshType := "normal"
+	if hard {
+		refreshType = "hard"
+	}
+	url := fmt.Sprintf("%s/api/v1/applications/%s?refresh=%s", *self.argoURL, applicationName, refreshType)
 	client := &http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
