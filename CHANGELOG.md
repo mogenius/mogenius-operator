@@ -1,3 +1,10 @@
+# [2.20.0-develop.103](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.102...v2.20.0-develop.103) (2026-04-27)
+
+
+### Bug Fixes
+
+* **argocd:** add Content-Type header to terminateOperation request ([9f98a0b](https://github.com/mogenius/mogenius-operator/commit/9f98a0bc2f831653f119567d1514c86a2a8ee72e))
+
 # [2.20.0-develop.102](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.101...v2.20.0-develop.102) (2026-04-27)
 
 
