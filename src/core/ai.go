@@ -5,6 +5,9 @@ import (
 	"mogenius-operator/src/ai"
 	"mogenius-operator/src/structs"
 	"mogenius-operator/src/utils"
+
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"sigs.k8s.io/yaml"
 )
 
 type AiApi interface {
@@ -20,6 +23,8 @@ type AiApi interface {
 	DeleteAllAiData() error
 	GetAvailableModels(request *ai.ModelsRequest) ([]string, error)
 	GetPromptConfig() (*ai.AiPromptConfig, error)
+	// HandleConfigMapChange reloads AI prompt filters from the given ConfigMap object.
+	HandleConfigMapChange(obj *unstructured.Unstructured)
 }
 type aiApi struct {
 	logger    *slog.Logger
@@ -80,4 +85,47 @@ func (ai *aiApi) GetAvailableModels(request *ai.ModelsRequest) ([]string, error)
 
 func (ai *aiApi) GetPromptConfig() (*ai.AiPromptConfig, error) {
 	return ai.aiManager.GetPromptConfig()
+}
+
+// HandleConfigMapChange reloads AI prompt filters from a ConfigMap's data field.
+// Uses "self" as receiver to avoid shadowing the "ai" package import.
+func (self *aiApi) HandleConfigMapChange(obj *unstructured.Unstructured) {
+	self.logger.Info("AI filters ConfigMap changed, updating prompt config")
+
+	data, found, err := unstructured.NestedStringMap(obj.Object, "data")
+	if err != nil || !found {
+		self.logger.Error("failed to read ConfigMap data", "error", err)
+		return
+	}
+
+	var filters []ai.AiFilter
+	if filtersYaml, ok := data["filters"]; ok {
+		if err := yaml.Unmarshal([]byte(filtersYaml), &filters); err != nil {
+			self.logger.Error("failed to unmarshal filters from ConfigMap", "error", err)
+			return
+		}
+	}
+
+	var userFilters []ai.AiFilter
+	if userFiltersYaml, ok := data["userFilters"]; ok {
+		if err := yaml.Unmarshal([]byte(userFiltersYaml), &userFilters); err != nil {
+			self.logger.Error("failed to unmarshal userFilters from ConfigMap", "error", err)
+			return
+		}
+	}
+
+	existingConfig, err := self.aiManager.GetPromptConfig()
+	var updatedConfig ai.AiPromptConfig
+	if err == nil && existingConfig != nil {
+		updatedConfig = *existingConfig
+		updatedConfig.Filters = filters
+		updatedConfig.UserFilters = userFilters
+	} else {
+		updatedConfig = ai.AiPromptConfig{
+			Filters:     filters,
+			UserFilters: userFilters,
+		}
+	}
+
+	self.aiManager.InjectAiPromptConfig(updatedConfig, nil)
 }

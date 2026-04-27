@@ -1,81 +1,69 @@
 package reconciler
 
 import (
-	"context"
 	"log/slog"
+	"mogenius-operator/src/config"
 	"mogenius-operator/src/k8sclient"
 	"mogenius-operator/src/utils"
+	"mogenius-operator/src/valkeyclient"
 	"time"
-
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
-func ReconcilerFactory(logger *slog.Logger, clientProvider k8sclient.K8sClientProvider, interval time.Duration) Reconciler {
+// reconcilerModule holds shared dependencies for all reconcile handler methods.
+type reconcilerModule struct {
+	logger         *slog.Logger
+	clientProvider k8sclient.K8sClientProvider
+	config         config.ConfigModule
+	valkeyClient   valkeyclient.ValkeyClient
+}
+
+type reconcilerFactory struct {
+	module   *reconcilerModule
+	interval time.Duration
+}
+
+type ReconcilerFactory interface {
+	Build() Reconciler
+}
+
+func NewReconcilerFactory(logger *slog.Logger, clientProvider k8sclient.K8sClientProvider, configModule config.ConfigModule, valkeyClient valkeyclient.ValkeyClient) ReconcilerFactory {
+	return &reconcilerFactory{
+		module: &reconcilerModule{
+			logger:         logger,
+			clientProvider: clientProvider,
+			config:         configModule,
+			valkeyClient:   valkeyClient,
+		},
+		interval: 5 * time.Minute, // Example interval for background reconciliation
+	}
+}
+
+// ReconcilerFactory creates a Reconciler that reacts to changes in the RBAC and CRD resources
+// relevant to mogenius grant management. interval controls optional background re-reconciliation;
+// 0 disables it (event-driven only).
+func (f *reconcilerFactory) Build() Reconciler {
+
 	configs := []ResourceConfig{
 		{
 			Resource:  utils.ResourceDescriptor{Plural: "namespaces", Kind: "Namespace", ApiVersion: "v1", Namespaced: false},
-			Reconcile: reconcileNamespaces,
+			Reconcile: f.module.reconcileNamespaces,
 		},
 		{
 			Resource:  utils.ResourceDescriptor{Plural: "clusterroles", Kind: "ClusterRole", ApiVersion: "rbac.authorization.k8s.io/v1", Namespaced: false},
-			Reconcile: reconcileClusterRoles,
-		},
-		{
-			Resource:  utils.ResourceDescriptor{Plural: "clusterrolebindings", Kind: "ClusterRoleBinding", ApiVersion: "rbac.authorization.k8s.io/v1", Namespaced: false},
-			Reconcile: reconcileClusterRoleBindings,
-		},
-		{
-			Resource:  utils.ResourceDescriptor{Plural: "rolebindings", Kind: "RoleBinding", ApiVersion: "rbac.authorization.k8s.io/v1", Namespaced: false},
-			Reconcile: reconcileRoleBindings,
-		},
-		{
-			Resource:  utils.ResourceDescriptor{Plural: "configmaps", Kind: "ConfigMap", ApiVersion: "v1", Namespaced: true},
-			Reconcile: reconcileConfigMaps,
+			Reconcile: f.module.reconcileClusterRoles,
 		},
 		{
 			Resource:  utils.ResourceDescriptor{Plural: "workspaces", Kind: "Workspace", ApiVersion: "mogenius.com/v1alpha1", Namespaced: false},
-			Reconcile: reconcileWorkspaces,
+			Reconcile: f.module.reconcileWorkspaces,
 		},
 		{
 			Resource:  utils.ResourceDescriptor{Plural: "users", Kind: "User", ApiVersion: "mogenius.com/v1alpha1", Namespaced: false},
-			Reconcile: reconcileUsers,
+			Reconcile: f.module.reconcileUsers,
 		},
 		{
 			Resource:  utils.ResourceDescriptor{Plural: "grants", Kind: "Grant", ApiVersion: "mogenius.com/v1alpha1", Namespaced: false},
-			Reconcile: reconcileGrants,
+			Reconcile: f.module.reconcileGrants,
 		},
 	}
-	return newReconciler(logger, clientProvider, interval, configs)
-}
-
-func reconcileNamespaces(ctx context.Context, obj *unstructured.Unstructured, operation operation) []ReconcileResult {
-	return []ReconcileResult{}
-}
-
-func reconcileClusterRoles(ctx context.Context, obj *unstructured.Unstructured, operation operation) []ReconcileResult {
-	return []ReconcileResult{}
-}
-
-func reconcileClusterRoleBindings(ctx context.Context, obj *unstructured.Unstructured, operation operation) []ReconcileResult {
-	return []ReconcileResult{}
-}
-
-func reconcileRoleBindings(ctx context.Context, obj *unstructured.Unstructured, operation operation) []ReconcileResult {
-	return []ReconcileResult{}
-}
-
-func reconcileConfigMaps(ctx context.Context, obj *unstructured.Unstructured, operation operation) []ReconcileResult {
-	return []ReconcileResult{}
-}
-
-func reconcileWorkspaces(ctx context.Context, obj *unstructured.Unstructured, operation operation) []ReconcileResult {
-	return []ReconcileResult{}
-}
-
-func reconcileUsers(ctx context.Context, obj *unstructured.Unstructured, operation operation) []ReconcileResult {
-	return []ReconcileResult{}
-}
-
-func reconcileGrants(ctx context.Context, obj *unstructured.Unstructured, operation operation) []ReconcileResult {
-	return []ReconcileResult{}
+	return newReconciler(f.module.logger, f.module.clientProvider, f.interval, configs)
 }

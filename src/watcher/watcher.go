@@ -30,6 +30,14 @@ type WatcherModule interface {
 	// List all currently watched resources
 	ListWatchedResources() []utils.ResourceDescriptor
 	UnwatchAll()
+
+	// OnObjectCreated registers a callback that fires when a specific object (by kind/namespace/name) is added.
+	// Requires that the resource kind is already being watched via Watch.
+	OnObjectCreated(kind, namespace, name string, cb func(*unstructured.Unstructured))
+	// OnObjectUpdated registers a callback that fires when a specific object is updated.
+	OnObjectUpdated(kind, namespace, name string, cb func(*unstructured.Unstructured))
+	// OnObjectDeleted registers a callback that fires when a specific object is deleted.
+	OnObjectDeleted(kind, namespace, name string, cb func(*unstructured.Unstructured))
 }
 
 type WatcherOnAdd func(resource utils.ResourceDescriptor, obj *unstructured.Unstructured)
@@ -45,11 +53,23 @@ const (
 	WatchingFailed      WatcherResourceState = "WatchingFailed"
 )
 
+// objectSubscriptionKey identifies a specific Kubernetes object for targeted event subscriptions.
+type objectSubscriptionKey struct {
+	kind      string
+	namespace string
+	name      string
+}
+
 type watcher struct {
 	handlerMapLock sync.RWMutex
 	activeHandlers map[utils.ResourceDescriptor]resourceContext
 	clientProvider k8sclient.K8sClientProvider
 	logger         *slog.Logger
+
+	objectSubsMu     sync.RWMutex
+	objectSubsAdd    map[objectSubscriptionKey][]func(*unstructured.Unstructured)
+	objectSubsUpdate map[objectSubscriptionKey][]func(*unstructured.Unstructured)
+	objectSubsDelete map[objectSubscriptionKey][]func(*unstructured.Unstructured)
 }
 
 func NewWatcher(logger *slog.Logger, clientProvider k8sclient.K8sClientProvider) WatcherModule {
@@ -58,6 +78,9 @@ func NewWatcher(logger *slog.Logger, clientProvider k8sclient.K8sClientProvider)
 	self.activeHandlers = make(map[utils.ResourceDescriptor]resourceContext, 0)
 	self.clientProvider = clientProvider
 	self.logger = logger
+	self.objectSubsAdd = make(map[objectSubscriptionKey][]func(*unstructured.Unstructured))
+	self.objectSubsUpdate = make(map[objectSubscriptionKey][]func(*unstructured.Unstructured))
+	self.objectSubsDelete = make(map[objectSubscriptionKey][]func(*unstructured.Unstructured))
 
 	return self
 }
@@ -218,6 +241,7 @@ func (self *watcher) startSingleWatcher(ctx context.Context, resource utils.Reso
 			if onAdd != nil {
 				onAdd(resource, unstructuredObj)
 			}
+			self.fireObjectSubs(self.objectSubsAdd, unstructuredObj)
 		},
 		UpdateFunc: func(oldObj, newObj any) {
 			oldUnstructuredObj, ok := toUnstructured(oldObj)
@@ -230,10 +254,10 @@ func (self *watcher) startSingleWatcher(ctx context.Context, resource utils.Reso
 				self.logger.Warn("failed to deserialize new object", "type", fmt.Sprintf("%T", newObj))
 				return
 			}
-
 			if onUpdate != nil {
 				onUpdate(resource, oldUnstructuredObj, newUnstructuredObj)
 			}
+			self.fireObjectSubs(self.objectSubsUpdate, newUnstructuredObj)
 		},
 		DeleteFunc: func(obj any) {
 			unstructuredObj, ok := toUnstructured(obj)
@@ -244,6 +268,7 @@ func (self *watcher) startSingleWatcher(ctx context.Context, resource utils.Reso
 			if onDelete != nil {
 				onDelete(resource, unstructuredObj)
 			}
+			self.fireObjectSubs(self.objectSubsDelete, unstructuredObj)
 		},
 	})
 	if err != nil {
@@ -361,6 +386,38 @@ func (m *watcher) State(resource utils.ResourceDescriptor) (WatcherResourceState
 	}
 
 	return resourceContext.state, nil
+}
+
+func (self *watcher) OnObjectCreated(kind, namespace, name string, cb func(*unstructured.Unstructured)) {
+	key := objectSubscriptionKey{kind: kind, namespace: namespace, name: name}
+	self.objectSubsMu.Lock()
+	self.objectSubsAdd[key] = append(self.objectSubsAdd[key], cb)
+	self.objectSubsMu.Unlock()
+}
+
+func (self *watcher) OnObjectUpdated(kind, namespace, name string, cb func(*unstructured.Unstructured)) {
+	key := objectSubscriptionKey{kind: kind, namespace: namespace, name: name}
+	self.objectSubsMu.Lock()
+	self.objectSubsUpdate[key] = append(self.objectSubsUpdate[key], cb)
+	self.objectSubsMu.Unlock()
+}
+
+func (self *watcher) OnObjectDeleted(kind, namespace, name string, cb func(*unstructured.Unstructured)) {
+	key := objectSubscriptionKey{kind: kind, namespace: namespace, name: name}
+	self.objectSubsMu.Lock()
+	self.objectSubsDelete[key] = append(self.objectSubsDelete[key], cb)
+	self.objectSubsMu.Unlock()
+}
+
+// fireObjectSubs fires any per-object subscriptions registered for this object's kind/namespace/name.
+func (self *watcher) fireObjectSubs(subs map[objectSubscriptionKey][]func(*unstructured.Unstructured), obj *unstructured.Unstructured) {
+	key := objectSubscriptionKey{kind: obj.GetKind(), namespace: obj.GetNamespace(), name: obj.GetName()}
+	self.objectSubsMu.RLock()
+	callbacks := subs[key]
+	self.objectSubsMu.RUnlock()
+	for _, cb := range callbacks {
+		cb(obj)
+	}
 }
 
 func (self *watcher) UnwatchAll() {
