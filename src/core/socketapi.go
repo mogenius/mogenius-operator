@@ -1031,6 +1031,14 @@ func (self *socketApi) registerPatterns() {
 	)
 
 	RegisterPatternHandler(
+		PatternHandle{self, "cluster/argo-cd-resource-action"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request argocd.ArgoCdResourceActionRequest) (bool, error) {
+			return self.argocd.ArgoCdResourceAction(request)
+		},
+	)
+
+	RegisterPatternHandler(
 		PatternHandle{self, "service/port-forward-connection-request"},
 		PatternConfig{},
 		func(datagram structs.Datagram, request xterm.PortForwardConnectionRequest) (Void, error) {
