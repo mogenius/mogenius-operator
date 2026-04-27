@@ -1,3 +1,10 @@
+# [2.20.0-develop.104](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.103...v2.20.0-develop.104) (2026-04-27)
+
+
+### Features
+
+* **argocd:** add resource-level sync and action support ([6048299](https://github.com/mogenius/mogenius-operator/commit/60482992719a8c188e27969525106aa6b1c437a8))
+
 # [2.20.0-develop.103](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.102...v2.20.0-develop.103) (2026-04-27)
 
 
