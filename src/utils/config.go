@@ -161,4 +161,11 @@ var ServiceResource = ResourceDescriptor{
 	Namespaced: true,
 }
 
+var ClusterRoleResource = ResourceDescriptor{
+	Kind:       "ClusterRole",
+	Plural:     "clusterroles",
+	ApiVersion: "rbac.authorization.k8s.io/v1",
+	Namespaced: false,
+}
+
 var ClusterProviderCached KubernetesProvider = UNKNOWN
