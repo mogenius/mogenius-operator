@@ -54,13 +54,6 @@ type ObjectStatus struct {
 	Result            []ReconcileResult `json:"message"`
 }
 
-// Status is a snapshot of the reconciler's current state.
-type Status struct {
-	IsActive   bool           `json:"is_active"`
-	LastUpdate *time.Time     `json:"last_update,omitempty"`
-	Results    []ObjectStatus `json:"results"`
-}
-
 // Reconciler watches a configurable set of Kubernetes resources and calls a
 // per-resource handler on add/update/delete events and on a global timer.
 type Reconciler interface {
@@ -93,9 +86,6 @@ type genericReconciler struct {
 	wg     sync.WaitGroup
 }
 
-// NewReconciler creates a Reconciler that watches the resources described by
-// configs. interval controls how often all cached objects are re-reconciled;
-// zero disables the timer. Call Start to begin watching and Stop to shut down.
 func newReconciler(
 	logger *slog.Logger,
 	clientProvider k8sclient.K8sClientProvider,
@@ -116,9 +106,6 @@ func newReconciler(
 	return r
 }
 
-// Start enables watching for all registered resources and, if an interval was
-// configured, launches a single timer goroutine that reconciles all cached
-// objects on every tick. Safe to call again after Stop.
 func (r *genericReconciler) Start() {
 	ctx, cancel := context.WithCancel(context.Background())
 	r.ctx = ctx
@@ -179,8 +166,6 @@ func (r *genericReconciler) Start() {
 	}
 }
 
-// Stop cancels the reconciliation context, unregisters all watchers, waits for
-// the timer goroutine to exit, and clears all caches and status entries.
 func (r *genericReconciler) Stop() {
 	if !r.active.Swap(false) {
 		return
@@ -196,26 +181,6 @@ func (r *genericReconciler) Stop() {
 	r.statusMu.Unlock()
 }
 
-// Status returns a snapshot of the current reconciler state.
-func (r *genericReconciler) Status() Status {
-	r.statusMu.RLock()
-	defer r.statusMu.RUnlock()
-
-	results := []ObjectStatus{}
-	for _, v := range r.objectState {
-		results = append(results, v)
-	}
-
-	s := Status{
-		IsActive:   r.active.Load(),
-		LastUpdate: r.lastUpdate,
-		Results:    results,
-	}
-	return s
-}
-
-// callHandler invokes the reconcile func in a new goroutine with a deep copy of
-// obj and records the result in the status map.
 func (r *genericReconciler) callHandler(ctx context.Context, cfg ResourceConfig, obj *unstructured.Unstructured, operation operation) {
 	objCopy := obj.DeepCopy()
 	go func() {
@@ -236,6 +201,11 @@ func (r *genericReconciler) recordResult(resource utils.ResourceDescriptor, obj 
 	defer r.statusMu.Unlock()
 
 	r.lastUpdate = &now
+
+	if len(result) == 0 {
+		delete(r.objectState, key)
+		return
+	}
 
 	r.objectState[key] = ObjectStatus{
 		ResourceKind:      resource.Kind,
