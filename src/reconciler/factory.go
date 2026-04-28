@@ -39,11 +39,7 @@ func NewReconcilerFactory(logger *slog.Logger, clientProvider k8sclient.K8sClien
 		configs:  []ResourceConfig{},
 	}
 
-	factory.WithReconciler(utils.GrantResource, factory.module.reconcileGrants).
-		WithReconciler(utils.NamespaceResource, factory.module.reconcileNamespaces).
-		WithReconciler(utils.ClusterRoleResource, factory.module.reconcileClusterRoles).
-		WithReconciler(utils.WorkspaceResource, factory.module.reconcileWorkspaces).
-		WithReconciler(utils.UserResource, factory.module.reconcileUsers)
+	factory.WithReconciler(utils.WorkspaceResource, factory.module.reconcileWorkspaces)
 
 	return factory
 }
