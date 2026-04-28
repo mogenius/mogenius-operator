@@ -20,6 +20,7 @@ type reconcilerModule struct {
 type reconcilerFactory struct {
 	module   *reconcilerModule
 	interval time.Duration
+	configs  []ResourceConfig
 }
 
 type ReconcilerFactory interface {
@@ -27,7 +28,7 @@ type ReconcilerFactory interface {
 }
 
 func NewReconcilerFactory(logger *slog.Logger, clientProvider k8sclient.K8sClientProvider, configModule config.ConfigModule, valkeyClient valkeyclient.ValkeyClient) ReconcilerFactory {
-	return &reconcilerFactory{
+	factory := &reconcilerFactory{
 		module: &reconcilerModule{
 			logger:         logger,
 			clientProvider: clientProvider,
@@ -35,35 +36,26 @@ func NewReconcilerFactory(logger *slog.Logger, clientProvider k8sclient.K8sClien
 			valkeyClient:   valkeyClient,
 		},
 		interval: 1 * time.Minute,
+		configs:  []ResourceConfig{},
 	}
+
+	factory.WithReconciler(utils.GrantResource, factory.module.reconcileGrants).
+		WithReconciler(utils.NamespaceResource, factory.module.reconcileNamespaces).
+		WithReconciler(utils.ClusterRoleResource, factory.module.reconcileClusterRoles).
+		WithReconciler(utils.WorkspaceResource, factory.module.reconcileWorkspaces).
+		WithReconciler(utils.UserResource, factory.module.reconcileUsers)
+
+	return factory
 }
 
-// ReconcilerFactory creates a Reconciler that reacts to changes in the RBAC and CRD resources
-// relevant to mogenius grant management. interval controls optional background re-reconciliation;
-// 0 disables it (event-driven only).
-func (f *reconcilerFactory) Build() Reconciler {
+func (f *reconcilerFactory) WithReconciler(resource utils.ResourceDescriptor, reconcileFunc ReconcileFunc) *reconcilerFactory {
+	f.configs = append(f.configs, ResourceConfig{
+		Resource:  resource,
+		Reconcile: reconcileFunc,
+	})
+	return f
+}
 
-	configs := []ResourceConfig{
-		{
-			Resource:  utils.ResourceDescriptor{Plural: "namespaces", Kind: "Namespace", ApiVersion: "v1", Namespaced: false},
-			Reconcile: f.module.reconcileNamespaces,
-		},
-		{
-			Resource:  utils.ResourceDescriptor{Plural: "clusterroles", Kind: "ClusterRole", ApiVersion: "rbac.authorization.k8s.io/v1", Namespaced: false},
-			Reconcile: f.module.reconcileClusterRoles,
-		},
-		{
-			Resource:  utils.ResourceDescriptor{Plural: "workspaces", Kind: "Workspace", ApiVersion: "mogenius.com/v1alpha1", Namespaced: false},
-			Reconcile: f.module.reconcileWorkspaces,
-		},
-		{
-			Resource:  utils.ResourceDescriptor{Plural: "users", Kind: "User", ApiVersion: "mogenius.com/v1alpha1", Namespaced: false},
-			Reconcile: f.module.reconcileUsers,
-		},
-		{
-			Resource:  utils.ResourceDescriptor{Plural: "grants", Kind: "Grant", ApiVersion: "mogenius.com/v1alpha1", Namespaced: false},
-			Reconcile: f.module.reconcileGrants,
-		},
-	}
-	return newReconciler(f.module.logger, f.module.clientProvider, f.interval, configs)
+func (f *reconcilerFactory) Build() Reconciler {
+	return newReconciler(f.module.logger, f.module.clientProvider, f.interval, f.configs)
 }
