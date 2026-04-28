@@ -34,7 +34,7 @@ func NewReconcilerFactory(logger *slog.Logger, clientProvider k8sclient.K8sClien
 			config:         configModule,
 			valkeyClient:   valkeyClient,
 		},
-		interval: 5 * time.Minute, // Example interval for background reconciliation
+		interval: 1 * time.Minute,
 	}
 }
 
