@@ -158,12 +158,8 @@ func initializeClusterSystems(
 	moKubernetes.Link(dbstatsService)
 	httpApi.Link(socketApi, dbstatsService, apiModule, reconciler)
 	apiModule.Link(workspaceManager)
-	// Wire reconciler lifecycle to leader election.
-	leaderElector.OnLeading(reconciler.Start)
-	leaderElector.OnLeadingEnded(reconciler.Stop)
+
 	// Register AI filters ConfigMap watcher — fires on the object-level subscription
-	// so no second Watch call is needed; the existing ConfigMap watch in WatchStoreResources
-	// already covers this resource.
 	watcherModule.OnObjectCreated("ConfigMap", configModule.Get("MO_OWN_NAMESPACE"), utils.AI_FILTERS_CONFIGMAP_NAME, aiApi.HandleConfigMapChange)
 	watcherModule.OnObjectUpdated("ConfigMap", configModule.Get("MO_OWN_NAMESPACE"), utils.AI_FILTERS_CONFIGMAP_NAME, aiApi.HandleConfigMapChange)
 
@@ -255,6 +251,18 @@ func RunCluster(logManagerModule logging.SlogManager, configModule *config.Confi
 		logStep("DB stats service started")
 
 		logStep("Reconciler ready (started by leader election)")
+
+		systems.leaderElector.OnLeading(func() {
+
+			systems.reconciler.Start()
+			logStep("Reconciler started")
+		})
+
+		systems.leaderElector.OnLeadingEnded(func() {
+
+			systems.reconciler.Stop()
+			logStep("Reconciler stopped")
+		})
 
 		systems.leaderElector.Run()
 		logStep("Leader elector started")
