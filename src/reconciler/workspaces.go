@@ -55,7 +55,7 @@ func (d *reconcilerModule) verifyWorkspaceIntegrity(ctx context.Context, obj *un
 			_, err := GetNamespace(namespace, &d.valkeyClient, d.logger)
 			if err != nil {
 				resourceErr := ReconcileResult{}
-				resourceErr.Err = fmt.Errorf("Workspace contains a resource of type 'namespace' pointing to a namespace which does not exist: %#v", namespace)
+				resourceErr.Err = fmt.Errorf("Workspace contains a resource of type 'namespace' pointing to a namespace which does not exist: %#v, %w", namespace, err)
 				results = append(results, resourceErr)
 			}
 		case "helm":
@@ -68,7 +68,7 @@ func (d *reconcilerModule) verifyWorkspaceIntegrity(ctx context.Context, obj *un
 			_, err := GetNamespace(namespace, &d.valkeyClient, d.logger)
 			if err != nil {
 				resourceErr := ReconcileResult{}
-				resourceErr.Err = fmt.Errorf("Workspace contains a resource of type 'helm' pointing to a namespace which does not exist: %#v", namespace)
+				resourceErr.Err = fmt.Errorf("Workspace contains a resource of type 'helm' pointing to a namespace which does not exist: %#v, %w", namespace, err)
 				results = append(results, resourceErr)
 			}
 		case "argocd":
