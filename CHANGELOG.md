@@ -1,3 +1,10 @@
+# [2.20.0-develop.106](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.105...v2.20.0-develop.106) (2026-04-29)
+
+
+### Bug Fixes
+
+* cleanup AI tasks when filters ConfigMap is deleted (MOG-4260) ([3c1c35b](https://github.com/mogenius/mogenius-operator/commit/3c1c35bd202f8dda853247b8c82ca8bc81ff5e0c))
+
 # [2.20.0-develop.105](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.104...v2.20.0-develop.105) (2026-04-29)
 
 
