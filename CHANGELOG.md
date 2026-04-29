@@ -1,3 +1,21 @@
+# [2.20.0-develop.105](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.104...v2.20.0-develop.105) (2026-04-29)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/mattn/go-isatty to v0.0.22 ([#931](https://github.com/mogenius/mogenius-operator/issues/931)) ([9ef2f41](https://github.com/mogenius/mogenius-operator/commit/9ef2f41915647f07653c30c534634f13cfcdedd7))
+* refactor status into a new file ([94239dd](https://github.com/mogenius/mogenius-operator/commit/94239dd8e5f32a14a0809df5a2d591743e611319))
+* rework factory build a little bit ([ef0152f](https://github.com/mogenius/mogenius-operator/commit/ef0152f1b98cbdccedaab2bc17b5fa3a38aab1dd))
+* rework leader elector start and stop a bit ([878ea07](https://github.com/mogenius/mogenius-operator/commit/878ea07d24e8c80110e66266a4ecd8ab99ae6b76))
+* validate workspaces ([c4807f3](https://github.com/mogenius/mogenius-operator/commit/c4807f34c1ae9285274889f12fa6433149e6b170))
+
+
+### Features
+
+* adding a new more generic reconciler ([0695cb1](https://github.com/mogenius/mogenius-operator/commit/0695cb1fa132914cf001f2f34de6e6ed26e7a84f))
+* remove obsolete reconcilers ([cac0c8a](https://github.com/mogenius/mogenius-operator/commit/cac0c8a46b3aad426d085e5cc5badde3d51e0fc8))
+* replace current reconciler with new reconciler ([a56da8d](https://github.com/mogenius/mogenius-operator/commit/a56da8d522e448d0492555cae6ddbd54988492a5))
+
 # [2.20.0-develop.104](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.103...v2.20.0-develop.104) (2026-04-27)
 
 
