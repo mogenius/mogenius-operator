@@ -25,6 +25,9 @@ type AiApi interface {
 	GetPromptConfig() (*ai.AiPromptConfig, error)
 	// HandleConfigMapChange reloads AI prompt filters from the given ConfigMap object.
 	HandleConfigMapChange(obj *unstructured.Unstructured)
+	// HandleConfigMapDelete clears the in-memory prompt config and purges
+	// AI tasks/tokens from Valkey when the AI filters ConfigMap is deleted.
+	HandleConfigMapDelete(obj *unstructured.Unstructured)
 }
 type aiApi struct {
 	logger    *slog.Logger
@@ -128,4 +131,16 @@ func (self *aiApi) HandleConfigMapChange(obj *unstructured.Unstructured) {
 	}
 
 	self.aiManager.InjectAiPromptConfig(updatedConfig, nil)
+}
+
+// HandleConfigMapDelete clears the in-memory AI prompt config and purges all
+// AI-related Valkey entries (tasks, tokens, latest tasks). Triggered when the
+// AI filters ConfigMap is deleted, which represents a feature deactivation.
+// Without this cleanup, stale AiTasks would linger until their 7-day TTL.
+func (self *aiApi) HandleConfigMapDelete(_ *unstructured.Unstructured) {
+	self.logger.Info("AI filters ConfigMap deleted — clearing prompt config and purging stored AI data")
+	self.aiManager.InjectAiPromptConfig(ai.AiPromptConfig{}, nil)
+	if err := self.aiManager.DeleteAllAiData(); err != nil {
+		self.logger.Error("failed to delete AI data after ConfigMap deletion", "error", err)
+	}
 }

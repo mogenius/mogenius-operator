@@ -162,6 +162,7 @@ func initializeClusterSystems(
 	// Register AI filters ConfigMap watcher — fires on the object-level subscription
 	watcherModule.OnObjectCreated("ConfigMap", configModule.Get("MO_OWN_NAMESPACE"), utils.AI_FILTERS_CONFIGMAP_NAME, aiApi.HandleConfigMapChange)
 	watcherModule.OnObjectUpdated("ConfigMap", configModule.Get("MO_OWN_NAMESPACE"), utils.AI_FILTERS_CONFIGMAP_NAME, aiApi.HandleConfigMapChange)
+	watcherModule.OnObjectDeleted("ConfigMap", configModule.Get("MO_OWN_NAMESPACE"), utils.AI_FILTERS_CONFIGMAP_NAME, aiApi.HandleConfigMapDelete)
 
 	return clusterSystems{
 		baseSystems:           base,
