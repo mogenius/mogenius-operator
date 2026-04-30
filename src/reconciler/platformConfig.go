@@ -80,3 +80,15 @@ func (d *reconcilerModule) updatePlatformConfigStatus(ctx context.Context, name 
 	)
 	return err
 }
+
+func (d *reconcilerModule) fetchPlatformPatch(ctx context.Context, ref *v1alpha1.PlatformConfigPatchReference) (*v1alpha1.PlatformPatch, error) {
+	obj, err := d.clientProvider.DynamicClient().Resource(platformPatchGVR).Get(ctx, ref.Name, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	var patch v1alpha1.PlatformPatch
+	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &patch); err != nil {
+		return nil, fmt.Errorf("convert PlatformPatch: %w", err)
+	}
+	return &patch, nil
+}

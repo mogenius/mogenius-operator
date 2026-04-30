@@ -53,8 +53,8 @@ func (a *argocdInstaller) UnInstall(component string) error {
 
 func buildArgoApplication(component string, artifact GitOpsArtifact) *unstructured.Unstructured {
 	helm := map[string]interface{}{}
-	if artifact.Values != "" {
-		helm["values"] = artifact.Values
+	if len(artifact.Values) > 0 {
+		helm["valuesObject"] = artifact.Values
 	}
 
 	return &unstructured.Unstructured{
