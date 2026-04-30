@@ -8,19 +8,18 @@ import (
 )
 
 func (d *reconcilerModule) reconcileCertManager(ctx context.Context, spec v1alpha1.PlatformConfigSpec, installer gitops.GitOpsInstaller) *ReconcileResult {
-	const componentName = "cert-manager"
 
 	certManager := spec.CertManager
 	if certManager == nil {
-		if err := installer.UnInstall(componentName); err != nil {
-			return &ReconcileResult{Err: fmt.Errorf("failed to uninstall %s: %w", componentName, err)}
+		if err := installer.UnInstall(componentCertManager); err != nil {
+			return &ReconcileResult{Err: fmt.Errorf("failed to uninstall %s: %w", componentCertManager, err)}
 		}
 		return nil
 	}
 
-	defaultComponentConfig, err := getDefaultConfig(spec.PlatformSource, spec.PlatformVersion, componentName)
+	defaultComponentConfig, err := getDefaultConfig(spec.PlatformSource, spec.PlatformVersion, componentCertManager)
 	if err != nil {
-		return &ReconcileResult{Err: fmt.Errorf("fetch default config for %s: %w", componentName, err)}
+		return &ReconcileResult{Err: fmt.Errorf("fetch default config for %s: %w", componentCertManager, err)}
 	}
 
 	chart := gitops.HelmChartReference{
@@ -36,12 +35,12 @@ func (d *reconcilerModule) reconcileCertManager(ctx context.Context, spec v1alph
 	}
 
 	if certManager.Enabled {
-		if err := installer.Install(componentName, artifact); err != nil {
-			return &ReconcileResult{Err: fmt.Errorf("failed to install %s: %w", componentName, err)}
+		if err := installer.Install(componentCertManager, artifact); err != nil {
+			return &ReconcileResult{Err: fmt.Errorf("failed to install %s: %w", componentCertManager, err)}
 		}
 	} else {
-		if err := installer.UnInstall(componentName); err != nil {
-			return &ReconcileResult{Err: fmt.Errorf("failed to uninstall %s: %w", componentName, err)}
+		if err := installer.UnInstall(componentCertManager); err != nil {
+			return &ReconcileResult{Err: fmt.Errorf("failed to uninstall %s: %w", componentCertManager, err)}
 		}
 	}
 

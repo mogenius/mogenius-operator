@@ -29,7 +29,7 @@ type PlatformPatch struct {
 
 	Spec PlatformPatchSpec `json:"spec"`
 
-	Status PlatformPatchStatus `json:"status"`
+	Status PlatformPatchStatus `json:"status,omitempty"`
 }
 
 // Patches to be applied to the configuration of a platform component.
