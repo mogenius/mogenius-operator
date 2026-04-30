@@ -1,0 +1,83 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.20.1
+  name: platformconfigs.mogenius.com
+spec:
+  group: mogenius.com
+  names:
+    kind: PlatformConfig
+    listKind: PlatformConfigList
+    plural: platformconfigs
+    singular: platformconfig
+  scope: Cluster
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: |-
+          A mogenius `PlatformConfig` defines the configuration for the platform.
+
+          From here on the operatr will derive needed platform components and their configuration.
+          For example, a `PlatformConfig` could specifiy your cert-manager configuration,
+          which the operator would then apply to the cluster and keep in sync with the `PlatformConfig` resource.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: Grant permissions to a workspace for a group
+            properties:
+              grantee:
+                description: |-
+                  who is granted permission
+
+                  - user.meta.name
+                  - team.meta.name
+                type: string
+              role:
+                description: |-
+                  which permissions are granted:
+
+                  - "viewer"
+                  - "editor"
+                  - "admin"
+                type: string
+              targetName:
+                description: |-
+                  to which specific resource is the grant applied:
+
+                  - workspace.meta.name
+                type: string
+              targetType:
+                description: |-
+                  type of grant:
+
+                  - "workspace"
+                type: string
+            type: object
+          status:
+            type: object
+        required:
+        - metadata
+        - spec
+        - status
+        type: object
+    served: true
+    storage: true
