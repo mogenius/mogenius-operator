@@ -18,9 +18,12 @@ func (d *reconcilerModule) reconcilePlatformConfig(ctx context.Context, obj *uns
 
 	results := []ReconcileResult{}
 
-	installer := gitops.NewGitOpsInstaller(platformConfig.Spec.GitOps.Engine)
+	installer := gitops.NewGitOpsInstaller(platformConfig.Spec.GitOps.Engine, d.clientProvider)
 
-	results = append(results, d.reconcileCertManager(ctx, platformConfig.Spec, installer))
+	certManager := d.reconcileCertManager(ctx, platformConfig.Spec, installer)
+	if certManager != nil {
+		results = append(results, *certManager)
+	}
 
 	return results
 }

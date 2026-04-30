@@ -42,35 +42,54 @@ spec:
           metadata:
             type: object
           spec:
-            description: Grant permissions to a workspace for a group
+            description: Specification of platform components and their configuration.
             properties:
-              grantee:
-                description: |-
-                  who is granted permission
-
-                  - user.meta.name
-                  - team.meta.name
+              certManager:
+                properties:
+                  chart:
+                    properties:
+                      chart:
+                        type: string
+                      name:
+                        description: name of the HelmRelease resource to apply
+                        type: string
+                      repository:
+                        type: string
+                      version:
+                        type: string
+                    type: object
+                  enabled:
+                    type: boolean
+                  issuers:
+                    items:
+                      properties:
+                        clusterIssuerName:
+                          description: name of the ClusterIssuer resource to use for
+                            cert-manager
+                          type: string
+                      type: object
+                    type: array
+                  patch:
+                    properties:
+                      name:
+                        description: name of the PlatformPatch resource to apply
+                        type: string
+                    type: object
+                type: object
+              gitOps:
+                properties:
+                  engine:
+                    type: string
+                required:
+                - engine
+                type: object
+              platformSource:
                 type: string
-              role:
-                description: |-
-                  which permissions are granted:
-
-                  - "viewer"
-                  - "editor"
-                  - "admin"
+              platformVersion:
                 type: string
-              targetName:
-                description: |-
-                  to which specific resource is the grant applied:
-
-                  - workspace.meta.name
-                type: string
-              targetType:
-                description: |-
-                  type of grant:
-
-                  - "workspace"
-                type: string
+            required:
+            - gitOps
+            - platformVersion
             type: object
           status:
             type: object

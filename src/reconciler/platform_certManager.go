@@ -7,16 +7,15 @@ import (
 	"mogenius-operator/src/gitops"
 )
 
-func (d *reconcilerModule) reconcileCertManager(ctx context.Context, spec v1alpha1.PlatformConfigSpec, installer gitops.GitOpsInstaller) ReconcileResult {
-	result := ReconcileResult{}
+func (d *reconcilerModule) reconcileCertManager(ctx context.Context, spec v1alpha1.PlatformConfigSpec, installer gitops.GitOpsInstaller) *ReconcileResult {
 	const componentName = "cert-manager"
 
 	certManager := spec.CertManager
 	if certManager == nil {
 		if err := installer.UnInstall(componentName); err != nil {
-			result.Err = fmt.Errorf("failed to uninstall %s: %w", componentName, err)
+			return &ReconcileResult{Err: fmt.Errorf("failed to uninstall %s: %w", componentName, err)}
 		}
-		return result
+		return nil
 	}
 
 	defaultComponentConfig := getDefaultConfig("certManager", spec.PlatformVersion, spec.PlatformSource)
@@ -34,13 +33,13 @@ func (d *reconcilerModule) reconcileCertManager(ctx context.Context, spec v1alph
 
 	if certManager.Enabled {
 		if err := installer.Install(componentName, artifact); err != nil {
-			result.Err = fmt.Errorf("failed to install %s: %w", componentName, err)
+			return &ReconcileResult{Err: fmt.Errorf("failed to install %s: %w", componentName, err)}
 		}
 	} else {
 		if err := installer.UnInstall(componentName); err != nil {
-			result.Err = fmt.Errorf("failed to uninstall %s: %w", componentName, err)
+			return &ReconcileResult{Err: fmt.Errorf("failed to uninstall %s: %w", componentName, err)}
 		}
 	}
 
-	return result
+	return nil
 }

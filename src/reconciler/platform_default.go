@@ -11,5 +11,8 @@ type componentDefaultSpec struct {
 }
 
 func getDefaultConfig(version string, component string, source string) componentDefaultSpec {
-	return componentDefaultSpec{}
+	return componentDefaultSpec{
+		Version: "1.20.0",
+		Values:  "",
+	}
 }

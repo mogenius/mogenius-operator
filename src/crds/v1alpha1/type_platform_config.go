@@ -39,11 +39,11 @@ type PlatformConfig struct {
 type PlatformConfigSpec struct {
 	PlatformVersion string             `json:"platformVersion"`
 	PlatformSource  string             `json:"platformSource,omitempty"`
-	GitOps          *GitOpsConfig      `json:"gitOps,omitempty"`
+	GitOps          *GitOpsConfig      `json:"gitOps"`
 	CertManager     *CertManagerConfig `json:"certManager,omitempty"`
 }
 type GitOpsConfig struct {
-	Engine string `json:"engine,omitempty"`
+	Engine string `json:"engine"`
 }
 
 type CertManagerConfig struct {
