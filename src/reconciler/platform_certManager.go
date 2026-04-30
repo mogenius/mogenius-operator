@@ -18,7 +18,11 @@ func (d *reconcilerModule) reconcileCertManager(ctx context.Context, spec v1alph
 		return nil
 	}
 
-	defaultComponentConfig := getDefaultConfig("certManager", spec.PlatformVersion, spec.PlatformSource)
+	defaultComponentConfig, err := getDefaultConfig(spec.PlatformSource, spec.PlatformVersion, componentName)
+	if err != nil {
+		return &ReconcileResult{Err: fmt.Errorf("fetch default config for %s: %w", componentName, err)}
+	}
+
 	chart := gitops.HelmChartReference{
 		Chart:      helmChartName(certManager.Chart, "cert-manager"),
 		Repository: helmRepository(certManager.Chart, "https://charts.jetstack.io"),
