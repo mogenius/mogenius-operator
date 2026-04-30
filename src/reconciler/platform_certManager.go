@@ -103,12 +103,51 @@ func (d *reconcilerModule) buildCertManagerExtraObjects(ctx context.Context, cer
 	return extraObjects, nil
 }
 
+const letsEncryptProdServer = "https://acme-v02.api.letsencrypt.org/directory"
+
 func buildClusterIssuerObject(issuer v1alpha1.CertManagerIssuerConfig) map[string]interface{} {
+	server := issuer.Server
+	if server == "" {
+		server = letsEncryptProdServer
+	}
+
+	acme := map[string]interface{}{
+		"server": server,
+		"email":  issuer.Email,
+		"privateKeySecretRef": map[string]interface{}{
+			"name": issuer.Name + "-account-key",
+		},
+	}
+
+	if issuer.HTTP01 != nil {
+		ingress := map[string]interface{}{}
+		if issuer.HTTP01.IngressClass != "" {
+			ingress["class"] = issuer.HTTP01.IngressClass
+		}
+		if len(issuer.HTTP01.IngressAnnotations) > 0 {
+			ingress["podTemplate"] = map[string]interface{}{
+				"metadata": map[string]interface{}{
+					"annotations": issuer.HTTP01.IngressAnnotations,
+				},
+			}
+		}
+		acme["solvers"] = []interface{}{
+			map[string]interface{}{
+				"http01": map[string]interface{}{
+					"ingress": ingress,
+				},
+			},
+		}
+	}
+
 	return map[string]interface{}{
 		"apiVersion": "cert-manager.io/v1",
 		"kind":       "ClusterIssuer",
 		"metadata": map[string]interface{}{
-			"name": issuer.ClusterIssuerName,
+			"name": issuer.Name,
+		},
+		"spec": map[string]interface{}{
+			"acme": acme,
 		},
 	}
 }
