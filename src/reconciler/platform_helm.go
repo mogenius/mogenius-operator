@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"mogenius-operator/src/crds/v1alpha1"
-
-	sigsyaml "sigs.k8s.io/yaml"
 )
 
 func helmChartName(reference *v1alpha1.HelmChartReference, defaultName string) string {
@@ -34,17 +32,13 @@ func helmVersion(reference *v1alpha1.HelmChartReference, defaultVersion string) 
 }
 
 // mergeHelmValues builds a merged values map in three layers:
-//  1. defaults from getDefaultConfig (YAML string)
+//  1. defaults.ValuesObject from getDefaultConfig
 //  2. configValues derived from the component spec
 //  3. patch values from a PlatformPatch (highest precedence)
 func mergeHelmValues(defaults componentDefaultSpec, configValues map[string]interface{}, patch *v1alpha1.PlatformPatch) (map[string]interface{}, error) {
 	result := map[string]interface{}{}
 
-	if defaults.Values != "" {
-		if err := sigsyaml.Unmarshal([]byte(defaults.Values), &result); err != nil {
-			return nil, fmt.Errorf("parse default values: %w", err)
-		}
-	}
+	mergeMaps(result, defaults.ValuesObject)
 
 	mergeMaps(result, configValues)
 
