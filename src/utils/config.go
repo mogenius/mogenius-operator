@@ -147,6 +147,20 @@ var UserResource = ResourceDescriptor{
 	Namespaced: true,
 }
 
+var PlatformConfigResource = ResourceDescriptor{
+	Kind:       "PlatformConfig",
+	Plural:     "platformconfigs",
+	ApiVersion: "mogenius.com/v1alpha1",
+	Namespaced: false,
+}
+
+var PlatformPatchResource = ResourceDescriptor{
+	Kind:       "PlatformPatch",
+	Plural:     "platformpatches",
+	ApiVersion: "mogenius.com/v1alpha1",
+	Namespaced: false,
+}
+
 var ConfigMapResource = ResourceDescriptor{
 	Kind:       "ConfigMap",
 	Plural:     "configmaps",

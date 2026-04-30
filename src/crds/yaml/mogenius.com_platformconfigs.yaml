@@ -1,0 +1,121 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.20.1
+  name: platformconfigs.mogenius.com
+spec:
+  group: mogenius.com
+  names:
+    kind: PlatformConfig
+    listKind: PlatformConfigList
+    plural: platformconfigs
+    singular: platformconfig
+  scope: Cluster
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: |-
+          A mogenius `PlatformConfig` defines the configuration for the platform.
+
+          From here on the operatr will derive needed platform components and their configuration.
+          For example, a `PlatformConfig` could specifiy your cert-manager configuration,
+          which the operator would then apply to the cluster and keep in sync with the `PlatformConfig` resource.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: Specification of platform components and their configuration.
+            properties:
+              certManager:
+                properties:
+                  chart:
+                    properties:
+                      chart:
+                        type: string
+                      name:
+                        description: name of the HelmRelease resource to apply
+                        type: string
+                      repository:
+                        type: string
+                      version:
+                        type: string
+                    type: object
+                  enabled:
+                    type: boolean
+                  issuers:
+                    items:
+                      properties:
+                        clusterIssuerName:
+                          description: name of the ClusterIssuer resource to use for
+                            cert-manager
+                          type: string
+                      type: object
+                    type: array
+                  patch:
+                    properties:
+                      name:
+                        description: name of the PlatformPatch resource to apply
+                        type: string
+                    type: object
+                type: object
+              gitOps:
+                properties:
+                  engine:
+                    type: string
+                required:
+                - engine
+                type: object
+              platformSource:
+                type: string
+              platformVersion:
+                type: string
+            required:
+            - gitOps
+            - platformVersion
+            type: object
+          status:
+            properties:
+              components:
+                items:
+                  properties:
+                    lastSync:
+                      format: date-time
+                      type: string
+                    message:
+                      type: string
+                    name:
+                      type: string
+                    ready:
+                      type: boolean
+                  required:
+                  - name
+                  - ready
+                  type: object
+                type: array
+            type: object
+        required:
+        - metadata
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

@@ -252,7 +252,6 @@ func RunCluster(logManagerModule logging.SlogManager, configModule *config.Confi
 		logStep("DB stats service started")
 
 		systems.leaderElector.OnLeading(func() {
-
 			systems.reconciler.Start()
 			logStep("Reconciler started")
 		})
