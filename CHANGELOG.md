@@ -1,3 +1,10 @@
+# [2.20.0-develop.110](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.109...v2.20.0-develop.110) (2026-04-30)
+
+
+### Bug Fixes
+
+* added pods stats pattern ([837b1e9](https://github.com/mogenius/mogenius-operator/commit/837b1e96f9f932eae54d764200066ea1ca8c9ed1))
+
 # [2.20.0-develop.109](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.108...v2.20.0-develop.109) (2026-04-30)
 
 
