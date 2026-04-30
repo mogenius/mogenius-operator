@@ -55,8 +55,24 @@ type CertManagerConfig struct {
 }
 
 type CertManagerIssuerConfig struct {
-	// name of the ClusterIssuer resource to use for cert-manager
-	ClusterIssuerName string `json:"clusterIssuerName,omitempty"`
+	// Name is the name of the ClusterIssuer resource.
+	Name string `json:"name"`
+	// Email is the contact address for the ACME account.
+	Email string `json:"email"`
+	// Server is the ACME directory URL.
+	// Defaults to the Let's Encrypt production endpoint when empty.
+	Server string `json:"server,omitempty"`
+	// HTTP01 configures the HTTP-01 challenge solver.
+	// Mutually exclusive with future solver types (e.g. dns01).
+	HTTP01 *CertManagerHTTP01Config `json:"http01,omitempty"`
+}
+
+// CertManagerHTTP01Config configures an ACME HTTP-01 challenge solver.
+type CertManagerHTTP01Config struct {
+	// IngressClass is the ingress class to use when creating the challenge ingress.
+	IngressClass string `json:"ingressClass,omitempty"`
+	// IngressAnnotations are extra annotations added to the challenge ingress resource.
+	IngressAnnotations map[string]string `json:"ingressAnnotations,omitempty"`
 }
 
 type PlatformConfigPatchReference struct {
