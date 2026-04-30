@@ -553,11 +553,15 @@ func (self *socketApi) registerPatterns() {
 			},
 		)
 
-		// stats/pod/all-for-workspace — full per-pod CPU/memory snapshots
-		// for every pod in the workspace (no top-N cap, unlike the
-		// utilization aggregations above). Reuses the per-controller
-		// pod-stats already kept in valkey, fanned out across the
-		// workspace's controllers.
+		// stats/pod/all-for-workspace — full per-pod CPU/memory
+		// snapshots for every pod in the namespace (no top-N cap,
+		// unlike the utilization aggregations above). Scans valkey
+		// directly for every pod-stats stream key in the namespace
+		// rather than going through the Workspace CRD, so it also
+		// works for namespaces that aren't wired up as mogenius
+		// workspaces. Each stream key is
+		// `pod-stats:<namespace>:<controllerName>`; the data inside
+		// already carries the pod name per entry.
 		RegisterPatternHandler(
 			PatternHandle{self, "stats/pod/all-for-workspace"},
 			PatternConfig{},
@@ -565,14 +569,22 @@ func (self *socketApi) registerPatterns() {
 				if request.TimeOffsetMinutes <= 0 {
 					request.TimeOffsetMinutes = 5
 				}
-				resources, err := self.apiService.GetWorkspaceControllers(request.WorkspaceName)
+				prefix := DB_STATS_POD_STATS_BUCKET_NAME + ":" + request.WorkspaceName + ":"
+				keys, err := self.valkeyClient.Keys(prefix + "*")
 				if err != nil {
 					return nil, err
 				}
 				out := make([]structs.PodStats, 0)
-				for _, c := range resources {
+				for _, k := range keys {
+					if !strings.HasPrefix(k, prefix) {
+						continue
+					}
+					controllerName := k[len(prefix):]
+					if controllerName == "" {
+						continue
+					}
 					entries := self.dbstats.GetPodStatsEntriesForController(
-						c.GetKind(), c.GetName(), c.GetNamespace(),
+						"", controllerName, request.WorkspaceName,
 						int64(request.TimeOffsetMinutes),
 					)
 					if entries != nil {
