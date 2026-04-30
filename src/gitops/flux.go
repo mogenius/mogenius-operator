@@ -9,7 +9,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	sigsyaml "sigs.k8s.io/yaml"
 )
 
 var (
@@ -34,17 +33,12 @@ type fluxInstaller struct {
 }
 
 func (f *fluxInstaller) Install(component string, artifact GitOpsArtifact) error {
-	values, err := parseValuesYAML(artifact.Values)
-	if err != nil {
-		return fmt.Errorf("parse helm values for %s: %w", component, err)
-	}
-
 	repo := buildFluxHelmRepository(component, artifact.HelmChart.Repository)
 	if err := applyUnstructured(f.clientProvider, fluxHelmRepositoryGVR, fluxNamespace, repo); err != nil {
 		return fmt.Errorf("apply flux helmrepository %s: %w", component, err)
 	}
 
-	release := buildFluxHelmRelease(component, artifact, values)
+	release := buildFluxHelmRelease(component, artifact, artifact.Values)
 	if err := applyUnstructured(f.clientProvider, fluxHelmReleaseGVR, fluxNamespace, release); err != nil {
 		return fmt.Errorf("apply flux helmrelease %s: %w", component, err)
 	}
@@ -168,13 +162,3 @@ func buildFluxMoacHelmRelease(component string, artifact GitOpsArtifact) *unstru
 	}
 }
 
-func parseValuesYAML(valuesYAML string) (map[string]interface{}, error) {
-	if valuesYAML == "" {
-		return nil, nil
-	}
-	m := map[string]interface{}{}
-	if err := sigsyaml.Unmarshal([]byte(valuesYAML), &m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
