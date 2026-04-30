@@ -25,6 +25,7 @@ type PlatformConfigList struct {
 //
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +kubebuilder:resource:scope=Cluster
+// +kubebuilder:subresource:status
 type PlatformConfig struct {
 	metav1.TypeMeta `json:",inline"`
 
@@ -32,7 +33,7 @@ type PlatformConfig struct {
 
 	Spec PlatformConfigSpec `json:"spec"`
 
-	Status PlatformConfigStatus `json:"status"`
+	Status PlatformConfigStatus `json:"status,omitempty"`
 }
 
 // Specification of platform components and their configuration.
@@ -71,4 +72,13 @@ type HelmChartReference struct {
 	Repository string `json:"repository,omitempty"`
 }
 
-type PlatformConfigStatus struct{}
+type PlatformConfigStatus struct {
+	Components []PlatformComponentStatus `json:"components,omitempty"`
+}
+
+type PlatformComponentStatus struct {
+	Name     string      `json:"name"`
+	Ready    bool        `json:"ready"`
+	LastSync metav1.Time `json:"lastSync,omitempty"`
+	Message  string      `json:"message,omitempty"`
+}
