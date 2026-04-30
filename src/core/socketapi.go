@@ -552,6 +552,36 @@ func (self *socketApi) registerPatterns() {
 				return self.dbstats.GetWorkspaceStatsTrafficUtilization(request.TimeOffsetMinutes, resources)
 			},
 		)
+
+		// stats/pod/all-for-workspace — full per-pod CPU/memory snapshots
+		// for every pod in the workspace (no top-N cap, unlike the
+		// utilization aggregations above). Reuses the per-controller
+		// pod-stats already kept in valkey, fanned out across the
+		// workspace's controllers.
+		RegisterPatternHandler(
+			PatternHandle{self, "stats/pod/all-for-workspace"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Request) ([]structs.PodStats, error) {
+				if request.TimeOffsetMinutes <= 0 {
+					request.TimeOffsetMinutes = 5
+				}
+				resources, err := self.apiService.GetWorkspaceControllers(request.WorkspaceName)
+				if err != nil {
+					return nil, err
+				}
+				out := make([]structs.PodStats, 0)
+				for _, c := range resources {
+					entries := self.dbstats.GetPodStatsEntriesForController(
+						c.GetKind(), c.GetName(), c.GetNamespace(),
+						int64(request.TimeOffsetMinutes),
+					)
+					if entries != nil {
+						out = append(out, *entries...)
+					}
+				}
+				return out, nil
+			},
+		)
 	}
 
 	// cluster/dashboard-stats — aggregated metrics for the organization dashboard
