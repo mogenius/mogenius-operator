@@ -38,7 +38,8 @@ spec:
           metadata:
             type: object
           spec:
-            description: Grant permissions to a workspace for a group
+            description: Patches to be applied to the configuration of a platform
+              component.
             properties:
               extraObjects:
                 description: extra Kubernetes objects to be applied to the cluster.

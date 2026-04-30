@@ -502,7 +502,7 @@ func (self *valkeyClient) DeleteMultiple(patterns ...string) error {
 		totalDeleted += len(batch)
 	}
 
-	self.logger.Info("Successfully deleted keys", "count", totalDeleted, "patterns", patterns)
+	self.logger.Debug("Successfully deleted keys", "count", totalDeleted, "patterns", patterns)
 	return nil
 }
 
