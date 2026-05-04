@@ -12,10 +12,10 @@ import (
 
 const (
 	// moacRepository is the OCI Helm registry that hosts the moac chart.
-	moacRepository = "oci://ghcr.io/mogenius/helm-charts"
+	moacRepository = "https://helm.mogenius.com/public"
 	// moacChart deploys raw extra Kubernetes objects via the rawResources values key.
 	moacChart   = "moac"
-	moacVersion = "0.1.0"
+	moacVersion = "1.2.3"
 )
 
 type GitOpsArtifact struct {
