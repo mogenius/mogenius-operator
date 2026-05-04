@@ -37,7 +37,7 @@ func InitOrUpdateCrds() {
 	crds := crds.GetCRDs()
 	for _, crd := range crds {
 		// TODO: Remove the dev build gaurd when platform config is ready, and add other platform components as needed.
-		if (crd.Filename == "mogenius.com_platformconfigs.yaml" || crd.Filename == "mogenius.com_platformpatches.yaml") && utils.IsDevBuild() {
+		if (crd.Filename == "mogenius.com_platformconfigs.yaml" || crd.Filename == "mogenius.com_platformpatches.yaml") && !utils.IsDevBuild() {
 			continue
 		}
 		err := CreateOrUpdateYamlString(crd.Content)
