@@ -1,0 +1,26 @@
+package reconciler
+
+import (
+	"context"
+	"mogenius-operator/src/crds/v1alpha1"
+	"mogenius-operator/src/gitops"
+)
+
+func (d *reconcilerModule) reconcileTraefik(ctx context.Context, spec v1alpha1.PlatformConfigSpec, installer gitops.GitOpsInstaller, op operation) *ReconcileResult {
+	t := spec.Traefik
+	if t == nil {
+		t = &v1alpha1.TraefikConfig{}
+	}
+	return d.reconcileComponent(ctx, spec, installer, op,
+		componentSpec{
+			enabled:      t.Enabled,
+			chart:        t.Chart,
+			patch:        t.Patch,
+			name:         componentTraefik,
+			namespace:    "traefik",
+			defaultChart: "traefik",
+			defaultRepo:  "https://helm.traefik.io/traefik",
+			defaultName:  "traefik",
+		}, nil,
+	)
+}
