@@ -26,6 +26,9 @@ func (d *reconcilerModule) reconcileCertManager(ctx context.Context, spec v1alph
 		func(ctx context.Context, patch *v1alpha1.PlatformPatch) ([]any, error) {
 			return d.buildCertManagerExtraObjects(ctx, cm, patch)
 		},
+		func(ctx context.Context) (map[string]interface{}, error) {
+			return nil, nil
+		},
 	)
 }
 

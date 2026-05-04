@@ -21,6 +21,12 @@ func (d *reconcilerModule) reconcileTraefik(ctx context.Context, spec v1alpha1.P
 			defaultChart: "traefik",
 			defaultRepo:  "https://helm.traefik.io/traefik",
 			defaultName:  "traefik",
-		}, nil,
+		},
+		func(ctx context.Context, patch *v1alpha1.PlatformPatch) ([]any, error) {
+			return []any{}, nil
+		},
+		func(ctx context.Context) (map[string]interface{}, error) {
+			return nil, nil
+		},
 	)
 }

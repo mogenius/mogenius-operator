@@ -11,11 +11,11 @@ import (
 
 // componentSpec holds the shared configuration needed to reconcile a platform component.
 type componentSpec struct {
-	enabled     bool
-	chart       *v1alpha1.HelmChartReference
-	patch       *v1alpha1.PlatformConfigPatchReference
-	name        string // component constant, e.g. componentCertManager
-	namespace   string // target namespace, e.g. "cert-manager"
+	enabled      bool
+	chart        *v1alpha1.HelmChartReference
+	patch        *v1alpha1.PlatformConfigPatchReference
+	name         string // component constant, e.g. componentCertManager
+	namespace    string // target namespace, e.g. "cert-manager"
 	defaultChart string // default Helm chart name
 	defaultRepo  string // default Helm repository URL
 	defaultName  string // default Helm release name
@@ -32,6 +32,7 @@ func (d *reconcilerModule) reconcileComponent(
 	op operation,
 	cs componentSpec,
 	buildExtraObjects func(ctx context.Context, patch *v1alpha1.PlatformPatch) ([]any, error),
+	buildExtraValues func(ctx context.Context) (map[string]interface{}, error),
 ) *ReconcileResult {
 	if !cs.enabled || op == deleteOperation {
 		if err := installer.UnInstall(cs.name); err != nil {
@@ -60,20 +61,26 @@ func (d *reconcilerModule) reconcileComponent(
 		}
 	}
 
-	mergedValues, err := mergeHelmValues(defaultComponentConfig, nil, patch)
+	componentValues, err := buildExtraValues(ctx)
+	if err != nil {
+		return &ReconcileResult{Err: fmt.Errorf("failed to create component values for %s: %w", cs.name, err)}
+	}
+
+	mergedValues, err := mergeHelmValues(defaultComponentConfig, componentValues, patch)
 	if err != nil {
 		return &ReconcileResult{Err: fmt.Errorf("merge helm values for %s: %w", cs.name, err)}
 	}
 
-	var extraObjects []any
-	if buildExtraObjects != nil {
-		extraObjects, err = buildExtraObjects(ctx, patch)
-	} else {
-		extraObjects, err = extractPatchExtraObjects(patch)
-	}
+	extraObjects, err := buildExtraObjects(ctx, patch)
 	if err != nil {
 		return &ReconcileResult{Err: fmt.Errorf("build extra objects for %s: %w", cs.name, err)}
 	}
+
+	extraPatchObjects, err := extractPatchExtraObjects(patch)
+	if err != nil {
+		return &ReconcileResult{Err: fmt.Errorf("extract extra objects for %s: %w", cs.name, err)}
+	}
+	extraObjects = append(extraObjects, extraPatchObjects...)
 
 	artifact := gitops.GitOpsArtifact{
 		Namespace:    cs.namespace,
