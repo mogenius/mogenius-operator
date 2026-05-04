@@ -42,6 +42,7 @@ type PlatformConfigSpec struct {
 	PlatformSource  string             `json:"platformSource,omitempty"`
 	GitOps          *GitOpsConfig      `json:"gitOps"`
 	CertManager     *CertManagerConfig `json:"certManager,omitempty"`
+	Traefik         *TraefikConfig     `json:"traefik,omitempty"`
 }
 type GitOpsConfig struct {
 	Engine string `json:"engine"`
@@ -50,6 +51,12 @@ type GitOpsConfig struct {
 type CertManagerConfig struct {
 	Enabled bool                          `json:"enabled,omitempty"`
 	Issuers []CertManagerIssuerConfig     `json:"issuers,omitempty"`
+	Patch   *PlatformConfigPatchReference `json:"patch,omitempty"`
+	Chart   *HelmChartReference           `json:"chart,omitempty"`
+}
+
+type TraefikConfig struct {
+	Enabled bool                          `json:"enabled,omitempty"`
 	Patch   *PlatformConfigPatchReference `json:"patch,omitempty"`
 	Chart   *HelmChartReference           `json:"chart,omitempty"`
 }

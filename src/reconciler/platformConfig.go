@@ -20,7 +20,16 @@ var platformConfigGVR = schema.GroupVersionResource{
 	Resource: "platformconfigs",
 }
 
-const componentCertManager = "cert-manager"
+var platformPatchGVR = schema.GroupVersionResource{
+	Group:    "mogenius.com",
+	Version:  "v1alpha1",
+	Resource: "platformpatches",
+}
+
+const (
+	componentCertManager = "cert-manager"
+	componentTraefik     = "traefik"
+)
 
 func (d *reconcilerModule) reconcilePlatformConfig(ctx context.Context, obj *unstructured.Unstructured, op operation) []ReconcileResult {
 	var platformConfig v1alpha1.PlatformConfig
@@ -36,6 +45,7 @@ func (d *reconcilerModule) reconcilePlatformConfig(ctx context.Context, obj *uns
 	}
 	components := []componentResult{
 		{componentCertManager, d.reconcileCertManager(ctx, platformConfig.Spec, installer, op)},
+		{componentTraefik, d.reconcileTraefik(ctx, platformConfig.Spec, installer, op)},
 	}
 
 	statuses := make([]v1alpha1.PlatformComponentStatus, 0, len(components))
@@ -91,4 +101,24 @@ func (d *reconcilerModule) fetchPlatformPatch(ctx context.Context, ref *v1alpha1
 		return nil, fmt.Errorf("convert PlatformPatch: %w", err)
 	}
 	return &patch, nil
+}
+
+// extractPatchExtraObjects decodes the raw ExtraObjects from a PlatformPatch into
+// a slice of map[string]interface{} suitable for GitOpsArtifact.ExtraObjects.
+func extractPatchExtraObjects(patch *v1alpha1.PlatformPatch) ([]any, error) {
+	if patch == nil {
+		return nil, nil
+	}
+	objects := make([]any, 0, len(patch.Spec.ExtraObjects))
+	for _, rawObj := range patch.Spec.ExtraObjects {
+		if rawObj.Raw == nil {
+			continue
+		}
+		var obj map[string]interface{}
+		if err := json.Unmarshal(rawObj.Raw, &obj); err != nil {
+			return nil, err
+		}
+		objects = append(objects, obj)
+	}
+	return objects, nil
 }

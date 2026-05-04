@@ -113,6 +113,29 @@ spec:
                 type: string
               platformVersion:
                 type: string
+              traefik:
+                properties:
+                  chart:
+                    properties:
+                      chart:
+                        type: string
+                      name:
+                        description: name of the HelmRelease resource to apply
+                        type: string
+                      repository:
+                        type: string
+                      version:
+                        type: string
+                    type: object
+                  enabled:
+                    type: boolean
+                  patch:
+                    properties:
+                      name:
+                        description: name of the PlatformPatch resource to apply
+                        type: string
+                    type: object
+                type: object
             required:
             - gitOps
             - platformVersion
