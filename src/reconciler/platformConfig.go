@@ -35,7 +35,7 @@ func (d *reconcilerModule) reconcilePlatformConfig(ctx context.Context, obj *uns
 		result *ReconcileResult
 	}
 	components := []componentResult{
-		{componentCertManager, d.reconcileCertManager(ctx, platformConfig.Spec, installer)},
+		{componentCertManager, d.reconcileCertManager(ctx, platformConfig.Spec, installer, op)},
 	}
 
 	statuses := make([]v1alpha1.PlatformComponentStatus, 0, len(components))
