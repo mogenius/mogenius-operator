@@ -17,9 +17,9 @@ var platformPatchGVR = schema.GroupVersionResource{
 	Resource: "platformpatches",
 }
 
-func (d *reconcilerModule) reconcileCertManager(ctx context.Context, spec v1alpha1.PlatformConfigSpec, installer gitops.GitOpsInstaller) *ReconcileResult {
+func (d *reconcilerModule) reconcileCertManager(ctx context.Context, spec v1alpha1.PlatformConfigSpec, installer gitops.GitOpsInstaller, op operation) *ReconcileResult {
 	certManager := spec.CertManager
-	if certManager == nil {
+	if certManager == nil || op == deleteOperation {
 		if err := installer.UnInstall(componentCertManager); err != nil {
 			return &ReconcileResult{Err: fmt.Errorf("failed to uninstall %s: %w", componentCertManager, err)}
 		}
