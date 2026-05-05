@@ -1,3 +1,24 @@
+# [2.20.0-develop.117](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.116...v2.20.0-develop.117) (2026-05-05)
+
+
+### Bug Fixes
+
+* add params for in process helm values ([7a9dc94](https://github.com/mogenius/mogenius-operator/commit/7a9dc945150a3082a48ae846be130daf305a6062))
+* adding guard to disable platform config in prod ([d6e2ebc](https://github.com/mogenius/mogenius-operator/commit/d6e2ebc8831bdad3dffb44c90ce420418a932f69))
+* crd install guard ([ed0563b](https://github.com/mogenius/mogenius-operator/commit/ed0563b5f810927526ec3795a8c04bdaab6426de))
+* delete resources if platform config is deleted ([a564e8f](https://github.com/mogenius/mogenius-operator/commit/a564e8ffdf9e66fdd07f5e2ff81ac9d8225b20de))
+* moac versions ([532dde7](https://github.com/mogenius/mogenius-operator/commit/532dde77e15ac465c09d90e079a8c9ef7e2f7326))
+
+
+### Features
+
+* add fetching platform defaults from github ([68933b3](https://github.com/mogenius/mogenius-operator/commit/68933b3076cfd81d6ee7f765abc9fa9515fa11e6))
+* adding flux and helm install provider ([3bd2fa3](https://github.com/mogenius/mogenius-operator/commit/3bd2fa3183744405c03a7fd672d3fa35721a98ec))
+* adding issuers to list ([c669234](https://github.com/mogenius/mogenius-operator/commit/c669234f84563015900dad6c40ccd8524a1cb446))
+* adding status with last sync for each component ([b14790c](https://github.com/mogenius/mogenius-operator/commit/b14790c9a06e849f8e36890d7d4e9747df882000))
+* adding traefik and unifying component reconciler ([841b625](https://github.com/mogenius/mogenius-operator/commit/841b62539a76b8495b3d202691bac352ba3845ca))
+* poc implementation of platform config & reconciler ([8e2b212](https://github.com/mogenius/mogenius-operator/commit/8e2b2121b7e878eaef7be79a467dc24070e61793))
+
 # [2.20.0-develop.116](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.115...v2.20.0-develop.116) (2026-05-05)
 
 
