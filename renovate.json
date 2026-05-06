@@ -13,7 +13,9 @@
   "customManagers": [
     {
       "customType": "regex",
-      "fileMatch": ["^src/gitops/installer\\.go$"],
+      "managerFilePatterns": [
+        "/^src/gitops/installer\\.go$/"
+      ],
       "matchStrings": ["moacVersion\\s+=\\s+\"(?<currentValue>[^\"]+)\""],
       "datasourceTemplate": "helm",
       "depNameTemplate": "moac",
