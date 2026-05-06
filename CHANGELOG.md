@@ -1,3 +1,10 @@
+# [2.20.0-develop.122](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.121...v2.20.0-develop.122) (2026-05-06)
+
+
+### Bug Fixes
+
+* dev build not set correctly ([96b521e](https://github.com/mogenius/mogenius-operator/commit/96b521e34fb8500f26eadc0998461495477a6d45))
+
 # [2.20.0-develop.121](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.120...v2.20.0-develop.121) (2026-05-06)
 
 
