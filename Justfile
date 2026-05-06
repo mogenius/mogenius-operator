@@ -62,6 +62,7 @@ build-docker-linux-amd64:
         --build-arg BUILD_TIMESTAMP="$BUILD_TIMESTAMP" \
         --build-arg GIT_BRANCH="$GIT_BRANCH" \
         --build-arg COMMIT_HASH="$COMMIT_HASH" \
+        --build-arg DEV_BUILD=yes \
         -t ghcr.io/mogenius/mogenius-operator-dev:$VERSION-amd64 \
         -t ghcr.io/mogenius/mogenius-operator-dev:latest-amd64 \
         .
@@ -91,6 +92,7 @@ build-docker-linux-arm64:
         --build-arg BUILD_TIMESTAMP="$BUILD_TIMESTAMP" \
         --build-arg GIT_BRANCH="$GIT_BRANCH" \
         --build-arg COMMIT_HASH="$COMMIT_HASH" \
+        --build-arg DEV_BUILD=yes \
         -t ghcr.io/mogenius/mogenius-operator-dev:$VERSION-amd64 \
         -t ghcr.io/mogenius/mogenius-operator-dev:latest-amd64 \
         .
@@ -120,6 +122,7 @@ build-docker-linux-armv7:
         --build-arg BUILD_TIMESTAMP="$BUILD_TIMESTAMP" \
         --build-arg GIT_BRANCH="$GIT_BRANCH" \
         --build-arg COMMIT_HASH="$COMMIT_HASH" \
+        --build-arg DEV_BUILD=yes \
         -t ghcr.io/mogenius/mogenius-operator-dev:$VERSION-amd64 \
         -t ghcr.io/mogenius/mogenius-operator-dev:latest-amd64 \
         .
