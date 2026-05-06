@@ -91,6 +91,7 @@ jobs:
             GIT_BRANCH=${{ needs.prepare.outputs.git_branch }}
             BUILD_TIMESTAMP=${{ needs.prepare.outputs.build_timestamp }}
             VERSION=${{ needs.prepare.outputs.version }}
+            DEV_BUILD=yes
           # cache-from: type=gha,scope=operator-amd64
           # cache-to: type=gha,mode=max,scope=operator-amd64
 
@@ -135,6 +136,7 @@ jobs:
             GIT_BRANCH=${{ needs.prepare.outputs.git_branch }}
             BUILD_TIMESTAMP=${{ needs.prepare.outputs.build_timestamp }}
             VERSION=${{ needs.prepare.outputs.version }}
+            DEV_BUILD=yes
           # cache-from: type=gha,scope=operator-arm64
           # cache-to: type=gha,mode=max,scope=operator-arm64
 
@@ -184,6 +186,7 @@ jobs:
             GIT_BRANCH=${{ needs.prepare.outputs.git_branch }}
             BUILD_TIMESTAMP=${{ needs.prepare.outputs.build_timestamp }}
             VERSION=${{ needs.prepare.outputs.version }}
+            DEV_BUILD=yes
           # cache-from: type=gha,scope=operator-armv7
           # cache-to: type=gha,mode=max,scope=operator-armv7
 
