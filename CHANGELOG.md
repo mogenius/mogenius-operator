@@ -1,3 +1,10 @@
+# [2.20.0-develop.120](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.119...v2.20.0-develop.120) (2026-05-06)
+
+
+### Bug Fixes
+
+* return error when resource deletion is blocked by finalizers ([c3fb669](https://github.com/mogenius/mogenius-operator/commit/c3fb6694af811dabecdc22d651232b4fdcf1331a))
+
 # [2.20.0-develop.119](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.118...v2.20.0-develop.119) (2026-05-06)
 
 
