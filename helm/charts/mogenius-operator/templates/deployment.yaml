@@ -103,6 +103,8 @@ spec:
             - name: PATH
               value: "/netshoot/usr/bin:/netshoot/bin:/netshoot/usr/sbin:/netshoot/sbin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
             {{- end }}
+            - name: MO_ENABLE_AUTO_UPGRADE
+              value: {{ .Values.features.autoUpgrade.enabled | quote }}
           volumeMounts:
             - mountPath: /app/helm-data
               name: helm-data

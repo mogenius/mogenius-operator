@@ -337,6 +337,18 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		},
 	})
 	configModule.Declare(config.ConfigDeclaration{
+		Key:          "MO_ENABLE_AUTO_UPGRADE",
+		DefaultValue: utils.Pointer("true"),
+		Description:  utils.Pointer("enable automatic operator self-upgrades triggered by the platform "),
+		Validate: func(value string) error {
+			_, err := strconv.ParseBool(value)
+			if err != nil {
+				return fmt.Errorf("'MO_ENABLE_AUTO_UPGRADE' needs to be a boolean: %s", err.Error())
+			}
+			return nil
+		},
+	})
+	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_SNOOPY_IMPLEMENTATION",
 		DefaultValue: utils.Pointer("auto"),
 		Description:  utils.Pointer("set which implementation for tracking network traffic should be used"),
@@ -399,4 +411,3 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		},
 	})
 }
-

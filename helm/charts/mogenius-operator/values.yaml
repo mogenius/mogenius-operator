@@ -17,6 +17,8 @@ cluster:
 
 # -- feature toggles for the mogenius-operator
 features:
+  autoUpgrade:
+    enabled: true
   debugTools:
     # -- enable the debug tools container in the mogenius-operator pod
     enabled: false

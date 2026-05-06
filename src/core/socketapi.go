@@ -2578,6 +2578,15 @@ func (self *socketApi) ExecuteCommandRequest(datagram structs.Datagram) any {
 func (self *socketApi) upgradeK8sManager(command string) (*structs.Job, error) {
 	job := structs.CreateJob(self.eventsClient, "Upgrade mogenius platform", "UPGRADE", "", "", self.logger)
 	job.Start(self.eventsClient)
+
+	if self.config.Get("MO_ENABLE_AUTO_UPGRADE") != "true" {
+		msg := "Automatic Upgrades are disabled. If you are using GitOps please update the Operator in your GitOps Repository"
+		job.Fail(msg)
+		job.Finished = time.Now()
+		structs.ReportJobStateToServer(self.eventsClient, job)
+		return job, fmt.Errorf("%s", msg)
+	}
+
 	_, err := kubernetes.UpgradeMyself(self.eventsClient, job, command)
 	job.Finish(self.eventsClient)
 	return job, err
