@@ -35,6 +35,7 @@ import (
 	release "helm.sh/helm/v4/pkg/release/v1"
 	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/yaml"
 )
@@ -1221,9 +1222,31 @@ func (self *socketApi) registerPatterns() {
 			err := kubernetes.DeleteUnstructuredResource(request.ApiVersion, request.Plural, request.Namespace, request.ResourceName)
 			_, auditErr := store.AddToAuditLog(datagram, self.logger, any(nil), err, objToDel, nil)
 			if auditErr != nil {
-				self.logger.Warn("failed to add event to audit log", "request", request, "error", err)
+				self.logger.Warn("failed to add event to audit log", "request", request, "error", auditErr)
 			}
-			return nil, err
+			if err != nil {
+				return nil, err
+			}
+			// Check if resource still exists with deletionTimestamp (blocked by finalizers)
+			obj, getErr := kubernetes.GetUnstructuredResource(request.ApiVersion, request.Plural, request.Namespace, request.ResourceName)
+			if getErr != nil {
+				if apierrors.IsNotFound(getErr) {
+					// Resource is fully deleted
+					return nil, nil
+				}
+				// Other error (network, etc.) - log but don't fail the delete response
+				self.logger.Warn("could not verify resource deletion status", "error", getErr)
+				return nil, nil
+			}
+			// Resource still exists - check if it's terminating
+			if obj.GetDeletionTimestamp() != nil {
+				finalizers := obj.GetFinalizers()
+				if len(finalizers) > 0 {
+					return nil, fmt.Errorf("resource is terminating but blocked by finalizers: %v", finalizers)
+				}
+				return nil, fmt.Errorf("resource is terminating")
+			}
+			return nil, nil
 		},
 	)
 
