@@ -1,3 +1,10 @@
+# [2.20.0-develop.121](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.120...v2.20.0-develop.121) (2026-05-06)
+
+
+### Bug Fixes
+
+* adding options to disable automatic upgrades in the operator ([810a2a6](https://github.com/mogenius/mogenius-operator/commit/810a2a67a9a893647741ee6bc6a2cb25d0e88366))
+
 # [2.20.0-develop.120](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.119...v2.20.0-develop.120) (2026-05-06)
 
 
