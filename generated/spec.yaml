@@ -1519,6 +1519,33 @@ audit-log/list:
     typeInfo:
       structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·46,mogenius-operator/src/core.Response·47]
       type: struct
+cluster/argo-cd-application-hard-refresh:
+  requestSchema:
+    structs:
+      mogenius-operator/src/argocd.ArgoCdApplicationRefreshRequest:
+        name: mogenius-operator/src/argocd.ArgoCdApplicationRefreshRequest
+        properties:
+          applicationName:
+            type: string
+          username:
+            type: string
+    typeInfo:
+      structRef: mogenius-operator/src/argocd.ArgoCdApplicationRefreshRequest
+      type: struct
+  responseSchema:
+    structs:
+      mogenius-operator/src/core.Result[mogenius-operator/src/argocd.ArgoCdApplicationRefreshRequest,bool]:
+        name: mogenius-operator/src/core.Result[mogenius-operator/src/argocd.ArgoCdApplicationRefreshRequest,bool]
+        properties:
+          data:
+            type: bool
+          message:
+            type: string
+          status:
+            type: string
+    typeInfo:
+      structRef: mogenius-operator/src/core.Result[mogenius-operator/src/argocd.ArgoCdApplicationRefreshRequest,bool]
+      type: struct
 cluster/argo-cd-application-refresh:
   requestSchema:
     structs:
@@ -1546,6 +1573,88 @@ cluster/argo-cd-application-refresh:
     typeInfo:
       structRef: mogenius-operator/src/core.Result[mogenius-operator/src/argocd.ArgoCdApplicationRefreshRequest,bool]
       type: struct
+cluster/argo-cd-application-sync:
+  requestSchema:
+    structs:
+      mogenius-operator/src/argocd.ArgoCdApplicationSyncRequest:
+        name: mogenius-operator/src/argocd.ArgoCdApplicationSyncRequest
+        properties:
+          applicationName:
+            type: string
+          dryRun:
+            type: bool
+          prune:
+            type: bool
+          resources:
+            elementType:
+              structRef: mogenius-operator/src/argocd.SyncResource
+              type: struct
+            type: array
+          revision:
+            type: string
+          syncOptions:
+            elementType:
+              type: string
+            type: array
+          username:
+            type: string
+      mogenius-operator/src/argocd.SyncResource:
+        name: mogenius-operator/src/argocd.SyncResource
+        properties:
+          group:
+            type: string
+          kind:
+            type: string
+          name:
+            type: string
+          namespace:
+            type: string
+          version:
+            type: string
+    typeInfo:
+      structRef: mogenius-operator/src/argocd.ArgoCdApplicationSyncRequest
+      type: struct
+  responseSchema:
+    structs:
+      mogenius-operator/src/core.Result[mogenius-operator/src/argocd.ArgoCdApplicationSyncRequest,bool]:
+        name: mogenius-operator/src/core.Result[mogenius-operator/src/argocd.ArgoCdApplicationSyncRequest,bool]
+        properties:
+          data:
+            type: bool
+          message:
+            type: string
+          status:
+            type: string
+    typeInfo:
+      structRef: mogenius-operator/src/core.Result[mogenius-operator/src/argocd.ArgoCdApplicationSyncRequest,bool]
+      type: struct
+cluster/argo-cd-application-terminate-operation:
+  requestSchema:
+    structs:
+      mogenius-operator/src/argocd.ArgoCdApplicationTerminateOperationRequest:
+        name: mogenius-operator/src/argocd.ArgoCdApplicationTerminateOperationRequest
+        properties:
+          applicationName:
+            type: string
+          username:
+            type: string
+    typeInfo:
+      structRef: mogenius-operator/src/argocd.ArgoCdApplicationTerminateOperationRequest
+      type: struct
+  responseSchema:
+    structs:
+      mogenius-operator/src/core.Result[mogenius-operator/src/argocd.ArgoCdApplicationTerminateOperationRequest,bool]:
+        name: mogenius-operator/src/core.Result[mogenius-operator/src/argocd.ArgoCdApplicationTerminateOperationRequest,bool]
+        properties:
+          data:
+            type: bool
+          message:
+            type: string
+          status:
+            type: string
+    typeInfo:
+      structRef: mogenius-operator/src/core.Result[mogenius-operator/src/argocd.ArgoCdApplicationTerminateOperationRequest,bool]
+      type: struct
 cluster/argo-cd-create-api-token:
   requestSchema:
     structs:
@@ -1570,6 +1679,45 @@ cluster/argo-cd-create-api-token:
             type: string
     typeInfo:
       structRef: mogenius-operator/src/core.Result[mogenius-operator/src/argocd.ArgoCdCreateApiTokenRequest,bool]
+      type: struct
+cluster/argo-cd-resource-action:
+  requestSchema:
+    structs:
+      mogenius-operator/src/argocd.ArgoCdResourceActionRequest:
+        name: mogenius-operator/src/argocd.ArgoCdResourceActionRequest
+        properties:
+          action:
+            type: string
+          applicationName:
+            type: string
+          group:
+            type: string
+          kind:
+            type: string
+          namespace:
+            type: string
+          resourceName:
+            type: string
+          username:
+            type: string
+          version:
+            type: string
+    typeInfo:
+      structRef: mogenius-operator/src/argocd.ArgoCdResourceActionRequest
+      type: struct
+  responseSchema:
+    structs:
+      mogenius-operator/src/core.Result[mogenius-operator/src/argocd.ArgoCdResourceActionRequest,bool]:
+        name: mogenius-operator/src/core.Result[mogenius-operator/src/argocd.ArgoCdResourceActionRequest,bool]
+        properties:
+          data:
+            type: bool
+          message:
+            type: string
+          status:
+            type: string
+    typeInfo:
+      structRef: mogenius-operator/src/core.Result[mogenius-operator/src/argocd.ArgoCdResourceActionRequest,bool]
       type: struct
 cluster/clear-valkey-cache:
   requestSchema:
@@ -7101,6 +7249,66 @@ stats/pod/all-for-controller:
         properties: {}
     typeInfo:
       structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·8,*[]mogenius-operator/src/structs.PodStats]
+      type: struct
+stats/pod/all-for-workspace:
+  requestSchema:
+    structs:
+      mogenius-operator/src/core.Request:
+        name: mogenius-operator/src/core.Request
+        properties:
+          timeOffsetMinutes:
+            type: int
+          workspaceName:
+            type: string
+    typeInfo:
+      structRef: mogenius-operator/src/core.Request
+      type: struct
+  responseSchema:
+    structs:
+      mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·9,[]mogenius-operator/src/structs.PodStats]:
+        name: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·9,[]mogenius-operator/src/structs.PodStats]
+        properties:
+          data:
+            elementType:
+              structRef: mogenius-operator/src/structs.PodStats
+              type: struct
+            type: array
+          message:
+            type: string
+          status:
+            type: string
+      mogenius-operator/src/structs.PodStats:
+        name: mogenius-operator/src/structs.PodStats
+        properties:
+          containerName:
+            type: string
+          cpu:
+            type: int
+          cpuLimit:
+            type: int
+          createdAt:
+            structRef: time.Time
+            type: struct
+          ephemeralStorage:
+            type: int
+          ephemeralStorageLimit:
+            type: int
+          memory:
+            type: int
+          memoryLimit:
+            type: int
+          namespace:
+            type: string
+          podName:
+            type: string
+          startTime:
+            structRef: time.Time
+            type: struct
+      time.Time:
+        name: time.Time
+        properties: {}
+    typeInfo:
+      structRef: mogenius-operator/src/core.Result[mogenius-operator/src/core.Request·9,[]mogenius-operator/src/structs.PodStats]
       type: struct
 stats/traffic/all-for-controller:
   requestSchema:
