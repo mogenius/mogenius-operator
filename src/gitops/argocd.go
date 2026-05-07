@@ -17,21 +17,20 @@ var argoApplicationGVR = schema.GroupVersionResource{
 	Resource: "applications",
 }
 
-const argoNamespace = "argocd"
-
 type argocdInstaller struct {
 	clientProvider k8sclient.K8sClientProvider
+	namespace      string
 }
 
 func (a *argocdInstaller) Install(component string, artifact GitOpsArtifact) error {
-	app := buildArgoApplication(component, artifact)
-	if err := applyUnstructured(a.clientProvider, argoApplicationGVR, argoNamespace, app); err != nil {
+	app := buildArgoApplication(component, artifact, a.namespace)
+	if err := applyUnstructured(a.clientProvider, argoApplicationGVR, a.namespace, app); err != nil {
 		return fmt.Errorf("apply argocd application %s: %w", component, err)
 	}
 
 	if len(artifact.ExtraObjects) > 0 {
-		moacApp := buildArgoMoacApplication(component, artifact)
-		if err := applyUnstructured(a.clientProvider, argoApplicationGVR, argoNamespace, moacApp); err != nil {
+		moacApp := buildArgoMoacApplication(component, artifact, a.namespace)
+		if err := applyUnstructured(a.clientProvider, argoApplicationGVR, a.namespace, moacApp); err != nil {
 			return fmt.Errorf("apply argocd moac application %s-resources: %w", component, err)
 		}
 	}
@@ -41,7 +40,7 @@ func (a *argocdInstaller) Install(component string, artifact GitOpsArtifact) err
 
 func (a *argocdInstaller) UnInstall(component string) error {
 	ctx := context.Background()
-	client := a.clientProvider.DynamicClient().Resource(argoApplicationGVR).Namespace(argoNamespace)
+	client := a.clientProvider.DynamicClient().Resource(argoApplicationGVR).Namespace(a.namespace)
 
 	for _, name := range []string{component, component + "-resources"} {
 		if err := client.Delete(ctx, name, metav1.DeleteOptions{}); err != nil && !apierrors.IsNotFound(err) {
@@ -51,7 +50,7 @@ func (a *argocdInstaller) UnInstall(component string) error {
 	return nil
 }
 
-func buildArgoApplication(component string, artifact GitOpsArtifact) *unstructured.Unstructured {
+func buildArgoApplication(component string, artifact GitOpsArtifact, namespace string) *unstructured.Unstructured {
 	helm := map[string]interface{}{}
 	if len(artifact.Values) > 0 {
 		helm["valuesObject"] = artifact.Values
@@ -63,9 +62,10 @@ func buildArgoApplication(component string, artifact GitOpsArtifact) *unstructur
 			"kind":       "Application",
 			"metadata": map[string]interface{}{
 				"name":      component,
-				"namespace": argoNamespace,
+				"namespace": namespace,
 				"labels":    defaultLabels(component),
 			},
+			"finalizers": []interface{}{"resources-finalizer.argocd.argoproj.io"}, // ensure resources are deleted when app is deleted
 			"spec": map[string]interface{}{
 				"project": "default",
 				"source": map[string]interface{}{
@@ -90,7 +90,7 @@ func buildArgoApplication(component string, artifact GitOpsArtifact) *unstructur
 	}
 }
 
-func buildArgoMoacApplication(component string, artifact GitOpsArtifact) *unstructured.Unstructured {
+func buildArgoMoacApplication(component string, artifact GitOpsArtifact, namespace string) *unstructured.Unstructured {
 	name := component + "-resources"
 	return &unstructured.Unstructured{
 		Object: map[string]interface{}{
@@ -98,9 +98,10 @@ func buildArgoMoacApplication(component string, artifact GitOpsArtifact) *unstru
 			"kind":       "Application",
 			"metadata": map[string]interface{}{
 				"name":      name,
-				"namespace": argoNamespace,
+				"namespace": namespace,
 				"labels":    defaultLabels(component),
 			},
+			"finalizers": []interface{}{"resources-finalizer.argocd.argoproj.io"}, // ensure resources are deleted when app is deleted
 			"spec": map[string]interface{}{
 				"project": "default",
 				"source": map[string]interface{}{

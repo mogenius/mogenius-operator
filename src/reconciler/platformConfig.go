@@ -27,8 +27,20 @@ var platformPatchGVR = schema.GroupVersionResource{
 }
 
 const (
-	componentCertManager = "cert-manager"
-	componentTraefik     = "traefik"
+	componentCertManager         = "cert-manager"
+	componentTraefik             = "traefik"
+	componentArgoCD              = "argocd"
+	componentFluxCD              = "fluxcd"
+	componentExternalDNS         = "external-dns"
+	componentKubePrometheusStack = "kube-prometheus-stack"
+	componentLoki                = "loki"
+	componentAlloy               = "alloy"
+	componentRenovateOperator    = "renovate-operator"
+)
+
+const (
+	argocdDefaultNamespace = "argocd"
+	fluxcdDefaultNamespace = "flux-system"
 )
 
 func (d *reconcilerModule) reconcilePlatformConfig(ctx context.Context, obj *unstructured.Unstructured, op operation) []ReconcileResult {
@@ -37,15 +49,30 @@ func (d *reconcilerModule) reconcilePlatformConfig(ctx context.Context, obj *uns
 		return []ReconcileResult{{Err: fmt.Errorf("failed to parse PlatformConfig: %w", err)}}
 	}
 
-	installer := gitops.NewGitOpsInstaller(platformConfig.Spec.GitOps.Engine, d.clientProvider)
+	engine, engineNs, err := inferGitOpsEngine(platformConfig.Spec.GitOps)
+	if err != nil {
+		return []ReconcileResult{{Err: err}}
+	}
+	if engine == "" {
+		d.logger.Info("no GitOps engine enabled, skipping reconciliation of GitOps components")
+		return []ReconcileResult{{Err: fmt.Errorf("no GitOps engine enabled")}}
+	}
+	installer := gitops.NewGitOpsInstaller(engine, engineNs, d.clientProvider)
 
 	type componentResult struct {
 		name   string
 		result *ReconcileResult
 	}
 	components := []componentResult{
+		{componentArgoCD, d.reconcileArgoCD(ctx, platformConfig.Spec, installer, op)},
+		{componentFluxCD, d.reconcileFluxCD(ctx, platformConfig.Spec, installer, op)},
 		{componentCertManager, d.reconcileCertManager(ctx, platformConfig.Spec, installer, op)},
 		{componentTraefik, d.reconcileTraefik(ctx, platformConfig.Spec, installer, op)},
+		{componentExternalDNS, d.reconcileExternalDNS(ctx, platformConfig.Spec, installer, op)},
+		{componentKubePrometheusStack, d.reconcileKubePrometheusStack(ctx, platformConfig.Spec, installer, op)},
+		{componentLoki, d.reconcileLoki(ctx, platformConfig.Spec, installer, op)},
+		{componentAlloy, d.reconcileAlloy(ctx, platformConfig.Spec, installer, op)},
+		{componentRenovateOperator, d.reconcileRenovateOperator(ctx, platformConfig.Spec, installer, op)},
 	}
 
 	statuses := make([]v1alpha1.PlatformComponentStatus, 0, len(components))
@@ -101,6 +128,28 @@ func (d *reconcilerModule) fetchPlatformPatch(ctx context.Context, ref *v1alpha1
 		return nil, fmt.Errorf("convert PlatformPatch: %w", err)
 	}
 	return &patch, nil
+}
+
+// inferGitOpsEngine inspects the GitOpsConfig and returns the engine name and the
+// namespace where that engine is installed. Exactly one engine may be enabled;
+// having both enabled is a configuration error.
+func inferGitOpsEngine(gitOps *v1alpha1.GitOpsConfig) (engine, namespace string, err error) {
+	if gitOps == nil {
+		return "", "", nil
+	}
+	argoCDEnabled := gitOps.ArgoCD != nil && gitOps.ArgoCD.Enabled
+	fluxCDEnabled := gitOps.FluxCD != nil && gitOps.FluxCD.Enabled
+
+	if argoCDEnabled && fluxCDEnabled {
+		return "", "", fmt.Errorf("invalid gitops config: argocd and fluxcd cannot both be enabled")
+	}
+	if argoCDEnabled {
+		return "argocd", helmNamespace(gitOps.ArgoCD.Chart, argocdDefaultNamespace), nil
+	}
+	if fluxCDEnabled {
+		return "flux", helmNamespace(gitOps.FluxCD.Chart, fluxcdDefaultNamespace), nil
+	}
+	return "", "", nil
 }
 
 // extractPatchExtraObjects decodes the raw ExtraObjects from a PlatformPatch into

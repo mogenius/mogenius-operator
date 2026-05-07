@@ -44,6 +44,31 @@ spec:
           spec:
             description: Specification of platform components and their configuration.
             properties:
+              alloy:
+                properties:
+                  chart:
+                    properties:
+                      chart:
+                        type: string
+                      name:
+                        description: name of the HelmRelease resource to apply
+                        type: string
+                      namespace:
+                        type: string
+                      repository:
+                        type: string
+                      version:
+                        type: string
+                    type: object
+                  enabled:
+                    type: boolean
+                  patch:
+                    properties:
+                      name:
+                        description: name of the PlatformPatch resource to apply
+                        type: string
+                    type: object
+                type: object
               certManager:
                 properties:
                   chart:
@@ -52,6 +77,8 @@ spec:
                         type: string
                       name:
                         description: name of the HelmRelease resource to apply
+                        type: string
+                      namespace:
                         type: string
                       repository:
                         type: string
@@ -102,17 +129,163 @@ spec:
                         type: string
                     type: object
                 type: object
+              externalDns:
+                properties:
+                  chart:
+                    properties:
+                      chart:
+                        type: string
+                      name:
+                        description: name of the HelmRelease resource to apply
+                        type: string
+                      namespace:
+                        type: string
+                      repository:
+                        type: string
+                      version:
+                        type: string
+                    type: object
+                  enabled:
+                    type: boolean
+                  patch:
+                    properties:
+                      name:
+                        description: name of the PlatformPatch resource to apply
+                        type: string
+                    type: object
+                type: object
               gitOps:
                 properties:
-                  engine:
-                    type: string
-                required:
-                - engine
+                  argocd:
+                    properties:
+                      chart:
+                        properties:
+                          chart:
+                            type: string
+                          name:
+                            description: name of the HelmRelease resource to apply
+                            type: string
+                          namespace:
+                            type: string
+                          repository:
+                            type: string
+                          version:
+                            type: string
+                        type: object
+                      enabled:
+                        type: boolean
+                      patch:
+                        properties:
+                          name:
+                            description: name of the PlatformPatch resource to apply
+                            type: string
+                        type: object
+                    type: object
+                  fluxcd:
+                    properties:
+                      chart:
+                        properties:
+                          chart:
+                            type: string
+                          name:
+                            description: name of the HelmRelease resource to apply
+                            type: string
+                          namespace:
+                            type: string
+                          repository:
+                            type: string
+                          version:
+                            type: string
+                        type: object
+                      enabled:
+                        type: boolean
+                      patch:
+                        properties:
+                          name:
+                            description: name of the PlatformPatch resource to apply
+                            type: string
+                        type: object
+                    type: object
+                type: object
+              kubePrometheusStack:
+                properties:
+                  chart:
+                    properties:
+                      chart:
+                        type: string
+                      name:
+                        description: name of the HelmRelease resource to apply
+                        type: string
+                      namespace:
+                        type: string
+                      repository:
+                        type: string
+                      version:
+                        type: string
+                    type: object
+                  enabled:
+                    type: boolean
+                  patch:
+                    properties:
+                      name:
+                        description: name of the PlatformPatch resource to apply
+                        type: string
+                    type: object
+                type: object
+              loki:
+                properties:
+                  chart:
+                    properties:
+                      chart:
+                        type: string
+                      name:
+                        description: name of the HelmRelease resource to apply
+                        type: string
+                      namespace:
+                        type: string
+                      repository:
+                        type: string
+                      version:
+                        type: string
+                    type: object
+                  enabled:
+                    type: boolean
+                  patch:
+                    properties:
+                      name:
+                        description: name of the PlatformPatch resource to apply
+                        type: string
+                    type: object
                 type: object
               platformSource:
                 type: string
               platformVersion:
                 type: string
+              renovateOperator:
+                properties:
+                  chart:
+                    properties:
+                      chart:
+                        type: string
+                      name:
+                        description: name of the HelmRelease resource to apply
+                        type: string
+                      namespace:
+                        type: string
+                      repository:
+                        type: string
+                      version:
+                        type: string
+                    type: object
+                  enabled:
+                    type: boolean
+                  patch:
+                    properties:
+                      name:
+                        description: name of the PlatformPatch resource to apply
+                        type: string
+                    type: object
+                type: object
               traefik:
                 properties:
                   chart:
@@ -121,6 +294,8 @@ spec:
                         type: string
                       name:
                         description: name of the HelmRelease resource to apply
+                        type: string
+                      namespace:
                         type: string
                       repository:
                         type: string

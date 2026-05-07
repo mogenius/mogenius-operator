@@ -38,14 +38,32 @@ type PlatformConfig struct {
 
 // Specification of platform components and their configuration.
 type PlatformConfigSpec struct {
-	PlatformVersion string             `json:"platformVersion"`
-	PlatformSource  string             `json:"platformSource,omitempty"`
-	GitOps          *GitOpsConfig      `json:"gitOps"`
-	CertManager     *CertManagerConfig `json:"certManager,omitempty"`
-	Traefik         *TraefikConfig     `json:"traefik,omitempty"`
+	PlatformVersion     string                     `json:"platformVersion"`
+	PlatformSource      string                     `json:"platformSource,omitempty"`
+	GitOps              *GitOpsConfig              `json:"gitOps"`
+	CertManager         *CertManagerConfig         `json:"certManager,omitempty"`
+	Traefik             *TraefikConfig             `json:"traefik,omitempty"`
+	ExternalDNS         *ExternalDNSConfig         `json:"externalDns,omitempty"`
+	KubePrometheusStack *KubePrometheusStackConfig `json:"kubePrometheusStack,omitempty"`
+	Loki                *LokiConfig                `json:"loki,omitempty"`
+	Alloy               *AlloyConfig               `json:"alloy,omitempty"`
+	RenovateOperator    *RenovateOperatorConfig    `json:"renovateOperator,omitempty"`
 }
 type GitOpsConfig struct {
-	Engine string `json:"engine"`
+	ArgoCD *ArgoCDInstallConfig `json:"argocd,omitempty"`
+	FluxCD *FluxCDInstallConfig `json:"fluxcd,omitempty"`
+}
+
+type ArgoCDInstallConfig struct {
+	Enabled bool                          `json:"enabled,omitempty"`
+	Patch   *PlatformConfigPatchReference `json:"patch,omitempty"`
+	Chart   *HelmChartReference           `json:"chart,omitempty"`
+}
+
+type FluxCDInstallConfig struct {
+	Enabled bool                          `json:"enabled,omitempty"`
+	Patch   *PlatformConfigPatchReference `json:"patch,omitempty"`
+	Chart   *HelmChartReference           `json:"chart,omitempty"`
 }
 
 type CertManagerConfig struct {
@@ -56,6 +74,36 @@ type CertManagerConfig struct {
 }
 
 type TraefikConfig struct {
+	Enabled bool                          `json:"enabled,omitempty"`
+	Patch   *PlatformConfigPatchReference `json:"patch,omitempty"`
+	Chart   *HelmChartReference           `json:"chart,omitempty"`
+}
+
+type ExternalDNSConfig struct {
+	Enabled bool                          `json:"enabled,omitempty"`
+	Patch   *PlatformConfigPatchReference `json:"patch,omitempty"`
+	Chart   *HelmChartReference           `json:"chart,omitempty"`
+}
+
+type KubePrometheusStackConfig struct {
+	Enabled bool                          `json:"enabled,omitempty"`
+	Patch   *PlatformConfigPatchReference `json:"patch,omitempty"`
+	Chart   *HelmChartReference           `json:"chart,omitempty"`
+}
+
+type LokiConfig struct {
+	Enabled bool                          `json:"enabled,omitempty"`
+	Patch   *PlatformConfigPatchReference `json:"patch,omitempty"`
+	Chart   *HelmChartReference           `json:"chart,omitempty"`
+}
+
+type AlloyConfig struct {
+	Enabled bool                          `json:"enabled,omitempty"`
+	Patch   *PlatformConfigPatchReference `json:"patch,omitempty"`
+	Chart   *HelmChartReference           `json:"chart,omitempty"`
+}
+
+type RenovateOperatorConfig struct {
 	Enabled bool                          `json:"enabled,omitempty"`
 	Patch   *PlatformConfigPatchReference `json:"patch,omitempty"`
 	Chart   *HelmChartReference           `json:"chart,omitempty"`
@@ -93,6 +141,7 @@ type HelmChartReference struct {
 	Chart      string `json:"chart,omitempty"`
 	Version    string `json:"version,omitempty"`
 	Repository string `json:"repository,omitempty"`
+	Namespace  string `json:"namespace,omitempty"`
 }
 
 type PlatformConfigStatus struct {

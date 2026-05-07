@@ -30,6 +30,12 @@ func helmVersion(reference *v1alpha1.HelmChartReference, defaultVersion string) 
 	}
 	return defaultVersion
 }
+func helmNamespace(reference *v1alpha1.HelmChartReference, defaultNamespace string) string {
+	if reference != nil && reference.Namespace != "" {
+		return reference.Namespace
+	}
+	return defaultNamespace
+}
 
 // mergeHelmValues builds a merged values map in three layers:
 //  1. defaults.ValuesObject from getDefaultConfig

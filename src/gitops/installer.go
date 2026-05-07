@@ -37,14 +37,23 @@ type GitOpsInstaller interface {
 	UnInstall(string) error
 }
 
-func NewGitOpsInstaller(engine string, clientProvider k8sclient.K8sClientProvider) GitOpsInstaller {
+// noopInstaller is returned when no engine is configured so that component
+// reconcilers can call Install/UnInstall without panicking.
+type noopInstaller struct{}
+
+func (n *noopInstaller) Install(_ string, _ GitOpsArtifact) error { return nil }
+func (n *noopInstaller) UnInstall(_ string) error                 { return nil }
+
+// NewGitOpsInstaller returns an installer for the given engine type.
+// namespace is where the engine's own CRDs (Applications, HelmReleases, …) live.
+func NewGitOpsInstaller(engine, namespace string, clientProvider k8sclient.K8sClientProvider) GitOpsInstaller {
 	switch engine {
 	case "argocd":
-		return &argocdInstaller{clientProvider: clientProvider}
+		return &argocdInstaller{clientProvider: clientProvider, namespace: namespace}
 	case "flux":
-		return &fluxInstaller{clientProvider: clientProvider}
+		return &fluxInstaller{clientProvider: clientProvider, namespace: namespace}
 	default:
-		return nil
+		return &noopInstaller{}
 	}
 }
 

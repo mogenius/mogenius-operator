@@ -11,14 +11,14 @@ import (
 
 // componentSpec holds the shared configuration needed to reconcile a platform component.
 type componentSpec struct {
-	enabled      bool
-	chart        *v1alpha1.HelmChartReference
-	patch        *v1alpha1.PlatformConfigPatchReference
-	name         string // component constant, e.g. componentCertManager
-	namespace    string // target namespace, e.g. "cert-manager"
-	defaultChart string // default Helm chart name
-	defaultRepo  string // default Helm repository URL
-	defaultName  string // default Helm release name
+	enabled          bool
+	chart            *v1alpha1.HelmChartReference
+	patch            *v1alpha1.PlatformConfigPatchReference
+	name             string // component constant, e.g. componentCertManager
+	defaultNamespace string // target namespace, e.g. "cert-manager"
+	defaultChart     string // default Helm chart name
+	defaultRepo      string // default Helm repository URL
+	defaultName      string // default Helm release name
 }
 
 // reconcileComponent runs the shared reconcile flow for a platform component.
@@ -31,7 +31,7 @@ func (d *reconcilerModule) reconcileComponent(
 	installer gitops.GitOpsInstaller,
 	op operation,
 	cs componentSpec,
-	buildExtraObjects func(ctx context.Context, patch *v1alpha1.PlatformPatch) ([]any, error),
+	buildExtraObjects func(ctx context.Context) ([]any, error),
 	buildExtraValues func(ctx context.Context) (map[string]interface{}, error),
 ) *ReconcileResult {
 	if !cs.enabled || op == deleteOperation {
@@ -71,7 +71,7 @@ func (d *reconcilerModule) reconcileComponent(
 		return &ReconcileResult{Err: fmt.Errorf("merge helm values for %s: %w", cs.name, err)}
 	}
 
-	extraObjects, err := buildExtraObjects(ctx, patch)
+	extraObjects, err := buildExtraObjects(ctx)
 	if err != nil {
 		return &ReconcileResult{Err: fmt.Errorf("build extra objects for %s: %w", cs.name, err)}
 	}
@@ -83,7 +83,7 @@ func (d *reconcilerModule) reconcileComponent(
 	extraObjects = append(extraObjects, extraPatchObjects...)
 
 	artifact := gitops.GitOpsArtifact{
-		Namespace:    cs.namespace,
+		Namespace:    helmNamespace(cs.chart, cs.defaultNamespace),
 		HelmChart:    chart,
 		Values:       mergedValues,
 		ExtraObjects: extraObjects,
