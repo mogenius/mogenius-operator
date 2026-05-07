@@ -6,7 +6,6 @@ import (
 	"mogenius-operator/src/config"
 	"mogenius-operator/src/containerenumerator"
 	"mogenius-operator/src/k8sclient"
-	"mogenius-operator/src/utils"
 	"os"
 	"testing"
 )
@@ -17,11 +16,11 @@ func TestEmptyCgroup(t *testing.T) {
 	configModule := config.NewConfig()
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "KUBERNETES_DEBUG",
-		DefaultValue: utils.Pointer("false"),
+		DefaultValue: new("false"),
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_HOST_PROC_PATH",
-		DefaultValue: utils.Pointer("/proc"),
+		DefaultValue: new("/proc"),
 	})
 	clientProvider := k8sclient.NewK8sClientProvider(logger, configModule)
 	cne := containerenumerator.NewContainerEnumerator(slog.New(slog.NewJSONHandler(os.Stdout, nil)), configModule, clientProvider)
@@ -36,11 +35,11 @@ func TestBaseCgroup(t *testing.T) {
 	configModule := config.NewConfig()
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "KUBERNETES_DEBUG",
-		DefaultValue: utils.Pointer("false"),
+		DefaultValue: new("false"),
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_HOST_PROC_PATH",
-		DefaultValue: utils.Pointer("/proc"),
+		DefaultValue: new("/proc"),
 	})
 	clientProvider := k8sclient.NewK8sClientProvider(logger, configModule)
 	cne := containerenumerator.NewContainerEnumerator(slog.New(slog.NewJSONHandler(os.Stdout, nil)), configModule, clientProvider)
@@ -54,11 +53,11 @@ func TestBasicCgroup(t *testing.T) {
 	configModule := config.NewConfig()
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "KUBERNETES_DEBUG",
-		DefaultValue: utils.Pointer("false"),
+		DefaultValue: new("false"),
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_HOST_PROC_PATH",
-		DefaultValue: utils.Pointer("/proc"),
+		DefaultValue: new("/proc"),
 	})
 	clientProvider := k8sclient.NewK8sClientProvider(logger, configModule)
 	cne := containerenumerator.NewContainerEnumerator(slog.New(slog.NewJSONHandler(os.Stdout, nil)), configModule, clientProvider)
@@ -73,11 +72,11 @@ func TestBasicNestedCgroup(t *testing.T) {
 	configModule := config.NewConfig()
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "KUBERNETES_DEBUG",
-		DefaultValue: utils.Pointer("false"),
+		DefaultValue: new("false"),
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_HOST_PROC_PATH",
-		DefaultValue: utils.Pointer("/proc"),
+		DefaultValue: new("/proc"),
 	})
 	clientProvider := k8sclient.NewK8sClientProvider(logger, configModule)
 	cne := containerenumerator.NewContainerEnumerator(slog.New(slog.NewJSONHandler(os.Stdout, nil)), configModule, clientProvider)
@@ -92,11 +91,11 @@ func TestNestedCgroupSameEngine(t *testing.T) {
 	configModule := config.NewConfig()
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "KUBERNETES_DEBUG",
-		DefaultValue: utils.Pointer("false"),
+		DefaultValue: new("false"),
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_HOST_PROC_PATH",
-		DefaultValue: utils.Pointer("/proc"),
+		DefaultValue: new("/proc"),
 	})
 	clientProvider := k8sclient.NewK8sClientProvider(logger, configModule)
 	cne := containerenumerator.NewContainerEnumerator(slog.New(slog.NewJSONHandler(os.Stdout, nil)), configModule, clientProvider)
@@ -111,11 +110,11 @@ func TestNestedCgroupThreeLayers(t *testing.T) {
 	configModule := config.NewConfig()
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "KUBERNETES_DEBUG",
-		DefaultValue: utils.Pointer("false"),
+		DefaultValue: new("false"),
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_HOST_PROC_PATH",
-		DefaultValue: utils.Pointer("/proc"),
+		DefaultValue: new("/proc"),
 	})
 	clientProvider := k8sclient.NewK8sClientProvider(logger, configModule)
 	cne := containerenumerator.NewContainerEnumerator(slog.New(slog.NewJSONHandler(os.Stdout, nil)), configModule, clientProvider)
@@ -136,11 +135,11 @@ func TestCgroupMatches(t *testing.T) {
 	configModule := config.NewConfig()
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "KUBERNETES_DEBUG",
-		DefaultValue: utils.Pointer("false"),
+		DefaultValue: new("false"),
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_HOST_PROC_PATH",
-		DefaultValue: utils.Pointer("/proc"),
+		DefaultValue: new("/proc"),
 	})
 	clientProvider := k8sclient.NewK8sClientProvider(logger, configModule)
 	cne := containerenumerator.NewContainerEnumerator(slog.New(slog.NewJSONHandler(os.Stdout, nil)), configModule, clientProvider)

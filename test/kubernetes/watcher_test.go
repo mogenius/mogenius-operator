@@ -6,7 +6,6 @@ import (
 	"mogenius-operator/src/kubernetes"
 	"mogenius-operator/src/logging"
 	"mogenius-operator/src/structs"
-	"mogenius-operator/src/utils"
 	"mogenius-operator/test"
 	"os"
 	"testing"
@@ -76,22 +75,22 @@ func TestWatcher(t *testing.T) {
 	assert.AssertT(t, err == nil, err)
 
 	// LIST ITEMS IN WORKLOAD
-	_, err = kubernetes.GetUnstructuredResourceList("deployments", "apps/v1", utils.Pointer(""))
+	_, err = kubernetes.GetUnstructuredResourceList("deployments", "apps/v1", new(""))
 	assert.AssertT(t, err == nil, err)
 
-	_, err = kubernetes.GetUnstructuredResourceList("pods", "v1", utils.Pointer(""))
+	_, err = kubernetes.GetUnstructuredResourceList("pods", "v1", new(""))
 	assert.AssertT(t, err == nil, err)
 
-	_, err = kubernetes.GetUnstructuredResourceList("secrets", "v1", utils.Pointer(""))
+	_, err = kubernetes.GetUnstructuredResourceList("secrets", "v1", new(""))
 	assert.AssertT(t, err == nil, err)
 
-	_, err = kubernetes.GetUnstructuredResourceList("persistentvolumes", "v1", utils.Pointer(""))
+	_, err = kubernetes.GetUnstructuredResourceList("persistentvolumes", "v1", new(""))
 	assert.AssertT(t, err == nil, err)
 
 	_, err = kubernetes.GetUnstructuredResourceList("namespaces", "v1", nil)
 	assert.AssertT(t, err == nil, err)
 
-	_, err = kubernetes.GetUnstructuredResourceList("addons", "k3s.cattle.io/v1", utils.Pointer(""))
+	_, err = kubernetes.GetUnstructuredResourceList("addons", "k3s.cattle.io/v1", new(""))
 	assert.AssertT(t, err == nil, err)
 
 	// GET WORKLOAD

@@ -2,7 +2,6 @@ package config_test
 
 import (
 	"mogenius-operator/src/config"
-	"mogenius-operator/src/utils"
 	"slices"
 	"testing"
 
@@ -84,13 +83,13 @@ func TestCallbackWorks(t *testing.T) {
 
 	c.Declare(config.ConfigDeclaration{
 		Key:          "foo",
-		DefaultValue: utils.Pointer("bar"),
+		DefaultValue: new("bar"),
 	})
 	assert.Equal(1, callbackCallCounter)
 
 	c.Declare(config.ConfigDeclaration{
 		Key:          "bacon",
-		DefaultValue: utils.Pointer("ipsum"),
+		DefaultValue: new("ipsum"),
 	})
 	assert.Equal(2, callbackCallCounter)
 }
@@ -103,14 +102,14 @@ func TestSetAndGetMultiple(t *testing.T) {
 
 	c.Declare(config.ConfigDeclaration{
 		Key:          "foo",
-		DefaultValue: utils.Pointer("bar"),
+		DefaultValue: new("bar"),
 	})
 	assert.Equal("bar", c.Get("foo"), "the first call to get('someKey') should work")
 	assert.Equal("bar", c.Get("foo"), "a second call to get('someKey') should work")
 
 	c.Declare(config.ConfigDeclaration{
 		Key:          "bacon",
-		DefaultValue: utils.Pointer("ipsum"),
+		DefaultValue: new("ipsum"),
 	})
 	assert.Equal("ipsum", c.Get("bacon"), "the first call to get('someOtherKey') should work")
 	assert.Equal("ipsum", c.Get("bacon"), "a second call to get('someOtherKey') should work")
@@ -155,14 +154,14 @@ func TestUsageSummaryWorks(t *testing.T) {
 
 	c.Declare(config.ConfigDeclaration{
 		Key:          "foo",
-		DefaultValue: utils.Pointer("bar"),
+		DefaultValue: new("bar"),
 	})
 	err := c.TrySet("foo", "baz")
 	assert.NoError(err)
 
 	c.Declare(config.ConfigDeclaration{
 		Key:          "bacon",
-		DefaultValue: utils.Pointer("ipsum"),
+		DefaultValue: new("ipsum"),
 	})
 
 	assert.Equal("baz", c.Get("foo"))

@@ -191,7 +191,7 @@ func (self *moKubernetes) CreateOrUpdateResourceTemplateConfigmap() error {
 
 	// check if configmap exists
 	ownNamespace := self.config.Get("MO_OWN_NAMESPACE")
-	_, err = self.CreateUnstructuredResource(utils.ConfigMapResource.ApiVersion, utils.ConfigMapResource.Plural, utils.Pointer(ownNamespace), string(updatedYaml))
+	_, err = self.CreateUnstructuredResource(utils.ConfigMapResource.ApiVersion, utils.ConfigMapResource.Plural, new(ownNamespace), string(updatedYaml))
 	if apierrors.IsAlreadyExists(err) {
 		_, err = kubernetes.UpdateUnstructuredResource(utils.ConfigMapResource.ApiVersion, utils.ConfigMapResource.Plural, utils.ConfigMapResource.Namespaced, string(updatedYaml))
 		if err != nil {

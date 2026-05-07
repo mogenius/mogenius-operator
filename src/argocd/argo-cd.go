@@ -624,6 +624,6 @@ func (self *argocd) initArgoServerUrl() error {
 		return fmt.Errorf("argo-cd-server deployment not found in namespace %s", self.argoCdConfig.Data["namespaceName"])
 	}
 
-	self.argoURL = utils.Pointer(fmt.Sprintf(ARGO_CD_SERVER_URL, argoCdServerDeployment.GetName(), self.argoCdConfig.Data["namespaceName"]))
+	self.argoURL = new(fmt.Sprintf(ARGO_CD_SERVER_URL, argoCdServerDeployment.GetName(), self.argoCdConfig.Data["namespaceName"]))
 	return nil
 }

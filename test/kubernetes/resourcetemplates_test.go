@@ -7,7 +7,6 @@ import (
 	"mogenius-operator/src/k8sclient"
 	"mogenius-operator/src/kubernetes"
 	"mogenius-operator/src/logging"
-	"mogenius-operator/src/utils"
 	"mogenius-operator/src/valkeyclient"
 	"os"
 	"testing"
@@ -19,11 +18,11 @@ func TestResourceTemplates(t *testing.T) {
 	config := cfg.NewConfig()
 	config.Declare(cfg.ConfigDeclaration{
 		Key:          "MO_OWN_NAMESPACE",
-		DefaultValue: utils.Pointer("mogenius"),
+		DefaultValue: new("mogenius"),
 	})
 	config.Declare(cfg.ConfigDeclaration{
 		Key:          "KUBERNETES_DEBUG",
-		DefaultValue: utils.Pointer("false"),
+		DefaultValue: new("false"),
 	})
 	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"), config)
 	valkeyClient := valkeyclient.NewValkeyClient(logManager.CreateLogger("valkey"), config)
