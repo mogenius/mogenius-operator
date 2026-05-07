@@ -1,3 +1,10 @@
+# [2.20.0-develop.124](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.123...v2.20.0-develop.124) (2026-05-07)
+
+
+### Bug Fixes
+
+* use new new() fucntion to get pointers ([feb8463](https://github.com/mogenius/mogenius-operator/commit/feb8463c77a658debecd2fdad4cca6e2137b20bc))
+
 # [2.20.0-develop.123](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.122...v2.20.0-develop.123) (2026-05-06)
 
 
