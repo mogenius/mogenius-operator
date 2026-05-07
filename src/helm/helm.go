@@ -1,8 +1,11 @@
 package helm
 
 import (
+	"bytes"
+	"context"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"mogenius-operator/src/assert"
 	cfg "mogenius-operator/src/config"
@@ -17,9 +20,15 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/apimachinery/pkg/types"
-
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/wait"
+	apimachineryyaml "k8s.io/apimachinery/pkg/util/yaml"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 
 	"helm.sh/helm/v4/pkg/kube"
 	"helm.sh/helm/v4/pkg/registry"
@@ -29,6 +38,7 @@ import (
 	"sigs.k8s.io/yaml"
 
 	"helm.sh/helm/v4/pkg/action"
+	chartcommon "helm.sh/helm/v4/pkg/chart"
 	"helm.sh/helm/v4/pkg/chart/loader"
 	chart "helm.sh/helm/v4/pkg/chart/v2"
 	"helm.sh/helm/v4/pkg/cli"
@@ -805,6 +815,21 @@ func HelmOciInstall(data HelmChartOciInstallUpgradeRequest) (result string, err 
 		return "", err
 	}
 
+	if !data.DryRun {
+		if crds := chartCRDObjects(chartRequested); len(crds) > 0 {
+			helmLogger.Info("Installing CRDs ...", "count", len(crds), "releaseName", data.Release, "namespace", data.Namespace)
+			if cerr := installChartCRDs(context.Background(), crds, settings.RESTClientGetter()); cerr != nil {
+				helmLogger.Error("HelmOCIInstall installChartCRDs",
+					"releaseName", data.Release,
+					"namespace", data.Namespace,
+					"error", cerr.Error(),
+				)
+				return "", cerr
+			}
+			install.SkipCRDs = true
+		}
+	}
+
 	rel, err := install.Run(chartRequested, valuesMap)
 	if err != nil {
 		helmLogger.Error("HelmOCIInstall Run",
@@ -852,6 +877,95 @@ func newRegistryClient(settings *cli.EnvSettings, plainHTTP bool) (*registry.Cli
 	}
 
 	return registryClient, nil
+}
+
+// chartCRDObjects extracts CRD objects from a loaded chart. loader.Load returns
+// chart.Charter (an empty interface), so we mirror Helm's own type-switch.
+func chartCRDObjects(ch chartcommon.Charter) []chart.CRD {
+	switch c := ch.(type) {
+	case *chart.Chart:
+		return c.CRDObjects()
+	case chart.Chart:
+		return c.CRDObjects()
+	default:
+		return nil
+	}
+}
+
+// installChartCRDs installs the chart's CRDs directly via the apiextensions
+// client, bypassing Helm v4's installCRDs path. The Helm path uses cli-runtime's
+// resource Builder which silently returns no resources for some CRD files,
+// triggering "resources are empty" since helm v4.1.2 (see MOG-4274).
+func installChartCRDs(ctx context.Context, crds []chart.CRD, getter genericclioptions.RESTClientGetter) error {
+	if len(crds) == 0 {
+		return nil
+	}
+
+	restCfg, err := getter.ToRESTConfig()
+	if err != nil {
+		return fmt.Errorf("rest config: %w", err)
+	}
+	apiextClient, err := apiextensionsclientset.NewForConfig(restCfg)
+	if err != nil {
+		return fmt.Errorf("apiextensions client: %w", err)
+	}
+
+	var installed []string
+	for _, crdFile := range crds {
+		if crdFile.File == nil || len(crdFile.File.Data) == 0 {
+			continue
+		}
+		decoder := apimachineryyaml.NewYAMLOrJSONDecoder(bytes.NewReader(crdFile.File.Data), 4096)
+		for {
+			obj := &apiextensionsv1.CustomResourceDefinition{}
+			if derr := decoder.Decode(obj); derr != nil {
+				if errors.Is(derr, io.EOF) {
+					break
+				}
+				return fmt.Errorf("decode CRD %s: %w", crdFile.Name, derr)
+			}
+			if obj.Name == "" {
+				continue
+			}
+			if _, cerr := apiextClient.ApiextensionsV1().CustomResourceDefinitions().Create(ctx, obj, metav1.CreateOptions{}); cerr != nil {
+				if apierrors.IsAlreadyExists(cerr) {
+					helmLogger.Debug("CRD already present, skipping", "name", obj.Name)
+					continue
+				}
+				return fmt.Errorf("create CRD %s: %w", obj.Name, cerr)
+			}
+			helmLogger.Info("CRD installed", "name", obj.Name)
+			installed = append(installed, obj.Name)
+		}
+	}
+
+	if len(installed) == 0 {
+		return nil
+	}
+
+	waitCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	defer cancel()
+	for _, name := range installed {
+		if werr := waitForCRDEstablished(waitCtx, apiextClient, name); werr != nil {
+			return fmt.Errorf("wait for CRD %s established: %w", name, werr)
+		}
+	}
+	return nil
+}
+
+func waitForCRDEstablished(ctx context.Context, client *apiextensionsclientset.Clientset, name string) error {
+	return wait.PollUntilContextCancel(ctx, 500*time.Millisecond, true, func(ctx context.Context) (bool, error) {
+		crd, err := client.ApiextensionsV1().CustomResourceDefinitions().Get(ctx, name, metav1.GetOptions{})
+		if err != nil {
+			return false, err
+		}
+		for _, cond := range crd.Status.Conditions {
+			if cond.Type == apiextensionsv1.Established && cond.Status == apiextensionsv1.ConditionTrue {
+				return true, nil
+			}
+		}
+		return false, nil
+	})
 }
 
 func HelmChartInstall(data HelmChartInstallUpgradeRequest) (result string, err error) {
@@ -949,6 +1063,21 @@ func HelmChartInstall(data HelmChartInstallUpgradeRequest) (result string, err e
 			return "", perr
 		}
 		install.TakeOwnership = needsTakeOwnership
+	}
+
+	if !data.DryRun {
+		if crds := chartCRDObjects(chartRequested); len(crds) > 0 {
+			helmLogger.Info("Installing CRDs ...", "count", len(crds), "releaseName", data.Release, "namespace", data.Namespace)
+			if cerr := installChartCRDs(context.Background(), crds, settings.RESTClientGetter()); cerr != nil {
+				helmLogger.Error("HelmInstall installChartCRDs",
+					"releaseName", data.Release,
+					"namespace", data.Namespace,
+					"error", cerr.Error(),
+				)
+				return "", cerr
+			}
+			install.SkipCRDs = true
+		}
 	}
 
 	helmLogger.Info("Installing chart ...", "releaseName", data.Release, "namespace", data.Namespace)
