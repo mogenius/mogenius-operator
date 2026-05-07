@@ -8,7 +8,6 @@ import (
 	"mogenius-operator/src/helm"
 	"mogenius-operator/src/logging"
 	"mogenius-operator/src/secrets"
-	"mogenius-operator/src/utils"
 	"mogenius-operator/src/version"
 	"net"
 	"net/url"
@@ -166,41 +165,41 @@ func LoadConfigDeclarations(configModule *config.Config) {
 
 	configModule.Declare(config.ConfigDeclaration{
 		Key:         "MO_API_KEY",
-		Description: utils.Pointer("API key to access the server"),
+		Description: new("API key to access the server"),
 		IsSecret:    true,
 		Envs:        []string{"api_key"},
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:         "MO_CLUSTER_NAME",
-		Description: utils.Pointer("Name of the kubernetes cluster"),
+		Description: new("Name of the kubernetes cluster"),
 		Envs:        []string{"cluster_name"},
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:         "MO_CLUSTER_MFA_ID",
-		Description: utils.Pointer("NanoId of the Kubernetes Cluster for MFA purpose"),
+		Description: new("NanoId of the Kubernetes Cluster for MFA purpose"),
 		IsSecret:    true,
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_HTTP_ADDR",
-		DefaultValue: utils.Pointer(":1337"),
-		Description:  utils.Pointer("address of the controllers http api server"),
+		DefaultValue: new(":1337"),
+		Description:  new("address of the controllers http api server"),
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "CLUSTER_DOMAIN",
-		DefaultValue: utils.Pointer("cluster.local"),
-		Description:  utils.Pointer("the cluster domain of the kubernetes cluster"),
+		DefaultValue: new("cluster.local"),
+		Description:  new("the cluster domain of the kubernetes cluster"),
 		Envs:         []string{"CLUSTER_DOMAIN"},
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_OWN_NAMESPACE",
-		DefaultValue: utils.Pointer("mogenius"),
-		Description:  utils.Pointer("the Namespace of mogenius platform"),
+		DefaultValue: new("mogenius"),
+		Description:  new("the Namespace of mogenius platform"),
 		Envs:         []string{"OWN_NAMESPACE"},
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "OWN_NODE_NAME",
-		DefaultValue: utils.Pointer(os.Getenv("OWN_NODE_NAME")),
-		Description:  utils.Pointer("the name of the node this application is running in"),
+		DefaultValue: new(os.Getenv("OWN_NODE_NAME")),
+		Description:  new("the name of the node this application is running in"),
 		Envs:         []string{"OWN_NODE_NAME"},
 		Validate: func(val string) error {
 			if val == "" {
@@ -211,13 +210,13 @@ func LoadConfigDeclarations(configModule *config.Config) {
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "OWN_DEPLOYMENT_NAME",
-		DefaultValue: utils.Pointer("mogenius-operator"),
-		Description:  utils.Pointer("mogenius-operatoroyment this application is running in"),
+		DefaultValue: new("mogenius-operator"),
+		Description:  new("mogenius-operatoroyment this application is running in"),
 		Envs:         []string{"OWN_DEPLOYMENT_NAME"},
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:         "MO_API_SERVER",
-		Description: utils.Pointer("URL of API Server"),
+		Description: new("URL of API Server"),
 		Envs:        []string{"MO_API_SERVER"},
 		Validate: func(value string) error {
 			_, err := url.Parse(value)
@@ -229,8 +228,8 @@ func LoadConfigDeclarations(configModule *config.Config) {
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_API_SERVER_CLIENTS",
-		DefaultValue: utils.Pointer("1"),
-		Description:  utils.Pointer("Number of WebSocket connections to the API server"),
+		DefaultValue: new("1"),
+		Description:  new("Number of WebSocket connections to the API server"),
 		Validate: func(value string) error {
 			n, err := strconv.Atoi(value)
 			if err != nil {
@@ -244,7 +243,7 @@ func LoadConfigDeclarations(configModule *config.Config) {
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:         "MO_EVENT_SERVER",
-		Description: utils.Pointer("URL of Event Server"),
+		Description: new("URL of Event Server"),
 		Envs:        []string{"MO_EVENT_SERVER"},
 		Validate: func(value string) error {
 			_, err := url.Parse(value)
@@ -256,8 +255,8 @@ func LoadConfigDeclarations(configModule *config.Config) {
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_SKIP_TLS_VERIFICATION",
-		DefaultValue: utils.Pointer("false"),
-		Description:  utils.Pointer("Skip TLS verification for API and Event Server"),
+		DefaultValue: new("false"),
+		Description:  new("Skip TLS verification for API and Event Server"),
 		Validate: func(value string) error {
 			_, err := strconv.ParseBool(value)
 			if err != nil {
@@ -268,7 +267,7 @@ func LoadConfigDeclarations(configModule *config.Config) {
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:         "MO_VALKEY_ADDR",
-		Description: utils.Pointer("Address of operator valkey Server"),
+		Description: new("Address of operator valkey Server"),
 		Validate: func(value string) error {
 			_, _, err := net.SplitHostPort(value)
 			if err != nil {
@@ -279,30 +278,30 @@ func LoadConfigDeclarations(configModule *config.Config) {
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:         "MO_VALKEY_PASSWORD",
-		Description: utils.Pointer("Password of operator valkey Server"),
+		Description: new("Password of operator valkey Server"),
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_HELM_DATA_PATH",
-		DefaultValue: utils.Pointer(filepath.Join(workDir, "helm-data")),
-		Description:  utils.Pointer("path to the helm data"),
+		DefaultValue: new(filepath.Join(workDir, "helm-data")),
+		Description:  new("path to the helm data"),
 		Envs:         []string{"helm_data_path"},
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_GIT_USER_NAME",
-		DefaultValue: utils.Pointer("mogenius git-user"),
-		Description:  utils.Pointer("user name which is used when interacting with git"),
+		DefaultValue: new("mogenius git-user"),
+		Description:  new("user name which is used when interacting with git"),
 		Envs:         []string{"git_user_name"},
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_GIT_USER_EMAIL",
-		DefaultValue: utils.Pointer("git@mogenius.com"),
-		Description:  utils.Pointer("email address which is used when interacting with git"),
+		DefaultValue: new("git@mogenius.com"),
+		Description:  new("email address which is used when interacting with git"),
 		Envs:         []string{"git_user_email"},
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_AUDIT_LOG_LIMIT",
-		DefaultValue: utils.Pointer("1000"),
-		Description:  utils.Pointer("maximum number of audit log entries to persist"),
+		DefaultValue: new("1000"),
+		Description:  new("maximum number of audit log entries to persist"),
 		Envs:         []string{"audit_log_limit"},
 		Validate: func(value string) error {
 			_, err := strconv.Atoi(value)
@@ -314,8 +313,8 @@ func LoadConfigDeclarations(configModule *config.Config) {
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_ENABLE_POD_STATS_COLLECTOR",
-		DefaultValue: utils.Pointer("true"),
-		Description:  utils.Pointer("enable collection of pod stats"),
+		DefaultValue: new("true"),
+		Description:  new("enable collection of pod stats"),
 		Validate: func(value string) error {
 			_, err := strconv.ParseBool(value)
 			if err != nil {
@@ -326,8 +325,8 @@ func LoadConfigDeclarations(configModule *config.Config) {
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_ENABLE_TRAFFIC_COLLECTOR",
-		DefaultValue: utils.Pointer("false"),
-		Description:  utils.Pointer("enable collection of network stats"),
+		DefaultValue: new("false"),
+		Description:  new("enable collection of network stats"),
 		Validate: func(value string) error {
 			_, err := strconv.ParseBool(value)
 			if err != nil {
@@ -338,8 +337,8 @@ func LoadConfigDeclarations(configModule *config.Config) {
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_ENABLE_AUTO_UPGRADE",
-		DefaultValue: utils.Pointer("true"),
-		Description:  utils.Pointer("enable automatic operator self-upgrades triggered by the platform "),
+		DefaultValue: new("true"),
+		Description:  new("enable automatic operator self-upgrades triggered by the platform "),
 		Validate: func(value string) error {
 			_, err := strconv.ParseBool(value)
 			if err != nil {
@@ -350,8 +349,8 @@ func LoadConfigDeclarations(configModule *config.Config) {
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_SNOOPY_IMPLEMENTATION",
-		DefaultValue: utils.Pointer("auto"),
-		Description:  utils.Pointer("set which implementation for tracking network traffic should be used"),
+		DefaultValue: new("auto"),
+		Description:  new("set which implementation for tracking network traffic should be used"),
 		Validate: func(value string) error {
 			allowedValues := []string{
 				"auto",    // choose the best option based on whats available on the machine
@@ -366,8 +365,8 @@ func LoadConfigDeclarations(configModule *config.Config) {
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "KUBERNETES_DEBUG",
-		DefaultValue: utils.Pointer("false"),
-		Description:  utils.Pointer("enable kubernetes sdk debug output"),
+		DefaultValue: new("false"),
+		Description:  new("enable kubernetes sdk debug output"),
 		Validate: func(value string) error {
 			_, err := strconv.ParseBool(value)
 			if err != nil {
@@ -378,13 +377,13 @@ func LoadConfigDeclarations(configModule *config.Config) {
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_HOST_PROC_PATH",
-		DefaultValue: utils.Pointer("/proc"),
-		Description:  utils.Pointer("mountpath of /proc"),
+		DefaultValue: new("/proc"),
+		Description:  new("mountpath of /proc"),
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_LOG_LEVEL",
-		DefaultValue: utils.Pointer("info"),
-		Description:  utils.Pointer(`a log level: "mo","debug", "info", "warn" or "error"`),
+		DefaultValue: new("info"),
+		Description:  new(`a log level: "mo","debug", "info", "warn" or "error"`),
 		Validate: func(val string) error {
 			allowedLogLevels := []string{"mo", "debug", "info", "warn", "error"}
 			if !slices.Contains(allowedLogLevels, val) {
@@ -395,13 +394,13 @@ func LoadConfigDeclarations(configModule *config.Config) {
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_LOG_FILTER",
-		DefaultValue: utils.Pointer(""),
-		Description:  utils.Pointer("comma separated list of components for which logs should be enabled - if none are defined all logs are collected"),
+		DefaultValue: new(""),
+		Description:  new("comma separated list of components for which logs should be enabled - if none are defined all logs are collected"),
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_ALLOW_COUNTRY_CHECK",
-		DefaultValue: utils.Pointer("true"),
-		Description:  utils.Pointer(`allow the operator to determine its location country base on the IP address`),
+		DefaultValue: new("true"),
+		Description:  new(`allow the operator to determine its location country base on the IP address`),
 		Validate: func(value string) error {
 			_, err := strconv.ParseBool(value)
 			if err != nil {

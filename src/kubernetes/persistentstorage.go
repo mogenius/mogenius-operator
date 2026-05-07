@@ -105,7 +105,7 @@ func CreateMogeniusNfsPersistentVolumeClaim(eventClient websocket.WebsocketClien
 	pvc := utils.InitMogeniusNfsPersistentVolumeClaim()
 	pvc.Name = fmt.Sprintf("%s-%s", utils.NFS_POD_PREFIX, volumeName)
 	pvc.Namespace = namespaceName
-	pvc.Spec.StorageClassName = utils.Pointer(storageClass)
+	pvc.Spec.StorageClassName = new(storageClass)
 	pvc.Spec.Resources.Requests = v1.ResourceList{}
 	pvc.Spec.Resources.Requests[v1.ResourceStorage] = resource.MustParse(fmt.Sprintf("%dGi", volumeSizeInGb))
 

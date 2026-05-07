@@ -2279,7 +2279,7 @@ func (self *socketApi) startJobClientReadLoop() {
 				continue
 			}
 			if bytes.HasPrefix(message, []byte("######START_UPLOAD######;")) {
-				preparedFileName = utils.Pointer(fmt.Sprintf("/tmp/%s.zip", utils.NanoId()))
+				preparedFileName = new(fmt.Sprintf("/tmp/%s.zip", utils.NanoId()))
 				openFile, err = os.OpenFile(*preparedFileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 				if err != nil {
 					self.logger.Error("Cannot open uploadfile", "filename", *preparedFileName, "error", err)

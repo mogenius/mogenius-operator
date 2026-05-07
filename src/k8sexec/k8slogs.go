@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"mogenius-operator/src/utils"
 	"os"
 	"os/signal"
 	"syscall"
@@ -61,7 +60,7 @@ func (e *k8sLogs) Start() error {
 		req := e.restClient.GetLogs(e.pod, &v1core.PodLogOptions{
 			Container: e.container,
 			Follow:    true,
-			TailLines: utils.Pointer(e.tailLines),
+			TailLines: new(e.tailLines),
 		})
 		readCloser, err := req.Stream(ctx)
 		if err != nil {

@@ -69,7 +69,7 @@ func (self *ownerCacheService) ControllerForPod(namespace string, podName string
 
 	// Special case for pods with no owner (often used by system pods)
 	if pod.OwnerReferences == nil {
-		return utils.Pointer(NewK8sController(utils.PodResource, pod.Name, namespace))
+		return new(NewK8sController(utils.PodResource, pod.Name, namespace))
 	}
 
 	self.logger.Debug("Pod has no owner.", "namespace", namespace, "pod", podName)
@@ -85,7 +85,7 @@ func (self *ownerCacheService) OwnerFromReference(namespace string, ownerRefs []
 		case "ReplicaSet":
 			data := GetReplicaset(namespace, owner.Name)
 			if data != nil {
-				lastValidController = utils.Pointer(NewK8sController(utils.ReplicaSetResource, data.Name, namespace))
+				lastValidController = new(NewK8sController(utils.ReplicaSetResource, data.Name, namespace))
 				if data.OwnerReferences != nil {
 					// recurse and update lastValidController if successful
 					return returnOrUpdated(lastValidController,
@@ -96,7 +96,7 @@ func (self *ownerCacheService) OwnerFromReference(namespace string, ownerRefs []
 		case "Deployment":
 			data := GetDeployment(namespace, owner.Name)
 			if data != nil {
-				lastValidController = utils.Pointer(NewK8sController(utils.DeploymentResource, data.Name, namespace))
+				lastValidController = new(NewK8sController(utils.DeploymentResource, data.Name, namespace))
 				if data.OwnerReferences != nil {
 					return returnOrUpdated(lastValidController,
 						self.OwnerFromReference(namespace, data.OwnerReferences))
@@ -106,7 +106,7 @@ func (self *ownerCacheService) OwnerFromReference(namespace string, ownerRefs []
 		case "StatefulSet":
 			data := GetStatefulSet(namespace, owner.Name)
 			if data != nil {
-				lastValidController = utils.Pointer(NewK8sController(utils.StatefulSetResource, data.Name, namespace))
+				lastValidController = new(NewK8sController(utils.StatefulSetResource, data.Name, namespace))
 				if data.OwnerReferences != nil {
 					return returnOrUpdated(lastValidController,
 						self.OwnerFromReference(namespace, data.OwnerReferences))
@@ -116,7 +116,7 @@ func (self *ownerCacheService) OwnerFromReference(namespace string, ownerRefs []
 		case "DaemonSet":
 			data := GetDaemonSet(namespace, owner.Name)
 			if data != nil {
-				lastValidController = utils.Pointer(NewK8sController(utils.DaemonSetResource, data.Name, namespace))
+				lastValidController = new(NewK8sController(utils.DaemonSetResource, data.Name, namespace))
 				if data.OwnerReferences != nil {
 					return returnOrUpdated(lastValidController,
 						self.OwnerFromReference(namespace, data.OwnerReferences))
@@ -126,7 +126,7 @@ func (self *ownerCacheService) OwnerFromReference(namespace string, ownerRefs []
 		case "Job":
 			data := GetJob(namespace, owner.Name)
 			if data != nil {
-				lastValidController = utils.Pointer(NewK8sController(utils.JobResource, data.Name, namespace))
+				lastValidController = new(NewK8sController(utils.JobResource, data.Name, namespace))
 				if data.OwnerReferences != nil {
 					return returnOrUpdated(lastValidController,
 						self.OwnerFromReference(namespace, data.OwnerReferences))
@@ -136,7 +136,7 @@ func (self *ownerCacheService) OwnerFromReference(namespace string, ownerRefs []
 		case "CronJob":
 			data := GetCronJob(namespace, owner.Name)
 			if data != nil {
-				lastValidController = utils.Pointer(NewK8sController(utils.CronJobResource, data.Name, namespace))
+				lastValidController = new(NewK8sController(utils.CronJobResource, data.Name, namespace))
 				if data.OwnerReferences != nil {
 					return returnOrUpdated(lastValidController,
 						self.OwnerFromReference(namespace, data.OwnerReferences))
@@ -146,7 +146,7 @@ func (self *ownerCacheService) OwnerFromReference(namespace string, ownerRefs []
 		case "Pod":
 			data := GetPod(namespace, owner.Name)
 			if data != nil {
-				lastValidController = utils.Pointer(NewK8sController(utils.PodResource, data.Name, namespace))
+				lastValidController = new(NewK8sController(utils.PodResource, data.Name, namespace))
 				if data.OwnerReferences != nil {
 					return returnOrUpdated(lastValidController,
 						self.OwnerFromReference(namespace, data.OwnerReferences))
@@ -156,7 +156,7 @@ func (self *ownerCacheService) OwnerFromReference(namespace string, ownerRefs []
 		case "Node":
 			data := GetNode(owner.Name)
 			if data != nil {
-				lastValidController = utils.Pointer(NewK8sController(utils.NodeResource, data.Name, ""))
+				lastValidController = new(NewK8sController(utils.NodeResource, data.Name, ""))
 				if data.OwnerReferences != nil {
 					return returnOrUpdated(lastValidController,
 						self.OwnerFromReference(namespace, data.OwnerReferences))
