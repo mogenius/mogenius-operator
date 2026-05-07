@@ -2,7 +2,6 @@ package reconciler
 
 import (
 	"context"
-	"fmt"
 	"mogenius-operator/src/crds/v1alpha1"
 	"mogenius-operator/src/gitops"
 )
@@ -14,17 +13,17 @@ func (d *reconcilerModule) reconcileCertManager(ctx context.Context, spec v1alph
 	}
 	return d.reconcileComponent(ctx, spec, installer, op,
 		componentSpec{
-			enabled:      cm.Enabled,
-			chart:        cm.Chart,
-			patch:        cm.Patch,
-			name:         componentCertManager,
-			namespace:    "cert-manager",
-			defaultChart: "cert-manager",
-			defaultRepo:  "https://charts.jetstack.io",
-			defaultName:  "cert-manager",
+			enabled:          cm.Enabled,
+			chart:            cm.Chart,
+			patch:            cm.Patch,
+			name:             componentCertManager,
+			defaultChart:     "cert-manager",
+			defaultRepo:      "https://charts.jetstack.io",
+			defaultName:      "cert-manager",
+			defaultNamespace: "cert-manager",
 		},
-		func(ctx context.Context, patch *v1alpha1.PlatformPatch) ([]any, error) {
-			return d.buildCertManagerExtraObjects(ctx, cm, patch)
+		func(ctx context.Context) ([]any, error) {
+			return d.buildCertManagerExtraObjects(ctx, cm)
 		},
 		func(ctx context.Context) (map[string]interface{}, error) {
 			return nil, nil
@@ -34,17 +33,13 @@ func (d *reconcilerModule) reconcileCertManager(ctx context.Context, spec v1alph
 
 // buildCertManagerExtraObjects merges ClusterIssuer objects derived from the
 // issuer config with any extra objects coming from the referenced PlatformPatch.
-func (d *reconcilerModule) buildCertManagerExtraObjects(ctx context.Context, certManager *v1alpha1.CertManagerConfig, patch *v1alpha1.PlatformPatch) ([]any, error) {
+func (d *reconcilerModule) buildCertManagerExtraObjects(ctx context.Context, certManager *v1alpha1.CertManagerConfig) ([]any, error) {
 	extraObjects := make([]any, 0, len(certManager.Issuers))
 	for _, issuer := range certManager.Issuers {
 		extraObjects = append(extraObjects, buildClusterIssuerObject(issuer))
 	}
 
-	patchObjects, err := extractPatchExtraObjects(patch)
-	if err != nil {
-		return nil, fmt.Errorf("decode extra object from patch %q: %w", certManager.Patch.Name, err)
-	}
-	return append(extraObjects, patchObjects...), nil
+	return extraObjects, nil
 }
 
 const letsEncryptProdServer = "https://acme-v02.api.letsencrypt.org/directory"

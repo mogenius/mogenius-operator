@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"mogenius-operator/src/k8sclient"
+	"strings"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -17,6 +18,11 @@ var (
 		Version:  "v1",
 		Resource: "helmrepositories",
 	}
+	fluxOCIRepositoryGVR = schema.GroupVersionResource{
+		Group:    "source.toolkit.fluxcd.io",
+		Version:  "v1",
+		Resource: "ocirepositories",
+	}
 	fluxHelmReleaseGVR = schema.GroupVersionResource{
 		Group:    "helm.toolkit.fluxcd.io",
 		Version:  "v2",
@@ -24,33 +30,48 @@ var (
 	}
 )
 
-// fluxNamespace is where all Flux CRs are created. The HelmRelease
-// spec.targetNamespace controls the actual deployment namespace.
-const fluxNamespace = "flux-system"
+func isOCIRepository(url string) bool {
+	return strings.HasPrefix(url, "oci://")
+}
 
 type fluxInstaller struct {
 	clientProvider k8sclient.K8sClientProvider
+	namespace      string
 }
 
 func (f *fluxInstaller) Install(component string, artifact GitOpsArtifact) error {
-	repo := buildFluxHelmRepository(component, artifact.HelmChart.Repository)
-	if err := applyUnstructured(f.clientProvider, fluxHelmRepositoryGVR, fluxNamespace, repo); err != nil {
+	if isOCIRepository(artifact.HelmChart.Repository) {
+		ociRepo := buildFluxOCIRepository(component, artifact.HelmChart.Repository, artifact.HelmChart.Version, f.namespace)
+		if err := applyUnstructured(f.clientProvider, fluxOCIRepositoryGVR, f.namespace, ociRepo); err != nil {
+			return fmt.Errorf("apply flux ocirepository %s: %w", component, err)
+		}
+
+		release := buildFluxOCIHelmRelease(component, artifact, f.namespace)
+		if err := applyUnstructured(f.clientProvider, fluxHelmReleaseGVR, f.namespace, release); err != nil {
+			return fmt.Errorf("apply flux helmrelease %s: %w", component, err)
+		}
+
+		return nil
+	}
+
+	repo := buildFluxHelmRepository(component, artifact.HelmChart.Repository, f.namespace)
+	if err := applyUnstructured(f.clientProvider, fluxHelmRepositoryGVR, f.namespace, repo); err != nil {
 		return fmt.Errorf("apply flux helmrepository %s: %w", component, err)
 	}
 
-	release := buildFluxHelmRelease(component, artifact, artifact.Values)
-	if err := applyUnstructured(f.clientProvider, fluxHelmReleaseGVR, fluxNamespace, release); err != nil {
+	release := buildFluxHelmRelease(component, artifact, artifact.Values, f.namespace)
+	if err := applyUnstructured(f.clientProvider, fluxHelmReleaseGVR, f.namespace, release); err != nil {
 		return fmt.Errorf("apply flux helmrelease %s: %w", component, err)
 	}
 
 	if len(artifact.ExtraObjects) > 0 {
-		moacRepo := buildFluxHelmRepository(component+"-resources", moacRepository)
-		if err := applyUnstructured(f.clientProvider, fluxHelmRepositoryGVR, fluxNamespace, moacRepo); err != nil {
+		moacRepo := buildFluxHelmRepository(component+"-resources", moacRepository, f.namespace)
+		if err := applyUnstructured(f.clientProvider, fluxHelmRepositoryGVR, f.namespace, moacRepo); err != nil {
 			return fmt.Errorf("apply flux moac helmrepository %s-resources: %w", component, err)
 		}
 
-		moacRelease := buildFluxMoacHelmRelease(component, artifact)
-		if err := applyUnstructured(f.clientProvider, fluxHelmReleaseGVR, fluxNamespace, moacRelease); err != nil {
+		moacRelease := buildFluxMoacHelmRelease(component, artifact, f.namespace)
+		if err := applyUnstructured(f.clientProvider, fluxHelmReleaseGVR, f.namespace, moacRelease); err != nil {
 			return fmt.Errorf("apply flux moac helmrelease %s-resources: %w", component, err)
 		}
 	}
@@ -60,8 +81,9 @@ func (f *fluxInstaller) Install(component string, artifact GitOpsArtifact) error
 
 func (f *fluxInstaller) UnInstall(component string) error {
 	ctx := context.Background()
-	repoClient := f.clientProvider.DynamicClient().Resource(fluxHelmRepositoryGVR).Namespace(fluxNamespace)
-	releaseClient := f.clientProvider.DynamicClient().Resource(fluxHelmReleaseGVR).Namespace(fluxNamespace)
+	repoClient := f.clientProvider.DynamicClient().Resource(fluxHelmRepositoryGVR).Namespace(f.namespace)
+	ociRepoClient := f.clientProvider.DynamicClient().Resource(fluxOCIRepositoryGVR).Namespace(f.namespace)
+	releaseClient := f.clientProvider.DynamicClient().Resource(fluxHelmReleaseGVR).Namespace(f.namespace)
 
 	for _, name := range []string{component, component + "-resources"} {
 		if err := releaseClient.Delete(ctx, name, metav1.DeleteOptions{}); err != nil && !apierrors.IsNotFound(err) {
@@ -70,18 +92,21 @@ func (f *fluxInstaller) UnInstall(component string) error {
 		if err := repoClient.Delete(ctx, name, metav1.DeleteOptions{}); err != nil && !apierrors.IsNotFound(err) {
 			return fmt.Errorf("delete flux helmrepository %s: %w", name, err)
 		}
+		if err := ociRepoClient.Delete(ctx, name, metav1.DeleteOptions{}); err != nil && !apierrors.IsNotFound(err) {
+			return fmt.Errorf("delete flux ocirepository %s: %w", name, err)
+		}
 	}
 	return nil
 }
 
-func buildFluxHelmRepository(name string, url string) *unstructured.Unstructured {
+func buildFluxHelmRepository(name string, url string, namespace string) *unstructured.Unstructured {
 	return &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"apiVersion": "source.toolkit.fluxcd.io/v1",
 			"kind":       "HelmRepository",
 			"metadata": map[string]interface{}{
 				"name":      name,
-				"namespace": fluxNamespace,
+				"namespace": namespace,
 				"labels":    defaultLabels(name),
 			},
 			"spec": map[string]interface{}{
@@ -91,7 +116,7 @@ func buildFluxHelmRepository(name string, url string) *unstructured.Unstructured
 	}
 }
 
-func buildFluxHelmRelease(component string, artifact GitOpsArtifact, values map[string]interface{}) *unstructured.Unstructured {
+func buildFluxHelmRelease(component string, artifact GitOpsArtifact, values map[string]interface{}, namespace string) *unstructured.Unstructured {
 	spec := map[string]interface{}{
 		"targetNamespace": artifact.Namespace,
 		"chart": map[string]interface{}{
@@ -101,7 +126,7 @@ func buildFluxHelmRelease(component string, artifact GitOpsArtifact, values map[
 				"sourceRef": map[string]interface{}{
 					"kind":      "HelmRepository",
 					"name":      component,
-					"namespace": fluxNamespace,
+					"namespace": namespace,
 				},
 			},
 		},
@@ -119,7 +144,7 @@ func buildFluxHelmRelease(component string, artifact GitOpsArtifact, values map[
 			"kind":       "HelmRelease",
 			"metadata": map[string]interface{}{
 				"name":      component,
-				"namespace": fluxNamespace,
+				"namespace": namespace,
 				"labels":    defaultLabels(component),
 			},
 			"spec": spec,
@@ -127,7 +152,72 @@ func buildFluxHelmRelease(component string, artifact GitOpsArtifact, values map[
 	}
 }
 
-func buildFluxMoacHelmRelease(component string, artifact GitOpsArtifact) *unstructured.Unstructured {
+func buildFluxOCIRepository(name, url, version, namespace string) *unstructured.Unstructured {
+	semver := version
+	if semver == "" {
+		semver = "*"
+	}
+	return &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "source.toolkit.fluxcd.io/v1",
+			"kind":       "OCIRepository",
+			"metadata": map[string]interface{}{
+				"name":      name,
+				"namespace": namespace,
+				"labels":    defaultLabels(name),
+			},
+			"spec": map[string]interface{}{
+				"interval": "10m",
+				"url":      url,
+				"ref": map[string]interface{}{
+					"semver": semver,
+				},
+			},
+		},
+	}
+}
+
+func buildFluxOCIHelmRelease(component string, artifact GitOpsArtifact, namespace string) *unstructured.Unstructured {
+	spec := map[string]interface{}{
+		"interval":           "30m",
+		"releaseName":        artifact.HelmChart.Name,
+		"serviceAccountName": component,
+		"chartRef": map[string]interface{}{
+			"kind": "OCIRepository",
+			"name": component,
+		},
+		"install": map[string]interface{}{
+			"strategy": map[string]interface{}{
+				"name":          "RetryOnFailure",
+				"retryInterval": "3m",
+			},
+		},
+		"upgrade": map[string]interface{}{
+			"force": true,
+			"strategy": map[string]interface{}{
+				"name":          "RetryOnFailure",
+				"retryInterval": "3m",
+			},
+		},
+	}
+	if len(artifact.Values) > 0 {
+		spec["values"] = artifact.Values
+	}
+	return &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "helm.toolkit.fluxcd.io/v2",
+			"kind":       "HelmRelease",
+			"metadata": map[string]interface{}{
+				"name":      component,
+				"namespace": namespace,
+				"labels":    defaultLabels(component),
+			},
+			"spec": spec,
+		},
+	}
+}
+
+func buildFluxMoacHelmRelease(component string, artifact GitOpsArtifact, namespace string) *unstructured.Unstructured {
 	name := component + "-resources"
 	return &unstructured.Unstructured{
 		Object: map[string]interface{}{
@@ -135,7 +225,7 @@ func buildFluxMoacHelmRelease(component string, artifact GitOpsArtifact) *unstru
 			"kind":       "HelmRelease",
 			"metadata": map[string]interface{}{
 				"name":      name,
-				"namespace": fluxNamespace,
+				"namespace": namespace,
 				"labels":    defaultLabels(component),
 			},
 			"spec": map[string]interface{}{
@@ -147,7 +237,7 @@ func buildFluxMoacHelmRelease(component string, artifact GitOpsArtifact) *unstru
 						"sourceRef": map[string]interface{}{
 							"kind":      "HelmRepository",
 							"name":      name,
-							"namespace": fluxNamespace,
+							"namespace": namespace,
 						},
 					},
 				},

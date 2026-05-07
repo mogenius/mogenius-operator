@@ -13,16 +13,16 @@ func (d *reconcilerModule) reconcileTraefik(ctx context.Context, spec v1alpha1.P
 	}
 	return d.reconcileComponent(ctx, spec, installer, op,
 		componentSpec{
-			enabled:      t.Enabled,
-			chart:        t.Chart,
-			patch:        t.Patch,
-			name:         componentTraefik,
-			namespace:    "traefik",
-			defaultChart: "traefik",
-			defaultRepo:  "https://helm.traefik.io/traefik",
-			defaultName:  "traefik",
+			enabled:          t.Enabled,
+			chart:            t.Chart,
+			patch:            t.Patch,
+			name:             componentTraefik,
+			defaultChart:     "traefik",
+			defaultRepo:      "https://helm.traefik.io/traefik",
+			defaultName:      "traefik",
+			defaultNamespace: "traefik",
 		},
-		func(ctx context.Context, patch *v1alpha1.PlatformPatch) ([]any, error) {
+		func(ctx context.Context) ([]any, error) {
 			return []any{}, nil
 		},
 		func(ctx context.Context) (map[string]interface{}, error) {
