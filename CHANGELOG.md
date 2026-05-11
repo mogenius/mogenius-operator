@@ -1,3 +1,10 @@
+# [2.20.0-develop.128](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.127...v2.20.0-develop.128) (2026-05-11)
+
+
+### Bug Fixes
+
+* install chart CRDs via apiextensions client (MOG-4274) ([2e8113e](https://github.com/mogenius/mogenius-operator/commit/2e8113ea018e21473556ab15baeb9e0dc4089387))
+
 # [2.20.0-develop.127](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.126...v2.20.0-develop.127) (2026-05-08)
 
 
