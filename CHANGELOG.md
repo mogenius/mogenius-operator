@@ -1,3 +1,10 @@
+# [2.20.0-develop.130](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.129...v2.20.0-develop.130) (2026-05-12)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/tklauser/go-sysconf to v0.4.0 ([#959](https://github.com/mogenius/mogenius-operator/issues/959)) ([4273911](https://github.com/mogenius/mogenius-operator/commit/42739115e343dce5898d8b550be3e6d340324eb8))
+
 # [2.20.0-develop.129](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.128...v2.20.0-develop.129) (2026-05-11)
 
 
