@@ -1,3 +1,10 @@
+# [2.20.0-develop.134](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.133...v2.20.0-develop.134) (2026-05-13)
+
+
+### Bug Fixes
+
+* **deps:** update module sigs.k8s.io/controller-runtime to v0.24.1 ([#962](https://github.com/mogenius/mogenius-operator/issues/962)) ([e37690c](https://github.com/mogenius/mogenius-operator/commit/e37690c864e239acf6eb69e8b2484574462699cd))
+
 # [2.20.0-develop.133](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.132...v2.20.0-develop.133) (2026-05-13)
 
 
