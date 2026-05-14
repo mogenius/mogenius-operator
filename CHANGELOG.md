@@ -1,3 +1,10 @@
+# [2.20.0-develop.137](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.136...v2.20.0-develop.137) (2026-05-14)
+
+
+### Bug Fixes
+
+* **deps:** update module helm.sh/helm/v4 to v4.2.0 ([#966](https://github.com/mogenius/mogenius-operator/issues/966)) ([d0c5e34](https://github.com/mogenius/mogenius-operator/commit/d0c5e348b5f3906d8803d5c6486be9aa7cc46486))
+
 # [2.20.0-develop.136](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.135...v2.20.0-develop.136) (2026-05-14)
 
 
