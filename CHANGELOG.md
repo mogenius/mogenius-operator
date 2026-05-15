@@ -1,3 +1,10 @@
+# [2.20.0-develop.139](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.138...v2.20.0-develop.139) (2026-05-15)
+
+
+### Features
+
+* adding reconciling for argocd and flux itself ([a8fbb8a](https://github.com/mogenius/mogenius-operator/commit/a8fbb8a6ee7dd3611bf00f19ece99af9e52f1f30))
+
 # [2.20.0-develop.138](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.137...v2.20.0-develop.138) (2026-05-15)
 
 
