@@ -80,16 +80,20 @@ func (d *reconcilerModule) reconcilePlatformConfig(ctx context.Context, obj *uns
 	now := metav1.Now()
 
 	for _, c := range components {
+		ready := c.result == nil || (c.result != nil && c.result.Err == nil)
+		message := "ready"
+		if c.result != nil && c.result.Err != nil {
+			message = c.result.Err.Error()
+		}
+
 		status := v1alpha1.PlatformComponentStatus{
 			Name:     c.name,
-			Ready:    c.result == nil,
+			Ready:    ready,
 			LastSync: now,
+			Message:  message,
 		}
 		if c.result != nil {
 			results = append(results, *c.result)
-			if c.result.Err != nil {
-				status.Message = c.result.Err.Error()
-			}
 		}
 		statuses = append(statuses, status)
 	}
