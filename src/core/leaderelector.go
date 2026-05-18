@@ -90,12 +90,12 @@ func (self *leaderElector) Run() {
 			cancel()
 		})
 
-		leaderelection.RunOrDie(ctx, leaderelection.LeaderElectionConfig{
+		le, err := leaderelection.NewLeaderElector(leaderelection.LeaderElectionConfig{
 			Lock:            lock,
 			ReleaseOnCancel: true,
-			LeaseDuration:   15 * time.Second,
-			RenewDeadline:   10 * time.Second,
-			RetryPeriod:     2 * time.Second,
+			LeaseDuration:   30 * time.Second,
+			RenewDeadline:   20 * time.Second,
+			RetryPeriod:     5 * time.Second,
 			Callbacks: leaderelection.LeaderCallbacks{
 				OnStartedLeading: func(ctx context.Context) {
 					self.leading.Store(true)
@@ -127,6 +127,18 @@ func (self *leaderElector) Run() {
 				},
 			},
 		})
+		if err != nil {
+			self.logger.Error("failed to create leader elector", "err", err)
+			shutdown.SendShutdownSignal(true)
+			return
+		}
+
+		le.Run(ctx)
+
+		if ctx.Err() == nil {
+			self.logger.Error("leader election stopped unexpectedly, shutting down")
+			shutdown.SendShutdownSignal(true)
+		}
 	}()
 }
 
