@@ -1,3 +1,10 @@
+# [2.20.0-develop.142](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.141...v2.20.0-develop.142) (2026-05-18)
+
+
+### Bug Fixes
+
+* github runner tags ([c082e15](https://github.com/mogenius/mogenius-operator/commit/c082e153407f0cddc46021c134e6b5a755f320a4))
+
 # [2.20.0-develop.141](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.140...v2.20.0-develop.141) (2026-05-18)
 
 
