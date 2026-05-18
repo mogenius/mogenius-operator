@@ -1,3 +1,10 @@
+# [2.20.0-develop.141](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.140...v2.20.0-develop.141) (2026-05-18)
+
+
+### Bug Fixes
+
+* set interval for flux helm releases ([ed26d62](https://github.com/mogenius/mogenius-operator/commit/ed26d624c600c63459a873b98dbcd44c7de95a71))
+
 # [2.20.0-develop.140](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.139...v2.20.0-develop.140) (2026-05-16)
 
 
