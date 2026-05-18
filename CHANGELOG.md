@@ -1,3 +1,10 @@
+# [2.20.0-develop.143](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.142...v2.20.0-develop.143) (2026-05-18)
+
+
+### Bug Fixes
+
+* replace cosign wiht working version ([50cad1b](https://github.com/mogenius/mogenius-operator/commit/50cad1b4452fe0363fb1821cc75df004c40612c9))
+
 # [2.20.0-develop.142](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.141...v2.20.0-develop.142) (2026-05-18)
 
 
