@@ -118,6 +118,7 @@ func buildFluxHelmRepository(name string, url string, namespace string) *unstruc
 
 func buildFluxHelmRelease(component string, artifact GitOpsArtifact, values map[string]interface{}, namespace string) *unstructured.Unstructured {
 	spec := map[string]interface{}{
+		"interval":        "10m",
 		"targetNamespace": artifact.Namespace,
 		"chart": map[string]interface{}{
 			"spec": map[string]interface{}{
@@ -179,7 +180,7 @@ func buildFluxOCIRepository(name, url, version, namespace string) *unstructured.
 
 func buildFluxOCIHelmRelease(component string, artifact GitOpsArtifact, namespace string) *unstructured.Unstructured {
 	spec := map[string]interface{}{
-		"interval":           "30m",
+		"interval":           "10m",
 		"releaseName":        artifact.HelmChart.Name,
 		"serviceAccountName": component,
 		"chartRef": map[string]interface{}{
@@ -229,6 +230,7 @@ func buildFluxMoacHelmRelease(component string, artifact GitOpsArtifact, namespa
 				"labels":    defaultLabels(component),
 			},
 			"spec": map[string]interface{}{
+				"interval":        "10m",
 				"targetNamespace": artifact.Namespace,
 				"chart": map[string]interface{}{
 					"spec": map[string]interface{}{
@@ -251,4 +253,3 @@ func buildFluxMoacHelmRelease(component string, artifact GitOpsArtifact, namespa
 		},
 	}
 }
-
