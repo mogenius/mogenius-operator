@@ -1,3 +1,10 @@
+# [2.20.0-develop.144](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.143...v2.20.0-develop.144) (2026-05-18)
+
+
+### Bug Fixes
+
+* improve status handling in component status ([b47a16d](https://github.com/mogenius/mogenius-operator/commit/b47a16d035cec8a10c57b87c446bb0d350c0240a))
+
 # [2.20.0-develop.143](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.142...v2.20.0-develop.143) (2026-05-18)
 
 
