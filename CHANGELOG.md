@@ -1,3 +1,10 @@
+# [2.20.0-develop.146](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.145...v2.20.0-develop.146) (2026-05-18)
+
+
+### Reverts
+
+* Revert "fix: github runner tags" ([0830a0d](https://github.com/mogenius/mogenius-operator/commit/0830a0d1fc43c0562790e80dd364f761de9954d6))
+
 # [2.20.0-develop.145](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.144...v2.20.0-develop.145) (2026-05-18)
 
 
