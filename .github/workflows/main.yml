@@ -224,7 +224,7 @@ jobs:
   helm-chart:
     if: github.ref == 'refs/heads/main'
     needs: [prepare, operator-manifest]
-    runs-on: [arc-runner-set-amd64]
+    runs-on: [self-hosted]
     permissions:
       contents: read
       packages: write

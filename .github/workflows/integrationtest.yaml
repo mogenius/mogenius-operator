@@ -11,7 +11,7 @@ on:
 jobs:
   golangci:
     # needs: prepare
-    runs-on: [arc-runner-set-amd64]
+    runs-on: [self-hosted]
     defaults:
       run:
         shell: bash
@@ -37,7 +37,7 @@ jobs:
 
   govet:
     # needs: prepare
-    runs-on: [arc-runner-set-amd64]
+    runs-on: [self-hosted]
     defaults:
       run:
         shell: bash
@@ -57,7 +57,7 @@ jobs:
 
   unit-tests:
     # needs: prepare
-    runs-on: [arc-runner-set-amd64]
+    runs-on: [self-hosted]
     defaults:
       run:
         shell: bash
