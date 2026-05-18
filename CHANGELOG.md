@@ -1,3 +1,10 @@
+# [2.20.0-develop.145](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.144...v2.20.0-develop.145) (2026-05-18)
+
+
+### Bug Fixes
+
+* fail operator startup if leader-election fails ([e5fd3c4](https://github.com/mogenius/mogenius-operator/commit/e5fd3c4ccf952948cb978efbc96cb676be13d5cb))
+
 # [2.20.0-develop.144](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.143...v2.20.0-develop.144) (2026-05-18)
 
 
