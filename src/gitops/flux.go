@@ -242,6 +242,12 @@ func buildFluxMoacHelmRelease(component string, artifact GitOpsArtifact, namespa
 				"interval":        "10m",
 				"releaseName":     artifact.HelmChart.Name + "-resources",
 				"targetNamespace": artifact.Namespace,
+				"dependsOn": []interface{}{
+					map[string]interface{}{
+						"name":      component,
+						"namespace": namespace,
+					},
+				},
 				"chart": map[string]interface{}{
 					"spec": map[string]interface{}{
 						"chart":   moacChart,
