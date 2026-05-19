@@ -1,3 +1,10 @@
+# [2.20.0-develop.150](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.149...v2.20.0-develop.150) (2026-05-19)
+
+
+### Bug Fixes
+
+* only handle the selected gitops engine ([6c38282](https://github.com/mogenius/mogenius-operator/commit/6c38282da5000262d8c92a71abf14b1e94c16d49))
+
 # [2.20.0-develop.149](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.148...v2.20.0-develop.149) (2026-05-19)
 
 
