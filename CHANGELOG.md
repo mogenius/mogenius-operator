@@ -1,3 +1,10 @@
+# [2.20.0-develop.149](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.148...v2.20.0-develop.149) (2026-05-19)
+
+
+### Bug Fixes
+
+* adding depends on for helm release to resources ([53bf4d1](https://github.com/mogenius/mogenius-operator/commit/53bf4d14a58e6bd64669fad1685a03db2e5581ff))
+
 # [2.20.0-develop.148](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.147...v2.20.0-develop.148) (2026-05-19)
 
 
