@@ -134,6 +134,14 @@ func buildFluxHelmRelease(component string, artifact GitOpsArtifact, values map[
 		},
 		"install": map[string]interface{}{
 			"createNamespace": true,
+			"strategy": map[string]interface{}{
+				"name": "RetryOnFailure",
+			},
+		},
+		"upgrade": map[string]interface{}{
+			"strategy": map[string]interface{}{
+				"name": "RetryOnFailure",
+			},
 		},
 	}
 	if len(values) > 0 {
@@ -247,6 +255,14 @@ func buildFluxMoacHelmRelease(component string, artifact GitOpsArtifact, namespa
 				},
 				"install": map[string]interface{}{
 					"createNamespace": true,
+					"strategy": map[string]interface{}{
+						"name": "RetryOnFailure",
+					},
+				},
+				"upgrade": map[string]interface{}{
+					"strategy": map[string]interface{}{
+						"name": "RetryOnFailure",
+					},
 				},
 				"values": map[string]interface{}{
 					"rawResources": artifact.ExtraObjects,
