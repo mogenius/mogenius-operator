@@ -1,3 +1,10 @@
+# [2.20.0-develop.148](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.147...v2.20.0-develop.148) (2026-05-19)
+
+
+### Bug Fixes
+
+* rename flux component to flux operator ([f9094d6](https://github.com/mogenius/mogenius-operator/commit/f9094d60cef13b4d3d04d1f7a994eb46a41507c2))
+
 # [2.20.0-develop.147](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.146...v2.20.0-develop.147) (2026-05-19)
 
 
