@@ -119,6 +119,7 @@ func buildFluxHelmRepository(name string, url string, namespace string) *unstruc
 func buildFluxHelmRelease(component string, artifact GitOpsArtifact, values map[string]interface{}, namespace string) *unstructured.Unstructured {
 	spec := map[string]interface{}{
 		"interval":        "10m",
+		"releaseName":     artifact.HelmChart.Name,
 		"targetNamespace": artifact.Namespace,
 		"chart": map[string]interface{}{
 			"spec": map[string]interface{}{
@@ -133,6 +134,14 @@ func buildFluxHelmRelease(component string, artifact GitOpsArtifact, values map[
 		},
 		"install": map[string]interface{}{
 			"createNamespace": true,
+			"strategy": map[string]interface{}{
+				"name": "RetryOnFailure",
+			},
+		},
+		"upgrade": map[string]interface{}{
+			"strategy": map[string]interface{}{
+				"name": "RetryOnFailure",
+			},
 		},
 	}
 	if len(values) > 0 {
@@ -231,6 +240,7 @@ func buildFluxMoacHelmRelease(component string, artifact GitOpsArtifact, namespa
 			},
 			"spec": map[string]interface{}{
 				"interval":        "10m",
+				"releaseName":     artifact.HelmChart.Name + "-resources",
 				"targetNamespace": artifact.Namespace,
 				"chart": map[string]interface{}{
 					"spec": map[string]interface{}{
@@ -245,6 +255,14 @@ func buildFluxMoacHelmRelease(component string, artifact GitOpsArtifact, namespa
 				},
 				"install": map[string]interface{}{
 					"createNamespace": true,
+					"strategy": map[string]interface{}{
+						"name": "RetryOnFailure",
+					},
+				},
+				"upgrade": map[string]interface{}{
+					"strategy": map[string]interface{}{
+						"name": "RetryOnFailure",
+					},
 				},
 				"values": map[string]interface{}{
 					"rawResources": artifact.ExtraObjects,
