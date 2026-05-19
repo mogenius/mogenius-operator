@@ -63,9 +63,17 @@ func (d *reconcilerModule) reconcilePlatformConfig(ctx context.Context, obj *uns
 		name   string
 		result *ReconcileResult
 	}
+
+	var gitopsResult componentResult
+	switch engine {
+	case "argocd":
+		gitopsResult = componentResult{name: componentArgoCD, result: d.reconcileArgoCD(ctx, platformConfig.Spec, installer, op)}
+	case "flux":
+		gitopsResult = componentResult{name: componentFluxCD, result: d.reconcileFluxCD(ctx, platformConfig.Spec, installer, op)}
+	}
+
 	components := []componentResult{
-		{componentArgoCD, d.reconcileArgoCD(ctx, platformConfig.Spec, installer, op)},
-		{componentFluxCD, d.reconcileFluxCD(ctx, platformConfig.Spec, installer, op)},
+		gitopsResult,
 		{componentCertManager, d.reconcileCertManager(ctx, platformConfig.Spec, installer, op)},
 		{componentTraefik, d.reconcileTraefik(ctx, platformConfig.Spec, installer, op)},
 		{componentExternalDNS, d.reconcileExternalDNS(ctx, platformConfig.Spec, installer, op)},
