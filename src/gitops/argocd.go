@@ -51,7 +51,9 @@ func (a *argocdInstaller) UnInstall(component string) error {
 }
 
 func buildArgoApplication(component string, artifact GitOpsArtifact, namespace string) *unstructured.Unstructured {
-	helm := map[string]interface{}{}
+	helm := map[string]interface{}{
+		"releaseName": artifact.HelmChart.Name,
+	}
 	if len(artifact.Values) > 0 {
 		helm["valuesObject"] = artifact.Values
 	}
@@ -109,6 +111,7 @@ func buildArgoMoacApplication(component string, artifact GitOpsArtifact, namespa
 					"chart":          moacChart,
 					"targetRevision": moacVersion,
 					"helm": map[string]interface{}{
+						"releaseName": artifact.HelmChart.Name + "-resources",
 						"valuesObject": map[string]interface{}{
 							"rawResources": artifact.ExtraObjects,
 						},
