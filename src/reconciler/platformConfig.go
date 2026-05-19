@@ -30,7 +30,7 @@ const (
 	componentCertManager         = "cert-manager"
 	componentTraefik             = "traefik"
 	componentArgoCD              = "argocd"
-	componentFluxCD              = "fluxcd"
+	componentFluxCD              = "flux-operator"
 	componentExternalDNS         = "external-dns"
 	componentKubePrometheusStack = "kube-prometheus-stack"
 	componentLoki                = "loki"
