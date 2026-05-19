@@ -1,3 +1,11 @@
+# [2.20.0-develop.147](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.146...v2.20.0-develop.147) (2026-05-19)
+
+
+### Bug Fixes
+
+* set flux restry strategies ([be63df3](https://github.com/mogenius/mogenius-operator/commit/be63df3201a6b6be6075cc0a25a13e6431b6e20a))
+* set releasename for gitops resources ([6ce7328](https://github.com/mogenius/mogenius-operator/commit/6ce7328ef1f88d97a50f90d6cf3ad85652e43e1e))
+
 # [2.20.0-develop.146](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.145...v2.20.0-develop.146) (2026-05-18)
 
 
