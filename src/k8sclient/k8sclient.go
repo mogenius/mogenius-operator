@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/client-go/dynamic"
@@ -40,6 +41,16 @@ type k8sClientProvider struct {
 	clientConfig     *rest.Config
 	executionContext ExecutionContext
 	config           config.ConfigModule
+
+	// Cached clients. Recreating these per call allocates a fresh HTTP transport
+	// and connection pool each time, which is wasteful when called from hot paths
+	// (watchers, reconcilers, websocket handlers).
+	k8sClientOnce      sync.Once
+	k8sClientSet       *kubernetes.Clientset
+	dynamicClientOnce  sync.Once
+	dynamicClient      *dynamic.DynamicClient
+	mogeniusClientOnce sync.Once
+	mogeniusClientSet  *mocrds.MogeniusClientSet
 }
 
 func NewK8sClientProvider(logger *slog.Logger, configModule config.ConfigModule) K8sClientProvider {
@@ -133,24 +144,33 @@ func (self *k8sClientProvider) ClientConfig() *rest.Config {
 }
 
 func (self *k8sClientProvider) K8sClientSet() *kubernetes.Clientset {
-	clientSet, err := kubernetes.NewForConfig(self.clientConfig)
-	assert.Assert(err == nil, "creating a client should not fail as it is tested when provider is created", err)
-	assert.Assert(clientSet != nil)
-	return clientSet
+	self.k8sClientOnce.Do(func() {
+		clientSet, err := kubernetes.NewForConfig(self.clientConfig)
+		assert.Assert(err == nil, "creating a client should not fail as it is tested when provider is created", err)
+		assert.Assert(clientSet != nil)
+		self.k8sClientSet = clientSet
+	})
+	return self.k8sClientSet
 }
 
 func (self *k8sClientProvider) DynamicClient() *dynamic.DynamicClient {
-	client, err := dynamic.NewForConfig(self.clientConfig)
-	assert.Assert(err == nil, "creating a client should not fail as it is tested when provider is created", err)
-	assert.Assert(client != nil)
-	return client
+	self.dynamicClientOnce.Do(func() {
+		client, err := dynamic.NewForConfig(self.clientConfig)
+		assert.Assert(err == nil, "creating a client should not fail as it is tested when provider is created", err)
+		assert.Assert(client != nil)
+		self.dynamicClient = client
+	})
+	return self.dynamicClient
 }
 
 func (self *k8sClientProvider) MogeniusClientSet() *mocrds.MogeniusClientSet {
-	clientSet, err := mocrds.NewMogeniusClientSet(*self.clientConfig)
-	assert.Assert(err == nil, "creating a client should not fail as it is tested when provider is created", err)
-	assert.Assert(clientSet != nil)
-	return clientSet
+	self.mogeniusClientOnce.Do(func() {
+		clientSet, err := mocrds.NewMogeniusClientSet(*self.clientConfig)
+		assert.Assert(err == nil, "creating a client should not fail as it is tested when provider is created", err)
+		assert.Assert(clientSet != nil)
+		self.mogeniusClientSet = clientSet
+	})
+	return self.mogeniusClientSet
 }
 
 type loggingRoundTripper struct {
@@ -163,15 +183,23 @@ func (l *loggingRoundTripper) RoundTrip(req *http.Request) (*http.Response, erro
 	return l.rt.RoundTrip(req)
 }
 
+// applyClientTuning sets client-go QPS/Burst high enough for large clusters.
+// Defaults (5 QPS / 10 Burst) cause severe throttling at 1000+ resources.
+func (self *k8sClientProvider) applyClientTuning(config *rest.Config, logger *slog.Logger) {
+	config.UserAgent = "mogenius-operator"
+	config.QPS = 100
+	config.Burst = 200
+	if self.config.Get("KUBERNETES_DEBUG") == "true" {
+		config.WrapTransport = func(rt http.RoundTripper) http.RoundTripper {
+			return &loggingRoundTripper{rt: rt, logger: logger}
+		}
+	}
+}
+
 func (self *k8sClientProvider) detectAndGetKubeConfig(logger *slog.Logger) (*rest.Config, error) {
 	config, err := rest.InClusterConfig()
 	if err == nil {
-		config.UserAgent = "mogenius-operator"
-		if self.config.Get("KUBERNETES_DEBUG") == "true" {
-			config.WrapTransport = func(rt http.RoundTripper) http.RoundTripper {
-				return &loggingRoundTripper{rt: rt, logger: logger}
-			}
-		}
+		self.applyClientTuning(config, logger)
 		self.executionContext = execution_context_cluster
 		return config, nil
 	}
@@ -179,12 +207,7 @@ func (self *k8sClientProvider) detectAndGetKubeConfig(logger *slog.Logger) (*res
 
 	config, err = self.contextConfigLoader(logger)
 	if err == nil {
-		config.UserAgent = "mogenius-operator"
-		if self.config.Get("KUBERNETES_DEBUG") == "true" {
-			config.WrapTransport = func(rt http.RoundTripper) http.RoundTripper {
-				return &loggingRoundTripper{rt: rt, logger: logger}
-			}
-		}
+		self.applyClientTuning(config, logger)
 		self.executionContext = execution_context_local
 		return config, nil
 	}

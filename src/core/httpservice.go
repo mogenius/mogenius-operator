@@ -12,6 +12,7 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"sync"
+	"time"
 
 	"encoding/json"
 
@@ -132,9 +133,21 @@ func (self *httpService) Run() {
 
 	self.addApiRoutes(mux)
 
+	// ReadHeaderTimeout blocks slowloris-style attacks; IdleTimeout reaps
+	// keep-alive connections from gone clients. We leave Read/WriteTimeout
+	// unset because xterm/log-stream/websocket handlers legitimately run
+	// for minutes/hours; per-handler timeouts handle those cases.
+	server := &http.Server{
+		Addr:              addr,
+		Handler:           mux,
+		ReadHeaderTimeout: 10 * time.Second,
+		IdleTimeout:       120 * time.Second,
+		MaxHeaderBytes:    1 << 20,
+	}
+
 	self.logger.Info("starting API server", "addr", addr)
 	go func() {
-		err := http.ListenAndServe(addr, mux)
+		err := server.ListenAndServe()
 		if err != nil {
 			self.logger.Error("failed to start api server", "error", err)
 		}

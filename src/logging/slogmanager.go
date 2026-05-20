@@ -520,13 +520,9 @@ func (self *RecordChannelHandler) Handle(ctx context.Context, record slog.Record
 	if !self.Enabled(ctx, record.Level) {
 		return nil
 	}
-	record.Attrs(func(attr slog.Attr) bool {
-		str, ok := attr.Value.Any().(string)
-		if ok && self.filterFunc != nil {
-			attr.Value = slog.StringValue(self.filterFunc(str))
-		}
-		return true
-	})
+	// Note: slogRecordToPayload below already applies filterFunc. The earlier
+	// in-place loop here was dead code — record.Attrs iterates by value, so
+	// attr.Value = ... did not mutate the underlying record.
 
 	component, err := self.getComponent()
 	assert.Assert(err == nil, "the SlogManager enforces an component attribute to exist", err)
