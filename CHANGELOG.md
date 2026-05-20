@@ -1,3 +1,12 @@
+# [2.21.0-develop.3](https://github.com/mogenius/mogenius-operator/compare/v2.21.0-develop.2...v2.21.0-develop.3) (2026-05-20)
+
+
+### Performance Improvements
+
+* **valkey:** cap log payload string values at 1 KiB before persisting ([55b507d](https://github.com/mogenius/mogenius-operator/commit/55b507dff39862db89873bec24bcb70f714473f6))
+* **valkey:** make stats stream retention configurable, default 24h/1440 ([35d0ebb](https://github.com/mogenius/mogenius-operator/commit/35d0ebb5a27217df8448ce90ef034404ef09f1e8))
+* **valkey:** strip redundant namespace from stats stream entries ([8bc3253](https://github.com/mogenius/mogenius-operator/commit/8bc325302c0bbe79e6d21c865eaff1c3ab04deac))
+
 # [2.21.0-develop.2](https://github.com/mogenius/mogenius-operator/compare/v2.21.0-develop.1...v2.21.0-develop.2) (2026-05-20)
 
 
