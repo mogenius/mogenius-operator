@@ -141,6 +141,9 @@ func (self *valkeyStatsDb) AddInterfaceStatsToDb(currentStats []networkmonitor.P
 		}
 
 		deltaStat := currentStat
+		// Namespace is redundant in the entry (it's already part of the stream key).
+		// Strip before persisting; readers refill from the query context.
+		deltaStat.Namespace = ""
 
 		if lastEntry, ok := lastStatsMap[currentStat.Pod]; ok {
 			// Guard against uint64 underflow: if the current counter is smaller than the
@@ -207,6 +210,12 @@ func (self *valkeyStatsDb) GetPodStatsEntriesForController(kind string, name str
 	if err != nil {
 		self.logger.Error("failed to GetPodStatsEntriesForController", "error", err)
 	}
+	// Refill namespace; writers strip it because it's redundant in the stream key.
+	for i := range result {
+		if result[i].Namespace == "" {
+			result[i].Namespace = namespace
+		}
+	}
 	return &result
 }
 
@@ -218,6 +227,12 @@ func (self *valkeyStatsDb) GetTrafficStatsEntriesForController(kind string, name
 	)
 	if err != nil {
 		self.logger.Error("failed to GetTrafficStatsEntriesForController", "error", err)
+	}
+	// Refill namespace; writers strip it because it's redundant in the stream key.
+	for i := range result {
+		if result[i].Namespace == "" {
+			result[i].Namespace = namespace
+		}
 	}
 	return &result
 }
@@ -535,10 +550,14 @@ func (self *valkeyStatsDb) AddPodStatsToDb(stats []structs.PodStats) error {
 		}
 
 		stat.CreatedAt = time.Now()
+		// Capture before stripping; Namespace is redundant in the entry payload
+		// (it's already in the stream key) and is refilled by readers.
+		namespace := stat.Namespace
+		stat.Namespace = ""
 		err := self.valkey.StoreSortedListEntry(
 			stat,
 			time.Now().Truncate(time.Minute).Unix(),
-			DB_STATS_POD_STATS_BUCKET_NAME, stat.Namespace, controller.ResourceName,
+			DB_STATS_POD_STATS_BUCKET_NAME, namespace, controller.ResourceName,
 		)
 		if err != nil {
 			return fmt.Errorf("error adding pod stats: %s", err)
