@@ -1,3 +1,13 @@
+# [2.21.0-develop.2](https://github.com/mogenius/mogenius-operator/compare/v2.21.0-develop.1...v2.21.0-develop.2) (2026-05-20)
+
+
+### Performance Improvements
+
+* **reconciler:** bound concurrent Reconcile invocations to 50 ([92030ca](https://github.com/mogenius/mogenius-operator/commit/92030ca98775e76f159e71e360f869e72cf58265))
+* **reconciler:** defuse 60s background sweep on large clusters ([7672654](https://github.com/mogenius/mogenius-operator/commit/7672654989399a20e5731ca921c4fa3073835caf))
+* **socketapi:** cache cluster/resource-info response for 5s ([ad7c992](https://github.com/mogenius/mogenius-operator/commit/ad7c9926e4b53f1a16c5626770a653a41ea92ff5))
+* **socketapi:** replace per-message goroutine with worker pool ([4471fbf](https://github.com/mogenius/mogenius-operator/commit/4471fbf0b8e8e55b5c8e546c90b6980b1ac7292c))
+
 # [2.21.0-develop.1](https://github.com/mogenius/mogenius-operator/compare/v2.20.0...v2.21.0-develop.1) (2026-05-20)
 
 
