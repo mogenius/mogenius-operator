@@ -43,6 +43,11 @@ import (
 // Compression threshold - only compress responses larger than 1KB
 const compressionThreshold = 1024
 
+// messageWorkerCount is the number of dispatch workers per WS read loop.
+// Pre-spawned and reused so we don't pay goroutine-creation cost per message
+// or risk an unbounded backlog of goroutines waiting on the K8s API.
+const messageWorkerCount = 50
+
 // Pool for reusing buffers during compression
 var compressionBufferPool = sync.Pool{
 	New: func() interface{} {
@@ -2201,7 +2206,12 @@ func (self *socketApi) startMessageHandler() {
 // It only dispatches patterns that are explicitly registered for this client.
 func (self *socketApi) startClientReadLoop(client websocket.WebsocketClient) {
 	go func() {
-		messageHandlerSemaphore := make(chan struct{}, 100)
+		jobs := make(chan structs.Datagram, messageWorkerCount)
+		defer close(jobs) // signals workers to exit when the read loop ends
+
+		for i := 0; i < messageWorkerCount; i++ {
+			go self.dispatchClientMessages(client, jobs)
+		}
 
 		for !client.IsTerminated() {
 			_, message, err := client.ReadMessage()
@@ -2222,42 +2232,56 @@ func (self *socketApi) startClientReadLoop(client websocket.WebsocketClient) {
 
 			datagram.DisplayReceiveSummary(self.logger)
 
-			self.patternHandlerLock.RLock()
-			handler, exists := self.patternHandler[datagram.Pattern]
-			self.patternHandlerLock.RUnlock()
-
-			if exists && (handler.Client == nil || handler.Client == client) {
-				messageHandlerSemaphore <- struct{}{}
-				go func() {
-					defer func() {
-						<-messageHandlerSemaphore
-					}()
-					self.handlePatternRequest(datagram, client)
-				}()
-			} else {
-				go func() {
-					self.logger.Warn("no handler for pattern found on client", "pattern", datagram.Pattern, "client", self.clientName(client))
-
-					result := structs.Datagram{
-						Id:      datagram.Id,
-						Pattern: datagram.Pattern,
-						Payload: struct {
-							Status  string `json:"status"`
-							Message string `json:"message"`
-						}{
-							Status:  "error",
-							Message: fmt.Sprintf("No handler for pattern '%s' found", datagram.Pattern),
-						},
-						CreatedAt: datagram.CreatedAt,
-						Zlib:      false,
-					}
-
-					self.JobServerSendData(client, result)
-				}()
-			}
+			// Blocks when all workers are busy. This backpressures the read
+			// loop instead of spawning unbounded goroutines.
+			jobs <- datagram
 		}
 		self.logger.Debug("client messagehandler finished as the websocket client was terminated")
 	}()
+}
+
+// dispatchClientMessages runs one worker that looks up the handler for each
+// incoming datagram and either executes it or replies with a no-handler error.
+// Exits when jobs is closed.
+func (self *socketApi) dispatchClientMessages(client websocket.WebsocketClient, jobs <-chan structs.Datagram) {
+	for datagram := range jobs {
+		self.patternHandlerLock.RLock()
+		handler, exists := self.patternHandler[datagram.Pattern]
+		self.patternHandlerLock.RUnlock()
+
+		if exists && (handler.Client == nil || handler.Client == client) {
+			self.handlePatternRequest(datagram, client)
+		} else {
+			self.sendNoHandlerError(client, datagram, true)
+		}
+	}
+}
+
+// sendNoHandlerError writes a structured error datagram back to the client
+// for an unrecognized pattern. perClient indicates whether the warning log
+// should mention the specific client (used by the per-client read loop).
+func (self *socketApi) sendNoHandlerError(client websocket.WebsocketClient, datagram structs.Datagram, perClient bool) {
+	if perClient {
+		self.logger.Warn("no handler for pattern found on client", "pattern", datagram.Pattern, "client", self.clientName(client))
+	} else {
+		self.logger.Warn("no handler for pattern found", "pattern", datagram.Pattern)
+	}
+
+	result := structs.Datagram{
+		Id:      datagram.Id,
+		Pattern: datagram.Pattern,
+		Payload: struct {
+			Status  string `json:"status"`
+			Message string `json:"message"`
+		}{
+			Status:  "error",
+			Message: fmt.Sprintf("No handler for pattern '%s' found", datagram.Pattern),
+		},
+		CreatedAt: datagram.CreatedAt,
+		Zlib:      false,
+	}
+
+	self.JobServerSendData(client, result)
 }
 
 func (self *socketApi) startJobClientReadLoop() {
@@ -2266,7 +2290,12 @@ func (self *socketApi) startJobClientReadLoop() {
 		var preparedFileRequest *services.FilesUploadRequest
 		var openFile *os.File
 
-		messageHandlerSemaphore := make(chan struct{}, 100)
+		jobs := make(chan structs.Datagram, messageWorkerCount)
+		defer close(jobs)
+
+		for i := 0; i < messageWorkerCount; i++ {
+			go self.dispatchJobClientMessages(jobs)
+		}
 
 		for !self.jobClients[0].IsTerminated() {
 			_, message, err := self.jobClients[0].ReadMessage()
@@ -2343,38 +2372,26 @@ func (self *socketApi) startJobClientReadLoop() {
 				continue
 			}
 
-			if self.patternHandlerExists(datagram.Pattern) {
-				messageHandlerSemaphore <- struct{}{}
-				go func() {
-					defer func() {
-						<-messageHandlerSemaphore
-					}()
-					self.handlePatternRequest(datagram, self.jobClients[0])
-				}()
-			} else {
-				go func() {
-					self.logger.Warn("no handler for pattern found", "pattern", datagram.Pattern)
-
-					result := structs.Datagram{
-						Id:      datagram.Id,
-						Pattern: datagram.Pattern,
-						Payload: struct {
-							Status  string `json:"status"`
-							Message string `json:"message"`
-						}{
-							Status:  "error",
-							Message: fmt.Sprintf("No handler for pattern '%s' found", datagram.Pattern),
-						},
-						CreatedAt: datagram.CreatedAt,
-						Zlib:      false,
-					}
-
-					self.JobServerSendData(self.jobClients[0], result)
-				}()
-			}
+			// Blocks when all workers are busy (backpressures the read loop
+			// instead of spawning unbounded goroutines).
+			jobs <- datagram
 		}
 		self.logger.Debug("api messagehandler finished as the websocket client was terminated")
 	}()
+}
+
+// dispatchJobClientMessages runs one worker for the default jobClient read
+// loop. Looks up the handler for each incoming datagram and either executes
+// it or replies with a no-handler error. Exits when jobs is closed.
+func (self *socketApi) dispatchJobClientMessages(jobs <-chan structs.Datagram) {
+	client := self.jobClients[0]
+	for datagram := range jobs {
+		if self.patternHandlerExists(datagram.Pattern) {
+			self.handlePatternRequest(datagram, client)
+		} else {
+			self.sendNoHandlerError(client, datagram, false)
+		}
+	}
 }
 
 // clientName returns a human-readable label for the given client, used in logs.
