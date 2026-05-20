@@ -274,6 +274,36 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		Description: new("Password of operator valkey Server"),
 	})
 	configModule.Declare(config.ConfigDeclaration{
+		Key:          "MO_STATS_RETENTION_MAX_ENTRIES",
+		DefaultValue: new("1440"),
+		Description:  new("max entries per pod-/traffic-/node-stats stream (default 1440 = 24h @ 1m)"),
+		Validate: func(value string) error {
+			n, err := strconv.ParseInt(value, 10, 64)
+			if err != nil {
+				return fmt.Errorf("'MO_STATS_RETENTION_MAX_ENTRIES' needs to be an integer: %s", err.Error())
+			}
+			if n <= 0 {
+				return fmt.Errorf("'MO_STATS_RETENTION_MAX_ENTRIES' must be positive, got %d", n)
+			}
+			return nil
+		},
+	})
+	configModule.Declare(config.ConfigDeclaration{
+		Key:          "MO_STATS_RETENTION_HOURS",
+		DefaultValue: new("24"),
+		Description:  new("retention window in hours for stats streams (default 24h)"),
+		Validate: func(value string) error {
+			n, err := strconv.ParseInt(value, 10, 64)
+			if err != nil {
+				return fmt.Errorf("'MO_STATS_RETENTION_HOURS' needs to be an integer: %s", err.Error())
+			}
+			if n <= 0 {
+				return fmt.Errorf("'MO_STATS_RETENTION_HOURS' must be positive, got %d", n)
+			}
+			return nil
+		},
+	})
+	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_HELM_DATA_PATH",
 		DefaultValue: new(filepath.Join(workDir, "helm-data")),
 		Description:  new("path to the helm data"),

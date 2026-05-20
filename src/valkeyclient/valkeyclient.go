@@ -53,8 +53,20 @@ const (
 	ORDER_DESC SortOrder = 2
 
 	MAX_CHUNK_GET_SIZE = 100
-	MAX_RETENTION_SIZE = 10800
-	MAX_RETENTION_TIME = 7 * 24 * time.Hour // 7 days
+
+	// Defaults for time-series stream retention. Tuned for 1-minute write
+	// cadence: 1440 entries = 24h, which keeps each stream around ~400 KiB
+	// instead of the multi-MB streams produced by 10800 entries / 7d.
+	// Override with MO_STATS_RETENTION_MAX_ENTRIES and MO_STATS_RETENTION_HOURS.
+	defaultRetentionSize  int64         = 1440
+	defaultRetentionHours time.Duration = 24 * time.Hour
+)
+
+// Exported for read-side queries that need to know how far back data is
+// available. Updated at Connect() time from config.
+var (
+	MAX_RETENTION_SIZE int64         = defaultRetentionSize
+	MAX_RETENTION_TIME time.Duration = defaultRetentionHours
 )
 
 type valkeyClient struct {
@@ -78,6 +90,19 @@ func NewValkeyClient(logger *slog.Logger, configModule config.ConfigModule) Valk
 
 func (self *valkeyClient) Connect() error {
 	self.logger.Info("Connecting to valkey")
+
+	if raw := self.config.Get("MO_STATS_RETENTION_MAX_ENTRIES"); raw != "" {
+		if n, err := strconv.ParseInt(raw, 10, 64); err == nil && n > 0 {
+			MAX_RETENTION_SIZE = n
+		}
+	}
+	if raw := self.config.Get("MO_STATS_RETENTION_HOURS"); raw != "" {
+		if h, err := strconv.ParseInt(raw, 10, 64); err == nil && h > 0 {
+			MAX_RETENTION_TIME = time.Duration(h) * time.Hour
+		}
+	}
+	self.logger.Info("stats retention configured",
+		"maxEntries", MAX_RETENTION_SIZE, "ttl", MAX_RETENTION_TIME)
 
 	valkeyHost := self.config.Get("MO_VALKEY_ADDR")
 	valkeyHost, valkeyPort, err := net.SplitHostPort(valkeyHost)
