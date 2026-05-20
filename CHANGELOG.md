@@ -1,597 +1,94 @@
-# [2.20.0-develop.151](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.150...v2.20.0-develop.151) (2026-05-20)
+# [2.20.0](https://github.com/mogenius/mogenius-operator/compare/v2.19.2...v2.20.0) (2026-04-09)
 
 
 ### Bug Fixes
 
-* **deps:** update module github.com/anthropics/anthropic-sdk-go to v1.44.1 ([#974](https://github.com/mogenius/mogenius-operator/issues/974)) ([0fd3bd9](https://github.com/mogenius/mogenius-operator/commit/0fd3bd99e6663e9039a8cbcbc3ada8c3330a6516))
-
-# [2.20.0-develop.150](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.149...v2.20.0-develop.150) (2026-05-19)
-
-
-### Bug Fixes
-
-* only handle the selected gitops engine ([6c38282](https://github.com/mogenius/mogenius-operator/commit/6c38282da5000262d8c92a71abf14b1e94c16d49))
-
-# [2.20.0-develop.149](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.148...v2.20.0-develop.149) (2026-05-19)
-
-
-### Bug Fixes
-
-* adding depends on for helm release to resources ([53bf4d1](https://github.com/mogenius/mogenius-operator/commit/53bf4d14a58e6bd64669fad1685a03db2e5581ff))
-
-# [2.20.0-develop.148](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.147...v2.20.0-develop.148) (2026-05-19)
-
-
-### Bug Fixes
-
-* rename flux component to flux operator ([f9094d6](https://github.com/mogenius/mogenius-operator/commit/f9094d60cef13b4d3d04d1f7a994eb46a41507c2))
-
-# [2.20.0-develop.147](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.146...v2.20.0-develop.147) (2026-05-19)
-
-
-### Bug Fixes
-
-* set flux restry strategies ([be63df3](https://github.com/mogenius/mogenius-operator/commit/be63df3201a6b6be6075cc0a25a13e6431b6e20a))
-* set releasename for gitops resources ([6ce7328](https://github.com/mogenius/mogenius-operator/commit/6ce7328ef1f88d97a50f90d6cf3ad85652e43e1e))
-
-# [2.20.0-develop.146](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.145...v2.20.0-develop.146) (2026-05-18)
-
-
-### Reverts
-
-* Revert "fix: github runner tags" ([0830a0d](https://github.com/mogenius/mogenius-operator/commit/0830a0d1fc43c0562790e80dd364f761de9954d6))
-
-# [2.20.0-develop.145](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.144...v2.20.0-develop.145) (2026-05-18)
-
-
-### Bug Fixes
-
-* fail operator startup if leader-election fails ([e5fd3c4](https://github.com/mogenius/mogenius-operator/commit/e5fd3c4ccf952948cb978efbc96cb676be13d5cb))
-
-# [2.20.0-develop.144](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.143...v2.20.0-develop.144) (2026-05-18)
-
-
-### Bug Fixes
-
-* improve status handling in component status ([b47a16d](https://github.com/mogenius/mogenius-operator/commit/b47a16d035cec8a10c57b87c446bb0d350c0240a))
-
-# [2.20.0-develop.143](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.142...v2.20.0-develop.143) (2026-05-18)
-
-
-### Bug Fixes
-
-* replace cosign wiht working version ([50cad1b](https://github.com/mogenius/mogenius-operator/commit/50cad1b4452fe0363fb1821cc75df004c40612c9))
-
-# [2.20.0-develop.142](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.141...v2.20.0-develop.142) (2026-05-18)
-
-
-### Bug Fixes
-
-* github runner tags ([c082e15](https://github.com/mogenius/mogenius-operator/commit/c082e153407f0cddc46021c134e6b5a755f320a4))
-
-# [2.20.0-develop.141](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.140...v2.20.0-develop.141) (2026-05-18)
-
-
-### Bug Fixes
-
-* set interval for flux helm releases ([ed26d62](https://github.com/mogenius/mogenius-operator/commit/ed26d624c600c63459a873b98dbcd44c7de95a71))
-
-# [2.20.0-develop.140](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.139...v2.20.0-develop.140) (2026-05-16)
-
-
-### Bug Fixes
-
-* **deps:** update module github.com/openai/openai-go/v3 to v3.36.0 ([#968](https://github.com/mogenius/mogenius-operator/issues/968)) ([aec8823](https://github.com/mogenius/mogenius-operator/commit/aec88232d5c81c132d21c930d019433eb0ed0c1b))
-
-# [2.20.0-develop.139](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.138...v2.20.0-develop.139) (2026-05-15)
+* adapt copy commands for busybox images ([3abf38c](https://github.com/mogenius/mogenius-operator/commit/3abf38c36488325f5e00dd6aa8f1016e410f6106))
+* added auditlog for ai-chat, fixed stupid json dependency, fixed serialization error, set ttl for valkey for certain keys to reduce memory usage ([db7d592](https://github.com/mogenius/mogenius-operator/commit/db7d5923b494c31fee83e84f00826272757b82f9))
+* added minor improvement ([d8f6fb9](https://github.com/mogenius/mogenius-operator/commit/d8f6fb94ace11ff0e84e53f5823d864b2a384f84))
+* adding default relabeling for instance for servicemonitor ([e0ae0b1](https://github.com/mogenius/mogenius-operator/commit/e0ae0b18754a31a4c2acec449bf2452347c008c4))
+* adding feature to mount netshoot as debug container ([73ab54c](https://github.com/mogenius/mogenius-operator/commit/73ab54cf7f6ac1e3f9dbeb36efcc5419b8949899))
+* adding helm values schema ([8cd061a](https://github.com/mogenius/mogenius-operator/commit/8cd061af2a3836fe1659008b50af0d7f8bc08440))
+* adding option of setting custom valkey config ([57d207f](https://github.com/mogenius/mogenius-operator/commit/57d207f1c03d151e26c62ca590fa3ad937f71c6a))
+* adding selector label to valkey svc for metrics ([cf8f4be](https://github.com/mogenius/mogenius-operator/commit/cf8f4beba3586a6d875e9fc4c5495da874e388e2))
+* ai-insights clean up ([fb453b6](https://github.com/mogenius/mogenius-operator/commit/fb453b604519c7f95e309e77945ed966afdaaebd))
+* auditlog stream ([2862e0e](https://github.com/mogenius/mogenius-operator/commit/2862e0e6abd96575805496b9c5c5d4e6bc0258b5))
+* auditlog stream ([6d9f28c](https://github.com/mogenius/mogenius-operator/commit/6d9f28c371dd1ce87c1b9e3b4f4715d074ea0607))
+* cap snoopy fialure list to 100 entries ([4610799](https://github.com/mogenius/mogenius-operator/commit/4610799b92804084c309be0e09abdbc0ac800842))
+* cleanup for storage improved ([519cb86](https://github.com/mogenius/mogenius-operator/commit/519cb8600064594ae3db4065d460cf81873ae90e))
+* cpu consumption peak ([070ddfb](https://github.com/mogenius/mogenius-operator/commit/070ddfb1a2b83d169fc7fd5697e011c320d26fe0))
+* delete ownercache entries if a pod gets deleted ([f6f95e0](https://github.com/mogenius/mogenius-operator/commit/f6f95e0e1387679c18dfe6a7b542cc78ae3f3870))
+* **deps:** update k8s.io/utils digest to 28399d8 ([#866](https://github.com/mogenius/mogenius-operator/issues/866)) ([9e3b506](https://github.com/mogenius/mogenius-operator/commit/9e3b50667593a2b0391cb612fe5242fa7ca6aad5))
+* **deps:** update kubernetes monorepo to v0.35.3 ([#865](https://github.com/mogenius/mogenius-operator/issues/865)) ([7153880](https://github.com/mogenius/mogenius-operator/commit/7153880dafe91f7456c0c2c3a0a74a10e36c0987))
+* **deps:** update module github.com/alecthomas/kong to v1.15.0 ([#873](https://github.com/mogenius/mogenius-operator/issues/873)) ([65cb42d](https://github.com/mogenius/mogenius-operator/commit/65cb42d68f053cfd9a9e703862957e5bd0d4dc44))
+* **deps:** update module github.com/anthropics/anthropic-sdk-go to v1.27.0 ([#858](https://github.com/mogenius/mogenius-operator/issues/858)) ([a0070e1](https://github.com/mogenius/mogenius-operator/commit/a0070e18c9f3cd425c0427115233422daf74d9e0))
+* **deps:** update module github.com/anthropics/anthropic-sdk-go to v1.27.1 ([#862](https://github.com/mogenius/mogenius-operator/issues/862)) ([111a224](https://github.com/mogenius/mogenius-operator/commit/111a224f5737b00ad08a5baa773e62a11bd63205))
+* **deps:** update module github.com/anthropics/anthropic-sdk-go to v1.28.0 ([#872](https://github.com/mogenius/mogenius-operator/issues/872)) ([23997b2](https://github.com/mogenius/mogenius-operator/commit/23997b264139fbb43f0377cb8e9756e6c906c48b))
+* **deps:** update module github.com/anthropics/anthropic-sdk-go to v1.29.0 ([#874](https://github.com/mogenius/mogenius-operator/issues/874)) ([70f4fd3](https://github.com/mogenius/mogenius-operator/commit/70f4fd36ad3c61b67c40d300f2990ba7cd982959))
+* **deps:** update module github.com/anthropics/anthropic-sdk-go to v1.30.0 ([#876](https://github.com/mogenius/mogenius-operator/issues/876)) ([b597d2d](https://github.com/mogenius/mogenius-operator/commit/b597d2d6117a6ad078136458c352f2995e54476f))
+* **deps:** update module github.com/anthropics/anthropic-sdk-go to v1.32.0 ([#892](https://github.com/mogenius/mogenius-operator/issues/892)) ([c1ac017](https://github.com/mogenius/mogenius-operator/commit/c1ac017e246ecfe158c9f6a01f41b644843ca4de))
+* **deps:** update module github.com/bitnami-labs/sealed-secrets to v0.36.1 ([#851](https://github.com/mogenius/mogenius-operator/issues/851)) ([07cdc62](https://github.com/mogenius/mogenius-operator/commit/07cdc62ca40cf371bce399501ee028f6f3f0fd40))
+* **deps:** update module github.com/cert-manager/cert-manager to v1.20.0 ([d3cdba0](https://github.com/mogenius/mogenius-operator/commit/d3cdba0248d4a6e84ea08a6a24cb952c0d32452b))
+* **deps:** update module github.com/cert-manager/cert-manager to v1.20.1 ([#869](https://github.com/mogenius/mogenius-operator/issues/869)) ([287531e](https://github.com/mogenius/mogenius-operator/commit/287531e0bf4e220c2072fa5d5a5c0108c45fcbc7))
+* **deps:** update module github.com/go-playground/validator/v10 to v10.30.2 ([#871](https://github.com/mogenius/mogenius-operator/issues/871)) ([dfa8b0c](https://github.com/mogenius/mogenius-operator/commit/dfa8b0c0ac0f3d1b59957e0890a64b13b174bba8))
+* **deps:** update module github.com/goccy/go-json to v0.10.6 ([#852](https://github.com/mogenius/mogenius-operator/issues/852)) ([ca9d152](https://github.com/mogenius/mogenius-operator/commit/ca9d152d2e2cbff7743a5a4096f609c775015a89))
+* **deps:** update module github.com/mattn/go-isatty to v0.0.21 ([#895](https://github.com/mogenius/mogenius-operator/issues/895)) ([49a0d14](https://github.com/mogenius/mogenius-operator/commit/49a0d14965dff1ee16b1ad54f7685876eea041d3))
+* **deps:** update module github.com/modelcontextprotocol/go-sdk to v1.4.1 ([#853](https://github.com/mogenius/mogenius-operator/issues/853)) ([8626389](https://github.com/mogenius/mogenius-operator/commit/8626389c452c4a676b0b77078994906dc687e6d1))
+* **deps:** update module github.com/ollama/ollama to v0.18.0 ([#855](https://github.com/mogenius/mogenius-operator/issues/855)) ([6ef1b9e](https://github.com/mogenius/mogenius-operator/commit/6ef1b9ed23823121b5a7ffd51a362ab0f6abdc7f))
+* **deps:** update module github.com/ollama/ollama to v0.18.1 ([#859](https://github.com/mogenius/mogenius-operator/issues/859)) ([2558ae6](https://github.com/mogenius/mogenius-operator/commit/2558ae6c5ba9fa674676e67f98940be411e47916))
+* **deps:** update module github.com/ollama/ollama to v0.18.2 ([#861](https://github.com/mogenius/mogenius-operator/issues/861)) ([88b8681](https://github.com/mogenius/mogenius-operator/commit/88b86811e4e2512092436ddaa494128644b042cc))
+* **deps:** update module github.com/ollama/ollama to v0.18.3 ([#868](https://github.com/mogenius/mogenius-operator/issues/868)) ([380ec84](https://github.com/mogenius/mogenius-operator/commit/380ec84b0de94c65bb87b6e61ab03e538996294b))
+* **deps:** update module github.com/ollama/ollama to v0.19.0 ([#870](https://github.com/mogenius/mogenius-operator/issues/870)) ([43d2862](https://github.com/mogenius/mogenius-operator/commit/43d2862518d76786c69aa021897cbc0aea14e348))
+* **deps:** update module github.com/ollama/ollama to v0.20.0 ([#875](https://github.com/mogenius/mogenius-operator/issues/875)) ([dde8184](https://github.com/mogenius/mogenius-operator/commit/dde8184bff1d19f0b37d9c9ad5b910c574caf7e3))
+* **deps:** update module github.com/ollama/ollama to v0.20.2 ([#877](https://github.com/mogenius/mogenius-operator/issues/877)) ([f43e1d3](https://github.com/mogenius/mogenius-operator/commit/f43e1d376076684b49f91644171e07587ed4e9da))
+* **deps:** update module github.com/ollama/ollama to v0.20.3 ([196fc24](https://github.com/mogenius/mogenius-operator/commit/196fc2411a11cf6c71d3167682e19404cd519bb4))
+* **deps:** update module github.com/ollama/ollama to v0.20.4 ([#896](https://github.com/mogenius/mogenius-operator/issues/896)) ([3af4e3b](https://github.com/mogenius/mogenius-operator/commit/3af4e3bc1b02d5049e103585189a51f0959afe55))
+* **deps:** update module github.com/openai/openai-go/v3 to v3.27.0 ([#854](https://github.com/mogenius/mogenius-operator/issues/854)) ([22d8856](https://github.com/mogenius/mogenius-operator/commit/22d8856a3e55e496f73b315c3878921932c09cb8))
+* **deps:** update module github.com/openai/openai-go/v3 to v3.28.0 ([#856](https://github.com/mogenius/mogenius-operator/issues/856)) ([9aef092](https://github.com/mogenius/mogenius-operator/commit/9aef092ac3e19ea12b18a9e297234ec3676d0a7e))
+* **deps:** update module github.com/openai/openai-go/v3 to v3.29.0 ([#860](https://github.com/mogenius/mogenius-operator/issues/860)) ([52a971c](https://github.com/mogenius/mogenius-operator/commit/52a971cf0f8f539acdfc168111babbc6bbf83446))
+* **deps:** update module github.com/openai/openai-go/v3 to v3.30.0 ([#867](https://github.com/mogenius/mogenius-operator/issues/867)) ([26e4bfb](https://github.com/mogenius/mogenius-operator/commit/26e4bfb53206d4860b8cd6ef4e412f0dc545020d))
+* **deps:** update module github.com/valkey-io/valkey-go to v1.0.73 ([#857](https://github.com/mogenius/mogenius-operator/issues/857)) ([4101d9f](https://github.com/mogenius/mogenius-operator/commit/4101d9f2691cbcbefe51c70e48b6419416d6a4d3))
+* **deps:** update module golang.org/x/term to v0.41.0 ([ec97cb6](https://github.com/mogenius/mogenius-operator/commit/ec97cb6301cbfc2cd63e8992f7fd704c059e31dd))
+* **deps:** update module helm.sh/helm/v4 to v4.1.3 ([#847](https://github.com/mogenius/mogenius-operator/issues/847)) ([3d8c001](https://github.com/mogenius/mogenius-operator/commit/3d8c001e8612265854166549f733d65f40ace025))
+* **deps:** update module k8s.io/klog/v2 to v2.140.0 ([#835](https://github.com/mogenius/mogenius-operator/issues/835)) ([fe56a0f](https://github.com/mogenius/mogenius-operator/commit/fe56a0f7e5759a64b28ef28b1651dedd3ea71d39))
+* helm chart improved (logo, maintainers list was too long) ([afc56de](https://github.com/mogenius/mogenius-operator/commit/afc56dec7317932be9cb98688a4a3b159ae5064d))
+* helm schema for valkey image tag ([005bdae](https://github.com/mogenius/mogenius-operator/commit/005bdaecedaea41af855292fee3bf9949bff395a))
+* improved startup logging ([b27a53d](https://github.com/mogenius/mogenius-operator/commit/b27a53d35982e6036faabd6f8e72139118e0e115))
+* InsecureSkipVerify tls not set for every connection ([ecf8667](https://github.com/mogenius/mogenius-operator/commit/ecf8667c58872c18398dcdaf9c460d1792f924fb))
+* introduced scratch. ([572f5e8](https://github.com/mogenius/mogenius-operator/commit/572f5e8bcb6260da990c4f3eff7b4caff00ad5cb))
+* minor bugfix ([4e1de5d](https://github.com/mogenius/mogenius-operator/commit/4e1de5d48a229e7a35172aadbb57214db1e744a9))
+* minor bugfix ([cb0ef08](https://github.com/mogenius/mogenius-operator/commit/cb0ef08a45b2a8f6131c33ec995c812e6079fdd1))
+* minor bugfix ([b2875fd](https://github.com/mogenius/mogenius-operator/commit/b2875fd56bc91111306b9172e31d752b7f772c6c))
+* minor improvements, stability, bugfixes ([ab97faf](https://github.com/mogenius/mogenius-operator/commit/ab97faf530a6d0b000143e0769e91d47376870d6))
+* minor improvements, stability, bugfixes ([879f406](https://github.com/mogenius/mogenius-operator/commit/879f40649cf3efaa1881017675de4c97c5cb6c79))
+* move store setup to base system init ([896ad88](https://github.com/mogenius/mogenius-operator/commit/896ad8895baa34dbc9eef6ca6047e5f88eb097a8))
+* pprof added ([df7eb35](https://github.com/mogenius/mogenius-operator/commit/df7eb35ed65997a36572b7a23f41389cee60b532))
+* reduce memory usage ([16c805b](https://github.com/mogenius/mogenius-operator/commit/16c805b0c62748f4ae4709da18292f897d0b4ed5))
+* removed defaultapplications becasue not needed. ([b218a24](https://github.com/mogenius/mogenius-operator/commit/b218a249f0d03226b6c7cf4b95421afd11ab9272))
+* removed gitmanager becasue not needed. ([745028a](https://github.com/mogenius/mogenius-operator/commit/745028a8f3af70e07430a636877e5cda80b29520))
+* removed os.exec because scratch is comming. ([64ee1df](https://github.com/mogenius/mogenius-operator/commit/64ee1df7f29a6e502a607c63e5812dc7eae5074b))
+* removed some endpoints from auditlog ([831bfad](https://github.com/mogenius/mogenius-operator/commit/831bfad2c337221a8fabf646e2a6b532e3ae77b2))
+* removed unused code ([933b50e](https://github.com/mogenius/mogenius-operator/commit/933b50ee44e557afddc76263c7f239f92891a96d))
+* removed unused parts of the k8s objects to save memory. ([2941ae7](https://github.com/mogenius/mogenius-operator/commit/2941ae7ba2675a42474845710fc28009e4899043))
+* removed unused structs ([f5ee8ea](https://github.com/mogenius/mogenius-operator/commit/f5ee8ea62f415d3e31d6520818ad9bafdc4a4654))
+* resolve merge conflicts and use actual pod count from store ([1b65012](https://github.com/mogenius/mogenius-operator/commit/1b65012697f8bb7e274623c99e8040fc25f5e6d2))
+* revert back to cosign install v4.0.0 which does not use envsubst ([ab40c12](https://github.com/mogenius/mogenius-operator/commit/ab40c121513dac5ea082f983a56d8e71f66cf10d))
+* sanitize MCP tool names for LLM API compatibility (MOG-4097) ([a46ac95](https://github.com/mogenius/mogenius-operator/commit/a46ac950262883ed47b31d4da54a707d1551f666))
+* some former silent errors are now reported correctly to the client ([d33d6a2](https://github.com/mogenius/mogenius-operator/commit/d33d6a2fc207d134d1dac9b51030fb5924e28398))
+* updated various loops ([f2aaf4a](https://github.com/mogenius/mogenius-operator/commit/f2aaf4ac9bf129ca3788039d26f7e0cf4064bb52))
+* use a select to not block forwever if snoopy died ([6be29fd](https://github.com/mogenius/mogenius-operator/commit/6be29fdaa84df0cbff137813c60d17240f0d960f))
+* use actual pod count from store instead of truncated top-5 map ([850c2a9](https://github.com/mogenius/mogenius-operator/commit/850c2a9b3a8c1fed0660ab054562886ab6b3ece3))
+* use initCOntainer to copy scripts to emptyDir ([fb50e57](https://github.com/mogenius/mogenius-operator/commit/fb50e578fa689c11fc0d380b2548885cffcecf69))
+* valkey buffer reduced to save memory. ([21a85ab](https://github.com/mogenius/mogenius-operator/commit/21a85abf4241c6e58b99215f54c8da7910f18b58))
 
 
 ### Features
 
-* adding reconciling for argocd and flux itself ([a8fbb8a](https://github.com/mogenius/mogenius-operator/commit/a8fbb8a6ee7dd3611bf00f19ece99af9e52f1f30))
-
-# [2.20.0-develop.138](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.137...v2.20.0-develop.138) (2026-05-15)
-
-
-### Bug Fixes
-
-* **deps:** update module github.com/ollama/ollama to v0.24.0 ([#967](https://github.com/mogenius/mogenius-operator/issues/967)) ([eb71c2c](https://github.com/mogenius/mogenius-operator/commit/eb71c2c98368e3f8978df13fa6824ea9c5317a07))
-
-# [2.20.0-develop.137](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.136...v2.20.0-develop.137) (2026-05-14)
-
-
-### Bug Fixes
-
-* **deps:** update module helm.sh/helm/v4 to v4.2.0 ([#966](https://github.com/mogenius/mogenius-operator/issues/966)) ([d0c5e34](https://github.com/mogenius/mogenius-operator/commit/d0c5e348b5f3906d8803d5c6486be9aa7cc46486))
-
-# [2.20.0-develop.136](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.135...v2.20.0-develop.136) (2026-05-14)
-
-
-### Bug Fixes
-
-* **deps:** update module github.com/anthropics/anthropic-sdk-go to v1.43.0 ([#965](https://github.com/mogenius/mogenius-operator/issues/965)) ([b457f16](https://github.com/mogenius/mogenius-operator/commit/b457f1618ac2510efe85498dde0fa45fb9c5ff07))
-
-# [2.20.0-develop.135](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.134...v2.20.0-develop.135) (2026-05-14)
-
-
-### Bug Fixes
-
-* **deps:** update module github.com/ollama/ollama to v0.23.4 ([#964](https://github.com/mogenius/mogenius-operator/issues/964)) ([d2336f0](https://github.com/mogenius/mogenius-operator/commit/d2336f088879490758f6353f597ee0e518960194))
-
-# [2.20.0-develop.134](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.133...v2.20.0-develop.134) (2026-05-13)
-
-
-### Bug Fixes
-
-* **deps:** update module sigs.k8s.io/controller-runtime to v0.24.1 ([#962](https://github.com/mogenius/mogenius-operator/issues/962)) ([e37690c](https://github.com/mogenius/mogenius-operator/commit/e37690c864e239acf6eb69e8b2484574462699cd))
-
-# [2.20.0-develop.133](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.132...v2.20.0-develop.133) (2026-05-13)
-
-
-### Bug Fixes
-
-* **deps:** update module github.com/ollama/ollama to v0.23.3 ([#961](https://github.com/mogenius/mogenius-operator/issues/961)) ([702d30e](https://github.com/mogenius/mogenius-operator/commit/702d30ea97c36227cebf635af7ff4961df047f14))
-
-# [2.20.0-develop.132](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.131...v2.20.0-develop.132) (2026-05-13)
-
-
-### Bug Fixes
-
-* **deps:** update kubernetes monorepo to v0.36.1 ([#963](https://github.com/mogenius/mogenius-operator/issues/963)) ([d538113](https://github.com/mogenius/mogenius-operator/commit/d538113271386fa6afdd4ceef06598522ef5f792))
-
-# [2.20.0-develop.131](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.130...v2.20.0-develop.131) (2026-05-12)
-
-
-### Bug Fixes
-
-* **deps:** update module github.com/valkey-io/valkey-go to v1.0.75 ([#960](https://github.com/mogenius/mogenius-operator/issues/960)) ([03e2cbc](https://github.com/mogenius/mogenius-operator/commit/03e2cbce52970530ba84a29140c735da55bb7631))
-
-# [2.20.0-develop.130](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.129...v2.20.0-develop.130) (2026-05-12)
-
-
-### Bug Fixes
-
-* **deps:** update module github.com/tklauser/go-sysconf to v0.4.0 ([#959](https://github.com/mogenius/mogenius-operator/issues/959)) ([4273911](https://github.com/mogenius/mogenius-operator/commit/42739115e343dce5898d8b550be3e6d340324eb8))
-
-# [2.20.0-develop.129](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.128...v2.20.0-develop.129) (2026-05-11)
-
-
-### Bug Fixes
-
-* **deps:** update module github.com/anthropics/anthropic-sdk-go to v1.42.0 ([#958](https://github.com/mogenius/mogenius-operator/issues/958)) ([35b1389](https://github.com/mogenius/mogenius-operator/commit/35b1389e8641910e975828b4835ab99e73559603))
-
-# [2.20.0-develop.128](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.127...v2.20.0-develop.128) (2026-05-11)
-
-
-### Bug Fixes
-
-* install chart CRDs via apiextensions client (MOG-4274) ([2e8113e](https://github.com/mogenius/mogenius-operator/commit/2e8113ea018e21473556ab15baeb9e0dc4089387))
-
-# [2.20.0-develop.127](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.126...v2.20.0-develop.127) (2026-05-08)
-
-
-### Bug Fixes
-
-* **deps:** update module golang.org/x/term to v0.43.0 ([#957](https://github.com/mogenius/mogenius-operator/issues/957)) ([5e18efa](https://github.com/mogenius/mogenius-operator/commit/5e18efa5bd338d8fbb3fb4b66e87b1a83c3814e7))
-
-# [2.20.0-develop.126](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.125...v2.20.0-develop.126) (2026-05-08)
-
-
-### Bug Fixes
-
-* **deps:** update module github.com/ollama/ollama to v0.23.2 ([#956](https://github.com/mogenius/mogenius-operator/issues/956)) ([7ae24cc](https://github.com/mogenius/mogenius-operator/commit/7ae24cc62c91acec9c1c8c285a7132c7a6eb7a96))
-
-# [2.20.0-develop.125](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.124...v2.20.0-develop.125) (2026-05-07)
-
-
-### Bug Fixes
-
-* **deps:** update module github.com/openai/openai-go/v3 to v3.35.0 ([#955](https://github.com/mogenius/mogenius-operator/issues/955)) ([f8f898c](https://github.com/mogenius/mogenius-operator/commit/f8f898c9939c5dbeb953ec6c1ed9e4865d486ee8))
-
-# [2.20.0-develop.124](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.123...v2.20.0-develop.124) (2026-05-07)
-
-
-### Bug Fixes
-
-* use new new() fucntion to get pointers ([feb8463](https://github.com/mogenius/mogenius-operator/commit/feb8463c77a658debecd2fdad4cca6e2137b20bc))
-
-# [2.20.0-develop.123](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.122...v2.20.0-develop.123) (2026-05-06)
-
-
-### Bug Fixes
-
-* **deps:** update module github.com/anthropics/anthropic-sdk-go to v1.41.0 ([#949](https://github.com/mogenius/mogenius-operator/issues/949)) ([bf7bda4](https://github.com/mogenius/mogenius-operator/commit/bf7bda405848d1c1e92186187f1924d78ceace64))
-
-# [2.20.0-develop.122](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.121...v2.20.0-develop.122) (2026-05-06)
-
-
-### Bug Fixes
-
-* dev build not set correctly ([96b521e](https://github.com/mogenius/mogenius-operator/commit/96b521e34fb8500f26eadc0998461495477a6d45))
-
-# [2.20.0-develop.121](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.120...v2.20.0-develop.121) (2026-05-06)
-
-
-### Bug Fixes
-
-* adding options to disable automatic upgrades in the operator ([810a2a6](https://github.com/mogenius/mogenius-operator/commit/810a2a67a9a893647741ee6bc6a2cb25d0e88366))
-
-# [2.20.0-develop.120](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.119...v2.20.0-develop.120) (2026-05-06)
-
-
-### Bug Fixes
-
-* return error when resource deletion is blocked by finalizers ([c3fb669](https://github.com/mogenius/mogenius-operator/commit/c3fb6694af811dabecdc22d651232b4fdcf1331a))
-
-# [2.20.0-develop.119](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.118...v2.20.0-develop.119) (2026-05-06)
-
-
-### Bug Fixes
-
-* **deps:** update module github.com/anthropics/anthropic-sdk-go to v1.40.0 ([#945](https://github.com/mogenius/mogenius-operator/issues/945)) ([3b6d0c0](https://github.com/mogenius/mogenius-operator/commit/3b6d0c06b3d67098fb7cfa5879f6f0c1b7be01cd))
-
-# [2.20.0-develop.118](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.117...v2.20.0-develop.118) (2026-05-05)
-
-
-### Bug Fixes
-
-* **deps:** update module github.com/ollama/ollama to v0.23.1 ([#944](https://github.com/mogenius/mogenius-operator/issues/944)) ([129d139](https://github.com/mogenius/mogenius-operator/commit/129d1393c204a4b3782d7e5d105f11df3190e644))
-
-# [2.20.0-develop.117](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.116...v2.20.0-develop.117) (2026-05-05)
-
-
-### Bug Fixes
-
-* add params for in process helm values ([7a9dc94](https://github.com/mogenius/mogenius-operator/commit/7a9dc945150a3082a48ae846be130daf305a6062))
-* adding guard to disable platform config in prod ([d6e2ebc](https://github.com/mogenius/mogenius-operator/commit/d6e2ebc8831bdad3dffb44c90ce420418a932f69))
-* crd install guard ([ed0563b](https://github.com/mogenius/mogenius-operator/commit/ed0563b5f810927526ec3795a8c04bdaab6426de))
-* delete resources if platform config is deleted ([a564e8f](https://github.com/mogenius/mogenius-operator/commit/a564e8ffdf9e66fdd07f5e2ff81ac9d8225b20de))
-* moac versions ([532dde7](https://github.com/mogenius/mogenius-operator/commit/532dde77e15ac465c09d90e079a8c9ef7e2f7326))
-
-
-### Features
-
-* add fetching platform defaults from github ([68933b3](https://github.com/mogenius/mogenius-operator/commit/68933b3076cfd81d6ee7f765abc9fa9515fa11e6))
-* adding flux and helm install provider ([3bd2fa3](https://github.com/mogenius/mogenius-operator/commit/3bd2fa3183744405c03a7fd672d3fa35721a98ec))
-* adding issuers to list ([c669234](https://github.com/mogenius/mogenius-operator/commit/c669234f84563015900dad6c40ccd8524a1cb446))
-* adding status with last sync for each component ([b14790c](https://github.com/mogenius/mogenius-operator/commit/b14790c9a06e849f8e36890d7d4e9747df882000))
-* adding traefik and unifying component reconciler ([841b625](https://github.com/mogenius/mogenius-operator/commit/841b62539a76b8495b3d202691bac352ba3845ca))
-* poc implementation of platform config & reconciler ([8e2b212](https://github.com/mogenius/mogenius-operator/commit/8e2b2121b7e878eaef7be79a467dc24070e61793))
-
-# [2.20.0-develop.116](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.115...v2.20.0-develop.116) (2026-05-05)
-
-
-### Bug Fixes
-
-* **deps:** update module github.com/openai/openai-go/v3 to v3.34.0 ([#942](https://github.com/mogenius/mogenius-operator/issues/942)) ([02c313c](https://github.com/mogenius/mogenius-operator/commit/02c313c631367219df4df308d9c4ec3830216fe8))
-
-# [2.20.0-develop.115](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.114...v2.20.0-develop.115) (2026-05-04)
-
-
-### Bug Fixes
-
-* **deps:** update module github.com/anthropics/anthropic-sdk-go to v1.39.0 ([#941](https://github.com/mogenius/mogenius-operator/issues/941)) ([5c8f93a](https://github.com/mogenius/mogenius-operator/commit/5c8f93a26e94ca39354295c98a1713b7261a7e48))
-
-# [2.20.0-develop.114](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.113...v2.20.0-develop.114) (2026-05-03)
-
-
-### Bug Fixes
-
-* **deps:** update module github.com/ollama/ollama to v0.23.0 ([#939](https://github.com/mogenius/mogenius-operator/issues/939)) ([f718ccb](https://github.com/mogenius/mogenius-operator/commit/f718ccb77d00efb2cdab21c0d93e40e00a624584))
-
-# [2.20.0-develop.113](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.112...v2.20.0-develop.113) (2026-05-01)
-
-
-### Bug Fixes
-
-* **deps:** update module sigs.k8s.io/controller-runtime to v0.24.0 ([#938](https://github.com/mogenius/mogenius-operator/issues/938)) ([b901f3a](https://github.com/mogenius/mogenius-operator/commit/b901f3aaf327c44996d5c241431f787fea75f098))
-
-# [2.20.0-develop.112](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.111...v2.20.0-develop.112) (2026-05-01)
-
-
-### Bug Fixes
-
-* **deps:** update module github.com/modelcontextprotocol/go-sdk to v1.6.0 ([#937](https://github.com/mogenius/mogenius-operator/issues/937)) ([c146d66](https://github.com/mogenius/mogenius-operator/commit/c146d66c924d6c8a6561b99b0f6ee2009457615b))
-
-# [2.20.0-develop.111](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.110...v2.20.0-develop.111) (2026-04-30)
-
-
-### Bug Fixes
-
-* added pods stats endpoint ([7b480ea](https://github.com/mogenius/mogenius-operator/commit/7b480eaeefb11c3e116dd8af4e1b010cdd7d3d14))
-
-# [2.20.0-develop.110](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.109...v2.20.0-develop.110) (2026-04-30)
-
-
-### Bug Fixes
-
-* added pods stats pattern ([837b1e9](https://github.com/mogenius/mogenius-operator/commit/837b1e96f9f932eae54d764200066ea1ca8c9ed1))
-
-# [2.20.0-develop.109](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.108...v2.20.0-develop.109) (2026-04-30)
-
-
-### Bug Fixes
-
-* **deps:** update module github.com/ollama/ollama to v0.22.1 ([#935](https://github.com/mogenius/mogenius-operator/issues/935)) ([1c3d260](https://github.com/mogenius/mogenius-operator/commit/1c3d260d6a9aaa471e252fe23bace45c6794cb21))
-
-# [2.20.0-develop.108](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.107...v2.20.0-develop.108) (2026-04-29)
-
-
-### Bug Fixes
-
-* **deps:** update module github.com/openai/openai-go/v3 to v3.33.0 ([#933](https://github.com/mogenius/mogenius-operator/issues/933)) ([e7a0f8d](https://github.com/mogenius/mogenius-operator/commit/e7a0f8d74b7b5676c95c6ec34be85f5af5de4e9c))
-
-# [2.20.0-develop.107](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.106...v2.20.0-develop.107) (2026-04-29)
-
-
-### Bug Fixes
-
-* **deps:** update module github.com/ollama/ollama to v0.22.0 ([#932](https://github.com/mogenius/mogenius-operator/issues/932)) ([4ea585c](https://github.com/mogenius/mogenius-operator/commit/4ea585c155d7b540a467d0438278e61239e26be1))
-
-# [2.20.0-develop.106](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.105...v2.20.0-develop.106) (2026-04-29)
-
-
-### Bug Fixes
-
-* cleanup AI tasks when filters ConfigMap is deleted (MOG-4260) ([3c1c35b](https://github.com/mogenius/mogenius-operator/commit/3c1c35bd202f8dda853247b8c82ca8bc81ff5e0c))
-
-# [2.20.0-develop.105](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.104...v2.20.0-develop.105) (2026-04-29)
-
-
-### Bug Fixes
-
-* **deps:** update module github.com/mattn/go-isatty to v0.0.22 ([#931](https://github.com/mogenius/mogenius-operator/issues/931)) ([9ef2f41](https://github.com/mogenius/mogenius-operator/commit/9ef2f41915647f07653c30c534634f13cfcdedd7))
-* refactor status into a new file ([94239dd](https://github.com/mogenius/mogenius-operator/commit/94239dd8e5f32a14a0809df5a2d591743e611319))
-* rework factory build a little bit ([ef0152f](https://github.com/mogenius/mogenius-operator/commit/ef0152f1b98cbdccedaab2bc17b5fa3a38aab1dd))
-* rework leader elector start and stop a bit ([878ea07](https://github.com/mogenius/mogenius-operator/commit/878ea07d24e8c80110e66266a4ecd8ab99ae6b76))
-* validate workspaces ([c4807f3](https://github.com/mogenius/mogenius-operator/commit/c4807f34c1ae9285274889f12fa6433149e6b170))
-
-
-### Features
-
-* adding a new more generic reconciler ([0695cb1](https://github.com/mogenius/mogenius-operator/commit/0695cb1fa132914cf001f2f34de6e6ed26e7a84f))
-* remove obsolete reconcilers ([cac0c8a](https://github.com/mogenius/mogenius-operator/commit/cac0c8a46b3aad426d085e5cc5badde3d51e0fc8))
-* replace current reconciler with new reconciler ([a56da8d](https://github.com/mogenius/mogenius-operator/commit/a56da8d522e448d0492555cae6ddbd54988492a5))
-
-# [2.20.0-develop.104](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.103...v2.20.0-develop.104) (2026-04-27)
-
-
-### Features
-
-* **argocd:** add resource-level sync and action support ([6048299](https://github.com/mogenius/mogenius-operator/commit/60482992719a8c188e27969525106aa6b1c437a8))
-
-# [2.20.0-develop.103](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.102...v2.20.0-develop.103) (2026-04-27)
-
-
-### Bug Fixes
-
-* **argocd:** add Content-Type header to terminateOperation request ([9f98a0b](https://github.com/mogenius/mogenius-operator/commit/9f98a0bc2f831653f119567d1514c86a2a8ee72e))
-
-# [2.20.0-develop.102](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.101...v2.20.0-develop.102) (2026-04-27)
-
-
-### Features
-
-* **argocd:** implement sync, hard-refresh and terminate operations ([3119beb](https://github.com/mogenius/mogenius-operator/commit/3119beb9140e6562af58ec2a8d8bd260254cc1b1))
-
-# [2.20.0-develop.101](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.100...v2.20.0-develop.101) (2026-04-24)
-
-
-### Bug Fixes
-
-* **deps:** update module github.com/ollama/ollama to v0.21.2 ([#926](https://github.com/mogenius/mogenius-operator/issues/926)) ([47fafdc](https://github.com/mogenius/mogenius-operator/commit/47fafdc83b5209fe8cdbff69f5176c9200df1ddb))
-
-# [2.20.0-develop.100](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.99...v2.20.0-develop.100) (2026-04-24)
-
-
-### Bug Fixes
-
-* set valkey strategy to recreate ([03fb6fe](https://github.com/mogenius/mogenius-operator/commit/03fb6fee705e9616bd90db0419f7458ab4748fb0))
-
-# [2.20.0-develop.99](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.98...v2.20.0-develop.99) (2026-04-24)
-
-
-### Features
-
-* **helm:** add ownership preflight and adopt orphaned resources on install ([6e79a9e](https://github.com/mogenius/mogenius-operator/commit/6e79a9eb5bdbd844cdc3b4a5036fd042d573862c))
-
-# [2.20.0-develop.98](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.97...v2.20.0-develop.98) (2026-04-24)
-
-
-### Bug Fixes
-
-* **deps:** update module github.com/anthropics/anthropic-sdk-go to v1.38.0 ([#925](https://github.com/mogenius/mogenius-operator/issues/925)) ([07f7c2d](https://github.com/mogenius/mogenius-operator/commit/07f7c2dc9da4f5a558663171de9701fa6ace90eb))
-
-# [2.20.0-develop.97](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.96...v2.20.0-develop.97) (2026-04-23)
-
-
-### Bug Fixes
-
-* upgrade prepare version ([d9de245](https://github.com/mogenius/mogenius-operator/commit/d9de2451dac4ce1030177aa6456bb1c619daadb4))
-* upgrade prepare version ([aeb856e](https://github.com/mogenius/mogenius-operator/commit/aeb856efd4aff8131df346055fb9761e69eb7621))
-* use github app authentication for token ([69454d2](https://github.com/mogenius/mogenius-operator/commit/69454d2935604020bcef48b7625439656f3097ee))
-
-# [2.20.0-develop.96](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.95...v2.20.0-develop.96) (2026-04-23)
-
-
-### Bug Fixes
-
-* **deps:** update kubernetes monorepo to v0.36.0 ([#924](https://github.com/mogenius/mogenius-operator/issues/924)) ([5dc3669](https://github.com/mogenius/mogenius-operator/commit/5dc366972688b5b2d1a1c91fcb3db1378dcbe1ae))
-
-# [2.20.0-develop.95](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.94...v2.20.0-develop.95) (2026-04-22)
-
-
-### Bug Fixes
-
-* port-forward tls issue ([29e83a5](https://github.com/mogenius/mogenius-operator/commit/29e83a547fb7b55319faa2818fb8aa824582b997))
-
-# [2.20.0-develop.94](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.93...v2.20.0-develop.94) (2026-04-22)
-
-
-### Bug Fixes
-
-* **deps:** update module github.com/ollama/ollama to v0.21.1 ([#923](https://github.com/mogenius/mogenius-operator/issues/923)) ([066cf22](https://github.com/mogenius/mogenius-operator/commit/066cf223156bff903c6c2aea48af8eff68406006))
-
-# [2.20.0-develop.93](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.92...v2.20.0-develop.93) (2026-04-22)
-
-
-### Bug Fixes
-
-* fix GC cpu bug caused by clone bug ([fe26041](https://github.com/mogenius/mogenius-operator/commit/fe260410b9267735d8cceec49301cebad37e8ead))
-
-# [2.20.0-develop.92](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.91...v2.20.0-develop.92) (2026-04-21)
-
-
-### Bug Fixes
-
-* prefetch all pods for node resources and prevent O(n2) iteration ([9ac07c9](https://github.com/mogenius/mogenius-operator/commit/9ac07c96f5fa92ea38905876dd5ff996a6c40036))
-
-# [2.20.0-develop.91](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.90...v2.20.0-develop.91) (2026-04-21)
-
-
-### Features
-
-* adding metrics to capture pattern duration ([bd8276f](https://github.com/mogenius/mogenius-operator/commit/bd8276f2aa171f319afd2e9346e9c61f231e0e3f))
-
-# [2.20.0-develop.90](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.89...v2.20.0-develop.90) (2026-04-17)
-
-
-### Bug Fixes
-
-* **deps:** update module github.com/ollama/ollama to v0.21.0 ([#919](https://github.com/mogenius/mogenius-operator/issues/919)) ([45c855f](https://github.com/mogenius/mogenius-operator/commit/45c855fb0c554feec4de69dc72b477b40ebcce97))
-
-# [2.20.0-develop.89](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.88...v2.20.0-develop.89) (2026-04-17)
-
-
-### Bug Fixes
-
-* **deps:** update module github.com/openai/openai-go/v3 to v3.32.0 ([#918](https://github.com/mogenius/mogenius-operator/issues/918)) ([3252f33](https://github.com/mogenius/mogenius-operator/commit/3252f331a84d3fc23cfe4cf525e59e576d1bfecd))
-
-# [2.20.0-develop.88](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.87...v2.20.0-develop.88) (2026-04-16)
-
-
-### Bug Fixes
-
-* **deps:** update module github.com/anthropics/anthropic-sdk-go to v1.37.0 ([#917](https://github.com/mogenius/mogenius-operator/issues/917)) ([6219af3](https://github.com/mogenius/mogenius-operator/commit/6219af397d226ba91c0dea9ac133614bfbf41384))
-
-# [2.20.0-develop.87](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.86...v2.20.0-develop.87) (2026-04-16)
-
-
-### Bug Fixes
-
-* **deps:** update kubernetes monorepo to v0.35.4 ([#916](https://github.com/mogenius/mogenius-operator/issues/916)) ([0e14535](https://github.com/mogenius/mogenius-operator/commit/0e1453598d02fb38e246da39686a969b1ded55b5))
-
-# [2.20.0-develop.86](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.85...v2.20.0-develop.86) (2026-04-15)
-
-
-### Bug Fixes
-
-* **helm:** wait for valkey readiness before operator starts ([06a7b75](https://github.com/mogenius/mogenius-operator/commit/06a7b75cd802974ca0b57fd550314977955b3e46))
-
-# [2.20.0-develop.85](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.84...v2.20.0-develop.85) (2026-04-15)
-
-
-### Features
-
-* add server-side search filtering for audit log list ([343cdcb](https://github.com/mogenius/mogenius-operator/commit/343cdcb03382a692c6f28dceeb4b92d4fbb719f3))
-
-# [2.20.0-develop.84](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.83...v2.20.0-develop.84) (2026-04-14)
-
-
-### Bug Fixes
-
-* **deps:** update module github.com/anthropics/anthropic-sdk-go to v1.36.0 ([#914](https://github.com/mogenius/mogenius-operator/issues/914)) ([0c7721d](https://github.com/mogenius/mogenius-operator/commit/0c7721d8e4de971ac425c0997ef6bbcfa494a414))
-
-# [2.20.0-develop.83](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.82...v2.20.0-develop.83) (2026-04-14)
-
-
-### Bug Fixes
-
-* **deps:** update module github.com/ollama/ollama to v0.20.7 ([#913](https://github.com/mogenius/mogenius-operator/issues/913)) ([14238ed](https://github.com/mogenius/mogenius-operator/commit/14238ed145e7f0e0cfeef833e51c82dffc6f8e42))
-
-# [2.20.0-develop.82](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.81...v2.20.0-develop.82) (2026-04-14)
-
-
-### Bug Fixes
-
-* **deps:** update module github.com/anthropics/anthropic-sdk-go to v1.35.1 ([#912](https://github.com/mogenius/mogenius-operator/issues/912)) ([4a2d2e7](https://github.com/mogenius/mogenius-operator/commit/4a2d2e7d793ac9380dccddeb9fe79c590b9330db))
-
-# [2.20.0-develop.81](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.80...v2.20.0-develop.81) (2026-04-13)
-
-
-### Bug Fixes
-
-* **deps:** update module github.com/ollama/ollama to v0.20.6 ([#910](https://github.com/mogenius/mogenius-operator/issues/910)) ([5b1d27a](https://github.com/mogenius/mogenius-operator/commit/5b1d27a7991726fc32d67639f9124a051a334ba8))
-
-# [2.20.0-develop.80](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.79...v2.20.0-develop.80) (2026-04-12)
-
-
-### Bug Fixes
-
-* **deps:** update module github.com/valkey-io/valkey-go to v1.0.74 ([#909](https://github.com/mogenius/mogenius-operator/issues/909)) ([491acbc](https://github.com/mogenius/mogenius-operator/commit/491acbc0f0594d7f7918d68db2a7f7be1b1bfdbf))
-
-# [2.20.0-develop.79](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.78...v2.20.0-develop.79) (2026-04-12)
-
-
-### Bug Fixes
-
-* **deps:** update module golang.org/x/term to v0.42.0 ([#908](https://github.com/mogenius/mogenius-operator/issues/908)) ([6d8a678](https://github.com/mogenius/mogenius-operator/commit/6d8a67807b5a5263bfc5e0d6b9c77e5de86f4fec))
-
-# [2.20.0-develop.78](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.77...v2.20.0-develop.78) (2026-04-11)
-
-
-### Bug Fixes
-
-* **deps:** update module github.com/cert-manager/cert-manager to v1.20.2 ([#907](https://github.com/mogenius/mogenius-operator/issues/907)) ([84cd8c9](https://github.com/mogenius/mogenius-operator/commit/84cd8c937764050c16d3cbe85fed9ea0d76e15d8))
-
-# [2.20.0-develop.77](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.76...v2.20.0-develop.77) (2026-04-11)
-
-
-### Bug Fixes
-
-* **deps:** update module github.com/openai/openai-go/v3 to v3.31.0 ([#906](https://github.com/mogenius/mogenius-operator/issues/906)) ([158904d](https://github.com/mogenius/mogenius-operator/commit/158904d983b441185347ef8d9d13967107aa749c))
-
-# [2.20.0-develop.76](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.75...v2.20.0-develop.76) (2026-04-11)
-
-
-### Bug Fixes
-
-* **deps:** update module github.com/anthropics/anthropic-sdk-go to v1.35.0 ([#905](https://github.com/mogenius/mogenius-operator/issues/905)) ([4a902c5](https://github.com/mogenius/mogenius-operator/commit/4a902c517ae0b1a738abbd79693ba5e1a5a4b017))
-
-# [2.20.0-develop.75](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.74...v2.20.0-develop.75) (2026-04-10)
-
-
-### Bug Fixes
-
-* multiplexed port-forward with binary WS frames ([5dfbb94](https://github.com/mogenius/mogenius-operator/commit/5dfbb9468fbf8e051d8b66465d8a593b714d2764))
-
-# [2.20.0-develop.74](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.73...v2.20.0-develop.74) (2026-04-10)
-
-
-### Bug Fixes
-
-* **deps:** update module github.com/ollama/ollama to v0.20.5 ([#901](https://github.com/mogenius/mogenius-operator/issues/901)) ([c08f802](https://github.com/mogenius/mogenius-operator/commit/c08f802815a81f5a0e7ef912f5219f0bc815eef7))
-
-# [2.20.0-develop.73](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.72...v2.20.0-develop.73) (2026-04-10)
-
-
-### Features
-
-* workloads port-forward ([65922d0](https://github.com/mogenius/mogenius-operator/commit/65922d0febe48ad12ccae8e99a73c792d5ec92d4))
-
-# [2.20.0-develop.72](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.71...v2.20.0-develop.72) (2026-04-10)
-
-
-### Bug Fixes
-
-* **deps:** update module github.com/bitnami-labs/sealed-secrets to v0.36.6 ([#899](https://github.com/mogenius/mogenius-operator/issues/899)) ([6e1923c](https://github.com/mogenius/mogenius-operator/commit/6e1923cfd2f1b40e9a00f96dada82bb9a9310243))
-
-# [2.20.0-develop.71](https://github.com/mogenius/mogenius-operator/compare/v2.20.0-develop.70...v2.20.0-develop.71) (2026-04-09)
-
-
-### Bug Fixes
-
-* **deps:** update module helm.sh/helm/v4 to v4.1.4 ([#898](https://github.com/mogenius/mogenius-operator/issues/898)) ([4c0b56f](https://github.com/mogenius/mogenius-operator/commit/4c0b56fb93c6384c677b5c50ec8d20c58966d8cb))
+* add cluster/dashboard-stats endpoint for aggregated workspace metrics ([879f2b6](https://github.com/mogenius/mogenius-operator/commit/879f2b606fa97616f87830e3d0959d0e3577e40c))
+* adding alertmanager api ([8fe2766](https://github.com/mogenius/mogenius-operator/commit/8fe2766d5d816562e7d376da202b190b6bb7578b))
+* adding valkey exporter and servicemonitor options ([50d8ef8](https://github.com/mogenius/mogenius-operator/commit/50d8ef8994e168caa967bb1d9901d6126bb99683))
+* splitting system inits ([8dc0b5e](https://github.com/mogenius/mogenius-operator/commit/8dc0b5e77872dca328ee0a8cad0a2778e7f6ced7))
+* token will now be compacted ([7782b65](https://github.com/mogenius/mogenius-operator/commit/7782b65b90214d2d61d967160565f9fe81d973ba))
 
 ## [2.19.2](https://github.com/mogenius/mogenius-operator/compare/v2.19.1...v2.19.2) (2026-03-10)
 
