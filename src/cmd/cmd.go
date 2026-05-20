@@ -29,7 +29,6 @@ var CLI struct {
 	Config      struct{}        `cmd:"" help:"print application config in ENV format"`
 	System      struct{}        `cmd:"" help:"check the system for all required components and offer healing"`
 	Version     struct{}        `cmd:"" help:"print version information" default:"1"`
-	Patterns    patternsArgs    `cmd:"" help:"print patterns to shell"`
 	Exec        execArgs        `cmd:"" help:"open an interactive shell inside a container"`
 	Logs        logArgs         `cmd:"" help:"retrieve streaming logs of a container"`
 }
@@ -140,12 +139,6 @@ func Run() error {
 		return nil
 	case "logs":
 		err := RunLogs(&CLI.Logs, cmdLogger, configModule)
-		if err != nil {
-			return err
-		}
-		return nil
-	case "patterns":
-		err := RunPatterns(&CLI.Patterns, slogManager, configModule, cmdLogger, channelHandler.GetRecordChannel())
 		if err != nil {
 			return err
 		}

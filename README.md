@@ -37,8 +37,6 @@ Modular packages under `src/`:
 - `logging/` – Structured slog with custom handlers & secret masking.
 - `secrets/`, `store/`, `watcher/`, `shutdown/`, `services/`, `utils/`, `assert/`, `version/` – supporting packages.
 
-Generated artifacts: `generated/spec.yaml` (pattern spec) and `generated/client.ts` (TypeScript bindings).
-
 ---
 
 ## Local Development
@@ -61,7 +59,7 @@ just scale-up
 Key tasks:
 
 ```sh
-just build            # compile + regenerate spec.yaml & client.ts
+just build            # compile native binary
 just run              # run operator locally
 just run-node-metrics # run node metrics DaemonSet mode locally
 just check            # generate + lint + unit tests
@@ -210,6 +208,5 @@ Disable afterward: `kubectl set env deployment/mogenius-operator -n mogenius MO_
 ## Troubleshooting
 
 - Scale down in-cluster deployment before running locally: `just scale-down`.
-- Regenerate patterns after structural changes: `just build`.
 - Auth issues: verify `.env` secrets match the `mogenius/mogenius` operator secret.
 - Stale dependencies: `go clean -modcache && go mod tidy`.
