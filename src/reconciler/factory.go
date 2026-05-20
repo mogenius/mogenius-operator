@@ -35,7 +35,12 @@ func NewReconcilerFactory(logger *slog.Logger, clientProvider k8sclient.K8sClien
 			config:         configModule,
 			valkeyClient:   valkeyClient,
 		},
-		interval: 1 * time.Minute,
+		// Background full-sweep interval. Watcher informers already do a
+		// 30-minute resync (utils.ResourceResyncTime) which redelivers every
+		// object as an update event, so this sweep is a safety net rather
+		// than the primary drift-detection mechanism. A 1-minute interval
+		// caused 1000+ reconciles every minute on large clusters.
+		interval: 15 * time.Minute,
 		configs:  []ResourceConfig{},
 	}
 

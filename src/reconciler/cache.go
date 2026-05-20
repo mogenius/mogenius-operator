@@ -37,12 +37,20 @@ func (c *objectCache) remove(obj *unstructured.Unstructured) {
 }
 
 // snapshot returns deep copies of all cached objects. Safe to call concurrently.
+// Holds the read lock only long enough to copy pointers; DeepCopy runs outside
+// the critical section so writers and other snapshotters aren't blocked while
+// we copy hundreds of objects.
 func (c *objectCache) snapshot() []*unstructured.Unstructured {
 	c.mu.RLock()
-	defer c.mu.RUnlock()
-	out := make([]*unstructured.Unstructured, 0, len(c.objects))
+	refs := make([]*unstructured.Unstructured, 0, len(c.objects))
 	for _, v := range c.objects {
-		out = append(out, v.DeepCopy())
+		refs = append(refs, v)
+	}
+	c.mu.RUnlock()
+
+	out := make([]*unstructured.Unstructured, len(refs))
+	for i, v := range refs {
+		out[i] = v.DeepCopy()
 	}
 	return out
 }
