@@ -413,27 +413,34 @@ func (self *socketApi) registerPatterns() {
 			Errors                  []string              `json:"error,omitempty"`
 		}
 
+		// Dashboards poll this every few seconds. Without caching, every
+		// poll triggers a node list, a service list, a country lookup
+		// and a Valkey read; under multiple concurrent dashboards this
+		// dominated the K8s API call volume.
+		clusterResourceInfoCache := newTTLCache(5*time.Second, func() ClusterResourceInfo {
+			errors := []string{}
+			nodeStats, nodeErr := self.moKubernetes.GetNodeStats()
+			if nodeErr != nil {
+				errors = append(errors, nodeErr.Error())
+			}
+			loadBalancerExternalIps := kubernetes.GetClusterExternalIps()
+			country, _ := utils.GuessClusterCountry()
+			cniConfig, _ := self.dbstats.GetCniData()
+			return ClusterResourceInfo{
+				NodeStats:               nodeStats,
+				LoadBalancerExternalIps: loadBalancerExternalIps,
+				Country:                 country,
+				Provider:                string(utils.ClusterProviderCached),
+				CniConfig:               cniConfig,
+				Errors:                  errors,
+			}
+		})
+
 		RegisterPatternHandler(
 			PatternHandle{self, "cluster/resource-info"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Void) (ClusterResourceInfo, error) {
-				errors := []string{}
-				nodeStats, nodeErr := self.moKubernetes.GetNodeStats()
-				if nodeErr != nil {
-					errors = append(errors, nodeErr.Error())
-				}
-				loadBalancerExternalIps := kubernetes.GetClusterExternalIps()
-				country, _ := utils.GuessClusterCountry()
-				cniConfig, _ := self.dbstats.GetCniData()
-				response := ClusterResourceInfo{
-					NodeStats:               nodeStats,
-					LoadBalancerExternalIps: loadBalancerExternalIps,
-					Country:                 country,
-					Provider:                string(utils.ClusterProviderCached),
-					CniConfig:               cniConfig,
-					Errors:                  errors,
-				}
-				return response, nil
+				return clusterResourceInfoCache.Get(), nil
 			},
 		)
 	}
