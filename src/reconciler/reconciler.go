@@ -69,6 +69,13 @@ type objectKey struct {
 	name      string
 }
 
+// maxConcurrentReconciles bounds the number of Reconcile invocations in
+// flight at once. Without a bound, a burst of events for 1000+ objects
+// can spawn an equal number of goroutines and overload the k8s API
+// client. The watcher callback blocks when the limit is reached, which
+// gives us natural backpressure without needing a worker pool.
+const maxConcurrentReconciles = 50
+
 type genericReconciler struct {
 	logger   *slog.Logger
 	watcher  watcher.WatcherModule
@@ -76,6 +83,9 @@ type genericReconciler struct {
 	interval time.Duration
 	active   atomic.Bool
 	caches   map[utils.ResourceDescriptor]*objectCache
+
+	// reconcileSlots is a semaphore: send to acquire, receive to release.
+	reconcileSlots chan struct{}
 
 	statusMu    sync.RWMutex
 	objectState map[objectKey]ObjectStatus
@@ -93,12 +103,13 @@ func newReconciler(
 	configs []ResourceConfig,
 ) Reconciler {
 	r := &genericReconciler{
-		logger:      logger,
-		watcher:     watcher.NewWatcher(logger.With("scope", "watcher"), clientProvider),
-		configs:     configs,
-		interval:    interval,
-		caches:      make(map[utils.ResourceDescriptor]*objectCache, len(configs)),
-		objectState: make(map[objectKey]ObjectStatus),
+		logger:         logger,
+		watcher:        watcher.NewWatcher(logger.With("scope", "watcher"), clientProvider),
+		configs:        configs,
+		interval:       interval,
+		caches:         make(map[utils.ResourceDescriptor]*objectCache, len(configs)),
+		objectState:    make(map[objectKey]ObjectStatus),
+		reconcileSlots: make(chan struct{}, maxConcurrentReconciles),
 	}
 	for _, cfg := range configs {
 		r.caches[cfg.Resource] = newObjectCache()
@@ -183,7 +194,19 @@ func (r *genericReconciler) Stop() {
 
 func (r *genericReconciler) callHandler(ctx context.Context, cfg ResourceConfig, obj *unstructured.Unstructured, operation operation) {
 	objCopy := obj.DeepCopy()
+
+	// Acquire a slot before spawning. Blocks (backpressures the watcher
+	// callback) when maxConcurrentReconciles are already in flight.
+	select {
+	case r.reconcileSlots <- struct{}{}:
+	case <-ctx.Done():
+		return
+	}
+
+	r.wg.Add(1)
 	go func() {
+		defer r.wg.Done()
+		defer func() { <-r.reconcileSlots }()
 		result := cfg.Reconcile(ctx, objCopy, operation)
 		r.recordResult(cfg.Resource, objCopy, result)
 	}()
