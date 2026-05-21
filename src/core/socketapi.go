@@ -1686,8 +1686,12 @@ func (self *socketApi) registerPatterns() {
 		// the slice boundary is deterministic. Older callers continue
 		// to use get/workspace-workloads above; this pattern is
 		// strictly additive.
+		// WorkspaceName is intentionally not "required": the Studio cluster
+		// view calls this pattern with an empty workspace to fetch every
+		// resource matching the whitelist cluster-wide. The api layer
+		// (GetWorkspaceResources) maps "" -> cluster-wide fetch.
 		type PaginatedRequest struct {
-			WorkspaceName      string                      `json:"workspaceName" validate:"required"`
+			WorkspaceName      string                      `json:"workspaceName"`
 			Whitelist          []*utils.ResourceDescriptor `json:"whitelist"`
 			Blacklist          []*utils.ResourceDescriptor `json:"blacklist"`
 			NamespaceWhitelist []string                    `json:"namespaceWhitelist"`
