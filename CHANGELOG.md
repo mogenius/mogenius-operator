@@ -1,3 +1,10 @@
+# [2.21.0-develop.10](https://github.com/mogenius/mogenius-operator/compare/v2.21.0-develop.9...v2.21.0-develop.10) (2026-05-21)
+
+
+### Bug Fixes
+
+* workspace fix ([93a6a23](https://github.com/mogenius/mogenius-operator/commit/93a6a2375bf980b745dccc4168c8327724756e7f))
+
 # [2.21.0-develop.9](https://github.com/mogenius/mogenius-operator/compare/v2.21.0-develop.8...v2.21.0-develop.9) (2026-05-21)
 
 
