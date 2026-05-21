@@ -74,9 +74,13 @@ type watcher struct {
 	// One factory backs every Watch now; informers within it are looked
 	// up by GVR (factory.ForResource returns the same instance on repeat
 	// calls).
-	factory       dynamicinformer.DynamicSharedInformerFactory
+	factory dynamicinformer.DynamicSharedInformerFactory
+	// factoryStopCh is allocated but intentionally never closed by this
+	// package - the shared factory runs for the watcher's lifetime, the
+	// OS reclaims its reflectors at process exit. Closing it from
+	// UnwatchAll would break leader-election Stop/Start cycles (see the
+	// comment in UnwatchAll for context).
 	factoryStopCh chan struct{}
-	factoryStopMu sync.Mutex
 	// informersConfigured tracks which informers have had their Transform
 	// and WatchErrorHandler set. Both can only be set before the informer
 	// is started, and only need to be set once per GVR.
@@ -485,16 +489,20 @@ func (self *watcher) UnwatchAll() {
 			self.logger.Error("failed to unwatch resource", "resource", resource, "error", err)
 		}
 	}
-	// Stop the shared factory so its reflector goroutines exit and the
-	// underlying watch streams to the API server are closed.
-	self.factoryStopMu.Lock()
-	defer self.factoryStopMu.Unlock()
-	select {
-	case <-self.factoryStopCh:
-		// already closed
-	default:
-		close(self.factoryStopCh)
-	}
+	// Intentionally do NOT close factoryStopCh here. UnwatchAll is invoked
+	// from reconciler.Stop, which the leader-elector triggers on
+	// OnLeadingEnded; the same operator process can win leadership again
+	// later and call Start, which expects the factory to still be alive.
+	// Closing the channel here used to wedge the second Start: new Watch
+	// calls would register informers on a factory whose stopCh is already
+	// closed, so the reflector goroutines exited immediately and no
+	// events were ever delivered.
+	//
+	// The factory's reflectors and watch streams are now tied to the
+	// watcher object's lifetime - they run until process exit (where the
+	// OS reclaims them). Per-resource handlers are removed via the
+	// individual Unwatch calls above, which is what actually stops events
+	// from reaching this Watch's callbacks.
 }
 
 func (self *watcher) createGroupVersionResource(apiVersion string, plural string) schema.GroupVersionResource {
