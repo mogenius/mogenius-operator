@@ -46,8 +46,14 @@ type ResourceSummary struct {
 
 func listKubernetesResourcesTool(args map[string]any, tc *ToolContext, valkeyClient valkeyclient.ValkeyClient, logger *slog.Logger) string {
 
-	kind := args["kind"].(string)
-	apiVersion := args["apiVersion"].(string)
+	kind, ok := args["kind"].(string)
+	if !ok || kind == "" {
+		return "Error: 'kind' is required and must be a string"
+	}
+	apiVersion, ok := args["apiVersion"].(string)
+	if !ok || apiVersion == "" {
+		return "Error: 'apiVersion' is required and must be a string"
+	}
 	namespace, _ := args["namespace"].(string)
 
 	if namespace != "" && !tc.IsNamespaceAllowed(namespace) && tc.AllowedArgoCDApps == nil {
@@ -126,8 +132,14 @@ func listKubernetesResourcesTool(args map[string]any, tc *ToolContext, valkeyCli
 
 func checkKubernetesResourceTool(args map[string]any, tc *ToolContext, valkeyClient valkeyclient.ValkeyClient, logger *slog.Logger) string {
 
-	kind := args["kind"].(string)
-	apiVersion := args["apiVersion"].(string)
+	kind, ok := args["kind"].(string)
+	if !ok || kind == "" {
+		return "Error: 'kind' is required and must be a string"
+	}
+	apiVersion, ok := args["apiVersion"].(string)
+	if !ok || apiVersion == "" {
+		return "Error: 'apiVersion' is required and must be a string"
+	}
 	name, _ := args["name"].(string)
 	namespace, _ := args["namespace"].(string)
 
@@ -171,8 +183,14 @@ func checkKubernetesResourceTool(args map[string]any, tc *ToolContext, valkeyCli
 
 func getKubernetesResourcesTool(args map[string]any, tc *ToolContext, valkeyClient valkeyclient.ValkeyClient, logger *slog.Logger) string {
 
-	kind := args["kind"].(string)
-	apiVersion := args["apiVersion"].(string)
+	kind, ok := args["kind"].(string)
+	if !ok || kind == "" {
+		return "Error: 'kind' is required and must be a string"
+	}
+	apiVersion, ok := args["apiVersion"].(string)
+	if !ok || apiVersion == "" {
+		return "Error: 'apiVersion' is required and must be a string"
+	}
 	name, _ := args["name"].(string)
 	namespace, _ := args["namespace"].(string)
 
