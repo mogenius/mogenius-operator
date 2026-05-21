@@ -64,12 +64,9 @@ func WatchStoreResources(wm watcher.WatcherModule, aiManager ai.AiManager, event
 			}
 			sendEventServerEvent(eventClient, res.ApiVersion, resource.Kind, obj.GetName(), "add", obj)
 		}, func(resource utils.ResourceDescriptor, oldObj, newObj *unstructured.Unstructured) {
+			// Resync updates (same resource version) are filtered centrally
+			// in watcher.UpdateFunc, so this callback only runs on real changes.
 			setStoreIfNeeded(resource.ApiVersion, newObj.GetName(), resource.Kind, newObj.GetNamespace(), newObj)
-
-			// Filter out resync updates - same resource version means no actual change
-			if oldObj.GetResourceVersion() == newObj.GetResourceVersion() {
-				return
-			}
 			sendEventServerEvent(eventClient, resource.ApiVersion, resource.Kind, newObj.GetName(), "update", newObj)
 			aiManager.ProcessObject(newObj, "update", res)
 		}, func(resource utils.ResourceDescriptor, obj *unstructured.Unstructured) {

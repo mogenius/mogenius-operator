@@ -254,6 +254,14 @@ func (self *watcher) startSingleWatcher(ctx context.Context, resource utils.Reso
 				self.logger.Warn("failed to deserialize new object", "type", fmt.Sprintf("%T", newObj))
 				return
 			}
+			// Drop resync updates: SharedInformer re-delivers every object as
+			// an update every ResourceResyncTime even when nothing changed.
+			// Subscribers (e.g. AI filter ConfigMap reload) would otherwise
+			// fire periodic phantom "object changed" events. Same resource
+			// version means same state.
+			if oldUnstructuredObj.GetResourceVersion() == newUnstructuredObj.GetResourceVersion() {
+				return
+			}
 			if onUpdate != nil {
 				onUpdate(resource, oldUnstructuredObj, newUnstructuredObj)
 			}
