@@ -892,25 +892,23 @@ func (self *valkeyClient) StoreSortedListEntry(data any, timestamp int64, keys .
 			// This means we're trying to insert a duplicate entry
 			// we dont care about duplicates
 			return nil
-		} else if errString == "WRONGTYPE Operation against a key holding the wrong kind of value" {
-			// This means the key exists but is not a stream, delete it and try again
-			self.logger.Warn("Wrong type for key, deleting it...", "key", streamKey)
-			_, err := self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Del().Key(streamKey).Build()).AsInt64()
-			if err != nil {
-				return fmt.Errorf("failed to delete key: %w, key:%s", err, streamKey)
-			}
-			self.logger.Warn("Key deleted successfully", "key", streamKey)
-			// Try adding the entry again
-			cmd := self.valkeyClient.B().Xadd().Key(streamKey).Id(id).FieldValue().
-				FieldValue("data", string(jsonData)).
-				Build()
-			result = self.valkeyClient.Do(self.ctx, cmd)
-			if err := result.Error(); err != nil {
-				return fmt.Errorf("failed to add to stream after deleting wrong type key: %w, key:%s", err, streamKey)
-			}
-		} else {
-			return fmt.Errorf("failed to add to stream: %w, key:%s", err, streamKey)
 		}
+		// Previously: on WRONGTYPE the wrapper silently DEL'd the
+		// existing key and retried XADD. That converts an unexpected
+		// schema collision into permanent, undetected data loss. If a
+		// stream-key namespace ever collides with a string/hash/list
+		// key, surface it loudly instead so the underlying cause can be
+		// fixed (renamed key prefix, leftover from an older operator
+		// version, manual debug write, etc.).
+		if errString == "WRONGTYPE Operation against a key holding the wrong kind of value" {
+			typeResult := self.valkeyClient.Do(self.ctx,
+				self.valkeyClient.B().Type().Key(streamKey).Build())
+			actualType, _ := typeResult.ToString()
+			self.logger.Error("WRONGTYPE on stream write - refusing to overwrite existing key",
+				"key", streamKey, "actualType", actualType)
+			return fmt.Errorf("WRONGTYPE on stream key %q (existing type %q); refusing to delete to avoid data loss", streamKey, actualType)
+		}
+		return fmt.Errorf("failed to add to stream: %w, key:%s", err, streamKey)
 	}
 
 	// Trim stream to maintain retention policy
