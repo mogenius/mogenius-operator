@@ -374,6 +374,14 @@ func (self *PrettyPrintHandler) Handle(ctx context.Context, record slog.Record) 
 	return nil
 }
 
+// WithAttrs returns a new handler that shares the parent's debounced
+// printer goroutine. Previously each call spawned its own goroutine on
+// a fresh channel - slog calls With() liberally (once per component
+// during init, occasionally per scope), and each handler instance kept
+// its goroutine alive for the rest of the process lifetime. Sharing
+// the channel also makes the per-second message dedup work across
+// scopes (otherwise every scope had its own dedup window and
+// duplicates between scopes were never collapsed).
 func (self *PrettyPrintHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 	other := &PrettyPrintHandler{}
 
@@ -384,8 +392,7 @@ func (self *PrettyPrintHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 	other.attrs = append(self.attrs, attrs...)
 	other.group = self.group
 	other.filterFunc = self.filterFunc
-	other.logMessageTx = make(chan string)
-	other.startDebouncedPrinter()
+	other.logMessageTx = self.logMessageTx
 
 	return other
 }
@@ -400,8 +407,7 @@ func (self *PrettyPrintHandler) WithGroup(group string) slog.Handler {
 	other.attrs = self.attrs
 	other.group = group
 	other.filterFunc = self.filterFunc
-	other.logMessageTx = make(chan string)
-	other.startDebouncedPrinter()
+	other.logMessageTx = self.logMessageTx
 
 	return other
 }
