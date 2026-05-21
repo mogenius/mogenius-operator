@@ -1,3 +1,19 @@
+# [2.21.0-develop.7](https://github.com/mogenius/mogenius-operator/compare/v2.21.0-develop.6...v2.21.0-develop.7) (2026-05-21)
+
+
+### Bug Fixes
+
+* **dbstats:** write zero deltas for first measurement instead of lifetime counters ([9ac93e0](https://github.com/mogenius/mogenius-operator/commit/9ac93e0029ebae2d2a22f92a8446e80fcd374ac7))
+* **logging:** share the debounced printer goroutine across WithAttrs / WithGroup ([7dccbb5](https://github.com/mogenius/mogenius-operator/commit/7dccbb5b07a071040e5a59f48d6d749ec4b977f8))
+* **watcher:** don't stop shared factory on UnwatchAll; support Stop/Start cycle ([80180e7](https://github.com/mogenius/mogenius-operator/commit/80180e7962e1d26b121c14b6f647401cb9ef509c))
+* **watcher:** never give up retrying; fall to a slow lane after fast budget ([79da40e](https://github.com/mogenius/mogenius-operator/commit/79da40e1ed86b14a5bfdb7d7068405c21c861fba))
+
+
+### Performance Improvements
+
+* **networkmonitor:** drop snoopy locks before procdev I/O in Metrics() ([8e116b3](https://github.com/mogenius/mogenius-operator/commit/8e116b34e410f483ec3e0b401ac534cb37e6ca8a))
+* **watcher:** share a single DynamicSharedInformerFactory across all Watch calls ([72139c7](https://github.com/mogenius/mogenius-operator/commit/72139c729549e0972d8b474e2d767b20726967c7))
+
 # [2.21.0-develop.6](https://github.com/mogenius/mogenius-operator/compare/v2.21.0-develop.5...v2.21.0-develop.6) (2026-05-21)
 
 
