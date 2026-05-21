@@ -170,6 +170,17 @@ func (self *valkeyStatsDb) AddInterfaceStatsToDb(currentStats []networkmonitor.P
 			} else {
 				deltaStat.TransmitPackets = 0
 			}
+		} else {
+			// First measurement for this pod (operator just started, or the
+			// pod just appeared in the lastStats window). The fields on
+			// currentStat are lifetime counters from the kernel; persisting
+			// them as-is would surface as an astronomical one-minute delta
+			// in dashboards. Write zero deltas instead - the next interval
+			// will produce a real delta against this primed baseline.
+			deltaStat.ReceivedBytes = 0
+			deltaStat.ReceivedPackets = 0
+			deltaStat.TransmitBytes = 0
+			deltaStat.TransmitPackets = 0
 		}
 
 		err := self.valkey.StoreSortedListEntry(
