@@ -12,6 +12,7 @@ import (
 	"mogenius-operator/src/shutdown"
 	"os/exec"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 
@@ -663,6 +664,15 @@ func (self *snoopyManager) Register(podInfo containerenumerator.PodInfo) []error
 					case "INFO":
 						self.logger.Info("snoppy info", "containerId", containerId, "snoopyPid", handle.SnoopyPid, "attachedProcessPid", pid, "level", logMessage.Level, "target", logMessage.Target, "msg", logMessage.Message)
 					case "WARN":
+						// The Rust snoopy binary logs the setrlimit(RLIMIT_MEMLOCK) failure
+						// as WARN, but its own message says "this is fine on kernels >=5.11"
+						// because eBPF on modern kernels uses cgroup-v2 memory accounting
+						// instead of locked memory. Demote to Debug so it doesn't pollute
+						// operator telemetry on every snoopy attach.
+						if strings.Contains(logMessage.Message, "running without raised memlock limit") {
+							self.logger.Debug("snoppy warning", "containerId", containerId, "snoopyPid", handle.SnoopyPid, "attachedProcessPid", pid, "level", logMessage.Level, "target", logMessage.Target, "msg", logMessage.Message)
+							break
+						}
 						self.logger.Warn("snoppy warning", "containerId", containerId, "snoopyPid", handle.SnoopyPid, "attachedProcessPid", pid, "level", logMessage.Level, "target", logMessage.Target, "msg", logMessage.Message)
 					case "ERROR":
 						self.logger.Error("snoppy error", "containerId", containerId, "snoopyPid", handle.SnoopyPid, "attachedProcessPid", pid, "level", logMessage.Level, "target", logMessage.Target, "msg", logMessage.Message)
