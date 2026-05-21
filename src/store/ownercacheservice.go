@@ -41,14 +41,24 @@ func NewOwnerCacheService(
 
 var ownerCache sync.Map
 
+// podCacheKey builds the cache key for a pod's owner lookup. Keying by
+// pod name alone (the previous behavior) silently returned the wrong
+// controller for two pods with the same name in different namespaces -
+// a routine occurrence for system pods like metrics-server-xxx or
+// when the same Helm release is installed into multiple namespaces.
+func podCacheKey(namespace, podName string) string {
+	return namespace + "/" + podName
+}
+
 // ClearOwnerCachePodEntry removes a pod's cached owner entry.
 // Can be called from anywhere without holding an OwnerCacheService reference.
-func ClearOwnerCachePodEntry(podName string) {
-	ownerCache.Delete(podName)
+func ClearOwnerCachePodEntry(namespace, podName string) {
+	ownerCache.Delete(podCacheKey(namespace, podName))
 }
 
 func (self *ownerCacheService) ControllerForPod(namespace string, podName string) *utils.WorkloadSingleRequest {
-	if cached, ok := ownerCache.Load(podName); ok {
+	cacheKey := podCacheKey(namespace, podName)
+	if cached, ok := ownerCache.Load(cacheKey); ok {
 		ctlr, ok := cached.(utils.WorkloadSingleRequest)
 		if !ok {
 			return nil
@@ -63,7 +73,7 @@ func (self *ownerCacheService) ControllerForPod(namespace string, podName string
 	}
 	ctlr := self.OwnerFromReference(pod.Namespace, pod.OwnerReferences)
 	if ctlr != nil {
-		ownerCache.Store(pod.Name, *ctlr)
+		ownerCache.Store(cacheKey, *ctlr)
 		return ctlr
 	}
 

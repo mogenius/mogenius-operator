@@ -88,7 +88,7 @@ func WatchStoreResources(wm watcher.WatcherModule, aiManager ai.AiManager, event
 		}, func(resource utils.ResourceDescriptor, obj *unstructured.Unstructured) {
 			deleteFromStoreIfNeeded(resource.ApiVersion, obj.GetName(), resource.Kind, obj.GetNamespace(), obj)
 			if resource.Kind == "Pod" {
-				store.ClearOwnerCachePodEntry(obj.GetName())
+				store.ClearOwnerCachePodEntry(obj.GetNamespace(), obj.GetName())
 			}
 			sendEventServerEvent(eventClient, resource.ApiVersion, resource.Kind, obj.GetName(), "delete", obj)
 			handleCRDDeletion(wm, resource, obj)
