@@ -304,8 +304,10 @@ func (self *PrettyPrintHandler) startDebouncedPrinter() {
 			select {
 			case msg := <-self.logMessageTx:
 				if !slices.Contains(printedMessages, msg) {
-					_, err := self.out.Write([]byte(msg))
-					assert.Assert(err == nil, err)
+					// Writes to stderr/pipe can fail with EPIPE when a parent
+					// process disconnects (e.g. kubectl logs detaching). Drop
+					// the line rather than crashing the whole operator.
+					_, _ = self.out.Write([]byte(msg))
 					printedMessages = append(printedMessages, msg)
 					continue
 				}
@@ -333,8 +335,7 @@ func (self *PrettyPrintHandler) startDebouncedPrinter() {
 				messageQueue = []string{}
 
 				for _, messageWithCount := range messagesWithCount {
-					_, err := self.out.Write([]byte("(" + strconv.FormatUint(uint64(messageWithCount.count), 10) + "x)" + messageWithCount.message))
-					assert.Assert(err == nil, err)
+					_, _ = self.out.Write([]byte("(" + strconv.FormatUint(uint64(messageWithCount.count), 10) + "x)" + messageWithCount.message))
 				}
 			}
 		}
