@@ -66,6 +66,22 @@ type watcher struct {
 	clientProvider k8sclient.K8sClientProvider
 	logger         *slog.Logger
 
+	// Shared informer machinery. The previous code built a brand-new
+	// DynamicSharedInformerFactory per Watch() call - so "Shared" in the
+	// name shared nothing. With ~80 watched resource kinds (default API
+	// server + CRDs) that was ~80 separate factories, each with its own
+	// reflector goroutine and HTTP/2 watch stream to the API server.
+	// One factory backs every Watch now; informers within it are looked
+	// up by GVR (factory.ForResource returns the same instance on repeat
+	// calls).
+	factory       dynamicinformer.DynamicSharedInformerFactory
+	factoryStopCh chan struct{}
+	factoryStopMu sync.Mutex
+	// informersConfigured tracks which informers have had their Transform
+	// and WatchErrorHandler set. Both can only be set before the informer
+	// is started, and only need to be set once per GVR.
+	informersConfigured map[schema.GroupVersionResource]bool
+
 	objectSubsMu     sync.RWMutex
 	objectSubsAdd    map[objectSubscriptionKey][]func(*unstructured.Unstructured)
 	objectSubsUpdate map[objectSubscriptionKey][]func(*unstructured.Unstructured)
@@ -78,6 +94,14 @@ func NewWatcher(logger *slog.Logger, clientProvider k8sclient.K8sClientProvider)
 	self.activeHandlers = make(map[utils.ResourceDescriptor]resourceContext, 0)
 	self.clientProvider = clientProvider
 	self.logger = logger
+	self.factoryStopCh = make(chan struct{})
+	self.factory = dynamicinformer.NewFilteredDynamicSharedInformerFactory(
+		clientProvider.DynamicClient(),
+		utils.ResourceResyncTime,
+		v1.NamespaceAll,
+		nil,
+	)
+	self.informersConfigured = make(map[schema.GroupVersionResource]bool)
 	self.objectSubsAdd = make(map[objectSubscriptionKey][]func(*unstructured.Unstructured))
 	self.objectSubsUpdate = make(map[objectSubscriptionKey][]func(*unstructured.Unstructured))
 	self.objectSubsDelete = make(map[objectSubscriptionKey][]func(*unstructured.Unstructured))
@@ -182,42 +206,52 @@ func (self *watcher) watchWithRetry(ctx context.Context, resource utils.Resource
 }
 
 func (self *watcher) startSingleWatcher(ctx context.Context, resource utils.ResourceDescriptor, onAdd WatcherOnAdd, onUpdate WatcherOnUpdate, onDelete WatcherOnDelete) error {
-	dynamicClient := self.clientProvider.DynamicClient()
+	gvr := self.createGroupVersionResource(resource.ApiVersion, resource.Plural)
+	resourceInformer := self.factory.ForResource(gvr).Informer()
 
-	informerFactory := dynamicinformer.NewFilteredDynamicSharedInformerFactory(dynamicClient, utils.ResourceResyncTime, v1.NamespaceAll, nil)
-	resourceInformer := informerFactory.ForResource(self.createGroupVersionResource(resource.ApiVersion, resource.Plural)).Informer()
-
-	// Strip large metadata fields before caching to reduce in-process memory usage.
-	// managedFields (server-side apply tracking) and last-applied-configuration
-	// are never used by event handlers and can be several KB per object.
-	resourceInformer.SetTransform(func(obj interface{}) (interface{}, error) {
-		if u, ok := obj.(*unstructured.Unstructured); ok {
-			u.SetManagedFields(nil)
-			annotations := u.GetAnnotations()
-			delete(annotations, "kubectl.kubernetes.io/last-applied-configuration")
-			u.SetAnnotations(annotations)
+	// SetTransform / SetWatchErrorHandler can only be called before the
+	// informer is started, and only need to be configured once per
+	// informer instance. The factory returns the same instance for
+	// repeat calls on the same GVR, so we track which ones we've
+	// already configured.
+	self.handlerMapLock.Lock()
+	if !self.informersConfigured[gvr] {
+		// Strip large metadata fields before caching to reduce in-process
+		// memory usage. managedFields (server-side apply tracking) and
+		// last-applied-configuration are never used by event handlers and
+		// can be several KB per object.
+		if err := resourceInformer.SetTransform(func(obj interface{}) (interface{}, error) {
+			if u, ok := obj.(*unstructured.Unstructured); ok {
+				u.SetManagedFields(nil)
+				annotations := u.GetAnnotations()
+				delete(annotations, "kubectl.kubernetes.io/last-applied-configuration")
+				u.SetAnnotations(annotations)
+			}
+			return obj, nil
+		}); err != nil {
+			self.handlerMapLock.Unlock()
+			return fmt.Errorf("failed to set transform: %s", err)
 		}
-		return obj, nil
-	})
-
-	// Enhanced error handler that can detect fatal errors
-	err := resourceInformer.SetWatchErrorHandler(func(r *cache.Reflector, err error) {
-		if err == io.EOF {
-			self.logger.Debug("Watch connection closed normally", "resource", resource)
-			return // closed normally, its fine
+		if err := resourceInformer.SetWatchErrorHandler(func(r *cache.Reflector, err error) {
+			if err == io.EOF {
+				self.logger.Debug("Watch connection closed normally", "resource", resource)
+				return
+			}
+			if strings.Contains(err.Error(), "the server could not find the requested resource") {
+				return
+			}
+			self.logger.Error("Encountered error while watching resource",
+				"resourceName", resource.Plural,
+				"resourceKind", resource.Kind,
+				"resourceGroupVersion", resource.ApiVersion,
+				"error", err)
+		}); err != nil {
+			self.handlerMapLock.Unlock()
+			return fmt.Errorf("failed to set error watch handler: %s", err)
 		}
-		if strings.Contains(err.Error(), "the server could not find the requested resource") {
-			return // Resource might have been deleted, no need to retry
-		}
-		self.logger.Error("Encountered error while watching resource",
-			"resourceName", resource.Plural,
-			"resourceKind", resource.Kind,
-			"resourceGroupVersion", resource.ApiVersion,
-			"error", err)
-	})
-	if err != nil {
-		return fmt.Errorf("failed to set error watch handler: %s", err)
+		self.informersConfigured[gvr] = true
 	}
+	self.handlerMapLock.Unlock()
 
 	toUnstructured := func(obj any) (*unstructured.Unstructured, bool) {
 		if u, ok := obj.(*unstructured.Unstructured); ok {
@@ -286,43 +320,43 @@ func (self *watcher) startSingleWatcher(ctx context.Context, resource utils.Reso
 	// Update the stored informer and handler
 	self.updateResourceContext(resource, resourceInformer, handler)
 
-	// Create stop channel that will be closed when context is cancelled
-	stopCh := make(chan struct{})
+	// Start the shared factory. Idempotent: already-running informers
+	// are left alone; this newly-registered one is launched.
+	self.factory.Start(self.factoryStopCh)
 
-	// Start the informer
-	go resourceInformer.Run(stopCh)
-
-	// Wait for cache sync with timeout
+	// Wait for this informer's cache to sync. Tied to the per-Watch ctx
+	// so Unwatch can interrupt a stuck sync.
 	syncTimeout := time.Second * 30
 	syncCtx, syncCancel := context.WithTimeout(ctx, syncTimeout)
 	defer syncCancel()
 
 	syncDone := make(chan bool, 1)
 	go func() {
-		synced := cache.WaitForCacheSync(stopCh, resourceInformer.HasSynced)
+		synced := cache.WaitForCacheSync(syncCtx.Done(), resourceInformer.HasSynced)
 		syncDone <- synced
 	}()
 
 	select {
 	case <-syncCtx.Done():
-		close(stopCh)
+		_ = resourceInformer.RemoveEventHandler(handler)
 		self.setWatcherState(resource, WatchingFailed)
 		return fmt.Errorf("cache sync timeout after %v", syncTimeout)
 	case synced := <-syncDone:
 		if !synced {
-			close(stopCh)
+			_ = resourceInformer.RemoveEventHandler(handler)
 			self.setWatcherState(resource, WatchingFailed)
 			return fmt.Errorf("failed to sync cache")
 		}
 	}
 
-	// Cache sync successful
 	self.logger.Debug("Watcher cache synced successfully", "resource", resource)
 	self.setWatcherState(resource, Watching)
 
-	// Keep the watcher running until context is cancelled
+	// Block until Unwatch cancels ctx. The shared informer keeps running
+	// in the factory even after we leave - any future Watch on the same
+	// GVR will reuse the cached state. We just remove our event handler.
 	<-ctx.Done()
-	close(stopCh)
+	_ = resourceInformer.RemoveEventHandler(handler)
 
 	self.logger.Info("Stopping watcher", "resource", resource)
 	return nil
@@ -434,6 +468,16 @@ func (self *watcher) UnwatchAll() {
 		if err != nil {
 			self.logger.Error("failed to unwatch resource", "resource", resource, "error", err)
 		}
+	}
+	// Stop the shared factory so its reflector goroutines exit and the
+	// underlying watch streams to the API server are closed.
+	self.factoryStopMu.Lock()
+	defer self.factoryStopMu.Unlock()
+	select {
+	case <-self.factoryStopCh:
+		// already closed
+	default:
+		close(self.factoryStopCh)
 	}
 }
 
