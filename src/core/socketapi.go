@@ -1681,6 +1681,40 @@ func (self *socketApi) registerPatterns() {
 	}
 
 	{
+		// Paginated workspace workloads. Offset/limit lives here, dedup
+		// (by metadata.uid) and stable sort happen in the api layer so
+		// the slice boundary is deterministic. Older callers continue
+		// to use get/workspace-workloads above; this pattern is
+		// strictly additive.
+		type PaginatedRequest struct {
+			WorkspaceName      string                      `json:"workspaceName" validate:"required"`
+			Whitelist          []*utils.ResourceDescriptor `json:"whitelist"`
+			Blacklist          []*utils.ResourceDescriptor `json:"blacklist"`
+			NamespaceWhitelist []string                    `json:"namespaceWhitelist"`
+			Offset             int                         `json:"offset"`
+			Limit              int                         `json:"limit"`
+			SortBy             string                      `json:"sortBy"`
+			SortOrder          string                      `json:"sortOrder"`
+		}
+
+		RegisterPatternHandler(
+			PatternHandle{self, "get/workspace-workloads-paginated"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request PaginatedRequest) (WorkspaceResourcesPaginatedResponse, error) {
+				return self.apiService.GetWorkspaceResourcesPaginated(request.WorkspaceName, WorkspaceResourcesPaginatedRequest{
+					Whitelist:          request.Whitelist,
+					Blacklist:          request.Blacklist,
+					NamespaceWhitelist: request.NamespaceWhitelist,
+					Offset:             request.Offset,
+					Limit:              request.Limit,
+					SortBy:             request.SortBy,
+					SortOrder:          request.SortOrder,
+				})
+			},
+		)
+	}
+
+	{
 		type Request struct {
 			AiPromptConfig ai.AiPromptConfig `json:"aiPromptConfig" validate:"required"`
 			AiPrompts      ai.AiPrompts      `json:"aiPrompts" validate:"required"`

@@ -11,6 +11,7 @@ import (
 	"mogenius-operator/src/utils"
 	"mogenius-operator/src/valkeyclient"
 	"slices"
+	"sort"
 	"sync"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -72,6 +73,7 @@ type Api interface {
 	DeleteGrant(name string) (string, error)
 
 	GetWorkspaceResources(workspaceName string, whitelist []*utils.ResourceDescriptor, blacklist []*utils.ResourceDescriptor, namespaceWhitelist []string) ([]unstructured.Unstructured, error)
+	GetWorkspaceResourcesPaginated(workspaceName string, req WorkspaceResourcesPaginatedRequest) (WorkspaceResourcesPaginatedResponse, error)
 	GetWorkspaceControllers(workspaceName string) ([]unstructured.Unstructured, error)
 	GetWorkspacePods(workspaceName string) ([]unstructured.Unstructured, error)
 	GetWorkspacePodsNames(workspaceName string) ([]string, error)
@@ -310,6 +312,134 @@ func (self *api) DeleteGrant(name string) (string, error) {
 	}
 
 	return "Resource deleted successfully", nil
+}
+
+// WorkspaceResourcesPaginatedRequest expresses an offset/limit query on a
+// workspace's resources. Compared to the non-paginated path, the operator
+// itself performs dedup + sort + slice so the wire payload stays small
+// regardless of how many resources exist in Valkey.
+type WorkspaceResourcesPaginatedRequest struct {
+	Whitelist          []*utils.ResourceDescriptor
+	Blacklist          []*utils.ResourceDescriptor
+	NamespaceWhitelist []string
+	Offset             int
+	// Limit of 0 means "no limit" - the full result is returned. Frontends
+	// that paginate must always set Limit > 0; the open-ended form is kept
+	// for symmetry with the non-paginated path.
+	Limit int
+	// SortBy may be "creationTimestamp" (default) or "name". Anything else
+	// falls back to creationTimestamp.
+	SortBy string
+	// SortOrder may be "asc" or "desc". Default depends on SortBy:
+	// creationTimestamp -> desc (newest first), name -> asc.
+	SortOrder string
+}
+
+type WorkspaceResourcesPaginatedResponse struct {
+	Items      []unstructured.Unstructured `json:"items"`
+	TotalCount int                         `json:"totalCount"`
+}
+
+// GetWorkspaceResourcesPaginated returns a sorted, deduped, sliced view of a
+// workspace's resources. The underlying fetch is identical to
+// GetWorkspaceResources; the new work is purely in-memory post-processing.
+// At 2000+ items per request this still keeps the wire payload to one page
+// (e.g. 50 items) instead of the full set.
+func (self *api) GetWorkspaceResourcesPaginated(workspaceName string, req WorkspaceResourcesPaginatedRequest) (WorkspaceResourcesPaginatedResponse, error) {
+	items, err := self.GetWorkspaceResources(workspaceName, req.Whitelist, req.Blacklist, req.NamespaceWhitelist)
+	if err != nil {
+		return WorkspaceResourcesPaginatedResponse{Items: []unstructured.Unstructured{}}, err
+	}
+
+	items = dedupeUnstructuredByUID(items)
+	sortUnstructured(items, req.SortBy, req.SortOrder)
+	total := len(items)
+
+	if req.Limit > 0 {
+		start := req.Offset
+		if start < 0 {
+			start = 0
+		}
+		if start > total {
+			start = total
+		}
+		end := start + req.Limit
+		if end > total {
+			end = total
+		}
+		items = items[start:end]
+	}
+
+	if items == nil {
+		items = []unstructured.Unstructured{}
+	}
+	return WorkspaceResourcesPaginatedResponse{Items: items, TotalCount: total}, nil
+}
+
+// dedupeUnstructuredByUID keeps the first occurrence of each metadata.uid.
+// Used to be in the platform API; moved here so pagination ordering is
+// deterministic at the slice boundary.
+func dedupeUnstructuredByUID(items []unstructured.Unstructured) []unstructured.Unstructured {
+	if len(items) == 0 {
+		return items
+	}
+	seen := make(map[string]struct{}, len(items))
+	out := make([]unstructured.Unstructured, 0, len(items))
+	for _, it := range items {
+		uid := string(it.GetUID())
+		// Resources without a UID (shouldn't normally happen, but Helm
+		// release templates and similar can be missing one) are kept as-is
+		// since there's no key to dedupe on.
+		if uid == "" {
+			out = append(out, it)
+			continue
+		}
+		if _, ok := seen[uid]; ok {
+			continue
+		}
+		seen[uid] = struct{}{}
+		out = append(out, it)
+	}
+	return out
+}
+
+// sortUnstructured sorts items in place. UID is the tiebreaker so the order
+// is stable across requests when two items share a creationTimestamp.
+func sortUnstructured(items []unstructured.Unstructured, sortBy, sortOrder string) {
+	desc := sortOrder == "desc"
+	switch sortBy {
+	case "name":
+		// Names default to ascending when no explicit order is given.
+		if sortOrder == "" {
+			desc = false
+		}
+		sort.SliceStable(items, func(i, j int) bool {
+			ni, nj := items[i].GetName(), items[j].GetName()
+			if ni == nj {
+				return string(items[i].GetUID()) < string(items[j].GetUID())
+			}
+			if desc {
+				return ni > nj
+			}
+			return ni < nj
+		})
+	default: // creationTimestamp (and any unknown value)
+		// Timestamps default to descending so newest items appear first.
+		if sortOrder == "" {
+			desc = true
+		}
+		sort.SliceStable(items, func(i, j int) bool {
+			ti := items[i].GetCreationTimestamp().Time
+			tj := items[j].GetCreationTimestamp().Time
+			if ti.Equal(tj) {
+				return string(items[i].GetUID()) < string(items[j].GetUID())
+			}
+			if desc {
+				return ti.After(tj)
+			}
+			return ti.Before(tj)
+		})
+	}
 }
 
 func (self *api) GetWorkspaceResources(workspaceName string, whitelist []*utils.ResourceDescriptor, blacklist []*utils.ResourceDescriptor, namespaceWhitelist []string) ([]unstructured.Unstructured, error) {
