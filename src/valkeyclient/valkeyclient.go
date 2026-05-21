@@ -178,6 +178,13 @@ func (self *valkeyClient) SetObject(value any, expiration time.Duration, keys ..
 	return self.Set(string(objStr), expiration, key)
 }
 
+// maxAutoincrementRetries bounds the EXISTS-then-SET loop below. Each
+// retry corresponds to a single legacy key that occupies the slot the
+// INCR happened to return; in practice this is at most `limit` retries,
+// happens once per baseKey when upgrading from the previous SCAN+sort
+// implementation, and never afterwards.
+const maxAutoincrementRetries = 4096
+
 // SetObjectWithAutoincrementLimit appends a numbered entry under baseKey
 // (joined keys) and prunes older entries beyond `limit`. The previous
 // implementation did SCAN + sort + SET without any atomic operation, so
@@ -185,28 +192,47 @@ func (self *valkeyClient) SetObject(value any, expiration time.Duration, keys ..
 // SET silently overwrote the first - direct audit-log data loss under
 // any concurrency.
 //
-// The numbering is now derived from an INCR on a dedicated counter key
-// (`<baseKey>:counter`), which is atomic in Valkey. Cleanup of older
-// entries is best-effort: each writer deletes anything with a number
-// at or below `nextNum - limit`. Concurrent writers compute the same
-// cutoff independently, so the DELs are idempotent and safe. The
-// counter is never expired, so the sequence is monotonic for the life
-// of the namespace.
+// Numbering now comes from INCR on a dedicated `<baseKey>:counter` key,
+// which is atomic in Valkey. If the resulting candidate key already
+// exists (leftover from the pre-INCR algorithm, which always started
+// at 1), we INCR again until we find a free slot. Counters are never
+// expired, so the sequence stays monotonic for the life of the prefix
+// and the legacy data is preserved until it naturally rotates out via
+// the count-based prune below.
+//
+// Pruning keeps at most `limit` numeric entries by deleting the lowest-
+// numbered ones first - same observable semantic as the old code, just
+// without the race.
 func (self *valkeyClient) SetObjectWithAutoincrementLimit(value any, limit int64, ttl time.Duration, keys ...string) error {
 	baseKey := strings.Join(keys, ":")
 	counterKey := baseKey + ":counter"
 
-	nextNum, err := self.valkeyClient.Do(self.ctx,
-		self.valkeyClient.B().Incr().Key(counterKey).Build()).AsInt64()
-	if err != nil {
-		return fmt.Errorf("error incrementing counter: %w", err)
-	}
-
-	newKey := fmt.Sprintf("%s:%d", baseKey, nextNum)
-
 	jsonValue, err := json.Marshal(value)
 	if err != nil {
 		return fmt.Errorf("error while serializing value: %w", err)
+	}
+
+	var newKey string
+	for attempt := 0; attempt < maxAutoincrementRetries; attempt++ {
+		nextNum, err := self.valkeyClient.Do(self.ctx,
+			self.valkeyClient.B().Incr().Key(counterKey).Build()).AsInt64()
+		if err != nil {
+			return fmt.Errorf("error incrementing counter: %w", err)
+		}
+		candidate := fmt.Sprintf("%s:%d", baseKey, nextNum)
+		existsCount, err := self.valkeyClient.Do(self.ctx,
+			self.valkeyClient.B().Exists().Key(candidate).Build()).AsInt64()
+		if err != nil {
+			return fmt.Errorf("error checking candidate key: %w", err)
+		}
+		if existsCount == 0 {
+			newKey = candidate
+			break
+		}
+		// Slot is taken by legacy data; skip ahead and try the next.
+	}
+	if newKey == "" {
+		return fmt.Errorf("could not find a free slot under %q after %d retries", baseKey, maxAutoincrementRetries)
 	}
 
 	var setCmd valkeyclient.Completed
@@ -219,32 +245,43 @@ func (self *valkeyClient) SetObjectWithAutoincrementLimit(value any, limit int64
 		return fmt.Errorf("error setting entry: %w", err)
 	}
 
-	if limit <= 0 || nextNum <= limit {
+	if limit <= 0 {
 		return nil
 	}
 
-	// Best-effort prune. Anything numbered at or below the cutoff is
-	// outside the retention window. Concurrent writers compute the same
-	// cutoff so DELs are idempotent.
-	cutoff := nextNum - limit
+	// Best-effort prune: keep at most `limit` numeric entries under
+	// baseKey. Concurrent writers may briefly leave the count slightly
+	// above limit; that's acceptable and self-corrects on subsequent
+	// writes.
 	existingKeys, err := self.Keys(baseKey + ":*")
 	if err != nil {
 		return nil
 	}
-	var delCmds []valkeyclient.Completed
+	type numbered struct {
+		key string
+		n   int64
+	}
+	numerics := make([]numbered, 0, len(existingKeys))
 	for _, k := range existingKeys {
 		if k == counterKey {
 			continue
 		}
 		n := extractNumber(k, baseKey)
-		if n > 0 && n <= cutoff {
-			delCmds = append(delCmds, self.valkeyClient.B().Del().Key(k).Build())
+		if n > 0 {
+			numerics = append(numerics, numbered{k, n})
 		}
 	}
-	if len(delCmds) > 0 {
-		for _, resp := range self.valkeyClient.DoMulti(self.ctx, delCmds...) {
-			_ = resp.Error()
-		}
+	if int64(len(numerics)) <= limit {
+		return nil
+	}
+	sort.Slice(numerics, func(i, j int) bool { return numerics[i].n < numerics[j].n })
+	toDelete := int64(len(numerics)) - limit
+	delCmds := make([]valkeyclient.Completed, 0, toDelete)
+	for i := int64(0); i < toDelete; i++ {
+		delCmds = append(delCmds, self.valkeyClient.B().Del().Key(numerics[i].key).Build())
+	}
+	for _, resp := range self.valkeyClient.DoMulti(self.ctx, delCmds...) {
+		_ = resp.Error()
 	}
 	return nil
 }
