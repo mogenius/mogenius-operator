@@ -1,3 +1,10 @@
+# [2.21.0-develop.4](https://github.com/mogenius/mogenius-operator/compare/v2.21.0-develop.3...v2.21.0-develop.4) (2026-05-21)
+
+
+### Bug Fixes
+
+* nodemetrics now spam less errors ([cd13748](https://github.com/mogenius/mogenius-operator/commit/cd137487a7d52f2a76dc21d4811ad08057178312))
+
 # [2.21.0-develop.3](https://github.com/mogenius/mogenius-operator/compare/v2.21.0-develop.2...v2.21.0-develop.3) (2026-05-20)
 
 
