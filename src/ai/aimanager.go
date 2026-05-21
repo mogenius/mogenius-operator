@@ -1346,5 +1346,10 @@ func (ai *aiManager) sendAiDeleteEvent(taskId string) {
 }
 
 func (ai *aiManager) resetCache() {
+	aiStatusMu.Lock()
+	defer aiStatusMu.Unlock()
 	cachedStatusTime = time.Time{}
+	for k := range cachedWorkspaceStatusTime {
+		delete(cachedWorkspaceStatusTime, k)
+	}
 }
