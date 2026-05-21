@@ -443,6 +443,29 @@ func sortUnstructured(items []unstructured.Unstructured, sortBy, sortOrder strin
 }
 
 func (self *api) GetWorkspaceResources(workspaceName string, whitelist []*utils.ResourceDescriptor, blacklist []*utils.ResourceDescriptor, namespaceWhitelist []string) ([]unstructured.Unstructured, error) {
+	// Empty workspaceName means "cluster-wide": the caller wants every
+	// resource matching whitelist across the whole cluster, not scoped to a
+	// single workspace's spec.Resources. The Studio cluster view sends an
+	// empty workspace header for exactly this case; without the fallback
+	// store.GetWorkspace below would return an error and the list would be
+	// empty.
+	if workspaceName == "" {
+		if len(namespaceWhitelist) == 0 {
+			return kubernetes.GetUnstructuredNamespaceResourceList("", whitelist, blacklist)
+		}
+		// Caller restricted to specific namespaces - fan out per namespace
+		// so the namespaceWhitelist still applies to the cluster-wide view.
+		results := make([]unstructured.Unstructured, 0)
+		for _, ns := range namespaceWhitelist {
+			nsResources, err := kubernetes.GetUnstructuredNamespaceResourceList(ns, whitelist, blacklist)
+			if err != nil {
+				return results, err
+			}
+			results = append(results, nsResources...)
+		}
+		return results, nil
+	}
+
 	// Get workspace
 	namespace := self.config.Get("MO_OWN_NAMESPACE")
 	workspace, err := store.GetWorkspace(namespace, workspaceName)
