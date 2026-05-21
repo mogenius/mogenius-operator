@@ -80,9 +80,21 @@ func WatchStoreResources(wm watcher.WatcherModule, aiManager ai.AiManager, event
 			}
 			sendEventServerEvent(eventClient, res.ApiVersion, resource.Kind, obj.GetName(), "add", obj)
 		}, func(resource utils.ResourceDescriptor, oldObj, newObj *unstructured.Unstructured) {
-			// Resync updates (same resource version) are filtered centrally
-			// in watcher.UpdateFunc, so this callback only runs on real changes.
+			// Always refresh the Valkey entry so the TTL stays alive.
+			// SharedInformer resync delivers UpdateFunc every
+			// ResourceResyncTime (30 min) with oldRV == newRV, and the
+			// Valkey TTL is ResourceResyncTime*2 (60 min) - dropping the
+			// resync here used to evict every static resource (Workspaces,
+			// Deployments, Secrets, Namespaces) from the store after the
+			// initial 60-minute window.
 			setStoreIfNeeded(resource.ApiVersion, newObj.GetName(), resource.Kind, newObj.GetNamespace(), newObj)
+
+			// Filter out resync updates for downstream notifications: same
+			// resource version means no actual change, so we don't want to
+			// re-emit the change to the event server or re-run AI tasks.
+			if oldObj.GetResourceVersion() == newObj.GetResourceVersion() {
+				return
+			}
 			sendEventServerEvent(eventClient, resource.ApiVersion, resource.Kind, newObj.GetName(), "update", newObj)
 			aiManager.ProcessObject(newObj, "update", res)
 		}, func(resource utils.ResourceDescriptor, obj *unstructured.Unstructured) {

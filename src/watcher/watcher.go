@@ -330,16 +330,23 @@ func (self *watcher) startSingleWatcher(ctx context.Context, resource utils.Reso
 				self.logger.Warn("failed to deserialize new object", "type", fmt.Sprintf("%T", newObj))
 				return
 			}
-			// Drop resync updates: SharedInformer re-delivers every object as
-			// an update every ResourceResyncTime even when nothing changed.
-			// Subscribers (e.g. AI filter ConfigMap reload) would otherwise
-			// fire periodic phantom "object changed" events. Same resource
-			// version means same state.
-			if oldUnstructuredObj.GetResourceVersion() == newUnstructuredObj.GetResourceVersion() {
-				return
-			}
+			// Always invoke the generic onUpdate callback, even on resync
+			// (same resourceVersion) - watcheractions.setStoreIfNeeded
+			// needs the resync write to refresh the Valkey TTL, otherwise
+			// static resources (Workspaces, Deployments, Secrets, ...)
+			// vanish from the store once the initial TTL expires and never
+			// reappear. The callback itself filters out resync events for
+			// the downstream notifications (sendEventServerEvent +
+			// aiManager.ProcessObject) so those don't fire on phantom
+			// updates.
 			if onUpdate != nil {
 				onUpdate(resource, oldUnstructuredObj, newUnstructuredObj)
+			}
+			// Named-object subscribers (e.g. AI filter ConfigMap reload)
+			// do NOT want resync phantoms - this was the original reason
+			// the RV check existed. Apply it only here, not to onUpdate.
+			if oldUnstructuredObj.GetResourceVersion() == newUnstructuredObj.GetResourceVersion() {
+				return
 			}
 			self.fireObjectSubs(self.objectSubsUpdate, newUnstructuredObj)
 		},
