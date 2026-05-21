@@ -225,16 +225,17 @@ func (self *watcher) watchWithRetry(ctx context.Context, resource utils.Resource
 	}
 }
 
-func (self *watcher) startSingleWatcher(ctx context.Context, resource utils.ResourceDescriptor, onAdd WatcherOnAdd, onUpdate WatcherOnUpdate, onDelete WatcherOnDelete) error {
-	gvr := self.createGroupVersionResource(resource.ApiVersion, resource.Plural)
+// registerAndStartInformer holds handlerMapLock across ForResource,
+// SetTransform, SetWatchErrorHandler and factory.Start so a concurrent
+// Watch call can't get its informer started by our factory.Start while
+// it's still mid-configuration. See the comment in startSingleWatcher
+// for the race this prevents.
+func (self *watcher) registerAndStartInformer(gvr schema.GroupVersionResource, resource utils.ResourceDescriptor) (cache.SharedIndexInformer, error) {
+	self.handlerMapLock.Lock()
+	defer self.handlerMapLock.Unlock()
+
 	resourceInformer := self.factory.ForResource(gvr).Informer()
 
-	// SetTransform / SetWatchErrorHandler can only be called before the
-	// informer is started, and only need to be configured once per
-	// informer instance. The factory returns the same instance for
-	// repeat calls on the same GVR, so we track which ones we've
-	// already configured.
-	self.handlerMapLock.Lock()
 	if !self.informersConfigured[gvr] {
 		// Strip large metadata fields before caching to reduce in-process
 		// memory usage. managedFields (server-side apply tracking) and
@@ -249,8 +250,7 @@ func (self *watcher) startSingleWatcher(ctx context.Context, resource utils.Reso
 			}
 			return obj, nil
 		}); err != nil {
-			self.handlerMapLock.Unlock()
-			return fmt.Errorf("failed to set transform: %s", err)
+			return nil, fmt.Errorf("failed to set transform: %s", err)
 		}
 		if err := resourceInformer.SetWatchErrorHandler(func(r *cache.Reflector, err error) {
 			if err == io.EOF {
@@ -266,12 +266,34 @@ func (self *watcher) startSingleWatcher(ctx context.Context, resource utils.Reso
 				"resourceGroupVersion", resource.ApiVersion,
 				"error", err)
 		}); err != nil {
-			self.handlerMapLock.Unlock()
-			return fmt.Errorf("failed to set error watch handler: %s", err)
+			return nil, fmt.Errorf("failed to set error watch handler: %s", err)
 		}
 		self.informersConfigured[gvr] = true
 	}
-	self.handlerMapLock.Unlock()
+
+	// Start the shared factory under the same lock. Idempotent for
+	// already-running informers; this newly-registered one is launched.
+	self.factory.Start(self.factoryStopCh)
+
+	return resourceInformer, nil
+}
+
+func (self *watcher) startSingleWatcher(ctx context.Context, resource utils.ResourceDescriptor, onAdd WatcherOnAdd, onUpdate WatcherOnUpdate, onDelete WatcherOnDelete) error {
+	// IMPORTANT: ForResource + SetTransform + factory.Start MUST be
+	// atomic under handlerMapLock. factory.Start iterates over every
+	// informer currently registered on the factory, starts the ones not
+	// yet running, and marks them as started. If goroutine A registers
+	// informer A and calls Start while goroutine B has just called
+	// ForResource(B) (which adds B to the factory's map) but not yet
+	// SetTransform, then A's Start also runs B - B's SetTransform then
+	// fails with "informer has already started" and B is permanently
+	// unwatched until process restart. Holding the lock around the
+	// whole register-configure-start sequence eliminates the window.
+	gvr := self.createGroupVersionResource(resource.ApiVersion, resource.Plural)
+	resourceInformer, err := self.registerAndStartInformer(gvr, resource)
+	if err != nil {
+		return err
+	}
 
 	toUnstructured := func(obj any) (*unstructured.Unstructured, bool) {
 		if u, ok := obj.(*unstructured.Unstructured); ok {
@@ -339,10 +361,6 @@ func (self *watcher) startSingleWatcher(ctx context.Context, resource utils.Reso
 
 	// Update the stored informer and handler
 	self.updateResourceContext(resource, resourceInformer, handler)
-
-	// Start the shared factory. Idempotent: already-running informers
-	// are left alone; this newly-registered one is launched.
-	self.factory.Start(self.factoryStopCh)
 
 	// Wait for this informer's cache to sync. Tied to the per-Watch ctx
 	// so Unwatch can interrupt a stuck sync.
