@@ -178,26 +178,28 @@ func (self *valkeyClient) SetObject(value any, expiration time.Duration, keys ..
 	return self.Set(string(objStr), expiration, key)
 }
 
+// SetObjectWithAutoincrementLimit appends a numbered entry under baseKey
+// (joined keys) and prunes older entries beyond `limit`. The previous
+// implementation did SCAN + sort + SET without any atomic operation, so
+// two concurrent callers could both compute nextNum=N+1 and the second
+// SET silently overwrote the first - direct audit-log data loss under
+// any concurrency.
+//
+// The numbering is now derived from an INCR on a dedicated counter key
+// (`<baseKey>:counter`), which is atomic in Valkey. Cleanup of older
+// entries is best-effort: each writer deletes anything with a number
+// at or below `nextNum - limit`. Concurrent writers compute the same
+// cutoff independently, so the DELs are idempotent and safe. The
+// counter is never expired, so the sequence is monotonic for the life
+// of the namespace.
 func (self *valkeyClient) SetObjectWithAutoincrementLimit(value any, limit int64, ttl time.Duration, keys ...string) error {
 	baseKey := strings.Join(keys, ":")
-	pattern := baseKey + ":*"
+	counterKey := baseKey + ":counter"
 
-	existingKeys, err := self.Keys(pattern)
+	nextNum, err := self.valkeyClient.Do(self.ctx,
+		self.valkeyClient.B().Incr().Key(counterKey).Build()).AsInt64()
 	if err != nil {
-		return fmt.Errorf("error while parsing keys: %w", err)
-	}
-
-	sort.Slice(existingKeys, func(i, j int) bool {
-		numI := extractNumber(existingKeys[i], baseKey)
-		numJ := extractNumber(existingKeys[j], baseKey)
-		return numI < numJ
-	})
-
-	var nextNum int64 = 1
-	if len(existingKeys) > 0 {
-		lastKey := existingKeys[len(existingKeys)-1]
-		lastNum := extractNumber(lastKey, baseKey)
-		nextNum = lastNum + 1
+		return fmt.Errorf("error incrementing counter: %w", err)
 	}
 
 	newKey := fmt.Sprintf("%s:%d", baseKey, nextNum)
@@ -207,26 +209,43 @@ func (self *valkeyClient) SetObjectWithAutoincrementLimit(value any, limit int64
 		return fmt.Errorf("error while serializing value: %w", err)
 	}
 
-	var cmds []valkeyclient.Completed
+	var setCmd valkeyclient.Completed
 	if ttl > 0 {
-		cmds = append(cmds, self.valkeyClient.B().Set().Key(newKey).Value(string(jsonValue)).Ex(ttl).Build())
+		setCmd = self.valkeyClient.B().Set().Key(newKey).Value(string(jsonValue)).Ex(ttl).Build()
 	} else {
-		cmds = append(cmds, self.valkeyClient.B().Set().Key(newKey).Value(string(jsonValue)).Build())
+		setCmd = self.valkeyClient.B().Set().Key(newKey).Value(string(jsonValue)).Build()
+	}
+	if err := self.valkeyClient.Do(self.ctx, setCmd).Error(); err != nil {
+		return fmt.Errorf("error setting entry: %w", err)
 	}
 
-	if int64(len(existingKeys)) >= limit {
-		keysToDelete := int64(len(existingKeys)) - limit + 1
-		for i := int64(0); i < keysToDelete; i++ {
-			cmds = append(cmds, self.valkeyClient.B().Del().Key(existingKeys[i]).Build())
+	if limit <= 0 || nextNum <= limit {
+		return nil
+	}
+
+	// Best-effort prune. Anything numbered at or below the cutoff is
+	// outside the retention window. Concurrent writers compute the same
+	// cutoff so DELs are idempotent.
+	cutoff := nextNum - limit
+	existingKeys, err := self.Keys(baseKey + ":*")
+	if err != nil {
+		return nil
+	}
+	var delCmds []valkeyclient.Completed
+	for _, k := range existingKeys {
+		if k == counterKey {
+			continue
+		}
+		n := extractNumber(k, baseKey)
+		if n > 0 && n <= cutoff {
+			delCmds = append(delCmds, self.valkeyClient.B().Del().Key(k).Build())
 		}
 	}
-
-	for _, resp := range self.valkeyClient.DoMulti(self.ctx, cmds...) {
-		if err := resp.Error(); err != nil {
-			return fmt.Errorf("error while executing commands: %w", err)
+	if len(delCmds) > 0 {
+		for _, resp := range self.valkeyClient.DoMulti(self.ctx, delCmds...) {
+			_ = resp.Error()
 		}
 	}
-
 	return nil
 }
 
