@@ -1,3 +1,10 @@
+# [2.21.0-develop.9](https://github.com/mogenius/mogenius-operator/compare/v2.21.0-develop.8...v2.21.0-develop.9) (2026-05-21)
+
+
+### Features
+
+* **api:** add paginated workspace-workloads pattern ([9d1c7a0](https://github.com/mogenius/mogenius-operator/commit/9d1c7a0dcb25dcc2c19a5c08b94957a699d532f0))
+
 # [2.21.0-develop.8](https://github.com/mogenius/mogenius-operator/compare/v2.21.0-develop.7...v2.21.0-develop.8) (2026-05-21)
 
 
