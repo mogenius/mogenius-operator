@@ -9,7 +9,6 @@ import (
 	"mogenius-operator/src/structs"
 	"mogenius-operator/src/utils"
 	"mogenius-operator/src/valkeyclient"
-	"os"
 	"sort"
 	"strconv"
 
@@ -591,25 +590,12 @@ func Diff(oldObj, newObj *unstructured.Unstructured) (string, error) {
 		return "", fmt.Errorf("both oldObj and newObj are nil, cannot create diff")
 	}
 
-	tempDir := os.TempDir()
-	originalPath := tempDir + "/original.yaml"
-	modifiedPath := tempDir + "/modified.yaml"
-
-	defer func() {
-		_ = os.Remove(originalPath)
-		_ = os.Remove(modifiedPath)
-	}()
-
 	if oldObj != nil {
 		oldObj = removeUnusedFields(oldObj)
 		original, err = yaml.Marshal(oldObj.Object)
 		if err != nil {
 			return "", fmt.Errorf("failed to marshal original data: %w", err)
 		}
-	}
-	err = os.WriteFile(originalPath, original, 0644)
-	if err != nil {
-		return "", fmt.Errorf("failed to write original data to file: %w", err)
 	}
 
 	if newObj != nil {
@@ -619,32 +605,25 @@ func Diff(oldObj, newObj *unstructured.Unstructured) (string, error) {
 			return "", fmt.Errorf("failed to marshal modified data: %w", err)
 		}
 	}
-	err = os.WriteFile(modifiedPath, modified, 0644)
-	if err != nil {
-		return "", fmt.Errorf("failed to write modified data to file: %w", err)
-	}
 
-	diff, err := unifiedDiff(originalPath, modifiedPath, ns, resourceName)
+	diff, err := unifiedDiff(original, modified, ns, resourceName)
 	if err != nil {
 		return "", fmt.Errorf("failed to create unified diff: %w", err)
 	}
 	return diff, nil
 }
 
-func unifiedDiff(filePath1 string, filePath2 string, ns, resourceName string) (string, error) {
-	aBytes, err := os.ReadFile(filePath1)
-	if err != nil && !os.IsNotExist(err) {
-		return "", fmt.Errorf("failed to read file1: %w", err)
-	}
-	bBytes, err := os.ReadFile(filePath2)
-	if err != nil && !os.IsNotExist(err) {
-		return "", fmt.Errorf("failed to read file2: %w", err)
-	}
-
+// unifiedDiff computes a unified diff between two YAML payloads. It used
+// to round-trip through /tmp/original.yaml and /tmp/modified.yaml with
+// fixed names, which raced badly under concurrent audit-log writes:
+// writer A's bytes could be overwritten by writer B's before A's reader
+// saw them, producing audit entries with the wrong diff. The bytes are
+// already in memory; difflib doesn't need files.
+func unifiedDiff(a, b []byte, ns, resourceName string) (string, error) {
 	label := ns + "/" + resourceName
 	diff := difflib.UnifiedDiff{
-		A:        difflib.SplitLines(string(aBytes)),
-		B:        difflib.SplitLines(string(bBytes)),
+		A:        difflib.SplitLines(string(a)),
+		B:        difflib.SplitLines(string(b)),
 		FromFile: label,
 		ToFile:   label,
 		Context:  3,
