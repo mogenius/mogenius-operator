@@ -29,6 +29,22 @@ const (
 	VALKEY_RESOURCE_PREFIX = "resources"
 )
 
+// deprecatedResources are skipped during resource discovery because the API
+// version is deprecated and a non-deprecated replacement is already watched.
+// Watching them produces noisy client-go deprecation warnings and stores
+// duplicate data in Valkey. Keyed by "groupVersion/kind".
+//
+// - v1/Endpoints: replaced by discovery.k8s.io/v1 EndpointSlice; scheduled
+//   for removal in Kubernetes 1.33+.
+var deprecatedResources = map[string]struct{}{
+	"v1/Endpoints": {},
+}
+
+func isDeprecatedResource(groupVersion, kind string) bool {
+	_, ok := deprecatedResources[groupVersion+"/"+kind]
+	return ok
+}
+
 type GetUnstructuredNamespaceResourceListRequest struct {
 	Namespace string                      `json:"namespace" validate:"required"`
 	Whitelist []*utils.ResourceDescriptor `json:"whitelist"`
@@ -437,14 +453,18 @@ func GetAvailableResources() ([]utils.ResourceDescriptor, error) {
 	var availableResources []utils.ResourceDescriptor
 	for _, resourceList := range resources {
 		for _, resource := range resourceList.APIResources {
-			if slices.Contains(resource.Verbs, "list") && slices.Contains(resource.Verbs, "watch") {
-				availableResources = append(availableResources, utils.ResourceDescriptor{
-					Plural:     resource.Name,
-					ApiVersion: resourceList.GroupVersion,
-					Kind:       resource.Kind,
-					Namespaced: resource.Namespaced,
-				})
+			if !slices.Contains(resource.Verbs, "list") || !slices.Contains(resource.Verbs, "watch") {
+				continue
 			}
+			if isDeprecatedResource(resourceList.GroupVersion, resource.Kind) {
+				continue
+			}
+			availableResources = append(availableResources, utils.ResourceDescriptor{
+				Plural:     resource.Name,
+				ApiVersion: resourceList.GroupVersion,
+				Kind:       resource.Kind,
+				Namespaced: resource.Namespaced,
+			})
 		}
 	}
 
