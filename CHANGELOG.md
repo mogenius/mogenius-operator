@@ -1,3 +1,16 @@
+# [2.21.0-develop.5](https://github.com/mogenius/mogenius-operator/compare/v2.21.0-develop.4...v2.21.0-develop.5) (2026-05-21)
+
+
+### Bug Fixes
+
+* **watcher:** drop SharedInformer resync events centrally ([f0f5626](https://github.com/mogenius/mogenius-operator/commit/f0f562602a3441a5576e5de5dcc24e2bf2e21d2a))
+* **watcher:** skip deprecated v1 Endpoints during resource discovery ([35785ac](https://github.com/mogenius/mogenius-operator/commit/35785ac1499deedfc0361b71d1f8738154689a5e))
+
+
+### Performance Improvements
+
+* **reconciler:** memoize namespace lookups within a workspace ([208c64b](https://github.com/mogenius/mogenius-operator/commit/208c64b5adc84b8f57b09b6e1c45ec9491a4ef3b))
+
 # [2.21.0-develop.4](https://github.com/mogenius/mogenius-operator/compare/v2.21.0-develop.3...v2.21.0-develop.4) (2026-05-21)
 
 
