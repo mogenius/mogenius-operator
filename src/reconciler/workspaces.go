@@ -25,6 +25,22 @@ func (d *reconcilerModule) verifyWorkspaceIntegrity(ctx context.Context, obj *un
 	}
 	results := []ReconcileResult{}
 
+	// Workspaces frequently reference the same namespace from several resource
+	// entries (e.g. multiple helm releases deployed into one namespace). Memo
+	// the lookup result per namespace string so we hit Valkey at most once per
+	// distinct namespace within this workspace. The sentinel struct{} for nil
+	// errors lets us distinguish "not yet looked up" from "looked up, no error".
+	type lookupResult struct{ err error }
+	namespaceLookups := map[string]lookupResult{}
+	checkNamespace := func(ns string) error {
+		if cached, ok := namespaceLookups[ns]; ok {
+			return cached.err
+		}
+		_, err := GetNamespace(ns, &d.valkeyClient, d.logger)
+		namespaceLookups[ns] = lookupResult{err: err}
+		return err
+	}
+
 	for _, resource := range workspace.Spec.Resources {
 		switch resource.Type {
 		case "namespace":
@@ -34,8 +50,7 @@ func (d *reconcilerModule) verifyWorkspaceIntegrity(ctx context.Context, obj *un
 				resourceErr.Err = fmt.Errorf("Workspace contains a resource of type 'namespace' which does not specifiy the namespace name in resource.Id")
 				results = append(results, resourceErr)
 			}
-			_, err := GetNamespace(namespace, &d.valkeyClient, d.logger)
-			if err != nil {
+			if err := checkNamespace(namespace); err != nil {
 				resourceErr := ReconcileResult{}
 				resourceErr.Err = fmt.Errorf("Workspace contains a resource of type 'namespace' pointing to a namespace which does not exist: %#v, %w", namespace, err)
 				results = append(results, resourceErr)
@@ -47,8 +62,7 @@ func (d *reconcilerModule) verifyWorkspaceIntegrity(ctx context.Context, obj *un
 				resourceErr.Err = fmt.Errorf("Workspace contains a resource of type 'helm' which does not specifiy the namespace name in resource.Namespace")
 				results = append(results, resourceErr)
 			}
-			_, err := GetNamespace(namespace, &d.valkeyClient, d.logger)
-			if err != nil {
+			if err := checkNamespace(namespace); err != nil {
 				resourceErr := ReconcileResult{}
 				resourceErr.Err = fmt.Errorf("Workspace contains a resource of type 'helm' pointing to a namespace which does not exist: %#v, %w", namespace, err)
 				results = append(results, resourceErr)
