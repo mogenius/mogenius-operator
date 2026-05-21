@@ -1,3 +1,18 @@
+# [2.21.0-develop.6](https://github.com/mogenius/mogenius-operator/compare/v2.21.0-develop.5...v2.21.0-develop.6) (2026-05-21)
+
+
+### Bug Fixes
+
+* **ai:** guard cached-status maps with a package-level RWMutex ([cd48644](https://github.com/mogenius/mogenius-operator/commit/cd486445e6d66326cf12cd09650fc929ee1e794b))
+* **ai:** reject malformed tool args instead of panicking ([fd8eea6](https://github.com/mogenius/mogenius-operator/commit/fd8eea68c089a8f1f5559dcdb5c63f05615af14b))
+* **ai:** use nano + nanoid in token-usage key to prevent same-second overwrites ([b52d3fd](https://github.com/mogenius/mogenius-operator/commit/b52d3fd0f6040c2ca8ab9c33553f7a2b509cc9ec))
+* **logging:** drop log line on Write error instead of panicking ([359581e](https://github.com/mogenius/mogenius-operator/commit/359581e5818aadfa892b18f9a704ab15df3401ff))
+* **store:** compute audit diff in memory instead of via shared tempfiles ([cfd8d4b](https://github.com/mogenius/mogenius-operator/commit/cfd8d4b4f8115e5c931d304a5bd9ee643b44ea7b))
+* **store:** include namespace in owner-cache key to avoid cross-namespace collisions ([9342c0f](https://github.com/mogenius/mogenius-operator/commit/9342c0f44c5a52863b557f7d9862989e4f2d2825))
+* **valkey:** preserve legacy audit-log keys when migrating to INCR numbering ([2fa7a69](https://github.com/mogenius/mogenius-operator/commit/2fa7a69284a8226faa1f78a8426bed68ad36a114))
+* **valkey:** refuse to delete existing key on WRONGTYPE instead of overwriting ([cfff42f](https://github.com/mogenius/mogenius-operator/commit/cfff42fc721f5a90ecec854a3319af3bb4a11245))
+* **valkey:** use atomic INCR for autoincrement-limit instead of SCAN+sort ([ffcc910](https://github.com/mogenius/mogenius-operator/commit/ffcc91037c5ed37166ce649b1a407cac8a89e424))
+
 # [2.21.0-develop.5](https://github.com/mogenius/mogenius-operator/compare/v2.21.0-develop.4...v2.21.0-develop.5) (2026-05-21)
 
 
