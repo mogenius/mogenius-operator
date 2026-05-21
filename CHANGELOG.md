@@ -1,3 +1,10 @@
+# [2.21.0-develop.8](https://github.com/mogenius/mogenius-operator/compare/v2.21.0-develop.7...v2.21.0-develop.8) (2026-05-21)
+
+
+### Bug Fixes
+
+* **watcher:** serialize ForResource+SetTransform+Start to close race ([fc131a4](https://github.com/mogenius/mogenius-operator/commit/fc131a4747629b3bd50776ede476317861989f3f))
+
 # [2.21.0-develop.7](https://github.com/mogenius/mogenius-operator/compare/v2.21.0-develop.6...v2.21.0-develop.7) (2026-05-21)
 
 
