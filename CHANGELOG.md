@@ -1,3 +1,10 @@
+# [2.21.0-develop.11](https://github.com/mogenius/mogenius-operator/compare/v2.21.0-develop.10...v2.21.0-develop.11) (2026-05-21)
+
+
+### Bug Fixes
+
+* **api:** treat empty workspaceName as cluster-wide query ([3f80a20](https://github.com/mogenius/mogenius-operator/commit/3f80a209f18d0ac06406de1a28f870020f2bf8b0))
+
 # [2.21.0-develop.10](https://github.com/mogenius/mogenius-operator/compare/v2.21.0-develop.9...v2.21.0-develop.10) (2026-05-21)
 
 
