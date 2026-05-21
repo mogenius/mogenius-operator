@@ -4,7 +4,6 @@ import (
 	"log/slog"
 	"mogenius-operator/src/assert"
 	"net/url"
-	"slices"
 	"time"
 
 	v1 "k8s.io/api/core/v1"
@@ -87,8 +86,13 @@ func (self *PodInfo) ContainersWithFirstPid() map[ContainerId]ProcessId {
 //
 // - the Namespace and Name have to be equal
 // - the list of containers with pids has to have the same container ids
-// - the first pid in every container has to be the same
-// - it is allowed for other pids to be different (e.g. child processes might have been spawned in the container which we dont care about)
+//
+// PIDs inside a container are intentionally NOT compared: a container's
+// network namespace is stable for the container's lifetime, and once snoopy
+// is attached via an open ns fd the original PID may die without affecting
+// the attachment. Re-registering on every PID change would tear down a
+// working attachment and race against short-lived child processes (which
+// fail to attach with EACCES on /proc/$pid/ns/net once they exit).
 func (self *PodInfo) Equals(other *PodInfo) bool {
 	if self.Namespace != other.Namespace {
 		return false
@@ -98,30 +102,12 @@ func (self *PodInfo) Equals(other *PodInfo) bool {
 		return false
 	}
 
-	containerIds := []ContainerId{}
+	if len(self.Containers) != len(other.Containers) {
+		return false
+	}
+
 	for containerId := range self.Containers {
-		containerIds = append(containerIds, containerId)
-	}
-	for containerId := range other.Containers {
-		containerIds = append(containerIds, containerId)
-	}
-	slices.Sort(containerIds)
-	containerIds = slices.Compact(containerIds)
-
-	for _, containerId := range containerIds {
-		pids, ok := self.Containers[containerId]
-		if !ok {
-			return false
-		}
-		assert.Assert(len(pids) > 0, "podinfo should never contain information about containers with 0 processes")
-
-		otherPids, ok := other.Containers[containerId]
-		if !ok {
-			return false
-		}
-		assert.Assert(len(otherPids) > 0, "podinfo should never contain information about containers with 0 processes")
-
-		if pids[0] != otherPids[0] {
+		if _, ok := other.Containers[containerId]; !ok {
 			return false
 		}
 	}
