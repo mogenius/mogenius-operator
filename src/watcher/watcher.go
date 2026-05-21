@@ -144,9 +144,20 @@ func (self *watcher) Watch(resource utils.ResourceDescriptor, onAdd WatcherOnAdd
 }
 
 func (self *watcher) watchWithRetry(ctx context.Context, resource utils.ResourceDescriptor, onAdd WatcherOnAdd, onUpdate WatcherOnUpdate, onDelete WatcherOnDelete) {
-	backoff := time.Second
-	maxBackoff := time.Minute * 2
-	maxRetries := 20
+	// Backoff strategy: start at 1s, double up to 2min ("fast retry").
+	// After fastRetryAttempts of fast retries without success, switch to
+	// "slow lane" of one attempt per slowRetryInterval. We never give up
+	// permanently - previously this loop stopped after 20 attempts (~40
+	// min) and the resource was marked WatchingFailed forever, requiring
+	// an operator restart to recover from any control-plane outage
+	// longer than that window.
+	const (
+		fastRetryAttempts  = 20
+		fastBackoffInitial = time.Second
+		fastBackoffMax     = time.Minute * 2
+		slowRetryInterval  = time.Minute * 5
+	)
+	backoff := fastBackoffInitial
 	retryCount := 0
 
 	for {
@@ -157,14 +168,6 @@ func (self *watcher) watchWithRetry(ctx context.Context, resource utils.Resource
 		default:
 		}
 
-		// Check if we've exceeded max retries
-		if retryCount >= maxRetries {
-			self.logger.Error("Max retry attempts reached, giving up on watcher",
-				"resource", resource, "retries", retryCount)
-			self.setWatcherState(resource, WatchingFailed)
-			return
-		}
-
 		self.logger.Debug("Starting watcher", "resource", resource, "attempt", retryCount+1)
 
 		watcherDone := make(chan error, 1)
@@ -173,33 +176,46 @@ func (self *watcher) watchWithRetry(ctx context.Context, resource utils.Resource
 			watcherDone <- err
 		}()
 
-		// Wait for watcher to complete or context to be cancelled
 		select {
 		case <-ctx.Done():
 			self.logger.Info("Watcher context cancelled during execution", "resource", resource)
 			return
 		case err := <-watcherDone:
-			if err != nil {
-				retryCount++
-				self.logger.Warn("Watcher failed, will retry",
-					"resource", resource,
-					"error", err,
-					"attempt", retryCount,
-					"backoff", backoff)
-
-				self.setWatcherState(resource, WatchingFailed)
-
-				// Exponential backoff before retry
-				select {
-				case <-ctx.Done():
-					return
-				case <-time.After(backoff):
-					backoff = min(backoff*2, maxBackoff)
-				}
-			} else {
-				// Successful completion (shouldn't normally happen unless context cancelled)
+			if err == nil {
 				self.logger.Warn("Watcher completed successfully (this should not happen)", "resource", resource)
 				return
+			}
+			retryCount++
+			self.setWatcherState(resource, WatchingFailed)
+
+			// First fastRetryAttempts: exponential backoff up to 2min.
+			// After that: slow-lane retry every slowRetryInterval, forever,
+			// so a transient API-server outage can self-heal.
+			var sleep time.Duration
+			if retryCount <= fastRetryAttempts {
+				sleep = backoff
+				backoff = min(backoff*2, fastBackoffMax)
+				self.logger.Warn("Watcher failed, will retry",
+					"resource", resource, "error", err,
+					"attempt", retryCount, "backoff", sleep)
+			} else {
+				sleep = slowRetryInterval
+				if retryCount == fastRetryAttempts+1 {
+					self.logger.Error("Watcher still failing after fast-retry budget, switching to slow lane",
+						"resource", resource, "error", err,
+						"interval", slowRetryInterval)
+				} else if retryCount%12 == 0 {
+					// Every ~hour on the slow lane: re-log so the failure
+					// stays visible in operator dashboards.
+					self.logger.Warn("Watcher still failing on slow-lane retry",
+						"resource", resource, "error", err,
+						"slowAttempts", retryCount-fastRetryAttempts)
+				}
+			}
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(sleep):
 			}
 		}
 	}
