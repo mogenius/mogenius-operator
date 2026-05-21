@@ -944,7 +944,21 @@ func (self *snoopyManager) attachToPidNamespace(pid ProcessId) (*SnoopyHandle, e
 		for scanner.Scan() {
 			output := scanner.Bytes()
 			if bytes.HasPrefix(output, []byte("nsenter")) {
-				self.logger.Error("nsenter failed to execute snoopy", "error", string(output))
+				// nsenter failures are recoverable: when the eBPF attach for a
+				// container fails, Metrics() detects all-zero readings and
+				// falls back to procdev, so per-container traffic still flows
+				// into Valkey. Emitting ERROR alarmed operators unnecessarily
+				// in environments where the host blocks /proc/$pid/ns/net
+				// access (yama_ptrace_scope, AppArmor, hidepid) even with
+				// CAP_SYS_PTRACE on the pod.
+				switch {
+				case bytes.Contains(output, []byte("No such file or directory")):
+					// PID exited between containerenumerator finding it and
+					// nsenter opening its netns - pure race, not actionable.
+					self.logger.Debug("nsenter could not attach to vanished pid", "error", string(output))
+				default:
+					self.logger.Warn("nsenter failed to attach snoopy; falling back to procdev", "error", string(output))
+				}
 				continue
 			}
 			var msg SnoopyLogMessage
