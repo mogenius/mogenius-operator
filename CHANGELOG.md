@@ -1,3 +1,11 @@
+# [2.21.0-develop.17](https://github.com/mogenius/mogenius-operator/compare/v2.21.0-develop.16...v2.21.0-develop.17) (2026-05-26)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/openai/openai-go/v3 to v3.37.0 ([#979](https://github.com/mogenius/mogenius-operator/issues/979)) ([e24fe9c](https://github.com/mogenius/mogenius-operator/commit/e24fe9ce03fc10259ebdaef2974599abddfb29e1))
+* scope preflight dry-run mocks, drop CRD workaround (MOG-4274) ([39ab095](https://github.com/mogenius/mogenius-operator/commit/39ab09525bba61a7bb219c12d75b86cd8b0e008f))
+
 # [2.21.0-develop.16](https://github.com/mogenius/mogenius-operator/compare/v2.21.0-develop.15...v2.21.0-develop.16) (2026-05-26)
 
 
