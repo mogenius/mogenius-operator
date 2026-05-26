@@ -1,3 +1,10 @@
+# [2.21.0-develop.16](https://github.com/mogenius/mogenius-operator/compare/v2.21.0-develop.15...v2.21.0-develop.16) (2026-05-26)
+
+
+### Bug Fixes
+
+* set repository as the main source for helm chart ([0e9adde](https://github.com/mogenius/mogenius-operator/commit/0e9addecd13d9318bdf4d4e39bd9a61546fc15e3))
+
 # [2.21.0-develop.15](https://github.com/mogenius/mogenius-operator/compare/v2.21.0-develop.14...v2.21.0-develop.15) (2026-05-23)
 
 
