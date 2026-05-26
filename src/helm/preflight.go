@@ -92,6 +92,19 @@ func RunOwnershipPreflight(
 	values map[string]any,
 	release, namespace, version string,
 ) (*PreflightResult, error) {
+	// install.Run with DryRunStrategy=DryRunClient enters Helm v4's mock block
+	// (pkg/action/install.go:329-344) and reassigns cfg.KubeClient to a
+	// PrintingKubeClient and cfg.Releases to an in-memory driver. Because cfg
+	// is a pointer, that poisons the caller's actionConfig for the subsequent
+	// real Install/Upgrade. Save and restore those two fields around the
+	// dry-run so the mocks stay scoped to the preflight render.
+	savedKubeClient := actionConfig.KubeClient
+	savedReleases := actionConfig.Releases
+	defer func() {
+		actionConfig.KubeClient = savedKubeClient
+		actionConfig.Releases = savedReleases
+	}()
+
 	dryRun := action.NewInstall(actionConfig)
 	dryRun.ReleaseName = release
 	dryRun.Namespace = namespace
@@ -99,6 +112,11 @@ func RunOwnershipPreflight(
 	dryRun.DryRunStrategy = action.DryRunClient
 
 	rel, err := dryRun.Run(chartRequested, values)
+	// Restore the real client/storage before we use them again below for the
+	// scan. The deferred restore stays as a safety net for panic/early-return.
+	actionConfig.KubeClient = savedKubeClient
+	actionConfig.Releases = savedReleases
+
 	if err != nil {
 		return nil, fmt.Errorf("preflight render chart: %w", err)
 	}
