@@ -1,11 +1,14 @@
 package core
 
 import (
+	"context"
+	"errors"
 	"log/slog"
 	"mogenius-operator/src/assert"
 	cfg "mogenius-operator/src/config"
 	"mogenius-operator/src/logging"
 	moreconciler "mogenius-operator/src/reconciler"
+	"mogenius-operator/src/shutdown"
 	"mogenius-operator/src/structs"
 	"mogenius-operator/src/version"
 	"net/http"
@@ -145,10 +148,21 @@ func (self *httpService) Run() {
 		MaxHeaderBytes:    1 << 20,
 	}
 
+	// Drain in-flight requests on shutdown instead of cutting the listener
+	// mid-write. Hijacked connections (websocket/xterm/log streams) are not
+	// tracked by Shutdown and end with the process, as before.
+	shutdown.Add(func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if err := server.Shutdown(ctx); err != nil {
+			self.logger.Warn("http server graceful shutdown failed", "error", err)
+		}
+	})
+
 	self.logger.Info("starting API server", "addr", addr)
 	go func() {
 		err := server.ListenAndServe()
-		if err != nil {
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			self.logger.Error("failed to start api server", "error", err)
 		}
 	}()
