@@ -22,6 +22,7 @@ import (
 
 type ValkeyClient interface {
 	Connect() error
+	Close()
 	Set(value string, expiration time.Duration, keys ...string) error
 	SetObject(value any, expiration time.Duration, keys ...string) error
 	SetObjectWithAutoincrementLimit(value any, limit int64, ttl time.Duration, keys ...string) error
@@ -136,6 +137,16 @@ func (self *valkeyClient) Connect() error {
 	self.logger.Info("Connected to valkey", "addr", valkeyAddr)
 
 	return nil
+}
+
+// Close shuts down the underlying valkey connection. valkey-go's Close waits
+// for all pending (pipelined) calls to finish before closing, so buffered
+// writes are flushed instead of lost on shutdown. Safe to call when never
+// connected.
+func (self *valkeyClient) Close() {
+	if self.valkeyClient != nil {
+		self.valkeyClient.Close()
+	}
 }
 
 func (self *valkeyClient) GetValkeyClient() valkeyclient.Client {

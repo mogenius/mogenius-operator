@@ -122,6 +122,8 @@ func (self *core) InitializeValkey() {
 		shutdown.SendShutdownSignal(true)
 		select {}
 	}
+	// Flush pending pipelined writes on shutdown instead of dropping them.
+	shutdown.Add(self.valkeyClient.Close)
 }
 
 func (self *core) InitializeWebsocketEventServer() {
