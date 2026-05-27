@@ -574,6 +574,17 @@ func resolveIndexShards(
 	ctx := valkey.GetContext()
 
 	shards := make([]indexShard, 0, len(whitelist))
+	// Dedup so a duplicate (apiVersion,kind) in the whitelist or a repeated
+	// namespace can't produce the same shard twice (which would double-count
+	// totalCount and return the resource twice).
+	seen := make(map[indexShard]struct{}, len(whitelist))
+	addShard := func(s indexShard) {
+		if _, dup := seen[s]; dup {
+			return
+		}
+		seen[s] = struct{}{}
+		shards = append(shards, s)
+	}
 	for _, w := range whitelist {
 		if w == nil {
 			continue
@@ -584,7 +595,7 @@ func resolveIndexShards(
 
 		if len(namespaceWhitelist) > 0 {
 			for _, ns := range namespaceWhitelist {
-				shards = append(shards, indexShard{apiVersion: w.ApiVersion, kind: w.Kind, namespace: ns})
+				addShard(indexShard{apiVersion: w.ApiVersion, kind: w.Kind, namespace: ns})
 			}
 			continue
 		}
@@ -598,7 +609,7 @@ func resolveIndexShards(
 			return nil, fmt.Errorf("discover namespaces for %s/%s: %w", w.ApiVersion, w.Kind, err)
 		}
 		for _, ns := range namespaces {
-			shards = append(shards, indexShard{apiVersion: w.ApiVersion, kind: w.Kind, namespace: ns})
+			addShard(indexShard{apiVersion: w.ApiVersion, kind: w.Kind, namespace: ns})
 		}
 	}
 	return shards, nil
