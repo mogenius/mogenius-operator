@@ -1,3 +1,10 @@
+# [2.21.0-develop.18](https://github.com/mogenius/mogenius-operator/compare/v2.21.0-develop.17...v2.21.0-develop.18) (2026-05-27)
+
+
+### Bug Fixes
+
+* the node metrics should also wait for connectivity to valkey ([e79db30](https://github.com/mogenius/mogenius-operator/commit/e79db30ab29036a03c704c016a691777b6bc6775))
+
 # [2.21.0-develop.17](https://github.com/mogenius/mogenius-operator/compare/v2.21.0-develop.16...v2.21.0-develop.17) (2026-05-26)
 
 
