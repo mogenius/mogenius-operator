@@ -1,3 +1,14 @@
+# [2.21.0-develop.20](https://github.com/mogenius/mogenius-operator/compare/v2.21.0-develop.19...v2.21.0-develop.20) (2026-05-27)
+
+
+### Bug Fixes
+
+* **cmd:** wait for shutdown handlers in system subcommand ([edf9bb3](https://github.com/mogenius/mogenius-operator/commit/edf9bb37ad799a9821cbd788bc7e2cc6d05c1998))
+* **helm:** time out wait-for-valkey init container after 120s ([6199af8](https://github.com/mogenius/mogenius-operator/commit/6199af8e957ef3302097c735a6ccb1a34fa67173))
+* **http:** gracefully shut down API server on SIGTERM ([47697c0](https://github.com/mogenius/mogenius-operator/commit/47697c06034021ecc325b7651434f4dcbfb8a616))
+* **shutdown:** prevent deadlock when SendShutdownSignal fires before Listen ([2b36c2c](https://github.com/mogenius/mogenius-operator/commit/2b36c2c1bf9f9a1da08bd522f104bfc1055b0fe5))
+* **valkey:** close client on shutdown to flush pending writes ([6845c46](https://github.com/mogenius/mogenius-operator/commit/6845c46a48c768dfd708945c5bb672ebe5aeeb64))
+
 # [2.21.0-develop.19](https://github.com/mogenius/mogenius-operator/compare/v2.21.0-develop.18...v2.21.0-develop.19) (2026-05-27)
 
 
