@@ -34,8 +34,8 @@ const (
 // Watching them produces noisy client-go deprecation warnings and stores
 // duplicate data in Valkey. Keyed by "groupVersion/kind".
 //
-// - v1/Endpoints: replaced by discovery.k8s.io/v1 EndpointSlice; scheduled
-//   for removal in Kubernetes 1.33+.
+//   - v1/Endpoints: replaced by discovery.k8s.io/v1 EndpointSlice; scheduled
+//     for removal in Kubernetes 1.33+.
 var deprecatedResources = map[string]struct{}{
 	"v1/Endpoints": {},
 }
@@ -182,8 +182,12 @@ func handleCRDDeletion(wm watcher.WatcherModule, resource utils.ResourceDescript
 func setStoreIfNeeded(apiVersion string, resourceName string, kind string, namespace string, obj *unstructured.Unstructured) {
 	obj = removeUnusedFieds(obj)
 
-	// store in valkey
-	err := valkeyClient.SetObject(obj, utils.ResourceResyncTime*2, VALKEY_RESOURCE_PREFIX, apiVersion, kind, namespace, resourceName)
+	// store primary key + ZSET indexes (by-creation, by-name) in a single
+	// MULTI/EXEC so paginated readers never observe an index member whose
+	// primary key is missing. apiVersion/kind/namespace/name come from the
+	// watcher's ResourceDescriptor because obj.GetAPIVersion()/GetKind() are
+	// often empty on DynamicClient-sourced Unstructured objects.
+	err := store.SetResourceWithIndex(valkeyClient, apiVersion, kind, namespace, resourceName, obj, utils.ResourceResyncTime*2)
 	if err != nil {
 		k8sLogger.Error("Error setting object in store", "error", err)
 	}
@@ -213,8 +217,8 @@ func deleteFromStoreIfNeeded(apiVersion string, resourceName string, kind string
 		handlePVDeletion(&pv)
 	}
 
-	// other resources
-	err := valkeyClient.DeleteSingle(VALKEY_RESOURCE_PREFIX, apiVersion, kind, namespace, resourceName)
+	// other resources - delete primary key + both ZSET index members atomically.
+	err := store.DeleteResourceWithIndex(valkeyClient, apiVersion, kind, namespace, resourceName)
 	if err != nil {
 		k8sLogger.Error("Error deleting object in store", "error", err)
 	}

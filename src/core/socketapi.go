@@ -1168,6 +1168,16 @@ func (self *socketApi) registerPatterns() {
 		)
 	}
 
+	{
+		RegisterPatternHandler(
+			PatternHandle{self, "get/workload-list-paginated"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request ResourcesPaginatedRequest) (ResourcesPaginatedResponse, error) {
+				return self.apiService.GetResourceListByWhitelistPaginated(request)
+			},
+		)
+	}
+
 	RegisterPatternHandler(
 		PatternHandle{self, "get/namespace-workload-list"},
 		PatternConfig{},

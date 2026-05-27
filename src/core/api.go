@@ -73,6 +73,7 @@ type Api interface {
 	DeleteGrant(name string) (string, error)
 
 	GetWorkspaceResources(workspaceName string, whitelist []*utils.ResourceDescriptor, blacklist []*utils.ResourceDescriptor, namespaceWhitelist []string) ([]unstructured.Unstructured, error)
+	GetResourceListByWhitelistPaginated(req ResourcesPaginatedRequest) (ResourcesPaginatedResponse, error)
 	GetWorkspaceResourcesPaginated(workspaceName string, req WorkspaceResourcesPaginatedRequest) (WorkspaceResourcesPaginatedResponse, error)
 	GetWorkspaceControllers(workspaceName string) ([]unstructured.Unstructured, error)
 	GetWorkspacePods(workspaceName string) ([]unstructured.Unstructured, error)
@@ -314,6 +315,36 @@ func (self *api) DeleteGrant(name string) (string, error) {
 	return "Resource deleted successfully", nil
 }
 
+type ResourcesPaginatedRequest struct {
+	Whitelist          []*utils.ResourceDescriptor `json:"whitelist"`
+	Blacklist          []*utils.ResourceDescriptor `json:"blacklist"`
+	NamespaceWhitelist []string                    `json:"namespaceWhitelist"`
+	Offset             int                         `json:"offset"`
+	Limit              int                         `json:"limit"`
+	SortBy             string                      `json:"sortBy"`
+	SortOrder          string                      `json:"sortOrder"`
+	WithData           *bool                       `json:"withData"`
+}
+type ResourcesPaginatedResponse struct {
+	Items      []unstructured.Unstructured `json:"items"`
+	TotalCount int                         `json:"totalCount"`
+}
+
+func (self *api) GetResourceListByWhitelistPaginated(req ResourcesPaginatedRequest) (ResourcesPaginatedResponse, error) {
+	page, err := store.GetResourcesByWhitelistPaginated(self.valkeyClient, req.Whitelist, req.Blacklist, req.NamespaceWhitelist, req.Offset, req.Limit, req.SortBy, req.SortOrder, self.logger)
+	if err != nil {
+		return ResourcesPaginatedResponse{Items: []unstructured.Unstructured{}, TotalCount: page.TotalCount}, err
+	}
+
+	if req.WithData == nil || !*req.WithData {
+		for i := range page.Items {
+			delete(page.Items[i].Object, "data")
+		}
+	}
+
+	return ResourcesPaginatedResponse{Items: page.Items, TotalCount: page.TotalCount}, nil
+}
+
 // WorkspaceResourcesPaginatedRequest expresses an offset/limit query on a
 // workspace's resources. Compared to the non-paginated path, the operator
 // itself performs dedup + sort + slice so the wire payload stays small
@@ -346,6 +377,22 @@ type WorkspaceResourcesPaginatedResponse struct {
 // At 2000+ items per request this still keeps the wire payload to one page
 // (e.g. 50 items) instead of the full set.
 func (self *api) GetWorkspaceResourcesPaginated(workspaceName string, req WorkspaceResourcesPaginatedRequest) (WorkspaceResourcesPaginatedResponse, error) {
+	// Fast path: when the selection maps cleanly onto the (kind, namespace)
+	// pagination index, ZRANGE+MGET only the requested page instead of reading
+	// every matching resource into memory and sorting it. Helm-scoped workspaces
+	// and whitelist-less ("all kinds") queries fall through to the in-memory
+	// path below - see indexableWorkspaceNamespaces for the exact conditions.
+	if namespaces, ok := self.indexableWorkspaceNamespaces(workspaceName, req); ok {
+		page, err := store.GetResourcesByWhitelistPaginated(
+			self.valkeyClient, req.Whitelist, req.Blacklist, namespaces,
+			req.Offset, req.Limit, req.SortBy, req.SortOrder, self.logger,
+		)
+		if err != nil {
+			return WorkspaceResourcesPaginatedResponse{Items: []unstructured.Unstructured{}, TotalCount: page.TotalCount}, err
+		}
+		return WorkspaceResourcesPaginatedResponse{Items: page.Items, TotalCount: page.TotalCount}, nil
+	}
+
 	items, err := self.GetWorkspaceResources(workspaceName, req.Whitelist, req.Blacklist, req.NamespaceWhitelist)
 	if err != nil {
 		return WorkspaceResourcesPaginatedResponse{Items: []unstructured.Unstructured{}}, err
@@ -374,6 +421,62 @@ func (self *api) GetWorkspaceResourcesPaginated(workspaceName string, req Worksp
 		items = []unstructured.Unstructured{}
 	}
 	return WorkspaceResourcesPaginatedResponse{Items: items, TotalCount: total}, nil
+}
+
+// indexableWorkspaceNamespaces decides whether a paginated workspace query can
+// be served by the (kind, namespace) pagination index, and if so returns the
+// (deduped) namespace list to scope it to. ok==false means "fall back to the
+// in-memory GetWorkspaceResources path".
+//
+// The fast path requires:
+//   - a non-empty whitelist: the index enumerates shards per kind, so it can't
+//     answer the "all kinds" query an empty whitelist expresses.
+//   - a namespace-only selection: a helm entry selects by release label (plus
+//     Pod ownerRef traversal), which the index does not model. argocd entries
+//     are ignored by GetWorkspaceResources too, so they don't affect the result.
+//
+// For the cluster-wide case (empty workspaceName) the namespace list is
+// req.NamespaceWhitelist verbatim: empty there means "all namespaces", which the
+// index resolves via its namespace registry. For a named workspace an empty
+// namespace list means nothing indexable is selected, so we return (nil, false)
+// and let the in-memory path produce the canonical empty result - passing an
+// empty list to the index would wrongly be read as "all namespaces".
+func (self *api) indexableWorkspaceNamespaces(workspaceName string, req WorkspaceResourcesPaginatedRequest) ([]string, bool) {
+	if len(req.Whitelist) == 0 {
+		return nil, false
+	}
+	if workspaceName == "" {
+		return req.NamespaceWhitelist, true
+	}
+
+	workspace, err := store.GetWorkspace(self.config.Get("MO_OWN_NAMESPACE"), workspaceName)
+	if err != nil {
+		return nil, false
+	}
+
+	seen := make(map[string]struct{}, len(workspace.Spec.Resources))
+	namespaces := make([]string, 0, len(workspace.Spec.Resources))
+	for _, v := range workspace.Spec.Resources {
+		switch v.Type {
+		case "helm":
+			// Release-label selection is not representable in the index.
+			return nil, false
+		case "namespace":
+			if len(req.NamespaceWhitelist) > 0 && !slices.Contains(req.NamespaceWhitelist, v.Id) {
+				continue
+			}
+			if _, dup := seen[v.Id]; dup {
+				continue
+			}
+			seen[v.Id] = struct{}{}
+			namespaces = append(namespaces, v.Id)
+		}
+		// other types (e.g. "argocd") are ignored, matching GetWorkspaceResources.
+	}
+	if len(namespaces) == 0 {
+		return nil, false
+	}
+	return namespaces, true
 }
 
 // dedupeUnstructuredByUID keeps the first occurrence of each metadata.uid.
