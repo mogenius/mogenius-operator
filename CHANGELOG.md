@@ -1,3 +1,10 @@
+# [2.21.0-develop.21](https://github.com/mogenius/mogenius-operator/compare/v2.21.0-develop.20...v2.21.0-develop.21) (2026-05-27)
+
+
+### Bug Fixes
+
+* **rbac:** give node-metrics DaemonSet its own least-privilege ServiceAccount ([e59588b](https://github.com/mogenius/mogenius-operator/commit/e59588b84ffaa9c8cf4936b3ae8b01d8e4842d24))
+
 # [2.21.0-develop.20](https://github.com/mogenius/mogenius-operator/compare/v2.21.0-develop.19...v2.21.0-develop.20) (2026-05-27)
 
 
