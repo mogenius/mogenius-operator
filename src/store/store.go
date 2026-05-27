@@ -38,6 +38,12 @@ const (
 	// MGET only those names from the primary keys under VALKEY_RESOURCE_PREFIX.
 	VALKEY_RESOURCE_INDEX_PREFIX = "resources-idx"
 
+	// VALKEY_RESOURCE_INDEX_NS_PREFIX is the root for the per-(apiVersion, kind)
+	// namespace registry: a SET whose members are the namespaces a kind lives
+	// in. The cluster-wide paginated read reads this with one SMEMBERS per kind
+	// instead of doing a full-keyspace SCAN to discover namespaces.
+	VALKEY_RESOURCE_INDEX_NS_PREFIX = "resources-idx-ns"
+
 	resourceIndexSortByCreation = "by-creation"
 	resourceIndexSortByName     = "by-name"
 
@@ -122,11 +128,17 @@ func SearchResourceByNamespace(valkeyClient valkeyclient.ValkeyClient, namespace
 }
 
 func DropAllResourcesFromValkey(valkeyClient valkeyclient.ValkeyClient, logger *slog.Logger) error {
-	keys, err := valkeyClient.Keys(VALKEY_RESOURCE_PREFIX + ":*")
-	if err != nil {
-		return fmt.Errorf("failed to get keys: %w", err)
-	}
-	err = valkeyClient.DeleteMultiple(keys...)
+	// Drop the primary keys together with the secondary pagination indexes and
+	// the namespace registry. Dropping only "resources:*" would leave the
+	// "resources-idx:*" ZSETs and "resources-idx-ns:*" SETs behind as orphans,
+	// inflating paginated totalCounts after a restart. The three prefixes are
+	// disjoint glob patterns ("resources:" matches neither "resources-idx:" nor
+	// "resources-idx-ns:", and "resources-idx:" does not match the "-ns" form).
+	err := valkeyClient.DeleteMultiple(
+		VALKEY_RESOURCE_PREFIX+":*",
+		VALKEY_RESOURCE_INDEX_PREFIX+":*",
+		VALKEY_RESOURCE_INDEX_NS_PREFIX+":*",
+	)
 	if err != nil {
 		logger.Error("failed to DropAllResourcesFromValkey", "error", err)
 	}
@@ -251,6 +263,7 @@ func SetResourceWithIndex(
 	primaryKey := CreateResourceKey(apiVersion, kind, namespace, name)
 	byCreationKey := resourceIndexKey(apiVersion, kind, namespace, resourceIndexSortByCreation)
 	byNameKey := resourceIndexKey(apiVersion, kind, namespace, resourceIndexSortByName)
+	nsRegistryKey := resourceNamespaceRegistryKey(apiVersion, kind)
 
 	creationScore := float64(obj.GetCreationTimestamp().Time.Unix())
 	ttlSeconds := int64(ttl.Seconds())
@@ -258,6 +271,10 @@ func SetResourceWithIndex(
 		ttlSeconds = int64((time.Hour).Seconds())
 	}
 
+	// The SADD records that this kind lives in `namespace` so the cluster-wide
+	// read path can discover namespaces via SMEMBERS instead of a keyspace SCAN.
+	// namespace is "" for cluster-scoped resources; the empty member is kept so
+	// the discovered shard matches the primary key shape exactly.
 	client := valkey.GetValkeyClient()
 	cmds := []vgo.Completed{
 		client.B().Multi().Build(),
@@ -266,13 +283,13 @@ func SetResourceWithIndex(
 		client.B().Expire().Key(byCreationKey).Seconds(ttlSeconds).Build(),
 		client.B().Zadd().Key(byNameKey).ScoreMember().ScoreMember(0, name).Build(),
 		client.B().Expire().Key(byNameKey).Seconds(ttlSeconds).Build(),
+		client.B().Sadd().Key(nsRegistryKey).Member(namespace).Build(),
+		client.B().Expire().Key(nsRegistryKey).Seconds(ttlSeconds).Build(),
 		client.B().Exec().Build(),
 	}
 
-	for _, resp := range client.DoMulti(valkey.GetContext(), cmds...) {
-		if rerr := resp.Error(); rerr != nil {
-			return fmt.Errorf("set resource with index pipeline: %w", rerr)
-		}
+	if err := checkMultiExec(client.DoMulti(valkey.GetContext(), cmds...)); err != nil {
+		return fmt.Errorf("set resource with index pipeline: %w", err)
 	}
 	return nil
 }
@@ -288,6 +305,10 @@ func DeleteResourceWithIndex(
 	byCreationKey := resourceIndexKey(apiVersion, kind, namespace, resourceIndexSortByCreation)
 	byNameKey := resourceIndexKey(apiVersion, kind, namespace, resourceIndexSortByName)
 
+	// The namespace registry member is intentionally left untouched: we can't
+	// tell from a single delete whether this was the last resource of the kind
+	// in the namespace, and a stale namespace entry is harmless - it resolves
+	// to an empty/expired ZSET shard (ZCARD 0) that the reader skips.
 	client := valkey.GetValkeyClient()
 	cmds := []vgo.Completed{
 		client.B().Multi().Build(),
@@ -297,12 +318,51 @@ func DeleteResourceWithIndex(
 		client.B().Exec().Build(),
 	}
 
-	for _, resp := range client.DoMulti(valkey.GetContext(), cmds...) {
-		if rerr := resp.Error(); rerr != nil {
-			return fmt.Errorf("delete resource with index pipeline: %w", rerr)
+	if err := checkMultiExec(client.DoMulti(valkey.GetContext(), cmds...)); err != nil {
+		return fmt.Errorf("delete resource with index pipeline: %w", err)
+	}
+	return nil
+}
+
+// checkMultiExec validates the responses of a MULTI ... EXEC pipeline sent via
+// DoMulti. The per-response Error() check catches connection failures,
+// queue-time command errors and EXECABORT (where the EXEC reply itself is an
+// error). It additionally walks the EXEC reply array so per-command runtime
+// errors (e.g. a WRONGTYPE that only surfaces during EXEC) are not silently
+// swallowed - those are nested inside the array element, not on the array
+// result itself.
+func checkMultiExec(resps []vgo.ValkeyResult) error {
+	for _, resp := range resps {
+		if err := resp.Error(); err != nil {
+			return err
+		}
+	}
+	if len(resps) == 0 {
+		return nil
+	}
+	// The last response is the EXEC reply: an array with one entry per queued
+	// command. A nil reply means the transaction was discarded (only happens
+	// with WATCH, which we don't use, so treat it as a failure).
+	execResults, err := resps[len(resps)-1].ToArray()
+	if err != nil {
+		if errors.Is(err, vgo.Nil) {
+			return fmt.Errorf("transaction discarded")
+		}
+		return err
+	}
+	for _, r := range execResults {
+		if err := r.Error(); err != nil {
+			return err
 		}
 	}
 	return nil
+}
+
+// resourceNamespaceRegistryKey returns the SET key holding the namespaces a
+// given (apiVersion, kind) currently lives in. It is sort-type independent
+// because both indexes share the same namespace set.
+func resourceNamespaceRegistryKey(apiVersion, kind string) string {
+	return strings.Join([]string{VALKEY_RESOURCE_INDEX_NS_PREFIX, apiVersion, kind}, ":")
 }
 
 // indexShard identifies a single (apiVersion, kind, namespace) ZSET shard
@@ -371,7 +431,7 @@ func GetResourcesByWhitelistPaginated(
 		sortType = resourceIndexSortByName
 	}
 
-	shards, err := resolveIndexShards(valkey, whitelist, blacklist, namespaceWhitelist, sortType)
+	shards, err := resolveIndexShards(valkey, whitelist, blacklist, namespaceWhitelist)
 	if err != nil {
 		logger.Error("failed to resolve index shards for paginated read", "error", err)
 		return PaginatedResources{Items: []unstructured.Unstructured{}}, err
@@ -432,10 +492,16 @@ func GetResourcesByWhitelistPaginated(
 	}
 
 	items := make([]unstructured.Unstructured, 0, len(values))
+	// Members whose primary key is gone (TTL expiry, or a delete event the
+	// watcher missed) but that are still present in the ZSET index. They are
+	// excluded from items below; we also prune them from the index and discount
+	// them from total so totalCount converges instead of drifting upward.
+	stale := make([]rankedMember, 0)
 	for i, v := range values {
 		raw, err := v.ToString()
 		if err != nil {
 			if errors.Is(err, vgo.Nil) {
+				stale = append(stale, page[i])
 				continue
 			}
 			logger.Warn("paginated MGET entry not readable", "key", keys[i], "error", err)
@@ -449,20 +515,52 @@ func GetResourcesByWhitelistPaginated(
 		items = append(items, obj)
 	}
 
+	if len(stale) > 0 {
+		pruneStaleIndexMembers(valkey, stale, logger)
+		total -= len(stale)
+		if total < 0 {
+			total = 0
+		}
+	}
+
 	return PaginatedResources{Items: items, TotalCount: total}, nil
+}
+
+// pruneStaleIndexMembers best-effort removes index members whose primary key no
+// longer resolves, from both the by-creation and by-name ZSETs. This is lazy
+// self-healing for delete events the watcher missed: without it such members
+// linger forever in an actively-written shard (its ZSET TTL keeps being
+// refreshed). There is a small race where the watcher re-creates the resource
+// between the MGET miss and this ZREM; the next resync re-adds the member, so
+// the worst case is one resync window of absence from the index. Failures are
+// logged, never fatal - a stale member is a cosmetic count error, not data loss.
+func pruneStaleIndexMembers(valkey valkeyclient.ValkeyClient, stale []rankedMember, logger *slog.Logger) {
+	client := valkey.GetValkeyClient()
+	cmds := make([]vgo.Completed, 0, len(stale)*2)
+	for _, rm := range stale {
+		byCreationKey := resourceIndexKey(rm.shard.apiVersion, rm.shard.kind, rm.shard.namespace, resourceIndexSortByCreation)
+		byNameKey := resourceIndexKey(rm.shard.apiVersion, rm.shard.kind, rm.shard.namespace, resourceIndexSortByName)
+		cmds = append(cmds,
+			client.B().Zrem().Key(byCreationKey).Member(rm.member).Build(),
+			client.B().Zrem().Key(byNameKey).Member(rm.member).Build(),
+		)
+	}
+	for _, resp := range client.DoMulti(valkey.GetContext(), cmds...) {
+		if err := resp.Error(); err != nil {
+			logger.Warn("failed to prune stale index member", "error", err)
+		}
+	}
 }
 
 // resolveIndexShards expands (whitelist - blacklist) x namespaceWhitelist into
 // concrete shards. When namespaceWhitelist is empty, it discovers namespaces
-// per (apiVersion, kind) by scanning index keys - one key per namespace per
-// kind, so the scan cost is bounded by the number of namespaces the kind lives
-// in, not the number of resources.
+// per (apiVersion, kind) with a single SMEMBERS on the namespace registry SET
+// maintained by SetResourceWithIndex - O(namespaces) and no full-keyspace SCAN.
 func resolveIndexShards(
 	valkey valkeyclient.ValkeyClient,
 	whitelist []*utils.ResourceDescriptor,
 	blacklist []*utils.ResourceDescriptor,
 	namespaceWhitelist []string,
-	sortType string,
 ) ([]indexShard, error) {
 	blacklisted := make(map[string]struct{}, len(blacklist))
 	for _, b := range blacklist {
@@ -471,6 +569,9 @@ func resolveIndexShards(
 		}
 		blacklisted[b.ApiVersion+"/"+b.Kind] = struct{}{}
 	}
+
+	client := valkey.GetValkeyClient()
+	ctx := valkey.GetContext()
 
 	shards := make([]indexShard, 0, len(whitelist))
 	for _, w := range whitelist {
@@ -488,22 +589,15 @@ func resolveIndexShards(
 			continue
 		}
 
-		// Cluster-wide: discover namespaces from existing index keys for
-		// this (apiVersion, kind). The pattern is one key per namespace per
-		// sort type, so the result set is small.
-		pattern := resourceIndexKey(w.ApiVersion, w.Kind, "*", sortType)
-		keys, err := valkey.Keys(pattern)
+		// Cluster-wide: read the namespaces this kind lives in from its
+		// registry SET. Stale namespaces (the kind no longer has resources
+		// there) are harmless - they resolve to an empty ZSET the reader skips.
+		nsRegistryKey := resourceNamespaceRegistryKey(w.ApiVersion, w.Kind)
+		namespaces, err := client.Do(ctx, client.B().Smembers().Key(nsRegistryKey).Build()).AsStrSlice()
 		if err != nil {
 			return nil, fmt.Errorf("discover namespaces for %s/%s: %w", w.ApiVersion, w.Kind, err)
 		}
-		// Each matching key is shaped "resources-idx:<api>:<kind>:<ns>:<sortType>".
-		// Strip the prefix "resources-idx:<api>:<kind>:" and the suffix
-		// ":<sortType>" to recover the namespace segment.
-		leading := strings.Join([]string{VALKEY_RESOURCE_INDEX_PREFIX, w.ApiVersion, w.Kind, ""}, ":")
-		trailing := ":" + sortType
-		for _, k := range keys {
-			ns := strings.TrimPrefix(k, leading)
-			ns = strings.TrimSuffix(ns, trailing)
+		for _, ns := range namespaces {
 			shards = append(shards, indexShard{apiVersion: w.ApiVersion, kind: w.Kind, namespace: ns})
 		}
 	}
