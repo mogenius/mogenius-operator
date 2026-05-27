@@ -45,6 +45,10 @@ spec:
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      {{- if .Values.valkey.enabled }}
+      initContainers:
+        {{- include "valkey.wait-for-connection" . | nindent 8 }}
+      {{- end }}
       containers:
         - name: {{ .Values.fullnameOverride }}-node-metrics
           image: {{ .Values.image.registry }}/{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion}}
