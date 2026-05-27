@@ -1,3 +1,17 @@
+# [2.21.0-develop.19](https://github.com/mogenius/mogenius-operator/compare/v2.21.0-develop.18...v2.21.0-develop.19) (2026-05-27)
+
+
+### Bug Fixes
+
+* removed duplicates ([cecd776](https://github.com/mogenius/mogenius-operator/commit/cecd776ef919044036f8c8975382c23534a1337b))
+* **store:** harden paginated resource index (drop, stale members, ns discovery) ([e8d7f2e](https://github.com/mogenius/mogenius-operator/commit/e8d7f2eb1019863606c3cc4d45d60cc237c3b0c2))
+* workload paginated ([9b04c36](https://github.com/mogenius/mogenius-operator/commit/9b04c365954ed46456bbd624a6fa773b095f831f))
+
+
+### Performance Improvements
+
+* **api:** route namespace-only workspace pagination through the index ([2bcf47d](https://github.com/mogenius/mogenius-operator/commit/2bcf47db737a14325db330e7aca8090d4f9bff6d))
+
 # [2.21.0-develop.18](https://github.com/mogenius/mogenius-operator/compare/v2.21.0-develop.17...v2.21.0-develop.18) (2026-05-27)
 
 
