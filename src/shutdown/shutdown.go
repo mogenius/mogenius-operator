@@ -17,8 +17,8 @@ func Add(fn func()) {
 	DefaultShutdown.Add(fn)
 }
 
-func ExecuteShutdownHandlers() {
-	DefaultShutdown.ExecuteShutdownHandlers()
+func ExecuteShutdownHandlers() chan struct{} {
+	return DefaultShutdown.ExecuteShutdownHandlers()
 }
 
 func Listen() {
