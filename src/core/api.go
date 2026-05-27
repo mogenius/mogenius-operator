@@ -73,6 +73,7 @@ type Api interface {
 	DeleteGrant(name string) (string, error)
 
 	GetWorkspaceResources(workspaceName string, whitelist []*utils.ResourceDescriptor, blacklist []*utils.ResourceDescriptor, namespaceWhitelist []string) ([]unstructured.Unstructured, error)
+	GetResourceListByWhitelistPaginated(req ResourcesPaginatedRequest) (ResourcesPaginatedResponse, error)
 	GetWorkspaceResourcesPaginated(workspaceName string, req WorkspaceResourcesPaginatedRequest) (WorkspaceResourcesPaginatedResponse, error)
 	GetWorkspaceControllers(workspaceName string) ([]unstructured.Unstructured, error)
 	GetWorkspacePods(workspaceName string) ([]unstructured.Unstructured, error)
@@ -312,6 +313,36 @@ func (self *api) DeleteGrant(name string) (string, error) {
 	}
 
 	return "Resource deleted successfully", nil
+}
+
+type ResourcesPaginatedRequest struct {
+	Whitelist          []*utils.ResourceDescriptor `json:"whitelist"`
+	Blacklist          []*utils.ResourceDescriptor `json:"blacklist"`
+	NamespaceWhitelist []string                    `json:"namespaceWhitelist"`
+	Offset             int                         `json:"offset"`
+	Limit              int                         `json:"limit"`
+	SortBy             string                      `json:"sortBy"`
+	SortOrder          string                      `json:"sortOrder"`
+	WithData           *bool                       `json:"withData"`
+}
+type ResourcesPaginatedResponse struct {
+	Items      []unstructured.Unstructured `json:"items"`
+	TotalCount int                         `json:"totalCount"`
+}
+
+func (self *api) GetResourceListByWhitelistPaginated(req ResourcesPaginatedRequest) (ResourcesPaginatedResponse, error) {
+	page, err := store.GetResourcesByWhitelistPaginated(self.valkeyClient, req.Whitelist, req.Blacklist, req.NamespaceWhitelist, req.Offset, req.Limit, req.SortBy, req.SortOrder, self.logger)
+	if err != nil {
+		return ResourcesPaginatedResponse{Items: []unstructured.Unstructured{}, TotalCount: page.TotalCount}, err
+	}
+
+	if req.WithData == nil || !*req.WithData {
+		for i := range page.Items {
+			delete(page.Items[i].Object, "data")
+		}
+	}
+
+	return ResourcesPaginatedResponse{Items: page.Items, TotalCount: page.TotalCount}, nil
 }
 
 // WorkspaceResourcesPaginatedRequest expresses an offset/limit query on a

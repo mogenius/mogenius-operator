@@ -1,6 +1,7 @@
 package store
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -16,6 +17,7 @@ import (
 	"time"
 
 	"github.com/pmezard/go-difflib/difflib"
+	vgo "github.com/valkey-io/valkey-go"
 
 	"sigs.k8s.io/yaml"
 
@@ -29,6 +31,19 @@ import (
 
 const (
 	VALKEY_RESOURCE_PREFIX = "resources"
+
+	// VALKEY_RESOURCE_INDEX_PREFIX is the root for ZSET-based pagination
+	// indexes. One ZSET per (apiVersion, kind, namespace, sortType) holds
+	// resource names so a paginated read can ZRANGE the page directly and
+	// MGET only those names from the primary keys under VALKEY_RESOURCE_PREFIX.
+	VALKEY_RESOURCE_INDEX_PREFIX = "resources-idx"
+
+	resourceIndexSortByCreation = "by-creation"
+	resourceIndexSortByName     = "by-name"
+
+	sortByName    = "name"
+	sortOrderAsc  = "asc"
+	sortOrderDesc = "desc"
 )
 
 var AuditLogLimit = int64(100)        // Default limit for audit log entries IMPORTANT: this is set per resource not globally
@@ -188,6 +203,409 @@ func GetResourceByKindAndNamespace(valkeyClient valkeyclient.ValkeyClient, apiVe
 		results = append(results, ref)
 	}
 	return results
+}
+
+// PaginatedResources is the return shape of GetResourcesByWhitelistPaginated:
+// only the requested page of objects together with the total count behind the
+// pagination cursor so the frontend can render "page X of Y".
+type PaginatedResources struct {
+	Items      []unstructured.Unstructured `json:"items"`
+	TotalCount int                         `json:"totalCount"`
+}
+
+// resourceIndexKey returns the ZSET key that holds resource names for a given
+// (apiVersion, kind, namespace, sortType) tuple. Members of the ZSET are
+// resource names; scores are creationTimestamp.Unix() for the by-creation
+// index and 0 for the by-name index (which is queried via ZRANGEBYLEX).
+//
+// namespace may be empty for cluster-scoped resources; the empty segment is
+// preserved so the key shape matches the primary key under VALKEY_RESOURCE_PREFIX.
+func resourceIndexKey(apiVersion, kind, namespace, sortType string) string {
+	return strings.Join([]string{VALKEY_RESOURCE_INDEX_PREFIX, apiVersion, kind, namespace, sortType}, ":")
+}
+
+// SetResourceWithIndex writes a resource to the primary string key and updates
+// both ZSET indexes (by-creation, by-name) in a single MULTI/EXEC transaction.
+// All three writes succeed or all three are skipped, so a read via the index
+// can never see a member whose primary key is missing (modulo TTL expiry, which
+// the caller handles by ignoring empty MGET slots).
+//
+// apiVersion/kind/namespace/name are passed explicitly because Unstructured
+// objects coming off the DynamicClient frequently have empty TypeMeta in
+// .Object - the watcher already knows the typed values from its
+// ResourceDescriptor and the primary key shape must match exactly.
+//
+// ttl controls both the primary key and the index keys; the indexes share the
+// resource TTL so they age out together when the watcher stops refreshing.
+func SetResourceWithIndex(
+	valkey valkeyclient.ValkeyClient,
+	apiVersion, kind, namespace, name string,
+	obj *unstructured.Unstructured,
+	ttl time.Duration,
+) error {
+	payload, err := json.Marshal(obj)
+	if err != nil {
+		return fmt.Errorf("marshal resource for store: %w", err)
+	}
+
+	primaryKey := CreateResourceKey(apiVersion, kind, namespace, name)
+	byCreationKey := resourceIndexKey(apiVersion, kind, namespace, resourceIndexSortByCreation)
+	byNameKey := resourceIndexKey(apiVersion, kind, namespace, resourceIndexSortByName)
+
+	creationScore := float64(obj.GetCreationTimestamp().Time.Unix())
+	ttlSeconds := int64(ttl.Seconds())
+	if ttlSeconds <= 0 {
+		ttlSeconds = int64((time.Hour).Seconds())
+	}
+
+	client := valkey.GetValkeyClient()
+	cmds := []vgo.Completed{
+		client.B().Multi().Build(),
+		client.B().Set().Key(primaryKey).Value(string(payload)).ExSeconds(ttlSeconds).Build(),
+		client.B().Zadd().Key(byCreationKey).ScoreMember().ScoreMember(creationScore, name).Build(),
+		client.B().Expire().Key(byCreationKey).Seconds(ttlSeconds).Build(),
+		client.B().Zadd().Key(byNameKey).ScoreMember().ScoreMember(0, name).Build(),
+		client.B().Expire().Key(byNameKey).Seconds(ttlSeconds).Build(),
+		client.B().Exec().Build(),
+	}
+
+	for _, resp := range client.DoMulti(valkey.GetContext(), cmds...) {
+		if rerr := resp.Error(); rerr != nil {
+			return fmt.Errorf("set resource with index pipeline: %w", rerr)
+		}
+	}
+	return nil
+}
+
+// DeleteResourceWithIndex removes the primary key and both index members in
+// one MULTI/EXEC so a paginated read never resolves an index member to a
+// missing key (again, modulo TTL expiry).
+func DeleteResourceWithIndex(
+	valkey valkeyclient.ValkeyClient,
+	apiVersion, kind, namespace, name string,
+) error {
+	primaryKey := CreateResourceKey(apiVersion, kind, namespace, name)
+	byCreationKey := resourceIndexKey(apiVersion, kind, namespace, resourceIndexSortByCreation)
+	byNameKey := resourceIndexKey(apiVersion, kind, namespace, resourceIndexSortByName)
+
+	client := valkey.GetValkeyClient()
+	cmds := []vgo.Completed{
+		client.B().Multi().Build(),
+		client.B().Del().Key(primaryKey).Build(),
+		client.B().Zrem().Key(byCreationKey).Member(name).Build(),
+		client.B().Zrem().Key(byNameKey).Member(name).Build(),
+		client.B().Exec().Build(),
+	}
+
+	for _, resp := range client.DoMulti(valkey.GetContext(), cmds...) {
+		if rerr := resp.Error(); rerr != nil {
+			return fmt.Errorf("delete resource with index pipeline: %w", rerr)
+		}
+	}
+	return nil
+}
+
+// indexShard identifies a single (apiVersion, kind, namespace) ZSET shard
+// participating in a multi-kind/multi-namespace paginated read.
+type indexShard struct {
+	apiVersion string
+	kind       string
+	namespace  string
+}
+
+// rankedMember carries one ZSET member with the shard it came from and the
+// score used to merge across shards. For sortBy==name the score is always 0
+// and the merge compares Member strings instead.
+type rankedMember struct {
+	shard  indexShard
+	member string
+	score  float64
+}
+
+// GetResourcesByWhitelistPaginated paginates across every (apiVersion, kind,
+// namespace) shard derived from whitelist + namespaceWhitelist. Each shard is
+// one ZSET in the secondary index. The function reads up to (offset+limit)
+// top members from each shard, merges them by sort key, slices the global
+// page, and MGETs only that page from the primary keys.
+//
+// whitelist          - resource descriptors to include. Must contain at least
+//
+//	one entry; this path is intentionally narrower than
+//	GetWorkspaceResources because pagination over "every
+//	resource kind in the cluster" doesn't have a meaningful
+//	ordering across heterogeneous kinds.
+//
+// blacklist          - descriptors to drop from whitelist (mirrors
+//
+//	GetWorkspaceResources for symmetry).
+//
+// namespaceWhitelist - namespaces to include per (apiVersion, kind). Empty
+//
+//	means "all namespaces": the function discovers them by
+//	scanning index keys, which is cheap because there's
+//	one key per namespace per kind, not one per resource.
+//
+// totalCount is the sum of ZCARDs across the matching shards. Stale members
+// (primary key already expired but ZSET member still present) are filtered
+// out of items via MGET nil responses; totalCount still includes them since
+// the watcher's next resync overwrites the index.
+func GetResourcesByWhitelistPaginated(
+	valkey valkeyclient.ValkeyClient,
+	whitelist []*utils.ResourceDescriptor,
+	blacklist []*utils.ResourceDescriptor,
+	namespaceWhitelist []string,
+	offset, limit int,
+	sortBy, sortOrder string,
+	logger *slog.Logger,
+) (PaginatedResources, error) {
+	if offset < 0 {
+		offset = 0
+	}
+	if len(whitelist) == 0 {
+		return PaginatedResources{Items: []unstructured.Unstructured{}, TotalCount: 0}, nil
+	}
+
+	useNameSort := sortBy == sortByName
+	sortType := resourceIndexSortByCreation
+	if useNameSort {
+		sortType = resourceIndexSortByName
+	}
+
+	shards, err := resolveIndexShards(valkey, whitelist, blacklist, namespaceWhitelist, sortType)
+	if err != nil {
+		logger.Error("failed to resolve index shards for paginated read", "error", err)
+		return PaginatedResources{Items: []unstructured.Unstructured{}}, err
+	}
+	if len(shards) == 0 {
+		return PaginatedResources{Items: []unstructured.Unstructured{}, TotalCount: 0}, nil
+	}
+
+	// How many members we need from each shard to guarantee the global page
+	// can be filled: offset+limit is the worst case (one shard contributes
+	// everything). limit<=0 means "no upper bound" - we have to pull the
+	// whole shard.
+	perShardCount := offset + limit
+	pullAll := limit <= 0
+
+	all := make([]rankedMember, 0)
+	total := 0
+	for _, shard := range shards {
+		indexKey := resourceIndexKey(shard.apiVersion, shard.kind, shard.namespace, sortType)
+
+		members, shardTotal, err := readShardTopMembers(valkey, indexKey, sortOrder, perShardCount, pullAll, useNameSort)
+		if err != nil {
+			logger.Warn("failed to read shard for paginated index",
+				"indexKey", indexKey, "error", err)
+			continue
+		}
+		total += shardTotal
+		for _, m := range members {
+			all = append(all, rankedMember{shard: shard, member: m.Member, score: m.Score})
+		}
+	}
+
+	if len(all) == 0 {
+		return PaginatedResources{Items: []unstructured.Unstructured{}, TotalCount: total}, nil
+	}
+
+	sortRankedMembers(all, useNameSort, sortOrder)
+
+	if offset >= len(all) {
+		return PaginatedResources{Items: []unstructured.Unstructured{}, TotalCount: total}, nil
+	}
+	end := offset + limit
+	if pullAll || end > len(all) {
+		end = len(all)
+	}
+	page := all[offset:end]
+
+	keys := make([]string, 0, len(page))
+	for _, rm := range page {
+		keys = append(keys, CreateResourceKey(rm.shard.apiVersion, rm.shard.kind, rm.shard.namespace, rm.member))
+	}
+
+	client := valkey.GetValkeyClient()
+	values, err := client.Do(valkey.GetContext(), client.B().Mget().Key(keys...).Build()).ToArray()
+	if err != nil {
+		logger.Error("failed to MGET paginated whitelist resources", "error", err)
+		return PaginatedResources{Items: []unstructured.Unstructured{}, TotalCount: total}, err
+	}
+
+	items := make([]unstructured.Unstructured, 0, len(values))
+	for i, v := range values {
+		raw, err := v.ToString()
+		if err != nil {
+			if errors.Is(err, vgo.Nil) {
+				continue
+			}
+			logger.Warn("paginated MGET entry not readable", "key", keys[i], "error", err)
+			continue
+		}
+		var obj unstructured.Unstructured
+		if err := json.Unmarshal([]byte(raw), &obj); err != nil {
+			logger.Warn("failed to unmarshal paginated resource", "key", keys[i], "error", err)
+			continue
+		}
+		items = append(items, obj)
+	}
+
+	return PaginatedResources{Items: items, TotalCount: total}, nil
+}
+
+// resolveIndexShards expands (whitelist - blacklist) x namespaceWhitelist into
+// concrete shards. When namespaceWhitelist is empty, it discovers namespaces
+// per (apiVersion, kind) by scanning index keys - one key per namespace per
+// kind, so the scan cost is bounded by the number of namespaces the kind lives
+// in, not the number of resources.
+func resolveIndexShards(
+	valkey valkeyclient.ValkeyClient,
+	whitelist []*utils.ResourceDescriptor,
+	blacklist []*utils.ResourceDescriptor,
+	namespaceWhitelist []string,
+	sortType string,
+) ([]indexShard, error) {
+	blacklisted := make(map[string]struct{}, len(blacklist))
+	for _, b := range blacklist {
+		if b == nil {
+			continue
+		}
+		blacklisted[b.ApiVersion+"/"+b.Kind] = struct{}{}
+	}
+
+	shards := make([]indexShard, 0, len(whitelist))
+	for _, w := range whitelist {
+		if w == nil {
+			continue
+		}
+		if _, skip := blacklisted[w.ApiVersion+"/"+w.Kind]; skip {
+			continue
+		}
+
+		if len(namespaceWhitelist) > 0 {
+			for _, ns := range namespaceWhitelist {
+				shards = append(shards, indexShard{apiVersion: w.ApiVersion, kind: w.Kind, namespace: ns})
+			}
+			continue
+		}
+
+		// Cluster-wide: discover namespaces from existing index keys for
+		// this (apiVersion, kind). The pattern is one key per namespace per
+		// sort type, so the result set is small.
+		pattern := resourceIndexKey(w.ApiVersion, w.Kind, "*", sortType)
+		keys, err := valkey.Keys(pattern)
+		if err != nil {
+			return nil, fmt.Errorf("discover namespaces for %s/%s: %w", w.ApiVersion, w.Kind, err)
+		}
+		// Each matching key is shaped "resources-idx:<api>:<kind>:<ns>:<sortType>".
+		// Strip the prefix "resources-idx:<api>:<kind>:" and the suffix
+		// ":<sortType>" to recover the namespace segment.
+		leading := strings.Join([]string{VALKEY_RESOURCE_INDEX_PREFIX, w.ApiVersion, w.Kind, ""}, ":")
+		trailing := ":" + sortType
+		for _, k := range keys {
+			ns := strings.TrimPrefix(k, leading)
+			ns = strings.TrimSuffix(ns, trailing)
+			shards = append(shards, indexShard{apiVersion: w.ApiVersion, kind: w.Kind, namespace: ns})
+		}
+	}
+	return shards, nil
+}
+
+// readShardTopMembers fetches the top members from a single shard together
+// with their scores. count is the number of members to pull (offset+limit
+// from the multi-shard caller). pullAll bypasses the count and reads the
+// whole ZSET, needed when the outer call has no limit.
+func readShardTopMembers(
+	valkey valkeyclient.ValkeyClient,
+	indexKey string,
+	sortOrder string,
+	count int,
+	pullAll bool,
+	useNameSort bool,
+) ([]vgo.ZScore, int, error) {
+	client := valkey.GetValkeyClient()
+	ctx := valkey.GetContext()
+
+	totalI64, err := client.Do(ctx, client.B().Zcard().Key(indexKey).Build()).AsInt64()
+	if err != nil {
+		return nil, 0, fmt.Errorf("zcard: %w", err)
+	}
+	total := int(totalI64)
+	if total == 0 {
+		return nil, 0, nil
+	}
+	if pullAll || count > total {
+		count = total
+	}
+	if count <= 0 {
+		return nil, total, nil
+	}
+
+	if useNameSort {
+		// score is always 0 in the by-name index; we don't need WITHSCORES,
+		// the merge will sort lex on Member. Use ZRANGEBYLEX with LIMIT to
+		// only pull the slice we need from each shard.
+		desc := sortOrder == sortOrderDesc
+		var cmd vgo.Completed
+		if desc {
+			cmd = client.B().Zrevrangebylex().Key(indexKey).Max("+").Min("-").Limit(0, int64(count)).Build()
+		} else {
+			cmd = client.B().Zrangebylex().Key(indexKey).Min("-").Max("+").Limit(0, int64(count)).Build()
+		}
+		names, err := client.Do(ctx, cmd).AsStrSlice()
+		if err != nil {
+			return nil, total, fmt.Errorf("zrangebylex: %w", err)
+		}
+		out := make([]vgo.ZScore, 0, len(names))
+		for _, n := range names {
+			out = append(out, vgo.ZScore{Member: n, Score: 0})
+		}
+		return out, total, nil
+	}
+
+	// creationTimestamp index: default desc (newest first) when no order given.
+	desc := sortOrder != sortOrderAsc
+	var cmd vgo.Completed
+	if desc {
+		cmd = client.B().Zrevrange().Key(indexKey).Start(0).Stop(int64(count - 1)).Withscores().Build()
+	} else {
+		cmd = client.B().Zrange().Key(indexKey).Min("0").Max(strconv.Itoa(count - 1)).Withscores().Build()
+	}
+	scores, err := client.Do(ctx, cmd).AsZScores()
+	if err != nil {
+		return nil, total, fmt.Errorf("zrange withscores: %w", err)
+	}
+	return scores, total, nil
+}
+
+// sortRankedMembers orders the merged member list in place using the same
+// rules as the single-shard paginated path: creationTimestamp defaults to
+// desc, name to asc, with the resource name as a tiebreaker so the order is
+// stable across requests.
+func sortRankedMembers(items []rankedMember, useNameSort bool, sortOrder string) {
+	if useNameSort {
+		desc := sortOrder == sortOrderDesc
+		sort.SliceStable(items, func(i, j int) bool {
+			if items[i].member == items[j].member {
+				return false
+			}
+			if desc {
+				return items[i].member > items[j].member
+			}
+			return items[i].member < items[j].member
+		})
+		return
+	}
+
+	desc := sortOrder != sortOrderAsc
+	sort.SliceStable(items, func(i, j int) bool {
+		if items[i].score == items[j].score {
+			return items[i].member < items[j].member
+		}
+		if desc {
+			return items[i].score > items[j].score
+		}
+		return items[i].score < items[j].score
+	})
 }
 
 func GetIngressClasses() []networkingv1.IngressClass {
