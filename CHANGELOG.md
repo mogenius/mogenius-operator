@@ -1,3 +1,10 @@
+# [2.21.0-develop.23](https://github.com/mogenius/mogenius-operator/compare/v2.21.0-develop.22...v2.21.0-develop.23) (2026-05-29)
+
+
+### Bug Fixes
+
+* helm upgrade fix ([80c4765](https://github.com/mogenius/mogenius-operator/commit/80c4765c6fea147e2d9167a4108079486bce2cc9))
+
 # [2.21.0-develop.22](https://github.com/mogenius/mogenius-operator/compare/v2.21.0-develop.21...v2.21.0-develop.22) (2026-05-28)
 
 
