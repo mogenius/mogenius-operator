@@ -15,14 +15,13 @@
   command: ["/bin/sh", "-c"]
   args:
     - |
-      set -e
       echo "waiting for valkey at $VALKEY_HOST:$VALKEY_PORT..."
-      TIMEOUT=120
+      TIMEOUT=60
       ELAPSED=0
       until valkey-cli -h "$VALKEY_HOST" -p "$VALKEY_PORT" -a "$VALKEY_PASSWORD" --no-auth-warning ping 2>/dev/null | grep -q PONG; do
         if [ "$ELAPSED" -ge "$TIMEOUT" ]; then
-          echo "timed out after ${TIMEOUT}s waiting for valkey, failing init container"
-          exit 1
+          echo "valkey not reachable after ${TIMEOUT}s — starting anyway, main container will retry with backoff"
+          exit 0
         fi
         echo "valkey not ready, retrying in 2s..."
         sleep 2
