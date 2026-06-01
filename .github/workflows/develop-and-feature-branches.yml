@@ -13,23 +13,9 @@ on:
       - "**"
       - "!main"
       - "develop"
-    # paths:
-    #   - 'operator/**'
-    #   - 'src/**'
-    #   - 'go.mod'
-    #   - 'go.sum'
-    #   - 'Dockerfile-ng'
-    #   - 'Dockerfile'
-    #   - 'README.md'
-    #   - '.github/workflows/build-operator.yml'
 
 
 env:
-  IMAGE_NAME: ghcr.io/mogenius/mogenius-operator-dev
-  REGISTRY: ghcr.io
-  DOCKER_CONFIG: ./.docker
-  HELMREPO: "mogenius/helm-k8s-manager"
-
   REGISTRY_PREFIX: ghcr.io/mogenius
   HELMNAME: "mogenius-operator-dev"
 
@@ -50,189 +36,38 @@ jobs:
   # ============================================================================
   # Build Operator - Native builds per architecture
   # ============================================================================
-  operator-amd64:
+  build-operator:
     needs: [prepare]
-    runs-on: arc-runner-set-amd64
-    permissions:
-      contents: read
-      packages: write
-    outputs:
-      digest: ${{ steps.build.outputs.digest }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and push
-        id: build
-        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7
-        with:
-          context: .
-          file: ./Dockerfile
-          platforms: linux/amd64
-          push: true
-          tags: ${{ env.REGISTRY_PREFIX }}/mogenius-operator-dev:${{ needs.prepare.outputs.version }}-amd64
-          build-args: |
-            GO_BUILDER_IMAGE=${{ env.REGISTRY_PREFIX }}/go-builder:latest-amd64
-            RUST_BUILDER_IMAGE=${{ env.REGISTRY_PREFIX }}/rust-builder:latest-amd64
-            BPFTOOL_IMAGE=${{ env.REGISTRY_PREFIX }}/bpftool:latest-amd64
-            SNOOPY_IMAGE=${{ env.REGISTRY_PREFIX }}/snoopy:latest-amd64
-            RUNTIME_IMAGE=${{ env.REGISTRY_PREFIX }}/runtime:latest-amd64
-            COMMIT_HASH=${{ needs.prepare.outputs.commit_hash }}
-            GIT_BRANCH=${{ needs.prepare.outputs.git_branch }}
-            BUILD_TIMESTAMP=${{ needs.prepare.outputs.build_timestamp }}
-            VERSION=${{ needs.prepare.outputs.version }}
-            DEV_BUILD=yes
-          # cache-from: type=gha,scope=operator-amd64
-          # cache-to: type=gha,mode=max,scope=operator-amd64
-
-  operator-arm64:
-    needs: [prepare]
-    runs-on: arc-runner-set-arm64
-    permissions:
-      contents: read
-      packages: write
-    outputs:
-      digest: ${{ steps.build.outputs.digest }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and push
-        id: build
-        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7
-        with:
-          context: .
-          file: ./Dockerfile
-          platforms: linux/arm64
-          push: true
-          tags: ${{ env.REGISTRY_PREFIX }}/mogenius-operator-dev:${{ needs.prepare.outputs.version }}-arm64
-          build-args: |
-            GO_BUILDER_IMAGE=${{ env.REGISTRY_PREFIX }}/go-builder:latest-arm64
-            RUST_BUILDER_IMAGE=${{ env.REGISTRY_PREFIX }}/rust-builder:latest-arm64
-            BPFTOOL_IMAGE=${{ env.REGISTRY_PREFIX }}/bpftool:latest-arm64
-            SNOOPY_IMAGE=${{ env.REGISTRY_PREFIX }}/snoopy:latest-arm64
-            RUNTIME_IMAGE=${{ env.REGISTRY_PREFIX }}/runtime:latest-arm64
-            COMMIT_HASH=${{ needs.prepare.outputs.commit_hash }}
-            GIT_BRANCH=${{ needs.prepare.outputs.git_branch }}
-            BUILD_TIMESTAMP=${{ needs.prepare.outputs.build_timestamp }}
-            VERSION=${{ needs.prepare.outputs.version }}
-            DEV_BUILD=yes
-          # cache-from: type=gha,scope=operator-arm64
-          # cache-to: type=gha,mode=max,scope=operator-arm64
-
-  operator-armv7:
-    needs: [prepare]
-    # Cross-compile on amd64 - much faster than QEMU emulation
-    runs-on: arc-runner-set-amd64
-    permissions:
-      contents: read
-      packages: write
-    outputs:
-      digest: ${{ steps.build.outputs.digest }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a # v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      # Note: armv7 uses arm64 bpftool image (bpftool doesn't support armv7)
-      - name: Build and push
-        id: build
-        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7
-        with:
-          context: .
-          file: ./Dockerfile
-          platforms: linux/arm/v7
-          push: true
-          tags: ${{ env.REGISTRY_PREFIX }}/mogenius-operator-dev:${{ needs.prepare.outputs.version }}-armv7
-          build-args: |
-            GO_BUILDER_IMAGE=${{ env.REGISTRY_PREFIX }}/go-builder:latest-amd64
-            RUST_BUILDER_IMAGE=${{ env.REGISTRY_PREFIX }}/rust-builder:latest-amd64
-            BPFTOOL_IMAGE=${{ env.REGISTRY_PREFIX }}/bpftool:latest-armv7
-            SNOOPY_IMAGE=${{ env.REGISTRY_PREFIX }}/snoopy:latest-armv7
-            RUNTIME_IMAGE=${{ env.REGISTRY_PREFIX }}/runtime:latest-armv7
-            COMMIT_HASH=${{ needs.prepare.outputs.commit_hash }}
-            GIT_BRANCH=${{ needs.prepare.outputs.git_branch }}
-            BUILD_TIMESTAMP=${{ needs.prepare.outputs.build_timestamp }}
-            VERSION=${{ needs.prepare.outputs.version }}
-            DEV_BUILD=yes
-          # cache-from: type=gha,scope=operator-armv7
-          # cache-to: type=gha,mode=max,scope=operator-armv7
-
-
-  # ============================================================================
-  # Create Multi-Arch Manifest
-  # ============================================================================
-  operator-manifest:
-    needs: [prepare, operator-amd64, operator-arm64, operator-armv7]
-    # runs-on: arc-runner-set-amd64
-    runs-on: arc-runner-set-arm64
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Create and push manifest
-        env:
-          VERSION: ${{ needs.prepare.outputs.version }}
-        run: |
-          # Create manifest for version tag
-          docker buildx imagetools create -t ${{ env.REGISTRY_PREFIX }}/mogenius-operator-dev:${VERSION} \
-            ${{ env.REGISTRY_PREFIX }}/mogenius-operator-dev:${VERSION}-amd64 \
-            ${{ env.REGISTRY_PREFIX }}/mogenius-operator-dev:${VERSION}-arm64 \
-            ${{ env.REGISTRY_PREFIX }}/mogenius-operator-dev:${VERSION}-armv7
-
-          # Create manifest for latest (only on main branch)
-          if [ "${{ github.ref_name }}" == "main" ]; then
-            docker buildx imagetools create -t ${{ env.REGISTRY_PREFIX }}/mogenius-operator-dev:latest \
-              ${{ env.REGISTRY_PREFIX }}/mogenius-operator-dev:${VERSION}-amd64 \
-              ${{ env.REGISTRY_PREFIX }}/mogenius-operator-dev:${VERSION}-arm64 \
-              ${{ env.REGISTRY_PREFIX }}/mogenius-operator-dev:${VERSION}-armv7
-          fi
+    uses: mogenius/github-actions/.github/workflows/build-multiarch.yml@27822e16d951ac5b04a35d4a6d65e1cd18e8e0bf # main
+    secrets: inherit
+    with:
+      version: ${{ needs.prepare.outputs.version }}
+      image: ghcr.io/mogenius/mogenius-operator-dev
+      push_latest: ${{ github.ref_name == 'main' }}
+      build_args: |
+        DEV_BUILD=yes
+      build_args_amd64: |
+        GO_BUILDER_IMAGE=ghcr.io/mogenius/go-builder:latest-amd64
+        RUST_BUILDER_IMAGE=ghcr.io/mogenius/rust-builder:latest-amd64
+        BPFTOOL_IMAGE=ghcr.io/mogenius/bpftool:latest-amd64
+        SNOOPY_IMAGE=ghcr.io/mogenius/snoopy:latest-amd64
+        RUNTIME_IMAGE=ghcr.io/mogenius/runtime:latest-amd64
+      build_args_arm64: |
+        GO_BUILDER_IMAGE=ghcr.io/mogenius/go-builder:latest-arm64
+        RUST_BUILDER_IMAGE=ghcr.io/mogenius/rust-builder:latest-arm64
+        BPFTOOL_IMAGE=ghcr.io/mogenius/bpftool:latest-arm64
+        SNOOPY_IMAGE=ghcr.io/mogenius/snoopy:latest-arm64
+        RUNTIME_IMAGE=ghcr.io/mogenius/runtime:latest-arm64
+      build_args_armv7: |
+        GO_BUILDER_IMAGE=ghcr.io/mogenius/go-builder:latest-amd64
+        RUST_BUILDER_IMAGE=ghcr.io/mogenius/rust-builder:latest-amd64
+        BPFTOOL_IMAGE=ghcr.io/mogenius/bpftool:latest-armv7
+        SNOOPY_IMAGE=ghcr.io/mogenius/snoopy:latest-armv7
+        RUNTIME_IMAGE=ghcr.io/mogenius/runtime:latest-armv7
 
   helm-chart:
     if: github.ref == 'refs/heads/develop'
-    needs: [prepare, operator-manifest]
+    needs: [prepare, build-operator]
     runs-on: [self-hosted]
     permissions:
       contents: read
