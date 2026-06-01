@@ -2,6 +2,7 @@ package core
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"log/slog"
 	"mogenius-operator/src/assert"
@@ -18,6 +19,18 @@ import (
 	"strconv"
 	"time"
 )
+
+// sleepCtx returns false when ctx is done so the caller can exit its loop.
+func sleepCtx(ctx context.Context, d time.Duration) bool {
+	t := time.NewTimer(d)
+	defer t.Stop()
+	select {
+	case <-ctx.Done():
+		return false
+	case <-t.C:
+		return true
+	}
+}
 
 type NodeMetricsCollector interface {
 	// Run the nodemetrics collector locally.
@@ -151,6 +164,9 @@ func (self *nodeMetricsCollector) Run() {
 	nodeName := self.config.Get("OWN_NODE_NAME")
 	assert.Assert(nodeName != "", "OWN_NODE_NAME has to be defined and non-empty", nodeName)
 
+	ctx, cancel := context.WithCancel(context.Background())
+	shutdown.Add(cancel)
+
 	// node-stats monitor
 	go func() {
 		machinestats := structs.MachineStats{
@@ -161,7 +177,9 @@ func (self *nodeMetricsCollector) Run() {
 			if err != nil {
 				self.logger.Warn("failed to write machine stats for node", "node", nodeName, "error", err)
 			}
-			time.Sleep(1 * time.Minute)
+			if !sleepCtx(ctx, 1*time.Minute) {
+				return
+			}
 		}
 	}()
 
@@ -172,7 +190,9 @@ func (self *nodeMetricsCollector) Run() {
 			for {
 				metrics := self.networkMonitor.GetPodNetworkUsage()
 				self.statsDb.AddInterfaceStatsToDb(metrics)
-				time.Sleep(60 * time.Second)
+				if !sleepCtx(ctx, 60*time.Second) {
+					return
+				}
 			}
 		}()
 		go func() {
@@ -183,19 +203,25 @@ func (self *nodeMetricsCollector) Run() {
 				if err != nil {
 					self.logger.Error("failed to add node traffic metrics", "error", err)
 				}
-				time.Sleep(1 * time.Second)
+				if !sleepCtx(ctx, 1*time.Second) {
+					return
+				}
 			}
 		}()
 		go func() {
 			// offset: 200ms
-			time.Sleep(200 * time.Millisecond)
+			if !sleepCtx(ctx, 200*time.Millisecond) {
+				return
+			}
 			for {
 				status := self.networkMonitor.Snoopy().Status()
 				err := self.statsDb.AddSnoopyStatusToDb(nodeName, status)
 				if err != nil {
 					self.logger.Error("failed to store snoopy status", "error", err)
 				}
-				time.Sleep(1 * time.Second)
+				if !sleepCtx(ctx, 1*time.Second) {
+					return
+				}
 			}
 		}()
 	}()
@@ -203,52 +229,68 @@ func (self *nodeMetricsCollector) Run() {
 	// cpu usage
 	go func() {
 		// offset: 400ms
-		time.Sleep(400 * time.Millisecond)
+		if !sleepCtx(ctx, 400*time.Millisecond) {
+			return
+		}
 		for {
 			metrics := self.cpuMonitor.CpuUsageGlobal()
 			err := self.statsDb.AddNodeCpuMetricsToDb(nodeName, metrics)
 			if err != nil {
 				self.logger.Error("failed to add node cpu metrics", "error", err)
 			}
-			time.Sleep(1 * time.Second)
+			if !sleepCtx(ctx, 1*time.Second) {
+				return
+			}
 		}
 	}()
 	go func() {
 		// offset: 600ms
-		time.Sleep(600 * time.Millisecond)
+		if !sleepCtx(ctx, 600*time.Millisecond) {
+			return
+		}
 		for {
 			metrics := self.cpuMonitor.CpuUsageProcesses()
 			err := self.statsDb.AddNodeCpuProcessMetricsToDb(nodeName, metrics)
 			if err != nil {
 				self.logger.Error("failed to add node cpu proc metrics", "error", err)
 			}
-			time.Sleep(1 * time.Second)
+			if !sleepCtx(ctx, 1*time.Second) {
+				return
+			}
 		}
 	}()
 
 	// ram usage
 	go func() {
 		// offset: 800ms
-		time.Sleep(800 * time.Millisecond)
+		if !sleepCtx(ctx, 800*time.Millisecond) {
+			return
+		}
 		for {
 			metrics := self.ramMonitor.RamUsageGlobal()
 			err := self.statsDb.AddNodeRamMetricsToDb(nodeName, metrics)
 			if err != nil {
 				self.logger.Error("failed to add node ram metrics", "error", err)
 			}
-			time.Sleep(1 * time.Second)
+			if !sleepCtx(ctx, 1*time.Second) {
+				return
+			}
 		}
 	}()
 	go func() {
 		// offset: 1000ms
-		time.Sleep(1000 * time.Millisecond)
+		if !sleepCtx(ctx, 1000*time.Millisecond) {
+			return
+		}
 		for {
 			metrics := self.ramMonitor.RamUsageProcesses()
 			err := self.statsDb.AddNodeRamProcessMetricsToDb(nodeName, metrics)
 			if err != nil {
 				self.logger.Error("failed to add node ram proc metrics", "error", err)
 			}
-			time.Sleep(1 * time.Second)
+			if !sleepCtx(ctx, 1*time.Second) {
+				return
+			}
 		}
 	}()
 }

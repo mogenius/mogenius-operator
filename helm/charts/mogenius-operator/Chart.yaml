@@ -6,6 +6,7 @@ description: "mogenius-operator"
 home: https://mogenius.com
 icon: https://avatars.githubusercontent.com/u/92862356
 sources: 
+  - https://github.com/mogenius/mogenius-operator
   - https://helm.mogenius.com/public
   - oci://ghcr.io/mogenius/helm-charts/mogenius-operator
 maintainers:

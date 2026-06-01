@@ -126,7 +126,7 @@ func GetWorkloadStatusItems(
 	if err != nil {
 		k8sLogger.Warn("Error getting replicas", "error", err)
 	} else if found {
-		replicas = utils.Pointer(int(replicasInt64))
+		replicas = new(int(replicasInt64))
 	}
 
 	// Extract other relevant fields: ClusterIP, Type, and Status.

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"math/rand/v2"
 	"mogenius-operator/src/assert"
 	"net/http"
 	"net/url"
@@ -17,6 +18,32 @@ import (
 
 	gorillaWebsocket "github.com/gorilla/websocket"
 )
+
+// writeDeadline bounds how long a single websocket write may block.
+// Without this a slow/stuck peer wedges the entire write thread.
+const writeDeadline = 10 * time.Second
+
+// reconnectBackoff returns an exponentially increasing wait time with
+// +/-20% jitter, capped at 30s. Avoids hammering the platform API
+// during outages and prevents synchronized reconnect storms across
+// multiple operator replicas.
+func reconnectBackoff(attempt int) time.Duration {
+	const base = 500 * time.Millisecond
+	const cap = 30 * time.Second
+	shift := attempt - 1
+	if shift < 0 {
+		shift = 0
+	}
+	if shift > 6 { // 500ms << 6 = 32s, clamp before overflow risk
+		shift = 6
+	}
+	d := base << shift
+	if d > cap {
+		d = cap
+	}
+	jitter := 1.0 + (rand.Float64()*0.4 - 0.2)
+	return time.Duration(float64(d) * jitter)
+}
 
 // #############################
 // # +-----------------------+ #
@@ -538,6 +565,7 @@ func (self *websocketClient) startWriteThread() {
 			return
 		case <-pingTicker.C:
 			assert.Assert(self.connection != nil)
+			_ = self.connection.SetWriteDeadline(time.Now().Add(writeDeadline))
 			err := self.connection.WriteMessage(gorillaWebsocket.PingMessage, nil)
 			if err != nil {
 				self.writeLogger.Debug("failed to send ping", "error", err)
@@ -547,6 +575,7 @@ func (self *websocketClient) startWriteThread() {
 			// Process queued writes without blocking the caller
 			assert.Assert(self.connection != nil)
 			self.writeLogger.Debug("WriteJSON from queue", "data", data, "remainingInQueue", len(self.writeQueue))
+			_ = self.connection.SetWriteDeadline(time.Now().Add(writeDeadline))
 			err := self.connection.WriteJSON(data)
 			if err != nil {
 				self.writeLogger.Error("WriteJSON from queue failed", "error", err)
@@ -555,6 +584,7 @@ func (self *websocketClient) startWriteThread() {
 		case val := <-self.apiWriteMessageTx:
 			assert.Assert(self.connection != nil)
 			self.writeLogger.Debug("WriteMessage", "type", val.messageType, "data", val.data)
+			_ = self.connection.SetWriteDeadline(time.Now().Add(writeDeadline))
 			err := self.connection.WriteMessage(val.messageType, val.data)
 			self.writeLogger.Debug("WriteMessage", "error", err)
 			self.apiWriteMessageRx <- err
@@ -562,6 +592,7 @@ func (self *websocketClient) startWriteThread() {
 		case data := <-self.apiWriteJsonTx:
 			assert.Assert(self.connection != nil)
 			self.writeLogger.Debug("WriteJSON", "data", data)
+			_ = self.connection.SetWriteDeadline(time.Now().Add(writeDeadline))
 			err := self.connection.WriteJSON(data)
 			self.writeLogger.Debug("WriteJSON", "error", err)
 			self.apiWriteJsonRx <- err
@@ -569,6 +600,7 @@ func (self *websocketClient) startWriteThread() {
 		case <-self.internalSendCloseMessageTx:
 			assert.Assert(self.connection != nil)
 			self.writeLogger.Debug("sending close message")
+			_ = self.connection.SetWriteDeadline(time.Now().Add(writeDeadline))
 			err := self.connection.WriteMessage(
 				gorillaWebsocket.CloseMessage,
 				gorillaWebsocket.FormatCloseMessage(
@@ -635,7 +667,7 @@ func (self *websocketClient) requestReconnect() {
 				attempts := 0
 				for !self.IsTerminated() {
 					attempts += 1
-					time.Sleep(500 * time.Millisecond)
+					time.Sleep(reconnectBackoff(attempts))
 					err = self.Connect()
 					if err != nil {
 						if attempts%10 == 0 {

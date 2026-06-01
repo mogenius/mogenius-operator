@@ -12,7 +12,6 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/utils/ptr"
 )
 
 // restart deployments/daemonsets for operator
@@ -47,7 +46,7 @@ func ClusterForceDisconnect() bool {
 		return false
 	}
 	deploymentClient := clientset.AppsV1().Deployments(namespace)
-	deployment.Spec.Replicas = utils.Pointer[int32](0)
+	deployment.Spec.Replicas = new(int32(0))
 	_, err := deploymentClient.Update(context.Background(), deployment, metav1.UpdateOptions{})
 	if err != nil {
 		k8sLogger.Error("Error updating deployment", "deployment", deployment, "error", err)
@@ -148,7 +147,7 @@ func GetOwnDeploymentOwnerReference(clientset *kubernetes.Clientset, config cfg.
 			Kind:       "Deployment",
 			Name:       ownDeployment.GetName(),
 			UID:        ownDeployment.GetUID(),
-			Controller: ptr.To(true),
+			Controller: new(true),
 		},
 	}
 

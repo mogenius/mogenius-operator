@@ -59,6 +59,7 @@ ARG COMMIT_HASH=NOT_SET
 ARG GIT_BRANCH=NOT_SET
 ARG BUILD_TIMESTAMP=NOT_SET
 ARG VERSION=NOT_SET
+ARG DEV_BUILD=no
 
 # Download dependencies first (better layer caching)
 COPY go.mod go.sum ./
@@ -89,6 +90,7 @@ RUN set -e && \
     go build -v -trimpath \
         -gcflags='all=-l' \
         -ldflags="-s -w \
+            -X mogenius-operator/src/utils.DevBuild=${DEV_BUILD} \
             -X mogenius-operator/src/version.GitCommitHash=${COMMIT_HASH} \
             -X mogenius-operator/src/version.Branch=${GIT_BRANCH} \
             -X mogenius-operator/src/version.BuildTimestamp=${BUILD_TIMESTAMP} \

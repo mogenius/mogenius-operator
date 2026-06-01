@@ -304,8 +304,10 @@ func (self *PrettyPrintHandler) startDebouncedPrinter() {
 			select {
 			case msg := <-self.logMessageTx:
 				if !slices.Contains(printedMessages, msg) {
-					_, err := self.out.Write([]byte(msg))
-					assert.Assert(err == nil, err)
+					// Writes to stderr/pipe can fail with EPIPE when a parent
+					// process disconnects (e.g. kubectl logs detaching). Drop
+					// the line rather than crashing the whole operator.
+					_, _ = self.out.Write([]byte(msg))
 					printedMessages = append(printedMessages, msg)
 					continue
 				}
@@ -333,8 +335,7 @@ func (self *PrettyPrintHandler) startDebouncedPrinter() {
 				messageQueue = []string{}
 
 				for _, messageWithCount := range messagesWithCount {
-					_, err := self.out.Write([]byte("(" + strconv.FormatUint(uint64(messageWithCount.count), 10) + "x)" + messageWithCount.message))
-					assert.Assert(err == nil, err)
+					_, _ = self.out.Write([]byte("(" + strconv.FormatUint(uint64(messageWithCount.count), 10) + "x)" + messageWithCount.message))
 				}
 			}
 		}
@@ -373,6 +374,14 @@ func (self *PrettyPrintHandler) Handle(ctx context.Context, record slog.Record) 
 	return nil
 }
 
+// WithAttrs returns a new handler that shares the parent's debounced
+// printer goroutine. Previously each call spawned its own goroutine on
+// a fresh channel - slog calls With() liberally (once per component
+// during init, occasionally per scope), and each handler instance kept
+// its goroutine alive for the rest of the process lifetime. Sharing
+// the channel also makes the per-second message dedup work across
+// scopes (otherwise every scope had its own dedup window and
+// duplicates between scopes were never collapsed).
 func (self *PrettyPrintHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 	other := &PrettyPrintHandler{}
 
@@ -383,8 +392,7 @@ func (self *PrettyPrintHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 	other.attrs = append(self.attrs, attrs...)
 	other.group = self.group
 	other.filterFunc = self.filterFunc
-	other.logMessageTx = make(chan string)
-	other.startDebouncedPrinter()
+	other.logMessageTx = self.logMessageTx
 
 	return other
 }
@@ -399,8 +407,7 @@ func (self *PrettyPrintHandler) WithGroup(group string) slog.Handler {
 	other.attrs = self.attrs
 	other.group = group
 	other.filterFunc = self.filterFunc
-	other.logMessageTx = make(chan string)
-	other.startDebouncedPrinter()
+	other.logMessageTx = self.logMessageTx
 
 	return other
 }
@@ -520,13 +527,9 @@ func (self *RecordChannelHandler) Handle(ctx context.Context, record slog.Record
 	if !self.Enabled(ctx, record.Level) {
 		return nil
 	}
-	record.Attrs(func(attr slog.Attr) bool {
-		str, ok := attr.Value.Any().(string)
-		if ok && self.filterFunc != nil {
-			attr.Value = slog.StringValue(self.filterFunc(str))
-		}
-		return true
-	})
+	// Note: slogRecordToPayload below already applies filterFunc. The earlier
+	// in-place loop here was dead code — record.Attrs iterates by value, so
+	// attr.Value = ... did not mutate the underlying record.
 
 	component, err := self.getComponent()
 	assert.Assert(err == nil, "the SlogManager enforces an component attribute to exist", err)

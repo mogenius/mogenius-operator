@@ -8,6 +8,7 @@ import (
 	"mogenius-operator/src/config"
 	"mogenius-operator/src/k8sclient"
 	"mogenius-operator/src/podstatscollector"
+	"mogenius-operator/src/shutdown"
 	"mogenius-operator/src/store"
 	"mogenius-operator/src/structs"
 	"strconv"
@@ -65,7 +66,11 @@ func (self *podStatsCollector) Run() {
 	enabled, err := strconv.ParseBool(self.config.Get("MO_ENABLE_POD_STATS_COLLECTOR"))
 	assert.Assert(err == nil, err)
 	if enabled {
+		ctx, cancel := context.WithCancel(context.Background())
+		shutdown.Add(cancel)
+
 		go func() {
+			interval := time.Duration(self.updateInterval) * time.Second
 			for {
 				nodemetrics := self.getRealNodeMetrics()
 
@@ -77,13 +82,17 @@ func (self *podStatsCollector) Run() {
 
 				podsResult, err := self.podStats(nodemetrics, currentPods)
 				if err != nil {
-					time.Sleep(time.Duration(self.updateInterval) * time.Second)
+					if !sleepCtx(ctx, interval) {
+						return
+					}
 					continue
 				}
 				err = self.statsDb.AddPodStatsToDb(podsResult)
 				if err != nil {
 					self.logger.Debug("failed to store pod stats", "error", err)
-					time.Sleep(time.Duration(self.updateInterval) * time.Second)
+					if !sleepCtx(ctx, interval) {
+						return
+					}
 					continue
 				}
 
@@ -91,11 +100,15 @@ func (self *podStatsCollector) Run() {
 				err = self.statsDb.AddNodeStatsToDb(nodesResult)
 				if err != nil {
 					self.logger.Error("failed to store node stats", "stats", nodesResult, "error", err)
-					time.Sleep(time.Duration(self.updateInterval) * time.Second)
+					if !sleepCtx(ctx, interval) {
+						return
+					}
 					continue
 				}
 
-				time.Sleep(time.Duration(self.updateInterval) * time.Second)
+				if !sleepCtx(ctx, interval) {
+					return
+				}
 			}
 		}()
 	}

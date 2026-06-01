@@ -1,23 +1,30 @@
 package core
 
 import (
+	"context"
+	"errors"
 	"log/slog"
 	"mogenius-operator/src/assert"
 	cfg "mogenius-operator/src/config"
 	"mogenius-operator/src/logging"
+	moreconciler "mogenius-operator/src/reconciler"
+	"mogenius-operator/src/shutdown"
 	"mogenius-operator/src/structs"
 	"mogenius-operator/src/version"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
 	"sync"
+	"time"
 
 	"encoding/json"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 type HttpService interface {
 	Run()
-	Link(socketapi SocketApi, dbstats ValkeyStatsDb, apiModule Api, reconciler Reconciler)
+	Link(socketapi SocketApi, dbstats ValkeyStatsDb, apiModule Api, reconciler moreconciler.Reconciler)
 	Broadcaster() *Broadcaster
 }
 
@@ -27,7 +34,7 @@ type httpService struct {
 	dbstats     ValkeyStatsDb
 	api         Api
 	broadcaster *Broadcaster
-	reconciler  Reconciler
+	reconciler  moreconciler.Reconciler
 
 	socketapi SocketApi
 }
@@ -115,6 +122,7 @@ func (self *httpService) Run() {
 	self.logger.Debug("initializing http.ServeMux", "addr", addr)
 	mux := http.NewServeMux()
 
+	mux.Handle("GET /metrics", promhttp.Handler())
 	mux.Handle("GET /healthz", self.withRequestLogging(http.HandlerFunc(self.getHealthz)))
 
 	if os.Getenv("MO_PPROF") == "true" {
@@ -128,16 +136,39 @@ func (self *httpService) Run() {
 
 	self.addApiRoutes(mux)
 
+	// ReadHeaderTimeout blocks slowloris-style attacks; IdleTimeout reaps
+	// keep-alive connections from gone clients. We leave Read/WriteTimeout
+	// unset because xterm/log-stream/websocket handlers legitimately run
+	// for minutes/hours; per-handler timeouts handle those cases.
+	server := &http.Server{
+		Addr:              addr,
+		Handler:           mux,
+		ReadHeaderTimeout: 10 * time.Second,
+		IdleTimeout:       120 * time.Second,
+		MaxHeaderBytes:    1 << 20,
+	}
+
+	// Drain in-flight requests on shutdown instead of cutting the listener
+	// mid-write. Hijacked connections (websocket/xterm/log streams) are not
+	// tracked by Shutdown and end with the process, as before.
+	shutdown.Add(func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if err := server.Shutdown(ctx); err != nil {
+			self.logger.Warn("http server graceful shutdown failed", "error", err)
+		}
+	})
+
 	self.logger.Info("starting API server", "addr", addr)
 	go func() {
-		err := http.ListenAndServe(addr, mux)
-		if err != nil {
+		err := server.ListenAndServe()
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			self.logger.Error("failed to start api server", "error", err)
 		}
 	}()
 }
 
-func (self *httpService) Link(socketapi SocketApi, dbstats ValkeyStatsDb, apiModule Api, reconciler Reconciler) {
+func (self *httpService) Link(socketapi SocketApi, dbstats ValkeyStatsDb, apiModule Api, reconciler moreconciler.Reconciler) {
 	assert.Assert(socketapi != nil)
 	assert.Assert(dbstats != nil)
 	assert.Assert(apiModule != nil)

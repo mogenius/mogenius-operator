@@ -1,0 +1,64 @@
+{{- if .Values.nodeMetrics.enabled }}
+# Dedicated, least-privilege identity for the node-metrics DaemonSet.
+# It runs on every node with hostNetwork + host /proc,/sys mounts and (with
+# traffic collection) NET_ADMIN/SYS_ADMIN/BPF/SYS_PTRACE — a large attack
+# surface. It must NOT carry the cluster-admin token of the main operator.
+#
+# The nodemetrics code path only ever touches the Kubernetes API to:
+#   - list nodes once for cloud-provider detection (cluster-scoped, non-fatal)
+#   - read the valkey secret + read/create/update the cluster secret, both in
+#     the operator's own namespace
+# Everything else (pod inventory, cpu/ram/network stats) comes from Valkey and
+# the host /proc filesystem, so no pod/watch/lease permissions are needed.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ .Values.fullnameOverride }}-node-metrics
+  namespace: {{ .Release.Namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ .Values.fullnameOverride }}-node-metrics
+rules:
+- apiGroups: [""]
+  resources: ["nodes"]
+  verbs: ["list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ .Values.fullnameOverride }}-node-metrics
+subjects:
+- kind: ServiceAccount
+  name: {{ .Values.fullnameOverride }}-node-metrics
+  namespace: {{ .Release.Namespace }}
+roleRef:
+  kind: ClusterRole
+  name: {{ .Values.fullnameOverride }}-node-metrics
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ .Values.fullnameOverride }}-node-metrics
+  namespace: {{ .Release.Namespace }}
+rules:
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "create", "update"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ .Values.fullnameOverride }}-node-metrics
+  namespace: {{ .Release.Namespace }}
+subjects:
+- kind: ServiceAccount
+  name: {{ .Values.fullnameOverride }}-node-metrics
+  namespace: {{ .Release.Namespace }}
+roleRef:
+  kind: Role
+  name: {{ .Values.fullnameOverride }}-node-metrics
+  apiGroup: rbac.authorization.k8s.io
+{{- end }}

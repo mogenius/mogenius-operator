@@ -37,8 +37,12 @@ spec:
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- if .Values.features.debugTools.enabled }}
+      {{- if or .Values.valkey.enabled .Values.features.debugTools.enabled }}
       initContainers:
+        {{- if .Values.valkey.enabled }}
+        {{ include "valkey.wait-for-connection" . | nindent 8 }}
+        {{- end }}
+        {{- if .Values.features.debugTools.enabled }}
         - name: debug-tools-init
           image: {{ .Values.features.debugTools.image.registry }}/{{ .Values.features.debugTools.image.repository }}:{{ .Values.features.debugTools.image.tag }}
           imagePullPolicy: {{ .Values.features.debugTools.image.pullPolicy }}
@@ -61,6 +65,7 @@ spec:
           volumeMounts:
             - mountPath: /netshoot
               name: debug-tools
+        {{- end }}
       {{- end }}
       containers:
         - name: {{ .Values.fullnameOverride }}
@@ -72,6 +77,8 @@ spec:
             - name: PATH
               value: "/netshoot/usr/bin:/netshoot/bin:/netshoot/usr/sbin:/netshoot/sbin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
             {{- end }}
+            - name: MO_ENABLE_AUTO_UPGRADE
+              value: {{ .Values.features.autoUpgrade.enabled | quote }}
           volumeMounts:
             - mountPath: /app/helm-data
               name: helm-data

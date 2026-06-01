@@ -39,9 +39,10 @@ jobs:
   # Prepare - Get version info
   # ============================================================================
   prepare:
-    uses: mogenius/github-actions/.github/workflows/prepare.yml@e7bbc72b52b9de09d67ea692f39ab5063a175a5b # main
+    uses: mogenius/github-actions/.github/workflows/semantic-release.yml@27822e16d951ac5b04a35d4a6d65e1cd18e8e0bf # main
     secrets:
-      RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+      APP_ID: ${{ secrets.RELEASE_APP_ID }}
+      APP_PRIVATE_KEY: ${{ secrets.RELEASE_APP_SECRET }}
     with:
       version_override: ${{ github.event.inputs.version || '' }}
       default_version: 'dev'
@@ -73,7 +74,7 @@ jobs:
 
       - name: Build and push
         id: build
-        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7
+        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7
         with:
           context: .
           file: ./Dockerfile
@@ -90,6 +91,7 @@ jobs:
             GIT_BRANCH=${{ needs.prepare.outputs.git_branch }}
             BUILD_TIMESTAMP=${{ needs.prepare.outputs.build_timestamp }}
             VERSION=${{ needs.prepare.outputs.version }}
+            DEV_BUILD=yes
           # cache-from: type=gha,scope=operator-amd64
           # cache-to: type=gha,mode=max,scope=operator-amd64
 
@@ -117,7 +119,7 @@ jobs:
 
       - name: Build and push
         id: build
-        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7
+        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7
         with:
           context: .
           file: ./Dockerfile
@@ -134,6 +136,7 @@ jobs:
             GIT_BRANCH=${{ needs.prepare.outputs.git_branch }}
             BUILD_TIMESTAMP=${{ needs.prepare.outputs.build_timestamp }}
             VERSION=${{ needs.prepare.outputs.version }}
+            DEV_BUILD=yes
           # cache-from: type=gha,scope=operator-arm64
           # cache-to: type=gha,mode=max,scope=operator-arm64
 
@@ -166,7 +169,7 @@ jobs:
       # Note: armv7 uses arm64 bpftool image (bpftool doesn't support armv7)
       - name: Build and push
         id: build
-        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7
+        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7
         with:
           context: .
           file: ./Dockerfile
@@ -183,6 +186,7 @@ jobs:
             GIT_BRANCH=${{ needs.prepare.outputs.git_branch }}
             BUILD_TIMESTAMP=${{ needs.prepare.outputs.build_timestamp }}
             VERSION=${{ needs.prepare.outputs.version }}
+            DEV_BUILD=yes
           # cache-from: type=gha,scope=operator-armv7
           # cache-to: type=gha,mode=max,scope=operator-armv7
 
@@ -249,7 +253,7 @@ jobs:
           echo "${{ secrets.GPG_PRIVATE_KEY }}" | base64 -d | gpg --import --batch
 
       - name: Install cosign
-        uses: sigstore/cosign-installer@cad07c2e89fa2edd6e2d7bab4c1aa38e53f76003 # v4.1.1
+        uses: sigstore/cosign-installer@faadad0cce49287aee09b3a48701e75088a2c6ad # v4.0.0
 
       - name: Update Helm chart and values yaml-Files
         env:
@@ -264,7 +268,7 @@ jobs:
           sed -i -E "s/^version: .*/version: ${VERSION}/" Chart.yaml
 
       - name: Run helm-docs
-        uses: losisin/helm-docs-github-action@2ccf3e77eb70dc80d62f8cc26f15d0a96b75fef4 # v1.8.0
+        uses: losisin/helm-docs-github-action@3a4528e97c49a5e83de6b78c50c61c8ee5c9f944 # v2
         with:
           chart-search-root: helm
 

@@ -17,13 +17,11 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/apimachinery/pkg/types"
-
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-
 	"helm.sh/helm/v4/pkg/kube"
 	"helm.sh/helm/v4/pkg/registry"
 	"helm.sh/helm/v4/pkg/repo/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/patrickmn/go-cache"
 	"sigs.k8s.io/yaml"
@@ -932,6 +930,25 @@ func HelmChartInstall(data HelmChartInstallUpgradeRequest) (result string, err e
 		return "", err
 	}
 
+	// Ownership preflight: detect orphaned cluster-scoped resources left over
+	// from a previous incomplete uninstall. Adopt them via TakeOwnership when
+	// safe, abort when a foreign Helm release already owns them.
+	if !data.DryRun {
+		needsTakeOwnership, perr := CheckOwnershipAndLog(
+			actionConfig, chartRequested, valuesMap,
+			data.Release, data.Namespace, data.Version,
+		)
+		if perr != nil {
+			helmLogger.Error("HelmInstall ownership preflight failed",
+				"releaseName", data.Release,
+				"namespace", data.Namespace,
+				"error", perr.Error(),
+			)
+			return "", perr
+		}
+		install.TakeOwnership = needsTakeOwnership
+	}
+
 	helmLogger.Info("Installing chart ...", "releaseName", data.Release, "namespace", data.Namespace)
 	re, err := install.Run(chartRequested, valuesMap)
 	if err != nil {
@@ -1023,6 +1040,25 @@ func HelmReleaseUpgrade(data HelmChartInstallUpgradeRequest) (result string, err
 			"error", err.Error(),
 		)
 		return "", err
+	}
+
+	// Ownership preflight: detect orphaned cluster-scoped resources left over
+	// from a previous incomplete uninstall. Adopt them via TakeOwnership when
+	// safe, abort when a foreign Helm release already owns them.
+	if !data.DryRun {
+		needsTakeOwnership, perr := CheckOwnershipAndLog(
+			actionConfig, chartRequested, valuesMap,
+			data.Release, data.Namespace, data.Version,
+		)
+		if perr != nil {
+			helmLogger.Error("HelmUpgrade ownership preflight failed",
+				"releaseName", data.Release,
+				"namespace", data.Namespace,
+				"error", perr.Error(),
+			)
+			return "", perr
+		}
+		upgrade.TakeOwnership = needsTakeOwnership
 	}
 
 	helmLogger.Info("Upgrading chart ...", "releaseName", data.Release, "namespace", data.Namespace)

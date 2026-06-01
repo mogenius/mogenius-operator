@@ -22,6 +22,7 @@ import (
 
 type ValkeyClient interface {
 	Connect() error
+	Close()
 	Set(value string, expiration time.Duration, keys ...string) error
 	SetObject(value any, expiration time.Duration, keys ...string) error
 	SetObjectWithAutoincrementLimit(value any, limit int64, ttl time.Duration, keys ...string) error
@@ -53,8 +54,20 @@ const (
 	ORDER_DESC SortOrder = 2
 
 	MAX_CHUNK_GET_SIZE = 100
-	MAX_RETENTION_SIZE = 10800
-	MAX_RETENTION_TIME = 7 * 24 * time.Hour // 7 days
+
+	// Defaults for time-series stream retention. Tuned for 1-minute write
+	// cadence: 1440 entries = 24h, which keeps each stream around ~400 KiB
+	// instead of the multi-MB streams produced by 10800 entries / 7d.
+	// Override with MO_STATS_RETENTION_MAX_ENTRIES and MO_STATS_RETENTION_HOURS.
+	defaultRetentionSize  int64         = 1440
+	defaultRetentionHours time.Duration = 24 * time.Hour
+)
+
+// Exported for read-side queries that need to know how far back data is
+// available. Updated at Connect() time from config.
+var (
+	MAX_RETENTION_SIZE int64         = defaultRetentionSize
+	MAX_RETENTION_TIME time.Duration = defaultRetentionHours
 )
 
 type valkeyClient struct {
@@ -78,6 +91,19 @@ func NewValkeyClient(logger *slog.Logger, configModule config.ConfigModule) Valk
 
 func (self *valkeyClient) Connect() error {
 	self.logger.Info("Connecting to valkey")
+
+	if raw := self.config.Get("MO_STATS_RETENTION_MAX_ENTRIES"); raw != "" {
+		if n, err := strconv.ParseInt(raw, 10, 64); err == nil && n > 0 {
+			MAX_RETENTION_SIZE = n
+		}
+	}
+	if raw := self.config.Get("MO_STATS_RETENTION_HOURS"); raw != "" {
+		if h, err := strconv.ParseInt(raw, 10, 64); err == nil && h > 0 {
+			MAX_RETENTION_TIME = time.Duration(h) * time.Hour
+		}
+	}
+	self.logger.Info("stats retention configured",
+		"maxEntries", MAX_RETENTION_SIZE, "ttl", MAX_RETENTION_TIME)
 
 	valkeyHost := self.config.Get("MO_VALKEY_ADDR")
 	valkeyHost, valkeyPort, err := net.SplitHostPort(valkeyHost)
@@ -111,6 +137,16 @@ func (self *valkeyClient) Connect() error {
 	self.logger.Info("Connected to valkey", "addr", valkeyAddr)
 
 	return nil
+}
+
+// Close shuts down the underlying valkey connection. valkey-go's Close waits
+// for all pending (pipelined) calls to finish before closing, so buffered
+// writes are flushed instead of lost on shutdown. Safe to call when never
+// connected.
+func (self *valkeyClient) Close() {
+	if self.valkeyClient != nil {
+		self.valkeyClient.Close()
+	}
 }
 
 func (self *valkeyClient) GetValkeyClient() valkeyclient.Client {
@@ -153,55 +189,111 @@ func (self *valkeyClient) SetObject(value any, expiration time.Duration, keys ..
 	return self.Set(string(objStr), expiration, key)
 }
 
+// maxAutoincrementRetries bounds the EXISTS-then-SET loop below. Each
+// retry corresponds to a single legacy key that occupies the slot the
+// INCR happened to return; in practice this is at most `limit` retries,
+// happens once per baseKey when upgrading from the previous SCAN+sort
+// implementation, and never afterwards.
+const maxAutoincrementRetries = 4096
+
+// SetObjectWithAutoincrementLimit appends a numbered entry under baseKey
+// (joined keys) and prunes older entries beyond `limit`. The previous
+// implementation did SCAN + sort + SET without any atomic operation, so
+// two concurrent callers could both compute nextNum=N+1 and the second
+// SET silently overwrote the first - direct audit-log data loss under
+// any concurrency.
+//
+// Numbering now comes from INCR on a dedicated `<baseKey>:counter` key,
+// which is atomic in Valkey. If the resulting candidate key already
+// exists (leftover from the pre-INCR algorithm, which always started
+// at 1), we INCR again until we find a free slot. Counters are never
+// expired, so the sequence stays monotonic for the life of the prefix
+// and the legacy data is preserved until it naturally rotates out via
+// the count-based prune below.
+//
+// Pruning keeps at most `limit` numeric entries by deleting the lowest-
+// numbered ones first - same observable semantic as the old code, just
+// without the race.
 func (self *valkeyClient) SetObjectWithAutoincrementLimit(value any, limit int64, ttl time.Duration, keys ...string) error {
 	baseKey := strings.Join(keys, ":")
-	pattern := baseKey + ":*"
-
-	existingKeys, err := self.Keys(pattern)
-	if err != nil {
-		return fmt.Errorf("error while parsing keys: %w", err)
-	}
-
-	sort.Slice(existingKeys, func(i, j int) bool {
-		numI := extractNumber(existingKeys[i], baseKey)
-		numJ := extractNumber(existingKeys[j], baseKey)
-		return numI < numJ
-	})
-
-	var nextNum int64 = 1
-	if len(existingKeys) > 0 {
-		lastKey := existingKeys[len(existingKeys)-1]
-		lastNum := extractNumber(lastKey, baseKey)
-		nextNum = lastNum + 1
-	}
-
-	newKey := fmt.Sprintf("%s:%d", baseKey, nextNum)
+	counterKey := baseKey + ":counter"
 
 	jsonValue, err := json.Marshal(value)
 	if err != nil {
 		return fmt.Errorf("error while serializing value: %w", err)
 	}
 
-	var cmds []valkeyclient.Completed
+	var newKey string
+	for attempt := 0; attempt < maxAutoincrementRetries; attempt++ {
+		nextNum, err := self.valkeyClient.Do(self.ctx,
+			self.valkeyClient.B().Incr().Key(counterKey).Build()).AsInt64()
+		if err != nil {
+			return fmt.Errorf("error incrementing counter: %w", err)
+		}
+		candidate := fmt.Sprintf("%s:%d", baseKey, nextNum)
+		existsCount, err := self.valkeyClient.Do(self.ctx,
+			self.valkeyClient.B().Exists().Key(candidate).Build()).AsInt64()
+		if err != nil {
+			return fmt.Errorf("error checking candidate key: %w", err)
+		}
+		if existsCount == 0 {
+			newKey = candidate
+			break
+		}
+		// Slot is taken by legacy data; skip ahead and try the next.
+	}
+	if newKey == "" {
+		return fmt.Errorf("could not find a free slot under %q after %d retries", baseKey, maxAutoincrementRetries)
+	}
+
+	var setCmd valkeyclient.Completed
 	if ttl > 0 {
-		cmds = append(cmds, self.valkeyClient.B().Set().Key(newKey).Value(string(jsonValue)).Ex(ttl).Build())
+		setCmd = self.valkeyClient.B().Set().Key(newKey).Value(string(jsonValue)).Ex(ttl).Build()
 	} else {
-		cmds = append(cmds, self.valkeyClient.B().Set().Key(newKey).Value(string(jsonValue)).Build())
+		setCmd = self.valkeyClient.B().Set().Key(newKey).Value(string(jsonValue)).Build()
+	}
+	if err := self.valkeyClient.Do(self.ctx, setCmd).Error(); err != nil {
+		return fmt.Errorf("error setting entry: %w", err)
 	}
 
-	if int64(len(existingKeys)) >= limit {
-		keysToDelete := int64(len(existingKeys)) - limit + 1
-		for i := int64(0); i < keysToDelete; i++ {
-			cmds = append(cmds, self.valkeyClient.B().Del().Key(existingKeys[i]).Build())
+	if limit <= 0 {
+		return nil
+	}
+
+	// Best-effort prune: keep at most `limit` numeric entries under
+	// baseKey. Concurrent writers may briefly leave the count slightly
+	// above limit; that's acceptable and self-corrects on subsequent
+	// writes.
+	existingKeys, err := self.Keys(baseKey + ":*")
+	if err != nil {
+		return nil
+	}
+	type numbered struct {
+		key string
+		n   int64
+	}
+	numerics := make([]numbered, 0, len(existingKeys))
+	for _, k := range existingKeys {
+		if k == counterKey {
+			continue
+		}
+		n := extractNumber(k, baseKey)
+		if n > 0 {
+			numerics = append(numerics, numbered{k, n})
 		}
 	}
-
-	for _, resp := range self.valkeyClient.DoMulti(self.ctx, cmds...) {
-		if err := resp.Error(); err != nil {
-			return fmt.Errorf("error while executing commands: %w", err)
-		}
+	if int64(len(numerics)) <= limit {
+		return nil
 	}
-
+	sort.Slice(numerics, func(i, j int) bool { return numerics[i].n < numerics[j].n })
+	toDelete := int64(len(numerics)) - limit
+	delCmds := make([]valkeyclient.Completed, 0, toDelete)
+	for i := int64(0); i < toDelete; i++ {
+		delCmds = append(delCmds, self.valkeyClient.B().Del().Key(numerics[i].key).Build())
+	}
+	for _, resp := range self.valkeyClient.DoMulti(self.ctx, delCmds...) {
+		_ = resp.Error()
+	}
 	return nil
 }
 
@@ -502,7 +594,7 @@ func (self *valkeyClient) DeleteMultiple(patterns ...string) error {
 		totalDeleted += len(batch)
 	}
 
-	self.logger.Info("Successfully deleted keys", "count", totalDeleted, "patterns", patterns)
+	self.logger.Debug("Successfully deleted keys", "count", totalDeleted, "patterns", patterns)
 	return nil
 }
 
@@ -867,25 +959,23 @@ func (self *valkeyClient) StoreSortedListEntry(data any, timestamp int64, keys .
 			// This means we're trying to insert a duplicate entry
 			// we dont care about duplicates
 			return nil
-		} else if errString == "WRONGTYPE Operation against a key holding the wrong kind of value" {
-			// This means the key exists but is not a stream, delete it and try again
-			self.logger.Warn("Wrong type for key, deleting it...", "key", streamKey)
-			_, err := self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Del().Key(streamKey).Build()).AsInt64()
-			if err != nil {
-				return fmt.Errorf("failed to delete key: %w, key:%s", err, streamKey)
-			}
-			self.logger.Warn("Key deleted successfully", "key", streamKey)
-			// Try adding the entry again
-			cmd := self.valkeyClient.B().Xadd().Key(streamKey).Id(id).FieldValue().
-				FieldValue("data", string(jsonData)).
-				Build()
-			result = self.valkeyClient.Do(self.ctx, cmd)
-			if err := result.Error(); err != nil {
-				return fmt.Errorf("failed to add to stream after deleting wrong type key: %w, key:%s", err, streamKey)
-			}
-		} else {
-			return fmt.Errorf("failed to add to stream: %w, key:%s", err, streamKey)
 		}
+		// Previously: on WRONGTYPE the wrapper silently DEL'd the
+		// existing key and retried XADD. That converts an unexpected
+		// schema collision into permanent, undetected data loss. If a
+		// stream-key namespace ever collides with a string/hash/list
+		// key, surface it loudly instead so the underlying cause can be
+		// fixed (renamed key prefix, leftover from an older operator
+		// version, manual debug write, etc.).
+		if errString == "WRONGTYPE Operation against a key holding the wrong kind of value" {
+			typeResult := self.valkeyClient.Do(self.ctx,
+				self.valkeyClient.B().Type().Key(streamKey).Build())
+			actualType, _ := typeResult.ToString()
+			self.logger.Error("WRONGTYPE on stream write - refusing to overwrite existing key",
+				"key", streamKey, "actualType", actualType)
+			return fmt.Errorf("WRONGTYPE on stream key %q (existing type %q); refusing to delete to avoid data loss", streamKey, actualType)
+		}
+		return fmt.Errorf("failed to add to stream: %w, key:%s", err, streamKey)
 	}
 
 	// Trim stream to maintain retention policy

@@ -14,6 +14,13 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
+// aiStatusMu guards every read and write of cachedStatus*,
+// cachedWorkspaceStatus*. GetStatus used to declare a fresh mutex inside
+// the function which gave each caller its own (useless) lock; the
+// package-level maps were then read and written concurrently, which is
+// undefined behavior in Go and produces "fatal error: concurrent map
+// read and map write" crashes under any non-trivial status-polling load.
+var aiStatusMu sync.RWMutex
 var cachedStatusTime time.Time
 var cachedStatus AiManagerStatus
 var cachedWorkspaceStatusTime map[string]time.Time = make(map[string]time.Time)
@@ -280,20 +287,23 @@ func (ai *aiManager) getLatestNamespaceTask(namespace string) (*AiTask, error) {
 }
 
 func (ai *aiManager) GetStatus(workspace *string) AiManagerStatus {
-	mutex := sync.Mutex{}
+	aiStatusMu.RLock()
 	if workspace == nil {
 		if cachedStatusTime.Add(AiCachedStatusLiveTime).After(time.Now()) {
+			defer aiStatusMu.RUnlock()
 			return cachedStatus
 		}
 	} else {
 		if lastCachedTime, exists := cachedWorkspaceStatusTime[*workspace]; exists {
 			if lastCachedTime.Add(AiCachedStatusLiveTime).After(time.Now()) {
 				if status, exists := cachedWorkspaceStatus[*workspace]; exists {
+					defer aiStatusMu.RUnlock()
 					return status
 				}
 			}
 		}
 	}
+	aiStatusMu.RUnlock()
 
 	sdk, _ := ai.getSdkType()
 	limit, _ := ai.getDailyTokenLimit()
@@ -378,7 +388,7 @@ func (ai *aiManager) GetStatus(workspace *string) AiManagerStatus {
 		NumberOfUnreadTasks:         numberOfUnreadTasks,
 		NextTokenResetTime:          nextReset.Format(time.RFC3339),
 	}
-	mutex.Lock()
+	aiStatusMu.Lock()
 	if workspace != nil {
 		cachedWorkspaceStatusTime[*workspace] = time.Now()
 		cachedWorkspaceStatus[*workspace] = status
@@ -386,7 +396,7 @@ func (ai *aiManager) GetStatus(workspace *string) AiManagerStatus {
 		cachedStatusTime = time.Now()
 		cachedStatus = status
 	}
-	mutex.Unlock()
+	aiStatusMu.Unlock()
 	return status
 }
 

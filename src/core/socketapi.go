@@ -35,12 +35,18 @@ import (
 	release "helm.sh/helm/v4/pkg/release/v1"
 	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/yaml"
 )
 
 // Compression threshold - only compress responses larger than 1KB
 const compressionThreshold = 1024
+
+// messageWorkerCount is the number of dispatch workers per WS read loop.
+// Pre-spawned and reused so we don't pay goroutine-creation cost per message
+// or risk an unbounded backlog of goroutines waiting on the K8s API.
+const messageWorkerCount = 50
 
 // Pool for reusing buffers during compression
 var compressionBufferPool = sync.Pool{
@@ -407,27 +413,34 @@ func (self *socketApi) registerPatterns() {
 			Errors                  []string              `json:"error,omitempty"`
 		}
 
+		// Dashboards poll this every few seconds. Without caching, every
+		// poll triggers a node list, a service list, a country lookup
+		// and a Valkey read; under multiple concurrent dashboards this
+		// dominated the K8s API call volume.
+		clusterResourceInfoCache := newTTLCache(5*time.Second, func() ClusterResourceInfo {
+			errors := []string{}
+			nodeStats, nodeErr := self.moKubernetes.GetNodeStats()
+			if nodeErr != nil {
+				errors = append(errors, nodeErr.Error())
+			}
+			loadBalancerExternalIps := kubernetes.GetClusterExternalIps()
+			country, _ := utils.GuessClusterCountry()
+			cniConfig, _ := self.dbstats.GetCniData()
+			return ClusterResourceInfo{
+				NodeStats:               nodeStats,
+				LoadBalancerExternalIps: loadBalancerExternalIps,
+				Country:                 country,
+				Provider:                string(utils.ClusterProviderCached),
+				CniConfig:               cniConfig,
+				Errors:                  errors,
+			}
+		})
+
 		RegisterPatternHandler(
 			PatternHandle{self, "cluster/resource-info"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Void) (ClusterResourceInfo, error) {
-				errors := []string{}
-				nodeStats, nodeErr := self.moKubernetes.GetNodeStats()
-				if nodeErr != nil {
-					errors = append(errors, nodeErr.Error())
-				}
-				loadBalancerExternalIps := kubernetes.GetClusterExternalIps()
-				country, _ := utils.GuessClusterCountry()
-				cniConfig, _ := self.dbstats.GetCniData()
-				response := ClusterResourceInfo{
-					NodeStats:               nodeStats,
-					LoadBalancerExternalIps: loadBalancerExternalIps,
-					Country:                 country,
-					Provider:                string(utils.ClusterProviderCached),
-					CniConfig:               cniConfig,
-					Errors:                  errors,
-				}
-				return response, nil
+				return clusterResourceInfoCache.Get(), nil
 			},
 		)
 	}
@@ -550,6 +563,48 @@ func (self *socketApi) registerPatterns() {
 					return nil, err
 				}
 				return self.dbstats.GetWorkspaceStatsTrafficUtilization(request.TimeOffsetMinutes, resources)
+			},
+		)
+
+		// stats/pod/all-for-workspace — full per-pod CPU/memory
+		// snapshots for every pod in the namespace (no top-N cap,
+		// unlike the utilization aggregations above). Scans valkey
+		// directly for every pod-stats stream key in the namespace
+		// rather than going through the Workspace CRD, so it also
+		// works for namespaces that aren't wired up as mogenius
+		// workspaces. Each stream key is
+		// `pod-stats:<namespace>:<controllerName>`; the data inside
+		// already carries the pod name per entry.
+		RegisterPatternHandler(
+			PatternHandle{self, "stats/pod/all-for-workspace"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Request) ([]structs.PodStats, error) {
+				if request.TimeOffsetMinutes <= 0 {
+					request.TimeOffsetMinutes = 5
+				}
+				prefix := DB_STATS_POD_STATS_BUCKET_NAME + ":" + request.WorkspaceName + ":"
+				keys, err := self.valkeyClient.Keys(prefix + "*")
+				if err != nil {
+					return nil, err
+				}
+				out := make([]structs.PodStats, 0)
+				for _, k := range keys {
+					if !strings.HasPrefix(k, prefix) {
+						continue
+					}
+					controllerName := k[len(prefix):]
+					if controllerName == "" {
+						continue
+					}
+					entries := self.dbstats.GetPodStatsEntriesForController(
+						"", controllerName, request.WorkspaceName,
+						int64(request.TimeOffsetMinutes),
+					)
+					if entries != nil {
+						out = append(out, *entries...)
+					}
+				}
+				return out, nil
 			},
 		)
 	}
@@ -1007,6 +1062,47 @@ func (self *socketApi) registerPatterns() {
 	)
 
 	RegisterPatternHandler(
+		PatternHandle{self, "cluster/argo-cd-application-hard-refresh"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request argocd.ArgoCdApplicationRefreshRequest) (bool, error) {
+			return self.argocd.ArgoCdApplicationHardRefresh(request)
+		},
+	)
+
+	RegisterPatternHandler(
+		PatternHandle{self, "cluster/argo-cd-application-sync"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request argocd.ArgoCdApplicationSyncRequest) (bool, error) {
+			return self.argocd.ArgoCdApplicationSync(request)
+		},
+	)
+
+	RegisterPatternHandler(
+		PatternHandle{self, "cluster/argo-cd-application-terminate-operation"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request argocd.ArgoCdApplicationTerminateOperationRequest) (bool, error) {
+			return self.argocd.ArgoCdApplicationTerminateOperation(request)
+		},
+	)
+
+	RegisterPatternHandler(
+		PatternHandle{self, "cluster/argo-cd-resource-action"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request argocd.ArgoCdResourceActionRequest) (bool, error) {
+			return self.argocd.ArgoCdResourceAction(request)
+		},
+	)
+
+	RegisterPatternHandler(
+		PatternHandle{self, "service/port-forward-connection-request"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request xterm.PortForwardConnectionRequest) (Void, error) {
+			go xterm.PortForwardStreamConnection(request)
+			return nil, nil
+		},
+	)
+
+	RegisterPatternHandler(
 		PatternHandle{self, "service/exec-sh-connection-request"},
 		PatternConfig{},
 		func(datagram structs.Datagram, request xterm.PodCmdConnectionRequest) (Void, error) {
@@ -1068,6 +1164,16 @@ func (self *socketApi) registerPatterns() {
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (unstructured.UnstructuredList, error) {
 				return kubernetes.GetUnstructuredResourceListFromStore(request.ApiVersion, request.Kind, request.Namespace, request.WithData), nil
+			},
+		)
+	}
+
+	{
+		RegisterPatternHandler(
+			PatternHandle{self, "get/workload-list-paginated"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request ResourcesPaginatedRequest) (ResourcesPaginatedResponse, error) {
+				return self.apiService.GetResourceListByWhitelistPaginated(request)
 			},
 		)
 	}
@@ -1138,9 +1244,31 @@ func (self *socketApi) registerPatterns() {
 			err := kubernetes.DeleteUnstructuredResource(request.ApiVersion, request.Plural, request.Namespace, request.ResourceName)
 			_, auditErr := store.AddToAuditLog(datagram, self.logger, any(nil), err, objToDel, nil)
 			if auditErr != nil {
-				self.logger.Warn("failed to add event to audit log", "request", request, "error", err)
+				self.logger.Warn("failed to add event to audit log", "request", request, "error", auditErr)
 			}
-			return nil, err
+			if err != nil {
+				return nil, err
+			}
+			// Check if resource still exists with deletionTimestamp (blocked by finalizers)
+			obj, getErr := kubernetes.GetUnstructuredResource(request.ApiVersion, request.Plural, request.Namespace, request.ResourceName)
+			if getErr != nil {
+				if apierrors.IsNotFound(getErr) {
+					// Resource is fully deleted
+					return nil, nil
+				}
+				// Other error (network, etc.) - log but don't fail the delete response
+				self.logger.Warn("could not verify resource deletion status", "error", getErr)
+				return nil, nil
+			}
+			// Resource still exists - check if it's terminating
+			if obj.GetDeletionTimestamp() != nil {
+				finalizers := obj.GetFinalizers()
+				if len(finalizers) > 0 {
+					return nil, fmt.Errorf("resource is terminating but blocked by finalizers: %v", finalizers)
+				}
+				return nil, fmt.Errorf("resource is terminating")
+			}
+			return nil, nil
 		},
 	)
 
@@ -1563,6 +1691,44 @@ func (self *socketApi) registerPatterns() {
 	}
 
 	{
+		// Paginated workspace workloads. Offset/limit lives here, dedup
+		// (by metadata.uid) and stable sort happen in the api layer so
+		// the slice boundary is deterministic. Older callers continue
+		// to use get/workspace-workloads above; this pattern is
+		// strictly additive.
+		// WorkspaceName is intentionally not "required": the Studio cluster
+		// view calls this pattern with an empty workspace to fetch every
+		// resource matching the whitelist cluster-wide. The api layer
+		// (GetWorkspaceResources) maps "" -> cluster-wide fetch.
+		type PaginatedRequest struct {
+			WorkspaceName      string                      `json:"workspaceName"`
+			Whitelist          []*utils.ResourceDescriptor `json:"whitelist"`
+			Blacklist          []*utils.ResourceDescriptor `json:"blacklist"`
+			NamespaceWhitelist []string                    `json:"namespaceWhitelist"`
+			Offset             int                         `json:"offset"`
+			Limit              int                         `json:"limit"`
+			SortBy             string                      `json:"sortBy"`
+			SortOrder          string                      `json:"sortOrder"`
+		}
+
+		RegisterPatternHandler(
+			PatternHandle{self, "get/workspace-workloads-paginated"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request PaginatedRequest) (WorkspaceResourcesPaginatedResponse, error) {
+				return self.apiService.GetWorkspaceResourcesPaginated(request.WorkspaceName, WorkspaceResourcesPaginatedRequest{
+					Whitelist:          request.Whitelist,
+					Blacklist:          request.Blacklist,
+					NamespaceWhitelist: request.NamespaceWhitelist,
+					Offset:             request.Offset,
+					Limit:              request.Limit,
+					SortBy:             request.SortBy,
+					SortOrder:          request.SortOrder,
+				})
+			},
+		)
+	}
+
+	{
 		type Request struct {
 			AiPromptConfig ai.AiPromptConfig `json:"aiPromptConfig" validate:"required"`
 			AiPrompts      ai.AiPrompts      `json:"aiPrompts" validate:"required"`
@@ -1800,6 +1966,7 @@ func (self *socketApi) registerPatterns() {
 			Limit         int    `json:"limit" validate:"required"`
 			Offset        int    `json:"offset"`
 			WorkspaceName string `json:"workspaceName"`
+			Search        string `json:"search"`
 		}
 
 		type Response struct {
@@ -1829,7 +1996,7 @@ func (self *socketApi) registerPatterns() {
 						}, err
 					}
 				}
-				data, size, err := store.ListAuditLog(request.Limit, request.Offset, namespaces, clusterwide)
+				data, size, err := store.ListAuditLog(request.Limit, request.Offset, namespaces, clusterwide, request.Search)
 				if err != nil {
 					return Response{
 						Status:  "error",
@@ -2094,7 +2261,12 @@ func (self *socketApi) startMessageHandler() {
 // It only dispatches patterns that are explicitly registered for this client.
 func (self *socketApi) startClientReadLoop(client websocket.WebsocketClient) {
 	go func() {
-		messageHandlerSemaphore := make(chan struct{}, 100)
+		jobs := make(chan structs.Datagram, messageWorkerCount)
+		defer close(jobs) // signals workers to exit when the read loop ends
+
+		for i := 0; i < messageWorkerCount; i++ {
+			go self.dispatchClientMessages(client, jobs)
+		}
 
 		for !client.IsTerminated() {
 			_, message, err := client.ReadMessage()
@@ -2115,42 +2287,56 @@ func (self *socketApi) startClientReadLoop(client websocket.WebsocketClient) {
 
 			datagram.DisplayReceiveSummary(self.logger)
 
-			self.patternHandlerLock.RLock()
-			handler, exists := self.patternHandler[datagram.Pattern]
-			self.patternHandlerLock.RUnlock()
-
-			if exists && (handler.Client == nil || handler.Client == client) {
-				messageHandlerSemaphore <- struct{}{}
-				go func() {
-					defer func() {
-						<-messageHandlerSemaphore
-					}()
-					self.handlePatternRequest(datagram, client)
-				}()
-			} else {
-				go func() {
-					self.logger.Warn("no handler for pattern found on client", "pattern", datagram.Pattern, "client", self.clientName(client))
-
-					result := structs.Datagram{
-						Id:      datagram.Id,
-						Pattern: datagram.Pattern,
-						Payload: struct {
-							Status  string `json:"status"`
-							Message string `json:"message"`
-						}{
-							Status:  "error",
-							Message: fmt.Sprintf("No handler for pattern '%s' found", datagram.Pattern),
-						},
-						CreatedAt: datagram.CreatedAt,
-						Zlib:      false,
-					}
-
-					self.JobServerSendData(client, result)
-				}()
-			}
+			// Blocks when all workers are busy. This backpressures the read
+			// loop instead of spawning unbounded goroutines.
+			jobs <- datagram
 		}
 		self.logger.Debug("client messagehandler finished as the websocket client was terminated")
 	}()
+}
+
+// dispatchClientMessages runs one worker that looks up the handler for each
+// incoming datagram and either executes it or replies with a no-handler error.
+// Exits when jobs is closed.
+func (self *socketApi) dispatchClientMessages(client websocket.WebsocketClient, jobs <-chan structs.Datagram) {
+	for datagram := range jobs {
+		self.patternHandlerLock.RLock()
+		handler, exists := self.patternHandler[datagram.Pattern]
+		self.patternHandlerLock.RUnlock()
+
+		if exists && (handler.Client == nil || handler.Client == client) {
+			self.handlePatternRequest(datagram, client)
+		} else {
+			self.sendNoHandlerError(client, datagram, true)
+		}
+	}
+}
+
+// sendNoHandlerError writes a structured error datagram back to the client
+// for an unrecognized pattern. perClient indicates whether the warning log
+// should mention the specific client (used by the per-client read loop).
+func (self *socketApi) sendNoHandlerError(client websocket.WebsocketClient, datagram structs.Datagram, perClient bool) {
+	if perClient {
+		self.logger.Warn("no handler for pattern found on client", "pattern", datagram.Pattern, "client", self.clientName(client))
+	} else {
+		self.logger.Warn("no handler for pattern found", "pattern", datagram.Pattern)
+	}
+
+	result := structs.Datagram{
+		Id:      datagram.Id,
+		Pattern: datagram.Pattern,
+		Payload: struct {
+			Status  string `json:"status"`
+			Message string `json:"message"`
+		}{
+			Status:  "error",
+			Message: fmt.Sprintf("No handler for pattern '%s' found", datagram.Pattern),
+		},
+		CreatedAt: datagram.CreatedAt,
+		Zlib:      false,
+	}
+
+	self.JobServerSendData(client, result)
 }
 
 func (self *socketApi) startJobClientReadLoop() {
@@ -2159,7 +2345,12 @@ func (self *socketApi) startJobClientReadLoop() {
 		var preparedFileRequest *services.FilesUploadRequest
 		var openFile *os.File
 
-		messageHandlerSemaphore := make(chan struct{}, 100)
+		jobs := make(chan structs.Datagram, messageWorkerCount)
+		defer close(jobs)
+
+		for i := 0; i < messageWorkerCount; i++ {
+			go self.dispatchJobClientMessages(jobs)
+		}
 
 		for !self.jobClients[0].IsTerminated() {
 			_, message, err := self.jobClients[0].ReadMessage()
@@ -2172,7 +2363,7 @@ func (self *socketApi) startJobClientReadLoop() {
 				continue
 			}
 			if bytes.HasPrefix(message, []byte("######START_UPLOAD######;")) {
-				preparedFileName = utils.Pointer(fmt.Sprintf("/tmp/%s.zip", utils.NanoId()))
+				preparedFileName = new(fmt.Sprintf("/tmp/%s.zip", utils.NanoId()))
 				openFile, err = os.OpenFile(*preparedFileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 				if err != nil {
 					self.logger.Error("Cannot open uploadfile", "filename", *preparedFileName, "error", err)
@@ -2236,38 +2427,26 @@ func (self *socketApi) startJobClientReadLoop() {
 				continue
 			}
 
-			if self.patternHandlerExists(datagram.Pattern) {
-				messageHandlerSemaphore <- struct{}{}
-				go func() {
-					defer func() {
-						<-messageHandlerSemaphore
-					}()
-					self.handlePatternRequest(datagram, self.jobClients[0])
-				}()
-			} else {
-				go func() {
-					self.logger.Warn("no handler for pattern found", "pattern", datagram.Pattern)
-
-					result := structs.Datagram{
-						Id:      datagram.Id,
-						Pattern: datagram.Pattern,
-						Payload: struct {
-							Status  string `json:"status"`
-							Message string `json:"message"`
-						}{
-							Status:  "error",
-							Message: fmt.Sprintf("No handler for pattern '%s' found", datagram.Pattern),
-						},
-						CreatedAt: datagram.CreatedAt,
-						Zlib:      false,
-					}
-
-					self.JobServerSendData(self.jobClients[0], result)
-				}()
-			}
+			// Blocks when all workers are busy (backpressures the read loop
+			// instead of spawning unbounded goroutines).
+			jobs <- datagram
 		}
 		self.logger.Debug("api messagehandler finished as the websocket client was terminated")
 	}()
+}
+
+// dispatchJobClientMessages runs one worker for the default jobClient read
+// loop. Looks up the handler for each incoming datagram and either executes
+// it or replies with a no-handler error. Exits when jobs is closed.
+func (self *socketApi) dispatchJobClientMessages(jobs <-chan structs.Datagram) {
+	client := self.jobClients[0]
+	for datagram := range jobs {
+		if self.patternHandlerExists(datagram.Pattern) {
+			self.handlePatternRequest(datagram, client)
+		} else {
+			self.sendNoHandlerError(client, datagram, false)
+		}
+	}
 }
 
 // clientName returns a human-readable label for the given client, used in logs.
@@ -2453,7 +2632,10 @@ func (self *socketApi) JobServerSendData(jobClient websocket.WebsocketClient, da
 
 func (self *socketApi) ExecuteCommandRequest(datagram structs.Datagram) any {
 	if patternHandler, ok := self.patternHandler[datagram.Pattern]; ok {
-		return patternHandler.Callback(datagram)
+		start := time.Now()
+		result := patternHandler.Callback(datagram)
+		patternDuration.WithLabelValues(datagram.Pattern).Observe(time.Since(start).Seconds())
+		return result
 	}
 
 	return struct {
@@ -2468,6 +2650,15 @@ func (self *socketApi) ExecuteCommandRequest(datagram structs.Datagram) any {
 func (self *socketApi) upgradeK8sManager(command string) (*structs.Job, error) {
 	job := structs.CreateJob(self.eventsClient, "Upgrade mogenius platform", "UPGRADE", "", "", self.logger)
 	job.Start(self.eventsClient)
+
+	if self.config.Get("MO_ENABLE_AUTO_UPGRADE") != "true" {
+		msg := "Automatic Upgrades are disabled. If you are using GitOps please update the Operator in your GitOps Repository"
+		job.Fail(msg)
+		job.Finished = time.Now()
+		structs.ReportJobStateToServer(self.eventsClient, job)
+		return job, fmt.Errorf("%s", msg)
+	}
+
 	_, err := kubernetes.UpgradeMyself(self.eventsClient, job, command)
 	job.Finish(self.eventsClient)
 	return job, err

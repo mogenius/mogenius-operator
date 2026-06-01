@@ -11,7 +11,6 @@ import (
 	"mogenius-operator/src/kubernetes"
 	"mogenius-operator/src/logging"
 	"mogenius-operator/src/structs"
-	"mogenius-operator/src/utils"
 	"mogenius-operator/src/valkeyclient"
 	"os"
 	"testing"
@@ -117,7 +116,7 @@ func TestHelmRepoAdd(t *testing.T) {
 	config := cfg.NewConfig()
 	config.Declare(cfg.ConfigDeclaration{
 		Key:          "MO_HELM_DATA_PATH",
-		DefaultValue: utils.Pointer(helmConfPath),
+		DefaultValue: new(helmConfPath),
 	})
 	valkeyClient := valkeyclient.NewValkeyClient(logManager.CreateLogger("valkey"), config)
 	helm.Setup(logManager, config, valkeyClient)
@@ -149,7 +148,7 @@ func TestHelmRepoUpdate(t *testing.T) {
 	config := config.NewConfig()
 	config.Declare(cfg.ConfigDeclaration{
 		Key:          "MO_HELM_DATA_PATH",
-		DefaultValue: utils.Pointer(helmConfPath),
+		DefaultValue: new(helmConfPath),
 	})
 	valkeyClient := valkeyclient.NewValkeyClient(logManager.CreateLogger("valkey"), config)
 	helm.Setup(logManager, config, valkeyClient)
@@ -169,11 +168,11 @@ func TestHelmRepoList(t *testing.T) {
 	config := config.NewConfig()
 	config.Declare(cfg.ConfigDeclaration{
 		Key:          "MO_HELM_DATA_PATH",
-		DefaultValue: utils.Pointer(helmConfPath),
+		DefaultValue: new(helmConfPath),
 	})
 	config.Declare(cfg.ConfigDeclaration{
 		Key:          "KUBERNETES_DEBUG",
-		DefaultValue: utils.Pointer("false"),
+		DefaultValue: new("false"),
 	})
 	clientProvider := k8sclient.NewK8sClientProvider(logManager.CreateLogger("client-provider"), config)
 
@@ -210,7 +209,7 @@ func TestHelmInstallRequest(t *testing.T) {
 	config := config.NewConfig()
 	config.Declare(cfg.ConfigDeclaration{
 		Key:          "MO_HELM_DATA_PATH",
-		DefaultValue: utils.Pointer(helmConfPath),
+		DefaultValue: new(helmConfPath),
 	})
 	valkeyClient := valkeyclient.NewValkeyClient(logManager.CreateLogger("valkey"), config)
 	helm.Setup(logManager, config, valkeyClient)
@@ -240,7 +239,7 @@ func TestHelmUpgradeRequest(t *testing.T) {
 	config := config.NewConfig()
 	config.Declare(cfg.ConfigDeclaration{
 		Key:          "MO_HELM_DATA_PATH",
-		DefaultValue: utils.Pointer(helmConfPath),
+		DefaultValue: new(helmConfPath),
 	})
 	valkeyClient := valkeyclient.NewValkeyClient(logManager.CreateLogger("valkey"), config)
 	helm.Setup(logManager, config, valkeyClient)
@@ -279,7 +278,7 @@ func TestHelmListRequest(t *testing.T) {
 	helm.Setup(logManager, config, valkeyClient)
 	config.Declare(cfg.ConfigDeclaration{
 		Key:          "MO_HELM_DATA_PATH",
-		DefaultValue: utils.Pointer(helmConfPath),
+		DefaultValue: new(helmConfPath),
 	})
 
 	err := testSetup()
@@ -321,7 +320,7 @@ func TestHelmReleases(t *testing.T) {
 	helm.Setup(logManager, config, valkeyClient)
 	config.Declare(cfg.ConfigDeclaration{
 		Key:          "MO_HELM_DATA_PATH",
-		DefaultValue: utils.Pointer(helmConfPath),
+		DefaultValue: new(helmConfPath),
 	})
 
 	err := testSetup()
