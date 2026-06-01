@@ -1,3 +1,10 @@
+# [2.21.0-develop.25](https://github.com/mogenius/mogenius-operator/compare/v2.21.0-develop.24...v2.21.0-develop.25) (2026-06-01)
+
+
+### Bug Fixes
+
+* rename prepare to semantic release ([add907a](https://github.com/mogenius/mogenius-operator/commit/add907a3fd793c8597332f79598f5f5f1418b3cf))
+
 # [2.21.0-develop.24](https://github.com/mogenius/mogenius-operator/compare/v2.21.0-develop.23...v2.21.0-develop.24) (2026-05-30)
 
 
