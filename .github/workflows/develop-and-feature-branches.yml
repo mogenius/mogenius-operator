@@ -39,7 +39,7 @@ jobs:
   # Prepare - Get version info
   # ============================================================================
   prepare:
-    uses: mogenius/github-actions/.github/workflows/prepare.yml@adcf70d842afd0bac6634028a3280a87e1ec43b3 # main
+    uses: mogenius/github-actions/.github/workflows/semantic-release.yml@27822e16d951ac5b04a35d4a6d65e1cd18e8e0bf # main
     secrets:
       APP_ID: ${{ secrets.RELEASE_APP_ID }}
       APP_PRIVATE_KEY: ${{ secrets.RELEASE_APP_SECRET }}
