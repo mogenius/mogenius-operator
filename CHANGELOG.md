@@ -1,3 +1,10 @@
+# [2.21.0-develop.26](https://github.com/mogenius/mogenius-operator/compare/v2.21.0-develop.25...v2.21.0-develop.26) (2026-06-02)
+
+
+### Bug Fixes
+
+* unmarshaling bugfix ([61eee28](https://github.com/mogenius/mogenius-operator/commit/61eee2851caa1e799aab021d17d20329ff8ec955))
+
 # [2.21.0-develop.25](https://github.com/mogenius/mogenius-operator/compare/v2.21.0-develop.24...v2.21.0-develop.25) (2026-06-01)
 
 
