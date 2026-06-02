@@ -1,3 +1,10 @@
+# [2.21.0-develop.28](https://github.com/mogenius/mogenius-operator/compare/v2.21.0-develop.27...v2.21.0-develop.28) (2026-06-02)
+
+
+### Bug Fixes
+
+* migrate to version variant of reusable actions ([3151ec1](https://github.com/mogenius/mogenius-operator/commit/3151ec16c4e39ee610ccdb00913bcdcb9c507c46))
+
 # [2.21.0-develop.27](https://github.com/mogenius/mogenius-operator/compare/v2.21.0-develop.26...v2.21.0-develop.27) (2026-06-02)
 
 
