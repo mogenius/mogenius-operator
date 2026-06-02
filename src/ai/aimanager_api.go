@@ -1,6 +1,7 @@
 package ai
 
 import (
+	"errors"
 	"fmt"
 	"mogenius-operator/src/crds/v1alpha1"
 	"mogenius-operator/src/store"
@@ -305,11 +306,18 @@ func (ai *aiManager) GetStatus(workspace *string) AiManagerStatus {
 	}
 	aiStatusMu.RUnlock()
 
-	sdk, _ := ai.getSdkType()
-	limit, _ := ai.getDailyTokenLimit()
-	model, _ := ai.getAiModel()
-	maxToolCalls, _ := ai.getAiMaxToolCalls()
-	apiUrl, _ := ai.getBaseUrl()
+	// Errors here are non-fatal - the status is returned with zero values
+	// for whatever could not be read. They were previously discarded
+	// silently, which hid the empty-state cause (e.g. AI config secret not
+	// reachable). Collect and log them once so the condition is visible.
+	sdk, sdkErr := ai.getSdkType()
+	limit, limitErr := ai.getDailyTokenLimit()
+	model, modelErr := ai.getAiModel()
+	maxToolCalls, maxToolCallsErr := ai.getAiMaxToolCalls()
+	apiUrl, apiUrlErr := ai.getBaseUrl()
+	if settingsErr := errors.Join(sdkErr, limitErr, modelErr, maxToolCallsErr, apiUrlErr); settingsErr != nil {
+		ai.logger.Warn("failed to read one or more AI config settings", "error", settingsErr)
+	}
 	tokensUsed, todaysProcessedTasks, _ := ai.getTodayTokenUsage()
 
 	if tokensUsed > limit {
