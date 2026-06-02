@@ -1,3 +1,10 @@
+# [2.21.0-develop.31](https://github.com/mogenius/mogenius-operator/compare/v2.21.0-develop.30...v2.21.0-develop.31) (2026-06-02)
+
+
+### Bug Fixes
+
+* **helm:** clear error when repo URL already exists under a different name (MOG-4306) ([69749c0](https://github.com/mogenius/mogenius-operator/commit/69749c0f0a63770eecd55f268628bf621eb4cdec))
+
 # [2.21.0-develop.30](https://github.com/mogenius/mogenius-operator/compare/v2.21.0-develop.29...v2.21.0-develop.30) (2026-06-02)
 
 
