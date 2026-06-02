@@ -759,6 +759,21 @@ func GetObjectsByPrefixWithSizeAndNs[T any](store ValkeyClient, limit int, offse
 		return []T{}, 0, err
 	}
 
+	// Drop bookkeeping keys that share the prefix but do not hold a T.
+	// SetObjectWithAutoincrementLimit maintains a `<baseKey>:counter` key
+	// whose value is a plain integer (from INCR); unmarshalling it into T
+	// would fail with "cannot unmarshal number into Go value of type ...".
+	if len(keyList) > 0 {
+		filtered := keyList[:0]
+		for _, k := range keyList {
+			if strings.HasSuffix(k, ":counter") {
+				continue
+			}
+			filtered = append(filtered, k)
+		}
+		keyList = filtered
+	}
+
 	// Filter by namespace in a single pass if needed
 	if !clusterWide && len(namespaces) > 0 {
 		// Build namespace set for O(1) lookup instead of O(n) slices.Contains
