@@ -1,3 +1,10 @@
+# [2.21.0-develop.29](https://github.com/mogenius/mogenius-operator/compare/v2.21.0-develop.28...v2.21.0-develop.29) (2026-06-02)
+
+
+### Bug Fixes
+
+* migrate to new helm reusable actions ([aad5600](https://github.com/mogenius/mogenius-operator/commit/aad56007e7ce30f9406616fe219decbbb2dd4022))
+
 # [2.21.0-develop.28](https://github.com/mogenius/mogenius-operator/compare/v2.21.0-develop.27...v2.21.0-develop.28) (2026-06-02)
 
 
