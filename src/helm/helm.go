@@ -410,6 +410,13 @@ func NewCli() *cli.EnvSettings {
 	return settings
 }
 
+// normalizeRepoURL canonicalizes a Helm repository URL for equality checks:
+// surrounding whitespace and trailing slashes are removed so that e.g.
+// "https://charts.example.com/" and "https://charts.example.com" compare equal.
+func normalizeRepoURL(url string) string {
+	return strings.TrimRight(strings.TrimSpace(url), "/")
+}
+
 func HelmRepoAdd(data HelmRepoAddRequest) (string, error) {
 	settings := NewCli()
 
@@ -432,6 +439,18 @@ func HelmRepoAdd(data HelmRepoAddRequest) (string, error) {
 	// Check if the repository already exists
 	if repoFile.Has(data.Name) {
 		return fmt.Sprintf("repository '%s' already exists", data.Name), nil
+	}
+
+	// Detect the same repository URL already registered under a different
+	// name. Helm resolves charts by repo name ("reponame/chart"), so silently
+	// adding a duplicate under the requested name would still leave the install
+	// referencing a name that does not match the existing repo - producing a
+	// cryptic "chart not found" later. Surface an actionable error instead.
+	// (MOG-4306)
+	for _, existing := range repoFile.Repositories {
+		if existing.Name != data.Name && normalizeRepoURL(existing.URL) == normalizeRepoURL(data.Url) {
+			return "", fmt.Errorf("repository URL '%s' is already registered under the name '%s'; reference the chart as '%s/<chart>' or remove the existing repository", data.Url, existing.Name, existing.Name)
+		}
 	}
 
 	// Add the new repository entry
