@@ -13,11 +13,23 @@ import (
 	"time"
 
 	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic/dynamicinformer"
 	"k8s.io/client-go/tools/cache"
 )
+
+// Helm stores up to 10 history revisions per release as Secrets of type
+// helm.sh/release.v1. In clusters with many releases these dominate the
+// Secret list (often thousands, several KB each) and push the initial
+// cache sync past the 30s timeout below, so the Secret watcher never
+// syncs and the cache stays empty. These secrets are never read from the
+// operator's store (Helm uses its own storage driver, which talks to the
+// API directly), so they are excluded server-side via a field selector on
+// a dedicated informer factory for Secrets.
+const helmReleaseSecretType = "helm.sh/release.v1"
+const secretWatchFieldSelector = "type!=" + helmReleaseSecretType
 
 // A generic kubernetes resource watcher
 type WatcherModule interface {
@@ -75,6 +87,13 @@ type watcher struct {
 	// up by GVR (factory.ForResource returns the same instance on repeat
 	// calls).
 	factory dynamicinformer.DynamicSharedInformerFactory
+	// secretFactory is a dedicated factory used only for the Secret GVR. It
+	// carries a field selector that excludes Helm release-history secrets
+	// (see secretWatchFieldSelector). It must be separate from `factory`
+	// because the field selector references the `type` field, which only
+	// Secrets expose - applying it to the shared factory would break the
+	// List/Watch of every other resource kind.
+	secretFactory dynamicinformer.DynamicSharedInformerFactory
 	// factoryStopCh is allocated but intentionally never closed by this
 	// package - the shared factory runs for the watcher's lifetime, the
 	// OS reclaims its reflectors at process exit. Closing it from
@@ -104,6 +123,14 @@ func NewWatcher(logger *slog.Logger, clientProvider k8sclient.K8sClientProvider)
 		utils.ResourceResyncTime,
 		v1.NamespaceAll,
 		nil,
+	)
+	self.secretFactory = dynamicinformer.NewFilteredDynamicSharedInformerFactory(
+		clientProvider.DynamicClient(),
+		utils.ResourceResyncTime,
+		v1.NamespaceAll,
+		func(opts *metav1.ListOptions) {
+			opts.FieldSelector = secretWatchFieldSelector
+		},
 	)
 	self.informersConfigured = make(map[schema.GroupVersionResource]bool)
 	self.objectSubsAdd = make(map[objectSubscriptionKey][]func(*unstructured.Unstructured))
@@ -234,7 +261,13 @@ func (self *watcher) registerAndStartInformer(gvr schema.GroupVersionResource, r
 	self.handlerMapLock.Lock()
 	defer self.handlerMapLock.Unlock()
 
-	resourceInformer := self.factory.ForResource(gvr).Informer()
+	// Secrets are watched through a dedicated factory carrying a field
+	// selector that drops Helm release-history secrets; every other kind
+	// uses the shared factory. The factory.Start race documented in
+	// startSingleWatcher is per-factory, so isolating Secrets onto their
+	// own factory preserves that invariant.
+	factory := self.factoryForGVR(gvr)
+	resourceInformer := factory.ForResource(gvr).Informer()
 
 	if !self.informersConfigured[gvr] {
 		// Strip large metadata fields before caching to reduce in-process
@@ -271,11 +304,22 @@ func (self *watcher) registerAndStartInformer(gvr schema.GroupVersionResource, r
 		self.informersConfigured[gvr] = true
 	}
 
-	// Start the shared factory under the same lock. Idempotent for
+	// Start the selected factory under the same lock. Idempotent for
 	// already-running informers; this newly-registered one is launched.
-	self.factory.Start(self.factoryStopCh)
+	factory.Start(self.factoryStopCh)
 
 	return resourceInformer, nil
+}
+
+// factoryForGVR returns the informer factory responsible for the given GVR.
+// The core/v1 Secret GVR is routed to secretFactory (which excludes Helm
+// release-history secrets via a field selector); everything else uses the
+// shared factory.
+func (self *watcher) factoryForGVR(gvr schema.GroupVersionResource) dynamicinformer.DynamicSharedInformerFactory {
+	if gvr.Group == "" && gvr.Version == "v1" && gvr.Resource == "secrets" {
+		return self.secretFactory
+	}
+	return self.factory
 }
 
 func (self *watcher) startSingleWatcher(ctx context.Context, resource utils.ResourceDescriptor, onAdd WatcherOnAdd, onUpdate WatcherOnUpdate, onDelete WatcherOnDelete) error {

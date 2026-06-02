@@ -56,6 +56,13 @@ func (ai *aiManager) isAiPromptConfigInitialized() bool {
 
 func (ai *aiManager) isAiModelConfigInitialized() bool {
 	ownNamespace := ai.config.Get("MO_OWN_NAMESPACE")
+	// Mirror getAiSettingByKey: try the cache first, then fall back to a
+	// direct API read. Using only the direct call made this flag report
+	// false whenever that single Get failed (e.g. API throttling), even
+	// though the config existed and the cache held it.
+	if store.GetSecret(ownNamespace, AI_CONFIG_SECRET_NAME) != nil {
+		return true
+	}
 	configSecret, err := ai.secretGetter(ownNamespace, AI_CONFIG_SECRET_NAME)
 	return err == nil && configSecret != nil
 }
