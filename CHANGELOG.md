@@ -1,3 +1,10 @@
+# [2.21.0-develop.27](https://github.com/mogenius/mogenius-operator/compare/v2.21.0-develop.26...v2.21.0-develop.27) (2026-06-02)
+
+
+### Features
+
+* migrate to reusable workflow for operator multi arch build ([935bc09](https://github.com/mogenius/mogenius-operator/commit/935bc09cc5d49ba79af950750fe837688a19abc9))
+
 # [2.21.0-develop.26](https://github.com/mogenius/mogenius-operator/compare/v2.21.0-develop.25...v2.21.0-develop.26) (2026-06-02)
 
 
