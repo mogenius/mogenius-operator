@@ -1,3 +1,10 @@
+# [2.21.0-develop.30](https://github.com/mogenius/mogenius-operator/compare/v2.21.0-develop.29...v2.21.0-develop.30) (2026-06-02)
+
+
+### Bug Fixes
+
+* **watcher:** exclude helm release secrets from secret watch (MOG-4324, MOG-4325) ([bade80e](https://github.com/mogenius/mogenius-operator/commit/bade80e11340c7fac9ad5731e6c40171ad270247))
+
 # [2.21.0-develop.29](https://github.com/mogenius/mogenius-operator/compare/v2.21.0-develop.28...v2.21.0-develop.29) (2026-06-02)
 
 
