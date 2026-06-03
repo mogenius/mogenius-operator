@@ -1,11 +1,39 @@
 package helm
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 )
+
+func TestIsCRDNotInstalledError(t *testing.T) {
+	noMatch := &meta.NoKindMatchError{
+		GroupKind:        schema.GroupKind{Group: "monitoring.coreos.com", Kind: "Prometheus"},
+		SearchedVersions: []string{"v1"},
+	}
+	cases := []struct {
+		name string
+		err  error
+		want bool
+	}{
+		{"nil", nil, false},
+		{"typed NoKindMatchError", noMatch, true},
+		{"wrapped NoKindMatchError", fmt.Errorf("preflight: %w", noMatch), true},
+		{"no matches for kind message", fmt.Errorf(`no matches for kind "PrometheusRule" in version "monitoring.coreos.com/v1"`), true},
+		{"resource mapping not found message", fmt.Errorf("resource mapping not found for name: x"), true},
+		{"ensure CRDs hint", fmt.Errorf("ensure CRDs are installed first"), true},
+		{"unrelated error", fmt.Errorf("connection refused"), false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.want, isCRDNotInstalledError(tc.err))
+		})
+	}
+}
 
 func TestPreflightResult_HasConflicts(t *testing.T) {
 	cases := []struct {

@@ -128,7 +128,19 @@ func RunOwnershipPreflight(
 
 	resources, err := actionConfig.KubeClient.Build(strings.NewReader(manifest), false)
 	if err != nil {
-		return nil, fmt.Errorf("preflight parse manifest: %w", err)
+		if !isCRDNotInstalledError(err) {
+			return nil, fmt.Errorf("preflight parse manifest: %w", err)
+		}
+		// The chart renders custom resources whose CRDs it ships itself
+		// (e.g. kube-prometheus-stack's monitoring.coreos.com kinds). Those
+		// kinds cannot be REST-mapped before install — but they also cannot
+		// already exist in the cluster (no CRD => no instances), so they are
+		// irrelevant to the ownership scan. Helm installs the chart's crds/
+		// before applying templates, so the real install still succeeds.
+		// Build uses ContinueOnError internally and returns the resources
+		// that DID map alongside the error, so we proceed with those.
+		helmLogger.Warn("ownership preflight: ignoring rendered resources with not-yet-installed CRDs",
+			"releaseName", release, "namespace", namespace, "error", err.Error())
 	}
 
 	result := &PreflightResult{}
@@ -181,6 +193,26 @@ func CheckOwnershipAndLog(
 		)
 	}
 	return len(preflight.Adoptable) > 0, nil
+}
+
+// isCRDNotInstalledError reports whether err is the "no REST mapping" failure
+// that occurs when a rendered manifest references a kind whose CRD is not yet
+// installed in the cluster. Charts that bundle their own CRDs in crds/ (e.g.
+// kube-prometheus-stack) trigger this during the client-side preflight render,
+// because Helm only installs crds/ during the real install. KubeClient.Build
+// aggregates these as meta NoMatch errors; the message also carries Helm's
+// "ensure CRDs are installed first" hint.
+func isCRDNotInstalledError(err error) bool {
+	if err == nil {
+		return false
+	}
+	if meta.IsNoMatchError(err) {
+		return true
+	}
+	msg := err.Error()
+	return strings.Contains(msg, "no matches for kind") ||
+		strings.Contains(msg, "resource mapping not found") ||
+		strings.Contains(msg, "ensure CRDs are installed first")
 }
 
 // scanResource classifies one rendered resource against the live cluster and
