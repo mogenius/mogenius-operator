@@ -1,3 +1,10 @@
+# [2.21.0-develop.36](https://github.com/mogenius/mogenius-operator/compare/v2.21.0-develop.35...v2.21.0-develop.36) (2026-06-03)
+
+
+### Bug Fixes
+
+* namespace fix for resources view in workspace ([3cc2051](https://github.com/mogenius/mogenius-operator/commit/3cc2051122499ba6c9a83574210753fcb075106f))
+
 # [2.21.0-develop.35](https://github.com/mogenius/mogenius-operator/compare/v2.21.0-develop.34...v2.21.0-develop.35) (2026-06-03)
 
 
