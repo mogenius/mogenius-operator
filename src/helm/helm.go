@@ -735,11 +735,12 @@ func HelmChartVersion(data HelmChartVersionRequest) ([]HelmChartInfo, error) {
 }
 
 func HelmOciInstall(data HelmChartOciInstallUpgradeRequest) (result string, err error) {
-	defer func() {
-		if err != nil {
-			cleanReleaseLogs(data.Namespace, data.Release)
-		}
-	}()
+	// Start each attempt with a clean log: drop entries from previous
+	// install/upgrade attempts of the same release so the user only sees the
+	// current run. Logs of a failed attempt stay visible until the next
+	// attempt replaces them (previously they were wiped on error, which hid
+	// the failure reason). (MOG-4306 follow-up)
+	cleanReleaseLogs(data.Namespace, data.Release)
 
 	settings := NewCli()
 	settings.Debug = false
@@ -872,11 +873,10 @@ func newRegistryClient(settings *cli.EnvSettings, plainHTTP bool) (*registry.Cli
 }
 
 func HelmChartInstall(data HelmChartInstallUpgradeRequest) (result string, err error) {
-	defer func() {
-		if err != nil {
-			cleanReleaseLogs(data.Namespace, data.Release)
-		}
-	}()
+	// Start each attempt with a clean log so the user only sees the current
+	// run, not entries from previous install attempts of the same release.
+	// See HelmOciInstall for the rationale on no longer wiping on error.
+	cleanReleaseLogs(data.Namespace, data.Release)
 
 	settings := NewCli()
 	settings.SetNamespace(data.Namespace)
@@ -998,11 +998,10 @@ func HelmChartInstall(data HelmChartInstallUpgradeRequest) (result string, err e
 }
 
 func HelmReleaseUpgrade(data HelmChartInstallUpgradeRequest) (result string, err error) {
-	defer func() {
-		if err != nil {
-			cleanReleaseLogs(data.Namespace, data.Release)
-		}
-	}()
+	// Start each attempt with a clean log so the user only sees the current
+	// run, not entries from previous upgrade attempts of the same release.
+	// See HelmOciInstall for the rationale on no longer wiping on error.
+	cleanReleaseLogs(data.Namespace, data.Release)
 
 	settings := NewCli()
 	settings.SetNamespace(data.Namespace)
