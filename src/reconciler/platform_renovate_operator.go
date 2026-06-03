@@ -25,7 +25,7 @@ func (d *reconcilerModule) reconcileRenovateOperator(ctx context.Context, spec v
 		func(ctx context.Context) ([]any, error) {
 			return []any{}, nil
 		},
-		func(ctx context.Context) (map[string]interface{}, error) {
+		func(ctx context.Context) (map[string]any, error) {
 			return nil, nil
 		},
 	)

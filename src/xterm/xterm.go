@@ -377,8 +377,8 @@ func websocketToCmdInput(readMessages <-chan XtermReadMessages, ctx context.Cont
 			}
 
 			if tty != nil {
-				if strings.HasPrefix(msgStr, "\x04") {
-					str := strings.TrimPrefix(msgStr, "\x04")
+				if after, ok := strings.CutPrefix(msgStr, "\x04"); ok {
+					str := after
 
 					colsExists := strings.Contains(str, "\"cols\":")
 					rowsExists := strings.Contains(str, "\"rows\":")

@@ -305,8 +305,8 @@ func PortForwardStreamConnection(request PortForwardConnectionRequest) {
 			}
 
 			// PFM:O:<connID> — open a new sub-connection
-			if strings.HasPrefix(msgStr, pfmOpenPrefix) {
-				connID := strings.TrimPrefix(msgStr, pfmOpenPrefix)
+			if after, ok := strings.CutPrefix(msgStr, pfmOpenPrefix); ok {
+				connID := after
 				logger.Info("Opening sub-connection", "connID", connID)
 
 				localConn, err := net.DialTimeout("tcp", localAddr, 5*time.Second)
@@ -342,8 +342,8 @@ func PortForwardStreamConnection(request PortForwardConnectionRequest) {
 			}
 
 			// PFM:C:<connID> — CLI closed a sub-connection
-			if strings.HasPrefix(msgStr, pfmClosePrefix) {
-				connID := strings.TrimPrefix(msgStr, pfmClosePrefix)
+			if after, ok := strings.CutPrefix(msgStr, pfmClosePrefix); ok {
+				connID := after
 				logger.Info("Remote closed sub-connection", "connID", connID)
 				connsMu.Lock()
 				if c, ok := conns[connID]; ok {

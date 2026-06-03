@@ -144,7 +144,7 @@ type Analysis struct {
 	FollowUpResources   []utils.WorkloadSingleRequest `json:"followUpResources"`
 	CurrentResourceYaml string                        `json:"currentResourceYaml"`
 	TargetResourceYaml  string                        `json:"targetResourceYaml"`
-	TargetResource      utils.WorkloadSingleRequest   `json:"targetResource,omitempty"`
+	TargetResource      utils.WorkloadSingleRequest   `json:"targetResource"`
 	ProposedOperation   string                        `json:"proposedOperation,omitempty"` // UpdateResource', 'DeleteResource', 'CreateResource', 'Other'
 }
 
@@ -348,8 +348,8 @@ func filterMatchesForObject(filter AiFilter, obj *unstructured.Unstructured) (bo
 		}
 
 		// For array results (comma-separated), check if expectedValue is in any of the values
-		values := strings.Split(value, ", ")
-		for _, v := range values {
+		values := strings.SplitSeq(value, ", ")
+		for v := range values {
 			if strings.TrimSpace(v) == expectedValue {
 				matched = true
 				break
@@ -378,8 +378,8 @@ func filterMatchesForObject(filter AiFilter, obj *unstructured.Unstructured) (bo
 		}
 
 		// For array results (comma-separated), check if expectedValue is in any of the values
-		values := strings.Split(value, ", ")
-		for _, v := range values {
+		values := strings.SplitSeq(value, ", ")
+		for v := range values {
 			if strings.TrimSpace(v) == expectedValue {
 				return false, nil
 			}
@@ -1324,7 +1324,7 @@ func (ai *aiManager) sendAiEvent(task *AiTaskLatest) {
 	datagram := structs.Datagram{
 		Id:      utils.NanoId(),
 		Pattern: "AiProcessEvent",
-		Payload: map[string]interface{}{
+		Payload: map[string]any{
 			"task":   task.Task,
 			"status": task.Status,
 		},
@@ -1337,7 +1337,7 @@ func (ai *aiManager) sendAiDeleteEvent(taskId string) {
 	datagram := structs.Datagram{
 		Id:      utils.NanoId(),
 		Pattern: "AiDeleteEvent",
-		Payload: map[string]interface{}{
+		Payload: map[string]any{
 			"taskId": taskId,
 		},
 		CreatedAt: time.Now(),

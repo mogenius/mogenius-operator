@@ -69,9 +69,9 @@ func TestCompactResourceText(t *testing.T) {
 	// Stripped fields should NOT appear
 	assert.NotContains(t, result, "managedFields")
 	assert.NotContains(t, result, "last-applied-configuration")
-	assert.NotContains(t, result, "abc-123")          // uid
-	assert.NotContains(t, result, "resourceVersion")   // stripped field key
-	assert.NotContains(t, result, "\"999\"")           // resourceVersion value
+	assert.NotContains(t, result, "abc-123")         // uid
+	assert.NotContains(t, result, "resourceVersion") // stripped field key
+	assert.NotContains(t, result, "\"999\"")         // resourceVersion value
 
 	// Important spec/status should appear
 	assert.Contains(t, result, "replicas")
@@ -88,14 +88,14 @@ func TestCompactResourceText(t *testing.T) {
 }
 
 func TestCompactResourceText_LongStrings(t *testing.T) {
-	obj := &unstructured.Unstructured{Object: map[string]interface{}{
+	obj := &unstructured.Unstructured{Object: map[string]any{
 		"apiVersion": "v1",
 		"kind":       "ConfigMap",
-		"metadata": map[string]interface{}{
+		"metadata": map[string]any{
 			"name":      "test-cm",
 			"namespace": "default",
 		},
-		"data": map[string]interface{}{
+		"data": map[string]any{
 			"short": "hello",
 			"long":  strings.Repeat("x", 500),
 		},
@@ -108,15 +108,15 @@ func TestCompactResourceText_LongStrings(t *testing.T) {
 }
 
 func TestStripVerboseFields(t *testing.T) {
-	obj := map[string]interface{}{
-		"metadata": map[string]interface{}{
-			"name":           "test",
-			"uid":            "should-be-removed",
-			"managedFields":  []interface{}{"noise"},
-			"generation":     int64(5),
-			"selfLink":       "/apis/v1/test",
-			"labels":         map[string]interface{}{"keep": "me"},
-			"annotations": map[string]interface{}{
+	obj := map[string]any{
+		"metadata": map[string]any{
+			"name":          "test",
+			"uid":           "should-be-removed",
+			"managedFields": []any{"noise"},
+			"generation":    int64(5),
+			"selfLink":      "/apis/v1/test",
+			"labels":        map[string]any{"keep": "me"},
+			"annotations": map[string]any{
 				"kubectl.kubernetes.io/last-applied-configuration": "huge blob",
 				"useful-annotation": "keep",
 			},
@@ -125,13 +125,13 @@ func TestStripVerboseFields(t *testing.T) {
 
 	stripVerboseFields(obj)
 
-	meta := obj["metadata"].(map[string]interface{})
+	meta := obj["metadata"].(map[string]any)
 	assert.Nil(t, meta["uid"])
 	assert.Nil(t, meta["managedFields"])
 	assert.Nil(t, meta["generation"])
 	assert.Nil(t, meta["selfLink"])
-	assert.Equal(t, map[string]interface{}{"keep": "me"}, meta["labels"])
-	anns := meta["annotations"].(map[string]interface{})
+	assert.Equal(t, map[string]any{"keep": "me"}, meta["labels"])
+	anns := meta["annotations"].(map[string]any)
 	assert.Nil(t, anns["kubectl.kubernetes.io/last-applied-configuration"])
 	assert.Equal(t, "keep", anns["useful-annotation"])
 }

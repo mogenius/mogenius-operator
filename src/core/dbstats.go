@@ -20,18 +20,18 @@ import (
 )
 
 const (
-	DB_STATS_TRAFFIC_BUCKET_NAME            = "traffic-stats"
-	DB_STATS_POD_STATS_BUCKET_NAME          = "pod-stats"
-	DB_STATS_NODE_STATS_BUCKET_NAME         = "node-stats"
-	DB_STATS_NODE_STATS_LATEST_BUCKET_NAME  = "node-stats-latest"
-	DB_STATS_MACHINE_STATS_BUCKET_NAME      = "machine-stats"
-	DB_STATS_SOCKET_STATS_BUCKET            = "socket-stats"
-	DB_STATS_CNI_BUCKET_NAME                = "cluster-cni-configuration"
-	DB_STATS_LIVE_BUCKET_NAME               = "live-stats"
-	DB_STATS_TRAFFIC_NAME                   = "traffic"
-	DB_STATS_CPU_NAME                       = "cpu"
-	DB_STATS_MEMORY_NAME                    = "memory"
-	DB_STATS_PROCESSES_NAME                 = "proc"
+	DB_STATS_TRAFFIC_BUCKET_NAME           = "traffic-stats"
+	DB_STATS_POD_STATS_BUCKET_NAME         = "pod-stats"
+	DB_STATS_NODE_STATS_BUCKET_NAME        = "node-stats"
+	DB_STATS_NODE_STATS_LATEST_BUCKET_NAME = "node-stats-latest"
+	DB_STATS_MACHINE_STATS_BUCKET_NAME     = "machine-stats"
+	DB_STATS_SOCKET_STATS_BUCKET           = "socket-stats"
+	DB_STATS_CNI_BUCKET_NAME               = "cluster-cni-configuration"
+	DB_STATS_LIVE_BUCKET_NAME              = "live-stats"
+	DB_STATS_TRAFFIC_NAME                  = "traffic"
+	DB_STATS_CPU_NAME                      = "cpu"
+	DB_STATS_MEMORY_NAME                   = "memory"
+	DB_STATS_PROCESSES_NAME                = "proc"
 )
 
 var DefaultMaxSizeSocketConnections int64 = 60
@@ -492,10 +492,10 @@ func (self *valkeyStatsDb) GetWorkspaceStatsTrafficUtilization(timeOffsetInMinut
 			for _, entry := range values {
 				minute := entry.CreatedAt.Round(time.Minute)
 				// Clamp any leftover underflowed values that were stored before the
-			// delta-underflow fix in AddInterfaceStatsToDb. Underflowed uint64 values
-			// are astronomically large; zeroing them is safer than the previous
-			// "0xffffffffffffffff - value" approach which incorrectly restored the old
-			// counter value as a traffic spike.
+				// delta-underflow fix in AddInterfaceStatsToDb. Underflowed uint64 values
+				// are astronomically large; zeroing them is safer than the previous
+				// "0xffffffffffffffff - value" approach which incorrectly restored the old
+				// counter value as a traffic spike.
 				if entry.ReceivedPackets > 184467440736991000 {
 					entry.ReceivedPackets = 0
 				}
@@ -545,7 +545,7 @@ func (self *valkeyStatsDb) GetWorkspaceStatsTrafficUtilization(timeOffsetInMinut
 	times := slices.Collect(maps.Keys(trafficByMinute))
 	slices.SortFunc(times, time.Time.Compare)
 	sortedEntries := make([]GenericChartEntry, 0, len(times))
-	for i := 0; i < len(times); i++ {
+	for i := range times {
 		sortedEntries = append(sortedEntries, trafficByMinute[times[i]])
 	}
 
@@ -651,7 +651,7 @@ type WorkspaceDashboardMetrics struct {
 }
 
 type ClusterDashboardStats struct {
-	CpuHistory       []GenericChartEntry        `json:"cpuHistory"`
+	CpuHistory       []GenericChartEntry         `json:"cpuHistory"`
 	WorkspaceMetrics []WorkspaceDashboardMetrics `json:"workspaceMetrics"`
 }
 
@@ -751,7 +751,7 @@ func (self *valkeyStatsDb) GetClusterDashboardStats(
 	} else {
 		// Pick dashboardCpuHistoryPoints-1 evenly spaced points, then always include the latest
 		step := float64(len(timestamps)-1) / float64(dashboardCpuHistoryPoints-1)
-		for i := 0; i < dashboardCpuHistoryPoints; i++ {
+		for i := range dashboardCpuHistoryPoints {
 			idx := int(float64(i) * step)
 			if idx >= len(timestamps) {
 				idx = len(timestamps) - 1

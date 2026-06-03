@@ -41,15 +41,15 @@ func helmNamespace(reference *v1alpha1.HelmChartReference, defaultNamespace stri
 //  1. defaults.ValuesObject from getDefaultConfig
 //  2. configValues derived from the component spec
 //  3. patch values from a PlatformPatch (highest precedence)
-func mergeHelmValues(defaults componentDefaultSpec, configValues map[string]interface{}, patch *v1alpha1.PlatformPatch) (map[string]interface{}, error) {
-	result := map[string]interface{}{}
+func mergeHelmValues(defaults componentDefaultSpec, configValues map[string]any, patch *v1alpha1.PlatformPatch) (map[string]any, error) {
+	result := map[string]any{}
 
 	mergeMaps(result, defaults.ValuesObject)
 
 	mergeMaps(result, configValues)
 
 	if patch != nil && patch.Spec.ValuesObject != nil {
-		patchValues := map[string]interface{}{}
+		patchValues := map[string]any{}
 		if err := json.Unmarshal(patch.Spec.ValuesObject.Raw, &patchValues); err != nil {
 			return nil, fmt.Errorf("parse patch values: %w", err)
 		}
@@ -61,10 +61,10 @@ func mergeHelmValues(defaults componentDefaultSpec, configValues map[string]inte
 
 // mergeMaps deep-merges src into dst. Nested maps are merged recursively;
 // all other values in src overwrite those in dst.
-func mergeMaps(dst, src map[string]interface{}) {
+func mergeMaps(dst, src map[string]any) {
 	for k, srcVal := range src {
-		if srcMap, ok := srcVal.(map[string]interface{}); ok {
-			if dstMap, ok := dst[k].(map[string]interface{}); ok {
+		if srcMap, ok := srcVal.(map[string]any); ok {
+			if dstMap, ok := dst[k].(map[string]any); ok {
 				mergeMaps(dstMap, srcMap)
 				continue
 			}

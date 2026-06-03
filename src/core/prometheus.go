@@ -64,7 +64,7 @@ type PrometheusQueryResponse struct {
 type PrometheusStoreObject struct {
 	Query     string    `json:"query"`
 	Step      int       `json:"step"`
-	CreatedAt time.Time `json:"createdAt,omitempty"`
+	CreatedAt time.Time `json:"createdAt"`
 }
 type PrometheusValuesResponse struct {
 	Status string   `json:"status"`

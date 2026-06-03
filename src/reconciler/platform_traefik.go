@@ -25,7 +25,7 @@ func (d *reconcilerModule) reconcileTraefik(ctx context.Context, spec v1alpha1.P
 		func(ctx context.Context) ([]any, error) {
 			return []any{}, nil
 		},
-		func(ctx context.Context) (map[string]interface{}, error) {
+		func(ctx context.Context) (map[string]any, error) {
 			return nil, nil
 		},
 	)

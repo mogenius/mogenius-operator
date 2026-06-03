@@ -22,7 +22,7 @@ var fieldsToStrip = [][]string{
 }
 
 // stripVerboseFields removes known noisy fields in place.
-func stripVerboseFields(obj map[string]interface{}) {
+func stripVerboseFields(obj map[string]any) {
 	for _, path := range fieldsToStrip {
 		unstructured.RemoveNestedField(obj, path...)
 	}
@@ -60,8 +60,8 @@ func compactResourceText(obj *unstructured.Unstructured) string {
 	}
 
 	// Annotations (already stripped of last-applied-configuration)
-	if meta, ok := data["metadata"].(map[string]interface{}); ok {
-		if anns, ok := meta["annotations"].(map[string]interface{}); ok && len(anns) > 0 {
+	if meta, ok := data["metadata"].(map[string]any); ok {
+		if anns, ok := meta["annotations"].(map[string]any); ok && len(anns) > 0 {
 			fmt.Fprintf(&b, "annotations: %s\n", flatKVAny(anns))
 		}
 	}
@@ -70,7 +70,7 @@ func compactResourceText(obj *unstructured.Unstructured) string {
 	if owners, found, _ := unstructured.NestedSlice(data, "metadata", "ownerReferences"); found && len(owners) > 0 {
 		var parts []string
 		for _, o := range owners {
-			if om, ok := o.(map[string]interface{}); ok {
+			if om, ok := o.(map[string]any); ok {
 				parts = append(parts, fmt.Sprintf("%s/%s", om["kind"], om["name"]))
 			}
 		}
@@ -78,25 +78,25 @@ func compactResourceText(obj *unstructured.Unstructured) string {
 	}
 
 	// Spec
-	if spec, ok := data["spec"].(map[string]interface{}); ok {
+	if spec, ok := data["spec"].(map[string]any); ok {
 		b.WriteString("spec:\n")
 		writeCompactMap(&b, spec, "  ")
 	}
 
 	// Status
-	if status, ok := data["status"].(map[string]interface{}); ok {
+	if status, ok := data["status"].(map[string]any); ok {
 		b.WriteString("status:\n")
 		writeCompactMap(&b, status, "  ")
 	}
 
 	// Data (ConfigMaps/Secrets)
-	if d, ok := data["data"].(map[string]interface{}); ok {
+	if d, ok := data["data"].(map[string]any); ok {
 		b.WriteString("data:\n")
 		writeCompactMap(&b, d, "  ")
 	}
 
 	// StringData (Secrets)
-	if d, ok := data["stringData"].(map[string]interface{}); ok {
+	if d, ok := data["stringData"].(map[string]any); ok {
 		b.WriteString("stringData:\n")
 		writeCompactMap(&b, d, "  ")
 	}
@@ -105,14 +105,14 @@ func compactResourceText(obj *unstructured.Unstructured) string {
 }
 
 // writeCompactMap recursively writes a map in compact describe-like format.
-func writeCompactMap(b *strings.Builder, m map[string]interface{}, indent string) {
+func writeCompactMap(b *strings.Builder, m map[string]any, indent string) {
 	keys := sortedMapKeys(m)
 	for _, k := range keys {
 		v := m[k]
 		switch val := v.(type) {
 		case nil:
 			// skip
-		case map[string]interface{}:
+		case map[string]any:
 			if len(val) == 0 {
 				continue
 			}
@@ -122,7 +122,7 @@ func writeCompactMap(b *strings.Builder, m map[string]interface{}, indent string
 				fmt.Fprintf(b, "%s%s:\n", indent, k)
 				writeCompactMap(b, val, indent+"  ")
 			}
-		case []interface{}:
+		case []any:
 			if len(val) == 0 {
 				continue
 			}
@@ -145,7 +145,7 @@ func writeCompactMap(b *strings.Builder, m map[string]interface{}, indent string
 }
 
 // writeCompactSlice writes a slice in compact format.
-func writeCompactSlice(b *strings.Builder, key string, items []interface{}, indent string) {
+func writeCompactSlice(b *strings.Builder, key string, items []any, indent string) {
 	if isSimpleSlice(items) {
 		parts := make([]string, len(items))
 		for i, item := range items {
@@ -157,7 +157,7 @@ func writeCompactSlice(b *strings.Builder, key string, items []interface{}, inde
 
 	fmt.Fprintf(b, "%s%s:\n", indent, key)
 	for _, item := range items {
-		if m, ok := item.(map[string]interface{}); ok {
+		if m, ok := item.(map[string]any); ok {
 			if isSimpleMap(m) && len(m) <= 5 {
 				fmt.Fprintf(b, "%s  - %s\n", indent, flatKVAny(m))
 			} else {
@@ -171,10 +171,10 @@ func writeCompactSlice(b *strings.Builder, key string, items []interface{}, inde
 }
 
 // isSimpleMap returns true if all values are scalar (no nested maps/slices).
-func isSimpleMap(m map[string]interface{}) bool {
+func isSimpleMap(m map[string]any) bool {
 	for _, v := range m {
 		switch v.(type) {
-		case map[string]interface{}, []interface{}:
+		case map[string]any, []any:
 			return false
 		}
 	}
@@ -182,10 +182,10 @@ func isSimpleMap(m map[string]interface{}) bool {
 }
 
 // isSimpleSlice returns true if all items are scalars.
-func isSimpleSlice(items []interface{}) bool {
+func isSimpleSlice(items []any) bool {
 	for _, item := range items {
 		switch item.(type) {
-		case map[string]interface{}, []interface{}:
+		case map[string]any, []any:
 			return false
 		}
 	}
@@ -207,7 +207,7 @@ func flatKV(m map[string]string) string {
 }
 
 // flatKVAny formats an interface{} map as "k1=v1 k2=v2".
-func flatKVAny(m map[string]interface{}) string {
+func flatKVAny(m map[string]any) string {
 	keys := sortedMapKeys(m)
 	parts := make([]string, len(keys))
 	for i, k := range keys {
@@ -221,7 +221,7 @@ func flatKVAny(m map[string]interface{}) string {
 }
 
 // sortedMapKeys returns the keys of a map sorted alphabetically.
-func sortedMapKeys(m map[string]interface{}) []string {
+func sortedMapKeys(m map[string]any) []string {
 	keys := make([]string, 0, len(m))
 	for k := range m {
 		keys = append(keys, k)

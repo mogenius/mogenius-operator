@@ -15,8 +15,8 @@ type componentDefaults struct {
 	Spec       componentDefaultSpec `json:"spec"`
 }
 type componentDefaultSpec struct {
-	Version      string                 `json:"version"`
-	ValuesObject map[string]interface{} `json:"valuesObject,omitempty"`
+	Version      string         `json:"version"`
+	ValuesObject map[string]any `json:"valuesObject,omitempty"`
 }
 
 var defaultConfigHTTPClient = &http.Client{Timeout: 10 * time.Second}

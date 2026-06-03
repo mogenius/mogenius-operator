@@ -1423,18 +1423,18 @@ func printAllGet(rel *release.Release) string {
 }
 
 func printHooks(rel *release.Release) string {
-	result := ""
+	var result strings.Builder
 	if rel.Hooks != nil {
-		result += "Hooks:\n"
+		result.WriteString("Hooks:\n")
 		for _, hook := range rel.Hooks {
-			result += fmt.Sprintf("  Name: %s\n", hook.Name)
-			result += fmt.Sprintf("  Kind: %s\n", hook.Kind)
-			result += fmt.Sprintf("  Manifest: %s\n", hook.Manifest)
-			result += fmt.Sprintf("  Events: %v\n", hook.Events)
+			fmt.Fprintf(&result, "  Name: %s\n", hook.Name)
+			fmt.Fprintf(&result, "  Kind: %s\n", hook.Kind)
+			fmt.Fprintf(&result, "  Manifest: %s\n", hook.Manifest)
+			fmt.Fprintf(&result, "  Events: %v\n", hook.Events)
 		}
 	}
 
-	return result
+	return result.String()
 }
 
 func yamlString(data map[string]any) string {

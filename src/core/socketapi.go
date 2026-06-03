@@ -50,7 +50,7 @@ const messageWorkerCount = 50
 
 // Pool for reusing buffers during compression
 var compressionBufferPool = sync.Pool{
-	New: func() interface{} {
+	New: func() any {
 		return new(bytes.Buffer)
 	},
 }
@@ -387,9 +387,9 @@ func (self *socketApi) registerPatterns() {
 	{
 		type Response struct {
 			BuildInfo struct {
-				Version version.Version `json:"version,omitempty"`
-			} `json:"buildInfo,omitempty"`
-			Features struct{}                 `json:"features,omitempty"`
+				Version version.Version `json:"version"`
+			} `json:"buildInfo"`
+			Features struct{}                 `json:"features"`
 			Patterns map[string]PatternConfig `json:"patterns,omitempty"`
 		}
 		RegisterPatternHandler(
@@ -2264,7 +2264,7 @@ func (self *socketApi) startClientReadLoop(client websocket.WebsocketClient) {
 		jobs := make(chan structs.Datagram, messageWorkerCount)
 		defer close(jobs) // signals workers to exit when the read loop ends
 
-		for i := 0; i < messageWorkerCount; i++ {
+		for range messageWorkerCount {
 			go self.dispatchClientMessages(client, jobs)
 		}
 
@@ -2348,7 +2348,7 @@ func (self *socketApi) startJobClientReadLoop() {
 		jobs := make(chan structs.Datagram, messageWorkerCount)
 		defer close(jobs)
 
-		for i := 0; i < messageWorkerCount; i++ {
+		for range messageWorkerCount {
 			go self.dispatchJobClientMessages(jobs)
 		}
 

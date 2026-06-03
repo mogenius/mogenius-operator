@@ -14,7 +14,7 @@ var kubernetesOpenAiTools = []openai.ChatCompletionToolUnionParam{
 		"Get full details of a specific Kubernetes resource by kind, name and namespace.",
 		openai.FunctionParameters{
 			"type": "object",
-			"properties": map[string]interface{}{
+			"properties": map[string]any{
 				"apiVersion": map[string]string{"type": "string", "description": "API version (e.g. 'v1', 'apps/v1')"},
 				"kind":       map[string]string{"type": "string", "description": "Resource kind (e.g. 'Pod', 'Deployment')"},
 				"name":       map[string]string{"type": "string", "description": "Resource name"},
@@ -28,7 +28,7 @@ var kubernetesOpenAiTools = []openai.ChatCompletionToolUnionParam{
 		"List all Kubernetes resources of a specific kind, optionally filtered by namespace.",
 		openai.FunctionParameters{
 			"type": "object",
-			"properties": map[string]interface{}{
+			"properties": map[string]any{
 				"apiVersion": map[string]string{"type": "string", "description": "API version (e.g. 'v1', 'apps/v1')"},
 				"kind":       map[string]string{"type": "string", "description": "Resource kind (e.g. 'Pod', 'Deployment')"},
 				"namespace":  map[string]string{"type": "string", "description": "Namespace filter (optional, empty for all)"},
@@ -41,7 +41,7 @@ var kubernetesOpenAiTools = []openai.ChatCompletionToolUnionParam{
 		"Check existence and status of a single resource. Returns a compact summary instead of full details. Use get_kubernetes_resources only when you need the complete resource object.",
 		openai.FunctionParameters{
 			"type": "object",
-			"properties": map[string]interface{}{
+			"properties": map[string]any{
 				"apiVersion": map[string]string{"type": "string", "description": "API version (e.g. 'v1', 'apps/v1')"},
 				"kind":       map[string]string{"type": "string", "description": "Resource kind (e.g. 'Pod', 'Deployment')"},
 				"name":       map[string]string{"type": "string", "description": "Resource name"},
@@ -55,7 +55,7 @@ var kubernetesOpenAiTools = []openai.ChatCompletionToolUnionParam{
 		"Update an existing Kubernetes resource with new YAML configuration.",
 		openai.FunctionParameters{
 			"type": "object",
-			"properties": map[string]interface{}{
+			"properties": map[string]any{
 				"apiVersion": map[string]string{"type": "string", "description": "API version (e.g. 'v1', 'apps/v1')"},
 				"plural":     map[string]string{"type": "string", "description": "Plural name (e.g. 'pods', 'deployments')"},
 				"namespaced": map[string]string{"type": "boolean", "description": "Namespaced (true) or cluster-scoped (false)"},
@@ -69,7 +69,7 @@ var kubernetesOpenAiTools = []openai.ChatCompletionToolUnionParam{
 		"Delete a Kubernetes resource by name and namespace.",
 		openai.FunctionParameters{
 			"type": "object",
-			"properties": map[string]interface{}{
+			"properties": map[string]any{
 				"apiVersion": map[string]string{"type": "string", "description": "API version (e.g. 'v1', 'apps/v1')"},
 				"plural":     map[string]string{"type": "string", "description": "Plural name (e.g. 'pods', 'deployments')"},
 				"namespace":  map[string]string{"type": "string", "description": "Namespace (empty for cluster-scoped)"},
@@ -83,7 +83,7 @@ var kubernetesOpenAiTools = []openai.ChatCompletionToolUnionParam{
 		"Create a new Kubernetes resource from YAML configuration.",
 		openai.FunctionParameters{
 			"type": "object",
-			"properties": map[string]interface{}{
+			"properties": map[string]any{
 				"apiVersion": map[string]string{"type": "string", "description": "API version (e.g. 'v1', 'apps/v1')"},
 				"plural":     map[string]string{"type": "string", "description": "Plural name (e.g. 'pods', 'deployments')"},
 				"namespaced": map[string]string{"type": "boolean", "description": "Namespaced (true) or cluster-scoped (false)"},
@@ -97,7 +97,7 @@ var kubernetesOpenAiTools = []openai.ChatCompletionToolUnionParam{
 		"Get logs from a pod's container. Returns the last N lines of log output. The response is automatically trimmed to fit within maxChars. Start with a small maxChars and increase only if you need more context.",
 		openai.FunctionParameters{
 			"type": "object",
-			"properties": map[string]interface{}{
+			"properties": map[string]any{
 				"namespace": map[string]string{"type": "string", "description": "Namespace of the pod"},
 				"podName":   map[string]string{"type": "string", "description": "Name of the pod"},
 				"container": map[string]string{"type": "string", "description": "Container name (optional, defaults to first container)"},
@@ -113,7 +113,7 @@ var kubernetesOpenAiTools = []openai.ChatCompletionToolUnionParam{
 		"Get Kubernetes events for a specific pod. Shows warnings, errors, and lifecycle events. The response is automatically trimmed to fit within maxChars, keeping the most recent events.",
 		openai.FunctionParameters{
 			"type": "object",
-			"properties": map[string]interface{}{
+			"properties": map[string]any{
 				"namespace": map[string]string{"type": "string", "description": "Namespace of the pod"},
 				"podName":   map[string]string{"type": "string", "description": "Name of the pod"},
 				"maxChars":  map[string]string{"type": "integer", "description": "Maximum characters in response (default 20000, max 50000). Use lower values to save tokens."},

@@ -20,7 +20,7 @@ const (
 
 type GitOpsArtifact struct {
 	Namespace    string
-	Values       map[string]interface{}
+	Values       map[string]any
 	HelmChart    HelmChartReference
 	ExtraObjects []any
 }
