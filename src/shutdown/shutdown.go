@@ -17,8 +17,8 @@ func Add(fn func()) {
 	DefaultShutdown.Add(fn)
 }
 
-func ExecuteShutdownHandlers() {
-	DefaultShutdown.ExecuteShutdownHandlers()
+func ExecuteShutdownHandlers() chan struct{} {
+	return DefaultShutdown.ExecuteShutdownHandlers()
 }
 
 func Listen() {
@@ -39,7 +39,9 @@ func New() *Shutdown {
 	self := &Shutdown{}
 	self.hooks = []func(){}
 	self.mutex = &sync.Mutex{}
-	self.internalShutdownSignal = make(chan bool)
+	// Buffered so a signal sent before Listen() reaches its select is retained
+	// instead of blocking the caller forever.
+	self.internalShutdownSignal = make(chan bool, 1)
 	return self
 }
 
@@ -50,10 +52,16 @@ func (self *Shutdown) Add(fn func()) {
 }
 
 func (self *Shutdown) SendShutdownSignal(indicateFailure bool) {
-	self.mutex.Lock()
-	defer self.mutex.Unlock()
 	logger.Println("sending request to shut down")
-	self.internalShutdownSignal <- indicateFailure
+	// Non-blocking: the channel is buffered (cap 1), so the first signal is
+	// always accepted even if Listen() has not started yet. Any later signal
+	// is dropped rather than blocking under the mutex — every internal caller
+	// requests the same failing shutdown, so the first one wins.
+	select {
+	case self.internalShutdownSignal <- indicateFailure:
+	default:
+		logger.Println("shutdown already requested, ignoring duplicate signal")
+	}
 }
 
 func (self *Shutdown) ExecuteShutdownHandlers() chan struct{} {

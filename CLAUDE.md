@@ -62,7 +62,6 @@ mogenius-k8s-manager/
 │   └── version/            # Build metadata (commit, branch, timestamp)
 ├── helm/                   # Helm charts for deploying this operator
 ├── test/                   # Integration tests
-├── generated/              # Auto-generated (spec.yaml, client.ts)
 ├── Justfile                # Task runner
 └── Dockerfile              # Multi-stage build (Go + eBPF tooling)
 ```

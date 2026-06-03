@@ -10,6 +10,18 @@
     "automerge": true
   },
   "prCreation": "not-pending",
+  "customManagers": [
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^src/gitops/installer\\.go$/"
+      ],
+      "matchStrings": ["moacVersion\\s+=\\s+\"(?<currentValue>[^\"]+)\""],
+      "datasourceTemplate": "helm",
+      "depNameTemplate": "moac",
+      "registryUrlTemplate": "https://helm.mogenius.com/public"
+    }
+  ],
   "packageRules": [
     {
       "matchPackageNames": [

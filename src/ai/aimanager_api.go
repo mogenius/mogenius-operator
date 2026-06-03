@@ -1,6 +1,7 @@
 package ai
 
 import (
+	"errors"
 	"fmt"
 	"mogenius-operator/src/crds/v1alpha1"
 	"mogenius-operator/src/store"
@@ -14,6 +15,13 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
+// aiStatusMu guards every read and write of cachedStatus*,
+// cachedWorkspaceStatus*. GetStatus used to declare a fresh mutex inside
+// the function which gave each caller its own (useless) lock; the
+// package-level maps were then read and written concurrently, which is
+// undefined behavior in Go and produces "fatal error: concurrent map
+// read and map write" crashes under any non-trivial status-polling load.
+var aiStatusMu sync.RWMutex
 var cachedStatusTime time.Time
 var cachedStatus AiManagerStatus
 var cachedWorkspaceStatusTime map[string]time.Time = make(map[string]time.Time)
@@ -280,26 +288,36 @@ func (ai *aiManager) getLatestNamespaceTask(namespace string) (*AiTask, error) {
 }
 
 func (ai *aiManager) GetStatus(workspace *string) AiManagerStatus {
-	mutex := sync.Mutex{}
+	aiStatusMu.RLock()
 	if workspace == nil {
 		if cachedStatusTime.Add(AiCachedStatusLiveTime).After(time.Now()) {
+			defer aiStatusMu.RUnlock()
 			return cachedStatus
 		}
 	} else {
 		if lastCachedTime, exists := cachedWorkspaceStatusTime[*workspace]; exists {
 			if lastCachedTime.Add(AiCachedStatusLiveTime).After(time.Now()) {
 				if status, exists := cachedWorkspaceStatus[*workspace]; exists {
+					defer aiStatusMu.RUnlock()
 					return status
 				}
 			}
 		}
 	}
+	aiStatusMu.RUnlock()
 
-	sdk, _ := ai.getSdkType()
-	limit, _ := ai.getDailyTokenLimit()
-	model, _ := ai.getAiModel()
-	maxToolCalls, _ := ai.getAiMaxToolCalls()
-	apiUrl, _ := ai.getBaseUrl()
+	// Errors here are non-fatal - the status is returned with zero values
+	// for whatever could not be read. They were previously discarded
+	// silently, which hid the empty-state cause (e.g. AI config secret not
+	// reachable). Collect and log them once so the condition is visible.
+	sdk, sdkErr := ai.getSdkType()
+	limit, limitErr := ai.getDailyTokenLimit()
+	model, modelErr := ai.getAiModel()
+	maxToolCalls, maxToolCallsErr := ai.getAiMaxToolCalls()
+	apiUrl, apiUrlErr := ai.getBaseUrl()
+	if settingsErr := errors.Join(sdkErr, limitErr, modelErr, maxToolCallsErr, apiUrlErr); settingsErr != nil {
+		ai.logger.Warn("failed to read one or more AI config settings", "error", settingsErr)
+	}
 	tokensUsed, todaysProcessedTasks, _ := ai.getTodayTokenUsage()
 
 	if tokensUsed > limit {
@@ -378,7 +396,7 @@ func (ai *aiManager) GetStatus(workspace *string) AiManagerStatus {
 		NumberOfUnreadTasks:         numberOfUnreadTasks,
 		NextTokenResetTime:          nextReset.Format(time.RFC3339),
 	}
-	mutex.Lock()
+	aiStatusMu.Lock()
 	if workspace != nil {
 		cachedWorkspaceStatusTime[*workspace] = time.Now()
 		cachedWorkspaceStatus[*workspace] = status
@@ -386,7 +404,7 @@ func (ai *aiManager) GetStatus(workspace *string) AiManagerStatus {
 		cachedStatusTime = time.Now()
 		cachedStatus = status
 	}
-	mutex.Unlock()
+	aiStatusMu.Unlock()
 	return status
 }
 

@@ -262,8 +262,12 @@ func (self *networkMonitor) GetPodNetworkUsage() []PodNetworkStats {
 
 type PodNetworkStats struct {
 	// Ip                 string    `json:"ip"`
-	Pod       string `json:"pod"`
-	Namespace string `json:"namespace"`
+	Pod string `json:"pod"`
+	// Namespace is encoded with omitempty so writers can zero it before
+	// persisting (the namespace is already part of the stream key); readers
+	// fill it back from the query context. Older stored entries still
+	// contain the field and unmarshal normally.
+	Namespace string `json:"namespace,omitempty"`
 	// Interface          string    `json:"interface"`
 	ReceivedPackets    uint64 `json:"receivedPackets"`
 	ReceivedBytes      uint64 `json:"receivedBytes"`

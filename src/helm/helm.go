@@ -17,13 +17,11 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/apimachinery/pkg/types"
-
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-
 	"helm.sh/helm/v4/pkg/kube"
 	"helm.sh/helm/v4/pkg/registry"
 	"helm.sh/helm/v4/pkg/repo/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/patrickmn/go-cache"
 	"sigs.k8s.io/yaml"
@@ -412,6 +410,13 @@ func NewCli() *cli.EnvSettings {
 	return settings
 }
 
+// normalizeRepoURL canonicalizes a Helm repository URL for equality checks:
+// surrounding whitespace and trailing slashes are removed so that e.g.
+// "https://charts.example.com/" and "https://charts.example.com" compare equal.
+func normalizeRepoURL(url string) string {
+	return strings.TrimRight(strings.TrimSpace(url), "/")
+}
+
 func HelmRepoAdd(data HelmRepoAddRequest) (string, error) {
 	settings := NewCli()
 
@@ -434,6 +439,18 @@ func HelmRepoAdd(data HelmRepoAddRequest) (string, error) {
 	// Check if the repository already exists
 	if repoFile.Has(data.Name) {
 		return fmt.Sprintf("repository '%s' already exists", data.Name), nil
+	}
+
+	// Detect the same repository URL already registered under a different
+	// name. Helm resolves charts by repo name ("reponame/chart"), so silently
+	// adding a duplicate under the requested name would still leave the install
+	// referencing a name that does not match the existing repo - producing a
+	// cryptic "chart not found" later. Surface an actionable error instead.
+	// (MOG-4306)
+	for _, existing := range repoFile.Repositories {
+		if existing.Name != data.Name && normalizeRepoURL(existing.URL) == normalizeRepoURL(data.Url) {
+			return "", fmt.Errorf("repository URL '%s' is already registered under the name '%s'; reference the chart as '%s/<chart>' or remove the existing repository", data.Url, existing.Name, existing.Name)
+		}
 	}
 
 	// Add the new repository entry
@@ -718,11 +735,12 @@ func HelmChartVersion(data HelmChartVersionRequest) ([]HelmChartInfo, error) {
 }
 
 func HelmOciInstall(data HelmChartOciInstallUpgradeRequest) (result string, err error) {
-	defer func() {
-		if err != nil {
-			cleanReleaseLogs(data.Namespace, data.Release)
-		}
-	}()
+	// Start each attempt with a clean log: drop entries from previous
+	// install/upgrade attempts of the same release so the user only sees the
+	// current run. Logs of a failed attempt stay visible until the next
+	// attempt replaces them (previously they were wiped on error, which hid
+	// the failure reason). (MOG-4306 follow-up)
+	cleanReleaseLogs(data.Namespace, data.Release)
 
 	settings := NewCli()
 	settings.Debug = false
@@ -812,6 +830,7 @@ func HelmOciInstall(data HelmChartOciInstallUpgradeRequest) (result string, err 
 			"namespace", data.Namespace,
 			"error", err.Error(),
 		)
+		logReleaseFailureDiagnostics(settings, data.Namespace, data.Release)
 		return "", err
 	}
 
@@ -855,11 +874,10 @@ func newRegistryClient(settings *cli.EnvSettings, plainHTTP bool) (*registry.Cli
 }
 
 func HelmChartInstall(data HelmChartInstallUpgradeRequest) (result string, err error) {
-	defer func() {
-		if err != nil {
-			cleanReleaseLogs(data.Namespace, data.Release)
-		}
-	}()
+	// Start each attempt with a clean log so the user only sees the current
+	// run, not entries from previous install attempts of the same release.
+	// See HelmOciInstall for the rationale on no longer wiping on error.
+	cleanReleaseLogs(data.Namespace, data.Release)
 
 	settings := NewCli()
 	settings.SetNamespace(data.Namespace)
@@ -932,6 +950,25 @@ func HelmChartInstall(data HelmChartInstallUpgradeRequest) (result string, err e
 		return "", err
 	}
 
+	// Ownership preflight: detect orphaned cluster-scoped resources left over
+	// from a previous incomplete uninstall. Adopt them via TakeOwnership when
+	// safe, abort when a foreign Helm release already owns them.
+	if !data.DryRun {
+		needsTakeOwnership, perr := CheckOwnershipAndLog(
+			actionConfig, chartRequested, valuesMap,
+			data.Release, data.Namespace, data.Version,
+		)
+		if perr != nil {
+			helmLogger.Error("HelmInstall ownership preflight failed",
+				"releaseName", data.Release,
+				"namespace", data.Namespace,
+				"error", perr.Error(),
+			)
+			return "", perr
+		}
+		install.TakeOwnership = needsTakeOwnership
+	}
+
 	helmLogger.Info("Installing chart ...", "releaseName", data.Release, "namespace", data.Namespace)
 	re, err := install.Run(chartRequested, valuesMap)
 	if err != nil {
@@ -940,6 +977,7 @@ func HelmChartInstall(data HelmChartInstallUpgradeRequest) (result string, err e
 			"namespace", data.Namespace,
 			"error", err.Error(),
 		)
+		logReleaseFailureDiagnostics(settings, data.Namespace, data.Release)
 		return "", err
 	}
 	if re == nil {
@@ -962,11 +1000,10 @@ func HelmChartInstall(data HelmChartInstallUpgradeRequest) (result string, err e
 }
 
 func HelmReleaseUpgrade(data HelmChartInstallUpgradeRequest) (result string, err error) {
-	defer func() {
-		if err != nil {
-			cleanReleaseLogs(data.Namespace, data.Release)
-		}
-	}()
+	// Start each attempt with a clean log so the user only sees the current
+	// run, not entries from previous upgrade attempts of the same release.
+	// See HelmOciInstall for the rationale on no longer wiping on error.
+	cleanReleaseLogs(data.Namespace, data.Release)
 
 	settings := NewCli()
 	settings.SetNamespace(data.Namespace)
@@ -1025,6 +1062,25 @@ func HelmReleaseUpgrade(data HelmChartInstallUpgradeRequest) (result string, err
 		return "", err
 	}
 
+	// Ownership preflight: detect orphaned cluster-scoped resources left over
+	// from a previous incomplete uninstall. Adopt them via TakeOwnership when
+	// safe, abort when a foreign Helm release already owns them.
+	if !data.DryRun {
+		needsTakeOwnership, perr := CheckOwnershipAndLog(
+			actionConfig, chartRequested, valuesMap,
+			data.Release, data.Namespace, data.Version,
+		)
+		if perr != nil {
+			helmLogger.Error("HelmUpgrade ownership preflight failed",
+				"releaseName", data.Release,
+				"namespace", data.Namespace,
+				"error", perr.Error(),
+			)
+			return "", perr
+		}
+		upgrade.TakeOwnership = needsTakeOwnership
+	}
+
 	helmLogger.Info("Upgrading chart ...", "releaseName", data.Release, "namespace", data.Namespace)
 	re, err := upgrade.Run(data.Release, chartRequested, valuesMap)
 	if err != nil {
@@ -1033,6 +1089,7 @@ func HelmReleaseUpgrade(data HelmChartInstallUpgradeRequest) (result string, err
 			"namespace", data.Namespace,
 			"error", err.Error(),
 		)
+		logReleaseFailureDiagnostics(settings, data.Namespace, data.Release)
 		return "", err
 	}
 	if re == nil {

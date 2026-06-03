@@ -29,6 +29,22 @@ const (
 	VALKEY_RESOURCE_PREFIX = "resources"
 )
 
+// deprecatedResources are skipped during resource discovery because the API
+// version is deprecated and a non-deprecated replacement is already watched.
+// Watching them produces noisy client-go deprecation warnings and stores
+// duplicate data in Valkey. Keyed by "groupVersion/kind".
+//
+//   - v1/Endpoints: replaced by discovery.k8s.io/v1 EndpointSlice; scheduled
+//     for removal in Kubernetes 1.33+.
+var deprecatedResources = map[string]struct{}{
+	"v1/Endpoints": {},
+}
+
+func isDeprecatedResource(groupVersion, kind string) bool {
+	_, ok := deprecatedResources[groupVersion+"/"+kind]
+	return ok
+}
+
 type GetUnstructuredNamespaceResourceListRequest struct {
 	Namespace string                      `json:"namespace" validate:"required"`
 	Whitelist []*utils.ResourceDescriptor `json:"whitelist"`
@@ -64,9 +80,18 @@ func WatchStoreResources(wm watcher.WatcherModule, aiManager ai.AiManager, event
 			}
 			sendEventServerEvent(eventClient, res.ApiVersion, resource.Kind, obj.GetName(), "add", obj)
 		}, func(resource utils.ResourceDescriptor, oldObj, newObj *unstructured.Unstructured) {
+			// Always refresh the Valkey entry so the TTL stays alive.
+			// SharedInformer resync delivers UpdateFunc every
+			// ResourceResyncTime (30 min) with oldRV == newRV, and the
+			// Valkey TTL is ResourceResyncTime*2 (60 min) - dropping the
+			// resync here used to evict every static resource (Workspaces,
+			// Deployments, Secrets, Namespaces) from the store after the
+			// initial 60-minute window.
 			setStoreIfNeeded(resource.ApiVersion, newObj.GetName(), resource.Kind, newObj.GetNamespace(), newObj)
 
-			// Filter out resync updates - same resource version means no actual change
+			// Filter out resync updates for downstream notifications: same
+			// resource version means no actual change, so we don't want to
+			// re-emit the change to the event server or re-run AI tasks.
 			if oldObj.GetResourceVersion() == newObj.GetResourceVersion() {
 				return
 			}
@@ -75,7 +100,7 @@ func WatchStoreResources(wm watcher.WatcherModule, aiManager ai.AiManager, event
 		}, func(resource utils.ResourceDescriptor, obj *unstructured.Unstructured) {
 			deleteFromStoreIfNeeded(resource.ApiVersion, obj.GetName(), resource.Kind, obj.GetNamespace(), obj)
 			if resource.Kind == "Pod" {
-				store.ClearOwnerCachePodEntry(obj.GetName())
+				store.ClearOwnerCachePodEntry(obj.GetNamespace(), obj.GetName())
 			}
 			sendEventServerEvent(eventClient, resource.ApiVersion, resource.Kind, obj.GetName(), "delete", obj)
 			handleCRDDeletion(wm, resource, obj)
@@ -157,8 +182,12 @@ func handleCRDDeletion(wm watcher.WatcherModule, resource utils.ResourceDescript
 func setStoreIfNeeded(apiVersion string, resourceName string, kind string, namespace string, obj *unstructured.Unstructured) {
 	obj = removeUnusedFieds(obj)
 
-	// store in valkey
-	err := valkeyClient.SetObject(obj, utils.ResourceResyncTime*2, VALKEY_RESOURCE_PREFIX, apiVersion, kind, namespace, resourceName)
+	// store primary key + ZSET indexes (by-creation, by-name) in a single
+	// MULTI/EXEC so paginated readers never observe an index member whose
+	// primary key is missing. apiVersion/kind/namespace/name come from the
+	// watcher's ResourceDescriptor because obj.GetAPIVersion()/GetKind() are
+	// often empty on DynamicClient-sourced Unstructured objects.
+	err := store.SetResourceWithIndex(valkeyClient, apiVersion, kind, namespace, resourceName, obj, utils.ResourceResyncTime*2)
 	if err != nil {
 		k8sLogger.Error("Error setting object in store", "error", err)
 	}
@@ -188,8 +217,8 @@ func deleteFromStoreIfNeeded(apiVersion string, resourceName string, kind string
 		handlePVDeletion(&pv)
 	}
 
-	// other resources
-	err := valkeyClient.DeleteSingle(VALKEY_RESOURCE_PREFIX, apiVersion, kind, namespace, resourceName)
+	// other resources - delete primary key + both ZSET index members atomically.
+	err := store.DeleteResourceWithIndex(valkeyClient, apiVersion, kind, namespace, resourceName)
 	if err != nil {
 		k8sLogger.Error("Error deleting object in store", "error", err)
 	}
@@ -247,6 +276,38 @@ func GetUnstructuredNamespaceResourceList(namespace string, whitelist []*utils.R
 				result := store.GetResourceByKindAndNamespace(valkeyClient, v.ApiVersion, v.Kind, namespace, k8sLogger)
 				resultsMutex.Lock()
 				results = append(results, result...)
+				resultsMutex.Unlock()
+			})
+			continue
+		}
+
+		// Cluster-scoped resources are not bound to a namespace. The one that
+		// is meaningful in a namespace-scoped query is the Namespace object
+		// itself, which IS the namespace - return it looked up by name so the
+		// workspace "Namespace" filter is not empty. (MOG-4362)
+		//
+		// This is gated on the kind being EXPLICITLY whitelisted (non-empty
+		// whitelist containing it): existing callers that pass a nil/empty
+		// whitelist for a specific namespace (workload status, argocd,
+		// workspace controllers) must keep getting only namespaced resources,
+		// so this stays strictly additive for the Namespace-filter case.
+		if namespace == "" || len(whitelist) == 0 {
+			continue
+		}
+		if !utils.ContainsResourceDescriptor(whitelist, v) {
+			continue
+		}
+		if blacklist != nil && utils.ContainsResourceDescriptor(blacklist, v) {
+			continue
+		}
+		if v.Kind == utils.NamespaceResource.Kind && v.ApiVersion == utils.NamespaceResource.ApiVersion {
+			wg.Go(func() {
+				nsObj, err := store.GetResource(valkeyClient, v.ApiVersion, v.Kind, "", namespace, k8sLogger)
+				if err != nil || nsObj == nil {
+					return
+				}
+				resultsMutex.Lock()
+				results = append(results, *nsObj)
 				resultsMutex.Unlock()
 			})
 		}
@@ -440,14 +501,18 @@ func GetAvailableResources() ([]utils.ResourceDescriptor, error) {
 	var availableResources []utils.ResourceDescriptor
 	for _, resourceList := range resources {
 		for _, resource := range resourceList.APIResources {
-			if slices.Contains(resource.Verbs, "list") && slices.Contains(resource.Verbs, "watch") {
-				availableResources = append(availableResources, utils.ResourceDescriptor{
-					Plural:     resource.Name,
-					ApiVersion: resourceList.GroupVersion,
-					Kind:       resource.Kind,
-					Namespaced: resource.Namespaced,
-				})
+			if !slices.Contains(resource.Verbs, "list") || !slices.Contains(resource.Verbs, "watch") {
+				continue
 			}
+			if isDeprecatedResource(resourceList.GroupVersion, resource.Kind) {
+				continue
+			}
+			availableResources = append(availableResources, utils.ResourceDescriptor{
+				Plural:     resource.Name,
+				ApiVersion: resourceList.GroupVersion,
+				Kind:       resource.Kind,
+				Namespaced: resource.Namespaced,
+			})
 		}
 	}
 

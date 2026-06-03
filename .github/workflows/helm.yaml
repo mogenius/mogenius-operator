@@ -1,0 +1,92 @@
+name: Helm
+
+on:
+  push:
+    paths:
+      - 'helm/**'
+      - '.github/workflows/helm.yaml'
+
+jobs:
+  lint:
+    uses: mogenius/github-actions/.github/workflows/helm-lint.yml@f00ad2379dd065292d37bf4a7e9b84ebd31c584f # v1.1.1
+    with:
+      path: ./helm/charts/mogenius-operator
+
+  tests:
+    uses: mogenius/github-actions/.github/workflows/helm-unittest.yml@f00ad2379dd065292d37bf4a7e9b84ebd31c584f # v1.1.1
+    with:
+      path: ./helm/charts/mogenius-operator
+
+  template:
+    uses: mogenius/github-actions/.github/workflows/helm-template.yml@f00ad2379dd065292d37bf4a7e9b84ebd31c584f # v1.1.1
+    with:
+      path: ./helm/charts/mogenius-operator
+      namespace: mogenius
+      set: |
+        global.cluster_name=prod
+        global.api_key=mo_customer-api-key
+
+  template-advanced:
+    uses: mogenius/github-actions/.github/workflows/helm-template.yml@f00ad2379dd065292d37bf4a7e9b84ebd31c584f # v1.1.1
+    with:
+      path: ./helm/charts/mogenius-operator
+      namespace: mogenius
+      values: |
+        global:
+          cluster_name: prod
+
+        resources:
+          limits:
+            cpu: 500m
+            ephemeral-storage: 1000Mi
+            memory: 1Gi
+          requests:
+            cpu: 250m
+            ephemeral-storage: 500Mi
+            memory: 128Mi
+        nodeSelector:
+          kubernetes.io/os: linux
+
+        image:
+          registry: self-hosted-registry.example
+
+        podSecurityContext:
+          runAsUser: 0
+        podLabels:
+          foo: bar
+        valkey:
+          enabled: true
+          nodeSelector:
+            kubernetes.io/os: linux
+          tolerations:
+            - key: "example-key"
+              operator: "Equal"
+              value: "example-value"
+              effect: "NoSchedule"
+          affinity:
+            nodeAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                nodeSelectorTerms:
+                  - matchExpressions:
+                      - key: "example-key"
+                        operator: In
+                        values:
+                          - "example-value"
+            podAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                labelSelector:
+                  matchExpressions:
+                    - key: "example-key"
+                      operator: In
+                      values:
+                        - "example-value"
+                topologyKey: "kubernetes.io/hostname"
+            podAntiAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                labelSelector:
+                  matchExpressions:
+                    - key: "example-key"
+                      operator: In
+                      values:
+                        - "example-value"
+                topologyKey: "kubernetes.io/hostname"

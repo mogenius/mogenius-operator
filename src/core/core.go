@@ -15,6 +15,7 @@ import (
 	"mogenius-operator/src/valkeyclient"
 	"mogenius-operator/src/websocket"
 	"net/url"
+	"time"
 )
 
 type Core interface {
@@ -116,12 +117,33 @@ func (self *core) InitializeValkey() {
 			self.config.Set("MO_VALKEY_PASSWORD", *valkeyPwd)
 		}
 	}
-	err := self.valkeyClient.Connect()
-	if err != nil {
-		self.logger.Error("failed to connect to valkey", "error", err)
-		shutdown.SendShutdownSignal(true)
-		select {}
+
+	const (
+		maxWait        = 3 * time.Minute
+		initialBackoff = 2 * time.Second
+		maxBackoff     = 30 * time.Second
+	)
+	deadline := time.Now().Add(maxWait)
+	backoff := initialBackoff
+	for {
+		err := self.valkeyClient.Connect()
+		if err == nil {
+			break
+		}
+		if time.Now().After(deadline) {
+			self.logger.Error("failed to connect to valkey, giving up", "error", err, "waited", maxWait)
+			shutdown.SendShutdownSignal(true)
+			select {}
+		}
+		self.logger.Warn("failed to connect to valkey, retrying", "error", err, "backoff", backoff)
+		time.Sleep(backoff)
+		backoff *= 2
+		if backoff > maxBackoff {
+			backoff = maxBackoff
+		}
 	}
+	// Flush pending pipelined writes on shutdown instead of dropping them.
+	shutdown.Add(self.valkeyClient.Close)
 }
 
 func (self *core) InitializeWebsocketEventServer() {

@@ -12,6 +12,7 @@ import (
 	"mogenius-operator/src/shutdown"
 	"os/exec"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 
@@ -537,71 +538,132 @@ func (self *snoopyManager) startStatusEventHandler() {
 	}
 }
 
+// metricsSnapshot is a per-handle copy of just the data Metrics() needs,
+// so we can drop the handle's locks before doing any procdev I/O.
+type metricsSnapshot struct {
+	podInfoID    containerenumerator.PodInfoIdentifier
+	podInfo      containerenumerator.PodInfo
+	containerPid ProcessId
+	ingressStart map[InterfaceName]uint64
+	egressStart  map[InterfaceName]uint64
+	ingressStartPackets map[InterfaceName]uint64
+	egressStartPackets  map[InterfaceName]uint64
+	last         map[InterfaceName]SnoopyInterfaceMetrics
+}
+
 func (self *snoopyManager) Metrics() map[containerenumerator.PodInfoIdentifier]ContainerInfo {
-	data := map[containerenumerator.PodInfoIdentifier]ContainerInfo{}
-
+	// Snapshot phase: under the outer handlesLock, collect pointers to
+	// all current handles. Release the lock immediately so Register and
+	// Remove can run while we work. Per-handle inner locks then guard
+	// the actual data copy below.
 	self.handlesLock.RLock()
-	defer self.handlesLock.RUnlock()
-	for podInfoId, handle := range self.handles {
-		containerInfo := ContainerInfo{}
-		containerInfo.PodInfo = handle.PodInfo
-		containerInfo.Metrics = map[InterfaceName]MetricSnapshot{}
+	handlesCopy := make([]*SnoopyHandle, 0, len(self.handles))
+	for _, h := range self.handles {
+		handlesCopy = append(handlesCopy, h)
+	}
+	self.handlesLock.RUnlock()
 
-		func() {
-			handle.StartBytesLock.RLock()
-			defer handle.StartBytesLock.RUnlock()
-			handle.LastMetricsLock.RLock()
-			defer handle.LastMetricsLock.RUnlock()
-			for interfaceName := range handle.IngressStartBytes {
-				interfaceInfo := MetricSnapshot{}
-				interfaceInfo.Ingress.StartBytes = handle.IngressStartBytes[interfaceName]
-				interfaceInfo.Egress.StartBytes = handle.EgressStartBytes[interfaceName]
-				// Use eBPF metrics if they have reported any data.
-				// If LastMetrics is all-zero the eBPF program either failed to initialize
-				// (explicitly or silently, e.g. after removing privileged:true) or snoopy
-				// just started and hasn't emitted its first tick yet.
-				// In that case fall back to /proc/net/dev so that traffic is always captured.
-				lastM := handle.LastMetrics[interfaceName]
-				if lastM.Ingress.Bytes > 0 || lastM.Egress.Bytes > 0 || lastM.Ingress.Packets > 0 || lastM.Egress.Packets > 0 {
-					// eBPF is delivering data — use it.
-					interfaceInfo.Ingress.Bytes = lastM.Ingress.Bytes
-					interfaceInfo.Ingress.Packets = lastM.Ingress.Packets
-					interfaceInfo.Egress.Bytes = lastM.Egress.Bytes
-					interfaceInfo.Egress.Packets = lastM.Egress.Packets
-				} else {
-					// No eBPF data: read /proc/net/dev and compute delta from the baseline
-					// that was captured when the interface was first registered.
-					pidStr := strconv.FormatUint(handle.ContainerPid, 10)
-					procInfos, err := getNetworkInterfaceInfo(self.procPath, pidStr)
-					if err == nil {
-						for _, procInfo := range procInfos {
-							if procInfo.Interface == interfaceName {
-								startRx := handle.IngressStartBytes[interfaceName]
-								startTx := handle.EgressStartBytes[interfaceName]
-								startRxPkts := handle.IngressStartPackets[interfaceName]
-								startTxPkts := handle.EgressStartPackets[interfaceName]
-								if procInfo.ReceiveBytes >= startRx {
-									interfaceInfo.Ingress.Bytes = procInfo.ReceiveBytes - startRx
-								}
-								if procInfo.ReceivePackets >= startRxPkts {
-									interfaceInfo.Ingress.Packets = procInfo.ReceivePackets - startRxPkts
-								}
-								if procInfo.TransmitBytes >= startTx {
-									interfaceInfo.Egress.Bytes = procInfo.TransmitBytes - startTx
-								}
-								if procInfo.TransmitPackets >= startTxPkts {
-									interfaceInfo.Egress.Packets = procInfo.TransmitPackets - startTxPkts
-								}
-								break
-							}
-						}
-					}
+	// Per-handle snapshot: copy the maps we need under the handle's
+	// inner locks, then release those too. This bounds lock-hold time
+	// to a few map copies; any /proc/net/dev syscalls done in the
+	// fallback below happen with all locks dropped.
+	snapshots := make([]metricsSnapshot, 0, len(handlesCopy))
+	for _, handle := range handlesCopy {
+		snap := metricsSnapshot{
+			podInfoID:           handle.PodInfo.NamespaceAndName(),
+			podInfo:             handle.PodInfo,
+			containerPid:        handle.ContainerPid,
+			ingressStart:        make(map[InterfaceName]uint64),
+			egressStart:         make(map[InterfaceName]uint64),
+			ingressStartPackets: make(map[InterfaceName]uint64),
+			egressStartPackets:  make(map[InterfaceName]uint64),
+			last:                make(map[InterfaceName]SnoopyInterfaceMetrics),
+		}
+		handle.StartBytesLock.RLock()
+		for k, v := range handle.IngressStartBytes {
+			snap.ingressStart[k] = v
+		}
+		for k, v := range handle.EgressStartBytes {
+			snap.egressStart[k] = v
+		}
+		for k, v := range handle.IngressStartPackets {
+			snap.ingressStartPackets[k] = v
+		}
+		for k, v := range handle.EgressStartPackets {
+			snap.egressStartPackets[k] = v
+		}
+		handle.StartBytesLock.RUnlock()
+
+		handle.LastMetricsLock.RLock()
+		for k, v := range handle.LastMetrics {
+			snap.last[k] = v
+		}
+		handle.LastMetricsLock.RUnlock()
+
+		snapshots = append(snapshots, snap)
+	}
+
+	// Build phase: all locks dropped. Procdev fallback I/O happens here
+	// without blocking Register/Remove or any other reader.
+	data := make(map[containerenumerator.PodInfoIdentifier]ContainerInfo, len(snapshots))
+	for _, snap := range snapshots {
+		containerInfo := ContainerInfo{
+			PodInfo: snap.podInfo,
+			Metrics: make(map[InterfaceName]MetricSnapshot, len(snap.ingressStart)),
+		}
+
+		// Lazily fetch procdev once per pid if any interface needs it.
+		var procInfos []KernelNetworkInterfaceInfo
+		var procFetched bool
+
+		for interfaceName := range snap.ingressStart {
+			interfaceInfo := MetricSnapshot{}
+			interfaceInfo.Ingress.StartBytes = snap.ingressStart[interfaceName]
+			interfaceInfo.Egress.StartBytes = snap.egressStart[interfaceName]
+			// Use eBPF metrics if they have reported any data.
+			// If LastMetrics is all-zero the eBPF program either failed to
+			// initialize (explicitly or silently, e.g. after removing
+			// privileged:true) or snoopy just started. Fall back to
+			// /proc/net/dev so that traffic is always captured.
+			lastM := snap.last[interfaceName]
+			if lastM.Ingress.Bytes > 0 || lastM.Egress.Bytes > 0 || lastM.Ingress.Packets > 0 || lastM.Egress.Packets > 0 {
+				interfaceInfo.Ingress.Bytes = lastM.Ingress.Bytes
+				interfaceInfo.Ingress.Packets = lastM.Ingress.Packets
+				interfaceInfo.Egress.Bytes = lastM.Egress.Bytes
+				interfaceInfo.Egress.Packets = lastM.Egress.Packets
+			} else {
+				if !procFetched {
+					pidStr := strconv.FormatUint(snap.containerPid, 10)
+					procInfos, _ = getNetworkInterfaceInfo(self.procPath, pidStr)
+					procFetched = true
 				}
-				containerInfo.Metrics[interfaceName] = interfaceInfo
+				for _, procInfo := range procInfos {
+					if procInfo.Interface != interfaceName {
+						continue
+					}
+					startRx := snap.ingressStart[interfaceName]
+					startTx := snap.egressStart[interfaceName]
+					startRxPkts := snap.ingressStartPackets[interfaceName]
+					startTxPkts := snap.egressStartPackets[interfaceName]
+					if procInfo.ReceiveBytes >= startRx {
+						interfaceInfo.Ingress.Bytes = procInfo.ReceiveBytes - startRx
+					}
+					if procInfo.ReceivePackets >= startRxPkts {
+						interfaceInfo.Ingress.Packets = procInfo.ReceivePackets - startRxPkts
+					}
+					if procInfo.TransmitBytes >= startTx {
+						interfaceInfo.Egress.Bytes = procInfo.TransmitBytes - startTx
+					}
+					if procInfo.TransmitPackets >= startTxPkts {
+						interfaceInfo.Egress.Packets = procInfo.TransmitPackets - startTxPkts
+					}
+					break
+				}
 			}
-		}()
+			containerInfo.Metrics[interfaceName] = interfaceInfo
+		}
 
-		data[podInfoId] = containerInfo
+		data[snap.podInfoID] = containerInfo
 	}
 
 	return data
@@ -663,6 +725,15 @@ func (self *snoopyManager) Register(podInfo containerenumerator.PodInfo) []error
 					case "INFO":
 						self.logger.Info("snoppy info", "containerId", containerId, "snoopyPid", handle.SnoopyPid, "attachedProcessPid", pid, "level", logMessage.Level, "target", logMessage.Target, "msg", logMessage.Message)
 					case "WARN":
+						// The Rust snoopy binary logs the setrlimit(RLIMIT_MEMLOCK) failure
+						// as WARN, but its own message says "this is fine on kernels >=5.11"
+						// because eBPF on modern kernels uses cgroup-v2 memory accounting
+						// instead of locked memory. Demote to Debug so it doesn't pollute
+						// operator telemetry on every snoopy attach.
+						if strings.Contains(logMessage.Message, "running without raised memlock limit") {
+							self.logger.Debug("snoppy warning", "containerId", containerId, "snoopyPid", handle.SnoopyPid, "attachedProcessPid", pid, "level", logMessage.Level, "target", logMessage.Target, "msg", logMessage.Message)
+							break
+						}
 						self.logger.Warn("snoppy warning", "containerId", containerId, "snoopyPid", handle.SnoopyPid, "attachedProcessPid", pid, "level", logMessage.Level, "target", logMessage.Target, "msg", logMessage.Message)
 					case "ERROR":
 						self.logger.Error("snoppy error", "containerId", containerId, "snoopyPid", handle.SnoopyPid, "attachedProcessPid", pid, "level", logMessage.Level, "target", logMessage.Target, "msg", logMessage.Message)
@@ -934,7 +1005,21 @@ func (self *snoopyManager) attachToPidNamespace(pid ProcessId) (*SnoopyHandle, e
 		for scanner.Scan() {
 			output := scanner.Bytes()
 			if bytes.HasPrefix(output, []byte("nsenter")) {
-				self.logger.Error("nsenter failed to execute snoopy", "error", string(output))
+				// nsenter failures are recoverable: when the eBPF attach for a
+				// container fails, Metrics() detects all-zero readings and
+				// falls back to procdev, so per-container traffic still flows
+				// into Valkey. Emitting ERROR alarmed operators unnecessarily
+				// in environments where the host blocks /proc/$pid/ns/net
+				// access (yama_ptrace_scope, AppArmor, hidepid) even with
+				// CAP_SYS_PTRACE on the pod.
+				switch {
+				case bytes.Contains(output, []byte("No such file or directory")):
+					// PID exited between containerenumerator finding it and
+					// nsenter opening its netns - pure race, not actionable.
+					self.logger.Debug("nsenter could not attach to vanished pid", "error", string(output))
+				default:
+					self.logger.Warn("nsenter failed to attach snoopy; falling back to procdev", "error", string(output))
+				}
 				continue
 			}
 			var msg SnoopyLogMessage

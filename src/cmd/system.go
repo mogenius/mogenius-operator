@@ -11,7 +11,10 @@ func RunSystem(logManagerModule logging.SlogManager, configModule *config.Config
 	configModule.Validate()
 
 	base := initializeBaseSystems(logManagerModule, configModule, cmdLogger)
-	defer shutdown.ExecuteShutdownHandlers()
+	// ExecuteShutdownHandlers runs the hooks in a goroutine and returns a
+	// channel that closes when they finish. Block on it so handlers actually
+	// complete instead of being killed when the process exits.
+	defer func() { <-shutdown.ExecuteShutdownHandlers() }()
 
 	base.versionModule.PrintVersionInfo()
 

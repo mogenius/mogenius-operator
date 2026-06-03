@@ -147,6 +147,20 @@ var UserResource = ResourceDescriptor{
 	Namespaced: true,
 }
 
+var PlatformConfigResource = ResourceDescriptor{
+	Kind:       "PlatformConfig",
+	Plural:     "platformconfigs",
+	ApiVersion: "mogenius.com/v1alpha1",
+	Namespaced: false,
+}
+
+var PlatformPatchResource = ResourceDescriptor{
+	Kind:       "PlatformPatch",
+	Plural:     "platformpatches",
+	ApiVersion: "mogenius.com/v1alpha1",
+	Namespaced: false,
+}
+
 var ConfigMapResource = ResourceDescriptor{
 	Kind:       "ConfigMap",
 	Plural:     "configmaps",
@@ -159,6 +173,13 @@ var ServiceResource = ResourceDescriptor{
 	Plural:     "services",
 	ApiVersion: "v1",
 	Namespaced: true,
+}
+
+var ClusterRoleResource = ResourceDescriptor{
+	Kind:       "ClusterRole",
+	Plural:     "clusterroles",
+	ApiVersion: "rbac.authorization.k8s.io/v1",
+	Namespaced: false,
 }
 
 var ClusterProviderCached KubernetesProvider = UNKNOWN

@@ -17,6 +17,8 @@ cluster:
 
 # -- feature toggles for the mogenius-operator
 features:
+  autoUpgrade:
+    enabled: true
   debugTools:
     # -- enable the debug tools container in the mogenius-operator pod
     enabled: false
@@ -116,13 +118,26 @@ goRuntime:
   # -- GC target percentage (GOGC). Lower = more frequent GC, less memory
   gcPercent: "50"
 
+metrics:
+  # -- enable the Prometheus /metrics endpoint scraping (creates a Service for the ServiceMonitor)
+  enabled: false
+  # -- ServiceMonitor for prometheus-operator; requires metrics.enabled: true
+  serviceMonitor:
+    enabled: false
+    # -- labels added to the ServiceMonitor (use to match your Prometheus selector)
+    labels: {}
+    interval: 30s
+    scrapeTimeout: 10s
+    # -- additional relabelings appended after the default instance relabeling
+    relabelings: []
+
 valkey:
   enabled: true
   imagePullPolicy: IfNotPresent
   image:
     registry: docker.io
     repository: valkey/valkey
-    tag: 9.0.3
+    tag: 9.1.0
   podLabels: {}
   containerSecurityContext:
     readOnlyRootFilesystem: true
@@ -147,7 +162,7 @@ valkey:
   auth:
     password: ""
   updateStrategy:
-    type: RollingUpdate
+    type: Recreate
   metrics:
     # -- enable the Prometheus metrics exporter sidecar (oliver006/redis_exporter)
     enabled: false
@@ -155,7 +170,7 @@ valkey:
       image:
         registry: docker.io
         repository: oliver006/redis_exporter
-        tag: v1.82.0
+        tag: v1.84.0
       resources: {}
       containerSecurityContext:
         readOnlyRootFilesystem: true

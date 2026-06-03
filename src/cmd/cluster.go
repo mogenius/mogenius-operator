@@ -15,6 +15,7 @@ import (
 	"mogenius-operator/src/logging"
 	"mogenius-operator/src/networkmonitor"
 	"mogenius-operator/src/rammonitor"
+	moreconciler "mogenius-operator/src/reconciler"
 	"mogenius-operator/src/services"
 	"mogenius-operator/src/shell"
 	"mogenius-operator/src/shutdown"
@@ -53,7 +54,7 @@ type clusterSystems struct {
 	nodeMetricsCollector  core.NodeMetricsCollector
 	dbstatsService        core.ValkeyStatsDb
 	leaderElector         core.LeaderElector
-	reconciler            core.Reconciler
+	reconciler            moreconciler.Reconciler
 	sealedSecret          core.SealedSecretManager
 	argocd                argocd.Argocd
 	aiManager             ai.AiManager
@@ -121,6 +122,7 @@ func initializeClusterSystems(
 	services.Setup(logManagerModule, configModule, base.clientProvider)
 	structs.Setup(logManagerModule)
 	xterm.Setup(logManagerModule, base.valkeyClient)
+	xterm.SetupPortForward(base.clientProvider.ClientConfig(), base.clientProvider.K8sClientSet())
 
 	argocdModule := argocd.NewArgoCd(logManagerModule, configModule, base.clientProvider, base.valkeyClient)
 	workspaceManager := core.NewWorkspaceManager(configModule, base.clientProvider)
@@ -145,7 +147,7 @@ func initializeClusterSystems(
 	moKubernetes := core.NewMoKubernetes(logManagerModule.CreateLogger("mokubernetes"), configModule, base.clientProvider)
 	mocore := core.NewCore(logManagerModule.CreateLogger("core"), configModule, base.clientProvider, base.valkeyClient, eventConnectionClient, jobClients)
 	leaderElector := core.NewLeaderElector(logManagerModule.CreateLogger("leader-elector"), configModule, base.clientProvider)
-	reconciler := core.NewReconciler(logManagerModule.CreateLogger("reconciler"), configModule, base.clientProvider, aiApi)
+	reconciler := moreconciler.NewReconcilerFactory(logManagerModule.CreateLogger("reconciler"), base.clientProvider, configModule, base.valkeyClient).Build()
 	sealedSecret := core.NewSealedSecretManager(logManagerModule.CreateLogger("sealed-secret"), configModule, base.clientProvider)
 
 	// Link phase: wire service dependencies.
@@ -156,7 +158,11 @@ func initializeClusterSystems(
 	moKubernetes.Link(dbstatsService)
 	httpApi.Link(socketApi, dbstatsService, apiModule, reconciler)
 	apiModule.Link(workspaceManager)
-	reconciler.Link(leaderElector)
+
+	// Register AI filters ConfigMap watcher — fires on the object-level subscription
+	watcherModule.OnObjectCreated("ConfigMap", configModule.Get("MO_OWN_NAMESPACE"), utils.AI_FILTERS_CONFIGMAP_NAME, aiApi.HandleConfigMapChange)
+	watcherModule.OnObjectUpdated("ConfigMap", configModule.Get("MO_OWN_NAMESPACE"), utils.AI_FILTERS_CONFIGMAP_NAME, aiApi.HandleConfigMapChange)
+	watcherModule.OnObjectDeleted("ConfigMap", configModule.Get("MO_OWN_NAMESPACE"), utils.AI_FILTERS_CONFIGMAP_NAME, aiApi.HandleConfigMapDelete)
 
 	return clusterSystems{
 		baseSystems:           base,
@@ -245,8 +251,16 @@ func RunCluster(logManagerModule logging.SlogManager, configModule *config.Confi
 		systems.dbstatsService.Run()
 		logStep("DB stats service started")
 
-		systems.reconciler.Run()
-		logStep("Reconciler started")
+		systems.leaderElector.OnLeading(func() {
+			systems.reconciler.Start()
+			logStep("Reconciler started")
+		})
+
+		systems.leaderElector.OnLeadingEnded(func() {
+
+			systems.reconciler.Stop()
+			logStep("Reconciler stopped")
+		})
 
 		systems.leaderElector.Run()
 		logStep("Leader elector started")

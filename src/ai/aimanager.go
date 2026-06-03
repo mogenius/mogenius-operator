@@ -724,7 +724,13 @@ func (ai *aiManager) getDbStats(namespace *string) (totalDbEntries int, unproces
 
 func (ai *aiManager) addTokenUsage(tokensUsed int, model string, timeUsedInMs int, entryKey string) error {
 	now := time.Now()
-	key := fmt.Sprintf("%s:%d", DB_AI_BUCKET_TOKENS, now.Unix())
+	// The previous key included only Unix seconds, so two tasks finishing
+	// in the same second silently overwrote one another, undercounting
+	// tokens against the daily limit. UnixNano + a short NanoId suffix
+	// makes the key unique even under simultaneous writes; readers filter
+	// by usedToken.Timestamp (the authoritative date), not by parsing the
+	// key, so the schema change is backward compatible.
+	key := fmt.Sprintf("%s:%d:%s", DB_AI_BUCKET_TOKENS, now.UnixNano(), utils.NanoId())
 
 	usedToken := UsedToken{
 		Key:          entryKey,
@@ -1340,5 +1346,10 @@ func (ai *aiManager) sendAiDeleteEvent(taskId string) {
 }
 
 func (ai *aiManager) resetCache() {
+	aiStatusMu.Lock()
+	defer aiStatusMu.Unlock()
 	cachedStatusTime = time.Time{}
+	for k := range cachedWorkspaceStatusTime {
+		delete(cachedWorkspaceStatusTime, k)
+	}
 }
