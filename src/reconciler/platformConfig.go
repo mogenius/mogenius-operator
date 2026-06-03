@@ -114,8 +114,8 @@ func (d *reconcilerModule) reconcilePlatformConfig(ctx context.Context, obj *uns
 }
 
 func (d *reconcilerModule) updatePlatformConfigStatus(ctx context.Context, name string, components []v1alpha1.PlatformComponentStatus) error {
-	patch := map[string]interface{}{
-		"status": map[string]interface{}{
+	patch := map[string]any{
+		"status": map[string]any{
 			"components": components,
 		},
 	}
@@ -175,7 +175,7 @@ func extractPatchExtraObjects(patch *v1alpha1.PlatformPatch) ([]any, error) {
 		if rawObj.Raw == nil {
 			continue
 		}
-		var obj map[string]interface{}
+		var obj map[string]any
 		if err := json.Unmarshal(rawObj.Raw, &obj); err != nil {
 			return nil, err
 		}

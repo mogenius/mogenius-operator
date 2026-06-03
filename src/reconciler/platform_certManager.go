@@ -25,7 +25,7 @@ func (d *reconcilerModule) reconcileCertManager(ctx context.Context, spec v1alph
 		func(ctx context.Context) ([]any, error) {
 			return d.buildCertManagerExtraObjects(ctx, cm)
 		},
-		func(ctx context.Context) (map[string]interface{}, error) {
+		func(ctx context.Context) (map[string]any, error) {
 			return nil, nil
 		},
 	)
@@ -44,48 +44,48 @@ func (d *reconcilerModule) buildCertManagerExtraObjects(ctx context.Context, cer
 
 const letsEncryptProdServer = "https://acme-v02.api.letsencrypt.org/directory"
 
-func buildClusterIssuerObject(issuer v1alpha1.CertManagerIssuerConfig) map[string]interface{} {
+func buildClusterIssuerObject(issuer v1alpha1.CertManagerIssuerConfig) map[string]any {
 	server := issuer.Server
 	if server == "" {
 		server = letsEncryptProdServer
 	}
 
-	acme := map[string]interface{}{
+	acme := map[string]any{
 		"server": server,
 		"email":  issuer.Email,
-		"privateKeySecretRef": map[string]interface{}{
+		"privateKeySecretRef": map[string]any{
 			"name": issuer.Name + "-account-key",
 		},
 	}
 
 	if issuer.HTTP01 != nil {
-		ingress := map[string]interface{}{}
+		ingress := map[string]any{}
 		if issuer.HTTP01.IngressClass != "" {
 			ingress["class"] = issuer.HTTP01.IngressClass
 		}
 		if len(issuer.HTTP01.IngressAnnotations) > 0 {
-			ingress["podTemplate"] = map[string]interface{}{
-				"metadata": map[string]interface{}{
+			ingress["podTemplate"] = map[string]any{
+				"metadata": map[string]any{
 					"annotations": issuer.HTTP01.IngressAnnotations,
 				},
 			}
 		}
-		acme["solvers"] = []interface{}{
-			map[string]interface{}{
-				"http01": map[string]interface{}{
+		acme["solvers"] = []any{
+			map[string]any{
+				"http01": map[string]any{
 					"ingress": ingress,
 				},
 			},
 		}
 	}
 
-	return map[string]interface{}{
+	return map[string]any{
 		"apiVersion": "cert-manager.io/v1",
 		"kind":       "ClusterIssuer",
-		"metadata": map[string]interface{}{
+		"metadata": map[string]any{
 			"name": issuer.Name,
 		},
-		"spec": map[string]interface{}{
+		"spec": map[string]any{
 			"acme": acme,
 		},
 	}

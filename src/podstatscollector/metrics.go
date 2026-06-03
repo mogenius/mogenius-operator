@@ -113,8 +113,8 @@ type Container struct {
 	StartTime time.Time  `json:"startTime"`
 	CPU       CPU        `json:"cpu"`
 	Memory    Memory     `json:"memory"`
-	RootFS    FileSystem `json:"rootfs,omitempty"`
-	Logs      FileSystem `json:"logs,omitempty"`
+	RootFS    FileSystem `json:"rootfs"`
+	Logs      FileSystem `json:"logs"`
 	Swap      Swap       `json:"swap"`
 }
 

@@ -62,8 +62,8 @@ type AlertMatcher struct {
 type SendAlertRequest struct {
 	Labels       map[string]string `json:"labels"`
 	Annotations  map[string]string `json:"annotations,omitempty"`
-	StartsAt     time.Time         `json:"startsAt,omitempty"`
-	EndsAt       time.Time         `json:"endsAt,omitempty"`
+	StartsAt     time.Time         `json:"startsAt"`
+	EndsAt       time.Time         `json:"endsAt"`
 	GeneratorURL string            `json:"generatorURL,omitempty"`
 }
 

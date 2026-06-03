@@ -274,7 +274,7 @@ func (self *watcher) registerAndStartInformer(gvr schema.GroupVersionResource, r
 		// memory usage. managedFields (server-side apply tracking) and
 		// last-applied-configuration are never used by event handlers and
 		// can be several KB per object.
-		if err := resourceInformer.SetTransform(func(obj interface{}) (interface{}, error) {
+		if err := resourceInformer.SetTransform(func(obj any) (any, error) {
 			if u, ok := obj.(*unstructured.Unstructured); ok {
 				u.SetManagedFields(nil)
 				annotations := u.GetAnnotations()

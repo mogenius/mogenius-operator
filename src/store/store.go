@@ -929,7 +929,7 @@ type AuditLogEntry struct {
 	Result    any          `json:"result,omitempty"`
 	Error     string       `json:"error,omitempty"`
 	CreatedAt time.Time    `json:"createdAt"`
-	User      structs.User `json:"user,omitempty"`
+	User      structs.User `json:"user"`
 	Workspace string       `json:"workspace,omitempty"`
 }
 
@@ -1024,10 +1024,7 @@ func ListAuditLog(limit int, offset int, namespaces []string, clusterWide bool, 
 	if offset >= totalCount {
 		return []AuditLogEntry{}, totalCount, nil
 	}
-	end := offset + limit
-	if end > totalCount {
-		end = totalCount
-	}
+	end := min(offset+limit, totalCount)
 
 	return allEntries[offset:end], totalCount, nil
 }

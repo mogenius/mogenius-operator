@@ -224,7 +224,7 @@ func (self *valkeyClient) SetObjectWithAutoincrementLimit(value any, limit int64
 	}
 
 	var newKey string
-	for attempt := 0; attempt < maxAutoincrementRetries; attempt++ {
+	for range maxAutoincrementRetries {
 		nextNum, err := self.valkeyClient.Do(self.ctx,
 			self.valkeyClient.B().Incr().Key(counterKey).Build()).AsInt64()
 		if err != nil {
@@ -288,7 +288,7 @@ func (self *valkeyClient) SetObjectWithAutoincrementLimit(value any, limit int64
 	sort.Slice(numerics, func(i, j int) bool { return numerics[i].n < numerics[j].n })
 	toDelete := int64(len(numerics)) - limit
 	delCmds := make([]valkeyclient.Completed, 0, toDelete)
-	for i := int64(0); i < toDelete; i++ {
+	for i := range toDelete {
 		delCmds = append(delCmds, self.valkeyClient.B().Del().Key(numerics[i].key).Build())
 	}
 	for _, resp := range self.valkeyClient.DoMulti(self.ctx, delCmds...) {
@@ -806,10 +806,7 @@ func GetObjectsByPrefixWithSizeAndNs[T any](store ValkeyClient, limit int, offse
 	if offset >= totalCount {
 		return []T{}, totalCount, nil
 	}
-	end := offset + limit
-	if end > totalCount {
-		end = totalCount
-	}
+	end := min(offset+limit, totalCount)
 	keyList = keyList[offset:end]
 
 	if len(keyList) == 0 {

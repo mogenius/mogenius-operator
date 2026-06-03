@@ -108,7 +108,7 @@ func (self *api) Link(workspaceManager WorkspaceManager) {
 
 type GetWorkspaceResult struct {
 	Name              string                                 `json:"name" validate:"required"`
-	CreationTimestamp v1.Time                                `json:"creationTimestamp,omitempty"`
+	CreationTimestamp v1.Time                                `json:"creationTimestamp"`
 	Resources         []v1alpha1.WorkspaceResourceIdentifier `json:"resources" validate:"required"`
 }
 
@@ -403,17 +403,11 @@ func (self *api) GetWorkspaceResourcesPaginated(workspaceName string, req Worksp
 	total := len(items)
 
 	if req.Limit > 0 {
-		start := req.Offset
-		if start < 0 {
-			start = 0
-		}
+		start := max(req.Offset, 0)
 		if start > total {
 			start = total
 		}
-		end := start + req.Limit
-		if end > total {
-			end = total
-		}
+		end := min(start+req.Limit, total)
 		items = items[start:end]
 	}
 

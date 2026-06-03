@@ -44,7 +44,7 @@ func (ai *aiManager) processPromptOllama(ctx context.Context, model, systemPromp
 			Truncate: &truePtr,
 			Shift:    &truePtr,
 			Tools:    append(kubernetesOllamaTools, helmOllamaTools...),
-			Options: map[string]interface{}{
+			Options: map[string]any{
 				"temperature": 0.1,
 			},
 		}
@@ -300,7 +300,7 @@ func (ai *aiManager) ollamaChatWithTools(
 			Truncate: &truePtr,
 			Shift:    &truePtr,
 			Tools:    ollamaTools,
-			Options: map[string]interface{}{
+			Options: map[string]any{
 				"temperature": 0.7,
 			},
 		}

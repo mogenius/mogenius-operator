@@ -84,7 +84,7 @@ func ComponentStreamConnection(
 		if component == "helm" {
 			err = conn.WriteMessage(websocket.TextMessage, []byte("📝 No Log Entries Found\n🔍 This may occur due to the decentralized nature of Helm.\nIf the Helm chart was applied from a different machine, logs might not be available here.\n"))
 		} else {
-			err = conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("[INFO] %s No recent log entries found.\n", utils.FormatJsonTimePrettyFromTime(time.Now()))))
+			err = conn.WriteMessage(websocket.TextMessage, fmt.Appendf(nil, "[INFO] %s No recent log entries found.\n", utils.FormatJsonTimePrettyFromTime(time.Now())))
 		}
 		if err != nil {
 			xtermLogger.Error("WriteMessage", "error", err)
