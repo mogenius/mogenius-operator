@@ -4,6 +4,8 @@ import (
 	"testing"
 	"time"
 
+	"mogenius-operator/src/utils"
+
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -112,4 +114,42 @@ func TestSortUnstructured_UnknownSortByFallsBackToCreationTimestamp(t *testing.T
 
 	// Unknown sortBy + no order -> creationTimestamp desc default.
 	assert.Equal(t, "b", items[0].GetName())
+}
+
+// A whitelist containing a cluster-scoped kind (e.g. Namespace) cannot be
+// served by the (kind, namespace) pagination index, so the fast path must bail
+// out to the in-memory path. (MOG-4362)
+func TestIndexableWorkspaceNamespaces_ClusterScopedKindFallsBack(t *testing.T) {
+	a := &api{}
+	ns := utils.NamespaceResource // Namespaced: false
+	req := WorkspaceResourcesPaginatedRequest{
+		Whitelist:          []*utils.ResourceDescriptor{&ns},
+		NamespaceWhitelist: []string{"some-ns"},
+	}
+
+	// Even for the cluster-wide case (empty workspaceName) the cluster-scoped
+	// kind must force the fallback; the check runs before any store access.
+	got, ok := a.indexableWorkspaceNamespaces("", req)
+	assert.False(t, ok)
+	assert.Nil(t, got)
+
+	// And for a named workspace it must bail before touching the store/config.
+	got, ok = a.indexableWorkspaceNamespaces("my-workspace", req)
+	assert.False(t, ok)
+	assert.Nil(t, got)
+}
+
+// A purely namespaced whitelist in the cluster-wide case stays on the index
+// fast path and returns the namespace whitelist verbatim.
+func TestIndexableWorkspaceNamespaces_NamespacedClusterWideUsesIndex(t *testing.T) {
+	a := &api{}
+	dep := utils.DeploymentResource // Namespaced: true
+	req := WorkspaceResourcesPaginatedRequest{
+		Whitelist:          []*utils.ResourceDescriptor{&dep},
+		NamespaceWhitelist: []string{"ns-a", "ns-b"},
+	}
+
+	got, ok := a.indexableWorkspaceNamespaces("", req)
+	assert.True(t, ok)
+	assert.Equal(t, []string{"ns-a", "ns-b"}, got)
 }

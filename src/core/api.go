@@ -445,6 +445,15 @@ func (self *api) indexableWorkspaceNamespaces(workspaceName string, req Workspac
 	if len(req.Whitelist) == 0 {
 		return nil, false
 	}
+	// The (kind, namespace) pagination index only models namespaced resources.
+	// Cluster-scoped kinds (e.g. Namespace) are stored without a namespace and
+	// would never match a namespace-scoped shard, so fall back to the in-memory
+	// path, which resolves them explicitly (see GetUnstructuredNamespaceResourceList).
+	for _, w := range req.Whitelist {
+		if w != nil && !w.Namespaced {
+			return nil, false
+		}
+	}
 	if workspaceName == "" {
 		return req.NamespaceWhitelist, true
 	}

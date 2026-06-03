@@ -278,6 +278,38 @@ func GetUnstructuredNamespaceResourceList(namespace string, whitelist []*utils.R
 				results = append(results, result...)
 				resultsMutex.Unlock()
 			})
+			continue
+		}
+
+		// Cluster-scoped resources are not bound to a namespace. The one that
+		// is meaningful in a namespace-scoped query is the Namespace object
+		// itself, which IS the namespace - return it looked up by name so the
+		// workspace "Namespace" filter is not empty. (MOG-4362)
+		//
+		// This is gated on the kind being EXPLICITLY whitelisted (non-empty
+		// whitelist containing it): existing callers that pass a nil/empty
+		// whitelist for a specific namespace (workload status, argocd,
+		// workspace controllers) must keep getting only namespaced resources,
+		// so this stays strictly additive for the Namespace-filter case.
+		if namespace == "" || len(whitelist) == 0 {
+			continue
+		}
+		if !utils.ContainsResourceDescriptor(whitelist, v) {
+			continue
+		}
+		if blacklist != nil && utils.ContainsResourceDescriptor(blacklist, v) {
+			continue
+		}
+		if v.Kind == utils.NamespaceResource.Kind && v.ApiVersion == utils.NamespaceResource.ApiVersion {
+			wg.Go(func() {
+				nsObj, err := store.GetResource(valkeyClient, v.ApiVersion, v.Kind, "", namespace, k8sLogger)
+				if err != nil || nsObj == nil {
+					return
+				}
+				resultsMutex.Lock()
+				results = append(results, *nsObj)
+				resultsMutex.Unlock()
+			})
 		}
 	}
 	wg.Wait()
