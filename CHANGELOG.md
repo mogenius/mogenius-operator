@@ -1,3 +1,10 @@
+# [2.21.0-develop.32](https://github.com/mogenius/mogenius-operator/compare/v2.21.0-develop.31...v2.21.0-develop.32) (2026-06-03)
+
+
+### Bug Fixes
+
+* **helm:** clear release logs at start of each install/upgrade attempt ([117e11c](https://github.com/mogenius/mogenius-operator/commit/117e11c20d35e2ef10a99e96ecdd5d756e242be8))
+
 # [2.21.0-develop.31](https://github.com/mogenius/mogenius-operator/compare/v2.21.0-develop.30...v2.21.0-develop.31) (2026-06-02)
 
 
