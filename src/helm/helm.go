@@ -830,6 +830,7 @@ func HelmOciInstall(data HelmChartOciInstallUpgradeRequest) (result string, err 
 			"namespace", data.Namespace,
 			"error", err.Error(),
 		)
+		logReleaseFailureDiagnostics(settings, data.Namespace, data.Release)
 		return "", err
 	}
 
@@ -976,6 +977,7 @@ func HelmChartInstall(data HelmChartInstallUpgradeRequest) (result string, err e
 			"namespace", data.Namespace,
 			"error", err.Error(),
 		)
+		logReleaseFailureDiagnostics(settings, data.Namespace, data.Release)
 		return "", err
 	}
 	if re == nil {
@@ -1087,6 +1089,7 @@ func HelmReleaseUpgrade(data HelmChartInstallUpgradeRequest) (result string, err
 			"namespace", data.Namespace,
 			"error", err.Error(),
 		)
+		logReleaseFailureDiagnostics(settings, data.Namespace, data.Release)
 		return "", err
 	}
 	if re == nil {
