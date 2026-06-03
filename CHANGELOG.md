@@ -1,3 +1,10 @@
+# [2.21.0-develop.33](https://github.com/mogenius/mogenius-operator/compare/v2.21.0-develop.32...v2.21.0-develop.33) (2026-06-03)
+
+
+### Bug Fixes
+
+* **helm:** tolerate not-yet-installed CRDs in ownership preflight ([875e30f](https://github.com/mogenius/mogenius-operator/commit/875e30fadfde7336ca8677396c0b8d2ebabe1395))
+
 # [2.21.0-develop.32](https://github.com/mogenius/mogenius-operator/compare/v2.21.0-develop.31...v2.21.0-develop.32) (2026-06-03)
 
 
