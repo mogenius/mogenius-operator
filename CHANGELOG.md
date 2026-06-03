@@ -1,3 +1,11 @@
+# [2.21.0-develop.37](https://github.com/mogenius/mogenius-operator/compare/v2.21.0-develop.36...v2.21.0-develop.37) (2026-06-03)
+
+
+### Bug Fixes
+
+* operator now reports more infos when helm install fails ([949ebb2](https://github.com/mogenius/mogenius-operator/commit/949ebb2718572e8cecca679941bd53ca7933ab07))
+* prometheus logging improved ([8df8cdb](https://github.com/mogenius/mogenius-operator/commit/8df8cdbb23c6064f51a49803de95ae337ddbfcfd))
+
 # [2.21.0-develop.36](https://github.com/mogenius/mogenius-operator/compare/v2.21.0-develop.35...v2.21.0-develop.36) (2026-06-03)
 
 
