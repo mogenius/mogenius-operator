@@ -1,3 +1,10 @@
+## [2.21.1-develop.1](https://github.com/mogenius/mogenius-operator/compare/v2.21.0...v2.21.1-develop.1) (2026-06-04)
+
+
+### Bug Fixes
+
+* ran go fix for mogenius operator ([dfbc119](https://github.com/mogenius/mogenius-operator/commit/dfbc119dc8779a321e16c8ac9f8e0da2235b0867))
+
 # [2.21.0](https://github.com/mogenius/mogenius-operator/compare/v2.20.0...v2.21.0) (2026-06-03)
 
 
