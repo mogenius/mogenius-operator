@@ -22,7 +22,7 @@ This is `mogenius-k8s-manager`, the Go-based Kubernetes operator for the mogeniu
 ## Key Commands
 
 ```bash
-just build               # Compile + generate patterns + TypeScript client
+just build               # Compile the operator binary
 just run                 # Run operator locally
 just check               # generate + lint + unit tests
 just test-unit           # Unit tests only

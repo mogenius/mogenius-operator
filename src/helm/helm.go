@@ -14,6 +14,7 @@ import (
 	"mogenius-operator/src/valkeyclient"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -195,6 +196,20 @@ type HelmReleaseUninstallRequest struct {
 
 type HelmReleaseListRequest struct {
 	Namespace string `json:"namespace"`
+}
+
+type HelmReleaseListPaginatedRequest struct {
+	Namespace string `json:"namespace"`
+	Filter    string `json:"filter,omitempty"` // case-insensitive substring match on release name
+	Offset    int    `json:"offset"`
+	Limit     int    `json:"limit"`     // 0 means "no limit"
+	SortBy    string `json:"sortBy"`    // "lastDeployed" (default) | "name"
+	SortOrder string `json:"sortOrder"` // "asc" | "desc"
+}
+
+type HelmReleaseListPaginatedResponse struct {
+	Items      []*HelmRelease `json:"items"`
+	TotalCount int            `json:"totalCount"`
 }
 
 type HelmReleaseStatusRequest struct {
@@ -1207,6 +1222,123 @@ func HelmReleaseList(data HelmReleaseListRequest) ([]*HelmRelease, error) {
 		return result, err
 	}
 	return result, nil
+}
+
+// paginateReleases applies the optional name filter, stable sorting and
+// offset/limit slicing to a list of releases. It is pure (no I/O) so it can be
+// unit-tested in isolation. It returns the page slice and the total count of
+// releases matching the filter (before slicing).
+func paginateReleases(releases []*release.Release, data HelmReleaseListPaginatedRequest) ([]*release.Release, int) {
+	if data.Filter != "" {
+		filter := strings.ToLower(data.Filter)
+		filtered := releases[:0:0]
+		for _, re := range releases {
+			if strings.Contains(strings.ToLower(re.Name), filter) {
+				filtered = append(filtered, re)
+			}
+		}
+		releases = filtered
+	}
+
+	switch data.SortBy {
+	case "name":
+		desc := data.SortOrder == "desc"
+		sort.SliceStable(releases, func(i, j int) bool {
+			if desc {
+				return releases[i].Name > releases[j].Name
+			}
+			return releases[i].Name < releases[j].Name
+		})
+	default: // "lastDeployed" (default), newest first unless asc is requested
+		asc := data.SortOrder == "asc"
+		sort.SliceStable(releases, func(i, j int) bool {
+			ti, tj := releaseLastDeployed(releases[i]), releaseLastDeployed(releases[j])
+			if ti.Equal(tj) {
+				return releases[i].Name < releases[j].Name // stable tiebreaker
+			}
+			if asc {
+				return ti.Before(tj)
+			}
+			return ti.After(tj)
+		})
+	}
+
+	total := len(releases)
+	if data.Limit > 0 {
+		start := data.Offset
+		if start < 0 {
+			start = 0
+		}
+		if start > total {
+			start = total
+		}
+		end := start + data.Limit
+		if end > total {
+			end = total
+		}
+		releases = releases[start:end]
+	}
+
+	return releases, total
+}
+
+func releaseLastDeployed(re *release.Release) time.Time {
+	if re.Info == nil {
+		return time.Time{}
+	}
+	return re.Info.LastDeployed
+}
+
+func HelmReleaseListPaginated(data HelmReleaseListPaginatedRequest) (HelmReleaseListPaginatedResponse, error) {
+	empty := HelmReleaseListPaginatedResponse{Items: []*HelmRelease{}, TotalCount: 0}
+
+	settings := NewCli()
+	settings.SetNamespace(data.Namespace)
+
+	actionConfig := new(action.Configuration)
+	if err := actionConfig.Init(settings.RESTClientGetter(), data.Namespace, ""); err != nil {
+		helmLogger.Error("HelmReleaseListPaginated Init", "namespace", data.Namespace, "error", err.Error())
+		return empty, err
+	}
+
+	list := action.NewList(actionConfig)
+	list.StateMask = action.ListAll
+	releases, err := list.Run()
+	if err != nil {
+		helmLogger.Error("HelmReleaseListPaginated List", "namespace", data.Namespace, "error", err.Error())
+		return empty, err
+	}
+
+	all := make([]*release.Release, 0, len(releases))
+	for _, aRelease := range releases {
+		re, ok := aRelease.(*release.Release)
+		if !ok {
+			continue
+		}
+		all = append(all, re)
+	}
+
+	page, total := paginateReleases(all, data)
+
+	// Only do the expensive per-release work (field trimming + Valkey lookup)
+	// for the releases on the requested page.
+	result := make([]*HelmRelease, 0, len(page))
+	for _, re := range page {
+		re.Chart.Files = nil
+		re.Chart.Templates = nil
+		re.Chart.Values = nil
+		re.Manifest = ""
+
+		rep, _ := GetRepoNameFromValkey(re.Name, re.Namespace)
+		repoName := ""
+		if rep != nil {
+			repoName = strings.Replace(rep.RepoName, "/"+re.Chart.Metadata.Name, "", 1)
+		}
+
+		result = append(result, helmReleaseFromRelease(re, repoName))
+	}
+
+	return HelmReleaseListPaginatedResponse{Items: result, TotalCount: total}, nil
 }
 
 func HelmReleaseStatus(data HelmReleaseStatusRequest) (*HelmReleaseStatusInfo, error) {

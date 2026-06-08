@@ -996,6 +996,14 @@ func (self *socketApi) registerPatterns() {
 	)
 
 	RegisterPatternHandler(
+		PatternHandle{self, "cluster/helm-release-list-paginated"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request helm.HelmReleaseListPaginatedRequest) (helm.HelmReleaseListPaginatedResponse, error) {
+			return helm.HelmReleaseListPaginated(request)
+		},
+	)
+
+	RegisterPatternHandler(
 		PatternHandle{self, "cluster/helm-release-status"},
 		PatternConfig{},
 		func(datagram structs.Datagram, request helm.HelmReleaseStatusRequest) (*helm.HelmReleaseStatusInfo, error) {
