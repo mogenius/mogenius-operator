@@ -112,9 +112,59 @@ func TestPaginateReleases(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			page, total := paginateReleases(tc.input, tc.req)
+			page, total := paginateReleases(tc.input, tc.req, nil)
 			assert.Equal(t, tc.wantTotal, total)
 			assert.Equal(t, tc.wantNames, names(page))
 		})
 	}
+}
+
+func TestPaginateReleasesWorkspaceScope(t *testing.T) {
+	base := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
+	a := &release.Release{Name: "alpha", Namespace: "ns1", Info: &release.Info{LastDeployed: base}}
+	b := &release.Release{Name: "bravo", Namespace: "ns2", Info: &release.Info{LastDeployed: base.Add(time.Hour)}}
+	c := &release.Release{Name: "charlie", Namespace: "ns1", Info: &release.Info{LastDeployed: base.Add(2 * time.Hour)}}
+	all := []*release.Release{a, b, c}
+
+	t.Run("scopes to the workspace allow-set by namespace+name", func(t *testing.T) {
+		scope := &HelmWorkspaceScope{Allowed: map[string]struct{}{
+			WorkspaceHelmKey("ns1", "alpha"): {},
+			WorkspaceHelmKey("ns2", "bravo"): {},
+		}}
+		page, total := paginateReleases(all, HelmReleaseListPaginatedRequest{SortBy: "name"}, scope)
+		assert.Equal(t, 2, total)
+		assert.Equal(t, []string{"alpha", "bravo"}, names(page))
+	})
+
+	t.Run("namespace must match - same name in another namespace is excluded", func(t *testing.T) {
+		scope := &HelmWorkspaceScope{Allowed: map[string]struct{}{
+			WorkspaceHelmKey("ns2", "alpha"): {}, // alpha lives in ns1, not ns2
+		}}
+		page, total := paginateReleases(all, HelmReleaseListPaginatedRequest{SortBy: "name"}, scope)
+		assert.Equal(t, 0, total)
+		assert.Equal(t, []string{}, names(page))
+	})
+
+	t.Run("empty allow-set yields nothing (workspace with no helm resources)", func(t *testing.T) {
+		scope := &HelmWorkspaceScope{Allowed: map[string]struct{}{}}
+		page, total := paginateReleases(all, HelmReleaseListPaginatedRequest{}, scope)
+		assert.Equal(t, 0, total)
+		assert.Equal(t, []string{}, names(page))
+	})
+
+	t.Run("workspace scope composes with filter, sort and slicing", func(t *testing.T) {
+		scope := &HelmWorkspaceScope{Allowed: map[string]struct{}{
+			WorkspaceHelmKey("ns1", "alpha"):   {},
+			WorkspaceHelmKey("ns1", "charlie"): {},
+			WorkspaceHelmKey("ns2", "bravo"):   {},
+		}}
+		// filter "l" matches alpha + charlie (both contain "l"); bravo excluded
+		page, total := paginateReleases(
+			all,
+			HelmReleaseListPaginatedRequest{Filter: "l", SortBy: "name", Offset: 1, Limit: 1},
+			scope,
+		)
+		assert.Equal(t, 2, total)                         // alpha, charlie match scope+filter
+		assert.Equal(t, []string{"charlie"}, names(page)) // offset 1 of [alpha, charlie]
+	})
 }

@@ -200,11 +200,28 @@ type HelmReleaseListRequest struct {
 
 type HelmReleaseListPaginatedRequest struct {
 	Namespace string `json:"namespace"`
-	Filter    string `json:"filter,omitempty"` // case-insensitive substring match on release name
+	Filter    string `json:"filter,omitempty"`        // case-insensitive substring match on release name
 	Offset    int    `json:"offset"`
-	Limit     int    `json:"limit"`     // 0 means "no limit"
-	SortBy    string `json:"sortBy"`    // "lastDeployed" (default) | "name"
-	SortOrder string `json:"sortOrder"` // "asc" | "desc"
+	Limit     int    `json:"limit"`                   // 0 means "no limit"
+	SortBy    string `json:"sortBy"`                  // "lastDeployed" (default) | "name"
+	SortOrder string `json:"sortOrder"`               // "asc" | "desc"
+	// WorkspaceName, when set, scopes the result to the helm releases that are
+	// registered as resources of that workspace (resolved server-side from the
+	// Workspace CRD). Empty means cluster-wide (all releases).
+	WorkspaceName string `json:"workspaceName,omitempty"`
+}
+
+// HelmWorkspaceScope restricts a paginated listing to a workspace's helm
+// releases. A non-nil scope with an empty Allowed set yields no releases (a
+// workspace that has no helm resources). nil means cluster-wide (no filter).
+type HelmWorkspaceScope struct {
+	Allowed map[string]struct{} // keys built via WorkspaceHelmKey
+}
+
+// WorkspaceHelmKey builds the lookup key for the workspace allow-set. The NUL
+// separator avoids collisions between namespace and release-name boundaries.
+func WorkspaceHelmKey(namespace, releaseName string) string {
+	return namespace + "\x00" + releaseName
 }
 
 type HelmReleaseListPaginatedResponse struct {
@@ -1228,7 +1245,17 @@ func HelmReleaseList(data HelmReleaseListRequest) ([]*HelmRelease, error) {
 // offset/limit slicing to a list of releases. It is pure (no I/O) so it can be
 // unit-tested in isolation. It returns the page slice and the total count of
 // releases matching the filter (before slicing).
-func paginateReleases(releases []*release.Release, data HelmReleaseListPaginatedRequest) ([]*release.Release, int) {
+func paginateReleases(releases []*release.Release, data HelmReleaseListPaginatedRequest, scope *HelmWorkspaceScope) ([]*release.Release, int) {
+	if scope != nil {
+		scoped := releases[:0:0]
+		for _, re := range releases {
+			if _, ok := scope.Allowed[WorkspaceHelmKey(re.Namespace, re.Name)]; ok {
+				scoped = append(scoped, re)
+			}
+		}
+		releases = scoped
+	}
+
 	if data.Filter != "" {
 		filter := strings.ToLower(data.Filter)
 		filtered := releases[:0:0]
@@ -1289,7 +1316,11 @@ func releaseLastDeployed(re *release.Release) time.Time {
 	return re.Info.LastDeployed
 }
 
-func HelmReleaseListPaginated(data HelmReleaseListPaginatedRequest) (HelmReleaseListPaginatedResponse, error) {
+// HelmReleaseListPaginated lists helm releases server-side filtered, sorted and
+// sliced. When scope is non-nil the result is restricted to that workspace's
+// helm releases (resolved by the caller from the Workspace CRD); nil scope
+// means cluster-wide.
+func HelmReleaseListPaginated(data HelmReleaseListPaginatedRequest, scope *HelmWorkspaceScope) (HelmReleaseListPaginatedResponse, error) {
 	empty := HelmReleaseListPaginatedResponse{Items: []*HelmRelease{}, TotalCount: 0}
 
 	settings := NewCli()
@@ -1318,7 +1349,7 @@ func HelmReleaseListPaginated(data HelmReleaseListPaginatedRequest) (HelmRelease
 		all = append(all, re)
 	}
 
-	page, total := paginateReleases(all, data)
+	page, total := paginateReleases(all, data, scope)
 
 	// Only do the expensive per-release work (field trimming + Valkey lookup)
 	// for the releases on the requested page.
