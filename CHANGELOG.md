@@ -1,3 +1,10 @@
+## [2.21.1-develop.3](https://github.com/mogenius/mogenius-operator/compare/v2.21.1-develop.2...v2.21.1-develop.3) (2026-06-09)
+
+
+### Bug Fixes
+
+* helm pageination ([f34ae2b](https://github.com/mogenius/mogenius-operator/commit/f34ae2b0d36f0c04ffe6c7bacabfa72b4ee7ded0))
+
 ## [2.21.1-develop.2](https://github.com/mogenius/mogenius-operator/compare/v2.21.1-develop.1...v2.21.1-develop.2) (2026-06-08)
 
 
