@@ -1,3 +1,13 @@
+## [2.21.1-develop.4](https://github.com/mogenius/mogenius-operator/compare/v2.21.1-develop.3...v2.21.1-develop.4) (2026-06-09)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/anthropics/anthropic-sdk-go to v1.48.0 ([60e7c24](https://github.com/mogenius/mogenius-operator/commit/60e7c24c58c3a3e34884875bc55e31fa0c0fe0d7))
+* **deps:** update module github.com/ollama/ollama to v0.30.7 ([122f349](https://github.com/mogenius/mogenius-operator/commit/122f34903a87bc79500dba37bad70f776d1d7947))
+* **deps:** update module github.com/openai/openai-go/v3 to v3.39.0 ([b63dd34](https://github.com/mogenius/mogenius-operator/commit/b63dd34ea1d676336baf68df7f7e607ef4b6f3c7))
+* **deps:** update module golang.org/x/term to v0.44.0 ([d0b704a](https://github.com/mogenius/mogenius-operator/commit/d0b704a0ecb92f9e6ca072331b3d1605dc8cef0b))
+
 ## [2.21.1-develop.3](https://github.com/mogenius/mogenius-operator/compare/v2.21.1-develop.2...v2.21.1-develop.3) (2026-06-09)
 
 
