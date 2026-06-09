@@ -1,3 +1,10 @@
+## [2.21.1-develop.6](https://github.com/mogenius/mogenius-operator/compare/v2.21.1-develop.5...v2.21.1-develop.6) (2026-06-09)
+
+
+### Bug Fixes
+
+* helm release list improvements ([247013e](https://github.com/mogenius/mogenius-operator/commit/247013e0a6481e82bfa4beafdfe8d3b6efb456b9))
+
 ## [2.21.1-develop.5](https://github.com/mogenius/mogenius-operator/compare/v2.21.1-develop.4...v2.21.1-develop.5) (2026-06-09)
 
 
