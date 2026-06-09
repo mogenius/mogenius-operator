@@ -66,6 +66,19 @@ var valkeyClient valkeyclient.ValkeyClient
 
 var helmCache = cache.New(2*time.Hour, 30*time.Minute) // cache with default expiration time of 2 hours and cleanup interval of 30 minutes
 
+// helmReleaseListCache caches the (expensive) full release listing for a short
+// time so paging through a large release set does not re-list and re-decode
+// every helm secret on every page request. It is flushed whenever this operator
+// mutates releases (install/upgrade/uninstall/rollback); the short TTL bounds
+// staleness from out-of-band changes.
+const helmReleaseListCacheTTL = 30 * time.Second
+
+var helmReleaseListCache = cache.New(helmReleaseListCacheTTL, 2*helmReleaseListCacheTTL)
+
+func invalidateReleaseListCache() {
+	helmReleaseListCache.Flush()
+}
+
 func Setup(logManager logging.SlogManager, configModule cfg.ConfigModule, valkey valkeyclient.ValkeyClient) {
 	helmLogger = logManager.CreateLogger("helm")
 	config = configModule
@@ -767,6 +780,7 @@ func HelmChartVersion(data HelmChartVersionRequest) ([]HelmChartInfo, error) {
 }
 
 func HelmOciInstall(data HelmChartOciInstallUpgradeRequest) (result string, err error) {
+	defer invalidateReleaseListCache() // the release set changed
 	// Start each attempt with a clean log: drop entries from previous
 	// install/upgrade attempts of the same release so the user only sees the
 	// current run. Logs of a failed attempt stay visible until the next
@@ -906,6 +920,7 @@ func newRegistryClient(settings *cli.EnvSettings, plainHTTP bool) (*registry.Cli
 }
 
 func HelmChartInstall(data HelmChartInstallUpgradeRequest) (result string, err error) {
+	defer invalidateReleaseListCache() // the release set changed
 	// Start each attempt with a clean log so the user only sees the current
 	// run, not entries from previous install attempts of the same release.
 	// See HelmOciInstall for the rationale on no longer wiping on error.
@@ -1032,6 +1047,7 @@ func HelmChartInstall(data HelmChartInstallUpgradeRequest) (result string, err e
 }
 
 func HelmReleaseUpgrade(data HelmChartInstallUpgradeRequest) (result string, err error) {
+	defer invalidateReleaseListCache() // the release set changed
 	// Start each attempt with a clean log so the user only sees the current
 	// run, not entries from previous upgrade attempts of the same release.
 	// See HelmOciInstall for the rationale on no longer wiping on error.
@@ -1142,6 +1158,7 @@ func HelmReleaseUpgrade(data HelmChartInstallUpgradeRequest) (result string, err
 }
 
 func HelmReleaseUninstall(data HelmReleaseUninstallRequest) (result string, err error) {
+	defer invalidateReleaseListCache() // the release set changed
 	defer func() {
 		if err != nil {
 			cleanReleaseLogs(data.Namespace, data.Release)
@@ -1246,6 +1263,14 @@ func HelmReleaseList(data HelmReleaseListRequest) ([]*HelmRelease, error) {
 // unit-tested in isolation. It returns the page slice and the total count of
 // releases matching the filter (before slicing).
 func paginateReleases(releases []*release.Release, data HelmReleaseListPaginatedRequest, scope *HelmWorkspaceScope) ([]*release.Release, int) {
+	// Work on a copy of the slice header: the input may be a shared cached
+	// slice and we sort it in place below, which must not mutate the cache or
+	// race with concurrent requests. The release pointers themselves are only
+	// read, so a shallow copy is enough.
+	cp := make([]*release.Release, len(releases))
+	copy(cp, releases)
+	releases = cp
+
 	if scope != nil {
 		scoped := releases[:0:0]
 		for _, re := range releases {
@@ -1323,43 +1348,17 @@ func releaseLastDeployed(re *release.Release) time.Time {
 func HelmReleaseListPaginated(data HelmReleaseListPaginatedRequest, scope *HelmWorkspaceScope) (HelmReleaseListPaginatedResponse, error) {
 	empty := HelmReleaseListPaginatedResponse{Items: []*HelmRelease{}, TotalCount: 0}
 
-	settings := NewCli()
-	settings.SetNamespace(data.Namespace)
-
-	actionConfig := new(action.Configuration)
-	if err := actionConfig.Init(settings.RESTClientGetter(), data.Namespace, ""); err != nil {
-		helmLogger.Error("HelmReleaseListPaginated Init", "namespace", data.Namespace, "error", err.Error())
-		return empty, err
-	}
-
-	list := action.NewList(actionConfig)
-	list.StateMask = action.ListAll
-	releases, err := list.Run()
+	all, err := listAllReleasesCached(data.Namespace)
 	if err != nil {
-		helmLogger.Error("HelmReleaseListPaginated List", "namespace", data.Namespace, "error", err.Error())
 		return empty, err
-	}
-
-	all := make([]*release.Release, 0, len(releases))
-	for _, aRelease := range releases {
-		re, ok := aRelease.(*release.Release)
-		if !ok {
-			continue
-		}
-		all = append(all, re)
 	}
 
 	page, total := paginateReleases(all, data, scope)
 
-	// Only do the expensive per-release work (field trimming + Valkey lookup)
-	// for the releases on the requested page.
+	// Only do the per-release Valkey lookup for the releases on the requested
+	// page (the heavy field trimming already happened once, before caching).
 	result := make([]*HelmRelease, 0, len(page))
 	for _, re := range page {
-		re.Chart.Files = nil
-		re.Chart.Templates = nil
-		re.Chart.Values = nil
-		re.Manifest = ""
-
 		rep, _ := GetRepoNameFromValkey(re.Name, re.Namespace)
 		repoName := ""
 		if rep != nil {
@@ -1370,6 +1369,66 @@ func HelmReleaseListPaginated(data HelmReleaseListPaginatedRequest, scope *HelmW
 	}
 
 	return HelmReleaseListPaginatedResponse{Items: result, TotalCount: total}, nil
+}
+
+// listAllReleasesCached returns all releases in the given namespace ("" = all
+// namespaces), backed by a short-lived cache. Listing decodes every helm secret
+// (all revisions) which is the dominant cost of a paginated request; caching it
+// makes paging through pages cheap. Heavy per-release fields (chart files,
+// templates, values, manifest) are stripped once before caching.
+func listAllReleasesCached(namespace string) ([]*release.Release, error) {
+	cacheKey := "release-list:" + namespace
+	if cached, found := helmReleaseListCache.Get(cacheKey); found {
+		return cached.([]*release.Release), nil
+	}
+
+	settings := NewCli()
+	settings.SetNamespace(namespace)
+
+	actionConfig := new(action.Configuration)
+	if err := actionConfig.Init(settings.RESTClientGetter(), namespace, ""); err != nil {
+		helmLogger.Error("listAllReleasesCached Init", "namespace", namespace, "error", err.Error())
+		return nil, err
+	}
+
+	list := action.NewList(actionConfig)
+	list.StateMask = action.ListAll
+	releases, err := list.Run()
+	if err != nil {
+		helmLogger.Error("listAllReleasesCached List", "namespace", namespace, "error", err.Error())
+		return nil, err
+	}
+
+	all := make([]*release.Release, 0, len(releases))
+	for _, aRelease := range releases {
+		re, ok := aRelease.(*release.Release)
+		if !ok {
+			continue
+		}
+		// Strip everything the list view does not need so the cached entries
+		// stay small (this matters a lot at thousands of releases). The list
+		// only renders name/namespace/version/status/age + chart metadata; the
+		// detail view fetches the full release separately. Keep Chart.Metadata.
+		if re.Chart != nil {
+			re.Chart.Raw = nil
+			re.Chart.Files = nil
+			re.Chart.Templates = nil
+			re.Chart.Values = nil
+			re.Chart.Schema = nil
+			re.Chart.Lock = nil
+		}
+		re.Manifest = ""
+		re.Config = nil
+		re.Hooks = nil
+		if re.Info != nil {
+			re.Info.Notes = ""
+			re.Info.Resources = nil
+		}
+		all = append(all, re)
+	}
+
+	helmReleaseListCache.Set(cacheKey, all, cache.DefaultExpiration)
+	return all, nil
 }
 
 func HelmReleaseStatus(data HelmReleaseStatusRequest) (*HelmReleaseStatusInfo, error) {
@@ -1448,6 +1507,8 @@ func HelmReleaseHistory(data HelmReleaseHistoryRequest) ([]release.Release, erro
 }
 
 func HelmReleaseRollback(data HelmReleaseRollbackRequest) (string, error) {
+	defer invalidateReleaseListCache() // the release set changed
+
 	settings := NewCli()
 	settings.SetNamespace(data.Namespace)
 
