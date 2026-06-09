@@ -17,6 +17,8 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic/dynamicinformer"
+	"k8s.io/client-go/metadata"
+	"k8s.io/client-go/metadata/metadatainformer"
 	"k8s.io/client-go/tools/cache"
 )
 
@@ -50,6 +52,17 @@ type WatcherModule interface {
 	OnObjectUpdated(kind, namespace, name string, cb func(*unstructured.Unstructured))
 	// OnObjectDeleted registers a callback that fires when a specific object is deleted.
 	OnObjectDeleted(kind, namespace, name string, cb func(*unstructured.Unstructured))
+
+	// WatchHelmReleaseSecrets starts a lightweight, metadata-only informer for
+	// Helm release secrets (type=helm.sh/release.v1) and invokes onChange
+	// (debounced) whenever one is added/updated/deleted. These secrets are
+	// deliberately excluded from the generic Secret watcher (they would blow
+	// the initial sync at scale); a metadata-only informer stays cheap because
+	// it never pulls the (multi-KB, gzipped) release payload. It exists so the
+	// release-list cache can be invalidated on ANY release change - including
+	// out-of-band ones (helm CLI, other controllers) - not just operator-driven
+	// mutations.
+	WatchHelmReleaseSecrets(onChange func()) error
 }
 
 type WatcherOnAdd func(resource utils.ResourceDescriptor, obj *unstructured.Unstructured)
@@ -572,6 +585,79 @@ func (self *watcher) UnwatchAll() {
 	// OS reclaims them). Per-resource handlers are removed via the
 	// individual Unwatch calls above, which is what actually stops events
 	// from reaching this Watch's callbacks.
+}
+
+// WatchHelmReleaseSecrets - see the interface doc. The informer is metadata
+// only (no release payload decode), runs for the watcher's lifetime on the
+// shared factoryStopCh, and coalesces bursts of events (e.g. the initial-sync
+// storm, or a single `helm upgrade` writing several secrets) into one onChange
+// via a short debounce.
+func (self *watcher) WatchHelmReleaseSecrets(onChange func()) error {
+	assert.Assert(self.logger != nil)
+	if onChange == nil {
+		return fmt.Errorf("onChange must not be nil")
+	}
+
+	metaClient, err := metadata.NewForConfig(self.clientProvider.ClientConfig())
+	if err != nil {
+		return fmt.Errorf("create metadata client: %w", err)
+	}
+
+	gvr := schema.GroupVersionResource{Group: "", Version: "v1", Resource: "secrets"}
+	informer := metadatainformer.NewFilteredMetadataInformer(
+		metaClient,
+		gvr,
+		v1.NamespaceAll,
+		utils.ResourceResyncTime,
+		nil,
+		func(opts *metav1.ListOptions) {
+			opts.FieldSelector = "type=" + helmReleaseSecretType
+		},
+	).Informer()
+
+	debounced := newDebouncer(2*time.Second, onChange)
+	if _, err := informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc:    func(any) { debounced.trigger() },
+		UpdateFunc: func(any, any) { debounced.trigger() },
+		DeleteFunc: func(any) { debounced.trigger() },
+	}); err != nil {
+		return fmt.Errorf("add helm release secret event handler: %w", err)
+	}
+
+	if err := informer.SetWatchErrorHandler(func(_ *cache.Reflector, err error) {
+		if err == io.EOF {
+			return
+		}
+		self.logger.Warn("Helm release secret watcher error", "error", err)
+	}); err != nil {
+		return fmt.Errorf("set watch error handler: %w", err)
+	}
+
+	go informer.Run(self.factoryStopCh)
+	self.logger.Info("Watching Helm release secrets for release-list cache invalidation")
+	return nil
+}
+
+// debouncer coalesces rapid trigger() calls into a single fn() invocation that
+// fires once no trigger has happened for delay.
+type debouncer struct {
+	mu    sync.Mutex
+	timer *time.Timer
+	delay time.Duration
+	fn    func()
+}
+
+func newDebouncer(delay time.Duration, fn func()) *debouncer {
+	return &debouncer{delay: delay, fn: fn}
+}
+
+func (d *debouncer) trigger() {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if d.timer != nil {
+		d.timer.Stop()
+	}
+	d.timer = time.AfterFunc(d.delay, d.fn)
 }
 
 func (self *watcher) createGroupVersionResource(apiVersion string, plural string) schema.GroupVersionResource {

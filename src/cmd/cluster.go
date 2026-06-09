@@ -119,6 +119,12 @@ func initializeClusterSystems(
 
 	// Package-level setups for subsystems that are cluster-mode-only.
 	helm.Setup(logManagerModule, configModule, base.valkeyClient)
+	// Keep the helm release-list cache fresh by invalidating it whenever any
+	// helm release secret changes - including out-of-band changes (helm CLI,
+	// other controllers), which operator-side invalidation alone would miss.
+	if err := watcherModule.WatchHelmReleaseSecrets(helm.InvalidateReleaseListCache); err != nil {
+		base.logger.Warn("failed to start Helm release secret watcher; release-list cache will rely on its TTL", "error", err)
+	}
 	services.Setup(logManagerModule, configModule, base.clientProvider)
 	structs.Setup(logManagerModule)
 	xterm.Setup(logManagerModule, base.valkeyClient)

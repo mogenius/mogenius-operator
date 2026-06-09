@@ -66,17 +66,26 @@ var valkeyClient valkeyclient.ValkeyClient
 
 var helmCache = cache.New(2*time.Hour, 30*time.Minute) // cache with default expiration time of 2 hours and cleanup interval of 30 minutes
 
-// helmReleaseListCache caches the (expensive) full release listing for a short
-// time so paging through a large release set does not re-list and re-decode
-// every helm secret on every page request. It is flushed whenever this operator
-// mutates releases (install/upgrade/uninstall/rollback); the short TTL bounds
-// staleness from out-of-band changes.
-const helmReleaseListCacheTTL = 30 * time.Second
+// helmReleaseListCache caches the (expensive) full release listing so paging
+// through a large release set does not re-list and re-decode every helm secret
+// on every page request. Freshness is driven by invalidation, not by the TTL:
+// it is flushed whenever this operator mutates releases AND whenever the Helm
+// release-secret watcher observes ANY change (including out-of-band ones via
+// helm CLI / other controllers). The long TTL is only a failsafe in case that
+// watcher is not running.
+const helmReleaseListCacheTTL = 30 * time.Minute
 
 var helmReleaseListCache = cache.New(helmReleaseListCacheTTL, 2*helmReleaseListCacheTTL)
 
 func invalidateReleaseListCache() {
 	helmReleaseListCache.Flush()
+}
+
+// InvalidateReleaseListCache drops the cached release listing. Wire this to the
+// Helm release-secret watcher so the cache is invalidated on every release
+// change, regardless of whether it originated from this operator.
+func InvalidateReleaseListCache() {
+	invalidateReleaseListCache()
 }
 
 func Setup(logManager logging.SlogManager, configModule cfg.ConfigModule, valkey valkeyclient.ValkeyClient) {
