@@ -999,7 +999,25 @@ func (self *socketApi) registerPatterns() {
 		PatternHandle{self, "cluster/helm-release-list-paginated"},
 		PatternConfig{},
 		func(datagram structs.Datagram, request helm.HelmReleaseListPaginatedRequest) (helm.HelmReleaseListPaginatedResponse, error) {
-			return helm.HelmReleaseListPaginated(request)
+			// Empty workspace name = cluster-wide (no filter). A workspace name
+			// scopes the result to that workspace's registered helm releases,
+			// resolved here from the Workspace CRD so the operator can filter
+			// before paginating.
+			var scope *helm.HelmWorkspaceScope
+			if request.WorkspaceName != "" {
+				workspace, err := self.apiService.GetWorkspace(request.WorkspaceName)
+				if err != nil {
+					return helm.HelmReleaseListPaginatedResponse{Items: []*helm.HelmRelease{}, TotalCount: 0}, err
+				}
+				allowed := make(map[string]struct{})
+				for _, resource := range workspace.Resources {
+					if resource.Type == "helm" {
+						allowed[helm.WorkspaceHelmKey(resource.Namespace, resource.Id)] = struct{}{}
+					}
+				}
+				scope = &helm.HelmWorkspaceScope{Allowed: allowed}
+			}
+			return helm.HelmReleaseListPaginated(request, scope)
 		},
 	)
 
