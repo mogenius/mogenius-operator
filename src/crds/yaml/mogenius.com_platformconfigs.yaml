@@ -87,41 +87,43 @@ spec:
                       version:
                         type: string
                     type: object
+                  clusterIssuers:
+                    items:
+                      properties:
+                        email:
+                          type: string
+                        name:
+                          type: string
+                        solvers:
+                          items:
+                            type: object
+                            x-kubernetes-preserve-unknown-fields: true
+                          type: array
+                      required:
+                      - email
+                      - name
+                      type: object
+                    type: array
                   enabled:
                     type: boolean
                   issuers:
                     items:
                       properties:
                         email:
-                          description: Email is the contact address for the ACME account.
                           type: string
-                        http01:
-                          description: |-
-                            HTTP01 configures the HTTP-01 challenge solver.
-                            Mutually exclusive with future solver types (e.g. dns01).
-                          properties:
-                            ingressAnnotations:
-                              additionalProperties:
-                                type: string
-                              description: IngressAnnotations are extra annotations
-                                added to the challenge ingress resource.
-                              type: object
-                            ingressClass:
-                              description: IngressClass is the ingress class to use
-                                when creating the challenge ingress.
-                              type: string
-                          type: object
                         name:
-                          description: Name is the name of the ClusterIssuer resource.
                           type: string
-                        server:
-                          description: |-
-                            Server is the ACME directory URL.
-                            Defaults to the Let's Encrypt production endpoint when empty.
+                        namespace:
                           type: string
+                        solvers:
+                          items:
+                            type: object
+                            x-kubernetes-preserve-unknown-fields: true
+                          type: array
                       required:
                       - email
                       - name
+                      - namespace
                       type: object
                     type: array
                   patches:

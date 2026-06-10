@@ -2,6 +2,7 @@ package v1alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // ╭─────────────────────╮
@@ -68,10 +69,11 @@ type FluxCDInstallConfig struct {
 }
 
 type CertManagerConfig struct {
-	Enabled bool                           `json:"enabled,omitempty"`
-	Issuers []CertManagerIssuerConfig      `json:"issuers,omitempty"`
-	Patches []PlatformConfigPatchReference `json:"patches,omitempty"`
-	Chart   *HelmChartReference            `json:"chart,omitempty"`
+	Enabled        bool                           `json:"enabled,omitempty"`
+	Issuers        []IssuerConfig                 `json:"issuers,omitempty"`
+	ClusterIssuers []ClusterIssuerConfig          `json:"clusterIssuers,omitempty"`
+	Patches        []PlatformConfigPatchReference `json:"patches,omitempty"`
+	Chart          *HelmChartReference            `json:"chart,omitempty"`
 }
 
 type TraefikConfig struct {
@@ -128,17 +130,17 @@ type ServiceAccountRef struct {
 	Key  string `json:"key"`
 }
 
-type CertManagerIssuerConfig struct {
-	// Name is the name of the ClusterIssuer resource.
-	Name string `json:"name"`
-	// Email is the contact address for the ACME account.
-	Email string `json:"email"`
-	// Server is the ACME directory URL.
-	// Defaults to the Let's Encrypt production endpoint when empty.
-	Server string `json:"server,omitempty"`
-	// HTTP01 configures the HTTP-01 challenge solver.
-	// Mutually exclusive with future solver types (e.g. dns01).
-	HTTP01 *CertManagerHTTP01Config `json:"http01,omitempty"`
+type IssuerConfig struct {
+	Name      string                 `json:"name"`
+	Email     string                 `json:"email"`
+	Namespace string                 `json:"namespace"`
+	Solvers   []runtime.RawExtension `json:"solvers,omitempty"`
+}
+
+type ClusterIssuerConfig struct {
+	Name    string                 `json:"name"`
+	Email   string                 `json:"email"`
+	Solvers []runtime.RawExtension `json:"solvers,omitempty"`
 }
 
 // CertManagerHTTP01Config configures an ACME HTTP-01 challenge solver.

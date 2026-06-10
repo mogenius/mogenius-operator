@@ -23,7 +23,17 @@ func (d *reconcilerModule) reconcileCertManager(ctx context.Context, spec v1alph
 			defaultNamespace: "cert-manager",
 		},
 		func(ctx context.Context) ([]any, error) {
-			return d.buildCertManagerExtraObjects(ctx, cm)
+			extraObjects := []any{}
+
+			for _, issuer := range spec.CertManager.Issuers {
+				extraObjects = append(extraObjects, buildIssuerObject(issuer))
+			}
+
+			for _, clusterIssuer := range spec.CertManager.ClusterIssuers {
+				extraObjects = append(extraObjects, clusterIssuer)
+			}
+
+			return extraObjects, nil
 		},
 		func(ctx context.Context) (map[string]any, error) {
 			return nil, nil
@@ -31,54 +41,7 @@ func (d *reconcilerModule) reconcileCertManager(ctx context.Context, spec v1alph
 	)
 }
 
-// buildCertManagerExtraObjects merges ClusterIssuer objects derived from the
-// issuer config with any extra objects coming from the referenced PlatformPatch.
-func (d *reconcilerModule) buildCertManagerExtraObjects(ctx context.Context, certManager *v1alpha1.CertManagerConfig) ([]any, error) {
-	extraObjects := make([]any, 0, len(certManager.Issuers))
-	for _, issuer := range certManager.Issuers {
-		extraObjects = append(extraObjects, buildClusterIssuerObject(issuer))
-	}
-
-	return extraObjects, nil
-}
-
-const letsEncryptProdServer = "https://acme-v02.api.letsencrypt.org/directory"
-
-func buildClusterIssuerObject(issuer v1alpha1.CertManagerIssuerConfig) map[string]any {
-	server := issuer.Server
-	if server == "" {
-		server = letsEncryptProdServer
-	}
-
-	acme := map[string]any{
-		"server": server,
-		"email":  issuer.Email,
-		"privateKeySecretRef": map[string]any{
-			"name": issuer.Name + "-account-key",
-		},
-	}
-
-	if issuer.HTTP01 != nil {
-		ingress := map[string]any{}
-		if issuer.HTTP01.IngressClass != "" {
-			ingress["class"] = issuer.HTTP01.IngressClass
-		}
-		if len(issuer.HTTP01.IngressAnnotations) > 0 {
-			ingress["podTemplate"] = map[string]any{
-				"metadata": map[string]any{
-					"annotations": issuer.HTTP01.IngressAnnotations,
-				},
-			}
-		}
-		acme["solvers"] = []any{
-			map[string]any{
-				"http01": map[string]any{
-					"ingress": ingress,
-				},
-			},
-		}
-	}
-
+func buildClusterIssuerObject(issuer v1alpha1.ClusterIssuerConfig) map[string]any {
 	return map[string]any{
 		"apiVersion": "cert-manager.io/v1",
 		"kind":       "ClusterIssuer",
@@ -86,7 +49,33 @@ func buildClusterIssuerObject(issuer v1alpha1.CertManagerIssuerConfig) map[strin
 			"name": issuer.Name,
 		},
 		"spec": map[string]any{
-			"acme": acme,
+			"acme": map[string]any{
+				"email": issuer.Email,
+				"privateKeySecretRef": map[string]any{
+					"name": issuer.Name,
+				},
+				"solvers": issuer.Solvers,
+			},
+		},
+	}
+}
+
+func buildIssuerObject(issuer v1alpha1.IssuerConfig) map[string]any {
+	return map[string]any{
+		"apiVersion": "cert-manager.io/v1",
+		"kind":       "Issuer",
+		"metadata": map[string]any{
+			"name":      issuer.Name,
+			"namespace": issuer.Namespace,
+		},
+		"spec": map[string]any{
+			"acme": map[string]any{
+				"email": issuer.Email,
+				"privateKeySecretRef": map[string]any{
+					"name": issuer.Name,
+				},
+				"solvers": issuer.Solvers,
+			},
 		},
 	}
 }
