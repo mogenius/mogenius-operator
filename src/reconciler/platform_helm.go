@@ -41,19 +41,21 @@ func helmNamespace(reference *v1alpha1.HelmChartReference, defaultNamespace stri
 //  1. defaults.ValuesObject from getDefaultConfig
 //  2. configValues derived from the component spec
 //  3. patch values from a PlatformPatch (highest precedence)
-func mergeHelmValues(defaults componentDefaultSpec, configValues map[string]any, patch *v1alpha1.PlatformPatch) (map[string]any, error) {
+func mergeHelmValues(defaults componentDefaultSpec, configValues map[string]any, patches []v1alpha1.PlatformPatch) (map[string]any, error) {
 	result := map[string]any{}
 
 	mergeMaps(result, defaults.ValuesObject)
 
 	mergeMaps(result, configValues)
 
-	if patch != nil && patch.Spec.ValuesObject != nil {
-		patchValues := map[string]any{}
-		if err := json.Unmarshal(patch.Spec.ValuesObject.Raw, &patchValues); err != nil {
-			return nil, fmt.Errorf("parse patch values: %w", err)
+	for _, patch := range patches {
+		if patch.Spec.ValuesObject != nil {
+			patchValues := map[string]any{}
+			if err := json.Unmarshal(patch.Spec.ValuesObject.Raw, &patchValues); err != nil {
+				return nil, fmt.Errorf("parse patch values: %w", err)
+			}
+			mergeMaps(result, patchValues)
 		}
-		mergeMaps(result, patchValues)
 	}
 
 	return result, nil

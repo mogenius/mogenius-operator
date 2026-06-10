@@ -15,7 +15,7 @@ func (d *reconcilerModule) reconcileArgoCD(ctx context.Context, spec v1alpha1.Pl
 		componentSpec{
 			enabled:          cfg.Enabled,
 			chart:            cfg.Chart,
-			patch:            cfg.Patch,
+			patches:          cfg.Patches,
 			name:             componentArgoCD,
 			defaultChart:     "argo-cd",
 			defaultRepo:      "https://argoproj.github.io/argo-helm",

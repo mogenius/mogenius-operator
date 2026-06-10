@@ -15,7 +15,7 @@ func (d *reconcilerModule) reconcileTraefik(ctx context.Context, spec v1alpha1.P
 		componentSpec{
 			enabled:          t.Enabled,
 			chart:            t.Chart,
-			patch:            t.Patch,
+			patches:          t.Patches,
 			name:             componentTraefik,
 			defaultChart:     "traefik",
 			defaultRepo:      "https://helm.traefik.io/traefik",

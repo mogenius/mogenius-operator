@@ -15,7 +15,7 @@ func (d *reconcilerModule) reconcileKubePrometheusStack(ctx context.Context, spe
 		componentSpec{
 			enabled:          c.Enabled,
 			chart:            c.Chart,
-			patch:            c.Patch,
+			patches:          c.Patches,
 			name:             componentKubePrometheusStack,
 			defaultChart:     "kube-prometheus-stack",
 			defaultRepo:      "https://prometheus-community.github.io/helm-charts",

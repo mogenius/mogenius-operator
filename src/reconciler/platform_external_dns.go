@@ -15,7 +15,7 @@ func (d *reconcilerModule) reconcileExternalDNS(ctx context.Context, spec v1alph
 		componentSpec{
 			enabled:          c.Enabled,
 			chart:            c.Chart,
-			patch:            c.Patch,
+			patches:          c.Patches,
 			name:             componentExternalDNS,
 			defaultChart:     "external-dns",
 			defaultRepo:      "https://kubernetes-sigs.github.io/external-dns/",
