@@ -1,3 +1,16 @@
+# [2.22.0-develop.1](https://github.com/mogenius/mogenius-operator/compare/v2.21.1-develop.8...v2.22.0-develop.1) (2026-06-10)
+
+
+### Bug Fixes
+
+* issues with just generate ([b676d60](https://github.com/mogenius/mogenius-operator/commit/b676d602676ca3411d0f703e4641dbf9bceac11c))
+
+
+### Features
+
+* adding external secrets operator with vault provisioning ([12bc5c9](https://github.com/mogenius/mogenius-operator/commit/12bc5c9d64156a8bbc7e7d13e3bdfbef3b0762fc))
+* allow for multiple platform patches per component ([4e840a4](https://github.com/mogenius/mogenius-operator/commit/4e840a45eaeb1f7c2de4a6d18ed4692c67d20764))
+
 ## [2.21.1-develop.8](https://github.com/mogenius/mogenius-operator/compare/v2.21.1-develop.7...v2.21.1-develop.8) (2026-06-10)
 
 
