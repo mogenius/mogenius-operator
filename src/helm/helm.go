@@ -93,6 +93,14 @@ func Setup(logManager logging.SlogManager, configModule cfg.ConfigModule, valkey
 	helmLogger = logManager.CreateLogger("helm")
 	config = configModule
 	valkeyClient = valkey
+
+	// Pin Helm's server-side-apply field manager to a stable name. Without this
+	// Helm v4 derives the manager from filepath.Base(os.Args[0]), which drifts
+	// with how the binary is invoked (in-cluster "mogenius-operator", local
+	// "dist/native/mogenius-operator", test binaries). A drifting manager name
+	// leaves orphaned field ownership that later SSA applies conflict with
+	// (MOG-4393).
+	kube.ManagedFieldsManager = "mogenius-operator"
 }
 
 func InitEnvs(configModule cfg.ConfigModule) {
@@ -877,6 +885,8 @@ func HelmOciInstall(data HelmChartOciInstallUpgradeRequest) (result string, err 
 	install.Version = data.Version
 	install.WaitStrategy = kube.StatusWatcherStrategy
 	install.Timeout = 300 * time.Second
+	// See HelmReleaseUpgrade: take sole ownership on SSA conflicts (MOG-4393).
+	install.ForceConflicts = true
 	install.Labels = map[string]string{
 		"mogenius.com/installed-via": "mogenius-operator",
 		"mogenius.com/oci-chart":     "true",
@@ -1007,6 +1017,8 @@ func HelmChartInstall(data HelmChartInstallUpgradeRequest) (result string, err e
 	install.WaitStrategy = kube.StatusWatcherStrategy
 	install.Timeout = 300 * time.Second
 	install.Devel = true
+	// See HelmReleaseUpgrade: take sole ownership on SSA conflicts (MOG-4393).
+	install.ForceConflicts = true
 	install.Labels = map[string]string{
 		"mogenius.com/installed-via": "mogenius-operator",
 		"mogenius.com/oci-chart":     "false",
@@ -1124,6 +1136,11 @@ func HelmReleaseUpgrade(data HelmChartInstallUpgradeRequest) (result string, err
 	upgrade.Version = data.Version
 	upgrade.Timeout = 300 * time.Second
 	upgrade.Devel = true
+	// Force server-side-apply conflicts so the operator becomes sole manager of
+	// the platform charts it installs. Resolves the "Apply failed with conflict"
+	// error when a field (e.g. argo-cd-rbac-cm .data.policy.csv) is still held by
+	// a stale field-manager entry (MOG-4393).
+	upgrade.ForceConflicts = true
 
 	helmLogger.Info("Locating chart ...", "releaseName", data.Release, "namespace", data.Namespace)
 	chartPath, err := upgrade.LocateChart(data.Chart, settings)
