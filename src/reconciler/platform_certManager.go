@@ -30,7 +30,7 @@ func (d *reconcilerModule) reconcileCertManager(ctx context.Context, spec v1alph
 			}
 
 			for _, clusterIssuer := range spec.CertManager.ClusterIssuers {
-				extraObjects = append(extraObjects, clusterIssuer)
+				extraObjects = append(extraObjects, buildClusterIssuerObject(clusterIssuer))
 			}
 
 			return extraObjects, nil
