@@ -170,7 +170,7 @@ valkey:
       image:
         registry: docker.io
         repository: oliver006/redis_exporter
-        tag: v1.84.0
+        tag: v1.86.0
       resources: {}
       containerSecurityContext:
         readOnlyRootFilesystem: true

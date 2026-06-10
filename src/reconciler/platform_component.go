@@ -32,7 +32,7 @@ func (d *reconcilerModule) reconcileComponent(
 	op operation,
 	cs componentSpec,
 	buildExtraObjects func(ctx context.Context) ([]any, error),
-	buildExtraValues func(ctx context.Context) (map[string]interface{}, error),
+	buildExtraValues func(ctx context.Context) (map[string]any, error),
 ) *ReconcileResult {
 	if !cs.enabled || op == deleteOperation {
 		if err := installer.UnInstall(cs.name); err != nil {

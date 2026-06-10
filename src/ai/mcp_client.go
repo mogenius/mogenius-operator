@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"maps"
 	"net/http"
 	"regexp"
+	"strings"
 	"sync"
 
 	"github.com/anthropics/anthropic-sdk-go"
@@ -327,26 +329,25 @@ func extractMCPText(result *mcp.CallToolResult) string {
 	if len(texts) == 0 {
 		return "No content returned"
 	}
-	resultText := texts[0]
+	var resultText strings.Builder
+	resultText.WriteString(texts[0])
 	for i := 1; i < len(texts); i++ {
-		resultText += "\n" + texts[i]
+		resultText.WriteString("\n" + texts[i])
 	}
-	return resultText
+	return resultText.String()
 }
 
 // mcpSchemaToPropertiesAndRequired converts an MCP tool's InputSchema (any / map[string]any)
 // to the properties map and required slice used by the Anthropic SDK.
-func mcpSchemaToPropertiesAndRequired(schema any) (map[string]interface{}, []string) {
+func mcpSchemaToPropertiesAndRequired(schema any) (map[string]any, []string) {
 	m, ok := schema.(map[string]any)
 	if !ok || m == nil {
-		return map[string]interface{}{}, nil
+		return map[string]any{}, nil
 	}
 
-	properties := make(map[string]interface{})
+	properties := make(map[string]any)
 	if props, ok := m["properties"].(map[string]any); ok {
-		for k, v := range props {
-			properties[k] = v
-		}
+		maps.Copy(properties, props)
 	}
 
 	var required []string
@@ -368,7 +369,7 @@ func mcpSchemaToFunctionParams(schema any) openai.FunctionParameters {
 	if !ok || m == nil {
 		return openai.FunctionParameters{
 			"type":       "object",
-			"properties": map[string]interface{}{},
+			"properties": map[string]any{},
 		}
 	}
 
@@ -379,7 +380,7 @@ func mcpSchemaToFunctionParams(schema any) openai.FunctionParameters {
 	if props, ok := m["properties"].(map[string]any); ok {
 		params["properties"] = props
 	} else {
-		params["properties"] = map[string]interface{}{}
+		params["properties"] = map[string]any{}
 	}
 
 	if req, ok := m["required"].([]any); ok {

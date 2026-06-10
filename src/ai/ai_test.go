@@ -11,67 +11,67 @@ import (
 
 func TestGetNestedStringWithJSONPath(t *testing.T) {
 	deployment := unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"apiVersion": "apps/v1",
 			"kind":       "Deployment",
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      "test-deployment",
 				"namespace": "default",
-				"labels": map[string]interface{}{
+				"labels": map[string]any{
 					"app":     "myapp",
 					"env":     "production",
 					"version": "1.0.0",
 				},
-				"annotations": map[string]interface{}{
+				"annotations": map[string]any{
 					"deployment.kubernetes.io/revision": "3",
 				},
 			},
-			"spec": map[string]interface{}{
+			"spec": map[string]any{
 				"replicas": int64(5),
 			},
-			"status": map[string]interface{}{
+			"status": map[string]any{
 				"replicas":          int64(3),
 				"availableReplicas": int64(2),
-				"conditions": []interface{}{
-					map[string]interface{}{
+				"conditions": []any{
+					map[string]any{
 						"type":               "Available",
 						"status":             "False",
 						"lastTransitionTime": "2024-01-01T00:00:00Z",
 						"reason":             "MinimumReplicasUnavailable",
 						"message":            "Deployment does not have minimum availability.",
 					},
-					map[string]interface{}{
+					map[string]any{
 						"type":               "Progressing",
 						"status":             "True",
 						"lastTransitionTime": "2024-01-01T00:00:00Z",
 						"reason":             "NewReplicaSetAvailable",
 					},
 				},
-				"containerStatuses": []interface{}{
-					map[string]interface{}{
+				"containerStatuses": []any{
+					map[string]any{
 						"name": "container-1",
-						"state": map[string]interface{}{
-							"waiting": map[string]interface{}{
+						"state": map[string]any{
+							"waiting": map[string]any{
 								"reason":  "CrashLoopBackOff",
 								"message": "Back-off restarting failed container",
 							},
 						},
 						"restartCount": int64(5),
 					},
-					map[string]interface{}{
+					map[string]any{
 						"name": "container-2",
-						"state": map[string]interface{}{
-							"running": map[string]interface{}{
+						"state": map[string]any{
+							"running": map[string]any{
 								"startedAt": "2024-01-01T00:00:00Z",
 							},
 						},
 						"ready":        true,
 						"restartCount": int64(0),
 					},
-					map[string]interface{}{
+					map[string]any{
 						"name": "container-3",
-						"state": map[string]interface{}{
-							"waiting": map[string]interface{}{
+						"state": map[string]any{
+							"waiting": map[string]any{
 								"reason":  "ImagePullBackOff",
 								"message": "Failed to pull image",
 							},

@@ -100,7 +100,7 @@ func listKubernetesResourcesTool(args map[string]any, tc *ToolContext, valkeyCli
 		if status, found, _ := unstructured.NestedString(res.Object, "status", "phase"); found {
 			summary.Status = status
 		} else if conditions, found, _ := unstructured.NestedSlice(res.Object, "status", "conditions"); found && len(conditions) > 0 {
-			if cond, ok := conditions[0].(map[string]interface{}); ok {
+			if cond, ok := conditions[0].(map[string]any); ok {
 				if condType, ok := cond["type"].(string); ok {
 					if condStatus, ok := cond["status"].(string); ok {
 						summary.Status = fmt.Sprintf("%s=%s", condType, condStatus)
@@ -111,7 +111,7 @@ func listKubernetesResourcesTool(args map[string]any, tc *ToolContext, valkeyCli
 		summaries[i] = summary
 	}
 
-	result := map[string]interface{}{
+	result := map[string]any{
 		"kind":      kind,
 		"count":     totalCount,
 		"resources": summaries,
@@ -167,7 +167,7 @@ func checkKubernetesResourceTool(args map[string]any, tc *ToolContext, valkeyCli
 	if s, found, _ := unstructured.NestedString(res.Object, "status", "phase"); found {
 		status = s
 	} else if conditions, found, _ := unstructured.NestedSlice(res.Object, "status", "conditions"); found && len(conditions) > 0 {
-		if cond, ok := conditions[0].(map[string]interface{}); ok {
+		if cond, ok := conditions[0].(map[string]any); ok {
 			if condType, ok := cond["type"].(string); ok {
 				if condStatus, ok := cond["status"].(string); ok {
 					status = condType + "=" + condStatus
@@ -383,7 +383,7 @@ func getPodLogsTool(args map[string]any, tc *ToolContext, valkeyClient valkeycli
 	// Adaptive fetch: reduce tailLines until output fits within char limit
 	var logs string
 	var err error
-	for attempt := 0; attempt < 3; attempt++ {
+	for attempt := range 3 {
 		logs, err = K8sGetPodLogs(namespace, podName, container, tailLines, previous)
 		if err != nil {
 			logger.Error("Error getting pod logs", "error", err)
@@ -393,10 +393,7 @@ func getPodLogsTool(args map[string]any, tc *ToolContext, valkeyClient valkeycli
 			break
 		}
 		logger.Info("Log output too large, reducing tailLines", "chars", len(logs), "tailLines", tailLines, "attempt", attempt+1)
-		tailLines = tailLines / 2
-		if tailLines < 10 {
-			tailLines = 10
-		}
+		tailLines = max(tailLines/2, 10)
 	}
 
 	if len(logs) == 0 {

@@ -80,7 +80,7 @@ func (self *StructLayout) Equals(other *StructLayout) bool {
 	}
 
 	fieldAmount := self.reflectedType.NumField()
-	for n := 0; n < fieldAmount; n++ {
+	for n := range fieldAmount {
 		selfReflectedStructField := self.reflectedType.Field(n)
 		otherReflectedStructField := other.reflectedType.Field(n)
 		if selfReflectedStructField.Name != otherReflectedStructField.Name {
@@ -229,7 +229,7 @@ func parseSchema(schema *Schema, input reflect.Type, depth int) (*TypeInfo, erro
 		schema.StructLayouts[structId] = *structDeclaration
 
 		fieldAmount := input.NumField()
-		for n := 0; n < fieldAmount; n++ {
+		for n := range fieldAmount {
 			inputStructField := input.Field(n)
 			// skip private fields
 			firstRune := rune(inputStructField.Name[0])
@@ -269,7 +269,6 @@ func String() *Schema {
 
 	return schema
 }
-
 
 func Interface() *Schema {
 	typeInfo := &TypeInfo{}

@@ -43,7 +43,7 @@ Example: "HelmRead,HelmWrite". Categories stay active once enabled.`
 func (atc *ActiveToolCategories) ActivateFromToolCall(args map[string]any) string {
 	raw, _ := args["categories"].(string)
 	var activated []string
-	for _, cat := range strings.Split(raw, ",") {
+	for cat := range strings.SplitSeq(raw, ",") {
 		switch strings.TrimSpace(cat) {
 		case "KubernetesWrite":
 			if !atc.KubernetesWrite {

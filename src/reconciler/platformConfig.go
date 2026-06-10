@@ -57,7 +57,14 @@ func (d *reconcilerModule) reconcilePlatformConfig(ctx context.Context, obj *uns
 		d.logger.Info("no GitOps engine enabled, skipping reconciliation of GitOps components")
 		return []ReconcileResult{{Err: fmt.Errorf("no GitOps engine enabled")}}
 	}
-	installer := gitops.NewGitOpsInstaller(engine, engineNs, d.clientProvider)
+
+	ownerRef := metav1.OwnerReference{
+		APIVersion: "mogenius.com/v1alpha1",
+		Kind:       "PlatformConfig",
+		Name:       platformConfig.Name,
+		UID:        platformConfig.UID,
+	}
+	installer := gitops.NewGitOpsInstaller(engine, engineNs, d.clientProvider, []metav1.OwnerReference{ownerRef})
 
 	type componentResult struct {
 		name   string
@@ -114,8 +121,8 @@ func (d *reconcilerModule) reconcilePlatformConfig(ctx context.Context, obj *uns
 }
 
 func (d *reconcilerModule) updatePlatformConfigStatus(ctx context.Context, name string, components []v1alpha1.PlatformComponentStatus) error {
-	patch := map[string]interface{}{
-		"status": map[string]interface{}{
+	patch := map[string]any{
+		"status": map[string]any{
 			"components": components,
 		},
 	}
@@ -175,7 +182,7 @@ func extractPatchExtraObjects(patch *v1alpha1.PlatformPatch) ([]any, error) {
 		if rawObj.Raw == nil {
 			continue
 		}
-		var obj map[string]interface{}
+		var obj map[string]any
 		if err := json.Unmarshal(rawObj.Raw, &obj); err != nil {
 			return nil, err
 		}

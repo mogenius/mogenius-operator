@@ -20,16 +20,19 @@ var argoApplicationGVR = schema.GroupVersionResource{
 type argocdInstaller struct {
 	clientProvider k8sclient.K8sClientProvider
 	namespace      string
+	ownerRefs      []metav1.OwnerReference
 }
 
 func (a *argocdInstaller) Install(component string, artifact GitOpsArtifact) error {
 	app := buildArgoApplication(component, artifact, a.namespace)
+	app.SetOwnerReferences(a.ownerRefs)
 	if err := applyUnstructured(a.clientProvider, argoApplicationGVR, a.namespace, app); err != nil {
 		return fmt.Errorf("apply argocd application %s: %w", component, err)
 	}
 
 	if len(artifact.ExtraObjects) > 0 {
 		moacApp := buildArgoMoacApplication(component, artifact, a.namespace)
+		moacApp.SetOwnerReferences(a.ownerRefs)
 		if err := applyUnstructured(a.clientProvider, argoApplicationGVR, a.namespace, moacApp); err != nil {
 			return fmt.Errorf("apply argocd moac application %s-resources: %w", component, err)
 		}
@@ -51,7 +54,7 @@ func (a *argocdInstaller) UnInstall(component string) error {
 }
 
 func buildArgoApplication(component string, artifact GitOpsArtifact, namespace string) *unstructured.Unstructured {
-	helm := map[string]interface{}{
+	helm := map[string]any{
 		"releaseName": artifact.HelmChart.Name,
 	}
 	if len(artifact.Values) > 0 {
@@ -59,33 +62,33 @@ func buildArgoApplication(component string, artifact GitOpsArtifact, namespace s
 	}
 
 	return &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"apiVersion": "argoproj.io/v1alpha1",
 			"kind":       "Application",
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      component,
 				"namespace": namespace,
 				"labels":    defaultLabels(component),
 			},
-			"finalizers": []interface{}{"resources-finalizer.argocd.argoproj.io"}, // ensure resources are deleted when app is deleted
-			"spec": map[string]interface{}{
+			"finalizers": []any{"resources-finalizer.argocd.argoproj.io"}, // ensure resources are deleted when app is deleted
+			"spec": map[string]any{
 				"project": "default",
-				"source": map[string]interface{}{
+				"source": map[string]any{
 					"repoURL":        artifact.HelmChart.Repository,
 					"chart":          artifact.HelmChart.Chart,
 					"targetRevision": artifact.HelmChart.Version,
 					"helm":           helm,
 				},
-				"destination": map[string]interface{}{
+				"destination": map[string]any{
 					"name":      "in-cluster",
 					"namespace": artifact.Namespace,
 				},
-				"syncPolicy": map[string]interface{}{
-					"automated": map[string]interface{}{
+				"syncPolicy": map[string]any{
+					"automated": map[string]any{
 						"prune":    true,
 						"selfHeal": true,
 					},
-					"syncOptions": []interface{}{"CreateNamespace=true"},
+					"syncOptions": []any{"CreateNamespace=true"},
 				},
 			},
 		},
@@ -95,38 +98,38 @@ func buildArgoApplication(component string, artifact GitOpsArtifact, namespace s
 func buildArgoMoacApplication(component string, artifact GitOpsArtifact, namespace string) *unstructured.Unstructured {
 	name := component + "-resources"
 	return &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"apiVersion": "argoproj.io/v1alpha1",
 			"kind":       "Application",
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      name,
 				"namespace": namespace,
 				"labels":    defaultLabels(component),
 			},
-			"finalizers": []interface{}{"resources-finalizer.argocd.argoproj.io"}, // ensure resources are deleted when app is deleted
-			"spec": map[string]interface{}{
+			"finalizers": []any{"resources-finalizer.argocd.argoproj.io"}, // ensure resources are deleted when app is deleted
+			"spec": map[string]any{
 				"project": "default",
-				"source": map[string]interface{}{
+				"source": map[string]any{
 					"repoURL":        moacRepository,
 					"chart":          moacChart,
 					"targetRevision": moacVersion,
-					"helm": map[string]interface{}{
+					"helm": map[string]any{
 						"releaseName": artifact.HelmChart.Name + "-resources",
-						"valuesObject": map[string]interface{}{
+						"valuesObject": map[string]any{
 							"rawResources": artifact.ExtraObjects,
 						},
 					},
 				},
-				"destination": map[string]interface{}{
+				"destination": map[string]any{
 					"name":      "in-cluster",
 					"namespace": artifact.Namespace,
 				},
-				"syncPolicy": map[string]interface{}{
-					"automated": map[string]interface{}{
+				"syncPolicy": map[string]any{
+					"automated": map[string]any{
 						"prune":    true,
 						"selfHeal": true,
 					},
-					"syncOptions": []interface{}{"CreateNamespace=true"},
+					"syncOptions": []any{"CreateNamespace=true"},
 				},
 			},
 		},

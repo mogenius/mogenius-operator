@@ -265,7 +265,7 @@ func (ai *aiManager) anthropicChatWithTools(
 			case "text":
 				assistantContent[i] = anthropic.NewTextBlock(block.Text)
 			case "tool_use":
-				var input map[string]interface{}
+				var input map[string]any
 				if err := json.Unmarshal(block.Input, &input); err != nil {
 					return "", messages, stats, fmt.Errorf("error unmarshaling tool input: %w", err)
 				}
@@ -439,7 +439,7 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, model, systemPr
 				assistantContent[i] = anthropic.NewTextBlock(block.Text)
 			case "tool_use":
 				// Unmarshal the Input from JSON to a map so it's sent as a dictionary
-				var input map[string]interface{}
+				var input map[string]any
 				if err := json.Unmarshal(block.Input, &input); err != nil {
 					return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("error unmarshaling tool input: %v", err)
 				}

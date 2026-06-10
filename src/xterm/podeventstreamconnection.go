@@ -29,7 +29,7 @@ func writeEvent(conn *websocket.Conn, connWriteLock *sync.Mutex, event v1.Event)
 		if strings.HasPrefix(event.Message, "No recent events found.") {
 			err = conn.WriteMessage(websocket.TextMessage, []byte(string(event.Message)))
 		} else {
-			err = conn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("[%s] %s%s", formattedTime, utils.FillWith(event.Reason, 28, " "), event.Message)))
+			err = conn.WriteMessage(websocket.TextMessage, fmt.Appendf(nil, "[%s] %s%s", formattedTime, utils.FillWith(event.Reason, 28, " "), event.Message))
 		}
 		connWriteLock.Unlock()
 		if err != nil {

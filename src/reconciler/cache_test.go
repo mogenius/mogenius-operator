@@ -40,7 +40,6 @@ func TestObjectCacheKey(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			c := newObjectCache()
@@ -183,7 +182,6 @@ func TestObjectCacheConcurrentSetAndSnapshot(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(goroutines)
 	for i := range goroutines {
-		i := i
 		go func() {
 			defer wg.Done()
 			obj := makeObj("ns", fmt.Sprintf("obj-%d", i))
@@ -210,7 +208,6 @@ func TestObjectCacheConcurrentSetAndRemove(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(n)
 	for i := range n {
-		i := i
 		go func() {
 			defer wg.Done()
 			c.remove(makeObj("ns", fmt.Sprintf("obj-%d", i)))

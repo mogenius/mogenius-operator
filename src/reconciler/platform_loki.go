@@ -25,7 +25,7 @@ func (d *reconcilerModule) reconcileLoki(ctx context.Context, spec v1alpha1.Plat
 		func(ctx context.Context) ([]any, error) {
 			return []any{}, nil
 		},
-		func(ctx context.Context) (map[string]interface{}, error) {
+		func(ctx context.Context) (map[string]any, error) {
 			return nil, nil
 		},
 	)
@@ -50,7 +50,7 @@ func (d *reconcilerModule) reconcileAlloy(ctx context.Context, spec v1alpha1.Pla
 		func(ctx context.Context) ([]any, error) {
 			return []any{}, nil
 		},
-		func(ctx context.Context) (map[string]interface{}, error) {
+		func(ctx context.Context) (map[string]any, error) {
 			return nil, nil
 		},
 	)

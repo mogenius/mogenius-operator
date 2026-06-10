@@ -2,6 +2,7 @@ package ai
 
 import (
 	"log/slog"
+	map0 "maps"
 	"mogenius-operator/src/valkeyclient"
 
 	"github.com/anthropics/anthropic-sdk-go"
@@ -146,12 +147,8 @@ func newToolContextFromIOChannel(ioChannel IOChatChannel) *ToolContext {
 
 func mergeAnnotationsAndLabels(annotations, labels map[string]string) map[string]string {
 	merged := make(map[string]string, len(annotations)+len(labels))
-	for k, v := range annotations {
-		merged[k] = v
-	}
-	for k, v := range labels {
-		merged[k] = v
-	}
+	map0.Copy(merged, annotations)
+	map0.Copy(merged, labels)
 	return merged
 }
 
@@ -230,9 +227,7 @@ func filterOllamaTools(tools []api.Tool, ioChannel IOChatChannel) []api.Tool {
 func mergeToolMaps(maps ...map[string]toolHandler) map[string]toolHandler {
 	result := make(map[string]toolHandler)
 	for _, m := range maps {
-		for k, v := range m {
-			result[k] = v
-		}
+		map0.Copy(result, m)
 	}
 	return result
 }

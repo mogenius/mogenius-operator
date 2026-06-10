@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"maps"
 	"mogenius-operator/src/assert"
 	"mogenius-operator/src/config"
 	"mogenius-operator/src/containerenumerator"
@@ -152,12 +153,12 @@ type SnoopyHandle struct {
 	SnoopyPid    ProcessId
 	ContainerPid ProcessId // PID of the monitored container process (for procdev fallback)
 
-	StartBytesLock       *sync.RWMutex
-	IngressStartBytes    map[InterfaceName]uint64
-	EgressStartBytes     map[InterfaceName]uint64
-	IngressStartPackets  map[InterfaceName]uint64 // protected by StartBytesLock
-	EgressStartPackets   map[InterfaceName]uint64 // protected by StartBytesLock
-	BpfFailedInterfaces  map[InterfaceName]bool   // interfaces where eBPF init failed; protected by StartBytesLock
+	StartBytesLock      *sync.RWMutex
+	IngressStartBytes   map[InterfaceName]uint64
+	EgressStartBytes    map[InterfaceName]uint64
+	IngressStartPackets map[InterfaceName]uint64 // protected by StartBytesLock
+	EgressStartPackets  map[InterfaceName]uint64 // protected by StartBytesLock
+	BpfFailedInterfaces map[InterfaceName]bool   // interfaces where eBPF init failed; protected by StartBytesLock
 
 	LastMetricsLock *sync.RWMutex
 	LastMetrics     map[InterfaceName]SnoopyInterfaceMetrics
@@ -541,14 +542,14 @@ func (self *snoopyManager) startStatusEventHandler() {
 // metricsSnapshot is a per-handle copy of just the data Metrics() needs,
 // so we can drop the handle's locks before doing any procdev I/O.
 type metricsSnapshot struct {
-	podInfoID    containerenumerator.PodInfoIdentifier
-	podInfo      containerenumerator.PodInfo
-	containerPid ProcessId
-	ingressStart map[InterfaceName]uint64
-	egressStart  map[InterfaceName]uint64
+	podInfoID           containerenumerator.PodInfoIdentifier
+	podInfo             containerenumerator.PodInfo
+	containerPid        ProcessId
+	ingressStart        map[InterfaceName]uint64
+	egressStart         map[InterfaceName]uint64
 	ingressStartPackets map[InterfaceName]uint64
 	egressStartPackets  map[InterfaceName]uint64
-	last         map[InterfaceName]SnoopyInterfaceMetrics
+	last                map[InterfaceName]SnoopyInterfaceMetrics
 }
 
 func (self *snoopyManager) Metrics() map[containerenumerator.PodInfoIdentifier]ContainerInfo {
@@ -580,24 +581,14 @@ func (self *snoopyManager) Metrics() map[containerenumerator.PodInfoIdentifier]C
 			last:                make(map[InterfaceName]SnoopyInterfaceMetrics),
 		}
 		handle.StartBytesLock.RLock()
-		for k, v := range handle.IngressStartBytes {
-			snap.ingressStart[k] = v
-		}
-		for k, v := range handle.EgressStartBytes {
-			snap.egressStart[k] = v
-		}
-		for k, v := range handle.IngressStartPackets {
-			snap.ingressStartPackets[k] = v
-		}
-		for k, v := range handle.EgressStartPackets {
-			snap.egressStartPackets[k] = v
-		}
+		maps.Copy(snap.ingressStart, handle.IngressStartBytes)
+		maps.Copy(snap.egressStart, handle.EgressStartBytes)
+		maps.Copy(snap.ingressStartPackets, handle.IngressStartPackets)
+		maps.Copy(snap.egressStartPackets, handle.EgressStartPackets)
 		handle.StartBytesLock.RUnlock()
 
 		handle.LastMetricsLock.RLock()
-		for k, v := range handle.LastMetrics {
-			snap.last[k] = v
-		}
+		maps.Copy(snap.last, handle.LastMetrics)
 		handle.LastMetricsLock.RUnlock()
 
 		snapshots = append(snapshots, snap)

@@ -1,6 +1,7 @@
 package helm
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -14,6 +15,7 @@ import (
 	"mogenius-operator/src/valkeyclient"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -65,10 +67,40 @@ var valkeyClient valkeyclient.ValkeyClient
 
 var helmCache = cache.New(2*time.Hour, 30*time.Minute) // cache with default expiration time of 2 hours and cleanup interval of 30 minutes
 
+// helmReleaseListCache caches the (expensive) full release listing so paging
+// through a large release set does not re-list and re-decode every helm secret
+// on every page request. Freshness is driven by invalidation, not by the TTL:
+// it is flushed whenever this operator mutates releases AND whenever the Helm
+// release-secret watcher observes ANY change (including out-of-band ones via
+// helm CLI / other controllers). The long TTL is only a failsafe in case that
+// watcher is not running.
+const helmReleaseListCacheTTL = 30 * time.Minute
+
+var helmReleaseListCache = cache.New(helmReleaseListCacheTTL, 2*helmReleaseListCacheTTL)
+
+func invalidateReleaseListCache() {
+	helmReleaseListCache.Flush()
+}
+
+// InvalidateReleaseListCache drops the cached release listing. Wire this to the
+// Helm release-secret watcher so the cache is invalidated on every release
+// change, regardless of whether it originated from this operator.
+func InvalidateReleaseListCache() {
+	invalidateReleaseListCache()
+}
+
 func Setup(logManager logging.SlogManager, configModule cfg.ConfigModule, valkey valkeyclient.ValkeyClient) {
 	helmLogger = logManager.CreateLogger("helm")
 	config = configModule
 	valkeyClient = valkey
+
+	// Pin Helm's server-side-apply field manager to a stable name. Without this
+	// Helm v4 derives the manager from filepath.Base(os.Args[0]), which drifts
+	// with how the binary is invoked (in-cluster "mogenius-operator", local
+	// "dist/native/mogenius-operator", test binaries). A drifting manager name
+	// leaves orphaned field ownership that later SSA applies conflict with
+	// (MOG-4393).
+	kube.ManagedFieldsManager = "mogenius-operator"
 }
 
 func InitEnvs(configModule cfg.ConfigModule) {
@@ -137,6 +169,44 @@ type HelmRelease struct {
 	Namespace string            `json:"namespace,omitempty"`
 	Labels    map[string]string `json:"-"`
 	RepoName  string            `json:"repoName"`
+
+	// Argo, when non-nil, marks this entry as an Argo-CD-managed helm chart
+	// rather than a real helm release. The list view renders these alongside
+	// real releases so users can still upgrade/uninstall Argo-managed charts
+	// (MOG-4394). MarshalJSON emits the shape the frontend's
+	// ClusterHelmReleaseDto expects for type "git-ops-argo-cd-application".
+	Argo *ArgoReleaseInfo `json:"-"`
+}
+
+// ArgoReleaseInfo carries the data needed to render an Argo CD Application as a
+// pseudo helm release in the release list. The platform API used to merge these
+// in; pagination now happens in the operator (MOG-4367), so the operator owns
+// the merge (MOG-4394).
+type ArgoReleaseInfo struct {
+	// Application is the full Argo Application object (unstructured). The
+	// frontend reads it for the status column, the detail drawer and OCI
+	// detection (spec.source.chart).
+	Application map[string]any
+	// ParentName / ParentNamespace identify the Application to delete (the
+	// frontend's uninstall reads data.parentApplication.resourceName).
+	ParentName      string
+	ParentNamespace string
+	// ValuesObject is the helm valuesObject rendered as YAML (the upgrade form
+	// pre-fills from data.valuesObject).
+	ValuesObject string
+	ChartName    string
+	// Version is spec.source.targetRevision (chart version, a string — note the
+	// real-release HelmRelease.Version is an int revision, hence the dedicated
+	// field here).
+	Version string
+	// AppVersion is best-effort; the operator does not fetch chart metadata over
+	// the network on every list call, so it is usually empty.
+	AppVersion string
+	// DestNamespace is spec.destination.namespace (shown as the release namespace).
+	DestNamespace string
+	RepoName      string
+	// CreatedAt is metadata.creationTimestamp, used for lastDeployed sorting.
+	CreatedAt time.Time
 }
 
 type HelmValkeyRepoName struct {
@@ -195,6 +265,37 @@ type HelmReleaseUninstallRequest struct {
 
 type HelmReleaseListRequest struct {
 	Namespace string `json:"namespace"`
+}
+
+type HelmReleaseListPaginatedRequest struct {
+	Namespace string `json:"namespace"`
+	Filter    string `json:"filter,omitempty"`        // case-insensitive substring match on release name
+	Offset    int    `json:"offset"`
+	Limit     int    `json:"limit"`                   // 0 means "no limit"
+	SortBy    string `json:"sortBy"`                  // "lastDeployed" (default) | "name"
+	SortOrder string `json:"sortOrder"`               // "asc" | "desc"
+	// WorkspaceName, when set, scopes the result to the helm releases that are
+	// registered as resources of that workspace (resolved server-side from the
+	// Workspace CRD). Empty means cluster-wide (all releases).
+	WorkspaceName string `json:"workspaceName,omitempty"`
+}
+
+// HelmWorkspaceScope restricts a paginated listing to a workspace's helm
+// releases. A non-nil scope with an empty Allowed set yields no releases (a
+// workspace that has no helm resources). nil means cluster-wide (no filter).
+type HelmWorkspaceScope struct {
+	Allowed map[string]struct{} // keys built via WorkspaceHelmKey
+}
+
+// WorkspaceHelmKey builds the lookup key for the workspace allow-set. The NUL
+// separator avoids collisions between namespace and release-name boundaries.
+func WorkspaceHelmKey(namespace, releaseName string) string {
+	return namespace + "\x00" + releaseName
+}
+
+type HelmReleaseListPaginatedResponse struct {
+	Items      []*HelmRelease `json:"items"`
+	TotalCount int            `json:"totalCount"`
 }
 
 type HelmReleaseStatusRequest struct {
@@ -735,6 +836,7 @@ func HelmChartVersion(data HelmChartVersionRequest) ([]HelmChartInfo, error) {
 }
 
 func HelmOciInstall(data HelmChartOciInstallUpgradeRequest) (result string, err error) {
+	defer invalidateReleaseListCache() // the release set changed
 	// Start each attempt with a clean log: drop entries from previous
 	// install/upgrade attempts of the same release so the user only sees the
 	// current run. Logs of a failed attempt stay visible until the next
@@ -783,6 +885,8 @@ func HelmOciInstall(data HelmChartOciInstallUpgradeRequest) (result string, err 
 	install.Version = data.Version
 	install.WaitStrategy = kube.StatusWatcherStrategy
 	install.Timeout = 300 * time.Second
+	// See HelmReleaseUpgrade: take sole ownership on SSA conflicts (MOG-4393).
+	install.ForceConflicts = true
 	install.Labels = map[string]string{
 		"mogenius.com/installed-via": "mogenius-operator",
 		"mogenius.com/oci-chart":     "true",
@@ -874,6 +978,7 @@ func newRegistryClient(settings *cli.EnvSettings, plainHTTP bool) (*registry.Cli
 }
 
 func HelmChartInstall(data HelmChartInstallUpgradeRequest) (result string, err error) {
+	defer invalidateReleaseListCache() // the release set changed
 	// Start each attempt with a clean log so the user only sees the current
 	// run, not entries from previous install attempts of the same release.
 	// See HelmOciInstall for the rationale on no longer wiping on error.
@@ -912,6 +1017,8 @@ func HelmChartInstall(data HelmChartInstallUpgradeRequest) (result string, err e
 	install.WaitStrategy = kube.StatusWatcherStrategy
 	install.Timeout = 300 * time.Second
 	install.Devel = true
+	// See HelmReleaseUpgrade: take sole ownership on SSA conflicts (MOG-4393).
+	install.ForceConflicts = true
 	install.Labels = map[string]string{
 		"mogenius.com/installed-via": "mogenius-operator",
 		"mogenius.com/oci-chart":     "false",
@@ -1000,6 +1107,7 @@ func HelmChartInstall(data HelmChartInstallUpgradeRequest) (result string, err e
 }
 
 func HelmReleaseUpgrade(data HelmChartInstallUpgradeRequest) (result string, err error) {
+	defer invalidateReleaseListCache() // the release set changed
 	// Start each attempt with a clean log so the user only sees the current
 	// run, not entries from previous upgrade attempts of the same release.
 	// See HelmOciInstall for the rationale on no longer wiping on error.
@@ -1028,6 +1136,11 @@ func HelmReleaseUpgrade(data HelmChartInstallUpgradeRequest) (result string, err
 	upgrade.Version = data.Version
 	upgrade.Timeout = 300 * time.Second
 	upgrade.Devel = true
+	// Force server-side-apply conflicts so the operator becomes sole manager of
+	// the platform charts it installs. Resolves the "Apply failed with conflict"
+	// error when a field (e.g. argo-cd-rbac-cm .data.policy.csv) is still held by
+	// a stale field-manager entry (MOG-4393).
+	upgrade.ForceConflicts = true
 
 	helmLogger.Info("Locating chart ...", "releaseName", data.Release, "namespace", data.Namespace)
 	chartPath, err := upgrade.LocateChart(data.Chart, settings)
@@ -1110,6 +1223,7 @@ func HelmReleaseUpgrade(data HelmChartInstallUpgradeRequest) (result string, err
 }
 
 func HelmReleaseUninstall(data HelmReleaseUninstallRequest) (result string, err error) {
+	defer invalidateReleaseListCache() // the release set changed
 	defer func() {
 		if err != nil {
 			cleanReleaseLogs(data.Namespace, data.Release)
@@ -1209,6 +1323,210 @@ func HelmReleaseList(data HelmReleaseListRequest) ([]*HelmRelease, error) {
 	return result, nil
 }
 
+// paginateHelmReleases applies the optional workspace scope, name filter,
+// stable sorting and offset/limit slicing to a unified list of entries (real
+// releases and Argo-managed charts alike). It is pure (no I/O) so it can be
+// unit-tested in isolation. It returns the page slice and the total count of
+// entries matching the scope+filter (before slicing).
+func paginateHelmReleases(items []*HelmRelease, data HelmReleaseListPaginatedRequest, scope *HelmWorkspaceScope) ([]*HelmRelease, int) {
+	// Work on a copy of the slice header so the in-place sort below never
+	// mutates a shared/cached slice or races with concurrent requests. The
+	// HelmRelease pointers themselves are only read.
+	cp := make([]*HelmRelease, len(items))
+	copy(cp, items)
+	items = cp
+
+	if scope != nil {
+		scoped := items[:0:0]
+		for _, hr := range items {
+			if _, ok := scope.Allowed[helmReleaseScopeKey(hr)]; ok {
+				scoped = append(scoped, hr)
+			}
+		}
+		items = scoped
+	}
+
+	if data.Filter != "" {
+		filter := strings.ToLower(data.Filter)
+		filtered := items[:0:0]
+		for _, hr := range items {
+			if strings.Contains(strings.ToLower(hr.Name), filter) {
+				filtered = append(filtered, hr)
+			}
+		}
+		items = filtered
+	}
+
+	switch data.SortBy {
+	case "name":
+		desc := data.SortOrder == "desc"
+		sort.SliceStable(items, func(i, j int) bool {
+			if desc {
+				return items[i].Name > items[j].Name
+			}
+			return items[i].Name < items[j].Name
+		})
+	default: // "lastDeployed" (default), newest first unless asc is requested
+		asc := data.SortOrder == "asc"
+		sort.SliceStable(items, func(i, j int) bool {
+			ti, tj := helmReleaseLastDeployed(items[i]), helmReleaseLastDeployed(items[j])
+			if ti.Equal(tj) {
+				return items[i].Name < items[j].Name // stable tiebreaker
+			}
+			if asc {
+				return ti.Before(tj)
+			}
+			return ti.After(tj)
+		})
+	}
+
+	total := len(items)
+	if data.Limit > 0 {
+		start := data.Offset
+		if start < 0 {
+			start = 0
+		}
+		if start > total {
+			start = total
+		}
+		end := start + data.Limit
+		if end > total {
+			end = total
+		}
+		items = items[start:end]
+	}
+
+	return items, total
+}
+
+// helmReleaseScopeKey is the workspace allow-set key for an entry. Argo entries
+// key on the Argo install namespace + release name (matching the workspace
+// "argocd" resource), real releases on their install namespace + name.
+func helmReleaseScopeKey(hr *HelmRelease) string {
+	if hr.Argo != nil {
+		return WorkspaceHelmKey(hr.Argo.ParentNamespace, hr.Name)
+	}
+	return WorkspaceHelmKey(hr.Namespace, hr.Name)
+}
+
+// helmReleaseLastDeployed returns the timestamp used for lastDeployed sorting:
+// the Argo Application creation time for Argo entries, the release's last
+// deployed time otherwise. Missing values sort as the zero time.
+func helmReleaseLastDeployed(hr *HelmRelease) time.Time {
+	if hr.Argo != nil {
+		return hr.Argo.CreatedAt
+	}
+	if hr.Info == nil {
+		return time.Time{}
+	}
+	return hr.Info.LastDeployed
+}
+
+// HelmReleaseListPaginated lists helm releases server-side filtered, sorted and
+// sliced. argoItems are Argo-CD-managed charts (resolved by the caller, since
+// they live outside helm) that are merged into the same sorted, paginated and
+// scoped result so users can still upgrade them (MOG-4394). When scope is
+// non-nil the result is restricted to that workspace's resources (resolved by
+// the caller from the Workspace CRD); nil scope means cluster-wide.
+func HelmReleaseListPaginated(data HelmReleaseListPaginatedRequest, scope *HelmWorkspaceScope, argoItems []*HelmRelease) (HelmReleaseListPaginatedResponse, error) {
+	empty := HelmReleaseListPaginatedResponse{Items: []*HelmRelease{}, TotalCount: 0}
+
+	all, err := listAllReleasesCached(data.Namespace)
+	if err != nil {
+		return empty, err
+	}
+
+	// Unify real releases and Argo entries before sorting/paginating so both
+	// participate in the same ordering, total count and page slicing. The
+	// real-release conversion here is a cheap field copy; the expensive
+	// per-release Valkey repoName lookup is still deferred to the page slice.
+	items := make([]*HelmRelease, 0, len(all)+len(argoItems))
+	for _, re := range all {
+		items = append(items, helmReleaseFromRelease(re, ""))
+	}
+	items = append(items, argoItems...)
+
+	page, total := paginateHelmReleases(items, data, scope)
+
+	// Fill repoName for the real releases on the requested page only. Argo
+	// entries already carry their repoName (from the Application label).
+	for _, hr := range page {
+		if hr.Argo != nil {
+			continue
+		}
+		rep, _ := GetRepoNameFromValkey(hr.Name, hr.Namespace)
+		if rep != nil {
+			chartName := ""
+			if hr.Chart != nil && hr.Chart.Metadata != nil {
+				chartName = hr.Chart.Metadata.Name
+			}
+			hr.RepoName = strings.Replace(rep.RepoName, "/"+chartName, "", 1)
+		}
+	}
+
+	return HelmReleaseListPaginatedResponse{Items: page, TotalCount: total}, nil
+}
+
+// listAllReleasesCached returns all releases in the given namespace ("" = all
+// namespaces), backed by a short-lived cache. Listing decodes every helm secret
+// (all revisions) which is the dominant cost of a paginated request; caching it
+// makes paging through pages cheap. Heavy per-release fields (chart files,
+// templates, values, manifest) are stripped once before caching.
+func listAllReleasesCached(namespace string) ([]*release.Release, error) {
+	cacheKey := "release-list:" + namespace
+	if cached, found := helmReleaseListCache.Get(cacheKey); found {
+		return cached.([]*release.Release), nil
+	}
+
+	settings := NewCli()
+	settings.SetNamespace(namespace)
+
+	actionConfig := new(action.Configuration)
+	if err := actionConfig.Init(settings.RESTClientGetter(), namespace, ""); err != nil {
+		helmLogger.Error("listAllReleasesCached Init", "namespace", namespace, "error", err.Error())
+		return nil, err
+	}
+
+	list := action.NewList(actionConfig)
+	list.StateMask = action.ListAll
+	releases, err := list.Run()
+	if err != nil {
+		helmLogger.Error("listAllReleasesCached List", "namespace", namespace, "error", err.Error())
+		return nil, err
+	}
+
+	all := make([]*release.Release, 0, len(releases))
+	for _, aRelease := range releases {
+		re, ok := aRelease.(*release.Release)
+		if !ok {
+			continue
+		}
+		// Strip everything the list view does not need so the cached entries
+		// stay small (this matters a lot at thousands of releases). The list
+		// only renders name/namespace/version/status/age + chart metadata; the
+		// detail view fetches the full release separately. Keep Chart.Metadata.
+		if re.Chart != nil {
+			re.Chart.Raw = nil
+			re.Chart.Files = nil
+			re.Chart.Templates = nil
+			re.Chart.Values = nil
+			re.Chart.Schema = nil
+			re.Chart.Lock = nil
+		}
+		re.Manifest = ""
+		re.Config = nil
+		re.Hooks = nil
+		if re.Info != nil {
+			re.Info.Notes = ""
+			re.Info.Resources = nil
+		}
+		all = append(all, re)
+	}
+
+	helmReleaseListCache.Set(cacheKey, all, cache.DefaultExpiration)
+	return all, nil
+}
+
 func HelmReleaseStatus(data HelmReleaseStatusRequest) (*HelmReleaseStatusInfo, error) {
 	settings := NewCli()
 	settings.SetNamespace(data.Namespace)
@@ -1285,6 +1603,8 @@ func HelmReleaseHistory(data HelmReleaseHistoryRequest) ([]release.Release, erro
 }
 
 func HelmReleaseRollback(data HelmReleaseRollbackRequest) (string, error) {
+	defer invalidateReleaseListCache() // the release set changed
+
 	settings := NewCli()
 	settings.SetNamespace(data.Namespace)
 
@@ -1423,18 +1743,18 @@ func printAllGet(rel *release.Release) string {
 }
 
 func printHooks(rel *release.Release) string {
-	result := ""
+	var result strings.Builder
 	if rel.Hooks != nil {
-		result += "Hooks:\n"
+		result.WriteString("Hooks:\n")
 		for _, hook := range rel.Hooks {
-			result += fmt.Sprintf("  Name: %s\n", hook.Name)
-			result += fmt.Sprintf("  Kind: %s\n", hook.Kind)
-			result += fmt.Sprintf("  Manifest: %s\n", hook.Manifest)
-			result += fmt.Sprintf("  Events: %v\n", hook.Events)
+			fmt.Fprintf(&result, "  Name: %s\n", hook.Name)
+			fmt.Fprintf(&result, "  Kind: %s\n", hook.Kind)
+			fmt.Fprintf(&result, "  Manifest: %s\n", hook.Manifest)
+			fmt.Fprintf(&result, "  Events: %v\n", hook.Events)
 		}
 	}
 
-	return result
+	return result.String()
 }
 
 func yamlString(data map[string]any) string {
@@ -1527,4 +1847,54 @@ func helmReleaseFromRelease(release *release.Release, repoName string) *HelmRele
 		Labels:    release.Labels,
 		RepoName:  repoName,
 	}
+}
+
+// NewArgoHelmRelease builds a pseudo helm-release entry for an Argo-CD-managed
+// chart. releaseName is the helm release name inside the Argo Application
+// (spec.source.helm.releaseName); it drives name sorting/filtering and maps to
+// the frontend's releaseName.
+func NewArgoHelmRelease(releaseName string, info *ArgoReleaseInfo) *HelmRelease {
+	return &HelmRelease{
+		Name:      releaseName,
+		Namespace: info.DestNamespace,
+		RepoName:  info.RepoName,
+		Argo:      info,
+	}
+}
+
+// MarshalJSON emits the default helm-release shape for real releases and the
+// "git-ops-argo-cd-application" shape (matching the frontend's
+// ClusterHelmReleaseDto) for Argo-managed entries.
+func (h HelmRelease) MarshalJSON() ([]byte, error) {
+	if h.Argo == nil {
+		// alias drops the custom MarshalJSON so we get the default field-tag
+		// encoding (and don't recurse).
+		type alias HelmRelease
+		return json.Marshal(alias(h))
+	}
+
+	a := h.Argo
+	return json.Marshal(map[string]any{
+		"type": "git-ops-argo-cd-application",
+		"data": map[string]any{
+			"application": a.Application,
+			"parentApplication": map[string]any{
+				"kind":         "Application",
+				"plural":       "applications",
+				"apiVersion":   "argoproj.io/v1alpha1",
+				"namespaced":   true,
+				"resourceName": a.ParentName,
+				"namespace":    a.ParentNamespace,
+			},
+			"valuesObject": a.ValuesObject,
+		},
+		"namespace":   a.DestNamespace,
+		"repoName":    a.RepoName,
+		"chartName":   a.ChartName,
+		"releaseName": h.Name,
+		"name":        h.Name,
+		"version":     a.Version,
+		"appVersion":  a.AppVersion,
+		"info":        map[string]any{},
+	})
 }

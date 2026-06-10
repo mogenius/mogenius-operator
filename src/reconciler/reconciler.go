@@ -129,7 +129,6 @@ func (r *genericReconciler) Start() {
 	r.statusMu.Unlock()
 
 	for _, cfg := range r.configs {
-		cfg := cfg
 		cache := r.caches[cfg.Resource]
 		cache.clear()
 
@@ -155,9 +154,7 @@ func (r *genericReconciler) Start() {
 	}
 
 	if r.interval > 0 {
-		r.wg.Add(1)
-		go func() {
-			defer r.wg.Done()
+		r.wg.Go(func() {
 			ticker := time.NewTicker(r.interval)
 			defer ticker.Stop()
 			for {
@@ -173,7 +170,7 @@ func (r *genericReconciler) Start() {
 					}
 				}
 			}
-		}()
+		})
 	}
 }
 
@@ -203,13 +200,11 @@ func (r *genericReconciler) callHandler(ctx context.Context, cfg ResourceConfig,
 		return
 	}
 
-	r.wg.Add(1)
-	go func() {
-		defer r.wg.Done()
+	r.wg.Go(func() {
 		defer func() { <-r.reconcileSlots }()
 		result := cfg.Reconcile(ctx, objCopy, operation)
 		r.recordResult(cfg.Resource, objCopy, result)
-	}()
+	})
 }
 
 func (r *genericReconciler) recordResult(resource utils.ResourceDescriptor, obj *unstructured.Unstructured, result []ReconcileResult) {

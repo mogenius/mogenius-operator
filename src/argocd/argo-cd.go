@@ -38,6 +38,7 @@ type Argocd interface {
 	ArgoCdApplicationTerminateOperation(data ArgoCdApplicationTerminateOperationRequest) (bool, error)
 	ArgoCdApplicationHardRefresh(data ArgoCdApplicationRefreshRequest) (bool, error)
 	ArgoCdResourceAction(data ArgoCdResourceActionRequest) (bool, error)
+	ListHelmReleaseApplications() ([]ArgoHelmApplication, error)
 }
 
 type argocd struct {
@@ -320,7 +321,7 @@ func (self *argocd) ArgoCdResourceAction(data ArgoCdResourceActionRequest) (bool
 func (self *argocd) syncApplication(data ArgoCdApplicationSyncRequest, token string) (bool, error) {
 	url := fmt.Sprintf("%s/api/v1/applications/%s/sync", *self.argoURL, data.ApplicationName)
 
-	syncBody := map[string]interface{}{
+	syncBody := map[string]any{
 		"prune":  data.Prune,
 		"dryRun": data.DryRun,
 	}
@@ -328,7 +329,7 @@ func (self *argocd) syncApplication(data ArgoCdApplicationSyncRequest, token str
 		syncBody["revision"] = data.Revision
 	}
 	if len(data.SyncOptions) > 0 {
-		syncBody["syncOptions"] = map[string]interface{}{
+		syncBody["syncOptions"] = map[string]any{
 			"items": data.SyncOptions,
 		}
 	}

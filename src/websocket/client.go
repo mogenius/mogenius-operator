@@ -30,17 +30,11 @@ const writeDeadline = 10 * time.Second
 func reconnectBackoff(attempt int) time.Duration {
 	const base = 500 * time.Millisecond
 	const cap = 30 * time.Second
-	shift := attempt - 1
-	if shift < 0 {
-		shift = 0
-	}
+	shift := max(attempt-1, 0)
 	if shift > 6 { // 500ms << 6 = 32s, clamp before overflow risk
 		shift = 6
 	}
-	d := base << shift
-	if d > cap {
-		d = cap
-	}
+	d := min(base<<shift, cap)
 	jitter := 1.0 + (rand.Float64()*0.4 - 0.2)
 	return time.Duration(float64(d) * jitter)
 }

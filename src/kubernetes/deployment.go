@@ -24,14 +24,14 @@ func GetDeploymentsWithFieldSelector(namespace string, labelSelector string) ([]
 
 // matchesLabelSelector matches equality-based label selectors (key=value, key!=value).
 func matchesLabelSelector(labels map[string]string, selector string) bool {
-	for _, req := range strings.Split(selector, ",") {
+	for req := range strings.SplitSeq(selector, ",") {
 		req = strings.TrimSpace(req)
-		if idx := strings.Index(req, "!="); idx != -1 {
-			if labels[req[:idx]] == req[idx+2:] {
+		if before, after, ok := strings.Cut(req, "!="); ok {
+			if labels[before] == after {
 				return false
 			}
-		} else if idx := strings.Index(req, "="); idx != -1 {
-			if labels[req[:idx]] != req[idx+1:] {
+		} else if before, after, ok := strings.Cut(req, "="); ok {
+			if labels[before] != after {
 				return false
 			}
 		}

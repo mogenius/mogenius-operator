@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"maps"
 	cfg "mogenius-operator/src/config"
 	"mogenius-operator/src/store"
 	"mogenius-operator/src/utils"
@@ -46,15 +47,11 @@ func MoAddLabels(existingLabels *map[string]string, newLabels map[string]string)
 
 	// transfer existing values
 	if existingLabels != nil {
-		for k, v := range *existingLabels {
-			resultingLabels[k] = v
-		}
+		maps.Copy(resultingLabels, *existingLabels)
 	}
 
 	// populate with mo labels
-	for k, v := range newLabels {
-		resultingLabels[k] = v
-	}
+	maps.Copy(resultingLabels, newLabels)
 
 	return resultingLabels
 }
