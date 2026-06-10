@@ -1,3 +1,10 @@
+# [2.22.0-develop.3](https://github.com/mogenius/mogenius-operator/compare/v2.22.0-develop.2...v2.22.0-develop.3) (2026-06-10)
+
+
+### Bug Fixes
+
+* enable reconciler for external secrets operator ([fcc0b57](https://github.com/mogenius/mogenius-operator/commit/fcc0b57b1d995210fd3317880fd0a5962ada5809))
+
 # [2.22.0-develop.2](https://github.com/mogenius/mogenius-operator/compare/v2.22.0-develop.1...v2.22.0-develop.2) (2026-06-10)
 
 
