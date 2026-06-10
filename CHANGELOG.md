@@ -1,3 +1,10 @@
+# [2.22.0-develop.5](https://github.com/mogenius/mogenius-operator/compare/v2.22.0-develop.4...v2.22.0-develop.5) (2026-06-10)
+
+
+### Bug Fixes
+
+* building cluster issuer object in cert-manager ([7632513](https://github.com/mogenius/mogenius-operator/commit/7632513a05f64df911c842a61edfc930ec2abf0a))
+
 # [2.22.0-develop.4](https://github.com/mogenius/mogenius-operator/compare/v2.22.0-develop.3...v2.22.0-develop.4) (2026-06-10)
 
 
