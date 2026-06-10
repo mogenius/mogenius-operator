@@ -1,3 +1,10 @@
+# [2.22.0-develop.4](https://github.com/mogenius/mogenius-operator/compare/v2.22.0-develop.3...v2.22.0-develop.4) (2026-06-10)
+
+
+### Bug Fixes
+
+* use server side apply for all argocd platform applications ([793ae13](https://github.com/mogenius/mogenius-operator/commit/793ae13c2382cb9edc1372b4c4cd733e7f816683))
+
 # [2.22.0-develop.3](https://github.com/mogenius/mogenius-operator/compare/v2.22.0-develop.2...v2.22.0-develop.3) (2026-06-10)
 
 
