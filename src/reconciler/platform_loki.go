@@ -15,7 +15,7 @@ func (d *reconcilerModule) reconcileLoki(ctx context.Context, spec v1alpha1.Plat
 		componentSpec{
 			enabled:          c.Enabled,
 			chart:            c.Chart,
-			patch:            c.Patch,
+			patches:          c.Patches,
 			name:             componentLoki,
 			defaultChart:     "loki",
 			defaultRepo:      "https://grafana.github.io/helm-charts",
@@ -40,7 +40,7 @@ func (d *reconcilerModule) reconcileAlloy(ctx context.Context, spec v1alpha1.Pla
 		componentSpec{
 			enabled:          c.Enabled,
 			chart:            c.Chart,
-			patch:            c.Patch,
+			patches:          c.Patches,
 			name:             componentAlloy,
 			defaultChart:     "alloy",
 			defaultRepo:      "https://grafana.github.io/helm-charts",

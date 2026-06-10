@@ -55,58 +55,58 @@ type GitOpsConfig struct {
 }
 
 type ArgoCDInstallConfig struct {
-	Enabled bool                          `json:"enabled,omitempty"`
-	Patch   *PlatformConfigPatchReference `json:"patch,omitempty"`
-	Chart   *HelmChartReference           `json:"chart,omitempty"`
+	Enabled bool                           `json:"enabled,omitempty"`
+	Patches []PlatformConfigPatchReference `json:"patches,omitempty"`
+	Chart   *HelmChartReference            `json:"chart,omitempty"`
 }
 
 type FluxCDInstallConfig struct {
-	Enabled bool                          `json:"enabled,omitempty"`
-	Patch   *PlatformConfigPatchReference `json:"patch,omitempty"`
-	Chart   *HelmChartReference           `json:"chart,omitempty"`
+	Enabled bool                           `json:"enabled,omitempty"`
+	Patches []PlatformConfigPatchReference `json:"patches,omitempty"`
+	Chart   *HelmChartReference            `json:"chart,omitempty"`
 }
 
 type CertManagerConfig struct {
-	Enabled bool                          `json:"enabled,omitempty"`
-	Issuers []CertManagerIssuerConfig     `json:"issuers,omitempty"`
-	Patch   *PlatformConfigPatchReference `json:"patch,omitempty"`
-	Chart   *HelmChartReference           `json:"chart,omitempty"`
+	Enabled bool                           `json:"enabled,omitempty"`
+	Issuers []CertManagerIssuerConfig      `json:"issuers,omitempty"`
+	Patches []PlatformConfigPatchReference `json:"patches,omitempty"`
+	Chart   *HelmChartReference            `json:"chart,omitempty"`
 }
 
 type TraefikConfig struct {
-	Enabled bool                          `json:"enabled,omitempty"`
-	Patch   *PlatformConfigPatchReference `json:"patch,omitempty"`
-	Chart   *HelmChartReference           `json:"chart,omitempty"`
+	Enabled bool                           `json:"enabled,omitempty"`
+	Patches []PlatformConfigPatchReference `json:"patches,omitempty"`
+	Chart   *HelmChartReference            `json:"chart,omitempty"`
 }
 
 type ExternalDNSConfig struct {
-	Enabled bool                          `json:"enabled,omitempty"`
-	Patch   *PlatformConfigPatchReference `json:"patch,omitempty"`
-	Chart   *HelmChartReference           `json:"chart,omitempty"`
+	Enabled bool                           `json:"enabled,omitempty"`
+	Patches []PlatformConfigPatchReference `json:"patches,omitempty"`
+	Chart   *HelmChartReference            `json:"chart,omitempty"`
 }
 
 type KubePrometheusStackConfig struct {
-	Enabled bool                          `json:"enabled,omitempty"`
-	Patch   *PlatformConfigPatchReference `json:"patch,omitempty"`
-	Chart   *HelmChartReference           `json:"chart,omitempty"`
+	Enabled bool                           `json:"enabled,omitempty"`
+	Patches []PlatformConfigPatchReference `json:"patches,omitempty"`
+	Chart   *HelmChartReference            `json:"chart,omitempty"`
 }
 
 type LokiConfig struct {
-	Enabled bool                          `json:"enabled,omitempty"`
-	Patch   *PlatformConfigPatchReference `json:"patch,omitempty"`
-	Chart   *HelmChartReference           `json:"chart,omitempty"`
+	Enabled bool                           `json:"enabled,omitempty"`
+	Patches []PlatformConfigPatchReference `json:"patches,omitempty"`
+	Chart   *HelmChartReference            `json:"chart,omitempty"`
 }
 
 type AlloyConfig struct {
-	Enabled bool                          `json:"enabled,omitempty"`
-	Patch   *PlatformConfigPatchReference `json:"patch,omitempty"`
-	Chart   *HelmChartReference           `json:"chart,omitempty"`
+	Enabled bool                           `json:"enabled,omitempty"`
+	Patches []PlatformConfigPatchReference `json:"patches,omitempty"`
+	Chart   *HelmChartReference            `json:"chart,omitempty"`
 }
 
 type RenovateOperatorConfig struct {
-	Enabled bool                          `json:"enabled,omitempty"`
-	Patch   *PlatformConfigPatchReference `json:"patch,omitempty"`
-	Chart   *HelmChartReference           `json:"chart,omitempty"`
+	Enabled bool                           `json:"enabled,omitempty"`
+	Patches []PlatformConfigPatchReference `json:"patches,omitempty"`
+	Chart   *HelmChartReference            `json:"chart,omitempty"`
 }
 
 type CertManagerIssuerConfig struct {

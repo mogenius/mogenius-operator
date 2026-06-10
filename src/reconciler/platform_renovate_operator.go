@@ -15,7 +15,7 @@ func (d *reconcilerModule) reconcileRenovateOperator(ctx context.Context, spec v
 		componentSpec{
 			enabled:          c.Enabled,
 			chart:            c.Chart,
-			patch:            c.Patch,
+			patches:          c.Patches,
 			name:             componentRenovateOperator,
 			defaultChart:     "renovate-operator",
 			defaultRepo:      "oci://ghcr.io/mogenius/helm-charts/renovate-operator",

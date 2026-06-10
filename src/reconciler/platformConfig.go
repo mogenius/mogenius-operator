@@ -137,7 +137,7 @@ func (d *reconcilerModule) updatePlatformConfigStatus(ctx context.Context, name 
 	return err
 }
 
-func (d *reconcilerModule) fetchPlatformPatch(ctx context.Context, ref *v1alpha1.PlatformConfigPatchReference) (*v1alpha1.PlatformPatch, error) {
+func (d *reconcilerModule) fetchPlatformPatch(ctx context.Context, ref v1alpha1.PlatformConfigPatchReference) (*v1alpha1.PlatformPatch, error) {
 	obj, err := d.clientProvider.DynamicClient().Resource(platformPatchGVR).Get(ctx, ref.Name, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
@@ -173,20 +173,22 @@ func inferGitOpsEngine(gitOps *v1alpha1.GitOpsConfig) (engine, namespace string,
 
 // extractPatchExtraObjects decodes the raw ExtraObjects from a PlatformPatch into
 // a slice of map[string]interface{} suitable for GitOpsArtifact.ExtraObjects.
-func extractPatchExtraObjects(patch *v1alpha1.PlatformPatch) ([]any, error) {
-	if patch == nil {
+func extractPatchExtraObjects(patches []v1alpha1.PlatformPatch) ([]any, error) {
+	if len(patches) == 0 {
 		return nil, nil
 	}
-	objects := make([]any, 0, len(patch.Spec.ExtraObjects))
-	for _, rawObj := range patch.Spec.ExtraObjects {
-		if rawObj.Raw == nil {
-			continue
+	objects := make([]any, 0)
+	for _, patch := range patches {
+		for _, rawObj := range patch.Spec.ExtraObjects {
+			if rawObj.Raw == nil {
+				continue
+			}
+			var obj map[string]any
+			if err := json.Unmarshal(rawObj.Raw, &obj); err != nil {
+				return nil, err
+			}
+			objects = append(objects, obj)
 		}
-		var obj map[string]any
-		if err := json.Unmarshal(rawObj.Raw, &obj); err != nil {
-			return nil, err
-		}
-		objects = append(objects, obj)
 	}
 	return objects, nil
 }

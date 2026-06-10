@@ -15,7 +15,7 @@ func (d *reconcilerModule) reconcileCertManager(ctx context.Context, spec v1alph
 		componentSpec{
 			enabled:          cm.Enabled,
 			chart:            cm.Chart,
-			patch:            cm.Patch,
+			patches:          cm.Patches,
 			name:             componentCertManager,
 			defaultChart:     "cert-manager",
 			defaultRepo:      "https://charts.jetstack.io",
