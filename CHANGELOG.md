@@ -1,3 +1,11 @@
+## [2.21.1-develop.8](https://github.com/mogenius/mogenius-operator/compare/v2.21.1-develop.7...v2.21.1-develop.8) (2026-06-10)
+
+
+### Bug Fixes
+
+* MOG-4393 ([bc28cef](https://github.com/mogenius/mogenius-operator/commit/bc28cefb2b69846051c793ae38fb8cd760d8b158))
+* MOG-4394 ([cf55637](https://github.com/mogenius/mogenius-operator/commit/cf55637575ad274ca29241ada52e45058f8caaad))
+
 ## [2.21.1-develop.7](https://github.com/mogenius/mogenius-operator/compare/v2.21.1-develop.6...v2.21.1-develop.7) (2026-06-10)
 
 
