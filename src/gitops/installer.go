@@ -46,12 +46,13 @@ func (n *noopInstaller) UnInstall(_ string) error                 { return nil }
 
 // NewGitOpsInstaller returns an installer for the given engine type.
 // namespace is where the engine's own CRDs (Applications, HelmReleases, …) live.
-func NewGitOpsInstaller(engine, namespace string, clientProvider k8sclient.K8sClientProvider) GitOpsInstaller {
+// ownerRefs are set on every resource created by the installer.
+func NewGitOpsInstaller(engine, namespace string, clientProvider k8sclient.K8sClientProvider, ownerRefs []metav1.OwnerReference) GitOpsInstaller {
 	switch engine {
 	case "argocd":
-		return &argocdInstaller{clientProvider: clientProvider, namespace: namespace}
+		return &argocdInstaller{clientProvider: clientProvider, namespace: namespace, ownerRefs: ownerRefs}
 	case "flux":
-		return &fluxInstaller{clientProvider: clientProvider, namespace: namespace}
+		return &fluxInstaller{clientProvider: clientProvider, namespace: namespace, ownerRefs: ownerRefs}
 	default:
 		return &noopInstaller{}
 	}
