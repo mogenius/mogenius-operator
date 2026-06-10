@@ -1,3 +1,10 @@
+## [2.21.1-develop.7](https://github.com/mogenius/mogenius-operator/compare/v2.21.1-develop.6...v2.21.1-develop.7) (2026-06-10)
+
+
+### Bug Fixes
+
+* setting owner reference for gitops resources to platform conf ([a03f0a4](https://github.com/mogenius/mogenius-operator/commit/a03f0a4d49662cc788dac0b29d22a3e10e1ab92c))
+
 ## [2.21.1-develop.6](https://github.com/mogenius/mogenius-operator/compare/v2.21.1-develop.5...v2.21.1-develop.6) (2026-06-09)
 
 
