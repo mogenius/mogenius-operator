@@ -82,6 +82,7 @@ func (d *reconcilerModule) reconcilePlatformConfig(ctx context.Context, obj *uns
 
 	components := []componentResult{
 		gitopsResult,
+		{componentExternalSecretsOperator, d.reconcileExternalSecretsOperator(ctx, platformConfig.Spec, installer, op)},
 		{componentCertManager, d.reconcileCertManager(ctx, platformConfig.Spec, installer, op)},
 		{componentTraefik, d.reconcileTraefik(ctx, platformConfig.Spec, installer, op)},
 		{componentExternalDNS, d.reconcileExternalDNS(ctx, platformConfig.Spec, installer, op)},
