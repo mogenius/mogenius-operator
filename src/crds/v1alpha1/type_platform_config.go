@@ -38,16 +38,17 @@ type PlatformConfig struct {
 
 // Specification of platform components and their configuration.
 type PlatformConfigSpec struct {
-	PlatformVersion     string                     `json:"platformVersion"`
-	PlatformSource      string                     `json:"platformSource,omitempty"`
-	GitOps              *GitOpsConfig              `json:"gitOps"`
-	CertManager         *CertManagerConfig         `json:"certManager,omitempty"`
-	Traefik             *TraefikConfig             `json:"traefik,omitempty"`
-	ExternalDNS         *ExternalDNSConfig         `json:"externalDns,omitempty"`
-	KubePrometheusStack *KubePrometheusStackConfig `json:"kubePrometheusStack,omitempty"`
-	Loki                *LokiConfig                `json:"loki,omitempty"`
-	Alloy               *AlloyConfig               `json:"alloy,omitempty"`
-	RenovateOperator    *RenovateOperatorConfig    `json:"renovateOperator,omitempty"`
+	PlatformVersion         string                         `json:"platformVersion"`
+	PlatformSource          string                         `json:"platformSource,omitempty"`
+	GitOps                  *GitOpsConfig                  `json:"gitOps"`
+	CertManager             *CertManagerConfig             `json:"certManager,omitempty"`
+	Traefik                 *TraefikConfig                 `json:"traefik,omitempty"`
+	ExternalDNS             *ExternalDNSConfig             `json:"externalDns,omitempty"`
+	KubePrometheusStack     *KubePrometheusStackConfig     `json:"kubePrometheusStack,omitempty"`
+	Loki                    *LokiConfig                    `json:"loki,omitempty"`
+	Alloy                   *AlloyConfig                   `json:"alloy,omitempty"`
+	RenovateOperator        *RenovateOperatorConfig        `json:"renovateOperator,omitempty"`
+	ExternalSecretsOperator *ExternalSecretsOperatorConfig `json:"externalSecretsOperator,omitempty"`
 }
 type GitOpsConfig struct {
 	ArgoCD *ArgoCDInstallConfig `json:"argocd,omitempty"`
@@ -107,6 +108,23 @@ type RenovateOperatorConfig struct {
 	Enabled bool                           `json:"enabled,omitempty"`
 	Patches []PlatformConfigPatchReference `json:"patches,omitempty"`
 	Chart   *HelmChartReference            `json:"chart,omitempty"`
+}
+
+type ExternalSecretsOperatorConfig struct {
+	Enabled bool                           `json:"enabled,omitempty"`
+	Patches []PlatformConfigPatchReference `json:"patches,omitempty"`
+	Chart   *HelmChartReference            `json:"chart,omitempty"`
+	Vaults  []ExternalSecretVault          `json:"vaults"`
+}
+
+type ExternalSecretVault struct {
+	Name string `json:"name"`
+	Type string `json:"type"`
+
+	ServiceAccountSecretRef struct {
+		Name string `json:"name"`
+		Key  string `json:"key"`
+	} `json:"serviceAccountSecretRef"`
 }
 
 type CertManagerIssuerConfig struct {

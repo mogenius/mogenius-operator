@@ -20,13 +20,13 @@ func mustJSON(t *testing.T, v map[string]any) *apiextensionsv1.JSON {
 	return &apiextensionsv1.JSON{Raw: raw}
 }
 
-func patch(t *testing.T, values map[string]any) *v1alpha1.PlatformPatch {
+func patch(t *testing.T, values map[string]any) []v1alpha1.PlatformPatch {
 	t.Helper()
-	p := &v1alpha1.PlatformPatch{}
+	p := v1alpha1.PlatformPatch{}
 	if values != nil {
 		p.Spec.ValuesObject = mustJSON(t, values)
 	}
-	return p
+	return []v1alpha1.PlatformPatch{p}
 }
 
 func TestMergeMaps(t *testing.T) {
@@ -122,7 +122,7 @@ func TestMergeHelmValues(t *testing.T) {
 		name         string
 		defaults     componentDefaultSpec
 		configValues map[string]any
-		patch        *v1alpha1.PlatformPatch
+		patch        []v1alpha1.PlatformPatch
 		want         map[string]any
 		wantErr      bool
 	}{
@@ -201,7 +201,7 @@ func TestMergeHelmValues(t *testing.T) {
 			defaults: componentDefaultSpec{
 				ValuesObject: map[string]any{"k": "v"},
 			},
-			patch: &v1alpha1.PlatformPatch{},
+			patch: []v1alpha1.PlatformPatch{},
 			want:  map[string]any{"k": "v"},
 		},
 		{
@@ -214,9 +214,11 @@ func TestMergeHelmValues(t *testing.T) {
 		},
 		{
 			name: "patch invalid JSON returns error",
-			patch: &v1alpha1.PlatformPatch{
-				Spec: v1alpha1.PlatformPatchSpec{
-					ValuesObject: &apiextensionsv1.JSON{Raw: []byte(`{bad json}`)},
+			patch: []v1alpha1.PlatformPatch{
+				v1alpha1.PlatformPatch{
+					Spec: v1alpha1.PlatformPatchSpec{
+						ValuesObject: &apiextensionsv1.JSON{Raw: []byte(`{bad json}`)},
+					},
 				},
 			},
 			wantErr: true,

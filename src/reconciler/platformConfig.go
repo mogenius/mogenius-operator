@@ -27,15 +27,16 @@ var platformPatchGVR = schema.GroupVersionResource{
 }
 
 const (
-	componentCertManager         = "cert-manager"
-	componentTraefik             = "traefik"
-	componentArgoCD              = "argocd"
-	componentFluxCD              = "flux-operator"
-	componentExternalDNS         = "external-dns"
-	componentKubePrometheusStack = "kube-prometheus-stack"
-	componentLoki                = "loki"
-	componentAlloy               = "alloy"
-	componentRenovateOperator    = "renovate-operator"
+	componentCertManager             = "cert-manager"
+	componentTraefik                 = "traefik"
+	componentArgoCD                  = "argocd"
+	componentFluxCD                  = "flux-operator"
+	componentExternalDNS             = "external-dns"
+	componentKubePrometheusStack     = "kube-prometheus-stack"
+	componentLoki                    = "loki"
+	componentAlloy                   = "alloy"
+	componentRenovateOperator        = "renovate-operator"
+	componentExternalSecretsOperator = "external-secrets-operator"
 )
 
 const (
