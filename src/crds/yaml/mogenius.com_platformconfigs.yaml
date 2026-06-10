@@ -62,12 +62,14 @@ spec:
                     type: object
                   enabled:
                     type: boolean
-                  patch:
-                    properties:
-                      name:
-                        description: name of the PlatformPatch resource to apply
-                        type: string
-                    type: object
+                  patches:
+                    items:
+                      properties:
+                        name:
+                          description: name of the PlatformPatch resource to apply
+                          type: string
+                      type: object
+                    type: array
                 type: object
               certManager:
                 properties:
@@ -122,12 +124,14 @@ spec:
                       - name
                       type: object
                     type: array
-                  patch:
-                    properties:
-                      name:
-                        description: name of the PlatformPatch resource to apply
-                        type: string
-                    type: object
+                  patches:
+                    items:
+                      properties:
+                        name:
+                          description: name of the PlatformPatch resource to apply
+                          type: string
+                      type: object
+                    type: array
                 type: object
               externalDns:
                 properties:
@@ -147,12 +151,66 @@ spec:
                     type: object
                   enabled:
                     type: boolean
-                  patch:
+                  patches:
+                    items:
+                      properties:
+                        name:
+                          description: name of the PlatformPatch resource to apply
+                          type: string
+                      type: object
+                    type: array
+                type: object
+              externalSecretsOperator:
+                properties:
+                  chart:
                     properties:
+                      chart:
+                        type: string
                       name:
-                        description: name of the PlatformPatch resource to apply
+                        description: name of the HelmRelease resource to apply
+                        type: string
+                      namespace:
+                        type: string
+                      repository:
+                        type: string
+                      version:
                         type: string
                     type: object
+                  enabled:
+                    type: boolean
+                  patches:
+                    items:
+                      properties:
+                        name:
+                          description: name of the PlatformPatch resource to apply
+                          type: string
+                      type: object
+                    type: array
+                  vaults:
+                    items:
+                      properties:
+                        name:
+                          type: string
+                        serviceAccountSecretRef:
+                          properties:
+                            key:
+                              type: string
+                            name:
+                              type: string
+                          required:
+                          - key
+                          - name
+                          type: object
+                        type:
+                          type: string
+                      required:
+                      - name
+                      - serviceAccountSecretRef
+                      - type
+                      type: object
+                    type: array
+                required:
+                - vaults
                 type: object
               gitOps:
                 properties:
@@ -174,12 +232,14 @@ spec:
                         type: object
                       enabled:
                         type: boolean
-                      patch:
-                        properties:
-                          name:
-                            description: name of the PlatformPatch resource to apply
-                            type: string
-                        type: object
+                      patches:
+                        items:
+                          properties:
+                            name:
+                              description: name of the PlatformPatch resource to apply
+                              type: string
+                          type: object
+                        type: array
                     type: object
                   fluxcd:
                     properties:
@@ -199,12 +259,14 @@ spec:
                         type: object
                       enabled:
                         type: boolean
-                      patch:
-                        properties:
-                          name:
-                            description: name of the PlatformPatch resource to apply
-                            type: string
-                        type: object
+                      patches:
+                        items:
+                          properties:
+                            name:
+                              description: name of the PlatformPatch resource to apply
+                              type: string
+                          type: object
+                        type: array
                     type: object
                 type: object
               kubePrometheusStack:
@@ -225,12 +287,14 @@ spec:
                     type: object
                   enabled:
                     type: boolean
-                  patch:
-                    properties:
-                      name:
-                        description: name of the PlatformPatch resource to apply
-                        type: string
-                    type: object
+                  patches:
+                    items:
+                      properties:
+                        name:
+                          description: name of the PlatformPatch resource to apply
+                          type: string
+                      type: object
+                    type: array
                 type: object
               loki:
                 properties:
@@ -250,12 +314,14 @@ spec:
                     type: object
                   enabled:
                     type: boolean
-                  patch:
-                    properties:
-                      name:
-                        description: name of the PlatformPatch resource to apply
-                        type: string
-                    type: object
+                  patches:
+                    items:
+                      properties:
+                        name:
+                          description: name of the PlatformPatch resource to apply
+                          type: string
+                      type: object
+                    type: array
                 type: object
               platformSource:
                 type: string
@@ -279,12 +345,14 @@ spec:
                     type: object
                   enabled:
                     type: boolean
-                  patch:
-                    properties:
-                      name:
-                        description: name of the PlatformPatch resource to apply
-                        type: string
-                    type: object
+                  patches:
+                    items:
+                      properties:
+                        name:
+                          description: name of the PlatformPatch resource to apply
+                          type: string
+                      type: object
+                    type: array
                 type: object
               traefik:
                 properties:
@@ -304,12 +372,14 @@ spec:
                     type: object
                   enabled:
                     type: boolean
-                  patch:
-                    properties:
-                      name:
-                        description: name of the PlatformPatch resource to apply
-                        type: string
-                    type: object
+                  patches:
+                    items:
+                      properties:
+                        name:
+                          description: name of the PlatformPatch resource to apply
+                          type: string
+                      type: object
+                    type: array
                 type: object
             required:
             - gitOps
