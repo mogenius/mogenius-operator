@@ -108,12 +108,12 @@ RUN ls -lh bin/
 FROM scratch AS release-image
 
 # CA certificates for TLS/WSS connections to platform API
-COPY --from=alpine:3.23 /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+COPY --from=alpine:3.24 /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 
 # nsenter from Alpine (links against musl) + musl dynamic linker
 # The musl linker filename is arch-specific (x86_64, aarch64, armhf, ...)
-COPY --from=alpine:3.23 /usr/bin/nsenter /usr/local/bin/nsenter
-COPY --from=alpine:3.23 /lib/ld-musl-*.so.1 /lib/
+COPY --from=alpine:3.24 /usr/bin/nsenter /usr/local/bin/nsenter
+COPY --from=alpine:3.24 /lib/ld-musl-*.so.1 /lib/
 
 # Operator binary (CGO_ENABLED=0, statically linked)
 COPY --from=builder /app/bin/mogenius-operator /usr/local/bin/mogenius-operator
