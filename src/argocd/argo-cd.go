@@ -38,6 +38,7 @@ type Argocd interface {
 	ArgoCdApplicationTerminateOperation(data ArgoCdApplicationTerminateOperationRequest) (bool, error)
 	ArgoCdApplicationHardRefresh(data ArgoCdApplicationRefreshRequest) (bool, error)
 	ArgoCdResourceAction(data ArgoCdResourceActionRequest) (bool, error)
+	ListHelmReleaseApplications() ([]ArgoHelmApplication, error)
 }
 
 type argocd struct {

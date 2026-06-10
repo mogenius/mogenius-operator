@@ -1000,9 +1000,9 @@ func (self *socketApi) registerPatterns() {
 		PatternConfig{},
 		func(datagram structs.Datagram, request helm.HelmReleaseListPaginatedRequest) (helm.HelmReleaseListPaginatedResponse, error) {
 			// Empty workspace name = cluster-wide (no filter). A workspace name
-			// scopes the result to that workspace's registered helm releases,
-			// resolved here from the Workspace CRD so the operator can filter
-			// before paginating.
+			// scopes the result to that workspace's registered helm releases AND
+			// Argo applications, resolved here from the Workspace CRD so the
+			// operator can filter before paginating.
 			var scope *helm.HelmWorkspaceScope
 			if request.WorkspaceName != "" {
 				workspace, err := self.apiService.GetWorkspace(request.WorkspaceName)
@@ -1011,13 +1011,23 @@ func (self *socketApi) registerPatterns() {
 				}
 				allowed := make(map[string]struct{})
 				for _, resource := range workspace.Resources {
-					if resource.Type == "helm" {
+					// "helm" keys on (install namespace, release name); "argocd"
+					// keys on (Argo install namespace, release name). Both map to
+					// the same WorkspaceHelmKey the paginator checks.
+					if resource.Type == "helm" || resource.Type == "argocd" {
 						allowed[helm.WorkspaceHelmKey(resource.Namespace, resource.Id)] = struct{}{}
 					}
 				}
 				scope = &helm.HelmWorkspaceScope{Allowed: allowed}
 			}
-			return helm.HelmReleaseListPaginated(request, scope)
+
+			// Argo-CD-managed charts are not helm releases (no helm secret), so
+			// the operator lists them separately and merges them into the same
+			// sorted/paginated result (MOG-4394). A failure here must not break
+			// the (far more important) real release listing.
+			argoItems := self.argoHelmReleaseItems()
+
+			return helm.HelmReleaseListPaginated(request, scope, argoItems)
 		},
 	)
 
@@ -2250,6 +2260,33 @@ func (self *socketApi) registerPatterns() {
 			},
 		)
 	}
+}
+
+// argoHelmReleaseItems returns the Argo-CD-managed helm charts as pseudo
+// helm-release entries to be merged into the paginated release list. Errors are
+// logged and swallowed: Argo is optional and must never break the real release
+// listing.
+func (self *socketApi) argoHelmReleaseItems() []*helm.HelmRelease {
+	apps, err := self.argocd.ListHelmReleaseApplications()
+	if err != nil {
+		self.logger.Warn("failed to list Argo CD applications for helm release list", "error", err.Error())
+		return nil
+	}
+	items := make([]*helm.HelmRelease, 0, len(apps))
+	for _, app := range apps {
+		items = append(items, helm.NewArgoHelmRelease(app.ReleaseName, &helm.ArgoReleaseInfo{
+			Application:     app.Application,
+			ParentName:      app.Name,
+			ParentNamespace: app.Namespace,
+			ValuesObject:    app.ValuesObject,
+			ChartName:       app.ChartName,
+			Version:         app.TargetRevision,
+			DestNamespace:   app.DestNamespace,
+			RepoName:        app.RepoName,
+			CreatedAt:       app.CreatedAt,
+		}))
+	}
+	return items
 }
 
 func (self *socketApi) LoadRequest(datagram *structs.Datagram, data any) error {

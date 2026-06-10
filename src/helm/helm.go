@@ -1,6 +1,7 @@
 package helm
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -160,6 +161,44 @@ type HelmRelease struct {
 	Namespace string            `json:"namespace,omitempty"`
 	Labels    map[string]string `json:"-"`
 	RepoName  string            `json:"repoName"`
+
+	// Argo, when non-nil, marks this entry as an Argo-CD-managed helm chart
+	// rather than a real helm release. The list view renders these alongside
+	// real releases so users can still upgrade/uninstall Argo-managed charts
+	// (MOG-4394). MarshalJSON emits the shape the frontend's
+	// ClusterHelmReleaseDto expects for type "git-ops-argo-cd-application".
+	Argo *ArgoReleaseInfo `json:"-"`
+}
+
+// ArgoReleaseInfo carries the data needed to render an Argo CD Application as a
+// pseudo helm release in the release list. The platform API used to merge these
+// in; pagination now happens in the operator (MOG-4367), so the operator owns
+// the merge (MOG-4394).
+type ArgoReleaseInfo struct {
+	// Application is the full Argo Application object (unstructured). The
+	// frontend reads it for the status column, the detail drawer and OCI
+	// detection (spec.source.chart).
+	Application map[string]any
+	// ParentName / ParentNamespace identify the Application to delete (the
+	// frontend's uninstall reads data.parentApplication.resourceName).
+	ParentName      string
+	ParentNamespace string
+	// ValuesObject is the helm valuesObject rendered as YAML (the upgrade form
+	// pre-fills from data.valuesObject).
+	ValuesObject string
+	ChartName    string
+	// Version is spec.source.targetRevision (chart version, a string — note the
+	// real-release HelmRelease.Version is an int revision, hence the dedicated
+	// field here).
+	Version string
+	// AppVersion is best-effort; the operator does not fetch chart metadata over
+	// the network on every list call, so it is usually empty.
+	AppVersion string
+	// DestNamespace is spec.destination.namespace (shown as the release namespace).
+	DestNamespace string
+	RepoName      string
+	// CreatedAt is metadata.creationTimestamp, used for lastDeployed sorting.
+	CreatedAt time.Time
 }
 
 type HelmValkeyRepoName struct {
@@ -1267,55 +1306,55 @@ func HelmReleaseList(data HelmReleaseListRequest) ([]*HelmRelease, error) {
 	return result, nil
 }
 
-// paginateReleases applies the optional name filter, stable sorting and
-// offset/limit slicing to a list of releases. It is pure (no I/O) so it can be
+// paginateHelmReleases applies the optional workspace scope, name filter,
+// stable sorting and offset/limit slicing to a unified list of entries (real
+// releases and Argo-managed charts alike). It is pure (no I/O) so it can be
 // unit-tested in isolation. It returns the page slice and the total count of
-// releases matching the filter (before slicing).
-func paginateReleases(releases []*release.Release, data HelmReleaseListPaginatedRequest, scope *HelmWorkspaceScope) ([]*release.Release, int) {
-	// Work on a copy of the slice header: the input may be a shared cached
-	// slice and we sort it in place below, which must not mutate the cache or
-	// race with concurrent requests. The release pointers themselves are only
-	// read, so a shallow copy is enough.
-	cp := make([]*release.Release, len(releases))
-	copy(cp, releases)
-	releases = cp
+// entries matching the scope+filter (before slicing).
+func paginateHelmReleases(items []*HelmRelease, data HelmReleaseListPaginatedRequest, scope *HelmWorkspaceScope) ([]*HelmRelease, int) {
+	// Work on a copy of the slice header so the in-place sort below never
+	// mutates a shared/cached slice or races with concurrent requests. The
+	// HelmRelease pointers themselves are only read.
+	cp := make([]*HelmRelease, len(items))
+	copy(cp, items)
+	items = cp
 
 	if scope != nil {
-		scoped := releases[:0:0]
-		for _, re := range releases {
-			if _, ok := scope.Allowed[WorkspaceHelmKey(re.Namespace, re.Name)]; ok {
-				scoped = append(scoped, re)
+		scoped := items[:0:0]
+		for _, hr := range items {
+			if _, ok := scope.Allowed[helmReleaseScopeKey(hr)]; ok {
+				scoped = append(scoped, hr)
 			}
 		}
-		releases = scoped
+		items = scoped
 	}
 
 	if data.Filter != "" {
 		filter := strings.ToLower(data.Filter)
-		filtered := releases[:0:0]
-		for _, re := range releases {
-			if strings.Contains(strings.ToLower(re.Name), filter) {
-				filtered = append(filtered, re)
+		filtered := items[:0:0]
+		for _, hr := range items {
+			if strings.Contains(strings.ToLower(hr.Name), filter) {
+				filtered = append(filtered, hr)
 			}
 		}
-		releases = filtered
+		items = filtered
 	}
 
 	switch data.SortBy {
 	case "name":
 		desc := data.SortOrder == "desc"
-		sort.SliceStable(releases, func(i, j int) bool {
+		sort.SliceStable(items, func(i, j int) bool {
 			if desc {
-				return releases[i].Name > releases[j].Name
+				return items[i].Name > items[j].Name
 			}
-			return releases[i].Name < releases[j].Name
+			return items[i].Name < items[j].Name
 		})
 	default: // "lastDeployed" (default), newest first unless asc is requested
 		asc := data.SortOrder == "asc"
-		sort.SliceStable(releases, func(i, j int) bool {
-			ti, tj := releaseLastDeployed(releases[i]), releaseLastDeployed(releases[j])
+		sort.SliceStable(items, func(i, j int) bool {
+			ti, tj := helmReleaseLastDeployed(items[i]), helmReleaseLastDeployed(items[j])
 			if ti.Equal(tj) {
-				return releases[i].Name < releases[j].Name // stable tiebreaker
+				return items[i].Name < items[j].Name // stable tiebreaker
 			}
 			if asc {
 				return ti.Before(tj)
@@ -1324,7 +1363,7 @@ func paginateReleases(releases []*release.Release, data HelmReleaseListPaginated
 		})
 	}
 
-	total := len(releases)
+	total := len(items)
 	if data.Limit > 0 {
 		start := data.Offset
 		if start < 0 {
@@ -1337,24 +1376,42 @@ func paginateReleases(releases []*release.Release, data HelmReleaseListPaginated
 		if end > total {
 			end = total
 		}
-		releases = releases[start:end]
+		items = items[start:end]
 	}
 
-	return releases, total
+	return items, total
 }
 
-func releaseLastDeployed(re *release.Release) time.Time {
-	if re.Info == nil {
+// helmReleaseScopeKey is the workspace allow-set key for an entry. Argo entries
+// key on the Argo install namespace + release name (matching the workspace
+// "argocd" resource), real releases on their install namespace + name.
+func helmReleaseScopeKey(hr *HelmRelease) string {
+	if hr.Argo != nil {
+		return WorkspaceHelmKey(hr.Argo.ParentNamespace, hr.Name)
+	}
+	return WorkspaceHelmKey(hr.Namespace, hr.Name)
+}
+
+// helmReleaseLastDeployed returns the timestamp used for lastDeployed sorting:
+// the Argo Application creation time for Argo entries, the release's last
+// deployed time otherwise. Missing values sort as the zero time.
+func helmReleaseLastDeployed(hr *HelmRelease) time.Time {
+	if hr.Argo != nil {
+		return hr.Argo.CreatedAt
+	}
+	if hr.Info == nil {
 		return time.Time{}
 	}
-	return re.Info.LastDeployed
+	return hr.Info.LastDeployed
 }
 
 // HelmReleaseListPaginated lists helm releases server-side filtered, sorted and
-// sliced. When scope is non-nil the result is restricted to that workspace's
-// helm releases (resolved by the caller from the Workspace CRD); nil scope
-// means cluster-wide.
-func HelmReleaseListPaginated(data HelmReleaseListPaginatedRequest, scope *HelmWorkspaceScope) (HelmReleaseListPaginatedResponse, error) {
+// sliced. argoItems are Argo-CD-managed charts (resolved by the caller, since
+// they live outside helm) that are merged into the same sorted, paginated and
+// scoped result so users can still upgrade them (MOG-4394). When scope is
+// non-nil the result is restricted to that workspace's resources (resolved by
+// the caller from the Workspace CRD); nil scope means cluster-wide.
+func HelmReleaseListPaginated(data HelmReleaseListPaginatedRequest, scope *HelmWorkspaceScope, argoItems []*HelmRelease) (HelmReleaseListPaginatedResponse, error) {
 	empty := HelmReleaseListPaginatedResponse{Items: []*HelmRelease{}, TotalCount: 0}
 
 	all, err := listAllReleasesCached(data.Namespace)
@@ -1362,22 +1419,35 @@ func HelmReleaseListPaginated(data HelmReleaseListPaginatedRequest, scope *HelmW
 		return empty, err
 	}
 
-	page, total := paginateReleases(all, data, scope)
+	// Unify real releases and Argo entries before sorting/paginating so both
+	// participate in the same ordering, total count and page slicing. The
+	// real-release conversion here is a cheap field copy; the expensive
+	// per-release Valkey repoName lookup is still deferred to the page slice.
+	items := make([]*HelmRelease, 0, len(all)+len(argoItems))
+	for _, re := range all {
+		items = append(items, helmReleaseFromRelease(re, ""))
+	}
+	items = append(items, argoItems...)
 
-	// Only do the per-release Valkey lookup for the releases on the requested
-	// page (the heavy field trimming already happened once, before caching).
-	result := make([]*HelmRelease, 0, len(page))
-	for _, re := range page {
-		rep, _ := GetRepoNameFromValkey(re.Name, re.Namespace)
-		repoName := ""
-		if rep != nil {
-			repoName = strings.Replace(rep.RepoName, "/"+re.Chart.Metadata.Name, "", 1)
+	page, total := paginateHelmReleases(items, data, scope)
+
+	// Fill repoName for the real releases on the requested page only. Argo
+	// entries already carry their repoName (from the Application label).
+	for _, hr := range page {
+		if hr.Argo != nil {
+			continue
 		}
-
-		result = append(result, helmReleaseFromRelease(re, repoName))
+		rep, _ := GetRepoNameFromValkey(hr.Name, hr.Namespace)
+		if rep != nil {
+			chartName := ""
+			if hr.Chart != nil && hr.Chart.Metadata != nil {
+				chartName = hr.Chart.Metadata.Name
+			}
+			hr.RepoName = strings.Replace(rep.RepoName, "/"+chartName, "", 1)
+		}
 	}
 
-	return HelmReleaseListPaginatedResponse{Items: result, TotalCount: total}, nil
+	return HelmReleaseListPaginatedResponse{Items: page, TotalCount: total}, nil
 }
 
 // listAllReleasesCached returns all releases in the given namespace ("" = all
@@ -1760,4 +1830,54 @@ func helmReleaseFromRelease(release *release.Release, repoName string) *HelmRele
 		Labels:    release.Labels,
 		RepoName:  repoName,
 	}
+}
+
+// NewArgoHelmRelease builds a pseudo helm-release entry for an Argo-CD-managed
+// chart. releaseName is the helm release name inside the Argo Application
+// (spec.source.helm.releaseName); it drives name sorting/filtering and maps to
+// the frontend's releaseName.
+func NewArgoHelmRelease(releaseName string, info *ArgoReleaseInfo) *HelmRelease {
+	return &HelmRelease{
+		Name:      releaseName,
+		Namespace: info.DestNamespace,
+		RepoName:  info.RepoName,
+		Argo:      info,
+	}
+}
+
+// MarshalJSON emits the default helm-release shape for real releases and the
+// "git-ops-argo-cd-application" shape (matching the frontend's
+// ClusterHelmReleaseDto) for Argo-managed entries.
+func (h HelmRelease) MarshalJSON() ([]byte, error) {
+	if h.Argo == nil {
+		// alias drops the custom MarshalJSON so we get the default field-tag
+		// encoding (and don't recurse).
+		type alias HelmRelease
+		return json.Marshal(alias(h))
+	}
+
+	a := h.Argo
+	return json.Marshal(map[string]any{
+		"type": "git-ops-argo-cd-application",
+		"data": map[string]any{
+			"application": a.Application,
+			"parentApplication": map[string]any{
+				"kind":         "Application",
+				"plural":       "applications",
+				"apiVersion":   "argoproj.io/v1alpha1",
+				"namespaced":   true,
+				"resourceName": a.ParentName,
+				"namespace":    a.ParentNamespace,
+			},
+			"valuesObject": a.ValuesObject,
+		},
+		"namespace":   a.DestNamespace,
+		"repoName":    a.RepoName,
+		"chartName":   a.ChartName,
+		"releaseName": h.Name,
+		"name":        h.Name,
+		"version":     a.Version,
+		"appVersion":  a.AppVersion,
+		"info":        map[string]any{},
+	})
 }
