@@ -1,3 +1,10 @@
+# [2.22.0-develop.2](https://github.com/mogenius/mogenius-operator/compare/v2.22.0-develop.1...v2.22.0-develop.2) (2026-06-10)
+
+
+### Features
+
+* adding platform config for cert-manager ([cb00d9b](https://github.com/mogenius/mogenius-operator/commit/cb00d9bcc63b077417f352a806a5f6d61679618c))
+
 # [2.22.0-develop.1](https://github.com/mogenius/mogenius-operator/compare/v2.21.1-develop.8...v2.22.0-develop.1) (2026-06-10)
 
 
