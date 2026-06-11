@@ -1,3 +1,11 @@
+# [2.22.0-develop.7](https://github.com/mogenius/mogenius-operator/compare/v2.22.0-develop.6...v2.22.0-develop.7) (2026-06-11)
+
+
+### Bug Fixes
+
+* default to a given vault if possible ([319845d](https://github.com/mogenius/mogenius-operator/commit/319845d6dfa77284de75a03db616d8c6c6ddabd8))
+* pass service annotations to traefik ([076d2a7](https://github.com/mogenius/mogenius-operator/commit/076d2a78ade6c7f4eaf34cd160494379ac2eac08))
+
 # [2.22.0-develop.6](https://github.com/mogenius/mogenius-operator/compare/v2.22.0-develop.5...v2.22.0-develop.6) (2026-06-11)
 
 
