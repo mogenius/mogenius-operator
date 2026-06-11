@@ -56,6 +56,11 @@ func (d *reconcilerModule) reconcileExternalDNS(ctx context.Context, spec v1alph
 				values["txtOwnerId"] = clusterName
 			}
 
+			secretKey := "token"
+			if spec.ExternalDNS.ExternalSecret.Key != "" {
+				secretKey = spec.ExternalDNS.ExternalSecret.Key
+			}
+
 			switch spec.ExternalDNS.Provider {
 			case "cloudflare":
 				values["env"] = []map[string]any{
@@ -64,7 +69,7 @@ func (d *reconcilerModule) reconcileExternalDNS(ctx context.Context, spec v1alph
 						"valueFrom": map[string]any{
 							"secretKeyRef": map[string]any{
 								"name": providerSecretName,
-								"key":  spec.ExternalDNS.ExternalSecret.Key,
+								"key":  secretKey,
 							},
 						},
 					},

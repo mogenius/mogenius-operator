@@ -94,6 +94,8 @@ spec:
                           type: string
                         name:
                           type: string
+                        server:
+                          type: string
                         solvers:
                           items:
                             type: object
@@ -114,6 +116,8 @@ spec:
                         name:
                           type: string
                         namespace:
+                          type: string
+                        server:
                           type: string
                         solvers:
                           items:
@@ -151,8 +155,23 @@ spec:
                       version:
                         type: string
                     type: object
+                  domainFilters:
+                    items:
+                      type: string
+                    type: array
                   enabled:
                     type: boolean
+                  externalSecret:
+                    properties:
+                      key:
+                        type: string
+                      path:
+                        type: string
+                      vault:
+                        type: string
+                    required:
+                    - path
+                    type: object
                   patches:
                     items:
                       properties:
@@ -161,6 +180,11 @@ spec:
                           type: string
                       type: object
                     type: array
+                  provider:
+                    type: string
+                required:
+                - externalSecret
+                - provider
                 type: object
               externalSecretsOperator:
                 properties:
@@ -242,6 +266,8 @@ spec:
                               type: string
                           type: object
                         type: array
+                      project:
+                        type: string
                     type: object
                   fluxcd:
                     properties:
@@ -382,6 +408,9 @@ spec:
                           type: string
                       type: object
                     type: array
+                  service:
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
                 type: object
             required:
             - gitOps

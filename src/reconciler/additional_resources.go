@@ -6,6 +6,11 @@ import (
 )
 
 func externalSecretResource(name, namespace string, externalSecret v1alpha1.ExternalSecret) map[string]any {
+	key := "token"
+	if externalSecret.Key != "" {
+		key = externalSecret.Key
+	}
+
 	return map[string]any{
 		"apiVersion": utils.ExternalSecretResource.ApiVersion,
 		"kind":       utils.ExternalSecretResource.Kind,
@@ -18,9 +23,9 @@ func externalSecretResource(name, namespace string, externalSecret v1alpha1.Exte
 				{
 					"remoteRef": map[string]any{
 						"key":      externalSecret.Path,
-						"property": externalSecret.Key,
+						"property": key,
 					},
-					"secretKey": externalSecret.Key,
+					"secretKey": key,
 				},
 			},
 			"secretStoreRef": map[string]any{

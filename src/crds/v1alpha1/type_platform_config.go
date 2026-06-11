@@ -136,9 +136,9 @@ type ServiceAccountRef struct {
 }
 
 type ExternalSecret struct {
-	Vault string `json:"vault"`
+	Vault string `json:"vault,omitempty"`
 	Path  string `json:"path"`
-	Key   string `json:"key"`
+	Key   string `json:"key,omitempty"`
 }
 
 type IssuerConfig struct {
