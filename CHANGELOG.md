@@ -1,3 +1,10 @@
+# [2.22.0-develop.11](https://github.com/mogenius/mogenius-operator/compare/v2.22.0-develop.10...v2.22.0-develop.11) (2026-06-11)
+
+
+### Bug Fixes
+
+* vault in external secrets can be optional as well as key ([d7cbfcd](https://github.com/mogenius/mogenius-operator/commit/d7cbfcde6b54a4b9fc0d7b1c4fd37b13d6635045))
+
 # [2.22.0-develop.10](https://github.com/mogenius/mogenius-operator/compare/v2.22.0-develop.9...v2.22.0-develop.10) (2026-06-11)
 
 
