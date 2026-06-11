@@ -1,3 +1,11 @@
+# [2.22.0-develop.10](https://github.com/mogenius/mogenius-operator/compare/v2.22.0-develop.9...v2.22.0-develop.10) (2026-06-11)
+
+
+### Bug Fixes
+
+* external dns txtOwnerId to cluster name ([78d4c80](https://github.com/mogenius/mogenius-operator/commit/78d4c8083d2f23ebad8c99cb8a40ce08f3222299))
+* if no solvers are defined, default to empty http01 ([a0a40cb](https://github.com/mogenius/mogenius-operator/commit/a0a40cb8193b4a060a6fba184165af93f5941955))
+
 # [2.22.0-develop.9](https://github.com/mogenius/mogenius-operator/compare/v2.22.0-develop.8...v2.22.0-develop.9) (2026-06-11)
 
 
