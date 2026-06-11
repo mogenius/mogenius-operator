@@ -1,3 +1,10 @@
+# [2.22.0-develop.13](https://github.com/mogenius/mogenius-operator/compare/v2.22.0-develop.12...v2.22.0-develop.13) (2026-06-11)
+
+
+### Bug Fixes
+
+* manage argocd appproject via reconciler ([0c56fe5](https://github.com/mogenius/mogenius-operator/commit/0c56fe551211f7975d53ce4e70a8612e97a5fc28))
+
 # [2.22.0-develop.12](https://github.com/mogenius/mogenius-operator/compare/v2.22.0-develop.11...v2.22.0-develop.12) (2026-06-11)
 
 
