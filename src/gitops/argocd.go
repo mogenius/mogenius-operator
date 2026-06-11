@@ -72,7 +72,7 @@ func buildArgoApplication(component string, artifact GitOpsArtifact, namespace s
 			},
 			"finalizers": []any{"resources-finalizer.argocd.argoproj.io"}, // ensure resources are deleted when app is deleted
 			"spec": map[string]any{
-				"project": "default",
+				"project": getArgoProject(artifact),
 				"source": map[string]any{
 					"repoURL":        artifact.HelmChart.Repository,
 					"chart":          artifact.HelmChart.Chart,
@@ -108,7 +108,7 @@ func buildArgoMoacApplication(component string, artifact GitOpsArtifact, namespa
 			},
 			"finalizers": []any{"resources-finalizer.argocd.argoproj.io"}, // ensure resources are deleted when app is deleted
 			"spec": map[string]any{
-				"project": "default",
+				"project": getArgoProject(artifact),
 				"source": map[string]any{
 					"repoURL":        moacRepository,
 					"chart":          moacChart,
@@ -134,4 +134,11 @@ func buildArgoMoacApplication(component string, artifact GitOpsArtifact, namespa
 			},
 		},
 	}
+}
+
+func getArgoProject(artifact GitOpsArtifact) string {
+	if artifact.ArgoCD == nil || artifact.ArgoCD.Project == "" {
+		return "default"
+	}
+	return artifact.ArgoCD.Project
 }

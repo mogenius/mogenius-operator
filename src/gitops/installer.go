@@ -23,6 +23,16 @@ type GitOpsArtifact struct {
 	Values       map[string]any
 	HelmChart    HelmChartReference
 	ExtraObjects []any
+
+	ArgoCD *ArgoCDSettings
+	FluxCD *FluxCDSettings
+}
+
+type ArgoCDSettings struct {
+	Project string
+}
+
+type FluxCDSettings struct {
 }
 
 type HelmChartReference struct {

@@ -60,6 +60,7 @@ type ArgoCDInstallConfig struct {
 	Enabled bool                           `json:"enabled,omitempty"`
 	Patches []PlatformConfigPatchReference `json:"patches,omitempty"`
 	Chart   *HelmChartReference            `json:"chart,omitempty"`
+	Project string                         `json:"project,omitempty"`
 }
 
 type FluxCDInstallConfig struct {

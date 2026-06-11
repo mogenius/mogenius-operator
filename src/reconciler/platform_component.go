@@ -85,11 +85,15 @@ func (d *reconcilerModule) reconcileComponent(
 	}
 	extraObjects = append(extraObjects, extraPatchObjects...)
 
+	argoConfig, fluxConfig := getSpecificGitOpsConfig(platformSpec.GitOps)
+
 	artifact := gitops.GitOpsArtifact{
 		Namespace:    helmNamespace(cs.chart, cs.defaultNamespace),
 		HelmChart:    chart,
 		Values:       mergedValues,
 		ExtraObjects: extraObjects,
+		ArgoCD:       argoConfig,
+		FluxCD:       fluxConfig,
 	}
 
 	if err := installer.Install(cs.name, artifact); err != nil {
@@ -97,4 +101,26 @@ func (d *reconcilerModule) reconcileComponent(
 	}
 
 	return nil
+}
+
+func getSpecificGitOpsConfig(settings *v1alpha1.GitOpsConfig) (*gitops.ArgoCDSettings, *gitops.FluxCDSettings) {
+	if settings == nil {
+		return nil, nil
+	}
+
+	if settings.ArgoCD != nil {
+		project := "mogenius"
+		if settings.ArgoCD.Project != "" {
+			project = settings.ArgoCD.Project
+		}
+		return &gitops.ArgoCDSettings{
+			Project: project,
+		}, nil
+	}
+
+	if settings.FluxCD != nil {
+		return nil, &gitops.FluxCDSettings{}
+	}
+
+	return nil, nil
 }
