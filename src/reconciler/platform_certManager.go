@@ -55,6 +55,7 @@ func buildClusterIssuerObject(issuer v1alpha1.ClusterIssuerConfig) map[string]an
 				"privateKeySecretRef": map[string]any{
 					"name": issuer.Name,
 				},
+				"server":  getServer(issuer.Server),
 				"solvers": issuer.Solvers,
 			},
 		},
@@ -75,8 +76,16 @@ func buildIssuerObject(issuer v1alpha1.IssuerConfig) map[string]any {
 				"privateKeySecretRef": map[string]any{
 					"name": issuer.Name,
 				},
+				"server":  getServer(issuer.Server),
 				"solvers": issuer.Solvers,
 			},
 		},
 	}
+}
+
+func getServer(server string) string {
+	if server == "" {
+		return "https://acme-v02.api.letsencrypt.org/directory"
+	}
+	return server
 }

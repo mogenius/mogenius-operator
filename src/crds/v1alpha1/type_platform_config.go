@@ -144,12 +144,14 @@ type IssuerConfig struct {
 	Name      string                 `json:"name"`
 	Email     string                 `json:"email"`
 	Namespace string                 `json:"namespace"`
+	Server    string                 `json:"server,omitempty"`
 	Solvers   []runtime.RawExtension `json:"solvers,omitempty"`
 }
 
 type ClusterIssuerConfig struct {
 	Name    string                 `json:"name"`
 	Email   string                 `json:"email"`
+	Server  string                 `json:"server,omitempty"`
 	Solvers []runtime.RawExtension `json:"solvers,omitempty"`
 }
 
