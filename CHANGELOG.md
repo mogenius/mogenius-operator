@@ -1,3 +1,10 @@
+# [2.22.0-develop.15](https://github.com/mogenius/mogenius-operator/compare/v2.22.0-develop.14...v2.22.0-develop.15) (2026-06-11)
+
+
+### Bug Fixes
+
+* paginate release listing via metadata index, skip superseded revisions ([d9f08b0](https://github.com/mogenius/mogenius-operator/commit/d9f08b0592a34d7f6128276cad646d46fae829d2))
+
 # [2.22.0-develop.14](https://github.com/mogenius/mogenius-operator/compare/v2.22.0-develop.13...v2.22.0-develop.14) (2026-06-11)
 
 
