@@ -51,6 +51,11 @@ func (d *reconcilerModule) reconcileExternalDNS(ctx context.Context, spec v1alph
 				"domainFilters": spec.ExternalDNS.DomainFilters,
 			}
 
+			clusterName, err := d.config.TryGet("MO_CLUSTER_NAME")
+			if err != nil && clusterName != "" {
+				values["txtOwnerId"] = clusterName
+			}
+
 			switch spec.ExternalDNS.Provider {
 			case "cloudflare":
 				values["env"] = []map[string]any{
