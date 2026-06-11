@@ -1,3 +1,10 @@
+# [2.22.0-develop.14](https://github.com/mogenius/mogenius-operator/compare/v2.22.0-develop.13...v2.22.0-develop.14) (2026-06-11)
+
+
+### Bug Fixes
+
+* appProject use string instead of char ([b4461e3](https://github.com/mogenius/mogenius-operator/commit/b4461e3637e1c49260abb98c4132e66b03557c20))
+
 # [2.22.0-develop.13](https://github.com/mogenius/mogenius-operator/compare/v2.22.0-develop.12...v2.22.0-develop.13) (2026-06-11)
 
 
