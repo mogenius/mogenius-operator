@@ -5,6 +5,8 @@ import (
 	"mogenius-operator/src/crds/v1alpha1"
 	"mogenius-operator/src/gitops"
 	"mogenius-operator/src/utils"
+
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 func (d *reconcilerModule) reconcileCertManager(ctx context.Context, spec v1alpha1.PlatformConfigSpec, installer gitops.GitOpsInstaller, op operation) *ReconcileResult {
@@ -88,4 +90,16 @@ func getServer(server string) string {
 		return "https://acme-v02.api.letsencrypt.org/directory"
 	}
 	return server
+}
+
+func getSolvers(solvers []runtime.RawExtension) any {
+
+	if len(solvers) == 0 {
+		return []map[string]any{
+			{
+				"http01": map[string]any{},
+			},
+		}
+	}
+	return solvers
 }
