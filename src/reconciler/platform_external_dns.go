@@ -29,6 +29,15 @@ func (d *reconcilerModule) reconcileExternalDNS(ctx context.Context, spec v1alph
 		},
 		func(ctx context.Context) ([]any, error) {
 			extraObjects := []any{}
+
+			if spec.ExternalDNS.ExternalSecret.Vault == "" {
+				if len(spec.ExternalSecretsOperator.Vaults) > 0 {
+					spec.ExternalDNS.ExternalSecret.Vault = spec.ExternalSecretsOperator.Vaults[0].Name
+				} else {
+					return nil, fmt.Errorf("please provide a externalDns.externalSecret.vault or define a vault in spec.externalSecretsOperator")
+				}
+			}
+
 			externalSecret := externalSecretResource(providerSecretName, externalDnsNamespace, spec.ExternalDNS.ExternalSecret)
 			extraObjects = append(extraObjects, externalSecret)
 
