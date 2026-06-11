@@ -7,8 +7,14 @@ import (
 
 func externalSecretResource(name, namespace string, externalSecret v1alpha1.ExternalSecret) map[string]any {
 	key := "token"
+
+	remoteRef := map[string]any{
+		"key": externalSecret.Path,
+	}
+
 	if externalSecret.Key != "" {
 		key = externalSecret.Key
+		remoteRef["property"] = externalSecret.Key
 	}
 
 	return map[string]any{
@@ -21,10 +27,7 @@ func externalSecretResource(name, namespace string, externalSecret v1alpha1.Exte
 		"spec": map[string]any{
 			"data": []map[string]any{
 				{
-					"remoteRef": map[string]any{
-						"key":      externalSecret.Path,
-						"property": key,
-					},
+					"remoteRef": remoteRef,
 					"secretKey": key,
 				},
 			},
