@@ -210,4 +210,11 @@ var IssuerResource = ResourceDescriptor{
 	Namespaced: true,
 }
 
+var AppProjectResource = ResourceDescriptor{
+	Kind:       "AppProject",
+	Plural:     "appprojects",
+	ApiVersion: "argoproj.io/v1alpha1",
+	Namespaced: true,
+}
+
 var ClusterProviderCached KubernetesProvider = UNKNOWN

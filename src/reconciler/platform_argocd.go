@@ -4,6 +4,7 @@ import (
 	"context"
 	"mogenius-operator/src/crds/v1alpha1"
 	"mogenius-operator/src/gitops"
+	"mogenius-operator/src/utils"
 )
 
 func (d *reconcilerModule) reconcileArgoCD(ctx context.Context, spec v1alpha1.PlatformConfigSpec, installer gitops.GitOpsInstaller, op operation) *ReconcileResult {
@@ -11,6 +12,7 @@ func (d *reconcilerModule) reconcileArgoCD(ctx context.Context, spec v1alpha1.Pl
 	if cfg == nil {
 		cfg = &v1alpha1.ArgoCDInstallConfig{}
 	}
+	namespace := helmNamespace(spec.GitOps.ArgoCD.Chart, argocdDefaultNamespace)
 	return d.reconcileComponent(ctx, spec, installer, op,
 		componentSpec{
 			enabled:          cfg.Enabled,
@@ -23,7 +25,39 @@ func (d *reconcilerModule) reconcileArgoCD(ctx context.Context, spec v1alpha1.Pl
 			defaultNamespace: argocdDefaultNamespace,
 		},
 		func(ctx context.Context) ([]any, error) {
-			return nil, nil
+			extraObjects := []any{}
+
+			project := "mogenius"
+			if spec.GitOps.ArgoCD.Project != "" {
+				project = spec.GitOps.ArgoCD.Project
+			}
+
+			appProject := map[string]any{
+				"apiVersion": utils.AppProjectResource.ApiVersion,
+				"kind":       utils.AppProjectResource.Kind,
+				"metadata": map[string]any{
+					"name":      project,
+					"namespace": namespace,
+				},
+				"spec": map[string]any{
+					"clusterResourceWhitelist": []map[string]any{{
+						"group": '*',
+						"kind":  '*',
+					},
+					},
+					"destinations": []map[string]any{{
+						"namespace": '*',
+						"server":    '*',
+					},
+					},
+					"sourceRepos": []string{
+						"*",
+					},
+				},
+			}
+			extraObjects = append(extraObjects, appProject)
+
+			return extraObjects, nil
 		},
 		func(ctx context.Context) (map[string]any, error) {
 			return nil, nil
