@@ -1,3 +1,10 @@
+# [2.22.0-develop.12](https://github.com/mogenius/mogenius-operator/compare/v2.22.0-develop.11...v2.22.0-develop.12) (2026-06-11)
+
+
+### Bug Fixes
+
+* external secrets remoteref property can be optional ([c4fea38](https://github.com/mogenius/mogenius-operator/commit/c4fea38d1a19c775f63182a89b31a3ef395cf55f))
+
 # [2.22.0-develop.11](https://github.com/mogenius/mogenius-operator/compare/v2.22.0-develop.10...v2.22.0-develop.11) (2026-06-11)
 
 
