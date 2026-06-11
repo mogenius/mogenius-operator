@@ -1,3 +1,10 @@
+# [2.22.0-develop.9](https://github.com/mogenius/mogenius-operator/compare/v2.22.0-develop.8...v2.22.0-develop.9) (2026-06-11)
+
+
+### Bug Fixes
+
+* allow setting the argocd appproject, defaults to mogenius ([dcbe81c](https://github.com/mogenius/mogenius-operator/commit/dcbe81cf45c1d9123943de51ef25bea89dc38a0d))
+
 # [2.22.0-develop.8](https://github.com/mogenius/mogenius-operator/compare/v2.22.0-develop.7...v2.22.0-develop.8) (2026-06-11)
 
 
