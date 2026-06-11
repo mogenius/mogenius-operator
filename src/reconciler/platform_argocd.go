@@ -41,13 +41,13 @@ func (d *reconcilerModule) reconcileArgoCD(ctx context.Context, spec v1alpha1.Pl
 				},
 				"spec": map[string]any{
 					"clusterResourceWhitelist": []map[string]any{{
-						"group": '*',
-						"kind":  '*',
+						"group": "*",
+						"kind":  "*",
 					},
 					},
 					"destinations": []map[string]any{{
-						"namespace": '*',
-						"server":    '*',
+						"namespace": "*",
+						"server":    "*",
 					},
 					},
 					"sourceRepos": []string{
