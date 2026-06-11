@@ -1,3 +1,10 @@
+# [2.22.0-develop.6](https://github.com/mogenius/mogenius-operator/compare/v2.22.0-develop.5...v2.22.0-develop.6) (2026-06-11)
+
+
+### Features
+
+* adding platform config for external dns ([d583282](https://github.com/mogenius/mogenius-operator/commit/d58328281add7a1fdd5ae92d7fa3490851192b39))
+
 # [2.22.0-develop.5](https://github.com/mogenius/mogenius-operator/compare/v2.22.0-develop.4...v2.22.0-develop.5) (2026-06-10)
 
 
