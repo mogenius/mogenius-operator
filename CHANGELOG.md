@@ -1,3 +1,10 @@
+# [2.22.0-develop.8](https://github.com/mogenius/mogenius-operator/compare/v2.22.0-develop.7...v2.22.0-develop.8) (2026-06-11)
+
+
+### Bug Fixes
+
+* set issuer server in cert-manager ([293392a](https://github.com/mogenius/mogenius-operator/commit/293392a41ecb2375c86c5230492c1be30e77c387))
+
 # [2.22.0-develop.7](https://github.com/mogenius/mogenius-operator/compare/v2.22.0-develop.6...v2.22.0-develop.7) (2026-06-11)
 
 
