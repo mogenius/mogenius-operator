@@ -4,6 +4,7 @@ import (
 	"context"
 	"mogenius-operator/src/crds/v1alpha1"
 	"mogenius-operator/src/gitops"
+	"mogenius-operator/src/utils"
 )
 
 func (d *reconcilerModule) reconcileExternalSecretsOperator(ctx context.Context, spec v1alpha1.PlatformConfigSpec, installer gitops.GitOpsInstaller, op operation) *ReconcileResult {
@@ -31,8 +32,8 @@ func (d *reconcilerModule) reconcileExternalSecretsOperator(ctx context.Context,
 
 			for _, vault := range spec.ExternalSecretsOperator.Vaults {
 				vaultObj := map[string]any{
-					"apiVersion": "external-secrets.io/v1",
-					"kind":       "ClusterSecretStore",
+					"apiVersion": utils.ClusterSecretStoreResource.ApiVersion,
+					"kind":       utils.ClusterSecretStoreResource.Kind,
 					"metadata": map[string]any{
 						"name": vault.Name,
 					},

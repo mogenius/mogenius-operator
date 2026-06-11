@@ -4,6 +4,7 @@ import (
 	"context"
 	"mogenius-operator/src/crds/v1alpha1"
 	"mogenius-operator/src/gitops"
+	"mogenius-operator/src/utils"
 )
 
 func (d *reconcilerModule) reconcileCertManager(ctx context.Context, spec v1alpha1.PlatformConfigSpec, installer gitops.GitOpsInstaller, op operation) *ReconcileResult {
@@ -43,8 +44,8 @@ func (d *reconcilerModule) reconcileCertManager(ctx context.Context, spec v1alph
 
 func buildClusterIssuerObject(issuer v1alpha1.ClusterIssuerConfig) map[string]any {
 	return map[string]any{
-		"apiVersion": "cert-manager.io/v1",
-		"kind":       "ClusterIssuer",
+		"apiVersion": utils.ClusterIssuerResource.ApiVersion,
+		"kind":       utils.ClusterIssuerResource.Kind,
 		"metadata": map[string]any{
 			"name": issuer.Name,
 		},
@@ -62,8 +63,8 @@ func buildClusterIssuerObject(issuer v1alpha1.ClusterIssuerConfig) map[string]an
 
 func buildIssuerObject(issuer v1alpha1.IssuerConfig) map[string]any {
 	return map[string]any{
-		"apiVersion": "cert-manager.io/v1",
-		"kind":       "Issuer",
+		"apiVersion": utils.IssuerResource.ApiVersion,
+		"kind":       utils.IssuerResource.Kind,
 		"metadata": map[string]any{
 			"name":      issuer.Name,
 			"namespace": issuer.Namespace,

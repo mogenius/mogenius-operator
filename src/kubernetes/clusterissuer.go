@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"context"
+	"mogenius-operator/src/utils"
 
 	cmapi "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -18,7 +19,7 @@ func GetClusterIssuer(name string) (*cmapi.ClusterIssuer, error) {
 		return nil, err
 	}
 
-	issuer.Kind = "ClusterIssuer"
-	issuer.APIVersion = "cert-manager.io/v1"
+	issuer.Kind = utils.ClusterIssuerResource.Kind
+	issuer.APIVersion = utils.ClusterIssuerResource.ApiVersion
 	return issuer, nil
 }

@@ -83,9 +83,12 @@ type TraefikConfig struct {
 }
 
 type ExternalDNSConfig struct {
-	Enabled bool                           `json:"enabled,omitempty"`
-	Patches []PlatformConfigPatchReference `json:"patches,omitempty"`
-	Chart   *HelmChartReference            `json:"chart,omitempty"`
+	Enabled        bool                           `json:"enabled,omitempty"`
+	Patches        []PlatformConfigPatchReference `json:"patches,omitempty"`
+	Chart          *HelmChartReference            `json:"chart,omitempty"`
+	Provider       string                         `json:"provider"`
+	DomainFilters  []string                       `json:"domainFilters,omitempty"`
+	ExternalSecret ExternalSecret                 `json:"externalSecret"`
 }
 
 type KubePrometheusStackConfig struct {
@@ -128,6 +131,12 @@ type ExternalSecretVault struct {
 type ServiceAccountRef struct {
 	Name string `json:"name"`
 	Key  string `json:"key"`
+}
+
+type ExternalSecret struct {
+	Vault string `json:"vault"`
+	Path  string `json:"path"`
+	Key   string `json:"key"`
 }
 
 type IssuerConfig struct {
