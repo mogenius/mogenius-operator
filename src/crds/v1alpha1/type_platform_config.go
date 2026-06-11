@@ -80,6 +80,7 @@ type TraefikConfig struct {
 	Enabled bool                           `json:"enabled,omitempty"`
 	Patches []PlatformConfigPatchReference `json:"patches,omitempty"`
 	Chart   *HelmChartReference            `json:"chart,omitempty"`
+	Service *runtime.RawExtension          `json:"service,omitempty"`
 }
 
 type ExternalDNSConfig struct {
