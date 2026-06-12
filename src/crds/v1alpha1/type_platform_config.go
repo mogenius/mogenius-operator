@@ -2,6 +2,7 @@ package v1alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // ╭─────────────────────╮
@@ -38,16 +39,17 @@ type PlatformConfig struct {
 
 // Specification of platform components and their configuration.
 type PlatformConfigSpec struct {
-	PlatformVersion     string                     `json:"platformVersion"`
-	PlatformSource      string                     `json:"platformSource,omitempty"`
-	GitOps              *GitOpsConfig              `json:"gitOps"`
-	CertManager         *CertManagerConfig         `json:"certManager,omitempty"`
-	Traefik             *TraefikConfig             `json:"traefik,omitempty"`
-	ExternalDNS         *ExternalDNSConfig         `json:"externalDns,omitempty"`
-	KubePrometheusStack *KubePrometheusStackConfig `json:"kubePrometheusStack,omitempty"`
-	Loki                *LokiConfig                `json:"loki,omitempty"`
-	Alloy               *AlloyConfig               `json:"alloy,omitempty"`
-	RenovateOperator    *RenovateOperatorConfig    `json:"renovateOperator,omitempty"`
+	PlatformVersion         string                         `json:"platformVersion"`
+	PlatformSource          string                         `json:"platformSource,omitempty"`
+	GitOps                  *GitOpsConfig                  `json:"gitOps"`
+	CertManager             *CertManagerConfig             `json:"certManager,omitempty"`
+	Traefik                 *TraefikConfig                 `json:"traefik,omitempty"`
+	ExternalDNS             *ExternalDNSConfig             `json:"externalDns,omitempty"`
+	KubePrometheusStack     *KubePrometheusStackConfig     `json:"kubePrometheusStack,omitempty"`
+	Loki                    *LokiConfig                    `json:"loki,omitempty"`
+	Alloy                   *AlloyConfig                   `json:"alloy,omitempty"`
+	RenovateOperator        *RenovateOperatorConfig        `json:"renovateOperator,omitempty"`
+	ExternalSecretsOperator *ExternalSecretsOperatorConfig `json:"externalSecretsOperator,omitempty"`
 }
 type GitOpsConfig struct {
 	ArgoCD *ArgoCDInstallConfig `json:"argocd,omitempty"`
@@ -55,71 +57,103 @@ type GitOpsConfig struct {
 }
 
 type ArgoCDInstallConfig struct {
-	Enabled bool                          `json:"enabled,omitempty"`
-	Patch   *PlatformConfigPatchReference `json:"patch,omitempty"`
-	Chart   *HelmChartReference           `json:"chart,omitempty"`
+	Enabled bool                           `json:"enabled,omitempty"`
+	Patches []PlatformConfigPatchReference `json:"patches,omitempty"`
+	Chart   *HelmChartReference            `json:"chart,omitempty"`
+	Project string                         `json:"project,omitempty"`
 }
 
 type FluxCDInstallConfig struct {
-	Enabled bool                          `json:"enabled,omitempty"`
-	Patch   *PlatformConfigPatchReference `json:"patch,omitempty"`
-	Chart   *HelmChartReference           `json:"chart,omitempty"`
+	Enabled bool                           `json:"enabled,omitempty"`
+	Patches []PlatformConfigPatchReference `json:"patches,omitempty"`
+	Chart   *HelmChartReference            `json:"chart,omitempty"`
 }
 
 type CertManagerConfig struct {
-	Enabled bool                          `json:"enabled,omitempty"`
-	Issuers []CertManagerIssuerConfig     `json:"issuers,omitempty"`
-	Patch   *PlatformConfigPatchReference `json:"patch,omitempty"`
-	Chart   *HelmChartReference           `json:"chart,omitempty"`
+	Enabled        bool                           `json:"enabled,omitempty"`
+	Issuers        []IssuerConfig                 `json:"issuers,omitempty"`
+	ClusterIssuers []ClusterIssuerConfig          `json:"clusterIssuers,omitempty"`
+	Patches        []PlatformConfigPatchReference `json:"patches,omitempty"`
+	Chart          *HelmChartReference            `json:"chart,omitempty"`
 }
 
 type TraefikConfig struct {
-	Enabled bool                          `json:"enabled,omitempty"`
-	Patch   *PlatformConfigPatchReference `json:"patch,omitempty"`
-	Chart   *HelmChartReference           `json:"chart,omitempty"`
+	Enabled bool                           `json:"enabled,omitempty"`
+	Patches []PlatformConfigPatchReference `json:"patches,omitempty"`
+	Chart   *HelmChartReference            `json:"chart,omitempty"`
+	Service *runtime.RawExtension          `json:"service,omitempty"`
 }
 
 type ExternalDNSConfig struct {
-	Enabled bool                          `json:"enabled,omitempty"`
-	Patch   *PlatformConfigPatchReference `json:"patch,omitempty"`
-	Chart   *HelmChartReference           `json:"chart,omitempty"`
+	Enabled        bool                           `json:"enabled,omitempty"`
+	Patches        []PlatformConfigPatchReference `json:"patches,omitempty"`
+	Chart          *HelmChartReference            `json:"chart,omitempty"`
+	Provider       string                         `json:"provider"`
+	DomainFilters  []string                       `json:"domainFilters,omitempty"`
+	ExternalSecret ExternalSecret                 `json:"externalSecret"`
 }
 
 type KubePrometheusStackConfig struct {
-	Enabled bool                          `json:"enabled,omitempty"`
-	Patch   *PlatformConfigPatchReference `json:"patch,omitempty"`
-	Chart   *HelmChartReference           `json:"chart,omitempty"`
+	Enabled bool                           `json:"enabled,omitempty"`
+	Patches []PlatformConfigPatchReference `json:"patches,omitempty"`
+	Chart   *HelmChartReference            `json:"chart,omitempty"`
 }
 
 type LokiConfig struct {
-	Enabled bool                          `json:"enabled,omitempty"`
-	Patch   *PlatformConfigPatchReference `json:"patch,omitempty"`
-	Chart   *HelmChartReference           `json:"chart,omitempty"`
+	Enabled bool                           `json:"enabled,omitempty"`
+	Patches []PlatformConfigPatchReference `json:"patches,omitempty"`
+	Chart   *HelmChartReference            `json:"chart,omitempty"`
 }
 
 type AlloyConfig struct {
-	Enabled bool                          `json:"enabled,omitempty"`
-	Patch   *PlatformConfigPatchReference `json:"patch,omitempty"`
-	Chart   *HelmChartReference           `json:"chart,omitempty"`
+	Enabled bool                           `json:"enabled,omitempty"`
+	Patches []PlatformConfigPatchReference `json:"patches,omitempty"`
+	Chart   *HelmChartReference            `json:"chart,omitempty"`
 }
 
 type RenovateOperatorConfig struct {
-	Enabled bool                          `json:"enabled,omitempty"`
-	Patch   *PlatformConfigPatchReference `json:"patch,omitempty"`
-	Chart   *HelmChartReference           `json:"chart,omitempty"`
+	Enabled bool                           `json:"enabled,omitempty"`
+	Patches []PlatformConfigPatchReference `json:"patches,omitempty"`
+	Chart   *HelmChartReference            `json:"chart,omitempty"`
 }
 
-type CertManagerIssuerConfig struct {
-	// Name is the name of the ClusterIssuer resource.
+type ExternalSecretsOperatorConfig struct {
+	Enabled bool                           `json:"enabled,omitempty"`
+	Patches []PlatformConfigPatchReference `json:"patches,omitempty"`
+	Chart   *HelmChartReference            `json:"chart,omitempty"`
+	Vaults  []ExternalSecretVault          `json:"vaults"`
+}
+
+type ExternalSecretVault struct {
+	Name                    string            `json:"name"`
+	Type                    string            `json:"type"`
+	ServiceAccountSecretRef ServiceAccountRef `json:"serviceAccountSecretRef"`
+}
+
+type ServiceAccountRef struct {
 	Name string `json:"name"`
-	// Email is the contact address for the ACME account.
-	Email string `json:"email"`
-	// Server is the ACME directory URL.
-	// Defaults to the Let's Encrypt production endpoint when empty.
-	Server string `json:"server,omitempty"`
-	// HTTP01 configures the HTTP-01 challenge solver.
-	// Mutually exclusive with future solver types (e.g. dns01).
-	HTTP01 *CertManagerHTTP01Config `json:"http01,omitempty"`
+	Key  string `json:"key"`
+}
+
+type ExternalSecret struct {
+	Vault string `json:"vault,omitempty"`
+	Path  string `json:"path"`
+	Key   string `json:"key,omitempty"`
+}
+
+type IssuerConfig struct {
+	Name      string                 `json:"name"`
+	Email     string                 `json:"email"`
+	Namespace string                 `json:"namespace"`
+	Server    string                 `json:"server,omitempty"`
+	Solvers   []runtime.RawExtension `json:"solvers,omitempty"`
+}
+
+type ClusterIssuerConfig struct {
+	Name    string                 `json:"name"`
+	Email   string                 `json:"email"`
+	Server  string                 `json:"server,omitempty"`
+	Solvers []runtime.RawExtension `json:"solvers,omitempty"`
 }
 
 // CertManagerHTTP01Config configures an ACME HTTP-01 challenge solver.

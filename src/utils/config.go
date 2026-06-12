@@ -182,4 +182,39 @@ var ClusterRoleResource = ResourceDescriptor{
 	Namespaced: false,
 }
 
+var ExternalSecretResource = ResourceDescriptor{
+	Kind:       "ExternalSecret",
+	Plural:     "externalsecrets",
+	ApiVersion: "external-secrets.io/v1",
+	Namespaced: true,
+}
+
+var ClusterSecretStoreResource = ResourceDescriptor{
+	Kind:       "ClusterSecretStore",
+	Plural:     "clustersecretstores",
+	ApiVersion: "external-secrets.io/v1",
+	Namespaced: false,
+}
+
+var ClusterIssuerResource = ResourceDescriptor{
+	Kind:       "ClusterIssuer",
+	Plural:     "clusterissuers",
+	ApiVersion: "cert-manager.io/v1",
+	Namespaced: false,
+}
+
+var IssuerResource = ResourceDescriptor{
+	Kind:       "Issuer",
+	Plural:     "issuers",
+	ApiVersion: "cert-manager.io/v1",
+	Namespaced: true,
+}
+
+var AppProjectResource = ResourceDescriptor{
+	Kind:       "AppProject",
+	Plural:     "appprojects",
+	ApiVersion: "argoproj.io/v1alpha1",
+	Namespaced: true,
+}
+
 var ClusterProviderCached KubernetesProvider = UNKNOWN

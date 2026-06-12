@@ -13,7 +13,7 @@ import (
 type componentSpec struct {
 	enabled          bool
 	chart            *v1alpha1.HelmChartReference
-	patch            *v1alpha1.PlatformConfigPatchReference
+	patches          []v1alpha1.PlatformConfigPatchReference
 	name             string // component constant, e.g. componentCertManager
 	defaultNamespace string // target namespace, e.g. "cert-manager"
 	defaultChart     string // default Helm chart name
@@ -53,11 +53,14 @@ func (d *reconcilerModule) reconcileComponent(
 		Name:       helmReleaseName(cs.chart, cs.defaultName),
 	}
 
-	var patch *v1alpha1.PlatformPatch
-	if cs.patch != nil && cs.patch.Name != "" {
-		patch, err = d.fetchPlatformPatch(ctx, cs.patch)
-		if err != nil && !apierrors.IsNotFound(err) {
-			return &ReconcileResult{Err: fmt.Errorf("fetch platform patch for %s: %w", cs.name, err)}
+	var patches []v1alpha1.PlatformPatch
+	if len(cs.patches) > 0 {
+		for _, patchRef := range cs.patches {
+			patch, err := d.fetchPlatformPatch(ctx, patchRef)
+			if err != nil && !apierrors.IsNotFound(err) {
+				return &ReconcileResult{Err: fmt.Errorf("fetch platform patch for %s: %w", cs.name, err)}
+			}
+			patches = append(patches, *patch)
 		}
 	}
 
@@ -66,7 +69,7 @@ func (d *reconcilerModule) reconcileComponent(
 		return &ReconcileResult{Err: fmt.Errorf("failed to create component values for %s: %w", cs.name, err)}
 	}
 
-	mergedValues, err := mergeHelmValues(defaultComponentConfig, componentValues, patch)
+	mergedValues, err := mergeHelmValues(defaultComponentConfig, componentValues, patches)
 	if err != nil {
 		return &ReconcileResult{Err: fmt.Errorf("merge helm values for %s: %w", cs.name, err)}
 	}
@@ -76,17 +79,21 @@ func (d *reconcilerModule) reconcileComponent(
 		return &ReconcileResult{Err: fmt.Errorf("build extra objects for %s: %w", cs.name, err)}
 	}
 
-	extraPatchObjects, err := extractPatchExtraObjects(patch)
+	extraPatchObjects, err := extractPatchExtraObjects(patches)
 	if err != nil {
 		return &ReconcileResult{Err: fmt.Errorf("extract extra objects for %s: %w", cs.name, err)}
 	}
 	extraObjects = append(extraObjects, extraPatchObjects...)
+
+	argoConfig, fluxConfig := getSpecificGitOpsConfig(platformSpec.GitOps)
 
 	artifact := gitops.GitOpsArtifact{
 		Namespace:    helmNamespace(cs.chart, cs.defaultNamespace),
 		HelmChart:    chart,
 		Values:       mergedValues,
 		ExtraObjects: extraObjects,
+		ArgoCD:       argoConfig,
+		FluxCD:       fluxConfig,
 	}
 
 	if err := installer.Install(cs.name, artifact); err != nil {
@@ -94,4 +101,26 @@ func (d *reconcilerModule) reconcileComponent(
 	}
 
 	return nil
+}
+
+func getSpecificGitOpsConfig(settings *v1alpha1.GitOpsConfig) (*gitops.ArgoCDSettings, *gitops.FluxCDSettings) {
+	if settings == nil {
+		return nil, nil
+	}
+
+	if settings.ArgoCD != nil {
+		project := "mogenius"
+		if settings.ArgoCD.Project != "" {
+			project = settings.ArgoCD.Project
+		}
+		return &gitops.ArgoCDSettings{
+			Project: project,
+		}, nil
+	}
+
+	if settings.FluxCD != nil {
+		return nil, &gitops.FluxCDSettings{}
+	}
+
+	return nil, nil
 }

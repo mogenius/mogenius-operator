@@ -15,7 +15,7 @@ func (d *reconcilerModule) reconcileFluxCD(ctx context.Context, spec v1alpha1.Pl
 		componentSpec{
 			enabled:          cfg.Enabled,
 			chart:            cfg.Chart,
-			patch:            cfg.Patch,
+			patches:          cfg.Patches,
 			name:             componentFluxCD,
 			defaultChart:     "flux-operator",
 			defaultRepo:      "oci://ghcr.io/controlplaneio-fluxcd/charts/flux-operator",

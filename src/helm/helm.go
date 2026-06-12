@@ -1,6 +1,7 @@
 package helm
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -16,14 +17,18 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
 	"helm.sh/helm/v4/pkg/kube"
 	"helm.sh/helm/v4/pkg/registry"
 	"helm.sh/helm/v4/pkg/repo/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/metadata"
 
 	"github.com/patrickmn/go-cache"
 	"sigs.k8s.io/yaml"
@@ -36,6 +41,7 @@ import (
 	releaser "helm.sh/helm/v4/pkg/release"
 	releasecommon "helm.sh/helm/v4/pkg/release/common"
 	release "helm.sh/helm/v4/pkg/release/v1"
+	"helm.sh/helm/v4/pkg/storage/driver"
 )
 
 const (
@@ -265,6 +271,9 @@ type HelmReleaseUninstallRequest struct {
 
 type HelmReleaseListRequest struct {
 	Namespace string `json:"namespace"`
+	// Name, when set, filters the result to releases whose chart name
+	// (chart.metadata.name) matches exactly. Empty means no filter.
+	Name string `json:"name,omitempty"`
 }
 
 type HelmReleaseListPaginatedRequest struct {
@@ -1292,15 +1301,20 @@ func HelmReleaseList(data HelmReleaseListRequest) ([]*HelmRelease, error) {
 		return []*HelmRelease{}, err
 	}
 
-	list := action.NewList(actionConfig)
-	list.StateMask = action.ListAll
-	releases, err := list.Run()
+	releases, err := listCurrentReleases(actionConfig)
+	if err != nil {
+		helmLogger.Error("HelmReleaseList List", "namespace", data.Namespace, "error", err.Error())
+		return []*HelmRelease{}, err
+	}
+
 	result := []*HelmRelease{}
 	// remove unnecessary fields
-	for _, aRelease := range releases {
-		re, ok := aRelease.(*release.Release)
-		if !ok {
-			continue
+	for _, re := range releases {
+		// optional filter by chart name (chart.metadata.name)
+		if data.Name != "" {
+			if re.Chart == nil || re.Chart.Metadata == nil || re.Chart.Metadata.Name != data.Name {
+				continue
+			}
 		}
 
 		re.Chart.Files = nil
@@ -1315,10 +1329,6 @@ func HelmReleaseList(data HelmReleaseListRequest) ([]*HelmRelease, error) {
 		}
 
 		result = append(result, helmReleaseFromRelease(re, repoName))
-	}
-	if err != nil {
-		helmLogger.Error("HelmReleaseList List", "namespace", data.Namespace, "error", err.Error())
-		return result, err
 	}
 	return result, nil
 }
@@ -1431,31 +1441,91 @@ func helmReleaseLastDeployed(hr *HelmRelease) time.Time {
 func HelmReleaseListPaginated(data HelmReleaseListPaginatedRequest, scope *HelmWorkspaceScope, argoItems []*HelmRelease) (HelmReleaseListPaginatedResponse, error) {
 	empty := HelmReleaseListPaginatedResponse{Items: []*HelmRelease{}, TotalCount: 0}
 
-	all, err := listAllReleasesCached(data.Namespace)
-	if err != nil {
+	settings := NewCli()
+	settings.SetNamespace(data.Namespace)
+
+	actionConfig := new(action.Configuration)
+	if err := actionConfig.Init(settings.RESTClientGetter(), data.Namespace, ""); err != nil {
+		helmLogger.Error("HelmReleaseListPaginated Init", "namespace", data.Namespace, "error", err.Error())
 		return empty, err
 	}
 
-	// Unify real releases and Argo entries before sorting/paginating so both
-	// participate in the same ordering, total count and page slicing. The
-	// real-release conversion here is a cheap field copy; the expensive
-	// per-release Valkey repoName lookup is still deferred to the page slice.
-	items := make([]*HelmRelease, 0, len(all)+len(argoItems))
-	for _, re := range all {
+	secretsDriver, ok := actionConfig.Releases.Driver.(*driver.Secrets)
+	if !ok {
+		// Non-secret storage driver: fall back to decoding everything.
+		return helmReleaseListPaginatedFull(actionConfig, data, scope, argoItems)
+	}
+
+	// Phase 1: cheap metadata-only stub index (no gzip blob), merged with the
+	// already-materialised Argo entries, then scoped/filtered/sorted/sliced.
+	stubs, err := listReleaseStubsCached(data.Namespace)
+	if err != nil {
+		return empty, err
+	}
+	items := make([]*HelmRelease, 0, len(stubs)+len(argoItems))
+	items = append(items, stubs...)
+	items = append(items, argoItems...)
+
+	page, total := paginateHelmReleases(items, data, scope)
+
+	// Phase 2: decode the full release only for the real releases on this page.
+	// Replace the stub pointer with a freshly materialised HelmRelease so the
+	// cached stub objects are never mutated.
+	for i, hr := range page {
+		if hr.Argo != nil {
+			continue // Argo entries are already complete and carry their repoName
+		}
+		re, err := decodePageRelease(secretsDriver, hr.Namespace, hr.Name, hr.Version)
+		if err != nil {
+			// Secret vanished between indexing and decoding (race): keep the
+			// stub so the page still shows name/namespace/status.
+			helmLogger.Debug("HelmReleaseListPaginated decode page release",
+				"release", hr.Name, "namespace", hr.Namespace, "error", err.Error())
+			continue
+		}
+		trimReleaseForList(re)
+
+		repoName := ""
+		if rep, _ := GetRepoNameFromValkey(re.Name, re.Namespace); rep != nil {
+			chartName := ""
+			if re.Chart != nil && re.Chart.Metadata != nil {
+				chartName = re.Chart.Metadata.Name
+			}
+			repoName = strings.Replace(rep.RepoName, "/"+chartName, "", 1)
+		}
+		page[i] = helmReleaseFromRelease(re, repoName)
+	}
+
+	return HelmReleaseListPaginatedResponse{Items: page, TotalCount: total}, nil
+}
+
+// helmReleaseListPaginatedFull is the fallback used when the storage backend is
+// not the secret driver (e.g. configmaps/memory in tests). It decodes every
+// current release up front - the pre-metadata-index behaviour - then sorts,
+// scopes and slices the same way as the fast path.
+func helmReleaseListPaginatedFull(actionConfig *action.Configuration, data HelmReleaseListPaginatedRequest, scope *HelmWorkspaceScope, argoItems []*HelmRelease) (HelmReleaseListPaginatedResponse, error) {
+	empty := HelmReleaseListPaginatedResponse{Items: []*HelmRelease{}, TotalCount: 0}
+
+	releases, err := listCurrentReleases(actionConfig)
+	if err != nil {
+		helmLogger.Error("HelmReleaseListPaginated list", "namespace", data.Namespace, "error", err.Error())
+		return empty, err
+	}
+
+	items := make([]*HelmRelease, 0, len(releases)+len(argoItems))
+	for _, re := range releases {
+		trimReleaseForList(re)
 		items = append(items, helmReleaseFromRelease(re, ""))
 	}
 	items = append(items, argoItems...)
 
 	page, total := paginateHelmReleases(items, data, scope)
 
-	// Fill repoName for the real releases on the requested page only. Argo
-	// entries already carry their repoName (from the Application label).
 	for _, hr := range page {
 		if hr.Argo != nil {
 			continue
 		}
-		rep, _ := GetRepoNameFromValkey(hr.Name, hr.Namespace)
-		if rep != nil {
+		if rep, _ := GetRepoNameFromValkey(hr.Name, hr.Namespace); rep != nil {
 			chartName := ""
 			if hr.Chart != nil && hr.Chart.Metadata != nil {
 				chartName = hr.Chart.Metadata.Name
@@ -1467,64 +1537,219 @@ func HelmReleaseListPaginated(data HelmReleaseListPaginatedRequest, scope *HelmW
 	return HelmReleaseListPaginatedResponse{Items: page, TotalCount: total}, nil
 }
 
-// listAllReleasesCached returns all releases in the given namespace ("" = all
-// namespaces), backed by a short-lived cache. Listing decodes every helm secret
-// (all revisions) which is the dominant cost of a paginated request; caching it
-// makes paging through pages cheap. Heavy per-release fields (chart files,
-// templates, values, manifest) are stripped once before caching.
-func listAllReleasesCached(namespace string) ([]*release.Release, error) {
-	cacheKey := "release-list:" + namespace
+// nonSupersededStatuses is every release status except "superseded". Helm
+// relabels a revision to "superseded" the moment a newer revision takes over,
+// so for any release exactly one revision carries a non-superseded status: the
+// current one. Querying these statuses server-side returns the current revision
+// of every release without fetching (and decoding) the historical superseded
+// revisions, which dominate the cost at thousands of releases.
+var nonSupersededStatuses = []string{
+	string(releasecommon.StatusUnknown),
+	string(releasecommon.StatusDeployed),
+	string(releasecommon.StatusUninstalled),
+	string(releasecommon.StatusFailed),
+	string(releasecommon.StatusUninstalling),
+	string(releasecommon.StatusPendingInstall),
+	string(releasecommon.StatusPendingUpgrade),
+	string(releasecommon.StatusPendingRollback),
+}
+
+// listCurrentReleases returns the current (non-superseded) revision of every
+// release reachable through actionConfig. It pushes the status filter down to
+// the Kubernetes API via the storage driver, so only one secret per release is
+// fetched and decoded instead of every historical revision (which is what
+// helm's action.List does client-side). For storage drivers other than the
+// secret driver it falls back to action.List.
+func listCurrentReleases(actionConfig *action.Configuration) ([]*release.Release, error) {
+	secretsDriver, ok := actionConfig.Releases.Driver.(*driver.Secrets)
+	if !ok {
+		list := action.NewList(actionConfig)
+		list.StateMask = action.ListAll
+		raw, err := list.Run()
+		if err != nil {
+			return nil, err
+		}
+		out := make([]*release.Release, 0, len(raw))
+		for _, r := range raw {
+			if re, ok := r.(*release.Release); ok {
+				out = append(out, re)
+			}
+		}
+		return out, nil
+	}
+
+	// namespace/name -> highest-version current revision. During an in-flight
+	// upgrade two non-superseded revisions can coexist (old "deployed" + new
+	// "pending-upgrade"); keep the newest, matching helm's filterLatestReleases.
+	latest := map[string]*release.Release{}
+	for _, status := range nonSupersededStatuses {
+		res, err := secretsDriver.Query(map[string]string{"owner": "helm", "status": status})
+		if err != nil {
+			if errors.Is(err, driver.ErrReleaseNotFound) {
+				continue
+			}
+			return nil, err
+		}
+		for _, r := range res {
+			re, ok := r.(*release.Release)
+			if !ok {
+				continue
+			}
+			key := re.Namespace + "/" + re.Name
+			if prev, exists := latest[key]; !exists || re.Version > prev.Version {
+				latest[key] = re
+			}
+		}
+	}
+
+	out := make([]*release.Release, 0, len(latest))
+	for _, re := range latest {
+		out = append(out, re)
+	}
+	return out, nil
+}
+
+// secretGVR is the GroupVersionResource of the Secret objects helm uses as its
+// default release storage backend.
+var secretGVR = schema.GroupVersionResource{Group: "", Version: "v1", Resource: "secrets"}
+
+// newSecretMetadataClient builds a metadata-only Kubernetes client from the same
+// REST config helm uses. A metadata client lists objects as
+// PartialObjectMetadata (name, namespace, labels, ...) WITHOUT their .data
+// payload, so listing thousands of release secrets transfers a few KB each
+// instead of the full gzipped release blob.
+func newSecretMetadataClient(settings *cli.EnvSettings) (metadata.Interface, error) {
+	restCfg, err := settings.RESTClientGetter().ToRESTConfig()
+	if err != nil {
+		return nil, err
+	}
+	return metadata.NewForConfig(restCfg)
+}
+
+// listReleaseStubsCached returns one lightweight HelmRelease "stub" per release
+// in the given namespace ("" = all namespaces), backed by a short-lived cache.
+//
+// Stubs carry only what pagination needs (name, namespace, version, lastDeployed
+// proxy and status) and are built from secret LABELS via a metadata-only list -
+// the expensive gzip blob is never fetched here. The caller decodes the full
+// release only for the releases on the requested page. This turns a paginated
+// request from O(all releases) decodes into O(page size) decodes.
+//
+// modifiedAt (a label helm writes on every secret write) is used as the
+// lastDeployed sort key: for the current revision it is the time of the last
+// deploy/upgrade/rollback, which matches release.Info.LastDeployed closely
+// enough for ordering.
+func listReleaseStubsCached(namespace string) ([]*HelmRelease, error) {
+	cacheKey := "release-stub-index:" + namespace
 	if cached, found := helmReleaseListCache.Get(cacheKey); found {
-		return cached.([]*release.Release), nil
+		return cached.([]*HelmRelease), nil
 	}
 
 	settings := NewCli()
 	settings.SetNamespace(namespace)
 
-	actionConfig := new(action.Configuration)
-	if err := actionConfig.Init(settings.RESTClientGetter(), namespace, ""); err != nil {
-		helmLogger.Error("listAllReleasesCached Init", "namespace", namespace, "error", err.Error())
-		return nil, err
-	}
-
-	list := action.NewList(actionConfig)
-	list.StateMask = action.ListAll
-	releases, err := list.Run()
+	metaClient, err := newSecretMetadataClient(settings)
 	if err != nil {
-		helmLogger.Error("listAllReleasesCached List", "namespace", namespace, "error", err.Error())
+		helmLogger.Error("listReleaseStubsCached metadata client", "namespace", namespace, "error", err.Error())
 		return nil, err
 	}
 
-	all := make([]*release.Release, 0, len(releases))
-	for _, aRelease := range releases {
-		re, ok := aRelease.(*release.Release)
-		if !ok {
+	list, err := metaClient.Resource(secretGVR).Namespace(namespace).List(context.Background(), metav1.ListOptions{
+		LabelSelector: "owner=helm,status!=" + string(releasecommon.StatusSuperseded),
+	})
+	if err != nil {
+		helmLogger.Error("listReleaseStubsCached list", "namespace", namespace, "error", err.Error())
+		return nil, err
+	}
+
+	// namespace/name -> highest-version stub. During an in-flight upgrade two
+	// non-superseded revisions can coexist (old "deployed" + new
+	// "pending-upgrade"); keep the newest, matching helm's filterLatestReleases.
+	latest := map[string]*HelmRelease{}
+	for i := range list.Items {
+		item := &list.Items[i]
+		lbls := item.GetLabels()
+		name := lbls["name"]
+		if name == "" {
 			continue
 		}
-		// Strip everything the list view does not need so the cached entries
-		// stay small (this matters a lot at thousands of releases). The list
-		// only renders name/namespace/version/status/age + chart metadata; the
-		// detail view fetches the full release separately. Keep Chart.Metadata.
-		if re.Chart != nil {
-			re.Chart.Raw = nil
-			re.Chart.Files = nil
-			re.Chart.Templates = nil
-			re.Chart.Values = nil
-			re.Chart.Schema = nil
-			re.Chart.Lock = nil
+		version, _ := strconv.Atoi(lbls["version"])
+		ns := item.GetNamespace()
+
+		key := ns + "/" + name
+		if prev, exists := latest[key]; exists && version <= prev.Version {
+			continue
 		}
-		re.Manifest = ""
-		re.Config = nil
-		re.Hooks = nil
-		if re.Info != nil {
-			re.Info.Notes = ""
-			re.Info.Resources = nil
+		latest[key] = &HelmRelease{
+			Name:      name,
+			Namespace: ns,
+			Version:   version,
+			Info: &release.Info{
+				LastDeployed: modifiedAtFromLabels(lbls),
+				Status:       releasecommon.Status(lbls["status"]),
+			},
 		}
-		all = append(all, re)
 	}
 
-	helmReleaseListCache.Set(cacheKey, all, cache.DefaultExpiration)
-	return all, nil
+	stubs := make([]*HelmRelease, 0, len(latest))
+	for _, hr := range latest {
+		stubs = append(stubs, hr)
+	}
+
+	helmReleaseListCache.Set(cacheKey, stubs, cache.DefaultExpiration)
+	return stubs, nil
+}
+
+// modifiedAtFromLabels parses helm's "modifiedAt" label (unix seconds) into a
+// time. Missing/invalid values yield the zero time, which sorts oldest.
+func modifiedAtFromLabels(lbls map[string]string) time.Time {
+	sec, err := strconv.ParseInt(lbls["modifiedAt"], 10, 64)
+	if err != nil {
+		return time.Time{}
+	}
+	return time.Unix(sec, 0)
+}
+
+// decodePageRelease fetches and decodes the single release secret identified by
+// namespace/name/version through the secrets driver (which gunzips + unmarshals
+// for us). It is called only for the releases on the requested page.
+func decodePageRelease(secretsDriver *driver.Secrets, namespace, name string, version int) (*release.Release, error) {
+	res, err := secretsDriver.Query(map[string]string{
+		"owner":   "helm",
+		"name":    name,
+		"version": strconv.Itoa(version),
+	})
+	if err != nil {
+		return nil, err
+	}
+	// In all-namespaces mode the same name+version can exist in several
+	// namespaces; pick the one we indexed.
+	for _, r := range res {
+		if re, ok := r.(*release.Release); ok && re.Namespace == namespace {
+			return re, nil
+		}
+	}
+	return nil, driver.ErrReleaseNotFound
+}
+
+// trimReleaseForList strips everything the list view does not need so the
+// response stays small. The detail view fetches the full release separately.
+func trimReleaseForList(re *release.Release) {
+	if re.Chart != nil {
+		re.Chart.Raw = nil
+		re.Chart.Files = nil
+		re.Chart.Templates = nil
+		re.Chart.Values = nil
+		re.Chart.Schema = nil
+		re.Chart.Lock = nil
+	}
+	re.Manifest = ""
+	re.Config = nil
+	re.Hooks = nil
+	if re.Info != nil {
+		re.Info.Notes = ""
+		re.Info.Resources = nil
+	}
 }
 
 func HelmReleaseStatus(data HelmReleaseStatusRequest) (*HelmReleaseStatusInfo, error) {

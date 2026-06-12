@@ -1,3 +1,123 @@
+# [2.22.0-develop.16](https://github.com/mogenius/mogenius-operator/compare/v2.22.0-develop.15...v2.22.0-develop.16) (2026-06-12)
+
+
+### Bug Fixes
+
+* **deps:** update module helm.sh/helm/v4 to v4.2.1 ([61aac2f](https://github.com/mogenius/mogenius-operator/commit/61aac2f21d92c7345464e0c146e85a0b7f9e5624))
+* filter cluster/helm-release-list by chart name ([adbad9c](https://github.com/mogenius/mogenius-operator/commit/adbad9c6bc269eb27e4941d869b05ec1415a23d9))
+
+# [2.22.0-develop.15](https://github.com/mogenius/mogenius-operator/compare/v2.22.0-develop.14...v2.22.0-develop.15) (2026-06-11)
+
+
+### Bug Fixes
+
+* paginate release listing via metadata index, skip superseded revisions ([d9f08b0](https://github.com/mogenius/mogenius-operator/commit/d9f08b0592a34d7f6128276cad646d46fae829d2))
+
+# [2.22.0-develop.14](https://github.com/mogenius/mogenius-operator/compare/v2.22.0-develop.13...v2.22.0-develop.14) (2026-06-11)
+
+
+### Bug Fixes
+
+* appProject use string instead of char ([b4461e3](https://github.com/mogenius/mogenius-operator/commit/b4461e3637e1c49260abb98c4132e66b03557c20))
+
+# [2.22.0-develop.13](https://github.com/mogenius/mogenius-operator/compare/v2.22.0-develop.12...v2.22.0-develop.13) (2026-06-11)
+
+
+### Bug Fixes
+
+* manage argocd appproject via reconciler ([0c56fe5](https://github.com/mogenius/mogenius-operator/commit/0c56fe551211f7975d53ce4e70a8612e97a5fc28))
+
+# [2.22.0-develop.12](https://github.com/mogenius/mogenius-operator/compare/v2.22.0-develop.11...v2.22.0-develop.12) (2026-06-11)
+
+
+### Bug Fixes
+
+* external secrets remoteref property can be optional ([c4fea38](https://github.com/mogenius/mogenius-operator/commit/c4fea38d1a19c775f63182a89b31a3ef395cf55f))
+
+# [2.22.0-develop.11](https://github.com/mogenius/mogenius-operator/compare/v2.22.0-develop.10...v2.22.0-develop.11) (2026-06-11)
+
+
+### Bug Fixes
+
+* vault in external secrets can be optional as well as key ([d7cbfcd](https://github.com/mogenius/mogenius-operator/commit/d7cbfcde6b54a4b9fc0d7b1c4fd37b13d6635045))
+
+# [2.22.0-develop.10](https://github.com/mogenius/mogenius-operator/compare/v2.22.0-develop.9...v2.22.0-develop.10) (2026-06-11)
+
+
+### Bug Fixes
+
+* external dns txtOwnerId to cluster name ([78d4c80](https://github.com/mogenius/mogenius-operator/commit/78d4c8083d2f23ebad8c99cb8a40ce08f3222299))
+* if no solvers are defined, default to empty http01 ([a0a40cb](https://github.com/mogenius/mogenius-operator/commit/a0a40cb8193b4a060a6fba184165af93f5941955))
+
+# [2.22.0-develop.9](https://github.com/mogenius/mogenius-operator/compare/v2.22.0-develop.8...v2.22.0-develop.9) (2026-06-11)
+
+
+### Bug Fixes
+
+* allow setting the argocd appproject, defaults to mogenius ([dcbe81c](https://github.com/mogenius/mogenius-operator/commit/dcbe81cf45c1d9123943de51ef25bea89dc38a0d))
+
+# [2.22.0-develop.8](https://github.com/mogenius/mogenius-operator/compare/v2.22.0-develop.7...v2.22.0-develop.8) (2026-06-11)
+
+
+### Bug Fixes
+
+* set issuer server in cert-manager ([293392a](https://github.com/mogenius/mogenius-operator/commit/293392a41ecb2375c86c5230492c1be30e77c387))
+
+# [2.22.0-develop.7](https://github.com/mogenius/mogenius-operator/compare/v2.22.0-develop.6...v2.22.0-develop.7) (2026-06-11)
+
+
+### Bug Fixes
+
+* default to a given vault if possible ([319845d](https://github.com/mogenius/mogenius-operator/commit/319845d6dfa77284de75a03db616d8c6c6ddabd8))
+* pass service annotations to traefik ([076d2a7](https://github.com/mogenius/mogenius-operator/commit/076d2a78ade6c7f4eaf34cd160494379ac2eac08))
+
+# [2.22.0-develop.6](https://github.com/mogenius/mogenius-operator/compare/v2.22.0-develop.5...v2.22.0-develop.6) (2026-06-11)
+
+
+### Features
+
+* adding platform config for external dns ([d583282](https://github.com/mogenius/mogenius-operator/commit/d58328281add7a1fdd5ae92d7fa3490851192b39))
+
+# [2.22.0-develop.5](https://github.com/mogenius/mogenius-operator/compare/v2.22.0-develop.4...v2.22.0-develop.5) (2026-06-10)
+
+
+### Bug Fixes
+
+* building cluster issuer object in cert-manager ([7632513](https://github.com/mogenius/mogenius-operator/commit/7632513a05f64df911c842a61edfc930ec2abf0a))
+
+# [2.22.0-develop.4](https://github.com/mogenius/mogenius-operator/compare/v2.22.0-develop.3...v2.22.0-develop.4) (2026-06-10)
+
+
+### Bug Fixes
+
+* use server side apply for all argocd platform applications ([793ae13](https://github.com/mogenius/mogenius-operator/commit/793ae13c2382cb9edc1372b4c4cd733e7f816683))
+
+# [2.22.0-develop.3](https://github.com/mogenius/mogenius-operator/compare/v2.22.0-develop.2...v2.22.0-develop.3) (2026-06-10)
+
+
+### Bug Fixes
+
+* enable reconciler for external secrets operator ([fcc0b57](https://github.com/mogenius/mogenius-operator/commit/fcc0b57b1d995210fd3317880fd0a5962ada5809))
+
+# [2.22.0-develop.2](https://github.com/mogenius/mogenius-operator/compare/v2.22.0-develop.1...v2.22.0-develop.2) (2026-06-10)
+
+
+### Features
+
+* adding platform config for cert-manager ([cb00d9b](https://github.com/mogenius/mogenius-operator/commit/cb00d9bcc63b077417f352a806a5f6d61679618c))
+
+# [2.22.0-develop.1](https://github.com/mogenius/mogenius-operator/compare/v2.21.1-develop.8...v2.22.0-develop.1) (2026-06-10)
+
+
+### Bug Fixes
+
+* issues with just generate ([b676d60](https://github.com/mogenius/mogenius-operator/commit/b676d602676ca3411d0f703e4641dbf9bceac11c))
+
+
+### Features
+
+* adding external secrets operator with vault provisioning ([12bc5c9](https://github.com/mogenius/mogenius-operator/commit/12bc5c9d64156a8bbc7e7d13e3bdfbef3b0762fc))
+* allow for multiple platform patches per component ([4e840a4](https://github.com/mogenius/mogenius-operator/commit/4e840a45eaeb1f7c2de4a6d18ed4692c67d20764))
 ## [2.21.1](https://github.com/mogenius/mogenius-operator/compare/v2.21.0...v2.21.1) (2026-06-10)
 
 

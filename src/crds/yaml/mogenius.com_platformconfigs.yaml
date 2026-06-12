@@ -62,12 +62,14 @@ spec:
                     type: object
                   enabled:
                     type: boolean
-                  patch:
-                    properties:
-                      name:
-                        description: name of the PlatformPatch resource to apply
-                        type: string
-                    type: object
+                  patches:
+                    items:
+                      properties:
+                        name:
+                          description: name of the PlatformPatch resource to apply
+                          type: string
+                      type: object
+                    type: array
                 type: object
               certManager:
                 properties:
@@ -85,49 +87,57 @@ spec:
                       version:
                         type: string
                     type: object
+                  clusterIssuers:
+                    items:
+                      properties:
+                        email:
+                          type: string
+                        name:
+                          type: string
+                        server:
+                          type: string
+                        solvers:
+                          items:
+                            type: object
+                            x-kubernetes-preserve-unknown-fields: true
+                          type: array
+                      required:
+                      - email
+                      - name
+                      type: object
+                    type: array
                   enabled:
                     type: boolean
                   issuers:
                     items:
                       properties:
                         email:
-                          description: Email is the contact address for the ACME account.
                           type: string
-                        http01:
-                          description: |-
-                            HTTP01 configures the HTTP-01 challenge solver.
-                            Mutually exclusive with future solver types (e.g. dns01).
-                          properties:
-                            ingressAnnotations:
-                              additionalProperties:
-                                type: string
-                              description: IngressAnnotations are extra annotations
-                                added to the challenge ingress resource.
-                              type: object
-                            ingressClass:
-                              description: IngressClass is the ingress class to use
-                                when creating the challenge ingress.
-                              type: string
-                          type: object
                         name:
-                          description: Name is the name of the ClusterIssuer resource.
+                          type: string
+                        namespace:
                           type: string
                         server:
-                          description: |-
-                            Server is the ACME directory URL.
-                            Defaults to the Let's Encrypt production endpoint when empty.
                           type: string
+                        solvers:
+                          items:
+                            type: object
+                            x-kubernetes-preserve-unknown-fields: true
+                          type: array
                       required:
                       - email
                       - name
+                      - namespace
                       type: object
                     type: array
-                  patch:
-                    properties:
-                      name:
-                        description: name of the PlatformPatch resource to apply
-                        type: string
-                    type: object
+                  patches:
+                    items:
+                      properties:
+                        name:
+                          description: name of the PlatformPatch resource to apply
+                          type: string
+                      type: object
+                    type: array
                 type: object
               externalDns:
                 properties:
@@ -145,14 +155,88 @@ spec:
                       version:
                         type: string
                     type: object
+                  domainFilters:
+                    items:
+                      type: string
+                    type: array
                   enabled:
                     type: boolean
-                  patch:
+                  externalSecret:
                     properties:
+                      key:
+                        type: string
+                      path:
+                        type: string
+                      vault:
+                        type: string
+                    required:
+                    - path
+                    type: object
+                  patches:
+                    items:
+                      properties:
+                        name:
+                          description: name of the PlatformPatch resource to apply
+                          type: string
+                      type: object
+                    type: array
+                  provider:
+                    type: string
+                required:
+                - externalSecret
+                - provider
+                type: object
+              externalSecretsOperator:
+                properties:
+                  chart:
+                    properties:
+                      chart:
+                        type: string
                       name:
-                        description: name of the PlatformPatch resource to apply
+                        description: name of the HelmRelease resource to apply
+                        type: string
+                      namespace:
+                        type: string
+                      repository:
+                        type: string
+                      version:
                         type: string
                     type: object
+                  enabled:
+                    type: boolean
+                  patches:
+                    items:
+                      properties:
+                        name:
+                          description: name of the PlatformPatch resource to apply
+                          type: string
+                      type: object
+                    type: array
+                  vaults:
+                    items:
+                      properties:
+                        name:
+                          type: string
+                        serviceAccountSecretRef:
+                          properties:
+                            key:
+                              type: string
+                            name:
+                              type: string
+                          required:
+                          - key
+                          - name
+                          type: object
+                        type:
+                          type: string
+                      required:
+                      - name
+                      - serviceAccountSecretRef
+                      - type
+                      type: object
+                    type: array
+                required:
+                - vaults
                 type: object
               gitOps:
                 properties:
@@ -174,12 +258,16 @@ spec:
                         type: object
                       enabled:
                         type: boolean
-                      patch:
-                        properties:
-                          name:
-                            description: name of the PlatformPatch resource to apply
-                            type: string
-                        type: object
+                      patches:
+                        items:
+                          properties:
+                            name:
+                              description: name of the PlatformPatch resource to apply
+                              type: string
+                          type: object
+                        type: array
+                      project:
+                        type: string
                     type: object
                   fluxcd:
                     properties:
@@ -199,12 +287,14 @@ spec:
                         type: object
                       enabled:
                         type: boolean
-                      patch:
-                        properties:
-                          name:
-                            description: name of the PlatformPatch resource to apply
-                            type: string
-                        type: object
+                      patches:
+                        items:
+                          properties:
+                            name:
+                              description: name of the PlatformPatch resource to apply
+                              type: string
+                          type: object
+                        type: array
                     type: object
                 type: object
               kubePrometheusStack:
@@ -225,12 +315,14 @@ spec:
                     type: object
                   enabled:
                     type: boolean
-                  patch:
-                    properties:
-                      name:
-                        description: name of the PlatformPatch resource to apply
-                        type: string
-                    type: object
+                  patches:
+                    items:
+                      properties:
+                        name:
+                          description: name of the PlatformPatch resource to apply
+                          type: string
+                      type: object
+                    type: array
                 type: object
               loki:
                 properties:
@@ -250,12 +342,14 @@ spec:
                     type: object
                   enabled:
                     type: boolean
-                  patch:
-                    properties:
-                      name:
-                        description: name of the PlatformPatch resource to apply
-                        type: string
-                    type: object
+                  patches:
+                    items:
+                      properties:
+                        name:
+                          description: name of the PlatformPatch resource to apply
+                          type: string
+                      type: object
+                    type: array
                 type: object
               platformSource:
                 type: string
@@ -279,12 +373,14 @@ spec:
                     type: object
                   enabled:
                     type: boolean
-                  patch:
-                    properties:
-                      name:
-                        description: name of the PlatformPatch resource to apply
-                        type: string
-                    type: object
+                  patches:
+                    items:
+                      properties:
+                        name:
+                          description: name of the PlatformPatch resource to apply
+                          type: string
+                      type: object
+                    type: array
                 type: object
               traefik:
                 properties:
@@ -304,12 +400,17 @@ spec:
                     type: object
                   enabled:
                     type: boolean
-                  patch:
-                    properties:
-                      name:
-                        description: name of the PlatformPatch resource to apply
-                        type: string
+                  patches:
+                    items:
+                      properties:
+                        name:
+                          description: name of the PlatformPatch resource to apply
+                          type: string
+                      type: object
+                    type: array
+                  service:
                     type: object
+                    x-kubernetes-preserve-unknown-fields: true
                 type: object
             required:
             - gitOps
