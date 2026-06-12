@@ -271,6 +271,9 @@ type HelmReleaseUninstallRequest struct {
 
 type HelmReleaseListRequest struct {
 	Namespace string `json:"namespace"`
+	// Name, when set, filters the result to releases whose chart name
+	// (chart.metadata.name) matches exactly. Empty means no filter.
+	Name string `json:"name,omitempty"`
 }
 
 type HelmReleaseListPaginatedRequest struct {
@@ -1307,6 +1310,13 @@ func HelmReleaseList(data HelmReleaseListRequest) ([]*HelmRelease, error) {
 	result := []*HelmRelease{}
 	// remove unnecessary fields
 	for _, re := range releases {
+		// optional filter by chart name (chart.metadata.name)
+		if data.Name != "" {
+			if re.Chart == nil || re.Chart.Metadata == nil || re.Chart.Metadata.Name != data.Name {
+				continue
+			}
+		}
+
 		re.Chart.Files = nil
 		re.Chart.Templates = nil
 		re.Chart.Values = nil
