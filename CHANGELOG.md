@@ -118,6 +118,23 @@
 
 * adding external secrets operator with vault provisioning ([12bc5c9](https://github.com/mogenius/mogenius-operator/commit/12bc5c9d64156a8bbc7e7d13e3bdfbef3b0762fc))
 * allow for multiple platform patches per component ([4e840a4](https://github.com/mogenius/mogenius-operator/commit/4e840a45eaeb1f7c2de4a6d18ed4692c67d20764))
+## [2.21.1](https://github.com/mogenius/mogenius-operator/compare/v2.21.0...v2.21.1) (2026-06-10)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/anthropics/anthropic-sdk-go to v1.48.0 ([60e7c24](https://github.com/mogenius/mogenius-operator/commit/60e7c24c58c3a3e34884875bc55e31fa0c0fe0d7))
+* **deps:** update module github.com/ollama/ollama to v0.30.7 ([122f349](https://github.com/mogenius/mogenius-operator/commit/122f34903a87bc79500dba37bad70f776d1d7947))
+* **deps:** update module github.com/openai/openai-go/v3 to v3.39.0 ([b63dd34](https://github.com/mogenius/mogenius-operator/commit/b63dd34ea1d676336baf68df7f7e607ef4b6f3c7))
+* **deps:** update module golang.org/x/term to v0.44.0 ([d0b704a](https://github.com/mogenius/mogenius-operator/commit/d0b704a0ecb92f9e6ca072331b3d1605dc8cef0b))
+* helm pageination ([f34ae2b](https://github.com/mogenius/mogenius-operator/commit/f34ae2b0d36f0c04ffe6c7bacabfa72b4ee7ded0))
+* helm release list improvements ([247013e](https://github.com/mogenius/mogenius-operator/commit/247013e0a6481e82bfa4beafdfe8d3b6efb456b9))
+* helm release list improvements ([43218b3](https://github.com/mogenius/mogenius-operator/commit/43218b370554ea05de0605ce2dd741906b9a353e))
+* helm release list pageinated ([c8efb44](https://github.com/mogenius/mogenius-operator/commit/c8efb4458f04f68ed728e93164aa37ba2bf2edb5))
+* MOG-4393 ([bc28cef](https://github.com/mogenius/mogenius-operator/commit/bc28cefb2b69846051c793ae38fb8cd760d8b158))
+* MOG-4394 ([cf55637](https://github.com/mogenius/mogenius-operator/commit/cf55637575ad274ca29241ada52e45058f8caaad))
+* ran go fix for mogenius operator ([dfbc119](https://github.com/mogenius/mogenius-operator/commit/dfbc119dc8779a321e16c8ac9f8e0da2235b0867))
+* setting owner reference for gitops resources to platform conf ([a03f0a4](https://github.com/mogenius/mogenius-operator/commit/a03f0a4d49662cc788dac0b29d22a3e10e1ab92c))
 
 ## [2.21.1-develop.8](https://github.com/mogenius/mogenius-operator/compare/v2.21.1-develop.7...v2.21.1-develop.8) (2026-06-10)
 
