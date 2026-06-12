@@ -1,3 +1,11 @@
+# [2.22.0-develop.16](https://github.com/mogenius/mogenius-operator/compare/v2.22.0-develop.15...v2.22.0-develop.16) (2026-06-12)
+
+
+### Bug Fixes
+
+* **deps:** update module helm.sh/helm/v4 to v4.2.1 ([61aac2f](https://github.com/mogenius/mogenius-operator/commit/61aac2f21d92c7345464e0c146e85a0b7f9e5624))
+* filter cluster/helm-release-list by chart name ([adbad9c](https://github.com/mogenius/mogenius-operator/commit/adbad9c6bc269eb27e4941d869b05ec1415a23d9))
+
 # [2.22.0-develop.15](https://github.com/mogenius/mogenius-operator/compare/v2.22.0-develop.14...v2.22.0-develop.15) (2026-06-11)
 
 
