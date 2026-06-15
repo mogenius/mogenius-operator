@@ -1,3 +1,10 @@
+# [2.22.0-develop.19](https://github.com/mogenius/mogenius-operator/compare/v2.22.0-develop.18...v2.22.0-develop.19) (2026-06-15)
+
+
+### Bug Fixes
+
+* enable server side apply for helm ([5fdf3a1](https://github.com/mogenius/mogenius-operator/commit/5fdf3a14954f8ec0c5c6cf4f670dc599143c5ccf))
+
 # [2.22.0-develop.18](https://github.com/mogenius/mogenius-operator/compare/v2.22.0-develop.17...v2.22.0-develop.18) (2026-06-15)
 
 
