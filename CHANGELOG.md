@@ -1,3 +1,11 @@
+# [2.22.0-develop.17](https://github.com/mogenius/mogenius-operator/compare/v2.22.0-develop.16...v2.22.0-develop.17) (2026-06-15)
+
+
+### Bug Fixes
+
+* **deps:** update kubernetes monorepo to v0.36.2 ([efc08d4](https://github.com/mogenius/mogenius-operator/commit/efc08d48a26ef83c0b1baf1b8df46f70e4fc1358))
+* **deps:** update module github.com/anthropics/anthropic-sdk-go to v1.50.1 ([f821e93](https://github.com/mogenius/mogenius-operator/commit/f821e931e689b2d29c123bd04bb90f4fe0bb95ff))
+
 # [2.22.0-develop.16](https://github.com/mogenius/mogenius-operator/compare/v2.22.0-develop.15...v2.22.0-develop.16) (2026-06-12)
 
 
