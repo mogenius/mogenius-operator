@@ -148,6 +148,10 @@ test-helm:
 test-integration: generate
     go run gotest.tools/gotestsum@latest --format="testname" --hide-summary="skipped" --format-hide-empty-pkg --rerun-fails="0" -- -count=1 ./test/...
 
+# Execute end-to-end integration tests (downloads envtest binaries on first run)
+test-e2e: generate
+    KUBEBUILDER_ASSETS=$(go run sigs.k8s.io/controller-runtime/tools/setup-envtest@latest use -p path) go run gotest.tools/gotestsum@latest --format="testname" --hide-summary="skipped" --format-hide-empty-pkg --rerun-fails="0" -- -tags e2e -count=1 -timeout=600s ./test/integration/...
+
 # Execute golangci-lint
 golangci-lint: generate
     go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest run '--max-same-issues=0' ./src/...
