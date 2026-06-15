@@ -1,0 +1,171 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.21.0
+  name: uiconfigs.mogenius.com
+spec:
+  group: mogenius.com
+  names:
+    kind: UIConfig
+    listKind: UIConfigList
+    plural: uiconfigs
+    singular: uiconfig
+  scope: Cluster
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: UIConfig defines a specialised UI for a specific custom resource
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            properties:
+              isCustomized:
+                description: |-
+                  IsCustomized is false when the schema was auto-generated from the resource's OpenAPI spec
+                  and true once a user has saved their own edits. The UI uses this to show a "customised" badge
+                  and to decide whether to offer a "reset to default" action.
+                type: boolean
+              reference:
+                description: |-
+                  Reference points to the Kubernetes resource type this UI config customises.
+                  The operator uses this to look up the matching UIConfig when a user opens a resource form.
+                properties:
+                  apiVersion:
+                    description: |-
+                      ApiVersion is the group and version of the target resource, e.g. "apps/v1" for Deployments
+                      or "v1" for core resources like Services. Used together with Kind to uniquely identify the type.
+                    type: string
+                  kind:
+                    description: Kind is the resource kind as it appears in the Kubernetes
+                      API, e.g. "Deployment" or "Service".
+                    type: string
+                required:
+                - apiVersion
+                - kind
+                type: object
+              schema:
+                description: |-
+                  Schema describes the complete form layout the frontend renders when creating or editing
+                  a resource of the type identified by Reference.
+                properties:
+                  sections:
+                    description: |-
+                      Sections is the ordered list of form sections. The first section is conventionally
+                      the metadata section (name, namespace); subsequent sections map to top-level spec fields.
+                    items:
+                      description: |-
+                        UISection is a named group of related fields rendered as a collapsible block in the form.
+                        Nested objects in the resource spec are expressed as child sections rather than
+                        as fields that own other fields, keeping fields as pure leaf inputs.
+                      properties:
+                        description:
+                          description: Description is shown below the section heading
+                            to explain its purpose to the user.
+                          type: string
+                        fields:
+                          description: |-
+                            Fields lists the leaf inputs that belong directly to this section.
+                            Each field maps to a scalar, enum, array-of-scalars, or map property in the resource spec.
+                          items:
+                            description: |-
+                              UIField describes a single leaf input in the form — a control that maps to one scalar,
+                              enum, array-of-scalars, or map property in the resource spec.
+                              Object-type properties are represented as child UISection values, not as UIFields.
+                            properties:
+                              default:
+                                description: Default is pre-filled into the input
+                                  when the user opens a blank create form.
+                                x-kubernetes-preserve-unknown-fields: true
+                              description:
+                                description: |-
+                                  Description is shown as a tooltip or hint text below the input to help the user
+                                  understand what value is expected.
+                                type: string
+                              enum:
+                                description: |-
+                                  Enum lists the allowed values for this field. When set, the frontend replaces the
+                                  free-text input with a dropdown restricted to these options.
+                                items:
+                                  type: string
+                                type: array
+                              key:
+                                description: |-
+                                  Key is the dot-notation path to this field in the resource YAML, e.g. "spec.replicas"
+                                  or "spec.template.spec.containers[].image". The frontend uses this to read and write
+                                  the correct location when building the resource manifest.
+                                type: string
+                              label:
+                                description: Label is the human-readable name shown
+                                  next to the input control.
+                                type: string
+                              required:
+                                description: Required causes the frontend to block
+                                  form submission if this field is left empty.
+                                type: boolean
+                              type:
+                                description: Type selects the input widget the frontend
+                                  renders for this field.
+                                enum:
+                                - string
+                                - integer
+                                - number
+                                - boolean
+                                - array
+                                - map
+                                type: string
+                            required:
+                            - key
+                            - label
+                            - type
+                            type: object
+                          type: array
+                        label:
+                          description: Label is the heading text displayed on the
+                            section block in the UI.
+                          type: string
+                        sections:
+                          description: |-
+                            Sections holds child sections for nested object properties within this section.
+                            For example, a top-level "Spec" section may contain a "Resources" sub-section
+                            for spec.resources.limits / spec.resources.requests.
+                          items: {}
+                          type: array
+                      required:
+                      - label
+                      type: object
+                    type: array
+                required:
+                - sections
+                type: object
+            required:
+            - isCustomized
+            - reference
+            - schema
+            type: object
+        required:
+        - metadata
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
