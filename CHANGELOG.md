@@ -1,3 +1,10 @@
+# [2.22.0-develop.18](https://github.com/mogenius/mogenius-operator/compare/v2.22.0-develop.17...v2.22.0-develop.18) (2026-06-15)
+
+
+### Features
+
+* adding ui config crd ([d9f9a7e](https://github.com/mogenius/mogenius-operator/commit/d9f9a7e701154b2b08333a39def19e2c33e97b65))
+
 # [2.22.0-develop.17](https://github.com/mogenius/mogenius-operator/compare/v2.22.0-develop.16...v2.22.0-develop.17) (2026-06-15)
 
 
