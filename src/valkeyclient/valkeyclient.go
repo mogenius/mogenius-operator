@@ -121,7 +121,7 @@ func (self *valkeyClient) Connect() error {
 		return fmt.Errorf("could not configure Valkey TLS: %w", err)
 	}
 
-	client, err := valkeyclient.NewClient(valkeyclient.ClientOption{
+	baseOpts := valkeyclient.ClientOption{
 		InitAddress:         []string{valkeyAddr},
 		Username:            valkeyUsername,
 		Password:            valkeyPwd,
@@ -132,7 +132,15 @@ func (self *valkeyClient) Connect() error {
 		WriteBufferEachConn: 512 * (1 << 10), // 512 KiB
 		ConnWriteTimeout:    10 * time.Second,
 		MaxFlushDelay:       100 * time.Microsecond, // Reduce latency for pipelined commands
-	})
+	}
+	client, err := valkeyclient.NewClient(baseOpts)
+	if err != nil && strings.Contains(err.Error(), "DisableCache must be true") {
+		// Server does not support RESP3 client-side caching (e.g. older Redis, miniredis).
+		self.logger.Info("server does not support client-side caching, retrying without it", "addr", valkeyAddr)
+		noCache := baseOpts
+		noCache.DisableCache = true
+		client, err = valkeyclient.NewClient(noCache)
+	}
 	if err != nil {
 		self.logger.Info("connection to Valkey failed", "valkeyAddr", valkeyAddr, "tls", tlsConfig != nil, "error", err)
 		return fmt.Errorf("could not connect to Valkey: %s", err)
@@ -826,14 +834,22 @@ func GetObjectsByPrefix[T any](store ValkeyClient, order SortOrder, keys ...stri
 
 	result := make([]T, 0, len(keyList))
 
-	for _, v := range chunks {
-		values, err := client.Do(store.GetContext(), client.B().Mget().Key(v...).Build()).AsStrSlice()
-		if err != nil {
-			return result, err
+	for _, chunk := range chunks {
+		cmds := make([]valkeyclient.Completed, len(chunk))
+		for i, key := range chunk {
+			cmds[i] = client.B().Get().Key(key).Build()
 		}
-		for _, v := range values {
+		for _, resp := range client.DoMulti(store.GetContext(), cmds...) {
+			str, err := resp.ToString()
+			if err != nil {
+				// Key expired or was deleted between SCAN and GET; skip.
+				continue
+			}
+			if str == "" {
+				continue
+			}
 			var obj T
-			if err := json.Unmarshal([]byte(v), &obj); err != nil {
+			if err := json.Unmarshal([]byte(str), &obj); err != nil {
 				return result, fmt.Errorf("error unmarshalling value from Valkey: %w", err)
 			}
 			result = append(result, obj)

@@ -68,9 +68,13 @@ func (self *Shutdown) ExecuteShutdownHandlers() chan struct{} {
 	finishedSignaler := make(chan struct{})
 	go func() {
 		self.mutex.Lock()
-		defer self.mutex.Unlock()
+		// Snapshot and clear before running so re-used instances (e.g. tests)
+		// don't accumulate stale hooks that fire on the next shutdown cycle.
+		hooks := self.hooks
+		self.hooks = nil
+		self.mutex.Unlock()
 		var wg sync.WaitGroup
-		for _, fn := range self.hooks {
+		for _, fn := range hooks {
 			wg.Go(fn)
 		}
 		wg.Wait()

@@ -437,4 +437,16 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		Description:  new(`allow the operator to determine its location country base on the IP address`),
 		Type:         new(config.ConfigVariableTypeBool),
 	})
+	configModule.Declare(config.ConfigDeclaration{
+		Key:          "MO_SKIP_IMPERSONATION",
+		DefaultValue: new("false"),
+		Description:  new("skip service-account impersonation; set to true in local/test environments that lack the operator SA"),
+		Validate: func(value string) error {
+			_, err := strconv.ParseBool(value)
+			if err != nil {
+				return fmt.Errorf("'MO_SKIP_IMPERSONATION' needs to be a boolean: %s", err.Error())
+			}
+			return nil
+		},
+	})
 }

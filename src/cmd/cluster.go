@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"mogenius-operator/src/ai"
@@ -233,98 +234,116 @@ func printReady(version string, addr string, startTime time.Time) {
 	fmt.Fprintf(os.Stderr, "%s\n\n", separator)
 }
 
+// startClusterSystems initializes and starts all cluster services. It logs each
+// startup step, connects the WebSocket servers, and prints the ready banner.
+// Returns an error if any startup step fails.
+func startClusterSystems(logManagerModule logging.SlogManager, configModule *config.Config, cmdLogger *slog.Logger, valkeyLogChannel chan logging.LogLine, startTime time.Time) error {
+	configModule.Validate()
+
+	base := initializeBaseSystems(logManagerModule, configModule, cmdLogger)
+	logStep("Base systems initialized (kubernetes client, valkey, store)")
+
+	systems := initializeClusterSystems(base, logManagerModule, configModule, valkeyLogChannel)
+	logStep("Cluster systems initialized (websocket, monitors, helm, ai)")
+
+	systems.versionModule.PrintVersionInfo()
+
+	if err := systems.mocore.Initialize(); err != nil {
+		return fmt.Errorf("core initialize: %w", err)
+	}
+	logStep("Core initialized (valkey, cluster secret, CRDs)")
+
+	systems.httpApi.Run()
+	logStep("HTTP API server started on " + configModule.Get("MO_HTTP_ADDR"))
+
+	systems.socketApi.Run()
+	logStep("Socket API started")
+
+	systems.podStatsCollector.Run()
+	logStep("Pod stats collector started")
+
+	systems.nodeMetricsCollector.Orchestrate()
+	logStep("Node metrics collector started")
+
+	systems.valkeyLoggerService.Run()
+	logStep("Valkey logger started")
+
+	systems.dbstatsService.Run()
+	logStep("DB stats service started")
+
+	systems.leaderElector.OnLeading(func() {
+		systems.reconciler.Start()
+		logStep("Reconciler started")
+
+		core.SeedDefaultAgents(logManagerModule.CreateLogger("agent-seeder"), configModule, systems.clientProvider, systems.workspaceManager)
+
+		core.EnsureDefaultWorkspaceDashboard(logManagerModule.CreateLogger("dashboard-seeder"), configModule)
+	})
+
+	systems.leaderElector.OnLeadingEnded(func() {
+
+		systems.reconciler.Stop()
+		logStep("Reconciler stopped")
+	})
+
+	systems.leaderElector.Run()
+	logStep("Leader elector started")
+
+	systems.aiManager.Run()
+	logStep("AI manager started")
+
+	// services have to be started before this otherwise watcher events will get missing
+	// WatchStoreResources attempts every discovered resource kind and reports
+	// the first registration failure. That is not fatal — the other kinds are
+	// watched — so log it and continue instead of aborting startup and
+	// leaving the operator without a websocket connection.
+	err := mokubernetes.WatchStoreResources(systems.watcherModule, systems.aiManager, systems.eventConnectionClient)
+	if err != nil {
+		cmdLogger.Error("some resources could not be watched, continuing with the rest", "error", err)
+	}
+	logStep("Kubernetes resource watcher started")
+
+	// connect socket after everything is ready
+	systems.mocore.InitializeWebsocketEventServer()
+	logStep("WebSocket event server connected")
+
+	systems.mocore.InitializeWebsocketApiServers()
+	logStep("WebSocket API server(s) connected")
+
+	printReady(
+		systems.versionModule.Version,
+		configModule.Get("MO_HTTP_ADDR"),
+		startTime,
+	)
+
+	return nil
+}
+
 func RunCluster(logManagerModule logging.SlogManager, configModule *config.Config, cmdLogger *slog.Logger, valkeyLogChannel chan logging.LogLine) {
 	go func() {
 		defer shutdown.SendShutdownSignal(true)
-		startTime := time.Now()
-
-		configModule.Validate()
-
-		base := initializeBaseSystems(logManagerModule, configModule, cmdLogger)
-		logStep("Base systems initialized (kubernetes client, valkey, store)")
-
-		systems := initializeClusterSystems(base, logManagerModule, configModule, valkeyLogChannel)
-		logStep("Cluster systems initialized (websocket, monitors, helm, ai)")
-
-		systems.versionModule.PrintVersionInfo()
-
-		err := systems.mocore.Initialize()
-		if err != nil {
-			cmdLogger.Error("failed to initialize kubernetes resources", "error", err)
+		if err := startClusterSystems(logManagerModule, configModule, cmdLogger, valkeyLogChannel, time.Now()); err != nil {
+			cmdLogger.Error("failed to start cluster", "error", err)
 			return
 		}
-		logStep("Core initialized (valkey, cluster secret, CRDs)")
-
-		systems.httpApi.Run()
-		logStep("HTTP API server started on " + configModule.Get("MO_HTTP_ADDR"))
-
-		systems.socketApi.Run()
-		logStep("Socket API started")
-
-		systems.podStatsCollector.Run()
-		logStep("Pod stats collector started")
-
-		systems.nodeMetricsCollector.Orchestrate()
-		logStep("Node metrics collector started")
-
-		systems.valkeyLoggerService.Run()
-		logStep("Valkey logger started")
-
-		systems.dbstatsService.Run()
-		logStep("DB stats service started")
-
-		systems.leaderElector.OnLeading(func() {
-			systems.reconciler.Start()
-			logStep("Reconciler started")
-
-			core.SeedDefaultAgents(logManagerModule.CreateLogger("agent-seeder"), configModule, systems.clientProvider, systems.workspaceManager)
-
-			core.EnsureDefaultWorkspaceDashboard(logManagerModule.CreateLogger("dashboard-seeder"), configModule)
-
-			// Gated with the platformconfigs CRD (see kubernetes.InitOrUpdateCrds).
-			if utils.IsDevBuild() {
-				core.EnsureDefaultPlatformConfig(logManagerModule.CreateLogger("platform-config-seeder"), systems.clientProvider)
-			}
-		})
-
-		systems.leaderElector.OnLeadingEnded(func() {
-
-			systems.reconciler.Stop()
-			logStep("Reconciler stopped")
-		})
-
-		systems.leaderElector.Run()
-		logStep("Leader elector started")
-
-		systems.aiManager.Run()
-		logStep("AI manager started")
-
-		// services have to be started before this otherwise watcher events will get missing
-		// WatchStoreResources attempts every discovered resource kind and reports
-		// the first registration failure. That is not fatal — the other kinds are
-		// watched — so log it and continue instead of aborting startup and
-		// leaving the operator without a websocket connection.
-		err = mokubernetes.WatchStoreResources(systems.watcherModule, systems.aiManager, systems.eventConnectionClient)
-		if err != nil {
-			cmdLogger.Error("some resources could not be watched, continuing with the rest", "error", err)
-		}
-		logStep("Kubernetes resource watcher started")
-
-		// connect socket after everything is ready
-		systems.mocore.InitializeWebsocketEventServer()
-		logStep("WebSocket event server connected")
-
-		systems.mocore.InitializeWebsocketApiServers()
-		logStep("WebSocket API server(s) connected")
-
-		printReady(
-			systems.versionModule.Version,
-			configModule.Get("MO_HTTP_ADDR"),
-			startTime,
-		)
-
 		select {}
 	}()
 
 	shutdown.Listen()
+}
+
+// RunClusterWithContext starts the full operator and blocks until ctx is cancelled or
+// a fatal startup error occurs. Unlike RunCluster it does not call shutdown.Listen(),
+// making it suitable for test harnesses and programmatic embedding.
+func RunClusterWithContext(ctx context.Context, logManagerModule logging.SlogManager, configModule *config.Config, cmdLogger *slog.Logger, valkeyLogChannel chan logging.LogLine) error {
+	if err := startClusterSystems(logManagerModule, configModule, cmdLogger, valkeyLogChannel, time.Now()); err != nil {
+		return err
+	}
+
+	<-ctx.Done()
+
+	// Run registered shutdown hooks to clean up goroutines (WebSocket clients, watchers, etc.).
+	<-shutdown.ExecuteShutdownHandlers()
+
+	return nil
 }
