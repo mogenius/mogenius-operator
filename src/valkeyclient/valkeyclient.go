@@ -113,7 +113,7 @@ func (self *valkeyClient) Connect() error {
 	valkeyAddr := valkeyHost + ":" + valkeyPort
 	valkeyPwd := self.config.Get("MO_VALKEY_PASSWORD")
 
-	client, err := valkeyclient.NewClient(valkeyclient.ClientOption{
+	baseOpts := valkeyclient.ClientOption{
 		InitAddress:         []string{valkeyAddr},
 		Password:            valkeyPwd,
 		SelectDB:            0,
@@ -122,7 +122,15 @@ func (self *valkeyClient) Connect() error {
 		WriteBufferEachConn: 512 * (1 << 10), // 512 KiB
 		ConnWriteTimeout:    10 * time.Second,
 		MaxFlushDelay:       100 * time.Microsecond, // Reduce latency for pipelined commands
-	})
+	}
+	client, err := valkeyclient.NewClient(baseOpts)
+	if err != nil && strings.Contains(err.Error(), "DisableCache must be true") {
+		// Server does not support RESP3 client-side caching (e.g. older Redis, miniredis).
+		self.logger.Info("server does not support client-side caching, retrying without it", "addr", valkeyAddr)
+		noCache := baseOpts
+		noCache.DisableCache = true
+		client, err = valkeyclient.NewClient(noCache)
+	}
 	if err != nil {
 		self.logger.Info("connection to Valkey failed", "valkeyAddr", valkeyAddr, "error", err)
 		return fmt.Errorf("could not connect to Valkey: %s", err)

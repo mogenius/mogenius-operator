@@ -432,4 +432,16 @@ func LoadConfigDeclarations(configModule *config.Config) {
 			return nil
 		},
 	})
+	configModule.Declare(config.ConfigDeclaration{
+		Key:          "MO_SKIP_IMPERSONATION",
+		DefaultValue: new("false"),
+		Description:  new("skip service-account impersonation; set to true in local/test environments that lack the operator SA"),
+		Validate: func(value string) error {
+			_, err := strconv.ParseBool(value)
+			if err != nil {
+				return fmt.Errorf("'MO_SKIP_IMPERSONATION' needs to be a boolean: %s", err.Error())
+			}
+			return nil
+		},
+	})
 }
