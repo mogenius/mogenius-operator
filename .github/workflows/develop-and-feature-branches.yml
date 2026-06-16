@@ -43,6 +43,7 @@ jobs:
     with:
       version: ${{ needs.prepare.outputs.version }}
       image: ghcr.io/mogenius/mogenius-operator-dev
+      architectures: amd64,arm64,armv7
       push_latest: ${{ github.ref_name == 'main' }}
       build_args: |
         DEV_BUILD=yes
