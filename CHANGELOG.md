@@ -1,3 +1,10 @@
+# [2.22.0-develop.21](https://github.com/mogenius/mogenius-operator/compare/v2.22.0-develop.20...v2.22.0-develop.21) (2026-06-16)
+
+
+### Bug Fixes
+
+* only allow two sections ([e84a940](https://github.com/mogenius/mogenius-operator/commit/e84a9405fb0aded613ecea62492ddcae5fa9a812))
+
 # [2.22.0-develop.20](https://github.com/mogenius/mogenius-operator/compare/v2.22.0-develop.19...v2.22.0-develop.20) (2026-06-15)
 
 
