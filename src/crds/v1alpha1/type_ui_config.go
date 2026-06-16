@@ -74,7 +74,17 @@ type UISection struct {
 	// Sections holds child sections for nested object properties within this section.
 	// For example, a top-level "Spec" section may contain a "Resources" sub-section
 	// for spec.resources.limits / spec.resources.requests.
-	Sections []UISection `json:"sections,omitempty"`
+	Sections []UISubSection `json:"sections,omitempty"`
+}
+
+type UISubSection struct {
+	// Label is the heading text displayed on the section block in the UI.
+	Label string `json:"label"`
+	// Description is shown below the section heading to explain its purpose to the user.
+	Description string `json:"description,omitempty"`
+	// Fields lists the leaf inputs that belong directly to this section.
+	// Each field maps to a scalar, enum, array-of-scalars, or map property in the resource spec.
+	Fields []UIField `json:"fields,omitempty"`
 }
 
 // UIField describes a single leaf input in the form — a control that maps to one scalar,
