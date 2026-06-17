@@ -1,3 +1,10 @@
+# [2.23.0-develop.2](https://github.com/mogenius/mogenius-operator/compare/v2.23.0-develop.1...v2.23.0-develop.2) (2026-06-17)
+
+
+### Bug Fixes
+
+* no longer build armv7 images from the operator ([0dbf698](https://github.com/mogenius/mogenius-operator/commit/0dbf698059c16c79f66bd9d5391cc250ad9da05e))
+
 # [2.23.0-develop.1](https://github.com/mogenius/mogenius-operator/compare/v2.22.0...v2.23.0-develop.1) (2026-06-17)
 
 
