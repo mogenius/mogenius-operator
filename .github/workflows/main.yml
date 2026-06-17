@@ -41,7 +41,7 @@ jobs:
     with:
       version: ${{ needs.prepare.outputs.version }}
       image: ghcr.io/mogenius/mogenius-operator
-      architectures: amd64,arm64,armv7
+      architectures: amd64,arm64
       build_args_amd64: |
         GO_BUILDER_IMAGE=ghcr.io/mogenius/go-builder:latest-amd64
         RUST_BUILDER_IMAGE=ghcr.io/mogenius/rust-builder:latest-amd64
@@ -54,12 +54,6 @@ jobs:
         BPFTOOL_IMAGE=ghcr.io/mogenius/bpftool:latest-arm64
         SNOOPY_IMAGE=ghcr.io/mogenius/snoopy:latest-arm64
         RUNTIME_IMAGE=ghcr.io/mogenius/runtime:latest-arm64
-      build_args_armv7: |
-        GO_BUILDER_IMAGE=ghcr.io/mogenius/go-builder:latest-amd64
-        RUST_BUILDER_IMAGE=ghcr.io/mogenius/rust-builder:latest-amd64
-        BPFTOOL_IMAGE=ghcr.io/mogenius/bpftool:latest-armv7
-        SNOOPY_IMAGE=ghcr.io/mogenius/snoopy:latest-armv7
-        RUNTIME_IMAGE=ghcr.io/mogenius/runtime:latest-armv7
 
   helm-chart:
     if: github.ref == 'refs/heads/main'
