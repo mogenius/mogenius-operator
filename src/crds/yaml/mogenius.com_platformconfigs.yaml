@@ -296,6 +296,33 @@ spec:
                           type: object
                         type: array
                     type: object
+                  repositories:
+                    items:
+                      properties:
+                        externalSecret:
+                          properties:
+                            key:
+                              type: string
+                            path:
+                              type: string
+                            vault:
+                              type: string
+                          required:
+                          - path
+                          type: object
+                        name:
+                          type: string
+                        path:
+                          type: string
+                        revision:
+                          type: string
+                        url:
+                          type: string
+                      required:
+                      - name
+                      - url
+                      type: object
+                    type: array
                 type: object
               kubePrometheusStack:
                 properties:

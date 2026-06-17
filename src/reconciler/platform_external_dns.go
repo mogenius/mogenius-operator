@@ -38,7 +38,7 @@ func (d *reconcilerModule) reconcileExternalDNS(ctx context.Context, spec v1alph
 				}
 			}
 
-			externalSecret := externalSecretResource(providerSecretName, externalDnsNamespace, spec.ExternalDNS.ExternalSecret)
+			externalSecret := externalSecretResource(providerSecretName, externalDnsNamespace, spec.ExternalDNS.ExternalSecret, nil, nil)
 			extraObjects = append(extraObjects, externalSecret)
 
 			return extraObjects, nil

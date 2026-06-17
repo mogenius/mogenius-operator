@@ -52,8 +52,17 @@ type PlatformConfigSpec struct {
 	ExternalSecretsOperator *ExternalSecretsOperatorConfig `json:"externalSecretsOperator,omitempty"`
 }
 type GitOpsConfig struct {
-	ArgoCD *ArgoCDInstallConfig `json:"argocd,omitempty"`
-	FluxCD *FluxCDInstallConfig `json:"fluxcd,omitempty"`
+	ArgoCD       *ArgoCDInstallConfig     `json:"argocd,omitempty"`
+	FluxCD       *FluxCDInstallConfig     `json:"fluxcd,omitempty"`
+	Repositories []GitOpsRepositoryConfig `json:"repositories,omitempty"`
+}
+
+type GitOpsRepositoryConfig struct {
+	Name           string          `json:"name"`
+	URL            string          `json:"url"`
+	Path           string          `json:"path,omitempty"`
+	Revision       string          `json:"revision,omitempty"`
+	ExternalSecret *ExternalSecret `json:"externalSecret,omitempty"`
 }
 
 type ArgoCDInstallConfig struct {
