@@ -278,11 +278,11 @@ type HelmReleaseListRequest struct {
 
 type HelmReleaseListPaginatedRequest struct {
 	Namespace string `json:"namespace"`
-	Filter    string `json:"filter,omitempty"`        // case-insensitive substring match on release name
+	Filter    string `json:"filter,omitempty"` // case-insensitive substring match on release name
 	Offset    int    `json:"offset"`
-	Limit     int    `json:"limit"`                   // 0 means "no limit"
-	SortBy    string `json:"sortBy"`                  // "lastDeployed" (default) | "name"
-	SortOrder string `json:"sortOrder"`               // "asc" | "desc"
+	Limit     int    `json:"limit"`     // 0 means "no limit"
+	SortBy    string `json:"sortBy"`    // "lastDeployed" (default) | "name"
+	SortOrder string `json:"sortOrder"` // "asc" | "desc"
 	// WorkspaceName, when set, scopes the result to the helm releases that are
 	// registered as resources of that workspace (resolved server-side from the
 	// Workspace CRD). Empty means cluster-wide (all releases).
@@ -1150,6 +1150,10 @@ func HelmReleaseUpgrade(data HelmChartInstallUpgradeRequest) (result string, err
 	// error when a field (e.g. argo-cd-rbac-cm .data.policy.csv) is still held by
 	// a stale field-manager entry (MOG-4393).
 	upgrade.ForceConflicts = true
+	// ServerSideApply must be "true" (not "auto") because "auto" inherits the
+	// previous release's ApplyMethod — releases originally installed via CSA would
+	// resolve to SSA=false, making ForceConflicts invalid.
+	upgrade.ServerSideApply = "true"
 
 	helmLogger.Info("Locating chart ...", "releaseName", data.Release, "namespace", data.Namespace)
 	chartPath, err := upgrade.LocateChart(data.Chart, settings)

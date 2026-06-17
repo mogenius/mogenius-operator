@@ -1,3 +1,62 @@
+# [2.23.0-develop.2](https://github.com/mogenius/mogenius-operator/compare/v2.23.0-develop.1...v2.23.0-develop.2) (2026-06-17)
+
+
+### Bug Fixes
+
+* no longer build armv7 images from the operator ([0dbf698](https://github.com/mogenius/mogenius-operator/commit/0dbf698059c16c79f66bd9d5391cc250ad9da05e))
+
+# [2.23.0-develop.1](https://github.com/mogenius/mogenius-operator/compare/v2.22.0...v2.23.0-develop.1) (2026-06-17)
+
+
+### Bug Fixes
+
+* **deps:** update kubernetes monorepo to v0.36.2 ([efc08d4](https://github.com/mogenius/mogenius-operator/commit/efc08d48a26ef83c0b1baf1b8df46f70e4fc1358))
+* **deps:** update module github.com/anthropics/anthropic-sdk-go to v1.50.1 ([f821e93](https://github.com/mogenius/mogenius-operator/commit/f821e931e689b2d29c123bd04bb90f4fe0bb95ff))
+* **deps:** update module github.com/ollama/ollama to v0.30.8 ([95cb6ce](https://github.com/mogenius/mogenius-operator/commit/95cb6cebaa4243303b736f1518f0d2dcba305bec))
+* enable server side apply for helm ([5fdf3a1](https://github.com/mogenius/mogenius-operator/commit/5fdf3a14954f8ec0c5c6cf4f670dc599143c5ccf))
+* only allow two sections ([e84a940](https://github.com/mogenius/mogenius-operator/commit/e84a9405fb0aded613ecea62492ddcae5fa9a812))
+
+
+### Features
+
+* adding ui config crd ([d9f9a7e](https://github.com/mogenius/mogenius-operator/commit/d9f9a7e701154b2b08333a39def19e2c33e97b65))
+
+# [2.22.0-develop.21](https://github.com/mogenius/mogenius-operator/compare/v2.22.0-develop.20...v2.22.0-develop.21) (2026-06-16)
+
+
+### Bug Fixes
+
+* only allow two sections ([e84a940](https://github.com/mogenius/mogenius-operator/commit/e84a9405fb0aded613ecea62492ddcae5fa9a812))
+
+# [2.22.0-develop.20](https://github.com/mogenius/mogenius-operator/compare/v2.22.0-develop.19...v2.22.0-develop.20) (2026-06-15)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/ollama/ollama to v0.30.8 ([95cb6ce](https://github.com/mogenius/mogenius-operator/commit/95cb6cebaa4243303b736f1518f0d2dcba305bec))
+
+# [2.22.0-develop.19](https://github.com/mogenius/mogenius-operator/compare/v2.22.0-develop.18...v2.22.0-develop.19) (2026-06-15)
+
+
+### Bug Fixes
+
+* enable server side apply for helm ([5fdf3a1](https://github.com/mogenius/mogenius-operator/commit/5fdf3a14954f8ec0c5c6cf4f670dc599143c5ccf))
+
+# [2.22.0-develop.18](https://github.com/mogenius/mogenius-operator/compare/v2.22.0-develop.17...v2.22.0-develop.18) (2026-06-15)
+
+
+### Features
+
+* adding ui config crd ([d9f9a7e](https://github.com/mogenius/mogenius-operator/commit/d9f9a7e701154b2b08333a39def19e2c33e97b65))
+
+# [2.22.0-develop.17](https://github.com/mogenius/mogenius-operator/compare/v2.22.0-develop.16...v2.22.0-develop.17) (2026-06-15)
+
+
+### Bug Fixes
+
+* **deps:** update kubernetes monorepo to v0.36.2 ([efc08d4](https://github.com/mogenius/mogenius-operator/commit/efc08d48a26ef83c0b1baf1b8df46f70e4fc1358))
+* **deps:** update module github.com/anthropics/anthropic-sdk-go to v1.50.1 ([f821e93](https://github.com/mogenius/mogenius-operator/commit/f821e931e689b2d29c123bd04bb90f4fe0bb95ff))
+
 # [2.22.0](https://github.com/mogenius/mogenius-operator/compare/v2.21.1...v2.22.0) (2026-06-12)
 
 
