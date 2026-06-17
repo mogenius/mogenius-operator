@@ -134,14 +134,9 @@ type ExternalSecretsOperatorConfig struct {
 }
 
 type ExternalSecretVault struct {
-	Name                    string            `json:"name"`
-	Type                    string            `json:"type"`
-	ServiceAccountSecretRef ServiceAccountRef `json:"serviceAccountSecretRef"`
-}
-
-type ServiceAccountRef struct {
-	Name string `json:"name"`
-	Key  string `json:"key"`
+	Name     string                `json:"name"`
+	Type     string                `json:"type"`
+	Provider runtime.RawExtension  `json:"provider"`
 }
 
 type ExternalSecret struct {

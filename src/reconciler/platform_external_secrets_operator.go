@@ -2,6 +2,8 @@ package reconciler
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"mogenius-operator/src/crds/v1alpha1"
 	"mogenius-operator/src/gitops"
 	"mogenius-operator/src/utils"
@@ -25,24 +27,26 @@ func (d *reconcilerModule) reconcileExternalSecretsOperator(ctx context.Context,
 			defaultNamespace: defaultNs,
 		},
 		func(ctx context.Context) ([]any, error) {
-			// build extra objects
 			extraObjects := []any{}
 
-			installNamespace := helmNamespace(spec.ExternalSecretsOperator.Chart, defaultNs)
-
 			for _, vault := range spec.ExternalSecretsOperator.Vaults {
-				vaultObj := map[string]any{
+				var provider map[string]any
+				if err := json.Unmarshal(vault.Provider.Raw, &provider); err != nil {
+					return nil, fmt.Errorf("parse provider for vault %q: %w", vault.Name, err)
+				}
+
+				extraObjects = append(extraObjects, map[string]any{
 					"apiVersion": utils.ClusterSecretStoreResource.ApiVersion,
 					"kind":       utils.ClusterSecretStoreResource.Kind,
 					"metadata": map[string]any{
 						"name": vault.Name,
 					},
 					"spec": map[string]any{
-						"provider": getVaultProvider(vault, installNamespace),
+						"provider": map[string]any{
+							vault.Type: provider,
+						},
 					},
-				}
-
-				extraObjects = append(extraObjects, vaultObj)
+				})
 			}
 
 			return extraObjects, nil
@@ -51,25 +55,4 @@ func (d *reconcilerModule) reconcileExternalSecretsOperator(ctx context.Context,
 			return nil, nil
 		},
 	)
-}
-
-func getVaultProvider(vault v1alpha1.ExternalSecretVault, namespace string) map[string]any {
-
-	switch vault.Type {
-	case "1password":
-		return map[string]any{
-			"onepasswordSDK": map[string]any{
-				"vault": vault.Name,
-				"auth": map[string]any{
-					"serviceAccountSecretRef": map[string]any{
-						"name":      vault.ServiceAccountSecretRef.Name,
-						"key":       vault.ServiceAccountSecretRef.Key,
-						"namespace": namespace,
-					},
-				},
-			},
-		}
-	}
-
-	return map[string]any{}
 }

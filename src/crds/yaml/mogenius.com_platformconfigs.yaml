@@ -217,21 +217,14 @@ spec:
                       properties:
                         name:
                           type: string
-                        serviceAccountSecretRef:
-                          properties:
-                            key:
-                              type: string
-                            name:
-                              type: string
-                          required:
-                          - key
-                          - name
+                        provider:
                           type: object
+                          x-kubernetes-preserve-unknown-fields: true
                         type:
                           type: string
                       required:
                       - name
-                      - serviceAccountSecretRef
+                      - provider
                       - type
                       type: object
                     type: array
