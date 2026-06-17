@@ -1,3 +1,10 @@
+# [2.23.0-develop.4](https://github.com/mogenius/mogenius-operator/compare/v2.23.0-develop.3...v2.23.0-develop.4) (2026-06-17)
+
+
+### Bug Fixes
+
+* adding platform config to configure renovate ([177167d](https://github.com/mogenius/mogenius-operator/commit/177167d9573dc51ab0b2fed709e5dadb17b3cd30))
+
 # [2.23.0-develop.3](https://github.com/mogenius/mogenius-operator/compare/v2.23.0-develop.2...v2.23.0-develop.3) (2026-06-17)
 
 
