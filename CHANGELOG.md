@@ -1,3 +1,11 @@
+# [2.23.0-develop.3](https://github.com/mogenius/mogenius-operator/compare/v2.23.0-develop.2...v2.23.0-develop.3) (2026-06-17)
+
+
+### Bug Fixes
+
+* adding gitrepositories to platform config crd ([ac7fbad](https://github.com/mogenius/mogenius-operator/commit/ac7fbad671adc30c11647d55879efb81f0246883))
+* allow for a more generic configuration of external secrets ([e25c222](https://github.com/mogenius/mogenius-operator/commit/e25c2229d2d88ccb5743da0d165adb764f65a6dd))
+
 # [2.23.0-develop.2](https://github.com/mogenius/mogenius-operator/compare/v2.23.0-develop.1...v2.23.0-develop.2) (2026-06-17)
 
 
