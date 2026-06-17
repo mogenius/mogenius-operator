@@ -393,12 +393,56 @@ spec:
                     type: object
                   enabled:
                     type: boolean
+                  maxParallelJobs:
+                    type: integer
                   patches:
                     items:
                       properties:
                         name:
                           description: name of the PlatformPatch resource to apply
                           type: string
+                      type: object
+                    type: array
+                  repositories:
+                    items:
+                      properties:
+                        externalSecret:
+                          properties:
+                            key:
+                              type: string
+                            path:
+                              type: string
+                            vault:
+                              type: string
+                          required:
+                          - path
+                          type: object
+                        filter:
+                          description: Filter is a discovery topic used when not referencing
+                            a gitops repository.
+                          type: string
+                        gitOpsRepository:
+                          description: |-
+                            GitOpsRepository references a repository from spec.gitOps.repositories by name.
+                            Its name is used as the discoverTopics filter.
+                          type: string
+                        name:
+                          description: Name of the RenovateJob resource. Defaults
+                            to the gitOpsRepository name when set.
+                          type: string
+                        provider:
+                          properties:
+                            endpoint:
+                              type: string
+                            name:
+                              type: string
+                          required:
+                          - name
+                          type: object
+                        schedule:
+                          type: string
+                      required:
+                      - provider
                       type: object
                     type: array
                 type: object

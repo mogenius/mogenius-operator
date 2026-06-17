@@ -121,9 +121,29 @@ type AlloyConfig struct {
 }
 
 type RenovateOperatorConfig struct {
-	Enabled bool                           `json:"enabled,omitempty"`
-	Patches []PlatformConfigPatchReference `json:"patches,omitempty"`
-	Chart   *HelmChartReference            `json:"chart,omitempty"`
+	Enabled         bool                           `json:"enabled,omitempty"`
+	Patches         []PlatformConfigPatchReference `json:"patches,omitempty"`
+	Chart           *HelmChartReference            `json:"chart,omitempty"`
+	MaxParallelJobs int                            `json:"maxParallelJobs,omitempty"`
+	Repositories    []RenovateJobConfig            `json:"repositories,omitempty"`
+}
+
+type RenovateJobConfig struct {
+	// Name of the RenovateJob resource. Defaults to the gitOpsRepository name when set.
+	Name string `json:"name,omitempty"`
+	// GitOpsRepository references a repository from spec.gitOps.repositories by name.
+	// Its name is used as the discoverTopics filter.
+	GitOpsRepository string           `json:"gitOpsRepository,omitempty"`
+	// Filter is a discovery topic used when not referencing a gitops repository.
+	Filter         string           `json:"filter,omitempty"`
+	Provider       RenovateProvider `json:"provider"`
+	Schedule       string           `json:"schedule,omitempty"`
+	ExternalSecret *ExternalSecret  `json:"externalSecret,omitempty"`
+}
+
+type RenovateProvider struct {
+	Name     string `json:"name"`
+	Endpoint string `json:"endpoint,omitempty"`
 }
 
 type ExternalSecretsOperatorConfig struct {
