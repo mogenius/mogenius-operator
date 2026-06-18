@@ -1,3 +1,10 @@
+# [2.23.0-develop.8](https://github.com/mogenius/mogenius-operator/compare/v2.23.0-develop.7...v2.23.0-develop.8) (2026-06-18)
+
+
+### Bug Fixes
+
+* **deps:** update module helm.sh/helm/v4 to v4.2.2 ([a067ba5](https://github.com/mogenius/mogenius-operator/commit/a067ba54d4f7b9cf274af7e44e54e130930106fe))
+
 # [2.23.0-develop.7](https://github.com/mogenius/mogenius-operator/compare/v2.23.0-develop.6...v2.23.0-develop.7) (2026-06-18)
 
 
