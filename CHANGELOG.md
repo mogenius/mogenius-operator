@@ -1,3 +1,13 @@
+# [2.23.0-develop.9](https://github.com/mogenius/mogenius-operator/compare/v2.23.0-develop.8...v2.23.0-develop.9) (2026-06-18)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/anthropics/anthropic-sdk-go to v1.50.2 ([dbae4b0](https://github.com/mogenius/mogenius-operator/commit/dbae4b06c81d7b83f0890d11e73619d24de9d695))
+* **deps:** update module github.com/ollama/ollama to v0.30.10 ([3278b6e](https://github.com/mogenius/mogenius-operator/commit/3278b6e768b4ae4752158ca7dcc5cf9401fd976b))
+* **deps:** update module github.com/openai/openai-go/v3 to v3.40.0 ([8fb30fa](https://github.com/mogenius/mogenius-operator/commit/8fb30fa0455cddd2b7f3e927b120e8017efe09d1))
+* open pod shell on images without sh (bash/ash fallback) ([b6951eb](https://github.com/mogenius/mogenius-operator/commit/b6951ebf9076e90d576072e24e1dc6aa2536c5ab))
+
 # [2.23.0-develop.8](https://github.com/mogenius/mogenius-operator/compare/v2.23.0-develop.7...v2.23.0-develop.8) (2026-06-18)
 
 
