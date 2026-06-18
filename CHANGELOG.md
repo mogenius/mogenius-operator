@@ -1,3 +1,10 @@
+# [2.23.0-develop.6](https://github.com/mogenius/mogenius-operator/compare/v2.23.0-develop.5...v2.23.0-develop.6) (2026-06-18)
+
+
+### Bug Fixes
+
+* helm v4 waitStrategy is required ([fed0030](https://github.com/mogenius/mogenius-operator/commit/fed00309326169bd4c4faf660bf82b4ead6665f6))
+
 # [2.23.0-develop.5](https://github.com/mogenius/mogenius-operator/compare/v2.23.0-develop.4...v2.23.0-develop.5) (2026-06-18)
 
 
