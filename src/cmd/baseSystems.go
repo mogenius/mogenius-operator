@@ -38,7 +38,7 @@ func initializeBaseSystems(
 	assert.Assert(cmdLogger != nil)
 
 	clientProvider := k8sclient.NewK8sClientProvider(logManagerModule.CreateLogger("client-provider"), configModule)
-	if !clientProvider.RunsInCluster() {
+	if !clientProvider.RunsInCluster() && configModule.Get("MO_SKIP_IMPERSONATION") != "true" {
 		impersonated, err := clientProvider.WithImpersonate(v1.Subject{
 			Kind:      "ServiceAccount",
 			Name:      "mogenius-operator-service-account-app",

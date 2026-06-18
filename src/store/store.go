@@ -277,7 +277,6 @@ func SetResourceWithIndex(
 	// the discovered shard matches the primary key shape exactly.
 	client := valkey.GetValkeyClient()
 	cmds := []vgo.Completed{
-		client.B().Multi().Build(),
 		client.B().Set().Key(primaryKey).Value(string(payload)).ExSeconds(ttlSeconds).Build(),
 		client.B().Zadd().Key(byCreationKey).ScoreMember().ScoreMember(creationScore, name).Build(),
 		client.B().Expire().Key(byCreationKey).Seconds(ttlSeconds).Build(),
@@ -285,10 +284,9 @@ func SetResourceWithIndex(
 		client.B().Expire().Key(byNameKey).Seconds(ttlSeconds).Build(),
 		client.B().Sadd().Key(nsRegistryKey).Member(namespace).Build(),
 		client.B().Expire().Key(nsRegistryKey).Seconds(ttlSeconds).Build(),
-		client.B().Exec().Build(),
 	}
 
-	if err := checkMultiExec(client.DoMulti(valkey.GetContext(), cmds...)); err != nil {
+	if err := checkPipeline(client.DoMulti(valkey.GetContext(), cmds...)); err != nil {
 		return fmt.Errorf("set resource with index pipeline: %w", err)
 	}
 	return nil
@@ -311,47 +309,20 @@ func DeleteResourceWithIndex(
 	// to an empty/expired ZSET shard (ZCARD 0) that the reader skips.
 	client := valkey.GetValkeyClient()
 	cmds := []vgo.Completed{
-		client.B().Multi().Build(),
 		client.B().Del().Key(primaryKey).Build(),
 		client.B().Zrem().Key(byCreationKey).Member(name).Build(),
 		client.B().Zrem().Key(byNameKey).Member(name).Build(),
-		client.B().Exec().Build(),
 	}
 
-	if err := checkMultiExec(client.DoMulti(valkey.GetContext(), cmds...)); err != nil {
+	if err := checkPipeline(client.DoMulti(valkey.GetContext(), cmds...)); err != nil {
 		return fmt.Errorf("delete resource with index pipeline: %w", err)
 	}
 	return nil
 }
 
-// checkMultiExec validates the responses of a MULTI ... EXEC pipeline sent via
-// DoMulti. The per-response Error() check catches connection failures,
-// queue-time command errors and EXECABORT (where the EXEC reply itself is an
-// error). It additionally walks the EXEC reply array so per-command runtime
-// errors (e.g. a WRONGTYPE that only surfaces during EXEC) are not silently
-// swallowed - those are nested inside the array element, not on the array
-// result itself.
-func checkMultiExec(resps []vgo.ValkeyResult) error {
+func checkPipeline(resps []vgo.ValkeyResult) error {
 	for _, resp := range resps {
 		if err := resp.Error(); err != nil {
-			return err
-		}
-	}
-	if len(resps) == 0 {
-		return nil
-	}
-	// The last response is the EXEC reply: an array with one entry per queued
-	// command. A nil reply means the transaction was discarded (only happens
-	// with WATCH, which we don't use, so treat it as a failure).
-	execResults, err := resps[len(resps)-1].ToArray()
-	if err != nil {
-		if errors.Is(err, vgo.Nil) {
-			return fmt.Errorf("transaction discarded")
-		}
-		return err
-	}
-	for _, r := range execResults {
-		if err := r.Error(); err != nil {
 			return err
 		}
 	}
