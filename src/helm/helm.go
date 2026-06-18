@@ -892,8 +892,8 @@ func HelmOciInstall(data HelmChartOciInstallUpgradeRequest) (result string, err 
 	install.ReleaseName = data.Release
 	install.Namespace = data.Namespace
 	install.Version = data.Version
-	install.WaitStrategy = kube.StatusWatcherStrategy
-	install.Timeout = 300 * time.Second
+	//install.WaitStrategy = kube.StatusWatcherStrategy
+	//install.Timeout = 300 * time.Second
 	// See HelmReleaseUpgrade: take sole ownership on SSA conflicts (MOG-4393).
 	install.ForceConflicts = true
 	install.Labels = map[string]string{
@@ -1023,8 +1023,8 @@ func HelmChartInstall(data HelmChartInstallUpgradeRequest) (result string, err e
 	install.ReleaseName = data.Release
 	install.Namespace = data.Namespace
 	install.Version = data.Version
-	install.WaitStrategy = kube.StatusWatcherStrategy
-	install.Timeout = 300 * time.Second
+	//install.WaitStrategy = kube.StatusWatcherStrategy
+	//install.Timeout = 300 * time.Second
 	install.Devel = true
 	// See HelmReleaseUpgrade: take sole ownership on SSA conflicts (MOG-4393).
 	install.ForceConflicts = true
@@ -1140,10 +1140,10 @@ func HelmReleaseUpgrade(data HelmChartInstallUpgradeRequest) (result string, err
 	if data.DryRun {
 		upgrade.DryRunStrategy = action.DryRunServer
 	}
-	upgrade.WaitStrategy = kube.StatusWatcherStrategy
+	//upgrade.WaitStrategy = kube.StatusWatcherStrategy
 	upgrade.Namespace = data.Namespace
 	upgrade.Version = data.Version
-	upgrade.Timeout = 300 * time.Second
+	//upgrade.Timeout = 300 * time.Second
 	upgrade.Devel = true
 	// Force server-side-apply conflicts so the operator becomes sole manager of
 	// the platform charts it installs. Resolves the "Apply failed with conflict"
