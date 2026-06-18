@@ -45,6 +45,7 @@ jobs:
       image: ghcr.io/mogenius/mogenius-operator-dev
       architectures: amd64,arm64
       push_latest: ${{ github.ref_name == 'main' }}
+      sign_image: true
       build_args: |
         DEV_BUILD=yes
       build_args_amd64: |

@@ -42,6 +42,7 @@ jobs:
       version: ${{ needs.prepare.outputs.version }}
       image: ghcr.io/mogenius/mogenius-operator
       architectures: amd64,arm64
+      sign_image: true
       build_args_amd64: |
         GO_BUILDER_IMAGE=ghcr.io/mogenius/go-builder:latest-amd64
         RUST_BUILDER_IMAGE=ghcr.io/mogenius/rust-builder:latest-amd64
