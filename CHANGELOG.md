@@ -1,3 +1,10 @@
+# [2.23.0-develop.5](https://github.com/mogenius/mogenius-operator/compare/v2.23.0-develop.4...v2.23.0-develop.5) (2026-06-18)
+
+
+### Bug Fixes
+
+* remove helm wait strategy ([5355ffd](https://github.com/mogenius/mogenius-operator/commit/5355ffd87d5d873cdac0e20a827aac39a555c6d7))
+
 # [2.23.0-develop.4](https://github.com/mogenius/mogenius-operator/compare/v2.23.0-develop.3...v2.23.0-develop.4) (2026-06-17)
 
 
