@@ -1,19 +1,39 @@
 package k8sexec
 
 import (
+	"bytes"
 	"context"
+	"fmt"
+	"io"
 	"log/slog"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
+	"time"
 
 	"golang.org/x/term"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/remotecommand"
 )
 
+// probeTimeout bounds a single non-interactive shell probe.
+const probeTimeout = 5 * time.Second
+
+// ShellNotFoundExitCode is the process exit code used when no usable shell is
+// found in the container. The parent process maps it to a NO_SHELL_AVAILABLE
+// close reason so the frontend can render a dedicated message instead of a
+// raw OCI runtime error. Chosen to not collide with shell exit codes or the
+// 137 (SIGKILL) code already handled by the parent.
+const ShellNotFoundExitCode = 66
+
 type Executor interface {
 	Start(command []string) error
+	// Probe runs command non-interactively (no TTY, no stdin, output discarded)
+	// and returns nil only if it starts and exits with code 0. It is used to
+	// detect which shell binary is available inside the container before
+	// opening an interactive session.
+	Probe(command []string) error
 }
 
 type k8sExecutor struct {
@@ -34,6 +54,46 @@ func NewExecutor(logger *slog.Logger, client rest.Interface, config rest.Config,
 		pod:        pod,
 		container:  container,
 	}, nil
+}
+
+func (e *k8sExecutor) Probe(command []string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), probeTimeout)
+	defer cancel()
+
+	execRequest := e.restClient.
+		Post().
+		Resource("pods").
+		Name(e.pod).
+		Namespace(e.namespace).
+		SubResource("exec").
+		Param("container", e.container).
+		Param("stdout", "true").
+		Param("stdin", "false").
+		Param("stderr", "true").
+		Param("tty", "false")
+
+	for _, arg := range command {
+		execRequest.Param("command", arg)
+	}
+	executor, err := remotecommand.NewSPDYExecutor(&e.restConfig, "POST", execRequest.URL())
+	if err != nil {
+		return err
+	}
+
+	// Discard stdout but capture stderr so the original runtime error (e.g.
+	// `exec: "sh": executable file not found in $PATH`) can be surfaced.
+	var stderr bytes.Buffer
+	err = executor.StreamWithContext(ctx, remotecommand.StreamOptions{
+		Stdout: io.Discard,
+		Stderr: &stderr,
+	})
+	if err != nil {
+		if msg := strings.TrimSpace(stderr.String()); msg != "" {
+			return fmt.Errorf("%s (%w)", msg, err)
+		}
+		return err
+	}
+	return nil
 }
 
 func (e *k8sExecutor) Start(command []string) error {
