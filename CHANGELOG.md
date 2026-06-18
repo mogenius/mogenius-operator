@@ -1,3 +1,10 @@
+# [2.23.0-develop.7](https://github.com/mogenius/mogenius-operator/compare/v2.23.0-develop.6...v2.23.0-develop.7) (2026-06-18)
+
+
+### Bug Fixes
+
+* sign mogenius operator docker image ([fddb33c](https://github.com/mogenius/mogenius-operator/commit/fddb33cd76568796016786b91f42aaae0f5d1eaf))
+
 # [2.23.0-develop.6](https://github.com/mogenius/mogenius-operator/compare/v2.23.0-develop.5...v2.23.0-develop.6) (2026-06-18)
 
 
