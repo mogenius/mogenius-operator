@@ -2290,14 +2290,21 @@ func (self *socketApi) argoHelmReleaseItems() []*helm.HelmRelease {
 }
 
 func (self *socketApi) LoadRequest(datagram *structs.Datagram, data any) error {
-	bytes, err := json.Marshal(datagram.Payload)
-	if err != nil {
-		datagram.Err = err.Error()
-		return err
+	var payloadBytes []byte
+	if raw, ok := datagram.Payload.(json.RawMessage); ok {
+		// ParseDatagram already captured the payload as raw JSON; decode it
+		// straight into the typed request without a re-marshal.
+		payloadBytes = raw
+	} else {
+		marshaled, err := json.Marshal(datagram.Payload)
+		if err != nil {
+			datagram.Err = err.Error()
+			return err
+		}
+		payloadBytes = marshaled
 	}
 
-	err = json.Unmarshal(bytes, data)
-	if err != nil {
+	if err := json.Unmarshal(payloadBytes, data); err != nil {
 		datagram.Err = err.Error()
 		return err
 	}
@@ -2671,10 +2678,24 @@ func (self *socketApi) patternHandlerExists(pattern string) bool {
 func (self *socketApi) ParseDatagram(data []byte) (structs.Datagram, error) {
 	datagram := structs.CreateEmptyDatagram()
 
-	err := json.Unmarshal(data, &datagram)
-	if err != nil {
+	// Decode with the payload captured as raw JSON instead of a generic map.
+	// LoadRequest then unmarshals it once, directly into the typed request
+	// struct, removing a redundant decode-to-map followed by a re-marshal on
+	// every inbound request. A json.RawMessage round-trips to its own bytes,
+	// so the zlib-decompress and audit-log paths keep working unchanged.
+	raw := struct {
+		structs.Datagram
+		Payload json.RawMessage `json:"payload,omitempty"`
+	}{Datagram: datagram}
+
+	if err := json.Unmarshal(data, &raw); err != nil {
 		self.logger.Error("failed to unmarshal", "error", err)
 		return datagram, err
+	}
+
+	datagram = raw.Datagram
+	if len(raw.Payload) > 0 {
+		datagram.Payload = raw.Payload
 	}
 
 	validationErr := utils.ValidateJSON(datagram)

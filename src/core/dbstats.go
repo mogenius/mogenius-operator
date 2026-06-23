@@ -488,7 +488,10 @@ func (self *valkeyStatsDb) GetWorkspaceStatsTrafficUtilization(timeOffsetInMinut
 				return
 			}
 
-			// Add traffic for each minute
+			// Aggregate locally for this controller, then merge once under the
+			// lock. Locking per entry serialized all goroutines on the shared
+			// map and dominated wall-clock for traffic-heavy workspaces.
+			localAgg := make(map[time.Time]GenericChartEntry)
 			for _, entry := range values {
 				minute := entry.CreatedAt.Round(time.Minute)
 				// Clamp any leftover underflowed values that were stored before the
@@ -515,28 +518,46 @@ func (self *valkeyStatsDb) GetWorkspaceStatsTrafficUtilization(timeOffsetInMinut
 					entry.TransmitStartBytes = 0
 				}
 
-				resultMutex.Lock()
-				{
-					existingEntry, exists := trafficByMinute[minute]
-					value := float64(entry.TransmitBytes + entry.ReceivedBytes)
-					if !exists {
-						trafficByMinute[minute] = GenericChartEntry{
-							Time:  minute,
-							Value: value,
-							Pods: map[string]float64{
-								entry.Pod: value,
-							},
-						}
-					} else {
-						trafficByMinute[minute] = GenericChartEntry{
-							Time:  minute,
-							Value: existingEntry.Value + value,
-							Pods:  updateTop5Pods(existingEntry.Pods, value, entry.Pod),
-						}
+				existingEntry, exists := localAgg[minute]
+				value := float64(entry.TransmitBytes + entry.ReceivedBytes)
+				if !exists {
+					localAgg[minute] = GenericChartEntry{
+						Time:  minute,
+						Value: value,
+						Pods: map[string]float64{
+							entry.Pod: value,
+						},
+					}
+				} else {
+					localAgg[minute] = GenericChartEntry{
+						Time:  minute,
+						Value: existingEntry.Value + value,
+						Pods:  updateTop5Pods(existingEntry.Pods, value, entry.Pod),
 					}
 				}
-				resultMutex.Unlock()
 			}
+
+			// Merge this controller's aggregation into the shared map under a
+			// single lock. Pods belong to exactly one controller, so the global
+			// top-5 is preserved by merging each controller's local top-5.
+			resultMutex.Lock()
+			for minute, local := range localAgg {
+				existingEntry, exists := trafficByMinute[minute]
+				if !exists {
+					trafficByMinute[minute] = local
+					continue
+				}
+				merged := GenericChartEntry{
+					Time:  minute,
+					Value: existingEntry.Value + local.Value,
+					Pods:  existingEntry.Pods,
+				}
+				for pod, v := range local.Pods {
+					merged.Pods = updateTop5Pods(merged.Pods, v, pod)
+				}
+				trafficByMinute[minute] = merged
+			}
+			resultMutex.Unlock()
 		})
 	}
 	wg.Wait()
