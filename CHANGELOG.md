@@ -1,3 +1,11 @@
+## [2.23.1-develop.2](https://github.com/mogenius/mogenius-operator/compare/v2.23.1-develop.1...v2.23.1-develop.2) (2026-06-23)
+
+
+### Bug Fixes
+
+* enable nonblocking writes and some minor fixes. should boost performance under load significantly ([06bafa2](https://github.com/mogenius/mogenius-operator/commit/06bafa255855af163d379c40299393c0968e01d0))
+* speed improvements. ([bd6f593](https://github.com/mogenius/mogenius-operator/commit/bd6f593eb0ce877b4cd90e2a312cd342b44f52cc))
+
 ## [2.23.1-develop.1](https://github.com/mogenius/mogenius-operator/compare/v2.23.0...v2.23.1-develop.1) (2026-06-23)
 
 
