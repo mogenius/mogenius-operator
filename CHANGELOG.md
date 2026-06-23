@@ -1,3 +1,11 @@
+# [2.23.0-develop.12](https://github.com/mogenius/mogenius-operator/compare/v2.23.0-develop.11...v2.23.0-develop.12) (2026-06-23)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/anthropics/anthropic-sdk-go to v1.51.1 ([291a509](https://github.com/mogenius/mogenius-operator/commit/291a5097acaf5108b95fe4fd6d8c33a9594eff57))
+* **deps:** update module github.com/openai/openai-go/v3 to v3.41.0 ([e08d91d](https://github.com/mogenius/mogenius-operator/commit/e08d91dd68125a77e2289205a45db347e486654a))
+
 # [2.23.0-develop.11](https://github.com/mogenius/mogenius-operator/compare/v2.23.0-develop.10...v2.23.0-develop.11) (2026-06-23)
 
 
