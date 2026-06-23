@@ -1,3 +1,10 @@
+# [2.23.0-develop.10](https://github.com/mogenius/mogenius-operator/compare/v2.23.0-develop.9...v2.23.0-develop.10) (2026-06-23)
+
+
+### Bug Fixes
+
+* set strategy if its rolling update ([4e5f3eb](https://github.com/mogenius/mogenius-operator/commit/4e5f3eb894fbe50847dbabfecf8d6f46a9dcdbd1))
+
 # [2.23.0-develop.9](https://github.com/mogenius/mogenius-operator/compare/v2.23.0-develop.8...v2.23.0-develop.9) (2026-06-18)
 
 
