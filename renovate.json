@@ -31,6 +31,13 @@
         "helm/**"
       ],
       "enabled": false
+    },
+    {
+      "description": "sealed-secrets renamed module path from bitnami-labs to bitnami at v0.38.x",
+      "matchDatasources": ["go"],
+      "matchPackageNames": ["github.com/bitnami-labs/sealed-secrets"],
+      "replacementName": "github.com/bitnami/sealed-secrets",
+      "replacementVersion": "v0.38.1"
     }
   ]
 }
