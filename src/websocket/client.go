@@ -66,6 +66,11 @@ type WebsocketClient interface {
 	WriteJSON(data any) error
 	ReadJSON(buf any) error
 
+	// WriteRaw queues an already-marshaled JSON text frame for sending. The
+	// marshaling happens in the caller's goroutine instead of on the single
+	// write thread, so concurrent callers no longer serialize on encoding.
+	WriteRaw(data []byte) error
+
 	WriteMessage(messageType int, data []byte) error
 	ReadMessage() (messageType int, p []byte, err error)
 }
@@ -227,6 +232,25 @@ func (self *websocketClient) WriteJSON(data any) error {
 				self.apiLogger.Debug("WriteJSON", "data", data, "error", err)
 				return err
 			}
+		}
+	}
+}
+
+func (self *websocketClient) WriteRaw(data []byte) error {
+	// Fast path: try a non-blocking enqueue.
+	select {
+	case <-self.ctx.Done():
+		return fmt.Errorf("WebsocketClient is terminated")
+	case self.writeQueue <- data:
+		return nil
+	default:
+		// Queue full: block until a slot frees up. This backpressures the
+		// caller instead of dropping or unbounded-buffering frames.
+		select {
+		case <-self.ctx.Done():
+			return fmt.Errorf("WebsocketClient is terminated")
+		case self.writeQueue <- data:
+			return nil
 		}
 	}
 }
@@ -477,7 +501,12 @@ func (self *websocketClient) startRuntime() {
 				continue
 			}
 			var dialer *gorillaWebsocket.Dialer = gorillaWebsocket.DefaultDialer
-			dialer.EnableCompression = true
+			// permessage-deflate is intentionally OFF: large payloads are
+			// already zlib-compressed at the application layer (see
+			// handlePatternRequest), so transport-level deflate would just burn
+			// CPU re-compressing incompressible (already-compressed or base64)
+			// bytes.
+			dialer.EnableCompression = false
 			skipTlsVerification := strings.ToLower(os.Getenv("MO_SKIP_TLS_VERIFICATION"))
 			if skipTlsVerification == "true" {
 				dialer.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
@@ -566,13 +595,21 @@ func (self *websocketClient) startWriteThread() {
 			}
 			self.healthcheck(err)
 		case data := <-self.writeQueue:
-			// Process queued writes without blocking the caller
+			// Process queued writes without blocking the caller. Pre-marshaled
+			// frames (from WriteRaw) are written as-is; the write thread does
+			// pure socket I/O and no JSON encoding, so it is never the
+			// serialization bottleneck for concurrent responses.
 			assert.Assert(self.connection != nil)
-			self.writeLogger.Debug("WriteJSON from queue", "data", data, "remainingInQueue", len(self.writeQueue))
+			self.writeLogger.Debug("write from queue", "remainingInQueue", len(self.writeQueue))
 			_ = self.connection.SetWriteDeadline(time.Now().Add(writeDeadline))
-			err := self.connection.WriteJSON(data)
+			var err error
+			if raw, ok := data.([]byte); ok {
+				err = self.connection.WriteMessage(gorillaWebsocket.TextMessage, raw)
+			} else {
+				err = self.connection.WriteJSON(data)
+			}
 			if err != nil {
-				self.writeLogger.Error("WriteJSON from queue failed", "error", err)
+				self.writeLogger.Error("write from queue failed", "error", err)
 			}
 			self.healthcheck(err)
 		case val := <-self.apiWriteMessageTx:
