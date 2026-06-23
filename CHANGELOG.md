@@ -1,3 +1,11 @@
+# [2.23.0-develop.14](https://github.com/mogenius/mogenius-operator/compare/v2.23.0-develop.13...v2.23.0-develop.14) (2026-06-23)
+
+
+### Bug Fixes
+
+* dep updates ([4ea502b](https://github.com/mogenius/mogenius-operator/commit/4ea502bd7b8123d25b2c099e238e814ca1310ed0))
+* helm releases only when new semantic release happend ([656d47b](https://github.com/mogenius/mogenius-operator/commit/656d47be1555aceea2bac66e0cd16d69eca2b29f))
+
 # [2.23.0-develop.13](https://github.com/mogenius/mogenius-operator/compare/v2.23.0-develop.12...v2.23.0-develop.13) (2026-06-23)
 
 
