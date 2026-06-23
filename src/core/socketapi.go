@@ -2745,6 +2745,9 @@ func (self *socketApi) execShConnection(podCmdConnectionRequest xterm.PodCmdConn
 		"--container",
 		podCmdConnectionRequest.Container,
 		"--",
+		// "sh" is a shell-open request: RunExec auto-detects an available shell
+		// (bash, sh, ash) instead of assuming sh, which fails on images that ship
+		// only bash/ash or no plain sh
 		"sh",
 	)
 

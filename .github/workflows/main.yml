@@ -23,7 +23,7 @@ jobs:
   # Prepare - Get version info
   # ============================================================================
   prepare:
-    uses: mogenius/github-actions/.github/workflows/semantic-release.yml@c22907f3784c137182aba9aa06e4015e52b3c37b # v1.1.2
+    uses: mogenius/github-actions/.github/workflows/semantic-release.yml@9ceb2494cc853e1750a3403f37ea8d5ea19ab72b # v1.4.3
     secrets:
       APP_ID: ${{ secrets.RELEASE_APP_ID }}
       APP_PRIVATE_KEY: ${{ secrets.RELEASE_APP_SECRET }}
@@ -36,12 +36,13 @@ jobs:
   # ============================================================================
   build-operator:
     needs: [prepare]
-    uses: mogenius/github-actions/.github/workflows/build-multiarch.yml@c22907f3784c137182aba9aa06e4015e52b3c37b # v1.1.2
+    uses: mogenius/github-actions/.github/workflows/build-multiarch.yml@9ceb2494cc853e1750a3403f37ea8d5ea19ab72b # v1.4.3
     secrets: inherit
     with:
       version: ${{ needs.prepare.outputs.version }}
       image: ghcr.io/mogenius/mogenius-operator
       architectures: amd64,arm64
+      sign_image: true
       build_args_amd64: |
         GO_BUILDER_IMAGE=ghcr.io/mogenius/go-builder:latest-amd64
         RUST_BUILDER_IMAGE=ghcr.io/mogenius/rust-builder:latest-amd64
@@ -65,7 +66,7 @@ jobs:
       id-token: write
     steps:
       - name: Check out code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
           fetch-depth: 0
 

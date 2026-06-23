@@ -2,6 +2,7 @@ package reconciler
 
 import (
 	"context"
+	"fmt"
 	"mogenius-operator/src/crds/v1alpha1"
 	"mogenius-operator/src/gitops"
 )
@@ -11,6 +12,7 @@ func (d *reconcilerModule) reconcileRenovateOperator(ctx context.Context, spec v
 	if c == nil {
 		c = &v1alpha1.RenovateOperatorConfig{}
 	}
+	namespace := helmNamespace(c.Chart, "renovate-operator")
 	return d.reconcileComponent(ctx, spec, installer, op,
 		componentSpec{
 			enabled:          c.Enabled,
@@ -20,13 +22,88 @@ func (d *reconcilerModule) reconcileRenovateOperator(ctx context.Context, spec v
 			defaultChart:     "renovate-operator",
 			defaultRepo:      "oci://ghcr.io/mogenius/helm-charts/renovate-operator",
 			defaultName:      "renovate-operator",
-			defaultNamespace: "renovate-operator",
+			defaultNamespace: namespace,
 		},
 		func(ctx context.Context) ([]any, error) {
-			return []any{}, nil
+			extraObjects := []any{}
+
+			for _, rc := range c.Repositories {
+				name := rc.Name
+				if name == "" {
+					name = rc.GitOpsRepository
+				}
+				if name == "" {
+					return nil, fmt.Errorf("renovate job for filter %q requires a name", rc.Filter)
+				}
+
+				if rc.ExternalSecret != nil {
+					if rc.ExternalSecret.Vault == "" {
+						if spec.ExternalSecretsOperator != nil && len(spec.ExternalSecretsOperator.Vaults) > 0 {
+							rc.ExternalSecret.Vault = spec.ExternalSecretsOperator.Vaults[0].Name
+						} else {
+							return nil, fmt.Errorf("renovate job %q: provide externalSecret.vault or define a vault in spec.externalSecretsOperator", name)
+						}
+					}
+					extraObjects = append(extraObjects,
+						externalSecretResource(name, namespace, *rc.ExternalSecret, nil, nil),
+					)
+				}
+
+				extraObjects = append(extraObjects, renovateJobObject(name, rc, namespace))
+			}
+
+			return extraObjects, nil
 		},
 		func(ctx context.Context) (map[string]any, error) {
+			if c.MaxParallelJobs > 0 {
+				return map[string]any{
+					"config": map[string]any{
+						"globalParallelismLimit": c.MaxParallelJobs,
+					},
+				}, nil
+			}
 			return nil, nil
 		},
 	)
+}
+
+func renovateJobObject(name string, rc v1alpha1.RenovateJobConfig, namespace string) map[string]any {
+	schedule := rc.Schedule
+	if schedule == "" {
+		schedule = "0 * * * *"
+	}
+
+	topic := rc.GitOpsRepository
+	if topic == "" {
+		topic = rc.Filter
+	}
+
+	provider := map[string]any{
+		"name": rc.Provider.Name,
+	}
+	if rc.Provider.Endpoint != "" {
+		provider["endpoint"] = rc.Provider.Endpoint
+	}
+
+	spec := map[string]any{
+		"schedule":    schedule,
+		"provider":    provider,
+		"parallelism": 1,
+	}
+	if topic != "" {
+		spec["discoverTopics"] = []any{topic}
+	}
+	if rc.ExternalSecret != nil {
+		spec["secretRef"] = name
+	}
+
+	return map[string]any{
+		"apiVersion": "renovate-operator.mogenius.com/v1alpha1",
+		"kind":       "RenovateJob",
+		"metadata": map[string]any{
+			"name":      name,
+			"namespace": namespace,
+		},
+		"spec": spec,
+	}
 }

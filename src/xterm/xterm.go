@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"io"
 	"log/slog"
+	"mogenius-operator/src/k8sexec"
 	"mogenius-operator/src/logging"
 	mirrorStore "mogenius-operator/src/store"
 	"mogenius-operator/src/utils"
@@ -312,6 +313,20 @@ func cmdWait(cmd *exec.Cmd, conn *websocket.Conn, connWriteLock *sync.Mutex, tty
 					if conn != nil {
 						connWriteLock.Lock()
 						err := conn.WriteMessage(websocket.TextMessage, []byte("POD_DOES_NOT_EXIST"))
+						connWriteLock.Unlock()
+						if err != nil {
+							xtermLogger.Error("WriteMessage", "error", err)
+						}
+					}
+				}
+				if status.ExitStatus() == k8sexec.ShellNotFoundExitCode {
+					// Send as a data message (not a close frame) so the API relay
+					// forwards it via pub/sub and closes the browser side with a
+					// NO_SHELL_AVAILABLE reason. A close frame here would race with
+					// the deferred closeConnection's CLOSE_CONNECTION_FROM_PEER.
+					if conn != nil {
+						connWriteLock.Lock()
+						err := conn.WriteMessage(websocket.TextMessage, []byte("NO_SHELL_AVAILABLE"))
 						connWriteLock.Unlock()
 						if err != nil {
 							xtermLogger.Error("WriteMessage", "error", err)
