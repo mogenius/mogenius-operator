@@ -62,7 +62,7 @@ jobs:
         RUNTIME_IMAGE=ghcr.io/mogenius/runtime:latest-arm64
 
   helm-chart:
-    if: github.ref == 'refs/heads/develop'
+    if: github.ref == 'refs/heads/develop' && needs.prepare.outputs.is_release == 'true'
     needs: [prepare, build-operator]
     runs-on: [self-hosted]
     permissions:
