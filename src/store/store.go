@@ -957,7 +957,7 @@ func AddToAuditLog[T any](datagram structs.Datagram, logger *slog.Logger, result
 	} else if updatedObj != nil {
 		resourceNamespace = updatedObj.GetNamespace()
 		resourceName = updatedObj.GetName()
-	} else if payload, ok := datagram.Payload.(map[string]any); ok {
+	} else if payload := datagram.PayloadMap(); payload != nil {
 		if ns, ok := payload["namespace"].(string); ok {
 			resourceNamespace = ns
 		}

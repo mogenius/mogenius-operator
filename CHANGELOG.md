@@ -1,3 +1,19 @@
+## [2.23.2-develop.1](https://github.com/mogenius/mogenius-operator/compare/v2.23.1...v2.23.2-develop.1) (2026-06-24)
+
+
+### Bug Fixes
+
+* enable nonblocking writes and some minor fixes. should boost performance under load significantly ([06bafa2](https://github.com/mogenius/mogenius-operator/commit/06bafa255855af163d379c40299393c0968e01d0))
+* speed improvements. ([bd6f593](https://github.com/mogenius/mogenius-operator/commit/bd6f593eb0ce877b4cd90e2a312cd342b44f52cc))
+* use http when argo-cd-server runs with --insecure ([8c0bbed](https://github.com/mogenius/mogenius-operator/commit/8c0bbed7307720143860ac8498de29958807c60e))
+
+## [2.23.1-develop.3](https://github.com/mogenius/mogenius-operator/compare/v2.23.1-develop.2...v2.23.1-develop.3) (2026-06-24)
+
+
+### Bug Fixes
+
+* use http when argo-cd-server runs with --insecure ([8c0bbed](https://github.com/mogenius/mogenius-operator/commit/8c0bbed7307720143860ac8498de29958807c60e))
+
 ## [2.23.1](https://github.com/mogenius/mogenius-operator/compare/v2.23.0...v2.23.1) (2026-06-23)
 
 
@@ -21,6 +37,14 @@
 * remove helm wait strategy ([5355ffd](https://github.com/mogenius/mogenius-operator/commit/5355ffd87d5d873cdac0e20a827aac39a555c6d7))
 * set strategy if its rolling update ([4e5f3eb](https://github.com/mogenius/mogenius-operator/commit/4e5f3eb894fbe50847dbabfecf8d6f46a9dcdbd1))
 * sign mogenius operator docker image ([fddb33c](https://github.com/mogenius/mogenius-operator/commit/fddb33cd76568796016786b91f42aaae0f5d1eaf))
+
+## [2.23.1-develop.2](https://github.com/mogenius/mogenius-operator/compare/v2.23.1-develop.1...v2.23.1-develop.2) (2026-06-23)
+
+
+### Bug Fixes
+
+* enable nonblocking writes and some minor fixes. should boost performance under load significantly ([06bafa2](https://github.com/mogenius/mogenius-operator/commit/06bafa255855af163d379c40299393c0968e01d0))
+* speed improvements. ([bd6f593](https://github.com/mogenius/mogenius-operator/commit/bd6f593eb0ce877b4cd90e2a312cd342b44f52cc))
 
 ## [2.23.1-develop.1](https://github.com/mogenius/mogenius-operator/compare/v2.23.0...v2.23.1-develop.1) (2026-06-23)
 

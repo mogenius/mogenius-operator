@@ -26,9 +26,9 @@ import (
 )
 
 const (
-	ARGO_CD_CONFIGMAP_NAME   = "argo-cd-config" // mogenius argo-cd configmap name
-	ARGO_CD_USER_SECRET_NAME = "argo-cd-secret" // mogenius argo-cd configmap name
-	ARGO_CD_SERVER_URL       = "https://%s.%s.svc.cluster.local:443"
+	ARGO_CD_CONFIGMAP_NAME   = "argo-cd-config"                  // mogenius argo-cd configmap name
+	ARGO_CD_USER_SECRET_NAME = "argo-cd-secret"                  // mogenius argo-cd configmap name
+	ARGO_CD_SERVER_URL       = "%s://%s.%s.svc.cluster.local:%s" // scheme, deployment, namespace, port
 )
 
 type Argocd interface {
@@ -625,6 +625,39 @@ func (self *argocd) initArgoServerUrl() error {
 		return fmt.Errorf("argo-cd-server deployment not found in namespace %s", self.argoCdConfig.Data["namespaceName"])
 	}
 
-	self.argoURL = new(fmt.Sprintf(ARGO_CD_SERVER_URL, argoCdServerDeployment.GetName(), self.argoCdConfig.Data["namespaceName"]))
+	// argo-cd-server can be started with --insecure (TLS terminated elsewhere), in which
+	// case it serves plain HTTP. Talking HTTPS to it then yields "connection reset by peer".
+	scheme, port := "https", "443"
+	if argoServerRunsInsecure(argoCdServerDeployment) {
+		scheme, port = "http", "80"
+	}
+	self.argoURL = new(fmt.Sprintf(ARGO_CD_SERVER_URL, scheme, argoCdServerDeployment.GetName(), self.argoCdConfig.Data["namespaceName"], port))
 	return nil
+}
+
+// argoServerRunsInsecure reports whether the argo-cd-server container is started with
+// the --insecure flag, meaning it serves plain HTTP instead of TLS on its port.
+func argoServerRunsInsecure(deployment *unstructured.Unstructured) bool {
+	containers, found, err := unstructured.NestedSlice(deployment.Object, "spec", "template", "spec", "containers")
+	if err != nil || !found {
+		return false
+	}
+	for _, c := range containers {
+		container, ok := c.(map[string]any)
+		if !ok {
+			continue
+		}
+		for _, field := range []string{"command", "args"} {
+			values, found, err := unstructured.NestedStringSlice(container, field)
+			if err != nil || !found {
+				continue
+			}
+			for _, v := range values {
+				if v == "--insecure" {
+					return true
+				}
+			}
+		}
+	}
+	return false
 }

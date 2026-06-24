@@ -48,13 +48,6 @@ const compressionThreshold = 1024
 // or risk an unbounded backlog of goroutines waiting on the K8s API.
 const messageWorkerCount = 50
 
-// Pool for reusing buffers during compression
-var compressionBufferPool = sync.Pool{
-	New: func() any {
-		return new(bytes.Buffer)
-	},
-}
-
 type SocketApi interface {
 	Link(
 		httpService HttpService,
@@ -2290,14 +2283,21 @@ func (self *socketApi) argoHelmReleaseItems() []*helm.HelmRelease {
 }
 
 func (self *socketApi) LoadRequest(datagram *structs.Datagram, data any) error {
-	bytes, err := json.Marshal(datagram.Payload)
-	if err != nil {
-		datagram.Err = err.Error()
-		return err
+	var payloadBytes []byte
+	if raw, ok := datagram.Payload.(json.RawMessage); ok {
+		// ParseDatagram already captured the payload as raw JSON; decode it
+		// straight into the typed request without a re-marshal.
+		payloadBytes = raw
+	} else {
+		marshaled, err := json.Marshal(datagram.Payload)
+		if err != nil {
+			datagram.Err = err.Error()
+			return err
+		}
+		payloadBytes = marshaled
 	}
 
-	err = json.Unmarshal(bytes, data)
-	if err != nil {
+	if err := json.Unmarshal(payloadBytes, data); err != nil {
 		datagram.Err = err.Error()
 		return err
 	}
@@ -2557,44 +2557,42 @@ func (self *socketApi) handlePatternRequest(datagram structs.Datagram, responseC
 	self.logdatagram(executionTime, datagram)
 
 	sendStart := time.Now()
-	// Smart compression: Only compress if payload is worth it
-	var compressedData any
+
+	// Marshal the response payload once, here in the worker goroutine (not on
+	// the single write thread). Large payloads are zlib-compressed; smaller
+	// ones are handed on as raw JSON so the envelope marshal in
+	// JobServerSendData reuses these bytes instead of walking the response
+	// struct again via reflection.
 	var size int64
-	var err error
+	var payload any
 	var shouldCompress bool
 
-	// Get pooled buffer for JSON marshaling check
-	buf := compressionBufferPool.Get().(*bytes.Buffer)
-	buf.Reset()
-	encoder := json.NewEncoder(buf)
-	if marshalErr := encoder.Encode(responsePayload); marshalErr == nil {
-		payloadSize := buf.Len()
-		shouldCompress = payloadSize > compressionThreshold
-		if shouldCompress {
-			// Reuse the already marshaled data
-			dataBytes := bytes.TrimSuffix(buf.Bytes(), []byte("\n"))
-			compressedPayload, compressErr := utils.ZlibCompress(dataBytes)
-			if compressErr == nil {
-				compressedData = compressedPayload
+	payloadBytes, marshalErr := json.Marshal(responsePayload)
+	if marshalErr != nil {
+		// Fall back to letting the envelope marshal handle it.
+		self.logger.Error("failed to marshal response payload", "pattern", datagram.Pattern, "error", marshalErr)
+		payload = responsePayload
+	} else {
+		size = int64(len(payloadBytes))
+		if len(payloadBytes) > compressionThreshold {
+			if compressed, compressErr := utils.ZlibCompress(payloadBytes); compressErr == nil {
+				payload = compressed
+				shouldCompress = true
 			} else {
-				err = compressErr
-				shouldCompress = false
+				self.logger.Error("failed to compress response payload", "pattern", datagram.Pattern, "error", compressErr)
+				payload = json.RawMessage(payloadBytes)
 			}
+		} else {
+			payload = json.RawMessage(payloadBytes)
 		}
 	}
-	compressionBufferPool.Put(buf)
-
-	if shouldCompress && err == nil {
-		responsePayload = compressedData
-	}
-	size = int64(buf.Len())
 
 	result := structs.Datagram{
 		Id:        datagram.Id,
 		Pattern:   datagram.Pattern,
-		Payload:   responsePayload,
+		Payload:   payload,
 		CreatedAt: datagram.CreatedAt,
-		Zlib:      shouldCompress && err == nil,
+		Zlib:      shouldCompress,
 	}
 
 	self.JobServerSendData(responseClient, result)
@@ -2671,10 +2669,24 @@ func (self *socketApi) patternHandlerExists(pattern string) bool {
 func (self *socketApi) ParseDatagram(data []byte) (structs.Datagram, error) {
 	datagram := structs.CreateEmptyDatagram()
 
-	err := json.Unmarshal(data, &datagram)
-	if err != nil {
+	// Decode with the payload captured as raw JSON instead of a generic map.
+	// LoadRequest then unmarshals it once, directly into the typed request
+	// struct, removing a redundant decode-to-map followed by a re-marshal on
+	// every inbound request. A json.RawMessage round-trips to its own bytes,
+	// so the zlib-decompress and audit-log paths keep working unchanged.
+	raw := struct {
+		structs.Datagram
+		Payload json.RawMessage `json:"payload,omitempty"`
+	}{Datagram: datagram}
+
+	if err := json.Unmarshal(data, &raw); err != nil {
 		self.logger.Error("failed to unmarshal", "error", err)
 		return datagram, err
+	}
+
+	datagram = raw.Datagram
+	if len(raw.Payload) > 0 {
+		datagram.Payload = raw.Payload
 	}
 
 	validationErr := utils.ValidateJSON(datagram)
@@ -2687,8 +2699,15 @@ func (self *socketApi) ParseDatagram(data []byte) (structs.Datagram, error) {
 }
 
 func (self *socketApi) JobServerSendData(jobClient websocket.WebsocketClient, datagram structs.Datagram) {
-	err := jobClient.WriteJSON(datagram)
+	// Marshal here (in the caller's goroutine) and send the bytes via WriteRaw.
+	// This keeps JSON encoding off the connection's single write thread, so
+	// concurrent responses no longer serialize on the marshaling step.
+	data, err := json.Marshal(datagram)
 	if err != nil {
+		self.logger.Error("failed to marshal datagram", "pattern", datagram.Pattern, "error", err)
+		return
+	}
+	if err := jobClient.WriteRaw(data); err != nil {
 		self.logger.Error("Error sending data to EventServer", "error", err)
 	}
 }

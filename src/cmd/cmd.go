@@ -221,7 +221,7 @@ func LoadConfigDeclarations(configModule *config.Config) {
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_API_SERVER_CLIENTS",
-		DefaultValue: new("1"),
+		DefaultValue: new("2"),
 		Description:  new("Number of WebSocket connections to the API server"),
 		Validate: func(value string) error {
 			n, err := strconv.Atoi(value)

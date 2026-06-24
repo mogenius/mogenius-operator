@@ -1,6 +1,7 @@
 package structs
 
 import (
+	"encoding/json"
 	"log/slog"
 	"mogenius-operator/src/utils"
 	"time"
@@ -98,4 +99,22 @@ func (d *Datagram) DisplayReceiveSummary(logger *slog.Logger) {
 
 func (d *Datagram) GetSize() int64 {
 	return int64(len(utils.PrettyPrintInterface(d)))
+}
+
+// PayloadMap decodes the payload into a generic map. It transparently handles
+// both a raw-JSON payload (as captured by ParseDatagram) and an already
+// decoded map, returning nil when the payload is absent or not an object.
+func (d *Datagram) PayloadMap() map[string]any {
+	switch p := d.Payload.(type) {
+	case map[string]any:
+		return p
+	case json.RawMessage:
+		var m map[string]any
+		if err := json.Unmarshal(p, &m); err != nil {
+			return nil
+		}
+		return m
+	default:
+		return nil
+	}
 }
