@@ -1,3 +1,12 @@
+## [2.23.2-develop.1](https://github.com/mogenius/mogenius-operator/compare/v2.23.1...v2.23.2-develop.1) (2026-06-24)
+
+
+### Bug Fixes
+
+* enable nonblocking writes and some minor fixes. should boost performance under load significantly ([06bafa2](https://github.com/mogenius/mogenius-operator/commit/06bafa255855af163d379c40299393c0968e01d0))
+* speed improvements. ([bd6f593](https://github.com/mogenius/mogenius-operator/commit/bd6f593eb0ce877b4cd90e2a312cd342b44f52cc))
+* use http when argo-cd-server runs with --insecure ([8c0bbed](https://github.com/mogenius/mogenius-operator/commit/8c0bbed7307720143860ac8498de29958807c60e))
+
 ## [2.23.1-develop.3](https://github.com/mogenius/mogenius-operator/compare/v2.23.1-develop.2...v2.23.1-develop.3) (2026-06-24)
 
 
