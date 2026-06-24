@@ -5,6 +5,30 @@
 
 * use http when argo-cd-server runs with --insecure ([8c0bbed](https://github.com/mogenius/mogenius-operator/commit/8c0bbed7307720143860ac8498de29958807c60e))
 
+## [2.23.1](https://github.com/mogenius/mogenius-operator/compare/v2.23.0...v2.23.1) (2026-06-23)
+
+
+### Bug Fixes
+
+* adding gitrepositories to platform config crd ([ac7fbad](https://github.com/mogenius/mogenius-operator/commit/ac7fbad671adc30c11647d55879efb81f0246883))
+* adding platform config to configure renovate ([177167d](https://github.com/mogenius/mogenius-operator/commit/177167d9573dc51ab0b2fed709e5dadb17b3cd30))
+* allow for a more generic configuration of external secrets ([e25c222](https://github.com/mogenius/mogenius-operator/commit/e25c2229d2d88ccb5743da0d165adb764f65a6dd))
+* dep updates ([4ea502b](https://github.com/mogenius/mogenius-operator/commit/4ea502bd7b8123d25b2c099e238e814ca1310ed0))
+* **deps:** update module github.com/anthropics/anthropic-sdk-go to v1.50.2 ([dbae4b0](https://github.com/mogenius/mogenius-operator/commit/dbae4b06c81d7b83f0890d11e73619d24de9d695))
+* **deps:** update module github.com/anthropics/anthropic-sdk-go to v1.51.1 ([291a509](https://github.com/mogenius/mogenius-operator/commit/291a5097acaf5108b95fe4fd6d8c33a9594eff57))
+* **deps:** update module github.com/bitnami-labs/sealed-secrets to v0.38.1 ([b4ac0c2](https://github.com/mogenius/mogenius-operator/commit/b4ac0c21a6ef00af5516d49a88cfc502b4bbe253))
+* **deps:** update module github.com/ollama/ollama to v0.30.10 ([3278b6e](https://github.com/mogenius/mogenius-operator/commit/3278b6e768b4ae4752158ca7dcc5cf9401fd976b))
+* **deps:** update module github.com/openai/openai-go/v3 to v3.40.0 ([8fb30fa](https://github.com/mogenius/mogenius-operator/commit/8fb30fa0455cddd2b7f3e927b120e8017efe09d1))
+* **deps:** update module github.com/openai/openai-go/v3 to v3.41.0 ([e08d91d](https://github.com/mogenius/mogenius-operator/commit/e08d91dd68125a77e2289205a45db347e486654a))
+* **deps:** update module github.com/valkey-io/valkey-go to v1.0.76 ([96bc6c5](https://github.com/mogenius/mogenius-operator/commit/96bc6c516b2126769471725c315ffb4ffd0bd32b))
+* **deps:** update module helm.sh/helm/v4 to v4.2.2 ([a067ba5](https://github.com/mogenius/mogenius-operator/commit/a067ba54d4f7b9cf274af7e44e54e130930106fe))
+* helm releases only when new semantic release happend ([656d47b](https://github.com/mogenius/mogenius-operator/commit/656d47be1555aceea2bac66e0cd16d69eca2b29f))
+* helm v4 waitStrategy is required ([fed0030](https://github.com/mogenius/mogenius-operator/commit/fed00309326169bd4c4faf660bf82b4ead6665f6))
+* open pod shell on images without sh (bash/ash fallback) ([b6951eb](https://github.com/mogenius/mogenius-operator/commit/b6951ebf9076e90d576072e24e1dc6aa2536c5ab))
+* remove helm wait strategy ([5355ffd](https://github.com/mogenius/mogenius-operator/commit/5355ffd87d5d873cdac0e20a827aac39a555c6d7))
+* set strategy if its rolling update ([4e5f3eb](https://github.com/mogenius/mogenius-operator/commit/4e5f3eb894fbe50847dbabfecf8d6f46a9dcdbd1))
+* sign mogenius operator docker image ([fddb33c](https://github.com/mogenius/mogenius-operator/commit/fddb33cd76568796016786b91f42aaae0f5d1eaf))
+
 ## [2.23.1-develop.2](https://github.com/mogenius/mogenius-operator/compare/v2.23.1-develop.1...v2.23.1-develop.2) (2026-06-23)
 
 
