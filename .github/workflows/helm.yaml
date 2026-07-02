@@ -8,17 +8,17 @@ on:
 
 jobs:
   lint:
-    uses: mogenius/github-actions/.github/workflows/helm-lint.yml@9ceb2494cc853e1750a3403f37ea8d5ea19ab72b # v1.4.3
+    uses: mogenius/github-actions/.github/workflows/helm-lint.yml@7af6889cb36e5da3ced9baef9d887709fd034e48 # v1.6.0
     with:
       path: ./helm/charts/mogenius-operator
 
   tests:
-    uses: mogenius/github-actions/.github/workflows/helm-unittest.yml@9ceb2494cc853e1750a3403f37ea8d5ea19ab72b # v1.4.3
+    uses: mogenius/github-actions/.github/workflows/helm-unittest.yml@7af6889cb36e5da3ced9baef9d887709fd034e48 # v1.6.0
     with:
       path: ./helm/charts/mogenius-operator
 
   template:
-    uses: mogenius/github-actions/.github/workflows/helm-template.yml@9ceb2494cc853e1750a3403f37ea8d5ea19ab72b # v1.4.3
+    uses: mogenius/github-actions/.github/workflows/helm-template.yml@7af6889cb36e5da3ced9baef9d887709fd034e48 # v1.6.0
     with:
       path: ./helm/charts/mogenius-operator
       namespace: mogenius
@@ -27,7 +27,7 @@ jobs:
         global.api_key=mo_customer-api-key
 
   template-advanced:
-    uses: mogenius/github-actions/.github/workflows/helm-template.yml@9ceb2494cc853e1750a3403f37ea8d5ea19ab72b # v1.4.3
+    uses: mogenius/github-actions/.github/workflows/helm-template.yml@7af6889cb36e5da3ced9baef9d887709fd034e48 # v1.6.0
     with:
       path: ./helm/charts/mogenius-operator
       namespace: mogenius
