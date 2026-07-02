@@ -1,3 +1,11 @@
+## [2.23.2-develop.3](https://github.com/mogenius/mogenius-operator/compare/v2.23.2-develop.2...v2.23.2-develop.3) (2026-07-02)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/cert-manager/cert-manager to v1.20.3 ([977af17](https://github.com/mogenius/mogenius-operator/commit/977af174047334f10e7d2a60f89696eba410baae))
+* **deps:** update module github.com/ollama/ollama to v0.31.1 ([aa04c7d](https://github.com/mogenius/mogenius-operator/commit/aa04c7d59c7f0a89a1c41f99c001f3034cfed112))
+
 ## [2.23.2-develop.2](https://github.com/mogenius/mogenius-operator/compare/v2.23.2-develop.1...v2.23.2-develop.2) (2026-07-02)
 
 
