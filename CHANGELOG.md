@@ -1,3 +1,10 @@
+## [2.23.2-develop.2](https://github.com/mogenius/mogenius-operator/compare/v2.23.2-develop.1...v2.23.2-develop.2) (2026-07-02)
+
+
+### Bug Fixes
+
+* **helm:** remove hardcoded namespace for readonly mode ([05964dd](https://github.com/mogenius/mogenius-operator/commit/05964dde74a593ca8c24db34d76288e54540246d))
+
 ## [2.23.2-develop.1](https://github.com/mogenius/mogenius-operator/compare/v2.23.1...v2.23.2-develop.1) (2026-06-24)
 
 
