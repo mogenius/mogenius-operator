@@ -14,8 +14,8 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: {{ .Values.fullnameOverride }}-mogenius-full
-  namespace: mogenius
+  name: {{ .Values.fullnameOverride }}-full
+  namespace: {{ .Release.Namespace }}
 rules:
 # Vollständige Berechtigungen für alle Ressourcen im mogenius Namespace
 - apiGroups: ["*"]
@@ -42,14 +42,14 @@ roleRef:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: {{ .Values.fullnameOverride }}-mogenius-full
-  namespace: mogenius
+  name: {{ .Values.fullnameOverride }}-full
+  namespace: {{ .Release.Namespace }}
 subjects:
 - kind: ServiceAccount
   name: {{ .Values.serviceAccount.name | default (include "chart.serviceAccountName" .) }}
   namespace: {{ .Release.Namespace }}
 roleRef:
   kind: Role
-  name: {{ .Values.fullnameOverride }}-mogenius-full
+  name: {{ .Values.fullnameOverride }}-full
   apiGroup: rbac.authorization.k8s.io
 {{- end }}
