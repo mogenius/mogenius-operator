@@ -1,3 +1,22 @@
+## [2.23.2-develop.6](https://github.com/mogenius/mogenius-operator/compare/v2.23.2-develop.5...v2.23.2-develop.6) (2026-07-03)
+
+
+### Bug Fixes
+
+* **networkmonitor:** stop leaking snoopy processes on container PID drift ([779823e](https://github.com/mogenius/mogenius-operator/commit/779823e80a292971cd88255ee1a36dc8aa94f1e2))
+
+
+### Performance Improvements
+
+* **helm:** update only the chart's repo index on install/upgrade ([eb294e2](https://github.com/mogenius/mogenius-operator/commit/eb294e2254bd38c5c6986e90d014510ce7acd50a))
+* **logging:** guard eager debug payload marshalling behind level checks ([8ee3b97](https://github.com/mogenius/mogenius-operator/commit/8ee3b979ba40eee448c734abab726e319823e3e2))
+* **logging:** remove per-line goroutine spawn and O(n^2) dedup ([6758ae0](https://github.com/mogenius/mogenius-operator/commit/6758ae0d116238fc931afca515766d4f1105d85a))
+* **networkmonitor:** skip status channel for ignored snoopy events ([dbc9356](https://github.com/mogenius/mogenius-operator/commit/dbc9356e1206cda26f7a561054532ba75300c3b0))
+* **reconciler:** stop self-triggering reconcile loop and cache default configs ([9b1a8fd](https://github.com/mogenius/mogenius-operator/commit/9b1a8fd12a27828e641f40d0fd45d2c8e13213f8))
+* **runtime:** derive GOMAXPROCS and GOMEMLIMIT from cgroup limits ([841ecf5](https://github.com/mogenius/mogenius-operator/commit/841ecf57dae69b0b30ae74b929238b9bf3ce7225))
+* **valkey:** pipeline hot write paths and drop per-write keyspace scans ([ee2e909](https://github.com/mogenius/mogenius-operator/commit/ee2e909f0a77570f045acb8b78fe315c43783bc5))
+* **websocket:** marshal WriteJSON payloads in the caller ([eca80e9](https://github.com/mogenius/mogenius-operator/commit/eca80e9c6315f30a9172c7db2a2a2432a17c836f))
+
 ## [2.23.2-develop.5](https://github.com/mogenius/mogenius-operator/compare/v2.23.2-develop.4...v2.23.2-develop.5) (2026-07-03)
 
 
