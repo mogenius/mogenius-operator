@@ -13,6 +13,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"encoding/json"
@@ -36,6 +37,7 @@ type slogManager struct {
 	logLevel slog.Level
 	handlers []slog.Handler
 
+	activeLoggersMu   sync.RWMutex
 	activeLoggers     map[string]*slog.Logger
 	resolvedLogDir    *string
 	combinedLogWriter io.Writer
@@ -58,7 +60,9 @@ func NewSlogManager(logLevel slog.Level, handlers []slog.Handler) SlogManager {
 }
 
 func (m *slogManager) GetLogger(componentId string) (*slog.Logger, error) {
+	m.activeLoggersMu.RLock()
 	logger := m.activeLoggers[componentId]
+	m.activeLoggersMu.RUnlock()
 	if logger != nil {
 		return logger, nil
 	}
@@ -68,7 +72,6 @@ func (m *slogManager) GetLogger(componentId string) (*slog.Logger, error) {
 
 func (self *slogManager) CreateLogger(componentId string) *slog.Logger {
 	assert.Assert(componentId != combinedLogComponentName, fmt.Errorf("the componentId '%s' is not disallowed because it is reserved", combinedLogComponentName))
-	assert.Assert(self.activeLoggers[componentId] == nil, fmt.Errorf("logger was requested multiple times: %s", componentId))
 
 	multiHandler := NewSlogMultiHandler()
 
@@ -80,6 +83,9 @@ func (self *slogManager) CreateLogger(componentId string) *slog.Logger {
 
 	logger = logger.With("component", componentId)
 
+	self.activeLoggersMu.Lock()
+	defer self.activeLoggersMu.Unlock()
+	assert.Assert(self.activeLoggers[componentId] == nil, fmt.Errorf("logger was requested multiple times: %s", componentId))
 	self.activeLoggers[componentId] = logger
 
 	return logger
