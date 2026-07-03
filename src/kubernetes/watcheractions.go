@@ -256,7 +256,6 @@ func GetUnstructuredResourceListFromStore(apiVersion string, kind string, namesp
 
 func GetUnstructuredNamespaceResourceList(namespace string, whitelist []*utils.ResourceDescriptor, blacklist []*utils.ResourceDescriptor) ([]unstructured.Unstructured, error) {
 	results := []unstructured.Unstructured{}
-	resultsMutex := sync.Mutex{}
 
 	resources, err := GetAvailableResources()
 	if err != nil {
@@ -271,21 +270,20 @@ func GetUnstructuredNamespaceResourceList(namespace string, whitelist []*utils.R
 		blacklist = []*utils.ResourceDescriptor{}
 	}
 
-	var wg sync.WaitGroup
+	// Collect the allowed namespaced kinds, then fetch everything with ONE
+	// namespace-scoped keyspace scan. The previous per-kind fan-out ran a
+	// full SCAN per watched kind (80-150 kinds) for every call.
+	allowed := make([]utils.ResourceDescriptor, 0, len(resources))
+	includeNamespaceObject := false
 	for _, v := range resources {
 		if v.Namespaced {
 			if len(whitelist) > 0 && !utils.ContainsResourceDescriptor(whitelist, v) {
 				continue
 			}
-			if blacklist != nil && utils.ContainsResourceDescriptor(blacklist, v) {
+			if utils.ContainsResourceDescriptor(blacklist, v) {
 				continue
 			}
-			wg.Go(func() {
-				result := store.GetResourceByKindAndNamespace(valkeyClient, v.ApiVersion, v.Kind, namespace, k8sLogger)
-				resultsMutex.Lock()
-				results = append(results, result...)
-				resultsMutex.Unlock()
-			})
+			allowed = append(allowed, v)
 			continue
 		}
 
@@ -305,22 +303,22 @@ func GetUnstructuredNamespaceResourceList(namespace string, whitelist []*utils.R
 		if !utils.ContainsResourceDescriptor(whitelist, v) {
 			continue
 		}
-		if blacklist != nil && utils.ContainsResourceDescriptor(blacklist, v) {
+		if utils.ContainsResourceDescriptor(blacklist, v) {
 			continue
 		}
 		if v.Kind == utils.NamespaceResource.Kind && v.ApiVersion == utils.NamespaceResource.ApiVersion {
-			wg.Go(func() {
-				nsObj, err := store.GetResource(valkeyClient, v.ApiVersion, v.Kind, "", namespace, k8sLogger)
-				if err != nil || nsObj == nil {
-					return
-				}
-				resultsMutex.Lock()
-				results = append(results, *nsObj)
-				resultsMutex.Unlock()
-			})
+			includeNamespaceObject = true
 		}
 	}
-	wg.Wait()
+
+	results = store.GetResourcesByNamespaceAndKinds(valkeyClient, namespace, allowed, k8sLogger)
+
+	if includeNamespaceObject {
+		nsObj, err := store.GetResource(valkeyClient, utils.NamespaceResource.ApiVersion, utils.NamespaceResource.Kind, "", namespace, k8sLogger)
+		if err == nil && nsObj != nil {
+			results = append(results, *nsObj)
+		}
+	}
 
 	return results, nil
 }

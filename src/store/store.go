@@ -127,6 +127,52 @@ func SearchResourceByNamespace(valkeyClient valkeyclient.ValkeyClient, namespace
 	return items, err
 }
 
+// GetResourcesByNamespaceAndKinds returns all stored resources in the given
+// namespace whose apiVersion/kind matches one of the allowed descriptors,
+// using a SINGLE keyspace scan plus chunked MGETs. The per-kind alternative
+// (one scan per descriptor) costs O(kinds × keyspace) — with 80-150 watched
+// kinds that dominated namespace-scoped queries. apiVersion/kind are derived
+// from the key segments, which are written from the watcher's
+// ResourceDescriptor and therefore authoritative even when the stored
+// object's TypeMeta is empty.
+func GetResourcesByNamespaceAndKinds(valkeyClient valkeyclient.ValkeyClient, namespace string, allowed []utils.ResourceDescriptor, logger *slog.Logger) []unstructured.Unstructured {
+	pattern := CreateKeyPattern(nil, nil, &namespace, nil)
+	keys, err := valkeyClient.Keys(pattern)
+	if err != nil {
+		logger.Error("failed to scan resources by namespace", "namespace", namespace, "error", err)
+		return []unstructured.Unstructured{}
+	}
+
+	allowedSet := make(map[string]struct{}, len(allowed))
+	for _, r := range allowed {
+		allowedSet[r.ApiVersion+":"+r.Kind] = struct{}{}
+	}
+
+	// Key layout: resources:<apiVersion>:<kind>:<namespace>:<name>. None of
+	// the segments may contain ':' (apiVersion uses '/'), so a plain split
+	// yields exactly 5 parts. The namespace re-check guards against glob
+	// wildcards matching across segment boundaries.
+	selected := make([]string, 0, len(keys))
+	for _, key := range keys {
+		parts := strings.Split(key, ":")
+		if len(parts) != 5 {
+			continue
+		}
+		if namespace != "" && parts[3] != namespace {
+			continue
+		}
+		if _, ok := allowedSet[parts[1]+":"+parts[2]]; ok {
+			selected = append(selected, key)
+		}
+	}
+
+	results, err := valkeyclient.GetObjectsForKeys[unstructured.Unstructured](valkeyClient, selected)
+	if err != nil {
+		logger.Error("failed to fetch resources by namespace", "namespace", namespace, "error", err)
+	}
+	return results
+}
+
 func DropAllResourcesFromValkey(valkeyClient valkeyclient.ValkeyClient, logger *slog.Logger) error {
 	// Drop the primary keys together with the secondary pagination indexes and
 	// the namespace registry. Dropping only "resources:*" would leave the
