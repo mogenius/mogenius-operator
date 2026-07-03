@@ -1,3 +1,22 @@
+## [2.23.2-develop.8](https://github.com/mogenius/mogenius-operator/compare/v2.23.2-develop.7...v2.23.2-develop.8) (2026-07-03)
+
+
+### Bug Fixes
+
+* **cpumonitor:** close /proc stat files and pool read buffers ([6a5b15f](https://github.com/mogenius/mogenius-operator/commit/6a5b15f8321e770431afb3b7e26dca65daf98a99))
+* **networkmonitor:** keep procdev baselines for late-added interfaces ([12d45ed](https://github.com/mogenius/mogenius-operator/commit/12d45edb88e995ad30f164412abae0642494e14c))
+* **store:** keep resources with colons in their name in namespace scans ([88db386](https://github.com/mogenius/mogenius-operator/commit/88db3866c29556c34c3841486d98cf4c65222fcf))
+* **store:** SearchResourceByNamespace returned nothing with a whitelist ([d5f851d](https://github.com/mogenius/mogenius-operator/commit/d5f851df8e361828e0b4b1ec381a73a4caa1683c))
+
+
+### Performance Improvements
+
+* **core:** batch nodes-metrics reads, map-based workspace dedup ([cfeaf28](https://github.com/mogenius/mogenius-operator/commit/cfeaf28758ecc51d1831b1e825901457b13558b3))
+* **kubernetes:** cache cluster service list for discovery lookups ([e648b4d](https://github.com/mogenius/mogenius-operator/commit/e648b4d792df6e82fe3bb2c177e4f97530c8c6a8))
+* **nodemetrics:** trim per-tick allocations in hot loops ([0bc8bb0](https://github.com/mogenius/mogenius-operator/commit/0bc8bb0adfb242a2f2896a4d47700f4238e2ae4e))
+* **store:** fetch namespace resources with one scan instead of per-kind ([7884a68](https://github.com/mogenius/mogenius-operator/commit/7884a689687ebaff9792760109e43a54b4a1c9f9))
+* **store:** node-indexed pod lookup for the node-metrics DaemonSet ([7901bed](https://github.com/mogenius/mogenius-operator/commit/7901bed5e2e84985de1d8fbff587979e426d39a2))
+
 ## [2.23.2-develop.7](https://github.com/mogenius/mogenius-operator/compare/v2.23.2-develop.6...v2.23.2-develop.7) (2026-07-03)
 
 
