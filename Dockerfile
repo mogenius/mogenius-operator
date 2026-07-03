@@ -11,13 +11,11 @@
 # =============================================================================
 
 ARG GO_BUILDER_IMAGE=ghcr.io/mogenius/go-builder:latest
-ARG RUST_BUILDER_IMAGE=ghcr.io/mogenius/rust-builder:latest
 ARG BPFTOOL_IMAGE=ghcr.io/mogenius/bpftool:latest
 # Pinned snoopy release (github.com/mogenius/snoopy). The release assets are
 # built from the tagged source; the ghcr.io/mogenius/snoopy image only has
 # non-human-readable date/sha tags, so we pin the release version instead.
 ARG SNOOPY_VERSION=v0.4.1
-ARG RUNTIME_IMAGE=ghcr.io/mogenius/runtime:latest
 
 # Get bpftool binary (target platform - armv7 binary for armv7 build)
 FROM ${BPFTOOL_IMAGE} AS bpftool-source
@@ -39,10 +37,6 @@ RUN case "${TARGETARCH}${TARGETVARIANT}" in \
     wget -q -O /usr/local/bin/snoopy \
       "https://github.com/mogenius/snoopy/releases/download/${SNOOPY_VERSION}/snoopy_${SNOOPY_ARCH}" && \
     chmod +x /usr/local/bin/snoopy
-
-# Get Just from rust-builder (build platform - runs on host for cross-compilation)
-ARG BUILDPLATFORM
-# FROM --platform=$BUILDPLATFORM ${RUST_BUILDER_IMAGE} AS rust-source
 
 # =============================================================================
 # Stage 2: Build Environment (runs on build platform for cross-compilation)
