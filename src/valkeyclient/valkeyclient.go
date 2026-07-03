@@ -709,6 +709,12 @@ func GetObjectsForKeys[T any](store ValkeyClient, keyList []string) ([]T, error)
 			return result, err
 		}
 		for _, v := range values {
+			// MGET yields an empty entry for keys that were deleted or
+			// expired between key discovery and fetch; skip those instead
+			// of failing the whole batch.
+			if v == "" {
+				continue
+			}
 			var obj T
 			if err := json.Unmarshal([]byte(v), &obj); err != nil {
 				return result, fmt.Errorf("error unmarshalling value from Valkey: %w", err)

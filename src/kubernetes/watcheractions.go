@@ -226,7 +226,7 @@ func deleteFromStoreIfNeeded(apiVersion string, resourceName string, kind string
 	}
 
 	// other resources - delete primary key + both ZSET index members atomically.
-	err := store.DeleteResourceWithIndex(valkeyClient, apiVersion, kind, namespace, resourceName)
+	err := store.DeleteResourceWithIndex(valkeyClient, apiVersion, kind, namespace, resourceName, obj)
 	if err != nil {
 		k8sLogger.Error("Error deleting object in store", "error", err)
 	}

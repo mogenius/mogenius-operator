@@ -236,10 +236,11 @@ func (self *containerEnumerator) generateCurrentPodList(
 	nodeName string,
 	containers map[ContainerId][]ProcessId,
 ) []PodInfo {
-	// query for all pods on current node from store
-	allPods := store.GetPods("*")
+	// query for all pods on current node from store (node-indexed; the
+	// full-cluster scan previously ran on every node every few seconds)
+	allPods := store.GetPodsOnNode(nodeName)
 
-	// important step: Remove all pods with HostNetwork=true, kube-system pods, and pods not on our node
+	// important step: Remove all pods with HostNetwork=true and kube-system pods
 	filteredItems := []v1.Pod{}
 	for _, pod := range allPods {
 		if !pod.Spec.HostNetwork && pod.Namespace != "kube-system" && pod.Spec.NodeName == nodeName {
