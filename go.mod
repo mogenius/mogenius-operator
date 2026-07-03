@@ -3,6 +3,7 @@ module mogenius-operator
 go 1.26.4
 
 require (
+	github.com/KimMachineGun/automemlimit v0.7.5
 	github.com/alecthomas/kong v1.15.0
 	github.com/bitnami/sealed-secrets v0.38.1
 	github.com/cert-manager/cert-manager v1.20.3
@@ -22,6 +23,7 @@ require (
 	github.com/stretchr/testify v1.11.1
 	github.com/tklauser/go-sysconf v0.4.0
 	github.com/valkey-io/valkey-go v1.0.76
+	go.uber.org/automaxprocs v1.6.0
 	golang.org/x/term v0.44.0
 	helm.sh/helm/v4 v4.2.2
 	k8s.io/api v0.36.2
@@ -44,6 +46,7 @@ require (
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/mailru/easyjson v0.9.1 // indirect
 	github.com/pb33f/ordered-map/v2 v2.3.1 // indirect
+	github.com/pbnjay/memory v0.0.0-20210728143218-7b4eea64cf58 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
 	github.com/prometheus/common v0.67.5 // indirect
 	github.com/prometheus/procfs v0.20.1 // indirect
