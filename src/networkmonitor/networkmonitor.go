@@ -223,7 +223,7 @@ func (self *networkMonitor) metricsToPodstats(
 		for _, interfaceName := range interfaceNames {
 			iMetrics := containerInfo.Metrics[interfaceName]
 			// filter blacklisted interface names e.g. loopback
-			if slices.Contains([]string{"lo"}, interfaceName) {
+			if interfaceName == "lo" {
 				continue
 			}
 			podNetworkStat.ReceivedPackets += iMetrics.Ingress.Packets

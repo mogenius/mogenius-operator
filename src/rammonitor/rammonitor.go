@@ -120,11 +120,12 @@ func (self *ramMonitor) collectGlobalMetrics(nodeName string) RamMetrics {
 		return RamMetrics{}
 	}
 
-	lines := strings.Split(string(fileData), "\n")
 	var memAvailable float64
 	foundTotal, foundAvailable := false, false
 
-	for _, line := range lines {
+	// strings.Lines iterates without allocating a slice for all ~50 lines;
+	// the loop exits after MemTotal/MemAvailable (the first few lines).
+	for line := range strings.Lines(string(fileData)) {
 		fields := strings.Fields(line)
 		if len(fields) < 2 {
 			continue
