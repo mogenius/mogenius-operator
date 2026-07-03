@@ -159,20 +159,9 @@ func GetResourcesByNamespaceAndKinds(valkeyClient valkeyclient.ValkeyClient, nam
 		allowedSet[r.ApiVersion+":"+r.Kind] = struct{}{}
 	}
 
-	// Key layout: resources:<apiVersion>:<kind>:<namespace>:<name>. None of
-	// the segments may contain ':' (apiVersion uses '/'), so a plain split
-	// yields exactly 5 parts. The namespace re-check guards against glob
-	// wildcards matching across segment boundaries.
 	selected := make([]string, 0, len(keys))
 	for _, key := range keys {
-		parts := strings.Split(key, ":")
-		if len(parts) != 5 {
-			continue
-		}
-		if namespace != "" && parts[3] != namespace {
-			continue
-		}
-		if _, ok := allowedSet[parts[1]+":"+parts[2]]; ok {
+		if resourceKeyMatches(key, namespace, allowedSet) {
 			selected = append(selected, key)
 		}
 	}
@@ -182,6 +171,28 @@ func GetResourcesByNamespaceAndKinds(valkeyClient valkeyclient.ValkeyClient, nam
 		return results, fmt.Errorf("fetch resources in namespace %q: %w", namespace, err)
 	}
 	return results, nil
+}
+
+// resourceKeyMatches reports whether a primary key belongs to the given
+// namespace and one of the allowed apiVersion:kind pairs.
+//
+// Key layout: resources:<apiVersion>:<kind>:<namespace>:<name>.
+// apiVersion/kind/namespace cannot contain ':' (apiVersion uses '/'), but
+// the NAME can: RBAC path-segment names like
+// "system:controller:bootstrap-signer" exist in every cluster, so SplitN
+// keeps those colons inside parts[4]. The namespace re-check guards against
+// glob wildcards matching across segment boundaries. An empty namespace
+// disables the namespace check (cluster-wide query).
+func resourceKeyMatches(key, namespace string, allowedSet map[string]struct{}) bool {
+	parts := strings.SplitN(key, ":", 5)
+	if len(parts) != 5 {
+		return false
+	}
+	if namespace != "" && parts[3] != namespace {
+		return false
+	}
+	_, ok := allowedSet[parts[1]+":"+parts[2]]
+	return ok
 }
 
 func DropAllResourcesFromValkey(valkeyClient valkeyclient.ValkeyClient, logger *slog.Logger) error {
