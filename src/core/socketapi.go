@@ -410,7 +410,7 @@ func (self *socketApi) registerPatterns() {
 		// poll triggers a node list, a service list, a country lookup
 		// and a Valkey read; under multiple concurrent dashboards this
 		// dominated the K8s API call volume.
-		clusterResourceInfoCache := newTTLCache(5*time.Second, func() ClusterResourceInfo {
+		clusterResourceInfoCache := utils.NewTTLCache(5*time.Second, func() ClusterResourceInfo {
 			errors := []string{}
 			nodeStats, nodeErr := self.moKubernetes.GetNodeStats()
 			if nodeErr != nil {

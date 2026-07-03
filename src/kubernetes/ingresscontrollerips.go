@@ -5,17 +5,10 @@
 
 package kubernetes
 
-import (
-	"mogenius-operator/src/store"
-)
-
 func GetClusterExternalIps() []string {
 	var result []string = []string{}
 
-	// "*" matches any namespace; an empty string builds the pattern
-	// "resources:v1:Service::*" which never matches a real key and
-	// silently returned zero services.
-	services := store.GetServices("*", "*")
+	services := clusterServicesCached.Get()
 	for _, service := range services {
 		for _, ingress := range service.Status.LoadBalancer.Ingress {
 			if ingress.IP != "" {
