@@ -3,6 +3,7 @@ package k8sexec
 import (
 	"bufio"
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -53,9 +54,11 @@ func (e *k8sLogs) Start() error {
 		cancel()
 	}()
 
-	// Get the logs request
+	// Get the logs request. Retry transient stream errors, but not a
+	// cancelled context (Ctrl-C) — that previously burned through all
+	// retry steps with identical failures before exiting.
 	err := retry.OnError(retry.DefaultRetry, func(err error) bool {
-		return true
+		return !errors.Is(err, context.Canceled) && !errors.Is(err, context.DeadlineExceeded)
 	}, func() error {
 		req := e.restClient.GetLogs(e.pod, &v1core.PodLogOptions{
 			Container: e.container,
@@ -69,6 +72,10 @@ func (e *k8sLogs) Start() error {
 		defer readCloser.Close()
 
 		scanner := bufio.NewScanner(readCloser)
+		// Default token limit is 64KB; single long log lines (JSON blobs,
+		// stack traces) made the scanner fail permanently with
+		// "token too long" on every retry.
+		scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
 		for scanner.Scan() {
 			fmt.Println(scanner.Text())
 		}
