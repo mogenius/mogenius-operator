@@ -51,7 +51,12 @@ type GetUnstructuredNamespaceResourceListRequest struct {
 	Blacklist []*utils.ResourceDescriptor `json:"blacklist"`
 }
 
-var lastWatchCheckStart time.Time = time.Time{}
+// lastWatchCheckStart throttles WatchStoreResources; guarded by a mutex
+// because callers include the CRD debounce timer goroutine.
+var (
+	lastWatchCheckMu    sync.Mutex
+	lastWatchCheckStart time.Time
+)
 
 func WatchStoreResources(wm watcher.WatcherModule, aiManager ai.AiManager, eventClient websocket.WebsocketClient) error {
 	start := time.Now()
@@ -59,10 +64,13 @@ func WatchStoreResources(wm watcher.WatcherModule, aiManager ai.AiManager, event
 	// function should not be called more often than every 5 seconds
 	// to avoid too many calls to the k8s api server
 	// which can lead to rate limiting
+	lastWatchCheckMu.Lock()
 	if time.Since(lastWatchCheckStart) < 5*time.Second {
+		lastWatchCheckMu.Unlock()
 		return nil
 	}
 	lastWatchCheckStart = time.Now()
+	lastWatchCheckMu.Unlock()
 
 	resources, err := GetAvailableResources()
 	if err != nil {

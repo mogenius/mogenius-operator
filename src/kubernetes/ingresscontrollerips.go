@@ -12,7 +12,10 @@ import (
 func GetClusterExternalIps() []string {
 	var result []string = []string{}
 
-	services := store.GetServices("", "*")
+	// "*" matches any namespace; an empty string builds the pattern
+	// "resources:v1:Service::*" which never matches a real key and
+	// silently returned zero services.
+	services := store.GetServices("*", "*")
 	for _, service := range services {
 		for _, ingress := range service.Status.LoadBalancer.Ingress {
 			if ingress.IP != "" {

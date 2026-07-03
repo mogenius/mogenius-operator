@@ -60,6 +60,19 @@ func (self *ramMonitor) startCollector() {
 		return
 	}
 	if runtime.GOOS != "linux" {
+		// Still serve the request channels (with zero values) — without a
+		// reader the first RamUsageGlobal()/RamUsageProcesses() call would
+		// block forever on the unbuffered channel.
+		go func() {
+			for {
+				select {
+				case <-self.ramUsageGlobalTx:
+					self.ramUsageGlobalRx <- RamMetrics{}
+				case <-self.ramUsageProcessesTx:
+					self.ramUsageProcessesRx <- nil
+				}
+			}
+		}()
 		return
 	}
 	go func() {

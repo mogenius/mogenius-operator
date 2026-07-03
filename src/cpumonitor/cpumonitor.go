@@ -83,6 +83,19 @@ func (self *cpuMonitor) startCollector() {
 		return
 	}
 	if runtime.GOOS != "linux" {
+		// Still serve the request channels (with zero values) — without a
+		// reader the first CpuUsageGlobal()/CpuUsageProcesses() call would
+		// block forever on the unbuffered channel.
+		go func() {
+			for {
+				select {
+				case <-self.cpuUsageGlobalTx:
+					self.cpuUsageGlobalRx <- CpuMetrics{}
+				case <-self.cpuUsageProcessesTx:
+					self.cpuUsageProcessesRx <- nil
+				}
+			}
+		}()
 		return
 	}
 	go func() {
