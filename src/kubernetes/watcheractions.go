@@ -311,7 +311,11 @@ func GetUnstructuredNamespaceResourceList(namespace string, whitelist []*utils.R
 		}
 	}
 
-	results = store.GetResourcesByNamespaceAndKinds(valkeyClient, namespace, allowed, k8sLogger)
+	results, err = store.GetResourcesByNamespaceAndKinds(valkeyClient, namespace, allowed)
+	if err != nil {
+		k8sLogger.Error("failed to fetch namespace resources", "namespace", namespace, "error", err)
+		return []unstructured.Unstructured{}, err
+	}
 
 	if includeNamespaceObject {
 		nsObj, err := store.GetResource(valkeyClient, utils.NamespaceResource.ApiVersion, utils.NamespaceResource.Kind, "", namespace, k8sLogger)

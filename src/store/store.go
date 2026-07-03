@@ -119,17 +119,22 @@ func SearchByGroupKindNameNamespace(valkeyClient valkeyclient.ValkeyClient, apiV
 }
 
 func SearchResourceByNamespace(valkeyClient valkeyclient.ValkeyClient, namespace string, whitelist []*utils.ResourceDescriptor) ([]unstructured.Unstructured, error) {
-	pattern := CreateKeyPattern(nil, nil, &namespace, nil)
-
-	var searchKeys []string
+	// Non-empty whitelist: filter by apiVersion/kind parsed from the key
+	// segments. The previous implementation passed prefix keys (without the
+	// name segment) into GetObjectsByPattern's EXACT-match keyword filter,
+	// so a whitelisted search always returned zero results.
 	if len(whitelist) > 0 {
+		allowed := make([]utils.ResourceDescriptor, 0, len(whitelist))
 		for _, item := range whitelist {
-			searchKey := CreateResourceKey(item.ApiVersion, item.Kind, namespace)
-			searchKeys = append(searchKeys, searchKey)
+			if item != nil {
+				allowed = append(allowed, *item)
+			}
 		}
+		return GetResourcesByNamespaceAndKinds(valkeyClient, namespace, allowed)
 	}
 
-	items, err := valkeyclient.GetObjectsByPattern[unstructured.Unstructured](valkeyClient, pattern, searchKeys)
+	pattern := CreateKeyPattern(nil, nil, &namespace, nil)
+	items, err := valkeyclient.GetObjectsByPattern[unstructured.Unstructured](valkeyClient, pattern, nil)
 
 	return items, err
 }
@@ -142,12 +147,11 @@ func SearchResourceByNamespace(valkeyClient valkeyclient.ValkeyClient, namespace
 // from the key segments, which are written from the watcher's
 // ResourceDescriptor and therefore authoritative even when the stored
 // object's TypeMeta is empty.
-func GetResourcesByNamespaceAndKinds(valkeyClient valkeyclient.ValkeyClient, namespace string, allowed []utils.ResourceDescriptor, logger *slog.Logger) []unstructured.Unstructured {
+func GetResourcesByNamespaceAndKinds(valkeyClient valkeyclient.ValkeyClient, namespace string, allowed []utils.ResourceDescriptor) ([]unstructured.Unstructured, error) {
 	pattern := CreateKeyPattern(nil, nil, &namespace, nil)
 	keys, err := valkeyClient.Keys(pattern)
 	if err != nil {
-		logger.Error("failed to scan resources by namespace", "namespace", namespace, "error", err)
-		return []unstructured.Unstructured{}
+		return []unstructured.Unstructured{}, fmt.Errorf("scan resources in namespace %q: %w", namespace, err)
 	}
 
 	allowedSet := make(map[string]struct{}, len(allowed))
@@ -175,9 +179,9 @@ func GetResourcesByNamespaceAndKinds(valkeyClient valkeyclient.ValkeyClient, nam
 
 	results, err := valkeyclient.GetObjectsForKeys[unstructured.Unstructured](valkeyClient, selected)
 	if err != nil {
-		logger.Error("failed to fetch resources by namespace", "namespace", namespace, "error", err)
+		return results, fmt.Errorf("fetch resources in namespace %q: %w", namespace, err)
 	}
-	return results
+	return results, nil
 }
 
 func DropAllResourcesFromValkey(valkeyClient valkeyclient.ValkeyClient, logger *slog.Logger) error {
