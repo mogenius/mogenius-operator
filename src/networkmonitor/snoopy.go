@@ -730,12 +730,18 @@ func (self *snoopyManager) Register(podInfo containerenumerator.PodInfo) []error
 						self.logger.Error("snoppy error", "containerId", containerId, "snoopyPid", handle.SnoopyPid, "attachedProcessPid", pid, "level", logMessage.Level, "target", logMessage.Target, "msg", logMessage.Message)
 					}
 				case metrics := <-handle.Stdout:
-					self.statusEventTx <- SnoopyStatusEvent{
-						Type: SnoopyStatusEventTypeSnoopyEvent,
-						SnoopyEvent: &SnoopyStatusEventSnoopyEvent{
-							SnoopyPid:   handle.SnoopyPid,
-							SnoopyEvent: metrics,
-						},
+					// InterfaceMetrics (the most frequent event) and
+					// InterfaceChanged are ignored by the status handler;
+					// don't funnel them through the serial status channel
+					// just to be dropped there.
+					if metrics.Type != SnoopyEventTypeInterfaceMetrics && metrics.Type != SnoopyEventTypeInterfaceChanged {
+						self.statusEventTx <- SnoopyStatusEvent{
+							Type: SnoopyStatusEventTypeSnoopyEvent,
+							SnoopyEvent: &SnoopyStatusEventSnoopyEvent{
+								SnoopyPid:   handle.SnoopyPid,
+								SnoopyEvent: metrics,
+							},
+						}
 					}
 					switch metrics.Type {
 					case SnoopyEventTypeInterfaceAdded:
