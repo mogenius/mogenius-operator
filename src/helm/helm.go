@@ -664,6 +664,43 @@ func HelmRepoUpdate() ([]HelmEntryStatus, error) {
 	return results, nil
 }
 
+// helmRepoUpdateForChart refreshes only the index of the repository the chart
+// is served from (the prefix before "/"). Install/upgrade previously updated
+// ALL repositories, downloading every index file (bitnami's index.yaml alone
+// is >100MB) for every single install.
+func helmRepoUpdateForChart(chartRef string) error {
+	repoName, _, found := strings.Cut(chartRef, "/")
+	if !found || repoName == "" {
+		// local path, plain chart name or URL: nothing to refresh
+		return nil
+	}
+
+	settings := NewCli()
+	repoFile, err := repo.LoadFile(settings.RepositoryConfig)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return fmt.Errorf("failed to load repository file: %w", err)
+	}
+
+	re := repoFile.Get(repoName)
+	if re == nil {
+		// prefix is not a known repository (e.g. an absolute URL);
+		// LocateChart deals with those without a fresh index
+		return nil
+	}
+
+	chartRepo, err := repo.NewChartRepository(re, getter.All(settings))
+	if err != nil {
+		return fmt.Errorf("failed to create chart repository %q: %w", repoName, err)
+	}
+	if _, err := chartRepo.DownloadIndexFile(); err != nil {
+		return fmt.Errorf("failed to download index for %q: %w", repoName, err)
+	}
+	return nil
+}
+
 func HelmRepoList() ([]*HelmEntryWithoutPassword, error) {
 	settings := NewCli()
 
@@ -999,9 +1036,9 @@ func HelmChartInstall(data HelmChartInstallUpgradeRequest) (result string, err e
 	settings.SetNamespace(data.Namespace)
 	settings.Debug = true
 
-	helmLogger.Info("Updating repos ...", "releaseName", data.Release, "namespace", data.Namespace)
-	if _, err := HelmRepoUpdate(); err != nil {
-		helmLogger.Error("failed to update helm repositories", "error", err.Error())
+	helmLogger.Info("Updating repo index ...", "releaseName", data.Release, "namespace", data.Namespace)
+	if err := helmRepoUpdateForChart(data.Chart); err != nil {
+		helmLogger.Error("failed to update helm repository", "chart", data.Chart, "error", err.Error())
 	}
 
 	actionConfig := new(action.Configuration)
@@ -1129,9 +1166,9 @@ func HelmReleaseUpgrade(data HelmChartInstallUpgradeRequest) (result string, err
 	settings := NewCli()
 	settings.SetNamespace(data.Namespace)
 
-	helmLogger.Info("Updating repos ...", "releaseName", data.Release, "namespace", data.Namespace)
-	if _, err := HelmRepoUpdate(); err != nil {
-		helmLogger.Error("failed to update helm repositories", "error", err.Error())
+	helmLogger.Info("Updating repo index ...", "releaseName", data.Release, "namespace", data.Namespace)
+	if err := helmRepoUpdateForChart(data.Chart); err != nil {
+		helmLogger.Error("failed to update helm repository", "chart", data.Chart, "error", err.Error())
 	}
 
 	actionConfig := new(action.Configuration)
