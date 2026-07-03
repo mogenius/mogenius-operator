@@ -7,13 +7,12 @@ import (
 
 	"github.com/joho/godotenv"
 
-	// Align the Go runtime with container cgroup limits: GOMAXPROCS from the
-	// CPU quota (avoids CFS throttling) and GOMEMLIMIT from the memory limit
-	// (lets the GC react before the kernel OOM-kills the pod). Both respect
-	// explicit GOMAXPROCS/GOMEMLIMIT env overrides and are no-ops without
-	// cgroup limits.
+	// Derive GOMEMLIMIT from the container's cgroup memory limit (90% for
+	// non-heap headroom) so the GC reacts before the kernel OOM-kills the
+	// pod. Respects an explicit GOMEMLIMIT override and is a no-op without
+	// a limit. GOMAXPROCS needs no equivalent: since Go 1.25 the runtime
+	// derives it from the cgroup CPU quota natively and keeps it updated.
 	_ "github.com/KimMachineGun/automemlimit"
-	_ "go.uber.org/automaxprocs"
 )
 
 func main() {
