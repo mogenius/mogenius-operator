@@ -1,3 +1,13 @@
+## [2.23.2-develop.7](https://github.com/mogenius/mogenius-operator/compare/v2.23.2-develop.6...v2.23.2-develop.7) (2026-07-03)
+
+
+### Bug Fixes
+
+* guard activeLoggers map and watch throttle against data races ([91f30ac](https://github.com/mogenius/mogenius-operator/commit/91f30accd306bc45c4e277d171641918b132ffb5))
+* **k8sexec:** stop retrying cancelled log streams, allow long lines ([66f21ed](https://github.com/mogenius/mogenius-operator/commit/66f21ed63d365ef87632da78f8636c3123d7dec7))
+* **kubernetes:** GetClusterExternalIps always returned an empty list ([4889022](https://github.com/mogenius/mogenius-operator/commit/488902286954de69c4b66f2f1f93084794783922))
+* **monitors:** serve zero values on non-linux instead of deadlocking ([59d2749](https://github.com/mogenius/mogenius-operator/commit/59d27496e8207ba222f83708acc9c9585c5e6dbc))
+
 ## [2.23.2-develop.6](https://github.com/mogenius/mogenius-operator/compare/v2.23.2-develop.5...v2.23.2-develop.6) (2026-07-03)
 
 
