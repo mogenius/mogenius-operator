@@ -1,6 +1,7 @@
 package core
 
 import (
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"maps"
@@ -60,7 +61,6 @@ type ValkeyStatsDb interface {
 	GetWorkspaceStatsTrafficUtilization(timeOffsetInMinutes int, resources []unstructured.Unstructured) ([]GenericChartEntry, error)
 	GetClusterDashboardStats(workspaceNames []string, getControllers func(string) ([]unstructured.Unstructured, error)) (ClusterDashboardStats, error)
 	ReplaceCniData(data []structs.CniData)
-	Publish(data any, keys ...string)
 }
 
 type valkeyStatsDb struct {
@@ -599,28 +599,23 @@ func (self *valkeyStatsDb) AddPodStatsToDb(stats []structs.PodStats) error {
 }
 
 func (self *valkeyStatsDb) AddNodeRamMetricsToDb(nodeName string, data any) error {
-	self.Publish(data, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_MEMORY_NAME, nodeName)
-	return self.valkey.SetObject(data, liveStatsTTL, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_MEMORY_NAME, nodeName)
+	return self.publishAndSet(data, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_MEMORY_NAME, nodeName)
 }
 
 func (self *valkeyStatsDb) AddNodeRamProcessMetricsToDb(nodeName string, data any) error {
-	self.Publish(data, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_MEMORY_NAME, DB_STATS_PROCESSES_NAME, nodeName)
-	return self.valkey.SetObject(data, liveStatsTTL, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_MEMORY_NAME, DB_STATS_PROCESSES_NAME, nodeName)
+	return self.publishAndSet(data, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_MEMORY_NAME, DB_STATS_PROCESSES_NAME, nodeName)
 }
 
 func (self *valkeyStatsDb) AddNodeCpuMetricsToDb(nodeName string, data any) error {
-	self.Publish(data, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_CPU_NAME, nodeName)
-	return self.valkey.SetObject(data, liveStatsTTL, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_CPU_NAME, nodeName)
+	return self.publishAndSet(data, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_CPU_NAME, nodeName)
 }
 
 func (self *valkeyStatsDb) AddNodeCpuProcessMetricsToDb(nodeName string, data any) error {
-	self.Publish(data, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_CPU_NAME, DB_STATS_PROCESSES_NAME, nodeName)
-	return self.valkey.SetObject(data, liveStatsTTL, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_CPU_NAME, DB_STATS_PROCESSES_NAME, nodeName)
+	return self.publishAndSet(data, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_CPU_NAME, DB_STATS_PROCESSES_NAME, nodeName)
 }
 
 func (self *valkeyStatsDb) AddNodeTrafficMetricsToDb(nodeName string, data any) error {
-	self.Publish(data, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_TRAFFIC_NAME, nodeName)
-	return self.valkey.SetObject(data, liveStatsTTL, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_TRAFFIC_NAME, nodeName)
+	return self.publishAndSet(data, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_TRAFFIC_NAME, nodeName)
 }
 
 func (self *valkeyStatsDb) AddSnoopyStatusToDb(nodeName string, data networkmonitor.SnoopyStatus) error {
@@ -645,17 +640,26 @@ func (self *valkeyStatsDb) AddNodeStatsToDb(stats []structs.NodeStats) error {
 	return nil
 }
 
-func (self *valkeyStatsDb) Publish(data any, keys ...string) {
+// publishAndSet notifies subscribers and stores the live-stats snapshot.
+// These writes run every second per node, so the payload is marshaled once
+// and both commands are pipelined into a single roundtrip.
+func (self *valkeyStatsDb) publishAndSet(data any, keys ...string) error {
 	key := strings.Join(keys, ":")
-	client := self.valkey.GetValkeyClient()
-	err := client.Do(
-		self.valkey.GetContext(),
-		client.B().Publish().Channel(key).Message(utils.PrintJson(data)).Build(),
-	).Error()
-
+	jsonData, err := json.Marshal(data)
 	if err != nil {
+		return fmt.Errorf("error marshalling live stats for %q: %w", key, err)
+	}
+
+	client := self.valkey.GetValkeyClient()
+	results := client.DoMulti(
+		self.valkey.GetContext(),
+		client.B().Publish().Channel(key).Message(string(jsonData)).Build(),
+		client.B().Set().Key(key).Value(string(jsonData)).Ex(liveStatsTTL).Build(),
+	)
+	if err := results[0].Error(); err != nil {
 		self.logger.Error("Error publishing to Redis", "error", err, "key", key)
 	}
+	return results[1].Error()
 }
 
 type GenericChartEntry struct {
