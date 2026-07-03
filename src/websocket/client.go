@@ -207,7 +207,11 @@ func (self *websocketClient) ReadMessage() (messageType int, p []byte, err error
 		case <-self.ctx.Done():
 			return 0, []byte{}, fmt.Errorf("WebsocketClient is terminated")
 		case result := <-self.apiReadMessageRx:
-			self.apiLogger.Debug("ReadMessage", "messageType", result.messageType, "data", string(result.p), "error", result.err)
+			// string(result.p) copies the whole payload; slog evaluates args
+			// eagerly, so only pay for it when debug logging is enabled.
+			if self.apiLogger.Enabled(context.Background(), slog.LevelDebug) {
+				self.apiLogger.Debug("ReadMessage", "messageType", result.messageType, "data", string(result.p), "error", result.err)
+			}
 			return result.messageType, result.p, result.err
 		}
 	}
@@ -562,7 +566,11 @@ func (self *websocketClient) startReadThread() {
 			assert.Assert(self.connection != nil)
 			self.readLogger.Debug("ReadMessage")
 			messageType, p, err := self.connection.ReadMessage()
-			self.readLogger.Debug("ReadMessage", "type", messageType, "data", string(p), "error", err)
+			// string(p) copies the whole payload; only pay for it when debug
+			// logging is enabled.
+			if self.readLogger.Enabled(context.Background(), slog.LevelDebug) {
+				self.readLogger.Debug("ReadMessage", "type", messageType, "data", string(p), "error", err)
+			}
 			self.apiReadMessageRx <- websocketReadMessageOutput{messageType, p, err}
 			self.healthcheck(err)
 		case buf := <-self.apiReadJsonTx:
