@@ -196,11 +196,14 @@ func (self *containerEnumerator) readCgroupFile(pid ProcessId) (string, error) {
 var ErrorNoMatchFound = errors.New("no match found in cgroup")
 
 func (self *containerEnumerator) GetContainerIdFromCgroupWithPid(cgroupFileData string) (ContainerId, error) {
-	type PatternMatch struct {
-		pos  int
-		data string
-	}
-	allMatches := []PatternMatch{}
+	// Track the best match (highest position in its line) directly instead
+	// of collecting every regex match into a slice first. This runs for
+	// every PID on the node on every enumeration pass, so the per-call
+	// slice/struct churn added up. Selection semantics are unchanged: all
+	// regexes are evaluated (they extract different things, e.g. container
+	// id vs. pod uid) and the right-most extraction wins.
+	bestPos := -1
+	bestData := ""
 	for line := range strings.SplitSeq(cgroupFileData, "\n") {
 		for _, regex := range self.cgroupRegexes {
 			matches := regex.FindAllStringSubmatch(line, -1)
@@ -214,32 +217,28 @@ func (self *containerEnumerator) GetContainerIdFromCgroupWithPid(cgroupFileData 
 			submatch := submatches[len(submatches)-1]
 			idx := strings.LastIndex(line, submatch)
 			assert.Assert(idx != -1)
-			match := PatternMatch{pos: idx, data: submatch}
-			allMatches = append(allMatches, match)
+			if idx > bestPos {
+				bestPos = idx
+				bestData = submatch
+			}
 		}
 	}
-	if len(allMatches) == 0 {
+	if bestPos < 0 {
 		return "", ErrorNoMatchFound
 	}
 
-	result := &allMatches[0]
-	for _, match := range allMatches {
-		if match.pos > result.pos {
-			result = &match
-		}
-	}
-
-	return result.data, nil
+	return bestData, nil
 }
 
 func (self *containerEnumerator) generateCurrentPodList(
 	nodeName string,
 	containers map[ContainerId][]ProcessId,
 ) []PodInfo {
-	// query for all pods on current node from store
-	allPods := store.GetPods("*")
+	// query for all pods on current node from store (node-indexed; the
+	// full-cluster scan previously ran on every node every few seconds)
+	allPods := store.GetPodsOnNode(nodeName)
 
-	// important step: Remove all pods with HostNetwork=true, kube-system pods, and pods not on our node
+	// important step: Remove all pods with HostNetwork=true and kube-system pods
 	filteredItems := []v1.Pod{}
 	for _, pod := range allPods {
 		if !pod.Spec.HostNetwork && pod.Namespace != "kube-system" && pod.Spec.NodeName == nodeName {

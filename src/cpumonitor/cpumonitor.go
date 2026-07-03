@@ -12,6 +12,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -588,6 +589,12 @@ type ProcPidStat struct {
 }
 
 // read and parse `$procPath/$pid/stat` to read process cpu usage information from the kernel
+const statReadBufSize = 5 * 1024
+
+var statReadBufPool = sync.Pool{
+	New: func() any { return make([]byte, statReadBufSize) },
+}
+
 func getCpuUsageInfo(procPath string, pid string) (ProcPidStat, error) {
 	// File Format of `/proc/$pid/stat`
 	// ===================================
@@ -609,22 +616,27 @@ func getCpuUsageInfo(procPath string, pid string) (ProcPidStat, error) {
 	if err != nil {
 		return ProcPidStat{}, err
 	}
+	// The missing Close leaked one fd per process per second; only the GC
+	// finalizer reclaimed them.
+	defer f.Close()
 
 	// a common size encountered is about 350 bytes but can vary largely between processes
 	// this buffer size is a guess to be *always* larger in *any* environment than what the `/proc/$pid/stat` contains
-	dataMaxLen := 5 * 1024
+	// The buffer is pooled: this runs per PID per second and a fresh 5KiB
+	// allocation each time is pure GC churn.
+	data := statReadBufPool.Get().([]byte)
+	defer statReadBufPool.Put(data) //nolint:staticcheck // fixed-size slice, no pointer indirection concern
 
-	data := make([]byte, dataMaxLen)
 	bytesRead, err := f.Read(data)
 	if err != nil {
 		return ProcPidStat{}, err
 	}
-	if bytesRead >= dataMaxLen {
-		return ProcPidStat{}, fmt.Errorf("buffersize(%d) exhausted while reading File(%s)", dataMaxLen, deviceInfoPath)
+	if bytesRead >= statReadBufSize {
+		return ProcPidStat{}, fmt.Errorf("buffersize(%d) exhausted while reading File(%s)", statReadBufSize, deviceInfoPath)
 	}
-	data = data[0 : bytesRead-1]
 
-	statcontent := string(data)
+	// copies into a string, so returning the buffer to the pool is safe
+	statcontent := string(data[0 : bytesRead-1])
 
 	// only fields up to index 21 (Starttime) are used; stop parsing early
 	const lastNeededField = 21

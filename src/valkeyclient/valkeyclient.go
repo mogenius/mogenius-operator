@@ -673,7 +673,6 @@ func (self *valkeyClient) Exists(keys ...string) (bool, error) {
 }
 
 func GetObjectsByPattern[T any](store ValkeyClient, pattern string, keywords []string) ([]T, error) {
-	client := store.GetValkeyClient()
 	keyList, err := store.Keys(pattern)
 	if err != nil {
 		return []T{}, err
@@ -689,25 +688,33 @@ func GetObjectsByPattern[T any](store ValkeyClient, pattern string, keywords []s
 		}
 		keyList = filteredKeys
 	}
+
+	return GetObjectsForKeys[T](store, keyList)
+}
+
+// GetObjectsForKeys fetches and unmarshals the values for an explicit key
+// list via chunked MGETs (100 keys per roundtrip).
+func GetObjectsForKeys[T any](store ValkeyClient, keyList []string) ([]T, error) {
 	if len(keyList) == 0 {
 		return []T{}, nil
 	}
 
-	// Fetch the values in 100 chunks to avoid memory issues with large datasets
-	chunks := make([][]string, 0, (len(keyList)+MAX_CHUNK_GET_SIZE-1)/MAX_CHUNK_GET_SIZE)
-	for i := 0; i < len(keyList); i += MAX_CHUNK_GET_SIZE {
-		end := min(i+MAX_CHUNK_GET_SIZE, len(keyList))
-		chunks = append(chunks, keyList[i:end])
-	}
+	client := store.GetValkeyClient()
 	result := make([]T, 0, len(keyList))
 
-	// Fetch the values for these keys
-	for _, v := range chunks {
-		values, err := client.Do(store.GetContext(), client.B().Mget().Key(v...).Build()).AsStrSlice()
+	for i := 0; i < len(keyList); i += MAX_CHUNK_GET_SIZE {
+		end := min(i+MAX_CHUNK_GET_SIZE, len(keyList))
+		values, err := client.Do(store.GetContext(), client.B().Mget().Key(keyList[i:end]...).Build()).AsStrSlice()
 		if err != nil {
 			return result, err
 		}
 		for _, v := range values {
+			// MGET yields an empty entry for keys that were deleted or
+			// expired between key discovery and fetch; skip those instead
+			// of failing the whole batch.
+			if v == "" {
+				continue
+			}
 			var obj T
 			if err := json.Unmarshal([]byte(v), &obj); err != nil {
 				return result, fmt.Errorf("error unmarshalling value from Valkey: %w", err)

@@ -44,6 +44,13 @@ const (
 	// instead of doing a full-keyspace SCAN to discover namespaces.
 	VALKEY_RESOURCE_INDEX_NS_PREFIX = "resources-idx-ns"
 
+	// VALKEY_RESOURCE_INDEX_NODE_PREFIX is the root for the per-node pod
+	// index: a SET per node whose members are the primary keys of the pods
+	// scheduled there. The node-metrics DaemonSet reads its own node's pods
+	// every few seconds; without this index each read scanned and
+	// deserialized every pod in the cluster on every node.
+	VALKEY_RESOURCE_INDEX_NODE_PREFIX = "resources-idx-node"
+
 	resourceIndexSortByCreation = "by-creation"
 	resourceIndexSortByName     = "by-name"
 
@@ -112,19 +119,80 @@ func SearchByGroupKindNameNamespace(valkeyClient valkeyclient.ValkeyClient, apiV
 }
 
 func SearchResourceByNamespace(valkeyClient valkeyclient.ValkeyClient, namespace string, whitelist []*utils.ResourceDescriptor) ([]unstructured.Unstructured, error) {
-	pattern := CreateKeyPattern(nil, nil, &namespace, nil)
-
-	var searchKeys []string
+	// Non-empty whitelist: filter by apiVersion/kind parsed from the key
+	// segments. The previous implementation passed prefix keys (without the
+	// name segment) into GetObjectsByPattern's EXACT-match keyword filter,
+	// so a whitelisted search always returned zero results.
 	if len(whitelist) > 0 {
+		allowed := make([]utils.ResourceDescriptor, 0, len(whitelist))
 		for _, item := range whitelist {
-			searchKey := CreateResourceKey(item.ApiVersion, item.Kind, namespace)
-			searchKeys = append(searchKeys, searchKey)
+			if item != nil {
+				allowed = append(allowed, *item)
+			}
+		}
+		return GetResourcesByNamespaceAndKinds(valkeyClient, namespace, allowed)
+	}
+
+	pattern := CreateKeyPattern(nil, nil, &namespace, nil)
+	items, err := valkeyclient.GetObjectsByPattern[unstructured.Unstructured](valkeyClient, pattern, nil)
+
+	return items, err
+}
+
+// GetResourcesByNamespaceAndKinds returns all stored resources in the given
+// namespace whose apiVersion/kind matches one of the allowed descriptors,
+// using a SINGLE keyspace scan plus chunked MGETs. The per-kind alternative
+// (one scan per descriptor) costs O(kinds × keyspace) — with 80-150 watched
+// kinds that dominated namespace-scoped queries. apiVersion/kind are derived
+// from the key segments, which are written from the watcher's
+// ResourceDescriptor and therefore authoritative even when the stored
+// object's TypeMeta is empty.
+func GetResourcesByNamespaceAndKinds(valkeyClient valkeyclient.ValkeyClient, namespace string, allowed []utils.ResourceDescriptor) ([]unstructured.Unstructured, error) {
+	pattern := CreateKeyPattern(nil, nil, &namespace, nil)
+	keys, err := valkeyClient.Keys(pattern)
+	if err != nil {
+		return []unstructured.Unstructured{}, fmt.Errorf("scan resources in namespace %q: %w", namespace, err)
+	}
+
+	allowedSet := make(map[string]struct{}, len(allowed))
+	for _, r := range allowed {
+		allowedSet[r.ApiVersion+":"+r.Kind] = struct{}{}
+	}
+
+	selected := make([]string, 0, len(keys))
+	for _, key := range keys {
+		if resourceKeyMatches(key, namespace, allowedSet) {
+			selected = append(selected, key)
 		}
 	}
 
-	items, err := valkeyclient.GetObjectsByPattern[unstructured.Unstructured](valkeyClient, pattern, searchKeys)
+	results, err := valkeyclient.GetObjectsForKeys[unstructured.Unstructured](valkeyClient, selected)
+	if err != nil {
+		return results, fmt.Errorf("fetch resources in namespace %q: %w", namespace, err)
+	}
+	return results, nil
+}
 
-	return items, err
+// resourceKeyMatches reports whether a primary key belongs to the given
+// namespace and one of the allowed apiVersion:kind pairs.
+//
+// Key layout: resources:<apiVersion>:<kind>:<namespace>:<name>.
+// apiVersion/kind/namespace cannot contain ':' (apiVersion uses '/'), but
+// the NAME can: RBAC path-segment names like
+// "system:controller:bootstrap-signer" exist in every cluster, so SplitN
+// keeps those colons inside parts[4]. The namespace re-check guards against
+// glob wildcards matching across segment boundaries. An empty namespace
+// disables the namespace check (cluster-wide query).
+func resourceKeyMatches(key, namespace string, allowedSet map[string]struct{}) bool {
+	parts := strings.SplitN(key, ":", 5)
+	if len(parts) != 5 {
+		return false
+	}
+	if namespace != "" && parts[3] != namespace {
+		return false
+	}
+	_, ok := allowedSet[parts[1]+":"+parts[2]]
+	return ok
 }
 
 func DropAllResourcesFromValkey(valkeyClient valkeyclient.ValkeyClient, logger *slog.Logger) error {
@@ -138,6 +206,7 @@ func DropAllResourcesFromValkey(valkeyClient valkeyclient.ValkeyClient, logger *
 		VALKEY_RESOURCE_PREFIX+":*",
 		VALKEY_RESOURCE_INDEX_PREFIX+":*",
 		VALKEY_RESOURCE_INDEX_NS_PREFIX+":*",
+		VALKEY_RESOURCE_INDEX_NODE_PREFIX+":*",
 	)
 	if err != nil {
 		logger.Error("failed to DropAllResourcesFromValkey", "error", err)
@@ -285,13 +354,35 @@ func SetResourceWithIndex(
 		client.B().Expire().Key(byNameKey).Seconds(ttlSeconds).Build(),
 		client.B().Sadd().Key(nsRegistryKey).Member(namespace).Build(),
 		client.B().Expire().Key(nsRegistryKey).Seconds(ttlSeconds).Build(),
-		client.B().Exec().Build(),
 	}
+	if nodeName := podNodeName(apiVersion, kind, obj); nodeName != "" {
+		nodeIndexKey := resourceNodeIndexKey(nodeName)
+		cmds = append(cmds,
+			client.B().Sadd().Key(nodeIndexKey).Member(primaryKey).Build(),
+			client.B().Expire().Key(nodeIndexKey).Seconds(ttlSeconds).Build(),
+		)
+	}
+	cmds = append(cmds, client.B().Exec().Build())
 
 	if err := checkMultiExec(client.DoMulti(valkey.GetContext(), cmds...)); err != nil {
 		return fmt.Errorf("set resource with index pipeline: %w", err)
 	}
 	return nil
+}
+
+// podNodeName returns spec.nodeName when obj is a scheduled Pod, "" otherwise.
+func podNodeName(apiVersion, kind string, obj *unstructured.Unstructured) string {
+	if obj == nil || kind != "Pod" || apiVersion != "v1" {
+		return ""
+	}
+	nodeName, _, _ := unstructured.NestedString(obj.Object, "spec", "nodeName")
+	return nodeName
+}
+
+// resourceNodeIndexKey returns the SET key holding the primary keys of the
+// pods scheduled on the given node.
+func resourceNodeIndexKey(nodeName string) string {
+	return VALKEY_RESOURCE_INDEX_NODE_PREFIX + ":" + nodeName
 }
 
 // DeleteResourceWithIndex removes the primary key and both index members in
@@ -300,6 +391,7 @@ func SetResourceWithIndex(
 func DeleteResourceWithIndex(
 	valkey valkeyclient.ValkeyClient,
 	apiVersion, kind, namespace, name string,
+	obj *unstructured.Unstructured,
 ) error {
 	primaryKey := CreateResourceKey(apiVersion, kind, namespace, name)
 	byCreationKey := resourceIndexKey(apiVersion, kind, namespace, resourceIndexSortByCreation)
@@ -315,8 +407,11 @@ func DeleteResourceWithIndex(
 		client.B().Del().Key(primaryKey).Build(),
 		client.B().Zrem().Key(byCreationKey).Member(name).Build(),
 		client.B().Zrem().Key(byNameKey).Member(name).Build(),
-		client.B().Exec().Build(),
 	}
+	if nodeName := podNodeName(apiVersion, kind, obj); nodeName != "" {
+		cmds = append(cmds, client.B().Srem().Key(resourceNodeIndexKey(nodeName)).Member(primaryKey).Build())
+	}
+	cmds = append(cmds, client.B().Exec().Build())
 
 	if err := checkMultiExec(client.DoMulti(valkey.GetContext(), cmds...)); err != nil {
 		return fmt.Errorf("delete resource with index pipeline: %w", err)
@@ -727,6 +822,31 @@ func GetPod(namespace string, name string) *coreV1.Pod {
 		return nil
 	}
 	return pod
+}
+
+// GetPodsOnNode returns the pods scheduled on nodeName via the per-node SET
+// index (one SMEMBERS plus chunked MGETs). The full-scan fallback covers an
+// empty/missing index (e.g. right after the store was wiped, before the
+// watcher re-populated it). Members whose primary key already expired are
+// skipped by GetObjectsForKeys.
+func GetPodsOnNode(nodeName string) []coreV1.Pod {
+	client := valkeyClient.GetValkeyClient()
+	members, err := client.Do(valkeyClient.GetContext(), client.B().Smembers().Key(resourceNodeIndexKey(nodeName)).Build()).AsStrSlice()
+	if err == nil && len(members) > 0 {
+		pods, err := valkeyclient.GetObjectsForKeys[coreV1.Pod](valkeyClient, members)
+		if err == nil {
+			return pods
+		}
+	}
+
+	pods := GetPods("*")
+	result := make([]coreV1.Pod, 0, len(pods))
+	for _, pod := range pods {
+		if pod.Spec.NodeName == nodeName {
+			result = append(result, pod)
+		}
+	}
+	return result
 }
 
 func GetPods(namespace string) []coreV1.Pod {

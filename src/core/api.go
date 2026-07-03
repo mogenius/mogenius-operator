@@ -584,6 +584,22 @@ func (self *api) GetWorkspaceResources(workspaceName string, whitelist []*utils.
 	var firstErr error
 	var wg sync.WaitGroup
 
+	// Set-based dedup (namespace/name, matching the previous semantics).
+	// The old appendIfNotExists linear-scanned the accumulated result for
+	// every appended item while holding the mutex — O(n²) with all worker
+	// goroutines serialized on it. Must be called with resultMutex held.
+	seen := map[string]struct{}{}
+	appendUnique := func(items ...unstructured.Unstructured) {
+		for _, item := range items {
+			key := item.GetNamespace() + "/" + item.GetName()
+			if _, ok := seen[key]; ok {
+				continue
+			}
+			seen[key] = struct{}{}
+			result = append(result, item)
+		}
+	}
+
 	for _, v := range workspace.Spec.Resources {
 		if v.Type == "namespace" {
 			if len(namespaceWhitelist) > 0 {
@@ -601,7 +617,7 @@ func (self *api) GetWorkspaceResources(workspaceName string, whitelist []*utils.
 					}
 					return
 				}
-				result = appendIfNotExists(result, nsResources...)
+				appendUnique(nsResources...)
 			})
 		}
 		if v.Type == "helm" {
@@ -625,7 +641,7 @@ func (self *api) GetWorkspaceResources(workspaceName string, whitelist []*utils.
 					}
 					return
 				}
-				result = appendIfNotExists(result, helmResources...)
+				appendUnique(helmResources...)
 			})
 		}
 	}
@@ -684,13 +700,3 @@ func (self *api) GetWorkspaceNamespaces(workspaceName string) ([]string, error) 
 	return namespaceNames, nil
 }
 
-func appendIfNotExists(list []unstructured.Unstructured, item ...unstructured.Unstructured) []unstructured.Unstructured {
-	for _, i := range item {
-		if !slices.ContainsFunc(list, func(u unstructured.Unstructured) bool {
-			return u.GetName() == i.GetName() && u.GetNamespace() == i.GetNamespace()
-		}) {
-			list = append(list, i)
-		}
-	}
-	return list
-}
