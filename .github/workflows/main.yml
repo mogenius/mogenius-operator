@@ -45,16 +45,10 @@ jobs:
       sign_image: true
       build_args_amd64: |
         GO_BUILDER_IMAGE=ghcr.io/mogenius/go-builder:latest-amd64
-        RUST_BUILDER_IMAGE=ghcr.io/mogenius/rust-builder:latest-amd64
         BPFTOOL_IMAGE=ghcr.io/mogenius/bpftool:latest-amd64
-        SNOOPY_IMAGE=ghcr.io/mogenius/snoopy:latest-amd64
-        RUNTIME_IMAGE=ghcr.io/mogenius/runtime:latest-amd64
       build_args_arm64: |
         GO_BUILDER_IMAGE=ghcr.io/mogenius/go-builder:latest-arm64
-        RUST_BUILDER_IMAGE=ghcr.io/mogenius/rust-builder:latest-arm64
         BPFTOOL_IMAGE=ghcr.io/mogenius/bpftool:latest-arm64
-        SNOOPY_IMAGE=ghcr.io/mogenius/snoopy:latest-arm64
-        RUNTIME_IMAGE=ghcr.io/mogenius/runtime:latest-arm64
 
   helm-chart:
     if: github.ref == 'refs/heads/main'

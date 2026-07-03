@@ -1,6 +1,7 @@
 package structs
 
 import (
+	"context"
 	"encoding/json"
 	"log/slog"
 	"mogenius-operator/src/utils"
@@ -89,6 +90,11 @@ func CreateEmptyDatagram() Datagram {
 }
 
 func (d *Datagram) DisplayReceiveSummary(logger *slog.Logger) {
+	// GetSize marshals and redacts the whole datagram; slog evaluates args
+	// eagerly, so skip entirely unless debug logging is actually enabled.
+	if !logger.Enabled(context.Background(), slog.LevelDebug) {
+		return
+	}
 	logger.Debug("RECEIVED",
 		"pattern", d.Pattern,
 		"id", d.Id,

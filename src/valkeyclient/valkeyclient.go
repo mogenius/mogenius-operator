@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"mogenius-operator/src/assert"
 	"mogenius-operator/src/config"
-	"mogenius-operator/src/utils"
 	"net"
 	"path/filepath"
 	"slices"
@@ -224,6 +223,7 @@ func (self *valkeyClient) SetObjectWithAutoincrementLimit(value any, limit int64
 	}
 
 	var newKey string
+	var chosenNum int64
 	for range maxAutoincrementRetries {
 		nextNum, err := self.valkeyClient.Do(self.ctx,
 			self.valkeyClient.B().Incr().Key(counterKey).Build()).AsInt64()
@@ -238,6 +238,7 @@ func (self *valkeyClient) SetObjectWithAutoincrementLimit(value any, limit int64
 		}
 		if existsCount == 0 {
 			newKey = candidate
+			chosenNum = nextNum
 			break
 		}
 		// Slot is taken by legacy data; skip ahead and try the next.
@@ -260,10 +261,22 @@ func (self *valkeyClient) SetObjectWithAutoincrementLimit(value any, limit int64
 		return nil
 	}
 
-	// Best-effort prune: keep at most `limit` numeric entries under
-	// baseKey. Concurrent writers may briefly leave the count slightly
-	// above limit; that's acceptable and self-corrects on subsequent
-	// writes.
+	// Fast prune: numbering is monotonic, so the slot that just fell out
+	// of the window is chosenNum-limit. A single UNLINK replaces the
+	// full-keyspace SCAN that used to run on every write.
+	if expiredNum := chosenNum - limit; expiredNum > 0 {
+		expiredKey := fmt.Sprintf("%s:%d", baseKey, expiredNum)
+		_ = self.valkeyClient.Do(self.ctx,
+			self.valkeyClient.B().Unlink().Key(expiredKey).Build()).Error()
+	}
+
+	// Slow prune: occasionally sweep for stragglers (skipped slots,
+	// lowered limits, legacy data). Best-effort: concurrent writers may
+	// briefly leave the count slightly above limit; that's acceptable and
+	// self-corrects on subsequent writes.
+	if chosenNum%100 != 0 {
+		return nil
+	}
 	existingKeys, err := self.Keys(baseKey + ":*")
 	if err != nil {
 		return nil
@@ -890,43 +903,6 @@ func sortStringsByTimestamp(stringsToSort []string, order SortOrder) {
 	copy(stringsToSort, result)
 }
 
-// trimStream removes old entries based on retention policy
-func trimStream(self *valkeyClient, streamKey string) error {
-	// Trim by time (remove entries older than retention period)
-	if MAX_RETENTION_TIME > 0 {
-		cutoffTime := time.Now().Add(-MAX_RETENTION_TIME)
-		cutoffID := fmt.Sprintf("%d-0", cutoffTime.UnixMilli())
-
-		// Build XTRIM MINID command
-		cmd := self.valkeyClient.B().Xtrim().Key(streamKey).Minid().Threshold(cutoffID).Build()
-
-		trimResult := self.valkeyClient.Do(self.ctx, cmd)
-		if err := trimResult.Error(); err != nil {
-			// Ignore "no such key" errors
-			if err.Error() != "ERR no such key" {
-				return fmt.Errorf("failed to trim by time: %w", err)
-			}
-			return nil
-		}
-	}
-
-	if MAX_RETENTION_SIZE > 0 {
-		// Build XTRIM MAXLEN command
-		cmd := self.valkeyClient.B().Xtrim().Key(streamKey).Maxlen().Threshold(fmt.Sprintf("%d", MAX_RETENTION_SIZE)).Build()
-
-		trimResult := self.valkeyClient.Do(self.ctx, cmd)
-		if err := trimResult.Error(); err != nil {
-			// Ignore "no such key" errors
-			if err.Error() != "ERR no such key" {
-				return fmt.Errorf("failed to trim by size: %w", err)
-			}
-			return nil
-		}
-	}
-
-	return nil
-}
-
 func parseStreamMessages[T any](logger *slog.Logger, messages []valkeyclient.XRangeEntry) ([]T, error) {
 	dataPoints := make([]T, 0, len(messages))
 
@@ -958,18 +934,36 @@ func (self *valkeyClient) StoreSortedListEntry(data any, timestamp int64, keys .
 	}
 
 	id := fmt.Sprintf("%d-0", timestamp)
-	// Build XADD command - removed the empty FieldValue() call
-	cmd := self.valkeyClient.B().Xadd().Key(streamKey).Id(id).FieldValue().
-		FieldValue("data", string(jsonData)).
-		Build()
 
-	result := self.valkeyClient.Do(self.ctx, cmd)
-	if err := result.Error(); err != nil {
+	// This path runs per log line and per pod-stats write. Pipeline XADD,
+	// retention trims and TTL refresh into a single roundtrip instead of
+	// four sequential Do() calls.
+	cmds := make([]valkeyclient.Completed, 0, 4)
+	cmds = append(cmds, self.valkeyClient.B().Xadd().Key(streamKey).Id(id).FieldValue().
+		FieldValue("data", string(jsonData)).
+		Build())
+	if MAX_RETENTION_TIME > 0 {
+		cutoffTime := time.Now().Add(-MAX_RETENTION_TIME)
+		cutoffID := fmt.Sprintf("%d-0", cutoffTime.UnixMilli())
+		cmds = append(cmds, self.valkeyClient.B().Xtrim().Key(streamKey).Minid().Threshold(cutoffID).Build())
+	}
+	if MAX_RETENTION_SIZE > 0 {
+		cmds = append(cmds, self.valkeyClient.B().Xtrim().Key(streamKey).Maxlen().Threshold(fmt.Sprintf("%d", MAX_RETENTION_SIZE)).Build())
+	}
+	// Set TTL on the stream key so stale keys (e.g. for deleted pods) expire automatically.
+	// Active keys get their TTL refreshed on every write.
+	cmds = append(cmds, self.valkeyClient.B().Expire().Key(streamKey).Seconds(int64(MAX_RETENTION_TIME.Seconds())).Build())
+
+	results := self.valkeyClient.DoMulti(self.ctx, cmds...)
+
+	// The XADD result (first command) decides the overall outcome.
+	if err := results[0].Error(); err != nil {
 		errString := err.Error()
 
 		if strings.Contains(errString, "The ID specified in XADD is equal or smaller than the target stream top item") {
 			// This means we're trying to insert a duplicate entry
-			// we dont care about duplicates
+			// we dont care about duplicates (and skip the publish so
+			// subscribers don't see the same entry twice)
 			return nil
 		}
 		// Previously: on WRONGTYPE the wrapper silently DEL'd the
@@ -990,20 +984,16 @@ func (self *valkeyClient) StoreSortedListEntry(data any, timestamp int64, keys .
 		return fmt.Errorf("failed to add to stream: %w, key:%s", err, streamKey)
 	}
 
-	// Trim stream to maintain retention policy
-	if err := trimStream(self, streamKey); err != nil {
-		self.logger.Error("failed to trim stream", "key", streamKey, "error", err.Error())
+	// Trim/expire results: best-effort maintenance, log and continue.
+	for _, result := range results[1:] {
+		if err := result.Error(); err != nil && err.Error() != "ERR no such key" {
+			self.logger.Error("failed to trim/expire stream", "key", streamKey, "error", err.Error())
+		}
 	}
 
-	// Set TTL on the stream key so stale keys (e.g. for deleted pods) expire automatically.
-	// Active keys get their TTL refreshed on every write.
-	expireCmd := self.valkeyClient.B().Expire().Key(streamKey).Seconds(int64(MAX_RETENTION_TIME.Seconds())).Build()
-	if err := self.valkeyClient.Do(self.ctx, expireCmd).Error(); err != nil {
-		self.logger.Error("failed to set TTL on stream key", "key", streamKey, "error", err.Error())
-	}
-
-	// notify subscribers about the new entry
-	err = self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Publish().Channel(createChannel(keys...)).Message(utils.PrintJson(data)).Build()).Error()
+	// notify subscribers about the new entry (reuse the already marshaled
+	// payload instead of marshalling the same data a second time)
+	err = self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Publish().Channel(createChannel(keys...)).Message(string(jsonData)).Build()).Error()
 	if err != nil {
 		return err
 	}

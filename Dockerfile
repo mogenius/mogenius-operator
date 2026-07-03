@@ -11,20 +11,32 @@
 # =============================================================================
 
 ARG GO_BUILDER_IMAGE=ghcr.io/mogenius/go-builder:latest
-ARG RUST_BUILDER_IMAGE=ghcr.io/mogenius/rust-builder:latest
 ARG BPFTOOL_IMAGE=ghcr.io/mogenius/bpftool:latest
-ARG SNOOPY_IMAGE=ghcr.io/mogenius/snoopy:latest
-ARG RUNTIME_IMAGE=ghcr.io/mogenius/runtime:latest
+# Pinned snoopy release (github.com/mogenius/snoopy). The release assets are
+# built from the tagged source; the ghcr.io/mogenius/snoopy image only has
+# non-human-readable date/sha tags, so we pin the release version instead.
+ARG SNOOPY_VERSION=v0.4.1
 
 # Get bpftool binary (target platform - armv7 binary for armv7 build)
 FROM ${BPFTOOL_IMAGE} AS bpftool-source
 
-# Get snoopy binary (target platform - armv7 binary for armv7 build)
-FROM ${SNOOPY_IMAGE} AS snoopy-source
-
-# Get Just from rust-builder (build platform - runs on host for cross-compilation)
-ARG BUILDPLATFORM
-# FROM --platform=$BUILDPLATFORM ${RUST_BUILDER_IMAGE} AS rust-source
+# Download the snoopy binary for the target platform from the pinned GitHub
+# release. Runs on the build platform (plain file download, no emulation).
+FROM --platform=$BUILDPLATFORM alpine:3.24 AS snoopy-source
+ARG SNOOPY_VERSION
+ARG TARGETARCH
+ARG TARGETVARIANT
+RUN case "${TARGETARCH}${TARGETVARIANT}" in \
+      amd64*)   SNOOPY_ARCH=x86_64 ;; \
+      arm64*)   SNOOPY_ARCH=aarch64 ;; \
+      armv7)    SNOOPY_ARCH=armv7 ;; \
+      riscv64*) SNOOPY_ARCH=riscv64 ;; \
+      ppc64le*) SNOOPY_ARCH=powerpc64le ;; \
+      *) echo "unsupported TARGETARCH=${TARGETARCH} TARGETVARIANT=${TARGETVARIANT}" >&2; exit 1 ;; \
+    esac && \
+    wget -q -O /usr/local/bin/snoopy \
+      "https://github.com/mogenius/snoopy/releases/download/${SNOOPY_VERSION}/snoopy_${SNOOPY_ARCH}" && \
+    chmod +x /usr/local/bin/snoopy
 
 # =============================================================================
 # Stage 2: Build Environment (runs on build platform for cross-compilation)

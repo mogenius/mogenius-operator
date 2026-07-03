@@ -20,6 +20,16 @@
       "datasourceTemplate": "helm",
       "depNameTemplate": "moac",
       "registryUrlTemplate": "https://helm.mogenius.com/public"
+    },
+    {
+      "description": "Update the pinned snoopy release in the Dockerfile",
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^Dockerfile$/"
+      ],
+      "matchStrings": ["SNOOPY_VERSION=(?<currentValue>v[\\d.]+)"],
+      "depNameTemplate": "mogenius/snoopy",
+      "datasourceTemplate": "github-releases"
     }
   ],
   "packageRules": [

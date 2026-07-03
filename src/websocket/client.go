@@ -3,6 +3,7 @@ package websocket
 import (
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -207,33 +208,25 @@ func (self *websocketClient) ReadMessage() (messageType int, p []byte, err error
 		case <-self.ctx.Done():
 			return 0, []byte{}, fmt.Errorf("WebsocketClient is terminated")
 		case result := <-self.apiReadMessageRx:
-			self.apiLogger.Debug("ReadMessage", "messageType", result.messageType, "data", string(result.p), "error", result.err)
+			// string(result.p) copies the whole payload; slog evaluates args
+			// eagerly, so only pay for it when debug logging is enabled.
+			if self.apiLogger.Enabled(context.Background(), slog.LevelDebug) {
+				self.apiLogger.Debug("ReadMessage", "messageType", result.messageType, "data", string(result.p), "error", result.err)
+			}
 			return result.messageType, result.p, result.err
 		}
 	}
 }
 
 func (self *websocketClient) WriteJSON(data any) error {
-	// Fast path: try non-blocking write to queue
-	select {
-	case <-self.ctx.Done():
-		return fmt.Errorf("WebsocketClient is terminated")
-	case self.writeQueue <- data:
-		return nil
-	default:
-		select {
-		case <-self.ctx.Done():
-			return fmt.Errorf("WebsocketClient is terminated")
-		case self.apiWriteJsonTx <- data:
-			select {
-			case <-self.ctx.Done():
-				return fmt.Errorf("WebsocketClient is terminated")
-			case err := <-self.apiWriteJsonRx:
-				self.apiLogger.Debug("WriteJSON", "data", data, "error", err)
-				return err
-			}
-		}
+	// Marshal in the caller and enqueue the pre-encoded frame: encoding on
+	// the single write thread serialized all concurrent WriteJSON senders,
+	// and the old queue-full fallback channel could reorder frames.
+	raw, err := json.Marshal(data)
+	if err != nil {
+		return fmt.Errorf("WriteJSON marshal: %w", err)
 	}
+	return self.WriteRaw(raw)
 }
 
 func (self *websocketClient) WriteRaw(data []byte) error {
@@ -351,10 +344,6 @@ type websocketClient struct {
 	apiReadMessageTx chan struct{}
 	apiReadMessageRx chan websocketReadMessageOutput
 
-	// api: self.WriteJson()
-	apiWriteJsonTx chan any
-	apiWriteJsonRx chan error
-
 	// api: self.ReadJson()
 	apiReadJsonTx chan any
 	apiReadJsonRx chan error
@@ -423,8 +412,6 @@ func NewWebsocketClient(logger *slog.Logger) WebsocketClient {
 	self.apiWriteMessageRx = make(chan error)
 	self.apiReadMessageTx = make(chan struct{})
 	self.apiReadMessageRx = make(chan websocketReadMessageOutput)
-	self.apiWriteJsonTx = make(chan any)
-	self.apiWriteJsonRx = make(chan error)
 	self.apiReadJsonTx = make(chan any)
 	self.apiReadJsonRx = make(chan error)
 	self.apiTerminateTx = make(chan struct{})
@@ -562,7 +549,11 @@ func (self *websocketClient) startReadThread() {
 			assert.Assert(self.connection != nil)
 			self.readLogger.Debug("ReadMessage")
 			messageType, p, err := self.connection.ReadMessage()
-			self.readLogger.Debug("ReadMessage", "type", messageType, "data", string(p), "error", err)
+			// string(p) copies the whole payload; only pay for it when debug
+			// logging is enabled.
+			if self.readLogger.Enabled(context.Background(), slog.LevelDebug) {
+				self.readLogger.Debug("ReadMessage", "type", messageType, "data", string(p), "error", err)
+			}
 			self.apiReadMessageRx <- websocketReadMessageOutput{messageType, p, err}
 			self.healthcheck(err)
 		case buf := <-self.apiReadJsonTx:
@@ -619,14 +610,6 @@ func (self *websocketClient) startWriteThread() {
 			err := self.connection.WriteMessage(val.messageType, val.data)
 			self.writeLogger.Debug("WriteMessage", "error", err)
 			self.apiWriteMessageRx <- err
-			self.healthcheck(err)
-		case data := <-self.apiWriteJsonTx:
-			assert.Assert(self.connection != nil)
-			self.writeLogger.Debug("WriteJSON", "data", data)
-			_ = self.connection.SetWriteDeadline(time.Now().Add(writeDeadline))
-			err := self.connection.WriteJSON(data)
-			self.writeLogger.Debug("WriteJSON", "error", err)
-			self.apiWriteJsonRx <- err
 			self.healthcheck(err)
 		case <-self.internalSendCloseMessageTx:
 			assert.Assert(self.connection != nil)
