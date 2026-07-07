@@ -1,3 +1,10 @@
+## [2.23.2-develop.10](https://github.com/mogenius/mogenius-operator/compare/v2.23.2-develop.9...v2.23.2-develop.10) (2026-07-07)
+
+
+### Bug Fixes
+
+* fix websocket reconnect deadlock and detect half-open connections; update User Datagram struct (add apikey) ([842127f](https://github.com/mogenius/mogenius-operator/commit/842127f18b9a853716b841d5420fd48f776f16c7))
+
 ## [2.23.2-develop.9](https://github.com/mogenius/mogenius-operator/compare/v2.23.2-develop.8...v2.23.2-develop.9) (2026-07-06)
 
 
