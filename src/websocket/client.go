@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"math/rand/v2"
 	"mogenius-operator/src/assert"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -23,6 +24,13 @@ import (
 // writeDeadline bounds how long a single websocket write may block.
 // Without this a slow/stuck peer wedges the entire write thread.
 const writeDeadline = 10 * time.Second
+
+// livenessTimeout bounds how long a connection that is actively read may go
+// without any inbound frame or pong before the watchdog forces a reconnect.
+// Generous on purpose: pongs are only processed while a read is pending, so
+// message-processing backpressure (all workers busy, no read in flight) must
+// not be mistaken for a dead peer.
+const livenessTimeout = 90 * time.Second
 
 // reconnectBackoff returns an exponentially increasing wait time with
 // +/-20% jitter, capped at 30s. Avoids hammering the platform API
@@ -293,6 +301,15 @@ type websocketClient struct {
 	// debounce multiple reconnect requests at once
 	reconnectRequested atomic.Bool
 
+	// unix-nano timestamp of the last inbound activity (successful read or pong)
+	lastActivity atomic.Int64
+
+	// set once the first read is served; the liveness watchdog only applies to
+	// clients that are actively read, because pongs are only processed during
+	// reads (a write-only client like the events client would otherwise be
+	// falsely detected as dead)
+	hasReader atomic.Bool
+
 	// signal responder for api functions to reject requests when the WebsocketClient has been terminated
 	ctx       context.Context
 	ctxCancel context.CancelFunc
@@ -384,6 +401,12 @@ func NewWebsocketClient(logger *slog.Logger) WebsocketClient {
 	self.reconnectRequested = atomic.Bool{}
 	self.reconnectRequested.Store(false)
 
+	self.lastActivity = atomic.Int64{}
+	self.lastActivity.Store(0)
+
+	self.hasReader = atomic.Bool{}
+	self.hasReader.Store(false)
+
 	self.enableReconnecting = atomic.Bool{}
 	self.enableReconnecting.Store(false)
 
@@ -456,11 +479,15 @@ func (self *websocketClient) startRuntime() {
 				if err != nil {
 					self.runtimeLogger.Error("failed to send close message", "error", err)
 				}
-				self.shutdownWorkerThreads()
+				// close the connection BEFORE waiting for the worker threads: a
+				// read blocked on a half-open connection only returns once the
+				// underlying connection is closed, and shutdownWorkerThreads
+				// waits for exactly that read to come back to its select
 				err = self.connection.Close()
 				if err != nil {
 					self.runtimeLogger.Error("failed to close internal connection", "error", err)
 				}
+				self.shutdownWorkerThreads()
 				self.connection = nil
 			}
 			self.apiTerminateRx <- struct{}{}
@@ -505,6 +532,7 @@ func (self *websocketClient) startRuntime() {
 			}
 			self.runtimeLogger.Info("established websocket connection", "url", connectionUrl.String(), "localAddr", conn.LocalAddr())
 			self.connection = conn
+			self.lastActivity.Store(time.Now().UnixNano())
 			go self.startReadThread()
 			go self.startWriteThread()
 			self.enableReconnecting.Store(true)
@@ -519,11 +547,14 @@ func (self *websocketClient) startRuntime() {
 			if err != nil {
 				self.runtimeLogger.Error("failed to send close message", "error", err)
 			}
-			self.shutdownWorkerThreads()
+			// same ordering as in the terminate case: closing first unblocks a
+			// read stuck on a half-open connection so the worker shutdown below
+			// cannot deadlock the runtime thread (and with it every reconnect)
 			err = self.connection.Close()
 			if err != nil {
 				self.runtimeLogger.Error("failed to close internal connection", "error", err)
 			}
+			self.shutdownWorkerThreads()
 			self.connection = nil
 			self.enableReconnecting.Store(false)
 			isRunning = false
@@ -540,6 +571,14 @@ func (self *websocketClient) startReadThread() {
 		return nil
 	})
 
+	// pongs are answers to the pings sent by the write thread; they are only
+	// processed while a read is pending, which is why the liveness watchdog
+	// is gated on hasReader
+	self.connection.SetPongHandler(func(string) error {
+		self.lastActivity.Store(time.Now().UnixNano())
+		return nil
+	})
+
 	for {
 		select {
 		case <-self.readThreadShutdownTx:
@@ -547,8 +586,12 @@ func (self *websocketClient) startReadThread() {
 			return
 		case <-self.apiReadMessageTx:
 			assert.Assert(self.connection != nil)
+			self.hasReader.Store(true)
 			self.readLogger.Debug("ReadMessage")
 			messageType, p, err := self.connection.ReadMessage()
+			if err == nil {
+				self.lastActivity.Store(time.Now().UnixNano())
+			}
 			// string(p) copies the whole payload; only pay for it when debug
 			// logging is enabled.
 			if self.readLogger.Enabled(context.Background(), slog.LevelDebug) {
@@ -558,8 +601,12 @@ func (self *websocketClient) startReadThread() {
 			self.healthcheck(err)
 		case buf := <-self.apiReadJsonTx:
 			assert.Assert(self.connection != nil)
+			self.hasReader.Store(true)
 			self.readLogger.Debug("ReadJSON")
 			err := self.connection.ReadJSON(buf)
+			if err == nil {
+				self.lastActivity.Store(time.Now().UnixNano())
+			}
 			self.readLogger.Debug("ReadJSON", "error", err)
 			self.apiReadJsonRx <- err
 			self.healthcheck(err)
@@ -585,6 +632,19 @@ func (self *websocketClient) startWriteThread() {
 				self.writeLogger.Debug("failed to send ping", "error", err)
 			}
 			self.healthcheck(err)
+			// liveness watchdog: on a half-open connection pings keep landing
+			// in the kernel buffer without error, so successful writes prove
+			// nothing - only inbound frames/pongs do. Reads are the only place
+			// pongs get processed, hence the hasReader gate (write-only clients
+			// like the events client are covered by the write-timeout path in
+			// healthcheck instead).
+			if self.hasReader.Load() {
+				lastActivity := time.Unix(0, self.lastActivity.Load())
+				if time.Since(lastActivity) > livenessTimeout {
+					self.writeLogger.Warn("no inbound frame or pong within liveness timeout - triggering reconnect", "lastActivity", lastActivity)
+					go self.requestReconnect()
+				}
+			}
 		case data := <-self.writeQueue:
 			// Process queued writes without blocking the caller. Pre-marshaled
 			// frames (from WriteRaw) are written as-is; the write thread does
@@ -709,6 +769,16 @@ func (self *websocketClient) healthcheck(err error) {
 	default:
 		if gorillaWebsocket.IsUnexpectedCloseError(err) {
 			self.runtimeLogger.Debug("detected close error - triggering reconnect", "error", err)
+			go self.requestReconnect()
+			return
+		}
+		// a write deadline exceeded means the peer stopped draining the
+		// connection (e.g. half-open after an LB drop); without this the
+		// client would keep the dead connection forever because none of the
+		// syscall errors below ever fire on a blackholed connection
+		var netErr net.Error
+		if errors.As(err, &netErr) && netErr.Timeout() {
+			self.runtimeLogger.Debug("detected timeout error - triggering reconnect", "error", err)
 			go self.requestReconnect()
 			return
 		}

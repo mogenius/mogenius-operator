@@ -23,10 +23,17 @@ type Datagram struct {
 }
 
 type User struct {
-	FirstName string `json:"firstName,omitempty"`
-	LastName  string `json:"lastName,omitempty"`
-	Email     string `json:"email,omitempty"`
-	Source    string `json:"source,omitempty"`
+	FirstName    string `json:"firstName,omitempty"`
+	LastName     string `json:"lastName,omitempty"`
+	Email        string `json:"email,omitempty"`
+	Source       string `json:"source,omitempty"`
+	ApiKey       ApiKey `json:"apiKey"`
+	IsMcpRequest bool   `json:"isMcpRequest,omitempty"`
+}
+
+type ApiKey struct {
+	Id   string `json:"id,omitempty"`
+	Name string `json:"name,omitempty"`
 }
 
 func CreateDatagramNotificationFromJob(data *Job) Datagram {
