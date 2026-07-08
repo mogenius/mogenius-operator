@@ -1,3 +1,43 @@
+## [2.23.3-develop.1](https://github.com/mogenius/mogenius-operator/compare/v2.23.2...v2.23.3-develop.1) (2026-07-08)
+
+
+### Bug Fixes
+
+* adding metric for websocket connection state ([fcf6c63](https://github.com/mogenius/mogenius-operator/commit/fcf6c63f40ab03742276975c8892b8c2972d2f0f))
+* **cpumonitor:** close /proc stat files and pool read buffers ([6a5b15f](https://github.com/mogenius/mogenius-operator/commit/6a5b15f8321e770431afb3b7e26dca65daf98a99))
+* **deps:** update module github.com/anthropics/anthropic-sdk-go to v1.55.1 ([24d978a](https://github.com/mogenius/mogenius-operator/commit/24d978a86c6508d330bc8eebac4313b79087dff9))
+* **deps:** update module github.com/anthropics/anthropic-sdk-go to v1.56.0 ([669ad09](https://github.com/mogenius/mogenius-operator/commit/669ad09ec5c14d9945a98b446fb06e5564a6db17))
+* **deps:** update module github.com/bitnami/sealed-secrets to v0.38.4 ([83b399e](https://github.com/mogenius/mogenius-operator/commit/83b399ea50f74fe0331c9e68171c131b4ec89e5d))
+* **deps:** update module github.com/cert-manager/cert-manager to v1.20.3 ([977af17](https://github.com/mogenius/mogenius-operator/commit/977af174047334f10e7d2a60f89696eba410baae))
+* **deps:** update module github.com/ollama/ollama to v0.31.1 ([aa04c7d](https://github.com/mogenius/mogenius-operator/commit/aa04c7d59c7f0a89a1c41f99c001f3034cfed112))
+* fix websocket reconnect deadlock and detect half-open connections; update User Datagram struct (add apikey) ([842127f](https://github.com/mogenius/mogenius-operator/commit/842127f18b9a853716b841d5420fd48f776f16c7))
+* guard activeLoggers map and watch throttle against data races ([91f30ac](https://github.com/mogenius/mogenius-operator/commit/91f30accd306bc45c4e277d171641918b132ffb5))
+* **helm:** remove hardcoded namespace for readonly mode ([05964dd](https://github.com/mogenius/mogenius-operator/commit/05964dde74a593ca8c24db34d76288e54540246d))
+* **k8sexec:** stop retrying cancelled log streams, allow long lines ([66f21ed](https://github.com/mogenius/mogenius-operator/commit/66f21ed63d365ef87632da78f8636c3123d7dec7))
+* **kubernetes:** GetClusterExternalIps always returned an empty list ([4889022](https://github.com/mogenius/mogenius-operator/commit/488902286954de69c4b66f2f1f93084794783922))
+* **monitors:** serve zero values on non-linux instead of deadlocking ([59d2749](https://github.com/mogenius/mogenius-operator/commit/59d27496e8207ba222f83708acc9c9585c5e6dbc))
+* **networkmonitor:** keep procdev baselines for late-added interfaces ([12d45ed](https://github.com/mogenius/mogenius-operator/commit/12d45edb88e995ad30f164412abae0642494e14c))
+* **networkmonitor:** stop leaking snoopy processes on container PID drift ([779823e](https://github.com/mogenius/mogenius-operator/commit/779823e80a292971cd88255ee1a36dc8aa94f1e2))
+* **store:** keep resources with colons in their name in namespace scans ([88db386](https://github.com/mogenius/mogenius-operator/commit/88db3866c29556c34c3841486d98cf4c65222fcf))
+* **store:** SearchResourceByNamespace returned nothing with a whitelist ([d5f851d](https://github.com/mogenius/mogenius-operator/commit/d5f851df8e361828e0b4b1ec381a73a4caa1683c))
+
+
+### Performance Improvements
+
+* **core:** batch nodes-metrics reads, map-based workspace dedup ([cfeaf28](https://github.com/mogenius/mogenius-operator/commit/cfeaf28758ecc51d1831b1e825901457b13558b3))
+* **helm:** update only the chart's repo index on install/upgrade ([eb294e2](https://github.com/mogenius/mogenius-operator/commit/eb294e2254bd38c5c6986e90d014510ce7acd50a))
+* **kubernetes:** cache cluster service list for discovery lookups ([e648b4d](https://github.com/mogenius/mogenius-operator/commit/e648b4d792df6e82fe3bb2c177e4f97530c8c6a8))
+* **logging:** guard eager debug payload marshalling behind level checks ([8ee3b97](https://github.com/mogenius/mogenius-operator/commit/8ee3b979ba40eee448c734abab726e319823e3e2))
+* **logging:** remove per-line goroutine spawn and O(n^2) dedup ([6758ae0](https://github.com/mogenius/mogenius-operator/commit/6758ae0d116238fc931afca515766d4f1105d85a))
+* **networkmonitor:** skip status channel for ignored snoopy events ([dbc9356](https://github.com/mogenius/mogenius-operator/commit/dbc9356e1206cda26f7a561054532ba75300c3b0))
+* **nodemetrics:** trim per-tick allocations in hot loops ([0bc8bb0](https://github.com/mogenius/mogenius-operator/commit/0bc8bb0adfb242a2f2896a4d47700f4238e2ae4e))
+* **reconciler:** stop self-triggering reconcile loop and cache default configs ([9b1a8fd](https://github.com/mogenius/mogenius-operator/commit/9b1a8fd12a27828e641f40d0fd45d2c8e13213f8))
+* **runtime:** derive GOMAXPROCS and GOMEMLIMIT from cgroup limits ([841ecf5](https://github.com/mogenius/mogenius-operator/commit/841ecf57dae69b0b30ae74b929238b9bf3ce7225))
+* **store:** fetch namespace resources with one scan instead of per-kind ([7884a68](https://github.com/mogenius/mogenius-operator/commit/7884a689687ebaff9792760109e43a54b4a1c9f9))
+* **store:** node-indexed pod lookup for the node-metrics DaemonSet ([7901bed](https://github.com/mogenius/mogenius-operator/commit/7901bed5e2e84985de1d8fbff587979e426d39a2))
+* **valkey:** pipeline hot write paths and drop per-write keyspace scans ([ee2e909](https://github.com/mogenius/mogenius-operator/commit/ee2e909f0a77570f045acb8b78fe315c43783bc5))
+* **websocket:** marshal WriteJSON payloads in the caller ([eca80e9](https://github.com/mogenius/mogenius-operator/commit/eca80e9c6315f30a9172c7db2a2a2432a17c836f))
+
 ## [2.23.2](https://github.com/mogenius/mogenius-operator/compare/v2.23.1...v2.23.2) (2026-06-24)
 
 
