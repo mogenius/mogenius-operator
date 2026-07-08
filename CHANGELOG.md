@@ -1,3 +1,10 @@
+## [2.23.2-develop.11](https://github.com/mogenius/mogenius-operator/compare/v2.23.2-develop.10...v2.23.2-develop.11) (2026-07-08)
+
+
+### Bug Fixes
+
+* adding metric for websocket connection state ([fcf6c63](https://github.com/mogenius/mogenius-operator/commit/fcf6c63f40ab03742276975c8892b8c2972d2f0f))
+
 ## [2.23.2-develop.10](https://github.com/mogenius/mogenius-operator/compare/v2.23.2-develop.9...v2.23.2-develop.10) (2026-07-07)
 
 
