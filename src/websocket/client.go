@@ -19,6 +19,7 @@ import (
 	"time"
 
 	gorillaWebsocket "github.com/gorilla/websocket"
+	"mogenius-operator/src/metrics"
 )
 
 // writeDeadline bounds how long a single websocket write may block.
@@ -295,6 +296,9 @@ type websocketClient struct {
 	// if set to true means all internal threads have been stopped and the websocketClient is done
 	terminated atomic.Bool
 
+	// label for the websocket_connected prometheus metric; empty disables it
+	name string
+
 	// needed for the reconnect method to know if it should attempt reconnecting
 	enableReconnecting atomic.Bool
 
@@ -385,7 +389,7 @@ type websocketReadMessageOutput struct {
 	err         error
 }
 
-func NewWebsocketClient(logger *slog.Logger) WebsocketClient {
+func NewWebsocketClient(logger *slog.Logger, name string) WebsocketClient {
 	self := &websocketClient{}
 
 	self.readLogger = logger.With("scope", "read")
@@ -394,6 +398,8 @@ func NewWebsocketClient(logger *slog.Logger) WebsocketClient {
 	self.apiLogger = logger.With("scope", "api")
 
 	self.connection = nil
+	self.name = name
+	metrics.SetWebsocketConnected(name, false) // initialize series to 0
 
 	self.terminated = atomic.Bool{}
 	self.terminated.Store(false)
@@ -474,6 +480,7 @@ func (self *websocketClient) startRuntime() {
 		case <-self.apiTerminateTx:
 			alreadyTerminated := self.terminated.Swap(true)
 			self.enableReconnecting.Store(false)
+			metrics.SetWebsocketConnected(self.name, false)
 			if !alreadyTerminated && isRunning {
 				err := self.sendCloseMessage()
 				if err != nil {
@@ -536,6 +543,7 @@ func (self *websocketClient) startRuntime() {
 			go self.startReadThread()
 			go self.startWriteThread()
 			self.enableReconnecting.Store(true)
+			metrics.SetWebsocketConnected(self.name, true)
 			isRunning = true
 			self.apiConnectRx <- err
 		case <-self.apiDisconnectTx:
@@ -557,6 +565,7 @@ func (self *websocketClient) startRuntime() {
 			self.shutdownWorkerThreads()
 			self.connection = nil
 			self.enableReconnecting.Store(false)
+			metrics.SetWebsocketConnected(self.name, false)
 			isRunning = false
 			self.apiDisconnectRx <- nil
 		}

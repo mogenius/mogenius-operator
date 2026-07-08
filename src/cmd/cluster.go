@@ -83,10 +83,16 @@ func initializeClusterSystems(
 	}
 	jobClients := make([]websocket.WebsocketClient, numApiClients)
 	for i := range numApiClients {
-		jobClients[i] = websocket.NewWebsocketClient(logManagerModule.CreateLogger(fmt.Sprintf("websocket-job-client-%d", i)))
+		jobClients[i] = websocket.NewWebsocketClient(
+			logManagerModule.CreateLogger(fmt.Sprintf("websocket-job-client-%d", i)),
+			fmt.Sprintf("job_%d", i),
+		)
 		shutdown.Add(jobClients[i].Terminate)
 	}
-	eventConnectionClient := websocket.NewWebsocketClient(logManagerModule.CreateLogger("websocket-events-client"))
+	eventConnectionClient := websocket.NewWebsocketClient(
+		logManagerModule.CreateLogger("websocket-events-client"),
+		"events",
+	)
 	shutdown.Add(eventConnectionClient.Terminate)
 
 	// Emit real-time audit log events to the frontend via WebSocket

@@ -12,6 +12,7 @@ import (
 	"mogenius-operator/src/dtos"
 	"mogenius-operator/src/helm"
 	"mogenius-operator/src/kubernetes"
+	moMetrics "mogenius-operator/src/metrics"
 	"mogenius-operator/src/networkmonitor"
 	"mogenius-operator/src/schema"
 	"mogenius-operator/src/services"
@@ -2710,7 +2711,7 @@ func (self *socketApi) ExecuteCommandRequest(datagram structs.Datagram) any {
 	if patternHandler, ok := self.patternHandler[datagram.Pattern]; ok {
 		start := time.Now()
 		result := patternHandler.Callback(datagram)
-		patternDuration.WithLabelValues(datagram.Pattern).Observe(time.Since(start).Seconds())
+		moMetrics.ObservePatternDuration(datagram.Pattern, time.Since(start).Seconds())
 		return result
 	}
 
