@@ -138,8 +138,21 @@ func (r *genericReconciler) Start() {
 				cache.set(obj)
 				r.callHandler(ctx, cfg, obj, createOperation)
 			},
-			func(_ utils.ResourceDescriptor, _ *unstructured.Unstructured, newObj *unstructured.Unstructured) {
+			func(_ utils.ResourceDescriptor, oldObj *unstructured.Unstructured, newObj *unstructured.Unstructured) {
 				cache.set(newObj)
+				// Informer resyncs redeliver every object unchanged, and
+				// status-only patches don't bump metadata.generation (CRs
+				// increment it on every non-metadata change; with a status
+				// subresource, status writes are exempt). Skipping both
+				// prevents resync reconcile storms and self-triggering
+				// loops (reconcile -> status patch -> update event ->
+				// reconcile). The periodic background sweep covers drift.
+				if oldObj.GetResourceVersion() == newObj.GetResourceVersion() {
+					return
+				}
+				if newObj.GetGeneration() != 0 && oldObj.GetGeneration() == newObj.GetGeneration() {
+					return
+				}
 				r.callHandler(ctx, cfg, newObj, updateOperation)
 			},
 			func(_ utils.ResourceDescriptor, obj *unstructured.Unstructured) {

@@ -51,7 +51,12 @@ type GetUnstructuredNamespaceResourceListRequest struct {
 	Blacklist []*utils.ResourceDescriptor `json:"blacklist"`
 }
 
-var lastWatchCheckStart time.Time = time.Time{}
+// lastWatchCheckStart throttles WatchStoreResources; guarded by a mutex
+// because callers include the CRD debounce timer goroutine.
+var (
+	lastWatchCheckMu    sync.Mutex
+	lastWatchCheckStart time.Time
+)
 
 func WatchStoreResources(wm watcher.WatcherModule, aiManager ai.AiManager, eventClient websocket.WebsocketClient) error {
 	start := time.Now()
@@ -59,10 +64,13 @@ func WatchStoreResources(wm watcher.WatcherModule, aiManager ai.AiManager, event
 	// function should not be called more often than every 5 seconds
 	// to avoid too many calls to the k8s api server
 	// which can lead to rate limiting
+	lastWatchCheckMu.Lock()
 	if time.Since(lastWatchCheckStart) < 5*time.Second {
+		lastWatchCheckMu.Unlock()
 		return nil
 	}
 	lastWatchCheckStart = time.Now()
+	lastWatchCheckMu.Unlock()
 
 	resources, err := GetAvailableResources()
 	if err != nil {
@@ -218,7 +226,7 @@ func deleteFromStoreIfNeeded(apiVersion string, resourceName string, kind string
 	}
 
 	// other resources - delete primary key + both ZSET index members atomically.
-	err := store.DeleteResourceWithIndex(valkeyClient, apiVersion, kind, namespace, resourceName)
+	err := store.DeleteResourceWithIndex(valkeyClient, apiVersion, kind, namespace, resourceName, obj)
 	if err != nil {
 		k8sLogger.Error("Error deleting object in store", "error", err)
 	}
@@ -248,7 +256,6 @@ func GetUnstructuredResourceListFromStore(apiVersion string, kind string, namesp
 
 func GetUnstructuredNamespaceResourceList(namespace string, whitelist []*utils.ResourceDescriptor, blacklist []*utils.ResourceDescriptor) ([]unstructured.Unstructured, error) {
 	results := []unstructured.Unstructured{}
-	resultsMutex := sync.Mutex{}
 
 	resources, err := GetAvailableResources()
 	if err != nil {
@@ -263,21 +270,20 @@ func GetUnstructuredNamespaceResourceList(namespace string, whitelist []*utils.R
 		blacklist = []*utils.ResourceDescriptor{}
 	}
 
-	var wg sync.WaitGroup
+	// Collect the allowed namespaced kinds, then fetch everything with ONE
+	// namespace-scoped keyspace scan. The previous per-kind fan-out ran a
+	// full SCAN per watched kind (80-150 kinds) for every call.
+	allowed := make([]utils.ResourceDescriptor, 0, len(resources))
+	includeNamespaceObject := false
 	for _, v := range resources {
 		if v.Namespaced {
 			if len(whitelist) > 0 && !utils.ContainsResourceDescriptor(whitelist, v) {
 				continue
 			}
-			if blacklist != nil && utils.ContainsResourceDescriptor(blacklist, v) {
+			if utils.ContainsResourceDescriptor(blacklist, v) {
 				continue
 			}
-			wg.Go(func() {
-				result := store.GetResourceByKindAndNamespace(valkeyClient, v.ApiVersion, v.Kind, namespace, k8sLogger)
-				resultsMutex.Lock()
-				results = append(results, result...)
-				resultsMutex.Unlock()
-			})
+			allowed = append(allowed, v)
 			continue
 		}
 
@@ -297,22 +303,26 @@ func GetUnstructuredNamespaceResourceList(namespace string, whitelist []*utils.R
 		if !utils.ContainsResourceDescriptor(whitelist, v) {
 			continue
 		}
-		if blacklist != nil && utils.ContainsResourceDescriptor(blacklist, v) {
+		if utils.ContainsResourceDescriptor(blacklist, v) {
 			continue
 		}
 		if v.Kind == utils.NamespaceResource.Kind && v.ApiVersion == utils.NamespaceResource.ApiVersion {
-			wg.Go(func() {
-				nsObj, err := store.GetResource(valkeyClient, v.ApiVersion, v.Kind, "", namespace, k8sLogger)
-				if err != nil || nsObj == nil {
-					return
-				}
-				resultsMutex.Lock()
-				results = append(results, *nsObj)
-				resultsMutex.Unlock()
-			})
+			includeNamespaceObject = true
 		}
 	}
-	wg.Wait()
+
+	results, err = store.GetResourcesByNamespaceAndKinds(valkeyClient, namespace, allowed)
+	if err != nil {
+		k8sLogger.Error("failed to fetch namespace resources", "namespace", namespace, "error", err)
+		return []unstructured.Unstructured{}, err
+	}
+
+	if includeNamespaceObject {
+		nsObj, err := store.GetResource(valkeyClient, utils.NamespaceResource.ApiVersion, utils.NamespaceResource.Kind, "", namespace, k8sLogger)
+		if err == nil && nsObj != nil {
+			results = append(results, *nsObj)
+		}
+	}
 
 	return results, nil
 }

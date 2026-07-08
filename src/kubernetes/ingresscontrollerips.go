@@ -5,14 +5,10 @@
 
 package kubernetes
 
-import (
-	"mogenius-operator/src/store"
-)
-
 func GetClusterExternalIps() []string {
 	var result []string = []string{}
 
-	services := store.GetServices("", "*")
+	services := clusterServicesCached.Get()
 	for _, service := range services {
 		for _, ingress := range service.Status.LoadBalancer.Ingress {
 			if ingress.IP != "" {

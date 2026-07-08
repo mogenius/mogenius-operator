@@ -23,7 +23,7 @@ jobs:
   # Prepare - Get version info
   # ============================================================================
   prepare:
-    uses: mogenius/github-actions/.github/workflows/semantic-release.yml@9ceb2494cc853e1750a3403f37ea8d5ea19ab72b # v1.4.3
+    uses: mogenius/github-actions/.github/workflows/semantic-release.yml@bc970bed7557d2231075c2353b5cd8caf13ab50a # v1.6.1
     secrets:
       APP_ID: ${{ secrets.RELEASE_APP_ID }}
       APP_PRIVATE_KEY: ${{ secrets.RELEASE_APP_SECRET }}
@@ -36,7 +36,7 @@ jobs:
   # ============================================================================
   build-operator:
     needs: [prepare]
-    uses: mogenius/github-actions/.github/workflows/build-multiarch.yml@9ceb2494cc853e1750a3403f37ea8d5ea19ab72b # v1.4.3
+    uses: mogenius/github-actions/.github/workflows/build-multiarch.yml@bc970bed7557d2231075c2353b5cd8caf13ab50a # v1.6.1
     secrets: inherit
     with:
       version: ${{ needs.prepare.outputs.version }}
@@ -45,16 +45,10 @@ jobs:
       sign_image: true
       build_args_amd64: |
         GO_BUILDER_IMAGE=ghcr.io/mogenius/go-builder:latest-amd64
-        RUST_BUILDER_IMAGE=ghcr.io/mogenius/rust-builder:latest-amd64
         BPFTOOL_IMAGE=ghcr.io/mogenius/bpftool:latest-amd64
-        SNOOPY_IMAGE=ghcr.io/mogenius/snoopy:latest-amd64
-        RUNTIME_IMAGE=ghcr.io/mogenius/runtime:latest-amd64
       build_args_arm64: |
         GO_BUILDER_IMAGE=ghcr.io/mogenius/go-builder:latest-arm64
-        RUST_BUILDER_IMAGE=ghcr.io/mogenius/rust-builder:latest-arm64
         BPFTOOL_IMAGE=ghcr.io/mogenius/bpftool:latest-arm64
-        SNOOPY_IMAGE=ghcr.io/mogenius/snoopy:latest-arm64
-        RUNTIME_IMAGE=ghcr.io/mogenius/runtime:latest-arm64
 
   helm-chart:
     if: github.ref == 'refs/heads/main'

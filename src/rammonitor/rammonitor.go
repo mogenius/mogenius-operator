@@ -60,6 +60,19 @@ func (self *ramMonitor) startCollector() {
 		return
 	}
 	if runtime.GOOS != "linux" {
+		// Still serve the request channels (with zero values) — without a
+		// reader the first RamUsageGlobal()/RamUsageProcesses() call would
+		// block forever on the unbuffered channel.
+		go func() {
+			for {
+				select {
+				case <-self.ramUsageGlobalTx:
+					self.ramUsageGlobalRx <- RamMetrics{}
+				case <-self.ramUsageProcessesTx:
+					self.ramUsageProcessesRx <- nil
+				}
+			}
+		}()
 		return
 	}
 	go func() {
@@ -107,11 +120,12 @@ func (self *ramMonitor) collectGlobalMetrics(nodeName string) RamMetrics {
 		return RamMetrics{}
 	}
 
-	lines := strings.Split(string(fileData), "\n")
 	var memAvailable float64
 	foundTotal, foundAvailable := false, false
 
-	for _, line := range lines {
+	// strings.Lines iterates without allocating a slice for all ~50 lines;
+	// the loop exits after MemTotal/MemAvailable (the first few lines).
+	for line := range strings.Lines(string(fileData)) {
 		fields := strings.Fields(line)
 		if len(fields) < 2 {
 			continue

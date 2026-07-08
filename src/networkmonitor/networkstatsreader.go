@@ -140,7 +140,12 @@ func (self *networkStatsReader) startWorker() {
 					self.logger.Debug("updated pid", "baseInfo", baseDeviceInfos[idx])
 				}
 
-				for _, baseInfo := range baseDeviceInfos {
+				// Iterate by index: the loop body appends late-discovered
+				// interfaces to baseInfo.StartInfos, and on a value copy that
+				// append was lost every tick — re-baselining those interfaces
+				// to "now" so they never reported any traffic.
+				for baseIdx := range baseDeviceInfos {
+					baseInfo := &baseDeviceInfos[baseIdx]
 					containerInfo := ContainerInfo{}
 					containerInfo.PodInfo = baseInfo.PodInfo
 					containerInfo.Metrics = map[InterfaceName]MetricSnapshot{}

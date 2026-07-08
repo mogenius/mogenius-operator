@@ -1,6 +1,7 @@
 package structs
 
 import (
+	"context"
 	"encoding/json"
 	"log/slog"
 	"mogenius-operator/src/utils"
@@ -22,10 +23,17 @@ type Datagram struct {
 }
 
 type User struct {
-	FirstName string `json:"firstName,omitempty"`
-	LastName  string `json:"lastName,omitempty"`
-	Email     string `json:"email,omitempty"`
-	Source    string `json:"source,omitempty"`
+	FirstName    string `json:"firstName,omitempty"`
+	LastName     string `json:"lastName,omitempty"`
+	Email        string `json:"email,omitempty"`
+	Source       string `json:"source,omitempty"`
+	ApiKey       ApiKey `json:"apiKey"`
+	IsMcpRequest bool   `json:"isMcpRequest,omitempty"`
+}
+
+type ApiKey struct {
+	Id   string `json:"id,omitempty"`
+	Name string `json:"name,omitempty"`
 }
 
 func CreateDatagramNotificationFromJob(data *Job) Datagram {
@@ -89,6 +97,11 @@ func CreateEmptyDatagram() Datagram {
 }
 
 func (d *Datagram) DisplayReceiveSummary(logger *slog.Logger) {
+	// GetSize marshals and redacts the whole datagram; slog evaluates args
+	// eagerly, so skip entirely unless debug logging is actually enabled.
+	if !logger.Enabled(context.Background(), slog.LevelDebug) {
+		return
+	}
 	logger.Debug("RECEIVED",
 		"pattern", d.Pattern,
 		"id", d.Id,

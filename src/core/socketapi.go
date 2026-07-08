@@ -12,6 +12,7 @@ import (
 	"mogenius-operator/src/dtos"
 	"mogenius-operator/src/helm"
 	"mogenius-operator/src/kubernetes"
+	moMetrics "mogenius-operator/src/metrics"
 	"mogenius-operator/src/networkmonitor"
 	"mogenius-operator/src/schema"
 	"mogenius-operator/src/services"
@@ -410,7 +411,7 @@ func (self *socketApi) registerPatterns() {
 		// poll triggers a node list, a service list, a country lookup
 		// and a Valkey read; under multiple concurrent dashboards this
 		// dominated the K8s API call volume.
-		clusterResourceInfoCache := newTTLCache(5*time.Second, func() ClusterResourceInfo {
+		clusterResourceInfoCache := utils.NewTTLCache(5*time.Second, func() ClusterResourceInfo {
 			errors := []string{}
 			nodeStats, nodeErr := self.moKubernetes.GetNodeStats()
 			if nodeErr != nil {
@@ -2203,49 +2204,43 @@ func (self *socketApi) registerPatterns() {
 					Nodes: make([]NodeMetrics, 0, len(nodes)),
 				}
 
-				// For each node, fetch metrics from Valkey
+				// Fetch cpu/memory/traffic live-stats for all nodes with a
+				// single MGET instead of 3 sequential GETs per node.
+				// Dashboards poll this endpoint continuously.
+				keys := make([]string, 0, len(nodes)*3)
 				for _, node := range nodes {
-					nodeName := node.Name
+					keys = append(keys,
+						DB_STATS_LIVE_BUCKET_NAME+":"+DB_STATS_CPU_NAME+":"+node.Name,
+						DB_STATS_LIVE_BUCKET_NAME+":"+DB_STATS_MEMORY_NAME+":"+node.Name,
+						DB_STATS_LIVE_BUCKET_NAME+":"+DB_STATS_TRAFFIC_NAME+":"+node.Name,
+					)
+				}
+				var values []string
+				if len(keys) > 0 {
+					client := self.valkeyClient.GetValkeyClient()
+					values, err = client.Do(self.valkeyClient.GetContext(), client.B().Mget().Key(keys...).Build()).AsStrSlice()
+				}
+				if err != nil || len(values) != len(keys) {
+					// keep prior behaviour: missing metrics stay empty
+					values = make([]string, len(keys))
+				}
+
+				for i, node := range nodes {
 					nodeMetrics := NodeMetrics{
-						NodeName: nodeName,
+						NodeName: node.Name,
 						Cpu:      make(map[string]any),
 						Memory:   make(map[string]any),
 						Traffic:  make([]networkmonitor.PodNetworkStats, 0),
 					}
-
-					// Get CPU metrics from Valkey: live-stats:cpu:{nodeName}
-					cpuData, err := valkeyclient.GetObjectForKey[map[string]any](
-						self.valkeyClient,
-						DB_STATS_LIVE_BUCKET_NAME,
-						DB_STATS_CPU_NAME,
-						nodeName,
-					)
-					if err == nil && cpuData != nil {
-						nodeMetrics.Cpu = *cpuData
+					if v := values[i*3]; v != "" {
+						_ = json.Unmarshal([]byte(v), &nodeMetrics.Cpu)
 					}
-
-					// Get Memory metrics from Valkey: live-stats:memory:{nodeName}
-					memData, err := valkeyclient.GetObjectForKey[map[string]any](
-						self.valkeyClient,
-						DB_STATS_LIVE_BUCKET_NAME,
-						DB_STATS_MEMORY_NAME,
-						nodeName,
-					)
-					if err == nil && memData != nil {
-						nodeMetrics.Memory = *memData
+					if v := values[i*3+1]; v != "" {
+						_ = json.Unmarshal([]byte(v), &nodeMetrics.Memory)
 					}
-
-					// Get Traffic metrics from Valkey: live-stats:traffic:{nodeName}
-					trafficData, err := valkeyclient.GetObjectForKey[[]networkmonitor.PodNetworkStats](
-						self.valkeyClient,
-						DB_STATS_LIVE_BUCKET_NAME,
-						DB_STATS_TRAFFIC_NAME,
-						nodeName,
-					)
-					if err == nil && trafficData != nil {
-						nodeMetrics.Traffic = *trafficData
+					if v := values[i*3+2]; v != "" {
+						_ = json.Unmarshal([]byte(v), &nodeMetrics.Traffic)
 					}
-
 					result.Nodes = append(result.Nodes, nodeMetrics)
 				}
 
@@ -2716,7 +2711,7 @@ func (self *socketApi) ExecuteCommandRequest(datagram structs.Datagram) any {
 	if patternHandler, ok := self.patternHandler[datagram.Pattern]; ok {
 		start := time.Now()
 		result := patternHandler.Callback(datagram)
-		patternDuration.WithLabelValues(datagram.Pattern).Observe(time.Since(start).Seconds())
+		moMetrics.ObservePatternDuration(datagram.Pattern, time.Since(start).Seconds())
 		return result
 	}
 

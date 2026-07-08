@@ -26,22 +26,6 @@ func PodExists(namespace string, name string) ServicePodExistsResult {
 	return result
 }
 
-func AllPodsOnNode(nodeName string) []v1.Pod {
-	pods := store.GetPods("*")
-	result := make([]v1.Pod, 0, len(pods))
-
-	for _, pod := range pods {
-		if pod.Spec.NodeName != nodeName {
-			continue
-		}
-		pod.Kind = "Pod"
-		pod.APIVersion = "v1"
-		result = append(result, pod)
-	}
-
-	return result
-}
-
 func AllPodNamesForLabel(namespace string, labelKey string, labelValue string) []string {
 	allPods := AllPods(namespace)
 	result := make([]string, 0, len(allPods))

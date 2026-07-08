@@ -115,11 +115,30 @@ func (d *reconcilerModule) reconcilePlatformConfig(ctx context.Context, obj *uns
 		statuses = append(statuses, status)
 	}
 
-	if err := d.updatePlatformConfigStatus(ctx, obj.GetName(), statuses); err != nil {
-		d.logger.Warn("failed to update PlatformConfig status", "name", obj.GetName(), "error", err)
+	// Only patch when Ready/Message actually changed. LastSync alone would
+	// otherwise produce a new resourceVersion on every reconcile.
+	if !componentStatusesEqual(platformConfig.Status.Components, statuses) {
+		if err := d.updatePlatformConfigStatus(ctx, obj.GetName(), statuses); err != nil {
+			d.logger.Warn("failed to update PlatformConfig status", "name", obj.GetName(), "error", err)
+		}
 	}
 
 	return results
+}
+
+// componentStatusesEqual compares component statuses ignoring LastSync.
+func componentStatusesEqual(current, desired []v1alpha1.PlatformComponentStatus) bool {
+	if len(current) != len(desired) {
+		return false
+	}
+	for i := range desired {
+		if current[i].Name != desired[i].Name ||
+			current[i].Ready != desired[i].Ready ||
+			current[i].Message != desired[i].Message {
+			return false
+		}
+	}
+	return true
 }
 
 func (d *reconcilerModule) updatePlatformConfigStatus(ctx context.Context, name string, components []v1alpha1.PlatformComponentStatus) error {

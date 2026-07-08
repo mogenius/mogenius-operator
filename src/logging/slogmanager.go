@@ -37,6 +37,7 @@ type slogManager struct {
 	logLevel slog.Level
 	handlers []slog.Handler
 
+	activeLoggersMu   sync.RWMutex
 	activeLoggers     map[string]*slog.Logger
 	resolvedLogDir    *string
 	combinedLogWriter io.Writer
@@ -59,7 +60,9 @@ func NewSlogManager(logLevel slog.Level, handlers []slog.Handler) SlogManager {
 }
 
 func (m *slogManager) GetLogger(componentId string) (*slog.Logger, error) {
+	m.activeLoggersMu.RLock()
 	logger := m.activeLoggers[componentId]
+	m.activeLoggersMu.RUnlock()
 	if logger != nil {
 		return logger, nil
 	}
@@ -69,7 +72,6 @@ func (m *slogManager) GetLogger(componentId string) (*slog.Logger, error) {
 
 func (self *slogManager) CreateLogger(componentId string) *slog.Logger {
 	assert.Assert(componentId != combinedLogComponentName, fmt.Errorf("the componentId '%s' is not disallowed because it is reserved", combinedLogComponentName))
-	assert.Assert(self.activeLoggers[componentId] == nil, fmt.Errorf("logger was requested multiple times: %s", componentId))
 
 	multiHandler := NewSlogMultiHandler()
 
@@ -81,6 +83,9 @@ func (self *slogManager) CreateLogger(componentId string) *slog.Logger {
 
 	logger = logger.With("component", componentId)
 
+	self.activeLoggersMu.Lock()
+	defer self.activeLoggersMu.Unlock()
+	assert.Assert(self.activeLoggers[componentId] == nil, fmt.Errorf("logger was requested multiple times: %s", componentId))
 	self.activeLoggers[componentId] = logger
 
 	return logger
@@ -135,8 +140,7 @@ func (self *LogLine) ToJson() string {
 
 func slogRecordToSourceString(record slog.Record) string {
 	frame, _ := runtime.CallersFrames([]uintptr{record.PC}).Next()
-	file := frame.File
-	return fmt.Sprintf("%s:%d", file, frame.Line)
+	return frame.File + ":" + strconv.Itoa(frame.Line)
 }
 
 func slogRecordToPayload(record slog.Record, filterFunc func(data string) string) map[string]any {
@@ -197,23 +201,17 @@ func (self *SlogMultiHandler) Enabled(ctx context.Context, level slog.Level) boo
 }
 
 func (self *SlogMultiHandler) Handle(ctx context.Context, record slog.Record) error {
-	errors := []error{}
-	errorLock := sync.Mutex{}
-
-	var wg sync.WaitGroup
+	// Dispatch synchronously: spawning a goroutine + WaitGroup per log line
+	// costs more than the handlers themselves (a channel send / buffered
+	// write each).
+	var errors []error
 	for _, handler := range self.inner {
 		if handler.Enabled(ctx, record.Level) {
-			wg.Go(func() {
-				err := handler.Handle(ctx, record)
-				if err != nil {
-					errorLock.Lock()
-					errors = append(errors, err)
-					errorLock.Unlock()
-				}
-			})
+			if err := handler.Handle(ctx, record); err != nil {
+				errors = append(errors, err)
+			}
 		}
 	}
-	wg.Wait()
 
 	if len(errors) > 0 {
 		errorMessages := []string{}
@@ -281,7 +279,8 @@ func NewPrettyPrintHandler(
 	self.attrs = []slog.Attr{}
 	self.group = ""
 	self.filterFunc = filterFunc
-	self.logMessageTx = make(chan string)
+	// Buffered so Handle doesn't block on stderr I/O for every line.
+	self.logMessageTx = make(chan string, 256)
 
 	self.startDebouncedPrinter()
 
@@ -294,7 +293,7 @@ func (self *PrettyPrintHandler) startDebouncedPrinter() {
 		count   uint32
 	}
 	go func() {
-		printedMessages := []string{}
+		printedMessages := map[string]struct{}{}
 		messageQueue := []string{}
 
 		flush := time.NewTicker(1 * time.Second)
@@ -303,36 +302,32 @@ func (self *PrettyPrintHandler) startDebouncedPrinter() {
 		for {
 			select {
 			case msg := <-self.logMessageTx:
-				if !slices.Contains(printedMessages, msg) {
+				if _, seen := printedMessages[msg]; !seen {
 					// Writes to stderr/pipe can fail with EPIPE when a parent
 					// process disconnects (e.g. kubectl logs detaching). Drop
 					// the line rather than crashing the whole operator.
 					_, _ = self.out.Write([]byte(msg))
-					printedMessages = append(printedMessages, msg)
+					printedMessages[msg] = struct{}{}
 					continue
 				}
 				messageQueue = append(messageQueue, msg)
 			case <-flush.C:
-				printedMessages = []string{}
+				clear(printedMessages)
 
 				messagesWithCount := []MessageWithCount{}
+				countIndex := map[string]int{}
 				for _, msg := range messageQueue {
-					found := false
-					for idx := range messagesWithCount {
-						if msg == messagesWithCount[idx].message {
-							messagesWithCount[idx].count = messagesWithCount[idx].count + 1
-							found = true
-							break
-						}
+					if idx, ok := countIndex[msg]; ok {
+						messagesWithCount[idx].count++
+						continue
 					}
-					if !found {
-						messagesWithCount = append(messagesWithCount, MessageWithCount{
-							message: msg,
-							count:   1,
-						})
-					}
+					countIndex[msg] = len(messagesWithCount)
+					messagesWithCount = append(messagesWithCount, MessageWithCount{
+						message: msg,
+						count:   1,
+					})
 				}
-				messageQueue = []string{}
+				messageQueue = messageQueue[:0]
 
 				for _, messageWithCount := range messagesWithCount {
 					_, _ = self.out.Write([]byte("(" + strconv.FormatUint(uint64(messageWithCount.count), 10) + "x)" + messageWithCount.message))

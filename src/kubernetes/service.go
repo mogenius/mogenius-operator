@@ -4,10 +4,21 @@ import (
 	"fmt"
 	cfg "mogenius-operator/src/config"
 	"mogenius-operator/src/store"
+	"mogenius-operator/src/utils"
 	"strings"
+	"time"
 
 	v1 "k8s.io/api/core/v1"
 )
+
+// clusterServicesCached caches the cluster-wide service list for discovery
+// lookups (Prometheus, Alertmanager, sealed-secrets, LB IPs). Each uncached
+// call SCANs the whole Valkey keyspace and deserializes every service, and
+// FindPrometheusService runs per chart query. 30s staleness only delays
+// discovery of newly installed services.
+var clusterServicesCached = utils.NewTTLCache(30*time.Second, func() []v1.Service {
+	return store.GetServices("*", "*")
+})
 
 func AllServices(namespaceName string) []v1.Service {
 	services := store.GetServices(namespaceName, "*")
@@ -56,7 +67,7 @@ func FindAlertmanagerService() (namespace string, service string, port int32, er
 // HTTP/web port is preferred over an arbitrary first port (see selectHTTPPort).
 func findServiceByPriority(candidateNames []string, kind string) (namespace string, service string, port int32, err error) {
 	byName := make(map[string]v1.Service)
-	for _, svc := range store.GetServices("*", "*") {
+	for _, svc := range clusterServicesCached.Get() {
 		if len(svc.Spec.Ports) == 0 {
 			continue
 		}
@@ -111,7 +122,7 @@ func FindSealedSecretsService(cfg cfg.ConfigModule) (namespace string, service s
 		}
 	}
 
-	for _, svc := range store.GetServices("*", "*") {
+	for _, svc := range clusterServicesCached.Get() {
 		if svc.Name == "sealed-secrets" {
 			if len(svc.Spec.Ports) > 0 {
 				return svc.Namespace, svc.Name, svc.Spec.Ports[0].Port, nil

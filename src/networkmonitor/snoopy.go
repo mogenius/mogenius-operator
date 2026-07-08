@@ -730,12 +730,18 @@ func (self *snoopyManager) Register(podInfo containerenumerator.PodInfo) []error
 						self.logger.Error("snoppy error", "containerId", containerId, "snoopyPid", handle.SnoopyPid, "attachedProcessPid", pid, "level", logMessage.Level, "target", logMessage.Target, "msg", logMessage.Message)
 					}
 				case metrics := <-handle.Stdout:
-					self.statusEventTx <- SnoopyStatusEvent{
-						Type: SnoopyStatusEventTypeSnoopyEvent,
-						SnoopyEvent: &SnoopyStatusEventSnoopyEvent{
-							SnoopyPid:   handle.SnoopyPid,
-							SnoopyEvent: metrics,
-						},
+					// InterfaceMetrics (the most frequent event) and
+					// InterfaceChanged are ignored by the status handler;
+					// don't funnel them through the serial status channel
+					// just to be dropped there.
+					if metrics.Type != SnoopyEventTypeInterfaceMetrics && metrics.Type != SnoopyEventTypeInterfaceChanged {
+						self.statusEventTx <- SnoopyStatusEvent{
+							Type: SnoopyStatusEventTypeSnoopyEvent,
+							SnoopyEvent: &SnoopyStatusEventSnoopyEvent{
+								SnoopyPid:   handle.SnoopyPid,
+								SnoopyEvent: metrics,
+							},
+						}
 					}
 					switch metrics.Type {
 					case SnoopyEventTypeInterfaceAdded:
@@ -776,8 +782,18 @@ func (self *snoopyManager) Register(podInfo containerenumerator.PodInfo) []error
 			}
 		}()
 
-		handleId := self.formatHandleId(podInfo.Namespace, podInfo.Name, containerId, pid)
+		handleId := self.formatHandleId(podInfo.Namespace, podInfo.Name, containerId)
 		self.handlesLock.Lock()
+		if old, exists := self.handles[handleId]; exists {
+			// Stale handle from a previous registration of the same
+			// container; kill it so its snoopy child doesn't leak.
+			self.logger.Warn("replacing stale snoopy handle", "handleId", handleId, "snoopyPid", old.SnoopyPid)
+			go func() {
+				if err := old.Cmd.Process.Kill(); err == nil {
+					_, _ = old.Cmd.Process.Wait()
+				}
+			}()
+		}
 		self.handles[handleId] = handle
 		self.handlesLock.Unlock()
 	}
@@ -785,8 +801,12 @@ func (self *snoopyManager) Register(podInfo containerenumerator.PodInfo) []error
 	return errors
 }
 
-func (self *snoopyManager) formatHandleId(namespace string, name string, containerId string, pid ProcessId) string {
-	return namespace + "/" + name + "/" + containerId + "/" + strconv.FormatUint(pid, 10)
+// formatHandleId deliberately excludes the PID: a container's first PID can
+// change during its lifetime (init/wrapper process exits) while PodInfo.Equals
+// treats the pod as unchanged. With the PID in the key, Remove() could no
+// longer find the handle and the snoopy child process leaked forever.
+func (self *snoopyManager) formatHandleId(namespace string, name string, containerId string) string {
+	return namespace + "/" + name + "/" + containerId
 }
 
 func (self *snoopyManager) Remove(podInfo containerenumerator.PodInfo) []error {
@@ -794,8 +814,8 @@ func (self *snoopyManager) Remove(podInfo containerenumerator.PodInfo) []error {
 
 	self.handlesLock.Lock()
 	defer self.handlesLock.Unlock()
-	for containerId, pid := range podInfo.ContainersWithFirstPid() {
-		handleId := self.formatHandleId(podInfo.Namespace, podInfo.Name, containerId, pid)
+	for containerId := range podInfo.ContainersWithFirstPid() {
+		handleId := self.formatHandleId(podInfo.Namespace, podInfo.Name, containerId)
 		handle, ok := self.handles[handleId]
 		if ok {
 			delete(self.handles, handleId)
