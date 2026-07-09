@@ -43,7 +43,9 @@ func (ai *aiManager) processPromptOllama(ctx context.Context, model, systemPromp
 			Format:   json.RawMessage(`"json"`),
 			Truncate: &truePtr,
 			Shift:    &truePtr,
-			Tools:    append(kubernetesOllamaTools, helmOllamaTools...),
+			// Unattended pipeline: strictly read-only tools (nil ToolContext
+			// passes every role/namespace check).
+			Tools: readOnlyOllamaTools(append(kubernetesOllamaTools, helmOllamaTools...)),
 			Options: map[string]any{
 				"temperature": 0.1,
 			},
@@ -116,7 +118,11 @@ func (ai *aiManager) processPromptOllama(ctx context.Context, model, systemPromp
 			if !ok {
 				return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("unknown tool called: %s", toolCall.Function.Name)
 			}
+			if !viewerAllowedTools[toolCall.Function.Name] {
+				return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("tool %q is not permitted in the unattended insight pipeline", toolCall.Function.Name)
+			}
 			data := tool(args, nil, ai.valkeyClient, ai.logger)
+			ai.auditInsightToolCall(toolCall.Function.Name, args, data)
 
 			// Add tool result to messages
 			messages = append(messages, api.Message{

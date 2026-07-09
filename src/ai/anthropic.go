@@ -370,10 +370,10 @@ func (ai *aiManager) anthropicChatWithTools(
 func (ai *aiManager) processPromptAnthropic(ctx context.Context, model, systemPrompt, prompt string, maxToolCalls int) (*AiResponse, int64, int, string, error) {
 	startTime := time.Now()
 
-	allTools := append(kubernetesAnthropicTools, helmAnthropicTools...)
-	if ai.mcpManager != nil {
-		allTools = append(allTools, ai.mcpManager.GetAnthropicTools()...)
-	}
+	// Unattended pipeline: strictly read-only tools, no external MCP tools.
+	// This path runs without a user/ToolContext, and a nil ToolContext
+	// passes every role/namespace check.
+	allTools := readOnlyAnthropicTools(append(kubernetesAnthropicTools, helmAnthropicTools...))
 	tools := make([]anthropic.ToolUnionParam, len(allTools))
 	for i, toolParam := range allTools {
 		if i == len(allTools)-1 {
@@ -480,14 +480,12 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, model, systemPr
 				}
 
 				var data string
-				if ai.mcpManager != nil && ai.mcpManager.IsMCPTool(block.Name) {
-					mcpResult, err := ai.mcpManager.CallTool(ctx, block.Name, args)
-					if err != nil {
-						return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("MCP tool call %q failed: %v", block.Name, err)
+				if tool, ok := toolDefinitions[block.Name]; ok {
+					if !viewerAllowedTools[block.Name] {
+						return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("tool %q is not permitted in the unattended insight pipeline", block.Name)
 					}
-					data = mcpResult
-				} else if tool, ok := toolDefinitions[block.Name]; ok {
 					data = tool(args, nil, ai.valkeyClient, ai.logger)
+					ai.auditInsightToolCall(block.Name, args, data)
 				} else {
 					return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("unknown tool called: %s", block.Name)
 				}

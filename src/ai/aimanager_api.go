@@ -7,7 +7,6 @@ import (
 	"mogenius-operator/src/store"
 	"mogenius-operator/src/structs"
 	"mogenius-operator/src/utils"
-	"strings"
 	"sync"
 	"time"
 
@@ -321,11 +320,9 @@ func (ai *aiManager) GetStatus(workspace *string) AiManagerStatus {
 	tokensUsed, todaysProcessedTasks, _ := ai.getTodayTokenUsage()
 
 	if tokensUsed > limit {
-		ai.error = fmt.Sprintf("Daily AI token limit exceeded (%d tokens used of %d).", tokensUsed, limit)
+		ai.setError(fmt.Sprintf("Daily AI token limit exceeded (%d tokens used of %d).", tokensUsed, limit))
 	} else {
-		if strings.HasPrefix(ai.error, "Daily AI token limit") {
-			ai.error = ""
-		}
+		ai.clearTokenLimitError()
 	}
 	var totalDbEntries int = 0
 	var unprocessedDbEntries int = 0
@@ -371,8 +368,10 @@ func (ai *aiManager) GetStatus(workspace *string) AiManagerStatus {
 	}
 
 	if err != nil {
-		ai.error = fmt.Sprintf("Failed to get DB stats: %v", err)
+		ai.setError(fmt.Sprintf("Failed to get DB stats: %v", err))
 	}
+
+	statusErr, statusWarn := ai.statusStrings()
 
 	// 0 oclock next day
 	nextReset := time.Now().Add(24 * time.Hour)
@@ -391,8 +390,8 @@ func (ai *aiManager) GetStatus(workspace *string) AiManagerStatus {
 		TotalDbEntries:              totalDbEntries,
 		UnprocessedDbEntries:        unprocessedDbEntries,
 		IgnoredDbEntries:            ignoredDbEntries,
-		Error:                       ai.error,
-		Warning:                     ai.warning,
+		Error:                       statusErr,
+		Warning:                     statusWarn,
 		NumberOfUnreadTasks:         numberOfUnreadTasks,
 		NextTokenResetTime:          nextReset.Format(time.RFC3339),
 	}
