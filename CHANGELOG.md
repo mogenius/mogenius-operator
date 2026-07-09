@@ -1,3 +1,12 @@
+## [2.23.3-develop.2](https://github.com/mogenius/mogenius-operator/compare/v2.23.3-develop.1...v2.23.3-develop.2) (2026-07-09)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/ollama/ollama to v0.31.2 ([fd328b7](https://github.com/mogenius/mogenius-operator/commit/fd328b7eab45af477d0a668c8b77e324f52f0429))
+* **deps:** update module github.com/openai/openai-go/v3 to v3.41.1 ([52b1070](https://github.com/mogenius/mogenius-operator/commit/52b1070a85d6b5e8fc0202f60c11af0c3d83695a))
+* **deps:** update module golang.org/x/term to v0.45.0 ([a13084b](https://github.com/mogenius/mogenius-operator/commit/a13084bf57a1720a259a2ea712c5daa2aeb75a91))
+
 ## [2.23.3-develop.1](https://github.com/mogenius/mogenius-operator/compare/v2.23.2...v2.23.3-develop.1) (2026-07-08)
 
 
