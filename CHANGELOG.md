@@ -1,3 +1,11 @@
+## [2.23.3-develop.4](https://github.com/mogenius/mogenius-operator/compare/v2.23.3-develop.3...v2.23.3-develop.4) (2026-07-09)
+
+
+### Bug Fixes
+
+* **ai:** guard prompt config access and activate user-defined filters ([68a7895](https://github.com/mogenius/mogenius-operator/commit/68a78957ac589411f9d9335dba7fbfe06da075a5))
+* **ai:** harden unattended insight pipeline ([2d7a17a](https://github.com/mogenius/mogenius-operator/commit/2d7a17a4c15e8e434f47248fb58ff0751576a51e))
+
 ## [2.23.3-develop.3](https://github.com/mogenius/mogenius-operator/compare/v2.23.3-develop.2...v2.23.3-develop.3) (2026-07-09)
 
 
