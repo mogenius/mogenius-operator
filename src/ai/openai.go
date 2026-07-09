@@ -18,10 +18,10 @@ func (ai *aiManager) processPromptOpenAi(ctx context.Context, model, systemPromp
 		return nil, 0, int(time.Since(startTime).Milliseconds()), model, err
 	}
 
-	allTools := append(kubernetesOpenAiTools, helmOpenAiTools...)
-	if ai.mcpManager != nil {
-		allTools = append(allTools, ai.mcpManager.GetOpenAITools()...)
-	}
+	// Unattended pipeline: strictly read-only tools, no external MCP tools.
+	// This path runs without a user/ToolContext, and a nil ToolContext
+	// passes every role/namespace check.
+	allTools := readOnlyOpenAiTools(append(kubernetesOpenAiTools, helmOpenAiTools...))
 
 	params := openai.ChatCompletionNewParams{
 		Messages: []openai.ChatCompletionMessageParamUnion{
@@ -73,14 +73,12 @@ func (ai *aiManager) processPromptOpenAi(ctx context.Context, model, systemPromp
 			}
 
 			var data string
-			if ai.mcpManager != nil && ai.mcpManager.IsMCPTool(toolCall.Function.Name) {
-				mcpResult, err := ai.mcpManager.CallTool(ctx, toolCall.Function.Name, args)
-				if err != nil {
-					return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("MCP tool call %q failed: %v", toolCall.Function.Name, err)
+			if tool, ok := toolDefinitions[toolCall.Function.Name]; ok {
+				if !viewerAllowedTools[toolCall.Function.Name] {
+					return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("tool %q is not permitted in the unattended insight pipeline", toolCall.Function.Name)
 				}
-				data = mcpResult
-			} else if tool, ok := toolDefinitions[toolCall.Function.Name]; ok {
 				data = tool(args, nil, ai.valkeyClient, ai.logger)
+				ai.auditInsightToolCall(toolCall.Function.Name, args, data)
 			} else {
 				return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("unknown tool called: %s", toolCall.Function.Name)
 			}

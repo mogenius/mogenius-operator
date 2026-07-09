@@ -193,10 +193,12 @@ type aiManager struct {
 	logger            *slog.Logger
 	valkeyClient      valkeyclient.ValkeyClient
 	config            cfg.ConfigModule
+	promptConfigMu    sync.RWMutex // guards aiPromptConfig: injected via ConfigMap watch while the queue ticker reads it
 	aiPromptConfig    *AiPromptConfig
 	ownerCacheService store.OwnerCacheService
 	eventClient       websocket.WebsocketClient
 	secretGetter      SecretGetter
+	stateMu           sync.Mutex // guards error+warning: written by the ticker goroutine, read by status requests
 	error             string
 	warning           string
 	pendingTasks      map[string]AiTask
@@ -207,6 +209,54 @@ type aiManager struct {
 	// prompts
 	chatPromptMu sync.RWMutex
 	aiPrompts    AiPrompts
+}
+
+// auditInsightToolCall writes a durable audit entry for every tool the
+// unattended insight pipeline executes ("no unattributed actions"): unlike
+// the chat path, this pipeline has no user whose audit trail would capture
+// the call. The result is truncated — the entry documents WHAT was queried,
+// not the full payload.
+func (ai *aiManager) auditInsightToolCall(toolName string, args map[string]any, result string) {
+	store.AddAiChatAuditLog(
+		ai.logger,
+		"ai/insight-tool",
+		map[string]any{"tool": toolName, "args": args},
+		truncateResult(result, 500),
+		"",
+		structs.User{FirstName: "AI", LastName: "Insights", Email: "ai-insights@system", Source: "ai-insights"},
+		"",
+	)
+}
+
+// setError/setWarning/statusStrings centralize access to the transient
+// error/warning state; these fields were previously written from the ticker
+// goroutine and read from concurrent status requests without a lock.
+func (ai *aiManager) setError(msg string) {
+	ai.stateMu.Lock()
+	ai.error = msg
+	ai.stateMu.Unlock()
+}
+
+func (ai *aiManager) setWarning(msg string) {
+	ai.stateMu.Lock()
+	ai.warning = msg
+	ai.stateMu.Unlock()
+}
+
+// clearTokenLimitError resets the error only if it is the token-limit one, so
+// unrelated errors are not wiped by a successful limit check.
+func (ai *aiManager) clearTokenLimitError() {
+	ai.stateMu.Lock()
+	if strings.HasPrefix(ai.error, "Daily AI token limit") {
+		ai.error = ""
+	}
+	ai.stateMu.Unlock()
+}
+
+func (ai *aiManager) statusStrings() (errMsg string, warnMsg string) {
+	ai.stateMu.Lock()
+	defer ai.stateMu.Unlock()
+	return ai.error, ai.warning
 }
 
 func NewAiManager(logger *slog.Logger, valkeyClient valkeyclient.ValkeyClient, config cfg.ConfigModule, ownerCacheService store.OwnerCacheService, eventClient websocket.WebsocketClient, secretGetter SecretGetter) AiManager {
@@ -423,7 +473,7 @@ func (ai *aiManager) Run() {
 
 				ai.processPendingTasks()
 
-				ai.error = ""
+				ai.setError("")
 				ai.processAiTaskQueue(ctx)
 			case <-cleanupTicker.C:
 				ai.cleanupOrphanedTasks()
@@ -570,27 +620,27 @@ func (ai *aiManager) isTokenLimitExceeded() bool {
 	tokenLimit, err := ai.getDailyTokenLimit()
 	if err != nil {
 		ai.logger.Error("Error getting daily token limit", "error", err)
-		ai.error = err.Error()
+		ai.setError(err.Error())
 		return true
 	}
 
 	tokensUsed, _, err := ai.getTodayTokenUsage()
 	if err != nil {
 		ai.logger.Error("Error getting today's token usage", "error", err)
-		ai.error = err.Error()
+		ai.setError(err.Error())
 		return true
 	}
 
 	if tokensUsed >= tokenLimit {
 		ai.logger.Warn("Daily AI token limit reached, skipping AI task processing", "tokensUsed", tokensUsed, "dailyLimit", tokenLimit)
-		ai.error = fmt.Errorf("Daily AI token limit reached (%d tokens used of %d). Increase limit or wait 24 hours.", tokensUsed, tokenLimit).Error()
+		ai.setError(fmt.Errorf("Daily AI token limit reached (%d tokens used of %d). Increase limit or wait 24 hours.", tokensUsed, tokenLimit).Error())
 		return true
 	} else if tokensUsed >= int64(float64(tokenLimit)*0.8) {
 		// warn at 80%
 		ai.logger.Warn("Approaching daily AI token limit", "tokensUsed", tokensUsed, "dailyLimit", tokenLimit)
-		ai.warning = fmt.Sprintf("Approaching daily AI token limit (%d tokens used of %d).", tokensUsed, tokenLimit)
+		ai.setWarning(fmt.Sprintf("Approaching daily AI token limit (%d tokens used of %d).", tokensUsed, tokenLimit))
 	} else {
-		ai.warning = ""
+		ai.setWarning("")
 	}
 	return false
 }

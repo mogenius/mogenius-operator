@@ -182,6 +182,41 @@ func isViewerRole(ioChannel IOChatChannel) bool {
 	return ioChannel.WorkspaceGrant != nil && ioChannel.WorkspaceGrant.Role == "viewer"
 }
 
+// readOnly*Tools restrict a tool set to the read-only viewer allowlist. Used
+// by the automatic insight path, which runs unattended and without a
+// ToolContext — a nil ToolContext passes every role/namespace check, so
+// write tools (and external MCP tools) must never be offered to the model
+// there.
+func readOnlyAnthropicTools(tools []anthropic.ToolParam) []anthropic.ToolParam {
+	filtered := make([]anthropic.ToolParam, 0, len(tools))
+	for _, t := range tools {
+		if viewerAllowedTools[t.Name] {
+			filtered = append(filtered, t)
+		}
+	}
+	return filtered
+}
+
+func readOnlyOpenAiTools(tools []openai.ChatCompletionToolUnionParam) []openai.ChatCompletionToolUnionParam {
+	filtered := make([]openai.ChatCompletionToolUnionParam, 0, len(tools))
+	for _, t := range tools {
+		if t.OfFunction != nil && viewerAllowedTools[t.OfFunction.Function.Name] {
+			filtered = append(filtered, t)
+		}
+	}
+	return filtered
+}
+
+func readOnlyOllamaTools(tools []api.Tool) []api.Tool {
+	filtered := make([]api.Tool, 0, len(tools))
+	for _, t := range tools {
+		if viewerAllowedTools[t.Function.Name] {
+			filtered = append(filtered, t)
+		}
+	}
+	return filtered
+}
+
 func filterOpenAiTools(tools []openai.ChatCompletionToolUnionParam, ioChannel IOChatChannel) []openai.ChatCompletionToolUnionParam {
 	if !isViewerRole(ioChannel) {
 		return tools
