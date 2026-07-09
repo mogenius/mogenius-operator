@@ -1,3 +1,11 @@
+## [2.23.3-develop.5](https://github.com/mogenius/mogenius-operator/compare/v2.23.3-develop.4...v2.23.3-develop.5) (2026-07-09)
+
+
+### Bug Fixes
+
+* improve audit-log ([58dc5ce](https://github.com/mogenius/mogenius-operator/commit/58dc5ce3038f404295f1ee3b15b1fbb5e8b06de1))
+* improve audit-log even more ([4ca59c2](https://github.com/mogenius/mogenius-operator/commit/4ca59c27f735a4a9d5de99a8b776c86c37a92c0d))
+
 ## [2.23.3-develop.4](https://github.com/mogenius/mogenius-operator/compare/v2.23.3-develop.3...v2.23.3-develop.4) (2026-07-09)
 
 
