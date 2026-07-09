@@ -62,6 +62,7 @@ func helmRepoAddTool(args map[string]any, tc *ToolContext, _ valkeyclient.Valkey
 		Name: name, Url: url, Username: username, Password: password,
 		InsecureSkipTLSverify: insecureSkipTLS, PassCredentialsAll: passCredentialsAll,
 	})
+	auditAiToolMutation(tc, logger, "helm_repo_add", args, result, err, nil, nil)
 	if err != nil {
 		return fmt.Sprintf("Error adding Helm repo: %v", err)
 	}
@@ -85,18 +86,20 @@ func helmRepoPatchTool(args map[string]any, tc *ToolContext, _ valkeyclient.Valk
 		Name: name, NewName: newName, Url: url, Username: username, Password: password,
 		InsecureSkipTLSverify: insecureSkipTLS, PassCredentialsAll: passCredentialsAll,
 	})
+	auditAiToolMutation(tc, logger, "helm_repo_patch", args, result, err, nil, nil)
 	if err != nil {
 		return fmt.Sprintf("Error patching Helm repo: %v", err)
 	}
 	return result
 }
 
-func helmRepoUpdateTool(_ map[string]any, tc *ToolContext, _ valkeyclient.ValkeyClient, logger *slog.Logger) string {
+func helmRepoUpdateTool(args map[string]any, tc *ToolContext, _ valkeyclient.ValkeyClient, logger *slog.Logger) string {
 	if !tc.IsEditor() && !tc.IsAdmin() {
 		return "Error: only users with editor or admin roles can update Helm repos"
 	}
 	logger.Info("Updating all Helm repos")
 	result, err := helm.HelmRepoUpdate()
+	auditAiToolMutation(tc, logger, "helm_repo_update", args, result, err, nil, nil)
 	if err != nil {
 		return fmt.Sprintf("Error updating Helm repos: %v", err)
 	}
@@ -120,6 +123,7 @@ func helmRepoRemoveTool(args map[string]any, tc *ToolContext, _ valkeyclient.Val
 
 	logger.Info("Removing Helm repo", "name", name)
 	result, err := helm.HelmRepoRemove(helm.HelmRepoRemoveRequest{Name: name})
+	auditAiToolMutation(tc, logger, "helm_repo_remove", args, result, err, nil, nil)
 	if err != nil {
 		return fmt.Sprintf("Error removing Helm repo: %v", err)
 	}
@@ -160,6 +164,9 @@ func helmChartInstallTool(args map[string]any, tc *ToolContext, _ valkeyclient.V
 		Namespace: namespace, Chart: chart, Release: release,
 		Version: version, Values: values, DryRun: dryRun,
 	})
+	if !dryRun {
+		auditAiToolMutation(tc, logger, "helm_chart_install", args, result, err, nil, nil)
+	}
 	if err != nil {
 		return fmt.Sprintf("Error installing Helm chart: %v", err)
 	}
@@ -192,6 +199,9 @@ func helmOciInstallTool(args map[string]any, tc *ToolContext, _ valkeyclient.Val
 		Version: version, Values: values, DryRun: dryRun,
 		AuthHost: authHost, Username: username, Password: password,
 	})
+	if !dryRun {
+		auditAiToolMutation(tc, logger, "helm_oci_install", args, result, err, nil, nil)
+	}
 	if err != nil {
 		return fmt.Sprintf("Error installing OCI Helm chart: %v", err)
 	}
@@ -248,6 +258,9 @@ func helmReleaseUpgradeTool(args map[string]any, tc *ToolContext, _ valkeyclient
 		Namespace: namespace, Chart: chart, Release: release,
 		Version: version, Values: values, DryRun: dryRun,
 	})
+	if !dryRun {
+		auditAiToolMutation(tc, logger, "helm_release_upgrade", args, result, err, nil, nil)
+	}
 	if err != nil {
 		return fmt.Sprintf("Error upgrading Helm release: %v", err)
 	}
@@ -272,6 +285,9 @@ func helmReleaseUninstallTool(args map[string]any, tc *ToolContext, _ valkeyclie
 	result, err := helm.HelmReleaseUninstall(helm.HelmReleaseUninstallRequest{
 		Namespace: namespace, Release: release, DryRun: dryRun,
 	})
+	if !dryRun {
+		auditAiToolMutation(tc, logger, "helm_release_uninstall", args, result, err, nil, nil)
+	}
 	if err != nil {
 		return fmt.Sprintf("Error uninstalling Helm release: %v", err)
 	}
@@ -348,6 +364,7 @@ func helmReleaseRollbackTool(args map[string]any, tc *ToolContext, _ valkeyclien
 	result, err := helm.HelmReleaseRollback(helm.HelmReleaseRollbackRequest{
 		Namespace: namespace, Release: release, Revision: revision,
 	})
+	auditAiToolMutation(tc, logger, "helm_release_rollback", args, result, err, nil, nil)
 	if err != nil {
 		return fmt.Sprintf("Error rolling back Helm release: %v", err)
 	}
@@ -390,6 +407,7 @@ func helmReleaseLinkTool(args map[string]any, tc *ToolContext, _ valkeyclient.Va
 
 	logger.Info("Linking Helm release to repo", "release", releaseName, "repo", repoName, "namespace", namespace)
 	err := helm.SaveRepoNameToValkey(namespace, releaseName, repoName)
+	auditAiToolMutation(tc, logger, "helm_release_link", args, nil, err, nil, nil)
 	if err != nil {
 		return fmt.Sprintf("Error linking Helm release to repo: %v", err)
 	}

@@ -3,11 +3,16 @@ package ai
 import (
 	"log/slog"
 	map0 "maps"
+	"mogenius-operator/src/store"
+	"mogenius-operator/src/structs"
+	"mogenius-operator/src/utils"
 	"mogenius-operator/src/valkeyclient"
+	"time"
 
 	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/ollama/ollama/api"
 	"github.com/openai/openai-go/v3"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 type ToolContext struct {
@@ -15,6 +20,11 @@ type ToolContext struct {
 	AllowedHelmReleases map[string]map[string]bool // namespace → {releaseName: true} (from type="helm"); nil = no helm-level restriction
 	AllowedArgoCDApps   map[string]bool            // ArgoCD app names (from type="argocd"); nil = no argocd-level restriction
 	Role                string                     // "viewer", "editor", "admin", "" = no restriction
+
+	// Audit attribution — who triggered this tool call. Nil User means the
+	// unattended insight path (which only ever gets read-only tools).
+	User      *structs.User
+	Workspace string
 }
 
 // hasRestrictions returns true when any scoping is configured.
@@ -101,11 +111,17 @@ func (tc *ToolContext) IsAdmin() bool {
 }
 
 func newToolContextFromIOChannel(ioChannel IOChatChannel) *ToolContext {
-	if ioChannel.IsAdmin || (ioChannel.WorkspaceSpec == nil && ioChannel.WorkspaceGrant == nil) {
-		return nil
+	tc := &ToolContext{
+		User:      ioChannel.User,
+		Workspace: ioChannel.Workspace,
 	}
 
-	tc := &ToolContext{}
+	if ioChannel.IsAdmin || (ioChannel.WorkspaceSpec == nil && ioChannel.WorkspaceGrant == nil) {
+		// No restrictions: an empty Role and nil allow-maps behave exactly
+		// like the former nil ToolContext in every permission check; the
+		// context now only carries audit attribution.
+		return tc
+	}
 
 	if ioChannel.WorkspaceGrant != nil {
 		tc.Role = ioChannel.WorkspaceGrant.Role
@@ -143,6 +159,35 @@ func newToolContextFromIOChannel(ioChannel IOChatChannel) *ToolContext {
 	}
 
 	return tc
+}
+
+// auditAiToolMutation writes a resource-indexed audit log entry for a
+// mutating AI tool call — same key scheme, diff handling and sanitization
+// as the socketapi handlers, so "who changed resource X" queries also find
+// AI-driven changes. It runs synchronously inside the tool: the mutation is
+// audited even when the chat turn aborts before its summary entry.
+func auditAiToolMutation(tc *ToolContext, logger *slog.Logger, toolName string, args map[string]any, result any, err error, oldObj, newObj *unstructured.Unstructured) {
+	// "no unattributed actions": fall back to the insight system user when
+	// no chat user is present (defense in depth — the insight path only
+	// offers read-only tools).
+	user := structs.User{FirstName: "AI", LastName: "Insights", Email: "ai-insights@system", Source: "ai-insights"}
+	workspace := ""
+	if tc != nil {
+		if tc.User != nil {
+			user = *tc.User
+			user.Source = "ai-chat"
+		}
+		workspace = tc.Workspace
+	}
+	datagram := structs.Datagram{
+		Id:        utils.NanoId(),
+		Pattern:   "ai/tool/" + toolName,
+		Payload:   args,
+		CreatedAt: time.Now(),
+		User:      user,
+		Workspace: workspace,
+	}
+	_, _ = store.AddToAuditLog(datagram, logger, result, err, oldObj, newObj)
 }
 
 func mergeAnnotationsAndLabels(annotations, labels map[string]string) map[string]string {

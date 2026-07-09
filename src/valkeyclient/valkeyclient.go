@@ -806,10 +806,7 @@ func GetObjectsByPrefixWithSizeAndNs[T any](store ValkeyClient, limit int, offse
 		for _, key := range keyList {
 			split := strings.Split(key, ":")
 			if len(split) >= 3 {
-				// Always include ai-chat entries (they are not namespace-scoped)
-				if split[1] == "ai-chat" {
-					filteredKeys = append(filteredKeys, key)
-				} else if _, ok := nsSet[split[1]]; ok {
+				if _, ok := nsSet[split[1]]; ok {
 					filteredKeys = append(filteredKeys, key)
 				}
 			}

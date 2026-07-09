@@ -260,6 +260,12 @@ func updateKubernetesResourceTool(args map[string]any, tc *ToolContext, valkeyCl
 
 	// Perform the update
 	updatedRes, err := K8sUpdateUnstructuredResource(apiVersion, plural, namespaced, yamlData)
+	newObj := updatedRes
+	if newObj == nil {
+		// Failed update: audit the intended target state from the request.
+		newObj = updatedObj
+	}
+	auditAiToolMutation(tc, logger, "update_kubernetes_resource", args, nil, err, oldObj, newObj)
 	if err != nil {
 		logger.Error("Failed to update resource", "error", err)
 		return fmt.Sprintf("Error updating resource: %v", err)
@@ -294,6 +300,7 @@ func deleteKubernetesResourceTool(args map[string]any, tc *ToolContext, valkeyCl
 	logger.Info("Deleting Kubernetes resource", "apiVersion", apiVersion, "plural", plural, "namespace", namespace, "name", name)
 
 	err := K8sDeleteUnstructuredResource(apiVersion, plural, namespace, name)
+	auditAiToolMutation(tc, logger, "delete_kubernetes_resource", args, nil, err, nil, nil)
 	if err != nil {
 		logger.Error("Failed to delete resource", "error", err)
 		return fmt.Sprintf("Error deleting resource: %v", err)
@@ -331,6 +338,12 @@ func createKubernetesResourceTool(args map[string]any, tc *ToolContext, valkeyCl
 
 	// Perform the create
 	createdRes, err := K8sCreateUnstructuredResource(apiVersion, plural, namespaced, yamlData)
+	newObj := createdRes
+	if newObj == nil {
+		// Failed create: audit the requested manifest.
+		newObj = obj
+	}
+	auditAiToolMutation(tc, logger, "create_kubernetes_resource", args, nil, err, nil, newObj)
 	if err != nil {
 		logger.Error("Failed to create resource", "error", err)
 		return fmt.Sprintf("Error creating resource: %v", err)

@@ -1,12 +1,14 @@
 package store
 
 import (
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
 	"mogenius-operator/src/crds/v1alpha1"
 	"mogenius-operator/src/logging"
+	"mogenius-operator/src/secrets"
 	"mogenius-operator/src/structs"
 	"mogenius-operator/src/utils"
 	"mogenius-operator/src/valkeyclient"
@@ -1043,14 +1045,20 @@ func GetYamlFromUnstructuredResource(obj *unstructured.Unstructured) (string, er
 
 // Audit Log
 type AuditLogEntry struct {
-	Pattern   string       `json:"pattern" validate:"required"`
-	Payload   any          `json:"payload,omitempty"`
-	Diff      string       `json:"diff,omitempty"`
-	Result    any          `json:"result,omitempty"`
-	Error     string       `json:"error,omitempty"`
-	CreatedAt time.Time    `json:"createdAt"`
-	User      structs.User `json:"user"`
-	Workspace string       `json:"workspace,omitempty"`
+	RequestId  string       `json:"requestId,omitempty"`
+	Pattern    string       `json:"pattern" validate:"required"`
+	Kind       string       `json:"kind,omitempty"`
+	ApiVersion string       `json:"apiVersion,omitempty"`
+	Namespace  string       `json:"namespace,omitempty"`
+	Name       string       `json:"name,omitempty"`
+	Success    bool         `json:"success"`
+	Payload    any          `json:"payload,omitempty"`
+	Diff       string       `json:"diff,omitempty"`
+	Result     any          `json:"result,omitempty"`
+	Error      string       `json:"error,omitempty"`
+	CreatedAt  time.Time    `json:"createdAt"`
+	User       structs.User `json:"user"`
+	Workspace  string       `json:"workspace,omitempty"`
 }
 
 type AuditLogResponse struct {
@@ -1058,47 +1066,85 @@ type AuditLogResponse struct {
 	TotalCount int             `json:"totalCount"`
 }
 
-func AddToAuditLog[T any](datagram structs.Datagram, logger *slog.Logger, result T, err error, oldObj *unstructured.Unstructured, updatedObj *unstructured.Unstructured) (T, error) {
-	resourceNamespace := ""
-	resourceName := ""
+// auditLogFallbackBucket is the namespace segment of the Valkey key for
+// entries that cannot be attributed to a concrete resource. Grouping them
+// by pattern (instead of the shared "audit-log:::" bucket) keeps the
+// per-resource entry limit from being drained by unrelated actions.
+const auditLogFallbackBucket = "_cluster"
 
+func AddToAuditLog[T any](datagram structs.Datagram, logger *slog.Logger, result T, err error, oldObj *unstructured.Unstructured, updatedObj *unstructured.Unstructured) (T, error) {
 	auditLogEntry := auditLogFromDatagram(datagram, result, err)
+
+	// Never persist secret values: replace Secret data with hashed
+	// placeholders before diffing and before the entry is stored/pushed.
+	oldObj = redactSecretData(oldObj)
+	updatedObj = redactSecretData(updatedObj)
+
 	if oldObj != nil || updatedObj != nil {
 		patch, diffErr := Diff(oldObj, updatedObj)
 		if diffErr != nil {
+			// Still persist the entry — a missing diff must not suppress the audit trail.
 			logger.Error("failed to create kubectl style diff", "error", diffErr)
-			return result, err
-		}
-		auditLogEntry.Diff = patch
-	}
-	if oldObj != nil {
-		resourceNamespace = oldObj.GetNamespace()
-		resourceName = oldObj.GetName()
-	} else if updatedObj != nil {
-		resourceNamespace = updatedObj.GetNamespace()
-		resourceName = updatedObj.GetName()
-	} else if payload := datagram.PayloadMap(); payload != nil {
-		if ns, ok := payload["namespace"].(string); ok {
-			resourceNamespace = ns
-		}
-		if name, ok := payload["name"].(string); ok {
-			resourceName = name
-		}
-		if pod, ok := payload["pod"].(string); ok {
-			resourceName = pod
-		}
-	} else if yamlData, ok := payload["yamlData"].(string); ok {
-		var unstruct unstructured.Unstructured
-		err := yaml.Unmarshal([]byte(yamlData), &unstruct)
-		if err == nil {
-			resourceNamespace = unstruct.GetNamespace()
-			resourceName = unstruct.GetName()
 		} else {
-			return result, fmt.Errorf("failed to guess Namespace and ResourceName from datagram payload: %w", err)
+			auditLogEntry.Diff = patch
 		}
 	}
 
-	auditLogAddErr := valkeyClient.SetObjectWithAutoincrementLimit(auditLogEntry, AuditLogLimit, AuditLogTTL, "audit-log", resourceNamespace, resourceName)
+	if ref := updatedObj; ref != nil || oldObj != nil {
+		if oldObj != nil {
+			ref = oldObj
+		}
+		auditLogEntry.Namespace = ref.GetNamespace()
+		auditLogEntry.Name = ref.GetName()
+		auditLogEntry.Kind = ref.GetKind()
+		auditLogEntry.ApiVersion = ref.GetAPIVersion()
+	} else if payload := datagram.PayloadMap(); payload != nil {
+		if ns, ok := payload["namespace"].(string); ok {
+			auditLogEntry.Namespace = ns
+		}
+		if name, ok := payload["name"].(string); ok {
+			auditLogEntry.Name = name
+		}
+		if pod, ok := payload["pod"].(string); ok {
+			auditLogEntry.Name = pod
+		}
+		if kind, ok := payload["kind"].(string); ok {
+			auditLogEntry.Kind = kind
+		}
+		if apiVersion, ok := payload["apiVersion"].(string); ok {
+			auditLogEntry.ApiVersion = apiVersion
+		}
+		if auditLogEntry.Namespace == "" || auditLogEntry.Name == "" {
+			if yamlData, ok := payload["yamlData"].(string); ok {
+				var unstruct unstructured.Unstructured
+				if yaml.Unmarshal([]byte(yamlData), &unstruct) == nil {
+					if auditLogEntry.Namespace == "" {
+						auditLogEntry.Namespace = unstruct.GetNamespace()
+					}
+					if auditLogEntry.Name == "" {
+						auditLogEntry.Name = unstruct.GetName()
+					}
+					if auditLogEntry.Kind == "" {
+						auditLogEntry.Kind = unstruct.GetKind()
+					}
+					if auditLogEntry.ApiVersion == "" {
+						auditLogEntry.ApiVersion = unstruct.GetAPIVersion()
+					}
+				}
+			}
+		}
+	}
+
+	sanitizeAuditLogEntry(&auditLogEntry)
+
+	bucketNamespace := auditLogEntry.Namespace
+	bucketName := auditLogEntry.Name
+	if bucketNamespace == "" && bucketName == "" {
+		bucketNamespace = auditLogFallbackBucket
+		bucketName = datagram.Pattern
+	}
+
+	auditLogAddErr := valkeyClient.SetObjectWithAutoincrementLimit(auditLogEntry, AuditLogLimit, AuditLogTTL, "audit-log", bucketNamespace, bucketName)
 	if auditLogAddErr != nil {
 		logger.Error("failed to add to audit log", "error", auditLogAddErr)
 	} else if OnAuditLogCreated != nil {
@@ -1107,7 +1153,149 @@ func AddToAuditLog[T any](datagram structs.Datagram, logger *slog.Logger, result
 	return result, err
 }
 
-func ListAuditLog(limit int, offset int, namespaces []string, clusterWide bool, search string) ([]AuditLogEntry, int, error) {
+// redactSecretData returns a deep copy of obj with every data/stringData
+// value replaced by a placeholder carrying a truncated SHA-256 of the
+// original value. The hash keeps "did this key change?" visible in diffs
+// without persisting the secret itself. Non-Secret objects pass through
+// unchanged.
+func redactSecretData(obj *unstructured.Unstructured) *unstructured.Unstructured {
+	if obj == nil || obj.GetKind() != "Secret" {
+		return obj
+	}
+	redacted := obj.DeepCopy()
+	for _, field := range []string{"data", "stringData"} {
+		values, found, _ := unstructured.NestedMap(redacted.Object, field)
+		if !found {
+			continue
+		}
+		for key, value := range values {
+			str, _ := value.(string)
+			values[key] = redactedValuePlaceholder(str)
+		}
+		_ = unstructured.SetNestedMap(redacted.Object, values, field)
+	}
+	return redacted
+}
+
+func redactedValuePlaceholder(value string) string {
+	sum := sha256.Sum256([]byte(value))
+	return fmt.Sprintf("***[REDACTED:sha256:%x]***", sum[:4])
+}
+
+// sanitizeAuditLogEntry removes sensitive material from an entry before it
+// is persisted and pushed to the platform: Secret manifests embedded in
+// payload/result are redacted, and configured operator secrets (API keys
+// etc.) are masked in all serialized fields.
+func sanitizeAuditLogEntry(entry *AuditLogEntry) {
+	entry.Payload = redactSecretYamlInPayload(entry.Payload)
+	entry.Payload = redactSensitiveKeys(entry.Payload)
+	switch res := entry.Result.(type) {
+	case *unstructured.Unstructured:
+		entry.Result = redactSecretData(res)
+	case unstructured.Unstructured:
+		entry.Result = redactSecretData(&res)
+	}
+	entry.Payload = eraseConfigSecrets(entry.Payload)
+	entry.Result = eraseConfigSecrets(entry.Result)
+	entry.Diff = secrets.EraseSecrets(entry.Diff)
+	entry.Error = secrets.EraseSecrets(entry.Error)
+}
+
+// sensitiveAuditPayloadKeys are payload field names whose values are
+// credentials by construction (e.g. helm repo add/patch requests carry a
+// repo password). Matched case-insensitively against map keys.
+var sensitiveAuditPayloadKeys = map[string]struct{}{
+	"password":     {},
+	"token":        {},
+	"apikey":       {},
+	"accesstoken":  {},
+	"authtoken":    {},
+	"bearertoken":  {},
+	"clientsecret": {},
+	"authorization": {},
+}
+
+// redactSensitiveKeys walks JSON-decoded payload structures and replaces
+// values of credential-carrying keys. Maps are copied, never mutated in
+// place (the datagram payload may still be referenced elsewhere).
+func redactSensitiveKeys(value any) any {
+	switch typed := value.(type) {
+	case map[string]any:
+		copied := make(map[string]any, len(typed))
+		for k, v := range typed {
+			if _, sensitive := sensitiveAuditPayloadKeys[strings.ToLower(k)]; sensitive {
+				if str, ok := v.(string); ok && str != "" {
+					copied[k] = secrets.REDACTED
+					continue
+				}
+			}
+			copied[k] = redactSensitiveKeys(v)
+		}
+		return copied
+	case []any:
+		copied := make([]any, len(typed))
+		for i, v := range typed {
+			copied[i] = redactSensitiveKeys(v)
+		}
+		return copied
+	default:
+		return value
+	}
+}
+
+// redactSecretYamlInPayload redacts Secret manifests that arrive as a
+// yamlData string inside a payload map (e.g. create/update workload
+// requests). The payload map is copied, never mutated in place.
+func redactSecretYamlInPayload(payload any) any {
+	payloadMap, ok := payload.(map[string]any)
+	if !ok {
+		return payload
+	}
+	yamlData, ok := payloadMap["yamlData"].(string)
+	if !ok || yamlData == "" {
+		return payload
+	}
+	var unstruct unstructured.Unstructured
+	if yaml.Unmarshal([]byte(yamlData), &unstruct) != nil || unstruct.GetKind() != "Secret" {
+		return payload
+	}
+	redactedYaml, err := yaml.Marshal(redactSecretData(&unstruct).Object)
+	if err != nil {
+		redactedYaml = []byte(secrets.REDACTED)
+	}
+	copied := make(map[string]any, len(payloadMap))
+	for k, v := range payloadMap {
+		copied[k] = v
+	}
+	copied["yamlData"] = string(redactedYaml)
+	return copied
+}
+
+// eraseConfigSecrets masks configured operator secret values (see
+// secrets.EraseSecrets) inside an arbitrary JSON-serializable value. When
+// nothing matches, the original value is returned untouched.
+func eraseConfigSecrets(value any) any {
+	if value == nil {
+		return nil
+	}
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return value
+	}
+	masked := secrets.EraseSecrets(string(raw))
+	if masked == string(raw) {
+		return value
+	}
+	var out any
+	if err := json.Unmarshal([]byte(masked), &out); err != nil {
+		// Masking broke the JSON structure (secret spanned syntax); fall
+		// back to the masked string so no secret survives.
+		return masked
+	}
+	return out
+}
+
+func ListAuditLog(limit int, offset int, namespaces []string, clusterWide bool, workspaceName string, search string) ([]AuditLogEntry, int, error) {
 	if limit <= 0 {
 		limit = 100
 	}
@@ -1119,6 +1307,23 @@ func ListAuditLog(limit int, offset int, namespaces []string, clusterWide bool, 
 	allEntries, _, err := valkeyclient.GetObjectsByPrefixWithSizeAndNs[AuditLogEntry](valkeyClient, maxEntries, 0, namespaces, clusterWide, "audit-log")
 	if err != nil {
 		return []AuditLogEntry{}, 0, err
+	}
+
+	// AI entries live under audit-log:ai-chat:<email> and are not
+	// namespace-scoped, so the namespace key filter above drops them. For
+	// workspace-scoped queries, load them separately and keep only the
+	// requested workspace — entries from other workspaces must not leak
+	// into a workspace-scoped view.
+	if !clusterWide {
+		aiEntries, _, aiErr := valkeyclient.GetObjectsByPrefixWithSizeAndNs[AuditLogEntry](valkeyClient, maxEntries, 0, nil, true, "audit-log", "ai-chat")
+		if aiErr != nil {
+			return []AuditLogEntry{}, 0, aiErr
+		}
+		for _, entry := range aiEntries {
+			if workspaceName != "" && entry.Workspace == workspaceName {
+				allEntries = append(allEntries, entry)
+			}
+		}
 	}
 
 	// Filter by search term (case-insensitive) across key fields
@@ -1156,6 +1361,15 @@ func auditLogEntryMatchesSearch(entry AuditLogEntry, searchLower string) bool {
 	if strings.Contains(strings.ToLower(entry.Workspace), searchLower) {
 		return true
 	}
+	if strings.Contains(strings.ToLower(entry.Kind), searchLower) && entry.Kind != "" {
+		return true
+	}
+	if strings.Contains(strings.ToLower(entry.Namespace), searchLower) && entry.Namespace != "" {
+		return true
+	}
+	if strings.Contains(strings.ToLower(entry.Name), searchLower) && entry.Name != "" {
+		return true
+	}
 	if strings.Contains(strings.ToLower(entry.User.FirstName), searchLower) {
 		return true
 	}
@@ -1180,10 +1394,16 @@ func auditLogFromDatagram(datagram structs.Datagram, result any, err error) Audi
 	if err != nil {
 		errStr = err.Error()
 	}
+	createdAt := datagram.CreatedAt
+	if createdAt.IsZero() {
+		createdAt = time.Now()
+	}
 	return AuditLogEntry{
+		RequestId: datagram.Id,
 		Pattern:   datagram.Pattern,
+		Success:   err == nil,
 		Payload:   datagram.Payload,
-		CreatedAt: datagram.CreatedAt,
+		CreatedAt: createdAt,
 		User:      datagram.User,
 		Workspace: datagram.Workspace,
 		Error:     errStr,
@@ -1197,6 +1417,7 @@ func auditLogFromDatagram(datagram structs.Datagram, result any, err error) Audi
 func AddAiChatAuditLog(logger *slog.Logger, pattern string, payload any, result any, errStr string, user structs.User, workspace string) {
 	entry := AuditLogEntry{
 		Pattern:   pattern,
+		Success:   errStr == "",
 		Payload:   payload,
 		Result:    result,
 		Error:     errStr,
@@ -1204,6 +1425,7 @@ func AddAiChatAuditLog(logger *slog.Logger, pattern string, payload any, result 
 		User:      user,
 		Workspace: workspace,
 	}
+	sanitizeAuditLogEntry(&entry)
 
 	storeErr := valkeyClient.SetObjectWithAutoincrementLimit(entry, AuditLogLimit, AuditLogTTL, "audit-log", "ai-chat", user.Email)
 	if storeErr != nil {
