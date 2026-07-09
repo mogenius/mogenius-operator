@@ -39,7 +39,9 @@ const (
 )
 
 func (ai *aiManager) InjectAiPromptConfig(prompt AiPromptConfig, aiPrompts *AiPrompts) {
+	ai.promptConfigMu.Lock()
 	ai.aiPromptConfig = &prompt
+	ai.promptConfigMu.Unlock()
 
 	if aiPrompts != nil {
 		ai.chatPromptMu.Lock()
@@ -50,8 +52,17 @@ func (ai *aiManager) InjectAiPromptConfig(prompt AiPromptConfig, aiPrompts *AiPr
 	ai.logger.Info("AI Prompt Config loaded successfully", "name", prompt.Name)
 }
 
+// promptConfig returns the current config snapshot. The pointer is replaced
+// atomically on inject and the pointee never mutated, so reads are safe once
+// the pointer is fetched under the lock.
+func (ai *aiManager) promptConfig() *AiPromptConfig {
+	ai.promptConfigMu.RLock()
+	defer ai.promptConfigMu.RUnlock()
+	return ai.aiPromptConfig
+}
+
 func (ai *aiManager) isAiPromptConfigInitialized() bool {
-	return ai.aiPromptConfig != nil
+	return ai.promptConfig() != nil
 }
 
 func (ai *aiManager) isAiModelConfigInitialized() bool {
@@ -68,17 +79,34 @@ func (ai *aiManager) isAiModelConfigInitialized() bool {
 }
 
 func (ai *aiManager) getSystemPrompt() string {
-	return ai.aiPromptConfig.SystemPrompt
+	cfg := ai.promptConfig()
+	if cfg == nil {
+		return ""
+	}
+	return cfg.SystemPrompt
 }
+
+// getAiFilters returns system filters AND user-defined filters. UserFilters
+// are maintained by the UI and shipped through the same ConfigMap, but were
+// previously never read here — user-created filters silently never triggered
+// any task.
 func (ai *aiManager) getAiFilters() []AiFilter {
-	return ai.aiPromptConfig.Filters
+	cfg := ai.promptConfig()
+	if cfg == nil {
+		return nil
+	}
+	filters := make([]AiFilter, 0, len(cfg.Filters)+len(cfg.UserFilters))
+	filters = append(filters, cfg.Filters...)
+	filters = append(filters, cfg.UserFilters...)
+	return filters
 }
 
 func (ai *aiManager) GetPromptConfig() (*AiPromptConfig, error) {
-	if ai.aiPromptConfig == nil {
+	cfg := ai.promptConfig()
+	if cfg == nil {
 		return nil, fmt.Errorf("AI prompt configuration is not initialized")
 	}
-	return ai.aiPromptConfig, nil
+	return cfg, nil
 }
 
 func (ai *aiManager) getDailyTokenLimit() (int64, error) {
