@@ -16,6 +16,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/alecthomas/kong"
 	"github.com/mattn/go-isatty"
@@ -324,12 +325,28 @@ func LoadConfigDeclarations(configModule *config.Config) {
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_AUDIT_LOG_LIMIT",
 		DefaultValue: new("1000"),
-		Description:  new("maximum number of audit log entries to persist"),
+		Description:  new("maximum number of audit log entries to persist per resource (namespace/name pair), not globally"),
 		Envs:         []string{"audit_log_limit"},
 		Validate: func(value string) error {
 			_, err := strconv.Atoi(value)
 			if err != nil {
 				return fmt.Errorf("'MO_AUDIT_LOG_LIMIT' needs to be an integer: %s", err.Error())
+			}
+			return nil
+		},
+	})
+	configModule.Declare(config.ConfigDeclaration{
+		Key:          "MO_AUDIT_LOG_TTL",
+		DefaultValue: new("336h"),
+		Description:  new("retention of audit log entries as Go duration (default 336h = 14 days)"),
+		Envs:         []string{"audit_log_ttl"},
+		Validate: func(value string) error {
+			ttl, err := time.ParseDuration(value)
+			if err != nil {
+				return fmt.Errorf("'MO_AUDIT_LOG_TTL' needs to be a Go duration (e.g. 336h): %s", err.Error())
+			}
+			if ttl <= 0 {
+				return fmt.Errorf("'MO_AUDIT_LOG_TTL' needs to be positive")
 			}
 			return nil
 		},

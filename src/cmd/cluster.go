@@ -95,7 +95,11 @@ func initializeClusterSystems(
 	)
 	shutdown.Add(eventConnectionClient.Terminate)
 
-	// Emit real-time audit log events to the frontend via WebSocket
+	// Emit real-time audit log events to the frontend via WebSocket.
+	// Called from the store's single dispatcher goroutine (write order
+	// preserved), so this writes synchronously — WriteJSON enqueues into
+	// the websocket client's bounded write queue, which is the async layer.
+	auditEventLogger := logManagerModule.CreateLogger("audit-events")
 	store.OnAuditLogCreated = func(entry store.AuditLogEntry) {
 		datagram := structs.Datagram{
 			Id:        utils.NanoId(),
@@ -105,7 +109,9 @@ func initializeClusterSystems(
 			User:      entry.User,
 			Workspace: entry.Workspace,
 		}
-		structs.ReportEventToServer(eventConnectionClient, datagram)
+		if err := eventConnectionClient.WriteJSON(datagram); err != nil {
+			auditEventLogger.Error("failed to push audit log event", "error", err, "seq", entry.Seq)
+		}
 	}
 
 	containerEnumerator := containerenumerator.NewContainerEnumerator(logManagerModule.CreateLogger("container-enumerator"), configModule, base.clientProvider)

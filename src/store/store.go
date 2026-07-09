@@ -8,12 +8,15 @@ import (
 	"log/slog"
 	"mogenius-operator/src/crds/v1alpha1"
 	"mogenius-operator/src/logging"
+	moMetrics "mogenius-operator/src/metrics"
 	"mogenius-operator/src/secrets"
+	"mogenius-operator/src/shutdown"
 	"mogenius-operator/src/structs"
 	"mogenius-operator/src/utils"
 	"mogenius-operator/src/valkeyclient"
 	"sort"
 	"strconv"
+	"sync/atomic"
 
 	"strings"
 	"time"
@@ -62,11 +65,46 @@ const (
 )
 
 var AuditLogLimit = int64(100)        // Default limit for audit log entries IMPORTANT: this is set per resource not globally
-var AuditLogTTL = time.Hour * 24 * 14 // Default TTL for audit log entries (14 days)
+var AuditLogTTL = time.Hour * 24 * 14 // Default TTL for audit log entries (14 days), override via MO_AUDIT_LOG_TTL
 
 // OnAuditLogCreated is called after an audit log entry is persisted.
-// Set this callback to emit real-time events (e.g. via WebSocket).
+// Set this callback to emit real-time events (e.g. via WebSocket). It is
+// invoked from a single dispatcher goroutine, so implementations may block
+// briefly and entries arrive in write order.
 var OnAuditLogCreated func(entry AuditLogEntry)
+
+const (
+	// auditLogIndexKey is a ZSET over all audit log entry keys with
+	// score = CreatedAt in unix milliseconds. It lets ListAuditLog serve
+	// time-ordered pages without the full-keyspace SCAN + bulk MGET the
+	// key-prefix layout would otherwise require. The "idx:" prefix keeps
+	// these keys out of the "audit-log*" prefix scans (legacy list path).
+	auditLogIndexKey = "idx:audit-log"
+	// auditLogIndexReadyKey marks that the one-time backfill of
+	// pre-index entries into the ZSET has completed.
+	auditLogIndexReadyKey = "idx:audit-log:ready"
+
+	auditEventQueueSize = 256
+)
+
+var (
+	auditLogIndexEnsured atomic.Bool
+
+	// Real-time event dispatch: a single worker drains this queue and
+	// calls OnAuditLogCreated, replacing the per-entry fire-and-forget
+	// goroutines (unbounded, unordered, no shutdown path). When the queue
+	// is full the event is dropped and counted — the persisted entry is
+	// unaffected.
+	auditEventQueue chan AuditLogEntry
+	auditEventQuit  chan struct{}
+	auditEventSeq   atomic.Int64
+	// auditBootId identifies this process run in pushed events. Seq is
+	// monotonic per boot; together they let the platform detect gaps in
+	// the event stream (and restarts) and resync via audit-log/list.
+	auditBootId string
+
+	auditLogger *slog.Logger
+)
 
 var ErrNotFound = errors.New("not found")
 
@@ -81,14 +119,70 @@ func Setup(
 	logManagerModule logging.SlogManager,
 	valkey valkeyclient.ValkeyClient,
 	auditLogLimitStr string,
+	auditLogTTLStr string,
 ) error {
 	valkeyClient = valkey
+	auditLogger = logManagerModule.CreateLogger("audit-log")
 	auditLogLimit, _ := strconv.ParseInt(auditLogLimitStr, 10, 64)
 	if auditLogLimit > 0 {
 		AuditLogLimit = auditLogLimit
 	}
+	if auditLogTTLStr != "" {
+		ttl, err := time.ParseDuration(auditLogTTLStr)
+		if err != nil {
+			return fmt.Errorf("invalid audit log TTL %q: %w", auditLogTTLStr, err)
+		}
+		if ttl > 0 {
+			AuditLogTTL = ttl
+		}
+	}
+
+	startAuditEventDispatcher()
 
 	return nil
+}
+
+// startAuditEventDispatcher launches the single worker that forwards
+// persisted audit entries to OnAuditLogCreated in write order. The quit
+// channel (closed via shutdown hook) defines its lifetime; after shutdown,
+// remaining events are dropped and counted instead of leaking goroutines.
+func startAuditEventDispatcher() {
+	auditEventQueue = make(chan AuditLogEntry, auditEventQueueSize)
+	auditEventQuit = make(chan struct{})
+	auditBootId = utils.NanoId()
+
+	go func() {
+		for {
+			select {
+			case entry := <-auditEventQueue:
+				if cb := OnAuditLogCreated; cb != nil {
+					entry.Seq = auditEventSeq.Add(1)
+					entry.BootId = auditBootId
+					cb(entry)
+				}
+			case <-auditEventQuit:
+				return
+			}
+		}
+	}()
+
+	shutdown.Add(func() {
+		close(auditEventQuit)
+	})
+}
+
+// dispatchAuditEvent hands a persisted entry to the dispatcher without
+// blocking the caller. Drops (full queue or shutdown) only affect the
+// real-time push — the entry itself is already stored.
+func dispatchAuditEvent(entry AuditLogEntry) {
+	select {
+	case auditEventQueue <- entry:
+	default:
+		moMetrics.IncAuditLogEventDropped()
+		if auditLogger != nil {
+			auditLogger.Warn("audit event queue full, dropping real-time event", "pattern", entry.Pattern)
+		}
+	}
 }
 
 func SearchResourceByKeyParts(valkeyClient valkeyclient.ValkeyClient, parts ...string) ([]unstructured.Unstructured, error) {
@@ -1059,6 +1153,13 @@ type AuditLogEntry struct {
 	CreatedAt  time.Time    `json:"createdAt"`
 	User       structs.User `json:"user"`
 	Workspace  string       `json:"workspace,omitempty"`
+
+	// Seq and BootId are stamped only on the copy pushed as a real-time
+	// AuditLogEvent (never persisted): Seq is monotonic per process run,
+	// BootId identifies the run. A consumer that sees a gap in Seq for the
+	// same BootId knows it missed events and can resync via audit-log/list.
+	Seq    int64  `json:"seq,omitempty"`
+	BootId string `json:"bootId,omitempty"`
 }
 
 type AuditLogResponse struct {
@@ -1144,13 +1245,37 @@ func AddToAuditLog[T any](datagram structs.Datagram, logger *slog.Logger, result
 		bucketName = datagram.Pattern
 	}
 
-	auditLogAddErr := valkeyClient.SetObjectWithAutoincrementLimit(auditLogEntry, AuditLogLimit, AuditLogTTL, "audit-log", bucketNamespace, bucketName)
+	entryKey, auditLogAddErr := valkeyClient.SetObjectWithAutoincrementLimit(auditLogEntry, AuditLogLimit, AuditLogTTL, "audit-log", bucketNamespace, bucketName)
 	if auditLogAddErr != nil {
+		moMetrics.IncAuditLogWriteFailure()
 		logger.Error("failed to add to audit log", "error", auditLogAddErr)
-	} else if OnAuditLogCreated != nil {
-		go OnAuditLogCreated(auditLogEntry)
+	} else {
+		moMetrics.IncAuditLogWritten("api")
+		addToAuditLogIndex(entryKey, auditLogEntry.CreatedAt)
+		dispatchAuditEvent(auditLogEntry)
 	}
 	return result, err
+}
+
+// addToAuditLogIndex records an entry key in the time-ordered ZSET index
+// and prunes index members older than the entry TTL (entries expire on
+// their own; without the prune their index members would linger forever).
+// Best effort: a failed index write only degrades listing, never the entry.
+func addToAuditLogIndex(entryKey string, createdAt time.Time) {
+	client := valkeyClient.GetValkeyClient()
+	ctx := valkeyClient.GetContext()
+	cutoff := time.Now().Add(-AuditLogTTL).UnixMilli()
+	cmds := []vgo.Completed{
+		client.B().Zadd().Key(auditLogIndexKey).ScoreMember().
+			ScoreMember(float64(createdAt.UnixMilli()), entryKey).Build(),
+		client.B().Zremrangebyscore().Key(auditLogIndexKey).
+			Min("-inf").Max(strconv.FormatInt(cutoff, 10)).Build(),
+	}
+	for _, resp := range client.DoMulti(ctx, cmds...) {
+		if respErr := resp.Error(); respErr != nil && auditLogger != nil {
+			auditLogger.Warn("failed to update audit log index", "error", respErr)
+		}
+	}
 }
 
 // redactSecretData returns a deep copy of obj with every data/stringData
@@ -1295,16 +1420,341 @@ func eraseConfigSecrets(value any) any {
 	return out
 }
 
+// maxAuditListEntries caps how many entries a single list request will
+// deserialize (search still has to inspect entry contents). The indexed
+// path applies the cap newest-first, so at worst the OLDEST entries fall
+// off — never the newest.
+const maxAuditListEntries = 10000
+
 func ListAuditLog(limit int, offset int, namespaces []string, clusterWide bool, workspaceName string, search string) ([]AuditLogEntry, int, error) {
 	if limit <= 0 {
 		limit = 100
 	}
 
+	entries, totalCount, err := listAuditLogIndexed(limit, offset, namespaces, clusterWide, workspaceName, search)
+	if err != nil {
+		// The index is an optimization, never a single point of failure:
+		// fall back to the scan-based path so listing keeps working.
+		if auditLogger != nil {
+			auditLogger.Warn("audit log index read failed, falling back to keyspace scan", "error", err)
+		}
+		return listAuditLogScan(limit, offset, namespaces, clusterWide, workspaceName, search)
+	}
+	return entries, totalCount, nil
+}
+
+// listAuditLogIndexed serves a page from the time-ordered ZSET index:
+// one ZREVRANGE over entry keys (small strings), key-level namespace
+// filtering, then MGET of only what is needed — the requested page when
+// there is no search term, or the newest maxAuditListEntries candidates
+// when entry contents must be searched. Stale index members (entry expired
+// or pruned) are removed on sight and the selection retried.
+func listAuditLogIndexed(limit int, offset int, namespaces []string, clusterWide bool, workspaceName string, search string) ([]AuditLogEntry, int, error) {
+	if err := ensureAuditLogIndex(); err != nil {
+		return nil, 0, err
+	}
+
+	client := valkeyClient.GetValkeyClient()
+	ctx := valkeyClient.GetContext()
+
+	nsSet := make(map[string]struct{}, len(namespaces))
+	for _, ns := range namespaces {
+		nsSet[ns] = struct{}{}
+	}
+
+	const maxAttempts = 3
+	var lastErr error
+	for attempt := 0; attempt < maxAttempts; attempt++ {
+		// Newest first; members are entry keys, not entry payloads.
+		members, err := client.Do(ctx,
+			client.B().Zrevrange().Key(auditLogIndexKey).Start(0).Stop(-1).Build()).AsStrSlice()
+		if err != nil {
+			return nil, 0, err
+		}
+
+		// Key-level filtering, preserving the global newest-first order.
+		// ai-chat keys carry no namespace; on workspace-scoped queries they
+		// must be loaded to check entry.Workspace before they may appear.
+		aiKeys := make([]string, 0)
+		for _, key := range members {
+			if !clusterWide && auditKeyNamespace(key) == "ai-chat" && workspaceName != "" {
+				aiKeys = append(aiKeys, key)
+			}
+		}
+		aiEntries, staleAi, err := mgetAuditEntries(aiKeys)
+		if err != nil {
+			return nil, 0, err
+		}
+
+		type candidate struct {
+			key   string
+			entry *AuditLogEntry // pre-loaded (ai-chat); nil = load on demand
+		}
+		candidates := make([]candidate, 0, len(members))
+		for _, key := range members {
+			ns := auditKeyNamespace(key)
+			if ns == "" {
+				continue
+			}
+			if clusterWide {
+				candidates = append(candidates, candidate{key: key})
+				continue
+			}
+			if ns == "ai-chat" {
+				if entry, ok := aiEntries[key]; ok && workspaceName != "" && entry.Workspace == workspaceName {
+					candidates = append(candidates, candidate{key: key, entry: entry})
+				}
+				continue
+			}
+			if _, ok := nsSet[ns]; ok {
+				candidates = append(candidates, candidate{key: key})
+			}
+		}
+
+		var stale []string
+		var entries []AuditLogEntry
+		var totalCount int
+
+		if search == "" {
+			// No content filter: page over keys first, load only the page.
+			totalCount = len(candidates)
+			if offset >= totalCount {
+				removeStaleAuditIndexMembers(staleAi)
+				return []AuditLogEntry{}, totalCount, nil
+			}
+			end := min(offset+limit, totalCount)
+			page := candidates[offset:end]
+
+			toLoad := make([]string, 0, len(page))
+			for _, c := range page {
+				if c.entry == nil {
+					toLoad = append(toLoad, c.key)
+				}
+			}
+			loaded, stalePage, err := mgetAuditEntries(toLoad)
+			if err != nil {
+				return nil, 0, err
+			}
+			stale = append(staleAi, stalePage...)
+			if len(stalePage) == 0 {
+				entries = make([]AuditLogEntry, 0, len(page))
+				for _, c := range page {
+					if c.entry != nil {
+						entries = append(entries, *c.entry)
+					} else if entry, ok := loaded[c.key]; ok {
+						entries = append(entries, *entry)
+					}
+				}
+			}
+		} else {
+			// Content search: load the newest candidates up to the cap.
+			searchKeys := make([]string, 0, min(len(candidates), maxAuditListEntries))
+			preloaded := make(map[string]*AuditLogEntry)
+			for _, c := range candidates {
+				if len(searchKeys) >= maxAuditListEntries {
+					if auditLogger != nil {
+						auditLogger.Warn("audit log search capped; oldest entries not searched",
+							"cap", maxAuditListEntries, "candidates", len(candidates))
+					}
+					break
+				}
+				searchKeys = append(searchKeys, c.key)
+				if c.entry != nil {
+					preloaded[c.key] = c.entry
+				}
+			}
+			toLoad := make([]string, 0, len(searchKeys))
+			for _, key := range searchKeys {
+				if _, ok := preloaded[key]; !ok {
+					toLoad = append(toLoad, key)
+				}
+			}
+			loaded, stalePage, err := mgetAuditEntries(toLoad)
+			if err != nil {
+				return nil, 0, err
+			}
+			stale = append(staleAi, stalePage...)
+			searchLower := strings.ToLower(search)
+			entries = make([]AuditLogEntry, 0)
+			for _, key := range searchKeys {
+				entry, ok := preloaded[key]
+				if !ok {
+					entry, ok = loaded[key]
+				}
+				if !ok {
+					continue
+				}
+				if auditLogEntryMatchesSearch(*entry, searchLower) {
+					entries = append(entries, *entry)
+				}
+			}
+			totalCount = len(entries)
+			if offset >= totalCount {
+				removeStaleAuditIndexMembers(stale)
+				return []AuditLogEntry{}, totalCount, nil
+			}
+			entries = entries[offset:min(offset+limit, totalCount)]
+		}
+
+		removeStaleAuditIndexMembers(stale)
+		if search == "" && len(stale) > len(staleAi) {
+			// A page member expired between ZREVRANGE and MGET; the index
+			// is clean now, recompute the page.
+			lastErr = fmt.Errorf("audit log index contained %d stale members", len(stale))
+			continue
+		}
+
+		// Defensive final ordering (index order should already match).
+		sort.Slice(entries, func(i, j int) bool {
+			return entries[i].CreatedAt.After(entries[j].CreatedAt)
+		})
+		return entries, totalCount, nil
+	}
+	return nil, 0, fmt.Errorf("audit log index unstable after %d attempts: %w", maxAttempts, lastErr)
+}
+
+// auditKeyNamespace extracts the namespace segment of an audit entry key
+// (audit-log:<namespace>:<name>:<n>). Returns "" for malformed keys.
+func auditKeyNamespace(key string) string {
+	split := strings.Split(key, ":")
+	if len(split) < 3 {
+		return ""
+	}
+	return split[1]
+}
+
+// mgetAuditEntries loads entries for the given keys in chunks. Keys whose
+// value is gone (expired/pruned) or unreadable are reported as stale so the
+// caller can drop them from the index.
+func mgetAuditEntries(keys []string) (map[string]*AuditLogEntry, []string, error) {
+	entries := make(map[string]*AuditLogEntry, len(keys))
+	stale := []string{}
+	if len(keys) == 0 {
+		return entries, stale, nil
+	}
+	client := valkeyClient.GetValkeyClient()
+	ctx := valkeyClient.GetContext()
+	for start := 0; start < len(keys); start += valkeyclient.MAX_CHUNK_GET_SIZE {
+		chunk := keys[start:min(start+valkeyclient.MAX_CHUNK_GET_SIZE, len(keys))]
+		values, err := client.Do(ctx, client.B().Mget().Key(chunk...).Build()).ToArray()
+		if err != nil {
+			return nil, nil, err
+		}
+		for i, value := range values {
+			raw, valueErr := value.ToString()
+			if valueErr != nil {
+				stale = append(stale, chunk[i])
+				continue
+			}
+			var entry AuditLogEntry
+			if err := json.Unmarshal([]byte(raw), &entry); err != nil {
+				stale = append(stale, chunk[i])
+				continue
+			}
+			entries[chunk[i]] = &entry
+		}
+	}
+	return entries, stale, nil
+}
+
+func removeStaleAuditIndexMembers(stale []string) {
+	if len(stale) == 0 {
+		return
+	}
+	client := valkeyClient.GetValkeyClient()
+	ctx := valkeyClient.GetContext()
+	_ = client.Do(ctx,
+		client.B().Zrem().Key(auditLogIndexKey).Member(stale...).Build()).Error()
+}
+
+// ensureAuditLogIndex backfills entries written before the index existed
+// (one full scan, once per deployment; the ready marker persists in
+// Valkey). New entries are indexed on write, so after this the scan path
+// is never needed again.
+func ensureAuditLogIndex() error {
+	if auditLogIndexEnsured.Load() {
+		return nil
+	}
+	ready, err := valkeyClient.Exists(auditLogIndexReadyKey)
+	if err != nil {
+		return err
+	}
+	if ready {
+		auditLogIndexEnsured.Store(true)
+		return nil
+	}
+
+	keys, err := valkeyClient.Keys("audit-log:*")
+	if err != nil {
+		return err
+	}
+	entryKeys := make([]string, 0, len(keys))
+	for _, key := range keys {
+		if strings.HasSuffix(key, ":counter") {
+			continue
+		}
+		entryKeys = append(entryKeys, key)
+	}
+
+	entries, _, err := mgetAuditEntries(entryKeys)
+	if err != nil {
+		return err
+	}
+
+	client := valkeyClient.GetValkeyClient()
+	ctx := valkeyClient.GetContext()
+	// Legacy entries may predate the CreatedAt fallback and carry a zero
+	// timestamp; give those the oldest still-listable score instead of 0,
+	// which the TTL-based index prune would remove immediately.
+	minScore := float64(time.Now().Add(-AuditLogTTL).Add(time.Minute).UnixMilli())
+	const zaddChunk = 500
+	pending := 0
+	builder := client.B().Zadd().Key(auditLogIndexKey).ScoreMember()
+	flush := func() error {
+		if pending == 0 {
+			return nil
+		}
+		if err := client.Do(ctx, builder.Build()).Error(); err != nil {
+			return err
+		}
+		builder = client.B().Zadd().Key(auditLogIndexKey).ScoreMember()
+		pending = 0
+		return nil
+	}
+	for key, entry := range entries {
+		score := float64(entry.CreatedAt.UnixMilli())
+		if score < minScore {
+			score = minScore
+		}
+		builder = builder.ScoreMember(score, key)
+		pending++
+		if pending >= zaddChunk {
+			if err := flush(); err != nil {
+				return err
+			}
+		}
+	}
+	if err := flush(); err != nil {
+		return err
+	}
+
+	if err := valkeyClient.Set("1", 0, auditLogIndexReadyKey); err != nil {
+		return err
+	}
+	auditLogIndexEnsured.Store(true)
+	if auditLogger != nil {
+		auditLogger.Info("audit log index backfilled", "entries", len(entries))
+	}
+	return nil
+}
+
+// listAuditLogScan is the pre-index implementation (full keyspace scan +
+// bulk MGET). Kept as the fallback when the index path fails.
+func listAuditLogScan(limit int, offset int, namespaces []string, clusterWide bool, workspaceName string, search string) ([]AuditLogEntry, int, error) {
 	// Load ALL entries (no pagination yet) so we can sort by CreatedAt before paginating.
 	// GetObjectsByPrefixWithSizeAndNs applies offset/limit on unsorted SCAN keys,
 	// which can cause newer entries to be missed.
-	const maxEntries = 10000
-	allEntries, _, err := valkeyclient.GetObjectsByPrefixWithSizeAndNs[AuditLogEntry](valkeyClient, maxEntries, 0, namespaces, clusterWide, "audit-log")
+	allEntries, _, err := valkeyclient.GetObjectsByPrefixWithSizeAndNs[AuditLogEntry](valkeyClient, maxAuditListEntries, 0, namespaces, clusterWide, "audit-log")
 	if err != nil {
 		return []AuditLogEntry{}, 0, err
 	}
@@ -1315,7 +1765,7 @@ func ListAuditLog(limit int, offset int, namespaces []string, clusterWide bool, 
 	// requested workspace — entries from other workspaces must not leak
 	// into a workspace-scoped view.
 	if !clusterWide {
-		aiEntries, _, aiErr := valkeyclient.GetObjectsByPrefixWithSizeAndNs[AuditLogEntry](valkeyClient, maxEntries, 0, nil, true, "audit-log", "ai-chat")
+		aiEntries, _, aiErr := valkeyclient.GetObjectsByPrefixWithSizeAndNs[AuditLogEntry](valkeyClient, maxAuditListEntries, 0, nil, true, "audit-log", "ai-chat")
 		if aiErr != nil {
 			return []AuditLogEntry{}, 0, aiErr
 		}
@@ -1427,11 +1877,14 @@ func AddAiChatAuditLog(logger *slog.Logger, pattern string, payload any, result 
 	}
 	sanitizeAuditLogEntry(&entry)
 
-	storeErr := valkeyClient.SetObjectWithAutoincrementLimit(entry, AuditLogLimit, AuditLogTTL, "audit-log", "ai-chat", user.Email)
+	entryKey, storeErr := valkeyClient.SetObjectWithAutoincrementLimit(entry, AuditLogLimit, AuditLogTTL, "audit-log", "ai-chat", user.Email)
 	if storeErr != nil {
+		moMetrics.IncAuditLogWriteFailure()
 		logger.Error("failed to add AI chat audit log", "error", storeErr)
-	} else if OnAuditLogCreated != nil {
-		go OnAuditLogCreated(entry)
+	} else {
+		moMetrics.IncAuditLogWritten("ai-chat")
+		addToAuditLogIndex(entryKey, entry.CreatedAt)
+		dispatchAuditEvent(entry)
 	}
 }
 
