@@ -1,3 +1,10 @@
+# [2.24.0-develop.1](https://github.com/mogenius/mogenius-operator/compare/v2.23.3-develop.5...v2.24.0-develop.1) (2026-07-10)
+
+
+### Features
+
+* add support for victoria-metrics as bring-your-own monitoring solution ([b4d2da8](https://github.com/mogenius/mogenius-operator/commit/b4d2da8901245eb685761715c04d85a7045164b1))
+
 ## [2.23.3-develop.5](https://github.com/mogenius/mogenius-operator/compare/v2.23.3-develop.4...v2.23.3-develop.5) (2026-07-09)
 
 
