@@ -1,3 +1,10 @@
+# [2.24.0-develop.2](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.1...v2.24.0-develop.2) (2026-07-10)
+
+
+### Bug Fixes
+
+* MOG-4450 job deletion fails because of orphan finalizer ([62ac4d4](https://github.com/mogenius/mogenius-operator/commit/62ac4d49d1e7fc92a25b8434283ee22b3a4b09f6))
+
 # [2.24.0-develop.1](https://github.com/mogenius/mogenius-operator/compare/v2.23.3-develop.5...v2.24.0-develop.1) (2026-07-10)
 
 
