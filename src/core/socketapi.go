@@ -1335,11 +1335,11 @@ func (self *socketApi) registerPatterns() {
 			}
 			// Resource still exists - check if it's terminating
 			if obj.GetDeletionTimestamp() != nil {
-				finalizers := obj.GetFinalizers()
-				if len(finalizers) > 0 {
-					return nil, fmt.Errorf("resource is terminating but blocked by finalizers: %v", finalizers)
+				if blocking := kubernetes.BlockingFinalizers(obj.GetFinalizers()); len(blocking) > 0 {
+					return nil, fmt.Errorf("resource is terminating but blocked by finalizers: %v", blocking)
 				}
-				return nil, fmt.Errorf("resource is terminating")
+				// Deletion accepted; grace periods and GC finalizers resolve asynchronously.
+				return nil, nil
 			}
 			return nil, nil
 		},

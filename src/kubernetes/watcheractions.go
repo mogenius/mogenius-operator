@@ -376,12 +376,35 @@ func UpdateUnstructuredResource(apiVersion string, plural string, namespaced boo
 	}
 }
 
+// backgroundDeleteOptions returns DeleteOptions with background propagation.
+// Without an explicit policy, batch/v1 Jobs default to Orphan on the server,
+// which leaves the pods behind and puts a transient "orphan" finalizer on the
+// Job while the GC decouples them.
+func backgroundDeleteOptions() metav1.DeleteOptions {
+	propagation := metav1.DeletePropagationBackground
+	return metav1.DeleteOptions{PropagationPolicy: &propagation}
+}
+
+// BlockingFinalizers returns the finalizers that can actually block a deletion,
+// dropping the transient garbage-collector finalizers ("orphan",
+// "foregroundDeletion") that the API server removes on its own.
+func BlockingFinalizers(finalizers []string) []string {
+	blocking := []string{}
+	for _, finalizer := range finalizers {
+		if finalizer == metav1.FinalizerOrphanDependents || finalizer == metav1.FinalizerDeleteDependents {
+			continue
+		}
+		blocking = append(blocking, finalizer)
+	}
+	return blocking
+}
+
 func DeleteUnstructuredResource(apiVersion string, plural string, namespace string, resourceName string) error {
 	dynamicClient := clientProvider.DynamicClient()
 	if namespace != "" {
-		return dynamicClient.Resource(CreateGroupVersionResource(apiVersion, plural)).Namespace(namespace).Delete(context.Background(), resourceName, metav1.DeleteOptions{})
+		return dynamicClient.Resource(CreateGroupVersionResource(apiVersion, plural)).Namespace(namespace).Delete(context.Background(), resourceName, backgroundDeleteOptions())
 	} else {
-		return dynamicClient.Resource(CreateGroupVersionResource(apiVersion, plural)).Delete(context.Background(), resourceName, metav1.DeleteOptions{})
+		return dynamicClient.Resource(CreateGroupVersionResource(apiVersion, plural)).Delete(context.Background(), resourceName, backgroundDeleteOptions())
 	}
 }
 

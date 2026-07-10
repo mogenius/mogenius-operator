@@ -4,7 +4,6 @@ import (
 	"context"
 	"strings"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 )
@@ -20,7 +19,7 @@ func DeleteResource(group string, version string, resource string, name string, 
 	if err != nil {
 		return err
 	}
-	err = client.Delete(context.Background(), name, metav1.DeleteOptions{})
+	err = client.Delete(context.Background(), name, backgroundDeleteOptions())
 	if err != nil {
 		return err
 	}
