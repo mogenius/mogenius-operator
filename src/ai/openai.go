@@ -10,7 +10,7 @@ import (
 	"github.com/openai/openai-go/v3"
 )
 
-func (ai *aiManager) processPromptOpenAi(ctx context.Context, model, systemPrompt, prompt string, maxToolCalls int) (*AiResponse, int64, int, string, error) {
+func (ai *aiManager) processPromptOpenAi(ctx context.Context, model, systemPrompt, prompt string, maxToolCalls int, toolCtx *ToolContext) (*AiResponse, int64, int, string, error) {
 	startTime := time.Now()
 
 	client, err := ai.getOpenAIClient(nil)
@@ -19,8 +19,8 @@ func (ai *aiManager) processPromptOpenAi(ctx context.Context, model, systemPromp
 	}
 
 	// Unattended pipeline: strictly read-only tools, no external MCP tools.
-	// This path runs without a user/ToolContext, and a nil ToolContext
-	// passes every role/namespace check.
+	// The ToolContext additionally scopes reads to the agent's namespaces —
+	// the read-only filter stays as defense in depth.
 	allTools := readOnlyOpenAiTools(append(kubernetesOpenAiTools, helmOpenAiTools...))
 
 	params := openai.ChatCompletionNewParams{
@@ -77,8 +77,8 @@ func (ai *aiManager) processPromptOpenAi(ctx context.Context, model, systemPromp
 				if !viewerAllowedTools[toolCall.Function.Name] {
 					return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("tool %q is not permitted in the unattended insight pipeline", toolCall.Function.Name)
 				}
-				data = tool(args, nil, ai.valkeyClient, ai.logger)
-				ai.auditInsightToolCall(toolCall.Function.Name, args, data)
+				data = tool(args, toolCtx, ai.valkeyClient, ai.logger)
+				ai.auditInsightToolCall(toolCtx, toolCall.Function.Name, args, data)
 			} else {
 				return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("unknown tool called: %s", toolCall.Function.Name)
 			}

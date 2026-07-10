@@ -26,6 +26,12 @@ type WorkspaceManager interface {
 	GetGrant(name string) (*v1alpha1.Grant, error)
 	UpdateGrant(name string, spec v1alpha1.GrantSpec) (*v1alpha1.Grant, error)
 	DeleteGrant(name string) error
+
+	GetAllAgents() ([]v1alpha1.Agent, error)
+	CreateAgent(name string, spec v1alpha1.AgentSpec) (*v1alpha1.Agent, error)
+	GetAgent(name string) (*v1alpha1.Agent, error)
+	UpdateAgent(name string, spec v1alpha1.AgentSpec) (*v1alpha1.Agent, error)
+	DeleteAgent(name string) error
 }
 
 type workspaceManager struct {
@@ -165,4 +171,34 @@ func (self *workspaceManager) DeleteGrant(name string) error {
 	self.namespaceLock.RLock()
 	defer self.namespaceLock.RUnlock()
 	return self.mogeniusClientSet.MogeniusV1alpha1.DeleteGrant(self.namespace, name)
+}
+
+func (self *workspaceManager) GetAllAgents() ([]v1alpha1.Agent, error) {
+	self.namespaceLock.RLock()
+	defer self.namespaceLock.RUnlock()
+	return self.mogeniusClientSet.MogeniusV1alpha1.ListAgents(self.namespace)
+}
+
+func (self *workspaceManager) GetAgent(name string) (*v1alpha1.Agent, error) {
+	self.namespaceLock.RLock()
+	defer self.namespaceLock.RUnlock()
+	return self.mogeniusClientSet.MogeniusV1alpha1.GetAgent(self.namespace, name)
+}
+
+func (self *workspaceManager) CreateAgent(name string, spec v1alpha1.AgentSpec) (*v1alpha1.Agent, error) {
+	self.namespaceLock.RLock()
+	defer self.namespaceLock.RUnlock()
+	return self.mogeniusClientSet.MogeniusV1alpha1.CreateAgent(self.namespace, name, spec)
+}
+
+func (self *workspaceManager) UpdateAgent(name string, spec v1alpha1.AgentSpec) (*v1alpha1.Agent, error) {
+	self.namespaceLock.RLock()
+	defer self.namespaceLock.RUnlock()
+	return self.mogeniusClientSet.MogeniusV1alpha1.UpdateAgent(self.namespace, name, spec)
+}
+
+func (self *workspaceManager) DeleteAgent(name string) error {
+	self.namespaceLock.RLock()
+	defer self.namespaceLock.RUnlock()
+	return self.mogeniusClientSet.MogeniusV1alpha1.DeleteAgent(self.namespace, name)
 }

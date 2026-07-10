@@ -147,6 +147,13 @@ var UserResource = ResourceDescriptor{
 	Namespaced: true,
 }
 
+var AgentResource = ResourceDescriptor{
+	Kind:       "Agent",
+	Plural:     "agents",
+	ApiVersion: "mogenius.com/v1alpha1",
+	Namespaced: true,
+}
+
 var PlatformConfigResource = ResourceDescriptor{
 	Kind:       "PlatformConfig",
 	Plural:     "platformconfigs",

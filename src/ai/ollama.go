@@ -10,7 +10,7 @@ import (
 	"github.com/ollama/ollama/api"
 )
 
-func (ai *aiManager) processPromptOllama(ctx context.Context, model, systemPrompt, prompt string, maxToolCalls int) (*AiResponse, int64, int, string, error) {
+func (ai *aiManager) processPromptOllama(ctx context.Context, model, systemPrompt, prompt string, maxToolCalls int, toolCtx *ToolContext) (*AiResponse, int64, int, string, error) {
 
 	startTime := time.Now()
 
@@ -121,8 +121,8 @@ func (ai *aiManager) processPromptOllama(ctx context.Context, model, systemPromp
 			if !viewerAllowedTools[toolCall.Function.Name] {
 				return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("tool %q is not permitted in the unattended insight pipeline", toolCall.Function.Name)
 			}
-			data := tool(args, nil, ai.valkeyClient, ai.logger)
-			ai.auditInsightToolCall(toolCall.Function.Name, args, data)
+			data := tool(args, toolCtx, ai.valkeyClient, ai.logger)
+			ai.auditInsightToolCall(toolCtx, toolCall.Function.Name, args, data)
 
 			// Add tool result to messages
 			messages = append(messages, api.Message{

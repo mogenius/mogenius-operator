@@ -367,12 +367,12 @@ func (ai *aiManager) anthropicChatWithTools(
 	}
 }
 
-func (ai *aiManager) processPromptAnthropic(ctx context.Context, model, systemPrompt, prompt string, maxToolCalls int) (*AiResponse, int64, int, string, error) {
+func (ai *aiManager) processPromptAnthropic(ctx context.Context, model, systemPrompt, prompt string, maxToolCalls int, toolCtx *ToolContext) (*AiResponse, int64, int, string, error) {
 	startTime := time.Now()
 
 	// Unattended pipeline: strictly read-only tools, no external MCP tools.
-	// This path runs without a user/ToolContext, and a nil ToolContext
-	// passes every role/namespace check.
+	// The ToolContext additionally scopes reads to the agent's namespaces —
+	// the read-only filter stays as defense in depth.
 	allTools := readOnlyAnthropicTools(append(kubernetesAnthropicTools, helmAnthropicTools...))
 	tools := make([]anthropic.ToolUnionParam, len(allTools))
 	for i, toolParam := range allTools {
@@ -484,8 +484,8 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, model, systemPr
 					if !viewerAllowedTools[block.Name] {
 						return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("tool %q is not permitted in the unattended insight pipeline", block.Name)
 					}
-					data = tool(args, nil, ai.valkeyClient, ai.logger)
-					ai.auditInsightToolCall(block.Name, args, data)
+					data = tool(args, toolCtx, ai.valkeyClient, ai.logger)
+					ai.auditInsightToolCall(toolCtx, block.Name, args, data)
 				} else {
 					return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("unknown tool called: %s", block.Name)
 				}

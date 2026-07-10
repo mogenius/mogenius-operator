@@ -1,0 +1,135 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.21.0
+  name: agents.mogenius.com
+spec:
+  group: mogenius.com
+  names:
+    kind: Agent
+    listKind: AgentList
+    plural: agents
+    singular: agent
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: |-
+          A mogenius `Agent` resource defines an AI agent that observes a scoped set
+          of namespaces (read-only) and proposes tasks which a user must approve or
+          reject before anything is executed.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            properties:
+              description:
+                description: Optional description of what this agent looks after.
+                type: string
+              displayName:
+                description: Human-readable name shown in the UI.
+                type: string
+              enabled:
+                description: Disabled agents neither trigger nor process tasks.
+                type: boolean
+              instruction:
+                description: |-
+                  Agent-specific instruction appended to the base system prompt for
+                  every run of this agent.
+                type: string
+              model:
+                description: Optional model override; empty uses the cluster-wide
+                  configured model.
+                type: string
+              scope:
+                description: |-
+                  What the agent is allowed to see. Agents are always read-only; the
+                  scope additionally restricts reads to the resolved namespaces.
+                properties:
+                  namespaces:
+                    description: Explicit list of namespaces the agent may see.
+                    items:
+                      type: string
+                    type: array
+                  workspaceRef:
+                    description: Name of a Workspace CR whose namespace resources
+                      define the scope.
+                    type: string
+                type: object
+              triggers:
+                properties:
+                  cron:
+                    description: Standard 5-field cron expression for periodic runs;
+                      empty disables.
+                    type: string
+                  events:
+                    description: Event filters evaluated against watched cluster resources.
+                    items:
+                      description: |-
+                        AgentEventFilter matches watched resources by kind and JSONPath conditions
+                        (same semantics as the former AiFilter mechanic).
+                      properties:
+                        contains:
+                          additionalProperties:
+                            type: string
+                          description: JSONPath → expected value; any match selects
+                            the object.
+                          type: object
+                        excludes:
+                          additionalProperties:
+                            type: string
+                          description: JSONPath → value; any match excludes the object.
+                          type: object
+                        for:
+                          description: Condition must hold for this duration before
+                            a task is created.
+                          type: string
+                        id:
+                          type: string
+                        kind:
+                          type: string
+                        name:
+                          type: string
+                        prompt:
+                          description: Prompt for the analysis run triggered by this
+                            filter.
+                          type: string
+                      required:
+                      - kind
+                      type: object
+                    type: array
+                  manual:
+                    description: Allow triggering a run manually from the UI.
+                    type: boolean
+                type: object
+            required:
+            - enabled
+            - scope
+            type: object
+          status:
+            type: object
+        required:
+        - metadata
+        - spec
+        - status
+        type: object
+    served: true
+    storage: true

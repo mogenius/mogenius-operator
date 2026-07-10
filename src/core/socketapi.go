@@ -1844,9 +1844,11 @@ func (self *socketApi) registerPatterns() {
 			PatternHandle{self, "aiManager/inject-prompt-config"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (Void, error) {
-				mergedPromptCfg, err := kubernetes.CreateOrUpdateAndMergePromptConfig(request.AiPromptConfig)
-				self.aiApi.InjectAiPromptConfig(mergedPromptCfg, &request.AiPrompts)
-				return store.AddToAuditLog[Void](datagram, self.logger, nil, err, nil, nil)
+				// Filters in the payload are tolerated for backward
+				// compatibility but no longer drive any task creation —
+				// event triggers now live on Agent CRs.
+				self.aiApi.InjectAiPromptConfig(request.AiPromptConfig, &request.AiPrompts)
+				return store.AddToAuditLog[Void](datagram, self.logger, nil, nil, nil, nil)
 			},
 		)
 
@@ -1865,13 +1867,145 @@ func (self *socketApi) registerPatterns() {
 			UserFilters []ai.AiFilter `json:"userFilters"`
 		}
 
+		// No-op compatibility shim: filter toggles were replaced by Agent CRs.
+		// Kept so platform versions that still call it don't fail; remove once
+		// the platform ships agent management.
 		RegisterPatternHandler(
 			PatternHandle{self, "aiManager/update-filter-states"},
-			PatternConfig{},
+			PatternConfig{Deprecated: true, DeprecatedMessage: "AI filters were replaced by agents; manage agents via create/agent, update/agent and delete/agent."},
 			func(datagram structs.Datagram, request UpdateFiltersRequest) (Void, error) {
-				err := kubernetes.UpdateFilterActiveStates(request.Filters, request.UserFilters)
-				// The ConfigMap watcher will pick up the change and call InjectAiPromptConfig
-				return store.AddToAuditLog[Void](datagram, self.logger, nil, err, nil, nil)
+				return nil, nil
+			},
+		)
+	}
+
+	{
+		type Request struct {
+			Name string `json:"name"`
+		}
+
+		RegisterPatternHandler(
+			PatternHandle{self, "get/agents"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Request) ([]GetAgentResult, error) {
+				if request.Name != "" {
+					agent, err := self.apiService.GetAgent(request.Name)
+					if err != nil || agent == nil {
+						return []GetAgentResult{}, err
+					}
+					return []GetAgentResult{*agent}, nil
+				}
+				return self.apiService.GetAllAgents()
+			},
+		)
+	}
+
+	{
+		type Request struct {
+			Name string             `json:"name" validate:"required"`
+			Spec v1alpha1.AgentSpec `json:"spec" validate:"required"`
+		}
+
+		RegisterPatternHandler(
+			PatternHandle{self, "create/agent"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Request) (string, error) {
+				var res string
+				err := ai.ValidateAgentSpec(request.Spec)
+				if err == nil {
+					res, err = self.apiService.CreateAgent(request.Name, request.Spec)
+				}
+				var created *unstructured.Unstructured
+				if err == nil {
+					created = crdToAuditObject(&v1alpha1.Agent{
+						ObjectMeta: metav1.ObjectMeta{Name: request.Name},
+						Spec:       request.Spec,
+					}, "Agent", request.Name)
+				}
+				return store.AddToAuditLog(datagram, self.logger, res, err, nil, created)
+			},
+		)
+
+		RegisterPatternHandler(
+			PatternHandle{self, "update/agent"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Request) (string, error) {
+				oldAgent, _ := store.GetAgent(self.config.Get("MO_OWN_NAMESPACE"), request.Name)
+				var res string
+				err := ai.ValidateAgentSpec(request.Spec)
+				if err == nil {
+					res, err = self.apiService.UpdateAgent(request.Name, request.Spec)
+				}
+				var oldObj, newObj *unstructured.Unstructured
+				if oldAgent != nil {
+					oldObj = crdToAuditObject(oldAgent, "Agent", request.Name)
+					updated := oldAgent.DeepCopy()
+					updated.Spec = request.Spec
+					newObj = crdToAuditObject(updated, "Agent", request.Name)
+				}
+				return store.AddToAuditLog(datagram, self.logger, res, err, oldObj, newObj)
+			},
+		)
+	}
+
+	{
+		type Request struct {
+			Name string `json:"name" validate:"required"`
+		}
+
+		RegisterPatternHandler(
+			PatternHandle{self, "delete/agent"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Request) (string, error) {
+				oldAgent, _ := store.GetAgent(self.config.Get("MO_OWN_NAMESPACE"), request.Name)
+				res, err := self.apiService.DeleteAgent(request.Name)
+				return store.AddToAuditLog(datagram, self.logger, res, err, crdToAuditObject(oldAgent, "Agent", request.Name), nil)
+			},
+		)
+	}
+
+	{
+		type Request struct {
+			AgentName string `json:"agentName" validate:"required"`
+		}
+
+		RegisterPatternHandler(
+			PatternHandle{self, "aiManager/trigger/agent"},
+			PatternConfig{NeedsUser: true},
+			func(datagram structs.Datagram, request Request) (*ai.AiTask, error) {
+				task, err := self.aiApi.TriggerAgent(request.AgentName, datagram.User)
+				return store.AddToAuditLog(datagram, self.logger, task, err, nil, nil)
+			},
+		)
+	}
+
+	{
+		type Request struct {
+			TaskId string `json:"taskId" validate:"required"`
+		}
+
+		RegisterPatternHandler(
+			PatternHandle{self, "aiManager/approve/task"},
+			PatternConfig{NeedsUser: true},
+			func(datagram structs.Datagram, request Request) (*ai.AiTask, error) {
+				task, err := self.aiApi.ApproveTask(request.TaskId, datagram.User, datagram.Workspace)
+				return store.AddToAuditLog(datagram, self.logger, task, err, nil, nil)
+			},
+		)
+	}
+
+	{
+		type Request struct {
+			TaskId string `json:"taskId" validate:"required"`
+			Reason string `json:"reason"`
+		}
+
+		RegisterPatternHandler(
+			PatternHandle{self, "aiManager/reject/task"},
+			PatternConfig{NeedsUser: true},
+			func(datagram structs.Datagram, request Request) (*ai.AiTask, error) {
+				task, err := self.aiApi.RejectTask(request.TaskId, datagram.User, request.Reason)
+				return store.AddToAuditLog(datagram, self.logger, task, err, nil, nil)
 			},
 		)
 	}

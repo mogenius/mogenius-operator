@@ -120,7 +120,10 @@ func initializeClusterSystems(
 	networkMonitor := networkmonitor.NewNetworkMonitor(logManagerModule.CreateLogger("network-monitor"), configModule, containerEnumerator, configModule.Get("MO_HOST_PROC_PATH"))
 
 	ownerCacheService := store.NewOwnerCacheService(logManagerModule.CreateLogger("owner-cache"), configModule)
-	aiManager := ai.NewAiManager(logManagerModule.CreateLogger("ai-manager"), base.valkeyClient, configModule, ownerCacheService, eventConnectionClient, mokubernetes.GetSecret)
+	// The leader elector is constructed before the AI manager because agent
+	// cron triggers must only fire on the leading replica.
+	leaderElector := core.NewLeaderElector(logManagerModule.CreateLogger("leader-elector"), configModule, base.clientProvider)
+	aiManager := ai.NewAiManager(logManagerModule.CreateLogger("ai-manager"), base.valkeyClient, configModule, ownerCacheService, eventConnectionClient, mokubernetes.GetSecret, leaderElector.IsLeading)
 
 	// Initialize AI tools with kubernetes functions.
 	ai.K8sUpdateUnstructuredResource = mokubernetes.UpdateUnstructuredResource
@@ -164,7 +167,6 @@ func initializeClusterSystems(
 	)
 	moKubernetes := core.NewMoKubernetes(logManagerModule.CreateLogger("mokubernetes"), configModule, base.clientProvider)
 	mocore := core.NewCore(logManagerModule.CreateLogger("core"), configModule, base.clientProvider, base.valkeyClient, eventConnectionClient, jobClients)
-	leaderElector := core.NewLeaderElector(logManagerModule.CreateLogger("leader-elector"), configModule, base.clientProvider)
 	reconciler := moreconciler.NewReconcilerFactory(logManagerModule.CreateLogger("reconciler"), base.clientProvider, configModule, base.valkeyClient).Build()
 	sealedSecret := core.NewSealedSecretManager(logManagerModule.CreateLogger("sealed-secret"), configModule, base.clientProvider)
 
@@ -176,11 +178,6 @@ func initializeClusterSystems(
 	moKubernetes.Link(dbstatsService)
 	httpApi.Link(socketApi, dbstatsService, apiModule, reconciler)
 	apiModule.Link(workspaceManager)
-
-	// Register AI filters ConfigMap watcher — fires on the object-level subscription
-	watcherModule.OnObjectCreated("ConfigMap", configModule.Get("MO_OWN_NAMESPACE"), utils.AI_FILTERS_CONFIGMAP_NAME, aiApi.HandleConfigMapChange)
-	watcherModule.OnObjectUpdated("ConfigMap", configModule.Get("MO_OWN_NAMESPACE"), utils.AI_FILTERS_CONFIGMAP_NAME, aiApi.HandleConfigMapChange)
-	watcherModule.OnObjectDeleted("ConfigMap", configModule.Get("MO_OWN_NAMESPACE"), utils.AI_FILTERS_CONFIGMAP_NAME, aiApi.HandleConfigMapDelete)
 
 	return clusterSystems{
 		baseSystems:           base,
