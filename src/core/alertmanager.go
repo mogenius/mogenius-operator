@@ -270,7 +270,7 @@ func (s *alertmanagerService) DeleteSilence(silenceID string) error {
 }
 
 func alertmanagerUrl(config cfg.ConfigModule) (string, error) {
-	namespace, serviceName, port, err := kubernetes.FindAlertmanagerService()
+	namespace, serviceName, port, basePath, err := kubernetes.FindAlertmanagerService()
 	if err != nil {
 		return "", err
 	}
@@ -279,5 +279,5 @@ func alertmanagerUrl(config cfg.ConfigModule) (string, error) {
 		clusterDomain = "cluster.local"
 	}
 
-	return fmt.Sprintf("http://%s.%s.svc.%s:%d", serviceName, namespace, clusterDomain, port), nil
+	return fmt.Sprintf("http://%s.%s.svc.%s:%d%s", serviceName, namespace, clusterDomain, port, basePath), nil
 }
