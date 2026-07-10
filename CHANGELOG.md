@@ -1,3 +1,10 @@
+# [2.24.0-develop.5](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.4...v2.24.0-develop.5) (2026-07-10)
+
+
+### Bug Fixes
+
+* new agentic ai-insights approach ([8161a1a](https://github.com/mogenius/mogenius-operator/commit/8161a1a60d4d159114b7f646222645f6980e09aa))
+
 # [2.24.0-develop.4](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.3...v2.24.0-develop.4) (2026-07-10)
 
 
