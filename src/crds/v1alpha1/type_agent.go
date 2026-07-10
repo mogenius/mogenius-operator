@@ -39,6 +39,10 @@ type AgentSpec struct {
 	// Optional description of what this agent looks after.
 	Description string `json:"description,omitempty"`
 
+	// Optional icon identifier (e.g. a Font Awesome name like "fa-broom")
+	// shown next to the agent in the UI.
+	Icon string `json:"icon,omitempty"`
+
 	// Agent-specific instruction appended to the base system prompt for
 	// every run of this agent.
 	Instruction string `json:"instruction,omitempty"`
@@ -62,7 +66,8 @@ type AgentScope struct {
 	// Name of a Workspace CR whose namespace resources define the scope.
 	WorkspaceRef string `json:"workspaceRef,omitempty"`
 
-	// Explicit list of namespaces the agent may see.
+	// Explicit list of namespaces the agent may see. The single entry "*"
+	// grants visibility into all namespaces (resolved at run time).
 	Namespaces []string `json:"namespaces,omitempty"`
 }
 

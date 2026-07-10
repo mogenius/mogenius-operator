@@ -50,6 +50,11 @@ spec:
               enabled:
                 description: Disabled agents neither trigger nor process tasks.
                 type: boolean
+              icon:
+                description: |-
+                  Optional icon identifier (e.g. a Font Awesome name like "fa-broom")
+                  shown next to the agent in the UI.
+                type: string
               instruction:
                 description: |-
                   Agent-specific instruction appended to the base system prompt for
@@ -65,7 +70,9 @@ spec:
                   scope additionally restricts reads to the resolved namespaces.
                 properties:
                   namespaces:
-                    description: Explicit list of namespaces the agent may see.
+                    description: |-
+                      Explicit list of namespaces the agent may see. The single entry "*"
+                      grants visibility into all namespaces (resolved at run time).
                     items:
                       type: string
                     type: array

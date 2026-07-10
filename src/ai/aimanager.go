@@ -1148,6 +1148,11 @@ func (ai *aiManager) shouldCreateNewTask(key string) (bool, error) {
 // processPrompt runs one unattended analysis. The ToolContext scopes every
 // tool call to the owning agent's namespaces with the viewer role; the agent
 // spec contributes its instruction and optional model override.
+// finalAnswerNudge is sent when an unattended run exhausts its tool-call
+// budget: one last turn with tool use disabled so the model must produce the
+// required JSON verdict instead of the run failing outright.
+const finalAnswerNudge = "Your tool-call budget is exhausted — do not request any more tools. Based on what you have inspected so far, respond now with your final answer as a single JSON object in the required response format."
+
 func (ai *aiManager) processPrompt(ctx context.Context, prompt string, toolCtx *ToolContext, agentSpec *v1alpha1.AgentSpec) (response *AiResponse, tokensUsed int64, timeUsedInMs int, modelUser string, err error) {
 	startTime := time.Now()
 	model, err := ai.getAiModel()

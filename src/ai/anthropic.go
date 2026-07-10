@@ -524,11 +524,34 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, model, systemPr
 		// Increase global tool call count and check limit
 		toolCallCount += iterationToolUses
 		if maxToolCalls > 0 && toolCallCount >= maxToolCalls {
-			ai.logger.Info("Max tool call limit reached, exiting loop", "maxToolCalls", maxToolCalls, "toolCallCount", toolCallCount)
+			ai.logger.Info("Max tool call limit reached, forcing final answer", "maxToolCalls", maxToolCalls, "toolCallCount", toolCallCount)
 
-			// Try to finalize using any text presently returned
+			// Hand back the pending tool results plus a nudge and request one
+			// last turn with tool use disabled so the model must answer.
+			messages = append(messages, anthropic.MessageParam{
+				Role:    anthropic.MessageParamRoleUser,
+				Content: append(toolResults, anthropic.NewTextBlock(finalAnswerNudge)),
+			})
+			compactAnthropicToolResults(messages)
+			noneChoice := anthropic.NewToolChoiceNoneParam()
+			finalMessage, err := client.Messages.New(ctx, anthropic.MessageNewParams{
+				Model:     anthropic.Model(model),
+				MaxTokens: int64(10000),
+				System: []anthropic.TextBlockParam{
+					{Type: "text", Text: systemPrompt, CacheControl: anthropic.NewCacheControlEphemeralParam()},
+				},
+				Messages:    messages,
+				Tools:       tools,
+				ToolChoice:  anthropic.ToolChoiceUnionParam{OfNone: &noneChoice},
+				Temperature: anthropic.Float(0.1),
+			})
+			if err != nil {
+				return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("max tool calls reached (%d) and final answer request failed: %w", maxToolCalls, err)
+			}
+			tokensUsed += finalMessage.Usage.InputTokens + finalMessage.Usage.OutputTokens
+
 			var responseText string
-			for _, block := range message.Content {
+			for _, block := range finalMessage.Content {
 				if block.Type == "text" {
 					responseText += block.Text
 				}

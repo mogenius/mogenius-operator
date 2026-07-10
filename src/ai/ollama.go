@@ -135,11 +135,35 @@ func (ai *aiManager) processPromptOllama(ctx context.Context, model, systemPromp
 		// Increase global tool call count and check limit
 		toolCallCount += len(toolCalls)
 		if maxToolCalls > 0 && toolCallCount >= maxToolCalls {
-			ai.logger.Info("Max tool call limit reached, exiting loop", "maxToolCalls", maxToolCalls, "toolCallCount", toolCallCount)
+			ai.logger.Info("Max tool call limit reached, forcing final answer", "maxToolCalls", maxToolCalls, "toolCallCount", toolCallCount)
 
-			// Try to finalize using any text presently returned
-			responseText = cleanJSONResponse(responseText)
-			responseBytes, removedText, err := extractJSONRobust(responseText)
+			// One last turn without tools so the model must answer.
+			messages = append(messages, api.Message{Role: "user", Content: finalAnswerNudge})
+			finalReq := &api.ChatRequest{
+				Model:    model,
+				Messages: messages,
+				Stream:   &falsePtr,
+				Format:   json.RawMessage(`"json"`),
+				Truncate: &truePtr,
+				Shift:    &truePtr,
+				Options: map[string]any{
+					"temperature": 0.1,
+				},
+			}
+			var finalText string
+			err = client.Chat(ctx, finalReq, func(resp api.ChatResponse) error {
+				finalText += resp.Message.Content
+				if resp.Done {
+					tokensUsed += int64(resp.PromptEvalCount + resp.EvalCount)
+				}
+				return nil
+			})
+			if err != nil {
+				return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("max tool calls reached (%d) and final answer request failed: %w", maxToolCalls, err)
+			}
+
+			finalText = cleanJSONResponse(finalText)
+			responseBytes, removedText, err := extractJSONRobust(finalText)
 			ai.logger.Info("Extracted JSON after max tool calls", "removed_text", removedText)
 			if err != nil {
 				return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("max tool calls reached (%d) without final text: %v", maxToolCalls, err)
@@ -147,7 +171,7 @@ func (ai *aiManager) processPromptOllama(ctx context.Context, model, systemPromp
 
 			var aiResponse AiResponse
 			if err := json.Unmarshal(responseBytes, &aiResponse); err != nil {
-				return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("error unmarshaling AI response after max tool calls: %v\n%s", err, responseText)
+				return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("error unmarshaling AI response after max tool calls: %v\n%s", err, finalText)
 			}
 
 			return &aiResponse, tokensUsed, int(time.Since(startTime).Milliseconds()), model, nil

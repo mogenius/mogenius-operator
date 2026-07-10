@@ -269,6 +269,8 @@ func RunCluster(logManagerModule logging.SlogManager, configModule *config.Confi
 		systems.leaderElector.OnLeading(func() {
 			systems.reconciler.Start()
 			logStep("Reconciler started")
+
+			core.SeedDefaultAgents(logManagerModule.CreateLogger("agent-seeder"), configModule, systems.clientProvider, systems.workspaceManager)
 		})
 
 		systems.leaderElector.OnLeadingEnded(func() {

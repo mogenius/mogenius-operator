@@ -113,11 +113,21 @@ func (ai *aiManager) getAgent(name string) (*v1alpha1.Agent, error) {
 
 // resolveAgentScope resolves the agent's scope to a sorted, deduplicated list
 // of namespaces. WorkspaceRef contributes the workspace's namespace resources,
-// Namespaces contributes verbatim entries; both are unioned.
+// Namespaces contributes verbatim entries; both are unioned. The wildcard
+// entry "*" expands to every namespace currently known to the store — the
+// ToolContext still gets an explicit allow-map, never an unrestricted one.
 func (ai *aiManager) resolveAgentScope(agent *v1alpha1.Agent) []string {
 	namespaces := map[string]bool{}
 
 	for _, ns := range agent.Spec.Scope.Namespaces {
+		if ns == "*" {
+			for _, nsObj := range store.GetResourceByKindAndNamespace(ai.valkeyClient, utils.NamespaceResource.ApiVersion, utils.NamespaceResource.Kind, "", ai.logger) {
+				if name := nsObj.GetName(); name != "" {
+					namespaces[name] = true
+				}
+			}
+			continue
+		}
 		if ns != "" {
 			namespaces[ns] = true
 		}
@@ -154,7 +164,7 @@ func buildAgentRunPrompt(agent *v1alpha1.Agent, namespaces []string) string {
 	var sb strings.Builder
 	sb.WriteString("You are running a scheduled analysis of the Kubernetes namespaces in your scope: ")
 	sb.WriteString(strings.Join(namespaces, ", "))
-	sb.WriteString(".\n\nInspect the workloads in these namespaces with your read-only tools and report the most relevant finding.")
+	sb.WriteString(".\n\nInspect the workloads in these namespaces with your read-only tools and report the most relevant finding. Be selective — you have a limited tool-call budget: prefer listing resources over fetching them in full, and only inspect the most suspicious findings in depth. Reserve budget to finish with your final JSON answer.")
 	if agent.Spec.Instruction != "" {
 		sb.WriteString("\n\nYour instruction:\n")
 		sb.WriteString(agent.Spec.Instruction)

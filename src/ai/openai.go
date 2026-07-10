@@ -89,22 +89,24 @@ func (ai *aiManager) processPromptOpenAi(ctx context.Context, model, systemPromp
 		// Increase global tool call count and check limit
 		toolCallCount += len(chatCompletion.Choices[0].Message.ToolCalls)
 		if maxToolCalls > 0 && toolCallCount >= maxToolCalls {
-			ai.logger.Info("Max tool call limit reached, exiting loop", "maxToolCalls", maxToolCalls, "toolCallCount", toolCallCount)
+			ai.logger.Info("Max tool call limit reached, forcing final answer", "maxToolCalls", maxToolCalls, "toolCallCount", toolCallCount)
 
-			// Try to finalize using any text presently returned
-			responseText := cleanJSONResponse(chatCompletion.Choices[0].Message.Content)
-			responseBytes, removedText, err := extractJSONRobust(responseText)
-			ai.logger.Info("Extracted JSON after max tool calls", "removed_text", removedText)
+			// One last turn with tool use disabled so the model must answer;
+			// the shared extraction below the loop handles the response.
+			params.Messages = append(params.Messages, openai.UserMessage(finalAnswerNudge))
+			params.ToolChoice = openai.ChatCompletionToolChoiceOptionUnionParam{OfAuto: openai.String("none")}
+			compactOpenAiToolMessages(params.Messages)
+			chatCompletion, err = client.Chat.Completions.New(ctx, params)
 			if err != nil {
-				return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("max tool calls reached (%d) without final text: %v", maxToolCalls, err)
+				return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("max tool calls reached (%d) and final answer request failed: %w", maxToolCalls, err)
 			}
-
-			var aiResponse AiResponse
-			if err := json.Unmarshal(responseBytes, &aiResponse); err != nil {
-				return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("error unmarshaling AI response after max tool calls: %v\n%s", err, chatCompletion.Choices[0].Message.Content)
+			if chatCompletion != nil {
+				tokensUsed += chatCompletion.Usage.TotalTokens
 			}
-
-			return &aiResponse, tokensUsed, int(time.Since(startTime).Milliseconds()), model, nil
+			if len(chatCompletion.Choices) == 0 {
+				return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("max tool calls reached (%d) and no choices returned for the final answer", maxToolCalls)
+			}
+			break
 		}
 		// Continue the loop to get the next response with tool results
 	}
