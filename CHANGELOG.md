@@ -1,3 +1,15 @@
+# [2.24.0-develop.10](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.9...v2.24.0-develop.10) (2026-07-13)
+
+
+### Bug Fixes
+
+* aiinsights improved ([15fced9](https://github.com/mogenius/mogenius-operator/commit/15fced9dcbe023106c2c19360315b1feee58cdbf))
+
+
+### Features
+
+* add ability to use external valkey ([82c9bb2](https://github.com/mogenius/mogenius-operator/commit/82c9bb2819c9c21895ac3718e2bc2b9e1bf2b6a5))
+
 # [2.24.0-develop.9](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.8...v2.24.0-develop.9) (2026-07-13)
 
 
