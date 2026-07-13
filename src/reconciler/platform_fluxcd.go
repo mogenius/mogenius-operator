@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"mogenius-operator/src/crds/v1alpha1"
 	"mogenius-operator/src/gitops"
+	"mogenius-operator/src/utils"
 )
 
 func (d *reconcilerModule) reconcileFluxCD(ctx context.Context, spec v1alpha1.PlatformConfigSpec, installer gitops.GitOpsInstaller, op operation) *ReconcileResult {
@@ -41,9 +42,9 @@ func (d *reconcilerModule) reconcileFluxCD(ctx context.Context, spec v1alpha1.Pl
 							return nil, fmt.Errorf("repository %q: provide externalSecret.vault or define a vault in spec.externalSecretsOperator", repo.URL)
 						}
 					}
-					extraObjects = append(extraObjects,
-						externalSecretResource(name, namespace, *repo.ExternalSecret, nil, nil),
-					)
+					if d.crdChecker.IsAvailable(utils.ExternalSecretResource) {
+						extraObjects = append(extraObjects, externalSecretResource(name, namespace, *repo.ExternalSecret, nil, nil))
+					}
 				}
 
 				extraObjects = append(extraObjects,

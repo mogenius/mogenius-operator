@@ -15,6 +15,7 @@ type reconcilerModule struct {
 	clientProvider k8sclient.K8sClientProvider
 	config         config.ConfigModule
 	valkeyClient   valkeyclient.ValkeyClient
+	crdChecker     *crdChecker
 }
 
 type reconcilerFactory struct {
@@ -34,6 +35,7 @@ func NewReconcilerFactory(logger *slog.Logger, clientProvider k8sclient.K8sClien
 			clientProvider: clientProvider,
 			config:         configModule,
 			valkeyClient:   valkeyClient,
+			crdChecker:     newCRDChecker(clientProvider),
 		},
 		// Background full-sweep interval. Watcher informers already do a
 		// 30-minute resync (utils.ResourceResyncTime) which redelivers every
