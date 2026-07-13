@@ -70,3 +70,40 @@ func SetWebsocketConnected(name string, connected bool) {
 	}
 	websocketConnected.WithLabelValues(name).Set(val)
 }
+
+var reconcileDuration = promauto.NewHistogramVec(
+	prometheus.HistogramOpts{
+		Name:    "mogenius_operator_reconcile_duration_seconds",
+		Help:    "Duration of a single reconcile call, by resource kind and operation.",
+		Buckets: prometheus.DefBuckets,
+	},
+	[]string{"resource", "operation"},
+)
+
+var reconcileTrackedObjects = promauto.NewGaugeVec(
+	prometheus.GaugeOpts{
+		Name: "mogenius_operator_reconcile_tracked_objects",
+		Help: "Number of objects currently tracked in the reconciler cache, by resource kind.",
+	},
+	[]string{"resource"},
+)
+
+var reconcileQueueWait = promauto.NewHistogram(
+	prometheus.HistogramOpts{
+		Name:    "mogenius_operator_reconcile_queue_wait_seconds",
+		Help:    "Time spent waiting to acquire a reconcile concurrency slot. Spikes indicate the reconciler is saturated.",
+		Buckets: prometheus.DefBuckets,
+	},
+)
+
+func ObserveReconcileDuration(resource, operation string, seconds float64) {
+	reconcileDuration.WithLabelValues(resource, operation).Observe(seconds)
+}
+
+func SetReconcileTrackedObjects(resource string, count int) {
+	reconcileTrackedObjects.WithLabelValues(resource).Set(float64(count))
+}
+
+func ObserveReconcileQueueWait(seconds float64) {
+	reconcileQueueWait.Observe(seconds)
+}
