@@ -254,6 +254,12 @@ type aiManager struct {
 	// tasks are already deduplicated via their Valkey key.
 	isLeading func() bool
 
+	// taskQueueKick wakes the queue loop as soon as a task lands in pending
+	// state, so new reports start immediately instead of waiting for the next
+	// 1-minute tick. Buffered(1): kicks during a running pass coalesce into
+	// exactly one follow-up pass.
+	taskQueueKick chan struct{}
+
 	// prompts
 	chatPromptMu sync.RWMutex
 	aiPrompts    AiPrompts
@@ -329,6 +335,7 @@ func NewAiManager(logger *slog.Logger, valkeyClient valkeyclient.ValkeyClient, c
 	self.mcpManager = newMCPClientManager(logger)
 	self.lastCronRun = make(map[string]time.Time)
 	self.isLeading = isLeading
+	self.taskQueueKick = make(chan struct{}, 1)
 
 	// Register MCP server connectors
 	self.mcpConnectors = []MCPServerConnector{
@@ -481,37 +488,54 @@ func (ai *aiManager) Run() {
 		for {
 			select {
 			case <-ticker.C:
-				ctx := context.Background()
-
-				initialized := ai.isAiPromptConfigInitialized()
-				if !initialized {
-					continue
-				}
-
-				modelConfigInitialized := ai.isAiModelConfigInitialized()
-				if !modelConfigInitialized {
-					continue
-				}
-
-				if ai.isTokenLimitExceeded() {
-					continue
-				}
-
-				// Cron runs only on the leading replica — unlike event tasks,
-				// their per-run keys are not deduplicated across replicas.
-				if ai.isLeading != nil && ai.isLeading() {
-					ai.processAgentCronTriggers()
-				}
-
-				ai.processPendingTasks()
-
-				ai.setError("")
-				ai.processAiTaskQueue(ctx)
+				ai.runQueuePass(true)
+			case <-ai.taskQueueKick:
+				// A task just landed in the queue — start it right away
+				// instead of waiting for the next tick. Cron evaluation
+				// stays on its 1-minute cadence.
+				ai.runQueuePass(false)
 			case <-cleanupTicker.C:
 				ai.cleanupOrphanedTasks()
 			}
 		}
 	}()
+}
+
+// runQueuePass is one pass of the queue loop; includeCron additionally
+// evaluates agent cron triggers (leader-only).
+func (ai *aiManager) runQueuePass(includeCron bool) {
+	if !ai.isAiPromptConfigInitialized() {
+		return
+	}
+	if !ai.isAiModelConfigInitialized() {
+		return
+	}
+	if ai.isTokenLimitExceeded() {
+		return
+	}
+
+	// Cron runs only on the leading replica — unlike event tasks,
+	// their per-run keys are not deduplicated across replicas.
+	if includeCron && ai.isLeading != nil && ai.isLeading() {
+		ai.processAgentCronTriggers()
+	}
+
+	ai.processPendingTasks()
+
+	ai.setError("")
+	ai.processAiTaskQueue(context.Background())
+}
+
+// kickTaskQueue wakes the queue loop without blocking; a pending kick is
+// enough, extra ones coalesce.
+func (ai *aiManager) kickTaskQueue() {
+	if ai.taskQueueKick == nil {
+		return
+	}
+	select {
+	case ai.taskQueueKick <- struct{}{}:
+	default:
+	}
 }
 
 // cleanupOrphanedTasks removes AI tasks whose referenced resource no longer
@@ -1152,6 +1176,11 @@ func (ai *aiManager) createOrUpdateAiTask(task *AiTask, key string) error {
 		return fmt.Errorf("error saving AI task: %v", err)
 	}
 
+	// New pending work starts immediately instead of waiting for the ticker.
+	if task.State == AI_TASK_STATE_PENDING {
+		ai.kickTaskQueue()
+	}
+
 	// last updated task
 	err = ai.valkeyClient.Set(string(jsonString), ValkeyAiTTL, ai.getValkeyLatestTaskKey())
 	if err != nil {
@@ -1203,8 +1232,14 @@ func (ai *aiManager) processPrompt(ctx context.Context, prompt string, toolCtx *
 			systemPrompt += "\n\nAgent instruction:\n" + agentSpec.Instruction
 		}
 		// The proposal review UI is decision-style: a short explanation above
-		// a YAML diff. Keep the prose tight and the target YAML complete.
-		systemPrompt += "\n\nOutput style: write problemDescription as 2-4 crisp sentences a DevOps decision maker can act on — what is wrong, what your proposed change does, and any risk. When you propose an operation, targetResourceYaml must be the complete resource manifest, not a fragment."
+		// a YAML diff. Without the structured proposal fields the task stays a
+		// text-only report, so spell out exactly what a proposal requires.
+		systemPrompt += "\n\nOutput style: write problemDescription as 2-4 crisp sentences a DevOps decision maker can act on — what is wrong, what your proposed change does, and any risk." +
+			"\n\nWhen you recommend a concrete change, do NOT only describe it in prose — emit it as a structured proposal in the analysis:" +
+			"\n- proposedOperation: one of UpdateResource, DeleteResource, CreateResource" +
+			"\n- targetResource: apiVersion, kind, namespace, resourceName, plural and namespaced of the affected resource (always required)" +
+			"\n- targetResourceYaml: the complete resource manifest (required for UpdateResource and CreateResource; omit for DeleteResource)" +
+			"\nOnly a structured proposal can be reviewed and applied with one click; prose-only recommendations end up as plain reports."
 	}
 
 	maxToolCalls, err := ai.getAiMaxToolCalls()
