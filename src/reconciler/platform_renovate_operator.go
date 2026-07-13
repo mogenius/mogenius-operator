@@ -56,14 +56,27 @@ func (d *reconcilerModule) reconcileRenovateOperator(ctx context.Context, spec v
 			return extraObjects, nil
 		},
 		func(ctx context.Context) (map[string]any, error) {
+			values := map[string]any{}
+
 			if c.MaxParallelJobs > 0 {
-				return map[string]any{
-					"config": map[string]any{
-						"globalParallelismLimit": c.MaxParallelJobs,
-					},
-				}, nil
+				values["config"] = map[string]any{
+					"globalParallelismLimit": c.MaxParallelJobs,
+				}
 			}
-			return nil, nil
+
+			if d.crdChecker.IsAvailable(utils.ServiceMonitorResource) {
+				values["metrics"] = map[string]any{
+					"enabled": true,
+					"serviceMonitor": map[string]any{
+						"enabled": true,
+					},
+				}
+			}
+
+			if len(values) == 0 {
+				return nil, nil
+			}
+			return values, nil
 		},
 	)
 }
