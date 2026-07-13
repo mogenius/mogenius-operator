@@ -10,6 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	"mogenius-operator/src/k8sclient"
+	"mogenius-operator/src/metrics"
 	"mogenius-operator/src/utils"
 	"mogenius-operator/src/watcher"
 )
@@ -136,10 +137,12 @@ func (r *genericReconciler) Start() {
 			cfg.Resource,
 			func(_ utils.ResourceDescriptor, obj *unstructured.Unstructured) {
 				cache.set(obj)
+				metrics.SetReconcileTrackedObjects(cfg.Resource.Kind, cache.len())
 				r.callHandler(ctx, cfg, obj, createOperation)
 			},
 			func(_ utils.ResourceDescriptor, oldObj *unstructured.Unstructured, newObj *unstructured.Unstructured) {
 				cache.set(newObj)
+				metrics.SetReconcileTrackedObjects(cfg.Resource.Kind, cache.len())
 				// Informer resyncs redeliver every object unchanged, and
 				// status-only patches don't bump metadata.generation (CRs
 				// increment it on every non-metadata change; with a status
@@ -157,6 +160,7 @@ func (r *genericReconciler) Start() {
 			},
 			func(_ utils.ResourceDescriptor, obj *unstructured.Unstructured) {
 				cache.remove(obj)
+				metrics.SetReconcileTrackedObjects(cfg.Resource.Kind, cache.len())
 				r.clearObjectStatus(obj)
 				r.callHandler(ctx, cfg, obj, deleteOperation)
 			},
@@ -194,8 +198,9 @@ func (r *genericReconciler) Stop() {
 	r.cancel()
 	r.watcher.UnwatchAll()
 	r.wg.Wait()
-	for _, cache := range r.caches {
+	for resource, cache := range r.caches {
 		cache.clear()
+		metrics.SetReconcileTrackedObjects(resource.Kind, 0)
 	}
 	r.statusMu.Lock()
 	r.objectState = make(map[objectKey]ObjectStatus)
@@ -207,15 +212,19 @@ func (r *genericReconciler) callHandler(ctx context.Context, cfg ResourceConfig,
 
 	// Acquire a slot before spawning. Blocks (backpressures the watcher
 	// callback) when maxConcurrentReconciles are already in flight.
+	waitStart := time.Now()
 	select {
 	case r.reconcileSlots <- struct{}{}:
 	case <-ctx.Done():
 		return
 	}
+	metrics.ObserveReconcileQueueWait(time.Since(waitStart).Seconds())
 
 	r.wg.Go(func() {
 		defer func() { <-r.reconcileSlots }()
+		start := time.Now()
 		result := cfg.Reconcile(ctx, objCopy, operation)
+		metrics.ObserveReconcileDuration(cfg.Resource.Kind, string(operation), time.Since(start).Seconds())
 		r.recordResult(cfg.Resource, objCopy, result)
 	})
 }
