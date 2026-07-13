@@ -45,13 +45,131 @@ tests:
       - isNotEmpty:
           path: spec.template.spec.initContainers
 
-  - it: omits initContainers when valkey and debugTools are disabled
+  - it: wires external key-value store connection when valkey is disabled
     set:
       valkey.enabled: false
       features.debugTools.enabled: false
+      externalKeyValueStore.enabled: true
+      externalKeyValueStore.host: my-redis.example.com
+      externalKeyValueStore.port: 6380
+      externalKeyValueStore.existingSecret.name: my-valkey-secret
+      externalKeyValueStore.existingSecret.key: password
     asserts:
-      - isNull:
+      # wait-for-valkey init container is still added for the external store
+      - isNotEmpty:
           path: spec.template.spec.initContainers
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: MO_VALKEY_ADDR
+            value: my-redis.example.com:6380
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: MO_VALKEY_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: my-valkey-secret
+                key: password
+      # no bundled valkey password checksum annotation when using an external store
+      - isNull:
+          path: spec.template.metadata.annotations
+
+  - it: uses the default redis port for the external key-value store
+    set:
+      valkey.enabled: false
+      externalKeyValueStore.enabled: true
+      externalKeyValueStore.host: my-redis.example.com
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: MO_VALKEY_ADDR
+            value: my-redis.example.com:6379
+
+  - it: wires username and TLS with a CA cert for the external store
+    set:
+      valkey.enabled: false
+      externalKeyValueStore.enabled: true
+      externalKeyValueStore.host: my-redis.example.com
+      externalKeyValueStore.username: appuser
+      externalKeyValueStore.existingSecret.name: my-redis-secret
+      externalKeyValueStore.tls.enabled: true
+      externalKeyValueStore.tls.caCertSecret.name: my-ca-secret
+      externalKeyValueStore.tls.caCertSecret.key: ca.crt
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: MO_VALKEY_USERNAME
+            value: appuser
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: MO_VALKEY_TLS_ENABLED
+            value: "true"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: MO_VALKEY_TLS_CA_CERT_FILE
+            value: /etc/valkey-tls/ca.crt
+      # CA certificate secret is mounted into the container
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: valkey-tls-ca
+            mountPath: /etc/valkey-tls
+            readOnly: true
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: valkey-tls-ca
+            secret:
+              secretName: my-ca-secret
+
+  - it: enables TLS with insecureSkipVerify and no CA secret
+    set:
+      valkey.enabled: false
+      externalKeyValueStore.enabled: true
+      externalKeyValueStore.host: my-redis.example.com
+      externalKeyValueStore.tls.enabled: true
+      externalKeyValueStore.tls.insecureSkipVerify: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: MO_VALKEY_TLS_INSECURE_SKIP_VERIFY
+            value: "true"
+      # no CA volume is mounted when using the system trust store
+      - notContains:
+          path: spec.template.spec.volumes
+          content:
+            name: valkey-tls-ca
+          any: true
+
+  - it: fails when external store is enabled without a host
+    set:
+      valkey.enabled: false
+      externalKeyValueStore.enabled: true
+    asserts:
+      - failedTemplate:
+          errorMessage: "externalKeyValueStore.enabled is true: you must set externalKeyValueStore.host"
+
+  - it: fails when neither valkey nor external store is enabled
+    set:
+      valkey.enabled: false
+    asserts:
+      - failedTemplate:
+          errorMessage: "no key-value store configured: enable the bundled valkey (valkey.enabled) or an external store (externalKeyValueStore.enabled)"
+
+  - it: fails when both valkey and external store are enabled
+    set:
+      valkey.enabled: true
+      externalKeyValueStore.enabled: true
+      externalKeyValueStore.host: my-redis.example.com
+    asserts:
+      - failedTemplate:
+          errorMessage: "valkey.enabled and externalKeyValueStore.enabled are mutually exclusive; enable only one"
 
   - it: sets containerSecurityContext
     asserts:
