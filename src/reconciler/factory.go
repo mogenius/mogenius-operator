@@ -45,6 +45,7 @@ func NewReconcilerFactory(logger *slog.Logger, clientProvider k8sclient.K8sClien
 	}
 
 	factory.WithReconciler(utils.WorkspaceResource, factory.module.reconcileWorkspaces)
+	factory.WithReconciler(utils.AgentResource, factory.module.reconcileAgents)
 
 	// TODO: Remove gaurd when platform config is ready, and add other platform components as needed.
 	if utils.IsDevBuild() {

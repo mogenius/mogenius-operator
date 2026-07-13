@@ -298,6 +298,23 @@ func (self *MogeniusV1alpha1) UpdateAgent(namespace string, name string, spec mo
 	return self.ReplaceAgent(namespace, name, spec)
 }
 
+// UpdateAgentStatus writes only the status subresource of the given agent
+// (metadata must carry name, namespace and the current resourceVersion, e.g.
+// from a watch event). Spec and generation stay untouched.
+func (self *MogeniusV1alpha1) UpdateAgentStatus(agent *mov1alpha1.Agent) (*mov1alpha1.Agent, error) {
+	agent.TypeMeta = metav1.TypeMeta{
+		Kind:       "Agent",
+		APIVersion: "mogenius.com/v1alpha1",
+	}
+	result := &mov1alpha1.Agent{}
+	err := self.restClient.Put().Namespace(agent.Namespace).Resource("agents").Name(agent.Name).SubResource("status").Body(agent).Do(context.Background()).Into(result)
+	if err != nil {
+		return nil, fmt.Errorf("RESTClient: %w", err)
+	}
+
+	return result, nil
+}
+
 func (self *MogeniusV1alpha1) DeleteAgent(namespace string, name string) error {
 	err := self.restClient.Delete().Namespace(namespace).Resource("agents").Name(name).Do(context.Background()).Error()
 	if err != nil {

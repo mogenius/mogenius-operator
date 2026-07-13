@@ -19,9 +19,17 @@ type AgentList struct {
 
 // A mogenius `Agent` resource defines an AI agent that observes a scoped set
 // of namespaces (read-only) and proposes tasks which a user must approve or
-// reject before anything is executed.
+// reject before anything is executed. Agents are only processed in the
+// operator's own namespace (MO_OWN_NAMESPACE).
 //
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:resource:scope=Namespaced,shortName=aiagent,categories=mogenius
+// +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="Enabled",type=boolean,JSONPath=`.spec.enabled`
+// +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
+// +kubebuilder:printcolumn:name="Reason",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].reason`
+// +kubebuilder:printcolumn:name="Cron",type=string,JSONPath=`.spec.triggers.cron`
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 type Agent struct {
 	metav1.TypeMeta `json:",inline"`
 
@@ -29,7 +37,7 @@ type Agent struct {
 
 	Spec AgentSpec `json:"spec"`
 
-	Status AgentStatus `json:"status"`
+	Status AgentStatus `json:"status,omitempty"`
 }
 
 type AgentSpec struct {
@@ -62,12 +70,16 @@ type AgentSpec struct {
 
 // AgentScope restricts an agent's visibility. At least one of WorkspaceRef or
 // Namespaces must be set; when both are set the union applies.
+//
+// +kubebuilder:validation:XValidation:rule="(has(self.workspaceRef) && self.workspaceRef != \"\") || (has(self.namespaces) && self.namespaces.size() > 0)",message="scope must reference a workspace or list at least one namespace"
 type AgentScope struct {
 	// Name of a Workspace CR whose namespace resources define the scope.
 	WorkspaceRef string `json:"workspaceRef,omitempty"`
 
 	// Explicit list of namespaces the agent may see. The single entry "*"
 	// grants visibility into all namespaces (resolved at run time).
+	// +kubebuilder:validation:items:Pattern=`^(\*|[a-z0-9]([-a-z0-9]*[a-z0-9])?)$`
+	// +kubebuilder:validation:items:MaxLength=63
 	Namespaces []string `json:"namespaces,omitempty"`
 }
 
@@ -91,7 +103,9 @@ type AgentEventFilter struct {
 	Kind string `json:"kind"`
 
 	// JSONPath → expected value; any match selects the object.
-	Contains map[string]string `json:"contains,omitempty"`
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinProperties=1
+	Contains map[string]string `json:"contains"`
 
 	// JSONPath → value; any match excludes the object.
 	Excludes map[string]string `json:"excludes,omitempty"`
@@ -103,4 +117,13 @@ type AgentEventFilter struct {
 	For *metav1.Duration `json:"for,omitempty"`
 }
 
-type AgentStatus struct{}
+type AgentStatus struct {
+	// Conditions describe the validation state of the agent; the "Ready"
+	// condition reports whether the operator accepts and processes it.
+	// +optional
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+
+	// Generation of the spec the conditions were last evaluated against.
+	// +optional
+	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
+}

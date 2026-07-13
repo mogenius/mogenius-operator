@@ -1,0 +1,34 @@
+# Event-driven AI agent: reacts to crash-looping pods in its scope.
+apiVersion: mogenius.com/v1alpha1
+kind: Agent
+metadata:
+  name: crashloop-doctor
+  namespace: mogenius
+spec:
+  displayName: CrashLoop Doctor
+  description: Diagnoses crash-looping pods and proposes a fix.
+  icon: fa-stethoscope
+  instruction: |
+    Diagnose the failing workload: read its events, container statuses and
+    logs, identify the root cause and propose a minimal fix on the owning
+    controller. Only propose a change you are confident about.
+  enabled: true
+  scope:
+    namespaces:
+      - "*" # all namespaces (resolved at run time)
+  triggers:
+    events:
+      - name: CrashLoopBackOff
+        kind: Pod
+        # JSONPath → expected value; ANY matching entry selects the object.
+        contains:
+          .status.containerStatuses[*].state.waiting.reason: CrashLoopBackOff
+        # Optional: JSONPath → value; any match EXCLUDES the object.
+        # excludes:
+        #   .metadata.namespace: kube-system
+        # Optional: condition must hold this long before a task is created.
+        for: 5m
+        prompt: >
+          This pod is crash-looping. Diagnose the root cause and, if possible,
+          propose a concrete fix on the owning controller.
+    manual: true
