@@ -4,6 +4,7 @@ import (
 	"context"
 	"mogenius-operator/src/crds/v1alpha1"
 	"mogenius-operator/src/gitops"
+	"mogenius-operator/src/utils"
 )
 
 func (d *reconcilerModule) reconcileTraefik(ctx context.Context, spec v1alpha1.PlatformConfigSpec, installer gitops.GitOpsInstaller, op operation) *ReconcileResult {
@@ -30,6 +31,21 @@ func (d *reconcilerModule) reconcileTraefik(ctx context.Context, spec v1alpha1.P
 
 			if spec.Traefik.Service != nil {
 				values["service"] = spec.Traefik.Service
+			}
+
+			if d.crdChecker.IsAvailable(utils.ServiceMonitorResource) {
+				values["metrics"] = map[string]any{
+					"prometheus": map[string]any{
+						"enabled":    true,
+						"entryPoint": "metrics",
+						"service": map[string]any{
+							"enabled": true,
+						},
+						"serviceMonitor": map[string]any{
+							"enabled": true,
+						},
+					},
+				}
 			}
 
 			return values, nil
