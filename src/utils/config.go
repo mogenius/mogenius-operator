@@ -224,4 +224,11 @@ var AppProjectResource = ResourceDescriptor{
 	Namespaced: true,
 }
 
+var ServiceMonitorResource = ResourceDescriptor{
+	Kind:       "ServiceMonitor",
+	Plural:     "servicemonitors",
+	ApiVersion: "monitoring.coreos.com/v1",
+	Namespaced: true,
+}
+
 var ClusterProviderCached KubernetesProvider = UNKNOWN
