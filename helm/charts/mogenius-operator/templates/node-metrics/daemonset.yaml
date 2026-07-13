@@ -13,8 +13,10 @@ spec:
     metadata:
       labels:
         app: {{ .Values.fullnameOverride }}-node-metrics
+      {{- if .Values.valkey.enabled }}
       annotations:
         valkey-password-checksum: {{ include "getPasswordHash" (include "lookupSecret" .) | quote }}
+      {{- end }}
     spec:
       dnsPolicy: ClusterFirstWithHostNet
       hostNetwork: true
@@ -29,6 +31,9 @@ spec:
         - name: cni
           hostPath:
             path: /etc/cni/net.d
+        {{- if eq (include "externalKvs.caEnabled" .) "true" }}
+        {{- include "externalKvs.caVolume" . | nindent 8 }}
+        {{- end }}
       {{- with .Values.nodeMetrics.podSecurityContext }}
       securityContext:
         {{- toYaml . | nindent 8 }}
@@ -45,7 +50,7 @@ spec:
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- if .Values.valkey.enabled }}
+      {{- if or .Values.valkey.enabled .Values.externalKeyValueStore.enabled }}
       initContainers:
         {{- include "valkey.wait-for-connection" . | nindent 8 }}
       {{- end }}
@@ -75,6 +80,9 @@ spec:
               readOnly: true
             - name: cni
               mountPath: /hostcni
+            {{- if eq (include "externalKvs.caEnabled" .) "true" }}
+            {{- include "externalKvs.caVolumeMount" . | nindent 12 }}
+            {{- end }}
           env:
             {{- include "common.env" . | nindent 12 }}
             - name: MO_HOST_PROC_PATH

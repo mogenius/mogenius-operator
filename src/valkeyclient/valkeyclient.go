@@ -2,11 +2,14 @@ package valkeyclient
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"log/slog"
 	"mogenius-operator/src/assert"
 	"mogenius-operator/src/config"
 	"net"
+	"os"
 	"path/filepath"
 	"slices"
 	"sort"
@@ -110,11 +113,19 @@ func (self *valkeyClient) Connect() error {
 	assert.Assert(valkeyHost != "")
 	assert.Assert(valkeyPort != "")
 	valkeyAddr := valkeyHost + ":" + valkeyPort
+	valkeyUsername := self.config.Get("MO_VALKEY_USERNAME")
 	valkeyPwd := self.config.Get("MO_VALKEY_PASSWORD")
+
+	tlsConfig, err := self.buildTLSConfig(valkeyHost)
+	if err != nil {
+		return fmt.Errorf("could not configure Valkey TLS: %w", err)
+	}
 
 	client, err := valkeyclient.NewClient(valkeyclient.ClientOption{
 		InitAddress:         []string{valkeyAddr},
+		Username:            valkeyUsername,
 		Password:            valkeyPwd,
+		TLSConfig:           tlsConfig,
 		SelectDB:            0,
 		DisableRetry:        true,
 		ReadBufferEachConn:  512 * (1 << 10), // 512 KiB
@@ -123,7 +134,7 @@ func (self *valkeyClient) Connect() error {
 		MaxFlushDelay:       100 * time.Microsecond, // Reduce latency for pipelined commands
 	})
 	if err != nil {
-		self.logger.Info("connection to Valkey failed", "valkeyAddr", valkeyAddr, "error", err)
+		self.logger.Info("connection to Valkey failed", "valkeyAddr", valkeyAddr, "tls", tlsConfig != nil, "error", err)
 		return fmt.Errorf("could not connect to Valkey: %s", err)
 	}
 	self.valkeyClient = client
@@ -133,9 +144,44 @@ func (self *valkeyClient) Connect() error {
 		return fmt.Errorf("could not connect to Valkey: %w", err)
 	}
 
-	self.logger.Info("Connected to valkey", "addr", valkeyAddr)
+	self.logger.Info("Connected to valkey", "addr", valkeyAddr, "tls", tlsConfig != nil, "username", valkeyUsername != "")
 
 	return nil
+}
+
+// buildTLSConfig returns a *tls.Config when TLS is enabled for the Valkey
+// connection, or nil when TLS is disabled (plaintext). The serverName is used
+// for SNI and certificate hostname verification. An optional CA certificate
+// file overrides the system trust store, and verification can be skipped
+// entirely for self-signed certificates in trusted networks.
+func (self *valkeyClient) buildTLSConfig(serverName string) (*tls.Config, error) {
+	enabled, _ := strconv.ParseBool(self.config.Get("MO_VALKEY_TLS_ENABLED"))
+	if !enabled {
+		return nil, nil
+	}
+
+	tlsConfig := &tls.Config{
+		MinVersion: tls.VersionTLS12,
+		ServerName: serverName,
+	}
+
+	if skip, _ := strconv.ParseBool(self.config.Get("MO_VALKEY_TLS_INSECURE_SKIP_VERIFY")); skip {
+		tlsConfig.InsecureSkipVerify = true
+	}
+
+	if caFile := self.config.Get("MO_VALKEY_TLS_CA_CERT_FILE"); caFile != "" {
+		caPEM, err := os.ReadFile(caFile)
+		if err != nil {
+			return nil, fmt.Errorf("read CA cert %q: %w", caFile, err)
+		}
+		pool := x509.NewCertPool()
+		if !pool.AppendCertsFromPEM(caPEM) {
+			return nil, fmt.Errorf("no valid certificates found in CA cert %q", caFile)
+		}
+		tlsConfig.RootCAs = pool
+	}
+
+	return tlsConfig, nil
 }
 
 // Close shuts down the underlying valkey connection. valkey-go's Close waits
