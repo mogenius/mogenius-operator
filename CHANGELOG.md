@@ -1,3 +1,13 @@
+# [2.24.0-develop.8](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.7...v2.24.0-develop.8) (2026-07-13)
+
+
+### Features
+
+* adding reconciler metrics ([76d43e4](https://github.com/mogenius/mogenius-operator/commit/76d43e4991a19f95764702389436df39a55e53b5))
+* enable renovate operator servicemonitor if kind exists ([a9468a8](https://github.com/mogenius/mogenius-operator/commit/a9468a81f6cf9dcd7a3e429cc66e1c3a3d222659))
+* enable traefik metrics if servicemonitors exist in the cluster ([5f45449](https://github.com/mogenius/mogenius-operator/commit/5f45449d98031777d1900202fa3880349576bdec))
+* only create externalsecrets if externalsecrets already exist in the api ([bd874b9](https://github.com/mogenius/mogenius-operator/commit/bd874b9c64f05881d8685439f7589aed84bd13f2))
+
 # [2.24.0-develop.7](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.6...v2.24.0-develop.7) (2026-07-13)
 
 
