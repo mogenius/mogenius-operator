@@ -23,6 +23,7 @@ type AiApi interface {
 
 	ApproveTask(taskID string, user structs.User, workspace string) (*ai.AiTask, error)
 	RejectTask(taskID string, user structs.User, reason string) (*ai.AiTask, error)
+	CancelTask(taskID string, user structs.User) (*ai.AiTask, error)
 	TriggerAgent(agentName string, user structs.User) (*ai.AiTask, error)
 }
 type aiApi struct {
@@ -92,6 +93,10 @@ func (self *aiApi) ApproveTask(taskID string, user structs.User, workspace strin
 
 func (self *aiApi) RejectTask(taskID string, user structs.User, reason string) (*ai.AiTask, error) {
 	return self.aiManager.RejectTask(taskID, user, reason)
+}
+
+func (self *aiApi) CancelTask(taskID string, user structs.User) (*ai.AiTask, error) {
+	return self.aiManager.CancelTask(taskID, user)
 }
 
 func (self *aiApi) TriggerAgent(agentName string, user structs.User) (*ai.AiTask, error) {

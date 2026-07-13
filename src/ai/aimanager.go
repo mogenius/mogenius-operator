@@ -221,6 +221,7 @@ type AiManager interface {
 
 	ApproveTask(taskID string, user structs.User, workspace string) (*AiTask, error)
 	RejectTask(taskID string, user structs.User, reason string) (*AiTask, error)
+	CancelTask(taskID string, user structs.User) (*AiTask, error)
 	TriggerAgent(agentName string, user structs.User) (*AiTask, error)
 
 	ResolveWorkspaceContext(userEmail string, workspaceName string) (*v1alpha1.WorkspaceSpec, *v1alpha1.GrantSpec)
@@ -990,18 +991,49 @@ func (ai *aiManager) processAiTaskQueue(ctx context.Context) {
 		// send event notification
 		ai.sendAiEvent(latestTask)
 
-		response, tokensUsed, timeUsedInMs, modelUsed, err := ai.processPrompt(ctx, task.Prompt, toolCtx, &agent.Spec)
-		if err != nil {
-			task.Error = err.Error()
-			// Non-retryable API errors (billing, invalid request, auth) must not be retried.
-			// Mark as ignored so processPendingTasks skips them on the next run.
-			var apiErr *anthropic.Error
-			if errors.As(err, &apiErr) && (apiErr.StatusCode == 400 || apiErr.StatusCode == 401 || apiErr.StatusCode == 403) {
-				task.State = AI_TASK_STATE_IGNORED
-			} else {
-				task.State = AI_TASK_STATE_FAILED
+		// Per-task cancellable context: a cancel marker in Valkey (set by any
+		// replica) aborts the LLM loop at the next turn boundary. The same
+		// per-turn hook pushes live token counts to the UI, throttled so a
+		// fast tool-call storm doesn't flood the event channel.
+		taskCtx, cancelTask := context.WithCancel(ctx)
+		var lastProgressPush time.Time
+		onProgress := func(tokens int64) {
+			if ai.taskCancelReason(task.ID) != "" {
+				cancelTask()
+				return
 			}
-			ai.logger.Error("Error processing AI task", "taskID", task.ID, "error", err)
+			if time.Since(lastProgressPush) < 2*time.Second {
+				return
+			}
+			lastProgressPush = time.Now()
+			task.TokensUsed = tokens
+			if err := ai.createOrUpdateAiTask(&task, key); err != nil {
+				ai.logger.Warn("Failed to persist AI task token progress", "taskID", task.ID, "error", err)
+			}
+			ai.sendAiEvent(latestTask)
+		}
+
+		response, tokensUsed, timeUsedInMs, modelUsed, err := ai.processPrompt(taskCtx, task.Prompt, toolCtx, &agent.Spec, onProgress)
+		cancelTask()
+		if err != nil {
+			if reason := ai.taskCancelReason(task.ID); errors.Is(err, context.Canceled) && ctx.Err() == nil && reason != "" {
+				// Canceled by a user, not by shutdown: the run is void, not broken.
+				task.State = AI_TASK_STATE_IGNORED
+				task.Error = reason
+				ai.clearTaskCancelRequest(task.ID)
+				ai.logger.Info("AI task canceled", "taskID", task.ID, "reason", reason)
+			} else {
+				task.Error = err.Error()
+				// Non-retryable API errors (billing, invalid request, auth) must not be retried.
+				// Mark as ignored so processPendingTasks skips them on the next run.
+				var apiErr *anthropic.Error
+				if errors.As(err, &apiErr) && (apiErr.StatusCode == 400 || apiErr.StatusCode == 401 || apiErr.StatusCode == 403) {
+					task.State = AI_TASK_STATE_IGNORED
+				} else {
+					task.State = AI_TASK_STATE_FAILED
+				}
+				ai.logger.Error("Error processing AI task", "taskID", task.ID, "error", err)
+			}
 		} else {
 			task.Response = response
 			ai.finalizeTaskOutcome(&task)
@@ -1153,7 +1185,10 @@ func (ai *aiManager) shouldCreateNewTask(key string) (bool, error) {
 // required JSON verdict instead of the run failing outright.
 const finalAnswerNudge = "Your tool-call budget is exhausted — do not request any more tools. Based on what you have inspected so far, respond now with your final answer as a single JSON object in the required response format."
 
-func (ai *aiManager) processPrompt(ctx context.Context, prompt string, toolCtx *ToolContext, agentSpec *v1alpha1.AgentSpec) (response *AiResponse, tokensUsed int64, timeUsedInMs int, modelUser string, err error) {
+// processPrompt runs the unattended analysis loop. onProgress (nil-tolerant)
+// is invoked after every LLM turn with the tokens used so far — it powers the
+// live token counter in the UI and the cancel check.
+func (ai *aiManager) processPrompt(ctx context.Context, prompt string, toolCtx *ToolContext, agentSpec *v1alpha1.AgentSpec, onProgress func(tokensUsed int64)) (response *AiResponse, tokensUsed int64, timeUsedInMs int, modelUser string, err error) {
 	startTime := time.Now()
 	model, err := ai.getAiModel()
 	if err != nil {
@@ -1167,6 +1202,9 @@ func (ai *aiManager) processPrompt(ctx context.Context, prompt string, toolCtx *
 		if agentSpec.Instruction != "" {
 			systemPrompt += "\n\nAgent instruction:\n" + agentSpec.Instruction
 		}
+		// The proposal review UI is decision-style: a short explanation above
+		// a YAML diff. Keep the prose tight and the target YAML complete.
+		systemPrompt += "\n\nOutput style: write problemDescription as 2-4 crisp sentences a DevOps decision maker can act on — what is wrong, what your proposed change does, and any risk. When you propose an operation, targetResourceYaml must be the complete resource manifest, not a fragment."
 	}
 
 	maxToolCalls, err := ai.getAiMaxToolCalls()
@@ -1180,11 +1218,11 @@ func (ai *aiManager) processPrompt(ctx context.Context, prompt string, toolCtx *
 	}
 	switch sdk {
 	case AiSdkTypeOpenAI:
-		return ai.processPromptOpenAi(ctx, model, systemPrompt, prompt, maxToolCalls, toolCtx)
+		return ai.processPromptOpenAi(ctx, model, systemPrompt, prompt, maxToolCalls, toolCtx, onProgress)
 	case AiSdkTypeAnthropic:
-		return ai.processPromptAnthropic(ctx, model, systemPrompt, prompt, maxToolCalls, toolCtx)
+		return ai.processPromptAnthropic(ctx, model, systemPrompt, prompt, maxToolCalls, toolCtx, onProgress)
 	case AiSdkTypeOllama:
-		return ai.processPromptOllama(ctx, model, systemPrompt, prompt, maxToolCalls, toolCtx)
+		return ai.processPromptOllama(ctx, model, systemPrompt, prompt, maxToolCalls, toolCtx, onProgress)
 	default:
 		return nil, 0, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("unsupported AI SDK type: %s", sdk)
 	}
@@ -1212,6 +1250,7 @@ func (ai *aiManager) finalizeTaskOutcome(task *AiTask) {
 			return
 		}
 		task.BaseResourceVersion = current.GetResourceVersion()
+		ai.captureCurrentResourceYaml(task, current)
 		task.State = AI_TASK_STATE_PROPOSED
 	case ProposedOperationDelete:
 		if target.ResourceName == "" {
@@ -1222,13 +1261,28 @@ func (ai *aiManager) finalizeTaskOutcome(task *AiTask) {
 			return
 		}
 		task.BaseResourceVersion = current.GetResourceVersion()
+		ai.captureCurrentResourceYaml(task, current)
 		task.State = AI_TASK_STATE_PROPOSED
 	case ProposedOperationCreate:
 		if analysis.TargetResourceYaml == "" {
 			return
 		}
+		// Nothing exists yet — the diff renders against an empty document.
+		task.Response.Analysis.CurrentResourceYaml = ""
 		task.State = AI_TASK_STATE_PROPOSED
 	}
+}
+
+// captureCurrentResourceYaml replaces the model-provided (untrusted, possibly
+// truncated or hallucinated) CurrentResourceYaml with the authoritative state
+// of the target at proposal time, so the review diff in the UI is exact.
+func (ai *aiManager) captureCurrentResourceYaml(task *AiTask, current *unstructured.Unstructured) {
+	yaml, err := store.GetYamlFromUnstructuredResource(current)
+	if err != nil {
+		ai.logger.Warn("Failed to serialize current resource for proposal diff", "taskID", task.ID, "error", err)
+		return // keep the model-provided value as a fallback
+	}
+	task.Response.Analysis.CurrentResourceYaml = yaml
 }
 
 // getTaskByKey loads and unmarshals a task from Valkey; returns nil when the

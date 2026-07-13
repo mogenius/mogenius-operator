@@ -2,6 +2,7 @@ package ai
 
 import (
 	"mogenius-operator/src/crds/v1alpha1"
+	"mogenius-operator/src/structs"
 	"mogenius-operator/src/utils"
 	"strings"
 	"testing"
@@ -171,6 +172,17 @@ func TestFinalizeTaskOutcome(t *testing.T) {
 		assert.Equal(t, AI_TASK_STATE_PROPOSED, task.State)
 	})
 
+	t.Run("create clears model-provided current yaml", func(t *testing.T) {
+		task := &AiTask{Response: &AiResponse{Analysis: Analysis{
+			ProposedOperation:   ProposedOperationCreate,
+			TargetResourceYaml:  "apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: foo\n",
+			CurrentResourceYaml: "hallucinated: yes\n",
+		}}}
+		ai.finalizeTaskOutcome(task)
+		assert.Equal(t, AI_TASK_STATE_PROPOSED, task.State)
+		assert.Empty(t, task.Response.Analysis.CurrentResourceYaml, "create proposals diff against an empty document")
+	})
+
 	t.Run("create without yaml stays completed", func(t *testing.T) {
 		task := &AiTask{Response: &AiResponse{Analysis: Analysis{ProposedOperation: ProposedOperationCreate}}}
 		ai.finalizeTaskOutcome(task)
@@ -185,6 +197,15 @@ func TestFinalizeTaskOutcome(t *testing.T) {
 		ai.finalizeTaskOutcome(task)
 		assert.Equal(t, AI_TASK_STATE_COMPLETED, task.State)
 	})
+}
+
+func TestCanceledByMessage(t *testing.T) {
+	assert.Equal(t, "canceled by user", canceledByMessage(structs.User{}))
+	assert.Equal(t, "canceled by bene@mogenius.com", canceledByMessage(structs.User{Email: "bene@mogenius.com"}))
+}
+
+func TestTaskCancelKey(t *testing.T) {
+	assert.Equal(t, "ai_task_cancel:ai_tasks:Agent:calico:cleaner-run-1", taskCancelKey("ai_tasks:Agent:calico:cleaner-run-1"))
 }
 
 func TestExecuteProposalValidation(t *testing.T) {

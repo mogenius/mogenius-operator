@@ -367,7 +367,7 @@ func (ai *aiManager) anthropicChatWithTools(
 	}
 }
 
-func (ai *aiManager) processPromptAnthropic(ctx context.Context, model, systemPrompt, prompt string, maxToolCalls int, toolCtx *ToolContext) (*AiResponse, int64, int, string, error) {
+func (ai *aiManager) processPromptAnthropic(ctx context.Context, model, systemPrompt, prompt string, maxToolCalls int, toolCtx *ToolContext, onProgress func(int64)) (*AiResponse, int64, int, string, error) {
 	startTime := time.Now()
 
 	// Unattended pipeline: strictly read-only tools, no external MCP tools.
@@ -424,6 +424,9 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, model, systemPr
 
 		if message != nil {
 			tokensUsed += message.Usage.InputTokens + message.Usage.OutputTokens
+		}
+		if onProgress != nil {
+			onProgress(tokensUsed)
 		}
 
 		if len(message.Content) == 0 {

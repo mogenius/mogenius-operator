@@ -10,7 +10,7 @@ import (
 	"github.com/ollama/ollama/api"
 )
 
-func (ai *aiManager) processPromptOllama(ctx context.Context, model, systemPrompt, prompt string, maxToolCalls int, toolCtx *ToolContext) (*AiResponse, int64, int, string, error) {
+func (ai *aiManager) processPromptOllama(ctx context.Context, model, systemPrompt, prompt string, maxToolCalls int, toolCtx *ToolContext, onProgress func(int64)) (*AiResponse, int64, int, string, error) {
 
 	startTime := time.Now()
 
@@ -71,6 +71,9 @@ func (ai *aiManager) processPromptOllama(ctx context.Context, model, systemPromp
 		}
 
 		tokensUsed += int64(promptEvalCount + evalCount)
+		if onProgress != nil {
+			onProgress(tokensUsed)
+		}
 
 		// Check if there are tool calls to process
 		if len(toolCalls) == 0 {
