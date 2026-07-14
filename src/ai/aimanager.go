@@ -49,20 +49,26 @@ var ValkeyAiTTL = time.Hour * 24 * 7 // 7 days
 
 type AiTaskState string
 type AiTask struct {
-	ID                  string                       `json:"id"`
-	Prompt              string                       `json:"prompt"`
-	Response            *AiResponse                  `json:"response"`
-	State               AiTaskState                  `json:"state"`
-	Controller          *utils.WorkloadSingleRequest `json:"controller,omitempty"`
-	TokensUsed          int64                        `json:"tokensUsed"`
-	Model               string                       `json:"model"`
-	TimeUsedInMs        int                          `json:"timeUsedInMs"`
-	CreatedAt           int64                        `json:"createdAt"`
-	UpdatedAt           int64                        `json:"updatedAt"`
-	ReferencingResource utils.WorkloadSingleRequest  `json:"referencingResource"` // the resource that triggered this task (empty for whole-scope runs)
-	TriggeredBy         AiFilter                     `json:"triggeredBy"`         // the event filter that matched (empty for cron/manual runs)
-	ReadByUsers         []ReadBy                     `json:"readByUsers"`
-	Error               string                       `json:"error"`
+	ID         string                       `json:"id"`
+	Prompt     string                       `json:"prompt"`
+	Response   *AiResponse                  `json:"response"`
+	State      AiTaskState                  `json:"state"`
+	Controller *utils.WorkloadSingleRequest `json:"controller,omitempty"`
+	TokensUsed int64                        `json:"tokensUsed"`
+	// Retries counts failed processing attempts; tasks at maxAiTaskRetries are
+	// ignored instead of re-running the whole analysis loop again.
+	Retries int `json:"retries,omitempty"`
+	// CurrentActivity is the live "what is the agent doing right now" line for
+	// the UI (tool being called with its key arguments); empty when idle.
+	CurrentActivity     string                      `json:"currentActivity,omitempty"`
+	Model               string                      `json:"model"`
+	TimeUsedInMs        int                         `json:"timeUsedInMs"`
+	CreatedAt           int64                       `json:"createdAt"`
+	UpdatedAt           int64                       `json:"updatedAt"`
+	ReferencingResource utils.WorkloadSingleRequest `json:"referencingResource"` // the resource that triggered this task (empty for whole-scope runs)
+	TriggeredBy         AiFilter                    `json:"triggeredBy"`         // the event filter that matched (empty for cron/manual runs)
+	ReadByUsers         []ReadBy                    `json:"readByUsers"`
+	Error               string                      `json:"error"`
 
 	AgentRef        string        `json:"agentRef,omitempty"`        // name of the Agent CR this task belongs to
 	Trigger         string        `json:"trigger,omitempty"`         // "event", "cron" or "manual"
@@ -111,6 +117,12 @@ const (
 	AI_TASK_STATE_EXECUTED         AiTaskState = "executed"
 	AI_TASK_STATE_EXECUTION_FAILED AiTaskState = "execution-failed"
 )
+
+// maxAiTaskRetries caps how often a failed task is re-attempted. Every retry
+// re-runs the full analysis loop (the complete exploration, tens of thousands
+// of tokens), so failures that survived the in-conversation repair turns are
+// almost certainly systematic — give up instead of burning the token budget.
+const maxAiTaskRetries = 2
 
 type AiFilter struct {
 	Id          string            `json:"id"`
@@ -163,16 +175,16 @@ type AiResponse struct {
 }
 
 type Analysis struct {
-	ProblemDescription  string                        `json:"problemDescription"`
-	PossibleCauses      []string                      `json:"possibleCauses"`
-	ProposedSolutions   []Solution                    `json:"proposedSolutions"`
-	AdditionalInfo      string                        `json:"additionalInformation"`
-	NeedsFollowUp       bool                          `json:"needsFollowUp"`
-	FollowUpResources   []utils.WorkloadSingleRequest `json:"followUpResources"`
-	CurrentResourceYaml string                        `json:"currentResourceYaml"`
-	TargetResourceYaml  string                        `json:"targetResourceYaml"`
-	TargetResource      utils.WorkloadSingleRequest   `json:"targetResource"`
-	ProposedOperation   string                        `json:"proposedOperation,omitempty"` // UpdateResource', 'DeleteResource', 'CreateResource', 'Other'
+	ProblemDescription  string                      `json:"problemDescription"`
+	PossibleCauses      []string                    `json:"possibleCauses"`
+	ProposedSolutions   []Solution                  `json:"proposedSolutions"`
+	AdditionalInfo      string                      `json:"additionalInformation"`
+	NeedsFollowUp       bool                        `json:"needsFollowUp"`
+	FollowUpResources   []FollowUpResource          `json:"followUpResources"`
+	CurrentResourceYaml string                      `json:"currentResourceYaml"`
+	TargetResourceYaml  string                      `json:"targetResourceYaml"`
+	TargetResource      utils.WorkloadSingleRequest `json:"targetResource"`
+	ProposedOperation   string                      `json:"proposedOperation,omitempty"` // UpdateResource', 'DeleteResource', 'CreateResource', 'Other'
 }
 
 type Solution struct {
@@ -614,6 +626,7 @@ func (ai *aiManager) resetInProgressTasksOnStartup() error {
 		if task.State == AI_TASK_STATE_IN_PROGRESS {
 			task.State = AI_TASK_STATE_PENDING
 			task.Error = ""
+			task.CurrentActivity = ""
 			if err := ai.createOrUpdateAiTask(&task, key); err != nil {
 				ai.logger.Error("Error updating AI task during startup reset", "taskID", task.ID, "error", err)
 				continue
@@ -964,7 +977,7 @@ func (ai *aiManager) processAiTaskQueue(ctx context.Context) {
 			ai.logger.Error("Error unmarshaling AI task", "key", key, "error", err)
 			continue
 		}
-		if task.State == AI_TASK_STATE_PENDING || task.State == AI_TASK_STATE_FAILED {
+		if task.State == AI_TASK_STATE_PENDING || (task.State == AI_TASK_STATE_FAILED && task.Retries < maxAiTaskRetries) {
 			pendingTasks = append(pendingTasks, aiTaskWithKey{key: key, task: task})
 		}
 	}
@@ -1021,24 +1034,30 @@ func (ai *aiManager) processAiTaskQueue(ctx context.Context) {
 		// fast tool-call storm doesn't flood the event channel.
 		taskCtx, cancelTask := context.WithCancel(ctx)
 		var lastProgressPush time.Time
-		onProgress := func(tokens int64) {
+		onProgress := func(tokens int64, activity string) {
 			if ai.taskCancelReason(task.ID) != "" {
 				cancelTask()
 				return
+			}
+			task.TokensUsed = tokens
+			if activity != "" {
+				// Keep the last activity even across throttled pushes so the
+				// next event carries the current one, not a stale line.
+				task.CurrentActivity = activity
 			}
 			if time.Since(lastProgressPush) < 2*time.Second {
 				return
 			}
 			lastProgressPush = time.Now()
-			task.TokensUsed = tokens
 			if err := ai.createOrUpdateAiTask(&task, key); err != nil {
-				ai.logger.Warn("Failed to persist AI task token progress", "taskID", task.ID, "error", err)
+				ai.logger.Warn("Failed to persist AI task progress", "taskID", task.ID, "error", err)
 			}
 			ai.sendAiEvent(latestTask)
 		}
 
 		response, tokensUsed, timeUsedInMs, modelUsed, err := ai.processPrompt(taskCtx, task.Prompt, toolCtx, &agent.Spec, onProgress)
 		cancelTask()
+		task.CurrentActivity = ""
 		if err != nil {
 			if reason := ai.taskCancelReason(task.ID); errors.Is(err, context.Canceled) && ctx.Err() == nil && reason != "" {
 				// Canceled by a user, not by shutdown: the run is void, not broken.
@@ -1048,15 +1067,21 @@ func (ai *aiManager) processAiTaskQueue(ctx context.Context) {
 				ai.logger.Info("AI task canceled", "taskID", task.ID, "reason", reason)
 			} else {
 				task.Error = err.Error()
+				task.Retries++
 				// Non-retryable API errors (billing, invalid request, auth) must not be retried.
 				// Mark as ignored so processPendingTasks skips them on the next run.
 				var apiErr *anthropic.Error
 				if errors.As(err, &apiErr) && (apiErr.StatusCode == 400 || apiErr.StatusCode == 401 || apiErr.StatusCode == 403) {
 					task.State = AI_TASK_STATE_IGNORED
+				} else if task.Retries >= maxAiTaskRetries {
+					// Every retry re-runs the whole analysis loop; a task that
+					// failed repeatedly is broken systematically, not transiently.
+					task.State = AI_TASK_STATE_IGNORED
+					task.Error = fmt.Sprintf("giving up after %d failed attempts: %s", task.Retries, err.Error())
 				} else {
 					task.State = AI_TASK_STATE_FAILED
 				}
-				ai.logger.Error("Error processing AI task", "taskID", task.ID, "error", err)
+				ai.logger.Error("Error processing AI task", "taskID", task.ID, "attempt", task.Retries, "state", task.State, "error", err)
 			}
 		} else {
 			task.Response = response
@@ -1215,9 +1240,10 @@ func (ai *aiManager) shouldCreateNewTask(key string) (bool, error) {
 const finalAnswerNudge = "Your tool-call budget is exhausted — do not request any more tools. Based on what you have inspected so far, respond now with your final answer as a single JSON object in the required response format."
 
 // processPrompt runs the unattended analysis loop. onProgress (nil-tolerant)
-// is invoked after every LLM turn with the tokens used so far — it powers the
-// live token counter in the UI and the cancel check.
-func (ai *aiManager) processPrompt(ctx context.Context, prompt string, toolCtx *ToolContext, agentSpec *v1alpha1.AgentSpec, onProgress func(tokensUsed int64)) (response *AiResponse, tokensUsed int64, timeUsedInMs int, modelUser string, err error) {
+// is invoked after every LLM turn with the tokens used so far and on every
+// tool call with a human-readable activity line — it powers the live token
+// counter and "currently working on" display in the UI plus the cancel check.
+func (ai *aiManager) processPrompt(ctx context.Context, prompt string, toolCtx *ToolContext, agentSpec *v1alpha1.AgentSpec, onProgress func(tokensUsed int64, activity string)) (response *AiResponse, tokensUsed int64, timeUsedInMs int, modelUser string, err error) {
 	startTime := time.Now()
 	model, err := ai.getAiModel()
 	if err != nil {

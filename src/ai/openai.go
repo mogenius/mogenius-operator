@@ -10,7 +10,7 @@ import (
 	"github.com/openai/openai-go/v3"
 )
 
-func (ai *aiManager) processPromptOpenAi(ctx context.Context, model, systemPrompt, prompt string, maxToolCalls int, toolCtx *ToolContext, onProgress func(int64)) (*AiResponse, int64, int, string, error) {
+func (ai *aiManager) processPromptOpenAi(ctx context.Context, model, systemPrompt, prompt string, maxToolCalls int, toolCtx *ToolContext, onProgress func(int64, string)) (*AiResponse, int64, int, string, error) {
 	startTime := time.Now()
 
 	client, err := ai.getOpenAIClient(nil)
@@ -49,7 +49,7 @@ func (ai *aiManager) processPromptOpenAi(ctx context.Context, model, systemPromp
 			tokensUsed += chatCompletion.Usage.TotalTokens
 		}
 		if onProgress != nil {
-			onProgress(tokensUsed)
+			onProgress(tokensUsed, "")
 		}
 
 		if len(chatCompletion.Choices) == 0 {
@@ -73,6 +73,10 @@ func (ai *aiManager) processPromptOpenAi(ctx context.Context, model, systemPromp
 			err := json.Unmarshal([]byte(toolCall.Function.Arguments), &args)
 			if err != nil {
 				return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("error unmarshaling tool arguments: %v", err)
+			}
+
+			if onProgress != nil {
+				onProgress(tokensUsed, describeToolCall(toolCall.Function.Name, args))
 			}
 
 			var data string
@@ -114,21 +118,35 @@ func (ai *aiManager) processPromptOpenAi(ctx context.Context, model, systemPromp
 		// Continue the loop to get the next response with tool results
 	}
 
-	responseText := cleanJSONResponse(chatCompletion.Choices[0].Message.Content)
-	responseBytes, removedText, err := extractJSONRobust(responseText)
-	ai.logger.Info("Extracted JSON from AI response", "removed_text", removedText)
-	if err != nil {
-		return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("error extracting JSON from AI response: %v\n%s", err, responseText)
+	// Parse the final answer; a schema violation gets bounded repair turns
+	// (feeding the parse error back) instead of discarding the whole run.
+	for attempt := 0; ; attempt++ {
+		responseText := chatCompletion.Choices[0].Message.Content
+		aiResponse, removedText, parseErr := parseAiResponse(responseText)
+		if parseErr == nil {
+			ai.logger.Info("Extracted JSON from AI response", "removed_text", removedText)
+			return aiResponse, tokensUsed, int(time.Since(startTime).Milliseconds()), model, nil
+		}
+		if attempt >= maxAnalysisRepairs {
+			return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("final answer unparsable after %d repair attempts: %v\n%s", attempt, parseErr, responseText)
+		}
+		ai.logger.Warn("Final answer unparsable, requesting repair", "error", parseErr, "attempt", attempt+1)
+		params.Messages = append(params.Messages, openai.UserMessage(fmt.Sprintf("Your answer could not be processed: %s. Respond again with ONLY the corrected final answer as a single JSON object in the required response format.", parseErr.Error())))
+		chatCompletion, err = client.Chat.Completions.New(ctx, params)
+		if err != nil {
+			return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("repair attempt failed: %w", err)
+		}
+		if chatCompletion != nil {
+			tokensUsed += chatCompletion.Usage.TotalTokens
+		}
+		if onProgress != nil {
+			onProgress(tokensUsed, "")
+		}
+		if len(chatCompletion.Choices) == 0 {
+			return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("no choices returned for the repair attempt")
+		}
+		params.Messages = append(params.Messages, chatCompletion.Choices[0].Message.ToParam())
 	}
-
-	var aiResponse AiResponse
-	err = json.Unmarshal(responseBytes, &aiResponse)
-	if err != nil {
-		return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("error unmarshaling AI response: %v\n%s", err, chatCompletion.Choices[0].Message.Content)
-	}
-
-	// also return tokens used
-	return &aiResponse, tokensUsed, int(time.Since(startTime).Milliseconds()), model, nil
 }
 
 func (ai *aiManager) openaiChat(
