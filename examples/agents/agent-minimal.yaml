@@ -1,0 +1,28 @@
+# Minimal AI agent: runs on a schedule and on demand, scoped to two namespaces.
+# Agents are only processed in the operator's namespace (MO_OWN_NAMESPACE,
+# default "mogenius") — apply them there.
+apiVersion: mogenius.com/v1alpha1
+kind: Agent
+metadata:
+  name: cost-optimizer
+  namespace: mogenius
+spec:
+  displayName: Cost Optimizer
+  description: Looks for over-provisioned workloads and proposes right-sizing.
+  icon: fa-coins # optional, Font Awesome name shown in the UI
+  # Appended to the system prompt on every run of this agent.
+  instruction: |
+    Review the resource requests and limits of the workloads in your scope.
+    Propose right-sizing for the single most over-provisioned workload.
+    Be conservative — never shrink resources you are not certain about.
+  enabled: true
+  scope:
+    # Explicit namespaces, or the single entry "*" for all namespaces.
+    # Alternatively (or additionally) reference a mogenius Workspace:
+    # workspaceRef: my-workspace
+    namespaces:
+      - prod
+      - staging
+  triggers:
+    cron: "0 6 * * 1" # standard 5-field cron; empty disables scheduled runs
+    manual: true # allow "Run now" from the UI

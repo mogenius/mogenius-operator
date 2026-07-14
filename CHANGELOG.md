@@ -1,3 +1,138 @@
+# [2.24.0-develop.18](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.17...v2.24.0-develop.18) (2026-07-14)
+
+
+### Bug Fixes
+
+* aiinsights improved ([f004483](https://github.com/mogenius/mogenius-operator/commit/f004483a5fdc953bf570dffa77ae7dab2d563392))
+
+# [2.24.0-develop.17](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.16...v2.24.0-develop.17) (2026-07-14)
+
+
+### Bug Fixes
+
+* aiinsights improved ([ca71dd7](https://github.com/mogenius/mogenius-operator/commit/ca71dd7328171dc2145e96885364dd269d306598))
+
+# [2.24.0-develop.16](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.15...v2.24.0-develop.16) (2026-07-14)
+
+
+### Features
+
+* report deployed namespace to platform ([5e269ac](https://github.com/mogenius/mogenius-operator/commit/5e269acb15993dfb550d2ea97f91243774922a30))
+
+# [2.24.0-develop.15](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.14...v2.24.0-develop.15) (2026-07-14)
+
+
+### Bug Fixes
+
+* aiinsights improved ([3777c00](https://github.com/mogenius/mogenius-operator/commit/3777c00375c340a0a339cade5fe48227280bf475))
+
+# [2.24.0-develop.14](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.13...v2.24.0-develop.14) (2026-07-14)
+
+
+### Bug Fixes
+
+* aiinsights improved ([c878dc7](https://github.com/mogenius/mogenius-operator/commit/c878dc7beb6dae53773513c515c2fa76d8450528))
+
+# [2.24.0-develop.13](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.12...v2.24.0-develop.13) (2026-07-14)
+
+
+### Bug Fixes
+
+* aiinsights improved ([faefce0](https://github.com/mogenius/mogenius-operator/commit/faefce0429c1fb069fde470dd734fe2dcb3f423b))
+
+# [2.24.0-develop.12](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.11...v2.24.0-develop.12) (2026-07-14)
+
+
+### Bug Fixes
+
+* default optional valkey config keys to empty string ([f715096](https://github.com/mogenius/mogenius-operator/commit/f715096e017870f509e503350402168809b5c89b)), closes [#1065](https://github.com/mogenius/mogenius-operator/issues/1065)
+
+# [2.24.0-develop.11](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.10...v2.24.0-develop.11) (2026-07-14)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/ollama/ollama to v0.32.0 ([8463790](https://github.com/mogenius/mogenius-operator/commit/846379099191ece2102becd28c65a1693a39f1c6))
+
+# [2.24.0-develop.10](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.9...v2.24.0-develop.10) (2026-07-13)
+
+
+### Bug Fixes
+
+* aiinsights improved ([15fced9](https://github.com/mogenius/mogenius-operator/commit/15fced9dcbe023106c2c19360315b1feee58cdbf))
+
+
+### Features
+
+* add ability to use external valkey ([82c9bb2](https://github.com/mogenius/mogenius-operator/commit/82c9bb2819c9c21895ac3718e2bc2b9e1bf2b6a5))
+
+# [2.24.0-develop.9](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.8...v2.24.0-develop.9) (2026-07-13)
+
+
+### Bug Fixes
+
+* new agentic ai-insights approach ([34ab2e4](https://github.com/mogenius/mogenius-operator/commit/34ab2e41dde981053ad0705e76f90b49d2bbba6f))
+
+# [2.24.0-develop.8](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.7...v2.24.0-develop.8) (2026-07-13)
+
+
+### Features
+
+* adding reconciler metrics ([76d43e4](https://github.com/mogenius/mogenius-operator/commit/76d43e4991a19f95764702389436df39a55e53b5))
+* enable renovate operator servicemonitor if kind exists ([a9468a8](https://github.com/mogenius/mogenius-operator/commit/a9468a81f6cf9dcd7a3e429cc66e1c3a3d222659))
+* enable traefik metrics if servicemonitors exist in the cluster ([5f45449](https://github.com/mogenius/mogenius-operator/commit/5f45449d98031777d1900202fa3880349576bdec))
+* only create externalsecrets if externalsecrets already exist in the api ([bd874b9](https://github.com/mogenius/mogenius-operator/commit/bd874b9c64f05881d8685439f7589aed84bd13f2))
+
+# [2.24.0-develop.7](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.6...v2.24.0-develop.7) (2026-07-13)
+
+
+### Bug Fixes
+
+* new agentic ai-insights approach ([35d2d8b](https://github.com/mogenius/mogenius-operator/commit/35d2d8b8ff864e9e73f0e86df7ccf0565229acd3))
+
+# [2.24.0-develop.6](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.5...v2.24.0-develop.6) (2026-07-13)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/anthropics/anthropic-sdk-go to v1.57.0 ([b4f4655](https://github.com/mogenius/mogenius-operator/commit/b4f4655e0f6123ab8df778d5f5f90e0137bf0f3a))
+* **deps:** update module github.com/openai/openai-go/v3 to v3.42.0 ([fead5c7](https://github.com/mogenius/mogenius-operator/commit/fead5c7834c8eb455d48d417191ed6cc17d697e3))
+
+# [2.24.0-develop.5](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.4...v2.24.0-develop.5) (2026-07-10)
+
+
+### Bug Fixes
+
+* new agentic ai-insights approach ([8161a1a](https://github.com/mogenius/mogenius-operator/commit/8161a1a60d4d159114b7f646222645f6980e09aa))
+
+# [2.24.0-develop.4](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.3...v2.24.0-develop.4) (2026-07-10)
+
+
+### Bug Fixes
+
+* new agentic ai-insights approach ([2df8bae](https://github.com/mogenius/mogenius-operator/commit/2df8bae03f8b065b7061077d283e5727836a351a))
+
+# [2.24.0-develop.3](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.2...v2.24.0-develop.3) (2026-07-10)
+
+
+### Bug Fixes
+
+* **deps:** update module helm.sh/helm/v4 to v4.2.3 ([0c3e10f](https://github.com/mogenius/mogenius-operator/commit/0c3e10fed3862e3ddc987167e7e4f754ff17f449))
+
+# [2.24.0-develop.2](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.1...v2.24.0-develop.2) (2026-07-10)
+
+
+### Bug Fixes
+
+* MOG-4450 job deletion fails because of orphan finalizer ([62ac4d4](https://github.com/mogenius/mogenius-operator/commit/62ac4d49d1e7fc92a25b8434283ee22b3a4b09f6))
+
+# [2.24.0-develop.1](https://github.com/mogenius/mogenius-operator/compare/v2.23.3-develop.5...v2.24.0-develop.1) (2026-07-10)
+
+
+### Features
+
+* add support for victoria-metrics as bring-your-own monitoring solution ([b4d2da8](https://github.com/mogenius/mogenius-operator/commit/b4d2da8901245eb685761715c04d85a7045164b1))
+
 ## [2.23.3-develop.5](https://github.com/mogenius/mogenius-operator/compare/v2.23.3-develop.4...v2.23.3-develop.5) (2026-07-09)
 
 

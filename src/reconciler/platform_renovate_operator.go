@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"mogenius-operator/src/crds/v1alpha1"
 	"mogenius-operator/src/gitops"
+	"mogenius-operator/src/utils"
 )
 
 func (d *reconcilerModule) reconcileRenovateOperator(ctx context.Context, spec v1alpha1.PlatformConfigSpec, installer gitops.GitOpsInstaller, op operation) *ReconcileResult {
@@ -44,9 +45,9 @@ func (d *reconcilerModule) reconcileRenovateOperator(ctx context.Context, spec v
 							return nil, fmt.Errorf("renovate job %q: provide externalSecret.vault or define a vault in spec.externalSecretsOperator", name)
 						}
 					}
-					extraObjects = append(extraObjects,
-						externalSecretResource(name, namespace, *rc.ExternalSecret, nil, nil),
-					)
+					if d.crdChecker.IsAvailable(utils.ExternalSecretResource) {
+						extraObjects = append(extraObjects, externalSecretResource(name, namespace, *rc.ExternalSecret, nil, nil))
+					}
 				}
 
 				extraObjects = append(extraObjects, renovateJobObject(name, rc, namespace))
@@ -55,14 +56,27 @@ func (d *reconcilerModule) reconcileRenovateOperator(ctx context.Context, spec v
 			return extraObjects, nil
 		},
 		func(ctx context.Context) (map[string]any, error) {
+			values := map[string]any{}
+
 			if c.MaxParallelJobs > 0 {
-				return map[string]any{
-					"config": map[string]any{
-						"globalParallelismLimit": c.MaxParallelJobs,
-					},
-				}, nil
+				values["config"] = map[string]any{
+					"globalParallelismLimit": c.MaxParallelJobs,
+				}
 			}
-			return nil, nil
+
+			if d.crdChecker.IsAvailable(utils.ServiceMonitorResource) {
+				values["metrics"] = map[string]any{
+					"enabled": true,
+					"serviceMonitor": map[string]any{
+						"enabled": true,
+					},
+				}
+			}
+
+			if len(values) == 0 {
+				return nil, nil
+			}
+			return values, nil
 		},
 	)
 }

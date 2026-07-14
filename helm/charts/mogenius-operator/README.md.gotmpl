@@ -66,6 +66,61 @@ global:
   api_key: your-api-key
 ```
 
+### Using an External Key-Value Store
+
+By default the chart deploys a bundled Valkey instance. To use an existing external
+Redis/Valkey-compatible key-value store instead, disable the bundled Valkey and enable
+`externalKeyValueStore`:
+
+```yaml
+valkey:
+  enabled: false
+
+externalKeyValueStore:
+  enabled: true
+  host: my-redis.example.com
+  # port defaults to 6379 (the standard Redis/Valkey port)
+  port: 6379
+  # optional ACL username (leave empty for the default user)
+  username: appuser
+  # the password is always read from an existing secret (no plaintext value).
+  # Leave name empty if your store requires no authentication.
+  existingSecret:
+    name: my-redis-secret
+    key: valkey-password
+```
+
+`valkey.enabled` and `externalKeyValueStore.enabled` are mutually exclusive — enable
+exactly one. The chart rendering fails fast if both are enabled, if neither is enabled,
+or if `externalKeyValueStore.enabled` is set without a `host`.
+
+#### TLS
+
+Enable TLS for the connection to the external store via `externalKeyValueStore.tls`:
+
+```yaml
+externalKeyValueStore:
+  enabled: true
+  host: my-redis.example.com
+  port: 6380
+  existingSecret:
+    name: my-redis-secret
+    key: valkey-password
+  tls:
+    enabled: true
+    # For publicly-trusted managed services (e.g. AWS ElastiCache), the system
+    # trust store is used and no further config is needed.
+    #
+    # For a private/self-signed CA, provide the CA certificate from an existing
+    # secret. It is mounted into the operator (and node-metrics) pods and used to
+    # verify the server certificate:
+    caCertSecret:
+      name: my-ca-secret
+      key: ca.crt
+    # Alternatively, skip verification entirely (insecure, only for trusted networks):
+    # insecureSkipVerify: true
+```
+
 ### Upgrade the Helm Chart
 
 To upgrade the `{{ .Name }}` Helm chart from the repository, run:

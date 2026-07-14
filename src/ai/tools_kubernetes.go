@@ -8,6 +8,7 @@ import (
 	"mogenius-operator/src/valkeyclient"
 	"sort"
 
+	"github.com/valkey-io/valkey-go"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/yaml"
@@ -151,6 +152,11 @@ func checkKubernetesResourceTool(args map[string]any, tc *ToolContext, valkeyCli
 	res, err := store.GetResource(valkeyClient, apiVersion, kind, namespace, name, logger)
 
 	if err != nil {
+		// A missing key surfaces as a valkey nil error — tell the model the
+		// resource does not exist instead of returning a retryable-looking error.
+		if valkey.IsValkeyNil(err) {
+			return fmt.Sprintf("Resource %s/%s %q not found in namespace %q — it does not exist, do not retry", apiVersion, kind, name, namespace)
+		}
 		logger.Error("Error checking resource", "error", err)
 		return fmt.Sprintf("Error checking resource: %v", err)
 	}
@@ -203,6 +209,9 @@ func getKubernetesResourcesTool(args map[string]any, tc *ToolContext, valkeyClie
 	resources, err := store.GetResource(valkeyClient, apiVersion, kind, namespace, name, logger)
 
 	if err != nil {
+		if valkey.IsValkeyNil(err) {
+			return fmt.Sprintf("Resource %s/%s %q not found in namespace %q — it does not exist, do not retry", apiVersion, kind, name, namespace)
+		}
 		logger.Error("Error retrieving resources", "error", err)
 		return fmt.Sprintf("Error retrieving resources: %v", err)
 	}

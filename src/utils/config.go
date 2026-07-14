@@ -154,6 +154,13 @@ var UserResource = ResourceDescriptor{
 	Namespaced: true,
 }
 
+var AgentResource = ResourceDescriptor{
+	Kind:       "Agent",
+	Plural:     "agents",
+	ApiVersion: "mogenius.com/v1alpha1",
+	Namespaced: true,
+}
+
 var PlatformConfigResource = ResourceDescriptor{
 	Kind:       "PlatformConfig",
 	Plural:     "platformconfigs",
@@ -221,6 +228,13 @@ var AppProjectResource = ResourceDescriptor{
 	Kind:       "AppProject",
 	Plural:     "appprojects",
 	ApiVersion: "argoproj.io/v1alpha1",
+	Namespaced: true,
+}
+
+var ServiceMonitorResource = ResourceDescriptor{
+	Kind:       "ServiceMonitor",
+	Plural:     "servicemonitors",
+	ApiVersion: "monitoring.coreos.com/v1",
 	Namespaced: true,
 }
 

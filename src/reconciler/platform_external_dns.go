@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"mogenius-operator/src/crds/v1alpha1"
 	"mogenius-operator/src/gitops"
+	"mogenius-operator/src/utils"
 )
 
 func (d *reconcilerModule) reconcileExternalDNS(ctx context.Context, spec v1alpha1.PlatformConfigSpec, installer gitops.GitOpsInstaller, op operation) *ReconcileResult {
@@ -38,8 +39,9 @@ func (d *reconcilerModule) reconcileExternalDNS(ctx context.Context, spec v1alph
 				}
 			}
 
-			externalSecret := externalSecretResource(providerSecretName, externalDnsNamespace, spec.ExternalDNS.ExternalSecret, nil, nil)
-			extraObjects = append(extraObjects, externalSecret)
+			if d.crdChecker.IsAvailable(utils.ExternalSecretResource) {
+				extraObjects = append(extraObjects, externalSecretResource(providerSecretName, externalDnsNamespace, spec.ExternalDNS.ExternalSecret, nil, nil))
+			}
 
 			return extraObjects, nil
 		},

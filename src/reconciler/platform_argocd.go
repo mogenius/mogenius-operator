@@ -67,15 +67,17 @@ func (d *reconcilerModule) reconcileArgoCD(ctx context.Context, spec v1alpha1.Pl
 					if repo.ExternalSecret.Key != "" {
 						repoSecretKey = repo.ExternalSecret.Key
 					}
-					extraObjects = append(extraObjects, externalSecretResource(name, namespace, *repo.ExternalSecret,
-						map[string]string{"argocd.argoproj.io/secret-type": "repository"},
-						map[string]string{
-							"type":     "git",
-							"url":      repo.URL,
-							"username": "x-token-auth",
-							"password": fmt.Sprintf("{{ .%s }}", repoSecretKey),
-						},
-					))
+					if d.crdChecker.IsAvailable(utils.ExternalSecretResource) {
+						extraObjects = append(extraObjects, externalSecretResource(name, namespace, *repo.ExternalSecret,
+							map[string]string{"argocd.argoproj.io/secret-type": "repository"},
+							map[string]string{
+								"type":     "git",
+								"url":      repo.URL,
+								"username": "x-token-auth",
+								"password": fmt.Sprintf("{{ .%s }}", repoSecretKey),
+							},
+						))
+					}
 				}
 
 				if repo.Path != "" {

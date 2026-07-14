@@ -10,7 +10,7 @@ import (
 	"github.com/openai/openai-go/v3"
 )
 
-func (ai *aiManager) processPromptOpenAi(ctx context.Context, model, systemPrompt, prompt string, maxToolCalls int) (*AiResponse, int64, int, string, error) {
+func (ai *aiManager) processPromptOpenAi(ctx context.Context, model, systemPrompt, prompt string, maxToolCalls int, toolCtx *ToolContext, onProgress func(int64, string)) ([]*AiResponse, int64, int, string, error) {
 	startTime := time.Now()
 
 	client, err := ai.getOpenAIClient(nil)
@@ -19,8 +19,8 @@ func (ai *aiManager) processPromptOpenAi(ctx context.Context, model, systemPromp
 	}
 
 	// Unattended pipeline: strictly read-only tools, no external MCP tools.
-	// This path runs without a user/ToolContext, and a nil ToolContext
-	// passes every role/namespace check.
+	// The ToolContext additionally scopes reads to the agent's namespaces —
+	// the read-only filter stays as defense in depth.
 	allTools := readOnlyOpenAiTools(append(kubernetesOpenAiTools, helmOpenAiTools...))
 
 	params := openai.ChatCompletionNewParams{
@@ -36,17 +36,22 @@ func (ai *aiManager) processPromptOpenAi(ctx context.Context, model, systemPromp
 	var chatCompletion *openai.ChatCompletion
 	toolCallCount := 0
 	for {
-		// Compact previous tool results so old (already processed) results
-		// don't burn tokens on subsequent API calls.
-		compactOpenAiToolMessages(params.Messages)
-
 		chatCompletion, err = client.Chat.Completions.New(ctx, params)
 		if err != nil {
 			return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, err
 		}
 
+		// Everything in params.Messages has now been seen by the model —
+		// compact the tool results it just processed so they stop burning
+		// tokens on the following turns. Compacting BEFORE the call would
+		// blind the model: results must survive exactly one request.
+		compactOpenAiToolMessages(params.Messages)
+
 		if chatCompletion != nil {
 			tokensUsed += chatCompletion.Usage.TotalTokens
+		}
+		if onProgress != nil {
+			onProgress(tokensUsed, "")
 		}
 
 		if len(chatCompletion.Choices) == 0 {
@@ -72,13 +77,17 @@ func (ai *aiManager) processPromptOpenAi(ctx context.Context, model, systemPromp
 				return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("error unmarshaling tool arguments: %v", err)
 			}
 
+			if onProgress != nil {
+				onProgress(tokensUsed, describeToolCall(toolCall.Function.Name, args))
+			}
+
 			var data string
 			if tool, ok := toolDefinitions[toolCall.Function.Name]; ok {
 				if !viewerAllowedTools[toolCall.Function.Name] {
 					return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("tool %q is not permitted in the unattended insight pipeline", toolCall.Function.Name)
 				}
-				data = tool(args, nil, ai.valkeyClient, ai.logger)
-				ai.auditInsightToolCall(toolCall.Function.Name, args, data)
+				data = tool(args, toolCtx, ai.valkeyClient, ai.logger)
+				ai.auditInsightToolCall(toolCtx, toolCall.Function.Name, args, data)
 			} else {
 				return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("unknown tool called: %s", toolCall.Function.Name)
 			}
@@ -89,41 +98,58 @@ func (ai *aiManager) processPromptOpenAi(ctx context.Context, model, systemPromp
 		// Increase global tool call count and check limit
 		toolCallCount += len(chatCompletion.Choices[0].Message.ToolCalls)
 		if maxToolCalls > 0 && toolCallCount >= maxToolCalls {
-			ai.logger.Info("Max tool call limit reached, exiting loop", "maxToolCalls", maxToolCalls, "toolCallCount", toolCallCount)
+			ai.logger.Info("Max tool call limit reached, forcing final answer", "maxToolCalls", maxToolCalls, "toolCallCount", toolCallCount)
 
-			// Try to finalize using any text presently returned
-			responseText := cleanJSONResponse(chatCompletion.Choices[0].Message.Content)
-			responseBytes, removedText, err := extractJSONRobust(responseText)
-			ai.logger.Info("Extracted JSON after max tool calls", "removed_text", removedText)
+			// One last turn with tool use disabled so the model must answer;
+			// the shared extraction below the loop handles the response. No
+			// compaction here: the pending tool results were never sent, the
+			// model needs them for its final verdict.
+			params.Messages = append(params.Messages, openai.UserMessage(finalAnswerNudge))
+			params.ToolChoice = openai.ChatCompletionToolChoiceOptionUnionParam{OfAuto: openai.String("none")}
+			chatCompletion, err = client.Chat.Completions.New(ctx, params)
 			if err != nil {
-				return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("max tool calls reached (%d) without final text: %v", maxToolCalls, err)
+				return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("max tool calls reached (%d) and final answer request failed: %w", maxToolCalls, err)
 			}
-
-			var aiResponse AiResponse
-			if err := json.Unmarshal(responseBytes, &aiResponse); err != nil {
-				return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("error unmarshaling AI response after max tool calls: %v\n%s", err, chatCompletion.Choices[0].Message.Content)
+			if chatCompletion != nil {
+				tokensUsed += chatCompletion.Usage.TotalTokens
 			}
-
-			return &aiResponse, tokensUsed, int(time.Since(startTime).Milliseconds()), model, nil
+			if len(chatCompletion.Choices) == 0 {
+				return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("max tool calls reached (%d) and no choices returned for the final answer", maxToolCalls)
+			}
+			break
 		}
 		// Continue the loop to get the next response with tool results
 	}
 
-	responseText := cleanJSONResponse(chatCompletion.Choices[0].Message.Content)
-	responseBytes, removedText, err := extractJSONRobust(responseText)
-	ai.logger.Info("Extracted JSON from AI response", "removed_text", removedText)
-	if err != nil {
-		return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("error extracting JSON from AI response: %v\n%s", err, responseText)
+	// Parse the final answer; a schema violation gets bounded repair turns
+	// (feeding the parse error back) instead of discarding the whole run.
+	for attempt := 0; ; attempt++ {
+		responseText := chatCompletion.Choices[0].Message.Content
+		aiResponse, removedText, parseErr := parseAiResponse(responseText)
+		if parseErr == nil {
+			ai.logger.Info("Extracted JSON from AI response", "removed_text", removedText)
+			return aiResponse, tokensUsed, int(time.Since(startTime).Milliseconds()), model, nil
+		}
+		if attempt >= maxAnalysisRepairs {
+			return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("final answer unparsable after %d repair attempts: %v\n%s", attempt, parseErr, responseText)
+		}
+		ai.logger.Warn("Final answer unparsable, requesting repair", "error", parseErr, "attempt", attempt+1)
+		params.Messages = append(params.Messages, openai.UserMessage(fmt.Sprintf("Your answer could not be processed: %s. Respond again with ONLY the corrected final answer as a single JSON object in the required response format.", parseErr.Error())))
+		chatCompletion, err = client.Chat.Completions.New(ctx, params)
+		if err != nil {
+			return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("repair attempt failed: %w", err)
+		}
+		if chatCompletion != nil {
+			tokensUsed += chatCompletion.Usage.TotalTokens
+		}
+		if onProgress != nil {
+			onProgress(tokensUsed, "")
+		}
+		if len(chatCompletion.Choices) == 0 {
+			return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("no choices returned for the repair attempt")
+		}
+		params.Messages = append(params.Messages, chatCompletion.Choices[0].Message.ToParam())
 	}
-
-	var aiResponse AiResponse
-	err = json.Unmarshal(responseBytes, &aiResponse)
-	if err != nil {
-		return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("error unmarshaling AI response: %v\n%s", err, chatCompletion.Choices[0].Message.Content)
-	}
-
-	// also return tokens used
-	return &aiResponse, tokensUsed, int(time.Since(startTime).Milliseconds()), model, nil
 }
 
 func (ai *aiManager) openaiChat(

@@ -3,6 +3,7 @@ package ai
 import (
 	"log/slog"
 	map0 "maps"
+	"mogenius-operator/src/crds/v1alpha1"
 	"mogenius-operator/src/store"
 	"mogenius-operator/src/structs"
 	"mogenius-operator/src/utils"
@@ -25,6 +26,10 @@ type ToolContext struct {
 	// unattended insight path (which only ever gets read-only tools).
 	User      *structs.User
 	Workspace string
+
+	// AuditSource overrides the audit log source for mutating tool calls;
+	// empty defaults to "ai-chat" (the interactive chat path).
+	AuditSource string
 }
 
 // hasRestrictions returns true when any scoping is configured.
@@ -111,24 +116,31 @@ func (tc *ToolContext) IsAdmin() bool {
 }
 
 func newToolContextFromIOChannel(ioChannel IOChatChannel) *ToolContext {
+	return newToolContextFromUserGrant(ioChannel.User, ioChannel.Workspace, ioChannel.IsAdmin, ioChannel.WorkspaceSpec, ioChannel.WorkspaceGrant)
+}
+
+// newToolContextFromUserGrant builds a ToolContext from a user's workspace
+// grant. Shared by the chat path and the task-approval execution path so both
+// enforce identical scoping.
+func newToolContextFromUserGrant(user *structs.User, workspace string, isAdmin bool, workspaceSpec *v1alpha1.WorkspaceSpec, workspaceGrant *v1alpha1.GrantSpec) *ToolContext {
 	tc := &ToolContext{
-		User:      ioChannel.User,
-		Workspace: ioChannel.Workspace,
+		User:      user,
+		Workspace: workspace,
 	}
 
-	if ioChannel.IsAdmin || (ioChannel.WorkspaceSpec == nil && ioChannel.WorkspaceGrant == nil) {
+	if isAdmin || (workspaceSpec == nil && workspaceGrant == nil) {
 		// No restrictions: an empty Role and nil allow-maps behave exactly
 		// like the former nil ToolContext in every permission check; the
 		// context now only carries audit attribution.
 		return tc
 	}
 
-	if ioChannel.WorkspaceGrant != nil {
-		tc.Role = ioChannel.WorkspaceGrant.Role
+	if workspaceGrant != nil {
+		tc.Role = workspaceGrant.Role
 	}
 
-	if ioChannel.WorkspaceSpec != nil && len(ioChannel.WorkspaceSpec.Resources) > 0 {
-		for _, res := range ioChannel.WorkspaceSpec.Resources {
+	if workspaceSpec != nil && len(workspaceSpec.Resources) > 0 {
+		for _, res := range workspaceSpec.Resources {
 			switch res.Type {
 			case "namespace":
 				if res.Id != "" {
@@ -161,6 +173,30 @@ func newToolContextFromIOChannel(ioChannel IOChatChannel) *ToolContext {
 	return tc
 }
 
+// newToolContextFromAgent builds the read-only ToolContext an agent's
+// unattended analysis runs under. The role is always "viewer" (an empty Role
+// would pass IsEditor/IsAdmin) and the namespace allow-map must be non-empty —
+// callers must not run an agent whose scope resolved to zero namespaces.
+func newToolContextFromAgent(agent *v1alpha1.Agent, resolvedNamespaces []string) *ToolContext {
+	allowed := make(map[string]bool, len(resolvedNamespaces))
+	for _, ns := range resolvedNamespaces {
+		if ns != "" {
+			allowed[ns] = true
+		}
+	}
+	return &ToolContext{
+		AllowedNamespaces: allowed,
+		Role:              "viewer",
+		User: &structs.User{
+			FirstName: "Agent",
+			LastName:  agent.Name,
+			Email:     "agent:" + agent.Name + "@system",
+			Source:    "ai-agent",
+		},
+		Workspace: agent.Spec.Scope.WorkspaceRef,
+	}
+}
+
 // auditAiToolMutation writes a resource-indexed audit log entry for a
 // mutating AI tool call — same key scheme, diff handling and sanitization
 // as the socketapi handlers, so "who changed resource X" queries also find
@@ -176,6 +212,9 @@ func auditAiToolMutation(tc *ToolContext, logger *slog.Logger, toolName string, 
 		if tc.User != nil {
 			user = *tc.User
 			user.Source = "ai-chat"
+			if tc.AuditSource != "" {
+				user.Source = tc.AuditSource
+			}
 		}
 		workspace = tc.Workspace
 	}

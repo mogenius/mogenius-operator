@@ -1,0 +1,237 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.21.0
+  name: agents.mogenius.com
+spec:
+  group: mogenius.com
+  names:
+    categories:
+    - mogenius
+    kind: Agent
+    listKind: AgentList
+    plural: agents
+    shortNames:
+    - aiagent
+    singular: agent
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.enabled
+      name: Enabled
+      type: boolean
+    - jsonPath: .status.conditions[?(@.type=="Ready")].status
+      name: Ready
+      type: string
+    - jsonPath: .status.conditions[?(@.type=="Ready")].reason
+      name: Reason
+      type: string
+    - jsonPath: .spec.triggers.cron
+      name: Cron
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: |-
+          A mogenius `Agent` resource defines an AI agent that observes a scoped set
+          of namespaces (read-only) and proposes tasks which a user must approve or
+          reject before anything is executed. Agents are only processed in the
+          operator's own namespace (MO_OWN_NAMESPACE).
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            properties:
+              description:
+                description: Optional description of what this agent looks after.
+                type: string
+              displayName:
+                description: Human-readable name shown in the UI.
+                type: string
+              enabled:
+                description: Disabled agents neither trigger nor process tasks.
+                type: boolean
+              icon:
+                description: |-
+                  Optional icon identifier (e.g. a Font Awesome name like "fa-broom")
+                  shown next to the agent in the UI.
+                type: string
+              instruction:
+                description: |-
+                  Agent-specific instruction appended to the base system prompt for
+                  every run of this agent.
+                type: string
+              model:
+                description: Optional model override; empty uses the cluster-wide
+                  configured model.
+                type: string
+              scope:
+                description: |-
+                  What the agent is allowed to see. Agents are always read-only; the
+                  scope additionally restricts reads to the resolved namespaces.
+                properties:
+                  namespaces:
+                    description: |-
+                      Explicit list of namespaces the agent may see. The single entry "*"
+                      grants visibility into all namespaces (resolved at run time).
+                    items:
+                      maxLength: 63
+                      pattern: ^(\*|[a-z0-9]([-a-z0-9]*[a-z0-9])?)$
+                      type: string
+                    type: array
+                  workspaceRef:
+                    description: Name of a Workspace CR whose namespace resources
+                      define the scope.
+                    type: string
+                type: object
+                x-kubernetes-validations:
+                - message: scope must reference a workspace or list at least one namespace
+                  rule: (has(self.workspaceRef) && self.workspaceRef != "") || (has(self.namespaces)
+                    && self.namespaces.size() > 0)
+              triggers:
+                properties:
+                  cron:
+                    description: Standard 5-field cron expression for periodic runs;
+                      empty disables.
+                    type: string
+                  events:
+                    description: Event filters evaluated against watched cluster resources.
+                    items:
+                      description: |-
+                        AgentEventFilter matches watched resources by kind and JSONPath conditions
+                        (same semantics as the former AiFilter mechanic).
+                      properties:
+                        contains:
+                          additionalProperties:
+                            type: string
+                          description: JSONPath → expected value; any match selects
+                            the object.
+                          minProperties: 1
+                          type: object
+                        excludes:
+                          additionalProperties:
+                            type: string
+                          description: JSONPath → value; any match excludes the object.
+                          type: object
+                        for:
+                          description: Condition must hold for this duration before
+                            a task is created.
+                          type: string
+                        id:
+                          type: string
+                        kind:
+                          type: string
+                        name:
+                          type: string
+                        prompt:
+                          description: Prompt for the analysis run triggered by this
+                            filter.
+                          type: string
+                      required:
+                      - contains
+                      - kind
+                      type: object
+                    type: array
+                  manual:
+                    description: Allow triggering a run manually from the UI.
+                    type: boolean
+                type: object
+            required:
+            - enabled
+            - scope
+            type: object
+          status:
+            properties:
+              conditions:
+                description: |-
+                  Conditions describe the validation state of the agent; the "Ready"
+                  condition reports whether the operator accepts and processes it.
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+              observedGeneration:
+                description: Generation of the spec the conditions were last evaluated
+                  against.
+                format: int64
+                type: integer
+            type: object
+        required:
+        - metadata
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

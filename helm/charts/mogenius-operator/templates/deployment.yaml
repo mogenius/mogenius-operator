@@ -22,8 +22,10 @@ spec:
         {{- if .Values.podLabels }}
         {{- toYaml .Values.podLabels | nindent 8 }}
         {{- end }}
+      {{- if .Values.valkey.enabled }}
       annotations:
         valkey-password-checksum: {{ include "getPasswordHash" (include "lookupSecret" .) | quote }}
+      {{- end }}
     spec:
       {{- with .Values.nodeSelector }}
       nodeSelector:
@@ -37,9 +39,10 @@ spec:
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- if or .Values.valkey.enabled .Values.features.debugTools.enabled }}
+      {{- $valkeyWait := or .Values.valkey.enabled .Values.externalKeyValueStore.enabled }}
+      {{- if or $valkeyWait .Values.features.debugTools.enabled }}
       initContainers:
-        {{- if .Values.valkey.enabled }}
+        {{- if $valkeyWait }}
         {{ include "valkey.wait-for-connection" . | nindent 8 }}
         {{- end }}
         {{- if .Values.features.debugTools.enabled }}
@@ -90,6 +93,9 @@ spec:
             - mountPath: /netshoot
               name: debug-tools
               readOnly: true
+            {{- end }}
+            {{- if eq (include "externalKvs.caEnabled" .) "true" }}
+            {{- include "externalKvs.caVolumeMount" . | nindent 12 }}
             {{- end }}
           ports:
             - containerPort: 1337
@@ -155,4 +161,7 @@ spec:
       {{- if .Values.features.debugTools.enabled }}
       - name: debug-tools
         emptyDir: {}
+      {{- end }}
+      {{- if eq (include "externalKvs.caEnabled" .) "true" }}
+      {{- include "externalKvs.caVolume" . | nindent 6 }}
       {{- end }}

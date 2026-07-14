@@ -271,8 +271,43 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		},
 	})
 	configModule.Declare(config.ConfigDeclaration{
+		Key:          "MO_VALKEY_USERNAME",
+		DefaultValue: new(""),
+		Description:  new("Username (ACL) of operator valkey Server, optional"),
+	})
+	configModule.Declare(config.ConfigDeclaration{
 		Key:         "MO_VALKEY_PASSWORD",
+		IsSecret:    true,
 		Description: new("Password of operator valkey Server"),
+	})
+	configModule.Declare(config.ConfigDeclaration{
+		Key:          "MO_VALKEY_TLS_ENABLED",
+		DefaultValue: new("false"),
+		Description:  new("Enable TLS for the valkey connection"),
+		Validate: func(value string) error {
+			_, err := strconv.ParseBool(value)
+			if err != nil {
+				return fmt.Errorf("'MO_VALKEY_TLS_ENABLED' needs to be a boolean: %s", err.Error())
+			}
+			return nil
+		},
+	})
+	configModule.Declare(config.ConfigDeclaration{
+		Key:          "MO_VALKEY_TLS_INSECURE_SKIP_VERIFY",
+		DefaultValue: new("false"),
+		Description:  new("Skip TLS certificate verification for the valkey connection"),
+		Validate: func(value string) error {
+			_, err := strconv.ParseBool(value)
+			if err != nil {
+				return fmt.Errorf("'MO_VALKEY_TLS_INSECURE_SKIP_VERIFY' needs to be a boolean: %s", err.Error())
+			}
+			return nil
+		},
+	})
+	configModule.Declare(config.ConfigDeclaration{
+		Key:          "MO_VALKEY_TLS_CA_CERT_FILE",
+		DefaultValue: new(""),
+		Description:  new("Path to a CA certificate file used to verify the valkey server, optional"),
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_STATS_RETENTION_MAX_ENTRIES",

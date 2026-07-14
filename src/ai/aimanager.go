@@ -49,20 +49,47 @@ var ValkeyAiTTL = time.Hour * 24 * 7 // 7 days
 
 type AiTaskState string
 type AiTask struct {
-	ID                  string                       `json:"id"`
-	Prompt              string                       `json:"prompt"`
-	Response            *AiResponse                  `json:"response"`
-	State               AiTaskState                  `json:"state"` // pending, in-progress, completed, failed, ignored
-	Controller          *utils.WorkloadSingleRequest `json:"controller,omitempty"`
-	TokensUsed          int64                        `json:"tokensUsed"`
-	Model               string                       `json:"model"`
-	TimeUsedInMs        int                          `json:"timeUsedInMs"`
-	CreatedAt           int64                        `json:"createdAt"`
-	UpdatedAt           int64                        `json:"updatedAt"`
-	ReferencingResource utils.WorkloadSingleRequest  `json:"referencingResource"` // the resource that triggered this task
-	TriggeredBy         AiFilter                     `json:"triggeredBy"`         // e.g., "Failed Pods" filter
-	ReadByUsers         []ReadBy                     `json:"readByUsers"`
-	Error               string                       `json:"error"`
+	ID         string                       `json:"id"`
+	Prompt     string                       `json:"prompt"`
+	Response   *AiResponse                  `json:"response"`
+	State      AiTaskState                  `json:"state"`
+	Controller *utils.WorkloadSingleRequest `json:"controller,omitempty"`
+	TokensUsed int64                        `json:"tokensUsed"`
+	// Retries counts failed processing attempts; tasks at maxAiTaskRetries are
+	// ignored instead of re-running the whole analysis loop again.
+	Retries int `json:"retries,omitempty"`
+	// CurrentActivity is the live "what is the agent doing right now" line for
+	// the UI (tool being called with its key arguments); empty when idle.
+	CurrentActivity string `json:"currentActivity,omitempty"`
+	// RunID groups all finding tasks of one multi-finding run (the primary
+	// task's ID); the UI renders such tasks as a single report.
+	RunID               string                      `json:"runId,omitempty"`
+	Model               string                      `json:"model"`
+	TimeUsedInMs        int                         `json:"timeUsedInMs"`
+	CreatedAt           int64                       `json:"createdAt"`
+	UpdatedAt           int64                       `json:"updatedAt"`
+	ReferencingResource utils.WorkloadSingleRequest `json:"referencingResource"` // the resource that triggered this task (empty for whole-scope runs)
+	TriggeredBy         AiFilter                    `json:"triggeredBy"`         // the event filter that matched (empty for cron/manual runs)
+	ReadByUsers         []ReadBy                    `json:"readByUsers"`
+	Error               string                      `json:"error"`
+
+	AgentRef        string        `json:"agentRef,omitempty"`        // name of the Agent CR this task belongs to
+	Trigger         string        `json:"trigger,omitempty"`         // "event", "cron" or "manual"
+	TriggeredByUser *structs.User `json:"triggeredByUser,omitempty"` // set for manual triggers
+
+	// BaseResourceVersion is the target resource's resourceVersion at proposal
+	// time; approval refuses to execute when the resource changed since.
+	BaseResourceVersion string          `json:"baseResourceVersion,omitempty"`
+	Approval            *ApprovalRecord `json:"approval,omitempty"`
+	ExecutionResult     string          `json:"executionResult,omitempty"`
+}
+
+// ApprovalRecord attributes an approve/reject decision to a user.
+type ApprovalRecord struct {
+	User     structs.User `json:"user"`
+	At       time.Time    `json:"at"`
+	Rejected bool         `json:"rejected,omitempty"`
+	Reason   string       `json:"reason,omitempty"`
 }
 
 type AiTaskLatest struct {
@@ -83,7 +110,22 @@ const (
 	AI_TASK_STATE_FAILED      AiTaskState = "failed"
 	AI_TASK_STATE_IGNORED     AiTaskState = "ignored"
 	AI_TASK_STATE_SOLVED      AiTaskState = "solved"
+
+	// proposal lifecycle: an analysis with an actionable proposed operation
+	// becomes "proposed" and waits for a user decision; approval executes the
+	// operation with the approving user's permissions.
+	AI_TASK_STATE_PROPOSED         AiTaskState = "proposed"
+	AI_TASK_STATE_REJECTED         AiTaskState = "rejected"
+	AI_TASK_STATE_EXECUTING        AiTaskState = "executing"
+	AI_TASK_STATE_EXECUTED         AiTaskState = "executed"
+	AI_TASK_STATE_EXECUTION_FAILED AiTaskState = "execution-failed"
 )
+
+// maxAiTaskRetries caps how often a failed task is re-attempted. Every retry
+// re-runs the full analysis loop (the complete exploration, tens of thousands
+// of tokens), so failures that survived the in-conversation repair turns are
+// almost certainly systematic — give up instead of burning the token budget.
+const maxAiTaskRetries = 2
 
 type AiFilter struct {
 	Id          string            `json:"id"`
@@ -136,22 +178,30 @@ type AiResponse struct {
 }
 
 type Analysis struct {
-	ProblemDescription  string                        `json:"problemDescription"`
-	PossibleCauses      []string                      `json:"possibleCauses"`
-	ProposedSolutions   []Solution                    `json:"proposedSolutions"`
-	AdditionalInfo      string                        `json:"additionalInformation"`
-	NeedsFollowUp       bool                          `json:"needsFollowUp"`
-	FollowUpResources   []utils.WorkloadSingleRequest `json:"followUpResources"`
-	CurrentResourceYaml string                        `json:"currentResourceYaml"`
-	TargetResourceYaml  string                        `json:"targetResourceYaml"`
-	TargetResource      utils.WorkloadSingleRequest   `json:"targetResource"`
-	ProposedOperation   string                        `json:"proposedOperation,omitempty"` // UpdateResource', 'DeleteResource', 'CreateResource', 'Other'
+	ProblemDescription  string                      `json:"problemDescription"`
+	PossibleCauses      []string                    `json:"possibleCauses"`
+	ProposedSolutions   []Solution                  `json:"proposedSolutions"`
+	AdditionalInfo      string                      `json:"additionalInformation"`
+	NeedsFollowUp       bool                        `json:"needsFollowUp"`
+	FollowUpResources   []FollowUpResource          `json:"followUpResources"`
+	CurrentResourceYaml string                      `json:"currentResourceYaml"`
+	TargetResourceYaml  string                      `json:"targetResourceYaml"`
+	TargetResource      utils.WorkloadSingleRequest `json:"targetResource"`
+	ProposedOperation   string                      `json:"proposedOperation,omitempty"` // UpdateResource', 'DeleteResource', 'CreateResource', 'Other'
 }
 
 type Solution struct {
 	SolutionDescription string   `json:"solutionDescription"`
 	Steps               []string `json:"steps"`
 }
+
+// values of Analysis.ProposedOperation
+const (
+	ProposedOperationUpdate = "UpdateResource"
+	ProposedOperationDelete = "DeleteResource"
+	ProposedOperationCreate = "CreateResource"
+	ProposedOperationOther  = "Other"
+)
 
 type UsedToken struct {
 	Timestamp    time.Time `json:"timestamp"`
@@ -184,6 +234,12 @@ type AiManager interface {
 	GetPromptConfig() (*AiPromptConfig, error)
 	Chat(ctx context.Context, ch IOChatChannel) error
 
+	ApproveTask(taskID string, user structs.User, workspace string) (*AiTask, error)
+	RejectTask(taskID string, user structs.User, reason string) (*AiTask, error)
+	CancelTask(taskID string, user structs.User) (*AiTask, error)
+	DeleteTask(taskID string, user structs.User) (*AiTask, error)
+	TriggerAgent(agentName string, user structs.User) (*AiTask, error)
+
 	ResolveWorkspaceContext(userEmail string, workspaceName string) (*v1alpha1.WorkspaceSpec, *v1alpha1.GrantSpec)
 }
 
@@ -206,25 +262,47 @@ type aiManager struct {
 	mcpManager        *mcpClientManager
 	mcpConnectors     []MCPServerConnector
 
+	// cron trigger state: last evaluation time per agent. In-memory only —
+	// after a restart schedules re-anchor to the first ticker run.
+	cronStateLock sync.Mutex
+	lastCronRun   map[string]time.Time
+	// isLeading gates cron evaluation to the leading replica; event-triggered
+	// tasks are already deduplicated via their Valkey key.
+	isLeading func() bool
+
+	// taskQueueKick wakes the queue loop as soon as a task lands in pending
+	// state, so new reports start immediately instead of waiting for the next
+	// 1-minute tick. Buffered(1): kicks during a running pass coalesce into
+	// exactly one follow-up pass.
+	taskQueueKick chan struct{}
+
 	// prompts
 	chatPromptMu sync.RWMutex
 	aiPrompts    AiPrompts
 }
 
 // auditInsightToolCall writes a durable audit entry for every tool the
-// unattended insight pipeline executes ("no unattributed actions"): unlike
+// unattended agent pipeline executes ("no unattributed actions"): unlike
 // the chat path, this pipeline has no user whose audit trail would capture
-// the call. The result is truncated — the entry documents WHAT was queried,
-// not the full payload.
-func (ai *aiManager) auditInsightToolCall(toolName string, args map[string]any, result string) {
+// the call, so calls are attributed to the agent's synthetic user. The result
+// is truncated — the entry documents WHAT was queried, not the full payload.
+func (ai *aiManager) auditInsightToolCall(toolCtx *ToolContext, toolName string, args map[string]any, result string) {
+	user := structs.User{FirstName: "AI", LastName: "Insights", Email: "ai-insights@system", Source: "ai-insights"}
+	workspace := ""
+	if toolCtx != nil {
+		if toolCtx.User != nil {
+			user = *toolCtx.User
+		}
+		workspace = toolCtx.Workspace
+	}
 	store.AddAiChatAuditLog(
 		ai.logger,
 		"ai/insight-tool",
 		map[string]any{"tool": toolName, "args": args},
 		truncateResult(result, 500),
 		"",
-		structs.User{FirstName: "AI", LastName: "Insights", Email: "ai-insights@system", Source: "ai-insights"},
-		"",
+		user,
+		workspace,
 	)
 }
 
@@ -259,7 +337,7 @@ func (ai *aiManager) statusStrings() (errMsg string, warnMsg string) {
 	return ai.error, ai.warning
 }
 
-func NewAiManager(logger *slog.Logger, valkeyClient valkeyclient.ValkeyClient, config cfg.ConfigModule, ownerCacheService store.OwnerCacheService, eventClient websocket.WebsocketClient, secretGetter SecretGetter) AiManager {
+func NewAiManager(logger *slog.Logger, valkeyClient valkeyclient.ValkeyClient, config cfg.ConfigModule, ownerCacheService store.OwnerCacheService, eventClient websocket.WebsocketClient, secretGetter SecretGetter, isLeading func() bool) AiManager {
 	self := &aiManager{}
 
 	self.logger = logger
@@ -271,6 +349,9 @@ func NewAiManager(logger *slog.Logger, valkeyClient valkeyclient.ValkeyClient, c
 	self.pendingTasks = make(map[string]AiTask)
 	self.pendingTasksLock = &sync.RWMutex{}
 	self.mcpManager = newMCPClientManager(logger)
+	self.lastCronRun = make(map[string]time.Time)
+	self.isLeading = isLeading
+	self.taskQueueKick = make(chan struct{}, 1)
 
 	// Register MCP server connectors
 	self.mcpConnectors = []MCPServerConnector{
@@ -299,65 +380,33 @@ func (ai *aiManager) ProcessObject(obj *unstructured.Unstructured, eventType str
 		return
 	}
 
-	initialized := ai.isAiPromptConfigInitialized()
-	if !initialized {
+	task := ai.matchingAgentTask(obj, resource)
+	if task == nil {
 		return
 	}
 
-	filters := ai.getAiFilters()
+	key := ai.getValkeyKey(obj.GetKind(), obj.GetNamespace(), obj.GetName())
+	task.ID = key
+	task.Prompt = buildUserPrompt(task.Prompt, obj)
 
-	for _, filter := range filters {
-		if !filter.IsActive {
-			continue
-		}
-		if obj.GetKind() == filter.Kind {
-			// check contains conditions
-			matches, err := filterMatchesForObject(filter, obj)
-			if err != nil {
-				ai.logger.Error("Error checking AI filter match for object", "filter", filter.Name, "objectKind", obj.GetKind(), "objectName", obj.GetName(), "objectNamespace", obj.GetNamespace(), "error", err)
-				continue
-			}
-
-			if matches {
-				timestamp := time.Now().Unix()
-				key := ai.getValkeyKey(obj.GetKind(), obj.GetNamespace(), obj.GetName())
-				// create AI task
-				task := &AiTask{
-					ID:        key,
-					Prompt:    buildUserPrompt(filter.Prompt, obj),
-					State:     AI_TASK_STATE_PENDING,
-					CreatedAt: timestamp,
-					UpdatedAt: timestamp,
-					ReferencingResource: utils.WorkloadSingleRequest{
-						ResourceDescriptor: resource,
-						Namespace:          obj.GetNamespace(),
-						ResourceName:       obj.GetName(),
-					},
-					TriggeredBy: filter,
-					Error:       "",
-				}
-
-				shouldCreate, err := ai.shouldCreateNewTask(key)
-				if err != nil {
-					ai.logger.Error("Error checking if should create new AI task", "error", err)
-					continue
-				}
-
-				if shouldCreate {
-
-					if task.TriggeredBy.For != nil {
-						ai.pendingTasksLock.Lock()
-						// store pending task to check later
-						ai.pendingTasks[key] = *task
-						ai.logger.Info("AI task pending due to 'For' duration not yet met", "key", key, "filter", filter.Name)
-						ai.pendingTasksLock.Unlock()
-						continue
-					}
-					ai.insertNewAiTask(task, obj, eventType, key)
-				}
-			}
-		}
+	shouldCreate, err := ai.shouldCreateNewTask(key)
+	if err != nil {
+		ai.logger.Error("Error checking if should create new AI task", "error", err)
+		return
 	}
+	if !shouldCreate {
+		return
+	}
+
+	if task.TriggeredBy.For != nil {
+		ai.pendingTasksLock.Lock()
+		// store pending task to check later
+		ai.pendingTasks[key] = *task
+		ai.logger.Info("AI task pending due to 'For' duration not yet met", "key", key, "agent", task.AgentRef, "filter", task.TriggeredBy.Name)
+		ai.pendingTasksLock.Unlock()
+		return
+	}
+	ai.insertNewAiTask(task, obj, eventType, key)
 }
 
 func (ai *aiManager) insertNewAiTask(task *AiTask, obj *unstructured.Unstructured, eventType string, key string) {
@@ -455,31 +504,54 @@ func (ai *aiManager) Run() {
 		for {
 			select {
 			case <-ticker.C:
-				ctx := context.Background()
-
-				initialized := ai.isAiPromptConfigInitialized()
-				if !initialized {
-					continue
-				}
-
-				modelConfigInitialized := ai.isAiModelConfigInitialized()
-				if !modelConfigInitialized {
-					continue
-				}
-
-				if ai.isTokenLimitExceeded() {
-					continue
-				}
-
-				ai.processPendingTasks()
-
-				ai.setError("")
-				ai.processAiTaskQueue(ctx)
+				ai.runQueuePass(true)
+			case <-ai.taskQueueKick:
+				// A task just landed in the queue — start it right away
+				// instead of waiting for the next tick. Cron evaluation
+				// stays on its 1-minute cadence.
+				ai.runQueuePass(false)
 			case <-cleanupTicker.C:
 				ai.cleanupOrphanedTasks()
 			}
 		}
 	}()
+}
+
+// runQueuePass is one pass of the queue loop; includeCron additionally
+// evaluates agent cron triggers (leader-only).
+func (ai *aiManager) runQueuePass(includeCron bool) {
+	if !ai.isAiPromptConfigInitialized() {
+		return
+	}
+	if !ai.isAiModelConfigInitialized() {
+		return
+	}
+	if ai.isTokenLimitExceeded() {
+		return
+	}
+
+	// Cron runs only on the leading replica — unlike event tasks,
+	// their per-run keys are not deduplicated across replicas.
+	if includeCron && ai.isLeading != nil && ai.isLeading() {
+		ai.processAgentCronTriggers()
+	}
+
+	ai.processPendingTasks()
+
+	ai.setError("")
+	ai.processAiTaskQueue(context.Background())
+}
+
+// kickTaskQueue wakes the queue loop without blocking; a pending kick is
+// enough, extra ones coalesce.
+func (ai *aiManager) kickTaskQueue() {
+	if ai.taskQueueKick == nil {
+		return
+	}
+	select {
+	case ai.taskQueueKick <- struct{}{}:
+	default:
+	}
 }
 
 // cleanupOrphanedTasks removes AI tasks whose referenced resource no longer
@@ -504,13 +576,21 @@ func (ai *aiManager) cleanupOrphanedTasks() {
 			continue
 		}
 
-		// Only clean up completed/failed tasks — pending/in-progress tasks may reference
-		// resources that are about to be created or are being processed
-		if task.State != AI_TASK_STATE_COMPLETED && task.State != AI_TASK_STATE_FAILED {
+		// Only clean up settled tasks — pending/in-progress/proposed/executing
+		// tasks may reference resources that are about to be created, are
+		// being processed, or await a user decision.
+		switch task.State {
+		case AI_TASK_STATE_COMPLETED, AI_TASK_STATE_FAILED, AI_TASK_STATE_REJECTED, AI_TASK_STATE_EXECUTED, AI_TASK_STATE_EXECUTION_FAILED:
+		default:
 			continue
 		}
 
 		ref := task.ReferencingResource
+		if ref.ResourceName == "" {
+			// Whole-scope agent runs reference no single resource; they only
+			// expire via TTL.
+			continue
+		}
 		_, err = store.GetResource(ai.valkeyClient, ref.ApiVersion, ref.Kind, ref.Namespace, ref.ResourceName, ai.logger)
 		if err != nil {
 			// Resource no longer in store — clean up the task
@@ -550,11 +630,25 @@ func (ai *aiManager) resetInProgressTasksOnStartup() error {
 		if task.State == AI_TASK_STATE_IN_PROGRESS {
 			task.State = AI_TASK_STATE_PENDING
 			task.Error = ""
+			task.CurrentActivity = ""
 			if err := ai.createOrUpdateAiTask(&task, key); err != nil {
 				ai.logger.Error("Error updating AI task during startup reset", "taskID", task.ID, "error", err)
 				continue
 			}
 			ai.logger.Info("Reset AI task from in-progress to pending on startup", "taskID", task.ID)
+		}
+
+		// A task caught mid-execution must not be retried automatically: the
+		// proposed operation may or may not have been applied before the
+		// restart, so surface the uncertainty instead of re-executing.
+		if task.State == AI_TASK_STATE_EXECUTING {
+			task.State = AI_TASK_STATE_EXECUTION_FAILED
+			task.Error = "operator restarted during execution; verify the target resource state manually"
+			if err := ai.createOrUpdateAiTask(&task, key); err != nil {
+				ai.logger.Error("Error updating AI task during startup reset", "taskID", task.ID, "error", err)
+				continue
+			}
+			ai.logger.Warn("Reset AI task from executing to execution-failed on startup", "taskID", task.ID)
 		}
 	}
 
@@ -873,14 +967,6 @@ func (ai *aiManager) processAiTaskQueue(ctx context.Context) {
 		return
 	}
 
-	// Build a set of currently active filter IDs to skip tasks from disabled filters
-	activeFilterIDs := make(map[string]bool)
-	for _, f := range ai.getAiFilters() {
-		if f.IsActive {
-			activeFilterIDs[f.Id] = true
-		}
-	}
-
 	// Load all pending/failed tasks and sort by CreatedAt ascending (oldest first)
 	var pendingTasks []aiTaskWithKey
 	for _, key := range keys {
@@ -895,7 +981,7 @@ func (ai *aiManager) processAiTaskQueue(ctx context.Context) {
 			ai.logger.Error("Error unmarshaling AI task", "key", key, "error", err)
 			continue
 		}
-		if task.State == AI_TASK_STATE_PENDING || task.State == AI_TASK_STATE_FAILED {
+		if task.State == AI_TASK_STATE_PENDING || (task.State == AI_TASK_STATE_FAILED && task.Retries < maxAiTaskRetries) {
 			pendingTasks = append(pendingTasks, aiTaskWithKey{key: key, task: task})
 		}
 	}
@@ -907,14 +993,16 @@ func (ai *aiManager) processAiTaskQueue(ctx context.Context) {
 		key := entry.key
 		task := entry.task
 
-		// Skip tasks whose triggering filter has been disabled; mark them as ignored
-		if !activeFilterIDs[task.TriggeredBy.Id] {
+		// Resolve the owning agent; tasks whose agent vanished, was disabled
+		// or whose resource left the agent's scope are ignored.
+		agent, toolCtx, err := ai.buildAgentTaskContext(&task)
+		if err != nil {
 			task.State = AI_TASK_STATE_IGNORED
-			task.Error = "Filter is disabled"
-			if err := ai.createOrUpdateAiTask(&task, key); err != nil {
-				ai.logger.Error("Error updating AI task to ignored state", "taskID", task.ID, "error", err)
+			task.Error = err.Error()
+			if updateErr := ai.createOrUpdateAiTask(&task, key); updateErr != nil {
+				ai.logger.Error("Error updating AI task to ignored state", "taskID", task.ID, "error", updateErr)
 			}
-			ai.logger.Info("AI task ignored because filter is disabled", "taskID", task.ID, "filterID", task.TriggeredBy.Id)
+			ai.logger.Info("AI task ignored", "taskID", task.ID, "agent", task.AgentRef, "reason", err.Error())
 			continue
 		}
 
@@ -944,22 +1032,66 @@ func (ai *aiManager) processAiTaskQueue(ctx context.Context) {
 		// send event notification
 		ai.sendAiEvent(latestTask)
 
-		response, tokensUsed, timeUsedInMs, modelUsed, err := ai.processPrompt(ctx, task.Prompt)
-		if err != nil {
-			task.Error = err.Error()
-			// Non-retryable API errors (billing, invalid request, auth) must not be retried.
-			// Mark as ignored so processPendingTasks skips them on the next run.
-			var apiErr *anthropic.Error
-			if errors.As(err, &apiErr) && (apiErr.StatusCode == 400 || apiErr.StatusCode == 401 || apiErr.StatusCode == 403) {
-				task.State = AI_TASK_STATE_IGNORED
-			} else {
-				task.State = AI_TASK_STATE_FAILED
+		// Per-task cancellable context: a cancel marker in Valkey (set by any
+		// replica) aborts the LLM loop at the next turn boundary. The same
+		// per-turn hook pushes live token counts to the UI, throttled so a
+		// fast tool-call storm doesn't flood the event channel.
+		taskCtx, cancelTask := context.WithCancel(ctx)
+		var lastProgressPush time.Time
+		onProgress := func(tokens int64, activity string) {
+			if ai.taskCancelReason(task.ID) != "" {
+				cancelTask()
+				return
 			}
-			ai.logger.Error("Error processing AI task", "taskID", task.ID, "error", err)
-		} else {
-			task.State = AI_TASK_STATE_COMPLETED
-			task.Response = response
+			task.TokensUsed = tokens
+			if activity != "" {
+				// Keep the last activity even across throttled pushes so the
+				// next event carries the current one, not a stale line.
+				task.CurrentActivity = activity
+			}
+			if time.Since(lastProgressPush) < 2*time.Second {
+				return
+			}
+			lastProgressPush = time.Now()
+			if err := ai.createOrUpdateAiTask(&task, key); err != nil {
+				ai.logger.Warn("Failed to persist AI task progress", "taskID", task.ID, "error", err)
+			}
+			ai.sendAiEvent(latestTask)
+		}
 
+		responses, tokensUsed, timeUsedInMs, modelUsed, err := ai.processPrompt(taskCtx, task.Prompt, toolCtx, &agent.Spec, onProgress)
+		cancelTask()
+		task.CurrentActivity = ""
+		if err != nil {
+			if reason := ai.taskCancelReason(task.ID); errors.Is(err, context.Canceled) && ctx.Err() == nil && reason != "" {
+				// Canceled by a user, not by shutdown: the run is void, not broken.
+				task.State = AI_TASK_STATE_IGNORED
+				task.Error = reason
+				ai.clearTaskCancelRequest(task.ID)
+				ai.logger.Info("AI task canceled", "taskID", task.ID, "reason", reason)
+			} else {
+				task.Error = err.Error()
+				task.Retries++
+				// Non-retryable API errors (billing, invalid request, auth) must not be retried.
+				// Mark as ignored so processPendingTasks skips them on the next run.
+				var apiErr *anthropic.Error
+				if errors.As(err, &apiErr) && (apiErr.StatusCode == 400 || apiErr.StatusCode == 401 || apiErr.StatusCode == 403) {
+					task.State = AI_TASK_STATE_IGNORED
+				} else if task.Retries >= maxAiTaskRetries {
+					// Every retry re-runs the whole analysis loop; a task that
+					// failed repeatedly is broken systematically, not transiently.
+					task.State = AI_TASK_STATE_IGNORED
+					task.Error = fmt.Sprintf("giving up after %d failed attempts: %s", task.Retries, err.Error())
+				} else {
+					task.State = AI_TASK_STATE_FAILED
+				}
+				ai.logger.Error("Error processing AI task", "taskID", task.ID, "attempt", task.Retries, "state", task.State, "error", err)
+			}
+		} else {
+			task.Response = responses[0]
+			ai.finalizeTaskOutcome(&task)
+			// Every further finding of the run becomes its own review task.
+			ai.spawnFindingTasks(&task, responses[1:], modelUsed)
 		}
 		task.Model = modelUsed
 		task.TimeUsedInMs = timeUsedInMs
@@ -1075,6 +1207,11 @@ func (ai *aiManager) createOrUpdateAiTask(task *AiTask, key string) error {
 		return fmt.Errorf("error saving AI task: %v", err)
 	}
 
+	// New pending work starts immediately instead of waiting for the ticker.
+	if task.State == AI_TASK_STATE_PENDING {
+		ai.kickTaskQueue()
+	}
+
 	// last updated task
 	err = ai.valkeyClient.Set(string(jsonString), ValkeyAiTTL, ai.getValkeyLatestTaskKey())
 	if err != nil {
@@ -1100,13 +1237,42 @@ func (ai *aiManager) shouldCreateNewTask(key string) (bool, error) {
 	return !exists, nil
 }
 
-func (ai *aiManager) processPrompt(ctx context.Context, prompt string) (response *AiResponse, tokensUsed int64, timeUsedInMs int, modelUser string, err error) {
+// processPrompt runs one unattended analysis. The ToolContext scopes every
+// tool call to the owning agent's namespaces with the viewer role; the agent
+// spec contributes its instruction and optional model override.
+// finalAnswerNudge is sent when an unattended run exhausts its tool-call
+// budget: one last turn with tool use disabled so the model must produce the
+// required JSON verdict instead of the run failing outright.
+const finalAnswerNudge = "Your tool-call budget is exhausted — do not request any more tools. Based on what you have inspected so far, respond now with your final answer as a single JSON object in the required response format."
+
+// processPrompt runs the unattended analysis loop. onProgress (nil-tolerant)
+// is invoked after every LLM turn with the tokens used so far and on every
+// tool call with a human-readable activity line — it powers the live token
+// counter and "currently working on" display in the UI plus the cancel check.
+func (ai *aiManager) processPrompt(ctx context.Context, prompt string, toolCtx *ToolContext, agentSpec *v1alpha1.AgentSpec, onProgress func(tokensUsed int64, activity string)) (responses []*AiResponse, tokensUsed int64, timeUsedInMs int, modelUser string, err error) {
 	startTime := time.Now()
 	model, err := ai.getAiModel()
 	if err != nil {
 		return nil, 0, int(time.Since(startTime).Milliseconds()), model, err
 	}
 	systemPrompt := ai.getSystemPrompt()
+	if agentSpec != nil {
+		if agentSpec.Model != "" {
+			model = agentSpec.Model
+		}
+		if agentSpec.Instruction != "" {
+			systemPrompt += "\n\nAgent instruction:\n" + agentSpec.Instruction
+		}
+		// The proposal review UI is decision-style: a short explanation above
+		// a YAML diff. Without the structured proposal fields the task stays a
+		// text-only report, so spell out exactly what a proposal requires.
+		systemPrompt += "\n\nOutput style: write problemDescription as 2-4 crisp sentences a DevOps decision maker can act on — what is wrong, what your proposed change does, and any risk." +
+			"\n\nWhen you recommend a concrete change, do NOT only describe it in prose — emit it as a structured proposal in the analysis:" +
+			"\n- proposedOperation: one of UpdateResource, DeleteResource, CreateResource" +
+			"\n- targetResource: apiVersion, kind, namespace, resourceName, plural and namespaced of the affected resource (always required)" +
+			"\n- targetResourceYaml: the complete resource manifest, based on the live manifest you retrieved from the cluster with ONLY the fields the fix requires changed — never invent values, never include server-managed fields (metadata.resourceVersion, uid, creationTimestamp, generation, managedFields, status); required for UpdateResource and CreateResource, omit for DeleteResource" +
+			"\nOnly a structured proposal can be reviewed and applied with one click; prose-only recommendations end up as plain reports."
+	}
 
 	maxToolCalls, err := ai.getAiMaxToolCalls()
 	if err != nil {
@@ -1119,14 +1285,171 @@ func (ai *aiManager) processPrompt(ctx context.Context, prompt string) (response
 	}
 	switch sdk {
 	case AiSdkTypeOpenAI:
-		return ai.processPromptOpenAi(ctx, model, systemPrompt, prompt, maxToolCalls)
+		return ai.processPromptOpenAi(ctx, model, systemPrompt, prompt, maxToolCalls, toolCtx, onProgress)
 	case AiSdkTypeAnthropic:
-		return ai.processPromptAnthropic(ctx, model, systemPrompt, prompt, maxToolCalls)
+		return ai.processPromptAnthropic(ctx, model, systemPrompt, prompt, maxToolCalls, toolCtx, onProgress)
 	case AiSdkTypeOllama:
-		return ai.processPromptOllama(ctx, model, systemPrompt, prompt, maxToolCalls)
+		return ai.processPromptOllama(ctx, model, systemPrompt, prompt, maxToolCalls, toolCtx, onProgress)
 	default:
 		return nil, 0, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("unsupported AI SDK type: %s", sdk)
 	}
+}
+
+// finalizeTaskOutcome decides whether a successfully analyzed task is a mere
+// analysis ("completed") or an actionable proposal ("proposed") awaiting user
+// approval, and captures the target's resourceVersion for the staleness guard.
+func (ai *aiManager) finalizeTaskOutcome(task *AiTask) {
+	task.State = AI_TASK_STATE_COMPLETED
+	if task.Response == nil {
+		return
+	}
+
+	analysis := task.Response.Analysis
+	target := analysis.TargetResource
+	switch analysis.ProposedOperation {
+	case ProposedOperationUpdate:
+		if analysis.TargetResourceYaml == "" || target.ResourceName == "" {
+			return
+		}
+		current, err := store.GetResource(ai.valkeyClient, target.ApiVersion, target.Kind, target.Namespace, target.ResourceName, ai.logger)
+		if err != nil || current == nil {
+			// Target vanished — nothing left to apply, keep it as analysis.
+			return
+		}
+		task.BaseResourceVersion = current.GetResourceVersion()
+		ai.captureCurrentResourceYaml(task, current)
+		ai.sanitizeTargetResourceYaml(task)
+		task.State = AI_TASK_STATE_PROPOSED
+	case ProposedOperationDelete:
+		if target.ResourceName == "" {
+			return
+		}
+		current, err := store.GetResource(ai.valkeyClient, target.ApiVersion, target.Kind, target.Namespace, target.ResourceName, ai.logger)
+		if err != nil || current == nil {
+			return
+		}
+		task.BaseResourceVersion = current.GetResourceVersion()
+		ai.captureCurrentResourceYaml(task, current)
+		task.State = AI_TASK_STATE_PROPOSED
+	case ProposedOperationCreate:
+		if analysis.TargetResourceYaml == "" {
+			return
+		}
+		// Nothing exists yet — the diff renders against an empty document.
+		task.Response.Analysis.CurrentResourceYaml = ""
+		ai.sanitizeTargetResourceYaml(task)
+		task.State = AI_TASK_STATE_PROPOSED
+	}
+}
+
+// spawnFindingTasks persists every finding beyond the first as its own task,
+// so each one can be reviewed, approved and audited independently. All
+// findings share the run's single exploration — the token cost is booked on
+// the primary task only.
+func (ai *aiManager) spawnFindingTasks(primary *AiTask, extra []*AiResponse, model string) {
+	if len(extra) > 0 {
+		// Group the run's tasks so the UI can render them as one report.
+		primary.RunID = primary.ID
+	}
+	for i, response := range extra {
+		now := time.Now().Unix()
+		finding := AiTask{
+			ID:                  fmt.Sprintf("%s-f%d", primary.ID, i+2),
+			RunID:               primary.ID,
+			Prompt:              primary.Prompt,
+			Response:            response,
+			State:               AI_TASK_STATE_COMPLETED,
+			Model:               model,
+			CreatedAt:           now,
+			UpdatedAt:           now,
+			ReferencingResource: primary.ReferencingResource,
+			TriggeredBy:         primary.TriggeredBy,
+			AgentRef:            primary.AgentRef,
+			Trigger:             primary.Trigger,
+			TriggeredByUser:     primary.TriggeredByUser,
+		}
+		ai.finalizeTaskOutcome(&finding)
+		if err := ai.createOrUpdateAiTask(&finding, finding.ID); err != nil {
+			ai.logger.Error("Error persisting finding task", "taskID", finding.ID, "error", err)
+			continue
+		}
+		ai.notifyTaskChanged(&finding)
+	}
+	if len(extra) > 0 {
+		ai.logger.Info("Run produced additional findings", "primaryTaskID", primary.ID, "additionalTasks", len(extra))
+	}
+}
+
+// captureCurrentResourceYaml replaces the model-provided (untrusted, possibly
+// truncated or hallucinated) CurrentResourceYaml with the authoritative state
+// of the target at proposal time, so the review diff in the UI is exact.
+func (ai *aiManager) captureCurrentResourceYaml(task *AiTask, current *unstructured.Unstructured) {
+	sanitized := current.DeepCopy()
+	stripServerManagedFields(sanitized)
+	yaml, err := store.GetYamlFromUnstructuredResource(sanitized)
+	if err != nil {
+		ai.logger.Warn("Failed to serialize current resource for proposal diff", "taskID", task.ID, "error", err)
+		return // keep the model-provided value as a fallback
+	}
+	task.Response.Analysis.CurrentResourceYaml = yaml
+}
+
+// sanitizeTargetResourceYaml strips server-managed fields the model tends to
+// hallucinate (fabricated resourceVersion/uid/creationTimestamp/...) from the
+// proposed manifest. They are pure noise in the review diff and would break
+// the apply: a made-up resourceVersion causes an update conflict, a wrong uid
+// a rejection. Malformed YAML is left untouched — the execution path reports
+// the parse error to the user.
+func (ai *aiManager) sanitizeTargetResourceYaml(task *AiTask) {
+	obj, err := parseTargetYaml(task.Response.Analysis.TargetResourceYaml)
+	if err != nil {
+		return
+	}
+	stripServerManagedFields(obj)
+	yaml, err := store.GetYamlFromUnstructuredResource(obj)
+	if err != nil {
+		return
+	}
+	task.Response.Analysis.TargetResourceYaml = yaml
+}
+
+// stripServerManagedFields removes fields owned by the API server or
+// controllers from a manifest; applied to both sides of the proposal diff so
+// it only shows changes a user could actually make.
+func stripServerManagedFields(obj *unstructured.Unstructured) {
+	unstructured.RemoveNestedField(obj.Object, "status")
+	unstructured.RemoveNestedField(obj.Object, "metadata", "resourceVersion")
+	unstructured.RemoveNestedField(obj.Object, "metadata", "uid")
+	unstructured.RemoveNestedField(obj.Object, "metadata", "creationTimestamp")
+	unstructured.RemoveNestedField(obj.Object, "metadata", "generation")
+	unstructured.RemoveNestedField(obj.Object, "metadata", "managedFields")
+	unstructured.RemoveNestedField(obj.Object, "metadata", "selfLink")
+	if annotations := obj.GetAnnotations(); annotations != nil {
+		delete(annotations, "kubectl.kubernetes.io/last-applied-configuration")
+		delete(annotations, "deployment.kubernetes.io/revision")
+		if len(annotations) == 0 {
+			unstructured.RemoveNestedField(obj.Object, "metadata", "annotations")
+		} else {
+			obj.SetAnnotations(annotations)
+		}
+	}
+}
+
+// getTaskByKey loads and unmarshals a task from Valkey; returns nil when the
+// key does not exist.
+func (ai *aiManager) getTaskByKey(key string) (*AiTask, error) {
+	item, err := ai.valkeyClient.Get(key)
+	if err != nil {
+		return nil, err
+	}
+	if item == "" {
+		return nil, nil
+	}
+	var task AiTask
+	if err := json.Unmarshal([]byte(item), &task); err != nil {
+		return nil, fmt.Errorf("error unmarshaling AI task %q: %w", key, err)
+	}
+	return &task, nil
 }
 
 // for nasty AIs which return markdown code blocks or extra text around JSON

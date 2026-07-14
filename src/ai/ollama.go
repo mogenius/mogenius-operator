@@ -10,7 +10,7 @@ import (
 	"github.com/ollama/ollama/api"
 )
 
-func (ai *aiManager) processPromptOllama(ctx context.Context, model, systemPrompt, prompt string, maxToolCalls int) (*AiResponse, int64, int, string, error) {
+func (ai *aiManager) processPromptOllama(ctx context.Context, model, systemPrompt, prompt string, maxToolCalls int, toolCtx *ToolContext, onProgress func(int64, string)) ([]*AiResponse, int64, int, string, error) {
 
 	startTime := time.Now()
 
@@ -34,6 +34,9 @@ func (ai *aiManager) processPromptOllama(ctx context.Context, model, systemPromp
 	truePtr := true
 	var tokensUsed int64 = 0
 	toolCallCount := 0
+
+	// Bounded in-conversation repair turns for schema-violating final answers.
+	repairAttempts := 0
 
 	for {
 		req := &api.ChatRequest{
@@ -71,25 +74,32 @@ func (ai *aiManager) processPromptOllama(ctx context.Context, model, systemPromp
 		}
 
 		tokensUsed += int64(promptEvalCount + evalCount)
+		if onProgress != nil {
+			onProgress(tokensUsed, "")
+		}
 
 		// Check if there are tool calls to process
 		if len(toolCalls) == 0 {
 			ai.logger.Info("No tool calls found, finishing AI processing")
 
-			responseText = cleanJSONResponse(responseText)
-			responseBytes, removedText, err := extractJSONRobust(responseText)
-			ai.logger.Info("Extracted JSON from AI response", "removed_text", removedText)
-			if err != nil {
-				return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("error extracting JSON from AI response: %v\n%s", err, responseText)
+			aiResponse, removedText, err := parseAiResponse(responseText)
+			if err == nil {
+				ai.logger.Info("Extracted JSON from AI response", "removed_text", removedText)
+				return aiResponse, tokensUsed, int(time.Since(startTime).Milliseconds()), model, nil
 			}
 
-			var aiResponse AiResponse
-			err = json.Unmarshal(responseBytes, &aiResponse)
-			if err != nil {
-				return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("error unmarshaling AI response: %v\n%s", err, responseText)
+			// Bounded repair turn: feed the parse error back instead of
+			// discarding the whole exploration.
+			repairAttempts++
+			ai.logger.Warn("Final answer unparsable, requesting repair", "error", err, "attempt", repairAttempts)
+			if repairAttempts > maxAnalysisRepairs {
+				return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("final answer unparsable after %d repair attempts: %v\n%s", repairAttempts, err, responseText)
 			}
-
-			return &aiResponse, tokensUsed, int(time.Since(startTime).Milliseconds()), model, nil
+			messages = append(messages,
+				api.Message{Role: "assistant", Content: responseText},
+				api.Message{Role: "user", Content: fmt.Sprintf("Your answer could not be processed: %s. Respond again with ONLY the corrected final answer as a single JSON object in the required response format.", err.Error())},
+			)
+			continue
 		}
 
 		// Add the assistant's response to the messages
@@ -114,6 +124,10 @@ func (ai *aiManager) processPromptOllama(ctx context.Context, model, systemPromp
 				return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("error unmarshaling tool arguments: %v", err)
 			}
 
+			if onProgress != nil {
+				onProgress(tokensUsed, describeToolCall(toolCall.Function.Name, args))
+			}
+
 			tool, ok := toolDefinitions[toolCall.Function.Name]
 			if !ok {
 				return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("unknown tool called: %s", toolCall.Function.Name)
@@ -121,8 +135,8 @@ func (ai *aiManager) processPromptOllama(ctx context.Context, model, systemPromp
 			if !viewerAllowedTools[toolCall.Function.Name] {
 				return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("tool %q is not permitted in the unattended insight pipeline", toolCall.Function.Name)
 			}
-			data := tool(args, nil, ai.valkeyClient, ai.logger)
-			ai.auditInsightToolCall(toolCall.Function.Name, args, data)
+			data := tool(args, toolCtx, ai.valkeyClient, ai.logger)
+			ai.auditInsightToolCall(toolCtx, toolCall.Function.Name, args, data)
 
 			// Add tool result to messages
 			messages = append(messages, api.Message{
@@ -135,22 +149,40 @@ func (ai *aiManager) processPromptOllama(ctx context.Context, model, systemPromp
 		// Increase global tool call count and check limit
 		toolCallCount += len(toolCalls)
 		if maxToolCalls > 0 && toolCallCount >= maxToolCalls {
-			ai.logger.Info("Max tool call limit reached, exiting loop", "maxToolCalls", maxToolCalls, "toolCallCount", toolCallCount)
+			ai.logger.Info("Max tool call limit reached, forcing final answer", "maxToolCalls", maxToolCalls, "toolCallCount", toolCallCount)
 
-			// Try to finalize using any text presently returned
-			responseText = cleanJSONResponse(responseText)
-			responseBytes, removedText, err := extractJSONRobust(responseText)
+			// One last turn without tools so the model must answer.
+			messages = append(messages, api.Message{Role: "user", Content: finalAnswerNudge})
+			finalReq := &api.ChatRequest{
+				Model:    model,
+				Messages: messages,
+				Stream:   &falsePtr,
+				Format:   json.RawMessage(`"json"`),
+				Truncate: &truePtr,
+				Shift:    &truePtr,
+				Options: map[string]any{
+					"temperature": 0.1,
+				},
+			}
+			var finalText string
+			err = client.Chat(ctx, finalReq, func(resp api.ChatResponse) error {
+				finalText += resp.Message.Content
+				if resp.Done {
+					tokensUsed += int64(resp.PromptEvalCount + resp.EvalCount)
+				}
+				return nil
+			})
+			if err != nil {
+				return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("max tool calls reached (%d) and final answer request failed: %w", maxToolCalls, err)
+			}
+
+			aiResponse, removedText, err := parseAiResponse(finalText)
 			ai.logger.Info("Extracted JSON after max tool calls", "removed_text", removedText)
 			if err != nil {
-				return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("max tool calls reached (%d) without final text: %v", maxToolCalls, err)
+				return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("max tool calls reached (%d) without parsable final answer: %v\n%s", maxToolCalls, err, finalText)
 			}
 
-			var aiResponse AiResponse
-			if err := json.Unmarshal(responseBytes, &aiResponse); err != nil {
-				return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("error unmarshaling AI response after max tool calls: %v\n%s", err, responseText)
-			}
-
-			return &aiResponse, tokensUsed, int(time.Since(startTime).Milliseconds()), model, nil
+			return aiResponse, tokensUsed, int(time.Since(startTime).Milliseconds()), model, nil
 		}
 
 		// Continue the loop to get the next response with tool results

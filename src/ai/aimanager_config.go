@@ -86,21 +86,6 @@ func (ai *aiManager) getSystemPrompt() string {
 	return cfg.SystemPrompt
 }
 
-// getAiFilters returns system filters AND user-defined filters. UserFilters
-// are maintained by the UI and shipped through the same ConfigMap, but were
-// previously never read here — user-created filters silently never triggered
-// any task.
-func (ai *aiManager) getAiFilters() []AiFilter {
-	cfg := ai.promptConfig()
-	if cfg == nil {
-		return nil
-	}
-	filters := make([]AiFilter, 0, len(cfg.Filters)+len(cfg.UserFilters))
-	filters = append(filters, cfg.Filters...)
-	filters = append(filters, cfg.UserFilters...)
-	return filters
-}
-
 func (ai *aiManager) GetPromptConfig() (*AiPromptConfig, error) {
 	cfg := ai.promptConfig()
 	if cfg == nil {
