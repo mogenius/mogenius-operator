@@ -1,3 +1,10 @@
+# [2.24.0-develop.16](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.15...v2.24.0-develop.16) (2026-07-14)
+
+
+### Features
+
+* report deployed namespace to platform ([5e269ac](https://github.com/mogenius/mogenius-operator/commit/5e269acb15993dfb550d2ea97f91243774922a30))
+
 # [2.24.0-develop.15](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.14...v2.24.0-develop.15) (2026-07-14)
 
 
