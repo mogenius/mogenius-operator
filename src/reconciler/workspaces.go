@@ -4,7 +4,11 @@ import (
 	"context"
 	"fmt"
 	"mogenius-operator/src/crds/v1alpha1"
+	"mogenius-operator/src/store"
+	"mogenius-operator/src/utils"
+	"strings"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -24,6 +28,33 @@ func (d *reconcilerModule) verifyWorkspaceIntegrity(ctx context.Context, obj *un
 		return []ReconcileResult{{Err: fmt.Errorf("failed to parse Workspace: %w", err)}}
 	}
 	results := []ReconcileResult{}
+
+	dashboardRefCondition := metav1.Condition{
+		Type:               v1alpha1.WorkspaceConditionDashboardRefValid,
+		Status:             metav1.ConditionTrue,
+		Reason:             "NoReference",
+		Message:            "No WorkspaceDashboard referenced",
+		ObservedGeneration: workspace.Generation,
+	}
+	if ref := workspace.Spec.DashboardRef; ref != "" {
+		dashboard, err := store.GetWorkspaceDashboard(obj.GetNamespace(), ref)
+		if err != nil || dashboard == nil {
+			dashboardRefCondition.Status = metav1.ConditionFalse
+			dashboardRefCondition.Reason = "NotFound"
+			dashboardRefCondition.Message = fmt.Sprintf("WorkspaceDashboard %q does not exist", ref)
+			resultErr := ReconcileResult{}
+			resultErr.Err = fmt.Errorf("Workspace references a WorkspaceDashboard which does not exist: %#v", ref)
+			results = append(results, resultErr)
+		} else {
+			dashboardRefCondition.Reason = "Found"
+			dashboardRefCondition.Message = fmt.Sprintf("WorkspaceDashboard %q exists", ref)
+		}
+	}
+
+	// Everything the resource loop below appends is a resource integrity
+	// problem; remember the offset so the ResourcesValid condition can be
+	// derived from those results without duplicating the checks.
+	resourceCheckStart := len(results)
 
 	// Workspaces frequently reference the same namespace from several resource
 	// entries (e.g. multiple helm releases deployed into one namespace). Memo
@@ -76,5 +107,27 @@ func (d *reconcilerModule) verifyWorkspaceIntegrity(ctx context.Context, obj *un
 			results = append(results, resourceErr)
 		}
 	}
+
+	resourcesCondition := metav1.Condition{
+		Type:               v1alpha1.WorkspaceConditionResourcesValid,
+		Status:             metav1.ConditionTrue,
+		Reason:             "AllResourcesFound",
+		Message:            "All referenced resources exist in the cluster",
+		ObservedGeneration: workspace.Generation,
+	}
+	if problems := results[resourceCheckStart:]; len(problems) > 0 {
+		messages := make([]string, 0, len(problems))
+		for _, problem := range problems {
+			messages = append(messages, problem.Err.Error())
+		}
+		resourcesCondition.Status = metav1.ConditionFalse
+		resourcesCondition.Reason = "ResourcesNotFound"
+		resourcesCondition.Message = strings.Join(messages, "; ")
+	}
+
+	if err := d.setStatusConditions(ctx, utils.WorkspaceResource, workspace.Namespace, workspace.Name, workspace.Status.Conditions, resourcesCondition, dashboardRefCondition); err != nil {
+		results = append(results, ReconcileResult{Err: fmt.Errorf("failed to update Workspace status: %w", err), IsWarning: true})
+	}
 	return results
 }
+

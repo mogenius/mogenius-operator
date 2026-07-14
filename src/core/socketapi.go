@@ -1443,6 +1443,7 @@ func (self *socketApi) registerPatterns() {
 					Name:              v.Name,
 					CreationTimestamp: v.CreationTimestamp,
 					Resources:         v.Spec.Resources,
+					DashboardRef:      v.Spec.DashboardRef,
 				})
 			}
 			return result, err
@@ -1451,16 +1452,17 @@ func (self *socketApi) registerPatterns() {
 
 	{
 		type Request struct {
-			Name        string                                 `json:"name" validate:"required"`
-			DisplayName string                                 `json:"displayName"`
-			Resources   []v1alpha1.WorkspaceResourceIdentifier `json:"resources" validate:"required"`
+			Name         string                                 `json:"name" validate:"required"`
+			DisplayName  string                                 `json:"displayName"`
+			Resources    []v1alpha1.WorkspaceResourceIdentifier `json:"resources" validate:"required"`
+			DashboardRef string                                 `json:"dashboardRef"`
 		}
 
 		RegisterPatternHandler(
 			PatternHandle{self, "create/workspace"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (string, error) {
-				spec := v1alpha1.NewWorkspaceSpec(request.DisplayName, request.Resources)
+				spec := v1alpha1.NewWorkspaceSpec(request.DisplayName, request.Resources, request.DashboardRef)
 				res, err := self.apiService.CreateWorkspace(request.Name, spec)
 				var created *unstructured.Unstructured
 				if err == nil {
@@ -1493,7 +1495,7 @@ func (self *socketApi) registerPatterns() {
 				if err != nil || workspace == nil {
 					return nil, err
 				}
-				result := NewGetWorkspaceResult(workspace.Name, workspace.CreationTimestamp, workspace.Spec.Resources)
+				result := NewGetWorkspaceResult(workspace.Name, workspace.CreationTimestamp, workspace.Spec.Resources, workspace.Spec.DashboardRef)
 				return &result, nil
 			},
 		)
@@ -1539,16 +1541,17 @@ func (self *socketApi) registerPatterns() {
 
 	{
 		type Request struct {
-			Name        string                                 `json:"name" validate:"required"`
-			DisplayName string                                 `json:"displayName"`
-			Resources   []v1alpha1.WorkspaceResourceIdentifier `json:"resources" validate:"required"`
+			Name         string                                 `json:"name" validate:"required"`
+			DisplayName  string                                 `json:"displayName"`
+			Resources    []v1alpha1.WorkspaceResourceIdentifier `json:"resources" validate:"required"`
+			DashboardRef string                                 `json:"dashboardRef"`
 		}
 
 		RegisterPatternHandler(
 			PatternHandle{self, "update/workspace"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (string, error) {
-				spec := v1alpha1.NewWorkspaceSpec(request.DisplayName, request.Resources)
+				spec := v1alpha1.NewWorkspaceSpec(request.DisplayName, request.Resources, request.DashboardRef)
 				oldWorkspace, _ := store.GetWorkspace(self.config.Get("MO_OWN_NAMESPACE"), request.Name)
 				res, err := self.apiService.UpdateWorkspace(request.Name, spec)
 				var oldObj, newObj *unstructured.Unstructured
