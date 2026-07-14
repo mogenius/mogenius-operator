@@ -36,14 +36,16 @@ func (ai *aiManager) processPromptOpenAi(ctx context.Context, model, systemPromp
 	var chatCompletion *openai.ChatCompletion
 	toolCallCount := 0
 	for {
-		// Compact previous tool results so old (already processed) results
-		// don't burn tokens on subsequent API calls.
-		compactOpenAiToolMessages(params.Messages)
-
 		chatCompletion, err = client.Chat.Completions.New(ctx, params)
 		if err != nil {
 			return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, err
 		}
+
+		// Everything in params.Messages has now been seen by the model —
+		// compact the tool results it just processed so they stop burning
+		// tokens on the following turns. Compacting BEFORE the call would
+		// blind the model: results must survive exactly one request.
+		compactOpenAiToolMessages(params.Messages)
 
 		if chatCompletion != nil {
 			tokensUsed += chatCompletion.Usage.TotalTokens
@@ -99,10 +101,11 @@ func (ai *aiManager) processPromptOpenAi(ctx context.Context, model, systemPromp
 			ai.logger.Info("Max tool call limit reached, forcing final answer", "maxToolCalls", maxToolCalls, "toolCallCount", toolCallCount)
 
 			// One last turn with tool use disabled so the model must answer;
-			// the shared extraction below the loop handles the response.
+			// the shared extraction below the loop handles the response. No
+			// compaction here: the pending tool results were never sent, the
+			// model needs them for its final verdict.
 			params.Messages = append(params.Messages, openai.UserMessage(finalAnswerNudge))
 			params.ToolChoice = openai.ChatCompletionToolChoiceOptionUnionParam{OfAuto: openai.String("none")}
-			compactOpenAiToolMessages(params.Messages)
 			chatCompletion, err = client.Chat.Completions.New(ctx, params)
 			if err != nil {
 				return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("max tool calls reached (%d) and final answer request failed: %w", maxToolCalls, err)

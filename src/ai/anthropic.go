@@ -411,10 +411,6 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, model, systemPr
 
 	// Loop until there are no more tool calls or maxToolCalls reached
 	for {
-		// Compact previous tool results so old (already processed) results
-		// don't burn tokens on subsequent API calls.
-		compactAnthropicToolResults(messages)
-
 		message, err := client.Messages.New(ctx, anthropic.MessageNewParams{
 			Model:     anthropic.Model(model),
 			MaxTokens: int64(10000),
@@ -429,6 +425,13 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, model, systemPr
 		if err != nil {
 			return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, err
 		}
+
+		// Everything in messages has now been seen by the model — compact the
+		// tool results it just processed so they stop burning tokens on the
+		// following turns. Compacting BEFORE the call would blind the model:
+		// results are appended at the end of an iteration and must survive
+		// exactly one request (the regression that shipped in 7782b65b).
+		compactAnthropicToolResults(messages)
 
 		if message != nil {
 			tokensUsed += message.Usage.InputTokens + message.Usage.OutputTokens
@@ -566,12 +569,14 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, model, systemPr
 
 			// Hand back the pending tool results plus a nudge and request one
 			// last turn with tool choice forced to submit_analysis so the
-			// model must deliver the schema-validated final answer.
+			// model must deliver the schema-validated final answer. No
+			// compaction here: the pending results were never sent, the model
+			// needs them for its final verdict (older ones are already
+			// compacted after each turn).
 			messages = append(messages, anthropic.MessageParam{
 				Role:    anthropic.MessageParamRoleUser,
 				Content: append(toolResults, anthropic.NewTextBlock(finalAnswerNudge)),
 			})
-			compactAnthropicToolResults(messages)
 			submitChoice := anthropic.ToolChoiceToolParam{Name: submitAnalysisToolName}
 			finalMessage, err := client.Messages.New(ctx, anthropic.MessageNewParams{
 				Model:     anthropic.Model(model),
