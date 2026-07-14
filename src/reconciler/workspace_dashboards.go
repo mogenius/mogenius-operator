@@ -19,7 +19,31 @@ func (d *reconcilerModule) reconcileWorkspaceDashboards(ctx context.Context, obj
 	if op != deleteOperation {
 		results = append(results, d.verifyWorkspaceDashboardIntegrity(ctx, obj)...)
 	}
+
+	// A dashboard appearing or disappearing flips the DashboardRefValid
+	// condition of every workspace referencing it, but those workspaces get no
+	// event of their own — without a requeue their condition would stay stale
+	// until the next background sweep (up to 15 minutes). Updates are skipped:
+	// they can't change whether the dashboard exists.
+	if op == createOperation || op == deleteOperation {
+		d.requeueReferencingWorkspaces(obj)
+	}
 	return results
+}
+
+func (d *reconcilerModule) requeueReferencingWorkspaces(dashboard *unstructured.Unstructured) {
+	if d.requeue == nil {
+		return
+	}
+	name := dashboard.GetName()
+	namespace := dashboard.GetNamespace()
+	d.requeue(utils.WorkspaceResource, func(workspace *unstructured.Unstructured) bool {
+		if workspace.GetNamespace() != namespace {
+			return false
+		}
+		ref, _, _ := unstructured.NestedString(workspace.Object, "spec", "dashboardRef")
+		return ref == name
+	})
 }
 
 func (d *reconcilerModule) verifyWorkspaceDashboardIntegrity(ctx context.Context, obj *unstructured.Unstructured) []ReconcileResult {

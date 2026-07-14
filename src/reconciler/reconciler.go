@@ -102,7 +102,7 @@ func newReconciler(
 	clientProvider k8sclient.K8sClientProvider,
 	interval time.Duration,
 	configs []ResourceConfig,
-) Reconciler {
+) *genericReconciler {
 	r := &genericReconciler{
 		logger:         logger,
 		watcher:        watcher.NewWatcher(logger.With("scope", "watcher"), clientProvider),
@@ -226,6 +226,31 @@ func (r *genericReconciler) callHandler(ctx context.Context, cfg ResourceConfig,
 		result := cfg.Reconcile(ctx, objCopy, operation)
 		metrics.ObserveReconcileDuration(cfg.Resource.Kind, string(operation), time.Since(start).Seconds())
 		r.recordResult(cfg.Resource, objCopy, result)
+	})
+}
+
+// requeue re-reconciles every cached object of the given resource kind that
+// matches the predicate. Reconcile handlers use this to refresh objects whose
+// conditions depend on *other* objects (e.g. workspaces referencing a
+// WorkspaceDashboard) without waiting for the next background sweep. The work
+// runs on its own goroutine: callHandler blocks while all reconcile slots are
+// taken, and the caller typically holds one of those slots — blocking here
+// could deadlock the slot pool.
+func (r *genericReconciler) requeue(resource utils.ResourceDescriptor, match func(*unstructured.Unstructured) bool) {
+	if !r.active.Load() {
+		return
+	}
+	r.wg.Go(func() {
+		for _, cfg := range r.configs {
+			if cfg.Resource != resource {
+				continue
+			}
+			for _, obj := range r.caches[cfg.Resource].snapshot() {
+				if match(obj) {
+					r.callHandler(r.ctx, cfg, obj, backgroundOperation)
+				}
+			}
+		}
 	})
 }
 
