@@ -1056,7 +1056,7 @@ func (ai *aiManager) processAiTaskQueue(ctx context.Context) {
 			ai.sendAiEvent(latestTask)
 		}
 
-		response, tokensUsed, timeUsedInMs, modelUsed, err := ai.processPrompt(taskCtx, task.Prompt, toolCtx, &agent.Spec, onProgress)
+		responses, tokensUsed, timeUsedInMs, modelUsed, err := ai.processPrompt(taskCtx, task.Prompt, toolCtx, &agent.Spec, onProgress)
 		cancelTask()
 		task.CurrentActivity = ""
 		if err != nil {
@@ -1085,8 +1085,10 @@ func (ai *aiManager) processAiTaskQueue(ctx context.Context) {
 				ai.logger.Error("Error processing AI task", "taskID", task.ID, "attempt", task.Retries, "state", task.State, "error", err)
 			}
 		} else {
-			task.Response = response
+			task.Response = responses[0]
 			ai.finalizeTaskOutcome(&task)
+			// Every further finding of the run becomes its own review task.
+			ai.spawnFindingTasks(&task, responses[1:], modelUsed)
 		}
 		task.Model = modelUsed
 		task.TimeUsedInMs = timeUsedInMs
@@ -1244,7 +1246,7 @@ const finalAnswerNudge = "Your tool-call budget is exhausted — do not request 
 // is invoked after every LLM turn with the tokens used so far and on every
 // tool call with a human-readable activity line — it powers the live token
 // counter and "currently working on" display in the UI plus the cancel check.
-func (ai *aiManager) processPrompt(ctx context.Context, prompt string, toolCtx *ToolContext, agentSpec *v1alpha1.AgentSpec, onProgress func(tokensUsed int64, activity string)) (response *AiResponse, tokensUsed int64, timeUsedInMs int, modelUser string, err error) {
+func (ai *aiManager) processPrompt(ctx context.Context, prompt string, toolCtx *ToolContext, agentSpec *v1alpha1.AgentSpec, onProgress func(tokensUsed int64, activity string)) (responses []*AiResponse, tokensUsed int64, timeUsedInMs int, modelUser string, err error) {
 	startTime := time.Now()
 	model, err := ai.getAiModel()
 	if err != nil {
@@ -1265,7 +1267,7 @@ func (ai *aiManager) processPrompt(ctx context.Context, prompt string, toolCtx *
 			"\n\nWhen you recommend a concrete change, do NOT only describe it in prose — emit it as a structured proposal in the analysis:" +
 			"\n- proposedOperation: one of UpdateResource, DeleteResource, CreateResource" +
 			"\n- targetResource: apiVersion, kind, namespace, resourceName, plural and namespaced of the affected resource (always required)" +
-			"\n- targetResourceYaml: the complete resource manifest (required for UpdateResource and CreateResource; omit for DeleteResource)" +
+			"\n- targetResourceYaml: the complete resource manifest, based on the live manifest you retrieved from the cluster with ONLY the fields the fix requires changed — never invent values, never include server-managed fields (metadata.resourceVersion, uid, creationTimestamp, generation, managedFields, status); required for UpdateResource and CreateResource, omit for DeleteResource" +
 			"\nOnly a structured proposal can be reviewed and applied with one click; prose-only recommendations end up as plain reports."
 	}
 
@@ -1313,6 +1315,7 @@ func (ai *aiManager) finalizeTaskOutcome(task *AiTask) {
 		}
 		task.BaseResourceVersion = current.GetResourceVersion()
 		ai.captureCurrentResourceYaml(task, current)
+		ai.sanitizeTargetResourceYaml(task)
 		task.State = AI_TASK_STATE_PROPOSED
 	case ProposedOperationDelete:
 		if target.ResourceName == "" {
@@ -1331,7 +1334,41 @@ func (ai *aiManager) finalizeTaskOutcome(task *AiTask) {
 		}
 		// Nothing exists yet — the diff renders against an empty document.
 		task.Response.Analysis.CurrentResourceYaml = ""
+		ai.sanitizeTargetResourceYaml(task)
 		task.State = AI_TASK_STATE_PROPOSED
+	}
+}
+
+// spawnFindingTasks persists every finding beyond the first as its own task,
+// so each one can be reviewed, approved and audited independently. All
+// findings share the run's single exploration — the token cost is booked on
+// the primary task only.
+func (ai *aiManager) spawnFindingTasks(primary *AiTask, extra []*AiResponse, model string) {
+	for i, response := range extra {
+		now := time.Now().Unix()
+		finding := AiTask{
+			ID:                  fmt.Sprintf("%s-f%d", primary.ID, i+2),
+			Prompt:              primary.Prompt,
+			Response:            response,
+			State:               AI_TASK_STATE_COMPLETED,
+			Model:               model,
+			CreatedAt:           now,
+			UpdatedAt:           now,
+			ReferencingResource: primary.ReferencingResource,
+			TriggeredBy:         primary.TriggeredBy,
+			AgentRef:            primary.AgentRef,
+			Trigger:             primary.Trigger,
+			TriggeredByUser:     primary.TriggeredByUser,
+		}
+		ai.finalizeTaskOutcome(&finding)
+		if err := ai.createOrUpdateAiTask(&finding, finding.ID); err != nil {
+			ai.logger.Error("Error persisting finding task", "taskID", finding.ID, "error", err)
+			continue
+		}
+		ai.notifyTaskChanged(&finding)
+	}
+	if len(extra) > 0 {
+		ai.logger.Info("Run produced additional findings", "primaryTaskID", primary.ID, "additionalTasks", len(extra))
 	}
 }
 
@@ -1339,12 +1376,55 @@ func (ai *aiManager) finalizeTaskOutcome(task *AiTask) {
 // truncated or hallucinated) CurrentResourceYaml with the authoritative state
 // of the target at proposal time, so the review diff in the UI is exact.
 func (ai *aiManager) captureCurrentResourceYaml(task *AiTask, current *unstructured.Unstructured) {
-	yaml, err := store.GetYamlFromUnstructuredResource(current)
+	sanitized := current.DeepCopy()
+	stripServerManagedFields(sanitized)
+	yaml, err := store.GetYamlFromUnstructuredResource(sanitized)
 	if err != nil {
 		ai.logger.Warn("Failed to serialize current resource for proposal diff", "taskID", task.ID, "error", err)
 		return // keep the model-provided value as a fallback
 	}
 	task.Response.Analysis.CurrentResourceYaml = yaml
+}
+
+// sanitizeTargetResourceYaml strips server-managed fields the model tends to
+// hallucinate (fabricated resourceVersion/uid/creationTimestamp/...) from the
+// proposed manifest. They are pure noise in the review diff and would break
+// the apply: a made-up resourceVersion causes an update conflict, a wrong uid
+// a rejection. Malformed YAML is left untouched — the execution path reports
+// the parse error to the user.
+func (ai *aiManager) sanitizeTargetResourceYaml(task *AiTask) {
+	obj, err := parseTargetYaml(task.Response.Analysis.TargetResourceYaml)
+	if err != nil {
+		return
+	}
+	stripServerManagedFields(obj)
+	yaml, err := store.GetYamlFromUnstructuredResource(obj)
+	if err != nil {
+		return
+	}
+	task.Response.Analysis.TargetResourceYaml = yaml
+}
+
+// stripServerManagedFields removes fields owned by the API server or
+// controllers from a manifest; applied to both sides of the proposal diff so
+// it only shows changes a user could actually make.
+func stripServerManagedFields(obj *unstructured.Unstructured) {
+	unstructured.RemoveNestedField(obj.Object, "status")
+	unstructured.RemoveNestedField(obj.Object, "metadata", "resourceVersion")
+	unstructured.RemoveNestedField(obj.Object, "metadata", "uid")
+	unstructured.RemoveNestedField(obj.Object, "metadata", "creationTimestamp")
+	unstructured.RemoveNestedField(obj.Object, "metadata", "generation")
+	unstructured.RemoveNestedField(obj.Object, "metadata", "managedFields")
+	unstructured.RemoveNestedField(obj.Object, "metadata", "selfLink")
+	if annotations := obj.GetAnnotations(); annotations != nil {
+		delete(annotations, "kubectl.kubernetes.io/last-applied-configuration")
+		delete(annotations, "deployment.kubernetes.io/revision")
+		if len(annotations) == 0 {
+			unstructured.RemoveNestedField(obj.Object, "metadata", "annotations")
+		} else {
+			obj.SetAnnotations(annotations)
+		}
+	}
 }
 
 // getTaskByKey loads and unmarshals a task from Valkey; returns nil when the

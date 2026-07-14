@@ -2,9 +2,11 @@ package ai
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 func TestFollowUpResourceLenientUnmarshal(t *testing.T) {
@@ -81,13 +83,58 @@ func TestParseSubmittedAnalysisAcceptsStringFollowUps(t *testing.T) {
 		}
 	}`)
 
-	response, err := parseSubmittedAnalysis(input)
+	responses, err := parseSubmittedAnalysis(input)
 	assert.NoError(t, err)
+	assert.Len(t, responses, 1)
+	response := responses[0]
 	assert.Equal(t, "Cluster contains 100+ obsolete ReplicaSets", response.ErrorMessage)
 	assert.Len(t, response.Analysis.FollowUpResources, 2)
 	assert.Equal(t, "ReplicaSet/homepage-5f8d9f9c5d (homepage namespace, 0 replicas)", response.Analysis.FollowUpResources[0].ResourceName)
 	assert.Equal(t, "harbor-jobservice-init", response.Analysis.FollowUpResources[1].ResourceName)
 	assert.Equal(t, "harbor-jobservice-init", response.Analysis.TargetResource.ResourceName)
+}
+
+// TestParseSubmittedAnalysisMultipleFindings: each entry in findings becomes
+// its own AiResponse, order preserved.
+func TestParseSubmittedAnalysisMultipleFindings(t *testing.T) {
+	input := json.RawMessage(`{
+		"findings": [
+			{"errorMessage": "first", "analysis": {"problemDescription": "a", "proposedOperation": "UpdateResource"}},
+			{"errorMessage": "second", "analysis": {"problemDescription": "b", "proposedOperation": "DeleteResource"}},
+			{"errorMessage": "third", "analysis": {"problemDescription": "c"}}
+		]
+	}`)
+
+	responses, err := parseSubmittedAnalysis(input)
+	assert.NoError(t, err)
+	assert.Len(t, responses, 3)
+	assert.Equal(t, "first", responses[0].ErrorMessage)
+	assert.Equal(t, "UpdateResource", responses[0].Analysis.ProposedOperation)
+	assert.Equal(t, "second", responses[1].ErrorMessage)
+	assert.Equal(t, "c", responses[2].Analysis.ProblemDescription)
+}
+
+func TestParseSubmittedAnalysisRejectsFindingWithoutProblemDescription(t *testing.T) {
+	input := json.RawMessage(`{
+		"findings": [
+			{"errorMessage": "ok", "analysis": {"problemDescription": "a"}},
+			{"errorMessage": "broken", "analysis": {}}
+		]
+	}`)
+	_, err := parseSubmittedAnalysis(input)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "finding 2")
+}
+
+func TestParseFindingsCapsAtMaximum(t *testing.T) {
+	findings := make([]string, 0, maxFindingsPerRun+3)
+	for i := 0; i < maxFindingsPerRun+3; i++ {
+		findings = append(findings, `{"errorMessage": "x", "analysis": {"problemDescription": "y"}}`)
+	}
+	input := []byte(`{"findings": [` + strings.Join(findings, ",") + `]}`)
+	responses, err := parseFindings(input)
+	assert.NoError(t, err)
+	assert.Len(t, responses, maxFindingsPerRun)
 }
 
 func TestParseSubmittedAnalysisRejectsEmptyProblemDescription(t *testing.T) {
@@ -103,10 +150,11 @@ func TestParseSubmittedAnalysisRejectsInvalidJSON(t *testing.T) {
 
 func TestParseAiResponseExtractsFromProse(t *testing.T) {
 	text := "Based on my analysis:\n```json\n{\"errorMessage\": \"x\", \"analysis\": {\"problemDescription\": \"y\", \"followUpResources\": [\"a string hint\"]}}\n```"
-	response, _, err := parseAiResponse(text)
+	responses, _, err := parseAiResponse(text)
 	assert.NoError(t, err)
-	assert.Equal(t, "y", response.Analysis.ProblemDescription)
-	assert.Equal(t, "a string hint", response.Analysis.FollowUpResources[0].ResourceName)
+	assert.Len(t, responses, 1)
+	assert.Equal(t, "y", responses[0].Analysis.ProblemDescription)
+	assert.Equal(t, "a string hint", responses[0].Analysis.FollowUpResources[0].ResourceName)
 }
 
 func TestDescribeToolCall(t *testing.T) {
@@ -114,4 +162,39 @@ func TestDescribeToolCall(t *testing.T) {
 		"list_kubernetes_resources (kind: Pod, namespace: harbor)",
 		describeToolCall("list_kubernetes_resources", map[string]any{"kind": "Pod", "namespace": "harbor", "apiVersion": "v1"}))
 	assert.Equal(t, "helm_list_releases", describeToolCall("helm_list_releases", map[string]any{}))
+}
+
+func TestStripServerManagedFields(t *testing.T) {
+	yamlIn := `apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: harbor-core
+  namespace: harbor
+  resourceVersion: "123456789"
+  uid: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+  creationTimestamp: "2024-03-15T10:23:45Z"
+  generation: 16
+  annotations:
+    deployment.kubernetes.io/revision: "16"
+    meta.helm.sh/release-name: harbor
+spec:
+  replicas: 1
+status:
+  readyReplicas: 1
+`
+	obj, err := parseTargetYaml(yamlIn)
+	assert.NoError(t, err)
+	stripServerManagedFields(obj)
+
+	assert.Equal(t, "harbor-core", obj.GetName())
+	assert.Equal(t, "", obj.GetResourceVersion())
+	assert.Empty(t, obj.GetUID())
+	creationTimestamp := obj.GetCreationTimestamp()
+	assert.True(t, creationTimestamp.IsZero())
+	assert.Zero(t, obj.GetGeneration())
+	_, hasStatus := obj.Object["status"]
+	assert.False(t, hasStatus)
+	assert.Equal(t, map[string]string{"meta.helm.sh/release-name": "harbor"}, obj.GetAnnotations())
+	replicas, _, _ := unstructured.NestedInt64(obj.Object, "spec", "replicas")
+	assert.Equal(t, int64(1), replicas)
 }
