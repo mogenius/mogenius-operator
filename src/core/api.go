@@ -116,13 +116,15 @@ type GetWorkspaceResult struct {
 	Name              string                                 `json:"name" validate:"required"`
 	CreationTimestamp v1.Time                                `json:"creationTimestamp"`
 	Resources         []v1alpha1.WorkspaceResourceIdentifier `json:"resources" validate:"required"`
+	DashboardRef      string                                 `json:"dashboardRef,omitempty"`
 }
 
-func NewGetWorkspaceResult(name string, creationTimestamp v1.Time, resources []v1alpha1.WorkspaceResourceIdentifier) GetWorkspaceResult {
+func NewGetWorkspaceResult(name string, creationTimestamp v1.Time, resources []v1alpha1.WorkspaceResourceIdentifier, dashboardRef string) GetWorkspaceResult {
 	return GetWorkspaceResult{
 		Name:              name,
 		CreationTimestamp: creationTimestamp,
 		Resources:         resources,
+		DashboardRef:      dashboardRef,
 	}
 }
 
@@ -139,6 +141,7 @@ func (self *api) GetAllWorkspaces() ([]GetWorkspaceResult, error) {
 			resource.GetName(),
 			resource.ObjectMeta.CreationTimestamp,
 			resource.Spec.Resources,
+			resource.Spec.DashboardRef,
 		))
 	}
 
@@ -156,6 +159,7 @@ func (self *api) GetWorkspace(name string) (*GetWorkspaceResult, error) {
 		resource.GetName(),
 		resource.ObjectMeta.CreationTimestamp,
 		resource.Spec.Resources,
+		resource.Spec.DashboardRef,
 	)
 
 	return &result, nil

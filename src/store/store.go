@@ -920,6 +920,14 @@ func GetPod(namespace string, name string) *coreV1.Pod {
 	return pod
 }
 
+func GetWorkspaceDashboard(namespace string, name string) (*v1alpha1.WorkspaceDashboard, error) {
+	dashboard, err := valkeyclient.GetObjectForKey[v1alpha1.WorkspaceDashboard](valkeyClient, VALKEY_RESOURCE_PREFIX, utils.WorkspaceDashboardResource.ApiVersion, utils.WorkspaceDashboardResource.Kind, namespace, name)
+	if err != nil || dashboard == nil {
+		return nil, err
+	}
+	return dashboard, nil
+}
+
 // GetPodsOnNode returns the pods scheduled on nodeName via the per-node SET
 // index (one SMEMBERS plus chunked MGETs). The full-scan fallback covers an
 // empty/missing index (e.g. right after the store was wiped, before the
@@ -1347,13 +1355,13 @@ func sanitizeAuditLogEntry(entry *AuditLogEntry) {
 // credentials by construction (e.g. helm repo add/patch requests carry a
 // repo password). Matched case-insensitively against map keys.
 var sensitiveAuditPayloadKeys = map[string]struct{}{
-	"password":     {},
-	"token":        {},
-	"apikey":       {},
-	"accesstoken":  {},
-	"authtoken":    {},
-	"bearertoken":  {},
-	"clientsecret": {},
+	"password":      {},
+	"token":         {},
+	"apikey":        {},
+	"accesstoken":   {},
+	"authtoken":     {},
+	"bearertoken":   {},
+	"clientsecret":  {},
 	"authorization": {},
 }
 

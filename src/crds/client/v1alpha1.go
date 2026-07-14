@@ -391,8 +391,16 @@ func (self *MogeniusV1alpha1) ReplaceWorkspace(namespace string, name string, sp
 }
 
 func (self *MogeniusV1alpha1) UpdateWorkspace(namespace string, name string, spec mov1alpha1.WorkspaceSpec) (*mov1alpha1.Workspace, error) {
-	patchBytes, err := json.Marshal(&mov1alpha1.Workspace{
-		Spec: spec,
+	// Build the merge patch by hand instead of marshalling the Workspace
+	// struct: DashboardRef carries omitempty, so an empty value would be
+	// dropped from the patch and clearing the dashboard reference via
+	// update would silently keep the old value.
+	patchBytes, err := json.Marshal(map[string]any{
+		"spec": map[string]any{
+			"name":         spec.Name,
+			"resources":    spec.Resources,
+			"dashboardRef": spec.DashboardRef,
+		},
 	})
 	if err != nil {
 		return nil, err

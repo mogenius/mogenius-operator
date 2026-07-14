@@ -7,6 +7,8 @@ import (
 	"mogenius-operator/src/utils"
 	"mogenius-operator/src/valkeyclient"
 	"time"
+
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 // reconcilerModule holds shared dependencies for all reconcile handler methods.
@@ -16,6 +18,10 @@ type reconcilerModule struct {
 	config         config.ConfigModule
 	valkeyClient   valkeyclient.ValkeyClient
 	crdChecker     *crdChecker
+
+	// requeue re-reconciles cached objects matching the predicate; wired in
+	// Build because the reconciler owning the object caches is created there.
+	requeue func(resource utils.ResourceDescriptor, match func(*unstructured.Unstructured) bool)
 }
 
 type reconcilerFactory struct {
@@ -47,6 +53,7 @@ func NewReconcilerFactory(logger *slog.Logger, clientProvider k8sclient.K8sClien
 	}
 
 	factory.WithReconciler(utils.WorkspaceResource, factory.module.reconcileWorkspaces)
+	factory.WithReconciler(utils.WorkspaceDashboardResource, factory.module.reconcileWorkspaceDashboards)
 	factory.WithReconciler(utils.AgentResource, factory.module.reconcileAgents)
 
 	// TODO: Remove gaurd when platform config is ready, and add other platform components as needed.
@@ -66,5 +73,7 @@ func (f *reconcilerFactory) WithReconciler(resource utils.ResourceDescriptor, re
 }
 
 func (f *reconcilerFactory) Build() Reconciler {
-	return newReconciler(f.module.logger, f.module.clientProvider, f.interval, f.configs)
+	reconciler := newReconciler(f.module.logger, f.module.clientProvider, f.interval, f.configs)
+	f.module.requeue = reconciler.requeue
+	return reconciler
 }
