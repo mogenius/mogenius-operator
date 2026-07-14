@@ -1,3 +1,10 @@
+# [2.24.0-develop.18](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.17...v2.24.0-develop.18) (2026-07-14)
+
+
+### Bug Fixes
+
+* aiinsights improved ([f004483](https://github.com/mogenius/mogenius-operator/commit/f004483a5fdc953bf570dffa77ae7dab2d563392))
+
 # [2.24.0-develop.17](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.16...v2.24.0-develop.17) (2026-07-14)
 
 
