@@ -1,3 +1,10 @@
+# [2.24.0-develop.12](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.11...v2.24.0-develop.12) (2026-07-14)
+
+
+### Bug Fixes
+
+* default optional valkey config keys to empty string ([f715096](https://github.com/mogenius/mogenius-operator/commit/f715096e017870f509e503350402168809b5c89b)), closes [#1065](https://github.com/mogenius/mogenius-operator/issues/1065)
+
 # [2.24.0-develop.11](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.10...v2.24.0-develop.11) (2026-07-14)
 
 
