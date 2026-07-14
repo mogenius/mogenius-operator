@@ -234,6 +234,7 @@ type AiManager interface {
 	ApproveTask(taskID string, user structs.User, workspace string) (*AiTask, error)
 	RejectTask(taskID string, user structs.User, reason string) (*AiTask, error)
 	CancelTask(taskID string, user structs.User) (*AiTask, error)
+	DeleteTask(taskID string, user structs.User) (*AiTask, error)
 	TriggerAgent(agentName string, user structs.User) (*AiTask, error)
 
 	ResolveWorkspaceContext(userEmail string, workspaceName string) (*v1alpha1.WorkspaceSpec, *v1alpha1.GrantSpec)

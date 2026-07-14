@@ -2026,6 +2026,21 @@ func (self *socketApi) registerPatterns() {
 	}
 
 	{
+		type Request struct {
+			TaskId string `json:"taskId" validate:"required"`
+		}
+
+		RegisterPatternHandler(
+			PatternHandle{self, "aiManager/delete/task"},
+			PatternConfig{NeedsUser: true},
+			func(datagram structs.Datagram, request Request) (*ai.AiTask, error) {
+				task, err := self.aiApi.DeleteTask(request.TaskId, datagram.User)
+				return store.AddToAuditLog(datagram, self.logger, task, err, nil, nil)
+			},
+		)
+	}
+
+	{
 
 		type Request struct {
 			Workspace *string `json:"workspace"`
