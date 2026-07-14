@@ -1,3 +1,16 @@
+# [2.24.0-develop.19](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.18...v2.24.0-develop.19) (2026-07-14)
+
+
+### Bug Fixes
+
+* report Unknown condition when dashboard lookup fails ([be60340](https://github.com/mogenius/mogenius-operator/commit/be60340e6196115a4be978c173905288d5c8009f))
+* requeue referencing workspaces on dashboard create/delete ([bee3710](https://github.com/mogenius/mogenius-operator/commit/bee37105f8e2a23c73f3bd137e48126b1c87cf22))
+
+
+### Features
+
+* add WorkspaceDashboard CRD for configurable workspace dashboards ([f435091](https://github.com/mogenius/mogenius-operator/commit/f4350913f61c24ed5df438a4127e0f9a4ade54c2))
+
 # [2.24.0-develop.18](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.17...v2.24.0-develop.18) (2026-07-14)
 
 
