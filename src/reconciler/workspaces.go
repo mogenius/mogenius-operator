@@ -38,14 +38,22 @@ func (d *reconcilerModule) verifyWorkspaceIntegrity(ctx context.Context, obj *un
 	}
 	if ref := workspace.Spec.DashboardRef; ref != "" {
 		dashboard, err := store.GetWorkspaceDashboard(obj.GetNamespace(), ref)
-		if err != nil || dashboard == nil {
+		switch {
+		case err != nil:
+			// A store lookup failure says nothing about whether the dashboard
+			// exists — report Unknown instead of a false NotFound.
+			dashboardRefCondition.Status = metav1.ConditionUnknown
+			dashboardRefCondition.Reason = "LookupFailed"
+			dashboardRefCondition.Message = fmt.Sprintf("Failed to look up WorkspaceDashboard %q: %v", ref, err)
+			results = append(results, ReconcileResult{Err: fmt.Errorf("failed to look up WorkspaceDashboard %q: %w", ref, err), IsWarning: true})
+		case dashboard == nil:
 			dashboardRefCondition.Status = metav1.ConditionFalse
 			dashboardRefCondition.Reason = "NotFound"
 			dashboardRefCondition.Message = fmt.Sprintf("WorkspaceDashboard %q does not exist", ref)
 			resultErr := ReconcileResult{}
-			resultErr.Err = fmt.Errorf("Workspace references a WorkspaceDashboard which does not exist: %#v", ref)
+			resultErr.Err = fmt.Errorf("Workspace references a WorkspaceDashboard which does not exist: %q", ref)
 			results = append(results, resultErr)
-		} else {
+		default:
 			dashboardRefCondition.Reason = "Found"
 			dashboardRefCondition.Message = fmt.Sprintf("WorkspaceDashboard %q exists", ref)
 		}
