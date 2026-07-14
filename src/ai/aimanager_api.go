@@ -424,7 +424,15 @@ func (ai *aiManager) GetStatus(workspace *string) AiManagerStatus {
 }
 
 func (ai *aiManager) ResetDailyTokenLimit() error {
-	return ai.resetTodayTokenUsage()
+	if err := ai.resetTodayTokenUsage(); err != nil {
+		return err
+	}
+	// Invalidate the cached status: a running task pushes progress events
+	// every couple of seconds, and without this they would carry the stale
+	// pre-reset token count until the cache expires — the UI bar would jump
+	// back to the old value right after the reset.
+	ai.resetCache()
+	return nil
 }
 
 func (ai *aiManager) DeleteAllAiData() error {

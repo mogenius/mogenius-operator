@@ -60,7 +60,10 @@ type AiTask struct {
 	Retries int `json:"retries,omitempty"`
 	// CurrentActivity is the live "what is the agent doing right now" line for
 	// the UI (tool being called with its key arguments); empty when idle.
-	CurrentActivity     string                      `json:"currentActivity,omitempty"`
+	CurrentActivity string `json:"currentActivity,omitempty"`
+	// RunID groups all finding tasks of one multi-finding run (the primary
+	// task's ID); the UI renders such tasks as a single report.
+	RunID               string                      `json:"runId,omitempty"`
 	Model               string                      `json:"model"`
 	TimeUsedInMs        int                         `json:"timeUsedInMs"`
 	CreatedAt           int64                       `json:"createdAt"`
@@ -1344,10 +1347,15 @@ func (ai *aiManager) finalizeTaskOutcome(task *AiTask) {
 // findings share the run's single exploration — the token cost is booked on
 // the primary task only.
 func (ai *aiManager) spawnFindingTasks(primary *AiTask, extra []*AiResponse, model string) {
+	if len(extra) > 0 {
+		// Group the run's tasks so the UI can render them as one report.
+		primary.RunID = primary.ID
+	}
 	for i, response := range extra {
 		now := time.Now().Unix()
 		finding := AiTask{
 			ID:                  fmt.Sprintf("%s-f%d", primary.ID, i+2),
+			RunID:               primary.ID,
 			Prompt:              primary.Prompt,
 			Response:            response,
 			State:               AI_TASK_STATE_COMPLETED,
