@@ -271,8 +271,9 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		},
 	})
 	configModule.Declare(config.ConfigDeclaration{
-		Key:         "MO_VALKEY_USERNAME",
-		Description: new("Username (ACL) of operator valkey Server, optional"),
+		Key:          "MO_VALKEY_USERNAME",
+		DefaultValue: new(""),
+		Description:  new("Username (ACL) of operator valkey Server, optional"),
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:         "MO_VALKEY_PASSWORD",
@@ -304,8 +305,9 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		},
 	})
 	configModule.Declare(config.ConfigDeclaration{
-		Key:         "MO_VALKEY_TLS_CA_CERT_FILE",
-		Description: new("Path to a CA certificate file used to verify the valkey server, optional"),
+		Key:          "MO_VALKEY_TLS_CA_CERT_FILE",
+		DefaultValue: new(""),
+		Description:  new("Path to a CA certificate file used to verify the valkey server, optional"),
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_STATS_RETENTION_MAX_ENTRIES",
