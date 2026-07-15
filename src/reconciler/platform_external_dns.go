@@ -78,6 +78,12 @@ func (d *reconcilerModule) reconcileExternalDNS(ctx context.Context, spec v1alph
 				}
 			}
 
+			if d.crdChecker.IsAvailable(utils.ServiceMonitorResource) {
+				values["serviceMonitor"] = map[string]any{
+					"enabled": true,
+				}
+			}
+
 			return values, nil
 		},
 	)
