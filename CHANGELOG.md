@@ -1,3 +1,13 @@
+# [2.24.0-develop.20](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.19...v2.24.0-develop.20) (2026-07-15)
+
+
+### Features
+
+* enable argocd metrics if available ([1d0dcad](https://github.com/mogenius/mogenius-operator/commit/1d0dcad86e16087fa814074250bc485f7821898d))
+* enable external dns metrics if available ([f168184](https://github.com/mogenius/mogenius-operator/commit/f1681841775716a3fc847272e3d20b18d3e92813))
+* enable external secrets metrics if available ([43b96d7](https://github.com/mogenius/mogenius-operator/commit/43b96d7e3aec9b1c70d6f12a0963839fffa4ea67))
+* enable flux operator metrics if available ([1633eab](https://github.com/mogenius/mogenius-operator/commit/1633eab596c2b89048461eefc565f04c7d2c0d5b))
+
 # [2.24.0-develop.19](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.18...v2.24.0-develop.19) (2026-07-14)
 
 
