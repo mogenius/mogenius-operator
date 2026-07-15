@@ -59,6 +59,13 @@ func (d *reconcilerModule) reconcileFluxCD(ctx context.Context, spec v1alpha1.Pl
 			return extraObjects, nil
 		},
 		func(ctx context.Context) (map[string]any, error) {
+			if d.crdChecker.IsAvailable(utils.ServiceMonitorResource) {
+				return map[string]any{
+					"serviceMonitor": map[string]any{
+						"create": true,
+					},
+				}, nil
+			}
 			return nil, nil
 		},
 	)
