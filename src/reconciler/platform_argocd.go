@@ -92,6 +92,20 @@ func (d *reconcilerModule) reconcileArgoCD(ctx context.Context, spec v1alpha1.Pl
 			return extraObjects, nil
 		},
 		func(ctx context.Context) (map[string]any, error) {
+			if d.crdChecker.IsAvailable(utils.ServiceMonitorResource) {
+				metricsBlock := map[string]any{
+					"enabled": true,
+					"serviceMonitor": map[string]any{
+						"enabled": true,
+					},
+				}
+				return map[string]any{
+					"controller":     map[string]any{"metrics": metricsBlock},
+					"server":         map[string]any{"metrics": metricsBlock},
+					"repoServer":     map[string]any{"metrics": metricsBlock},
+					"applicationSet": map[string]any{"metrics": metricsBlock},
+				}, nil
+			}
 			return nil, nil
 		},
 	)
