@@ -104,6 +104,134 @@ func TestMergeMaps(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "slice in src overwrites slice in dst entirely",
+			dst:  map[string]any{"items": []any{"a", "b"}},
+			src:  map[string]any{"items": []any{"c"}},
+			want: map[string]any{"items": []any{"c"}},
+		},
+		{
+			name: "slice in src overwrites nested map in dst",
+			dst:  map[string]any{"k": map[string]any{"a": 1}},
+			src:  map[string]any{"k": []any{"x", "y"}},
+			want: map[string]any{"k": []any{"x", "y"}},
+		},
+		{
+			name: "realistic traefik-style merge",
+			dst: map[string]any{
+				"globalArguments": []any{"--global.checknewversion=false"},
+				"service": map[string]any{
+					"type": "LoadBalancer",
+					"annotations": map[string]any{
+						"cloud.google.com/load-balancer-type": "External",
+					},
+				},
+				"ports": map[string]any{
+					"web":       map[string]any{"port": 80, "expose": true},
+					"websecure": map[string]any{"port": 443, "expose": true},
+				},
+				"ingressClass": map[string]any{
+					"enabled":        true,
+					"isDefaultClass": true,
+				},
+			},
+			src: map[string]any{
+				"metrics": map[string]any{
+					"prometheus": map[string]any{
+						"enabled":    true,
+						"entryPoint": "metrics",
+						"service":    map[string]any{"enabled": true},
+						"serviceMonitor": map[string]any{
+							"enabled": true,
+						},
+					},
+				},
+				"ports": map[string]any{
+					"metrics": map[string]any{"port": 9100, "expose": false},
+				},
+			},
+			want: map[string]any{
+				"globalArguments": []any{"--global.checknewversion=false"},
+				"service": map[string]any{
+					"type": "LoadBalancer",
+					"annotations": map[string]any{
+						"cloud.google.com/load-balancer-type": "External",
+					},
+				},
+				"ports": map[string]any{
+					"web":       map[string]any{"port": 80, "expose": true},
+					"websecure": map[string]any{"port": 443, "expose": true},
+					"metrics":   map[string]any{"port": 9100, "expose": false},
+				},
+				"ingressClass": map[string]any{
+					"enabled":        true,
+					"isDefaultClass": true,
+				},
+				"metrics": map[string]any{
+					"prometheus": map[string]any{
+						"enabled":    true,
+						"entryPoint": "metrics",
+						"service":    map[string]any{"enabled": true},
+						"serviceMonitor": map[string]any{
+							"enabled": true,
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "realistic argocd-style merge preserves all sibling components",
+			dst: map[string]any{
+				"global": map[string]any{
+					"image": map[string]any{"tag": "v2.10.0"},
+				},
+				"controller": map[string]any{
+					"replicas": 1,
+					"metrics":  map[string]any{"enabled": false},
+				},
+				"server": map[string]any{
+					"replicas":  1,
+					"metrics":   map[string]any{"enabled": false},
+					"extraArgs": []any{"--insecure"},
+				},
+				"repoServer": map[string]any{
+					"replicas": 1,
+					"metrics":  map[string]any{"enabled": false},
+				},
+				"applicationSet": map[string]any{
+					"replicas": 1,
+					"metrics":  map[string]any{"enabled": false},
+				},
+			},
+			src: map[string]any{
+				"controller":     map[string]any{"metrics": map[string]any{"enabled": true, "serviceMonitor": map[string]any{"enabled": true}}},
+				"server":         map[string]any{"metrics": map[string]any{"enabled": true, "serviceMonitor": map[string]any{"enabled": true}}},
+				"repoServer":     map[string]any{"metrics": map[string]any{"enabled": true, "serviceMonitor": map[string]any{"enabled": true}}},
+				"applicationSet": map[string]any{"metrics": map[string]any{"enabled": true, "serviceMonitor": map[string]any{"enabled": true}}},
+			},
+			want: map[string]any{
+				"global": map[string]any{
+					"image": map[string]any{"tag": "v2.10.0"},
+				},
+				"controller": map[string]any{
+					"replicas": 1,
+					"metrics":  map[string]any{"enabled": true, "serviceMonitor": map[string]any{"enabled": true}},
+				},
+				"server": map[string]any{
+					"replicas":  1,
+					"extraArgs": []any{"--insecure"},
+					"metrics":   map[string]any{"enabled": true, "serviceMonitor": map[string]any{"enabled": true}},
+				},
+				"repoServer": map[string]any{
+					"replicas": 1,
+					"metrics":  map[string]any{"enabled": true, "serviceMonitor": map[string]any{"enabled": true}},
+				},
+				"applicationSet": map[string]any{
+					"replicas": 1,
+					"metrics":  map[string]any{"enabled": true, "serviceMonitor": map[string]any{"enabled": true}},
+				},
+			},
+		},
 	}
 
 	for _, tc := range tests {
@@ -232,6 +360,160 @@ func TestMergeHelmValues(t *testing.T) {
 			},
 			patch: patch(t, map[string]any{"nested": "scalar"}),
 			want:  map[string]any{"nested": "scalar"},
+		},
+		{
+			// Patches are applied in slice order; the last patch wins.
+			name: "multiple patches applied in order, last wins",
+			defaults: componentDefaultSpec{
+				ValuesObject: map[string]any{"key": "default"},
+			},
+			patch: func() []v1alpha1.PlatformPatch {
+				return []v1alpha1.PlatformPatch{
+					patch(t, map[string]any{"key": "patch1"})[0],
+					patch(t, map[string]any{"key": "patch2"})[0],
+					patch(t, map[string]any{"key": "patch3"})[0],
+				}
+			}(),
+			want: map[string]any{"key": "patch3"},
+		},
+		{
+			name: "multiple patches each contribute different keys",
+			patch: func() []v1alpha1.PlatformPatch {
+				return []v1alpha1.PlatformPatch{
+					patch(t, map[string]any{"a": 1})[0],
+					patch(t, map[string]any{"b": 2})[0],
+					patch(t, map[string]any{"c": 3})[0],
+				}
+			}(),
+			want: map[string]any{"a": float64(1), "b": float64(2), "c": float64(3)},
+		},
+		{
+			name: "realistic external-secrets-operator merge",
+			defaults: componentDefaultSpec{
+				ValuesObject: map[string]any{
+					"replicaCount": 1,
+					"resources": map[string]any{
+						"requests": map[string]any{"cpu": "10m", "memory": "32Mi"},
+						"limits":   map[string]any{"memory": "128Mi"},
+					},
+					"serviceMonitor": map[string]any{"enabled": false},
+					"metrics": map[string]any{
+						"service": map[string]any{"enabled": false},
+					},
+				},
+			},
+			configValues: map[string]any{
+				"serviceMonitor": map[string]any{"enabled": true},
+				"metrics": map[string]any{
+					"service": map[string]any{"enabled": true},
+				},
+			},
+			want: map[string]any{
+				"replicaCount": 1,
+				"resources": map[string]any{
+					"requests": map[string]any{"cpu": "10m", "memory": "32Mi"},
+					"limits":   map[string]any{"memory": "128Mi"},
+				},
+				"serviceMonitor": map[string]any{"enabled": true},
+				"metrics": map[string]any{
+					"service": map[string]any{"enabled": true},
+				},
+			},
+		},
+		{
+			name: "realistic argocd three-layer merge",
+			defaults: componentDefaultSpec{
+				ValuesObject: map[string]any{
+					"global": map[string]any{
+						"image": map[string]any{"tag": "v2.10.0"},
+					},
+					"controller": map[string]any{
+						"replicas": 1,
+						"metrics":  map[string]any{"enabled": false},
+					},
+					"server": map[string]any{
+						"replicas":  1,
+						"metrics":   map[string]any{"enabled": false},
+						"extraArgs": []any{"--insecure"},
+					},
+					"repoServer": map[string]any{
+						"replicas": 1,
+						"metrics":  map[string]any{"enabled": false},
+					},
+					"applicationSet": map[string]any{
+						"replicas": 1,
+						"metrics":  map[string]any{"enabled": false},
+					},
+				},
+			},
+			configValues: map[string]any{
+				"controller":     map[string]any{"metrics": map[string]any{"enabled": true, "serviceMonitor": map[string]any{"enabled": true}}},
+				"server":         map[string]any{"metrics": map[string]any{"enabled": true, "serviceMonitor": map[string]any{"enabled": true}}},
+				"repoServer":     map[string]any{"metrics": map[string]any{"enabled": true, "serviceMonitor": map[string]any{"enabled": true}}},
+				"applicationSet": map[string]any{"metrics": map[string]any{"enabled": true, "serviceMonitor": map[string]any{"enabled": true}}},
+			},
+			patch: patch(t, map[string]any{
+				"global": map[string]any{
+					"image": map[string]any{"tag": "v2.11.0"},
+				},
+				"server": map[string]any{
+					"replicas": 2,
+				},
+			}),
+			want: map[string]any{
+				"global": map[string]any{
+					"image": map[string]any{"tag": "v2.11.0"},
+				},
+				"controller": map[string]any{
+					"replicas": 1,
+					"metrics":  map[string]any{"enabled": true, "serviceMonitor": map[string]any{"enabled": true}},
+				},
+				"server": map[string]any{
+					"replicas":  float64(2), // JSON-unmarshalled patch value
+					"extraArgs": []any{"--insecure"},
+					"metrics":   map[string]any{"enabled": true, "serviceMonitor": map[string]any{"enabled": true}},
+				},
+				"repoServer": map[string]any{
+					"replicas": 1,
+					"metrics":  map[string]any{"enabled": true, "serviceMonitor": map[string]any{"enabled": true}},
+				},
+				"applicationSet": map[string]any{
+					"replicas": 1,
+					"metrics":  map[string]any{"enabled": true, "serviceMonitor": map[string]any{"enabled": true}},
+				},
+			},
+		},
+		{
+			name: "patch deep-overrides one nested key while all siblings survive",
+			defaults: componentDefaultSpec{
+				ValuesObject: map[string]any{
+					"component": map[string]any{
+						"replicas": 1,
+						"image":    map[string]any{"repository": "myrepo", "tag": "v1"},
+						"resources": map[string]any{
+							"requests": map[string]any{"cpu": "100m", "memory": "128Mi"},
+							"limits":   map[string]any{"cpu": "500m", "memory": "512Mi"},
+						},
+					},
+				},
+			},
+			patch: patch(t, map[string]any{
+				"component": map[string]any{
+					"resources": map[string]any{
+						"limits": map[string]any{"memory": "1Gi"},
+					},
+				},
+			}),
+			want: map[string]any{
+				"component": map[string]any{
+					"replicas": 1,
+					"image":    map[string]any{"repository": "myrepo", "tag": "v1"},
+					"resources": map[string]any{
+						"requests": map[string]any{"cpu": "100m", "memory": "128Mi"},
+						"limits":   map[string]any{"cpu": "500m", "memory": "1Gi"},
+					},
+				},
+			},
 		},
 	}
 
