@@ -366,7 +366,7 @@ func (ai *aiManager) anthropicChatWithTools(
 	}
 }
 
-func (ai *aiManager) processPromptAnthropic(ctx context.Context, model, systemPrompt, prompt string, maxToolCalls int, toolCtx *ToolContext, onProgress func(int64, string)) ([]*AiResponse, int64, int, string, error) {
+func (ai *aiManager) processPromptAnthropic(ctx context.Context, model, systemPrompt, prompt string, maxToolCalls int, maxTokensPerRun int64, toolCtx *ToolContext, onProgress func(int64, string)) ([]*AiResponse, int64, int, string, error) {
 	startTime := time.Now()
 
 	// Unattended pipeline: strictly read-only tools, no external MCP tools.
@@ -408,6 +408,11 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, model, systemPr
 	// Bounded in-conversation repair turns for schema-violating final answers.
 	repairAttempts := 0
 
+	// Findings accumulated across repeated submit_analysis calls. The tool is
+	// repeatable so the number of findings is not limited by a single
+	// response's output budget.
+	collected := []*AiResponse{}
+
 	// Loop until there are no more tool calls or maxToolCalls reached
 	for {
 		message, err := client.Messages.New(ctx, anthropic.MessageNewParams{
@@ -421,6 +426,12 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, model, systemPr
 		})
 
 		if err != nil {
+			if len(collected) > 0 {
+				// Salvage what the run already confirmed instead of throwing
+				// the whole exploration away.
+				ai.logger.Warn("LLM turn failed mid-run, keeping findings collected so far", "collected", len(collected), "error", err)
+				return collected, tokensUsed, int(time.Since(startTime).Milliseconds()), model, nil
+			}
 			return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, err
 		}
 
@@ -484,16 +495,31 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, model, systemPr
 				// is fed back as an is_error tool result so the model repairs
 				// it in-conversation instead of failing the whole run.
 				if block.Name == submitAnalysisToolName {
-					aiResponse, parseErr := parseSubmittedAnalysis(block.Input)
-					if parseErr == nil {
-						return aiResponse, tokensUsed, int(time.Since(startTime).Milliseconds()), model, nil
+					findings, parseErr := parseSubmittedAnalysis(block.Input)
+					if parseErr != nil {
+						repairAttempts++
+						ai.logger.Warn("Submitted findings rejected", "error", parseErr, "attempt", repairAttempts)
+						if repairAttempts > maxAnalysisRepairs {
+							if len(collected) > 0 {
+								return collected, tokensUsed, int(time.Since(startTime).Milliseconds()), model, nil
+							}
+							return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("analysis rejected %d times, giving up: %w", repairAttempts, parseErr)
+						}
+						toolResults = append(toolResults, analysisRejectionResult(block.ID, parseErr))
+						continue
 					}
-					repairAttempts++
-					ai.logger.Warn("Submitted analysis rejected", "error", parseErr, "attempt", repairAttempts)
-					if repairAttempts > maxAnalysisRepairs {
-						return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("analysis rejected %d times, giving up: %w", repairAttempts, parseErr)
+					if len(findings) == 0 {
+						// Empty submission: the model declares the run finished.
+						return collected, tokensUsed, int(time.Since(startTime).Milliseconds()), model, nil
 					}
-					toolResults = append(toolResults, analysisRejectionResult(block.ID, parseErr))
+					collected = append(collected, findings...)
+					ai.logger.Info("Findings submitted", "new", len(findings), "total", len(collected))
+					if onProgress != nil {
+						onProgress(tokensUsed, fmt.Sprintf("%d finding(s) submitted", len(collected)))
+					}
+					toolResults = append(toolResults, anthropic.NewToolResultBlock(block.ID,
+						fmt.Sprintf("Recorded %d finding(s) — %d total so far. Continue the investigation and submit further findings, or call %s with an empty findings array when nothing else is actionable.", len(findings), len(collected), submitAnalysisToolName),
+						false))
 					continue
 				}
 
@@ -531,6 +557,12 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, model, systemPr
 		if !hasToolUse {
 			ai.logger.Info("No tool calls found, finishing AI processing")
 
+			// The model stopped calling tools: with submitted findings on
+			// record that simply ends the run.
+			if len(collected) > 0 {
+				return collected, tokensUsed, int(time.Since(startTime).Milliseconds()), model, nil
+			}
+
 			// Fallback for models that answer in text despite the
 			// submit_analysis instruction: parse the JSON out of the text and,
 			// when that fails, spend a bounded repair turn pointing the model
@@ -560,10 +592,17 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, model, systemPr
 			continue
 		}
 
-		// Increase global tool call count and check limit
+		// Increase global tool call count and check the run budgets (tool
+		// calls and, when configured, tokens). Either limit exhausted forces
+		// one final submit turn; findings collected so far are kept.
 		toolCallCount += iterationToolUses
-		if maxToolCalls > 0 && toolCallCount >= maxToolCalls {
-			ai.logger.Info("Max tool call limit reached, forcing final answer", "maxToolCalls", maxToolCalls, "toolCallCount", toolCallCount)
+		budgetExhausted := maxToolCalls > 0 && toolCallCount >= maxToolCalls
+		if !budgetExhausted && maxTokensPerRun > 0 && tokensUsed >= maxTokensPerRun {
+			budgetExhausted = true
+			ai.logger.Info("Per-run token limit reached, forcing final answer", "maxTokensPerRun", maxTokensPerRun, "tokensUsed", tokensUsed)
+		}
+		if budgetExhausted {
+			ai.logger.Info("Run budget exhausted, forcing final answer", "maxToolCalls", maxToolCalls, "toolCallCount", toolCallCount, "tokensUsed", tokensUsed)
 
 			// Hand back the pending tool results plus a nudge and request one
 			// last turn with tool choice forced to submit_analysis so the
@@ -587,6 +626,9 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, model, systemPr
 				ToolChoice: anthropic.ToolChoiceUnionParam{OfTool: &submitChoice},
 			})
 			if err != nil {
+				if len(collected) > 0 {
+					return collected, tokensUsed, int(time.Since(startTime).Milliseconds()), model, nil
+				}
 				return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("max tool calls reached (%d) and final answer request failed: %w", maxToolCalls, err)
 			}
 			tokensUsed += finalMessage.Usage.InputTokens + finalMessage.Usage.OutputTokens
@@ -599,11 +641,14 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, model, systemPr
 				switch block.Type {
 				case "tool_use":
 					if block.Name == submitAnalysisToolName {
-						aiResponse, parseErr := parseSubmittedAnalysis(block.Input)
+						findings, parseErr := parseSubmittedAnalysis(block.Input)
 						if parseErr != nil {
+							if len(collected) > 0 {
+								return collected, tokensUsed, int(time.Since(startTime).Milliseconds()), model, nil
+							}
 							return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("max tool calls reached (%d) and final analysis invalid: %w", maxToolCalls, parseErr)
 						}
-						return aiResponse, tokensUsed, int(time.Since(startTime).Milliseconds()), model, nil
+						return append(collected, findings...), tokensUsed, int(time.Since(startTime).Milliseconds()), model, nil
 					}
 				case "text":
 					responseText += block.Text
@@ -612,12 +657,15 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, model, systemPr
 
 			// Defensive fallback: the model answered in text despite the
 			// forced tool choice.
-			aiResponse, removedText, err := parseAiResponse(responseText)
+			aiResponses, removedText, err := parseAiResponse(responseText)
 			ai.logger.Info("Extracted JSON after max tool calls", "removed_text", removedText)
 			if err != nil {
+				if len(collected) > 0 {
+					return collected, tokensUsed, int(time.Since(startTime).Milliseconds()), model, nil
+				}
 				return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("max tool calls reached (%d) without parsable final answer: %v\n%s", maxToolCalls, err, responseText)
 			}
-			return aiResponse, tokensUsed, int(time.Since(startTime).Milliseconds()), model, nil
+			return append(collected, aiResponses...), tokensUsed, int(time.Since(startTime).Milliseconds()), model, nil
 		}
 
 		// Add tool results to messages

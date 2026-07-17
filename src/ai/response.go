@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"mogenius-operator/src/utils"
-	"strconv"
 
 	"github.com/anthropics/anthropic-sdk-go"
 )
@@ -39,10 +38,6 @@ func (f *FollowUpResource) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// maxFindingsPerRun caps how many findings one run may submit — each finding
-// becomes its own review task, so this bounds task spam from a single run.
-const maxFindingsPerRun = 5
-
 // aiSubmission is the wire shape of a submit_analysis call: a findings array,
 // or (legacy / text fallback) a single top-level errorMessage+analysis pair.
 type aiSubmission struct {
@@ -52,6 +47,7 @@ type aiSubmission struct {
 
 // parseFindings converts raw submission JSON into one AiResponse per finding.
 // Accepts both the findings-array shape and the legacy single-analysis shape.
+// An empty submission is valid and means "nothing to report".
 func parseFindings(data []byte) ([]*AiResponse, error) {
 	var submission aiSubmission
 	if err := json.Unmarshal(data, &submission); err != nil {
@@ -60,10 +56,10 @@ func parseFindings(data []byte) ([]*AiResponse, error) {
 
 	findings := submission.Findings
 	if len(findings) == 0 {
+		if submission.ErrorMessage == "" && submission.Analysis.ProblemDescription == "" {
+			return []*AiResponse{}, nil
+		}
 		findings = []AiResponse{submission.AiResponse}
-	}
-	if len(findings) > maxFindingsPerRun {
-		findings = findings[:maxFindingsPerRun]
 	}
 
 	responses := make([]*AiResponse, 0, len(findings))
@@ -102,7 +98,7 @@ const submitAnalysisToolName = "submit_analysis"
 
 // submitAnalysisInstruction is appended to the system prompt of providers that
 // expose the submit_analysis tool.
-const submitAnalysisInstruction = "\n\nWhen your investigation is complete, submit your final analysis by calling the " + submitAnalysisToolName + " tool with the complete result. Do not print the final JSON as text — always submit it through the tool. When you identified several distinct issues, report each as its own entry in findings (most impactful first) — every finding is reviewed and applied separately, so it must be self-contained."
+const submitAnalysisInstruction = "\n\nReport your results through the " + submitAnalysisToolName + " tool — never print the final JSON as text. The tool is repeatable: submit each finding (or small batch) as soon as it is confirmed, keep investigating, and finish with an empty findings call when nothing further is actionable. Every finding is reviewed and applied separately, so each must be self-contained."
 
 var workloadRefSchema = map[string]any{
 	"type":        "object",
@@ -159,18 +155,18 @@ var findingSchema = map[string]any{
 	},
 }
 
-// submitAnalysisAnthropicTool carries the response schema, so the final
-// analysis arrives as validated tool input instead of JSON scraped out of
-// free text. Each distinct finding becomes its own review task.
+// submitAnalysisAnthropicTool carries the response schema, so findings arrive
+// as validated tool input instead of JSON scraped out of free text. The tool
+// is repeatable: each call adds its findings to the run's report, so the
+// number of findings is not limited by a single response's output budget.
 var submitAnalysisAnthropicTool = anthropicTool(
 	submitAnalysisToolName,
-	"Submit your final analysis. Call this exactly once as your last action, after finishing the investigation. Report each distinct issue as its own entry in findings (most impactful first, at most "+strconv.Itoa(maxFindingsPerRun)+") — every finding is reviewed separately.",
+	"Submit one or more completed findings. Call this tool as often as needed during the investigation — every call adds its findings to the report, and each finding is reviewed separately. Submit findings as soon as they are confirmed (in small batches) instead of saving them all for the end. When there is nothing (further) actionable, call it once with an empty findings array to finish.",
 	map[string]any{
 		"findings": map[string]any{
 			"type":        "array",
-			"description": "One entry per distinct issue, ordered by impact.",
-			"minItems":    1,
-			"maxItems":    maxFindingsPerRun,
+			"description": "One entry per distinct issue. Empty to declare the investigation finished.",
+			"minItems":    0,
 			"items":       findingSchema,
 		},
 	},

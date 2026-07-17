@@ -10,7 +10,7 @@ import (
 	"github.com/ollama/ollama/api"
 )
 
-func (ai *aiManager) processPromptOllama(ctx context.Context, model, systemPrompt, prompt string, maxToolCalls int, toolCtx *ToolContext, onProgress func(int64, string)) ([]*AiResponse, int64, int, string, error) {
+func (ai *aiManager) processPromptOllama(ctx context.Context, model, systemPrompt, prompt string, maxToolCalls int, maxTokensPerRun int64, toolCtx *ToolContext, onProgress func(int64, string)) ([]*AiResponse, int64, int, string, error) {
 
 	startTime := time.Now()
 
@@ -146,10 +146,16 @@ func (ai *aiManager) processPromptOllama(ctx context.Context, model, systemPromp
 
 		}
 
-		// Increase global tool call count and check limit
+		// Increase global tool call count and check the run budgets (tool
+		// calls and, when configured, tokens).
 		toolCallCount += len(toolCalls)
-		if maxToolCalls > 0 && toolCallCount >= maxToolCalls {
-			ai.logger.Info("Max tool call limit reached, forcing final answer", "maxToolCalls", maxToolCalls, "toolCallCount", toolCallCount)
+		budgetExhausted := maxToolCalls > 0 && toolCallCount >= maxToolCalls
+		if !budgetExhausted && maxTokensPerRun > 0 && tokensUsed >= maxTokensPerRun {
+			budgetExhausted = true
+			ai.logger.Info("Per-run token limit reached, forcing final answer", "maxTokensPerRun", maxTokensPerRun, "tokensUsed", tokensUsed)
+		}
+		if budgetExhausted {
+			ai.logger.Info("Run budget exhausted, forcing final answer", "maxToolCalls", maxToolCalls, "toolCallCount", toolCallCount, "tokensUsed", tokensUsed)
 
 			// One last turn without tools so the model must answer.
 			messages = append(messages, api.Message{Role: "user", Content: finalAnswerNudge})

@@ -164,12 +164,12 @@ func buildAgentRunPrompt(agent *v1alpha1.Agent, namespaces []string) string {
 	var sb strings.Builder
 	sb.WriteString("You are running a scheduled analysis of the Kubernetes namespaces in your scope: ")
 	sb.WriteString(strings.Join(namespaces, ", "))
-	sb.WriteString(".\n\nInspect the workloads in these namespaces with your read-only tools and report the most relevant finding. Be selective — you have a limited tool-call budget: prefer listing resources over fetching them in full, and only inspect the most suspicious findings in depth. Reserve budget to finish with your final JSON answer.")
+	sb.WriteString(".\n\nInspect the workloads in these namespaces with your read-only tools and report every distinct issue you find as its own finding — there is no upper limit. Submit findings incrementally via " + submitAnalysisToolName + " as soon as you have confirmed them, then keep investigating. Be efficient — you have a limited tool-call budget: prefer listing resources over fetching them in full, and only inspect suspicious candidates in depth.")
 	if agent.Spec.Instruction != "" {
 		sb.WriteString("\n\nYour instruction:\n")
 		sb.WriteString(agent.Spec.Instruction)
 	}
-	sb.WriteString("\n\nIf you identify a concrete, safe remediation, include it as a proposed operation with the full target resource YAML; otherwise report your analysis without a proposed operation.")
+	sb.WriteString("\n\nOnly report findings you can back with a concrete, safe, directly applicable remediation: a proposed operation plus the complete target resource YAML, based on the live manifest you retrieved. Advice-only findings without an applicable change are discarded — do not report them. If nothing needs fixing, submit an empty findings list; that is a perfectly good result.")
 	return sb.String()
 }
 

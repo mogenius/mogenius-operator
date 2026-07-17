@@ -19,6 +19,7 @@ const (
 	AI_CONFIG_API_KEY               = "API_KEY"
 	AI_CONFIG_API_URL_KEY           = "API_URL"
 	AI_CONFIG_DAILY_TOKEN_LIMIT_KEY = "DAILY_TOKEN_LIMIT"
+	AI_CONFIG_MAX_TOKENS_PER_RUN    = "MAX_TOKENS_PER_RUN"
 	// GitHub Personal Access Token for AI to access GitHub API.
 	// GitHub PAT fine-grained permissions recommendation:
 	//  - only select repositories that the AI needs to access, e.g. "my-org/my-repo"
@@ -159,6 +160,22 @@ func (ai *aiManager) getAiMaxToolCalls() (int, error) {
 	}
 
 	return maxToolCalls, nil
+}
+
+// getAiMaxTokensPerRun returns the per-run token budget; 0 means unlimited.
+// The key is optional — a missing key or unparsable value falls back to
+// unlimited so existing installations keep their behavior.
+func (ai *aiManager) getAiMaxTokensPerRun() int64 {
+	data, err := ai.getAiSettingByKey(AI_CONFIG_MAX_TOKENS_PER_RUN)
+	if err != nil {
+		return 0
+	}
+	limit, err := strconv.ParseInt(data, 10, 64)
+	if err != nil || limit < 0 {
+		ai.logger.Warn("Invalid max tokens per run value, treating as unlimited", "value", data)
+		return 0
+	}
+	return limit
 }
 
 func (ai *aiManager) getGitHubPat() (string, error) {

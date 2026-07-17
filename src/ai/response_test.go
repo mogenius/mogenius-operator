@@ -126,15 +126,18 @@ func TestParseSubmittedAnalysisRejectsFindingWithoutProblemDescription(t *testin
 	assert.Contains(t, err.Error(), "finding 2")
 }
 
-func TestParseFindingsCapsAtMaximum(t *testing.T) {
-	findings := make([]string, 0, maxFindingsPerRun+3)
-	for i := 0; i < maxFindingsPerRun+3; i++ {
+// TestParseFindingsNoTruncation: the number of findings per submission is not
+// capped — the run's tool-call budget is the only bound.
+func TestParseFindingsNoTruncation(t *testing.T) {
+	const count = 25
+	findings := make([]string, 0, count)
+	for i := 0; i < count; i++ {
 		findings = append(findings, `{"errorMessage": "x", "analysis": {"problemDescription": "y"}}`)
 	}
 	input := []byte(`{"findings": [` + strings.Join(findings, ",") + `]}`)
 	responses, err := parseFindings(input)
 	assert.NoError(t, err)
-	assert.Len(t, responses, maxFindingsPerRun)
+	assert.Len(t, responses, count)
 }
 
 func TestParseSubmittedAnalysisRejectsEmptyProblemDescription(t *testing.T) {
@@ -197,4 +200,14 @@ status:
 	assert.Equal(t, map[string]string{"meta.helm.sh/release-name": "harbor"}, obj.GetAnnotations())
 	replicas, _, _ := unstructured.NestedInt64(obj.Object, "spec", "replicas")
 	assert.Equal(t, int64(1), replicas)
+}
+
+func TestParseFindingsEmptySubmissionMeansNothingToReport(t *testing.T) {
+	responses, err := parseFindings([]byte(`{"findings": []}`))
+	assert.NoError(t, err)
+	assert.Empty(t, responses)
+
+	responses, err = parseFindings([]byte(`{}`))
+	assert.NoError(t, err)
+	assert.Empty(t, responses)
 }

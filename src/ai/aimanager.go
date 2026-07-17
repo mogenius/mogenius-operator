@@ -1074,6 +1074,7 @@ func (ai *aiManager) processAiTaskQueue(ctx context.Context) {
 		responses, tokensUsed, timeUsedInMs, modelUsed, err := ai.processPrompt(taskCtx, task.Prompt, toolCtx, &agent.Spec, onProgress)
 		cancelTask()
 		task.CurrentActivity = ""
+		discardTask := false
 		if err != nil {
 			if reason := ai.taskCancelReason(task.ID); errors.Is(err, context.Canceled) && ctx.Err() == nil && reason != "" {
 				// Canceled by a user, not by shutdown: the run is void, not broken.
@@ -1104,10 +1105,21 @@ func (ai *aiManager) processAiTaskQueue(ctx context.Context) {
 				ai.logger.Error("Error processing AI task", "taskID", task.ID, "attempt", task.Retries, "state", task.State, "error", err)
 			}
 		} else {
-			task.Response = responses[0]
-			ai.finalizeTaskOutcome(&task)
-			// Every further finding of the run becomes its own review task.
-			ai.spawnFindingTasks(&task, responses[1:], modelUsed)
+			// Whole-scope runs exist to produce applicable changes, not
+			// advice: drop findings whose proposal does not survive
+			// validation. A task with nothing applicable left disappears
+			// entirely — the UI shows its all-clear empty state instead.
+			if task.Trigger == "manual" || task.Trigger == "cron" {
+				responses = ai.actionableFindings(task.ID, responses)
+			}
+			if len(responses) == 0 {
+				discardTask = true
+			} else {
+				task.Response = responses[0]
+				ai.finalizeTaskOutcome(&task)
+				// Every further finding of the run becomes its own review task.
+				ai.spawnFindingTasks(&task, responses[1:], modelUsed)
+			}
 			ai.clearTaskFailureError()
 		}
 		task.Model = modelUsed
@@ -1121,6 +1133,17 @@ func (ai *aiManager) processAiTaskQueue(ctx context.Context) {
 		// update status for event
 		ai.resetCache()
 		latestTask.Status = ai.GetStatus(nil)
+
+		if discardTask {
+			// Remove the (already visible) in-progress task; the delete event
+			// clears it from every client.
+			if delErr := ai.valkeyClient.DeleteSingle(key); delErr != nil {
+				ai.logger.Error("Error deleting all-clear AI task", "taskID", task.ID, "error", delErr)
+			}
+			ai.sendAiDeleteEvent(key)
+			ai.logger.Info("AI run found nothing applicable — no report created", "taskID", task.ID, "tokensUsed", tokensUsed)
+			continue
+		}
 
 		// send event notification
 		ai.sendAiEvent(latestTask)
@@ -1260,7 +1283,7 @@ func (ai *aiManager) shouldCreateNewTask(key string) (bool, error) {
 // finalAnswerNudge is sent when an unattended run exhausts its tool-call
 // budget: one last turn with tool use disabled so the model must produce the
 // required JSON verdict instead of the run failing outright.
-const finalAnswerNudge = "Your tool-call budget is exhausted — do not request any more tools. Based on what you have inspected so far, respond now with your final answer as a single JSON object in the required response format."
+const finalAnswerNudge = "Your budget for this run is exhausted — do not request any more inspection tools. Based on what you have inspected so far, submit all remaining findings now in the required response format."
 
 // processPrompt runs the unattended analysis loop. onProgress (nil-tolerant)
 // is invoked after every LLM turn with the tokens used so far and on every
@@ -1296,17 +1319,19 @@ func (ai *aiManager) processPrompt(ctx context.Context, prompt string, toolCtx *
 		ai.logger.Warn("Error getting AI max tool calls (using default value)", "error", err, "defaultMaxToolCalls", maxToolCalls)
 	}
 
+	maxTokensPerRun := ai.getAiMaxTokensPerRun()
+
 	sdk, err := ai.getSdkType()
 	if err != nil {
 		return nil, 0, int(time.Since(startTime).Milliseconds()), model, err
 	}
 	switch sdk {
 	case AiSdkTypeOpenAI:
-		return ai.processPromptOpenAi(ctx, model, systemPrompt, prompt, maxToolCalls, toolCtx, onProgress)
+		return ai.processPromptOpenAi(ctx, model, systemPrompt, prompt, maxToolCalls, maxTokensPerRun, toolCtx, onProgress)
 	case AiSdkTypeAnthropic:
-		return ai.processPromptAnthropic(ctx, model, systemPrompt, prompt, maxToolCalls, toolCtx, onProgress)
+		return ai.processPromptAnthropic(ctx, model, systemPrompt, prompt, maxToolCalls, maxTokensPerRun, toolCtx, onProgress)
 	case AiSdkTypeOllama:
-		return ai.processPromptOllama(ctx, model, systemPrompt, prompt, maxToolCalls, toolCtx, onProgress)
+		return ai.processPromptOllama(ctx, model, systemPrompt, prompt, maxToolCalls, maxTokensPerRun, toolCtx, onProgress)
 	default:
 		return nil, 0, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("unsupported AI SDK type: %s", sdk)
 	}
@@ -1357,6 +1382,24 @@ func (ai *aiManager) finalizeTaskOutcome(task *AiTask) {
 		ai.sanitizeTargetResourceYaml(task)
 		task.State = AI_TASK_STATE_PROPOSED
 	}
+}
+
+// actionableFindings keeps only findings whose proposal survives validation
+// (concrete operation, target exists, manifest complete). Whole-scope runs
+// exist to produce applicable changes — advice-only findings are dropped and
+// logged with their headline so they don't vanish silently.
+func (ai *aiManager) actionableFindings(taskID string, responses []*AiResponse) []*AiResponse {
+	kept := make([]*AiResponse, 0, len(responses))
+	for _, response := range responses {
+		probe := AiTask{ID: taskID, Response: response, State: AI_TASK_STATE_COMPLETED}
+		ai.finalizeTaskOutcome(&probe)
+		if probe.State == AI_TASK_STATE_PROPOSED {
+			kept = append(kept, response)
+		} else {
+			ai.logger.Info("Dropping advice-only finding from run", "taskID", taskID, "headline", response.ErrorMessage)
+		}
+	}
+	return kept
 }
 
 // spawnFindingTasks persists every finding beyond the first as its own task,

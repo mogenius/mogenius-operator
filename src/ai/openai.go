@@ -10,7 +10,7 @@ import (
 	"github.com/openai/openai-go/v3"
 )
 
-func (ai *aiManager) processPromptOpenAi(ctx context.Context, model, systemPrompt, prompt string, maxToolCalls int, toolCtx *ToolContext, onProgress func(int64, string)) ([]*AiResponse, int64, int, string, error) {
+func (ai *aiManager) processPromptOpenAi(ctx context.Context, model, systemPrompt, prompt string, maxToolCalls int, maxTokensPerRun int64, toolCtx *ToolContext, onProgress func(int64, string)) ([]*AiResponse, int64, int, string, error) {
 	startTime := time.Now()
 
 	client, err := ai.getOpenAIClient(nil)
@@ -95,10 +95,16 @@ func (ai *aiManager) processPromptOpenAi(ctx context.Context, model, systemPromp
 			params.Messages = append(params.Messages, openai.ToolMessage(data, toolCall.ID))
 		}
 
-		// Increase global tool call count and check limit
+		// Increase global tool call count and check the run budgets (tool
+		// calls and, when configured, tokens).
 		toolCallCount += len(chatCompletion.Choices[0].Message.ToolCalls)
-		if maxToolCalls > 0 && toolCallCount >= maxToolCalls {
-			ai.logger.Info("Max tool call limit reached, forcing final answer", "maxToolCalls", maxToolCalls, "toolCallCount", toolCallCount)
+		budgetExhausted := maxToolCalls > 0 && toolCallCount >= maxToolCalls
+		if !budgetExhausted && maxTokensPerRun > 0 && tokensUsed >= maxTokensPerRun {
+			budgetExhausted = true
+			ai.logger.Info("Per-run token limit reached, forcing final answer", "maxTokensPerRun", maxTokensPerRun, "tokensUsed", tokensUsed)
+		}
+		if budgetExhausted {
+			ai.logger.Info("Run budget exhausted, forcing final answer", "maxToolCalls", maxToolCalls, "toolCallCount", toolCallCount, "tokensUsed", tokensUsed)
 
 			// One last turn with tool use disabled so the model must answer;
 			// the shared extraction below the loop handles the response. No

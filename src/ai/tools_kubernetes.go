@@ -285,7 +285,11 @@ func updateKubernetesResourceTool(args map[string]any, tc *ToolContext, valkeyCl
 		logger.Info("Resource updated", "old", oldObj.GetResourceVersion(), "new", updatedRes.GetResourceVersion())
 	}
 
-	return fmt.Sprintf("Updated %s/%s in ns=%s (rv=%s)", updatedRes.GetKind(), updatedRes.GetName(), updatedRes.GetNamespace(), updatedRes.GetResourceVersion())
+	result := fmt.Sprintf("Updated %s/%s in ns=%s", updatedRes.GetKind(), updatedRes.GetName(), updatedRes.GetNamespace())
+	if rv := updatedRes.GetResourceVersion(); rv != "" {
+		result += fmt.Sprintf(" (rv=%s)", rv)
+	}
+	return result
 }
 
 func deleteKubernetesResourceTool(args map[string]any, tc *ToolContext, valkeyClient valkeyclient.ValkeyClient, logger *slog.Logger) string {
@@ -358,7 +362,11 @@ func createKubernetesResourceTool(args map[string]any, tc *ToolContext, valkeyCl
 		return fmt.Sprintf("Error creating resource: %v", err)
 	}
 
-	return fmt.Sprintf("Created %s/%s in ns=%s (rv=%s)", createdRes.GetKind(), createdRes.GetName(), createdRes.GetNamespace(), createdRes.GetResourceVersion())
+	result := fmt.Sprintf("Created %s/%s in ns=%s", createdRes.GetKind(), createdRes.GetName(), createdRes.GetNamespace())
+	if rv := createdRes.GetResourceVersion(); rv != "" {
+		result += fmt.Sprintf(" (rv=%s)", rv)
+	}
+	return result
 }
 
 const defaultMaxChars = 5000
