@@ -4,7 +4,7 @@ go 1.26.4
 
 require (
 	github.com/KimMachineGun/automemlimit v0.7.5
-	github.com/alecthomas/kong v1.15.0
+	github.com/alecthomas/kong v1.16.0
 	github.com/bitnami/sealed-secrets v0.38.4
 	github.com/cert-manager/cert-manager v1.21.0
 	github.com/creack/pty v1.1.24
