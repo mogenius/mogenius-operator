@@ -1,3 +1,10 @@
+# [2.24.0-develop.21](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.20...v2.24.0-develop.21) (2026-07-17)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/alecthomas/kong to v1.16.0 ([8c0ebe8](https://github.com/mogenius/mogenius-operator/commit/8c0ebe817dba57f48c795ed6bacd1ca068febc31))
+
 # [2.24.0-develop.20](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.19...v2.24.0-develop.20) (2026-07-15)
 
 
