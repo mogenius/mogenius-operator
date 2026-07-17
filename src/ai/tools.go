@@ -30,6 +30,12 @@ type ToolContext struct {
 	// AuditSource overrides the audit log source for mutating tool calls;
 	// empty defaults to "ai-chat" (the interactive chat path).
 	AuditSource string
+
+	// RequireActionableFindings makes submit_analysis reject findings without
+	// an applicable structured proposal at submission time, so the model can
+	// fix them in-conversation instead of having them silently dropped after
+	// the run (whole-scope agent runs only).
+	RequireActionableFindings bool
 }
 
 // hasRestrictions returns true when any scoping is configured.

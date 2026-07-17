@@ -162,18 +162,22 @@ func (ai *aiManager) getAiMaxToolCalls() (int, error) {
 	return maxToolCalls, nil
 }
 
+// defaultMaxTokensPerRun caps a single run when MAX_TOKENS_PER_RUN is not
+// configured. Runs finish gracefully at the cap with the findings collected
+// so far; an explicit 0 opts into unlimited.
+const defaultMaxTokensPerRun = int64(30000)
+
 // getAiMaxTokensPerRun returns the per-run token budget; 0 means unlimited.
-// The key is optional — a missing key or unparsable value falls back to
-// unlimited so existing installations keep their behavior.
+// A missing key or unparsable value falls back to the default cap.
 func (ai *aiManager) getAiMaxTokensPerRun() int64 {
 	data, err := ai.getAiSettingByKey(AI_CONFIG_MAX_TOKENS_PER_RUN)
 	if err != nil {
-		return 0
+		return defaultMaxTokensPerRun
 	}
 	limit, err := strconv.ParseInt(data, 10, 64)
 	if err != nil || limit < 0 {
-		ai.logger.Warn("Invalid max tokens per run value, treating as unlimited", "value", data)
-		return 0
+		ai.logger.Warn("Invalid max tokens per run value, using default", "value", data, "default", defaultMaxTokensPerRun)
+		return defaultMaxTokensPerRun
 	}
 	return limit
 }

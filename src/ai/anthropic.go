@@ -402,11 +402,21 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, model, systemPr
 
 	var tokensUsed int64 = 0
 
+	// Cache reads cost ~10% of fresh input and are not budgeted — logged so
+	// the full provider-reported picture stays visible.
+	var cacheReadTokens int64 = 0
+	defer func() {
+		ai.logger.Info("AI run token usage", "tokensUsed", tokensUsed, "cacheReadTokens", cacheReadTokens)
+	}()
+
 	// Track total number of tool calls across iterations
 	toolCallCount := 0
 
 	// Bounded in-conversation repair turns for schema-violating final answers.
 	repairAttempts := 0
+
+	// Index of the message currently carrying the moving cache breakpoint.
+	cachedMsgIdx := -1
 
 	// Findings accumulated across repeated submit_analysis calls. The tool is
 	// repeatable so the number of findings is not limited by a single
@@ -415,6 +425,7 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, model, systemPr
 
 	// Loop until there are no more tool calls or maxToolCalls reached
 	for {
+		moveCacheBreakpoint(messages, &cachedMsgIdx)
 		message, err := client.Messages.New(ctx, anthropic.MessageNewParams{
 			Model:     anthropic.Model(model),
 			MaxTokens: int64(10000),
@@ -435,15 +446,24 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, model, systemPr
 			return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, err
 		}
 
-		// Everything in messages has now been seen by the model — compact the
-		// tool results it just processed so they stop burning tokens on the
-		// following turns. Compacting BEFORE the call would blind the model:
-		// results are appended at the end of an iteration and must survive
-		// exactly one request (the regression that shipped in 7782b65b).
-		compactAnthropicToolResults(messages)
+		// The conversation prefix is served from the prompt cache, so old tool
+		// results are cheap to keep — compacting them every turn would mutate
+		// the prefix and void the cache. Only once the history grows past the
+		// threshold is one compaction pass (and the cache rebuild it causes)
+		// cheaper than carrying the bulk onward. Never compact BEFORE the
+		// call: results must survive exactly one request or the model goes
+		// blind (the regression that shipped in 7782b65b).
+		if estimateMessagesChars(messages) > compactHistoryAfterChars {
+			ai.logger.Info("Compacting conversation history", "chars", estimateMessagesChars(messages))
+			compactAnthropicToolResults(messages)
+		}
 
 		if message != nil {
-			tokensUsed += message.Usage.InputTokens + message.Usage.OutputTokens
+			// Provider-reported usage, taken verbatim: fresh input, output and
+			// cache writes count against the budgets; cache reads are tracked
+			// separately.
+			tokensUsed += message.Usage.InputTokens + message.Usage.OutputTokens + message.Usage.CacheCreationInputTokens
+			cacheReadTokens += message.Usage.CacheReadInputTokens
 		}
 		if onProgress != nil {
 			onProgress(tokensUsed, "")
@@ -512,14 +532,33 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, model, systemPr
 						// Empty submission: the model declares the run finished.
 						return collected, tokensUsed, int(time.Since(startTime).Milliseconds()), model, nil
 					}
+
+					// Whole-scope runs discard advice-only findings after the
+					// run — validate at submission time instead, so the model
+					// can repair them for a few hundred tokens while the
+					// conversation is still alive.
+					var rejected []string
+					if toolCtx != nil && toolCtx.RequireActionableFindings {
+						kept := make([]*AiResponse, 0, len(findings))
+						for _, finding := range findings {
+							if reason := ai.findingRejectionReason(finding); reason != "" {
+								rejected = append(rejected, fmt.Sprintf("%s — %s", finding.ErrorMessage, reason))
+							} else {
+								kept = append(kept, finding)
+							}
+						}
+						findings = kept
+					}
 					collected = append(collected, findings...)
-					ai.logger.Info("Findings submitted", "new", len(findings), "total", len(collected))
+					ai.logger.Info("Findings submitted", "new", len(findings), "rejected", len(rejected), "total", len(collected))
 					if onProgress != nil {
 						onProgress(tokensUsed, fmt.Sprintf("%d finding(s) submitted", len(collected)))
 					}
-					toolResults = append(toolResults, anthropic.NewToolResultBlock(block.ID,
-						fmt.Sprintf("Recorded %d finding(s) — %d total so far. Continue the investigation and submit further findings, or call %s with an empty findings array when nothing else is actionable.", len(findings), len(collected), submitAnalysisToolName),
-						false))
+					resultText := fmt.Sprintf("Recorded %d finding(s) — %d total so far. Continue the investigation and submit further findings, or call %s with an empty findings array when nothing else is actionable.", len(findings), len(collected), submitAnalysisToolName)
+					if len(rejected) > 0 {
+						resultText = fmt.Sprintf("Recorded %d finding(s) — %d total so far. Rejected %d finding(s) without an applicable proposal:\n- %s\nFix each rejected finding and resubmit it, or drop it if no safe concrete change exists.", len(findings), len(collected), len(rejected), strings.Join(rejected, "\n- "))
+					}
+					toolResults = append(toolResults, anthropic.NewToolResultBlock(block.ID, resultText, len(findings) == 0 && len(rejected) > 0))
 					continue
 				}
 
@@ -614,6 +653,7 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, model, systemPr
 				Role:    anthropic.MessageParamRoleUser,
 				Content: append(toolResults, anthropic.NewTextBlock(finalAnswerNudge)),
 			})
+			moveCacheBreakpoint(messages, &cachedMsgIdx)
 			submitChoice := anthropic.ToolChoiceToolParam{Name: submitAnalysisToolName}
 			finalMessage, err := client.Messages.New(ctx, anthropic.MessageNewParams{
 				Model:     anthropic.Model(model),
@@ -631,7 +671,8 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, model, systemPr
 				}
 				return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("max tool calls reached (%d) and final answer request failed: %w", maxToolCalls, err)
 			}
-			tokensUsed += finalMessage.Usage.InputTokens + finalMessage.Usage.OutputTokens
+			tokensUsed += finalMessage.Usage.InputTokens + finalMessage.Usage.OutputTokens + finalMessage.Usage.CacheCreationInputTokens
+			cacheReadTokens += finalMessage.Usage.CacheReadInputTokens
 			if onProgress != nil {
 				onProgress(tokensUsed, "submitting final analysis")
 			}

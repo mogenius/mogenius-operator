@@ -164,7 +164,7 @@ func buildAgentRunPrompt(agent *v1alpha1.Agent, namespaces []string) string {
 	var sb strings.Builder
 	sb.WriteString("You are running a scheduled analysis of the Kubernetes namespaces in your scope: ")
 	sb.WriteString(strings.Join(namespaces, ", "))
-	sb.WriteString(".\n\nInspect the workloads in these namespaces with your read-only tools and report every distinct issue you find as its own finding — there is no upper limit. Submit findings incrementally via " + submitAnalysisToolName + " as soon as you have confirmed them, then keep investigating. Be efficient — you have a limited tool-call budget: prefer listing resources over fetching them in full, and only inspect suspicious candidates in depth.")
+	sb.WriteString(".\n\nInspect the workloads in these namespaces with your read-only tools and report every distinct issue you find as its own finding — there is no upper limit. Submit findings incrementally via " + submitAnalysisToolName + " as soon as you have confirmed them, then keep investigating. Be efficient — you have a limited tool-call and token budget: list resources cluster-wide (omit the namespace parameter) instead of namespace by namespace, prefer listing over fetching resources in full, and only inspect suspicious candidates in depth.")
 	if agent.Spec.Instruction != "" {
 		sb.WriteString("\n\nYour instruction:\n")
 		sb.WriteString(agent.Spec.Instruction)

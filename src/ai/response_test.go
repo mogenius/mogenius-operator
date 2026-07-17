@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -210,4 +211,37 @@ func TestParseFindingsEmptySubmissionMeansNothingToReport(t *testing.T) {
 	responses, err = parseFindings([]byte(`{}`))
 	assert.NoError(t, err)
 	assert.Empty(t, responses)
+}
+
+func TestFindingRejectionReason(t *testing.T) {
+	ai := &aiManager{}
+
+	// No structured proposal at all → advice-only.
+	adviceOnly := &AiResponse{ErrorMessage: "advice", Analysis: Analysis{ProblemDescription: "p"}}
+	assert.Contains(t, ai.findingRejectionReason(adviceOnly), "proposedOperation")
+
+	// "Other" is not applicable either.
+	other := &AiResponse{Analysis: Analysis{ProposedOperation: ProposedOperationOther}}
+	assert.Contains(t, ai.findingRejectionReason(other), "proposedOperation")
+
+	// Delete without a target name.
+	del := &AiResponse{Analysis: Analysis{ProposedOperation: ProposedOperationDelete}}
+	assert.Contains(t, ai.findingRejectionReason(del), "resourceName")
+
+	// Update without a manifest.
+	upd := &AiResponse{Analysis: Analysis{ProposedOperation: ProposedOperationUpdate}}
+	assert.Contains(t, ai.findingRejectionReason(upd), "targetResourceYaml")
+
+	// Create with a manifest is actionable without a store lookup.
+	create := &AiResponse{Analysis: Analysis{ProposedOperation: ProposedOperationCreate, TargetResourceYaml: "kind: ConfigMap"}}
+	assert.Equal(t, "", ai.findingRejectionReason(create))
+
+	assert.Equal(t, "empty finding", ai.findingRejectionReason(nil))
+}
+
+func TestAgeString(t *testing.T) {
+	assert.Equal(t, "", ageString(time.Time{}))
+	assert.Equal(t, "2d", ageString(time.Now().Add(-49*time.Hour)))
+	assert.Equal(t, "3h", ageString(time.Now().Add(-190*time.Minute)))
+	assert.Equal(t, "5m", ageString(time.Now().Add(-5*time.Minute)))
 }

@@ -1008,6 +1008,11 @@ func (ai *aiManager) processAiTaskQueue(ctx context.Context) {
 		// Resolve the owning agent; tasks whose agent vanished, was disabled
 		// or whose resource left the agent's scope are ignored.
 		agent, toolCtx, err := ai.buildAgentTaskContext(&task)
+		if err == nil && toolCtx != nil && (task.Trigger == "manual" || task.Trigger == "cron") {
+			// Whole-scope runs discard advice-only findings at the end — let
+			// the model repair them while the conversation is still running.
+			toolCtx.RequireActionableFindings = true
+		}
 		if err != nil {
 			task.State = AI_TASK_STATE_IGNORED
 			task.Error = err.Error()
@@ -1381,6 +1386,42 @@ func (ai *aiManager) finalizeTaskOutcome(task *AiTask) {
 		task.Response.Analysis.CurrentResourceYaml = ""
 		ai.sanitizeTargetResourceYaml(task)
 		task.State = AI_TASK_STATE_PROPOSED
+	}
+}
+
+// findingRejectionReason explains why a finding would not survive proposal
+// validation, or returns "" when it is actionable. Mirrors the rules of
+// finalizeTaskOutcome so submit-time feedback matches the final filter.
+func (ai *aiManager) findingRejectionReason(response *AiResponse) string {
+	if response == nil {
+		return "empty finding"
+	}
+	analysis := response.Analysis
+	target := analysis.TargetResource
+	switch analysis.ProposedOperation {
+	case ProposedOperationUpdate, ProposedOperationCreate:
+		if analysis.TargetResourceYaml == "" {
+			return analysis.ProposedOperation + " requires targetResourceYaml (the complete proposed manifest)"
+		}
+		if analysis.ProposedOperation == ProposedOperationUpdate {
+			if target.ResourceName == "" {
+				return "UpdateResource requires targetResource.resourceName"
+			}
+			if current, err := store.GetResource(ai.valkeyClient, target.ApiVersion, target.Kind, target.Namespace, target.ResourceName, ai.logger); err != nil || current == nil {
+				return fmt.Sprintf("target %s %q not found in namespace %q — use the exact apiVersion, kind, namespace and name of a live resource", target.Kind, target.ResourceName, target.Namespace)
+			}
+		}
+		return ""
+	case ProposedOperationDelete:
+		if target.ResourceName == "" {
+			return "DeleteResource requires targetResource.resourceName"
+		}
+		if current, err := store.GetResource(ai.valkeyClient, target.ApiVersion, target.Kind, target.Namespace, target.ResourceName, ai.logger); err != nil || current == nil {
+			return fmt.Sprintf("target %s %q not found in namespace %q — use the exact apiVersion, kind, namespace and name of a live resource", target.Kind, target.ResourceName, target.Namespace)
+		}
+		return ""
+	default:
+		return "no applicable proposedOperation — set it to UpdateResource, DeleteResource or CreateResource with the matching targetResource"
 	}
 }
 

@@ -25,13 +25,13 @@ var kubernetesOpenAiTools = []openai.ChatCompletionToolUnionParam{
 	),
 	openaiFunc(
 		"list_kubernetes_resources",
-		"List all Kubernetes resources of a specific kind, optionally filtered by namespace.",
+		"List Kubernetes resources of a specific kind as compact summaries. Omit the namespace to list across ALL namespaces in one call — strongly preferred for cluster-wide sweeps; never iterate namespace by namespace.",
 		openai.FunctionParameters{
 			"type": "object",
 			"properties": map[string]any{
 				"apiVersion": map[string]string{"type": "string", "description": "API version (e.g. 'v1', 'apps/v1')"},
 				"kind":       map[string]string{"type": "string", "description": "Resource kind (e.g. 'Pod', 'Deployment')"},
-				"namespace":  map[string]string{"type": "string", "description": "Namespace filter (optional, empty for all)"},
+				"namespace":  map[string]string{"type": "string", "description": "Namespace filter. Omit to list across all namespaces (preferred)"},
 			},
 			"required": []string{"kind", "apiVersion"},
 		},
@@ -138,11 +138,11 @@ var kubernetesAnthropicTools = []anthropic.ToolParam{
 	),
 	anthropicTool(
 		"list_kubernetes_resources",
-		"List all Kubernetes resources of a given kind, optionally filtered by namespace.",
+		"List Kubernetes resources of a given kind as compact summaries. Omit the namespace to list across ALL namespaces in one call — strongly preferred for cluster-wide sweeps; never iterate namespace by namespace.",
 		map[string]any{
 			"kind":       map[string]any{"type": "string", "description": "Resource kind (e.g., Pod, Deployment)."},
 			"apiVersion": map[string]any{"type": "string", "description": "API version (e.g., v1, apps/v1)."},
-			"namespace":  map[string]any{"type": "string", "description": "Namespace filter (optional, omit for all)."},
+			"namespace":  map[string]any{"type": "string", "description": "Namespace filter. Omit to list across all namespaces (preferred)."},
 		}, []string{"kind", "apiVersion"},
 	),
 	anthropicTool(
@@ -223,11 +223,11 @@ var kubernetesOllamaTools = []api.Tool{
 	),
 	ollamaTool(
 		"list_kubernetes_resources",
-		"List all Kubernetes resources of a specific kind, optionally filtered by namespace.",
+		"List Kubernetes resources of a specific kind as compact summaries. Omit the namespace to list across ALL namespaces in one call — strongly preferred for cluster-wide sweeps; never iterate namespace by namespace.",
 		map[string]api.ToolProperty{
 			"apiVersion": {Type: []string{"string"}, Description: "API version (e.g. 'v1', 'apps/v1')"},
 			"kind":       {Type: []string{"string"}, Description: "Resource kind (e.g. 'Pod', 'Deployment')"},
-			"namespace":  {Type: []string{"string"}, Description: "Namespace filter (optional, empty for all)"},
+			"namespace":  {Type: []string{"string"}, Description: "Namespace filter. Omit to list across all namespaces (preferred)"},
 		}, []string{"kind", "apiVersion"},
 	),
 	ollamaTool(

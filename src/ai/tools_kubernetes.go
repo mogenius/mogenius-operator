@@ -7,6 +7,7 @@ import (
 	"mogenius-operator/src/store"
 	"mogenius-operator/src/valkeyclient"
 	"sort"
+	"time"
 
 	"github.com/valkey-io/valkey-go"
 	v1 "k8s.io/api/core/v1"
@@ -34,15 +35,35 @@ var kubernetesToolDefinitions = map[string]func(map[string]any, *ToolContext, va
 	"get_pod_events":             getPodEventsTool,
 }
 
-const maxListResults = 50 // Limit to prevent token overflow
+// Summaries are ~30 tokens each; a bigger page is far cheaper than the extra
+// turns a truncated cluster-wide list forces (every turn re-reads the whole
+// conversation).
+const maxListResults = 150
 
 // ResourceSummary is a compact representation of a resource for listing
 type ResourceSummary struct {
-	Name         string `json:"name"`
-	Namespace    string `json:"namespace,omitempty"`
-	Kind         string `json:"kind"`
-	Status       string `json:"status,omitempty"`
-	CreationTime string `json:"creationTime,omitempty"`
+	Name      string `json:"name"`
+	Namespace string `json:"namespace,omitempty"`
+	Kind      string `json:"kind"`
+	Status    string `json:"status,omitempty"`
+	Age       string `json:"age,omitempty"`
+}
+
+// ageString renders a creation timestamp as a compact kubectl-style age
+// ("45d", "3h", "12m") — a fraction of the tokens of a full timestamp.
+func ageString(t time.Time) string {
+	if t.IsZero() {
+		return ""
+	}
+	d := time.Since(t)
+	switch {
+	case d >= 24*time.Hour:
+		return fmt.Sprintf("%dd", int(d.Hours()/24))
+	case d >= time.Hour:
+		return fmt.Sprintf("%dh", int(d.Hours()))
+	default:
+		return fmt.Sprintf("%dm", int(d.Minutes()))
+	}
 }
 
 func listKubernetesResourcesTool(args map[string]any, tc *ToolContext, valkeyClient valkeyclient.ValkeyClient, logger *slog.Logger) string {
@@ -91,11 +112,11 @@ func listKubernetesResourcesTool(args map[string]any, tc *ToolContext, valkeyCli
 	summaries := make([]ResourceSummary, len(resources))
 	for i, res := range resources {
 		summary := ResourceSummary{
-			Name:         res.GetName(),
-			Namespace:    res.GetNamespace(),
-			Kind:         res.GetKind(),
-			CreationTime: res.GetCreationTimestamp().String(),
-			Status:       "Unknown",
+			Name:      res.GetName(),
+			Namespace: res.GetNamespace(),
+			Kind:      res.GetKind(),
+			Age:       ageString(res.GetCreationTimestamp().Time),
+			Status:    "Unknown",
 		}
 
 		if status, found, _ := unstructured.NestedString(res.Object, "status", "phase"); found {
