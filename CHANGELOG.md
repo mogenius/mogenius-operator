@@ -1,3 +1,13 @@
+# [2.24.0-develop.22](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.21...v2.24.0-develop.22) (2026-07-17)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/anthropics/anthropic-sdk-go to v1.58.0 ([a9e7797](https://github.com/mogenius/mogenius-operator/commit/a9e779781bce68565b5ae4b9095457b12a95a364))
+* **deps:** update module github.com/mattn/go-isatty to v0.0.23 ([c7277f4](https://github.com/mogenius/mogenius-operator/commit/c7277f4c270af42566326eb6c51f231bbad349f9))
+* **deps:** update module github.com/ollama/ollama to v0.32.1 ([1186ee1](https://github.com/mogenius/mogenius-operator/commit/1186ee19d03c2f128f9f2c973ae5746aa7d4e9b8))
+* **deps:** update module github.com/openai/openai-go/v3 to v3.43.0 ([f5e448b](https://github.com/mogenius/mogenius-operator/commit/f5e448b8ced874e2017016541db01605e2f927f2))
+
 # [2.24.0-develop.21](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.20...v2.24.0-develop.21) (2026-07-17)
 
 
