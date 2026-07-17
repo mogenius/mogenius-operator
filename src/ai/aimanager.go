@@ -331,6 +331,18 @@ func (ai *aiManager) clearTokenLimitError() {
 	ai.stateMu.Unlock()
 }
 
+// taskFailureErrorPrefix marks status errors coming from a terminally failed
+// task run, so a later successful run can clear exactly those and nothing else.
+const taskFailureErrorPrefix = "AI task failed"
+
+func (ai *aiManager) clearTaskFailureError() {
+	ai.stateMu.Lock()
+	if strings.HasPrefix(ai.error, taskFailureErrorPrefix) {
+		ai.error = ""
+	}
+	ai.stateMu.Unlock()
+}
+
 func (ai *aiManager) statusStrings() (errMsg string, warnMsg string) {
 	ai.stateMu.Lock()
 	defer ai.stateMu.Unlock()
@@ -1077,11 +1089,15 @@ func (ai *aiManager) processAiTaskQueue(ctx context.Context) {
 				var apiErr *anthropic.Error
 				if errors.As(err, &apiErr) && (apiErr.StatusCode == 400 || apiErr.StatusCode == 401 || apiErr.StatusCode == 403) {
 					task.State = AI_TASK_STATE_IGNORED
+					// The trigger handler already answered 200 with the pending
+					// task; without this the failure is only visible in the log.
+					ai.setError(fmt.Sprintf("%s (HTTP %d, not retried): %s", taskFailureErrorPrefix, apiErr.StatusCode, err.Error()))
 				} else if task.Retries >= maxAiTaskRetries {
 					// Every retry re-runs the whole analysis loop; a task that
 					// failed repeatedly is broken systematically, not transiently.
 					task.State = AI_TASK_STATE_IGNORED
 					task.Error = fmt.Sprintf("giving up after %d failed attempts: %s", task.Retries, err.Error())
+					ai.setError(fmt.Sprintf("%s after %d attempts: %s", taskFailureErrorPrefix, task.Retries, err.Error()))
 				} else {
 					task.State = AI_TASK_STATE_FAILED
 				}
@@ -1092,6 +1108,7 @@ func (ai *aiManager) processAiTaskQueue(ctx context.Context) {
 			ai.finalizeTaskOutcome(&task)
 			// Every further finding of the run becomes its own review task.
 			ai.spawnFindingTasks(&task, responses[1:], modelUsed)
+			ai.clearTaskFailureError()
 		}
 		task.Model = modelUsed
 		task.TimeUsedInMs = timeUsedInMs

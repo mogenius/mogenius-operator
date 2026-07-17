@@ -1865,24 +1865,6 @@ func (self *socketApi) registerPatterns() {
 	}
 
 	{
-		type UpdateFiltersRequest struct {
-			Filters     []ai.AiFilter `json:"filters" validate:"required"`
-			UserFilters []ai.AiFilter `json:"userFilters"`
-		}
-
-		// No-op compatibility shim: filter toggles were replaced by Agent CRs.
-		// Kept so platform versions that still call it don't fail; remove once
-		// the platform ships agent management.
-		RegisterPatternHandler(
-			PatternHandle{self, "aiManager/update-filter-states"},
-			PatternConfig{Deprecated: true, DeprecatedMessage: "AI filters were replaced by agents; manage agents via create/agent, update/agent and delete/agent."},
-			func(datagram structs.Datagram, request UpdateFiltersRequest) (Void, error) {
-				return nil, nil
-			},
-		)
-	}
-
-	{
 		type Request struct {
 			Name string `json:"name"`
 		}

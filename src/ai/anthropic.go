@@ -165,9 +165,8 @@ func (ai *aiManager) anthropicChatWithTools(
 			System: []anthropic.TextBlockParam{
 				{Type: "text", Text: systemPrompt, CacheControl: anthropic.NewCacheControlEphemeralParam()},
 			},
-			Messages:    messages,
-			Tools:       tools,
-			Temperature: anthropic.Float(0.7),
+			Messages: messages,
+			Tools:    tools,
 		})
 
 		// Accumulator for the full message
@@ -417,9 +416,8 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, model, systemPr
 			System: []anthropic.TextBlockParam{
 				{Type: "text", Text: systemPrompt, CacheControl: anthropic.NewCacheControlEphemeralParam()},
 			},
-			Messages:    messages,
-			Tools:       tools,
-			Temperature: anthropic.Float(0.1),
+			Messages: messages,
+			Tools:    tools,
 		})
 
 		if err != nil {
@@ -584,10 +582,9 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, model, systemPr
 				System: []anthropic.TextBlockParam{
 					{Type: "text", Text: systemPrompt, CacheControl: anthropic.NewCacheControlEphemeralParam()},
 				},
-				Messages:    messages,
-				Tools:       tools,
-				ToolChoice:  anthropic.ToolChoiceUnionParam{OfTool: &submitChoice},
-				Temperature: anthropic.Float(0.1),
+				Messages:   messages,
+				Tools:      tools,
+				ToolChoice: anthropic.ToolChoiceUnionParam{OfTool: &submitChoice},
 			})
 			if err != nil {
 				return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("max tool calls reached (%d) and final answer request failed: %w", maxToolCalls, err)
