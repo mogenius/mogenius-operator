@@ -4,7 +4,7 @@ go 1.26.4
 
 require (
 	github.com/KimMachineGun/automemlimit v0.7.5
-	github.com/alecthomas/kong v1.15.0
+	github.com/alecthomas/kong v1.16.0
 	github.com/bitnami/sealed-secrets v0.38.4
 	github.com/cert-manager/cert-manager v1.21.0
 	github.com/creack/pty v1.1.24
@@ -14,7 +14,7 @@ require (
 	github.com/jaevor/go-nanoid v1.4.0
 	github.com/joho/godotenv v1.5.1
 	github.com/lithammer/dedent v1.1.0
-	github.com/mattn/go-isatty v0.0.22
+	github.com/mattn/go-isatty v0.0.23
 	github.com/modelcontextprotocol/go-sdk v1.6.1
 	github.com/nwidger/jsoncolor v0.3.2
 	github.com/openai/openai-go/v3 v3.42.0
