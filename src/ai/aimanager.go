@@ -1288,7 +1288,7 @@ func (ai *aiManager) shouldCreateNewTask(key string) (bool, error) {
 // finalAnswerNudge is sent when an unattended run exhausts its tool-call
 // budget: one last turn with tool use disabled so the model must produce the
 // required JSON verdict instead of the run failing outright.
-const finalAnswerNudge = "Your budget for this run is exhausted — do not request any more inspection tools. Based on what you have inspected so far, submit all remaining findings now in the required response format."
+const finalAnswerNudge = "Your budget for this run is exhausted — do not request any more inspection tools. Call " + submitAnalysisToolName + " now with all remaining findings. Every finding must carry an applicable proposal: proposedOperation (UpdateResource, DeleteResource or CreateResource) plus the exact live targetResource — findings without one are discarded. Submit an empty findings array if nothing applicable remains."
 
 // processPrompt runs the unattended analysis loop. onProgress (nil-tolerant)
 // is invoked after every LLM turn with the tokens used so far and on every
@@ -1437,7 +1437,7 @@ func (ai *aiManager) actionableFindings(taskID string, responses []*AiResponse) 
 		if probe.State == AI_TASK_STATE_PROPOSED {
 			kept = append(kept, response)
 		} else {
-			ai.logger.Info("Dropping advice-only finding from run", "taskID", taskID, "headline", response.ErrorMessage)
+			ai.logger.Info("Dropping advice-only finding from run", "taskID", taskID, "headline", response.ErrorMessage, "reason", ai.findingRejectionReason(response))
 		}
 	}
 	return kept

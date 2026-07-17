@@ -72,6 +72,18 @@ func parseFindings(data []byte) ([]*AiResponse, error) {
 	return responses, nil
 }
 
+// hasFindingHeadline reports whether a finding with this headline was already
+// collected. The final repair turn may echo already-recorded findings, which
+// must not become duplicate report cards.
+func hasFindingHeadline(collected []*AiResponse, headline string) bool {
+	for _, response := range collected {
+		if response != nil && response.ErrorMessage == headline {
+			return true
+		}
+	}
+	return false
+}
+
 // parseAiResponse extracts and unmarshals the final analysis from a free-text
 // model response. Shared by all providers; removedText is the prose the model
 // wrapped around the JSON (logged for diagnosis).

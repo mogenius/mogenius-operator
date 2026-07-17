@@ -11,7 +11,7 @@ import (
 var kubernetesOpenAiTools = []openai.ChatCompletionToolUnionParam{
 	openaiFunc(
 		"get_kubernetes_resources",
-		"Get full details of a specific Kubernetes resource by kind, name and namespace.",
+		"Get details of a specific Kubernetes resource by kind, name and namespace. Cost ladder: use list_kubernetes_resources for discovery, detail=summary here for triage, and detail=full ONLY when you need the complete manifest (e.g. to build an UpdateResource proposal).",
 		openai.FunctionParameters{
 			"type": "object",
 			"properties": map[string]any{
@@ -19,6 +19,7 @@ var kubernetesOpenAiTools = []openai.ChatCompletionToolUnionParam{
 				"kind":       map[string]string{"type": "string", "description": "Resource kind (e.g. 'Pod', 'Deployment')"},
 				"name":       map[string]string{"type": "string", "description": "Resource name"},
 				"namespace":  map[string]string{"type": "string", "description": "Namespace (optional for cluster-scoped)"},
+				"detail":     map[string]any{"type": "string", "enum": []string{"summary", "full"}, "description": "'summary' (recommended, ~1/3 of the tokens): identity, ownership, condensed status, key spec fields. 'full' (default): complete manifest"},
 			},
 			"required": []string{"kind", "apiVersion", "name"},
 		},
@@ -128,12 +129,13 @@ var kubernetesOpenAiTools = []openai.ChatCompletionToolUnionParam{
 var kubernetesAnthropicTools = []anthropic.ToolParam{
 	anthropicTool(
 		"get_kubernetes_resources",
-		"Get full details of a specific Kubernetes resource by name.",
+		"Get details of a specific Kubernetes resource by name. Cost ladder: use list_kubernetes_resources for discovery, detail=summary here for triage, and detail=full ONLY when you need the complete manifest (e.g. to build an UpdateResource proposal).",
 		map[string]any{
 			"kind":       map[string]any{"type": "string", "description": "Resource kind (e.g., Pod, Deployment)."},
 			"apiVersion": map[string]any{"type": "string", "description": "API version (e.g., v1, apps/v1)."},
 			"name":       map[string]any{"type": "string", "description": "Resource name."},
 			"namespace":  map[string]any{"type": "string", "description": "Namespace (optional for cluster-scoped)."},
+			"detail":     map[string]any{"type": "string", "enum": []string{"summary", "full"}, "description": "'summary' (recommended, ~1/3 of the tokens): identity, ownership, condensed status, key spec fields. 'full' (default): complete manifest."},
 		}, []string{"kind", "apiVersion", "name"},
 	),
 	anthropicTool(
@@ -213,12 +215,13 @@ var kubernetesAnthropicTools = []anthropic.ToolParam{
 var kubernetesOllamaTools = []api.Tool{
 	ollamaTool(
 		"get_kubernetes_resources",
-		"Get full details of a specific Kubernetes resource by kind, name and namespace.",
+		"Get details of a specific Kubernetes resource by kind, name and namespace. Cost ladder: use list_kubernetes_resources for discovery, detail=summary here for triage, and detail=full ONLY when you need the complete manifest (e.g. to build an UpdateResource proposal).",
 		map[string]api.ToolProperty{
 			"apiVersion": {Type: []string{"string"}, Description: "API version (e.g. 'v1', 'apps/v1')"},
 			"kind":       {Type: []string{"string"}, Description: "Resource kind (e.g. 'Pod', 'Deployment')"},
 			"name":       {Type: []string{"string"}, Description: "Resource name"},
 			"namespace":  {Type: []string{"string"}, Description: "Namespace (optional for cluster-scoped)"},
+			"detail":     {Type: []string{"string"}, Description: "'summary' (recommended, ~1/3 of the tokens): identity, ownership, condensed status, key spec fields. 'full' (default): complete manifest"},
 		}, []string{"kind", "apiVersion", "name"},
 	),
 	ollamaTool(

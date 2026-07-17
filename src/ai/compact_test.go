@@ -180,3 +180,42 @@ func TestEstimateMessagesChars(t *testing.T) {
 	}
 	assert.Greater(t, estimateMessagesChars(messages), 1000)
 }
+
+func TestSummaryResourceText(t *testing.T) {
+	res := &unstructured.Unstructured{Object: map[string]any{
+		"apiVersion": "batch/v1",
+		"kind":       "Job",
+		"metadata": map[string]any{
+			"name":      "github-backup-1",
+			"namespace": "github-backup",
+			"labels":    map[string]any{"app": "backup"},
+			"ownerReferences": []any{
+				map[string]any{"kind": "CronJob", "name": "github-backup"},
+			},
+		},
+		"spec": map[string]any{
+			"template": map[string]any{
+				"spec": map[string]any{
+					"containers": []any{map[string]any{"name": "backup", "image": "backup:v1"}},
+				},
+			},
+		},
+		"status": map[string]any{
+			"failed": int64(1),
+			"conditions": []any{
+				map[string]any{"type": "Failed", "status": "True"},
+			},
+		},
+	}}
+
+	out := summaryResourceText(res)
+	assert.Contains(t, out, "Job/github-backup-1 ns=github-backup")
+	assert.Contains(t, out, "labels: app=backup")
+	assert.Contains(t, out, "ownedBy: CronJob/github-backup")
+	assert.Contains(t, out, "images: backup:v1")
+	assert.Contains(t, out, "status.failed: 1")
+	assert.Contains(t, out, "conditions: Failed=True")
+	// The summary must stay a fraction of the full manifest.
+	full, _ := json.Marshal(res.Object)
+	assert.Less(t, len(out), len(full))
+}

@@ -7,6 +7,7 @@ import (
 	"mogenius-operator/src/store"
 	"mogenius-operator/src/valkeyclient"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/valkey-io/valkey-go"
@@ -208,6 +209,88 @@ func checkKubernetesResourceTool(args map[string]any, tc *ToolContext, valkeyCli
 	return result
 }
 
+// summaryResourceText renders the token-sparing detail level of a resource:
+// identity, ownership, condensed status and the few spec fields that matter
+// for triage — roughly a third of the tokens of the full manifest.
+func summaryResourceText(res *unstructured.Unstructured) string {
+	var sb strings.Builder
+	fmt.Fprintf(&sb, "%s/%s ns=%s age=%s", res.GetKind(), res.GetName(), res.GetNamespace(), ageString(res.GetCreationTimestamp().Time))
+	if labels := res.GetLabels(); len(labels) > 0 {
+		fmt.Fprintf(&sb, "\nlabels: %s", flatKV(labels))
+	}
+	if owners := res.GetOwnerReferences(); len(owners) > 0 {
+		parts := make([]string, len(owners))
+		for i, owner := range owners {
+			parts[i] = owner.Kind + "/" + owner.Name
+		}
+		fmt.Fprintf(&sb, "\nownedBy: %s", strings.Join(parts, ", "))
+	}
+	if replicas, found, _ := unstructured.NestedInt64(res.Object, "spec", "replicas"); found {
+		fmt.Fprintf(&sb, "\nspec.replicas: %d", replicas)
+	}
+	if schedule, found, _ := unstructured.NestedString(res.Object, "spec", "schedule"); found {
+		fmt.Fprintf(&sb, "\nspec.schedule: %s", schedule)
+	}
+	if suspend, found, _ := unstructured.NestedBool(res.Object, "spec", "suspend"); found && suspend {
+		sb.WriteString("\nspec.suspend: true")
+	}
+	if nodeName, found, _ := unstructured.NestedString(res.Object, "spec", "nodeName"); found && nodeName != "" {
+		fmt.Fprintf(&sb, "\nspec.nodeName: %s", nodeName)
+	}
+	if images := containerImages(res); len(images) > 0 {
+		fmt.Fprintf(&sb, "\nimages: %s", strings.Join(images, ", "))
+	}
+	if phase, found, _ := unstructured.NestedString(res.Object, "status", "phase"); found {
+		fmt.Fprintf(&sb, "\nstatus.phase: %s", phase)
+	}
+	for _, key := range []string{"readyReplicas", "availableReplicas", "succeeded", "failed", "active"} {
+		if v, found, _ := unstructured.NestedInt64(res.Object, "status", key); found {
+			fmt.Fprintf(&sb, "\nstatus.%s: %d", key, v)
+		}
+	}
+	if conditions, found, _ := unstructured.NestedSlice(res.Object, "status", "conditions"); found {
+		parts := make([]string, 0, len(conditions))
+		for _, c := range conditions {
+			if cm, ok := c.(map[string]any); ok {
+				condType, _ := cm["type"].(string)
+				condStatus, _ := cm["status"].(string)
+				if condType != "" {
+					parts = append(parts, condType+"="+condStatus)
+				}
+			}
+		}
+		if len(parts) > 0 {
+			fmt.Fprintf(&sb, "\nconditions: %s", strings.Join(parts, ", "))
+		}
+	}
+	return sb.String()
+}
+
+// containerImages collects container images from the usual spec locations
+// (Pod, workload templates, CronJob job templates).
+func containerImages(res *unstructured.Unstructured) []string {
+	paths := [][]string{
+		{"spec", "containers"},
+		{"spec", "template", "spec", "containers"},
+		{"spec", "jobTemplate", "spec", "template", "spec", "containers"},
+	}
+	images := []string{}
+	for _, path := range paths {
+		containers, found, _ := unstructured.NestedSlice(res.Object, path...)
+		if !found {
+			continue
+		}
+		for _, c := range containers {
+			if cm, ok := c.(map[string]any); ok {
+				if image, ok := cm["image"].(string); ok && image != "" {
+					images = append(images, image)
+				}
+			}
+		}
+	}
+	return images
+}
+
 func getKubernetesResourcesTool(args map[string]any, tc *ToolContext, valkeyClient valkeyclient.ValkeyClient, logger *slog.Logger) string {
 
 	kind, ok := args["kind"].(string)
@@ -245,6 +328,12 @@ func getKubernetesResourcesTool(args map[string]any, tc *ToolContext, valkeyClie
 	meta := mergeAnnotationsAndLabels(resources.GetAnnotations(), resources.GetLabels())
 	if !tc.IsResourceAllowed(resources.GetNamespace(), meta) {
 		return fmt.Sprintf("Error: access to resource %q in namespace %q is not allowed", resources.GetName(), namespace)
+	}
+
+	if detail, _ := args["detail"].(string); detail == "summary" {
+		result := summaryResourceText(resources)
+		logger.Info("Tool result", "detail", "summary", "resultLength", len(result))
+		return result
 	}
 
 	fullJSON, _ := json.Marshal(resources.Object)
