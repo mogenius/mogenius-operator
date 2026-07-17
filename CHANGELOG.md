@@ -1,3 +1,10 @@
+# [2.24.0-develop.23](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.22...v2.24.0-develop.23) (2026-07-17)
+
+
+### Bug Fixes
+
+* aiinsights cleanup ([2de4378](https://github.com/mogenius/mogenius-operator/commit/2de437884ba6678b8415dd32384b6f7dc2e7c123))
+
 # [2.24.0-develop.22](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.21...v2.24.0-develop.22) (2026-07-17)
 
 
