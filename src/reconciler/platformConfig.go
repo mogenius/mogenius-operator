@@ -55,8 +55,16 @@ func (d *reconcilerModule) reconcilePlatformConfig(ctx context.Context, obj *uns
 	if err != nil {
 		return []ReconcileResult{{Err: err}}
 	}
+
+	gitOpsStatus := buildGitOpsStatus(platformConfig.Spec)
+
 	if engine == "" {
 		d.logger.Info("no GitOps engine enabled, skipping reconciliation of GitOps components")
+		if !gitOpsStatusEqual(platformConfig.Status.GitOpsStatus, gitOpsStatus) {
+			if err := d.updatePlatformConfigStatus(ctx, obj.GetName(), nil, gitOpsStatus); err != nil {
+				d.logger.Warn("failed to update PlatformConfig status", "name", obj.GetName(), "error", err)
+			}
+		}
 		return []ReconcileResult{{Err: fmt.Errorf("no GitOps engine enabled")}}
 	}
 
@@ -132,8 +140,8 @@ func (d *reconcilerModule) reconcilePlatformConfig(ctx context.Context, obj *uns
 	}
 
 	// Only patch when status/message actually changed.
-	if !conditionsEqual(platformConfig.Status.Conditions, conditions) {
-		if err := d.updatePlatformConfigStatus(ctx, obj.GetName(), conditions); err != nil {
+	if !conditionsEqual(platformConfig.Status.Conditions, conditions) || !gitOpsStatusEqual(platformConfig.Status.GitOpsStatus, gitOpsStatus) {
+		if err := d.updatePlatformConfigStatus(ctx, obj.GetName(), conditions, gitOpsStatus); err != nil {
 			d.logger.Warn("failed to update PlatformConfig status", "name", obj.GetName(), "error", err)
 		}
 	}
@@ -156,13 +164,15 @@ func conditionsEqual(current, desired []metav1.Condition) bool {
 	return true
 }
 
-func (d *reconcilerModule) updatePlatformConfigStatus(ctx context.Context, name string, conditions []metav1.Condition) error {
-	patch := map[string]any{
-		"status": map[string]any{
-			"conditions": conditions,
-		},
+func (d *reconcilerModule) updatePlatformConfigStatus(ctx context.Context, name string, conditions []metav1.Condition, gitOpsStatus *v1alpha1.GitOpsStatus) error {
+	status := map[string]any{}
+	if conditions != nil {
+		status["conditions"] = conditions
 	}
-	patchBytes, err := json.Marshal(patch)
+	if gitOpsStatus != nil {
+		status["gitOpsStatus"] = gitOpsStatus
+	}
+	patchBytes, err := json.Marshal(map[string]any{"status": status})
 	if err != nil {
 		return fmt.Errorf("marshal status patch: %w", err)
 	}
@@ -171,6 +181,48 @@ func (d *reconcilerModule) updatePlatformConfigStatus(ctx context.Context, name 
 		ctx, name, types.MergePatchType, patchBytes, metav1.PatchOptions{}, "status",
 	)
 	return err
+}
+
+func buildGitOpsStatus(spec v1alpha1.PlatformConfigSpec) *v1alpha1.GitOpsStatus {
+	gitOps := spec.GitOps
+	if gitOps == nil {
+		return nil
+	}
+
+	if gitOps.ArgoCD != nil {
+		project := "mogenius"
+		if gitOps.ArgoCD.Project != "" {
+			project = gitOps.ArgoCD.Project
+		}
+		return &v1alpha1.GitOpsStatus{
+			IsUserManaged:      !gitOps.ArgoCD.Enabled,
+			Engine:             componentArgoCD,
+			Namespace:          helmNamespace(gitOps.ArgoCD.Chart, argocdDefaultNamespace),
+			ReleaseName:        helmReleaseName(gitOps.ArgoCD.Chart, "argocd"),
+			DefaultProjectName: project,
+		}
+	}
+
+	if gitOps.FluxCD != nil {
+		return &v1alpha1.GitOpsStatus{
+			IsUserManaged: !gitOps.FluxCD.Enabled,
+			Engine:        componentFluxCD,
+			Namespace:     helmNamespace(gitOps.FluxCD.Chart, fluxcdDefaultNamespace),
+			ReleaseName:   helmReleaseName(gitOps.FluxCD.Chart, "flux-operator"),
+		}
+	}
+
+	return nil
+}
+
+func gitOpsStatusEqual(current, desired *v1alpha1.GitOpsStatus) bool {
+	if current == nil && desired == nil {
+		return true
+	}
+	if current == nil || desired == nil {
+		return false
+	}
+	return *current == *desired
 }
 
 func (d *reconcilerModule) fetchPlatformPatch(ctx context.Context, ref v1alpha1.PlatformConfigPatchReference) (*v1alpha1.PlatformPatch, error) {
