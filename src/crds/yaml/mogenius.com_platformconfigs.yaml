@@ -538,6 +538,19 @@ spec:
                   - type
                   type: object
                 type: array
+              gitOpsStatus:
+                properties:
+                  defaultProjectName:
+                    type: string
+                  engine:
+                    type: string
+                  isUserManaged:
+                    type: boolean
+                  namespace:
+                    type: string
+                  releaseName:
+                    type: string
+                type: object
             type: object
         required:
         - metadata
