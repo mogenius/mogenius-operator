@@ -39,6 +39,7 @@ const (
 	componentExternalSecretsOperator = "external-secrets-operator"
 )
 
+
 const (
 	argocdDefaultNamespace = "argocd"
 	fluxcdDefaultNamespace = "flux-system"
@@ -92,33 +93,47 @@ func (d *reconcilerModule) reconcilePlatformConfig(ctx context.Context, obj *uns
 		{componentRenovateOperator, d.reconcileRenovateOperator(ctx, platformConfig.Spec, installer, op)},
 	}
 
-	statuses := make([]v1alpha1.PlatformComponentStatus, 0, len(components))
+	// Index existing conditions so LastTransitionTime is preserved when status hasn't changed.
+	existingConditions := make(map[string]metav1.Condition, len(platformConfig.Status.Conditions))
+	for _, c := range platformConfig.Status.Conditions {
+		existingConditions[c.Type] = c
+	}
+
+	conditions := make([]metav1.Condition, 0, len(components))
 	results := make([]ReconcileResult, 0)
 	now := metav1.Now()
 
 	for _, c := range components {
-		ready := c.result == nil || (c.result != nil && c.result.Err == nil)
+		condStatus := metav1.ConditionTrue
+		reason := "Ready"
 		message := "ready"
 		if c.result != nil && c.result.Err != nil {
+			condStatus = metav1.ConditionFalse
+			reason = "ReconcileFailed"
 			message = c.result.Err.Error()
 		}
 
-		status := v1alpha1.PlatformComponentStatus{
-			Name:     c.name,
-			Ready:    ready,
-			LastSync: now,
-			Message:  message,
+		lastTransition := now
+		if prev, ok := existingConditions[c.name]; ok && prev.Status == condStatus {
+			lastTransition = prev.LastTransitionTime
 		}
+
 		if c.result != nil {
 			results = append(results, *c.result)
 		}
-		statuses = append(statuses, status)
+		conditions = append(conditions, metav1.Condition{
+			Type:               c.name,
+			Status:             condStatus,
+			ObservedGeneration: platformConfig.Generation,
+			LastTransitionTime: lastTransition,
+			Reason:             reason,
+			Message:            message,
+		})
 	}
 
-	// Only patch when Ready/Message actually changed. LastSync alone would
-	// otherwise produce a new resourceVersion on every reconcile.
-	if !componentStatusesEqual(platformConfig.Status.Components, statuses) {
-		if err := d.updatePlatformConfigStatus(ctx, obj.GetName(), statuses); err != nil {
+	// Only patch when status/message actually changed.
+	if !conditionsEqual(platformConfig.Status.Conditions, conditions) {
+		if err := d.updatePlatformConfigStatus(ctx, obj.GetName(), conditions); err != nil {
 			d.logger.Warn("failed to update PlatformConfig status", "name", obj.GetName(), "error", err)
 		}
 	}
@@ -126,14 +141,14 @@ func (d *reconcilerModule) reconcilePlatformConfig(ctx context.Context, obj *uns
 	return results
 }
 
-// componentStatusesEqual compares component statuses ignoring LastSync.
-func componentStatusesEqual(current, desired []v1alpha1.PlatformComponentStatus) bool {
+// conditionsEqual compares conditions ignoring LastTransitionTime and ObservedGeneration.
+func conditionsEqual(current, desired []metav1.Condition) bool {
 	if len(current) != len(desired) {
 		return false
 	}
 	for i := range desired {
-		if current[i].Name != desired[i].Name ||
-			current[i].Ready != desired[i].Ready ||
+		if current[i].Type != desired[i].Type ||
+			current[i].Status != desired[i].Status ||
 			current[i].Message != desired[i].Message {
 			return false
 		}
@@ -141,10 +156,10 @@ func componentStatusesEqual(current, desired []v1alpha1.PlatformComponentStatus)
 	return true
 }
 
-func (d *reconcilerModule) updatePlatformConfigStatus(ctx context.Context, name string, components []v1alpha1.PlatformComponentStatus) error {
+func (d *reconcilerModule) updatePlatformConfigStatus(ctx context.Context, name string, conditions []metav1.Condition) error {
 	patch := map[string]any{
 		"status": map[string]any{
-			"components": components,
+			"conditions": conditions,
 		},
 	}
 	patchBytes, err := json.Marshal(patch)
