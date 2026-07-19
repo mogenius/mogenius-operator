@@ -15,7 +15,7 @@ ARG BPFTOOL_IMAGE=ghcr.io/mogenius/bpftool:latest
 # Pinned snoopy release (github.com/mogenius/snoopy). The release assets are
 # built from the tagged source; the ghcr.io/mogenius/snoopy image only has
 # non-human-readable date/sha tags, so we pin the release version instead.
-ARG SNOOPY_VERSION=v0.4.3
+ARG SNOOPY_VERSION=v0.4.4
 
 # Get bpftool binary (target platform - armv7 binary for armv7 build)
 FROM ${BPFTOOL_IMAGE} AS bpftool-source
