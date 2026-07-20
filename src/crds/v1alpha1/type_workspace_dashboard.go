@@ -57,8 +57,8 @@ type WorkspaceDashboardSpec struct {
 	// MembersTile toggles the workspace members tile.
 	MembersTile DashboardToggle `json:"membersTile,omitempty"`
 
-	// ResourceOverview toggles and parameterises the aggregated resource overview.
-	ResourceOverview DashboardResourceOverview `json:"resourceOverview,omitempty"`
+	// ResourceOverview toggles the aggregated resource overview.
+	ResourceOverview DashboardToggle `json:"resourceOverview,omitempty"`
 
 	// ResourceTables lists resource tables rendered below the standard
 	// components, in display order.
@@ -71,22 +71,11 @@ type DashboardToggle struct {
 	Enabled bool `json:"enabled,omitempty"`
 }
 
-// DashboardResourceOverview configures the aggregated resource overview component.
-type DashboardResourceOverview struct {
-	Enabled bool `json:"enabled,omitempty"`
-
-	// Header is an optional heading rendered above the component.
-	Header string `json:"header,omitempty"`
-
-	// Resources identifies the resource types aggregated by the overview.
-	// Optional: when omitted, consumers render their built-in default kinds.
-	Resources []CrdReference `json:"resources,omitempty"`
-}
-
 // DashboardResourceTable configures one resource table shown on the dashboard.
 type DashboardResourceTable struct {
-	// Header is an optional heading rendered above the table.
-	Header string `json:"header,omitempty"`
+	// Header is the heading rendered above the table.
+	// +kubebuilder:validation:MinLength=1
+	Header string `json:"header"`
 
 	// Resources identifies the resource types listed in this table.
 	// +kubebuilder:validation:MinItems=1

@@ -75,37 +75,10 @@ spec:
                     type: boolean
                 type: object
               resourceOverview:
-                description: ResourceOverview toggles and parameterises the aggregated
-                  resource overview.
+                description: ResourceOverview toggles the aggregated resource overview.
                 properties:
                   enabled:
                     type: boolean
-                  header:
-                    description: Header is an optional heading rendered above the
-                      component.
-                    type: string
-                  resources:
-                    description: |-
-                      Resources identifies the resource types aggregated by the overview.
-                      Optional: when omitted, consumers render their built-in default kinds.
-                    items:
-                      description: CrdReference identifies a Kubernetes resource type
-                        by its API group/version and kind.
-                      properties:
-                        apiVersion:
-                          description: |-
-                            ApiVersion is the group and version of the target resource, e.g. "apps/v1" for Deployments
-                            or "v1" for core resources like Services. Used together with Kind to uniquely identify the type.
-                          type: string
-                        kind:
-                          description: Kind is the resource kind as it appears in
-                            the Kubernetes API, e.g. "Deployment" or "Service".
-                          type: string
-                      required:
-                      - apiVersion
-                      - kind
-                      type: object
-                    type: array
                 type: object
               resourceTables:
                 description: |-
@@ -116,8 +89,8 @@ spec:
                     shown on the dashboard.
                   properties:
                     header:
-                      description: Header is an optional heading rendered above the
-                        table.
+                      description: Header is the heading rendered above the table.
+                      minLength: 1
                       type: string
                     resources:
                       description: Resources identifies the resource types listed
@@ -142,6 +115,7 @@ spec:
                       minItems: 1
                       type: array
                   required:
+                  - header
                   - resources
                   type: object
                 type: array
