@@ -1,3 +1,10 @@
+# [2.24.0-develop.31](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.30...v2.24.0-develop.31) (2026-07-20)
+
+
+### Bug Fixes
+
+* seed default workspace dashboard on operator startup — dashboardseeder.go, cluster.go; simplify workspace dashboard crd and clear refs on delete — Typ, YAML, Deepcopy, Reconciler ([8170e12](https://github.com/mogenius/mogenius-operator/commit/8170e12980250a9d463e8302440dd790173ca990))
+
 # [2.24.0-develop.30](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.29...v2.24.0-develop.30) (2026-07-20)
 
 
