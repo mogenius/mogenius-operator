@@ -1,3 +1,22 @@
+# [2.24.0-develop.28](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.27...v2.24.0-develop.28) (2026-07-20)
+
+
+### Bug Fixes
+
+* aiinsights cleanup ([5fca0a0](https://github.com/mogenius/mogenius-operator/commit/5fca0a0fd728c10ea4c152dc736c573218f1e290))
+
+# [2.24.0-develop.27](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.26...v2.24.0-develop.27) (2026-07-18)
+
+
+### Bug Fixes
+
+* use official status array for compatibility reasons ([480b5a7](https://github.com/mogenius/mogenius-operator/commit/480b5a7725e34fb462fa8cbb146f72e4792e6a50))
+
+
+### Features
+
+* adding gitops status to platform crd ([6b10b29](https://github.com/mogenius/mogenius-operator/commit/6b10b294157d2fcac008202111b1cafba0d5a961))
+
 # [2.24.0-develop.26](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.25...v2.24.0-develop.26) (2026-07-17)
 
 

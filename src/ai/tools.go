@@ -36,6 +36,25 @@ type ToolContext struct {
 	// fix them in-conversation instead of having them silently dropped after
 	// the run (whole-scope agent runs only).
 	RequireActionableFindings bool
+
+	// ExcludeResources holds resource identities that already have an open
+	// proposal from an earlier run. They are filtered out of list results and
+	// refused by get so a whole-scope run neither re-inspects nor re-reports
+	// what a user has not decided on yet — saving the tokens of re-analysis.
+	ExcludeResources map[string]bool
+}
+
+// aiResourceKey is the canonical identity used for ExcludeResources lookups.
+func aiResourceKey(apiVersion, kind, namespace, name string) string {
+	return apiVersion + "|" + kind + "|" + namespace + "|" + name
+}
+
+// IsResourceExcluded reports whether a resource already has an open proposal.
+func (tc *ToolContext) IsResourceExcluded(apiVersion, kind, namespace, name string) bool {
+	if tc == nil || len(tc.ExcludeResources) == 0 {
+		return false
+	}
+	return tc.ExcludeResources[aiResourceKey(apiVersion, kind, namespace, name)]
 }
 
 // hasRestrictions returns true when any scoping is configured.
