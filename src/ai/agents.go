@@ -321,7 +321,37 @@ func (ai *aiManager) buildAgentTaskContext(task *AiTask) (*v1alpha1.Agent, *Tool
 			return nil, nil, fmt.Errorf("resource namespace %q is no longer in the scope of agent %q", taskNamespace, agent.Name)
 		}
 	}
-	return agent, newToolContextFromAgent(agent, namespaces), nil
+	toolCtx := newToolContextFromAgent(agent, namespaces)
+	toolCtx.ExcludeResources = ai.openProposalResourceKeys(agent.Name)
+	if len(toolCtx.ExcludeResources) > 0 {
+		ai.logger.Info("Excluding resources with open proposals from run", "agent", agent.Name, "count", len(toolCtx.ExcludeResources))
+	}
+	return agent, toolCtx, nil
+}
+
+// openProposalResourceKeys collects the target resources of the agent's tasks
+// that still await a user decision (proposed). A whole-scope run skips these
+// so it neither burns tokens re-inspecting them nor produces duplicate
+// proposals for the same resource on every pass.
+func (ai *aiManager) openProposalResourceKeys(agentName string) map[string]bool {
+	keys, err := ai.valkeyClient.Keys(fmt.Sprintf("%s:Agent:*:%s-run-*", DB_AI_BUCKET_TASKS, agentName))
+	if err != nil {
+		ai.logger.Warn("Failed to list agent tasks for proposal exclusion", "agent", agentName, "error", err)
+		return nil
+	}
+	excluded := map[string]bool{}
+	for _, key := range keys {
+		task, err := ai.getTaskByKey(key)
+		if err != nil || task == nil || task.State != AI_TASK_STATE_PROPOSED || task.Response == nil {
+			continue
+		}
+		target := task.Response.Analysis.TargetResource
+		if target.ResourceName == "" {
+			continue
+		}
+		excluded[aiResourceKey(target.ApiVersion, target.Kind, target.Namespace, target.ResourceName)] = true
+	}
+	return excluded
 }
 
 // matchingAgentTask returns the task to create for a watched object, or nil if

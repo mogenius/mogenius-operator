@@ -245,3 +245,18 @@ func TestAgeString(t *testing.T) {
 	assert.Equal(t, "3h", ageString(time.Now().Add(-190*time.Minute)))
 	assert.Equal(t, "5m", ageString(time.Now().Add(-5*time.Minute)))
 }
+
+func TestIsResourceExcluded(t *testing.T) {
+	var nilCtx *ToolContext
+	assert.False(t, nilCtx.IsResourceExcluded("v1", "Pod", "default", "x"))
+
+	tc := &ToolContext{ExcludeResources: map[string]bool{
+		aiResourceKey("apps/v1", "ReplicaSet", "mogenius", "cert-manager-cainjector-5cd89979d6"): true,
+	}}
+	assert.True(t, tc.IsResourceExcluded("apps/v1", "ReplicaSet", "mogenius", "cert-manager-cainjector-5cd89979d6"))
+	assert.False(t, tc.IsResourceExcluded("apps/v1", "ReplicaSet", "mogenius", "other"))
+	assert.False(t, tc.IsResourceExcluded("v1", "Pod", "mogenius", "cert-manager-cainjector-5cd89979d6"))
+
+	empty := &ToolContext{}
+	assert.False(t, empty.IsResourceExcluded("v1", "Pod", "default", "x"))
+}

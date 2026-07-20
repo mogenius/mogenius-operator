@@ -97,8 +97,26 @@ func listKubernetesResourcesTool(args map[string]any, tc *ToolContext, valkeyCli
 		resources = filtered
 	}
 
+	// Hide resources that already have an open proposal — a whole-scope run
+	// must not re-inspect or re-report what the user has not decided on yet.
+	excludedCount := 0
+	if tc != nil && len(tc.ExcludeResources) > 0 {
+		filtered := resources[:0]
+		for _, res := range resources {
+			if tc.IsResourceExcluded(res.GetAPIVersion(), res.GetKind(), res.GetNamespace(), res.GetName()) {
+				excludedCount++
+				continue
+			}
+			filtered = append(filtered, res)
+		}
+		resources = filtered
+	}
+
 	totalCount := len(resources)
 	if totalCount == 0 {
+		if excludedCount > 0 {
+			return fmt.Sprintf("No %s resources without an open proposal (%d already have one under review)", kind, excludedCount)
+		}
 		return fmt.Sprintf("No %s resources found", kind)
 	}
 
@@ -140,6 +158,10 @@ func listKubernetesResourcesTool(args map[string]any, tc *ToolContext, valkeyCli
 		"resources": summaries,
 	}
 
+	if excludedCount > 0 {
+		result["hiddenWithOpenProposal"] = excludedCount
+	}
+
 	if truncated {
 		result["truncated"] = true
 		result["message"] = fmt.Sprintf("Showing %d of %d resources. Use get_kubernetes_resources with a specific name for full details.", maxListResults, totalCount)
@@ -149,7 +171,7 @@ func listKubernetesResourcesTool(args map[string]any, tc *ToolContext, valkeyCli
 	if err != nil {
 		return fmt.Sprintf("Error marshaling resources: %v", err)
 	}
-	logger.Info("Tool result", "resultCount", len(summaries), "totalCount", totalCount, "truncated", truncated)
+	logger.Info("Tool result", "resultCount", len(summaries), "totalCount", totalCount, "truncated", truncated, "hiddenWithOpenProposal", excludedCount)
 	return string(resourceBytes)
 }
 
@@ -307,6 +329,10 @@ func getKubernetesResourcesTool(args map[string]any, tc *ToolContext, valkeyClie
 	// Early reject if namespace is definitely not allowed (no ArgoCD fallback needed)
 	if !tc.IsNamespaceAllowed(namespace) && tc.AllowedArgoCDApps == nil {
 		return fmt.Sprintf("Error: access to namespace %q is not allowed", namespace)
+	}
+
+	if tc.IsResourceExcluded(apiVersion, kind, namespace, name) {
+		return fmt.Sprintf("%s/%s in namespace %q already has an open proposal awaiting a user decision — do not analyze or report it again.", kind, name, namespace)
 	}
 
 	logger.Info("Retrieving Kubernetes resources", "apiVersion", apiVersion, "kind", kind, "namespace", namespace, "name", name)
