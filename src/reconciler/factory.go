@@ -2,6 +2,7 @@ package reconciler
 
 import (
 	"log/slog"
+	"mogenius-operator/src/ai"
 	"mogenius-operator/src/config"
 	"mogenius-operator/src/k8sclient"
 	"mogenius-operator/src/utils"
@@ -18,6 +19,8 @@ type reconcilerModule struct {
 	config         config.ConfigModule
 	valkeyClient   valkeyclient.ValkeyClient
 	crdChecker     *crdChecker
+	// aiManager enqueues agent runs when a run-request annotation appears.
+	aiManager ai.AiManager
 
 	// requeue re-reconciles cached objects matching the predicate; wired in
 	// Build because the reconciler owning the object caches is created there.
@@ -34,7 +37,7 @@ type ReconcilerFactory interface {
 	Build() Reconciler
 }
 
-func NewReconcilerFactory(logger *slog.Logger, clientProvider k8sclient.K8sClientProvider, configModule config.ConfigModule, valkeyClient valkeyclient.ValkeyClient) ReconcilerFactory {
+func NewReconcilerFactory(logger *slog.Logger, clientProvider k8sclient.K8sClientProvider, configModule config.ConfigModule, valkeyClient valkeyclient.ValkeyClient, aiManager ai.AiManager) ReconcilerFactory {
 	factory := &reconcilerFactory{
 		module: &reconcilerModule{
 			logger:         logger,
@@ -42,6 +45,7 @@ func NewReconcilerFactory(logger *slog.Logger, clientProvider k8sclient.K8sClien
 			config:         configModule,
 			valkeyClient:   valkeyClient,
 			crdChecker:     newCRDChecker(clientProvider),
+			aiManager:      aiManager,
 		},
 		// Background full-sweep interval. Watcher informers already do a
 		// 30-minute resync (utils.ResourceResyncTime) which redelivers every

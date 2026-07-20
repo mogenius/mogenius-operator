@@ -35,8 +35,7 @@ func defaultAgents() []v1alpha1.Agent {
 				Enabled:     false,
 				Scope:       allNamespaces,
 				Triggers: v1alpha1.AgentTriggers{
-					Cron:   "0 6 * * 1",
-					Manual: true,
+					Cron: "0 6 * * 1",
 				},
 			},
 		},
@@ -50,8 +49,7 @@ func defaultAgents() []v1alpha1.Agent {
 				Enabled:     false,
 				Scope:       allNamespaces,
 				Triggers: v1alpha1.AgentTriggers{
-					Cron:   "0 7 * * 1",
-					Manual: true,
+					Cron: "0 7 * * 1",
 				},
 			},
 		},
@@ -61,31 +59,15 @@ func defaultAgents() []v1alpha1.Agent {
 				DisplayName: "Workload Doctor",
 				Description: "Reacts to crash-looping and image-pull failures, diagnoses the root cause and proposes a concrete fix.",
 				Icon:        "fa-stethoscope",
-				Instruction: "You are a Kubernetes troubleshooter. Diagnose the failing workload: read its events, container statuses and logs, identify the root cause (bad image tag, failing command, missing config or secret, OOM kills) and propose a minimal fix on the owning controller. Only propose a change you are confident fixes the root cause; otherwise report your diagnosis without a proposed operation.",
+				Instruction: "You are a Kubernetes troubleshooter. Scan the scope for failing workloads — pods in CrashLoopBackOff or ImagePullBackOff, or otherwise not becoming ready. For the most clearly broken one, read its events, container statuses and logs, identify the root cause (bad image tag, failing command, missing config or secret, OOM kills) and propose a minimal fix on the owning controller. Only propose a change you are confident fixes the root cause; otherwise report your diagnosis without a proposed operation.",
 				Enabled:     false,
 				Scope:       allNamespaces,
 				Triggers: v1alpha1.AgentTriggers{
-					Events: []v1alpha1.AgentEventFilter{
-						{
-							Id:   "workload-doctor/crashloop",
-							Name: "CrashLoopBackOff",
-							Kind: "Pod",
-							Contains: map[string]string{
-								".status.containerStatuses[*].state.waiting.reason": "CrashLoopBackOff",
-							},
-							Prompt: "This pod is crash-looping. Diagnose the root cause and, if possible, propose a concrete fix on the owning controller.",
-						},
-						{
-							Id:   "workload-doctor/imagepull",
-							Name: "ImagePullBackOff",
-							Kind: "Pod",
-							Contains: map[string]string{
-								".status.containerStatuses[*].state.waiting.reason": "ImagePullBackOff",
-							},
-							Prompt: "This pod cannot pull its image. Check the image reference and pull configuration and propose a fix if the cause is evident.",
-						},
+					OnChange: &v1alpha1.AgentChangeTrigger{
+						Kinds:       []string{"Pod"},
+						On:          []string{"created", "updated"},
+						MinInterval: metav1.Duration{Duration: 6 * time.Hour},
 					},
-					Manual: true,
 				},
 			},
 		},
@@ -99,8 +81,7 @@ func defaultAgents() []v1alpha1.Agent {
 				Enabled:     false,
 				Scope:       allNamespaces,
 				Triggers: v1alpha1.AgentTriggers{
-					Cron:   "0 8 * * 1",
-					Manual: true,
+					Cron: "0 8 * * 1",
 				},
 			},
 		},
@@ -114,8 +95,7 @@ func defaultAgents() []v1alpha1.Agent {
 				Enabled:     false,
 				Scope:       allNamespaces,
 				Triggers: v1alpha1.AgentTriggers{
-					Cron:   "0 9 * * 1",
-					Manual: true,
+					Cron: "0 9 * * 1",
 				},
 			},
 		},

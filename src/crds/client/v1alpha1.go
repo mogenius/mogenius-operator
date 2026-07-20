@@ -5,6 +5,7 @@ import (
 	"fmt"
 	mov1alpha1 "mogenius-operator/src/crds/v1alpha1"
 	"mogenius-operator/src/store"
+	"time"
 
 	"encoding/json"
 
@@ -296,6 +297,21 @@ func (self *MogeniusV1alpha1) UpdateAgent(namespace string, name string, spec mo
 	// namespace from the scope or clearing an event filter), so agent updates
 	// always replace the full spec.
 	return self.ReplaceAgent(namespace, name, spec)
+}
+
+// RequestAgentRun sets the run-request annotation to a fresh timestamp,
+// requesting one manual run. The agent reconciler reacts to the changed value
+// (idempotent via status.lastHandledTriggerAt). This is the single trigger
+// path for both the UI and kubectl/GitOps.
+func (self *MogeniusV1alpha1) RequestAgentRun(namespace, name string) (*mov1alpha1.Agent, error) {
+	patch := fmt.Sprintf(`{"metadata":{"annotations":{%q:%q}}}`,
+		mov1alpha1.AgentRunRequestedAtAnnotation, time.Now().UTC().Format(time.RFC3339Nano))
+	result := &mov1alpha1.Agent{}
+	err := self.restClient.Patch(types.MergePatchType).Namespace(namespace).Resource("agents").Name(name).Body([]byte(patch)).Do(context.Background()).Into(result)
+	if err != nil {
+		return nil, fmt.Errorf("RESTClient: %w", err)
+	}
+	return result, nil
 }
 
 // UpdateAgentStatus writes only the status subresource of the given agent

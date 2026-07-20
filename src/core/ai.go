@@ -25,7 +25,6 @@ type AiApi interface {
 	RejectTask(taskID string, user structs.User, reason string) (*ai.AiTask, error)
 	CancelTask(taskID string, user structs.User) (*ai.AiTask, error)
 	DeleteTask(taskID string, user structs.User) (*ai.AiTask, error)
-	TriggerAgent(agentName string, user structs.User) (*ai.AiTask, error)
 }
 type aiApi struct {
 	logger    *slog.Logger
@@ -104,6 +103,3 @@ func (self *aiApi) DeleteTask(taskID string, user structs.User) (*ai.AiTask, err
 	return self.aiManager.DeleteTask(taskID, user)
 }
 
-func (self *aiApi) TriggerAgent(agentName string, user structs.User) (*ai.AiTask, error) {
-	return self.aiManager.TriggerAgent(agentName, user)
-}

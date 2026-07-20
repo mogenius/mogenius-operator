@@ -77,6 +77,7 @@ type Api interface {
 	CreateAgent(name string, spec v1alpha1.AgentSpec) (string, error)
 	UpdateAgent(name string, spec v1alpha1.AgentSpec) (string, error)
 	DeleteAgent(name string) (string, error)
+	RequestAgentRun(name string) (string, error)
 
 	GetWorkspaceResources(workspaceName string, whitelist []*utils.ResourceDescriptor, blacklist []*utils.ResourceDescriptor, namespaceWhitelist []string) ([]unstructured.Unstructured, error)
 	GetResourceListByWhitelistPaginated(req ResourcesPaginatedRequest) (ResourcesPaginatedResponse, error)
@@ -388,6 +389,13 @@ func (self *api) DeleteAgent(name string) (string, error) {
 	}
 
 	return "Resource deleted successfully", nil
+}
+
+func (self *api) RequestAgentRun(name string) (string, error) {
+	if err := self.workspaceManager.RequestAgentRun(name); err != nil {
+		return "", err
+	}
+	return "Agent run requested", nil
 }
 
 type ResourcesPaginatedRequest struct {

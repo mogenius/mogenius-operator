@@ -32,6 +32,7 @@ type WorkspaceManager interface {
 	GetAgent(name string) (*v1alpha1.Agent, error)
 	UpdateAgent(name string, spec v1alpha1.AgentSpec) (*v1alpha1.Agent, error)
 	DeleteAgent(name string) error
+	RequestAgentRun(name string) error
 }
 
 type workspaceManager struct {
@@ -201,4 +202,11 @@ func (self *workspaceManager) DeleteAgent(name string) error {
 	self.namespaceLock.RLock()
 	defer self.namespaceLock.RUnlock()
 	return self.mogeniusClientSet.MogeniusV1alpha1.DeleteAgent(self.namespace, name)
+}
+
+func (self *workspaceManager) RequestAgentRun(name string) error {
+	self.namespaceLock.RLock()
+	defer self.namespaceLock.RUnlock()
+	_, err := self.mogeniusClientSet.MogeniusV1alpha1.RequestAgentRun(self.namespace, name)
+	return err
 }

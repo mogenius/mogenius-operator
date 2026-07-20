@@ -243,7 +243,7 @@ type AiManager interface {
 	RejectTask(taskID string, user structs.User, reason string) (*AiTask, error)
 	CancelTask(taskID string, user structs.User) (*AiTask, error)
 	DeleteTask(taskID string, user structs.User) (*AiTask, error)
-	TriggerAgent(agentName string, user structs.User) (*AiTask, error)
+	TriggerAgent(agentName string, user *structs.User) (*AiTask, error)
 
 	ResolveWorkspaceContext(userEmail string, workspaceName string) (*v1alpha1.WorkspaceSpec, *v1alpha1.GrantSpec)
 }
@@ -271,6 +271,9 @@ type aiManager struct {
 	// after a restart schedules re-anchor to the first ticker run.
 	cronStateLock sync.Mutex
 	lastCronRun   map[string]time.Time
+	// lastAgentRun: when a run was last enqueued per agent (any trigger),
+	// used as the change-trigger cooldown base. In-memory (leader only).
+	lastAgentRun map[string]time.Time
 	// isLeading gates cron evaluation to the leading replica; event-triggered
 	// tasks are already deduplicated via their Valkey key.
 	isLeading func() bool
@@ -367,6 +370,7 @@ func NewAiManager(logger *slog.Logger, valkeyClient valkeyclient.ValkeyClient, c
 	self.pendingTasksLock = &sync.RWMutex{}
 	self.mcpManager = newMCPClientManager(logger)
 	self.lastCronRun = make(map[string]time.Time)
+	self.lastAgentRun = make(map[string]time.Time)
 	self.isLeading = isLeading
 	self.taskQueueKick = make(chan struct{}, 1)
 
@@ -385,45 +389,25 @@ func (ai *aiManager) ProcessObject(obj *unstructured.Unstructured, eventType str
 		return
 	}
 
-	if eventType == "delete" {
-		// On delete, we try to remove any existing AI tasks for this object
-		key := ai.getValkeyKey(obj.GetKind(), obj.GetNamespace(), obj.GetName())
-		err := ai.valkeyClient.DeleteMultiple(key)
-		if err != nil {
-			ai.logger.Error("Error deleting AI tasks for deleted object", "objectKind", obj.GetKind(), "objectName", obj.GetName(), "objectNamespace", obj.GetNamespace(), "error", err)
-		}
-		// send event notification
-		ai.sendAiDeleteEvent(key)
+	// Change triggers enqueue whole-scope runs, which carry timestamped keys
+	// that are NOT deduplicated across replicas — only the leader may fire.
+	if ai.isLeading == nil || !ai.isLeading() {
 		return
 	}
 
-	task := ai.matchingAgentTask(obj, resource)
-	if task == nil {
+	var changeType string
+	switch eventType {
+	case "add":
+		changeType = "created"
+	case "update":
+		changeType = "updated"
+	case "delete":
+		changeType = "deleted"
+	default:
 		return
 	}
 
-	key := ai.getValkeyKey(obj.GetKind(), obj.GetNamespace(), obj.GetName())
-	task.ID = key
-	task.Prompt = buildUserPrompt(task.Prompt, obj)
-
-	shouldCreate, err := ai.shouldCreateNewTask(key)
-	if err != nil {
-		ai.logger.Error("Error checking if should create new AI task", "error", err)
-		return
-	}
-	if !shouldCreate {
-		return
-	}
-
-	if task.TriggeredBy.For != nil {
-		ai.pendingTasksLock.Lock()
-		// store pending task to check later
-		ai.pendingTasks[key] = *task
-		ai.logger.Info("AI task pending due to 'For' duration not yet met", "key", key, "agent", task.AgentRef, "filter", task.TriggeredBy.Name)
-		ai.pendingTasksLock.Unlock()
-		return
-	}
-	ai.insertNewAiTask(task, obj, eventType, key)
+	ai.triggerChangeAgents(obj, changeType)
 }
 
 func (ai *aiManager) insertNewAiTask(task *AiTask, obj *unstructured.Unstructured, eventType string, key string) {

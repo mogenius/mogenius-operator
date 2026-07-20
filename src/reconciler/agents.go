@@ -32,6 +32,26 @@ func (d *reconcilerModule) reconcileAgents(ctx context.Context, obj *unstructure
 
 	conditionStatus, reason, message := d.evaluateAgent(&agent)
 
+	// Manual run trigger: a changed "mogenius.com/run-requested-at" annotation
+	// requests exactly one run. Firing here (on the watch event) makes it react
+	// within the informer's latency instead of a polling interval — the
+	// GitOps-native way (kubectl annotate / UI both set the same annotation).
+	if conditionStatus == metav1.ConditionTrue && agent.Spec.Enabled {
+		requested := agent.Annotations[v1alpha1.AgentRunRequestedAtAnnotation]
+		if requested != "" && requested != agent.Status.LastHandledTriggerAt {
+			if _, err := d.aiManager.TriggerAgent(agent.Name, nil); err != nil {
+				// Benign when a run is already open; leave LastHandledTriggerAt
+				// unchanged so the next reconcile retries.
+				d.logger.Info("Manual agent trigger did not enqueue a run", "agent", agent.Name, "reason", err.Error())
+			} else {
+				agent.Status.LastHandledTriggerAt = requested
+				if _, err := d.clientProvider.MogeniusClientSet().MogeniusV1alpha1.UpdateAgentStatus(&agent); err != nil {
+					d.logger.Error("Failed to record handled manual trigger", "agent", agent.Name, "error", err)
+				}
+			}
+		}
+	}
+
 	current := apimeta.FindStatusCondition(agent.Status.Conditions, agentReadyCondition)
 	upToDate := current != nil &&
 		current.Status == conditionStatus &&

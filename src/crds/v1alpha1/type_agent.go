@@ -8,6 +8,13 @@ import (
 // │ CRD: Agent │
 // ╰────────────╯
 
+// AgentRunRequestedAtAnnotation triggers a one-off manual run when its value
+// changes (Flux-style). Set it to a fresh timestamp to request a run:
+//
+//	kubectl annotate agent.mogenius.com <name> -n mogenius \
+//	  "mogenius.com/run-requested-at=$(date -u +%FT%T.%NZ)" --overwrite
+const AgentRunRequestedAtAnnotation = "mogenius.com/run-requested-at"
+
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type AgentList struct {
 	metav1.TypeMeta `json:",inline"`
@@ -83,38 +90,36 @@ type AgentScope struct {
 	Namespaces []string `json:"namespaces,omitempty"`
 }
 
+// AgentTriggers declares when an agent runs. A manual run is always available
+// for an enabled agent (via the UI or the "mogenius.com/run-requested-at"
+// annotation) and needs no field here.
 type AgentTriggers struct {
-	// Event filters evaluated against watched cluster resources.
-	Events []AgentEventFilter `json:"events,omitempty"`
-
 	// Standard 5-field cron expression for periodic runs; empty disables.
 	Cron string `json:"cron,omitempty"`
 
-	// Allow triggering a run manually from the UI.
-	Manual bool `json:"manual,omitempty"`
+	// When set, the agent runs a whole-scope analysis whenever a matching
+	// cluster resource changes (rate limited by MinInterval).
+	OnChange *AgentChangeTrigger `json:"onChange,omitempty"`
 }
 
-// AgentEventFilter matches watched resources by kind and JSONPath conditions
-// (same semantics as the former AiFilter mechanic).
-type AgentEventFilter struct {
-	Id   string `json:"id,omitempty"`
-	Name string `json:"name,omitempty"`
+// AgentChangeTrigger runs the agent when resources in its scope change. There
+// are no JSONPath conditions — the agent's instruction decides relevance; the
+// trigger only decides which change signals wake it up.
+type AgentChangeTrigger struct {
+	// Resource kinds whose changes trigger a run (e.g. "Deployment", "Job").
+	// Empty means every watched kind.
+	Kinds []string `json:"kinds,omitempty"`
 
-	Kind string `json:"kind"`
+	// Which change types trigger a run: any of "created", "updated",
+	// "deleted". Empty means all of them.
+	// +kubebuilder:validation:items:Enum=created;updated;deleted
+	On []string `json:"on,omitempty"`
 
-	// JSONPath → expected value; any match selects the object.
-	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:MinProperties=1
-	Contains map[string]string `json:"contains"`
-
-	// JSONPath → value; any match excludes the object.
-	Excludes map[string]string `json:"excludes,omitempty"`
-
-	// Prompt for the analysis run triggered by this filter.
-	Prompt string `json:"prompt,omitempty"`
-
-	// Condition must hold for this duration before a task is created.
-	For *metav1.Duration `json:"for,omitempty"`
+	// Minimum time between change-triggered runs of this agent — the cooldown
+	// that prevents a burst of changes from starting many runs. Defaults to 6h
+	// when unset.
+	// +optional
+	MinInterval metav1.Duration `json:"minInterval,omitempty"`
 }
 
 type AgentStatus struct {
@@ -126,4 +131,10 @@ type AgentStatus struct {
 	// Generation of the spec the conditions were last evaluated against.
 	// +optional
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
+
+	// LastHandledTriggerAt echoes the value of the
+	// "mogenius.com/run-requested-at" annotation the operator has already
+	// acted on, so a manual trigger fires exactly once per distinct value.
+	// +optional
+	LastHandledTriggerAt string `json:"lastHandledTriggerAt,omitempty"`
 }

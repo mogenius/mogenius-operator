@@ -21,10 +21,18 @@ const (
 	AI_TASK_TRIGGER_MANUAL = "manual"
 )
 
+// validChangeEventTypes are the change signals a change trigger may react to.
+var validChangeEventTypes = map[string]bool{"created": true, "updated": true, "deleted": true}
+
+// defaultChangeCooldown bounds change-triggered runs when the agent does not
+// set MinInterval — the rate limit that keeps a burst of changes from starting
+// many runs.
+const defaultChangeCooldown = 6 * time.Hour
+
 // ValidateAgentSpec checks an agent spec for the invariants the pipeline
 // relies on: a non-empty scope (an agent without scope restrictions must not
 // exist — empty allow-maps would disable namespace checks entirely), a
-// parseable cron expression and event filters with a kind.
+// parseable cron expression and a well-formed change trigger.
 func ValidateAgentSpec(spec v1alpha1.AgentSpec) error {
 	if spec.Scope.WorkspaceRef == "" && len(spec.Scope.Namespaces) == 0 {
 		return fmt.Errorf("agent scope must reference a workspace or list at least one namespace")
@@ -39,40 +47,22 @@ func ValidateAgentSpec(spec v1alpha1.AgentSpec) error {
 			return fmt.Errorf("invalid cron expression %q: %w", spec.Triggers.Cron, err)
 		}
 	}
-	for i, filter := range spec.Triggers.Events {
-		if filter.Kind == "" {
-			return fmt.Errorf("event filter %d is missing a kind", i)
-		}
-		if len(filter.Contains) == 0 {
-			return fmt.Errorf("event filter %d (%s) needs at least one contains condition", i, filter.Name)
+	if oc := spec.Triggers.OnChange; oc != nil {
+		for _, evt := range oc.On {
+			if !validChangeEventTypes[evt] {
+				return fmt.Errorf("onChange.on contains invalid change type %q (allowed: created, updated, deleted)", evt)
+			}
 		}
 	}
 	return nil
 }
 
-// agentFilterToAiFilter converts a CRD event filter into the internal AiFilter
-// shape so the existing matching and debounce machinery keeps working on it.
-func agentFilterToAiFilter(agent *v1alpha1.Agent, filter v1alpha1.AgentEventFilter) AiFilter {
-	converted := AiFilter{
-		Id:       filter.Id,
-		Name:     filter.Name,
-		Kind:     filter.Kind,
-		Contains: filter.Contains,
-		Excludes: filter.Excludes,
-		Prompt:   filter.Prompt,
-		IsActive: true,
+// changeCooldown returns the effective cooldown for an agent's change trigger.
+func changeCooldown(oc *v1alpha1.AgentChangeTrigger) time.Duration {
+	if oc != nil && oc.MinInterval.Duration > 0 {
+		return oc.MinInterval.Duration
 	}
-	if converted.Id == "" {
-		converted.Id = agent.Name + "/" + filter.Kind
-	}
-	if converted.Name == "" {
-		converted.Name = converted.Id
-	}
-	if filter.For != nil {
-		duration := filter.For.Duration
-		converted.For = &duration
-	}
-	return converted
+	return defaultChangeCooldown
 }
 
 // getEnabledAgents returns all enabled agents from the operator namespace.
@@ -231,13 +221,17 @@ func (ai *aiManager) createAgentRunTask(agent *v1alpha1.Agent, trigger string, t
 	if err := ai.createOrUpdateAiTask(task, key); err != nil {
 		return nil, fmt.Errorf("failed to create agent run task: %w", err)
 	}
+	ai.cronStateLock.Lock()
+	ai.lastAgentRun[agent.Name] = time.Now()
+	ai.cronStateLock.Unlock()
 	ai.logger.Info("Agent run task created", "agent", agent.Name, "trigger", trigger, "taskID", task.ID)
 	return task, nil
 }
 
-// TriggerAgent creates a manual whole-scope run for the agent, requested by a
-// user from the UI.
-func (ai *aiManager) TriggerAgent(agentName string, user structs.User) (*AiTask, error) {
+// TriggerAgent creates a manual whole-scope run for the agent. A manual run is
+// always available for an enabled agent — the caller (annotation reconcile or,
+// historically, the UI) has already established intent.
+func (ai *aiManager) TriggerAgent(agentName string, user *structs.User) (*AiTask, error) {
 	agent, err := ai.getAgent(agentName)
 	if err != nil {
 		return nil, err
@@ -245,10 +239,7 @@ func (ai *aiManager) TriggerAgent(agentName string, user structs.User) (*AiTask,
 	if !agent.Spec.Enabled {
 		return nil, fmt.Errorf("agent %q is disabled", agentName)
 	}
-	if !agent.Spec.Triggers.Manual {
-		return nil, fmt.Errorf("agent %q does not allow manual triggering", agentName)
-	}
-	return ai.createAgentRunTask(agent, AI_TASK_TRIGGER_MANUAL, &user)
+	return ai.createAgentRunTask(agent, AI_TASK_TRIGGER_MANUAL, user)
 }
 
 // processAgentCronTriggers evaluates all enabled agents' cron schedules and
@@ -355,59 +346,83 @@ func (ai *aiManager) openProposalResourceKeys(agentName string) map[string]bool 
 	return excluded
 }
 
-// matchingAgentTask returns the task to create for a watched object, or nil if
-// no enabled agent's event filter matches. The first matching agent wins —
-// tasks are deduplicated per resource, matching the previous filter behavior.
-func (ai *aiManager) matchingAgentTask(obj *unstructured.Unstructured, resource utils.ResourceDescriptor) *AiTask {
+// triggerChangeAgents enqueues a whole-scope run for every enabled agent whose
+// change trigger matches this object change (kind + change type + scope) and
+// whose cooldown has elapsed. The cooldown coalesces a burst of changes into a
+// single run: the first change fires, the rest are absorbed until the interval
+// passes. Runs are also gated by hasOpenAgentRun (one open run per agent).
+func (ai *aiManager) triggerChangeAgents(obj *unstructured.Unstructured, changeType string) {
 	for _, agent := range ai.getEnabledAgents() {
-		if len(agent.Spec.Triggers.Events) == 0 {
+		oc := agent.Spec.Triggers.OnChange
+		if oc == nil {
+			continue
+		}
+		if !changeTypeSelected(oc.On, changeType) || !kindSelected(oc.Kinds, obj.GetKind()) {
 			continue
 		}
 		namespaces := ai.resolveAgentScope(&agent)
-		if len(namespaces) == 0 {
+		if !namespaceSelected(namespaces, obj.GetNamespace()) {
 			continue
 		}
-		inScope := false
-		for _, ns := range namespaces {
-			if ns == obj.GetNamespace() {
-				inScope = true
-				break
-			}
-		}
-		if !inScope {
+		if !ai.changeCooldownElapsed(agent.Name, oc) {
 			continue
 		}
+		agentCopy := agent
+		if _, err := ai.createAgentRunTask(&agentCopy, AI_TASK_TRIGGER_EVENT, nil); err != nil {
+			// An already-open run or empty scope is expected/benign here.
+			ai.logger.Info("Change trigger did not enqueue a run", "agent", agent.Name, "reason", err.Error())
+			continue
+		}
+		ai.logger.Info("Change trigger enqueued a run", "agent", agent.Name, "kind", obj.GetKind(), "namespace", obj.GetNamespace(), "changeType", changeType)
+	}
+}
 
-		for _, eventFilter := range agent.Spec.Triggers.Events {
-			if obj.GetKind() != eventFilter.Kind {
-				continue
-			}
-			filter := agentFilterToAiFilter(&agent, eventFilter)
-			matches, err := filterMatchesForObject(filter, obj)
-			if err != nil {
-				ai.logger.Error("Error checking agent event filter match", "agent", agent.Name, "filter", filter.Name, "objectKind", obj.GetKind(), "objectName", obj.GetName(), "objectNamespace", obj.GetNamespace(), "error", err)
-				continue
-			}
-			if !matches {
-				continue
-			}
+// changeCooldownElapsed reports whether enough time passed since the agent's
+// last run for a change trigger to fire again.
+func (ai *aiManager) changeCooldownElapsed(agentName string, oc *v1alpha1.AgentChangeTrigger) bool {
+	ai.cronStateLock.Lock()
+	last, seen := ai.lastAgentRun[agentName]
+	ai.cronStateLock.Unlock()
+	if !seen {
+		return true
+	}
+	return time.Since(last) >= changeCooldown(oc)
+}
 
-			timestamp := time.Now().Unix()
-			return &AiTask{
-				Prompt:    filter.Prompt,
-				State:     AI_TASK_STATE_PENDING,
-				CreatedAt: timestamp,
-				UpdatedAt: timestamp,
-				ReferencingResource: utils.WorkloadSingleRequest{
-					ResourceDescriptor: resource,
-					Namespace:          obj.GetNamespace(),
-					ResourceName:       obj.GetName(),
-				},
-				TriggeredBy: filter,
-				AgentRef:    agent.Name,
-				Trigger:     AI_TASK_TRIGGER_EVENT,
-			}
+// changeTypeSelected reports whether changeType is selected; an empty list
+// means all change types.
+func changeTypeSelected(on []string, changeType string) bool {
+	if len(on) == 0 {
+		return true
+	}
+	for _, t := range on {
+		if t == changeType {
+			return true
 		}
 	}
-	return nil
+	return false
+}
+
+// kindSelected reports whether kind is selected; an empty list means all kinds.
+func kindSelected(kinds []string, kind string) bool {
+	if len(kinds) == 0 {
+		return true
+	}
+	for _, k := range kinds {
+		if k == kind {
+			return true
+		}
+	}
+	return false
+}
+
+// namespaceSelected reports whether the object's namespace is within the
+// resolved agent scope. "*" in the scope matches any namespace.
+func namespaceSelected(scope []string, namespace string) bool {
+	for _, ns := range scope {
+		if ns == "*" || ns == namespace {
+			return true
+		}
+	}
+	return false
 }

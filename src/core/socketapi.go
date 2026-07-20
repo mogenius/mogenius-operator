@@ -1957,9 +1957,13 @@ func (self *socketApi) registerPatterns() {
 		RegisterPatternHandler(
 			PatternHandle{self, "aiManager/trigger/agent"},
 			PatternConfig{NeedsUser: true},
-			func(datagram structs.Datagram, request Request) (*ai.AiTask, error) {
-				task, err := self.aiApi.TriggerAgent(request.AgentName, datagram.User)
-				return store.AddToAuditLog(datagram, self.logger, task, err, nil, nil)
+			func(datagram structs.Datagram, request Request) (string, error) {
+				// GitOps-native: request a run by bumping the agent's
+				// run-request annotation. The agent reconciler enqueues the
+				// actual run within the informer's latency; the new task then
+				// arrives via the normal AI event stream.
+				res, err := self.apiService.RequestAgentRun(request.AgentName)
+				return store.AddToAuditLog(datagram, self.logger, res, err, nil, nil)
 			},
 		)
 	}

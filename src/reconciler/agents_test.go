@@ -57,12 +57,12 @@ func TestEvaluateAgentInvalidSpec(t *testing.T) {
 	assert.Equal(t, "InvalidSpec", reason)
 	assert.Contains(t, message, "cron")
 
-	// Event filter without contains conditions must be rejected.
+	// Change trigger with an invalid change type must be rejected.
 	agent = agentFixture("mogenius", v1alpha1.AgentSpec{
 		Enabled: true,
 		Scope:   v1alpha1.AgentScope{Namespaces: []string{"prod"}},
 		Triggers: v1alpha1.AgentTriggers{
-			Events: []v1alpha1.AgentEventFilter{{Kind: "Pod"}},
+			OnChange: &v1alpha1.AgentChangeTrigger{On: []string{"modified"}},
 		},
 	})
 	status, reason, _ = module.evaluateAgent(agent)
@@ -76,7 +76,7 @@ func TestEvaluateAgentValid(t *testing.T) {
 	agent := agentFixture("mogenius", v1alpha1.AgentSpec{
 		Enabled:  true,
 		Scope:    v1alpha1.AgentScope{Namespaces: []string{"prod", "staging"}},
-		Triggers: v1alpha1.AgentTriggers{Cron: "0 6 * * 1", Manual: true},
+		Triggers: v1alpha1.AgentTriggers{Cron: "0 6 * * 1"},
 	})
 	status, reason, message := module.evaluateAgent(agent)
 	assert.Equal(t, metav1.ConditionTrue, status)

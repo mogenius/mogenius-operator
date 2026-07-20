@@ -167,7 +167,7 @@ func initializeClusterSystems(
 	)
 	moKubernetes := core.NewMoKubernetes(logManagerModule.CreateLogger("mokubernetes"), configModule, base.clientProvider)
 	mocore := core.NewCore(logManagerModule.CreateLogger("core"), configModule, base.clientProvider, base.valkeyClient, eventConnectionClient, jobClients)
-	reconciler := moreconciler.NewReconcilerFactory(logManagerModule.CreateLogger("reconciler"), base.clientProvider, configModule, base.valkeyClient).Build()
+	reconciler := moreconciler.NewReconcilerFactory(logManagerModule.CreateLogger("reconciler"), base.clientProvider, configModule, base.valkeyClient, aiManager).Build()
 	sealedSecret := core.NewSealedSecretManager(logManagerModule.CreateLogger("sealed-secret"), configModule, base.clientProvider)
 
 	// Link phase: wire service dependencies.

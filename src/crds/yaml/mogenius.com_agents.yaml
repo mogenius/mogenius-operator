@@ -109,52 +109,45 @@ spec:
                   rule: (has(self.workspaceRef) && self.workspaceRef != "") || (has(self.namespaces)
                     && self.namespaces.size() > 0)
               triggers:
+                description: |-
+                  AgentTriggers declares when an agent runs. A manual run is always available
+                  for an enabled agent (via the UI or the "mogenius.com/run-requested-at"
+                  annotation) and needs no field here.
                 properties:
                   cron:
                     description: Standard 5-field cron expression for periodic runs;
                       empty disables.
                     type: string
-                  events:
-                    description: Event filters evaluated against watched cluster resources.
-                    items:
-                      description: |-
-                        AgentEventFilter matches watched resources by kind and JSONPath conditions
-                        (same semantics as the former AiFilter mechanic).
-                      properties:
-                        contains:
-                          additionalProperties:
-                            type: string
-                          description: JSONPath → expected value; any match selects
-                            the object.
-                          minProperties: 1
-                          type: object
-                        excludes:
-                          additionalProperties:
-                            type: string
-                          description: JSONPath → value; any match excludes the object.
-                          type: object
-                        for:
-                          description: Condition must hold for this duration before
-                            a task is created.
+                  onChange:
+                    description: |-
+                      When set, the agent runs a whole-scope analysis whenever a matching
+                      cluster resource changes (rate limited by MinInterval).
+                    properties:
+                      kinds:
+                        description: |-
+                          Resource kinds whose changes trigger a run (e.g. "Deployment", "Job").
+                          Empty means every watched kind.
+                        items:
                           type: string
-                        id:
+                        type: array
+                      minInterval:
+                        description: |-
+                          Minimum time between change-triggered runs of this agent — the cooldown
+                          that prevents a burst of changes from starting many runs. Defaults to 6h
+                          when unset.
+                        type: string
+                      "on":
+                        description: |-
+                          Which change types trigger a run: any of "created", "updated",
+                          "deleted". Empty means all of them.
+                        items:
+                          enum:
+                          - created
+                          - updated
+                          - deleted
                           type: string
-                        kind:
-                          type: string
-                        name:
-                          type: string
-                        prompt:
-                          description: Prompt for the analysis run triggered by this
-                            filter.
-                          type: string
-                      required:
-                      - contains
-                      - kind
-                      type: object
-                    type: array
-                  manual:
-                    description: Allow triggering a run manually from the UI.
-                    type: boolean
+                        type: array
+                    type: object
                 type: object
             required:
             - enabled
@@ -221,6 +214,12 @@ spec:
                   - type
                   type: object
                 type: array
+              lastHandledTriggerAt:
+                description: |-
+                  LastHandledTriggerAt echoes the value of the
+                  "mogenius.com/run-requested-at" annotation the operator has already
+                  acted on, so a manual trigger fires exactly once per distinct value.
+                type: string
               observedGeneration:
                 description: Generation of the spec the conditions were last evaluated
                   against.

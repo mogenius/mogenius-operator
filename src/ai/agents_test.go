@@ -18,8 +18,9 @@ func TestValidateAgentSpec(t *testing.T) {
 		Scope:   v1alpha1.AgentScope{Namespaces: []string{"default"}},
 		Triggers: v1alpha1.AgentTriggers{
 			Cron: "*/5 * * * *",
-			Events: []v1alpha1.AgentEventFilter{
-				{Kind: "Pod", Contains: map[string]string{".status.phase": "Failed"}},
+			OnChange: &v1alpha1.AgentChangeTrigger{
+				Kinds: []string{"Pod"},
+				On:    []string{"created", "updated"},
 			},
 		},
 	}
@@ -46,18 +47,17 @@ func TestValidateAgentSpec(t *testing.T) {
 			wantErr: "cron",
 		},
 		{
-			name: "event filter without kind",
+			name: "invalid change type",
 			mutate: func(spec *v1alpha1.AgentSpec) {
-				spec.Triggers.Events = []v1alpha1.AgentEventFilter{{Contains: map[string]string{"a": "b"}}}
+				spec.Triggers.OnChange = &v1alpha1.AgentChangeTrigger{On: []string{"modified"}}
 			},
-			wantErr: "missing a kind",
+			wantErr: "invalid change type",
 		},
 		{
-			name: "event filter without contains",
+			name: "onChange with empty kinds and on is valid (matches all)",
 			mutate: func(spec *v1alpha1.AgentSpec) {
-				spec.Triggers.Events = []v1alpha1.AgentEventFilter{{Kind: "Pod"}}
+				spec.Triggers.OnChange = &v1alpha1.AgentChangeTrigger{}
 			},
-			wantErr: "contains",
 		},
 		{
 			name:   "workspace ref only is a valid scope",
@@ -79,28 +79,25 @@ func TestValidateAgentSpec(t *testing.T) {
 	}
 }
 
-func TestAgentFilterToAiFilter(t *testing.T) {
-	agent := &v1alpha1.Agent{ObjectMeta: metav1.ObjectMeta{Name: "my-agent"}}
-	forDuration := metav1.Duration{Duration: 5 * time.Minute}
-	filter := v1alpha1.AgentEventFilter{
-		Kind:     "Pod",
-		Contains: map[string]string{".status.phase": "Failed"},
-		Excludes: map[string]string{".status.phase": "Succeeded"},
-		Prompt:   "analyze this",
-		For:      &forDuration,
-	}
+func TestChangeTriggerSelectors(t *testing.T) {
+	// Empty lists mean "match all".
+	assert.True(t, changeTypeSelected(nil, "created"))
+	assert.True(t, changeTypeSelected([]string{"updated"}, "updated"))
+	assert.False(t, changeTypeSelected([]string{"updated"}, "created"))
 
-	converted := agentFilterToAiFilter(agent, filter)
+	assert.True(t, kindSelected(nil, "Pod"))
+	assert.True(t, kindSelected([]string{"Pod", "Job"}, "Job"))
+	assert.False(t, kindSelected([]string{"Pod"}, "Deployment"))
 
-	assert.Equal(t, "my-agent/Pod", converted.Id, "id falls back to agent/kind")
-	assert.Equal(t, converted.Id, converted.Name, "name falls back to id")
-	assert.Equal(t, "Pod", converted.Kind)
-	assert.Equal(t, filter.Contains, converted.Contains)
-	assert.Equal(t, filter.Excludes, converted.Excludes)
-	assert.Equal(t, "analyze this", converted.Prompt)
-	assert.True(t, converted.IsActive)
-	assert.NotNil(t, converted.For)
-	assert.Equal(t, 5*time.Minute, *converted.For)
+	assert.True(t, namespaceSelected([]string{"*"}, "anything"))
+	assert.True(t, namespaceSelected([]string{"prod", "staging"}, "prod"))
+	assert.False(t, namespaceSelected([]string{"prod"}, "dev"))
+}
+
+func TestChangeCooldownDefault(t *testing.T) {
+	assert.Equal(t, defaultChangeCooldown, changeCooldown(nil))
+	assert.Equal(t, defaultChangeCooldown, changeCooldown(&v1alpha1.AgentChangeTrigger{}))
+	assert.Equal(t, 90*time.Minute, changeCooldown(&v1alpha1.AgentChangeTrigger{MinInterval: metav1.Duration{Duration: 90 * time.Minute}}))
 }
 
 // Locks in the security-critical invariants of the agent ToolContext: the role
