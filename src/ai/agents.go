@@ -170,6 +170,7 @@ func buildAgentRunPrompt(agent *v1alpha1.Agent, namespaces []string) string {
 		sb.WriteString(agent.Spec.Instruction)
 	}
 	sb.WriteString("\n\nOnly report findings you can back with a concrete, safe, directly applicable remediation: a proposed operation plus the complete target resource YAML, based on the live manifest you retrieved. Advice-only findings without an applicable change are discarded — do not report them. If nothing needs fixing, submit an empty findings list; that is a perfectly good result.")
+	sb.WriteString("\n\nWhen many similar resources should be deleted (e.g. dozens of completed Jobs or obsolete zero-replica ReplicaSets), do NOT summarize them in prose and do NOT emit one finding per resource. Emit a SINGLE DeleteResource finding that lists ALL of them: put the first in targetResource and every other one in additionalTargets. Enumerate them completely — list every matching resource you found, not just examples.")
 	return sb.String()
 }
 

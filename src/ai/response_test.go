@@ -2,6 +2,7 @@ package ai
 
 import (
 	"encoding/json"
+	"mogenius-operator/src/utils"
 	"strings"
 	"testing"
 	"time"
@@ -259,4 +260,35 @@ func TestIsResourceExcluded(t *testing.T) {
 
 	empty := &ToolContext{}
 	assert.False(t, empty.IsResourceExcluded("v1", "Pod", "default", "x"))
+}
+
+func TestDeleteTargetsBulk(t *testing.T) {
+	ai := &aiManager{}
+	analysis := Analysis{
+		ProposedOperation: ProposedOperationDelete,
+		TargetResource: utils.WorkloadSingleRequest{
+			ResourceDescriptor: utils.ResourceDescriptor{ApiVersion: "batch/v1", Kind: "Job", Plural: "jobs", Namespaced: true},
+			Namespace:          "ci",
+			ResourceName:       "job-1",
+		},
+		AdditionalTargets: []utils.WorkloadSingleRequest{
+			// Missing descriptor fields default from the primary target.
+			{Namespace: "ci", ResourceName: "job-2"},
+			{Namespace: "ci", ResourceName: "job-3"},
+			// Duplicate of the primary — must be deduped.
+			{ResourceDescriptor: utils.ResourceDescriptor{ApiVersion: "batch/v1", Kind: "Job"}, Namespace: "ci", ResourceName: "job-1"},
+			// No name — dropped.
+			{Namespace: "ci"},
+		},
+	}
+	targets := ai.deleteTargets(analysis)
+	assert.Len(t, targets, 3)
+	for _, tg := range targets {
+		assert.Equal(t, "batch/v1", tg.ApiVersion)
+		assert.Equal(t, "jobs", tg.Plural)
+		assert.Equal(t, "Job", tg.Kind)
+		assert.True(t, tg.Namespaced)
+	}
+	names := []string{targets[0].ResourceName, targets[1].ResourceName, targets[2].ResourceName}
+	assert.ElementsMatch(t, []string{"job-1", "job-2", "job-3"}, names)
 }

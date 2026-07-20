@@ -188,6 +188,11 @@ type Analysis struct {
 	TargetResourceYaml  string                      `json:"targetResourceYaml"`
 	TargetResource      utils.WorkloadSingleRequest `json:"targetResource"`
 	ProposedOperation   string                      `json:"proposedOperation,omitempty"` // UpdateResource', 'DeleteResource', 'CreateResource', 'Other'
+
+	// AdditionalTargets turns a DeleteResource proposal into a bulk deletion:
+	// TargetResource plus every entry here are deleted together in one
+	// reviewable proposal. Only valid for DeleteResource.
+	AdditionalTargets []utils.WorkloadSingleRequest `json:"additionalTargets,omitempty"`
 }
 
 type Solution struct {
@@ -1316,6 +1321,7 @@ func (ai *aiManager) processPrompt(ctx context.Context, prompt string, toolCtx *
 			"\n- proposedOperation: one of UpdateResource, DeleteResource, CreateResource" +
 			"\n- targetResource: apiVersion, kind, namespace, resourceName, plural and namespaced of the affected resource (always required)" +
 			"\n- targetResourceYaml: the complete resource manifest, based on the live manifest you retrieved from the cluster with ONLY the fields the fix requires changed — never invent values, never include server-managed fields (metadata.resourceVersion, uid, creationTimestamp, generation, managedFields, status); required for UpdateResource and CreateResource, omit for DeleteResource" +
+			"\n- additionalTargets: for a DeleteResource that removes many similar resources at once, list every extra resource here (first one stays in targetResource). Prefer one bulk delete over many findings, and enumerate them all." +
 			"\nOnly a structured proposal can be reviewed and applied with one click; prose-only recommendations end up as plain reports."
 	}
 

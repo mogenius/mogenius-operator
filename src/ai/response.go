@@ -160,7 +160,12 @@ var findingSchema = map[string]any{
 				"currentResourceYaml": map[string]any{"type": "string", "description": "Current manifest of the target resource, exactly as retrieved from the cluster."},
 				"targetResourceYaml":  map[string]any{"type": "string", "description": "Complete proposed manifest (required for UpdateResource and CreateResource; omit for DeleteResource). Base it on the manifest you retrieved from the cluster and change ONLY what the fix requires — never invent values, and never include server-managed fields (metadata.resourceVersion, uid, creationTimestamp, generation, managedFields, status)."},
 				"targetResource":      workloadRefSchema,
-				"proposedOperation":   map[string]any{"type": "string", "enum": []string{ProposedOperationUpdate, ProposedOperationDelete, ProposedOperationCreate, ProposedOperationOther}},
+				"additionalTargets": map[string]any{
+					"type":        "array",
+					"description": "ONLY for a bulk DeleteResource: additional resources to delete together with targetResource in this one proposal. Put the first resource in targetResource and every other one here. Use this to clean up many similar resources (e.g. dozens of completed Jobs or obsolete ReplicaSets) as a SINGLE reviewable finding instead of one finding per resource. Each entry is a full resource reference.",
+					"items":       workloadRefSchema,
+				},
+				"proposedOperation": map[string]any{"type": "string", "enum": []string{ProposedOperationUpdate, ProposedOperationDelete, ProposedOperationCreate, ProposedOperationOther}},
 			},
 			"required": []string{"problemDescription", "possibleCauses", "proposedSolutions"},
 		},

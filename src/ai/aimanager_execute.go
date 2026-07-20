@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"mogenius-operator/src/store"
 	"mogenius-operator/src/structs"
+	"mogenius-operator/src/utils"
 	"strings"
 	"time"
 
@@ -121,9 +122,18 @@ func (ai *aiManager) buildApproverToolContext(task *AiTask, user structs.User, w
 		return nil, fmt.Errorf("user %q has no editor or admin role for workspace %q", user.Email, workspace)
 	}
 
-	targetNamespace := task.Response.Analysis.TargetResource.Namespace
-	if targetNamespace != "" && !toolCtx.IsNamespaceAllowed(targetNamespace) {
-		return nil, fmt.Errorf("user %q is not allowed to modify namespace %q", user.Email, targetNamespace)
+	// Every namespace touched by the proposal must be permitted — for a bulk
+	// delete that is each target's namespace, not just the primary's.
+	namespaces := map[string]bool{task.Response.Analysis.TargetResource.Namespace: true}
+	if task.Response.Analysis.ProposedOperation == ProposedOperationDelete {
+		for _, t := range ai.deleteTargets(task.Response.Analysis) {
+			namespaces[t.Namespace] = true
+		}
+	}
+	for ns := range namespaces {
+		if ns != "" && !toolCtx.IsNamespaceAllowed(ns) {
+			return nil, fmt.Errorf("user %q is not allowed to modify namespace %q", user.Email, ns)
+		}
 	}
 	return toolCtx, nil
 }
@@ -138,7 +148,7 @@ func (ai *aiManager) checkProposalFreshness(task *AiTask) error {
 	target := analysis.TargetResource
 
 	switch analysis.ProposedOperation {
-	case ProposedOperationUpdate, ProposedOperationDelete:
+	case ProposedOperationUpdate:
 		current, err := store.GetResource(ai.valkeyClient, target.ApiVersion, target.Kind, target.Namespace, target.ResourceName, ai.logger)
 		if err != nil || current == nil {
 			return fmt.Errorf("proposal stale: target resource %s/%s in namespace %q no longer exists", target.Kind, target.ResourceName, target.Namespace)
@@ -146,6 +156,16 @@ func (ai *aiManager) checkProposalFreshness(task *AiTask) error {
 		if task.BaseResourceVersion != "" && current.GetResourceVersion() != task.BaseResourceVersion {
 			return fmt.Errorf("proposal stale: resource changed since the proposal was created (resourceVersion %s → %s)", task.BaseResourceVersion, current.GetResourceVersion())
 		}
+	case ProposedOperationDelete:
+		// A delete is idempotent: individually vanished targets are fine and
+		// handled per-target at execution. Only block when there is nothing
+		// left to delete at all.
+		for _, t := range ai.deleteTargets(analysis) {
+			if current, err := store.GetResource(ai.valkeyClient, t.ApiVersion, t.Kind, t.Namespace, t.ResourceName, ai.logger); err == nil && current != nil {
+				return nil
+			}
+		}
+		return fmt.Errorf("proposal stale: none of the target resources exist anymore")
 	case ProposedOperationCreate:
 		parsed, err := parseTargetYaml(analysis.TargetResourceYaml)
 		if err != nil {
@@ -199,13 +219,7 @@ func (ai *aiManager) executeProposal(task *AiTask, toolCtx *ToolContext) (string
 			"namespaced": target.Namespaced,
 		}
 	case ProposedOperationDelete:
-		toolName = "delete_kubernetes_resource"
-		args = map[string]any{
-			"apiVersion": target.ApiVersion,
-			"plural":     target.Plural,
-			"namespace":  target.Namespace,
-			"name":       target.ResourceName,
-		}
+		return ai.executeBulkDelete(analysis, toolCtx)
 	default:
 		return "", fmt.Errorf("task has no executable proposed operation (got %q)", analysis.ProposedOperation)
 	}
@@ -220,6 +234,95 @@ func (ai *aiManager) executeProposal(task *AiTask, toolCtx *ToolContext) (string
 		return result, fmt.Errorf("%s", result)
 	}
 	return result, nil
+}
+
+// deleteTargets returns the full list of resources a DeleteResource proposal
+// removes: the primary target plus any additional bulk targets. Missing
+// apiVersion/plural/namespaced on an additional target default to the
+// primary's, since bulk deletions are almost always the same kind.
+func (ai *aiManager) deleteTargets(analysis Analysis) []utils.WorkloadSingleRequest {
+	primary := analysis.TargetResource
+	targets := make([]utils.WorkloadSingleRequest, 0, 1+len(analysis.AdditionalTargets))
+	seen := map[string]bool{}
+	add := func(t utils.WorkloadSingleRequest) {
+		if t.ApiVersion == "" {
+			t.ApiVersion = primary.ApiVersion
+		}
+		if t.Plural == "" {
+			t.Plural = primary.Plural
+		}
+		if t.Kind == "" {
+			t.Kind = primary.Kind
+		}
+		if !t.Namespaced {
+			t.Namespaced = primary.Namespaced
+		}
+		if t.ResourceName == "" {
+			return
+		}
+		key := aiResourceKey(t.ApiVersion, t.Kind, t.Namespace, t.ResourceName)
+		if seen[key] {
+			return
+		}
+		seen[key] = true
+		targets = append(targets, t)
+	}
+	add(primary)
+	for _, t := range analysis.AdditionalTargets {
+		add(t)
+	}
+	return targets
+}
+
+// executeBulkDelete deletes every target of a (possibly bulk) DeleteResource
+// proposal through the delete tool, so each deletion runs the same RBAC and
+// audit path. Individual failures are collected and reported without aborting
+// the rest, so one blocked resource does not strand the others.
+func (ai *aiManager) executeBulkDelete(analysis Analysis, toolCtx *ToolContext) (string, error) {
+	tool, ok := toolDefinitions["delete_kubernetes_resource"]
+	if !ok {
+		return "", fmt.Errorf("tool %q is not registered", "delete_kubernetes_resource")
+	}
+	targets := ai.deleteTargets(analysis)
+	if len(targets) == 0 {
+		return "", fmt.Errorf("delete proposal has no target resources")
+	}
+
+	var lines []string
+	deleted := 0
+	for _, t := range targets {
+		if t.ApiVersion == "" || t.Plural == "" {
+			lines = append(lines, fmt.Sprintf("✗ %s/%s: missing apiVersion/plural", t.Kind, t.ResourceName))
+			continue
+		}
+		result := tool(map[string]any{
+			"apiVersion": t.ApiVersion,
+			"plural":     t.Plural,
+			"namespace":  t.Namespace,
+			"name":       t.ResourceName,
+		}, toolCtx, ai.valkeyClient, ai.logger)
+		if strings.HasPrefix(result, "Error") {
+			lines = append(lines, fmt.Sprintf("✗ %s/%s: %s", t.Kind, t.ResourceName, result))
+		} else {
+			deleted++
+			lines = append(lines, fmt.Sprintf("✓ deleted %s/%s", t.Kind, t.ResourceName))
+		}
+	}
+
+	failures := len(targets) - deleted
+	summary := fmt.Sprintf("Deleted %d of %d resources", deleted, len(targets))
+	if len(targets) == 1 {
+		// Single delete: keep the tool's own message as the result.
+		if failures > 0 {
+			return lines[0], fmt.Errorf("%s", lines[0])
+		}
+		return lines[0], nil
+	}
+	detail := summary + "\n" + strings.Join(lines, "\n")
+	if failures > 0 {
+		return detail, fmt.Errorf("%d of %d deletions failed", failures, len(targets))
+	}
+	return detail, nil
 }
 
 func parseTargetYaml(yamlData string) (*unstructured.Unstructured, error) {
