@@ -6,6 +6,7 @@ import (
 	"mogenius-operator/src/utils"
 
 	"github.com/anthropics/anthropic-sdk-go"
+	"github.com/ollama/ollama/api"
 )
 
 // FollowUpResource is a WorkloadSingleRequest that tolerates the format drift
@@ -172,19 +173,39 @@ var findingSchema = map[string]any{
 	},
 }
 
+const submitAnalysisToolDescription = "Submit one or more completed findings. Call this tool as often as needed during the investigation — every call adds its findings to the report, and each finding is reviewed separately. Submit findings as soon as they are confirmed (in small batches) instead of saving them all for the end. When there is nothing (further) actionable, call it once with an empty findings array to finish."
+
+const submitAnalysisFindingsDescription = "One entry per distinct issue. Empty to declare the investigation finished."
+
 // submitAnalysisAnthropicTool carries the response schema, so findings arrive
 // as validated tool input instead of JSON scraped out of free text. The tool
 // is repeatable: each call adds its findings to the run's report, so the
 // number of findings is not limited by a single response's output budget.
 var submitAnalysisAnthropicTool = anthropicTool(
 	submitAnalysisToolName,
-	"Submit one or more completed findings. Call this tool as often as needed during the investigation — every call adds its findings to the report, and each finding is reviewed separately. Submit findings as soon as they are confirmed (in small batches) instead of saving them all for the end. When there is nothing (further) actionable, call it once with an empty findings array to finish.",
+	submitAnalysisToolDescription,
 	map[string]any{
 		"findings": map[string]any{
 			"type":        "array",
-			"description": "One entry per distinct issue. Empty to declare the investigation finished.",
+			"description": submitAnalysisFindingsDescription,
 			"minItems":    0,
 			"items":       findingSchema,
+		},
+	},
+	[]string{"findings"},
+)
+
+// submitAnalysisOllamaTool is the Ollama flavor of submit_analysis. The
+// nested finding schema passes through Items verbatim (the field is untyped
+// JSON in the Ollama SDK), so all providers share findingSchema.
+var submitAnalysisOllamaTool = ollamaTool(
+	submitAnalysisToolName,
+	submitAnalysisToolDescription,
+	map[string]api.ToolProperty{
+		"findings": {
+			Type:        []string{"array"},
+			Description: submitAnalysisFindingsDescription,
+			Items:       findingSchema,
 		},
 	},
 	[]string{"findings"},

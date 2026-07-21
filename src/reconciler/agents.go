@@ -32,6 +32,8 @@ func (d *reconcilerModule) reconcileAgents(ctx context.Context, obj *unstructure
 
 	conditionStatus, reason, message := d.evaluateAgent(&agent)
 
+	var results []ReconcileResult
+
 	// Manual run trigger: a changed "mogenius.com/run-requested-at" annotation
 	// requests exactly one run. Firing here (on the watch event) makes it react
 	// within the informer's latency instead of a polling interval — the
@@ -41,8 +43,11 @@ func (d *reconcilerModule) reconcileAgents(ctx context.Context, obj *unstructure
 		if requested != "" && requested != agent.Status.LastHandledTriggerAt {
 			if _, err := d.aiManager.TriggerAgent(agent.Name, nil); err != nil {
 				// Benign when a run is already open; leave LastHandledTriggerAt
-				// unchanged so the next reconcile retries.
+				// unchanged so the next reconcile retries. Surfaced as a
+				// warning so the pending, unfulfilled run request is visible
+				// outside the log.
 				d.logger.Info("Manual agent trigger did not enqueue a run", "agent", agent.Name, "reason", err.Error())
+				results = append(results, ReconcileResult{Err: fmt.Errorf("manual run request for agent %q is pending: %s", agent.Name, err.Error()), IsWarning: true})
 			} else {
 				agent.Status.LastHandledTriggerAt = requested
 				if _, err := d.clientProvider.MogeniusClientSet().MogeniusV1alpha1.UpdateAgentStatus(&agent); err != nil {
@@ -75,9 +80,9 @@ func (d *reconcilerModule) reconcileAgents(ctx context.Context, obj *unstructure
 	// Surface user configuration problems as warnings in the reconciler
 	// status API as well — the condition alone is easy to miss.
 	if conditionStatus == metav1.ConditionFalse {
-		return []ReconcileResult{{Err: fmt.Errorf("agent %q is not ready: %s: %s", agent.Name, reason, message), IsWarning: true}}
+		results = append(results, ReconcileResult{Err: fmt.Errorf("agent %q is not ready: %s: %s", agent.Name, reason, message), IsWarning: true})
 	}
-	return nil
+	return results
 }
 
 // evaluateAgent computes the Ready condition for an agent. Fail reasons are

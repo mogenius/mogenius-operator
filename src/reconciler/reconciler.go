@@ -3,6 +3,7 @@ package reconciler
 import (
 	"context"
 	"log/slog"
+	"maps"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -163,17 +164,7 @@ func (r *genericReconciler) Start() {
 				}
 				cache.set(newObj)
 				metrics.SetReconcileTrackedObjects(cfg.Resource.Kind, cache.len())
-				// Informer resyncs redeliver every object unchanged, and
-				// status-only patches don't bump metadata.generation (CRs
-				// increment it on every non-metadata change; with a status
-				// subresource, status writes are exempt). Skipping both
-				// prevents resync reconcile storms and self-triggering
-				// loops (reconcile -> status patch -> update event ->
-				// reconcile). The periodic background sweep covers drift.
-				if oldObj.GetResourceVersion() == newObj.GetResourceVersion() {
-					return
-				}
-				if newObj.GetGeneration() != 0 && oldObj.GetGeneration() == newObj.GetGeneration() {
+				if !shouldReconcileUpdate(oldObj, newObj) {
 					return
 				}
 				r.callHandler(ctx, cfg, newObj, updateOperation)
@@ -228,6 +219,28 @@ func (r *genericReconciler) Stop() {
 	r.statusMu.Lock()
 	r.objectState = make(map[objectKey]ObjectStatus)
 	r.statusMu.Unlock()
+}
+
+// shouldReconcileUpdate reports whether an update event carries a change the
+// reconcile handlers care about. Informer resyncs redeliver every object
+// unchanged (same resourceVersion), and status-only patches don't bump
+// metadata.generation (CRs increment it on every non-metadata change; with a
+// status subresource, status writes are exempt). Skipping both prevents
+// resync reconcile storms and self-triggering loops (reconcile -> status
+// patch -> update event -> reconcile); the periodic background sweep covers
+// drift. Annotation changes don't bump the generation either but DO carry
+// intent — the manual agent-run trigger is an annotation — so they must pass.
+// Status writes never touch annotations, which keeps the loop protection
+// intact.
+func shouldReconcileUpdate(oldObj, newObj *unstructured.Unstructured) bool {
+	if oldObj.GetResourceVersion() == newObj.GetResourceVersion() {
+		return false
+	}
+	if newObj.GetGeneration() != 0 && oldObj.GetGeneration() == newObj.GetGeneration() &&
+		maps.Equal(oldObj.GetAnnotations(), newObj.GetAnnotations()) {
+		return false
+	}
+	return true
 }
 
 func matchesFilters(cfg ResourceConfig, obj *unstructured.Unstructured) bool {
