@@ -1,3 +1,10 @@
+# [2.25.0-develop.3](https://github.com/mogenius/mogenius-operator/compare/v2.25.0-develop.2...v2.25.0-develop.3) (2026-07-21)
+
+
+### Bug Fixes
+
+* aimodels added for agents to select between them ([7190678](https://github.com/mogenius/mogenius-operator/commit/719067862a50966b5e8468e2ba69354213d2a368))
+
 # [2.25.0-develop.2](https://github.com/mogenius/mogenius-operator/compare/v2.25.0-develop.1...v2.25.0-develop.2) (2026-07-21)
 
 
