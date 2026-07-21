@@ -7,6 +7,7 @@ import (
 
 	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/ollama/ollama/api"
+	"github.com/openai/openai-go/v3"
 )
 
 // FollowUpResource is a WorkloadSingleRequest that tolerates the format drift
@@ -193,6 +194,25 @@ var submitAnalysisAnthropicTool = anthropicTool(
 		},
 	},
 	[]string{"findings"},
+)
+
+// submitAnalysisOpenAiTool is the OpenAI flavor of submit_analysis; the
+// schema maps are shared with the other providers.
+var submitAnalysisOpenAiTool = openaiFunc(
+	submitAnalysisToolName,
+	submitAnalysisToolDescription,
+	openai.FunctionParameters{
+		"type": "object",
+		"properties": map[string]any{
+			"findings": map[string]any{
+				"type":        "array",
+				"description": submitAnalysisFindingsDescription,
+				"minItems":    0,
+				"items":       findingSchema,
+			},
+		},
+		"required": []string{"findings"},
+	},
 )
 
 // submitAnalysisOllamaTool is the Ollama flavor of submit_analysis. The
