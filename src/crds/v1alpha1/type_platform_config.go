@@ -203,12 +203,14 @@ type HelmChartReference struct {
 }
 
 type PlatformConfigStatus struct {
-	Components []PlatformComponentStatus `json:"components,omitempty"`
+	Conditions   []metav1.Condition `json:"conditions,omitempty"`
+	GitOpsStatus *GitOpsStatus      `json:"gitOpsStatus,omitempty"`
 }
 
-type PlatformComponentStatus struct {
-	Name     string      `json:"name"`
-	Ready    bool        `json:"ready"`
-	LastSync metav1.Time `json:"lastSync,omitempty"`
-	Message  string      `json:"message,omitempty"`
+type GitOpsStatus struct {
+	Engine             string `json:"engine,omitempty"`
+	Namespace          string `json:"namespace,omitempty"`
+	ReleaseName        string `json:"releaseName,omitempty"`
+	DefaultProjectName string `json:"defaultProjectName,omitempty"`
+	IsUserManaged      bool   `json:"isUserManaged,omitempty"`
 }

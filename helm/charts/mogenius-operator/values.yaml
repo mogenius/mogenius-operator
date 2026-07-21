@@ -131,7 +131,39 @@ metrics:
     # -- additional relabelings appended after the default instance relabeling
     relabelings: []
 
+# -- use an external Redis/Valkey-compatible key-value store instead of the bundled valkey.
+# -- When enabled, set valkey.enabled to false.
+externalKeyValueStore:
+  # -- enable using an external key-value store (mutually exclusive with valkey.enabled)
+  enabled: false
+  # -- hostname of the external key-value store (e.g. "my-redis.example.com")
+  host: ""
+  # -- port of the external key-value store (default: the standard Redis/Valkey port)
+  port: 6379
+  # -- optional ACL username for the external key-value store (leave empty for the default user)
+  username: ""
+  # -- reference to an existing secret holding the password. Leave name empty if the store requires no auth.
+  existingSecret:
+    # -- name of the existing secret holding the password
+    name: ""
+    # -- key within the existing secret that holds the password
+    key: valkey-password
+  # -- TLS settings for the connection to the external key-value store
+  tls:
+    # -- enable TLS for the connection
+    enabled: false
+    # -- skip TLS certificate verification (insecure; only for self-signed certs in trusted networks)
+    insecureSkipVerify: false
+    # -- reference to an existing secret holding a CA certificate used to verify the server.
+    # -- Leave name empty to use the system trust store (e.g. for publicly-trusted managed services).
+    caCertSecret:
+      # -- name of the existing secret holding the CA certificate
+      name: ""
+      # -- key within the existing secret that holds the CA certificate
+      key: ca.crt
+
 valkey:
+  # -- deploy the bundled Valkey instance. Set to false to use an external key-value store (see externalKeyValueStore)
   enabled: true
   imagePullPolicy: IfNotPresent
   image:
@@ -170,7 +202,7 @@ valkey:
       image:
         registry: docker.io
         repository: oliver006/redis_exporter
-        tag: v1.86.0
+        tag: v1.87.0
       resources: {}
       containerSecurityContext:
         readOnlyRootFilesystem: true

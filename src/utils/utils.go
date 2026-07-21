@@ -26,8 +26,6 @@ import (
 	"github.com/patrickmn/go-cache"
 )
 
-const AI_FILTERS_CONFIGMAP_NAME = "mogenius-ai-filters-config"
-
 var CURRENT_COUNTRY *CountryDetails
 
 var config cfg.ConfigModule
@@ -71,7 +69,6 @@ type CountryDetails struct {
 	IsActive          bool     `json:"isActive"`
 }
 
-
 // IacSecurity is an enum type for the different security treatments that can be applied to IaC data.
 type IacSecurity string
 
@@ -92,14 +89,14 @@ var HtmlFolder embed.FS
 
 var helmDataVersion = cache.New(2*time.Hour, 30*time.Minute)
 
-
 func HttpHeader(additionalName string) http.Header {
 	return http.Header{
 		"x-authorization":  []string{config.Get("MO_API_KEY")},
 		"x-cluster-mfa-id": []string{config.Get("MO_CLUSTER_MFA_ID")},
 		"x-app":            []string{fmt.Sprintf("%s%s", APP_NAME, additionalName)},
 		"x-app-version":    []string{version.Ver},
-		"x-cluster-name":   []string{config.Get("MO_CLUSTER_NAME")}}
+		"x-cluster-name":   []string{config.Get("MO_CLUSTER_NAME")},
+		"x-app-namespace":  []string{config.Get("MO_OWN_NAMESPACE")}}
 }
 
 func ExecuteShellCommandSilent(title string, shellCmd string) error {
@@ -115,7 +112,6 @@ func ExecuteShellCommandSilent(title string, shellCmd string) error {
 		return nil
 	}
 }
-
 
 func GetVersionData(url string) (*HelmData, error) {
 	// Check if the data is already in the cache
@@ -181,7 +177,6 @@ func PrintJson(i any) string {
 	}
 	return string(data)
 }
-
 
 func RunOnLocalShell(cmd string) *exec.Cmd {
 	switch runtime.GOOS {
@@ -257,7 +252,6 @@ func GuessClusterCountry() (*CountryDetails, error) {
 	}
 	return nil, nil
 }
-
 
 func ContainsResourceDescriptor(resources []*ResourceDescriptor, target ResourceDescriptor) bool {
 	for _, r := range resources {

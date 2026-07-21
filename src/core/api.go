@@ -72,6 +72,13 @@ type Api interface {
 	UpdateGrant(name string, spec v1alpha1.GrantSpec) (string, error)
 	DeleteGrant(name string) (string, error)
 
+	GetAllAgents() ([]GetAgentResult, error)
+	GetAgent(name string) (*GetAgentResult, error)
+	CreateAgent(name string, spec v1alpha1.AgentSpec) (string, error)
+	UpdateAgent(name string, spec v1alpha1.AgentSpec) (string, error)
+	DeleteAgent(name string) (string, error)
+	RequestAgentRun(name string) (string, error)
+
 	GetWorkspaceResources(workspaceName string, whitelist []*utils.ResourceDescriptor, blacklist []*utils.ResourceDescriptor, namespaceWhitelist []string) ([]unstructured.Unstructured, error)
 	GetResourceListByWhitelistPaginated(req ResourcesPaginatedRequest) (ResourcesPaginatedResponse, error)
 	GetWorkspaceResourcesPaginated(workspaceName string, req WorkspaceResourcesPaginatedRequest) (WorkspaceResourcesPaginatedResponse, error)
@@ -110,13 +117,15 @@ type GetWorkspaceResult struct {
 	Name              string                                 `json:"name" validate:"required"`
 	CreationTimestamp v1.Time                                `json:"creationTimestamp"`
 	Resources         []v1alpha1.WorkspaceResourceIdentifier `json:"resources" validate:"required"`
+	DashboardRef      string                                 `json:"dashboardRef,omitempty"`
 }
 
-func NewGetWorkspaceResult(name string, creationTimestamp v1.Time, resources []v1alpha1.WorkspaceResourceIdentifier) GetWorkspaceResult {
+func NewGetWorkspaceResult(name string, creationTimestamp v1.Time, resources []v1alpha1.WorkspaceResourceIdentifier, dashboardRef string) GetWorkspaceResult {
 	return GetWorkspaceResult{
 		Name:              name,
 		CreationTimestamp: creationTimestamp,
 		Resources:         resources,
+		DashboardRef:      dashboardRef,
 	}
 }
 
@@ -133,6 +142,7 @@ func (self *api) GetAllWorkspaces() ([]GetWorkspaceResult, error) {
 			resource.GetName(),
 			resource.ObjectMeta.CreationTimestamp,
 			resource.Spec.Resources,
+			resource.Spec.DashboardRef,
 		))
 	}
 
@@ -150,6 +160,7 @@ func (self *api) GetWorkspace(name string) (*GetWorkspaceResult, error) {
 		resource.GetName(),
 		resource.ObjectMeta.CreationTimestamp,
 		resource.Spec.Resources,
+		resource.Spec.DashboardRef,
 	)
 
 	return &result, nil
@@ -313,6 +324,78 @@ func (self *api) DeleteGrant(name string) (string, error) {
 	}
 
 	return "Resource deleted successfully", nil
+}
+
+// GetAgentResult is the wire shape for Agent CRs, mirroring GetWorkspaceResult.
+type GetAgentResult struct {
+	Name              string            `json:"name" validate:"required"`
+	CreationTimestamp v1.Time           `json:"creationTimestamp"`
+	Spec              v1alpha1.AgentSpec `json:"spec"`
+}
+
+func newGetAgentResult(agent v1alpha1.Agent) GetAgentResult {
+	return GetAgentResult{
+		Name:              agent.GetName(),
+		CreationTimestamp: agent.ObjectMeta.CreationTimestamp,
+		Spec:              agent.Spec,
+	}
+}
+
+func (self *api) GetAllAgents() ([]GetAgentResult, error) {
+	agents, err := self.workspaceManager.GetAllAgents()
+	if err != nil {
+		return []GetAgentResult{}, err
+	}
+
+	result := make([]GetAgentResult, 0, len(agents))
+	for _, agent := range agents {
+		result = append(result, newGetAgentResult(agent))
+	}
+	return result, nil
+}
+
+func (self *api) GetAgent(name string) (*GetAgentResult, error) {
+	agent, err := self.workspaceManager.GetAgent(name)
+	if err != nil {
+		return nil, err
+	}
+
+	result := newGetAgentResult(*agent)
+	return &result, nil
+}
+
+func (self *api) CreateAgent(name string, spec v1alpha1.AgentSpec) (string, error) {
+	_, err := self.workspaceManager.CreateAgent(name, spec)
+	if err != nil {
+		return "", err
+	}
+
+	return "Resource created successfully", nil
+}
+
+func (self *api) UpdateAgent(name string, spec v1alpha1.AgentSpec) (string, error) {
+	_, err := self.workspaceManager.UpdateAgent(name, spec)
+	if err != nil {
+		return "", err
+	}
+
+	return "Resource updated successfully", nil
+}
+
+func (self *api) DeleteAgent(name string) (string, error) {
+	err := self.workspaceManager.DeleteAgent(name)
+	if err != nil {
+		return "", err
+	}
+
+	return "Resource deleted successfully", nil
+}
+
+func (self *api) RequestAgentRun(name string) (string, error) {
+	if err := self.workspaceManager.RequestAgentRun(name); err != nil {
+		return "", err
+	}
+	return "Agent run requested", nil
 }
 
 type ResourcesPaginatedRequest struct {

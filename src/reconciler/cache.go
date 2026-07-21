@@ -60,3 +60,9 @@ func (c *objectCache) clear() {
 	defer c.mu.Unlock()
 	c.objects = make(map[string]*unstructured.Unstructured)
 }
+
+func (c *objectCache) len() int {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return len(c.objects)
+}

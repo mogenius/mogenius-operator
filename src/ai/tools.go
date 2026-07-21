@@ -3,11 +3,17 @@ package ai
 import (
 	"log/slog"
 	map0 "maps"
+	"mogenius-operator/src/crds/v1alpha1"
+	"mogenius-operator/src/store"
+	"mogenius-operator/src/structs"
+	"mogenius-operator/src/utils"
 	"mogenius-operator/src/valkeyclient"
+	"time"
 
 	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/ollama/ollama/api"
 	"github.com/openai/openai-go/v3"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 type ToolContext struct {
@@ -15,6 +21,40 @@ type ToolContext struct {
 	AllowedHelmReleases map[string]map[string]bool // namespace → {releaseName: true} (from type="helm"); nil = no helm-level restriction
 	AllowedArgoCDApps   map[string]bool            // ArgoCD app names (from type="argocd"); nil = no argocd-level restriction
 	Role                string                     // "viewer", "editor", "admin", "" = no restriction
+
+	// Audit attribution — who triggered this tool call. Nil User means the
+	// unattended insight path (which only ever gets read-only tools).
+	User      *structs.User
+	Workspace string
+
+	// AuditSource overrides the audit log source for mutating tool calls;
+	// empty defaults to "ai-chat" (the interactive chat path).
+	AuditSource string
+
+	// RequireActionableFindings makes submit_analysis reject findings without
+	// an applicable structured proposal at submission time, so the model can
+	// fix them in-conversation instead of having them silently dropped after
+	// the run (whole-scope agent runs only).
+	RequireActionableFindings bool
+
+	// ExcludeResources holds resource identities that already have an open
+	// proposal from an earlier run. They are filtered out of list results and
+	// refused by get so a whole-scope run neither re-inspects nor re-reports
+	// what a user has not decided on yet — saving the tokens of re-analysis.
+	ExcludeResources map[string]bool
+}
+
+// aiResourceKey is the canonical identity used for ExcludeResources lookups.
+func aiResourceKey(apiVersion, kind, namespace, name string) string {
+	return apiVersion + "|" + kind + "|" + namespace + "|" + name
+}
+
+// IsResourceExcluded reports whether a resource already has an open proposal.
+func (tc *ToolContext) IsResourceExcluded(apiVersion, kind, namespace, name string) bool {
+	if tc == nil || len(tc.ExcludeResources) == 0 {
+		return false
+	}
+	return tc.ExcludeResources[aiResourceKey(apiVersion, kind, namespace, name)]
 }
 
 // hasRestrictions returns true when any scoping is configured.
@@ -101,18 +141,31 @@ func (tc *ToolContext) IsAdmin() bool {
 }
 
 func newToolContextFromIOChannel(ioChannel IOChatChannel) *ToolContext {
-	if ioChannel.IsAdmin || (ioChannel.WorkspaceSpec == nil && ioChannel.WorkspaceGrant == nil) {
-		return nil
+	return newToolContextFromUserGrant(ioChannel.User, ioChannel.Workspace, ioChannel.IsAdmin, ioChannel.WorkspaceSpec, ioChannel.WorkspaceGrant)
+}
+
+// newToolContextFromUserGrant builds a ToolContext from a user's workspace
+// grant. Shared by the chat path and the task-approval execution path so both
+// enforce identical scoping.
+func newToolContextFromUserGrant(user *structs.User, workspace string, isAdmin bool, workspaceSpec *v1alpha1.WorkspaceSpec, workspaceGrant *v1alpha1.GrantSpec) *ToolContext {
+	tc := &ToolContext{
+		User:      user,
+		Workspace: workspace,
 	}
 
-	tc := &ToolContext{}
-
-	if ioChannel.WorkspaceGrant != nil {
-		tc.Role = ioChannel.WorkspaceGrant.Role
+	if isAdmin || (workspaceSpec == nil && workspaceGrant == nil) {
+		// No restrictions: an empty Role and nil allow-maps behave exactly
+		// like the former nil ToolContext in every permission check; the
+		// context now only carries audit attribution.
+		return tc
 	}
 
-	if ioChannel.WorkspaceSpec != nil && len(ioChannel.WorkspaceSpec.Resources) > 0 {
-		for _, res := range ioChannel.WorkspaceSpec.Resources {
+	if workspaceGrant != nil {
+		tc.Role = workspaceGrant.Role
+	}
+
+	if workspaceSpec != nil && len(workspaceSpec.Resources) > 0 {
+		for _, res := range workspaceSpec.Resources {
 			switch res.Type {
 			case "namespace":
 				if res.Id != "" {
@@ -143,6 +196,62 @@ func newToolContextFromIOChannel(ioChannel IOChatChannel) *ToolContext {
 	}
 
 	return tc
+}
+
+// newToolContextFromAgent builds the read-only ToolContext an agent's
+// unattended analysis runs under. The role is always "viewer" (an empty Role
+// would pass IsEditor/IsAdmin) and the namespace allow-map must be non-empty —
+// callers must not run an agent whose scope resolved to zero namespaces.
+func newToolContextFromAgent(agent *v1alpha1.Agent, resolvedNamespaces []string) *ToolContext {
+	allowed := make(map[string]bool, len(resolvedNamespaces))
+	for _, ns := range resolvedNamespaces {
+		if ns != "" {
+			allowed[ns] = true
+		}
+	}
+	return &ToolContext{
+		AllowedNamespaces: allowed,
+		Role:              "viewer",
+		User: &structs.User{
+			FirstName: "Agent",
+			LastName:  agent.Name,
+			Email:     "agent:" + agent.Name + "@system",
+			Source:    "ai-agent",
+		},
+		Workspace: agent.Spec.Scope.WorkspaceRef,
+	}
+}
+
+// auditAiToolMutation writes a resource-indexed audit log entry for a
+// mutating AI tool call — same key scheme, diff handling and sanitization
+// as the socketapi handlers, so "who changed resource X" queries also find
+// AI-driven changes. It runs synchronously inside the tool: the mutation is
+// audited even when the chat turn aborts before its summary entry.
+func auditAiToolMutation(tc *ToolContext, logger *slog.Logger, toolName string, args map[string]any, result any, err error, oldObj, newObj *unstructured.Unstructured) {
+	// "no unattributed actions": fall back to the insight system user when
+	// no chat user is present (defense in depth — the insight path only
+	// offers read-only tools).
+	user := structs.User{FirstName: "AI", LastName: "Insights", Email: "ai-insights@system", Source: "ai-insights"}
+	workspace := ""
+	if tc != nil {
+		if tc.User != nil {
+			user = *tc.User
+			user.Source = "ai-chat"
+			if tc.AuditSource != "" {
+				user.Source = tc.AuditSource
+			}
+		}
+		workspace = tc.Workspace
+	}
+	datagram := structs.Datagram{
+		Id:        utils.NanoId(),
+		Pattern:   "ai/tool/" + toolName,
+		Payload:   args,
+		CreatedAt: time.Now(),
+		User:      user,
+		Workspace: workspace,
+	}
+	_, _ = store.AddToAuditLog(datagram, logger, result, err, oldObj, newObj)
 }
 
 func mergeAnnotationsAndLabels(annotations, labels map[string]string) map[string]string {
@@ -180,6 +289,41 @@ var viewerAllowedTools = map[string]bool{
 
 func isViewerRole(ioChannel IOChatChannel) bool {
 	return ioChannel.WorkspaceGrant != nil && ioChannel.WorkspaceGrant.Role == "viewer"
+}
+
+// readOnly*Tools restrict a tool set to the read-only viewer allowlist. Used
+// by the automatic insight path, which runs unattended and without a
+// ToolContext — a nil ToolContext passes every role/namespace check, so
+// write tools (and external MCP tools) must never be offered to the model
+// there.
+func readOnlyAnthropicTools(tools []anthropic.ToolParam) []anthropic.ToolParam {
+	filtered := make([]anthropic.ToolParam, 0, len(tools))
+	for _, t := range tools {
+		if viewerAllowedTools[t.Name] {
+			filtered = append(filtered, t)
+		}
+	}
+	return filtered
+}
+
+func readOnlyOpenAiTools(tools []openai.ChatCompletionToolUnionParam) []openai.ChatCompletionToolUnionParam {
+	filtered := make([]openai.ChatCompletionToolUnionParam, 0, len(tools))
+	for _, t := range tools {
+		if t.OfFunction != nil && viewerAllowedTools[t.OfFunction.Function.Name] {
+			filtered = append(filtered, t)
+		}
+	}
+	return filtered
+}
+
+func readOnlyOllamaTools(tools []api.Tool) []api.Tool {
+	filtered := make([]api.Tool, 0, len(tools))
+	for _, t := range tools {
+		if viewerAllowedTools[t.Function.Name] {
+			filtered = append(filtered, t)
+		}
+	}
+	return filtered
 }
 
 func filterOpenAiTools(tools []openai.ChatCompletionToolUnionParam, ioChannel IOChatChannel) []openai.ChatCompletionToolUnionParam {

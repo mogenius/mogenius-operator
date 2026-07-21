@@ -39,6 +39,7 @@ const (
 	componentExternalSecretsOperator = "external-secrets-operator"
 )
 
+
 const (
 	argocdDefaultNamespace = "argocd"
 	fluxcdDefaultNamespace = "flux-system"
@@ -54,8 +55,16 @@ func (d *reconcilerModule) reconcilePlatformConfig(ctx context.Context, obj *uns
 	if err != nil {
 		return []ReconcileResult{{Err: err}}
 	}
+
+	gitOpsStatus := buildGitOpsStatus(platformConfig.Spec)
+
 	if engine == "" {
 		d.logger.Info("no GitOps engine enabled, skipping reconciliation of GitOps components")
+		if !gitOpsStatusEqual(platformConfig.Status.GitOpsStatus, gitOpsStatus) {
+			if err := d.updatePlatformConfigStatus(ctx, obj.GetName(), nil, gitOpsStatus); err != nil {
+				d.logger.Warn("failed to update PlatformConfig status", "name", obj.GetName(), "error", err)
+			}
+		}
 		return []ReconcileResult{{Err: fmt.Errorf("no GitOps engine enabled")}}
 	}
 
@@ -92,33 +101,47 @@ func (d *reconcilerModule) reconcilePlatformConfig(ctx context.Context, obj *uns
 		{componentRenovateOperator, d.reconcileRenovateOperator(ctx, platformConfig.Spec, installer, op)},
 	}
 
-	statuses := make([]v1alpha1.PlatformComponentStatus, 0, len(components))
+	// Index existing conditions so LastTransitionTime is preserved when status hasn't changed.
+	existingConditions := make(map[string]metav1.Condition, len(platformConfig.Status.Conditions))
+	for _, c := range platformConfig.Status.Conditions {
+		existingConditions[c.Type] = c
+	}
+
+	conditions := make([]metav1.Condition, 0, len(components))
 	results := make([]ReconcileResult, 0)
 	now := metav1.Now()
 
 	for _, c := range components {
-		ready := c.result == nil || (c.result != nil && c.result.Err == nil)
+		condStatus := metav1.ConditionTrue
+		reason := "Ready"
 		message := "ready"
 		if c.result != nil && c.result.Err != nil {
+			condStatus = metav1.ConditionFalse
+			reason = "ReconcileFailed"
 			message = c.result.Err.Error()
 		}
 
-		status := v1alpha1.PlatformComponentStatus{
-			Name:     c.name,
-			Ready:    ready,
-			LastSync: now,
-			Message:  message,
+		lastTransition := now
+		if prev, ok := existingConditions[c.name]; ok && prev.Status == condStatus {
+			lastTransition = prev.LastTransitionTime
 		}
+
 		if c.result != nil {
 			results = append(results, *c.result)
 		}
-		statuses = append(statuses, status)
+		conditions = append(conditions, metav1.Condition{
+			Type:               c.name,
+			Status:             condStatus,
+			ObservedGeneration: platformConfig.Generation,
+			LastTransitionTime: lastTransition,
+			Reason:             reason,
+			Message:            message,
+		})
 	}
 
-	// Only patch when Ready/Message actually changed. LastSync alone would
-	// otherwise produce a new resourceVersion on every reconcile.
-	if !componentStatusesEqual(platformConfig.Status.Components, statuses) {
-		if err := d.updatePlatformConfigStatus(ctx, obj.GetName(), statuses); err != nil {
+	// Only patch when status/message actually changed.
+	if !conditionsEqual(platformConfig.Status.Conditions, conditions) || !gitOpsStatusEqual(platformConfig.Status.GitOpsStatus, gitOpsStatus) {
+		if err := d.updatePlatformConfigStatus(ctx, obj.GetName(), conditions, gitOpsStatus); err != nil {
 			d.logger.Warn("failed to update PlatformConfig status", "name", obj.GetName(), "error", err)
 		}
 	}
@@ -126,14 +149,14 @@ func (d *reconcilerModule) reconcilePlatformConfig(ctx context.Context, obj *uns
 	return results
 }
 
-// componentStatusesEqual compares component statuses ignoring LastSync.
-func componentStatusesEqual(current, desired []v1alpha1.PlatformComponentStatus) bool {
+// conditionsEqual compares conditions ignoring LastTransitionTime and ObservedGeneration.
+func conditionsEqual(current, desired []metav1.Condition) bool {
 	if len(current) != len(desired) {
 		return false
 	}
 	for i := range desired {
-		if current[i].Name != desired[i].Name ||
-			current[i].Ready != desired[i].Ready ||
+		if current[i].Type != desired[i].Type ||
+			current[i].Status != desired[i].Status ||
 			current[i].Message != desired[i].Message {
 			return false
 		}
@@ -141,13 +164,15 @@ func componentStatusesEqual(current, desired []v1alpha1.PlatformComponentStatus)
 	return true
 }
 
-func (d *reconcilerModule) updatePlatformConfigStatus(ctx context.Context, name string, components []v1alpha1.PlatformComponentStatus) error {
-	patch := map[string]any{
-		"status": map[string]any{
-			"components": components,
-		},
+func (d *reconcilerModule) updatePlatformConfigStatus(ctx context.Context, name string, conditions []metav1.Condition, gitOpsStatus *v1alpha1.GitOpsStatus) error {
+	status := map[string]any{}
+	if conditions != nil {
+		status["conditions"] = conditions
 	}
-	patchBytes, err := json.Marshal(patch)
+	if gitOpsStatus != nil {
+		status["gitOpsStatus"] = gitOpsStatus
+	}
+	patchBytes, err := json.Marshal(map[string]any{"status": status})
 	if err != nil {
 		return fmt.Errorf("marshal status patch: %w", err)
 	}
@@ -156,6 +181,48 @@ func (d *reconcilerModule) updatePlatformConfigStatus(ctx context.Context, name 
 		ctx, name, types.MergePatchType, patchBytes, metav1.PatchOptions{}, "status",
 	)
 	return err
+}
+
+func buildGitOpsStatus(spec v1alpha1.PlatformConfigSpec) *v1alpha1.GitOpsStatus {
+	gitOps := spec.GitOps
+	if gitOps == nil {
+		return nil
+	}
+
+	if gitOps.ArgoCD != nil {
+		project := "mogenius"
+		if gitOps.ArgoCD.Project != "" {
+			project = gitOps.ArgoCD.Project
+		}
+		return &v1alpha1.GitOpsStatus{
+			IsUserManaged:      !gitOps.ArgoCD.Enabled,
+			Engine:             componentArgoCD,
+			Namespace:          helmNamespace(gitOps.ArgoCD.Chart, argocdDefaultNamespace),
+			ReleaseName:        helmReleaseName(gitOps.ArgoCD.Chart, "argocd"),
+			DefaultProjectName: project,
+		}
+	}
+
+	if gitOps.FluxCD != nil {
+		return &v1alpha1.GitOpsStatus{
+			IsUserManaged: !gitOps.FluxCD.Enabled,
+			Engine:        componentFluxCD,
+			Namespace:     helmNamespace(gitOps.FluxCD.Chart, fluxcdDefaultNamespace),
+			ReleaseName:   helmReleaseName(gitOps.FluxCD.Chart, "flux-operator"),
+		}
+	}
+
+	return nil
+}
+
+func gitOpsStatusEqual(current, desired *v1alpha1.GitOpsStatus) bool {
+	if current == nil && desired == nil {
+		return true
+	}
+	if current == nil || desired == nil {
+		return false
+	}
+	return *current == *desired
 }
 
 func (d *reconcilerModule) fetchPlatformPatch(ctx context.Context, ref v1alpha1.PlatformConfigPatchReference) (*v1alpha1.PlatformPatch, error) {

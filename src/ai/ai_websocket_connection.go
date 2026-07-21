@@ -74,6 +74,7 @@ type IOChatChannel struct {
 	Input          <-chan string           // Incoming messages (user questions)
 	Output         chan<- string           // Outgoing messages (AI responses)
 	User           *structs.User           // Optional user information
+	Workspace      string                  // Workspace name for audit attribution
 	IsAdmin        bool                    // Indicates if the user has admin privileges
 	WorkspaceSpec  *v1alpha1.WorkspaceSpec // Optional workspace information
 	WorkspaceGrant *v1alpha1.GrantSpec     // Optional workspace grant information
@@ -138,10 +139,11 @@ func (self *aiWebsocketConnection) LiveStreamAiManagerChatRequest(request ChatRe
 	outputChan := make(chan string)
 
 	chatChannel := IOChatChannel{
-		Input:   inputChan,
-		Output:  outputChan,
-		User:    &datagram.User,
-		IsAdmin: request.IsAdmin,
+		Input:     inputChan,
+		Output:    outputChan,
+		User:      &datagram.User,
+		Workspace: datagram.Workspace,
+		IsAdmin:   request.IsAdmin,
 		OnAudit: func(event AuditEvent) {
 			store.AddAiChatAuditLog(logger, event.Pattern, event.Payload, event.Result, event.Error, datagram.User, datagram.Workspace)
 		},

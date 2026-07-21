@@ -5,6 +5,7 @@ import (
 	"fmt"
 	mov1alpha1 "mogenius-operator/src/crds/v1alpha1"
 	"mogenius-operator/src/store"
+	"time"
 
 	"encoding/json"
 
@@ -224,6 +225,121 @@ func (self *MogeniusV1alpha1) DeleteUser(namespace string, name string) error {
 	return nil
 }
 
+// ╭────────────────╮
+// │ Client: Agents │
+// ╰────────────────╯
+
+func (self *MogeniusV1alpha1) ListAgents(namespace string) ([]mov1alpha1.Agent, error) {
+	agents, err := store.GetAllAgents(namespace)
+	if err != nil {
+		return nil, fmt.Errorf("store: %w", err)
+	}
+	if agents == nil {
+		return []mov1alpha1.Agent{}, nil
+	}
+	return agents, nil
+}
+
+func (self *MogeniusV1alpha1) GetAgent(namespace string, name string) (*mov1alpha1.Agent, error) {
+	result, err := store.GetAgent(namespace, name)
+	if err != nil {
+		return nil, fmt.Errorf("store: %w", err)
+	}
+	if result == nil {
+		return nil, fmt.Errorf("store: agent %s/%s not found", namespace, name)
+	}
+	result.TypeMeta = metav1.TypeMeta{
+		Kind:       "Agent",
+		APIVersion: "mogenius.com/v1alpha1",
+	}
+	return result, nil
+}
+
+func (self *MogeniusV1alpha1) CreateAgent(namespace string, name string, spec mov1alpha1.AgentSpec) (*mov1alpha1.Agent, error) {
+	res := &mov1alpha1.Agent{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Agent",
+			APIVersion: "mogenius.com/v1alpha1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: spec,
+	}
+	result := &mov1alpha1.Agent{}
+	err := self.restClient.Post().Namespace(namespace).Resource("agents").Body(res).Do(context.Background()).Into(result)
+	if err != nil {
+		return nil, fmt.Errorf("RESTClient: %w", err)
+	}
+
+	return result, nil
+}
+
+func (self *MogeniusV1alpha1) ReplaceAgent(namespace string, name string, spec mov1alpha1.AgentSpec) (*mov1alpha1.Agent, error) {
+	res, err := self.GetAgent(namespace, name)
+	if err != nil {
+		return nil, err
+	}
+	res.Spec = spec
+
+	result := &mov1alpha1.Agent{}
+	err = self.restClient.Put().Namespace(namespace).Resource("agents").Name(name).Body(res).Do(context.Background()).Into(result)
+	if err != nil {
+		return nil, fmt.Errorf("RESTClient: %w", err)
+	}
+
+	return result, nil
+}
+
+func (self *MogeniusV1alpha1) UpdateAgent(namespace string, name string, spec mov1alpha1.AgentSpec) (*mov1alpha1.Agent, error) {
+	// Merge-patching a spec cannot remove list/map entries (e.g. dropping a
+	// namespace from the scope or clearing an event filter), so agent updates
+	// always replace the full spec.
+	return self.ReplaceAgent(namespace, name, spec)
+}
+
+// RequestAgentRun sets the run-request annotation to a fresh timestamp,
+// requesting one manual run. The agent reconciler reacts to the changed value
+// (idempotent via status.lastHandledTriggerAt). This is the single trigger
+// path for both the UI and kubectl/GitOps.
+func (self *MogeniusV1alpha1) RequestAgentRun(namespace, name string) (*mov1alpha1.Agent, error) {
+	patch := fmt.Sprintf(`{"metadata":{"annotations":{%q:%q}}}`,
+		mov1alpha1.AgentRunRequestedAtAnnotation, time.Now().UTC().Format(time.RFC3339Nano))
+	result := &mov1alpha1.Agent{}
+	err := self.restClient.Patch(types.MergePatchType).Namespace(namespace).Resource("agents").Name(name).Body([]byte(patch)).Do(context.Background()).Into(result)
+	if err != nil {
+		return nil, fmt.Errorf("RESTClient: %w", err)
+	}
+	return result, nil
+}
+
+// UpdateAgentStatus writes only the status subresource of the given agent
+// (metadata must carry name, namespace and the current resourceVersion, e.g.
+// from a watch event). Spec and generation stay untouched.
+func (self *MogeniusV1alpha1) UpdateAgentStatus(agent *mov1alpha1.Agent) (*mov1alpha1.Agent, error) {
+	agent.TypeMeta = metav1.TypeMeta{
+		Kind:       "Agent",
+		APIVersion: "mogenius.com/v1alpha1",
+	}
+	result := &mov1alpha1.Agent{}
+	err := self.restClient.Put().Namespace(agent.Namespace).Resource("agents").Name(agent.Name).SubResource("status").Body(agent).Do(context.Background()).Into(result)
+	if err != nil {
+		return nil, fmt.Errorf("RESTClient: %w", err)
+	}
+
+	return result, nil
+}
+
+func (self *MogeniusV1alpha1) DeleteAgent(namespace string, name string) error {
+	err := self.restClient.Delete().Namespace(namespace).Resource("agents").Name(name).Do(context.Background()).Error()
+	if err != nil {
+		return fmt.Errorf("RESTClient: %w", err)
+	}
+
+	return nil
+}
+
 // ╭────────────────────╮
 // │ Client: Workspaces │
 // ╰────────────────────╯
@@ -291,8 +407,16 @@ func (self *MogeniusV1alpha1) ReplaceWorkspace(namespace string, name string, sp
 }
 
 func (self *MogeniusV1alpha1) UpdateWorkspace(namespace string, name string, spec mov1alpha1.WorkspaceSpec) (*mov1alpha1.Workspace, error) {
-	patchBytes, err := json.Marshal(&mov1alpha1.Workspace{
-		Spec: spec,
+	// Build the merge patch by hand instead of marshalling the Workspace
+	// struct: DashboardRef carries omitempty, so an empty value would be
+	// dropped from the patch and clearing the dashboard reference via
+	// update would silently keep the old value.
+	patchBytes, err := json.Marshal(map[string]any{
+		"spec": map[string]any{
+			"name":         spec.Name,
+			"resources":    spec.Resources,
+			"dashboardRef": spec.DashboardRef,
+		},
 	})
 	if err != nil {
 		return nil, err

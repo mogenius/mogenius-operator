@@ -33,6 +33,9 @@
       fieldPath: metadata.name
 - name: OWN_DEPLOYMENT_NAME
   value: {{ .Values.fullnameOverride | quote }}
+{{- if and .Values.valkey.enabled .Values.externalKeyValueStore.enabled }}
+{{- fail "valkey.enabled and externalKeyValueStore.enabled are mutually exclusive; enable only one" }}
+{{- end }}
 {{- if .Values.valkey.enabled }}
 - name: MO_VALKEY_ADDR
   value: "{{ .Values.fullnameOverride }}-valkey:{{ .Values.valkey.port }}"
@@ -41,6 +44,37 @@
     secretKeyRef:
       name: {{ .Values.fullnameOverride }}-valkey
       key: valkey-password
+{{- else if .Values.externalKeyValueStore.enabled }}
+{{- if not .Values.externalKeyValueStore.host }}
+{{- fail "externalKeyValueStore.enabled is true: you must set externalKeyValueStore.host" }}
+{{- end }}
+- name: MO_VALKEY_ADDR
+  value: "{{ .Values.externalKeyValueStore.host }}:{{ .Values.externalKeyValueStore.port }}"
+{{- if .Values.externalKeyValueStore.username }}
+- name: MO_VALKEY_USERNAME
+  value: {{ .Values.externalKeyValueStore.username | quote }}
+{{- end }}
+{{- if .Values.externalKeyValueStore.existingSecret.name }}
+- name: MO_VALKEY_PASSWORD
+  valueFrom:
+    secretKeyRef:
+      name: {{ .Values.externalKeyValueStore.existingSecret.name }}
+      key: {{ .Values.externalKeyValueStore.existingSecret.key }}
+{{- end }}
+{{- if .Values.externalKeyValueStore.tls.enabled }}
+- name: MO_VALKEY_TLS_ENABLED
+  value: "true"
+{{- if .Values.externalKeyValueStore.tls.insecureSkipVerify }}
+- name: MO_VALKEY_TLS_INSECURE_SKIP_VERIFY
+  value: "true"
+{{- end }}
+{{- if .Values.externalKeyValueStore.tls.caCertSecret.name }}
+- name: MO_VALKEY_TLS_CA_CERT_FILE
+  value: "/etc/valkey-tls/{{ .Values.externalKeyValueStore.tls.caCertSecret.key }}"
+{{- end }}
+{{- end }}
+{{- else }}
+{{- fail "no key-value store configured: enable the bundled valkey (valkey.enabled) or an external store (externalKeyValueStore.enabled)" }}
 {{- end }}
 - name: CLUSTER_DOMAIN
   value: {{ .Values.cluster.domain | quote }}

@@ -2,11 +2,14 @@ package valkeyclient
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"log/slog"
 	"mogenius-operator/src/assert"
 	"mogenius-operator/src/config"
 	"net"
+	"os"
 	"path/filepath"
 	"slices"
 	"sort"
@@ -24,7 +27,7 @@ type ValkeyClient interface {
 	Close()
 	Set(value string, expiration time.Duration, keys ...string) error
 	SetObject(value any, expiration time.Duration, keys ...string) error
-	SetObjectWithAutoincrementLimit(value any, limit int64, ttl time.Duration, keys ...string) error
+	SetObjectWithAutoincrementLimit(value any, limit int64, ttl time.Duration, keys ...string) (string, error)
 	Get(keys ...string) (string, error)
 	GetObject(keys ...string) (any, error)
 	List(limit int, keys ...string) ([]string, error)
@@ -110,11 +113,19 @@ func (self *valkeyClient) Connect() error {
 	assert.Assert(valkeyHost != "")
 	assert.Assert(valkeyPort != "")
 	valkeyAddr := valkeyHost + ":" + valkeyPort
+	valkeyUsername := self.config.Get("MO_VALKEY_USERNAME")
 	valkeyPwd := self.config.Get("MO_VALKEY_PASSWORD")
+
+	tlsConfig, err := self.buildTLSConfig(valkeyHost)
+	if err != nil {
+		return fmt.Errorf("could not configure Valkey TLS: %w", err)
+	}
 
 	client, err := valkeyclient.NewClient(valkeyclient.ClientOption{
 		InitAddress:         []string{valkeyAddr},
+		Username:            valkeyUsername,
 		Password:            valkeyPwd,
+		TLSConfig:           tlsConfig,
 		SelectDB:            0,
 		DisableRetry:        true,
 		ReadBufferEachConn:  512 * (1 << 10), // 512 KiB
@@ -123,7 +134,7 @@ func (self *valkeyClient) Connect() error {
 		MaxFlushDelay:       100 * time.Microsecond, // Reduce latency for pipelined commands
 	})
 	if err != nil {
-		self.logger.Info("connection to Valkey failed", "valkeyAddr", valkeyAddr, "error", err)
+		self.logger.Info("connection to Valkey failed", "valkeyAddr", valkeyAddr, "tls", tlsConfig != nil, "error", err)
 		return fmt.Errorf("could not connect to Valkey: %s", err)
 	}
 	self.valkeyClient = client
@@ -133,9 +144,44 @@ func (self *valkeyClient) Connect() error {
 		return fmt.Errorf("could not connect to Valkey: %w", err)
 	}
 
-	self.logger.Info("Connected to valkey", "addr", valkeyAddr)
+	self.logger.Info("Connected to valkey", "addr", valkeyAddr, "tls", tlsConfig != nil, "username", valkeyUsername != "")
 
 	return nil
+}
+
+// buildTLSConfig returns a *tls.Config when TLS is enabled for the Valkey
+// connection, or nil when TLS is disabled (plaintext). The serverName is used
+// for SNI and certificate hostname verification. An optional CA certificate
+// file overrides the system trust store, and verification can be skipped
+// entirely for self-signed certificates in trusted networks.
+func (self *valkeyClient) buildTLSConfig(serverName string) (*tls.Config, error) {
+	enabled, _ := strconv.ParseBool(self.config.Get("MO_VALKEY_TLS_ENABLED"))
+	if !enabled {
+		return nil, nil
+	}
+
+	tlsConfig := &tls.Config{
+		MinVersion: tls.VersionTLS12,
+		ServerName: serverName,
+	}
+
+	if skip, _ := strconv.ParseBool(self.config.Get("MO_VALKEY_TLS_INSECURE_SKIP_VERIFY")); skip {
+		tlsConfig.InsecureSkipVerify = true
+	}
+
+	if caFile := self.config.Get("MO_VALKEY_TLS_CA_CERT_FILE"); caFile != "" {
+		caPEM, err := os.ReadFile(caFile)
+		if err != nil {
+			return nil, fmt.Errorf("read CA cert %q: %w", caFile, err)
+		}
+		pool := x509.NewCertPool()
+		if !pool.AppendCertsFromPEM(caPEM) {
+			return nil, fmt.Errorf("no valid certificates found in CA cert %q", caFile)
+		}
+		tlsConfig.RootCAs = pool
+	}
+
+	return tlsConfig, nil
 }
 
 // Close shuts down the underlying valkey connection. valkey-go's Close waits
@@ -205,21 +251,24 @@ const maxAutoincrementRetries = 4096
 // Numbering now comes from INCR on a dedicated `<baseKey>:counter` key,
 // which is atomic in Valkey. If the resulting candidate key already
 // exists (leftover from the pre-INCR algorithm, which always started
-// at 1), we INCR again until we find a free slot. Counters are never
-// expired, so the sequence stays monotonic for the life of the prefix
-// and the legacy data is preserved until it naturally rotates out via
-// the count-based prune below.
+// at 1), we INCR again until we find a free slot. The counter carries the
+// same TTL as the entries, refreshed on every write: it always outlives
+// the entries it numbers (keeping the sequence monotonic while data
+// exists), but no longer leaks a permanent key for every churned
+// (namespace, name) pair.
 //
 // Pruning keeps at most `limit` numeric entries by deleting the lowest-
 // numbered ones first - same observable semantic as the old code, just
 // without the race.
-func (self *valkeyClient) SetObjectWithAutoincrementLimit(value any, limit int64, ttl time.Duration, keys ...string) error {
+//
+// Returns the key the entry was stored under.
+func (self *valkeyClient) SetObjectWithAutoincrementLimit(value any, limit int64, ttl time.Duration, keys ...string) (string, error) {
 	baseKey := strings.Join(keys, ":")
 	counterKey := baseKey + ":counter"
 
 	jsonValue, err := json.Marshal(value)
 	if err != nil {
-		return fmt.Errorf("error while serializing value: %w", err)
+		return "", fmt.Errorf("error while serializing value: %w", err)
 	}
 
 	var newKey string
@@ -228,13 +277,13 @@ func (self *valkeyClient) SetObjectWithAutoincrementLimit(value any, limit int64
 		nextNum, err := self.valkeyClient.Do(self.ctx,
 			self.valkeyClient.B().Incr().Key(counterKey).Build()).AsInt64()
 		if err != nil {
-			return fmt.Errorf("error incrementing counter: %w", err)
+			return "", fmt.Errorf("error incrementing counter: %w", err)
 		}
 		candidate := fmt.Sprintf("%s:%d", baseKey, nextNum)
 		existsCount, err := self.valkeyClient.Do(self.ctx,
 			self.valkeyClient.B().Exists().Key(candidate).Build()).AsInt64()
 		if err != nil {
-			return fmt.Errorf("error checking candidate key: %w", err)
+			return "", fmt.Errorf("error checking candidate key: %w", err)
 		}
 		if existsCount == 0 {
 			newKey = candidate
@@ -244,7 +293,7 @@ func (self *valkeyClient) SetObjectWithAutoincrementLimit(value any, limit int64
 		// Slot is taken by legacy data; skip ahead and try the next.
 	}
 	if newKey == "" {
-		return fmt.Errorf("could not find a free slot under %q after %d retries", baseKey, maxAutoincrementRetries)
+		return "", fmt.Errorf("could not find a free slot under %q after %d retries", baseKey, maxAutoincrementRetries)
 	}
 
 	var setCmd valkeyclient.Completed
@@ -254,11 +303,15 @@ func (self *valkeyClient) SetObjectWithAutoincrementLimit(value any, limit int64
 		setCmd = self.valkeyClient.B().Set().Key(newKey).Value(string(jsonValue)).Build()
 	}
 	if err := self.valkeyClient.Do(self.ctx, setCmd).Error(); err != nil {
-		return fmt.Errorf("error setting entry: %w", err)
+		return "", fmt.Errorf("error setting entry: %w", err)
+	}
+	if ttl > 0 {
+		_ = self.valkeyClient.Do(self.ctx,
+			self.valkeyClient.B().Expire().Key(counterKey).Seconds(int64(ttl.Seconds())).Build()).Error()
 	}
 
 	if limit <= 0 {
-		return nil
+		return newKey, nil
 	}
 
 	// Fast prune: numbering is monotonic, so the slot that just fell out
@@ -275,11 +328,11 @@ func (self *valkeyClient) SetObjectWithAutoincrementLimit(value any, limit int64
 	// briefly leave the count slightly above limit; that's acceptable and
 	// self-corrects on subsequent writes.
 	if chosenNum%100 != 0 {
-		return nil
+		return newKey, nil
 	}
 	existingKeys, err := self.Keys(baseKey + ":*")
 	if err != nil {
-		return nil
+		return newKey, nil
 	}
 	type numbered struct {
 		key string
@@ -296,7 +349,7 @@ func (self *valkeyClient) SetObjectWithAutoincrementLimit(value any, limit int64
 		}
 	}
 	if int64(len(numerics)) <= limit {
-		return nil
+		return newKey, nil
 	}
 	sort.Slice(numerics, func(i, j int) bool { return numerics[i].n < numerics[j].n })
 	toDelete := int64(len(numerics)) - limit
@@ -307,7 +360,7 @@ func (self *valkeyClient) SetObjectWithAutoincrementLimit(value any, limit int64
 	for _, resp := range self.valkeyClient.DoMulti(self.ctx, delCmds...) {
 		_ = resp.Error()
 	}
-	return nil
+	return newKey, nil
 }
 
 func extractNumber(key, baseKey string) int64 {
@@ -806,10 +859,7 @@ func GetObjectsByPrefixWithSizeAndNs[T any](store ValkeyClient, limit int, offse
 		for _, key := range keyList {
 			split := strings.Split(key, ":")
 			if len(split) >= 3 {
-				// Always include ai-chat entries (they are not namespace-scoped)
-				if split[1] == "ai-chat" {
-					filteredKeys = append(filteredKeys, key)
-				} else if _, ok := nsSet[split[1]]; ok {
+				if _, ok := nsSet[split[1]]; ok {
 					filteredKeys = append(filteredKeys, key)
 				}
 			}

@@ -165,9 +165,8 @@ func (ai *aiManager) anthropicChatWithTools(
 			System: []anthropic.TextBlockParam{
 				{Type: "text", Text: systemPrompt, CacheControl: anthropic.NewCacheControlEphemeralParam()},
 			},
-			Messages:    messages,
-			Tools:       tools,
-			Temperature: anthropic.Float(0.7),
+			Messages: messages,
+			Tools:    tools,
 		})
 
 		// Accumulator for the full message
@@ -367,13 +366,44 @@ func (ai *aiManager) anthropicChatWithTools(
 	}
 }
 
-func (ai *aiManager) processPromptAnthropic(ctx context.Context, model, systemPrompt, prompt string, maxToolCalls int) (*AiResponse, int64, int, string, error) {
+// assistantContentParams converts response content blocks into request param
+// blocks so an assistant turn can be appended back onto the conversation.
+// Unknown block types are skipped instead of producing empty union values.
+func assistantContentParams(blocks []anthropic.ContentBlockUnion) ([]anthropic.ContentBlockParamUnion, error) {
+	params := make([]anthropic.ContentBlockParamUnion, 0, len(blocks))
+	for _, block := range blocks {
+		switch block.Type {
+		case "text":
+			params = append(params, anthropic.NewTextBlock(block.Text))
+		case "tool_use":
+			// Unmarshal the input to a map so it is sent as a dictionary.
+			var input map[string]any
+			if err := json.Unmarshal(block.Input, &input); err != nil {
+				return nil, fmt.Errorf("error unmarshaling tool input: %v", err)
+			}
+			params = append(params, anthropic.ContentBlockParamUnion{
+				OfToolUse: &anthropic.ToolUseBlockParam{
+					ID:    block.ID,
+					Name:  block.Name,
+					Input: input,
+				},
+			})
+		}
+	}
+	return params, nil
+}
+
+func (ai *aiManager) processPromptAnthropic(ctx context.Context, model, systemPrompt, prompt string, maxToolCalls int, maxTokensPerRun int64, toolCtx *ToolContext, onProgress func(int64, string)) ([]*AiResponse, int64, int, string, error) {
 	startTime := time.Now()
 
-	allTools := append(kubernetesAnthropicTools, helmAnthropicTools...)
-	if ai.mcpManager != nil {
-		allTools = append(allTools, ai.mcpManager.GetAnthropicTools()...)
-	}
+	// Unattended pipeline: strictly read-only tools, no external MCP tools.
+	// The ToolContext additionally scopes reads to the agent's namespaces —
+	// the read-only filter stays as defense in depth.
+	// The final analysis is collected through the schema-carrying
+	// submit_analysis tool (appended last so the cache boundary covers it)
+	// instead of being scraped out of free text.
+	allTools := readOnlyAnthropicTools(append(kubernetesAnthropicTools, helmAnthropicTools...))
+	allTools = append(allTools, submitAnalysisAnthropicTool)
 	tools := make([]anthropic.ToolUnionParam, len(allTools))
 	for i, toolParam := range allTools {
 		if i == len(allTools)-1 {
@@ -381,6 +411,7 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, model, systemPr
 		}
 		tools[i] = anthropic.ToolUnionParam{OfTool: &toolParam}
 	}
+	systemPrompt += submitAnalysisInstruction
 
 	client, err := ai.getAnthropicClient(nil)
 	if err != nil {
@@ -398,32 +429,71 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, model, systemPr
 
 	var tokensUsed int64 = 0
 
+	// Cache reads cost ~10% of fresh input and are not budgeted — logged so
+	// the full provider-reported picture stays visible.
+	var cacheReadTokens int64 = 0
+	defer func() {
+		ai.logger.Info("AI run token usage", "tokensUsed", tokensUsed, "cacheReadTokens", cacheReadTokens)
+	}()
+
 	// Track total number of tool calls across iterations
 	toolCallCount := 0
 
+	// Bounded in-conversation repair turns for schema-violating final answers.
+	repairAttempts := 0
+
+	// Index of the message currently carrying the moving cache breakpoint.
+	cachedMsgIdx := -1
+
+	// Findings accumulated across repeated submit_analysis calls. The tool is
+	// repeatable so the number of findings is not limited by a single
+	// response's output budget.
+	collected := []*AiResponse{}
+
 	// Loop until there are no more tool calls or maxToolCalls reached
 	for {
-		// Compact previous tool results so old (already processed) results
-		// don't burn tokens on subsequent API calls.
-		compactAnthropicToolResults(messages)
-
+		moveCacheBreakpoint(messages, &cachedMsgIdx)
 		message, err := client.Messages.New(ctx, anthropic.MessageNewParams{
 			Model:     anthropic.Model(model),
 			MaxTokens: int64(10000),
 			System: []anthropic.TextBlockParam{
 				{Type: "text", Text: systemPrompt, CacheControl: anthropic.NewCacheControlEphemeralParam()},
 			},
-			Messages:    messages,
-			Tools:       tools,
-			Temperature: anthropic.Float(0.1),
+			Messages: messages,
+			Tools:    tools,
 		})
 
 		if err != nil {
+			if len(collected) > 0 {
+				// Salvage what the run already confirmed instead of throwing
+				// the whole exploration away.
+				ai.logger.Warn("LLM turn failed mid-run, keeping findings collected so far", "collected", len(collected), "error", err)
+				return collected, tokensUsed, int(time.Since(startTime).Milliseconds()), model, nil
+			}
 			return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, err
 		}
 
+		// The conversation prefix is served from the prompt cache, so old tool
+		// results are cheap to keep — compacting them every turn would mutate
+		// the prefix and void the cache. Only once the history grows past the
+		// threshold is one compaction pass (and the cache rebuild it causes)
+		// cheaper than carrying the bulk onward. Never compact BEFORE the
+		// call: results must survive exactly one request or the model goes
+		// blind (the regression that shipped in 7782b65b).
+		if estimateMessagesChars(messages) > compactHistoryAfterChars {
+			ai.logger.Info("Compacting conversation history", "chars", estimateMessagesChars(messages))
+			compactAnthropicToolResults(messages)
+		}
+
 		if message != nil {
-			tokensUsed += message.Usage.InputTokens + message.Usage.OutputTokens
+			// Provider-reported usage, taken verbatim: fresh input, output and
+			// cache writes count against the budgets; cache reads are tracked
+			// separately.
+			tokensUsed += message.Usage.InputTokens + message.Usage.OutputTokens + message.Usage.CacheCreationInputTokens
+			cacheReadTokens += message.Usage.CacheReadInputTokens
+		}
+		if onProgress != nil {
+			onProgress(tokensUsed, "")
 		}
 
 		if len(message.Content) == 0 {
@@ -431,26 +501,9 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, model, systemPr
 		}
 
 		// Add the assistant's response to the messages
-		// Convert ContentBlockUnion to ContentBlockParamUnion
-		assistantContent := make([]anthropic.ContentBlockParamUnion, len(message.Content))
-		for i, block := range message.Content {
-			switch block.Type {
-			case "text":
-				assistantContent[i] = anthropic.NewTextBlock(block.Text)
-			case "tool_use":
-				// Unmarshal the Input from JSON to a map so it's sent as a dictionary
-				var input map[string]any
-				if err := json.Unmarshal(block.Input, &input); err != nil {
-					return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("error unmarshaling tool input: %v", err)
-				}
-				assistantContent[i] = anthropic.ContentBlockParamUnion{
-					OfToolUse: &anthropic.ToolUseBlockParam{
-						ID:    block.ID,
-						Name:  block.Name,
-						Input: input,
-					},
-				}
-			}
+		assistantContent, err := assistantContentParams(message.Content)
+		if err != nil {
+			return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, err
 		}
 		messages = append(messages, anthropic.MessageParam{
 			Role:    anthropic.MessageParamRoleAssistant,
@@ -468,6 +521,57 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, model, systemPr
 				iterationToolUses++
 				ai.logger.Info("Processing tool call", "tool", block.Name)
 
+				// The final analysis arrives as tool input; a schema violation
+				// is fed back as an is_error tool result so the model repairs
+				// it in-conversation instead of failing the whole run.
+				if block.Name == submitAnalysisToolName {
+					findings, parseErr := parseSubmittedAnalysis(block.Input)
+					if parseErr != nil {
+						repairAttempts++
+						ai.logger.Warn("Submitted findings rejected", "error", parseErr, "attempt", repairAttempts)
+						if repairAttempts > maxAnalysisRepairs {
+							if len(collected) > 0 {
+								return collected, tokensUsed, int(time.Since(startTime).Milliseconds()), model, nil
+							}
+							return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("analysis rejected %d times, giving up: %w", repairAttempts, parseErr)
+						}
+						toolResults = append(toolResults, analysisRejectionResult(block.ID, parseErr))
+						continue
+					}
+					if len(findings) == 0 {
+						// Empty submission: the model declares the run finished.
+						return collected, tokensUsed, int(time.Since(startTime).Milliseconds()), model, nil
+					}
+
+					// Whole-scope runs discard advice-only findings after the
+					// run — validate at submission time instead, so the model
+					// can repair them for a few hundred tokens while the
+					// conversation is still alive.
+					var rejected []string
+					if toolCtx != nil && toolCtx.RequireActionableFindings {
+						kept := make([]*AiResponse, 0, len(findings))
+						for _, finding := range findings {
+							if reason := ai.findingRejectionReason(finding); reason != "" {
+								rejected = append(rejected, fmt.Sprintf("%s — %s", finding.ErrorMessage, reason))
+							} else {
+								kept = append(kept, finding)
+							}
+						}
+						findings = kept
+					}
+					collected = append(collected, findings...)
+					ai.logger.Info("Findings submitted", "new", len(findings), "rejected", len(rejected), "total", len(collected))
+					if onProgress != nil {
+						onProgress(tokensUsed, fmt.Sprintf("%d finding(s) submitted", len(collected)))
+					}
+					resultText := fmt.Sprintf("Recorded %d finding(s) — %d total so far. Continue the investigation and submit further findings, or call %s with an empty findings array when nothing else is actionable.", len(findings), len(collected), submitAnalysisToolName)
+					if len(rejected) > 0 {
+						resultText = fmt.Sprintf("Recorded %d finding(s) — %d total so far. Rejected %d finding(s) without an applicable proposal:\n- %s\nFix each rejected finding and resubmit it, or drop it if no safe concrete change exists.", len(findings), len(collected), len(rejected), strings.Join(rejected, "\n- "))
+					}
+					toolResults = append(toolResults, anthropic.NewToolResultBlock(block.ID, resultText, len(findings) == 0 && len(rejected) > 0))
+					continue
+				}
+
 				// Extract the arguments from the tool use
 				var args map[string]any
 				inputBytes, err := json.Marshal(block.Input)
@@ -479,15 +583,17 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, model, systemPr
 					return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("error unmarshaling tool arguments: %v", err)
 				}
 
+				if onProgress != nil {
+					onProgress(tokensUsed, describeToolCall(block.Name, args))
+				}
+
 				var data string
-				if ai.mcpManager != nil && ai.mcpManager.IsMCPTool(block.Name) {
-					mcpResult, err := ai.mcpManager.CallTool(ctx, block.Name, args)
-					if err != nil {
-						return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("MCP tool call %q failed: %v", block.Name, err)
+				if tool, ok := toolDefinitions[block.Name]; ok {
+					if !viewerAllowedTools[block.Name] {
+						return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("tool %q is not permitted in the unattended insight pipeline", block.Name)
 					}
-					data = mcpResult
-				} else if tool, ok := toolDefinitions[block.Name]; ok {
-					data = tool(args, nil, ai.valkeyClient, ai.logger)
+					data = tool(args, toolCtx, ai.valkeyClient, ai.logger)
+					ai.auditInsightToolCall(toolCtx, block.Name, args, data)
 				} else {
 					return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("unknown tool called: %s", block.Name)
 				}
@@ -500,54 +606,183 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, model, systemPr
 		if !hasToolUse {
 			ai.logger.Info("No tool calls found, finishing AI processing")
 
-			// Extract text from content blocks
+			// The model stopped calling tools: with submitted findings on
+			// record that simply ends the run.
+			if len(collected) > 0 {
+				return collected, tokensUsed, int(time.Since(startTime).Milliseconds()), model, nil
+			}
+
+			// Fallback for models that answer in text despite the
+			// submit_analysis instruction: parse the JSON out of the text and,
+			// when that fails, spend a bounded repair turn pointing the model
+			// at the tool instead of discarding the whole exploration.
 			var responseText string
 			for _, block := range message.Content {
 				if block.Type == "text" {
 					responseText += block.Text
 				}
 			}
-			responseText = cleanJSONResponse(responseText)
-			responseBytes, removedText, err := extractJSONRobust(responseText)
-			ai.logger.Info("Extracted JSON from AI response", "removed_text", removedText)
-			if err != nil {
-				return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("error extracting JSON from AI response: %v\n%s", err, responseText)
+			aiResponse, removedText, err := parseAiResponse(responseText)
+			if err == nil {
+				ai.logger.Info("Extracted JSON from AI response", "removed_text", removedText)
+				return aiResponse, tokensUsed, int(time.Since(startTime).Milliseconds()), model, nil
 			}
-
-			var aiResponse AiResponse
-			err = json.Unmarshal(responseBytes, &aiResponse)
-			if err != nil {
-				return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("error unmarshaling AI response: %v\n%s", err, responseText)
+			repairAttempts++
+			ai.logger.Warn("Final answer unparsable, requesting repair", "error", err, "attempt", repairAttempts)
+			if repairAttempts > maxAnalysisRepairs {
+				return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("final answer unparsable after %d repair attempts: %v\n%s", repairAttempts, err, responseText)
 			}
-
-			return &aiResponse, tokensUsed, int(time.Since(startTime).Milliseconds()), model, nil
+			messages = append(messages, anthropic.MessageParam{
+				Role: anthropic.MessageParamRoleUser,
+				Content: []anthropic.ContentBlockParamUnion{
+					anthropic.NewTextBlock(fmt.Sprintf("Your answer could not be processed: %s. Submit your complete final analysis by calling the %s tool.", err.Error(), submitAnalysisToolName)),
+				},
+			})
+			continue
 		}
 
-		// Increase global tool call count and check limit
+		// Increase global tool call count and check the run budgets (tool
+		// calls and, when configured, tokens). Either limit exhausted forces
+		// one final submit turn; findings collected so far are kept.
 		toolCallCount += iterationToolUses
-		if maxToolCalls > 0 && toolCallCount >= maxToolCalls {
-			ai.logger.Info("Max tool call limit reached, exiting loop", "maxToolCalls", maxToolCalls, "toolCallCount", toolCallCount)
+		budgetExhausted := maxToolCalls > 0 && toolCallCount >= maxToolCalls
+		if !budgetExhausted && maxTokensPerRun > 0 && tokensUsed >= maxTokensPerRun {
+			budgetExhausted = true
+			ai.logger.Info("Per-run token limit reached, forcing final answer", "maxTokensPerRun", maxTokensPerRun, "tokensUsed", tokensUsed)
+		}
+		if budgetExhausted {
+			ai.logger.Info("Run budget exhausted, forcing final answer", "maxToolCalls", maxToolCalls, "toolCallCount", toolCallCount, "tokensUsed", tokensUsed)
 
-			// Try to finalize using any text presently returned
-			var responseText string
-			for _, block := range message.Content {
-				if block.Type == "text" {
-					responseText += block.Text
+			// Hand back the pending tool results plus the final nudge. The
+			// submit is deliberately NOT forced via tool_choice: changing
+			// tool_choice invalidates Anthropic's entire prompt cache, which
+			// costs more than the rest of the run combined. A bounded number
+			// of cache-hit-cheap extra turns handles stragglers instead: a
+			// model that still calls inspection tools gets an error result,
+			// non-applicable findings get one repair round. No compaction
+			// here: the pending results were never sent, the model needs
+			// them for its final verdict.
+			messages = append(messages, anthropic.MessageParam{
+				Role:    anthropic.MessageParamRoleUser,
+				Content: append(toolResults, anthropic.NewTextBlock(finalAnswerNudge)),
+			})
+			repairedOnce := false
+			for finalAttempt := 1; finalAttempt <= 3; finalAttempt++ {
+				moveCacheBreakpoint(messages, &cachedMsgIdx)
+				finalMessage, err := client.Messages.New(ctx, anthropic.MessageNewParams{
+					Model:     anthropic.Model(model),
+					MaxTokens: int64(10000),
+					System: []anthropic.TextBlockParam{
+						{Type: "text", Text: systemPrompt, CacheControl: anthropic.NewCacheControlEphemeralParam()},
+					},
+					Messages: messages,
+					Tools:    tools,
+				})
+				if err != nil {
+					if len(collected) > 0 {
+						return collected, tokensUsed, int(time.Since(startTime).Milliseconds()), model, nil
+					}
+					return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("run budget exhausted and final answer request failed: %w", err)
 				}
-			}
-			responseText = cleanJSONResponse(responseText)
-			responseBytes, removedText, err := extractJSONRobust(responseText)
-			ai.logger.Info("Extracted JSON after max tool calls", "removed_text", removedText)
-			if err != nil {
-				return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("max tool calls reached (%d) without final text: %v", maxToolCalls, err)
-			}
+				tokensUsed += finalMessage.Usage.InputTokens + finalMessage.Usage.OutputTokens + finalMessage.Usage.CacheCreationInputTokens
+				cacheReadTokens += finalMessage.Usage.CacheReadInputTokens
+				if onProgress != nil {
+					onProgress(tokensUsed, "submitting final analysis")
+				}
 
-			var aiResponse AiResponse
-			if err := json.Unmarshal(responseBytes, &aiResponse); err != nil {
-				return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("error unmarshaling AI response after max tool calls: %v\n%s", err, responseText)
-			}
+				var responseText string
+				var submitID string
+				var submitInput json.RawMessage
+				var strayToolIDs []string
+				for _, block := range finalMessage.Content {
+					switch block.Type {
+					case "tool_use":
+						if block.Name == submitAnalysisToolName && submitID == "" {
+							submitID = block.ID
+							submitInput = block.Input
+						} else {
+							strayToolIDs = append(strayToolIDs, block.ID)
+						}
+					case "text":
+						responseText += block.Text
+					}
+				}
 
-			return &aiResponse, tokensUsed, int(time.Since(startTime).Milliseconds()), model, nil
+				if submitID != "" {
+					findings, parseErr := parseSubmittedAnalysis(submitInput)
+					if parseErr != nil {
+						if len(collected) > 0 {
+							return collected, tokensUsed, int(time.Since(startTime).Milliseconds()), model, nil
+						}
+						return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("run budget exhausted and final analysis invalid: %w", parseErr)
+					}
+					var rejected []string
+					if toolCtx != nil && toolCtx.RequireActionableFindings {
+						kept := make([]*AiResponse, 0, len(findings))
+						for _, finding := range findings {
+							if reason := ai.findingRejectionReason(finding); reason != "" {
+								rejected = append(rejected, fmt.Sprintf("%s — %s", finding.ErrorMessage, reason))
+							} else if !hasFindingHeadline(collected, finding.ErrorMessage) {
+								kept = append(kept, finding)
+							}
+						}
+						findings = kept
+					}
+					collected = append(collected, findings...)
+					if len(rejected) == 0 || repairedOnce {
+						return collected, tokensUsed, int(time.Since(startTime).Milliseconds()), model, nil
+					}
+					// One repair round: feed the rejects back so the model can
+					// fix them instead of having them silently discarded.
+					repairedOnce = true
+					ai.logger.Info("Final submission had non-applicable findings, requesting one repair", "recorded", len(findings), "rejected", len(rejected))
+					assistantParams, convErr := assistantContentParams(finalMessage.Content)
+					if convErr != nil {
+						return collected, tokensUsed, int(time.Since(startTime).Milliseconds()), model, nil
+					}
+					messages = append(messages,
+						anthropic.MessageParam{Role: anthropic.MessageParamRoleAssistant, Content: assistantParams},
+						anthropic.MessageParam{Role: anthropic.MessageParamRoleUser, Content: []anthropic.ContentBlockParamUnion{
+							anthropic.NewToolResultBlock(submitID,
+								fmt.Sprintf("Recorded %d finding(s). Rejected %d finding(s) without an applicable proposal:\n- %s\nCall %s once more and resubmit ONLY the rejected findings, fixed (set proposedOperation and the exact live targetResource) — or an empty findings array to drop them.", len(findings), len(rejected), strings.Join(rejected, "\n- "), submitAnalysisToolName),
+								true),
+						}},
+					)
+					continue
+				}
+
+				if len(strayToolIDs) > 0 {
+					// The model ignored the nudge and asked for more
+					// inspection tools — refuse them and point it back at
+					// submit_analysis.
+					assistantParams, convErr := assistantContentParams(finalMessage.Content)
+					if convErr != nil {
+						return collected, tokensUsed, int(time.Since(startTime).Milliseconds()), model, nil
+					}
+					refusals := make([]anthropic.ContentBlockParamUnion, 0, len(strayToolIDs))
+					for _, id := range strayToolIDs {
+						refusals = append(refusals, anthropic.NewToolResultBlock(id, "Budget exhausted — no more inspection tools. Call "+submitAnalysisToolName+" now with your remaining findings (or an empty findings array).", true))
+					}
+					messages = append(messages,
+						anthropic.MessageParam{Role: anthropic.MessageParamRoleAssistant, Content: assistantParams},
+						anthropic.MessageParam{Role: anthropic.MessageParamRoleUser, Content: refusals},
+					)
+					continue
+				}
+
+				// Defensive fallback: the model answered in plain text.
+				aiResponses, removedText, err := parseAiResponse(responseText)
+				ai.logger.Info("Extracted JSON after exhausted run budget", "removed_text", removedText)
+				if err != nil {
+					if len(collected) > 0 {
+						return collected, tokensUsed, int(time.Since(startTime).Milliseconds()), model, nil
+					}
+					return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("run budget exhausted without parsable final answer: %v\n%s", err, responseText)
+				}
+				return append(collected, aiResponses...), tokensUsed, int(time.Since(startTime).Milliseconds()), model, nil
+			}
+			// Attempt cap reached — keep whatever survived validation.
+			return collected, tokensUsed, int(time.Since(startTime).Milliseconds()), model, nil
 		}
 
 		// Add tool results to messages

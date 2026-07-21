@@ -67,15 +67,17 @@ func (d *reconcilerModule) reconcileArgoCD(ctx context.Context, spec v1alpha1.Pl
 					if repo.ExternalSecret.Key != "" {
 						repoSecretKey = repo.ExternalSecret.Key
 					}
-					extraObjects = append(extraObjects, externalSecretResource(name, namespace, *repo.ExternalSecret,
-						map[string]string{"argocd.argoproj.io/secret-type": "repository"},
-						map[string]string{
-							"type":     "git",
-							"url":      repo.URL,
-							"username": "x-token-auth",
-							"password": fmt.Sprintf("{{ .%s }}", repoSecretKey),
-						},
-					))
+					if d.crdChecker.IsAvailable(utils.ExternalSecretResource) {
+						extraObjects = append(extraObjects, externalSecretResource(name, namespace, *repo.ExternalSecret,
+							map[string]string{"argocd.argoproj.io/secret-type": "repository"},
+							map[string]string{
+								"type":     "git",
+								"url":      repo.URL,
+								"username": "x-token-auth",
+								"password": fmt.Sprintf("{{ .%s }}", repoSecretKey),
+							},
+						))
+					}
 				}
 
 				if repo.Path != "" {
@@ -90,6 +92,20 @@ func (d *reconcilerModule) reconcileArgoCD(ctx context.Context, spec v1alpha1.Pl
 			return extraObjects, nil
 		},
 		func(ctx context.Context) (map[string]any, error) {
+			if d.crdChecker.IsAvailable(utils.ServiceMonitorResource) {
+				metricsBlock := map[string]any{
+					"enabled": true,
+					"serviceMonitor": map[string]any{
+						"enabled": true,
+					},
+				}
+				return map[string]any{
+					"controller":     map[string]any{"metrics": metricsBlock},
+					"server":         map[string]any{"metrics": metricsBlock},
+					"repoServer":     map[string]any{"metrics": metricsBlock},
+					"applicationSet": map[string]any{"metrics": metricsBlock},
+				}, nil
+			}
 			return nil, nil
 		},
 	)

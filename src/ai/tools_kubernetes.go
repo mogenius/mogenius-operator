@@ -7,7 +7,10 @@ import (
 	"mogenius-operator/src/store"
 	"mogenius-operator/src/valkeyclient"
 	"sort"
+	"strings"
+	"time"
 
+	"github.com/valkey-io/valkey-go"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/yaml"
@@ -33,15 +36,35 @@ var kubernetesToolDefinitions = map[string]func(map[string]any, *ToolContext, va
 	"get_pod_events":             getPodEventsTool,
 }
 
-const maxListResults = 50 // Limit to prevent token overflow
+// Summaries are ~30 tokens each; a bigger page is far cheaper than the extra
+// turns a truncated cluster-wide list forces (every turn re-reads the whole
+// conversation).
+const maxListResults = 150
 
 // ResourceSummary is a compact representation of a resource for listing
 type ResourceSummary struct {
-	Name         string `json:"name"`
-	Namespace    string `json:"namespace,omitempty"`
-	Kind         string `json:"kind"`
-	Status       string `json:"status,omitempty"`
-	CreationTime string `json:"creationTime,omitempty"`
+	Name      string `json:"name"`
+	Namespace string `json:"namespace,omitempty"`
+	Kind      string `json:"kind"`
+	Status    string `json:"status,omitempty"`
+	Age       string `json:"age,omitempty"`
+}
+
+// ageString renders a creation timestamp as a compact kubectl-style age
+// ("45d", "3h", "12m") — a fraction of the tokens of a full timestamp.
+func ageString(t time.Time) string {
+	if t.IsZero() {
+		return ""
+	}
+	d := time.Since(t)
+	switch {
+	case d >= 24*time.Hour:
+		return fmt.Sprintf("%dd", int(d.Hours()/24))
+	case d >= time.Hour:
+		return fmt.Sprintf("%dh", int(d.Hours()))
+	default:
+		return fmt.Sprintf("%dm", int(d.Minutes()))
+	}
 }
 
 func listKubernetesResourcesTool(args map[string]any, tc *ToolContext, valkeyClient valkeyclient.ValkeyClient, logger *slog.Logger) string {
@@ -74,8 +97,26 @@ func listKubernetesResourcesTool(args map[string]any, tc *ToolContext, valkeyCli
 		resources = filtered
 	}
 
+	// Hide resources that already have an open proposal — a whole-scope run
+	// must not re-inspect or re-report what the user has not decided on yet.
+	excludedCount := 0
+	if tc != nil && len(tc.ExcludeResources) > 0 {
+		filtered := resources[:0]
+		for _, res := range resources {
+			if tc.IsResourceExcluded(res.GetAPIVersion(), res.GetKind(), res.GetNamespace(), res.GetName()) {
+				excludedCount++
+				continue
+			}
+			filtered = append(filtered, res)
+		}
+		resources = filtered
+	}
+
 	totalCount := len(resources)
 	if totalCount == 0 {
+		if excludedCount > 0 {
+			return fmt.Sprintf("No %s resources without an open proposal (%d already have one under review)", kind, excludedCount)
+		}
 		return fmt.Sprintf("No %s resources found", kind)
 	}
 
@@ -90,11 +131,11 @@ func listKubernetesResourcesTool(args map[string]any, tc *ToolContext, valkeyCli
 	summaries := make([]ResourceSummary, len(resources))
 	for i, res := range resources {
 		summary := ResourceSummary{
-			Name:         res.GetName(),
-			Namespace:    res.GetNamespace(),
-			Kind:         res.GetKind(),
-			CreationTime: res.GetCreationTimestamp().String(),
-			Status:       "Unknown",
+			Name:      res.GetName(),
+			Namespace: res.GetNamespace(),
+			Kind:      res.GetKind(),
+			Age:       ageString(res.GetCreationTimestamp().Time),
+			Status:    "Unknown",
 		}
 
 		if status, found, _ := unstructured.NestedString(res.Object, "status", "phase"); found {
@@ -117,6 +158,10 @@ func listKubernetesResourcesTool(args map[string]any, tc *ToolContext, valkeyCli
 		"resources": summaries,
 	}
 
+	if excludedCount > 0 {
+		result["hiddenWithOpenProposal"] = excludedCount
+	}
+
 	if truncated {
 		result["truncated"] = true
 		result["message"] = fmt.Sprintf("Showing %d of %d resources. Use get_kubernetes_resources with a specific name for full details.", maxListResults, totalCount)
@@ -126,7 +171,7 @@ func listKubernetesResourcesTool(args map[string]any, tc *ToolContext, valkeyCli
 	if err != nil {
 		return fmt.Sprintf("Error marshaling resources: %v", err)
 	}
-	logger.Info("Tool result", "resultCount", len(summaries), "totalCount", totalCount, "truncated", truncated)
+	logger.Info("Tool result", "resultCount", len(summaries), "totalCount", totalCount, "truncated", truncated, "hiddenWithOpenProposal", excludedCount)
 	return string(resourceBytes)
 }
 
@@ -151,6 +196,11 @@ func checkKubernetesResourceTool(args map[string]any, tc *ToolContext, valkeyCli
 	res, err := store.GetResource(valkeyClient, apiVersion, kind, namespace, name, logger)
 
 	if err != nil {
+		// A missing key surfaces as a valkey nil error — tell the model the
+		// resource does not exist instead of returning a retryable-looking error.
+		if valkey.IsValkeyNil(err) {
+			return fmt.Sprintf("Resource %s/%s %q not found in namespace %q — it does not exist, do not retry", apiVersion, kind, name, namespace)
+		}
 		logger.Error("Error checking resource", "error", err)
 		return fmt.Sprintf("Error checking resource: %v", err)
 	}
@@ -181,6 +231,88 @@ func checkKubernetesResourceTool(args map[string]any, tc *ToolContext, valkeyCli
 	return result
 }
 
+// summaryResourceText renders the token-sparing detail level of a resource:
+// identity, ownership, condensed status and the few spec fields that matter
+// for triage — roughly a third of the tokens of the full manifest.
+func summaryResourceText(res *unstructured.Unstructured) string {
+	var sb strings.Builder
+	fmt.Fprintf(&sb, "%s/%s ns=%s age=%s", res.GetKind(), res.GetName(), res.GetNamespace(), ageString(res.GetCreationTimestamp().Time))
+	if labels := res.GetLabels(); len(labels) > 0 {
+		fmt.Fprintf(&sb, "\nlabels: %s", flatKV(labels))
+	}
+	if owners := res.GetOwnerReferences(); len(owners) > 0 {
+		parts := make([]string, len(owners))
+		for i, owner := range owners {
+			parts[i] = owner.Kind + "/" + owner.Name
+		}
+		fmt.Fprintf(&sb, "\nownedBy: %s", strings.Join(parts, ", "))
+	}
+	if replicas, found, _ := unstructured.NestedInt64(res.Object, "spec", "replicas"); found {
+		fmt.Fprintf(&sb, "\nspec.replicas: %d", replicas)
+	}
+	if schedule, found, _ := unstructured.NestedString(res.Object, "spec", "schedule"); found {
+		fmt.Fprintf(&sb, "\nspec.schedule: %s", schedule)
+	}
+	if suspend, found, _ := unstructured.NestedBool(res.Object, "spec", "suspend"); found && suspend {
+		sb.WriteString("\nspec.suspend: true")
+	}
+	if nodeName, found, _ := unstructured.NestedString(res.Object, "spec", "nodeName"); found && nodeName != "" {
+		fmt.Fprintf(&sb, "\nspec.nodeName: %s", nodeName)
+	}
+	if images := containerImages(res); len(images) > 0 {
+		fmt.Fprintf(&sb, "\nimages: %s", strings.Join(images, ", "))
+	}
+	if phase, found, _ := unstructured.NestedString(res.Object, "status", "phase"); found {
+		fmt.Fprintf(&sb, "\nstatus.phase: %s", phase)
+	}
+	for _, key := range []string{"readyReplicas", "availableReplicas", "succeeded", "failed", "active"} {
+		if v, found, _ := unstructured.NestedInt64(res.Object, "status", key); found {
+			fmt.Fprintf(&sb, "\nstatus.%s: %d", key, v)
+		}
+	}
+	if conditions, found, _ := unstructured.NestedSlice(res.Object, "status", "conditions"); found {
+		parts := make([]string, 0, len(conditions))
+		for _, c := range conditions {
+			if cm, ok := c.(map[string]any); ok {
+				condType, _ := cm["type"].(string)
+				condStatus, _ := cm["status"].(string)
+				if condType != "" {
+					parts = append(parts, condType+"="+condStatus)
+				}
+			}
+		}
+		if len(parts) > 0 {
+			fmt.Fprintf(&sb, "\nconditions: %s", strings.Join(parts, ", "))
+		}
+	}
+	return sb.String()
+}
+
+// containerImages collects container images from the usual spec locations
+// (Pod, workload templates, CronJob job templates).
+func containerImages(res *unstructured.Unstructured) []string {
+	paths := [][]string{
+		{"spec", "containers"},
+		{"spec", "template", "spec", "containers"},
+		{"spec", "jobTemplate", "spec", "template", "spec", "containers"},
+	}
+	images := []string{}
+	for _, path := range paths {
+		containers, found, _ := unstructured.NestedSlice(res.Object, path...)
+		if !found {
+			continue
+		}
+		for _, c := range containers {
+			if cm, ok := c.(map[string]any); ok {
+				if image, ok := cm["image"].(string); ok && image != "" {
+					images = append(images, image)
+				}
+			}
+		}
+	}
+	return images
+}
+
 func getKubernetesResourcesTool(args map[string]any, tc *ToolContext, valkeyClient valkeyclient.ValkeyClient, logger *slog.Logger) string {
 
 	kind, ok := args["kind"].(string)
@@ -199,10 +331,17 @@ func getKubernetesResourcesTool(args map[string]any, tc *ToolContext, valkeyClie
 		return fmt.Sprintf("Error: access to namespace %q is not allowed", namespace)
 	}
 
+	if tc.IsResourceExcluded(apiVersion, kind, namespace, name) {
+		return fmt.Sprintf("%s/%s in namespace %q already has an open proposal awaiting a user decision — do not analyze or report it again.", kind, name, namespace)
+	}
+
 	logger.Info("Retrieving Kubernetes resources", "apiVersion", apiVersion, "kind", kind, "namespace", namespace, "name", name)
 	resources, err := store.GetResource(valkeyClient, apiVersion, kind, namespace, name, logger)
 
 	if err != nil {
+		if valkey.IsValkeyNil(err) {
+			return fmt.Sprintf("Resource %s/%s %q not found in namespace %q — it does not exist, do not retry", apiVersion, kind, name, namespace)
+		}
 		logger.Error("Error retrieving resources", "error", err)
 		return fmt.Sprintf("Error retrieving resources: %v", err)
 	}
@@ -215,6 +354,12 @@ func getKubernetesResourcesTool(args map[string]any, tc *ToolContext, valkeyClie
 	meta := mergeAnnotationsAndLabels(resources.GetAnnotations(), resources.GetLabels())
 	if !tc.IsResourceAllowed(resources.GetNamespace(), meta) {
 		return fmt.Sprintf("Error: access to resource %q in namespace %q is not allowed", resources.GetName(), namespace)
+	}
+
+	if detail, _ := args["detail"].(string); detail == "summary" {
+		result := summaryResourceText(resources)
+		logger.Info("Tool result", "detail", "summary", "resultLength", len(result))
+		return result
 	}
 
 	fullJSON, _ := json.Marshal(resources.Object)
@@ -260,6 +405,12 @@ func updateKubernetesResourceTool(args map[string]any, tc *ToolContext, valkeyCl
 
 	// Perform the update
 	updatedRes, err := K8sUpdateUnstructuredResource(apiVersion, plural, namespaced, yamlData)
+	newObj := updatedRes
+	if newObj == nil {
+		// Failed update: audit the intended target state from the request.
+		newObj = updatedObj
+	}
+	auditAiToolMutation(tc, logger, "update_kubernetes_resource", args, nil, err, oldObj, newObj)
 	if err != nil {
 		logger.Error("Failed to update resource", "error", err)
 		return fmt.Sprintf("Error updating resource: %v", err)
@@ -270,7 +421,11 @@ func updateKubernetesResourceTool(args map[string]any, tc *ToolContext, valkeyCl
 		logger.Info("Resource updated", "old", oldObj.GetResourceVersion(), "new", updatedRes.GetResourceVersion())
 	}
 
-	return fmt.Sprintf("Updated %s/%s in ns=%s (rv=%s)", updatedRes.GetKind(), updatedRes.GetName(), updatedRes.GetNamespace(), updatedRes.GetResourceVersion())
+	result := fmt.Sprintf("Updated %s/%s in ns=%s", updatedRes.GetKind(), updatedRes.GetName(), updatedRes.GetNamespace())
+	if rv := updatedRes.GetResourceVersion(); rv != "" {
+		result += fmt.Sprintf(" (rv=%s)", rv)
+	}
+	return result
 }
 
 func deleteKubernetesResourceTool(args map[string]any, tc *ToolContext, valkeyClient valkeyclient.ValkeyClient, logger *slog.Logger) string {
@@ -294,6 +449,7 @@ func deleteKubernetesResourceTool(args map[string]any, tc *ToolContext, valkeyCl
 	logger.Info("Deleting Kubernetes resource", "apiVersion", apiVersion, "plural", plural, "namespace", namespace, "name", name)
 
 	err := K8sDeleteUnstructuredResource(apiVersion, plural, namespace, name)
+	auditAiToolMutation(tc, logger, "delete_kubernetes_resource", args, nil, err, nil, nil)
 	if err != nil {
 		logger.Error("Failed to delete resource", "error", err)
 		return fmt.Sprintf("Error deleting resource: %v", err)
@@ -331,12 +487,22 @@ func createKubernetesResourceTool(args map[string]any, tc *ToolContext, valkeyCl
 
 	// Perform the create
 	createdRes, err := K8sCreateUnstructuredResource(apiVersion, plural, namespaced, yamlData)
+	newObj := createdRes
+	if newObj == nil {
+		// Failed create: audit the requested manifest.
+		newObj = obj
+	}
+	auditAiToolMutation(tc, logger, "create_kubernetes_resource", args, nil, err, nil, newObj)
 	if err != nil {
 		logger.Error("Failed to create resource", "error", err)
 		return fmt.Sprintf("Error creating resource: %v", err)
 	}
 
-	return fmt.Sprintf("Created %s/%s in ns=%s (rv=%s)", createdRes.GetKind(), createdRes.GetName(), createdRes.GetNamespace(), createdRes.GetResourceVersion())
+	result := fmt.Sprintf("Created %s/%s in ns=%s", createdRes.GetKind(), createdRes.GetName(), createdRes.GetNamespace())
+	if rv := createdRes.GetResourceVersion(); rv != "" {
+		result += fmt.Sprintf(" (rv=%s)", rv)
+	}
+	return result
 }
 
 const defaultMaxChars = 5000

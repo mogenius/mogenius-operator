@@ -112,9 +112,13 @@ if [[ -f .env ]]; then export $(grep -v '^#' .env | xargs); fi
 | `MO_HELM_DATA_PATH` | `<workdir>/helm-data` | Path to Helm data directory |
 | `MO_GIT_USER_NAME` | `mogenius git-user` | Git username for IaC operations |
 | `MO_GIT_USER_EMAIL` | `git@mogenius.com` | Git email for IaC operations |
-| `MO_AUDIT_LOG_LIMIT` | `1000` | Maximum number of audit log entries to persist |
+| `MO_AUDIT_LOG_LIMIT` | `1000` | Maximum number of audit log entries to persist per resource (namespace/name pair), not globally |
+| `MO_AUDIT_LOG_TTL` | `336h` | Retention of audit log entries as Go duration (336h = 14 days) |
+| `MO_ENABLE_AUTO_UPGRADE` | `true` | Enable automatic operator self-upgrades triggered by the platform |
 | `MO_ENABLE_POD_STATS_COLLECTOR` | `true` | Enable collection of pod CPU/memory stats |
 | `MO_ENABLE_TRAFFIC_COLLECTOR` | `false` | Enable collection of network traffic stats |
+| `MO_STATS_RETENTION_MAX_ENTRIES` | `1440` | Max entries per pod-/traffic-/node-stats stream (1440 = 24h at 1-minute cadence) |
+| `MO_STATS_RETENTION_HOURS` | `24` | Retention window in hours for stats streams |
 | `MO_SNOOPY_IMPLEMENTATION` | `auto` | Network traffic backend: `auto`, `snoopy` (eBPF), or `procdev` |
 | `MO_HOST_PROC_PATH` | `/proc` | Mount path of the host `/proc` filesystem (DaemonSet uses `/hostproc`) |
 | `MO_LOG_LEVEL` | `info` | Log level: `mo`, `debug`, `info`, `warn`, or `error` |

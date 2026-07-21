@@ -7,7 +7,6 @@ import (
 	"mogenius-operator/src/store"
 	"mogenius-operator/src/structs"
 	"mogenius-operator/src/utils"
-	"strings"
 	"sync"
 	"time"
 
@@ -28,7 +27,20 @@ var cachedWorkspaceStatusTime map[string]time.Time = make(map[string]time.Time)
 var cachedWorkspaceStatus map[string]AiManagerStatus = make(map[string]AiManagerStatus)
 var AiCachedStatusLiveTime time.Duration = time.Minute * 1
 
+// genericStateTransitions are the only states clients may set through the
+// generic update handler. Everything else (proposed, executing, executed, ...)
+// is owned by the pipeline and the approve/reject flow — allowing it here
+// would let a client mark a proposal "executed" without any execution.
+var genericStateTransitions = map[AiTaskState]bool{
+	AI_TASK_STATE_PENDING: true, // retry
+	AI_TASK_STATE_IGNORED: true,
+	AI_TASK_STATE_SOLVED:  true,
+}
+
 func (ai *aiManager) UpdateTaskState(taskID string, newState AiTaskState) error {
+	if !genericStateTransitions[newState] {
+		return fmt.Errorf("state %q cannot be set directly; use the approve/reject handlers for proposal decisions", newState)
+	}
 
 	item, err := ai.valkeyClient.Get(taskID)
 	if err != nil {
@@ -41,6 +53,9 @@ func (ai *aiManager) UpdateTaskState(taskID string, newState AiTaskState) error 
 	err = json.Unmarshal([]byte(item), &task)
 	if err != nil {
 		return err
+	}
+	if task.State == AI_TASK_STATE_EXECUTING {
+		return fmt.Errorf("task %s is currently executing and cannot be modified", taskID)
 	}
 	task.State = newState
 	err = ai.createOrUpdateAiTask(&task, taskID)
@@ -321,11 +336,9 @@ func (ai *aiManager) GetStatus(workspace *string) AiManagerStatus {
 	tokensUsed, todaysProcessedTasks, _ := ai.getTodayTokenUsage()
 
 	if tokensUsed > limit {
-		ai.error = fmt.Sprintf("Daily AI token limit exceeded (%d tokens used of %d).", tokensUsed, limit)
+		ai.setError(fmt.Sprintf("Daily AI token limit exceeded (%d tokens used of %d).", tokensUsed, limit))
 	} else {
-		if strings.HasPrefix(ai.error, "Daily AI token limit") {
-			ai.error = ""
-		}
+		ai.clearTokenLimitError()
 	}
 	var totalDbEntries int = 0
 	var unprocessedDbEntries int = 0
@@ -371,8 +384,10 @@ func (ai *aiManager) GetStatus(workspace *string) AiManagerStatus {
 	}
 
 	if err != nil {
-		ai.error = fmt.Sprintf("Failed to get DB stats: %v", err)
+		ai.setError(fmt.Sprintf("Failed to get DB stats: %v", err))
 	}
+
+	statusErr, statusWarn := ai.statusStrings()
 
 	// 0 oclock next day
 	nextReset := time.Now().Add(24 * time.Hour)
@@ -391,8 +406,8 @@ func (ai *aiManager) GetStatus(workspace *string) AiManagerStatus {
 		TotalDbEntries:              totalDbEntries,
 		UnprocessedDbEntries:        unprocessedDbEntries,
 		IgnoredDbEntries:            ignoredDbEntries,
-		Error:                       ai.error,
-		Warning:                     ai.warning,
+		Error:                       statusErr,
+		Warning:                     statusWarn,
 		NumberOfUnreadTasks:         numberOfUnreadTasks,
 		NextTokenResetTime:          nextReset.Format(time.RFC3339),
 	}
@@ -409,7 +424,15 @@ func (ai *aiManager) GetStatus(workspace *string) AiManagerStatus {
 }
 
 func (ai *aiManager) ResetDailyTokenLimit() error {
-	return ai.resetTodayTokenUsage()
+	if err := ai.resetTodayTokenUsage(); err != nil {
+		return err
+	}
+	// Invalidate the cached status: a running task pushes progress events
+	// every couple of seconds, and without this they would carry the stale
+	// pre-reset token count until the cache expires — the UI bar would jump
+	// back to the old value right after the reset.
+	ai.resetCache()
+	return nil
 }
 
 func (ai *aiManager) DeleteAllAiData() error {

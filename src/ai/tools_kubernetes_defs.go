@@ -11,7 +11,7 @@ import (
 var kubernetesOpenAiTools = []openai.ChatCompletionToolUnionParam{
 	openaiFunc(
 		"get_kubernetes_resources",
-		"Get full details of a specific Kubernetes resource by kind, name and namespace.",
+		"Get details of a specific Kubernetes resource by kind, name and namespace. Cost ladder: use list_kubernetes_resources for discovery, detail=summary here for triage, and detail=full ONLY when you need the complete manifest (e.g. to build an UpdateResource proposal).",
 		openai.FunctionParameters{
 			"type": "object",
 			"properties": map[string]any{
@@ -19,19 +19,20 @@ var kubernetesOpenAiTools = []openai.ChatCompletionToolUnionParam{
 				"kind":       map[string]string{"type": "string", "description": "Resource kind (e.g. 'Pod', 'Deployment')"},
 				"name":       map[string]string{"type": "string", "description": "Resource name"},
 				"namespace":  map[string]string{"type": "string", "description": "Namespace (optional for cluster-scoped)"},
+				"detail":     map[string]any{"type": "string", "enum": []string{"summary", "full"}, "description": "'summary' (recommended, ~1/3 of the tokens): identity, ownership, condensed status, key spec fields. 'full' (default): complete manifest"},
 			},
 			"required": []string{"kind", "apiVersion", "name"},
 		},
 	),
 	openaiFunc(
 		"list_kubernetes_resources",
-		"List all Kubernetes resources of a specific kind, optionally filtered by namespace.",
+		"List Kubernetes resources of a specific kind as compact summaries. Omit the namespace to list across ALL namespaces in one call — strongly preferred for cluster-wide sweeps; never iterate namespace by namespace.",
 		openai.FunctionParameters{
 			"type": "object",
 			"properties": map[string]any{
 				"apiVersion": map[string]string{"type": "string", "description": "API version (e.g. 'v1', 'apps/v1')"},
 				"kind":       map[string]string{"type": "string", "description": "Resource kind (e.g. 'Pod', 'Deployment')"},
-				"namespace":  map[string]string{"type": "string", "description": "Namespace filter (optional, empty for all)"},
+				"namespace":  map[string]string{"type": "string", "description": "Namespace filter. Omit to list across all namespaces (preferred)"},
 			},
 			"required": []string{"kind", "apiVersion"},
 		},
@@ -128,21 +129,22 @@ var kubernetesOpenAiTools = []openai.ChatCompletionToolUnionParam{
 var kubernetesAnthropicTools = []anthropic.ToolParam{
 	anthropicTool(
 		"get_kubernetes_resources",
-		"Get full details of a specific Kubernetes resource by name.",
+		"Get details of a specific Kubernetes resource by name. Cost ladder: use list_kubernetes_resources for discovery, detail=summary here for triage, and detail=full ONLY when you need the complete manifest (e.g. to build an UpdateResource proposal).",
 		map[string]any{
 			"kind":       map[string]any{"type": "string", "description": "Resource kind (e.g., Pod, Deployment)."},
 			"apiVersion": map[string]any{"type": "string", "description": "API version (e.g., v1, apps/v1)."},
 			"name":       map[string]any{"type": "string", "description": "Resource name."},
 			"namespace":  map[string]any{"type": "string", "description": "Namespace (optional for cluster-scoped)."},
+			"detail":     map[string]any{"type": "string", "enum": []string{"summary", "full"}, "description": "'summary' (recommended, ~1/3 of the tokens): identity, ownership, condensed status, key spec fields. 'full' (default): complete manifest."},
 		}, []string{"kind", "apiVersion", "name"},
 	),
 	anthropicTool(
 		"list_kubernetes_resources",
-		"List all Kubernetes resources of a given kind, optionally filtered by namespace.",
+		"List Kubernetes resources of a given kind as compact summaries. Omit the namespace to list across ALL namespaces in one call — strongly preferred for cluster-wide sweeps; never iterate namespace by namespace.",
 		map[string]any{
 			"kind":       map[string]any{"type": "string", "description": "Resource kind (e.g., Pod, Deployment)."},
 			"apiVersion": map[string]any{"type": "string", "description": "API version (e.g., v1, apps/v1)."},
-			"namespace":  map[string]any{"type": "string", "description": "Namespace filter (optional, omit for all)."},
+			"namespace":  map[string]any{"type": "string", "description": "Namespace filter. Omit to list across all namespaces (preferred)."},
 		}, []string{"kind", "apiVersion"},
 	),
 	anthropicTool(
@@ -213,21 +215,22 @@ var kubernetesAnthropicTools = []anthropic.ToolParam{
 var kubernetesOllamaTools = []api.Tool{
 	ollamaTool(
 		"get_kubernetes_resources",
-		"Get full details of a specific Kubernetes resource by kind, name and namespace.",
+		"Get details of a specific Kubernetes resource by kind, name and namespace. Cost ladder: use list_kubernetes_resources for discovery, detail=summary here for triage, and detail=full ONLY when you need the complete manifest (e.g. to build an UpdateResource proposal).",
 		map[string]api.ToolProperty{
 			"apiVersion": {Type: []string{"string"}, Description: "API version (e.g. 'v1', 'apps/v1')"},
 			"kind":       {Type: []string{"string"}, Description: "Resource kind (e.g. 'Pod', 'Deployment')"},
 			"name":       {Type: []string{"string"}, Description: "Resource name"},
 			"namespace":  {Type: []string{"string"}, Description: "Namespace (optional for cluster-scoped)"},
+			"detail":     {Type: []string{"string"}, Description: "'summary' (recommended, ~1/3 of the tokens): identity, ownership, condensed status, key spec fields. 'full' (default): complete manifest"},
 		}, []string{"kind", "apiVersion", "name"},
 	),
 	ollamaTool(
 		"list_kubernetes_resources",
-		"List all Kubernetes resources of a specific kind, optionally filtered by namespace.",
+		"List Kubernetes resources of a specific kind as compact summaries. Omit the namespace to list across ALL namespaces in one call — strongly preferred for cluster-wide sweeps; never iterate namespace by namespace.",
 		map[string]api.ToolProperty{
 			"apiVersion": {Type: []string{"string"}, Description: "API version (e.g. 'v1', 'apps/v1')"},
 			"kind":       {Type: []string{"string"}, Description: "Resource kind (e.g. 'Pod', 'Deployment')"},
-			"namespace":  {Type: []string{"string"}, Description: "Namespace filter (optional, empty for all)"},
+			"namespace":  {Type: []string{"string"}, Description: "Namespace filter. Omit to list across all namespaces (preferred)"},
 		}, []string{"kind", "apiVersion"},
 	),
 	ollamaTool(

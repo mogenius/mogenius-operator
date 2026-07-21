@@ -19,6 +19,7 @@ const (
 	AI_CONFIG_API_KEY               = "API_KEY"
 	AI_CONFIG_API_URL_KEY           = "API_URL"
 	AI_CONFIG_DAILY_TOKEN_LIMIT_KEY = "DAILY_TOKEN_LIMIT"
+	AI_CONFIG_MAX_TOKENS_PER_RUN    = "MAX_TOKENS_PER_RUN"
 	// GitHub Personal Access Token for AI to access GitHub API.
 	// GitHub PAT fine-grained permissions recommendation:
 	//  - only select repositories that the AI needs to access, e.g. "my-org/my-repo"
@@ -39,7 +40,9 @@ const (
 )
 
 func (ai *aiManager) InjectAiPromptConfig(prompt AiPromptConfig, aiPrompts *AiPrompts) {
+	ai.promptConfigMu.Lock()
 	ai.aiPromptConfig = &prompt
+	ai.promptConfigMu.Unlock()
 
 	if aiPrompts != nil {
 		ai.chatPromptMu.Lock()
@@ -50,8 +53,17 @@ func (ai *aiManager) InjectAiPromptConfig(prompt AiPromptConfig, aiPrompts *AiPr
 	ai.logger.Info("AI Prompt Config loaded successfully", "name", prompt.Name)
 }
 
+// promptConfig returns the current config snapshot. The pointer is replaced
+// atomically on inject and the pointee never mutated, so reads are safe once
+// the pointer is fetched under the lock.
+func (ai *aiManager) promptConfig() *AiPromptConfig {
+	ai.promptConfigMu.RLock()
+	defer ai.promptConfigMu.RUnlock()
+	return ai.aiPromptConfig
+}
+
 func (ai *aiManager) isAiPromptConfigInitialized() bool {
-	return ai.aiPromptConfig != nil
+	return ai.promptConfig() != nil
 }
 
 func (ai *aiManager) isAiModelConfigInitialized() bool {
@@ -68,17 +80,19 @@ func (ai *aiManager) isAiModelConfigInitialized() bool {
 }
 
 func (ai *aiManager) getSystemPrompt() string {
-	return ai.aiPromptConfig.SystemPrompt
-}
-func (ai *aiManager) getAiFilters() []AiFilter {
-	return ai.aiPromptConfig.Filters
+	cfg := ai.promptConfig()
+	if cfg == nil {
+		return ""
+	}
+	return cfg.SystemPrompt
 }
 
 func (ai *aiManager) GetPromptConfig() (*AiPromptConfig, error) {
-	if ai.aiPromptConfig == nil {
+	cfg := ai.promptConfig()
+	if cfg == nil {
 		return nil, fmt.Errorf("AI prompt configuration is not initialized")
 	}
-	return ai.aiPromptConfig, nil
+	return cfg, nil
 }
 
 func (ai *aiManager) getDailyTokenLimit() (int64, error) {
@@ -146,6 +160,26 @@ func (ai *aiManager) getAiMaxToolCalls() (int, error) {
 	}
 
 	return maxToolCalls, nil
+}
+
+// defaultMaxTokensPerRun caps a single run when MAX_TOKENS_PER_RUN is not
+// configured. Runs finish gracefully at the cap with the findings collected
+// so far; an explicit 0 opts into unlimited.
+const defaultMaxTokensPerRun = int64(30000)
+
+// getAiMaxTokensPerRun returns the per-run token budget; 0 means unlimited.
+// A missing key or unparsable value falls back to the default cap.
+func (ai *aiManager) getAiMaxTokensPerRun() int64 {
+	data, err := ai.getAiSettingByKey(AI_CONFIG_MAX_TOKENS_PER_RUN)
+	if err != nil {
+		return defaultMaxTokensPerRun
+	}
+	limit, err := strconv.ParseInt(data, 10, 64)
+	if err != nil || limit < 0 {
+		ai.logger.Warn("Invalid max tokens per run value, using default", "value", data, "default", defaultMaxTokensPerRun)
+		return defaultMaxTokensPerRun
+	}
+	return limit
 }
 
 func (ai *aiManager) getGitHubPat() (string, error) {

@@ -10,6 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	"mogenius-operator/src/k8sclient"
+	"mogenius-operator/src/metrics"
 	"mogenius-operator/src/utils"
 	"mogenius-operator/src/watcher"
 )
@@ -101,7 +102,7 @@ func newReconciler(
 	clientProvider k8sclient.K8sClientProvider,
 	interval time.Duration,
 	configs []ResourceConfig,
-) Reconciler {
+) *genericReconciler {
 	r := &genericReconciler{
 		logger:         logger,
 		watcher:        watcher.NewWatcher(logger.With("scope", "watcher"), clientProvider),
@@ -136,10 +137,12 @@ func (r *genericReconciler) Start() {
 			cfg.Resource,
 			func(_ utils.ResourceDescriptor, obj *unstructured.Unstructured) {
 				cache.set(obj)
+				metrics.SetReconcileTrackedObjects(cfg.Resource.Kind, cache.len())
 				r.callHandler(ctx, cfg, obj, createOperation)
 			},
 			func(_ utils.ResourceDescriptor, oldObj *unstructured.Unstructured, newObj *unstructured.Unstructured) {
 				cache.set(newObj)
+				metrics.SetReconcileTrackedObjects(cfg.Resource.Kind, cache.len())
 				// Informer resyncs redeliver every object unchanged, and
 				// status-only patches don't bump metadata.generation (CRs
 				// increment it on every non-metadata change; with a status
@@ -157,6 +160,7 @@ func (r *genericReconciler) Start() {
 			},
 			func(_ utils.ResourceDescriptor, obj *unstructured.Unstructured) {
 				cache.remove(obj)
+				metrics.SetReconcileTrackedObjects(cfg.Resource.Kind, cache.len())
 				r.clearObjectStatus(obj)
 				r.callHandler(ctx, cfg, obj, deleteOperation)
 			},
@@ -194,8 +198,9 @@ func (r *genericReconciler) Stop() {
 	r.cancel()
 	r.watcher.UnwatchAll()
 	r.wg.Wait()
-	for _, cache := range r.caches {
+	for resource, cache := range r.caches {
 		cache.clear()
+		metrics.SetReconcileTrackedObjects(resource.Kind, 0)
 	}
 	r.statusMu.Lock()
 	r.objectState = make(map[objectKey]ObjectStatus)
@@ -207,16 +212,45 @@ func (r *genericReconciler) callHandler(ctx context.Context, cfg ResourceConfig,
 
 	// Acquire a slot before spawning. Blocks (backpressures the watcher
 	// callback) when maxConcurrentReconciles are already in flight.
+	waitStart := time.Now()
 	select {
 	case r.reconcileSlots <- struct{}{}:
 	case <-ctx.Done():
 		return
 	}
+	metrics.ObserveReconcileQueueWait(time.Since(waitStart).Seconds())
 
 	r.wg.Go(func() {
 		defer func() { <-r.reconcileSlots }()
+		start := time.Now()
 		result := cfg.Reconcile(ctx, objCopy, operation)
+		metrics.ObserveReconcileDuration(cfg.Resource.Kind, string(operation), time.Since(start).Seconds())
 		r.recordResult(cfg.Resource, objCopy, result)
+	})
+}
+
+// requeue re-reconciles every cached object of the given resource kind that
+// matches the predicate. Reconcile handlers use this to refresh objects whose
+// conditions depend on *other* objects (e.g. workspaces referencing a
+// WorkspaceDashboard) without waiting for the next background sweep. The work
+// runs on its own goroutine: callHandler blocks while all reconcile slots are
+// taken, and the caller typically holds one of those slots — blocking here
+// could deadlock the slot pool.
+func (r *genericReconciler) requeue(resource utils.ResourceDescriptor, match func(*unstructured.Unstructured) bool) {
+	if !r.active.Load() {
+		return
+	}
+	r.wg.Go(func() {
+		for _, cfg := range r.configs {
+			if cfg.Resource != resource {
+				continue
+			}
+			for _, obj := range r.caches[cfg.Resource].snapshot() {
+				if match(obj) {
+					r.callHandler(r.ctx, cfg, obj, backgroundOperation)
+				}
+			}
+		}
 	})
 }
 

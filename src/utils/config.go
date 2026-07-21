@@ -133,6 +133,13 @@ var WorkspaceResource = ResourceDescriptor{
 	Namespaced: true,
 }
 
+var WorkspaceDashboardResource = ResourceDescriptor{
+	Kind:       "WorkspaceDashboard",
+	Plural:     "workspacedashboards",
+	ApiVersion: "mogenius.com/v1alpha1",
+	Namespaced: true,
+}
+
 var GrantResource = ResourceDescriptor{
 	Kind:       "Grant",
 	Plural:     "grants",
@@ -143,6 +150,13 @@ var GrantResource = ResourceDescriptor{
 var UserResource = ResourceDescriptor{
 	Kind:       "User",
 	Plural:     "users",
+	ApiVersion: "mogenius.com/v1alpha1",
+	Namespaced: true,
+}
+
+var AgentResource = ResourceDescriptor{
+	Kind:       "Agent",
+	Plural:     "agents",
 	ApiVersion: "mogenius.com/v1alpha1",
 	Namespaced: true,
 }
@@ -214,6 +228,13 @@ var AppProjectResource = ResourceDescriptor{
 	Kind:       "AppProject",
 	Plural:     "appprojects",
 	ApiVersion: "argoproj.io/v1alpha1",
+	Namespaced: true,
+}
+
+var ServiceMonitorResource = ResourceDescriptor{
+	Kind:       "ServiceMonitor",
+	Plural:     "servicemonitors",
+	ApiVersion: "monitoring.coreos.com/v1",
 	Namespaced: true,
 }
 

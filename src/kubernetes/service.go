@@ -5,6 +5,7 @@ import (
 	cfg "mogenius-operator/src/config"
 	"mogenius-operator/src/store"
 	"mogenius-operator/src/utils"
+	"sort"
 	"strings"
 	"time"
 
@@ -33,41 +34,63 @@ func AllServices(namespaceName string) []v1.Service {
 	return result
 }
 
-// prometheusNames lists the well-known Prometheus service names in priority
-// order. The first name that matches a service in the cluster wins, so the
-// canonical kube-prometheus-stack names are checked before the generic ones.
-var prometheusNames = []string{
-	"prometheus-kube-prometheus-prometheus",
-	"kube-prometheus-stack-prometheus",
-	"prometheus-server",
-	"prometheus-service",
-	"prometheus",
-	"prometheus-prometheus-server",
+// serviceCandidate describes how to recognize a well-known monitoring service:
+// by exact name, or by name prefix for operator-managed services whose names
+// embed the Helm release name (e.g. VictoriaMetrics' vmsingle-<release>).
+// basePath is appended to the discovered service URL when the Prometheus API
+// is not served at the root of the service.
+type serviceCandidate struct {
+	name     string
+	prefix   bool
+	basePath string
 }
 
-// alertmanagerNames lists the well-known Alertmanager service names in priority order.
-var alertmanagerNames = []string{
-	"alertmanager-kube-prometheus-alertmanager",
-	"kube-prometheus-stack-alertmanager",
-	"alertmanager-service",
-	"alertmanager",
-	"prometheus-alertmanager",
+// prometheusCandidates lists the well-known Prometheus-compatible services in
+// priority order. The first candidate that matches a service in the cluster
+// wins, so the canonical kube-prometheus-stack names are checked before the
+// generic ones, and VictoriaMetrics single-node before cluster mode.
+var prometheusCandidates = []serviceCandidate{
+	{name: "prometheus-kube-prometheus-prometheus"},
+	{name: "kube-prometheus-stack-prometheus"},
+	{name: "prometheus-server"},
+	{name: "prometheus-service"},
+	{name: "prometheus"},
+	{name: "prometheus-prometheus-server"},
+	// VictoriaMetrics (victoria-metrics-k8s-stack) single-node: serves the
+	// Prometheus query API at the service root.
+	{name: "vmsingle-", prefix: true},
+	// VictoriaMetrics cluster mode: vmselect serves the Prometheus query API
+	// under the tenant path (tenant 0 is the default single-tenant setup).
+	{name: "vmselect-", prefix: true, basePath: "/select/0/prometheus"},
 }
 
-func FindPrometheusService() (namespace string, service string, port int32, err error) {
-	return findServiceByPriority(prometheusNames, "prometheus")
+// alertmanagerCandidates lists the well-known Alertmanager services in priority order.
+var alertmanagerCandidates = []serviceCandidate{
+	{name: "alertmanager-kube-prometheus-alertmanager"},
+	{name: "kube-prometheus-stack-alertmanager"},
+	{name: "alertmanager-service"},
+	{name: "alertmanager"},
+	{name: "prometheus-alertmanager"},
+	// VictoriaMetrics (victoria-metrics-k8s-stack) managed Alertmanager.
+	{name: "vmalertmanager-", prefix: true},
 }
 
-func FindAlertmanagerService() (namespace string, service string, port int32, err error) {
-	return findServiceByPriority(alertmanagerNames, "alertmanager")
+func FindPrometheusService() (namespace string, service string, port int32, basePath string, err error) {
+	return matchServiceByPriority(prometheusCandidates, "prometheus")
 }
 
-// findServiceByPriority returns the first cluster service whose name matches one
-// of candidateNames, evaluated in the order given. The matched service's
+func FindAlertmanagerService() (namespace string, service string, port int32, basePath string, err error) {
+	return matchServiceByPriority(alertmanagerCandidates, "alertmanager")
+}
+
+// matchServiceByPriority returns the first service whose name matches one of
+// the candidates, evaluated in the order given. The matched service's
 // HTTP/web port is preferred over an arbitrary first port (see selectHTTPPort).
-func findServiceByPriority(candidateNames []string, kind string) (namespace string, service string, port int32, err error) {
+func matchServiceByPriority(candidates []serviceCandidate, kind string) (namespace string, service string, port int32, basePath string, err error) {
 	byName := make(map[string]v1.Service)
-	for _, svc := range clusterServicesCached.Get() {
+	services := clusterServicesCached.Get()
+	names := make([]string, 0, len(services))
+	for _, svc := range services {
 		if len(svc.Spec.Ports) == 0 {
 			continue
 		}
@@ -75,15 +98,28 @@ func findServiceByPriority(candidateNames []string, kind string) (namespace stri
 		// service name exists in multiple namespaces.
 		if _, seen := byName[svc.Name]; !seen {
 			byName[svc.Name] = svc
+			names = append(names, svc.Name)
 		}
 	}
+	// Prefix candidates can match several services; pick the lexicographically
+	// smallest name so discovery is deterministic across restarts.
+	sort.Strings(names)
 
-	for _, name := range candidateNames {
-		if svc, ok := byName[name]; ok {
-			return svc.Namespace, svc.Name, selectHTTPPort(svc.Spec.Ports), nil
+	for _, c := range candidates {
+		if !c.prefix {
+			if svc, ok := byName[c.name]; ok {
+				return svc.Namespace, svc.Name, selectHTTPPort(svc.Spec.Ports), c.basePath, nil
+			}
+			continue
+		}
+		for _, name := range names {
+			if strings.HasPrefix(name, c.name) {
+				svc := byName[name]
+				return svc.Namespace, svc.Name, selectHTTPPort(svc.Spec.Ports), c.basePath, nil
+			}
 		}
 	}
-	return "", "", -1, fmt.Errorf("%s service not found in any namespace", kind)
+	return "", "", -1, "", fmt.Errorf("%s service not found in any namespace", kind)
 }
 
 // selectHTTPPort picks the most likely HTTP API port from a service's ports:

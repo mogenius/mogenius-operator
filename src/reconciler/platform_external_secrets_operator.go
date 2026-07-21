@@ -52,6 +52,18 @@ func (d *reconcilerModule) reconcileExternalSecretsOperator(ctx context.Context,
 			return extraObjects, nil
 		},
 		func(ctx context.Context) (map[string]any, error) {
+			if d.crdChecker.IsAvailable(utils.ServiceMonitorResource) {
+				return map[string]any{
+					"serviceMonitor": map[string]any{
+						"enabled": true,
+					},
+					"metrics": map[string]any{
+						"service": map[string]any{
+							"enabled": true,
+						},
+					},
+				}, nil
+			}
 			return nil, nil
 		},
 	)

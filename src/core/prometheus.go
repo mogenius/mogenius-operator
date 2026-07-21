@@ -260,7 +260,7 @@ func prometheusUrlAndHeader(data PrometheusRequest, customEndpoint string, confi
 
 	result := data.Prometheus_API_URL
 	if data.Prometheus_API_URL == "" {
-		namespace, serviceName, port, err := kubernetes.FindPrometheusService()
+		namespace, serviceName, port, basePath, err := kubernetes.FindPrometheusService()
 		if err != nil {
 			logger.Warn("prometheus service auto-discovery failed; no prometheus URL was provided either", "error", err)
 			return "", header
@@ -270,7 +270,7 @@ func prometheusUrlAndHeader(data PrometheusRequest, customEndpoint string, confi
 			clusterDomain = "cluster.local"
 		}
 
-		result = fmt.Sprintf("http://%s.%s.svc.%s:%d", serviceName, namespace, clusterDomain, port)
+		result = fmt.Sprintf("http://%s.%s.svc.%s:%d%s", serviceName, namespace, clusterDomain, port, basePath)
 		logger.Debug("prometheus auto-discovered", "service", serviceName, "namespace", namespace, "port", port, "url", result)
 	}
 

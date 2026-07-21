@@ -37,9 +37,35 @@ import (
 	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/yaml"
 )
+
+// crdToAuditObject converts a typed mogenius CRD object (Workspace, User,
+// Grant) into an unstructured representation so AddToAuditLog can compute
+// a diff. Returns nil when obj is nil or conversion fails — the audit
+// entry is then written without a diff.
+func crdToAuditObject(obj any, kind string, name string) *unstructured.Unstructured {
+	if obj == nil {
+		return nil
+	}
+	if v := reflect.ValueOf(obj); v.Kind() == reflect.Pointer && v.IsNil() {
+		return nil
+	}
+	content, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj)
+	if err != nil {
+		return nil
+	}
+	u := &unstructured.Unstructured{Object: content}
+	u.SetAPIVersion(v1alpha1.GroupVersion.String())
+	u.SetKind(kind)
+	if u.GetName() == "" {
+		u.SetName(name)
+	}
+	return u
+}
 
 // Compression threshold - only compress responses larger than 1KB
 const compressionThreshold = 1024
@@ -448,7 +474,8 @@ func (self *socketApi) registerPatterns() {
 			PatternHandle{self, "UpgradeK8sManager"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (*structs.Job, error) {
-				return self.upgradeK8sManager(request.Command)
+				job, err := self.upgradeK8sManager(request.Command)
+				return store.AddToAuditLog(datagram, self.logger, job, err, nil, nil)
 			},
 		)
 	}
@@ -815,10 +842,11 @@ func (self *socketApi) registerPatterns() {
 		PatternConfig{},
 		func(datagram structs.Datagram, request []SendAlertRequest) (string, error) {
 			err := self.alertmanager.SendAlert(request)
-			if err != nil {
-				return "", err
+			result := ""
+			if err == nil {
+				result = "Alerts sent successfully"
 			}
-			return "Alerts sent successfully", nil
+			return store.AddToAuditLog(datagram, self.logger, result, err, nil, nil)
 		},
 	)
 
@@ -827,7 +855,7 @@ func (self *socketApi) registerPatterns() {
 		PatternConfig{},
 		func(datagram structs.Datagram, request SilenceRequest) (string, error) {
 			result, err := self.alertmanager.SilenceAlert(request)
-			return result, err
+			return store.AddToAuditLog(datagram, self.logger, result, err, nil, nil)
 		},
 	)
 
@@ -849,10 +877,11 @@ func (self *socketApi) registerPatterns() {
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (string, error) {
 				err := self.alertmanager.DeleteSilence(request.SilenceID)
-				if err != nil {
-					return "", err
+				result := ""
+				if err == nil {
+					result = "Silence deleted successfully"
 				}
-				return "Silence deleted successfully", nil
+				return store.AddToAuditLog(datagram, self.logger, result, err, nil, nil)
 			},
 		)
 	}
@@ -892,7 +921,8 @@ func (self *socketApi) registerPatterns() {
 		PatternHandle{self, "cluster/helm-repo-patch"},
 		PatternConfig{},
 		func(datagram structs.Datagram, request helm.HelmRepoPatchRequest) (string, error) {
-			return helm.HelmRepoPatch(request)
+			result, err := helm.HelmRepoPatch(request)
+			return store.AddToAuditLog(datagram, self.logger, result, err, nil, nil)
 		},
 	)
 
@@ -1079,7 +1109,8 @@ func (self *socketApi) registerPatterns() {
 		PatternHandle{self, "cluster/argo-cd-create-api-token"},
 		PatternConfig{},
 		func(datagram structs.Datagram, request argocd.ArgoCdCreateApiTokenRequest) (bool, error) {
-			return self.argocd.ArgoCdCreateApiToken(request)
+			result, err := self.argocd.ArgoCdCreateApiToken(request)
+			return store.AddToAuditLog(datagram, self.logger, result, err, nil, nil)
 		},
 	)
 
@@ -1087,7 +1118,8 @@ func (self *socketApi) registerPatterns() {
 		PatternHandle{self, "cluster/argo-cd-application-refresh"},
 		PatternConfig{},
 		func(datagram structs.Datagram, request argocd.ArgoCdApplicationRefreshRequest) (bool, error) {
-			return self.argocd.ArgoCdApplicationRefresh(request)
+			result, err := self.argocd.ArgoCdApplicationRefresh(request)
+			return store.AddToAuditLog(datagram, self.logger, result, err, nil, nil)
 		},
 	)
 
@@ -1095,7 +1127,8 @@ func (self *socketApi) registerPatterns() {
 		PatternHandle{self, "cluster/argo-cd-application-hard-refresh"},
 		PatternConfig{},
 		func(datagram structs.Datagram, request argocd.ArgoCdApplicationRefreshRequest) (bool, error) {
-			return self.argocd.ArgoCdApplicationHardRefresh(request)
+			result, err := self.argocd.ArgoCdApplicationHardRefresh(request)
+			return store.AddToAuditLog(datagram, self.logger, result, err, nil, nil)
 		},
 	)
 
@@ -1103,7 +1136,8 @@ func (self *socketApi) registerPatterns() {
 		PatternHandle{self, "cluster/argo-cd-application-sync"},
 		PatternConfig{},
 		func(datagram structs.Datagram, request argocd.ArgoCdApplicationSyncRequest) (bool, error) {
-			return self.argocd.ArgoCdApplicationSync(request)
+			result, err := self.argocd.ArgoCdApplicationSync(request)
+			return store.AddToAuditLog(datagram, self.logger, result, err, nil, nil)
 		},
 	)
 
@@ -1111,7 +1145,8 @@ func (self *socketApi) registerPatterns() {
 		PatternHandle{self, "cluster/argo-cd-application-terminate-operation"},
 		PatternConfig{},
 		func(datagram structs.Datagram, request argocd.ArgoCdApplicationTerminateOperationRequest) (bool, error) {
-			return self.argocd.ArgoCdApplicationTerminateOperation(request)
+			result, err := self.argocd.ArgoCdApplicationTerminateOperation(request)
+			return store.AddToAuditLog(datagram, self.logger, result, err, nil, nil)
 		},
 	)
 
@@ -1119,7 +1154,8 @@ func (self *socketApi) registerPatterns() {
 		PatternHandle{self, "cluster/argo-cd-resource-action"},
 		PatternConfig{},
 		func(datagram structs.Datagram, request argocd.ArgoCdResourceActionRequest) (bool, error) {
-			return self.argocd.ArgoCdResourceAction(request)
+			result, err := self.argocd.ArgoCdResourceAction(request)
+			return store.AddToAuditLog(datagram, self.logger, result, err, nil, nil)
 		},
 	)
 
@@ -1128,6 +1164,12 @@ func (self *socketApi) registerPatterns() {
 		PatternConfig{},
 		func(datagram structs.Datagram, request xterm.PortForwardConnectionRequest) (Void, error) {
 			go xterm.PortForwardStreamConnection(request)
+			// Same treatment as exec-sh below: interactive cluster access
+			// must leave an audit trail of who opened a tunnel to which pod.
+			_, err := store.AddToAuditLog(datagram, self.logger, any(nil), nil, nil, nil)
+			if err != nil {
+				self.logger.Warn("failed to add event to audit log", "request", request, "error", err)
+			}
 			return nil, nil
 		},
 	)
@@ -1220,8 +1262,9 @@ func (self *socketApi) registerPatterns() {
 		PatternHandle{self, "describe/workload"},
 		PatternConfig{},
 		func(datagram structs.Datagram, request utils.WorkloadSingleRequest) (string, error) {
-			result, err := kubernetes.DescribeUnstructuredResource(request.ApiVersion, request.Plural, request.Namespace, request.ResourceName)
-			return store.AddToAuditLog(datagram, self.logger, result, err, nil, nil)
+			// Read operation — no audit log entry (see get/workload): auditing
+			// reads spams the per-resource entry budget.
+			return kubernetes.DescribeUnstructuredResource(request.ApiVersion, request.Plural, request.Namespace, request.ResourceName)
 		},
 	)
 
@@ -1292,11 +1335,11 @@ func (self *socketApi) registerPatterns() {
 			}
 			// Resource still exists - check if it's terminating
 			if obj.GetDeletionTimestamp() != nil {
-				finalizers := obj.GetFinalizers()
-				if len(finalizers) > 0 {
-					return nil, fmt.Errorf("resource is terminating but blocked by finalizers: %v", finalizers)
+				if blocking := kubernetes.BlockingFinalizers(obj.GetFinalizers()); len(blocking) > 0 {
+					return nil, fmt.Errorf("resource is terminating but blocked by finalizers: %v", blocking)
 				}
-				return nil, fmt.Errorf("resource is terminating")
+				// Deletion accepted; grace periods and GC finalizers resolve asynchronously.
+				return nil, nil
 			}
 			return nil, nil
 		},
@@ -1400,6 +1443,7 @@ func (self *socketApi) registerPatterns() {
 					Name:              v.Name,
 					CreationTimestamp: v.CreationTimestamp,
 					Resources:         v.Spec.Resources,
+					DashboardRef:      v.Spec.DashboardRef,
 				})
 			}
 			return result, err
@@ -1408,21 +1452,26 @@ func (self *socketApi) registerPatterns() {
 
 	{
 		type Request struct {
-			Name        string                                 `json:"name" validate:"required"`
-			DisplayName string                                 `json:"displayName"`
-			Resources   []v1alpha1.WorkspaceResourceIdentifier `json:"resources" validate:"required"`
+			Name         string                                 `json:"name" validate:"required"`
+			DisplayName  string                                 `json:"displayName"`
+			Resources    []v1alpha1.WorkspaceResourceIdentifier `json:"resources" validate:"required"`
+			DashboardRef string                                 `json:"dashboardRef"`
 		}
 
 		RegisterPatternHandler(
 			PatternHandle{self, "create/workspace"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (string, error) {
-
-				res, err := self.apiService.CreateWorkspace(request.Name, v1alpha1.NewWorkspaceSpec(
-					request.DisplayName,
-					request.Resources,
-				))
-				return store.AddToAuditLog(datagram, self.logger, res, err, nil, nil)
+				spec := v1alpha1.NewWorkspaceSpec(request.DisplayName, request.Resources, request.DashboardRef)
+				res, err := self.apiService.CreateWorkspace(request.Name, spec)
+				var created *unstructured.Unstructured
+				if err == nil {
+					created = crdToAuditObject(&v1alpha1.Workspace{
+						ObjectMeta: metav1.ObjectMeta{Name: request.Name},
+						Spec:       spec,
+					}, "Workspace", request.Name)
+				}
+				return store.AddToAuditLog(datagram, self.logger, res, err, nil, created)
 			},
 		)
 	}
@@ -1446,7 +1495,7 @@ func (self *socketApi) registerPatterns() {
 				if err != nil || workspace == nil {
 					return nil, err
 				}
-				result := NewGetWorkspaceResult(workspace.Name, workspace.CreationTimestamp, workspace.Spec.Resources)
+				result := NewGetWorkspaceResult(workspace.Name, workspace.CreationTimestamp, workspace.Spec.Resources, workspace.Spec.DashboardRef)
 				return &result, nil
 			},
 		)
@@ -1469,7 +1518,7 @@ func (self *socketApi) registerPatterns() {
 			PatternHandle{self, "workspace/clean-up"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (CleanUpResult, error) {
-				return self.moKubernetes.CleanUp(
+				result, err := self.moKubernetes.CleanUp(
 					self.apiService,
 					request.Name,
 					request.DryRun,
@@ -1480,26 +1529,39 @@ func (self *socketApi) registerPatterns() {
 					request.ConfigMaps,
 					request.Jobs,
 					request.Ingresses)
+				if request.DryRun {
+					// Dry runs delete nothing — auditing them would only drown
+					// out the real clean-up entries.
+					return result, err
+				}
+				return store.AddToAuditLog(datagram, self.logger, result, err, nil, nil)
 			},
 		)
 	}
 
 	{
 		type Request struct {
-			Name        string                                 `json:"name" validate:"required"`
-			DisplayName string                                 `json:"displayName"`
-			Resources   []v1alpha1.WorkspaceResourceIdentifier `json:"resources" validate:"required"`
+			Name         string                                 `json:"name" validate:"required"`
+			DisplayName  string                                 `json:"displayName"`
+			Resources    []v1alpha1.WorkspaceResourceIdentifier `json:"resources" validate:"required"`
+			DashboardRef string                                 `json:"dashboardRef"`
 		}
 
 		RegisterPatternHandler(
 			PatternHandle{self, "update/workspace"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (string, error) {
-				res, err := self.apiService.UpdateWorkspace(request.Name, v1alpha1.NewWorkspaceSpec(
-					request.DisplayName,
-					request.Resources,
-				))
-				return store.AddToAuditLog(datagram, self.logger, res, err, nil, nil)
+				spec := v1alpha1.NewWorkspaceSpec(request.DisplayName, request.Resources, request.DashboardRef)
+				oldWorkspace, _ := store.GetWorkspace(self.config.Get("MO_OWN_NAMESPACE"), request.Name)
+				res, err := self.apiService.UpdateWorkspace(request.Name, spec)
+				var oldObj, newObj *unstructured.Unstructured
+				if oldWorkspace != nil {
+					oldObj = crdToAuditObject(oldWorkspace, "Workspace", request.Name)
+					updated := oldWorkspace.DeepCopy()
+					updated.Spec = spec
+					newObj = crdToAuditObject(updated, "Workspace", request.Name)
+				}
+				return store.AddToAuditLog(datagram, self.logger, res, err, oldObj, newObj)
 			},
 		)
 	}
@@ -1513,8 +1575,9 @@ func (self *socketApi) registerPatterns() {
 			PatternHandle{self, "delete/workspace"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (string, error) {
+				oldWorkspace, _ := store.GetWorkspace(self.config.Get("MO_OWN_NAMESPACE"), request.Name)
 				res, err := self.apiService.DeleteWorkspace(request.Name)
-				return store.AddToAuditLog(datagram, self.logger, res, err, nil, nil)
+				return store.AddToAuditLog(datagram, self.logger, res, err, crdToAuditObject(oldWorkspace, "Workspace", request.Name), nil)
 			},
 		)
 	}
@@ -1546,13 +1609,16 @@ func (self *socketApi) registerPatterns() {
 			PatternHandle{self, "create/user"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (string, error) {
-				res, err := self.apiService.CreateUser(request.Name, v1alpha1.NewUserSpec(
-					request.FirstName,
-					request.LastName,
-					request.Email,
-					request.Subject,
-				))
-				return store.AddToAuditLog(datagram, self.logger, res, err, nil, nil)
+				spec := v1alpha1.NewUserSpec(request.FirstName, request.LastName, request.Email, request.Subject)
+				res, err := self.apiService.CreateUser(request.Name, spec)
+				var created *unstructured.Unstructured
+				if err == nil {
+					created = crdToAuditObject(&v1alpha1.User{
+						ObjectMeta: metav1.ObjectMeta{Name: request.Name},
+						Spec:       spec,
+					}, "User", request.Name)
+				}
+				return store.AddToAuditLog(datagram, self.logger, res, err, nil, created)
 			},
 		)
 	}
@@ -1584,13 +1650,17 @@ func (self *socketApi) registerPatterns() {
 			PatternHandle{self, "update/user"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (string, error) {
-				res, err := self.apiService.UpdateUser(request.Name, v1alpha1.NewUserSpec(
-					request.FirstName,
-					request.LastName,
-					request.Email,
-					request.Subject,
-				))
-				return store.AddToAuditLog(datagram, self.logger, res, err, nil, nil)
+				spec := v1alpha1.NewUserSpec(request.FirstName, request.LastName, request.Email, request.Subject)
+				oldUser, _ := self.apiService.GetUser(request.Name)
+				res, err := self.apiService.UpdateUser(request.Name, spec)
+				var oldObj, newObj *unstructured.Unstructured
+				if oldUser != nil {
+					oldObj = crdToAuditObject(oldUser, "User", request.Name)
+					updated := oldUser.DeepCopy()
+					updated.Spec = spec
+					newObj = crdToAuditObject(updated, "User", request.Name)
+				}
+				return store.AddToAuditLog(datagram, self.logger, res, err, oldObj, newObj)
 			},
 		)
 	}
@@ -1604,8 +1674,9 @@ func (self *socketApi) registerPatterns() {
 			PatternHandle{self, "delete/user"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (string, error) {
+				oldUser, _ := self.apiService.GetUser(request.Name)
 				res, err := self.apiService.DeleteUser(request.Name)
-				return store.AddToAuditLog(datagram, self.logger, res, err, nil, nil)
+				return store.AddToAuditLog(datagram, self.logger, res, err, crdToAuditObject(oldUser, "User", request.Name), nil)
 			},
 		)
 	}
@@ -1639,13 +1710,16 @@ func (self *socketApi) registerPatterns() {
 			PatternHandle{self, "create/grant"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (string, error) {
-				res, err := self.apiService.CreateGrant(request.Name, v1alpha1.NewGrantSpec(
-					request.Grantee,
-					request.TargetType,
-					request.TargetName,
-					request.Role,
-				))
-				return store.AddToAuditLog(datagram, self.logger, res, err, nil, nil)
+				spec := v1alpha1.NewGrantSpec(request.Grantee, request.TargetType, request.TargetName, request.Role)
+				res, err := self.apiService.CreateGrant(request.Name, spec)
+				var created *unstructured.Unstructured
+				if err == nil {
+					created = crdToAuditObject(&v1alpha1.Grant{
+						ObjectMeta: metav1.ObjectMeta{Name: request.Name},
+						Spec:       spec,
+					}, "Grant", request.Name)
+				}
+				return store.AddToAuditLog(datagram, self.logger, res, err, nil, created)
 			},
 		)
 	}
@@ -1677,13 +1751,17 @@ func (self *socketApi) registerPatterns() {
 			PatternHandle{self, "update/grant"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (string, error) {
-				res, err := self.apiService.UpdateGrant(request.Name, v1alpha1.NewGrantSpec(
-					request.Grantee,
-					request.TargetType,
-					request.TargetName,
-					request.Role,
-				))
-				return store.AddToAuditLog(datagram, self.logger, res, err, nil, nil)
+				spec := v1alpha1.NewGrantSpec(request.Grantee, request.TargetType, request.TargetName, request.Role)
+				oldGrant, _ := self.apiService.GetGrant(request.Name)
+				res, err := self.apiService.UpdateGrant(request.Name, spec)
+				var oldObj, newObj *unstructured.Unstructured
+				if oldGrant != nil {
+					oldObj = crdToAuditObject(oldGrant, "Grant", request.Name)
+					updated := oldGrant.DeepCopy()
+					updated.Spec = spec
+					newObj = crdToAuditObject(updated, "Grant", request.Name)
+				}
+				return store.AddToAuditLog(datagram, self.logger, res, err, oldObj, newObj)
 			},
 		)
 	}
@@ -1697,8 +1775,9 @@ func (self *socketApi) registerPatterns() {
 			PatternHandle{self, "delete/grant"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (string, error) {
+				oldGrant, _ := self.apiService.GetGrant(request.Name)
 				res, err := self.apiService.DeleteGrant(request.Name)
-				return store.AddToAuditLog(datagram, self.logger, res, err, nil, nil)
+				return store.AddToAuditLog(datagram, self.logger, res, err, crdToAuditObject(oldGrant, "Grant", request.Name), nil)
 			},
 		)
 	}
@@ -1768,10 +1847,11 @@ func (self *socketApi) registerPatterns() {
 			PatternHandle{self, "aiManager/inject-prompt-config"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (Void, error) {
-				mergedPromptCfg, err := kubernetes.CreateOrUpdateAndMergePromptConfig(request.AiPromptConfig)
-				self.aiApi.InjectAiPromptConfig(mergedPromptCfg, &request.AiPrompts)
-				// return store.AddToAuditLog[Void](datagram, self.logger, nil, err, nil, nil)
-				return nil, err
+				// Filters in the payload are tolerated for backward
+				// compatibility but no longer drive any task creation —
+				// event triggers now live on Agent CRs.
+				self.aiApi.InjectAiPromptConfig(request.AiPromptConfig, &request.AiPrompts)
+				return store.AddToAuditLog[Void](datagram, self.logger, nil, nil, nil, nil)
 			},
 		)
 
@@ -1785,21 +1865,166 @@ func (self *socketApi) registerPatterns() {
 	}
 
 	{
-		type UpdateFiltersRequest struct {
-			Filters     []ai.AiFilter `json:"filters" validate:"required"`
-			UserFilters []ai.AiFilter `json:"userFilters"`
+		type Request struct {
+			Name string `json:"name"`
 		}
 
 		RegisterPatternHandler(
-			PatternHandle{self, "aiManager/update-filter-states"},
+			PatternHandle{self, "get/agents"},
 			PatternConfig{},
-			func(datagram structs.Datagram, request UpdateFiltersRequest) (Void, error) {
-				err := kubernetes.UpdateFilterActiveStates(request.Filters, request.UserFilters)
-				if err != nil {
-					return nil, err
+			func(datagram structs.Datagram, request Request) ([]GetAgentResult, error) {
+				if request.Name != "" {
+					agent, err := self.apiService.GetAgent(request.Name)
+					if err != nil || agent == nil {
+						return []GetAgentResult{}, err
+					}
+					return []GetAgentResult{*agent}, nil
 				}
-				// The ConfigMap watcher will pick up the change and call InjectAiPromptConfig
-				return nil, nil
+				return self.apiService.GetAllAgents()
+			},
+		)
+	}
+
+	{
+		type Request struct {
+			Name string             `json:"name" validate:"required"`
+			Spec v1alpha1.AgentSpec `json:"spec" validate:"required"`
+		}
+
+		RegisterPatternHandler(
+			PatternHandle{self, "create/agent"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Request) (string, error) {
+				var res string
+				err := ai.ValidateAgentSpec(request.Spec)
+				if err == nil {
+					res, err = self.apiService.CreateAgent(request.Name, request.Spec)
+				}
+				var created *unstructured.Unstructured
+				if err == nil {
+					created = crdToAuditObject(&v1alpha1.Agent{
+						ObjectMeta: metav1.ObjectMeta{Name: request.Name},
+						Spec:       request.Spec,
+					}, "Agent", request.Name)
+				}
+				return store.AddToAuditLog(datagram, self.logger, res, err, nil, created)
+			},
+		)
+
+		RegisterPatternHandler(
+			PatternHandle{self, "update/agent"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Request) (string, error) {
+				oldAgent, _ := store.GetAgent(self.config.Get("MO_OWN_NAMESPACE"), request.Name)
+				var res string
+				err := ai.ValidateAgentSpec(request.Spec)
+				if err == nil {
+					res, err = self.apiService.UpdateAgent(request.Name, request.Spec)
+				}
+				var oldObj, newObj *unstructured.Unstructured
+				if oldAgent != nil {
+					oldObj = crdToAuditObject(oldAgent, "Agent", request.Name)
+					updated := oldAgent.DeepCopy()
+					updated.Spec = request.Spec
+					newObj = crdToAuditObject(updated, "Agent", request.Name)
+				}
+				return store.AddToAuditLog(datagram, self.logger, res, err, oldObj, newObj)
+			},
+		)
+	}
+
+	{
+		type Request struct {
+			Name string `json:"name" validate:"required"`
+		}
+
+		RegisterPatternHandler(
+			PatternHandle{self, "delete/agent"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Request) (string, error) {
+				oldAgent, _ := store.GetAgent(self.config.Get("MO_OWN_NAMESPACE"), request.Name)
+				res, err := self.apiService.DeleteAgent(request.Name)
+				return store.AddToAuditLog(datagram, self.logger, res, err, crdToAuditObject(oldAgent, "Agent", request.Name), nil)
+			},
+		)
+	}
+
+	{
+		type Request struct {
+			AgentName string `json:"agentName" validate:"required"`
+		}
+
+		RegisterPatternHandler(
+			PatternHandle{self, "aiManager/trigger/agent"},
+			PatternConfig{NeedsUser: true},
+			func(datagram structs.Datagram, request Request) (string, error) {
+				// GitOps-native: request a run by bumping the agent's
+				// run-request annotation. The agent reconciler enqueues the
+				// actual run within the informer's latency; the new task then
+				// arrives via the normal AI event stream.
+				res, err := self.apiService.RequestAgentRun(request.AgentName)
+				return store.AddToAuditLog(datagram, self.logger, res, err, nil, nil)
+			},
+		)
+	}
+
+	{
+		type Request struct {
+			TaskId string `json:"taskId" validate:"required"`
+		}
+
+		RegisterPatternHandler(
+			PatternHandle{self, "aiManager/approve/task"},
+			PatternConfig{NeedsUser: true},
+			func(datagram structs.Datagram, request Request) (*ai.AiTask, error) {
+				task, err := self.aiApi.ApproveTask(request.TaskId, datagram.User, datagram.Workspace)
+				return store.AddToAuditLog(datagram, self.logger, task, err, nil, nil)
+			},
+		)
+	}
+
+	{
+		type Request struct {
+			TaskId string `json:"taskId" validate:"required"`
+			Reason string `json:"reason"`
+		}
+
+		RegisterPatternHandler(
+			PatternHandle{self, "aiManager/reject/task"},
+			PatternConfig{NeedsUser: true},
+			func(datagram structs.Datagram, request Request) (*ai.AiTask, error) {
+				task, err := self.aiApi.RejectTask(request.TaskId, datagram.User, request.Reason)
+				return store.AddToAuditLog(datagram, self.logger, task, err, nil, nil)
+			},
+		)
+	}
+
+	{
+		type Request struct {
+			TaskId string `json:"taskId" validate:"required"`
+		}
+
+		RegisterPatternHandler(
+			PatternHandle{self, "aiManager/cancel/task"},
+			PatternConfig{NeedsUser: true},
+			func(datagram structs.Datagram, request Request) (*ai.AiTask, error) {
+				task, err := self.aiApi.CancelTask(request.TaskId, datagram.User)
+				return store.AddToAuditLog(datagram, self.logger, task, err, nil, nil)
+			},
+		)
+	}
+
+	{
+		type Request struct {
+			TaskId string `json:"taskId" validate:"required"`
+		}
+
+		RegisterPatternHandler(
+			PatternHandle{self, "aiManager/delete/task"},
+			PatternConfig{NeedsUser: true},
+			func(datagram structs.Datagram, request Request) (*ai.AiTask, error) {
+				task, err := self.aiApi.DeleteTask(request.TaskId, datagram.User)
+				return store.AddToAuditLog(datagram, self.logger, task, err, nil, nil)
 			},
 		)
 	}
@@ -1814,9 +2039,7 @@ func (self *socketApi) registerPatterns() {
 			PatternHandle{self, "aiManager/status"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (ai.AiManagerStatus, error) {
-				status := self.aiApi.GetStatus(request.Workspace)
-				// return store.AddToAuditLog(datagram, self.logger, status, nil, nil, nil)
-				return status, nil
+				return self.aiApi.GetStatus(request.Workspace), nil
 			},
 		)
 	}
@@ -1870,7 +2093,6 @@ func (self *socketApi) registerPatterns() {
 					tasks, err = self.aiApi.GetAiTasksForWorkspace(request.Workspace)
 				}
 
-				// return store.AddToAuditLog(datagram, self.logger, tasks, err, nil, nil)
 				return tasks, err
 			},
 		)
@@ -2026,7 +2248,7 @@ func (self *socketApi) registerPatterns() {
 						}, err
 					}
 				}
-				data, size, err := store.ListAuditLog(request.Limit, request.Offset, namespaces, clusterwide, request.Search)
+				data, size, err := store.ListAuditLog(request.Limit, request.Offset, namespaces, clusterwide, request.WorkspaceName, request.Search)
 				if err != nil {
 					return Response{
 						Status:  "error",
@@ -2164,7 +2386,10 @@ func (self *socketApi) registerPatterns() {
 			PatternHandle{self, "sealed-secret/create-from-existing"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (*unstructured.Unstructured, error) {
-				return self.sealedSecret.CreateSealedSecretFromExisting(request.Name, request.Namespace)
+				// The created SealedSecret only carries encrypted data; the
+				// source Secret itself never enters the audit entry.
+				created, err := self.sealedSecret.CreateSealedSecretFromExisting(request.Name, request.Namespace)
+				return store.AddToAuditLog(datagram, self.logger, created, err, nil, created)
 			},
 		)
 	}

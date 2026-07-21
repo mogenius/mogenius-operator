@@ -1,6 +1,7 @@
 package ai
 
 import (
+	"encoding/json"
 	"fmt"
 	"sort"
 	"strings"
@@ -236,6 +237,66 @@ func truncateResult(s string, maxChars int) string {
 		return s
 	}
 	return s[:maxChars] + fmt.Sprintf("\n...truncated (%d total chars, showing first %d)", len(s), maxChars)
+}
+
+// compactHistoryAfterChars is the conversation size (in JSON chars, ~4 per
+// token) above which the insights loop compacts old tool results. Compaction
+// mutates the conversation prefix and therefore voids the prompt cache, so it
+// must not run every turn — only once carrying the bulk forward as cache
+// reads costs more than one cache rebuild.
+const compactHistoryAfterChars = 60_000
+
+// moveCacheBreakpoint moves the single conversation cache breakpoint to the
+// last message: everything up to and including it is then served from the
+// prompt cache on the next request. Anthropic allows at most 4 breakpoints
+// per request (two are spent on the system prompt and the tool definitions),
+// so the previous marker is cleared instead of accumulating.
+func moveCacheBreakpoint(messages []anthropic.MessageParam, cachedMsgIdx *int) {
+	if len(messages) == 0 {
+		return
+	}
+	last := len(messages) - 1
+	if *cachedMsgIdx == last {
+		return
+	}
+	if *cachedMsgIdx >= 0 && *cachedMsgIdx < last {
+		setTrailingCacheControl(&messages[*cachedMsgIdx], false)
+	}
+	setTrailingCacheControl(&messages[last], true)
+	*cachedMsgIdx = last
+}
+
+// setTrailingCacheControl sets or clears the cache_control marker on the last
+// content block of the message.
+func setTrailingCacheControl(msg *anthropic.MessageParam, enabled bool) {
+	if len(msg.Content) == 0 {
+		return
+	}
+	var cc anthropic.CacheControlEphemeralParam
+	if enabled {
+		cc = anthropic.NewCacheControlEphemeralParam()
+	}
+	block := &msg.Content[len(msg.Content)-1]
+	switch {
+	case block.OfToolResult != nil:
+		block.OfToolResult.CacheControl = cc
+	case block.OfText != nil:
+		block.OfText.CacheControl = cc
+	case block.OfToolUse != nil:
+		block.OfToolUse.CacheControl = cc
+	}
+}
+
+// estimateMessagesChars sizes the conversation payload to decide when
+// compaction pays for the cache rebuild it causes.
+func estimateMessagesChars(messages []anthropic.MessageParam) int {
+	total := 0
+	for i := range messages {
+		if data, err := json.Marshal(messages[i]); err == nil {
+			total += len(data)
+		}
+	}
+	return total
 }
 
 // compactAnthropicToolResults replaces all tool_result contents in messages

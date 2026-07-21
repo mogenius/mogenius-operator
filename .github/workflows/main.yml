@@ -23,7 +23,7 @@ jobs:
   # Prepare - Get version info
   # ============================================================================
   prepare:
-    uses: mogenius/github-actions/.github/workflows/semantic-release.yml@bc970bed7557d2231075c2353b5cd8caf13ab50a # v1.6.1
+    uses: mogenius/github-actions/.github/workflows/semantic-release.yml@9bbef6f2531206a2cc3e41b0649704a80f2d4185 # v1.7.0
     secrets:
       APP_ID: ${{ secrets.RELEASE_APP_ID }}
       APP_PRIVATE_KEY: ${{ secrets.RELEASE_APP_SECRET }}
@@ -36,7 +36,7 @@ jobs:
   # ============================================================================
   build-operator:
     needs: [prepare]
-    uses: mogenius/github-actions/.github/workflows/build-multiarch.yml@bc970bed7557d2231075c2353b5cd8caf13ab50a # v1.6.1
+    uses: mogenius/github-actions/.github/workflows/build-multiarch.yml@9bbef6f2531206a2cc3e41b0649704a80f2d4185 # v1.7.0
     secrets: inherit
     with:
       version: ${{ needs.prepare.outputs.version }}
