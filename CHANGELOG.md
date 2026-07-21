@@ -1,284 +1,42 @@
-# [2.24.0-develop.32](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.31...v2.24.0-develop.32) (2026-07-20)
+## [2.23.3](https://github.com/mogenius/mogenius-operator/compare/v2.23.2...v2.23.3) (2026-07-08)
 
 
 ### Bug Fixes
 
-* ai insights improved ([0abf349](https://github.com/mogenius/mogenius-operator/commit/0abf34930aee327cbe5148780e2ea15c19895b3c))
-
-# [2.24.0-develop.31](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.30...v2.24.0-develop.31) (2026-07-20)
-
-
-### Bug Fixes
-
-* seed default workspace dashboard on operator startup — dashboardseeder.go, cluster.go; simplify workspace dashboard crd and clear refs on delete — Typ, YAML, Deepcopy, Reconciler ([8170e12](https://github.com/mogenius/mogenius-operator/commit/8170e12980250a9d463e8302440dd790173ca990))
-
-# [2.24.0-develop.30](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.29...v2.24.0-develop.30) (2026-07-20)
-
-
-### Bug Fixes
-
-* ai insights improved ([5119f2e](https://github.com/mogenius/mogenius-operator/commit/5119f2ee6bbf4073acf666903729dfd54b118d23))
-
-# [2.24.0-develop.29](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.28...v2.24.0-develop.29) (2026-07-20)
-
-
-### Bug Fixes
-
-* **deps:** update module github.com/openai/openai-go/v3 to v3.44.0 ([da21f19](https://github.com/mogenius/mogenius-operator/commit/da21f19edba810542e2b841a6b162088c8b37225))
-
-# [2.24.0-develop.28](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.27...v2.24.0-develop.28) (2026-07-20)
-
-
-### Bug Fixes
-
-* aiinsights cleanup ([5fca0a0](https://github.com/mogenius/mogenius-operator/commit/5fca0a0fd728c10ea4c152dc736c573218f1e290))
-
-# [2.24.0-develop.27](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.26...v2.24.0-develop.27) (2026-07-18)
-
-
-### Bug Fixes
-
-* use official status array for compatibility reasons ([480b5a7](https://github.com/mogenius/mogenius-operator/commit/480b5a7725e34fb462fa8cbb146f72e4792e6a50))
-
-
-### Features
-
-* adding gitops status to platform crd ([6b10b29](https://github.com/mogenius/mogenius-operator/commit/6b10b294157d2fcac008202111b1cafba0d5a961))
-
-# [2.24.0-develop.26](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.25...v2.24.0-develop.26) (2026-07-17)
-
-
-### Bug Fixes
-
-* aiinsights cleanup ([1893bef](https://github.com/mogenius/mogenius-operator/commit/1893bef7c598cd4c46759e90b2e1a929371a17e6))
-
-# [2.24.0-develop.25](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.24...v2.24.0-develop.25) (2026-07-17)
-
-
-### Bug Fixes
-
-* aiinsights cleanup ([e14cc3c](https://github.com/mogenius/mogenius-operator/commit/e14cc3c744487248b73ab6f52c7322b7e7e8e8b1))
-
-# [2.24.0-develop.24](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.23...v2.24.0-develop.24) (2026-07-17)
-
-
-### Bug Fixes
-
-* aiinsights cleanup ([271ea6a](https://github.com/mogenius/mogenius-operator/commit/271ea6a80b315409a530cf04eb407ad037b6518c))
-
-# [2.24.0-develop.23](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.22...v2.24.0-develop.23) (2026-07-17)
-
-
-### Bug Fixes
-
-* aiinsights cleanup ([2de4378](https://github.com/mogenius/mogenius-operator/commit/2de437884ba6678b8415dd32384b6f7dc2e7c123))
-
-# [2.24.0-develop.22](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.21...v2.24.0-develop.22) (2026-07-17)
-
-
-### Bug Fixes
-
-* **deps:** update module github.com/anthropics/anthropic-sdk-go to v1.58.0 ([a9e7797](https://github.com/mogenius/mogenius-operator/commit/a9e779781bce68565b5ae4b9095457b12a95a364))
-* **deps:** update module github.com/mattn/go-isatty to v0.0.23 ([c7277f4](https://github.com/mogenius/mogenius-operator/commit/c7277f4c270af42566326eb6c51f231bbad349f9))
-* **deps:** update module github.com/ollama/ollama to v0.32.1 ([1186ee1](https://github.com/mogenius/mogenius-operator/commit/1186ee19d03c2f128f9f2c973ae5746aa7d4e9b8))
-* **deps:** update module github.com/openai/openai-go/v3 to v3.43.0 ([f5e448b](https://github.com/mogenius/mogenius-operator/commit/f5e448b8ced874e2017016541db01605e2f927f2))
-
-# [2.24.0-develop.21](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.20...v2.24.0-develop.21) (2026-07-17)
-
-
-### Bug Fixes
-
-* **deps:** update module github.com/alecthomas/kong to v1.16.0 ([8c0ebe8](https://github.com/mogenius/mogenius-operator/commit/8c0ebe817dba57f48c795ed6bacd1ca068febc31))
-
-# [2.24.0-develop.20](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.19...v2.24.0-develop.20) (2026-07-15)
-
-
-### Features
-
-* enable argocd metrics if available ([1d0dcad](https://github.com/mogenius/mogenius-operator/commit/1d0dcad86e16087fa814074250bc485f7821898d))
-* enable external dns metrics if available ([f168184](https://github.com/mogenius/mogenius-operator/commit/f1681841775716a3fc847272e3d20b18d3e92813))
-* enable external secrets metrics if available ([43b96d7](https://github.com/mogenius/mogenius-operator/commit/43b96d7e3aec9b1c70d6f12a0963839fffa4ea67))
-* enable flux operator metrics if available ([1633eab](https://github.com/mogenius/mogenius-operator/commit/1633eab596c2b89048461eefc565f04c7d2c0d5b))
-
-# [2.24.0-develop.19](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.18...v2.24.0-develop.19) (2026-07-14)
-
-
-### Bug Fixes
-
-* report Unknown condition when dashboard lookup fails ([be60340](https://github.com/mogenius/mogenius-operator/commit/be60340e6196115a4be978c173905288d5c8009f))
-* requeue referencing workspaces on dashboard create/delete ([bee3710](https://github.com/mogenius/mogenius-operator/commit/bee37105f8e2a23c73f3bd137e48126b1c87cf22))
-
-
-### Features
-
-* add WorkspaceDashboard CRD for configurable workspace dashboards ([f435091](https://github.com/mogenius/mogenius-operator/commit/f4350913f61c24ed5df438a4127e0f9a4ade54c2))
-
-# [2.24.0-develop.18](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.17...v2.24.0-develop.18) (2026-07-14)
-
-
-### Bug Fixes
-
-* aiinsights improved ([f004483](https://github.com/mogenius/mogenius-operator/commit/f004483a5fdc953bf570dffa77ae7dab2d563392))
-
-# [2.24.0-develop.17](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.16...v2.24.0-develop.17) (2026-07-14)
-
-
-### Bug Fixes
-
-* aiinsights improved ([ca71dd7](https://github.com/mogenius/mogenius-operator/commit/ca71dd7328171dc2145e96885364dd269d306598))
-
-# [2.24.0-develop.16](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.15...v2.24.0-develop.16) (2026-07-14)
-
-
-### Features
-
-* report deployed namespace to platform ([5e269ac](https://github.com/mogenius/mogenius-operator/commit/5e269acb15993dfb550d2ea97f91243774922a30))
-
-# [2.24.0-develop.15](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.14...v2.24.0-develop.15) (2026-07-14)
-
-
-### Bug Fixes
-
-* aiinsights improved ([3777c00](https://github.com/mogenius/mogenius-operator/commit/3777c00375c340a0a339cade5fe48227280bf475))
-
-# [2.24.0-develop.14](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.13...v2.24.0-develop.14) (2026-07-14)
-
-
-### Bug Fixes
-
-* aiinsights improved ([c878dc7](https://github.com/mogenius/mogenius-operator/commit/c878dc7beb6dae53773513c515c2fa76d8450528))
-
-# [2.24.0-develop.13](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.12...v2.24.0-develop.13) (2026-07-14)
-
-
-### Bug Fixes
-
-* aiinsights improved ([faefce0](https://github.com/mogenius/mogenius-operator/commit/faefce0429c1fb069fde470dd734fe2dcb3f423b))
-
-# [2.24.0-develop.12](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.11...v2.24.0-develop.12) (2026-07-14)
-
-
-### Bug Fixes
-
-* default optional valkey config keys to empty string ([f715096](https://github.com/mogenius/mogenius-operator/commit/f715096e017870f509e503350402168809b5c89b)), closes [#1065](https://github.com/mogenius/mogenius-operator/issues/1065)
-
-# [2.24.0-develop.11](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.10...v2.24.0-develop.11) (2026-07-14)
-
-
-### Bug Fixes
-
-* **deps:** update module github.com/ollama/ollama to v0.32.0 ([8463790](https://github.com/mogenius/mogenius-operator/commit/846379099191ece2102becd28c65a1693a39f1c6))
-
-# [2.24.0-develop.10](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.9...v2.24.0-develop.10) (2026-07-13)
-
-
-### Bug Fixes
-
-* aiinsights improved ([15fced9](https://github.com/mogenius/mogenius-operator/commit/15fced9dcbe023106c2c19360315b1feee58cdbf))
-
-
-### Features
-
-* add ability to use external valkey ([82c9bb2](https://github.com/mogenius/mogenius-operator/commit/82c9bb2819c9c21895ac3718e2bc2b9e1bf2b6a5))
-
-# [2.24.0-develop.9](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.8...v2.24.0-develop.9) (2026-07-13)
-
-
-### Bug Fixes
-
-* new agentic ai-insights approach ([34ab2e4](https://github.com/mogenius/mogenius-operator/commit/34ab2e41dde981053ad0705e76f90b49d2bbba6f))
-
-# [2.24.0-develop.8](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.7...v2.24.0-develop.8) (2026-07-13)
-
-
-### Features
-
-* adding reconciler metrics ([76d43e4](https://github.com/mogenius/mogenius-operator/commit/76d43e4991a19f95764702389436df39a55e53b5))
-* enable renovate operator servicemonitor if kind exists ([a9468a8](https://github.com/mogenius/mogenius-operator/commit/a9468a81f6cf9dcd7a3e429cc66e1c3a3d222659))
-* enable traefik metrics if servicemonitors exist in the cluster ([5f45449](https://github.com/mogenius/mogenius-operator/commit/5f45449d98031777d1900202fa3880349576bdec))
-* only create externalsecrets if externalsecrets already exist in the api ([bd874b9](https://github.com/mogenius/mogenius-operator/commit/bd874b9c64f05881d8685439f7589aed84bd13f2))
-
-# [2.24.0-develop.7](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.6...v2.24.0-develop.7) (2026-07-13)
-
-
-### Bug Fixes
-
-* new agentic ai-insights approach ([35d2d8b](https://github.com/mogenius/mogenius-operator/commit/35d2d8b8ff864e9e73f0e86df7ccf0565229acd3))
-
-# [2.24.0-develop.6](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.5...v2.24.0-develop.6) (2026-07-13)
-
-
-### Bug Fixes
-
-* **deps:** update module github.com/anthropics/anthropic-sdk-go to v1.57.0 ([b4f4655](https://github.com/mogenius/mogenius-operator/commit/b4f4655e0f6123ab8df778d5f5f90e0137bf0f3a))
-* **deps:** update module github.com/openai/openai-go/v3 to v3.42.0 ([fead5c7](https://github.com/mogenius/mogenius-operator/commit/fead5c7834c8eb455d48d417191ed6cc17d697e3))
-
-# [2.24.0-develop.5](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.4...v2.24.0-develop.5) (2026-07-10)
-
-
-### Bug Fixes
-
-* new agentic ai-insights approach ([8161a1a](https://github.com/mogenius/mogenius-operator/commit/8161a1a60d4d159114b7f646222645f6980e09aa))
-
-# [2.24.0-develop.4](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.3...v2.24.0-develop.4) (2026-07-10)
-
-
-### Bug Fixes
-
-* new agentic ai-insights approach ([2df8bae](https://github.com/mogenius/mogenius-operator/commit/2df8bae03f8b065b7061077d283e5727836a351a))
-
-# [2.24.0-develop.3](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.2...v2.24.0-develop.3) (2026-07-10)
-
-
-### Bug Fixes
-
-* **deps:** update module helm.sh/helm/v4 to v4.2.3 ([0c3e10f](https://github.com/mogenius/mogenius-operator/commit/0c3e10fed3862e3ddc987167e7e4f754ff17f449))
-
-# [2.24.0-develop.2](https://github.com/mogenius/mogenius-operator/compare/v2.24.0-develop.1...v2.24.0-develop.2) (2026-07-10)
-
-
-### Bug Fixes
-
-* MOG-4450 job deletion fails because of orphan finalizer ([62ac4d4](https://github.com/mogenius/mogenius-operator/commit/62ac4d49d1e7fc92a25b8434283ee22b3a4b09f6))
-
-# [2.24.0-develop.1](https://github.com/mogenius/mogenius-operator/compare/v2.23.3-develop.5...v2.24.0-develop.1) (2026-07-10)
-
-
-### Features
-
-* add support for victoria-metrics as bring-your-own monitoring solution ([b4d2da8](https://github.com/mogenius/mogenius-operator/commit/b4d2da8901245eb685761715c04d85a7045164b1))
-
-## [2.23.3-develop.5](https://github.com/mogenius/mogenius-operator/compare/v2.23.3-develop.4...v2.23.3-develop.5) (2026-07-09)
-
-
-### Bug Fixes
-
-* improve audit-log ([58dc5ce](https://github.com/mogenius/mogenius-operator/commit/58dc5ce3038f404295f1ee3b15b1fbb5e8b06de1))
-* improve audit-log even more ([4ca59c2](https://github.com/mogenius/mogenius-operator/commit/4ca59c27f735a4a9d5de99a8b776c86c37a92c0d))
-
-## [2.23.3-develop.4](https://github.com/mogenius/mogenius-operator/compare/v2.23.3-develop.3...v2.23.3-develop.4) (2026-07-09)
-
-
-### Bug Fixes
-
-* **ai:** guard prompt config access and activate user-defined filters ([68a7895](https://github.com/mogenius/mogenius-operator/commit/68a78957ac589411f9d9335dba7fbfe06da075a5))
-* **ai:** harden unattended insight pipeline ([2d7a17a](https://github.com/mogenius/mogenius-operator/commit/2d7a17a4c15e8e434f47248fb58ff0751576a51e))
-
-## [2.23.3-develop.3](https://github.com/mogenius/mogenius-operator/compare/v2.23.3-develop.2...v2.23.3-develop.3) (2026-07-09)
-
-
-### Bug Fixes
-
-* **deps:** update module github.com/cert-manager/cert-manager to v1.21.0 ([85b784c](https://github.com/mogenius/mogenius-operator/commit/85b784cba5e5df4935d48dbced64116b4dee36f6))
-
-## [2.23.3-develop.2](https://github.com/mogenius/mogenius-operator/compare/v2.23.3-develop.1...v2.23.3-develop.2) (2026-07-09)
-
-
-### Bug Fixes
-
-* **deps:** update module github.com/ollama/ollama to v0.31.2 ([fd328b7](https://github.com/mogenius/mogenius-operator/commit/fd328b7eab45af477d0a668c8b77e324f52f0429))
-* **deps:** update module github.com/openai/openai-go/v3 to v3.41.1 ([52b1070](https://github.com/mogenius/mogenius-operator/commit/52b1070a85d6b5e8fc0202f60c11af0c3d83695a))
-* **deps:** update module golang.org/x/term to v0.45.0 ([a13084b](https://github.com/mogenius/mogenius-operator/commit/a13084bf57a1720a259a2ea712c5daa2aeb75a91))
+* adding metric for websocket connection state ([fcf6c63](https://github.com/mogenius/mogenius-operator/commit/fcf6c63f40ab03742276975c8892b8c2972d2f0f))
+* **cpumonitor:** close /proc stat files and pool read buffers ([6a5b15f](https://github.com/mogenius/mogenius-operator/commit/6a5b15f8321e770431afb3b7e26dca65daf98a99))
+* **deps:** update module github.com/anthropics/anthropic-sdk-go to v1.55.1 ([24d978a](https://github.com/mogenius/mogenius-operator/commit/24d978a86c6508d330bc8eebac4313b79087dff9))
+* **deps:** update module github.com/anthropics/anthropic-sdk-go to v1.56.0 ([669ad09](https://github.com/mogenius/mogenius-operator/commit/669ad09ec5c14d9945a98b446fb06e5564a6db17))
+* **deps:** update module github.com/bitnami/sealed-secrets to v0.38.4 ([83b399e](https://github.com/mogenius/mogenius-operator/commit/83b399ea50f74fe0331c9e68171c131b4ec89e5d))
+* **deps:** update module github.com/cert-manager/cert-manager to v1.20.3 ([977af17](https://github.com/mogenius/mogenius-operator/commit/977af174047334f10e7d2a60f89696eba410baae))
+* **deps:** update module github.com/ollama/ollama to v0.31.1 ([aa04c7d](https://github.com/mogenius/mogenius-operator/commit/aa04c7d59c7f0a89a1c41f99c001f3034cfed112))
+* fix websocket reconnect deadlock and detect half-open connections; update User Datagram struct (add apikey) ([842127f](https://github.com/mogenius/mogenius-operator/commit/842127f18b9a853716b841d5420fd48f776f16c7))
+* guard activeLoggers map and watch throttle against data races ([91f30ac](https://github.com/mogenius/mogenius-operator/commit/91f30accd306bc45c4e277d171641918b132ffb5))
+* **helm:** remove hardcoded namespace for readonly mode ([05964dd](https://github.com/mogenius/mogenius-operator/commit/05964dde74a593ca8c24db34d76288e54540246d))
+* **k8sexec:** stop retrying cancelled log streams, allow long lines ([66f21ed](https://github.com/mogenius/mogenius-operator/commit/66f21ed63d365ef87632da78f8636c3123d7dec7))
+* **kubernetes:** GetClusterExternalIps always returned an empty list ([4889022](https://github.com/mogenius/mogenius-operator/commit/488902286954de69c4b66f2f1f93084794783922))
+* **monitors:** serve zero values on non-linux instead of deadlocking ([59d2749](https://github.com/mogenius/mogenius-operator/commit/59d27496e8207ba222f83708acc9c9585c5e6dbc))
+* **networkmonitor:** keep procdev baselines for late-added interfaces ([12d45ed](https://github.com/mogenius/mogenius-operator/commit/12d45edb88e995ad30f164412abae0642494e14c))
+* **networkmonitor:** stop leaking snoopy processes on container PID drift ([779823e](https://github.com/mogenius/mogenius-operator/commit/779823e80a292971cd88255ee1a36dc8aa94f1e2))
+* **store:** keep resources with colons in their name in namespace scans ([88db386](https://github.com/mogenius/mogenius-operator/commit/88db3866c29556c34c3841486d98cf4c65222fcf))
+* **store:** SearchResourceByNamespace returned nothing with a whitelist ([d5f851d](https://github.com/mogenius/mogenius-operator/commit/d5f851df8e361828e0b4b1ec381a73a4caa1683c))
+
+
+### Performance Improvements
+
+* **core:** batch nodes-metrics reads, map-based workspace dedup ([cfeaf28](https://github.com/mogenius/mogenius-operator/commit/cfeaf28758ecc51d1831b1e825901457b13558b3))
+* **helm:** update only the chart's repo index on install/upgrade ([eb294e2](https://github.com/mogenius/mogenius-operator/commit/eb294e2254bd38c5c6986e90d014510ce7acd50a))
+* **kubernetes:** cache cluster service list for discovery lookups ([e648b4d](https://github.com/mogenius/mogenius-operator/commit/e648b4d792df6e82fe3bb2c177e4f97530c8c6a8))
+* **logging:** guard eager debug payload marshalling behind level checks ([8ee3b97](https://github.com/mogenius/mogenius-operator/commit/8ee3b979ba40eee448c734abab726e319823e3e2))
+* **logging:** remove per-line goroutine spawn and O(n^2) dedup ([6758ae0](https://github.com/mogenius/mogenius-operator/commit/6758ae0d116238fc931afca515766d4f1105d85a))
+* **networkmonitor:** skip status channel for ignored snoopy events ([dbc9356](https://github.com/mogenius/mogenius-operator/commit/dbc9356e1206cda26f7a561054532ba75300c3b0))
+* **nodemetrics:** trim per-tick allocations in hot loops ([0bc8bb0](https://github.com/mogenius/mogenius-operator/commit/0bc8bb0adfb242a2f2896a4d47700f4238e2ae4e))
+* **reconciler:** stop self-triggering reconcile loop and cache default configs ([9b1a8fd](https://github.com/mogenius/mogenius-operator/commit/9b1a8fd12a27828e641f40d0fd45d2c8e13213f8))
+* **runtime:** derive GOMAXPROCS and GOMEMLIMIT from cgroup limits ([841ecf5](https://github.com/mogenius/mogenius-operator/commit/841ecf57dae69b0b30ae74b929238b9bf3ce7225))
+* **store:** fetch namespace resources with one scan instead of per-kind ([7884a68](https://github.com/mogenius/mogenius-operator/commit/7884a689687ebaff9792760109e43a54b4a1c9f9))
+* **store:** node-indexed pod lookup for the node-metrics DaemonSet ([7901bed](https://github.com/mogenius/mogenius-operator/commit/7901bed5e2e84985de1d8fbff587979e426d39a2))
+* **valkey:** pipeline hot write paths and drop per-write keyspace scans ([ee2e909](https://github.com/mogenius/mogenius-operator/commit/ee2e909f0a77570f045acb8b78fe315c43783bc5))
+* **websocket:** marshal WriteJSON payloads in the caller ([eca80e9](https://github.com/mogenius/mogenius-operator/commit/eca80e9c6315f30a9172c7db2a2a2432a17c836f))
 
 ## [2.23.3-develop.1](https://github.com/mogenius/mogenius-operator/compare/v2.23.2...v2.23.3-develop.1) (2026-07-08)
 
