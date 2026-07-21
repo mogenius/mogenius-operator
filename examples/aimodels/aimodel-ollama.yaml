@@ -1,0 +1,17 @@
+# Self-hosted model via Ollama: no API key, but apiUrl is required.
+apiVersion: mogenius.com/v1alpha1
+kind: AiModel
+metadata:
+  name: ollama-local
+  namespace: mogenius
+spec:
+  displayName: Ollama (local)
+  sdk: ollama
+  model: qwen3-coder:30b
+  apiUrl: http://192.168.1.87:11434 # required for ollama
+  # Local models cost no API fees — opt into an unlimited daily budget
+  # explicitly (unset would apply the 300000 default).
+  dailyTokenLimit: 0
+  # Local models re-evaluate the full context every turn, so a generous
+  # per-run cap keeps investigations from being cut short.
+  maxTokensPerRun: 200000

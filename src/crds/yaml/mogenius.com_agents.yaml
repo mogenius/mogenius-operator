@@ -81,12 +81,20 @@ spec:
                   Agent-specific instruction appended to the base system prompt for
                   every run of this agent.
                 type: string
-              model:
+              maxTokensPerRun:
                 description: |-
-                  Deprecated: overrides only the model name within the globally configured
-                  provider. Use ModelRef instead, which selects a full AiModel (provider,
-                  URL and credentials). Ignored when ModelRef is set.
-                type: string
+                  Token budget per run of this agent; overrides the model's value.
+                  0 means unlimited; unset falls back to the model, then the built-in
+                  default.
+                format: int64
+                minimum: 0
+                type: integer
+              maxToolCalls:
+                description: |-
+                  Maximum number of tool calls per run of this agent; overrides the
+                  model's value. Unset falls back to the model, then the built-in default.
+                minimum: 1
+                type: integer
               modelRef:
                 description: |-
                   Name of the AiModel CR (same namespace) this agent runs with; empty uses

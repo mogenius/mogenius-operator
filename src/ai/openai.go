@@ -277,7 +277,6 @@ func (ai *aiManager) openaiChat(
 	systemPrompt string,
 	rc *ResolvedModelConfig,
 ) error {
-	model := rc.Model
 	maxToolCalls := rc.MaxToolCalls
 	client := ai.newOpenAIClientFor(rc)
 
@@ -312,10 +311,10 @@ func (ai *aiManager) openaiChat(
 				return nil
 			}
 
-			if ai.isTokenLimitExceeded() {
-				ai.logger.Warn("Daily token limit exceeded, rejecting input")
+			if ai.isModelBudgetExceeded(rc) {
+				ai.logger.Warn("Daily model token limit exceeded, rejecting input", "model", rc.ModelCrName)
 				select {
-				case ioChannel.Output <- fmt.Sprintf("\n[Error: %s]", ai.tokenLimitErrorMessage()):
+				case ioChannel.Output <- fmt.Sprintf("\n[Error: %s]", ai.modelBudgetError(rc)):
 				case <-ctx.Done():
 					return ctx.Err()
 				}
@@ -332,7 +331,7 @@ func (ai *aiManager) openaiChat(
 
 			// Process with tool call loop (categories + allChatTools passed so
 			// the inner loop can recompute active tools after activation)
-			fullResponse, updatedMessages, turnStats, err := ai.openaiChatWithTools(ctx, client, model, messages, ioChannel, allChatTools, categories, maxToolCalls, &sessionInputTokens, &sessionOutputTokens)
+			fullResponse, updatedMessages, turnStats, err := ai.openaiChatWithTools(ctx, client, rc, messages, ioChannel, allChatTools, categories, maxToolCalls, &sessionInputTokens, &sessionOutputTokens)
 			if err != nil {
 				ai.logger.Error("Error processing with tools", "error", err)
 				payload := map[string]any{"question": userInput, "stats": turnStats}
@@ -368,7 +367,7 @@ func (ai *aiManager) openaiChat(
 func (ai *aiManager) openaiChatWithTools(
 	ctx context.Context,
 	client *openai.Client,
-	model string,
+	rc *ResolvedModelConfig,
 	messages []openai.ChatCompletionMessageParamUnion,
 	ioChannel IOChatChannel,
 	allChatTools []openai.ChatCompletionToolUnionParam,
@@ -377,6 +376,7 @@ func (ai *aiManager) openaiChatWithTools(
 	sessionInputTokens *int64,
 	sessionOutputTokens *int64,
 ) (fullResponse string, updatedMessages []openai.ChatCompletionMessageParamUnion, stats ChatTurnStats, err error) {
+	model := rc.Model
 	toolCallCount := 0
 	toolCtx := newToolContextFromIOChannel(ioChannel)
 	stats.Model = model
@@ -492,7 +492,7 @@ func (ai *aiManager) openaiChatWithTools(
 			chatKey = fmt.Sprintf("chat:%s", ioChannel.User.Email)
 		}
 		timeUsedInMs := int(time.Since(startTime).Milliseconds())
-		if addErr := ai.addTokenUsage(int(inputTokensUsed+outputTokensUsed), model, timeUsedInMs, chatKey); addErr != nil {
+		if addErr := ai.addTokenUsage(int(inputTokensUsed+outputTokensUsed), model, timeUsedInMs, chatKey, rc.ModelCrName); addErr != nil {
 			ai.logger.Error("Error recording chat token usage", "error", addErr)
 		}
 		inputTokensUsed = 0

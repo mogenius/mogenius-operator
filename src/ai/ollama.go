@@ -289,7 +289,6 @@ func (ai *aiManager) ollamaChat(
 	rc *ResolvedModelConfig,
 ) error {
 
-	model := rc.Model
 	maxToolCalls := rc.MaxToolCalls
 	client, err := ai.newOllamaClientFor(rc)
 	if err != nil {
@@ -329,10 +328,10 @@ func (ai *aiManager) ollamaChat(
 				return nil
 			}
 
-			if ai.isTokenLimitExceeded() {
-				ai.logger.Warn("Daily token limit exceeded, rejecting input")
+			if ai.isModelBudgetExceeded(rc) {
+				ai.logger.Warn("Daily model token limit exceeded, rejecting input", "model", rc.ModelCrName)
 				select {
-				case ioChannel.Output <- fmt.Sprintf("\n[Error: %s]", ai.tokenLimitErrorMessage()):
+				case ioChannel.Output <- fmt.Sprintf("\n[Error: %s]", ai.modelBudgetError(rc)):
 				case <-ctx.Done():
 					return ctx.Err()
 				}
@@ -351,7 +350,7 @@ func (ai *aiManager) ollamaChat(
 
 			// Pass allTools + categories so the inner loop can recompute
 			// active tools after the LLM activates new categories
-			fullResponse, updatedMessages, turnStats, err := ai.ollamaChatWithTools(ctx, client, model, messages, ioChannel, allOllamaTools, categories, maxToolCalls, &sessionInputTokens, &sessionOutputTokens)
+			fullResponse, updatedMessages, turnStats, err := ai.ollamaChatWithTools(ctx, client, rc, messages, ioChannel, allOllamaTools, categories, maxToolCalls, &sessionInputTokens, &sessionOutputTokens)
 			if err != nil {
 				ai.logger.Error("Error processing with tools", "error", err)
 				payload := map[string]any{"question": userInput, "stats": turnStats}
@@ -387,7 +386,7 @@ func (ai *aiManager) ollamaChat(
 func (ai *aiManager) ollamaChatWithTools(
 	ctx context.Context,
 	client *api.Client,
-	model string,
+	rc *ResolvedModelConfig,
 	messages []api.Message,
 	ioChannel IOChatChannel,
 	allOllamaTools []api.Tool,
@@ -396,6 +395,7 @@ func (ai *aiManager) ollamaChatWithTools(
 	sessionInputTokens *int64,
 	sessionOutputTokens *int64,
 ) (fullResponse string, updatedMessages []api.Message, stats ChatTurnStats, err error) {
+	model := rc.Model
 	toolCallCount := 0
 	truePtr := true
 	toolCtx := newToolContextFromIOChannel(ioChannel)
@@ -487,7 +487,7 @@ func (ai *aiManager) ollamaChatWithTools(
 			chatKey = fmt.Sprintf("chat:%s", ioChannel.User.Email)
 		}
 		timeUsedInMs := int(time.Since(startTime).Milliseconds())
-		if addErr := ai.addTokenUsage(int(inputTokensUsed+outputTokensUsed), model, timeUsedInMs, chatKey); addErr != nil {
+		if addErr := ai.addTokenUsage(int(inputTokensUsed+outputTokensUsed), model, timeUsedInMs, chatKey, rc.ModelCrName); addErr != nil {
 			ai.logger.Error("Error recording chat token usage", "error", addErr)
 		}
 		inputTokensUsed = 0

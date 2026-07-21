@@ -16,7 +16,6 @@ type AiApi interface {
 	GetLatestTask(workspace *string) (*ai.AiTaskLatest, error)
 	InjectAiPromptConfig(prompt ai.AiPromptConfig, aiPrompts *ai.AiPrompts)
 	GetStatus(workspace *string) ai.AiManagerStatus
-	ResetDailyTokenLimit() error
 	DeleteAllAiData() error
 	GetAvailableModels(request *ai.ModelsRequest) ([]string, error)
 	TestAiModel(name string) (*ai.AiModelTestResult, error)
@@ -70,10 +69,6 @@ func (ai *aiApi) UpdateTaskReadState(taskID string, user *structs.User) error {
 
 func (ai *aiApi) GetStatus(workspace *string) ai.AiManagerStatus {
 	return ai.aiManager.GetStatus(workspace)
-}
-
-func (ai *aiApi) ResetDailyTokenLimit() error {
-	return ai.aiManager.ResetDailyTokenLimit()
 }
 
 func (ai *aiApi) DeleteAllAiData() error {

@@ -1,0 +1,40 @@
+# Hosted provider model (Anthropic) with an API key from a referenced Secret
+# and a daily token budget. AiModels are only processed in the operator's
+# namespace (MO_OWN_NAMESPACE, default "mogenius") — apply them there.
+apiVersion: mogenius.com/v1alpha1
+kind: AiModel
+metadata:
+  name: anthropic-default
+  namespace: mogenius
+spec:
+  displayName: Claude (default)
+  sdk: anthropic # openai | anthropic | ollama
+  model: claude-opus-4-8
+  # apiUrl: empty selects the provider's public endpoint for openai/anthropic.
+  # The API key lives in a Secret (GitOps-friendly: SealedSecrets / External
+  # Secrets Operator), never in this spec. Key defaults to "API_KEY".
+  apiKeySecretRef:
+    name: anthropic-api-key
+    key: API_KEY
+  # Exactly one AiModel may be the cluster default; it serves chat and every
+  # agent without an explicit modelRef. Duplicates created via GitOps are
+  # flagged on the Ready condition (reason DuplicateDefault) — oldest wins.
+  default: true
+  # Per-run budgets (agents may override them in their own spec):
+  maxToolCalls: 50 # unset -> 50
+  maxTokensPerRun: 30000 # 0 = unlimited, unset -> 30000
+  # Daily budget for everything running against this model (runs + chat).
+  # 0 = unlimited, unset -> 300000. When exhausted, runs fail with a
+  # per-model budget error until midnight (operator-local time) or a manual
+  # usage reset (see README).
+  dailyTokenLimit: 300000
+---
+# The referenced Secret. In a GitOps repo this would be a SealedSecret or an
+# ExternalSecret instead of a plain Secret.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: anthropic-api-key
+  namespace: mogenius
+stringData:
+  API_KEY: sk-ant-REPLACE_ME

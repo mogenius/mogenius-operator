@@ -25,4 +25,12 @@ spec:
       - staging
   triggers:
     cron: "0 6 * * 1" # standard 5-field cron; empty disables scheduled runs
-    manual: true # allow "Run now" from the UI
+  # Manual runs need no trigger config: bump the run-request annotation
+  # (the UI "Run now" button does the same):
+  #   kubectl annotate agent cost-optimizer -n mogenius \
+  #     mogenius.com/run-requested-at=$(date -u +%FT%TZ) --overwrite
+  # Optional: pin the agent to an AiModel CR and override its run budgets
+  # (see ../aimodels/):
+  # modelRef: anthropic-default
+  # maxToolCalls: 80
+  # maxTokensPerRun: 100000

@@ -8,6 +8,12 @@ import (
 // │ CRD: AiModel │
 // ╰──────────────╯
 
+// AiModelResetUsageAtAnnotation requests a one-time reset of the model's
+// recorded token usage (Flux-style, like the agent run trigger): set it to a
+// fresh timestamp and the reconciler zeroes today's usage exactly once per
+// distinct value, recording the handled value in status.lastUsageResetAt.
+const AiModelResetUsageAtAnnotation = "mogenius.com/reset-usage-at"
+
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type AiModelList struct {
 	metav1.TypeMeta `json:",inline"`
@@ -34,6 +40,7 @@ type AiModelList struct {
 // +kubebuilder:printcolumn:name="SDK",type=string,JSONPath=`.spec.sdk`
 // +kubebuilder:printcolumn:name="Model",type=string,JSONPath=`.spec.model`
 // +kubebuilder:printcolumn:name="Default",type=boolean,JSONPath=`.spec.default`
+// +kubebuilder:printcolumn:name="Limit",type=integer,JSONPath=`.spec.dailyTokenLimit`
 // +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
 // +kubebuilder:printcolumn:name="Reason",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].reason`
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
@@ -76,13 +83,23 @@ type AiModelSpec struct {
 	// oldest wins until resolved.
 	Default bool `json:"default,omitempty"`
 
-	// Maximum number of tool calls per run; unset uses the global default.
+	// Maximum number of tool calls per run; unset uses the built-in default
+	// (50). Agents may override this per run via their spec.
 	// +kubebuilder:validation:Minimum=1
 	MaxToolCalls *int `json:"maxToolCalls,omitempty"`
 
-	// Token budget per run; 0 means unlimited, unset uses the global default.
+	// Token budget per run; 0 means unlimited, unset uses the built-in
+	// default (30000). Agents may override this per run via their spec.
 	// +kubebuilder:validation:Minimum=0
 	MaxTokensPerRun *int64 `json:"maxTokensPerRun,omitempty"`
+
+	// Daily token budget for everything running against this model (runs and
+	// chat combined); 0 means unlimited, unset uses the built-in default
+	// (300000). When exhausted, runs fail with a per-model budget error until
+	// midnight (local time) or a usage reset via the
+	// "mogenius.com/reset-usage-at" annotation.
+	// +kubebuilder:validation:Minimum=0
+	DailyTokenLimit *int64 `json:"dailyTokenLimit,omitempty"`
 }
 
 // SecretKeyRef points at one key inside a Secret in the same namespace as the
@@ -106,4 +123,10 @@ type AiModelStatus struct {
 	// Generation of the spec the conditions were last evaluated against.
 	// +optional
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
+
+	// Value of the "mogenius.com/reset-usage-at" annotation that was last
+	// acted upon. Makes the usage reset fire exactly once per distinct value
+	// (same pattern as Agent.status.lastHandledTriggerAt).
+	// +optional
+	LastUsageResetAt string `json:"lastUsageResetAt,omitempty"`
 }

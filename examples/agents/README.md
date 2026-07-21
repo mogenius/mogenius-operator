@@ -33,6 +33,10 @@ cost-optimizer   true      True    Valid    0 6 * * 1   1m
   workspace) surfaces as `Ready=False` with a reason.
 - **GitOps note:** if agents are managed by Flux/Argo, toggling them in the UI
   will be reverted by the next GitOps sync — treat Git as the source of truth.
+- **Model & budgets:** `spec.modelRef` pins the agent to an AiModel CR (see
+  `../aimodels/`); empty uses the cluster default model. `spec.maxToolCalls`
+  and `spec.maxTokensPerRun` override the model's per-run budgets for this
+  agent (precedence: agent > model > built-in defaults 50 / 30000).
 
 ## Default agents
 

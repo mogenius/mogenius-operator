@@ -28,6 +28,9 @@ spec:
     - jsonPath: .spec.default
       name: Default
       type: boolean
+    - jsonPath: .spec.dailyTokenLimit
+      name: Limit
+      type: integer
     - jsonPath: .status.conditions[?(@.type=="Ready")].status
       name: Ready
       type: string
@@ -93,6 +96,16 @@ spec:
                   OpenAI-compatible endpoints; empty selects the provider's public API for
                   openai and anthropic.
                 type: string
+              dailyTokenLimit:
+                description: |-
+                  Daily token budget for everything running against this model (runs and
+                  chat combined); 0 means unlimited, unset uses the built-in default
+                  (300000). When exhausted, runs fail with a per-model budget error until
+                  midnight (local time) or a usage reset via the
+                  "mogenius.com/reset-usage-at" annotation.
+                format: int64
+                minimum: 0
+                type: integer
               default:
                 description: |-
                   Marks this model as the cluster-wide default used whenever no explicit
@@ -105,14 +118,16 @@ spec:
                 description: Human-readable name shown in the UI.
                 type: string
               maxTokensPerRun:
-                description: Token budget per run; 0 means unlimited, unset uses the
-                  global default.
+                description: |-
+                  Token budget per run; 0 means unlimited, unset uses the built-in
+                  default (30000). Agents may override this per run via their spec.
                 format: int64
                 minimum: 0
                 type: integer
               maxToolCalls:
-                description: Maximum number of tool calls per run; unset uses the
-                  global default.
+                description: |-
+                  Maximum number of tool calls per run; unset uses the built-in default
+                  (50). Agents may override this per run via their spec.
                 minimum: 1
                 type: integer
               model:
@@ -194,6 +209,12 @@ spec:
                   - type
                   type: object
                 type: array
+              lastUsageResetAt:
+                description: |-
+                  Value of the "mogenius.com/reset-usage-at" annotation that was last
+                  acted upon. Makes the usage reset fire exactly once per distinct value
+                  (same pattern as Agent.status.lastHandledTriggerAt).
+                type: string
               observedGeneration:
                 description: Generation of the spec the conditions were last evaluated
                   against.

@@ -86,14 +86,27 @@ func NormalizeAiModelSpec(spec v1alpha1.AiModelSpec) v1alpha1.AiModelSpec {
 	return spec
 }
 
+// Built-in fallbacks applied when neither the agent nor the AiModel spec set
+// a limit. They replace the former global settings from the legacy
+// mogenius-ai-config secret — limits are configured per model/agent now.
+const (
+	defaultMaxToolCalls    = 50
+	defaultMaxTokensPerRun = int64(30_000)
+	defaultDailyTokenLimit = int64(300_000)
+)
+
 // ResolvedModelConfig is one fully resolved model configuration — provider,
 // model name, endpoint, credentials and per-run limits. It is resolved once
 // at the start of a run/chat and passed down, so a single run never mixes
 // settings from different sources.
 type ResolvedModelConfig struct {
-	// Source describes where this config came from ("modelRef", "default" or
-	// "legacy-secret") for logs and status reporting.
+	// Source describes where this config came from ("modelRef" or "default")
+	// for logs and status reporting.
 	Source string
+
+	// ModelCrName is the name of the AiModel CR this config was resolved
+	// from; token usage is accounted against it.
+	ModelCrName string
 
 	Sdk     AiSdkType
 	Model   string
@@ -102,6 +115,9 @@ type ResolvedModelConfig struct {
 
 	MaxToolCalls    int
 	MaxTokensPerRun int64
+
+	// DailyTokenLimit is the model's daily token budget; 0 means unlimited.
+	DailyTokenLimit int64
 }
 
 // parseSdkType maps the wire value to a known SDK type.
@@ -228,7 +244,8 @@ func PickDefaultAiModel(models []v1alpha1.AiModel) *v1alpha1.AiModel {
 }
 
 // resolveAiModel turns one AiModel CR into a usable config, reading the
-// referenced API key Secret. Per-model limits fall back to the global ones.
+// referenced API key Secret. Limits the spec omits fall back to the built-in
+// defaults.
 func (ai *aiManager) resolveAiModel(model *v1alpha1.AiModel, source string) (*ResolvedModelConfig, error) {
 	if err := ValidateAiModelSpec(model.Spec); err != nil {
 		return nil, fmt.Errorf("AiModel %q has an invalid spec: %w", model.Name, err)
@@ -243,77 +260,35 @@ func (ai *aiManager) resolveAiModel(model *v1alpha1.AiModel, source string) (*Re
 	}
 
 	resolved := &ResolvedModelConfig{
-		Source:  source,
-		Sdk:     sdk,
-		Model:   model.Spec.Model,
-		ApiKey:  apiKey,
-		BaseUrl: model.Spec.ApiUrl,
+		Source:          source,
+		ModelCrName:     model.Name,
+		Sdk:             sdk,
+		Model:           model.Spec.Model,
+		ApiKey:          apiKey,
+		BaseUrl:         model.Spec.ApiUrl,
+		MaxToolCalls:    defaultMaxToolCalls,
+		MaxTokensPerRun: defaultMaxTokensPerRun,
+		DailyTokenLimit: defaultDailyTokenLimit,
 	}
-
 	if model.Spec.MaxToolCalls != nil {
 		resolved.MaxToolCalls = *model.Spec.MaxToolCalls
-	} else {
-		maxToolCalls, err := ai.getAiMaxToolCalls()
-		if err != nil {
-			ai.logger.Debug("AiModel resolution: no global max tool calls, using default", "model", model.Name, "default", maxToolCalls)
-		}
-		resolved.MaxToolCalls = maxToolCalls
 	}
-
 	if model.Spec.MaxTokensPerRun != nil {
 		resolved.MaxTokensPerRun = *model.Spec.MaxTokensPerRun
-	} else {
-		resolved.MaxTokensPerRun = ai.getAiMaxTokensPerRun()
 	}
-
+	if model.Spec.DailyTokenLimit != nil {
+		resolved.DailyTokenLimit = *model.Spec.DailyTokenLimit
+	}
 	return resolved, nil
 }
 
-// resolveLegacyModelConfig builds the config from the flat mogenius-ai-config
-// secret — the pre-AiModel configuration path, kept as fallback so existing
-// installations keep working until they are migrated.
-func (ai *aiManager) resolveLegacyModelConfig() (*ResolvedModelConfig, error) {
-	sdk, err := ai.getSdkType()
-	if err != nil {
-		return nil, err
-	}
-	model, err := ai.getAiModel()
-	if err != nil {
-		return nil, err
-	}
-	baseUrl, err := ai.getBaseUrl()
-	if err != nil {
-		return nil, err
-	}
-	apiKey := ""
-	if sdk != AiSdkTypeOllama {
-		apiKey, err = ai.getApiKey()
-		if err != nil {
-			return nil, err
-		}
-	}
-	maxToolCalls, err := ai.getAiMaxToolCalls()
-	if err != nil {
-		ai.logger.Debug("Legacy model resolution: no max tool calls configured, using default", "default", maxToolCalls)
-	}
-	return &ResolvedModelConfig{
-		Source:          "legacy-secret",
-		Sdk:             sdk,
-		Model:           model,
-		ApiKey:          apiKey,
-		BaseUrl:         baseUrl,
-		MaxToolCalls:    maxToolCalls,
-		MaxTokensPerRun: ai.getAiMaxTokensPerRun(),
-	}, nil
-}
-
 // resolveModelConfig resolves the model configuration for one run or chat.
-// Precedence: the agent's explicit modelRef, then the AiModel marked default,
-// then the legacy mogenius-ai-config secret. An explicit modelRef that cannot
-// be resolved fails the run (fail closed) instead of silently degrading to a
-// different provider. The deprecated agentSpec.Model name-only override is
-// honored when no modelRef is set, preserving the old behavior.
+// Precedence: the agent's explicit modelRef, then the AiModel marked default.
+// An explicit modelRef that cannot be resolved fails the run (fail closed)
+// instead of silently degrading to a different provider. Per-run budget
+// overrides from the agent spec beat the model's values.
 func (ai *aiManager) resolveModelConfig(agentSpec *v1alpha1.AgentSpec) (*ResolvedModelConfig, error) {
+	var resolved *ResolvedModelConfig
 	if agentSpec != nil && agentSpec.ModelRef != "" {
 		ownNamespace, err := ai.config.TryGet("MO_OWN_NAMESPACE")
 		if err != nil {
@@ -326,32 +301,34 @@ func (ai *aiManager) resolveModelConfig(agentSpec *v1alpha1.AgentSpec) (*Resolve
 		if model == nil {
 			return nil, fmt.Errorf("AiModel %q not found in namespace %q", agentSpec.ModelRef, ownNamespace)
 		}
-		return ai.resolveAiModel(model, "modelRef")
-	}
-
-	var resolved *ResolvedModelConfig
-	if defaultModel := ai.getDefaultAiModel(); defaultModel != nil {
+		resolved, err = ai.resolveAiModel(model, "modelRef")
+		if err != nil {
+			return nil, err
+		}
+	} else if defaultModel := ai.getDefaultAiModel(); defaultModel != nil {
 		var err error
 		resolved, err = ai.resolveAiModel(defaultModel, "default")
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		var err error
-		resolved, err = ai.resolveLegacyModelConfig()
-		if err != nil {
-			// The raw legacy error ("secret mogenius-ai-config not found") is
-			// misleading when the customer already uses AiModels but forgot to
-			// mark one as default — say so explicitly.
-			if models, listErr := ai.listAiModels(); listErr == nil && len(models) > 0 {
-				return nil, fmt.Errorf("no AiModel is marked as default (spec.default: true) and no legacy AI config is available: %w", err)
-			}
-			return nil, err
-		}
+		return nil, fmt.Errorf("no AiModel is marked as default (spec.default: true) — create an AiModel or mark an existing one as default")
 	}
 
-	if agentSpec != nil && agentSpec.Model != "" {
-		resolved.Model = agentSpec.Model
-	}
+	applyAgentBudgetOverrides(resolved, agentSpec)
 	return resolved, nil
+}
+
+// applyAgentBudgetOverrides lets an agent's per-run budget fields beat the
+// model's values (precedence: agent > model spec > built-in defaults).
+func applyAgentBudgetOverrides(resolved *ResolvedModelConfig, agentSpec *v1alpha1.AgentSpec) {
+	if agentSpec == nil {
+		return
+	}
+	if agentSpec.MaxToolCalls != nil {
+		resolved.MaxToolCalls = *agentSpec.MaxToolCalls
+	}
+	if agentSpec.MaxTokensPerRun != nil {
+		resolved.MaxTokensPerRun = *agentSpec.MaxTokensPerRun
+	}
 }

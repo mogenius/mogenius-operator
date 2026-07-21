@@ -75,10 +75,16 @@ type AgentSpec struct {
 	// the cluster-wide default AiModel.
 	ModelRef string `json:"modelRef,omitempty"`
 
-	// Deprecated: overrides only the model name within the globally configured
-	// provider. Use ModelRef instead, which selects a full AiModel (provider,
-	// URL and credentials). Ignored when ModelRef is set.
-	Model string `json:"model,omitempty"`
+	// Maximum number of tool calls per run of this agent; overrides the
+	// model's value. Unset falls back to the model, then the built-in default.
+	// +kubebuilder:validation:Minimum=1
+	MaxToolCalls *int `json:"maxToolCalls,omitempty"`
+
+	// Token budget per run of this agent; overrides the model's value.
+	// 0 means unlimited; unset falls back to the model, then the built-in
+	// default.
+	// +kubebuilder:validation:Minimum=0
+	MaxTokensPerRun *int64 `json:"maxTokensPerRun,omitempty"`
 }
 
 // AgentScope restricts an agent's visibility. At least one of WorkspaceRef or

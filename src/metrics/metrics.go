@@ -96,6 +96,21 @@ var reconcileQueueWait = promauto.NewHistogram(
 	},
 )
 
+var aiTokensUsed = promauto.NewCounterVec(
+	prometheus.CounterOpts{
+		Name: "mogenius_operator_ai_tokens_used_total",
+		Help: "AI tokens consumed, by AiModel CR name (label empty for pre-CR legacy entries).",
+	},
+	[]string{"model"},
+)
+
+func AddAiTokensUsed(modelCrName string, tokens int) {
+	if tokens <= 0 {
+		return
+	}
+	aiTokensUsed.WithLabelValues(modelCrName).Add(float64(tokens))
+}
+
 func ObserveReconcileDuration(resource, operation string, seconds float64) {
 	reconcileDuration.WithLabelValues(resource, operation).Observe(seconds)
 }

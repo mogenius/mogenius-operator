@@ -80,6 +80,7 @@ type Api interface {
 	UpdateAgent(name string, spec v1alpha1.AgentSpec) (string, error)
 	DeleteAgent(name string) (string, error)
 	RequestAgentRun(name string) (string, error)
+	RequestAiModelUsageReset(name string) (string, error)
 
 	GetAllAiModels() ([]GetAiModelResult, error)
 	GetAiModel(name string) (*GetAiModelResult, error)
@@ -404,6 +405,13 @@ func (self *api) RequestAgentRun(name string) (string, error) {
 		return "", err
 	}
 	return "Agent run requested", nil
+}
+
+func (self *api) RequestAiModelUsageReset(name string) (string, error) {
+	if err := self.workspaceManager.RequestAiModelUsageReset(name); err != nil {
+		return "", err
+	}
+	return "AiModel usage reset requested", nil
 }
 
 // GetAiModelResult is the wire shape for AiModel CRs, mirroring GetAgentResult.

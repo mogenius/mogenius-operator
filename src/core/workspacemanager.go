@@ -35,6 +35,7 @@ type WorkspaceManager interface {
 	UpdateAgent(name string, spec v1alpha1.AgentSpec) (*v1alpha1.Agent, error)
 	DeleteAgent(name string) error
 	RequestAgentRun(name string) error
+	RequestAiModelUsageReset(name string) error
 
 	GetAllAiModels() ([]v1alpha1.AiModel, error)
 	CreateAiModel(name string, spec v1alpha1.AiModelSpec, apiKey string) (*v1alpha1.AiModel, error)
@@ -218,6 +219,13 @@ func (self *workspaceManager) RequestAgentRun(name string) error {
 	self.namespaceLock.RLock()
 	defer self.namespaceLock.RUnlock()
 	_, err := self.mogeniusClientSet.MogeniusV1alpha1.RequestAgentRun(self.namespace, name)
+	return err
+}
+
+func (self *workspaceManager) RequestAiModelUsageReset(name string) error {
+	self.namespaceLock.RLock()
+	defer self.namespaceLock.RUnlock()
+	_, err := self.mogeniusClientSet.MogeniusV1alpha1.RequestAiModelUsageReset(self.namespace, name)
 	return err
 }
 

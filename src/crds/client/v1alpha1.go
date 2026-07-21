@@ -413,6 +413,22 @@ func (self *MogeniusV1alpha1) UpdateAiModel(namespace string, name string, spec 
 	return self.ReplaceAiModel(namespace, name, spec)
 }
 
+// RequestAiModelUsageReset sets the usage-reset annotation to a fresh
+// timestamp, requesting a one-time reset of the model's recorded token usage.
+// The AiModel reconciler reacts to the changed value (idempotent via
+// status.lastUsageResetAt). Single reset path for both the UI and
+// kubectl/GitOps.
+func (self *MogeniusV1alpha1) RequestAiModelUsageReset(namespace, name string) (*mov1alpha1.AiModel, error) {
+	patch := fmt.Sprintf(`{"metadata":{"annotations":{%q:%q}}}`,
+		mov1alpha1.AiModelResetUsageAtAnnotation, time.Now().UTC().Format(time.RFC3339Nano))
+	result := &mov1alpha1.AiModel{}
+	err := self.restClient.Patch(types.MergePatchType).Namespace(namespace).Resource("aimodels").Name(name).Body([]byte(patch)).Do(context.Background()).Into(result)
+	if err != nil {
+		return nil, fmt.Errorf("RESTClient: %w", err)
+	}
+	return result, nil
+}
+
 // UpdateAiModelStatus writes only the status subresource of the given model
 // (metadata must carry name, namespace and the current resourceVersion). Spec
 // and generation stay untouched.

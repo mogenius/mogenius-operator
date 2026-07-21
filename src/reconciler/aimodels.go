@@ -8,6 +8,7 @@ import (
 	"mogenius-operator/src/store"
 	"mogenius-operator/src/utils"
 
+	corev1 "k8s.io/api/core/v1"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -37,13 +38,31 @@ func (d *reconcilerModule) reconcileAiModels(ctx context.Context, obj *unstructu
 
 	conditionStatus, reason, message := d.evaluateAiModel(ctx, &model)
 
+	// Usage reset request: a changed "mogenius.com/reset-usage-at" annotation
+	// resets today's recorded usage exactly once per distinct value (same
+	// Flux-style pattern as the agent run trigger). Handled independently of
+	// the Ready condition — usage may need clearing even on a broken spec.
+	resetHandled := false
+	if requested := model.Annotations[v1alpha1.AiModelResetUsageAtAnnotation]; requested != "" && requested != model.Status.LastUsageResetAt {
+		cleared, err := d.aiManager.ResetTokenUsageForModel(model.Name)
+		if err != nil {
+			// Leave LastUsageResetAt unchanged so the next reconcile retries.
+			d.logger.Error("Failed to reset AiModel token usage", "aimodel", model.Name, "error", err)
+		} else {
+			model.Status.LastUsageResetAt = requested
+			resetHandled = true
+			d.logger.Info("AiModel token usage reset", "aimodel", model.Name, "clearedTokens", cleared)
+			d.emitAiModelEvent(ctx, &model, "UsageReset", fmt.Sprintf("Cleared %d tokens of today's recorded usage", cleared))
+		}
+	}
+
 	current := apimeta.FindStatusCondition(model.Status.Conditions, aiModelReadyCondition)
 	upToDate := current != nil &&
 		current.Status == conditionStatus &&
 		current.Reason == reason &&
 		current.Message == message &&
 		model.Status.ObservedGeneration == model.Generation
-	if !upToDate {
+	if !upToDate || resetHandled {
 		apimeta.SetStatusCondition(&model.Status.Conditions, metav1.Condition{
 			Type:               aiModelReadyCondition,
 			Status:             conditionStatus,
@@ -55,11 +74,13 @@ func (d *reconcilerModule) reconcileAiModels(ctx context.Context, obj *unstructu
 		if _, err := d.clientProvider.MogeniusClientSet().MogeniusV1alpha1.UpdateAiModelStatus(&model); err != nil {
 			return []ReconcileResult{{Err: fmt.Errorf("failed to update status of aimodel %q: %w", model.Name, err)}}
 		}
+	}
+	if !upToDate {
 		// This model's state changed, which may flip the default election for
 		// its peers (e.g. default flag toggled). Requeueing only on an actual
-		// status transition keeps mutual requeues between default-flagged
-		// models from ping-ponging: the second pass finds everything
-		// up-to-date and stops.
+		// condition transition (never on usage resets) keeps mutual requeues
+		// between default-flagged models from ping-ponging: the second pass
+		// finds everything up-to-date and stops.
 		d.requeueDefaultAiModels(model.Namespace, model.Name)
 	}
 
@@ -116,6 +137,36 @@ func (d *reconcilerModule) evaluateAiModel(ctx context.Context, model *v1alpha1.
 		return metav1.ConditionTrue, "Valid", "spec is valid; model is the cluster default"
 	}
 	return metav1.ConditionTrue, "Valid", "spec is valid"
+}
+
+// emitAiModelEvent writes a best-effort Kubernetes Event on the AiModel so
+// kubectl users get visible feedback (kubectl describe aimodel / get events)
+// without a status field. Failures are logged, never propagated.
+func (d *reconcilerModule) emitAiModelEvent(ctx context.Context, model *v1alpha1.AiModel, reason, message string) {
+	now := metav1.Now()
+	event := &corev1.Event{
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: model.Name + ".",
+			Namespace:    model.Namespace,
+		},
+		InvolvedObject: corev1.ObjectReference{
+			APIVersion: "mogenius.com/v1alpha1",
+			Kind:       "AiModel",
+			Namespace:  model.Namespace,
+			Name:       model.Name,
+			UID:        model.UID,
+		},
+		Reason:         reason,
+		Message:        message,
+		Type:           corev1.EventTypeNormal,
+		Source:         corev1.EventSource{Component: "mogenius-k8s-manager"},
+		FirstTimestamp: now,
+		LastTimestamp:  now,
+		Count:          1,
+	}
+	if _, err := d.clientProvider.K8sClientSet().CoreV1().Events(model.Namespace).Create(ctx, event, metav1.CreateOptions{}); err != nil {
+		d.logger.Warn("Failed to emit AiModel event", "aimodel", model.Name, "reason", reason, "error", err)
+	}
 }
 
 // requeueDefaultAiModels re-reconciles every other default-flagged AiModel in

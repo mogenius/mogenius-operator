@@ -3,7 +3,6 @@ package ai
 import (
 	"fmt"
 	"mogenius-operator/src/store"
-	"strconv"
 
 	v1 "k8s.io/api/core/v1"
 )
@@ -67,20 +66,10 @@ func (ai *aiManager) isAiPromptConfigInitialized() bool {
 }
 
 func (ai *aiManager) isAiModelConfigInitialized() bool {
-	// An AiModel CR makes AI usable without the legacy secret.
-	if models, err := ai.listAiModels(); err == nil && len(models) > 0 {
-		return true
-	}
-	ownNamespace := ai.config.Get("MO_OWN_NAMESPACE")
-	// Mirror getAiSettingByKey: try the cache first, then fall back to a
-	// direct API read. Using only the direct call made this flag report
-	// false whenever that single Get failed (e.g. API throttling), even
-	// though the config existed and the cache held it.
-	if store.GetSecret(ownNamespace, AI_CONFIG_SECRET_NAME) != nil {
-		return true
-	}
-	configSecret, err := ai.secretGetter(ownNamespace, AI_CONFIG_SECRET_NAME)
-	return err == nil && configSecret != nil
+	// AI is configured as soon as at least one AiModel CR exists; the legacy
+	// secret-based model configuration is gone.
+	models, err := ai.listAiModels()
+	return err == nil && len(models) > 0
 }
 
 func (ai *aiManager) getSystemPrompt() string {
@@ -97,91 +86,6 @@ func (ai *aiManager) GetPromptConfig() (*AiPromptConfig, error) {
 		return nil, fmt.Errorf("AI prompt configuration is not initialized")
 	}
 	return cfg, nil
-}
-
-// defaultDailyTokenLimit applies when DAILY_TOKEN_LIMIT is not configured in
-// the legacy secret — e.g. installations configured purely via AiModel CRs
-// that never had the secret. Without a default, the missing key would fail
-// closed in isTokenLimitExceeded and permanently block every run even though
-// a valid AiModel exists. An unparsable configured value still fails closed.
-const defaultDailyTokenLimit = int64(300_000)
-
-func (ai *aiManager) getDailyTokenLimit() (int64, error) {
-	data, err := ai.getAiSettingByKey(AI_CONFIG_DAILY_TOKEN_LIMIT_KEY)
-	if err != nil {
-		return defaultDailyTokenLimit, nil
-	}
-	limit, err := strconv.ParseInt(data, 10, 64)
-	if err != nil {
-		return 0, fmt.Errorf("invalid daily token limit value: %v", err)
-	}
-	return limit, nil
-}
-
-func (ai *aiManager) getSdkType() (AiSdkType, error) {
-	data, err := ai.getAiSettingByKey(AI_CONFIG_SDK_KEY)
-	if err != nil {
-		return "", fmt.Errorf("failed to get SDK type: %v", err)
-	}
-	return parseSdkType(data)
-}
-
-func (ai *aiManager) getApiKey() (string, error) {
-	data, err := ai.getAiSettingByKey(AI_CONFIG_API_KEY)
-	if err != nil {
-		return "", fmt.Errorf("failed to get API key: %v", err)
-	}
-	return data, nil
-}
-
-func (ai *aiManager) getBaseUrl() (string, error) {
-	data, err := ai.getAiSettingByKey(AI_CONFIG_API_URL_KEY)
-	if err != nil {
-		return "", fmt.Errorf("failed to get base URL: %v", err)
-	}
-	return data, nil
-}
-
-func (ai *aiManager) getAiModel() (string, error) {
-	data, err := ai.getAiSettingByKey(AI_CONFIG_MODEL_KEY)
-	if err != nil {
-		return "", fmt.Errorf("failed to get AI model: %v", err)
-	}
-	return data, nil
-}
-
-func (ai *aiManager) getAiMaxToolCalls() (int, error) {
-	data, err := ai.getAiSettingByKey(AI_CONFIG_MAX_TOOL_CALLS_KEY)
-	if err != nil {
-		return 2, fmt.Errorf("failed to get AI maxToolCalls: %v", err)
-	}
-
-	maxToolCalls, err := strconv.Atoi(data)
-	if err != nil {
-		return 2, fmt.Errorf("invalid max tool calls value: %v", err)
-	}
-
-	return maxToolCalls, nil
-}
-
-// defaultMaxTokensPerRun caps a single run when MAX_TOKENS_PER_RUN is not
-// configured. Runs finish gracefully at the cap with the findings collected
-// so far; an explicit 0 opts into unlimited.
-const defaultMaxTokensPerRun = int64(30000)
-
-// getAiMaxTokensPerRun returns the per-run token budget; 0 means unlimited.
-// A missing key or unparsable value falls back to the default cap.
-func (ai *aiManager) getAiMaxTokensPerRun() int64 {
-	data, err := ai.getAiSettingByKey(AI_CONFIG_MAX_TOKENS_PER_RUN)
-	if err != nil {
-		return defaultMaxTokensPerRun
-	}
-	limit, err := strconv.ParseInt(data, 10, 64)
-	if err != nil || limit < 0 {
-		ai.logger.Warn("Invalid max tokens per run value, using default", "value", data, "default", defaultMaxTokensPerRun)
-		return defaultMaxTokensPerRun
-	}
-	return limit
 }
 
 func (ai *aiManager) getGitHubPat() (string, error) {

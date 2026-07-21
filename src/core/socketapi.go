@@ -2179,12 +2179,19 @@ func (self *socketApi) registerPatterns() {
 	}
 
 	{
+		type Request struct {
+			Name string `json:"name" validate:"required"`
+		}
+
 		RegisterPatternHandler(
-			PatternHandle{self, "aiManager/reset-daily-token-limit"},
-			PatternConfig{},
-			func(datagram structs.Datagram, request Void) (Void, error) {
-				err := self.aiApi.ResetDailyTokenLimit()
-				return store.AddToAuditLog[Void](datagram, self.logger, nil, err, nil, nil)
+			PatternHandle{self, "reset/aimodel-usage"},
+			PatternConfig{NeedsUser: true},
+			func(datagram structs.Datagram, request Request) (string, error) {
+				// GitOps-native: request the reset by bumping the model's
+				// reset-usage annotation; the AiModel reconciler performs the
+				// actual reset (idempotent via status.lastUsageResetAt).
+				res, err := self.apiService.RequestAiModelUsageReset(request.Name)
+				return store.AddToAuditLog(datagram, self.logger, res, err, nil, nil)
 			},
 		)
 	}
