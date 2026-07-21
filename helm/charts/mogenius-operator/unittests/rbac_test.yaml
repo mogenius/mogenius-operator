@@ -1,0 +1,80 @@
+suite: rbac and service account
+templates:
+  - serviceaccount.yaml
+  - rbac.yaml
+  - rbac-ro.yaml
+tests:
+  - it: always creates the operator ServiceAccount (read-write mode)
+    template: serviceaccount.yaml
+    set:
+      cluster.readonly.enabled: false
+    asserts:
+      - isKind:
+          of: ServiceAccount
+      - equal:
+          path: metadata.name
+          value: mogenius-operator-service-account-app
+
+  - it: always creates the operator ServiceAccount (readonly mode)
+    template: serviceaccount.yaml
+    set:
+      cluster.readonly.enabled: true
+    asserts:
+      - isKind:
+          of: ServiceAccount
+      - equal:
+          path: metadata.name
+          value: mogenius-operator-service-account-app
+
+  - it: renders the readonly RBAC without error and binds the operator ServiceAccount
+    # regression: rbac-ro.yaml used to reference a non-existent .Values.serviceAccount.name,
+    # failing with "nil pointer evaluating interface {}.name" whenever readonly was enabled.
+    template: rbac-ro.yaml
+    set:
+      cluster.readonly.enabled: true
+    documentSelector:
+      path: metadata.name
+      value: mogenius-operator-readonly
+    asserts:
+      - isKind:
+          of: ClusterRoleBinding
+      - equal:
+          path: subjects[0].name
+          value: mogenius-operator-service-account-app
+      - equal:
+          path: subjects[0].namespace
+          value: NAMESPACE
+
+  - it: binds the operator ServiceAccount in read-write mode
+    template: rbac.yaml
+    set:
+      cluster.readonly.enabled: false
+    documentSelector:
+      path: kind
+      value: ClusterRoleBinding
+    asserts:
+      - equal:
+          path: subjects[0].name
+          value: mogenius-operator-service-account-app
+
+  - it: honors a custom serviceAccount.name on the ServiceAccount object
+    template: serviceaccount.yaml
+    set:
+      serviceAccount.name: custom-sa
+    asserts:
+      - equal:
+          path: metadata.name
+          value: custom-sa
+
+  - it: honors a custom serviceAccount.name in the readonly bindings
+    template: rbac-ro.yaml
+    set:
+      cluster.readonly.enabled: true
+      serviceAccount.name: custom-sa
+    documentSelector:
+      path: metadata.name
+      value: mogenius-operator-readonly
+    asserts:
+      - equal:
+          path: subjects[0].name
+          value: custom-sa

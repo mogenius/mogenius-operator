@@ -30,7 +30,7 @@ metadata:
   name: {{ .Values.fullnameOverride }}-readonly
 subjects:
 - kind: ServiceAccount
-  name: {{ .Values.serviceAccount.name | default (include "chart.serviceAccountName" .) }}
+  name: {{ include "chart.serviceAccountName" . }}
   namespace: {{ .Release.Namespace }}
 roleRef:
   kind: ClusterRole
@@ -46,7 +46,7 @@ metadata:
   namespace: {{ .Release.Namespace }}
 subjects:
 - kind: ServiceAccount
-  name: {{ .Values.serviceAccount.name | default (include "chart.serviceAccountName" .) }}
+  name: {{ include "chart.serviceAccountName" . }}
   namespace: {{ .Release.Namespace }}
 roleRef:
   kind: Role
