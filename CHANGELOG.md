@@ -1,3 +1,10 @@
+# [2.25.0-develop.8](https://github.com/mogenius/mogenius-operator/compare/v2.25.0-develop.7...v2.25.0-develop.8) (2026-07-21)
+
+
+### Bug Fixes
+
+* ai improvements ([a1e29c9](https://github.com/mogenius/mogenius-operator/commit/a1e29c94d420cb7b03316812a5a828b94f83a846))
+
 # [2.25.0-develop.7](https://github.com/mogenius/mogenius-operator/compare/v2.25.0-develop.6...v2.25.0-develop.7) (2026-07-21)
 
 
