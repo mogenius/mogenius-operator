@@ -779,6 +779,14 @@ func (self *socketApi) registerPatterns() {
 	)
 
 	RegisterPatternHandler(
+		PatternHandle{self, "prometheus/status"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request Void) (dtos.ComponentStatus, error) {
+			return PrometheusStatus(self.config, self.logger)
+		},
+	)
+
+	RegisterPatternHandler(
 		PatternHandle{self, "prometheus/is-reachable"},
 		PatternConfig{},
 		func(datagram structs.Datagram, request PrometheusRequest) (bool, error) {
@@ -825,6 +833,22 @@ func (self *socketApi) registerPatterns() {
 		func(datagram structs.Datagram, request PrometheusRequestRedisList) (map[string]PrometheusStoreObject, error) {
 			result, err := PrometheusListQueriesFromRedis(self.valkeyClient, request)
 			return result, err
+		},
+	)
+
+	RegisterPatternHandler(
+		PatternHandle{self, "alertmanager/status"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request Void) (dtos.ComponentStatus, error) {
+			return self.alertmanager.Status()
+		},
+	)
+
+	RegisterPatternHandler(
+		PatternHandle{self, "alertmanager/is-reachable"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request Void) (bool, error) {
+			return self.alertmanager.IsReachable()
 		},
 	)
 
