@@ -161,6 +161,13 @@ var AgentResource = ResourceDescriptor{
 	Namespaced: true,
 }
 
+var AiModelResource = ResourceDescriptor{
+	Kind:       "AiModel",
+	Plural:     "aimodels",
+	ApiVersion: "mogenius.com/v1alpha1",
+	Namespaced: true,
+}
+
 var PlatformConfigResource = ResourceDescriptor{
 	Kind:       "PlatformConfig",
 	Plural:     "platformconfigs",

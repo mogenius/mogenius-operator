@@ -325,12 +325,17 @@ func (ai *aiManager) GetStatus(workspace *string) AiManagerStatus {
 	// for whatever could not be read. They were previously discarded
 	// silently, which hid the empty-state cause (e.g. AI config secret not
 	// reachable). Collect and log them once so the condition is visible.
-	sdk, sdkErr := ai.getSdkType()
+	// The status reports the effective default model (default AiModel CR or
+	// legacy secret); agents may still run on other models via modelRef.
+	var sdk AiSdkType
+	var model, apiUrl string
+	var maxToolCalls int
+	rc, rcErr := ai.resolveModelConfig(nil)
+	if rc != nil {
+		sdk, model, apiUrl, maxToolCalls = rc.Sdk, rc.Model, rc.BaseUrl, rc.MaxToolCalls
+	}
 	limit, limitErr := ai.getDailyTokenLimit()
-	model, modelErr := ai.getAiModel()
-	maxToolCalls, maxToolCallsErr := ai.getAiMaxToolCalls()
-	apiUrl, apiUrlErr := ai.getBaseUrl()
-	if settingsErr := errors.Join(sdkErr, limitErr, modelErr, maxToolCallsErr, apiUrlErr); settingsErr != nil {
+	if settingsErr := errors.Join(rcErr, limitErr); settingsErr != nil {
 		ai.logger.Warn("failed to read one or more AI config settings", "error", settingsErr)
 	}
 	tokensUsed, todaysProcessedTasks, _ := ai.getTodayTokenUsage()

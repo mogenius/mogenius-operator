@@ -1132,6 +1132,23 @@ func GetAgent(namespace string, name string) (*v1alpha1.Agent, error) {
 	return agent, nil
 }
 
+func GetAllAiModels(namespace string) ([]v1alpha1.AiModel, error) {
+	pattern := CreateKeyPattern(&utils.AiModelResource.ApiVersion, &utils.AiModelResource.Kind, &namespace, nil)
+	models, err := valkeyclient.GetObjectsByPrefix[v1alpha1.AiModel](valkeyClient, valkeyclient.ORDER_ASC, pattern)
+	if err != nil || models == nil {
+		return nil, err
+	}
+	return models, nil
+}
+
+func GetAiModel(namespace string, name string) (*v1alpha1.AiModel, error) {
+	model, err := valkeyclient.GetObjectForKey[v1alpha1.AiModel](valkeyClient, VALKEY_RESOURCE_PREFIX, utils.AiModelResource.ApiVersion, utils.AiModelResource.Kind, namespace, name)
+	if err != nil || model == nil {
+		return nil, err
+	}
+	return model, nil
+}
+
 func GetAllWorkspaces(namespace string) ([]v1alpha1.Workspace, error) {
 	pattern := CreateKeyPattern(&utils.WorkspaceResource.ApiVersion, &utils.WorkspaceResource.Kind, &namespace, nil)
 	workspaces, err := valkeyclient.GetObjectsByPrefix[v1alpha1.Workspace](valkeyClient, valkeyclient.ORDER_ASC, pattern)

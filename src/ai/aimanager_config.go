@@ -67,6 +67,10 @@ func (ai *aiManager) isAiPromptConfigInitialized() bool {
 }
 
 func (ai *aiManager) isAiModelConfigInitialized() bool {
+	// An AiModel CR makes AI usable without the legacy secret.
+	if models, err := ai.listAiModels(); err == nil && len(models) > 0 {
+		return true
+	}
 	ownNamespace := ai.config.Get("MO_OWN_NAMESPACE")
 	// Mirror getAiSettingByKey: try the cache first, then fall back to a
 	// direct API read. Using only the direct call made this flag report
@@ -95,10 +99,17 @@ func (ai *aiManager) GetPromptConfig() (*AiPromptConfig, error) {
 	return cfg, nil
 }
 
+// defaultDailyTokenLimit applies when DAILY_TOKEN_LIMIT is not configured in
+// the legacy secret — e.g. installations configured purely via AiModel CRs
+// that never had the secret. Without a default, the missing key would fail
+// closed in isTokenLimitExceeded and permanently block every run even though
+// a valid AiModel exists. An unparsable configured value still fails closed.
+const defaultDailyTokenLimit = int64(300_000)
+
 func (ai *aiManager) getDailyTokenLimit() (int64, error) {
 	data, err := ai.getAiSettingByKey(AI_CONFIG_DAILY_TOKEN_LIMIT_KEY)
 	if err != nil {
-		return 0, fmt.Errorf("failed to get daily token limit: %v", err)
+		return defaultDailyTokenLimit, nil
 	}
 	limit, err := strconv.ParseInt(data, 10, 64)
 	if err != nil {
@@ -110,18 +121,9 @@ func (ai *aiManager) getDailyTokenLimit() (int64, error) {
 func (ai *aiManager) getSdkType() (AiSdkType, error) {
 	data, err := ai.getAiSettingByKey(AI_CONFIG_SDK_KEY)
 	if err != nil {
-		return "", fmt.Errorf("failed to get API key: %v", err)
+		return "", fmt.Errorf("failed to get SDK type: %v", err)
 	}
-	switch data {
-	case "openai":
-		return AiSdkTypeOpenAI, nil
-	case "anthropic":
-		return AiSdkTypeAnthropic, nil
-	case "ollama":
-		return AiSdkTypeOllama, nil
-	default:
-		return "", fmt.Errorf("unsupported SDK type: %s", data)
-	}
+	return parseSdkType(data)
 }
 
 func (ai *aiManager) getApiKey() (string, error) {

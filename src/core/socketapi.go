@@ -1951,6 +1951,91 @@ func (self *socketApi) registerPatterns() {
 
 	{
 		type Request struct {
+			Name string `json:"name"`
+		}
+
+		RegisterPatternHandler(
+			PatternHandle{self, "get/aimodels"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Request) ([]GetAiModelResult, error) {
+				if request.Name != "" {
+					model, err := self.apiService.GetAiModel(request.Name)
+					if err != nil || model == nil {
+						return []GetAiModelResult{}, err
+					}
+					return []GetAiModelResult{*model}, nil
+				}
+				return self.apiService.GetAllAiModels()
+			},
+		)
+	}
+
+	{
+		type Request struct {
+			Name string               `json:"name" validate:"required"`
+			Spec v1alpha1.AiModelSpec `json:"spec" validate:"required"`
+		}
+
+		RegisterPatternHandler(
+			PatternHandle{self, "create/aimodel"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Request) (string, error) {
+				var res string
+				err := ai.ValidateAiModelSpec(request.Spec)
+				if err == nil {
+					res, err = self.apiService.CreateAiModel(request.Name, request.Spec)
+				}
+				var created *unstructured.Unstructured
+				if err == nil {
+					created = crdToAuditObject(&v1alpha1.AiModel{
+						ObjectMeta: metav1.ObjectMeta{Name: request.Name},
+						Spec:       request.Spec,
+					}, "AiModel", request.Name)
+				}
+				return store.AddToAuditLog(datagram, self.logger, res, err, nil, created)
+			},
+		)
+
+		RegisterPatternHandler(
+			PatternHandle{self, "update/aimodel"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Request) (string, error) {
+				oldModel, _ := store.GetAiModel(self.config.Get("MO_OWN_NAMESPACE"), request.Name)
+				var res string
+				err := ai.ValidateAiModelSpec(request.Spec)
+				if err == nil {
+					res, err = self.apiService.UpdateAiModel(request.Name, request.Spec)
+				}
+				var oldObj, newObj *unstructured.Unstructured
+				if oldModel != nil {
+					oldObj = crdToAuditObject(oldModel, "AiModel", request.Name)
+					updated := oldModel.DeepCopy()
+					updated.Spec = request.Spec
+					newObj = crdToAuditObject(updated, "AiModel", request.Name)
+				}
+				return store.AddToAuditLog(datagram, self.logger, res, err, oldObj, newObj)
+			},
+		)
+	}
+
+	{
+		type Request struct {
+			Name string `json:"name" validate:"required"`
+		}
+
+		RegisterPatternHandler(
+			PatternHandle{self, "delete/aimodel"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Request) (string, error) {
+				oldModel, _ := store.GetAiModel(self.config.Get("MO_OWN_NAMESPACE"), request.Name)
+				res, err := self.apiService.DeleteAiModel(request.Name)
+				return store.AddToAuditLog(datagram, self.logger, res, err, crdToAuditObject(oldModel, "AiModel", request.Name), nil)
+			},
+		)
+	}
+
+	{
+		type Request struct {
 			AgentName string `json:"agentName" validate:"required"`
 		}
 

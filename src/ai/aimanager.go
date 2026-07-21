@@ -1285,15 +1285,15 @@ const finalAnswerNudge = "Your budget for this run is exhausted — do not reque
 // counter and "currently working on" display in the UI plus the cancel check.
 func (ai *aiManager) processPrompt(ctx context.Context, prompt string, toolCtx *ToolContext, agentSpec *v1alpha1.AgentSpec, onProgress func(tokensUsed int64, activity string)) (responses []*AiResponse, tokensUsed int64, timeUsedInMs int, modelUser string, err error) {
 	startTime := time.Now()
-	model, err := ai.getAiModel()
+	// Resolve the full model config (provider, endpoint, credentials, limits)
+	// once for the whole run: the agent's modelRef, the default AiModel or the
+	// legacy secret — see resolveModelConfig.
+	rc, err := ai.resolveModelConfig(agentSpec)
 	if err != nil {
-		return nil, 0, int(time.Since(startTime).Milliseconds()), model, err
+		return nil, 0, int(time.Since(startTime).Milliseconds()), "", err
 	}
 	systemPrompt := ai.getSystemPrompt()
 	if agentSpec != nil {
-		if agentSpec.Model != "" {
-			model = agentSpec.Model
-		}
 		if agentSpec.Instruction != "" {
 			systemPrompt += "\n\nAgent instruction:\n" + agentSpec.Instruction
 		}
@@ -1309,26 +1309,15 @@ func (ai *aiManager) processPrompt(ctx context.Context, prompt string, toolCtx *
 			"\nOnly a structured proposal can be reviewed and applied with one click; prose-only recommendations end up as plain reports."
 	}
 
-	maxToolCalls, err := ai.getAiMaxToolCalls()
-	if err != nil {
-		ai.logger.Warn("Error getting AI max tool calls (using default value)", "error", err, "defaultMaxToolCalls", maxToolCalls)
-	}
-
-	maxTokensPerRun := ai.getAiMaxTokensPerRun()
-
-	sdk, err := ai.getSdkType()
-	if err != nil {
-		return nil, 0, int(time.Since(startTime).Milliseconds()), model, err
-	}
-	switch sdk {
+	switch rc.Sdk {
 	case AiSdkTypeOpenAI:
-		return ai.processPromptOpenAi(ctx, model, systemPrompt, prompt, maxToolCalls, maxTokensPerRun, toolCtx, onProgress)
+		return ai.processPromptOpenAi(ctx, rc, systemPrompt, prompt, toolCtx, onProgress)
 	case AiSdkTypeAnthropic:
-		return ai.processPromptAnthropic(ctx, model, systemPrompt, prompt, maxToolCalls, maxTokensPerRun, toolCtx, onProgress)
+		return ai.processPromptAnthropic(ctx, rc, systemPrompt, prompt, toolCtx, onProgress)
 	case AiSdkTypeOllama:
-		return ai.processPromptOllama(ctx, model, systemPrompt, prompt, maxToolCalls, maxTokensPerRun, toolCtx, onProgress)
+		return ai.processPromptOllama(ctx, rc, systemPrompt, prompt, toolCtx, onProgress)
 	default:
-		return nil, 0, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("unsupported AI SDK type: %s", sdk)
+		return nil, 0, int(time.Since(startTime).Milliseconds()), rc.Model, fmt.Errorf("unsupported AI SDK type: %s", rc.Sdk)
 	}
 }
 
@@ -1612,82 +1601,82 @@ func buildUserPrompt(prompt string, obj *unstructured.Unstructured) string {
 	return fmt.Sprintf("%s\n\nHere are the related Kubernetes resources in yaml format:\n%s", prompt, string(objBytes))
 }
 
-func (ai *aiManager) getOpenAIClient(request *ModelsRequest) (*openai.Client, error) {
-	var apiKey string
-	if request != nil && request.ApiKey != nil {
-		apiKey = *request.ApiKey
-	} else {
-		var err error
-		apiKey, err = ai.getApiKey()
-		if err != nil {
-			return nil, err
-		}
+// newOpenAIClientFor builds an OpenAI client for one resolved model config.
+// An empty BaseUrl selects the SDK's default public endpoint.
+func (ai *aiManager) newOpenAIClientFor(rc *ResolvedModelConfig) *openai.Client {
+	opts := []option.RequestOption{option.WithAPIKey(rc.ApiKey)}
+	if rc.BaseUrl != "" {
+		opts = append(opts, option.WithBaseURL(rc.BaseUrl))
 	}
-	var baseUrl string
-	if request != nil {
-		baseUrl = request.ApiUrl
-	} else {
-		var err error
-		baseUrl, err = ai.getBaseUrl()
-		if err != nil {
-			return nil, err
-		}
-	}
-	client := openai.NewClient(
-		option.WithAPIKey(apiKey),
-		option.WithBaseURL(baseUrl),
-	)
-	return &client, nil
+	client := openai.NewClient(opts...)
+	return &client
 }
 
-func (ai *aiManager) getAnthropicClient(request *ModelsRequest) (*anthropic.Client, error) {
-	var apiKey string
-	if request != nil && request.ApiKey != nil {
-		apiKey = *request.ApiKey
-	} else {
-		var err error
-		apiKey, err = ai.getApiKey()
-		if err != nil {
-			return nil, err
-		}
+// newAnthropicClientFor builds an Anthropic client for one resolved model
+// config. An empty BaseUrl selects the SDK's default public endpoint.
+func (ai *aiManager) newAnthropicClientFor(rc *ResolvedModelConfig) *anthropic.Client {
+	opts := []anthropic_option.RequestOption{anthropic_option.WithAPIKey(rc.ApiKey)}
+	if rc.BaseUrl != "" {
+		opts = append(opts, anthropic_option.WithBaseURL(rc.BaseUrl))
 	}
-	var baseUrl string
-	if request != nil {
-		baseUrl = request.ApiUrl
-	} else {
-		var err error
-		baseUrl, err = ai.getBaseUrl()
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	client := anthropic.NewClient(
-		anthropic_option.WithBaseURL(baseUrl),
-		anthropic_option.WithAPIKey(apiKey),
-	)
-	return &client, nil
+	client := anthropic.NewClient(opts...)
+	return &client
 }
 
-func (ai *aiManager) getOllamaClient(request *ModelsRequest) (*ollama.Client, error) {
-	var baseUrl string
-	if request != nil {
-		baseUrl = request.ApiUrl
-	} else {
-		var err error
-		baseUrl, err = ai.getBaseUrl()
-		if err != nil {
-			return nil, err
-		}
-	}
-	url, err := url.Parse(baseUrl)
+// newOllamaClientFor builds an Ollama client for one resolved model config.
+// Ollama has no public default endpoint, so BaseUrl must be set (enforced by
+// ValidateAiModelSpec / the legacy config).
+func (ai *aiManager) newOllamaClientFor(rc *ResolvedModelConfig) (*ollama.Client, error) {
+	url, err := url.Parse(rc.BaseUrl)
 	if err != nil {
 		return nil, err
 	}
+	return api.NewClient(url, http.DefaultClient), nil
+}
 
-	client := api.NewClient(url, http.DefaultClient)
+// modelsRequestConfig turns an explicit ModelsRequest (UI-supplied SDK and
+// credentials, e.g. from the "add model" dialog) into a resolved config. A nil
+// request resolves the configured model (default AiModel or legacy secret)
+// instead; a request without an API key borrows the configured one.
+func (ai *aiManager) modelsRequestConfig(request *ModelsRequest) (*ResolvedModelConfig, error) {
+	if request == nil {
+		return ai.resolveModelConfig(nil)
+	}
+	rc := &ResolvedModelConfig{
+		Source:  "request",
+		Sdk:     AiSdkType(request.Sdk),
+		BaseUrl: request.ApiUrl,
+	}
+	if request.ApiKey != nil {
+		rc.ApiKey = *request.ApiKey
+	} else if configured, err := ai.resolveModelConfig(nil); err == nil {
+		rc.ApiKey = configured.ApiKey
+	}
+	return rc, nil
+}
 
-	return client, nil
+func (ai *aiManager) getOpenAIClient(request *ModelsRequest) (*openai.Client, error) {
+	rc, err := ai.modelsRequestConfig(request)
+	if err != nil {
+		return nil, err
+	}
+	return ai.newOpenAIClientFor(rc), nil
+}
+
+func (ai *aiManager) getAnthropicClient(request *ModelsRequest) (*anthropic.Client, error) {
+	rc, err := ai.modelsRequestConfig(request)
+	if err != nil {
+		return nil, err
+	}
+	return ai.newAnthropicClientFor(rc), nil
+}
+
+func (ai *aiManager) getOllamaClient(request *ModelsRequest) (*ollama.Client, error) {
+	rc, err := ai.modelsRequestConfig(request)
+	if err != nil {
+		return nil, err
+	}
+	return ai.newOllamaClientFor(rc)
 }
 
 func (ai *aiManager) GetAvailableModels(request *ModelsRequest) ([]string, error) {
@@ -1695,11 +1684,11 @@ func (ai *aiManager) GetAvailableModels(request *ModelsRequest) ([]string, error
 	if request != nil {
 		sdk = AiSdkType(request.Sdk)
 	} else {
-		var err error
-		sdk, err = ai.getSdkType()
+		rc, err := ai.resolveModelConfig(nil)
 		if err != nil {
 			return []string{}, err
 		}
+		sdk = rc.Sdk
 	}
 	switch sdk {
 	case AiSdkTypeOpenAI:

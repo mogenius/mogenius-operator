@@ -33,6 +33,12 @@ type WorkspaceManager interface {
 	UpdateAgent(name string, spec v1alpha1.AgentSpec) (*v1alpha1.Agent, error)
 	DeleteAgent(name string) error
 	RequestAgentRun(name string) error
+
+	GetAllAiModels() ([]v1alpha1.AiModel, error)
+	CreateAiModel(name string, spec v1alpha1.AiModelSpec) (*v1alpha1.AiModel, error)
+	GetAiModel(name string) (*v1alpha1.AiModel, error)
+	UpdateAiModel(name string, spec v1alpha1.AiModelSpec) (*v1alpha1.AiModel, error)
+	DeleteAiModel(name string) error
 }
 
 type workspaceManager struct {
@@ -209,4 +215,34 @@ func (self *workspaceManager) RequestAgentRun(name string) error {
 	defer self.namespaceLock.RUnlock()
 	_, err := self.mogeniusClientSet.MogeniusV1alpha1.RequestAgentRun(self.namespace, name)
 	return err
+}
+
+func (self *workspaceManager) GetAllAiModels() ([]v1alpha1.AiModel, error) {
+	self.namespaceLock.RLock()
+	defer self.namespaceLock.RUnlock()
+	return self.mogeniusClientSet.MogeniusV1alpha1.ListAiModels(self.namespace)
+}
+
+func (self *workspaceManager) GetAiModel(name string) (*v1alpha1.AiModel, error) {
+	self.namespaceLock.RLock()
+	defer self.namespaceLock.RUnlock()
+	return self.mogeniusClientSet.MogeniusV1alpha1.GetAiModel(self.namespace, name)
+}
+
+func (self *workspaceManager) CreateAiModel(name string, spec v1alpha1.AiModelSpec) (*v1alpha1.AiModel, error) {
+	self.namespaceLock.RLock()
+	defer self.namespaceLock.RUnlock()
+	return self.mogeniusClientSet.MogeniusV1alpha1.CreateAiModel(self.namespace, name, spec)
+}
+
+func (self *workspaceManager) UpdateAiModel(name string, spec v1alpha1.AiModelSpec) (*v1alpha1.AiModel, error) {
+	self.namespaceLock.RLock()
+	defer self.namespaceLock.RUnlock()
+	return self.mogeniusClientSet.MogeniusV1alpha1.UpdateAiModel(self.namespace, name, spec)
+}
+
+func (self *workspaceManager) DeleteAiModel(name string) error {
+	self.namespaceLock.RLock()
+	defer self.namespaceLock.RUnlock()
+	return self.mogeniusClientSet.MogeniusV1alpha1.DeleteAiModel(self.namespace, name)
 }
