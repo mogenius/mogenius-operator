@@ -340,6 +340,105 @@ func (self *MogeniusV1alpha1) DeleteAgent(namespace string, name string) error {
 	return nil
 }
 
+// ╭──────────────────╮
+// │ Client: AiModels │
+// ╰──────────────────╯
+
+func (self *MogeniusV1alpha1) ListAiModels(namespace string) ([]mov1alpha1.AiModel, error) {
+	models, err := store.GetAllAiModels(namespace)
+	if err != nil {
+		return nil, fmt.Errorf("store: %w", err)
+	}
+	if models == nil {
+		return []mov1alpha1.AiModel{}, nil
+	}
+	return models, nil
+}
+
+func (self *MogeniusV1alpha1) GetAiModel(namespace string, name string) (*mov1alpha1.AiModel, error) {
+	result, err := store.GetAiModel(namespace, name)
+	if err != nil {
+		return nil, fmt.Errorf("store: %w", err)
+	}
+	if result == nil {
+		return nil, fmt.Errorf("store: aimodel %s/%s not found", namespace, name)
+	}
+	result.TypeMeta = metav1.TypeMeta{
+		Kind:       "AiModel",
+		APIVersion: "mogenius.com/v1alpha1",
+	}
+	return result, nil
+}
+
+func (self *MogeniusV1alpha1) CreateAiModel(namespace string, name string, spec mov1alpha1.AiModelSpec) (*mov1alpha1.AiModel, error) {
+	res := &mov1alpha1.AiModel{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "AiModel",
+			APIVersion: "mogenius.com/v1alpha1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: spec,
+	}
+	result := &mov1alpha1.AiModel{}
+	err := self.restClient.Post().Namespace(namespace).Resource("aimodels").Body(res).Do(context.Background()).Into(result)
+	if err != nil {
+		return nil, fmt.Errorf("RESTClient: %w", err)
+	}
+
+	return result, nil
+}
+
+func (self *MogeniusV1alpha1) ReplaceAiModel(namespace string, name string, spec mov1alpha1.AiModelSpec) (*mov1alpha1.AiModel, error) {
+	res, err := self.GetAiModel(namespace, name)
+	if err != nil {
+		return nil, err
+	}
+	res.Spec = spec
+
+	result := &mov1alpha1.AiModel{}
+	err = self.restClient.Put().Namespace(namespace).Resource("aimodels").Name(name).Body(res).Do(context.Background()).Into(result)
+	if err != nil {
+		return nil, fmt.Errorf("RESTClient: %w", err)
+	}
+
+	return result, nil
+}
+
+func (self *MogeniusV1alpha1) UpdateAiModel(namespace string, name string, spec mov1alpha1.AiModelSpec) (*mov1alpha1.AiModel, error) {
+	// Merge-patching cannot clear optional fields (e.g. dropping the
+	// apiKeySecretRef or unsetting default), so updates replace the full spec.
+	return self.ReplaceAiModel(namespace, name, spec)
+}
+
+// UpdateAiModelStatus writes only the status subresource of the given model
+// (metadata must carry name, namespace and the current resourceVersion). Spec
+// and generation stay untouched.
+func (self *MogeniusV1alpha1) UpdateAiModelStatus(model *mov1alpha1.AiModel) (*mov1alpha1.AiModel, error) {
+	model.TypeMeta = metav1.TypeMeta{
+		Kind:       "AiModel",
+		APIVersion: "mogenius.com/v1alpha1",
+	}
+	result := &mov1alpha1.AiModel{}
+	err := self.restClient.Put().Namespace(model.Namespace).Resource("aimodels").Name(model.Name).SubResource("status").Body(model).Do(context.Background()).Into(result)
+	if err != nil {
+		return nil, fmt.Errorf("RESTClient: %w", err)
+	}
+
+	return result, nil
+}
+
+func (self *MogeniusV1alpha1) DeleteAiModel(namespace string, name string) error {
+	err := self.restClient.Delete().Namespace(namespace).Resource("aimodels").Name(name).Do(context.Background()).Error()
+	if err != nil {
+		return fmt.Errorf("RESTClient: %w", err)
+	}
+
+	return nil
+}
+
 // ╭────────────────────╮
 // │ Client: Workspaces │
 // ╰────────────────────╯

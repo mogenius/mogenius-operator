@@ -10,11 +10,15 @@ import (
 	"github.com/ollama/ollama/api"
 )
 
-func (ai *aiManager) processPromptOllama(ctx context.Context, model, systemPrompt, prompt string, maxToolCalls int, maxTokensPerRun int64, toolCtx *ToolContext, onProgress func(int64, string)) ([]*AiResponse, int64, int, string, error) {
+func (ai *aiManager) processPromptOllama(ctx context.Context, rc *ResolvedModelConfig, systemPrompt, prompt string, toolCtx *ToolContext, onProgress func(int64, string)) ([]*AiResponse, int64, int, string, error) {
 
 	startTime := time.Now()
 
-	client, err := ai.getOllamaClient(nil)
+	model := rc.Model
+	maxToolCalls := rc.MaxToolCalls
+	maxTokensPerRun := rc.MaxTokensPerRun
+
+	client, err := ai.newOllamaClientFor(rc)
 	if err != nil {
 		return nil, 0, int(time.Since(startTime).Milliseconds()), model, err
 	}
@@ -199,11 +203,12 @@ func (ai *aiManager) ollamaChat(
 	ctx context.Context,
 	ioChannel IOChatChannel,
 	systemPrompt string,
-	model string,
-	maxToolCalls int,
+	rc *ResolvedModelConfig,
 ) error {
 
-	client, err := ai.getOllamaClient(nil)
+	model := rc.Model
+	maxToolCalls := rc.MaxToolCalls
+	client, err := ai.newOllamaClientFor(rc)
 	if err != nil {
 		return fmt.Errorf("failed to get Ollama client: %w", err)
 	}

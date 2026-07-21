@@ -79,6 +79,12 @@ type Api interface {
 	DeleteAgent(name string) (string, error)
 	RequestAgentRun(name string) (string, error)
 
+	GetAllAiModels() ([]GetAiModelResult, error)
+	GetAiModel(name string) (*GetAiModelResult, error)
+	CreateAiModel(name string, spec v1alpha1.AiModelSpec) (string, error)
+	UpdateAiModel(name string, spec v1alpha1.AiModelSpec) (string, error)
+	DeleteAiModel(name string) (string, error)
+
 	GetWorkspaceResources(workspaceName string, whitelist []*utils.ResourceDescriptor, blacklist []*utils.ResourceDescriptor, namespaceWhitelist []string) ([]unstructured.Unstructured, error)
 	GetResourceListByWhitelistPaginated(req ResourcesPaginatedRequest) (ResourcesPaginatedResponse, error)
 	GetWorkspaceResourcesPaginated(workspaceName string, req WorkspaceResourcesPaginatedRequest) (WorkspaceResourcesPaginatedResponse, error)
@@ -396,6 +402,74 @@ func (self *api) RequestAgentRun(name string) (string, error) {
 		return "", err
 	}
 	return "Agent run requested", nil
+}
+
+// GetAiModelResult is the wire shape for AiModel CRs, mirroring GetAgentResult.
+// Status is included so clients can surface the Ready condition.
+type GetAiModelResult struct {
+	Name              string                 `json:"name" validate:"required"`
+	CreationTimestamp v1.Time                `json:"creationTimestamp"`
+	Spec              v1alpha1.AiModelSpec   `json:"spec"`
+	Status            v1alpha1.AiModelStatus `json:"status"`
+}
+
+func newGetAiModelResult(model v1alpha1.AiModel) GetAiModelResult {
+	return GetAiModelResult{
+		Name:              model.GetName(),
+		CreationTimestamp: model.ObjectMeta.CreationTimestamp,
+		Spec:              model.Spec,
+		Status:            model.Status,
+	}
+}
+
+func (self *api) GetAllAiModels() ([]GetAiModelResult, error) {
+	models, err := self.workspaceManager.GetAllAiModels()
+	if err != nil {
+		return []GetAiModelResult{}, err
+	}
+
+	result := make([]GetAiModelResult, 0, len(models))
+	for _, model := range models {
+		result = append(result, newGetAiModelResult(model))
+	}
+	return result, nil
+}
+
+func (self *api) GetAiModel(name string) (*GetAiModelResult, error) {
+	model, err := self.workspaceManager.GetAiModel(name)
+	if err != nil {
+		return nil, err
+	}
+
+	result := newGetAiModelResult(*model)
+	return &result, nil
+}
+
+func (self *api) CreateAiModel(name string, spec v1alpha1.AiModelSpec) (string, error) {
+	_, err := self.workspaceManager.CreateAiModel(name, spec)
+	if err != nil {
+		return "", err
+	}
+
+	return "Resource created successfully", nil
+}
+
+func (self *api) UpdateAiModel(name string, spec v1alpha1.AiModelSpec) (string, error) {
+	_, err := self.workspaceManager.UpdateAiModel(name, spec)
+	if err != nil {
+		return "", err
+	}
+
+	return "Resource updated successfully", nil
+}
+
+func (self *api) DeleteAiModel(name string) (string, error) {
+	err := self.workspaceManager.DeleteAiModel(name)
+	if err != nil {
+		return "", err
+	}
+
+	return "Resource deleted successfully", nil
 }
 
 type ResourcesPaginatedRequest struct {

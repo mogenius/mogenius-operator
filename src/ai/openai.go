@@ -10,13 +10,14 @@ import (
 	"github.com/openai/openai-go/v3"
 )
 
-func (ai *aiManager) processPromptOpenAi(ctx context.Context, model, systemPrompt, prompt string, maxToolCalls int, maxTokensPerRun int64, toolCtx *ToolContext, onProgress func(int64, string)) ([]*AiResponse, int64, int, string, error) {
+func (ai *aiManager) processPromptOpenAi(ctx context.Context, rc *ResolvedModelConfig, systemPrompt, prompt string, toolCtx *ToolContext, onProgress func(int64, string)) ([]*AiResponse, int64, int, string, error) {
 	startTime := time.Now()
 
-	client, err := ai.getOpenAIClient(nil)
-	if err != nil {
-		return nil, 0, int(time.Since(startTime).Milliseconds()), model, err
-	}
+	model := rc.Model
+	maxToolCalls := rc.MaxToolCalls
+	maxTokensPerRun := rc.MaxTokensPerRun
+
+	client := ai.newOpenAIClientFor(rc)
 
 	// Unattended pipeline: strictly read-only tools, no external MCP tools.
 	// The ToolContext additionally scopes reads to the agent's namespaces —
@@ -34,6 +35,7 @@ func (ai *aiManager) processPromptOpenAi(ctx context.Context, model, systemPromp
 
 	var tokensUsed int64 = 0
 	var chatCompletion *openai.ChatCompletion
+	var err error
 	toolCallCount := 0
 	for {
 		chatCompletion, err = client.Chat.Completions.New(ctx, params)
@@ -163,13 +165,11 @@ func (ai *aiManager) openaiChat(
 	ioChannel IOChatChannel,
 
 	systemPrompt string,
-	model string,
-	maxToolCalls int,
+	rc *ResolvedModelConfig,
 ) error {
-	client, err := ai.getOpenAIClient(nil)
-	if err != nil {
-		return fmt.Errorf("failed to get OpenAI client: %w", err)
-	}
+	model := rc.Model
+	maxToolCalls := rc.MaxToolCalls
+	client := ai.newOpenAIClientFor(rc)
 
 	// Add system message at the beginning
 	messages := []openai.ChatCompletionMessageParamUnion{

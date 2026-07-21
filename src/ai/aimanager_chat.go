@@ -27,19 +27,11 @@ func (ai *aiManager) Chat(ctx context.Context, ioChannel IOChatChannel) error {
 		return fmt.Errorf("AI model configuration not initialized")
 	}
 
-	model, err := ai.getAiModel()
+	// Chat always runs on the cluster default model (default AiModel or the
+	// legacy secret); a per-conversation model choice would resolve here.
+	rc, err := ai.resolveModelConfig(nil)
 	if err != nil {
-		return fmt.Errorf("failed to get AI model: %w", err)
-	}
-
-	maxToolCalls, err := ai.getAiMaxToolCalls()
-	if err != nil {
-		ai.logger.Warn("Error getting AI max tool calls (using default value)", "error", err, "defaultMaxToolCalls", maxToolCalls)
-	}
-
-	sdk, err := ai.getSdkType()
-	if err != nil {
-		return err
+		return fmt.Errorf("failed to resolve AI model config: %w", err)
 	}
 
 	// Connect to configured MCP servers
@@ -94,14 +86,14 @@ func (ai *aiManager) Chat(ctx context.Context, ioChannel IOChatChannel) error {
 		}
 	}
 
-	switch sdk {
+	switch rc.Sdk {
 	case AiSdkTypeOpenAI:
-		return ai.openaiChat(ctx, ioChannel, systemPrompt, model, maxToolCalls)
+		return ai.openaiChat(ctx, ioChannel, systemPrompt, rc)
 	case AiSdkTypeAnthropic:
-		return ai.anthropicChat(ctx, ioChannel, systemPrompt, model, maxToolCalls)
+		return ai.anthropicChat(ctx, ioChannel, systemPrompt, rc)
 	case AiSdkTypeOllama:
-		return ai.ollamaChat(ctx, ioChannel, systemPrompt, model, maxToolCalls)
+		return ai.ollamaChat(ctx, ioChannel, systemPrompt, rc)
 	default:
-		return fmt.Errorf("unsupported AI SDK type: %s", sdk)
+		return fmt.Errorf("unsupported AI SDK type: %s", rc.Sdk)
 	}
 }

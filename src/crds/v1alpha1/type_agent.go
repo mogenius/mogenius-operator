@@ -71,7 +71,13 @@ type AgentSpec struct {
 
 	Triggers AgentTriggers `json:"triggers,omitempty"`
 
-	// Optional model override; empty uses the cluster-wide configured model.
+	// Name of the AiModel CR (same namespace) this agent runs with; empty uses
+	// the cluster-wide default AiModel.
+	ModelRef string `json:"modelRef,omitempty"`
+
+	// Deprecated: overrides only the model name within the globally configured
+	// provider. Use ModelRef instead, which selects a full AiModel (provider,
+	// URL and credentials). Ignored when ModelRef is set.
 	Model string `json:"model,omitempty"`
 }
 

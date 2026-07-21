@@ -99,6 +99,16 @@ func (d *reconcilerModule) evaluateAgent(agent *v1alpha1.Agent) (metav1.Conditio
 		}
 	}
 
+	if ref := agent.Spec.ModelRef; ref != "" {
+		model, err := store.GetAiModel(ownNamespace, ref)
+		if err != nil || model == nil {
+			return metav1.ConditionFalse, "ModelNotFound", fmt.Sprintf("spec.modelRef references AiModel %q which does not exist", ref)
+		}
+		if err := ai.ValidateAiModelSpec(model.Spec); err != nil {
+			return metav1.ConditionFalse, "ModelNotReady", fmt.Sprintf("spec.modelRef references AiModel %q which is not usable: %s", ref, err)
+		}
+	}
+
 	if !agent.Spec.Enabled {
 		return metav1.ConditionTrue, "Valid", "spec is valid; agent is disabled"
 	}

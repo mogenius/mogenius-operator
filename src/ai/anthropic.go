@@ -15,13 +15,11 @@ func (ai *aiManager) anthropicChat(
 	ioChannel IOChatChannel,
 
 	systemPrompt string,
-	model string,
-	maxToolCalls int,
+	rc *ResolvedModelConfig,
 ) error {
-	client, err := ai.getAnthropicClient(nil)
-	if err != nil {
-		return fmt.Errorf("failed to get Anthropic client: %w", err)
-	}
+	model := rc.Model
+	maxToolCalls := rc.MaxToolCalls
+	client := ai.newAnthropicClientFor(rc)
 
 	// Maintain conversation history
 	messages := []anthropic.MessageParam{}
@@ -393,8 +391,12 @@ func assistantContentParams(blocks []anthropic.ContentBlockUnion) ([]anthropic.C
 	return params, nil
 }
 
-func (ai *aiManager) processPromptAnthropic(ctx context.Context, model, systemPrompt, prompt string, maxToolCalls int, maxTokensPerRun int64, toolCtx *ToolContext, onProgress func(int64, string)) ([]*AiResponse, int64, int, string, error) {
+func (ai *aiManager) processPromptAnthropic(ctx context.Context, rc *ResolvedModelConfig, systemPrompt, prompt string, toolCtx *ToolContext, onProgress func(int64, string)) ([]*AiResponse, int64, int, string, error) {
 	startTime := time.Now()
+
+	model := rc.Model
+	maxToolCalls := rc.MaxToolCalls
+	maxTokensPerRun := rc.MaxTokensPerRun
 
 	// Unattended pipeline: strictly read-only tools, no external MCP tools.
 	// The ToolContext additionally scopes reads to the agent's namespaces —
@@ -413,10 +415,7 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, model, systemPr
 	}
 	systemPrompt += submitAnalysisInstruction
 
-	client, err := ai.getAnthropicClient(nil)
-	if err != nil {
-		return nil, 0, int(time.Since(startTime).Milliseconds()), model, err
-	}
+	client := ai.newAnthropicClientFor(rc)
 
 	messages := []anthropic.MessageParam{
 		{
