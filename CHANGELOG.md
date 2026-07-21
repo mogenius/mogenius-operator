@@ -1,3 +1,10 @@
+# [2.25.0-develop.4](https://github.com/mogenius/mogenius-operator/compare/v2.25.0-develop.3...v2.25.0-develop.4) (2026-07-21)
+
+
+### Bug Fixes
+
+* aimodels now can only have one default ([65c489e](https://github.com/mogenius/mogenius-operator/commit/65c489eb3fb537f58d264b49057f114ef7fe0aec))
+
 # [2.25.0-develop.3](https://github.com/mogenius/mogenius-operator/compare/v2.25.0-develop.2...v2.25.0-develop.3) (2026-07-21)
 
 
