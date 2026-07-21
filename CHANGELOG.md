@@ -1,3 +1,10 @@
+# [2.25.0-develop.6](https://github.com/mogenius/mogenius-operator/compare/v2.25.0-develop.5...v2.25.0-develop.6) (2026-07-21)
+
+
+### Bug Fixes
+
+* ai improvements for ollama ([15e807d](https://github.com/mogenius/mogenius-operator/commit/15e807d5774dc691fb57bf4181b120f61124107c))
+
 # [2.25.0-develop.5](https://github.com/mogenius/mogenius-operator/compare/v2.25.0-develop.4...v2.25.0-develop.5) (2026-07-21)
 
 
