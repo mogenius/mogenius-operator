@@ -56,10 +56,12 @@ func NewReconcilerFactory(logger *slog.Logger, clientProvider k8sclient.K8sClien
 		configs:  []ResourceConfig{},
 	}
 
-	factory.WithReconciler(utils.WorkspaceResource, factory.module.reconcileWorkspaces)
-	factory.WithReconciler(utils.WorkspaceDashboardResource, factory.module.reconcileWorkspaceDashboards)
-	factory.WithReconciler(utils.AgentResource, factory.module.reconcileAgents)
-	factory.WithReconciler(utils.AiModelResource, factory.module.reconcileAiModels)
+	ownNamespace := configModule.Get("MO_OWN_NAMESPACE")
+
+	factory.WithReconciler(utils.WorkspaceResource, factory.module.reconcileWorkspaces, NamespaceFilter(ownNamespace))
+	factory.WithReconciler(utils.WorkspaceDashboardResource, factory.module.reconcileWorkspaceDashboards, NamespaceFilter(ownNamespace))
+	factory.WithReconciler(utils.AgentResource, factory.module.reconcileAgents, NamespaceFilter(ownNamespace))
+	factory.WithReconciler(utils.AiModelResource, factory.module.reconcileAiModels, NamespaceFilter(ownNamespace))
 
 	// TODO: Remove gaurd when platform config is ready, and add other platform components as needed.
 	if utils.IsDevBuild() {
@@ -69,10 +71,11 @@ func NewReconcilerFactory(logger *slog.Logger, clientProvider k8sclient.K8sClien
 	return factory
 }
 
-func (f *reconcilerFactory) WithReconciler(resource utils.ResourceDescriptor, reconcileFunc ReconcileFunc) *reconcilerFactory {
+func (f *reconcilerFactory) WithReconciler(resource utils.ResourceDescriptor, reconcileFunc ReconcileFunc, filters ...ObjectFilter) *reconcilerFactory {
 	f.configs = append(f.configs, ResourceConfig{
 		Resource:  resource,
 		Reconcile: reconcileFunc,
+		Filters:   filters,
 	})
 	return f
 }
