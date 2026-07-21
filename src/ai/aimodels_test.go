@@ -37,6 +37,60 @@ func TestParseSdkType(t *testing.T) {
 	}
 }
 
+func TestNormalizeAiModelSpec(t *testing.T) {
+	tests := []struct {
+		name     string
+		sdk      string
+		apiUrl   string
+		expected string
+	}{
+		{name: "openai default cleared", sdk: "openai", apiUrl: "https://api.openai.com/v1", expected: ""},
+		{name: "openai default with trailing slash cleared", sdk: "openai", apiUrl: "https://api.openai.com/v1/", expected: ""},
+		{name: "openai default with whitespace cleared", sdk: "openai", apiUrl: "  https://api.openai.com/v1 ", expected: ""},
+		{name: "anthropic default cleared", sdk: "anthropic", apiUrl: "https://api.anthropic.com", expected: ""},
+		{name: "anthropic default with trailing slash cleared", sdk: "anthropic", apiUrl: "https://api.anthropic.com/", expected: ""},
+		{name: "openai custom endpoint kept", sdk: "openai", apiUrl: "https://litellm.example.com/v1", expected: "https://litellm.example.com/v1"},
+		{name: "openai host without /v1 kept", sdk: "openai", apiUrl: "https://api.openai.com", expected: "https://api.openai.com"},
+		{name: "anthropic proxy kept", sdk: "anthropic", apiUrl: "https://gateway.example.com/anthropic", expected: "https://gateway.example.com/anthropic"},
+		{name: "ollama url kept", sdk: "ollama", apiUrl: "http://ollama.ollama.svc:11434", expected: "http://ollama.ollama.svc:11434"},
+		{name: "empty stays empty", sdk: "openai", apiUrl: "", expected: ""},
+		{name: "whitespace-only trimmed", sdk: "ollama", apiUrl: "   ", expected: ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			spec := NormalizeAiModelSpec(v1alpha1.AiModelSpec{Sdk: tt.sdk, Model: "some-model", ApiUrl: tt.apiUrl})
+			assert.Equal(t, tt.expected, spec.ApiUrl)
+			assert.Equal(t, tt.sdk, spec.Sdk)
+			assert.Equal(t, "some-model", spec.Model)
+		})
+	}
+}
+
+func TestSupportedAiSdks(t *testing.T) {
+	sdks := SupportedAiSdks()
+	assert.Len(t, sdks, 3)
+
+	byName := make(map[string]AiSdkInfo, len(sdks))
+	for _, info := range sdks {
+		// Every advertised SDK must be accepted by the parser.
+		_, err := parseSdkType(info.Sdk)
+		assert.NoError(t, err, info.Sdk)
+		byName[info.Sdk] = info
+	}
+
+	assert.Equal(t, "https://api.openai.com/v1", byName["openai"].DefaultApiUrl)
+	assert.True(t, byName["openai"].ApiKeyRequired)
+	assert.False(t, byName["openai"].ApiUrlRequired)
+
+	assert.Equal(t, "https://api.anthropic.com", byName["anthropic"].DefaultApiUrl)
+	assert.True(t, byName["anthropic"].ApiKeyRequired)
+	assert.False(t, byName["anthropic"].ApiUrlRequired)
+
+	assert.Empty(t, byName["ollama"].DefaultApiUrl)
+	assert.False(t, byName["ollama"].ApiKeyRequired)
+	assert.True(t, byName["ollama"].ApiUrlRequired)
+}
+
 func TestValidateAiModelSpec(t *testing.T) {
 	keyRef := &v1alpha1.SecretKeyRef{Name: "anthropic-credentials"}
 	tests := []struct {

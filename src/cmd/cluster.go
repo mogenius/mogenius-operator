@@ -146,7 +146,7 @@ func initializeClusterSystems(
 	xterm.SetupPortForward(base.clientProvider.ClientConfig(), base.clientProvider.K8sClientSet())
 
 	argocdModule := argocd.NewArgoCd(logManagerModule, configModule, base.clientProvider, base.valkeyClient)
-	workspaceManager := core.NewWorkspaceManager(configModule, base.clientProvider)
+	workspaceManager := core.NewWorkspaceManager(logManagerModule.CreateLogger("workspace-manager"), configModule, base.clientProvider)
 	apiModule := core.NewApi(logManagerModule.CreateLogger("api"), base.valkeyClient, configModule)
 	aiApi := core.NewAiApi(logManagerModule.CreateLogger("apApi"), aiManager)
 	httpApi := core.NewHttpApi(logManagerModule, configModule)

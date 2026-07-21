@@ -68,13 +68,13 @@ func SeedDefaultAiModel(logger *slog.Logger, config cfg.ConfigModule, clientProv
 		return // retry on next leadership without the marker
 	}
 	if len(existing) == 0 {
-		spec := v1alpha1.AiModelSpec{
+		spec := ai.NormalizeAiModelSpec(v1alpha1.AiModelSpec{
 			DisplayName: "Default",
 			Sdk:         sdk,
 			Model:       model,
 			ApiUrl:      string(legacySecret.Data[ai.AI_CONFIG_API_URL_KEY]),
 			Default:     true,
-		}
+		})
 		// The API key stays in the legacy secret; the AiModel just points at
 		// it. Ollama never authenticates, so it gets no reference at all.
 		if sdk != string(ai.AiSdkTypeOllama) && len(legacySecret.Data[ai.AI_CONFIG_API_KEY]) > 0 {

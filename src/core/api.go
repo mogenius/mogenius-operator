@@ -83,8 +83,8 @@ type Api interface {
 
 	GetAllAiModels() ([]GetAiModelResult, error)
 	GetAiModel(name string) (*GetAiModelResult, error)
-	CreateAiModel(name string, spec v1alpha1.AiModelSpec) (string, error)
-	UpdateAiModel(name string, spec v1alpha1.AiModelSpec) (string, error)
+	CreateAiModel(name string, spec v1alpha1.AiModelSpec, apiKey string) (string, error)
+	UpdateAiModel(name string, spec v1alpha1.AiModelSpec, apiKey string) (string, error)
 	DeleteAiModel(name string) (string, error)
 
 	GetWorkspaceResources(workspaceName string, whitelist []*utils.ResourceDescriptor, blacklist []*utils.ResourceDescriptor, namespaceWhitelist []string) ([]unstructured.Unstructured, error)
@@ -461,11 +461,11 @@ func (self *api) ensureAiModelDefaultUnique(name string, spec v1alpha1.AiModelSp
 	return ai.ValidateAiModelDefaultUnique(name, spec, existing)
 }
 
-func (self *api) CreateAiModel(name string, spec v1alpha1.AiModelSpec) (string, error) {
+func (self *api) CreateAiModel(name string, spec v1alpha1.AiModelSpec, apiKey string) (string, error) {
 	if err := self.ensureAiModelDefaultUnique(name, spec); err != nil {
 		return "", err
 	}
-	_, err := self.workspaceManager.CreateAiModel(name, spec)
+	_, err := self.workspaceManager.CreateAiModel(name, spec, apiKey)
 	if err != nil {
 		return "", err
 	}
@@ -473,11 +473,11 @@ func (self *api) CreateAiModel(name string, spec v1alpha1.AiModelSpec) (string, 
 	return "Resource created successfully", nil
 }
 
-func (self *api) UpdateAiModel(name string, spec v1alpha1.AiModelSpec) (string, error) {
+func (self *api) UpdateAiModel(name string, spec v1alpha1.AiModelSpec, apiKey string) (string, error) {
 	if err := self.ensureAiModelDefaultUnique(name, spec); err != nil {
 		return "", err
 	}
-	_, err := self.workspaceManager.UpdateAiModel(name, spec)
+	_, err := self.workspaceManager.UpdateAiModel(name, spec, apiKey)
 	if err != nil {
 		return "", err
 	}

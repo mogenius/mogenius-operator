@@ -91,6 +91,24 @@ func TestSanitizeAuditLogEntryRedactsUnstructuredSecretResult(t *testing.T) {
 	assert.NotContains(t, data["apiKey"], "c3VwZXItc2VjcmV0")
 }
 
+func TestSanitizeAuditLogEntryRedactsAiModelApiKey(t *testing.T) {
+	entry := AuditLogEntry{
+		Pattern: "create/aimodel",
+		Payload: map[string]any{
+			"name":   "claude",
+			"spec":   map[string]any{"sdk": "anthropic", "model": "claude-sonnet-5"},
+			"apiKey": "sk-ant-live-abc123",
+		},
+	}
+
+	sanitizeAuditLogEntry(&entry)
+
+	payload := entry.Payload.(map[string]any)
+	assert.NotContains(t, payload["apiKey"], "sk-ant-live-abc123")
+	assert.Contains(t, payload["apiKey"], "REDACTED")
+	assert.Equal(t, "claude", payload["name"])
+}
+
 func TestSanitizeAuditLogEntryLeavesNonSecretPayloadUntouched(t *testing.T) {
 	payload := map[string]any{"namespace": "prod", "name": "app"}
 	entry := AuditLogEntry{Pattern: "delete/workload", Payload: payload}

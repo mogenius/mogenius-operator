@@ -1950,6 +1950,16 @@ func (self *socketApi) registerPatterns() {
 	}
 
 	{
+		RegisterPatternHandler(
+			PatternHandle{self, "get/aimodel-sdks"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Void) ([]ai.AiSdkInfo, error) {
+				return ai.SupportedAiSdks(), nil
+			},
+		)
+	}
+
+	{
 		type Request struct {
 			Name string `json:"name"`
 		}
@@ -1974,16 +1984,27 @@ func (self *socketApi) registerPatterns() {
 		type Request struct {
 			Name string               `json:"name" validate:"required"`
 			Spec v1alpha1.AiModelSpec `json:"spec" validate:"required"`
+			// Optional plaintext API key; the operator provisions a managed
+			// Secret from it and wires spec.apiKeySecretRef. The field name
+			// must stay in sensitiveAuditPayloadKeys (store) so the audit log
+			// redacts it.
+			ApiKey string `json:"apiKey"`
 		}
 
 		RegisterPatternHandler(
 			PatternHandle{self, "create/aimodel"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (string, error) {
+				request.Spec = ai.NormalizeAiModelSpec(request.Spec)
 				var res string
-				err := ai.ValidateAiModelSpec(request.Spec)
+				// The managed ref must be wired before validation: for
+				// openai/anthropic the spec is only valid with a secret ref.
+				err := applyManagedApiKeyRef(request.Name, &request.Spec, request.ApiKey)
 				if err == nil {
-					res, err = self.apiService.CreateAiModel(request.Name, request.Spec)
+					err = ai.ValidateAiModelSpec(request.Spec)
+				}
+				if err == nil {
+					res, err = self.apiService.CreateAiModel(request.Name, request.Spec, request.ApiKey)
 				}
 				var created *unstructured.Unstructured
 				if err == nil {
@@ -2000,11 +2021,15 @@ func (self *socketApi) registerPatterns() {
 			PatternHandle{self, "update/aimodel"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (string, error) {
+				request.Spec = ai.NormalizeAiModelSpec(request.Spec)
 				oldModel, _ := store.GetAiModel(self.config.Get("MO_OWN_NAMESPACE"), request.Name)
 				var res string
-				err := ai.ValidateAiModelSpec(request.Spec)
+				err := applyManagedApiKeyRef(request.Name, &request.Spec, request.ApiKey)
 				if err == nil {
-					res, err = self.apiService.UpdateAiModel(request.Name, request.Spec)
+					err = ai.ValidateAiModelSpec(request.Spec)
+				}
+				if err == nil {
+					res, err = self.apiService.UpdateAiModel(request.Name, request.Spec, request.ApiKey)
 				}
 				var oldObj, newObj *unstructured.Unstructured
 				if oldModel != nil {

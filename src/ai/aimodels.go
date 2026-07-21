@@ -5,11 +5,86 @@ import (
 	"mogenius-operator/src/crds/v1alpha1"
 	"mogenius-operator/src/store"
 	"sort"
+	"strings"
 )
 
 // DefaultApiKeySecretKey is the Secret data key holding the API key when an
 // AiModel's apiKeySecretRef does not name one explicitly.
 const DefaultApiKeySecretKey = "API_KEY"
+
+// Public default endpoints of the provider SDKs (see WithBaseURL handling in
+// newOpenAIClient/newAnthropicClient: empty BaseUrl selects these). Kept here
+// so clients can show them and stored specs restating them can be normalized
+// back to empty.
+const (
+	openAIDefaultApiUrl    = "https://api.openai.com/v1"
+	anthropicDefaultApiUrl = "https://api.anthropic.com"
+)
+
+// AiSdkInfo describes one supported provider SDK for clients rendering model
+// configuration forms: which endpoint is used when apiUrl stays empty and
+// which spec fields the SDK requires.
+type AiSdkInfo struct {
+	Sdk         string `json:"sdk"`
+	DisplayName string `json:"displayName"`
+
+	// DefaultApiUrl is the public endpoint used when spec.apiUrl is empty;
+	// empty when the SDK has no public default (ollama). Meant as a
+	// placeholder — clients should leave apiUrl empty unless the customer
+	// uses a proxy or compatible endpoint.
+	DefaultApiUrl string `json:"defaultApiUrl,omitempty"`
+
+	ApiUrlRequired bool `json:"apiUrlRequired"`
+	ApiKeyRequired bool `json:"apiKeyRequired"`
+}
+
+// SupportedAiSdks lists the provider SDKs an AiModel may declare, in UI order.
+func SupportedAiSdks() []AiSdkInfo {
+	return []AiSdkInfo{
+		{
+			Sdk:            string(AiSdkTypeOpenAI),
+			DisplayName:    "OpenAI",
+			DefaultApiUrl:  openAIDefaultApiUrl,
+			ApiKeyRequired: true,
+		},
+		{
+			Sdk:            string(AiSdkTypeAnthropic),
+			DisplayName:    "Anthropic",
+			DefaultApiUrl:  anthropicDefaultApiUrl,
+			ApiKeyRequired: true,
+		},
+		{
+			Sdk:            string(AiSdkTypeOllama),
+			DisplayName:    "Ollama",
+			ApiUrlRequired: true,
+		},
+	}
+}
+
+// defaultApiUrlForSdk returns the SDK's public default endpoint, or "" when it
+// has none.
+func defaultApiUrlForSdk(sdk string) string {
+	switch sdk {
+	case string(AiSdkTypeOpenAI):
+		return openAIDefaultApiUrl
+	case string(AiSdkTypeAnthropic):
+		return anthropicDefaultApiUrl
+	default:
+		return ""
+	}
+}
+
+// NormalizeAiModelSpec clears an apiUrl that merely restates the SDK's public
+// default endpoint. An empty apiUrl keeps following the SDK default across
+// updates, while a stored literal URL would silently pin it forever.
+func NormalizeAiModelSpec(spec v1alpha1.AiModelSpec) v1alpha1.AiModelSpec {
+	spec.ApiUrl = strings.TrimSpace(spec.ApiUrl)
+	if defaultUrl := defaultApiUrlForSdk(spec.Sdk); defaultUrl != "" &&
+		strings.TrimSuffix(spec.ApiUrl, "/") == defaultUrl {
+		spec.ApiUrl = ""
+	}
+	return spec
+}
 
 // ResolvedModelConfig is one fully resolved model configuration — provider,
 // model name, endpoint, credentials and per-run limits. It is resolved once

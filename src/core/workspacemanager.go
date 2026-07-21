@@ -1,6 +1,8 @@
 package core
 
 import (
+	"context"
+	"log/slog"
 	cfg "mogenius-operator/src/config"
 	"mogenius-operator/src/crds"
 	"mogenius-operator/src/crds/v1alpha1"
@@ -35,13 +37,14 @@ type WorkspaceManager interface {
 	RequestAgentRun(name string) error
 
 	GetAllAiModels() ([]v1alpha1.AiModel, error)
-	CreateAiModel(name string, spec v1alpha1.AiModelSpec) (*v1alpha1.AiModel, error)
+	CreateAiModel(name string, spec v1alpha1.AiModelSpec, apiKey string) (*v1alpha1.AiModel, error)
 	GetAiModel(name string) (*v1alpha1.AiModel, error)
-	UpdateAiModel(name string, spec v1alpha1.AiModelSpec) (*v1alpha1.AiModel, error)
+	UpdateAiModel(name string, spec v1alpha1.AiModelSpec, apiKey string) (*v1alpha1.AiModel, error)
 	DeleteAiModel(name string) error
 }
 
 type workspaceManager struct {
+	logger            *slog.Logger
 	config            cfg.ConfigModule
 	clientProvider    k8sclient.K8sClientProvider
 	mogeniusClientSet *crds.MogeniusClientSet
@@ -49,8 +52,9 @@ type workspaceManager struct {
 	namespaceLock     sync.RWMutex
 }
 
-func NewWorkspaceManager(configModule cfg.ConfigModule, clientProvider k8sclient.K8sClientProvider) WorkspaceManager {
+func NewWorkspaceManager(logger *slog.Logger, configModule cfg.ConfigModule, clientProvider k8sclient.K8sClientProvider) WorkspaceManager {
 	wm := &workspaceManager{}
+	wm.logger = logger
 	wm.clientProvider = clientProvider
 	wm.mogeniusClientSet = clientProvider.MogeniusClientSet()
 	wm.config = configModule
@@ -229,20 +233,38 @@ func (self *workspaceManager) GetAiModel(name string) (*v1alpha1.AiModel, error)
 	return self.mogeniusClientSet.MogeniusV1alpha1.GetAiModel(self.namespace, name)
 }
 
-func (self *workspaceManager) CreateAiModel(name string, spec v1alpha1.AiModelSpec) (*v1alpha1.AiModel, error) {
+func (self *workspaceManager) CreateAiModel(name string, spec v1alpha1.AiModelSpec, apiKey string) (*v1alpha1.AiModel, error) {
 	self.namespaceLock.RLock()
 	defer self.namespaceLock.RUnlock()
-	return self.mogeniusClientSet.MogeniusV1alpha1.CreateAiModel(self.namespace, name, spec)
+	return createAiModelWithManagedSecret(context.Background(), self.clientProvider.K8sClientSet(), mogeniusAiModelCrdOps{self.mogeniusClientSet}, self.logger, self.namespace, name, spec, apiKey)
 }
 
-func (self *workspaceManager) UpdateAiModel(name string, spec v1alpha1.AiModelSpec) (*v1alpha1.AiModel, error) {
+func (self *workspaceManager) UpdateAiModel(name string, spec v1alpha1.AiModelSpec, apiKey string) (*v1alpha1.AiModel, error) {
 	self.namespaceLock.RLock()
 	defer self.namespaceLock.RUnlock()
-	return self.mogeniusClientSet.MogeniusV1alpha1.UpdateAiModel(self.namespace, name, spec)
+	return updateAiModelWithManagedSecret(context.Background(), self.clientProvider.K8sClientSet(), mogeniusAiModelCrdOps{self.mogeniusClientSet}, self.namespace, name, spec, apiKey)
 }
 
 func (self *workspaceManager) DeleteAiModel(name string) error {
 	self.namespaceLock.RLock()
 	defer self.namespaceLock.RUnlock()
 	return self.mogeniusClientSet.MogeniusV1alpha1.DeleteAiModel(self.namespace, name)
+}
+
+// mogeniusAiModelCrdOps adapts the MogeniusV1alpha1 client to the minimal
+// aiModelCrdOps surface the managed-secret orchestration works against.
+type mogeniusAiModelCrdOps struct {
+	clientSet *crds.MogeniusClientSet
+}
+
+func (self mogeniusAiModelCrdOps) Create(namespace string, name string, spec v1alpha1.AiModelSpec) (*v1alpha1.AiModel, error) {
+	return self.clientSet.MogeniusV1alpha1.CreateAiModel(namespace, name, spec)
+}
+
+func (self mogeniusAiModelCrdOps) Update(namespace string, name string, spec v1alpha1.AiModelSpec) (*v1alpha1.AiModel, error) {
+	return self.clientSet.MogeniusV1alpha1.UpdateAiModel(namespace, name, spec)
+}
+
+func (self mogeniusAiModelCrdOps) Get(namespace string, name string) (*v1alpha1.AiModel, error) {
+	return self.clientSet.MogeniusV1alpha1.GetAiModel(namespace, name)
 }
