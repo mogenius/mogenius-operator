@@ -1,3 +1,10 @@
+# [2.25.0-develop.2](https://github.com/mogenius/mogenius-operator/compare/v2.25.0-develop.1...v2.25.0-develop.2) (2026-07-21)
+
+
+### Features
+
+* adding object filter to reconciler to only look at mo resources in the same namespace ([a52b685](https://github.com/mogenius/mogenius-operator/commit/a52b685478e1a53d07817701a6396c4ded7c82b7))
+
 # [2.25.0-develop.1](https://github.com/mogenius/mogenius-operator/compare/v2.24.0...v2.25.0-develop.1) (2026-07-21)
 
 
