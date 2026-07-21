@@ -1,6 +1,10 @@
 fullnameOverride: mogenius-operator
 revisionHistoryLimit: 10
 
+serviceAccount:
+  # -- name of the ServiceAccount used by the operator (default: mogenius-operator-service-account-app)
+  name: ~
+
 
 # -- settings for the internal cluster communication
 cluster:

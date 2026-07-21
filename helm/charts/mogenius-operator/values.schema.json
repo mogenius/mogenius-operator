@@ -267,6 +267,14 @@
         "revisionHistoryLimit": {
             "type": "integer"
         },
+        "serviceAccount": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": ["string", "null"]
+                }
+            }
+        },
         "tolerations": {
             "type": "array"
         },

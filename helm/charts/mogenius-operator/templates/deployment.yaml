@@ -150,7 +150,7 @@ spec:
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       {{- end }}
-      serviceAccountName: mogenius-operator-service-account-app
+      serviceAccountName: {{ include "chart.serviceAccountName" . }}
       volumes:
       - name: helm-data
         emptyDir: {}
