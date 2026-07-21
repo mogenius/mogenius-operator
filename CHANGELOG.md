@@ -1,3 +1,10 @@
+# [2.25.0-develop.5](https://github.com/mogenius/mogenius-operator/compare/v2.25.0-develop.4...v2.25.0-develop.5) (2026-07-21)
+
+
+### Bug Fixes
+
+* added agent uniquness ([ef6bb4b](https://github.com/mogenius/mogenius-operator/commit/ef6bb4ba082e5e65e43a6efb0e98c42ddd53eb32))
+
 # [2.25.0-develop.4](https://github.com/mogenius/mogenius-operator/compare/v2.25.0-develop.3...v2.25.0-develop.4) (2026-07-21)
 
 
