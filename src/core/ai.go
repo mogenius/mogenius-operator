@@ -19,6 +19,7 @@ type AiApi interface {
 	ResetDailyTokenLimit() error
 	DeleteAllAiData() error
 	GetAvailableModels(request *ai.ModelsRequest) ([]string, error)
+	TestAiModel(name string) (*ai.AiModelTestResult, error)
 	GetPromptConfig() (*ai.AiPromptConfig, error)
 
 	ApproveTask(taskID string, user structs.User, workspace string) (*ai.AiTask, error)
@@ -81,6 +82,10 @@ func (ai *aiApi) DeleteAllAiData() error {
 
 func (ai *aiApi) GetAvailableModels(request *ai.ModelsRequest) ([]string, error) {
 	return ai.aiManager.GetAvailableModels(request)
+}
+
+func (self *aiApi) TestAiModel(name string) (*ai.AiModelTestResult, error) {
+	return self.aiManager.TestAiModel(name)
 }
 
 func (ai *aiApi) GetPromptConfig() (*ai.AiPromptConfig, error) {

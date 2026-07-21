@@ -1,7 +1,9 @@
 package core
 
 import (
+	"fmt"
 	"log/slog"
+	"mogenius-operator/src/ai"
 	"mogenius-operator/src/assert"
 	cfg "mogenius-operator/src/config"
 	"mogenius-operator/src/crds/v1alpha1"
@@ -445,7 +447,24 @@ func (self *api) GetAiModel(name string) (*GetAiModelResult, error) {
 	return &result, nil
 }
 
+// ensureAiModelDefaultUnique rejects a write that would mark a second AiModel
+// as cluster default. A list error fails the write (fail closed) — silently
+// accepting a possible duplicate would defeat the guard.
+func (self *api) ensureAiModelDefaultUnique(name string, spec v1alpha1.AiModelSpec) error {
+	if !spec.Default {
+		return nil
+	}
+	existing, err := self.workspaceManager.GetAllAiModels()
+	if err != nil {
+		return fmt.Errorf("failed to verify default uniqueness: %w", err)
+	}
+	return ai.ValidateAiModelDefaultUnique(name, spec, existing)
+}
+
 func (self *api) CreateAiModel(name string, spec v1alpha1.AiModelSpec) (string, error) {
+	if err := self.ensureAiModelDefaultUnique(name, spec); err != nil {
+		return "", err
+	}
 	_, err := self.workspaceManager.CreateAiModel(name, spec)
 	if err != nil {
 		return "", err
@@ -455,6 +474,9 @@ func (self *api) CreateAiModel(name string, spec v1alpha1.AiModelSpec) (string, 
 }
 
 func (self *api) UpdateAiModel(name string, spec v1alpha1.AiModelSpec) (string, error) {
+	if err := self.ensureAiModelDefaultUnique(name, spec); err != nil {
+		return "", err
+	}
 	_, err := self.workspaceManager.UpdateAiModel(name, spec)
 	if err != nil {
 		return "", err

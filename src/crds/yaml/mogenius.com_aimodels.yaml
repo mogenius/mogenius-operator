@@ -96,8 +96,10 @@ spec:
               default:
                 description: |-
                   Marks this model as the cluster-wide default used whenever no explicit
-                  model reference is given. Exactly one AiModel should be default; when
-                  several are, the oldest wins.
+                  model reference is given. Exactly one AiModel may be default: the API
+                  rejects marking a second one; duplicates created via kubectl/GitOps are
+                  flagged through the Ready condition (reason DuplicateDefault) and the
+                  oldest wins until resolved.
                 type: boolean
               displayName:
                 description: Human-readable name shown in the UI.

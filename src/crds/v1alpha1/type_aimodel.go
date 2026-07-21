@@ -70,8 +70,10 @@ type AiModelSpec struct {
 	ApiKeySecretRef *SecretKeyRef `json:"apiKeySecretRef,omitempty"`
 
 	// Marks this model as the cluster-wide default used whenever no explicit
-	// model reference is given. Exactly one AiModel should be default; when
-	// several are, the oldest wins.
+	// model reference is given. Exactly one AiModel may be default: the API
+	// rejects marking a second one; duplicates created via kubectl/GitOps are
+	// flagged through the Ready condition (reason DuplicateDefault) and the
+	// oldest wins until resolved.
 	Default bool `json:"default,omitempty"`
 
 	// Maximum number of tool calls per run; unset uses the global default.

@@ -109,13 +109,30 @@ func (ai *aiManager) getDefaultAiModel() *v1alpha1.AiModel {
 		ai.logger.Warn("getDefaultAiModel: failed to list AiModels", "error", err)
 		return nil
 	}
-	return pickDefaultAiModel(models)
+	return PickDefaultAiModel(models)
 }
 
-// pickDefaultAiModel selects the effective default from a list of AiModels.
+// ValidateAiModelDefaultUnique rejects marking a model as default while a
+// different AiModel already carries the flag. Guards the API write path;
+// duplicates created behind its back (kubectl/GitOps) are surfaced by the
+// reconciler's DuplicateDefault condition and resolved deterministically by
+// PickDefaultAiModel.
+func ValidateAiModelDefaultUnique(name string, spec v1alpha1.AiModelSpec, existing []v1alpha1.AiModel) error {
+	if !spec.Default {
+		return nil
+	}
+	for _, model := range existing {
+		if model.Name != name && model.Spec.Default {
+			return fmt.Errorf("AiModel %q is already marked as default — exactly one model may be the cluster default; unset its default flag first", model.Name)
+		}
+	}
+	return nil
+}
+
+// PickDefaultAiModel selects the effective default from a list of AiModels.
 // When several carry default=true the oldest wins (name as tie-breaker), so
 // the result is deterministic.
-func pickDefaultAiModel(models []v1alpha1.AiModel) *v1alpha1.AiModel {
+func PickDefaultAiModel(models []v1alpha1.AiModel) *v1alpha1.AiModel {
 	defaults := make([]v1alpha1.AiModel, 0, 1)
 	for _, model := range models {
 		if model.Spec.Default {

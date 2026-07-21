@@ -104,15 +104,15 @@ func TestPickDefaultAiModel(t *testing.T) {
 	now := time.Now()
 
 	t.Run("no models", func(t *testing.T) {
-		assert.Nil(t, pickDefaultAiModel(nil))
+		assert.Nil(t, PickDefaultAiModel(nil))
 	})
 
 	t.Run("no default marked", func(t *testing.T) {
-		assert.Nil(t, pickDefaultAiModel([]v1alpha1.AiModel{model("a", false, now)}))
+		assert.Nil(t, PickDefaultAiModel([]v1alpha1.AiModel{model("a", false, now)}))
 	})
 
 	t.Run("single default among several", func(t *testing.T) {
-		picked := pickDefaultAiModel([]v1alpha1.AiModel{
+		picked := PickDefaultAiModel([]v1alpha1.AiModel{
 			model("a", false, now),
 			model("b", true, now),
 			model("c", false, now),
@@ -122,7 +122,7 @@ func TestPickDefaultAiModel(t *testing.T) {
 	})
 
 	t.Run("oldest default wins", func(t *testing.T) {
-		picked := pickDefaultAiModel([]v1alpha1.AiModel{
+		picked := PickDefaultAiModel([]v1alpha1.AiModel{
 			model("newer", true, now),
 			model("older", true, now.Add(-time.Hour)),
 		})
@@ -131,11 +131,42 @@ func TestPickDefaultAiModel(t *testing.T) {
 	})
 
 	t.Run("name breaks creation ties deterministically", func(t *testing.T) {
-		picked := pickDefaultAiModel([]v1alpha1.AiModel{
+		picked := PickDefaultAiModel([]v1alpha1.AiModel{
 			model("zeta", true, now),
 			model("alpha", true, now),
 		})
 		assert.NotNil(t, picked)
 		assert.Equal(t, "alpha", picked.Name)
+	})
+}
+
+func TestValidateAiModelDefaultUnique(t *testing.T) {
+	model := func(name string, isDefault bool) v1alpha1.AiModel {
+		return v1alpha1.AiModel{
+			ObjectMeta: metav1.ObjectMeta{Name: name},
+			Spec:       v1alpha1.AiModelSpec{Sdk: "anthropic", Model: "m", Default: isDefault},
+		}
+	}
+	defaultSpec := v1alpha1.AiModelSpec{Sdk: "anthropic", Model: "m", Default: true}
+	nonDefaultSpec := v1alpha1.AiModelSpec{Sdk: "anthropic", Model: "m"}
+
+	t.Run("non-default spec always passes", func(t *testing.T) {
+		err := ValidateAiModelDefaultUnique("new", nonDefaultSpec, []v1alpha1.AiModel{model("other", true)})
+		assert.NoError(t, err)
+	})
+
+	t.Run("first default passes", func(t *testing.T) {
+		err := ValidateAiModelDefaultUnique("new", defaultSpec, []v1alpha1.AiModel{model("other", false)})
+		assert.NoError(t, err)
+	})
+
+	t.Run("second default is rejected", func(t *testing.T) {
+		err := ValidateAiModelDefaultUnique("new", defaultSpec, []v1alpha1.AiModel{model("other", true)})
+		assert.ErrorContains(t, err, `"other" is already marked as default`)
+	})
+
+	t.Run("updating the current default passes", func(t *testing.T) {
+		err := ValidateAiModelDefaultUnique("current", defaultSpec, []v1alpha1.AiModel{model("current", true), model("other", false)})
+		assert.NoError(t, err)
 	})
 }

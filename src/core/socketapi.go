@@ -2036,6 +2036,20 @@ func (self *socketApi) registerPatterns() {
 
 	{
 		type Request struct {
+			Name string `json:"name" validate:"required"`
+		}
+
+		RegisterPatternHandler(
+			PatternHandle{self, "test/aimodel"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Request) (*ai.AiModelTestResult, error) {
+				return self.aiApi.TestAiModel(request.Name)
+			},
+		)
+	}
+
+	{
+		type Request struct {
 			AgentName string `json:"agentName" validate:"required"`
 		}
 

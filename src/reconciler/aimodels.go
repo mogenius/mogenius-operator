@@ -6,6 +6,7 @@ import (
 	"mogenius-operator/src/ai"
 	"mogenius-operator/src/crds/v1alpha1"
 	"mogenius-operator/src/store"
+	"mogenius-operator/src/utils"
 
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -22,6 +23,10 @@ const aiModelReadyCondition = "Ready"
 // condition is purely informational.
 func (d *reconcilerModule) reconcileAiModels(ctx context.Context, obj *unstructured.Unstructured, op operation) []ReconcileResult {
 	if op == deleteOperation {
+		// The deleted model may have been the effective default; re-evaluate
+		// the remaining default-flagged models so a stale DuplicateDefault
+		// condition doesn't linger until the next background sweep.
+		d.requeueDefaultAiModels(obj.GetNamespace(), obj.GetName())
 		return nil
 	}
 
@@ -50,6 +55,12 @@ func (d *reconcilerModule) reconcileAiModels(ctx context.Context, obj *unstructu
 		if _, err := d.clientProvider.MogeniusClientSet().MogeniusV1alpha1.UpdateAiModelStatus(&model); err != nil {
 			return []ReconcileResult{{Err: fmt.Errorf("failed to update status of aimodel %q: %w", model.Name, err)}}
 		}
+		// This model's state changed, which may flip the default election for
+		// its peers (e.g. default flag toggled). Requeueing only on an actual
+		// status transition keeps mutual requeues between default-flagged
+		// models from ping-ponging: the second pass finds everything
+		// up-to-date and stops.
+		d.requeueDefaultAiModels(model.Namespace, model.Name)
 	}
 
 	// Surface user configuration problems as warnings in the reconciler
@@ -93,7 +104,33 @@ func (d *reconcilerModule) evaluateAiModel(ctx context.Context, model *v1alpha1.
 	}
 
 	if model.Spec.Default {
+		// The API write path rejects a second default, but kubectl/GitOps can
+		// still create one. Deterministically only the election losers are
+		// flagged, so exactly one model stays Ready as the effective default.
+		if models, err := store.GetAllAiModels(ownNamespace); err == nil {
+			if winner := ai.PickDefaultAiModel(models); winner != nil && winner.Name != model.Name {
+				return metav1.ConditionFalse, "DuplicateDefault",
+					fmt.Sprintf("AiModel %q is also marked as default and wins the election (oldest first); unset spec.default on one of them", winner.Name)
+			}
+		}
 		return metav1.ConditionTrue, "Valid", "spec is valid; model is the cluster default"
 	}
 	return metav1.ConditionTrue, "Valid", "spec is valid"
+}
+
+// requeueDefaultAiModels re-reconciles every other default-flagged AiModel in
+// the namespace — their DuplicateDefault condition depends on the default
+// election, which changes with this model's create/update/delete, but they
+// get no watch event of their own.
+func (d *reconcilerModule) requeueDefaultAiModels(namespace string, excludeName string) {
+	if d.requeue == nil {
+		return
+	}
+	d.requeue(utils.AiModelResource, func(model *unstructured.Unstructured) bool {
+		if model.GetNamespace() != namespace || model.GetName() == excludeName {
+			return false
+		}
+		isDefault, _, _ := unstructured.NestedBool(model.Object, "spec", "default")
+		return isDefault
+	})
 }

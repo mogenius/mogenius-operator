@@ -243,6 +243,7 @@ type AiManager interface {
 	ResetDailyTokenLimit() error
 	DeleteAllAiData() error
 	GetAvailableModels(request *ModelsRequest) ([]string, error)
+	TestAiModel(name string) (*AiModelTestResult, error)
 	GetPromptConfig() (*AiPromptConfig, error)
 	Chat(ctx context.Context, ch IOChatChannel) error
 
