@@ -221,6 +221,13 @@ type ModelsRequest struct {
 	Sdk    string  `json:"SDK,omitempty"`
 	ApiKey *string `json:"API_KEY,omitempty"`
 	ApiUrl string  `json:"API_URL,omitempty"`
+
+	// Alternative to API_KEY: reference to a Secret in the operator namespace
+	// holding the key — the AiModel UI only knows the reference, never the key
+	// value, so model listing resolves it server-side. API_KEY wins when both
+	// are set; the key name defaults to DefaultApiKeySecretKey.
+	ApiKeySecretName string `json:"API_KEY_SECRET_NAME,omitempty"`
+	ApiKeySecretKey  string `json:"API_KEY_SECRET_KEY,omitempty"`
 }
 type AiManager interface {
 	ProcessObject(obj *unstructured.Unstructured, eventType string, resource utils.ResourceDescriptor) // eventType can be "add", "update", "delete"
@@ -1647,10 +1654,26 @@ func (ai *aiManager) modelsRequestConfig(request *ModelsRequest) (*ResolvedModel
 		Sdk:     AiSdkType(request.Sdk),
 		BaseUrl: request.ApiUrl,
 	}
-	if request.ApiKey != nil {
+	switch {
+	case request.ApiKey != nil:
 		rc.ApiKey = *request.ApiKey
-	} else if configured, err := ai.resolveModelConfig(nil); err == nil {
-		rc.ApiKey = configured.ApiKey
+	case request.ApiKeySecretName != "":
+		ownNamespace, err := ai.config.TryGet("MO_OWN_NAMESPACE")
+		if err != nil {
+			return nil, fmt.Errorf("failed to retrieve own namespace: %w", err)
+		}
+		apiKey, err := ai.resolveApiKeyFromRef(ownNamespace, &v1alpha1.SecretKeyRef{
+			Name: request.ApiKeySecretName,
+			Key:  request.ApiKeySecretKey,
+		})
+		if err != nil {
+			return nil, err
+		}
+		rc.ApiKey = apiKey
+	default:
+		if configured, err := ai.resolveModelConfig(nil); err == nil {
+			rc.ApiKey = configured.ApiKey
+		}
 	}
 	return rc, nil
 }
