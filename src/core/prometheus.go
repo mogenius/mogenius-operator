@@ -6,6 +6,7 @@ import (
 	"io"
 	"log/slog"
 	cfg "mogenius-operator/src/config"
+	"mogenius-operator/src/dtos"
 	"mogenius-operator/src/kubernetes"
 	"mogenius-operator/src/valkeyclient"
 	"net/http"
@@ -69,6 +70,15 @@ type PrometheusStoreObject struct {
 type PrometheusValuesResponse struct {
 	Status string   `json:"status"`
 	Data   []string `json:"data"`
+}
+
+// PrometheusStatus reports whether Prometheus is installed in the cluster via service discovery
+func PrometheusStatus(config cfg.ConfigModule, logger *slog.Logger) (dtos.ComponentStatus, error) {
+	namespace, _, _, _, err := kubernetes.FindPrometheusService()
+	if err != nil {
+		return dtos.ComponentStatus{Installed: false}, nil
+	}
+	return dtos.ComponentStatus{Installed: true, Namespace: namespace}, nil
 }
 
 func IsPrometheusReachable(data PrometheusRequest, config cfg.ConfigModule, logger *slog.Logger) (bool, error) {
