@@ -1,7 +1,14 @@
 name: Helm
 
 on:
+  pull_request:
+    paths:
+      - 'helm/**'
+      - '.github/workflows/helm.yaml'
   push:
+    branches:
+      - main
+      - develop
     paths:
       - 'helm/**'
       - '.github/workflows/helm.yaml'
