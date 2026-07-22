@@ -83,6 +83,11 @@ type AiModelSpec struct {
 	// oldest wins until resolved.
 	Default bool `json:"default,omitempty"`
 
+	// Allows this model to serve interactive chat sessions. Chat is driven
+	// entirely by this flag: with several enabled models the user picks one
+	// in the chat UI, with none enabled chat reports an error.
+	ChatEnabled bool `json:"chatEnabled,omitempty"`
+
 	// Maximum number of tool calls per run; unset uses the built-in default
 	// (50). Agents may override this per run via their spec.
 	// +kubebuilder:validation:Minimum=1

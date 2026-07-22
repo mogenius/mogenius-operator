@@ -319,6 +319,66 @@ func (ai *aiManager) resolveModelConfig(agentSpec *v1alpha1.AgentSpec) (*Resolve
 	return resolved, nil
 }
 
+// resolveChatModelConfig resolves the model for one chat session. Chat is
+// driven purely by the per-model chatEnabled flag; see pickChatModel for the
+// selection rules.
+func (ai *aiManager) resolveChatModelConfig(modelRef string) (*ResolvedModelConfig, error) {
+	models, err := ai.listAiModels()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list AI models: %w", err)
+	}
+	model, err := pickChatModel(models, modelRef)
+	if err != nil {
+		return nil, err
+	}
+	return ai.resolveAiModel(model, "chat")
+}
+
+// pickChatModel selects the chat model: an explicit modelRef must name a
+// chat-enabled model (fail closed), otherwise the default-flagged model wins
+// if it is chat-enabled, else the oldest chat-enabled one (name as
+// tie-breaker — the same deterministic ordering as the default election).
+// No chat-enabled model at all is a user-facing configuration error.
+func pickChatModel(models []v1alpha1.AiModel, modelRef string) (*v1alpha1.AiModel, error) {
+	chatModels := make([]v1alpha1.AiModel, 0, len(models))
+	for _, model := range models {
+		if model.Spec.ChatEnabled {
+			chatModels = append(chatModels, model)
+		}
+	}
+
+	if modelRef != "" {
+		for i := range chatModels {
+			if chatModels[i].Name == modelRef {
+				return &chatModels[i], nil
+			}
+		}
+		for i := range models {
+			if models[i].Name == modelRef {
+				return nil, fmt.Errorf("AI model %q is not enabled for chat — enable it in Cluster Settings → AI", modelRef)
+			}
+		}
+		return nil, fmt.Errorf("AI model %q not found", modelRef)
+	}
+
+	if len(chatModels) == 0 {
+		return nil, fmt.Errorf("no AI model is enabled for chat — enable a model for chat in Cluster Settings → AI")
+	}
+	for i := range chatModels {
+		if chatModels[i].Spec.Default {
+			return &chatModels[i], nil
+		}
+	}
+	sort.Slice(chatModels, func(i, j int) bool {
+		ti, tj := chatModels[i].CreationTimestamp, chatModels[j].CreationTimestamp
+		if !ti.Equal(&tj) {
+			return ti.Before(&tj)
+		}
+		return chatModels[i].Name < chatModels[j].Name
+	})
+	return &chatModels[0], nil
+}
+
 // applyAgentBudgetOverrides lets an agent's per-run budget fields beat the
 // model's values (precedence: agent > model spec > built-in defaults).
 func applyAgentBudgetOverrides(resolved *ResolvedModelConfig, agentSpec *v1alpha1.AgentSpec) {

@@ -21,17 +21,36 @@ func (ai *aiManager) sendTokens(inputTokens, outputTokenCount int64, sessionInpu
 	}
 }
 
+// emitChatError pushes a user-visible error bubble (plus the completion
+// marker so the input unlocks) into the chat stream. Early failures used to
+// be logged only — the browser saw a silently dead socket.
+func emitChatError(ctx context.Context, ioChannel IOChatChannel, message string) {
+	select {
+	case ioChannel.Output <- fmt.Sprintf("\n[Error: %s]", message):
+	case <-ctx.Done():
+		return
+	}
+	select {
+	case ioChannel.Output <- "[COMPLETED]":
+	case <-ctx.Done():
+	}
+}
+
 func (ai *aiManager) Chat(ctx context.Context, ioChannel IOChatChannel) error {
-	modelConfigInitialized := ai.isAiModelConfigInitialized()
-	if !modelConfigInitialized {
-		return fmt.Errorf("AI model configuration not initialized")
+	// Chat is driven purely by chat-enabled AiModels: the session's model
+	// choice (dropdown) arrives as ioChannel.ModelRef; without one the
+	// default-flagged model wins if chat-enabled, else the oldest.
+	rc, err := ai.resolveChatModelConfig(ioChannel.ModelRef)
+	if err != nil {
+		emitChatError(ctx, ioChannel, err.Error())
+		return fmt.Errorf("failed to resolve chat model: %w", err)
 	}
 
-	// Chat always runs on the cluster default model (default AiModel or the
-	// legacy secret); a per-conversation model choice would resolve here.
-	rc, err := ai.resolveModelConfig(nil)
-	if err != nil {
-		return fmt.Errorf("failed to resolve AI model config: %w", err)
+	// Exhausted daily budget: tell the user right away instead of on the
+	// first message. The per-turn gate inside the SDK loops still guards
+	// every message (the budget may free up mid-session via a reset).
+	if ai.isModelBudgetExceeded(rc) {
+		emitChatError(ctx, ioChannel, ai.modelBudgetError(rc))
 	}
 
 	// Connect to configured MCP servers
@@ -94,6 +113,7 @@ func (ai *aiManager) Chat(ctx context.Context, ioChannel IOChatChannel) error {
 	case AiSdkTypeOllama:
 		return ai.ollamaChat(ctx, ioChannel, systemPrompt, rc)
 	default:
+		emitChatError(ctx, ioChannel, fmt.Sprintf("unsupported AI SDK type: %s", rc.Sdk))
 		return fmt.Errorf("unsupported AI SDK type: %s", rc.Sdk)
 	}
 }

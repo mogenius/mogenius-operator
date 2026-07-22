@@ -96,6 +96,12 @@ spec:
                   OpenAI-compatible endpoints; empty selects the provider's public API for
                   openai and anthropic.
                 type: string
+              chatEnabled:
+                description: |-
+                  Allows this model to serve interactive chat sessions. Chat is driven
+                  entirely by this flag: with several enabled models the user picks one
+                  in the chat UI, with none enabled chat reports an error.
+                type: boolean
               dailyTokenLimit:
                 description: |-
                   Daily token budget for everything running against this model (runs and

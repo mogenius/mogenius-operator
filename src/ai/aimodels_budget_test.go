@@ -105,3 +105,48 @@ func TestIsModelBudgetExceededUnlimited(t *testing.T) {
 	assert.False(t, ai.isModelBudgetExceeded(nil))
 	assert.False(t, ai.isModelBudgetExceeded(&ResolvedModelConfig{ModelCrName: "x", DailyTokenLimit: 0}))
 }
+
+func chatModelFixture(name string, createdMinutesAgo int, isDefault, chatEnabled bool) v1alpha1.AiModel {
+	return v1alpha1.AiModel{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:              name,
+			CreationTimestamp: metav1.NewTime(time.Now().Add(-time.Duration(createdMinutesAgo) * time.Minute)),
+		},
+		Spec: v1alpha1.AiModelSpec{Sdk: "ollama", Model: "m", ApiUrl: "http://x", Default: isDefault, ChatEnabled: chatEnabled},
+	}
+}
+
+func TestPickChatModel(t *testing.T) {
+	older := chatModelFixture("older", 60, false, true)
+	newer := chatModelFixture("newer", 5, false, true)
+	defaultOff := chatModelFixture("default-off", 120, true, false)
+	disabled := chatModelFixture("disabled", 30, false, false)
+
+	// Explicit ref wins when chat-enabled.
+	picked, err := pickChatModel([]v1alpha1.AiModel{older, newer}, "newer")
+	assert.NoError(t, err)
+	assert.Equal(t, "newer", picked.Name)
+
+	// Explicit ref to a non-chat model fails closed with a helpful message.
+	_, err = pickChatModel([]v1alpha1.AiModel{older, disabled}, "disabled")
+	assert.ErrorContains(t, err, "not enabled for chat")
+
+	// Unknown ref fails.
+	_, err = pickChatModel([]v1alpha1.AiModel{older}, "nope")
+	assert.ErrorContains(t, err, "not found")
+
+	// No selection: chat-enabled default wins.
+	defaultOn := chatModelFixture("default-on", 10, true, true)
+	picked, err = pickChatModel([]v1alpha1.AiModel{older, defaultOn}, "")
+	assert.NoError(t, err)
+	assert.Equal(t, "default-on", picked.Name)
+
+	// Default not chat-enabled: oldest chat-enabled wins.
+	picked, err = pickChatModel([]v1alpha1.AiModel{newer, older, defaultOff}, "")
+	assert.NoError(t, err)
+	assert.Equal(t, "older", picked.Name)
+
+	// Nothing enabled for chat: configuration error.
+	_, err = pickChatModel([]v1alpha1.AiModel{disabled, defaultOff}, "")
+	assert.ErrorContains(t, err, "no AI model is enabled for chat")
+}
