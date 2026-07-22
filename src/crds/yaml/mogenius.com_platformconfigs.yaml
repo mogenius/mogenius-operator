@@ -378,6 +378,48 @@ spec:
                       type: object
                     type: array
                 type: object
+              openBao:
+                description: |-
+                  OpenBaoConfig configures an operator-managed OpenBao (Vault-compatible)
+                  secrets backend. When enabled, the operator installs OpenBao via the GitOps
+                  engine and a dedicated lifecycle manager auto-initializes, auto-unseals, and
+                  wires it into the External Secrets Operator through a ClusterSecretStore.
+                properties:
+                  chart:
+                    properties:
+                      chart:
+                        type: string
+                      name:
+                        description: name of the HelmRelease resource to apply
+                        type: string
+                      namespace:
+                        type: string
+                      repository:
+                        type: string
+                      version:
+                        type: string
+                    type: object
+                  enabled:
+                    type: boolean
+                  kvMount:
+                    description: |-
+                      KVMount is the mount path of the KV v2 secrets engine the operator
+                      enables and ESO reads from. Defaults to "secret".
+                    type: string
+                  patches:
+                    items:
+                      properties:
+                        name:
+                          description: name of the PlatformPatch resource to apply
+                          type: string
+                      type: object
+                    type: array
+                  secretStoreName:
+                    description: |-
+                      SecretStoreName is the name of the ClusterSecretStore ESO uses to reach
+                      OpenBao. Defaults to "openbao".
+                    type: string
+                type: object
               platformSource:
                 type: string
               platformVersion:

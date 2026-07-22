@@ -37,6 +37,7 @@ const (
 	componentAlloy                   = "alloy"
 	componentRenovateOperator        = "renovate-operator"
 	componentExternalSecretsOperator = "external-secrets-operator"
+	componentOpenBao                 = "openbao"
 )
 
 
@@ -91,6 +92,7 @@ func (d *reconcilerModule) reconcilePlatformConfig(ctx context.Context, obj *uns
 
 	components := []componentResult{
 		gitopsResult,
+		{componentOpenBao, d.reconcileOpenBao(ctx, platformConfig.Spec, installer, op)},
 		{componentExternalSecretsOperator, d.reconcileExternalSecretsOperator(ctx, platformConfig.Spec, installer, op)},
 		{componentCertManager, d.reconcileCertManager(ctx, platformConfig.Spec, installer, op)},
 		{componentTraefik, d.reconcileTraefik(ctx, platformConfig.Spec, installer, op)},

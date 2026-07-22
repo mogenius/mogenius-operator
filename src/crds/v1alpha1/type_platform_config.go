@@ -52,6 +52,7 @@ type PlatformConfigSpec struct {
 	Alloy                   *AlloyConfig                   `json:"alloy,omitempty"`
 	RenovateOperator        *RenovateOperatorConfig        `json:"renovateOperator,omitempty"`
 	ExternalSecretsOperator *ExternalSecretsOperatorConfig `json:"externalSecretsOperator,omitempty"`
+	OpenBao                 *OpenBaoConfig                 `json:"openBao,omitempty"`
 }
 type GitOpsConfig struct {
 	ArgoCD       *ArgoCDInstallConfig     `json:"argocd,omitempty"`
@@ -153,6 +154,22 @@ type ExternalSecretsOperatorConfig struct {
 	Patches []PlatformConfigPatchReference `json:"patches,omitempty"`
 	Chart   *HelmChartReference            `json:"chart,omitempty"`
 	Vaults  []ExternalSecretVault          `json:"vaults"`
+}
+
+// OpenBaoConfig configures an operator-managed OpenBao (Vault-compatible)
+// secrets backend. When enabled, the operator installs OpenBao via the GitOps
+// engine and a dedicated lifecycle manager auto-initializes, auto-unseals, and
+// wires it into the External Secrets Operator through a ClusterSecretStore.
+type OpenBaoConfig struct {
+	Enabled bool                           `json:"enabled,omitempty"`
+	Patches []PlatformConfigPatchReference `json:"patches,omitempty"`
+	Chart   *HelmChartReference            `json:"chart,omitempty"`
+	// SecretStoreName is the name of the ClusterSecretStore ESO uses to reach
+	// OpenBao. Defaults to "openbao".
+	SecretStoreName string `json:"secretStoreName,omitempty"`
+	// KVMount is the mount path of the KV v2 secrets engine the operator
+	// enables and ESO reads from. Defaults to "secret".
+	KVMount string `json:"kvMount,omitempty"`
 }
 
 type ExternalSecretVault struct {

@@ -14,6 +14,7 @@ import (
 	mokubernetes "mogenius-operator/src/kubernetes"
 	"mogenius-operator/src/logging"
 	"mogenius-operator/src/networkmonitor"
+	"mogenius-operator/src/openbaomanager"
 	"mogenius-operator/src/rammonitor"
 	moreconciler "mogenius-operator/src/reconciler"
 	"mogenius-operator/src/services"
@@ -58,6 +59,7 @@ type clusterSystems struct {
 	sealedSecret          core.SealedSecretManager
 	argocd                argocd.Argocd
 	aiManager             ai.AiManager
+	openBaoManager        openbaomanager.Module
 }
 
 // initializeClusterSystems layers all cluster-mode services on top of the shared base.
@@ -169,12 +171,13 @@ func initializeClusterSystems(
 	mocore := core.NewCore(logManagerModule.CreateLogger("core"), configModule, base.clientProvider, base.valkeyClient, eventConnectionClient, jobClients)
 	reconciler := moreconciler.NewReconcilerFactory(logManagerModule.CreateLogger("reconciler"), base.clientProvider, configModule, base.valkeyClient, aiManager).Build()
 	sealedSecret := core.NewSealedSecretManager(logManagerModule.CreateLogger("sealed-secret"), configModule, base.clientProvider)
+	openBaoManager := openbaomanager.NewOpenBaoManager(logManagerModule.CreateLogger("openbao"), configModule, base.clientProvider)
 
 	// Link phase: wire service dependencies.
 	mocore.Link(moKubernetes)
 	podStatsCollector.Link(dbstatsService)
 	nodeMetricsCollector.Link(dbstatsService, leaderElector)
-	socketApi.Link(httpApi, xtermService, dbstatsService, apiModule, moKubernetes, sealedSecret, aiApi, aiWebsocketConnection)
+	socketApi.Link(httpApi, xtermService, dbstatsService, apiModule, moKubernetes, sealedSecret, aiApi, aiWebsocketConnection, openBaoManager)
 	moKubernetes.Link(dbstatsService)
 	httpApi.Link(socketApi, dbstatsService, apiModule, reconciler)
 	apiModule.Link(workspaceManager)
@@ -203,6 +206,7 @@ func initializeClusterSystems(
 		sealedSecret:          sealedSecret,
 		argocd:                argocdModule,
 		aiManager:             aiManager,
+		openBaoManager:        openBaoManager,
 	}
 }
 
@@ -270,6 +274,9 @@ func RunCluster(logManagerModule logging.SlogManager, configModule *config.Confi
 			systems.reconciler.Start()
 			logStep("Reconciler started")
 
+			systems.openBaoManager.Start()
+			logStep("OpenBao manager started")
+
 			core.SeedDefaultAgents(logManagerModule.CreateLogger("agent-seeder"), configModule, systems.clientProvider, systems.workspaceManager)
 
 			core.EnsureDefaultWorkspaceDashboard(logManagerModule.CreateLogger("dashboard-seeder"), configModule)
@@ -279,7 +286,12 @@ func RunCluster(logManagerModule logging.SlogManager, configModule *config.Confi
 
 			systems.reconciler.Stop()
 			logStep("Reconciler stopped")
+
+			systems.openBaoManager.Stop()
+			logStep("OpenBao manager stopped")
 		})
+
+		shutdown.Add(systems.openBaoManager.Stop)
 
 		systems.leaderElector.Run()
 		logStep("Leader elector started")

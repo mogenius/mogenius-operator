@@ -2,6 +2,7 @@ package core
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"log/slog"
 	"mogenius-operator/src/ai"
@@ -14,6 +15,7 @@ import (
 	"mogenius-operator/src/kubernetes"
 	moMetrics "mogenius-operator/src/metrics"
 	"mogenius-operator/src/networkmonitor"
+	"mogenius-operator/src/openbaomanager"
 	"mogenius-operator/src/schema"
 	"mogenius-operator/src/services"
 	"mogenius-operator/src/shutdown"
@@ -27,6 +29,7 @@ import (
 	"os"
 	"os/exec"
 	"reflect"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -67,6 +70,33 @@ func crdToAuditObject(obj any, kind string, name string) *unstructured.Unstructu
 	return u
 }
 
+// openBaoAuditObject builds an unstructured representation of an OpenBao KV
+// secret for the audit log. It intentionally carries only the secret's key
+// NAMES (never their values), so the audit diff shows which keys were
+// added/removed without ever persisting secret material.
+func openBaoAuditObject(mount, path string, keys []string) *unstructured.Unstructured {
+	u := &unstructured.Unstructured{Object: map[string]any{
+		"mount": mount,
+		"keys":  keys,
+	}}
+	u.SetAPIVersion("openbao.mogenius.com/v1")
+	u.SetKind("OpenBaoSecret")
+	u.SetName(path)
+	// Bucket audit entries by mount so they group like a namespace.
+	u.SetNamespace(mount)
+	return u
+}
+
+// sortedKeys returns the map's keys in sorted order (values are discarded).
+func sortedKeys(data map[string]any) []string {
+	keys := make([]string, 0, len(data))
+	for k := range data {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
 // Compression threshold - only compress responses larger than 1KB
 const compressionThreshold = 1024
 
@@ -85,6 +115,7 @@ type SocketApi interface {
 		sealedSecret SealedSecretManager,
 		aiApi AiApi,
 		aiWebsocketConnection ai.AiWebsocketConnection,
+		openBao openbaomanager.Module,
 	)
 	Run()
 	Status() SocketApiStatus
@@ -152,6 +183,7 @@ type socketApi struct {
 	alertmanager          AlertmanagerService
 	aiApi                 AiApi
 	aiWebsocketConnection ai.AiWebsocketConnection
+	openBao               openbaomanager.Module
 }
 
 type PatternHandler struct {
@@ -210,6 +242,7 @@ func (self *socketApi) Link(
 	sealedSecret SealedSecretManager,
 	aiApi AiApi,
 	aiWebsocketConnection ai.AiWebsocketConnection,
+	openBao openbaomanager.Module,
 ) {
 	assert.Assert(apiService != nil)
 	assert.Assert(httpService != nil)
@@ -217,6 +250,7 @@ func (self *socketApi) Link(
 	assert.Assert(dbstatsModule != nil)
 	assert.Assert(moKubernetes != nil)
 	assert.Assert(aiApi != nil)
+	assert.Assert(openBao != nil)
 
 	self.apiService = apiService
 	self.httpService = httpService
@@ -226,6 +260,7 @@ func (self *socketApi) Link(
 	self.sealedSecret = sealedSecret
 	self.aiApi = aiApi
 	self.aiWebsocketConnection = aiWebsocketConnection
+	self.openBao = openBao
 }
 
 func (self *socketApi) Run() {
@@ -2625,6 +2660,140 @@ func (self *socketApi) registerPatterns() {
 				}
 
 				return result, nil
+			},
+		)
+	}
+
+	self.registerOpenBaoPatterns()
+}
+
+// registerOpenBaoPatterns wires the OpenBao status and KV secret operations.
+// Secret values are never written to the audit log.
+func (self *socketApi) registerOpenBaoPatterns() {
+	// Current lifecycle/seal status: not_found | sealed | unsealed.
+	{
+		type Response struct {
+			Status string `json:"status"`
+		}
+		RegisterPatternHandler(
+			PatternHandle{self, "openbao/status"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Void) (Response, error) {
+				status, err := self.openBao.Status(context.Background())
+				if err != nil {
+					return Response{}, err
+				}
+				return Response{Status: status}, nil
+			},
+		)
+	}
+
+	// List the KV secrets engines.
+	{
+		type Response struct {
+			Mounts []openbaomanager.KVMount `json:"mounts"`
+		}
+		RegisterPatternHandler(
+			PatternHandle{self, "openbao/list-kv-mounts"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Void) (Response, error) {
+				mounts, err := self.openBao.ListKVMounts(context.Background())
+				if err != nil {
+					return Response{}, err
+				}
+				return Response{Mounts: mounts}, nil
+			},
+		)
+	}
+
+	// List secret names under a path in a KV mount.
+	{
+		type Request struct {
+			Mount string `json:"mount" validate:"required"`
+			Path  string `json:"path"`
+		}
+		type Response struct {
+			Keys []string `json:"keys"`
+		}
+		RegisterPatternHandler(
+			PatternHandle{self, "openbao/list-secrets"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Request) (Response, error) {
+				keys, err := self.openBao.ListSecrets(context.Background(), request.Mount, request.Path)
+				if err != nil {
+					return Response{}, err
+				}
+				return Response{Keys: keys}, nil
+			},
+		)
+	}
+
+	// Read a secret's key-value data.
+	{
+		type Request struct {
+			Mount string `json:"mount" validate:"required"`
+			Path  string `json:"path" validate:"required"`
+		}
+		type Response struct {
+			Data map[string]any `json:"data"`
+		}
+		RegisterPatternHandler(
+			PatternHandle{self, "openbao/get-secret"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Request) (Response, error) {
+				data, err := self.openBao.GetSecret(context.Background(), request.Mount, request.Path)
+				if err != nil {
+					return Response{}, err
+				}
+				return Response{Data: data}, nil
+			},
+		)
+	}
+
+	// Create or update a secret. KV v2 writes are upserts, so both patterns
+	// share the same handler. The write is audited (key names only, never
+	// values); a pre-existing secret is fetched best-effort so the audit diff
+	// distinguishes a create (no old object) from an update.
+	{
+		type Request struct {
+			Mount string         `json:"mount" validate:"required"`
+			Path  string         `json:"path" validate:"required"`
+			Data  map[string]any `json:"data" validate:"required"`
+		}
+		put := func(datagram structs.Datagram, request Request) (string, error) {
+			ctx := context.Background()
+			var oldObj *unstructured.Unstructured
+			if existing, getErr := self.openBao.GetSecret(ctx, request.Mount, request.Path); getErr == nil {
+				oldObj = openBaoAuditObject(request.Mount, request.Path, sortedKeys(existing))
+			}
+			err := self.openBao.PutSecret(ctx, request.Mount, request.Path, request.Data)
+			var newObj *unstructured.Unstructured
+			if err == nil {
+				newObj = openBaoAuditObject(request.Mount, request.Path, sortedKeys(request.Data))
+			}
+			return store.AddToAuditLog(datagram, self.logger, "ok", err, oldObj, newObj)
+		}
+		RegisterPatternHandler(PatternHandle{self, "openbao/create-secret"}, PatternConfig{}, put)
+		RegisterPatternHandler(PatternHandle{self, "openbao/update-secret"}, PatternConfig{}, put)
+	}
+
+	// Delete a secret (all versions and metadata). Audited (key names only).
+	{
+		type Request struct {
+			Mount string `json:"mount" validate:"required"`
+			Path  string `json:"path" validate:"required"`
+		}
+		RegisterPatternHandler(
+			PatternHandle{self, "openbao/delete-secret"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Request) (string, error) {
+				ctx := context.Background()
+				var oldObj *unstructured.Unstructured
+				if existing, getErr := self.openBao.GetSecret(ctx, request.Mount, request.Path); getErr == nil {
+					oldObj = openBaoAuditObject(request.Mount, request.Path, sortedKeys(existing))
+				}
+				err := self.openBao.DeleteSecret(ctx, request.Mount, request.Path)
+				return store.AddToAuditLog(datagram, self.logger, "ok", err, oldObj, nil)
 			},
 		)
 	}
