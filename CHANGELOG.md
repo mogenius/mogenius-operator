@@ -1,3 +1,10 @@
+# [2.25.0-develop.9](https://github.com/mogenius/mogenius-operator/compare/v2.25.0-develop.8...v2.25.0-develop.9) (2026-07-22)
+
+
+### Bug Fixes
+
+* **helm:** create service account in readonly deployment ([a56744a](https://github.com/mogenius/mogenius-operator/commit/a56744a0253534d21c8be1711e09b22551f25e64))
+
 # [2.25.0-develop.8](https://github.com/mogenius/mogenius-operator/compare/v2.25.0-develop.7...v2.25.0-develop.8) (2026-07-21)
 
 
