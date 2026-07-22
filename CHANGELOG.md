@@ -1,3 +1,11 @@
+# [2.25.0-develop.12](https://github.com/mogenius/mogenius-operator/compare/v2.25.0-develop.11...v2.25.0-develop.12) (2026-07-22)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/anthropics/anthropic-sdk-go to v1.58.1 ([a3cf93a](https://github.com/mogenius/mogenius-operator/commit/a3cf93af1f92c1fc2ec2bfa1fb01ca8567c22644))
+* **deps:** update module github.com/prometheus/client_golang to v1.24.0 ([079b087](https://github.com/mogenius/mogenius-operator/commit/079b087c70ba2614b868fa7e9ad99fe83d023a3d))
+
 # [2.25.0-develop.11](https://github.com/mogenius/mogenius-operator/compare/v2.25.0-develop.10...v2.25.0-develop.11) (2026-07-22)
 
 
