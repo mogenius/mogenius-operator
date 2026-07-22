@@ -1,19 +1,16 @@
-name: Build, Package, Release (Dev & Feature Branches)
+name: Build, Package, Release (Develop)
 
 on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version tag for the image'
+        description: 'Version tag for the image (default: computed from latest release tag)'
         required: false
-        default: 'dev'
+        default: ''
         type: string
   push:
     branches:
-      - "**"
-      - "!main"
-      - "develop"
-
+      - develop
 
 env:
   REGISTRY_PREFIX: ghcr.io/mogenius
@@ -22,16 +19,42 @@ env:
 jobs:
 
   # ============================================================================
-  # Prepare - Get version info
+  # Prepare - Compute dev version (no release commits, no tags)
   # ============================================================================
   prepare:
-    uses: mogenius/github-actions/.github/workflows/semantic-release.yml@9bbef6f2531206a2cc3e41b0649704a80f2d4185 # v1.7.0
-    secrets:
-      APP_ID: ${{ secrets.RELEASE_APP_ID }}
-      APP_PRIVATE_KEY: ${{ secrets.RELEASE_APP_SECRET }}
-    with:
-      version_override: ${{ github.event.inputs.version || '' }}
-      default_version: 'dev'
+    runs-on: [self-hosted]
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Check out code
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Compute version
+        id: version
+        env:
+          VERSION_OVERRIDE: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+
+          if [ -n "${VERSION_OVERRIDE}" ]; then
+            VERSION="${VERSION_OVERRIDE}"
+          else
+            # Next minor after the latest stable release tag, suffixed with a
+            # monotonically increasing dev counter. Nothing is committed back.
+            LATEST_TAG=$(git tag --list 'v*' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n1)
+            BASE="${LATEST_TAG#v}"
+            if [ -z "${BASE}" ]; then
+              BASE="0.0.0"
+            fi
+            IFS=. read -r MAJOR MINOR _ <<< "${BASE}"
+            VERSION="${MAJOR}.$((MINOR + 1)).0-develop.${GITHUB_RUN_NUMBER}"
+          fi
+
+          echo "Version: ${VERSION}"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
 
   # ============================================================================
   # Build Operator - Native builds per architecture
@@ -44,7 +67,7 @@ jobs:
       version: ${{ needs.prepare.outputs.version }}
       image: ghcr.io/mogenius/mogenius-operator-dev
       architectures: amd64,arm64
-      push_latest: ${{ github.ref_name == 'main' }}
+      push_latest: false
       sign_image: true
       build_args: |
         DEV_BUILD=yes
@@ -56,7 +79,7 @@ jobs:
         BPFTOOL_IMAGE=ghcr.io/mogenius/bpftool:latest-arm64
 
   helm-chart:
-    if: github.ref == 'refs/heads/develop' && needs.prepare.outputs.is_release == 'true'
+    if: github.ref == 'refs/heads/develop'
     needs: [prepare, build-operator]
     runs-on: [self-hosted]
     permissions:
@@ -82,7 +105,7 @@ jobs:
 
       - name: Update Helm chart and values yaml-Files
         env:
-          VERSION: ${{ needs.prepare.outputs.version }}      
+          VERSION: ${{ needs.prepare.outputs.version }}
         run: |
           set -x
 
