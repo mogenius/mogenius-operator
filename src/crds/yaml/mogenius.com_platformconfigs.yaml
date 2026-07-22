@@ -14,7 +14,14 @@ spec:
     singular: platformconfig
   scope: Cluster
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .spec.platformVersion
+      name: Version
+      type: string
+    - jsonPath: .status.gitOpsStatus.engine
+      name: GitOps
+      type: string
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: |-

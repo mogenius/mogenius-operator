@@ -27,6 +27,8 @@ type PlatformConfigList struct {
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +kubebuilder:resource:scope=Cluster
 // +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="Version",type=string,JSONPath=`.spec.platformVersion`
+// +kubebuilder:printcolumn:name="GitOps",type=string,JSONPath=`.status.gitOpsStatus.engine`
 type PlatformConfig struct {
 	metav1.TypeMeta `json:",inline"`
 
@@ -133,7 +135,7 @@ type RenovateJobConfig struct {
 	Name string `json:"name,omitempty"`
 	// GitOpsRepository references a repository from spec.gitOps.repositories by name.
 	// Its name is used as the discoverTopics filter.
-	GitOpsRepository string           `json:"gitOpsRepository,omitempty"`
+	GitOpsRepository string `json:"gitOpsRepository,omitempty"`
 	// Filter is a discovery topic used when not referencing a gitops repository.
 	Filter         string           `json:"filter,omitempty"`
 	Provider       RenovateProvider `json:"provider"`
@@ -154,9 +156,9 @@ type ExternalSecretsOperatorConfig struct {
 }
 
 type ExternalSecretVault struct {
-	Name     string                `json:"name"`
-	Type     string                `json:"type"`
-	Provider runtime.RawExtension  `json:"provider"`
+	Name     string               `json:"name"`
+	Type     string               `json:"type"`
+	Provider runtime.RawExtension `json:"provider"`
 }
 
 type ExternalSecret struct {
