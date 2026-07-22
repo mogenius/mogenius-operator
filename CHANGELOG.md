@@ -1,3 +1,10 @@
+# [2.25.0-develop.11](https://github.com/mogenius/mogenius-operator/compare/v2.25.0-develop.10...v2.25.0-develop.11) (2026-07-22)
+
+
+### Features
+
+* report to platform if prometheus or alertmanager are installed ([1014b9c](https://github.com/mogenius/mogenius-operator/commit/1014b9c58ee6a9078dcd3e4f8b6b07568ce0957c))
+
 # [2.25.0-develop.10](https://github.com/mogenius/mogenius-operator/compare/v2.25.0-develop.9...v2.25.0-develop.10) (2026-07-22)
 
 
