@@ -1266,13 +1266,21 @@ func (ai *aiManager) processAiTaskQueue(ctx context.Context) {
 		latestTask.Status = ai.GetStatus(nil)
 
 		if discardTask {
-			// Remove the (already visible) in-progress task; the delete event
-			// clears it from every client.
-			if delErr := ai.valkeyClient.DeleteSingle(key); delErr != nil {
-				ai.logger.Error("Error deleting all-clear AI task", "taskID", task.ID, "error", delErr)
+			// All-clear: the run inspected its scope and found nothing (new)
+			// to fix. Keep it as a success report — a silently vanishing run
+			// reads like a failure. Exactly one all-clear per agent survives
+			// (the newest); older ones are pruned so clean runs don't spam
+			// the list.
+			task.State = AI_TASK_STATE_COMPLETED
+			task.Response = nil
+			task.Error = ""
+			if err := ai.createOrUpdateAiTask(&task, key); err != nil {
+				ai.logger.Error("Error saving all-clear AI task", "taskID", task.ID, "error", err)
+				continue
 			}
-			ai.sendAiDeleteEvent(key)
-			ai.logger.Info("AI run found nothing applicable — no report created", "taskID", task.ID, "tokensUsed", tokensUsed)
+			ai.pruneOlderAllClearReports(task.AgentRef, key)
+			ai.sendAiEvent(latestTask)
+			ai.logger.Info("AI run found nothing applicable — kept as all-clear report", "taskID", task.ID, "tokensUsed", tokensUsed)
 			continue
 		}
 

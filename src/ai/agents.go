@@ -321,6 +321,41 @@ func (ai *aiManager) buildAgentTaskContext(task *AiTask) (*v1alpha1.Agent, *Tool
 	return agent, toolCtx, nil
 }
 
+// pruneOlderAllClearReports deletes every all-clear report (completed
+// whole-scope run without findings) of the agent except keepKey, so exactly
+// one — the newest — stays visible. Tasks with findings are never touched.
+func (ai *aiManager) pruneOlderAllClearReports(agentName string, keepKey string) {
+	if agentName == "" {
+		return
+	}
+	keys, err := ai.valkeyClient.Keys(fmt.Sprintf("%s:Agent:*:%s-run-*", DB_AI_BUCKET_TASKS, agentName))
+	if err != nil {
+		ai.logger.Warn("Failed to list agent tasks for all-clear pruning", "agent", agentName, "error", err)
+		return
+	}
+	for _, key := range keys {
+		if key == keepKey {
+			continue
+		}
+		task, err := ai.getTaskByKey(key)
+		if err != nil || task == nil {
+			continue
+		}
+		// Only completed runs WITHOUT findings are all-clear reports; the
+		// key pattern also matches finding tasks (-f2…), which carry a
+		// response and are skipped here.
+		if task.State != AI_TASK_STATE_COMPLETED || task.Response != nil {
+			continue
+		}
+		if delErr := ai.valkeyClient.DeleteSingle(key); delErr != nil {
+			ai.logger.Error("Error deleting superseded all-clear report", "taskID", task.ID, "error", delErr)
+			continue
+		}
+		ai.sendAiDeleteEvent(key)
+		ai.logger.Info("Pruned superseded all-clear report", "agent", agentName, "taskID", task.ID)
+	}
+}
+
 // openProposalResourceKeys collects the target resources of the agent's tasks
 // that still await a user decision (proposed). A whole-scope run skips these
 // so it neither burns tokens re-inspecting them nor produces duplicate
