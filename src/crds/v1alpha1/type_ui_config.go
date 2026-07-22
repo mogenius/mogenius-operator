@@ -22,6 +22,8 @@ type UIConfigList struct {
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +kubebuilder:resource:scope=Cluster
 // +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="ApiVersion",type=string,JSONPath=`.spec.reference.apiVersion`
+// +kubebuilder:printcolumn:name="Kind",type=string,JSONPath=`.spec.reference.kind`
 type UIConfig struct {
 	metav1.TypeMeta `json:",inline"`
 

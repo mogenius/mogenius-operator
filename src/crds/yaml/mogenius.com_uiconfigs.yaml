@@ -14,7 +14,14 @@ spec:
     singular: uiconfig
   scope: Cluster
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .spec.reference.apiVersion
+      name: ApiVersion
+      type: string
+    - jsonPath: .spec.reference.kind
+      name: Kind
+      type: string
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: UIConfig defines a specialised UI for a specific custom resource
