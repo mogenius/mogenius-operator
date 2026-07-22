@@ -1,3 +1,11 @@
+# [2.25.0-develop.10](https://github.com/mogenius/mogenius-operator/compare/v2.25.0-develop.9...v2.25.0-develop.10) (2026-07-22)
+
+
+### Bug Fixes
+
+* adding printer columns for ui config ([2a8a67c](https://github.com/mogenius/mogenius-operator/commit/2a8a67c488d1b22ece61124ca3c9da5836a8a5c5))
+* adding printer columns to platform config ([49183a4](https://github.com/mogenius/mogenius-operator/commit/49183a4b86779f41fdd87fef29a0b10c401affe8))
+
 # [2.25.0-develop.9](https://github.com/mogenius/mogenius-operator/compare/v2.25.0-develop.8...v2.25.0-develop.9) (2026-07-22)
 
 
