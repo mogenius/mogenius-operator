@@ -260,6 +260,19 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		},
 	})
 	configModule.Declare(config.ConfigDeclaration{
+		Key:          "MO_PORT_FORWARD_ALLOW_EXTERNAL_HOSTS",
+		DefaultValue: new("false"),
+		Description:  new("Allow port-forward tunnels to dial arbitrary hosts/IPs on the operator's network (kind=host), not just Kubernetes workloads. Off by default (SSRF surface into the node LAN)."),
+		Envs:         []string{"PORT_FORWARD_ALLOW_EXTERNAL_HOSTS"},
+		Validate: func(value string) error {
+			_, err := strconv.ParseBool(value)
+			if err != nil {
+				return fmt.Errorf("'MO_PORT_FORWARD_ALLOW_EXTERNAL_HOSTS' needs to be a boolean: %s", err.Error())
+			}
+			return nil
+		},
+	})
+	configModule.Declare(config.ConfigDeclaration{
 		Key:         "MO_VALKEY_ADDR",
 		Description: new("Address of operator valkey Server"),
 		Validate: func(value string) error {

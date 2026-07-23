@@ -143,7 +143,12 @@ func initializeClusterSystems(
 	services.Setup(logManagerModule, configModule, base.clientProvider)
 	structs.Setup(logManagerModule)
 	xterm.Setup(logManagerModule, base.valkeyClient)
-	xterm.SetupPortForward(base.clientProvider.ClientConfig(), base.clientProvider.K8sClientSet())
+	allowExternalHosts, _ := strconv.ParseBool(configModule.Get("MO_PORT_FORWARD_ALLOW_EXTERNAL_HOSTS"))
+	xterm.SetupPortForward(
+		base.clientProvider.ClientConfig(),
+		base.clientProvider.K8sClientSet(),
+		allowExternalHosts,
+	)
 
 	argocdModule := argocd.NewArgoCd(logManagerModule, configModule, base.clientProvider, base.valkeyClient)
 	workspaceManager := core.NewWorkspaceManager(logManagerModule.CreateLogger("workspace-manager"), configModule, base.clientProvider)
