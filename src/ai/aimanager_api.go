@@ -486,6 +486,7 @@ func (ai *aiManager) DeleteAllAiData() error {
 		DB_AI_BUCKET_TASKS + ":*",
 		DB_AI_BUCKET_TOKENS + ":*",
 		DB_AI_BUCKET_TASKS_LATEST + ":*",
+		DB_AI_BUCKET_RUN_STEPS + ":*",
 	}
 	ai.resetCache()
 	err := ai.valkeyClient.DeleteMultiple(prefixes...)

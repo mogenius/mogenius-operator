@@ -391,7 +391,7 @@ func assistantContentParams(blocks []anthropic.ContentBlockUnion) ([]anthropic.C
 	return params, nil
 }
 
-func (ai *aiManager) processPromptAnthropic(ctx context.Context, rc *ResolvedModelConfig, systemPrompt, prompt string, toolCtx *ToolContext, onProgress func(int64, string)) ([]*AiResponse, int64, int, string, error) {
+func (ai *aiManager) processPromptAnthropic(ctx context.Context, rc *ResolvedModelConfig, systemPrompt, prompt string, toolCtx *ToolContext, onProgress func(int64, string), recordStep StepRecorder) ([]*AiResponse, int64, int, string, error) {
 	startTime := time.Now()
 
 	model := rc.Model
@@ -509,6 +509,15 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, rc *ResolvedMod
 			Content: assistantContent,
 		})
 
+		// Assistant free text between tool calls is the model's reasoning.
+		if recordStep != nil {
+			for _, block := range message.Content {
+				if block.Type == "text" && strings.TrimSpace(block.Text) != "" {
+					recordStep(AiRunStep{Kind: AI_RUN_STEP_REASON, Label: block.Text})
+				}
+			}
+		}
+
 		// Check if there are tool calls to process
 		hasToolUse := false
 		var toolResults []anthropic.ContentBlockParamUnion
@@ -563,6 +572,9 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, rc *ResolvedMod
 					if onProgress != nil {
 						onProgress(tokensUsed, fmt.Sprintf("%d finding(s) submitted", len(collected)))
 					}
+					if recordStep != nil {
+						recordStep(AiRunStep{Kind: AI_RUN_STEP_FINDINGS, Label: fmt.Sprintf("%d finding(s) submitted — %d total", len(findings), len(collected)), Tool: submitAnalysisToolName})
+					}
 					resultText := fmt.Sprintf("Recorded %d finding(s) — %d total so far. Continue the investigation and submit further findings, or call %s with an empty findings array when nothing else is actionable.", len(findings), len(collected), submitAnalysisToolName)
 					if len(rejected) > 0 {
 						resultText = fmt.Sprintf("Recorded %d finding(s) — %d total so far. Rejected %d finding(s) without an applicable proposal:\n- %s\nFix each rejected finding and resubmit it, or drop it if no safe concrete change exists.", len(findings), len(collected), len(rejected), strings.Join(rejected, "\n- "))
@@ -593,6 +605,9 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, rc *ResolvedMod
 					}
 					data = tool(args, toolCtx, ai.valkeyClient, ai.logger)
 					ai.auditInsightToolCall(toolCtx, block.Name, args, data)
+					if recordStep != nil {
+						recordStep(AiRunStep{Kind: AI_RUN_STEP_ACT, Label: describeToolCall(block.Name, args), Tool: block.Name, Args: string(inputBytes), Result: data})
+					}
 				} else {
 					return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("unknown tool called: %s", block.Name)
 				}
@@ -728,6 +743,9 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, rc *ResolvedMod
 						findings = kept
 					}
 					collected = append(collected, findings...)
+					if recordStep != nil && len(findings) > 0 {
+						recordStep(AiRunStep{Kind: AI_RUN_STEP_FINDINGS, Label: fmt.Sprintf("%d finding(s) submitted — %d total", len(findings), len(collected)), Tool: submitAnalysisToolName})
+					}
 					if len(rejected) == 0 || repairedOnce {
 						return collected, tokensUsed, int(time.Since(startTime).Milliseconds()), model, nil
 					}

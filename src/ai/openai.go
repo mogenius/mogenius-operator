@@ -16,7 +16,7 @@ import (
 // which all findings arrive. Unlike Anthropic, changing tool_choice carries
 // no prompt-cache penalty here, so the budget-exhausted final turn forces the
 // submit tool directly instead of relying on nudge-and-refuse rounds.
-func (ai *aiManager) processPromptOpenAi(ctx context.Context, rc *ResolvedModelConfig, systemPrompt, prompt string, toolCtx *ToolContext, onProgress func(int64, string)) ([]*AiResponse, int64, int, string, error) {
+func (ai *aiManager) processPromptOpenAi(ctx context.Context, rc *ResolvedModelConfig, systemPrompt, prompt string, toolCtx *ToolContext, onProgress func(int64, string), recordStep StepRecorder) ([]*AiResponse, int64, int, string, error) {
 	startTime := time.Now()
 	elapsed := func() int { return int(time.Since(startTime).Milliseconds()) }
 
@@ -107,6 +107,11 @@ func (ai *aiManager) processPromptOpenAi(ctx context.Context, rc *ResolvedModelC
 		message := chatCompletion.Choices[0].Message
 		params.Messages = append(params.Messages, message.ToParam())
 
+		// Assistant free text between tool calls is the model's reasoning.
+		if recordStep != nil && strings.TrimSpace(message.Content) != "" {
+			recordStep(AiRunStep{Kind: AI_RUN_STEP_REASON, Label: message.Content})
+		}
+
 		if len(message.ToolCalls) == 0 {
 			ai.logger.Info("No tool calls found, finishing AI processing")
 
@@ -189,6 +194,9 @@ func (ai *aiManager) processPromptOpenAi(ctx context.Context, rc *ResolvedModelC
 				if onProgress != nil {
 					onProgress(tokensUsed, fmt.Sprintf("%d finding(s) submitted", len(collected)))
 				}
+				if recordStep != nil {
+					recordStep(AiRunStep{Kind: AI_RUN_STEP_FINDINGS, Label: fmt.Sprintf("%d finding(s) submitted — %d total", len(findings), len(collected)), Tool: submitAnalysisToolName})
+				}
 
 				// After the nudge the investigation is over: a clean
 				// submission ends the run, rejected findings get exactly one
@@ -231,6 +239,9 @@ func (ai *aiManager) processPromptOpenAi(ctx context.Context, rc *ResolvedModelC
 			}
 			data := tool(args, toolCtx, ai.valkeyClient, ai.logger)
 			ai.auditInsightToolCall(toolCtx, name, args, data)
+			if recordStep != nil {
+				recordStep(AiRunStep{Kind: AI_RUN_STEP_ACT, Label: describeToolCall(name, args), Tool: name, Args: toolCall.Function.Arguments, Result: data})
+			}
 			inspectionCalls++
 			params.Messages = append(params.Messages, openai.ToolMessage(data, toolCall.ID))
 		}

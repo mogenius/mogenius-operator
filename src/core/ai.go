@@ -14,6 +14,7 @@ type AiApi interface {
 	GetAllAiTasks() ([]ai.AiTask, error)
 	GetAiTasksForResource(resourceReq utils.WorkloadSingleRequest) ([]ai.AiTask, error)
 	GetLatestTask(workspace *string) (*ai.AiTaskLatest, error)
+	GetRun(runID string) (*ai.AiRun, error)
 	InjectAiPromptConfig(prompt ai.AiPromptConfig, aiPrompts *ai.AiPrompts)
 	GetStatus(workspace *string) ai.AiManagerStatus
 	DeleteAllAiData() error
@@ -53,6 +54,10 @@ func (ai *aiApi) GetAiTasksForResource(resourceReq utils.WorkloadSingleRequest) 
 
 func (ai *aiApi) GetLatestTask(workspace *string) (*ai.AiTaskLatest, error) {
 	return ai.aiManager.GetLatestTask(workspace)
+}
+
+func (self *aiApi) GetRun(runID string) (*ai.AiRun, error) {
+	return self.aiManager.GetRun(runID)
 }
 
 func (ai *aiApi) InjectAiPromptConfig(prompt ai.AiPromptConfig, aiPrompts *ai.AiPrompts) {

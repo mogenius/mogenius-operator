@@ -2254,6 +2254,25 @@ func (self *socketApi) registerPatterns() {
 	}
 
 	{
+		type Request struct {
+			RunId string `json:"runId"`
+		}
+
+		// One agent run assembled from its primary task: metadata, the
+		// recorded ReAct steps and the IDs of all finding tasks.
+		RegisterPatternHandler(
+			PatternHandle{self, "aiManager/get/run"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Request) (*ai.AiRun, error) {
+				if request.RunId == "" {
+					return nil, fmt.Errorf("runId is required")
+				}
+				return self.aiApi.GetRun(request.RunId)
+			},
+		)
+	}
+
+	{
 		RegisterPatternHandler(
 			PatternHandle{self, "aiManager/detail/tasks"},
 			PatternConfig{},

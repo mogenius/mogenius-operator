@@ -260,6 +260,9 @@ type AiManager interface {
 	GetAiTasksForWorkspace(workspace string) ([]AiTask, error)
 	GetAiTasksForResource(resourceReq utils.WorkloadSingleRequest) ([]AiTask, error)
 	GetLatestTask(workspace *string) (*AiTaskLatest, error)
+	// GetRun assembles one agent run (metadata from the primary task, the
+	// recorded ReAct steps and the IDs of all finding tasks of the run).
+	GetRun(runID string) (*AiRun, error)
 	InjectAiPromptConfig(prompt AiPromptConfig, aiPrompts *AiPrompts)
 	GetStatus(workspace *string) AiManagerStatus
 	// ResetTokenUsageForModel zeroes today's recorded token usage of one
@@ -1200,7 +1203,11 @@ func (ai *aiManager) processAiTaskQueue(ctx context.Context) {
 			ai.sendAiEvent(latestTask)
 		}
 
-		responses, tokensUsed, timeUsedInMs, modelUsed, err := ai.processPrompt(taskCtx, rc, task.Prompt, toolCtx, &agent.Spec, onProgress)
+		// Steps are keyed by the run id (== primary task ID) so the timeline
+		// survives even when the run later spawns finding tasks.
+		recordStep := ai.newStepRecorder(task.ID)
+
+		responses, tokensUsed, timeUsedInMs, modelUsed, err := ai.processPrompt(taskCtx, rc, task.Prompt, toolCtx, &agent.Spec, onProgress, recordStep)
 		cancelTask()
 		task.CurrentActivity = ""
 		// Stamp the run stats before finalize/spawn: the spawned finding
@@ -1238,6 +1245,9 @@ func (ai *aiManager) processAiTaskQueue(ctx context.Context) {
 				}
 				ai.logger.Error("Error processing AI task", "taskID", task.ID, "attempt", task.Retries, "state", task.State, "error", err)
 			}
+			// Close the timeline with the failure so the run's step history
+			// explains itself without cross-checking the task error field.
+			recordStep(AiRunStep{Kind: AI_RUN_STEP_ERROR, Label: task.Error})
 		} else {
 			// Whole-scope runs exist to produce applicable changes, not
 			// advice: drop findings whose proposal does not survive
@@ -1431,7 +1441,7 @@ const finalAnswerNudge = "Your budget for this run is exhausted — do not reque
 // and on every tool call with a human-readable activity line — it powers the
 // live token counter and "currently working on" display in the UI plus the
 // cancel check.
-func (ai *aiManager) processPrompt(ctx context.Context, rc *ResolvedModelConfig, prompt string, toolCtx *ToolContext, agentSpec *v1alpha1.AgentSpec, onProgress func(tokensUsed int64, activity string)) (responses []*AiResponse, tokensUsed int64, timeUsedInMs int, modelUser string, err error) {
+func (ai *aiManager) processPrompt(ctx context.Context, rc *ResolvedModelConfig, prompt string, toolCtx *ToolContext, agentSpec *v1alpha1.AgentSpec, onProgress func(tokensUsed int64, activity string), recordStep StepRecorder) (responses []*AiResponse, tokensUsed int64, timeUsedInMs int, modelUser string, err error) {
 	startTime := time.Now()
 	systemPrompt := ai.getSystemPrompt()
 	if agentSpec != nil {
@@ -1452,11 +1462,11 @@ func (ai *aiManager) processPrompt(ctx context.Context, rc *ResolvedModelConfig,
 
 	switch rc.Sdk {
 	case AiSdkTypeOpenAI:
-		return ai.processPromptOpenAi(ctx, rc, systemPrompt, prompt, toolCtx, onProgress)
+		return ai.processPromptOpenAi(ctx, rc, systemPrompt, prompt, toolCtx, onProgress, recordStep)
 	case AiSdkTypeAnthropic:
-		return ai.processPromptAnthropic(ctx, rc, systemPrompt, prompt, toolCtx, onProgress)
+		return ai.processPromptAnthropic(ctx, rc, systemPrompt, prompt, toolCtx, onProgress, recordStep)
 	case AiSdkTypeOllama:
-		return ai.processPromptOllama(ctx, rc, systemPrompt, prompt, toolCtx, onProgress)
+		return ai.processPromptOllama(ctx, rc, systemPrompt, prompt, toolCtx, onProgress, recordStep)
 	default:
 		return nil, 0, int(time.Since(startTime).Milliseconds()), rc.Model, fmt.Errorf("unsupported AI SDK type: %s", rc.Sdk)
 	}

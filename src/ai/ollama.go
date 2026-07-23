@@ -17,7 +17,7 @@ import (
 // hosted providers, so protocol violations (hallucinated tool names, schema
 // misses, prose answers) are fed back as in-conversation corrections —
 // bounded by the run budget — instead of failing the whole run.
-func (ai *aiManager) processPromptOllama(ctx context.Context, rc *ResolvedModelConfig, systemPrompt, prompt string, toolCtx *ToolContext, onProgress func(int64, string)) ([]*AiResponse, int64, int, string, error) {
+func (ai *aiManager) processPromptOllama(ctx context.Context, rc *ResolvedModelConfig, systemPrompt, prompt string, toolCtx *ToolContext, onProgress func(int64, string), recordStep StepRecorder) ([]*AiResponse, int64, int, string, error) {
 
 	startTime := time.Now()
 	elapsed := func() int { return int(time.Since(startTime).Milliseconds()) }
@@ -124,6 +124,11 @@ func (ai *aiManager) processPromptOllama(ctx context.Context, rc *ResolvedModelC
 			ToolCalls: toolCalls,
 		})
 
+		// Assistant free text between tool calls is the model's reasoning.
+		if recordStep != nil && strings.TrimSpace(responseText) != "" {
+			recordStep(AiRunStep{Kind: AI_RUN_STEP_REASON, Label: responseText})
+		}
+
 		if len(toolCalls) == 0 {
 			ai.logger.Info("No tool calls found, finishing AI processing")
 
@@ -215,6 +220,9 @@ func (ai *aiManager) processPromptOllama(ctx context.Context, rc *ResolvedModelC
 				if onProgress != nil {
 					onProgress(tokensUsed, fmt.Sprintf("%d finding(s) submitted", len(collected)))
 				}
+				if recordStep != nil {
+					recordStep(AiRunStep{Kind: AI_RUN_STEP_FINDINGS, Label: fmt.Sprintf("%d finding(s) submitted — %d total", len(findings), len(collected)), Tool: submitAnalysisToolName})
+				}
 				resultText := fmt.Sprintf("Recorded %d finding(s) — %d total so far. Continue the investigation and submit further findings, or call %s with an empty findings array when nothing else is actionable.", len(findings), len(collected), submitAnalysisToolName)
 				if len(rejected) > 0 {
 					resultText = fmt.Sprintf("Recorded %d finding(s) — %d total so far. Rejected %d finding(s) without an applicable proposal:\n- %s\nFix each rejected finding and resubmit it, or drop it if no safe concrete change exists.", len(findings), len(collected), len(rejected), strings.Join(rejected, "\n- "))
@@ -247,6 +255,9 @@ func (ai *aiManager) processPromptOllama(ctx context.Context, rc *ResolvedModelC
 			}
 			data := tool(args, toolCtx, ai.valkeyClient, ai.logger)
 			ai.auditInsightToolCall(toolCtx, name, args, data)
+			if recordStep != nil {
+				recordStep(AiRunStep{Kind: AI_RUN_STEP_ACT, Label: describeToolCall(name, args), Tool: name, Args: string(argsBytes), Result: data})
+			}
 			inspectionCalls++
 			messages = append(messages, toolResult(name, data))
 		}
