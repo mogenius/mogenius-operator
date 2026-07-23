@@ -181,7 +181,7 @@ func PortForwardStreamConnection(request PortForwardConnectionRequest) {
 			return
 		}
 		localPort := localListener.Addr().(*net.TCPAddr).Port
-		localListener.Close()
+		_ = localListener.Close()
 
 		stopChan = make(chan struct{})
 		readyChan := make(chan struct{})
@@ -222,7 +222,7 @@ func PortForwardStreamConnection(request PortForwardConnectionRequest) {
 		case err := <-errChan:
 			logger.Error("K8s port-forward failed", "error", err)
 			wsMu.Lock()
-			wsConn.WriteMessage(websocket.TextMessage, []byte("ERROR: "+err.Error()))
+			_ = wsConn.WriteMessage(websocket.TextMessage, []byte("ERROR: "+err.Error()))
 			wsMu.Unlock()
 			return
 		case <-time.After(30 * time.Second):
