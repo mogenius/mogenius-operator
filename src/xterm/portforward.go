@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -28,17 +29,29 @@ const (
 	pfmClosePrefix = "PFM:C:"
 )
 
+// pfKindHost is the target kind for a non-Kubernetes target: the operator dials
+// the given host/IP:port directly on its own network instead of resolving a pod
+// and tunneling through the kube-apiserver.
+const pfKindHost = "host"
+
 var pfRestConfig *rest.Config
 var pfClientset k8s.Interface
 
+// pfAllowExternalHosts gates the pfKindHost path. When false, host tunnels are
+// rejected — they turn the operator into a proxy into the node's LAN (SSRF).
+var pfAllowExternalHosts bool
+
 // SetupPortForward stores K8s client dependencies needed for port-forward tunneling.
-func SetupPortForward(restConfig *rest.Config, clientset k8s.Interface) {
+// allowExternalHosts enables dialing arbitrary hosts/IPs (kind=host).
+func SetupPortForward(restConfig *rest.Config, clientset k8s.Interface, allowExternalHosts bool) {
 	pfRestConfig = restConfig
 	pfClientset = clientset
+	pfAllowExternalHosts = allowExternalHosts
 }
 
 type PortForwardConnectionRequest struct {
-	Namespace      string              `json:"namespace" validate:"required"`
+	// Namespace is required for Kubernetes kinds and empty for kind=host.
+	Namespace      string              `json:"namespace"`
 	RemotePort     int                 `json:"remotePort" validate:"required"`
 	Kind           string              `json:"kind" validate:"required"`
 	WorkloadName   string              `json:"workloadName" validate:"required"`
@@ -78,18 +91,36 @@ func PortForwardStreamConnection(request PortForwardConnectionRequest) {
 		"channelId", request.WsConnection.ChannelId,
 	)
 
-	if pfRestConfig == nil || pfClientset == nil {
-		logger.Error("Port-forward not initialized. Call SetupPortForward() first.")
-		return
-	}
+	isHost := strings.ToLower(request.Kind) == pfKindHost
 
-	// Step 1: Resolve target to a pod name
-	podName, err := resolvePortForwardTarget(pfClientset, request)
-	if err != nil {
-		logger.Error("Failed to resolve target to pod", "error", err)
-		return
+	// Step 1: Resolve target. Kubernetes kinds resolve to a pod; host targets
+	// are dialed directly and skip pod resolution + the kube-apiserver forward.
+	var podName string
+	if isHost {
+		if !pfAllowExternalHosts {
+			logger.Error("Rejected host port-forward request: external hosts are disabled. Set PORT_FORWARD_ALLOW_EXTERNAL_HOSTS=true on the operator to enable.",
+				"host", request.WorkloadName, "port", request.RemotePort)
+			return
+		}
+		if strings.TrimSpace(request.WorkloadName) == "" {
+			logger.Error("Rejected host port-forward request: empty host")
+			return
+		}
+		logger.Info("Host target: dialing external host directly", "host", request.WorkloadName, "port", request.RemotePort)
+	} else {
+		if pfRestConfig == nil || pfClientset == nil {
+			logger.Error("Port-forward not initialized. Call SetupPortForward() first.")
+			return
+		}
+
+		var err error
+		podName, err = resolvePortForwardTarget(pfClientset, request)
+		if err != nil {
+			logger.Error("Failed to resolve target to pod", "error", err)
+			return
+		}
+		logger.Info("Resolved target", "pod", podName, "namespace", request.Namespace, "port", request.RemotePort)
 	}
-	logger.Info("Resolved target", "pod", podName, "namespace", request.Namespace, "port", request.RemotePort)
 
 	// Step 2: Connect to the stream gateway
 	wsReq := request.WsConnection
@@ -134,65 +165,76 @@ func PortForwardStreamConnection(request PortForwardConnectionRequest) {
 	logger.Info("Stream gateway ack received", "msg", string(ackMsg))
 	wsConn.SetReadDeadline(time.Time{})
 
-	// Step 3: Start k8s port-forward on a random local port
-	localListener, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		logger.Error("Failed to create local listener", "error", err)
-		return
+	// Step 3: Establish the target address to dial per sub-connection.
+	//   - host targets: dial the external host/IP directly.
+	//   - k8s targets:  start a kube-apiserver port-forward on a random local
+	//     port and dial 127.0.0.1:<localPort>.
+	var dialAddr string
+	var stopChan chan struct{} // non-nil only for the k8s port-forward path
+
+	if isHost {
+		dialAddr = net.JoinHostPort(request.WorkloadName, strconv.Itoa(request.RemotePort))
+	} else {
+		localListener, err := net.Listen("tcp", "127.0.0.1:0")
+		if err != nil {
+			logger.Error("Failed to create local listener", "error", err)
+			return
+		}
+		localPort := localListener.Addr().(*net.TCPAddr).Port
+		_ = localListener.Close()
+
+		stopChan = make(chan struct{})
+		readyChan := make(chan struct{})
+		errChan := make(chan error, 1)
+
+		go func() {
+			pfURL, err := url.Parse(fmt.Sprintf("%s/api/v1/namespaces/%s/pods/%s/portforward",
+				pfRestConfig.Host, request.Namespace, podName))
+			if err != nil {
+				errChan <- fmt.Errorf("invalid URL: %w", err)
+				return
+			}
+
+			transport, upgrader, err := spdy.RoundTripperFor(pfRestConfig)
+			if err != nil {
+				errChan <- fmt.Errorf("SPDY transport: %w", err)
+				return
+			}
+
+			spdyDialer := spdy.NewDialer(upgrader, &http.Client{Transport: transport}, http.MethodPost, pfURL)
+			ports := []string{fmt.Sprintf("%d:%d", localPort, request.RemotePort)}
+
+			fw, err := portforward.New(spdyDialer, ports, stopChan, readyChan, io.Discard, io.Discard)
+			if err != nil {
+				errChan <- fmt.Errorf("portforward create: %w", err)
+				return
+			}
+
+			if err := fw.ForwardPorts(); err != nil {
+				errChan <- err
+			}
+		}()
+
+		// Wait for port-forward to be ready
+		select {
+		case <-readyChan:
+			logger.Info("K8s port-forward established", "localPort", localPort, "remotePort", request.RemotePort)
+		case err := <-errChan:
+			logger.Error("K8s port-forward failed", "error", err)
+			wsMu.Lock()
+			_ = wsConn.WriteMessage(websocket.TextMessage, []byte("ERROR: "+err.Error()))
+			wsMu.Unlock()
+			return
+		case <-time.After(30 * time.Second):
+			logger.Error("K8s port-forward timeout")
+			close(stopChan)
+			return
+		}
+
+		dialAddr = fmt.Sprintf("127.0.0.1:%d", localPort)
 	}
-	localPort := localListener.Addr().(*net.TCPAddr).Port
-	localListener.Close()
 
-	stopChan := make(chan struct{})
-	readyChan := make(chan struct{})
-	errChan := make(chan error, 1)
-
-	go func() {
-		pfURL, err := url.Parse(fmt.Sprintf("%s/api/v1/namespaces/%s/pods/%s/portforward",
-			pfRestConfig.Host, request.Namespace, podName))
-		if err != nil {
-			errChan <- fmt.Errorf("invalid URL: %w", err)
-			return
-		}
-
-		transport, upgrader, err := spdy.RoundTripperFor(pfRestConfig)
-		if err != nil {
-			errChan <- fmt.Errorf("SPDY transport: %w", err)
-			return
-		}
-
-		spdyDialer := spdy.NewDialer(upgrader, &http.Client{Transport: transport}, http.MethodPost, pfURL)
-		ports := []string{fmt.Sprintf("%d:%d", localPort, request.RemotePort)}
-
-		fw, err := portforward.New(spdyDialer, ports, stopChan, readyChan, io.Discard, io.Discard)
-		if err != nil {
-			errChan <- fmt.Errorf("portforward create: %w", err)
-			return
-		}
-
-		if err := fw.ForwardPorts(); err != nil {
-			errChan <- err
-		}
-	}()
-
-	// Wait for port-forward to be ready
-	select {
-	case <-readyChan:
-		logger.Info("K8s port-forward established", "localPort", localPort, "remotePort", request.RemotePort)
-	case err := <-errChan:
-		logger.Error("K8s port-forward failed", "error", err)
-		wsMu.Lock()
-		wsConn.WriteMessage(websocket.TextMessage, []byte("ERROR: "+err.Error()))
-		wsMu.Unlock()
-		return
-	case <-time.After(30 * time.Second):
-		logger.Error("K8s port-forward timeout")
-		close(stopChan)
-		return
-	}
-
-	localAddr := fmt.Sprintf("127.0.0.1:%d", localPort)
-	logger.Info("Tunnel ready, waiting for client data", "localAddr", localAddr)
+	logger.Info("Tunnel ready, waiting for client data", "dialAddr", dialAddr)
 
 	done := make(chan struct{})
 	var once sync.Once
@@ -309,9 +351,9 @@ func PortForwardStreamConnection(request PortForwardConnectionRequest) {
 				connID := after
 				logger.Info("Opening sub-connection", "connID", connID)
 
-				localConn, err := net.DialTimeout("tcp", localAddr, 5*time.Second)
+				localConn, err := net.DialTimeout("tcp", dialAddr, 5*time.Second)
 				if err != nil {
-					logger.Error("Failed to dial local port-forward", "connID", connID, "error", err)
+					logger.Error("Failed to dial target", "connID", connID, "dialAddr", dialAddr, "error", err)
 					wsSendText(pfmClosePrefix + connID)
 					continue
 				}
@@ -320,8 +362,11 @@ func PortForwardStreamConnection(request PortForwardConnectionRequest) {
 				var finalConn net.Conn = localConn
 				if needsTLS(request.RemotePort, request.TargetProtocol) {
 					logger.Info("Wrapping connection with TLS", "connID", connID, "port", request.RemotePort)
+					// Cluster-internal self-signed certs are expected, so we skip
+					// verification. TODO: for kind=host (external) targets, consider
+					// verifying the certificate / making this configurable.
 					tlsConn := tls.Client(localConn, &tls.Config{
-						InsecureSkipVerify: true, // Cluster-internal, self-signed certs OK
+						InsecureSkipVerify: true,
 					})
 					if err := tlsConn.Handshake(); err != nil {
 						logger.Error("TLS handshake failed", "connID", connID, "error", err)
@@ -366,8 +411,10 @@ func PortForwardStreamConnection(request PortForwardConnectionRequest) {
 	}
 	connsMu.Unlock()
 
-	close(stopChan)
-	logger.Info("Port-forward tunnel closed", "pod", podName, "port", request.RemotePort)
+	if stopChan != nil {
+		close(stopChan)
+	}
+	logger.Info("Port-forward tunnel closed", "target", request.WorkloadName, "port", request.RemotePort)
 }
 
 func resolvePortForwardTarget(clientset k8s.Interface, req PortForwardConnectionRequest) (string, error) {
