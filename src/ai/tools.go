@@ -42,6 +42,10 @@ type ToolContext struct {
 	// refused by get so a whole-scope run neither re-inspects nor re-reports
 	// what a user has not decided on yet — saving the tokens of re-analysis.
 	ExcludeResources map[string]bool
+
+	// McpSessions lists the McpServer CR names whose tools are available to this
+	// agent run. An empty slice means no CRD-defined MCP servers are connected.
+	McpSessions []string
 }
 
 // aiResourceKey is the canonical identity used for ExcludeResources lookups.

@@ -373,6 +373,7 @@ func (ai *aiManager) buildAgentTaskContext(task *AiTask) (*v1alpha1.Agent, *Tool
 	if len(toolCtx.ExcludeResources) > 0 {
 		ai.logger.Info("Excluding resources with open proposals from run", "agent", agent.Name, "count", len(toolCtx.ExcludeResources))
 	}
+	toolCtx.McpSessions = agent.Spec.McpServerRefs
 	return agent, toolCtx, nil
 }
 
