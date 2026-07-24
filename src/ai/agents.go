@@ -6,6 +6,7 @@ import (
 	"mogenius-operator/src/store"
 	"mogenius-operator/src/structs"
 	"mogenius-operator/src/utils"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -302,13 +303,7 @@ func (ai *aiManager) buildAgentTaskContext(task *AiTask) (*v1alpha1.Agent, *Tool
 	}
 	// Event tasks must still be inside the (possibly changed) scope.
 	if taskNamespace := task.ReferencingResource.Namespace; taskNamespace != "" {
-		inScope := false
-		for _, ns := range namespaces {
-			if ns == taskNamespace {
-				inScope = true
-				break
-			}
-		}
+		inScope := slices.Contains(namespaces, taskNamespace)
 		if !inScope {
 			return nil, nil, fmt.Errorf("resource namespace %q is no longer in the scope of agent %q", taskNamespace, agent.Name)
 		}
@@ -430,12 +425,7 @@ func changeTypeSelected(on []string, changeType string) bool {
 	if len(on) == 0 {
 		return true
 	}
-	for _, t := range on {
-		if t == changeType {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(on, changeType)
 }
 
 // kindSelected reports whether kind is selected; an empty list means all kinds.
@@ -443,12 +433,7 @@ func kindSelected(kinds []string, kind string) bool {
 	if len(kinds) == 0 {
 		return true
 	}
-	for _, k := range kinds {
-		if k == kind {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(kinds, kind)
 }
 
 // namespaceSelected reports whether the object's namespace is within the

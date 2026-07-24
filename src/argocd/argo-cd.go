@@ -16,6 +16,7 @@ import (
 	"mogenius-operator/src/utils"
 	"mogenius-operator/src/valkeyclient"
 	"net/http"
+	"slices"
 
 	"encoding/json"
 
@@ -652,10 +653,8 @@ func argoServerRunsInsecure(deployment *unstructured.Unstructured) bool {
 			if err != nil || !found {
 				continue
 			}
-			for _, v := range values {
-				if v == "--insecure" {
-					return true
-				}
+			if slices.Contains(values, "--insecure") {
+				return true
 			}
 		}
 	}

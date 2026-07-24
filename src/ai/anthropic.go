@@ -630,13 +630,13 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, rc *ResolvedMod
 			// submit_analysis instruction: parse the JSON out of the text and,
 			// when that fails, spend a bounded repair turn pointing the model
 			// at the tool instead of discarding the whole exploration.
-			var responseText string
+			var responseText strings.Builder
 			for _, block := range message.Content {
 				if block.Type == "text" {
-					responseText += block.Text
+					responseText.WriteString(block.Text)
 				}
 			}
-			aiResponse, removedText, err := parseAiResponse(responseText)
+			aiResponse, removedText, err := parseAiResponse(responseText.String())
 			if err == nil {
 				ai.logger.Info("Extracted JSON from AI response", "removed_text", removedText)
 				return aiResponse, tokensUsed, int(time.Since(startTime).Milliseconds()), model, nil
@@ -644,7 +644,7 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, rc *ResolvedMod
 			repairAttempts++
 			ai.logger.Warn("Final answer unparsable, requesting repair", "error", err, "attempt", repairAttempts)
 			if repairAttempts > maxAnalysisRepairs {
-				return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("final answer unparsable after %d repair attempts: %v\n%s", repairAttempts, err, responseText)
+				return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("final answer unparsable after %d repair attempts: %v\n%s", repairAttempts, err, responseText.String())
 			}
 			messages = append(messages, anthropic.MessageParam{
 				Role: anthropic.MessageParamRoleUser,
@@ -704,7 +704,7 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, rc *ResolvedMod
 					onProgress(tokensUsed, "submitting final analysis")
 				}
 
-				var responseText string
+				var responseText strings.Builder
 				var submitID string
 				var submitInput json.RawMessage
 				var strayToolIDs []string
@@ -718,7 +718,7 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, rc *ResolvedMod
 							strayToolIDs = append(strayToolIDs, block.ID)
 						}
 					case "text":
-						responseText += block.Text
+						responseText.WriteString(block.Text)
 					}
 				}
 
@@ -788,13 +788,13 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, rc *ResolvedMod
 				}
 
 				// Defensive fallback: the model answered in plain text.
-				aiResponses, removedText, err := parseAiResponse(responseText)
+				aiResponses, removedText, err := parseAiResponse(responseText.String())
 				ai.logger.Info("Extracted JSON after exhausted run budget", "removed_text", removedText)
 				if err != nil {
 					if len(collected) > 0 {
 						return collected, tokensUsed, int(time.Since(startTime).Milliseconds()), model, nil
 					}
-					return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("run budget exhausted without parsable final answer: %v\n%s", err, responseText)
+					return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("run budget exhausted without parsable final answer: %v\n%s", err, responseText.String())
 				}
 				return append(collected, aiResponses...), tokensUsed, int(time.Since(startTime).Milliseconds()), model, nil
 			}

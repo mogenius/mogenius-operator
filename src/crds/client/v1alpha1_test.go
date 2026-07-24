@@ -26,10 +26,10 @@ func TestWorkspaceSpecFieldsCoveredByUpdateWorkspacePatch(t *testing.T) {
 		"dashboardRef": true,
 	}
 
-	specType := reflect.TypeOf(mov1alpha1.WorkspaceSpec{})
+	specType := reflect.TypeFor[mov1alpha1.WorkspaceSpec]()
 	specFields := map[string]bool{}
-	for i := 0; i < specType.NumField(); i++ {
-		field := specType.Field(i)
+	for field := range specType.Fields() {
+		field := field
 		jsonName := strings.Split(field.Tag.Get("json"), ",")[0]
 		if jsonName == "" || jsonName == "-" {
 			continue

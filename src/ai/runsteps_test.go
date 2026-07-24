@@ -80,7 +80,7 @@ func TestStepRecorderCapsRunaways(t *testing.T) {
 	ai, _ := newStepTestManager(t)
 
 	record := ai.newStepRecorder("run-cap")
-	for i := 0; i < maxRunSteps+25; i++ {
+	for range maxRunSteps + 25 {
 		record(AiRunStep{Kind: AI_RUN_STEP_ACT, Label: "step"})
 	}
 

@@ -72,7 +72,7 @@ func TestListAuditLogIndexedOrderingAndPagination(t *testing.T) {
 	setupAuditTestStore(t)
 
 	base := time.Now().Add(-time.Hour).Truncate(time.Millisecond)
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		writeTestAuditEntry(t, "prod", fmt.Sprintf("app-%d", i), "update/workload", base.Add(time.Duration(i)*time.Second))
 	}
 
@@ -179,13 +179,13 @@ func TestAuditEventDispatcherStampsSeqInWriteOrder(t *testing.T) {
 	})
 
 	base := time.Now().Add(-time.Hour)
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		writeTestAuditEntry(t, "prod", fmt.Sprintf("app-%d", i), "update/workload", base.Add(time.Duration(i)*time.Second))
 	}
 
 	var lastSeq int64
 	bootIds := map[string]bool{}
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		select {
 		case entry := <-received:
 			assert.Greater(t, entry.Seq, lastSeq, "seq must be strictly increasing")

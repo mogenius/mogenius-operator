@@ -311,10 +311,7 @@ func resolvePrometheusRange(timeOffsetSeconds int64, step int) (resolvedOffset i
 	// Fall back to a ~prometheusTargetPoints resolution when the caller does not
 	// provide a usable step, or provides one so large it would yield <2 points.
 	if step <= 0 || int64(step) > timeOffsetSeconds/2 {
-		calculatedStep := timeOffsetSeconds / prometheusTargetPoints
-		if calculatedStep < 1 {
-			calculatedStep = 1
-		}
+		calculatedStep := max(timeOffsetSeconds/prometheusTargetPoints, 1)
 		step = int(calculatedStep)
 	}
 
@@ -322,10 +319,7 @@ func resolvePrometheusRange(timeOffsetSeconds int64, step int) (resolvedOffset i
 	// The step is rounded up (ceil division) so the resulting point count stays
 	// at or below the limit even when the range is not an exact multiple.
 	if timeOffsetSeconds/int64(step) > prometheusMaxPoints {
-		minStep := (timeOffsetSeconds + prometheusMaxPoints - 1) / prometheusMaxPoints
-		if minStep < 1 {
-			minStep = 1
-		}
+		minStep := max((timeOffsetSeconds+prometheusMaxPoints-1)/prometheusMaxPoints, 1)
 		step = int(minStep)
 	}
 

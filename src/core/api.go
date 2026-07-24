@@ -337,8 +337,8 @@ func (self *api) DeleteGrant(name string) (string, error) {
 
 // GetAgentResult is the wire shape for Agent CRs, mirroring GetWorkspaceResult.
 type GetAgentResult struct {
-	Name              string            `json:"name" validate:"required"`
-	CreationTimestamp v1.Time           `json:"creationTimestamp"`
+	Name              string             `json:"name" validate:"required"`
+	CreationTimestamp v1.Time            `json:"creationTimestamp"`
 	Spec              v1alpha1.AgentSpec `json:"spec"`
 }
 
@@ -590,10 +590,7 @@ func (self *api) GetWorkspaceResourcesPaginated(workspaceName string, req Worksp
 	total := len(items)
 
 	if req.Limit > 0 {
-		start := max(req.Offset, 0)
-		if start > total {
-			start = total
-		}
+		start := min(max(req.Offset, 0), total)
 		end := min(start+req.Limit, total)
 		items = items[start:end]
 	}
@@ -886,4 +883,3 @@ func (self *api) GetWorkspaceNamespaces(workspaceName string) ([]string, error) 
 
 	return namespaceNames, nil
 }
-
