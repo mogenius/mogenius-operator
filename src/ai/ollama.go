@@ -461,6 +461,20 @@ func (ai *aiManager) ollamaChatWithTools(
 				}
 			}
 
+			// In streaming mode Ollama delivers tool calls in intermediate
+			// chunks (done=false); the final done chunk has none. Accumulate
+			// them from every chunk.
+			if len(resp.Message.ToolCalls) > 0 {
+				toolCalls = append(toolCalls, resp.Message.ToolCalls...)
+				for _, tc := range resp.Message.ToolCalls {
+					select {
+					case ioChannel.Output <- fmt.Sprintf("\n[Using tool: %s]\n", tc.Function.Name):
+					case <-ctx.Done():
+						return ctx.Err()
+					}
+				}
+			}
+
 			if resp.Done {
 				inputTokens = int64(resp.PromptEvalCount)
 				outputTokenCount = int64(resp.EvalCount)
@@ -470,17 +484,6 @@ func (ai *aiManager) ollamaChatWithTools(
 				outputTokensUsed += outputTokenCount
 				ai.logger.Info("Stream usage", "input_tokens", inputTokens, "output_tokens", outputTokenCount,
 					"session_input_tokens", *sessionInputTokens, "session_output_tokens", *sessionOutputTokens)
-
-				if len(resp.Message.ToolCalls) > 0 {
-					toolCalls = resp.Message.ToolCalls
-					for _, tc := range toolCalls {
-						select {
-						case ioChannel.Output <- fmt.Sprintf("\n[Using tool: %s]\n", tc.Function.Name):
-						case <-ctx.Done():
-							return ctx.Err()
-						}
-					}
-				}
 			}
 
 			return nil
