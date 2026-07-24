@@ -85,6 +85,12 @@ type AgentSpec struct {
 	// default.
 	// +kubebuilder:validation:Minimum=0
 	MaxTokensPerRun *int64 `json:"maxTokensPerRun,omitempty"`
+
+	// McpServerRefs lists names of McpServer CRs (same namespace) whose tools are
+	// made available to this agent in addition to the built-in K8s and Helm
+	// tools. Referenced servers are connected at run time; a missing or not-Ready
+	// McpServer is skipped with a warning rather than aborting the run.
+	McpServerRefs []string `json:"mcpServerRefs,omitempty"`
 }
 
 // AgentScope restricts an agent's visibility. At least one of WorkspaceRef or

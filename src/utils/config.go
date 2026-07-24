@@ -175,6 +175,13 @@ var AiModelResource = ResourceDescriptor{
 	Namespaced: true,
 }
 
+var McpServerResource = ResourceDescriptor{
+	Kind:       "McpServer",
+	Plural:     "mcpservers",
+	ApiVersion: "mogenius.com/v1alpha1",
+	Namespaced: true,
+}
+
 var PlatformConfigResource = ResourceDescriptor{
 	Kind:       "PlatformConfig",
 	Plural:     "platformconfigs",

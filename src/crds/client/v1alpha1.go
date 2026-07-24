@@ -455,6 +455,97 @@ func (self *MogeniusV1alpha1) DeleteAiModel(namespace string, name string) error
 	return nil
 }
 
+// ╭──────────────────╮
+// │ Client: McpServers │
+// ╰──────────────────╯
+
+func (self *MogeniusV1alpha1) ListMcpServers(namespace string) ([]mov1alpha1.McpServer, error) {
+	tools, err := store.GetAllMcpServers(namespace)
+	if err != nil {
+		return nil, fmt.Errorf("store: %w", err)
+	}
+	if tools == nil {
+		return []mov1alpha1.McpServer{}, nil
+	}
+	return tools, nil
+}
+
+func (self *MogeniusV1alpha1) GetMcpServer(namespace string, name string) (*mov1alpha1.McpServer, error) {
+	result, err := store.GetMcpServer(namespace, name)
+	if err != nil {
+		return nil, fmt.Errorf("store: %w", err)
+	}
+	if result == nil {
+		return nil, fmt.Errorf("store: mcpserver %s/%s not found", namespace, name)
+	}
+	result.TypeMeta = metav1.TypeMeta{
+		Kind:       "McpServer",
+		APIVersion: "mogenius.com/v1alpha1",
+	}
+	return result, nil
+}
+
+func (self *MogeniusV1alpha1) CreateMcpServer(namespace string, name string, spec mov1alpha1.McpServerSpec) (*mov1alpha1.McpServer, error) {
+	res := &mov1alpha1.McpServer{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "McpServer",
+			APIVersion: "mogenius.com/v1alpha1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: spec,
+	}
+	result := &mov1alpha1.McpServer{}
+	err := self.restClient.Post().Namespace(namespace).Resource("mcpservers").Body(res).Do(context.Background()).Into(result)
+	if err != nil {
+		return nil, fmt.Errorf("RESTClient: %w", err)
+	}
+	return result, nil
+}
+
+func (self *MogeniusV1alpha1) ReplaceMcpServer(namespace string, name string, spec mov1alpha1.McpServerSpec) (*mov1alpha1.McpServer, error) {
+	res, err := self.GetMcpServer(namespace, name)
+	if err != nil {
+		return nil, err
+	}
+	res.Spec = spec
+	result := &mov1alpha1.McpServer{}
+	err = self.restClient.Put().Namespace(namespace).Resource("mcpservers").Name(name).Body(res).Do(context.Background()).Into(result)
+	if err != nil {
+		return nil, fmt.Errorf("RESTClient: %w", err)
+	}
+	return result, nil
+}
+
+func (self *MogeniusV1alpha1) UpdateMcpServer(namespace string, name string, spec mov1alpha1.McpServerSpec) (*mov1alpha1.McpServer, error) {
+	// Replace-on-update: AllowedTools is a list and merge-patch cannot clear it.
+	return self.ReplaceMcpServer(namespace, name, spec)
+}
+
+// UpdateMcpServerStatus writes only the status subresource of the given McpServer.
+func (self *MogeniusV1alpha1) UpdateMcpServerStatus(tool *mov1alpha1.McpServer) (*mov1alpha1.McpServer, error) {
+	tool.TypeMeta = metav1.TypeMeta{
+		Kind:       "McpServer",
+		APIVersion: "mogenius.com/v1alpha1",
+	}
+	result := &mov1alpha1.McpServer{}
+	err := self.restClient.Put().Namespace(tool.Namespace).Resource("mcpservers").Name(tool.Name).SubResource("status").Body(tool).Do(context.Background()).Into(result)
+	if err != nil {
+		return nil, fmt.Errorf("RESTClient: %w", err)
+	}
+	return result, nil
+}
+
+func (self *MogeniusV1alpha1) DeleteMcpServer(namespace string, name string) error {
+	err := self.restClient.Delete().Namespace(namespace).Resource("mcpservers").Name(name).Do(context.Background()).Error()
+	if err != nil {
+		return fmt.Errorf("RESTClient: %w", err)
+	}
+	return nil
+}
+
 // ╭────────────────────╮
 // │ Client: Workspaces │
 // ╰────────────────────╯
