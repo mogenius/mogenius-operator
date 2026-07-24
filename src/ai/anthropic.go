@@ -399,13 +399,16 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, rc *ResolvedMod
 	maxToolCalls := rc.MaxToolCalls
 	maxTokensPerRun := rc.MaxTokensPerRun
 
-	// Unattended pipeline: strictly read-only tools, no external MCP tools.
-	// The ToolContext additionally scopes reads to the agent's namespaces —
-	// the read-only filter stays as defense in depth.
+	// Unattended pipeline: read-only built-in tools plus any McpServer-defined
+	// servers the agent explicitly references via spec.mcpServerRefs.
+	// The ToolContext additionally scopes reads to the agent's namespaces.
 	// The final analysis is collected through the schema-carrying
 	// submit_analysis tool (appended last so the cache boundary covers it)
 	// instead of being scraped out of free text.
 	allTools := readOnlyAnthropicTools(append(kubernetesAnthropicTools, helmAnthropicTools...))
+	if ai.mcpManager != nil && toolCtx != nil && len(toolCtx.McpSessions) > 0 {
+		allTools = append(allTools, ai.mcpManager.GetAnthropicToolsForSessions(toolCtx.McpSessions)...)
+	}
 	allTools = append(allTools, submitAnalysisAnthropicTool)
 	tools := make([]anthropic.ToolUnionParam, len(allTools))
 	for i, toolParam := range allTools {
@@ -609,11 +612,23 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, rc *ResolvedMod
 				}
 
 				var data string
+				mcpSessions := toolCtx.McpSessions
 				if tool, ok := toolDefinitions[block.Name]; ok {
 					if !viewerAllowedTools[block.Name] {
 						return nil, tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("tool %q is not permitted in the unattended insight pipeline", block.Name)
 					}
 					data = tool(args, toolCtx, ai.valkeyClient, ai.logger)
+					ai.auditInsightToolCall(toolCtx, block.Name, args, data)
+					if recordStep != nil {
+						recordStep(AiRunStep{Kind: AI_RUN_STEP_ACT, Label: describeToolCall(block.Name, args), Tool: block.Name, Args: string(inputBytes), Result: data})
+					}
+				} else if ai.mcpManager != nil && ai.mcpManager.IsMCPToolInSessions(block.Name, mcpSessions) {
+					mcpResult, err := ai.mcpManager.CallToolInSessions(ctx, block.Name, args, mcpSessions)
+					if err != nil {
+						data = fmt.Sprintf("MCP tool error: %v", err)
+					} else {
+						data = mcpResult
+					}
 					ai.auditInsightToolCall(toolCtx, block.Name, args, data)
 					if recordStep != nil {
 						recordStep(AiRunStep{Kind: AI_RUN_STEP_ACT, Label: describeToolCall(block.Name, args), Tool: block.Name, Args: string(inputBytes), Result: data})

@@ -35,7 +35,11 @@ func (ai *aiManager) processPromptOllama(ctx context.Context, rc *ResolvedModelC
 	// Unattended pipeline: strictly read-only tools (defense in depth on top
 	// of the ToolContext namespace scoping) plus submit_analysis, so findings
 	// arrive as structured tool input instead of JSON scraped out of text.
+	// McpServer-referenced servers are added when the agent spec lists them.
 	tools := readOnlyOllamaTools(append(kubernetesOllamaTools, helmOllamaTools...))
+	if ai.mcpManager != nil && toolCtx != nil && len(toolCtx.McpSessions) > 0 {
+		tools = append(tools, ai.mcpManager.GetOllamaToolsForSessions(toolCtx.McpSessions)...)
+	}
 	tools = append(tools, submitAnalysisOllamaTool)
 
 	messages := []api.Message{
@@ -240,15 +244,7 @@ func (ai *aiManager) processPromptOllama(ctx context.Context, rc *ResolvedModelC
 				continue
 			}
 
-			tool, ok := toolDefinitions[name]
-			if !ok {
-				messages = append(messages, toolResult(name, fmt.Sprintf("Unknown tool %q — only the tools offered in this conversation exist. Continue with those, or call %s to finish.", name, submitAnalysisToolName)))
-				continue
-			}
-			if !viewerAllowedTools[name] {
-				messages = append(messages, toolResult(name, fmt.Sprintf("Tool %q is not permitted in this unattended run — only read-only inspection tools and %s are available.", name, submitAnalysisToolName)))
-				continue
-			}
+			mcpSessions := toolCtx.McpSessions
 			if nudged {
 				messages = append(messages, toolResult(name, "Budget exhausted — no more inspection tools. Call "+submitAnalysisToolName+" now with your remaining findings (or an empty findings array)."))
 				continue
@@ -262,13 +258,37 @@ func (ai *aiManager) processPromptOllama(ctx context.Context, rc *ResolvedModelC
 			if onProgress != nil {
 				onProgress(tokensUsed, describeToolCall(name, args))
 			}
-			data := tool(args, toolCtx, ai.valkeyClient, ai.logger)
-			ai.auditInsightToolCall(toolCtx, name, args, data)
-			if recordStep != nil {
-				recordStep(AiRunStep{Kind: AI_RUN_STEP_ACT, Label: describeToolCall(name, args), Tool: name, Args: string(argsBytes), Result: data})
+
+			builtinTool, isBuiltin := toolDefinitions[name]
+			switch {
+			case isBuiltin:
+				if !viewerAllowedTools[name] {
+					messages = append(messages, toolResult(name, fmt.Sprintf("Tool %q is not permitted in this unattended run — only read-only inspection tools and %s are available.", name, submitAnalysisToolName)))
+					continue
+				}
+				data := builtinTool(args, toolCtx, ai.valkeyClient, ai.logger)
+				ai.auditInsightToolCall(toolCtx, name, args, data)
+				if recordStep != nil {
+					recordStep(AiRunStep{Kind: AI_RUN_STEP_ACT, Label: describeToolCall(name, args), Tool: name, Args: string(argsBytes), Result: data})
+				}
+				inspectionCalls++
+				messages = append(messages, toolResult(name, data))
+			case ai.mcpManager != nil && ai.mcpManager.IsMCPToolInSessions(name, mcpSessions):
+				mcpResult, err := ai.mcpManager.CallToolInSessions(ctx, name, args, mcpSessions)
+				data := mcpResult
+				if err != nil {
+					data = fmt.Sprintf("MCP tool error: %v", err)
+				}
+				ai.auditInsightToolCall(toolCtx, name, args, data)
+				if recordStep != nil {
+					recordStep(AiRunStep{Kind: AI_RUN_STEP_ACT, Label: describeToolCall(name, args), Tool: name, Args: string(argsBytes), Result: data})
+				}
+				inspectionCalls++
+				messages = append(messages, toolResult(name, data))
+			default:
+				messages = append(messages, toolResult(name, fmt.Sprintf("Unknown tool %q — only the tools offered in this conversation exist. Continue with those, or call %s to finish.", name, submitAnalysisToolName)))
+				continue
 			}
-			inspectionCalls++
-			messages = append(messages, toolResult(name, data))
 		}
 
 		// Increase global tool call count and check the run budgets (tool

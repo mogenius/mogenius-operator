@@ -297,6 +297,18 @@ type AiManager interface {
 	TriggerAgent(agentName string, user *structs.User) (*AiTask, error)
 
 	ResolveWorkspaceContext(userEmail string, workspaceName string) (*v1alpha1.WorkspaceSpec, *v1alpha1.GrantSpec)
+
+	// NotifyMcpServerChanged reconnects the named McpServer CR's MCP server and
+	// returns the discovered tool names. Called by the reconciler on create/update.
+	NotifyMcpServerChanged(name string) ([]string, error)
+
+	// NotifyMcpServerDeleted removes the session for the named McpServer CR. Called
+	// by the reconciler on delete.
+	NotifyMcpServerDeleted(name string)
+
+	// RefreshAllMcpServerCRConnections (re)connects all McpServer CRs from the
+	// operator namespace. Called once at startup.
+	RefreshAllMcpServerCRConnections()
 }
 
 type SecretGetter func(namespace, name string) (*coreV1.Secret, error)
@@ -572,8 +584,11 @@ func (ai *aiManager) Run() {
 		ai.logger.Error("Failed resetting in-progress AI tasks on startup", "error", err)
 	}
 
-	// Connect to configured MCP servers
+	// Connect to configured MCP servers (hard-coded connectors, e.g. GitHub)
 	ai.connectMCPServers()
+
+	// Connect to McpServer CR-defined servers available in the store at startup.
+	ai.RefreshAllMcpServerCRConnections()
 
 	ticker := time.NewTicker(1 * time.Minute)
 	cleanupTicker := time.NewTicker(5 * time.Minute)

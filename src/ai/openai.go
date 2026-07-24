@@ -30,7 +30,11 @@ func (ai *aiManager) processPromptOpenAi(ctx context.Context, rc *ResolvedModelC
 	// Unattended pipeline: strictly read-only tools (defense in depth on top
 	// of the ToolContext namespace scoping) plus submit_analysis, so findings
 	// arrive as structured tool input instead of JSON scraped out of text.
+	// McpServer-referenced servers are added when the agent spec lists them.
 	allTools := readOnlyOpenAiTools(append(kubernetesOpenAiTools, helmOpenAiTools...))
+	if ai.mcpManager != nil && toolCtx != nil && len(toolCtx.McpSessions) > 0 {
+		allTools = append(allTools, ai.mcpManager.GetOpenAIToolsForSessions(toolCtx.McpSessions)...)
+	}
 	allTools = append(allTools, submitAnalysisOpenAiTool)
 
 	params := openai.ChatCompletionNewParams{
@@ -239,19 +243,33 @@ func (ai *aiManager) processPromptOpenAi(ctx context.Context, rc *ResolvedModelC
 				onProgress(tokensUsed, describeToolCall(name, args))
 			}
 
-			tool, ok := toolDefinitions[name]
-			if !ok {
+			mcpSessions := toolCtx.McpSessions
+			var data string
+			if builtinTool, ok := toolDefinitions[name]; ok {
+				if !viewerAllowedTools[name] {
+					return nil, tokensUsed, elapsed(), model, fmt.Errorf("tool %q is not permitted in the unattended insight pipeline", name)
+				}
+				data = builtinTool(args, toolCtx, ai.valkeyClient, ai.logger)
+				ai.auditInsightToolCall(toolCtx, name, args, data)
+				if recordStep != nil {
+					recordStep(AiRunStep{Kind: AI_RUN_STEP_ACT, Label: describeToolCall(name, args), Tool: name, Args: toolCall.Function.Arguments, Result: data})
+				}
+				inspectionCalls++
+			} else if ai.mcpManager != nil && ai.mcpManager.IsMCPToolInSessions(name, mcpSessions) {
+				mcpResult, err := ai.mcpManager.CallToolInSessions(ctx, name, args, mcpSessions)
+				if err != nil {
+					data = fmt.Sprintf("MCP tool error: %v", err)
+				} else {
+					data = mcpResult
+				}
+				ai.auditInsightToolCall(toolCtx, name, args, data)
+				if recordStep != nil {
+					recordStep(AiRunStep{Kind: AI_RUN_STEP_ACT, Label: describeToolCall(name, args), Tool: name, Args: toolCall.Function.Arguments, Result: data})
+				}
+				inspectionCalls++
+			} else {
 				return nil, tokensUsed, elapsed(), model, fmt.Errorf("unknown tool called: %s", name)
 			}
-			if !viewerAllowedTools[name] {
-				return nil, tokensUsed, elapsed(), model, fmt.Errorf("tool %q is not permitted in the unattended insight pipeline", name)
-			}
-			data := tool(args, toolCtx, ai.valkeyClient, ai.logger)
-			ai.auditInsightToolCall(toolCtx, name, args, data)
-			if recordStep != nil {
-				recordStep(AiRunStep{Kind: AI_RUN_STEP_ACT, Label: describeToolCall(name, args), Tool: name, Args: toolCall.Function.Arguments, Result: data})
-			}
-			inspectionCalls++
 			params.Messages = append(params.Messages, openai.ToolMessage(data, toolCall.ID))
 		}
 

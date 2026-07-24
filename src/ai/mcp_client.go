@@ -27,11 +27,34 @@ func sanitizeToolName(name string) string {
 	return invalidToolNameChars.ReplaceAllString(name, "_")
 }
 
+// MCPTransportType selects the transport protocol for an MCP server.
+type MCPTransportType string
+
+const (
+	MCPTransportStreamableHTTP MCPTransportType = "streamableHttp"
+	MCPTransportSSE            MCPTransportType = "sse"
+)
+
 // MCPServerConfig describes a remote MCP server to connect to.
 type MCPServerConfig struct {
 	Name string `json:"name"`
 	URL  string `json:"url"`
-	Pat  string `json:"-"` // Personal Access Token (never serialized)
+
+	// Transport selects the wire protocol; defaults to StreamableHTTP when empty.
+	Transport MCPTransportType `json:"transport,omitempty"`
+
+	// Pat is a Personal Access Token added as a Bearer token (kept for the
+	// existing GitHub connector; use Headers for new connectors).
+	Pat string `json:"-"`
+
+	// Headers are fully resolved (secret-free) HTTP headers sent with every
+	// request. Callers resolve secret references before populating this map.
+	Headers map[string]string `json:"-"`
+
+	// AllowedTools is a set of tool names to expose from this server. A nil map
+	// means all discovered tools are available; a non-nil map restricts to those
+	// present in the set.
+	AllowedTools map[string]bool `json:"-"`
 }
 
 // mcpClientManager manages connections to MCP servers and exposes their tools.
@@ -48,14 +71,23 @@ type mcpSession struct {
 	sanitizedToOriginal map[string]string // sanitized LLM name → original MCP name
 }
 
-type authTransport struct {
-	base  http.RoundTripper
-	token string
+// headerTransport adds a Bearer token (pat) and any extra resolved headers to
+// every outgoing request.
+type headerTransport struct {
+	base    http.RoundTripper
+	pat     string
+	headers map[string]string
 }
 
-func (a *authTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	req.Header.Set("Authorization", "Bearer "+a.token)
-	return a.base.RoundTrip(req)
+func (h *headerTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	req = req.Clone(req.Context())
+	if h.pat != "" {
+		req.Header.Set("Authorization", "Bearer "+h.pat)
+	}
+	for name, value := range h.headers {
+		req.Header.Set(name, value)
+	}
+	return h.base.RoundTrip(req)
 }
 
 func newMCPClientManager(logger *slog.Logger) *mcpClientManager {
@@ -65,23 +97,36 @@ func newMCPClientManager(logger *slog.Logger) *mcpClientManager {
 	}
 }
 
-// Connect initializes a connection to a remote MCP server via Streamable HTTP.
+// Connect initializes a connection to a remote MCP server.
+// Transport defaults to StreamableHTTP when cfg.Transport is empty.
 func (m *mcpClientManager) Connect(ctx context.Context, cfg MCPServerConfig) error {
-	m.logger.Info("Connecting to MCP server", "name", cfg.Name, "url", cfg.URL)
+	m.logger.Info("Connecting to MCP server", "name", cfg.Name, "url", cfg.URL, "transport", cfg.Transport)
+
+	httpClient := &http.Client{
+		Transport: &headerTransport{
+			base:    http.DefaultTransport,
+			pat:     cfg.Pat,
+			headers: cfg.Headers,
+		},
+	}
 
 	client := mcp.NewClient(
 		&mcp.Implementation{Name: "mogenius-operator", Version: "v1.0.0"},
 		nil,
 	)
 
-	transport := &mcp.StreamableClientTransport{
-		Endpoint: cfg.URL,
-		HTTPClient: &http.Client{
-			Transport: &authTransport{
-				base:  http.DefaultTransport,
-				token: cfg.Pat,
-			},
-		},
+	var transport mcp.Transport
+	switch cfg.Transport {
+	case MCPTransportSSE:
+		transport = &mcp.SSEClientTransport{
+			Endpoint:   cfg.URL,
+			HTTPClient: httpClient,
+		}
+	default:
+		transport = &mcp.StreamableClientTransport{
+			Endpoint:   cfg.URL,
+			HTTPClient: httpClient,
+		}
 	}
 
 	session, err := client.Connect(ctx, transport, nil)
@@ -96,9 +141,21 @@ func (m *mcpClientManager) Connect(ctx context.Context, cfg MCPServerConfig) err
 		return fmt.Errorf("failed to list tools from MCP server %s: %w", cfg.Name, err)
 	}
 
+	// Apply allowlist filter when configured.
+	tools := toolsResult.Tools
+	if len(cfg.AllowedTools) > 0 {
+		filtered := tools[:0]
+		for _, tool := range tools {
+			if cfg.AllowedTools[tool.Name] {
+				filtered = append(filtered, tool)
+			}
+		}
+		tools = filtered
+	}
+
 	// Build sanitized→original name mapping for LLM-safe tool names.
-	nameMap := make(map[string]string, len(toolsResult.Tools))
-	for _, tool := range toolsResult.Tools {
+	nameMap := make(map[string]string, len(tools))
+	for _, tool := range tools {
 		nameMap[sanitizeToolName(tool.Name)] = tool.Name
 	}
 
@@ -106,17 +163,24 @@ func (m *mcpClientManager) Connect(ctx context.Context, cfg MCPServerConfig) err
 	m.sessions[cfg.Name] = &mcpSession{
 		name:                cfg.Name,
 		session:             session,
-		tools:               toolsResult.Tools,
+		tools:               tools,
 		sanitizedToOriginal: nameMap,
 	}
 	m.mu.Unlock()
 
-	//m.logger.Info("Connected to MCP server", "name", cfg.Name, "toolCount", len(toolsResult.Tools))
-	//for _, tool := range toolsResult.Tools {
-	//	m.logger.Info("MCP tool discovered", "server", cfg.Name, "tool", tool.Name)
-	//}
-
 	return nil
+}
+
+// RemoveSession closes and removes a named session if it exists.
+func (m *mcpClientManager) RemoveSession(name string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if s, ok := m.sessions[name]; ok {
+		if err := s.session.Close(); err != nil {
+			m.logger.Warn("Error closing MCP session on removal", "name", name, "error", err)
+		}
+		delete(m.sessions, name)
+	}
 }
 
 // Close closes all MCP sessions.
@@ -266,6 +330,164 @@ func (m *mcpClientManager) GetOllamaTools() []api.Tool {
 		}
 	}
 	return tools
+}
+
+// sessionFilter converts a string slice of session names to a lookup set.
+// A nil result means "no filter" (all sessions); an empty slice means
+// "filter to nothing" which is treated the same as no filter for safety.
+func sessionFilter(sessions []string) map[string]bool {
+	if len(sessions) == 0 {
+		return nil
+	}
+	f := make(map[string]bool, len(sessions))
+	for _, s := range sessions {
+		f[s] = true
+	}
+	return f
+}
+
+// GetAnthropicToolsForSessions returns MCP tools in Anthropic format, scoped
+// to the named sessions. An empty sessions list returns all tools.
+func (m *mcpClientManager) GetAnthropicToolsForSessions(sessions []string) []anthropic.ToolParam {
+	filter := sessionFilter(sessions)
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	var tools []anthropic.ToolParam
+	for _, s := range m.sessions {
+		if filter != nil && !filter[s.name] {
+			continue
+		}
+		for _, tool := range s.tools {
+			properties, required := mcpSchemaToPropertiesAndRequired(tool.InputSchema)
+			tools = append(tools, anthropic.ToolParam{
+				Name:        sanitizeToolName(tool.Name),
+				Description: anthropic.String(tool.Description),
+				InputSchema: anthropic.ToolInputSchemaParam{
+					Type:       "object",
+					Properties: properties,
+					Required:   required,
+				},
+			})
+		}
+	}
+	return tools
+}
+
+// GetOpenAIToolsForSessions returns MCP tools in OpenAI format, scoped to the
+// named sessions. An empty sessions list returns all tools.
+func (m *mcpClientManager) GetOpenAIToolsForSessions(sessions []string) []openai.ChatCompletionToolUnionParam {
+	filter := sessionFilter(sessions)
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	var tools []openai.ChatCompletionToolUnionParam
+	for _, s := range m.sessions {
+		if filter != nil && !filter[s.name] {
+			continue
+		}
+		for _, tool := range s.tools {
+			params := mcpSchemaToFunctionParams(tool.InputSchema)
+			tools = append(tools, openai.ChatCompletionToolUnionParam{
+				OfFunction: &openai.ChatCompletionFunctionToolParam{
+					Function: openai.FunctionDefinitionParam{
+						Name:        sanitizeToolName(tool.Name),
+						Description: openai.String(tool.Description),
+						Parameters:  params,
+					},
+				},
+			})
+		}
+	}
+	return tools
+}
+
+// GetOllamaToolsForSessions returns MCP tools in Ollama format, scoped to the
+// named sessions. An empty sessions list returns all tools.
+func (m *mcpClientManager) GetOllamaToolsForSessions(sessions []string) []api.Tool {
+	filter := sessionFilter(sessions)
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	var tools []api.Tool
+	for _, s := range m.sessions {
+		if filter != nil && !filter[s.name] {
+			continue
+		}
+		for _, tool := range s.tools {
+			props, required := mcpSchemaToOllamaProperties(tool.InputSchema)
+			tools = append(tools, api.Tool{
+				Type: "function",
+				Function: api.ToolFunction{
+					Name:        sanitizeToolName(tool.Name),
+					Description: tool.Description,
+					Parameters: api.ToolFunctionParameters{
+						Type:       "object",
+						Properties: props,
+						Required:   required,
+					},
+				},
+			})
+		}
+	}
+	return tools
+}
+
+// IsMCPToolInSessions returns true when toolName belongs to one of the named
+// sessions. An empty sessions list checks all sessions.
+func (m *mcpClientManager) IsMCPToolInSessions(toolName string, sessions []string) bool {
+	filter := sessionFilter(sessions)
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	for _, s := range m.sessions {
+		if filter != nil && !filter[s.name] {
+			continue
+		}
+		if _, ok := s.sanitizedToOriginal[toolName]; ok {
+			return true
+		}
+		for _, tool := range s.tools {
+			if tool.Name == toolName {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// CallToolInSessions calls a tool on one of the named sessions. An empty
+// sessions list searches all sessions.
+func (m *mcpClientManager) CallToolInSessions(ctx context.Context, toolName string, args map[string]any, sessions []string) (string, error) {
+	filter := sessionFilter(sessions)
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	for _, s := range m.sessions {
+		if filter != nil && !filter[s.name] {
+			continue
+		}
+		originalName := toolName
+		if orig, ok := s.sanitizedToOriginal[toolName]; ok {
+			originalName = orig
+		}
+		for _, tool := range s.tools {
+			if tool.Name == originalName {
+				result, err := s.session.CallTool(ctx, &mcp.CallToolParams{
+					Name:      originalName,
+					Arguments: args,
+				})
+				if err != nil {
+					return "", fmt.Errorf("MCP tool call %q failed: %w", originalName, err)
+				}
+				if result.IsError {
+					return fmt.Sprintf("MCP tool error: %s", extractMCPText(result)), nil
+				}
+				return extractMCPText(result), nil
+			}
+		}
+	}
+	return "", fmt.Errorf("MCP tool %q not found in requested sessions", toolName)
 }
 
 // mcpSchemaToOllamaProperties converts an MCP tool's InputSchema to the
