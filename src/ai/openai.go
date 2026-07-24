@@ -31,7 +31,14 @@ func (ai *aiManager) processPromptOpenAi(ctx context.Context, rc *ResolvedModelC
 	// of the ToolContext namespace scoping) plus submit_analysis, so findings
 	// arrive as structured tool input instead of JSON scraped out of text.
 	// McpServer-referenced servers are added when the agent spec lists them.
-	allTools := readOnlyOpenAiTools(append(kubernetesOpenAiTools, helmOpenAiTools...))
+	var builtinOpenAI []openai.ChatCompletionToolUnionParam
+	if toolCtx == nil || !toolCtx.DisableKubernetes {
+		builtinOpenAI = append(builtinOpenAI, kubernetesOpenAiTools...)
+	}
+	if toolCtx == nil || !toolCtx.DisableHelm {
+		builtinOpenAI = append(builtinOpenAI, helmOpenAiTools...)
+	}
+	allTools := readOnlyOpenAiTools(builtinOpenAI)
 	if ai.mcpManager != nil && toolCtx != nil && len(toolCtx.McpSessions) > 0 {
 		allTools = append(allTools, ai.mcpManager.GetOpenAIToolsForSessions(toolCtx.McpSessions)...)
 	}

@@ -36,7 +36,14 @@ func (ai *aiManager) processPromptOllama(ctx context.Context, rc *ResolvedModelC
 	// of the ToolContext namespace scoping) plus submit_analysis, so findings
 	// arrive as structured tool input instead of JSON scraped out of text.
 	// McpServer-referenced servers are added when the agent spec lists them.
-	tools := readOnlyOllamaTools(append(kubernetesOllamaTools, helmOllamaTools...))
+	var builtinOllama []api.Tool
+	if toolCtx == nil || !toolCtx.DisableKubernetes {
+		builtinOllama = append(builtinOllama, kubernetesOllamaTools...)
+	}
+	if toolCtx == nil || !toolCtx.DisableHelm {
+		builtinOllama = append(builtinOllama, helmOllamaTools...)
+	}
+	tools := readOnlyOllamaTools(builtinOllama)
 	if ai.mcpManager != nil && toolCtx != nil && len(toolCtx.McpSessions) > 0 {
 		tools = append(tools, ai.mcpManager.GetOllamaToolsForSessions(toolCtx.McpSessions)...)
 	}

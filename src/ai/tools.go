@@ -46,6 +46,14 @@ type ToolContext struct {
 	// McpSessions lists the McpServer CR names whose tools are available to this
 	// agent run. An empty slice means no CRD-defined MCP servers are connected.
 	McpSessions []string
+
+	// DisableKubernetes removes the built-in Kubernetes tool group for this run.
+	// Zero value (false) keeps the tools enabled — safe default for all paths.
+	DisableKubernetes bool
+
+	// DisableHelm removes the built-in Helm tool group for this run.
+	// Zero value (false) keeps the tools enabled — safe default for all paths.
+	DisableHelm bool
 }
 
 // aiResourceKey is the canonical identity used for ExcludeResources lookups.

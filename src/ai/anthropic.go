@@ -405,7 +405,14 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, rc *ResolvedMod
 	// The final analysis is collected through the schema-carrying
 	// submit_analysis tool (appended last so the cache boundary covers it)
 	// instead of being scraped out of free text.
-	allTools := readOnlyAnthropicTools(append(kubernetesAnthropicTools, helmAnthropicTools...))
+	var builtinAnthropic []anthropic.ToolParam
+	if toolCtx == nil || !toolCtx.DisableKubernetes {
+		builtinAnthropic = append(builtinAnthropic, kubernetesAnthropicTools...)
+	}
+	if toolCtx == nil || !toolCtx.DisableHelm {
+		builtinAnthropic = append(builtinAnthropic, helmAnthropicTools...)
+	}
+	allTools := readOnlyAnthropicTools(builtinAnthropic)
 	if ai.mcpManager != nil && toolCtx != nil && len(toolCtx.McpSessions) > 0 {
 		allTools = append(allTools, ai.mcpManager.GetAnthropicToolsForSessions(toolCtx.McpSessions)...)
 	}

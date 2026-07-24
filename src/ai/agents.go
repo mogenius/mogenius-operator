@@ -373,7 +373,11 @@ func (ai *aiManager) buildAgentTaskContext(task *AiTask) (*v1alpha1.Agent, *Tool
 	if len(toolCtx.ExcludeResources) > 0 {
 		ai.logger.Info("Excluding resources with open proposals from run", "agent", agent.Name, "count", len(toolCtx.ExcludeResources))
 	}
-	toolCtx.McpSessions = agent.Spec.McpServerRefs
+	toolCtx.McpSessions = agent.Spec.Tools.McpServerRefs
+	if b := agent.Spec.Tools.Builtin; b != nil {
+		toolCtx.DisableKubernetes = !b.Kubernetes
+		toolCtx.DisableHelm = !b.Helm
+	}
 	return agent, toolCtx, nil
 }
 
