@@ -114,6 +114,13 @@ func (d *reconcilerModule) evaluateAgent(agent *v1alpha1.Agent) (metav1.Conditio
 		}
 	}
 
+	for _, ref := range agent.Spec.McpServerRefs {
+		tool, err := store.GetMcpServer(ownNamespace, ref)
+		if err != nil || tool == nil {
+			return metav1.ConditionFalse, "McpServerNotFound", fmt.Sprintf("mcpServerRefs references McpServer %q which does not exist", ref)
+		}
+	}
+
 	if !agent.Spec.Enabled {
 		return metav1.ConditionTrue, "Valid", "spec is valid; agent is disabled"
 	}
