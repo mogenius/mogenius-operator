@@ -95,15 +95,6 @@ spec:
                   model's value. Unset falls back to the model, then the built-in default.
                 minimum: 1
                 type: integer
-              mcpServerRefs:
-                description: |-
-                  McpServerRefs lists names of McpServer CRs (same namespace) whose tools are
-                  made available to this agent in addition to the built-in K8s and Helm
-                  tools. Referenced servers are connected at run time; a missing or not-Ready
-                  McpServer is skipped with a warning rather than aborting the run.
-                items:
-                  type: string
-                type: array
               modelRef:
                 description: |-
                   Name of the AiModel CR (same namespace) this agent runs with; empty uses
@@ -132,6 +123,36 @@ spec:
                 - message: scope must reference a workspace or list at least one namespace
                   rule: (has(self.workspaceRef) && self.workspaceRef != "") || (has(self.namespaces)
                     && self.namespaces.size() > 0)
+              tools:
+                description: |-
+                  Tools configures which tool groups are available to this agent.
+                  When omitted the agent has access to all built-in tools.
+                properties:
+                  builtin:
+                    description: |-
+                      Builtin controls which built-in read-only tool groups are enabled.
+                      When unset, all built-in tool groups are available.
+                    properties:
+                      helm:
+                        default: true
+                        description: Helm enables the built-in read-only Helm tools.
+                        type: boolean
+                      kubernetes:
+                        default: true
+                        description: Kubernetes enables the built-in read-only Kubernetes
+                          tools.
+                        type: boolean
+                    type: object
+                  mcpServerRefs:
+                    description: |-
+                      McpServerRefs lists names of McpServer CRs (same namespace) whose tools
+                      are made available to this agent. Referenced servers are connected at run
+                      time; a missing or not-Ready McpServer is skipped with a warning rather
+                      than aborting the run.
+                    items:
+                      type: string
+                    type: array
+                type: object
               triggers:
                 description: |-
                   AgentTriggers declares when an agent runs. A manual run is always available
