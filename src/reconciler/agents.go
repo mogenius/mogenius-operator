@@ -115,9 +115,17 @@ func (d *reconcilerModule) evaluateAgent(agent *v1alpha1.Agent) (metav1.Conditio
 	}
 
 	for _, ref := range agent.Spec.Tools.McpServerRefs {
-		tool, err := store.GetMcpServer(ownNamespace, ref)
-		if err != nil || tool == nil {
+		server, err := store.GetMcpServer(ownNamespace, ref)
+		if err != nil || server == nil {
 			return metav1.ConditionFalse, "McpServerNotFound", fmt.Sprintf("tools.mcpServerRefs references McpServer %q which does not exist", ref)
+		}
+		ready := apimeta.FindStatusCondition(server.Status.Conditions, "Ready")
+		if ready == nil || ready.Status != metav1.ConditionTrue {
+			reason := "Unknown"
+			if ready != nil {
+				reason = ready.Reason
+			}
+			return metav1.ConditionFalse, "McpServerNotReady", fmt.Sprintf("McpServer %q is not ready: %s", ref, reason)
 		}
 	}
 
