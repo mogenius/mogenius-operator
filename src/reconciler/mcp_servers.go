@@ -99,7 +99,7 @@ func (d *reconcilerModule) evaluateMcpServer(server *v1alpha1.McpServer) (metav1
 	}
 
 	switch server.Spec.Transport {
-	case v1alpha1.McpTransportStreamableHTTP, v1alpha1.McpTransportSSE, "":
+	case v1alpha1.McpTransportStreamableHTTP, v1alpha1.McpTransportSSE:
 	default:
 		return metav1.ConditionFalse, "InvalidSpec", fmt.Sprintf("unsupported transport %q (allowed: streamableHttp, sse)", server.Spec.Transport)
 	}
@@ -107,9 +107,6 @@ func (d *reconcilerModule) evaluateMcpServer(server *v1alpha1.McpServer) (metav1
 	if a := server.Spec.Auth; a != nil && a.Type != v1alpha1.McpAuthNone {
 		if a.SecretRef == nil {
 			return metav1.ConditionFalse, "InvalidSpec", fmt.Sprintf("auth type %q requires secretRef", a.Type)
-		}
-		if a.Type == v1alpha1.McpAuthAPIKey && a.Header == "" {
-			return metav1.ConditionFalse, "InvalidSpec", "auth type apiKey requires spec.auth.header"
 		}
 		if store.GetSecret(server.Namespace, a.SecretRef.Name) == nil {
 			return metav1.ConditionFalse, "SecretNotFound", fmt.Sprintf("auth.secretRef references Secret %q which does not exist", a.SecretRef.Name)

@@ -99,11 +99,7 @@ func (ai *aiManager) buildMcpConfig(tool *v1alpha1.McpServer) (MCPServerConfig, 
 		case v1alpha1.McpAuthBearer:
 			headers["Authorization"] = "Bearer " + token
 		case v1alpha1.McpAuthAPIKey:
-			headerName := a.Header
-			if headerName == "" {
-				return MCPServerConfig{}, fmt.Errorf("auth type apiKey requires header field")
-			}
-			headers[headerName] = token
+			headers[a.Header] = token
 		}
 	}
 

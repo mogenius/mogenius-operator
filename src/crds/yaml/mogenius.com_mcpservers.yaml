@@ -76,9 +76,10 @@ spec:
                   unauthenticated servers.
                 properties:
                   header:
+                    default: X-Api-Key
                     description: |-
-                      Header name for apiKey auth (e.g. "X-Api-Key"). Ignored for bearer (which
-                      always uses the Authorization header) and none.
+                      Header name for apiKey auth. Defaults to "X-Api-Key". Ignored for bearer
+                      (which always uses the Authorization header) and none.
                     type: string
                   secretRef:
                     description: |-
@@ -154,6 +155,7 @@ spec:
                   type: object
                 type: array
               transport:
+                default: streamableHttp
                 description: Transport protocol used to communicate with the MCP server.
                 enum:
                 - streamableHttp
@@ -164,7 +166,6 @@ spec:
                 minLength: 1
                 type: string
             required:
-            - transport
             - url
             type: object
           status:

@@ -65,7 +65,8 @@ type McpServerSpec struct {
 
 	// Transport protocol used to communicate with the MCP server.
 	// +kubebuilder:validation:Enum=streamableHttp;sse
-	Transport McpTransportType `json:"transport"`
+	// +kubebuilder:default=streamableHttp
+	Transport McpTransportType `json:"transport,omitempty"`
 
 	// Base URL of the MCP server endpoint.
 	// +kubebuilder:validation:MinLength=1
@@ -97,8 +98,9 @@ type McpServerAuth struct {
 	// Required for bearer and apiKey auth types; ignored for none.
 	SecretRef *SecretKeyRef `json:"secretRef,omitempty"`
 
-	// Header name for apiKey auth (e.g. "X-Api-Key"). Ignored for bearer (which
-	// always uses the Authorization header) and none.
+	// Header name for apiKey auth. Defaults to "X-Api-Key". Ignored for bearer
+	// (which always uses the Authorization header) and none.
+	// +kubebuilder:default="X-Api-Key"
 	Header string `json:"header,omitempty"`
 }
 
