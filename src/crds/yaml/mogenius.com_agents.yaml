@@ -95,6 +95,15 @@ spec:
                   model's value. Unset falls back to the model, then the built-in default.
                 minimum: 1
                 type: integer
+              mcpServerRefs:
+                description: |-
+                  McpServerRefs lists names of McpServer CRs (same namespace) whose tools are
+                  made available to this agent in addition to the built-in K8s and Helm
+                  tools. Referenced servers are connected at run time; a missing or not-Ready
+                  McpServer is skipped with a warning rather than aborting the run.
+                items:
+                  type: string
+                type: array
               modelRef:
                 description: |-
                   Name of the AiModel CR (same namespace) this agent runs with; empty uses

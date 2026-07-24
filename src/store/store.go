@@ -1150,6 +1150,23 @@ func GetAiModel(namespace string, name string) (*v1alpha1.AiModel, error) {
 	return model, nil
 }
 
+func GetAllMcpServers(namespace string) ([]v1alpha1.McpServer, error) {
+	pattern := CreateKeyPattern(&utils.McpServerResource.ApiVersion, &utils.McpServerResource.Kind, &namespace, nil)
+	tools, err := valkeyclient.GetObjectsByPrefix[v1alpha1.McpServer](valkeyClient, valkeyclient.ORDER_ASC, pattern)
+	if err != nil || tools == nil {
+		return nil, err
+	}
+	return tools, nil
+}
+
+func GetMcpServer(namespace string, name string) (*v1alpha1.McpServer, error) {
+	tool, err := valkeyclient.GetObjectForKey[v1alpha1.McpServer](valkeyClient, VALKEY_RESOURCE_PREFIX, utils.McpServerResource.ApiVersion, utils.McpServerResource.Kind, namespace, name)
+	if err != nil || tool == nil {
+		return nil, err
+	}
+	return tool, nil
+}
+
 func GetAllWorkspaces(namespace string) ([]v1alpha1.Workspace, error) {
 	pattern := CreateKeyPattern(&utils.WorkspaceResource.ApiVersion, &utils.WorkspaceResource.Kind, &namespace, nil)
 	workspaces, err := valkeyclient.GetObjectsByPrefix[v1alpha1.Workspace](valkeyClient, valkeyclient.ORDER_ASC, pattern)
