@@ -10,8 +10,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func intPtr(v int) *int       { return &v }
-func int64Ptr(v int64) *int64 { return &v }
+//go:fix inline
+func int64Ptr(v int64) *int64 { return new(v) }
 
 // Ollama specs need no Secret plumbing, so resolveAiModel is testable on a
 // bare aiManager.
@@ -41,7 +41,7 @@ func TestResolveAiModelBuiltInDefaults(t *testing.T) {
 func TestResolveAiModelSpecValuesBeatDefaults(t *testing.T) {
 	ai := &aiManager{}
 	model := ollamaModelFixture("local")
-	model.Spec.MaxToolCalls = intPtr(80)
+	model.Spec.MaxToolCalls = new(80)
 	model.Spec.MaxTokensPerRun = int64Ptr(0) // explicit unlimited
 	model.Spec.DailyTokenLimit = int64Ptr(0) // explicit unlimited
 
@@ -66,7 +66,7 @@ func TestApplyAgentBudgetOverrides(t *testing.T) {
 
 	// agent overrides beat the model; the daily limit is NOT agent-scoped
 	applyAgentBudgetOverrides(rc, &v1alpha1.AgentSpec{
-		MaxToolCalls:    intPtr(10),
+		MaxToolCalls:    new(10),
 		MaxTokensPerRun: int64Ptr(5000),
 	})
 	assert.Equal(t, 10, rc.MaxToolCalls)

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"maps"
 	"mogenius-operator/src/crds/v1alpha1"
 	"mogenius-operator/src/logging"
 	moMetrics "mogenius-operator/src/metrics"
@@ -1431,9 +1432,7 @@ func redactSecretYamlInPayload(payload any) any {
 		redactedYaml = []byte(secrets.REDACTED)
 	}
 	copied := make(map[string]any, len(payloadMap))
-	for k, v := range payloadMap {
-		copied[k] = v
-	}
+	maps.Copy(copied, payloadMap)
 	copied["yamlData"] = string(redactedYaml)
 	return copied
 }
@@ -1506,7 +1505,7 @@ func listAuditLogIndexed(limit int, offset int, namespaces []string, clusterWide
 
 	const maxAttempts = 3
 	var lastErr error
-	for attempt := 0; attempt < maxAttempts; attempt++ {
+	for range maxAttempts {
 		// Newest first; members are entry keys, not entry payloads.
 		members, err := client.Do(ctx,
 			client.B().Zrevrange().Key(auditLogIndexKey).Start(0).Stop(-1).Build()).AsStrSlice()

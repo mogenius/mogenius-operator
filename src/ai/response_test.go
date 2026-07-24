@@ -133,7 +133,7 @@ func TestParseSubmittedAnalysisRejectsFindingWithoutProblemDescription(t *testin
 func TestParseFindingsNoTruncation(t *testing.T) {
 	const count = 25
 	findings := make([]string, 0, count)
-	for i := 0; i < count; i++ {
+	for range count {
 		findings = append(findings, `{"errorMessage": "x", "analysis": {"problemDescription": "y"}}`)
 	}
 	input := []byte(`{"findings": [` + strings.Join(findings, ",") + `]}`)
