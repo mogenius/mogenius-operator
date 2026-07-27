@@ -1974,6 +1974,83 @@ func (self *socketApi) registerPatterns() {
 	}
 
 	{
+		type Request struct {
+			Name string `json:"name"`
+		}
+
+		RegisterPatternHandler(
+			PatternHandle{self, "get/mcpservers"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Request) ([]GetMcpServerResult, error) {
+				if request.Name != "" {
+					s, err := self.apiService.GetMcpServer(request.Name)
+					if err != nil || s == nil {
+						return []GetMcpServerResult{}, err
+					}
+					return []GetMcpServerResult{*s}, nil
+				}
+				return self.apiService.GetAllMcpServers()
+			},
+		)
+	}
+
+	{
+		type Request struct {
+			Name string                 `json:"name" validate:"required"`
+			Spec v1alpha1.McpServerSpec `json:"spec" validate:"required"`
+		}
+
+		RegisterPatternHandler(
+			PatternHandle{self, "create/mcpserver"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Request) (string, error) {
+				res, err := self.apiService.CreateMcpServer(request.Name, request.Spec)
+				var created *unstructured.Unstructured
+				if err == nil {
+					created = crdToAuditObject(&v1alpha1.McpServer{
+						ObjectMeta: metav1.ObjectMeta{Name: request.Name},
+						Spec:       request.Spec,
+					}, "McpServer", request.Name)
+				}
+				return store.AddToAuditLog(datagram, self.logger, res, err, nil, created)
+			},
+		)
+
+		RegisterPatternHandler(
+			PatternHandle{self, "update/mcpserver"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Request) (string, error) {
+				oldServer, _ := store.GetMcpServer(self.config.Get("MO_OWN_NAMESPACE"), request.Name)
+				res, err := self.apiService.UpdateMcpServer(request.Name, request.Spec)
+				var oldObj, newObj *unstructured.Unstructured
+				if oldServer != nil {
+					oldObj = crdToAuditObject(oldServer, "McpServer", request.Name)
+					updated := oldServer.DeepCopy()
+					updated.Spec = request.Spec
+					newObj = crdToAuditObject(updated, "McpServer", request.Name)
+				}
+				return store.AddToAuditLog(datagram, self.logger, res, err, oldObj, newObj)
+			},
+		)
+	}
+
+	{
+		type Request struct {
+			Name string `json:"name" validate:"required"`
+		}
+
+		RegisterPatternHandler(
+			PatternHandle{self, "delete/mcpserver"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Request) (string, error) {
+				oldServer, _ := store.GetMcpServer(self.config.Get("MO_OWN_NAMESPACE"), request.Name)
+				res, err := self.apiService.DeleteMcpServer(request.Name)
+				return store.AddToAuditLog(datagram, self.logger, res, err, crdToAuditObject(oldServer, "McpServer", request.Name), nil)
+			},
+		)
+	}
+
+	{
 		RegisterPatternHandler(
 			PatternHandle{self, "get/aimodel-sdks"},
 			PatternConfig{},

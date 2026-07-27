@@ -557,7 +557,8 @@ func extractMCPText(result *mcp.CallToolResult) string {
 	var resultText strings.Builder
 	resultText.WriteString(texts[0])
 	for i := 1; i < len(texts); i++ {
-		resultText.WriteString("\n" + texts[i])
+		resultText.WriteString("\n")
+		resultText.WriteString(texts[i])
 	}
 	return resultText.String()
 }

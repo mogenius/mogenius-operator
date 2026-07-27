@@ -42,6 +42,12 @@ type WorkspaceManager interface {
 	GetAiModel(name string) (*v1alpha1.AiModel, error)
 	UpdateAiModel(name string, spec v1alpha1.AiModelSpec, apiKey string) (*v1alpha1.AiModel, error)
 	DeleteAiModel(name string) error
+
+	GetAllMcpServers() ([]v1alpha1.McpServer, error)
+	GetMcpServer(name string) (*v1alpha1.McpServer, error)
+	CreateMcpServer(name string, spec v1alpha1.McpServerSpec) (*v1alpha1.McpServer, error)
+	UpdateMcpServer(name string, spec v1alpha1.McpServerSpec) (*v1alpha1.McpServer, error)
+	DeleteMcpServer(name string) error
 }
 
 type workspaceManager struct {
@@ -257,6 +263,36 @@ func (self *workspaceManager) DeleteAiModel(name string) error {
 	self.namespaceLock.RLock()
 	defer self.namespaceLock.RUnlock()
 	return self.mogeniusClientSet.MogeniusV1alpha1.DeleteAiModel(self.namespace, name)
+}
+
+func (self *workspaceManager) GetAllMcpServers() ([]v1alpha1.McpServer, error) {
+	self.namespaceLock.RLock()
+	defer self.namespaceLock.RUnlock()
+	return self.mogeniusClientSet.MogeniusV1alpha1.ListMcpServers(self.namespace)
+}
+
+func (self *workspaceManager) GetMcpServer(name string) (*v1alpha1.McpServer, error) {
+	self.namespaceLock.RLock()
+	defer self.namespaceLock.RUnlock()
+	return self.mogeniusClientSet.MogeniusV1alpha1.GetMcpServer(self.namespace, name)
+}
+
+func (self *workspaceManager) CreateMcpServer(name string, spec v1alpha1.McpServerSpec) (*v1alpha1.McpServer, error) {
+	self.namespaceLock.RLock()
+	defer self.namespaceLock.RUnlock()
+	return self.mogeniusClientSet.MogeniusV1alpha1.CreateMcpServer(self.namespace, name, spec)
+}
+
+func (self *workspaceManager) UpdateMcpServer(name string, spec v1alpha1.McpServerSpec) (*v1alpha1.McpServer, error) {
+	self.namespaceLock.RLock()
+	defer self.namespaceLock.RUnlock()
+	return self.mogeniusClientSet.MogeniusV1alpha1.UpdateMcpServer(self.namespace, name, spec)
+}
+
+func (self *workspaceManager) DeleteMcpServer(name string) error {
+	self.namespaceLock.RLock()
+	defer self.namespaceLock.RUnlock()
+	return self.mogeniusClientSet.MogeniusV1alpha1.DeleteMcpServer(self.namespace, name)
 }
 
 // mogeniusAiModelCrdOps adapts the MogeniusV1alpha1 client to the minimal
