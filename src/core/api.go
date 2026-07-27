@@ -88,6 +88,12 @@ type Api interface {
 	UpdateAiModel(name string, spec v1alpha1.AiModelSpec, apiKey string) (string, error)
 	DeleteAiModel(name string) (string, error)
 
+	GetAllMcpServers() ([]GetMcpServerResult, error)
+	GetMcpServer(name string) (*GetMcpServerResult, error)
+	CreateMcpServer(name string, spec v1alpha1.McpServerSpec) (string, error)
+	UpdateMcpServer(name string, spec v1alpha1.McpServerSpec) (string, error)
+	DeleteMcpServer(name string) (string, error)
+
 	GetWorkspaceResources(workspaceName string, whitelist []*utils.ResourceDescriptor, blacklist []*utils.ResourceDescriptor, namespaceWhitelist []string) ([]unstructured.Unstructured, error)
 	GetResourceListByWhitelistPaginated(req ResourcesPaginatedRequest) (ResourcesPaginatedResponse, error)
 	GetWorkspaceResourcesPaginated(workspaceName string, req WorkspaceResourcesPaginatedRequest) (WorkspaceResourcesPaginatedResponse, error)
@@ -499,6 +505,68 @@ func (self *api) DeleteAiModel(name string) (string, error) {
 		return "", err
 	}
 
+	return "Resource deleted successfully", nil
+}
+
+// GetMcpServerResult is the wire shape for McpServer CRs.
+// Status is included so clients can surface the Ready condition and tool list.
+type GetMcpServerResult struct {
+	Name              string                  `json:"name" validate:"required"`
+	CreationTimestamp v1.Time                 `json:"creationTimestamp"`
+	Spec              v1alpha1.McpServerSpec  `json:"spec"`
+	Status            v1alpha1.McpServerStatus `json:"status"`
+}
+
+func newGetMcpServerResult(s v1alpha1.McpServer) GetMcpServerResult {
+	return GetMcpServerResult{
+		Name:              s.GetName(),
+		CreationTimestamp: s.ObjectMeta.CreationTimestamp,
+		Spec:              s.Spec,
+		Status:            s.Status,
+	}
+}
+
+func (self *api) GetAllMcpServers() ([]GetMcpServerResult, error) {
+	servers, err := self.workspaceManager.GetAllMcpServers()
+	if err != nil {
+		return []GetMcpServerResult{}, err
+	}
+	result := make([]GetMcpServerResult, 0, len(servers))
+	for _, s := range servers {
+		result = append(result, newGetMcpServerResult(s))
+	}
+	return result, nil
+}
+
+func (self *api) GetMcpServer(name string) (*GetMcpServerResult, error) {
+	s, err := self.workspaceManager.GetMcpServer(name)
+	if err != nil {
+		return nil, err
+	}
+	result := newGetMcpServerResult(*s)
+	return &result, nil
+}
+
+func (self *api) CreateMcpServer(name string, spec v1alpha1.McpServerSpec) (string, error) {
+	_, err := self.workspaceManager.CreateMcpServer(name, spec)
+	if err != nil {
+		return "", err
+	}
+	return "Resource created successfully", nil
+}
+
+func (self *api) UpdateMcpServer(name string, spec v1alpha1.McpServerSpec) (string, error) {
+	_, err := self.workspaceManager.UpdateMcpServer(name, spec)
+	if err != nil {
+		return "", err
+	}
+	return "Resource updated successfully", nil
+}
+
+func (self *api) DeleteMcpServer(name string) (string, error) {
+	if err := self.workspaceManager.DeleteMcpServer(name); err != nil {
+		return "", err
+	}
 	return "Resource deleted successfully", nil
 }
 
