@@ -332,13 +332,10 @@ func (m *mcpClientManager) GetOllamaTools() []api.Tool {
 	return tools
 }
 
-// sessionFilter converts a string slice of session names to a lookup set.
-// A nil result means "no filter" (all sessions); an empty slice means
-// "filter to nothing" which is treated the same as no filter for safety.
+// sessionFilter converts a session name slice into a lookup set.
+// An empty (or nil) slice returns an empty non-nil map, meaning NOTHING is
+// allowed — no sessions are in scope. Callers check with !filter[name].
 func sessionFilter(sessions []string) map[string]bool {
-	if len(sessions) == 0 {
-		return nil
-	}
 	f := make(map[string]bool, len(sessions))
 	for _, s := range sessions {
 		f[s] = true
@@ -347,7 +344,7 @@ func sessionFilter(sessions []string) map[string]bool {
 }
 
 // GetAnthropicToolsForSessions returns MCP tools in Anthropic format, scoped
-// to the named sessions. An empty sessions list returns all tools.
+// to the named sessions. An empty sessions list returns no tools.
 func (m *mcpClientManager) GetAnthropicToolsForSessions(sessions []string) []anthropic.ToolParam {
 	filter := sessionFilter(sessions)
 	m.mu.RLock()
@@ -355,7 +352,7 @@ func (m *mcpClientManager) GetAnthropicToolsForSessions(sessions []string) []ant
 
 	var tools []anthropic.ToolParam
 	for _, s := range m.sessions {
-		if filter != nil && !filter[s.name] {
+		if !filter[s.name] {
 			continue
 		}
 		for _, tool := range s.tools {
@@ -375,7 +372,7 @@ func (m *mcpClientManager) GetAnthropicToolsForSessions(sessions []string) []ant
 }
 
 // GetOpenAIToolsForSessions returns MCP tools in OpenAI format, scoped to the
-// named sessions. An empty sessions list returns all tools.
+// named sessions. An empty sessions list returns no tools.
 func (m *mcpClientManager) GetOpenAIToolsForSessions(sessions []string) []openai.ChatCompletionToolUnionParam {
 	filter := sessionFilter(sessions)
 	m.mu.RLock()
@@ -383,7 +380,7 @@ func (m *mcpClientManager) GetOpenAIToolsForSessions(sessions []string) []openai
 
 	var tools []openai.ChatCompletionToolUnionParam
 	for _, s := range m.sessions {
-		if filter != nil && !filter[s.name] {
+		if !filter[s.name] {
 			continue
 		}
 		for _, tool := range s.tools {
@@ -403,7 +400,7 @@ func (m *mcpClientManager) GetOpenAIToolsForSessions(sessions []string) []openai
 }
 
 // GetOllamaToolsForSessions returns MCP tools in Ollama format, scoped to the
-// named sessions. An empty sessions list returns all tools.
+// named sessions. An empty sessions list returns no tools.
 func (m *mcpClientManager) GetOllamaToolsForSessions(sessions []string) []api.Tool {
 	filter := sessionFilter(sessions)
 	m.mu.RLock()
@@ -411,7 +408,7 @@ func (m *mcpClientManager) GetOllamaToolsForSessions(sessions []string) []api.To
 
 	var tools []api.Tool
 	for _, s := range m.sessions {
-		if filter != nil && !filter[s.name] {
+		if !filter[s.name] {
 			continue
 		}
 		for _, tool := range s.tools {
@@ -434,14 +431,17 @@ func (m *mcpClientManager) GetOllamaToolsForSessions(sessions []string) []api.To
 }
 
 // IsMCPToolInSessions returns true when toolName belongs to one of the named
-// sessions. An empty sessions list checks all sessions.
+// sessions. An empty sessions list returns false (no sessions in scope).
 func (m *mcpClientManager) IsMCPToolInSessions(toolName string, sessions []string) bool {
+	if len(sessions) == 0 {
+		return false
+	}
 	filter := sessionFilter(sessions)
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
 	for _, s := range m.sessions {
-		if filter != nil && !filter[s.name] {
+		if !filter[s.name] {
 			continue
 		}
 		if _, ok := s.sanitizedToOriginal[toolName]; ok {
@@ -457,14 +457,17 @@ func (m *mcpClientManager) IsMCPToolInSessions(toolName string, sessions []strin
 }
 
 // CallToolInSessions calls a tool on one of the named sessions. An empty
-// sessions list searches all sessions.
+// sessions list is an error — no sessions are in scope.
 func (m *mcpClientManager) CallToolInSessions(ctx context.Context, toolName string, args map[string]any, sessions []string) (string, error) {
+	if len(sessions) == 0 {
+		return "", fmt.Errorf("MCP tool %q: no sessions in scope", toolName)
+	}
 	filter := sessionFilter(sessions)
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
 	for _, s := range m.sessions {
-		if filter != nil && !filter[s.name] {
+		if !filter[s.name] {
 			continue
 		}
 		originalName := toolName
