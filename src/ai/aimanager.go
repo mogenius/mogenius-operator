@@ -78,6 +78,15 @@ type AiTask struct {
 	Trigger         string        `json:"trigger,omitempty"`         // "event", "cron" or "manual"
 	TriggeredByUser *structs.User `json:"triggeredByUser,omitempty"` // set for manual triggers
 
+	// ScopeNamespaces snapshots the agent's resolved scope at enqueue time.
+	// Workspace visibility of whole-scope runs is decided from this data, not
+	// from the task's storage key (see agentTaskVisibleInNamespaces).
+	ScopeNamespaces []string `json:"scopeNamespaces,omitempty"`
+	// ScopeAllNamespaces marks a wildcard ("*") scope: the run is visible to
+	// every workspace, including ones whose namespaces did not exist yet when
+	// the run was enqueued.
+	ScopeAllNamespaces bool `json:"scopeAllNamespaces,omitempty"`
+
 	// BaseResourceVersion is the target resource's resourceVersion at proposal
 	// time; approval refuses to execute when the resource changed since.
 	BaseResourceVersion string          `json:"baseResourceVersion,omitempty"`
@@ -968,6 +977,47 @@ func (ai *aiManager) getDbStats(namespace *string) (totalDbEntries int, unproces
 	return totalDbEntries, unprocessedDbEntries, ignoredDbEntries, numberOfUnreadTasks, nil
 }
 
+// getDbStatsForNamespaces counts the tasks visible to a workspace holding the
+// given namespaces, using the same visibility rules as GetAiTasksForWorkspace
+// so status badges (e.g. unread count) match the report list: event tasks by
+// their key's namespace, whole-scope agent tasks by scope/finding namespace.
+func (ai *aiManager) getDbStatsForNamespaces(namespaces map[string]bool) (totalDbEntries int, unprocessedDbEntries int, ignoredDbEntries int, numberOfUnreadTasks int, err error) {
+	count := func(task *AiTask) {
+		totalDbEntries++
+		if task.State == AI_TASK_STATE_PENDING || task.State == AI_TASK_STATE_FAILED {
+			unprocessedDbEntries++
+		}
+		if task.State == AI_TASK_STATE_IGNORED {
+			ignoredDbEntries++
+		}
+		if len(task.ReadByUsers) == 0 {
+			numberOfUnreadTasks++
+		}
+	}
+
+	for namespace := range namespaces {
+		tasks, nsErr := ai.getAiTasksForNamespace(namespace)
+		if nsErr != nil {
+			return 0, 0, 0, 0, nsErr
+		}
+		for i := range tasks {
+			if !isAgentTaskID(tasks[i].ID) {
+				count(&tasks[i])
+			}
+		}
+	}
+
+	agentTasks, agentErr := ai.getAgentTasksForNamespaces(namespaces)
+	if agentErr != nil {
+		return 0, 0, 0, 0, agentErr
+	}
+	for i := range agentTasks {
+		count(&agentTasks[i])
+	}
+
+	return totalDbEntries, unprocessedDbEntries, ignoredDbEntries, numberOfUnreadTasks, nil
+}
+
 func (ai *aiManager) addTokenUsage(tokensUsed int, model string, timeUsedInMs int, entryKey string, modelRef string) error {
 	now := time.Now()
 	// The previous key included only Unix seconds, so two tasks finishing
@@ -1406,9 +1456,7 @@ func (ai *aiManager) createOrUpdateAiTask(task *AiTask, key string) error {
 	if err != nil {
 		ai.logger.Warn("Error saving AI task", "error", err)
 	}
-	parts := strings.Split(key, ":")
-	if len(parts) > 2 {
-		namespace := parts[2]
+	for _, namespace := range latestTaskNamespaces(task, key) {
 		err = ai.valkeyClient.Set(string(jsonString), ValkeyAiTTL, ai.getValkeyLatestNamespaceTaskKey(namespace))
 		if err != nil {
 			ai.logger.Warn("Error saving AI task for namespace", "namespace", namespace, "error", err)
@@ -1416,6 +1464,30 @@ func (ai *aiManager) createOrUpdateAiTask(task *AiTask, key string) error {
 	}
 
 	return nil
+}
+
+// latestTaskNamespaces returns the namespaces whose "latest task" pointer a
+// save should update. Event tasks belong to their key's namespace segment.
+// Whole-scope agent tasks used to inherit that segment too — the
+// alphabetically first scope namespace — which pinned the run to one
+// arbitrary namespace. Instead, a finding belongs to its target's namespace
+// and every other run state (pending, running, all-clear) to the whole
+// scope, so each affected workspace sees the run as its latest activity.
+func latestTaskNamespaces(task *AiTask, key string) []string {
+	parts := strings.SplitN(key, ":", 4)
+	if len(parts) != 4 {
+		return nil
+	}
+	if parts[1] != "Agent" {
+		return []string{parts[2]}
+	}
+	if task.Response != nil && task.Response.Analysis.TargetResource.Namespace != "" {
+		return []string{task.Response.Analysis.TargetResource.Namespace}
+	}
+	if len(task.ScopeNamespaces) > 0 {
+		return task.ScopeNamespaces
+	}
+	return []string{parts[2]}
 }
 
 func (ai *aiManager) shouldCreateNewTask(key string) (bool, error) {
@@ -1584,8 +1656,15 @@ func (ai *aiManager) spawnFindingTasks(primary *AiTask, extra []*AiResponse) {
 	}
 	for i, response := range extra {
 		now := time.Now().Unix()
+		// Store the finding under its target's namespace, not under the run
+		// key's arbitrary segment — the finding belongs to the workspace(s)
+		// containing that namespace (see agentTaskVisibleInNamespaces).
+		id := agentTaskKeyForNamespace(
+			fmt.Sprintf("%s-f%d", primary.ID, i+2),
+			response.Analysis.TargetResource.Namespace,
+		)
 		finding := AiTask{
-			ID:       fmt.Sprintf("%s-f%d", primary.ID, i+2),
+			ID:       id,
 			RunID:    primary.ID,
 			Prompt:   primary.Prompt,
 			Response: response,
@@ -1604,6 +1683,8 @@ func (ai *aiManager) spawnFindingTasks(primary *AiTask, extra []*AiResponse) {
 			AgentRef:            primary.AgentRef,
 			Trigger:             primary.Trigger,
 			TriggeredByUser:     primary.TriggeredByUser,
+			ScopeNamespaces:     primary.ScopeNamespaces,
+			ScopeAllNamespaces:  primary.ScopeAllNamespaces,
 		}
 		ai.finalizeTaskOutcome(&finding)
 		if err := ai.createOrUpdateAiTask(&finding, finding.ID); err != nil {

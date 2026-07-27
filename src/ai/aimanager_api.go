@@ -135,15 +135,23 @@ func (ai *aiManager) GetAiTasksForWorkspace(workspace string) ([]AiTask, error) 
 	}
 
 	var tasks []AiTask
+	workspaceNamespaces := map[string]bool{}
 	for _, workspaceResource := range workspaceObject.Spec.Resources {
 
 		switch workspaceResource.Type {
 		case "namespace":
+			workspaceNamespaces[workspaceResource.Id] = true
 			tasksForNamespace, err := ai.getAiTasksForNamespace(workspaceResource.Id)
 			if err != nil {
 				return nil, fmt.Errorf("failed to get AI tasks for namespace '%s': %v", workspaceResource.Id, err)
 			}
-			tasks = append(tasks, tasksForNamespace...)
+			for _, task := range tasksForNamespace {
+				// Whole-scope agent tasks are matched by scope/finding
+				// namespace below, not by their storage key.
+				if !isAgentTaskID(task.ID) {
+					tasks = append(tasks, task)
+				}
+			}
 		case "helm", "argocd":
 			ai.logger.Error("Retrieving AI Tasks for this workspace type will be possible in the future", "workspace", workspace, "type", workspaceResource.Type)
 		default:
@@ -151,6 +159,35 @@ func (ai *aiManager) GetAiTasksForWorkspace(workspace string) ([]AiTask, error) 
 		}
 	}
 
+	agentTasks, err := ai.getAgentTasksForNamespaces(workspaceNamespaces)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get agent AI tasks for workspace '%s': %v", workspace, err)
+	}
+	tasks = append(tasks, agentTasks...)
+
+	return tasks, nil
+}
+
+// getAgentTasksForNamespaces returns every whole-scope agent task (runs,
+// all-clear reports and findings) visible to a workspace holding the given
+// namespaces — decided per task by agentTaskVisibleInNamespaces instead of
+// the storage key, so cluster-wide runs appear in every affected workspace
+// and findings only where their target namespace lives.
+func (ai *aiManager) getAgentTasksForNamespaces(namespaces map[string]bool) ([]AiTask, error) {
+	keys, err := ai.valkeyClient.Keys(agentTaskIDPrefix + "*")
+	if err != nil {
+		return nil, err
+	}
+	var tasks []AiTask
+	for _, key := range keys {
+		task, err := ai.getTaskByKey(key)
+		if err != nil || task == nil {
+			continue
+		}
+		if agentTaskVisibleInNamespaces(task, namespaces) {
+			tasks = append(tasks, *task)
+		}
+	}
 	return tasks, nil
 }
 
@@ -412,29 +449,21 @@ func (ai *aiManager) GetStatus(workspace *string) AiManagerStatus {
 			var workspaceObject *v1alpha1.Workspace
 			workspaceObject, err = store.GetWorkspace(ownNamespace, *workspace)
 			if err == nil && workspaceObject != nil {
+				workspaceNamespaces := map[string]bool{}
 				for _, workspaceResource := range workspaceObject.Spec.Resources {
 
 					switch workspaceResource.Type {
 					case "namespace":
-						var totalDbEntriesForNs int
-						var unprocessedDbEntriesForNs int
-						var ignoredDbEntriesForNs int
-						var numberOfUnreadTasksForNs int
-						var err error
-						totalDbEntriesForNs, unprocessedDbEntriesForNs, ignoredDbEntriesForNs, numberOfUnreadTasksForNs, err = ai.getDbStats(&workspaceResource.Id)
-						if err != nil {
-							ai.logger.Warn("Failed to get DB stats for workspace namespace", "workspace", workspace, "namespace", workspaceResource.Id, "error", err)
-							continue
-						}
-						totalDbEntries += totalDbEntriesForNs
-						unprocessedDbEntries += unprocessedDbEntriesForNs
-						ignoredDbEntries += ignoredDbEntriesForNs
-						numberOfUnreadTasks += numberOfUnreadTasksForNs
+						workspaceNamespaces[workspaceResource.Id] = true
 					case "helm", "argocd":
 						ai.logger.Error("Retrieving AI Tasks for this workspace type will be possible in the future", "workspace", workspace, "type", workspaceResource.Type)
 					default:
 						ai.logger.Error("Retrieving AI Tasks for unknown workspace type is not possible", "workspace", workspace, "type", workspaceResource.Type)
 					}
+				}
+				totalDbEntries, unprocessedDbEntries, ignoredDbEntries, numberOfUnreadTasks, err = ai.getDbStatsForNamespaces(workspaceNamespaces)
+				if err != nil {
+					ai.logger.Warn("Failed to get DB stats for workspace", "workspace", workspace, "error", err)
 				}
 			}
 		}

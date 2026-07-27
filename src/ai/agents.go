@@ -166,10 +166,65 @@ func buildAgentRunPrompt(agent *v1alpha1.Agent, namespaces []string) string {
 }
 
 // agentRunKeyPrefix returns the Valkey key prefix for whole-scope runs of an
-// agent. The second segment is a scope namespace so workspace-filtered task
-// queries (pattern ai_tasks:*:<ns>:*) include these runs.
+// agent. The namespace segment is only a storage detail (kept so the key
+// shape stays uniform); workspace visibility is decided by
+// agentTaskVisibleInNamespaces, not by this segment.
 func agentRunKeyPrefix(namespace, agentName string) string {
 	return fmt.Sprintf("%s:Agent:%s:%s-run-", DB_AI_BUCKET_TASKS, namespace, agentName)
+}
+
+// agentTaskIDPrefix is the ID/key prefix shared by all whole-scope agent
+// tasks (runs and their findings).
+var agentTaskIDPrefix = fmt.Sprintf("%s:Agent:", DB_AI_BUCKET_TASKS)
+
+// isAgentTaskID reports whether a task ID (== storage key) belongs to a
+// whole-scope agent run or one of its findings, as opposed to an
+// event-triggered single-resource task (ai_tasks:<Kind>:<ns>:<name>).
+func isAgentTaskID(id string) bool {
+	return strings.HasPrefix(id, agentTaskIDPrefix)
+}
+
+// agentTaskKeyForNamespace re-homes an agent task key to the given namespace
+// segment (ai_tasks:Agent:<ns>:<rest>). Findings are stored under their
+// target resource's namespace so the key states where the finding belongs;
+// keys of other shapes and empty namespaces are returned unchanged.
+func agentTaskKeyForNamespace(key, namespace string) string {
+	parts := strings.SplitN(key, ":", 4)
+	if namespace == "" || len(parts) != 4 || parts[1] != "Agent" {
+		return key
+	}
+	parts[2] = namespace
+	return strings.Join(parts, ":")
+}
+
+// agentTaskVisibleInNamespaces decides whether a whole-scope agent task is
+// visible to a workspace holding the given namespaces. A finding belongs to
+// its target resource's namespace — a workspace only sees findings about its
+// own namespaces, never manifests of foreign ones. Tasks without a finding
+// (all-clear reports, queued/running/failed runs) and findings on
+// cluster-scoped targets are visible wherever the agent's scope overlaps the
+// workspace; a wildcard scope is visible everywhere. Legacy tasks that
+// predate ScopeNamespaces fall back to the storage key's namespace segment
+// (the old behavior).
+func agentTaskVisibleInNamespaces(task *AiTask, namespaces map[string]bool) bool {
+	if task.Response != nil {
+		if ns := task.Response.Analysis.TargetResource.Namespace; ns != "" {
+			return namespaces[ns]
+		}
+	}
+	if task.ScopeAllNamespaces {
+		return true
+	}
+	if len(task.ScopeNamespaces) > 0 {
+		for _, ns := range task.ScopeNamespaces {
+			if namespaces[ns] {
+				return true
+			}
+		}
+		return false
+	}
+	parts := strings.SplitN(task.ID, ":", 4)
+	return len(parts) == 4 && namespaces[parts[2]]
 }
 
 // hasOpenAgentRun reports whether the agent already has a pending or
@@ -218,6 +273,11 @@ func (ai *aiManager) createAgentRunTask(agent *v1alpha1.Agent, trigger string, t
 		AgentRef:        agent.Name,
 		Trigger:         trigger,
 		TriggeredByUser: triggeredBy,
+		// Visibility must not depend on the key's namespace segment (an
+		// arbitrary pick — the alphabetically first scope namespace), so the
+		// scope travels with the task.
+		ScopeNamespaces:    namespaces,
+		ScopeAllNamespaces: slices.Contains(agent.Spec.Scope.Namespaces, "*"),
 	}
 	if err := ai.createOrUpdateAiTask(task, key); err != nil {
 		return nil, fmt.Errorf("failed to create agent run task: %w", err)

@@ -267,3 +267,191 @@ func TestBuildAgentRunPrompt(t *testing.T) {
 	assert.True(t, strings.Contains(prompt, "look for wasted resources"))
 	assert.True(t, strings.Contains(prompt, "read-only"))
 }
+
+func TestAgentTaskKeyForNamespace(t *testing.T) {
+	tests := []struct {
+		name      string
+		key       string
+		namespace string
+		expected  string
+	}{
+		{
+			name:      "re-homes an agent finding key to the target namespace",
+			key:       "ai_tasks:Agent:argocd:doctor-run-123-f2",
+			namespace: "development",
+			expected:  "ai_tasks:Agent:development:doctor-run-123-f2",
+		},
+		{
+			name:      "empty namespace leaves the key unchanged",
+			key:       "ai_tasks:Agent:argocd:doctor-run-123-f2",
+			namespace: "",
+			expected:  "ai_tasks:Agent:argocd:doctor-run-123-f2",
+		},
+		{
+			name:      "event task keys are never re-homed",
+			key:       "ai_tasks:Deployment:argocd:my-app",
+			namespace: "development",
+			expected:  "ai_tasks:Deployment:argocd:my-app",
+		},
+		{
+			name:      "malformed keys are left unchanged",
+			key:       "ai_tasks:Agent:short",
+			namespace: "development",
+			expected:  "ai_tasks:Agent:short",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.expected, agentTaskKeyForNamespace(tt.key, tt.namespace))
+		})
+	}
+}
+
+func TestAgentTaskVisibleInNamespaces(t *testing.T) {
+	// The workspace under test contains the namespace "development".
+	workspace := map[string]bool{"development": true}
+
+	finding := func(targetNamespace string) *AiResponse {
+		response := &AiResponse{}
+		response.Analysis.TargetResource.Namespace = targetNamespace
+		return response
+	}
+
+	tests := []struct {
+		name    string
+		task    AiTask
+		visible bool
+	}{
+		{
+			name: "finding in a workspace namespace is visible",
+			task: AiTask{
+				ID:              "ai_tasks:Agent:argocd:doctor-run-1-f2",
+				Response:        finding("development"),
+				ScopeNamespaces: []string{"argocd", "development"},
+			},
+			visible: true,
+		},
+		{
+			name: "finding in a foreign namespace stays hidden even when the scope overlaps",
+			task: AiTask{
+				ID:              "ai_tasks:Agent:argocd:doctor-run-1-f3",
+				Response:        finding("team-backend"),
+				ScopeNamespaces: []string{"development", "team-backend"},
+			},
+			visible: false,
+		},
+		{
+			name: "wildcard scope does not leak a foreign finding",
+			task: AiTask{
+				ID:                 "ai_tasks:Agent:argocd:doctor-run-1-f4",
+				Response:           finding("team-backend"),
+				ScopeAllNamespaces: true,
+			},
+			visible: false,
+		},
+		{
+			name: "finding on a cluster-scoped target falls back to the scope rule",
+			task: AiTask{
+				ID:              "ai_tasks:Agent:argocd:doctor-run-1-f5",
+				Response:        finding(""),
+				ScopeNamespaces: []string{"development"},
+			},
+			visible: true,
+		},
+		{
+			name: "all-clear report with wildcard scope is visible everywhere",
+			task: AiTask{
+				ID:                 "ai_tasks:Agent:argocd:doctor-run-1",
+				ScopeNamespaces:    []string{"argocd", "development"},
+				ScopeAllNamespaces: true,
+			},
+			visible: true,
+		},
+		{
+			name: "all-clear report is visible when the scope overlaps the workspace",
+			task: AiTask{
+				ID:              "ai_tasks:Agent:argocd:doctor-run-1",
+				ScopeNamespaces: []string{"argocd", "development"},
+			},
+			visible: true,
+		},
+		{
+			name: "all-clear report stays hidden when the scope does not overlap",
+			task: AiTask{
+				ID:              "ai_tasks:Agent:argocd:doctor-run-1",
+				ScopeNamespaces: []string{"argocd", "team-backend"},
+			},
+			visible: false,
+		},
+		{
+			name: "legacy task without scope info falls back to the key namespace",
+			task: AiTask{
+				ID: "ai_tasks:Agent:development:doctor-run-1",
+			},
+			visible: true,
+		},
+		{
+			name: "legacy task keyed to a foreign namespace stays hidden",
+			task: AiTask{
+				ID: "ai_tasks:Agent:argocd:doctor-run-1",
+			},
+			visible: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.visible, agentTaskVisibleInNamespaces(&tt.task, workspace))
+		})
+	}
+}
+
+func TestLatestTaskNamespaces(t *testing.T) {
+	finding := func(targetNamespace string) *AiResponse {
+		response := &AiResponse{}
+		response.Analysis.TargetResource.Namespace = targetNamespace
+		return response
+	}
+
+	tests := []struct {
+		name     string
+		task     AiTask
+		key      string
+		expected []string
+	}{
+		{
+			name:     "event task belongs to its key namespace",
+			task:     AiTask{},
+			key:      "ai_tasks:Deployment:development:my-app",
+			expected: []string{"development"},
+		},
+		{
+			name:     "agent finding belongs to its target namespace",
+			task:     AiTask{Response: finding("development"), ScopeNamespaces: []string{"argocd", "development"}},
+			key:      "ai_tasks:Agent:argocd:doctor-run-1",
+			expected: []string{"development"},
+		},
+		{
+			name:     "agent run without finding belongs to every scope namespace",
+			task:     AiTask{ScopeNamespaces: []string{"argocd", "development"}},
+			key:      "ai_tasks:Agent:argocd:doctor-run-1",
+			expected: []string{"argocd", "development"},
+		},
+		{
+			name:     "legacy agent task falls back to the key namespace",
+			task:     AiTask{},
+			key:      "ai_tasks:Agent:argocd:doctor-run-1",
+			expected: []string{"argocd"},
+		},
+		{
+			name:     "malformed key yields no namespaces",
+			task:     AiTask{},
+			key:      "ai_tasks:short",
+			expected: nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.expected, latestTaskNamespaces(&tt.task, tt.key))
+		})
+	}
+}
