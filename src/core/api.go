@@ -520,7 +520,7 @@ type GetMcpServerResult struct {
 func newGetMcpServerResult(s v1alpha1.McpServer) GetMcpServerResult {
 	return GetMcpServerResult{
 		Name:              s.GetName(),
-		CreationTimestamp: s.ObjectMeta.CreationTimestamp,
+		CreationTimestamp: s.CreationTimestamp,
 		Spec:              s.Spec,
 		Status:            s.Status,
 	}
