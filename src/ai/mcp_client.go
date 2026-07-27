@@ -69,6 +69,7 @@ type mcpSession struct {
 	session             *mcp.ClientSession
 	tools               []*mcp.Tool
 	sanitizedToOriginal map[string]string // sanitized LLM name → original MCP name
+	allowedTools        map[string]bool   // nil = all tools; stored for use by lightweight probes
 }
 
 // headerTransport adds a Bearer token (pat) and any extra resolved headers to
@@ -165,10 +166,55 @@ func (m *mcpClientManager) Connect(ctx context.Context, cfg MCPServerConfig) err
 		session:             session,
 		tools:               tools,
 		sanitizedToOriginal: nameMap,
+		allowedTools:        cfg.AllowedTools,
 	}
 	m.mu.Unlock()
 
 	return nil
+}
+
+// RefreshSessionTools calls ListTools on an existing live session and updates
+// its in-memory tool list in place. Returns the (filtered) tool names.
+// Returns an error if the session does not exist or the probe fails.
+func (m *mcpClientManager) RefreshSessionTools(ctx context.Context, name string) ([]string, error) {
+	m.mu.RLock()
+	s, ok := m.sessions[name]
+	m.mu.RUnlock()
+	if !ok {
+		return nil, fmt.Errorf("session %q not found", name)
+	}
+
+	result, err := s.session.ListTools(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("ListTools probe on %q: %w", name, err)
+	}
+
+	tools := result.Tools
+	if len(s.allowedTools) > 0 {
+		filtered := tools[:0]
+		for _, tool := range tools {
+			if s.allowedTools[tool.Name] {
+				filtered = append(filtered, tool)
+			}
+		}
+		tools = filtered
+	}
+
+	nameMap := make(map[string]string, len(tools))
+	for _, tool := range tools {
+		nameMap[sanitizeToolName(tool.Name)] = tool.Name
+	}
+
+	m.mu.Lock()
+	s.tools = tools
+	s.sanitizedToOriginal = nameMap
+	m.mu.Unlock()
+
+	names := make([]string, 0, len(tools))
+	for _, tool := range tools {
+		names = append(names, tool.Name)
+	}
+	return names, nil
 }
 
 // RemoveSession closes and removes a named session if it exists.

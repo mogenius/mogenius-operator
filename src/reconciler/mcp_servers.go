@@ -6,6 +6,7 @@ import (
 	"mogenius-operator/src/crds/v1alpha1"
 	"mogenius-operator/src/store"
 	"net/url"
+	"slices"
 	"time"
 
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
@@ -19,7 +20,7 @@ const mcpServerReadyCondition = "Ready"
 // reconcileMcpServers validates McpServer CRs and updates their status.
 // On a valid (non-deleted) CR it also triggers the AI manager to reconnect
 // the underlying MCP server so the discovered tool list stays in sync.
-func (d *reconcilerModule) reconcileMcpServers(_ context.Context, obj *unstructured.Unstructured, op operation) []ReconcileResult {
+func (d *reconcilerModule) reconcileMcpServers(ctx context.Context, obj *unstructured.Unstructured, op operation) []ReconcileResult {
 	if op == deleteOperation {
 		var server v1alpha1.McpServer
 		if err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &server); err == nil {
@@ -37,18 +38,52 @@ func (d *reconcilerModule) reconcileMcpServers(_ context.Context, obj *unstructu
 
 	var results []ReconcileResult
 
-	// When the spec is valid, (re)connect the MCP server and collect discovered tools.
+	// When the spec is valid, connect or probe the MCP server.
+	// Full reconnect only when the spec changed (generation bump) or the session
+	// is gone (operator restart, transient network drop). Otherwise a lightweight
+	// ListTools probe refreshes the tool list without tearing down the live
+	// session — avoiding state loss for in-flight agent runs and keeping the
+	// reconcile slots free from 30s blocking connects.
+	var discoveredTools []string
+	didConnect := false
 	if conditionStatus == metav1.ConditionTrue {
-		discoveredTools, connErr := d.aiManager.NotifyMcpServerChanged(server.Name)
-		if connErr != nil {
-			d.logger.Warn("McpServer: connection probe failed", "name", server.Name, "error", connErr)
-			conditionStatus = metav1.ConditionFalse
-			reason = "ConnectionFailed"
-			message = connErr.Error()
+		sessionExists := d.aiManager.HasMcpSession(server.Name)
+		generationChanged := server.Generation != server.Status.ObservedGeneration
+
+		if !sessionExists || generationChanged {
+			var connErr error
+			discoveredTools, connErr = d.aiManager.NotifyMcpServerChanged(server.Name)
+			if connErr != nil {
+				conditionStatus = metav1.ConditionFalse
+				reason = "ConnectionFailed"
+				message = connErr.Error()
+			} else {
+				didConnect = true
+			}
 		} else {
+			var probeErr error
+			discoveredTools, probeErr = d.aiManager.ProbeMcpSession(ctx, server.Name)
+			if probeErr != nil {
+				// A probe failure on an otherwise-valid spec is logged but does
+				// not flip the condition — the session may still be usable for
+				// tool calls; we keep the last-known tool list.
+				d.logger.Warn("McpServer: tool refresh probe failed", "name", server.Name, "error", probeErr)
+				discoveredTools = server.Status.AvailableTools
+			}
+		}
+
+		if conditionStatus == metav1.ConditionTrue {
+			toolsChanged := !slices.Equal(server.Status.AvailableTools, discoveredTools)
 			server.Status.AvailableTools = discoveredTools
 			server.Status.ToolCount = len(discoveredTools)
-			server.Status.LastConnectedAt = time.Now().UTC().Format(time.RFC3339)
+			if didConnect {
+				server.Status.LastConnectedAt = time.Now().UTC().Format(time.RFC3339)
+			}
+			// Force a status write when the tool list changed even if the
+			// condition fields are unchanged (e.g. server added/removed tools).
+			if toolsChanged {
+				results = append(results, ReconcileResult{}) // marker: handled below
+			}
 		}
 	} else {
 		// Spec invalid — clear stale tool lists so the status is accurate.
@@ -57,14 +92,16 @@ func (d *reconcilerModule) reconcileMcpServers(_ context.Context, obj *unstructu
 	}
 
 	current := apimeta.FindStatusCondition(server.Status.Conditions, mcpServerReadyCondition)
+	wasReady := current != nil && current.Status == metav1.ConditionTrue
 	upToDate := current != nil &&
 		current.Status == conditionStatus &&
 		current.Reason == reason &&
 		current.Message == message &&
 		server.Status.ObservedGeneration == server.Generation
-	if !upToDate || conditionStatus == metav1.ConditionTrue {
-		// Always re-write status after a successful connection (tool list and
-		// lastConnectedAt change on every reconcile when the server is healthy).
+	toolsChanged := conditionStatus == metav1.ConditionTrue && len(results) > 0
+	results = nil // clear the marker; real errors accumulate below
+
+	if !upToDate || toolsChanged || didConnect {
 		apimeta.SetStatusCondition(&server.Status.Conditions, metav1.Condition{
 			Type:               mcpServerReadyCondition,
 			Status:             conditionStatus,
@@ -75,6 +112,13 @@ func (d *reconcilerModule) reconcileMcpServers(_ context.Context, obj *unstructu
 		server.Status.ObservedGeneration = server.Generation
 		if _, err := d.clientProvider.MogeniusClientSet().MogeniusV1alpha1.UpdateMcpServerStatus(&server); err != nil {
 			return []ReconcileResult{{Err: fmt.Errorf("failed to update status of McpServer %q: %w", server.Name, err)}}
+		}
+
+		// When a server transitions to Ready, requeue agents that reference it
+		// so they reflect the new status immediately rather than waiting up to
+		// 15 minutes for the next background sweep.
+		if conditionStatus == metav1.ConditionTrue && !wasReady {
+			d.requeueAgentsReferencingMcpServer(server.Namespace, server.Name)
 		}
 	}
 

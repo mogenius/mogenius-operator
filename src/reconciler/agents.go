@@ -6,6 +6,8 @@ import (
 	"mogenius-operator/src/ai"
 	"mogenius-operator/src/crds/v1alpha1"
 	"mogenius-operator/src/store"
+	"mogenius-operator/src/utils"
+	"slices"
 
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -133,4 +135,21 @@ func (d *reconcilerModule) evaluateAgent(agent *v1alpha1.Agent) (metav1.Conditio
 		return metav1.ConditionTrue, "Valid", "spec is valid; agent is disabled"
 	}
 	return metav1.ConditionTrue, "Valid", "spec is valid"
+}
+
+// requeueAgentsReferencingMcpServer re-reconciles every Agent in the namespace
+// that lists mcpServerName in spec.tools.mcpServerRefs. Called when a McpServer
+// transitions to Ready so referencing Agents don't wait up to 15 minutes for
+// their McpServerNotReady condition to clear.
+func (d *reconcilerModule) requeueAgentsReferencingMcpServer(namespace, mcpServerName string) {
+	if d.requeue == nil {
+		return
+	}
+	d.requeue(utils.AgentResource, func(obj *unstructured.Unstructured) bool {
+		if obj.GetNamespace() != namespace {
+			return false
+		}
+		refs, _, _ := unstructured.NestedStringSlice(obj.Object, "spec", "tools", "mcpServerRefs")
+		return slices.Contains(refs, mcpServerName)
+	})
 }
