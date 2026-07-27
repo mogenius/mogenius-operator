@@ -25,7 +25,11 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
         with:
           go-version-file: go.mod
-          cache-dependency-path: go.sum
+          # Cache disabled: tarring GOMODCACHE+GOCACHE in the post step exceeds the
+          # ARC runner pod's ephemeral storage and gets the pod evicted mid-save
+          # ("runner lost communication"). Re-enable once the runner pods have
+          # ephemeral-storage limits provisioned (mo-argocd-applications).
+          cache: false
       - name: golangci-lint
         uses: golangci/golangci-lint-action@1e7e51e771db61008b38414a730f564565cf7c20 # v9
         with:
@@ -41,7 +45,8 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
         with:
           go-version-file: go.mod
-          cache-dependency-path: go.sum
+          # Cache disabled: see comment in the lint job above.
+          cache: false
       - name: Execute tests
         run: |
           go mod download
