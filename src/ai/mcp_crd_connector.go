@@ -165,6 +165,17 @@ func (ai *aiManager) resolveSecretValue(namespace, secretName, key string) (stri
 	return string(val), nil
 }
 
+// HasMcpSession reports whether a live session exists for the named server.
+func (ai *aiManager) HasMcpSession(name string) bool {
+	return ai.mcpManager.HasSession(name)
+}
+
+// ProbeMcpSession refreshes the tool list on an existing session via a
+// lightweight ListTools call without tearing down the connection.
+func (ai *aiManager) ProbeMcpSession(ctx context.Context, name string) ([]string, error) {
+	return ai.mcpManager.RefreshSessionTools(ctx, name)
+}
+
 // discoveredToolNames returns the list of tool names in the named session.
 func (m *mcpClientManager) discoveredToolNames(sessionName string) []string {
 	m.mu.RLock()

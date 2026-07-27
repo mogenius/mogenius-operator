@@ -309,6 +309,15 @@ type AiManager interface {
 	// RefreshAllMcpServerCRConnections (re)connects all McpServer CRs from the
 	// operator namespace. Called once at startup.
 	RefreshAllMcpServerCRConnections()
+
+	// HasMcpSession reports whether a live session for the named server exists.
+	// Used by the reconciler to choose between a full reconnect and a probe.
+	HasMcpSession(name string) bool
+
+	// ProbeMcpSession refreshes the tool list on an existing session via a
+	// lightweight ListTools call without tearing down the connection.
+	// Returns the (possibly updated) tool names.
+	ProbeMcpSession(ctx context.Context, name string) ([]string, error)
 }
 
 type SecretGetter func(namespace, name string) (*coreV1.Secret, error)
