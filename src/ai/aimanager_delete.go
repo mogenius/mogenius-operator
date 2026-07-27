@@ -20,6 +20,8 @@ func (ai *aiManager) DeleteTask(taskID string, user structs.User) (*AiTask, erro
 	switch task.State {
 	case AI_TASK_STATE_IN_PROGRESS, AI_TASK_STATE_EXECUTING:
 		return nil, fmt.Errorf("task %s is in state %q; cancel it before deleting", taskID, task.State)
+	case AI_TASK_STATE_CANCELLING:
+		return nil, fmt.Errorf("task %s is still cancelling; wait for it to finish before deleting", taskID)
 	}
 
 	if err := ai.valkeyClient.DeleteSingle(taskID); err != nil {

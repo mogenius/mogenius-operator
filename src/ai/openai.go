@@ -3,6 +3,7 @@ package ai
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -77,7 +78,9 @@ func (ai *aiManager) processPromptOpenAi(ctx context.Context, rc *ResolvedModelC
 	for {
 		chatCompletion, err := client.Chat.Completions.New(ctx, params)
 		if err != nil {
-			if len(collected) > 0 {
+			// A canceled context is a deliberate abort, not a failed turn —
+			// the run must end as canceled, so no salvaging.
+			if len(collected) > 0 && !errors.Is(err, context.Canceled) {
 				// Salvage what the run already confirmed instead of throwing
 				// the whole exploration away.
 				ai.logger.Warn("LLM turn failed mid-run, keeping findings collected so far", "collected", len(collected), "error", err)
@@ -146,6 +149,12 @@ func (ai *aiManager) processPromptOpenAi(ctx context.Context, rc *ResolvedModelC
 
 		// Process each tool call
 		for _, toolCall := range message.ToolCalls {
+			// A canceled run must not start further tool calls — without this
+			// check every remaining call of the turn runs to completion before
+			// the next LLM request notices the dead context.
+			if ctx.Err() != nil {
+				return nil, tokensUsed, elapsed(), model, ctx.Err()
+			}
 			name := toolCall.Function.Name
 			ai.logger.Info("Processing tool call", "tool", name)
 

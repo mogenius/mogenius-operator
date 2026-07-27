@@ -1,6 +1,7 @@
 package ai
 
 import (
+	"context"
 	"mogenius-operator/src/crds/v1alpha1"
 	"mogenius-operator/src/structs"
 	"mogenius-operator/src/utils"
@@ -203,6 +204,23 @@ func TestCanceledByMessage(t *testing.T) {
 
 func TestTaskCancelKey(t *testing.T) {
 	assert.Equal(t, "ai_task_cancel:ai_tasks:Agent:calico:cleaner-run-1", taskCancelKey("ai_tasks:Agent:calico:cleaner-run-1"))
+}
+
+func TestCancelLocalRun(t *testing.T) {
+	ai := &aiManager{runCancels: make(map[string]context.CancelFunc)}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	ai.registerRunCancel("task-1", cancel)
+
+	// A cancel for a task running on another replica is a local no-op.
+	ai.cancelLocalRun("task-2")
+	assert.NoError(t, ctx.Err())
+
+	ai.cancelLocalRun("task-1")
+	assert.ErrorIs(t, ctx.Err(), context.Canceled)
+
+	ai.unregisterRunCancel("task-1")
+	ai.cancelLocalRun("task-1")
 }
 
 func TestExecuteProposalValidation(t *testing.T) {

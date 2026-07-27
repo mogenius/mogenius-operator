@@ -227,8 +227,8 @@ func agentTaskVisibleInNamespaces(task *AiTask, namespaces map[string]bool) bool
 	return len(parts) == 4 && namespaces[parts[2]]
 }
 
-// hasOpenAgentRun reports whether the agent already has a pending or
-// in-progress whole-scope run, bounding cron/manual fan-out to one open run.
+// hasOpenAgentRun reports whether the agent already has a pending, in-progress
+// or cancelling whole-scope run, bounding cron/manual fan-out to one open run.
 func (ai *aiManager) hasOpenAgentRun(agentName string) (bool, error) {
 	keys, err := ai.valkeyClient.Keys(fmt.Sprintf("%s:Agent:*:%s-run-*", DB_AI_BUCKET_TASKS, agentName))
 	if err != nil {
@@ -239,7 +239,7 @@ func (ai *aiManager) hasOpenAgentRun(agentName string) (bool, error) {
 		if err != nil || task == nil {
 			continue
 		}
-		if task.State == AI_TASK_STATE_PENDING || task.State == AI_TASK_STATE_IN_PROGRESS {
+		if task.State == AI_TASK_STATE_PENDING || task.State == AI_TASK_STATE_IN_PROGRESS || task.State == AI_TASK_STATE_CANCELLING {
 			return true, nil
 		}
 	}

@@ -121,6 +121,12 @@ const (
 	AI_TASK_STATE_IGNORED     AiTaskState = "ignored"
 	AI_TASK_STATE_SOLVED      AiTaskState = "solved"
 
+	// cancel lifecycle: a user abort flips an in-progress run to "cancelling"
+	// the moment the request arrives (immediate UI feedback) and to the
+	// terminal "canceled" once the processing loop has unwound.
+	AI_TASK_STATE_CANCELLING AiTaskState = "cancelling"
+	AI_TASK_STATE_CANCELED   AiTaskState = "canceled"
+
 	// proposal lifecycle: an analysis with an actionable proposed operation
 	// becomes "proposed" and waits for a user decision; approval executes the
 	// operation with the approving user's permissions.
@@ -329,6 +335,13 @@ type aiManager struct {
 	// exactly one follow-up pass.
 	taskQueueKick chan struct{}
 
+	// runCancels holds the context cancel func of every run executing on THIS
+	// replica, keyed by task ID. A cancel request aborts the in-flight LLM
+	// call immediately through it; the Valkey cancel marker stays as the
+	// fallback that reaches runs on other replicas at the next turn boundary.
+	runCancelMu sync.Mutex
+	runCancels  map[string]context.CancelFunc
+
 	// prompts
 	chatPromptMu sync.RWMutex
 	aiPrompts    AiPrompts
@@ -435,6 +448,7 @@ func NewAiManager(logger *slog.Logger, valkeyClient valkeyclient.ValkeyClient, c
 	self.lastAgentRun = make(map[string]time.Time)
 	self.isLeading = isLeading
 	self.taskQueueKick = make(chan struct{}, 1)
+	self.runCancels = make(map[string]context.CancelFunc)
 
 	// Register MCP server connectors
 	self.mcpConnectors = []MCPServerConnector{
@@ -696,6 +710,22 @@ func (ai *aiManager) resetInProgressTasksOnStartup() error {
 				continue
 			}
 			ai.logger.Info("Reset AI task from in-progress to pending on startup", "taskID", task.ID)
+		}
+
+		// A task caught mid-cancel is finalized as canceled — the user asked
+		// for the run to stop, and the restart stopped it.
+		if task.State == AI_TASK_STATE_CANCELLING {
+			task.State = AI_TASK_STATE_CANCELED
+			task.CurrentActivity = ""
+			if task.Error == "" {
+				task.Error = "canceled by user"
+			}
+			ai.clearTaskCancelRequest(task.ID)
+			if err := ai.createOrUpdateAiTask(&task, key); err != nil {
+				ai.logger.Error("Error updating AI task during startup reset", "taskID", task.ID, "error", err)
+				continue
+			}
+			ai.logger.Info("Reset AI task from cancelling to canceled on startup", "taskID", task.ID)
 		}
 
 		// A task caught mid-execution must not be retried automatically: the
@@ -1210,6 +1240,14 @@ func (ai *aiManager) processAiTaskQueue(ctx context.Context) {
 			continue
 		}
 
+		// A queue pass runs for minutes; the task was selected as pending at
+		// the start of the pass but may have been canceled (or otherwise
+		// resolved) since — starting it now would resurrect it.
+		if current, curErr := ai.getTaskByKey(key); curErr != nil || current == nil ||
+			(current.State != AI_TASK_STATE_PENDING && current.State != AI_TASK_STATE_FAILED) {
+			continue
+		}
+
 		task.State = AI_TASK_STATE_IN_PROGRESS
 		task.Error = ""
 		err = ai.createOrUpdateAiTask(&task, key)
@@ -1226,11 +1264,13 @@ func (ai *aiManager) processAiTaskQueue(ctx context.Context) {
 		// send event notification
 		ai.sendAiEvent(latestTask)
 
-		// Per-task cancellable context: a cancel marker in Valkey (set by any
-		// replica) aborts the LLM loop at the next turn boundary. The same
-		// per-turn hook pushes live token counts to the UI, throttled so a
-		// fast tool-call storm doesn't flood the event channel.
+		// Per-task cancellable context: CancelTask aborts it directly when the
+		// cancel request lands on this replica; a cancel marker in Valkey (set
+		// by any replica) additionally aborts the LLM loop at the next turn
+		// boundary. The same per-turn hook pushes live token counts to the UI,
+		// throttled so a fast tool-call storm doesn't flood the event channel.
 		taskCtx, cancelTask := context.WithCancel(ctx)
+		ai.registerRunCancel(task.ID, cancelTask)
 		var lastProgressPush time.Time
 		onProgress := func(tokens int64, activity string) {
 			if ai.taskCancelReason(task.ID) != "" {
@@ -1258,8 +1298,16 @@ func (ai *aiManager) processAiTaskQueue(ctx context.Context) {
 		recordStep := ai.newStepRecorder(task.ID)
 
 		responses, tokensUsed, timeUsedInMs, modelUsed, err := ai.processPrompt(taskCtx, rc, task.Prompt, toolCtx, &agent.Spec, onProgress, recordStep)
+		ai.unregisterRunCancel(task.ID)
 		cancelTask()
 		task.CurrentActivity = ""
+		// Consume the cancel marker no matter how the run ended — a marker
+		// surviving into a later retry of the same task would cancel that
+		// retry on its first turn.
+		cancelReason := ai.taskCancelReason(task.ID)
+		if cancelReason != "" {
+			ai.clearTaskCancelRequest(task.ID)
+		}
 		// Stamp the run stats before finalize/spawn: the spawned finding
 		// tasks copy them from the primary for display.
 		task.Model = modelUsed
@@ -1267,12 +1315,11 @@ func (ai *aiManager) processAiTaskQueue(ctx context.Context) {
 		task.TokensUsed = tokensUsed
 		discardTask := false
 		if err != nil {
-			if reason := ai.taskCancelReason(task.ID); errors.Is(err, context.Canceled) && ctx.Err() == nil && reason != "" {
+			if errors.Is(err, context.Canceled) && ctx.Err() == nil && cancelReason != "" {
 				// Canceled by a user, not by shutdown: the run is void, not broken.
-				task.State = AI_TASK_STATE_IGNORED
-				task.Error = reason
-				ai.clearTaskCancelRequest(task.ID)
-				ai.logger.Info("AI task canceled", "taskID", task.ID, "reason", reason)
+				task.State = AI_TASK_STATE_CANCELED
+				task.Error = cancelReason
+				ai.logger.Info("AI task canceled", "taskID", task.ID, "reason", cancelReason)
 			} else {
 				task.Error = err.Error()
 				task.Retries++
