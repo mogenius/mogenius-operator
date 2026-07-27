@@ -26,6 +26,10 @@ type WorkspaceDashboardList struct {
 //
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="Default",type=boolean,JSONPath=`.spec.default`
+// +kubebuilder:printcolumn:name="Resources Valid",type=string,JSONPath=`.status.conditions[?(@.type=="ResourcesValid")].status`
+// +kubebuilder:printcolumn:name="Reason",type=string,JSONPath=`.status.conditions[?(@.type=="ResourcesValid")].reason`
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 type WorkspaceDashboard struct {
 	metav1.TypeMeta `json:",inline"`
 

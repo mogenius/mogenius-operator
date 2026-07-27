@@ -22,6 +22,7 @@ type PlatformPatchList struct {
 // A mogenius `PlatformPatch` defines patches that can be applied to the configuration of a platform component.
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +kubebuilder:resource:scope=Cluster
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 type PlatformPatch struct {
 	metav1.TypeMeta `json:",inline"`
 

@@ -140,6 +140,13 @@ var WorkspaceDashboardResource = ResourceDescriptor{
 	Namespaced: true,
 }
 
+var UIConfigResource = ResourceDescriptor{
+	Kind:       "UIConfig",
+	Plural:     "uiconfigs",
+	ApiVersion: "mogenius.com/v1alpha1",
+	Namespaced: false,
+}
+
 var GrantResource = ResourceDescriptor{
 	Kind:       "Grant",
 	Plural:     "grants",

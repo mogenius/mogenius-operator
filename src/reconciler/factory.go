@@ -60,6 +60,8 @@ func NewReconcilerFactory(logger *slog.Logger, clientProvider k8sclient.K8sClien
 
 	factory.WithReconciler(utils.WorkspaceResource, factory.module.reconcileWorkspaces, NamespaceFilter(ownNamespace))
 	factory.WithReconciler(utils.WorkspaceDashboardResource, factory.module.reconcileWorkspaceDashboards, NamespaceFilter(ownNamespace))
+	// Cluster-scoped, hence no namespace filter.
+	factory.WithReconciler(utils.UIConfigResource, factory.module.reconcileUIConfigs)
 	factory.WithReconciler(utils.AgentResource, factory.module.reconcileAgents, NamespaceFilter(ownNamespace))
 	factory.WithReconciler(utils.AiModelResource, factory.module.reconcileAiModels, NamespaceFilter(ownNamespace))
 

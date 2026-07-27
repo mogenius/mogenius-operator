@@ -29,6 +29,11 @@ type GrantList struct {
 // which could then allow in-depth configuration for what users should be allowed to do.
 //
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:printcolumn:name="Grantee",type=string,JSONPath=`.spec.grantee`
+// +kubebuilder:printcolumn:name="Role",type=string,JSONPath=`.spec.role`
+// +kubebuilder:printcolumn:name="Target Type",type=string,JSONPath=`.spec.targetType`
+// +kubebuilder:printcolumn:name="Target",type=string,JSONPath=`.spec.targetName`
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 type Grant struct {
 	metav1.TypeMeta `json:",inline"`
 
