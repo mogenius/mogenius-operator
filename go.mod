@@ -6,7 +6,7 @@ require (
 	github.com/KimMachineGun/automemlimit v0.7.5
 	github.com/alecthomas/kong v1.16.0
 	github.com/bitnami/sealed-secrets v0.38.4
-	github.com/cert-manager/cert-manager v1.21.0
+	github.com/cert-manager/cert-manager v1.21.1
 	github.com/creack/pty v1.1.24
 	github.com/go-playground/validator/v10 v10.30.3
 	github.com/google/uuid v1.6.0
@@ -58,7 +58,6 @@ require (
 	go.yaml.in/yaml/v4 v4.0.0-rc.2 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260720155508-bb71a54f79dc // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260720155508-bb71a54f79dc // indirect
-	google.golang.org/grpc v1.82.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/streaming v0.36.3 // indirect
 	k8s.io/utils v0.0.0-20260626114624-be93311217bd // indirect
