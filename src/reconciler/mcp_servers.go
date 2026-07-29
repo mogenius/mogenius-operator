@@ -44,16 +44,13 @@ func (d *reconcilerModule) reconcileMcpServers(ctx context.Context, obj *unstruc
 	// ListTools probe refreshes the tool list without tearing down the live
 	// session — avoiding state loss for in-flight agent runs and keeping the
 	// reconcile slots free from 30s blocking connects.
-	var discoveredTools []string
 	didConnect := false
 	if conditionStatus == metav1.ConditionTrue {
 		sessionExists := d.aiManager.HasMcpSession(server.Name)
 		generationChanged := server.Generation != server.Status.ObservedGeneration
 
 		if !sessionExists || generationChanged {
-			var connErr error
-			discoveredTools, connErr = d.aiManager.NotifyMcpServerChanged(server.Name)
-			if connErr != nil {
+			if connErr := d.aiManager.NotifyMcpServerChanged(server.Name); connErr != nil {
 				conditionStatus = metav1.ConditionFalse
 				reason = "ConnectionFailed"
 				message = connErr.Error()
@@ -61,21 +58,21 @@ func (d *reconcilerModule) reconcileMcpServers(ctx context.Context, obj *unstruc
 				didConnect = true
 			}
 		} else {
-			var probeErr error
-			discoveredTools, probeErr = d.aiManager.ProbeMcpSession(ctx, server.Name)
-			if probeErr != nil {
+			if probeErr := d.aiManager.ProbeMcpSession(ctx, server.Name); probeErr != nil {
 				// A probe failure on an otherwise-valid spec is logged but does
 				// not flip the condition — the session may still be usable for
-				// tool calls; we keep the last-known tool list.
+				// tool calls; GetMcpToolsWithPolicies returns the last-known list.
 				d.logger.Warn("McpServer: tool refresh probe failed", "name", server.Name, "error", probeErr)
-				discoveredTools = server.Status.AvailableTools
 			}
 		}
 
 		if conditionStatus == metav1.ConditionTrue {
-			toolsChanged := !slices.Equal(server.Status.AvailableTools, discoveredTools)
-			server.Status.AvailableTools = discoveredTools
-			server.Status.ToolCount = len(discoveredTools)
+			newTools := d.aiManager.GetMcpToolsWithPolicies(server.Name)
+			toolsChanged := !slices.EqualFunc(server.Status.ToolsWithPolicies, newTools, func(a, b v1alpha1.MCPToolWithPolicy) bool {
+				return a.Name == b.Name && a.Policy == b.Policy
+			})
+			server.Status.ToolsWithPolicies = newTools
+			server.Status.ToolCount = len(newTools)
 			if didConnect {
 				server.Status.LastConnectedAt = time.Now().UTC().Format(time.RFC3339)
 			}
@@ -86,9 +83,9 @@ func (d *reconcilerModule) reconcileMcpServers(ctx context.Context, obj *unstruc
 			}
 		}
 	} else {
-		// Spec invalid — clear stale tool lists so the status is accurate.
-		server.Status.AvailableTools = nil
+		// Spec invalid — clear stale tool list so the status is accurate.
 		server.Status.ToolCount = 0
+		server.Status.ToolsWithPolicies = nil
 	}
 
 	current := apimeta.FindStatusCondition(server.Status.Conditions, mcpServerReadyCondition)

@@ -3,7 +3,6 @@ package ai
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -11,13 +10,7 @@ import (
 	"github.com/openai/openai-go/v3"
 )
 
-// processPromptOpenAi runs the unattended agent-run protocol against an
-// OpenAI-compatible endpoint, mirroring the Anthropic path: strictly
-// read-only inspection tools plus the repeatable submit_analysis tool through
-// which all findings arrive. Unlike Anthropic, changing tool_choice carries
-// no prompt-cache penalty here, so the budget-exhausted final turn forces the
-// submit tool directly instead of relying on nudge-and-refuse rounds.
-func (ai *aiManager) processPromptOpenAi(ctx context.Context, rc *ResolvedModelConfig, systemPrompt, prompt string, toolCtx *ToolContext, onProgress func(int64, string), recordStep StepRecorder) ([]*AiResponse, int64, int, string, error) {
+func (ai *aiManager) processPromptOpenAi(ctx context.Context, rc *ResolvedModelConfig, systemPrompt, prompt string, toolCtx *ToolContext, onProgress func(int64, string), recordStep StepRecorder) (int64, int, string, error) {
 	startTime := time.Now()
 	elapsed := func() int { return int(time.Since(startTime).Milliseconds()) }
 
@@ -27,26 +20,21 @@ func (ai *aiManager) processPromptOpenAi(ctx context.Context, rc *ResolvedModelC
 
 	client := ai.newOpenAIClientFor(rc)
 
-	// Unattended pipeline: strictly read-only tools (defense in depth on top
-	// of the ToolContext namespace scoping) plus submit_analysis, so findings
-	// arrive as structured tool input instead of JSON scraped out of text.
-	// McpServer-referenced servers are added when the agent spec lists them.
-	var builtinOpenAI []openai.ChatCompletionToolUnionParam
+	var mcpSessions []string
+	if toolCtx != nil {
+		mcpSessions = toolCtx.McpSessions
+	}
+	allTools := ai.mcpManager.GetOpenAIToolsForSessions(mcpSessions)
 	if toolCtx == nil || !toolCtx.DisableKubernetes {
-		builtinOpenAI = append(builtinOpenAI, kubernetesOpenAiTools...)
+		allTools = append(allTools, kubernetesOpenAiTools...)
 	}
 	if toolCtx == nil || !toolCtx.DisableHelm {
-		builtinOpenAI = append(builtinOpenAI, helmOpenAiTools...)
+		allTools = append(allTools, helmOpenAiTools...)
 	}
-	allTools := readOnlyOpenAiTools(builtinOpenAI)
-	if ai.mcpManager != nil && toolCtx != nil && len(toolCtx.McpSessions) > 0 {
-		allTools = append(allTools, ai.mcpManager.GetOpenAIToolsForSessions(toolCtx.McpSessions)...)
-	}
-	allTools = append(allTools, submitAnalysisOpenAiTool)
 
 	params := openai.ChatCompletionNewParams{
 		Messages: []openai.ChatCompletionMessageParamUnion{
-			openai.SystemMessage(systemPrompt + submitAnalysisInstruction),
+			openai.SystemMessage(systemPrompt),
 			openai.UserMessage(prompt),
 		},
 		Model: model,
@@ -56,48 +44,10 @@ func (ai *aiManager) processPromptOpenAi(ctx context.Context, rc *ResolvedModelC
 	var tokensUsed int64 = 0
 	toolCallCount := 0
 
-	// Successful read-only inspections. A whole-scope run that ends without a
-	// single one produced its answer blind — a model failure, not an all-clear.
-	inspectionCalls := 0
-
-	// Bounded in-conversation repair turns for schema-violating submissions.
-	repairAttempts := 0
-
-	// Set once the run budget is exhausted; from then on tool_choice forces
-	// submit_analysis and only a bounded number of turns remain.
-	nudged := false
-	turnsAfterNudge := 0
-
-	// One repair round for a post-nudge submission with rejected findings.
-	repairedOnce := false
-
-	// Findings accumulated across repeated submit_analysis calls. The tool is
-	// repeatable so the number of findings is not limited by a single
-	// response's output budget.
-	collected := []*AiResponse{}
-
-	// blindRunError reports a whole-scope run that ended empty-handed without
-	// ever inspecting the cluster. Surfacing this as an error keeps it apart
-	// from a genuine all-clear (which is silently discarded upstream).
-	blindRunError := func() error {
-		if toolCtx != nil && toolCtx.RequireActionableFindings && inspectionCalls == 0 && len(collected) == 0 {
-			return fmt.Errorf("model %q ended the run without a single successful inspection tool call and without findings — not treating this as an all-clear; verify that the model handles tool calling reliably", model)
-		}
-		return nil
-	}
-
 	for {
 		chatCompletion, err := client.Chat.Completions.New(ctx, params)
 		if err != nil {
-			// A canceled context is a deliberate abort, not a failed turn —
-			// the run must end as canceled, so no salvaging.
-			if len(collected) > 0 && !errors.Is(err, context.Canceled) {
-				// Salvage what the run already confirmed instead of throwing
-				// the whole exploration away.
-				ai.logger.Warn("LLM turn failed mid-run, keeping findings collected so far", "collected", len(collected), "error", err)
-				return collected, tokensUsed, elapsed(), model, nil
-			}
-			return nil, tokensUsed, elapsed(), model, err
+			return tokensUsed, elapsed(), model, err
 		}
 
 		// Everything in params.Messages has now been seen by the model —
@@ -112,10 +62,7 @@ func (ai *aiManager) processPromptOpenAi(ctx context.Context, rc *ResolvedModelC
 		}
 
 		if len(chatCompletion.Choices) == 0 {
-			if len(collected) > 0 {
-				return collected, tokensUsed, elapsed(), model, nil
-			}
-			return nil, tokensUsed, elapsed(), model, fmt.Errorf("no choices returned from AI model")
+			return tokensUsed, elapsed(), model, fmt.Errorf("no choices returned from AI model")
 		}
 
 		message := chatCompletion.Choices[0].Message
@@ -127,35 +74,8 @@ func (ai *aiManager) processPromptOpenAi(ctx context.Context, rc *ResolvedModelC
 		}
 
 		if len(message.ToolCalls) == 0 {
-			ai.logger.Info("No tool calls found, finishing AI processing")
-
-			// The model stopped calling tools: with submitted findings on
-			// record that simply ends the run.
-			if len(collected) > 0 {
-				return collected, tokensUsed, elapsed(), model, nil
-			}
-
-			// Fallback for models that answer in text despite the
-			// submit_analysis instruction: parse the JSON out of the text and,
-			// when that fails, spend a bounded repair turn pointing the model
-			// at the tool instead of discarding the whole exploration.
-			aiResponse, removedText, parseErr := parseAiResponse(message.Content)
-			if parseErr == nil {
-				ai.logger.Info("Extracted JSON from AI response", "removed_text", removedText)
-				if len(aiResponse) == 0 {
-					if blindErr := blindRunError(); blindErr != nil {
-						return nil, tokensUsed, elapsed(), model, blindErr
-					}
-				}
-				return aiResponse, tokensUsed, elapsed(), model, nil
-			}
-			repairAttempts++
-			ai.logger.Warn("Final answer unparsable, requesting repair", "error", parseErr, "attempt", repairAttempts)
-			if repairAttempts > maxAnalysisRepairs {
-				return nil, tokensUsed, elapsed(), model, fmt.Errorf("final answer unparsable after %d repair attempts: %v\n%s", repairAttempts, parseErr, message.Content)
-			}
-			params.Messages = append(params.Messages, openai.UserMessage(fmt.Sprintf("Your answer could not be processed: %s. Submit your findings by calling the %s tool (or call it with an empty findings array if nothing is actionable).", parseErr.Error(), submitAnalysisToolName)))
-			continue
+			ai.logger.Info("No tool calls, run complete")
+			return tokensUsed, elapsed(), model, nil
 		}
 
 		// Process each tool call
@@ -164,151 +84,78 @@ func (ai *aiManager) processPromptOpenAi(ctx context.Context, rc *ResolvedModelC
 			// check every remaining call of the turn runs to completion before
 			// the next LLM request notices the dead context.
 			if ctx.Err() != nil {
-				return nil, tokensUsed, elapsed(), model, ctx.Err()
+				return tokensUsed, elapsed(), model, ctx.Err()
 			}
 			name := toolCall.Function.Name
 			ai.logger.Info("Processing tool call", "tool", name)
 
-			// The final analysis arrives as tool input; a schema violation is
-			// fed back as a tool result so the model repairs it
-			// in-conversation instead of failing the whole run.
-			if name == submitAnalysisToolName {
-				findings, parseErr := parseSubmittedAnalysis(json.RawMessage(toolCall.Function.Arguments))
-				if parseErr != nil {
-					repairAttempts++
-					ai.logger.Warn("Submitted findings rejected", "error", parseErr, "attempt", repairAttempts)
-					if repairAttempts > maxAnalysisRepairs {
-						if len(collected) > 0 {
-							return collected, tokensUsed, elapsed(), model, nil
-						}
-						return nil, tokensUsed, elapsed(), model, fmt.Errorf("analysis rejected %d times, giving up: %w", repairAttempts, parseErr)
-					}
-					params.Messages = append(params.Messages, openai.ToolMessage(fmt.Sprintf("Submission rejected: %s. Fix the arguments to match the %s tool schema exactly and call it again.", parseErr.Error(), submitAnalysisToolName), toolCall.ID))
-					continue
-				}
-				if len(findings) == 0 {
-					// Empty submission: the model declares the run finished.
-					if blindErr := blindRunError(); blindErr != nil {
-						return nil, tokensUsed, elapsed(), model, blindErr
-					}
-					return collected, tokensUsed, elapsed(), model, nil
-				}
-
-				// Whole-scope runs discard advice-only findings after the run
-				// — validate at submission time instead, so the model can
-				// repair them while the conversation is still alive.
-				var rejected []string
-				if toolCtx != nil && toolCtx.RequireActionableFindings {
-					kept := make([]*AiResponse, 0, len(findings))
-					for _, finding := range findings {
-						if reason := ai.findingRejectionReason(finding); reason != "" {
-							rejected = append(rejected, fmt.Sprintf("%s — %s", finding.ErrorMessage, reason))
-						} else if !hasFindingHeadline(collected, finding.ErrorMessage) {
-							kept = append(kept, finding)
-						}
-					}
-					findings = kept
-				}
-				collected = append(collected, findings...)
-				ai.logger.Info("Findings submitted", "new", len(findings), "rejected", len(rejected), "total", len(collected))
-				if onProgress != nil {
-					onProgress(tokensUsed, fmt.Sprintf("%d finding(s) submitted", len(collected)))
-				}
-				if recordStep != nil {
-					recordStep(AiRunStep{Kind: AI_RUN_STEP_FINDINGS, Label: fmt.Sprintf("%d finding(s) submitted — %d total", len(findings), len(collected)), Tool: submitAnalysisToolName})
-				}
-
-				// After the nudge the investigation is over: a clean
-				// submission ends the run, rejected findings get exactly one
-				// repair round.
-				if nudged && len(rejected) == 0 {
-					return collected, tokensUsed, elapsed(), model, nil
-				}
-				if nudged && repairedOnce {
-					return collected, tokensUsed, elapsed(), model, nil
-				}
-				if nudged {
-					repairedOnce = true
-					params.Messages = append(params.Messages, openai.ToolMessage(fmt.Sprintf("Recorded %d finding(s). Rejected %d finding(s) without an applicable proposal:\n- %s\nCall %s once more and resubmit ONLY the rejected findings, fixed (set proposedOperation and the exact live targetResource) — or an empty findings array to drop them.", len(findings), len(rejected), strings.Join(rejected, "\n- "), submitAnalysisToolName), toolCall.ID))
-					continue
-				}
-
-				resultText := fmt.Sprintf("Recorded %d finding(s) — %d total so far. Continue the investigation and submit further findings, or call %s with an empty findings array when nothing else is actionable.", len(findings), len(collected), submitAnalysisToolName)
-				if len(rejected) > 0 {
-					resultText = fmt.Sprintf("Recorded %d finding(s) — %d total so far. Rejected %d finding(s) without an applicable proposal:\n- %s\nFix each rejected finding and resubmit it, or drop it if no safe concrete change exists.", len(findings), len(collected), len(rejected), strings.Join(rejected, "\n- "))
-				}
-				params.Messages = append(params.Messages, openai.ToolMessage(resultText, toolCall.ID))
-				continue
-			}
-
 			var args map[string]any
 			if err := json.Unmarshal([]byte(toolCall.Function.Arguments), &args); err != nil {
-				return nil, tokensUsed, elapsed(), model, fmt.Errorf("error unmarshaling tool arguments: %v", err)
+				return tokensUsed, elapsed(), model, fmt.Errorf("error unmarshaling tool arguments: %v", err)
 			}
 
 			if onProgress != nil {
 				onProgress(tokensUsed, describeToolCall(name, args))
 			}
 
-			mcpSessions := toolCtx.McpSessions
 			var data string
 			if builtinTool, ok := toolDefinitions[name]; ok {
-				if !viewerAllowedTools[name] {
-					return nil, tokensUsed, elapsed(), model, fmt.Errorf("tool %q is not permitted in the unattended insight pipeline", name)
-				}
-				data = builtinTool(args, toolCtx, ai.valkeyClient, ai.logger)
-				ai.auditInsightToolCall(toolCtx, name, args, data)
-				if recordStep != nil {
-					recordStep(AiRunStep{Kind: AI_RUN_STEP_ACT, Label: describeToolCall(name, args), Tool: name, Args: toolCall.Function.Arguments, Result: data})
-				}
-				inspectionCalls++
-			} else if ai.mcpManager != nil && ai.mcpManager.IsMCPToolInSessions(name, mcpSessions) {
-				mcpResult, err := ai.mcpManager.CallToolInSessions(ctx, name, args, mcpSessions)
-				if err != nil {
-					data = fmt.Sprintf("MCP tool error: %v", err)
+				execCtx := toolCtx
+				if mutatingBuiltinTools[name] && toolCtx != nil && toolCtx.CreateApprovalRequest != nil {
+					approverCtx, approvalErr := toolCtx.CreateApprovalRequest(ctx, name, args)
+					if approvalErr != nil {
+						data = fmt.Sprintf("Tool call %q was not executed: %v", name, approvalErr)
+					} else {
+						execCtx = approverCtx
+						data = builtinTool(args, execCtx, ai.valkeyClient, ai.logger)
+					}
+				} else if mutatingBuiltinTools[name] {
+					data = fmt.Sprintf("Tool call %q requires human approval but no approval mechanism is configured for this run. The call was blocked.", name)
 				} else {
-					data = mcpResult
+					data = builtinTool(args, execCtx, ai.valkeyClient, ai.logger)
 				}
-				ai.auditInsightToolCall(toolCtx, name, args, data)
+				ai.auditInsightToolCall(execCtx, name, args, data)
 				if recordStep != nil {
 					recordStep(AiRunStep{Kind: AI_RUN_STEP_ACT, Label: describeToolCall(name, args), Tool: name, Args: toolCall.Function.Arguments, Result: data})
 				}
-				inspectionCalls++
+			} else if ai.mcpManager != nil && ai.mcpManager.IsMCPToolInSessions(name, mcpSessions) {
+				auditCtx := toolCtx
+				if ai.mcpManager.MCPToolNeedsApproval(name, mcpSessions) {
+					approverCtx, approvalErr := toolCtx.CreateApprovalRequest(ctx, name, args)
+					if approvalErr != nil {
+						data = fmt.Sprintf("Tool call %q was not executed: %v", name, approvalErr)
+					} else {
+						auditCtx = approverCtx
+					}
+				}
+				if data == "" {
+					mcpResult, err := ai.mcpManager.CallToolInSessions(ctx, name, args, mcpSessions)
+					if err != nil {
+						data = fmt.Sprintf("MCP tool error: %v", err)
+					} else {
+						data = mcpResult
+					}
+				}
+				ai.auditInsightToolCall(auditCtx, name, args, data)
+				if recordStep != nil {
+					recordStep(AiRunStep{Kind: AI_RUN_STEP_ACT, Label: describeToolCall(name, args), Tool: name, Args: toolCall.Function.Arguments, Result: data})
+				}
 			} else {
-				return nil, tokensUsed, elapsed(), model, fmt.Errorf("unknown tool called: %s", name)
+				return tokensUsed, elapsed(), model, fmt.Errorf("unknown tool called: %s", name)
 			}
 			params.Messages = append(params.Messages, openai.ToolMessage(data, toolCall.ID))
 		}
 
-		// Increase global tool call count and check the run budgets (tool
-		// calls and, when configured, tokens). Either limit exhausted forces
-		// a bounded number of final submit turns; findings collected so far
-		// are kept.
+		// Check run budgets (tool calls and, when configured, tokens).
 		toolCallCount += len(message.ToolCalls)
-		if nudged {
-			turnsAfterNudge++
-			if turnsAfterNudge >= 3 {
-				ai.logger.Warn("Model kept going after the final-answer nudge, ending the run", "collected", len(collected))
-				if blindErr := blindRunError(); blindErr != nil {
-					return nil, tokensUsed, elapsed(), model, blindErr
-				}
-				return collected, tokensUsed, elapsed(), model, nil
-			}
-			continue
-		}
 		budgetExhausted := maxToolCalls > 0 && toolCallCount >= maxToolCalls
 		if !budgetExhausted && maxTokensPerRun > 0 && tokensUsed >= maxTokensPerRun {
 			budgetExhausted = true
-			ai.logger.Info("Per-run token limit reached, forcing final answer", "maxTokensPerRun", maxTokensPerRun, "tokensUsed", tokensUsed)
+			ai.logger.Info("Per-run token limit reached", "maxTokensPerRun", maxTokensPerRun, "tokensUsed", tokensUsed)
 		}
 		if budgetExhausted {
-			ai.logger.Info("Run budget exhausted, forcing final answer", "maxToolCalls", maxToolCalls, "toolCallCount", toolCallCount, "tokensUsed", tokensUsed)
-			nudged = true
-			params.Messages = append(params.Messages, openai.UserMessage(finalAnswerNudge))
-			// Force the submit tool so the final turns cannot wander off into
-			// further inspection (no Anthropic-style prompt-cache penalty for
-			// changing tool_choice here).
-			params.ToolChoice = openai.ToolChoiceOptionFunctionToolChoice(openai.ChatCompletionNamedToolChoiceFunctionParam{Name: submitAnalysisToolName})
+			ai.logger.Info("Run budget exhausted", "maxToolCalls", maxToolCalls, "toolCallCount", toolCallCount)
+			return tokensUsed, elapsed(), model, nil
 		}
 
 		// Continue the loop to get the next response with tool results

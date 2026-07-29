@@ -590,3 +590,4 @@ func (ai *aiManager) ResolveWorkspaceContext(userEmail string, workspaceName str
 
 	return workspaceSpec, grantSpec
 }
+

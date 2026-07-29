@@ -11,6 +11,8 @@ import (
 	"strings"
 	"sync"
 
+	"mogenius-operator/src/crds/v1alpha1"
+
 	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/ollama/ollama/api"
@@ -51,10 +53,10 @@ type MCPServerConfig struct {
 	// request. Callers resolve secret references before populating this map.
 	Headers map[string]string `json:"-"`
 
-	// AllowedTools is a set of tool names to expose from this server. A nil map
-	// means all discovered tools are available; a non-nil map restricts to those
-	// present in the set.
-	AllowedTools map[string]bool `json:"-"`
+	// ToolPolicies maps tool names to their execution policies. A nil or empty map
+	// means all discovered tools are available with readOnlyHint-based defaults.
+	// When non-empty, tools absent from the map are implicitly denied.
+	ToolPolicies map[string]v1alpha1.MCPToolPolicyType `json:"-"`
 }
 
 // mcpClientManager manages connections to MCP servers and exposes their tools.
@@ -67,9 +69,10 @@ type mcpClientManager struct {
 type mcpSession struct {
 	name                string
 	session             *mcp.ClientSession
-	tools               []*mcp.Tool
-	sanitizedToOriginal map[string]string // sanitized LLM name → original MCP name
-	allowedTools        map[string]bool   // nil = all tools; stored for use by lightweight probes
+	allTools            []*mcp.Tool                           // all tools as reported by the server (unfiltered)
+	tools               []*mcp.Tool                          // policy-filtered subset used for tool dispatch
+	sanitizedToOriginal map[string]string                     // sanitized LLM name → original MCP name
+	toolPolicies        map[string]v1alpha1.MCPToolPolicyType // nil = all tools with defaults; stored for probes
 }
 
 // headerTransport adds a Bearer token (pat) and any extra resolved headers to
@@ -142,12 +145,23 @@ func (m *mcpClientManager) Connect(ctx context.Context, cfg MCPServerConfig) err
 		return fmt.Errorf("failed to list tools from MCP server %s: %w", cfg.Name, err)
 	}
 
-	// Apply allowlist filter when configured.
+	// Capture the full unfiltered list before the policy filter mutates the slice.
+	allTools := make([]*mcp.Tool, len(toolsResult.Tools))
+	copy(allTools, toolsResult.Tools)
+
+	// Apply policy filter: tools with an explicit 'deny' policy or unlisted tools
+	// (when toolPolicies is non-empty) are excluded from the session's tool set.
+	// An empty policy map means all discovered tools are available.
 	tools := toolsResult.Tools
-	if len(cfg.AllowedTools) > 0 {
+	if len(cfg.ToolPolicies) > 0 {
 		filtered := tools[:0]
 		for _, tool := range tools {
-			if cfg.AllowedTools[tool.Name] {
+			policy, ok := cfg.ToolPolicies[tool.Name]
+			if !ok {
+				// Unlisted tool → implicit deny when policies are configured.
+				continue
+			}
+			if policy != v1alpha1.MCPToolPolicyDeny {
 				filtered = append(filtered, tool)
 			}
 		}
@@ -164,9 +178,10 @@ func (m *mcpClientManager) Connect(ctx context.Context, cfg MCPServerConfig) err
 	m.sessions[cfg.Name] = &mcpSession{
 		name:                cfg.Name,
 		session:             session,
+		allTools:            allTools,
 		tools:               tools,
 		sanitizedToOriginal: nameMap,
-		allowedTools:        cfg.AllowedTools,
+		toolPolicies:        cfg.ToolPolicies,
 	}
 	m.mu.Unlock()
 
@@ -189,11 +204,15 @@ func (m *mcpClientManager) RefreshSessionTools(ctx context.Context, name string)
 		return nil, fmt.Errorf("ListTools probe on %q: %w", name, err)
 	}
 
+	allTools := make([]*mcp.Tool, len(result.Tools))
+	copy(allTools, result.Tools)
+
 	tools := result.Tools
-	if len(s.allowedTools) > 0 {
+	if len(s.toolPolicies) > 0 {
 		filtered := tools[:0]
 		for _, tool := range tools {
-			if s.allowedTools[tool.Name] {
+			policy, ok := s.toolPolicies[tool.Name]
+			if ok && policy != v1alpha1.MCPToolPolicyDeny {
 				filtered = append(filtered, tool)
 			}
 		}
@@ -206,12 +225,13 @@ func (m *mcpClientManager) RefreshSessionTools(ctx context.Context, name string)
 	}
 
 	m.mu.Lock()
+	s.allTools = allTools
 	s.tools = tools
 	s.sanitizedToOriginal = nameMap
 	m.mu.Unlock()
 
-	names := make([]string, 0, len(tools))
-	for _, tool := range tools {
+	names := make([]string, 0, len(allTools))
+	for _, tool := range allTools {
 		names = append(names, tool.Name)
 	}
 	return names, nil
@@ -502,8 +522,45 @@ func (m *mcpClientManager) IsMCPToolInSessions(toolName string, sessions []strin
 	return false
 }
 
-// CallToolInSessions calls a tool on one of the named sessions. An empty
-// sessions list is an error — no sessions are in scope.
+// MCPToolNeedsApproval reports whether the tool's effective policy is
+// NeedsApprove across the named sessions. Callers use this to gate execution
+// through an approval flow before calling CallToolInSessions.
+func (m *mcpClientManager) MCPToolNeedsApproval(toolName string, sessions []string) bool {
+	if len(sessions) == 0 {
+		return false
+	}
+	filter := sessionFilter(sessions)
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	for _, s := range m.sessions {
+		if !filter[s.name] {
+			continue
+		}
+		originalName := toolName
+		if orig, ok := s.sanitizedToOriginal[toolName]; ok {
+			originalName = orig
+		}
+		for _, tool := range s.tools {
+			if tool.Name == originalName {
+				if len(s.toolPolicies) == 0 {
+					return false
+				}
+				policy, ok := s.toolPolicies[originalName]
+				if !ok {
+					return false
+				}
+				return policy == v1alpha1.MCPToolPolicyNeedsApprove
+			}
+		}
+	}
+	return false
+}
+
+// CallToolInSessions executes the named tool in one of the named sessions.
+// It does not enforce approval policy — callers are responsible for calling
+// MCPToolNeedsApproval and obtaining approval before invoking this function.
+// Denied tools return an error.
 func (m *mcpClientManager) CallToolInSessions(ctx context.Context, toolName string, args map[string]any, sessions []string) (string, error) {
 	if len(sessions) == 0 {
 		return "", fmt.Errorf("MCP tool %q: no sessions in scope", toolName)
@@ -522,6 +579,16 @@ func (m *mcpClientManager) CallToolInSessions(ctx context.Context, toolName stri
 		}
 		for _, tool := range s.tools {
 			if tool.Name == originalName {
+				if len(s.toolPolicies) > 0 {
+					policy, ok := s.toolPolicies[originalName]
+					if !ok {
+						policy = v1alpha1.MCPToolPolicyDeny
+					}
+					if policy == v1alpha1.MCPToolPolicyDeny {
+						return "", fmt.Errorf("MCP tool %q is denied by policy", originalName)
+					}
+				}
+
 				result, err := s.session.CallTool(ctx, &mcp.CallToolParams{
 					Name:      originalName,
 					Arguments: args,
@@ -537,6 +604,45 @@ func (m *mcpClientManager) CallToolInSessions(ctx context.Context, toolName stri
 		}
 	}
 	return "", fmt.Errorf("MCP tool %q not found in requested sessions", toolName)
+}
+
+// GetToolsWithPolicies returns every tool reported by the server (including
+// denied ones) together with its effective execution policy. Used by the
+// reconciler to populate McpServerStatus.ToolsWithPolicies.
+//
+// Policy resolution:
+//   - Non-empty toolPolicies map: look up each tool; unlisted tools get Deny.
+//   - Empty toolPolicies map: derive from readOnlyHint — read-only →
+//     AutoApprove, mutating → NeedsApprove.
+func (m *mcpClientManager) GetToolsWithPolicies(sessionName string) []v1alpha1.MCPToolWithPolicy {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	s, ok := m.sessions[sessionName]
+	if !ok {
+		return nil
+	}
+	result := make([]v1alpha1.MCPToolWithPolicy, 0, len(s.allTools))
+	for _, tool := range s.allTools {
+		entry := v1alpha1.MCPToolWithPolicy{Name: tool.Name}
+		if len(s.toolPolicies) > 0 {
+			policy, ok := s.toolPolicies[tool.Name]
+			if !ok {
+				policy = v1alpha1.MCPToolPolicyDeny
+			}
+			entry.Policy = policy
+		} else {
+			// No explicit policies: derive from readOnlyHint.
+			readOnly := tool.Annotations != nil && tool.Annotations.ReadOnlyHint
+			entry.ReadOnly = readOnly
+			if readOnly {
+				entry.Policy = v1alpha1.MCPToolPolicyAutoApprove
+			} else {
+				entry.Policy = v1alpha1.MCPToolPolicyNeedsApprove
+			}
+		}
+		result = append(result, entry)
+	}
+	return result
 }
 
 // mcpSchemaToOllamaProperties converts an MCP tool's InputSchema to the

@@ -4,7 +4,6 @@ import (
 	"context"
 	"mogenius-operator/src/crds/v1alpha1"
 	"mogenius-operator/src/structs"
-	"mogenius-operator/src/utils"
 	"strings"
 	"testing"
 	"time"
@@ -146,56 +145,6 @@ func TestUpdateTaskStateWhitelist(t *testing.T) {
 	}
 }
 
-func TestFinalizeTaskOutcome(t *testing.T) {
-	ai := &aiManager{}
-
-	t.Run("no response stays completed", func(t *testing.T) {
-		task := &AiTask{}
-		ai.finalizeTaskOutcome(task)
-		assert.Equal(t, AI_TASK_STATE_COMPLETED, task.State)
-	})
-
-	t.Run("analysis without operation stays completed", func(t *testing.T) {
-		task := &AiTask{Response: &AiResponse{Analysis: Analysis{ProposedOperation: ProposedOperationOther}}}
-		ai.finalizeTaskOutcome(task)
-		assert.Equal(t, AI_TASK_STATE_COMPLETED, task.State)
-	})
-
-	t.Run("create with yaml becomes proposed", func(t *testing.T) {
-		task := &AiTask{Response: &AiResponse{Analysis: Analysis{
-			ProposedOperation:  ProposedOperationCreate,
-			TargetResourceYaml: "apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: foo\n",
-		}}}
-		ai.finalizeTaskOutcome(task)
-		assert.Equal(t, AI_TASK_STATE_PROPOSED, task.State)
-	})
-
-	t.Run("create clears model-provided current yaml", func(t *testing.T) {
-		task := &AiTask{Response: &AiResponse{Analysis: Analysis{
-			ProposedOperation:   ProposedOperationCreate,
-			TargetResourceYaml:  "apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: foo\n",
-			CurrentResourceYaml: "hallucinated: yes\n",
-		}}}
-		ai.finalizeTaskOutcome(task)
-		assert.Equal(t, AI_TASK_STATE_PROPOSED, task.State)
-		assert.Empty(t, task.Response.Analysis.CurrentResourceYaml, "create proposals diff against an empty document")
-	})
-
-	t.Run("create without yaml stays completed", func(t *testing.T) {
-		task := &AiTask{Response: &AiResponse{Analysis: Analysis{ProposedOperation: ProposedOperationCreate}}}
-		ai.finalizeTaskOutcome(task)
-		assert.Equal(t, AI_TASK_STATE_COMPLETED, task.State)
-	})
-
-	t.Run("update without target name stays completed", func(t *testing.T) {
-		task := &AiTask{Response: &AiResponse{Analysis: Analysis{
-			ProposedOperation:  ProposedOperationUpdate,
-			TargetResourceYaml: "apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: foo\n",
-		}}}
-		ai.finalizeTaskOutcome(task)
-		assert.Equal(t, AI_TASK_STATE_COMPLETED, task.State)
-	})
-}
 
 func TestCanceledByMessage(t *testing.T) {
 	assert.Equal(t, "canceled by user", canceledByMessage(structs.User{}))
@@ -223,56 +172,6 @@ func TestCancelLocalRun(t *testing.T) {
 	ai.cancelLocalRun("task-1")
 }
 
-func TestExecuteProposalValidation(t *testing.T) {
-	ai := &aiManager{}
-
-	baseTask := func() *AiTask {
-		return &AiTask{Response: &AiResponse{Analysis: Analysis{
-			ProposedOperation:  ProposedOperationUpdate,
-			TargetResourceYaml: "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: web\n  namespace: prod\n",
-			TargetResource: utils.WorkloadSingleRequest{
-				ResourceDescriptor: utils.ResourceDescriptor{Kind: "Deployment", Plural: "deployments", ApiVersion: "apps/v1", Namespaced: true},
-				Namespace:          "prod",
-				ResourceName:       "web",
-			},
-		}}}
-	}
-
-	t.Run("missing resource descriptor fails", func(t *testing.T) {
-		task := baseTask()
-		task.Response.Analysis.TargetResource.Plural = ""
-		_, err := ai.executeProposal(task, &ToolContext{})
-		assert.ErrorContains(t, err, "descriptor")
-	})
-
-	t.Run("yaml name mismatch fails", func(t *testing.T) {
-		task := baseTask()
-		task.Response.Analysis.TargetResource.ResourceName = "other"
-		_, err := ai.executeProposal(task, &ToolContext{})
-		assert.ErrorContains(t, err, "does not match")
-	})
-
-	t.Run("yaml namespace mismatch fails", func(t *testing.T) {
-		task := baseTask()
-		task.Response.Analysis.TargetResource.Namespace = "staging"
-		_, err := ai.executeProposal(task, &ToolContext{})
-		assert.ErrorContains(t, err, "does not match")
-	})
-
-	t.Run("missing yaml fails", func(t *testing.T) {
-		task := baseTask()
-		task.Response.Analysis.TargetResourceYaml = ""
-		_, err := ai.executeProposal(task, &ToolContext{})
-		assert.ErrorContains(t, err, "no target resource YAML")
-	})
-
-	t.Run("unknown operation fails", func(t *testing.T) {
-		task := baseTask()
-		task.Response.Analysis.ProposedOperation = ProposedOperationOther
-		_, err := ai.executeProposal(task, &ToolContext{})
-		assert.ErrorContains(t, err, "no executable proposed operation")
-	})
-}
 
 func TestBuildAgentRunPrompt(t *testing.T) {
 	agent := &v1alpha1.Agent{
