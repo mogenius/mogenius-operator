@@ -2158,7 +2158,7 @@ func (self *socketApi) registerPatterns() {
 			PatternHandle{self, "aiManager/approve/task"},
 			PatternConfig{NeedsUser: true},
 			func(datagram structs.Datagram, request Request) (*ai.AiTask, error) {
-				task, err := self.aiApi.ApproveTask(request.TaskId, datagram.User, datagram.Workspace)
+				task, err := self.aiApi.ApproveTask(request.TaskId, datagram.User)
 				return store.AddToAuditLog(datagram, self.logger, task, err, nil, nil)
 			},
 		)

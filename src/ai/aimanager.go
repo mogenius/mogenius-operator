@@ -48,6 +48,14 @@ const (
 
 var ValkeyAiTTL = time.Hour * 24 * 7 // 7 days
 
+// approvalTimeout is the maximum time an agent run will wait for a human to
+// approve or reject a proposed tool call before the run is abandoned.
+const approvalTimeout = 7 * 24 * time.Hour
+
+// maxConcurrentRuns caps how many agent runs execute in parallel on this
+// replica. Runs blocked on approval hold a slot but don't stall the queue.
+const maxConcurrentRuns = 10
+
 type AiTaskState string
 type AiTask struct {
 	ID         string                       `json:"id"`
@@ -226,6 +234,15 @@ type Analysis struct {
 	// TargetResource plus every entry here are deleted together in one
 	// reviewable proposal. Only valid for DeleteResource.
 	AdditionalTargets []utils.WorkloadSingleRequest `json:"additionalTargets,omitempty"`
+
+	// ToolCallName, ToolCallArgs and ToolCallMCPSessions are set only when
+	// ProposedOperation == ProposedOperationToolCall. They carry the intercepted
+	// tool call so approval can re-execute it exactly. ToolCallMCPSessions is
+	// empty for built-in K8s tools (routed via toolDefinitions) and non-empty
+	// for MCP tool calls (routed via mcpManager).
+	ToolCallName        string         `json:"toolCallName,omitempty"`
+	ToolCallArgs        map[string]any `json:"toolCallArgs,omitempty"`
+	ToolCallMCPSessions []string       `json:"toolCallMcpSessions,omitempty"`
 }
 
 type Solution struct {
@@ -235,10 +252,11 @@ type Solution struct {
 
 // values of Analysis.ProposedOperation
 const (
-	ProposedOperationUpdate = "UpdateResource"
-	ProposedOperationDelete = "DeleteResource"
-	ProposedOperationCreate = "CreateResource"
-	ProposedOperationOther  = "Other"
+	ProposedOperationUpdate      = "UpdateResource"
+	ProposedOperationDelete      = "DeleteResource"
+	ProposedOperationCreate      = "CreateResource"
+	ProposedOperationOther    = "Other"
+	ProposedOperationToolCall = "ToolCall"
 )
 
 type UsedToken struct {
@@ -290,7 +308,7 @@ type AiManager interface {
 	GetPromptConfig() (*AiPromptConfig, error)
 	Chat(ctx context.Context, ch IOChatChannel) error
 
-	ApproveTask(taskID string, user structs.User, workspace string) (*AiTask, error)
+	ApproveTask(taskID string, user structs.User) (*AiTask, error)
 	RejectTask(taskID string, user structs.User, reason string) (*AiTask, error)
 	CancelTask(taskID string, user structs.User) (*AiTask, error)
 	DeleteTask(taskID string, user structs.User) (*AiTask, error)
@@ -298,9 +316,9 @@ type AiManager interface {
 
 	ResolveWorkspaceContext(userEmail string, workspaceName string) (*v1alpha1.WorkspaceSpec, *v1alpha1.GrantSpec)
 
-	// NotifyMcpServerChanged reconnects the named McpServer CR's MCP server and
-	// returns the discovered tool names. Called by the reconciler on create/update.
-	NotifyMcpServerChanged(name string) ([]string, error)
+	// NotifyMcpServerChanged reconnects the named McpServer CR's MCP server.
+	// Called by the reconciler on create/update.
+	NotifyMcpServerChanged(name string) error
 
 	// NotifyMcpServerDeleted removes the session for the named McpServer CR. Called
 	// by the reconciler on delete.
@@ -316,8 +334,12 @@ type AiManager interface {
 
 	// ProbeMcpSession refreshes the tool list on an existing session via a
 	// lightweight ListTools call without tearing down the connection.
-	// Returns the (possibly updated) tool names.
-	ProbeMcpSession(ctx context.Context, name string) ([]string, error)
+	ProbeMcpSession(ctx context.Context, name string) error
+
+	// GetMcpToolsWithPolicies returns every tool of the named McpServer together
+	// with its effective execution policy. Used by the reconciler to populate
+	// McpServerStatus.ToolsWithPolicies. Returns nil when no session exists.
+	GetMcpToolsWithPolicies(serverName string) []v1alpha1.MCPToolWithPolicy
 }
 
 type SecretGetter func(namespace, name string) (*coreV1.Secret, error)
@@ -362,6 +384,16 @@ type aiManager struct {
 	// fallback that reaches runs on other replicas at the next turn boundary.
 	runCancelMu sync.Mutex
 	runCancels  map[string]context.CancelFunc
+
+	// pendingApprovals holds one channel per PROPOSED task that was created
+	// by an in-flight agent run. ApproveTask / RejectTask send the result on
+	// the channel to resume the blocked provider goroutine.
+	pendingApprovalsMu sync.Mutex
+	pendingApprovals   map[string]chan approvalResult
+
+	// runSem limits how many agent runs execute concurrently on this replica.
+	// Runs waiting for approval hold a slot but do not block the queue loop.
+	runSem chan struct{}
 
 	// prompts
 	chatPromptMu sync.RWMutex
@@ -470,6 +502,8 @@ func NewAiManager(logger *slog.Logger, valkeyClient valkeyclient.ValkeyClient, c
 	self.isLeading = isLeading
 	self.taskQueueKick = make(chan struct{}, 1)
 	self.runCancels = make(map[string]context.CancelFunc)
+	self.pendingApprovals = make(map[string]chan approvalResult)
+	self.runSem = make(chan struct{}, maxConcurrentRuns)
 
 	// Register MCP server connectors
 	self.mcpConnectors = []MCPServerConnector{
@@ -1181,6 +1215,13 @@ type aiTaskWithKey struct {
 	task AiTask
 }
 
+// approvalResult carries the outcome of an approved or rejected tool call
+// back to the agent run that is blocking on it.
+type approvalResult struct {
+	approver structs.User
+	err      error
+}
+
 func (ai *aiManager) processAiTaskQueue(ctx context.Context) {
 	keys, err := ai.getAllTaskKeys()
 	if err != nil {
@@ -1217,11 +1258,6 @@ func (ai *aiManager) processAiTaskQueue(ctx context.Context) {
 		// Resolve the owning agent; tasks whose agent vanished, was disabled
 		// or whose resource left the agent's scope are ignored.
 		agent, toolCtx, err := ai.buildAgentTaskContext(&task)
-		if err == nil && toolCtx != nil && (task.Trigger == "manual" || task.Trigger == "cron") {
-			// Whole-scope runs discard advice-only findings at the end — let
-			// the model repair them while the conversation is still running.
-			toolCtx.RequireActionableFindings = true
-		}
 		if err != nil {
 			task.State = AI_TASK_STATE_IGNORED
 			task.Error = err.Error()
@@ -1280,152 +1316,152 @@ func (ai *aiManager) processAiTaskQueue(ctx context.Context) {
 			continue
 		}
 
-		latestTask := &AiTaskLatest{
-			Task:   &task,
-			Status: ai.GetStatus(nil),
-		}
+		// Send IN_PROGRESS notification immediately so the UI reflects the new state.
+		ai.sendAiEvent(&AiTaskLatest{Task: &task, Status: ai.GetStatus(nil)})
 
-		// send event notification
-		ai.sendAiEvent(latestTask)
-
-		// Per-task cancellable context: CancelTask aborts it directly when the
-		// cancel request lands on this replica; a cancel marker in Valkey (set
-		// by any replica) additionally aborts the LLM loop at the next turn
-		// boundary. The same per-turn hook pushes live token counts to the UI,
-		// throttled so a fast tool-call storm doesn't flood the event channel.
-		taskCtx, cancelTask := context.WithCancel(ctx)
-		ai.registerRunCancel(task.ID, cancelTask)
-		var lastProgressPush time.Time
-		onProgress := func(tokens int64, activity string) {
-			if ai.taskCancelReason(task.ID) != "" {
-				cancelTask()
-				return
-			}
-			task.TokensUsed = tokens
-			if activity != "" {
-				// Keep the last activity even across throttled pushes so the
-				// next event carries the current one, not a stale line.
-				task.CurrentActivity = activity
-			}
-			if time.Since(lastProgressPush) < 2*time.Second {
-				return
-			}
-			lastProgressPush = time.Now()
-			if err := ai.createOrUpdateAiTask(&task, key); err != nil {
-				ai.logger.Warn("Failed to persist AI task progress", "taskID", task.ID, "error", err)
-			}
-			ai.sendAiEvent(latestTask)
-		}
-
-		// Steps are keyed by the run id (== primary task ID) so the timeline
-		// survives even when the run later spawns finding tasks.
-		recordStep := ai.newStepRecorder(task.ID)
-
-		responses, tokensUsed, timeUsedInMs, modelUsed, err := ai.processPrompt(taskCtx, rc, task.Prompt, toolCtx, &agent.Spec, onProgress, recordStep)
-		ai.unregisterRunCancel(task.ID)
-		cancelTask()
-		task.CurrentActivity = ""
-		// Consume the cancel marker no matter how the run ended — a marker
-		// surviving into a later retry of the same task would cancel that
-		// retry on its first turn.
-		cancelReason := ai.taskCancelReason(task.ID)
-		if cancelReason != "" {
-			ai.clearTaskCancelRequest(task.ID)
-		}
-		// Stamp the run stats before finalize/spawn: the spawned finding
-		// tasks copy them from the primary for display.
-		task.Model = modelUsed
-		task.TimeUsedInMs = timeUsedInMs
-		task.TokensUsed = tokensUsed
-		discardTask := false
-		if err != nil {
-			if errors.Is(err, context.Canceled) && ctx.Err() == nil && cancelReason != "" {
-				// Canceled by a user, not by shutdown: the run is void, not broken.
-				task.State = AI_TASK_STATE_CANCELED
-				task.Error = cancelReason
-				ai.logger.Info("AI task canceled", "taskID", task.ID, "reason", cancelReason)
-			} else {
-				task.Error = err.Error()
-				task.Retries++
-				// Non-retryable API errors (billing, invalid request, auth) must not be retried.
-				// Mark as ignored so processPendingTasks skips them on the next run.
-				var apiErr *anthropic.Error
-				if errors.As(err, &apiErr) && (apiErr.StatusCode == 400 || apiErr.StatusCode == 401 || apiErr.StatusCode == 403) {
-					task.State = AI_TASK_STATE_IGNORED
-					// The trigger handler already answered 200 with the pending
-					// task; without this the failure is only visible in the log.
-					ai.setError(fmt.Sprintf("%s (HTTP %d, not retried): %s", taskFailureErrorPrefix, apiErr.StatusCode, err.Error()))
-				} else if task.Retries >= maxAiTaskRetries {
-					// Every retry re-runs the whole analysis loop; a task that
-					// failed repeatedly is broken systematically, not transiently.
-					task.State = AI_TASK_STATE_IGNORED
-					task.Error = fmt.Sprintf("giving up after %d failed attempts: %s", task.Retries, err.Error())
-					ai.setError(fmt.Sprintf("%s after %d attempts: %s", taskFailureErrorPrefix, task.Retries, err.Error()))
-				} else {
-					task.State = AI_TASK_STATE_FAILED
-				}
-				ai.logger.Error("Error processing AI task", "taskID", task.ID, "attempt", task.Retries, "state", task.State, "error", err)
-			}
-			// Close the timeline with the failure so the run's step history
-			// explains itself without cross-checking the task error field.
-			recordStep(AiRunStep{Kind: AI_RUN_STEP_ERROR, Label: task.Error})
-		} else {
-			// Whole-scope runs exist to produce applicable changes, not
-			// advice: drop findings whose proposal does not survive
-			// validation. A task with nothing applicable left disappears
-			// entirely — the UI shows its all-clear empty state instead.
-			if task.Trigger == "manual" || task.Trigger == "cron" {
-				responses = ai.actionableFindings(task.ID, responses)
-			}
-			if len(responses) == 0 {
-				discardTask = true
-			} else {
-				task.Response = responses[0]
-				ai.finalizeTaskOutcome(&task)
-				// Every further finding of the run becomes its own review task.
-				ai.spawnFindingTasks(&task, responses[1:])
-			}
-			ai.clearTaskFailureError()
-		}
-		err = ai.addTokenUsage(int(tokensUsed), modelUsed, timeUsedInMs, key, rc.ModelCrName)
-		if err != nil {
-			ai.logger.Error("Error recording AI token usage", "taskID", task.ID, "error", err)
-		}
-
-		// update status for event
-		ai.resetCache()
-		latestTask.Status = ai.GetStatus(nil)
-
-		if discardTask {
-			// All-clear: the run inspected its scope and found nothing (new)
-			// to fix. Keep it as a success report — a silently vanishing run
-			// reads like a failure. Exactly one all-clear per agent survives
-			// (the newest); older ones are pruned so clean runs don't spam
-			// the list.
-			task.State = AI_TASK_STATE_COMPLETED
-			task.Response = nil
-			task.Error = ""
-			if err := ai.createOrUpdateAiTask(&task, key); err != nil {
-				ai.logger.Error("Error saving all-clear AI task", "taskID", task.ID, "error", err)
-				continue
-			}
-			ai.pruneOlderAllClearReports(task.AgentRef, key)
-			ai.sendAiEvent(latestTask)
-			ai.logger.Info("AI run found nothing applicable — kept as all-clear report", "taskID", task.ID, "tokensUsed", tokensUsed)
-			continue
-		}
-
-		// send event notification
-		ai.sendAiEvent(latestTask)
-
-		// Save updated task
-		err = ai.createOrUpdateAiTask(&task, key)
-		if err != nil {
-			ai.logger.Error("Error updating AI task", "taskID", task.ID, "error", err)
-			continue
-		}
-		ai.logger.Info("AI task processed", "taskID", task.ID, "tokensUsed", task.TokensUsed, "state", task.State, "name", task.ReferencingResource.ResourceName, "namespace", task.ReferencingResource.Namespace)
+		// Each run gets its own goroutine so approval waits (up to 7 days) don't
+		// stall the queue. The semaphore keeps the goroutine count bounded; a
+		// waiting goroutine is cheap and the task is already IN_PROGRESS so the
+		// next queue pass won't re-pick it up.
+		taskSnapshot := task
+		agentSnapshot := *agent
+		go func() {
+			ai.runSem <- struct{}{}
+			defer func() { <-ai.runSem }()
+			ai.runOneTask(ctx, taskSnapshot, key, rc, agentSnapshot, toolCtx)
+		}()
 	}
+}
+
+// runOneTask drives a single agent run from IN_PROGRESS to its terminal state.
+// It is invoked in a dedicated goroutine so approval waits don't stall the queue.
+func (ai *aiManager) runOneTask(ctx context.Context, task AiTask, key string, rc *ResolvedModelConfig, agent v1alpha1.Agent, toolCtx *ToolContext) {
+	latestTask := &AiTaskLatest{
+		Task:   &task,
+		Status: ai.GetStatus(nil),
+	}
+
+	// Per-task cancellable context: CancelTask aborts it directly when the
+	// cancel request lands on this replica; a cancel marker in Valkey (set
+	// by any replica) additionally aborts the LLM loop at the next turn
+	// boundary. The same per-turn hook pushes live token counts to the UI,
+	// throttled so a fast tool-call storm doesn't flood the event channel.
+	taskCtx, cancelTask := context.WithCancel(ctx)
+	ai.registerRunCancel(task.ID, cancelTask)
+	var lastProgressPush time.Time
+	onProgress := func(tokens int64, activity string) {
+		if ai.taskCancelReason(task.ID) != "" {
+			cancelTask()
+			return
+		}
+		task.TokensUsed = tokens
+		if activity != "" {
+			// Keep the last activity even across throttled pushes so the
+			// next event carries the current one, not a stale line.
+			task.CurrentActivity = activity
+		}
+		if time.Since(lastProgressPush) < 2*time.Second {
+			return
+		}
+		lastProgressPush = time.Now()
+		if err := ai.createOrUpdateAiTask(&task, key); err != nil {
+			ai.logger.Warn("Failed to persist AI task progress", "taskID", task.ID, "error", err)
+		}
+		ai.sendAiEvent(latestTask)
+	}
+
+	// Steps are keyed by the run id (== primary task ID) so the timeline
+	// survives even when the run later spawns finding tasks.
+	recordStep := ai.newStepRecorder(task.ID)
+
+	tokensUsed, timeUsedInMs, modelUsed, err := ai.processPrompt(taskCtx, rc, task.Prompt, toolCtx, &agent.Spec, onProgress, recordStep)
+	ai.unregisterRunCancel(task.ID)
+	cancelTask()
+	task.CurrentActivity = ""
+	// Consume the cancel marker no matter how the run ended — a marker
+	// surviving into a later retry of the same task would cancel that
+	// retry on its first turn.
+	cancelReason := ai.taskCancelReason(task.ID)
+	if cancelReason != "" {
+		ai.clearTaskCancelRequest(task.ID)
+	}
+	task.Model = modelUsed
+	task.TimeUsedInMs = timeUsedInMs
+	task.TokensUsed = tokensUsed
+	discardTask := false
+	if err != nil {
+		if errors.Is(err, context.Canceled) && ctx.Err() == nil && cancelReason != "" {
+			// Canceled by a user, not by shutdown: the run is void, not broken.
+			task.State = AI_TASK_STATE_CANCELED
+			task.Error = cancelReason
+			ai.logger.Info("AI task canceled", "taskID", task.ID, "reason", cancelReason)
+		} else {
+			task.Error = err.Error()
+			task.Retries++
+			// Non-retryable API errors (billing, invalid request, auth) must not be retried.
+			// Mark as ignored so processPendingTasks skips them on the next run.
+			var apiErr *anthropic.Error
+			if errors.As(err, &apiErr) && (apiErr.StatusCode == 400 || apiErr.StatusCode == 401 || apiErr.StatusCode == 403) {
+				task.State = AI_TASK_STATE_IGNORED
+				// The trigger handler already answered 200 with the pending
+				// task; without this the failure is only visible in the log.
+				ai.setError(fmt.Sprintf("%s (HTTP %d, not retried): %s", taskFailureErrorPrefix, apiErr.StatusCode, err.Error()))
+			} else if task.Retries >= maxAiTaskRetries {
+				// Every retry re-runs the whole analysis loop; a task that
+				// failed repeatedly is broken systematically, not transiently.
+				task.State = AI_TASK_STATE_IGNORED
+				task.Error = fmt.Sprintf("giving up after %d failed attempts: %s", task.Retries, err.Error())
+				ai.setError(fmt.Sprintf("%s after %d attempts: %s", taskFailureErrorPrefix, task.Retries, err.Error()))
+			} else {
+				task.State = AI_TASK_STATE_FAILED
+			}
+			ai.logger.Error("Error processing AI task", "taskID", task.ID, "attempt", task.Retries, "state", task.State, "error", err)
+		}
+		// Close the timeline with the failure so the run's step history
+		// explains itself without cross-checking the task error field.
+		recordStep(AiRunStep{Kind: AI_RUN_STEP_ERROR, Label: task.Error})
+	} else {
+		// The run completed — proposals were created as separate PROPOSED
+		// tasks via CreateApprovalRequest. The primary task is an all-clear.
+		discardTask = true
+		ai.clearTaskFailureError()
+	}
+	if err := ai.addTokenUsage(int(tokensUsed), modelUsed, timeUsedInMs, key, rc.ModelCrName); err != nil {
+		ai.logger.Error("Error recording AI token usage", "taskID", task.ID, "error", err)
+	}
+
+	// update status for event
+	ai.resetCache()
+	latestTask.Status = ai.GetStatus(nil)
+
+	if discardTask {
+		// All-clear: the run inspected its scope and found nothing (new)
+		// to fix. Keep it as a success report — a silently vanishing run
+		// reads like a failure. Exactly one all-clear per agent survives
+		// (the newest); older ones are pruned so clean runs don't spam
+		// the list.
+		task.State = AI_TASK_STATE_COMPLETED
+		task.Response = nil
+		task.Error = ""
+		if err := ai.createOrUpdateAiTask(&task, key); err != nil {
+			ai.logger.Error("Error saving all-clear AI task", "taskID", task.ID, "error", err)
+			return
+		}
+		ai.pruneOlderAllClearReports(task.AgentRef, key)
+		ai.sendAiEvent(latestTask)
+		ai.logger.Info("AI run found nothing applicable — kept as all-clear report", "taskID", task.ID, "tokensUsed", tokensUsed)
+		return
+	}
+
+	// send event notification
+	ai.sendAiEvent(latestTask)
+
+	// Save updated task
+	if err := ai.createOrUpdateAiTask(&task, key); err != nil {
+		ai.logger.Error("Error updating AI task", "taskID", task.ID, "error", err)
+		return
+	}
+	ai.logger.Info("AI task processed", "taskID", task.ID, "tokensUsed", task.TokensUsed, "state", task.State, "name", task.ReferencingResource.ResourceName, "namespace", task.ReferencingResource.Namespace)
 }
 
 // HELPER FUNCTIONS
@@ -1569,38 +1605,18 @@ func (ai *aiManager) shouldCreateNewTask(key string) (bool, error) {
 	return !exists, nil
 }
 
-// processPrompt runs one unattended analysis. The ToolContext scopes every
-// tool call to the owning agent's namespaces with the viewer role; the agent
-// spec contributes its instruction and optional model override.
-// finalAnswerNudge is sent when an unattended run exhausts its tool-call
-// budget: one last turn with tool use disabled so the model must produce the
-// required JSON verdict instead of the run failing outright.
-const finalAnswerNudge = "Your budget for this run is exhausted — do not request any more inspection tools. Call " + submitAnalysisToolName + " now with all remaining findings. Every finding must carry an applicable proposal: proposedOperation (UpdateResource, DeleteResource or CreateResource) plus the exact live targetResource — findings without one are discarded. Submit an empty findings array if nothing applicable remains."
-
-// processPrompt runs the unattended analysis loop. The caller resolves the
-// model config (resolveModelConfig) and passes it in — the queue's budget
-// check and the run itself must see the same model. onProgress
-// (nil-tolerant) is invoked after every LLM turn with the tokens used so far
-// and on every tool call with a human-readable activity line — it powers the
-// live token counter and "currently working on" display in the UI plus the
-// cancel check.
-func (ai *aiManager) processPrompt(ctx context.Context, rc *ResolvedModelConfig, prompt string, toolCtx *ToolContext, agentSpec *v1alpha1.AgentSpec, onProgress func(tokensUsed int64, activity string), recordStep StepRecorder) (responses []*AiResponse, tokensUsed int64, timeUsedInMs int, modelUser string, err error) {
+// processPrompt runs the unattended tool-loop. The ToolContext scopes every
+// tool call to the owning agent's namespaces; mutating built-in K8s tools and
+// MCP tools with needsApprove policy are intercepted and turned into PROPOSED
+// tasks instead of being executed directly. The primary run always completes
+// without findings — proposals arrive as independent tasks via CreateApprovalRequest.
+func (ai *aiManager) processPrompt(ctx context.Context, rc *ResolvedModelConfig, prompt string, toolCtx *ToolContext, agentSpec *v1alpha1.AgentSpec, onProgress func(tokensUsed int64, activity string), recordStep StepRecorder) (tokensUsed int64, timeUsedInMs int, modelUsed string, err error) {
 	startTime := time.Now()
-	systemPrompt := ai.getSystemPrompt()
+	var systemPrompt string
 	if agentSpec != nil {
-		if agentSpec.Instruction != "" {
-			systemPrompt += "\n\nAgent instruction:\n" + agentSpec.Instruction
-		}
-		// The proposal review UI is decision-style: a short explanation above
-		// a YAML diff. Without the structured proposal fields the task stays a
-		// text-only report, so spell out exactly what a proposal requires.
-		systemPrompt += "\n\nOutput style: write problemDescription as 2-4 crisp sentences a DevOps decision maker can act on — what is wrong, what your proposed change does, and any risk." +
-			"\n\nWhen you recommend a concrete change, do NOT only describe it in prose — emit it as a structured proposal in the analysis:" +
-			"\n- proposedOperation: one of UpdateResource, DeleteResource, CreateResource" +
-			"\n- targetResource: apiVersion, kind, namespace, resourceName, plural and namespaced of the affected resource (always required)" +
-			"\n- targetResourceYaml: the complete resource manifest, based on the live manifest you retrieved from the cluster with ONLY the fields the fix requires changed — never invent values, never include server-managed fields (metadata.resourceVersion, uid, creationTimestamp, generation, managedFields, status); required for UpdateResource and CreateResource, omit for DeleteResource" +
-			"\n- additionalTargets: for a DeleteResource that removes many similar resources at once, list every extra resource here (first one stays in targetResource). Prefer one bulk delete over many findings, and enumerate them all." +
-			"\nOnly a structured proposal can be reviewed and applied with one click; prose-only recommendations end up as plain reports."
+		systemPrompt = agentSystemPrompt
+	} else {
+		systemPrompt = ai.getSystemPrompt()
 	}
 
 	switch rc.Sdk {
@@ -1611,216 +1627,7 @@ func (ai *aiManager) processPrompt(ctx context.Context, rc *ResolvedModelConfig,
 	case AiSdkTypeOllama:
 		return ai.processPromptOllama(ctx, rc, systemPrompt, prompt, toolCtx, onProgress, recordStep)
 	default:
-		return nil, 0, int(time.Since(startTime).Milliseconds()), rc.Model, fmt.Errorf("unsupported AI SDK type: %s", rc.Sdk)
-	}
-}
-
-// finalizeTaskOutcome decides whether a successfully analyzed task is a mere
-// analysis ("completed") or an actionable proposal ("proposed") awaiting user
-// approval, and captures the target's resourceVersion for the staleness guard.
-func (ai *aiManager) finalizeTaskOutcome(task *AiTask) {
-	task.State = AI_TASK_STATE_COMPLETED
-	if task.Response == nil {
-		return
-	}
-
-	analysis := task.Response.Analysis
-	target := analysis.TargetResource
-	switch analysis.ProposedOperation {
-	case ProposedOperationUpdate:
-		if analysis.TargetResourceYaml == "" || target.ResourceName == "" {
-			return
-		}
-		current, err := store.GetResource(ai.valkeyClient, target.ApiVersion, target.Kind, target.Namespace, target.ResourceName, ai.logger)
-		if err != nil || current == nil {
-			// Target vanished — nothing left to apply, keep it as analysis.
-			return
-		}
-		task.BaseResourceVersion = current.GetResourceVersion()
-		ai.captureCurrentResourceYaml(task, current)
-		ai.sanitizeTargetResourceYaml(task)
-		task.State = AI_TASK_STATE_PROPOSED
-	case ProposedOperationDelete:
-		if target.ResourceName == "" {
-			return
-		}
-		current, err := store.GetResource(ai.valkeyClient, target.ApiVersion, target.Kind, target.Namespace, target.ResourceName, ai.logger)
-		if err != nil || current == nil {
-			return
-		}
-		task.BaseResourceVersion = current.GetResourceVersion()
-		ai.captureCurrentResourceYaml(task, current)
-		task.State = AI_TASK_STATE_PROPOSED
-	case ProposedOperationCreate:
-		if analysis.TargetResourceYaml == "" {
-			return
-		}
-		// Nothing exists yet — the diff renders against an empty document.
-		task.Response.Analysis.CurrentResourceYaml = ""
-		ai.sanitizeTargetResourceYaml(task)
-		task.State = AI_TASK_STATE_PROPOSED
-	}
-}
-
-// findingRejectionReason explains why a finding would not survive proposal
-// validation, or returns "" when it is actionable. Mirrors the rules of
-// finalizeTaskOutcome so submit-time feedback matches the final filter.
-func (ai *aiManager) findingRejectionReason(response *AiResponse) string {
-	if response == nil {
-		return "empty finding"
-	}
-	analysis := response.Analysis
-	target := analysis.TargetResource
-	switch analysis.ProposedOperation {
-	case ProposedOperationUpdate, ProposedOperationCreate:
-		if analysis.TargetResourceYaml == "" {
-			return analysis.ProposedOperation + " requires targetResourceYaml (the complete proposed manifest)"
-		}
-		if analysis.ProposedOperation == ProposedOperationUpdate {
-			if target.ResourceName == "" {
-				return "UpdateResource requires targetResource.resourceName"
-			}
-			if current, err := store.GetResource(ai.valkeyClient, target.ApiVersion, target.Kind, target.Namespace, target.ResourceName, ai.logger); err != nil || current == nil {
-				return fmt.Sprintf("target %s %q not found in namespace %q — use the exact apiVersion, kind, namespace and name of a live resource", target.Kind, target.ResourceName, target.Namespace)
-			}
-		}
-		return ""
-	case ProposedOperationDelete:
-		if target.ResourceName == "" {
-			return "DeleteResource requires targetResource.resourceName"
-		}
-		if current, err := store.GetResource(ai.valkeyClient, target.ApiVersion, target.Kind, target.Namespace, target.ResourceName, ai.logger); err != nil || current == nil {
-			return fmt.Sprintf("target %s %q not found in namespace %q — use the exact apiVersion, kind, namespace and name of a live resource", target.Kind, target.ResourceName, target.Namespace)
-		}
-		return ""
-	default:
-		return "no applicable proposedOperation — set it to UpdateResource, DeleteResource or CreateResource with the matching targetResource"
-	}
-}
-
-// actionableFindings keeps only findings whose proposal survives validation
-// (concrete operation, target exists, manifest complete). Whole-scope runs
-// exist to produce applicable changes — advice-only findings are dropped and
-// logged with their headline so they don't vanish silently.
-func (ai *aiManager) actionableFindings(taskID string, responses []*AiResponse) []*AiResponse {
-	kept := make([]*AiResponse, 0, len(responses))
-	for _, response := range responses {
-		probe := AiTask{ID: taskID, Response: response, State: AI_TASK_STATE_COMPLETED}
-		ai.finalizeTaskOutcome(&probe)
-		if probe.State == AI_TASK_STATE_PROPOSED {
-			kept = append(kept, response)
-		} else {
-			ai.logger.Info("Dropping advice-only finding from run", "taskID", taskID, "headline", response.ErrorMessage, "reason", ai.findingRejectionReason(response))
-		}
-	}
-	return kept
-}
-
-// spawnFindingTasks persists every finding beyond the first as its own task,
-// so each one can be reviewed, approved and audited independently. All
-// findings share the run's single exploration — the token cost is booked on
-// the primary task only.
-func (ai *aiManager) spawnFindingTasks(primary *AiTask, extra []*AiResponse) {
-	if len(extra) > 0 {
-		// Group the run's tasks so the UI can render them as one report.
-		primary.RunID = primary.ID
-	}
-	for i, response := range extra {
-		now := time.Now().Unix()
-		// Store the finding under its target's namespace, not under the run
-		// key's arbitrary segment — the finding belongs to the workspace(s)
-		// containing that namespace (see agentTaskVisibleInNamespaces).
-		id := agentTaskKeyForNamespace(
-			fmt.Sprintf("%s-f%d", primary.ID, i+2),
-			response.Analysis.TargetResource.Namespace,
-		)
-		finding := AiTask{
-			ID:       id,
-			RunID:    primary.ID,
-			Prompt:   primary.Prompt,
-			Response: response,
-			State:    AI_TASK_STATE_COMPLETED,
-			Model:    primary.Model,
-			// Display copies of the run's cost — without them the finding
-			// shows a misleading "0 tokens used". The daily accounting books
-			// the run exactly once (addTokenUsage on the primary), so these
-			// copies never double-count.
-			TokensUsed:          primary.TokensUsed,
-			TimeUsedInMs:        primary.TimeUsedInMs,
-			CreatedAt:           now,
-			UpdatedAt:           now,
-			ReferencingResource: primary.ReferencingResource,
-			TriggeredBy:         primary.TriggeredBy,
-			AgentRef:            primary.AgentRef,
-			Trigger:             primary.Trigger,
-			TriggeredByUser:     primary.TriggeredByUser,
-			ScopeNamespaces:     primary.ScopeNamespaces,
-			ScopeAllNamespaces:  primary.ScopeAllNamespaces,
-		}
-		ai.finalizeTaskOutcome(&finding)
-		if err := ai.createOrUpdateAiTask(&finding, finding.ID); err != nil {
-			ai.logger.Error("Error persisting finding task", "taskID", finding.ID, "error", err)
-			continue
-		}
-		ai.notifyTaskChanged(&finding)
-	}
-	if len(extra) > 0 {
-		ai.logger.Info("Run produced additional findings", "primaryTaskID", primary.ID, "additionalTasks", len(extra))
-	}
-}
-
-// captureCurrentResourceYaml replaces the model-provided (untrusted, possibly
-// truncated or hallucinated) CurrentResourceYaml with the authoritative state
-// of the target at proposal time, so the review diff in the UI is exact.
-func (ai *aiManager) captureCurrentResourceYaml(task *AiTask, current *unstructured.Unstructured) {
-	sanitized := current.DeepCopy()
-	stripServerManagedFields(sanitized)
-	yaml, err := store.GetYamlFromUnstructuredResource(sanitized)
-	if err != nil {
-		ai.logger.Warn("Failed to serialize current resource for proposal diff", "taskID", task.ID, "error", err)
-		return // keep the model-provided value as a fallback
-	}
-	task.Response.Analysis.CurrentResourceYaml = yaml
-}
-
-// sanitizeTargetResourceYaml strips server-managed fields the model tends to
-// hallucinate (fabricated resourceVersion/uid/creationTimestamp/...) from the
-// proposed manifest. They are pure noise in the review diff and would break
-// the apply: a made-up resourceVersion causes an update conflict, a wrong uid
-// a rejection. Malformed YAML is left untouched — the execution path reports
-// the parse error to the user.
-func (ai *aiManager) sanitizeTargetResourceYaml(task *AiTask) {
-	obj, err := parseTargetYaml(task.Response.Analysis.TargetResourceYaml)
-	if err != nil {
-		return
-	}
-	stripServerManagedFields(obj)
-	yaml, err := store.GetYamlFromUnstructuredResource(obj)
-	if err != nil {
-		return
-	}
-	task.Response.Analysis.TargetResourceYaml = yaml
-}
-
-// stripServerManagedFields removes fields owned by the API server or
-// controllers from a manifest; applied to both sides of the proposal diff so
-// it only shows changes a user could actually make.
-func stripServerManagedFields(obj *unstructured.Unstructured) {
-	unstructured.RemoveNestedField(obj.Object, "status")
-	unstructured.RemoveNestedField(obj.Object, "metadata", "resourceVersion")
-	unstructured.RemoveNestedField(obj.Object, "metadata", "uid")
-	unstructured.RemoveNestedField(obj.Object, "metadata", "creationTimestamp")
-	unstructured.RemoveNestedField(obj.Object, "metadata", "generation")
-	unstructured.RemoveNestedField(obj.Object, "metadata", "managedFields")
-	unstructured.RemoveNestedField(obj.Object, "metadata", "selfLink")
-	if annotations := obj.GetAnnotations(); annotations != nil {
-		delete(annotations, "kubectl.kubernetes.io/last-applied-configuration")
-		delete(annotations, "deployment.kubernetes.io/revision")
-		if len(annotations) == 0 {
-			unstructured.RemoveNestedField(obj.Object, "metadata", "annotations")
-		} else {
-			obj.SetAnnotations(annotations)
-		}
+		return 0, int(time.Since(startTime).Milliseconds()), rc.Model, fmt.Errorf("unsupported AI SDK type: %s", rc.Sdk)
 	}
 }
 

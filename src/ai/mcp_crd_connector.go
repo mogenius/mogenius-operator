@@ -8,23 +8,22 @@ import (
 	"time"
 )
 
-// NotifyMcpServerChanged reconnects the named McpServer CR and returns the names
-// of tools discovered from the server. Called by the reconciler whenever a
-// McpServer CR is created or updated.
-func (ai *aiManager) NotifyMcpServerChanged(name string) ([]string, error) {
+// NotifyMcpServerChanged reconnects the named McpServer CR. Called by the
+// reconciler whenever a McpServer CR is created or updated.
+func (ai *aiManager) NotifyMcpServerChanged(name string) error {
 	ownNamespace, err := ai.config.TryGet("MO_OWN_NAMESPACE")
 	if err != nil {
-		return nil, fmt.Errorf("NotifyMcpServerChanged: %w", err)
+		return fmt.Errorf("NotifyMcpServerChanged: %w", err)
 	}
 
 	tool, err := store.GetMcpServer(ownNamespace, name)
 	if err != nil || tool == nil {
-		return nil, fmt.Errorf("McpServer %q not found: %w", name, err)
+		return fmt.Errorf("McpServer %q not found: %w", name, err)
 	}
 
 	cfg, err := ai.buildMcpConfig(tool)
 	if err != nil {
-		return nil, fmt.Errorf("McpServer %q: resolve config: %w", name, err)
+		return fmt.Errorf("McpServer %q: resolve config: %w", name, err)
 	}
 
 	// Remove any stale session before reconnecting.
@@ -34,10 +33,10 @@ func (ai *aiManager) NotifyMcpServerChanged(name string) ([]string, error) {
 	defer cancel()
 
 	if err := ai.mcpManager.Connect(ctx, cfg); err != nil {
-		return nil, fmt.Errorf("McpServer %q: connect: %w", name, err)
+		return fmt.Errorf("McpServer %q: connect: %w", name, err)
 	}
 
-	return ai.mcpManager.discoveredToolNames(name), nil
+	return nil
 }
 
 // NotifyMcpServerDeleted removes the session for the named McpServer CR. Called
@@ -116,12 +115,12 @@ func (ai *aiManager) buildMcpConfig(tool *v1alpha1.McpServer) (MCPServerConfig, 
 		}
 	}
 
-	// Build allowlist.
-	var allowedTools map[string]bool
-	if len(tool.Spec.AllowedTools) > 0 {
-		allowedTools = make(map[string]bool, len(tool.Spec.AllowedTools))
-		for _, t := range tool.Spec.AllowedTools {
-			allowedTools[t] = true
+	// Build tool policies map.
+	var toolPolicies map[string]v1alpha1.MCPToolPolicyType
+	if len(tool.Spec.ToolPolicies) > 0 {
+		toolPolicies = make(map[string]v1alpha1.MCPToolPolicyType, len(tool.Spec.ToolPolicies))
+		for _, tp := range tool.Spec.ToolPolicies {
+			toolPolicies[tp.Name] = tp.Policy
 		}
 	}
 
@@ -138,7 +137,7 @@ func (ai *aiManager) buildMcpConfig(tool *v1alpha1.McpServer) (MCPServerConfig, 
 		URL:          tool.Spec.URL,
 		Transport:    transport,
 		Headers:      headers,
-		AllowedTools: allowedTools,
+		ToolPolicies: toolPolicies,
 	}, nil
 }
 
@@ -170,13 +169,21 @@ func (ai *aiManager) HasMcpSession(name string) bool {
 	return ai.mcpManager.HasSession(name)
 }
 
-// ProbeMcpSession refreshes the tool list on an existing session via a
-// lightweight ListTools call without tearing down the connection.
-func (ai *aiManager) ProbeMcpSession(ctx context.Context, name string) ([]string, error) {
-	return ai.mcpManager.RefreshSessionTools(ctx, name)
+// GetMcpToolsWithPolicies returns every tool of the named McpServer together
+// with its effective execution policy, or nil when no session exists.
+func (ai *aiManager) GetMcpToolsWithPolicies(serverName string) []v1alpha1.MCPToolWithPolicy {
+	return ai.mcpManager.GetToolsWithPolicies(serverName)
 }
 
-// discoveredToolNames returns the list of tool names in the named session.
+// ProbeMcpSession refreshes the tool list on an existing session via a
+// lightweight ListTools call without tearing down the connection.
+func (ai *aiManager) ProbeMcpSession(ctx context.Context, name string) error {
+	_, err := ai.mcpManager.RefreshSessionTools(ctx, name)
+	return err
+}
+
+// discoveredToolNames returns all tool names reported by the server, including
+// those that are denied by policy.
 func (m *mcpClientManager) discoveredToolNames(sessionName string) []string {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -184,8 +191,8 @@ func (m *mcpClientManager) discoveredToolNames(sessionName string) []string {
 	if !ok {
 		return nil
 	}
-	names := make([]string, 0, len(s.tools))
-	for _, tool := range s.tools {
+	names := make([]string, 0, len(s.allTools))
+	for _, tool := range s.allTools {
 		names = append(names, tool.Name)
 	}
 	return names
