@@ -1,6 +1,7 @@
 package ai
 
 import (
+	"context"
 	"log/slog"
 	map0 "maps"
 	"mogenius-operator/src/crds/v1alpha1"
@@ -31,12 +32,6 @@ type ToolContext struct {
 	// empty defaults to "ai-chat" (the interactive chat path).
 	AuditSource string
 
-	// RequireActionableFindings makes submit_analysis reject findings without
-	// an applicable structured proposal at submission time, so the model can
-	// fix them in-conversation instead of having them silently dropped after
-	// the run (whole-scope agent runs only).
-	RequireActionableFindings bool
-
 	// ExcludeResources holds resource identities that already have an open
 	// proposal from an earlier run. They are filtered out of list results and
 	// refused by get so a whole-scope run neither re-inspects nor re-reports
@@ -54,6 +49,29 @@ type ToolContext struct {
 	// DisableHelm removes the built-in Helm tool group for this run.
 	// Zero value (false) keeps the tools enabled — safe default for all paths.
 	DisableHelm bool
+
+	// InterceptMutatingTools makes the built-in mutating K8s/Helm tools available
+	// to the model but intercepts them before execution, creating an approval
+	// request instead. Used for agent runs so agents can propose K8s mutations
+	// without needing elevated RBAC — the approving user supplies the permissions.
+	InterceptMutatingTools bool
+
+	// CreateApprovalRequest is populated for agent runs. When a tool call is
+	// intercepted (mutating built-in or MCP needsApprove), this callback
+	// persists a PROPOSED task and blocks until the user approves or rejects
+	// it. On approval it returns the approver's ToolContext (preserving the
+	// agent's namespace scope but carrying the approver's role and identity),
+	// or an error when rejected or the context is cancelled.
+	CreateApprovalRequest func(ctx context.Context, toolName string, args map[string]any) (*ToolContext, error)
+}
+
+// mutatingBuiltinTools is the set of built-in tool names that mutate Kubernetes
+// resources. When InterceptMutatingTools is true these are offered to the model
+// but intercepted before execution via CreateApprovalRequest.
+var mutatingBuiltinTools = map[string]bool{
+	"update_kubernetes_resource": true,
+	"create_kubernetes_resource": true,
+	"delete_kubernetes_resource": true,
 }
 
 // aiResourceKey is the canonical identity used for ExcludeResources lookups.
@@ -210,10 +228,11 @@ func newToolContextFromUserGrant(user *structs.User, workspace string, isAdmin b
 	return tc
 }
 
-// newToolContextFromAgent builds the read-only ToolContext an agent's
-// unattended analysis runs under. The role is always "viewer" (an empty Role
-// would pass IsEditor/IsAdmin) and the namespace allow-map must be non-empty —
-// callers must not run an agent whose scope resolved to zero namespaces.
+// newToolContextFromAgent builds the ToolContext for agent runs. No role is set
+// because mutating tools are gated by InterceptMutatingTools + CreateApprovalRequest
+// (wired in buildAgentTaskContext), not by the role check in the tools themselves.
+// The namespace allow-map must be non-empty — callers must not run an agent
+// whose scope resolved to zero namespaces.
 func newToolContextFromAgent(agent *v1alpha1.Agent, resolvedNamespaces []string) *ToolContext {
 	allowed := make(map[string]bool, len(resolvedNamespaces))
 	for _, ns := range resolvedNamespaces {
@@ -222,8 +241,9 @@ func newToolContextFromAgent(agent *v1alpha1.Agent, resolvedNamespaces []string)
 		}
 	}
 	return &ToolContext{
-		AllowedNamespaces: allowed,
-		Role:              "viewer",
+		Role:                   "viewer",
+		AllowedNamespaces:      allowed,
+		InterceptMutatingTools: true,
 		User: &structs.User{
 			FirstName: "Agent",
 			LastName:  agent.Name,
@@ -301,41 +321,6 @@ var viewerAllowedTools = map[string]bool{
 
 func isViewerRole(ioChannel IOChatChannel) bool {
 	return ioChannel.WorkspaceGrant != nil && ioChannel.WorkspaceGrant.Role == "viewer"
-}
-
-// readOnly*Tools restrict a tool set to the read-only viewer allowlist. Used
-// by the automatic insight path, which runs unattended and without a
-// ToolContext — a nil ToolContext passes every role/namespace check, so
-// write tools (and external MCP tools) must never be offered to the model
-// there.
-func readOnlyAnthropicTools(tools []anthropic.ToolParam) []anthropic.ToolParam {
-	filtered := make([]anthropic.ToolParam, 0, len(tools))
-	for _, t := range tools {
-		if viewerAllowedTools[t.Name] {
-			filtered = append(filtered, t)
-		}
-	}
-	return filtered
-}
-
-func readOnlyOpenAiTools(tools []openai.ChatCompletionToolUnionParam) []openai.ChatCompletionToolUnionParam {
-	filtered := make([]openai.ChatCompletionToolUnionParam, 0, len(tools))
-	for _, t := range tools {
-		if t.OfFunction != nil && viewerAllowedTools[t.OfFunction.Function.Name] {
-			filtered = append(filtered, t)
-		}
-	}
-	return filtered
-}
-
-func readOnlyOllamaTools(tools []api.Tool) []api.Tool {
-	filtered := make([]api.Tool, 0, len(tools))
-	for _, t := range tools {
-		if viewerAllowedTools[t.Function.Name] {
-			filtered = append(filtered, t)
-		}
-	}
-	return filtered
 }
 
 func filterOpenAiTools(tools []openai.ChatCompletionToolUnionParam, ioChannel IOChatChannel) []openai.ChatCompletionToolUnionParam {

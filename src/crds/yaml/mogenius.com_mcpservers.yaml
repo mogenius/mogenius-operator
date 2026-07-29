@@ -63,13 +63,6 @@ spec:
             type: object
           spec:
             properties:
-              allowedTools:
-                description: |-
-                  AllowedTools is an optional allowlist of tool names exposed to agents.
-                  An empty list means all tools discovered from the server are available.
-                items:
-                  type: string
-                type: array
               auth:
                 description: |-
                   Authentication for the MCP server. Omit or set type to "none" for
@@ -154,6 +147,35 @@ spec:
                   - name
                   type: object
                 type: array
+              toolPolicies:
+                description: |-
+                  ToolPolicies defines per-tool execution policies. An empty list means all
+                  discovered tools are available with readOnlyHint-based defaults (read-only
+                  tools auto-execute; mutating tools require approval). When non-empty, any
+                  tool not listed is implicitly denied.
+                items:
+                  description: MCPToolPolicy pairs a tool name with an explicit execution
+                    policy.
+                  properties:
+                    name:
+                      description: Name is the exact tool name as advertised by the
+                        MCP server.
+                      minLength: 1
+                      type: string
+                    policy:
+                      description: |-
+                        Policy controls whether the tool is denied, requires human approval, or
+                        executes automatically.
+                      enum:
+                      - deny
+                      - needsApprove
+                      - autoApprove
+                      type: string
+                  required:
+                  - name
+                  - policy
+                  type: object
+                type: array
               transport:
                 default: streamableHttp
                 description: Transport protocol used to communicate with the MCP server.
@@ -170,14 +192,6 @@ spec:
             type: object
           status:
             properties:
-              availableTools:
-                description: |-
-                  AvailableTools lists the tool names discovered from the MCP server at the
-                  last successful connection; empty when the server has not yet been reached
-                  or returned no tools. When AllowedTools is set, only allowed tools appear.
-                items:
-                  type: string
-                type: array
               conditions:
                 description: |-
                   Conditions report the state of the McpServer; "Ready" indicates that the
@@ -248,8 +262,41 @@ spec:
                 format: int64
                 type: integer
               toolCount:
-                description: ToolCount is the number of currently available tools.
+                description: |-
+                  ToolCount is the total number of tools discovered from the MCP server,
+                  including those denied by policy.
                 type: integer
+              toolsWithPolicies:
+                description: |-
+                  ToolsWithPolicies reports every discovered tool together with its effective
+                  execution policy (resolved from spec.toolPolicies and readOnlyHint defaults).
+                items:
+                  description: |-
+                    MCPToolWithPolicy reports a discovered tool together with its effective policy
+                    as computed by the operator (spec.toolPolicies + readOnlyHint defaults).
+                  properties:
+                    name:
+                      description: Name is the tool name as advertised by the MCP
+                        server.
+                      type: string
+                    policy:
+                      description: Policy is the resolved execution policy for this
+                        tool.
+                      enum:
+                      - deny
+                      - needsApprove
+                      - autoApprove
+                      type: string
+                    readOnly:
+                      description: |-
+                        ReadOnly is true when the MCP server advertises this tool as read-only
+                        via the readOnlyHint annotation.
+                      type: boolean
+                  required:
+                  - name
+                  - policy
+                  type: object
+                type: array
             type: object
         required:
         - metadata

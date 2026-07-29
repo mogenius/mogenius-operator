@@ -22,7 +22,7 @@ type AiApi interface {
 	TestAiModel(name string) (*ai.AiModelTestResult, error)
 	GetPromptConfig() (*ai.AiPromptConfig, error)
 
-	ApproveTask(taskID string, user structs.User, workspace string) (*ai.AiTask, error)
+	ApproveTask(taskID string, user structs.User) (*ai.AiTask, error)
 	RejectTask(taskID string, user structs.User, reason string) (*ai.AiTask, error)
 	CancelTask(taskID string, user structs.User) (*ai.AiTask, error)
 	DeleteTask(taskID string, user structs.User) (*ai.AiTask, error)
@@ -92,8 +92,8 @@ func (ai *aiApi) GetPromptConfig() (*ai.AiPromptConfig, error) {
 	return ai.aiManager.GetPromptConfig()
 }
 
-func (self *aiApi) ApproveTask(taskID string, user structs.User, workspace string) (*ai.AiTask, error) {
-	return self.aiManager.ApproveTask(taskID, user, workspace)
+func (self *aiApi) ApproveTask(taskID string, user structs.User) (*ai.AiTask, error) {
+	return self.aiManager.ApproveTask(taskID, user)
 }
 
 func (self *aiApi) RejectTask(taskID string, user structs.User, reason string) (*ai.AiTask, error) {

@@ -1,6 +1,7 @@
 package ai
 
 import (
+	"context"
 	"fmt"
 	"mogenius-operator/src/crds/v1alpha1"
 	"mogenius-operator/src/store"
@@ -29,6 +30,19 @@ var validChangeEventTypes = map[string]bool{"created": true, "updated": true, "d
 // set MinInterval — the rate limit that keeps a burst of changes from starting
 // many runs.
 const defaultChangeCooldown = 6 * time.Hour
+
+// agentSystemPrompt is the fixed system prompt sent for every agent run.
+// It defines baseline behavior rules that cannot be overridden by user-supplied
+// instructions.
+const agentSystemPrompt = `You are an AI assistant embedded in a Kubernetes operator. You execute tasks by calling tools that inspect and modify Kubernetes resources.
+
+Rules you must always follow:
+- Never report success for an action that failed or was not executed. If a tool returns an error or an empty result, report it accurately.
+- Only report resource names, namespaces, and data that your tools actually returned. Do not fabricate or infer values.
+- Do not produce sexual, violent, or otherwise harmful content.
+- Stay within the operational scope you are given. Do not access namespaces or resources outside the ones specified in the task.
+- If a task is ambiguous or cannot be completed safely, stop and report the ambiguity rather than guessing.
+- When a mutation is available but the task does not clearly require a change, prefer to inspect and report rather than modify.`
 
 // ValidateAgentSpec checks an agent spec for the invariants the pipeline
 // relies on: a non-empty scope (an agent without scope restrictions must not
@@ -151,15 +165,24 @@ func (ai *aiManager) resolveAgentScope(agent *v1alpha1.Agent) []string {
 }
 
 // buildAgentRunPrompt is the user prompt for scheduled/manual whole-scope runs.
+// The agent's instruction (if any) is the primary task; namespace context is
+// prepended so the model knows its operational scope.
 func buildAgentRunPrompt(agent *v1alpha1.Agent, namespaces []string) string {
+	nsStr := strings.Join(namespaces, ", ")
+
 	var sb strings.Builder
-	sb.WriteString("You are running a scheduled analysis of the Kubernetes namespaces in your scope: ")
-	sb.WriteString(strings.Join(namespaces, ", "))
-	sb.WriteString(".\n\nInspect the workloads in these namespaces with your read-only tools and report every distinct issue you find as its own finding — there is no upper limit. Submit findings incrementally via " + submitAnalysisToolName + " as soon as you have confirmed them, then keep investigating. Be efficient — you have a limited tool-call and token budget: list resources cluster-wide (omit the namespace parameter) instead of namespace by namespace, inspect suspicious candidates with get detail=summary, and fetch the full manifest only when you need it to build an UpdateResource proposal.")
+	sb.WriteString("Your scope for this run includes the following Kubernetes namespaces: ")
+	sb.WriteString(nsStr)
+	sb.WriteString(". You operate in read-only mode by default; any mutation requires explicit approval.")
+
 	if agent.Spec.Instruction != "" {
-		sb.WriteString("\n\nYour instruction:\n")
+		sb.WriteString("\n\n")
 		sb.WriteString(agent.Spec.Instruction)
+		return sb.String()
 	}
+
+	// No custom instruction: apply the built-in K8s analysis framing.
+	sb.WriteString("\n\nInspect the workloads in these namespaces with your tools and address every distinct issue you find. When a fix requires a resource change, call the appropriate mutation tool (update_kubernetes_resource, create_kubernetes_resource, or delete_kubernetes_resource) — each call is intercepted and surfaced as an approval request for the operator. Be efficient — you have a limited tool-call and token budget: list resources cluster-wide (omit the namespace parameter) instead of namespace by namespace, inspect suspicious candidates with get detail=summary, and fetch the full manifest only when you need it to build an update proposal.")
 	sb.WriteString("\n\nOnly report findings you can back with a concrete, safe, directly applicable remediation: a proposed operation plus the complete target resource YAML, based on the live manifest you retrieved. Advice-only findings without an applicable change are discarded — do not report them. If nothing needs fixing, submit an empty findings list; that is a perfectly good result.")
 	sb.WriteString("\n\nWhen many similar resources should be deleted (e.g. dozens of completed Jobs or obsolete zero-replica ReplicaSets), do NOT summarize them in prose and do NOT emit one finding per resource. Emit a SINGLE DeleteResource finding that lists ALL of them: put the first in targetResource and every other one in additionalTargets. Enumerate them completely — list every matching resource you found, not just examples.")
 	return sb.String()
@@ -378,6 +401,126 @@ func (ai *aiManager) buildAgentTaskContext(task *AiTask) (*v1alpha1.Agent, *Tool
 		toolCtx.DisableKubernetes = !b.Kubernetes
 		toolCtx.DisableHelm = !b.Helm
 	}
+
+	// Wire the approval-request callback. When a mutating tool call is
+	// intercepted, the run task itself is flipped to PROPOSED so the UI can
+	// surface the pending tool call to the user. Once approved the run task
+	// is reset to IN_PROGRESS and execution continues.
+	runTaskID := task.ID
+	mcpSessions := toolCtx.McpSessions
+	toolCtx.CreateApprovalRequest = func(ctx context.Context, toolName string, args map[string]any) (*ToolContext, error) {
+		// Load the run task and set it to PROPOSED with the pending tool call
+		// info so the UI can show what needs to be approved.
+		runTask, err := ai.getTaskByKey(runTaskID)
+		if err != nil || runTask == nil {
+			return nil, fmt.Errorf("failed to load run task for approval: %w", err)
+		}
+		runTask.State = AI_TASK_STATE_PROPOSED
+		runTask.Response = &AiResponse{
+			Analysis: Analysis{
+				ProposedOperation:   ProposedOperationToolCall,
+				ToolCallName:        toolName,
+				ToolCallArgs:        args,
+				ToolCallMCPSessions: mcpSessions,
+			},
+		}
+		if err := ai.createOrUpdateAiTask(runTask, runTaskID); err != nil {
+			return nil, fmt.Errorf("set run task to proposed: %w", err)
+		}
+		ai.notifyTaskChanged(runTask)
+
+		// Register a channel so ApproveTask/RejectTask can wake us up.
+		ch := make(chan approvalResult, 1)
+		ai.pendingApprovalsMu.Lock()
+		ai.pendingApprovals[runTaskID] = ch
+		ai.pendingApprovalsMu.Unlock()
+		defer func() {
+			ai.pendingApprovalsMu.Lock()
+			delete(ai.pendingApprovals, runTaskID)
+			ai.pendingApprovalsMu.Unlock()
+		}()
+
+		// buildApproverCtx copies the agent's namespace scope but replaces
+		// the user and role with those of the approver so the tool executes
+		// with their identity and permissions.
+		buildApproverCtx := func(approver structs.User) *ToolContext {
+			c := *toolCtx
+			c.CreateApprovalRequest = nil
+			c.User = &approver
+			if toolCtx.Workspace != "" {
+				_, grant := ai.ResolveWorkspaceContext(approver.Email, toolCtx.Workspace)
+				if grant != nil {
+					c.Role = grant.Role
+				}
+			}
+			return &c
+		}
+
+		// resetToInProgress reads the latest run task from Valkey (which
+		// carries the Approval record written by ApproveTask) and resets the
+		// state to IN_PROGRESS so the agent loop can continue.
+		resetToInProgress := func() {
+			current, err := ai.getTaskByKey(runTaskID)
+			if err != nil || current == nil {
+				return
+			}
+			current.State = AI_TASK_STATE_IN_PROGRESS
+			current.Response = nil
+			if saveErr := ai.createOrUpdateAiTask(current, runTaskID); saveErr != nil {
+				ai.logger.Warn("Failed to reset run task to in-progress after approval", "taskID", runTaskID, "error", saveErr)
+			}
+			ai.notifyTaskChanged(current)
+		}
+
+		ai.logger.Info("Agent run waiting for approval", "taskID", runTaskID, "tool", toolName)
+		pollTicker := time.NewTicker(3 * time.Second)
+		defer pollTicker.Stop()
+		timer := time.NewTimer(approvalTimeout)
+		defer timer.Stop()
+		for {
+			select {
+			case res := <-ch:
+				// Fast path: signaled directly by ApproveTask/RejectTask on
+				// this replica.
+				if res.err != nil {
+					return nil, res.err
+				}
+				resetToInProgress()
+				return buildApproverCtx(res.approver), nil
+
+			case <-pollTicker.C:
+				// Fallback: read Valkey to catch approvals that arrived via
+				// any other path (different replica, UI update endpoint, etc.).
+				current, err := ai.getTaskByKey(runTaskID)
+				if err != nil || current == nil {
+					return nil, fmt.Errorf("run task no longer exists")
+				}
+				if current.State == AI_TASK_STATE_PROPOSED {
+					continue
+				}
+				if current.State == AI_TASK_STATE_EXECUTED || current.State == AI_TASK_STATE_SOLVED {
+					var approver structs.User
+					if current.Approval != nil {
+						approver = current.Approval.User
+					}
+					resetToInProgress()
+					return buildApproverCtx(approver), nil
+				}
+				// Any other non-proposed state is treated as a rejection.
+				reason := string(current.State)
+				if current.Approval != nil && current.Approval.Reason != "" {
+					reason = current.Approval.Reason
+				}
+				return nil, fmt.Errorf("rejected: %s", reason)
+
+			case <-timer.C:
+				return nil, fmt.Errorf("approval timeout: no decision within %s", approvalTimeout)
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			}
+		}
+	}
+
 	return agent, toolCtx, nil
 }
 
