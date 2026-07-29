@@ -3,6 +3,7 @@ package xterm
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"io"
 	"mogenius-operator/src/utils"
@@ -12,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -27,12 +29,33 @@ import (
 const (
 	pfmOpenPrefix  = "PFM:O:"
 	pfmClosePrefix = "PFM:C:"
+	// pfmErrorPrefix reports a failed sub-connection with a reason:
+	// "PFM:E:<connID>:<reason>". Sent before the compat pfmClosePrefix frame so
+	// API versions that don't know PFM:E still tear the sub-connection down.
+	pfmErrorPrefix = "PFM:E:"
 )
 
 // pfKindHost is the target kind for a non-Kubernetes target: the operator dials
 // the given host/IP:port directly on its own network instead of resolving a pod
 // and tunneling through the kube-apiserver.
 const pfKindHost = "host"
+
+// pfDialErrorReason classifies a dial error into a short, address-free reason
+// for the PFM:E frame. The raw error string contains the internal target
+// address, which must not surface on the public tunnel error page.
+func pfDialErrorReason(err error) string {
+	var netErr net.Error
+	if errors.As(err, &netErr) && netErr.Timeout() {
+		return "dial timeout: target host not responding"
+	}
+	if errors.Is(err, syscall.ECONNREFUSED) {
+		return "connection refused: target port not open"
+	}
+	if errors.Is(err, syscall.EHOSTUNREACH) || errors.Is(err, syscall.ENETUNREACH) {
+		return "no route to target host"
+	}
+	return "dial failed"
+}
 
 var pfRestConfig *rest.Config
 var pfClientset k8s.Interface
@@ -354,6 +377,7 @@ func PortForwardStreamConnection(request PortForwardConnectionRequest) {
 				localConn, err := net.DialTimeout("tcp", dialAddr, 5*time.Second)
 				if err != nil {
 					logger.Error("Failed to dial target", "connID", connID, "dialAddr", dialAddr, "error", err)
+					wsSendText(pfmErrorPrefix + connID + ":" + pfDialErrorReason(err))
 					wsSendText(pfmClosePrefix + connID)
 					continue
 				}
@@ -371,6 +395,7 @@ func PortForwardStreamConnection(request PortForwardConnectionRequest) {
 					if err := tlsConn.Handshake(); err != nil {
 						logger.Error("TLS handshake failed", "connID", connID, "error", err)
 						localConn.Close()
+						wsSendText(pfmErrorPrefix + connID + ":tls handshake failed: " + err.Error())
 						wsSendText(pfmClosePrefix + connID)
 						continue
 					}
