@@ -23,6 +23,47 @@ const (
 	McpAuthAPIKey McpAuthType = "apiKey"
 )
 
+// MCPToolPolicyType controls how the operator handles calls to a specific MCP tool.
+type MCPToolPolicyType string
+
+const (
+	// MCPToolPolicyDeny blocks the tool entirely; agents cannot invoke it.
+	MCPToolPolicyDeny MCPToolPolicyType = "deny"
+	// MCPToolPolicyNeedsApprove intercepts the tool call and creates an approval
+	// request. The platform executes the tool only after a human approves it.
+	MCPToolPolicyNeedsApprove MCPToolPolicyType = "needsApprove"
+	// MCPToolPolicyAutoApprove lets the platform execute the tool immediately
+	// without human review. Use only for fully audited, unattended automation.
+	MCPToolPolicyAutoApprove MCPToolPolicyType = "autoApprove"
+)
+
+// MCPToolPolicy pairs a tool name with an explicit execution policy.
+type MCPToolPolicy struct {
+	// Name is the exact tool name as advertised by the MCP server.
+	// +kubebuilder:validation:MinLength=1
+	Name string `json:"name"`
+
+	// Policy controls whether the tool is denied, requires human approval, or
+	// executes automatically.
+	// +kubebuilder:validation:Enum=deny;needsApprove;autoApprove
+	Policy MCPToolPolicyType `json:"policy"`
+}
+
+// MCPToolWithPolicy reports a discovered tool together with its effective policy
+// as computed by the operator (spec.toolPolicies + readOnlyHint defaults).
+type MCPToolWithPolicy struct {
+	// Name is the tool name as advertised by the MCP server.
+	Name string `json:"name"`
+
+	// Policy is the resolved execution policy for this tool.
+	// +kubebuilder:validation:Enum=deny;needsApprove;autoApprove
+	Policy MCPToolPolicyType `json:"policy"`
+
+	// ReadOnly is true when the MCP server advertises this tool as read-only
+	// via the readOnlyHint annotation.
+	ReadOnly bool `json:"readOnly,omitempty"`
+}
+
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type McpServerList struct {
 	metav1.TypeMeta `json:",inline"`
@@ -80,9 +121,11 @@ type McpServerSpec struct {
 	// Use valueFrom to reference header values stored in a Secret.
 	Headers []McpServerHeader `json:"headers,omitempty"`
 
-	// AllowedTools is an optional allowlist of tool names exposed to agents.
-	// An empty list means all tools discovered from the server are available.
-	AllowedTools []string `json:"allowedTools,omitempty"`
+	// ToolPolicies defines per-tool execution policies. An empty list means all
+	// discovered tools are available with readOnlyHint-based defaults (read-only
+	// tools auto-execute; mutating tools require approval). When non-empty, any
+	// tool not listed is implicitly denied.
+	ToolPolicies []MCPToolPolicy `json:"toolPolicies,omitempty"`
 }
 
 // McpServerAuth configures how the operator authenticates with the MCP server.
@@ -129,13 +172,8 @@ type McpServerStatus struct {
 	// +optional
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 
-	// AvailableTools lists the tool names discovered from the MCP server at the
-	// last successful connection; empty when the server has not yet been reached
-	// or returned no tools. When AllowedTools is set, only allowed tools appear.
-	// +optional
-	AvailableTools []string `json:"availableTools,omitempty"`
-
-	// ToolCount is the number of currently available tools.
+	// ToolCount is the total number of tools discovered from the MCP server,
+	// including those denied by policy.
 	// +optional
 	ToolCount int `json:"toolCount,omitempty"`
 
@@ -143,4 +181,9 @@ type McpServerStatus struct {
 	// (RFC3339 timestamp).
 	// +optional
 	LastConnectedAt string `json:"lastConnectedAt,omitempty"`
+
+	// ToolsWithPolicies reports every discovered tool together with its effective
+	// execution policy (resolved from spec.toolPolicies and readOnlyHint defaults).
+	// +optional
+	ToolsWithPolicies []MCPToolWithPolicy `json:"toolsWithPolicies,omitempty"`
 }
