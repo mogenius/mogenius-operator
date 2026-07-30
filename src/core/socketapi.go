@@ -1842,6 +1842,9 @@ func (self *socketApi) registerPatterns() {
 			Limit              int                         `json:"limit"`
 			SortBy             string                      `json:"sortBy"`
 			SortOrder          string                      `json:"sortOrder"`
+			Search             string                      `json:"search"`
+			SearchFilters      []store.SearchFilter        `json:"searchFilters"`
+			SearchFilterGroups []store.SearchFilterGroup   `json:"searchFilterGroups"`
 		}
 
 		RegisterPatternHandler(
@@ -1856,6 +1859,9 @@ func (self *socketApi) registerPatterns() {
 					Limit:              request.Limit,
 					SortBy:             request.SortBy,
 					SortOrder:          request.SortOrder,
+					Search:             request.Search,
+					SearchFilters:      request.SearchFilters,
+					SearchFilterGroups: request.SearchFilterGroups,
 				})
 			},
 		)

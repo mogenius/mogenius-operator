@@ -163,26 +163,51 @@ func handleCRDAddition(wm watcher.WatcherModule, aiManager ai.AiManager, eventCl
 	}
 }
 
+// handleCRDDeletion stops watching the custom resource kind described by a
+// deleted CRD and purges its stored resources. The descriptor to unwatch must
+// be derived from the deleted CRD's spec — deriving it from `resource` (the
+// watcher that delivered the event, i.e. CustomResourceDefinition itself)
+// unwatched the CRD watcher instead, so the first CRD deletion made the
+// operator blind to every subsequent CRD event: later deletions never reached
+// the store, new CRDs were no longer discovered, and CRD entries stopped
+// being resynced until the operator restarted.
 func handleCRDDeletion(wm watcher.WatcherModule, resource utils.ResourceDescriptor, obj *unstructured.Unstructured) {
-	if resource.Kind == "CustomResourceDefinition" {
-		name, _, _ := unstructured.NestedString(obj.Object, "spec", "names", "plural")
-		kind, _, _ := unstructured.NestedString(obj.Object, "spec", "names", "kind")
+	if resource.Kind != "CustomResourceDefinition" {
+		return
+	}
 
-		if name == "" || kind == "" {
-			k8sLogger.Error("Error parsing CRD for unwatching", "name", name, "kind", kind)
-			return
+	plural, _, _ := unstructured.NestedString(obj.Object, "spec", "names", "plural")
+	kind, _, _ := unstructured.NestedString(obj.Object, "spec", "names", "kind")
+	group, _, _ := unstructured.NestedString(obj.Object, "spec", "group")
+	if plural == "" || kind == "" || group == "" {
+		k8sLogger.Error("Error parsing deleted CRD for unwatching", "plural", plural, "kind", kind, "group", group)
+		return
+	}
+
+	// the deleted kind must not be re-registered by a WatchStoreResources run
+	// that still sees it in the discovery cache
+	resetAvailableResourceCache()
+
+	// The kind's watcher was registered with the server's preferred version at
+	// discovery time; match by group/kind/plural against the active watchers
+	// instead of guessing which of spec.versions that was.
+	groupPrefix := group + "/"
+	for _, watched := range wm.ListWatchedResources() {
+		if watched.Kind != kind || watched.Plural != plural || !strings.HasPrefix(watched.ApiVersion, groupPrefix) {
+			continue
 		}
-		resourceToDelete := utils.ResourceDescriptor{
-			Plural:     resource.Plural,
-			Kind:       resource.Kind,
-			ApiVersion: resource.ApiVersion,
-			Namespaced: resource.Namespaced,
-		}
-		err := wm.Unwatch(resourceToDelete)
-		if err != nil {
-			k8sLogger.Error("Error unwatching resource", "name", obj.GetName(), "error", err)
+		if err := wm.Unwatch(watched); err != nil {
+			k8sLogger.Error("Error unwatching resource of deleted CRD", "kind", watched.Kind, "apiVersion", watched.ApiVersion, "error", err)
 		} else {
-			k8sLogger.Info("STOP Watching resource", "kind", obj.GetKind(), "name", obj.GetName())
+			k8sLogger.Info("STOP Watching resource", "kind", watched.Kind, "apiVersion", watched.ApiVersion)
+		}
+
+		// Purge the kind's stored resources right away: the cascade deletes of
+		// its instances may never have reached the watcher, and with the kind
+		// unwatched nothing refreshes or prunes the leftover entries — they
+		// would linger in the paginated index until their TTL expires.
+		if err := store.DropResourcesByKind(valkeyClient, watched.ApiVersion, watched.Kind, k8sLogger); err != nil {
+			k8sLogger.Error("Error purging stored resources of deleted CRD", "kind", watched.Kind, "apiVersion", watched.ApiVersion, "error", err)
 		}
 	}
 }
