@@ -5,6 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	vgo "github.com/valkey-io/valkey-go"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 func TestResourceKeyMatches(t *testing.T) {
@@ -200,7 +201,7 @@ func TestSearchFilterGroupMatches_Scoped(t *testing.T) {
 	// (De Morgan of the positive any-attribute OR)
 	g = group("", "", SearchConstraint{Operator: SearchOperatorNotContains, Value: "argo"})
 	assert.True(t, g.Matches("api-server", "Deployment", "default", "apps/v1"))
-	assert.False(t, g.Matches("api-server", "Deployment", "argocd", "apps/v1")) // namespace contains argo
+	assert.False(t, g.Matches("api-server", "Deployment", "argocd", "apps/v1"))     // namespace contains argo
 	assert.False(t, g.Matches("argocd-server", "Deployment", "default", "apps/v1")) // name contains argo
 }
 
@@ -289,4 +290,64 @@ func TestBuildSearchFilterGroups(t *testing.T) {
 	assert.Equal(t, SearchFilterGroup{Field: "name", Constraints: []SearchConstraint{{Value: "test"}}}, groups[1])
 	// empty constraint pruned, non-empty kept
 	assert.Equal(t, SearchFilterGroup{Field: "name", Operator: SearchGroupOperatorOr, Constraints: []SearchConstraint{{Value: "a"}}}, groups[2])
+}
+
+func TestEnsureTypeMeta(t *testing.T) {
+	obj := &unstructured.Unstructured{Object: map[string]interface{}{
+		"metadata": map[string]interface{}{"name": "web", "namespace": "myns"},
+	}}
+	ensureTypeMeta(obj, "apps/v1", "Deployment")
+	assert.Equal(t, "apps/v1", obj.GetAPIVersion())
+	assert.Equal(t, "Deployment", obj.GetKind())
+
+	// populated values are never overwritten
+	ensureTypeMeta(obj, "v1", "Pod")
+	assert.Equal(t, "apps/v1", obj.GetAPIVersion())
+	assert.Equal(t, "Deployment", obj.GetKind())
+
+	// nil object and empty values are no-ops
+	ensureTypeMeta(nil, "v1", "Pod")
+	empty := &unstructured.Unstructured{Object: map[string]interface{}{}}
+	ensureTypeMeta(empty, "", "")
+	assert.Equal(t, "", empty.GetAPIVersion())
+	assert.Equal(t, "", empty.GetKind())
+}
+
+func TestStampTypeMetaFromKey(t *testing.T) {
+	newObj := func(apiVersion, kind string) *unstructured.Unstructured {
+		obj := &unstructured.Unstructured{Object: map[string]interface{}{
+			"metadata": map[string]interface{}{"name": "web"},
+		}}
+		if apiVersion != "" {
+			obj.SetAPIVersion(apiVersion)
+		}
+		if kind != "" {
+			obj.SetKind(kind)
+		}
+		return obj
+	}
+
+	// empty TypeMeta is backfilled from the key segments
+	obj := newObj("", "")
+	stampTypeMetaFromKey(obj, "resources:apps/v1:Deployment:myns:web")
+	assert.Equal(t, "apps/v1", obj.GetAPIVersion())
+	assert.Equal(t, "Deployment", obj.GetKind())
+
+	// RBAC path-segment names keep their colons in the name segment
+	obj = newObj("", "")
+	stampTypeMetaFromKey(obj, "resources:rbac.authorization.k8s.io/v1:Role:kube-system:system:controller:bootstrap-signer")
+	assert.Equal(t, "rbac.authorization.k8s.io/v1", obj.GetAPIVersion())
+	assert.Equal(t, "Role", obj.GetKind())
+
+	// populated TypeMeta is left untouched
+	obj = newObj("v1", "Pod")
+	stampTypeMetaFromKey(obj, "resources:apps/v1:Deployment:myns:web")
+	assert.Equal(t, "v1", obj.GetAPIVersion())
+	assert.Equal(t, "Pod", obj.GetKind())
+
+	// malformed key is a no-op
+	obj = newObj("", "")
+	stampTypeMetaFromKey(obj, "resources:v1:Pod")
+	assert.Equal(t, "", obj.GetAPIVersion())
+	assert.Equal(t, "", obj.GetKind())
 }

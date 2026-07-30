@@ -263,11 +263,50 @@ func GetResourcesByNamespaceAndKinds(valkeyClient valkeyclient.ValkeyClient, nam
 		}
 	}
 
-	results, err := valkeyclient.GetObjectsForKeys[unstructured.Unstructured](valkeyClient, selected)
+	pairs, err := valkeyclient.GetKeyedObjectsForKeys[unstructured.Unstructured](valkeyClient, selected)
+	results := make([]unstructured.Unstructured, 0, len(pairs))
+	for _, pair := range pairs {
+		// Entries written before TypeMeta stamping (see SetResourceWithIndex)
+		// can still lack apiVersion/kind; backfill them from the key segments
+		// so consumers matching on GetKind()/GetAPIVersion() (e.g. search
+		// filters) see the same attributes as the paginated index path.
+		stampTypeMetaFromKey(&pair.Object, pair.Key)
+		results = append(results, pair.Object)
+	}
 	if err != nil {
 		return results, fmt.Errorf("fetch resources in namespace %q: %w", namespace, err)
 	}
 	return results, nil
+}
+
+// ensureTypeMeta fills empty apiVersion/kind on obj with the given
+// authoritative values (watcher descriptor or primary-key segments).
+// Populated values are never overwritten.
+func ensureTypeMeta(obj *unstructured.Unstructured, apiVersion, kind string) {
+	if obj == nil {
+		return
+	}
+	if obj.GetAPIVersion() == "" && apiVersion != "" {
+		obj.SetAPIVersion(apiVersion)
+	}
+	if obj.GetKind() == "" && kind != "" {
+		obj.SetKind(kind)
+	}
+}
+
+// stampTypeMetaFromKey backfills empty apiVersion/kind on a stored object
+// from its primary key (resources:<apiVersion>:<kind>:<namespace>:<name>).
+// The key segments are written from the watcher's ResourceDescriptor and are
+// authoritative even when the stored object's TypeMeta is empty.
+func stampTypeMetaFromKey(obj *unstructured.Unstructured, key string) {
+	if obj == nil || (obj.GetAPIVersion() != "" && obj.GetKind() != "") {
+		return
+	}
+	parts := strings.SplitN(key, ":", 5)
+	if len(parts) != 5 {
+		return
+	}
+	ensureTypeMeta(obj, parts[1], parts[2])
 }
 
 // resourceKeyMatches reports whether a primary key belongs to the given
@@ -438,6 +477,11 @@ func SetResourceWithIndex(
 	obj *unstructured.Unstructured,
 	ttl time.Duration,
 ) error {
+	// Persist the authoritative TypeMeta with the object: readers that
+	// aggregate across kinds (workspace search filters, helm workload
+	// matching) rely on GetKind()/GetAPIVersion() of the stored payload.
+	ensureTypeMeta(obj, apiVersion, kind)
+
 	payload, err := json.Marshal(obj)
 	if err != nil {
 		return fmt.Errorf("marshal resource for store: %w", err)
