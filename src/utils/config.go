@@ -140,6 +140,13 @@ var WorkspaceDashboardResource = ResourceDescriptor{
 	Namespaced: true,
 }
 
+var UIConfigResource = ResourceDescriptor{
+	Kind:       "UIConfig",
+	Plural:     "uiconfigs",
+	ApiVersion: "mogenius.com/v1alpha1",
+	Namespaced: false,
+}
+
 var GrantResource = ResourceDescriptor{
 	Kind:       "Grant",
 	Plural:     "grants",
@@ -164,6 +171,13 @@ var AgentResource = ResourceDescriptor{
 var AiModelResource = ResourceDescriptor{
 	Kind:       "AiModel",
 	Plural:     "aimodels",
+	ApiVersion: "mogenius.com/v1alpha1",
+	Namespaced: true,
+}
+
+var McpServerResource = ResourceDescriptor{
+	Kind:       "McpServer",
+	Plural:     "mcpservers",
 	ApiVersion: "mogenius.com/v1alpha1",
 	Namespaced: true,
 }

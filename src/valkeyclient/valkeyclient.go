@@ -748,20 +748,41 @@ func GetObjectsByPattern[T any](store ValkeyClient, pattern string, keywords []s
 // GetObjectsForKeys fetches and unmarshals the values for an explicit key
 // list via chunked MGETs (100 keys per roundtrip).
 func GetObjectsForKeys[T any](store ValkeyClient, keyList []string) ([]T, error) {
+	pairs, err := GetKeyedObjectsForKeys[T](store, keyList)
+	result := make([]T, 0, len(pairs))
+	for _, p := range pairs {
+		result = append(result, p.Object)
+	}
+	return result, err
+}
+
+// KeyedObject pairs a fetched object with the key it was read from, for
+// callers that need to know which key produced which value (e.g. to derive
+// attributes encoded in the key segments).
+type KeyedObject[T any] struct {
+	Key    string
+	Object T
+}
+
+// GetKeyedObjectsForKeys is GetObjectsForKeys keeping the key alongside each
+// unmarshalled value. Keys that were deleted or expired between discovery and
+// fetch are skipped, so the result may be shorter than keyList.
+func GetKeyedObjectsForKeys[T any](store ValkeyClient, keyList []string) ([]KeyedObject[T], error) {
 	if len(keyList) == 0 {
-		return []T{}, nil
+		return []KeyedObject[T]{}, nil
 	}
 
 	client := store.GetValkeyClient()
-	result := make([]T, 0, len(keyList))
+	result := make([]KeyedObject[T], 0, len(keyList))
 
 	for i := 0; i < len(keyList); i += MAX_CHUNK_GET_SIZE {
 		end := min(i+MAX_CHUNK_GET_SIZE, len(keyList))
-		values, err := client.Do(store.GetContext(), client.B().Mget().Key(keyList[i:end]...).Build()).AsStrSlice()
+		chunk := keyList[i:end]
+		values, err := client.Do(store.GetContext(), client.B().Mget().Key(chunk...).Build()).AsStrSlice()
 		if err != nil {
 			return result, err
 		}
-		for _, v := range values {
+		for j, v := range values {
 			// MGET yields an empty entry for keys that were deleted or
 			// expired between key discovery and fetch; skip those instead
 			// of failing the whole batch.
@@ -772,7 +793,7 @@ func GetObjectsForKeys[T any](store ValkeyClient, keyList []string) ([]T, error)
 			if err := json.Unmarshal([]byte(v), &obj); err != nil {
 				return result, fmt.Errorf("error unmarshalling value from Valkey: %w", err)
 			}
-			result = append(result, obj)
+			result = append(result, KeyedObject[T]{Key: chunk[j], Object: obj})
 		}
 	}
 

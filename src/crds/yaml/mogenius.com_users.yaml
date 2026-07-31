@@ -14,7 +14,20 @@ spec:
     singular: user
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .spec.email
+      name: Email
+      type: string
+    - jsonPath: .spec.firstName
+      name: First Name
+      type: string
+    - jsonPath: .spec.lastName
+      name: Last Name
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: "A mogenius `User` resource contains information about a user
@@ -94,3 +107,4 @@ spec:
         type: object
     served: true
     storage: true
+    subresources: {}

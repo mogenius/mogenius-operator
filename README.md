@@ -102,6 +102,7 @@ if [[ -f .env ]]; then export $(grep -v '^#' .env | xargs); fi
 | `MO_API_SERVER_CLIENTS` | `1` | Number of parallel WebSocket connections to the API server |
 | `MO_EVENT_SERVER` | — | URL of the platform event WebSocket server (**required**) |
 | `MO_SKIP_TLS_VERIFICATION` | `false` | Skip TLS verification for API and Event Server |
+| `MO_PORT_FORWARD_ALLOW_EXTERNAL_HOSTS` | `false` | Allow port-forward tunnels to dial arbitrary hosts/IPs on the operator's network (`kind=host`), not just Kubernetes workloads. Off by default — enabling turns the operator into a proxy into the node's LAN (SSRF surface). Env alias: `PORT_FORWARD_ALLOW_EXTERNAL_HOSTS` |
 | `MO_VALKEY_ADDR` | — | Address (`host:port`) of the Valkey/Redis server (**required**) |
 | `MO_VALKEY_PASSWORD` | — | Password for the Valkey/Redis server |
 | `MO_HTTP_ADDR` | `:1337` | Listen address for the operator HTTP API |

@@ -1,6 +1,10 @@
 fullnameOverride: mogenius-operator
 revisionHistoryLimit: 10
 
+serviceAccount:
+  # -- name of the ServiceAccount used by the operator (default: mogenius-operator-service-account-app)
+  name: ~
+
 
 # -- settings for the internal cluster communication
 cluster:
@@ -169,7 +173,7 @@ valkey:
   image:
     registry: docker.io
     repository: valkey/valkey
-    tag: 9.1.0
+    tag: 9.1.1
   podLabels: {}
   containerSecurityContext:
     readOnlyRootFilesystem: true
@@ -202,7 +206,7 @@ valkey:
       image:
         registry: docker.io
         repository: oliver006/redis_exporter
-        tag: v1.87.0
+        tag: v1.88.0
       resources: {}
       containerSecurityContext:
         readOnlyRootFilesystem: true

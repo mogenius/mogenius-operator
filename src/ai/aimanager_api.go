@@ -1,12 +1,13 @@
 package ai
 
 import (
-	"errors"
 	"fmt"
 	"mogenius-operator/src/crds/v1alpha1"
 	"mogenius-operator/src/store"
 	"mogenius-operator/src/structs"
 	"mogenius-operator/src/utils"
+	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -134,15 +135,23 @@ func (ai *aiManager) GetAiTasksForWorkspace(workspace string) ([]AiTask, error) 
 	}
 
 	var tasks []AiTask
+	workspaceNamespaces := map[string]bool{}
 	for _, workspaceResource := range workspaceObject.Spec.Resources {
 
 		switch workspaceResource.Type {
 		case "namespace":
+			workspaceNamespaces[workspaceResource.Id] = true
 			tasksForNamespace, err := ai.getAiTasksForNamespace(workspaceResource.Id)
 			if err != nil {
 				return nil, fmt.Errorf("failed to get AI tasks for namespace '%s': %v", workspaceResource.Id, err)
 			}
-			tasks = append(tasks, tasksForNamespace...)
+			for _, task := range tasksForNamespace {
+				// Whole-scope agent tasks are matched by scope/finding
+				// namespace below, not by their storage key.
+				if !isAgentTaskID(task.ID) {
+					tasks = append(tasks, task)
+				}
+			}
 		case "helm", "argocd":
 			ai.logger.Error("Retrieving AI Tasks for this workspace type will be possible in the future", "workspace", workspace, "type", workspaceResource.Type)
 		default:
@@ -150,6 +159,35 @@ func (ai *aiManager) GetAiTasksForWorkspace(workspace string) ([]AiTask, error) 
 		}
 	}
 
+	agentTasks, err := ai.getAgentTasksForNamespaces(workspaceNamespaces)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get agent AI tasks for workspace '%s': %v", workspace, err)
+	}
+	tasks = append(tasks, agentTasks...)
+
+	return tasks, nil
+}
+
+// getAgentTasksForNamespaces returns every whole-scope agent task (runs,
+// all-clear reports and findings) visible to a workspace holding the given
+// namespaces — decided per task by agentTaskVisibleInNamespaces instead of
+// the storage key, so cluster-wide runs appear in every affected workspace
+// and findings only where their target namespace lives.
+func (ai *aiManager) getAgentTasksForNamespaces(namespaces map[string]bool) ([]AiTask, error) {
+	keys, err := ai.valkeyClient.Keys(agentTaskIDPrefix + "*")
+	if err != nil {
+		return nil, err
+	}
+	var tasks []AiTask
+	for _, key := range keys {
+		task, err := ai.getTaskByKey(key)
+		if err != nil || task == nil {
+			continue
+		}
+		if agentTaskVisibleInNamespaces(task, namespaces) {
+			tasks = append(tasks, *task)
+		}
+	}
 	return tasks, nil
 }
 
@@ -323,27 +361,78 @@ func (ai *aiManager) GetStatus(workspace *string) AiManagerStatus {
 
 	// Errors here are non-fatal - the status is returned with zero values
 	// for whatever could not be read. They were previously discarded
-	// silently, which hid the empty-state cause (e.g. AI config secret not
-	// reachable). Collect and log them once so the condition is visible.
-	// The status reports the effective default model (default AiModel CR or
-	// legacy secret); agents may still run on other models via modelRef.
+	// silently, which hid the empty-state cause. Collect and log them once so
+	// the condition is visible. The top-level fields report the effective
+	// default model; agents may still run on other models via modelRef — the
+	// Models breakdown covers those.
 	var sdk AiSdkType
 	var model, apiUrl string
 	var maxToolCalls int
+	limit := defaultDailyTokenLimit
 	rc, rcErr := ai.resolveModelConfig(nil)
 	if rc != nil {
 		sdk, model, apiUrl, maxToolCalls = rc.Sdk, rc.Model, rc.BaseUrl, rc.MaxToolCalls
+		limit = rc.DailyTokenLimit
+	} else if rcErr != nil {
+		ai.logger.Warn("failed to resolve the default AI model", "error", rcErr)
 	}
-	limit, limitErr := ai.getDailyTokenLimit()
-	if settingsErr := errors.Join(rcErr, limitErr); settingsErr != nil {
-		ai.logger.Warn("failed to read one or more AI config settings", "error", settingsErr)
-	}
-	tokensUsed, todaysProcessedTasks, _ := ai.getTodayTokenUsage()
 
-	if tokensUsed > limit {
-		ai.setError(fmt.Sprintf("Daily AI token limit exceeded (%d tokens used of %d).", tokensUsed, limit))
+	var tokensUsed int64
+	var todaysProcessedTasks int
+	modelUsage := []AiModelUsageInfo{}
+	snapshot, snapErr := ai.todayUsageSnapshot()
+	if snapErr != nil {
+		ai.logger.Warn("failed to read AI token usage", "error", snapErr)
 	} else {
-		ai.clearTokenLimitError()
+		tokensUsed = snapshot.TotalTokens
+		todaysProcessedTasks = snapshot.TotalRuns
+
+		// Per-model breakdown: budgets live on the AiModel CRs, so exceeded/
+		// approaching states are derived per model, not cluster-wide.
+		if models, err := ai.listAiModels(); err == nil {
+			var exceeded, approaching []string
+			for _, m := range models {
+				modelLimit := defaultDailyTokenLimit
+				if m.Spec.DailyTokenLimit != nil {
+					modelLimit = *m.Spec.DailyTokenLimit
+				}
+				used := snapshot.PerModel[m.Name]
+				info := AiModelUsageInfo{
+					Name:            m.Name,
+					DisplayName:     m.Spec.DisplayName,
+					Model:           m.Spec.Model,
+					Default:         m.Spec.Default,
+					TokensUsedToday: used,
+					DailyTokenLimit: modelLimit,
+					Exceeded:        modelLimit > 0 && used >= modelLimit,
+				}
+				modelUsage = append(modelUsage, info)
+				if info.Exceeded {
+					exceeded = append(exceeded, fmt.Sprintf("%s (%d of %d)", m.Name, used, modelLimit))
+				} else if modelLimit > 0 && used >= int64(float64(modelLimit)*0.8) {
+					approaching = append(approaching, fmt.Sprintf("%s (%d of %d)", m.Name, used, modelLimit))
+				}
+			}
+			sort.Slice(modelUsage, func(i, j int) bool {
+				if modelUsage[i].Default != modelUsage[j].Default {
+					return modelUsage[i].Default
+				}
+				return modelUsage[i].Name < modelUsage[j].Name
+			})
+
+			// Prefixes must stay in sync with clearTokenLimitError /
+			// clearTokenLimitWarning.
+			if len(exceeded) > 0 {
+				ai.setError(fmt.Sprintf("Daily AI token limit reached for model(s): %s. Runs with these models resume after midnight or a usage reset.", strings.Join(exceeded, ", ")))
+			} else {
+				ai.clearTokenLimitError()
+			}
+			if len(approaching) > 0 {
+				ai.setWarning(fmt.Sprintf("Approaching daily AI token limit for model(s): %s.", strings.Join(approaching, ", ")))
+			} else {
+				ai.clearTokenLimitWarning()
+			}
+		}
 	}
 	var totalDbEntries int = 0
 	var unprocessedDbEntries int = 0
@@ -360,29 +449,21 @@ func (ai *aiManager) GetStatus(workspace *string) AiManagerStatus {
 			var workspaceObject *v1alpha1.Workspace
 			workspaceObject, err = store.GetWorkspace(ownNamespace, *workspace)
 			if err == nil && workspaceObject != nil {
+				workspaceNamespaces := map[string]bool{}
 				for _, workspaceResource := range workspaceObject.Spec.Resources {
 
 					switch workspaceResource.Type {
 					case "namespace":
-						var totalDbEntriesForNs int
-						var unprocessedDbEntriesForNs int
-						var ignoredDbEntriesForNs int
-						var numberOfUnreadTasksForNs int
-						var err error
-						totalDbEntriesForNs, unprocessedDbEntriesForNs, ignoredDbEntriesForNs, numberOfUnreadTasksForNs, err = ai.getDbStats(&workspaceResource.Id)
-						if err != nil {
-							ai.logger.Warn("Failed to get DB stats for workspace namespace", "workspace", workspace, "namespace", workspaceResource.Id, "error", err)
-							continue
-						}
-						totalDbEntries += totalDbEntriesForNs
-						unprocessedDbEntries += unprocessedDbEntriesForNs
-						ignoredDbEntries += ignoredDbEntriesForNs
-						numberOfUnreadTasks += numberOfUnreadTasksForNs
+						workspaceNamespaces[workspaceResource.Id] = true
 					case "helm", "argocd":
 						ai.logger.Error("Retrieving AI Tasks for this workspace type will be possible in the future", "workspace", workspace, "type", workspaceResource.Type)
 					default:
 						ai.logger.Error("Retrieving AI Tasks for unknown workspace type is not possible", "workspace", workspace, "type", workspaceResource.Type)
 					}
+				}
+				totalDbEntries, unprocessedDbEntries, ignoredDbEntries, numberOfUnreadTasks, err = ai.getDbStatsForNamespaces(workspaceNamespaces)
+				if err != nil {
+					ai.logger.Warn("Failed to get DB stats for workspace", "workspace", workspace, "error", err)
 				}
 			}
 		}
@@ -415,6 +496,7 @@ func (ai *aiManager) GetStatus(workspace *string) AiManagerStatus {
 		Warning:                     statusWarn,
 		NumberOfUnreadTasks:         numberOfUnreadTasks,
 		NextTokenResetTime:          nextReset.Format(time.RFC3339),
+		Models:                      modelUsage,
 	}
 	aiStatusMu.Lock()
 	if workspace != nil {
@@ -428,23 +510,12 @@ func (ai *aiManager) GetStatus(workspace *string) AiManagerStatus {
 	return status
 }
 
-func (ai *aiManager) ResetDailyTokenLimit() error {
-	if err := ai.resetTodayTokenUsage(); err != nil {
-		return err
-	}
-	// Invalidate the cached status: a running task pushes progress events
-	// every couple of seconds, and without this they would carry the stale
-	// pre-reset token count until the cache expires — the UI bar would jump
-	// back to the old value right after the reset.
-	ai.resetCache()
-	return nil
-}
-
 func (ai *aiManager) DeleteAllAiData() error {
 	prefixes := []string{
 		DB_AI_BUCKET_TASKS + ":*",
 		DB_AI_BUCKET_TOKENS + ":*",
 		DB_AI_BUCKET_TASKS_LATEST + ":*",
+		DB_AI_BUCKET_RUN_STEPS + ":*",
 	}
 	ai.resetCache()
 	err := ai.valkeyClient.DeleteMultiple(prefixes...)

@@ -1,0 +1,25 @@
+# Agent pinned to a specific AiModel with per-agent budget overrides.
+# Precedence for budgets: agent spec > model spec > built-in defaults.
+apiVersion: mogenius.com/v1alpha1
+kind: Agent
+metadata:
+  name: cleaner
+  namespace: mogenius
+spec:
+  displayName: Cleaner
+  description: Finds obsolete resources cluttering the cluster.
+  instruction: |
+    Find obsolete resources (completed Jobs, superseded zero-replica
+    ReplicaSets, leftover pods) and propose deleting them. Bundle similar
+    deletions into a single bulk proposal.
+  enabled: true
+  scope:
+    namespaces:
+      - "*"
+  triggers:
+    cron: "0 6 * * 1"
+  # Runs on this AiModel CR; omit to use the cluster default.
+  modelRef: ollama-local
+  # Optional per-agent overrides of the model's per-run budgets:
+  maxToolCalls: 80
+  maxTokensPerRun: 100000

@@ -143,10 +143,15 @@ func initializeClusterSystems(
 	services.Setup(logManagerModule, configModule, base.clientProvider)
 	structs.Setup(logManagerModule)
 	xterm.Setup(logManagerModule, base.valkeyClient)
-	xterm.SetupPortForward(base.clientProvider.ClientConfig(), base.clientProvider.K8sClientSet())
+	allowExternalHosts, _ := strconv.ParseBool(configModule.Get("MO_PORT_FORWARD_ALLOW_EXTERNAL_HOSTS"))
+	xterm.SetupPortForward(
+		base.clientProvider.ClientConfig(),
+		base.clientProvider.K8sClientSet(),
+		allowExternalHosts,
+	)
 
 	argocdModule := argocd.NewArgoCd(logManagerModule, configModule, base.clientProvider, base.valkeyClient)
-	workspaceManager := core.NewWorkspaceManager(configModule, base.clientProvider)
+	workspaceManager := core.NewWorkspaceManager(logManagerModule.CreateLogger("workspace-manager"), configModule, base.clientProvider)
 	apiModule := core.NewApi(logManagerModule.CreateLogger("api"), base.valkeyClient, configModule)
 	aiApi := core.NewAiApi(logManagerModule.CreateLogger("apApi"), aiManager)
 	httpApi := core.NewHttpApi(logManagerModule, configModule)
@@ -269,8 +274,6 @@ func RunCluster(logManagerModule logging.SlogManager, configModule *config.Confi
 		systems.leaderElector.OnLeading(func() {
 			systems.reconciler.Start()
 			logStep("Reconciler started")
-
-			core.SeedDefaultAiModel(logManagerModule.CreateLogger("aimodel-seeder"), configModule, systems.clientProvider)
 
 			core.SeedDefaultAgents(logManagerModule.CreateLogger("agent-seeder"), configModule, systems.clientProvider, systems.workspaceManager)
 

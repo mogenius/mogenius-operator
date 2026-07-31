@@ -22,6 +22,9 @@ type ChatRequest struct {
 	WebsocketScheme string `json:"websocketScheme" validate:"required"`
 	WebsocketHost   string `json:"websocketHost" validate:"required"`
 	IsAdmin         bool   `json:"isAdmin" validate:"boolean"`
+	// Model is the AiModel CR name this session runs on; empty picks the
+	// preferred chat-enabled model (default flag, then oldest).
+	Model string `json:"model,omitempty"`
 }
 
 type AiWebsocketConnection interface {
@@ -79,6 +82,7 @@ type IOChatChannel struct {
 	WorkspaceSpec  *v1alpha1.WorkspaceSpec // Optional workspace information
 	WorkspaceGrant *v1alpha1.GrantSpec     // Optional workspace grant information
 	OnAudit        AuditCallback           // Optional callback for audit logging
+	ModelRef       string                  // AiModel CR name the session runs on; empty picks the preferred chat-enabled model
 }
 
 // emitAuditEvent calls the OnAudit callback if configured on the channel.
@@ -144,6 +148,7 @@ func (self *aiWebsocketConnection) LiveStreamAiManagerChatRequest(request ChatRe
 		User:      &datagram.User,
 		Workspace: datagram.Workspace,
 		IsAdmin:   request.IsAdmin,
+		ModelRef:  request.Model,
 		OnAudit: func(event AuditEvent) {
 			store.AddAiChatAuditLog(logger, event.Pattern, event.Payload, event.Result, event.Error, datagram.User, datagram.Workspace)
 		},

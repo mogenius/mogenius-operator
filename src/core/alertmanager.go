@@ -6,6 +6,7 @@ import (
 	"io"
 	"log/slog"
 	cfg "mogenius-operator/src/config"
+	"mogenius-operator/src/dtos"
 	"mogenius-operator/src/kubernetes"
 	"net/http"
 	"time"
@@ -14,6 +15,8 @@ import (
 )
 
 type AlertmanagerService interface {
+	Status() (dtos.ComponentStatus, error)
+	IsReachable() (bool, error)
 	GetAlerts() ([]Alert, error)
 	SendAlert(alerts []SendAlertRequest) error
 	SilenceAlert(silence SilenceRequest) (string, error)
@@ -267,6 +270,43 @@ func (s *alertmanagerService) DeleteSilence(silenceID string) error {
 
 	s.logger.Debug("Deleted Alertmanager silence", "silenceID", silenceID, "url", url)
 	return nil
+}
+
+// Status reports whether an Alertmanager is installed in the cluster, based on service discovery
+func (s *alertmanagerService) Status() (dtos.ComponentStatus, error) {
+	namespace, _, _, _, err := kubernetes.FindAlertmanagerService()
+	if err != nil {
+		return dtos.ComponentStatus{Installed: false}, nil
+	}
+	return dtos.ComponentStatus{Installed: true, Namespace: namespace}, nil
+}
+
+// IsReachable makes a live HTTP call to the discovered Alertmanager and reports whether it currently responds.
+func (s *alertmanagerService) IsReachable() (bool, error) {
+	baseUrl, err := alertmanagerUrl(s.config)
+	if err != nil {
+		return false, nil
+	}
+
+	url := fmt.Sprintf("%s/api/v2/status", baseUrl)
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return false, fmt.Errorf("alertmanager: create request: %w", err)
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		s.logger.Warn("alertmanager reachability check failed", "url", url, "error", err)
+		return false, nil
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		s.logger.Warn("alertmanager not reachable", "url", url, "statusCode", resp.StatusCode)
+		return false, nil
+	}
+
+	return true, nil
 }
 
 func alertmanagerUrl(config cfg.ConfigModule) (string, error) {

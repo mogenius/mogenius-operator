@@ -134,11 +134,15 @@ generate: _install_controller_gen
     go generate ./...
 
 # Run tests and linters for quick iteration locally.
-check: generate golangci-lint test-unit
+check: generate golangci-lint test-unit test-helm
 
 # Execute unit tests
 test-unit: generate
     go run gotest.tools/gotestsum@latest --format="testname" --hide-summary="skipped" --format-hide-empty-pkg --rerun-fails="0" -- -count=1 ./src/...
+
+# Execute Helm chart unit tests (requires the helm-unittest plugin)
+test-helm:
+    helm unittest -f 'unittests/*_test.yaml' helm/charts/mogenius-operator
 
 # Execute integration tests
 test-integration: generate
@@ -146,4 +150,4 @@ test-integration: generate
 
 # Execute golangci-lint
 golangci-lint: generate
-    go run github.com/golangci/golangci-lint/cmd/golangci-lint@latest run '--fast=false' --sort-results '--max-same-issues=0' '--timeout=1h' ./src/...
+    go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest run '--max-same-issues=0' ./src/...

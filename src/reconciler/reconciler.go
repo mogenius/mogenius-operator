@@ -3,6 +3,7 @@ package reconciler
 import (
 	"context"
 	"log/slog"
+	"maps"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -45,6 +46,20 @@ type ResourceConfig struct {
 	Resource utils.ResourceDescriptor
 	// Reconcile is called whenever an object needs to be reconciled.
 	Reconcile ReconcileFunc
+	// Filters are optional predicates; an object is only reconciled when all
+	// filters return true. Applied before caching, so non-matching objects are
+	// never stored or processed.
+	Filters []ObjectFilter
+}
+
+// ObjectFilter is a predicate on an unstructured object.
+type ObjectFilter func(*unstructured.Unstructured) bool
+
+// NamespaceFilter returns an ObjectFilter that accepts only objects in ns.
+func NamespaceFilter(ns string) ObjectFilter {
+	return func(obj *unstructured.Unstructured) bool {
+		return obj.GetNamespace() == ns
+	}
 }
 
 // ObjectStatus holds the last reconciliation error or warning for one object.
@@ -136,29 +151,28 @@ func (r *genericReconciler) Start() {
 		err := r.watcher.Watch(
 			cfg.Resource,
 			func(_ utils.ResourceDescriptor, obj *unstructured.Unstructured) {
+				if !matchesFilters(cfg, obj) {
+					return
+				}
 				cache.set(obj)
 				metrics.SetReconcileTrackedObjects(cfg.Resource.Kind, cache.len())
 				r.callHandler(ctx, cfg, obj, createOperation)
 			},
 			func(_ utils.ResourceDescriptor, oldObj *unstructured.Unstructured, newObj *unstructured.Unstructured) {
-				cache.set(newObj)
-				metrics.SetReconcileTrackedObjects(cfg.Resource.Kind, cache.len())
-				// Informer resyncs redeliver every object unchanged, and
-				// status-only patches don't bump metadata.generation (CRs
-				// increment it on every non-metadata change; with a status
-				// subresource, status writes are exempt). Skipping both
-				// prevents resync reconcile storms and self-triggering
-				// loops (reconcile -> status patch -> update event ->
-				// reconcile). The periodic background sweep covers drift.
-				if oldObj.GetResourceVersion() == newObj.GetResourceVersion() {
+				if !matchesFilters(cfg, newObj) {
 					return
 				}
-				if newObj.GetGeneration() != 0 && oldObj.GetGeneration() == newObj.GetGeneration() {
+				cache.set(newObj)
+				metrics.SetReconcileTrackedObjects(cfg.Resource.Kind, cache.len())
+				if !shouldReconcileUpdate(oldObj, newObj) {
 					return
 				}
 				r.callHandler(ctx, cfg, newObj, updateOperation)
 			},
 			func(_ utils.ResourceDescriptor, obj *unstructured.Unstructured) {
+				if !matchesFilters(cfg, obj) {
+					return
+				}
 				cache.remove(obj)
 				metrics.SetReconcileTrackedObjects(cfg.Resource.Kind, cache.len())
 				r.clearObjectStatus(obj)
@@ -205,6 +219,37 @@ func (r *genericReconciler) Stop() {
 	r.statusMu.Lock()
 	r.objectState = make(map[objectKey]ObjectStatus)
 	r.statusMu.Unlock()
+}
+
+// shouldReconcileUpdate reports whether an update event carries a change the
+// reconcile handlers care about. Informer resyncs redeliver every object
+// unchanged (same resourceVersion), and status-only patches don't bump
+// metadata.generation (CRs increment it on every non-metadata change; with a
+// status subresource, status writes are exempt). Skipping both prevents
+// resync reconcile storms and self-triggering loops (reconcile -> status
+// patch -> update event -> reconcile); the periodic background sweep covers
+// drift. Annotation changes don't bump the generation either but DO carry
+// intent — the manual agent-run trigger is an annotation — so they must pass.
+// Status writes never touch annotations, which keeps the loop protection
+// intact.
+func shouldReconcileUpdate(oldObj, newObj *unstructured.Unstructured) bool {
+	if oldObj.GetResourceVersion() == newObj.GetResourceVersion() {
+		return false
+	}
+	if newObj.GetGeneration() != 0 && oldObj.GetGeneration() == newObj.GetGeneration() &&
+		maps.Equal(oldObj.GetAnnotations(), newObj.GetAnnotations()) {
+		return false
+	}
+	return true
+}
+
+func matchesFilters(cfg ResourceConfig, obj *unstructured.Unstructured) bool {
+	for _, f := range cfg.Filters {
+		if !f(obj) {
+			return false
+		}
+	}
+	return true
 }
 
 func (r *genericReconciler) callHandler(ctx context.Context, cfg ResourceConfig, obj *unstructured.Unstructured, operation operation) {

@@ -1,10 +1,4 @@
 {{- if not .Values.cluster.readonly.enabled }}
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: mogenius-operator-service-account-app
-  namespace: {{ .Release.Namespace }}
----
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -21,7 +15,7 @@ metadata:
   name: {{ .Values.fullnameOverride }}
 subjects:
 - kind: ServiceAccount
-  name: mogenius-operator-service-account-app
+  name: {{ include "chart.serviceAccountName" . }}
   namespace: {{ .Release.Namespace }}
 roleRef:
   kind: ClusterRole

@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	cfg "mogenius-operator/src/config"
 	"mogenius-operator/src/crds/v1alpha1"
+	"mogenius-operator/src/metrics"
 	"mogenius-operator/src/store"
 	"mogenius-operator/src/structs"
 	"mogenius-operator/src/utils"
@@ -77,6 +78,15 @@ type AiTask struct {
 	Trigger         string        `json:"trigger,omitempty"`         // "event", "cron" or "manual"
 	TriggeredByUser *structs.User `json:"triggeredByUser,omitempty"` // set for manual triggers
 
+	// ScopeNamespaces snapshots the agent's resolved scope at enqueue time.
+	// Workspace visibility of whole-scope runs is decided from this data, not
+	// from the task's storage key (see agentTaskVisibleInNamespaces).
+	ScopeNamespaces []string `json:"scopeNamespaces,omitempty"`
+	// ScopeAllNamespaces marks a wildcard ("*") scope: the run is visible to
+	// every workspace, including ones whose namespaces did not exist yet when
+	// the run was enqueued.
+	ScopeAllNamespaces bool `json:"scopeAllNamespaces,omitempty"`
+
 	// BaseResourceVersion is the target resource's resourceVersion at proposal
 	// time; approval refuses to execute when the resource changed since.
 	BaseResourceVersion string          `json:"baseResourceVersion,omitempty"`
@@ -110,6 +120,12 @@ const (
 	AI_TASK_STATE_FAILED      AiTaskState = "failed"
 	AI_TASK_STATE_IGNORED     AiTaskState = "ignored"
 	AI_TASK_STATE_SOLVED      AiTaskState = "solved"
+
+	// cancel lifecycle: a user abort flips an in-progress run to "cancelling"
+	// the moment the request arrives (immediate UI feedback) and to the
+	// terminal "canceled" once the processing loop has unwound.
+	AI_TASK_STATE_CANCELLING AiTaskState = "cancelling"
+	AI_TASK_STATE_CANCELED   AiTaskState = "canceled"
 
 	// proposal lifecycle: an analysis with an actionable proposed operation
 	// becomes "proposed" and waits for a user decision; approval executes the
@@ -170,6 +186,23 @@ type AiManagerStatus struct {
 	Error                       string    `json:"error,omitempty"`
 	Warning                     string    `json:"warning,omitempty"`
 	NextTokenResetTime          string    `json:"nextTokenResetTime,omitempty"`
+
+	// Models is the per-AiModel usage breakdown (daily budgets live on the
+	// model CRs). TokensUsed/TokenLimit above stay populated for backward
+	// compatibility: cluster-wide total and the default model's limit.
+	Models []AiModelUsageInfo `json:"models,omitempty"`
+}
+
+// AiModelUsageInfo reports one AiModel's daily budget consumption.
+type AiModelUsageInfo struct {
+	Name            string `json:"name"`
+	DisplayName     string `json:"displayName,omitempty"`
+	Model           string `json:"model"`
+	Default         bool   `json:"default,omitempty"`
+	TokensUsedToday int64  `json:"tokensUsedToday"`
+	// DailyTokenLimit is the effective daily budget; 0 means unlimited.
+	DailyTokenLimit int64 `json:"dailyTokenLimit"`
+	Exceeded        bool  `json:"exceeded,omitempty"`
 }
 
 type AiResponse struct {
@@ -215,12 +248,23 @@ type UsedToken struct {
 	Key          string    `json:"key"`
 	Model        string    `json:"model"`
 	TimeUsedInMs int       `json:"timeUsedInMs"`
+	// ModelRef is the AiModel CR name the usage counts against (per-model
+	// daily budgets). Entries written before per-model accounting have it
+	// empty and count into the cluster total only.
+	ModelRef string `json:"modelRef,omitempty"`
 }
 
 type ModelsRequest struct {
 	Sdk    string  `json:"SDK,omitempty"`
 	ApiKey *string `json:"API_KEY,omitempty"`
 	ApiUrl string  `json:"API_URL,omitempty"`
+
+	// Alternative to API_KEY: reference to a Secret in the operator namespace
+	// holding the key — the AiModel UI only knows the reference, never the key
+	// value, so model listing resolves it server-side. API_KEY wins when both
+	// are set; the key name defaults to DefaultApiKeySecretKey.
+	ApiKeySecretName string `json:"API_KEY_SECRET_NAME,omitempty"`
+	ApiKeySecretKey  string `json:"API_KEY_SECRET_KEY,omitempty"`
 }
 type AiManager interface {
 	ProcessObject(obj *unstructured.Unstructured, eventType string, resource utils.ResourceDescriptor) // eventType can be "add", "update", "delete"
@@ -231,11 +275,18 @@ type AiManager interface {
 	GetAiTasksForWorkspace(workspace string) ([]AiTask, error)
 	GetAiTasksForResource(resourceReq utils.WorkloadSingleRequest) ([]AiTask, error)
 	GetLatestTask(workspace *string) (*AiTaskLatest, error)
+	// GetRun assembles one agent run (metadata from the primary task, the
+	// recorded ReAct steps and the IDs of all finding tasks of the run).
+	GetRun(runID string) (*AiRun, error)
 	InjectAiPromptConfig(prompt AiPromptConfig, aiPrompts *AiPrompts)
 	GetStatus(workspace *string) AiManagerStatus
-	ResetDailyTokenLimit() error
+	// ResetTokenUsageForModel zeroes today's recorded token usage of one
+	// AiModel (by CR name) and returns the number of tokens cleared. Called
+	// by the AiModel reconciler when the reset-usage annotation changes.
+	ResetTokenUsageForModel(modelCrName string) (int64, error)
 	DeleteAllAiData() error
 	GetAvailableModels(request *ModelsRequest) ([]string, error)
+	TestAiModel(name string) (*AiModelTestResult, error)
 	GetPromptConfig() (*AiPromptConfig, error)
 	Chat(ctx context.Context, ch IOChatChannel) error
 
@@ -246,6 +297,27 @@ type AiManager interface {
 	TriggerAgent(agentName string, user *structs.User) (*AiTask, error)
 
 	ResolveWorkspaceContext(userEmail string, workspaceName string) (*v1alpha1.WorkspaceSpec, *v1alpha1.GrantSpec)
+
+	// NotifyMcpServerChanged reconnects the named McpServer CR's MCP server and
+	// returns the discovered tool names. Called by the reconciler on create/update.
+	NotifyMcpServerChanged(name string) ([]string, error)
+
+	// NotifyMcpServerDeleted removes the session for the named McpServer CR. Called
+	// by the reconciler on delete.
+	NotifyMcpServerDeleted(name string)
+
+	// RefreshAllMcpServerCRConnections (re)connects all McpServer CRs from the
+	// operator namespace. Called once at startup.
+	RefreshAllMcpServerCRConnections()
+
+	// HasMcpSession reports whether a live session for the named server exists.
+	// Used by the reconciler to choose between a full reconnect and a probe.
+	HasMcpSession(name string) bool
+
+	// ProbeMcpSession refreshes the tool list on an existing session via a
+	// lightweight ListTools call without tearing down the connection.
+	// Returns the (possibly updated) tool names.
+	ProbeMcpSession(ctx context.Context, name string) ([]string, error)
 }
 
 type SecretGetter func(namespace, name string) (*coreV1.Secret, error)
@@ -284,9 +356,23 @@ type aiManager struct {
 	// exactly one follow-up pass.
 	taskQueueKick chan struct{}
 
+	// runCancels holds the context cancel func of every run executing on THIS
+	// replica, keyed by task ID. A cancel request aborts the in-flight LLM
+	// call immediately through it; the Valkey cancel marker stays as the
+	// fallback that reaches runs on other replicas at the next turn boundary.
+	runCancelMu sync.Mutex
+	runCancels  map[string]context.CancelFunc
+
 	// prompts
 	chatPromptMu sync.RWMutex
 	aiPrompts    AiPrompts
+
+	// usage snapshot cache: one Valkey SCAN serves every budget check and
+	// status build for usageSnapshotTTL instead of each caller scanning on
+	// its own. Invalidated on bookings and resets.
+	usageSnapshotMu   sync.Mutex
+	usageSnapshot     *tokenUsageSnapshot
+	usageSnapshotTime time.Time
 }
 
 // auditInsightToolCall writes a durable audit entry for every tool the
@@ -339,6 +425,16 @@ func (ai *aiManager) clearTokenLimitError() {
 	ai.stateMu.Unlock()
 }
 
+// clearTokenLimitWarning resets the warning only if it is the
+// approaching-limit one, so unrelated warnings survive.
+func (ai *aiManager) clearTokenLimitWarning() {
+	ai.stateMu.Lock()
+	if strings.HasPrefix(ai.warning, "Approaching daily AI token limit") {
+		ai.warning = ""
+	}
+	ai.stateMu.Unlock()
+}
+
 // taskFailureErrorPrefix marks status errors coming from a terminally failed
 // task run, so a later successful run can clear exactly those and nothing else.
 const taskFailureErrorPrefix = "AI task failed"
@@ -373,6 +469,7 @@ func NewAiManager(logger *slog.Logger, valkeyClient valkeyclient.ValkeyClient, c
 	self.lastAgentRun = make(map[string]time.Time)
 	self.isLeading = isLeading
 	self.taskQueueKick = make(chan struct{}, 1)
+	self.runCancels = make(map[string]context.CancelFunc)
 
 	// Register MCP server connectors
 	self.mcpConnectors = []MCPServerConnector{
@@ -496,8 +593,11 @@ func (ai *aiManager) Run() {
 		ai.logger.Error("Failed resetting in-progress AI tasks on startup", "error", err)
 	}
 
-	// Connect to configured MCP servers
+	// Connect to configured MCP servers (hard-coded connectors, e.g. GitHub)
 	ai.connectMCPServers()
+
+	// Connect to McpServer CR-defined servers available in the store at startup.
+	ai.RefreshAllMcpServerCRConnections()
 
 	ticker := time.NewTicker(1 * time.Minute)
 	cleanupTicker := time.NewTicker(5 * time.Minute)
@@ -525,9 +625,6 @@ func (ai *aiManager) runQueuePass(includeCron bool) {
 		return
 	}
 	if !ai.isAiModelConfigInitialized() {
-		return
-	}
-	if ai.isTokenLimitExceeded() {
 		return
 	}
 
@@ -639,6 +736,22 @@ func (ai *aiManager) resetInProgressTasksOnStartup() error {
 			ai.logger.Info("Reset AI task from in-progress to pending on startup", "taskID", task.ID)
 		}
 
+		// A task caught mid-cancel is finalized as canceled — the user asked
+		// for the run to stop, and the restart stopped it.
+		if task.State == AI_TASK_STATE_CANCELLING {
+			task.State = AI_TASK_STATE_CANCELED
+			task.CurrentActivity = ""
+			if task.Error == "" {
+				task.Error = "canceled by user"
+			}
+			ai.clearTaskCancelRequest(task.ID)
+			if err := ai.createOrUpdateAiTask(&task, key); err != nil {
+				ai.logger.Error("Error updating AI task during startup reset", "taskID", task.ID, "error", err)
+				continue
+			}
+			ai.logger.Info("Reset AI task from cancelling to canceled on startup", "taskID", task.ID)
+		}
+
 		// A task caught mid-execution must not be retried automatically: the
 		// proposed operation may or may not have been applied before the
 		// restart, so surface the uncertainty instead of re-executing.
@@ -711,96 +824,147 @@ func (ai *aiManager) processPendingTasks() {
 	ai.pendingTasks = stillPending
 }
 
-func (ai *aiManager) isTokenLimitExceeded() bool {
-	tokenLimit, err := ai.getDailyTokenLimit()
-	if err != nil {
-		ai.logger.Error("Error getting daily token limit", "error", err)
-		ai.setError(err.Error())
-		return true
-	}
-
-	tokensUsed, _, err := ai.getTodayTokenUsage()
-	if err != nil {
-		ai.logger.Error("Error getting today's token usage", "error", err)
-		ai.setError(err.Error())
-		return true
-	}
-
-	if tokensUsed >= tokenLimit {
-		ai.logger.Warn("Daily AI token limit reached, skipping AI task processing", "tokensUsed", tokensUsed, "dailyLimit", tokenLimit)
-		ai.setError(fmt.Errorf("Daily AI token limit reached (%d tokens used of %d). Increase limit or wait 24 hours.", tokensUsed, tokenLimit).Error())
-		return true
-	} else if tokensUsed >= int64(float64(tokenLimit)*0.8) {
-		// warn at 80%
-		ai.logger.Warn("Approaching daily AI token limit", "tokensUsed", tokensUsed, "dailyLimit", tokenLimit)
-		ai.setWarning(fmt.Sprintf("Approaching daily AI token limit (%d tokens used of %d).", tokensUsed, tokenLimit))
-	} else {
-		ai.setWarning("")
-	}
-	return false
+// tokenUsageSnapshot aggregates today's token usage: cluster-wide totals plus
+// a per-model breakdown keyed by AiModel CR name. Entries written before the
+// per-model accounting (empty ModelRef) count into the totals only. Treat as
+// read-only once built — the snapshot is shared between callers.
+type tokenUsageSnapshot struct {
+	TotalTokens int64
+	TotalRuns   int
+	PerModel    map[string]int64
 }
 
-func (ai *aiManager) tokenLimitErrorMessage() string {
-	now := time.Now()
-	nextReset := now.Add(24 * time.Hour)
-	nextReset = time.Date(nextReset.Year(), nextReset.Month(), nextReset.Day(), 0, 0, 0, 0, nextReset.Location())
-	return fmt.Sprintf("The daily token limit for your organization has been exceeded. It will reset on %s at 12:00 AM, or an admin can reset it manually.", nextReset.Format("Jan 2"))
+// usageSnapshotTTL bounds how stale budget checks and status builds may be.
+// Bookings and resets invalidate the snapshot immediately, so the TTL only
+// matters for external writers (other replicas).
+const usageSnapshotTTL = 30 * time.Second
+
+// startOfTodayUnix returns local midnight of the given time as Unix seconds.
+func startOfTodayUnix(now time.Time) int64 {
+	return time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location()).Unix()
 }
 
-func (ai *aiManager) getTodayTokenUsage() (todaysTokens int64, todaysProcessedTasks int, err error) {
-	now := time.Now()
-	startOfDay := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location()).Unix()
+// aggregateTokenUsage folds usage entries into a snapshot. Pure function,
+// kept separate from the Valkey plumbing for testability.
+func aggregateTokenUsage(entries []UsedToken, startOfDay int64) tokenUsageSnapshot {
+	snapshot := tokenUsageSnapshot{PerModel: map[string]int64{}}
+	for _, entry := range entries {
+		if entry.Timestamp.Unix() < startOfDay || entry.IsIgnored {
+			continue
+		}
+		snapshot.TotalTokens += entry.TokensUsed
+		snapshot.TotalRuns++
+		if entry.ModelRef != "" {
+			snapshot.PerModel[entry.ModelRef] += entry.TokensUsed
+		}
+	}
+	return snapshot
+}
 
+// todayUsageSnapshot returns today's aggregated token usage, served from a
+// short-lived cache so budget checks and status builds don't each SCAN
+// Valkey. The mutex also single-flights concurrent rebuilds.
+func (ai *aiManager) todayUsageSnapshot() (*tokenUsageSnapshot, error) {
+	ai.usageSnapshotMu.Lock()
+	defer ai.usageSnapshotMu.Unlock()
+	if ai.usageSnapshot != nil && time.Since(ai.usageSnapshotTime) < usageSnapshotTTL {
+		return ai.usageSnapshot, nil
+	}
+	entries, err := ai.loadTokenUsageEntries()
+	if err != nil {
+		return nil, err
+	}
+	snapshot := aggregateTokenUsage(entries, startOfTodayUnix(time.Now()))
+	ai.usageSnapshot = &snapshot
+	ai.usageSnapshotTime = time.Now()
+	return ai.usageSnapshot, nil
+}
+
+// invalidateUsageSnapshot drops the cached snapshot so the next check sees
+// fresh numbers (called after bookings and resets).
+func (ai *aiManager) invalidateUsageSnapshot() {
+	ai.usageSnapshotMu.Lock()
+	ai.usageSnapshot = nil
+	ai.usageSnapshotMu.Unlock()
+}
+
+// loadTokenUsageEntries reads all usage entries from Valkey (SCAN + batched
+// GETs). Filtering by day happens in aggregateTokenUsage.
+func (ai *aiManager) loadTokenUsageEntries() ([]UsedToken, error) {
 	cursor := uint64(0)
 	pattern := DB_AI_BUCKET_TOKENS + ":*"
 	ctx := context.Background()
+	var entries []UsedToken
 
 	for {
-		// Build and execute SCAN command
 		scanCmd := ai.valkeyClient.GetValkeyClient().B().Scan().Cursor(cursor).Match(pattern).Count(100).Build()
 		scanResult, err := ai.valkeyClient.GetValkeyClient().Do(ctx, scanCmd).AsScanEntry()
 		if err != nil {
-			return 0, 0, err
+			return nil, err
 		}
 
 		if len(scanResult.Elements) > 0 {
-			// Build all GET commands for this batch
 			cmds := make([]valkey.Completed, len(scanResult.Elements))
 			for i, key := range scanResult.Elements {
 				cmds[i] = ai.valkeyClient.GetValkeyClient().B().Get().Key(key).Build()
 			}
-
-			// Execute all GETs in a single round trip
 			results := ai.valkeyClient.GetValkeyClient().DoMulti(ctx, cmds...)
-
-			// Process results
 			for _, result := range results {
 				item, err := result.ToString()
 				if err != nil {
 					// Key might have been deleted or expired, skip it
 					continue
 				}
-
 				var tokenEntry UsedToken
 				if err := json.Unmarshal([]byte(item), &tokenEntry); err != nil {
-					// Log error but continue processing
 					continue
 				}
-
-				if tokenEntry.Timestamp.Unix() >= startOfDay && !tokenEntry.IsIgnored {
-					todaysTokens += tokenEntry.TokensUsed
-					todaysProcessedTasks++
-				}
+				entries = append(entries, tokenEntry)
 			}
 		}
 
 		cursor = scanResult.Cursor
 		if cursor == 0 {
-			break // SCAN complete
+			break
 		}
 	}
+	return entries, nil
+}
 
-	return todaysTokens, todaysProcessedTasks, nil
+// isModelBudgetExceeded reports whether the resolved model's daily token
+// budget is exhausted. 0 means unlimited; errors reading the usage fail
+// closed. Side-effect free — status error/warning strings are derived
+// holistically in GetStatus.
+func (ai *aiManager) isModelBudgetExceeded(rc *ResolvedModelConfig) bool {
+	if rc == nil || rc.DailyTokenLimit <= 0 {
+		return false
+	}
+	snapshot, err := ai.todayUsageSnapshot()
+	if err != nil {
+		ai.logger.Error("Error getting today's token usage, failing closed", "error", err)
+		return true
+	}
+	used := snapshot.PerModel[rc.ModelCrName]
+	if used >= rc.DailyTokenLimit {
+		ai.logger.Warn("Daily token limit of model reached", "model", rc.ModelCrName, "tokensUsed", used, "dailyTokenLimit", rc.DailyTokenLimit)
+		return true
+	}
+	return false
+}
+
+// modelBudgetExceededMessage is the user-facing explanation attached to
+// tasks/chat turns blocked by an exhausted model budget.
+func modelBudgetExceededMessage(rc *ResolvedModelConfig, used int64) string {
+	return fmt.Sprintf("Daily token limit of AI model %q reached (%d of %d tokens used today). Runs resume after midnight, or reset the usage via the model settings (annotation %s).", rc.ModelCrName, used, rc.DailyTokenLimit, v1alpha1.AiModelResetUsageAtAnnotation)
+}
+
+// modelBudgetError builds the budget message with the current usage number.
+func (ai *aiManager) modelBudgetError(rc *ResolvedModelConfig) string {
+	var used int64
+	if snapshot, err := ai.todayUsageSnapshot(); err == nil {
+		used = snapshot.PerModel[rc.ModelCrName]
+	}
+	return modelBudgetExceededMessage(rc, used)
 }
 
 func (ai *aiManager) getDbStats(namespace *string) (totalDbEntries int, unprocessedDbEntries int, ignoredDbEntries int, numberOfUnreadTasks int, err error) {
@@ -867,7 +1031,48 @@ func (ai *aiManager) getDbStats(namespace *string) (totalDbEntries int, unproces
 	return totalDbEntries, unprocessedDbEntries, ignoredDbEntries, numberOfUnreadTasks, nil
 }
 
-func (ai *aiManager) addTokenUsage(tokensUsed int, model string, timeUsedInMs int, entryKey string) error {
+// getDbStatsForNamespaces counts the tasks visible to a workspace holding the
+// given namespaces, using the same visibility rules as GetAiTasksForWorkspace
+// so status badges (e.g. unread count) match the report list: event tasks by
+// their key's namespace, whole-scope agent tasks by scope/finding namespace.
+func (ai *aiManager) getDbStatsForNamespaces(namespaces map[string]bool) (totalDbEntries int, unprocessedDbEntries int, ignoredDbEntries int, numberOfUnreadTasks int, err error) {
+	count := func(task *AiTask) {
+		totalDbEntries++
+		if task.State == AI_TASK_STATE_PENDING || task.State == AI_TASK_STATE_FAILED {
+			unprocessedDbEntries++
+		}
+		if task.State == AI_TASK_STATE_IGNORED {
+			ignoredDbEntries++
+		}
+		if len(task.ReadByUsers) == 0 {
+			numberOfUnreadTasks++
+		}
+	}
+
+	for namespace := range namespaces {
+		tasks, nsErr := ai.getAiTasksForNamespace(namespace)
+		if nsErr != nil {
+			return 0, 0, 0, 0, nsErr
+		}
+		for i := range tasks {
+			if !isAgentTaskID(tasks[i].ID) {
+				count(&tasks[i])
+			}
+		}
+	}
+
+	agentTasks, agentErr := ai.getAgentTasksForNamespaces(namespaces)
+	if agentErr != nil {
+		return 0, 0, 0, 0, agentErr
+	}
+	for i := range agentTasks {
+		count(&agentTasks[i])
+	}
+
+	return totalDbEntries, unprocessedDbEntries, ignoredDbEntries, numberOfUnreadTasks, nil
+}
+
+func (ai *aiManager) addTokenUsage(tokensUsed int, model string, timeUsedInMs int, entryKey string, modelRef string) error {
 	now := time.Now()
 	// The previous key included only Unix seconds, so two tasks finishing
 	// in the same second silently overwrote one another, undercounting
@@ -884,6 +1089,7 @@ func (ai *aiManager) addTokenUsage(tokensUsed int, model string, timeUsedInMs in
 		IsIgnored:    false,
 		Model:        model,
 		TimeUsedInMs: timeUsedInMs,
+		ModelRef:     modelRef,
 	}
 
 	err := ai.valkeyClient.SetObject(usedToken, ValkeyAiTTL, key)
@@ -891,45 +1097,59 @@ func (ai *aiManager) addTokenUsage(tokensUsed int, model string, timeUsedInMs in
 		return fmt.Errorf("error saving AI token usage: %v", err)
 	}
 
+	metrics.AddAiTokensUsed(modelRef, tokensUsed)
+	ai.invalidateUsageSnapshot()
 	return nil
 }
 
-func (ai *aiManager) resetTodayTokenUsage() error {
-	// Calculate the start of today in Unix timestamp
-	now := time.Now()
-	startOfDay := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location()).Unix()
+// resetTodayTokenUsage zeroes today's usage entries of one model (by AiModel
+// CR name; "" resets every entry) and returns the number of tokens cleared.
+func (ai *aiManager) resetTodayTokenUsage(modelRef string) (int64, error) {
+	startOfDay := startOfTodayUnix(time.Now())
 
 	keys, err := ai.valkeyClient.Keys(fmt.Sprintf("%s:*", DB_AI_BUCKET_TOKENS))
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	var resettedTokens int64 = 0
 	for _, key := range keys {
 		item, err := ai.valkeyClient.Get(key)
 		if err != nil {
-			return err
+			return resettedTokens, err
 		}
 		var tokenEntry UsedToken
 		err = json.Unmarshal([]byte(item), &tokenEntry)
 		if err != nil {
-			return err
+			return resettedTokens, err
 		}
-		if tokenEntry.Timestamp.Unix() >= startOfDay {
-			resettedTokens += tokenEntry.TokensUsed
-			tokenEntry.TokensUsed = 0
-			err := ai.valkeyClient.SetObject(tokenEntry, ValkeyAiTTL, key)
-			if err != nil {
-				return fmt.Errorf("error saving AI token usage: %v", err)
-			}
-
+		if tokenEntry.Timestamp.Unix() < startOfDay || tokenEntry.TokensUsed == 0 {
+			continue
+		}
+		if modelRef != "" && tokenEntry.ModelRef != modelRef {
+			continue
+		}
+		resettedTokens += tokenEntry.TokensUsed
+		tokenEntry.TokensUsed = 0
+		if err := ai.valkeyClient.SetObject(tokenEntry, ValkeyAiTTL, key); err != nil {
+			return resettedTokens, fmt.Errorf("error saving AI token usage: %v", err)
 		}
 	}
-	ai.logger.Info("Reset today's AI token usage", "resettedTokens", resettedTokens)
+	ai.logger.Info("Reset today's AI token usage", "modelRef", modelRef, "resettedTokens", resettedTokens)
 
+	ai.invalidateUsageSnapshot()
 	ai.resetCache()
 
-	return nil
+	return resettedTokens, nil
+}
+
+// ResetTokenUsageForModel zeroes today's recorded usage of one AiModel.
+// Reconciler-facing wrapper around resetTodayTokenUsage.
+func (ai *aiManager) ResetTokenUsageForModel(modelCrName string) (int64, error) {
+	if modelCrName == "" {
+		return 0, fmt.Errorf("model name must not be empty")
+	}
+	return ai.resetTodayTokenUsage(modelCrName)
 }
 
 func (ai *aiManager) getAllTaskKeys() ([]string, error) {
@@ -1012,13 +1232,43 @@ func (ai *aiManager) processAiTaskQueue(ctx context.Context) {
 			continue
 		}
 
-		if ai.isTokenLimitExceeded() {
+		// Resolve the model config once for the whole run — the budget check
+		// below and the run itself must see the same model.
+		rc, err := ai.resolveModelConfig(&agent.Spec)
+		if err != nil {
+			// Same semantics as a run failure: retried, then ignored (the
+			// model may reappear or be fixed).
+			task.Error = err.Error()
+			task.Retries++
 			task.State = AI_TASK_STATE_FAILED
-			task.Error = "Daily AI token limit exceeded, cannot process further tasks. Increase limit or wait 24 hours."
-			err := ai.createOrUpdateAiTask(&task, key)
-			if err != nil {
+			if task.Retries >= maxAiTaskRetries {
+				task.State = AI_TASK_STATE_IGNORED
+				task.Error = fmt.Sprintf("giving up after %d failed attempts: %s", task.Retries, err.Error())
+				ai.setError(fmt.Sprintf("%s after %d attempts: %s", taskFailureErrorPrefix, task.Retries, err.Error()))
+			}
+			if updateErr := ai.createOrUpdateAiTask(&task, key); updateErr != nil {
+				ai.logger.Error("Error updating AI task", "taskID", task.ID, "error", updateErr)
+			}
+			ai.logger.Error("Failed to resolve model config for AI task", "taskID", task.ID, "attempt", task.Retries, "error", err)
+			continue
+		}
+
+		if ai.isModelBudgetExceeded(rc) {
+			// Deliberately no Retries++: the task stays eligible and runs
+			// again once the budget frees up (midnight or usage reset).
+			task.State = AI_TASK_STATE_FAILED
+			task.Error = ai.modelBudgetError(rc)
+			if err := ai.createOrUpdateAiTask(&task, key); err != nil {
 				ai.logger.Error("Error updating AI task", "taskID", task.ID, "error", err)
 			}
+			continue
+		}
+
+		// A queue pass runs for minutes; the task was selected as pending at
+		// the start of the pass but may have been canceled (or otherwise
+		// resolved) since — starting it now would resurrect it.
+		if current, curErr := ai.getTaskByKey(key); curErr != nil || current == nil ||
+			(current.State != AI_TASK_STATE_PENDING && current.State != AI_TASK_STATE_FAILED) {
 			continue
 		}
 
@@ -1038,11 +1288,13 @@ func (ai *aiManager) processAiTaskQueue(ctx context.Context) {
 		// send event notification
 		ai.sendAiEvent(latestTask)
 
-		// Per-task cancellable context: a cancel marker in Valkey (set by any
-		// replica) aborts the LLM loop at the next turn boundary. The same
-		// per-turn hook pushes live token counts to the UI, throttled so a
-		// fast tool-call storm doesn't flood the event channel.
+		// Per-task cancellable context: CancelTask aborts it directly when the
+		// cancel request lands on this replica; a cancel marker in Valkey (set
+		// by any replica) additionally aborts the LLM loop at the next turn
+		// boundary. The same per-turn hook pushes live token counts to the UI,
+		// throttled so a fast tool-call storm doesn't flood the event channel.
 		taskCtx, cancelTask := context.WithCancel(ctx)
+		ai.registerRunCancel(task.ID, cancelTask)
 		var lastProgressPush time.Time
 		onProgress := func(tokens int64, activity string) {
 			if ai.taskCancelReason(task.ID) != "" {
@@ -1065,17 +1317,33 @@ func (ai *aiManager) processAiTaskQueue(ctx context.Context) {
 			ai.sendAiEvent(latestTask)
 		}
 
-		responses, tokensUsed, timeUsedInMs, modelUsed, err := ai.processPrompt(taskCtx, task.Prompt, toolCtx, &agent.Spec, onProgress)
+		// Steps are keyed by the run id (== primary task ID) so the timeline
+		// survives even when the run later spawns finding tasks.
+		recordStep := ai.newStepRecorder(task.ID)
+
+		responses, tokensUsed, timeUsedInMs, modelUsed, err := ai.processPrompt(taskCtx, rc, task.Prompt, toolCtx, &agent.Spec, onProgress, recordStep)
+		ai.unregisterRunCancel(task.ID)
 		cancelTask()
 		task.CurrentActivity = ""
+		// Consume the cancel marker no matter how the run ended — a marker
+		// surviving into a later retry of the same task would cancel that
+		// retry on its first turn.
+		cancelReason := ai.taskCancelReason(task.ID)
+		if cancelReason != "" {
+			ai.clearTaskCancelRequest(task.ID)
+		}
+		// Stamp the run stats before finalize/spawn: the spawned finding
+		// tasks copy them from the primary for display.
+		task.Model = modelUsed
+		task.TimeUsedInMs = timeUsedInMs
+		task.TokensUsed = tokensUsed
 		discardTask := false
 		if err != nil {
-			if reason := ai.taskCancelReason(task.ID); errors.Is(err, context.Canceled) && ctx.Err() == nil && reason != "" {
+			if errors.Is(err, context.Canceled) && ctx.Err() == nil && cancelReason != "" {
 				// Canceled by a user, not by shutdown: the run is void, not broken.
-				task.State = AI_TASK_STATE_IGNORED
-				task.Error = reason
-				ai.clearTaskCancelRequest(task.ID)
-				ai.logger.Info("AI task canceled", "taskID", task.ID, "reason", reason)
+				task.State = AI_TASK_STATE_CANCELED
+				task.Error = cancelReason
+				ai.logger.Info("AI task canceled", "taskID", task.ID, "reason", cancelReason)
 			} else {
 				task.Error = err.Error()
 				task.Retries++
@@ -1098,6 +1366,9 @@ func (ai *aiManager) processAiTaskQueue(ctx context.Context) {
 				}
 				ai.logger.Error("Error processing AI task", "taskID", task.ID, "attempt", task.Retries, "state", task.State, "error", err)
 			}
+			// Close the timeline with the failure so the run's step history
+			// explains itself without cross-checking the task error field.
+			recordStep(AiRunStep{Kind: AI_RUN_STEP_ERROR, Label: task.Error})
 		} else {
 			// Whole-scope runs exist to produce applicable changes, not
 			// advice: drop findings whose proposal does not survive
@@ -1112,14 +1383,11 @@ func (ai *aiManager) processAiTaskQueue(ctx context.Context) {
 				task.Response = responses[0]
 				ai.finalizeTaskOutcome(&task)
 				// Every further finding of the run becomes its own review task.
-				ai.spawnFindingTasks(&task, responses[1:], modelUsed)
+				ai.spawnFindingTasks(&task, responses[1:])
 			}
 			ai.clearTaskFailureError()
 		}
-		task.Model = modelUsed
-		task.TimeUsedInMs = timeUsedInMs
-		task.TokensUsed = tokensUsed
-		err = ai.addTokenUsage(int(tokensUsed), modelUsed, timeUsedInMs, key)
+		err = ai.addTokenUsage(int(tokensUsed), modelUsed, timeUsedInMs, key, rc.ModelCrName)
 		if err != nil {
 			ai.logger.Error("Error recording AI token usage", "taskID", task.ID, "error", err)
 		}
@@ -1129,13 +1397,21 @@ func (ai *aiManager) processAiTaskQueue(ctx context.Context) {
 		latestTask.Status = ai.GetStatus(nil)
 
 		if discardTask {
-			// Remove the (already visible) in-progress task; the delete event
-			// clears it from every client.
-			if delErr := ai.valkeyClient.DeleteSingle(key); delErr != nil {
-				ai.logger.Error("Error deleting all-clear AI task", "taskID", task.ID, "error", delErr)
+			// All-clear: the run inspected its scope and found nothing (new)
+			// to fix. Keep it as a success report — a silently vanishing run
+			// reads like a failure. Exactly one all-clear per agent survives
+			// (the newest); older ones are pruned so clean runs don't spam
+			// the list.
+			task.State = AI_TASK_STATE_COMPLETED
+			task.Response = nil
+			task.Error = ""
+			if err := ai.createOrUpdateAiTask(&task, key); err != nil {
+				ai.logger.Error("Error saving all-clear AI task", "taskID", task.ID, "error", err)
+				continue
 			}
-			ai.sendAiDeleteEvent(key)
-			ai.logger.Info("AI run found nothing applicable — no report created", "taskID", task.ID, "tokensUsed", tokensUsed)
+			ai.pruneOlderAllClearReports(task.AgentRef, key)
+			ai.sendAiEvent(latestTask)
+			ai.logger.Info("AI run found nothing applicable — kept as all-clear report", "taskID", task.ID, "tokensUsed", tokensUsed)
 			continue
 		}
 
@@ -1251,9 +1527,7 @@ func (ai *aiManager) createOrUpdateAiTask(task *AiTask, key string) error {
 	if err != nil {
 		ai.logger.Warn("Error saving AI task", "error", err)
 	}
-	parts := strings.Split(key, ":")
-	if len(parts) > 2 {
-		namespace := parts[2]
+	for _, namespace := range latestTaskNamespaces(task, key) {
 		err = ai.valkeyClient.Set(string(jsonString), ValkeyAiTTL, ai.getValkeyLatestNamespaceTaskKey(namespace))
 		if err != nil {
 			ai.logger.Warn("Error saving AI task for namespace", "namespace", namespace, "error", err)
@@ -1261,6 +1535,30 @@ func (ai *aiManager) createOrUpdateAiTask(task *AiTask, key string) error {
 	}
 
 	return nil
+}
+
+// latestTaskNamespaces returns the namespaces whose "latest task" pointer a
+// save should update. Event tasks belong to their key's namespace segment.
+// Whole-scope agent tasks used to inherit that segment too — the
+// alphabetically first scope namespace — which pinned the run to one
+// arbitrary namespace. Instead, a finding belongs to its target's namespace
+// and every other run state (pending, running, all-clear) to the whole
+// scope, so each affected workspace sees the run as its latest activity.
+func latestTaskNamespaces(task *AiTask, key string) []string {
+	parts := strings.SplitN(key, ":", 4)
+	if len(parts) != 4 {
+		return nil
+	}
+	if parts[1] != "Agent" {
+		return []string{parts[2]}
+	}
+	if task.Response != nil && task.Response.Analysis.TargetResource.Namespace != "" {
+		return []string{task.Response.Analysis.TargetResource.Namespace}
+	}
+	if len(task.ScopeNamespaces) > 0 {
+		return task.ScopeNamespaces
+	}
+	return []string{parts[2]}
 }
 
 func (ai *aiManager) shouldCreateNewTask(key string) (bool, error) {
@@ -1279,19 +1577,15 @@ func (ai *aiManager) shouldCreateNewTask(key string) (bool, error) {
 // required JSON verdict instead of the run failing outright.
 const finalAnswerNudge = "Your budget for this run is exhausted — do not request any more inspection tools. Call " + submitAnalysisToolName + " now with all remaining findings. Every finding must carry an applicable proposal: proposedOperation (UpdateResource, DeleteResource or CreateResource) plus the exact live targetResource — findings without one are discarded. Submit an empty findings array if nothing applicable remains."
 
-// processPrompt runs the unattended analysis loop. onProgress (nil-tolerant)
-// is invoked after every LLM turn with the tokens used so far and on every
-// tool call with a human-readable activity line — it powers the live token
-// counter and "currently working on" display in the UI plus the cancel check.
-func (ai *aiManager) processPrompt(ctx context.Context, prompt string, toolCtx *ToolContext, agentSpec *v1alpha1.AgentSpec, onProgress func(tokensUsed int64, activity string)) (responses []*AiResponse, tokensUsed int64, timeUsedInMs int, modelUser string, err error) {
+// processPrompt runs the unattended analysis loop. The caller resolves the
+// model config (resolveModelConfig) and passes it in — the queue's budget
+// check and the run itself must see the same model. onProgress
+// (nil-tolerant) is invoked after every LLM turn with the tokens used so far
+// and on every tool call with a human-readable activity line — it powers the
+// live token counter and "currently working on" display in the UI plus the
+// cancel check.
+func (ai *aiManager) processPrompt(ctx context.Context, rc *ResolvedModelConfig, prompt string, toolCtx *ToolContext, agentSpec *v1alpha1.AgentSpec, onProgress func(tokensUsed int64, activity string), recordStep StepRecorder) (responses []*AiResponse, tokensUsed int64, timeUsedInMs int, modelUser string, err error) {
 	startTime := time.Now()
-	// Resolve the full model config (provider, endpoint, credentials, limits)
-	// once for the whole run: the agent's modelRef, the default AiModel or the
-	// legacy secret — see resolveModelConfig.
-	rc, err := ai.resolveModelConfig(agentSpec)
-	if err != nil {
-		return nil, 0, int(time.Since(startTime).Milliseconds()), "", err
-	}
 	systemPrompt := ai.getSystemPrompt()
 	if agentSpec != nil {
 		if agentSpec.Instruction != "" {
@@ -1311,11 +1605,11 @@ func (ai *aiManager) processPrompt(ctx context.Context, prompt string, toolCtx *
 
 	switch rc.Sdk {
 	case AiSdkTypeOpenAI:
-		return ai.processPromptOpenAi(ctx, rc, systemPrompt, prompt, toolCtx, onProgress)
+		return ai.processPromptOpenAi(ctx, rc, systemPrompt, prompt, toolCtx, onProgress, recordStep)
 	case AiSdkTypeAnthropic:
-		return ai.processPromptAnthropic(ctx, rc, systemPrompt, prompt, toolCtx, onProgress)
+		return ai.processPromptAnthropic(ctx, rc, systemPrompt, prompt, toolCtx, onProgress, recordStep)
 	case AiSdkTypeOllama:
-		return ai.processPromptOllama(ctx, rc, systemPrompt, prompt, toolCtx, onProgress)
+		return ai.processPromptOllama(ctx, rc, systemPrompt, prompt, toolCtx, onProgress, recordStep)
 	default:
 		return nil, 0, int(time.Since(startTime).Milliseconds()), rc.Model, fmt.Errorf("unsupported AI SDK type: %s", rc.Sdk)
 	}
@@ -1426,20 +1720,33 @@ func (ai *aiManager) actionableFindings(taskID string, responses []*AiResponse) 
 // so each one can be reviewed, approved and audited independently. All
 // findings share the run's single exploration — the token cost is booked on
 // the primary task only.
-func (ai *aiManager) spawnFindingTasks(primary *AiTask, extra []*AiResponse, model string) {
+func (ai *aiManager) spawnFindingTasks(primary *AiTask, extra []*AiResponse) {
 	if len(extra) > 0 {
 		// Group the run's tasks so the UI can render them as one report.
 		primary.RunID = primary.ID
 	}
 	for i, response := range extra {
 		now := time.Now().Unix()
+		// Store the finding under its target's namespace, not under the run
+		// key's arbitrary segment — the finding belongs to the workspace(s)
+		// containing that namespace (see agentTaskVisibleInNamespaces).
+		id := agentTaskKeyForNamespace(
+			fmt.Sprintf("%s-f%d", primary.ID, i+2),
+			response.Analysis.TargetResource.Namespace,
+		)
 		finding := AiTask{
-			ID:                  fmt.Sprintf("%s-f%d", primary.ID, i+2),
-			RunID:               primary.ID,
-			Prompt:              primary.Prompt,
-			Response:            response,
-			State:               AI_TASK_STATE_COMPLETED,
-			Model:               model,
+			ID:       id,
+			RunID:    primary.ID,
+			Prompt:   primary.Prompt,
+			Response: response,
+			State:    AI_TASK_STATE_COMPLETED,
+			Model:    primary.Model,
+			// Display copies of the run's cost — without them the finding
+			// shows a misleading "0 tokens used". The daily accounting books
+			// the run exactly once (addTokenUsage on the primary), so these
+			// copies never double-count.
+			TokensUsed:          primary.TokensUsed,
+			TimeUsedInMs:        primary.TimeUsedInMs,
 			CreatedAt:           now,
 			UpdatedAt:           now,
 			ReferencingResource: primary.ReferencingResource,
@@ -1447,6 +1754,8 @@ func (ai *aiManager) spawnFindingTasks(primary *AiTask, extra []*AiResponse, mod
 			AgentRef:            primary.AgentRef,
 			Trigger:             primary.Trigger,
 			TriggeredByUser:     primary.TriggeredByUser,
+			ScopeNamespaces:     primary.ScopeNamespaces,
+			ScopeAllNamespaces:  primary.ScopeAllNamespaces,
 		}
 		ai.finalizeTaskOutcome(&finding)
 		if err := ai.createOrUpdateAiTask(&finding, finding.ID); err != nil {
@@ -1647,10 +1956,26 @@ func (ai *aiManager) modelsRequestConfig(request *ModelsRequest) (*ResolvedModel
 		Sdk:     AiSdkType(request.Sdk),
 		BaseUrl: request.ApiUrl,
 	}
-	if request.ApiKey != nil {
+	switch {
+	case request.ApiKey != nil:
 		rc.ApiKey = *request.ApiKey
-	} else if configured, err := ai.resolveModelConfig(nil); err == nil {
-		rc.ApiKey = configured.ApiKey
+	case request.ApiKeySecretName != "":
+		ownNamespace, err := ai.config.TryGet("MO_OWN_NAMESPACE")
+		if err != nil {
+			return nil, fmt.Errorf("failed to retrieve own namespace: %w", err)
+		}
+		apiKey, err := ai.resolveApiKeyFromRef(ownNamespace, &v1alpha1.SecretKeyRef{
+			Name: request.ApiKeySecretName,
+			Key:  request.ApiKeySecretKey,
+		})
+		if err != nil {
+			return nil, err
+		}
+		rc.ApiKey = apiKey
+	default:
+		if configured, err := ai.resolveModelConfig(nil); err == nil {
+			rc.ApiKey = configured.ApiKey
+		}
 	}
 	return rc, nil
 }

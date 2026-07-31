@@ -1,17 +1,9 @@
-name: Build Operator
+name: Build, Package, Release (Production)
 
 on:
-  workflow_dispatch:
-    inputs:
-      version:
-        description: 'Version tag for the image'
-        required: false
-        default: 'dev'
-        type: string
   push:
-    branches:
-      - main
-
+    tags:
+      - 'v[0-9]*.[0-9]*.[0-9]*'
 
 env:
   REGISTRY_PREFIX: ghcr.io/mogenius
@@ -20,28 +12,38 @@ env:
 jobs:
 
   # ============================================================================
-  # Prepare - Get version info
+  # Prepare - Strip the v prefix from the release tag
   # ============================================================================
   prepare:
-    uses: mogenius/github-actions/.github/workflows/semantic-release.yml@9bbef6f2531206a2cc3e41b0649704a80f2d4185 # v1.7.0
-    secrets:
-      APP_ID: ${{ secrets.RELEASE_APP_ID }}
-      APP_PRIVATE_KEY: ${{ secrets.RELEASE_APP_SECRET }}
-    with:
-      version_override: ${{ github.event.inputs.version || '' }}
-      default_version: 'dev'
+    runs-on: [self-hosted]
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Compute version
+        id: version
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+          echo "## Version Info" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Key | Value |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|-----|-------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Version | ${VERSION} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Commit | ${GITHUB_SHA} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Tag | ${GITHUB_REF_NAME} |" >> "$GITHUB_STEP_SUMMARY"
 
   # ============================================================================
   # Build Operator - Native builds per architecture
   # ============================================================================
   build-operator:
     needs: [prepare]
-    uses: mogenius/github-actions/.github/workflows/build-multiarch.yml@9bbef6f2531206a2cc3e41b0649704a80f2d4185 # v1.7.0
+    uses: mogenius/github-actions/.github/workflows/build-multiarch.yml@d52cd594ac87fee776d7d138a6b25bc351509f28 # v1.7.3
     secrets: inherit
     with:
       version: ${{ needs.prepare.outputs.version }}
       image: ghcr.io/mogenius/mogenius-operator
       architectures: amd64,arm64
+      push_latest: true
       sign_image: true
       build_args_amd64: |
         GO_BUILDER_IMAGE=ghcr.io/mogenius/go-builder:latest-amd64
@@ -51,7 +53,6 @@ jobs:
         BPFTOOL_IMAGE=ghcr.io/mogenius/bpftool:latest-arm64
 
   helm-chart:
-    if: github.ref == 'refs/heads/main'
     needs: [prepare, build-operator]
     runs-on: [self-hosted]
     permissions:
@@ -77,7 +78,7 @@ jobs:
 
       - name: Update Helm chart and values yaml-Files
         env:
-          VERSION: ${{ needs.prepare.outputs.version }}      
+          VERSION: ${{ needs.prepare.outputs.version }}
         run: |
           set -x
 

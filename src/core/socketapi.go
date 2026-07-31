@@ -587,45 +587,72 @@ func (self *socketApi) registerPatterns() {
 			},
 		)
 
-		// stats/pod/all-for-workspace — full per-pod CPU/memory
-		// snapshots for every pod in the namespace (no top-N cap,
-		// unlike the utilization aggregations above). Scans valkey
-		// directly for every pod-stats stream key in the namespace
-		// rather than going through the Workspace CRD, so it also
-		// works for namespaces that aren't wired up as mogenius
-		// workspaces. Each stream key is
-		// `pod-stats:<namespace>:<controllerName>`; the data inside
-		// already carries the pod name per entry.
+	}
+
+	// stats/pod/all-for-namespace — full per-pod CPU/memory snapshots for
+	// every pod in one namespace (no top-N cap, unlike the workspace
+	// utilization aggregations above). Scans valkey directly for every
+	// pod-stats stream key in the namespace rather than going through the
+	// Workspace CRD, so it works for any namespace. Each stream key is
+	// `pod-stats:<namespace>:<controllerName>`; the data inside already
+	// carries the pod name per entry.
+	{
+		podStatsForNamespace := func(namespace string, timeOffsetMinutes int) ([]structs.PodStats, error) {
+			if timeOffsetMinutes <= 0 {
+				timeOffsetMinutes = 5
+			}
+			prefix := DB_STATS_POD_STATS_BUCKET_NAME + ":" + namespace + ":"
+			keys, err := self.valkeyClient.Keys(prefix + "*")
+			if err != nil {
+				return nil, err
+			}
+			out := make([]structs.PodStats, 0)
+			for _, k := range keys {
+				if !strings.HasPrefix(k, prefix) {
+					continue
+				}
+				controllerName := k[len(prefix):]
+				if controllerName == "" {
+					continue
+				}
+				entries := self.dbstats.GetPodStatsEntriesForController(
+					"", controllerName, namespace,
+					int64(timeOffsetMinutes),
+				)
+				if entries != nil {
+					out = append(out, *entries...)
+				}
+			}
+			return out, nil
+		}
+
+		type NamespaceRequest struct {
+			Namespace         string `json:"namespace"`
+			TimeOffsetMinutes int    `json:"timeOffsetMinutes"`
+		}
+
+		RegisterPatternHandler(
+			PatternHandle{self, "stats/pod/all-for-namespace"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request NamespaceRequest) ([]structs.PodStats, error) {
+				return podStatsForNamespace(request.Namespace, request.TimeOffsetMinutes)
+			},
+		)
+
+		// Legacy alias for platform APIs that predate the rename: same
+		// behavior, but the namespace arrives in a field named
+		// workspaceName. The value was always interpreted as a namespace
+		// here — it was never resolved as a mogenius workspace.
+		type LegacyWorkspaceRequest struct {
+			WorkspaceName     string `json:"workspaceName"`
+			TimeOffsetMinutes int    `json:"timeOffsetMinutes"`
+		}
+
 		RegisterPatternHandler(
 			PatternHandle{self, "stats/pod/all-for-workspace"},
 			PatternConfig{},
-			func(datagram structs.Datagram, request Request) ([]structs.PodStats, error) {
-				if request.TimeOffsetMinutes <= 0 {
-					request.TimeOffsetMinutes = 5
-				}
-				prefix := DB_STATS_POD_STATS_BUCKET_NAME + ":" + request.WorkspaceName + ":"
-				keys, err := self.valkeyClient.Keys(prefix + "*")
-				if err != nil {
-					return nil, err
-				}
-				out := make([]structs.PodStats, 0)
-				for _, k := range keys {
-					if !strings.HasPrefix(k, prefix) {
-						continue
-					}
-					controllerName := k[len(prefix):]
-					if controllerName == "" {
-						continue
-					}
-					entries := self.dbstats.GetPodStatsEntriesForController(
-						"", controllerName, request.WorkspaceName,
-						int64(request.TimeOffsetMinutes),
-					)
-					if entries != nil {
-						out = append(out, *entries...)
-					}
-				}
-				return out, nil
+			func(datagram structs.Datagram, request LegacyWorkspaceRequest) ([]structs.PodStats, error) {
+				return podStatsForNamespace(request.WorkspaceName, request.TimeOffsetMinutes)
 			},
 		)
 	}
@@ -779,6 +806,14 @@ func (self *socketApi) registerPatterns() {
 	)
 
 	RegisterPatternHandler(
+		PatternHandle{self, "prometheus/status"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request Void) (dtos.ComponentStatus, error) {
+			return PrometheusStatus(self.config, self.logger)
+		},
+	)
+
+	RegisterPatternHandler(
 		PatternHandle{self, "prometheus/is-reachable"},
 		PatternConfig{},
 		func(datagram structs.Datagram, request PrometheusRequest) (bool, error) {
@@ -825,6 +860,22 @@ func (self *socketApi) registerPatterns() {
 		func(datagram structs.Datagram, request PrometheusRequestRedisList) (map[string]PrometheusStoreObject, error) {
 			result, err := PrometheusListQueriesFromRedis(self.valkeyClient, request)
 			return result, err
+		},
+	)
+
+	RegisterPatternHandler(
+		PatternHandle{self, "alertmanager/status"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request Void) (dtos.ComponentStatus, error) {
+			return self.alertmanager.Status()
+		},
+	)
+
+	RegisterPatternHandler(
+		PatternHandle{self, "alertmanager/is-reachable"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request Void) (bool, error) {
+			return self.alertmanager.IsReachable()
 		},
 	)
 
@@ -1818,6 +1869,9 @@ func (self *socketApi) registerPatterns() {
 			Limit              int                         `json:"limit"`
 			SortBy             string                      `json:"sortBy"`
 			SortOrder          string                      `json:"sortOrder"`
+			Search             string                      `json:"search"`
+			SearchFilters      []store.SearchFilter        `json:"searchFilters"`
+			SearchFilterGroups []store.SearchFilterGroup   `json:"searchFilterGroups"`
 		}
 
 		RegisterPatternHandler(
@@ -1832,6 +1886,9 @@ func (self *socketApi) registerPatterns() {
 					Limit:              request.Limit,
 					SortBy:             request.SortBy,
 					SortOrder:          request.SortOrder,
+					Search:             request.Search,
+					SearchFilters:      request.SearchFilters,
+					SearchFilterGroups: request.SearchFilterGroups,
 				})
 			},
 		)
@@ -1950,6 +2007,16 @@ func (self *socketApi) registerPatterns() {
 	}
 
 	{
+		RegisterPatternHandler(
+			PatternHandle{self, "get/aimodel-sdks"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Void) ([]ai.AiSdkInfo, error) {
+				return ai.SupportedAiSdks(), nil
+			},
+		)
+	}
+
+	{
 		type Request struct {
 			Name string `json:"name"`
 		}
@@ -1974,16 +2041,27 @@ func (self *socketApi) registerPatterns() {
 		type Request struct {
 			Name string               `json:"name" validate:"required"`
 			Spec v1alpha1.AiModelSpec `json:"spec" validate:"required"`
+			// Optional plaintext API key; the operator provisions a managed
+			// Secret from it and wires spec.apiKeySecretRef. The field name
+			// must stay in sensitiveAuditPayloadKeys (store) so the audit log
+			// redacts it.
+			ApiKey string `json:"apiKey"`
 		}
 
 		RegisterPatternHandler(
 			PatternHandle{self, "create/aimodel"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (string, error) {
+				request.Spec = ai.NormalizeAiModelSpec(request.Spec)
 				var res string
-				err := ai.ValidateAiModelSpec(request.Spec)
+				// The managed ref must be wired before validation: for
+				// openai/anthropic the spec is only valid with a secret ref.
+				err := applyManagedApiKeyRef(request.Name, &request.Spec, request.ApiKey)
 				if err == nil {
-					res, err = self.apiService.CreateAiModel(request.Name, request.Spec)
+					err = ai.ValidateAiModelSpec(request.Spec)
+				}
+				if err == nil {
+					res, err = self.apiService.CreateAiModel(request.Name, request.Spec, request.ApiKey)
 				}
 				var created *unstructured.Unstructured
 				if err == nil {
@@ -2000,11 +2078,15 @@ func (self *socketApi) registerPatterns() {
 			PatternHandle{self, "update/aimodel"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (string, error) {
+				request.Spec = ai.NormalizeAiModelSpec(request.Spec)
 				oldModel, _ := store.GetAiModel(self.config.Get("MO_OWN_NAMESPACE"), request.Name)
 				var res string
-				err := ai.ValidateAiModelSpec(request.Spec)
+				err := applyManagedApiKeyRef(request.Name, &request.Spec, request.ApiKey)
 				if err == nil {
-					res, err = self.apiService.UpdateAiModel(request.Name, request.Spec)
+					err = ai.ValidateAiModelSpec(request.Spec)
+				}
+				if err == nil {
+					res, err = self.apiService.UpdateAiModel(request.Name, request.Spec, request.ApiKey)
 				}
 				var oldObj, newObj *unstructured.Unstructured
 				if oldModel != nil {
@@ -2030,6 +2112,20 @@ func (self *socketApi) registerPatterns() {
 				oldModel, _ := store.GetAiModel(self.config.Get("MO_OWN_NAMESPACE"), request.Name)
 				res, err := self.apiService.DeleteAiModel(request.Name)
 				return store.AddToAuditLog(datagram, self.logger, res, err, crdToAuditObject(oldModel, "AiModel", request.Name), nil)
+			},
+		)
+	}
+
+	{
+		type Request struct {
+			Name string `json:"name" validate:"required"`
+		}
+
+		RegisterPatternHandler(
+			PatternHandle{self, "test/aimodel"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Request) (*ai.AiModelTestResult, error) {
+				return self.aiApi.TestAiModel(request.Name)
 			},
 		)
 	}
@@ -2140,12 +2236,19 @@ func (self *socketApi) registerPatterns() {
 	}
 
 	{
+		type Request struct {
+			Name string `json:"name" validate:"required"`
+		}
+
 		RegisterPatternHandler(
-			PatternHandle{self, "aiManager/reset-daily-token-limit"},
-			PatternConfig{},
-			func(datagram structs.Datagram, request Void) (Void, error) {
-				err := self.aiApi.ResetDailyTokenLimit()
-				return store.AddToAuditLog[Void](datagram, self.logger, nil, err, nil, nil)
+			PatternHandle{self, "reset/aimodel-usage"},
+			PatternConfig{NeedsUser: true},
+			func(datagram structs.Datagram, request Request) (string, error) {
+				// GitOps-native: request the reset by bumping the model's
+				// reset-usage annotation; the AiModel reconciler performs the
+				// actual reset (idempotent via status.lastUsageResetAt).
+				res, err := self.apiService.RequestAiModelUsageReset(request.Name)
+				return store.AddToAuditLog(datagram, self.logger, res, err, nil, nil)
 			},
 		)
 	}
@@ -2179,6 +2282,25 @@ func (self *socketApi) registerPatterns() {
 				}
 
 				return tasks, err
+			},
+		)
+	}
+
+	{
+		type Request struct {
+			RunId string `json:"runId"`
+		}
+
+		// One agent run assembled from its primary task: metadata, the
+		// recorded ReAct steps and the IDs of all finding tasks.
+		RegisterPatternHandler(
+			PatternHandle{self, "aiManager/get/run"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Request) (*ai.AiRun, error) {
+				if request.RunId == "" {
+					return nil, fmt.Errorf("runId is required")
+				}
+				return self.aiApi.GetRun(request.RunId)
 			},
 		)
 	}

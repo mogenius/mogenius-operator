@@ -59,6 +59,10 @@ type UserList struct {
 //	```
 //
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:printcolumn:name="Email",type=string,JSONPath=`.spec.email`
+// +kubebuilder:printcolumn:name="First Name",type=string,JSONPath=`.spec.firstName`
+// +kubebuilder:printcolumn:name="Last Name",type=string,JSONPath=`.spec.lastName`
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 type User struct {
 	metav1.TypeMeta `json:",inline"`
 

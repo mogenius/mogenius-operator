@@ -1,4 +1,11 @@
 {{/*
+Name of the ServiceAccount used by the operator. Overridable via serviceAccount.name.
+*/}}
+{{- define "chart.serviceAccountName" -}}
+{{- .Values.serviceAccount.name | default "mogenius-operator-service-account-app" -}}
+{{- end }}
+
+{{/*
 This function checks if a Kubernetes Secret exists for the given name.
 If the Secret does not exist, it generates a new password and stores it in a global variable.
 If the Secret exists, it retrieves the existing password from the Secret.

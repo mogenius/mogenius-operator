@@ -6,6 +6,8 @@ import (
 	"mogenius-operator/src/ai"
 	"mogenius-operator/src/crds/v1alpha1"
 	"mogenius-operator/src/store"
+	"mogenius-operator/src/utils"
+	"slices"
 
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -32,6 +34,8 @@ func (d *reconcilerModule) reconcileAgents(ctx context.Context, obj *unstructure
 
 	conditionStatus, reason, message := d.evaluateAgent(&agent)
 
+	var results []ReconcileResult
+
 	// Manual run trigger: a changed "mogenius.com/run-requested-at" annotation
 	// requests exactly one run. Firing here (on the watch event) makes it react
 	// within the informer's latency instead of a polling interval — the
@@ -41,8 +45,11 @@ func (d *reconcilerModule) reconcileAgents(ctx context.Context, obj *unstructure
 		if requested != "" && requested != agent.Status.LastHandledTriggerAt {
 			if _, err := d.aiManager.TriggerAgent(agent.Name, nil); err != nil {
 				// Benign when a run is already open; leave LastHandledTriggerAt
-				// unchanged so the next reconcile retries.
+				// unchanged so the next reconcile retries. Surfaced as a
+				// warning so the pending, unfulfilled run request is visible
+				// outside the log.
 				d.logger.Info("Manual agent trigger did not enqueue a run", "agent", agent.Name, "reason", err.Error())
+				results = append(results, ReconcileResult{Err: fmt.Errorf("manual run request for agent %q is pending: %s", agent.Name, err.Error()), IsWarning: true})
 			} else {
 				agent.Status.LastHandledTriggerAt = requested
 				if _, err := d.clientProvider.MogeniusClientSet().MogeniusV1alpha1.UpdateAgentStatus(&agent); err != nil {
@@ -75,9 +82,9 @@ func (d *reconcilerModule) reconcileAgents(ctx context.Context, obj *unstructure
 	// Surface user configuration problems as warnings in the reconciler
 	// status API as well — the condition alone is easy to miss.
 	if conditionStatus == metav1.ConditionFalse {
-		return []ReconcileResult{{Err: fmt.Errorf("agent %q is not ready: %s: %s", agent.Name, reason, message), IsWarning: true}}
+		results = append(results, ReconcileResult{Err: fmt.Errorf("agent %q is not ready: %s: %s", agent.Name, reason, message), IsWarning: true})
 	}
-	return nil
+	return results
 }
 
 // evaluateAgent computes the Ready condition for an agent. Fail reasons are
@@ -109,8 +116,40 @@ func (d *reconcilerModule) evaluateAgent(agent *v1alpha1.Agent) (metav1.Conditio
 		}
 	}
 
+	for _, ref := range agent.Spec.Tools.McpServerRefs {
+		server, err := store.GetMcpServer(ownNamespace, ref)
+		if err != nil || server == nil {
+			return metav1.ConditionFalse, "McpServerNotFound", fmt.Sprintf("tools.mcpServerRefs references McpServer %q which does not exist", ref)
+		}
+		ready := apimeta.FindStatusCondition(server.Status.Conditions, "Ready")
+		if ready == nil || ready.Status != metav1.ConditionTrue {
+			reason := "Unknown"
+			if ready != nil {
+				reason = ready.Reason
+			}
+			return metav1.ConditionFalse, "McpServerNotReady", fmt.Sprintf("McpServer %q is not ready: %s", ref, reason)
+		}
+	}
+
 	if !agent.Spec.Enabled {
 		return metav1.ConditionTrue, "Valid", "spec is valid; agent is disabled"
 	}
 	return metav1.ConditionTrue, "Valid", "spec is valid"
+}
+
+// requeueAgentsReferencingMcpServer re-reconciles every Agent in the namespace
+// that lists mcpServerName in spec.tools.mcpServerRefs. Called when a McpServer
+// transitions to Ready so referencing Agents don't wait up to 15 minutes for
+// their McpServerNotReady condition to clear.
+func (d *reconcilerModule) requeueAgentsReferencingMcpServer(namespace, mcpServerName string) {
+	if d.requeue == nil {
+		return
+	}
+	d.requeue(utils.AgentResource, func(obj *unstructured.Unstructured) bool {
+		if obj.GetNamespace() != namespace {
+			return false
+		}
+		refs, _, _ := unstructured.NestedStringSlice(obj.Object, "spec", "tools", "mcpServerRefs")
+		return slices.Contains(refs, mcpServerName)
+	})
 }

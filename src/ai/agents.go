@@ -6,6 +6,7 @@ import (
 	"mogenius-operator/src/store"
 	"mogenius-operator/src/structs"
 	"mogenius-operator/src/utils"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -165,14 +166,69 @@ func buildAgentRunPrompt(agent *v1alpha1.Agent, namespaces []string) string {
 }
 
 // agentRunKeyPrefix returns the Valkey key prefix for whole-scope runs of an
-// agent. The second segment is a scope namespace so workspace-filtered task
-// queries (pattern ai_tasks:*:<ns>:*) include these runs.
+// agent. The namespace segment is only a storage detail (kept so the key
+// shape stays uniform); workspace visibility is decided by
+// agentTaskVisibleInNamespaces, not by this segment.
 func agentRunKeyPrefix(namespace, agentName string) string {
 	return fmt.Sprintf("%s:Agent:%s:%s-run-", DB_AI_BUCKET_TASKS, namespace, agentName)
 }
 
-// hasOpenAgentRun reports whether the agent already has a pending or
-// in-progress whole-scope run, bounding cron/manual fan-out to one open run.
+// agentTaskIDPrefix is the ID/key prefix shared by all whole-scope agent
+// tasks (runs and their findings).
+var agentTaskIDPrefix = fmt.Sprintf("%s:Agent:", DB_AI_BUCKET_TASKS)
+
+// isAgentTaskID reports whether a task ID (== storage key) belongs to a
+// whole-scope agent run or one of its findings, as opposed to an
+// event-triggered single-resource task (ai_tasks:<Kind>:<ns>:<name>).
+func isAgentTaskID(id string) bool {
+	return strings.HasPrefix(id, agentTaskIDPrefix)
+}
+
+// agentTaskKeyForNamespace re-homes an agent task key to the given namespace
+// segment (ai_tasks:Agent:<ns>:<rest>). Findings are stored under their
+// target resource's namespace so the key states where the finding belongs;
+// keys of other shapes and empty namespaces are returned unchanged.
+func agentTaskKeyForNamespace(key, namespace string) string {
+	parts := strings.SplitN(key, ":", 4)
+	if namespace == "" || len(parts) != 4 || parts[1] != "Agent" {
+		return key
+	}
+	parts[2] = namespace
+	return strings.Join(parts, ":")
+}
+
+// agentTaskVisibleInNamespaces decides whether a whole-scope agent task is
+// visible to a workspace holding the given namespaces. A finding belongs to
+// its target resource's namespace — a workspace only sees findings about its
+// own namespaces, never manifests of foreign ones. Tasks without a finding
+// (all-clear reports, queued/running/failed runs) and findings on
+// cluster-scoped targets are visible wherever the agent's scope overlaps the
+// workspace; a wildcard scope is visible everywhere. Legacy tasks that
+// predate ScopeNamespaces fall back to the storage key's namespace segment
+// (the old behavior).
+func agentTaskVisibleInNamespaces(task *AiTask, namespaces map[string]bool) bool {
+	if task.Response != nil {
+		if ns := task.Response.Analysis.TargetResource.Namespace; ns != "" {
+			return namespaces[ns]
+		}
+	}
+	if task.ScopeAllNamespaces {
+		return true
+	}
+	if len(task.ScopeNamespaces) > 0 {
+		for _, ns := range task.ScopeNamespaces {
+			if namespaces[ns] {
+				return true
+			}
+		}
+		return false
+	}
+	parts := strings.SplitN(task.ID, ":", 4)
+	return len(parts) == 4 && namespaces[parts[2]]
+}
+
+// hasOpenAgentRun reports whether the agent already has a pending, in-progress
+// or cancelling whole-scope run, bounding cron/manual fan-out to one open run.
 func (ai *aiManager) hasOpenAgentRun(agentName string) (bool, error) {
 	keys, err := ai.valkeyClient.Keys(fmt.Sprintf("%s:Agent:*:%s-run-*", DB_AI_BUCKET_TASKS, agentName))
 	if err != nil {
@@ -183,7 +239,7 @@ func (ai *aiManager) hasOpenAgentRun(agentName string) (bool, error) {
 		if err != nil || task == nil {
 			continue
 		}
-		if task.State == AI_TASK_STATE_PENDING || task.State == AI_TASK_STATE_IN_PROGRESS {
+		if task.State == AI_TASK_STATE_PENDING || task.State == AI_TASK_STATE_IN_PROGRESS || task.State == AI_TASK_STATE_CANCELLING {
 			return true, nil
 		}
 	}
@@ -217,6 +273,11 @@ func (ai *aiManager) createAgentRunTask(agent *v1alpha1.Agent, trigger string, t
 		AgentRef:        agent.Name,
 		Trigger:         trigger,
 		TriggeredByUser: triggeredBy,
+		// Visibility must not depend on the key's namespace segment (an
+		// arbitrary pick — the alphabetically first scope namespace), so the
+		// scope travels with the task.
+		ScopeNamespaces:    namespaces,
+		ScopeAllNamespaces: slices.Contains(agent.Spec.Scope.Namespaces, "*"),
 	}
 	if err := ai.createOrUpdateAiTask(task, key); err != nil {
 		return nil, fmt.Errorf("failed to create agent run task: %w", err)
@@ -302,13 +363,7 @@ func (ai *aiManager) buildAgentTaskContext(task *AiTask) (*v1alpha1.Agent, *Tool
 	}
 	// Event tasks must still be inside the (possibly changed) scope.
 	if taskNamespace := task.ReferencingResource.Namespace; taskNamespace != "" {
-		inScope := false
-		for _, ns := range namespaces {
-			if ns == taskNamespace {
-				inScope = true
-				break
-			}
-		}
+		inScope := slices.Contains(namespaces, taskNamespace)
 		if !inScope {
 			return nil, nil, fmt.Errorf("resource namespace %q is no longer in the scope of agent %q", taskNamespace, agent.Name)
 		}
@@ -318,7 +373,47 @@ func (ai *aiManager) buildAgentTaskContext(task *AiTask) (*v1alpha1.Agent, *Tool
 	if len(toolCtx.ExcludeResources) > 0 {
 		ai.logger.Info("Excluding resources with open proposals from run", "agent", agent.Name, "count", len(toolCtx.ExcludeResources))
 	}
+	toolCtx.McpSessions = agent.Spec.Tools.McpServerRefs
+	if b := agent.Spec.Tools.Builtin; b != nil {
+		toolCtx.DisableKubernetes = !b.Kubernetes
+		toolCtx.DisableHelm = !b.Helm
+	}
 	return agent, toolCtx, nil
+}
+
+// pruneOlderAllClearReports deletes every all-clear report (completed
+// whole-scope run without findings) of the agent except keepKey, so exactly
+// one — the newest — stays visible. Tasks with findings are never touched.
+func (ai *aiManager) pruneOlderAllClearReports(agentName string, keepKey string) {
+	if agentName == "" {
+		return
+	}
+	keys, err := ai.valkeyClient.Keys(fmt.Sprintf("%s:Agent:*:%s-run-*", DB_AI_BUCKET_TASKS, agentName))
+	if err != nil {
+		ai.logger.Warn("Failed to list agent tasks for all-clear pruning", "agent", agentName, "error", err)
+		return
+	}
+	for _, key := range keys {
+		if key == keepKey {
+			continue
+		}
+		task, err := ai.getTaskByKey(key)
+		if err != nil || task == nil {
+			continue
+		}
+		// Only completed runs WITHOUT findings are all-clear reports; the
+		// key pattern also matches finding tasks (-f2…), which carry a
+		// response and are skipped here.
+		if task.State != AI_TASK_STATE_COMPLETED || task.Response != nil {
+			continue
+		}
+		if delErr := ai.valkeyClient.DeleteSingle(key); delErr != nil {
+			ai.logger.Error("Error deleting superseded all-clear report", "taskID", task.ID, "error", delErr)
+			continue
+		}
+		ai.sendAiDeleteEvent(key)
+		ai.logger.Info("Pruned superseded all-clear report", "agent", agentName, "taskID", task.ID)
+	}
 }
 
 // openProposalResourceKeys collects the target resources of the agent's tasks
@@ -395,12 +490,7 @@ func changeTypeSelected(on []string, changeType string) bool {
 	if len(on) == 0 {
 		return true
 	}
-	for _, t := range on {
-		if t == changeType {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(on, changeType)
 }
 
 // kindSelected reports whether kind is selected; an empty list means all kinds.
@@ -408,12 +498,7 @@ func kindSelected(kinds []string, kind string) bool {
 	if len(kinds) == 0 {
 		return true
 	}
-	for _, k := range kinds {
-		if k == kind {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(kinds, kind)
 }
 
 // namespaceSelected reports whether the object's namespace is within the

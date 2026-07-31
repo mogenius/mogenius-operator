@@ -75,10 +75,45 @@ type AgentSpec struct {
 	// the cluster-wide default AiModel.
 	ModelRef string `json:"modelRef,omitempty"`
 
-	// Deprecated: overrides only the model name within the globally configured
-	// provider. Use ModelRef instead, which selects a full AiModel (provider,
-	// URL and credentials). Ignored when ModelRef is set.
-	Model string `json:"model,omitempty"`
+	// Maximum number of tool calls per run of this agent; overrides the
+	// model's value. Unset falls back to the model, then the built-in default.
+	// +kubebuilder:validation:Minimum=1
+	MaxToolCalls *int `json:"maxToolCalls,omitempty"`
+
+	// Token budget per run of this agent; overrides the model's value.
+	// 0 means unlimited; unset falls back to the model, then the built-in
+	// default.
+	// +kubebuilder:validation:Minimum=0
+	MaxTokensPerRun *int64 `json:"maxTokensPerRun,omitempty"`
+
+	// Tools configures which tool groups are available to this agent.
+	// When omitted the agent has access to all built-in tools.
+	Tools AgentTools `json:"tools,omitempty"`
+}
+
+// AgentTools groups all tool configuration for an agent.
+type AgentTools struct {
+	// Builtin controls which built-in read-only tool groups are enabled.
+	// When unset, all built-in tool groups are available.
+	Builtin *AgentBuiltinTools `json:"builtin,omitempty"`
+
+	// McpServerRefs lists names of McpServer CRs (same namespace) whose tools
+	// are made available to this agent. Referenced servers are connected at run
+	// time; a missing or not-Ready McpServer is skipped with a warning rather
+	// than aborting the run.
+	McpServerRefs []string `json:"mcpServerRefs,omitempty"`
+}
+
+// AgentBuiltinTools toggles individual built-in read-only tool groups.
+// Omitting a field keeps the tool group enabled (defaults to true).
+type AgentBuiltinTools struct {
+	// Kubernetes enables the built-in read-only Kubernetes tools.
+	// +kubebuilder:default=true
+	Kubernetes bool `json:"kubernetes,omitempty"`
+
+	// Helm enables the built-in read-only Helm tools.
+	// +kubebuilder:default=true
+	Helm bool `json:"helm,omitempty"`
 }
 
 // AgentScope restricts an agent's visibility. At least one of WorkspaceRef or

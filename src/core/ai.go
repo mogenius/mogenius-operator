@@ -14,11 +14,12 @@ type AiApi interface {
 	GetAllAiTasks() ([]ai.AiTask, error)
 	GetAiTasksForResource(resourceReq utils.WorkloadSingleRequest) ([]ai.AiTask, error)
 	GetLatestTask(workspace *string) (*ai.AiTaskLatest, error)
+	GetRun(runID string) (*ai.AiRun, error)
 	InjectAiPromptConfig(prompt ai.AiPromptConfig, aiPrompts *ai.AiPrompts)
 	GetStatus(workspace *string) ai.AiManagerStatus
-	ResetDailyTokenLimit() error
 	DeleteAllAiData() error
 	GetAvailableModels(request *ai.ModelsRequest) ([]string, error)
+	TestAiModel(name string) (*ai.AiModelTestResult, error)
 	GetPromptConfig() (*ai.AiPromptConfig, error)
 
 	ApproveTask(taskID string, user structs.User, workspace string) (*ai.AiTask, error)
@@ -55,6 +56,10 @@ func (ai *aiApi) GetLatestTask(workspace *string) (*ai.AiTaskLatest, error) {
 	return ai.aiManager.GetLatestTask(workspace)
 }
 
+func (self *aiApi) GetRun(runID string) (*ai.AiRun, error) {
+	return self.aiManager.GetRun(runID)
+}
+
 func (ai *aiApi) InjectAiPromptConfig(prompt ai.AiPromptConfig, aiPrompts *ai.AiPrompts) {
 	ai.aiManager.InjectAiPromptConfig(prompt, aiPrompts)
 }
@@ -71,16 +76,16 @@ func (ai *aiApi) GetStatus(workspace *string) ai.AiManagerStatus {
 	return ai.aiManager.GetStatus(workspace)
 }
 
-func (ai *aiApi) ResetDailyTokenLimit() error {
-	return ai.aiManager.ResetDailyTokenLimit()
-}
-
 func (ai *aiApi) DeleteAllAiData() error {
 	return ai.aiManager.DeleteAllAiData()
 }
 
 func (ai *aiApi) GetAvailableModels(request *ai.ModelsRequest) ([]string, error) {
 	return ai.aiManager.GetAvailableModels(request)
+}
+
+func (self *aiApi) TestAiModel(name string) (*ai.AiModelTestResult, error) {
+	return self.aiManager.TestAiModel(name)
 }
 
 func (ai *aiApi) GetPromptConfig() (*ai.AiPromptConfig, error) {

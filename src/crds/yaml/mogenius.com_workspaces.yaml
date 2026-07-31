@@ -14,7 +14,23 @@ spec:
     singular: workspace
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .spec.name
+      name: Display Name
+      type: string
+    - jsonPath: .spec.dashboardRef
+      name: Dashboard
+      type: string
+    - jsonPath: .status.conditions[?(@.type=="ResourcesValid")].status
+      name: Resources Valid
+      type: string
+    - jsonPath: .status.conditions[?(@.type=="DashboardRefValid")].status
+      name: Dashboard Valid
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: |-

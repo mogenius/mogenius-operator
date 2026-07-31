@@ -14,7 +14,23 @@ spec:
     singular: grant
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .spec.grantee
+      name: Grantee
+      type: string
+    - jsonPath: .spec.role
+      name: Role
+      type: string
+    - jsonPath: .spec.targetType
+      name: Target Type
+      type: string
+    - jsonPath: .spec.targetName
+      name: Target
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: |-
@@ -86,3 +102,4 @@ spec:
         type: object
     served: true
     storage: true
+    subresources: {}

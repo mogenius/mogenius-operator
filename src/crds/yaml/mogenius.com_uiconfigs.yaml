@@ -14,7 +14,26 @@ spec:
     singular: uiconfig
   scope: Cluster
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .spec.reference.apiVersion
+      name: ApiVersion
+      type: string
+    - jsonPath: .spec.reference.kind
+      name: Kind
+      type: string
+    - jsonPath: .spec.displayName
+      name: Display Name
+      type: string
+    - jsonPath: .spec.isCustomized
+      name: Customized
+      type: boolean
+    - jsonPath: .status.conditions[?(@.type=="NameValid")].status
+      name: Name Valid
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: UIConfig defines a specialised UI for a specific custom resource
@@ -38,6 +57,12 @@ spec:
             type: object
           spec:
             properties:
+              displayName:
+                description: |-
+                  DisplayName is the human-readable title shown in the UI. The resource's
+                  metadata.name is deterministic ("<kind>.<group>", lowercase) so that exactly
+                  one UIConfig can exist per resource type and lookups need no listing.
+                type: string
               isCustomized:
                 description: |-
                   IsCustomized is false when the schema was auto-generated from the resource's OpenAPI spec
@@ -73,23 +98,28 @@ spec:
                       the metadata section (name, namespace); subsequent sections map to top-level spec fields.
                     items:
                       description: |-
-                        UISection is a named group of related fields rendered as a collapsible block in the form.
-                        Nested objects in the resource spec are expressed as child sections rather than
-                        as fields that own other fields, keeping fields as pure leaf inputs.
+                        UISection is a named group of fields rendered as a collapsible block in the form.
+                        Sections are purely visual grouping — structural nesting of the resource (objects,
+                        object arrays, variants) is expressed by the field types below, not by sections.
                       properties:
                         description:
                           description: Description is shown below the section heading
                             to explain its purpose to the user.
                           type: string
                         fields:
-                          description: |-
-                            Fields lists the leaf inputs that belong directly to this section.
-                            Each field maps to a scalar, enum, array-of-scalars, or map property in the resource spec.
+                          description: Fields lists the inputs that belong to this
+                            section.
                           items:
                             description: |-
-                              UIField describes a single leaf input in the form — a control that maps to one scalar,
-                              enum, array-of-scalars, or map property in the resource spec.
-                              Object-type properties are represented as child UISection values, not as UIFields.
+                              UIField describes a single input in the form. Scalar types map to one property in the
+                              resource spec; the structural types (object, objectArray, oneOf, yaml) carry nested
+                              sub-schemas and may recurse to arbitrary depth.
+
+                              Key resolution: at the top level (fields directly inside a UISection), Key is the
+                              dot-notation path from the resource root, e.g. "spec.replicas". Inside a structural
+                              field (object, objectArray item, oneOf variant), Key is relative to the enclosing
+                              subtree, e.g. an objectArray with Key "spec.template.spec.containers" has item fields
+                              with keys like "name", "image" or "resources.limits.cpu".
                             properties:
                               default:
                                 description: Default is pre-filled into the input
@@ -100,23 +130,57 @@ spec:
                                   Description is shown as a tooltip or hint text below the input to help the user
                                   understand what value is expected.
                                 type: string
+                              discriminator:
+                                description: |-
+                                  Discriminator is the relative path of a scalar property that identifies the active
+                                  variant of a "oneOf" field (e.g. "type" in HPA metric entries). When set, the frontend
+                                  writes the selected variant's DiscriminatorValue to this path. When empty, the active
+                                  variant is inferred from which variant subtree key is present.
+                                type: string
                               enum:
                                 description: |-
                                   Enum lists the allowed values for this field. When set, the frontend replaces the
-                                  free-text input with a dropdown restricted to these options.
+                                  free-text input with a dropdown restricted to these options. Only for scalar types.
                                 items:
                                   type: string
                                 type: array
+                              fields:
+                                description: |-
+                                  Fields holds the sub-schema of a structural field: the properties of an "object",
+                                  or the per-item properties of an "objectArray". Sub-field keys are relative to this
+                                  field's subtree. Ignored for scalar types.
+
+                                  NOTE: this field is schemaless because CRD structural schemas cannot express
+                                  recursion. The apiserver stores it unvalidated; the operator validates it instead.
+                                x-kubernetes-preserve-unknown-fields: true
+                              itemType:
+                                description: ItemType is the scalar type of the entries
+                                  of an "array" field (string when omitted).
+                                enum:
+                                - string
+                                - integer
+                                - number
+                                - boolean
+                                type: string
                               key:
                                 description: |-
-                                  Key is the dot-notation path to this field in the resource YAML, e.g. "spec.replicas"
-                                  or "spec.template.spec.containers[].image". The frontend uses this to read and write
-                                  the correct location when building the resource manifest.
+                                  Key is the dot-notation path this field reads from / writes to (see type comment
+                                  for relative vs. absolute resolution). For oneOf fields, Key may be empty when the
+                                  variant subtrees sit directly on the enclosing object (e.g. volume sources).
                                 type: string
                               label:
                                 description: Label is the human-readable name shown
                                   next to the input control.
                                 type: string
+                              options:
+                                description: |-
+                                  Options restricts the field's value(s) to an admin-curated list and switches the
+                                  rendered control: scalar fields become a select, array and objectArray fields a
+                                  multi-select whose chosen entries are written verbatim into the manifest. Each
+                                  entry is either a raw value or an object {label, value}.
+                                items:
+                                  x-kubernetes-preserve-unknown-fields: true
+                                type: array
                               required:
                                 description: Required causes the frontend to block
                                   form submission if this field is left empty.
@@ -131,7 +195,18 @@ spec:
                                 - boolean
                                 - array
                                 - map
+                                - object
+                                - objectArray
+                                - oneOf
+                                - yaml
                                 type: string
+                              variants:
+                                description: |-
+                                  Variants lists the alternatives of a "oneOf" field. Exactly one variant is active
+                                  at a time. Ignored for all other types.
+
+                                  NOTE: schemaless for the same recursion reason as Fields.
+                                x-kubernetes-preserve-unknown-fields: true
                             required:
                             - key
                             - label
@@ -142,83 +217,6 @@ spec:
                           description: Label is the heading text displayed on the
                             section block in the UI.
                           type: string
-                        sections:
-                          description: |-
-                            Sections holds child sections for nested object properties within this section.
-                            For example, a top-level "Spec" section may contain a "Resources" sub-section
-                            for spec.resources.limits / spec.resources.requests.
-                          items:
-                            properties:
-                              description:
-                                description: Description is shown below the section
-                                  heading to explain its purpose to the user.
-                                type: string
-                              fields:
-                                description: |-
-                                  Fields lists the leaf inputs that belong directly to this section.
-                                  Each field maps to a scalar, enum, array-of-scalars, or map property in the resource spec.
-                                items:
-                                  description: |-
-                                    UIField describes a single leaf input in the form — a control that maps to one scalar,
-                                    enum, array-of-scalars, or map property in the resource spec.
-                                    Object-type properties are represented as child UISection values, not as UIFields.
-                                  properties:
-                                    default:
-                                      description: Default is pre-filled into the
-                                        input when the user opens a blank create form.
-                                      x-kubernetes-preserve-unknown-fields: true
-                                    description:
-                                      description: |-
-                                        Description is shown as a tooltip or hint text below the input to help the user
-                                        understand what value is expected.
-                                      type: string
-                                    enum:
-                                      description: |-
-                                        Enum lists the allowed values for this field. When set, the frontend replaces the
-                                        free-text input with a dropdown restricted to these options.
-                                      items:
-                                        type: string
-                                      type: array
-                                    key:
-                                      description: |-
-                                        Key is the dot-notation path to this field in the resource YAML, e.g. "spec.replicas"
-                                        or "spec.template.spec.containers[].image". The frontend uses this to read and write
-                                        the correct location when building the resource manifest.
-                                      type: string
-                                    label:
-                                      description: Label is the human-readable name
-                                        shown next to the input control.
-                                      type: string
-                                    required:
-                                      description: Required causes the frontend to
-                                        block form submission if this field is left
-                                        empty.
-                                      type: boolean
-                                    type:
-                                      description: Type selects the input widget the
-                                        frontend renders for this field.
-                                      enum:
-                                      - string
-                                      - integer
-                                      - number
-                                      - boolean
-                                      - array
-                                      - map
-                                      type: string
-                                  required:
-                                  - key
-                                  - label
-                                  - type
-                                  type: object
-                                type: array
-                              label:
-                                description: Label is the heading text displayed on
-                                  the section block in the UI.
-                                type: string
-                            required:
-                            - label
-                            type: object
-                          type: array
                       required:
                       - label
                       type: object
@@ -230,6 +228,68 @@ spec:
             - isCustomized
             - reference
             - schema
+            type: object
+          status:
+            properties:
+              conditions:
+                description: |-
+                  Conditions reports the results of the reconciler's integrity checks,
+                  currently whether metadata.name matches the deterministic naming scheme.
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
             type: object
         required:
         - metadata
