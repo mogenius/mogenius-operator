@@ -1255,6 +1255,14 @@ func readShardTopMembers(
 // rules as the single-shard paginated path: creationTimestamp defaults to
 // desc, name to asc, with the resource name as a tiebreaker so the order is
 // stable across requests.
+//
+// The score tiebreaker MUST follow the sort direction: the per-shard pull
+// (ZREVRANGE / ZRANGE) orders equal-score members reverse-lex / lex, and it
+// only fetches the top offset+limit per shard. If the merge broke ties in
+// the opposite direction, the pulled prefix would land at the END of each
+// tie group after sorting — consecutive pages would overlap and the
+// remaining tie-group members would be unreachable. Bulk-created resources
+// (identical creation second) hit this constantly.
 func sortRankedMembers(items []rankedMember, useNameSort bool, sortOrder string) {
 	if useNameSort {
 		desc := sortOrder == sortOrderDesc
@@ -1273,6 +1281,9 @@ func sortRankedMembers(items []rankedMember, useNameSort bool, sortOrder string)
 	desc := sortOrder != sortOrderAsc
 	sort.SliceStable(items, func(i, j int) bool {
 		if items[i].score == items[j].score {
+			if desc {
+				return items[i].member > items[j].member
+			}
 			return items[i].member < items[j].member
 		}
 		if desc {

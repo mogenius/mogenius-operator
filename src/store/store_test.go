@@ -1,6 +1,8 @@
 package store
 
 import (
+	"fmt"
+	"sort"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -350,4 +352,73 @@ func TestStampTypeMetaFromKey(t *testing.T) {
 	stampTypeMetaFromKey(obj, "resources:v1:Pod")
 	assert.Equal(t, "", obj.GetAPIVersion())
 	assert.Equal(t, "", obj.GetKind())
+}
+
+// Reproduces the duplicate-page bug with bulk-created resources: many
+// members share one creation second (one ZSET score). The shard pull
+// (ZREVRANGE) returns equal-score members in REVERSE lexicographic order,
+// so the merge sort must break score ties in the SAME direction — with an
+// ascending tie-break, consecutive pages overlap and the lexicographically
+// smaller members of the tie group become unreachable (MOG: mocli stuck at
+// "loaded 50 of N").
+func TestSortRankedMembers_DescTieBreakMatchesShardPull(t *testing.T) {
+	// 130 members, one shared score — mirrors a load test creating
+	// ~130 services within the same second (names not zero-padded).
+	tieGroup := make([]string, 0, 130)
+	for i := 871; i <= 1000; i++ {
+		tieGroup = append(tieGroup, fmt.Sprintf("svc-load-%d", i))
+	}
+	// ZREVRANGE order for equal scores: reverse lexicographic.
+	revLex := append([]string(nil), tieGroup...)
+	sort.Sort(sort.Reverse(sort.StringSlice(revLex)))
+
+	// page emulates GetResourcesByWhitelistPaginated for one shard:
+	// pull the shard's top offset+limit members (ZREVRANGE prefix),
+	// merge-sort them, slice [offset, offset+limit).
+	page := func(offset, limit int) []string {
+		count := offset + limit
+		if count > len(revLex) {
+			count = len(revLex)
+		}
+		pulled := make([]rankedMember, 0, count)
+		for _, name := range revLex[:count] {
+			pulled = append(pulled, rankedMember{member: name, score: 1785488352})
+		}
+		sortRankedMembers(pulled, false, sortOrderDesc)
+		end := offset + limit
+		if end > len(pulled) {
+			end = len(pulled)
+		}
+		if offset >= len(pulled) {
+			return nil
+		}
+		names := make([]string, 0, end-offset)
+		for _, m := range pulled[offset:end] {
+			names = append(names, m.member)
+		}
+		return names
+	}
+
+	pageOne := page(0, 50)
+	pageTwo := page(50, 50)
+
+	// Pages must be disjoint...
+	seen := map[string]bool{}
+	for _, name := range pageOne {
+		seen[name] = true
+	}
+	for _, name := range pageTwo {
+		assert.False(t, seen[name], "member %s returned on both pages", name)
+		seen[name] = true
+	}
+	// ...and together cover exactly the shard's top 100 — no member of the
+	// tie group may be skipped.
+	assert.Len(t, seen, 100)
+	for _, name := range revLex[:100] {
+		assert.True(t, seen[name], "member %s unreachable via pagination", name)
+	}
+	// The page order must match the shard-pull order (newest-first
+	// semantics: reverse-lex within one creation second).
+	assert.Equal(t, revLex[:50], pageOne)
+	assert.Equal(t, revLex[50:100], pageTwo)
 }
