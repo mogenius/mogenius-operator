@@ -12,6 +12,66 @@
 
 * aimodels added for agents to select between them ([d93e9ed](https://github.com/mogenius/mogenius-operator/commit/d93e9ed985c8e5dc6568ad111620e24b1c5d8698))
 
+## [2.26.0](https://github.com/mogenius/mogenius-operator/compare/v2.25.0...v2.26.0) (2026-07-31)
+
+
+### Features
+
+* add McpServer CRD ([bda42c8](https://github.com/mogenius/mogenius-operator/commit/bda42c8b0309af0cbb4127d4fce4537563412c8c))
+* add McpServer reconciler ([704c1f2](https://github.com/mogenius/mogenius-operator/commit/704c1f27fcf08fe27007f0f94f8cf0c9495b53a1))
+* add search and filters to paginated resource listing;  deleted … ([cc91359](https://github.com/mogenius/mogenius-operator/commit/cc91359c606830ec8dbebb8df2ac6af4da163f9a))
+* add search and filters to paginated resource listing;  deleted CRD kind instead of the CRD watcher itself ([40702a6](https://github.com/mogenius/mogenius-operator/commit/40702a6918fdbfd0a6276a1060806772a97ee908))
+* adding object filter to reconciler to only look at mo resources in the same namespace ([a52b685](https://github.com/mogenius/mogenius-operator/commit/a52b685478e1a53d07817701a6396c4ded7c82b7))
+* adding socket api to manage mcp servers ([c3974d0](https://github.com/mogenius/mogenius-operator/commit/c3974d0206d0c130268baccd5a416398169dc68a))
+* extend CRD schema and introduce deterministic names with optional displayName; add NameValid status condition via reconciler — Status im Typ, ui_configs.go, factory.go, utils/config.go;  additionalPrinterColumns for kubectl output — die übrigen type_*.go + alle anderen YAMLs ([373907c](https://github.com/mogenius/mogenius-operator/commit/373907cd941e634cc385070099e8949bf8cdaa49))
+* report to platform if prometheus or alertmanager are installed ([1014b9c](https://github.com/mogenius/mogenius-operator/commit/1014b9c58ee6a9078dcd3e4f8b6b07568ce0957c))
+* wire McpServer CRs into agent AI pipeline ([f3841e3](https://github.com/mogenius/mogenius-operator/commit/f3841e34b738b104fa594752794471a8d0c578a8))
+
+
+### Bug Fixes
+
+* added agent uniquness ([ef6bb4b](https://github.com/mogenius/mogenius-operator/commit/ef6bb4ba082e5e65e43a6efb0e98c42ddd53eb32))
+* adding printer columns for ui config ([2a8a67c](https://github.com/mogenius/mogenius-operator/commit/2a8a67c488d1b22ece61124ca3c9da5836a8a5c5))
+* adding printer columns to platform config ([49183a4](https://github.com/mogenius/mogenius-operator/commit/49183a4b86779f41fdd87fef29a0b10c401affe8))
+* ai improvements ([80423e5](https://github.com/mogenius/mogenius-operator/commit/80423e5d3847a7f8b362462cba5028ce2d119edd))
+* ai improvements ([a1e29c9](https://github.com/mogenius/mogenius-operator/commit/a1e29c94d420cb7b03316812a5a828b94f83a846))
+* ai improvements for ollama ([15e807d](https://github.com/mogenius/mogenius-operator/commit/15e807d5774dc691fb57bf4181b120f61124107c))
+* ai improvements for openai ([7e14642](https://github.com/mogenius/mogenius-operator/commit/7e14642ffb25448b71c72d1e1af5c25cd6cba16d))
+* aiagents prototype integrated. ([b7e1c3d](https://github.com/mogenius/mogenius-operator/commit/b7e1c3ded71f47a5a9eac1daabdd7d15252e9f73))
+* aimodels added for agents to select between them ([7190678](https://github.com/mogenius/mogenius-operator/commit/719067862a50966b5e8468e2ba69354213d2a368))
+* aimodels now can only have one default ([65c489e](https://github.com/mogenius/mogenius-operator/commit/65c489eb3fb537f58d264b49057f114ef7fe0aec))
+* aitasks can now be cancelt ([004857d](https://github.com/mogenius/mogenius-operator/commit/004857dd3d6508d7a760892b921221224e3252ba))
+* allow disabeling the build in tools ([d4c81c4](https://github.com/mogenius/mogenius-operator/commit/d4c81c4fefbff188147be63eb1decc33fd9e5e50))
+* break score ties in sort direction on paginated merge; rename pod stats pattern to stats/pod/all-for-namespace ([5a0c9fc](https://github.com/mogenius/mogenius-operator/commit/5a0c9fc66fd867e252b0d044d3a628dabf0c53f1))
+* bump deps ([826aa75](https://github.com/mogenius/mogenius-operator/commit/826aa75179fe0b485091514a5bfccfc1d8bb39e6))
+* check error return values in portforward (errcheck) ([9e0dc13](https://github.com/mogenius/mogenius-operator/commit/9e0dc13b7b5111a13ad0536e6fec854ea62ff223))
+* **ci:** disable setup-go cache to stop runner pod evictions ([3eca1f9](https://github.com/mogenius/mogenius-operator/commit/3eca1f9ef7a14577d7c48b3c23ebbf29d4cf06fd))
+* **ci:** disable setup-go cache to stop runner pod evictions ([f0218bb](https://github.com/mogenius/mogenius-operator/commit/f0218bbdb1d80595deb4acdcef3d36b80774a889))
+* **deps:** update kubernetes monorepo to v0.36.3 ([dabfae5](https://github.com/mogenius/mogenius-operator/commit/dabfae55882f0d8d02159ea1fd74753203502c54))
+* **deps:** update module github.com/anthropics/anthropic-sdk-go to v1.58.1 ([a3cf93a](https://github.com/mogenius/mogenius-operator/commit/a3cf93af1f92c1fc2ec2bfa1fb01ca8567c22644))
+* **deps:** update module github.com/anthropics/anthropic-sdk-go to v1.61.0 ([59f284d](https://github.com/mogenius/mogenius-operator/commit/59f284dc208f905b751291ee28cf76c5d06a87b7))
+* **deps:** update module github.com/mattn/go-isatty to v0.0.24 ([c940df0](https://github.com/mogenius/mogenius-operator/commit/c940df095d17dccac48f0e9d556961830e07906f))
+* **deps:** update module github.com/ollama/ollama to v0.32.4 ([49b7bc9](https://github.com/mogenius/mogenius-operator/commit/49b7bc90280913f37822d2b5042dbf4048547f9a))
+* **deps:** update module github.com/openai/openai-go/v3 to v3.46.0 ([ef24218](https://github.com/mogenius/mogenius-operator/commit/ef24218ae37acd5eae1a44aa756c3e0e917960aa))
+* **deps:** update module github.com/prometheus/client_golang to v1.24.0 ([079b087](https://github.com/mogenius/mogenius-operator/commit/079b087c70ba2614b868fa7e9ad99fe83d023a3d))
+* **deps:** update module github.com/prometheus/client_golang to v1.24.1 ([80a6f77](https://github.com/mogenius/mogenius-operator/commit/80a6f77c9676ef028e672cea980f5fca5ae3136e))
+* empty sessions now result in empty tools ([5a6600c](https://github.com/mogenius/mogenius-operator/commit/5a6600cfe16052d4923decff46037f50592acabd))
+* external host portforward ([2e678fd](https://github.com/mogenius/mogenius-operator/commit/2e678fd02584c64bd02f3a8afe3684b90fb1cc09))
+* external host portforward ([53fc62c](https://github.com/mogenius/mogenius-operator/commit/53fc62c2f4dd7a2dca7fdd91ffd59c019b2eade4))
+* golang ci lint issues in mcp server api ([43252fc](https://github.com/mogenius/mogenius-operator/commit/43252fcf0a156d38a68a828685aaaac408b4a6f9))
+* **helm:** create service account in readonly deployment ([a56744a](https://github.com/mogenius/mogenius-operator/commit/a56744a0253534d21c8be1711e09b22551f25e64))
+* improve crd default values ([cecef4f](https://github.com/mogenius/mogenius-operator/commit/cecef4f5f991c8a31b8f121d5199bf5801a8a98f))
+* improve stream error handling ([a187449](https://github.com/mogenius/mogenius-operator/commit/a187449280a0d064c2ebdcd0476f5e0a368a1e3c))
+* improve stream error handling ([5764fc9](https://github.com/mogenius/mogenius-operator/commit/5764fc9dd5b3468c9b463f9440ef91e9241fc001))
+* make search work on the paginated workspace endpoint ([ebe6bab](https://github.com/mogenius/mogenius-operator/commit/ebe6bab3706f298b7e6cb4ce665838cc70dabc8b))
+* mark agent as not ready if mcpserver is not ready ([ca970b4](https://github.com/mogenius/mogenius-operator/commit/ca970b492d1f66dd42f05747cdb42514fedda256))
+* models now support chat toggle ([e251890](https://github.com/mogenius/mogenius-operator/commit/e251890f8e15b383bbfdf8d99e381bf441f61b20))
+* no full reconnect on reconcile if session is active and queue referenced agents ([440d2d0](https://github.com/mogenius/mogenius-operator/commit/440d2d087a89d1e8c12a8c9ef2fe9e99a2dbf29b))
+* ollama chat fixed. ([f9e07c6](https://github.com/mogenius/mogenius-operator/commit/f9e07c61c90f177988bf2532b2f57f2dd5ef7528))
+* ran go fix ([f3b7c3d](https://github.com/mogenius/mogenius-operator/commit/f3b7c3dd62c75523c7802cc8535305519da164a5))
+* remove mcp server related patterns ([d221b0e](https://github.com/mogenius/mogenius-operator/commit/d221b0efe4d1587aee75ba1fc2be45ca36e69fdb))
+* scope agent report visibility to workspaces instead of first scope namespace ([b8e651e](https://github.com/mogenius/mogenius-operator/commit/b8e651eab3194585d814d2e3ad6991826f7f0b1f))
+
 ## [2.23.3](https://github.com/mogenius/mogenius-operator/compare/v2.23.2...v2.23.3) (2026-07-08)
 
 
