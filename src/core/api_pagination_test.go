@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"mogenius-operator/src/store"
 	"mogenius-operator/src/utils"
 
 	"github.com/stretchr/testify/assert"
@@ -152,4 +153,38 @@ func TestIndexableWorkspaceNamespaces_NamespacedClusterWideUsesIndex(t *testing.
 	got, ok := a.indexableWorkspaceNamespaces("", req)
 	assert.True(t, ok)
 	assert.Equal(t, []string{"ns-a", "ns-b"}, got)
+}
+
+func TestFilterUnstructuredBySearch(t *testing.T) {
+	items := []unstructured.Unstructured{
+		makeSearchItem("nginx-frontend", "default", "Deployment", "apps/v1"),
+		makeSearchItem("api-server", "mo-prod", "Deployment", "apps/v1"),
+		makeSearchItem("cache", "default", "Service", "v1"),
+	}
+
+	assert.Len(t, filterUnstructuredBySearch(items, nil), 3)
+	assert.Len(t, filterUnstructuredBySearch(items, store.BuildSearchFilterGroups("NGINX", nil, nil)), 1)
+	// namespace match
+	assert.Len(t, filterUnstructuredBySearch(items, store.BuildSearchFilterGroups("mo-prod", nil, nil)), 1)
+	// kind match
+	assert.Len(t, filterUnstructuredBySearch(items, store.BuildSearchFilterGroups("service", nil, nil)), 1)
+	assert.Empty(t, filterUnstructuredBySearch(items, store.BuildSearchFilterGroups("does-not-exist", nil, nil)))
+	// structured: name contains "nginx" AND namespace equals "default"
+	assert.Len(t, filterUnstructuredBySearch(items, store.BuildSearchFilterGroups("", []store.SearchFilter{
+		{Field: "name", Value: "nginx"},
+		{Field: "namespace", Operator: store.SearchOperatorEquals, Value: "Default"},
+	}, nil)), 1)
+	// group with or-joined name constraints
+	assert.Len(t, filterUnstructuredBySearch(items, store.BuildSearchFilterGroups("", nil, []store.SearchFilterGroup{
+		{Field: "name", Operator: store.SearchGroupOperatorOr, Constraints: []store.SearchConstraint{{Value: "nginx"}, {Value: "cache"}}},
+	})), 2)
+}
+
+func makeSearchItem(name, namespace, kind, apiVersion string) unstructured.Unstructured {
+	item := unstructured.Unstructured{Object: map[string]any{}}
+	item.SetName(name)
+	item.SetNamespace(namespace)
+	item.SetKind(kind)
+	item.SetAPIVersion(apiVersion)
+	return item
 }

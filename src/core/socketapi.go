@@ -587,45 +587,72 @@ func (self *socketApi) registerPatterns() {
 			},
 		)
 
-		// stats/pod/all-for-workspace — full per-pod CPU/memory
-		// snapshots for every pod in the namespace (no top-N cap,
-		// unlike the utilization aggregations above). Scans valkey
-		// directly for every pod-stats stream key in the namespace
-		// rather than going through the Workspace CRD, so it also
-		// works for namespaces that aren't wired up as mogenius
-		// workspaces. Each stream key is
-		// `pod-stats:<namespace>:<controllerName>`; the data inside
-		// already carries the pod name per entry.
+	}
+
+	// stats/pod/all-for-namespace — full per-pod CPU/memory snapshots for
+	// every pod in one namespace (no top-N cap, unlike the workspace
+	// utilization aggregations above). Scans valkey directly for every
+	// pod-stats stream key in the namespace rather than going through the
+	// Workspace CRD, so it works for any namespace. Each stream key is
+	// `pod-stats:<namespace>:<controllerName>`; the data inside already
+	// carries the pod name per entry.
+	{
+		podStatsForNamespace := func(namespace string, timeOffsetMinutes int) ([]structs.PodStats, error) {
+			if timeOffsetMinutes <= 0 {
+				timeOffsetMinutes = 5
+			}
+			prefix := DB_STATS_POD_STATS_BUCKET_NAME + ":" + namespace + ":"
+			keys, err := self.valkeyClient.Keys(prefix + "*")
+			if err != nil {
+				return nil, err
+			}
+			out := make([]structs.PodStats, 0)
+			for _, k := range keys {
+				if !strings.HasPrefix(k, prefix) {
+					continue
+				}
+				controllerName := k[len(prefix):]
+				if controllerName == "" {
+					continue
+				}
+				entries := self.dbstats.GetPodStatsEntriesForController(
+					"", controllerName, namespace,
+					int64(timeOffsetMinutes),
+				)
+				if entries != nil {
+					out = append(out, *entries...)
+				}
+			}
+			return out, nil
+		}
+
+		type NamespaceRequest struct {
+			Namespace         string `json:"namespace"`
+			TimeOffsetMinutes int    `json:"timeOffsetMinutes"`
+		}
+
+		RegisterPatternHandler(
+			PatternHandle{self, "stats/pod/all-for-namespace"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request NamespaceRequest) ([]structs.PodStats, error) {
+				return podStatsForNamespace(request.Namespace, request.TimeOffsetMinutes)
+			},
+		)
+
+		// Legacy alias for platform APIs that predate the rename: same
+		// behavior, but the namespace arrives in a field named
+		// workspaceName. The value was always interpreted as a namespace
+		// here — it was never resolved as a mogenius workspace.
+		type LegacyWorkspaceRequest struct {
+			WorkspaceName     string `json:"workspaceName"`
+			TimeOffsetMinutes int    `json:"timeOffsetMinutes"`
+		}
+
 		RegisterPatternHandler(
 			PatternHandle{self, "stats/pod/all-for-workspace"},
 			PatternConfig{},
-			func(datagram structs.Datagram, request Request) ([]structs.PodStats, error) {
-				if request.TimeOffsetMinutes <= 0 {
-					request.TimeOffsetMinutes = 5
-				}
-				prefix := DB_STATS_POD_STATS_BUCKET_NAME + ":" + request.WorkspaceName + ":"
-				keys, err := self.valkeyClient.Keys(prefix + "*")
-				if err != nil {
-					return nil, err
-				}
-				out := make([]structs.PodStats, 0)
-				for _, k := range keys {
-					if !strings.HasPrefix(k, prefix) {
-						continue
-					}
-					controllerName := k[len(prefix):]
-					if controllerName == "" {
-						continue
-					}
-					entries := self.dbstats.GetPodStatsEntriesForController(
-						"", controllerName, request.WorkspaceName,
-						int64(request.TimeOffsetMinutes),
-					)
-					if entries != nil {
-						out = append(out, *entries...)
-					}
-				}
-				return out, nil
+			func(datagram structs.Datagram, request LegacyWorkspaceRequest) ([]structs.PodStats, error) {
+				return podStatsForNamespace(request.WorkspaceName, request.TimeOffsetMinutes)
 			},
 		)
 	}
@@ -1842,6 +1869,9 @@ func (self *socketApi) registerPatterns() {
 			Limit              int                         `json:"limit"`
 			SortBy             string                      `json:"sortBy"`
 			SortOrder          string                      `json:"sortOrder"`
+			Search             string                      `json:"search"`
+			SearchFilters      []store.SearchFilter        `json:"searchFilters"`
+			SearchFilterGroups []store.SearchFilterGroup   `json:"searchFilterGroups"`
 		}
 
 		RegisterPatternHandler(
@@ -1856,6 +1886,9 @@ func (self *socketApi) registerPatterns() {
 					Limit:              request.Limit,
 					SortBy:             request.SortBy,
 					SortOrder:          request.SortOrder,
+					Search:             request.Search,
+					SearchFilters:      request.SearchFilters,
+					SearchFilterGroups: request.SearchFilterGroups,
 				})
 			},
 		)

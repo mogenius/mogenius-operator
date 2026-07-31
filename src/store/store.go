@@ -263,11 +263,50 @@ func GetResourcesByNamespaceAndKinds(valkeyClient valkeyclient.ValkeyClient, nam
 		}
 	}
 
-	results, err := valkeyclient.GetObjectsForKeys[unstructured.Unstructured](valkeyClient, selected)
+	pairs, err := valkeyclient.GetKeyedObjectsForKeys[unstructured.Unstructured](valkeyClient, selected)
+	results := make([]unstructured.Unstructured, 0, len(pairs))
+	for _, pair := range pairs {
+		// Entries written before TypeMeta stamping (see SetResourceWithIndex)
+		// can still lack apiVersion/kind; backfill them from the key segments
+		// so consumers matching on GetKind()/GetAPIVersion() (e.g. search
+		// filters) see the same attributes as the paginated index path.
+		stampTypeMetaFromKey(&pair.Object, pair.Key)
+		results = append(results, pair.Object)
+	}
 	if err != nil {
 		return results, fmt.Errorf("fetch resources in namespace %q: %w", namespace, err)
 	}
 	return results, nil
+}
+
+// ensureTypeMeta fills empty apiVersion/kind on obj with the given
+// authoritative values (watcher descriptor or primary-key segments).
+// Populated values are never overwritten.
+func ensureTypeMeta(obj *unstructured.Unstructured, apiVersion, kind string) {
+	if obj == nil {
+		return
+	}
+	if obj.GetAPIVersion() == "" && apiVersion != "" {
+		obj.SetAPIVersion(apiVersion)
+	}
+	if obj.GetKind() == "" && kind != "" {
+		obj.SetKind(kind)
+	}
+}
+
+// stampTypeMetaFromKey backfills empty apiVersion/kind on a stored object
+// from its primary key (resources:<apiVersion>:<kind>:<namespace>:<name>).
+// The key segments are written from the watcher's ResourceDescriptor and are
+// authoritative even when the stored object's TypeMeta is empty.
+func stampTypeMetaFromKey(obj *unstructured.Unstructured, key string) {
+	if obj == nil || (obj.GetAPIVersion() != "" && obj.GetKind() != "") {
+		return
+	}
+	parts := strings.SplitN(key, ":", 5)
+	if len(parts) != 5 {
+		return
+	}
+	ensureTypeMeta(obj, parts[1], parts[2])
 }
 
 // resourceKeyMatches reports whether a primary key belongs to the given
@@ -307,6 +346,23 @@ func DropAllResourcesFromValkey(valkeyClient valkeyclient.ValkeyClient, logger *
 	)
 	if err != nil {
 		logger.Error("failed to DropAllResourcesFromValkey", "error", err)
+	}
+	return err
+}
+
+// DropResourcesByKind removes every stored resource of one (apiVersion, kind)
+// together with its pagination index shards and its namespace registry. Used
+// when a CRD is deleted: the cascade deletes of its instances may never reach
+// the watcher before its watch ends, and once the kind is unwatched nothing
+// refreshes or prunes the leftover keys until their TTL expires.
+func DropResourcesByKind(valkeyClient valkeyclient.ValkeyClient, apiVersion string, kind string, logger *slog.Logger) error {
+	err := valkeyClient.DeleteMultiple(
+		strings.Join([]string{VALKEY_RESOURCE_PREFIX, apiVersion, kind}, ":")+":*",
+		strings.Join([]string{VALKEY_RESOURCE_INDEX_PREFIX, apiVersion, kind}, ":")+":*",
+		resourceNamespaceRegistryKey(apiVersion, kind),
+	)
+	if err != nil {
+		logger.Error("failed to DropResourcesByKind", "apiVersion", apiVersion, "kind", kind, "error", err)
 	}
 	return err
 }
@@ -421,6 +477,11 @@ func SetResourceWithIndex(
 	obj *unstructured.Unstructured,
 	ttl time.Duration,
 ) error {
+	// Persist the authoritative TypeMeta with the object: readers that
+	// aggregate across kinds (workspace search filters, helm workload
+	// matching) rely on GetKind()/GetAPIVersion() of the stored payload.
+	ensureTypeMeta(obj, apiVersion, kind)
+
 	payload, err := json.Marshal(obj)
 	if err != nil {
 		return fmt.Errorf("marshal resource for store: %w", err)
@@ -597,10 +658,21 @@ type rankedMember struct {
 //	scanning index keys, which is cheap because there's
 //	one key per namespace per kind, not one per resource.
 //
-// totalCount is the sum of ZCARDs across the matching shards. Stale members
-// (primary key already expired but ZSET member still present) are filtered
-// out of items via MGET nil responses; totalCount still includes them since
-// the watcher's next resync overwrites the index.
+// searchGroups       - AND-combined search criteria (see SearchFilterGroup
+//
+//	and BuildSearchFilterGroups). Shard-scoped criteria (kind,
+//	namespace, apiVersion) exclude whole shards; name and
+//	unsatisfied any-attribute criteria filter index members
+//	(names), so no primary values are read beyond the
+//	returned page. With active filters every surviving
+//	shard is read fully — required for a correct totalCount
+//	and page slicing over the filtered set.
+//
+// totalCount is the sum of ZCARDs across the matching shards (with filters:
+// the number of matching members). Stale members (primary key already expired
+// but ZSET member still present) are filtered out of items via MGET nil
+// responses; totalCount still includes them since the watcher's next resync
+// overwrites the index.
 func GetResourcesByWhitelistPaginated(
 	valkey valkeyclient.ValkeyClient,
 	whitelist []*utils.ResourceDescriptor,
@@ -608,6 +680,7 @@ func GetResourcesByWhitelistPaginated(
 	namespaceWhitelist []string,
 	offset, limit int,
 	sortBy, sortOrder string,
+	searchGroups []SearchFilterGroup,
 	logger *slog.Logger,
 ) (PaginatedResources, error) {
 	if offset < 0 {
@@ -638,17 +711,33 @@ func GetResourcesByWhitelistPaginated(
 	// whole shard.
 	perShardCount := offset + limit
 	pullAll := limit <= 0
+	searching := len(searchGroups) > 0
 
 	all := make([]rankedMember, 0)
 	total := 0
 	for _, shard := range shards {
+		var memberGroups []SearchFilterGroup
+		if searching {
+			var excluded bool
+			memberGroups, excluded = shardSearchPlan(shard, searchGroups)
+			if excluded {
+				continue
+			}
+		}
+
 		indexKey := resourceIndexKey(shard.apiVersion, shard.kind, shard.namespace, sortType)
 
-		members, shardTotal, err := readShardTopMembers(valkey, indexKey, sortOrder, perShardCount, pullAll, useNameSort)
+		// an active search must see every member: matches can sit anywhere in
+		// the shard order, and totalCount has to count the filtered set
+		members, shardTotal, err := readShardTopMembers(valkey, indexKey, sortOrder, perShardCount, pullAll || searching, useNameSort)
 		if err != nil {
 			logger.Warn("failed to read shard for paginated index",
 				"indexKey", indexKey, "error", err)
 			continue
+		}
+		if searching {
+			members = filterMembersByGroups(members, memberGroups, shard)
+			shardTotal = len(members)
 		}
 		total += shardTotal
 		for _, m := range members {
@@ -811,6 +900,294 @@ func resolveIndexShards(
 // with their scores. count is the number of members to pull (offset+limit
 // from the multi-shard caller). pullAll bypasses the count and reads the
 // whole ZSET, needed when the outer call has no limit.
+// SearchQuery is a parsed search input. An optional leading "!" negates the
+// match; an optional "field:" prefix scopes the term to one attribute —
+// supported fields: name, kind, namespace, apiversion (alias: group). Without
+// a prefix the term matches any of the attributes. Unknown prefixes are
+// treated as part of a plain term.
+type SearchQuery struct {
+	Term   string
+	Field  string
+	Negate bool
+}
+
+// ParseSearchQuery normalizes a raw search input into a SearchQuery
+// (lowercased, trimmed, leading "!" negation and optional field prefix split off).
+func ParseSearchQuery(search string) SearchQuery {
+	s := strings.ToLower(strings.TrimSpace(search))
+	if s == "" {
+		return SearchQuery{}
+	}
+	negate := false
+	if rest, ok := strings.CutPrefix(s, "!"); ok {
+		negate = true
+		s = strings.TrimSpace(rest)
+		if s == "" {
+			return SearchQuery{}
+		}
+	}
+	if field, term, ok := strings.Cut(s, ":"); ok {
+		switch strings.TrimSpace(field) {
+		case "name", "kind", "namespace", "apiversion", "group":
+			return SearchQuery{Term: strings.TrimSpace(term), Field: strings.TrimSpace(field), Negate: negate}
+		}
+	}
+	return SearchQuery{Term: s, Negate: negate}
+}
+
+func (q SearchQuery) IsEmpty() bool {
+	return q.Term == ""
+}
+
+// Search match operators. The default (empty / "contains") is a case-insensitive
+// substring match; the others invert or tighten it. All comparisons are
+// case-insensitive.
+const (
+	SearchOperatorEquals      = "equals"
+	SearchOperatorNotContains = "notContains"
+	SearchOperatorNotEquals   = "notEquals"
+)
+
+// SearchGroupOperatorOr joins a group's constraints with OR; every other
+// value — including the default "and" — joins them with AND.
+const SearchGroupOperatorOr = "or"
+
+// SearchFilter is one flat structured search criterion (single constraint).
+// Field "" means "any attribute". Kept as a simple wire format; internally it
+// is converted into a single-constraint SearchFilterGroup.
+type SearchFilter struct {
+	Field    string `json:"field"`
+	Operator string `json:"operator"`
+	Value    string `json:"value"`
+}
+
+// SearchConstraint is one value comparison inside a SearchFilterGroup.
+type SearchConstraint struct {
+	Operator string `json:"operator"` // contains (default) | equals | notContains | notEquals
+	Value    string `json:"value"`
+}
+
+// negated reports whether the constraint's operator inverts the match.
+func (c SearchConstraint) negated() bool {
+	return c.Operator == SearchOperatorNotContains || c.Operator == SearchOperatorNotEquals
+}
+
+// match applies the constraint's operator to one attribute value.
+func (c SearchConstraint) match(value string) bool {
+	term := strings.ToLower(strings.TrimSpace(c.Value))
+	value = strings.ToLower(value)
+	switch c.Operator {
+	case SearchOperatorEquals:
+		return value == term
+	case SearchOperatorNotEquals:
+		return value != term
+	case SearchOperatorNotContains:
+		return !strings.Contains(value, term)
+	default: // contains
+		return strings.Contains(value, term)
+	}
+}
+
+// SearchFilterGroup joins several constraints on ONE attribute with and/or
+// (PrimeNG-style column filter). Field "" means "any attribute" and is only
+// produced from free-text input. Groups combine with AND across each other.
+type SearchFilterGroup struct {
+	Field       string             `json:"field"`
+	Operator    string             `json:"operator"` // and (default) | or
+	Constraints []SearchConstraint `json:"constraints"`
+}
+
+// normalizeSearchField lowercases a field name and folds aliases.
+func normalizeSearchField(field string) string {
+	f := strings.ToLower(strings.TrimSpace(field))
+	if f == "group" {
+		return "apiversion"
+	}
+	return f
+}
+
+// matchValue evaluates the group's constraints (and/or-joined) against one
+// attribute value.
+func (g SearchFilterGroup) matchValue(value string) bool {
+	if len(g.Constraints) == 0 {
+		return true
+	}
+	or := strings.EqualFold(g.Operator, SearchGroupOperatorOr)
+	for _, constraint := range g.Constraints {
+		matched := constraint.match(value)
+		if or && matched {
+			return true
+		}
+		if !or && !matched {
+			return false
+		}
+	}
+	return !or
+}
+
+// Matches reports whether a resource with the given attributes satisfies the
+// group. Used by in-memory fallback paths and per-member index checks.
+func (g SearchFilterGroup) Matches(name, kind, namespace, apiVersion string) bool {
+	switch normalizeSearchField(g.Field) {
+	case "name":
+		return g.matchValue(name)
+	case "kind":
+		return g.matchValue(kind)
+	case "namespace":
+		return g.matchValue(namespace)
+	case "apiversion":
+		return g.matchValue(apiVersion)
+	default:
+		return g.matchesAnyAttribute(name, kind, namespace, apiVersion)
+	}
+}
+
+// matchesAnyAttribute evaluates an unscoped (field "") group. Each constraint
+// is checked against every attribute: a positive constraint (contains/equals)
+// matches when SOME attribute satisfies it; a negated constraint
+// (notContains/notEquals) matches only when EVERY attribute satisfies it —
+// De Morgan: "no attribute contains X" is the negation of "some attribute
+// contains X". The per-constraint results are joined by the group operator.
+func (g SearchFilterGroup) matchesAnyAttribute(name, kind, namespace, apiVersion string) bool {
+	if len(g.Constraints) == 0 {
+		return true
+	}
+	attrs := [...]string{name, kind, namespace, apiVersion}
+	or := strings.EqualFold(g.Operator, SearchGroupOperatorOr)
+	for _, constraint := range g.Constraints {
+		var matched bool
+		if constraint.negated() {
+			matched = true
+			for _, a := range attrs {
+				if !constraint.match(a) {
+					matched = false
+					break
+				}
+			}
+		} else {
+			for _, a := range attrs {
+				if constraint.match(a) {
+					matched = true
+					break
+				}
+			}
+		}
+		if or && matched {
+			return true
+		}
+		if !or && !matched {
+			return false
+		}
+	}
+	return !or
+}
+
+// compactConstraints drops constraints with empty values.
+func compactConstraints(constraints []SearchConstraint) []SearchConstraint {
+	out := make([]SearchConstraint, 0, len(constraints))
+	for _, c := range constraints {
+		if strings.TrimSpace(c.Value) == "" {
+			continue
+		}
+		out = append(out, c)
+	}
+	return out
+}
+
+// BuildSearchFilterGroups merges the free-text search input (including its
+// "field:" prefix syntax), flat single-constraint filters and structured
+// groups into one AND-combined group list. Empty constraints and empty
+// groups are dropped.
+func BuildSearchFilterGroups(search string, filters []SearchFilter, groups []SearchFilterGroup) []SearchFilterGroup {
+	out := make([]SearchFilterGroup, 0, len(filters)+len(groups)+1)
+	if q := ParseSearchQuery(search); !q.IsEmpty() {
+		op := "" // contains
+		if q.Negate {
+			op = SearchOperatorNotContains
+		}
+		out = append(out, SearchFilterGroup{Field: q.Field, Constraints: []SearchConstraint{{Operator: op, Value: q.Term}}})
+	}
+	for _, f := range filters {
+		if strings.TrimSpace(f.Value) == "" {
+			continue
+		}
+		out = append(out, SearchFilterGroup{Field: f.Field, Constraints: []SearchConstraint{{Operator: f.Operator, Value: f.Value}}})
+	}
+	for _, g := range groups {
+		constraints := compactConstraints(g.Constraints)
+		if len(constraints) == 0 {
+			continue
+		}
+		out = append(out, SearchFilterGroup{Field: g.Field, Operator: g.Operator, Constraints: constraints})
+	}
+	return out
+}
+
+// shardSearchPlan splits the AND-combined groups against one shard: a
+// shard-scoped group (kind, namespace, apiVersion) is fully decided by the
+// shard's fixed attributes — it either passes and drops out of the plan, or
+// excludes the whole shard. Name and any-attribute groups depend on the
+// per-member name and stay in memberGroups; filterMembersByGroups evaluates
+// them with the shard's fixed attributes.
+func shardSearchPlan(shard indexShard, groups []SearchFilterGroup) (memberGroups []SearchFilterGroup, excluded bool) {
+	for _, g := range groups {
+		switch normalizeSearchField(g.Field) {
+		case "name":
+			memberGroups = append(memberGroups, g)
+		case "kind":
+			if !g.matchValue(shard.kind) {
+				return nil, true
+			}
+		case "namespace":
+			if !g.matchValue(shard.namespace) {
+				return nil, true
+			}
+		case "apiversion":
+			if !g.matchValue(shard.apiVersion) {
+				return nil, true
+			}
+		default:
+			// any-attribute: the outcome varies with the member name (and,
+			// for negation, must also hold for every shard attribute), so it
+			// is resolved per member below rather than shortcut here.
+			memberGroups = append(memberGroups, g)
+		}
+	}
+	return memberGroups, false
+}
+
+// filterMembersByGroups keeps the members that satisfy every group. Name
+// groups check the member name; any-attribute groups are evaluated against
+// the member name plus the shard's fixed kind/namespace/apiVersion. Filters
+// in place to avoid an extra allocation.
+func filterMembersByGroups(members []vgo.ZScore, groups []SearchFilterGroup, shard indexShard) []vgo.ZScore {
+	if len(groups) == 0 {
+		return members
+	}
+	kept := members[:0]
+	for _, m := range members {
+		matches := true
+		for _, g := range groups {
+			var ok bool
+			if normalizeSearchField(g.Field) == "name" {
+				ok = g.matchValue(m.Member)
+			} else {
+				// any-attribute: combine this member's name with the shard's
+				// fixed attributes
+				ok = g.Matches(m.Member, shard.kind, shard.namespace, shard.apiVersion)
+			}
+			if !ok {
+				matches = false
+				break
+			}
+		}
+		if matches {
+			kept = append(kept, m)
+		}
+	}
+	return kept
+}
+
 func readShardTopMembers(
 	valkey valkeyclient.ValkeyClient,
 	indexKey string,
@@ -878,6 +1255,14 @@ func readShardTopMembers(
 // rules as the single-shard paginated path: creationTimestamp defaults to
 // desc, name to asc, with the resource name as a tiebreaker so the order is
 // stable across requests.
+//
+// The score tiebreaker MUST follow the sort direction: the per-shard pull
+// (ZREVRANGE / ZRANGE) orders equal-score members reverse-lex / lex, and it
+// only fetches the top offset+limit per shard. If the merge broke ties in
+// the opposite direction, the pulled prefix would land at the END of each
+// tie group after sorting — consecutive pages would overlap and the
+// remaining tie-group members would be unreachable. Bulk-created resources
+// (identical creation second) hit this constantly.
 func sortRankedMembers(items []rankedMember, useNameSort bool, sortOrder string) {
 	if useNameSort {
 		desc := sortOrder == sortOrderDesc
@@ -896,6 +1281,9 @@ func sortRankedMembers(items []rankedMember, useNameSort bool, sortOrder string)
 	desc := sortOrder != sortOrderAsc
 	sort.SliceStable(items, func(i, j int) bool {
 		if items[i].score == items[j].score {
+			if desc {
+				return items[i].member > items[j].member
+			}
 			return items[i].member < items[j].member
 		}
 		if desc {

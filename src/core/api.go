@@ -510,7 +510,18 @@ type ResourcesPaginatedRequest struct {
 	Limit              int                         `json:"limit"`
 	SortBy             string                      `json:"sortBy"`
 	SortOrder          string                      `json:"sortOrder"`
-	WithData           *bool                       `json:"withData"`
+	// Search filters case-insensitively: resources whose name contains the
+	// term, plus all resources of kinds/namespaces/apiVersions containing it.
+	// Supports the "field:" prefix syntax (see store.ParseSearchQuery).
+	Search string `json:"search"`
+	// SearchFilters are flat structured criteria, AND-combined with each
+	// other and with Search (see store.SearchFilter).
+	SearchFilters []store.SearchFilter `json:"searchFilters"`
+	// SearchFilterGroups are PrimeNG-style per-field constraint groups:
+	// several constraints on one attribute joined by and/or, groups
+	// AND-combined (see store.SearchFilterGroup).
+	SearchFilterGroups []store.SearchFilterGroup `json:"searchFilterGroups"`
+	WithData           *bool                     `json:"withData"`
 }
 type ResourcesPaginatedResponse struct {
 	Items      []unstructured.Unstructured `json:"items"`
@@ -518,7 +529,7 @@ type ResourcesPaginatedResponse struct {
 }
 
 func (self *api) GetResourceListByWhitelistPaginated(req ResourcesPaginatedRequest) (ResourcesPaginatedResponse, error) {
-	page, err := store.GetResourcesByWhitelistPaginated(self.valkeyClient, req.Whitelist, req.Blacklist, req.NamespaceWhitelist, req.Offset, req.Limit, req.SortBy, req.SortOrder, self.logger)
+	page, err := store.GetResourcesByWhitelistPaginated(self.valkeyClient, req.Whitelist, req.Blacklist, req.NamespaceWhitelist, req.Offset, req.Limit, req.SortBy, req.SortOrder, store.BuildSearchFilterGroups(req.Search, req.SearchFilters, req.SearchFilterGroups), self.logger)
 	if err != nil {
 		return ResourcesPaginatedResponse{Items: []unstructured.Unstructured{}, TotalCount: page.TotalCount}, err
 	}
@@ -551,6 +562,16 @@ type WorkspaceResourcesPaginatedRequest struct {
 	// SortOrder may be "asc" or "desc". Default depends on SortBy:
 	// creationTimestamp -> desc (newest first), name -> asc.
 	SortOrder string
+	// Search filters case-insensitively: resources whose name contains the
+	// term, plus all resources of kinds/namespaces/apiVersions containing it.
+	// Supports the "field:" prefix syntax (see store.ParseSearchQuery).
+	Search string
+	// SearchFilters are flat structured criteria, AND-combined with each
+	// other and with Search (see store.SearchFilter).
+	SearchFilters []store.SearchFilter
+	// SearchFilterGroups are PrimeNG-style per-field constraint groups (see
+	// store.SearchFilterGroup).
+	SearchFilterGroups []store.SearchFilterGroup
 }
 
 type WorkspaceResourcesPaginatedResponse struct {
@@ -572,7 +593,8 @@ func (self *api) GetWorkspaceResourcesPaginated(workspaceName string, req Worksp
 	if namespaces, ok := self.indexableWorkspaceNamespaces(workspaceName, req); ok {
 		page, err := store.GetResourcesByWhitelistPaginated(
 			self.valkeyClient, req.Whitelist, req.Blacklist, namespaces,
-			req.Offset, req.Limit, req.SortBy, req.SortOrder, self.logger,
+			req.Offset, req.Limit, req.SortBy, req.SortOrder,
+			store.BuildSearchFilterGroups(req.Search, req.SearchFilters, req.SearchFilterGroups), self.logger,
 		)
 		if err != nil {
 			return WorkspaceResourcesPaginatedResponse{Items: []unstructured.Unstructured{}, TotalCount: page.TotalCount}, err
@@ -585,6 +607,7 @@ func (self *api) GetWorkspaceResourcesPaginated(workspaceName string, req Worksp
 		return WorkspaceResourcesPaginatedResponse{Items: []unstructured.Unstructured{}}, err
 	}
 
+	items = filterUnstructuredBySearch(items, store.BuildSearchFilterGroups(req.Search, req.SearchFilters, req.SearchFilterGroups))
 	items = dedupeUnstructuredByUID(items)
 	sortUnstructured(items, req.SortBy, req.SortOrder)
 	total := len(items)
@@ -664,6 +687,30 @@ func (self *api) indexableWorkspaceNamespaces(workspaceName string, req Workspac
 		return nil, false
 	}
 	return namespaces, true
+}
+
+// filterUnstructuredBySearch keeps the items satisfying every group.
+// Mirrors the index-level search semantics of
+// store.GetResourcesByWhitelistPaginated for the in-memory workspace
+// fallback path.
+func filterUnstructuredBySearch(items []unstructured.Unstructured, groups []store.SearchFilterGroup) []unstructured.Unstructured {
+	if len(groups) == 0 {
+		return items
+	}
+	out := make([]unstructured.Unstructured, 0, len(items))
+	for _, it := range items {
+		matches := true
+		for _, group := range groups {
+			if !group.Matches(it.GetName(), it.GetKind(), it.GetNamespace(), it.GetAPIVersion()) {
+				matches = false
+				break
+			}
+		}
+		if matches {
+			out = append(out, it)
+		}
+	}
+	return out
 }
 
 // dedupeUnstructuredByUID keeps the first occurrence of each metadata.uid.
