@@ -230,11 +230,6 @@ func agentTaskKeyForNamespace(key, namespace string) string {
 // predate ScopeNamespaces fall back to the storage key's namespace segment
 // (the old behavior).
 func agentTaskVisibleInNamespaces(task *AiTask, namespaces map[string]bool) bool {
-	if task.Response != nil {
-		if ns := task.Response.Analysis.TargetResource.Namespace; ns != "" {
-			return namespaces[ns]
-		}
-	}
 	if task.ScopeAllNamespaces {
 		return true
 	}
@@ -392,10 +387,6 @@ func (ai *aiManager) buildAgentTaskContext(task *AiTask) (*v1alpha1.Agent, *Tool
 		}
 	}
 	toolCtx := newToolContextFromAgent(agent, namespaces)
-	toolCtx.ExcludeResources = ai.openProposalResourceKeys(agent.Name)
-	if len(toolCtx.ExcludeResources) > 0 {
-		ai.logger.Info("Excluding resources with open proposals from run", "agent", agent.Name, "count", len(toolCtx.ExcludeResources))
-	}
 	toolCtx.McpSessions = agent.Spec.Tools.McpServerRefs
 	if b := agent.Spec.Tools.Builtin; b != nil {
 		toolCtx.DisableKubernetes = !b.Kubernetes
@@ -417,12 +408,11 @@ func (ai *aiManager) buildAgentTaskContext(task *AiTask) (*v1alpha1.Agent, *Tool
 		}
 		runTask.State = AI_TASK_STATE_PROPOSED
 		runTask.Response = &AiResponse{
-			Analysis: Analysis{
-				ProposedOperation:   ProposedOperationToolCall,
-				ToolCallName:        toolName,
-				ToolCallArgs:        args,
-				ToolCallMCPSessions: mcpSessions,
-			},
+			ToolRequests: []ToolRequest{{
+				Name:     toolName,
+				Args:     args,
+				Sessions: mcpSessions,
+			}},
 		}
 		if err := ai.createOrUpdateAiTask(runTask, runTaskID); err != nil {
 			return nil, fmt.Errorf("set run task to proposed: %w", err)
@@ -557,31 +547,6 @@ func (ai *aiManager) pruneOlderAllClearReports(agentName string, keepKey string)
 		ai.sendAiDeleteEvent(key)
 		ai.logger.Info("Pruned superseded all-clear report", "agent", agentName, "taskID", task.ID)
 	}
-}
-
-// openProposalResourceKeys collects the target resources of the agent's tasks
-// that still await a user decision (proposed). A whole-scope run skips these
-// so it neither burns tokens re-inspecting them nor produces duplicate
-// proposals for the same resource on every pass.
-func (ai *aiManager) openProposalResourceKeys(agentName string) map[string]bool {
-	keys, err := ai.valkeyClient.Keys(fmt.Sprintf("%s:Agent:*:%s-run-*", DB_AI_BUCKET_TASKS, agentName))
-	if err != nil {
-		ai.logger.Warn("Failed to list agent tasks for proposal exclusion", "agent", agentName, "error", err)
-		return nil
-	}
-	excluded := map[string]bool{}
-	for _, key := range keys {
-		task, err := ai.getTaskByKey(key)
-		if err != nil || task == nil || task.State != AI_TASK_STATE_PROPOSED || task.Response == nil {
-			continue
-		}
-		target := task.Response.Analysis.TargetResource
-		if target.ResourceName == "" {
-			continue
-		}
-		excluded[aiResourceKey(target.ApiVersion, target.Kind, target.Namespace, target.ResourceName)] = true
-	}
-	return excluded
 }
 
 // triggerChangeAgents enqueues a whole-scope run for every enabled agent whose

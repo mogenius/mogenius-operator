@@ -214,51 +214,15 @@ type AiModelUsageInfo struct {
 }
 
 type AiResponse struct {
-	ErrorMessage string   `json:"errorMessage"`
-	Analysis     Analysis `json:"analysis"`
+	ErrorMessage string        `json:"errorMessage"`
+	ToolRequests []ToolRequest `json:"toolRequests"`
 }
 
-type Analysis struct {
-	ProblemDescription  string                      `json:"problemDescription"`
-	PossibleCauses      []string                    `json:"possibleCauses"`
-	ProposedSolutions   []Solution                  `json:"proposedSolutions"`
-	AdditionalInfo      string                      `json:"additionalInformation"`
-	NeedsFollowUp       bool                        `json:"needsFollowUp"`
-	FollowUpResources   []FollowUpResource          `json:"followUpResources"`
-	CurrentResourceYaml string                      `json:"currentResourceYaml"`
-	TargetResourceYaml  string                      `json:"targetResourceYaml"`
-	TargetResource      utils.WorkloadSingleRequest `json:"targetResource"`
-	ProposedOperation   string                      `json:"proposedOperation,omitempty"` // UpdateResource', 'DeleteResource', 'CreateResource', 'Other'
-
-	// AdditionalTargets turns a DeleteResource proposal into a bulk deletion:
-	// TargetResource plus every entry here are deleted together in one
-	// reviewable proposal. Only valid for DeleteResource.
-	AdditionalTargets []utils.WorkloadSingleRequest `json:"additionalTargets,omitempty"`
-
-	// ToolCallName, ToolCallArgs and ToolCallMCPSessions are set only when
-	// ProposedOperation == ProposedOperationToolCall. They carry the intercepted
-	// tool call so approval can re-execute it exactly. ToolCallMCPSessions is
-	// empty for built-in K8s tools (routed via toolDefinitions) and non-empty
-	// for MCP tool calls (routed via mcpManager).
-	ToolCallName        string         `json:"toolCallName,omitempty"`
-	ToolCallArgs        map[string]any `json:"toolCallArgs,omitempty"`
-	ToolCallMCPSessions []string       `json:"toolCallMcpSessions,omitempty"`
+type ToolRequest struct {
+	Name     string         `json:"toolCallName,omitempty"`
+	Args     map[string]any `json:"toolCallArgs,omitempty"`
+	Sessions []string       `json:"toolCallMcpSessions,omitempty"`
 }
-
-type Solution struct {
-	SolutionDescription string   `json:"solutionDescription"`
-	Steps               []string `json:"steps"`
-}
-
-// values of Analysis.ProposedOperation
-const (
-	ProposedOperationUpdate      = "UpdateResource"
-	ProposedOperationDelete      = "DeleteResource"
-	ProposedOperationCreate      = "CreateResource"
-	ProposedOperationOther    = "Other"
-	ProposedOperationToolCall = "ToolCall"
-)
-
 type UsedToken struct {
 	Timestamp    time.Time `json:"timestamp"`
 	TokensUsed   int64     `json:"tokensUsed"`
@@ -1587,9 +1551,6 @@ func latestTaskNamespaces(task *AiTask, key string) []string {
 	}
 	if parts[1] != "Agent" {
 		return []string{parts[2]}
-	}
-	if task.Response != nil && task.Response.Analysis.TargetResource.Namespace != "" {
-		return []string{task.Response.Analysis.TargetResource.Namespace}
 	}
 	if len(task.ScopeNamespaces) > 0 {
 		return task.ScopeNamespaces
