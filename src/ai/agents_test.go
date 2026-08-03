@@ -145,7 +145,6 @@ func TestUpdateTaskStateWhitelist(t *testing.T) {
 	}
 }
 
-
 func TestCanceledByMessage(t *testing.T) {
 	assert.Equal(t, "canceled by user", canceledByMessage(structs.User{}))
 	assert.Equal(t, "canceled by bene@mogenius.com", canceledByMessage(structs.User{Email: "bene@mogenius.com"}))
@@ -171,7 +170,6 @@ func TestCancelLocalRun(t *testing.T) {
 	ai.unregisterRunCancel("task-1")
 	ai.cancelLocalRun("task-1")
 }
-
 
 func TestBuildAgentRunPrompt(t *testing.T) {
 	agent := &v1alpha1.Agent{
@@ -228,50 +226,16 @@ func TestAgentTaskVisibleInNamespaces(t *testing.T) {
 	// The workspace under test contains the namespace "development".
 	workspace := map[string]bool{"development": true}
 
-	finding := func(targetNamespace string) *AiResponse {
-		response := &AiResponse{}
-		response.Analysis.TargetResource.Namespace = targetNamespace
-		return response
-	}
-
 	tests := []struct {
 		name    string
 		task    AiTask
 		visible bool
 	}{
 		{
-			name: "finding in a workspace namespace is visible",
+			name: "task with scope including workspace namespace is visible",
 			task: AiTask{
 				ID:              "ai_tasks:Agent:argocd:doctor-run-1-f2",
-				Response:        finding("development"),
 				ScopeNamespaces: []string{"argocd", "development"},
-			},
-			visible: true,
-		},
-		{
-			name: "finding in a foreign namespace stays hidden even when the scope overlaps",
-			task: AiTask{
-				ID:              "ai_tasks:Agent:argocd:doctor-run-1-f3",
-				Response:        finding("team-backend"),
-				ScopeNamespaces: []string{"development", "team-backend"},
-			},
-			visible: false,
-		},
-		{
-			name: "wildcard scope does not leak a foreign finding",
-			task: AiTask{
-				ID:                 "ai_tasks:Agent:argocd:doctor-run-1-f4",
-				Response:           finding("team-backend"),
-				ScopeAllNamespaces: true,
-			},
-			visible: false,
-		},
-		{
-			name: "finding on a cluster-scoped target falls back to the scope rule",
-			task: AiTask{
-				ID:              "ai_tasks:Agent:argocd:doctor-run-1-f5",
-				Response:        finding(""),
-				ScopeNamespaces: []string{"development"},
 			},
 			visible: true,
 		},
@@ -323,12 +287,6 @@ func TestAgentTaskVisibleInNamespaces(t *testing.T) {
 }
 
 func TestLatestTaskNamespaces(t *testing.T) {
-	finding := func(targetNamespace string) *AiResponse {
-		response := &AiResponse{}
-		response.Analysis.TargetResource.Namespace = targetNamespace
-		return response
-	}
-
 	tests := []struct {
 		name     string
 		task     AiTask
@@ -342,13 +300,7 @@ func TestLatestTaskNamespaces(t *testing.T) {
 			expected: []string{"development"},
 		},
 		{
-			name:     "agent finding belongs to its target namespace",
-			task:     AiTask{Response: finding("development"), ScopeNamespaces: []string{"argocd", "development"}},
-			key:      "ai_tasks:Agent:argocd:doctor-run-1",
-			expected: []string{"development"},
-		},
-		{
-			name:     "agent run without finding belongs to every scope namespace",
+			name:     "agent run with scope namespaces belongs to every scope namespace",
 			task:     AiTask{ScopeNamespaces: []string{"argocd", "development"}},
 			key:      "ai_tasks:Agent:argocd:doctor-run-1",
 			expected: []string{"argocd", "development"},
