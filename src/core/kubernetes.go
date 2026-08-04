@@ -272,15 +272,20 @@ func (self *moKubernetes) GetNodeStats() ([]dtos.NodeStat, error) {
 	}
 
 	for _, node := range nodes {
-		skipNode := false
+		// Nodes tainted CriticalAddonsOnly (managed control planes, GKE system
+		// pools) reject the direct kubelet stats probe, so skip only that probe
+		// for them. The node itself must still be reported: this function feeds
+		// the cluster overview node list and its capacity totals.
+		//
+		// This used to skip the whole node for any NoSchedule taint, which
+		// silently hid every tainted node from the UI and made the reported
+		// cluster capacity the capacity of the untainted nodes alone.
+		skipKubeletProbe := false
 		for _, taint := range node.Spec.Taints {
-			if taint.Effect == corev1.TaintEffectNoSchedule || taint.Key == "CriticalAddonsOnly" {
-				skipNode = true
+			if taint.Key == "CriticalAddonsOnly" {
+				skipKubeletProbe = true
 				break
 			}
-		}
-		if skipNode {
-			continue
 		}
 		allPods := podsByNode[node.Name]
 		requestCpuCores, limitCpuCores := kubernetes.SumCpuResources(allPods)
@@ -295,7 +300,7 @@ func (self *moKubernetes) GetNodeStats() ([]dtos.NodeStat, error) {
 		if cacheErr == nil && cachedNodeStats != nil {
 			utilizedCores = float64(cachedNodeStats.CpuUsageNanoCores) / 1_000_000_000
 			utilizedMemory = cachedNodeStats.MemoryWorkingSetBytes
-		} else {
+		} else if !skipKubeletProbe {
 			kubeletStats, err := self.getKubeletNodeStats(node.Name)
 			if err != nil {
 				self.logger.Error("Failed to get kubelet stats for node", "node.name", node.Name, "error", err)
