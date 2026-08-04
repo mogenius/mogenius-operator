@@ -1573,12 +1573,7 @@ func (ai *aiManager) shouldCreateNewTask(key string) (bool, error) {
 // without findings — proposals arrive as independent tasks via CreateApprovalRequest.
 func (ai *aiManager) processPrompt(ctx context.Context, rc *ResolvedModelConfig, prompt string, toolCtx *ToolContext, agentSpec *v1alpha1.AgentSpec, onProgress func(tokensUsed int64, activity string), recordStep StepRecorder) (tokensUsed int64, timeUsedInMs int, modelUsed string, err error) {
 	startTime := time.Now()
-	var systemPrompt string
-	if agentSpec != nil {
-		systemPrompt = agentSystemPrompt
-	} else {
-		systemPrompt = ai.getSystemPrompt()
-	}
+	systemPrompt := ai.getSystemPrompt()
 
 	switch rc.Sdk {
 	case AiSdkTypeOpenAI:

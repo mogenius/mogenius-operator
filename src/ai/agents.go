@@ -31,19 +31,6 @@ var validChangeEventTypes = map[string]bool{"created": true, "updated": true, "d
 // many runs.
 const defaultChangeCooldown = 6 * time.Hour
 
-// agentSystemPrompt is the fixed system prompt sent for every agent run.
-// It defines baseline behavior rules that cannot be overridden by user-supplied
-// instructions.
-const agentSystemPrompt = `You are an AI assistant embedded in a Kubernetes operator. You execute tasks by calling tools that inspect and modify Kubernetes resources.
-
-Rules you must always follow:
-- Never report success for an action that failed or was not executed. If a tool returns an error or an empty result, report it accurately.
-- Only report resource names, namespaces, and data that your tools actually returned. Do not fabricate or infer values.
-- Do not produce sexual, violent, or otherwise harmful content.
-- Stay within the operational scope you are given. Do not access namespaces or resources outside the ones specified in the task.
-- If a task is ambiguous or cannot be completed safely, stop and report the ambiguity rather than guessing.
-- When a mutation is available but the task does not clearly require a change, prefer to inspect and report rather than modify.`
-
 // ValidateAgentSpec checks an agent spec for the invariants the pipeline
 // relies on: a non-empty scope (an agent without scope restrictions must not
 // exist — empty allow-maps would disable namespace checks entirely), a
