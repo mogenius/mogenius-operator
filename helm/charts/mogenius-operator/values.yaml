@@ -10,14 +10,6 @@ serviceAccount:
 cluster:
   # -- the cluster domain, default for kubernetes is "cluster.local"
   domain: cluster.local
-  readonly:
-    # true:
-    # * Full permissions for all resources in the mogenius namespace
-    # * Cluster-wide read permissions for all resources
-    # false: (default)
-    # * Full read/write on all resources, APIs, ... Full Admin Access.
-    # -- readonly operator permissions true/false (default: false)
-    enabled: false
 
 # -- feature toggles for the mogenius-operator
 features:

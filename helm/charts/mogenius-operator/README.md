@@ -21,9 +21,8 @@
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | affinity | object | `{}` |  |
-| cluster | object | `{"domain":"cluster.local","readonly":{"enabled":false}}` | settings for the internal cluster communication |
+| cluster | object | `{"domain":"cluster.local"}` | settings for the internal cluster communication |
 | cluster.domain | string | `"cluster.local"` | the cluster domain, default for kubernetes is "cluster.local" |
-| cluster.readonly.enabled | bool | `false` | readonly operator permissions true/false (default: false) |
 | containerSecurityContext.capabilities.drop[0] | string | `"ALL"` |  |
 | containerSecurityContext.privileged | bool | `false` |  |
 | containerSecurityContext.readOnlyRootFilesystem | bool | `true` |  |
