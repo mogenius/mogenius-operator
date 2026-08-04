@@ -10,14 +10,6 @@
             "properties": {
                 "domain": {
                     "type": "string"
-                },
-                "readonly": {
-                    "type": "object",
-                    "properties": {
-                        "enabled": {
-                            "type": "boolean"
-                        }
-                    }
                 }
             }
         },
