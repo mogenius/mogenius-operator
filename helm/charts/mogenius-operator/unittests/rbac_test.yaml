@@ -45,3 +45,77 @@ tests:
       - equal:
           path: subjects[0].name
           value: custom-sa
+
+  - it: grants blanket cluster-wide permissions by default
+    template: rbac.yaml
+    documentSelector:
+      path: kind
+      value: ClusterRole
+    asserts:
+      - lengthEqual:
+          path: rules
+          count: 1
+      - equal:
+          path: rules[0]
+          value:
+            apiGroups: ["", "*"]
+            resources: ["*"]
+            verbs: ["*"]
+
+  - it: replaces the default rule with rbac.rules
+    template: rbac.yaml
+    set:
+      rbac.rules:
+        - apiGroups: ["*"]
+          resources: ["*"]
+          verbs: ["get", "list", "watch"]
+        - apiGroups: ["apps"]
+          resources: ["deployments"]
+          verbs: ["create", "delete"]
+    documentSelector:
+      path: kind
+      value: ClusterRole
+    asserts:
+      - lengthEqual:
+          path: rules
+          count: 2
+      - equal:
+          path: rules[0].verbs
+          value: ["get", "list", "watch"]
+      - notContains:
+          path: rules
+          content:
+            apiGroups: ["", "*"]
+            resources: ["*"]
+            verbs: ["*"]
+
+  - it: still binds the ServiceAccount when rbac.rules is set
+    template: rbac.yaml
+    set:
+      rbac.rules:
+        - apiGroups: ["*"]
+          resources: ["*"]
+          verbs: ["get"]
+    documentSelector:
+      path: kind
+      value: ClusterRoleBinding
+    asserts:
+      - equal:
+          path: roleRef.name
+          value: mogenius-operator
+
+  - it: creates no cluster RBAC when rbac.create is false
+    template: rbac.yaml
+    set:
+      rbac.create: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: still creates the ServiceAccount when rbac.create is false
+    template: serviceaccount.yaml
+    set:
+      rbac.create: false
+    asserts:
+      - isKind:
+          of: ServiceAccount
