@@ -5,19 +5,22 @@ serviceAccount:
   # -- name of the ServiceAccount used by the operator (default: mogenius-operator-service-account-app)
   name: ~
 
+# -- permissions granted to the operator's ServiceAccount. The operator manages a
+# cluster end to end, so the defaults are admin-equivalent. Both settings below
+# let you cut that down; doing so is unsupported (see the chart README).
+rbac:
+  # -- create the operator's ClusterRole and ClusterRoleBinding. Set to false to
+  # grant the ServiceAccount permissions yourself, out of band.
+  create: true
+  # -- replace the default blanket rule with your own ClusterRole rules. Whatever
+  # you leave out, the operator will hit as a Forbidden error at runtime.
+  rules: []
+
 
 # -- settings for the internal cluster communication
 cluster:
   # -- the cluster domain, default for kubernetes is "cluster.local"
   domain: cluster.local
-  readonly:
-    # true:
-    # * Full permissions for all resources in the mogenius namespace
-    # * Cluster-wide read permissions for all resources
-    # false: (default)
-    # * Full read/write on all resources, APIs, ... Full Admin Access.
-    # -- readonly operator permissions true/false (default: false)
-    enabled: false
 
 # -- feature toggles for the mogenius-operator
 features:

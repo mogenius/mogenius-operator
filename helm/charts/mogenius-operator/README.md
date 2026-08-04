@@ -21,9 +21,8 @@
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | affinity | object | `{}` |  |
-| cluster | object | `{"domain":"cluster.local","readonly":{"enabled":false}}` | settings for the internal cluster communication |
+| cluster | object | `{"domain":"cluster.local"}` | settings for the internal cluster communication |
 | cluster.domain | string | `"cluster.local"` | the cluster domain, default for kubernetes is "cluster.local" |
-| cluster.readonly.enabled | bool | `false` | readonly operator permissions true/false (default: false) |
 | containerSecurityContext.capabilities.drop[0] | string | `"ALL"` |  |
 | containerSecurityContext.privileged | bool | `false` |  |
 | containerSecurityContext.readOnlyRootFilesystem | bool | `true` |  |
@@ -88,8 +87,12 @@
 | probes.readinessProbe.path | string | `"/healthz"` |  |
 | probes.startupProbe.enabled | bool | `true` |  |
 | probes.startupProbe.path | string | `"/healthz"` |  |
+| rbac | object | `{"create":true,"rules":[]}` | permissions granted to the operator's ServiceAccount. The operator manages a cluster end to end, so the defaults are admin-equivalent. Both settings below let you cut that down; doing so is unsupported (see the chart README). |
+| rbac.create | bool | `true` | create the operator's ClusterRole and ClusterRoleBinding. Set to false to grant the ServiceAccount permissions yourself, out of band. |
+| rbac.rules | list | `[]` | replace the default blanket rule with your own ClusterRole rules. Whatever you leave out, the operator will hit as a Forbidden error at runtime. |
 | resources | object | `{}` |  |
 | revisionHistoryLimit | int | `10` |  |
+| serviceAccount.name | string | `nil` | name of the ServiceAccount used by the operator (default: mogenius-operator-service-account-app) |
 | tolerations | list | `[]` |  |
 | valkey.affinity | object | `{}` |  |
 | valkey.auth.password | string | `""` |  |
@@ -103,7 +106,7 @@
 | valkey.enabled | bool | `true` | deploy the bundled Valkey instance. Set to false to use an external key-value store (see externalKeyValueStore) |
 | valkey.image.registry | string | `"docker.io"` |  |
 | valkey.image.repository | string | `"valkey/valkey"` |  |
-| valkey.image.tag | string | `"9.1.0"` |  |
+| valkey.image.tag | string | `"9.1.1"` |  |
 | valkey.imagePullPolicy | string | `"IfNotPresent"` |  |
 | valkey.metrics.enabled | bool | `false` | enable the Prometheus metrics exporter sidecar (oliver006/redis_exporter) |
 | valkey.metrics.exporter.containerSecurityContext.allowPrivilegeEscalation | bool | `false` |  |
@@ -112,7 +115,7 @@
 | valkey.metrics.exporter.containerSecurityContext.runAsNonRoot | bool | `true` |  |
 | valkey.metrics.exporter.image.registry | string | `"docker.io"` |  |
 | valkey.metrics.exporter.image.repository | string | `"oliver006/redis_exporter"` |  |
-| valkey.metrics.exporter.image.tag | string | `"v1.86.0"` |  |
+| valkey.metrics.exporter.image.tag | string | `"v1.88.0"` |  |
 | valkey.metrics.exporter.resources | object | `{}` |  |
 | valkey.metrics.serviceMonitor | object | `{"enabled":false,"interval":"30s","labels":{},"relabelings":[],"scrapeTimeout":"10s"}` | ServiceMonitor for prometheus-operator; requires metrics.enabled: true |
 | valkey.metrics.serviceMonitor.labels | object | `{}` | labels added to the ServiceMonitor (use to match your Prometheus selector) |
@@ -233,6 +236,58 @@ externalKeyValueStore:
       key: ca.crt
     # Alternatively, skip verification entirely (insecure, only for trusted networks):
     # insecureSkipVerify: true
+```
+
+### Restricting the Operator's Permissions (Unsupported)
+
+By default the chart grants the operator a ClusterRole with every verb on every
+resource. That is deliberate: the product manages a cluster from A to Z, and the
+permissions it needs are whatever its current feature set touches — deploying
+workloads into any namespace, creating the namespaces themselves, installing Helm
+charts and their CRDs and RBAC, projecting users and grants into RoleBindings,
+provisioning storage, and mirroring every resource type in the cluster into the
+platform UI. That set grows with the product.
+
+If your security posture does not allow that, you can narrow it — but you own the
+result. **A restricted operator is not a supported configuration.** New features, and
+existing features you have not exercised yet, will fail with `Forbidden` errors from
+the API server, and the fix is always to widen your own rules. Nothing in the chart
+tracks which permissions the current version needs.
+
+Two ways to do it. Replace the rules, keeping the chart's ClusterRole and binding:
+
+```yaml
+rbac:
+  rules:
+    # Cluster-wide reads: the operator runs an informer for every resource type the
+    # API server serves, so the UI can display arbitrary objects. Narrowing this
+    # empties parts of the UI instead of failing loudly.
+    - apiGroups: ["*"]
+      resources: ["*"]
+      verbs: ["get", "list", "watch"]
+    - apiGroups: [""]
+      resources: ["pods/log"]
+      verbs: ["get"]
+    - apiGroups: [""]
+      resources: ["pods/exec", "pods/attach", "pods/portforward"]
+      verbs: ["create"]
+    # ... plus every write your usage of the platform requires
+```
+
+Or take RBAC out of the chart's hands entirely and wire it up yourself (with your own
+policy tooling, GitOps repo, or a pre-provisioned role):
+
+```yaml
+rbac:
+  create: false
+```
+
+The ServiceAccount is still created either way, so you only need to bind permissions to
+it. To see what the chart would grant before applying anything:
+
+```
+helm template mogenius-operator mogenius/mogenius-operator \
+  -f values.yaml -s templates/rbac.yaml
 ```
 
 ### Upgrade the Helm Chart
