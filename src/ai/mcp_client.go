@@ -271,35 +271,43 @@ func (m *mcpClientManager) Close() {
 // toolName can be the original MCP name or its sanitized LLM-safe form.
 func (m *mcpClientManager) CallTool(ctx context.Context, toolName string, args map[string]any) (string, error) {
 	m.mu.RLock()
-	defer m.mu.RUnlock()
-
+	var (
+		targetSession *mcp.ClientSession
+		originalName  string
+	)
 	for _, s := range m.sessions {
-		// Resolve sanitized name back to the original MCP name.
-		originalName := toolName
-		if orig, ok := s.sanitizedToOriginal[toolName]; ok {
-			originalName = orig
+		orig := toolName
+		if mapped, ok := s.sanitizedToOriginal[toolName]; ok {
+			orig = mapped
 		}
-
 		for _, tool := range s.tools {
-			if tool.Name == originalName {
-				result, err := s.session.CallTool(ctx, &mcp.CallToolParams{
-					Name:      originalName,
-					Arguments: args,
-				})
-				if err != nil {
-					return "", fmt.Errorf("MCP tool call %q failed: %w", originalName, err)
-				}
-
-				if result.IsError {
-					return fmt.Sprintf("MCP tool error: %s", extractMCPText(result)), nil
-				}
-
-				return extractMCPText(result), nil
+			if tool.Name == orig {
+				targetSession = s.session
+				originalName = orig
+				break
 			}
 		}
+		if targetSession != nil {
+			break
+		}
+	}
+	m.mu.RUnlock()
+
+	if targetSession == nil {
+		return "", fmt.Errorf("MCP tool %q not found on any connected server", toolName)
 	}
 
-	return "", fmt.Errorf("MCP tool %q not found on any connected server", toolName)
+	result, err := targetSession.CallTool(ctx, &mcp.CallToolParams{
+		Name:      originalName,
+		Arguments: args,
+	})
+	if err != nil {
+		return "", fmt.Errorf("MCP tool call %q failed: %w", originalName, err)
+	}
+	if result.IsError {
+		return fmt.Sprintf("MCP tool error: %s", extractMCPText(result)), nil
+	}
+	return extractMCPText(result), nil
 }
 
 // HasSession returns true if a session with the given name exists.
@@ -571,44 +579,63 @@ func (m *mcpClientManager) CallToolInSessions(ctx context.Context, toolName stri
 		return "", fmt.Errorf("MCP tool %q: no sessions in scope", toolName)
 	}
 	filter := sessionFilter(sessions)
-	m.mu.RLock()
-	defer m.mu.RUnlock()
 
+	m.mu.RLock()
+	var (
+		targetSession *mcp.ClientSession
+		originalName  string
+		denied        bool
+	)
 	for _, s := range m.sessions {
 		if !filter[s.name] {
 			continue
 		}
-		originalName := toolName
-		if orig, ok := s.sanitizedToOriginal[toolName]; ok {
-			originalName = orig
+		orig := toolName
+		if mapped, ok := s.sanitizedToOriginal[toolName]; ok {
+			orig = mapped
 		}
 		for _, tool := range s.tools {
-			if tool.Name == originalName {
+			if tool.Name == orig {
 				if len(s.toolPolicies) > 0 {
-					policy, ok := s.toolPolicies[originalName]
+					policy, ok := s.toolPolicies[orig]
 					if !ok {
 						policy = v1alpha1.MCPToolPolicyDeny
 					}
 					if policy == v1alpha1.MCPToolPolicyDeny {
-						return "", fmt.Errorf("MCP tool %q is denied by policy", originalName)
+						denied = true
+						originalName = orig
+						break
 					}
 				}
-
-				result, err := s.session.CallTool(ctx, &mcp.CallToolParams{
-					Name:      originalName,
-					Arguments: args,
-				})
-				if err != nil {
-					return "", fmt.Errorf("MCP tool call %q failed: %w", originalName, err)
-				}
-				if result.IsError {
-					return fmt.Sprintf("MCP tool error: %s", extractMCPText(result)), nil
-				}
-				return extractMCPText(result), nil
+				targetSession = s.session
+				originalName = orig
+				break
 			}
 		}
+		if targetSession != nil || denied {
+			break
+		}
 	}
-	return "", fmt.Errorf("MCP tool %q not found in requested sessions", toolName)
+	m.mu.RUnlock()
+
+	if denied {
+		return "", fmt.Errorf("MCP tool %q is denied by policy", originalName)
+	}
+	if targetSession == nil {
+		return "", fmt.Errorf("MCP tool %q not found in requested sessions", toolName)
+	}
+
+	result, err := targetSession.CallTool(ctx, &mcp.CallToolParams{
+		Name:      originalName,
+		Arguments: args,
+	})
+	if err != nil {
+		return "", fmt.Errorf("MCP tool call %q failed: %w", originalName, err)
+	}
+	if result.IsError {
+		return fmt.Sprintf("MCP tool error: %s", extractMCPText(result)), nil
+	}
+	return extractMCPText(result), nil
 }
 
 // GetToolsWithPolicies returns every tool reported by the server (including
