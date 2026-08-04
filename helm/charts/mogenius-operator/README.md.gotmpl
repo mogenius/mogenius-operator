@@ -121,6 +121,58 @@ externalKeyValueStore:
     # insecureSkipVerify: true
 ```
 
+### Restricting the Operator's Permissions (Unsupported)
+
+By default the chart grants the operator a ClusterRole with every verb on every
+resource. That is deliberate: the product manages a cluster from A to Z, and the
+permissions it needs are whatever its current feature set touches — deploying
+workloads into any namespace, creating the namespaces themselves, installing Helm
+charts and their CRDs and RBAC, projecting users and grants into RoleBindings,
+provisioning storage, and mirroring every resource type in the cluster into the
+platform UI. That set grows with the product.
+
+If your security posture does not allow that, you can narrow it — but you own the
+result. **A restricted operator is not a supported configuration.** New features, and
+existing features you have not exercised yet, will fail with `Forbidden` errors from
+the API server, and the fix is always to widen your own rules. Nothing in the chart
+tracks which permissions the current version needs.
+
+Two ways to do it. Replace the rules, keeping the chart's ClusterRole and binding:
+
+```yaml
+rbac:
+  rules:
+    # Cluster-wide reads: the operator runs an informer for every resource type the
+    # API server serves, so the UI can display arbitrary objects. Narrowing this
+    # empties parts of the UI instead of failing loudly.
+    - apiGroups: ["*"]
+      resources: ["*"]
+      verbs: ["get", "list", "watch"]
+    - apiGroups: [""]
+      resources: ["pods/log"]
+      verbs: ["get"]
+    - apiGroups: [""]
+      resources: ["pods/exec", "pods/attach", "pods/portforward"]
+      verbs: ["create"]
+    # ... plus every write your usage of the platform requires
+```
+
+Or take RBAC out of the chart's hands entirely and wire it up yourself (with your own
+policy tooling, GitOps repo, or a pre-provisioned role):
+
+```yaml
+rbac:
+  create: false
+```
+
+The ServiceAccount is still created either way, so you only need to bind permissions to
+it. To see what the chart would grant before applying anything:
+
+```
+helm template mogenius-operator mogenius/mogenius-operator \
+  -f values.yaml -s templates/rbac.yaml
+```
+
 ### Upgrade the Helm Chart
 
 To upgrade the `{{ .Name }}` Helm chart from the repository, run:
