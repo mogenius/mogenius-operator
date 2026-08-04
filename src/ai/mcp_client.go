@@ -175,6 +175,11 @@ func (m *mcpClientManager) Connect(ctx context.Context, cfg MCPServerConfig) err
 	}
 
 	m.mu.Lock()
+	if old, ok := m.sessions[cfg.Name]; ok {
+		if err := old.session.Close(); err != nil {
+			m.logger.Warn("closing stale MCP session before reconnect", "name", cfg.Name, "error", err)
+		}
+	}
 	m.sessions[cfg.Name] = &mcpSession{
 		name:                cfg.Name,
 		session:             session,
