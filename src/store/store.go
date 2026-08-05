@@ -17,6 +17,7 @@ import (
 	"mogenius-operator/src/valkeyclient"
 	"sort"
 	"strconv"
+	"sync"
 	"sync/atomic"
 
 	"strings"
@@ -115,6 +116,27 @@ type KubernetesGetter interface {
 }
 
 var valkeyClient valkeyclient.ValkeyClient
+
+// storeReady is set once all watched Kubernetes resource informers have
+// completed their initial cache sync, meaning store reads return reliable
+// results. Reconcilers check IsStoreReady() and requeue if not yet warm.
+var (
+	storeReadyOnce sync.Once
+	storeIsReady   atomic.Bool
+)
+
+// MarkStoreReady signals that all watched resource informers have completed
+// their initial cache sync. Safe to call multiple times; only the first call
+// has effect.
+func MarkStoreReady() {
+	storeReadyOnce.Do(func() {
+		storeIsReady.Store(true)
+	})
+}
+
+// IsStoreReady reports whether all watched Kubernetes resource caches have been
+// fully synced into Valkey at least once since startup.
+func IsStoreReady() bool { return storeIsReady.Load() }
 
 func Setup(
 	logManagerModule logging.SlogManager,

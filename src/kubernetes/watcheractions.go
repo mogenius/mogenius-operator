@@ -12,6 +12,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	v1 "k8s.io/api/core/v1"
@@ -76,7 +77,26 @@ func WatchStoreResources(wm watcher.WatcherModule, aiManager ai.AiManager, event
 	if err != nil {
 		return err
 	}
+
+	// Signal store readiness once every resource's informer has completed its
+	// initial cache sync. OnSynced is registered before Watch so no sync
+	// completion can slip between the two calls. An atomic counter tracks
+	// pending resources; when it reaches zero MarkStoreReady is called.
+	// sync.Once inside MarkStoreReady makes this idempotent across repeated
+	// WatchStoreResources invocations (e.g. after CRD additions).
+	pending := int64(len(resources))
+	if pending == 0 {
+		store.MarkStoreReady()
+		return nil
+	}
+
 	for _, res := range resources {
+		wm.OnSynced(res, func() {
+			if atomic.AddInt64(&pending, -1) == 0 {
+				store.MarkStoreReady()
+			}
+		})
+
 		err := wm.Watch(res, func(resource utils.ResourceDescriptor, obj *unstructured.Unstructured) {
 			setStoreIfNeeded(resource.ApiVersion, obj.GetName(), resource.Kind, obj.GetNamespace(), obj)
 			handleCRDAddition(wm, aiManager, eventClient, resource)
