@@ -234,7 +234,7 @@ func (self *k8sClientProvider) contextConfigLoader(logger *slog.Logger) (*rest.C
 }
 
 func getDefaultKubeConfig(logger *slog.Logger) ([]string, error) {
-	var kubeconfig string = os.Getenv("KUBECONFIG")
+	kubeconfig := os.Getenv("KUBECONFIG")
 	var kubeconfigs []string
 
 	if kubeconfig == "" {

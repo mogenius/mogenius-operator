@@ -69,7 +69,7 @@ func (e *k8sLogs) Start() error {
 		if err != nil {
 			return err
 		}
-		defer readCloser.Close()
+		defer func() { _ = readCloser.Close() }()
 
 		scanner := bufio.NewScanner(readCloser)
 		// Default token limit is 64KB; single long log lines (JSON blobs,

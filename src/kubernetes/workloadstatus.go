@@ -226,7 +226,7 @@ func GetWorkloadStatusItems(
 // GetWorkloadStatus generates a list of WorkloadStatusDto objects by filtering and processing workloads based on the request data.
 // The function accesses various caches and utilizes helper functions to retrieve and process workloads and events.
 func GetWorkloadStatus(requestData GetWorkloadStatusRequest) ([]WorkloadStatusDto, error) {
-	var workloadList []unstructured.Unstructured = []unstructured.Unstructured{}
+	workloadList := []unstructured.Unstructured{}
 
 	var wg sync.WaitGroup
 	workloadListChan := make(chan []unstructured.Unstructured)

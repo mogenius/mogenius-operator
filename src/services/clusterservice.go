@@ -5,7 +5,6 @@ import (
 	"mogenius-operator/src/structs"
 	"mogenius-operator/src/utils"
 	"mogenius-operator/src/websocket"
-	"strings"
 	"sync"
 )
 
@@ -130,33 +129,3 @@ type NfsStatusResponse struct {
 }
 
 
-func getMostCurrentHelmChartVersion(url string, chartname string) string {
-	url = addIndexYAMLtoURL(url)
-	data, err := utils.GetVersionData(url)
-	if err != nil {
-		serviceLogger.Error("Error getting helm chart version",
-			"chartUrl", url,
-			"chartName", chartname,
-			"error", err,
-		)
-		return ""
-	}
-	chartsArray := data.Entries[chartname]
-	result := "NO_VERSION_FOUND"
-	if len(chartsArray) > 0 {
-		result = chartsArray[0].Version
-	}
-
-	return chartname + "-" + result
-}
-
-func addIndexYAMLtoURL(url string) string {
-	if !strings.HasSuffix(url, "index.yaml") {
-		// Check if the URL ends with a slash; if not, add one.
-		if !strings.HasSuffix(url, "/") {
-			url += "/"
-		}
-		url += "index.yaml"
-	}
-	return url
-}

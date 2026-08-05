@@ -172,21 +172,21 @@ func PortForwardStreamConnection(request PortForwardConnectionRequest) {
 	wsMu := &sync.Mutex{}
 	defer func() {
 		wsMu.Lock()
-		wsConn.WriteMessage(websocket.CloseMessage,
+		_ = wsConn.WriteMessage(websocket.CloseMessage,
 			websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
 		wsMu.Unlock()
-		wsConn.Close()
+		_ = wsConn.Close()
 	}()
 
 	// Wait for ack-ready from stream gateway
-	wsConn.SetReadDeadline(time.Now().Add(30 * time.Second))
+	_ = wsConn.SetReadDeadline(time.Now().Add(30 * time.Second))
 	_, ackMsg, err := wsConn.ReadMessage()
 	if err != nil {
 		logger.Error("Failed to receive ack from stream gateway", "error", err)
 		return
 	}
 	logger.Info("Stream gateway ack received", "msg", string(ackMsg))
-	wsConn.SetReadDeadline(time.Time{})
+	_ = wsConn.SetReadDeadline(time.Time{})
 
 	// Step 3: Establish the target address to dial per sub-connection.
 	//   - host targets: dial the external host/IP directly.
@@ -293,8 +293,8 @@ func PortForwardStreamConnection(request PortForwardConnectionRequest) {
 			connsMu.Lock()
 			delete(conns, connID)
 			connsMu.Unlock()
-			localConn.Close()
-			wsSendText(pfmClosePrefix + connID)
+			_ = localConn.Close()
+			_ = wsSendText(pfmClosePrefix + connID)
 			logger.Info("Sub-connection closed", "connID", connID)
 		}()
 
@@ -377,13 +377,13 @@ func PortForwardStreamConnection(request PortForwardConnectionRequest) {
 				localConn, err := net.DialTimeout("tcp", dialAddr, 5*time.Second)
 				if err != nil {
 					logger.Error("Failed to dial target", "connID", connID, "dialAddr", dialAddr, "error", err)
-					wsSendText(pfmErrorPrefix + connID + ":" + pfDialErrorReason(err))
-					wsSendText(pfmClosePrefix + connID)
+					_ = wsSendText(pfmErrorPrefix + connID + ":" + pfDialErrorReason(err))
+					_ = wsSendText(pfmClosePrefix + connID)
 					continue
 				}
 
 				// Wrap with TLS if target expects HTTPS
-				var finalConn net.Conn = localConn
+				finalConn := localConn
 				if needsTLS(request.RemotePort, request.TargetProtocol) {
 					logger.Info("Wrapping connection with TLS", "connID", connID, "port", request.RemotePort)
 					// Cluster-internal self-signed certs are expected, so we skip
@@ -394,9 +394,9 @@ func PortForwardStreamConnection(request PortForwardConnectionRequest) {
 					})
 					if err := tlsConn.Handshake(); err != nil {
 						logger.Error("TLS handshake failed", "connID", connID, "error", err)
-						localConn.Close()
-						wsSendText(pfmErrorPrefix + connID + ":tls handshake failed: " + err.Error())
-						wsSendText(pfmClosePrefix + connID)
+						_ = localConn.Close()
+						_ = wsSendText(pfmErrorPrefix + connID + ":tls handshake failed: " + err.Error())
+						_ = wsSendText(pfmClosePrefix + connID)
 						continue
 					}
 					finalConn = tlsConn
@@ -417,7 +417,7 @@ func PortForwardStreamConnection(request PortForwardConnectionRequest) {
 				logger.Info("Remote closed sub-connection", "connID", connID)
 				connsMu.Lock()
 				if c, ok := conns[connID]; ok {
-					c.Close()
+					_ = c.Close()
 					delete(conns, connID)
 				}
 				connsMu.Unlock()
@@ -431,7 +431,7 @@ func PortForwardStreamConnection(request PortForwardConnectionRequest) {
 	// Cleanup: close all sub-connections
 	connsMu.Lock()
 	for id, c := range conns {
-		c.Close()
+		_ = c.Close()
 		delete(conns, id)
 	}
 	connsMu.Unlock()

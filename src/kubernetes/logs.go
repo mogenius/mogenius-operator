@@ -41,7 +41,7 @@ func GetPodLogs(namespace, podName, container string, tailLines int64, previous 
 	if err != nil {
 		return "", err
 	}
-	defer stream.Close()
+	defer func() { _ = stream.Close() }()
 
 	var buf bytes.Buffer
 	if _, err := io.Copy(&buf, stream); err != nil {

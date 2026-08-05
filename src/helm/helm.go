@@ -110,14 +110,14 @@ func Setup(logManager logging.SlogManager, configModule cfg.ConfigModule, valkey
 }
 
 func InitEnvs(configModule cfg.ConfigModule) {
-	os.Setenv("HELM_CACHE_HOME", fmt.Sprintf("%s/%s", configModule.Get("MO_HELM_DATA_PATH"), HELM_CACHE_HOME))
-	os.Setenv("HELM_CONFIG_HOME", fmt.Sprintf("%s/%s", configModule.Get("MO_HELM_DATA_PATH"), HELM_CONFIG_HOME))
-	os.Setenv("HELM_DATA_HOME", fmt.Sprintf("%s/%s", configModule.Get("MO_HELM_DATA_PATH"), HELM_DATA_HOME))
-	os.Setenv("HELM_PLUGINS", fmt.Sprintf("%s/%s", configModule.Get("MO_HELM_DATA_PATH"), HELM_PLUGINS))
-	os.Setenv("HELM_REGISTRY_CONFIG", fmt.Sprintf("%s/%s", configModule.Get("MO_HELM_DATA_PATH"), HELM_REGISTRY_CONFIG_FILE))
-	os.Setenv("HELM_REPOSITORY_CACHE", fmt.Sprintf("%s/%s", configModule.Get("MO_HELM_DATA_PATH"), HELM_REPOSITORY_CACHE_FOLDER))
-	os.Setenv("HELM_REPOSITORY_CONFIG", fmt.Sprintf("%s/%s", configModule.Get("MO_HELM_DATA_PATH"), HELM_REPOSITORY_CONFIG_FILE))
-	os.Setenv("HELM_LOG_LEVEL", "trace")
+	_ = os.Setenv("HELM_CACHE_HOME", fmt.Sprintf("%s/%s", configModule.Get("MO_HELM_DATA_PATH"), HELM_CACHE_HOME))
+	_ = os.Setenv("HELM_CONFIG_HOME", fmt.Sprintf("%s/%s", configModule.Get("MO_HELM_DATA_PATH"), HELM_CONFIG_HOME))
+	_ = os.Setenv("HELM_DATA_HOME", fmt.Sprintf("%s/%s", configModule.Get("MO_HELM_DATA_PATH"), HELM_DATA_HOME))
+	_ = os.Setenv("HELM_PLUGINS", fmt.Sprintf("%s/%s", configModule.Get("MO_HELM_DATA_PATH"), HELM_PLUGINS))
+	_ = os.Setenv("HELM_REGISTRY_CONFIG", fmt.Sprintf("%s/%s", configModule.Get("MO_HELM_DATA_PATH"), HELM_REGISTRY_CONFIG_FILE))
+	_ = os.Setenv("HELM_REPOSITORY_CACHE", fmt.Sprintf("%s/%s", configModule.Get("MO_HELM_DATA_PATH"), HELM_REPOSITORY_CACHE_FOLDER))
+	_ = os.Setenv("HELM_REPOSITORY_CONFIG", fmt.Sprintf("%s/%s", configModule.Get("MO_HELM_DATA_PATH"), HELM_REPOSITORY_CONFIG_FILE))
+	_ = os.Setenv("HELM_LOG_LEVEL", "trace")
 }
 
 func InitBasicRepos(repos []HelmRepoAddRequest) error {
@@ -503,7 +503,7 @@ func InitHelmConfig() error {
 			helmLogger.Error("failed to create repository config", "path", repositoryConfig, "error", err.Error())
 			return fmt.Errorf("failed to create repository config: %w", err)
 		}
-		destFile.Close()
+		_ = destFile.Close()
 	}
 
 	_ = restoreRepositoryFileFromValkey()
@@ -775,10 +775,10 @@ func HelmChartSearch(data HelmChartSearchRequest) ([]HelmChartInfo, error) {
 		for _, chartVersions := range indexFile.Entries {
 			for _, chartVersion := range chartVersions {
 				allCharts = append(allCharts, HelmChartInfo{
-					Name:        fmt.Sprintf("%s/%s", repoEntry.Name, chartVersion.Metadata.Name),
-					Version:     chartVersion.Metadata.Version,
-					AppVersion:  chartVersion.Metadata.AppVersion,
-					Description: chartVersion.Metadata.Description,
+					Name:        fmt.Sprintf("%s/%s", repoEntry.Name, chartVersion.Name),
+					Version:     chartVersion.Version,
+					AppVersion:  chartVersion.AppVersion,
+					Description: chartVersion.Description,
 				})
 				break // only take the first version
 			}
@@ -863,17 +863,17 @@ func HelmChartVersion(data HelmChartVersionRequest) ([]HelmChartInfo, error) {
 
 		for _, chartVersions := range indexFile.Entries {
 			for _, chartVersion := range chartVersions {
-				if chartVersion.Metadata.Name != chartName {
+				if chartVersion.Name != chartName {
 					continue
 				}
 				if len(allCharts) > MAXCHART_VERSIONS {
 					break
 				}
 				allCharts = append(allCharts, HelmChartInfo{
-					Name:        fmt.Sprintf("%s/%s", repoEntry.Name, chartVersion.Metadata.Name),
-					Version:     chartVersion.Metadata.Version,
-					AppVersion:  chartVersion.Metadata.AppVersion,
-					Description: chartVersion.Metadata.Description,
+					Name:        fmt.Sprintf("%s/%s", repoEntry.Name, chartVersion.Name),
+					Version:     chartVersion.Version,
+					AppVersion:  chartVersion.AppVersion,
+					Description: chartVersion.Description,
 				})
 			}
 		}
@@ -958,7 +958,7 @@ func HelmOciInstall(data HelmChartOciInstallUpgradeRequest) (result string, err 
 	}
 	install.SetRegistryClient(registryClient)
 
-	chartPath, err := install.ChartPathOptions.LocateChart(data.OCIChartUrl, settings)
+	chartPath, err := install.LocateChart(data.OCIChartUrl, settings)
 	if err != nil {
 		return "", fmt.Errorf("failed to locate chart: %w", err)
 	}

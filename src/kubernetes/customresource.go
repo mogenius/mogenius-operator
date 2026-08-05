@@ -27,7 +27,7 @@ func DeleteResource(group string, version string, resource string, name string, 
 }
 
 func getClient(gvr schema.GroupVersionResource, namespace string, isClusterWideResource bool) (dynamic.ResourceInterface, error) {
-	var client dynamic.NamespaceableResourceInterface = clientProvider.DynamicClient().Resource(gvr)
+	client := clientProvider.DynamicClient().Resource(gvr)
 
 	if !isClusterWideResource {
 		if namespace == "" {

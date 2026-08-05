@@ -38,7 +38,7 @@ func TestBoolean(t *testing.T) {
 }
 
 func TestInteger(t *testing.T) {
-	var n int = 0
+	n := 0
 	s, err := schema.TryGenerate(n)
 	t.Logf("%s", s.Json())
 	assert.AssertT(t, err == nil, err)

@@ -25,7 +25,6 @@ import (
 	coreV1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/util/jsonpath"
-	"sigs.k8s.io/yaml"
 
 	"github.com/openai/openai-go/v3"
 	"github.com/openai/openai-go/v3/option"
@@ -34,7 +33,6 @@ import (
 	"github.com/anthropics/anthropic-sdk-go"
 	anthropic_option "github.com/anthropics/anthropic-sdk-go/option"
 
-	"github.com/ollama/ollama/api"
 	ollama "github.com/ollama/ollama/api"
 )
 
@@ -509,14 +507,14 @@ func (ai *aiManager) insertNewAiTask(task *AiTask, obj *unstructured.Unstructure
 	controller := ai.ownerCacheService.OwnerFromReference(obj.GetNamespace(), obj.GetOwnerReferences())
 	task.Controller = controller
 	if controller != nil {
-		ctrlOb, err := store.GetResource(ai.valkeyClient, controller.ResourceDescriptor.ApiVersion, controller.ResourceDescriptor.Kind, controller.Namespace, controller.ResourceName, ai.logger)
+		ctrlOb, err := store.GetResource(ai.valkeyClient, controller.ApiVersion, controller.Kind, controller.Namespace, controller.ResourceName, ai.logger)
 		if err != nil {
-			ai.logger.Error("Error fetching controller object for AI task", "controllerKind", controller.ResourceDescriptor.Kind, "controllerName", controller.ResourceName, "controllerNamespace", controller.Namespace, "error", err)
+			ai.logger.Error("Error fetching controller object for AI task", "controllerKind", controller.Kind, "controllerName", controller.ResourceName, "controllerNamespace", controller.Namespace, "error", err)
 		} else {
 			if ctrlOb != nil {
 				controllerYaml, err := store.GetYamlFromUnstructuredResource(ctrlOb)
 				if err != nil {
-					ai.logger.Error("Error generating controller YAML for AI task prompt", "controllerKind", controller.ResourceDescriptor.Kind, "controllerName", controller.ResourceName, "controllerNamespace", controller.Namespace, "error", err)
+					ai.logger.Error("Error generating controller YAML for AI task prompt", "controllerKind", controller.Kind, "controllerName", controller.ResourceName, "controllerNamespace", controller.Namespace, "error", err)
 				}
 				task.Prompt += "\n\nThe controller resource YAML is as follows:\n" + controllerYaml
 			}
@@ -1604,75 +1602,6 @@ func (ai *aiManager) getTaskByKey(key string) (*AiTask, error) {
 	return &task, nil
 }
 
-// for nasty AIs which return markdown code blocks or extra text around JSON
-func cleanJSONResponse(response string) string {
-	// Trim whitespace
-	response = strings.TrimSpace(response)
-
-	// Remove markdown code blocks (```json or ``` at start/end)
-	response = strings.TrimPrefix(response, "```json")
-	response = strings.TrimPrefix(response, "```")
-	response = strings.TrimSuffix(response, "```")
-
-	// Trim again after removing code blocks
-	return strings.TrimSpace(response)
-}
-
-func extractJSONRobust(text string) (jsonData []byte, removedText string, err error) {
-	start := strings.Index(text, "{")
-	if start == -1 {
-		return nil, "", fmt.Errorf("no JSON object found")
-	}
-
-	// Capture the text that was removed (the "bullshit")
-	removedText = text[:start]
-
-	braceCount := 0
-	inString := false
-	escapeNext := false
-
-	for i := start; i < len(text); i++ {
-		char := text[i]
-
-		if escapeNext {
-			escapeNext = false
-			continue
-		}
-
-		if char == '\\' {
-			escapeNext = true
-			continue
-		}
-
-		if char == '"' {
-			inString = !inString
-			continue
-		}
-
-		if !inString {
-			switch char {
-			case '{':
-				braceCount++
-			case '}':
-				braceCount--
-				if braceCount == 0 {
-					return []byte(text[start : i+1]), removedText, nil
-				}
-			}
-		}
-	}
-
-	return nil, removedText, fmt.Errorf("unbalanced braces in JSON")
-}
-
-func buildUserPrompt(prompt string, obj *unstructured.Unstructured) string {
-	objBytes, err := yaml.Marshal(obj.Object)
-	if err != nil {
-		return fmt.Sprintf("%s\n\nError serializing Kubernetes object: %v", prompt, err)
-	}
-	return fmt.Sprintf("%s\n\nHere are the related Kubernetes resources in yaml format:\n%s", prompt, string(objBytes))
-}
-
 // newOpenAIClientFor builds an OpenAI client for one resolved model config.
 // An empty BaseUrl selects the SDK's default public endpoint.
 func (ai *aiManager) newOpenAIClientFor(rc *ResolvedModelConfig) *openai.Client {
@@ -1703,7 +1632,7 @@ func (ai *aiManager) newOllamaClientFor(rc *ResolvedModelConfig) (*ollama.Client
 	if err != nil {
 		return nil, err
 	}
-	return api.NewClient(url, http.DefaultClient), nil
+	return ollama.NewClient(url, http.DefaultClient), nil
 }
 
 // modelsRequestConfig turns an explicit ModelsRequest (UI-supplied SDK and

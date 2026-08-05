@@ -134,7 +134,7 @@ func (self *aiWebsocketConnection) LiveStreamAiManagerChatRequest(request ChatRe
 	defer func() {
 		cancel()
 		if conn != nil {
-			conn.Close()
+			_ = conn.Close()
 		}
 	}()
 

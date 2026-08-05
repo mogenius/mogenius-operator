@@ -2864,7 +2864,7 @@ func (self *socketApi) startJobClientReadLoop() {
 			}
 			if bytes.HasPrefix(message, []byte("######END_UPLOAD######;")) {
 				if openFile != nil {
-					openFile.Close()
+					_ = openFile.Close()
 				}
 				var uploadErr error
 				if preparedFileName != nil && preparedFileRequest != nil {
@@ -2876,7 +2876,7 @@ func (self *socketApi) startJobClientReadLoop() {
 					uploadErr = fmt.Errorf("upload failed: could not open temporary file")
 				}
 				if preparedFileName != nil {
-					os.Remove(*preparedFileName)
+					_ = os.Remove(*preparedFileName)
 				}
 
 				if preparedFileRequest != nil {

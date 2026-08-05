@@ -166,7 +166,7 @@ func execInNfsPodStream(namespace, podName string, command []string, stdin io.Re
 }
 
 func StorageClassForClusterProvider(clusterProvider utils.KubernetesProvider) string {
-	var nfsStorageClassStr string = ""
+	nfsStorageClassStr := ""
 
 	// 1. WE TRY TO GET THE DEFAULT STORAGE CLASS
 	clientset := clientProvider.K8sClientSet()

@@ -42,7 +42,7 @@ func handlePVDeletion(pv *v1.PersistentVolume) {
 	}
 
 	// Extract namespace from the PV name
-	objectMetaName := pv.ObjectMeta.Name
+	objectMetaName := pv.Name
 	namespaceName := strings.TrimSuffix(objectMetaName, "-"+volumeName)
 
 	// Set up a dynamic event broadcaster for the specific namespace
@@ -52,8 +52,8 @@ func handlePVDeletion(pv *v1.PersistentVolume) {
 	namespaceRecorder := broadcaster.NewRecorder(scheme.Scheme, v1.EventSource{Component: "mogenius.io/WatchPersistentVolumes"})
 
 	// Manipulate PV to match the namespace constraint for the event
-	pv.ObjectMeta.Namespace = namespaceName
-	pv.ObjectMeta.Name = volumeName
+	pv.Namespace = namespaceName
+	pv.Name = volumeName
 
 	delayDuration := 2 * time.Second
 	time.Sleep(delayDuration)

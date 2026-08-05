@@ -2,7 +2,6 @@ package dtos
 
 import (
 	"fmt"
-	"io/fs"
 	"mogenius-operator/src/utils"
 	"os"
 	"path/filepath"
@@ -38,12 +37,12 @@ func PersistentFileDtoFrom(rootDir string, path string) (PersistentFileDto, erro
 		fileType = "directory"
 	}
 
-	var uid int = 0
-	var gid int = 0
+	uid := 0
+	gid := 0
 	var size int64 = 0
 	var createTime = time.Now().Format(time.RFC3339)
 	var modTime = time.Now().Format(time.RFC3339)
-	var filemode fs.FileMode = info.Mode().Perm()
+	filemode := info.Mode().Perm()
 	if stat, ok := info.Sys().(*syscall.Stat_t); ok {
 		uid = int(stat.Uid)
 		gid = int(stat.Gid)

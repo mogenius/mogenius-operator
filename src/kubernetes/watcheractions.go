@@ -621,16 +621,6 @@ func removeManagedFields(obj *unstructured.Unstructured) *unstructured.Unstructu
 	return obj
 }
 
-func removeManagedFieldsFromList(objList *unstructured.UnstructuredList) *unstructured.UnstructuredList {
-	if objList == nil {
-		return objList
-	}
-	for i := range objList.Items {
-		removeManagedFields(&objList.Items[i])
-	}
-
-	return objList
-}
 
 func removeUnusedFieds(obj *unstructured.Unstructured) *unstructured.Unstructured {
 	obj = removeManagedFields(obj)

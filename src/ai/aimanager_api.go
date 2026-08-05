@@ -434,10 +434,10 @@ func (ai *aiManager) GetStatus(workspace *string) AiManagerStatus {
 			}
 		}
 	}
-	var totalDbEntries int = 0
-	var unprocessedDbEntries int = 0
-	var ignoredDbEntries int = 0
-	var numberOfUnreadTasks int = 0
+	totalDbEntries := 0
+	unprocessedDbEntries := 0
+	ignoredDbEntries := 0
+	numberOfUnreadTasks := 0
 	var err error
 
 	if workspace == nil {
