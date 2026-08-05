@@ -12,6 +12,7 @@ import (
 
 	"mogenius-operator/src/k8sclient"
 	"mogenius-operator/src/metrics"
+	"mogenius-operator/src/store"
 	"mogenius-operator/src/utils"
 	"mogenius-operator/src/watcher"
 )
@@ -203,6 +204,7 @@ func (r *genericReconciler) Start() {
 			}
 		})
 	}
+
 }
 
 func (r *genericReconciler) Stop() {
@@ -267,6 +269,17 @@ func (r *genericReconciler) callHandler(ctx context.Context, cfg ResourceConfig,
 
 	r.wg.Go(func() {
 		defer func() { <-r.reconcileSlots }()
+
+		if !store.IsStoreReady() {
+			// The Kubernetes watcher hasn't finished its initial cache sync yet,
+			// so store reads (GetSecret, etc.) are unreliable. Release the slot
+			// and reschedule in 10 s; by then the store will almost certainly be warm.
+			time.AfterFunc(10*time.Second, func() {
+				r.callHandler(ctx, cfg, obj, operation)
+			})
+			return
+		}
+
 		start := time.Now()
 		result := cfg.Reconcile(ctx, objCopy, operation)
 		metrics.ObserveReconcileDuration(cfg.Resource.Kind, string(operation), time.Since(start).Seconds())

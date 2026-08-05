@@ -53,6 +53,12 @@ type WatcherModule interface {
 	// OnObjectDeleted registers a callback that fires when a specific object is deleted.
 	OnObjectDeleted(kind, namespace, name string, cb func(*unstructured.Unstructured))
 
+	// OnSynced registers a callback that is called once when the informer for
+	// the given resource completes its initial cache sync. If the resource is
+	// already in Watching state when OnSynced is called, the callback fires
+	// immediately. Safe to call before or after Watch.
+	OnSynced(resource utils.ResourceDescriptor, cb func())
+
 	// WatchHelmReleaseSecrets starts a lightweight, metadata-only informer for
 	// Helm release secrets (type=helm.sh/release.v1) and invokes onChange
 	// (debounced) whenever one is added/updated/deleted. These secrets are
@@ -122,6 +128,10 @@ type watcher struct {
 	objectSubsAdd    map[objectSubscriptionKey][]func(*unstructured.Unstructured)
 	objectSubsUpdate map[objectSubscriptionKey][]func(*unstructured.Unstructured)
 	objectSubsDelete map[objectSubscriptionKey][]func(*unstructured.Unstructured)
+
+	// syncedCallbacks holds per-resource callbacks fired once when the
+	// informer cache sync completes (state transitions to Watching).
+	syncedCallbacks map[utils.ResourceDescriptor][]func()
 }
 
 func NewWatcher(logger *slog.Logger, clientProvider k8sclient.K8sClientProvider) WatcherModule {
@@ -149,6 +159,7 @@ func NewWatcher(logger *slog.Logger, clientProvider k8sclient.K8sClientProvider)
 	self.objectSubsAdd = make(map[objectSubscriptionKey][]func(*unstructured.Unstructured))
 	self.objectSubsUpdate = make(map[objectSubscriptionKey][]func(*unstructured.Unstructured))
 	self.objectSubsDelete = make(map[objectSubscriptionKey][]func(*unstructured.Unstructured))
+	self.syncedCallbacks = make(map[utils.ResourceDescriptor][]func())
 
 	return self
 }
@@ -472,6 +483,25 @@ func (self *watcher) setWatcherState(resource utils.ResourceDescriptor, state Wa
 		resourceContext.state = state
 		self.activeHandlers[resource] = resourceContext
 	}
+
+	if state == Watching {
+		cbs := self.syncedCallbacks[resource]
+		delete(self.syncedCallbacks, resource)
+		for _, cb := range cbs {
+			go cb()
+		}
+	}
+}
+
+func (self *watcher) OnSynced(resource utils.ResourceDescriptor, cb func()) {
+	self.handlerMapLock.Lock()
+	defer self.handlerMapLock.Unlock()
+
+	if ctx, ok := self.activeHandlers[resource]; ok && ctx.state == Watching {
+		go cb()
+		return
+	}
+	self.syncedCallbacks[resource] = append(self.syncedCallbacks[resource], cb)
 }
 
 func (self *watcher) updateResourceContext(resource utils.ResourceDescriptor, informer cache.SharedIndexInformer, handler cache.ResourceEventHandlerRegistration) {
