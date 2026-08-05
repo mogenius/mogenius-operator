@@ -170,9 +170,8 @@ type AiPromptConfig struct {
 }
 
 type AiPrompts struct {
-	ChatSystemPrompt                string `json:"chatSystemPrompt"`
-	GithubSystemPrompt              string `json:"githubSystemPrompt"`
-	GitMemoryRepositorySystemPrompt string `json:"gitMemoryRepositorySystemPrompt"`
+	ChatSystemPrompt   string `json:"chatSystemPrompt"`
+	GithubSystemPrompt string `json:"githubSystemPrompt"`
 }
 
 type AiManagerStatus struct {

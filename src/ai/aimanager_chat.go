@@ -60,7 +60,6 @@ func (ai *aiManager) Chat(ctx context.Context, ioChannel IOChatChannel) error {
 	ai.chatPromptMu.RLock()
 	systemPrompt := ai.aiPrompts.ChatSystemPrompt
 	githubSystemPrompt := ai.aiPrompts.GithubSystemPrompt
-	gitMemoryRepositorySystemPrompt := ai.aiPrompts.GitMemoryRepositorySystemPrompt
 	ai.chatPromptMu.RUnlock()
 
 	if systemPrompt == "" {
@@ -71,9 +70,6 @@ func (ai *aiManager) Chat(ctx context.Context, ioChannel IOChatChannel) error {
 		systemPrompt += "\n\n" + githubSystemPrompt
 	}
 
-	if repo, err := ai.getGitMemoryRepository(); err == nil && repo != "" {
-		systemPrompt += "\n\n" + strings.ReplaceAll(gitMemoryRepositorySystemPrompt, "{{MEMORY_REPO}}", repo)
-	}
 	systemPrompt = strings.ReplaceAll(systemPrompt, "{{USER_NAME}}", fmt.Sprintf("%s %s", ioChannel.User.FirstName, ioChannel.User.LastName))
 	systemPrompt = strings.ReplaceAll(systemPrompt, "{{USER_EMAIL}}", ioChannel.User.Email)
 
