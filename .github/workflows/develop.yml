@@ -10,7 +10,7 @@ on:
         type: string
   push:
     branches:
-      - develop
+      - main
 
 env:
   REGISTRY_PREFIX: ghcr.io/mogenius
@@ -86,7 +86,7 @@ jobs:
         BPFTOOL_IMAGE=ghcr.io/mogenius/bpftool:latest-arm64
 
   helm-chart:
-    if: github.ref == 'refs/heads/develop'
+    if: github.ref == 'refs/heads/main'
     needs: [prepare, build-operator]
     runs-on: [self-hosted]
     permissions:
