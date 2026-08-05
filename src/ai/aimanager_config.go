@@ -79,14 +79,6 @@ func (ai *aiManager) getSystemPrompt() string {
 	return cfg.SystemPrompt
 }
 
-func (ai *aiManager) GetPromptConfig() (*AiPromptConfig, error) {
-	cfg := ai.promptConfig()
-	if cfg == nil {
-		return nil, fmt.Errorf("AI prompt configuration is not initialized")
-	}
-	return cfg, nil
-}
-
 func (ai *aiManager) getGitHubPat() (string, error) {
 	data, err := ai.getAiSettingByKey(AI_CONFIG_GITHUB_PAT)
 	if err != nil {
