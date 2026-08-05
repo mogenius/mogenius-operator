@@ -4,12 +4,14 @@ import (
 	"context"
 	"mogenius-operator/src/crds/v1alpha1"
 	"mogenius-operator/src/structs"
+	"mogenius-operator/src/utils"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 func TestValidateAgentSpec(t *testing.T) {
@@ -323,4 +325,60 @@ func TestLatestTaskNamespaces(t *testing.T) {
 			assert.Equal(t, tt.expected, latestTaskNamespaces(&tt.task, tt.key))
 		})
 	}
+}
+
+// The agent cache exists because getEnabledAgents runs on every watch event
+// in the cluster (MOG-4518): a fresh cache must be served without any config
+// or store access. The nil config/valkeyClient in the bare aiManager doubles
+// as the assertion — any fetch attempt panics.
+func TestGetEnabledAgentsServesFreshCacheWithoutFetch(t *testing.T) {
+	cached := []v1alpha1.Agent{{Spec: v1alpha1.AgentSpec{Enabled: true}}}
+	ai := &aiManager{
+		cachedEnabledAgents: cached,
+		agentCacheValid:     true,
+		agentCacheTime:      time.Now(),
+	}
+
+	got := ai.getEnabledAgents()
+
+	assert.Equal(t, cached, got)
+}
+
+func TestGetEnabledAgentsReturnsPreviousListWhileFetching(t *testing.T) {
+	previous := []v1alpha1.Agent{{Spec: v1alpha1.AgentSpec{Enabled: true}}}
+	ai := &aiManager{
+		cachedEnabledAgents: previous,
+		agentCacheValid:     false, // stale — but a fetch is already running
+		agentCacheFetching:  true,
+	}
+
+	got := ai.getEnabledAgents()
+
+	assert.Equal(t, previous, got)
+	assert.True(t, ai.agentCacheFetching, "caller must not clear the in-flight fetch marker")
+}
+
+func TestInvalidateAgentCacheBumpsGenerationAndMarksStale(t *testing.T) {
+	ai := &aiManager{
+		agentCacheValid: true,
+		agentCacheTime:  time.Now(),
+	}
+	genBefore := ai.agentCacheGen
+
+	ai.invalidateAgentCache()
+
+	assert.False(t, ai.agentCacheValid)
+	assert.Equal(t, genBefore+1, ai.agentCacheGen, "generation must change so a racing fetch cannot re-validate stale data")
+}
+
+func TestProcessObjectInvalidatesCacheOnAgentEvents(t *testing.T) {
+	obj := &unstructured.Unstructured{Object: map[string]any{}}
+
+	ai := &aiManager{agentCacheValid: true, agentCacheTime: time.Now()}
+	ai.ProcessObject(obj, "update", utils.AgentResource)
+	assert.False(t, ai.agentCacheValid, "Agent CR events must invalidate the cache")
+
+	ai = &aiManager{agentCacheValid: true, agentCacheTime: time.Now()}
+	ai.ProcessObject(obj, "update", utils.PodResource)
+	assert.True(t, ai.agentCacheValid, "non-Agent events must not invalidate the cache")
 }

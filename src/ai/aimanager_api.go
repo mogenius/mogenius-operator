@@ -153,7 +153,7 @@ func (ai *aiManager) GetAiTasksForWorkspace(workspace string) ([]AiTask, error) 
 				}
 			}
 		case "helm", "argocd":
-			ai.logger.Error("Retrieving AI Tasks for this workspace type will be possible in the future", "workspace", workspace, "type", workspaceResource.Type)
+			ai.logger.Debug("Retrieving AI Tasks for this workspace type will be possible in the future", "workspace", workspace, "type", workspaceResource.Type)
 		default:
 			ai.logger.Error("Retrieving AI Tasks for unknown workspace type is not possible", "workspace", workspace, "type", workspaceResource.Type)
 		}
@@ -250,7 +250,7 @@ func (ai *aiManager) GetAiLatestTasksForWorkspace(workspace string) ([]AiTask, e
 				tasks = append(tasks, *latestNamespaceTask)
 			}
 		case "helm", "argocd":
-			ai.logger.Error("Retrieving AI Tasks for this workspace type will be possible in the future", "workspace", workspace, "type", workspaceResource.Type)
+			ai.logger.Debug("Retrieving AI Tasks for this workspace type will be possible in the future", "workspace", workspace, "type", workspaceResource.Type)
 		default:
 			ai.logger.Error("Retrieving AI Tasks for unknown workspace type is not possible", "workspace", workspace, "type", workspaceResource.Type)
 		}
@@ -456,7 +456,7 @@ func (ai *aiManager) GetStatus(workspace *string) AiManagerStatus {
 					case "namespace":
 						workspaceNamespaces[workspaceResource.Id] = true
 					case "helm", "argocd":
-						ai.logger.Error("Retrieving AI Tasks for this workspace type will be possible in the future", "workspace", workspace, "type", workspaceResource.Type)
+						ai.logger.Debug("Retrieving AI Tasks for this workspace type will be possible in the future", "workspace", workspace, "type", workspaceResource.Type)
 					default:
 						ai.logger.Error("Retrieving AI Tasks for unknown workspace type is not possible", "workspace", workspace, "type", workspaceResource.Type)
 					}
