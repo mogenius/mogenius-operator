@@ -31,6 +31,12 @@ var validChangeEventTypes = map[string]bool{"created": true, "updated": true, "d
 // many runs.
 const defaultChangeCooldown = 6 * time.Hour
 
+// agentCacheTTL bounds how long getEnabledAgents may serve its cached agent
+// list without re-reading the store. Agent CR changes invalidate the cache
+// immediately via ProcessObject; the TTL only covers events the watcher
+// missed, so it can stay short without re-creating per-event store reads.
+const agentCacheTTL = 30 * time.Second
+
 // ValidateAgentSpec checks an agent spec for the invariants the pipeline
 // relies on: a non-empty scope (an agent without scope restrictions must not
 // exist — empty allow-maps would disable namespace checks entirely), a
@@ -68,7 +74,60 @@ func changeCooldown(oc *v1alpha1.AgentChangeTrigger) time.Duration {
 }
 
 // getEnabledAgents returns all enabled agents from the operator namespace.
+//
+// The result is cached: this runs on EVERY watch event in the cluster (via
+// ProcessObject → triggerChangeAgents), and reading the store each time meant
+// a full-keyspace SCAN per event — enough sustained load to saturate Valkey
+// on busy clusters (MOG-4518). Agent CR events invalidate the cache directly,
+// agentCacheTTL is the safety net. Callers must not mutate the returned slice.
+//
+// While one goroutine refreshes, concurrent callers get the previous list
+// (possibly nil right after startup) instead of blocking: this is called
+// synchronously from informer handlers, and a slow store read here would
+// stall watch-event processing — during a Valkey degradation every event
+// would otherwise wait out the full client timeout.
 func (ai *aiManager) getEnabledAgents() []v1alpha1.Agent {
+	ai.agentCacheMu.Lock()
+	if ai.agentCacheFetching || (ai.agentCacheValid && time.Since(ai.agentCacheTime) < agentCacheTTL) {
+		agents := ai.cachedEnabledAgents
+		ai.agentCacheMu.Unlock()
+		return agents
+	}
+	generation := ai.agentCacheGen
+	ai.agentCacheFetching = true
+	ai.agentCacheMu.Unlock()
+
+	enabled := ai.fetchEnabledAgents()
+
+	ai.agentCacheMu.Lock()
+	ai.agentCacheFetching = false
+	// An invalidation while we were reading means `enabled` may predate that
+	// change — serve it once but leave the cache invalid so the next call
+	// re-reads.
+	if ai.agentCacheGen == generation {
+		ai.cachedEnabledAgents = enabled
+		ai.agentCacheTime = time.Now()
+		ai.agentCacheValid = true
+	}
+	ai.agentCacheMu.Unlock()
+	return enabled
+}
+
+// invalidateAgentCache marks the enabled-agents cache stale. Called for every
+// Agent CR watch event, so cache staleness is bounded by informer latency
+// rather than agentCacheTTL.
+func (ai *aiManager) invalidateAgentCache() {
+	ai.agentCacheMu.Lock()
+	ai.agentCacheGen++
+	ai.agentCacheValid = false
+	ai.agentCacheMu.Unlock()
+}
+
+// fetchEnabledAgents reads the enabled agents from the store. Failures are
+// cached like results: during a store outage, retrying on every watch event
+// would amplify the outage (each retry is a full-keyspace SCAN against an
+// already unresponsive Valkey).
+func (ai *aiManager) fetchEnabledAgents() []v1alpha1.Agent {
 	ownNamespace, err := ai.config.TryGet("MO_OWN_NAMESPACE")
 	if err != nil {
 		ai.logger.Warn("getEnabledAgents: failed to get own namespace", "error", err)
