@@ -23,11 +23,10 @@ const (
 	// GitHub PAT fine-grained permissions recommendation:
 	//  - only select repositories that the AI needs to access, e.g. "my-org/my-repo"
 	//  - permissions:
-	//      Contents (read-write) — required for reading repo files and writing .ai-context.md
+	//      Contents (read-write) — required for reading and writing repo files
 	//      Metadata (read-only)
 	//      Pull requests (read-write)
-	AI_CONFIG_GITHUB_PAT            = "AI_CONFIG_GITHUB_PAT"
-	AI_CONFIG_GIT_MEMORY_REPOSITORY = "AI_CONFIG_GIT_MEMORY_REPOSITORY" // <owner>/<repo> format, e.g. "my-org/my-repo"
+	AI_CONFIG_GITHUB_PAT = "AI_CONFIG_GITHUB_PAT"
 )
 
 type AiSdkType string
@@ -92,14 +91,6 @@ func (ai *aiManager) getGitHubPat() (string, error) {
 	data, err := ai.getAiSettingByKey(AI_CONFIG_GITHUB_PAT)
 	if err != nil {
 		return "", fmt.Errorf("failed to get GitHub PAT: %v", err)
-	}
-	return data, nil
-}
-
-func (ai *aiManager) getGitMemoryRepository() (string, error) {
-	data, err := ai.getAiSettingByKey(AI_CONFIG_GIT_MEMORY_REPOSITORY)
-	if err != nil {
-		return "", fmt.Errorf("failed to get GitHub repo: %v", err)
 	}
 	return data, nil
 }
