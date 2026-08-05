@@ -15,7 +15,7 @@ func ZlibCompress(data []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	writer.Close()
+	_ = writer.Close()
 
 	return buf.Bytes(), nil
 }
@@ -27,7 +27,7 @@ func ZlibDecompress(compressedData []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer reader.Close()
+	defer func() { _ = reader.Close() }()
 
 	var outBuf bytes.Buffer
 	_, err = io.Copy(&outBuf, reader)

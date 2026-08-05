@@ -181,19 +181,3 @@ func (ai *aiManager) ProbeMcpSession(ctx context.Context, name string) error {
 	_, err := ai.mcpManager.RefreshSessionTools(ctx, name)
 	return err
 }
-
-// discoveredToolNames returns all tool names reported by the server, including
-// those that are denied by policy.
-func (m *mcpClientManager) discoveredToolNames(sessionName string) []string {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-	s, ok := m.sessions[sessionName]
-	if !ok {
-		return nil
-	}
-	names := make([]string, 0, len(s.allTools))
-	for _, tool := range s.allTools {
-		names = append(names, tool.Name)
-	}
-	return names
-}

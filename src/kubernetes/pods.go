@@ -31,7 +31,7 @@ func AllPodNamesForLabel(namespace string, labelKey string, labelValue string) [
 	result := make([]string, 0, len(allPods))
 	for _, pod := range allPods {
 		if pod.Labels[labelKey] == labelValue {
-			result = append(result, pod.ObjectMeta.Name)
+			result = append(result, pod.Name)
 		}
 	}
 	return result

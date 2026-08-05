@@ -618,7 +618,7 @@ func getCpuUsageInfo(procPath string, pid string) (ProcPidStat, error) {
 	}
 	// The missing Close leaked one fd per process per second; only the GC
 	// finalizer reclaimed them.
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	// a common size encountered is about 350 bytes but can vary largely between processes
 	// this buffer size is a guess to be *always* larger in *any* environment than what the `/proc/$pid/stat` contains
@@ -654,9 +654,10 @@ func getCpuUsageInfo(procPath string, pid string) (ProcPidStat, error) {
 			}
 			continue
 		}
-		if charRune == '(' {
+		switch charRune {
+		case '(':
 			stringCapture = true
-		} else if charRune == ')' {
+		case ')':
 			stringCapture = false
 		}
 		builder.WriteRune(charRune)

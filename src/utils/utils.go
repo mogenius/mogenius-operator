@@ -124,7 +124,7 @@ func GetVersionData(url string) (*HelmData, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 
 	data, err := io.ReadAll(response.Body)
 	if err != nil {
@@ -232,7 +232,7 @@ func GuessClusterCountry() (*CountryDetails, error) {
 		if err != nil {
 			return nil, err
 		}
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 
 		if resp.StatusCode != 200 {
 			return nil, fmt.Errorf("failed to fetch with status code: %d", resp.StatusCode)

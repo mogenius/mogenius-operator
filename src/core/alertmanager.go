@@ -110,7 +110,7 @@ func (s *alertmanagerService) GetAlerts() ([]Alert, error) {
 	if err != nil {
 		return nil, fmt.Errorf("alertmanager: get alerts: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -153,7 +153,7 @@ func (s *alertmanagerService) SendAlert(alerts []SendAlertRequest) error {
 	if err != nil {
 		return fmt.Errorf("alertmanager: send alerts: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
@@ -187,7 +187,7 @@ func (s *alertmanagerService) SilenceAlert(silence SilenceRequest) (string, erro
 	if err != nil {
 		return "", fmt.Errorf("alertmanager: silence alert: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -225,7 +225,7 @@ func (s *alertmanagerService) GetSilences() ([]Silence, error) {
 	if err != nil {
 		return nil, fmt.Errorf("alertmanager: get silences: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -261,7 +261,7 @@ func (s *alertmanagerService) DeleteSilence(silenceID string) error {
 	if err != nil {
 		return fmt.Errorf("alertmanager: delete silence: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
@@ -299,7 +299,7 @@ func (s *alertmanagerService) IsReachable() (bool, error) {
 		s.logger.Warn("alertmanager reachability check failed", "url", url, "error", err)
 		return false, nil
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		s.logger.Warn("alertmanager not reachable", "url", url, "statusCode", resp.StatusCode)
