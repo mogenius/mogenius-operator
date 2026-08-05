@@ -330,7 +330,7 @@ func getNetworkInterfaceInfo(procPath string, pid string) ([]KernelNetworkInterf
 	if err != nil {
 		return []KernelNetworkInterfaceInfo{}, err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	toUint64 := func(data string) uint64 {
 		val, err := strconv.ParseUint(data, 10, 64)

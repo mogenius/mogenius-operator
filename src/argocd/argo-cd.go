@@ -482,7 +482,7 @@ func (self *argocd) createArgoToken(username, password, account string) (string,
 	if err != nil {
 		return "", fmt.Errorf("failed to call login: %w", err)
 	}
-	defer responseSession.Body.Close()
+	defer func() { _ = responseSession.Body.Close() }()
 
 	if responseSession.StatusCode != http.StatusOK {
 		b, _ := io.ReadAll(responseSession.Body)

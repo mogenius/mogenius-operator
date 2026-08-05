@@ -20,7 +20,7 @@ import (
 
 func writeEvent(conn *websocket.Conn, connWriteLock *sync.Mutex, event v1.Event) {
 	if conn != nil {
-		formattedTime := event.ObjectMeta.CreationTimestamp.Time.Format("2006-01-02 15:04:05")
+		formattedTime := event.CreationTimestamp.Format("2006-01-02 15:04:05")
 		if !strings.HasSuffix(event.Message, "\n") && !strings.HasSuffix(event.Message, "\n\r") {
 			event.Message = event.Message + "\n\r"
 		}
@@ -76,7 +76,7 @@ func PodEventStreamConnection(wsConnectionRequest WsConnectionRequest, namespace
 				xtermLogger.Error("Unable to unmarshal event", "error", err)
 				return false
 			}
-			return event.ObjectMeta.CreationTimestamp.Time.Before(event2.ObjectMeta.CreationTimestamp.Time)
+			return event.CreationTimestamp.Time.Before(event2.CreationTimestamp.Time)
 		})
 	}
 

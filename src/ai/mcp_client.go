@@ -150,7 +150,7 @@ func (m *mcpClientManager) Connect(ctx context.Context, cfg MCPServerConfig) err
 	// Discover tools
 	toolsResult, err := session.ListTools(ctx, nil)
 	if err != nil {
-		session.Close()
+		_ = session.Close()
 		return fmt.Errorf("failed to list tools from MCP server %s: %w", cfg.Name, err)
 	}
 

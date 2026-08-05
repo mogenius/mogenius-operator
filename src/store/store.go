@@ -492,7 +492,7 @@ func SetResourceWithIndex(
 	byNameKey := resourceIndexKey(apiVersion, kind, namespace, resourceIndexSortByName)
 	nsRegistryKey := resourceNamespaceRegistryKey(apiVersion, kind)
 
-	creationScore := float64(obj.GetCreationTimestamp().Time.Unix())
+	creationScore := float64(obj.GetCreationTimestamp().Unix())
 	ttlSeconds := int64(ttl.Seconds())
 	if ttlSeconds <= 0 {
 		ttlSeconds = int64((time.Hour).Seconds())

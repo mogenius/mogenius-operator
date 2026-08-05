@@ -520,7 +520,7 @@ func (self *websocketClient) startRuntime() {
 				self.apiConnectRx <- fmt.Errorf("already connected")
 				continue
 			}
-			var dialer *gorillaWebsocket.Dialer = gorillaWebsocket.DefaultDialer
+			dialer := gorillaWebsocket.DefaultDialer
 			// permessage-deflate is intentionally OFF: large payloads are
 			// already zlib-compressed at the application layer (see
 			// handlePatternRequest), so transport-level deflate would just burn
