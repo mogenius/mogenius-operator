@@ -1422,9 +1422,8 @@ func (ai *aiManager) runOneTask(ctx context.Context, task AiTask, key string, rc
 	if discardTask {
 		// All-clear: the run inspected its scope and found nothing (new)
 		// to fix. Keep it as a success report — a silently vanishing run
-		// reads like a failure. Exactly one all-clear per agent survives
-		// (the newest); older ones are pruned so clean runs don't spam
-		// the list.
+		// reads like a failure. The history is capped per agent (see
+		// pruneAgentRunsToLimit), not collapsed to the newest all-clear.
 		task.State = AI_TASK_STATE_COMPLETED
 		task.Response = nil
 		task.Error = ""
@@ -1432,7 +1431,7 @@ func (ai *aiManager) runOneTask(ctx context.Context, task AiTask, key string, rc
 			ai.logger.Error("Error saving all-clear AI task", "taskID", task.ID, "error", err)
 			return
 		}
-		ai.pruneOlderAllClearReports(task.AgentRef, key)
+		ai.pruneAgentRunsToLimit(task.AgentRef)
 		ai.sendAiEvent(latestTask)
 		ai.logger.Info("AI run found nothing applicable — kept as all-clear report", "taskID", task.ID, "tokensUsed", tokensUsed)
 		return
@@ -1445,6 +1444,11 @@ func (ai *aiManager) runOneTask(ctx context.Context, task AiTask, key string, rc
 	if err := ai.createOrUpdateAiTask(&task, key); err != nil {
 		ai.logger.Error("Error updating AI task", "taskID", task.ID, "error", err)
 		return
+	}
+	// A retryable failure keeps the run open; every other outcome here
+	// (ignored, canceled) is terminal and counts against the history cap.
+	if task.State != AI_TASK_STATE_FAILED {
+		ai.pruneAgentRunsToLimit(task.AgentRef)
 	}
 	ai.logger.Info("AI task processed", "taskID", task.ID, "tokensUsed", task.TokensUsed, "state", task.State, "name", task.ReferencingResource.ResourceName, "namespace", task.ReferencingResource.Namespace)
 }
