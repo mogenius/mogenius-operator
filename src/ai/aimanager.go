@@ -367,6 +367,20 @@ type aiManager struct {
 	usageSnapshotMu   sync.Mutex
 	usageSnapshot     *tokenUsageSnapshot
 	usageSnapshotTime time.Time
+
+	// enabled-agents cache: getEnabledAgents runs on every watch event in the
+	// cluster (ProcessObject → triggerChangeAgents); without the cache each
+	// event cost a full-keyspace Valkey SCAN (MOG-4518). Agent CR events
+	// invalidate via invalidateAgentCache, agentCacheTTL bounds staleness.
+	// agentCacheGen detects invalidations that race an in-flight fetch;
+	// agentCacheFetching lets concurrent callers use the previous list
+	// instead of blocking behind the store read.
+	agentCacheMu        sync.Mutex
+	cachedEnabledAgents []v1alpha1.Agent
+	agentCacheTime      time.Time
+	agentCacheValid     bool
+	agentCacheFetching  bool
+	agentCacheGen       uint64
 }
 
 // auditInsightToolCall writes a durable audit entry for every tool the
@@ -484,6 +498,12 @@ func NewAiManager(logger *slog.Logger, valkeyClient valkeyclient.ValkeyClient, c
 func (ai *aiManager) ProcessObject(obj *unstructured.Unstructured, eventType string, resource utils.ResourceDescriptor) {
 	if obj == nil {
 		return
+	}
+
+	// Keep the enabled-agents cache in sync on every replica, before the
+	// leader gate: followers use it too (e.g. after a leadership change).
+	if resource.Kind == utils.AgentResource.Kind && resource.ApiVersion == utils.AgentResource.ApiVersion {
+		ai.invalidateAgentCache()
 	}
 
 	// Change triggers enqueue whole-scope runs, which carry timestamped keys
