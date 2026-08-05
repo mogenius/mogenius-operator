@@ -1,9 +1,10 @@
 package core
 
 import (
-	"log/slog"
+	"fmt"
 	"mogenius-operator/src/logging"
 	"mogenius-operator/src/valkeyclient"
+	"os"
 	"time"
 )
 
@@ -45,11 +46,31 @@ func truncateLogPayload(payload map[string]any) {
 
 func (self *valkeyLogger) Run() {
 	go func() {
+		// Failed writes are reported on stderr, NOT via slog: this goroutine
+		// consumes the slog record channel, so logging through slog here
+		// feeds every failure back into the very channel it is draining.
+		// During a Valkey outage that loop, combined with the write timeout
+		// per record, kept the channel permanently exhausted (MOG-4518).
+		// Errors are also sampled — one line per interval instead of one per
+		// record — because an outage fails every record with the same error.
+		var (
+			lastErrLog time.Time
+			suppressed int
+		)
+		const errLogInterval = 10 * time.Second
+
 		for record := range self.logChannel {
 			truncateLogPayload(record.Payload)
 			err := self.valkey.StoreSortedListEntry(record, time.Now().UnixNano(), "logs", record.Component)
-			if err != nil {
-				slog.Error("Failed to log record to valkey", "error", err)
+			if err == nil {
+				continue
+			}
+			if time.Since(lastErrLog) >= errLogInterval {
+				fmt.Fprintf(os.Stderr, "[ERROR] Failed to write log record to valkey (%d more suppressed): %v\n", suppressed, err)
+				lastErrLog = time.Now()
+				suppressed = 0
+			} else {
+				suppressed++
 			}
 		}
 	}()
