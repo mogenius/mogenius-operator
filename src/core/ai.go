@@ -20,7 +20,6 @@ type AiApi interface {
 	DeleteAllAiData() error
 	GetAvailableModels(request *ai.ModelsRequest) ([]string, error)
 	TestAiModel(name string) (*ai.AiModelTestResult, error)
-	GetPromptConfig() (*ai.AiPromptConfig, error)
 
 	ApproveTask(taskID string, user structs.User) (*ai.AiTask, error)
 	RejectTask(taskID string, user structs.User, reason string) (*ai.AiTask, error)
@@ -86,10 +85,6 @@ func (ai *aiApi) GetAvailableModels(request *ai.ModelsRequest) ([]string, error)
 
 func (self *aiApi) TestAiModel(name string) (*ai.AiModelTestResult, error) {
 	return self.aiManager.TestAiModel(name)
-}
-
-func (ai *aiApi) GetPromptConfig() (*ai.AiPromptConfig, error) {
-	return ai.aiManager.GetPromptConfig()
 }
 
 func (self *aiApi) ApproveTask(taskID string, user structs.User) (*ai.AiTask, error) {
