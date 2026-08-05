@@ -140,7 +140,7 @@ func (ai *aiManager) processPromptOllama(ctx context.Context, rc *ResolvedModelC
 				} else {
 					data = builtinTool(args, execCtx, ai.valkeyClient, ai.logger)
 				}
-				ai.auditInsightToolCall(execCtx, name, args, data)
+				ai.auditInsightToolCall(execCtx, name, args, data, nil)
 				if recordStep != nil {
 					recordStep(AiRunStep{Kind: AI_RUN_STEP_ACT, Label: describeToolCall(name, args), Tool: name, Args: string(argsBytes), Result: data})
 				}
@@ -156,15 +156,16 @@ func (ai *aiManager) processPromptOllama(ctx context.Context, rc *ResolvedModelC
 						auditCtx = approverCtx
 					}
 				}
+				var mcpErr error
 				if data == "" {
-					mcpResult, err := ai.mcpManager.CallToolInSessions(ctx, name, args, mcpSessions)
-					if err != nil {
-						data = fmt.Sprintf("MCP tool error: %v", err)
+					mcpResult, mcpErr := ai.mcpManager.CallToolInSessions(ctx, name, args, mcpSessions)
+					if mcpErr != nil {
+						data = fmt.Sprintf("MCP tool error: %v", mcpErr)
 					} else {
 						data = mcpResult
 					}
 				}
-				ai.auditInsightToolCall(auditCtx, name, args, data)
+				ai.auditInsightToolCall(auditCtx, name, args, data, mcpErr)
 				if recordStep != nil {
 					recordStep(AiRunStep{Kind: AI_RUN_STEP_ACT, Label: describeToolCall(name, args), Tool: name, Args: string(argsBytes), Result: data})
 				}
