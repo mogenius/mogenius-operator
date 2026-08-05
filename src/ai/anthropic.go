@@ -556,7 +556,7 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, rc *ResolvedMod
 					} else {
 						data = tool(args, execCtx, ai.valkeyClient, ai.logger)
 					}
-					ai.auditInsightToolCall(execCtx, block.Name, args, data)
+					ai.auditInsightToolCall(execCtx, block.Name, args, data, nil)
 					if recordStep != nil {
 						recordStep(AiRunStep{Kind: AI_RUN_STEP_ACT, Label: describeToolCall(block.Name, args), Tool: block.Name, Args: string(inputBytes), Result: data})
 					}
@@ -570,15 +570,16 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, rc *ResolvedMod
 							auditCtx = approverCtx
 						}
 					}
+					var mcpErr error
 					if data == "" {
-						mcpResult, err := ai.mcpManager.CallToolInSessions(ctx, block.Name, args, mcpSessions)
-						if err != nil {
-							data = fmt.Sprintf("MCP tool error: %v", err)
+						mcpResult, mcpErr := ai.mcpManager.CallToolInSessions(ctx, block.Name, args, mcpSessions)
+						if mcpErr != nil {
+							data = fmt.Sprintf("MCP tool error: %v", mcpErr)
 						} else {
 							data = mcpResult
 						}
 					}
-					ai.auditInsightToolCall(auditCtx, block.Name, args, data)
+					ai.auditInsightToolCall(auditCtx, block.Name, args, data, mcpErr)
 					if recordStep != nil {
 						recordStep(AiRunStep{Kind: AI_RUN_STEP_ACT, Label: describeToolCall(block.Name, args), Tool: block.Name, Args: string(inputBytes), Result: data})
 					}

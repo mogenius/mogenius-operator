@@ -376,7 +376,7 @@ type aiManager struct {
 // the chat path, this pipeline has no user whose audit trail would capture
 // the call, so calls are attributed to the agent's synthetic user. The result
 // is truncated — the entry documents WHAT was queried, not the full payload.
-func (ai *aiManager) auditInsightToolCall(toolCtx *ToolContext, toolName string, args map[string]any, result string) {
+func (ai *aiManager) auditInsightToolCall(toolCtx *ToolContext, toolName string, args map[string]any, result string, toolErr error) {
 	user := structs.User{FirstName: "AI", LastName: "Insights", Email: "ai-insights@system", Source: "ai-insights"}
 	workspace := ""
 	if toolCtx != nil {
@@ -385,12 +385,16 @@ func (ai *aiManager) auditInsightToolCall(toolCtx *ToolContext, toolName string,
 		}
 		workspace = toolCtx.Workspace
 	}
+	errStr := ""
+	if toolErr != nil {
+		errStr = toolErr.Error()
+	}
 	store.AddAiChatAuditLog(
 		ai.logger,
 		"ai/insight-tool",
 		map[string]any{"tool": toolName, "args": args},
 		truncateResult(result, 500),
-		"",
+		errStr,
 		user,
 		workspace,
 	)
