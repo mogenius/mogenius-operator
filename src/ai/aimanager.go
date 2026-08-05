@@ -24,7 +24,6 @@ import (
 
 	coreV1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/client-go/util/jsonpath"
 
 	"github.com/openai/openai-go/v3"
 	"github.com/openai/openai-go/v3/option"
@@ -76,7 +75,7 @@ type AiTask struct {
 	CreatedAt           int64                       `json:"createdAt"`
 	UpdatedAt           int64                       `json:"updatedAt"`
 	ReferencingResource utils.WorkloadSingleRequest `json:"referencingResource"` // the resource that triggered this task (empty for whole-scope runs)
-	TriggeredBy         AiFilter                    `json:"triggeredBy"`         // the event filter that matched (empty for cron/manual runs)
+	TriggeredBy         AiFilter                    `json:"triggeredBy"`         // legacy: the AI-Insights event filter that matched; kept for tasks persisted before the Agents rewrite
 	ReadByUsers         []ReadBy                    `json:"readByUsers"`
 	Error               string                      `json:"error"`
 
@@ -149,6 +148,10 @@ const (
 // almost certainly systematic — give up instead of burning the token budget.
 const maxAiTaskRetries = 2
 
+// AiFilter is the legacy AI-Insights event filter. Filters no longer trigger
+// anything — event triggers live on Agent CRs — but tasks persisted before the
+// Agents rewrite still carry one in TriggeredBy and the UI renders its
+// name/description, so the shape is kept as data only.
 type AiFilter struct {
 	Id          string            `json:"id"`
 	Name        string            `json:"name"`
@@ -161,12 +164,13 @@ type AiFilter struct {
 	IsActive    bool              `json:"isActive"`
 }
 
+// AiPromptConfig carries the platform-injected system prompt for agent runs.
+// The legacy filters/userFilters arrays still sent by older platform versions
+// are ignored on unmarshal.
 type AiPromptConfig struct {
-	Id           string     `json:"id"`
-	Name         string     `json:"name"`
-	SystemPrompt string     `json:"systemPrompt"`
-	Filters      []AiFilter `json:"filters"`
-	UserFilters  []AiFilter `json:"userFilters"` // filters added by users via the UI
+	Id           string `json:"id"`
+	Name         string `json:"name"`
+	SystemPrompt string `json:"systemPrompt"`
 }
 
 type AiPrompts struct {
@@ -266,7 +270,6 @@ type AiManager interface {
 	DeleteAllAiData() error
 	GetAvailableModels(request *ModelsRequest) ([]string, error)
 	TestAiModel(name string) (*AiModelTestResult, error)
-	GetPromptConfig() (*AiPromptConfig, error)
 	Chat(ctx context.Context, ch IOChatChannel) error
 
 	ApproveTask(taskID string, user structs.User) (*AiTask, error)
@@ -317,8 +320,6 @@ type aiManager struct {
 	stateMu           sync.Mutex // guards error+warning: written by the ticker goroutine, read by status requests
 	error             string
 	warning           string
-	pendingTasks      map[string]AiTask
-	pendingTasksLock  *sync.RWMutex
 	mcpManager        *mcpClientManager
 	mcpConnectors     []MCPServerConnector
 
@@ -473,8 +474,6 @@ func NewAiManager(logger *slog.Logger, valkeyClient valkeyclient.ValkeyClient, c
 	self.ownerCacheService = ownerCacheService
 	self.eventClient = eventClient
 	self.secretGetter = secretGetter
-	self.pendingTasks = make(map[string]AiTask)
-	self.pendingTasksLock = &sync.RWMutex{}
 	self.mcpManager = newMCPClientManager(logger)
 	self.lastCronRun = make(map[string]time.Time)
 	self.lastAgentRun = make(map[string]time.Time)
@@ -526,85 +525,6 @@ func (ai *aiManager) ProcessObject(obj *unstructured.Unstructured, eventType str
 	ai.triggerChangeAgents(obj, changeType)
 }
 
-func (ai *aiManager) insertNewAiTask(task *AiTask, obj *unstructured.Unstructured, eventType string, key string) {
-	controller := ai.ownerCacheService.OwnerFromReference(obj.GetNamespace(), obj.GetOwnerReferences())
-	task.Controller = controller
-	if controller != nil {
-		ctrlOb, err := store.GetResource(ai.valkeyClient, controller.ApiVersion, controller.Kind, controller.Namespace, controller.ResourceName, ai.logger)
-		if err != nil {
-			ai.logger.Error("Error fetching controller object for AI task", "controllerKind", controller.Kind, "controllerName", controller.ResourceName, "controllerNamespace", controller.Namespace, "error", err)
-		} else {
-			if ctrlOb != nil {
-				controllerYaml, err := store.GetYamlFromUnstructuredResource(ctrlOb)
-				if err != nil {
-					ai.logger.Error("Error generating controller YAML for AI task prompt", "controllerKind", controller.Kind, "controllerName", controller.ResourceName, "controllerNamespace", controller.Namespace, "error", err)
-				}
-				task.Prompt += "\n\nThe controller resource YAML is as follows:\n" + controllerYaml
-			}
-		}
-	}
-	err := ai.createOrUpdateAiTask(task, key)
-	if err != nil {
-		ai.logger.Error("Error creating AI task", "error", err)
-	} else {
-		ai.logger.Info("AI task created", "taskID", task.ID, "event", eventType, "objectKind", obj.GetKind(), "objectName", obj.GetName(), "objectNamespace", obj.GetNamespace(), "filter", task.TriggeredBy.Name)
-	}
-}
-
-func filterMatchesForObject(filter AiFilter, obj *unstructured.Unstructured) (bool, error) {
-	matched := false
-	for path, expectedValue := range filter.Contains {
-		value, found, err := getNestedStringWithJSONPath(obj, path, expectedValue)
-		if err != nil {
-			return false, fmt.Errorf("Error checking AI filter contains: expectedValue=%s, error=%v", expectedValue, err)
-		}
-
-		if !found {
-			continue
-		}
-
-		// For array results (comma-separated), check if expectedValue is in any of the values
-		values := strings.SplitSeq(value, ", ")
-		for v := range values {
-			if strings.TrimSpace(v) == expectedValue {
-				matched = true
-				break
-			}
-		}
-
-		if matched {
-			break
-		}
-	}
-
-	// no need to check excludes if not matched
-	if !matched {
-		return false, nil
-	}
-
-	// check excludes conditions
-	for path, expectedValue := range filter.Excludes {
-		value, found, err := getNestedStringWithJSONPath(obj, path, expectedValue)
-		if err != nil {
-			return false, fmt.Errorf("Error checking AI filter excludes: expectedValue=%s, error=%v", expectedValue, err)
-		}
-
-		if !found {
-			continue
-		}
-
-		// For array results (comma-separated), check if expectedValue is in any of the values
-		values := strings.SplitSeq(value, ", ")
-		for v := range values {
-			if strings.TrimSpace(v) == expectedValue {
-				return false, nil
-			}
-		}
-	}
-
-	return true, nil
-}
-
 // BACKGROUND PROCESSING
 func (ai *aiManager) Run() {
 	// On startup, reset any potentially orphaned in-progress tasks back to pending
@@ -652,8 +572,6 @@ func (ai *aiManager) runQueuePass(includeCron bool) {
 	if includeCron && ai.isLeading != nil && ai.isLeading() {
 		ai.processAgentCronTriggers()
 	}
-
-	ai.processPendingTasks()
 
 	ai.setError("")
 	ai.processAiTaskQueue(context.Background())
@@ -786,61 +704,6 @@ func (ai *aiManager) resetInProgressTasksOnStartup() error {
 	}
 
 	return nil
-}
-
-func (ai *aiManager) processPendingTasks() {
-	ai.pendingTasksLock.Lock()
-	defer ai.pendingTasksLock.Unlock()
-
-	stillPending := make(map[string]AiTask)
-	for key, task := range ai.pendingTasks {
-		shouldCreate, err := ai.shouldCreateNewTask(key)
-		if err != nil {
-			ai.logger.Error("Error checking if should create new AI task", "error", err)
-			continue
-		}
-		if !shouldCreate {
-			continue
-		}
-
-		now := time.Now()
-		if task.TriggeredBy.For == nil {
-			// should never happen due to earlier checks, but just in case
-			ai.logger.Error("Pending AI task filter has nil 'For' duration", "key", key, "filter", task.TriggeredBy.Name)
-			continue
-		}
-
-		createdTime := time.Unix(task.CreatedAt, 0)
-		if createdTime.Add(*task.TriggeredBy.For).Before(now) {
-			// The duration has elapsed since CreatedAt
-			reloadedObject, err := store.GetResource(ai.valkeyClient,
-				task.ReferencingResource.ApiVersion,
-				task.ReferencingResource.Kind,
-				task.ReferencingResource.Namespace,
-				task.ReferencingResource.ResourceName,
-				ai.logger)
-			if err != nil {
-				ai.logger.Error("Error reloading object for pending AI task", "key", key, "filter", task.TriggeredBy.Name, "error", err)
-				continue
-			}
-			if reloadedObject == nil {
-				ai.logger.Info("Referenced object for pending AI task no longer exists, skipping task creation", "key", key, "filter", task.TriggeredBy.Name)
-				continue
-			}
-			matched, err := filterMatchesForObject(task.TriggeredBy, reloadedObject)
-			if err != nil {
-				ai.logger.Error("Error checking AI filter match for reloaded object", "filter", task.TriggeredBy.Name, "objectKind", reloadedObject.GetKind(), "objectName", reloadedObject.GetName(), "objectNamespace", reloadedObject.GetNamespace(), "error", err)
-				continue
-			}
-			if matched {
-				// create AI task
-				ai.insertNewAiTask(&task, reloadedObject, "delayed", key)
-			}
-		} else {
-			stillPending[key] = task
-		}
-	}
-	ai.pendingTasks = stillPending
 }
 
 // tokenUsageSnapshot aggregates today's token usage: cluster-wide totals plus
@@ -1384,7 +1247,7 @@ func (ai *aiManager) runOneTask(ctx context.Context, task AiTask, key string, rc
 			task.Error = err.Error()
 			task.Retries++
 			// Non-retryable API errors (billing, invalid request, auth) must not be retried.
-			// Mark as ignored so processPendingTasks skips them on the next run.
+			// Mark as ignored so the queue skips them on the next pass.
 			var apiErr *anthropic.Error
 			if errors.As(err, &apiErr) && (apiErr.StatusCode == 400 || apiErr.StatusCode == 401 || apiErr.StatusCode == 403) {
 				task.State = AI_TASK_STATE_IGNORED
@@ -1454,81 +1317,6 @@ func (ai *aiManager) runOneTask(ctx context.Context, task AiTask, key string, rc
 }
 
 // HELPER FUNCTIONS
-func getNestedStringWithJSONPath(obj *unstructured.Unstructured, path string, keyword string) (value string, found bool, err error) {
-	j := jsonpath.New("parser")
-	j.AllowMissingKeys(true)
-
-	// JSONPath expects the path to start with {}, e.g., {.status.conditions[?(@.type=="Ready")].status}
-	if !strings.HasPrefix(path, "{") {
-		path = "{" + path + "}"
-	}
-
-	// JSONPath expects double quotes instead of single quotes
-	path = strings.ReplaceAll(path, "'", "\"")
-
-	if err := j.Parse(path); err != nil {
-		return "", false, fmt.Errorf("failed to parse JSONPath: %w", err)
-	}
-
-	results, err := j.FindResults(obj.Object)
-	if err != nil {
-		// Handle array out of bounds as "not found" instead of error
-		if strings.Contains(err.Error(), "array index out of bounds") {
-			return "", false, nil
-		}
-		return "", false, fmt.Errorf("failed to find results: %w", err)
-	}
-
-	if len(results) == 0 || len(results[0]) == 0 {
-		return "", false, nil
-	}
-
-	// Handle multiple results (when using [*] or filters that return multiple items)
-	var allValues []string
-	for _, resultArray := range results {
-		for _, result := range resultArray {
-			val := result.Interface()
-
-			// Handle string result
-			if str, ok := val.(string); ok {
-				allValues = append(allValues, str)
-				continue
-			}
-
-			// Handle map (for keyword search)
-			if labelMap, ok := val.(map[string]any); ok {
-				var matches []string
-				for key, value := range labelMap {
-					valueStr := fmt.Sprintf("%v", value)
-					if keyword == "" {
-						// If no keyword, return all key=value pairs
-						matches = append(matches, fmt.Sprintf("%s=%s", key, valueStr))
-					} else if strings.Contains(strings.ToLower(key), strings.ToLower(keyword)) ||
-						strings.Contains(strings.ToLower(valueStr), strings.ToLower(keyword)) {
-						matches = append(matches, fmt.Sprintf("%s=%s", key, valueStr))
-					}
-				}
-
-				if len(matches) > 0 {
-					sort.Strings(matches)
-					allValues = append(allValues, strings.Join(matches, ", "))
-				}
-				continue
-			}
-
-			// Handle other types (numbers, booleans, etc.)
-			allValues = append(allValues, fmt.Sprintf("%v", val))
-		}
-	}
-
-	if len(allValues) == 0 {
-		return "", false, nil
-	}
-
-	// Join all values with a delimiter
-	return strings.Join(allValues, ", "), true, nil
-}
-
 func (ai *aiManager) createOrUpdateAiTask(task *AiTask, key string) error {
 	timestamp := time.Now().Unix()
 	task.UpdatedAt = timestamp
@@ -1581,14 +1369,6 @@ func latestTaskNamespaces(task *AiTask, key string) []string {
 		return task.ScopeNamespaces
 	}
 	return []string{parts[2]}
-}
-
-func (ai *aiManager) shouldCreateNewTask(key string) (bool, error) {
-	exists, err := ai.valkeyClient.Exists(key)
-	if err != nil {
-		return false, fmt.Errorf("error checking if AI task exists: %v", err)
-	}
-	return !exists, nil
 }
 
 // processPrompt runs the unattended tool-loop. The ToolContext scopes every
