@@ -7,8 +7,10 @@ import (
 	"mogenius-operator/src/store"
 	"mogenius-operator/src/structs"
 	"mogenius-operator/src/utils"
+	"regexp"
 	"slices"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -560,38 +562,114 @@ func (ai *aiManager) buildAgentTaskContext(task *AiTask) (*v1alpha1.Agent, *Tool
 	return agent, toolCtx, nil
 }
 
-// pruneOlderAllClearReports deletes every all-clear report (completed
-// whole-scope run without findings) of the agent except keepKey, so exactly
-// one — the newest — stays visible. Tasks with findings are never touched.
-func (ai *aiManager) pruneOlderAllClearReports(agentName string, keepKey string) {
+// maxAgentRunHistory caps how many whole-scope runs are kept per agent.
+// When a run finishes, older runs beyond the cap are deleted — all-clear and
+// finding runs alike, so the history stays complete instead of collapsing to
+// the latest all-clear (MOG-4497). The 7-day ValkeyAiTTL bounds retention on
+// top of the cap.
+const maxAgentRunHistory = 10
+
+// agentRunKeyPattern extracts the run timestamp from an agent task key. It is
+// anchored to the key's end so a "-run-" inside a namespace or agent name
+// segment never matches: primary run keys end with the timestamp
+// (…-run-<ts>), legacy finding keys carry an -f<n> suffix (…-run-<ts>-f2).
+var agentRunKeyPattern = regexp.MustCompile(`-run-(\d+)(?:-f\d+)?$`)
+
+// agentRunGroup is one whole-scope run of an agent: every task key sharing
+// the run timestamp (the primary task plus any legacy finding tasks, whose
+// keys may live under a different namespace segment).
+type agentRunGroup struct {
+	timestamp int64
+	keys      []string
+}
+
+// groupAgentRunKeys groups the task keys of one agent by run timestamp and
+// returns the groups newest-first. Keys without a parsable -run-<ts> segment
+// are ignored.
+func groupAgentRunKeys(keys []string) []agentRunGroup {
+	byTimestamp := map[int64][]string{}
+	for _, key := range keys {
+		match := agentRunKeyPattern.FindStringSubmatch(key)
+		if match == nil {
+			continue
+		}
+		ts, err := strconv.ParseInt(match[1], 10, 64)
+		if err != nil {
+			continue
+		}
+		byTimestamp[ts] = append(byTimestamp[ts], key)
+	}
+	groups := make([]agentRunGroup, 0, len(byTimestamp))
+	for ts, groupKeys := range byTimestamp {
+		sort.Strings(groupKeys)
+		groups = append(groups, agentRunGroup{timestamp: ts, keys: groupKeys})
+	}
+	sort.Slice(groups, func(i, j int) bool { return groups[i].timestamp > groups[j].timestamp })
+	return groups
+}
+
+// openAgentTaskStates are the states in which a task still awaits work or a
+// user decision. A run containing such a task is never pruned — a waiting
+// proposal must not vanish just because newer runs pushed it past the cap.
+var openAgentTaskStates = map[AiTaskState]bool{
+	AI_TASK_STATE_PENDING:     true,
+	AI_TASK_STATE_IN_PROGRESS: true,
+	AI_TASK_STATE_CANCELLING:  true,
+	AI_TASK_STATE_PROPOSED:    true,
+	AI_TASK_STATE_EXECUTING:   true,
+}
+
+// pruneAgentRunsToLimit keeps the newest maxAgentRunHistory whole-scope runs
+// of the agent and deletes every older one, including its step timeline.
+// Runs with open tasks are skipped (see openAgentTaskStates).
+func (ai *aiManager) pruneAgentRunsToLimit(agentName string) {
 	if agentName == "" {
 		return
 	}
 	keys, err := ai.valkeyClient.Keys(fmt.Sprintf("%s:Agent:*:%s-run-*", DB_AI_BUCKET_TASKS, agentName))
 	if err != nil {
-		ai.logger.Warn("Failed to list agent tasks for all-clear pruning", "agent", agentName, "error", err)
+		ai.logger.Warn("Failed to list agent tasks for run pruning", "agent", agentName, "error", err)
 		return
 	}
-	for _, key := range keys {
-		if key == keepKey {
+	groups := groupAgentRunKeys(keys)
+	if len(groups) <= maxAgentRunHistory {
+		return
+	}
+	pruned := false
+	for _, group := range groups[maxAgentRunHistory:] {
+		open := false
+		for _, key := range group.keys {
+			task, err := ai.getTaskByKey(key)
+			if err != nil {
+				// Unreadable task: err on the side of keeping the run.
+				open = true
+				break
+			}
+			if task != nil && openAgentTaskStates[task.State] {
+				open = true
+				break
+			}
+		}
+		if open {
 			continue
 		}
-		task, err := ai.getTaskByKey(key)
-		if err != nil || task == nil {
-			continue
+		for _, key := range group.keys {
+			if delErr := ai.valkeyClient.DeleteSingle(key); delErr != nil {
+				ai.logger.Error("Error deleting task of pruned agent run", "agent", agentName, "key", key, "error", delErr)
+				continue
+			}
+			// Only the primary run task owns a step timeline; deleting the
+			// steps key of a finding task is a no-op.
+			if stepsErr := ai.valkeyClient.DeleteSingle(runStepsKey(key)); stepsErr != nil {
+				ai.logger.Warn("Failed to delete AI run steps", "key", key, "error", stepsErr)
+			}
+			ai.sendAiDeleteEvent(key)
+			pruned = true
 		}
-		// Only completed runs WITHOUT findings are all-clear reports; the
-		// key pattern also matches finding tasks (-f2…), which carry a
-		// response and are skipped here.
-		if task.State != AI_TASK_STATE_COMPLETED || task.Response != nil {
-			continue
-		}
-		if delErr := ai.valkeyClient.DeleteSingle(key); delErr != nil {
-			ai.logger.Error("Error deleting superseded all-clear report", "taskID", task.ID, "error", delErr)
-			continue
-		}
-		ai.sendAiDeleteEvent(key)
-		ai.logger.Info("Pruned superseded all-clear report", "agent", agentName, "taskID", task.ID)
+		ai.logger.Info("Pruned agent run beyond history cap", "agent", agentName, "runTimestamp", group.timestamp, "keys", len(group.keys))
+	}
+	if pruned {
+		ai.resetCache()
 	}
 }
 
