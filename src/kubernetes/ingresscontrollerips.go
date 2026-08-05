@@ -6,7 +6,7 @@
 package kubernetes
 
 func GetClusterExternalIps() []string {
-	var result []string = []string{}
+	result := []string{}
 
 	services := clusterServicesCached.Get()
 	for _, service := range services {

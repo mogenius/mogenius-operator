@@ -80,7 +80,7 @@ func (s *sealedSecretManager) fetchPublicKeyViaHTTP() (*rsa.PublicKey, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to fetch public key: %w", err)
 		}
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 
 		if resp.StatusCode != http.StatusOK {
 			return nil, fmt.Errorf("failed to fetch public key, status: %d", resp.StatusCode)

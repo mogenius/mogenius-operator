@@ -99,7 +99,7 @@ func IsPrometheusReachable(data PrometheusRequest, config cfg.ConfigModule, logg
 		logger.Warn("prometheus reachability check failed", "url", urlString, "error", err)
 		return false, fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
@@ -127,7 +127,7 @@ func PrometheusValues(data PrometheusRequest, config cfg.ConfigModule, logger *s
 		logger.Warn("prometheus values request failed", "url", urlString, "error", err)
 		return []string{}, fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
@@ -165,7 +165,7 @@ func ExecutePrometheusQuery(data PrometheusRequest, config cfg.ConfigModule, log
 		logger.Warn("prometheus query request failed", "url", urlString, "error", err)
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {

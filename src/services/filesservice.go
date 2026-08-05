@@ -122,7 +122,7 @@ func Download(pfile dtos.PersistentFileRequestDto, postTo string) (FilesDownload
 	}
 
 	result.SizeInBytes = int64(buf.Len())
-	multiPartWriter.Close()
+	_ = multiPartWriter.Close()
 
 	serviceLogger.Debug("Uploading file", "size", result.SizeInBytes, "filename", filename, "postTo", postTo)
 	req, err := http.NewRequest("POST", postTo, buf)
@@ -139,7 +139,7 @@ func Download(pfile dtos.PersistentFileRequestDto, postTo string) (FilesDownload
 		result.Error = err.Error()
 		return result, err
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 
 	if response.StatusCode < 200 || response.StatusCode > 299 {
 		serviceLogger.Error("Error sending request", "status", response.Status)
@@ -350,7 +350,7 @@ func zipToTar(zipPath string) (*bytes.Buffer, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer r.Close()
+	defer func() { _ = r.Close() }()
 
 	var buf bytes.Buffer
 	tw := tar.NewWriter(&buf)
@@ -370,7 +370,7 @@ func zipToTar(zipPath string) (*bytes.Buffer, error) {
 				return nil, err
 			}
 			_, err = io.Copy(tw, rc)
-			rc.Close()
+			_ = rc.Close()
 			if err != nil {
 				return nil, err
 			}

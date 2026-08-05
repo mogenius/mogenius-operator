@@ -613,13 +613,13 @@ func getPodEventsTool(args map[string]any, tc *ToolContext, valkeyClient valkeyc
 
 	// Sort ascending by timestamp (newest last)
 	sort.Slice(events, func(i, j int) bool {
-		return events[i].ObjectMeta.CreationTimestamp.Time.Before(events[j].ObjectMeta.CreationTimestamp.Time)
+		return events[i].CreationTimestamp.Time.Before(events[j].CreationTimestamp.Time)
 	})
 
 	// Adaptive: build result from newest events backwards until char limit is reached
 	lines := make([]string, len(events))
 	for i, event := range events {
-		ts := event.ObjectMeta.CreationTimestamp.Time.Format("2006-01-02 15:04:05")
+		ts := event.CreationTimestamp.Format("2006-01-02 15:04:05")
 		lines[i] = fmt.Sprintf("[%s] [%s] %s", ts, event.Reason, event.Message)
 	}
 

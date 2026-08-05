@@ -149,7 +149,7 @@ func (self *api) GetAllWorkspaces() ([]GetWorkspaceResult, error) {
 	for _, resource := range resources {
 		result = append(result, NewGetWorkspaceResult(
 			resource.GetName(),
-			resource.ObjectMeta.CreationTimestamp,
+			resource.CreationTimestamp,
 			resource.Spec.Resources,
 			resource.Spec.DashboardRef,
 		))
@@ -167,7 +167,7 @@ func (self *api) GetWorkspace(name string) (*GetWorkspaceResult, error) {
 
 	result := NewGetWorkspaceResult(
 		resource.GetName(),
-		resource.ObjectMeta.CreationTimestamp,
+		resource.CreationTimestamp,
 		resource.Spec.Resources,
 		resource.Spec.DashboardRef,
 	)
@@ -345,7 +345,7 @@ type GetAgentResult struct {
 func newGetAgentResult(agent v1alpha1.Agent) GetAgentResult {
 	return GetAgentResult{
 		Name:              agent.GetName(),
-		CreationTimestamp: agent.ObjectMeta.CreationTimestamp,
+		CreationTimestamp: agent.CreationTimestamp,
 		Spec:              agent.Spec,
 	}
 }
@@ -426,7 +426,7 @@ type GetAiModelResult struct {
 func newGetAiModelResult(model v1alpha1.AiModel) GetAiModelResult {
 	return GetAiModelResult{
 		Name:              model.GetName(),
-		CreationTimestamp: model.ObjectMeta.CreationTimestamp,
+		CreationTimestamp: model.CreationTimestamp,
 		Spec:              model.Spec,
 		Status:            model.Status,
 	}

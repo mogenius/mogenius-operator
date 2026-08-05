@@ -188,12 +188,12 @@ func (v *NfsStatusResponse) ProcessNfsStatusResponse(s *VolumeStatus, err error)
 		for _, pod := range s.UsedByPods {
 			index++
 
-			if s.PersistentVolumeClaim != nil && strings.HasPrefix(pod.ObjectMeta.Name, s.PersistentVolumeClaim.ObjectMeta.Name) {
+			if s.PersistentVolumeClaim != nil && strings.HasPrefix(pod.Name, s.PersistentVolumeClaim.Name) {
 				indexToRemove = index
 
 				// terminating
-				if pod.ObjectMeta.DeletionTimestamp != nil {
-					message := fmt.Sprintf("Terminating since %s. Grace period %v sec.", pod.ObjectMeta.DeletionTimestamp.Format(time.RFC3339), *pod.ObjectMeta.DeletionGracePeriodSeconds)
+				if pod.DeletionTimestamp != nil {
+					message := fmt.Sprintf("Terminating since %s. Grace period %v sec.", pod.DeletionTimestamp.Format(time.RFC3339), *pod.DeletionGracePeriodSeconds)
 					v.Status = VolumeStatusTypeWarning
 					v.Messages = append(v.Messages, VolumeStatusMessage{Type: VolumeStatusMessageTypeWarning, Message: message})
 					break
@@ -248,7 +248,7 @@ func (v *NfsStatusResponse) ProcessNfsStatusResponse(s *VolumeStatus, err error)
 
 		// add usedByPods to response
 		for _, pod := range s.UsedByPods {
-			v.UsedByPods = append(v.UsedByPods, pod.ObjectMeta.Name)
+			v.UsedByPods = append(v.UsedByPods, pod.Name)
 		}
 
 		// pv, pvc and nfs-pod are bounded and running
@@ -289,7 +289,7 @@ func (s *VolumeStatus) messages() []VolumeStatusMessage {
 	var messages []VolumeStatusMessage
 
 	sort.SliceStable(s.PersistentVolumeEvents, func(i, j int) bool {
-		return s.PersistentVolumeEvents[i].LastTimestamp.Time.After(s.PersistentVolumeEvents[j].LastTimestamp.Time)
+		return s.PersistentVolumeEvents[i].LastTimestamp.After(s.PersistentVolumeEvents[j].LastTimestamp.Time)
 	})
 
 	for _, event := range s.PersistentVolumeEvents {
@@ -307,7 +307,7 @@ func (s *VolumeStatus) messages() []VolumeStatusMessage {
 	}
 
 	sort.SliceStable(s.PersistentVolumeClaimEvents, func(i, j int) bool {
-		return s.PersistentVolumeClaimEvents[i].LastTimestamp.Time.After(s.PersistentVolumeClaimEvents[j].LastTimestamp.Time)
+		return s.PersistentVolumeClaimEvents[i].LastTimestamp.After(s.PersistentVolumeClaimEvents[j].LastTimestamp.Time)
 	})
 
 	for _, event := range s.PersistentVolumeClaimEvents {
@@ -568,7 +568,7 @@ func (s *VolumeStatus) getEvents(name, kind string, ctx context.Context, channel
 	events := eventList.Items
 
 	sort.SliceStable(events, func(i, j int) bool {
-		return events[i].LastTimestamp.Time.After(events[j].LastTimestamp.Time)
+		return events[i].LastTimestamp.After(events[j].LastTimestamp.Time)
 	})
 
 	// Push the events into the channel

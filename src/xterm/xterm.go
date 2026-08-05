@@ -259,7 +259,7 @@ func oncloseWs(conn *websocket.Conn, connReadLock *sync.Mutex, ctx context.Conte
 	defer func() {
 		cancel()
 		if conn != nil {
-			conn.Close()
+			_ = conn.Close()
 		}
 		if readMessages != nil {
 			close(readMessages)

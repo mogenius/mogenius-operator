@@ -113,8 +113,8 @@ func (self *moKubernetes) writeMogeniusSecret(secretClient v1.SecretInterface, e
 	}
 
 	secret := utils.InitSecret()
-	secret.ObjectMeta.Name = self.config.Get("MO_OWN_NAMESPACE")
-	secret.ObjectMeta.Namespace = self.config.Get("MO_OWN_NAMESPACE")
+	secret.Name = self.config.Get("MO_OWN_NAMESPACE")
+	secret.Namespace = self.config.Get("MO_OWN_NAMESPACE")
 	delete(secret.StringData, "exampleData") // delete example data
 	secret.StringData["cluster-mfa-id"] = clusterSecret.ClusterMfaId
 	secret.StringData["api-key"] = clusterSecret.ApiKey
