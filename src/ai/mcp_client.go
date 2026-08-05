@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"time"
 
 	"mogenius-operator/src/crds/v1alpha1"
 
@@ -69,10 +70,11 @@ type mcpClientManager struct {
 type mcpSession struct {
 	name                string
 	session             *mcp.ClientSession
-	allTools            []*mcp.Tool                           // all tools as reported by the server (unfiltered)
-	tools               []*mcp.Tool                          // policy-filtered subset used for tool dispatch
-	sanitizedToOriginal map[string]string                     // sanitized LLM name → original MCP name
-	toolPolicies        map[string]v1alpha1.MCPToolPolicyType // nil = all tools with defaults; stored for probes
+	cfg                 MCPServerConfig // stored so the session can reconnect after a broken stream
+	allTools            []*mcp.Tool     // all tools as reported by the server (unfiltered)
+	tools               []*mcp.Tool     // policy-filtered subset used for tool dispatch
+	sanitizedToOriginal map[string]string
+	toolPolicies        map[string]v1alpha1.MCPToolPolicyType
 }
 
 // headerTransport adds a Bearer token (pat) and any extra resolved headers to
@@ -116,7 +118,14 @@ func (m *mcpClientManager) Connect(ctx context.Context, cfg MCPServerConfig) err
 
 	client := mcp.NewClient(
 		&mcp.Implementation{Name: "mogenius-operator", Version: "v1.0.0"},
-		nil,
+		&mcp.ClientOptions{
+			// Ping every 30s; close the session after 2 consecutive failures so
+			// dead SSE streams are detected without tearing down on a single blip.
+			// Keepalive only fires for protocol versions < 2026-07-28 (SSE servers
+			// use the older protocol, StreamableHTTP servers handle it at HTTP level).
+			KeepAlive:                 30 * time.Second,
+			KeepAliveFailureThreshold: 2,
+		},
 	)
 
 	var transport mcp.Transport
@@ -180,14 +189,16 @@ func (m *mcpClientManager) Connect(ctx context.Context, cfg MCPServerConfig) err
 			m.logger.Warn("closing stale MCP session before reconnect", "name", cfg.Name, "error", err)
 		}
 	}
-	m.sessions[cfg.Name] = &mcpSession{
+	s := &mcpSession{
 		name:                cfg.Name,
 		session:             session,
+		cfg:                 cfg,
 		allTools:            allTools,
 		tools:               tools,
 		sanitizedToOriginal: nameMap,
 		toolPolicies:        cfg.ToolPolicies,
 	}
+	m.sessions[cfg.Name] = s
 	m.mu.Unlock()
 
 	return nil
@@ -204,9 +215,22 @@ func (m *mcpClientManager) RefreshSessionTools(ctx context.Context, name string)
 		return nil, fmt.Errorf("session %q not found", name)
 	}
 
+	if err := s.session.Ping(ctx, nil); err != nil {
+		m.logger.Info("MCP session ping failed — reconnecting", "name", name, "error", err)
+		if reconnErr := m.Connect(ctx, s.cfg); reconnErr != nil {
+			return nil, fmt.Errorf("session %q unreachable (ping: %v; reconnect: %w)", name, err, reconnErr)
+		}
+		m.mu.RLock()
+		s, ok = m.sessions[name]
+		m.mu.RUnlock()
+		if !ok {
+			return nil, fmt.Errorf("session %q not found after reconnect", name)
+		}
+	}
+
 	result, err := s.session.ListTools(ctx, nil)
 	if err != nil {
-		return nil, fmt.Errorf("ListTools probe on %q: %w", name, err)
+		return nil, fmt.Errorf("ListTools on %q: %w", name, err)
 	}
 
 	allTools := make([]*mcp.Tool, len(result.Tools))
