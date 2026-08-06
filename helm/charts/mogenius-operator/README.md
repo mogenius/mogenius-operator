@@ -54,9 +54,9 @@
 | global.apiKeySecret | object | `{"secretKey":"API_KEY","secretName":"mogenius-operator-api-secret"}` | secret reference for the api-key (will be used if global.api_key is not set) |
 | global.api_key | string | `nil` | the api key provided for your cluster by the mogenius platform (alternativly you can leave this empty and use global.apiKeySecret) |
 | global.cluster_name | string | `nil` | the name you gave your cluster on the mogenius platform |
-| goRuntime | object | `{"gcPercent":"50","memLimit":"180MiB"}` | Go runtime memory tuning |
-| goRuntime.gcPercent | string | `"50"` | GC target percentage (GOGC). Lower = more frequent GC, less memory |
-| goRuntime.memLimit | string | `"180MiB"` | Soft memory limit for the Go runtime (GOMEMLIMIT) |
+| goRuntime | object | `{"gcPercent":"","memLimit":""}` | Go runtime memory tuning. Both values are unset by default and should stay that way: the operator derives GOMEMLIMIT from the pod's memory limit at startup (90%, leaving headroom for non-heap memory), which is the only value that is actually correct for a given deployment. Set `resources.limits.memory` rather than pinning a number here. A hardcoded GOMEMLIMIT is actively dangerous. It is a *soft* limit: once the live heap exceeds it the Go GC does not fail or free anything, it simply runs continuously trying to reach a target it can never reach. The symptom is the operator burning multiple CPU cores at a flat heap with no log output. The previous default of 180MiB put clusters with ~200 resource kinds right on that cliff. |
+| goRuntime.gcPercent | string | `""` | GC target percentage (GOGC), e.g. "50" to trade CPU for memory. Empty uses the Go default of 100. |
+| goRuntime.memLimit | string | `""` | Soft memory limit for the Go runtime (GOMEMLIMIT), e.g. "1GiB". Empty derives it from the pod memory limit. Must exceed the live heap. |
 | image | object | `{"pullPolicy":"IfNotPresent","registry":"ghcr.io","repository":"mogenius/mogenius-operator","tag":null}` | image settings for the mogenius-operator and nodemetrics container |
 | image.tag | string | `nil` | tag of the image, if not set, the chart appVersion is used |
 | metrics.enabled | bool | `false` | enable the Prometheus /metrics endpoint scraping (creates a Service for the ServiceMonitor) |
