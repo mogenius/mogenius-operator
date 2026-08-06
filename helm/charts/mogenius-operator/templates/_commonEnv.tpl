@@ -78,10 +78,19 @@
 {{- end }}
 - name: CLUSTER_DOMAIN
   value: {{ .Values.cluster.domain | quote }}
+{{- /*
+Only emit the Go runtime knobs when explicitly configured. An empty GOMEMLIMIT
+env var is not "no limit" to the runtime, and a hardcoded one overrides the
+cgroup-derived value the operator computes at startup (automemlimit honours an
+explicit env override), which is why the previous unconditional 180MiB default
+silently disabled that mechanism.
+*/}}
+{{- with .Values.goRuntime.memLimit }}
 - name: GOMEMLIMIT
-  value: {{ .Values.goRuntime.memLimit | quote }}
+  value: {{ . | quote }}
+{{- end }}
+{{- with .Values.goRuntime.gcPercent }}
 - name: GOGC
-  value: {{ .Values.goRuntime.gcPercent | quote }}
-- name: GODEBUG
-  value: "madvdontneed=1"
+  value: {{ . | quote }}
+{{- end }}
 {{- end }}

@@ -118,12 +118,25 @@ envVars:
   MO_API_SERVER: "wss://k8s-ws.mogenius.com/ws"
   MO_EVENT_SERVER: "wss://k8s-dispatcher.mogenius.com/ws"
 
-# -- Go runtime memory tuning
+# -- Go runtime memory tuning. Both values are unset by default and should stay
+# that way: the operator derives GOMEMLIMIT from the pod's memory limit at
+# startup (90%, leaving headroom for non-heap memory), which is the only value
+# that is actually correct for a given deployment. Set `resources.limits.memory`
+# rather than pinning a number here.
+#
+# A hardcoded GOMEMLIMIT is actively dangerous. It is a *soft* limit: once the
+# live heap exceeds it the Go GC does not fail or free anything, it simply runs
+# continuously trying to reach a target it can never reach. The symptom is the
+# operator burning multiple CPU cores at a flat heap with no log output. The
+# previous default of 180MiB put clusters with ~200 resource kinds right on that
+# cliff.
 goRuntime:
-  # -- Soft memory limit for the Go runtime (GOMEMLIMIT)
-  memLimit: "180MiB"
-  # -- GC target percentage (GOGC). Lower = more frequent GC, less memory
-  gcPercent: "50"
+  # -- Soft memory limit for the Go runtime (GOMEMLIMIT), e.g. "1GiB". Empty
+  # derives it from the pod memory limit. Must exceed the live heap.
+  memLimit: ""
+  # -- GC target percentage (GOGC), e.g. "50" to trade CPU for memory. Empty
+  # uses the Go default of 100.
+  gcPercent: ""
 
 metrics:
   # -- enable the Prometheus /metrics endpoint scraping (creates a Service for the ServiceMonitor)
