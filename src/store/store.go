@@ -467,7 +467,51 @@ func GetResource(valkeyClient valkeyclient.ValkeyClient, apiVersion string, kind
 	return valkeyclient.GetObjectForKey[unstructured.Unstructured](valkeyClient, VALKEY_RESOURCE_PREFIX, apiVersion, kind, namespace, name)
 }
 
+// GetResourceByKindAndNamespace returns every stored resource of one kind,
+// optionally restricted to a namespace.
+//
+// It reads through the ZSET indexes that SetResourceWithIndex maintains rather
+// than SCANning the keyspace. This is the UI's primary resource-list path (the
+// socket pattern "get/workload-list"): with a SCAN every call cost O(keyspace)
+// on Valkey's single thread, and on a busy cluster that pushed the handler past
+// the 10 s Valkey timeout while starving every other store operation — measured
+// at 11.2 s average per call versus 0.22 s for the index-based paginated
+// endpoint on the same cluster.
 func GetResourceByKindAndNamespace(valkeyClient valkeyclient.ValkeyClient, apiVersion string, kind string, namespace string, logger *slog.Logger) []unstructured.Unstructured {
+	// The index is keyed by (apiVersion, kind, namespace); a wildcard read
+	// across kinds has no index to go through and keeps the SCAN path.
+	if apiVersion == "" || kind == "" {
+		return getResourceByKindAndNamespaceScan(valkeyClient, apiVersion, kind, namespace, logger)
+	}
+
+	var namespaceWhitelist []string
+	if namespace != "" {
+		namespaceWhitelist = []string{namespace}
+	}
+
+	// limit <= 0 pulls every member of every shard, which matches the unbounded
+	// semantics this function has always had.
+	page, err := GetResourcesByWhitelistPaginated(
+		valkeyClient,
+		[]*utils.ResourceDescriptor{{ApiVersion: apiVersion, Kind: kind}},
+		nil,
+		namespaceWhitelist,
+		0, 0,
+		"", sortOrderAsc,
+		nil,
+		logger,
+	)
+	if err != nil {
+		logger.Error("failed to get resources by kind and namespace",
+			"apiVersion", apiVersion, "kind", kind, "namespace", namespace, "error", err)
+		return []unstructured.Unstructured{}
+	}
+	return page.Items
+}
+
+// getResourceByKindAndNamespaceScan is the pre-index SCAN implementation, kept
+// for reads that cannot name a single kind.
+func getResourceByKindAndNamespaceScan(valkeyClient valkeyclient.ValkeyClient, apiVersion string, kind string, namespace string, logger *slog.Logger) []unstructured.Unstructured {
 	pattern := CreateKeyPattern(&apiVersion, &kind, &namespace, nil)
 	storeResults, err := valkeyclient.GetObjectsByPrefix[unstructured.Unstructured](valkeyClient, valkeyclient.ORDER_NONE, pattern)
 	if err != nil {
@@ -815,11 +859,20 @@ func GetResourcesByWhitelistPaginated(
 		keys = append(keys, CreateResourceKey(rm.shard.apiVersion, rm.shard.kind, rm.shard.namespace, rm.member))
 	}
 
+	// Chunked so an unbounded read (limit <= 0, used by
+	// GetResourceByKindAndNamespace) cannot turn into a single MGET over every
+	// object of a kind. Order is preserved, so values stays index-aligned with
+	// page/keys for the stale-member detection below.
 	client := valkey.GetValkeyClient()
-	values, err := client.Do(valkey.GetContext(), client.B().Mget().Key(keys...).Build()).ToArray()
-	if err != nil {
-		logger.Error("failed to MGET paginated whitelist resources", "error", err)
-		return PaginatedResources{Items: []unstructured.Unstructured{}, TotalCount: total}, err
+	values := make([]vgo.ValkeyMessage, 0, len(keys))
+	for start := 0; start < len(keys); start += valkeyclient.MAX_CHUNK_GET_SIZE {
+		stop := min(start+valkeyclient.MAX_CHUNK_GET_SIZE, len(keys))
+		chunk, err := client.Do(valkey.GetContext(), client.B().Mget().Key(keys[start:stop]...).Build()).ToArray()
+		if err != nil {
+			logger.Error("failed to MGET paginated whitelist resources", "error", err)
+			return PaginatedResources{Items: []unstructured.Unstructured{}, TotalCount: total}, err
+		}
+		values = append(values, chunk...)
 	}
 
 	items := make([]unstructured.Unstructured, 0, len(values))
