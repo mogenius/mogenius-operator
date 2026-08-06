@@ -93,6 +93,14 @@ type objectKey struct {
 // gives us natural backpressure without needing a worker pool.
 const maxConcurrentReconciles = 50
 
+// storeReadyTimeout bounds how long Start waits for the Kubernetes resource
+// store to warm up before registering the reconcile watchers anyway. Store
+// readiness requires every discovered resource kind to complete its initial
+// informer sync; on clusters where one kind never syncs that never happens, and
+// waiting forever would keep reconciliation (and with it workspace RBAC) dead
+// until the operator restarts.
+const storeReadyTimeout = 3 * time.Minute
+
 type genericReconciler struct {
 	logger   *slog.Logger
 	watcher  watcher.WatcherModule
@@ -111,6 +119,11 @@ type genericReconciler struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 	wg     sync.WaitGroup
+
+	// startMu serialises the deferred watcher registration in Start against
+	// Stop, so a Stop that lands while we are still waiting for the store can
+	// never be overtaken by the registration it is supposed to tear down.
+	startMu sync.Mutex
 }
 
 func newReconciler(
@@ -144,6 +157,38 @@ func (r *genericReconciler) Start() {
 	r.objectState = make(map[objectKey]ObjectStatus)
 	r.lastUpdate = nil
 	r.statusMu.Unlock()
+
+	// Gate the whole reconciler on store readiness instead of gating each
+	// individual reconcile: handlers read from the store (GetSecret, workspace
+	// lookups, ...) and would produce wrong results on a cold store, but a
+	// per-call gate that reschedules itself turns every event into a timer that
+	// re-fires every 10 s forever while the store stays cold. Those timers
+	// accumulate — one per watch event plus one per object per background sweep
+	// — and each wakeup deep-copies the object again, which burns CPU
+	// indefinitely and never converges.
+	r.wg.Go(func() {
+		if !store.WaitForStoreReady(ctx, storeReadyTimeout) {
+			if ctx.Err() != nil {
+				return
+			}
+			r.logger.Warn("store did not become ready in time, starting reconciliation anyway",
+				"timeout", storeReadyTimeout)
+		}
+		r.startWatchers(ctx)
+	})
+}
+
+// startWatchers registers the informer handlers and the background sweep. Split
+// out of Start because it runs only once the store is warm (or the wait timed
+// out).
+func (r *genericReconciler) startWatchers(ctx context.Context) {
+	r.startMu.Lock()
+	defer r.startMu.Unlock()
+
+	// Stop may have run while we were waiting for the store.
+	if ctx.Err() != nil || !r.active.Load() {
+		return
+	}
 
 	for _, cfg := range r.configs {
 		cache := r.caches[cfg.Resource]
@@ -204,7 +249,6 @@ func (r *genericReconciler) Start() {
 			}
 		})
 	}
-
 }
 
 func (r *genericReconciler) Stop() {
@@ -212,6 +256,13 @@ func (r *genericReconciler) Stop() {
 		return
 	}
 	r.cancel()
+
+	// Take startMu so a deferred registration that is mid-flight completes
+	// before we unwatch; one that has not started yet sees active == false and
+	// bails out.
+	r.startMu.Lock()
+	r.startMu.Unlock() //nolint:staticcheck // barrier against a concurrent startWatchers, not a guarded section
+
 	r.watcher.UnwatchAll()
 	r.wg.Wait()
 	for resource, cache := range r.caches {
@@ -269,16 +320,6 @@ func (r *genericReconciler) callHandler(ctx context.Context, cfg ResourceConfig,
 
 	r.wg.Go(func() {
 		defer func() { <-r.reconcileSlots }()
-
-		if !store.IsStoreReady() {
-			// The Kubernetes watcher hasn't finished its initial cache sync yet,
-			// so store reads (GetSecret, etc.) are unreliable. Release the slot
-			// and reschedule in 10 s; by then the store will almost certainly be warm.
-			time.AfterFunc(10*time.Second, func() {
-				r.callHandler(ctx, cfg, obj, operation)
-			})
-			return
-		}
 
 		start := time.Now()
 		result := cfg.Reconcile(ctx, objCopy, operation)

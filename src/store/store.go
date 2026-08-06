@@ -1,6 +1,7 @@
 package store
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/json"
 	"errors"
@@ -119,10 +120,12 @@ var valkeyClient valkeyclient.ValkeyClient
 
 // storeReady is set once all watched Kubernetes resource informers have
 // completed their initial cache sync, meaning store reads return reliable
-// results. Reconcilers check IsStoreReady() and requeue if not yet warm.
+// results. Consumers block on WaitForStoreReady before doing work that depends
+// on a warm store.
 var (
 	storeReadyOnce sync.Once
 	storeIsReady   atomic.Bool
+	storeReadyCh   = make(chan struct{})
 )
 
 // MarkStoreReady signals that all watched resource informers have completed
@@ -131,12 +134,37 @@ var (
 func MarkStoreReady() {
 	storeReadyOnce.Do(func() {
 		storeIsReady.Store(true)
+		close(storeReadyCh)
 	})
 }
 
 // IsStoreReady reports whether all watched Kubernetes resource caches have been
 // fully synced into Valkey at least once since startup.
 func IsStoreReady() bool { return storeIsReady.Load() }
+
+// WaitForStoreReady blocks until the store is warm, ctx is cancelled or timeout
+// elapses, and reports whether the store became ready. Callers MUST tolerate a
+// false return and proceed: readiness depends on every discovered resource kind
+// syncing its informer, and a single kind that never syncs (missing RBAC, a CRD
+// behind a broken conversion webhook, a list that keeps exceeding the sync
+// timeout on a large cluster) would otherwise block the caller forever.
+func WaitForStoreReady(ctx context.Context, timeout time.Duration) bool {
+	if storeIsReady.Load() {
+		return true
+	}
+
+	timer := time.NewTimer(timeout)
+	defer timer.Stop()
+
+	select {
+	case <-storeReadyCh:
+		return true
+	case <-timer.C:
+		return false
+	case <-ctx.Done():
+		return false
+	}
+}
 
 func Setup(
 	logManagerModule logging.SlogManager,
