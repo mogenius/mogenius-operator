@@ -90,12 +90,23 @@ func WatchStoreResources(wm watcher.WatcherModule, aiManager ai.AiManager, event
 		return nil
 	}
 
-	for _, res := range resources {
-		wm.OnSynced(res, func() {
+	// Each resource may settle its slot only once: it either syncs (OnSynced)
+	// or fails to register a watcher (the error path below). Without the guard
+	// a resource that does both would decrement twice and the counter could
+	// skip past zero, leaving the store permanently "not ready".
+	settleOnce := make([]sync.Once, len(resources))
+	settle := func(i int) {
+		settleOnce[i].Do(func() {
 			if atomic.AddInt64(&pending, -1) == 0 {
 				store.MarkStoreReady()
+				k8sLogger.Info("store is warm: all watched resources completed their initial sync")
 			}
 		})
+	}
+
+	var firstWatchErr error
+	for i, res := range resources {
+		wm.OnSynced(res, func() { settle(i) })
 
 		err := wm.Watch(res, func(resource utils.ResourceDescriptor, obj *unstructured.Unstructured) {
 			setStoreIfNeeded(resource.ApiVersion, obj.GetName(), resource.Kind, obj.GetNamespace(), obj)
@@ -136,14 +147,23 @@ func WatchStoreResources(wm watcher.WatcherModule, aiManager ai.AiManager, event
 		})
 		if err != nil {
 			if !strings.Contains(err.Error(), "resource is already being watched") {
+				// Keep going instead of aborting the loop: one resource that
+				// cannot be watched (missing RBAC, a CRD served by a broken
+				// conversion webhook, ...) used to leave every later resource
+				// unwatched and its readiness slot unsettled, so the store never
+				// went ready. Its slot is settled here so the remaining kinds can
+				// still take the store to ready.
 				k8sLogger.Error("failed to initialize watchhandler for resource", "ApiVersion", res.ApiVersion, "kind", res.Kind, "error", err)
-				return err
+				if firstWatchErr == nil {
+					firstWatchErr = err
+				}
+				settle(i)
 			}
 		} else {
 			k8sLogger.Info("🚀 Watching resource", "kind", res.Kind, "plural", res.Plural)
 		}
 	}
-	return nil
+	return firstWatchErr
 }
 
 var (

@@ -293,10 +293,13 @@ func RunCluster(logManagerModule logging.SlogManager, configModule *config.Confi
 		logStep("AI manager started")
 
 		// services have to be started before this otherwise watcher events will get missing
+		// WatchStoreResources attempts every discovered resource kind and reports
+		// the first registration failure. That is not fatal — the other kinds are
+		// watched — so log it and continue instead of aborting startup and
+		// leaving the operator without a websocket connection.
 		err = mokubernetes.WatchStoreResources(systems.watcherModule, systems.aiManager, systems.eventConnectionClient)
 		if err != nil {
-			cmdLogger.Error("failed to start watcher", "error", err)
-			return
+			cmdLogger.Error("some resources could not be watched, continuing with the rest", "error", err)
 		}
 		logStep("Kubernetes resource watcher started")
 
