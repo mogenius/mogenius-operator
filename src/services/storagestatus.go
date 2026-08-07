@@ -556,7 +556,7 @@ func (s *VolumeStatus) getEvents(name, kind string, ctx context.Context, channel
 	}
 
 	fieldSelector := fmt.Sprintf("involvedObject.name=%s,involvedObject.kind=%s", name, kind)
-	eventList, err := s.client.CoreV1().Events(s.Namespace).List(context.Background(), metav1.ListOptions{
+	eventList, err := s.client.CoreV1().Events(s.Namespace).List(ctx, metav1.ListOptions{
 		FieldSelector: fieldSelector,
 	})
 
