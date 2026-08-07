@@ -66,11 +66,11 @@ func buildArgoApplication(component string, artifact GitOpsArtifact, namespace s
 			"apiVersion": "argoproj.io/v1alpha1",
 			"kind":       "Application",
 			"metadata": map[string]any{
-				"name":      component,
-				"namespace": namespace,
-				"labels":    defaultLabels(component),
+				"name":       component,
+				"namespace":  namespace,
+				"labels":     defaultLabels(component),
+				"finalizers": []any{"resources-finalizer.argocd.argoproj.io"}, // ensure resources are deleted when app is deleted
 			},
-			"finalizers": []any{"resources-finalizer.argocd.argoproj.io"}, // ensure resources are deleted when app is deleted
 			"spec": map[string]any{
 				"revisionHistoryLimit": 1,
 				"project":              getArgoProject(artifact),
@@ -103,11 +103,11 @@ func buildArgoMoacApplication(component string, artifact GitOpsArtifact, namespa
 			"apiVersion": "argoproj.io/v1alpha1",
 			"kind":       "Application",
 			"metadata": map[string]any{
-				"name":      name,
-				"namespace": namespace,
-				"labels":    defaultLabels(component),
+				"name":       name,
+				"namespace":  namespace,
+				"labels":     defaultLabels(component),
+				"finalizers": []any{"resources-finalizer.argocd.argoproj.io"}, // ensure resources are deleted when app is deleted
 			},
-			"finalizers": []any{"resources-finalizer.argocd.argoproj.io"}, // ensure resources are deleted when app is deleted
 			"spec": map[string]any{
 				"revisionHistoryLimit": 1,
 				"project":              getArgoProject(artifact),
