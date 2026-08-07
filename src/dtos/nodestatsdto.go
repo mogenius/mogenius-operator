@@ -3,8 +3,13 @@ package dtos
 import "mogenius-operator/src/structs"
 
 type NodeStat struct {
-	Name                   string                `json:"name" validate:"required"`
-	MaschineId             string                `json:"maschineId" validate:"required"`
+	Name       string `json:"name" validate:"required"`
+	MaschineId string `json:"maschineId" validate:"required"`
+	// Ready mirrors the node's Ready condition: true only for status "True".
+	// "False" (kubelet reports unhealthy) and "Unknown" (node unreachable, e.g.
+	// powered off) both map to false. Deliberately no `required` tag — that
+	// would reject the zero value, which is exactly the NotReady case.
+	Ready                  bool                  `json:"ready"`
 	CpuInCores             int64                 `json:"cpuInCores" validate:"required"`
 	CpuInCoresUtilized     float64               `json:"cpuInCoresUtilized" validate:"required"`
 	CpuInCoresRequested    float64               `json:"cpuInCoresRequested" validate:"required"`

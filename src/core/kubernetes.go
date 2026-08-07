@@ -323,9 +323,21 @@ func (self *moKubernetes) GetNodeStats() ([]dtos.NodeStat, error) {
 			self.logger.Warn("failed to get machines stats for node", "node", node.Name, "error", err)
 		}
 
+		// A node that stops heartbeating (powered off, network partition) keeps
+		// its object and its bound pods, so neither the node list nor the pod
+		// count reveals it is gone — only the Ready condition does.
+		ready := false
+		for _, condition := range node.Status.Conditions {
+			if condition.Type == corev1.NodeReady {
+				ready = condition.Status == corev1.ConditionTrue
+				break
+			}
+		}
+
 		nodeStat := dtos.NodeStat{
 			Name:                   node.Name,
 			MaschineId:             node.Status.NodeInfo.MachineID,
+			Ready:                  ready,
 			CpuInCores:             cpu,
 			CpuInCoresUtilized:     utilizedCores,
 			CpuInCoresRequested:    requestCpuCores,
