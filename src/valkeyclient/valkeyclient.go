@@ -155,7 +155,7 @@ func (self *valkeyClient) Connect() error {
 // file overrides the system trust store, and verification can be skipped
 // entirely for self-signed certificates in trusted networks.
 func (self *valkeyClient) buildTLSConfig(serverName string) (*tls.Config, error) {
-	enabled, _ := strconv.ParseBool(self.config.Get("MO_VALKEY_TLS_ENABLED"))
+	enabled, _ := self.config.TryGetBool("MO_VALKEY_TLS_ENABLED")
 	if !enabled {
 		return nil, nil
 	}
@@ -165,7 +165,7 @@ func (self *valkeyClient) buildTLSConfig(serverName string) (*tls.Config, error)
 		ServerName: serverName,
 	}
 
-	if skip, _ := strconv.ParseBool(self.config.Get("MO_VALKEY_TLS_INSECURE_SKIP_VERIFY")); skip {
+	if skip, _ := self.config.TryGetBool("MO_VALKEY_TLS_INSECURE_SKIP_VERIFY"); skip {
 		tlsConfig.InsecureSkipVerify = true
 	}
 

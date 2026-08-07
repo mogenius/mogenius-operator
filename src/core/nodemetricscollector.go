@@ -16,7 +16,6 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
-	"strconv"
 	"time"
 )
 
@@ -88,7 +87,7 @@ func (self *nodeMetricsCollector) Orchestrate() {
 	ownDeploymentName := self.config.Get("OWN_DEPLOYMENT_NAME")
 	assert.Assert(ownDeploymentName != "")
 
-	trafficCollectorEnabled, err := strconv.ParseBool(self.config.Get("MO_ENABLE_TRAFFIC_COLLECTOR"))
+	trafficCollectorEnabled, err := self.config.TryGetBool("MO_ENABLE_TRAFFIC_COLLECTOR")
 	assert.Assert(err == nil, err)
 
 	self.logger.Info("node metrics collector configuration", "enabled", trafficCollectorEnabled)

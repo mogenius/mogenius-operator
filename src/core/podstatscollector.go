@@ -11,7 +11,6 @@ import (
 	"mogenius-operator/src/shutdown"
 	"mogenius-operator/src/store"
 	"mogenius-operator/src/structs"
-	"strconv"
 	"time"
 
 	"encoding/json"
@@ -63,7 +62,7 @@ func (self *podStatsCollector) Run() {
 	assert.Assert(self.clientProvider != nil)
 	assert.Assert(self.statsDb != nil)
 
-	enabled, err := strconv.ParseBool(self.config.Get("MO_ENABLE_POD_STATS_COLLECTOR"))
+	enabled, err := self.config.TryGetBool("MO_ENABLE_POD_STATS_COLLECTOR")
 	assert.Assert(err == nil, err)
 	if enabled {
 		ctx, cancel := context.WithCancel(context.Background())

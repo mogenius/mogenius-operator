@@ -143,7 +143,7 @@ func initializeClusterSystems(
 	services.Setup(logManagerModule, configModule, base.clientProvider)
 	structs.Setup(logManagerModule)
 	xterm.Setup(logManagerModule, base.valkeyClient)
-	allowExternalHosts, _ := strconv.ParseBool(configModule.Get("MO_PORT_FORWARD_ALLOW_EXTERNAL_HOSTS"))
+	allowExternalHosts, _ := configModule.TryGetBool("MO_PORT_FORWARD_ALLOW_EXTERNAL_HOSTS")
 	xterm.SetupPortForward(
 		base.clientProvider.ClientConfig(),
 		base.clientProvider.K8sClientSet(),

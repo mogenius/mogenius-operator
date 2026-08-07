@@ -14,7 +14,6 @@ import (
 	"net/http"
 	"os/exec"
 	"runtime"
-	"strconv"
 	"strings"
 	"time"
 
@@ -225,7 +224,7 @@ func GuessClusterCountry() (*CountryDetails, error) {
 		return CURRENT_COUNTRY, nil
 	}
 
-	allowCountryCheck, err := strconv.ParseBool(config.Get("MO_ALLOW_COUNTRY_CHECK"))
+	allowCountryCheck, err := config.TryGetBool("MO_ALLOW_COUNTRY_CHECK")
 	assert.Assert(err == nil, err)
 	if allowCountryCheck {
 		resp, err := http.Get("https://platform-api.mogenius.com/country/location")
