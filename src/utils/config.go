@@ -252,6 +252,27 @@ var AppProjectResource = ResourceDescriptor{
 	Namespaced: true,
 }
 
+var KustomizationResource = ResourceDescriptor{
+	Kind:       "Kustomization",
+	Plural:     "kustomizations",
+	ApiVersion: "kustomize.toolkit.fluxcd.io/v1",
+	Namespaced: true,
+}
+
+var FluxHelmReleaseResource = ResourceDescriptor{
+	Kind:       "HelmRelease",
+	Plural:     "helmreleases",
+	ApiVersion: "helm.toolkit.fluxcd.io/v2",
+	Namespaced: true,
+}
+
+var GitRepositoryResource = ResourceDescriptor{
+	Kind:       "GitRepository",
+	Plural:     "gitrepositories",
+	ApiVersion: "source.toolkit.fluxcd.io/v1",
+	Namespaced: true,
+}
+
 var ServiceMonitorResource = ResourceDescriptor{
 	Kind:       "ServiceMonitor",
 	Plural:     "servicemonitors",

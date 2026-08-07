@@ -53,20 +53,18 @@ func (f *fluxInstaller) Install(component string, artifact GitOpsArtifact) error
 		if err := applyUnstructured(f.clientProvider, fluxHelmReleaseGVR, f.namespace, release); err != nil {
 			return fmt.Errorf("apply flux helmrelease %s: %w", component, err)
 		}
+	} else {
+		repo := buildFluxHelmRepository(component, artifact.HelmChart.Repository, f.namespace)
+		repo.SetOwnerReferences(f.ownerRefs)
+		if err := applyUnstructured(f.clientProvider, fluxHelmRepositoryGVR, f.namespace, repo); err != nil {
+			return fmt.Errorf("apply flux helmrepository %s: %w", component, err)
+		}
 
-		return nil
-	}
-
-	repo := buildFluxHelmRepository(component, artifact.HelmChart.Repository, f.namespace)
-	repo.SetOwnerReferences(f.ownerRefs)
-	if err := applyUnstructured(f.clientProvider, fluxHelmRepositoryGVR, f.namespace, repo); err != nil {
-		return fmt.Errorf("apply flux helmrepository %s: %w", component, err)
-	}
-
-	release := buildFluxHelmRelease(component, artifact, artifact.Values, f.namespace)
-	release.SetOwnerReferences(f.ownerRefs)
-	if err := applyUnstructured(f.clientProvider, fluxHelmReleaseGVR, f.namespace, release); err != nil {
-		return fmt.Errorf("apply flux helmrelease %s: %w", component, err)
+		release := buildFluxHelmRelease(component, artifact, artifact.Values, f.namespace)
+		release.SetOwnerReferences(f.ownerRefs)
+		if err := applyUnstructured(f.clientProvider, fluxHelmReleaseGVR, f.namespace, release); err != nil {
+			return fmt.Errorf("apply flux helmrelease %s: %w", component, err)
+		}
 	}
 
 	if len(artifact.ExtraObjects) > 0 {
@@ -196,14 +194,15 @@ func buildFluxOCIRepository(name, url, version, namespace string) *unstructured.
 
 func buildFluxOCIHelmRelease(component string, artifact GitOpsArtifact, namespace string) *unstructured.Unstructured {
 	spec := map[string]any{
-		"interval":           "10m",
-		"releaseName":        artifact.HelmChart.Name,
-		"serviceAccountName": component,
+		"interval":        "10m",
+		"releaseName":     artifact.HelmChart.Name,
+		"targetNamespace": artifact.Namespace,
 		"chartRef": map[string]any{
 			"kind": "OCIRepository",
 			"name": component,
 		},
 		"install": map[string]any{
+			"createNamespace": true,
 			"strategy": map[string]any{
 				"name":          "RetryOnFailure",
 				"retryInterval": "3m",

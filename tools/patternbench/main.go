@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	_ "embed"
+	"encoding/json"
 	"fmt"
 	"math"
 	"mogenius-operator/src/structs"
@@ -243,10 +244,11 @@ func writePatternCounter(file *os.File, loglines []LogLine) error {
 }
 
 func benchmarkDatagram(datagram structs.Datagram) error {
-	data, err := json.MarshalToString(datagram)
+	dataBytes, err := json.Marshal(datagram)
 	if err != nil {
 		return err
 	}
+	data := string(dataBytes)
 
 	err = execCmd(
 		"hyperfine",

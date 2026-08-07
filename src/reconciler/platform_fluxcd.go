@@ -26,7 +26,11 @@ func (d *reconcilerModule) reconcileFluxCD(ctx context.Context, spec v1alpha1.Pl
 			defaultNamespace: fluxcdDefaultNamespace,
 		},
 		func(ctx context.Context) ([]any, error) {
-			extraObjects := []any{}
+			// The FluxInstance is what actually deploys the Flux controllers; the
+			// flux-operator chart alone installs none. Since extra objects ship via a
+			// moac HelmRelease that needs helm-controller to reconcile, the very first
+			// install requires the Flux controllers to be bootstrapped out-of-band.
+			extraObjects := []any{fluxInstanceObject(namespace)}
 
 			for _, repo := range spec.GitOps.Repositories {
 				name := repo.Name
@@ -42,8 +46,17 @@ func (d *reconcilerModule) reconcileFluxCD(ctx context.Context, spec v1alpha1.Pl
 							return nil, fmt.Errorf("repository %q: provide externalSecret.vault or define a vault in spec.externalSecretsOperator", repo.URL)
 						}
 					}
+					repoSecretKey := "token"
+					if repo.ExternalSecret.Key != "" {
+						repoSecretKey = repo.ExternalSecret.Key
+					}
 					if d.crdChecker.IsAvailable(utils.ExternalSecretResource) {
-						extraObjects = append(extraObjects, externalSecretResource(name, namespace, *repo.ExternalSecret, nil, nil))
+						extraObjects = append(extraObjects, externalSecretResource(name, namespace, *repo.ExternalSecret, nil,
+							map[string]string{
+								"username": "git",
+								"password": fmt.Sprintf("{{ .%s }}", repoSecretKey),
+							},
+						))
 					}
 				}
 
@@ -53,9 +66,6 @@ func (d *reconcilerModule) reconcileFluxCD(ctx context.Context, spec v1alpha1.Pl
 				)
 			}
 
-			if len(extraObjects) == 0 {
-				return nil, nil
-			}
 			return extraObjects, nil
 		},
 		func(ctx context.Context) (map[string]any, error) {
@@ -69,6 +79,29 @@ func (d *reconcilerModule) reconcileFluxCD(ctx context.Context, spec v1alpha1.Pl
 			return nil, nil
 		},
 	)
+}
+
+func fluxInstanceObject(namespace string) map[string]any {
+	return map[string]any{
+		"apiVersion": "fluxcd.controlplane.io/v1",
+		"kind":       "FluxInstance",
+		"metadata": map[string]any{
+			"name":      "flux",
+			"namespace": namespace,
+		},
+		"spec": map[string]any{
+			"distribution": map[string]any{
+				"version":  "2.x",
+				"registry": "ghcr.io/fluxcd",
+			},
+			"components": []any{
+				"source-controller",
+				"kustomize-controller",
+				"helm-controller",
+				"notification-controller",
+			},
+		},
+	}
 }
 
 func fluxKustomizationObject(name string, repo v1alpha1.GitOpsRepositoryConfig, namespace string) map[string]any {
