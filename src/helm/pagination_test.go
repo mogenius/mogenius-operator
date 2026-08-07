@@ -258,4 +258,60 @@ func TestHelmReleaseMarshalJSON(t *testing.T) {
 		_, hasType := got["type"]
 		assert.False(t, hasType) // no argo "type" marker on real releases
 	})
+
+	t.Run("flux-tagged release keeps the default shape plus type and parent CR", func(t *testing.T) {
+		re := &HelmRelease{
+			Name:      "podinfo",
+			Namespace: "apps",
+			RepoName:  "repo",
+			Flux:      &FluxReleaseInfo{ParentName: "podinfo", ParentNamespace: "flux-system"},
+		}
+		raw, err := json.Marshal(re)
+		assert.NoError(t, err)
+
+		var got map[string]any
+		assert.NoError(t, json.Unmarshal(raw, &got))
+
+		// Real release data stays intact (no duplicate entry, just a tag).
+		assert.Equal(t, "podinfo", got["name"])
+		assert.Equal(t, "apps", got["namespace"])
+		assert.Equal(t, "repo", got["repoName"])
+		assert.Equal(t, "git-ops-flux-helm-release", got["type"])
+
+		data := got["data"].(map[string]any)
+		parent := data["parentApplication"].(map[string]any)
+		assert.Equal(t, "HelmRelease", parent["kind"])
+		assert.Equal(t, "helmreleases", parent["plural"])
+		assert.Equal(t, "helm.toolkit.fluxcd.io/v2", parent["apiVersion"])
+		assert.Equal(t, true, parent["namespaced"])
+		assert.Equal(t, "podinfo", parent["resourceName"])
+		assert.Equal(t, "flux-system", parent["namespace"])
+	})
+}
+
+// tagFluxHelmReleases tags only matching real releases and never mutates the
+// original entries (fast-path stubs are shared across requests).
+func TestTagFluxHelmReleases(t *testing.T) {
+	fluxIndex := map[string]*FluxReleaseInfo{
+		WorkspaceHelmKey("apps", "podinfo"): {ParentName: "podinfo", ParentNamespace: "flux-system"},
+	}
+
+	original := &HelmRelease{Name: "podinfo", Namespace: "apps"}
+	other := &HelmRelease{Name: "other", Namespace: "apps"}
+	argo := NewArgoHelmRelease("podinfo", &ArgoReleaseInfo{ParentNamespace: "argocd", DestNamespace: "apps"})
+	page := []*HelmRelease{original, other, argo}
+
+	tagFluxHelmReleases(page, fluxIndex)
+
+	assert.NotNil(t, page[0].Flux)
+	assert.Equal(t, "podinfo", page[0].Flux.ParentName)
+	assert.Equal(t, "flux-system", page[0].Flux.ParentNamespace)
+	assert.NotSame(t, original, page[0]) // shallow copy, shared entry untouched
+	assert.Nil(t, original.Flux)
+
+	assert.Nil(t, page[1].Flux) // no matching CR
+	assert.Same(t, other, page[1])
+
+	assert.Nil(t, page[2].Flux) // argo entries are never flux-tagged
+	assert.Same(t, argo, page[2])
 }

@@ -10,6 +10,7 @@ import (
 	"mogenius-operator/src/config"
 	"mogenius-operator/src/crds/v1alpha1"
 	"mogenius-operator/src/dtos"
+	"mogenius-operator/src/flux"
 	"mogenius-operator/src/helm"
 	"mogenius-operator/src/kubernetes"
 	moMetrics "mogenius-operator/src/metrics"
@@ -149,6 +150,7 @@ type socketApi struct {
 	moKubernetes          MoKubernetes
 	sealedSecret          SealedSecretManager
 	argocd                argocd.Argocd
+	flux                  flux.Flux
 	alertmanager          AlertmanagerService
 	aiApi                 AiApi
 	aiWebsocketConnection ai.AiWebsocketConnection
@@ -181,6 +183,7 @@ func NewSocketApi(
 	eventsClient websocket.WebsocketClient,
 	valkeyClient valkeyclient.ValkeyClient,
 	argocd argocd.Argocd,
+	flux flux.Flux,
 	alertmanager AlertmanagerService,
 ) SocketApi {
 	self := &socketApi{}
@@ -193,6 +196,7 @@ func NewSocketApi(
 	self.status = NewSocketApiStatus()
 	self.statusLock = sync.RWMutex{}
 	self.argocd = argocd
+	self.flux = flux
 	self.alertmanager = alertmanager
 
 	self.loadpatternlogger()
@@ -1074,10 +1078,16 @@ func (self *socketApi) registerPatterns() {
 		PatternHandle{self, "cluster/helm-release-list-paginated"},
 		PatternConfig{},
 		func(datagram structs.Datagram, request helm.HelmReleaseListPaginatedRequest) (helm.HelmReleaseListPaginatedResponse, error) {
+			// Flux helm-controller creates REAL helm releases, so unlike Argo
+			// nothing extra is merged in; matching list entries are only tagged
+			// with their owning HelmRelease CR. Listed once per request and
+			// shared by the workspace scoping and the tagging below.
+			fluxReleases := self.fluxHelmReleases()
+
 			// Empty workspace name = cluster-wide (no filter). A workspace name
 			// scopes the result to that workspace's registered helm releases AND
-			// Argo applications, resolved here from the Workspace CRD so the
-			// operator can filter before paginating.
+			// GitOps-managed entries, resolved here from the Workspace CRD so
+			// the operator can filter before paginating.
 			var scope *helm.HelmWorkspaceScope
 			if request.WorkspaceName != "" {
 				workspace, err := self.apiService.GetWorkspace(request.WorkspaceName)
@@ -1086,11 +1096,29 @@ func (self *socketApi) registerPatterns() {
 				}
 				allowed := make(map[string]struct{})
 				for _, resource := range workspace.Resources {
-					// "helm" keys on (install namespace, release name); "argocd"
-					// keys on (Argo install namespace, release name). Both map to
-					// the same WorkspaceHelmKey the paginator checks.
-					if resource.Type == "helm" || resource.Type == "argocd" {
+					switch resource.Type {
+					case "helm", "argocd":
+						// "helm" keys on (install namespace, release name);
+						// "argocd" keys on (Argo install namespace, release
+						// name). Both map to the same WorkspaceHelmKey the
+						// paginator checks.
 						allowed[helm.WorkspaceHelmKey(resource.Namespace, resource.Id)] = struct{}{}
+					case "flux":
+						// Flux resource ids are "<Kind>/<name>"; only
+						// HelmRelease CRs surface in the helm list. The CR
+						// resolves to its real helm release via
+						// spec.releaseName/targetNamespace (with metadata
+						// fallbacks); entries whose CR is gone are skipped.
+						kind, name, found := strings.Cut(resource.Id, "/")
+						if !found || !strings.EqualFold(kind, "HelmRelease") {
+							continue
+						}
+						for _, fr := range fluxReleases {
+							if fr.Name == name && fr.Namespace == resource.Namespace {
+								allowed[helm.WorkspaceHelmKey(fr.TargetNamespace, fr.ReleaseName)] = struct{}{}
+								break
+							}
+						}
 					}
 				}
 				scope = &helm.HelmWorkspaceScope{Allowed: allowed}
@@ -1102,7 +1130,15 @@ func (self *socketApi) registerPatterns() {
 			// the (far more important) real release listing.
 			argoItems := self.argoHelmReleaseItems()
 
-			return helm.HelmReleaseListPaginated(request, scope, argoItems)
+			fluxIndex := make(map[string]*helm.FluxReleaseInfo, len(fluxReleases))
+			for _, fr := range fluxReleases {
+				fluxIndex[helm.WorkspaceHelmKey(fr.TargetNamespace, fr.ReleaseName)] = &helm.FluxReleaseInfo{
+					ParentName:      fr.Name,
+					ParentNamespace: fr.Namespace,
+				}
+			}
+
+			return helm.HelmReleaseListPaginated(request, scope, argoItems, fluxIndex)
 		},
 	)
 
@@ -1206,6 +1242,54 @@ func (self *socketApi) registerPatterns() {
 		PatternConfig{},
 		func(datagram structs.Datagram, request argocd.ArgoCdResourceActionRequest) (bool, error) {
 			result, err := self.argocd.ArgoCdResourceAction(request)
+			return store.AddToAuditLog(datagram, self.logger, result, err, nil, nil)
+		},
+	)
+
+	// The flux request payload carries kind/namespace/name at top level, which
+	// is what AddToAuditLog's fallback extraction reads - the audit entries
+	// therefore attribute to the CR's namespace bucket, not to _cluster.
+	RegisterPatternHandler(
+		PatternHandle{self, "cluster/flux-reconcile"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request flux.FluxResourceRequest) (bool, error) {
+			result, err := self.flux.FluxReconcile(request)
+			return store.AddToAuditLog(datagram, self.logger, result, err, nil, nil)
+		},
+	)
+
+	RegisterPatternHandler(
+		PatternHandle{self, "cluster/flux-reconcile-with-source"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request flux.FluxResourceRequest) (bool, error) {
+			result, err := self.flux.FluxReconcileWithSource(request)
+			return store.AddToAuditLog(datagram, self.logger, result, err, nil, nil)
+		},
+	)
+
+	RegisterPatternHandler(
+		PatternHandle{self, "cluster/flux-suspend"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request flux.FluxResourceRequest) (bool, error) {
+			result, err := self.flux.FluxSuspend(request)
+			return store.AddToAuditLog(datagram, self.logger, result, err, nil, nil)
+		},
+	)
+
+	RegisterPatternHandler(
+		PatternHandle{self, "cluster/flux-resume"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request flux.FluxResourceRequest) (bool, error) {
+			result, err := self.flux.FluxResume(request)
+			return store.AddToAuditLog(datagram, self.logger, result, err, nil, nil)
+		},
+	)
+
+	RegisterPatternHandler(
+		PatternHandle{self, "cluster/flux-force"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request flux.FluxResourceRequest) (bool, error) {
+			result, err := self.flux.FluxForce(request)
 			return store.AddToAuditLog(datagram, self.logger, result, err, nil, nil)
 		},
 	)
@@ -2699,6 +2783,19 @@ func (self *socketApi) argoHelmReleaseItems() []*helm.HelmRelease {
 		}))
 	}
 	return items
+}
+
+// fluxHelmReleases returns the Flux HelmRelease CRs used to tag matching real
+// helm releases in the paginated list and to resolve "flux" workspace
+// resources. Errors are logged and swallowed: Flux is optional and must never
+// break the real release listing (mirrors argoHelmReleaseItems).
+func (self *socketApi) fluxHelmReleases() []flux.FluxHelmRelease {
+	releases, err := self.flux.ListHelmReleases()
+	if err != nil {
+		self.logger.Warn("failed to list Flux HelmReleases for helm release list", "error", err.Error())
+		return nil
+	}
+	return releases
 }
 
 func (self *socketApi) LoadRequest(datagram *structs.Datagram, data any) error {

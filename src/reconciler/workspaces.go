@@ -109,6 +109,10 @@ func (d *reconcilerModule) verifyWorkspaceIntegrity(ctx context.Context, obj *un
 		case "argocd":
 			// No integrity checks for ArgoCD resources yet, as they don't have any cluster-level representation.
 			continue
+		case "flux":
+			// No integrity checks for Flux resources yet (id is "<Kind>/<name>",
+			// namespace is the CR's namespace).
+			continue
 		default:
 			resourceErr := ReconcileResult{}
 			resourceErr.Err = fmt.Errorf("Workspace contains a resource with the invalid type: %#v", resource.Type)
@@ -138,4 +142,3 @@ func (d *reconcilerModule) verifyWorkspaceIntegrity(ctx context.Context, obj *un
 	}
 	return results
 }
-

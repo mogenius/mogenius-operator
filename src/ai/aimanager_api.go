@@ -152,7 +152,7 @@ func (ai *aiManager) GetAiTasksForWorkspace(workspace string) ([]AiTask, error) 
 					tasks = append(tasks, task)
 				}
 			}
-		case "helm", "argocd":
+		case "helm", "argocd", "flux":
 			ai.logger.Debug("Retrieving AI Tasks for this workspace type will be possible in the future", "workspace", workspace, "type", workspaceResource.Type)
 		default:
 			ai.logger.Error("Retrieving AI Tasks for unknown workspace type is not possible", "workspace", workspace, "type", workspaceResource.Type)
@@ -249,7 +249,7 @@ func (ai *aiManager) GetAiLatestTasksForWorkspace(workspace string) ([]AiTask, e
 			if latestNamespaceTask != nil {
 				tasks = append(tasks, *latestNamespaceTask)
 			}
-		case "helm", "argocd":
+		case "helm", "argocd", "flux":
 			ai.logger.Debug("Retrieving AI Tasks for this workspace type will be possible in the future", "workspace", workspace, "type", workspaceResource.Type)
 		default:
 			ai.logger.Error("Retrieving AI Tasks for unknown workspace type is not possible", "workspace", workspace, "type", workspaceResource.Type)
@@ -455,7 +455,7 @@ func (ai *aiManager) GetStatus(workspace *string) AiManagerStatus {
 					switch workspaceResource.Type {
 					case "namespace":
 						workspaceNamespaces[workspaceResource.Id] = true
-					case "helm", "argocd":
+					case "helm", "argocd", "flux":
 						ai.logger.Debug("Retrieving AI Tasks for this workspace type will be possible in the future", "workspace", workspace, "type", workspaceResource.Type)
 					default:
 						ai.logger.Error("Retrieving AI Tasks for unknown workspace type is not possible", "workspace", workspace, "type", workspaceResource.Type)
@@ -590,4 +590,3 @@ func (ai *aiManager) ResolveWorkspaceContext(userEmail string, workspaceName str
 
 	return workspaceSpec, grantSpec
 }
-

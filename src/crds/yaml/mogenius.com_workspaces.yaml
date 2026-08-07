@@ -76,9 +76,13 @@ spec:
                         Type=="namespace": unused
                         Type=="helm": namespace in which the chart was installed
                         Type=="argocd": namespace in which the application was installed
+                        Type=="flux": namespace of the Flux custom resource
                       type: string
                     type:
-                      description: 'allowed values: "namespace", "helm", "argocd"'
+                      description: |-
+                        allowed values: "namespace", "helm", "argocd", "flux"
+                        Type=="flux": Id is "<Kind>/<name>" of the Flux custom resource
+                        (e.g. "Kustomization/podinfo")
                       type: string
                   type: object
                 type: array

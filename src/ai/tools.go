@@ -9,6 +9,7 @@ import (
 	"mogenius-operator/src/structs"
 	"mogenius-operator/src/utils"
 	"mogenius-operator/src/valkeyclient"
+	"strings"
 	"time"
 
 	"github.com/anthropics/anthropic-sdk-go"
@@ -21,6 +22,7 @@ type ToolContext struct {
 	AllowedNamespaces   map[string]bool            // namespaces with full access (from type="namespace"); nil = no restriction
 	AllowedHelmReleases map[string]map[string]bool // namespace → {releaseName: true} (from type="helm"); nil = no helm-level restriction
 	AllowedArgoCDApps   map[string]bool            // ArgoCD app names (from type="argocd"); nil = no argocd-level restriction
+	AllowedFluxReleases map[string]bool            // Flux owner keys (from type="flux", see fluxOwnerKey); nil = no flux-level restriction
 	Role                string                     // "viewer", "editor", "admin", "" = no restriction
 
 	// Audit attribution — who triggered this tool call. Nil User means the
@@ -87,12 +89,32 @@ func (tc *ToolContext) IsResourceExcluded(apiVersion, kind, namespace, name stri
 	return tc.ExcludeResources[aiResourceKey(apiVersion, kind, namespace, name)]
 }
 
+// fluxOwnerKey is the lookup key for AllowedFluxReleases: the identity of the
+// owning Flux CR. kind is "Kustomization" or "HelmRelease" — the two kinds
+// whose controllers stamp ownership labels
+// (kustomize|helm.toolkit.fluxcd.io/name|namespace) on applied objects.
+func fluxOwnerKey(kind, namespace, name string) string {
+	return kind + "\x00" + namespace + "\x00" + name
+}
+
 // hasRestrictions returns true when any scoping is configured.
 func (tc *ToolContext) hasRestrictions() bool {
 	if tc == nil {
 		return false
 	}
-	return tc.AllowedNamespaces != nil || tc.AllowedHelmReleases != nil || tc.AllowedArgoCDApps != nil
+	return tc.AllowedNamespaces != nil || tc.AllowedHelmReleases != nil || tc.AllowedArgoCDApps != nil || tc.AllowedFluxReleases != nil
+}
+
+// hasOwnershipRestrictions reports whether a resource outside an allowed
+// namespace could still be allowed via GitOps ownership (ArgoCD instance
+// annotation or Flux ownership labels). Callers that would otherwise reject a
+// namespace early must then defer the decision to IsResourceAllowed on the
+// concrete object.
+func (tc *ToolContext) hasOwnershipRestrictions() bool {
+	if tc == nil {
+		return false
+	}
+	return tc.AllowedArgoCDApps != nil || tc.AllowedFluxReleases != nil
 }
 
 func (tc *ToolContext) IsNamespaceAllowed(namespace string) bool {
@@ -151,6 +173,22 @@ func (tc *ToolContext) IsResourceAllowed(namespace string, annotations map[strin
 		appName := annotations["argocd.argoproj.io/instance"]
 		if appName != "" && tc.AllowedArgoCDApps[appName] {
 			return true
+		}
+	}
+	// Check Flux ownership (labels stamped by kustomize-/helm-controller on
+	// every object they apply).
+	if tc.AllowedFluxReleases != nil {
+		if name := annotations["kustomize.toolkit.fluxcd.io/name"]; name != "" {
+			ns := annotations["kustomize.toolkit.fluxcd.io/namespace"]
+			if tc.AllowedFluxReleases[fluxOwnerKey("Kustomization", ns, name)] {
+				return true
+			}
+		}
+		if name := annotations["helm.toolkit.fluxcd.io/name"]; name != "" {
+			ns := annotations["helm.toolkit.fluxcd.io/namespace"]
+			if tc.AllowedFluxReleases[fluxOwnerKey("HelmRelease", ns, name)] {
+				return true
+			}
 		}
 	}
 	return false
@@ -220,6 +258,17 @@ func newToolContextFromUserGrant(user *structs.User, workspace string, isAdmin b
 						tc.AllowedArgoCDApps = make(map[string]bool)
 					}
 					tc.AllowedArgoCDApps[res.Id] = true
+				}
+			case "flux":
+				// Workspace resource id is "<Kind>/<name>", namespace is the
+				// CR's namespace — matching the ownership labels Flux stamps
+				// on applied objects (see fluxOwnerKey).
+				kind, name, found := strings.Cut(res.Id, "/")
+				if found && name != "" && res.Namespace != "" {
+					if tc.AllowedFluxReleases == nil {
+						tc.AllowedFluxReleases = make(map[string]bool)
+					}
+					tc.AllowedFluxReleases[fluxOwnerKey(kind, res.Namespace, name)] = true
 				}
 			}
 		}
