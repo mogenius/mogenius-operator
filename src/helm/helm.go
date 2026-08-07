@@ -182,6 +182,25 @@ type HelmRelease struct {
 	// (MOG-4394). MarshalJSON emits the shape the frontend's
 	// ClusterHelmReleaseDto expects for type "git-ops-argo-cd-application".
 	Argo *ArgoReleaseInfo `json:"-"`
+
+	// Flux, when non-nil, tags this entry as managed by a Flux HelmRelease
+	// CR. Unlike Argo entries these ARE real helm releases (helm-controller
+	// creates genuine release secrets), so all release data stays intact and
+	// MarshalJSON only adds the "git-ops-flux-helm-release" type marker plus
+	// the parent CR reference — never a duplicate list entry.
+	Flux *FluxReleaseInfo `json:"-"`
+}
+
+// FluxReleaseInfo identifies the Flux HelmRelease CR that owns a real helm
+// release in the list. The caller (socketapi) resolves the matches by
+// (releaseName, targetNamespace); helm only carries the reference through to
+// MarshalJSON.
+type FluxReleaseInfo struct {
+	// ParentName / ParentNamespace identify the HelmRelease CR (the
+	// frontend's GitOps actions read data.parentApplication.resourceName
+	// and .namespace).
+	ParentName      string
+	ParentNamespace string
 }
 
 // ArgoReleaseInfo carries the data needed to render an Argo CD Application as a
@@ -1473,13 +1492,37 @@ func helmReleaseLastDeployed(hr *HelmRelease) time.Time {
 	return hr.Info.LastDeployed
 }
 
+// tagFluxHelmReleases marks page entries whose (install namespace, release
+// name) identity matches a Flux HelmRelease CR from fluxIndex (keys built via
+// WorkspaceHelmKey). Tagged entries are shallow-copied first: fast-path
+// entries that failed to decode are pointers into the shared stub cache and
+// must never be mutated (concurrent requests read them).
+func tagFluxHelmReleases(page []*HelmRelease, fluxIndex map[string]*FluxReleaseInfo) {
+	if len(fluxIndex) == 0 {
+		return
+	}
+	for i, hr := range page {
+		if hr.Argo != nil {
+			continue // Argo entries are not real helm releases
+		}
+		if info, ok := fluxIndex[WorkspaceHelmKey(hr.Namespace, hr.Name)]; ok {
+			tagged := *hr
+			tagged.Flux = info
+			page[i] = &tagged
+		}
+	}
+}
+
 // HelmReleaseListPaginated lists helm releases server-side filtered, sorted and
 // sliced. argoItems are Argo-CD-managed charts (resolved by the caller, since
 // they live outside helm) that are merged into the same sorted, paginated and
-// scoped result so users can still upgrade them (MOG-4394). When scope is
-// non-nil the result is restricted to that workspace's resources (resolved by
-// the caller from the Workspace CRD); nil scope means cluster-wide.
-func HelmReleaseListPaginated(data HelmReleaseListPaginatedRequest, scope *HelmWorkspaceScope, argoItems []*HelmRelease) (HelmReleaseListPaginatedResponse, error) {
+// scoped result so users can still upgrade them (MOG-4394). fluxIndex maps
+// WorkspaceHelmKey(targetNamespace, releaseName) of Flux-HelmRelease-managed
+// releases to their parent CR: matching entries are tagged in place (Flux
+// releases are real helm releases, so no extra items are merged). When scope
+// is non-nil the result is restricted to that workspace's resources (resolved
+// by the caller from the Workspace CRD); nil scope means cluster-wide.
+func HelmReleaseListPaginated(data HelmReleaseListPaginatedRequest, scope *HelmWorkspaceScope, argoItems []*HelmRelease, fluxIndex map[string]*FluxReleaseInfo) (HelmReleaseListPaginatedResponse, error) {
 	empty := HelmReleaseListPaginatedResponse{Items: []*HelmRelease{}, TotalCount: 0}
 
 	settings := NewCli()
@@ -1494,7 +1537,7 @@ func HelmReleaseListPaginated(data HelmReleaseListPaginatedRequest, scope *HelmW
 	secretsDriver, ok := actionConfig.Releases.Driver.(*driver.Secrets)
 	if !ok {
 		// Non-secret storage driver: fall back to decoding everything.
-		return helmReleaseListPaginatedFull(actionConfig, data, scope, argoItems)
+		return helmReleaseListPaginatedFull(actionConfig, data, scope, argoItems, fluxIndex)
 	}
 
 	// Phase 1: cheap metadata-only stub index (no gzip blob), merged with the
@@ -1537,6 +1580,8 @@ func HelmReleaseListPaginated(data HelmReleaseListPaginatedRequest, scope *HelmW
 		page[i] = helmReleaseFromRelease(re, repoName)
 	}
 
+	tagFluxHelmReleases(page, fluxIndex)
+
 	return HelmReleaseListPaginatedResponse{Items: page, TotalCount: total}, nil
 }
 
@@ -1544,7 +1589,7 @@ func HelmReleaseListPaginated(data HelmReleaseListPaginatedRequest, scope *HelmW
 // not the secret driver (e.g. configmaps/memory in tests). It decodes every
 // current release up front - the pre-metadata-index behaviour - then sorts,
 // scopes and slices the same way as the fast path.
-func helmReleaseListPaginatedFull(actionConfig *action.Configuration, data HelmReleaseListPaginatedRequest, scope *HelmWorkspaceScope, argoItems []*HelmRelease) (HelmReleaseListPaginatedResponse, error) {
+func helmReleaseListPaginatedFull(actionConfig *action.Configuration, data HelmReleaseListPaginatedRequest, scope *HelmWorkspaceScope, argoItems []*HelmRelease, fluxIndex map[string]*FluxReleaseInfo) (HelmReleaseListPaginatedResponse, error) {
 	empty := HelmReleaseListPaginatedResponse{Items: []*HelmRelease{}, TotalCount: 0}
 
 	releases, err := listCurrentReleases(actionConfig)
@@ -1574,6 +1619,8 @@ func helmReleaseListPaginatedFull(actionConfig *action.Configuration, data HelmR
 			hr.RepoName = strings.Replace(rep.RepoName, "/"+chartName, "", 1)
 		}
 	}
+
+	tagFluxHelmReleases(page, fluxIndex)
 
 	return HelmReleaseListPaginatedResponse{Items: page, TotalCount: total}, nil
 }
@@ -2128,15 +2175,41 @@ func NewArgoHelmRelease(releaseName string, info *ArgoReleaseInfo) *HelmRelease 
 	}
 }
 
-// MarshalJSON emits the default helm-release shape for real releases and the
+// MarshalJSON emits the default helm-release shape for real releases, the
 // "git-ops-argo-cd-application" shape (matching the frontend's
-// ClusterHelmReleaseDto) for Argo-managed entries.
+// ClusterHelmReleaseDto) for Argo-managed entries, and the default shape
+// extended by a "git-ops-flux-helm-release" type marker plus parent
+// HelmRelease CR reference for Flux-managed entries.
 func (h HelmRelease) MarshalJSON() ([]byte, error) {
 	if h.Argo == nil {
 		// alias drops the custom MarshalJSON so we get the default field-tag
 		// encoding (and don't recurse).
 		type alias HelmRelease
-		return json.Marshal(alias(h))
+		raw, err := json.Marshal(alias(h))
+		if err != nil || h.Flux == nil {
+			return raw, err
+		}
+
+		// Flux-managed entries are real helm releases: keep every default
+		// field and only add the type and the parent CR reference (shaped
+		// like the Argo parentApplication so the frontend can address the
+		// owning CR for GitOps actions).
+		var m map[string]any
+		if err := json.Unmarshal(raw, &m); err != nil {
+			return nil, err
+		}
+		m["type"] = "git-ops-flux-helm-release"
+		m["data"] = map[string]any{
+			"parentApplication": map[string]any{
+				"kind":         "HelmRelease",
+				"plural":       "helmreleases",
+				"apiVersion":   "helm.toolkit.fluxcd.io/v2",
+				"namespaced":   true,
+				"resourceName": h.Flux.ParentName,
+				"namespace":    h.Flux.ParentNamespace,
+			},
+		}
+		return json.Marshal(m)
 	}
 
 	a := h.Argo

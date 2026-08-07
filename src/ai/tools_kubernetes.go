@@ -79,7 +79,7 @@ func listKubernetesResourcesTool(args map[string]any, tc *ToolContext, valkeyCli
 	}
 	namespace, _ := args["namespace"].(string)
 
-	if namespace != "" && !tc.IsNamespaceAllowed(namespace) && tc.AllowedArgoCDApps == nil {
+	if namespace != "" && !tc.IsNamespaceAllowed(namespace) && !tc.hasOwnershipRestrictions() {
 		return fmt.Sprintf("Error: access to namespace %q is not allowed", namespace)
 	}
 
@@ -188,7 +188,7 @@ func checkKubernetesResourceTool(args map[string]any, tc *ToolContext, valkeyCli
 	name, _ := args["name"].(string)
 	namespace, _ := args["namespace"].(string)
 
-	if !tc.IsNamespaceAllowed(namespace) && tc.AllowedArgoCDApps == nil {
+	if !tc.IsNamespaceAllowed(namespace) && !tc.hasOwnershipRestrictions() {
 		return fmt.Sprintf("Error: access to namespace %q is not allowed", namespace)
 	}
 
@@ -326,8 +326,8 @@ func getKubernetesResourcesTool(args map[string]any, tc *ToolContext, valkeyClie
 	name, _ := args["name"].(string)
 	namespace, _ := args["namespace"].(string)
 
-	// Early reject if namespace is definitely not allowed (no ArgoCD fallback needed)
-	if !tc.IsNamespaceAllowed(namespace) && tc.AllowedArgoCDApps == nil {
+	// Early reject if namespace is definitely not allowed (no GitOps ownership fallback needed)
+	if !tc.IsNamespaceAllowed(namespace) && !tc.hasOwnershipRestrictions() {
 		return fmt.Sprintf("Error: access to namespace %q is not allowed", namespace)
 	}
 
@@ -442,7 +442,7 @@ func deleteKubernetesResourceTool(args map[string]any, tc *ToolContext, valkeyCl
 		return "Error: name is required for delete operation"
 	}
 
-	if !tc.IsNamespaceAllowed(namespace) && tc.AllowedArgoCDApps == nil {
+	if !tc.IsNamespaceAllowed(namespace) && !tc.hasOwnershipRestrictions() {
 		return fmt.Sprintf("Error: access to namespace %q is not allowed", namespace)
 	}
 
@@ -479,7 +479,7 @@ func createKubernetesResourceTool(args map[string]any, tc *ToolContext, valkeyCl
 		return fmt.Sprintf("Error: failed to unmarshal YAML data: %v", err)
 	}
 
-	if !tc.IsNamespaceAllowed(obj.GetNamespace()) && tc.AllowedArgoCDApps == nil {
+	if !tc.IsNamespaceAllowed(obj.GetNamespace()) && !tc.hasOwnershipRestrictions() {
 		return fmt.Sprintf("Error: access to namespace %q is not allowed", obj.GetNamespace())
 	}
 
@@ -527,7 +527,7 @@ func getPodLogsTool(args map[string]any, tc *ToolContext, valkeyClient valkeycli
 		return "Error: namespace and podName are required"
 	}
 
-	if !tc.IsNamespaceAllowed(namespace) && tc.AllowedArgoCDApps == nil {
+	if !tc.IsNamespaceAllowed(namespace) && !tc.hasOwnershipRestrictions() {
 		return fmt.Sprintf("Error: access to namespace %q is not allowed", namespace)
 	}
 
@@ -583,7 +583,7 @@ func getPodEventsTool(args map[string]any, tc *ToolContext, valkeyClient valkeyc
 		return "Error: namespace and podName are required"
 	}
 
-	if !tc.IsNamespaceAllowed(namespace) && tc.AllowedArgoCDApps == nil {
+	if !tc.IsNamespaceAllowed(namespace) && !tc.hasOwnershipRestrictions() {
 		return fmt.Sprintf("Error: access to namespace %q is not allowed", namespace)
 	}
 

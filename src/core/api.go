@@ -633,8 +633,9 @@ func (self *api) GetWorkspaceResourcesPaginated(workspaceName string, req Worksp
 //   - a non-empty whitelist: the index enumerates shards per kind, so it can't
 //     answer the "all kinds" query an empty whitelist expresses.
 //   - a namespace-only selection: a helm entry selects by release label (plus
-//     Pod ownerRef traversal), which the index does not model. argocd entries
-//     are ignored by GetWorkspaceResources too, so they don't affect the result.
+//     Pod ownerRef traversal), which the index does not model. argocd and flux
+//     entries are ignored by GetWorkspaceResources too, so they don't affect
+//     the result.
 //
 // For the cluster-wide case (empty workspaceName) the namespace list is
 // req.NamespaceWhitelist verbatim: empty there means "all namespaces", which the
@@ -681,7 +682,7 @@ func (self *api) indexableWorkspaceNamespaces(workspaceName string, req Workspac
 			seen[v.Id] = struct{}{}
 			namespaces = append(namespaces, v.Id)
 		}
-		// other types (e.g. "argocd") are ignored, matching GetWorkspaceResources.
+		// other types (e.g. "argocd", "flux") are ignored, matching GetWorkspaceResources.
 	}
 	if len(namespaces) == 0 {
 		return nil, false

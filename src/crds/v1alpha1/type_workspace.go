@@ -61,12 +61,15 @@ type WorkspaceResourceIdentifier struct {
 	// target entity identifier (name)
 	Id string `json:"id,omitempty"`
 
-	// allowed values: "namespace", "helm", "argocd"
+	// allowed values: "namespace", "helm", "argocd", "flux"
+	// Type=="flux": Id is "<Kind>/<name>" of the Flux custom resource
+	// (e.g. "Kustomization/podinfo")
 	Type string `json:"type,omitempty"`
 
 	// Type=="namespace": unused
 	// Type=="helm": namespace in which the chart was installed
 	// Type=="argocd": namespace in which the application was installed
+	// Type=="flux": namespace of the Flux custom resource
 	Namespace string `json:"namespace,omitempty"`
 }
 

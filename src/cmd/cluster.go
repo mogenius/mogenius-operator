@@ -10,6 +10,7 @@ import (
 	"mogenius-operator/src/containerenumerator"
 	"mogenius-operator/src/core"
 	"mogenius-operator/src/cpumonitor"
+	"mogenius-operator/src/flux"
 	"mogenius-operator/src/helm"
 	mokubernetes "mogenius-operator/src/kubernetes"
 	"mogenius-operator/src/logging"
@@ -151,12 +152,13 @@ func initializeClusterSystems(
 	)
 
 	argocdModule := argocd.NewArgoCd(logManagerModule, configModule, base.clientProvider, base.valkeyClient)
+	fluxModule := flux.NewFlux(logManagerModule, base.clientProvider)
 	workspaceManager := core.NewWorkspaceManager(logManagerModule.CreateLogger("workspace-manager"), configModule, base.clientProvider)
 	apiModule := core.NewApi(logManagerModule.CreateLogger("api"), base.valkeyClient, configModule)
 	aiApi := core.NewAiApi(logManagerModule.CreateLogger("apApi"), aiManager)
 	httpApi := core.NewHttpApi(logManagerModule, configModule)
 	alertmanager := core.NewAlertmanagerService(logManagerModule.CreateLogger("alertmanager"), configModule)
-	socketApi := core.NewSocketApi(logManagerModule.CreateLogger("socketapi"), configModule, jobClients, eventConnectionClient, base.valkeyClient, argocdModule, alertmanager)
+	socketApi := core.NewSocketApi(logManagerModule.CreateLogger("socketapi"), configModule, jobClients, eventConnectionClient, base.valkeyClient, argocdModule, fluxModule, alertmanager)
 	xtermService := core.NewXtermService(logManagerModule.CreateLogger("xterm-service"))
 	aiWebsocketConnection := ai.NewAiWebsocketConnection(logManagerModule.CreateLogger("ai-websocket-connection"), aiManager)
 	valkeyLoggerService := core.NewValkeyLogger(base.valkeyClient, valkeyLogChannel)
