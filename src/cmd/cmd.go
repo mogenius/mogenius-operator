@@ -251,26 +251,14 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		Key:          "MO_SKIP_TLS_VERIFICATION",
 		DefaultValue: new("false"),
 		Description:  new("Skip TLS verification for API and Event Server"),
-		Validate: func(value string) error {
-			_, err := strconv.ParseBool(value)
-			if err != nil {
-				return fmt.Errorf("'MO_SKIP_TLS_VERIFICATION' needs to be a boolean: %s", err.Error())
-			}
-			return nil
-		},
+		Type:         new(config.ConfigVariableTypeBool),
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_PORT_FORWARD_ALLOW_EXTERNAL_HOSTS",
 		DefaultValue: new("false"),
 		Description:  new("Allow port-forward tunnels to dial arbitrary hosts/IPs on the operator's network (kind=host), not just Kubernetes workloads. Off by default (SSRF surface into the node LAN)."),
 		Envs:         []string{"PORT_FORWARD_ALLOW_EXTERNAL_HOSTS"},
-		Validate: func(value string) error {
-			_, err := strconv.ParseBool(value)
-			if err != nil {
-				return fmt.Errorf("'MO_PORT_FORWARD_ALLOW_EXTERNAL_HOSTS' needs to be a boolean: %s", err.Error())
-			}
-			return nil
-		},
+		Type:         new(config.ConfigVariableTypeBool),
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:         "MO_VALKEY_ADDR",
@@ -297,25 +285,13 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		Key:          "MO_VALKEY_TLS_ENABLED",
 		DefaultValue: new("false"),
 		Description:  new("Enable TLS for the valkey connection"),
-		Validate: func(value string) error {
-			_, err := strconv.ParseBool(value)
-			if err != nil {
-				return fmt.Errorf("'MO_VALKEY_TLS_ENABLED' needs to be a boolean: %s", err.Error())
-			}
-			return nil
-		},
+		Type:         new(config.ConfigVariableTypeBool),
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_VALKEY_TLS_INSECURE_SKIP_VERIFY",
 		DefaultValue: new("false"),
 		Description:  new("Skip TLS certificate verification for the valkey connection"),
-		Validate: func(value string) error {
-			_, err := strconv.ParseBool(value)
-			if err != nil {
-				return fmt.Errorf("'MO_VALKEY_TLS_INSECURE_SKIP_VERIFY' needs to be a boolean: %s", err.Error())
-			}
-			return nil
-		},
+		Type:         new(config.ConfigVariableTypeBool),
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_VALKEY_TLS_CA_CERT_FILE",
@@ -375,13 +351,7 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		DefaultValue: new("1000"),
 		Description:  new("maximum number of audit log entries to persist per resource (namespace/name pair), not globally"),
 		Envs:         []string{"audit_log_limit"},
-		Validate: func(value string) error {
-			_, err := strconv.Atoi(value)
-			if err != nil {
-				return fmt.Errorf("'MO_AUDIT_LOG_LIMIT' needs to be an integer: %s", err.Error())
-			}
-			return nil
-		},
+		Type:         new(config.ConfigVariableTypeInt),
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_AUDIT_LOG_TTL",
@@ -403,37 +373,19 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		Key:          "MO_ENABLE_POD_STATS_COLLECTOR",
 		DefaultValue: new("true"),
 		Description:  new("enable collection of pod stats"),
-		Validate: func(value string) error {
-			_, err := strconv.ParseBool(value)
-			if err != nil {
-				return fmt.Errorf("'MO_ENABLE_POD_STATS_COLLECTOR' needs to be a boolean: %s", err.Error())
-			}
-			return nil
-		},
+		Type:         new(config.ConfigVariableTypeBool),
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_ENABLE_TRAFFIC_COLLECTOR",
 		DefaultValue: new("false"),
 		Description:  new("enable collection of network stats"),
-		Validate: func(value string) error {
-			_, err := strconv.ParseBool(value)
-			if err != nil {
-				return fmt.Errorf("'MO_ENABLE_TRAFFIC_COLLECTOR' needs to be a boolean: %s", err.Error())
-			}
-			return nil
-		},
+		Type:         new(config.ConfigVariableTypeBool),
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_ENABLE_AUTO_UPGRADE",
 		DefaultValue: new("true"),
 		Description:  new("enable automatic operator self-upgrades triggered by the platform "),
-		Validate: func(value string) error {
-			_, err := strconv.ParseBool(value)
-			if err != nil {
-				return fmt.Errorf("'MO_ENABLE_AUTO_UPGRADE' needs to be a boolean: %s", err.Error())
-			}
-			return nil
-		},
+		Type:         new(config.ConfigVariableTypeBool),
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_SNOOPY_IMPLEMENTATION",
@@ -455,13 +407,7 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		Key:          "KUBERNETES_DEBUG",
 		DefaultValue: new("false"),
 		Description:  new("enable kubernetes sdk debug output"),
-		Validate: func(value string) error {
-			_, err := strconv.ParseBool(value)
-			if err != nil {
-				return fmt.Errorf("'KUBERNETES_DEBUG' needs to be a boolean: %s", err.Error())
-			}
-			return nil
-		},
+		Type:         new(config.ConfigVariableTypeBool),
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_HOST_PROC_PATH",
@@ -489,12 +435,6 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		Key:          "MO_ALLOW_COUNTRY_CHECK",
 		DefaultValue: new("true"),
 		Description:  new(`allow the operator to determine its location country base on the IP address`),
-		Validate: func(value string) error {
-			_, err := strconv.ParseBool(value)
-			if err != nil {
-				return fmt.Errorf("'MO_ALLOW_COUNTRY_CHECK' needs to be a boolean: %s", err.Error())
-			}
-			return nil
-		},
+		Type:         new(config.ConfigVariableTypeBool),
 	})
 }

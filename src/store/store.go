@@ -169,12 +169,12 @@ func WaitForStoreReady(ctx context.Context, timeout time.Duration) bool {
 func Setup(
 	logManagerModule logging.SlogManager,
 	valkey valkeyclient.ValkeyClient,
-	auditLogLimitStr string,
+	auditLogLimit int64,
 	auditLogTTLStr string,
 ) error {
 	valkeyClient = valkey
 	auditLogger = logManagerModule.CreateLogger("audit-log")
-	auditLogLimit, _ := strconv.ParseInt(auditLogLimitStr, 10, 64)
+
 	if auditLogLimit > 0 {
 		AuditLogLimit = auditLogLimit
 	}

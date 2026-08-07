@@ -50,7 +50,9 @@ func initializeBaseSystems(
 
 	valkeyClient := valkeyclient.NewValkeyClient(logManagerModule.CreateLogger("valkey"), configModule)
 
-	err := store.Setup(logManagerModule, valkeyClient, configModule.Get("MO_AUDIT_LOG_LIMIT"), configModule.Get("MO_AUDIT_LOG_TTL"))
+	auditLogLimit, err := configModule.TryGetInt("MO_AUDIT_LOG_LIMIT")
+	assert.Assert(err == nil, err)
+	err = store.Setup(logManagerModule, valkeyClient, auditLogLimit, configModule.Get("MO_AUDIT_LOG_TTL"))
 	assert.Assert(err == nil, err)
 
 	err = mokubernetes.Setup(logManagerModule, configModule, clientProvider, valkeyClient)

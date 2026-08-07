@@ -15,6 +15,16 @@ type ConfigModule interface {
 	// Fails if the `key` was not initialized.
 	TryGet(key string) (string, error)
 
+	// Same as `TryGet()` - Type needs to be `ConfigVariableTypeBool`.
+	//
+	// Fails if the `key` was not initialized or the value is not a valid boolean.
+	TryGetBool(key string) (bool, error)
+
+	// Same as `TryGet()` - Type needs to be `ConfigVariableTypeInt`.
+	//
+	// Fails if the `key` was not initialized or the value is not a valid integer.
+	TryGetInt(key string) (int64, error)
+
 	// Same as `TrySet()`. Panics if it fails.
 	Set(key string, value string)
 
@@ -46,9 +56,19 @@ type ConfigModule interface {
 	Validate()
 }
 
+type ConfigVariableType string
+
+const (
+	ConfigVariableTypeString ConfigVariableType = "string"
+	ConfigVariableTypeInt    ConfigVariableType = "int"
+	ConfigVariableTypeBool   ConfigVariableType = "bool"
+)
+
 type ConfigDeclaration struct {
 	// (required) Key of the config value
 	Key string
+	// (optional) Type of the config value. Defaults to `string`.
+	Type *ConfigVariableType
 	// (optional) Initial value
 	DefaultValue *string
 	// (optional) Human readable description

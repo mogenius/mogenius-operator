@@ -62,6 +62,28 @@ func (c *Config) Validate() {
 					continue
 				}
 			}
+
+			if cv.declaration.Type != nil {
+				switch *cv.declaration.Type {
+				case ConfigVariableTypeString:
+					// no validation needed for string
+				case ConfigVariableTypeInt:
+					_, err := strconv.ParseInt(*cv.value, 10, 64)
+					if err != nil {
+						errs = append(errs, fmt.Errorf("Validation for Key '%s' failed: value is not a valid integer: %s", key, err.Error()))
+						continue
+					}
+				case ConfigVariableTypeBool:
+					_, err := strconv.ParseBool(*cv.value)
+					if err != nil {
+						errs = append(errs, fmt.Errorf("Validation for Key '%s' failed: value is not a valid boolean: %s", key, err.Error()))
+						continue
+					}
+				default:
+					errs = append(errs, fmt.Errorf("Validation for Key '%s' failed: unknown type '%s'", key, *cv.declaration.Type))
+					continue
+				}
+			}
 		}
 	}()
 
@@ -130,9 +152,9 @@ func (c *Config) Get(key string) string {
 	return value
 }
 
-func (c *Config) TryGet(key string) (string, error) {
+func (c *Config) getValueForKey(key string) (*configValue, error) {
 	if key == "" {
-		return "", fmt.Errorf("key cant be empty")
+		return nil, fmt.Errorf("key cant be empty")
 	}
 
 	c.dataLock.RLock()
@@ -140,15 +162,58 @@ func (c *Config) TryGet(key string) (string, error) {
 
 	cv, ok := c.data[key]
 	if !ok {
-		return "", fmt.Errorf("undeclared config value '%s' cant be accessed", key)
+		return nil, fmt.Errorf("undeclared config value '%s' cant be accessed", key)
 	}
 	if cv.value == nil {
-		return "", fmt.Errorf("uninitialized config value '%s' cant be accessed", key)
+		return nil, fmt.Errorf("uninitialized config value '%s' cant be accessed", key)
 	}
 
 	cv.getCounter.Add(1)
+	return cv, nil
+}
 
+func (c *Config) TryGet(key string) (string, error) {
+	cv, err := c.getValueForKey(key)
+	if err != nil {
+		return "", err
+	}
 	return *cv.value, nil
+}
+
+func (c *Config) TryGetBool(key string) (bool, error) {
+	cv, err := c.getValueForKey(key)
+	if err != nil {
+		return false, err
+	}
+
+	if cv.declaration.Type == nil || *cv.declaration.Type != ConfigVariableTypeBool {
+		return false, fmt.Errorf("config value '%s' is not declared as a boolean", key)
+	}
+
+	boolValue, err := strconv.ParseBool(*cv.value)
+	if err != nil {
+		return false, fmt.Errorf("config value '%s' is not a valid boolean: %s", key, err.Error())
+	}
+
+	return boolValue, nil
+}
+
+func (c *Config) TryGetInt(key string) (int64, error) {
+	cv, err := c.getValueForKey(key)
+	if err != nil {
+		return 0, err
+	}
+
+	if cv.declaration.Type == nil || *cv.declaration.Type != ConfigVariableTypeInt {
+		return 0, fmt.Errorf("config value '%s' is not declared as an integer", key)
+	}
+
+	intValue, err := strconv.ParseInt(*cv.value, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("config value '%s' is not a valid integer: %s", key, err.Error())
+	}
+
+	return intValue, nil
 }
 
 func (self *Config) IsSet(key string) bool {
