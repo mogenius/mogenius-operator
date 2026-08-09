@@ -4,7 +4,7 @@ go 1.26.4
 
 require (
 	github.com/KimMachineGun/automemlimit v0.7.5
-	github.com/alecthomas/kong v1.16.0
+	github.com/alecthomas/kong v1.16.1
 	github.com/bitnami/sealed-secrets v0.38.4
 	github.com/creack/pty v1.1.24
 	github.com/go-playground/validator/v10 v10.30.3
