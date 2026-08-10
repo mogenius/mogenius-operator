@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"mogenius-operator/src/crds/v1alpha1"
 	"mogenius-operator/src/gitops"
+	"mogenius-operator/src/utils"
+	"reflect"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -39,11 +41,26 @@ const (
 	componentExternalSecretsOperator = "external-secrets-operator"
 )
 
+// GitOps engine identities as reported in status.gitOpsStatus.engine. These are
+// a different concept from the component* constants above, which name the
+// platform-defaults file of the engine's Helm chart.
+const (
+	gitOpsEngineArgoCD = gitops.EngineArgoCD
+	gitOpsEngineFlux   = gitops.EngineFlux
+)
 
 const (
 	argocdDefaultNamespace = "argocd"
 	fluxcdDefaultNamespace = "flux-system"
 )
+
+// Where the reported GitOps information originates.
+const (
+	gitOpsSourceSpec     = "spec"
+	gitOpsSourceDetected = "detected"
+)
+
+const argoCDDefaultProject = "mogenius"
 
 func (d *reconcilerModule) reconcilePlatformConfig(ctx context.Context, obj *unstructured.Unstructured, op operation) []ReconcileResult {
 	var platformConfig v1alpha1.PlatformConfig
@@ -51,21 +68,22 @@ func (d *reconcilerModule) reconcilePlatformConfig(ctx context.Context, obj *uns
 		return []ReconcileResult{{Err: fmt.Errorf("failed to parse PlatformConfig: %w", err)}}
 	}
 
+	gitOpsStatus := buildGitOpsStatus(platformConfig.Spec, d.detectGitOpsStatus(ctx))
+
 	engine, engineNs, err := inferGitOpsEngine(platformConfig.Spec.GitOps)
 	if err != nil {
+		d.patchGitOpsStatus(ctx, obj.GetName(), platformConfig.Status.GitOpsStatus, gitOpsStatus)
 		return []ReconcileResult{{Err: err}}
 	}
 
-	gitOpsStatus := buildGitOpsStatus(platformConfig.Spec)
-
-	if engine == "" {
-		d.logger.Info("no GitOps engine enabled, skipping reconciliation of GitOps components")
-		if !gitOpsStatusEqual(platformConfig.Status.GitOpsStatus, gitOpsStatus) {
-			if err := d.updatePlatformConfigStatus(ctx, obj.GetName(), nil, gitOpsStatus); err != nil {
-				d.logger.Warn("failed to update PlatformConfig status", "name", obj.GetName(), "error", err)
-			}
-		}
-		return []ReconcileResult{{Err: fmt.Errorf("no GitOps engine enabled")}}
+	// Installing platform components is still gated behind dev builds, but the
+	// GitOps status is reported on every cluster — including clusters where the
+	// engine is user-managed and the spec configures nothing at all.
+	if engine == "" || !utils.IsDevBuild() {
+		d.logger.Info("skipping reconciliation of GitOps components, reporting GitOps status only",
+			"name", obj.GetName(), "specEngine", engine, "engine", gitOpsStatus.Engine, "installed", gitOpsStatus.Installed)
+		d.patchGitOpsStatus(ctx, obj.GetName(), platformConfig.Status.GitOpsStatus, gitOpsStatus)
+		return nil
 	}
 
 	ownerRef := metav1.OwnerReference{
@@ -83,9 +101,9 @@ func (d *reconcilerModule) reconcilePlatformConfig(ctx context.Context, obj *uns
 
 	var gitopsResult componentResult
 	switch engine {
-	case "argocd":
+	case gitOpsEngineArgoCD:
 		gitopsResult = componentResult{name: componentArgoCD, result: d.reconcileArgoCD(ctx, platformConfig.Spec, installer, op)}
-	case "flux":
+	case gitOpsEngineFlux:
 		gitopsResult = componentResult{name: componentFluxCD, result: d.reconcileFluxCD(ctx, platformConfig.Spec, installer, op)}
 	}
 
@@ -149,6 +167,17 @@ func (d *reconcilerModule) reconcilePlatformConfig(ctx context.Context, obj *uns
 	return results
 }
 
+// patchGitOpsStatus writes the GitOps status when it differs from what the
+// object already reports. Failures are logged, never propagated.
+func (d *reconcilerModule) patchGitOpsStatus(ctx context.Context, name string, current, desired *v1alpha1.GitOpsStatus) {
+	if gitOpsStatusEqual(current, desired) {
+		return
+	}
+	if err := d.updatePlatformConfigStatus(ctx, name, nil, desired); err != nil {
+		d.logger.Warn("failed to update PlatformConfig status", "name", name, "error", err)
+	}
+}
+
 // conditionsEqual compares conditions ignoring LastTransitionTime and ObservedGeneration.
 func conditionsEqual(current, desired []metav1.Condition) bool {
 	if len(current) != len(desired) {
@@ -183,46 +212,101 @@ func (d *reconcilerModule) updatePlatformConfigStatus(ctx context.Context, name 
 	return err
 }
 
-func buildGitOpsStatus(spec v1alpha1.PlatformConfigSpec) *v1alpha1.GitOpsStatus {
-	gitOps := spec.GitOps
+// buildGitOpsStatus merges what the spec declares with what was found on the
+// cluster. An engine the spec enables is authoritative for the identity, while
+// detection always contributes the live facts (installed, version, controllers).
+// The result is never nil: an empty status with installed=false is what tells a
+// consumer that the cluster was checked and carries no engine.
+func buildGitOpsStatus(spec v1alpha1.PlatformConfigSpec, detection gitOpsDetection) *v1alpha1.GitOpsStatus {
+	engine, enabled, chart, project := specGitOps(spec.GitOps)
+	detected := detection.forEngine(engine)
+	source := gitOpsSourceSpec
+
+	// Without an engine that mogenius owns, whatever actually runs wins.
+	if !enabled {
+		if fallback := detection.preferred(); fallback != nil {
+			if fallback.engine != engine {
+				engine, chart, project = fallback.engine, nil, ""
+			}
+			detected = fallback
+			source = gitOpsSourceDetected
+		}
+	}
+
+	if engine == "" {
+		return &v1alpha1.GitOpsStatus{Source: gitOpsSourceDetected}
+	}
+
+	status := &v1alpha1.GitOpsStatus{
+		Engine:        engine,
+		IsUserManaged: !enabled,
+		Source:        source,
+		Namespace:     helmNamespace(chart, ""),
+		ReleaseName:   helmReleaseName(chart, ""),
+	}
+	if engine == gitOpsEngineArgoCD {
+		status.DefaultProjectName = firstNonEmpty(project, argoCDDefaultProject)
+	}
+
+	if detected != nil {
+		status.Installed = detected.installed
+		status.Version = detected.version
+		status.Controllers = detected.controllers
+		status.Namespace = firstNonEmpty(status.Namespace, detected.namespace)
+		status.ReleaseName = firstNonEmpty(status.ReleaseName, detected.releaseName)
+	}
+
+	status.Namespace = firstNonEmpty(status.Namespace, defaultEngineNamespace(engine))
+	if source == gitOpsSourceSpec {
+		// A user-managed install can carry any release name, so only a
+		// mogenius-declared engine falls back to the name we would install it under.
+		status.ReleaseName = firstNonEmpty(status.ReleaseName, defaultEngineReleaseName(engine))
+	}
+
+	return status
+}
+
+// specGitOps reports the engine spec.gitOps declares, whether mogenius installs
+// it, and the chart/project settings that belong to it.
+func specGitOps(gitOps *v1alpha1.GitOpsConfig) (engine string, enabled bool, chart *v1alpha1.HelmChartReference, project string) {
 	if gitOps == nil {
-		return nil
+		return "", false, nil, ""
 	}
-
-	if gitOps.ArgoCD != nil {
-		project := "mogenius"
-		if gitOps.ArgoCD.Project != "" {
-			project = gitOps.ArgoCD.Project
-		}
-		return &v1alpha1.GitOpsStatus{
-			IsUserManaged:      !gitOps.ArgoCD.Enabled,
-			Engine:             componentArgoCD,
-			Namespace:          helmNamespace(gitOps.ArgoCD.Chart, argocdDefaultNamespace),
-			ReleaseName:        helmReleaseName(gitOps.ArgoCD.Chart, "argocd"),
-			DefaultProjectName: project,
-		}
+	switch {
+	case gitOps.ArgoCD != nil && gitOps.ArgoCD.Enabled:
+		return gitOpsEngineArgoCD, true, gitOps.ArgoCD.Chart, gitOps.ArgoCD.Project
+	case gitOps.FluxCD != nil && gitOps.FluxCD.Enabled:
+		return gitOpsEngineFlux, true, gitOps.FluxCD.Chart, ""
+	case gitOps.ArgoCD != nil:
+		return gitOpsEngineArgoCD, false, gitOps.ArgoCD.Chart, gitOps.ArgoCD.Project
+	case gitOps.FluxCD != nil:
+		return gitOpsEngineFlux, false, gitOps.FluxCD.Chart, ""
 	}
+	return "", false, nil, ""
+}
 
-	if gitOps.FluxCD != nil {
-		return &v1alpha1.GitOpsStatus{
-			IsUserManaged: !gitOps.FluxCD.Enabled,
-			Engine:        componentFluxCD,
-			Namespace:     helmNamespace(gitOps.FluxCD.Chart, fluxcdDefaultNamespace),
-			ReleaseName:   helmReleaseName(gitOps.FluxCD.Chart, "flux-operator"),
-		}
+func defaultEngineNamespace(engine string) string {
+	switch engine {
+	case gitOpsEngineArgoCD:
+		return argocdDefaultNamespace
+	case gitOpsEngineFlux:
+		return fluxcdDefaultNamespace
 	}
+	return ""
+}
 
-	return nil
+func defaultEngineReleaseName(engine string) string {
+	switch engine {
+	case gitOpsEngineArgoCD:
+		return "argocd"
+	case gitOpsEngineFlux:
+		return "flux-operator"
+	}
+	return ""
 }
 
 func gitOpsStatusEqual(current, desired *v1alpha1.GitOpsStatus) bool {
-	if current == nil && desired == nil {
-		return true
-	}
-	if current == nil || desired == nil {
-		return false
-	}
-	return *current == *desired
+	return reflect.DeepEqual(current, desired)
 }
 
 func (d *reconcilerModule) fetchPlatformPatch(ctx context.Context, ref v1alpha1.PlatformConfigPatchReference) (*v1alpha1.PlatformPatch, error) {
@@ -251,10 +335,10 @@ func inferGitOpsEngine(gitOps *v1alpha1.GitOpsConfig) (engine, namespace string,
 		return "", "", fmt.Errorf("invalid gitops config: argocd and fluxcd cannot both be enabled")
 	}
 	if argoCDEnabled {
-		return "argocd", helmNamespace(gitOps.ArgoCD.Chart, argocdDefaultNamespace), nil
+		return gitOpsEngineArgoCD, helmNamespace(gitOps.ArgoCD.Chart, argocdDefaultNamespace), nil
 	}
 	if fluxCDEnabled {
-		return "flux", helmNamespace(gitOps.FluxCD.Chart, fluxcdDefaultNamespace), nil
+		return gitOpsEngineFlux, helmNamespace(gitOps.FluxCD.Chart, fluxcdDefaultNamespace), nil
 	}
 	return "", "", nil
 }

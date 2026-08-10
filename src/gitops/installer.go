@@ -18,6 +18,14 @@ const (
 	moacVersion = "1.2.3"
 )
 
+// GitOps engine identities. These match the platform SDK's GitOpsEngineEnum and
+// are reported verbatim in PlatformConfig.status.gitOpsStatus.engine. They are
+// distinct from the component names used to address platform-defaults files.
+const (
+	EngineArgoCD = "argo-cd"
+	EngineFlux   = "flux"
+)
+
 type GitOpsArtifact struct {
 	Namespace    string
 	Values       map[string]any
@@ -59,9 +67,9 @@ func (n *noopInstaller) UnInstall(_ string) error                 { return nil }
 // ownerRefs are set on every resource created by the installer.
 func NewGitOpsInstaller(engine, namespace string, clientProvider k8sclient.K8sClientProvider, ownerRefs []metav1.OwnerReference) GitOpsInstaller {
 	switch engine {
-	case "argocd":
+	case EngineArgoCD:
 		return &argocdInstaller{clientProvider: clientProvider, namespace: namespace, ownerRefs: ownerRefs}
-	case "flux":
+	case EngineFlux:
 		return &fluxInstaller{clientProvider: clientProvider, namespace: namespace, ownerRefs: ownerRefs}
 	default:
 		return &noopInstaller{}

@@ -52,7 +52,12 @@ spec:
           metadata:
             type: object
           spec:
-            description: Specification of platform components and their configuration.
+            description: |-
+              Specification of platform components and their configuration.
+
+              Every field is optional so that the default PlatformConfig the operator
+              creates at startup — an empty spec that only carries the GitOps status —
+              passes schema validation.
             properties:
               alloy:
                 properties:
@@ -486,9 +491,6 @@ spec:
                     type: object
                     x-kubernetes-preserve-unknown-fields: true
                 type: object
-            required:
-            - gitOps
-            - platformVersion
             type: object
           status:
             properties:
@@ -549,16 +551,50 @@ spec:
                   type: object
                 type: array
               gitOpsStatus:
+                description: |-
+                  GitOpsStatus reports whether, where and which GitOps engine runs on this
+                  cluster. No field carries `omitempty`: the status is written with a JSON
+                  merge patch, where an omitted key keeps its previous value — stale engine
+                  data would survive an engine being removed or replaced.
                 properties:
+                  controllers:
+                    description: Controllers are the engine's controller deployments.
+                    items:
+                      properties:
+                        name:
+                          type: string
+                        ready:
+                          type: boolean
+                        version:
+                          type: string
+                      type: object
+                    type: array
                   defaultProjectName:
+                    description: DefaultProjectName is the ArgoCD AppProject mogenius
+                      deploys into.
                     type: string
                   engine:
+                    description: Engine identity, "argo-cd" or "flux".
                     type: string
+                  installed:
+                    description: Installed is true when an engine was actually found
+                      on the cluster.
+                    type: boolean
                   isUserManaged:
+                    description: IsUserManaged is true when the engine is not installed
+                      and owned by mogenius.
                     type: boolean
                   namespace:
                     type: string
                   releaseName:
+                    type: string
+                  source:
+                    description: |-
+                      Source is "spec" when the information comes from spec.gitOps and
+                      "detected" when it comes from probing the cluster.
+                    type: string
+                  version:
+                    description: Version of the engine, e.g. "v2.7.5".
                     type: string
                 type: object
             type: object
