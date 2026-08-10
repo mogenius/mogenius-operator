@@ -66,10 +66,10 @@ func NewReconcilerFactory(logger *slog.Logger, clientProvider k8sclient.K8sClien
 	factory.WithReconciler(utils.AiModelResource, factory.module.reconcileAiModels, NamespaceFilter(ownNamespace))
 	factory.WithReconciler(utils.McpServerResource, factory.module.reconcileMcpServers, NamespaceFilter(ownNamespace))
 
-	// TODO: Remove gaurd when platform config is ready, and add other platform components as needed.
-	if utils.IsDevBuild() {
-		factory.WithReconciler(utils.PlatformConfigResource, factory.module.reconcilePlatformConfig)
-	}
+	// Registered on every build: the reconciler reports the GitOps engine it
+	// detects on the cluster. Installing platform components from the spec is
+	// what stays behind utils.IsDevBuild(), inside reconcilePlatformConfig.
+	factory.WithReconciler(utils.PlatformConfigResource, factory.module.reconcilePlatformConfig)
 
 	return factory
 }

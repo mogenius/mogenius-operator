@@ -41,10 +41,14 @@ type PlatformConfig struct {
 }
 
 // Specification of platform components and their configuration.
+//
+// Every field is optional so that the default PlatformConfig the operator
+// creates at startup — an empty spec that only carries the GitOps status —
+// passes schema validation.
 type PlatformConfigSpec struct {
-	PlatformVersion         string                         `json:"platformVersion"`
+	PlatformVersion         string                         `json:"platformVersion,omitempty"`
 	PlatformSource          string                         `json:"platformSource,omitempty"`
-	GitOps                  *GitOpsConfig                  `json:"gitOps"`
+	GitOps                  *GitOpsConfig                  `json:"gitOps,omitempty"`
 	CertManager             *CertManagerConfig             `json:"certManager,omitempty"`
 	Traefik                 *TraefikConfig                 `json:"traefik,omitempty"`
 	ExternalDNS             *ExternalDNSConfig             `json:"externalDns,omitempty"`
@@ -210,10 +214,44 @@ type PlatformConfigStatus struct {
 	GitOpsStatus *GitOpsStatus      `json:"gitOpsStatus,omitempty"`
 }
 
+// GitOpsStatus reports whether, where and which GitOps engine runs on this
+// cluster. No field carries `omitempty`: the status is written with a JSON
+// merge patch, where an omitted key keeps its previous value — stale engine
+// data would survive an engine being removed or replaced.
 type GitOpsStatus struct {
-	Engine             string `json:"engine,omitempty"`
-	Namespace          string `json:"namespace,omitempty"`
-	ReleaseName        string `json:"releaseName,omitempty"`
-	DefaultProjectName string `json:"defaultProjectName,omitempty"`
-	IsUserManaged      bool   `json:"isUserManaged,omitempty"`
+	// Engine identity, "argo-cd" or "flux".
+	// +optional
+	Engine string `json:"engine"`
+	// Installed is true when an engine was actually found on the cluster.
+	// +optional
+	Installed bool `json:"installed"`
+	// +optional
+	Namespace string `json:"namespace"`
+	// +optional
+	ReleaseName string `json:"releaseName"`
+	// Version of the engine, e.g. "v2.7.5".
+	// +optional
+	Version string `json:"version"`
+	// IsUserManaged is true when the engine is not installed and owned by mogenius.
+	// +optional
+	IsUserManaged bool `json:"isUserManaged"`
+	// Source is "spec" when the information comes from spec.gitOps and
+	// "detected" when it comes from probing the cluster.
+	// +optional
+	Source string `json:"source"`
+	// DefaultProjectName is the ArgoCD AppProject mogenius deploys into.
+	// +optional
+	DefaultProjectName string `json:"defaultProjectName"`
+	// Controllers are the engine's controller deployments.
+	// +optional
+	Controllers []GitOpsControllerStatus `json:"controllers"`
+}
+
+type GitOpsControllerStatus struct {
+	// +optional
+	Name string `json:"name"`
+	// +optional
+	Version string `json:"version"`
+	// +optional
+	Ready bool `json:"ready"`
 }
