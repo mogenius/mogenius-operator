@@ -281,7 +281,10 @@ func RunCluster(logManagerModule logging.SlogManager, configModule *config.Confi
 
 			core.EnsureDefaultWorkspaceDashboard(logManagerModule.CreateLogger("dashboard-seeder"), configModule)
 
-			core.EnsureDefaultPlatformConfig(logManagerModule.CreateLogger("platform-config-seeder"), systems.clientProvider)
+			// Gated with the platformconfigs CRD (see kubernetes.InitOrUpdateCrds).
+			if utils.IsDevBuild() {
+				core.EnsureDefaultPlatformConfig(logManagerModule.CreateLogger("platform-config-seeder"), systems.clientProvider)
+			}
 		})
 
 		systems.leaderElector.OnLeadingEnded(func() {

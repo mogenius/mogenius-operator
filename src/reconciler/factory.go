@@ -66,10 +66,14 @@ func NewReconcilerFactory(logger *slog.Logger, clientProvider k8sclient.K8sClien
 	factory.WithReconciler(utils.AiModelResource, factory.module.reconcileAiModels, NamespaceFilter(ownNamespace))
 	factory.WithReconciler(utils.McpServerResource, factory.module.reconcileMcpServers, NamespaceFilter(ownNamespace))
 
-	// Registered on every build: the reconciler reports the GitOps engine it
-	// detects on the cluster. Installing platform components from the spec is
-	// what stays behind utils.IsDevBuild(), inside reconcilePlatformConfig.
-	factory.WithReconciler(utils.PlatformConfigResource, factory.module.reconcilePlatformConfig)
+	// TODO: Remove gaurd when platform config is ready, and add other platform components as needed.
+	// Gated together with the platformconfigs CRD (see kubernetes.InitOrUpdateCrds).
+	// Reporting the detected GitOps engine in the status is safe on any cluster, so
+	// this guard can go once the CRD ships everywhere; installing platform
+	// components from the spec keeps its own guard inside reconcilePlatformConfig.
+	if utils.IsDevBuild() {
+		factory.WithReconciler(utils.PlatformConfigResource, factory.module.reconcilePlatformConfig)
+	}
 
 	return factory
 }
