@@ -37,9 +37,8 @@ func InitOrUpdateCrds() {
 	crds := crds.GetCRDs()
 	for _, crd := range crds {
 		// TODO: Remove the dev build gaurd when platform config is ready, and add other platform components as needed.
-		// platformconfigs is exempt: every cluster needs it so the operator can
-		// report the detected GitOps engine in its status.
-		if (crd.Filename == "mogenius.com_platformpatches.yaml" ||
+		if (crd.Filename == "mogenius.com_platformconfigs.yaml" ||
+			crd.Filename == "mogenius.com_platformpatches.yaml" ||
 			crd.Filename == "mogenius.com_uiconfigs.yaml") && !utils.IsDevBuild() {
 			continue
 		}
