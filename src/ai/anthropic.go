@@ -572,7 +572,8 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, rc *ResolvedMod
 					}
 					var mcpErr error
 					if data == "" {
-						mcpResult, mcpErr := ai.mcpManager.CallToolInSessions(ctx, block.Name, args, mcpSessions)
+						var mcpResult string
+						mcpResult, mcpErr = ai.mcpManager.CallToolInSessions(ctx, block.Name, args, mcpSessions)
 						if mcpErr != nil {
 							data = fmt.Sprintf("MCP tool error: %v", mcpErr)
 						} else {

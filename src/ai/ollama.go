@@ -158,7 +158,8 @@ func (ai *aiManager) processPromptOllama(ctx context.Context, rc *ResolvedModelC
 				}
 				var mcpErr error
 				if data == "" {
-					mcpResult, mcpErr := ai.mcpManager.CallToolInSessions(ctx, name, args, mcpSessions)
+					var mcpResult string
+					mcpResult, mcpErr = ai.mcpManager.CallToolInSessions(ctx, name, args, mcpSessions)
 					if mcpErr != nil {
 						data = fmt.Sprintf("MCP tool error: %v", mcpErr)
 					} else {
