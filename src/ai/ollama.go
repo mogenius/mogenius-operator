@@ -92,6 +92,18 @@ func (ai *aiManager) processPromptOllama(ctx context.Context, rc *ResolvedModelC
 		return api.Message{Role: "tool", ToolName: name, Content: content}
 	}
 
+	// Ollama historically continues past an unknown tool call (surfacing a
+	// message) rather than aborting the run like the OpenAI/Anthropic agents,
+	// so UnknownIsFatal stays false here.
+	exec := toolExec{
+		ToolCtx:           toolCtx,
+		McpSessions:       mcpSessions,
+		ScopedMCP:         true,
+		InterceptMutating: true,
+		Audit:             true,
+		RecordStep:        recordStep,
+	}
+
 	for {
 		req := &api.ChatRequest{
 			Model:    model,
@@ -181,70 +193,16 @@ func (ai *aiManager) processPromptOllama(ctx context.Context, rc *ResolvedModelC
 				onProgress(tokensUsed, describeToolCall(name, args))
 			}
 
-			builtinTool, isBuiltin := toolDefinitions[name]
-			switch {
-			case isBuiltin:
-				var data string
-				execCtx := toolCtx
-				if mutatingBuiltinTools[name] && toolCtx != nil && toolCtx.CreateApprovalRequest != nil {
-					approverCtx, approvalErr := toolCtx.CreateApprovalRequest(ctx, name, args)
-					if approvalErr != nil {
-						data = fmt.Sprintf("Tool call %q was not executed: %v", name, approvalErr)
-					} else {
-						execCtx = approverCtx
-						data = builtinTool(args, execCtx, ai.valkeyClient, ai.logger)
-					}
-				} else if mutatingBuiltinTools[name] {
-					data = fmt.Sprintf("Tool call %q requires human approval but no approval mechanism is configured for this run. The call was blocked.", name)
-				} else {
-					data = builtinTool(args, execCtx, ai.valkeyClient, ai.logger)
-				}
-				ai.auditInsightToolCall(execCtx, name, args, data, nil)
-				if recordStep != nil {
-					recordStep(AiRunStep{Kind: AI_RUN_STEP_ACT, Label: describeToolCall(name, args), Tool: name, Args: string(argsBytes), Result: data})
-				}
-				messages = append(messages, toolResult(name, data))
-			case ai.mcpManager.IsMCPToolInSessions(name, mcpSessions):
-				var data string
-				auditCtx := toolCtx
-				if ai.mcpManager.MCPToolNeedsApproval(name, mcpSessions) {
-					approverCtx, approvalErr := toolCtx.CreateApprovalRequest(ctx, name, args)
-					if approvalErr != nil {
-						data = fmt.Sprintf("Tool call %q was not executed: %v", name, approvalErr)
-					} else {
-						auditCtx = approverCtx
-					}
-				}
-				var mcpErr error
-				if data == "" {
-					var mcpResult string
-					mcpResult, mcpErr = ai.mcpManager.CallToolInSessions(ctx, name, args, mcpSessions)
-					if mcpErr != nil {
-						data = fmt.Sprintf("MCP tool error: %v", mcpErr)
-					} else {
-						data = mcpResult
-					}
-				}
-				ai.auditInsightToolCall(auditCtx, name, args, data, mcpErr)
-				if recordStep != nil {
-					recordStep(AiRunStep{Kind: AI_RUN_STEP_ACT, Label: describeToolCall(name, args), Tool: name, Args: string(argsBytes), Result: data})
-				}
-				messages = append(messages, toolResult(name, data))
-
-			default:
-				messages = append(messages, toolResult(name, fmt.Sprintf("Unknown tool %q — only the tools offered in this conversation exist.", name)))
+			out := ai.dispatchToolCall(ctx, name, args, string(argsBytes), exec)
+			if out.Fatal != nil {
+				return tokensUsed, elapsed(), model, out.Fatal
 			}
+			messages = append(messages, toolResult(name, out.Result))
 		}
 
 		// Check run budgets (tool calls and, when configured, tokens).
 		toolCallCount += len(toolCalls)
-		budgetExhausted := maxToolCalls > 0 && toolCallCount >= maxToolCalls
-		if !budgetExhausted && maxTokensPerRun > 0 && tokensUsed >= maxTokensPerRun {
-			budgetExhausted = true
-			ai.logger.Info("Per-run token limit reached", "maxTokensPerRun", maxTokensPerRun, "tokensUsed", tokensUsed)
-		}
-		if budgetExhausted {
-			ai.logger.Info("Run budget exhausted", "maxToolCalls", maxToolCalls, "toolCallCount", toolCallCount)
+		if runBudgetExhausted(ai.logger, maxToolCalls, toolCallCount, maxTokensPerRun, tokensUsed) {
 			return tokensUsed, elapsed(), model, nil
 		}
 
@@ -509,6 +467,7 @@ func (ai *aiManager) ollamaChatWithTools(
 		}
 
 		// Execute each tool call
+		exec := toolExec{ToolCtx: toolCtx, Categories: categories, Stats: &stats}
 		for _, tc := range toolCalls {
 			ai.logger.Info("Executing tool", "tool", tc.Function.Name)
 
@@ -531,37 +490,10 @@ func (ai *aiManager) ollamaChatWithTools(
 				continue
 			}
 
-			var result string
-			var toolErr string
-			if tc.Function.Name == activateToolCategoriesName {
-				result = categories.ActivateFromToolCall(args)
-			} else if ai.mcpManager != nil && ai.mcpManager.IsMCPTool(tc.Function.Name) {
-				mcpResult, err := ai.mcpManager.CallTool(ctx, tc.Function.Name, args)
-				if err != nil {
-					ai.logger.Error("MCP tool call failed", "tool", tc.Function.Name, "error", err)
-					toolErr = fmt.Sprintf("Error calling MCP tool: %v", err)
-					messages = append(messages, api.Message{
-						Role:    "tool",
-						Content: toolErr,
-					})
-					stats.ToolRecords = append(stats.ToolRecords, ToolUseRecord{Tool: tc.Function.Name, Args: args, Error: toolErr})
-					continue
-				}
-				result = mcpResult
-			} else if tool, ok := toolDefinitions[tc.Function.Name]; ok {
-				result = tool(args, toolCtx, ai.valkeyClient, ai.logger)
-			} else {
-				ai.logger.Error("Unknown tool called", "tool", tc.Function.Name)
-				messages = append(messages, api.Message{
-					Role:    "tool",
-					Content: fmt.Sprintf("Unknown tool: %s", tc.Function.Name),
-				})
-				continue
-			}
-			stats.ToolRecords = append(stats.ToolRecords, ToolUseRecord{Tool: tc.Function.Name, Args: args, Result: truncateToolResult(result)})
+			out := ai.dispatchToolCall(ctx, tc.Function.Name, args, "", exec)
 			messages = append(messages, api.Message{
 				Role:    "tool",
-				Content: result,
+				Content: out.Result,
 			})
 		}
 

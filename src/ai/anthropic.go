@@ -316,6 +316,7 @@ func (ai *aiManager) anthropicChatWithTools(
 		}
 
 		// Execute tool calls and collect results
+		exec := toolExec{ToolCtx: toolCtx, Categories: categories, Stats: &stats}
 		var toolResults []anthropic.ContentBlockParamUnion
 		for _, toolUse := range toolUseBlocks {
 			ai.logger.Info("Executing tool", "tool", toolUse.Name)
@@ -328,30 +329,8 @@ func (ai *aiManager) anthropicChatWithTools(
 				continue
 			}
 
-			// Execute tool
-			var result string
-			var toolErr string
-			if toolUse.Name == activateToolCategoriesName {
-				result = categories.ActivateFromToolCall(args)
-			} else if ai.mcpManager != nil && ai.mcpManager.IsMCPTool(toolUse.Name) {
-				mcpResult, err := ai.mcpManager.CallTool(ctx, toolUse.Name, args)
-				if err != nil {
-					ai.logger.Error("MCP tool call failed", "tool", toolUse.Name, "error", err)
-					toolErr = fmt.Sprintf("Error calling MCP tool: %v", err)
-					toolResults = append(toolResults, anthropic.NewToolResultBlock(toolUse.ID, toolErr, true))
-					stats.ToolRecords = append(stats.ToolRecords, ToolUseRecord{Tool: toolUse.Name, Args: args, Error: toolErr})
-					continue
-				}
-				result = mcpResult
-			} else if tool, ok := toolDefinitions[toolUse.Name]; ok {
-				result = tool(args, toolCtx, ai.valkeyClient, ai.logger)
-			} else {
-				ai.logger.Error("Unknown tool called", "tool", toolUse.Name)
-				toolResults = append(toolResults, anthropic.NewToolResultBlock(toolUse.ID, fmt.Sprintf("Unknown tool: %s", toolUse.Name), true))
-				continue
-			}
-			stats.ToolRecords = append(stats.ToolRecords, ToolUseRecord{Tool: toolUse.Name, Args: args, Result: truncateToolResult(result)})
-			toolResults = append(toolResults, anthropic.NewToolResultBlock(toolUse.ID, result, false))
+			out := ai.dispatchToolCall(ctx, toolUse.Name, args, "", exec)
+			toolResults = append(toolResults, anthropic.NewToolResultBlock(toolUse.ID, out.Result, out.IsError))
 		}
 
 		// Add tool results to messages for next iteration
@@ -494,6 +473,16 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, rc *ResolvedMod
 	// Index of the message currently carrying the moving cache breakpoint.
 	cachedMsgIdx := -1
 
+	exec := toolExec{
+		ToolCtx:           toolCtx,
+		McpSessions:       mcpSessions,
+		ScopedMCP:         true,
+		InterceptMutating: true,
+		UnknownIsFatal:    true,
+		Audit:             true,
+		RecordStep:        recordStep,
+	}
+
 	// Loop until there are no more tool calls or maxToolCalls reached
 	for {
 		moveCacheBreakpoint(messages, &cachedMsgIdx)
@@ -600,55 +589,12 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, rc *ResolvedMod
 					onProgress(tokensUsed, describeToolCall(block.Name, args))
 				}
 
-				var data string
-				if tool, ok := toolDefinitions[block.Name]; ok {
-					execCtx := toolCtx
-					if mutatingBuiltinTools[block.Name] && toolCtx != nil && toolCtx.CreateApprovalRequest != nil {
-						approverCtx, approvalErr := toolCtx.CreateApprovalRequest(ctx, block.Name, args)
-						if approvalErr != nil {
-							data = fmt.Sprintf("Tool call %q was not executed: %v", block.Name, approvalErr)
-						} else {
-							execCtx = approverCtx
-							data = tool(args, execCtx, ai.valkeyClient, ai.logger)
-						}
-					} else if mutatingBuiltinTools[block.Name] {
-						data = fmt.Sprintf("Tool call %q requires human approval but no approval mechanism is configured for this run. The call was blocked.", block.Name)
-					} else {
-						data = tool(args, execCtx, ai.valkeyClient, ai.logger)
-					}
-					ai.auditInsightToolCall(execCtx, block.Name, args, data, nil)
-					if recordStep != nil {
-						recordStep(AiRunStep{Kind: AI_RUN_STEP_ACT, Label: describeToolCall(block.Name, args), Tool: block.Name, Args: string(inputBytes), Result: data})
-					}
-				} else if ai.mcpManager != nil && ai.mcpManager.IsMCPToolInSessions(block.Name, mcpSessions) {
-					auditCtx := toolCtx
-					if ai.mcpManager.MCPToolNeedsApproval(block.Name, mcpSessions) {
-						approverCtx, approvalErr := toolCtx.CreateApprovalRequest(ctx, block.Name, args)
-						if approvalErr != nil {
-							data = fmt.Sprintf("Tool call %q was not executed: %v", block.Name, approvalErr)
-						} else {
-							auditCtx = approverCtx
-						}
-					}
-					var mcpErr error
-					if data == "" {
-						var mcpResult string
-						mcpResult, mcpErr = ai.mcpManager.CallToolInSessions(ctx, block.Name, args, mcpSessions)
-						if mcpErr != nil {
-							data = fmt.Sprintf("MCP tool error: %v", mcpErr)
-						} else {
-							data = mcpResult
-						}
-					}
-					ai.auditInsightToolCall(auditCtx, block.Name, args, data, mcpErr)
-					if recordStep != nil {
-						recordStep(AiRunStep{Kind: AI_RUN_STEP_ACT, Label: describeToolCall(block.Name, args), Tool: block.Name, Args: string(inputBytes), Result: data})
-					}
-				} else {
-					return tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("unknown tool called: %s", block.Name)
+				out := ai.dispatchToolCall(ctx, block.Name, args, string(inputBytes), exec)
+				if out.Fatal != nil {
+					return tokensUsed, int(time.Since(startTime).Milliseconds()), model, out.Fatal
 				}
 
-				toolResults = append(toolResults, anthropic.NewToolResultBlock(block.ID, data, false))
+				toolResults = append(toolResults, anthropic.NewToolResultBlock(block.ID, out.Result, false))
 			}
 
 		}
@@ -660,13 +606,7 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, rc *ResolvedMod
 
 		// Increase global tool call count and check the run budgets.
 		toolCallCount += iterationToolUses
-		budgetExhausted := maxToolCalls > 0 && toolCallCount >= maxToolCalls
-		if !budgetExhausted && maxTokensPerRun > 0 && tokensUsed >= maxTokensPerRun {
-			budgetExhausted = true
-			ai.logger.Info("Per-run token limit reached", "maxTokensPerRun", maxTokensPerRun, "tokensUsed", tokensUsed)
-		}
-		if budgetExhausted {
-			ai.logger.Info("Run budget exhausted", "maxToolCalls", maxToolCalls, "toolCallCount", toolCallCount)
+		if runBudgetExhausted(ai.logger, maxToolCalls, toolCallCount, maxTokensPerRun, tokensUsed) {
 			return tokensUsed, int(time.Since(startTime).Milliseconds()), model, nil
 		}
 

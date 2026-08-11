@@ -71,50 +71,19 @@ func (atc *ActiveToolCategories) ActivateFromToolCall(args map[string]any) strin
 
 // --- Meta-tool definitions per provider ---
 
-var activateToolCategoriesOpenAi = openai.ChatCompletionToolUnionParam{
-	OfFunction: &openai.ChatCompletionFunctionToolParam{
-		Function: openai.FunctionDefinitionParam{
-			Name:        activateToolCategoriesName,
-			Description: openai.String(activateToolCategoriesDesc),
-			Parameters: openai.FunctionParameters{
-				"type": "object",
-				"properties": map[string]any{
-					"categories": map[string]any{
-						"type":        "string",
-						"description": "Comma-separated list of categories to activate: KubernetesWrite, HelmRead, HelmWrite",
-					},
-				},
-				"required": []string{"categories"},
-			},
-		},
-	},
-}
-
-var activateToolCategoriesAnthropic = anthropic.ToolParam{
+var activateToolCategoriesSchema = toolSchema{
 	Name:        activateToolCategoriesName,
-	Description: anthropic.String(activateToolCategoriesDesc),
-	InputSchema: anthropic.ToolInputSchemaParam{
-		Type: "object",
-		Properties: map[string]any{
-			"categories": map[string]any{
-				"type":        "string",
-				"description": "Comma-separated list of categories to activate: KubernetesWrite, HelmRead, HelmWrite",
-			},
-		},
-		Required: []string{"categories"},
+	Description: activateToolCategoriesDesc,
+	Props: map[string]toolProp{
+		"categories": {Type: "string", Description: "Comma-separated list of categories to activate: KubernetesWrite, HelmRead, HelmWrite"},
 	},
+	Required: []string{"categories"},
 }
 
-var activateToolCategoriesOllama = ollamaTool(
-	activateToolCategoriesName,
-	activateToolCategoriesDesc,
-	map[string]api.ToolProperty{
-		"categories": {
-			Type:        []string{"string"},
-			Description: "Comma-separated list of categories to activate: KubernetesWrite, HelmRead, HelmWrite",
-		},
-	},
-	[]string{"categories"},
+var (
+	activateToolCategoriesOpenAi    = activateToolCategoriesSchema.toOpenAI()
+	activateToolCategoriesAnthropic = activateToolCategoriesSchema.toAnthropic()
+	activateToolCategoriesOllama    = activateToolCategoriesSchema.toOllama()
 )
 
 // ---------------------------------------------------------------------------

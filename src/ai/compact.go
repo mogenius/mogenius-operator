@@ -163,7 +163,8 @@ func writeCompactSlice(b *strings.Builder, key string, items []any, indent strin
 			if isSimpleMap(m) && len(m) <= 5 {
 				fmt.Fprintf(b, "%s  - %s\n", indent, flatKVAny(m))
 			} else {
-				b.WriteString(indent + "  -\n")
+				b.WriteString(indent)
+				b.WriteString("  -\n")
 				writeCompactMap(b, m, indent+"    ")
 			}
 		} else {
