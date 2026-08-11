@@ -830,21 +830,12 @@ func GetResourcesByWhitelistPaginated(
 		keys = append(keys, CreateResourceKey(rm.shard.apiVersion, rm.shard.kind, rm.shard.namespace, rm.member))
 	}
 
-	// Chunked so an unbounded read (limit <= 0, used by
-	// GetResourceByKindAndNamespace) cannot turn into a single MGET over every
-	// object of a kind. Order is preserved, so values stays index-aligned with
-	// page/keys for the stale-member detection below.
 	client := valkey.GetValkeyClient()
-	values := make([]vgo.ValkeyMessage, 0, len(keys))
-	for start := 0; start < len(keys); start += valkeyclient.MAX_CHUNK_GET_SIZE {
-		stop := min(start+valkeyclient.MAX_CHUNK_GET_SIZE, len(keys))
-		chunk, err := client.Do(valkey.GetContext(), client.B().Mget().Key(keys[start:stop]...).Build()).ToArray()
-		if err != nil {
-			logger.Error("failed to MGET paginated whitelist resources", "error", err)
-			return PaginatedResources{Items: []unstructured.Unstructured{}, TotalCount: total}, err
-		}
-		values = append(values, chunk...)
+	cmds := make([]vgo.Completed, len(keys))
+	for i, key := range keys {
+		cmds[i] = client.B().Get().Key(key).Build()
 	}
+	values := client.DoMulti(valkey.GetContext(), cmds...)
 
 	items := make([]unstructured.Unstructured, 0, len(values))
 	// Members whose primary key is gone (TTL expiry, or a delete event the
@@ -2154,25 +2145,22 @@ func mgetAuditEntries(keys []string) (map[string]*AuditLogEntry, []string, error
 	}
 	client := valkeyClient.GetValkeyClient()
 	ctx := valkeyClient.GetContext()
-	for start := 0; start < len(keys); start += valkeyclient.MAX_CHUNK_GET_SIZE {
-		chunk := keys[start:min(start+valkeyclient.MAX_CHUNK_GET_SIZE, len(keys))]
-		values, err := client.Do(ctx, client.B().Mget().Key(chunk...).Build()).ToArray()
-		if err != nil {
-			return nil, nil, err
+	cmds := make([]vgo.Completed, len(keys))
+	for i, key := range keys {
+		cmds[i] = client.B().Get().Key(key).Build()
+	}
+	for i, resp := range client.DoMulti(ctx, cmds...) {
+		raw, valueErr := resp.ToString()
+		if valueErr != nil {
+			stale = append(stale, keys[i])
+			continue
 		}
-		for i, value := range values {
-			raw, valueErr := value.ToString()
-			if valueErr != nil {
-				stale = append(stale, chunk[i])
-				continue
-			}
-			var entry AuditLogEntry
-			if err := json.Unmarshal([]byte(raw), &entry); err != nil {
-				stale = append(stale, chunk[i])
-				continue
-			}
-			entries[chunk[i]] = &entry
+		var entry AuditLogEntry
+		if err := json.Unmarshal([]byte(raw), &entry); err != nil {
+			stale = append(stale, keys[i])
+			continue
 		}
+		entries[keys[i]] = &entry
 	}
 	return entries, stale, nil
 }

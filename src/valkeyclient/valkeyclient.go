@@ -55,8 +55,6 @@ const (
 	ORDER_ASC  SortOrder = 1
 	ORDER_DESC SortOrder = 2
 
-	MAX_CHUNK_GET_SIZE = 100
-
 	// Defaults for time-series stream retention. Tuned for 1-minute write
 	// cadence: 1440 entries = 24h, which keeps each stream around ~400 KiB
 	// instead of the multi-MB streams produced by 10800 entries / 7d.
@@ -440,22 +438,22 @@ func (self *valkeyClient) List(limit int, keys ...string) ([]string, error) {
 		selectedKeys = selectedKeys[:limit]
 	}
 
-	// Fetch the values in 100 chunks to avoid memory issues with large datasets
-	chunks := make([][]string, 0, (len(selectedKeys)+MAX_CHUNK_GET_SIZE-1)/MAX_CHUNK_GET_SIZE)
-	for i := 0; i < len(selectedKeys); i += MAX_CHUNK_GET_SIZE {
-		end := min(i+MAX_CHUNK_GET_SIZE, len(selectedKeys))
-		chunks = append(chunks, selectedKeys[i:end])
+	cmds := make([]valkeyclient.Completed, len(selectedKeys))
+	for i, key := range selectedKeys {
+		cmds[i] = self.valkeyClient.B().Get().Key(key).Build()
 	}
-
-	// Fetch the values for these keys
 	result := make([]string, 0, len(selectedKeys))
-	for _, v := range chunks {
-		values, err := self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Mget().Key(v...).Build()).AsStrSlice()
+	for _, resp := range self.valkeyClient.DoMulti(self.ctx, cmds...) {
+		s, err := resp.ToString()
 		if err != nil {
-			self.logger.Error("Error fetching values from Valkey", "keys", v, "error", err)
+			if valkeyclient.IsValkeyNil(err) {
+				result = append(result, "")
+				continue
+			}
+			self.logger.Error("Error fetching value from Valkey", "error", err)
 			return result, err
 		}
-		result = append(result, values...)
+		result = append(result, s)
 	}
 
 	return result, nil
@@ -550,7 +548,6 @@ func (self *valkeyClient) ClearNonEssentialKeys(includeTraffic bool, includePodS
 	cacheDeleteCounter := 0
 	for _, pattern := range prefixesToDelete {
 		cursor := uint64(0)
-		batch := make([]string, 0, 100)
 
 		for {
 			result := self.valkeyClient.Do(self.ctx,
@@ -565,32 +562,23 @@ func (self *valkeyClient) ClearNonEssentialKeys(includeTraffic bool, includePodS
 				return "", fmt.Errorf("error parsing scan result for pattern %s: %w", pattern, err)
 			}
 
-			// Collect keys for deletion
-			for _, key := range scanResult.Elements {
-				batch = append(batch, key)
-
-				// Delete in batches of 100
-				if len(batch) >= 100 {
-					if err := self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Del().Key(batch...).Build()).Error(); err != nil {
-						return "", fmt.Errorf("error deleting batch: %w", err)
-					}
-					cacheDeleteCounter += len(batch)
-					batch = batch[:0]
+			if len(scanResult.Elements) > 0 {
+				cmds := make([]valkeyclient.Completed, len(scanResult.Elements))
+				for i, key := range scanResult.Elements {
+					cmds[i] = self.valkeyClient.B().Del().Key(key).Build()
 				}
+				for _, resp := range self.valkeyClient.DoMulti(self.ctx, cmds...) {
+					if resp.Error() != nil {
+						return "", fmt.Errorf("error deleting key: %w", resp.Error())
+					}
+				}
+				cacheDeleteCounter += len(scanResult.Elements)
 			}
 
 			cursor = scanResult.Cursor
 			if cursor == 0 {
 				break
 			}
-		}
-
-		// Delete remaining keys in batch
-		if len(batch) > 0 {
-			if err := self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Del().Key(batch...).Build()).Error(); err != nil {
-				return "", fmt.Errorf("error deleting final batch: %w", err)
-			}
-			cacheDeleteCounter += len(batch)
 		}
 	}
 
@@ -617,7 +605,6 @@ func (self *valkeyClient) DeleteMultiple(patterns ...string) error {
 	}
 
 	cursor := uint64(0)
-	batch := make([]string, 0, 100)
 	totalDeleted := 0
 
 	for {
@@ -633,39 +620,29 @@ func (self *valkeyClient) DeleteMultiple(patterns ...string) error {
 			return err
 		}
 
-		// Check each key against patterns
+		var cmds []valkeyclient.Completed
 		for _, key := range scanResult.Elements {
 			for _, pattern := range patterns {
 				if matched, _ := filepath.Match(pattern, key); matched {
-					batch = append(batch, key)
+					cmds = append(cmds, self.valkeyClient.B().Del().Key(key).Build())
 					break
 				}
 			}
-
-			// Delete batch when full
-			if len(batch) >= 100 {
-				if err := self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Del().Key(batch...).Build()).Error(); err != nil {
-					self.logger.Error("Error deleting batch in DeleteMultiple", "error", err)
-					return err
+		}
+		if len(cmds) > 0 {
+			for _, resp := range self.valkeyClient.DoMulti(self.ctx, cmds...) {
+				if resp.Error() != nil {
+					self.logger.Error("Error deleting key in DeleteMultiple", "error", resp.Error())
+					return resp.Error()
 				}
-				totalDeleted += len(batch)
-				batch = batch[:0]
 			}
+			totalDeleted += len(cmds)
 		}
 
 		cursor = scanResult.Cursor
 		if cursor == 0 {
 			break
 		}
-	}
-
-	// Delete remaining keys
-	if len(batch) > 0 {
-		if err := self.valkeyClient.Do(self.ctx, self.valkeyClient.B().Del().Key(batch...).Build()).Error(); err != nil {
-			self.logger.Error("Error deleting final batch in DeleteMultiple", "error", err)
-			return err
-		}
-		totalDeleted += len(batch)
 	}
 
 	self.logger.Debug("Successfully deleted keys", "count", totalDeleted, "patterns", patterns)
@@ -783,26 +760,21 @@ func GetKeyedObjectsForKeys[T any](store ValkeyClient, keyList []string) ([]Keye
 	client := store.GetValkeyClient()
 	result := make([]KeyedObject[T], 0, len(keyList))
 
-	for i := 0; i < len(keyList); i += MAX_CHUNK_GET_SIZE {
-		end := min(i+MAX_CHUNK_GET_SIZE, len(keyList))
-		chunk := keyList[i:end]
-		values, err := client.Do(store.GetContext(), client.B().Mget().Key(chunk...).Build()).AsStrSlice()
+	cmds := make([]valkeyclient.Completed, len(keyList))
+	for i, key := range keyList {
+		cmds[i] = client.B().Get().Key(key).Build()
+	}
+	for i, resp := range client.DoMulti(store.GetContext(), cmds...) {
+		v, err := resp.ToString()
 		if err != nil {
-			return result, err
+			// key deleted or expired between discovery and fetch — skip
+			continue
 		}
-		for j, v := range values {
-			// MGET yields an empty entry for keys that were deleted or
-			// expired between key discovery and fetch; skip those instead
-			// of failing the whole batch.
-			if v == "" {
-				continue
-			}
-			var obj T
-			if err := json.Unmarshal([]byte(v), &obj); err != nil {
-				return result, fmt.Errorf("error unmarshalling value from Valkey: %w", err)
-			}
-			result = append(result, KeyedObject[T]{Key: chunk[j], Object: obj})
+		var obj T
+		if err := json.Unmarshal([]byte(v), &obj); err != nil {
+			return result, fmt.Errorf("error unmarshalling value from Valkey: %w", err)
 		}
+		result = append(result, KeyedObject[T]{Key: keyList[i], Object: obj})
 	}
 
 	return result, nil
@@ -825,35 +797,25 @@ func GetObjectsByPrefix[T any](store ValkeyClient, order SortOrder, keys ...stri
 	// Sort keys
 	sortStringsByTimestamp(keyList, order)
 
-	// Fetch the values in 100 chunks to avoid memory issues with large datasets
-	chunks := make([][]string, 0, (len(keyList)+MAX_CHUNK_GET_SIZE-1)/MAX_CHUNK_GET_SIZE)
-	for i := 0; i < len(keyList); i += MAX_CHUNK_GET_SIZE {
-		end := min(i+MAX_CHUNK_GET_SIZE, len(keyList))
-		chunks = append(chunks, keyList[i:end])
+	cmds := make([]valkeyclient.Completed, len(keyList))
+	for i, key := range keyList {
+		cmds[i] = client.B().Get().Key(key).Build()
 	}
-
 	result := make([]T, 0, len(keyList))
-
-	for _, chunk := range chunks {
-		cmds := make([]valkeyclient.Completed, len(chunk))
-		for i, key := range chunk {
-			cmds[i] = client.B().Get().Key(key).Build()
+	for _, resp := range client.DoMulti(store.GetContext(), cmds...) {
+		str, err := resp.ToString()
+		if err != nil {
+			// Key expired or was deleted between SCAN and GET; skip.
+			continue
 		}
-		for _, resp := range client.DoMulti(store.GetContext(), cmds...) {
-			str, err := resp.ToString()
-			if err != nil {
-				// Key expired or was deleted between SCAN and GET; skip.
-				continue
-			}
-			if str == "" {
-				continue
-			}
-			var obj T
-			if err := json.Unmarshal([]byte(str), &obj); err != nil {
-				return result, fmt.Errorf("error unmarshalling value from Valkey: %w", err)
-			}
-			result = append(result, obj)
+		if str == "" {
+			continue
 		}
+		var obj T
+		if err := json.Unmarshal([]byte(str), &obj); err != nil {
+			return result, fmt.Errorf("error unmarshalling value from Valkey: %w", err)
+		}
+		result = append(result, obj)
 	}
 	return result, nil
 }
