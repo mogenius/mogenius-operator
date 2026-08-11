@@ -17,7 +17,6 @@ const (
 	maxRunSteps       = 200
 	maxStepLabelLen   = 600
 	maxStepArgsLen    = 600
-	maxStepResultLen  = 1000
 	stepLimitExceeded = "step limit reached — further steps of this run are not recorded"
 )
 
@@ -74,6 +73,10 @@ func runStepsKey(runID string) string {
 }
 
 func truncateStepText(value string, max int) string {
+	if max <= 0 {
+		return value
+	}
+
 	if len(value) <= max {
 		return value
 	}
@@ -96,11 +99,17 @@ func (ai *aiManager) newStepRecorder(runID string) StepRecorder {
 		if len(steps) == maxRunSteps-1 {
 			step = AiRunStep{Kind: AI_RUN_STEP_ERROR, Label: stepLimitExceeded}
 		}
+
+		maxStepResultLen, err := ai.config.TryGetInt("MO_AI_RESPONSE_MAX_LENGTH")
+		if err != nil {
+			maxStepResultLen = 1000
+		}
+
 		step.Seq = len(steps) + 1
 		step.Timestamp = time.Now().UnixMilli()
 		step.Label = truncateStepText(step.Label, maxStepLabelLen)
 		step.Args = truncateStepText(step.Args, maxStepArgsLen)
-		step.Result = truncateStepText(step.Result, maxStepResultLen)
+		step.Result = truncateStepText(step.Result, int(maxStepResultLen))
 		steps = append(steps, step)
 
 		payload, err := json.Marshal(steps)
