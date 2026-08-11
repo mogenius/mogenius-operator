@@ -10,10 +10,10 @@ on:
 
 jobs:
   test:
-    uses: mogenius/github-actions/.github/workflows/go-test.yml@75995e916be275ed15c2dd4748d664f5e35dfb89 # v1.7.2
+    uses: mogenius/github-actions/.github/workflows/go-test.yml@b5293d661baea684bc9d1a95b1ecd64ead344b92 # v1.7.4
     with:
       path: src
   lint:
-    uses: mogenius/github-actions/.github/workflows/golangci-lint.yml@75995e916be275ed15c2dd4748d664f5e35dfb89 # v1.7.2
+    uses: mogenius/github-actions/.github/workflows/golangci-lint.yml@b5293d661baea684bc9d1a95b1ecd64ead344b92 # v1.7.4
     with:
       args: --config=.golangci.yml ./src
