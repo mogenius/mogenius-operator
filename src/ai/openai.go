@@ -10,6 +10,43 @@ import (
 	"github.com/openai/openai-go/v3"
 )
 
+// compactOpenAIMessagesWithAI passes the existing conversation to the model with
+// the system prompt replaced by the compaction instruction, then returns a
+// replacement list: [system, original user prompt, compaction summary].
+func (ai *aiManager) compactOpenAIMessagesWithAI(ctx context.Context, client *openai.Client, model string, messages []openai.ChatCompletionMessageParamUnion) ([]openai.ChatCompletionMessageParamUnion, int64, error) {
+	if len(messages) < 2 {
+		return nil, 0, fmt.Errorf("message list too short to compact")
+	}
+
+	// Replace the system message with the compaction instruction and append the
+	// compaction request so the model sees the full history in its native format.
+	compactionMessages := make([]openai.ChatCompletionMessageParamUnion, 0, len(messages)+1)
+	compactionMessages = append(compactionMessages, openai.SystemMessage(compactionSystemPrompt))
+	compactionMessages = append(compactionMessages, messages[1:]...)
+	compactionMessages = append(compactionMessages, openai.UserMessage("Compact this conversation into a concise first-person progress report."))
+
+	resp, err := client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
+		Model:    model,
+		Messages: compactionMessages,
+	})
+	if err != nil {
+		return nil, 0, err
+	}
+	if len(resp.Choices) == 0 {
+		return nil, 0, fmt.Errorf("compaction returned no choices")
+	}
+
+	summary := resp.Choices[0].Message.Content
+	tokensUsed := resp.Usage.TotalTokens
+
+	compacted := []openai.ChatCompletionMessageParamUnion{
+		messages[0], // original system prompt
+		messages[1], // original user prompt
+		openai.AssistantMessage("[Conversation compacted]\n\n" + summary),
+	}
+	return compacted, tokensUsed, nil
+}
+
 func (ai *aiManager) processPromptOpenAi(ctx context.Context, rc *ResolvedModelConfig, systemPrompt, prompt string, toolCtx *ToolContext, onProgress func(int64, string), recordStep StepRecorder) (int64, int, string, error) {
 	startTime := time.Now()
 	elapsed := func() int { return int(time.Since(startTime).Milliseconds()) }
@@ -50,11 +87,21 @@ func (ai *aiManager) processPromptOpenAi(ctx context.Context, rc *ResolvedModelC
 			return tokensUsed, elapsed(), model, err
 		}
 
-		// Everything in params.Messages has now been seen by the model —
-		// compact the tool results it just processed so they stop burning
-		// tokens on the following turns. Compacting BEFORE the call would
-		// blind the model: results must survive exactly one request.
-		compactOpenAiToolMessages(params.Messages)
+		// Compact when the history exceeds the size threshold. Never compact
+		// BEFORE the call: results must survive exactly one request or the
+		// model goes blind.
+		if estimateOpenAIMessagesChars(params.Messages) > compactHistoryAfterChars {
+			charsBefore := estimateOpenAIMessagesChars(params.Messages)
+			ai.logger.Info("Compacting conversation history with AI", "chars", charsBefore)
+			compacted, compactTokens, compactErr := ai.compactOpenAIMessagesWithAI(ctx, client, model, params.Messages)
+			if compactErr != nil {
+				ai.logger.Warn("AI compaction failed, keeping tool-result-trimmed history", "error", compactErr)
+			} else {
+				params.Messages = compacted
+				tokensUsed += compactTokens
+				ai.logger.Info("AI compaction complete", "charsBefore", charsBefore, "charsAfter", estimateOpenAIMessagesChars(params.Messages))
+			}
+		}
 
 		tokensUsed += chatCompletion.Usage.TotalTokens
 		if onProgress != nil {
