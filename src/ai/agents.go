@@ -212,6 +212,30 @@ func (ai *aiManager) resolveAgentScope(agent *v1alpha1.Agent) []string {
 	return result
 }
 
+// buildAgentEventPrompt is the user prompt for event-triggered runs. It
+// includes the compact manifest of the triggering resource so the model has
+// immediate context without needing an extra tool call.
+func buildAgentEventPrompt(agent *v1alpha1.Agent, namespaces []string, obj *unstructured.Unstructured, changeType string) string {
+	nsStr := strings.Join(namespaces, ", ")
+
+	var sb strings.Builder
+	sb.WriteString("Your scope for this run includes the following Kubernetes namespaces: ")
+	sb.WriteString(nsStr)
+	
+	sb.WriteString("\n\nThis run was triggered by a ")
+	sb.WriteString(changeType)
+	sb.WriteString(" event on the following resource:\n\n")
+	sb.WriteString(compactResourceText(obj))
+
+	if agent.Spec.Instruction != "" {
+		sb.WriteString("\n\n")
+		sb.WriteString(agent.Spec.Instruction)
+		return sb.String()
+	}
+
+	return sb.String()
+}
+
 // buildAgentRunPrompt is the user prompt for scheduled/manual whole-scope runs.
 // The agent's instruction (if any) is the primary task; namespace context is
 // prepended so the model knows its operational scope.
@@ -312,14 +336,10 @@ func (ai *aiManager) hasOpenAgentRun(agentName string) (bool, error) {
 	return false, nil
 }
 
-// createAgentRunTask enqueues a whole-scope run for the agent. It is picked up
-// by the regular task queue on the next ticker.
-func (ai *aiManager) createAgentRunTask(agent *v1alpha1.Agent, trigger string, triggeredBy *structs.User) (*AiTask, error) {
-	namespaces := ai.resolveAgentScope(agent)
-	if len(namespaces) == 0 {
-		return nil, fmt.Errorf("agent %q has no resolvable scope namespaces", agent.Name)
-	}
-
+// enqueueAgentRun is the shared implementation: stores the task in Valkey and
+// records the run time. Callers are responsible for resolving namespaces and
+// building the prompt before calling this.
+func (ai *aiManager) enqueueAgentRun(agent *v1alpha1.Agent, namespaces []string, trigger string, triggeredBy *structs.User, prompt string) (*AiTask, error) {
 	open, err := ai.hasOpenAgentRun(agent.Name)
 	if err != nil {
 		return nil, fmt.Errorf("failed to check open runs for agent %q: %w", agent.Name, err)
@@ -332,7 +352,7 @@ func (ai *aiManager) createAgentRunTask(agent *v1alpha1.Agent, trigger string, t
 	key := fmt.Sprintf("%s%d", agentRunKeyPrefix(namespaces[0], agent.Name), timestamp)
 	task := &AiTask{
 		ID:              key,
-		Prompt:          buildAgentRunPrompt(agent, namespaces),
+		Prompt:          prompt,
 		State:           AI_TASK_STATE_PENDING,
 		CreatedAt:       timestamp,
 		UpdatedAt:       timestamp,
@@ -353,6 +373,26 @@ func (ai *aiManager) createAgentRunTask(agent *v1alpha1.Agent, trigger string, t
 	ai.cronStateLock.Unlock()
 	ai.logger.Info("Agent run task created", "agent", agent.Name, "trigger", trigger, "taskID", task.ID)
 	return task, nil
+}
+
+// createAgentRunTask enqueues a whole-scope run for cron and manual triggers.
+func (ai *aiManager) createAgentRunTask(agent *v1alpha1.Agent, trigger string, triggeredBy *structs.User) (*AiTask, error) {
+	namespaces := ai.resolveAgentScope(agent)
+	if len(namespaces) == 0 {
+		return nil, fmt.Errorf("agent %q has no resolvable scope namespaces", agent.Name)
+	}
+	return ai.enqueueAgentRun(agent, namespaces, trigger, triggeredBy, buildAgentRunPrompt(agent, namespaces))
+}
+
+// createAgentEventTask enqueues a run triggered by a Kubernetes resource
+// change. The triggering object's manifest is injected into the prompt so the
+// model has immediate context without an extra tool call.
+func (ai *aiManager) createAgentEventTask(agent *v1alpha1.Agent, obj *unstructured.Unstructured, changeType string) (*AiTask, error) {
+	namespaces := ai.resolveAgentScope(agent)
+	if len(namespaces) == 0 {
+		return nil, fmt.Errorf("agent %q has no resolvable scope namespaces", agent.Name)
+	}
+	return ai.enqueueAgentRun(agent, namespaces, AI_TASK_TRIGGER_EVENT, nil, buildAgentEventPrompt(agent, namespaces, obj, changeType))
 }
 
 // TriggerAgent creates a manual whole-scope run for the agent. A manual run is
@@ -695,7 +735,7 @@ func (ai *aiManager) triggerChangeAgents(obj *unstructured.Unstructured, changeT
 			continue
 		}
 		agentCopy := agent
-		if _, err := ai.createAgentRunTask(&agentCopy, AI_TASK_TRIGGER_EVENT, nil); err != nil {
+		if _, err := ai.createAgentEventTask(&agentCopy, obj, changeType); err != nil {
 			// An already-open run or empty scope is expected/benign here.
 			ai.logger.Info("Change trigger did not enqueue a run", "agent", agent.Name, "reason", err.Error())
 			continue
