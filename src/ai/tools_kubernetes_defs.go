@@ -1,297 +1,103 @@
 package ai
 
-import (
-	"github.com/anthropics/anthropic-sdk-go"
-	"github.com/ollama/ollama/api"
-	"github.com/openai/openai-go/v3"
+// kubernetesToolSchemas defines the built-in Kubernetes tools once, provider-
+// neutrally. The per-SDK slices below are generated from it via the converters
+// in tools_schema.go, so a tool's name, params and description stay identical
+// across OpenAI, Anthropic and Ollama.
+var kubernetesToolSchemas = []toolSchema{
+	{
+		Name:        "get_kubernetes_resources",
+		Description: "Get details of a specific Kubernetes resource by kind, name and namespace. Cost ladder: use list_kubernetes_resources for discovery, detail=summary here for triage, and detail=full ONLY when you need the complete manifest (e.g. to build an UpdateResource proposal).",
+		Props: map[string]toolProp{
+			"apiVersion": {Type: "string", Description: "API version (e.g. 'v1', 'apps/v1')"},
+			"kind":       {Type: "string", Description: "Resource kind (e.g. 'Pod', 'Deployment')"},
+			"name":       {Type: "string", Description: "Resource name"},
+			"namespace":  {Type: "string", Description: "Namespace (optional for cluster-scoped)"},
+			"detail":     {Type: "string", Enum: []string{"summary", "full"}, Description: "'summary' (recommended, ~1/3 of the tokens): identity, ownership, condensed status, key spec fields. 'full' (default): complete manifest"},
+		},
+		Required: []string{"kind", "apiVersion", "name"},
+	},
+	{
+		Name:        "list_kubernetes_resources",
+		Description: "List Kubernetes resources of a specific kind as compact summaries. Omit the namespace to list across ALL namespaces in one call — strongly preferred for cluster-wide sweeps; never iterate namespace by namespace.",
+		Props: map[string]toolProp{
+			"apiVersion": {Type: "string", Description: "API version (e.g. 'v1', 'apps/v1')"},
+			"kind":       {Type: "string", Description: "Resource kind (e.g. 'Pod', 'Deployment')"},
+			"namespace":  {Type: "string", Description: "Namespace filter. Omit to list across all namespaces (preferred)"},
+		},
+		Required: []string{"kind", "apiVersion"},
+	},
+	{
+		Name:        "check_kubernetes_resource",
+		Description: "Check existence and status of a single resource. Returns a compact summary instead of full details. Use get_kubernetes_resources only when you need the complete resource object.",
+		Props: map[string]toolProp{
+			"apiVersion": {Type: "string", Description: "API version (e.g. 'v1', 'apps/v1')"},
+			"kind":       {Type: "string", Description: "Resource kind (e.g. 'Pod', 'Deployment')"},
+			"name":       {Type: "string", Description: "Resource name"},
+			"namespace":  {Type: "string", Description: "Namespace (optional for cluster-scoped)"},
+		},
+		Required: []string{"kind", "apiVersion", "name"},
+	},
+	{
+		Name:        "update_kubernetes_resource",
+		Description: "Update an existing Kubernetes resource with new YAML configuration.",
+		Props: map[string]toolProp{
+			"apiVersion": {Type: "string", Description: "API version (e.g. 'v1', 'apps/v1')"},
+			"plural":     {Type: "string", Description: "Plural name (e.g. 'pods', 'deployments')"},
+			"namespaced": {Type: "boolean", Description: "Namespaced (true) or cluster-scoped (false)"},
+			"yamlData":   {Type: "string", Description: "Complete YAML definition of the resource"},
+		},
+		Required: []string{"apiVersion", "plural", "namespaced", "yamlData"},
+	},
+	{
+		Name:        "delete_kubernetes_resource",
+		Description: "Delete a Kubernetes resource by name and namespace.",
+		Props: map[string]toolProp{
+			"apiVersion": {Type: "string", Description: "API version (e.g. 'v1', 'apps/v1')"},
+			"plural":     {Type: "string", Description: "Plural name (e.g. 'pods', 'deployments')"},
+			"namespace":  {Type: "string", Description: "Namespace (empty for cluster-scoped)"},
+			"name":       {Type: "string", Description: "Resource name to delete"},
+		},
+		Required: []string{"apiVersion", "plural", "name"},
+	},
+	{
+		Name:        "create_kubernetes_resource",
+		Description: "Create a new Kubernetes resource from YAML configuration.",
+		Props: map[string]toolProp{
+			"apiVersion": {Type: "string", Description: "API version (e.g. 'v1', 'apps/v1')"},
+			"plural":     {Type: "string", Description: "Plural name (e.g. 'pods', 'deployments')"},
+			"namespaced": {Type: "boolean", Description: "Namespaced (true) or cluster-scoped (false)"},
+			"yamlData":   {Type: "string", Description: "Complete YAML definition of the resource"},
+		},
+		Required: []string{"apiVersion", "plural", "namespaced", "yamlData"},
+	},
+	{
+		Name:        "get_pod_logs",
+		Description: "Get logs from a pod's container. Returns the last N lines of log output. The response is automatically trimmed to fit within maxChars. Start with a small maxChars and increase only if you need more context.",
+		Props: map[string]toolProp{
+			"namespace": {Type: "string", Description: "Namespace of the pod"},
+			"podName":   {Type: "string", Description: "Name of the pod"},
+			"container": {Type: "string", Description: "Container name (optional, defaults to first container)"},
+			"tailLines": {Type: "integer", Description: "Number of lines to return from the end (default 100)"},
+			"previous":  {Type: "boolean", Description: "Return logs from previous terminated container (default false)"},
+			"maxChars":  {Type: "integer", Description: "Maximum characters in response (default 20000, max 50000). Use lower values to save tokens."},
+		},
+		Required: []string{"namespace", "podName"},
+	},
+	{
+		Name:        "get_pod_events",
+		Description: "Get Kubernetes events for a specific pod. Shows warnings, errors, and lifecycle events. The response is automatically trimmed to fit within maxChars, keeping the most recent events.",
+		Props: map[string]toolProp{
+			"namespace": {Type: "string", Description: "Namespace of the pod"},
+			"podName":   {Type: "string", Description: "Name of the pod"},
+			"maxChars":  {Type: "integer", Description: "Maximum characters in response (default 20000, max 50000). Use lower values to save tokens."},
+		},
+		Required: []string{"namespace", "podName"},
+	},
+}
+
+var (
+	kubernetesOpenAiTools    = mapSchemas(kubernetesToolSchemas, toolSchema.toOpenAI)
+	kubernetesAnthropicTools = mapSchemas(kubernetesToolSchemas, toolSchema.toAnthropic)
+	kubernetesOllamaTools    = mapSchemas(kubernetesToolSchemas, toolSchema.toOllama)
 )
-
-// --- OpenAI Kubernetes Tool Definitions ---
-
-var kubernetesOpenAiTools = []openai.ChatCompletionToolUnionParam{
-	openaiFunc(
-		"get_kubernetes_resources",
-		"Get details of a specific Kubernetes resource by kind, name and namespace. Cost ladder: use list_kubernetes_resources for discovery, detail=summary here for triage, and detail=full ONLY when you need the complete manifest (e.g. to build an UpdateResource proposal).",
-		openai.FunctionParameters{
-			"type": "object",
-			"properties": map[string]any{
-				"apiVersion": map[string]string{"type": "string", "description": "API version (e.g. 'v1', 'apps/v1')"},
-				"kind":       map[string]string{"type": "string", "description": "Resource kind (e.g. 'Pod', 'Deployment')"},
-				"name":       map[string]string{"type": "string", "description": "Resource name"},
-				"namespace":  map[string]string{"type": "string", "description": "Namespace (optional for cluster-scoped)"},
-				"detail":     map[string]any{"type": "string", "enum": []string{"summary", "full"}, "description": "'summary' (recommended, ~1/3 of the tokens): identity, ownership, condensed status, key spec fields. 'full' (default): complete manifest"},
-			},
-			"required": []string{"kind", "apiVersion", "name"},
-		},
-	),
-	openaiFunc(
-		"list_kubernetes_resources",
-		"List Kubernetes resources of a specific kind as compact summaries. Omit the namespace to list across ALL namespaces in one call — strongly preferred for cluster-wide sweeps; never iterate namespace by namespace.",
-		openai.FunctionParameters{
-			"type": "object",
-			"properties": map[string]any{
-				"apiVersion": map[string]string{"type": "string", "description": "API version (e.g. 'v1', 'apps/v1')"},
-				"kind":       map[string]string{"type": "string", "description": "Resource kind (e.g. 'Pod', 'Deployment')"},
-				"namespace":  map[string]string{"type": "string", "description": "Namespace filter. Omit to list across all namespaces (preferred)"},
-			},
-			"required": []string{"kind", "apiVersion"},
-		},
-	),
-	openaiFunc(
-		"check_kubernetes_resource",
-		"Check existence and status of a single resource. Returns a compact summary instead of full details. Use get_kubernetes_resources only when you need the complete resource object.",
-		openai.FunctionParameters{
-			"type": "object",
-			"properties": map[string]any{
-				"apiVersion": map[string]string{"type": "string", "description": "API version (e.g. 'v1', 'apps/v1')"},
-				"kind":       map[string]string{"type": "string", "description": "Resource kind (e.g. 'Pod', 'Deployment')"},
-				"name":       map[string]string{"type": "string", "description": "Resource name"},
-				"namespace":  map[string]string{"type": "string", "description": "Namespace (optional for cluster-scoped)"},
-			},
-			"required": []string{"kind", "apiVersion", "name"},
-		},
-	),
-	openaiFunc(
-		"update_kubernetes_resource",
-		"Update an existing Kubernetes resource with new YAML configuration.",
-		openai.FunctionParameters{
-			"type": "object",
-			"properties": map[string]any{
-				"apiVersion": map[string]string{"type": "string", "description": "API version (e.g. 'v1', 'apps/v1')"},
-				"plural":     map[string]string{"type": "string", "description": "Plural name (e.g. 'pods', 'deployments')"},
-				"namespaced": map[string]string{"type": "boolean", "description": "Namespaced (true) or cluster-scoped (false)"},
-				"yamlData":   map[string]string{"type": "string", "description": "Complete YAML definition of the resource"},
-			},
-			"required": []string{"apiVersion", "plural", "namespaced", "yamlData"},
-		},
-	),
-	openaiFunc(
-		"delete_kubernetes_resource",
-		"Delete a Kubernetes resource by name and namespace.",
-		openai.FunctionParameters{
-			"type": "object",
-			"properties": map[string]any{
-				"apiVersion": map[string]string{"type": "string", "description": "API version (e.g. 'v1', 'apps/v1')"},
-				"plural":     map[string]string{"type": "string", "description": "Plural name (e.g. 'pods', 'deployments')"},
-				"namespace":  map[string]string{"type": "string", "description": "Namespace (empty for cluster-scoped)"},
-				"name":       map[string]string{"type": "string", "description": "Resource name to delete"},
-			},
-			"required": []string{"apiVersion", "plural", "name"},
-		},
-	),
-	openaiFunc(
-		"create_kubernetes_resource",
-		"Create a new Kubernetes resource from YAML configuration.",
-		openai.FunctionParameters{
-			"type": "object",
-			"properties": map[string]any{
-				"apiVersion": map[string]string{"type": "string", "description": "API version (e.g. 'v1', 'apps/v1')"},
-				"plural":     map[string]string{"type": "string", "description": "Plural name (e.g. 'pods', 'deployments')"},
-				"namespaced": map[string]string{"type": "boolean", "description": "Namespaced (true) or cluster-scoped (false)"},
-				"yamlData":   map[string]string{"type": "string", "description": "Complete YAML definition of the resource"},
-			},
-			"required": []string{"apiVersion", "plural", "namespaced", "yamlData"},
-		},
-	),
-	openaiFunc(
-		"get_pod_logs",
-		"Get logs from a pod's container. Returns the last N lines of log output. The response is automatically trimmed to fit within maxChars. Start with a small maxChars and increase only if you need more context.",
-		openai.FunctionParameters{
-			"type": "object",
-			"properties": map[string]any{
-				"namespace": map[string]string{"type": "string", "description": "Namespace of the pod"},
-				"podName":   map[string]string{"type": "string", "description": "Name of the pod"},
-				"container": map[string]string{"type": "string", "description": "Container name (optional, defaults to first container)"},
-				"tailLines": map[string]string{"type": "integer", "description": "Number of lines to return from the end (default 100)"},
-				"previous":  map[string]string{"type": "boolean", "description": "Return logs from previous terminated container (default false)"},
-				"maxChars":  map[string]string{"type": "integer", "description": "Maximum characters in response (default 20000, max 50000). Use lower values to save tokens."},
-			},
-			"required": []string{"namespace", "podName"},
-		},
-	),
-	openaiFunc(
-		"get_pod_events",
-		"Get Kubernetes events for a specific pod. Shows warnings, errors, and lifecycle events. The response is automatically trimmed to fit within maxChars, keeping the most recent events.",
-		openai.FunctionParameters{
-			"type": "object",
-			"properties": map[string]any{
-				"namespace": map[string]string{"type": "string", "description": "Namespace of the pod"},
-				"podName":   map[string]string{"type": "string", "description": "Name of the pod"},
-				"maxChars":  map[string]string{"type": "integer", "description": "Maximum characters in response (default 20000, max 50000). Use lower values to save tokens."},
-			},
-			"required": []string{"namespace", "podName"},
-		},
-	),
-}
-
-// --- Anthropic Kubernetes Tool Definitions ---
-
-var kubernetesAnthropicTools = []anthropic.ToolParam{
-	anthropicTool(
-		"get_kubernetes_resources",
-		"Get details of a specific Kubernetes resource by name. Cost ladder: use list_kubernetes_resources for discovery, detail=summary here for triage, and detail=full ONLY when you need the complete manifest (e.g. to build an UpdateResource proposal).",
-		map[string]any{
-			"kind":       map[string]any{"type": "string", "description": "Resource kind (e.g., Pod, Deployment)."},
-			"apiVersion": map[string]any{"type": "string", "description": "API version (e.g., v1, apps/v1)."},
-			"name":       map[string]any{"type": "string", "description": "Resource name."},
-			"namespace":  map[string]any{"type": "string", "description": "Namespace (optional for cluster-scoped)."},
-			"detail":     map[string]any{"type": "string", "enum": []string{"summary", "full"}, "description": "'summary' (recommended, ~1/3 of the tokens): identity, ownership, condensed status, key spec fields. 'full' (default): complete manifest."},
-		}, []string{"kind", "apiVersion", "name"},
-	),
-	anthropicTool(
-		"list_kubernetes_resources",
-		"List Kubernetes resources of a given kind as compact summaries. Omit the namespace to list across ALL namespaces in one call — strongly preferred for cluster-wide sweeps; never iterate namespace by namespace.",
-		map[string]any{
-			"kind":       map[string]any{"type": "string", "description": "Resource kind (e.g., Pod, Deployment)."},
-			"apiVersion": map[string]any{"type": "string", "description": "API version (e.g., v1, apps/v1)."},
-			"namespace":  map[string]any{"type": "string", "description": "Namespace filter. Omit to list across all namespaces (preferred)."},
-		}, []string{"kind", "apiVersion"},
-	),
-	anthropicTool(
-		"check_kubernetes_resource",
-		"Check existence and status of a single resource. Returns a compact summary instead of full details. Use get_kubernetes_resources only when you need the complete resource object.",
-		map[string]any{
-			"kind":       map[string]any{"type": "string", "description": "Resource kind (e.g., Pod, Deployment)."},
-			"apiVersion": map[string]any{"type": "string", "description": "API version (e.g., v1, apps/v1)."},
-			"name":       map[string]any{"type": "string", "description": "Resource name."},
-			"namespace":  map[string]any{"type": "string", "description": "Namespace (optional for cluster-scoped)."},
-		}, []string{"kind", "apiVersion", "name"},
-	),
-	anthropicTool(
-		"update_kubernetes_resource",
-		"Update an existing Kubernetes resource with new YAML configuration.",
-		map[string]any{
-			"apiVersion": map[string]any{"type": "string", "description": "API version (e.g., v1, apps/v1)."},
-			"plural":     map[string]any{"type": "string", "description": "Plural name (e.g., pods, deployments)."},
-			"namespaced": map[string]any{"type": "boolean", "description": "Namespaced (true) or cluster-scoped (false)."},
-			"yamlData":   map[string]any{"type": "string", "description": "Complete YAML definition of the resource."},
-		}, []string{"apiVersion", "plural", "namespaced", "yamlData"},
-	),
-	anthropicTool(
-		"delete_kubernetes_resource",
-		"Delete a Kubernetes resource by name and namespace.",
-		map[string]any{
-			"apiVersion": map[string]any{"type": "string", "description": "API version (e.g., v1, apps/v1)."},
-			"plural":     map[string]any{"type": "string", "description": "Plural name (e.g., pods, deployments)."},
-			"namespace":  map[string]any{"type": "string", "description": "Namespace (empty for cluster-scoped)."},
-			"name":       map[string]any{"type": "string", "description": "Resource name to delete."},
-		}, []string{"apiVersion", "plural", "name"},
-	),
-	anthropicTool(
-		"create_kubernetes_resource",
-		"Create a new Kubernetes resource from YAML configuration.",
-		map[string]any{
-			"apiVersion": map[string]any{"type": "string", "description": "API version (e.g., v1, apps/v1)."},
-			"plural":     map[string]any{"type": "string", "description": "Plural name (e.g., pods, deployments)."},
-			"namespaced": map[string]any{"type": "boolean", "description": "Namespaced (true) or cluster-scoped (false)."},
-			"yamlData":   map[string]any{"type": "string", "description": "Complete YAML definition of the resource."},
-		}, []string{"apiVersion", "plural", "namespaced", "yamlData"},
-	),
-	anthropicTool(
-		"get_pod_logs",
-		"Get logs from a pod's container. Returns the last N lines of log output. The response is automatically trimmed to fit within maxChars. Start with a small maxChars and increase only if you need more context.",
-		map[string]any{
-			"namespace": map[string]any{"type": "string", "description": "Namespace of the pod."},
-			"podName":   map[string]any{"type": "string", "description": "Name of the pod."},
-			"container": map[string]any{"type": "string", "description": "Container name (optional, defaults to first container)."},
-			"tailLines": map[string]any{"type": "integer", "description": "Number of lines to return from the end (default 100)."},
-			"previous":  map[string]any{"type": "boolean", "description": "Return logs from previous terminated container (default false)."},
-			"maxChars":  map[string]any{"type": "integer", "description": "Maximum characters in response (default 20000, max 50000). Use lower values to save tokens."},
-		}, []string{"namespace", "podName"},
-	),
-	anthropicTool(
-		"get_pod_events",
-		"Get Kubernetes events for a specific pod. Shows warnings, errors, and lifecycle events. The response is automatically trimmed to fit within maxChars, keeping the most recent events.",
-		map[string]any{
-			"namespace": map[string]any{"type": "string", "description": "Namespace of the pod."},
-			"podName":   map[string]any{"type": "string", "description": "Name of the pod."},
-			"maxChars":  map[string]any{"type": "integer", "description": "Maximum characters in response (default 20000, max 50000). Use lower values to save tokens."},
-		}, []string{"namespace", "podName"},
-	),
-}
-
-// --- Ollama Kubernetes Tool Definitions ---
-
-var kubernetesOllamaTools = []api.Tool{
-	ollamaTool(
-		"get_kubernetes_resources",
-		"Get details of a specific Kubernetes resource by kind, name and namespace. Cost ladder: use list_kubernetes_resources for discovery, detail=summary here for triage, and detail=full ONLY when you need the complete manifest (e.g. to build an UpdateResource proposal).",
-		map[string]api.ToolProperty{
-			"apiVersion": {Type: []string{"string"}, Description: "API version (e.g. 'v1', 'apps/v1')"},
-			"kind":       {Type: []string{"string"}, Description: "Resource kind (e.g. 'Pod', 'Deployment')"},
-			"name":       {Type: []string{"string"}, Description: "Resource name"},
-			"namespace":  {Type: []string{"string"}, Description: "Namespace (optional for cluster-scoped)"},
-			"detail":     {Type: []string{"string"}, Description: "'summary' (recommended, ~1/3 of the tokens): identity, ownership, condensed status, key spec fields. 'full' (default): complete manifest"},
-		}, []string{"kind", "apiVersion", "name"},
-	),
-	ollamaTool(
-		"list_kubernetes_resources",
-		"List Kubernetes resources of a specific kind as compact summaries. Omit the namespace to list across ALL namespaces in one call — strongly preferred for cluster-wide sweeps; never iterate namespace by namespace.",
-		map[string]api.ToolProperty{
-			"apiVersion": {Type: []string{"string"}, Description: "API version (e.g. 'v1', 'apps/v1')"},
-			"kind":       {Type: []string{"string"}, Description: "Resource kind (e.g. 'Pod', 'Deployment')"},
-			"namespace":  {Type: []string{"string"}, Description: "Namespace filter. Omit to list across all namespaces (preferred)"},
-		}, []string{"kind", "apiVersion"},
-	),
-	ollamaTool(
-		"check_kubernetes_resource",
-		"Check existence and status of a single resource. Returns a compact summary instead of full details. Use get_kubernetes_resources only when you need the complete resource object.",
-		map[string]api.ToolProperty{
-			"apiVersion": {Type: []string{"string"}, Description: "API version (e.g. 'v1', 'apps/v1')"},
-			"kind":       {Type: []string{"string"}, Description: "Resource kind (e.g. 'Pod', 'Deployment')"},
-			"name":       {Type: []string{"string"}, Description: "Resource name"},
-			"namespace":  {Type: []string{"string"}, Description: "Namespace (optional for cluster-scoped)"},
-		}, []string{"kind", "apiVersion", "name"},
-	),
-	ollamaTool(
-		"update_kubernetes_resource",
-		"Update an existing Kubernetes resource with new YAML configuration.",
-		map[string]api.ToolProperty{
-			"apiVersion": {Type: []string{"string"}, Description: "API version (e.g. 'v1', 'apps/v1')"},
-			"plural":     {Type: []string{"string"}, Description: "Plural name (e.g. 'pods', 'deployments')"},
-			"namespaced": {Type: []string{"boolean"}, Description: "Namespaced (true) or cluster-scoped (false)"},
-			"yamlData":   {Type: []string{"string"}, Description: "Complete YAML definition of the resource"},
-		}, []string{"apiVersion", "plural", "namespaced", "yamlData"},
-	),
-	ollamaTool(
-		"delete_kubernetes_resource",
-		"Delete a Kubernetes resource by name and namespace.",
-		map[string]api.ToolProperty{
-			"apiVersion": {Type: []string{"string"}, Description: "API version (e.g. 'v1', 'apps/v1')"},
-			"plural":     {Type: []string{"string"}, Description: "Plural name (e.g. 'pods', 'deployments')"},
-			"namespace":  {Type: []string{"string"}, Description: "Namespace (empty for cluster-scoped)"},
-			"name":       {Type: []string{"string"}, Description: "Resource name to delete"},
-		}, []string{"apiVersion", "plural", "name"},
-	),
-	ollamaTool(
-		"create_kubernetes_resource",
-		"Create a new Kubernetes resource from YAML configuration.",
-		map[string]api.ToolProperty{
-			"apiVersion": {Type: []string{"string"}, Description: "API version (e.g. 'v1', 'apps/v1')"},
-			"plural":     {Type: []string{"string"}, Description: "Plural name (e.g. 'pods', 'deployments')"},
-			"namespaced": {Type: []string{"boolean"}, Description: "Namespaced (true) or cluster-scoped (false)"},
-			"yamlData":   {Type: []string{"string"}, Description: "Complete YAML definition of the resource"},
-		}, []string{"apiVersion", "plural", "namespaced", "yamlData"},
-	),
-	ollamaTool(
-		"get_pod_logs",
-		"Get logs from a pod's container. Returns the last N lines of log output. The response is automatically trimmed to fit within maxChars. Start with a small maxChars and increase only if you need more context.",
-		map[string]api.ToolProperty{
-			"namespace": {Type: []string{"string"}, Description: "Namespace of the pod"},
-			"podName":   {Type: []string{"string"}, Description: "Name of the pod"},
-			"container": {Type: []string{"string"}, Description: "Container name (optional, defaults to first container)"},
-			"tailLines": {Type: []string{"integer"}, Description: "Number of lines to return from the end (default 100)"},
-			"previous":  {Type: []string{"boolean"}, Description: "Return logs from previous terminated container (default false)"},
-			"maxChars":  {Type: []string{"integer"}, Description: "Maximum characters in response (default 20000, max 50000). Use lower values to save tokens."},
-		}, []string{"namespace", "podName"},
-	),
-	ollamaTool(
-		"get_pod_events",
-		"Get Kubernetes events for a specific pod. Shows warnings, errors, and lifecycle events. The response is automatically trimmed to fit within maxChars, keeping the most recent events.",
-		map[string]api.ToolProperty{
-			"namespace": {Type: []string{"string"}, Description: "Namespace of the pod"},
-			"podName":   {Type: []string{"string"}, Description: "Name of the pod"},
-			"maxChars":  {Type: []string{"integer"}, Description: "Maximum characters in response (default 20000, max 50000). Use lower values to save tokens."},
-		}, []string{"namespace", "podName"},
-	),
-}

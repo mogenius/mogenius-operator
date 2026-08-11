@@ -81,6 +81,16 @@ func (ai *aiManager) processPromptOpenAi(ctx context.Context, rc *ResolvedModelC
 	var tokensUsed int64 = 0
 	toolCallCount := 0
 
+	exec := toolExec{
+		ToolCtx:           toolCtx,
+		McpSessions:       mcpSessions,
+		ScopedMCP:         true,
+		InterceptMutating: true,
+		UnknownIsFatal:    true,
+		Audit:             true,
+		RecordStep:        recordStep,
+	}
+
 	for {
 		chatCompletion, err := client.Chat.Completions.New(ctx, params)
 		if err != nil {
@@ -96,6 +106,7 @@ func (ai *aiManager) processPromptOpenAi(ctx context.Context, rc *ResolvedModelC
 			compacted, compactTokens, compactErr := ai.compactOpenAIMessagesWithAI(ctx, client, model, params.Messages)
 			if compactErr != nil {
 				ai.logger.Warn("AI compaction failed, keeping tool-result-trimmed history", "error", compactErr)
+				compactOpenAiToolMessages(params.Messages)
 			} else {
 				params.Messages = compacted
 				tokensUsed += compactTokens
@@ -145,65 +156,16 @@ func (ai *aiManager) processPromptOpenAi(ctx context.Context, rc *ResolvedModelC
 				onProgress(tokensUsed, describeToolCall(name, args))
 			}
 
-			var data string
-			if builtinTool, ok := toolDefinitions[name]; ok {
-				execCtx := toolCtx
-				if mutatingBuiltinTools[name] && toolCtx != nil && toolCtx.CreateApprovalRequest != nil {
-					approverCtx, approvalErr := toolCtx.CreateApprovalRequest(ctx, name, args)
-					if approvalErr != nil {
-						data = fmt.Sprintf("Tool call %q was not executed: %v", name, approvalErr)
-					} else {
-						execCtx = approverCtx
-						data = builtinTool(args, execCtx, ai.valkeyClient, ai.logger)
-					}
-				} else if mutatingBuiltinTools[name] {
-					data = fmt.Sprintf("Tool call %q requires human approval but no approval mechanism is configured for this run. The call was blocked.", name)
-				} else {
-					data = builtinTool(args, execCtx, ai.valkeyClient, ai.logger)
-				}
-				ai.auditInsightToolCall(execCtx, name, args, data, nil)
-				if recordStep != nil {
-					recordStep(AiRunStep{Kind: AI_RUN_STEP_ACT, Label: describeToolCall(name, args), Tool: name, Args: toolCall.Function.Arguments, Result: data})
-				}
-			} else if ai.mcpManager != nil && ai.mcpManager.IsMCPToolInSessions(name, mcpSessions) {
-				auditCtx := toolCtx
-				if ai.mcpManager.MCPToolNeedsApproval(name, mcpSessions) {
-					approverCtx, approvalErr := toolCtx.CreateApprovalRequest(ctx, name, args)
-					if approvalErr != nil {
-						data = fmt.Sprintf("Tool call %q was not executed: %v", name, approvalErr)
-					} else {
-						auditCtx = approverCtx
-					}
-				}
-				var mcpErr error
-				if data == "" {
-					var mcpResult string
-					mcpResult, mcpErr = ai.mcpManager.CallToolInSessions(ctx, name, args, mcpSessions)
-					if mcpErr != nil {
-						data = fmt.Sprintf("MCP tool error: %v", mcpErr)
-					} else {
-						data = mcpResult
-					}
-				}
-				ai.auditInsightToolCall(auditCtx, name, args, data, mcpErr)
-				if recordStep != nil {
-					recordStep(AiRunStep{Kind: AI_RUN_STEP_ACT, Label: describeToolCall(name, args), Tool: name, Args: toolCall.Function.Arguments, Result: data})
-				}
-			} else {
-				return tokensUsed, elapsed(), model, fmt.Errorf("unknown tool called: %s", name)
+			out := ai.dispatchToolCall(ctx, name, args, toolCall.Function.Arguments, exec)
+			if out.Fatal != nil {
+				return tokensUsed, elapsed(), model, out.Fatal
 			}
-			params.Messages = append(params.Messages, openai.ToolMessage(data, toolCall.ID))
+			params.Messages = append(params.Messages, openai.ToolMessage(out.Result, toolCall.ID))
 		}
 
 		// Check run budgets (tool calls and, when configured, tokens).
 		toolCallCount += len(message.ToolCalls)
-		budgetExhausted := maxToolCalls > 0 && toolCallCount >= maxToolCalls
-		if !budgetExhausted && maxTokensPerRun > 0 && tokensUsed >= maxTokensPerRun {
-			budgetExhausted = true
-			ai.logger.Info("Per-run token limit reached", "maxTokensPerRun", maxTokensPerRun, "tokensUsed", tokensUsed)
-		}
-		if budgetExhausted {
-			ai.logger.Info("Run budget exhausted", "maxToolCalls", maxToolCalls, "toolCallCount", toolCallCount)
+		if runBudgetExhausted(ai.logger, maxToolCalls, toolCallCount, maxTokensPerRun, tokensUsed) {
 			return tokensUsed, elapsed(), model, nil
 		}
 
@@ -513,6 +475,7 @@ func (ai *aiManager) openaiChatWithTools(
 		}
 
 		// Execute each tool call
+		exec := toolExec{ToolCtx: toolCtx, Categories: categories, Stats: &stats}
 		for _, tc := range toolCalls {
 			ai.logger.Info("Executing tool", "tool", tc.Name)
 
@@ -523,29 +486,8 @@ func (ai *aiManager) openaiChatWithTools(
 				continue
 			}
 
-			var result string
-			var toolErr string
-			if tc.Name == activateToolCategoriesName {
-				result = categories.ActivateFromToolCall(args)
-			} else if ai.mcpManager != nil && ai.mcpManager.IsMCPTool(tc.Name) {
-				mcpResult, err := ai.mcpManager.CallTool(ctx, tc.Name, args)
-				if err != nil {
-					ai.logger.Error("MCP tool call failed", "tool", tc.Name, "error", err)
-					toolErr = fmt.Sprintf("Error calling MCP tool: %v", err)
-					messages = append(messages, openai.ToolMessage(toolErr, tc.ID))
-					stats.ToolRecords = append(stats.ToolRecords, ToolUseRecord{Tool: tc.Name, Args: args, Error: toolErr})
-					continue
-				}
-				result = mcpResult
-			} else if tool, ok := toolDefinitions[tc.Name]; ok {
-				result = tool(args, toolCtx, ai.valkeyClient, ai.logger)
-			} else {
-				ai.logger.Error("Unknown tool called", "tool", tc.Name)
-				messages = append(messages, openai.ToolMessage(fmt.Sprintf("Unknown tool: %s", tc.Name), tc.ID))
-				continue
-			}
-			stats.ToolRecords = append(stats.ToolRecords, ToolUseRecord{Tool: tc.Name, Args: args, Result: truncateToolResult(result)})
-			messages = append(messages, openai.ToolMessage(result, tc.ID))
+			out := ai.dispatchToolCall(ctx, tc.Name, args, "", exec)
+			messages = append(messages, openai.ToolMessage(out.Result, tc.ID))
 		}
 
 		// Continue loop to get response after tool results
