@@ -2,15 +2,19 @@ package ai
 
 import (
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"strings"
 	"testing"
 	"time"
 
+	"mogenius-operator/src/config"
 	"mogenius-operator/src/valkeyclient"
 
 	"github.com/stretchr/testify/assert"
 )
+
+const maxStepResultLen = 1000
 
 // fakeStepValkey implements only the ValkeyClient methods the step store
 // touches; everything else panics via the embedded nil interface.
@@ -51,9 +55,18 @@ func (f *fakeStepValkey) DeleteSingle(key ...string) error {
 func newStepTestManager(t *testing.T) (*aiManager, *fakeStepValkey) {
 	t.Helper()
 	fake := newFakeStepValkey()
+	cfg := config.NewConfig()
+
+	cfg.Declare(config.ConfigDeclaration{
+		Key:          "MO_AI_RESPONSE_MAX_LENGTH",
+		DefaultValue: new(fmt.Sprint(maxStepResultLen)),
+		Description:  new(`maximum length of the AI response to be stored in characters`),
+		Type:         new(config.ConfigVariableTypeInt),
+	})
 	return &aiManager{
 		logger:       slog.New(slog.DiscardHandler),
 		valkeyClient: fake,
+		config:       cfg,
 	}, fake
 }
 

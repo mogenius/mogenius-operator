@@ -441,12 +441,12 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		Key:          "MO_SKIP_IMPERSONATION",
 		DefaultValue: new("false"),
 		Description:  new("skip service-account impersonation; set to true in local/test environments that lack the operator SA"),
-		Validate: func(value string) error {
-			_, err := strconv.ParseBool(value)
-			if err != nil {
-				return fmt.Errorf("'MO_SKIP_IMPERSONATION' needs to be a boolean: %s", err.Error())
-			}
-			return nil
-		},
+		Type:         new(config.ConfigVariableTypeBool),
+	})
+	configModule.Declare(config.ConfigDeclaration{
+		Key:          "MO_AI_RESPONSE_MAX_LENGTH",
+		DefaultValue: new("1000"),
+		Description:  new(`maximum length of the AI response to be stored in characters`),
+		Type:         new(config.ConfigVariableTypeInt),
 	})
 }
