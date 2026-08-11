@@ -10,6 +10,48 @@ import (
 	"github.com/ollama/ollama/api"
 )
 
+// compactOllamaMessagesWithAI passes the existing conversation to the model with
+// the system prompt replaced by the compaction instruction, then returns a
+// replacement list: [system, original user prompt, compaction summary].
+func (ai *aiManager) compactOllamaMessagesWithAI(ctx context.Context, client *api.Client, model string, messages []api.Message) ([]api.Message, int64, error) {
+	if len(messages) < 2 {
+		return nil, 0, fmt.Errorf("message list too short to compact")
+	}
+
+	// Replace the system message with the compaction instruction and append the
+	// compaction request so the model sees the full history in its native format.
+	compactionMessages := make([]api.Message, 0, len(messages)+1)
+	compactionMessages = append(compactionMessages, api.Message{Role: "system", Content: compactionSystemPrompt})
+	compactionMessages = append(compactionMessages, messages[1:]...)
+	compactionMessages = append(compactionMessages, api.Message{Role: "user", Content: "Compact this conversation into a concise first-person progress report."})
+
+	falsePtr := false
+	var tokensUsed int64
+	var summary string
+
+	err := client.Chat(ctx, &api.ChatRequest{
+		Model:    model,
+		Stream:   &falsePtr,
+		Messages: compactionMessages,
+	}, func(resp api.ChatResponse) error {
+		summary += resp.Message.Content
+		if resp.Done {
+			tokensUsed = int64(resp.PromptEvalCount + resp.EvalCount)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, 0, err
+	}
+
+	compacted := []api.Message{
+		messages[0], // original system prompt
+		messages[1], // original user prompt
+		{Role: "assistant", Content: "[Conversation compacted]\n\n" + summary},
+	}
+	return compacted, tokensUsed, nil
+}
+
 func (ai *aiManager) processPromptOllama(ctx context.Context, rc *ResolvedModelConfig, systemPrompt, prompt string, toolCtx *ToolContext, onProgress func(int64, string), recordStep StepRecorder) (int64, int, string, error) {
 
 	startTime := time.Now()
@@ -78,6 +120,23 @@ func (ai *aiManager) processPromptOllama(ctx context.Context, rc *ResolvedModelC
 		}
 		if onProgress != nil {
 			onProgress(tokensUsed, "")
+		}
+
+		// Compact before adding the assistant response when history is too large.
+		// Results must survive exactly one request, so compaction runs AFTER
+		// the API call, not before.
+		if estimateOllamaMessagesChars(messages) > compactHistoryAfterChars {
+			charsBefore := estimateOllamaMessagesChars(messages)
+			ai.logger.Info("Compacting conversation history with AI", "chars", charsBefore)
+			compacted, compactTokens, compactErr := ai.compactOllamaMessagesWithAI(ctx, client, model, messages)
+			if compactErr != nil {
+				ai.logger.Warn("AI compaction failed, falling back to tool result trimming", "error", compactErr)
+				compactOllamaToolMessages(messages)
+			} else {
+				messages = compacted
+				tokensUsed += compactTokens
+				ai.logger.Info("AI compaction complete", "charsBefore", charsBefore, "charsAfter", estimateOllamaMessagesChars(messages))
+			}
 		}
 
 		messages = append(messages, api.Message{

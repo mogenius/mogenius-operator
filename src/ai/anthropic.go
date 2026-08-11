@@ -391,6 +391,56 @@ func assistantContentParams(blocks []anthropic.ContentBlockUnion) ([]anthropic.C
 	return params, nil
 }
 
+// compactAnthropicMessagesWithAI appends a compaction request to the existing
+// messages and calls the model to produce a summary. Returns a replacement list
+// with only the original user prompt and the compaction summary, so all future
+// calls carry minimal history. On success the caller must reset cachedMsgIdx to -1.
+func (ai *aiManager) compactAnthropicMessagesWithAI(ctx context.Context, client *anthropic.Client, model string, messages []anthropic.MessageParam) ([]anthropic.MessageParam, int64, error) {
+	if len(messages) < 1 {
+		return nil, 0, fmt.Errorf("message list too short to compact")
+	}
+	compactionRequest := anthropic.MessageParam{
+		Role: anthropic.MessageParamRoleUser,
+		Content: []anthropic.ContentBlockParamUnion{
+			anthropic.NewTextBlock("Compact this conversation into a concise first-person progress report."),
+		},
+	}
+	compactionMessages := append(messages, compactionRequest)
+
+	resp, err := client.Messages.New(ctx, anthropic.MessageNewParams{
+		Model:     anthropic.Model(model),
+		MaxTokens: int64(10000),
+		System: []anthropic.TextBlockParam{
+			{Type: "text", Text: compactionSystemPrompt},
+		},
+		Messages: compactionMessages,
+	})
+	if err != nil {
+		return nil, 0, err
+	}
+
+	var summary string
+	for _, block := range resp.Content {
+		if block.Type == "text" {
+			summary = block.Text
+			break
+		}
+	}
+
+	tokensUsed := resp.Usage.InputTokens + resp.Usage.OutputTokens + resp.Usage.CacheCreationInputTokens
+
+	compacted := []anthropic.MessageParam{
+		messages[0], // original user prompt
+		{
+			Role: anthropic.MessageParamRoleAssistant,
+			Content: []anthropic.ContentBlockParamUnion{
+				anthropic.NewTextBlock("[Conversation compacted]\n\n" + summary),
+			},
+		},
+	}
+	return compacted, tokensUsed, nil
+}
+
 func (ai *aiManager) processPromptAnthropic(ctx context.Context, rc *ResolvedModelConfig, systemPrompt, prompt string, toolCtx *ToolContext, onProgress func(int64, string), recordStep StepRecorder) (int64, int, string, error) {
 	startTime := time.Now()
 
@@ -469,8 +519,18 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, rc *ResolvedMod
 		// call: results must survive exactly one request or the model goes
 		// blind (the regression that shipped in 7782b65b).
 		if estimateMessagesChars(messages) > compactHistoryAfterChars {
-			ai.logger.Info("Compacting conversation history", "chars", estimateMessagesChars(messages))
-			compactAnthropicToolResults(messages)
+			charsBefore := estimateMessagesChars(messages)
+			ai.logger.Info("Compacting conversation history with AI", "chars", charsBefore)
+			compacted, compactTokens, compactErr := ai.compactAnthropicMessagesWithAI(ctx, client, model, messages)
+			if compactErr != nil {
+				ai.logger.Warn("AI compaction failed, falling back to tool result trimming", "error", compactErr)
+				compactAnthropicToolResults(messages)
+			} else {
+				messages = compacted
+				tokensUsed += compactTokens
+				cachedMsgIdx = -1
+				ai.logger.Info("AI compaction complete", "charsBefore", charsBefore, "charsAfter", estimateMessagesChars(messages))
+			}
 		}
 
 		if message != nil {

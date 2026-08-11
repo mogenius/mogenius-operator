@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/anthropics/anthropic-sdk-go"
+	ollamaapi "github.com/ollama/ollama/api"
 	"github.com/openai/openai-go/v3"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
@@ -300,9 +301,7 @@ func estimateMessagesChars(messages []anthropic.MessageParam) int {
 }
 
 // compactAnthropicToolResults replaces all tool_result contents in messages
-// with a short marker. Call this AFTER the model has processed the results
-// (i.e. after receiving the API response) and BEFORE the next API call.
-// This prevents old tool results from accumulating tokens across iterations.
+// with a short marker. Used as fallback when AI-based compaction fails.
 func compactAnthropicToolResults(messages []anthropic.MessageParam) {
 	for i := range messages {
 		if messages[i].Role != anthropic.MessageParamRoleUser {
@@ -321,11 +320,56 @@ func compactAnthropicToolResults(messages []anthropic.MessageParam) {
 }
 
 // compactOpenAiToolMessages replaces all tool message contents in the message
-// list with a short marker. Same purpose as compactAnthropicToolResults.
+// list with a short marker. Used as fallback when AI-based compaction fails.
 func compactOpenAiToolMessages(messages []openai.ChatCompletionMessageParamUnion) {
 	for i := range messages {
 		if messages[i].OfTool != nil {
 			messages[i] = openai.ToolMessage("[processed]", messages[i].OfTool.ToolCallID)
 		}
 	}
+}
+
+// compactOllamaToolMessages replaces all tool message contents in the message
+// list with a short marker. Used as fallback when AI-based compaction fails.
+func compactOllamaToolMessages(messages []ollamaapi.Message) {
+	for i := range messages {
+		if messages[i].Role == "tool" {
+			messages[i].Content = "[processed]"
+		}
+	}
+}
+
+// estimateOpenAIMessagesChars sizes the OpenAI conversation payload to decide
+// when compaction is needed.
+func estimateOpenAIMessagesChars(messages []openai.ChatCompletionMessageParamUnion) int {
+	total := 0
+	for i := range messages {
+		if data, err := json.Marshal(messages[i]); err == nil {
+			total += len(data)
+		}
+	}
+	return total
+}
+
+// compactionSystemPrompt instructs the compaction model to write a first-person
+// progress report the agent can continue from.
+const compactionSystemPrompt = `You are an AI agent summarizing your own prior conversation to save context space.
+Write a concise first-person progress report that covers:
+- The original task you were given
+- Key findings from every tool result (resource states, errors, important values)
+- Actions taken and their outcomes
+- Current status and any remaining steps
+
+Be factual and complete. You will continue the task with only this summary as prior context.`
+
+// estimateOllamaMessagesChars sizes the Ollama conversation payload to decide
+// when compaction is needed.
+func estimateOllamaMessagesChars(messages []ollamaapi.Message) int {
+	total := 0
+	for i := range messages {
+		if data, err := json.Marshal(messages[i]); err == nil {
+			total += len(data)
+		}
+	}
+	return total
 }
