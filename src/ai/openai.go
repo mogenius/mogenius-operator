@@ -92,7 +92,7 @@ func (ai *aiManager) processPromptOpenAi(ctx context.Context, rc *ResolvedModelC
 			return tokensUsed, elapsed(), model, err
 		}
 
-		// Compact when the history exceeds the size threshold. Never compact
+		// Compact when the history exceeds the size threshold
 		if estimateOpenAIMessagesChars(params.Messages) > compactHistoryAfterChars {
 			charsBefore := estimateOpenAIMessagesChars(params.Messages)
 			ai.logger.Info("Compacting conversation history with AI", "chars", charsBefore)
