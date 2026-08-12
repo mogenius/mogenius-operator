@@ -326,6 +326,34 @@ spec:
                           type: string
                         url:
                           type: string
+                        write:
+                          description: |-
+                            Write configures how edits made in the platform reach this repository.
+                            Read by the mogenius API, not by this operator: declaring it changes
+                            nothing in the cluster on its own.
+                          properties:
+                            enabled:
+                              description: |-
+                                Enabled is false to refuse edits for this repository even when a
+                                credential exists. Absent means enabled.
+                              type: boolean
+                            mode:
+                              description: Mode is "DIRECT_COMMIT" or "PULL_REQUEST".
+                                Defaults to PULL_REQUEST.
+                              enum:
+                              - DIRECT_COMMIT
+                              - PULL_REQUEST
+                              type: string
+                            provider:
+                              description: Provider is "GIT_HUB", "GIT_LAB" or "GITEA".
+                                Derived from url when empty.
+                              type: string
+                            secretRef:
+                              description: |-
+                                SecretRef names the Secret in the mogenius namespace holding the write
+                                credential. Defaults to a name derived from the repository name.
+                              type: string
+                          type: object
                       required:
                       - name
                       - url
