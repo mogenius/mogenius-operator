@@ -301,42 +301,38 @@ func estimateMessagesChars(messages []anthropic.MessageParam) int {
 	return total
 }
 
-// compactAnthropicToolResults replaces all tool_result contents in messages
-// with a short marker. Used as fallback when AI-based compaction fails.
-func compactAnthropicToolResults(messages []anthropic.MessageParam) {
-	for i := range messages {
-		if messages[i].Role != anthropic.MessageParamRoleUser {
-			continue
-		}
-		for j, block := range messages[i].Content {
-			if block.OfToolResult != nil {
-				messages[i].Content[j] = anthropic.NewToolResultBlock(
-					block.OfToolResult.ToolUseID,
-					"[processed]",
-					false,
-				)
-			}
-		}
+// compactedSummaryPrefix marks the single assistant message that carries the
+// AI-generated progress report replacing the compacted-away history.
+const compactedSummaryPrefix = "[Conversation compacted]\n\n"
+
+// create new conversation history with the original user prompt, and compacted summary
+func buildCompactedAnthropicMessages(originalPrompt anthropic.MessageParam, summary string) []anthropic.MessageParam {
+	return []anthropic.MessageParam{
+		originalPrompt,
+		{
+			Role: anthropic.MessageParamRoleAssistant,
+			Content: []anthropic.ContentBlockParamUnion{
+				anthropic.NewTextBlock(compactedSummaryPrefix + summary),
+			},
+		},
 	}
 }
 
-// compactOpenAiToolMessages replaces all tool message contents in the message
-// list with a short marker. Used as fallback when AI-based compaction fails.
-func compactOpenAiToolMessages(messages []openai.ChatCompletionMessageParamUnion) {
-	for i := range messages {
-		if messages[i].OfTool != nil {
-			messages[i] = openai.ToolMessage("[processed]", messages[i].OfTool.ToolCallID)
-		}
+// create new conversation history with the original system prompt, original user prompt, and compacted summary
+func buildCompactedOpenAIMessages(originalSystem, originalPrompt openai.ChatCompletionMessageParamUnion, summary string) []openai.ChatCompletionMessageParamUnion {
+	return []openai.ChatCompletionMessageParamUnion{
+		originalSystem,
+		originalPrompt,
+		openai.AssistantMessage(compactedSummaryPrefix + summary),
 	}
 }
 
-// compactOllamaToolMessages replaces all tool message contents in the message
-// list with a short marker. Used as fallback when AI-based compaction fails.
-func compactOllamaToolMessages(messages []ollamaapi.Message) {
-	for i := range messages {
-		if messages[i].Role == "tool" {
-			messages[i].Content = "[processed]"
-		}
+// create new conversation history with the original system prompt, original user prompt, and compacted summary
+func buildCompactedOllamaMessages(originalSystem, originalPrompt ollamaapi.Message, summary string) []ollamaapi.Message {
+	return []ollamaapi.Message{
+		originalSystem,
+		originalPrompt,
+		{Role: "assistant", Content: compactedSummaryPrefix + summary},
 	}
 }
 

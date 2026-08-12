@@ -44,12 +44,7 @@ func (ai *aiManager) compactOllamaMessagesWithAI(ctx context.Context, client *ap
 		return nil, 0, err
 	}
 
-	compacted := []api.Message{
-		messages[0], // original system prompt
-		messages[1], // original user prompt
-		{Role: "assistant", Content: "[Conversation compacted]\n\n" + summary},
-	}
-	return compacted, tokensUsed, nil
+	return buildCompactedOllamaMessages(messages[0], messages[1], summary), tokensUsed, nil
 }
 
 func (ai *aiManager) processPromptOllama(ctx context.Context, rc *ResolvedModelConfig, systemPrompt, prompt string, toolCtx *ToolContext, onProgress func(int64, string), recordStep StepRecorder) (int64, int, string, error) {
@@ -135,15 +130,15 @@ func (ai *aiManager) processPromptOllama(ctx context.Context, rc *ResolvedModelC
 		}
 
 		// Compact before adding the assistant response when history is too large.
-		// Results must survive exactly one request, so compaction runs AFTER
-		// the API call, not before.
 		if estimateOllamaMessagesChars(messages) > compactHistoryAfterChars {
 			charsBefore := estimateOllamaMessagesChars(messages)
 			ai.logger.Info("Compacting conversation history with AI", "chars", charsBefore)
 			compacted, compactTokens, compactErr := ai.compactOllamaMessagesWithAI(ctx, client, model, messages)
 			if compactErr != nil {
-				ai.logger.Warn("AI compaction failed, falling back to tool result trimming", "error", compactErr)
-				compactOllamaToolMessages(messages)
+				ai.logger.Warn("AI compaction failed", "error", compactErr)
+				if recordStep != nil {
+					recordStep(AiRunStep{Kind: AI_RUN_STEP_ERROR, Label: fmt.Sprintf("Conversation compaction failed: %v", compactErr)})
+				}
 			} else {
 				messages = compacted
 				tokensUsed += compactTokens

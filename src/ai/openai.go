@@ -39,12 +39,7 @@ func (ai *aiManager) compactOpenAIMessagesWithAI(ctx context.Context, client *op
 	summary := resp.Choices[0].Message.Content
 	tokensUsed := resp.Usage.TotalTokens
 
-	compacted := []openai.ChatCompletionMessageParamUnion{
-		messages[0], // original system prompt
-		messages[1], // original user prompt
-		openai.AssistantMessage("[Conversation compacted]\n\n" + summary),
-	}
-	return compacted, tokensUsed, nil
+	return buildCompactedOpenAIMessages(messages[0], messages[1], summary), tokensUsed, nil
 }
 
 func (ai *aiManager) processPromptOpenAi(ctx context.Context, rc *ResolvedModelConfig, systemPrompt, prompt string, toolCtx *ToolContext, onProgress func(int64, string), recordStep StepRecorder) (int64, int, string, error) {
@@ -98,15 +93,15 @@ func (ai *aiManager) processPromptOpenAi(ctx context.Context, rc *ResolvedModelC
 		}
 
 		// Compact when the history exceeds the size threshold. Never compact
-		// BEFORE the call: results must survive exactly one request or the
-		// model goes blind.
 		if estimateOpenAIMessagesChars(params.Messages) > compactHistoryAfterChars {
 			charsBefore := estimateOpenAIMessagesChars(params.Messages)
 			ai.logger.Info("Compacting conversation history with AI", "chars", charsBefore)
 			compacted, compactTokens, compactErr := ai.compactOpenAIMessagesWithAI(ctx, client, model, params.Messages)
 			if compactErr != nil {
-				ai.logger.Warn("AI compaction failed, keeping tool-result-trimmed history", "error", compactErr)
-				compactOpenAiToolMessages(params.Messages)
+				ai.logger.Warn("AI compaction failed", "error", compactErr)
+				if recordStep != nil {
+					recordStep(AiRunStep{Kind: AI_RUN_STEP_ERROR, Label: fmt.Sprintf("Conversation compaction failed: %v", compactErr)})
+				}
 			} else {
 				params.Messages = compacted
 				tokensUsed += compactTokens
