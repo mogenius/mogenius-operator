@@ -91,13 +91,28 @@ type GitOpsWriteConfig struct {
 	// +kubebuilder:validation:Enum=DIRECT_COMMIT;PULL_REQUEST
 	// +optional
 	Mode string `json:"mode,omitempty"`
-	// SecretRef names the Secret in the mogenius namespace holding the write
-	// credential. Defaults to a name derived from the repository name.
+	// SecretRef names the Secret in the mogenius-operator`s namespace holding the write credentials.
+	// secretRef.secret - reference a secret in the mogenius-operator`s namespace
+	// secretRef.externalSecret - reference a secret in an external vault,
+	// the operator will automatically create the externalsecret for you in the mogenius-operator`s namespace.
 	// +optional
-	SecretRef string `json:"secretRef,omitempty"`
+	SecretRef *GenericSecretReference `json:"secretRef,omitempty"`
 	// Provider is "GIT_HUB", "GIT_LAB" or "GITEA". Derived from url when empty.
 	// +optional
 	Provider string `json:"provider,omitempty"`
+}
+
+type SecretReference struct {
+	// Name of the Secret resource to reference.
+	Name string `json:"name,omitempty"`
+	// Key of the Secret data to reference.
+	Key string `json:"key,omitempty"`
+}
+
+// +kubebuilder:validation:OneOf=secret;externalSecret
+type GenericSecretReference struct {
+	Secret         *SecretReference `json:"secret,omitempty"`
+	ExternalSecret *ExternalSecret  `json:"externalSecret,omitempty"`
 }
 
 type ArgoCDInstallConfig struct {

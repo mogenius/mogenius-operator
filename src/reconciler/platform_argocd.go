@@ -87,6 +87,15 @@ func (d *reconcilerModule) reconcileArgoCD(ctx context.Context, spec v1alpha1.Pl
 						extraObjects = append(extraObjects, argoApplicationObject(name, repo, namespace, project))
 					}
 				}
+
+				if repo.Write != nil &&
+					repo.Write.Enabled != nil &&
+					*repo.Write.Enabled &&
+					repo.Write.SecretRef.ExternalSecret != nil {
+
+					operatorNamespace := d.config.Get("MO_OWN_NAMESPACE")
+					extraObjects = append(extraObjects, externalSecretResource(name+"-write", operatorNamespace, *repo.Write.SecretRef.ExternalSecret, nil, nil))
+				}
 			}
 
 			return extraObjects, nil
