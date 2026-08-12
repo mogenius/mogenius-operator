@@ -398,13 +398,19 @@ func (ai *aiManager) compactAnthropicMessagesWithAI(ctx context.Context, client 
 		return nil, 0, err
 	}
 
-	var summary string
+	// Concatenate every text block: the model may emit multiple text blocks
+	// (or lead with a non-text block), and taking only the first would drop
+	// part of the summary.
+	var sb strings.Builder
 	for _, block := range resp.Content {
 		if block.Type == "text" {
-			summary = block.Text
-			break
+			if sb.Len() > 0 {
+				sb.WriteString("\n")
+			}
+			sb.WriteString(block.Text)
 		}
 	}
+	summary := sb.String()
 
 	tokensUsed := resp.Usage.InputTokens + resp.Usage.OutputTokens + resp.Usage.CacheCreationInputTokens
 
