@@ -5,6 +5,7 @@ go 1.26.4
 require (
 	github.com/KimMachineGun/automemlimit v0.7.5
 	github.com/alecthomas/kong v1.16.1
+	github.com/alicebob/miniredis/v2 v2.38.0
 	github.com/bitnami/sealed-secrets v0.38.4
 	github.com/creack/pty v1.1.24
 	github.com/go-playground/validator/v10 v10.30.3
@@ -35,7 +36,6 @@ require (
 )
 
 require (
-	github.com/alicebob/miniredis/v2 v2.38.0 // indirect
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/buger/jsonparser v1.1.2 // indirect

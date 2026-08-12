@@ -255,11 +255,12 @@ func handleCRDDeletion(wm watcher.WatcherModule, resource utils.ResourceDescript
 func setStoreIfNeeded(apiVersion string, resourceName string, kind string, namespace string, obj *unstructured.Unstructured) {
 	obj = removeUnusedFieds(obj)
 
-	// store primary key + ZSET indexes (by-creation, by-name) in a single
-	// MULTI/EXEC so paginated readers never observe an index member whose
-	// primary key is missing. apiVersion/kind/namespace/name come from the
-	// watcher's ResourceDescriptor because obj.GetAPIVersion()/GetKind() are
-	// often empty on DynamicClient-sourced Unstructured objects.
+	// store primary key + ZSET indexes (by-creation, by-name). The indexes are
+	// what every list read enumerates, so this pair has to stay in step; the
+	// resync rewrite is what repairs it after a failed write.
+	// apiVersion/kind/namespace/name come from the watcher's ResourceDescriptor
+	// because obj.GetAPIVersion()/GetKind() are often empty on
+	// DynamicClient-sourced Unstructured objects.
 	err := store.SetResourceWithIndex(valkeyClient, apiVersion, kind, namespace, resourceName, obj, utils.ResourceResyncTime*2)
 	if err != nil {
 		k8sLogger.Error("Error setting object in store", "error", err)
@@ -290,7 +291,7 @@ func deleteFromStoreIfNeeded(apiVersion string, resourceName string, kind string
 		handlePVDeletion(&pv)
 	}
 
-	// other resources - delete primary key + both ZSET index members atomically.
+	// other resources - delete primary key + both ZSET index members.
 	err := store.DeleteResourceWithIndex(valkeyClient, apiVersion, kind, namespace, resourceName, obj)
 	if err != nil {
 		k8sLogger.Error("Error deleting object in store", "error", err)
@@ -335,9 +336,9 @@ func GetUnstructuredNamespaceResourceList(namespace string, whitelist []*utils.R
 		blacklist = []*utils.ResourceDescriptor{}
 	}
 
-	// Collect the allowed namespaced kinds, then fetch everything with ONE
-	// namespace-scoped keyspace scan. The previous per-kind fan-out ran a
-	// full SCAN per watched kind (80-150 kinds) for every call.
+	// Collect the allowed namespaced kinds and let the store resolve them
+	// through their name indexes in one pipeline - one index read per kind,
+	// no keyspace scan.
 	allowed := make([]utils.ResourceDescriptor, 0, len(resources))
 	includeNamespaceObject := false
 	for _, v := range resources {

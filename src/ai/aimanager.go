@@ -15,6 +15,7 @@ import (
 	"mogenius-operator/src/websocket"
 	"net/http"
 	"net/url"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -42,6 +43,10 @@ const (
 	DB_AI_LATEST_TASK_KEY           = "latest-task"
 	DB_AI_LATEST_NAMESPACE_TASK_KEY = "latest-namespace-task"
 )
+
+// valkeyBatchSize caps how many GETs are pipelined per round trip when reading
+// a scan result.
+const valkeyBatchSize = 500
 
 var ValkeyAiTTL = time.Hour * 24 * 7 // 7 days
 
@@ -773,41 +778,31 @@ func (ai *aiManager) invalidateUsageSnapshot() {
 // loadTokenUsageEntries reads all usage entries from Valkey (SCAN + batched
 // GETs). Filtering by day happens in aggregateTokenUsage.
 func (ai *aiManager) loadTokenUsageEntries() ([]UsedToken, error) {
-	cursor := uint64(0)
-	pattern := DB_AI_BUCKET_TOKENS + ":*"
 	ctx := context.Background()
 	var entries []UsedToken
 
-	for {
-		scanCmd := ai.valkeyClient.GetValkeyClient().B().Scan().Cursor(cursor).Match(pattern).Count(100).Build()
-		scanResult, err := ai.valkeyClient.GetValkeyClient().Do(ctx, scanCmd).AsScanEntry()
-		if err != nil {
-			return nil, err
-		}
+	keys, err := ai.valkeyClient.Keys(DB_AI_BUCKET_TOKENS + ":*")
+	if err != nil {
+		return nil, err
+	}
 
-		if len(scanResult.Elements) > 0 {
-			cmds := make([]valkey.Completed, len(scanResult.Elements))
-			for i, key := range scanResult.Elements {
-				cmds[i] = ai.valkeyClient.GetValkeyClient().B().Get().Key(key).Build()
-			}
-			results := ai.valkeyClient.GetValkeyClient().DoMulti(ctx, cmds...)
-			for _, result := range results {
-				item, err := result.ToString()
-				if err != nil {
-					// Key might have been deleted or expired, skip it
-					continue
-				}
-				var tokenEntry UsedToken
-				if err := json.Unmarshal([]byte(item), &tokenEntry); err != nil {
-					continue
-				}
-				entries = append(entries, tokenEntry)
-			}
+	for chunk := range slices.Chunk(keys, valkeyBatchSize) {
+		cmds := make([]valkey.Completed, len(chunk))
+		for i, key := range chunk {
+			cmds[i] = ai.valkeyClient.GetValkeyClient().B().Get().Key(key).Build()
 		}
-
-		cursor = scanResult.Cursor
-		if cursor == 0 {
-			break
+		results := ai.valkeyClient.GetValkeyClient().DoMulti(ctx, cmds...)
+		for _, result := range results {
+			item, err := result.ToString()
+			if err != nil {
+				// Key might have been deleted or expired, skip it
+				continue
+			}
+			var tokenEntry UsedToken
+			if err := json.Unmarshal([]byte(item), &tokenEntry); err != nil {
+				continue
+			}
+			entries = append(entries, tokenEntry)
 		}
 	}
 	return entries, nil
@@ -855,58 +850,48 @@ func (ai *aiManager) getDbStats(namespace *string) (totalDbEntries int, unproces
 		key = ai.getValkeyKey("*", *namespace, "*")
 	}
 
-	cursor := uint64(0)
 	ctx := context.Background()
 
-	for {
-		// Build and execute SCAN command
-		scanCmd := ai.valkeyClient.GetValkeyClient().B().Scan().Cursor(cursor).Match(key).Count(100).Build()
-		scanResult, err := ai.valkeyClient.GetValkeyClient().Do(ctx, scanCmd).AsScanEntry()
-		if err != nil {
-			return 0, 0, 0, 0, err
+	keys, err := ai.valkeyClient.Keys(key)
+	if err != nil {
+		return 0, 0, 0, 0, err
+	}
+
+	for chunk := range slices.Chunk(keys, valkeyBatchSize) {
+		// Build all GET commands for this batch
+		cmds := make([]valkey.Completed, len(chunk))
+		for i, k := range chunk {
+			cmds[i] = ai.valkeyClient.GetValkeyClient().B().Get().Key(k).Build()
 		}
 
-		if len(scanResult.Elements) > 0 {
-			// Build all GET commands for this batch
-			cmds := make([]valkey.Completed, len(scanResult.Elements))
-			for i, k := range scanResult.Elements {
-				cmds[i] = ai.valkeyClient.GetValkeyClient().B().Get().Key(k).Build()
+		// Execute all GETs in a single round trip
+		results := ai.valkeyClient.GetValkeyClient().DoMulti(ctx, cmds...)
+
+		// Process results
+		for _, result := range results {
+			item, err := result.ToString()
+			if err != nil {
+				// Key might have been deleted or expired, skip it
+				continue
 			}
 
-			// Execute all GETs in a single round trip
-			results := ai.valkeyClient.GetValkeyClient().DoMulti(ctx, cmds...)
-
-			// Process results
-			for _, result := range results {
-				item, err := result.ToString()
-				if err != nil {
-					// Key might have been deleted or expired, skip it
-					continue
-				}
-
-				var task AiTask
-				if err := json.Unmarshal([]byte(item), &task); err != nil {
-					// Log error but continue processing
-					continue
-				}
-
-				totalDbEntries++
-
-				if task.State == AI_TASK_STATE_PENDING || task.State == AI_TASK_STATE_FAILED {
-					unprocessedDbEntries++
-				}
-				if task.State == AI_TASK_STATE_IGNORED {
-					ignoredDbEntries++
-				}
-				if len(task.ReadByUsers) == 0 {
-					numberOfUnreadTasks++
-				}
+			var task AiTask
+			if err := json.Unmarshal([]byte(item), &task); err != nil {
+				// Log error but continue processing
+				continue
 			}
-		}
 
-		cursor = scanResult.Cursor
-		if cursor == 0 {
-			break // SCAN complete
+			totalDbEntries++
+
+			if task.State == AI_TASK_STATE_PENDING || task.State == AI_TASK_STATE_FAILED {
+				unprocessedDbEntries++
+			}
+			if task.State == AI_TASK_STATE_IGNORED {
+				ignoredDbEntries++
+			}
+			if len(task.ReadByUsers) == 0 {
+				numberOfUnreadTasks++
+			}
 		}
 	}
 
@@ -1035,27 +1020,7 @@ func (ai *aiManager) ResetTokenUsageForModel(modelCrName string) (int64, error) 
 }
 
 func (ai *aiManager) getAllTaskKeys() ([]string, error) {
-	pattern := fmt.Sprintf("%s:*", DB_AI_BUCKET_TASKS)
-	cursor := uint64(0)
-	ctx := context.Background()
-	var allKeys []string
-
-	for {
-		scanCmd := ai.valkeyClient.GetValkeyClient().B().Scan().Cursor(cursor).Match(pattern).Count(100).Build()
-		scanResult, err := ai.valkeyClient.GetValkeyClient().Do(ctx, scanCmd).AsScanEntry()
-		if err != nil {
-			return nil, err
-		}
-
-		allKeys = append(allKeys, scanResult.Elements...)
-
-		cursor = scanResult.Cursor
-		if cursor == 0 {
-			break
-		}
-	}
-
-	return allKeys, nil
+	return ai.valkeyClient.Keys(fmt.Sprintf("%s:*", DB_AI_BUCKET_TASKS))
 }
 
 type aiTaskWithKey struct {

@@ -34,6 +34,7 @@ import (
 
 	"encoding/json"
 
+	"github.com/valkey-io/valkey-go"
 	release "helm.sh/helm/v4/pkg/release/v1"
 	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -2723,14 +2724,20 @@ func (self *socketApi) registerPatterns() {
 						DB_STATS_LIVE_BUCKET_NAME+":"+DB_STATS_TRAFFIC_NAME+":"+node.Name,
 					)
 				}
-				var values []string
+				values := make([]string, len(keys))
 				if len(keys) > 0 {
 					client := self.valkeyClient.GetValkeyClient()
-					values, err = client.Do(self.valkeyClient.GetContext(), client.B().Mget().Key(keys...).Build()).AsStrSlice()
-				}
-				if err != nil || len(values) != len(keys) {
-					// keep prior behaviour: missing metrics stay empty
-					values = make([]string, len(keys))
+					cmds := make([]valkey.Completed, len(keys))
+					for i, key := range keys {
+						cmds[i] = client.B().Get().Key(key).Build()
+					}
+					// DoMulti keeps the request order and splits across shards;
+					// MGET would fail with CROSSSLOT on a valkey cluster.
+					for i, resp := range client.DoMulti(self.valkeyClient.GetContext(), cmds...) {
+						if v, err := resp.ToString(); err == nil {
+							values[i] = v
+						}
+					}
 				}
 
 				for i, node := range nodes {

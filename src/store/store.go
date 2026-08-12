@@ -16,6 +16,8 @@ import (
 	"mogenius-operator/src/structs"
 	"mogenius-operator/src/utils"
 	"mogenius-operator/src/valkeyclient"
+	"path/filepath"
+	"slices"
 	"sort"
 	"strconv"
 	"sync"
@@ -107,9 +109,20 @@ var (
 	auditBootId string
 
 	auditLogger *slog.Logger
+
+	// storeLog serves the list helpers, which report a failure as an empty
+	// result to their callers and would otherwise drop the reason entirely.
+	storeLog *slog.Logger
 )
 
-var ErrNotFound = errors.New("not found")
+// storeLogger is nil-safe so the list helpers stay usable before Setup ran
+// (unit tests, early boot).
+func storeLogger() *slog.Logger {
+	if storeLog != nil {
+		return storeLog
+	}
+	return slog.Default()
+}
 
 // KubernetesGetter is an interface for fetching secrets directly from Kubernetes cluster
 type KubernetesGetter interface {
@@ -174,6 +187,7 @@ func Setup(
 ) error {
 	valkeyClient = valkey
 	auditLogger = logManagerModule.CreateLogger("audit-log")
+	storeLog = logManagerModule.CreateLogger("store")
 
 	if auditLogLimit > 0 {
 		AuditLogLimit = auditLogLimit
@@ -236,19 +250,6 @@ func dispatchAuditEvent(entry AuditLogEntry) {
 	}
 }
 
-func SearchResourceByKeyParts(valkeyClient valkeyclient.ValkeyClient, parts ...string) ([]unstructured.Unstructured, error) {
-	key := CreateResourceKey(parts...)
-
-	items, err := valkeyclient.GetObjectsByPrefix[unstructured.Unstructured](valkeyClient, valkeyclient.ORDER_NONE, key)
-
-	if len(items) == 0 {
-		return nil, ErrNotFound
-
-	}
-
-	return items, err
-}
-
 func SearchByNamespaceAndName(valkeyClient valkeyclient.ValkeyClient, namespace string, name string) ([]unstructured.Unstructured, error) {
 	pattern := CreateKeyPattern(nil, nil, &namespace, &name)
 
@@ -257,12 +258,22 @@ func SearchByNamespaceAndName(valkeyClient valkeyclient.ValkeyClient, namespace 
 	return items, err
 }
 
+// SearchByGroupKindNameNamespace looks one named resource up by kind. A nil
+// namespace searches every namespace the kind lives in. Both the kind and the
+// name are known here, so this goes through the name index instead of a
+// keyspace scan.
 func SearchByGroupKindNameNamespace(valkeyClient valkeyclient.ValkeyClient, apiVersion string, kind string, name string, namespace *string) ([]unstructured.Unstructured, error) {
-	pattern := CreateKeyPattern(&apiVersion, &kind, namespace, &name)
+	namespaceFilter := "*"
+	if namespace != nil {
+		namespaceFilter = *namespace
+	}
 
-	items, err := valkeyclient.GetObjectsByPattern[unstructured.Unstructured](valkeyClient, pattern, []string{})
+	keys, err := resourceKeysByIndex(apiVersion, kind, namespaceFilter, name)
+	if err != nil {
+		return []unstructured.Unstructured{}, err
+	}
 
-	return items, err
+	return valkeyclient.GetObjectsForKeys[unstructured.Unstructured](valkeyClient, keys)
 }
 
 func SearchResourceByNamespace(valkeyClient valkeyclient.ValkeyClient, namespace string, whitelist []*utils.ResourceDescriptor) ([]unstructured.Unstructured, error) {
@@ -287,30 +298,23 @@ func SearchResourceByNamespace(valkeyClient valkeyclient.ValkeyClient, namespace
 }
 
 // GetResourcesByNamespaceAndKinds returns all stored resources in the given
-// namespace whose apiVersion/kind matches one of the allowed descriptors,
-// using a SINGLE keyspace scan plus chunked MGETs. The per-kind alternative
-// (one scan per descriptor) costs O(kinds × keyspace) — with 80-150 watched
-// kinds that dominated namespace-scoped queries. apiVersion/kind are derived
-// from the key segments, which are written from the watcher's
-// ResourceDescriptor and therefore authoritative even when the stored
-// object's TypeMeta is empty.
+// namespace whose apiVersion/kind matches one of the allowed descriptors.
+//
+// It reads every kind's ZSET name index in ONE pipeline, so the cost is a
+// couple of round trips plus O(matching resources) against O(keyspace) for the
+// keyspace scan this used to do — with 80-150 watched kinds that scan dominated
+// namespace-scoped queries. apiVersion/kind are derived from the index shard,
+// which is written from the watcher's ResourceDescriptor and therefore
+// authoritative even when the stored object's TypeMeta is empty.
 func GetResourcesByNamespaceAndKinds(valkeyClient valkeyclient.ValkeyClient, namespace string, allowed []utils.ResourceDescriptor) ([]unstructured.Unstructured, error) {
-	pattern := CreateKeyPattern(nil, nil, &namespace, nil)
-	keys, err := valkeyClient.Keys(pattern)
+	shards, err := resourceShardsFor(allowed, namespace)
 	if err != nil {
-		return []unstructured.Unstructured{}, fmt.Errorf("scan resources in namespace %q: %w", namespace, err)
+		return []unstructured.Unstructured{}, fmt.Errorf("resolve kinds in namespace %q: %w", namespace, err)
 	}
 
-	allowedSet := make(map[string]struct{}, len(allowed))
-	for _, r := range allowed {
-		allowedSet[r.ApiVersion+":"+r.Kind] = struct{}{}
-	}
-
-	selected := make([]string, 0, len(keys))
-	for _, key := range keys {
-		if resourceKeyMatches(key, namespace, allowedSet) {
-			selected = append(selected, key)
-		}
+	selected, err := resourceKeysForShards(shards, "*")
+	if err != nil {
+		return []unstructured.Unstructured{}, fmt.Errorf("list resources in namespace %q: %w", namespace, err)
 	}
 
 	pairs, err := valkeyclient.GetKeyedObjectsForKeys[unstructured.Unstructured](valkeyClient, selected)
@@ -357,28 +361,6 @@ func stampTypeMetaFromKey(obj *unstructured.Unstructured, key string) {
 		return
 	}
 	ensureTypeMeta(obj, parts[1], parts[2])
-}
-
-// resourceKeyMatches reports whether a primary key belongs to the given
-// namespace and one of the allowed apiVersion:kind pairs.
-//
-// Key layout: resources:<apiVersion>:<kind>:<namespace>:<name>.
-// apiVersion/kind/namespace cannot contain ':' (apiVersion uses '/'), but
-// the NAME can: RBAC path-segment names like
-// "system:controller:bootstrap-signer" exist in every cluster, so SplitN
-// keeps those colons inside parts[4]. The namespace re-check guards against
-// glob wildcards matching across segment boundaries. An empty namespace
-// disables the namespace check (cluster-wide query).
-func resourceKeyMatches(key, namespace string, allowedSet map[string]struct{}) bool {
-	parts := strings.SplitN(key, ":", 5)
-	if len(parts) != 5 {
-		return false
-	}
-	if namespace != "" && parts[3] != namespace {
-		return false
-	}
-	_, ok := allowedSet[parts[1]+":"+parts[2]]
-	return ok
 }
 
 func DropAllResourcesFromValkey(valkeyClient valkeyclient.ValkeyClient, logger *slog.Logger) error {
@@ -553,10 +535,13 @@ func resourceIndexKey(apiVersion, kind, namespace, sortType string) string {
 }
 
 // SetResourceWithIndex writes a resource to the primary string key and updates
-// both ZSET indexes (by-creation, by-name) in a single MULTI/EXEC transaction.
-// All three writes succeed or all three are skipped, so a read via the index
-// can never see a member whose primary key is missing (modulo TTL expiry, which
-// the caller handles by ignoring empty MGET slots).
+// both ZSET indexes (by-creation, by-name) plus the namespace registry in one
+// pipeline. The index is what every list and paginated read enumerates, so a
+// write that reports an error has left the two out of step until the watcher's
+// next resync rewrites the pair: an index member without its primary key is
+// skipped (and pruned) by readers, a primary key without its index member is
+// invisible to them. The pipeline is not a transaction - the keys live in
+// different cluster slots, so they cannot share a MULTI/EXEC.
 //
 // apiVersion/kind/namespace/name are passed explicitly because Unstructured
 // objects coming off the DynamicClient frequently have empty TypeMeta in
@@ -636,8 +621,8 @@ func resourceNodeIndexKey(nodeName string) string {
 }
 
 // DeleteResourceWithIndex removes the primary key and both index members in
-// one MULTI/EXEC so a paginated read never resolves an index member to a
-// missing key (again, modulo TTL expiry).
+// one pipeline. A member left behind by a partial failure resolves to a missing
+// key, which readers skip and prune.
 func DeleteResourceWithIndex(
 	valkey valkeyclient.ValkeyClient,
 	apiVersion, kind, namespace, name string,
@@ -896,6 +881,142 @@ func pruneStaleIndexMembers(valkey valkeyclient.ValkeyClient, stale []rankedMemb
 			logger.Warn("failed to prune stale index member", "error", err)
 		}
 	}
+}
+
+// resourceReadChunkSize bounds how many primary keys are fetched per pipeline
+// when resolving index members to objects.
+const resourceReadChunkSize = 1000
+
+// isWildcardFilter reports whether a namespace/name filter means "match
+// everything". The store's key patterns have always treated an empty segment
+// and "*" alike, so both forms reach these helpers from existing callers.
+func isWildcardFilter(filter string) bool {
+	return filter == "" || filter == "*"
+}
+
+// resourceShardsFor resolves the index shards holding the given kinds for a
+// namespace filter. A literal namespace addresses its shard directly, with no
+// lookup at all. A wildcard filter discovers namespaces from the namespace
+// registry SETs that SetResourceWithIndex maintains, one pipelined SMEMBERS per
+// kind rather than a keyspace SCAN.
+func resourceShardsFor(descriptors []utils.ResourceDescriptor, namespaceFilter string) ([]indexShard, error) {
+	if !isWildcardFilter(namespaceFilter) && !strings.Contains(namespaceFilter, "*") {
+		shards := make([]indexShard, 0, len(descriptors))
+		for _, descriptor := range descriptors {
+			shards = append(shards, indexShard{
+				apiVersion: descriptor.ApiVersion,
+				kind:       descriptor.Kind,
+				namespace:  namespaceFilter,
+			})
+		}
+		return shards, nil
+	}
+
+	client := valkeyClient.GetValkeyClient()
+	cmds := make([]vgo.Completed, len(descriptors))
+	for i, descriptor := range descriptors {
+		registryKey := resourceNamespaceRegistryKey(descriptor.ApiVersion, descriptor.Kind)
+		cmds[i] = client.B().Smembers().Key(registryKey).Build()
+	}
+
+	matchNamespaces := !isWildcardFilter(namespaceFilter)
+	shards := make([]indexShard, 0, len(descriptors))
+	for i, resp := range client.DoMulti(valkeyClient.GetContext(), cmds...) {
+		namespaces, err := resp.AsStrSlice()
+		if err != nil {
+			return nil, fmt.Errorf("discover namespaces for %s/%s: %w",
+				descriptors[i].ApiVersion, descriptors[i].Kind, err)
+		}
+		for _, namespace := range namespaces {
+			if matchNamespaces {
+				if ok, _ := filepath.Match(namespaceFilter, namespace); !ok {
+					continue
+				}
+			}
+			shards = append(shards, indexShard{
+				apiVersion: descriptors[i].ApiVersion,
+				kind:       descriptors[i].Kind,
+				namespace:  namespace,
+			})
+		}
+	}
+	return shards, nil
+}
+
+// resourceKeysForShards returns the primary keys of every resource in the given
+// shards whose name matches nameFilter, reading each shard's by-name ZSET in one
+// pipeline.
+//
+// This is what replaces the keyspace SCAN the list helpers used to do. Beyond
+// costing O(matching resources) instead of O(keyspace) on Valkey's single
+// thread, it is the only correct enumeration on a Valkey cluster: SCAN carries
+// no key, so the client routes it to an arbitrary node and its cursor is
+// meaningful for that node alone, whereas SMEMBERS/ZRANGE are key-routed to the
+// shard that owns the index.
+//
+// The filter is matched against index members, so no primary key outside the
+// result is ever read.
+func resourceKeysForShards(shards []indexShard, nameFilter string) ([]string, error) {
+	if len(shards) == 0 {
+		return nil, nil
+	}
+
+	client := valkeyClient.GetValkeyClient()
+	cmds := make([]vgo.Completed, len(shards))
+	for i, shard := range shards {
+		indexKey := resourceIndexKey(shard.apiVersion, shard.kind, shard.namespace, resourceIndexSortByName)
+		cmds[i] = client.B().Zrange().Key(indexKey).Min("0").Max("-1").Build()
+	}
+
+	matchNames := !isWildcardFilter(nameFilter)
+	keys := make([]string, 0, len(shards))
+	for i, resp := range client.DoMulti(valkeyClient.GetContext(), cmds...) {
+		names, err := resp.AsStrSlice()
+		if err != nil {
+			return nil, fmt.Errorf("read name index for %s/%s in %q: %w",
+				shards[i].apiVersion, shards[i].kind, shards[i].namespace, err)
+		}
+		for _, name := range names {
+			if matchNames {
+				if ok, _ := filepath.Match(nameFilter, name); !ok {
+					continue
+				}
+			}
+			keys = append(keys, CreateResourceKey(shards[i].apiVersion, shards[i].kind, shards[i].namespace, name))
+		}
+	}
+	return keys, nil
+}
+
+// resourceKeysByIndex returns the primary keys of every resource of one
+// (apiVersion, kind) matching the namespace and name filters.
+func resourceKeysByIndex(apiVersion, kind, namespaceFilter, nameFilter string) ([]string, error) {
+	shards, err := resourceShardsFor(
+		[]utils.ResourceDescriptor{{ApiVersion: apiVersion, Kind: kind}}, namespaceFilter)
+	if err != nil {
+		return nil, err
+	}
+	return resourceKeysForShards(shards, nameFilter)
+}
+
+// listResourcesByIndex returns every resource of one (apiVersion, kind)
+// matching the namespace and name filters, decoded into T. Index members whose
+// primary key has already expired are skipped.
+func listResourcesByIndex[T any](apiVersion, kind, namespaceFilter, nameFilter string) ([]T, error) {
+	keys, err := resourceKeysByIndex(apiVersion, kind, namespaceFilter, nameFilter)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]T, 0, len(keys))
+	for chunk := range slices.Chunk(keys, resourceReadChunkSize) {
+		objects, err := valkeyclient.GetObjectsForKeys[T](valkeyClient, chunk)
+		if err != nil {
+			return result, err
+		}
+		result = append(result, objects...)
+	}
+	return result, nil
 }
 
 // resolveIndexShards expands (whitelist - blacklist) x namespaceWhitelist into
@@ -1359,9 +1480,11 @@ func sortRankedMembers(items []rankedMember, useNameSort bool, sortOrder string)
 }
 
 func GetIngressClasses() []networkingv1.IngressClass {
-	ingressClasses, err := valkeyclient.GetObjectsByPrefix[networkingv1.IngressClass](valkeyClient, valkeyclient.ORDER_NONE, VALKEY_RESOURCE_PREFIX, utils.IngressClassResource.ApiVersion, utils.IngressClassResource.Kind, "*")
+	ingressClasses, err := listResourcesByIndex[networkingv1.IngressClass](
+		utils.IngressClassResource.ApiVersion, utils.IngressClassResource.Kind, "*", "*")
 	if err != nil {
-		return ingressClasses
+		storeLogger().Error("failed to list ingress classes", "error", err)
+		return nil
 	}
 	return ingressClasses
 }
@@ -1408,8 +1531,10 @@ func GetPodsOnNode(nodeName string) []coreV1.Pod {
 }
 
 func GetPods(namespace string) []coreV1.Pod {
-	pods, err := valkeyclient.GetObjectsByPrefix[coreV1.Pod](valkeyClient, valkeyclient.ORDER_ASC, VALKEY_RESOURCE_PREFIX, utils.PodResource.ApiVersion, utils.PodResource.Kind, namespace, "*")
-	if err != nil || pods == nil {
+	pods, err := listResourcesByIndex[coreV1.Pod](
+		utils.PodResource.ApiVersion, utils.PodResource.Kind, namespace, "*")
+	if err != nil {
+		storeLogger().Error("failed to list pods", "namespace", namespace, "error", err)
 		return nil
 	}
 	return pods
@@ -1432,8 +1557,10 @@ func GetDeployment(namespace string, name string) *v1.Deployment {
 }
 
 func GetDeployments(namespace string, name string) []v1.Deployment {
-	deployments, err := valkeyclient.GetObjectsByPrefix[v1.Deployment](valkeyClient, valkeyclient.ORDER_ASC, VALKEY_RESOURCE_PREFIX, utils.DeploymentResource.ApiVersion, utils.DeploymentResource.Kind, namespace, name)
-	if err != nil || deployments == nil {
+	deployments, err := listResourcesByIndex[v1.Deployment](
+		utils.DeploymentResource.ApiVersion, utils.DeploymentResource.Kind, namespace, name)
+	if err != nil {
+		storeLogger().Error("failed to list deployments", "namespace", namespace, "name", name, "error", err)
 		return nil
 	}
 	return deployments
@@ -1449,8 +1576,10 @@ func GetSecret(namespace string, name string) *coreV1.Secret {
 }
 
 func GetSecrets(namespace string, name string) []coreV1.Secret {
-	secrets, err := valkeyclient.GetObjectsByPrefix[coreV1.Secret](valkeyClient, valkeyclient.ORDER_ASC, VALKEY_RESOURCE_PREFIX, utils.SecretResource.ApiVersion, utils.SecretResource.Kind, namespace, name)
-	if err != nil || secrets == nil {
+	secrets, err := listResourcesByIndex[coreV1.Secret](
+		utils.SecretResource.ApiVersion, utils.SecretResource.Kind, namespace, name)
+	if err != nil {
+		storeLogger().Error("failed to list secrets", "namespace", namespace, "name", name, "error", err)
 		return nil
 	}
 	return secrets
@@ -1466,8 +1595,10 @@ func GetService(namespace string, name string) *coreV1.Service {
 }
 
 func GetServices(namespace string, name string) []coreV1.Service {
-	services, err := valkeyclient.GetObjectsByPrefix[coreV1.Service](valkeyClient, valkeyclient.ORDER_ASC, VALKEY_RESOURCE_PREFIX, utils.ServiceResource.ApiVersion, utils.ServiceResource.Kind, namespace, name)
-	if err != nil || services == nil {
+	services, err := listResourcesByIndex[coreV1.Service](
+		utils.ServiceResource.ApiVersion, utils.ServiceResource.Kind, namespace, name)
+	if err != nil {
+		storeLogger().Error("failed to list services", "namespace", namespace, "name", name, "error", err)
 		return nil
 	}
 	return services
@@ -1523,8 +1654,10 @@ func GetNode(name string) *coreV1.Node {
 }
 
 func GetNodes() []coreV1.Node {
-	nodes, err := valkeyclient.GetObjectsByPrefix[coreV1.Node](valkeyClient, valkeyclient.ORDER_ASC, VALKEY_RESOURCE_PREFIX, utils.NodeResource.ApiVersion, utils.NodeResource.Kind, "", "*")
+	nodes, err := listResourcesByIndex[coreV1.Node](
+		utils.NodeResource.ApiVersion, utils.NodeResource.Kind, "*", "*")
 	if err != nil {
+		storeLogger().Error("failed to list nodes", "error", err)
 		return nil
 	}
 
@@ -1536,9 +1669,10 @@ func DeleteNode(name string) error {
 }
 
 func GetAllGrants(namespace string) ([]v1alpha1.Grant, error) {
-	pattern := CreateKeyPattern(&utils.GrantResource.ApiVersion, &utils.GrantResource.Kind, &namespace, nil)
-	grants, err := valkeyclient.GetObjectsByPrefix[v1alpha1.Grant](valkeyClient, valkeyclient.ORDER_ASC, pattern)
-	if err != nil || grants == nil {
+	grants, err := listResourcesByIndex[v1alpha1.Grant](
+		utils.GrantResource.ApiVersion, utils.GrantResource.Kind, namespace, "*")
+	if err != nil {
+		storeLogger().Error("failed to list grants", "namespace", namespace, "error", err)
 		return nil, err
 	}
 	return grants, nil
@@ -1553,9 +1687,10 @@ func GetGrant(namespace string, name string) (*v1alpha1.Grant, error) {
 }
 
 func GetAllUsers(namespace string) ([]v1alpha1.User, error) {
-	pattern := CreateKeyPattern(&utils.UserResource.ApiVersion, &utils.UserResource.Kind, &namespace, nil)
-	users, err := valkeyclient.GetObjectsByPrefix[v1alpha1.User](valkeyClient, valkeyclient.ORDER_ASC, pattern)
-	if err != nil || users == nil {
+	users, err := listResourcesByIndex[v1alpha1.User](
+		utils.UserResource.ApiVersion, utils.UserResource.Kind, namespace, "*")
+	if err != nil {
+		storeLogger().Error("failed to list users", "namespace", namespace, "error", err)
 		return nil, err
 	}
 	return users, nil
@@ -1570,9 +1705,10 @@ func GetUser(namespace string, name string) (*v1alpha1.User, error) {
 }
 
 func GetAllAgents(namespace string) ([]v1alpha1.Agent, error) {
-	pattern := CreateKeyPattern(&utils.AgentResource.ApiVersion, &utils.AgentResource.Kind, &namespace, nil)
-	agents, err := valkeyclient.GetObjectsByPrefix[v1alpha1.Agent](valkeyClient, valkeyclient.ORDER_ASC, pattern)
-	if err != nil || agents == nil {
+	agents, err := listResourcesByIndex[v1alpha1.Agent](
+		utils.AgentResource.ApiVersion, utils.AgentResource.Kind, namespace, "*")
+	if err != nil {
+		storeLogger().Error("failed to list agents", "namespace", namespace, "error", err)
 		return nil, err
 	}
 	return agents, nil
@@ -1587,9 +1723,10 @@ func GetAgent(namespace string, name string) (*v1alpha1.Agent, error) {
 }
 
 func GetAllAiModels(namespace string) ([]v1alpha1.AiModel, error) {
-	pattern := CreateKeyPattern(&utils.AiModelResource.ApiVersion, &utils.AiModelResource.Kind, &namespace, nil)
-	models, err := valkeyclient.GetObjectsByPrefix[v1alpha1.AiModel](valkeyClient, valkeyclient.ORDER_ASC, pattern)
-	if err != nil || models == nil {
+	models, err := listResourcesByIndex[v1alpha1.AiModel](
+		utils.AiModelResource.ApiVersion, utils.AiModelResource.Kind, namespace, "*")
+	if err != nil {
+		storeLogger().Error("failed to list ai models", "namespace", namespace, "error", err)
 		return nil, err
 	}
 	return models, nil
@@ -1604,9 +1741,10 @@ func GetAiModel(namespace string, name string) (*v1alpha1.AiModel, error) {
 }
 
 func GetAllMcpServers(namespace string) ([]v1alpha1.McpServer, error) {
-	pattern := CreateKeyPattern(&utils.McpServerResource.ApiVersion, &utils.McpServerResource.Kind, &namespace, nil)
-	tools, err := valkeyclient.GetObjectsByPrefix[v1alpha1.McpServer](valkeyClient, valkeyclient.ORDER_ASC, pattern)
-	if err != nil || tools == nil {
+	tools, err := listResourcesByIndex[v1alpha1.McpServer](
+		utils.McpServerResource.ApiVersion, utils.McpServerResource.Kind, namespace, "*")
+	if err != nil {
+		storeLogger().Error("failed to list mcp servers", "namespace", namespace, "error", err)
 		return nil, err
 	}
 	return tools, nil
@@ -1621,9 +1759,10 @@ func GetMcpServer(namespace string, name string) (*v1alpha1.McpServer, error) {
 }
 
 func GetAllWorkspaces(namespace string) ([]v1alpha1.Workspace, error) {
-	pattern := CreateKeyPattern(&utils.WorkspaceResource.ApiVersion, &utils.WorkspaceResource.Kind, &namespace, nil)
-	workspaces, err := valkeyclient.GetObjectsByPrefix[v1alpha1.Workspace](valkeyClient, valkeyclient.ORDER_ASC, pattern)
-	if err != nil || workspaces == nil {
+	workspaces, err := listResourcesByIndex[v1alpha1.Workspace](
+		utils.WorkspaceResource.ApiVersion, utils.WorkspaceResource.Kind, namespace, "*")
+	if err != nil {
+		storeLogger().Error("failed to list workspaces", "namespace", namespace, "error", err)
 		return nil, err
 	}
 	return workspaces, nil
