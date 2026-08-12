@@ -64,6 +64,15 @@ func (d *reconcilerModule) reconcileFluxCD(ctx context.Context, spec v1alpha1.Pl
 					fluxGitRepositoryObject(name, repo, namespace),
 					fluxKustomizationObject(name, repo, namespace),
 				)
+
+				if repo.Write != nil &&
+					repo.Write.Enabled != nil &&
+					*repo.Write.Enabled &&
+					repo.Write.SecretRef.ExternalSecret != nil {
+
+					operatorNamespace := d.config.Get("MO_OWN_NAMESPACE")
+					extraObjects = append(extraObjects, externalSecretResource(name+"-write", operatorNamespace, *repo.Write.SecretRef.ExternalSecret, nil, nil))
+				}
 			}
 
 			return extraObjects, nil
