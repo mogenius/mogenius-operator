@@ -61,6 +61,12 @@ const (
 	// Override with MO_STATS_RETENTION_MAX_ENTRIES and MO_STATS_RETENTION_HOURS.
 	defaultRetentionSize  int64         = 1440
 	defaultRetentionHours time.Duration = 24 * time.Hour
+
+	// SCAN COUNT hint per round trip, the initial key-slice capacity, and the
+	// DEL batch size used when deleting scan results.
+	scanKeysBatchSize int64 = 5000
+	scanKeysPrealloc  int   = 1000
+	deleteChunkSize   int   = 500
 )
 
 // Exported for read-side queries that need to know how far back data is
@@ -547,38 +553,15 @@ func (self *valkeyClient) ClearNonEssentialKeys(includeTraffic bool, includePodS
 	// Use pattern-based deletion for better performance
 	cacheDeleteCounter := 0
 	for _, pattern := range prefixesToDelete {
-		cursor := uint64(0)
+		keys, err := self.scanKeys(pattern, scanKeysBatchSize)
+		if err != nil {
+			return "", fmt.Errorf("error scanning keys for pattern %s: %w", pattern, err)
+		}
 
-		for {
-			result := self.valkeyClient.Do(self.ctx,
-				self.valkeyClient.B().Scan().Cursor(cursor).Match(pattern).Count(1000).Build())
-
-			if result.Error() != nil {
-				return "", fmt.Errorf("error scanning keys for pattern %s: %v", pattern, result.Error())
-			}
-
-			scanResult, err := result.AsScanEntry()
-			if err != nil {
-				return "", fmt.Errorf("error parsing scan result for pattern %s: %w", pattern, err)
-			}
-
-			if len(scanResult.Elements) > 0 {
-				cmds := make([]valkeyclient.Completed, len(scanResult.Elements))
-				for i, key := range scanResult.Elements {
-					cmds[i] = self.valkeyClient.B().Del().Key(key).Build()
-				}
-				for _, resp := range self.valkeyClient.DoMulti(self.ctx, cmds...) {
-					if resp.Error() != nil {
-						return "", fmt.Errorf("error deleting key: %w", resp.Error())
-					}
-				}
-				cacheDeleteCounter += len(scanResult.Elements)
-			}
-
-			cursor = scanResult.Cursor
-			if cursor == 0 {
-				break
-			}
+		deleted, err := self.deleteKeys(keys)
+		cacheDeleteCounter += deleted
+		if err != nil {
+			return "", fmt.Errorf("error deleting keys for pattern %s: %w", pattern, err)
 		}
 	}
 
@@ -604,45 +587,25 @@ func (self *valkeyClient) DeleteMultiple(patterns ...string) error {
 		return nil
 	}
 
-	cursor := uint64(0)
-	totalDeleted := 0
+	allKeys, err := self.scanKeys("*", scanKeysBatchSize)
+	if err != nil {
+		return err
+	}
 
-	for {
-		result := self.valkeyClient.Do(self.ctx,
-			self.valkeyClient.B().Scan().Cursor(cursor).Count(1000).Build())
-
-		if result.Error() != nil {
-			return result.Error()
-		}
-
-		scanResult, err := result.AsScanEntry()
-		if err != nil {
-			return err
-		}
-
-		var cmds []valkeyclient.Completed
-		for _, key := range scanResult.Elements {
-			for _, pattern := range patterns {
-				if matched, _ := filepath.Match(pattern, key); matched {
-					cmds = append(cmds, self.valkeyClient.B().Del().Key(key).Build())
-					break
-				}
+	matched := make([]string, 0, len(allKeys))
+	for _, key := range allKeys {
+		for _, pattern := range patterns {
+			if ok, _ := filepath.Match(pattern, key); ok {
+				matched = append(matched, key)
+				break
 			}
 		}
-		if len(cmds) > 0 {
-			for _, resp := range self.valkeyClient.DoMulti(self.ctx, cmds...) {
-				if resp.Error() != nil {
-					self.logger.Error("Error deleting key in DeleteMultiple", "error", resp.Error())
-					return resp.Error()
-				}
-			}
-			totalDeleted += len(cmds)
-		}
+	}
 
-		cursor = scanResult.Cursor
-		if cursor == 0 {
-			break
-		}
+	totalDeleted, err := self.deleteKeys(matched)
+	if err != nil {
+		self.logger.Error("Error deleting key in DeleteMultiple", "error", err)
+		return err
 	}
 
 	self.logger.Debug("Successfully deleted keys", "count", totalDeleted, "patterns", patterns)
@@ -650,52 +613,120 @@ func (self *valkeyClient) DeleteMultiple(patterns ...string) error {
 }
 
 func (self *valkeyClient) Keys(pattern string) ([]string, error) {
-	// Pre-allocate with reasonable capacity to reduce reallocations
-	allKeys := make([]string, 0, 1000)
-	cursor := uint64(0)
+	return self.scanKeys(pattern, scanKeysBatchSize)
+}
 
-	for {
-		// Use larger count for fewer network round trips
-		cmd := self.valkeyClient.B().Scan().Cursor(cursor).Match(pattern).Count(5000).Build()
-		result, err := self.valkeyClient.Do(self.ctx, cmd).ToArray()
-		if err != nil {
-			self.logger.Error("Error scanning keys from Valkey", "pattern", pattern, "cursor", cursor, "error", err)
-			return nil, err
-		}
+// scanKeys returns every key matching pattern across the whole deployment.
+//
+// SCAN carries no key, so a cluster client routes it to an arbitrary node and
+// the returned cursor is only meaningful for that one node. A single scan loop
+// therefore sees one shard's keyspace at best, and a different shard on every
+// call, which makes any list built from it silently incomplete and unstable.
+// Fanning out over Nodes() and iterating a cursor per node is the only correct
+// way to enumerate a cluster keyspace. Nodes() collapses to the single
+// connection for a standalone server, so this is also the non-cluster path.
+//
+// Nodes() includes replicas, whose keys duplicate their primary's, hence the
+// union set.
+func (self *valkeyClient) scanKeys(pattern string, count int64) ([]string, error) {
+	nodes := self.valkeyClient.Nodes()
+	if len(nodes) == 0 {
+		return nil, fmt.Errorf("no valkey nodes available to scan")
+	}
 
-		if len(result) != 2 {
-			self.logger.Error("Unexpected SCAN response format", "pattern", pattern, "result_length", len(result))
-			return nil, fmt.Errorf("unexpected SCAN response format")
-		}
+	type nodeResult struct {
+		addr string
+		keys []string
+		err  error
+	}
 
-		// Get new cursor
-		newCursor, err := result[0].AsUint64()
-		if err != nil {
-			self.logger.Error("Error parsing cursor from SCAN response", "pattern", pattern, "error", err)
-			return nil, err
-		}
+	results := make(chan nodeResult, len(nodes))
+	for addr, node := range nodes {
+		go func(addr string, node valkeyclient.Client) {
+			keys, err := self.scanNode(node, pattern, count)
+			results <- nodeResult{addr: addr, keys: keys, err: err}
+		}(addr, node)
+	}
 
-		// Get keys from this iteration
-		keys, err := result[1].AsStrSlice()
-		if err != nil {
-			self.logger.Error("Error parsing keys from SCAN response", "pattern", pattern, "error", err)
-			return nil, err
-		}
-
-		// Filter out empty strings
-		for _, key := range keys {
-			if key != "" {
-				allKeys = append(allKeys, key)
+	seen := make(map[string]struct{}, scanKeysPrealloc)
+	allKeys := make([]string, 0, scanKeysPrealloc)
+	var firstErr error
+	for range nodes {
+		res := <-results
+		if res.err != nil {
+			self.logger.Error("Error scanning keys from Valkey node", "pattern", pattern, "node", res.addr, "error", res.err)
+			if firstErr == nil {
+				firstErr = res.err
 			}
+			continue
 		}
-
-		cursor = newCursor
-		if cursor == 0 {
-			break // Scan completed
+		for _, key := range res.keys {
+			if _, dup := seen[key]; dup {
+				continue
+			}
+			seen[key] = struct{}{}
+			allKeys = append(allKeys, key)
 		}
 	}
 
+	// A partial key set reads as "these resources no longer exist" to every
+	// caller, so fail loudly instead of returning a truncated list.
+	if firstErr != nil {
+		return nil, firstErr
+	}
+
 	return allKeys, nil
+}
+
+// scanNode iterates SCAN on a single node until its cursor wraps around.
+func (self *valkeyClient) scanNode(node valkeyclient.Client, pattern string, count int64) ([]string, error) {
+	keys := make([]string, 0, scanKeysPrealloc)
+	cursor := uint64(0)
+
+	for {
+		builder := node.B().Scan().Cursor(cursor)
+		var cmd valkeyclient.Completed
+		if pattern == "" || pattern == "*" {
+			cmd = builder.Count(count).Build()
+		} else {
+			cmd = builder.Match(pattern).Count(count).Build()
+		}
+
+		entry, err := node.Do(self.ctx, cmd).AsScanEntry()
+		if err != nil {
+			return nil, err
+		}
+
+		for _, key := range entry.Elements {
+			if key != "" {
+				keys = append(keys, key)
+			}
+		}
+
+		cursor = entry.Cursor
+		if cursor == 0 {
+			return keys, nil
+		}
+	}
+}
+
+// deleteKeys removes keys in chunks. DEL is key-routed, so DoMulti splits the
+// batch across shards on its own.
+func (self *valkeyClient) deleteKeys(keys []string) (int, error) {
+	deleted := 0
+	for chunk := range slices.Chunk(keys, deleteChunkSize) {
+		cmds := make([]valkeyclient.Completed, len(chunk))
+		for i, key := range chunk {
+			cmds[i] = self.valkeyClient.B().Del().Key(key).Build()
+		}
+		for _, resp := range self.valkeyClient.DoMulti(self.ctx, cmds...) {
+			if err := resp.Error(); err != nil {
+				return deleted, err
+			}
+			deleted++
+		}
+	}
+	return deleted, nil
 }
 
 func (self *valkeyClient) Exists(keys ...string) (bool, error) {
@@ -885,11 +916,22 @@ func GetObjectsByPrefixWithSizeAndNs[T any](store ValkeyClient, limit int, offse
 	// Pre-allocate result slice
 	result := make([]T, 0, len(keyList))
 
-	values, err := client.Do(store.GetContext(), client.B().Mget().Key(keyList...).Build()).AsStrSlice()
-	if err != nil {
-		return result, totalCount, err
+	// Individual GETs via DoMulti rather than one MGET: keys from different
+	// slots make MGET fail with CROSSSLOT on a cluster, while DoMulti splits
+	// the batch per shard and still costs one round trip per node.
+	cmds := make([]valkeyclient.Completed, len(keyList))
+	for i, key := range keyList {
+		cmds[i] = client.B().Get().Key(key).Build()
 	}
-	for _, v := range values {
+	for _, resp := range client.DoMulti(store.GetContext(), cmds...) {
+		v, err := resp.ToString()
+		if err != nil {
+			// key deleted or expired between discovery and fetch
+			continue
+		}
+		if v == "" {
+			continue
+		}
 		var obj T
 		if err := json.Unmarshal([]byte(v), &obj); err != nil {
 			return result, totalCount, fmt.Errorf("error unmarshalling value from Valkey: %w", err)
