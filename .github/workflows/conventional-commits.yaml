@@ -3,6 +3,11 @@ name: Conventional Commits
 on:
   pull_request:
 
+# Cancel superseded runs for the same PR (e.g. Renovate force-pushes)
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   check-commits:
     name: Validate commit messages

@@ -6,6 +6,11 @@ on:
       - release-please--branches--main
   workflow_dispatch:
 
+# Cancel superseded runs for the same branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   e2e:
     runs-on: self-hosted

@@ -8,6 +8,11 @@ on:
     branches:
       - main
 
+# Cancel superseded runs for the same PR / branch (e.g. Renovate force-pushes)
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     uses: mogenius/github-actions/.github/workflows/go-test.yml@b5293d661baea684bc9d1a95b1ecd64ead344b92 # v1.7.4
