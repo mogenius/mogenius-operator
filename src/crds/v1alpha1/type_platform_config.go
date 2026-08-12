@@ -70,6 +70,34 @@ type GitOpsRepositoryConfig struct {
 	Path           string          `json:"path,omitempty"`
 	Revision       string          `json:"revision,omitempty"`
 	ExternalSecret *ExternalSecret `json:"externalSecret,omitempty"`
+	// Write configures how edits made in the platform reach this repository.
+	// Read by the mogenius API, not by this operator: declaring it changes
+	// nothing in the cluster on its own.
+	// +optional
+	Write *GitOpsWriteConfig `json:"write,omitempty"`
+}
+
+// GitOpsWriteConfig overrides how the platform commits to a GitOps repository.
+//
+// Every field is optional. The credential Secret is what actually enables
+// editing, so an absent write block still allows it — this only overrides the
+// defaults the API would otherwise derive from the cluster.
+type GitOpsWriteConfig struct {
+	// Enabled is false to refuse edits for this repository even when a
+	// credential exists. Absent means enabled.
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
+	// Mode is "DIRECT_COMMIT" or "PULL_REQUEST". Defaults to PULL_REQUEST.
+	// +kubebuilder:validation:Enum=DIRECT_COMMIT;PULL_REQUEST
+	// +optional
+	Mode string `json:"mode,omitempty"`
+	// SecretRef names the Secret in the mogenius namespace holding the write
+	// credential. Defaults to a name derived from the repository name.
+	// +optional
+	SecretRef string `json:"secretRef,omitempty"`
+	// Provider is "GIT_HUB", "GIT_LAB" or "GITEA". Derived from url when empty.
+	// +optional
+	Provider string `json:"provider,omitempty"`
 }
 
 type ArgoCDInstallConfig struct {
