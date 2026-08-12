@@ -73,6 +73,12 @@ ARG BUILD_TIMESTAMP=NOT_SET
 ARG VERSION=NOT_SET
 ARG DEV_BUILD=no
 
+# Concurrent compile processes. Empty uses Go's default (one per CPU), which
+# needs more RAM than a small builder VM has: compiling
+# valkey-go/internal/cmds alone peaks near a gigabyte, so five of those in
+# parallel get the compiler OOM-killed ("signal: killed") on a 2 GiB machine.
+ARG GO_BUILD_PARALLELISM=
+
 # Download dependencies first (better layer caching)
 COPY go.mod go.sum ./
 RUN go mod download
@@ -100,6 +106,7 @@ RUN set -e && \
     echo "===========================" && \
     go mod tidy && \
     go build -v -trimpath \
+        ${GO_BUILD_PARALLELISM:+-p ${GO_BUILD_PARALLELISM}} \
         -gcflags='all=-l' \
         -ldflags="-s -w \
             -X mogenius-operator/src/utils.DevBuild=${DEV_BUILD} \

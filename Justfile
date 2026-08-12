@@ -44,56 +44,14 @@ build-linux-amd64:
         -X 'mogenius-operator/src/version.BuildTimestamp=$(date -Iseconds)' \
         -X 'mogenius-operator/src/version.Ver=$(git describe --tags $(git rev-list --tags --max-count=1))+dev'" -o dist/amd64/mogenius-operator ./src/main.go
 
-# Build docker image for target linux-amd64
-build-docker-linux-amd64:
-    #!/usr/bin/env sh
-    GIT_BRANCH=$(git branch | grep \* | cut -d ' ' -f2 | tr '[:upper:]' '[:lower:]')
-    COMMIT_HASH=$(git rev-parse --short HEAD)
-    GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
-    BUILD_TIMESTAMP=$(date -Iseconds)
-    VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
-    set -x
-    docker buildx build --platform=linux/amd64 -f Dockerfile \
-        --build-arg GOOS=linux \
-        --build-arg GOARCH=amd64 \
-        --build-arg VERSION="$VERSION" \
-        --build-arg BUILD_TIMESTAMP="$BUILD_TIMESTAMP" \
-        --build-arg GIT_BRANCH="$GIT_BRANCH" \
-        --build-arg COMMIT_HASH="$COMMIT_HASH" \
-        --build-arg DEV_BUILD=yes \
-        -t ghcr.io/mogenius/mogenius-operator-dev:$VERSION-amd64 \
-        -t ghcr.io/mogenius/mogenius-operator-dev:latest-amd64 \
-        .
-
 # Build binary for target linux-arm64
 build-linux-arm64:
-    GOOS=linux GOARCH=amd64 go build -trimpath -gcflags="all=-l" -ldflags="-s -w \
+    GOOS=linux GOARCH=arm64 go build -trimpath -gcflags="all=-l" -ldflags="-s -w \
         -X 'mogenius-operator/src/utils.DevBuild=yes' \
         -X 'mogenius-operator/src/version.GitCommitHash=$(git rev-parse --short HEAD)' \
         -X 'mogenius-operator/src/version.Branch=$(git branch | grep \* | cut -d ' ' -f2 | tr '[:upper:]' '[:lower:]')' \
         -X 'mogenius-operator/src/version.BuildTimestamp=$(date -Iseconds)' \
         -X 'mogenius-operator/src/version.Ver=$(git describe --tags $(git rev-list --tags --max-count=1))+dev'" -o dist/arm64/mogenius-operator ./src/main.go
-
-# Build docker image for target linux-arm64
-build-docker-linux-arm64:
-    #!/usr/bin/env sh
-    GIT_BRANCH=$(git branch | grep \* | cut -d ' ' -f2 | tr '[:upper:]' '[:lower:]')
-    COMMIT_HASH=$(git rev-parse --short HEAD)
-    GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
-    BUILD_TIMESTAMP=$(date -Iseconds)
-    VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
-    set -x
-    docker buildx build --platform=linux/arm64 -f Dockerfile \
-        --build-arg GOOS=linux \
-        --build-arg GOARCH=arm64 \
-        --build-arg VERSION="$VERSION" \
-        --build-arg BUILD_TIMESTAMP="$BUILD_TIMESTAMP" \
-        --build-arg GIT_BRANCH="$GIT_BRANCH" \
-        --build-arg COMMIT_HASH="$COMMIT_HASH" \
-        --build-arg DEV_BUILD=yes \
-        -t ghcr.io/mogenius/mogenius-operator-dev:$VERSION-amd64 \
-        -t ghcr.io/mogenius/mogenius-operator-dev:latest-amd64 \
-        .
 
 # Build binary for target linux-armv7
 build-linux-armv7:
@@ -103,27 +61,6 @@ build-linux-armv7:
         -X 'mogenius-operator/src/version.Branch=$(git branch | grep \* | cut -d ' ' -f2 | tr '[:upper:]' '[:lower:]')' \
         -X 'mogenius-operator/src/version.BuildTimestamp=$(date -Iseconds)' \
         -X 'mogenius-operator/src/version.Ver=$(git describe --tags $(git rev-list --tags --max-count=1))+dev'" -o dist/armv7/mogenius-operator ./src/main.go
-
-# Build docker image for target linux-armv7
-build-docker-linux-armv7:
-    #!/usr/bin/env sh
-    GIT_BRANCH=$(git branch | grep \* | cut -d ' ' -f2 | tr '[:upper:]' '[:lower:]')
-    COMMIT_HASH=$(git rev-parse --short HEAD)
-    GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
-    BUILD_TIMESTAMP=$(date -Iseconds)
-    VERSION=$(git describe --tags $(git rev-list --tags --max-count=1))
-    set -x
-    docker buildx build --platform=linux/arm64 -f Dockerfile \
-        --build-arg GOOS=linux \
-        --build-arg GOARCH=arm \
-        --build-arg VERSION="$VERSION" \
-        --build-arg BUILD_TIMESTAMP="$BUILD_TIMESTAMP" \
-        --build-arg GIT_BRANCH="$GIT_BRANCH" \
-        --build-arg COMMIT_HASH="$COMMIT_HASH" \
-        --build-arg DEV_BUILD=yes \
-        -t ghcr.io/mogenius/mogenius-operator-dev:$VERSION-amd64 \
-        -t ghcr.io/mogenius/mogenius-operator-dev:latest-amd64 \
-        .
 
 # Install tools used by go generate
 _install_controller_gen:
@@ -155,3 +92,35 @@ test-e2e: generate
 # Execute golangci-lint
 golangci-lint: generate
     go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest run '--max-same-issues=0' ./src/...
+
+# Build a multi-arch container image as a local manifest list.
+# parallelism caps the compiler's concurrent processes; see GO_BUILD_PARALLELISM
+# in the Dockerfile. Raise it on a machine with RAM to spare.
+docker-build image="ghcr.io/mogenius/mogenius-operator-dev:latest" platforms="linux/amd64,linux/arm64" parallelism="2":
+    #!/usr/bin/env sh
+    set -e
+    COMMIT_HASH=$(git rev-parse --short HEAD)
+    GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD | tr '[:upper:]' '[:lower:]')
+    BUILD_TIMESTAMP=$(date -Iseconds)
+    VERSION=$(git describe --tags $(git rev-list --tags --max-count=1) 2>/dev/null || echo "dev")
+    # A stale manifest of the same name would accumulate the previous run's architectures.
+    podman manifest rm {{image}} 2>/dev/null || true
+    set -x
+    # One build per platform, appended to the same manifest. Handing podman the
+    # whole platform list builds them concurrently, which multiplies the
+    # compiler's peak memory by the number of architectures.
+    for platform in $(echo {{platforms}} | tr ',' ' '); do
+        podman build --platform "${platform}" --manifest {{image}} \
+            --build-arg VERSION=${VERSION} \
+            --build-arg BUILD_TIMESTAMP=${BUILD_TIMESTAMP} \
+            --build-arg GIT_BRANCH=${GIT_BRANCH} \
+            --build-arg COMMIT_HASH=${COMMIT_HASH} \
+            --build-arg DEV_BUILD=yes \
+            --build-arg GO_BUILD_PARALLELISM={{parallelism}} \
+            -f ./Dockerfile .
+    done
+    podman manifest inspect {{image}}
+
+# Build and push a multi-arch container image
+docker-push image="ghcr.io/mogenius/mogenius-operator-dev:latest" platforms="linux/amd64,linux/arm64" parallelism="2": (docker-build image platforms parallelism)
+    podman manifest push --all {{image}}
