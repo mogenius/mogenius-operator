@@ -408,16 +408,7 @@ func (ai *aiManager) compactAnthropicMessagesWithAI(ctx context.Context, client 
 
 	tokensUsed := resp.Usage.InputTokens + resp.Usage.OutputTokens + resp.Usage.CacheCreationInputTokens
 
-	compacted := []anthropic.MessageParam{
-		messages[0], // original user prompt
-		{
-			Role: anthropic.MessageParamRoleAssistant,
-			Content: []anthropic.ContentBlockParamUnion{
-				anthropic.NewTextBlock("[Conversation compacted]\n\n" + summary),
-			},
-		},
-	}
-	return compacted, tokensUsed, nil
+	return buildCompactedAnthropicMessages(messages[0], summary), tokensUsed, nil
 }
 
 func (ai *aiManager) processPromptAnthropic(ctx context.Context, rc *ResolvedModelConfig, systemPrompt, prompt string, toolCtx *ToolContext, onProgress func(int64, string), recordStep StepRecorder) (int64, int, string, error) {
@@ -512,8 +503,10 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, rc *ResolvedMod
 			ai.logger.Info("Compacting conversation history with AI", "chars", charsBefore)
 			compacted, compactTokens, compactErr := ai.compactAnthropicMessagesWithAI(ctx, client, model, messages)
 			if compactErr != nil {
-				ai.logger.Warn("AI compaction failed, falling back to tool result trimming", "error", compactErr)
-				compactAnthropicToolResults(messages)
+				ai.logger.Warn("AI compaction failed", "error", compactErr)
+				if recordStep != nil {
+					recordStep(AiRunStep{Kind: AI_RUN_STEP_ERROR, Label: fmt.Sprintf("Conversation compaction failed: %v", compactErr)})
+				}
 			} else {
 				messages = compacted
 				tokensUsed += compactTokens
