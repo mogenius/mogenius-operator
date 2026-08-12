@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -384,7 +385,8 @@ func (ai *aiManager) compactAnthropicMessagesWithAI(ctx context.Context, client 
 			anthropic.NewTextBlock("Compact this conversation into a concise first-person progress report."),
 		},
 	}
-	compactionMessages := append(messages, compactionRequest)
+
+	compactionMessages := append(slices.Clone(messages), compactionRequest)
 
 	resp, err := client.Messages.New(ctx, anthropic.MessageNewParams{
 		Model:     anthropic.Model(model),
