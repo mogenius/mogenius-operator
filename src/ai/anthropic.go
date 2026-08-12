@@ -499,13 +499,7 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, rc *ResolvedMod
 			return tokensUsed, int(time.Since(startTime).Milliseconds()), model, err
 		}
 
-		// The conversation prefix is served from the prompt cache, so old tool
-		// results are cheap to keep — compacting them every turn would mutate
-		// the prefix and void the cache. Only once the history grows past the
-		// threshold is one compaction pass (and the cache rebuild it causes)
-		// cheaper than carrying the bulk onward. Never compact BEFORE the
-		// call: results must survive exactly one request or the model goes
-		// blind (the regression that shipped in 7782b65b).
+		// Compact the conversation if it exceeds the character threshold
 		if estimateMessagesChars(messages) > compactHistoryAfterChars {
 			charsBefore := estimateMessagesChars(messages)
 			ai.logger.Info("Compacting conversation history with AI", "chars", charsBefore)
