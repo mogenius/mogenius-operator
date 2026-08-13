@@ -304,16 +304,21 @@ func registerPatternHandlerInternal[RequestType any, ResponseType any](
 	assert.Assert(handle.Pattern != "", "Pattern has to be defined")
 
 	type Result struct {
-		Status  string       `json:"status"` // success, error
-		Message string       `json:"message,omitempty"`
-		Data    ResponseType `json:"data"`
+		Status  string `json:"status"` // success, error
+		Message string `json:"message,omitempty"`
+		// StatusCode is the HTTP status the error deserves, so the platform does
+		// not have to infer one from the message text. Omitted on success, and
+		// omitted by older operators -- consumers must keep their fallback.
+		StatusCode int          `json:"statusCode,omitempty"`
+		Data       ResponseType `json:"data"`
 	}
 
 	buildResponse := func(result any, err error) Result {
 		if err != nil {
 			return Result{
-				Status:  "error",
-				Message: err.Error(),
+				Status:     "error",
+				Message:    err.Error(),
+				StatusCode: utils.HttpStatusForError(err),
 			}
 		}
 		if str, ok := result.(string); ok {
