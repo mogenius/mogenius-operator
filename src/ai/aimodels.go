@@ -246,6 +246,41 @@ func PickDefaultAiModel(models []v1alpha1.AiModel) *v1alpha1.AiModel {
 // resolveAiModel turns one AiModel CR into a usable config, reading the
 // referenced API key Secret. Limits the spec omits fall back to the built-in
 // defaults.
+// resolveAiModelForProbe resolves like resolveAiModel, but a non-empty
+// apiKeyOverride stands in for the Secret lookup. The edit form's test sends
+// a key that exists nowhere yet -- demanding a secretRef for it would force
+// the save the test exists to precede. Only the probe may use this; every
+// run path keeps resolving through the Secret.
+func (ai *aiManager) resolveAiModelForProbe(model *v1alpha1.AiModel, apiKeyOverride string) (*ResolvedModelConfig, error) {
+	if apiKeyOverride == "" {
+		return ai.resolveAiModel(model, "test")
+	}
+
+	// Validation demands a secretRef for key-carrying SDKs; the override IS
+	// the key, so a spec without the ref is complete for this probe.
+	specForValidation := model.Spec
+	if specForValidation.ApiKeySecretRef == nil {
+		specForValidation.ApiKeySecretRef = &v1alpha1.SecretKeyRef{Name: "probe-override"}
+	}
+	if err := ValidateAiModelSpec(specForValidation); err != nil {
+		return nil, fmt.Errorf("AiModel %q has an invalid spec: %w", model.Name, err)
+	}
+	sdk, err := parseSdkType(model.Spec.Sdk)
+	if err != nil {
+		return nil, fmt.Errorf("AiModel %q: %w", model.Name, err)
+	}
+
+	resolved := &ResolvedModelConfig{
+		Source:      "test",
+		ModelCrName: model.Name,
+		Sdk:         sdk,
+		Model:       model.Spec.Model,
+		ApiKey:      apiKeyOverride,
+		BaseUrl:     model.Spec.ApiUrl,
+	}
+	return resolved, nil
+}
+
 func (ai *aiManager) resolveAiModel(model *v1alpha1.AiModel, source string) (*ResolvedModelConfig, error) {
 	if err := ValidateAiModelSpec(model.Spec); err != nil {
 		return nil, fmt.Errorf("AiModel %q has an invalid spec: %w", model.Name, err)

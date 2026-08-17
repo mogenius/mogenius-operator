@@ -2201,13 +2201,18 @@ func (self *socketApi) registerPatterns() {
 	{
 		type Request struct {
 			Name string `json:"name" validate:"required"`
+			// Probe THIS config instead of the stored AiModel -- a test button
+			// on an edit form has to validate the form, not the last save.
+			Spec *v1alpha1.AiModelSpec `json:"spec"`
+			// Plaintext key override for the probe; never persisted.
+			ApiKey string `json:"apiKey"`
 		}
 
 		RegisterPatternHandler(
 			PatternHandle{self, "test/aimodel"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (*ai.AiModelTestResult, error) {
-				return self.aiApi.TestAiModel(request.Name)
+				return self.aiApi.TestAiModel(request.Name, request.Spec, request.ApiKey)
 			},
 		)
 	}
