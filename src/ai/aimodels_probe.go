@@ -3,6 +3,7 @@ package ai
 import (
 	"context"
 	"fmt"
+	"mogenius-operator/src/crds/v1alpha1"
 	"strings"
 	"time"
 
@@ -42,22 +43,38 @@ type AiModelTestResult struct {
 // sends a minimal single-turn prompt to the provider. An error return means
 // the request itself was invalid (unknown model); provider/config problems
 // come back as an unsuccessful result.
-func (ai *aiManager) TestAiModel(name string) (*AiModelTestResult, error) {
+// TestAiModel probes a model config against its provider. With spec == nil
+// the stored AiModel is probed; with a spec, THAT config is probed instead --
+// which is the whole point of a test button on an edit form: validating a new
+// url or key before committing it, not after. apiKey overrides whatever the
+// spec's secretRef would resolve to; nothing is persisted either way.
+func (ai *aiManager) TestAiModel(name string, spec *v1alpha1.AiModelSpec, apiKey string) (*AiModelTestResult, error) {
 	ownNamespace, err := ai.config.TryGet("MO_OWN_NAMESPACE")
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve own namespace: %w", err)
 	}
-	model, err := store.GetAiModel(ownNamespace, name)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get AiModel %q: %w", name, err)
-	}
-	if model == nil {
-		return nil, fmt.Errorf("AiModel %q not found in namespace %q", name, ownNamespace)
+
+	var model *v1alpha1.AiModel
+	if spec != nil {
+		// A synthetic, never-stored model. Namespace matters: the spec may
+		// still reference the existing key Secret ("keep credential" on the
+		// edit form), and that ref resolves inside the own namespace.
+		model = &v1alpha1.AiModel{Spec: *spec}
+		model.Name = name
+		model.Namespace = ownNamespace
+	} else {
+		model, err = store.GetAiModel(ownNamespace, name)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get AiModel %q: %w", name, err)
+		}
+		if model == nil {
+			return nil, fmt.Errorf("AiModel %q not found in namespace %q", name, ownNamespace)
+		}
 	}
 
 	result := &AiModelTestResult{Model: model.Spec.Model, Sdk: model.Spec.Sdk}
 
-	rc, err := ai.resolveAiModel(model, "test")
+	rc, err := ai.resolveAiModelForProbe(model, apiKey)
 	if err != nil {
 		// Unresolvable config (invalid spec, missing Secret/key) is exactly
 		// what the test is for — report it as the outcome.

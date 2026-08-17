@@ -274,7 +274,7 @@ type AiManager interface {
 	ResetTokenUsageForModel(modelCrName string) (int64, error)
 	DeleteAllAiData() error
 	GetAvailableModels(request *ModelsRequest) ([]string, error)
-	TestAiModel(name string) (*AiModelTestResult, error)
+	TestAiModel(name string, spec *v1alpha1.AiModelSpec, apiKey string) (*AiModelTestResult, error)
 	Chat(ctx context.Context, ch IOChatChannel) error
 
 	ApproveTask(taskID string, user structs.User) (*AiTask, error)

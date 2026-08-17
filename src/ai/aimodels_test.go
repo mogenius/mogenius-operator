@@ -224,3 +224,27 @@ func TestValidateAiModelDefaultUnique(t *testing.T) {
 		assert.NoError(t, err)
 	})
 }
+
+// The edit form's test sends a key that exists nowhere yet -- demanding a
+// secretRef for it would force the save the test exists to precede.
+func TestResolveAiModelForProbeWithKeyOverride(t *testing.T) {
+	manager := &aiManager{}
+
+	model := &v1alpha1.AiModel{}
+	model.Name = "unsaved"
+	model.Spec = v1alpha1.AiModelSpec{Sdk: "openai", Model: "gpt-5.5"}
+
+	rc, err := manager.resolveAiModelForProbe(model, "sk-plaintext")
+	if err != nil {
+		t.Fatalf("expected the override to stand in for the secretRef, got: %v", err)
+	}
+	if rc.ApiKey != "sk-plaintext" {
+		t.Fatalf("expected the override key to be used, got %q", rc.ApiKey)
+	}
+
+	// Validation beyond the key still applies: ollama without a url stays invalid.
+	model.Spec = v1alpha1.AiModelSpec{Sdk: "ollama", Model: "qwen3.8:27b"}
+	if _, err := manager.resolveAiModelForProbe(model, "irrelevant"); err == nil {
+		t.Fatalf("expected an invalid spec to be rejected even with a key override")
+	}
+}

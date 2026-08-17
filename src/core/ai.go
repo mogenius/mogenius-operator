@@ -3,6 +3,7 @@ package core
 import (
 	"log/slog"
 	"mogenius-operator/src/ai"
+	"mogenius-operator/src/crds/v1alpha1"
 	"mogenius-operator/src/structs"
 	"mogenius-operator/src/utils"
 )
@@ -19,7 +20,7 @@ type AiApi interface {
 	GetStatus(workspace *string) ai.AiManagerStatus
 	DeleteAllAiData() error
 	GetAvailableModels(request *ai.ModelsRequest) ([]string, error)
-	TestAiModel(name string) (*ai.AiModelTestResult, error)
+	TestAiModel(name string, spec *v1alpha1.AiModelSpec, apiKey string) (*ai.AiModelTestResult, error)
 
 	ApproveTask(taskID string, user structs.User) (*ai.AiTask, error)
 	RejectTask(taskID string, user structs.User, reason string) (*ai.AiTask, error)
@@ -83,8 +84,8 @@ func (ai *aiApi) GetAvailableModels(request *ai.ModelsRequest) ([]string, error)
 	return ai.aiManager.GetAvailableModels(request)
 }
 
-func (self *aiApi) TestAiModel(name string) (*ai.AiModelTestResult, error) {
-	return self.aiManager.TestAiModel(name)
+func (self *aiApi) TestAiModel(name string, spec *v1alpha1.AiModelSpec, apiKey string) (*ai.AiModelTestResult, error) {
+	return self.aiManager.TestAiModel(name, spec, apiKey)
 }
 
 func (self *aiApi) ApproveTask(taskID string, user structs.User) (*ai.AiTask, error) {
@@ -102,4 +103,3 @@ func (self *aiApi) CancelTask(taskID string, user structs.User) (*ai.AiTask, err
 func (self *aiApi) DeleteTask(taskID string, user structs.User) (*ai.AiTask, error) {
 	return self.aiManager.DeleteTask(taskID, user)
 }
-
