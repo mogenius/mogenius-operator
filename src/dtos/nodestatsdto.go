@@ -5,6 +5,10 @@ import "mogenius-operator/src/structs"
 type NodeStat struct {
 	Name       string `json:"name" validate:"required"`
 	MaschineId string `json:"maschineId" validate:"required"`
+	// Region is the cloud region of this single node, from the standard
+	// topology labels the provider sets on the node. Empty when unlabeled —
+	// distinct from a real region, so consumers can tell "unknown" apart.
+	Region string `json:"region"`
 	// Ready mirrors the node's Ready condition: true only for status "True".
 	// "False" (kubelet reports unhealthy) and "Unknown" (node unreachable, e.g.
 	// powered off) both map to false. Deliberately no `required` tag — that
