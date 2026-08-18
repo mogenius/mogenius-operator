@@ -52,20 +52,26 @@ type StepRecorder func(step AiRunStep)
 // finding tasks spawned by the run. Tasks stay the single source of truth —
 // nothing here is stored twice.
 type AiRun struct {
-	ID              string        `json:"id"`
-	AgentRef        string        `json:"agentRef,omitempty"`
-	Trigger         string        `json:"trigger,omitempty"`
-	TriggeredByUser *structs.User `json:"triggeredByUser,omitempty"`
-	Model           string        `json:"model"`
-	State           AiTaskState   `json:"state"`
-	TokensUsed      int64         `json:"tokensUsed"`
-	TimeUsedInMs    int           `json:"timeUsedInMs"`
-	CreatedAt       int64         `json:"createdAt"`
-	UpdatedAt       int64         `json:"updatedAt"`
-	Error           string        `json:"error,omitempty"`
-	CurrentActivity string        `json:"currentActivity,omitempty"`
-	Steps           []AiRunStep   `json:"steps"`
-	TaskIDs         []string      `json:"taskIds"`
+	ID              string                `json:"id"`
+	AgentRef        string                `json:"agentRef,omitempty"`
+	Trigger         string                `json:"trigger,omitempty"`
+	TriggeredByUser *structs.User         `json:"triggeredByUser,omitempty"`
+	Model           string                `json:"model"`
+	State           AiTaskState           `json:"state"`
+	TokensUsed      int64                 `json:"tokensUsed"`
+	TimeUsedInMs    int                   `json:"timeUsedInMs"`
+	CreatedAt       int64                 `json:"createdAt"`
+	UpdatedAt       int64                 `json:"updatedAt"`
+	Error           string                `json:"error,omitempty"`
+	CurrentActivity string                `json:"currentActivity,omitempty"`
+	Steps           []AiRunStep           `json:"steps"`
+	TaskIDs         []string              `json:"taskIds"`
+	ToolApprovals   []ToolApprovalRequest `json:"toolApprovals,omitempty"`
+}
+
+type ToolApprovalRequest struct {
+	ToolName string         `json:"toolName"`
+	Args     map[string]any `json:"args"`
 }
 
 func runStepsKey(runID string) string {
@@ -147,6 +153,16 @@ func (ai *aiManager) GetRun(runID string) (*AiRun, error) {
 		return nil, fmt.Errorf("no ai run with the specified id has been found: %s", runID)
 	}
 
+	approvals := &[]ToolApprovalRequest{}
+	if primary.Response != nil && primary.Response.ToolRequests != nil {
+		for _, toolRequest := range primary.Response.ToolRequests {
+			*approvals = append(*approvals, ToolApprovalRequest{
+				ToolName: toolRequest.Name,
+				Args:     toolRequest.Args,
+			})
+		}
+	}
+
 	taskIDs := []string{primary.ID}
 	if all, err := ai.GetAllAiTasks(); err == nil {
 		for _, task := range all {
@@ -173,5 +189,6 @@ func (ai *aiManager) GetRun(runID string) (*AiRun, error) {
 		CurrentActivity: primary.CurrentActivity,
 		Steps:           ai.getRunSteps(runID),
 		TaskIDs:         taskIDs,
+		ToolApprovals:   *approvals,
 	}, nil
 }
