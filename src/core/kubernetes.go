@@ -258,6 +258,15 @@ func (self *moKubernetes) getKubeletNodeStats(nodeName string) (*podstatscollect
 	return result, nil
 }
 
+// nodeRegion returns a node's cloud region from the standard topology label
+// the provider sets on it, or "" when unlabeled.
+func nodeRegion(node corev1.Node) string {
+	if value, ok := node.Labels["topology.kubernetes.io/region"]; ok {
+		return value
+	}
+	return ""
+}
+
 func (self *moKubernetes) GetNodeStats() ([]dtos.NodeStat, error) {
 	nodes := store.GetNodes()
 	result := make([]dtos.NodeStat, 0, len(nodes))
@@ -337,6 +346,7 @@ func (self *moKubernetes) GetNodeStats() ([]dtos.NodeStat, error) {
 		nodeStat := dtos.NodeStat{
 			Name:                   node.Name,
 			MaschineId:             node.Status.NodeInfo.MachineID,
+			Region:                 nodeRegion(node),
 			Ready:                  ready,
 			CpuInCores:             cpu,
 			CpuInCoresUtilized:     utilizedCores,
