@@ -24,12 +24,28 @@ type XtermService interface {
 }
 
 type xtermService struct {
-	logger *slog.Logger
+	logger       *slog.Logger
+	statsDb      ValkeyStatsDb
+	streamEnrich func(nodeName string, data any) any
 }
 
-func NewXtermService(logger *slog.Logger) XtermService {
+func NewXtermService(logger *slog.Logger, statsDb ValkeyStatsDb) XtermService {
 	self := &xtermService{}
 	self.logger = logger
+	self.statsDb = statsDb
+
+	self.streamEnrich = func(nodeName string, data any) any {
+		stats, err := self.statsDb.GetLatestNodeStatsForNode(nodeName)
+		if err != nil || stats == nil || stats.MemoryWorkingSetBytes <= 0 {
+			return data
+		}
+		mapData, ok := data.(map[string]any)
+		if !ok {
+			return data
+		}
+		mapData["workingSetKb"] = float64(stats.MemoryWorkingSetBytes) / 1024
+		return mapData
+	}
 
 	return self
 }
@@ -147,6 +163,15 @@ func (self *xtermService) LiveStreamConnection(conReq xterm.WsConnectionRequest,
 			if err != nil {
 				logger.Error("Unmarshal", "error", err)
 				return
+			}
+		}
+
+		// Attach the kubelet working set to node-level memory frames so the
+		// frontend can show both the OS-reported value and the value the
+		// scheduler accounts against.
+		if datagram.Pattern == "live-stream/nodes-memory" {
+			if enriched := self.streamEnrich(conReq.NodeName, entry); enriched != nil {
+				entry = enriched
 			}
 		}
 

@@ -160,10 +160,10 @@ func initializeClusterSystems(
 	httpApi := core.NewHttpApi(logManagerModule, configModule)
 	alertmanager := core.NewAlertmanagerService(logManagerModule.CreateLogger("alertmanager"), configModule)
 	socketApi := core.NewSocketApi(logManagerModule.CreateLogger("socketapi"), configModule, jobClients, eventConnectionClient, base.valkeyClient, argocdModule, fluxModule, alertmanager)
-	xtermService := core.NewXtermService(logManagerModule.CreateLogger("xterm-service"))
+	dbstatsService := core.NewValkeyStatsModule(logManagerModule.CreateLogger("db-stats"), configModule, base.valkeyClient, ownerCacheService)
+	xtermService := core.NewXtermService(logManagerModule.CreateLogger("xterm-service"), dbstatsService)
 	aiWebsocketConnection := ai.NewAiWebsocketConnection(logManagerModule.CreateLogger("ai-websocket-connection"), aiManager)
 	valkeyLoggerService := core.NewValkeyLogger(base.valkeyClient, valkeyLogChannel)
-	dbstatsService := core.NewValkeyStatsModule(logManagerModule.CreateLogger("db-stats"), configModule, base.valkeyClient, ownerCacheService)
 	podStatsCollector := core.NewPodStatsCollector(logManagerModule.CreateLogger("pod-stats-collector"), configModule, base.clientProvider)
 	nodeMetricsCollector := core.NewNodeMetricsCollector(
 		logManagerModule.CreateLogger("traffic-collector"),
