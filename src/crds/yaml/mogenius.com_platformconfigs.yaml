@@ -350,9 +350,33 @@ spec:
                               type: string
                             secretRef:
                               description: |-
-                                SecretRef names the Secret in the mogenius namespace holding the write
-                                credential. Defaults to a name derived from the repository name.
-                              type: string
+                                SecretRef names the Secret in the mogenius-operator`s namespace holding the write credentials.
+                                secretRef.secret - reference a secret in the mogenius-operator`s namespace
+                                secretRef.externalSecret - reference a secret in an external vault,
+                                the operator will automatically create the externalsecret for you in the mogenius-operator`s namespace.
+                              properties:
+                                externalSecret:
+                                  properties:
+                                    key:
+                                      type: string
+                                    path:
+                                      type: string
+                                    vault:
+                                      type: string
+                                  required:
+                                  - path
+                                  type: object
+                                secret:
+                                  properties:
+                                    key:
+                                      description: Key of the Secret data to reference.
+                                      type: string
+                                    name:
+                                      description: Name of the Secret resource to
+                                        reference.
+                                      type: string
+                                  type: object
+                              type: object
                           type: object
                       required:
                       - name
