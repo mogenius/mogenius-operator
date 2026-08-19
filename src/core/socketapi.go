@@ -1681,19 +1681,34 @@ func (self *socketApi) registerPatterns() {
 	}
 
 	{
+		// DisplayName and DashboardRef are pointers to tell "field absent" apart
+		// from "explicitly cleared": callers send partial updates, and an absent
+		// field must keep its current value instead of wiping it.
 		type Request struct {
 			Name         string                                 `json:"name" validate:"required"`
-			DisplayName  string                                 `json:"displayName"`
+			DisplayName  *string                                `json:"displayName"`
 			Resources    []v1alpha1.WorkspaceResourceIdentifier `json:"resources" validate:"required"`
-			DashboardRef string                                 `json:"dashboardRef"`
+			DashboardRef *string                                `json:"dashboardRef"`
 		}
 
 		RegisterPatternHandler(
 			PatternHandle{self, "update/workspace"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (string, error) {
-				spec := v1alpha1.NewWorkspaceSpec(request.DisplayName, request.Resources, request.DashboardRef)
 				oldWorkspace, _ := store.GetWorkspace(self.config.Get("MO_OWN_NAMESPACE"), request.Name)
+				displayName := ""
+				dashboardRef := ""
+				if oldWorkspace != nil {
+					displayName = oldWorkspace.Spec.Name
+					dashboardRef = oldWorkspace.Spec.DashboardRef
+				}
+				if request.DisplayName != nil {
+					displayName = *request.DisplayName
+				}
+				if request.DashboardRef != nil {
+					dashboardRef = *request.DashboardRef
+				}
+				spec := v1alpha1.NewWorkspaceSpec(displayName, request.Resources, dashboardRef)
 				res, err := self.apiService.UpdateWorkspace(request.Name, spec)
 				var oldObj, newObj *unstructured.Unstructured
 				if oldWorkspace != nil {
