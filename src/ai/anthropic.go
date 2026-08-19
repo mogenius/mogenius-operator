@@ -601,8 +601,8 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, rc *ResolvedMod
 
 		// Increase global tool call count and check the run budgets.
 		toolCallCount += iterationToolUses
-		if runBudgetExhausted(ai.logger, maxToolCalls, toolCallCount, maxTokensPerRun, tokensUsed) {
-			return tokensUsed, int(time.Since(startTime).Milliseconds()), model, nil
+		if msg := runBudgetExhausted(ai.logger, maxToolCalls, toolCallCount, maxTokensPerRun, tokensUsed); msg != "" {
+			return tokensUsed, int(time.Since(startTime).Milliseconds()), model, &BudgetExhaustedError{Msg: msg}
 		}
 
 		// Add tool results to messages

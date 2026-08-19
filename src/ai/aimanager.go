@@ -1213,8 +1213,13 @@ func (ai *aiManager) runOneTask(ctx context.Context, task AiTask, key string, rc
 			task.Retries++
 			// Non-retryable API errors (billing, invalid request, auth) must not be retried.
 			// Mark as ignored so the queue skips them on the next pass.
+			var budgetErr *BudgetExhaustedError
 			var apiErr *anthropic.Error
-			if errors.As(err, &apiErr) && (apiErr.StatusCode == 400 || apiErr.StatusCode == 401 || apiErr.StatusCode == 403) {
+			if errors.As(err, &budgetErr) {
+				// Per-run budget (token or tool-call limit): retrying won't help
+				// until the user raises the limit in the model or agent settings.
+				task.State = AI_TASK_STATE_CANCELED
+			} else if errors.As(err, &apiErr) && (apiErr.StatusCode == 400 || apiErr.StatusCode == 401 || apiErr.StatusCode == 403) {
 				task.State = AI_TASK_STATE_IGNORED
 				// The trigger handler already answered 200 with the pending
 				// task; without this the failure is only visible in the log.
