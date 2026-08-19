@@ -1993,12 +1993,21 @@ func (self *socketApi) registerPatterns() {
 		RegisterPatternHandler(
 			PatternHandle{self, "aiManager/inject-prompt-config"},
 			PatternConfig{},
-			func(datagram structs.Datagram, request Request) (Void, error) {
+			func(_ structs.Datagram, request Request) (Void, error) {
 				// Filters in the payload are tolerated for backward
 				// compatibility but no longer drive any task creation —
 				// event triggers now live on Agent CRs.
+				//
+				// Deliberately not audit logged: this is the platform
+				// pushing its own static prompt config down on connect,
+				// not a user changing cluster state. There is no actor to
+				// attribute and nothing to diff (the call only swaps
+				// in-memory pointers), while the payload carries the full
+				// prompt texts — auditing it flooded the time-ordered
+				// audit index and buried real user actions.
+				// InjectAiPromptConfig logs an Info line for operators.
 				self.aiApi.InjectAiPromptConfig(request.AiPromptConfig, &request.AiPrompts)
-				return store.AddToAuditLog[Void](datagram, self.logger, nil, nil, nil, nil)
+				return nil, nil
 			},
 		)
 	}
