@@ -137,17 +137,28 @@ func (e toolExec) recordStat(name string, args map[string]any, result, errStr st
 	e.Stats.ToolRecords = append(e.Stats.ToolRecords, rec)
 }
 
-// runBudgetExhausted reports whether an agent run has hit its tool-call or
-// per-run token budget, logging the reason. Callers pass the already-incremented
-// tool-call count.
-func runBudgetExhausted(logger *slog.Logger, maxToolCalls, toolCallCount int, maxTokensPerRun, tokensUsed int64) bool {
-	exhausted := maxToolCalls > 0 && toolCallCount >= maxToolCalls
-	if !exhausted && maxTokensPerRun > 0 && tokensUsed >= maxTokensPerRun {
-		exhausted = true
-		logger.Info("Per-run token limit reached", "maxTokensPerRun", maxTokensPerRun, "tokensUsed", tokensUsed)
+// BudgetExhaustedError is returned by processPrompt* when a run hits its
+// per-run tool-call or token budget. It is not a failure — callers treat it
+// as a soft completion with a user-visible note explaining why the run stopped.
+type BudgetExhaustedError struct {
+	Msg string
+}
+
+func (e *BudgetExhaustedError) Error() string { return e.Msg }
+
+// runBudgetExhausted returns a non-empty reason string when the run has hit
+// its tool-call or per-run token budget. Empty string means the run may
+// continue. Callers pass the already-incremented tool-call count.
+func runBudgetExhausted(logger *slog.Logger, maxToolCalls, toolCallCount int, maxTokensPerRun, tokensUsed int64) string {
+	if maxToolCalls > 0 && toolCallCount >= maxToolCalls {
+		msg := fmt.Sprintf("run stopped after %d tool calls (per-run tool call limit: %d)", toolCallCount, maxToolCalls)
+		logger.Info("Run budget exhausted: tool call limit", "maxToolCalls", maxToolCalls, "toolCallCount", toolCallCount)
+		return msg
 	}
-	if exhausted {
-		logger.Info("Run budget exhausted", "maxToolCalls", maxToolCalls, "toolCallCount", toolCallCount)
+	if maxTokensPerRun > 0 && tokensUsed >= maxTokensPerRun {
+		msg := fmt.Sprintf("run stopped after %d tokens (per-run token limit: %d)", tokensUsed, maxTokensPerRun)
+		logger.Info("Run budget exhausted: token limit", "maxTokensPerRun", maxTokensPerRun, "tokensUsed", tokensUsed)
+		return msg
 	}
-	return exhausted
+	return ""
 }

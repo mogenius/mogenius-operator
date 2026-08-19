@@ -160,8 +160,8 @@ func (ai *aiManager) processPromptOpenAi(ctx context.Context, rc *ResolvedModelC
 
 		// Check run budgets (tool calls and, when configured, tokens).
 		toolCallCount += len(message.ToolCalls)
-		if runBudgetExhausted(ai.logger, maxToolCalls, toolCallCount, maxTokensPerRun, tokensUsed) {
-			return tokensUsed, elapsed(), model, nil
+		if msg := runBudgetExhausted(ai.logger, maxToolCalls, toolCallCount, maxTokensPerRun, tokensUsed); msg != "" {
+			return tokensUsed, elapsed(), model, &BudgetExhaustedError{Msg: msg}
 		}
 
 		// Continue the loop to get the next response with tool results
