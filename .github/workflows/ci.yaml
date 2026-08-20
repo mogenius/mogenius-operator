@@ -26,6 +26,6 @@ jobs:
   lint:
     uses: mogenius/github-actions/.github/workflows/golangci-lint.yml@b5293d661baea684bc9d1a95b1ecd64ead344b92 # v1.7.4
     with:
-      args: --config=.golangci.yml ./src
+      args: --config=.golangci.yml --timeout=30m ./src
       runner: arc-runner-set-amd64
       golangci_lint_version: v2.13.0
