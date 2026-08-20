@@ -6,69 +6,106 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TestToolSchemaConvertersAgree locks the three per-SDK converters against
-// regressions: every generated slice must have one entry per schema, in order,
-// with matching names and required sets. This guards the neutral-schema
-// refactor — a converter dropping a param or reordering tools fails here.
-func TestToolSchemaConvertersAgree(t *testing.T) {
+// TestAiSDKToolsHaveRequiredFields verifies that every tool in the built-in
+// slices has a non-empty Name and Description, and that all Required field
+// names are present as keys in InputSchema.
+func TestAiSDKToolsHaveRequiredFields(t *testing.T) {
 	groups := []struct {
-		name    string
-		schemas []toolSchema
+		name  string
+		tools interface{ Len() int }
+	}{}
+	_ = groups
+
+	for _, tc := range []struct {
+		groupName string
+		count     int
 	}{
-		{"kubernetes", kubernetesToolSchemas},
-		{"helm", helmToolSchemas},
+		{"kubernetes", len(kubernetesAiSDKTools)},
+		{"helm", len(helmAiSDKTools)},
+	} {
+		t.Run(tc.groupName, func(t *testing.T) {
+			assert.Greater(t, tc.count, 0, "expected at least one tool in group")
+		})
 	}
 
-	for _, g := range groups {
-		t.Run(g.name, func(t *testing.T) {
-			var openaiTools = mapSchemas(g.schemas, toolSchema.toOpenAI)
-			var anthropicTools = mapSchemas(g.schemas, toolSchema.toAnthropic)
-			var ollamaTools = mapSchemas(g.schemas, toolSchema.toOllama)
+	t.Run("kubernetes tools", func(t *testing.T) {
+		assert.Equal(t, 8, len(kubernetesAiSDKTools))
+		for _, tool := range kubernetesAiSDKTools {
+			assert.NotEmpty(t, tool.Name, "tool Name must be set")
+			assert.NotEmpty(t, tool.Description, "tool Description must be set for %s", tool.Name)
+			for _, req := range tool.Required {
+				_, ok := tool.InputSchema[req]
+				assert.True(t, ok, "required field %q missing from InputSchema of %s", req, tool.Name)
+			}
+		}
+	})
 
-			assert.Len(t, openaiTools, len(g.schemas))
-			assert.Len(t, anthropicTools, len(g.schemas))
-			assert.Len(t, ollamaTools, len(g.schemas))
+	t.Run("helm tools", func(t *testing.T) {
+		assert.Equal(t, 19, len(helmAiSDKTools))
+		for _, tool := range helmAiSDKTools {
+			assert.NotEmpty(t, tool.Name, "tool Name must be set")
+			assert.NotEmpty(t, tool.Description, "tool Description must be set for %s", tool.Name)
+			for _, req := range tool.Required {
+				_, ok := tool.InputSchema[req]
+				assert.True(t, ok, "required field %q missing from InputSchema of %s", req, tool.Name)
+			}
+		}
+	})
+}
 
-			for i, s := range g.schemas {
-				// Names align across providers and preserve order.
-				assert.Equal(t, s.Name, openaiTools[i].OfFunction.Function.Name, "openai name at %d", i)
-				assert.Equal(t, s.Name, anthropicTools[i].Name, "anthropic name at %d", i)
-				assert.Equal(t, s.Name, ollamaTools[i].Function.Name, "ollama name at %d", i)
+// TestAiSDKToolNamesUnique ensures no duplicate tool names within each group.
+func TestAiSDKToolNamesUnique(t *testing.T) {
+	for _, tc := range []struct {
+		groupName string
+		tools     []interface{ GetName() string }
+	}{} {
+		_ = tc
+	}
 
-				// Required sets are carried through verbatim.
-				assert.Equal(t, s.Required, anthropicTools[i].InputSchema.Required, "anthropic required for %s", s.Name)
-				assert.Equal(t, s.Required, ollamaTools[i].Function.Parameters.Required, "ollama required for %s", s.Name)
-
-				openaiParams := map[string]any(openaiTools[i].OfFunction.Function.Parameters)
-				if len(s.Required) > 0 {
-					assert.Equal(t, s.Required, openaiParams["required"], "openai required for %s", s.Name)
-				} else {
-					_, ok := openaiParams["required"]
-					assert.False(t, ok, "openai should omit empty required for %s", s.Name)
-				}
+	check := func(groupName string, names []string) {
+		t.Run(groupName, func(t *testing.T) {
+			seen := make(map[string]bool, len(names))
+			for _, n := range names {
+				assert.False(t, seen[n], "duplicate tool name %q in %s", n, groupName)
+				seen[n] = true
 			}
 		})
 	}
+
+	k8sNames := make([]string, len(kubernetesAiSDKTools))
+	for i, t := range kubernetesAiSDKTools {
+		k8sNames[i] = t.Name
+	}
+	check("kubernetes", k8sNames)
+
+	helmNames := make([]string, len(helmAiSDKTools))
+	for i, t := range helmAiSDKTools {
+		helmNames[i] = t.Name
+	}
+	check("helm", helmNames)
 }
 
-// TestToolSchemaEnumPropagates verifies the optional Enum field survives every
-// converter, using get_kubernetes_resources' detail property.
-func TestToolSchemaEnumPropagates(t *testing.T) {
-	var schema toolSchema
-	for _, s := range kubernetesToolSchemas {
-		if s.Name == "get_kubernetes_resources" {
-			schema = s
+// TestGetKubernetesResourcesEnumPropagates verifies the detail enum is present.
+func TestGetKubernetesResourcesEnumPropagates(t *testing.T) {
+	var found bool
+	for _, tool := range kubernetesAiSDKTools {
+		if tool.Name != "get_kubernetes_resources" {
+			continue
+		}
+		found = true
+		detailRaw, ok := tool.InputSchema["detail"]
+		assert.True(t, ok, "detail prop missing from get_kubernetes_resources")
+		if !ok {
 			break
 		}
+		detailMap, ok := detailRaw.(map[string]any)
+		assert.True(t, ok)
+		enumRaw, ok := detailMap["enum"]
+		assert.True(t, ok, "enum missing from detail prop")
+		enumSlice, ok := enumRaw.([]any)
+		assert.True(t, ok)
+		assert.Equal(t, []any{"summary", "full"}, enumSlice)
+		break
 	}
-	assert.Equal(t, []string{"summary", "full"}, schema.Props["detail"].Enum)
-
-	anthropicProps := schema.toAnthropic().InputSchema.Properties.(map[string]any)
-	detail := anthropicProps["detail"].(map[string]any)
-	assert.Equal(t, []string{"summary", "full"}, detail["enum"])
-
-	ollamaProps := schema.toOllama().Function.Parameters.Properties
-	ollamaDetail, ok := ollamaProps.Get("detail")
-	assert.True(t, ok)
-	assert.Equal(t, []any{"summary", "full"}, ollamaDetail.Enum)
+	assert.True(t, found, "get_kubernetes_resources tool not found")
 }

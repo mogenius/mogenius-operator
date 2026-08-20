@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	map0 "maps"
+	"mogenius-operator/src/ai/aisdk"
 	"mogenius-operator/src/crds/v1alpha1"
 	"mogenius-operator/src/store"
 	"mogenius-operator/src/structs"
@@ -407,6 +408,20 @@ func filterOllamaTools(tools []api.Tool, ioChannel IOChatChannel) []api.Tool {
 	filtered := make([]api.Tool, 0, len(tools))
 	for _, t := range tools {
 		if !viewerAllowedTools[t.Function.Name] {
+			continue
+		}
+		filtered = append(filtered, t)
+	}
+	return filtered
+}
+
+func filterAiSDKTools(tools []aisdk.Tool, ioChannel IOChatChannel) []aisdk.Tool {
+	if !isViewerRole(ioChannel) {
+		return tools
+	}
+	filtered := make([]aisdk.Tool, 0, len(tools))
+	for _, t := range tools {
+		if !viewerAllowedTools[t.Name] {
 			continue
 		}
 		filtered = append(filtered, t)

@@ -18,6 +18,7 @@ type AnthropicProvider struct {
 }
 
 var _ Provider = (*AnthropicProvider)(nil)
+var _ CacheBreakpointMover = (*AnthropicProvider)(nil)
 
 // NewAnthropicProvider creates a provider backed by the Anthropic API.
 // baseURL may be empty to use the default endpoint.
@@ -30,26 +31,77 @@ func NewAnthropicProvider(apiKey, baseURL string) *AnthropicProvider {
 	return &AnthropicProvider{client: &client}
 }
 
+// MoveCacheBreakpoint shifts the prompt-cache marker to the last message.
+// The previous marker is cleared so Anthropic's 4-breakpoint cap is not
+// exhausted (the system prompt and tool block each consume one slot).
+func (p *AnthropicProvider) MoveCacheBreakpoint(messages []Message, idx *int) {
+	if len(messages) == 0 {
+		return
+	}
+	last := len(messages) - 1
+	if *idx == last {
+		return
+	}
+	if *idx >= 0 && *idx < last {
+		messages[*idx].CacheControl = false
+	}
+	messages[last].CacheControl = true
+	*idx = last
+}
+
+// toolsToAnthropic converts provider-neutral tools to Anthropic's format.
+// The last tool receives cache_control so the entire tool block is cached.
+func toolsToAnthropic(tools []Tool) []anthropic.ToolUnionParam {
+	params := make([]anthropic.ToolUnionParam, len(tools))
+	for i, t := range tools {
+		tp := anthropic.ToolParam{
+			Name:        t.Name,
+			Description: anthropic.String(t.Description),
+			InputSchema: anthropic.ToolInputSchemaParam{
+				Type:       "object",
+				Properties: t.InputSchema,
+				Required:   t.Required,
+			},
+		}
+		if i == len(tools)-1 {
+			tp.CacheControl = anthropic.NewCacheControlEphemeralParam()
+		}
+		params[i] = anthropic.ToolUnionParam{OfTool: &tp}
+	}
+	return params
+}
+
 // toAnthropicMessages splits messages into the Anthropic system block and
-// conversation turns. System messages are collected into the System field;
-// tool result messages are wrapped in a user turn as Anthropic requires.
+// conversation turns. Messages with CacheControl:true get a cache_control
+// ephemeral marker on their last content block.
 func toAnthropicMessages(messages []Message) (system []anthropic.TextBlockParam, msgs []anthropic.MessageParam) {
 	for _, m := range messages {
 		switch m.Role {
 		case RoleSystem:
-			system = append(system, anthropic.TextBlockParam{Type: "text", Text: m.Content})
+			block := anthropic.TextBlockParam{Type: "text", Text: m.Content}
+			if m.CacheControl {
+				block.CacheControl = anthropic.NewCacheControlEphemeralParam()
+			}
+			system = append(system, block)
 
 		case RoleUser:
+			textBlock := anthropic.NewTextBlock(m.Content)
+			if m.CacheControl && textBlock.OfText != nil {
+				textBlock.OfText.CacheControl = anthropic.NewCacheControlEphemeralParam()
+			}
 			msgs = append(msgs, anthropic.MessageParam{
 				Role:    anthropic.MessageParamRoleUser,
-				Content: []anthropic.ContentBlockParamUnion{anthropic.NewTextBlock(m.Content)},
+				Content: []anthropic.ContentBlockParamUnion{textBlock},
 			})
 
 		case RoleTool:
-			// Tool results go in a user-role turn.
+			resultBlock := anthropic.NewToolResultBlock(m.ToolCallID, m.Content, false)
+			if m.CacheControl && resultBlock.OfToolResult != nil {
+				resultBlock.OfToolResult.CacheControl = anthropic.NewCacheControlEphemeralParam()
+			}
 			msgs = append(msgs, anthropic.MessageParam{
 				Role:    anthropic.MessageParamRoleUser,
-				Content: []anthropic.ContentBlockParamUnion{anthropic.NewToolResultBlock(m.ToolCallID, m.Content, false)},
+				Content: []anthropic.ContentBlockParamUnion{resultBlock},
 			})
 
 		case RoleAssistant:
@@ -64,6 +116,15 @@ func toAnthropicMessages(messages []Message) (system []anthropic.TextBlockParam,
 					OfToolUse: &anthropic.ToolUseBlockParam{ID: tc.ID, Name: tc.Name, Input: input},
 				})
 			}
+			if m.CacheControl && len(content) > 0 {
+				last := &content[len(content)-1]
+				switch {
+				case last.OfText != nil:
+					last.OfText.CacheControl = anthropic.NewCacheControlEphemeralParam()
+				case last.OfToolUse != nil:
+					last.OfToolUse.CacheControl = anthropic.NewCacheControlEphemeralParam()
+				}
+			}
 			msgs = append(msgs, anthropic.MessageParam{
 				Role:    anthropic.MessageParamRoleAssistant,
 				Content: content,
@@ -73,15 +134,20 @@ func toAnthropicMessages(messages []Message) (system []anthropic.TextBlockParam,
 	return
 }
 
-func (p *AnthropicProvider) Chat(ctx context.Context, model string, messages []Message) (Response, error) {
+func (p *AnthropicProvider) Chat(ctx context.Context, model string, messages []Message, tools []Tool) (Response, error) {
 	system, msgs := toAnthropicMessages(messages)
 
-	resp, err := p.client.Messages.New(ctx, anthropic.MessageNewParams{
+	params := anthropic.MessageNewParams{
 		Model:     anthropic.Model(model),
 		MaxTokens: anthropicDefaultMaxTokens,
 		System:    system,
 		Messages:  msgs,
-	})
+	}
+	if len(tools) > 0 {
+		params.Tools = toolsToAnthropic(tools)
+	}
+
+	resp, err := p.client.Messages.New(ctx, params)
 	if err != nil {
 		return Response{}, err
 	}
@@ -101,24 +167,36 @@ func (p *AnthropicProvider) Chat(ctx context.Context, model string, messages []M
 		}
 	}
 
+	finishReason := string(resp.StopReason)
+	// Normalize Anthropic-specific stop reasons to the common "length" signal.
+	if finishReason == "max_tokens" || finishReason == "model_context_window_exceeded" {
+		finishReason = "length"
+	}
+
 	return Response{
-		Content:      text.String(),
-		ToolCalls:    toolCalls,
-		InputTokens:  resp.Usage.InputTokens,
-		OutputTokens: resp.Usage.OutputTokens,
-		FinishReason: string(resp.StopReason),
+		Content:         text.String(),
+		ToolCalls:       toolCalls,
+		InputTokens:     resp.Usage.InputTokens + resp.Usage.CacheCreationInputTokens,
+		OutputTokens:    resp.Usage.OutputTokens,
+		FinishReason:    finishReason,
+		CacheReadTokens: resp.Usage.CacheReadInputTokens,
 	}, nil
 }
 
-func (p *AnthropicProvider) ChatStream(ctx context.Context, model string, messages []Message) (<-chan StreamChunk, error) {
+func (p *AnthropicProvider) ChatStream(ctx context.Context, model string, messages []Message, tools []Tool) (<-chan StreamChunk, error) {
 	system, msgs := toAnthropicMessages(messages)
 
-	stream := p.client.Messages.NewStreaming(ctx, anthropic.MessageNewParams{
+	params := anthropic.MessageNewParams{
 		Model:     anthropic.Model(model),
 		MaxTokens: anthropicDefaultMaxTokens,
 		System:    system,
 		Messages:  msgs,
-	})
+	}
+	if len(tools) > 0 {
+		params.Tools = toolsToAnthropic(tools)
+	}
+
+	stream := p.client.Messages.NewStreaming(ctx, params)
 
 	ch := make(chan StreamChunk, 16)
 	go func() {
@@ -127,14 +205,13 @@ func (p *AnthropicProvider) ChatStream(ctx context.Context, model string, messag
 		var inputTokens, outputTokens int64
 		var finishReason string
 
-		// tool_use blocks arrive across multiple events identified by Index.
 		type toolAccum struct {
 			id   string
 			name string
 			args strings.Builder
 		}
 		toolByIndex := map[int64]*toolAccum{}
-		var toolOrder []int64 // insertion order of indices
+		var toolOrder []int64
 
 		for stream.Next() {
 			event := stream.Current()
@@ -161,11 +238,14 @@ func (p *AnthropicProvider) ChatStream(ctx context.Context, model string, messag
 				}
 
 			case anthropic.MessageStartEvent:
-				inputTokens = evt.Message.Usage.InputTokens
+				inputTokens = evt.Message.Usage.InputTokens + evt.Message.Usage.CacheCreationInputTokens
 
 			case anthropic.MessageDeltaEvent:
 				outputTokens = evt.Usage.OutputTokens
 				finishReason = string(evt.Delta.StopReason)
+				if finishReason == "max_tokens" || finishReason == "model_context_window_exceeded" {
+					finishReason = "length"
+				}
 			}
 		}
 

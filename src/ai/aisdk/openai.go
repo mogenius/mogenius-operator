@@ -27,6 +27,29 @@ func NewOpenAIProvider(apiKey, baseURL string) *OpenAIProvider {
 	return &OpenAIProvider{client: &client}
 }
 
+func toolsToOpenAI(tools []Tool) []openai.ChatCompletionToolUnionParam {
+	params := make([]openai.ChatCompletionToolUnionParam, len(tools))
+	for i, t := range tools {
+		fnParams := openai.FunctionParameters{
+			"type":       "object",
+			"properties": t.InputSchema,
+		}
+		if len(t.Required) > 0 {
+			fnParams["required"] = t.Required
+		}
+		params[i] = openai.ChatCompletionToolUnionParam{
+			OfFunction: &openai.ChatCompletionFunctionToolParam{
+				Function: openai.FunctionDefinitionParam{
+					Name:        t.Name,
+					Description: openai.String(t.Description),
+					Parameters:  fnParams,
+				},
+			},
+		}
+	}
+	return params
+}
+
 func toOpenAIMessages(messages []Message) []openai.ChatCompletionMessageParamUnion {
 	result := make([]openai.ChatCompletionMessageParamUnion, 0, len(messages))
 	for _, m := range messages {
@@ -70,11 +93,16 @@ func toOpenAIMessages(messages []Message) []openai.ChatCompletionMessageParamUni
 	return result
 }
 
-func (p *OpenAIProvider) Chat(ctx context.Context, model string, messages []Message) (Response, error) {
-	resp, err := p.client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
+func (p *OpenAIProvider) Chat(ctx context.Context, model string, messages []Message, tools []Tool) (Response, error) {
+	params := openai.ChatCompletionNewParams{
 		Model:    model,
 		Messages: toOpenAIMessages(messages),
-	})
+	}
+	if len(tools) > 0 {
+		params.Tools = toolsToOpenAI(tools)
+	}
+
+	resp, err := p.client.Chat.Completions.New(ctx, params)
 	if err != nil {
 		return Response{}, err
 	}
@@ -101,14 +129,19 @@ func (p *OpenAIProvider) Chat(ctx context.Context, model string, messages []Mess
 	}, nil
 }
 
-func (p *OpenAIProvider) ChatStream(ctx context.Context, model string, messages []Message) (<-chan StreamChunk, error) {
-	stream := p.client.Chat.Completions.NewStreaming(ctx, openai.ChatCompletionNewParams{
+func (p *OpenAIProvider) ChatStream(ctx context.Context, model string, messages []Message, tools []Tool) (<-chan StreamChunk, error) {
+	params := openai.ChatCompletionNewParams{
 		Model:    model,
 		Messages: toOpenAIMessages(messages),
 		StreamOptions: openai.ChatCompletionStreamOptionsParam{
 			IncludeUsage: openai.Bool(true),
 		},
-	})
+	}
+	if len(tools) > 0 {
+		params.Tools = toolsToOpenAI(tools)
+	}
+
+	stream := p.client.Chat.Completions.NewStreaming(ctx, params)
 
 	ch := make(chan StreamChunk, 16)
 	go func() {
@@ -116,7 +149,6 @@ func (p *OpenAIProvider) ChatStream(ctx context.Context, model string, messages 
 
 		var inputTokens, outputTokens int64
 		var finishReason string
-		// tool calls arrive in deltas keyed by index; accumulate per index
 		type accumEntry struct {
 			id   string
 			name string
@@ -167,7 +199,6 @@ func (p *OpenAIProvider) ChatStream(ctx context.Context, model string, messages 
 			return
 		}
 
-		// Collect accumulated tool calls in index order.
 		toolCalls := make([]ToolCall, 0, len(toolMap))
 		for i := int64(0); ; i++ {
 			entry, ok := toolMap[i]

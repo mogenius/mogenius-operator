@@ -11,6 +11,15 @@ const (
 	RoleTool      Role = "tool"
 )
 
+// Tool is a provider-neutral tool definition.
+type Tool struct {
+	Name        string
+	Description string
+	// InputSchema is the properties map (JSON-schema format): {"propName": {"type": "string", "description": "..."}}
+	InputSchema map[string]any
+	Required    []string
+}
+
 // Message is a provider-agnostic chat message.
 type Message struct {
 	Role    Role
@@ -20,6 +29,9 @@ type Message struct {
 	ToolName   string
 	// ToolCalls is populated for RoleAssistant messages that request tool execution.
 	ToolCalls []ToolCall
+	// CacheControl marks this message for prompt caching. Used by the Anthropic
+	// provider only; ignored by other providers.
+	CacheControl bool
 }
 
 // ToolCall is a tool invocation requested by the model in an assistant message.
@@ -36,6 +48,9 @@ type Response struct {
 	InputTokens  int64
 	OutputTokens int64
 	FinishReason string
+	// CacheReadTokens is populated by the Anthropic provider for prompt-cache
+	// reads; these do not count against the regular token budget.
+	CacheReadTokens int64
 }
 
 // StreamChunk is one event delivered during a streaming chat call.
@@ -52,12 +67,18 @@ type StreamChunk struct {
 	Err          error
 }
 
+// CacheBreakpointMover is an optional interface for providers that support
+// moving prompt-cache breakpoints on individual conversation messages.
+// Currently implemented by AnthropicProvider only.
+type CacheBreakpointMover interface {
+	MoveCacheBreakpoint(messages []Message, idx *int)
+}
+
 // Provider is a provider-agnostic interface for LLM chat calls.
 type Provider interface {
-	// Chat sends messages and waits for the full response.
-	Chat(ctx context.Context, model string, messages []Message) (Response, error)
-	// ChatStream sends messages and returns a channel of chunks.
-	// The channel is closed after the Done chunk is delivered.
-	// The caller must drain the channel even when cancelling via ctx.
-	ChatStream(ctx context.Context, model string, messages []Message) (<-chan StreamChunk, error)
+	// Chat sends messages (and optional tools) and returns the full response.
+	Chat(ctx context.Context, model string, messages []Message, tools []Tool) (Response, error)
+	// ChatStream sends messages (and optional tools) and returns a channel of chunks.
+	// The channel is closed after the Done chunk. The caller must drain it even when cancelling via ctx.
+	ChatStream(ctx context.Context, model string, messages []Message, tools []Tool) (<-chan StreamChunk, error)
 }

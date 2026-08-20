@@ -1,10 +1,13 @@
 package ai
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"sort"
 	"strings"
+
+	"mogenius-operator/src/ai/aisdk"
 
 	"github.com/anthropics/anthropic-sdk-go"
 	ollamaapi "github.com/ollama/ollama/api"
@@ -369,4 +372,57 @@ func estimateOllamaMessagesChars(messages []ollamaapi.Message) int {
 		}
 	}
 	return total
+}
+
+// estimateAiSDKMessagesChars sizes the provider-neutral conversation payload to
+// decide when compaction is needed.
+func estimateAiSDKMessagesChars(messages []aisdk.Message) int {
+	total := 0
+	for i := range messages {
+		total += len(messages[i].Content)
+		for _, tc := range messages[i].ToolCalls {
+			total += len(tc.Arguments)
+		}
+	}
+	return total
+}
+
+// buildCompactedAiSDKMessages returns a minimal conversation history:
+// [system, originalUserPrompt, assistantSummary].
+func buildCompactedAiSDKMessages(systemMsg, originalUserMsg aisdk.Message, summary string) []aisdk.Message {
+	systemMsg.CacheControl = true
+	return []aisdk.Message{
+		systemMsg,
+		originalUserMsg,
+		{Role: aisdk.RoleAssistant, Content: compactedSummaryPrefix + summary},
+	}
+}
+
+// compactMessagesWithAI calls the model to summarize the conversation and
+// returns a compacted replacement list. On success the caller must reset any
+// Anthropic cache-breakpoint index to -1.
+func (ai *aiManager) compactMessagesWithAI(ctx context.Context, provider aisdk.Provider, model string, messages []aisdk.Message) ([]aisdk.Message, int64, error) {
+	if len(messages) < 2 {
+		return nil, 0, fmt.Errorf("message list too short to compact")
+	}
+
+	// Replace system message with compaction prompt; keep the rest of the history.
+	compactionMsgs := make([]aisdk.Message, 0, len(messages)+1)
+	compactionMsgs = append(compactionMsgs, aisdk.Message{Role: aisdk.RoleSystem, Content: compactionSystemPrompt})
+	compactionMsgs = append(compactionMsgs, messages[1:]...)
+	compactionMsgs = append(compactionMsgs, aisdk.Message{
+		Role:    aisdk.RoleUser,
+		Content: "Compact this conversation into a concise first-person progress report.",
+	})
+
+	resp, err := provider.Chat(ctx, model, compactionMsgs, nil)
+	if err != nil {
+		return nil, 0, err
+	}
+	if resp.Content == "" {
+		return nil, 0, fmt.Errorf("compaction returned no content")
+	}
+
+	tokensUsed := resp.InputTokens + resp.OutputTokens
+	return buildCompactedAiSDKMessages(messages[0], messages[1], resp.Content), tokensUsed, nil
 }
