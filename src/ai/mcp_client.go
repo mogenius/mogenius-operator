@@ -15,10 +15,7 @@ import (
 	"mogenius-operator/src/ai/aisdk"
 	"mogenius-operator/src/crds/v1alpha1"
 
-	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/ollama/ollama/api"
-	"github.com/openai/openai-go/v3"
 )
 
 // invalidToolNameChars matches any character not allowed in LLM tool names.
@@ -364,78 +361,6 @@ func (m *mcpClientManager) IsMCPTool(toolName string) bool {
 	return false
 }
 
-// GetAnthropicTools returns all MCP tools in Anthropic SDK format.
-func (m *mcpClientManager) GetAnthropicTools() []anthropic.ToolParam {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-
-	var tools []anthropic.ToolParam
-	for _, s := range m.sessions {
-		for _, tool := range s.tools {
-			properties, required := mcpSchemaToPropertiesAndRequired(tool.InputSchema)
-			tools = append(tools, anthropic.ToolParam{
-				Name:        sanitizeToolName(tool.Name),
-				Description: anthropic.String(tool.Description),
-				InputSchema: anthropic.ToolInputSchemaParam{
-					Type:       "object",
-					Properties: properties,
-					Required:   required,
-				},
-			})
-		}
-	}
-	return tools
-}
-
-// GetOpenAITools returns all MCP tools in OpenAI SDK format.
-func (m *mcpClientManager) GetOpenAITools() []openai.ChatCompletionToolUnionParam {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-
-	var tools []openai.ChatCompletionToolUnionParam
-	for _, s := range m.sessions {
-		for _, tool := range s.tools {
-			params := mcpSchemaToFunctionParams(tool.InputSchema)
-			tools = append(tools, openai.ChatCompletionToolUnionParam{
-				OfFunction: &openai.ChatCompletionFunctionToolParam{
-					Function: openai.FunctionDefinitionParam{
-						Name:        sanitizeToolName(tool.Name),
-						Description: openai.String(tool.Description),
-						Parameters:  params,
-					},
-				},
-			})
-		}
-	}
-	return tools
-}
-
-// GetOllamaTools returns all MCP tools in Ollama SDK format.
-func (m *mcpClientManager) GetOllamaTools() []api.Tool {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-
-	var tools []api.Tool
-	for _, s := range m.sessions {
-		for _, tool := range s.tools {
-			props, required := mcpSchemaToOllamaProperties(tool.InputSchema)
-			tools = append(tools, api.Tool{
-				Type: "function",
-				Function: api.ToolFunction{
-					Name:        sanitizeToolName(tool.Name),
-					Description: tool.Description,
-					Parameters: api.ToolFunctionParameters{
-						Type:       "object",
-						Properties: props,
-						Required:   required,
-					},
-				},
-			})
-		}
-	}
-	return tools
-}
-
 // sessionFilter converts a session name slice into a lookup set.
 // An empty (or nil) slice returns an empty non-nil map, meaning NOTHING is
 // allowed — no sessions are in scope. Callers check with !filter[name].
@@ -445,93 +370,6 @@ func sessionFilter(sessions []string) map[string]bool {
 		f[s] = true
 	}
 	return f
-}
-
-// GetAnthropicToolsForSessions returns MCP tools in Anthropic format, scoped
-// to the named sessions. An empty sessions list returns no tools.
-func (m *mcpClientManager) GetAnthropicToolsForSessions(sessions []string) []anthropic.ToolParam {
-	filter := sessionFilter(sessions)
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-
-	var tools []anthropic.ToolParam
-	for _, s := range m.sessions {
-		if !filter[s.name] {
-			continue
-		}
-		for _, tool := range s.tools {
-			properties, required := mcpSchemaToPropertiesAndRequired(tool.InputSchema)
-			tools = append(tools, anthropic.ToolParam{
-				Name:        sanitizeToolName(tool.Name),
-				Description: anthropic.String(tool.Description),
-				InputSchema: anthropic.ToolInputSchemaParam{
-					Type:       "object",
-					Properties: properties,
-					Required:   required,
-				},
-			})
-		}
-	}
-	return tools
-}
-
-// GetOpenAIToolsForSessions returns MCP tools in OpenAI format, scoped to the
-// named sessions. An empty sessions list returns no tools.
-func (m *mcpClientManager) GetOpenAIToolsForSessions(sessions []string) []openai.ChatCompletionToolUnionParam {
-	filter := sessionFilter(sessions)
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-
-	var tools []openai.ChatCompletionToolUnionParam
-	for _, s := range m.sessions {
-		if !filter[s.name] {
-			continue
-		}
-		for _, tool := range s.tools {
-			params := mcpSchemaToFunctionParams(tool.InputSchema)
-			tools = append(tools, openai.ChatCompletionToolUnionParam{
-				OfFunction: &openai.ChatCompletionFunctionToolParam{
-					Function: openai.FunctionDefinitionParam{
-						Name:        sanitizeToolName(tool.Name),
-						Description: openai.String(tool.Description),
-						Parameters:  params,
-					},
-				},
-			})
-		}
-	}
-	return tools
-}
-
-// GetOllamaToolsForSessions returns MCP tools in Ollama format, scoped to the
-// named sessions. An empty sessions list returns no tools.
-func (m *mcpClientManager) GetOllamaToolsForSessions(sessions []string) []api.Tool {
-	filter := sessionFilter(sessions)
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-
-	var tools []api.Tool
-	for _, s := range m.sessions {
-		if !filter[s.name] {
-			continue
-		}
-		for _, tool := range s.tools {
-			props, required := mcpSchemaToOllamaProperties(tool.InputSchema)
-			tools = append(tools, api.Tool{
-				Type: "function",
-				Function: api.ToolFunction{
-					Name:        sanitizeToolName(tool.Name),
-					Description: tool.Description,
-					Parameters: api.ToolFunctionParameters{
-						Type:       "object",
-						Properties: props,
-						Required:   required,
-					},
-				},
-			})
-		}
-	}
-	return tools
 }
 
 // mcpToolToAiSDK converts an MCP tool to the provider-neutral aisdk.Tool format.
@@ -746,51 +584,6 @@ func (m *mcpClientManager) GetToolsWithPolicies(sessionName string) []v1alpha1.M
 	return result
 }
 
-// mcpSchemaToOllamaProperties converts an MCP tool's InputSchema to the
-// properties map and required slice used by the Ollama SDK.
-func mcpSchemaToOllamaProperties(schema any) (*api.ToolPropertiesMap, []string) {
-	m, ok := schema.(map[string]any)
-	if !ok || m == nil {
-		return api.NewToolPropertiesMap(), nil
-	}
-
-	properties := api.NewToolPropertiesMap()
-	if props, ok := m["properties"].(map[string]any); ok {
-		for k, v := range props {
-			propMap, ok := v.(map[string]any)
-			if !ok {
-				continue
-			}
-			tp := api.ToolProperty{}
-			if t, ok := propMap["type"].(string); ok {
-				tp.Type = []string{t}
-			}
-			if d, ok := propMap["description"].(string); ok {
-				tp.Description = d
-			}
-			if enum, ok := propMap["enum"].([]any); ok {
-				for _, e := range enum {
-					if s, ok := e.(string); ok {
-						tp.Enum = append(tp.Enum, s)
-					}
-				}
-			}
-			properties.Set(k, tp)
-		}
-	}
-
-	var required []string
-	if req, ok := m["required"].([]any); ok {
-		for _, r := range req {
-			if s, ok := r.(string); ok {
-				required = append(required, s)
-			}
-		}
-	}
-
-	return properties, required
-}
-
 // extractMCPText extracts text from an MCP tool result.
 func extractMCPText(result *mcp.CallToolResult) string {
 	var texts []string
@@ -817,7 +610,7 @@ func extractMCPText(result *mcp.CallToolResult) string {
 }
 
 // mcpSchemaToPropertiesAndRequired converts an MCP tool's InputSchema (any / map[string]any)
-// to the properties map and required slice used by the Anthropic SDK.
+// to the provider-neutral properties map and required slice.
 func mcpSchemaToPropertiesAndRequired(schema any) (map[string]any, []string) {
 	m, ok := schema.(map[string]any)
 	if !ok || m == nil {
@@ -841,30 +634,3 @@ func mcpSchemaToPropertiesAndRequired(schema any) (map[string]any, []string) {
 	return properties, required
 }
 
-// mcpSchemaToFunctionParams converts an MCP tool's InputSchema (any / map[string]any)
-// to the FunctionParameters used by the OpenAI SDK.
-func mcpSchemaToFunctionParams(schema any) openai.FunctionParameters {
-	m, ok := schema.(map[string]any)
-	if !ok || m == nil {
-		return openai.FunctionParameters{
-			"type":       "object",
-			"properties": map[string]any{},
-		}
-	}
-
-	params := openai.FunctionParameters{
-		"type": "object",
-	}
-
-	if props, ok := m["properties"].(map[string]any); ok {
-		params["properties"] = props
-	} else {
-		params["properties"] = map[string]any{}
-	}
-
-	if req, ok := m["required"].([]any); ok {
-		params["required"] = req
-	}
-
-	return params
-}

@@ -5,9 +5,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/anthropics/anthropic-sdk-go"
-	ollamaapi "github.com/ollama/ollama/api"
-	"github.com/openai/openai-go/v3"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
@@ -149,40 +146,6 @@ func TestTruncateResult(t *testing.T) {
 	assert.Contains(t, result, "truncated")
 }
 
-func TestMoveCacheBreakpoint(t *testing.T) {
-	messages := []anthropic.MessageParam{
-		{Role: anthropic.MessageParamRoleUser, Content: []anthropic.ContentBlockParamUnion{anthropic.NewTextBlock("prompt")}},
-	}
-	cachedIdx := -1
-
-	moveCacheBreakpoint(messages, &cachedIdx)
-	assert.Equal(t, 0, cachedIdx)
-	assert.Equal(t, "ephemeral", string(messages[0].Content[0].OfText.CacheControl.Type))
-
-	// Appending a tool-result message moves the marker and clears the old one.
-	messages = append(messages, anthropic.MessageParam{
-		Role:    anthropic.MessageParamRoleUser,
-		Content: []anthropic.ContentBlockParamUnion{anthropic.NewToolResultBlock("t1", "result", false)},
-	})
-	moveCacheBreakpoint(messages, &cachedIdx)
-	assert.Equal(t, 1, cachedIdx)
-	assert.Empty(t, string(messages[0].Content[0].OfText.CacheControl.Type))
-	assert.Equal(t, "ephemeral", string(messages[1].Content[0].OfToolResult.CacheControl.Type))
-
-	// Idempotent when nothing new was appended.
-	moveCacheBreakpoint(messages, &cachedIdx)
-	assert.Equal(t, 1, cachedIdx)
-	assert.Equal(t, "ephemeral", string(messages[1].Content[0].OfToolResult.CacheControl.Type))
-}
-
-func TestEstimateMessagesChars(t *testing.T) {
-	assert.Equal(t, 0, estimateMessagesChars(nil))
-	messages := []anthropic.MessageParam{
-		{Role: anthropic.MessageParamRoleUser, Content: []anthropic.ContentBlockParamUnion{anthropic.NewTextBlock(strings.Repeat("x", 1000))}},
-	}
-	assert.Greater(t, estimateMessagesChars(messages), 1000)
-}
-
 func TestSummaryResourceText(t *testing.T) {
 	res := &unstructured.Unstructured{Object: map[string]any{
 		"apiVersion": "batch/v1",
@@ -222,59 +185,3 @@ func TestSummaryResourceText(t *testing.T) {
 	assert.Less(t, len(out), len(full))
 }
 
-// TestBuildCompactedAnthropicMessages asserts the compacted Anthropic
-// conversation is structurally valid: it must be a strict user→assistant
-// alternation, since the Messages API rejects consecutive same-role turns.
-// A regression breaking this alternation would previously have been swallowed
-// by the removed fallback path.
-func TestBuildCompactedAnthropicMessages(t *testing.T) {
-	original := anthropic.MessageParam{
-		Role:    anthropic.MessageParamRoleUser,
-		Content: []anthropic.ContentBlockParamUnion{anthropic.NewTextBlock("original task")},
-	}
-
-	out := buildCompactedAnthropicMessages(original, "my progress so far")
-
-	assert.Len(t, out, 2)
-	assert.Equal(t, anthropic.MessageParamRoleUser, out[0].Role)
-	assert.Equal(t, anthropic.MessageParamRoleAssistant, out[1].Role)
-	// Roles must strictly alternate.
-	for i := 1; i < len(out); i++ {
-		assert.NotEqual(t, out[i-1].Role, out[i].Role, "consecutive messages must not share a role")
-	}
-	// The summary is carried on the assistant turn.
-	assert.NotEmpty(t, out[1].Content)
-	assert.Contains(t, out[1].Content[len(out[1].Content)-1].OfText.Text, "my progress so far")
-}
-
-// TestBuildCompactedOpenAIMessages asserts the compacted OpenAI conversation is
-// structurally valid: [system, user, assistant] with the summary on the final
-// assistant turn and no leftover tool messages.
-func TestBuildCompactedOpenAIMessages(t *testing.T) {
-	system := openai.SystemMessage("you are an agent")
-	user := openai.UserMessage("original task")
-
-	out := buildCompactedOpenAIMessages(system, user, "my progress so far")
-
-	assert.Len(t, out, 3)
-	assert.NotNil(t, out[0].OfSystem, "first message must be the system prompt")
-	assert.NotNil(t, out[1].OfUser, "second message must be the user prompt")
-	assert.NotNil(t, out[2].OfAssistant, "third message must be the assistant summary")
-	for _, m := range out {
-		assert.Nil(t, m.OfTool, "compacted history must not contain dangling tool messages")
-	}
-}
-
-// TestBuildCompactedOllamaMessages asserts the compacted Ollama conversation is
-// structurally valid: [system, user, assistant] with the summary on the final
-// assistant turn.
-func TestBuildCompactedOllamaMessages(t *testing.T) {
-	system := ollamaapi.Message{Role: "system", Content: "you are an agent"}
-	user := ollamaapi.Message{Role: "user", Content: "original task"}
-
-	out := buildCompactedOllamaMessages(system, user, "my progress so far")
-
-	assert.Len(t, out, 3)
-	assert.Equal(t, []string{"system", "user", "assistant"}, []string{out[0].Role, out[1].Role, out[2].Role})
-	assert.Contains(t, out[2].Content, "my progress so far")
-}

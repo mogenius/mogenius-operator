@@ -2,16 +2,12 @@ package ai
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"sort"
 	"strings"
 
 	"mogenius-operator/src/ai/aisdk"
 
-	"github.com/anthropics/anthropic-sdk-go"
-	ollamaapi "github.com/ollama/ollama/api"
-	"github.com/openai/openai-go/v3"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
@@ -251,105 +247,9 @@ func truncateResult(s string, maxChars int) string {
 // reads costs more than one cache rebuild.
 const compactHistoryAfterChars = 60_000
 
-// moveCacheBreakpoint moves the single conversation cache breakpoint to the
-// last message: everything up to and including it is then served from the
-// prompt cache on the next request. Anthropic allows at most 4 breakpoints
-// per request (two are spent on the system prompt and the tool definitions),
-// so the previous marker is cleared instead of accumulating.
-func moveCacheBreakpoint(messages []anthropic.MessageParam, cachedMsgIdx *int) {
-	if len(messages) == 0 {
-		return
-	}
-	last := len(messages) - 1
-	if *cachedMsgIdx == last {
-		return
-	}
-	if *cachedMsgIdx >= 0 && *cachedMsgIdx < last {
-		setTrailingCacheControl(&messages[*cachedMsgIdx], false)
-	}
-	setTrailingCacheControl(&messages[last], true)
-	*cachedMsgIdx = last
-}
-
-// setTrailingCacheControl sets or clears the cache_control marker on the last
-// content block of the message.
-func setTrailingCacheControl(msg *anthropic.MessageParam, enabled bool) {
-	if len(msg.Content) == 0 {
-		return
-	}
-	var cc anthropic.CacheControlEphemeralParam
-	if enabled {
-		cc = anthropic.NewCacheControlEphemeralParam()
-	}
-	block := &msg.Content[len(msg.Content)-1]
-	switch {
-	case block.OfToolResult != nil:
-		block.OfToolResult.CacheControl = cc
-	case block.OfText != nil:
-		block.OfText.CacheControl = cc
-	case block.OfToolUse != nil:
-		block.OfToolUse.CacheControl = cc
-	}
-}
-
-// estimateMessagesChars sizes the conversation payload to decide when
-// compaction pays for the cache rebuild it causes.
-func estimateMessagesChars(messages []anthropic.MessageParam) int {
-	total := 0
-	for i := range messages {
-		if data, err := json.Marshal(messages[i]); err == nil {
-			total += len(data)
-		}
-	}
-	return total
-}
-
 // compactedSummaryPrefix marks the single assistant message that carries the
 // AI-generated progress report replacing the compacted-away history.
 const compactedSummaryPrefix = "[Conversation compacted]\n\n"
-
-// create new conversation history with the original user prompt, and compacted summary
-func buildCompactedAnthropicMessages(originalPrompt anthropic.MessageParam, summary string) []anthropic.MessageParam {
-	return []anthropic.MessageParam{
-		originalPrompt,
-		{
-			Role: anthropic.MessageParamRoleAssistant,
-			Content: []anthropic.ContentBlockParamUnion{
-				anthropic.NewTextBlock(compactedSummaryPrefix + summary),
-			},
-		},
-	}
-}
-
-// create new conversation history with the original system prompt, original user prompt, and compacted summary
-func buildCompactedOpenAIMessages(originalSystem, originalPrompt openai.ChatCompletionMessageParamUnion, summary string) []openai.ChatCompletionMessageParamUnion {
-	return []openai.ChatCompletionMessageParamUnion{
-		originalSystem,
-		originalPrompt,
-		openai.AssistantMessage(compactedSummaryPrefix + summary),
-	}
-}
-
-// create new conversation history with the original system prompt, original user prompt, and compacted summary
-func buildCompactedOllamaMessages(originalSystem, originalPrompt ollamaapi.Message, summary string) []ollamaapi.Message {
-	return []ollamaapi.Message{
-		originalSystem,
-		originalPrompt,
-		{Role: "assistant", Content: compactedSummaryPrefix + summary},
-	}
-}
-
-// estimateOpenAIMessagesChars sizes the OpenAI conversation payload to decide
-// when compaction is needed.
-func estimateOpenAIMessagesChars(messages []openai.ChatCompletionMessageParamUnion) int {
-	total := 0
-	for i := range messages {
-		if data, err := json.Marshal(messages[i]); err == nil {
-			total += len(data)
-		}
-	}
-	return total
-}
 
 // compactionSystemPrompt instructs the compaction model to write a first-person
 // progress report the agent can continue from.
@@ -361,18 +261,6 @@ Write a concise first-person progress report that covers:
 - Current status and any remaining steps
 
 Be factual and complete. You will continue the task with only this summary as prior context.`
-
-// estimateOllamaMessagesChars sizes the Ollama conversation payload to decide
-// when compaction is needed.
-func estimateOllamaMessagesChars(messages []ollamaapi.Message) int {
-	total := 0
-	for i := range messages {
-		if data, err := json.Marshal(messages[i]); err == nil {
-			total += len(data)
-		}
-	}
-	return total
-}
 
 // estimateAiSDKMessagesChars sizes the provider-neutral conversation payload to
 // decide when compaction is needed.
