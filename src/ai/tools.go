@@ -13,9 +13,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/anthropics/anthropic-sdk-go"
-	"github.com/ollama/ollama/api"
-	"github.com/openai/openai-go/v3"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
@@ -371,48 +368,6 @@ var viewerAllowedTools = map[string]bool{
 
 func isViewerRole(ioChannel IOChatChannel) bool {
 	return ioChannel.WorkspaceGrant != nil && ioChannel.WorkspaceGrant.Role == "viewer"
-}
-
-func filterOpenAiTools(tools []openai.ChatCompletionToolUnionParam, ioChannel IOChatChannel) []openai.ChatCompletionToolUnionParam {
-	if !isViewerRole(ioChannel) {
-		return tools
-	}
-	filtered := make([]openai.ChatCompletionToolUnionParam, 0, len(tools))
-	for _, t := range tools {
-		if t.OfFunction != nil && !viewerAllowedTools[t.OfFunction.Function.Name] {
-			continue
-		}
-		filtered = append(filtered, t)
-	}
-	return filtered
-}
-
-func filterAnthropicTools(tools []anthropic.ToolParam, ioChannel IOChatChannel) []anthropic.ToolParam {
-	if !isViewerRole(ioChannel) {
-		return tools
-	}
-	filtered := make([]anthropic.ToolParam, 0, len(tools))
-	for _, t := range tools {
-		if !viewerAllowedTools[t.Name] {
-			continue
-		}
-		filtered = append(filtered, t)
-	}
-	return filtered
-}
-
-func filterOllamaTools(tools []api.Tool, ioChannel IOChatChannel) []api.Tool {
-	if !isViewerRole(ioChannel) {
-		return tools
-	}
-	filtered := make([]api.Tool, 0, len(tools))
-	for _, t := range tools {
-		if !viewerAllowedTools[t.Function.Name] {
-			continue
-		}
-		filtered = append(filtered, t)
-	}
-	return filtered
 }
 
 func filterAiSDKTools(tools []aisdk.Tool, ioChannel IOChatChannel) []aisdk.Tool {
