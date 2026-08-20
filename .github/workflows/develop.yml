@@ -12,6 +12,10 @@ on:
     branches:
       - main
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   REGISTRY_PREFIX: ghcr.io/mogenius
   HELMNAME: "mogenius-operator-dev"
