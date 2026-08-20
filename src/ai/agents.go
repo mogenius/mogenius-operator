@@ -221,7 +221,8 @@ func buildAgentEventPrompt(agent *v1alpha1.Agent, namespaces []string, obj *unst
 	var sb strings.Builder
 	sb.WriteString("Your scope for this run includes the following Kubernetes namespaces: ")
 	sb.WriteString(nsStr)
-	
+	sb.WriteString(". You operate in read-only mode by default; any mutation requires explicit approval.")
+
 	sb.WriteString("\n\nThis run was triggered by a ")
 	sb.WriteString(changeType)
 	sb.WriteString(" event on the following resource:\n\n")
@@ -254,9 +255,10 @@ func buildAgentRunPrompt(agent *v1alpha1.Agent, namespaces []string) string {
 	}
 
 	// No custom instruction: apply the built-in K8s analysis framing.
-	sb.WriteString("\n\nInspect the workloads in these namespaces with your tools and address every distinct issue you find. When a fix requires a resource change, call the appropriate mutation tool (update_kubernetes_resource, create_kubernetes_resource, or delete_kubernetes_resource) — each call is intercepted and surfaced as an approval request for the operator. Be efficient — you have a limited tool-call and token budget: list resources cluster-wide (omit the namespace parameter) instead of namespace by namespace, inspect suspicious candidates with get detail=summary, and fetch the full manifest only when you need it to build an update proposal.")
-	sb.WriteString("\n\nOnly report findings you can back with a concrete, safe, directly applicable remediation: a proposed operation plus the complete target resource YAML, based on the live manifest you retrieved. Advice-only findings without an applicable change are discarded — do not report them. If nothing needs fixing, submit an empty findings list; that is a perfectly good result.")
-	sb.WriteString("\n\nWhen many similar resources should be deleted (e.g. dozens of completed Jobs or obsolete zero-replica ReplicaSets), do NOT summarize them in prose and do NOT emit one finding per resource. Emit a SINGLE DeleteResource finding that lists ALL of them: put the first in targetResource and every other one in additionalTargets. Enumerate them completely — list every matching resource you found, not just examples.")
+	sb.WriteString("\n\nInspect the workloads in these namespaces with your tools and address every distinct issue you find. Be efficient — you have a limited tool-call and token budget: list resources cluster-wide (omit the namespace parameter) instead of namespace by namespace, inspect suspicious candidates with get detail=summary, and fetch the full manifest only when you need it to build a change.")
+	sb.WriteString("\n\nState every finding in your reasoning as soon as you establish it — what is wrong, on which resource, why it matters. That text is the run's report; your closing message is not kept.")
+	sb.WriteString("\n\nWhen a fix requires a resource change, call the matching mutation tool (update_kubernetes_resource, create_kubernetes_resource or delete_kubernetes_resource) with the complete manifest, built from the live object. The call never touches the cluster: it becomes an approval request and pauses this run until a user decides. So propose only changes that are concrete, safe and directly applicable, and spend proposals on what matters — the highest-value fix first, and for a pile of obsolete resources (completed Jobs, zero-replica ReplicaSets) the ones actually worth an approval rather than one request per resource. A problem you cannot turn into a safe change is worth a sentence in your reasoning, not a proposal.")
+	sb.WriteString("\n\nIf nothing needs fixing, end the run without proposing anything; that is a perfectly good result.")
 	return sb.String()
 }
 

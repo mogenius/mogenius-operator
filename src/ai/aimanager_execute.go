@@ -79,7 +79,6 @@ func (ai *aiManager) signalApproval(taskID string, approver structs.User, err er
 	}
 }
 
-
 // notifyTaskChanged pushes the task's new state to the UI and refreshes the
 // cached status counters.
 func (ai *aiManager) notifyTaskChanged(task *AiTask) {

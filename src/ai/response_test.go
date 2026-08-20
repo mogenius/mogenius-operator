@@ -61,14 +61,12 @@ func TestFollowUpResourceLenientUnmarshal(t *testing.T) {
 	}
 }
 
-
 func TestDescribeToolCall(t *testing.T) {
 	assert.Equal(t,
 		"list_kubernetes_resources (kind: Pod, namespace: harbor)",
 		describeToolCall("list_kubernetes_resources", map[string]any{"kind": "Pod", "namespace": "harbor", "apiVersion": "v1"}))
 	assert.Equal(t, "helm_list_releases", describeToolCall("helm_list_releases", map[string]any{}))
 }
-
 
 func TestAgeString(t *testing.T) {
 	assert.Equal(t, "", ageString(time.Time{}))
@@ -91,4 +89,3 @@ func TestIsResourceExcluded(t *testing.T) {
 	empty := &ToolContext{}
 	assert.False(t, empty.IsResourceExcluded("v1", "Pod", "default", "x"))
 }
-

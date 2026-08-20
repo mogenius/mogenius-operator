@@ -23,10 +23,9 @@ const (
 type AiRunStepKind string
 
 const (
-	AI_RUN_STEP_REASON   AiRunStepKind = "reason"   // assistant free text between tool calls
-	AI_RUN_STEP_ACT      AiRunStepKind = "act"      // one tool call, result attached
-	AI_RUN_STEP_FINDINGS AiRunStepKind = "findings" // submit_analysis accepted findings
-	AI_RUN_STEP_ERROR    AiRunStepKind = "error"    // an error surfaced during the run (fatal or recoverable, e.g. failed compaction)
+	AI_RUN_STEP_REASON AiRunStepKind = "reason" // assistant free text between tool calls
+	AI_RUN_STEP_ACT    AiRunStepKind = "act"    // one tool call, result attached
+	AI_RUN_STEP_ERROR  AiRunStepKind = "error"  // an error surfaced during the run (fatal or recoverable, e.g. failed compaction)
 )
 
 // AiRunStep is one recorded step of an agent run's ReAct loop. Args and
