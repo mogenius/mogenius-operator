@@ -14,11 +14,17 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Both jobs are pinned to amd64: the runner label `self-hosted` matches both the
+  # amd64 and arm64 ARC sets, and the Go build cache is per-architecture — so a
+  # random split across the two halved the cache hit rate and made test and lint
+  # compile the same dependency tree twice.
   test:
     uses: mogenius/github-actions/.github/workflows/go-test.yml@b5293d661baea684bc9d1a95b1ecd64ead344b92 # v1.7.4
     with:
       path: src
+      runner: arc-runner-set-amd64
   lint:
     uses: mogenius/github-actions/.github/workflows/golangci-lint.yml@b5293d661baea684bc9d1a95b1ecd64ead344b92 # v1.7.4
     with:
       args: --config=.golangci.yml ./src
+      runner: arc-runner-set-amd64
