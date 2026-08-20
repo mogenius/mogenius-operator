@@ -28,3 +28,4 @@ jobs:
     with:
       args: --config=.golangci.yml ./src
       runner: arc-runner-set-amd64
+      golangci_lint_version: v2.13.0
