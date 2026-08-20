@@ -35,8 +35,6 @@ func (f *FollowUpResource) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-
-
 // describeToolCall renders a compact human-readable activity line for the UI,
 // e.g. "list_kubernetes_resources (kind: Pod, namespace: harbor)".
 func describeToolCall(name string, args map[string]any) string {

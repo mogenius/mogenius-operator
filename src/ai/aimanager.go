@@ -219,8 +219,10 @@ type AiModelUsageInfo struct {
 	Exceeded        bool  `json:"exceeded,omitempty"`
 }
 
+// AiResponse carries the pending tool calls of a PROPOSED task — the change an
+// agent wants to make and a user has to approve. It is nil for every other
+// state: a run's own text output is not persisted (the timeline steps are).
 type AiResponse struct {
-	ErrorMessage string        `json:"errorMessage"`
 	ToolRequests []ToolRequest `json:"toolRequests"`
 }
 
